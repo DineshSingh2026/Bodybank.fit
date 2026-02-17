@@ -24,6 +24,7 @@ body::after{content:'';position:fixed;inset:0;background-image:url("data:image/s
 
 /* NAV */
 nav{position:fixed;top:0;left:0;right:0;z-index:10010;display:flex;align-items:center;justify-content:space-between;padding:12px 48px;padding-left:max(48px,env(safe-area-inset-left));padding-right:max(48px,env(safe-area-inset-right));padding-top:max(12px,env(safe-area-inset-top));background:#060606;border-bottom:1px solid var(--bdr);gap:20px;flex-wrap:nowrap}
+body.site-nav-hidden nav#nv{display:none !important}
 .nb{display:flex;align-items:center;text-decoration:none;flex-shrink:0}
 .nav-logo-img{height:54px;width:auto;object-fit:contain;mix-blend-mode:lighten}
 .nm{display:flex;gap:28px;list-style:none;align-items:center;flex-shrink:1;min-width:0}
@@ -1538,6 +1539,7 @@ async function adminLogin() {
     
     if (data.role === 'admin') {
       document.getElementById('adminPanel').classList.add('open');
+      document.body.classList.add('site-nav-hidden');
       lockBodyScroll();
       loadDashboard();
     } else {
@@ -1919,6 +1921,7 @@ function logoutAdmin() {
   window.currentUser = null;
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
   document.getElementById('adminPanel').classList.remove('open');
+  document.body.classList.remove('site-nav-hidden');
   closeModal('loginModal');
   closeModal('signupModal');
   closeModal('auditModal');
@@ -1986,6 +1989,7 @@ function openUserDashboard(user) {
     document.getElementById('welcomeAvatarPlaceholder').style.display = 'grid';
   }
   document.getElementById('userPanel').classList.add('open');
+  document.body.classList.add('site-nav-hidden');
   var logoutBtn = document.getElementById('userLogoutBtn');
   if (logoutBtn) logoutBtn.style.display = '';
   lockBodyScroll();
@@ -2001,6 +2005,7 @@ function logoutUser() {
   window.currentUser = null;
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
   document.getElementById('userPanel').classList.remove('open');
+  document.body.classList.remove('site-nav-hidden');
   unlockBodyScroll();
 }
 
@@ -2533,6 +2538,7 @@ function handleGoogleResponse(response) {
     closeModal('signupModal');
     if (data.role === 'admin') {
       document.getElementById('adminPanel').classList.add('open');
+      document.body.classList.add('site-nav-hidden');
       lockBodyScroll();
       loadDashboard();
     } else {
@@ -2553,6 +2559,7 @@ function restoreSession() {
     window.currentUser = data;
     if (data.role === 'admin') {
       document.getElementById('adminPanel').classList.add('open');
+      document.body.classList.add('site-nav-hidden');
       lockBodyScroll();
       loadDashboard();
     } else {
