@@ -755,6 +755,45 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
+// ============ ADMIN: VIEW DATABASE ============
+app.get('/api/admin/db-view', (req, res) => {
+  try {
+    if (!db) {
+      return res.status(500).json({ error: 'Database not initialized' });
+    }
+
+    const tables = ['users', 'audit_requests', 'tribe_members', 'workout_logs', 'contact_messages', 'meetings', 'part2_audit'];
+    const result = {};
+    
+    tables.forEach(table => {
+      try {
+        const query = db.exec(`SELECT * FROM ${table}`);
+        if (query.length && query[0].values.length) {
+          const { columns, values } = query[0];
+          result[table] = values.map(row => {
+            const obj = {};
+            columns.forEach((col, i) => { obj[col] = row[i]; });
+            return obj;
+          });
+        } else {
+          result[table] = [];
+        }
+      } catch (e) {
+        result[table] = { error: e.message };
+      }
+    });
+    
+    res.json({
+      db_path: dbFilePath,
+      tables: result,
+      timestamp: new Date().toISOString()
+    });
+  } catch (e) {
+    console.error('DB view error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ============ SERVE FRONTEND ============
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
