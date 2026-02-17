@@ -76,9 +76,17 @@ async function initDB() {
   }
 
   if (fs.existsSync(DB_PATH)) {
-    const buffer = fs.readFileSync(DB_PATH);
-    db = new SQL.Database(buffer);
-    console.log('✅ Loaded existing database');
+    const stat = fs.statSync(DB_PATH);
+    if (stat.isDirectory()) {
+      console.warn('⚠️ DB_PATH points to a directory; removing it and starting with a new database.');
+      fs.rmSync(DB_PATH, { recursive: true });
+      db = new SQL.Database();
+      console.log('✅ Created new database');
+    } else {
+      const buffer = fs.readFileSync(DB_PATH);
+      db = new SQL.Database(buffer);
+      console.log('✅ Loaded existing database');
+    }
   } else {
     db = new SQL.Database();
     console.log('✅ Created new database');
