@@ -15,10 +15,7 @@
    - Set `DB_PATH` if the app should use a specific directory (e.g. persistent volume).
    - Ensure the directory exists and the process can read/write it.
 
-4. **SMTP (optional)**
-   - For “Forgot password” emails, set `SMTP_*` and `MAIL_FROM` in `.env`.
-
-5. **Google Sign-In**
+4. **Google Sign-In**
    - Set `GOOGLE_CLIENT_ID` in `.env` and add your deployment origin to the OAuth client.
 
 ## Run

@@ -99,7 +99,19 @@ nav.scrolled{padding:8px 48px;padding-left:max(48px,env(safe-area-inset-left));p
 .tf-spotlight-story .tf-story-intro{font-weight:600;margin-bottom:12px;color:var(--gold)}
 .tf-spotlight-story .tf-story-quote{font-style:italic;color:var(--gold);margin:12px 0}
 .tf-spotlight-story .tf-story-attribution{font-size:14px;color:var(--gold);margin-top:16px;letter-spacing:0.5px}
-@media(max-width:700px){.tf-wrap{margin:0 -16px}.tf-spotlight{border-radius:16px;padding:16px;padding-top:20px}.tf-spotlight-img-wrap{border-radius:10px}.tf-spotlight-img-wrap img{max-width:100%;height:auto}.tf-spotlight-result{padding:16px 20px;gap:12px}.tf-spotlight-result .tf-before{font-size:13px}.tf-spotlight-result .tf-after{font-size:16px}.tf-spotlight-story{padding:20px 20px 24px;font-size:14px}.tf-scroll-hint{font-size:12px}}
+.tf-section-wrap{position:relative;max-width:520px;margin:0 auto}
+.tf-arrow-btn{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1.5px solid var(--gold);background:rgba(6,6,6,0.85);color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;z-index:10;transition:all .25s;user-select:none;-webkit-tap-highlight-color:transparent}
+.tf-arrow-btn:hover{background:rgba(200,164,78,0.2);color:var(--cream);transform:translateY(-50%) scale(1.05)}
+.tf-arrow-btn:disabled{opacity:0.35;cursor:not-allowed;pointer-events:none}
+.tf-arrow-btn.tf-prev{left:-12px}
+.tf-arrow-btn.tf-next{right:-12px}
+.tf-dots{display:flex;justify-content:center;gap:10px;margin-top:20px;flex-wrap:wrap}
+.tf-dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.2);cursor:pointer;transition:all .25s;padding:0}
+.tf-dot:hover{background:rgba(200,164,78,0.5)}
+.tf-dot.active{background:var(--gold);border-color:var(--gold);transform:scale(1.2)}
+.tf-scroll-hint{text-align:center;margin-top:16px;font-size:14px;color:rgba(255,255,255,0.6);letter-spacing:0.5px}
+.tf-scroll-hint strong{color:var(--gold);font-weight:600}
+@media(max-width:700px){.tf-wrap{margin:0 -16px}.tf-spotlight{border-radius:16px;padding:16px;padding-top:20px}.tf-spotlight-img-wrap{border-radius:10px}.tf-spotlight-img-wrap img{max-width:100%;height:auto}.tf-spotlight-result{padding:16px 20px;gap:12px}.tf-spotlight-result .tf-before{font-size:13px}.tf-spotlight-result .tf-after{font-size:16px}.tf-spotlight-story{padding:20px 20px 24px;font-size:14px}.tf-scroll-hint{font-size:12px}.tf-arrow-btn{width:40px;height:40px;font-size:18px}.tf-arrow-btn.tf-prev{left:4px}.tf-arrow-btn.tf-next{right:4px}}
 
 /* WHY FAIL - compact list */
 .fail-grid{display:flex;flex-direction:column;max-width:680px;margin:0 auto;gap:0}
@@ -1056,7 +1068,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       </div>
     </div>
     <button class="form-submit" onclick="event.preventDefault();adminLogin()">Login Now</button>
-    <p style="text-align:right;margin:-8px 0 12px"><a href="#" style="color:var(--gold);font-size:12px" onclick="openPopup('forgotModal');closeModal('loginModal');return false">Forgot Password?</a></p>
+    <!-- Forgot password removed -->
     <p class="login-footer">Don't Have An Account? <a href="#" onclick="openModal('signupModal');closeModal('loginModal');return false;">Sign Up</a></p>
   </div>
 </div>
@@ -1204,7 +1216,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <div class="gold-line"></div>
     <h2 class="sec-heading" style="text-align:center"><span class="w">Transformations</span></h2>
     <p class="sec-sub tf-sec-sub" style="margin-bottom:48px">Real results from our Tribes.</p>
-    <div class="tf-wrap">
+    <div class="tf-section-wrap">
+      <button type="button" class="tf-arrow-btn tf-prev" id="tfPrev" aria-label="Previous transformation">‹</button>
+      <button type="button" class="tf-arrow-btn tf-next" id="tfNext" aria-label="Next transformation">›</button>
+    <div class="tf-wrap" id="tfScroll">
       <div class="tf-spotlight">
         <div class="tf-spotlight-img-wrap">
           <img src="img/transformations/6095797176152821202.jpg" alt="Transformation: Kanshika" loading="lazy">
@@ -1309,7 +1324,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         </div>
       </div>
     </div>
-    <p class="tf-scroll-hint">Scroll for more <span>→</span></p>
+    <div class="tf-dots" id="tfDots" aria-hidden="true"></div>
+    <p class="tf-scroll-hint">See all transformations</p>
+    </div>
   </div>
 </section>
 
@@ -1426,6 +1443,26 @@ function closeModal(id){
 function togglePw(){const i=document.getElementById('pwInput');i.type=i.type==='password'?'text':'password'}
 const ob=new IntersectionObserver(e=>{e.forEach(n=>{if(n.isIntersecting)n.target.classList.add('v')})},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
 document.querySelectorAll('.rv').forEach(e=>ob.observe(e));
+(function(){
+  var wrap=document.getElementById('tfScroll'), prev=document.getElementById('tfPrev'), next=document.getElementById('tfNext'), dotsEl=document.getElementById('tfDots');
+  if(!wrap||!prev||!next||!dotsEl)return;
+  var cards=wrap.querySelectorAll('.tf-spotlight'), n=cards.length;
+  for(var i=0;i<n;i++){
+    var dot=document.createElement('button'); dot.type='button'; dot.className='tf-dot'+(i===0?' active':''); dot.setAttribute('aria-label','Transformation '+(i+1)+' of '+n); dot.dataset.index=i;
+    dotsEl.appendChild(dot);
+  }
+  function updateTf(){
+    var sw=wrap.scrollWidth, cw=wrap.clientWidth, sl=wrap.scrollLeft;
+    var idx=Math.round(sl/cw); idx=Math.min(idx,n-1); idx=Math.max(idx,0);
+    prev.disabled=sl<=2; next.disabled=sl>=sw-cw-2;
+    dotsEl.querySelectorAll('.tf-dot').forEach(function(d,i){ d.classList.toggle('active',i===idx); });
+  }
+  wrap.addEventListener('scroll',updateTf);
+  prev.addEventListener('click',function(){ wrap.scrollBy({left:-wrap.clientWidth,behavior:'smooth'}); });
+  next.addEventListener('click',function(){ wrap.scrollBy({left:wrap.clientWidth,behavior:'smooth'}); });
+  dotsEl.querySelectorAll('.tf-dot').forEach(function(d){ d.addEventListener('click',function(){ var i=parseInt(d.dataset.index,10); wrap.scrollTo({left:wrap.clientWidth*i,behavior:'smooth'}); }); });
+  updateTf();
+})();
 updateGoogleButtonVisibility();
 if(window.location.hash==='#login'){openModal('loginModal');history.replaceState(null,'',location.pathname+location.search)}
 (function(){

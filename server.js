@@ -7,7 +7,6 @@ const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
-const nodemailer = require('nodemailer');
 
 // ============ CONFIG ============
 const PORT = process.env.PORT || 3000;
@@ -16,28 +15,6 @@ const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'data', 'bodybank.db');
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursite.com (production)
-
-// Optional SMTP for password reset emails (set SMTP_USER + SMTP_PASS to enable)
-const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
-const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
-const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
-const SMTP_USER = process.env.SMTP_USER || '';
-const SMTP_PASS = process.env.SMTP_PASS || '';
-const MAIL_FROM = process.env.MAIL_FROM || SMTP_USER || 'noreply@bodybank.fit';
-const SITE_URL = process.env.SITE_URL || ''; // e.g. https://yoursite.com (used in reset link)
-
-let mailTransporter = null;
-if (SMTP_USER && SMTP_PASS) {
-  mailTransporter = nodemailer.createTransport({
-    host: SMTP_HOST,
-    port: SMTP_PORT,
-    secure: SMTP_SECURE,
-    auth: { user: SMTP_USER, pass: SMTP_PASS }
-  });
-  console.log('✅ SMTP configured for password reset emails');
-} else if (NODE_ENV !== 'production') {
-  console.log('ℹ️ SMTP not configured — reset links will be logged to console and returned in API (dev only)');
-}
 
 const app = express();
 
@@ -187,13 +164,6 @@ async function initDB() {
     time_slot TEXT NOT NULL,
     status TEXT DEFAULT 'scheduled',
     notes TEXT DEFAULT '',
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-  )`);
-
-  db.run(`CREATE TABLE IF NOT EXISTS password_reset_tokens (
-    token TEXT PRIMARY KEY,
-    user_id TEXT NOT NULL,
-    expires_at DATETIME NOT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
@@ -402,91 +372,6 @@ app.post('/api/auth/google', (req, res) => {
   }
 });
 
-const RESET_TOKEN_EXPIRY_MS = 60 * 60 * 1000; // 1 hour
-
-app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) => {
-  try {
-    const { email } = req.body || {};
-    if (!email) return res.status(400).json({ error: 'Email required' });
-    const emailNorm = String(email).trim().toLowerCase();
-    const user = queryOne("SELECT id FROM users WHERE LOWER(email) = ?", [emailNorm]);
-    if (user) {
-      const token = uuidv4().replace(/-/g, '');
-      const expiresAt = new Date(Date.now() + RESET_TOKEN_EXPIRY_MS).toISOString();
-      db.run("INSERT INTO password_reset_tokens (token, user_id, expires_at) VALUES (?, ?, ?)", [token, user.id, expiresAt]);
-      saveDB();
-
-      const baseUrl = SITE_URL || ((req.protocol || 'http') + '://' + (req.get('host') || 'localhost:' + PORT));
-      const resetLink = `${baseUrl.replace(/\/$/, '')}/index.html?reset=${token}`;
-
-      if (mailTransporter) {
-        try {
-          await mailTransporter.sendMail({
-            from: MAIL_FROM,
-            to: emailNorm,
-            subject: 'Body Bank — Reset your password',
-            text: `You requested a password reset. Click the link below (valid for 1 hour):\n\n${resetLink}\n\nIf you didn't request this, you can ignore this email.`,
-            html: `<p>You requested a password reset. Click the link below (valid for 1 hour):</p><p><a href="${resetLink}" style="color:#c8a44e;font-weight:bold">Reset password</a></p><p>Or copy this link: ${resetLink}</p><p>If you didn't request this, you can ignore this email.</p>`
-          });
-        } catch (mailErr) {
-          console.error('Forgot password — email send failed:', mailErr);
-          return res.status(500).json({ error: 'Failed to send reset email. Please try again later.' });
-        }
-      } else if (NODE_ENV !== 'production') {
-        console.log('[Forgot password] Reset link for', emailNorm, ':', resetLink);
-      }
-
-      res.json({
-        message: 'If an account exists, a reset link has been sent',
-        resetLink: !mailTransporter && NODE_ENV !== 'production' ? resetLink : undefined
-      });
-    } else {
-      res.json({ message: 'If an account exists, a reset link has been sent' });
-    }
-  } catch (e) {
-    console.error('Forgot password error:', e);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-app.get('/api/auth/verify-reset-token/:token', (req, res) => {
-  try {
-    const row = queryOne("SELECT user_id, expires_at FROM password_reset_tokens WHERE token = ?", [req.params.token]);
-    if (!row) return res.json({ valid: false });
-    if (new Date(row.expires_at) < new Date()) {
-      db.run("DELETE FROM password_reset_tokens WHERE token = ?", [req.params.token]);
-      saveDB();
-      return res.json({ valid: false });
-    }
-    res.json({ valid: true });
-  } catch (e) {
-    res.json({ valid: false });
-  }
-});
-
-app.post('/api/auth/reset-password', rateLimiter(5, 60000), (req, res) => {
-  try {
-    const { token, new_password } = req.body || {};
-    if (!token || !new_password) return res.status(400).json({ error: 'Token and new password required' });
-    if (new_password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
-    const row = queryOne("SELECT user_id, expires_at FROM password_reset_tokens WHERE token = ?", [token]);
-    if (!row) return res.status(400).json({ error: 'Invalid or expired reset link' });
-    if (new Date(row.expires_at) < new Date()) {
-      db.run("DELETE FROM password_reset_tokens WHERE token = ?", [token]);
-      saveDB();
-      return res.status(400).json({ error: 'Reset link has expired' });
-    }
-    const hash = bcrypt.hashSync(new_password, 10);
-    db.run("UPDATE users SET password = ? WHERE id = ?", [hash, row.user_id]);
-    db.run("DELETE FROM password_reset_tokens WHERE token = ?", [token]);
-    saveDB();
-    res.json({ message: 'Password updated. You can now log in.' });
-  } catch (e) {
-    console.error('Reset password error:', e);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
 app.post('/api/auth/signup', rateLimiter(5, 60000), (req, res) => {
   try {
     const { email, password, first_name, last_name, phone } = req.body || {};
@@ -502,7 +387,6 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), (req, res) => {
     db.run("INSERT INTO users (id, email, password, first_name, last_name, phone) VALUES (?,?,?,?,?,?)",
       [id, emailNorm, hash, first_name || '', last_name || '', phone || '']);
     saveDB();
-
     res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user' });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
@@ -519,7 +403,6 @@ app.post('/api/audit', rateLimiter(5, 60000), (req, res) => {
     db.run(`INSERT INTO audit_requests (id,first_name,last_name,age,sex,email,phone,country,city,occupation,work_intensity,fitness_experience,goals,motivation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.first_name, b.last_name||'', b.age||null, b.sex||'', b.email, b.phone||'', b.country||'', b.city||'', b.occupation||'', b.work_intensity||'', b.fitness_experience||'', b.goals||'', b.motivation||'']);
     saveDB();
-
     res.json({ id, message: 'Request submitted successfully' });
   } catch (e) {
     res.status(500).json({ error: 'Submission failed' });
@@ -560,7 +443,6 @@ app.post('/api/part2', rateLimiter(5, 60000), (req, res) => {
     db.run(`INSERT INTO part2_audit (id, name, email, mobile, sports_history, injuries, mental_health, gym_experience, food_choices, vices_addictions, goals, what_compelled, activity_level) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.name || '', b.email || '', b.mobile || '', b.sports_history || '', b.injuries || '', b.mental_health || '', b.gym_experience || '', b.food_choices || '', b.vices_addictions || '', b.goals || '', b.what_compelled || '', b.activity_level || '']);
     saveDB();
-
     res.json({ id, message: 'Form submitted successfully' });
   } catch (e) {
     res.status(500).json({ error: 'Submission failed' });
@@ -589,7 +471,6 @@ app.post('/api/meetings', rateLimiter(10, 60000), (req, res) => {
     db.run(`INSERT INTO meetings (id, user_id, user_name, user_email, user_phone, meeting_date, time_slot, status, notes) VALUES (?,?,?,?,?,?,?,?,?)`,
       [id, b.user_id, b.user_name||'', b.user_email||'', b.user_phone||'', b.meeting_date, b.time_slot, 'scheduled', b.notes||'']);
     saveDB();
-
     res.json({ id, message: 'Call scheduled successfully' });
   } catch (e) {
     console.error('[meetings] POST error:', e.message);
@@ -645,7 +526,6 @@ app.post('/api/tribe', (req, res) => {
     db.run(`INSERT INTO tribe_members (id,first_name,last_name,email,phone,city,phase,start_date,activity_per_week,starting_weight,current_weight,target_weight,next_checkin,notes) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.first_name, b.last_name||'', b.email||'', b.phone||'', b.city||'', b.phase||1, b.start_date||new Date().toISOString().split('T')[0], b.activity_per_week||0, b.starting_weight||null, b.current_weight||null, b.target_weight||null, b.next_checkin||'', b.notes||'']);
     saveDB();
-
     res.json({ id, message: 'Member added' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to add member' });

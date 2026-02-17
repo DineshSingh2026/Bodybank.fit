@@ -1,0 +1,10 @@
+# Render Blueprint — BodyBank
+# Repo root = app root (server.js, package.json). Do NOT set Root Directory to "src".
+
+services:
+  - type: web
+    name: bodybank-fit
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    # Root Directory: leave empty so Render uses repo root (where server.js lives)
