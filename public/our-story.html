@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#060606">
+<title>Our Story — BodyBank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--black:#060606;--dark2:#060606;--dark3:#0a0a0a;--gold:#c8a44e;--goldg:linear-gradient(135deg,#d0b058 0%,#c8a44e 50%,#a68c3e 100%);--cream:#f2ece0;--creamd:#bfb9ab;--muted:#666;--bdr:rgba(200,164,78,0.2)}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth;overflow-x:hidden}
+.skip-link{position:absolute;left:-9999px;z-index:99999;padding:14px 24px;background:var(--gold);color:var(--black);font-weight:700;font-size:14px;text-decoration:none;border-radius:0 0 6px 0;transition:left .2s}
+.skip-link:focus{left:0;outline:2px solid var(--cream);outline-offset:2px}
+body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;font-weight:300;line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;padding:12px 48px;padding-left:max(48px,env(safe-area-inset-left));padding-right:max(48px,env(safe-area-inset-right));padding-top:max(12px,env(safe-area-inset-top));background:#060606;border-bottom:1px solid var(--bdr);gap:20px}
+.back-btn{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;border:1.5px solid var(--gold);background:rgba(6,6,6,0.7);color:var(--gold);text-decoration:none;transition:all .3s;flex-shrink:0}
+.back-btn:hover{background:rgba(200,164,78,0.2);border-color:var(--gold);color:var(--gold)}
+.nb{display:flex;align-items:center;text-decoration:none;color:var(--gold)}
+.nav-logo-img{height:44px;width:auto;object-fit:contain;mix-blend-mode:lighten}
+.nt{display:none;margin-left:auto;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:10px}
+.nt span{display:block;width:24px;height:1.5px;background:var(--gold)}
+.mm{display:none;position:fixed;inset:0;background:rgba(6,6,6,0.97);z-index:99;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.mm.open{display:flex}
+.mm a{color:var(--cream);text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;padding:12px}
+.mm a:hover{color:var(--gold)}
+.mm-c{position:absolute;top:max(18px,env(safe-area-inset-top));right:max(24px,env(safe-area-inset-right));background:none;border:none;color:var(--gold);font-size:30px;cursor:pointer;padding:8px}
+.sec{padding:120px 48px 100px;position:relative;max-width:800px;margin:0 auto}
+.gold-line{width:100%;height:1px;background:var(--bdr);margin-bottom:40px}
+.os-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5vw,56px);letter-spacing:2px;text-transform:uppercase;text-align:center;color:var(--gold);margin-bottom:40px;line-height:1.2}
+.os-body{color:var(--cream);font-size:17px;line-height:1.8;text-align:left}
+.os-body p{margin-bottom:24px}
+.os-body .hl{color:var(--gold);font-weight:600}
+@media(max-width:900px){
+  body{font-size:17px;line-height:1.7}
+  .os-title{font-size:clamp(38px,6vw,52px)}
+  .os-body{font-size:18px}
+  nav{padding:10px 16px;gap:12px}.nt{display:flex}
+  .mm a{font-size:26px}
+}
+.nav-cta{padding:9px 22px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:all .3s}.nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,164,78,0.3)}
+@media(max-width:600px){
+  body{font-size:17px}
+  .sec{padding:100px 16px 60px}
+  .os-title{font-size:36px}
+  .os-body{font-size:18px}
+  .os-body p{margin-bottom:22px}
+  .mm a{font-size:28px}
+}
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+<nav id="nv">
+  <a href="index.html" class="back-btn" title="Back to home" aria-label="Back to home">&#10094;</a>
+  <a href="index.html" class="nb"><img src="img/logo.png" alt="BodyBank" class="nav-logo-img" decoding="async"></a>
+  <button class="nt" onclick="document.getElementById('mo').classList.add('open')"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="mm" id="mo">
+  <button class="mm-c" onclick="document.getElementById('mo').classList.remove('open')">&times;</button>
+  <a href="index.html#hero" onclick="document.getElementById('mo').classList.remove('open')">Home</a>
+  <a href="index.html#results" onclick="document.getElementById('mo').classList.remove('open')">Transformations</a>
+  <a href="tribe-stories.html" onclick="document.getElementById('mo').classList.remove('open')">Tribe Stories</a>
+  <a href="our-story.html" class="active" onclick="document.getElementById('mo').classList.remove('open')">Our Story</a>
+  <a href="index.html#contact" onclick="document.getElementById('mo').classList.remove('open')">Contact us</a>
+  <a href="index.html#login" class="nav-cta" onclick="document.getElementById('mo').classList.remove('open')">Login</a>
+</div>
+
+<main id="main" role="main">
+<section class="sec">
+  <div class="gold-line"></div>
+  <h1 class="os-title">Our Story</h1>
+  <div class="os-body">
+    <p>2020 ripped us apart. COVID didn't just strike—it devoured the vulnerable, feasting on lifestyle diseases. Loved ones gasped their last breaths. <span class="hl">Friends &amp; family gone forever.</span> I held the grief, the rage, the emptiness of families torn. That hell woke me: Health is sacred armor—not for me alone, but my tribe, my blood, my world.</p>
+    <p>Body Bank rose from that <span class="hl">pain</span>: Not just abs or physiques (the top of one mountain is the base of the next), but true health + immunity. We share mindset, fitness, and nutrition transformations on social media to educate and protect.</p>
+    <p><span class="hl">This is for my tribe.</span> Join the new generation. Blend ancestral wisdom, modern science, nature, and anti-aging protocols to defy limits. Become pandemic-proof, evolve human performance, and reach the real summit—together.</p>
+    <p><span class="hl">Health is wealth.</span> So, let Body Bank earn your health back! Your transformative journey starts now!</p>
+  </div>
+</section>
+</main>
+</body>
+</html>

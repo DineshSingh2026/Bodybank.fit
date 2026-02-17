@@ -1,0 +1,24 @@
+{
+  "name": "bodybank",
+  "version": "1.0.0",
+  "description": "BodyBank — Lifestyle Management Platform",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "dotenv": "^17.3.1",
+    "express": "^5.1.0",
+    "google-auth-library": "^10.3.0",
+    "nodemailer": "^6.9.16",
+    "sql.js": "^1.12.0",
+    "uuid": "^11.1.0"
+  }
+}

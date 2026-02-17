@@ -1,0 +1,19 @@
+BodyBank database – open in DB Browser for SQLite
+================================================
+
+1. Install DB Browser for SQLite (if not already):
+   https://sqlitebrowser.org/dl/
+   → Download the Windows installer (.exe), run it, follow the steps.
+
+2. Open this database:
+   • In DB Browser: File → Open Database
+   • Go to this folder and select bodybank.db
+
+   Full path (copy-paste into the “File name” box or use to navigate):
+   c:\Users\dinesht\Desktop\bb sai gompa 16 feb\BB Volume 1\bodybank-deploy\data\bodybank.db
+
+3. Then you can:
+   • Browse Data – pick a table (users, audit_requests, tribe_members, etc.)
+   • Execute SQL – run queries in the “Execute SQL” tab
+
+Tables: users, audit_requests, tribe_members, workout_logs, contact_messages, meetings, part2_audit

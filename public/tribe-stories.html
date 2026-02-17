@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#060606">
+<title>Tribe Stories — BodyBank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cormorant+Garamond:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--black:#060606;--dark2:#060606;--gold:#c8a44e;--goldg:linear-gradient(135deg,#d0b058 0%,#c8a44e 50%,#a68c3e 100%);--cream:#f2ece0;--creamd:#bfb9ab;--muted:#666;--bdr:rgba(200,164,78,0.2)}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth;overflow-x:hidden}
+body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;font-weight:300;line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased;padding-bottom:80px}
+.skip-link{position:absolute;left:-9999px;z-index:99999;padding:14px 24px;background:var(--gold);color:var(--black);font-weight:700;font-size:14px;text-decoration:none;border-radius:0 0 6px 0;transition:left .2s}
+.skip-link:focus{left:0;outline:2px solid var(--cream);outline-offset:2px}
+
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:12px 48px;padding-left:max(48px,env(safe-area-inset-left));padding-right:max(48px,env(safe-area-inset-right));padding-top:max(12px,env(safe-area-inset-top));background:#060606;border-bottom:1px solid var(--bdr);gap:20px}
+.back-btn{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;border:1.5px solid var(--gold);background:rgba(6,6,6,0.7);color:var(--gold);text-decoration:none;transition:all .3s;flex-shrink:0}
+.back-btn:hover{background:rgba(200,164,78,0.2);border-color:var(--gold);color:var(--gold)}
+.nb{display:flex;align-items:center;text-decoration:none;color:var(--gold)}
+.nav-logo-img{height:44px;width:auto;object-fit:contain;mix-blend-mode:lighten}
+.nm{display:flex;gap:28px;list-style:none;align-items:center}
+.nm a{color:var(--creamd);text-decoration:none;font-size:12px;font-weight:500;letter-spacing:2px;text-transform:uppercase;transition:color .3s}
+.nm a:hover,.nm a.active{color:var(--gold)}
+.nav-right{display:flex;align-items:center;gap:10px}
+.nav-cta{padding:9px 22px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:all .3s;cursor:pointer}
+.nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,164,78,0.3)}
+.nt{display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:10px;color:var(--gold)}
+.nt span{display:block;width:24px;height:1.5px;background:var(--gold)}
+.mm{display:none;position:fixed;inset:0;background:rgba(6,6,6,0.97);z-index:99;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.mm.open{display:flex}
+.mm a{color:var(--cream);text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;padding:12px}
+.mm a:hover{color:var(--gold)}
+.mm-c{position:absolute;top:max(18px,env(safe-area-inset-top));right:max(24px,env(safe-area-inset-right));background:none;border:none;color:var(--gold);font-size:30px;cursor:pointer;padding:8px}
+
+/* Tribe Stories – vertical scroll, same card design as Transformations */
+.ts-sec{padding:120px 24px 80px;padding-top:max(100px,env(safe-area-inset-top));position:relative}
+.ts-sec .si{max-width:520px;margin:0 auto;width:100%;display:flex;flex-direction:column;align-items:center;text-align:center}
+.gold-line{width:48px;height:2px;background:var(--gold);margin:0 auto 20px}
+.sec-label{font-size:11px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+.sec-heading{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5vw,52px);letter-spacing:2px;margin-bottom:16px;text-transform:uppercase;line-height:1}
+.sec-heading .g{color:var(--gold)}
+.sec-sub{color:var(--creamd);font-size:16px;max-width:480px;margin:0 auto 40px;line-height:1.7}
+.ts-wrap{display:flex;flex-direction:column;gap:28px;width:100%;max-width:520px;margin:0 auto}
+.ts-spotlight{position:relative;border-radius:20px;overflow:hidden;background:linear-gradient(180deg,rgba(18,18,18,0.98),rgba(8,8,8,0.99));border:1px solid rgba(255,255,255,0.06);box-shadow:0 24px 56px rgba(0,0,0,0.4);padding:20px;padding-top:24px}
+.ts-spotlight::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(200,164,78,0.6),transparent);z-index:2}
+.ts-spotlight-img-wrap{position:relative;overflow:hidden;background:rgba(0,0,0,0.2);border-radius:12px;margin:0 auto;max-width:100%}
+.ts-spotlight-img-wrap img{width:100%;height:auto;display:block;vertical-align:middle;object-fit:contain}
+.ts-spotlight-img-wrap .ts-placeholder{aspect-ratio:4/5;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.02));color:rgba(255,255,255,0.35);font-size:13px;text-align:center;padding:24px;line-height:1.5;letter-spacing:0.5px}
+.ts-spotlight-story{text-align:center;padding:28px 24px 24px;color:#fff;font-size:15px;line-height:1.75;letter-spacing:0.3px}
+.ts-spotlight-story .ts-story-intro{font-weight:600;margin-bottom:12px;color:var(--gold)}
+.ts-spotlight-story .ts-story-quote{font-style:italic;color:var(--gold);margin:12px 0}
+.ts-spotlight-story .ts-story-attribution{font-size:14px;color:var(--gold);margin-top:16px;letter-spacing:0.5px}
+@media(max-width:700px){.ts-sec{padding:90px 16px 60px}.ts-spotlight{border-radius:16px;padding:16px;padding-top:20px}.ts-spotlight-img-wrap{border-radius:10px}.ts-spotlight-story{padding:20px 16px 20px;font-size:14px}.sec-sub{font-size:15px}}
+@media(max-width:900px){nav{padding:10px 20px}.nt{display:flex}.nm{display:none}.nav-right .nav-cta{display:none}.mm .nav-cta{display:inline-flex}}
+@media(max-width:600px){nav{padding:10px 16px}.mm a{font-size:28px}}
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+<nav id="nv">
+  <a href="index.html" class="back-btn" title="Back to home" aria-label="Back to home">&#10094;</a>
+  <a href="index.html" class="nb"><img src="img/logo.png" alt="BodyBank" class="nav-logo-img" decoding="async"></a>
+  <ul class="nm">
+    <li><a href="index.html#hero">Home</a></li>
+    <li><a href="index.html#results">Transformations</a></li>
+    <li><a href="tribe-stories.html" class="active">Tribe Stories</a></li>
+    <li><a href="our-story.html">Our Story</a></li>
+    <li><a href="index.html#contact">Contact us</a></li>
+  </ul>
+  <div class="nav-right">
+    <a href="index.html#login" class="nav-cta">Login</a>
+  </div>
+  <button class="nt" onclick="document.getElementById('mo').classList.add('open')"><span></span><span></span><span></span></button>
+</nav>
+
+<div class="mm" id="mo">
+  <button class="mm-c" onclick="document.getElementById('mo').classList.remove('open')">&times;</button>
+  <a href="index.html#hero" onclick="document.getElementById('mo').classList.remove('open')">Home</a>
+  <a href="index.html#results" onclick="document.getElementById('mo').classList.remove('open')">Transformations</a>
+  <a href="tribe-stories.html" onclick="document.getElementById('mo').classList.remove('open')">Tribe Stories</a>
+  <a href="our-story.html" onclick="document.getElementById('mo').classList.remove('open')">Our Story</a>
+  <a href="index.html#contact" onclick="document.getElementById('mo').classList.remove('open')">Contact us</a>
+  <a href="index.html#login" class="nav-cta" onclick="document.getElementById('mo').classList.remove('open')">Login</a>
+</div>
+
+<section class="sec ts-sec" id="main" role="main">
+  <div class="si">
+    <div class="gold-line"></div>
+    <p class="sec-label">Tribes</p>
+    <h2 class="sec-heading"><span class="g">Tribe Stories</span></h2>
+    <p class="sec-sub">Stories from our Tribes. Real transformations, same blueprint.</p>
+    <div class="ts-wrap">
+      <div class="ts-spotlight">
+        <div class="ts-spotlight-img-wrap">
+          <img src="img/transformations/6095797176152821202.jpg" alt="Tribe story: Kanshika" loading="lazy">
+        </div>
+        <div class="ts-spotlight-story">
+          <p class="ts-story-intro">16 Weeks: Kanshika thrived on women's Cycle Sync program:</p>
+          <p>Weight transformed, fat shed, muscle gained, lean glowing. A fit, strong & confident mental leap!</p>
+          <p class="ts-story-quote">"If I'm putting effort, go all in! Parents are so happy about this change."</p>
+          <p>Body Bank empowers women uniquely. Tribe loyalty = empowered forever.</p>
+          <p class="ts-story-attribution">— Kanshika</p>
+        </div>
+      </div>
+      <div class="ts-spotlight">
+        <div class="ts-spotlight-img-wrap">
+          <img src="img/tribe-stories/IMG_5949.jpeg" alt="Tribe story: Srunish" loading="lazy">
+        </div>
+        <div class="ts-spotlight-story">
+          <p class="ts-story-intro">20 Weeks: My first-ever transformation with Srunish unlocked the game: total body recomposition through relentless effort and consistency.</p>
+          <p>As a core tribe member, he mastered lifestyle management—every detail in nutrition, training, and mindset keeping his physique sharp and unbreakable. From challenge to champion, he proves: Body Bank isn't workouts—it's forever habits. He stays "always at it," embodying the power of lifestyle management. Result? Shredded fat, sculpted muscle, iron mindset.</p>
+          <p class="ts-story-quote">"This taught me how to sustain my results," says Srunish.</p>
+          <p>Your recomposition story can look the same.</p>
+          <p class="ts-story-attribution">— Srunish</p>
+        </div>
+      </div>
+      <div class="ts-spotlight">
+        <div class="ts-spotlight-img-wrap">
+          <img src="img/tribe-stories/IMG_5952.jpeg" alt="Tribe story: Kartik" loading="lazy">
+        </div>
+        <div class="ts-spotlight-story">
+          <p class="ts-story-intro">13 Weeks: Ultra-consistent</p>
+          <p>Kartik crushed at-home calisthenics: Weight shifted, human frame transformed—fat melted, muscle built, lean locked in. No gym needed—Body Bank blueprint delivered.</p>
+          <p class="ts-story-quote">"What a ride! Hope everyone experiences this!"</p>
+          <p>Kartik's proof: Consistency + home training = elite frame. Tribe delivers anywhere. Your lean story starts now.</p>
+          <p class="ts-story-attribution">— Kartik</p>
+        </div>
+      </div>
+      <div class="ts-spotlight">
+        <div class="ts-spotlight-img-wrap">
+          <img src="img/tribe-stories/IMG_5954.jpeg" alt="Tribe story: Vikas" loading="lazy">
+        </div>
+        <div class="ts-spotlight-story">
+          <p class="ts-story-intro">14 Weeks: Prompt powerhouse</p>
+          <p>Vikas crushes regardless: Weight shifted, human frame forged—fat incinerated, muscle stacked, strength surged, lean.</p>
+          <p class="ts-story-quote">"Through this approach, I'm confident I can do better. I'll get ripped, never revert to old ways!"</p>
+          <p>Daily drive via Body Bank blueprint. Tribe organized = unstoppable. Your frame revolution calls.</p>
+          <p class="ts-story-attribution">— Vikas</p>
+        </div>
+      </div>
+      <div class="ts-spotlight">
+        <div class="ts-spotlight-img-wrap">
+          <img src="img/tribe-stories/IMG_5956.jpeg" alt="Tribe story: Prem" loading="lazy">
+        </div>
+        <div class="ts-spotlight-story">
+          <p class="ts-story-intro">19 Weeks: Prem torched 21.7kg fat in 19 weeks—bodyweight only.</p>
+          <p>Scale win + human frame elite: Fat fuel burned, muscle preserved, lean look. Bonus: Muscular + cardio endurance skyrocketed.</p>
+          <p>Body Bank blueprint: Pure ferocity + consistency. Tribe results scream. Your fat-loss fire ignites here.</p>
+          <p class="ts-story-attribution">— Prem</p>
+        </div>
+      </div>
+      <div class="ts-spotlight">
+        <div class="ts-spotlight-img-wrap">
+          <img src="img/tribe-stories/IMG_5959.jpeg" alt="Tribe story: Rahul" loading="lazy">
+        </div>
+        <div class="ts-spotlight-story">
+          <p class="ts-story-intro">24 Weeks: Juggling med school Rahul never broke stride:</p>
+          <p>Weight shifted, human frame rebuilt—fat gone, muscle surged, lean look.</p>
+          <p class="ts-story-quote">"Gains daily F***, never this happy—didn't think I'd look this good. Damn happy bro!"</p>
+          <p>Body Bank fuels relentless. Tribe med warriors win. Your no-excuse transformation levels up.</p>
+          <p class="ts-story-attribution">— Rahul</p>
+        </div>
+      </div>
+      <div class="ts-spotlight">
+        <div class="ts-spotlight-img-wrap">
+          <img src="img/tribe-stories/IMG_5961.webp" alt="Tribe story: Nisheeth" loading="lazy">
+        </div>
+        <div class="ts-spotlight-story">
+          <p class="ts-story-intro">27 Weeks: Nisheeth dropped weight, rebuilt human frame—fat lost, muscle gained, lean secured.</p>
+          <p class="ts-story-quote">"Consistently being persistent, is what lifestyle management unlocked for me."</p>
+          <p>Body Bank locked 5 pillars: Health, Fitness, Mindset, Nutrition, Transformation. Your OG transformation blueprint awaits.</p>
+          <p class="ts-story-attribution">— Nisheeth</p>
+        </div>
+      </div>
+      <div class="ts-spotlight">
+        <div class="ts-spotlight-img-wrap">
+          <img src="img/tribe-stories/IMG_5962.jpeg" alt="Tribe story: Sandeep" loading="lazy">
+        </div>
+        <div class="ts-spotlight-story">
+          <p class="ts-story-intro">13 Weeks: Sandeep exemplifies grit:</p>
+          <p>Weight dropped, human frame rebuilt—fat torched, muscle stacked, lean + strong. Beyond scale: Full body recomposition via Body Bank blueprint.</p>
+          <p class="ts-story-quote">"One of the best takeaways is that I still try to keep at it! Once part of the tribe, always a part of the tribe."</p>
+          <p>Sandeep proves: Relentless consistency turns bodies (and minds) elite. This is tribe power, your transformation awaits.</p>
+          <p class="ts-story-attribution">— Sandeep</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+</body>
+</html>
