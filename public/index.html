@@ -23,19 +23,20 @@ body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;
 body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
 
 /* NAV */
-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;justify-content:space-between;padding:12px 48px;padding-left:max(48px,env(safe-area-inset-left));padding-right:max(48px,env(safe-area-inset-right));padding-top:max(12px,env(safe-area-inset-top));background:#060606;border-bottom:1px solid var(--bdr);transition:.4s;gap:20px;flex-wrap:nowrap}
-nav.scrolled{padding:8px 48px;padding-left:max(48px,env(safe-area-inset-left));padding-right:max(48px,env(safe-area-inset-right));padding-top:max(8px,env(safe-area-inset-top));background:#060606}
+nav{position:fixed;top:0;left:0;right:0;z-index:10010;display:flex;align-items:center;justify-content:space-between;padding:12px 48px;padding-left:max(48px,env(safe-area-inset-left));padding-right:max(48px,env(safe-area-inset-right));padding-top:max(12px,env(safe-area-inset-top));background:#060606;border-bottom:1px solid var(--bdr);gap:20px;flex-wrap:nowrap}
 .nb{display:flex;align-items:center;text-decoration:none;flex-shrink:0}
-.nav-logo-img{height:44px;width:auto;object-fit:contain;mix-blend-mode:lighten}
+.nav-logo-img{height:54px;width:auto;object-fit:contain;mix-blend-mode:lighten}
 .nm{display:flex;gap:28px;list-style:none;align-items:center;flex-shrink:1;min-width:0}
 .nm a{color:var(--creamd);text-decoration:none;font-size:12px;font-weight:500;letter-spacing:2px;text-transform:uppercase;transition:color .3s;white-space:nowrap}
 .nm a:hover{color:var(--gold)}
 .nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.nav-tagline{font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;letter-spacing:2px;text-transform:uppercase;white-space:nowrap;color:var(--gold);padding-left:12px;border-left:1px solid rgba(200,164,78,0.4);opacity:.95}
 .nav-login{padding:9px 22px;border:1.5px solid var(--gold);border-radius:6px;background:transparent;color:var(--cream);font-family:'Outfit',sans-serif;font-weight:600;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .3s;text-decoration:none}
 .nav-login:hover{background:rgba(200,164,78,0.1)}
 .nav-cta{padding:9px 22px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:all .3s;cursor:pointer}
 .nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,164,78,0.3)}
 .nav-login-btn{display:inline-flex;align-items:center;justify-content:center}
+.nav-login-btn.desktop-only{display:inline-flex}
 .nt{display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:10px;min-width:44px;min-height:44px;justify-content:center;align-items:center}
 .nt span{display:block;width:24px;height:1.5px;background:var(--gold)}
 .mm{display:none;position:fixed;inset:0;background:rgba(6,6,6,0.97);z-index:99;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
@@ -46,9 +47,11 @@ nav.scrolled{padding:8px 48px;padding-left:max(48px,env(safe-area-inset-left));p
 
 /* HERO */
 .hero{min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;position:relative;padding:130px 48px 100px;overflow:hidden}
-.hero-bg{position:absolute;inset:0;background:var(--black)}
+.hero-bg{position:absolute;inset:0;background:var(--black);background-image:url('/img/hero-bg.jpg.jpeg');background-size:cover;background-position:center;background-repeat:no-repeat}
+@media(min-width:901px){.hero-bg{background-position:center top}}
+.hero-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,rgba(6,6,6,0.5),rgba(6,6,6,0.85));pointer-events:none}
 .hero-inner{position:relative;z-index:2;max-width:900px}
-.hero-tag{display:inline-block;font-size:14px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:28px;opacity:0;animation:fsu .8s .2s forwards}
+.hero-tag{display:inline-block;font-size:16px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:28px;opacity:0;animation:fsu .8s .2s forwards}
 .hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(42px,9vw,120px);line-height:.95;letter-spacing:2px;margin-bottom:28px;text-transform:uppercase;opacity:0;animation:fsu .9s .35s forwards}
 .hero h1 .w{color:var(--cream)}.hero h1 .g{color:var(--gold)}
 .hero-sub{font-size:clamp(17px,1.7vw,20px);color:var(--creamd);max-width:640px;margin:0 auto 40px;line-height:1.7;opacity:0;animation:fsu .9s .5s forwards}
@@ -261,6 +264,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 @media(max-width:900px){
   body{font-size:17px;line-height:1.65}
   nav{padding:10px 20px;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right));padding-top:max(10px,env(safe-area-inset-top))}.nm{display:none}.nav-right{display:flex;align-items:center;gap:10px}.nt{display:flex}
+  .nav-login-btn.desktop-only{display:none !important}
+  .nav-tagline{font-size:11px;font-weight:500;letter-spacing:1.5px;padding-left:8px;border-left-width:1px}
+  .nav-logo-img{height:46px}
   .hero{padding:80px 24px 80px;min-height:auto}
   .hero-sub{font-size:18px}
   .sec{padding:64px 24px}
@@ -294,13 +300,13 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 @media(max-width:600px){
   body{font-size:17px}
   .hero h1{font-size:46px;letter-spacing:1px}.hero{padding:75px 18px 70px;min-height:auto}
-  .hero-tag{font-size:15px;letter-spacing:3px;margin-bottom:18px}
+  .hero-tag{font-size:17px;letter-spacing:3px;margin-bottom:18px}
   .hero-sub{font-size:18px;margin-bottom:28px}
   .btn-p,.btn-s{padding:14px 32px;font-size:15px;min-height:48px}
   .hero-scroll{bottom:16px}
   .scroll-ind{width:20px;height:32px}
   .sec{padding:48px 18px}.sec-heading{font-size:36px}.sec-sub{font-size:17px}.sec-label{font-size:13px}
-  .nav-logo-img{height:36px}
+  .nav-logo-img{height:44px}
   .mm a{font-size:28px}
   .ph-side{flex-direction:column;align-items:flex-start}
   .ph-title{font-size:24px}
@@ -1036,8 +1042,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <li><a href="#contact">Contact us</a></li>
   </ul>
   <div class="nav-right">
-    <a href="#" class="nav-cta nav-login-btn" onclick="openModal('loginModal');return false;">Login</a>
-    <button class="nt" onclick="lockBodyScroll();document.getElementById('mo').classList.add('open')"><span></span><span></span><span></span></button>
+    <span class="nav-tagline">Lifestyle Management</span>
+    <a href="#" class="nav-cta nav-login-btn desktop-only" onclick="openModal('loginModal');return false;">Login</a>
+    <button class="nt" id="navHamburger" onclick="lockBodyScroll();document.getElementById('mo').classList.add('open')" aria-label="Open menu"><span></span><span></span><span></span></button>
   </div>
 </nav>
 
@@ -1048,6 +1055,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   <a href="tribe-stories.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Tribe Stories</a>
   <a href="our-story.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Our Story</a>
   <a href="#contact" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Contact us</a>
+  <a href="#" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll();openModal('loginModal');return false;">Login</a>
 </div>
 
 <!-- LOGIN MODAL -->
@@ -1372,7 +1380,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 </footer>
 
 <script>
-window.addEventListener('scroll',()=>{document.getElementById('nv').classList.toggle('scrolled',window.scrollY>50)});
+/* Nav stays fixed with same size at all scroll positions - no scroll class applied */
 function toggleFaq(e){const o=e.classList.contains('op');document.querySelectorAll('.fi').forEach(i=>i.classList.remove('op'));if(!o)e.classList.add('op')}
 
 var _scrollLockCount=0,_savedScrollY=0;
