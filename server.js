@@ -203,6 +203,21 @@ async function initDB() {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  db.run(`CREATE TABLE IF NOT EXISTS hydration_logs (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    amount_ml INTEGER DEFAULT 0,
+    glasses INTEGER DEFAULT 0,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
+  db.run(`CREATE TABLE IF NOT EXISTS weight_logs (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    weight_kg REAL NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   // Create admin (in production, require ADMIN_PASS to be set and not default)
   if (NODE_ENV === 'production' && (!process.env.ADMIN_PASS || ADMIN_PASS === 'admin123')) {
     console.warn('⚠️ Production: set ADMIN_PASS in .env to a strong password. Default admin password is not allowed.');
@@ -629,6 +644,51 @@ app.get('/api/workouts/:userId', (req, res) => {
   res.json(queryAll("SELECT * FROM workout_logs WHERE user_id=? ORDER BY created_at DESC", [req.params.userId]));
 });
 
+// ============ HYDRATION (user log + admin view) ============
+app.post('/api/hydration', (req, res) => {
+  try {
+    const { user_id, amount_ml, glasses } = req.body || {};
+    if (!user_id) return res.status(400).json({ error: 'User ID required' });
+    const id = uuidv4();
+    const aml = amount_ml != null ? parseInt(amount_ml, 10) : 0;
+    const g = glasses != null ? parseInt(glasses, 10) : 0;
+    db.run("INSERT INTO hydration_logs (id, user_id, amount_ml, glasses) VALUES (?,?,?,?)", [id, user_id, aml, g]);
+    saveDB();
+    res.json({ id, message: 'Hydration logged' });
+  } catch (e) {
+    console.error('Hydration error:', e.message);
+    res.status(500).json({ error: 'Failed to log hydration' });
+  }
+});
+
+app.get('/api/admin/hydration', (req, res) => {
+  res.json(queryAll(`SELECT h.id, h.user_id, h.amount_ml, h.glasses, h.created_at,
+    u.first_name, u.last_name, u.email FROM hydration_logs h
+    LEFT JOIN users u ON h.user_id = u.id ORDER BY h.created_at DESC LIMIT 500`));
+});
+
+app.post('/api/weight', (req, res) => {
+  try {
+    const { user_id, weight_kg } = req.body || {};
+    if (!user_id || weight_kg == null) return res.status(400).json({ error: 'User ID and weight required' });
+    const w = parseFloat(weight_kg);
+    if (isNaN(w) || w <= 0) return res.status(400).json({ error: 'Invalid weight' });
+    const id = uuidv4();
+    db.run("INSERT INTO weight_logs (id, user_id, weight_kg) VALUES (?,?,?)", [id, user_id, w]);
+    saveDB();
+    res.json({ id, message: 'Weight logged' });
+  } catch (e) {
+    console.error('Weight error:', e.message);
+    res.status(500).json({ error: 'Failed to log weight' });
+  }
+});
+
+app.get('/api/admin/weight', (req, res) => {
+  res.json(queryAll(`SELECT w.id, w.user_id, w.weight_kg, w.created_at,
+    u.first_name, u.last_name, u.email FROM weight_logs w
+    LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 500`));
+});
+
 // ============ CONTACT MESSAGES ============
 app.post('/api/contact', rateLimiter(5, 60000), (req, res) => {
   try {
@@ -762,7 +822,7 @@ app.get('/api/admin/db-view', (req, res) => {
       return res.status(500).json({ error: 'Database not initialized' });
     }
 
-    const tables = ['users', 'audit_requests', 'tribe_members', 'workout_logs', 'contact_messages', 'meetings', 'part2_audit'];
+    const tables = ['users', 'audit_requests', 'tribe_members', 'workout_logs', 'contact_messages', 'meetings', 'part2_audit', 'hydration_logs', 'weight_logs'];
     const result = {};
     
     tables.forEach(table => {

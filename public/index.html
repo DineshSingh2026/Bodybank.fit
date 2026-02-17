@@ -916,6 +916,8 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <a class="admin-nav-link" href="#" data-tab="messages" onclick="switchTab('messages');closeAdminNavDrawer();return false">Messages</a>
         <a class="admin-nav-link" href="#" data-tab="meetings" onclick="switchTab('meetings');closeAdminNavDrawer();return false">Upcoming Meetings</a>
         <a class="admin-nav-link" href="#" data-tab="part2" onclick="switchTab('part2');closeAdminNavDrawer();return false">Part-2 Form</a>
+        <a class="admin-nav-link" href="#" data-tab="hydration" onclick="switchTab('hydration');closeAdminNavDrawer();return false">Hydration</a>
+        <a class="admin-nav-link" href="#" data-tab="weight" onclick="switchTab('weight');closeAdminNavDrawer();return false">Weight</a>
       </nav>
     </div>
     <div class="admin-tabs" id="adminTabs">
@@ -925,6 +927,8 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <div class="admin-tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
       <div class="admin-tab" data-tab="meetings" onclick="switchTab('meetings')">Upcoming Meetings</div>
       <div class="admin-tab" data-tab="part2" onclick="switchTab('part2')">Part-2 Form</div>
+      <div class="admin-tab" data-tab="hydration" onclick="switchTab('hydration')">Hydration</div>
+      <div class="admin-tab" data-tab="weight" onclick="switchTab('weight')">Weight</div>
     </div>
 
     <!-- TAB 1: Pending Requests -->
@@ -987,6 +991,26 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       </div>
     </div>
 
+    <!-- TAB 7: Hydration -->
+    <div class="admin-tab-content" id="tab-hydration">
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>User</th><th>Email</th><th>Glasses</th><th>Amount (ml)</th><th>Date & time</th></tr></thead>
+          <tbody id="hydrationBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 8: Weight -->
+    <div class="admin-tab-content" id="tab-weight">
+      <div class="admin-table-wrap">
+        <table class="admin-table">
+          <thead><tr><th>User</th><th>Email</th><th>Weight (kg)</th><th>Date & time</th></tr></thead>
+          <tbody id="weightBody"></tbody>
+        </table>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -1010,6 +1034,38 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <div class="form-group"><input type="email" class="form-input" id="forgotEmail" placeholder="Enter your email"></div>
     <button class="form-submit" id="forgotSubmitBtn" onclick="handleForgotPassword()">Send Reset Link</button>
     <p style="text-align:center;margin-top:12px"><a href="#" style="color:var(--gold);font-size:13px" onclick="openModal('loginModal');closePopup('forgotModal');return false">Back to Login</a></p>
+  </div>
+</div>
+
+<!-- HYDRATION REMINDER (logged-in users, up to 3x per day) -->
+<div class="popup-overlay" id="hydrationPopup" onclick="if(event.target===this)dismissHydrationPopup()">
+  <div class="forgot-box hydration-popup-box">
+    <h3>Stay hydrated</h3>
+    <p>How many glasses of water did you have? Log it to stay on track.</p>
+    <div class="form-group">
+      <label>Glasses of water</label>
+      <input type="number" class="form-input" id="hydrationGlasses" placeholder="e.g. 3" min="0" max="30" value="2">
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap">
+      <button type="button" class="nav-login" style="padding:10px 24px" onclick="dismissHydrationPopup()">Skip</button>
+      <button type="button" class="form-submit" style="width:auto;padding:10px 28px" onclick="submitHydration()">Log</button>
+    </div>
+  </div>
+</div>
+
+<!-- WEIGHT REMINDER (logged-in users, once per week) -->
+<div class="popup-overlay" id="weightPopup" onclick="if(event.target===this)dismissWeightPopup()">
+  <div class="forgot-box hydration-popup-box">
+    <h3>Weekly weight check</h3>
+    <p>Log your current weight to track progress. Once a week.</p>
+    <div class="form-group">
+      <label>Weight (kg)</label>
+      <input type="number" class="form-input" id="weightKg" placeholder="e.g. 72.5" min="20" max="300" step="0.1">
+    </div>
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap">
+      <button type="button" class="nav-login" style="padding:10px 24px" onclick="dismissWeightPopup()">Skip</button>
+      <button type="button" class="form-submit" style="width:auto;padding:10px 28px" onclick="submitWeight()">Log</button>
+    </div>
   </div>
 </div>
 
@@ -1621,7 +1677,7 @@ async function submitAudit(form) {
 
 // ========== ADMIN DASHBOARD ==========
 async function loadDashboard() {
-  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMessages(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions()]);
+  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMessages(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions(), loadAdminHydration(), loadAdminWeight()]);
 }
 
 const SESSION_KEY = 'bodybank_session';
@@ -1917,6 +1973,30 @@ async function loadAdminMeetings() {
   }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No upcoming meetings</td></tr>';
 }
 
+async function loadAdminHydration() {
+  const data = await apiCall('GET', '/api/admin/hydration');
+  const tbody = document.getElementById('hydrationBody');
+  if (!tbody) return;
+  const list = data && !data.error && Array.isArray(data) ? data : [];
+  tbody.innerHTML = list.length ? list.map(h => {
+    var name = (h.first_name || '') + ' ' + (h.last_name || '').trim() || '-';
+    var date = h.created_at ? new Date(h.created_at).toLocaleString() : '-';
+    return '<tr><td>' + (name || '-') + '</td><td>' + (h.email || '-') + '</td><td>' + (h.glasses ?? '-') + '</td><td>' + (h.amount_ml ?? '-') + '</td><td>' + date + '</td></tr>';
+  }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No hydration logs yet</td></tr>';
+}
+
+async function loadAdminWeight() {
+  const data = await apiCall('GET', '/api/admin/weight');
+  const tbody = document.getElementById('weightBody');
+  if (!tbody) return;
+  const list = data && !data.error && Array.isArray(data) ? data : [];
+  tbody.innerHTML = list.length ? list.map(function(w) {
+    var name = (w.first_name || '') + ' ' + (w.last_name || '').trim() || '-';
+    var date = w.created_at ? new Date(w.created_at).toLocaleString() : '-';
+    return '<tr><td>' + (name || '-') + '</td><td>' + (w.email || '-') + '</td><td>' + (w.weight_kg != null ? w.weight_kg : '-') + '</td><td>' + date + '</td></tr>';
+  }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">No weight logs yet</td></tr>';
+}
+
 function logoutAdmin() {
   window.currentUser = null;
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
@@ -1949,6 +2029,8 @@ function switchTab(tab) {
   if (tab === 'requests') loadRequests();
   if (tab === 'tribe') loadTribe();
   if (tab === 'part2') loadPart2Submissions();
+  if (tab === 'hydration') loadAdminHydration();
+  if (tab === 'weight') loadAdminWeight();
 }
 function toggleAdminNavDrawer() {
   var overlay = document.getElementById('adminNavOverlay');
@@ -1999,6 +2081,89 @@ function openUserDashboard(user) {
   // Pre-fill contact form
   document.getElementById('ctName').value = (user.first_name + ' ' + user.last_name).trim();
   document.getElementById('ctEmail').value = user.email || '';
+  setTimeout(function(){
+    if (!checkHydrationPopup()) checkWeightPopup();
+  }, 800);
+}
+
+var HYDRATION_POPUP_KEY = 'bodybank_hydration_popup_count';
+function checkHydrationPopup() {
+  if (!window.currentUser || !window.currentUser.id) return false;
+  var today = new Date().toISOString().slice(0, 10);
+  var key = HYDRATION_POPUP_KEY + '_' + today;
+  var count = parseInt(localStorage.getItem(key) || '0', 10);
+  if (count < 3) {
+    var el = document.getElementById('hydrationPopup');
+    if (el) { el.classList.add('show'); return true; }
+  }
+  return false;
+}
+function dismissHydrationPopup() {
+  var today = new Date().toISOString().slice(0, 10);
+  var key = HYDRATION_POPUP_KEY + '_' + today;
+  var count = parseInt(localStorage.getItem(key) || '0', 10);
+  localStorage.setItem(key, String(Math.min(count + 1, 3)));
+  var el = document.getElementById('hydrationPopup');
+  if (el) el.classList.remove('show');
+}
+async function submitHydration() {
+  if (!window.currentUser || !window.currentUser.id) { dismissHydrationPopup(); return; }
+  var input = document.getElementById('hydrationGlasses');
+  var glasses = input ? parseInt(input.value, 10) : 0;
+  if (isNaN(glasses) || glasses < 0) glasses = 0;
+  try {
+    var res = await apiCall('POST', '/api/hydration', { user_id: window.currentUser.id, glasses: glasses, amount_ml: glasses * 250 });
+    if (res && res.error) { if (typeof showPopup === 'function') showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+    var today = new Date().toISOString().slice(0, 10);
+    var key = HYDRATION_POPUP_KEY + '_' + today;
+    var count = parseInt(localStorage.getItem(key) || '0', 10);
+    localStorage.setItem(key, String(Math.min(count + 1, 3)));
+    document.getElementById('hydrationPopup').classList.remove('show');
+    if (typeof showPopup === 'function') showPopup('Logged', 'Hydration logged. Keep it up!', '', 'OK');
+  } catch (e) {
+    if (typeof showPopup === 'function') showPopup('Error', 'Could not save. Try again.', '', 'OK', null, 'error');
+  }
+}
+
+var WEIGHT_POPUP_KEY = 'bodybank_weight_popup_week';
+function getWeightWeekKey() {
+  var d = new Date();
+  var day = d.getDay();
+  var diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  var monday = new Date(d);
+  monday.setDate(diff);
+  return monday.toISOString().slice(0, 10);
+}
+function checkWeightPopup() {
+  if (!window.currentUser || !window.currentUser.id) return;
+  var weekKey = getWeightWeekKey();
+  var key = WEIGHT_POPUP_KEY + '_' + weekKey;
+  if (localStorage.getItem(key)) return;
+  var el = document.getElementById('weightPopup');
+  if (el) el.classList.add('show');
+}
+function dismissWeightPopup() {
+  var weekKey = getWeightWeekKey();
+  localStorage.setItem(WEIGHT_POPUP_KEY + '_' + weekKey, '1');
+  var el = document.getElementById('weightPopup');
+  if (el) el.classList.remove('show');
+}
+async function submitWeight() {
+  if (!window.currentUser || !window.currentUser.id) { dismissWeightPopup(); return; }
+  var input = document.getElementById('weightKg');
+  var w = input ? parseFloat(input.value) : NaN;
+  if (isNaN(w) || w <= 0) {
+    if (typeof showPopup === 'function') showPopup('Invalid', 'Please enter a valid weight (kg).', '', 'OK', null, 'error');
+    return;
+  }
+  try {
+    var res = await apiCall('POST', '/api/weight', { user_id: window.currentUser.id, weight_kg: w });
+    if (res && res.error) { if (typeof showPopup === 'function') showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+    dismissWeightPopup();
+    if (typeof showPopup === 'function') showPopup('Logged', 'Weight logged. See you next week!', '', 'OK');
+  } catch (e) {
+    if (typeof showPopup === 'function') showPopup('Error', 'Could not save. Try again.', '', 'OK', null, 'error');
+  }
 }
 
 function logoutUser() {
