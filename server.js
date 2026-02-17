@@ -64,26 +64,37 @@ if (NODE_ENV !== 'production') {
 }
 
 let db;
+/** Actual file path used for DB read/write (may differ from DB_PATH if DB_PATH is a directory) */
+let dbFilePath = DB_PATH;
 
 // ============ DATABASE ============
 async function initDB() {
   const SQL = await initSqlJs();
 
-  // Ensure data directory exists
-  const dataDir = path.dirname(DB_PATH);
+  if (fs.existsSync(DB_PATH)) {
+    const stat = fs.statSync(DB_PATH);
+    if (stat.isDirectory()) {
+      console.warn('⚠️ DB_PATH points to a directory; using a file inside it (no delete, avoids permission errors).');
+      dbFilePath = path.join(DB_PATH, 'data.db');
+    } else {
+      dbFilePath = DB_PATH;
+    }
+  } else {
+    dbFilePath = DB_PATH;
+  }
+
+  const dataDir = path.dirname(dbFilePath);
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  if (fs.existsSync(DB_PATH)) {
-    const stat = fs.statSync(DB_PATH);
+  if (fs.existsSync(dbFilePath)) {
+    const stat = fs.statSync(dbFilePath);
     if (stat.isDirectory()) {
-      console.warn('⚠️ DB_PATH points to a directory; removing it and starting with a new database.');
-      fs.rmSync(DB_PATH, { recursive: true });
       db = new SQL.Database();
       console.log('✅ Created new database');
     } else {
-      const buffer = fs.readFileSync(DB_PATH);
+      const buffer = fs.readFileSync(dbFilePath);
       db = new SQL.Database(buffer);
       console.log('✅ Loaded existing database');
     }
@@ -229,7 +240,7 @@ function saveDB() {
   if (!db) return;
   try {
     const data = db.export();
-    fs.writeFileSync(DB_PATH, Buffer.from(data));
+    fs.writeFileSync(dbFilePath, Buffer.from(data));
   } catch (e) {
     console.error('DB save error:', e.message);
   }
