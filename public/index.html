@@ -67,7 +67,7 @@ body.site-nav-hidden nav#nv{display:none !important}
 .btn-p-icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;color:var(--black);position:relative;z-index:1}
 .btn-p-icon svg{width:100%;height:100%;display:block}
 .btn-p-cursor-end{margin-left:10px;width:20px;height:20px}
-.btn-p-cursor-end svg{stroke-width:2.2}
+.btn-p-cursor-end svg{display:block;shape-rendering:geometricPrecision}
 .btn-s{padding:16px 44px;border:1.5px solid var(--gold);border-radius:6px;background:transparent;color:var(--cream);font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:all .3s}
 .btn-s:hover{background:rgba(200,164,78,0.1);border-color:var(--goldb)}
 .hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);z-index:2;opacity:0;animation:fsu 1s .9s forwards}
@@ -396,6 +396,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-notify-panel.open{display:block}
 .admin-notify-header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bdr);font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold)}
 .admin-notify-header input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--gold)}
+.admin-notify-browser-prompt{padding:14px 16px;border-bottom:1px solid var(--bdr);background:rgba(200,164,78,0.06)}
+.admin-notify-prompt-txt{font-size:12px;color:var(--creamd);line-height:1.5;margin-bottom:12px}
+.admin-notify-enable-btn{padding:8px 14px;border:1.5px solid var(--gold);border-radius:6px;background:transparent;color:var(--gold);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;width:100%}
+.admin-notify-enable-btn:hover{background:rgba(200,164,78,0.12)}
 .admin-notify-list{max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .admin-notify-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background .2s}
 .admin-notify-item:hover{background:rgba(200,164,78,0.06)}
@@ -447,8 +451,8 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-nav-drawer-title{font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)}
 .admin-nav-drawer-close{width:40px;height:40px;border:none;background:transparent;color:var(--cream);font-size:28px;cursor:pointer;line-height:1;padding:0;display:grid;place-items:center;border-radius:8px;transition:background .2s}
 .admin-nav-drawer-close:hover{background:rgba(200,164,78,0.1)}
-.admin-nav-drawer-links{display:flex;flex-direction:column;padding:16px 0}
-.admin-nav-link{display:block;padding:16px 24px;font-size:15px;font-weight:600;letter-spacing:0.5px;color:var(--creamd);text-decoration:none;border-left:3px solid transparent;transition:all .2s}
+.admin-nav-drawer-links{display:flex;flex-direction:column;padding:16px 0;padding-bottom:max(24px,env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch}
+.admin-nav-link{display:block;padding:16px 24px;font-size:15px;font-weight:600;letter-spacing:0.5px;color:var(--creamd);text-decoration:none;border-left:3px solid transparent;transition:all .2s;flex-shrink:0}
 .admin-nav-link:hover,.admin-nav-link:focus{color:var(--cream);background:rgba(200,164,78,0.06)}
 .admin-nav-link.active{color:var(--gold);border-left-color:var(--gold);background:rgba(200,164,78,0.08)}
 .admin-tabs{display:flex;gap:0;border-bottom:1px solid var(--bdr);margin-bottom:28px;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
@@ -917,7 +921,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <p class="form-hint" style="margin-bottom:20px">All fields are mandatory. Please provide detailed answers where requested.</p>
       <form id="sundayCheckinForm" onsubmit="submitSundayCheckin();return false">
         <div class="form-group"><label>Full Name <span class="req">*</span></label><input type="text" class="form-input" id="scFullName" placeholder="Your full name" required></div>
-        <div class="form-group"><label>Email you want me to reply to <span class="req">*</span></label><input type="email" class="form-input" id="scReplyEmail" placeholder="e.g. you@example.com" required></div>
         <div class="form-group"><label>State the plan you're on <span class="req">*</span></label><input type="text" class="form-input" id="scPlan" placeholder="e.g. 12 week fat loss" required></div>
         <div class="form-group"><label>Current weight (lbs), waist measurement and week of training you've just completed <span class="req">*</span></label><textarea class="form-input" id="scCurrentWeight" rows="5" placeholder="e.g. week 1, 180 lbs, 34 in waist" required></textarea></div>
         <div class="form-group"><label>Last week's weight (lbs) and waist measurement <span class="req">*</span></label><textarea class="form-input" id="scLastWeek" rows="4" placeholder="e.g. 182 lbs, 35 in" required></textarea></div>
@@ -953,6 +956,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <div class="admin-notify-header">
             <input type="checkbox" id="notifySelectAll" onchange="toggleNotifySelectAll(this)" title="Select all">
             <span>Notifications</span>
+          </div>
+          <div class="admin-notify-browser-prompt" id="notifyEnablePrompt" style="display:none">
+            <p class="admin-notify-prompt-txt">Get alerts in Chrome &amp; Safari when new sign-ups, messages, or check-ins arrive.</p>
+            <button type="button" class="admin-notify-enable-btn" onclick="requestNotificationPermission()">Enable browser notifications</button>
           </div>
           <div class="admin-notify-list" id="notifyList"></div>
           <div class="admin-notify-footer">
@@ -991,15 +998,13 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <nav class="admin-nav-drawer-links">
         <a class="admin-nav-link active" href="#" data-tab="requests" onclick="switchTab('requests');closeAdminNavDrawer();return false">Pending Requests</a>
         <a class="admin-nav-link" href="#" data-tab="signups" onclick="switchTab('signups');closeAdminNavDrawer();return false">Pending Sign-ups</a>
+        <a class="admin-nav-link" href="#" data-tab="insights" onclick="switchTab('insights');closeAdminNavDrawer();return false">Performance Insights</a>
         <a class="admin-nav-link" href="#" data-tab="tribe" onclick="switchTab('tribe');closeAdminNavDrawer();return false">Tribe</a>
         <a class="admin-nav-link" href="#" data-tab="workouts" onclick="switchTab('workouts');closeAdminNavDrawer();return false">Workouts</a>
         <a class="admin-nav-link" href="#" data-tab="messages" onclick="switchTab('messages');closeAdminNavDrawer();return false">Messages</a>
         <a class="admin-nav-link" href="#" data-tab="meetings" onclick="switchTab('meetings');closeAdminNavDrawer();return false">Upcoming Meetings</a>
         <a class="admin-nav-link" href="#" data-tab="part2" onclick="switchTab('part2');closeAdminNavDrawer();return false">Part-2 Form</a>
-        <a class="admin-nav-link" href="#" data-tab="hydration" onclick="switchTab('hydration');closeAdminNavDrawer();return false">Hydration</a>
-        <a class="admin-nav-link" href="#" data-tab="weight" onclick="switchTab('weight');closeAdminNavDrawer();return false">Weight</a>
         <a class="admin-nav-link sc-style" href="#" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin');closeAdminNavDrawer();return false">Sunday Check-in</a>
-        <a class="admin-nav-link" href="#" data-tab="insights" onclick="switchTab('insights');closeAdminNavDrawer();return false">Performance Insights</a>
       </nav>
     </div>
     <div class="admin-tabs" id="adminTabs">
@@ -1010,8 +1015,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <div class="admin-tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
       <div class="admin-tab" data-tab="meetings" onclick="switchTab('meetings')">Upcoming Meetings</div>
       <div class="admin-tab" data-tab="part2" onclick="switchTab('part2')">Part-2 Form</div>
-      <div class="admin-tab" data-tab="hydration" onclick="switchTab('hydration')">Hydration</div>
-      <div class="admin-tab" data-tab="weight" onclick="switchTab('weight')">Weight</div>
       <div class="admin-tab sc-style" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin')">Sunday Check-in</div>
       <div class="admin-tab" data-tab="insights" onclick="switchTab('insights')">Performance Insights</div>
     </div>
@@ -1092,26 +1095,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       </div>
     </div>
 
-    <!-- TAB 7: Hydration -->
-    <div class="admin-tab-content" id="tab-hydration">
-      <div class="admin-table-wrap">
-        <table class="admin-table">
-          <thead><tr><th>User</th><th>Email</th><th>Glasses</th><th>Amount (ml)</th><th>Date & time</th></tr></thead>
-          <tbody id="hydrationBody"></tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- TAB 8: Weight -->
-    <div class="admin-tab-content" id="tab-weight">
-      <div class="admin-table-wrap">
-        <table class="admin-table">
-          <thead><tr><th>User</th><th>Email</th><th>Weight (kg)</th><th>Date & time</th></tr></thead>
-          <tbody id="weightBody"></tbody>
-        </table>
-      </div>
-    </div>
-
     <!-- TAB: Performance Insights -->
     <div class="admin-tab-content" id="tab-insights">
       <div class="insights-filters">
@@ -1120,8 +1103,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <select id="insightsSource" class="insights-select" onchange="loadPerformanceInsights()">
             <option value="all">All (Overview)</option>
             <option value="workouts">Workouts</option>
-            <option value="weight">Weight</option>
-            <option value="hydration">Hydration</option>
             <option value="sunday_checkin">Sunday Check-in</option>
             <option value="audit">Body Audit</option>
             <option value="part2">Part-2 Form</option>
@@ -1174,38 +1155,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <div class="form-group"><input type="email" class="form-input" id="forgotEmail" placeholder="Enter your email"></div>
     <button class="form-submit" id="forgotSubmitBtn" onclick="handleForgotPassword()">Send Reset Link</button>
     <p style="text-align:center;margin-top:12px"><a href="#" style="color:var(--gold);font-size:13px" onclick="openModal('loginModal');closePopup('forgotModal');return false">Back to Login</a></p>
-  </div>
-</div>
-
-<!-- HYDRATION REMINDER (logged-in users, up to 3x per day) -->
-<div class="popup-overlay" id="hydrationPopup" onclick="if(event.target===this)dismissHydrationPopup()">
-  <div class="forgot-box hydration-popup-box">
-    <h3>Stay hydrated</h3>
-    <p>How many glasses of water did you have? Log it to stay on track.</p>
-    <div class="form-group">
-      <label>Glasses of water</label>
-      <input type="number" class="form-input" id="hydrationGlasses" placeholder="e.g. 3" min="0" max="30" value="2">
-    </div>
-    <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap">
-      <button type="button" class="nav-login" style="padding:10px 24px" onclick="dismissHydrationPopup()">Skip</button>
-      <button type="button" class="form-submit" style="width:auto;padding:10px 28px" onclick="submitHydration()">Log</button>
-    </div>
-  </div>
-</div>
-
-<!-- WEIGHT REMINDER (logged-in users, once per week) -->
-<div class="popup-overlay" id="weightPopup" onclick="if(event.target===this)dismissWeightPopup()">
-  <div class="forgot-box hydration-popup-box">
-    <h3>Weekly weight check</h3>
-    <p>Log your current weight to track progress. Once a week.</p>
-    <div class="form-group">
-      <label>Weight (kg)</label>
-      <input type="number" class="form-input" id="weightKg" placeholder="e.g. 72.5" min="20" max="300" step="0.1">
-    </div>
-    <div style="display:flex;gap:12px;justify-content:center;margin-top:20px;flex-wrap:wrap">
-      <button type="button" class="nav-login" style="padding:10px 24px" onclick="dismissWeightPopup()">Skip</button>
-      <button type="button" class="form-submit" style="width:auto;padding:10px 28px" onclick="submitWeight()">Log</button>
-    </div>
   </div>
 </div>
 
@@ -1374,7 +1323,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <h1><span class="w">Stop Chasing Quick Fixes.</span><br><span class="g">Build Real, Sustainable</span><br><span class="w">Transformation.</span></h1>
     <p class="hero-sub">Our Lifestyle Management Program delivers real lasting transformation through 3 phases: upgrading your mind, nutrition, and building permanent results.</p>
     <div class="hero-btns">
-      <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-icon btn-p-cursor-end" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M5 3l14 9h-6l2 9-4-6-4 3 2-9z"/></svg></span></a>
+      <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-icon btn-p-cursor-end" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" shape-rendering="geometricPrecision"><path d="M5 3l14 9h-6l2 9-4-6-4 3 2-9z"/></svg></span></a>
       
     </div>
   </div>
@@ -1586,7 +1535,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <h2><span class="w">Your Best Body Isn't </span><span class="g">Weeks Away.</span><br><span class="w">It's One Decision Away.</span></h2>
     <p>You already know the Lifestyle Management 3-Phase system works. Now see how it applies to YOUR body, YOUR goals, YOUR life.</p>
     <p class="bold">Start Your Transformation Today</p>
-    <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-icon btn-p-cursor-end" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><path d="M5 3l14 9h-6l2 9-4-6-4 3 2-9z"/></svg></span></a>
+    <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-icon btn-p-cursor-end" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" shape-rendering="geometricPrecision"><path d="M5 3l14 9h-6l2 9-4-6-4 3 2-9z"/></svg></span></a>
   </div>
 </div>
 
@@ -1850,13 +1799,43 @@ async function submitAudit(form) {
 
 // ========== ADMIN DASHBOARD ==========
 async function loadDashboard() {
-  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMessages(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions(), loadAdminHydration(), loadAdminWeight(), loadSundayCheckins()]);
+  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMessages(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins()]);
+  if (typeof requestNotificationPermission === 'function') setTimeout(requestNotificationPermission, 500);
+  if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
+  updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
 }
 
 const SESSION_KEY = 'bodybank_session';
 const NOTIFY_CLEARED_KEY = 'bodybank_notify_cleared';
+const NOTIFY_BROWSER_SENT_KEY = 'bodybank_notify_browser_sent';
 function getClearedNotifyIds() { try { const s = localStorage.getItem(NOTIFY_CLEARED_KEY); return s ? JSON.parse(s) : []; } catch (e) { return []; } }
 function setClearedNotifyIds(ids) { try { localStorage.setItem(NOTIFY_CLEARED_KEY, JSON.stringify(ids)); } catch (e) {} }
+function getBrowserNotifiedIds() { try { const s = localStorage.getItem(NOTIFY_BROWSER_SENT_KEY); return s ? JSON.parse(s) : []; } catch (e) { return []; } }
+function setBrowserNotifiedIds(ids) { try { localStorage.setItem(NOTIFY_BROWSER_SENT_KEY, JSON.stringify(ids.slice(-200))); } catch (e) {} }
+
+function requestNotificationPermission() {
+  if (typeof Notification === 'undefined') return;
+  if (Notification.permission === 'default') {
+    Notification.requestPermission().then(function(p) { if (p === 'granted') updateNotifyPermissionUI(true); else updateNotifyPermissionUI(false); }).catch(function() { updateNotifyPermissionUI(false); });
+  } else if (Notification.permission === 'granted') updateNotifyPermissionUI(true);
+  else updateNotifyPermissionUI(false);
+}
+function updateNotifyPermissionUI(granted) {
+  var el = document.getElementById('notifyEnablePrompt');
+  if (!el) return;
+  el.style.display = granted ? 'none' : 'block';
+}
+
+function showBrowserNotification(n) {
+  if (typeof Notification === 'undefined' || Notification.permission !== 'granted' || !n || !n.title) return;
+  try {
+    var opts = { body: (n.desc || '').substring(0, 200), tag: n.id || 'bodybank-' + Date.now() };
+    if (document.querySelector('link[rel="icon"]') && document.querySelector('link[rel="icon"]').href) opts.icon = document.querySelector('link[rel="icon"]').href;
+    var notif = new Notification(n.title, opts);
+    notif.onclick = function() { window.focus(); notif.close(); if (n.link) { var tabBtn = document.querySelector('.admin-tab[data-tab="' + n.link + '"]'); if (tabBtn) tabBtn.click(); } };
+    setTimeout(function() { notif.close(); }, 8000);
+  } catch (e) {}
+}
 
 async function loadNotifications() {
   try {
@@ -1866,11 +1845,22 @@ async function loadNotifications() {
     const cleared = getClearedNotifyIds();
     if (!el) return;
     const filtered = Array.isArray(list) ? list.filter(n => n.id && !cleared.includes(n.id)) : [];
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      var browserSent = getBrowserNotifiedIds();
+      var newIds = [];
+      filtered.forEach(function(n) {
+        if (n.id && !browserSent.includes(n.id)) {
+          showBrowserNotification(n);
+          newIds.push(n.id);
+        }
+      });
+      if (newIds.length) setBrowserNotifiedIds(browserSent.concat(newIds));
+    }
     if (filtered.length > 0) {
       el.innerHTML = filtered.map(n => {
         const time = n.time ? new Date(n.time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-        const link = n.link || '';
-        return '<div class="admin-notify-item ' + (n.type || '') + '" data-id="' + (n.id || '') + '" onclick="handleNotifyItemClick(event,\'' + (link || '') + '\')"><input type="checkbox" class="notify-cb" onchange="updateNotifyClearBtn()" onclick="event.stopPropagation()"><div class="n-body"><div class="n-title">' + (n.title || '') + '</div><div class="n-desc">' + (n.desc || '') + '</div><div class="n-time">' + time + '</div></div></div>';
+        const link = (n.link || '').replace(/'/g, "\\'");
+        return '<div class="admin-notify-item ' + (n.type || '') + '" data-id="' + (n.id || '') + '" onclick="handleNotifyItemClick(event,\'' + link + '\')"><input type="checkbox" class="notify-cb" onchange="updateNotifyClearBtn()" onclick="event.stopPropagation()"><div class="n-body"><div class="n-title">' + (n.title || '') + '</div><div class="n-desc">' + (n.desc || '') + '</div><div class="n-time">' + time + '</div></div></div>';
       }).join('');
       if (countEl) { countEl.textContent = filtered.length > 99 ? '99+' : filtered.length; countEl.style.display = 'flex'; }
       var clearAllBtn = document.getElementById('notifyClearAllBtn');
@@ -1884,6 +1874,14 @@ async function loadNotifications() {
       updateNotifyClearBtn();
     }
   } catch (e) { if (document.getElementById('notifyList')) document.getElementById('notifyList').innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>'; }
+}
+
+function startAdminNotificationPolling() {
+  if (window._adminNotifyInterval) return;
+  window._adminNotifyInterval = setInterval(loadNotifications, 60000);
+}
+function stopAdminNotificationPolling() {
+  if (window._adminNotifyInterval) { clearInterval(window._adminNotifyInterval); window._adminNotifyInterval = null; }
 }
 
 function handleNotifyItemClick(ev, link) { if (ev.target.classList && (ev.target.classList.contains('notify-cb') || ev.target.closest('.notify-cb'))) return; if (link) switchTab(link); toggleNotifyPanel(); }
@@ -1927,6 +1925,7 @@ function toggleNotifyPanel(e) {
   } else {
     panel.classList.add('open');
     if (e) e.stopPropagation();
+    if (typeof updateNotifyPermissionUI === 'function') updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
     setTimeout(function() { document.addEventListener('click', closeNotifyOnClickOutside); }, 10);
   }
 }
@@ -2236,30 +2235,6 @@ async function loadAdminMeetings() {
   }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No upcoming meetings</td></tr>';
 }
 
-async function loadAdminHydration() {
-  const data = await apiCall('GET', '/api/admin/hydration');
-  const tbody = document.getElementById('hydrationBody');
-  if (!tbody) return;
-  const list = data && !data.error && Array.isArray(data) ? data : [];
-  tbody.innerHTML = list.length ? list.map(h => {
-    var name = (h.first_name || '') + ' ' + (h.last_name || '').trim() || '-';
-    var date = h.created_at ? new Date(h.created_at).toLocaleString() : '-';
-    return '<tr><td>' + (name || '-') + '</td><td>' + (h.email || '-') + '</td><td>' + (h.glasses ?? '-') + '</td><td>' + (h.amount_ml ?? '-') + '</td><td>' + date + '</td></tr>';
-  }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No hydration logs yet</td></tr>';
-}
-
-async function loadAdminWeight() {
-  const data = await apiCall('GET', '/api/admin/weight');
-  const tbody = document.getElementById('weightBody');
-  if (!tbody) return;
-  const list = data && !data.error && Array.isArray(data) ? data : [];
-  tbody.innerHTML = list.length ? list.map(function(w) {
-    var name = (w.first_name || '') + ' ' + (w.last_name || '').trim() || '-';
-    var date = w.created_at ? new Date(w.created_at).toLocaleString() : '-';
-    return '<tr><td>' + (name || '-') + '</td><td>' + (w.email || '-') + '</td><td>' + (w.weight_kg != null ? w.weight_kg : '-') + '</td><td>' + date + '</td></tr>';
-  }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted)">No weight logs yet</td></tr>';
-}
-
 async function loadPerformanceInsights() {
   const sourceEl = document.getElementById('insightsSource');
   const fromEl = document.getElementById('insightsFrom');
@@ -2299,7 +2274,7 @@ async function loadPerformanceInsights() {
   const data = Array.isArray(res.data) ? res.data : [];
   window._lastInsightsData = { data, source };
 
-  const cardLabels = { users_approved: 'Approved users', workouts: 'Workouts', weight: 'Weight logs', hydration: 'Hydration', sunday_checkin: 'Sunday Check-in', audit: 'Body Audit', part2: 'Part-2', meetings: 'Meetings', messages: 'Messages' };
+  const cardLabels = { users_approved: 'Approved users', workouts: 'Workouts', sunday_checkin: 'Sunday Check-in', audit: 'Body Audit', part2: 'Part-2', meetings: 'Meetings', messages: 'Messages' };
   cardsEl.innerHTML = Object.entries(cardLabels).map(([key, label]) => '<div class="insights-card"><div class="insights-card-num">' + (summary[key] ?? 0) + '</div><div class="insights-card-label">' + label + '</div></div>').join('');
 
   if (source === 'all' || source === 'overview') {
@@ -2308,8 +2283,6 @@ async function loadPerformanceInsights() {
       const s = r._source || r.source;
       const d = r.created_at || r._date;
       if (s === 'workouts') return (r.first_name || '') + ' ' + (r.last_name || '').trim() + ' — ' + (r.workout_name || '') + ' (' + (r.duration_seconds != null ? Math.round(r.duration_seconds / 60) + ' min' : '-') + ')';
-      if (s === 'weight') return (r.first_name || '') + ' ' + (r.last_name || '').trim() + ' — ' + (r.weight_kg != null ? r.weight_kg + ' kg' : '-');
-      if (s === 'hydration') return (r.first_name || '') + ' ' + (r.last_name || '').trim() + ' — ' + (r.glasses ?? '-') + ' glasses, ' + (r.amount_ml ?? '-') + ' ml';
       if (s === 'sunday_checkin') return (r.full_name || '') + ' — ' + (r.reply_email || '');
       if (s === 'audit') return (r.first_name || '') + ' ' + (r.last_name || '').trim() + ' — ' + (r.email || '');
       if (s === 'part2') return (r.name || '') + ' — ' + (r.email || '');
@@ -2317,7 +2290,7 @@ async function loadPerformanceInsights() {
       if (s === 'messages') return (r.name || '') + ' — ' + ((r.message || '').substring(0, 40) + ((r.message || '').length > 40 ? '…' : ''));
       return JSON.stringify(r).substring(0, 60);
     }
-    const typeLabels = { workouts: 'Workout', weight: 'Weight', hydration: 'Hydration', sunday_checkin: 'Sunday Check-in', audit: 'Body Audit', part2: 'Part-2', meetings: 'Meeting', messages: 'Message' };
+    const typeLabels = { workouts: 'Workout', sunday_checkin: 'Sunday Check-in', audit: 'Body Audit', part2: 'Part-2', meetings: 'Meeting', messages: 'Message' };
     tbodyEl.innerHTML = data.length ? data.map(r => {
       const type = typeLabels[r._source] || r._source || '—';
       const dt = (r._date || r.created_at) ? new Date(r._date || r.created_at).toLocaleString() : '—';
@@ -2325,16 +2298,12 @@ async function loadPerformanceInsights() {
     }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">No data for the selected filters.</td></tr>';
   } else {
     if (source === 'workouts' && theadEl) theadEl.innerHTML = '<tr><th>User</th><th>Workout</th><th>Duration</th><th>Date</th></tr>';
-    else if (source === 'weight' && theadEl) theadEl.innerHTML = '<tr><th>User</th><th>Weight (kg)</th><th>Date</th></tr>';
-    else if (source === 'hydration' && theadEl) theadEl.innerHTML = '<tr><th>User</th><th>Glasses</th><th>Amount (ml)</th><th>Date</th></tr>';
     else if (source === 'sunday_checkin' && theadEl) theadEl.innerHTML = '<tr><th>Name</th><th>Reply Email</th><th>Plan</th><th>Date</th></tr>';
     else if (source === 'audit' && theadEl) theadEl.innerHTML = '<tr><th>Name</th><th>Email</th><th>City</th><th>Goals</th><th>Date</th></tr>';
     else if (source === 'part2' && theadEl) theadEl.innerHTML = '<tr><th>Name</th><th>Email</th><th>Activity</th><th>Date</th></tr>';
     else if (source === 'meetings' && theadEl) theadEl.innerHTML = '<tr><th>User</th><th>Email</th><th>Date</th><th>Time</th></tr>';
     else if (source === 'messages' && theadEl) theadEl.innerHTML = '<tr><th>Name</th><th>Email</th><th>Message</th><th>Date</th></tr>';
     if (source === 'workouts') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + ((r.first_name||'')+' '+(r.last_name||'')).trim() + '</td><td>' + (r.workout_name||'-') + '</td><td>' + (r.duration_seconds != null ? Math.round(r.duration_seconds/60)+' min' : '-') + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'weight') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + ((r.first_name||'')+' '+(r.last_name||'')).trim() + '</td><td>' + (r.weight_kg != null ? r.weight_kg : '-') + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'hydration') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + ((r.first_name||'')+' '+(r.last_name||'')).trim() + '</td><td>' + (r.glasses ?? '-') + '</td><td>' + (r.amount_ml ?? '-') + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
     else if (source === 'sunday_checkin') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + (r.full_name||'-') + '</td><td>' + (r.reply_email||'-') + '</td><td>' + (r.plan||'-') + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
     else if (source === 'audit') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + (r.first_name||'') + ' ' + (r.last_name||'') + '</td><td>' + (r.email||'-') + '</td><td>' + (r.city||'-') + '</td><td>' + (r.goals||'-').substring(0,50) + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
     else if (source === 'part2') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + (r.name||'-') + '</td><td>' + (r.email||'-') + '</td><td>' + (r.activity_level||'-') + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
@@ -2364,8 +2333,6 @@ function downloadInsightsCSV() {
   function detail(r) {
     const s = r._source || r.source;
     if (s === 'workouts') return ((r.first_name || '') + ' ' + (r.last_name || '')).trim() + ' — ' + (r.workout_name || '') + ' (' + (r.duration_seconds != null ? Math.round(r.duration_seconds / 60) + ' min' : '-') + ')';
-    if (s === 'weight') return ((r.first_name || '') + ' ' + (r.last_name || '')).trim() + ' — ' + (r.weight_kg != null ? r.weight_kg + ' kg' : '-');
-    if (s === 'hydration') return ((r.first_name || '') + ' ' + (r.last_name || '')).trim() + ' — ' + (r.glasses ?? '-') + ' glasses, ' + (r.amount_ml ?? '-') + ' ml';
     if (s === 'sunday_checkin') return (r.full_name || '') + ' — ' + (r.reply_email || '');
     if (s === 'audit') return ((r.first_name || '') + ' ' + (r.last_name || '')).trim() + ' — ' + (r.email || '');
     if (s === 'part2') return (r.name || '') + ' — ' + (r.email || '');
@@ -2373,19 +2340,13 @@ function downloadInsightsCSV() {
     if (s === 'messages') return (r.name || '') + ' — ' + (r.message || '').substring(0, 100);
     return '';
   }
-  const typeLabels = { workouts: 'Workout', weight: 'Weight', hydration: 'Hydration', sunday_checkin: 'Sunday Check-in', audit: 'Body Audit', part2: 'Part-2', meetings: 'Meeting', messages: 'Message' };
+  const typeLabels = { workouts: 'Workout', sunday_checkin: 'Sunday Check-in', audit: 'Body Audit', part2: 'Part-2', meetings: 'Meeting', messages: 'Message' };
   if (source === 'all' || source === 'overview') {
     headers = ['Type', 'Details', 'Date'];
     rows = data.map(r => [typeLabels[r._source] || r._source || '—', detail(r) || '—', (r._date || r.created_at) ? new Date(r._date || r.created_at).toLocaleString() : '—']);
   } else if (source === 'workouts') {
     headers = ['User', 'Workout', 'Duration (min)', 'Date'];
     rows = data.map(r => [((r.first_name || '') + ' ' + (r.last_name || '')).trim(), r.workout_name || '', r.duration_seconds != null ? Math.round(r.duration_seconds / 60) : '', r.created_at ? new Date(r.created_at).toISOString() : '']);
-  } else if (source === 'weight') {
-    headers = ['User', 'Weight (kg)', 'Date'];
-    rows = data.map(r => [((r.first_name || '') + ' ' + (r.last_name || '')).trim(), r.weight_kg != null ? r.weight_kg : '', r.created_at ? new Date(r.created_at).toISOString() : '']);
-  } else if (source === 'hydration') {
-    headers = ['User', 'Glasses', 'Amount (ml)', 'Date'];
-    rows = data.map(r => [((r.first_name || '') + ' ' + (r.last_name || '')).trim(), r.glasses ?? '', r.amount_ml ?? '', r.created_at ? new Date(r.created_at).toISOString() : '']);
   } else if (source === 'sunday_checkin') {
     headers = ['Name', 'Reply Email', 'Plan', 'Total Weight Loss', 'Date'];
     rows = data.map(r => [r.full_name || '', r.reply_email || '', r.plan || '', r.total_weight_loss || '', r.created_at ? new Date(r.created_at).toISOString() : '']);
@@ -2419,6 +2380,7 @@ function downloadInsightsCSV() {
 
 function logoutAdmin() {
   window.currentUser = null;
+  if (typeof stopAdminNotificationPolling === 'function') stopAdminNotificationPolling();
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
   document.getElementById('adminPanel').classList.remove('open');
   document.body.classList.remove('site-nav-hidden');
@@ -2453,8 +2415,6 @@ function switchTab(tab) {
   if (tab === 'sundaycheckin') loadSundayCheckins();
   if (tab === 'tribe') loadTribe();
   if (tab === 'part2') loadPart2Submissions();
-  if (tab === 'hydration') loadAdminHydration();
-  if (tab === 'weight') loadAdminWeight();
   if (tab === 'insights') loadPerformanceInsights();
 }
 function toggleAdminNavDrawer() {
@@ -2506,90 +2466,7 @@ function openUserDashboard(user) {
   // Pre-fill contact form
   document.getElementById('ctName').value = (user.first_name + ' ' + user.last_name).trim();
   document.getElementById('ctEmail').value = user.email || '';
-  setTimeout(function(){
-    if (!checkHydrationPopup()) checkWeightPopup();
-  }, 800);
-}
-
-var HYDRATION_POPUP_KEY = 'bodybank_hydration_popup_count';
-function checkHydrationPopup() {
-  if (!window.currentUser || !window.currentUser.id) return false;
-  var today = new Date().toISOString().slice(0, 10);
-  var key = HYDRATION_POPUP_KEY + '_' + today;
-  var count = parseInt(localStorage.getItem(key) || '0', 10);
-  if (count < 3) {
-    var el = document.getElementById('hydrationPopup');
-    if (el) { el.classList.add('show'); return true; }
   }
-  return false;
-}
-function dismissHydrationPopup() {
-  var today = new Date().toISOString().slice(0, 10);
-  var key = HYDRATION_POPUP_KEY + '_' + today;
-  var count = parseInt(localStorage.getItem(key) || '0', 10);
-  localStorage.setItem(key, String(Math.min(count + 1, 3)));
-  var el = document.getElementById('hydrationPopup');
-  if (el) el.classList.remove('show');
-}
-async function submitHydration() {
-  if (!window.currentUser || !window.currentUser.id) { dismissHydrationPopup(); return; }
-  var input = document.getElementById('hydrationGlasses');
-  var glasses = input ? parseInt(input.value, 10) : 0;
-  if (isNaN(glasses) || glasses < 0) glasses = 0;
-  try {
-    var res = await apiCall('POST', '/api/hydration', { user_id: window.currentUser.id, glasses: glasses, amount_ml: glasses * 250 });
-    if (res && res.error) { if (typeof showPopup === 'function') showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
-    var today = new Date().toISOString().slice(0, 10);
-    var key = HYDRATION_POPUP_KEY + '_' + today;
-    var count = parseInt(localStorage.getItem(key) || '0', 10);
-    localStorage.setItem(key, String(Math.min(count + 1, 3)));
-    document.getElementById('hydrationPopup').classList.remove('show');
-    if (typeof showPopup === 'function') showPopup('Logged', 'Hydration logged. Keep it up!', '', 'OK');
-  } catch (e) {
-    if (typeof showPopup === 'function') showPopup('Error', 'Could not save. Try again.', '', 'OK', null, 'error');
-  }
-}
-
-var WEIGHT_POPUP_KEY = 'bodybank_weight_popup_week';
-function getWeightWeekKey() {
-  var d = new Date();
-  var day = d.getDay();
-  var diff = d.getDate() - day + (day === 0 ? -6 : 1);
-  var monday = new Date(d);
-  monday.setDate(diff);
-  return monday.toISOString().slice(0, 10);
-}
-function checkWeightPopup() {
-  if (!window.currentUser || !window.currentUser.id) return;
-  var weekKey = getWeightWeekKey();
-  var key = WEIGHT_POPUP_KEY + '_' + weekKey;
-  if (localStorage.getItem(key)) return;
-  var el = document.getElementById('weightPopup');
-  if (el) el.classList.add('show');
-}
-function dismissWeightPopup() {
-  var weekKey = getWeightWeekKey();
-  localStorage.setItem(WEIGHT_POPUP_KEY + '_' + weekKey, '1');
-  var el = document.getElementById('weightPopup');
-  if (el) el.classList.remove('show');
-}
-async function submitWeight() {
-  if (!window.currentUser || !window.currentUser.id) { dismissWeightPopup(); return; }
-  var input = document.getElementById('weightKg');
-  var w = input ? parseFloat(input.value) : NaN;
-  if (isNaN(w) || w <= 0) {
-    if (typeof showPopup === 'function') showPopup('Invalid', 'Please enter a valid weight (kg).', '', 'OK', null, 'error');
-    return;
-  }
-  try {
-    var res = await apiCall('POST', '/api/weight', { user_id: window.currentUser.id, weight_kg: w });
-    if (res && res.error) { if (typeof showPopup === 'function') showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
-    dismissWeightPopup();
-    if (typeof showPopup === 'function') showPopup('Logged', 'Weight logged. See you next week!', '', 'OK');
-  } catch (e) {
-    if (typeof showPopup === 'function') showPopup('Error', 'Could not save. Try again.', '', 'OK', null, 'error');
-  }
-}
 
 function logoutUser() {
   window.currentUser = null;
@@ -2940,8 +2817,8 @@ async function cancelMeeting(id) {
 // Sunday Check-in
 async function submitSundayCheckin() {
   var fullName = document.getElementById('scFullName').value.trim();
-  var replyEmail = document.getElementById('scReplyEmail').value.trim();
-  if (!fullName || !replyEmail) { alert('Full name and reply email are required.'); return; }
+  if (!fullName) { alert('Full name is required.'); return; }
+  var replyEmail = (window.currentUser && window.currentUser.email) ? window.currentUser.email : '';
   var payload = {
     user_id: window.currentUser ? window.currentUser.id : null,
     full_name: fullName,

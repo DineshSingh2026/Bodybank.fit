@@ -690,51 +690,6 @@ app.get('/api/workouts/:userId', (req, res) => {
   res.json(queryAll("SELECT * FROM workout_logs WHERE user_id=? ORDER BY created_at DESC", [req.params.userId]));
 });
 
-// ============ HYDRATION (user log + admin view) ============
-app.post('/api/hydration', (req, res) => {
-  try {
-    const { user_id, amount_ml, glasses } = req.body || {};
-    if (!user_id) return res.status(400).json({ error: 'User ID required' });
-    const id = uuidv4();
-    const aml = amount_ml != null ? parseInt(amount_ml, 10) : 0;
-    const g = glasses != null ? parseInt(glasses, 10) : 0;
-    db.run("INSERT INTO hydration_logs (id, user_id, amount_ml, glasses) VALUES (?,?,?,?)", [id, user_id, aml, g]);
-    saveDB();
-    res.json({ id, message: 'Hydration logged' });
-  } catch (e) {
-    console.error('Hydration error:', e.message);
-    res.status(500).json({ error: 'Failed to log hydration' });
-  }
-});
-
-app.get('/api/admin/hydration', (req, res) => {
-  res.json(queryAll(`SELECT h.id, h.user_id, h.amount_ml, h.glasses, h.created_at,
-    u.first_name, u.last_name, u.email FROM hydration_logs h
-    LEFT JOIN users u ON h.user_id = u.id ORDER BY h.created_at DESC LIMIT 500`));
-});
-
-app.post('/api/weight', (req, res) => {
-  try {
-    const { user_id, weight_kg } = req.body || {};
-    if (!user_id || weight_kg == null) return res.status(400).json({ error: 'User ID and weight required' });
-    const w = parseFloat(weight_kg);
-    if (isNaN(w) || w <= 0) return res.status(400).json({ error: 'Invalid weight' });
-    const id = uuidv4();
-    db.run("INSERT INTO weight_logs (id, user_id, weight_kg) VALUES (?,?,?)", [id, user_id, w]);
-    saveDB();
-    res.json({ id, message: 'Weight logged' });
-  } catch (e) {
-    console.error('Weight error:', e.message);
-    res.status(500).json({ error: 'Failed to log weight' });
-  }
-});
-
-app.get('/api/admin/weight', (req, res) => {
-  res.json(queryAll(`SELECT w.id, w.user_id, w.weight_kg, w.created_at,
-    u.first_name, u.last_name, u.email FROM weight_logs w
-    LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 500`));
-});
-
 // ============ CONTACT MESSAGES ============
 app.post('/api/contact', rateLimiter(5, 60000), (req, res) => {
   try {
@@ -759,7 +714,7 @@ app.get('/api/contact', (req, res) => {
 app.post('/api/sunday-checkin', rateLimiter(10, 60000), (req, res) => {
   try {
     const b = req.body || {};
-    if (!b.full_name || !b.reply_email) return res.status(400).json({ error: 'Full name and reply email are required' });
+    if (!b.full_name) return res.status(400).json({ error: 'Full name is required' });
     const id = uuidv4();
     db.run(`INSERT INTO sunday_checkins (id, user_id, full_name, reply_email, plan, current_weight_waist_week, last_week_weight_waist, total_weight_loss, training_go, nutrition_go, sleep, occupation_stress, other_stress, differences_felt, achievements, improve_next_week, questions) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.user_id || null, b.full_name || '', b.reply_email || '', b.plan || '', b.current_weight_waist_week || '', b.last_week_weight_waist || '', b.total_weight_loss || '', b.training_go || '', b.nutrition_go || '', b.sleep || '', b.occupation_stress || '', b.other_stress || '', b.differences_felt || '', b.achievements || '', b.improve_next_week || '', b.questions || '']);
@@ -962,8 +917,6 @@ app.get('/api/admin/performance-insights', (req, res) => {
     const summary = {};
     const tables = [
       { key: 'workouts', table: 'workout_logs', countSql: 'SELECT COUNT(*) as c FROM workout_logs w', dateCol: 'w.created_at', userCol: 'w.user_id' },
-      { key: 'weight', table: 'weight_logs', countSql: 'SELECT COUNT(*) as c FROM weight_logs w', dateCol: 'w.created_at', userCol: 'w.user_id' },
-      { key: 'hydration', table: 'hydration_logs', countSql: 'SELECT COUNT(*) as c FROM hydration_logs h', dateCol: 'h.created_at', userCol: 'h.user_id' },
       { key: 'sunday_checkin', table: 'sunday_checkins', countSql: 'SELECT COUNT(*) as c FROM sunday_checkins', dateCol: 'created_at', userCol: 'user_id' },
       { key: 'audit', table: 'audit_requests', countSql: 'SELECT COUNT(*) as c FROM audit_requests', dateCol: 'created_at', userCol: null },
       { key: 'part2', table: 'part2_audit', countSql: 'SELECT COUNT(*) as c FROM part2_audit', dateCol: 'created_at', userCol: null },
@@ -1001,14 +954,12 @@ app.get('/api/admin/performance-insights', (req, res) => {
     if (pickSource === 'all' || pickSource === 'overview') {
       const limit = 80;
       const w = runQuery(`SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 200`).map(r => ({ ...r, _source: 'workouts', _date: r.created_at }));
-      const wt = runQuery(`SELECT w.id, w.user_id, w.weight_kg, w.created_at, u.first_name, u.last_name FROM weight_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 200`).map(r => ({ ...r, _source: 'weight', _date: r.created_at }));
-      const h = runQuery(`SELECT h.id, h.user_id, h.glasses, h.amount_ml, h.created_at, u.first_name, u.last_name FROM hydration_logs h LEFT JOIN users u ON h.user_id = u.id ORDER BY h.created_at DESC LIMIT 200`).map(r => ({ ...r, _source: 'hydration', _date: r.created_at }));
       const sc = runQuery('SELECT id, user_id, full_name, reply_email, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT 200').map(r => ({ ...r, _source: 'sunday_checkin', _date: r.created_at }));
       const ar = runQuery('SELECT id, first_name, last_name, email, created_at FROM audit_requests ORDER BY created_at DESC LIMIT 200').map(r => ({ ...r, _source: 'audit', _date: r.created_at }));
       const p2 = runQuery('SELECT id, name, email, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 200').map(r => ({ ...r, _source: 'part2', _date: r.created_at }));
       const meet = runQuery("SELECT id, user_id, user_name, user_email, meeting_date, time_slot, created_at FROM meetings ORDER BY created_at DESC LIMIT 200").map(r => ({ ...r, _source: 'meetings', _date: r.created_at }));
       const msg = runQuery('SELECT id, user_id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 200').map(r => ({ ...r, _source: 'messages', _date: r.created_at }));
-      data = [...w, ...wt, ...h, ...sc, ...ar, ...p2, ...meet, ...msg];
+      data = [...w, ...sc, ...ar, ...p2, ...meet, ...msg];
       if (hasDate) data = data.filter(r => { const d = (r._date || r.created_at || '').toString().slice(0, 10); return (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo); });
       if (filterUserId) data = data.filter(r => r.user_id === filterUserId);
       data.sort((a, b) => new Date(b._date || b.created_at) - new Date(a._date || a.created_at));
@@ -1016,21 +967,11 @@ app.get('/api/admin/performance-insights', (req, res) => {
     } else {
       const limit = 500;
       let sql, params = [];
-      const uidCol = { workouts: 'w.user_id', weight: 'w.user_id', hydration: 'h.user_id', sunday_checkin: 'user_id', meetings: 'user_id' }[pickSource];
+      const uidCol = { workouts: 'w.user_id', sunday_checkin: 'user_id', meetings: 'user_id' }[pickSource];
       if (pickSource === 'workouts') {
         sql = `SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id`;
         if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(w.created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(w.created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('w.user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
         sql += ' ORDER BY w.created_at DESC LIMIT ' + limit;
-        data = runQuery(sql, params);
-      } else if (pickSource === 'weight') {
-        sql = `SELECT w.id, w.user_id, w.weight_kg, w.created_at, u.first_name, u.last_name, u.email FROM weight_logs w LEFT JOIN users u ON w.user_id = u.id`;
-        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(w.created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(w.created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('w.user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
-        sql += ' ORDER BY w.created_at DESC LIMIT ' + limit;
-        data = runQuery(sql, params);
-      } else if (pickSource === 'hydration') {
-        sql = `SELECT h.id, h.user_id, h.glasses, h.amount_ml, h.created_at, u.first_name, u.last_name, u.email FROM hydration_logs h LEFT JOIN users u ON h.user_id = u.id`;
-        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(h.created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(h.created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('h.user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
-        sql += ' ORDER BY h.created_at DESC LIMIT ' + limit;
         data = runQuery(sql, params);
       } else if (pickSource === 'sunday_checkin') {
         sql = `SELECT id, user_id, full_name, reply_email, plan, total_weight_loss, created_at FROM sunday_checkins`;
@@ -1074,7 +1015,7 @@ app.get('/api/admin/db-view', (req, res) => {
       return res.status(500).json({ error: 'Database not initialized' });
     }
 
-    const tables = ['users', 'audit_requests', 'tribe_members', 'workout_logs', 'contact_messages', 'meetings', 'part2_audit', 'hydration_logs', 'weight_logs', 'sunday_checkins'];
+    const tables = ['users', 'audit_requests', 'tribe_members', 'workout_logs', 'contact_messages', 'meetings', 'part2_audit', 'sunday_checkins'];
     const result = {};
     
     tables.forEach(table => {
