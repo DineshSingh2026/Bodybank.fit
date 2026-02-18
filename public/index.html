@@ -66,8 +66,8 @@ body.site-nav-hidden nav#nv{display:none !important}
 .btn-p:active{transform:translateY(0)}
 .btn-p-icon{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:22px;height:22px;color:var(--black);position:relative;z-index:1}
 .btn-p-icon svg{width:100%;height:100%;display:block}
-.btn-p-cursor-end{margin-left:10px;width:20px;height:20px}
-.btn-p-cursor-end svg{display:block;shape-rendering:geometricPrecision}
+.btn-p-cursor-end{margin-left:10px;width:24px;height:24px;flex-shrink:0}
+.btn-p-cursor-end svg{display:block;width:100%;height:100%;fill:currentColor;shape-rendering:geometricPrecision;transform:translateZ(0)}
 .btn-s{padding:16px 44px;border:1.5px solid var(--gold);border-radius:6px;background:transparent;color:var(--cream);font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:all .3s}
 .btn-s:hover{background:rgba(200,164,78,0.1);border-color:var(--goldb)}
 .hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);z-index:2;opacity:0;animation:fsu 1s .9s forwards}
@@ -307,7 +307,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .fe{font-size:16px}.fb{font-size:12px}
   .hero-btns{flex-direction:column;width:100%}
   .btn-p,.btn-s{width:100%;text-align:center;justify-content:center;font-size:15px;padding:16px 28px;gap:8px;white-space:nowrap}
-  .btn-p .btn-p-cursor-end{width:18px;height:18px;margin-left:8px}
+  .btn-p .btn-p-cursor-end{width:22px;height:22px;margin-left:8px}
   .modal{padding:32px 24px;margin:16px}
   .modal h2{font-size:30px}
   .form-group label{font-size:15px}
@@ -322,7 +322,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .hero-tag{font-size:17px;letter-spacing:3px;margin-bottom:18px}
   .hero-sub{font-size:18px;margin-bottom:28px}
   .btn-p,.btn-s{padding:16px 28px;font-size:14px;min-height:48px;letter-spacing:0.8px}
-  .btn-p .btn-p-cursor-end{width:16px;height:16px;margin-left:6px}
+  .btn-p .btn-p-cursor-end{width:20px;height:20px;margin-left:6px}
   .hero-scroll{bottom:16px}
   .scroll-ind{width:20px;height:32px}
   .sec{padding:48px 18px}.sec-heading{font-size:36px}.sec-sub{font-size:17px}.sec-label{font-size:13px}
@@ -1323,7 +1323,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <h1><span class="w">Stop Chasing Quick Fixes.</span><br><span class="g">Build Real, Sustainable</span><br><span class="w">Transformation.</span></h1>
     <p class="hero-sub">Our Lifestyle Management Program delivers real lasting transformation through 3 phases: upgrading your mind, nutrition, and building permanent results.</p>
     <div class="hero-btns">
-      <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-icon btn-p-cursor-end" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" shape-rendering="geometricPrecision"><path d="M5 3l14 9h-6l2 9-4-6-4 3 2-9z"/></svg></span></a>
+      <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-icon btn-p-cursor-end" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" shape-rendering="geometricPrecision" aria-hidden="true"><path d="M5 3L19 12H13L15 21L11 15L7 18L9 9L5 3z"/></svg></span></a>
       
     </div>
   </div>
@@ -1535,7 +1535,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <h2><span class="w">Your Best Body Isn't </span><span class="g">Weeks Away.</span><br><span class="w">It's One Decision Away.</span></h2>
     <p>You already know the Lifestyle Management 3-Phase system works. Now see how it applies to YOUR body, YOUR goals, YOUR life.</p>
     <p class="bold">Start Your Transformation Today</p>
-    <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-icon btn-p-cursor-end" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" shape-rendering="geometricPrecision"><path d="M5 3l14 9h-6l2 9-4-6-4 3 2-9z"/></svg></span></a>
+    <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-icon btn-p-cursor-end" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" shape-rendering="geometricPrecision" aria-hidden="true"><path d="M5 3L19 12H13L15 21L11 15L7 18L9 9L5 3z"/></svg></span></a>
   </div>
 </div>
 
