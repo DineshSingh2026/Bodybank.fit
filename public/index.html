@@ -57,11 +57,12 @@ body.site-nav-hidden nav#nv{display:none !important}
 .hero h1 .w{color:var(--cream)}.hero h1 .g{color:var(--gold)}
 .hero-sub{font-size:clamp(17px,1.7vw,20px);color:var(--creamd);max-width:640px;margin:0 auto 40px;line-height:1.7;opacity:0;animation:fsu .9s .5s forwards}
 .hero-btns{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;opacity:0;animation:fsu .9s .65s forwards}
-.btn-p{display:inline-flex;align-items:center;gap:8px;padding:20px 52px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;text-decoration:none;box-shadow:0 4px 24px rgba(200,164,78,0.25);transition:all .3s;position:relative;overflow:hidden}
+.btn-p{display:inline-flex;align-items:center;gap:8px;padding:24px 60px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;text-decoration:none;box-shadow:0 4px 24px rgba(200,164,78,0.25);transition:all .3s;position:relative;overflow:hidden}
+.btn-p,.btn-p:hover,.btn-p:active,.btn-p:focus{cursor:pointer}
 .btn-p::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);transform:translateX(-100%);transition:transform .6s}
 .btn-p:hover::after{transform:translateX(100%)}
-.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(200,164,78,0.35);cursor:pointer}
-.btn-p:active{cursor:pointer}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(200,164,78,0.35)}
+.btn-p:active{transform:translateY(0)}
 .btn-s{padding:16px 44px;border:1.5px solid var(--gold);border-radius:6px;background:transparent;color:var(--cream);font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:all .3s}
 .btn-s:hover{background:rgba(200,164,78,0.1);border-color:var(--goldb)}
 .hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);z-index:2;opacity:0;animation:fsu 1s .9s forwards}
@@ -304,7 +305,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .hero h1{font-size:46px;letter-spacing:1px}.hero{padding:75px 18px 70px;min-height:auto}
   .hero-tag{font-size:17px;letter-spacing:3px;margin-bottom:18px}
   .hero-sub{font-size:18px;margin-bottom:28px}
-  .btn-p,.btn-s{padding:18px 40px;font-size:16px;min-height:52px}
+  .btn-p,.btn-s{padding:22px 48px;font-size:17px;min-height:56px}
   .hero-scroll{bottom:16px}
   .scroll-ind{width:20px;height:32px}
   .sec{padding:48px 18px}.sec-heading{font-size:36px}.sec-sub{font-size:17px}.sec-label{font-size:13px}
@@ -720,6 +721,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <div class="user-nav-item" onclick="switchUserTab('profile');closeUserNavDrawer()">My Profile</div>
       <div class="user-nav-item" onclick="switchUserTab('workout');closeUserNavDrawer()">My Workout</div>
       <div class="user-nav-item" onclick="switchUserTab('contact');closeUserNavDrawer()">Contact Us</div>
+      <div class="user-nav-item" onclick="switchUserTab('checkin');closeUserNavDrawer()">Sunday Check-in<span class="req">*</span></div>
     </div>
   </div>
   <div class="user-top">
@@ -733,6 +735,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <div class="user-nav-item" onclick="switchUserTab('profile')">My Profile</div>
         <div class="user-nav-item" onclick="switchUserTab('workout')">My Workout</div>
         <div class="user-nav-item" onclick="switchUserTab('contact')">Contact Us</div>
+        <div class="user-nav-item" onclick="switchUserTab('checkin')">Sunday Check-in<span class="req">*</span></div>
       </div>
       <button class="user-logout" id="userLogoutBtn" onclick="logoutUser()">Logout</button>
     </div>
@@ -759,6 +762,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-title">My Profile</div><div class="wc-desc">View & update your information</div></div>
           <div class="welcome-card" onclick="switchUserTab('workout')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M2 12h4V8H2v4zM18 12h4V8h-4v4zM6 12h12"/></svg></div><div class="wc-title">My Workout</div><div class="wc-desc">Log your training sessions</div></div>
           <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-title">Contact Us</div><div class="wc-desc">Get in touch with support</div></div>
+          <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-title">Sunday Check-in<span class="req">*</span></div><div class="wc-desc">Weekly check-in form</div></div>
         </div>
       </div>
     </div>
@@ -858,6 +862,31 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <button class="form-submit" id="sendContactBtn" onclick="sendContact()">Send</button>
     </div>
 
+    <!-- SUNDAY CHECK-IN -->
+    <div class="user-section" id="usec-checkin">
+      <h2>Sunday Check-in <span class="req">*</span></h2>
+      <p class="form-hint" style="margin-bottom:20px">All fields are mandatory. Please provide detailed answers where requested.</p>
+      <form id="sundayCheckinForm" onsubmit="submitSundayCheckin();return false">
+        <div class="form-group"><label>Full Name <span class="req">*</span></label><input type="text" class="form-input" id="scFullName" placeholder="Your full name" required></div>
+        <div class="form-group"><label>Email you want me to reply to <span class="req">*</span></label><input type="email" class="form-input" id="scReplyEmail" placeholder="e.g. you@example.com" required></div>
+        <div class="form-group"><label>State the plan you're on <span class="req">*</span></label><input type="text" class="form-input" id="scPlan" placeholder="e.g. 12 week fat loss" required></div>
+        <div class="form-group"><label>Current weight (lbs), waist measurement and week of training you've just completed <span class="req">*</span></label><textarea class="form-input" id="scCurrentWeight" rows="5" placeholder="e.g. week 1, 180 lbs, 34 in waist" required></textarea></div>
+        <div class="form-group"><label>Last week's weight (lbs) and waist measurement <span class="req">*</span></label><textarea class="form-input" id="scLastWeek" rows="4" placeholder="e.g. 182 lbs, 35 in" required></textarea></div>
+        <div class="form-group"><label>What is your total weight loss? (Or gain if on a muscle building plan) <span class="req">*</span></label><textarea class="form-input" id="scTotalLoss" rows="4" required></textarea></div>
+        <div class="form-group"><label>How did your training go? Did you complete all scheduled sessions including cardio? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scTraining" rows="6" placeholder="Describe your training week in detail" required></textarea></div>
+        <div class="form-group"><label>How did your nutrition go? Did you follow the meal plan exactly and take all supplements as specified? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scNutrition" rows="6" placeholder="Describe your nutrition adherence" required></textarea></div>
+        <div class="form-group"><label>What time did you go to bed/wake up on average? Did you get 8 hours sleep? Were there any difficulties sleeping? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scSleep" rows="6" required></textarea></div>
+        <div class="form-group"><label>What's your occupation and how much stress did this give you last week? <span class="req">*</span></label><textarea class="form-input" id="scOccupationStress" rows="4" required></textarea></div>
+        <div class="form-group"><label>Have you had any other noticeable stress this past week? If so can you pinpoint the cause? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scOtherStress" rows="5" required></textarea></div>
+        <div class="form-group"><label>What differences have you seen and felt both physically and mentally? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scDifferences" rows="6" required></textarea></div>
+        <div class="form-group"><label>Biggest achievements this week? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scAchievements" rows="5" required></textarea></div>
+        <div class="form-group"><label>What do you think you could do to improve for the coming week? <span class="req">*</span></label><textarea class="form-input" id="scImprove" rows="5" required></textarea></div>
+        <div class="form-group"><label>Questions?</label><textarea class="form-input" id="scQuestions" rows="4" placeholder="Any questions or notes (optional)"></textarea></div>
+        <button type="submit" class="form-submit" id="scSubmitBtn">Submit Check-in</button>
+      </form>
+      <p class="form-success" id="scSuccess" style="display:none;text-align:center;margin-top:16px">Check-in submitted successfully.</p>
+    </div>
+
   </div>
 </div>
 
@@ -920,6 +949,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <a class="admin-nav-link" href="#" data-tab="part2" onclick="switchTab('part2');closeAdminNavDrawer();return false">Part-2 Form</a>
         <a class="admin-nav-link" href="#" data-tab="hydration" onclick="switchTab('hydration');closeAdminNavDrawer();return false">Hydration</a>
         <a class="admin-nav-link" href="#" data-tab="weight" onclick="switchTab('weight');closeAdminNavDrawer();return false">Weight</a>
+        <a class="admin-nav-link" href="#" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin');closeAdminNavDrawer();return false">Sunday Check-in</a>
       </nav>
     </div>
     <div class="admin-tabs" id="adminTabs">
@@ -932,6 +962,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <div class="admin-tab" data-tab="part2" onclick="switchTab('part2')">Part-2 Form</div>
       <div class="admin-tab" data-tab="hydration" onclick="switchTab('hydration')">Hydration</div>
       <div class="admin-tab" data-tab="weight" onclick="switchTab('weight')">Weight</div>
+      <div class="admin-tab" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin')">Sunday Check-in</div>
     </div>
 
     <!-- TAB 1: Pending Requests -->
@@ -974,6 +1005,14 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <div class="admin-table-wrap"><table class="admin-table">
         <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Date</th></tr></thead>
         <tbody id="messagesBody"></tbody>
+      </table></div>
+    </div>
+
+    <!-- TAB: Sunday Check-in -->
+    <div class="admin-tab-content" id="tab-sundaycheckin">
+      <div class="admin-table-wrap"><table class="admin-table">
+        <thead><tr><th>Name</th><th>Reply Email</th><th>Submitted</th><th>Actions</th></tr></thead>
+        <tbody id="sundayCheckinBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
       </table></div>
     </div>
 
@@ -1228,6 +1267,15 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   </div>
 </div>
 
+<!-- ADMIN: Sunday Check-in View Modal -->
+<div class="modal-overlay view-detail-modal" id="sundayCheckinViewModal" onclick="if(event.target===this)closeModal('sundayCheckinViewModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('sundayCheckinViewModal')">&times;</button>
+    <h2>Sunday Check-in</h2>
+    <div class="view-detail-body" id="sundayCheckinViewBody"></div>
+  </div>
+</div>
+
 <!-- HERO -->
 <section class="hero" id="hero">
   <div class="hero-bg"></div>
@@ -1358,20 +1406,22 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       </div>
       <div class="tf-spotlight">
         <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5959.jpeg" alt="Transformation: 24 Weeks" loading="lazy">
+          <img src="img/transformations/IMG_5959.jpeg" alt="Transformation: Rahul" loading="lazy">
         </div>
         <div class="tf-spotlight-story">
           <p class="tf-story-intro">24 Weeks</p>
           <p class="tf-story-quote">"Gains daily F***, never this happy. Didn't think I'd look this good Damn happy bro!"</p>
+          <p class="tf-story-attribution">— Rahul</p>
         </div>
       </div>
       <div class="tf-spotlight">
         <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5958.jpeg" alt="Transformation: 24 Weeks" loading="lazy">
+          <img src="img/transformations/IMG_5958.jpeg" alt="Transformation: Rahul" loading="lazy">
         </div>
         <div class="tf-spotlight-story">
           <p class="tf-story-intro">24 Weeks</p>
           <p class="tf-story-quote">"Gains daily F***, never this happy. Didn't think I'd look this good Damn happy bro!"</p>
+          <p class="tf-story-attribution">— Rahul</p>
         </div>
       </div>
       <div class="tf-spotlight">
@@ -1710,7 +1760,7 @@ async function submitAudit(form) {
 
 // ========== ADMIN DASHBOARD ==========
 async function loadDashboard() {
-  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMessages(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions(), loadAdminHydration(), loadAdminWeight()]);
+  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMessages(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions(), loadAdminHydration(), loadAdminWeight(), loadSundayCheckins()]);
 }
 
 const SESSION_KEY = 'bodybank_session';
@@ -1933,6 +1983,44 @@ async function rejectUser(id) {
   loadNotifications();
 }
 
+async function loadSundayCheckins() {
+  const tbody = document.getElementById('sundayCheckinBody');
+  if (!tbody) return;
+  const data = await apiCall('GET', '/api/sunday-checkin');
+  const list = data && !data.error && Array.isArray(data) ? data : [];
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No Sunday check-ins yet.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(function(r) {
+    var date = r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-';
+    var id = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return '<tr><td>' + escapeHtml(r.full_name || '-') + '</td><td>' + escapeHtml(r.reply_email || '-') + '</td><td>' + date + '</td><td><button class="action-btn btn-view" onclick="viewSundayCheckin(\'' + id + '\')">View</button></td></tr>';
+  }).join('');
+}
+
+async function viewSundayCheckin(id) {
+  const r = await apiCall('GET', '/api/sunday-checkin/' + id);
+  if (r && r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
+  const body = document.getElementById('sundayCheckinViewBody');
+  if (!body) return;
+  body.innerHTML = _row('Full Name', r.full_name) + _row('Reply Email', r.reply_email) + _row('Plan', r.plan) +
+    _rowBlock('Current weight, waist & week', r.current_weight_waist_week) +
+    _rowBlock('Last week weight & waist', r.last_week_weight_waist) +
+    _rowBlock('Total weight loss/gain', r.total_weight_loss) +
+    _rowBlock('How did your training go?', r.training_go) +
+    _rowBlock('How did your nutrition go?', r.nutrition_go) +
+    _rowBlock('Sleep (bed/wake, 8 hours, difficulties)', r.sleep) +
+    _rowBlock('Occupation & stress', r.occupation_stress) +
+    _rowBlock('Other stress & cause', r.other_stress) +
+    _rowBlock('Differences felt (physically & mentally)', r.differences_felt) +
+    _rowBlock('Biggest achievements', r.achievements) +
+    _rowBlock('Improve for coming week', r.improve_next_week) +
+    _rowBlock('Questions', r.questions || '—') +
+    _row('Submitted', r.created_at ? new Date(r.created_at).toLocaleString() : '');
+  openModal('sundayCheckinViewModal');
+}
+
 async function loadTribe() {
   const data = await apiCall('GET', '/api/tribe');
   const grid = document.querySelector('.tribe-grid');
@@ -2093,6 +2181,7 @@ function logoutAdmin() {
   closeModal('auditViewModal');
   closeModal('part2ViewModal');
   closeModal('signupViewModal');
+  closeModal('sundayCheckinViewModal');
   closePopup('popupSuccess');
   closePopup('forgotModal');
   closePopup('resetModal');
@@ -2114,6 +2203,7 @@ function switchTab(tab) {
   if (tab === 'messages') loadAdminMessages();
   if (tab === 'requests') loadRequests();
   if (tab === 'signups') loadPendingSignups();
+  if (tab === 'sundaycheckin') loadSundayCheckins();
   if (tab === 'tribe') loadTribe();
   if (tab === 'part2') loadPart2Submissions();
   if (tab === 'hydration') loadAdminHydration();
@@ -2278,7 +2368,7 @@ function switchUserTab(tab) {
   closeUserNavDrawer();
   document.querySelectorAll('.user-nav-item').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.user-section').forEach(function(s) { s.classList.remove('active'); });
-  var tabs = ['home', 'profile', 'workout', 'contact'];
+  var tabs = ['home', 'profile', 'workout', 'contact', 'checkin'];
   var idx = tabs.indexOf(tab);
   var topNav = document.querySelectorAll('.user-nav .user-nav-item');
   var drawerNav = document.querySelectorAll('.drawer-nav .user-nav-item');
@@ -2597,6 +2687,41 @@ async function cancelMeeting(id) {
   var data = await apiCall('PUT', '/api/meetings/' + id, { status: 'cancelled' });
   if (data.error) { alert(data.error); return; }
   loadMyMeetings();
+}
+
+// Sunday Check-in
+async function submitSundayCheckin() {
+  var fullName = document.getElementById('scFullName').value.trim();
+  var replyEmail = document.getElementById('scReplyEmail').value.trim();
+  if (!fullName || !replyEmail) { alert('Full name and reply email are required.'); return; }
+  var payload = {
+    user_id: window.currentUser ? window.currentUser.id : null,
+    full_name: fullName,
+    reply_email: replyEmail,
+    plan: document.getElementById('scPlan').value.trim(),
+    current_weight_waist_week: document.getElementById('scCurrentWeight').value.trim(),
+    last_week_weight_waist: document.getElementById('scLastWeek').value.trim(),
+    total_weight_loss: document.getElementById('scTotalLoss').value.trim(),
+    training_go: document.getElementById('scTraining').value.trim(),
+    nutrition_go: document.getElementById('scNutrition').value.trim(),
+    sleep: document.getElementById('scSleep').value.trim(),
+    occupation_stress: document.getElementById('scOccupationStress').value.trim(),
+    other_stress: document.getElementById('scOtherStress').value.trim(),
+    differences_felt: document.getElementById('scDifferences').value.trim(),
+    achievements: document.getElementById('scAchievements').value.trim(),
+    improve_next_week: document.getElementById('scImprove').value.trim(),
+    questions: document.getElementById('scQuestions').value.trim()
+  };
+  var btn = document.getElementById('scSubmitBtn');
+  if (btn) { btn.disabled = true; btn.classList.add('loading'); btn._orig = btn.textContent; btn.textContent = 'Submitting...'; }
+  try {
+    var data = await apiCall('POST', '/api/sunday-checkin', payload);
+    if (data.error) { if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = btn._orig || 'Submit Check-in'; } alert(data.error); return; }
+    if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = btn._orig || 'Submit Check-in'; }
+    document.getElementById('sundayCheckinForm').reset();
+    var succ = document.getElementById('scSuccess'); if (succ) succ.style.display = 'block';
+    showPopup('Check-in Submitted!', 'Your Sunday check-in has been sent successfully.', '', 'OK');
+  } catch (e) { if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = btn._orig || 'Submit Check-in'; } alert('Failed to submit.'); }
 }
 
 // Contact

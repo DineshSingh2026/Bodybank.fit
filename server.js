@@ -221,6 +221,27 @@ async function initDB() {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  db.run(`CREATE TABLE IF NOT EXISTS sunday_checkins (
+    id TEXT PRIMARY KEY,
+    user_id TEXT,
+    full_name TEXT NOT NULL,
+    reply_email TEXT NOT NULL,
+    plan TEXT DEFAULT '',
+    current_weight_waist_week TEXT DEFAULT '',
+    last_week_weight_waist TEXT DEFAULT '',
+    total_weight_loss TEXT DEFAULT '',
+    training_go TEXT DEFAULT '',
+    nutrition_go TEXT DEFAULT '',
+    sleep TEXT DEFAULT '',
+    occupation_stress TEXT DEFAULT '',
+    other_stress TEXT DEFAULT '',
+    differences_felt TEXT DEFAULT '',
+    achievements TEXT DEFAULT '',
+    improve_next_week TEXT DEFAULT '',
+    questions TEXT DEFAULT '',
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  )`);
+
   // Create admin (in production, require ADMIN_PASS to be set and not default)
   if (NODE_ENV === 'production' && (!process.env.ADMIN_PASS || ADMIN_PASS === 'admin123')) {
     console.warn('⚠️ Production: set ADMIN_PASS in .env to a strong password. Default admin password is not allowed.');
@@ -734,6 +755,32 @@ app.get('/api/contact', (req, res) => {
   res.json(queryAll("SELECT * FROM contact_messages ORDER BY created_at DESC"));
 });
 
+// ============ SUNDAY CHECK-IN (User submit) ============
+app.post('/api/sunday-checkin', rateLimiter(10, 60000), (req, res) => {
+  try {
+    const b = req.body || {};
+    if (!b.full_name || !b.reply_email) return res.status(400).json({ error: 'Full name and reply email are required' });
+    const id = uuidv4();
+    db.run(`INSERT INTO sunday_checkins (id, user_id, full_name, reply_email, plan, current_weight_waist_week, last_week_weight_waist, total_weight_loss, training_go, nutrition_go, sleep, occupation_stress, other_stress, differences_felt, achievements, improve_next_week, questions) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [id, b.user_id || null, b.full_name || '', b.reply_email || '', b.plan || '', b.current_weight_waist_week || '', b.last_week_weight_waist || '', b.total_weight_loss || '', b.training_go || '', b.nutrition_go || '', b.sleep || '', b.occupation_stress || '', b.other_stress || '', b.differences_felt || '', b.achievements || '', b.improve_next_week || '', b.questions || '']);
+    saveDB();
+    res.json({ id, message: 'Sunday check-in submitted successfully' });
+  } catch (e) {
+    console.error('Sunday check-in error:', e.message);
+    res.status(500).json({ error: 'Failed to submit check-in' });
+  }
+});
+
+app.get('/api/sunday-checkin', (req, res) => {
+  res.json(queryAll("SELECT id, full_name, reply_email, created_at FROM sunday_checkins ORDER BY created_at DESC"));
+});
+
+app.get('/api/sunday-checkin/:id', (req, res) => {
+  const row = queryOne("SELECT * FROM sunday_checkins WHERE id = ?", [req.params.id]);
+  if (!row) return res.status(404).json({ error: 'Not found' });
+  res.json(row);
+});
+
 // ============ ADMIN: PENDING SIGNUPS & APPROVE ============
 app.get('/api/admin/pending-signups', (req, res) => {
   try {
@@ -895,7 +942,7 @@ app.get('/api/admin/db-view', (req, res) => {
       return res.status(500).json({ error: 'Database not initialized' });
     }
 
-    const tables = ['users', 'audit_requests', 'tribe_members', 'workout_logs', 'contact_messages', 'meetings', 'part2_audit', 'hydration_logs', 'weight_logs'];
+    const tables = ['users', 'audit_requests', 'tribe_members', 'workout_logs', 'contact_messages', 'meetings', 'part2_audit', 'hydration_logs', 'weight_logs', 'sunday_checkins'];
     const result = {};
     
     tables.forEach(table => {
