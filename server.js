@@ -935,6 +935,138 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
+// ============ ADMIN: USERS LIST (for insights filter) ============
+app.get('/api/admin/users', (req, res) => {
+  try {
+    const list = queryAll("SELECT id, first_name, last_name, email FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') ORDER BY first_name, last_name");
+    res.json(list);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============ ADMIN: PERFORMANCE INSIGHTS ============
+app.get('/api/admin/performance-insights', (req, res) => {
+  try {
+    const { source = 'all', from: dateFrom, to: dateTo, user_id: filterUserId } = req.query || {};
+    const hasDate = dateFrom || dateTo;
+    const dateCond = (tableAlias) => {
+      const col = tableAlias ? `${tableAlias}.created_at` : 'created_at';
+      const parts = [];
+      if (dateFrom) parts.push(`date(${col}) >= date(?)`);
+      if (dateTo) parts.push(`date(${col}) <= date(?)`);
+      return parts.length ? parts.join(' AND ') : null;
+    };
+    const dateParams = [dateFrom, dateTo].filter(Boolean);
+
+    const summary = {};
+    const tables = [
+      { key: 'workouts', table: 'workout_logs', countSql: 'SELECT COUNT(*) as c FROM workout_logs w', dateCol: 'w.created_at', userCol: 'w.user_id' },
+      { key: 'weight', table: 'weight_logs', countSql: 'SELECT COUNT(*) as c FROM weight_logs w', dateCol: 'w.created_at', userCol: 'w.user_id' },
+      { key: 'hydration', table: 'hydration_logs', countSql: 'SELECT COUNT(*) as c FROM hydration_logs h', dateCol: 'h.created_at', userCol: 'h.user_id' },
+      { key: 'sunday_checkin', table: 'sunday_checkins', countSql: 'SELECT COUNT(*) as c FROM sunday_checkins', dateCol: 'created_at', userCol: 'user_id' },
+      { key: 'audit', table: 'audit_requests', countSql: 'SELECT COUNT(*) as c FROM audit_requests', dateCol: 'created_at', userCol: null },
+      { key: 'part2', table: 'part2_audit', countSql: 'SELECT COUNT(*) as c FROM part2_audit', dateCol: 'created_at', userCol: null },
+      { key: 'meetings', table: 'meetings', countSql: "SELECT COUNT(*) as c FROM meetings WHERE status='scheduled'", dateCol: 'created_at', userCol: 'user_id' },
+      { key: 'messages', table: 'contact_messages', countSql: 'SELECT COUNT(*) as c FROM contact_messages', dateCol: 'created_at', userCol: 'user_id' }
+    ];
+    const usersApproved = queryOne("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'approved')");
+    summary.users_approved = usersApproved?.c ?? 0;
+
+    tables.forEach(({ key, countSql, dateCol, userCol }) => {
+      let sql = countSql;
+      const params = [];
+      const conditions = [];
+      if (hasDate && dateCol) {
+        if (dateFrom) conditions.push(`date(${dateCol}) >= date(?)`);
+        if (dateTo) conditions.push(`date(${dateCol}) <= date(?)`);
+        params.push(...dateParams);
+      }
+      if (filterUserId && userCol) {
+        conditions.push(`${userCol} = ?`);
+        params.push(filterUserId);
+      }
+      if (conditions.length) sql += (countSql.toLowerCase().includes(' where ') ? ' AND ' : ' WHERE ') + conditions.join(' AND ');
+      const row = queryOne(sql, params);
+      summary[key] = row?.c ?? 0;
+    });
+
+    let data = [];
+    const pickSource = source.toLowerCase();
+
+    function runQuery(sql, params = []) {
+      return queryAll(sql, params);
+    }
+
+    if (pickSource === 'all' || pickSource === 'overview') {
+      const limit = 80;
+      const w = runQuery(`SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 200`).map(r => ({ ...r, _source: 'workouts', _date: r.created_at }));
+      const wt = runQuery(`SELECT w.id, w.user_id, w.weight_kg, w.created_at, u.first_name, u.last_name FROM weight_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 200`).map(r => ({ ...r, _source: 'weight', _date: r.created_at }));
+      const h = runQuery(`SELECT h.id, h.user_id, h.glasses, h.amount_ml, h.created_at, u.first_name, u.last_name FROM hydration_logs h LEFT JOIN users u ON h.user_id = u.id ORDER BY h.created_at DESC LIMIT 200`).map(r => ({ ...r, _source: 'hydration', _date: r.created_at }));
+      const sc = runQuery('SELECT id, user_id, full_name, reply_email, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT 200').map(r => ({ ...r, _source: 'sunday_checkin', _date: r.created_at }));
+      const ar = runQuery('SELECT id, first_name, last_name, email, created_at FROM audit_requests ORDER BY created_at DESC LIMIT 200').map(r => ({ ...r, _source: 'audit', _date: r.created_at }));
+      const p2 = runQuery('SELECT id, name, email, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 200').map(r => ({ ...r, _source: 'part2', _date: r.created_at }));
+      const meet = runQuery("SELECT id, user_id, user_name, user_email, meeting_date, time_slot, created_at FROM meetings ORDER BY created_at DESC LIMIT 200").map(r => ({ ...r, _source: 'meetings', _date: r.created_at }));
+      const msg = runQuery('SELECT id, user_id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 200').map(r => ({ ...r, _source: 'messages', _date: r.created_at }));
+      data = [...w, ...wt, ...h, ...sc, ...ar, ...p2, ...meet, ...msg];
+      if (hasDate) data = data.filter(r => { const d = (r._date || r.created_at || '').toString().slice(0, 10); return (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo); });
+      if (filterUserId) data = data.filter(r => r.user_id === filterUserId);
+      data.sort((a, b) => new Date(b._date || b.created_at) - new Date(a._date || a.created_at));
+      data = data.slice(0, limit);
+    } else {
+      const limit = 500;
+      let sql, params = [];
+      const uidCol = { workouts: 'w.user_id', weight: 'w.user_id', hydration: 'h.user_id', sunday_checkin: 'user_id', meetings: 'user_id' }[pickSource];
+      if (pickSource === 'workouts') {
+        sql = `SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name, u.email FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id`;
+        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(w.created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(w.created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('w.user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
+        sql += ' ORDER BY w.created_at DESC LIMIT ' + limit;
+        data = runQuery(sql, params);
+      } else if (pickSource === 'weight') {
+        sql = `SELECT w.id, w.user_id, w.weight_kg, w.created_at, u.first_name, u.last_name, u.email FROM weight_logs w LEFT JOIN users u ON w.user_id = u.id`;
+        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(w.created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(w.created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('w.user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
+        sql += ' ORDER BY w.created_at DESC LIMIT ' + limit;
+        data = runQuery(sql, params);
+      } else if (pickSource === 'hydration') {
+        sql = `SELECT h.id, h.user_id, h.glasses, h.amount_ml, h.created_at, u.first_name, u.last_name, u.email FROM hydration_logs h LEFT JOIN users u ON h.user_id = u.id`;
+        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(h.created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(h.created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('h.user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
+        sql += ' ORDER BY h.created_at DESC LIMIT ' + limit;
+        data = runQuery(sql, params);
+      } else if (pickSource === 'sunday_checkin') {
+        sql = `SELECT id, user_id, full_name, reply_email, plan, total_weight_loss, created_at FROM sunday_checkins`;
+        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
+        sql += ' ORDER BY created_at DESC LIMIT ' + limit;
+        data = runQuery(sql, params);
+      } else if (pickSource === 'audit') {
+        sql = `SELECT id, first_name, last_name, email, city, goals, status, created_at FROM audit_requests`;
+        if (hasDate) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(created_at) <= date(?)'); params.push(dateTo); } sql += c.join(' AND '); }
+        sql += ' ORDER BY created_at DESC LIMIT ' + limit;
+        data = runQuery(sql, params);
+      } else if (pickSource === 'part2') {
+        sql = `SELECT id, name, email, mobile, activity_level, created_at FROM part2_audit`;
+        if (hasDate) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(created_at) <= date(?)'); params.push(dateTo); } sql += c.join(' AND '); }
+        sql += ' ORDER BY created_at DESC LIMIT ' + limit;
+        data = runQuery(sql, params);
+      } else if (pickSource === 'meetings') {
+        sql = `SELECT id, user_id, user_name, user_email, user_phone, meeting_date, time_slot, status, created_at FROM meetings`;
+        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
+        sql += ' ORDER BY created_at DESC LIMIT ' + limit;
+        data = runQuery(sql, params);
+      } else if (pickSource === 'messages') {
+        sql = `SELECT id, user_id, name, email, phone, message, created_at FROM contact_messages`;
+        if (hasDate || filterUserId) { sql += ' WHERE '; const c = []; if (dateFrom) { c.push('date(created_at) >= date(?)'); params.push(dateFrom); } if (dateTo) { c.push('date(created_at) <= date(?)'); params.push(dateTo); } if (filterUserId) { c.push('user_id = ?'); params.push(filterUserId); } sql += c.join(' AND '); }
+        sql += ' ORDER BY created_at DESC LIMIT ' + limit;
+        data = runQuery(sql, params);
+      }
+    }
+
+    res.json({ summary, data, filters: { source: pickSource, dateFrom: dateFrom || null, dateTo: dateTo || null, user_id: filterUserId || null } });
+  } catch (e) {
+    console.error('Performance insights error:', e.message);
+    res.status(500).json({ error: e.message, summary: {}, data: [] });
+  }
+});
+
 // ============ ADMIN: VIEW DATABASE ============
 app.get('/api/admin/db-view', (req, res) => {
   try {
