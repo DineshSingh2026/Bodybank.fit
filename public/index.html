@@ -57,10 +57,11 @@ body.site-nav-hidden nav#nv{display:none !important}
 .hero h1 .w{color:var(--cream)}.hero h1 .g{color:var(--gold)}
 .hero-sub{font-size:clamp(17px,1.7vw,20px);color:var(--creamd);max-width:640px;margin:0 auto 40px;line-height:1.7;opacity:0;animation:fsu .9s .5s forwards}
 .hero-btns{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;opacity:0;animation:fsu .9s .65s forwards}
-.btn-p{display:inline-flex;align-items:center;gap:8px;padding:16px 44px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-decoration:none;box-shadow:0 4px 24px rgba(200,164,78,0.25);transition:all .3s;position:relative;overflow:hidden}
+.btn-p{display:inline-flex;align-items:center;gap:8px;padding:20px 52px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;letter-spacing:1.2px;text-transform:uppercase;cursor:pointer;text-decoration:none;box-shadow:0 4px 24px rgba(200,164,78,0.25);transition:all .3s;position:relative;overflow:hidden}
 .btn-p::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent);transform:translateX(-100%);transition:transform .6s}
 .btn-p:hover::after{transform:translateX(100%)}
-.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(200,164,78,0.35)}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 8px 36px rgba(200,164,78,0.35);cursor:pointer}
+.btn-p:active{cursor:pointer}
 .btn-s{padding:16px 44px;border:1.5px solid var(--gold);border-radius:6px;background:transparent;color:var(--cream);font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:all .3s}
 .btn-s:hover{background:rgba(200,164,78,0.1);border-color:var(--goldb)}
 .hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);z-index:2;opacity:0;animation:fsu 1s .9s forwards}
@@ -289,7 +290,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   footer{padding:32px 20px 20px}
   .fe{font-size:16px}.fb{font-size:12px}
   .hero-btns{flex-direction:column;width:100%}
-  .btn-p,.btn-s{width:100%;text-align:center;justify-content:center;font-size:15px}
+  .btn-p,.btn-s{width:100%;text-align:center;justify-content:center;font-size:16px}
   .modal{padding:32px 24px;margin:16px}
   .modal h2{font-size:30px}
   .form-group label{font-size:15px}
@@ -303,7 +304,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .hero h1{font-size:46px;letter-spacing:1px}.hero{padding:75px 18px 70px;min-height:auto}
   .hero-tag{font-size:17px;letter-spacing:3px;margin-bottom:18px}
   .hero-sub{font-size:18px;margin-bottom:28px}
-  .btn-p,.btn-s{padding:14px 32px;font-size:15px;min-height:48px}
+  .btn-p,.btn-s{padding:18px 40px;font-size:16px;min-height:52px}
   .hero-scroll{bottom:16px}
   .scroll-ind{width:20px;height:32px}
   .sec{padding:48px 18px}.sec-heading{font-size:36px}.sec-sub{font-size:17px}.sec-label{font-size:13px}
@@ -911,7 +912,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       </div>
       <nav class="admin-nav-drawer-links">
         <a class="admin-nav-link active" href="#" data-tab="requests" onclick="switchTab('requests');closeAdminNavDrawer();return false">Pending Requests</a>
-        <a class="admin-nav-link" href="#" data-tab="signups" onclick="switchTab('signups');closeAdminNavDrawer();return false">Pending Signups</a>
+        <a class="admin-nav-link" href="#" data-tab="signups" onclick="switchTab('signups');closeAdminNavDrawer();return false">Pending Sign-ups</a>
         <a class="admin-nav-link" href="#" data-tab="tribe" onclick="switchTab('tribe');closeAdminNavDrawer();return false">Tribe</a>
         <a class="admin-nav-link" href="#" data-tab="workouts" onclick="switchTab('workouts');closeAdminNavDrawer();return false">Workouts</a>
         <a class="admin-nav-link" href="#" data-tab="messages" onclick="switchTab('messages');closeAdminNavDrawer();return false">Messages</a>
@@ -923,7 +924,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     </div>
     <div class="admin-tabs" id="adminTabs">
       <div class="admin-tab active" data-tab="requests" onclick="switchTab('requests')">Pending Requests</div>
-      <div class="admin-tab" data-tab="signups" onclick="switchTab('signups')">Pending Signups</div>
+      <div class="admin-tab" data-tab="signups" onclick="switchTab('signups')">Pending Sign-ups</div>
       <div class="admin-tab" data-tab="tribe" onclick="switchTab('tribe')">Tribe</div>
       <div class="admin-tab" data-tab="workouts" onclick="switchTab('workouts')">Workouts</div>
       <div class="admin-tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
@@ -945,7 +946,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       </table></div>
     </div>
 
-    <!-- TAB: Pending Signups -->
+    <!-- TAB: Pending Sign-ups -->
     <div class="admin-tab-content" id="tab-signups">
       <div class="admin-table-wrap"><table class="admin-table">
         <thead><tr><th>Name</th><th>Email</th><th>Signed up</th><th>Actions</th></tr></thead>
@@ -1144,7 +1145,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     </div>
     <button class="form-submit" onclick="event.preventDefault();adminLogin()">Login Now</button>
     <!-- Forgot password removed -->
-    <p class="login-footer">Don't Have An Account? <a href="#" onclick="openModal('signupModal');closeModal('loginModal');return false;">Sign Up</a></p>
+    <p class="login-footer">Don't Have An Account? <a href="#" onclick="openModal('signupModal');closeModal('loginModal');return false;">Sign-up</a></p>
   </div>
 </div>
 
@@ -1154,7 +1155,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   <div class="modal login-modal">
     <button class="modal-close" onclick="closeModal('signupModal')">&times;</button>
     <h2>Create your account</h2>
-    <button class="google-btn" id="googleBtnSignup" onclick="googleSignIn()"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Sign up with Google</button>
+    <button class="google-btn" id="googleBtnSignup" onclick="googleSignIn()"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Sign-up with Google</button>
     <div class="form-row">
       <div class="form-group"><label>First Name <span class="req">*</span></label><input type="text" class="form-input" placeholder="First name" required></div>
       <div class="form-group"><label>Last Name <span class="req">*</span></label><input type="text" class="form-input" placeholder="Last name" required></div>
@@ -1163,8 +1164,8 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <div class="form-group"><label>Mobile (WhatsApp) <span class="req">*</span></label><input type="tel" class="form-input" placeholder="Your WhatsApp number" required></div>
     <div class="form-group"><label>Password <span class="req">*</span></label><div class="pw-wrap"><input type="password" class="form-input" placeholder="Create a password" id="pwSignup"><button class="pw-toggle" onclick="document.getElementById('pwSignup').type=document.getElementById('pwSignup').type==='password'?'text':'password'">&#128065;</button></div></div>
     <div class="form-group"><label>Confirm Password <span class="req">*</span></label><input type="password" class="form-input" placeholder="Confirm your password"></div>
-    <button class="form-submit" onclick="handleSignup()">Sign Up Now</button>
-    <button class="google-btn" id="googleBtnSignupBelow" onclick="googleSignIn()" style="margin-top:12px"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Sign up using Google account</button>
+    <button class="form-submit" onclick="handleSignup()">Sign-up Now</button>
+    <button class="google-btn" id="googleBtnSignupBelow" onclick="googleSignIn()" style="margin-top:12px"><svg viewBox="0 0 24 24" width="18" height="18"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/></svg> Sign-up using Google account</button>
     <p class="login-footer">Already have an account? <a href="#" onclick="openModal('loginModal');closeModal('signupModal');return false;">Login</a></p>
   </div>
 </div>
@@ -1214,6 +1215,16 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <button class="modal-close" onclick="closeModal('part2ViewModal')">&times;</button>
     <h2>Part-2 Submission</h2>
     <div class="view-detail-body" id="part2ViewBody"></div>
+  </div>
+</div>
+
+<!-- ADMIN: Sign-up Request View Modal -->
+<div class="modal-overlay view-detail-modal" id="signupViewModal" onclick="if(event.target===this)closeModal('signupViewModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('signupViewModal')">&times;</button>
+    <h2>Sign-up Request</h2>
+    <div class="view-detail-body" id="signupViewBody"></div>
+    <div class="view-detail-actions" id="signupViewActions"></div>
   </div>
 </div>
 
@@ -1320,6 +1331,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <img src="img/transformations/IMG_5952.jpeg" alt="Transformation: Kartik" loading="lazy">
         </div>
         <div class="tf-spotlight-story">
+          <p class="tf-story-intro">13 Weeks</p>
           <p class="tf-story-quote">"What a ride this was, there's a big change in my mindset & I hope many people get to experience this!"</p>
           <p class="tf-story-attribution">— Kartik</p>
         </div>
@@ -1339,6 +1351,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <img src="img/transformations/IMG_5956.jpeg" alt="Transformation: Prem" loading="lazy">
         </div>
         <div class="tf-spotlight-story">
+          <p class="tf-story-intro">19 Weeks</p>
           <p class="tf-story-quote">"I feel lighter, can breathe better, my fam & friends observed the changes which felt really amazing"</p>
           <p class="tf-story-attribution">— Prem</p>
         </div>
@@ -1366,6 +1379,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <img src="img/transformations/IMG_5961.webp" alt="Transformation: Nisheeth" loading="lazy">
         </div>
         <div class="tf-spotlight-story">
+          <p class="tf-story-intro">27 Weeks</p>
           <p class="tf-story-quote">"Consistently being persistent, is what lifestyle management unlocked for me"</p>
           <p class="tf-story-attribution">— Nisheeth</p>
         </div>
@@ -1375,6 +1389,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <img src="img/transformations/IMG_5962.jpeg" alt="Transformation: Sandeep" loading="lazy">
         </div>
         <div class="tf-spotlight-story">
+          <p class="tf-story-intro">13 Weeks</p>
           <p class="tf-story-quote">"One of the best takeaways is that I still try to keep at it! Once part of the tribe, always a part of the tribe"</p>
           <p class="tf-story-attribution">— Sandeep</p>
         </div>
@@ -1394,6 +1409,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <img src="img/transformations/IMG_5940.jpeg" alt="Transformation: Kanshika" loading="lazy">
         </div>
         <div class="tf-spotlight-story">
+          <p class="tf-story-intro">16 Weeks</p>
           <p class="tf-story-quote">"If I'm putting effort, might as well go all in! Parents are so happy about this change."</p>
           <p class="tf-story-attribution">— Kanshika</p>
         </div>
@@ -1413,11 +1429,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>Why not promise instant results?</span><span class="ar">▾</span></div><div class="fa">Because they're lies. Real transformation takes time. Phase 1 builds foundation. Phase 2 gives visible progress. Phase 3 makes it permanent. We'd rather be honest and deliver results that stick.</div></div>
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>How is this different from a gym?</span><span class="ar">▾</span></div><div class="fa">Gyms give you equipment but not systems. We teach a system for life. Phase 1 foundation is what most programs skip. Phase 2 acceleration is where you see changes. Phase 3 lock-in is where you stop restarting forever. That's the difference.</div></div>
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>I've failed at fitness before. Why different this time?</span><span class="ar">▾</span></div><div class="fa">You failed because: 1. Did not understand body. 2. Wrong approach—the program worked against your life. 3. When chaos hit, your plan failed. This time you have all three.</div></div>
-      <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>I'm too busy for another fitness program.</span><span class="ar">▾</span></div><div class="fa">This won't take more than 1 hour/day because we train to transform, not to get tired—we can plan for both home or gym workouts. Anyone succeeds best when they don't waste time on ineffective systems.</div></div>
+      <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>I'm too busy for another fitness program.</span><span class="ar">▾</span></div><div class="fa">This won't take more than 1 hour/day because we train to transform, not to get tired. We can plan for both home or gym workouts. Anyone succeeds best when they don't waste time on ineffective systems.</div></div>
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>How long until results?</span><span class="ar">▾</span></div><div class="fa">Phase 1 (Weeks 1-4): Mental clarity, better sleep, energy. Phase 2 (Weeks 5-12): Visible fat loss, measurable strength. Phase 3 (Weeks 13-16): Changes stick. This becomes your life. Most people see big changes by week 8. But the magic? Phase 3 when you realize this is permanent.</div></div>
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>What if life disrupts? (travel, stress, etc.)</span><span class="ar">▾</span></div><div class="fa">You course correct fast, adjust and keep going. Phase 3 teaches damage control protocols. The plan bends, doesn't break. No restart.</div></div>
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>Why 4-month commitment?</span><span class="ar">▾</span></div><div class="fa">Phase 1 alone = foundation (not results). Phase 1+2 = temporary loss. Phase 1+2+3 = PERMANENT. 92% maintain results after the program because lasting habits create lasting change.<br>Short programs = Short results<br>Real commitment = Permanent change.</div></div>
-      <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>What's the guarantee?</span><span class="ar">▾</span></div><div class="fa">This isn't another instant gratification quest. Given our honesty and your mutual effort, we're bound to taste ultimate transformation—as you've seen above in the results.</div></div>
+      <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>What's the guarantee?</span><span class="ar">▾</span></div><div class="fa">This isn't another instant gratification quest. Given our honesty and your mutual effort, we're bound to taste ultimate transformation, as you've seen above in the results.</div></div>
     </div>
   </div>
 </section>
@@ -1597,7 +1613,7 @@ async function adminLogin() {
     const data = await apiCall('POST', '/api/auth/login', { email, password: pw });
     if (data && data.error) {
       if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Login Now';}
-      var msg = (data.error === 'pending_approval' && data.message) ? data.message : data.error;
+      var msg = (data.error === 'pending_approval' || data.error === 'rejected') && data.message ? data.message : data.error;
       showPopup('Login Failed', msg, '', 'Try Again', null, 'error');
       return;
     }
@@ -1646,17 +1662,17 @@ async function handleSignup() {
   if(sBtn){sBtn.disabled=true;sBtn.classList.add('loading');sBtn._orig=sBtn.innerHTML;sBtn.innerHTML='<span class="btn-spinner"></span> Creating account...';}
   try {
     const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone });
-    if (data.error) { if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign Up Now';} showPopup('Signup Error', data.error, '', 'OK', null, 'error'); return; }
-    if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign Up Now';}
+    if (data.error) { if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';} showPopup('Sign-up Error', data.error, '', 'OK', null, 'error'); return; }
+    if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
     closeModal('signupModal');
     if (data.pending_approval) {
-      showPopup('Signup Successful!', 'Waiting for Admin approval. You will be able to log in once approved. For instant approval, reach out to Admin on WhatsApp.', '', 'OK', () => {});
+      showPopup('Sign-up Successful!', 'Waiting for Admin approval. You will be able to log in once approved. For instant approval, reach out to Admin on WhatsApp.', '', 'OK', () => {});
     } else {
       showPopup('Registered Successfully!', 'CONSISTENCY has its fruits, so does PATIENCE.', 'We will get back to you after the review', 'Login Now', () => { openModal('loginModal'); });
     }
   } catch (e) {
-    if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign Up Now';}
-    showPopup('Error', 'Signup failed. Please try again.', '', 'OK', null, 'error');
+    if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
+    showPopup('Error', 'Sign-up failed. Please try again.', '', 'OK', null, 'error');
   }
 }
 
@@ -1871,21 +1887,48 @@ async function loadPendingSignups() {
   const data = await apiCall('GET', '/api/admin/pending-signups');
   const list = data && !data.error && Array.isArray(data) ? data : [];
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No pending signups.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No pending sign-ups.</td></tr>';
     return;
   }
   tbody.innerHTML = list.map(u => {
     const name = (u.first_name || '') + ' ' + (u.last_name || '').trim() || '-';
     const date = u.created_at ? new Date(u.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-';
     const id = String(u.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    return '<tr><td>' + escapeHtml(name) + '</td><td>' + escapeHtml(u.email || '-') + '</td><td>' + date + '</td><td><button class="action-btn btn-approve" onclick="approveUser(\'' + id + '\')">Approve</button></td></tr>';
+    return '<tr><td>' + escapeHtml(name) + '</td><td>' + escapeHtml(u.email || '-') + '</td><td>' + date + '</td><td><button class="action-btn btn-view" onclick="viewSignupRequest(\'' + id + '\')">View</button> <button class="action-btn btn-approve" onclick="approveUser(\'' + id + '\')">Approve</button> <button class="action-btn btn-reject" onclick="rejectUser(\'' + id + '\')">Reject</button></td></tr>';
   }).join('');
+}
+
+async function viewSignupRequest(id) {
+  const r = await apiCall('GET', '/api/admin/pending-signup/' + id);
+  if (r && r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
+  const body = document.getElementById('signupViewBody');
+  const actions = document.getElementById('signupViewActions');
+  if (!body) return;
+  body.innerHTML = _row('Name', (r.first_name || '') + ' ' + (r.last_name || '').trim()) +
+    _row('Email', r.email) + _row('Phone', r.phone || '—') +
+    _row('Requested', r.created_at ? new Date(r.created_at).toLocaleString() : '');
+  if (actions) {
+    const sid = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    actions.innerHTML = '<button class="action-btn btn-approve" onclick="closeModal(\'signupViewModal\');approveUser(\'' + sid + '\')">Approve</button><button class="action-btn btn-reject" onclick="closeModal(\'signupViewModal\');rejectUser(\'' + sid + '\')">Reject</button>';
+  }
+  openModal('signupViewModal');
 }
 
 async function approveUser(id) {
   const res = await apiCall('POST', '/api/admin/approve-user/' + id);
   if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
   showPopup('Approved', 'User can now log in.', '', 'OK');
+  closeModal('signupViewModal');
+  loadPendingSignups();
+  loadNotifications();
+}
+
+async function rejectUser(id) {
+  if (!confirm('Reject this sign-up request? The user will need to sign up again.')) return;
+  const res = await apiCall('POST', '/api/admin/reject-user/' + id);
+  if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+  showPopup('Rejected', 'User has been rejected. They will need to sign up again to submit a new request.', '', 'OK');
+  closeModal('signupViewModal');
   loadPendingSignups();
   loadNotifications();
 }
@@ -2049,6 +2092,7 @@ function logoutAdmin() {
   closeModal('auditModal');
   closeModal('auditViewModal');
   closeModal('part2ViewModal');
+  closeModal('signupViewModal');
   closePopup('popupSuccess');
   closePopup('forgotModal');
   closePopup('resetModal');
@@ -2721,7 +2765,7 @@ async function initGoogleSignIn() {
     const config = await apiCall('GET', '/api/config');
     const CLIENT_ID = config.google_client_id;
     if (!CLIENT_ID || CLIENT_ID.startsWith('YOUR_') || CLIENT_ID.includes('your_client_id')) {
-      showPopup('Setup Required', 'To enable Google Sign-In:\n1. Open the .env file in your project root\n2. Set GOOGLE_CLIENT_ID=your_id.apps.googleusercontent.com (get it from console.cloud.google.com → APIs & Services → Credentials → Create OAuth client ID → Web application)\n3. Add http://localhost:3000 to Authorized JavaScript origins\n4. Restart the server (stop and run npm start again)\n\nYou can sign in or sign up with email until then.', 'Google OAuth needs to be configured', 'OK');
+      showPopup('Setup Required', 'To enable Google Sign-In:\n1. Open the .env file in your project root\n2. Set GOOGLE_CLIENT_ID=your_id.apps.googleusercontent.com (get it from console.cloud.google.com → APIs & Services → Credentials → Create OAuth client ID → Web application)\n3. Add http://localhost:3000 to Authorized JavaScript origins\n4. Restart the server (stop and run npm start again)\n\nYou can sign in or sign-up with email until then.', 'Google OAuth needs to be configured', 'OK');
       return;
     }
     google.accounts.id.initialize({
@@ -2740,8 +2784,8 @@ function handleGoogleResponse(response) {
     id_token: response.credential
   }).then(function(data) {
     if (data.error) {
-      var msg = (data.error === 'pending_approval' && data.message) ? data.message : data.error;
-      showPopup('Account Pending', msg, 'For instant approval, reach out to Admin on WhatsApp.', 'OK', null, 'error');
+      var msg = (data.error === 'pending_approval' || data.error === 'rejected') && data.message ? data.message : data.error;
+      showPopup(data.error === 'rejected' ? 'Request Rejected' : 'Account Pending', msg, data.error === 'rejected' ? '' : 'For instant approval, reach out to Admin on WhatsApp.', 'OK', null, 'error');
       return;
     }
     window.currentUser = data;

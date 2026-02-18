@@ -1,6 +1,6 @@
 # Google Sign-In Setup
 
-To use **Continue with Google** on the login/signup modals, configure a Google OAuth Client ID.
+To use **Continue with Google** on the login/sign-up modals, configure a Google OAuth Client ID.
 
 ## Steps
 
@@ -23,4 +23,4 @@ To use **Continue with Google** on the login/signup modals, configure a Google O
 3. **Restart the server**
    - Stop the Node server (Ctrl+C) and run `npm start` again so it loads the new value.
 
-After this, clicking **Continue with Google** on the login or signup modal will open Google’s sign-in and then log the user in.
+After this, clicking **Continue with Google** on the login or sign-up modal will open Google’s sign-in and then log the user in.

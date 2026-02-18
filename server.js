@@ -359,7 +359,11 @@ app.post('/api/auth/login', rateLimiter(20, 60000), (req, res) => {
       if (NODE_ENV !== 'production') console.log('[Login] User not found:', emailNorm);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
-    if ((user.approval_status || 'approved') !== 'approved') {
+    const status = user.approval_status || 'approved';
+    if (status === 'rejected') {
+      return res.status(403).json({ error: 'rejected', message: 'Your request was rejected. Please sign up again to submit a new request.' });
+    }
+    if (status !== 'approved') {
       return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
     }
     if (!user.password || !bcrypt.compareSync(String(password), user.password)) {
@@ -374,7 +378,7 @@ app.post('/api/auth/login', rateLimiter(20, 60000), (req, res) => {
   }
 });
 
-// Google Auth (auto signup/login)
+// Google Auth (auto sign-up/login)
 app.post('/api/auth/google', (req, res) => {
   try {
     const { id_token } = req.body || {};
@@ -400,7 +404,11 @@ app.post('/api/auth/google', (req, res) => {
       saveDB();
       return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
     }
-    if ((user.approval_status || 'approved') !== 'approved') {
+    const status = user.approval_status || 'approved';
+    if (status === 'rejected') {
+      return res.status(403).json({ error: 'rejected', message: 'Your request was rejected. Please sign up again to submit a new request.' });
+    }
+    if (status !== 'approved') {
       return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
     }
     if (picture && !user.profile_picture) {
@@ -422,7 +430,15 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), (req, res) => {
     if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
     const emailNorm = String(email).trim().toLowerCase();
-    const existing = queryOne("SELECT id FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    const existing = queryOne("SELECT id, approval_status FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    if (existing && existing.approval_status === 'rejected') {
+      // Allow re-signup: update existing rejected user and set back to pending
+      const hash = bcrypt.hashSync(password, 10);
+      db.run("UPDATE users SET password = ?, first_name = ?, last_name = ?, phone = ?, approval_status = 'pending' WHERE id = ?",
+        [hash, first_name || '', last_name || '', phone || '', existing.id]);
+      saveDB();
+      return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', pending_approval: true });
+    }
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
     const id = uuidv4();
@@ -724,7 +740,7 @@ app.get('/api/admin/pending-signups', (req, res) => {
     const list = queryAll("SELECT id, email, first_name, last_name, created_at FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'pending') ORDER BY created_at DESC");
     res.json(list);
   } catch (e) {
-    res.status(500).json({ error: 'Failed to fetch pending signups' });
+    res.status(500).json({ error: 'Failed to fetch pending sign-ups' });
   }
 });
 
@@ -739,6 +755,30 @@ app.post('/api/admin/approve-user/:id', (req, res) => {
     res.json({ message: 'User approved' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to approve user' });
+  }
+});
+
+app.post('/api/admin/reject-user/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
+    db.run("UPDATE users SET approval_status = 'rejected' WHERE id = ?", [id]);
+    saveDB();
+    res.json({ message: 'User rejected' });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to reject user' });
+  }
+});
+
+app.get('/api/admin/pending-signup/:id', (req, res) => {
+  try {
+    const user = queryOne("SELECT id, email, first_name, last_name, phone, created_at FROM users WHERE id = ? AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')", [req.params.id]);
+    if (!user) return res.status(404).json({ error: 'Not found' });
+    res.json(user);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch sign-up request' });
   }
 });
 
@@ -797,7 +837,7 @@ app.get('/api/notifications', (req, res) => {
       notifications.push({
         id: 'signup-' + u.id,
         type: 'user',
-        title: 'New User Signup (Pending Approval)',
+        title: 'New User Sign-up (Pending Approval)',
         desc: `${u.first_name || ''} ${u.last_name || ''} (${u.email})`,
         time: u.created_at,
         link: 'signups'
