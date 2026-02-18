@@ -911,6 +911,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       </div>
       <nav class="admin-nav-drawer-links">
         <a class="admin-nav-link active" href="#" data-tab="requests" onclick="switchTab('requests');closeAdminNavDrawer();return false">Pending Requests</a>
+        <a class="admin-nav-link" href="#" data-tab="signups" onclick="switchTab('signups');closeAdminNavDrawer();return false">Pending Signups</a>
         <a class="admin-nav-link" href="#" data-tab="tribe" onclick="switchTab('tribe');closeAdminNavDrawer();return false">Tribe</a>
         <a class="admin-nav-link" href="#" data-tab="workouts" onclick="switchTab('workouts');closeAdminNavDrawer();return false">Workouts</a>
         <a class="admin-nav-link" href="#" data-tab="messages" onclick="switchTab('messages');closeAdminNavDrawer();return false">Messages</a>
@@ -922,6 +923,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     </div>
     <div class="admin-tabs" id="adminTabs">
       <div class="admin-tab active" data-tab="requests" onclick="switchTab('requests')">Pending Requests</div>
+      <div class="admin-tab" data-tab="signups" onclick="switchTab('signups')">Pending Signups</div>
       <div class="admin-tab" data-tab="tribe" onclick="switchTab('tribe')">Tribe</div>
       <div class="admin-tab" data-tab="workouts" onclick="switchTab('workouts')">Workouts</div>
       <div class="admin-tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
@@ -940,6 +942,14 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <tbody id="requestsBody">
           <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
         </tbody>
+      </table></div>
+    </div>
+
+    <!-- TAB: Pending Signups -->
+    <div class="admin-tab-content" id="tab-signups">
+      <div class="admin-table-wrap"><table class="admin-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Signed up</th><th>Actions</th></tr></thead>
+        <tbody id="signupsBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
       </table></div>
     </div>
 
@@ -1212,8 +1222,8 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   <div class="hero-bg"></div>
   <div class="hero-inner">
     <p class="hero-tag">Transformation Through Lifestyle Management</p>
-    <h1><span class="w">Stop Chasing </span><span class="g">Quick Fixes.</span><br><span class="w">Build Real, </span><span class="g">Sustainable</span><br><span class="w">Transformation.</span></h1>
-    <p class="hero-sub">Our Lifestyle Management Program delivers real lasting transformation through 3 phases — upgrading your mind, nutrition, and building permanent results.</p>
+    <h1><span class="w">Stop Chasing Quick Fixes.</span><br><span class="g">Build Real, Sustainable</span><br><span class="w">Transformation.</span></h1>
+    <p class="hero-sub">Our Lifestyle Management Program delivers real lasting transformation through 3 phases: upgrading your mind, nutrition, and building permanent results.</p>
     <div class="hero-btns">
       <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Start Your Body Audit</a>
       
@@ -1228,7 +1238,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <div class="gold-line"></div>
     <p class="sec-label">The Problem</p>
     <h2 class="sec-heading"><span class="w">Why 30-Day Programs </span><span class="g">Always Fail</span></h2>
-    <p class="sec-sub">You've tried this before. Here's why it didn't work — and why it's not your fault.</p>
+    <p class="sec-sub">You've tried this before. Here's why it didn't work, and why it's not your fault.</p>
     <div class="fail-grid">
       <div class="fail-item"><span class="fail-num">01</span><div class="fail-content"><h4>Too Restrictive to Maintain</h4><p>Extreme diets crash your metabolism and leave you worse off than before.</p></div></div>
       <div class="fail-item"><span class="fail-num">02</span><div class="fail-content"><h4>Starved Out With Zero Energy</h4><p>Slashing calories destroys your energy, focus, and performance.</p></div></div>
@@ -1585,7 +1595,12 @@ async function adminLogin() {
   if(btn){btn.disabled=true;btn.classList.add('loading');btn._orig=btn.innerHTML;btn.innerHTML='<span class="btn-spinner"></span> Logging in...';}
   try {
     const data = await apiCall('POST', '/api/auth/login', { email, password: pw });
-    if (data && data.error) { if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Login Now';} showPopup('Login Failed', data.error, '', 'Try Again', null, 'error'); return; }
+    if (data && data.error) {
+      if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Login Now';}
+      var msg = (data.error === 'pending_approval' && data.message) ? data.message : data.error;
+      showPopup('Login Failed', msg, '', 'Try Again', null, 'error');
+      return;
+    }
     if (!data || !data.id) { if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Login Now';} showPopup('Login Failed', 'Unexpected response. Please try again.', '', 'Try Again', null, 'error'); return; }
     
     if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Login Now';}
@@ -1634,9 +1649,11 @@ async function handleSignup() {
     if (data.error) { if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign Up Now';} showPopup('Signup Error', data.error, '', 'OK', null, 'error'); return; }
     if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign Up Now';}
     closeModal('signupModal');
-    showPopup('Registered Successfully!', 'CONSISTENCY has its fruits, so does PATIENCE.', 'We will get back to you after the review', 'Login Now', () => {
-      openModal('loginModal');
-    });
+    if (data.pending_approval) {
+      showPopup('Signup Successful!', 'Waiting for Admin approval. You will be able to log in once approved. For instant approval, reach out to Admin on WhatsApp.', '', 'OK', () => {});
+    } else {
+      showPopup('Registered Successfully!', 'CONSISTENCY has its fruits, so does PATIENCE.', 'We will get back to you after the review', 'Login Now', () => { openModal('loginModal'); });
+    }
   } catch (e) {
     if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign Up Now';}
     showPopup('Error', 'Signup failed. Please try again.', '', 'OK', null, 'error');
@@ -1848,6 +1865,31 @@ async function rejectRequest(id) {
   loadDashboard();
 }
 
+async function loadPendingSignups() {
+  const tbody = document.getElementById('signupsBody');
+  if (!tbody) return;
+  const data = await apiCall('GET', '/api/admin/pending-signups');
+  const list = data && !data.error && Array.isArray(data) ? data : [];
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No pending signups.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = list.map(u => {
+    const name = (u.first_name || '') + ' ' + (u.last_name || '').trim() || '-';
+    const date = u.created_at ? new Date(u.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-';
+    const id = String(u.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return '<tr><td>' + escapeHtml(name) + '</td><td>' + escapeHtml(u.email || '-') + '</td><td>' + date + '</td><td><button class="action-btn btn-approve" onclick="approveUser(\'' + id + '\')">Approve</button></td></tr>';
+  }).join('');
+}
+
+async function approveUser(id) {
+  const res = await apiCall('POST', '/api/admin/approve-user/' + id);
+  if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+  showPopup('Approved', 'User can now log in.', '', 'OK');
+  loadPendingSignups();
+  loadNotifications();
+}
+
 async function loadTribe() {
   const data = await apiCall('GET', '/api/tribe');
   const grid = document.querySelector('.tribe-grid');
@@ -2027,6 +2069,7 @@ function switchTab(tab) {
   if (tab === 'workouts') loadAdminWorkouts();
   if (tab === 'messages') loadAdminMessages();
   if (tab === 'requests') loadRequests();
+  if (tab === 'signups') loadPendingSignups();
   if (tab === 'tribe') loadTribe();
   if (tab === 'part2') loadPart2Submissions();
   if (tab === 'hydration') loadAdminHydration();
@@ -2696,7 +2739,11 @@ function handleGoogleResponse(response) {
   apiCall('POST', '/api/auth/google', {
     id_token: response.credential
   }).then(function(data) {
-    if (data.error) { showPopup('Error', data.error, '', 'OK', null, 'error'); return; }
+    if (data.error) {
+      var msg = (data.error === 'pending_approval' && data.message) ? data.message : data.error;
+      showPopup('Account Pending', msg, 'For instant approval, reach out to Admin on WhatsApp.', 'OK', null, 'error');
+      return;
+    }
     window.currentUser = data;
     try { localStorage.setItem(SESSION_KEY, JSON.stringify(data)); } catch (e) {}
     closeModal('loginModal');

@@ -113,8 +113,11 @@ async function initDB() {
     phone TEXT DEFAULT '',
     profile_picture TEXT DEFAULT '',
     role TEXT DEFAULT 'user',
+    approval_status TEXT DEFAULT 'approved',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`);
+  try { db.run("ALTER TABLE users ADD COLUMN approval_status TEXT DEFAULT 'approved'"); } catch (e) { /* column may exist */ }
+  try { db.run("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL"); } catch (e) {}
 
   db.run(`CREATE TABLE IF NOT EXISTS audit_requests (
     id TEXT PRIMARY KEY,
@@ -230,8 +233,8 @@ async function initDB() {
     } else {
       const hash = bcrypt.hashSync(ADMIN_PASS, 10);
       const adminEmailNorm = String(ADMIN_EMAIL).trim().toLowerCase();
-      db.run("INSERT INTO users (id, email, password, first_name, last_name, role) VALUES (?, ?, ?, ?, ?, ?)",
-        [uuidv4(), adminEmailNorm, hash, 'Body', 'Bank', 'admin']);
+      db.run("INSERT INTO users (id, email, password, first_name, last_name, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [uuidv4(), adminEmailNorm, hash, 'Body', 'Bank', 'admin', 'approved']);
       console.log(`✅ Admin created: ${ADMIN_EMAIL}`);
     }
   }
@@ -356,6 +359,9 @@ app.post('/api/auth/login', rateLimiter(20, 60000), (req, res) => {
       if (NODE_ENV !== 'production') console.log('[Login] User not found:', emailNorm);
       return res.status(401).json({ error: 'Invalid email or password' });
     }
+    if ((user.approval_status || 'approved') !== 'approved') {
+      return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
+    }
     if (!user.password || !bcrypt.compareSync(String(password), user.password)) {
       if (NODE_ENV !== 'production') console.log('[Login] Password mismatch for:', emailNorm);
       return res.status(401).json({ error: 'Invalid email or password' });
@@ -386,15 +392,18 @@ app.post('/api/auth/google', (req, res) => {
     const emailNorm = String(email).trim().toLowerCase();
     let user = queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (!user) {
-      // Auto-create account (store normalized email)
+      // Auto-create account (pending approval)
       const id = uuidv4();
       const hash = bcrypt.hashSync('google_' + google_id, 10);
-      db.run("INSERT INTO users (id, email, password, first_name, last_name, profile_picture, role) VALUES (?,?,?,?,?,?,?)",
-        [id, emailNorm, hash, given_name || '', family_name || '', picture || '', 'user']);
+      db.run("INSERT INTO users (id, email, password, first_name, last_name, profile_picture, role, approval_status) VALUES (?,?,?,?,?,?,?,?)",
+        [id, emailNorm, hash, given_name || '', family_name || '', picture || '', 'user', 'pending']);
       saveDB();
-      user = { id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', profile_picture: picture || '', role: 'user' };
-    } else if (picture && !user.profile_picture) {
-      // Update profile picture if available and not set
+      return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
+    }
+    if ((user.approval_status || 'approved') !== 'approved') {
+      return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
+    }
+    if (picture && !user.profile_picture) {
       db.run("UPDATE users SET profile_picture = ? WHERE id = ?", [picture, user.id]);
       saveDB();
       user.profile_picture = picture;
@@ -418,10 +427,10 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), (req, res) => {
 
     const id = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
-    db.run("INSERT INTO users (id, email, password, first_name, last_name, phone) VALUES (?,?,?,?,?,?)",
-      [id, emailNorm, hash, first_name || '', last_name || '', phone || '']);
+    db.run("INSERT INTO users (id, email, password, first_name, last_name, phone, approval_status) VALUES (?,?,?,?,?,?,?)",
+      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', 'pending']);
     saveDB();
-    res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user' });
+    res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', pending_approval: true });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -709,6 +718,30 @@ app.get('/api/contact', (req, res) => {
   res.json(queryAll("SELECT * FROM contact_messages ORDER BY created_at DESC"));
 });
 
+// ============ ADMIN: PENDING SIGNUPS & APPROVE ============
+app.get('/api/admin/pending-signups', (req, res) => {
+  try {
+    const list = queryAll("SELECT id, email, first_name, last_name, created_at FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'pending') ORDER BY created_at DESC");
+    res.json(list);
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to fetch pending signups' });
+  }
+});
+
+app.post('/api/admin/approve-user/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
+    db.run("UPDATE users SET approval_status = 'approved' WHERE id = ?", [id]);
+    saveDB();
+    res.json({ message: 'User approved' });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to approve user' });
+  }
+});
+
 // ============ NOTIFICATIONS (Admin) ============
 app.get('/api/notifications', (req, res) => {
   try {
@@ -759,15 +792,15 @@ app.get('/api/notifications', (req, res) => {
         link: 'workouts'
       });
     });
-    const signups = queryAll("SELECT id, email, first_name, last_name, created_at FROM users WHERE role='user' ORDER BY created_at DESC LIMIT 5");
-    signups.forEach(u => {
+    const pendingSignups = queryAll("SELECT id, email, first_name, last_name, created_at FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending') ORDER BY created_at DESC LIMIT 10");
+    pendingSignups.forEach(u => {
       notifications.push({
-        id: 'user-' + u.id,
+        id: 'signup-' + u.id,
         type: 'user',
-        title: 'New User Signup',
+        title: 'New User Signup (Pending Approval)',
         desc: `${u.first_name || ''} ${u.last_name || ''} (${u.email})`,
         time: u.created_at,
-        link: 'tribe'
+        link: 'signups'
       });
     });
     const part2Subs = queryAll("SELECT id, name, email, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 5");
