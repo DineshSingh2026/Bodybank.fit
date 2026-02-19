@@ -378,6 +378,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-table-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,0.04)}
 .admin-table-wrap::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:4px}
 .admin-table-wrap::-webkit-scrollbar-thumb:hover{background:rgba(200,164,78,0.35)}
+.admin-h-scroll-ctrl{display:none;align-items:center;justify-content:center;gap:12px;margin-top:12px;padding:12px 16px;background:rgba(200,164,78,0.08);border:1px solid var(--gold);border-radius:10px}
+.admin-h-scroll-ctrl .admin-h-scroll-btn{width:44px;height:44px;min-width:44px;border:2px solid var(--gold);border-radius:10px;background:var(--dark2);color:var(--gold);font-size:20px;font-weight:700;cursor:pointer;display:grid;place-items:center;transition:background .2s,color .2s}
+.admin-h-scroll-ctrl .admin-h-scroll-btn:hover{background:var(--gold);color:var(--black)}
+.admin-h-scroll-ctrl .admin-h-scroll-label{font-size:12px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase;color:var(--gold)}
 .admin-table{width:100%;min-width:min-content;border-collapse:collapse;table-layout:auto}
 .admin-table th,.admin-table td{word-wrap:break-word}
 .admin-table th{white-space:nowrap}
@@ -447,6 +451,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .part2-copy-btn:hover{background:rgba(200,164,78,0.2)}
 .admin-logout{padding:8px 20px;border:1px solid rgba(255,80,80,0.4);border-radius:6px;background:transparent;color:#ff6b6b;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .3s;flex-shrink:0;white-space:nowrap}
 .admin-logout:hover{background:rgba(255,80,80,0.1);border-color:#ff6b6b}
+.admin-top-hamburger{display:none}
 .admin-body{max-width:1200px;margin:0 auto;padding:32px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(24px,env(safe-area-inset-bottom));min-width:0;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;box-sizing:border-box}
 .admin-body>.admin-welcome,.admin-body>.admin-stats,.admin-body>.admin-mobile-nav-bar,.admin-body>.admin-tabs{flex-shrink:0}
 .admin-tab-content-wrap{flex:1;min-height:0;max-height:calc(100vh - 220px);overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.02);padding:16px;touch-action:pan-x pan-y}
@@ -464,6 +469,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-stat-item .num{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--gold);letter-spacing:1px;line-height:1}
 .admin-stat-item .lbl{font-size:13px;color:var(--creamd);letter-spacing:1px;font-weight:500}
 .admin-stats-sep{width:1px;height:36px;background:linear-gradient(180deg,transparent,rgba(200,164,78,0.4),transparent)}
+.admin-current-section-wrap{margin-bottom:20px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.admin-current-section{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
+@media(max-width:768px){.admin-current-section{font-size:16px;letter-spacing:1.5px}}
 
 .admin-mobile-nav-bar{display:none;align-items:center;gap:14px;margin-bottom:20px;padding:12px 0;border-bottom:1px solid var(--bdr)}
 @media(max-width:768px){
@@ -514,6 +522,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-nav-link{display:block;padding:16px 24px;min-height:44px;font-size:15px;font-weight:600;letter-spacing:0.5px;color:var(--creamd);text-decoration:none;border-left:3px solid transparent;transition:all .2s;flex-shrink:0;box-sizing:border-box;line-height:1.4}
 .admin-nav-link:hover,.admin-nav-link:focus{color:var(--cream);background:rgba(200,164,78,0.06)}
 .admin-nav-link.active{color:var(--gold);border-left-color:var(--gold);background:rgba(200,164,78,0.08)}
+.admin-bottom-nav,.admin-more-modal-overlay,.admin-more-modal{display:none}
 .admin-tabs{display:flex;gap:0;border-bottom:1px solid var(--bdr);margin-bottom:28px;overflow-x:auto;overflow-y:hidden;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;flex-wrap:nowrap}
 .admin-tabs::-webkit-scrollbar{height:6px}
 .admin-tabs::-webkit-scrollbar-track{background:rgba(255,255,255,0.04)}
@@ -607,16 +616,43 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .admin-table th,.admin-table td{padding:10px 10px}
 }
 @media(max-width:768px){
-  .admin-mobile-nav-bar{display:flex}
+  .admin-mobile-nav-bar{display:none}
   .admin-tabs{display:none}
-  .admin-body{padding:20px 16px 80px}
-  .admin-panel{-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
-  .admin-top{flex-wrap:nowrap;gap:10px;padding:12px 16px}
+  .admin-top-hamburger{display:flex}
+  .admin-body{padding:20px 16px 24px}
+  .admin-top{position:sticky;top:0;z-index:20;flex-shrink:0;padding:12px 16px}
+  .admin-tab-content-wrap{max-height:55vh;min-height:240px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:12px;margin:0 -16px}
+  .admin-notify-panel{position:fixed;left:16px;right:16px;top:60px;margin-top:0;width:auto;max-width:none;max-height:60vh}
   .admin-top-left img{height:32px}
   .admin-top-right{justify-content:flex-end;flex-wrap:nowrap;gap:10px}
   .admin-notify-btn{width:40px;height:40px;font-size:16px}
-  .admin-logout{padding:8px 14px;font-size:11px;letter-spacing:0.8px}
-  .admin-notify-panel{position:fixed;left:16px;right:16px;top:72px;margin-top:0;width:auto;max-width:none;max-height:60vh}
+  .admin-logout{padding:8px 14px;font-size:11px}
+  .admin-client-progress-wrap{display:block;width:100%}
+  .admin-cp-user-list{position:static!important;max-height:none;overflow:visible;padding-bottom:16px;margin-bottom:16px;border-bottom:1px solid var(--bdr)}
+  .admin-cp-detail{position:static!important;max-height:none;overflow:visible;min-height:auto;padding:16px;width:100%;box-sizing:border-box;display:flex;flex-direction:column;gap:12px}
+  .admin-cp-detail #adminCpDetail{position:static;width:100%}
+  .admin-cp-detail #adminCpShareWrap{position:static;width:100%;margin:0!important}
+  .admin-cp-detail #adminCpShareWrap .form-submit{width:100%;margin-top:0}
+  .admin-cp-detail #adminCpShareUrlWrap{margin-top:12px!important}
+  .admin-cp-detail #adminCpKpis{position:static;width:100%;margin-top:12px!important}
+  .admin-tab-content-wrap .admin-table-wrap,.admin-tab-content-wrap .insights-table-wrap{max-height:none;overflow:visible;margin-bottom:8px}
+  .admin-tab-content-wrap .tribe-grid{max-height:55vh;overflow-y:auto;overflow-x:auto}
+  .admin-table{min-width:0;width:100%}
+  .admin-table thead{display:none}
+  .admin-table tbody tr{display:block;width:100%;margin-bottom:16px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:12px}
+  .admin-table tbody tr:last-child{margin-bottom:0}
+  .admin-table tbody td{display:block;padding:8px 0;border:none;font-size:14px;color:var(--creamd);word-break:break-word}
+  .admin-table tbody td::before{content:attr(data-label);display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+  .admin-table tbody td[colspan]::before{display:none}
+  .admin-table tbody td .status-badge{margin-top:4px}
+  .admin-table tbody td .action-btn{margin-right:8px;margin-top:8px}
+  .admin-table tbody td .action-btn:last-child{margin-right:0}
+  .insights-table-wrap .admin-table thead{display:none}
+  .insights-table-wrap .admin-table tbody tr{display:block;width:100%;margin-bottom:16px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:12px}
+  .insights-table-wrap .admin-table tbody td{display:block;padding:8px 0;border:none}
+  .insights-table-wrap .admin-table tbody td::before{content:attr(data-label);display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+  .insights-table-wrap .admin-table tbody td[colspan]::before{display:none}
+  .admin-h-scroll-ctrl{display:none}
 }
 @media(max-width:600px){
   .admin-stats{flex-direction:column;align-items:flex-start}
@@ -868,20 +904,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-cp-kpi .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
 @media(max-width:900px){.admin-client-progress-wrap{grid-template-columns:1fr}}
 @media(max-width:768px){
-  .admin-tab-content-wrap .admin-table-wrap,.admin-tab-content-wrap .insights-table-wrap{display:block;width:100%;max-width:100%;min-width:0;max-height:50vh;min-height:120px;overflow-x:auto;overflow-y:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;scrollbar-width:thin;scrollbar-color:var(--gold) transparent}
-  .admin-tab-content-wrap .admin-table-wrap::-webkit-scrollbar,.admin-tab-content-wrap .insights-table-wrap::-webkit-scrollbar{width:8px;height:12px}
-  .admin-tab-content-wrap .admin-table-wrap::-webkit-scrollbar-track,.admin-tab-content-wrap .insights-table-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,0.06)}
-  .admin-tab-content-wrap .admin-table-wrap::-webkit-scrollbar-thumb,.admin-tab-content-wrap .insights-table-wrap::-webkit-scrollbar-thumb{background:var(--gold);border-radius:4px}
-  .admin-tab-content-wrap .admin-table{display:table;width:100%;min-width:min-content;table-layout:auto}
-  .admin-client-progress-wrap{display:flex;flex-direction:column;gap:16px;min-height:0}
-  .admin-cp-user-list{position:relative;top:0;max-height:35vh;min-height:100px;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent}
-  .admin-cp-detail{max-height:60vh;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;min-height:180px;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent}
-  .admin-tab-content-wrap .tribe-grid{max-height:55vh;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;touch-action:pan-x pan-y;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent}
   .admin-tab-content-wrap .insights-filters{flex-wrap:wrap;gap:10px}
   .insights-filter-row .insights-select,.insights-filter-row .insights-input{min-width:0}
 }
 @media(max-width:480px){
-  .admin-tab-content-wrap .admin-table-wrap,.admin-tab-content-wrap .insights-table-wrap{max-height:45vh;min-height:100px}
   .admin-tab-content-wrap .insights-filters .insights-filter-row{flex-direction:column;align-items:stretch}
   .admin-tab-content-wrap .insights-filters .insights-label,.admin-tab-content-wrap .insights-filters .insights-select,.admin-tab-content-wrap .insights-filters .insights-input{width:100%;min-width:0}
 }
@@ -1147,6 +1173,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         </div>
       </div>
       <button class="admin-logout" onclick="logoutAdmin()">Logout</button>
+      <button class="admin-top-hamburger admin-hamburger-btn" id="adminTopHamburger" onclick="toggleAdminNavDrawer()" aria-label="Open sections menu" title="Sections">
+        <span></span><span></span><span></span>
+      </button>
     </div>
   </div>
   <div class="admin-body">
@@ -1159,6 +1188,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <div class="admin-stat-item"><span class="num" id="statPending">0</span><span class="lbl">Pending Requests</span></div>
       <span class="admin-stats-sep" aria-hidden="true"></span>
       <div class="admin-stat-item"><span class="num" id="statActive">0</span><span class="lbl">Active Members</span></div>
+    </div>
+
+    <div class="admin-current-section-wrap" aria-live="polite">
+      <span class="admin-current-section" id="adminCurrentSection">Pending Requests</span>
     </div>
 
     <div class="admin-mobile-nav-bar">
@@ -1210,6 +1243,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
         </tbody>
       </table></div>
+      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+        <span class="admin-h-scroll-label">Scroll to see all columns</span>
+        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
     </div>
 
     <!-- TAB: Pending Sign-ups -->
@@ -1218,6 +1256,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <thead><tr><th>Name</th><th>Email</th><th>Signed up</th><th>Actions</th></tr></thead>
         <tbody id="signupsBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
       </table></div>
+      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+        <span class="admin-h-scroll-label">Scroll to see all columns</span>
+        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
     </div>
 
     <!-- TAB 2: Tribe -->
@@ -1233,6 +1276,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <thead><tr><th>User</th><th>Workout</th><th>Duration</th><th>Feedback</th><th>Date</th></tr></thead>
         <tbody id="workoutsBody"></tbody>
       </table></div>
+      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+        <span class="admin-h-scroll-label">Scroll to see all columns</span>
+        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
     </div>
 
     <!-- TAB 4: Messages -->
@@ -1241,6 +1289,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Date</th></tr></thead>
         <tbody id="messagesBody"></tbody>
       </table></div>
+      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+        <span class="admin-h-scroll-label">Scroll to see all columns</span>
+        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
     </div>
 
     <!-- TAB: Sunday Check-in -->
@@ -1249,6 +1302,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <thead><tr><th>Name</th><th>Reply Email</th><th>Submitted</th><th>Actions</th></tr></thead>
         <tbody id="sundayCheckinBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
       </table></div>
+      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+        <span class="admin-h-scroll-label">Scroll to see all columns</span>
+        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
     </div>
 
     <!-- TAB 5: Upcoming Meetings -->
@@ -1257,6 +1315,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <thead><tr><th>User</th><th>Email</th><th>Phone</th><th>Date</th><th>Time Slot</th></tr></thead>
         <tbody id="meetingsBody"></tbody>
       </table></div>
+      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+        <span class="admin-h-scroll-label">Scroll to see all columns</span>
+        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
     </div>
 
     <!-- TAB 6: Part-2 Form -->
@@ -1273,6 +1336,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <thead><tr><th>Name</th><th>Email</th><th>Mobile</th><th>Activity Level</th><th>Date</th><th>Actions</th></tr></thead>
           <tbody id="part2Body"></tbody>
         </table>
+      </div>
+      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+        <span class="admin-h-scroll-label">Scroll to see all columns</span>
+        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
       </div>
     </div>
 
@@ -1342,10 +1410,55 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <tbody id="insightsTableBody"><tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">Apply filters and load data.</td></tr></tbody>
         </table>
       </div>
+      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+        <span class="admin-h-scroll-label">Scroll to see all columns</span>
+        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
     </div>
 
     </div><!-- .admin-tab-content-wrap -->
 
+    <!-- Mobile-only: fixed bottom navigation -->
+    <nav class="admin-bottom-nav" id="adminBottomNav" aria-label="Admin sections">
+      <button type="button" class="admin-bottom-nav-item active" data-tab="requests" onclick="switchTab('requests')" aria-label="Pending Requests">
+        <span class="admin-bottom-nav-icon">📋</span>
+        <span class="admin-bottom-nav-label">Requests</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-tab="signups" onclick="switchTab('signups')" aria-label="Pending Sign-ups">
+        <span class="admin-bottom-nav-icon">✉️</span>
+        <span class="admin-bottom-nav-label">Sign-ups</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-tab="insights" onclick="switchTab('insights')" aria-label="Insights">
+        <span class="admin-bottom-nav-icon">📊</span>
+        <span class="admin-bottom-nav-label">Insights</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-tab="clientprogress" onclick="switchTab('clientprogress')" aria-label="Client Progress">
+        <span class="admin-bottom-nav-icon">👤</span>
+        <span class="admin-bottom-nav-label">Progress</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" id="adminMoreBtn" onclick="openAdminMoreModal()" aria-label="More sections">
+        <span class="admin-bottom-nav-icon">⋯</span>
+        <span class="admin-bottom-nav-label">More</span>
+      </button>
+    </nav>
+
+    <!-- Mobile-only: More sections full-screen modal -->
+    <div class="admin-more-modal-overlay" id="adminMoreModalOverlay" onclick="closeAdminMoreModal()" aria-hidden="true"></div>
+    <div class="admin-more-modal" id="adminMoreModal" role="dialog" aria-label="More sections">
+      <div class="admin-more-modal-header">
+        <h2 class="admin-more-modal-title">Sections</h2>
+        <button type="button" class="admin-more-modal-close" onclick="closeAdminMoreModal()" aria-label="Close">&times;</button>
+      </div>
+      <div class="admin-more-modal-list">
+        <button type="button" class="admin-more-modal-item" onclick="switchTab('tribe');closeAdminMoreModal()">Tribe</button>
+        <button type="button" class="admin-more-modal-item" onclick="switchTab('workouts');closeAdminMoreModal()">Workouts</button>
+        <button type="button" class="admin-more-modal-item" onclick="switchTab('messages');closeAdminMoreModal()">Messages</button>
+        <button type="button" class="admin-more-modal-item" onclick="switchTab('meetings');closeAdminMoreModal()">Upcoming Meetings</button>
+        <button type="button" class="admin-more-modal-item" onclick="switchTab('part2');closeAdminMoreModal()">Part-2 Form</button>
+        <button type="button" class="admin-more-modal-item sc-style" onclick="switchTab('sundaycheckin');closeAdminMoreModal()">Sunday Check-in</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -2204,12 +2317,12 @@ async function loadRequests() {
   tbody.innerHTML = data.map(r => {
     const sid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     return `<tr data-id="${escapeHtml(r.id||'')}">
-      <td>${escapeHtml((r.first_name||'') + ' ' + (r.last_name||''))}</td>
-      <td>${escapeHtml(r.email||'')}</td>
-      <td>${r.age || '-'}</td>
-      <td>${escapeHtml(r.city||'')}</td>
-      <td><span class="status-badge status-${r.status||'pending'}">${escapeHtml((r.status||'').charAt(0).toUpperCase()+(r.status||'').slice(1))}</span></td>
-      <td>
+      <td data-label="Name">${escapeHtml((r.first_name||'') + ' ' + (r.last_name||''))}</td>
+      <td data-label="Email">${escapeHtml(r.email||'')}</td>
+      <td data-label="Age">${r.age || '-'}</td>
+      <td data-label="City">${escapeHtml(r.city||'')}</td>
+      <td data-label="Status"><span class="status-badge status-${r.status||'pending'}">${escapeHtml((r.status||'').charAt(0).toUpperCase()+(r.status||'').slice(1))}</span></td>
+      <td data-label="Actions">
         <button class="action-btn btn-view" onclick="viewRequest('${sid}')">View</button>
         ${r.status === 'pending' ? `<button class="action-btn btn-approve" onclick="approveRequest('${sid}')">Approve</button><button class="action-btn btn-reject" onclick="rejectRequest('${sid}')">Reject</button>` : ''}
       </td>
@@ -2282,7 +2395,7 @@ async function loadPendingSignups() {
     const name = (u.first_name || '') + ' ' + (u.last_name || '').trim() || '-';
     const date = u.created_at ? new Date(u.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-';
     const id = String(u.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    return '<tr><td>' + escapeHtml(name) + '</td><td>' + escapeHtml(u.email || '-') + '</td><td>' + date + '</td><td><button class="action-btn btn-view" onclick="viewSignupRequest(\'' + id + '\')">View</button> <button class="action-btn btn-approve" onclick="approveUser(\'' + id + '\')">Approve</button> <button class="action-btn btn-reject" onclick="rejectUser(\'' + id + '\')">Reject</button></td></tr>';
+    return '<tr><td data-label="Name">' + escapeHtml(name) + '</td><td data-label="Email">' + escapeHtml(u.email || '-') + '</td><td data-label="Signed up">' + date + '</td><td data-label="Actions"><button class="action-btn btn-view" onclick="viewSignupRequest(\'' + id + '\')">View</button> <button class="action-btn btn-approve" onclick="approveUser(\'' + id + '\')">Approve</button> <button class="action-btn btn-reject" onclick="rejectUser(\'' + id + '\')">Reject</button></td></tr>';
   }).join('');
 }
 
@@ -2333,7 +2446,7 @@ async function loadSundayCheckins() {
   tbody.innerHTML = list.map(function(r) {
     var date = r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-';
     var id = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    return '<tr><td>' + escapeHtml(r.full_name || '-') + '</td><td>' + escapeHtml(r.reply_email || '-') + '</td><td>' + date + '</td><td><button class="action-btn btn-view" onclick="viewSundayCheckin(\'' + id + '\')">View</button></td></tr>';
+    return '<tr><td data-label="Name">' + escapeHtml(r.full_name || '-') + '</td><td data-label="Reply Email">' + escapeHtml(r.reply_email || '-') + '</td><td data-label="Submitted">' + date + '</td><td data-label="Actions"><button class="action-btn btn-view" onclick="viewSundayCheckin(\'' + id + '\')">View</button></td></tr>';
   }).join('');
 }
 
@@ -2415,7 +2528,7 @@ async function loadAdminWorkouts() {
     const m = Math.floor(dur / 60);
     const s = dur % 60;
     const date = new Date(w.created_at).toLocaleDateString();
-    return '<tr><td>' + (w.first_name||'') + ' ' + (w.last_name||'') + '</td><td>' + w.workout_name + '</td><td>' + m + 'm ' + s + 's</td><td>' + (w.feedback||'-') + '</td><td>' + date + '</td></tr>';
+    return '<tr><td data-label="User">' + (w.first_name||'') + ' ' + (w.last_name||'') + '</td><td data-label="Workout">' + (w.workout_name||'-') + '</td><td data-label="Duration">' + m + 'm ' + s + 's</td><td data-label="Feedback">' + (w.feedback||'-') + '</td><td data-label="Date">' + date + '</td></tr>';
   }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No workouts logged yet</td></tr>';
 }
 
@@ -2429,7 +2542,7 @@ async function loadPart2Submissions() {
     tbody.innerHTML = (data && !data.error && Array.isArray(data) ? data : []).map(r => {
       const dt = r.created_at ? new Date(r.created_at).toLocaleDateString(undefined, { dateStyle: 'short' }) : '-';
       const pid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      return `<tr data-id="${escapeHtml(r.id||'')}"><td>${escapeHtml(r.name || '-')}</td><td>${escapeHtml(r.email || '-')}</td><td>${escapeHtml(r.mobile || '-')}</td><td>${escapeHtml((r.activity_level || '-').substring(0,30))}</td><td>${dt}</td><td><button class="action-btn btn-view" onclick="viewPart2Submission('${pid}')">View</button></td></tr>`;
+      return `<tr data-id="${escapeHtml(r.id||'')}"><td data-label="Name">${escapeHtml(r.name || '-')}</td><td data-label="Email">${escapeHtml(r.email || '-')}</td><td data-label="Mobile">${escapeHtml(r.mobile || '-')}</td><td data-label="Activity Level">${escapeHtml((r.activity_level || '-').substring(0,30))}</td><td data-label="Date">${dt}</td><td data-label="Actions"><button class="action-btn btn-view" onclick="viewPart2Submission('${pid}')">View</button></td></tr>`;
     }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No Part-2 submissions yet.</td></tr>';
   } catch (e) { const tbody = document.getElementById('part2Body'); if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050">Failed to load.</td></tr>'; }
 }
@@ -2465,7 +2578,7 @@ async function loadAdminMessages() {
   const list = data && !data.error && Array.isArray(data) ? data : [];
   tbody.innerHTML = (list.length ? list.map(m => {
     const date = m.created_at ? new Date(m.created_at).toLocaleDateString() : '-';
-    return '<tr><td>' + (m.name||'-') + '</td><td>' + (m.email||'-') + '</td><td>' + (m.phone||'-') + '</td><td>' + (m.message||'-') + '</td><td>' + date + '</td></tr>';
+    return '<tr><td data-label="Name">' + (m.name||'-') + '</td><td data-label="Email">' + (m.email||'-') + '</td><td data-label="Phone">' + (m.phone||'-') + '</td><td data-label="Message">' + (m.message||'-') + '</td><td data-label="Date">' + date + '</td></tr>';
   }).join('') : '') || '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No messages yet</td></tr>';
 }
 
@@ -2480,7 +2593,7 @@ async function loadAdminMeetings() {
   const list = (data && Array.isArray(data)) ? data : [];
   tbody.innerHTML = list.length ? list.map(m => {
     const date = new Date(m.meeting_date + 'T12:00:00').toLocaleDateString();
-    return '<tr><td>' + (m.user_name || '-') + '</td><td>' + (m.user_email || '-') + '</td><td>' + (m.user_phone || '-') + '</td><td>' + date + '</td><td>' + (m.time_slot || '-') + '</td></tr>';
+    return '<tr><td data-label="User">' + (m.user_name || '-') + '</td><td data-label="Email">' + (m.user_email || '-') + '</td><td data-label="Phone">' + (m.user_phone || '-') + '</td><td data-label="Date">' + date + '</td><td data-label="Time Slot">' + (m.time_slot || '-') + '</td></tr>';
   }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted)">No upcoming meetings</td></tr>';
 }
 
@@ -2543,7 +2656,7 @@ async function loadPerformanceInsights() {
     tbodyEl.innerHTML = data.length ? data.map(r => {
       const type = typeLabels[r._source] || r._source || '—';
       const dt = (r._date || r.created_at) ? new Date(r._date || r.created_at).toLocaleString() : '—';
-      return '<tr><td>' + type + '</td><td>' + (detail(r) || '—') + '</td><td>' + dt + '</td></tr>';
+      return '<tr><td data-label="Type">' + type + '</td><td data-label="Details">' + (detail(r) || '—') + '</td><td data-label="Date">' + dt + '</td></tr>';
     }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">No data for the selected filters.</td></tr>';
   } else {
     if (source === 'workouts' && theadEl) theadEl.innerHTML = '<tr><th>User</th><th>Workout</th><th>Duration</th><th>Date</th></tr>';
@@ -2552,12 +2665,12 @@ async function loadPerformanceInsights() {
     else if (source === 'part2' && theadEl) theadEl.innerHTML = '<tr><th>Name</th><th>Email</th><th>Activity</th><th>Date</th></tr>';
     else if (source === 'meetings' && theadEl) theadEl.innerHTML = '<tr><th>User</th><th>Email</th><th>Date</th><th>Time</th></tr>';
     else if (source === 'messages' && theadEl) theadEl.innerHTML = '<tr><th>Name</th><th>Email</th><th>Message</th><th>Date</th></tr>';
-    if (source === 'workouts') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + ((r.first_name||'')+' '+(r.last_name||'')).trim() + '</td><td>' + (r.workout_name||'-') + '</td><td>' + (r.duration_seconds != null ? Math.round(r.duration_seconds/60)+' min' : '-') + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'sunday_checkin') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + (r.full_name||'-') + '</td><td>' + (r.reply_email||'-') + '</td><td>' + (r.plan||'-') + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'audit') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + (r.first_name||'') + ' ' + (r.last_name||'') + '</td><td>' + (r.email||'-') + '</td><td>' + (r.city||'-') + '</td><td>' + (r.goals||'-').substring(0,50) + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'part2') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + (r.name||'-') + '</td><td>' + (r.email||'-') + '</td><td>' + (r.activity_level||'-') + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'meetings') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + (r.user_name||'-') + '</td><td>' + (r.user_email||'-') + '</td><td>' + (r.meeting_date||'-') + '</td><td>' + (r.time_slot||'-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'messages') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td>' + (r.name||'-') + '</td><td>' + (r.email||'-') + '</td><td>' + ((r.message||'').substring(0,80) + ((r.message||'').length>80?'…':'')) + '</td><td>' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    if (source === 'workouts') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="User">' + ((r.first_name||'')+' '+(r.last_name||'')).trim() + '</td><td data-label="Workout">' + (r.workout_name||'-') + '</td><td data-label="Duration">' + (r.duration_seconds != null ? Math.round(r.duration_seconds/60)+' min' : '-') + '</td><td data-label="Date">' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    else if (source === 'sunday_checkin') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="Name">' + (r.full_name||'-') + '</td><td data-label="Reply Email">' + (r.reply_email||'-') + '</td><td data-label="Plan">' + (r.plan||'-') + '</td><td data-label="Date">' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    else if (source === 'audit') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="Name">' + (r.first_name||'') + ' ' + (r.last_name||'') + '</td><td data-label="Email">' + (r.email||'-') + '</td><td data-label="City">' + (r.city||'-') + '</td><td data-label="Goals">' + (r.goals||'-').substring(0,50) + '</td><td data-label="Date">' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    else if (source === 'part2') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="Name">' + (r.name||'-') + '</td><td data-label="Email">' + (r.email||'-') + '</td><td data-label="Activity">' + (r.activity_level||'-') + '</td><td data-label="Date">' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    else if (source === 'meetings') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="User">' + (r.user_name||'-') + '</td><td data-label="Email">' + (r.user_email||'-') + '</td><td data-label="Date">' + (r.meeting_date||'-') + '</td><td data-label="Time">' + (r.time_slot||'-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    else if (source === 'messages') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="Name">' + (r.name||'-') + '</td><td data-label="Email">' + (r.email||'-') + '</td><td data-label="Message">' + ((r.message||'').substring(0,80) + ((r.message||'').length>80?'…':'')) + '</td><td data-label="Date">' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
     else tbodyEl.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
   }
 }
@@ -2646,12 +2759,30 @@ function logoutAdmin() {
   unlockBodyScroll();
 }
 
+function openAdminMoreModal() {
+  var el = document.getElementById('adminMoreModal');
+  var ov = document.getElementById('adminMoreModalOverlay');
+  if (el) el.classList.add('open');
+  if (ov) ov.classList.add('open');
+}
+function closeAdminMoreModal() {
+  var el = document.getElementById('adminMoreModal');
+  var ov = document.getElementById('adminMoreModalOverlay');
+  if (el) el.classList.remove('open');
+  if (ov) ov.classList.remove('open');
+}
 function switchTab(tab) {
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.admin-nav-link').forEach(a => a.classList.remove('active'));
   document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
+  var bottomNav = document.getElementById('adminBottomNav');
+  if (bottomNav) bottomNav.querySelectorAll('.admin-bottom-nav-item').forEach(function(btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-tab') === tab);
+  });
   const tabBtn = document.querySelector('.admin-tab[data-tab="' + tab + '"]');
   if (tabBtn) tabBtn.classList.add('active');
+  var sectionEl = document.getElementById('adminCurrentSection');
+  if (sectionEl && tabBtn) sectionEl.textContent = tabBtn.textContent.trim();
   const navLink = document.querySelector('.admin-nav-link[data-tab="' + tab + '"]');
   if (navLink) navLink.classList.add('active');
   const content = document.getElementById('tab-' + tab);
@@ -2903,6 +3034,17 @@ function closeAdminNavDrawer() {
   if (drawer) drawer.classList.remove('open');
   if (panel) panel.style.overflow = '';
 }
+document.addEventListener('click', function(e) {
+  var btn = e.target && e.target.closest && e.target.closest('.admin-h-scroll-btn');
+  if (!btn) return;
+  var ctrl = btn.closest('.admin-h-scroll-ctrl');
+  if (!ctrl) return;
+  var wrap = ctrl.previousElementSibling;
+  if (!wrap || (!wrap.classList.contains('admin-table-wrap') && !wrap.classList.contains('insights-table-wrap'))) return;
+  var dir = parseInt(btn.getAttribute('data-dir'), 10) || 0;
+  var delta = 220;
+  wrap.scrollBy({ left: dir * delta, behavior: 'smooth' });
+});
 
 // ========== USER DASHBOARD ==========
 function openUserDashboard(user) {
