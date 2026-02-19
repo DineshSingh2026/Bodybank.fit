@@ -1,5 +1,6 @@
 # Render Blueprint — BodyBank
 # Repo root = app root (server.js, package.json). Do NOT set Root Directory to "src".
+# Add a PostgreSQL database (Render Postgres) and set DATABASE_URL in environment variables.
 
 services:
   - type: web

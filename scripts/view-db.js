@@ -1,13 +1,12 @@
 /**
- * View all data in the BodyBank SQLite database.
+ * View all data in the BodyBank database (PostgreSQL).
  * Run: node scripts/view-db.js
+ * Requires: DATABASE_URL in .env (e.g. postgresql://localhost:5432/bodybank)
  */
 require('dotenv').config();
-const path = require('path');
-const fs = require('fs');
-const initSqlJs = require('sql.js');
+const { Pool } = require('pg');
 
-const DB_PATH = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'bodybank.db');
+const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
 
 const TABLES = [
   'users',
@@ -16,38 +15,34 @@ const TABLES = [
   'workout_logs',
   'contact_messages',
   'meetings',
-  'part2_audit'
+  'part2_audit',
+  'hydration_logs',
+  'weight_logs',
+  'sunday_checkins'
 ];
 
-function formatRow(cols, row) {
-  const obj = {};
-  cols.forEach((c, i) => { obj[c] = row[i]; });
-  return obj;
-}
-
 async function main() {
-  if (!fs.existsSync(DB_PATH)) {
-    console.log('No database found at:', DB_PATH);
-    return;
+  const pool = new Pool({ connectionString: DATABASE_URL });
+  try {
+    await pool.query('SELECT 1');
+  } catch (e) {
+    console.error('PostgreSQL connection failed. Set DATABASE_URL in .env. Error:', e.message);
+    process.exit(1);
   }
 
-  const SQL = await initSqlJs();
-  const buffer = fs.readFileSync(DB_PATH);
-  const db = new SQL.Database(buffer);
-
-  console.log('========== BodyBank DB:', DB_PATH, '==========\n');
+  console.log('========== BodyBank DB (PostgreSQL) ==========\n');
 
   for (const table of TABLES) {
     try {
-      const result = db.exec(`SELECT * FROM ${table}`);
-      if (!result.length || !result[0].values.length) {
+      const res = await pool.query(`SELECT * FROM ${table}`);
+      const rows = res.rows;
+      if (!rows.length) {
         console.log(`--- ${table} (0 rows) ---\n`);
         continue;
       }
-      const { columns, values } = result[0];
-      console.log(`--- ${table} (${values.length} row(s)) ---`);
-      values.forEach((row, i) => {
-        console.log(JSON.stringify(formatRow(columns, row), null, 2));
+      console.log(`--- ${table} (${rows.length} row(s)) ---`);
+      rows.forEach((row, i) => {
+        console.log(JSON.stringify(row, null, 2));
       });
       console.log('');
     } catch (e) {
@@ -55,7 +50,7 @@ async function main() {
     }
   }
 
-  db.close();
+  await pool.end();
   console.log('Done.');
 }
 

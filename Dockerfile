@@ -10,10 +10,7 @@ RUN npm install --production
 COPY server.js ./
 COPY public/ ./public/
 
-# Create data directory for SQLite
-RUN mkdir -p /app/data
-
-# Expose port
+# Expose port (set DATABASE_URL for PostgreSQL)
 EXPOSE 3000
 
 ENV NODE_ENV=production

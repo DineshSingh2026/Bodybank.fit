@@ -12,8 +12,8 @@
    - Optionally set `ALLOWED_ORIGIN` to restrict CORS (e.g. `https://yoursite.com`).
 
 3. **Database**
-   - Set `DB_PATH` if the app should use a specific directory (e.g. persistent volume).
-   - Ensure the directory exists and the process can read/write it.
+   - Set `DATABASE_URL` to your PostgreSQL connection string (e.g. `postgresql://user:pass@host:5432/bodybank`).
+   - To migrate from an existing SQLite file: set `DB_PATH`, run `node scripts/migrate-sqlite-to-postgres.js`, then start the app with `DATABASE_URL`.
 
 4. **Google Sign-In**
    - Set `GOOGLE_CLIENT_ID` in `.env` and add your deployment origin to the OAuth client.
@@ -25,7 +25,7 @@ npm install --production
 node server.js
 ```
 
-Or use a process manager (e.g. PM2, systemd) and ensure the process receives SIGTERM for graceful shutdown (DB is saved on exit).
+Or use a process manager (e.g. PM2, systemd). PostgreSQL is persistent; no file save on exit.
 
 ## Health check
 

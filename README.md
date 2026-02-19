@@ -15,7 +15,15 @@ Open **http://localhost:3000**
 3. Check health: visit **http://localhost:3000/api/health** — should return `{"ok":true,"db":"connected","admin_email":"admin@bodybank.fit","admin_exists":true}`
 4. Login with `admin@bodybank.fit` / `admin123`
 
-If login fails with "Invalid email or password", ensure you're using the correct credentials. To reset the database and re-create the admin, delete `data/bodybank.db` and restart the server.
+If login fails with "Invalid email or password", ensure you're using the correct credentials.
+
+### Database (PostgreSQL)
+1. Create a database, e.g. `createdb bodybank` (or use pgAdmin / psql: `CREATE DATABASE bodybank;`).
+2. In `.env` set `DATABASE_URL=postgresql://localhost:5432/bodybank` (adjust user/password if needed).
+3. To **migrate existing data from SQLite**: put your old `data/bodybank.db` in place, set `DB_PATH=data/bodybank.db` in `.env`, then run `node scripts/migrate-sqlite-to-postgres.js`. After that, start the server with `DATABASE_URL` set.
+
+### End-to-end tests
+With the server running (`npm run dev`), run: `npm test`. This exercises sign up → admin approval → login → profile, workouts, contact, meetings, sunday check-in, public audit/part2 forms, admin dashboard and DB.
 
 ---
 
@@ -28,7 +36,7 @@ If login fails with "Invalid email or password", ensure you're using the correct
 5. Add environment variables:
    - `ADMIN_EMAIL` = your email
    - `ADMIN_PASS` = your secure password
-6. Add a **Disk** (for SQLite persistence): mount path `/app/data`, 1GB
+6. Add a **PostgreSQL** database (e.g. Render Postgres or external). Set `DATABASE_URL` in environment variables.
 7. Click **Deploy**
 
 Your site will be live at `https://bodybank-xxxx.onrender.com`
@@ -136,18 +144,20 @@ docker run -d \
 | `NODE_ENV` | development | Set to `production` for deployment |
 | `ADMIN_EMAIL` | admin@bodybank.fit | Admin login email |
 | `ADMIN_PASS` | admin123 | Admin login password |
-| `DB_PATH` | ./data/bodybank.db | SQLite database path |
+| `DATABASE_URL` | postgresql://localhost:5432/bodybank | PostgreSQL connection string |
 
 ---
 
 ## Project Structure
 ```
 bodybank/
-├── server.js           # Backend (Express + SQLite)
+├── server.js           # Backend (Express + PostgreSQL)
 ├── public/
 │   └── index.html      # Complete frontend
-├── data/
-│   └── bodybank.db     # Database (auto-created)
+├── scripts/
+│   ├── migrate-sqlite-to-postgres.js  # One-time SQLite → PostgreSQL migration
+│   ├── view-db.js      # View DB contents (PostgreSQL)
+│   └── seed-user.js    # Seed a test user
 ├── package.json
 ├── Dockerfile
 ├── render.yaml         # Render.com config
