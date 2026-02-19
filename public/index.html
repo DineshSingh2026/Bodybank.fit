@@ -391,17 +391,17 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--black)}::-webkit-scrollbar-thumb{background:var(--goldd);border-radius:3px}
 
 /* ADMIN DASHBOARD */
-.admin-panel{display:none;position:fixed;inset:0;z-index:300;background:var(--black);overflow-x:auto;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent}
-.admin-panel.open{display:block}
+.admin-panel{display:none;position:fixed;inset:0;z-index:300;background:var(--black);overflow:hidden;flex-direction:column;scroll-behavior:smooth}
+.admin-panel.open{display:flex}
 .admin-panel::-webkit-scrollbar{width:8px;height:8px}
 .admin-panel::-webkit-scrollbar-track{background:transparent}
 .admin-panel::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:4px}
 .admin-panel::-webkit-scrollbar-thumb:hover{background:rgba(200,164,78,0.3)}
 .admin-panel::-webkit-scrollbar-corner{background:transparent}
-.admin-top{display:flex;align-items:center;justify-content:space-between;padding:16px 40px;border-bottom:1px solid var(--bdr);background:var(--black);position:sticky;top:0;z-index:10;gap:20px;flex-wrap:nowrap}
-.admin-top-left{display:flex;align-items:center;gap:16px;flex-shrink:0}
-.admin-top-left img{height:38px;mix-blend-mode:lighten}
-.admin-badge{padding:4px 12px;border-radius:4px;background:rgba(200,164,78,0.15);color:var(--gold);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase}
+.admin-top{display:flex;align-items:center;justify-content:space-between;padding:16px 40px;border-bottom:1px solid var(--bdr);background:var(--black);position:sticky;top:0;z-index:10;gap:20px;flex-wrap:nowrap;flex-shrink:0}
+.admin-top-left{display:flex;align-items:center;gap:16px;flex-shrink:0;min-width:0}
+.admin-top-left img{height:38px;mix-blend-mode:lighten;flex-shrink:0}
+.admin-badge{padding:4px 12px;border-radius:4px;background:rgba(200,164,78,0.15);color:var(--gold);font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;flex-shrink:0}
 .admin-top-right{display:flex;align-items:center;gap:16px;flex-shrink:0}
 .admin-notify-wrap{position:relative;flex-shrink:0}
 .admin-notify-btn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--bdr);background:transparent;color:var(--gold);cursor:pointer;display:grid;place-items:center;transition:all .3s;font-size:18px}
@@ -442,9 +442,12 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .part2-link-input{flex:1;min-width:200px;padding:12px 16px;background:rgba(255,255,255,0.05);border:1px solid var(--bdr);border-radius:8px;color:var(--cream);font-size:14px;font-family:monospace}
 .part2-copy-btn{padding:12px 24px;border:1px solid var(--gold);border-radius:8px;background:rgba(200,164,78,0.1);color:var(--gold);font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s}
 .part2-copy-btn:hover{background:rgba(200,164,78,0.2)}
-.admin-logout{padding:8px 20px;border:1px solid rgba(255,80,80,0.4);border-radius:6px;background:transparent;color:#ff6b6b;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .3s;flex-shrink:0}
+.admin-logout{padding:8px 20px;border:1px solid rgba(255,80,80,0.4);border-radius:6px;background:transparent;color:#ff6b6b;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .3s;flex-shrink:0;white-space:nowrap}
 .admin-logout:hover{background:rgba(255,80,80,0.1);border-color:#ff6b6b}
-.admin-body{max-width:1200px;margin:0 auto;padding:32px 40px;min-width:0;overflow-x:hidden}
+.admin-body{max-width:1200px;margin:0 auto;padding:32px 40px;min-width:0;overflow-x:hidden;overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent}
+.admin-body::-webkit-scrollbar{width:8px}
+.admin-body::-webkit-scrollbar-track{background:transparent}
+.admin-body::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:4px}
 .admin-welcome{margin-bottom:32px}
 .admin-welcome h1{font-family:'Bebas Neue',sans-serif;font-size:36px;letter-spacing:2px;color:var(--cream);margin-bottom:4px}
 .admin-welcome p{color:var(--muted);font-size:14px}
@@ -461,13 +464,13 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-mobile-nav-label{font-size:15px;font-weight:600;letter-spacing:0.5px;color:var(--cream)}
 .admin-nav-drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:310;opacity:0;transition:opacity .3s}
 .admin-nav-drawer-overlay.open{display:block;opacity:1}
-.admin-nav-drawer{position:fixed;top:0;left:0;bottom:0;width:min(300px,85vw);background:var(--dark2);border-right:1px solid var(--bdr);z-index:320;transform:translateX(-100%);transition:transform .3s;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.admin-nav-drawer{position:fixed;top:0;left:0;bottom:0;width:min(300px,85vw);background:var(--dark2);border-right:1px solid var(--bdr);z-index:320;transform:translateX(-100%);transition:transform .3s;display:flex;flex-direction:column;overflow:hidden}
 .admin-nav-drawer.open{transform:translateX(0)}
-.admin-nav-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px;border-bottom:1px solid var(--bdr)}
+.admin-nav-drawer-header{display:flex;align-items:center;justify-content:space-between;padding:20px 20px;border-bottom:1px solid var(--bdr);flex-shrink:0}
 .admin-nav-drawer-title{font-size:14px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)}
 .admin-nav-drawer-close{width:40px;height:40px;border:none;background:transparent;color:var(--cream);font-size:28px;cursor:pointer;line-height:1;padding:0;display:grid;place-items:center;border-radius:8px;transition:background .2s}
 .admin-nav-drawer-close:hover{background:rgba(200,164,78,0.1)}
-.admin-nav-drawer-links{display:flex;flex-direction:column;padding:16px 0;padding-bottom:max(24px,env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch}
+.admin-nav-drawer-links{display:flex;flex-direction:column;padding:16px 0;padding-bottom:max(24px,env(safe-area-inset-bottom));overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
 .admin-nav-link{display:block;padding:16px 24px;font-size:15px;font-weight:600;letter-spacing:0.5px;color:var(--creamd);text-decoration:none;border-left:3px solid transparent;transition:all .2s;flex-shrink:0}
 .admin-nav-link:hover,.admin-nav-link:focus{color:var(--cream);background:rgba(200,164,78,0.06)}
 .admin-nav-link.active{color:var(--gold);border-left-color:var(--gold);background:rgba(200,164,78,0.08)}
@@ -569,8 +572,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .admin-tabs{display:none}
   .admin-body{padding:20px 16px 80px}
   .admin-panel{-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
-  .admin-top{flex-wrap:wrap;gap:12px}
-  .admin-top-right{order:2;width:100%;justify-content:flex-end}
+  .admin-top{flex-wrap:nowrap;gap:10px;padding:12px 16px}
+  .admin-top-left img{height:32px}
+  .admin-top-right{justify-content:flex-end;flex-wrap:nowrap;gap:10px}
+  .admin-notify-btn{width:40px;height:40px;font-size:16px}
+  .admin-logout{padding:8px 14px;font-size:11px;letter-spacing:0.8px}
   .admin-notify-panel{position:fixed;left:16px;right:16px;top:72px;margin-top:0;width:auto;max-width:none;max-height:60vh}
 }
 @media(max-width:600px){
@@ -585,7 +591,12 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .part2-link-row{flex-direction:column}
   .part2-link-input{min-width:0;width:100%;font-size:16px}
   .part2-link-label,.part2-copy-btn{font-size:13px}
-  .admin-top{padding:12px 16px}
+  .admin-top{padding:10px 12px;gap:8px}
+  .admin-top-left img{height:28px}
+  .admin-badge{padding:3px 8px;font-size:10px}
+  .admin-top-right{flex-wrap:nowrap;gap:8px}
+  .admin-notify-btn{width:36px;height:36px;font-size:14px}
+  .admin-logout{padding:6px 12px;font-size:11px}
   .admin-body{padding:16px 12px 80px}
   .admin-notify-panel{left:12px;right:12px}
   .admin-table-wrap{margin:0 -12px;padding:0 12px}
@@ -1107,6 +1118,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <nav class="admin-nav-drawer-links">
         <a class="admin-nav-link active" href="#" data-tab="requests" onclick="switchTab('requests');closeAdminNavDrawer();return false">Pending Requests</a>
         <a class="admin-nav-link" href="#" data-tab="signups" onclick="switchTab('signups');closeAdminNavDrawer();return false">Pending Sign-ups</a>
+        <a class="admin-nav-link" href="#" data-tab="clientprogress" onclick="switchTab('clientprogress');closeAdminNavDrawer();return false">Client Progress</a>
         <a class="admin-nav-link" href="#" data-tab="insights" onclick="switchTab('insights');closeAdminNavDrawer();return false">Performance Insights</a>
         <a class="admin-nav-link" href="#" data-tab="tribe" onclick="switchTab('tribe');closeAdminNavDrawer();return false">Tribe</a>
         <a class="admin-nav-link" href="#" data-tab="workouts" onclick="switchTab('workouts');closeAdminNavDrawer();return false">Workouts</a>
@@ -1114,7 +1126,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <a class="admin-nav-link" href="#" data-tab="meetings" onclick="switchTab('meetings');closeAdminNavDrawer();return false">Upcoming Meetings</a>
         <a class="admin-nav-link" href="#" data-tab="part2" onclick="switchTab('part2');closeAdminNavDrawer();return false">Part-2 Form</a>
         <a class="admin-nav-link sc-style" href="#" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin');closeAdminNavDrawer();return false">Sunday Check-in</a>
-        <a class="admin-nav-link" href="#" data-tab="clientprogress" onclick="switchTab('clientprogress');closeAdminNavDrawer();return false">Client Progress</a>
       </nav>
     </div>
     <div class="admin-tabs" id="adminTabs">
