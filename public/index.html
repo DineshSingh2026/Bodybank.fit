@@ -453,7 +453,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-logout:hover{background:rgba(255,80,80,0.1);border-color:#ff6b6b}
 .admin-top-hamburger{display:none}
 .admin-body{max-width:1200px;margin:0 auto;padding:32px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(24px,env(safe-area-inset-bottom));min-width:0;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;box-sizing:border-box}
-.admin-body>.admin-welcome,.admin-body>.admin-stats,.admin-body>.admin-mobile-nav-bar,.admin-body>.admin-tabs{flex-shrink:0}
+.admin-body>.admin-current-section-wrap,.admin-body>.admin-mobile-nav-bar,.admin-body>.admin-tabs{flex-shrink:0}
 .admin-tab-content-wrap{flex:1;min-height:0;max-height:calc(100vh - 220px);overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:rgba(255,255,255,0.02);padding:16px;touch-action:pan-x pan-y}
 .admin-tab-content-wrap::-webkit-scrollbar{width:8px;height:8px}
 .admin-tab-content-wrap::-webkit-scrollbar-track{background:transparent}
@@ -619,9 +619,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .admin-mobile-nav-bar{display:none}
   .admin-tabs{display:none}
   .admin-top-hamburger{display:flex}
-  .admin-body{padding:20px 16px 24px}
-  .admin-top{position:sticky;top:0;z-index:20;flex-shrink:0;padding:12px 16px}
-  .admin-tab-content-wrap{max-height:55vh;min-height:240px;overflow-y:auto;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:12px;margin:0 -16px}
+  .admin-body{padding:12px 8px 24px;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
+  .admin-top{position:sticky;top:0;z-index:20;flex-shrink:0;padding:12px 8px}
+  .admin-current-section-wrap{margin-bottom:12px;padding:6px 0;flex-shrink:0}
+  .admin-tab-content-wrap{flex:1;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:12px 0;margin:0 -8px;border-radius:0;border:none;background:transparent;box-sizing:border-box}
   .admin-notify-panel{position:fixed;left:16px;right:16px;top:60px;margin-top:0;width:auto;max-width:none;max-height:60vh}
   .admin-top-left img{height:32px}
   .admin-top-right{justify-content:flex-end;flex-wrap:nowrap;gap:10px}
@@ -635,27 +636,39 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .admin-cp-detail #adminCpShareWrap .form-submit{width:100%;margin-top:0}
   .admin-cp-detail #adminCpShareUrlWrap{margin-top:12px!important}
   .admin-cp-detail #adminCpKpis{position:static;width:100%;margin-top:12px!important}
-  .admin-tab-content-wrap .admin-table-wrap,.admin-tab-content-wrap .insights-table-wrap{max-height:none;overflow:visible;margin-bottom:8px}
-  .admin-tab-content-wrap .tribe-grid{max-height:55vh;overflow-y:auto;overflow-x:auto}
-  .admin-table{min-width:0;width:100%}
+  .admin-current-section-wrap{border-bottom:2px solid rgba(200,164,78,0.5);padding-bottom:10px}
+  .admin-tab-content{padding:0 8px;box-sizing:border-box}
+  .admin-tab-content-wrap .admin-table-wrap,.admin-tab-content-wrap .insights-table-wrap{max-height:none;overflow:visible;margin-bottom:8px;margin-left:-8px;margin-right:-8px;width:calc(100% + 16px);padding:0 8px;min-width:0;box-sizing:border-box}
+  .admin-tab-content-wrap .admin-table-wrap .admin-table,.admin-tab-content-wrap .insights-table-wrap .admin-table{width:100%!important;min-width:0!important;table-layout:fixed}
+  .admin-tab-content-wrap .tribe-grid{max-height:none;overflow:visible;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;margin-left:-8px;margin-right:-8px;width:calc(100% + 16px);padding:0 8px}
+  .admin-tab-content-wrap .admin-welcome,.admin-tab-content-wrap .admin-stats{padding-left:0;padding-right:0}
+  .admin-table{min-width:0!important;width:100%!important}
   .admin-table thead{display:none}
-  .admin-table tbody tr{display:block;width:100%;margin-bottom:16px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:12px}
+  .admin-table tbody tr{display:block;width:100%;margin-bottom:12px;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px;box-sizing:border-box}
   .admin-table tbody tr:last-child{margin-bottom:0}
-  .admin-table tbody td{display:block;padding:8px 0;border:none;font-size:14px;color:var(--creamd);word-break:break-word}
-  .admin-table tbody td::before{content:attr(data-label);display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+  .admin-table tbody td{display:block;padding:6px 0;border:none;font-size:14px;color:var(--cream);word-break:normal;overflow-wrap:break-word}
+  .admin-table tbody td::before{content:attr(data-label);display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
   .admin-table tbody td[colspan]::before{display:none}
   .admin-table tbody td .status-badge{margin-top:4px}
   .admin-table tbody td .action-btn{margin-right:8px;margin-top:8px}
   .admin-table tbody td .action-btn:last-child{margin-right:0}
   .insights-table-wrap .admin-table thead{display:none}
-  .insights-table-wrap .admin-table tbody tr{display:block;width:100%;margin-bottom:16px;padding:16px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:12px}
-  .insights-table-wrap .admin-table tbody td{display:block;padding:8px 0;border:none}
-  .insights-table-wrap .admin-table tbody td::before{content:attr(data-label);display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+  .insights-table-wrap .admin-table tbody tr{display:block;width:100%;margin-bottom:12px;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
+  .insights-table-wrap .admin-table tbody td{display:block;padding:6px 0;border:none}
+  .insights-table-wrap .admin-table tbody td::before{content:attr(data-label);display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
   .insights-table-wrap .admin-table tbody td[colspan]::before{display:none}
+  .admin-tab-content-wrap .tribe-card{padding:20px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
+  .admin-tab-content-wrap .tribe-name{text-transform:uppercase;font-size:18px}
+  .admin-tab-content-wrap .tribe-detail .label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)}
+  .admin-tab-content-wrap .tribe-detail .val{color:var(--cream);font-weight:500}
   .admin-h-scroll-ctrl{display:none}
+  .admin-tab-content-wrap .admin-welcome{margin-bottom:20px}
+  .admin-tab-content-wrap .admin-stats{margin-bottom:24px}
 }
 @media(max-width:600px){
   .admin-stats{flex-direction:column;align-items:flex-start}
+  .admin-body{padding:10px 6px 80px;box-sizing:border-box}
+  .admin-top{padding:10px 6px;gap:8px}
   .admin-table{font-size:14px}
   .admin-table th,.admin-table td{font-size:14px}
   .admin-welcome h1{font-size:32px}
@@ -666,15 +679,17 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .part2-link-row{flex-direction:column}
   .part2-link-input{min-width:0;width:100%;font-size:16px}
   .part2-link-label,.part2-copy-btn{font-size:13px}
-  .admin-top{padding:10px 12px;gap:8px}
   .admin-top-left img{height:28px}
   .admin-badge{padding:3px 8px;font-size:10px}
   .admin-top-right{flex-wrap:nowrap;gap:8px}
   .admin-notify-btn{width:36px;height:36px;font-size:14px}
   .admin-logout{padding:6px 12px;font-size:11px}
-  .admin-body{padding:16px 12px 80px}
   .admin-notify-panel{left:12px;right:12px}
-  .admin-table-wrap{margin:0 -12px;padding:0 12px}
+  .admin-tab-content-wrap{margin:0 -6px}
+  .admin-tab-content{padding:0 6px}
+  .admin-tab-content-wrap .admin-table-wrap,.admin-tab-content-wrap .insights-table-wrap{margin-left:-6px;margin-right:-6px;width:calc(100% + 12px);padding:0 6px;margin-bottom:8px;box-sizing:border-box}
+  .admin-tab-content-wrap .tribe-grid{margin-left:-6px;margin-right:-6px;width:calc(100% + 12px);padding:0 6px;box-sizing:border-box}
+  .admin-tab-content-wrap .admin-welcome,.admin-tab-content-wrap .admin-stats{padding-left:0;padding-right:0}
 }
 
 /* USER DASHBOARD */
@@ -1179,17 +1194,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     </div>
   </div>
   <div class="admin-body">
-    <div class="admin-welcome">
-      <h1>Welcome back, Admin</h1>
-      <p>Here's what's happening with BodyBank today.</p>
-    </div>
-
-    <div class="admin-stats">
-      <div class="admin-stat-item"><span class="num" id="statPending">0</span><span class="lbl">Pending Requests</span></div>
-      <span class="admin-stats-sep" aria-hidden="true"></span>
-      <div class="admin-stat-item"><span class="num" id="statActive">0</span><span class="lbl">Active Members</span></div>
-    </div>
-
     <div class="admin-current-section-wrap" aria-live="polite">
       <span class="admin-current-section" id="adminCurrentSection">Pending Requests</span>
     </div>
@@ -1233,8 +1237,17 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     </div>
 
     <div class="admin-tab-content-wrap">
-    <!-- TAB 1: Pending Requests -->
+    <!-- TAB 1: Pending Requests (welcome + stats only here) -->
     <div class="admin-tab-content active" id="tab-requests">
+      <div class="admin-welcome">
+        <h1>Welcome back, Admin</h1>
+        <p>Here's what's happening with BodyBank today.</p>
+      </div>
+      <div class="admin-stats">
+        <div class="admin-stat-item"><span class="num" id="statPending">0</span><span class="lbl">Pending Requests</span></div>
+        <span class="admin-stats-sep" aria-hidden="true"></span>
+        <div class="admin-stat-item"><span class="num" id="statActive">0</span><span class="lbl">Active Members</span></div>
+      </div>
       <div class="admin-table-wrap"><table class="admin-table">
         <thead>
           <tr><th>Name</th><th>Email</th><th>Age</th><th>City</th><th>Status</th><th>Actions</th></tr>
