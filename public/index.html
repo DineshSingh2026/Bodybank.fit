@@ -64,6 +64,10 @@ body.site-nav-hidden nav#nv{display:none !important}
 .btn-p:hover::after{transform:translateX(100%)}
 .btn-p:hover{transform:translateY(-2px);box-shadow:0 4px 0 rgba(0,0,0,0.06),0 8px 36px rgba(200,164,78,0.4),inset 0 1px 0 rgba(255,255,255,0.25)}
 .btn-p:active{transform:translateY(0)}
+.btn-p-audit .btn-p-pointer{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;width:36px;height:36px;margin-left:10px;pointer-events:none;vertical-align:middle}
+.btn-p-audit .btn-p-pointer svg{width:100%;height:100%;display:block}
+@media(max-width:900px){.btn-p-audit .btn-p-pointer{width:32px;height:32px;margin-left:8px}}
+@media(max-width:600px){.btn-p-audit .btn-p-pointer{width:30px;height:30px;margin-left:8px}}
 .btn-s{padding:16px 44px;border:1.5px solid var(--gold);border-radius:6px;background:transparent;color:var(--cream);font-family:'Outfit',sans-serif;font-weight:600;font-size:14px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;text-decoration:none;transition:all .3s}
 .btn-s:hover{background:rgba(200,164,78,0.1);border-color:var(--goldb)}
 .hero-scroll{position:absolute;bottom:32px;left:50%;transform:translateX(-50%);z-index:2;opacity:0;animation:fsu 1s .9s forwards}
@@ -203,10 +207,11 @@ body.site-nav-hidden nav#nv{display:none !important}
 .fcta .bold{color:var(--cream);font-weight:600;font-size:18px;margin-bottom:32px}
 
 /* MODAL OVERLAY */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:200;align-items:center;justify-content:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-sizing:border-box}
 .modal-overlay.open{display:flex}
-.modal{background:var(--dark2);border:1.5px solid var(--gold);border-radius:20px;padding:44px 40px;max-width:440px;width:100%;position:relative;max-height:90vh;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch}
-.modal-close{position:absolute;top:16px;right:20px;background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:grid;place-items:center}
+.modal{background:var(--dark2);border:1.5px solid var(--gold);border-radius:20px;padding:44px 40px;max-width:440px;width:100%;position:relative;max-height:90vh;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:auto;box-sizing:border-box;flex-shrink:0}
+.modal-close{position:absolute;top:max(16px,env(safe-area-inset-top));right:max(20px,env(safe-area-inset-right));background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:grid;place-items:center;border-radius:8px;transition:background .2s;-webkit-tap-highlight-color:transparent}
+.modal-close:hover,.modal-close:focus{background:rgba(200,164,78,0.1);outline:none}
 .modal h2{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;text-align:center;margin-bottom:28px;color:var(--cream)}
 .form-group{margin-bottom:18px;min-width:0}
 .form-group label{display:block;font-size:13px;font-weight:600;color:var(--cream);margin-bottom:6px;letter-spacing:.5px}
@@ -231,12 +236,17 @@ textarea.form-input{resize:vertical;min-height:80px}
 
 /* LOGIN MODAL */
 .login-modal .form-group{margin-bottom:14px}
+.login-modal h2{padding-right:48px;padding-left:0}
+.login-modal .form-input,.login-modal .form-submit,.login-modal .google-btn{width:100%;box-sizing:border-box}
 .forgot-link{float:right;font-size:12px;color:var(--gold);text-decoration:none;transition:opacity .3s}
 .forgot-link:hover{opacity:.7}
 .login-footer{text-align:center;margin-top:20px;font-size:14px;color:var(--creamd)}
-.login-footer a{color:var(--gold);text-decoration:none;font-weight:600}
-.pw-wrap{position:relative}
-.pw-toggle{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px}
+.login-footer a{color:var(--gold);text-decoration:none;font-weight:600;display:inline-block;padding:10px 6px;margin:-10px -6px;border-radius:6px;-webkit-tap-highlight-color:transparent}
+.login-footer a:hover{text-decoration:underline}
+.pw-wrap{position:relative;display:block}
+.pw-wrap .form-input{padding-right:48px}
+.pw-toggle{position:absolute;right:0;top:0;bottom:0;width:48px;min-width:48px;display:grid;place-items:center;background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;-webkit-tap-highlight-color:transparent}
+.pw-toggle:hover{color:var(--cream)}
 
 /* FOOTER */
 footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-direction:column;align-items:center;gap:20px}
@@ -303,13 +313,15 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .fe{font-size:16px}.fb{font-size:12px}
   .hero-btns{flex-direction:column;width:100%}
   .btn-p,.btn-s{width:100%;text-align:center;justify-content:center;font-size:15px;padding:16px 28px;gap:8px;white-space:nowrap}
-  .modal{padding:32px 24px;margin:16px}
+  .modal{padding:32px 24px;margin:16px;max-width:calc(100% - 32px)}
   .modal h2{font-size:30px}
+  .login-modal h2{padding-right:44px}
   .form-group label{font-size:15px}
   .form-input{font-size:16px}
   .form-quote{font-size:19px}.form-quote .attr{font-size:15px}
   .form-row{grid-template-columns:1fr}
   .modal form,.modal .form-row,.modal .form-group{min-width:0}
+  .modal-close{top:max(12px,env(safe-area-inset-top));right:max(16px,env(safe-area-inset-right))}
 }
 @media(max-width:600px){
   body{font-size:17px}
@@ -329,12 +341,17 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .origin-inner p{font-size:18px}
   .fq{font-size:17px}.fa{font-size:16px}
   nav{padding:10px 16px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-top:max(10px,env(safe-area-inset-top))}
-  .modal{padding:28px 20px;max-height:85vh;margin:12px}
-  .modal h2{font-size:28px}
+  .modal{padding:28px 20px;max-height:85vh;margin:12px;max-width:calc(100% - 24px)}
+  .modal h2{font-size:28px;margin-bottom:24px}
+  .login-modal h2{padding-right:40px}
   .form-group label{font-size:15px}
   .form-input,.form-submit{font-size:16px}
+  .form-input{padding:14px 16px}
   .form-quote{font-size:18px}.form-quote .attr{font-size:15px}
-  .form-submit,.google-btn{min-height:48px}
+  .form-submit,.google-btn{min-height:48px;padding:14px 16px}
+  .login-footer{margin-top:16px;font-size:15px}
+  .login-footer a{padding:12px 8px}
+  .modal-close{top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));min-width:44px;min-height:44px}
   footer{padding:28px 16px 24px;padding-bottom:max(24px,env(safe-area-inset-bottom))}
   .fe{font-size:15px;padding:10px 20px}
   .fb{font-size:12px}
@@ -347,8 +364,12 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .fail-item{padding:16px 0}
   .fail-item h4{font-size:16px}
   .fail-item p{font-size:17px}
-  .modal{padding:24px 16px}
-  .popup-box,.forgot-box{padding:28px 20px;width:95%}
+  .modal{padding:24px 16px;max-width:calc(100% - 20px);margin:10px}
+  .modal h2{font-size:26px;margin-bottom:20px}
+  .login-modal h2{padding-right:44px}
+  .modal-close{top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right))}
+  .popup-box,.forgot-box{padding:28px 20px;width:95%;max-width:calc(100vw - 24px);margin:0 auto;box-sizing:border-box}
+  .popup-overlay{padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
   .fcta-inner h2,.fcta h2{font-size:30px}
   .fcta p{font-size:17px}.fcta .bold{font-size:18px}
 }
@@ -385,16 +406,17 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-notify-wrap{position:relative;flex-shrink:0}
 .admin-notify-btn{width:44px;height:44px;border-radius:50%;border:1.5px solid var(--bdr);background:transparent;color:var(--gold);cursor:pointer;display:grid;place-items:center;transition:all .3s;font-size:18px}
 .admin-notify-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
-.admin-notify-btn .count{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e05050;color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.admin-notify-panel{display:none;position:absolute;top:100%;right:0;margin-top:8px;width:380px;max-width:calc(100vw - 32px);max-height:420px;background:var(--dark2);border:1px solid var(--bdr);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:50;overflow:hidden}
-.admin-notify-panel.open{display:block}
-.admin-notify-header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bdr);font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold)}
+.admin-notify-btn .count{position:absolute;top:-4px;right:-4px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#e05050;color:#fff;font-size:11px;font-weight:700;display:none;align-items:center;justify-content:center}
+.admin-notify-btn .count.has-count,.user-notify-wrap .count.has-count{display:flex}
+.admin-notify-panel{display:none;position:absolute;top:100%;right:0;margin-top:8px;width:380px;max-width:calc(100vw - 32px);max-height:420px;background:var(--dark2);border:1px solid var(--bdr);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:50;overflow:hidden;flex-direction:column;flex:1 1 auto}
+.admin-notify-panel.open{display:flex}
+.admin-notify-header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bdr);font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);flex-shrink:0}
 .admin-notify-header input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--gold)}
-.admin-notify-browser-prompt{padding:14px 16px;border-bottom:1px solid var(--bdr);background:rgba(200,164,78,0.06)}
+.admin-notify-browser-prompt{padding:14px 16px;border-bottom:1px solid var(--bdr);background:rgba(200,164,78,0.06);flex-shrink:0}
 .admin-notify-prompt-txt{font-size:12px;color:var(--creamd);line-height:1.5;margin-bottom:12px}
 .admin-notify-enable-btn{padding:8px 14px;border:1.5px solid var(--gold);border-radius:6px;background:transparent;color:var(--gold);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s;width:100%}
 .admin-notify-enable-btn:hover{background:rgba(200,164,78,0.12)}
-.admin-notify-list{max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.admin-notify-list{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch}
 .admin-notify-item{display:flex;align-items:flex-start;gap:12px;padding:12px 16px;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background .2s}
 .admin-notify-item:hover{background:rgba(200,164,78,0.06)}
 .admin-notify-item:last-child{border-bottom:none}
@@ -407,7 +429,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-notify-item.audit .n-title{color:#ffb432}
 .admin-notify-item.message .n-title{color:#50c878}
 .admin-notify-item.workout .n-title{color:var(--gold)}
-.admin-notify-footer{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--bdr);background:rgba(0,0,0,0.2)}
+.admin-notify-footer{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--bdr);background:rgba(0,0,0,0.2);flex-shrink:0}
 .admin-notify-clear{padding:8px 18px;border:1px solid var(--bdr);border-radius:6px;background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s}
 .admin-notify-clear:hover:not(:disabled){background:rgba(200,164,78,0.1);color:var(--gold);border-color:var(--gold)}
 .admin-notify-clear:disabled{opacity:.5;cursor:not-allowed}
@@ -547,6 +569,8 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .admin-tabs{display:none}
   .admin-body{padding:20px 16px 80px}
   .admin-panel{-webkit-overflow-scrolling:touch;scroll-behavior:smooth}
+  .admin-top{flex-wrap:wrap;gap:12px}
+  .admin-top-right{order:2;width:100%;justify-content:flex-end}
   .admin-notify-panel{position:fixed;left:16px;right:16px;top:72px;margin-top:0;width:auto;max-width:none;max-height:60vh}
 }
 @media(max-width:600px){
@@ -717,9 +741,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 }
 
 /* SUCCESS POPUP */
-.popup-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);place-items:center;animation:fadeIn .3s;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.popup-overlay{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);place-items:center;animation:fadeIn .3s;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));box-sizing:border-box}
 .popup-overlay.show{display:grid}
-.popup-box{text-align:center;padding:52px 44px;max-width:420px;width:90%;background:#0d0d0d;border:1.5px solid rgba(200,164,78,0.3);border-radius:20px;animation:popUp .4s ease-out}
+.popup-box{text-align:center;padding:52px 44px;max-width:min(420px,calc(100vw - 48px));width:90%;background:#0d0d0d;border:1.5px solid rgba(200,164,78,0.3);border-radius:20px;animation:popUp .4s ease-out;box-sizing:border-box;margin:auto}
 .popup-icon{width:80px;height:80px;margin:0 auto 20px;border-radius:50%;border:3px solid var(--gold);display:grid;place-items:center}
 .popup-icon svg{width:40px;height:40px;stroke:var(--gold);fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .popup-icon.error{border-color:#e05050}
@@ -729,7 +753,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .popup-msg{color:var(--creamd);font-size:18px;line-height:1.65;margin-bottom:8px}
 .popup-quote{color:var(--gold);font-size:16px;font-style:italic;margin-top:16px;opacity:.95}
 .popup-btn{margin-top:28px;padding:14px 44px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer}
-@media(max-width:600px){.popup-title{font-size:30px}.popup-msg{font-size:19px}.popup-quote{font-size:17px}.popup-btn{font-size:17px;padding:16px 44px;min-height:52px}}
+@media(max-width:600px){.popup-overlay{padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}.popup-box{width:95%;max-width:calc(100vw - 32px);padding:40px 24px}.popup-title{font-size:30px}.popup-msg{font-size:19px}.popup-quote{font-size:17px}.popup-btn{font-size:17px;padding:16px 44px;min-height:52px}}
 @keyframes popUp{from{transform:scale(0.7);opacity:0}to{transform:scale(1);opacity:1}}
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
 
@@ -749,7 +773,52 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .divider-text::after{right:0}
 
 /* CAROUSEL SHARED */
+
+/* MY PROGRESS */
+.progress-form-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:16px;margin-bottom:24px}
+.progress-form-grid .form-group{min-width:0}
+.toggle-wrap{display:inline-flex;align-items:center;cursor:pointer}
+.toggle-wrap input{position:absolute;opacity:0;width:0;height:0}
+.toggle-slider{width:44px;height:24px;background:rgba(255,255,255,0.15);border-radius:24px;position:relative;transition:background .25s}
+.toggle-slider::before{content:'';position:absolute;width:20px;height:20px;border-radius:50%;background:var(--cream);top:2px;left:2px;transition:transform .25s}
+.toggle-wrap input:checked+.toggle-slider{background:var(--gold)}
+.toggle-wrap input:checked+.toggle-slider::before{transform:translateX(20px)}
+.progress-insights{margin:16px 0;padding:12px 16px;background:rgba(200,164,78,0.08);border:1px solid rgba(200,164,78,0.2);border-radius:8px;font-size:14px;color:var(--creamd)}
+.progress-goal-bar{height:28px;background:rgba(255,255,255,0.08);border-radius:8px;position:relative;overflow:hidden;margin:16px 0}
+.goal-bar-fill{height:100%;background:var(--goldg);border-radius:8px;transition:width .4s}
+.goal-bar-lbl{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:12px;font-weight:600;color:var(--black);text-shadow:0 0 1px rgba(255,255,255,0.8)}
+.progress-charts{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px;margin-top:24px}
+.chart-wrap{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;min-height:220px}
+.chart-wrap canvas{max-height:200px;width:100%!important}
+.chart-title{font-size:12px;color:var(--muted);margin-top:8px;text-align:center}
+.progress-logs-list{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;overflow:hidden}
+.progress-logs-list table{width:100%;border-collapse:collapse;font-size:13px}
+.progress-logs-list th{text-align:left;padding:10px 12px;color:var(--gold);font-weight:600;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(200,164,78,0.06)}
+.progress-logs-list td{padding:10px 12px;color:var(--creamd);border-bottom:1px solid rgba(255,255,255,0.04)}
+.progress-logs-list tr:last-child td{border-bottom:none}
+.progress-logs-list .progress-logs-empty{color:var(--muted);padding:16px;text-align:center;font-size:14px}
+.admin-client-progress-wrap{display:grid;grid-template-columns:220px 1fr;gap:20px;align-items:start;min-height:400px}
+.admin-cp-user-list{position:sticky;top:20px;max-height:80vh;overflow-y:auto}
+.admin-cp-heading{font-size:14px;font-weight:600;letter-spacing:1px;color:var(--gold);margin-bottom:12px}
+.admin-cp-user-list .admin-cp-user-item{padding:12px 16px;margin-bottom:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);border-radius:8px;cursor:pointer;transition:background .2s}
+.admin-cp-user-list .admin-cp-user-item:hover{background:rgba(200,164,78,0.08)}
+.admin-cp-user-list .admin-cp-user-item.selected{border-color:var(--gold);background:rgba(200,164,78,0.1)}
+.admin-cp-placeholder{color:var(--muted);font-size:14px;padding:16px 0}
+.admin-cp-error-msg{background:rgba(200,80,80,0.15);border:1px solid rgba(200,80,80,0.4);color:#e8b4b4;padding:16px;border-radius:8px;font-size:14px;margin:12px 0}
+.admin-cp-detail{min-height:300px;display:flex;flex-direction:column;gap:16px;overflow:visible;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:20px}
+.admin-cp-detail #adminCpDetail{flex-shrink:0;font-size:18px;color:var(--cream)}
+.admin-cp-detail #adminCpShareWrap{flex-shrink:0}
+.admin-cp-detail #adminCpKpis{flex-shrink:0}
+.admin-cp-detail #adminCpCharts{flex-shrink:0;min-height:220px}
+.admin-cp-kpis{grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+@media(max-width:900px){.admin-cp-kpis{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:500px){.admin-cp-kpis{grid-template-columns:repeat(2,1fr)}}
+.admin-cp-kpi{background:rgba(200,164,78,0.08);border:1px solid rgba(200,164,78,0.25);border-radius:10px;padding:16px;text-align:center}
+.admin-cp-kpi .num{display:block;font-size:22px;font-weight:700;color:var(--gold)}
+.admin-cp-kpi .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
+@media(max-width:900px){.admin-client-progress-wrap{grid-template-columns:1fr}}
 </style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
 
@@ -768,6 +837,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <div class="user-nav-item" onclick="switchUserTab('workout');closeUserNavDrawer()">My Workout</div>
       <div class="user-nav-item" onclick="switchUserTab('contact');closeUserNavDrawer()">Contact Us</div>
       <div class="user-nav-item" onclick="switchUserTab('checkin');closeUserNavDrawer()"><span class="sc-style">Sunday Check-in</span><span class="req">*</span></div>
+      <div class="user-nav-item" onclick="switchUserTab('progress');closeUserNavDrawer()">My Progress</div>
     </div>
   </div>
   <div class="user-top">
@@ -776,12 +846,27 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <img src="data:image/png;base64,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" alt="BodyBank" class="nav-logo-img">
     </div>
     <div class="user-top-right">
+      <div class="user-notify-wrap admin-notify-wrap" style="position:relative">
+        <button class="admin-notify-btn" onclick="toggleNotifyPanel(event)" title="Notifications" aria-label="Notifications"><span class="notify-bell-icon" aria-hidden="true">🔔</span><span class="count" id="userNotifyCount">0</span></button>
+        <div class="admin-notify-panel" id="userNotifyPanel">
+          <div class="admin-notify-header">
+            <input type="checkbox" id="userNotifySelectAll" onchange="toggleNotifySelectAll(this)" title="Select all">
+            <span>Notifications</span>
+          </div>
+          <div class="admin-notify-list" id="userNotifyList"></div>
+          <div class="admin-notify-footer">
+            <button type="button" class="admin-notify-clear" id="userNotifyClearBtn" onclick="clearSelectedNotifications()" disabled>Clear selected</button>
+            <button type="button" class="admin-notify-clear admin-notify-clear-all" id="userNotifyClearAllBtn" onclick="clearAllViewedNotifications()">Clear all</button>
+          </div>
+        </div>
+      </div>
       <div class="user-nav">
         <div class="user-nav-item active" onclick="switchUserTab('home')">Home</div>
         <div class="user-nav-item" onclick="switchUserTab('profile')">My Profile</div>
         <div class="user-nav-item" onclick="switchUserTab('workout')">My Workout</div>
         <div class="user-nav-item" onclick="switchUserTab('contact')">Contact Us</div>
         <div class="user-nav-item" onclick="switchUserTab('checkin')"><span class="sc-style">Sunday Check-in</span><span class="req">*</span></div>
+        <div class="user-nav-item" onclick="switchUserTab('progress')">My Progress</div>
       </div>
       <button class="user-logout" id="userLogoutBtn" onclick="logoutUser()">Logout</button>
     </div>
@@ -809,6 +894,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <div class="welcome-card" onclick="switchUserTab('workout')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M2 12h4V8H2v4zM18 12h4V8h-4v4zM6 12h12"/></svg></div><div class="wc-title">My Workout</div><div class="wc-desc">Log your training sessions</div></div>
           <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-title">Contact Us</div><div class="wc-desc">Get in touch with support</div></div>
           <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-title sc-style">Sunday Check-in<span class="req">*</span></div><div class="wc-desc">Weekly check-in form</div></div>
+          <div class="welcome-card" onclick="switchUserTab('progress')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><div class="wc-title">My Progress</div><div class="wc-desc">Log daily metrics & view analytics</div></div>
         </div>
       </div>
     </div>
@@ -933,6 +1019,35 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <p class="form-success" id="scSuccess" style="display:none;text-align:center;margin-top:16px">Check-in submitted successfully.</p>
     </div>
 
+    <!-- MY PROGRESS (log by date – no graphs; view shared by admin) -->
+    <div class="user-section" id="usec-progress">
+      <button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button>
+      <h2>My Progress</h2>
+      <p class="form-hint" style="margin-bottom:16px">Log your metrics for a specific date. Your coach can share a link with you to view your progress and graphs.</p>
+      <form id="progressForm" onsubmit="submitProgress();return false" class="progress-form-grid">
+        <div class="form-group" style="grid-column:1/-1"><label>Date <span class="req">*</span></label><input type="date" class="form-input" id="proDate" required></div>
+        <div class="form-group"><label>Weight (kg)</label><input type="number" step="0.1" class="form-input" id="proWeight" placeholder="e.g. 72.5"></div>
+        <div class="form-group"><label>Body fat %</label><input type="number" step="0.1" class="form-input" id="proBodyFat" placeholder="e.g. 18"></div>
+        <div class="form-group"><label>Calories intake</label><input type="number" class="form-input" id="proCalories" placeholder="e.g. 2000"></div>
+        <div class="form-group"><label>Protein (g)</label><input type="number" class="form-input" id="proProtein" placeholder="e.g. 120"></div>
+        <div class="form-group"><label>Workout completed</label><label class="toggle-wrap"><input type="checkbox" id="proWorkoutDone"><span class="toggle-slider"></span></label></div>
+        <div class="form-group"><label>Workout type</label><input type="text" class="form-input" id="proWorkoutType" placeholder="e.g. Upper body"></div>
+        <div class="form-group"><label>Bench (kg)</label><input type="number" step="0.1" class="form-input" id="proBench" placeholder="e.g. 60"></div>
+        <div class="form-group"><label>Squat (kg)</label><input type="number" step="0.1" class="form-input" id="proSquat" placeholder="e.g. 80"></div>
+        <div class="form-group"><label>Deadlift (kg)</label><input type="number" step="0.1" class="form-input" id="proDeadlift" placeholder="e.g. 100"></div>
+        <div class="form-group"><label>Sleep (hours)</label><input type="number" step="0.1" class="form-input" id="proSleep" placeholder="e.g. 7.5"></div>
+        <div class="form-group"><label>Water (L)</label><input type="number" step="0.1" class="form-input" id="proWater" placeholder="e.g. 2.5"></div>
+        <div class="form-group" style="grid-column:1/-1"><button type="submit" class="form-submit" id="progressSubmitBtn">Save for this date</button></div>
+      </form>
+      <p class="form-success" id="progressFormSuccess" style="display:none;margin-top:12px">Saved. Your coach can share your progress report with you.</p>
+      <div class="progress-logs-section" style="margin-top:28px">
+        <h3 class="admin-cp-heading" style="margin-bottom:12px">Submission logs</h3>
+        <div id="progressLogsList" class="progress-logs-list">
+          <p class="admin-cp-placeholder">No entries yet. Save a log above to see it here.</p>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -945,7 +1060,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     </div>
     <div class="admin-top-right">
       <div class="admin-notify-wrap">
-        <button class="admin-notify-btn" onclick="toggleNotifyPanel(event)" title="Notifications" aria-label="Notifications">🔔<span class="count" id="notifyCount" style="display:none">0</span></button>
+        <button class="admin-notify-btn" onclick="toggleNotifyPanel(event)" title="Notifications" aria-label="Notifications"><span class="notify-bell-icon" aria-hidden="true">🔔</span><span class="count" id="notifyCount">0</span></button>
         <div class="admin-notify-panel" id="notifyPanel">
           <div class="admin-notify-header">
             <input type="checkbox" id="notifySelectAll" onchange="toggleNotifySelectAll(this)" title="Select all">
@@ -999,6 +1114,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <a class="admin-nav-link" href="#" data-tab="meetings" onclick="switchTab('meetings');closeAdminNavDrawer();return false">Upcoming Meetings</a>
         <a class="admin-nav-link" href="#" data-tab="part2" onclick="switchTab('part2');closeAdminNavDrawer();return false">Part-2 Form</a>
         <a class="admin-nav-link sc-style" href="#" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin');closeAdminNavDrawer();return false">Sunday Check-in</a>
+        <a class="admin-nav-link" href="#" data-tab="clientprogress" onclick="switchTab('clientprogress');closeAdminNavDrawer();return false">Client Progress</a>
       </nav>
     </div>
     <div class="admin-tabs" id="adminTabs">
@@ -1010,6 +1126,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <div class="admin-tab" data-tab="meetings" onclick="switchTab('meetings')">Upcoming Meetings</div>
       <div class="admin-tab" data-tab="part2" onclick="switchTab('part2')">Part-2 Form</div>
       <div class="admin-tab sc-style" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin')">Sunday Check-in</div>
+      <div class="admin-tab" data-tab="clientprogress" onclick="switchTab('clientprogress')">Client Progress</div>
       <div class="admin-tab" data-tab="insights" onclick="switchTab('insights')">Performance Insights</div>
     </div>
 
@@ -1086,6 +1203,37 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           <thead><tr><th>Name</th><th>Email</th><th>Mobile</th><th>Activity Level</th><th>Date</th><th>Actions</th></tr></thead>
           <tbody id="part2Body"></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- TAB: Client Progress -->
+    <div class="admin-tab-content" id="tab-clientprogress">
+      <div class="admin-client-progress-wrap">
+        <div class="admin-cp-user-list">
+          <h3 class="admin-cp-heading">Select client</h3>
+          <div id="adminCpUserList"><p class="admin-cp-placeholder">Loading users…</p></div>
+        </div>
+        <div class="admin-cp-detail">
+          <div id="adminCpDetail"><p class="admin-cp-placeholder">Select a user to view progress.</p></div>
+          <div id="adminCpShareWrap" class="admin-cp-share-wrap" style="display:none;margin:16px 0">
+            <button type="button" class="form-submit" id="adminCpShareBtn" onclick="getProgressReportLink()">Share link with user</button>
+            <div id="adminCpShareUrlWrap" style="display:none;margin-top:12px">
+              <label class="admin-cp-heading" style="margin-bottom:6px">Link to send to client (they can view their progress &amp; graphs)</label>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <input type="text" id="adminCpShareUrl" readonly class="form-input" style="flex:1;min-width:200px">
+                <button type="button" class="form-submit" onclick="copyProgressReportLink()">Copy link</button>
+              </div>
+            </div>
+          </div>
+          <div id="adminCpKpis" class="admin-cp-kpis" style="display:none"></div>
+          <div id="adminCpCharts" class="progress-charts admin-cp-charts" style="display:none;margin-top:20px">
+            <div class="chart-wrap"><canvas id="adminChartWeight"></canvas><p class="chart-title">Weight over time</p></div>
+            <div class="chart-wrap"><canvas id="adminChartStrength"></canvas><p class="chart-title">Strength over time</p></div>
+            <div class="chart-wrap"><canvas id="adminChartWeeklyWorkouts"></canvas><p class="chart-title">Weekly workout frequency</p></div>
+            <div class="chart-wrap"><canvas id="adminChartCalories"></canvas><p class="chart-title">Calories trend</p></div>
+            <div class="chart-wrap"><canvas id="adminChartProtein"></canvas><p class="chart-title">Protein intake trend</p></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1317,7 +1465,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <h1><span class="w">Stop Chasing Quick Fixes.</span><br><span class="g">Build Real, Sustainable</span><br><span class="w">Transformation.</span></h1>
     <p class="hero-sub">Our Lifestyle Management Program delivers real lasting transformation through 3 phases: upgrading your mind, nutrition, and building permanent results.</p>
     <div class="hero-btns">
-      <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Start Your Body Audit</a>
+      <a href="#" class="btn-p btn-p-audit" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-pointer" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0a0a0a"><path d="M4 4l7.07 16.97 2.51-7.39 7.39-2.51L4 4z"/></svg></span></a>
       
     </div>
   </div>
@@ -1529,7 +1677,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     <h2><span class="w">Your Best Body Isn't </span><span class="g">Weeks Away.</span><br><span class="w">It's One Decision Away.</span></h2>
     <p>You already know the Lifestyle Management 3-Phase system works. Now see how it applies to YOUR body, YOUR goals, YOUR life.</p>
     <p class="bold">Start Your Transformation Today</p>
-    <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Start Your Body Audit</a>
+    <a href="#" class="btn-p btn-p-audit" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-pointer" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0a0a0a"><path d="M4 4l7.07 16.97 2.51-7.39 7.39-2.51L4 4z"/></svg></span></a>
   </div>
 </div>
 
@@ -1666,6 +1814,7 @@ const API = '';  // same origin
 
 async function apiCall(method, url, body) {
   const opts = { method, headers: {'Content-Type':'application/json'} };
+  if (window.currentUser && window.currentUser.token) opts.headers['Authorization'] = 'Bearer ' + window.currentUser.token;
   if (body) opts.body = JSON.stringify(body);
   try {
     const res = await fetch(API + url, opts);
@@ -1706,7 +1855,9 @@ async function adminLogin() {
     window.currentUser = data;
     try { localStorage.setItem(SESSION_KEY, JSON.stringify(data)); } catch (e) {}
     closeModal('loginModal');
-    
+    if (data.role === 'admin' && !data.token) {
+      console.warn('Admin login response missing token – Client Progress will require re-login.');
+    }
     if (data.role === 'admin') {
       document.getElementById('adminPanel').classList.add('open');
       document.body.classList.add('site-nav-hidden');
@@ -1835,7 +1986,9 @@ async function loadNotifications() {
   try {
     const list = await apiCall('GET', '/api/notifications');
     const el = document.getElementById('notifyList');
+    const userListEl = document.getElementById('userNotifyList');
     const countEl = document.getElementById('notifyCount');
+    const userCountEl = document.getElementById('userNotifyCount');
     const cleared = getClearedNotifyIds();
     if (!el) return;
     const filtered = Array.isArray(list) ? list.filter(n => n.id && !cleared.includes(n.id)) : [];
@@ -1850,24 +2003,28 @@ async function loadNotifications() {
       });
       if (newIds.length) setBrowserNotifiedIds(browserSent.concat(newIds));
     }
+    var itemHtml = filtered.length > 0 ? filtered.map(n => {
+      const time = n.time ? new Date(n.time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+      const link = (n.link || '').replace(/'/g, "\\'");
+      return '<div class="admin-notify-item ' + escapeHtml(n.type || '') + '" data-id="' + escapeHtml(String(n.id || '')) + '" onclick="handleNotifyItemClick(event,\'' + link + '\')"><input type="checkbox" class="notify-cb" onchange="syncNotifyCheckboxes(this);updateNotifyClearBtn()" onclick="event.stopPropagation()"><div class="n-body"><div class="n-title">' + escapeHtml(n.title || '') + '</div><div class="n-desc">' + escapeHtml(n.desc || '') + '</div><div class="n-time">' + escapeHtml(time) + '</div></div></div>';
+    }).join('') : '<div class="admin-notify-empty">No notifications yet.</div>';
+    el.innerHTML = itemHtml;
+    if (userListEl) userListEl.innerHTML = itemHtml;
     if (filtered.length > 0) {
-      el.innerHTML = filtered.map(n => {
-        const time = n.time ? new Date(n.time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-        const link = (n.link || '').replace(/'/g, "\\'");
-        return '<div class="admin-notify-item ' + (n.type || '') + '" data-id="' + (n.id || '') + '" onclick="handleNotifyItemClick(event,\'' + link + '\')"><input type="checkbox" class="notify-cb" onchange="updateNotifyClearBtn()" onclick="event.stopPropagation()"><div class="n-body"><div class="n-title">' + (n.title || '') + '</div><div class="n-desc">' + (n.desc || '') + '</div><div class="n-time">' + time + '</div></div></div>';
-      }).join('');
-      if (countEl) { countEl.textContent = filtered.length > 99 ? '99+' : filtered.length; countEl.style.display = 'flex'; }
-      var clearAllBtn = document.getElementById('notifyClearAllBtn');
-      if (clearAllBtn) clearAllBtn.disabled = false;
+      if (countEl) { countEl.textContent = filtered.length > 99 ? '99+' : filtered.length; countEl.classList.add('has-count'); }
+      if (userCountEl) { userCountEl.textContent = countEl ? countEl.textContent : ''; userCountEl.classList.add('has-count'); }
+      [document.getElementById('notifyClearAllBtn'), document.getElementById('userNotifyClearAllBtn')].forEach(function(btn) { if (btn) btn.disabled = false; });
       updateNotifyClearBtn();
     } else {
-      el.innerHTML = '<div class="admin-notify-empty">No notifications yet.</div>';
-      var clearAllBtn = document.getElementById('notifyClearAllBtn');
-      if (clearAllBtn) clearAllBtn.disabled = true;
-      if (countEl) countEl.style.display = 'none';
+      [document.getElementById('notifyClearAllBtn'), document.getElementById('userNotifyClearAllBtn')].forEach(function(btn) { if (btn) btn.disabled = true; });
+      if (countEl) countEl.classList.remove('has-count');
+      if (userCountEl) userCountEl.classList.remove('has-count');
       updateNotifyClearBtn();
     }
-  } catch (e) { if (document.getElementById('notifyList')) document.getElementById('notifyList').innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>'; }
+  } catch (e) {
+    if (document.getElementById('notifyList')) document.getElementById('notifyList').innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>';
+    if (document.getElementById('userNotifyList')) document.getElementById('userNotifyList').innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>';
+  }
 }
 
 function startAdminNotificationPolling() {
@@ -1878,45 +2035,69 @@ function stopAdminNotificationPolling() {
   if (window._adminNotifyInterval) { clearInterval(window._adminNotifyInterval); window._adminNotifyInterval = null; }
 }
 
-function handleNotifyItemClick(ev, link) { if (ev.target.classList && (ev.target.classList.contains('notify-cb') || ev.target.closest('.notify-cb'))) return; if (link) switchTab(link); toggleNotifyPanel(); }
-function toggleNotifySelectAll(cb) { document.querySelectorAll('#notifyList .notify-cb').forEach(c => { c.checked = !!cb.checked; }); updateNotifyClearBtn(); }
+function syncNotifyCheckboxes(sourceCb) {
+  var list = sourceCb && sourceCb.closest('#notifyList');
+  var otherList = document.getElementById(list ? 'userNotifyList' : 'notifyList');
+  if (!list) list = sourceCb && sourceCb.closest('#userNotifyList');
+  if (!list || !otherList) return;
+  var checkedIds = Array.from(list.querySelectorAll('.notify-cb:checked')).map(function(c) { var i = c.closest('.admin-notify-item'); return i ? i.getAttribute('data-id') : null; }).filter(Boolean);
+  otherList.querySelectorAll('.admin-notify-item').forEach(function(item) {
+    var cb = item.querySelector('.notify-cb');
+    if (cb) cb.checked = checkedIds.indexOf(item.getAttribute('data-id')) !== -1;
+  });
+}
+function handleNotifyItemClick(ev, link) { if (ev.target.classList && (ev.target.classList.contains('notify-cb') || ev.target.closest('.notify-cb'))) return; if (link) switchTab(link); toggleNotifyPanel(ev); }
+function toggleNotifySelectAll(cb) {
+  var listId = cb.closest('#notifyPanel') ? 'notifyList' : (cb.closest('#userNotifyPanel') ? 'userNotifyList' : 'notifyList');
+  document.querySelectorAll('#' + listId + ' .notify-cb').forEach(function(c) { c.checked = !!cb.checked; });
+  if (listId === 'notifyList') document.querySelectorAll('#userNotifyList .notify-cb').forEach(function(c) { c.checked = !!cb.checked; });
+  else if (listId === 'userNotifyList') document.querySelectorAll('#notifyList .notify-cb').forEach(function(c) { c.checked = !!cb.checked; });
+  updateNotifyClearBtn();
+}
 function updateNotifyClearBtn() {
-  const checked = document.querySelectorAll('#notifyList .notify-cb:checked');
-  const btn = document.getElementById('notifyClearBtn');
-  if (btn) btn.disabled = !checked.length;
-  const allCb = document.getElementById('notifySelectAll');
-  if (allCb) {
-    const total = document.querySelectorAll('#notifyList .notify-cb');
-    allCb.disabled = total.length === 0;
-    allCb.checked = total.length > 0 && checked.length === total.length;
-    allCb.indeterminate = checked.length > 0 && checked.length < total.length;
-  }
+  var checked = document.querySelectorAll('#notifyList .notify-cb:checked, #userNotifyList .notify-cb:checked');
+  var checkedIds = [...new Set(Array.from(checked).map(function(c) { var i = c.closest('.admin-notify-item'); return i ? i.getAttribute('data-id') : null; }).filter(Boolean))];
+  var total = document.querySelectorAll('#notifyList .notify-cb');
+  [document.getElementById('notifyClearBtn'), document.getElementById('userNotifyClearBtn')].forEach(function(btn) { if (btn) btn.disabled = !checkedIds.length; });
+  [document.getElementById('notifySelectAll'), document.getElementById('userNotifySelectAll')].forEach(function(allCb) {
+    if (allCb) {
+      allCb.disabled = !total.length;
+      allCb.checked = total.length > 0 && checkedIds.length === total.length;
+      allCb.indeterminate = checkedIds.length > 0 && checkedIds.length < total.length;
+    }
+  });
 }
 function clearSelectedNotifications() {
-  const checked = Array.from(document.querySelectorAll('#notifyList .notify-cb:checked')).map(cb => cb.closest('.admin-notify-item')).filter(Boolean);
-  if (!checked.length) return;
-  const cleared = getClearedNotifyIds();
-  checked.forEach(item => { const id = item.getAttribute('data-id'); if (id && !cleared.includes(id)) cleared.push(id); });
+  var checked = Array.from(document.querySelectorAll('#notifyList .notify-cb:checked, #userNotifyList .notify-cb:checked')).map(function(cb) { return cb.closest('.admin-notify-item'); }).filter(Boolean);
+  var ids = [...new Set(checked.map(function(item) { return item.getAttribute('data-id'); }).filter(Boolean))];
+  if (!ids.length) return;
+  var cleared = getClearedNotifyIds();
+  ids.forEach(function(id) { if (id && cleared.indexOf(id) === -1) cleared.push(id); });
   setClearedNotifyIds(cleared);
   loadNotifications();
 }
 function clearAllViewedNotifications() {
-  const items = document.querySelectorAll('#notifyList .admin-notify-item[data-id]');
-  if (!items.length) return;
-  const cleared = getClearedNotifyIds();
-  items.forEach(item => { const id = item.getAttribute('data-id'); if (id && !cleared.includes(id)) cleared.push(id); });
+  var items = document.querySelectorAll('#notifyList .admin-notify-item[data-id], #userNotifyList .admin-notify-item[data-id]');
+  var ids = [...new Set(Array.from(items).map(function(item) { return item.getAttribute('data-id'); }).filter(Boolean))];
+  if (!ids.length) return;
+  var cleared = getClearedNotifyIds();
+  ids.forEach(function(id) { if (id && cleared.indexOf(id) === -1) cleared.push(id); });
   setClearedNotifyIds(cleared);
   loadNotifications();
 }
 
 function toggleNotifyPanel(e) {
-  const panel = document.getElementById('notifyPanel');
+  var wrap = null;
+  if (e && e.target) {
+    var t = e.target.closest('.admin-notify-wrap') || e.target.closest('.user-notify-wrap');
+    if (t) wrap = t;
+  }
+  var panel = wrap ? wrap.querySelector('.admin-notify-panel') : document.getElementById('notifyPanel');
   if (!panel) return;
-  const isOpen = panel.classList.contains('open');
-  if (isOpen) {
-    panel.classList.remove('open');
-    document.removeEventListener('click', closeNotifyOnClickOutside);
-  } else {
+  var isOpen = panel.classList.contains('open');
+  document.querySelectorAll('.admin-notify-panel.open').forEach(function(p) { p.classList.remove('open'); });
+  document.removeEventListener('click', closeNotifyOnClickOutside);
+  if (!isOpen) {
     panel.classList.add('open');
     if (e) e.stopPropagation();
     if (typeof updateNotifyPermissionUI === 'function') updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
@@ -1924,9 +2105,11 @@ function toggleNotifyPanel(e) {
   }
 }
 function closeNotifyOnClickOutside(ev) {
-  const panel = document.getElementById('notifyPanel');
-  const wrap = document.querySelector('.admin-notify-wrap');
-  if (panel && wrap && !wrap.contains(ev.target)) { panel.classList.remove('open'); document.removeEventListener('click', closeNotifyOnClickOutside); }
+  var inAdmin = document.querySelector('.admin-notify-wrap') && document.querySelector('.admin-notify-wrap').contains(ev.target);
+  var inUser = document.querySelector('.user-notify-wrap') && document.querySelector('.user-notify-wrap').contains(ev.target);
+  if (inAdmin || inUser) return;
+  document.querySelectorAll('.admin-notify-panel.open').forEach(function(p) { p.classList.remove('open'); });
+  document.removeEventListener('click', closeNotifyOnClickOutside);
 }
 
 async function loadStats() {
@@ -2410,6 +2593,219 @@ function switchTab(tab) {
   if (tab === 'tribe') loadTribe();
   if (tab === 'part2') loadPart2Submissions();
   if (tab === 'insights') loadPerformanceInsights();
+  if (tab === 'clientprogress') loadClientProgressUsers();
+}
+var adminProgressChartInstances = {};
+function destroyAdminProgressCharts() {
+  Object.keys(adminProgressChartInstances).forEach(function(k) {
+    if (adminProgressChartInstances[k]) { adminProgressChartInstances[k].destroy(); adminProgressChartInstances[k] = null; }
+  });
+  adminProgressChartInstances = {};
+}
+function drawAdminProgressCharts(logs) {
+  if (typeof Chart === 'undefined') return;
+  destroyAdminProgressCharts();
+  var sorted = (logs || []).slice().sort(function(a,b) { return new Date(a.created_at) - new Date(b.created_at); });
+  var labels = sorted.map(function(l) {
+    var d = new Date(l.created_at);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+  var scaleOpts = { ticks: { color: '#666' }, grid: { color: 'rgba(255,255,255,0.06)' } };
+  var chartOpts = { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#bfb9ab' } } }, scales: {} };
+  if (sorted.filter(function(l) { return l.weight != null; }).length) {
+    var ctx = document.getElementById('adminChartWeight');
+    if (ctx) adminProgressChartInstances.weight = new Chart(ctx.getContext('2d'), {
+      type: 'line',
+      data: { labels: labels, datasets: [{ label: 'Weight (kg)', data: sorted.map(function(l) { return l.weight; }), borderColor: '#c8a44e', backgroundColor: 'rgba(200,164,78,0.1)', fill: true, tension: 0.3 }] },
+      options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+    });
+  }
+  var hasStrength = sorted.some(function(l) { return l.strength_bench != null || l.strength_squat != null || l.strength_deadlift != null; });
+  if (hasStrength) {
+    var ctx = document.getElementById('adminChartStrength');
+    if (ctx) adminProgressChartInstances.strength = new Chart(ctx.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Bench', data: sorted.map(function(l) { return l.strength_bench; }), borderColor: '#c8a44e', tension: 0.3 },
+          { label: 'Squat', data: sorted.map(function(l) { return l.strength_squat; }), borderColor: '#d0b058', tension: 0.3 },
+          { label: 'Deadlift', data: sorted.map(function(l) { return l.strength_deadlift; }), borderColor: '#a68c3e', tension: 0.3 }
+        ]
+      },
+      options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+    });
+  }
+  var byWeek = {};
+  sorted.forEach(function(l) {
+    var d = new Date(l.created_at);
+    var start = new Date(d); start.setDate(start.getDate() - start.getDay()); start.setHours(0,0,0,0);
+    var key = start.toISOString().slice(0,10);
+    if (!byWeek[key]) byWeek[key] = 0;
+    if (l.workout_completed) byWeek[key]++;
+  });
+  var weeks = Object.keys(byWeek).sort().slice(-8);
+  var weekLabels = weeks.map(function(k) { return new Date(k).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); });
+  var weekCounts = weeks.map(function(k) { return byWeek[k] || 0; });
+  var ctx = document.getElementById('adminChartWeeklyWorkouts');
+  if (ctx && weekLabels.length) adminProgressChartInstances.weeklyWorkouts = new Chart(ctx.getContext('2d'), {
+    type: 'bar',
+    data: { labels: weekLabels, datasets: [{ label: 'Workouts', data: weekCounts, backgroundColor: 'rgba(200,164,78,0.6)', borderColor: '#c8a44e', borderWidth: 1 }] },
+    options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+  });
+  if (sorted.filter(function(l) { return l.calories_intake != null; }).length) {
+    var ctx = document.getElementById('adminChartCalories');
+    if (ctx) adminProgressChartInstances.calories = new Chart(ctx.getContext('2d'), {
+      type: 'line',
+      data: { labels: labels, datasets: [{ label: 'Calories', data: sorted.map(function(l) { return l.calories_intake; }), borderColor: '#d0b058', backgroundColor: 'rgba(208,176,88,0.1)', fill: true, tension: 0.3 }] },
+      options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+    });
+  }
+  if (sorted.filter(function(l) { return l.protein_intake != null; }).length) {
+    var ctx = document.getElementById('adminChartProtein');
+    if (ctx) adminProgressChartInstances.protein = new Chart(ctx.getContext('2d'), {
+      type: 'line',
+      data: { labels: labels, datasets: [{ label: 'Protein (g)', data: sorted.map(function(l) { return l.protein_intake; }), borderColor: '#a68c3e', backgroundColor: 'rgba(166,140,62,0.1)', fill: true, tension: 0.3 }] },
+      options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+    });
+  }
+}
+window._adminCpSelectedUserId = null;
+async function getProgressReportLink() {
+  var userId = window._adminCpSelectedUserId;
+  if (!userId) return;
+  var btn = document.getElementById('adminCpShareBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Generating…'; }
+  var data = await apiCall('GET', '/api/admin/progress-report-link/' + encodeURIComponent(userId));
+  if (btn) { btn.disabled = false; btn.textContent = 'Share link with user'; }
+  if (data.error) {
+    showPopup('Error', data.error || 'Failed to get link', '', 'OK');
+    return;
+  }
+  var urlEl = document.getElementById('adminCpShareUrl');
+  var wrap = document.getElementById('adminCpShareUrlWrap');
+  if (urlEl && data.url) { urlEl.value = data.url; }
+  if (wrap) wrap.style.display = 'block';
+}
+function copyProgressReportLink() {
+  var urlEl = document.getElementById('adminCpShareUrl');
+  if (!urlEl || !urlEl.value) return;
+  urlEl.select();
+  try {
+    document.execCommand('copy');
+    showPopup('Copied', 'Link copied to clipboard. Send it to your client.', '', 'OK');
+  } catch (e) {
+    navigator.clipboard.writeText(urlEl.value).then(function() {
+      showPopup('Copied', 'Link copied to clipboard.', '', 'OK');
+    }).catch(function() { showPopup('Error', 'Could not copy. Copy the link manually.', '', 'OK'); });
+  }
+}
+async function loadAdminUserProgressDetail(userId, userName) {
+  userId = String(userId || '').trim();
+  window._adminCpSelectedUserId = userId;
+  var detailEl = document.getElementById('adminCpDetail');
+  var kpisEl = document.getElementById('adminCpKpis');
+  var chartsEl = document.getElementById('adminCpCharts');
+  var shareWrap = document.getElementById('adminCpShareWrap');
+  var shareUrlWrap = document.getElementById('adminCpShareUrlWrap');
+  if (!detailEl || !kpisEl || !chartsEl) return;
+  detailEl.innerHTML = '<p class="admin-cp-placeholder">Loading…</p>';
+  if (!userId) {
+    detailEl.innerHTML = '<div class="admin-cp-error-msg">No client selected. Click a name from the list.</div>';
+    return;
+  }
+  kpisEl.style.display = 'none';
+  chartsEl.style.display = 'none';
+  if (shareWrap) shareWrap.style.display = 'none';
+  if (shareUrlWrap) shareUrlWrap.style.display = 'none';
+  destroyAdminProgressCharts();
+  document.querySelectorAll('.admin-cp-user-item').forEach(function(el) { el.classList.remove('selected'); if (el.getAttribute('data-user-id') === userId) el.classList.add('selected'); });
+  var data;
+  try {
+    data = await apiCall('GET', '/api/admin/user-progress/' + encodeURIComponent(userId));
+  } catch (err) {
+    detailEl.innerHTML = '<div class="admin-cp-error-msg">Network error. Please try again.</div>';
+    return;
+  }
+  if (data && data.error) {
+    var errMsg = data.error === 'Invalid or expired token' || data.error === 'Authentication required'
+      ? 'Session expired. Please log out and log in again as admin.'
+      : (data.error || 'Failed to load');
+    detailEl.innerHTML = '<div class="admin-cp-error-msg">' + errMsg + '</div>';
+    return;
+  }
+  if (!data) {
+    detailEl.innerHTML = '<div class="admin-cp-error-msg">No data returned. Please try again.</div>';
+    return;
+  }
+  try {
+    if (shareWrap) shareWrap.style.display = 'block';
+    detailEl.innerHTML = '<h3 class="admin-cp-heading">' + (userName || 'Client').replace(/</g, '&lt;') + '</h3><p class="admin-cp-placeholder">KPIs and charts below. Use the button to get a link to share with this client.</p>';
+    var kpis = [
+      { lbl: 'Current Weight', num: data.currentWeight != null ? data.currentWeight + ' kg' : '—' },
+      { lbl: 'Weight Change %', num: data.weightChangePercent != null ? data.weightChangePercent + '%' : '—' },
+      { lbl: 'Strength Growth %', num: data.strengthGrowthPercent != null ? data.strengthGrowthPercent + '%' : '—' },
+      { lbl: 'Consistency %', num: data.workoutConsistencyPercent != null ? data.workoutConsistencyPercent + '%' : '—' },
+      { lbl: 'Active Streak', num: data.activeStreak != null ? data.activeStreak + ' days' : '—' },
+      { lbl: 'Goal Completion %', num: data.goalCompletionPercent != null ? Math.round(data.goalCompletionPercent) + '%' : '—' }
+    ];
+    kpisEl.innerHTML = kpis.map(function(k) { return '<div class="admin-cp-kpi"><span class="num">' + k.num + '</span><span class="lbl">' + k.lbl + '</span></div>'; }).join('');
+    kpisEl.style.display = 'grid';
+    if (data.insights && data.insights.length) detailEl.innerHTML += '<p class="progress-insights" style="margin-top:12px"><strong>Insights:</strong> ' + data.insights.join(' • ') + '</p>';
+    drawAdminProgressCharts(data.logs || []);
+    chartsEl.style.display = 'grid';
+    if (kpisEl.scrollIntoView) kpisEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  } catch (err) {
+    console.error('Admin progress render error:', err);
+    detailEl.innerHTML = '<div class="admin-cp-error-msg">Could not display data. Check console for details.</div>';
+  }
+}
+async function loadClientProgressUsers() {
+  var listEl = document.getElementById('adminCpUserList');
+  if (!listEl) return;
+  listEl.innerHTML = '<p class="admin-cp-placeholder">Loading users…</p>';
+  var data = await apiCall('GET', '/api/admin/users');
+  if (data.error) {
+    listEl.innerHTML = '<p class="admin-cp-placeholder">Error: ' + (data.error || '') + '</p>';
+    return;
+  }
+  var users = Array.isArray(data) ? data : (data.users || []);
+  users = users.filter(function(u) {
+    var email = (u.email || '').toLowerCase();
+    var first = (u.first_name || '').toLowerCase();
+    var name = (u.name || '').toLowerCase();
+    if (email.indexOf('test.bodybank.fit') !== -1) return false;
+    if (first.indexOf('e2e') !== -1 || name.indexOf('e2e') !== -1) return false;
+    return true;
+  });
+  if (!users.length) {
+    listEl.innerHTML = '<p class="admin-cp-placeholder">No clients found.</p>';
+    return;
+  }
+  listEl.innerHTML = users.map(function(u) {
+    var name = (u.name || (u.first_name && u.last_name ? u.first_name + ' ' + u.last_name : u.email) || u.id || '').replace(/</g, '&lt;');
+    var id = String(u.id || '');
+    return '<div class="admin-cp-user-item" data-user-id="' + id.replace(/"/g, '&quot;') + '" data-user-name="' + name.replace(/"/g, '&quot;') + '">' + name + '</div>';
+  }).join('');
+  if (!listEl._clientProgressClickBound) {
+    listEl._clientProgressClickBound = true;
+    listEl.addEventListener('click', function(e) {
+      var item = e.target && e.target.closest && e.target.closest('.admin-cp-user-item');
+      if (!item) return;
+      var id = item.getAttribute('data-user-id') || '';
+      var name = item.getAttribute('data-user-name') || 'Client';
+      loadAdminUserProgressDetail(id, name);
+    });
+  }
+  document.getElementById('adminCpDetail').innerHTML = '<p class="admin-cp-placeholder">Select a user to view progress.</p>';
+  document.getElementById('adminCpKpis').style.display = 'none';
+  document.getElementById('adminCpCharts').style.display = 'none';
+  var sw = document.getElementById('adminCpShareWrap');
+  var suw = document.getElementById('adminCpShareUrlWrap');
+  if (sw) sw.style.display = 'none';
+  if (suw) suw.style.display = 'none';
+  window._adminCpSelectedUserId = null;
+  destroyAdminProgressCharts();
 }
 function toggleAdminNavDrawer() {
   var overlay = document.getElementById('adminNavOverlay');
@@ -2457,6 +2853,7 @@ function openUserDashboard(user) {
   loadUserStats();
   loadProfile();
   loadWorkoutHistory();
+  if (typeof loadNotifications === 'function') loadNotifications();
   // Pre-fill contact form
   document.getElementById('ctName').value = (user.first_name + ' ' + user.last_name).trim();
   document.getElementById('ctEmail').value = user.email || '';
@@ -2487,7 +2884,7 @@ function switchUserTab(tab) {
   closeUserNavDrawer();
   document.querySelectorAll('.user-nav-item').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.user-section').forEach(function(s) { s.classList.remove('active'); });
-  var tabs = ['home', 'profile', 'workout', 'contact', 'checkin'];
+  var tabs = ['home', 'profile', 'workout', 'contact', 'checkin', 'progress'];
   var idx = tabs.indexOf(tab);
   var topNav = document.querySelectorAll('.user-nav .user-nav-item');
   var drawerNav = document.querySelectorAll('.drawer-nav .user-nav-item');
@@ -2497,6 +2894,13 @@ function switchUserTab(tab) {
   var logoutBtn = document.getElementById('userLogoutBtn');
   if (logoutBtn) logoutBtn.style.display = tab === 'home' ? '' : 'none';
   if (tab === 'home') loadUserStats();
+  if (tab === 'progress') {
+    var proDate = document.getElementById('proDate');
+    if (proDate) proDate.value = new Date().toISOString().slice(0, 10);
+    var successEl = document.getElementById('progressFormSuccess');
+    if (successEl) successEl.style.display = 'none';
+    loadProgressLogs();
+  }
   if (tab === 'contact') {
     var today = new Date().toISOString().split('T')[0];
     var mtgDateEl = document.getElementById('mtgDate');
@@ -2544,6 +2948,231 @@ async function loadUserStats() {
   if (el = document.getElementById('statNextCall')) el.textContent = nextCallStr;
   if (el = document.getElementById('statLastActive')) el.textContent = daysSinceStr;
   if (el = document.getElementById('userStreakFill')) el.style.width = streakPct + '%';
+}
+
+// Progress (Client Progress Analytics)
+var progressChartInstances = {};
+function destroyProgressCharts() {
+  Object.keys(progressChartInstances).forEach(function(k) {
+    if (progressChartInstances[k]) { progressChartInstances[k].destroy(); progressChartInstances[k] = null; }
+  });
+  progressChartInstances = {};
+}
+function drawProgressCharts(logs, meta) {
+  if (typeof Chart === 'undefined') return;
+  destroyProgressCharts();
+  var sorted = (logs || []).slice().sort(function(a,b) { return new Date(a.created_at) - new Date(b.created_at); });
+  var labels = sorted.map(function(l) {
+    var d = new Date(l.created_at);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  });
+  var chartOpts = { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#bfb9ab' } } }, scales: {} };
+  var scaleOpts = { ticks: { color: '#666' }, grid: { color: 'rgba(255,255,255,0.06)' } };
+
+  if (sorted.filter(function(l) { return l.weight != null; }).length) {
+    var ctx = document.getElementById('chartWeight');
+    if (ctx) {
+      progressChartInstances.weight = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Weight (kg)', data: sorted.map(function(l) { return l.weight; }), borderColor: '#c8a44e', backgroundColor: 'rgba(200,164,78,0.1)', fill: true, tension: 0.3 }]
+        },
+        options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+      });
+    }
+  }
+  if (sorted.filter(function(l) { return l.body_fat != null; }).length) {
+    var ctx = document.getElementById('chartBodyFat');
+    if (ctx) {
+      progressChartInstances.bodyFat = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Body fat %', data: sorted.map(function(l) { return l.body_fat; }), borderColor: '#a68c3e', backgroundColor: 'rgba(166,140,62,0.1)', fill: true, tension: 0.3 }]
+        },
+        options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+      });
+    }
+  }
+  var hasStrength = sorted.some(function(l) { return l.strength_bench != null || l.strength_squat != null || l.strength_deadlift != null; });
+  if (hasStrength) {
+    var ctx = document.getElementById('chartStrength');
+    if (ctx) {
+      progressChartInstances.strength = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            { label: 'Bench', data: sorted.map(function(l) { return l.strength_bench; }), borderColor: '#c8a44e', tension: 0.3 },
+            { label: 'Squat', data: sorted.map(function(l) { return l.strength_squat; }), borderColor: '#d0b058', tension: 0.3 },
+            { label: 'Deadlift', data: sorted.map(function(l) { return l.strength_deadlift; }), borderColor: '#a68c3e', tension: 0.3 }
+          ]
+        },
+        options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+      });
+    }
+  }
+  var weekLabels = [];
+  var weekCounts = [];
+  if (sorted.length) {
+    var byWeek = {};
+    sorted.forEach(function(l) {
+      var d = new Date(l.created_at);
+      var start = new Date(d); start.setDate(start.getDate() - start.getDay()); start.setHours(0,0,0,0);
+      var key = start.toISOString().slice(0,10);
+      if (!byWeek[key]) byWeek[key] = 0;
+      if (l.workout_completed) byWeek[key]++;
+    });
+    var weeks = Object.keys(byWeek).sort();
+    weeks.slice(-8).forEach(function(k) {
+      weekLabels.push(new Date(k).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      weekCounts.push(byWeek[k] || 0);
+    });
+  }
+  var ctx = document.getElementById('chartWeeklyWorkouts');
+  if (ctx && weekLabels.length) {
+    progressChartInstances.weeklyWorkouts = new Chart(ctx.getContext('2d'), {
+      type: 'bar',
+      data: { labels: weekLabels, datasets: [{ label: 'Workouts', data: weekCounts, backgroundColor: 'rgba(200,164,78,0.6)', borderColor: '#c8a44e', borderWidth: 1 }] },
+      options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+    });
+  }
+  var total = sorted.length;
+  var workoutCount = sorted.filter(function(l) { return l.workout_completed; }).length;
+  var consistencyPct = total ? Math.round((workoutCount / total) * 100) : 0;
+  var ctx = document.getElementById('chartConsistency');
+  if (ctx) {
+    progressChartInstances.consistency = new Chart(ctx.getContext('2d'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Completed', 'Missed'],
+        datasets: [{ data: [workoutCount, total - workoutCount], backgroundColor: ['#c8a44e', 'rgba(255,255,255,0.1)'], borderWidth: 0 }]
+      },
+      options: { ...chartOpts, plugins: { legend: { labels: { color: '#bfb9ab' } } } }
+    });
+  }
+  if (sorted.filter(function(l) { return l.calories_intake != null; }).length) {
+    var ctx = document.getElementById('chartCalories');
+    if (ctx) {
+      progressChartInstances.calories = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{ label: 'Calories', data: sorted.map(function(l) { return l.calories_intake; }), borderColor: '#d0b058', backgroundColor: 'rgba(208,176,88,0.1)', fill: true, tension: 0.3 }]
+        },
+        options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+      });
+    }
+  }
+}
+async function loadUserProgress() {
+  if (!window.currentUser) return;
+  var data = await apiCall('GET', '/api/progress');
+  if (data.error) {
+    var el = document.getElementById('progressInsights');
+    if (el) el.textContent = 'Could not load progress. ' + (data.error || '');
+    return;
+  }
+  var logs = data.logs || [];
+  var goalPct = data.goalCompletionPercent != null ? Number(data.goalCompletionPercent) : null;
+  var insights = data.insights || [];
+  var el = document.getElementById('progressInsights');
+  if (el) {
+    if (insights.length) el.innerHTML = '<strong>Insights:</strong> ' + insights.join(' • ');
+    else el.textContent = data.streak != null ? 'Current streak: ' + data.streak + ' days' : '';
+  }
+  var barWrap = document.getElementById('progressGoalBar');
+  var barFill = document.getElementById('progressGoalFill');
+  var barLbl = document.getElementById('progressGoalLbl');
+  if (barWrap && barFill && barLbl) {
+    if (goalPct != null && !isNaN(goalPct)) {
+      barWrap.style.display = 'block';
+      var pct = Math.min(100, Math.max(0, goalPct));
+      barFill.style.width = pct + '%';
+      barLbl.textContent = Math.round(pct) + '% goal';
+    } else barWrap.style.display = 'none';
+  }
+  drawProgressCharts(logs, data);
+}
+async function submitProgress() {
+  if (!window.currentUser) return;
+  var proDateEl = document.getElementById('proDate');
+  var weight = document.getElementById('proWeight');
+  var bodyFat = document.getElementById('proBodyFat');
+  var calories = document.getElementById('proCalories');
+  var protein = document.getElementById('proProtein');
+  var workoutDone = document.getElementById('proWorkoutDone');
+  var workoutType = document.getElementById('proWorkoutType');
+  var bench = document.getElementById('proBench');
+  var squat = document.getElementById('proSquat');
+  var deadlift = document.getElementById('proDeadlift');
+  var sleep = document.getElementById('proSleep');
+  var water = document.getElementById('proWater');
+  var body = {
+    log_date: proDateEl && proDateEl.value ? proDateEl.value : null,
+    weight: weight && weight.value.trim() ? parseFloat(weight.value) : null,
+    body_fat: bodyFat && bodyFat.value.trim() ? parseFloat(bodyFat.value) : null,
+    calories_intake: calories && calories.value.trim() ? parseInt(calories.value, 10) : null,
+    protein_intake: protein && protein.value.trim() ? parseInt(protein.value, 10) : null,
+    workout_completed: workoutDone ? workoutDone.checked : false,
+    workout_type: workoutType && workoutType.value.trim() ? workoutType.value.trim() : null,
+    strength_bench: bench && bench.value.trim() ? parseFloat(bench.value) : null,
+    strength_squat: squat && squat.value.trim() ? parseFloat(squat.value) : null,
+    strength_deadlift: deadlift && deadlift.value.trim() ? parseFloat(deadlift.value) : null,
+    sleep_hours: sleep && sleep.value.trim() ? parseFloat(sleep.value) : null,
+    water_intake: water && water.value.trim() ? parseFloat(water.value) : null
+  };
+  var btn = document.getElementById('progressSubmitBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
+  var data = await apiCall('POST', '/api/progress', body);
+  if (btn) { btn.disabled = false; btn.textContent = 'Save for this date'; }
+  if (data.error) {
+    showPopup('Error', data.error || 'Failed to save progress', '', 'OK');
+    return;
+  }
+  var successEl = document.getElementById('progressFormSuccess');
+  if (successEl) { successEl.style.display = 'block'; setTimeout(function() { successEl.style.display = 'none'; }, 5000); }
+  clearProgressForm();
+  loadProgressLogs();
+}
+
+function clearProgressForm() {
+  var proDate = document.getElementById('proDate');
+  if (proDate) proDate.value = new Date().toISOString().slice(0, 10);
+  var ids = ['proWeight','proBodyFat','proCalories','proProtein','proWorkoutType','proBench','proSquat','proDeadlift','proSleep','proWater'];
+  ids.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) { if (el.type === 'checkbox') el.checked = false; else el.value = ''; }
+  });
+}
+
+async function loadProgressLogs() {
+  var container = document.getElementById('progressLogsList');
+  if (!container) return;
+  if (!window.currentUser) {
+    container.innerHTML = '<p class="progress-logs-empty">Sign in to see your logs.</p>';
+    return;
+  }
+  var data = await apiCall('GET', '/api/progress');
+  var logs = (data && data.logs) ? data.logs : [];
+  if (logs.length === 0) {
+    container.innerHTML = '<p class="progress-logs-empty">No entries yet. Save a log above to see it here.</p>';
+    return;
+  }
+  function esc(s) { if (s == null || s === '') return ''; return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+  container.innerHTML = '<table><thead><tr><th>Date</th><th>Weight</th><th>Body fat</th><th>Calories</th><th>Protein</th><th>Workout</th><th>Sleep</th><th>Water</th></tr></thead><tbody>' +
+    logs.slice(0, 50).map(function(l) {
+      var d = l.created_at ? new Date(l.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+      var w = l.weight != null ? l.weight + ' kg' : '—';
+      var bf = l.body_fat != null ? l.body_fat + '%' : '—';
+      var cal = l.calories_intake != null ? l.calories_intake : '—';
+      var pro = l.protein_intake != null ? l.protein_intake + ' g' : '—';
+      var workout = l.workout_completed ? (l.workout_type || 'Yes') : 'No';
+      var sleep = l.sleep_hours != null ? l.sleep_hours + ' h' : '—';
+      var water = l.water_intake != null ? l.water_intake + ' L' : '—';
+      return '<tr><td>' + esc(d) + '</td><td>' + esc(w) + '</td><td>' + esc(bf) + '</td><td>' + esc(cal) + '</td><td>' + esc(pro) + '</td><td>' + esc(workout) + '</td><td>' + esc(sleep) + '</td><td>' + esc(water) + '</td></tr>';
+    }).join('') + '</tbody></table>';
 }
 
 // Profile

@@ -6,6 +6,10 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const { signToken, verifyToken, requireAdmin, signProgressReportToken, verifyProgressReportToken } = require('./middleware/auth');
+const progressRoutes = require('./routes/progress');
+const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
+const progressService = require('./services/progressService');
 
 // ============ CONFIG ============
 const PORT = process.env.PORT || 3000;
@@ -235,6 +239,38 @@ async function initDB() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // Client Progress Analytics: user_goals, progress_logs
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS user_goals (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      target_weight NUMERIC,
+      target_body_fat NUMERIC,
+      weekly_workout_target INTEGER,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS progress_logs (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      weight NUMERIC(5,2),
+      body_fat NUMERIC(5,2),
+      calories_intake INTEGER,
+      protein_intake INTEGER,
+      workout_completed BOOLEAN DEFAULT false,
+      workout_type VARCHAR(100),
+      strength_bench NUMERIC(6,2),
+      strength_squat NUMERIC(6,2),
+      strength_deadlift NUMERIC(6,2),
+      sleep_hours NUMERIC(3,1),
+      water_intake NUMERIC(4,1),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_progress_logs_user_id ON progress_logs(user_id)`).catch(() => {});
+  await pool.query(`CREATE INDEX IF NOT EXISTS idx_progress_logs_created_at ON progress_logs(created_at)`).catch(() => {});
+
   // Create admin (in production, require ADMIN_PASS to be set and not default)
   if (NODE_ENV === 'production' && (!process.env.ADMIN_PASS || ADMIN_PASS === 'admin123')) {
     console.warn('⚠️ Production: set ADMIN_PASS in .env to a strong password. Default admin password is not allowed.');
@@ -344,7 +380,8 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
       return res.status(401).json({ error: 'Invalid email or password' });
     }
 
-    res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role });
+    const token = signToken({ id: user.id, email: user.email, role: user.role });
+    res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role, token });
   } catch (e) {
     console.error('[Login] Error:', e.message);
     res.status(500).json({ error: 'Server error. Please try again.' });
@@ -387,7 +424,8 @@ app.post('/api/auth/google', async (req, res) => {
       await run("UPDATE users SET profile_picture = ? WHERE id = ?", [picture, user.id]);
       user.profile_picture = picture;
     }
-    res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role });
+    const token = signToken({ id: user.id, email: user.email, role: user.role });
+    res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, token });
   } catch (e) {
     console.error('Google auth error:', e);
     res.status(500).json({ error: 'Google auth failed' });
@@ -830,10 +868,12 @@ app.get('/api/stats', async (req, res) => {
   });
 });
 
-// ============ ADMIN: USERS LIST (for insights filter) ============
+// ============ ADMIN: USERS LIST (for insights filter; exclude E2E test users) ============
 app.get('/api/admin/users', async (req, res) => {
   try {
-    const list = await queryAll("SELECT id, first_name, last_name, email FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') ORDER BY first_name, last_name");
+    const list = await queryAll(
+      "SELECT id, first_name, last_name, email FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.bodybank.fit') AND (LOWER(first_name) NOT LIKE '%e2e%') ORDER BY first_name, last_name"
+    );
     res.json(list);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -967,6 +1007,50 @@ app.get('/api/admin/db-view', async (req, res) => {
     });
   } catch (e) {
     console.error('DB view error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ============ CLIENT PROGRESS ANALYTICS (JWT-protected) ============
+app.use('/api/progress', progressRoutes);
+app.get('/api/admin/user-progress/:userId', (req, res, next) => {
+  if (NODE_ENV === 'development' && (!req.headers.authorization || !String(req.headers.authorization).startsWith('Bearer '))) {
+    return progressService.getAdminUserProgress(req.params.userId)
+      .then((data) => res.json(data))
+      .catch((e) => { console.error('[admin user-progress]', e.message); res.status(500).json({ error: e.message }); });
+  }
+  next();
+}, verifyToken, requireAdmin, (req, res) => {
+  getAdminUserProgress(req, res).catch((e) => {
+    console.error('[admin user-progress]', e.message);
+    res.status(500).json({ error: e.message });
+  });
+});
+
+// Progress report: shareable link (token in query – no login required)
+app.get('/api/progress-report', async (req, res) => {
+  try {
+    const token = req.query.token || req.query.t;
+    const userId = verifyProgressReportToken(token);
+    if (!userId) return res.status(401).json({ error: 'Invalid or expired link' });
+    const data = await progressService.getAdminUserProgress(userId);
+    res.json(data);
+  } catch (e) {
+    console.error('[progress-report]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Admin: get shareable progress report link for a user
+app.get('/api/admin/progress-report-link/:userId', verifyToken, requireAdmin, (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const token = signProgressReportToken(userId);
+    const baseUrl = (req.protocol + '://' + req.get('host')).replace(/\/$/, '');
+    const url = baseUrl + '/progress-report.html?t=' + encodeURIComponent(token);
+    res.json({ url, token });
+  } catch (e) {
+    console.error('[progress-report-link]', e.message);
     res.status(500).json({ error: e.message });
   }
 });

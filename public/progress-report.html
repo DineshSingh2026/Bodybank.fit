@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your Progress Report — BodyBank</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    :root { --black:#060606; --gold:#c8a44e; --cream:#f2ece0; --muted:#666; --bdr:rgba(200,164,78,0.2); }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: var(--black); color: var(--cream); font-family: 'Outfit', sans-serif; padding: 24px; min-height: 100vh; }
+    .report-wrap { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 1.75rem; color: var(--gold); margin-bottom: 8px; }
+    .sub { color: var(--muted); font-size: 0.9rem; margin-bottom: 24px; }
+    .err { background: rgba(200,80,80,0.15); border: 1px solid rgba(200,80,80,0.3); padding: 16px; border-radius: 8px; color: #e88; margin: 20px 0; }
+    .kpis { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .kpi { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 14px; text-align: center; }
+    .kpi .num { display: block; font-size: 1.25rem; font-weight: 700; color: var(--gold); }
+    .kpi .lbl { font-size: 0.7rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+    .insights { margin: 16px 0; padding: 12px 16px; background: rgba(200,164,78,0.08); border: 1px solid var(--bdr); border-radius: 8px; font-size: 0.9rem; color: #bfb9ab; }
+    .charts { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; margin-top: 24px; }
+    .chart-wrap { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 16px; min-height: 220px; }
+    .chart-wrap canvas { max-height: 200px; width: 100% !important; }
+    .chart-title { font-size: 0.75rem; color: var(--muted); margin-top: 8px; text-align: center; }
+    .loading { color: var(--muted); padding: 40px 0; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="report-wrap">
+    <h1>Your Progress Report</h1>
+    <p class="sub">Shared by your coach — view your metrics and trends.</p>
+    <div id="reportError" class="err" style="display:none"></div>
+    <div id="reportLoading" class="loading">Loading your report…</div>
+    <div id="reportContent" style="display:none">
+      <div id="reportKpis" class="kpis"></div>
+      <div id="reportInsights" class="insights" style="display:none"></div>
+      <div id="reportCharts" class="charts"></div>
+    </div>
+  </div>
+  <script>
+    (function() {
+      var chartInstances = {};
+      function destroyCharts() {
+        Object.keys(chartInstances).forEach(function(k) {
+          if (chartInstances[k]) { chartInstances[k].destroy(); chartInstances[k] = null; }
+        });
+        chartInstances = {};
+      }
+      function drawCharts(logs) {
+        destroyCharts();
+        if (typeof Chart === 'undefined') return;
+        var sorted = (logs || []).slice().sort(function(a,b) { return new Date(a.created_at) - new Date(b.created_at); });
+        var labels = sorted.map(function(l) {
+          var d = new Date(l.created_at);
+          return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        });
+        var scaleOpts = { ticks: { color: '#666' }, grid: { color: 'rgba(255,255,255,0.06)' } };
+        var chartOpts = { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#bfb9ab' } } } };
+        var chartsEl = document.getElementById('reportCharts');
+        if (!chartsEl) return;
+        chartsEl.innerHTML = '';
+        function addChart(id, title, config) {
+          var wrap = document.createElement('div');
+          wrap.className = 'chart-wrap';
+          wrap.innerHTML = '<canvas id="' + id + '"></canvas><p class="chart-title">' + title + '</p>';
+          chartsEl.appendChild(wrap);
+          var ctx = document.getElementById(id);
+          if (ctx) chartInstances[id] = new Chart(ctx.getContext('2d'), { type: config.type, data: config.data, options: { ...chartOpts, scales: config.scales || { x: scaleOpts, y: scaleOpts } } });
+        }
+        if (sorted.filter(function(l) { return l.weight != null; }).length) {
+          addChart('rWeight', 'Weight over time', {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: 'Weight (kg)', data: sorted.map(function(l) { return l.weight; }), borderColor: '#c8a44e', backgroundColor: 'rgba(200,164,78,0.1)', fill: true, tension: 0.3 }] }
+          });
+        }
+        var hasStrength = sorted.some(function(l) { return l.strength_bench != null || l.strength_squat != null || l.strength_deadlift != null; });
+        if (hasStrength) {
+          addChart('rStrength', 'Strength over time', {
+            type: 'line',
+            data: {
+              labels: labels,
+              datasets: [
+                { label: 'Bench', data: sorted.map(function(l) { return l.strength_bench; }), borderColor: '#c8a44e', tension: 0.3 },
+                { label: 'Squat', data: sorted.map(function(l) { return l.strength_squat; }), borderColor: '#d0b058', tension: 0.3 },
+                { label: 'Deadlift', data: sorted.map(function(l) { return l.strength_deadlift; }), borderColor: '#a68c3e', tension: 0.3 }
+              ]
+            }
+          });
+        }
+        var byWeek = {};
+        sorted.forEach(function(l) {
+          var d = new Date(l.created_at);
+          var start = new Date(d); start.setDate(start.getDate() - start.getDay()); start.setHours(0,0,0,0);
+          var key = start.toISOString().slice(0,10);
+          if (!byWeek[key]) byWeek[key] = 0;
+          if (l.workout_completed) byWeek[key]++;
+        });
+        var weeks = Object.keys(byWeek).sort().slice(-8);
+        if (weeks.length) {
+          addChart('rWeekly', 'Weekly workouts', {
+            type: 'bar',
+            data: {
+              labels: weeks.map(function(k) { return new Date(k).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }),
+              datasets: [{ label: 'Workouts', data: weeks.map(function(k) { return byWeek[k] || 0; }), backgroundColor: 'rgba(200,164,78,0.6)', borderColor: '#c8a44e', borderWidth: 1 }]
+            }
+          });
+        }
+        if (sorted.filter(function(l) { return l.calories_intake != null; }).length) {
+          addChart('rCalories', 'Calories trend', {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: 'Calories', data: sorted.map(function(l) { return l.calories_intake; }), borderColor: '#d0b058', backgroundColor: 'rgba(208,176,88,0.1)', fill: true, tension: 0.3 }] }
+          });
+        }
+        if (sorted.filter(function(l) { return l.protein_intake != null; }).length) {
+          addChart('rProtein', 'Protein intake', {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: 'Protein (g)', data: sorted.map(function(l) { return l.protein_intake; }), borderColor: '#a68c3e', backgroundColor: 'rgba(166,140,62,0.1)', fill: true, tension: 0.3 }] }
+          });
+        }
+      }
+      function showError(msg) {
+        document.getElementById('reportLoading').style.display = 'none';
+        document.getElementById('reportContent').style.display = 'none';
+        var el = document.getElementById('reportError');
+        if (el) { el.textContent = msg; el.style.display = 'block'; }
+      }
+      function showData(data) {
+        document.getElementById('reportLoading').style.display = 'none';
+        document.getElementById('reportError').style.display = 'none';
+        document.getElementById('reportContent').style.display = 'block';
+        var kpis = [
+          { lbl: 'Current Weight', num: data.currentWeight != null ? data.currentWeight + ' kg' : '—' },
+          { lbl: 'Weight Change %', num: data.weightChangePercent != null ? data.weightChangePercent + '%' : '—' },
+          { lbl: 'Strength Growth %', num: data.strengthGrowthPercent != null ? data.strengthGrowthPercent + '%' : '—' },
+          { lbl: 'Consistency %', num: data.workoutConsistencyPercent != null ? data.workoutConsistencyPercent + '%' : '—' },
+          { lbl: 'Active Streak', num: data.activeStreak != null ? data.activeStreak + ' days' : '—' },
+          { lbl: 'Goal Completion %', num: data.goalCompletionPercent != null ? Math.round(data.goalCompletionPercent) + '%' : '—' }
+        ];
+        var kpisEl = document.getElementById('reportKpis');
+        if (kpisEl) kpisEl.innerHTML = kpis.map(function(k) { return '<div class="kpi"><span class="num">' + k.num + '</span><span class="lbl">' + k.lbl + '</span></div>'; }).join('');
+        var insEl = document.getElementById('reportInsights');
+        if (insEl && data.insights && data.insights.length) {
+          insEl.innerHTML = '<strong>Insights:</strong> ' + data.insights.join(' • ');
+          insEl.style.display = 'block';
+        }
+        drawCharts(data.logs || []);
+      }
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get('t') || params.get('token');
+      if (!token) {
+        showError('Invalid or expired link. Ask your coach for a new progress report link.');
+        return;
+      }
+      fetch(window.location.origin + '/api/progress-report?token=' + encodeURIComponent(token))
+        .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
+        .then(function(r) {
+          if (r.status !== 200 || r.data.error) {
+            showError(r.data.error || 'Invalid or expired link.');
+            return;
+          }
+          showData(r.data);
+        })
+        .catch(function() { showError('Could not load report. Please try again.'); });
+    })();
+  </script>
+</body>
+</html>
