@@ -18,6 +18,22 @@ Open **http://localhost:3000**
 **Admin Login:** `admin@bodybank.fit` / `admin123`  
 **Superadmin (business overview):** `superadmin@bodybank.fit` / `superadmin123` — single-page dashboard with stats, audit/part2/sunday check-ins, users, workouts, tribe, meetings, messages; filters (date/user), CSV export per block, and time-limited “Share via link”. Set `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS` in `.env` to override.
 
+### Set superadmin on localhost first
+
+To use the same superadmin credentials locally as on production:
+
+1. In your project root, open or create **`.env`** and set:
+   ```env
+   DATABASE_URL=postgresql://localhost:5432/bodybank
+   SUPERADMIN_EMAIL=Superadmin@gmail.com
+   SUPERADMIN_PASS=Bodybank@2026
+   ```
+2. Start the server: **`npm start`** (or `node server.js`).
+3. In the terminal you should see: **`✅ Superadmin synced`** or **`✅ Superadmin created`** with that email.
+4. Open **http://localhost:3000** → **Login** → use **superadmin@gmail.com** and **Bodybank@2026**.
+
+Use the same `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS` in Render so production matches localhost.
+
 ### Verify API & Database Connection
 1. Start the server: `npm start`
 2. Open **http://localhost:3000** (do not open `index.html` as a file; the API needs the server)
@@ -69,13 +85,11 @@ Your site will be live at `https://bodybank-xxxx.onrender.com` (or your custom d
 
 1. **Check health:** Open `https://your-app.onrender.com/api/health`. You should see `superadmin_exists: true` and `superadmin_email: "your@email.com"`. If `superadmin_exists` is `false`, the user was never created.
 2. **Check Render logs:** In Render → your Web Service → Logs, look for `✅ Superadmin created: your@email.com` after a deploy. If you see `❌ Refusing to create superadmin with default password`, the server refused to create one until you set a non-default `SUPERADMIN_PASS` and redeployed.
-3. **Fix from your machine:** Run the update script against the production DB so the superadmin is created or its password is set from your env:
-   - In your project folder, create or edit `.env` with:
-     - `DATABASE_URL` = Render’s **Internal Database URL** (Render → Postgres → Connect → Internal Database URL)
-     - `SUPERADMIN_EMAIL` = the email you want to use to log in
-     - `SUPERADMIN_PASS` = the password you want
-   - Run: `node scripts/update-superadmin.js`
-   - Log in on the live site with that email and password.
+3. **Fix from your machine:** Run the update script against the production DB so the superadmin is created or its password/role is set:
+   - In your project folder, set in `.env`: `DATABASE_URL` = Render’s **Internal Database URL** (Render → Postgres → Connect → Internal Database URL).
+   - Run: `node scripts/update-superadmin.js "YourEmail@example.com" "YourPassword"` (use the email and password you want for superadmin login).
+   - If a normal user already exists with that email, the script upgrades them to superadmin. If a superadmin exists with a different email, it updates to your email/password.
+   - Log in on the live site with that email and password. If you had logged in before, clear the site’s storage (e.g. DevTools → Application → Local Storage → clear) or use a private/incognito window.
 
 ---
 

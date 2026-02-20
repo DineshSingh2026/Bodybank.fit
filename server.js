@@ -1231,19 +1231,28 @@ async function getAdminAIContext() {
   } catch (e) {
     lines.push('\n(Data fetch issue: ' + e.message + '. Still answer politely from the counts above if any.)');
   }
+  lines.push('\n--- ADMIN ACTIONS (suggest these when relevant) ---');
+  lines.push('The admin can: Approve or reject audit forms (Audit forms tab); Approve pending sign-ups (Pending Sign-ups tab); View and manage Tribe, Workouts, Messages & Meetings, Part-2 Form, Sunday Check-in; View Client Progress and share a progress report link with a client; Use Performance Insights for filters and CSV export. When data suggests follow-up (e.g. pending items, new messages, inactive users), suggest 1–3 concrete actions the admin can take in the dashboard.');
+
   return lines.join('\n');
 }
 
-const AI_SYSTEM_PROMPT = `You are a polite, professional AI assistant for the BodyBank admin dashboard. The admin is asking questions about their platform data.
+const AI_SYSTEM_PROMPT = `You are an expert, proactive AI assistant for the BodyBank admin dashboard. Your job is to answer questions accurately using the live data below AND to suggest concrete actions the admin can take based on that data.
+
+ROLE:
+- Use the LIVE DATABASE CONTEXT below (fetched just now) to answer any question about audit forms, tribe members, workouts, messages, meetings, Part-2, Sunday check-ins, pending sign-ups, and user activity.
+- When the data shows something that needs attention (e.g. pending audit forms, pending sign-ups, new messages, users who haven't checked in), proactively suggest 1–3 specific actions the admin can take in the dashboard (e.g. "Go to Pending Sign-ups and approve the 3 waiting users" or "Review the Audit forms tab to approve or reject the 2 pending requests").
+- You may also answer general BodyBank/admin questions (e.g. "How do I approve a user?" → direct them to the right tab and what to do).
+- Be concise, friendly, and actionable. Use bullet points for suggested actions when you list them.
 
 RULES:
-1. Be friendly and helpful. Never reply with "error", "not found", or technical error messages.
-2. The context below is LIVE data from the database (fetched just now). Use it to answer.
-3. When the data shows zero or "None" for something, say so in a clear, polite way — e.g. "There are no pending audit forms at the moment" or "We don't have any Sunday check-ins yet." Do not say "data not found" or "error".
-4. When you have data, give a direct, useful answer (numbers, names, or a short summary as appropriate).
-5. If the question is not covered by the context at all, say something like: "I don't have that information in the current data. You can check the relevant section in the dashboard for more detail."
-6. Do not make up numbers or names. Only use what is in the context.
-7. Keep answers concise but complete.`;
+1. Be friendly and helpful. Never reply with "error", "not found", or raw technical messages.
+2. All numbers, names, and facts must come ONLY from the context below. Do not invent data.
+3. Answer the exact question asked. Each question must get a distinct, specific response (e.g. "How many tribe members?" gets the tribe count; "Who signed up recently?" gets names/dates). Never give the same generic answer for different questions.
+4. When data is zero or "None", say so clearly and suggest what the admin could do next (e.g. "No pending sign-ups. When new users sign up, you’ll see them under Pending Sign-ups—approve them there.").
+5. When you have data, give a direct answer first, then add "Suggested actions:" with 1–3 short, specific actions when relevant (which tab to open, what to do).
+6. If the question is outside the context (e.g. general fitness advice), answer helpfully but note you’re best at BodyBank data and dashboard actions.
+7. Keep the main answer concise; suggested actions can be 1 line each.`;
 
 async function callOpenAIChat(systemContext, userMessage) {
   const apiKey = process.env.OPENAI_API_KEY;
@@ -1256,7 +1265,7 @@ async function callOpenAIChat(systemContext, userMessage) {
     },
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      max_tokens: 800,
+      max_tokens: 1200,
       messages: [
         { role: 'system', content: AI_SYSTEM_PROMPT + '\n\n--- LIVE DATABASE CONTEXT ---\n' + systemContext },
         { role: 'user', content: userMessage }
@@ -1274,45 +1283,68 @@ async function callOpenAIChat(systemContext, userMessage) {
 
 function buildPoliteFallbackReply(context, question) {
   const q = (question || '').toLowerCase();
-  const lines = context.split('\n');
-  const counts = {};
-  lines.forEach(line => {
-    const m = line.match(/^([^:]+):\s*(\d+)/);
-    if (m) counts[m[1].trim().toLowerCase()] = parseInt(m[2], 10);
-  });
-  const n = (key) => {
-    const k = Object.keys(counts).find(x => x.includes(key));
-    return k != null ? counts[k] : null;
-  };
   let answer = '';
+  const getCount = (regex) => { const m = context.match(regex); return m ? parseInt(m[1], 10) : 0; };
+  const pendingAudit = getCount(/Pending:\s*(\d+)/);
+  const pendingSignups = getCount(/Pending sign-ups[^:]*:\s*(\d+)/);
+  const contactMsg = getCount(/Contact messages:\s*(\d+)/);
+  const tribeTotal = getCount(/Tribe members:\s*(\d+)\s+total/);
+  const workouts = getCount(/Workout logs:\s*(\d+)/);
+  const sundayCheck = getCount(/Sunday check-ins:\s*(\d+)/);
+  const act = getCount(/Active:\s*(\d+)/);
+  const suggestActions = () => {
+    const actions = [];
+    if (pendingAudit > 0) actions.push('• Go to **Audit forms** and approve or reject the ' + pendingAudit + ' pending request(s).');
+    if (pendingSignups > 0) actions.push('• Go to **Pending Sign-ups** and approve the ' + pendingSignups + ' user(s) so they can log in.');
+    if (contactMsg > 0) actions.push('• Check **Messages & Meetings** for contact messages and follow up if needed.');
+    if (actions.length === 0) actions.push('• Use the dashboard tabs to explore Tribe, Workouts, Client Progress, and Performance Insights.');
+    return '\n\n**Suggested actions:**\n' + actions.join('\n');
+  };
   if (/\bhow many\b.*pending|pending.*(audit|form)/.test(q)) {
-    const v = (context.match(/Pending:\s*(\d+)/) || [])[1];
-    const x = v != null ? parseInt(v, 10) : 0;
-    answer = x === 0 ? 'There are no pending audit forms at the moment.' : 'You have ' + x + ' pending audit form' + (x === 1 ? '' : 's') + ' right now.';
+    answer = pendingAudit === 0 ? 'There are no pending audit forms at the moment.' : 'You have ' + pendingAudit + ' pending audit form' + (pendingAudit === 1 ? '' : 's') + ' right now.';
+    answer += suggestActions();
   } else if (/\bhow many\b.*tribe|tribe.*(member|active)/.test(q)) {
-    const tot = (context.match(/Tribe members:\s*(\d+)\s+total/) || [])[1];
-    const act = (context.match(/Active:\s*(\d+)/) || [])[1];
-    const t = tot != null ? parseInt(tot, 10) : 0;
-    const a = act != null ? parseInt(act, 10) : 0;
-    answer = t === 0 ? 'There are no tribe members yet.' : 'You have ' + t + ' tribe member' + (t === 1 ? '' : 's') + ' in total, ' + a + ' active.';
+    answer = tribeTotal === 0 ? 'There are no tribe members yet.' : 'You have ' + tribeTotal + ' tribe member' + (tribeTotal === 1 ? '' : 's') + ' in total, ' + act + ' active.';
+    answer += suggestActions();
   } else if (/\bhow many\b.*workout|workout.*log/.test(q)) {
-    const w = (context.match(/Workout logs:\s*(\d+)/) || [])[1];
-    const x = w != null ? parseInt(w, 10) : 0;
-    answer = x === 0 ? 'There are no workout logs yet.' : 'There are ' + x + ' workout log' + (x === 1 ? '' : 's') + ' in the database.';
+    answer = workouts === 0 ? 'There are no workout logs yet.' : 'There are ' + workouts + ' workout log' + (workouts === 1 ? '' : 's') + ' in the database.';
+    answer += suggestActions();
   } else if (/\bhow many\b.*(message|contact)/.test(q)) {
-    const m = (context.match(/Contact messages:\s*(\d+)/) || [])[1];
-    const x = m != null ? parseInt(m, 10) : 0;
-    answer = x === 0 ? 'There are no contact messages yet.' : 'You have ' + x + ' contact message' + (x === 1 ? '' : 's') + '.';
+    answer = contactMsg === 0 ? 'There are no contact messages yet.' : 'You have ' + contactMsg + ' contact message' + (contactMsg === 1 ? '' : 's') + '.';
+    answer += suggestActions();
   } else if (/\bhow many\b.*(sunday|check-in|checkin)/.test(q)) {
-    const s = (context.match(/Sunday check-ins:\s*(\d+)/) || [])[1];
-    const x = s != null ? parseInt(s, 10) : 0;
-    answer = x === 0 ? 'There are no Sunday check-ins yet.' : 'There are ' + x + ' Sunday check-in' + (x === 1 ? '' : 's') + '.';
+    answer = sundayCheck === 0 ? 'There are no Sunday check-ins yet.' : 'There are ' + sundayCheck + ' Sunday check-in' + (sundayCheck === 1 ? '' : 's') + '.';
+    answer += suggestActions();
   } else if (/\bhow many\b.*(sign-up|signup|pending.*approval)/.test(q)) {
-    const p = (context.match(/Pending sign-ups[^:]*:\s*(\d+)/) || [])[1];
-    const x = p != null ? parseInt(p, 10) : 0;
-    answer = x === 0 ? 'There are no pending sign-ups awaiting approval.' : 'There are ' + x + ' pending sign-up' + (x === 1 ? '' : 's') + ' awaiting approval.';
+    answer = pendingSignups === 0 ? 'There are no pending sign-ups awaiting approval.' : 'There are ' + pendingSignups + ' pending sign-up' + (pendingSignups === 1 ? '' : 's') + ' awaiting approval.';
+    answer += suggestActions();
+  } else if (/\b(what should i do|what can i do|suggest|recommend|what to do)\b/.test(q) && !/\b(list|summarize|how many|who|recent|latest)\b/.test(q)) {
+    answer = 'Based on your current data:' + suggestActions();
+  } else if (/\bpart-?2|part2\b/.test(q)) {
+    const p2 = getCount(/Part-2 form submissions:\s*(\d+)/);
+    answer = p2 === 0 ? 'There are no Part-2 form submissions yet.' : 'There are ' + p2 + ' Part-2 form submission' + (p2 === 1 ? '' : 's') + '. See the Part-2 Form tab for details.';
+    answer += suggestActions();
+  } else if (/\bmeeting\b/.test(q)) {
+    const meet = getCount(/Meetings:\s*(\d+)\s+total/);
+    answer = meet === 0 ? 'There are no meetings yet.' : 'There are ' + meet + ' meeting' + (meet === 1 ? '' : 's') + ' in total. See Messages & Meetings tab for details.';
+    answer += suggestActions();
+  } else if (/\b(summarize|list|who|recent|latest)\b.*\b(tribe|member)\b|\b(tribe|member)\b.*\b(summarize|list|who|recent)\b/.test(q)) {
+    answer = tribeTotal === 0 ? 'There are no tribe members yet.' : 'You have ' + tribeTotal + ' tribe member' + (tribeTotal === 1 ? '' : 's') + ' (' + act + ' active). Check the Tribe tab for names and details.';
+    answer += suggestActions();
+  } else if (/\b(summarize|list|recent)\b.*\b(audit|request|form)\b|\b(audit|request)\b.*\b(summarize|list|recent)\b/.test(q)) {
+    answer = pendingAudit > 0 ? 'You have ' + pendingAudit + ' pending audit form' + (pendingAudit === 1 ? '' : 's') + '. Open the Audit forms tab to review and approve or reject.' : 'No pending audit forms right now. Total audit forms are in the Audit forms tab.';
+    answer += suggestActions();
+  } else if (/\b(summarize|list|recent)\b.*\b(workout|exercise)\b|\b(workout|exercise)\b.*\b(summarize|list|recent)\b/.test(q)) {
+    answer = workouts === 0 ? 'There are no workout logs yet.' : 'There are ' + workouts + ' workout log' + (workouts === 1 ? '' : 's') + '. See the Workouts tab for details.';
+    answer += suggestActions();
+  } else if (/\b(summarize|list|recent)\b.*\b(message|contact)\b|\b(message|contact)\b.*\b(summarize|list|recent)\b/.test(q)) {
+    answer = contactMsg === 0 ? 'There are no contact messages yet.' : 'You have ' + contactMsg + ' contact message' + (contactMsg === 1 ? '' : 's') + '. See Messages & Meetings tab to read them.';
+    answer += suggestActions();
+  } else if (/\bwho\b.*\b(pending|sign-up|signup)\b|\b(pending|sign-up)\b.*\bwho\b/.test(q)) {
+    answer = pendingSignups === 0 ? 'No one is pending approval right now.' : 'There are ' + pendingSignups + ' pending sign-up' + (pendingSignups === 1 ? '' : 's') + ' awaiting approval. Open the Pending Sign-ups tab to see names and approve them.';
+    answer += suggestActions();
   } else {
-    answer = 'Here’s a snapshot of your current data:\n\n' + context.split('---').slice(0, 3).join('---').trim() + '\n\nIf you’d like answers to specific questions (e.g. “How many pending forms?”), I can give those. You can also set OPENAI_API_KEY in the server .env for full AI-powered answers.';
+    answer = 'Here’s a snapshot of your current data:\n\n' + context.split('---').slice(0, 3).join('---').trim() + '\n\nIf you’d like answers to specific questions (e.g. “How many pending forms?”). For AI answers to any question, set OPENAI_API_KEY in .env and restart.';
   }
   return answer;
 }

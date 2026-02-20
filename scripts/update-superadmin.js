@@ -38,7 +38,19 @@ async function main() {
     const emailNorm = String(SUPERADMIN_EMAIL).trim().toLowerCase();
     const hash = bcrypt.hashSync(SUPERADMIN_PASS, 10);
 
-    const existing = await pool.query(toPg("SELECT id, email FROM users WHERE role = 'superadmin' LIMIT 1"), []);
+    // 1) If any user has this email (e.g. signed up as normal user), make them superadmin and set password
+    const byEmail = await pool.query(toPg("SELECT id FROM users WHERE LOWER(email) = ?"), [emailNorm]);
+    if (byEmail.rows.length > 0) {
+      await pool.query(toPg("UPDATE users SET role = 'superadmin', password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE LOWER(email) = ?"), [hash, emailNorm]);
+      // Ensure only one superadmin: demote any other superadmin (different id) to user
+      await pool.query(toPg("UPDATE users SET role = 'user' WHERE role = 'superadmin' AND LOWER(email) != ?"), [emailNorm]);
+      console.log('Superadmin set for existing email. Email:', emailNorm);
+      console.log('Log in with:', SUPERADMIN_EMAIL, 'and your password.');
+      return;
+    }
+
+    // 2) Else if a superadmin row already exists (different email), update it to this email/password
+    const existing = await pool.query(toPg("SELECT id FROM users WHERE role = 'superadmin' LIMIT 1"), []);
     if (existing.rows.length > 0) {
       await pool.query(toPg("UPDATE users SET email = ?, password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE role = 'superadmin'"), [emailNorm, hash]);
       console.log('Superadmin updated. Email:', emailNorm);
@@ -49,7 +61,7 @@ async function main() {
       );
       console.log('Superadmin created. Email:', emailNorm);
     }
-    console.log('Log in with the email and password you set in SUPERADMIN_EMAIL and SUPERADMIN_PASS.');
+    console.log('Log in with the email and password you set.');
   } finally {
     await pool.end();
   }

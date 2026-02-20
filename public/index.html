@@ -451,6 +451,14 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .part2-copy-btn:hover{background:rgba(200,164,78,0.2)}
 .admin-logout{padding:8px 20px;border:1px solid rgba(255,80,80,0.4);border-radius:6px;background:transparent;color:#ff6b6b;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .3s;flex-shrink:0;white-space:nowrap}
 .admin-logout:hover{background:rgba(255,80,80,0.1);border-color:#ff6b6b}
+/* AI Assist button in admin top bar (web/desktop only) */
+.admin-ai-assist-top-btn{display:none;align-items:center;gap:8px;padding:8px 16px;border:1px solid rgba(0,180,216,0.5);border-radius:8px;background:rgba(0,180,216,0.12);color:var(--cream);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.5px;cursor:pointer;transition:all .2s;flex-shrink:0;white-space:nowrap}
+.admin-ai-assist-top-btn:hover{background:rgba(0,180,216,0.2);border-color:rgba(0,180,216,0.7);color:var(--cream)}
+.admin-ai-assist-top-btn img{width:20px;height:20px;object-fit:contain;flex-shrink:0}
+.admin-ai-assist-top-btn-active{background:rgba(0,180,216,0.25);border-color:rgba(0,180,216,0.8)}
+@media(min-width:769px){
+  .admin-ai-assist-top-btn{display:inline-flex}
+}
 .admin-top-hamburger{display:none}
 .admin-body{max-width:1200px;margin:0 auto;padding:32px 40px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-bottom:max(24px,env(safe-area-inset-bottom));min-width:0;overflow:hidden;flex:1;min-height:0;display:flex;flex-direction:column;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;box-sizing:border-box}
 .admin-body>.admin-current-section-wrap,.admin-body>.admin-mobile-nav-bar,.admin-body>.admin-tabs{flex-shrink:0}
@@ -798,6 +806,18 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .superadmin-card .k{color:var(--muted);min-width:80px}
 .superadmin-card .v{color:var(--cream);word-break:break-word}
 .superadmin-empty{color:var(--muted);font-size:13px;margin:0;padding:12px 0}
+.superadmin-view-tabs{display:flex;gap:0;margin-bottom:24px;border-bottom:1px solid var(--bdr);flex-shrink:0}
+.superadmin-tab-btn{padding:12px 24px;font-family:'Syne',sans-serif;font-size:13px;font-weight:600;letter-spacing:0.5px;color:var(--muted);background:transparent;border:none;border-bottom:2px solid transparent;cursor:pointer;transition:color .2s,border-color .2s}
+.superadmin-tab-btn:hover{color:var(--cream)}
+.superadmin-tab-btn.active{color:var(--gold);border-bottom-color:var(--gold)}
+.superadmin-analytics{max-width:100%;min-width:0}
+.superadmin-analytics-intro{font-size:13px;color:var(--muted);margin:0 0 24px;line-height:1.5}
+.superadmin-charts-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:24px;min-width:0}
+.superadmin-chart-block{background:rgba(255,255,255,0.02);border:1px solid var(--bdr);border-radius:12px;padding:20px;min-width:0}
+.superadmin-chart-block .superadmin-block-title{margin-bottom:16px;font-size:15px}
+.superadmin-chart-wrap{position:relative;height:260px;min-height:200px}
+.superadmin-chart-wrap canvas{max-height:260px;width:100%!important;display:block}
+.superadmin-chart-caption{font-size:11px;color:var(--muted);margin:10px 0 0;line-height:1.4}
 @media(min-width:768px){
   .superadmin-table-wrap .superadmin-cards{display:table;border-collapse:collapse;width:100%;min-width:600px}
   .superadmin-table-wrap .superadmin-card{display:table-row;border-radius:0;border:0;border-bottom:1px solid var(--bdr);padding:8px 12px}
@@ -810,6 +830,8 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .superadmin-heading{font-size:18px}
   .superadmin-filters{padding:12px 16px}
   .superadmin-body{padding:16px}
+  .superadmin-charts-grid{grid-template-columns:1fr}
+  .superadmin-chart-wrap{height:220px}
 }
 
 /* USER DASHBOARD */
@@ -1307,6 +1329,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
           </div>
         </div>
       </div>
+      <button type="button" class="admin-ai-assist-top-btn" id="adminAiAssistTopBtn" onclick="toggleAdminAiAssistPanel()" aria-label="Open AI Assist" title="AI Assist – ask questions about your data">
+        <img src="AI%20assist.jpg" alt="" width="20" height="20">
+        <span>AI Assist</span>
+      </button>
       <button class="admin-logout" onclick="logoutAdmin()">Logout</button>
       <button class="admin-top-hamburger admin-hamburger-btn" id="adminTopHamburger" onclick="toggleAdminNavDrawer()" aria-label="Open sections menu" title="Sections">
         <span></span><span></span><span></span>
@@ -1646,6 +1672,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   </div>
   <div class="superadmin-body" id="superadminBody">
     <p class="superadmin-loading" id="superadminLoading">Loading dashboard…</p>
+    <div class="superadmin-view-tabs" id="superadminViewTabs" style="display:none">
+      <button type="button" class="superadmin-tab-btn active" data-view="data" onclick="switchSuperadminView('data')">Data</button>
+      <button type="button" class="superadmin-tab-btn" data-view="insights" onclick="switchSuperadminView('insights')">Business Insights</button>
+    </div>
     <div class="superadmin-blocks" id="superadminBlocks" style="display:none">
       <section class="superadmin-block">
         <h2 class="superadmin-block-title">Summary</h2>
@@ -1683,6 +1713,41 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <h2 class="superadmin-block-title">Contact messages <button type="button" class="superadmin-csv" data-block="messages">Download CSV</button></h2>
         <div class="superadmin-table-wrap" id="saMessagesWrap"><div class="superadmin-cards" id="saMessages"></div></div>
       </section>
+    </div>
+    <div class="superadmin-analytics" id="superadminAnalytics" style="display:none">
+      <p class="superadmin-analytics-intro">Graphical view of your business metrics. Use the same date filters above and click Apply to refresh.</p>
+      <div class="superadmin-charts-grid">
+        <section class="superadmin-chart-block">
+          <h2 class="superadmin-block-title">User growth</h2>
+          <div class="superadmin-chart-wrap"><canvas id="saChartUsers"></canvas></div>
+          <p class="superadmin-chart-caption">Approved users and sign-ups over time</p>
+        </section>
+        <section class="superadmin-chart-block">
+          <h2 class="superadmin-block-title">Audit forms</h2>
+          <div class="superadmin-chart-wrap"><canvas id="saChartAudit"></canvas></div>
+          <p class="superadmin-chart-caption">Body audit requests submitted over time</p>
+        </section>
+        <section class="superadmin-chart-block">
+          <h2 class="superadmin-block-title">Workouts</h2>
+          <div class="superadmin-chart-wrap"><canvas id="saChartWorkouts"></canvas></div>
+          <p class="superadmin-chart-caption">Workout logs per period</p>
+        </section>
+        <section class="superadmin-chart-block">
+          <h2 class="superadmin-block-title">Sunday check-ins</h2>
+          <div class="superadmin-chart-wrap"><canvas id="saChartSunday"></canvas></div>
+          <p class="superadmin-chart-caption">Weekly check-in submissions</p>
+        </section>
+        <section class="superadmin-chart-block">
+          <h2 class="superadmin-block-title">Part-2 form</h2>
+          <div class="superadmin-chart-wrap"><canvas id="saChartPart2"></canvas></div>
+          <p class="superadmin-chart-caption">Part-2 submissions over time</p>
+        </section>
+        <section class="superadmin-chart-block">
+          <h2 class="superadmin-block-title">Tribe & engagement</h2>
+          <div class="superadmin-chart-wrap"><canvas id="saChartTribe"></canvas></div>
+          <p class="superadmin-chart-caption">Tribe members joined and messages / meetings</p>
+        </section>
+      </div>
     </div>
   </div>
 </div>
@@ -3005,9 +3070,11 @@ function closeAdminMoreModal() {
 function toggleAdminAiAssistPanel() {
   var panel = document.getElementById('adminAiAssistPanel');
   var fab = document.getElementById('adminAiAssistFab');
+  var topBtn = document.getElementById('adminAiAssistTopBtn');
   if (!panel || !fab) return;
   var isOpen = panel.classList.toggle('open');
   panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+  if (topBtn) topBtn.classList.toggle('admin-ai-assist-top-btn-active', isOpen);
   if (isOpen) {
     setTimeout(function() {
       var input = document.getElementById('adminAiAssistInput');
@@ -3018,10 +3085,12 @@ function toggleAdminAiAssistPanel() {
 function closeAdminAiAssistPanel() {
   var panel = document.getElementById('adminAiAssistPanel');
   var fab = document.getElementById('adminAiAssistFab');
+  var topBtn = document.getElementById('adminAiAssistTopBtn');
   if (panel) {
     panel.classList.remove('open');
     panel.setAttribute('aria-hidden', 'true');
   }
+  if (topBtn) topBtn.classList.remove('admin-ai-assist-top-btn-active');
 }
 function appendAdminAiMessage(role, text, isError) {
   var container = document.getElementById('adminAiAssistMessages');
@@ -4234,6 +4303,131 @@ function getSuperadminFilters() {
   };
 }
 
+var _superadminCharts = {};
+var _superadminCurrentView = 'data';
+function switchSuperadminView(view) {
+  _superadminCurrentView = view;
+  document.querySelectorAll('.superadmin-tab-btn').forEach(function(btn) {
+    btn.classList.toggle('active', (btn.getAttribute('data-view') || '') === view);
+  });
+  var blocks = document.getElementById('superadminBlocks');
+  var analytics = document.getElementById('superadminAnalytics');
+  if (view === 'data') {
+    if (blocks) blocks.style.display = 'block';
+    if (analytics) analytics.style.display = 'none';
+  } else {
+    if (blocks) blocks.style.display = 'none';
+    if (analytics) analytics.style.display = 'block';
+    if (_superadminData) drawSuperadminCharts(_superadminData);
+  }
+}
+function bucketByPeriod(list, dateKey) {
+  if (!list || !list.length) return { labels: [], values: [], keys: [] };
+  dateKey = dateKey || 'created_at';
+  var buckets = {};
+  list.forEach(function(row) {
+    var d = (row[dateKey] || row.created_at || '').toString().slice(0, 10);
+    if (!d) return;
+    var dt = new Date(d);
+    if (isNaN(dt.getTime())) return;
+    var key = dt.getFullYear() + '-' + String(dt.getMonth() + 1).padStart(2, '0');
+    buckets[key] = (buckets[key] || 0) + 1;
+  });
+  var keys = Object.keys(buckets).sort();
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var labels = keys.map(function(k) {
+    var p = k.split('-');
+    return months[parseInt(p[1], 10) - 1] + ' ' + p[0];
+  });
+  var values = keys.map(function(k) { return buckets[k]; });
+  return { labels: labels, values: values, keys: keys };
+}
+function mergeBucketLabels() {
+  var allKeys = {};
+  for (var i = 0; i < arguments.length; i++) {
+    var b = arguments[i];
+    if (b && b.keys) b.keys.forEach(function(k) { allKeys[k] = true; });
+  }
+  var keys = Object.keys(allKeys).sort();
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return { keys: keys, labels: keys.map(function(k) { var p = k.split('-'); return months[parseInt(p[1], 10) - 1] + ' ' + p[0]; }) };
+}
+function valuesForKeys(bucket, keys) {
+  if (!bucket || !bucket.keys) return keys.map(function() { return 0; });
+  var map = {};
+  bucket.keys.forEach(function(k, i) { map[k] = bucket.values[i]; });
+  return keys.map(function(k) { return map[k] || 0; });
+}
+function destroySuperadminCharts() {
+  Object.keys(_superadminCharts).forEach(function(k) {
+    if (_superadminCharts[k]) { _superadminCharts[k].destroy(); _superadminCharts[k] = null; }
+  });
+  _superadminCharts = {};
+}
+function drawSuperadminCharts(data) {
+  if (typeof Chart === 'undefined') return;
+  destroySuperadminCharts();
+  var gold = '#c8a44e';
+  var cream = '#bfb9ab';
+  var gridColor = 'rgba(255,255,255,0.06)';
+  var scaleOpts = { ticks: { color: cream, font: { size: 11 } }, grid: { color: gridColor } };
+  var chartOpts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: cream, font: { size: 12 } } } }, scales: { x: scaleOpts, y: scaleOpts } };
+  var userBuckets = bucketByPeriod(data.users || [], 'created_at');
+  var auditBuckets = bucketByPeriod(data.audit || [], 'created_at');
+  var workoutBuckets = bucketByPeriod(data.workouts || [], 'created_at');
+  var sundayBuckets = bucketByPeriod(data.sunday_checkins || [], 'created_at');
+  var part2Buckets = bucketByPeriod(data.part2 || [], 'created_at');
+  var tribeBuckets = bucketByPeriod(data.tribe || [], 'start_date');
+  if (tribeBuckets.labels.length === 0) tribeBuckets = bucketByPeriod(data.tribe || [], 'created_at');
+  var msgBuckets = bucketByPeriod(data.messages || [], 'created_at');
+  var meetBuckets = bucketByPeriod(data.meetings || [], 'created_at');
+  var allMonths = {};
+  [userBuckets, auditBuckets, workoutBuckets, sundayBuckets, part2Buckets, tribeBuckets, msgBuckets, meetBuckets].forEach(function(b) {
+    (b.labels || []).forEach(function(l, i) {
+      var k = (b.labels || [])[i];
+      if (k) allMonths[k] = true;
+    });
+  });
+  function drawBar(id, labels, datasets) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (!labels || !labels.length) { labels = ['No data']; datasets = datasets.map(function(d) { return Object.assign({}, d, { data: [0] }); }); }
+    _superadminCharts[id] = new Chart(el.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: datasets },
+      options: { ...chartOpts, scales: { x: { ...scaleOpts }, y: { ...scaleOpts, beginAtZero: true } } }
+    });
+  }
+  function drawLine(id, labels, datasets) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (!labels || !labels.length) { labels = ['No data']; datasets = datasets.map(function(d) { return Object.assign({}, d, { data: [0] }); }); }
+    _superadminCharts[id] = new Chart(el.getContext('2d'), {
+      type: 'line',
+      data: { labels: labels, datasets: datasets },
+      options: { ...chartOpts, scales: { x: { ...scaleOpts }, y: { ...scaleOpts, beginAtZero: true } } }
+    });
+  }
+  var barDs = [{ label: 'Users', data: userBuckets.values, backgroundColor: 'rgba(200,164,78,0.6)', borderColor: gold, borderWidth: 1 }];
+  drawBar('saChartUsers', userBuckets.labels, barDs);
+  barDs = [{ label: 'Audit forms', data: auditBuckets.values, backgroundColor: 'rgba(200,164,78,0.6)', borderColor: gold, borderWidth: 1 }];
+  drawBar('saChartAudit', auditBuckets.labels, barDs);
+  barDs = [{ label: 'Workouts', data: workoutBuckets.values, backgroundColor: 'rgba(200,164,78,0.6)', borderColor: gold, borderWidth: 1 }];
+  drawBar('saChartWorkouts', workoutBuckets.labels, barDs);
+  barDs = [{ label: 'Sunday check-ins', data: sundayBuckets.values, backgroundColor: 'rgba(200,164,78,0.5)', borderColor: gold, borderWidth: 1 }];
+  drawBar('saChartSunday', sundayBuckets.labels, barDs);
+  barDs = [{ label: 'Part-2', data: part2Buckets.values, backgroundColor: 'rgba(200,164,78,0.5)', borderColor: gold, borderWidth: 1 }];
+  drawBar('saChartPart2', part2Buckets.labels, barDs);
+  var merged = mergeBucketLabels(tribeBuckets, msgBuckets, meetBuckets);
+  var tribeLabels = merged.labels.length ? merged.labels : ['No data'];
+  var keys = merged.keys || [];
+  var tribeDs = [
+    { label: 'Tribe joined', data: tribeLabels.length && keys.length ? valuesForKeys(tribeBuckets, keys) : [0], borderColor: gold, backgroundColor: 'rgba(200,164,78,0.2)', fill: true, tension: 0.2 },
+    { label: 'Messages', data: tribeLabels.length && keys.length ? valuesForKeys(msgBuckets, keys) : [0], borderColor: 'rgba(0,180,216,0.9)', backgroundColor: 'rgba(0,180,216,0.15)', fill: true, tension: 0.2 },
+    { label: 'Meetings', data: tribeLabels.length && keys.length ? valuesForKeys(meetBuckets, keys) : [0], borderColor: 'rgba(100,200,120,0.9)', backgroundColor: 'rgba(100,200,120,0.15)', fill: true, tension: 0.2 }
+  ];
+  drawLine('saChartTribe', tribeLabels, tribeDs);
+}
 function loadSuperadminDashboard() {
   var body = document.getElementById('superadminBody');
   var blocks = document.getElementById('superadminBlocks');
@@ -4253,7 +4447,17 @@ function loadSuperadminDashboard() {
     _superadminData = data;
     renderSuperadminData(data, false);
     if (loading) loading.style.display = 'none';
-    if (blocks) blocks.style.display = 'block';
+    var tabsEl = document.getElementById('superadminViewTabs');
+    if (tabsEl) tabsEl.style.display = 'flex';
+    var view = (window._superadminCurrentView || 'data');
+    if (view === 'data') {
+      if (blocks) blocks.style.display = 'block';
+      document.getElementById('superadminAnalytics').style.display = 'none';
+    } else {
+      if (blocks) blocks.style.display = 'none';
+      document.getElementById('superadminAnalytics').style.display = 'block';
+      drawSuperadminCharts(data);
+    }
     var sel = document.getElementById('saUserId');
     if (sel && data.users && data.users.length) {
       var cur = sel.value;
