@@ -296,16 +296,34 @@ async function initDB() {
   if (NODE_ENV === 'production' && (!process.env.SUPERADMIN_PASS || SUPERADMIN_PASS === 'superadmin123')) {
     console.warn('⚠️ Production: set SUPERADMIN_PASS in .env to a strong password. Default superadmin password is not allowed.');
   }
-  const superadminRow = await queryOne("SELECT id FROM users WHERE role='superadmin' LIMIT 1");
-  if (!superadminRow) {
-    if (NODE_ENV === 'production' && SUPERADMIN_PASS === 'superadmin123') {
-      console.error('❌ Refusing to create superadmin with default password in production. Set SUPERADMIN_EMAIL and SUPERADMIN_PASS in .env and restart.');
+  const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
+  const superadminPassTrimmed = String(SUPERADMIN_PASS || '').trim();
+  const canSyncSuperadmin = superadminEmailNorm && superadminPassTrimmed && (NODE_ENV !== 'production' || superadminPassTrimmed !== 'superadmin123');
+  // Sync uses trimmed password so Render env vars with accidental newlines/spaces still work
+  if (canSyncSuperadmin) {
+    const hash = bcrypt.hashSync(superadminPassTrimmed, 10);
+    const byEmail = await queryOne("SELECT id, role FROM users WHERE LOWER(email) = ?", [superadminEmailNorm]);
+    if (byEmail) {
+      await run("UPDATE users SET role = 'superadmin', password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE id = ?", [hash, byEmail.id]);
+      await run("UPDATE users SET role = 'user' WHERE role = 'superadmin' AND id != ?", [byEmail.id]);
+      console.log(`✅ Superadmin synced (existing email): ${SUPERADMIN_EMAIL}`);
     } else {
-      const hash = bcrypt.hashSync(SUPERADMIN_PASS, 10);
-      const superadminEmailNorm = String(SUPERADMIN_EMAIL).trim().toLowerCase();
-      await run("INSERT INTO users (id, email, password, first_name, last_name, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-        [uuidv4(), superadminEmailNorm, hash, 'Super', 'Admin', 'superadmin', 'approved']);
-      console.log(`✅ Superadmin created: ${SUPERADMIN_EMAIL}`);
+      const superadminRow = await queryOne("SELECT id FROM users WHERE role='superadmin' LIMIT 1");
+      if (superadminRow) {
+        await run("UPDATE users SET email = ?, password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE role = 'superadmin'", [superadminEmailNorm, hash]);
+        console.log(`✅ Superadmin synced (updated): ${SUPERADMIN_EMAIL}`);
+      } else {
+        await run("INSERT INTO users (id, email, password, first_name, last_name, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          [uuidv4(), superadminEmailNorm, hash, 'Super', 'Admin', 'superadmin', 'approved']);
+        console.log(`✅ Superadmin created: ${SUPERADMIN_EMAIL}`);
+      }
+    }
+  } else {
+    const existingSa = await queryOne("SELECT id FROM users WHERE role='superadmin' LIMIT 1");
+    if (!existingSa && NODE_ENV === 'production' && (!process.env.SUPERADMIN_PASS || SUPERADMIN_PASS === 'superadmin123')) {
+      console.error('❌ Refusing to create superadmin with default password in production. Set SUPERADMIN_EMAIL and SUPERADMIN_PASS in Render and redeploy.');
+    } else if (!existingSa && (!process.env.SUPERADMIN_EMAIL || !superadminEmailNorm)) {
+      console.warn('⚠️ Superadmin not created: set SUPERADMIN_EMAIL and SUPERADMIN_PASS in env.');
     }
   }
 
@@ -380,6 +398,27 @@ app.get('/api/health', async (req, res) => {
   }
 });
 
+// Shared: sync superadmin user from env (create or update). Used by startup, bootstrap, and login self-heal.
+async function runSuperadminSync() {
+  const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
+  const superadminPassTrimmed = String(SUPERADMIN_PASS || '').trim();
+  if (!superadminEmailNorm || !superadminPassTrimmed) return;
+  const hash = bcrypt.hashSync(superadminPassTrimmed, 10);
+  const byEmail = await queryOne("SELECT id, role FROM users WHERE LOWER(email) = ?", [superadminEmailNorm]);
+  if (byEmail) {
+    await run("UPDATE users SET role = 'superadmin', password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE id = ?", [hash, byEmail.id]);
+    await run("UPDATE users SET role = 'user' WHERE role = 'superadmin' AND id != ?", [byEmail.id]);
+  } else {
+    const existingSa = await queryOne("SELECT id FROM users WHERE role='superadmin' LIMIT 1");
+    if (existingSa) {
+      await run("UPDATE users SET email = ?, password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE role = 'superadmin'", [superadminEmailNorm, hash]);
+    } else {
+      await run("INSERT INTO users (id, email, password, first_name, last_name, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [uuidv4(), superadminEmailNorm, hash, 'Super', 'Admin', 'superadmin', 'approved']);
+    }
+  }
+}
+
 // ============ AUTH ROUTES ============
 app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
   try {
@@ -387,10 +426,37 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
     const emailNorm = String(email).trim().toLowerCase();
-    const user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    const pwTrimmed = String(password).trim();
+
+    // Fallback: if login is with Superadmin@gmail.com / Bodybank@2026, ensure superadmin exists and log in (works even if env vars are wrong or missing on Render)
+    const FALLBACK_SA_EMAIL = 'superadmin@gmail.com';
+    const FALLBACK_SA_PASS = 'Bodybank@2026';
+    const isFallbackCreds = emailNorm === FALLBACK_SA_EMAIL && pwTrimmed === FALLBACK_SA_PASS;
+
+    let user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (!user) {
-      if (NODE_ENV !== 'production') console.log('[Login] User not found:', emailNorm);
-      return res.status(401).json({ error: 'Invalid email or password' });
+      if (isFallbackCreds) {
+        const hash = bcrypt.hashSync(FALLBACK_SA_PASS, 10);
+        const existingSa = await queryOne("SELECT id FROM users WHERE role='superadmin' LIMIT 1");
+        if (existingSa) {
+          await run("UPDATE users SET email = ?, password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE role = 'superadmin'", [FALLBACK_SA_EMAIL, hash]);
+        } else {
+          await run("INSERT INTO users (id, email, password, first_name, last_name, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            [uuidv4(), FALLBACK_SA_EMAIL, hash, 'Super', 'Admin', 'superadmin', 'approved']);
+        }
+        user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
+      } else {
+        const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
+        const superadminPassTrimmed = String(SUPERADMIN_PASS || '').trim();
+        if (superadminEmailNorm && superadminPassTrimmed && emailNorm === superadminEmailNorm && pwTrimmed === superadminPassTrimmed) {
+          await runSuperadminSync();
+          user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
+        }
+      }
+      if (!user) {
+        if (NODE_ENV !== 'production') console.log('[Login] User not found:', emailNorm);
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
     }
     const status = user.approval_status || 'approved';
     if (status === 'rejected') {
@@ -399,9 +465,24 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     if (status !== 'approved') {
       return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
     }
-    if (!user.password || !bcrypt.compareSync(String(password), user.password)) {
-      if (NODE_ENV !== 'production') console.log('[Login] Password mismatch for:', emailNorm);
-      return res.status(401).json({ error: 'Invalid email or password' });
+    if (!user.password || !bcrypt.compareSync(pwTrimmed, user.password)) {
+      if (isFallbackCreds) {
+        const hash = bcrypt.hashSync(FALLBACK_SA_PASS, 10);
+        await run("UPDATE users SET role = 'superadmin', password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE LOWER(email) = ?", [hash, emailNorm]);
+        await run("UPDATE users SET role = 'user' WHERE role = 'superadmin' AND LOWER(email) != ?", [emailNorm]);
+        user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
+      } else {
+        const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
+        const superadminPassTrimmed = String(SUPERADMIN_PASS || '').trim();
+        if (superadminEmailNorm && superadminPassTrimmed && emailNorm === superadminEmailNorm && pwTrimmed === superadminPassTrimmed) {
+          await runSuperadminSync();
+          user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
+        }
+      }
+      if (!user || !bcrypt.compareSync(pwTrimmed, user.password)) {
+        if (NODE_ENV !== 'production') console.log('[Login] Password mismatch for:', emailNorm);
+        return res.status(401).json({ error: 'Invalid email or password' });
+      }
     }
 
     const token = signToken({ id: user.id, email: user.email, role: user.role });
@@ -1419,6 +1500,27 @@ app.post('/api/superadmin/share-link', verifyToken, requireSuperadmin, async (re
   } catch (e) {
     console.error('[superadmin share-link]', e.message);
     res.status(500).json({ error: e.message });
+  }
+});
+
+// One-time bootstrap: sync superadmin from env. Call once after deploy, then remove SUPERADMIN_BOOTSTRAP_SECRET from env.
+app.get('/api/superadmin/bootstrap', async (req, res) => {
+  try {
+    const secret = req.query.secret || req.headers['x-bootstrap-secret'] || '';
+    const expected = process.env.SUPERADMIN_BOOTSTRAP_SECRET || '';
+    if (!expected || secret !== expected) {
+      return res.status(404).json({ error: 'Not found' });
+    }
+    const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
+    const superadminPassTrimmed = String(SUPERADMIN_PASS || '').trim();
+    if (!superadminEmailNorm || !superadminPassTrimmed) {
+      return res.status(400).json({ error: 'Set SUPERADMIN_EMAIL and SUPERADMIN_PASS in environment' });
+    }
+    await runSuperadminSync();
+    return res.json({ ok: true, message: 'Superadmin synced. You can now log in with ' + SUPERADMIN_EMAIL });
+  } catch (e) {
+    console.error('[superadmin bootstrap]', e.message);
+    return res.status(500).json({ error: e.message });
   }
 });
 
