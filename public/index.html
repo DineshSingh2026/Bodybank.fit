@@ -469,9 +469,12 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-stat-item .num{font-family:'Bebas Neue',sans-serif;font-size:40px;color:var(--gold);letter-spacing:1px;line-height:1}
 .admin-stat-item .lbl{font-size:13px;color:var(--creamd);letter-spacing:1px;font-weight:500}
 .admin-stats-sep{width:1px;height:36px;background:linear-gradient(180deg,transparent,rgba(200,164,78,0.4),transparent)}
-.admin-current-section-wrap{margin-bottom:20px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.admin-current-section-wrap{margin-bottom:20px;padding:10px 0}
 .admin-current-section{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;color:var(--gold);text-transform:uppercase}
 @media(max-width:768px){.admin-current-section{font-size:16px;letter-spacing:1.5px}}
+.admin-subsection-wrap{margin-bottom:28px}
+.admin-subsection-wrap:last-child{margin-bottom:0}
+.admin-subsection-title{font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--bdr)}
 
 .admin-mobile-nav-bar{display:none;align-items:center;gap:14px;margin-bottom:20px;padding:12px 0;border-bottom:1px solid var(--bdr)}
 @media(max-width:768px){
@@ -534,6 +537,53 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-tab-content{display:none;min-height:min-content}
 .admin-tab-content.active{display:block}
 
+/* AI Assist (image icon) + WhatsApp FABs & Panel (admin only) */
+.admin-ai-wa-fab-wrap{position:fixed;bottom:24px;right:24px;z-index:350;display:flex;flex-direction:column;align-items:center;gap:14px}
+.admin-ai-assist-fab{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 1px rgba(255,255,255,0.08);transition:transform .2s,box-shadow .2s;padding:0;background:rgba(6,6,6,0.95);flex-shrink:0}
+.admin-ai-assist-fab:hover{transform:scale(1.06);box-shadow:0 6px 24px rgba(0,180,216,0.4)}
+.admin-ai-assist-fab:focus{outline:none;box-shadow:0 0 0 3px rgba(0,180,216,0.5)}
+.admin-ai-assist-fab-img-el{width:32px;height:32px;object-fit:contain;display:block}
+@media(max-width:768px){
+  .admin-ai-wa-fab-wrap{bottom:auto;top:max(76px,calc(56px + env(safe-area-inset-top)));right:max(20px,env(safe-area-inset-right))}
+  .admin-ai-assist-fab{width:58px;height:58px}
+  .admin-ai-assist-fab-img-el{width:34px;height:34px}
+  .admin-ai-assist-panel{bottom:auto;top:max(146px,calc(126px + env(safe-area-inset-top)));right:max(20px,env(safe-area-inset-right));left:max(20px,env(safe-area-inset-left));width:auto;max-height:min(420px,calc(100vh - 170px))}
+}
+@media(max-width:480px){
+  .admin-ai-wa-fab-wrap{top:max(72px,calc(52px + env(safe-area-inset-top)));right:max(16px,env(safe-area-inset-right))}
+  .admin-ai-assist-fab{width:56px;height:56px}
+  .admin-ai-assist-fab-img-el{width:32px;height:32px}
+  .admin-ai-assist-panel{top:max(138px,calc(118px + env(safe-area-inset-top)));right:max(16px,env(safe-area-inset-right));left:max(16px,env(safe-area-inset-left));max-height:min(380px,calc(100vh - 155px))}
+}
+.admin-ai-assist-panel{position:fixed;bottom:130px;right:24px;width:min(380px,calc(100vw - 48px));max-height:min(420px,65vh);background:var(--dark2);border:1px solid var(--bdr);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:351;display:flex;flex-direction:column;opacity:0;visibility:hidden;transform:translateY(12px) scale(0.96);transition:opacity .25s,visibility .25s,transform .25s;overflow:hidden}
+.admin-ai-assist-panel.open{opacity:1;visibility:visible;transform:translateY(0) scale(1)}
+.admin-ai-assist-panel[aria-hidden="false"]{opacity:1;visibility:visible;transform:translateY(0) scale(1)}
+.admin-ai-assist-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--bdr);background:rgba(0,180,216,0.08);flex-shrink:0}
+.admin-ai-assist-header-title{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:700;color:var(--cream)}
+.admin-ai-assist-header-img{width:24px;height:24px;object-fit:contain}
+.admin-ai-assist-close{width:36px;height:36px;border:none;background:transparent;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;border-radius:8px;transition:color .2s,background .2s}
+.admin-ai-assist-close:hover{color:var(--cream);background:rgba(255,255,255,0.06)}
+.admin-ai-assist-welcome{padding:14px 16px;font-size:13px;color:var(--muted);line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0}
+.admin-ai-assist-welcome p{margin:0 0 8px}
+.admin-ai-assist-welcome p:last-child{margin-bottom:0}
+.admin-ai-assist-hint{font-size:12px;opacity:.9}
+.admin-ai-assist-messages{flex:1;min-height:120px;max-height:200px;overflow-y:auto;overflow-x:hidden;padding:12px;display:flex;flex-direction:column;gap:10px;-webkit-overflow-scrolling:touch}
+.admin-ai-assist-messages:empty{display:none}
+.admin-ai-assist-msg{max-width:90%;padding:10px 14px;border-radius:12px;font-size:13px;line-height:1.5;word-break:break-word;white-space:pre-wrap}
+.admin-ai-assist-msg.user{align-self:flex-end;background:#25D366;color:#fff;border-bottom-right-radius:4px}
+.admin-ai-assist-msg.assistant{align-self:flex-start;background:rgba(255,255,255,0.08);color:var(--cream);border:1px solid var(--bdr);border-bottom-left-radius:4px}
+.admin-ai-assist-msg.assistant.error{background:rgba(255,80,80,0.12);border-color:rgba(255,80,80,0.3);color:#ff8a8a}
+.admin-ai-assist-input-wrap{display:flex;align-items:flex-end;gap:8px;padding:12px;border-top:1px solid var(--bdr);background:rgba(0,0,0,0.2);flex-shrink:0}
+.admin-ai-assist-input{flex:1;min-height:44px;max-height:120px;padding:12px 14px;border:1px solid var(--bdr);border-radius:12px;background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;font-size:14px;resize:none;transition:border-color .2s}
+.admin-ai-assist-input:focus{outline:none;border-color:var(--gold)}
+.admin-ai-assist-input::placeholder{color:var(--muted)}
+.admin-ai-assist-send{width:44px;height:44px;min-width:44px;border:none;border-radius:12px;background:#25D366;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .2s,background .2s}
+.admin-ai-assist-send:hover{opacity:.95;background:#20bd5a}
+.admin-ai-assist-send:disabled{opacity:.6;cursor:not-allowed}
+.admin-ai-assist-footer{padding:10px 16px 14px;border-top:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.15);flex-shrink:0}
+.admin-ai-assist-done-btn{width:100%;padding:10px 16px;border:1px solid var(--bdr);border-radius:10px;background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:color .2s,background .2s,border-color .2s}
+.admin-ai-assist-done-btn:hover{color:var(--cream);background:rgba(255,255,255,0.06);border-color:var(--gold)}
+
 /* Performance Insights */
 .insights-filters{margin-bottom:24px;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
 .insights-filter-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
@@ -555,7 +605,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .insights-table-wrap::-webkit-scrollbar-thumb{background:var(--bdr);border-radius:3px}
 .insights-table-wrap::-webkit-scrollbar-thumb:hover{background:rgba(200,164,78,0.35)}
 
-/* Pending Requests Table */
+/* Audit forms Table */
 .admin-table th{text-align:left;padding:12px 16px;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold);border-bottom:1px solid var(--bdr);background:rgba(200,164,78,0.04)}
 .admin-table td{padding:14px 16px;font-size:14px;color:var(--creamd);border-bottom:1px solid rgba(255,255,255,0.04)}
 .admin-table tr:hover td{background:rgba(200,164,78,0.03)}
@@ -619,8 +669,8 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .admin-mobile-nav-bar{display:none}
   .admin-tabs{display:none}
   .admin-top-hamburger{display:flex}
-  .admin-body{padding:12px 24px 24px;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
-  .admin-top{position:sticky;top:0;z-index:20;flex-shrink:0;padding:12px 24px}
+  .admin-body{padding:12px 16px 24px;flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
+  .admin-top{position:sticky;top:0;z-index:20;flex-shrink:0;padding:12px 16px}
   .admin-current-section-wrap{margin-bottom:12px;padding:6px 0;flex-shrink:0}
   .admin-tab-content-wrap{flex:1;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:12px 0;margin:0;border-radius:0;border:none;background:transparent;box-sizing:border-box}
   .admin-notify-panel{position:fixed;left:16px;right:16px;top:60px;margin-top:0;width:auto;max-width:none;max-height:60vh}
@@ -636,11 +686,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .admin-cp-detail #adminCpShareWrap .form-submit{width:100%;margin-top:0}
   .admin-cp-detail #adminCpShareUrlWrap{margin-top:12px!important}
   .admin-cp-detail #adminCpKpis{position:static;width:100%;margin-top:12px!important}
-  .admin-current-section-wrap{border-bottom:2px solid rgba(200,164,78,0.5);padding-bottom:10px}
+  .admin-current-section-wrap{padding-bottom:10px}
   .admin-tab-content{padding:0;box-sizing:border-box}
   .admin-tab-content-wrap .admin-table-wrap,.admin-tab-content-wrap .insights-table-wrap{max-height:none;overflow:visible;margin-bottom:8px;margin-left:0;margin-right:0;width:100%;padding:0;min-width:0;box-sizing:border-box}
   .admin-tab-content-wrap .admin-table-wrap .admin-table,.admin-tab-content-wrap .insights-table-wrap .admin-table{width:100%!important;min-width:0!important;table-layout:fixed}
-  .admin-tab-content-wrap .tribe-grid{max-height:none;overflow:visible;display:flex;flex-direction:column;gap:12px;box-sizing:border-box;width:100%;margin:0;padding:0}
+  .admin-tab-content-wrap .tribe-grid{max-height:none;overflow:visible;display:flex;flex-direction:column;gap:24px;box-sizing:border-box;width:100%;min-width:0;margin:0;padding:0}
   .admin-tab-content-wrap .admin-welcome,.admin-tab-content-wrap .admin-stats{padding-left:0;padding-right:0}
   .admin-table{min-width:0!important;width:100%!important}
   .admin-table thead{display:none}
@@ -657,19 +707,28 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .insights-table-wrap .admin-table tbody td{display:block;padding:6px 0;border:none}
   .insights-table-wrap .admin-table tbody td::before{content:attr(data-label);display:block;font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
   .insights-table-wrap .admin-table tbody td[colspan]::before{display:none}
-  .admin-tab-content-wrap .tribe-card{padding:20px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
-  .admin-tab-content-wrap .tribe-name{text-transform:uppercase;font-size:18px}
-  .admin-tab-content-wrap .tribe-detail .label{font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted)}
-  .admin-tab-content-wrap .tribe-detail .val{color:var(--cream);font-weight:500}
+  .admin-tab-content-wrap .tribe-card{width:100%;min-width:0;max-width:none;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:12px;box-shadow:0 4px 12px rgba(0,0,0,0.2);box-sizing:border-box}
+  .admin-tab-content-wrap .tribe-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;gap:8px;flex-wrap:nowrap}
+  .admin-tab-content-wrap .tribe-avatar{width:40px;height:40px;font-size:14px;flex-shrink:0}
+  .admin-tab-content-wrap .tribe-phase{font-size:9px;padding:3px 8px;white-space:nowrap;flex-shrink:0;align-self:flex-start}
+  .admin-tab-content-wrap .tribe-name{text-transform:uppercase;font-size:20px;letter-spacing:0.5px;margin-bottom:4px;word-break:break-word;line-height:1.2}
+  .admin-tab-content-wrap .tribe-meta{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.4}
+  .admin-tab-content-wrap .tribe-progress{margin-bottom:12px;width:100%;min-width:0}
+  .admin-tab-content-wrap .tribe-progress-label{font-size:11px}
+  .admin-tab-content-wrap .tribe-progress-bar{height:6px;width:100%;min-width:0;border-radius:3px}
+  .admin-tab-content-wrap .tribe-details{display:flex;flex-direction:column;gap:6px;grid-template-columns:1fr}
+  .admin-tab-content-wrap .tribe-detail{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+  .admin-tab-content-wrap .tribe-detail:last-child{border-bottom:none}
+  .admin-tab-content-wrap .tribe-detail .label{font-size:10px;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);flex-shrink:0}
+  .admin-tab-content-wrap .tribe-detail .val{color:var(--cream);font-weight:500;text-align:right;word-break:break-word}
   .admin-h-scroll-ctrl{display:none}
   .admin-tab-content-wrap .admin-welcome{margin-bottom:20px}
   .admin-tab-content-wrap .admin-stats{margin-bottom:24px}
 }
 @media(max-width:600px){
   .admin-stats{flex-direction:column;align-items:flex-start}
-  .admin-body{padding:10px 20px 80px;box-sizing:border-box;overflow-x:visible}
-  .admin-top{padding:10px 20px;gap:8px}
-  .admin-tab-content-wrap{overflow-x:visible}
+  .admin-body{padding:10px 16px 80px;box-sizing:border-box}
+  .admin-top{padding:10px 16px;gap:8px}
   .admin-table{font-size:14px}
   .admin-table th,.admin-table td{font-size:14px}
   .admin-welcome h1{font-size:32px}
@@ -685,12 +744,72 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .admin-top-right{flex-wrap:nowrap;gap:8px}
   .admin-notify-btn{width:36px;height:36px;font-size:14px}
   .admin-logout{padding:6px 12px;font-size:11px}
-  .admin-notify-panel{left:12px;right:12px}
+  .admin-notify-panel{left:16px;right:16px}
   .admin-tab-content-wrap{margin:0}
   .admin-tab-content{padding:0}
   .admin-tab-content-wrap .admin-table-wrap,.admin-tab-content-wrap .insights-table-wrap{margin-left:0;margin-right:0;width:100%;padding:0;margin-bottom:8px;box-sizing:border-box}
-  .admin-tab-content-wrap .tribe-grid{width:100%;margin:0;padding:0;box-sizing:border-box}
+  .admin-tab-content-wrap .tribe-grid{width:100%;min-width:0;margin:0;padding:0;box-sizing:border-box;gap:24px}
   .admin-tab-content-wrap .admin-welcome,.admin-tab-content-wrap .admin-stats{padding-left:0;padding-right:0}
+}
+@media(max-width:480px){
+  .admin-tab-content-wrap .tribe-card{padding:16px;border-radius:12px}
+  .admin-tab-content-wrap .tribe-name{font-size:22px}
+  .admin-tab-content-wrap .tribe-meta{font-size:12px}
+  .admin-tab-content-wrap .tribe-detail .label{font-size:10px}
+  .admin-tab-content-wrap .tribe-detail .val{font-size:13px}
+}
+
+/* SUPERADMIN DASHBOARD - single page, responsive, no full-page horizontal scroll */
+.superadmin-panel{display:none;position:fixed;inset:0;z-index:300;background:var(--black);overflow:hidden;flex-direction:column}
+.superadmin-panel.open{display:flex}
+.superadmin-top{padding:16px 24px;border-bottom:1px solid var(--bdr);background:var(--black);flex-shrink:0;display:flex;flex-wrap:wrap;align-items:center;gap:12px;justify-content:space-between}
+.superadmin-heading{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--cream);margin:0;letter-spacing:-0.3px}
+.superadmin-sub{font-size:12px;color:var(--muted);margin:0;width:100%}
+.superadmin-top-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.superadmin-btn{padding:8px 14px;border:1.5px solid var(--gold);border-radius:6px;background:transparent;color:var(--gold);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.5px;cursor:pointer;transition:all .2s}
+.superadmin-btn:hover{background:rgba(200,164,78,0.12)}
+.superadmin-share-btn{background:rgba(200,164,78,0.1)}
+.superadmin-logout{padding:8px 14px;border:1px solid var(--bdr);border-radius:6px;background:transparent;color:var(--muted);font-size:12px;cursor:pointer;transition:all .2s}
+.superadmin-logout:hover{color:var(--cream);border-color:var(--cream)}
+.superadmin-filters{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding:12px 24px;border-bottom:1px solid var(--bdr);background:rgba(255,255,255,0.02);flex-shrink:0}
+.superadmin-filters label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.superadmin-input,.superadmin-select{padding:6px 10px;border:1px solid var(--bdr);border-radius:6px;background:var(--dark2);color:var(--cream);font-size:12px;min-width:0}
+.superadmin-select{min-width:120px;max-width:200px}
+.superadmin-apply{background:var(--gold);color:var(--black);border-color:var(--gold)}
+.superadmin-apply:hover{background:var(--goldd);border-color:var(--goldd)}
+.superadmin-share-url-wrap{display:flex;align-items:center;gap:8px;padding:8px 24px;background:rgba(200,164,78,0.08);border-bottom:1px solid var(--bdr);flex-shrink:0}
+.superadmin-share-input{flex:1;min-width:0;padding:8px 12px;border:1px solid var(--bdr);border-radius:6px;background:var(--dark2);color:var(--cream);font-size:12px}
+.superadmin-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 24px}
+.superadmin-loading{color:var(--muted);font-size:14px;margin:0}
+.superadmin-blocks{display:flex;flex-direction:column;gap:28px;max-width:100%;min-width:0}
+.superadmin-block{min-width:0}
+.superadmin-block-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--gold);margin:0 0 12px;display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.superadmin-csv{padding:4px 10px;font-size:11px;border:1px solid var(--bdr);border-radius:4px;background:transparent;color:var(--muted);cursor:pointer;font-family:inherit}
+.superadmin-csv:hover{color:var(--gold);border-color:var(--gold)}
+.superadmin-stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;min-width:0}
+.superadmin-stat{background:rgba(255,255,255,0.04);border:1px solid var(--bdr);border-radius:8px;padding:12px;min-width:0}
+.superadmin-stat .num{font-size:20px;font-weight:700;color:var(--gold);display:block}
+.superadmin-stat .lbl{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px}
+.superadmin-table-wrap{min-width:0;overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch}
+.superadmin-table-wrap::-webkit-scrollbar{height:6px}
+.superadmin-cards{display:flex;flex-direction:column;gap:8px;min-width:0}
+.superadmin-card{background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:8px;padding:12px;display:grid;gap:6px;min-width:0}
+.superadmin-card .row{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12px}
+.superadmin-card .k{color:var(--muted);min-width:80px}
+.superadmin-card .v{color:var(--cream);word-break:break-word}
+.superadmin-empty{color:var(--muted);font-size:13px;margin:0;padding:12px 0}
+@media(min-width:768px){
+  .superadmin-table-wrap .superadmin-cards{display:table;border-collapse:collapse;width:100%;min-width:600px}
+  .superadmin-table-wrap .superadmin-card{display:table-row;border-radius:0;border:0;border-bottom:1px solid var(--bdr);padding:8px 12px}
+  .superadmin-table-wrap .superadmin-card .row{display:table-cell;padding:8px;vertical-align:middle}
+  .superadmin-table-wrap .superadmin-card .k{display:none}
+  .superadmin-table-wrap .superadmin-card .v::before{content:attr(data-label);font-weight:600;color:var(--muted);margin-right:8px}
+}
+@media(max-width:600px){
+  .superadmin-top{flex-direction:column;align-items:flex-start}
+  .superadmin-heading{font-size:18px}
+  .superadmin-filters{padding:12px 16px}
+  .superadmin-body{padding:16px}
 }
 
 /* USER DASHBOARD */
@@ -1196,7 +1315,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   </div>
   <div class="admin-body">
     <div class="admin-current-section-wrap" aria-live="polite">
-      <span class="admin-current-section" id="adminCurrentSection">Pending Requests</span>
+      <span class="admin-current-section" id="adminCurrentSection">Audit forms</span>
     </div>
 
     <div class="admin-mobile-nav-bar">
@@ -1212,25 +1331,23 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
         <button class="admin-nav-drawer-close" onclick="closeAdminNavDrawer()" aria-label="Close">&times;</button>
       </div>
       <nav class="admin-nav-drawer-links">
-        <a class="admin-nav-link active" href="#" data-tab="requests" onclick="switchTab('requests');closeAdminNavDrawer();return false">Pending Requests</a>
+        <a class="admin-nav-link active" href="#" data-tab="requests" onclick="switchTab('requests');closeAdminNavDrawer();return false">Audit forms</a>
         <a class="admin-nav-link" href="#" data-tab="signups" onclick="switchTab('signups');closeAdminNavDrawer();return false">Pending Sign-ups</a>
         <a class="admin-nav-link" href="#" data-tab="clientprogress" onclick="switchTab('clientprogress');closeAdminNavDrawer();return false">Client Progress</a>
         <a class="admin-nav-link" href="#" data-tab="insights" onclick="switchTab('insights');closeAdminNavDrawer();return false">Performance Insights</a>
         <a class="admin-nav-link" href="#" data-tab="tribe" onclick="switchTab('tribe');closeAdminNavDrawer();return false">Tribe</a>
         <a class="admin-nav-link" href="#" data-tab="workouts" onclick="switchTab('workouts');closeAdminNavDrawer();return false">Workouts</a>
-        <a class="admin-nav-link" href="#" data-tab="messages" onclick="switchTab('messages');closeAdminNavDrawer();return false">Messages</a>
-        <a class="admin-nav-link" href="#" data-tab="meetings" onclick="switchTab('meetings');closeAdminNavDrawer();return false">Upcoming Meetings</a>
+        <a class="admin-nav-link" href="#" data-tab="messages-meetings" onclick="switchTab('messages-meetings');closeAdminNavDrawer();return false">Messages &amp; Meetings</a>
         <a class="admin-nav-link" href="#" data-tab="part2" onclick="switchTab('part2');closeAdminNavDrawer();return false">Part-2 Form</a>
         <a class="admin-nav-link sc-style" href="#" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin');closeAdminNavDrawer();return false">Sunday Check-in</a>
       </nav>
     </div>
     <div class="admin-tabs" id="adminTabs">
-      <div class="admin-tab active" data-tab="requests" onclick="switchTab('requests')">Pending Requests</div>
+      <div class="admin-tab active" data-tab="requests" onclick="switchTab('requests')">Audit forms</div>
       <div class="admin-tab" data-tab="signups" onclick="switchTab('signups')">Pending Sign-ups</div>
       <div class="admin-tab" data-tab="tribe" onclick="switchTab('tribe')">Tribe</div>
       <div class="admin-tab" data-tab="workouts" onclick="switchTab('workouts')">Workouts</div>
-      <div class="admin-tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
-      <div class="admin-tab" data-tab="meetings" onclick="switchTab('meetings')">Upcoming Meetings</div>
+      <div class="admin-tab" data-tab="messages-meetings" onclick="switchTab('messages-meetings')">Messages &amp; Meetings</div>
       <div class="admin-tab" data-tab="part2" onclick="switchTab('part2')">Part-2 Form</div>
       <div class="admin-tab sc-style" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin')">Sunday Check-in</div>
       <div class="admin-tab" data-tab="clientprogress" onclick="switchTab('clientprogress')">Client Progress</div>
@@ -1238,14 +1355,14 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     </div>
 
     <div class="admin-tab-content-wrap">
-    <!-- TAB 1: Pending Requests (welcome + stats only here) -->
+    <!-- TAB 1: Audit forms (welcome + stats only here) -->
     <div class="admin-tab-content active" id="tab-requests">
       <div class="admin-welcome">
         <h1>Welcome back, Admin</h1>
         <p>Here's what's happening with BodyBank today.</p>
       </div>
       <div class="admin-stats">
-        <div class="admin-stat-item"><span class="num" id="statPending">0</span><span class="lbl">Pending Requests</span></div>
+        <div class="admin-stat-item"><span class="num" id="statPending">0</span><span class="lbl">Audit forms</span></div>
         <span class="admin-stats-sep" aria-hidden="true"></span>
         <div class="admin-stat-item"><span class="num" id="statActive">0</span><span class="lbl">Active Members</span></div>
       </div>
@@ -1297,16 +1414,31 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       </div>
     </div>
 
-    <!-- TAB 4: Messages -->
-    <div class="admin-tab-content" id="tab-messages">
-      <div class="admin-table-wrap"><table class="admin-table">
-        <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Date</th></tr></thead>
-        <tbody id="messagesBody"></tbody>
-      </table></div>
-      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
-        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
-        <span class="admin-h-scroll-label">Scroll to see all columns</span>
-        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+    <!-- TAB: Messages & Upcoming Meetings (combined) -->
+    <div class="admin-tab-content" id="tab-messages-meetings">
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Messages</h3>
+        <div class="admin-table-wrap"><table class="admin-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Phone</th><th>Message</th><th>Date</th></tr></thead>
+          <tbody id="messagesBody"></tbody>
+        </table></div>
+        <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+          <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+          <span class="admin-h-scroll-label">Scroll to see all columns</span>
+          <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+        </div>
+      </div>
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Upcoming Meetings</h3>
+        <div class="admin-table-wrap"><table class="admin-table">
+          <thead><tr><th>User</th><th>Email</th><th>Phone</th><th>Date</th><th>Time Slot</th></tr></thead>
+          <tbody id="meetingsBody"></tbody>
+        </table></div>
+        <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+          <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+          <span class="admin-h-scroll-label">Scroll to see all columns</span>
+          <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+        </div>
       </div>
     </div>
 
@@ -1315,19 +1447,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <div class="admin-table-wrap"><table class="admin-table">
         <thead><tr><th>Name</th><th>Reply Email</th><th>Submitted</th><th>Actions</th></tr></thead>
         <tbody id="sundayCheckinBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
-      </table></div>
-      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
-        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
-        <span class="admin-h-scroll-label">Scroll to see all columns</span>
-        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
-      </div>
-    </div>
-
-    <!-- TAB 5: Upcoming Meetings -->
-    <div class="admin-tab-content" id="tab-meetings">
-      <div class="admin-table-wrap"><table class="admin-table">
-        <thead><tr><th>User</th><th>Email</th><th>Phone</th><th>Date</th><th>Time Slot</th></tr></thead>
-        <tbody id="meetingsBody"></tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
         <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
@@ -1435,9 +1554,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 
     <!-- Mobile-only: fixed bottom navigation -->
     <nav class="admin-bottom-nav" id="adminBottomNav" aria-label="Admin sections">
-      <button type="button" class="admin-bottom-nav-item active" data-tab="requests" onclick="switchTab('requests')" aria-label="Pending Requests">
+      <button type="button" class="admin-bottom-nav-item active" data-tab="requests" onclick="switchTab('requests')" aria-label="Audit forms">
         <span class="admin-bottom-nav-icon">📋</span>
-        <span class="admin-bottom-nav-label">Requests</span>
+        <span class="admin-bottom-nav-label">Audit forms</span>
       </button>
       <button type="button" class="admin-bottom-nav-item" data-tab="signups" onclick="switchTab('signups')" aria-label="Pending Sign-ups">
         <span class="admin-bottom-nav-icon">✉️</span>
@@ -1467,15 +1586,106 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
       <div class="admin-more-modal-list">
         <button type="button" class="admin-more-modal-item" onclick="switchTab('tribe');closeAdminMoreModal()">Tribe</button>
         <button type="button" class="admin-more-modal-item" onclick="switchTab('workouts');closeAdminMoreModal()">Workouts</button>
-        <button type="button" class="admin-more-modal-item" onclick="switchTab('messages');closeAdminMoreModal()">Messages</button>
-        <button type="button" class="admin-more-modal-item" onclick="switchTab('meetings');closeAdminMoreModal()">Upcoming Meetings</button>
+        <button type="button" class="admin-more-modal-item" onclick="switchTab('messages-meetings');closeAdminMoreModal()">Messages &amp; Meetings</button>
         <button type="button" class="admin-more-modal-item" onclick="switchTab('part2');closeAdminMoreModal()">Part-2 Form</button>
         <button type="button" class="admin-more-modal-item sc-style" onclick="switchTab('sundaycheckin');closeAdminMoreModal()">Sunday Check-in</button>
+      </div>
+    </div>
+
+    <!-- AI Assist FAB (admin only) -->
+    <div class="admin-ai-wa-fab-wrap">
+      <button type="button" class="admin-ai-assist-fab admin-ai-assist-fab-img" id="adminAiAssistFab" onclick="toggleAdminAiAssistPanel()" aria-label="Open AI Assist" title="AI Assist – ask questions about your data">
+        <img src="AI%20assist.jpg" alt="" class="admin-ai-assist-fab-img-el" width="32" height="32">
+      </button>
+    </div>
+    <div class="admin-ai-assist-panel" id="adminAiAssistPanel" role="dialog" aria-label="AI Assist chat" aria-hidden="true">
+      <div class="admin-ai-assist-header">
+        <div class="admin-ai-assist-header-title">
+          <img src="AI%20assist.jpg" alt="" class="admin-ai-assist-header-img" width="24" height="24">
+          <span>AI Assist</span>
+        </div>
+        <button type="button" class="admin-ai-assist-close" onclick="closeAdminAiAssistPanel()" aria-label="Close">&times;</button>
+      </div>
+      <div class="admin-ai-assist-welcome" id="adminAiAssistWelcome">
+        <p>Ask me anything about your BodyBank data: audit forms, tribe members, workouts, messages, Sunday check-ins, and more.</p>
+        <p class="admin-ai-assist-hint">Example: &ldquo;How many pending audit forms?&rdquo; or &ldquo;Summarize recent tribe activity.&rdquo;</p>
+      </div>
+      <div class="admin-ai-assist-messages" id="adminAiAssistMessages"></div>
+      <div class="admin-ai-assist-input-wrap">
+        <textarea class="admin-ai-assist-input" id="adminAiAssistInput" placeholder="Type your question…" rows="1" maxlength="2000"></textarea>
+        <button type="button" class="admin-ai-assist-send" id="adminAiAssistSend" onclick="sendAdminAiMessage()" aria-label="Send">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+        </button>
+      </div>
+      <div class="admin-ai-assist-footer">
+        <button type="button" class="admin-ai-assist-done-btn" onclick="closeAdminAiAssistPanel()">Close AI Assist</button>
       </div>
     </div>
   </div>
 </div>
 
+<!-- SUPERADMIN DASHBOARD (single-page, all data + filters + CSV + share) -->
+<div class="superadmin-panel" id="superadminPanel">
+  <div class="superadmin-top">
+    <h1 class="superadmin-heading">BodyBank – Superadmin</h1>
+    <p class="superadmin-sub">Business overview · All data in one view</p>
+    <div class="superadmin-top-actions">
+      <button type="button" class="superadmin-btn superadmin-share-btn" id="superadminShareBtn" onclick="superadminShareLink()">Share via link</button>
+      <button type="button" class="superadmin-logout" onclick="logoutSuperadmin()">Logout</button>
+    </div>
+  </div>
+  <div class="superadmin-filters" id="superadminFilters">
+    <label>From <input type="date" class="superadmin-input" id="saFrom"></label>
+    <label>To <input type="date" class="superadmin-input" id="saTo"></label>
+    <label>User <select class="superadmin-select" id="saUserId"><option value="">All</option></select></label>
+    <button type="button" class="superadmin-btn superadmin-apply" onclick="loadSuperadminDashboard()">Apply filters</button>
+  </div>
+  <div class="superadmin-share-url-wrap" id="superadminShareUrlWrap" style="display:none">
+    <input type="text" readonly class="superadmin-share-input" id="superadminShareUrl">
+    <button type="button" class="superadmin-btn" onclick="copySuperadminShareUrl()">Copy</button>
+  </div>
+  <div class="superadmin-body" id="superadminBody">
+    <p class="superadmin-loading" id="superadminLoading">Loading dashboard…</p>
+    <div class="superadmin-blocks" id="superadminBlocks" style="display:none">
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Summary</h2>
+        <div class="superadmin-stats-grid" id="saStats"></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Audit forms <button type="button" class="superadmin-csv" data-block="audit">Download CSV</button></h2>
+        <div class="superadmin-table-wrap" id="saAuditWrap"><div class="superadmin-cards" id="saAudit"></div></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Part-2 form <button type="button" class="superadmin-csv" data-block="part2">Download CSV</button></h2>
+        <div class="superadmin-table-wrap" id="saPart2Wrap"><div class="superadmin-cards" id="saPart2"></div></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Sunday check-ins <button type="button" class="superadmin-csv" data-block="sunday_checkins">Download CSV</button></h2>
+        <div class="superadmin-table-wrap" id="saSundayWrap"><div class="superadmin-cards" id="saSunday"></div></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Users <button type="button" class="superadmin-csv" data-block="users">Download CSV</button></h2>
+        <div class="superadmin-table-wrap" id="saUsersWrap"><div class="superadmin-cards" id="saUsers"></div></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Workouts <button type="button" class="superadmin-csv" data-block="workouts">Download CSV</button></h2>
+        <div class="superadmin-table-wrap" id="saWorkoutsWrap"><div class="superadmin-cards" id="saWorkouts"></div></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Tribe <button type="button" class="superadmin-csv" data-block="tribe">Download CSV</button></h2>
+        <div class="superadmin-table-wrap" id="saTribeWrap"><div class="superadmin-cards" id="saTribe"></div></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Meetings <button type="button" class="superadmin-csv" data-block="meetings">Download CSV</button></h2>
+        <div class="superadmin-table-wrap" id="saMeetingsWrap"><div class="superadmin-cards" id="saMeetings"></div></div>
+      </section>
+      <section class="superadmin-block">
+        <h2 class="superadmin-block-title">Contact messages <button type="button" class="superadmin-csv" data-block="messages">Download CSV</button></h2>
+        <div class="superadmin-table-wrap" id="saMessagesWrap"><div class="superadmin-cards" id="saMessages"></div></div>
+      </section>
+    </div>
+  </div>
+</div>
 
 <!-- SUCCESS / ERROR POPUPS -->
 <div class="popup-overlay" id="popupSuccess" onclick="if(event.target===this)closePopup('popupSuccess')">
@@ -2062,6 +2272,11 @@ async function adminLogin() {
       document.body.classList.add('site-nav-hidden');
       lockBodyScroll();
       loadDashboard();
+    } else if (data.role === 'superadmin') {
+      document.getElementById('superadminPanel').classList.add('open');
+      document.body.classList.add('site-nav-hidden');
+      lockBodyScroll();
+      loadSuperadminDashboard();
     } else {
       // Store user data and show popup
       window._pendingUser = data;
@@ -2325,7 +2540,7 @@ async function loadRequests() {
   const tbody = document.getElementById('requestsBody');
   if (!tbody) return;
   if (data.error || !Array.isArray(data)) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Could not load requests</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted)">Could not load audit forms</td></tr>';
     return;
   }
   tbody.innerHTML = data.map(r => {
@@ -2759,6 +2974,7 @@ function logoutAdmin() {
   if (typeof stopAdminNotificationPolling === 'function') stopAdminNotificationPolling();
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
   document.getElementById('adminPanel').classList.remove('open');
+  if (typeof closeAdminAiAssistPanel === 'function') closeAdminAiAssistPanel();
   document.body.classList.remove('site-nav-hidden');
   closeModal('loginModal');
   closeModal('signupModal');
@@ -2785,7 +3001,75 @@ function closeAdminMoreModal() {
   if (el) el.classList.remove('open');
   if (ov) ov.classList.remove('open');
 }
+
+function toggleAdminAiAssistPanel() {
+  var panel = document.getElementById('adminAiAssistPanel');
+  var fab = document.getElementById('adminAiAssistFab');
+  if (!panel || !fab) return;
+  var isOpen = panel.classList.toggle('open');
+  panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
+  if (isOpen) {
+    setTimeout(function() {
+      var input = document.getElementById('adminAiAssistInput');
+      if (input) input.focus();
+    }, 100);
+  }
+}
+function closeAdminAiAssistPanel() {
+  var panel = document.getElementById('adminAiAssistPanel');
+  var fab = document.getElementById('adminAiAssistFab');
+  if (panel) {
+    panel.classList.remove('open');
+    panel.setAttribute('aria-hidden', 'true');
+  }
+}
+function appendAdminAiMessage(role, text, isError) {
+  var container = document.getElementById('adminAiAssistMessages');
+  var welcome = document.getElementById('adminAiAssistWelcome');
+  if (!container) return;
+  if (welcome) welcome.style.display = 'none';
+  var div = document.createElement('div');
+  div.className = 'admin-ai-assist-msg ' + role + (isError ? ' error' : '');
+  div.textContent = text;
+  container.appendChild(div);
+  container.scrollTop = container.scrollHeight;
+}
+async function sendAdminAiMessage() {
+  var input = document.getElementById('adminAiAssistInput');
+  var sendBtn = document.getElementById('adminAiAssistSend');
+  var messagesEl = document.getElementById('adminAiAssistMessages');
+  if (!input || !sendBtn) return;
+  var text = (input.value || '').trim();
+  if (!text) return;
+  input.value = '';
+  appendAdminAiMessage('user', text);
+  sendBtn.disabled = true;
+  try {
+    var data = await apiCall('POST', '/api/admin/ai-assist', { message: text });
+    var reply = (data && data.reply) ? data.reply : '';
+    if (reply) {
+      appendAdminAiMessage('assistant', reply);
+    } else {
+      appendAdminAiMessage('assistant', 'I couldn’t fetch an answer right now. Please make sure you’re logged in as admin and try again, or check the dashboard for your data.');
+    }
+  } catch (e) {
+    appendAdminAiMessage('assistant', 'Something went wrong. Please try again in a moment or check the dashboard directly.');
+  }
+  sendBtn.disabled = false;
+  if (messagesEl) messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+(function setupAdminAiAssistInput() {
+  var input = document.getElementById('adminAiAssistInput');
+  if (!input) return;
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendAdminAiMessage();
+    }
+  });
+})();
 function switchTab(tab) {
+  if (tab === 'messages' || tab === 'meetings') tab = 'messages-meetings';
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.admin-nav-link').forEach(a => a.classList.remove('active'));
   document.querySelectorAll('.admin-tab-content').forEach(c => c.classList.remove('active'));
@@ -2801,9 +3085,8 @@ function switchTab(tab) {
   if (navLink) navLink.classList.add('active');
   const content = document.getElementById('tab-' + tab);
   if (content) content.classList.add('active');
-  if (tab === 'meetings') loadAdminMeetings();
+  if (tab === 'messages-meetings') { loadAdminMessages(); loadAdminMeetings(); }
   if (tab === 'workouts') loadAdminWorkouts();
-  if (tab === 'messages') loadAdminMessages();
   if (tab === 'requests') loadRequests();
   if (tab === 'signups') loadPendingSignups();
   if (tab === 'sundaycheckin') loadSundayCheckins();
@@ -3900,6 +4183,11 @@ function handleGoogleResponse(response) {
       document.body.classList.add('site-nav-hidden');
       lockBodyScroll();
       loadDashboard();
+    } else if (data.role === 'superadmin') {
+      document.getElementById('superadminPanel').classList.add('open');
+      document.body.classList.add('site-nav-hidden');
+      lockBodyScroll();
+      loadSuperadminDashboard();
     } else {
       openUserDashboard(data);
     }
@@ -3921,12 +4209,200 @@ function restoreSession() {
       document.body.classList.add('site-nav-hidden');
       lockBodyScroll();
       loadDashboard();
+    } else if (data.role === 'superadmin') {
+      document.getElementById('superadminPanel').classList.add('open');
+      document.body.classList.add('site-nav-hidden');
+      lockBodyScroll();
+      loadSuperadminDashboard();
     } else {
       openUserDashboard(data);
     }
   } catch (e) {}
 }
-restoreSession();
+
+// ========== SUPERADMIN DASHBOARD ==========
+var _superadminData = null;
+
+function getSuperadminFilters() {
+  var from = document.getElementById('saFrom');
+  var to = document.getElementById('saTo');
+  var uid = document.getElementById('saUserId');
+  return {
+    from: (from && from.value) || '',
+    to: (to && to.value) || '',
+    user_id: (uid && uid.value) || ''
+  };
+}
+
+function loadSuperadminDashboard() {
+  var body = document.getElementById('superadminBody');
+  var blocks = document.getElementById('superadminBlocks');
+  var loading = document.getElementById('superadminLoading');
+  if (loading) loading.style.display = 'block';
+  if (blocks) blocks.style.display = 'none';
+  var f = getSuperadminFilters();
+  var q = [];
+  if (f.from) q.push('from=' + encodeURIComponent(f.from));
+  if (f.to) q.push('to=' + encodeURIComponent(f.to));
+  if (f.user_id) q.push('user_id=' + encodeURIComponent(f.user_id));
+  var url = API + '/api/superadmin/dashboard' + (q.length ? '?' + q.join('&') : '');
+  var opts = { headers: {} };
+  if (window.currentUser && window.currentUser.token) opts.headers['Authorization'] = 'Bearer ' + window.currentUser.token;
+  fetch(url, opts).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.error) { if (loading) loading.textContent = data.error; return; }
+    _superadminData = data;
+    renderSuperadminData(data, false);
+    if (loading) loading.style.display = 'none';
+    if (blocks) blocks.style.display = 'block';
+    var sel = document.getElementById('saUserId');
+    if (sel && data.users && data.users.length) {
+      var cur = sel.value;
+      sel.innerHTML = '<option value="">All</option>';
+      data.users.forEach(function(u) {
+        var lab = (u.first_name || '') + ' ' + (u.last_name || '').trim() || u.email || u.id;
+        sel.appendChild(new Option(lab, u.id));
+      });
+      if (cur) sel.value = cur;
+    }
+  }).catch(function() {
+    if (loading) { loading.textContent = 'Failed to load dashboard.'; loading.style.display = 'block'; }
+  });
+}
+
+function renderSuperadminData(data, readOnly) {
+  var s = data.stats || {};
+  var statsEl = document.getElementById('saStats');
+  if (statsEl) {
+    statsEl.innerHTML = [
+      { lbl: 'Audit forms', num: s.audit_total },
+      { lbl: 'Pending audit', num: s.pending_requests },
+      { lbl: 'Tribe members', num: s.tribe_total },
+      { lbl: 'Workouts', num: s.workouts },
+      { lbl: 'Part-2', num: s.part2 },
+      { lbl: 'Sunday check-ins', num: s.sunday_checkins },
+      { lbl: 'Approved users', num: s.approved_users },
+      { lbl: 'Pending sign-ups', num: s.pending_signups },
+      { lbl: 'Meetings', num: s.meetings },
+      { lbl: 'Messages', num: s.messages }
+    ].map(function(x) { return '<div class="superadmin-stat"><span class="num">' + (x.num ?? 0) + '</span><span class="lbl">' + (x.lbl || '') + '</span></div>'; }).join('');
+  }
+  function cardRows(obj, keys) {
+    return keys.map(function(k) { return '<div class="row"><span class="k">' + (k.replace(/_/g, ' ')) + '</span><span class="v" data-label="' + k + '">' + (obj[k] != null ? String(obj[k]) : '') + '</span></div>'; }).join('');
+  }
+  function renderCards(containerId, list, keys) {
+    var el = document.getElementById(containerId);
+    if (!el) return;
+    if (!list || !list.length) { el.innerHTML = '<p class="superadmin-empty">No data</p>'; return; }
+    el.innerHTML = list.map(function(row) {
+      return '<div class="superadmin-card">' + cardRows(row, keys) + '</div>';
+    }).join('');
+  }
+  renderCards('saAudit', data.audit, ['first_name', 'last_name', 'email', 'city', 'goals', 'status', 'created_at']);
+  renderCards('saPart2', data.part2, ['name', 'email', 'mobile', 'activity_level', 'created_at']);
+  renderCards('saSunday', data.sunday_checkins, ['full_name', 'reply_email', 'total_weight_loss', 'achievements', 'created_at']);
+  renderCards('saUsers', data.users, ['first_name', 'last_name', 'email', 'approval_status', 'created_at']);
+  renderCards('saWorkouts', data.workouts, ['workout_name', 'duration_seconds', 'feedback', 'first_name', 'last_name', 'created_at']);
+  renderCards('saTribe', data.tribe, ['first_name', 'last_name', 'email', 'city', 'phase', 'start_date', 'activity_per_week', 'status']);
+  renderCards('saMeetings', data.meetings, ['user_name', 'user_email', 'meeting_date', 'time_slot', 'status', 'created_at']);
+  renderCards('saMessages', data.messages, ['name', 'email', 'message', 'created_at']);
+}
+
+function logoutSuperadmin() {
+  document.getElementById('superadminPanel').classList.remove('open');
+  document.body.classList.remove('site-nav-hidden');
+  unlockBodyScroll();
+  try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+  window.currentUser = null;
+}
+
+function superadminShareLink() {
+  var f = getSuperadminFilters();
+  var opts = { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f) };
+  if (window.currentUser && window.currentUser.token) opts.headers['Authorization'] = 'Bearer ' + window.currentUser.token;
+  fetch(API + '/api/superadmin/share-link', opts).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.error) { showPopup('Error', data.error, '', 'OK', null, 'error'); return; }
+    var wrap = document.getElementById('superadminShareUrlWrap');
+    var input = document.getElementById('superadminShareUrl');
+    if (input) input.value = data.url || '';
+    if (wrap) wrap.style.display = 'flex';
+  }).catch(function() { showPopup('Error', 'Could not create share link.', '', 'OK', null, 'error'); });
+}
+
+function copySuperadminShareUrl() {
+  var input = document.getElementById('superadminShareUrl');
+  if (!input || !input.value) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(input.value).then(function() { showPopup('Copied', 'Link copied to clipboard.', '', 'OK'); }).catch(function() { fallbackCopy(input.value); });
+  } else { fallbackCopy(input.value); }
+}
+function fallbackCopy(str) {
+  var ta = document.createElement('textarea'); ta.value = str; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); showPopup('Copied', 'Link copied to clipboard.', '', 'OK'); } catch (e) {} document.body.removeChild(ta);
+}
+
+function superadminDownloadCSV(blockName) {
+  if (!_superadminData) return;
+  var list = _superadminData[blockName];
+  if (!list || !list.length) { showPopup('No data', 'Nothing to export for this block.', '', 'OK'); return; }
+  var keys = Object.keys(list[0]).filter(function(k) { return k !== 'password'; });
+  var header = keys.join(',');
+  var rows = list.map(function(row) {
+    return keys.map(function(k) {
+      var v = row[k];
+      if (v == null) return '';
+      var s = String(v);
+      if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }).join(',');
+  });
+  var csv = [header].concat(rows).join('\r\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'superadmin-' + blockName + '.csv'; a.click(); URL.revokeObjectURL(a.href);
+}
+
+document.getElementById('superadminBlocks') && document.getElementById('superadminBlocks').addEventListener('click', function(e) {
+  var btn = e.target && e.target.closest && e.target.closest('.superadmin-csv');
+  if (!btn || !btn.getAttribute('data-block')) return;
+  e.preventDefault();
+  superadminDownloadCSV(btn.getAttribute('data-block'));
+});
+
+// Check for shared superadmin link (no login)
+(function checkSuperadminShare() {
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('superadmin_share') || params.get('t');
+  if (token) {
+    fetch(API + '/api/superadmin/shared?t=' + encodeURIComponent(token))
+      .then(function(r) {
+        return r.text().then(function(text) {
+          var data;
+          try { data = text ? JSON.parse(text) : {}; } catch (e) { data = { error: 'Invalid response' }; }
+          return { ok: r.ok, data: data };
+        });
+      })
+      .then(function(result) {
+        var data = result.data;
+        if (!result.ok || data.error) { showPopup('Link expired or invalid', data.error || 'Could not load shared data.', '', 'OK', null, 'error'); return; }
+        document.getElementById('superadminPanel').classList.add('open');
+        document.body.classList.add('site-nav-hidden');
+        lockBodyScroll();
+        document.getElementById('superadminFilters').style.display = 'none';
+        document.getElementById('superadminShareUrlWrap').style.display = 'none';
+        var shareBtn = document.getElementById('superadminShareBtn');
+        if (shareBtn) shareBtn.style.display = 'none';
+        var closeBtn = document.querySelector('.superadmin-logout');
+        if (closeBtn) { closeBtn.textContent = 'Close'; closeBtn.onclick = function() { document.getElementById('superadminPanel').classList.remove('open'); document.body.classList.remove('site-nav-hidden'); unlockBodyScroll(); if (window.history && window.history.replaceState) window.history.replaceState({}, '', window.location.pathname || '/'); }; }
+        var loadEl = document.getElementById('superadminLoading');
+        var blocksEl = document.getElementById('superadminBlocks');
+        if (loadEl) loadEl.style.display = 'none';
+        if (blocksEl) blocksEl.style.display = 'block';
+        _superadminData = data;
+        renderSuperadminData(data, true);
+      })
+      .catch(function() { showPopup('Error', 'Could not load shared data.', '', 'OK', null, 'error'); });
+    return;
+  }
+  restoreSession();
+})();
 
 </script>
 </body>

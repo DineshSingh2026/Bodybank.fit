@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
-const { signToken, verifyToken, requireAdmin, signProgressReportToken, verifyProgressReportToken } = require('./middleware/auth');
+const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken } = require('./middleware/auth');
 const progressRoutes = require('./routes/progress');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
@@ -15,11 +15,16 @@ const progressService = require('./services/progressService');
 const PORT = process.env.PORT || 3000;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@bodybank.fit';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
+const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
+const SUPERADMIN_PASS = process.env.SUPERADMIN_PASS || 'superadmin123';
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursite.com (production)
 
 const app = express();
+
+// Trust proxy (Render, Nginx, etc.) so req.protocol and req.get('host') are correct for share links
+app.set('trust proxy', 1);
 
 // ============ MIDDLEWARE ============
 app.use(compression());
@@ -288,6 +293,22 @@ async function initDB() {
     }
   }
 
+  if (NODE_ENV === 'production' && (!process.env.SUPERADMIN_PASS || SUPERADMIN_PASS === 'superadmin123')) {
+    console.warn('⚠️ Production: set SUPERADMIN_PASS in .env to a strong password. Default superadmin password is not allowed.');
+  }
+  const superadminRow = await queryOne("SELECT id FROM users WHERE role='superadmin' LIMIT 1");
+  if (!superadminRow) {
+    if (NODE_ENV === 'production' && SUPERADMIN_PASS === 'superadmin123') {
+      console.error('❌ Refusing to create superadmin with default password in production. Set SUPERADMIN_EMAIL and SUPERADMIN_PASS in .env and restart.');
+    } else {
+      const hash = bcrypt.hashSync(SUPERADMIN_PASS, 10);
+      const superadminEmailNorm = String(SUPERADMIN_EMAIL).trim().toLowerCase();
+      await run("INSERT INTO users (id, email, password, first_name, last_name, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        [uuidv4(), superadminEmailNorm, hash, 'Super', 'Admin', 'superadmin', 'approved']);
+      console.log(`✅ Superadmin created: ${SUPERADMIN_EMAIL}`);
+    }
+  }
+
   // Seed sample data if empty
   try {
     const tribeRow = await queryOne("SELECT COUNT(*) as c FROM tribe_members");
@@ -345,11 +366,14 @@ app.get('/api/config', (req, res) => {
 app.get('/api/health', async (req, res) => {
   try {
     const adminCheck = await queryOne("SELECT email FROM users WHERE role='admin' LIMIT 1");
+    const superadminCheck = await queryOne("SELECT email FROM users WHERE role='superadmin' LIMIT 1");
     res.json({
       ok: true,
       db: 'connected',
       admin_email: ADMIN_EMAIL,
-      admin_exists: !!adminCheck
+      admin_exists: !!adminCheck,
+      superadmin_email: SUPERADMIN_EMAIL,
+      superadmin_exists: !!superadminCheck
     });
   } catch (e) {
     res.status(500).json({ ok: false, db: 'error', error: e.message });
@@ -1011,6 +1035,234 @@ app.get('/api/admin/db-view', async (req, res) => {
   }
 });
 
+// ============ ADMIN: AI ASSIST (context from DB, optional OpenAI) ============
+function num(v) { return (v === undefined || v === null ? 0 : parseInt(String(v), 10) || 0); }
+
+async function getAdminAIContext() {
+  const lines = [];
+  const now = new Date().toISOString();
+  lines.push('LIVE DATA — BodyBank database. Fetched just now (' + now + '). Use this to answer the admin.\n');
+
+  try {
+    const [pendingReq] = await queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='pending'");
+    const [approvedReq] = await queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='approved'");
+    const [rejectedReq] = await queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='rejected'");
+    const [auditTotal] = await queryAll("SELECT COUNT(*) as c FROM audit_requests");
+    const [tribeTotal] = await queryAll("SELECT COUNT(*) as c FROM tribe_members");
+    const [tribeActive] = await queryAll("SELECT COUNT(*) as c FROM tribe_members WHERE status='active'");
+    const [tribeCompleted] = await queryAll("SELECT COUNT(*) as c FROM tribe_members WHERE status='completed'");
+    const [workouts] = await queryAll("SELECT COUNT(*) as c FROM workout_logs");
+    const [messages] = await queryAll("SELECT COUNT(*) as c FROM contact_messages");
+    const [meetings] = await queryAll("SELECT COUNT(*) as c FROM meetings");
+    const [meetingsScheduled] = await queryAll("SELECT COUNT(*) as c FROM meetings WHERE status='scheduled'");
+    const [part2] = await queryAll("SELECT COUNT(*) as c FROM part2_audit");
+    const [sundayCheck] = await queryAll("SELECT COUNT(*) as c FROM sunday_checkins");
+    const [signups] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending')");
+    const [approvedUsers] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status = 'approved' OR approval_status IS NULL)");
+
+    const p = num(pendingReq?.c), a = num(approvedReq?.c), r = num(rejectedReq?.c), totAudit = num(auditTotal?.c);
+    const totTribe = num(tribeTotal?.c), act = num(tribeActive?.c), comp = num(tribeCompleted?.c);
+    const w = num(workouts?.c), msg = num(messages?.c), meet = num(meetings?.c), sched = num(meetingsScheduled?.c);
+    const p2 = num(part2?.c), sc = num(sundayCheck?.c), pendSign = num(signups?.c), appUsers = num(approvedUsers?.c);
+
+    lines.push('--- COUNTS (use these for "how many" questions) ---');
+    lines.push('Audit forms: ' + totAudit + ' total. Pending: ' + p + ', Approved: ' + a + ', Rejected: ' + r + '.');
+    if (totAudit === 0) lines.push('(No audit form submissions in the database yet.)');
+    lines.push('Tribe members: ' + totTribe + ' total. Active: ' + act + ', Completed: ' + comp + '.');
+    if (totTribe === 0) lines.push('(No tribe members yet.)');
+    lines.push('Workout logs: ' + w + '.');
+    if (w === 0) lines.push('(No workout logs yet.)');
+    lines.push('Contact messages: ' + msg + '.');
+    if (msg === 0) lines.push('(No contact messages yet.)');
+    lines.push('Meetings: ' + meet + ' total, ' + sched + ' scheduled.');
+    if (meet === 0) lines.push('(No meetings yet.)');
+    lines.push('Part-2 form submissions: ' + p2 + '.');
+    if (p2 === 0) lines.push('(No Part-2 submissions yet.)');
+    lines.push('Sunday check-ins: ' + sc + '.');
+    if (sc === 0) lines.push('(No Sunday check-ins yet.)');
+    lines.push('Pending sign-ups (awaiting approval): ' + pendSign + '.');
+    lines.push('Approved users (can log in): ' + appUsers + '.');
+
+    const recentAudit = await queryAll("SELECT first_name, last_name, email, city, goals, status, created_at FROM audit_requests ORDER BY created_at DESC LIMIT 20");
+    lines.push('\n--- RECENT AUDIT REQUESTS (latest first) ---');
+    if (recentAudit && recentAudit.length > 0) {
+      recentAudit.forEach(r => {
+        lines.push(`  ${(r.first_name || '')} ${(r.last_name || '')} | ${r.email || ''} | ${r.city || ''} | status: ${r.status || 'pending'} | ${(r.goals || '').slice(0, 50)} | ${r.created_at || ''}`);
+      });
+    } else lines.push('  (None.)');
+
+    const recentTribe = await queryAll("SELECT first_name, last_name, email, city, phase, start_date, activity_per_week, status FROM tribe_members ORDER BY start_date DESC LIMIT 20");
+    lines.push('\n--- TRIBE MEMBERS ---');
+    if (recentTribe && recentTribe.length > 0) {
+      recentTribe.forEach(r => {
+        lines.push(`  ${(r.first_name || '')} ${(r.last_name || '')} | ${r.email || ''} | ${r.city || ''} | Phase ${r.phase} | ${r.activity_per_week}x/week | ${r.status || 'active'} | start ${r.start_date || ''}`);
+      });
+    } else lines.push('  (None.)');
+
+    const recentWorkouts = await queryAll("SELECT w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 15");
+    lines.push('\n--- RECENT WORKOUT LOGS ---');
+    if (recentWorkouts && recentWorkouts.length > 0) {
+      recentWorkouts.forEach(r => {
+        lines.push(`  ${(r.first_name || '')} ${(r.last_name || '')} | ${r.workout_name || ''} | ${r.duration_seconds || 0}s | ${(r.feedback || '').slice(0, 40)} | ${r.created_at || ''}`);
+      });
+    } else lines.push('  (None.)');
+
+    const recentMessages = await queryAll("SELECT name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 12");
+    lines.push('\n--- RECENT CONTACT MESSAGES ---');
+    if (recentMessages && recentMessages.length > 0) {
+      recentMessages.forEach(r => {
+        const msgSnippet = (r.message || '').replace(/\s+/g, ' ').slice(0, 80);
+        lines.push(`  ${r.name || ''} (${r.email || ''}): "${msgSnippet}" | ${r.created_at || ''}`);
+      });
+    } else lines.push('  (None.)');
+
+    const recentMeetings = await queryAll("SELECT user_name, user_email, meeting_date, time_slot, status, created_at FROM meetings ORDER BY created_at DESC LIMIT 10");
+    lines.push('\n--- MEETINGS ---');
+    if (recentMeetings && recentMeetings.length > 0) {
+      recentMeetings.forEach(r => {
+        lines.push(`  ${r.user_name || ''} | ${r.user_email || ''} | ${r.meeting_date || ''} ${r.time_slot || ''} | ${r.status || ''} | ${r.created_at || ''}`);
+      });
+    } else lines.push('  (None.)');
+
+    const recentPart2 = await queryAll("SELECT name, email, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 10");
+    lines.push('\n--- PART-2 SUBMISSIONS ---');
+    if (recentPart2 && recentPart2.length > 0) {
+      recentPart2.forEach(r => {
+        lines.push(`  ${r.name || ''} | ${r.email || ''} | ${r.created_at || ''}`);
+      });
+    } else lines.push('  (None.)');
+
+    const recentCheckins = await queryAll("SELECT full_name, reply_email, total_weight_loss, achievements, improve_next_week, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT 10");
+    lines.push('\n--- SUNDAY CHECK-INS ---');
+    if (recentCheckins && recentCheckins.length > 0) {
+      recentCheckins.forEach(r => {
+        lines.push(`  ${r.full_name || ''} | ${r.reply_email || ''} | weight: ${r.total_weight_loss || '-'} | ${(r.achievements || '').slice(0, 40)} | ${r.created_at || ''}`);
+      });
+    } else lines.push('  (None.)');
+
+    const pendingSignupList = await queryAll("SELECT first_name, last_name, email, created_at FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending') ORDER BY created_at DESC LIMIT 10");
+    lines.push('\n--- PENDING SIGN-UPS (awaiting approval) ---');
+    if (pendingSignupList && pendingSignupList.length > 0) {
+      pendingSignupList.forEach(r => {
+        lines.push(`  ${(r.first_name || '')} ${(r.last_name || '')} | ${r.email || ''} | ${r.created_at || ''}`);
+      });
+    } else lines.push('  (None.)');
+  } catch (e) {
+    lines.push('\n(Data fetch issue: ' + e.message + '. Still answer politely from the counts above if any.)');
+  }
+  return lines.join('\n');
+}
+
+const AI_SYSTEM_PROMPT = `You are a polite, professional AI assistant for the BodyBank admin dashboard. The admin is asking questions about their platform data.
+
+RULES:
+1. Be friendly and helpful. Never reply with "error", "not found", or technical error messages.
+2. The context below is LIVE data from the database (fetched just now). Use it to answer.
+3. When the data shows zero or "None" for something, say so in a clear, polite way — e.g. "There are no pending audit forms at the moment" or "We don't have any Sunday check-ins yet." Do not say "data not found" or "error".
+4. When you have data, give a direct, useful answer (numbers, names, or a short summary as appropriate).
+5. If the question is not covered by the context at all, say something like: "I don't have that information in the current data. You can check the relevant section in the dashboard for more detail."
+6. Do not make up numbers or names. Only use what is in the context.
+7. Keep answers concise but complete.`;
+
+async function callOpenAIChat(systemContext, userMessage) {
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey || !apiKey.trim()) return null;
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer ' + apiKey.trim()
+    },
+    body: JSON.stringify({
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      max_tokens: 800,
+      messages: [
+        { role: 'system', content: AI_SYSTEM_PROMPT + '\n\n--- LIVE DATABASE CONTEXT ---\n' + systemContext },
+        { role: 'user', content: userMessage }
+      ]
+    })
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error('OpenAI: ' + (err || response.statusText));
+  }
+  const data = await response.json();
+  const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
+  return content ? content.trim() : null;
+}
+
+function buildPoliteFallbackReply(context, question) {
+  const q = (question || '').toLowerCase();
+  const lines = context.split('\n');
+  const counts = {};
+  lines.forEach(line => {
+    const m = line.match(/^([^:]+):\s*(\d+)/);
+    if (m) counts[m[1].trim().toLowerCase()] = parseInt(m[2], 10);
+  });
+  const n = (key) => {
+    const k = Object.keys(counts).find(x => x.includes(key));
+    return k != null ? counts[k] : null;
+  };
+  let answer = '';
+  if (/\bhow many\b.*pending|pending.*(audit|form)/.test(q)) {
+    const v = (context.match(/Pending:\s*(\d+)/) || [])[1];
+    const x = v != null ? parseInt(v, 10) : 0;
+    answer = x === 0 ? 'There are no pending audit forms at the moment.' : 'You have ' + x + ' pending audit form' + (x === 1 ? '' : 's') + ' right now.';
+  } else if (/\bhow many\b.*tribe|tribe.*(member|active)/.test(q)) {
+    const tot = (context.match(/Tribe members:\s*(\d+)\s+total/) || [])[1];
+    const act = (context.match(/Active:\s*(\d+)/) || [])[1];
+    const t = tot != null ? parseInt(tot, 10) : 0;
+    const a = act != null ? parseInt(act, 10) : 0;
+    answer = t === 0 ? 'There are no tribe members yet.' : 'You have ' + t + ' tribe member' + (t === 1 ? '' : 's') + ' in total, ' + a + ' active.';
+  } else if (/\bhow many\b.*workout|workout.*log/.test(q)) {
+    const w = (context.match(/Workout logs:\s*(\d+)/) || [])[1];
+    const x = w != null ? parseInt(w, 10) : 0;
+    answer = x === 0 ? 'There are no workout logs yet.' : 'There are ' + x + ' workout log' + (x === 1 ? '' : 's') + ' in the database.';
+  } else if (/\bhow many\b.*(message|contact)/.test(q)) {
+    const m = (context.match(/Contact messages:\s*(\d+)/) || [])[1];
+    const x = m != null ? parseInt(m, 10) : 0;
+    answer = x === 0 ? 'There are no contact messages yet.' : 'You have ' + x + ' contact message' + (x === 1 ? '' : 's') + '.';
+  } else if (/\bhow many\b.*(sunday|check-in|checkin)/.test(q)) {
+    const s = (context.match(/Sunday check-ins:\s*(\d+)/) || [])[1];
+    const x = s != null ? parseInt(s, 10) : 0;
+    answer = x === 0 ? 'There are no Sunday check-ins yet.' : 'There are ' + x + ' Sunday check-in' + (x === 1 ? '' : 's') + '.';
+  } else if (/\bhow many\b.*(sign-up|signup|pending.*approval)/.test(q)) {
+    const p = (context.match(/Pending sign-ups[^:]*:\s*(\d+)/) || [])[1];
+    const x = p != null ? parseInt(p, 10) : 0;
+    answer = x === 0 ? 'There are no pending sign-ups awaiting approval.' : 'There are ' + x + ' pending sign-up' + (x === 1 ? '' : 's') + ' awaiting approval.';
+  } else {
+    answer = 'Here’s a snapshot of your current data:\n\n' + context.split('---').slice(0, 3).join('---').trim() + '\n\nIf you’d like answers to specific questions (e.g. “How many pending forms?”), I can give those. You can also set OPENAI_API_KEY in the server .env for full AI-powered answers.';
+  }
+  return answer;
+}
+
+app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => {
+  let reply = '';
+  try {
+    const { message } = req.body || {};
+    const text = typeof message === 'string' ? message.trim() : '';
+    if (!text) {
+      reply = 'Please ask a question about your BodyBank data (e.g. “How many pending audit forms?” or “Summarize tribe members”).';
+      return res.json({ reply });
+    }
+
+    const context = await getAdminAIContext();
+    const hasOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim());
+
+    if (hasOpenAI) {
+      reply = await callOpenAIChat(context, text);
+    }
+    if (reply == null || reply === '') {
+      reply = buildPoliteFallbackReply(context, text);
+    }
+    return res.json({ reply });
+  } catch (e) {
+    console.error('[admin ai-assist]', e.message);
+    reply = 'I couldn’t look up the data right now. Please try again in a moment, or check the dashboard directly.';
+    return res.json({ reply });
+  }
+});
+
 // ============ CLIENT PROGRESS ANALYTICS (JWT-protected) ============
 app.use('/api/progress', progressRoutes);
 app.get('/api/admin/user-progress/:userId', (req, res, next) => {
@@ -1055,6 +1307,138 @@ app.get('/api/admin/progress-report-link/:userId', verifyToken, requireAdmin, (r
   }
 });
 
+// ============ SUPERADMIN: DASHBOARD DATA (single payload with filters) ============
+async function getSuperadminDashboardData(filters = {}) {
+  const { from: dateFrom, to: dateTo, user_id: filterUserId } = filters;
+  const hasDate = dateFrom || dateTo;
+  const dateParams = [dateFrom, dateTo].filter(Boolean);
+  const num = (v) => (v === undefined || v === null ? 0 : parseInt(String(v), 10) || 0);
+
+  const addDateAndUser = (sql, dateCol, userCol) => {
+    const conditions = [];
+    const params = [];
+    if (dateFrom && dateCol) { conditions.push(`date(${dateCol}) >= date(?)`); params.push(dateFrom); }
+    if (dateTo && dateCol) { conditions.push(`date(${dateCol}) <= date(?)`); params.push(dateTo); }
+    if (filterUserId && userCol) { conditions.push(`${userCol} = ?`); params.push(filterUserId); }
+    if (conditions.length === 0) return { sql, params: [] };
+    const where = sql.toLowerCase().includes(' where ') ? ' AND ' : ' WHERE ';
+    return { sql: sql + where + conditions.join(' AND '), params };
+  };
+
+  const [pendingReq] = await queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='pending'");
+  const [auditTotal] = await queryAll("SELECT COUNT(*) as c FROM audit_requests");
+  const [tribeTotal] = await queryAll("SELECT COUNT(*) as c FROM tribe_members");
+  const [tribeActive] = await queryAll("SELECT COUNT(*) as c FROM tribe_members WHERE status='active'");
+  const [workoutsCount] = await queryAll("SELECT COUNT(*) as c FROM workout_logs");
+  const [part2Count] = await queryAll("SELECT COUNT(*) as c FROM part2_audit");
+  const [sundayCount] = await queryAll("SELECT COUNT(*) as c FROM sunday_checkins");
+  const [messagesCount] = await queryAll("SELECT COUNT(*) as c FROM contact_messages");
+  const [meetingsCount] = await queryAll("SELECT COUNT(*) as c FROM meetings");
+  const [signupsPending] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending')");
+  const [usersApproved] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status = 'approved' OR approval_status IS NULL)");
+
+  const stats = {
+    pending_requests: num(pendingReq?.c),
+    audit_total: num(auditTotal?.c),
+    tribe_total: num(tribeTotal?.c),
+    tribe_active: num(tribeActive?.c),
+    workouts: num(workoutsCount?.c),
+    part2: num(part2Count?.c),
+    sunday_checkins: num(sundayCount?.c),
+    messages: num(messagesCount?.c),
+    meetings: num(meetingsCount?.c),
+    pending_signups: num(signupsPending?.c),
+    approved_users: num(usersApproved?.c)
+  };
+
+  let audit = await queryAll("SELECT id, first_name, last_name, email, city, goals, status, created_at FROM audit_requests ORDER BY created_at DESC LIMIT 200");
+  let part2 = await queryAll("SELECT id, name, email, mobile, activity_level, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 200");
+  let sunday_checkins = await queryAll("SELECT id, full_name, reply_email, total_weight_loss, achievements, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT 200");
+  let users = await queryAll("SELECT id, first_name, last_name, email, approval_status, created_at FROM users WHERE role='user' ORDER BY created_at DESC LIMIT 300");
+  let workouts = await queryAll("SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 200");
+  let tribe = await queryAll("SELECT id, first_name, last_name, email, city, phase, start_date, activity_per_week, status FROM tribe_members ORDER BY start_date DESC LIMIT 200");
+  let meetings = await queryAll("SELECT id, user_id, user_name, user_email, meeting_date, time_slot, status, created_at FROM meetings ORDER BY created_at DESC LIMIT 200");
+  let messages = await queryAll("SELECT id, user_id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 200");
+
+  if (hasDate || filterUserId) {
+    const filterByDate = (rows, dateKey) => {
+      if (!hasDate) return filterUserId ? rows.filter(r => r.user_id === filterUserId) : rows;
+      return rows.filter(r => {
+        const d = (r[dateKey] || r.created_at || '').toString().slice(0, 10);
+        const okDate = (!dateFrom || d >= dateFrom) && (!dateTo || d <= dateTo);
+        const okUser = !filterUserId || r.user_id === filterUserId;
+        return okDate && okUser;
+      });
+    };
+    audit = filterByDate(audit, 'created_at');
+    part2 = filterByDate(part2, 'created_at');
+    sunday_checkins = filterByDate(sunday_checkins, 'created_at');
+    workouts = filterByDate(workouts, 'created_at');
+    meetings = filterByDate(meetings, 'created_at');
+    messages = filterByDate(messages, 'created_at');
+    if (filterUserId) users = users.filter(r => r.id === filterUserId);
+  }
+
+  const performance = { ...stats };
+
+  return {
+    stats,
+    performance,
+    audit,
+    part2,
+    sunday_checkins,
+    users,
+    workouts,
+    tribe,
+    meetings,
+    messages,
+    filters: { from: dateFrom || null, to: dateTo || null, user_id: filterUserId || null }
+  };
+}
+
+app.get('/api/superadmin/dashboard', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const from = req.query.from || null;
+    const to = req.query.to || null;
+    const user_id = req.query.user_id || null;
+    const data = await getSuperadminDashboardData({ from, to, user_id });
+    res.json(data);
+  } catch (e) {
+    console.error('[superadmin dashboard]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/superadmin/share-link', verifyToken, requireSuperadmin, async (req, res) => {
+  try {
+    const { from, to, user_id } = req.body || {};
+    const token = signShareToken({ from: from || null, to: to || null, user_id: user_id || null });
+    const baseUrl = (process.env.PUBLIC_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
+    const url = baseUrl + '/index.html?superadmin_share=' + encodeURIComponent(token);
+    res.json({ url, token });
+  } catch (e) {
+    console.error('[superadmin share-link]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/superadmin/shared', async (req, res) => {
+  try {
+    const token = req.query.t || req.query.token || null;
+    const decoded = verifyShareToken(token);
+    if (!decoded) return res.status(401).json({ error: 'Invalid or expired share link' });
+    const data = await getSuperadminDashboardData({
+      from: decoded.from || null,
+      to: decoded.to || null,
+      user_id: decoded.user_id || null
+    });
+    res.json(data);
+  } catch (e) {
+    console.error('[superadmin shared]', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ============ SERVE FRONTEND ============
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
@@ -1081,6 +1465,7 @@ initDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`\n🏋️ BodyBank Server running on port ${PORT}`);
     console.log(`📧 Admin: ${ADMIN_EMAIL}`);
+    console.log(`👔 Superadmin: ${SUPERADMIN_EMAIL}`);
     console.log(`🌍 Environment: ${NODE_ENV}\n`);
   });
 }).catch(err => {

@@ -8,7 +8,10 @@
 2. **Production environment**
    - Set `NODE_ENV=production`.
    - Set `ADMIN_PASS` to a strong password (default `admin123` is refused in production).
+   - Set `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS` for the business-overview dashboard (default superadmin password is refused in production).
+   - Set `JWT_SECRET` to a long random string (recommended for auth and share-link tokens).
    - Set `SITE_URL` to your public URL (e.g. `https://yoursite.com`) for password-reset links.
+   - Optionally set `PUBLIC_URL` for superadmin share links (e.g. `https://your-app.onrender.com`).
    - Optionally set `ALLOWED_ORIGIN` to restrict CORS (e.g. `https://yoursite.com`).
 
 3. **Database**

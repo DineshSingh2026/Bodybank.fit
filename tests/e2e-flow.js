@@ -20,16 +20,22 @@ const testUser = {
 let createdIds = { userId: null, auditId: null, part2Id: null, meetingId: null, workoutId: null, contactId: null, checkinId: null };
 let failures = [];
 
-function request(method, path, body = null) {
+function request(method, path, body = null, opts = {}) {
   return new Promise((resolve, reject) => {
     const url = new URL(path, BASE);
     const data = body ? JSON.stringify(body) : null;
+    const headers = { ...(opts.headers || {}) };
+    if (body) {
+      headers['Content-Type'] = 'application/json';
+      headers['Content-Length'] = Buffer.byteLength(data);
+    }
+    if (opts.auth && opts.auth.token) headers['Authorization'] = 'Bearer ' + opts.auth.token;
     const req = http.request({
       hostname: url.hostname,
       port: url.port || PORT,
-      path: url.pathname,
+      path: url.pathname + (opts.qs ? '?' + new URLSearchParams(opts.qs).toString() : ''),
       method,
-      headers: body ? { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(data) } : {}
+      headers
     }, res => {
       let buf = '';
       res.on('data', c => buf += c);
@@ -268,6 +274,40 @@ async function runTests() {
   const tribePut = await request('PUT', `/api/tribe/${tribeId}`, { notes: 'E2E note', status: 'active' });
   assert(tribePut.status === 200, 'Tribe PUT');
   console.log('  OK');
+
+  console.log('=== E2E: Superadmin – login ===');
+  const superadminEmail = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
+  const superadminPass = process.env.SUPERADMIN_PASS || 'superadmin123';
+  const saLogin = await request('POST', '/api/auth/login', { email: superadminEmail, password: superadminPass });
+  assert(saLogin.status === 200 && saLogin.body?.role === 'superadmin' && saLogin.body?.token, 'Superadmin login');
+  const saToken = saLogin.body?.token;
+  console.log(saLogin.status === 200 ? '  OK' : '  FAIL', saLogin.body?.email);
+
+  console.log('=== E2E: Superadmin – dashboard ===');
+  const saDashboard = await request('GET', '/api/superadmin/dashboard', null, { auth: { token: saToken } });
+  assert(saDashboard.status === 200 && saDashboard.body?.stats != null && Array.isArray(saDashboard.body?.audit), 'Superadmin dashboard');
+  console.log(saDashboard.status === 200 ? '  OK' : '  FAIL');
+
+  console.log('=== E2E: Superadmin – dashboard with filters ===');
+  const saFiltered = await request('GET', '/api/superadmin/dashboard', null, { auth: { token: saToken }, qs: { from: '2025-01-01', to: '2026-12-31' } });
+  assert(saFiltered.status === 200 && saFiltered.body?.stats != null, 'Superadmin dashboard filtered');
+  console.log(saFiltered.status === 200 ? '  OK' : '  FAIL');
+
+  console.log('=== E2E: Superadmin – share link ===');
+  const saShare = await request('POST', '/api/superadmin/share-link', { from: '2025-01-01', to: '2026-12-31' }, { auth: { token: saToken } });
+  assert(saShare.status === 200 && saShare.body?.url && saShare.body?.token, 'Superadmin share link');
+  const shareToken = saShare.body?.token;
+  console.log(saShare.status === 200 ? '  OK' : '  FAIL');
+
+  console.log('=== E2E: Superadmin – shared view (no auth) ===');
+  const saShared = await request('GET', '/api/superadmin/shared', null, { qs: { t: shareToken } });
+  assert(saShared.status === 200 && saShared.body?.stats != null && Array.isArray(saShared.body?.part2), 'Superadmin shared view');
+  console.log(saShared.status === 200 ? '  OK' : '  FAIL');
+
+  console.log('=== E2E: Superadmin – shared invalid token ===');
+  const saSharedBad = await request('GET', '/api/superadmin/shared', null, { qs: { t: 'invalid-token' } });
+  assert(saSharedBad.status === 401 && saSharedBad.body?.error, 'Shared view rejects invalid token');
+  console.log(saSharedBad.status === 401 ? '  OK' : '  FAIL');
 
   console.log('=== E2E: Rejected user can re-signup ===');
   const reject = await request('POST', `/api/admin/reject-user/${userId}`);

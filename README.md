@@ -1,5 +1,13 @@
 # 🏋️ BodyBank — Deployment Guide
 
+## Repo / live readiness
+
+- **Database:** Admin and Superadmin are stored in PostgreSQL (`users` table with `role = 'admin'` or `'superadmin'`). On first start, the server creates one admin and one superadmin user if missing, using `ADMIN_EMAIL`/`ADMIN_PASS` and `SUPERADMIN_EMAIL`/`SUPERADMIN_PASS` from the environment. In **production**, default passwords are refused — set strong values in your host (e.g. Render env vars).
+- **Superadmin backend:** All superadmin data (dashboard, share link, shared view) is served from the same DB via `GET /api/superadmin/dashboard`, `POST /api/superadmin/share-link`, and `GET /api/superadmin/shared`. Auth is JWT; share links use `JWT_SECRET` and optional `PUBLIC_URL`.
+- **Live Superadmin login:** After deployment, use the **email** and **password** you set for `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS` in your hosting environment. See [Deploy to Render](#deploy-to-render-free--recommended) and the table below for required variables.
+
+---
+
 ## Quick Start (Local)
 ```bash
 npm install
@@ -7,7 +15,8 @@ node server.js
 ```
 Open **http://localhost:3000**
 
-**Admin Login:** `admin@bodybank.fit` / `admin123`
+**Admin Login:** `admin@bodybank.fit` / `admin123`  
+**Superadmin (business overview):** `superadmin@bodybank.fit` / `superadmin123` — single-page dashboard with stats, audit/part2/sunday check-ins, users, workouts, tribe, meetings, messages; filters (date/user), CSV export per block, and time-limited “Share via link”. Set `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS` in `.env` to override.
 
 ### Verify API & Database Connection
 1. Start the server: `npm start`
@@ -33,13 +42,28 @@ With the server running (`npm run dev`), run: `npm test`. This exercises sign up
 2. Go to [render.com](https://render.com) → New → Web Service
 3. Connect your GitHub repo
 4. Settings will auto-detect from `render.yaml`
-5. Add environment variables:
-   - `ADMIN_EMAIL` = your email
-   - `ADMIN_PASS` = your secure password
-6. Add a **PostgreSQL** database (e.g. Render Postgres or external). Set `DATABASE_URL` in environment variables.
+5. Add a **PostgreSQL** database (Render Postgres or external) and set `DATABASE_URL` in the web service environment variables.
+6. **Required environment variables** (Dashboard → your Web Service → Environment):
+   | Key | Value | Notes |
+   |-----|--------|------|
+   | `DATABASE_URL` | `postgresql://...` | From Render Postgres (Internal URL) or your DB |
+   | `ADMIN_EMAIL` | your-admin@example.com | Admin login email |
+   | `ADMIN_PASS` | **strong password** | Required in production (default blocked) |
+   | `SUPERADMIN_EMAIL` | your-superadmin@example.com | Superadmin / business overview login |
+   | `SUPERADMIN_PASS` | **strong password** | Required in production (default blocked) |
+   | `JWT_SECRET` | long random string | Recommended in production for auth tokens |
+   | `NODE_ENV` | `production` | Usually set by Render |
+   | `PUBLIC_URL` | (optional) `https://your-app.onrender.com` | Override share-link base URL if needed |
 7. Click **Deploy**
 
-Your site will be live at `https://bodybank-xxxx.onrender.com`
+Your site will be live at `https://bodybank-xxxx.onrender.com` (or your custom domain).
+
+### Live server: Superadmin login (after deployment)
+
+- **URL:** Your live app URL (e.g. `https://bodybank-xxxx.onrender.com`). Open the site and click **Login**.
+- **Superadmin credentials:** Use the **email** and **password** you set for `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS` in Render environment variables.
+- **Behaviour:** After login, if the user has role `superadmin`, they are taken to the **BodyBank – Superadmin** single-page dashboard (stats, audit forms, Part-2, Sunday check-ins, users, workouts, tribe, meetings, messages; filters, CSV export, “Share via link”).
+- **First deploy:** On first deploy, the server creates one superadmin user in the database using `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS`. If you do not set these, the app will **not** create a superadmin in production (default password is refused). Set both in Render before the first deploy so the superadmin account exists and you can log in.
 
 ---
 

@@ -27,6 +27,16 @@ function requireAdmin(req, res, next) {
   return res.status(403).json({ error: 'Admin access required' });
 }
 
+function requireSuperadmin(req, res, next) {
+  if (req.user && req.user.role === 'superadmin') return next();
+  return res.status(403).json({ error: 'Superadmin access required' });
+}
+
+function requireAdminOrSuperadmin(req, res, next) {
+  if (req.user && (req.user.role === 'admin' || req.user.role === 'superadmin')) return next();
+  return res.status(403).json({ error: 'Admin or Superadmin access required' });
+}
+
 const REPORT_LINK_EXPIRY = process.env.PROGRESS_REPORT_LINK_EXPIRY || '30d';
 
 function signProgressReportToken(userId) {
@@ -48,4 +58,25 @@ function verifyProgressReportToken(token) {
   }
 }
 
-module.exports = { signToken, verifyToken, requireAdmin, signProgressReportToken, verifyProgressReportToken, JWT_SECRET };
+const SHARE_LINK_EXPIRY = process.env.SUPERADMIN_SHARE_LINK_EXPIRY || '24h';
+
+function signShareToken(payload) {
+  return jwt.sign(
+    { ...payload, purpose: 'superadmin-share' },
+    JWT_SECRET,
+    { expiresIn: SHARE_LINK_EXPIRY }
+  );
+}
+
+function verifyShareToken(token) {
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded && decoded.purpose === 'superadmin-share') return decoded;
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+module.exports = { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, JWT_SECRET };
