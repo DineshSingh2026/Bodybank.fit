@@ -65,6 +65,18 @@ Your site will be live at `https://bodybank-xxxx.onrender.com` (or your custom d
 - **Behaviour:** After login, if the user has role `superadmin`, they are taken to the **BodyBank – Superadmin** single-page dashboard (stats, audit forms, Part-2, Sunday check-ins, users, workouts, tribe, meetings, messages; filters, CSV export, “Share via link”).
 - **First deploy:** On first deploy, the server creates one superadmin user in the database using `SUPERADMIN_EMAIL` and `SUPERADMIN_PASS`. If you do not set these, the app will **not** create a superadmin in production (default password is refused). Set both in Render before the first deploy so the superadmin account exists and you can log in.
 
+### Superadmin login not working
+
+1. **Check health:** Open `https://your-app.onrender.com/api/health`. You should see `superadmin_exists: true` and `superadmin_email: "your@email.com"`. If `superadmin_exists` is `false`, the user was never created.
+2. **Check Render logs:** In Render → your Web Service → Logs, look for `✅ Superadmin created: your@email.com` after a deploy. If you see `❌ Refusing to create superadmin with default password`, the server refused to create one until you set a non-default `SUPERADMIN_PASS` and redeployed.
+3. **Fix from your machine:** Run the update script against the production DB so the superadmin is created or its password is set from your env:
+   - In your project folder, create or edit `.env` with:
+     - `DATABASE_URL` = Render’s **Internal Database URL** (Render → Postgres → Connect → Internal Database URL)
+     - `SUPERADMIN_EMAIL` = the email you want to use to log in
+     - `SUPERADMIN_PASS` = the password you want
+   - Run: `node scripts/update-superadmin.js`
+   - Log in on the live site with that email and password.
+
 ---
 
 ## Deploy to Railway
