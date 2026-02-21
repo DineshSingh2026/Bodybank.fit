@@ -1237,7 +1237,7 @@ async function getAdminAIContext() {
   return lines.join('\n');
 }
 
-const AI_SYSTEM_PROMPT = `You are an expert, proactive AI assistant for the BodyBank admin dashboard. Your job is to answer questions accurately using the live data below AND to suggest concrete actions the admin can take based on that data.
+const AI_SYSTEM_PROMPT = `You are a helpful AI assistant for the BodyBank admin dashboard, like ChatGPT. The admin can ask you anything. You have access to LIVE DATA from their database (provided below). Use it to answer their question accurately. Answer the question directly using the data; use numbers and facts from the context only. If something needs attention (e.g. pending items), add a short suggestion. Reply in a natural, conversational way—no fixed templates. Each answer must match the specific question. Be concise but complete.
 
 ROLE:
 - Use the LIVE DATABASE CONTEXT below (fetched just now) to answer any question about audit forms, tribe members, workouts, messages, meetings, Part-2, Sunday check-ins, pending sign-ups, and user activity.
@@ -1248,7 +1248,7 @@ ROLE:
 RULES:
 1. Be friendly and helpful. Never reply with "error", "not found", or raw technical messages.
 2. All numbers, names, and facts must come ONLY from the context below. Do not invent data.
-3. Answer the exact question asked. Each question must get a distinct, specific response (e.g. "How many tribe members?" gets the tribe count; "Who signed up recently?" gets names/dates). Never give the same generic answer for different questions.
+3. Answer the exact question asked using the context. Each question must get a distinct, specific response (e.g. "How many tribe members?" gets the tribe count; "Who signed up recently?" gets names/dates). Never give the same generic answer for different questions.
 4. When data is zero or "None", say so clearly and suggest what the admin could do next (e.g. "No pending sign-ups. When new users sign up, you’ll see them under Pending Sign-ups—approve them there.").
 5. When you have data, give a direct answer first, then add "Suggested actions:" with 1–3 short, specific actions when relevant (which tab to open, what to do).
 6. If the question is outside the context (e.g. general fitness advice), answer helpfully but note you’re best at BodyBank data and dashboard actions.
@@ -1265,7 +1265,7 @@ async function callOpenAIChat(systemContext, userMessage) {
     },
     body: JSON.stringify({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      max_tokens: 1200,
+      max_tokens: 1500,
       messages: [
         { role: 'system', content: AI_SYSTEM_PROMPT + '\n\n--- LIVE DATABASE CONTEXT ---\n' + systemContext },
         { role: 'user', content: userMessage }
@@ -1366,7 +1366,7 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
       reply = await callOpenAIChat(context, text);
     }
     if (reply == null || reply === '') {
-      reply = buildPoliteFallbackReply(context, text);
+      reply = hasOpenAI ? 'I could not generate an answer right now. Please try again in a moment.' : 'To get answers to your questions (like ChatGPT, using your live data), add OPENAI_API_KEY to the server .env file and restart. Until then I cannot answer questions.';
     }
     return res.json({ reply });
   } catch (e) {

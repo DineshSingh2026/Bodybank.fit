@@ -21,6 +21,11 @@
 4. **Google Sign-In**
    - Set `GOOGLE_CLIENT_ID` in `.env` and add your deployment origin to the OAuth client.
 
+5. **Admin AI (live server / optional)**
+   - To enable ChatGPT-style answers in the Admin dashboard, set `OPENAI_API_KEY` to your OpenAI API key (get one at [platform.openai.com/api-keys](https://platform.openai.com/api-keys)).
+   - On Render: Dashboard → your Web Service → Environment → Add `OPENAI_API_KEY` (value = `sk-...`), then Save (app will redeploy).
+   - Optional: `OPENAI_MODEL=gpt-4o-mini` (default) or `gpt-4o`.
+
 ## Run
 
 ```bash

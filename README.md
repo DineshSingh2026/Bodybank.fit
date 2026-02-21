@@ -70,9 +70,24 @@ With the server running (`npm run dev`), run: `npm test`. This exercises sign up
    | `JWT_SECRET` | long random string | Recommended in production for auth tokens |
    | `NODE_ENV` | `production` | Usually set by Render |
    | `PUBLIC_URL` | (optional) `https://your-app.onrender.com` | Override share-link base URL if needed |
+   | `OPENAI_API_KEY` | `sk-...` | **Admin AI:** Get from [platform.openai.com](https://platform.openai.com/api-keys). Enables ChatGPT-style answers in Admin dashboard. Optional; omit and AI will ask you to add it. |
+   | `OPENAI_MODEL` | (optional) `gpt-4o-mini` | Model for Admin AI; default is `gpt-4o-mini`. |
 7. Click **Deploy**
 
 Your site will be live at `https://bodybank-xxxx.onrender.com` (or your custom domain).
+
+### Live server: Configure Admin AI (OpenAI)
+
+To get ChatGPT-style answers in the Admin dashboard on the live site:
+
+1. Get an API key: [platform.openai.com](https://platform.openai.com/api-keys) → Create new secret key.
+2. In **Render** → your Web Service → **Environment** → Add variable:
+   - **Key:** `OPENAI_API_KEY`
+   - **Value:** `sk-your-key-here` (paste the key; mark as **Secret** if available).
+3. (Optional) Add `OPENAI_MODEL=gpt-4o-mini` (default) or e.g. `gpt-4o` for a different model.
+4. **Save** — Render will redeploy. After deploy, the Admin AI will use your live data to answer questions.
+
+If you don’t set `OPENAI_API_KEY`, the AI panel will show a single message asking you to add it and restart.
 
 ### Live server: Superadmin login (after deployment)
 
