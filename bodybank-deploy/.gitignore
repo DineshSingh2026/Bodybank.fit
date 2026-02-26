@@ -1,6 +1,0 @@
-node_modules/
-data/*.db
-data/*.bat
-data/*.txt
-.env
-*.log

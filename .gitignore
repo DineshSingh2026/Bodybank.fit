@@ -1,19 +1,6 @@
-# Dependencies
 node_modules/
-
-# Environment and secrets
+data/*.db
+data/*.bat
+data/*.txt
 .env
-.env.*
-
-# Data and DB (bodybank-deploy)
-bodybank-deploy/data/*.db
-bodybank-deploy/data/*.bat
-bodybank-deploy/data/*.txt
-
-# Logs
 *.log
-npm-debug.log*
-
-# OS
-.DS_Store
-Thumbs.db
