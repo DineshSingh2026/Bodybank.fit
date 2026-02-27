@@ -1,5 +1,7 @@
 # BodyBank — Deployment Checklist
 
+**Repo:** [Bodybank.fit](https://github.com/DineshSingh2026/Bodybank.fit) — ready for manual deploy. Use branch **`main`**. Render will use `render.yaml` from the repo root.
+
 ## Before deploying
 
 1. **Copy environment file**
