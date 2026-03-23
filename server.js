@@ -9,6 +9,7 @@ const path = require('path');
 const webPush = require('web-push');
 const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken } = require('./middleware/auth');
 const progressRoutes = require('./routes/progress');
+const { createMarketingAIRouter } = require('./routes/marketingAI');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
 const { inferTimezoneFromCountry, getUserTimezone } = require('./utils/timezone');
@@ -500,6 +501,16 @@ async function initDB() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_inbox_user ON user_inbox(user_id, created_at DESC)`); } catch (e) { /* ignore */ }
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS marketing_contents (
+    id SERIAL PRIMARY KEY,
+    keywords TEXT,
+    post_type TEXT,
+    tone TEXT,
+    response_json JSONB,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_marketing_contents_created_at ON marketing_contents(created_at DESC)`); } catch (e) { /* ignore */ }
 
   // Seed default weekly campaigns if table is empty
   try {
@@ -3131,6 +3142,7 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
 
 // ============ CLIENT PROGRESS ANALYTICS (JWT-protected) ============
 app.use('/api/progress', progressRoutes);
+app.use('/api/marketing-ai', createMarketingAIRouter({ run, queryAll }));
 app.get('/api/admin/user-progress/:userId', (req, res, next) => {
   if (NODE_ENV === 'development' && (!req.headers.authorization || !String(req.headers.authorization).startsWith('Bearer '))) {
     return progressService.getAdminUserProgress(req.params.userId)

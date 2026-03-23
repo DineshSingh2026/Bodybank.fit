@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Marketing AI - BodyBank Admin</title>
+  <link rel="stylesheet" href="/marketing-ai.css">
+</head>
+<body>
+  <main class="page">
+    <div class="top-actions">
+      <a href="/index.html" class="btn back-link">← Back to Admin Dashboard</a>
+    </div>
+    <header class="page-header">
+      <h1>Marketing AI</h1>
+      <p>Create premium social content for bodybank.fit.</p>
+    </header>
+
+    <section class="card">
+      <h2>Generate Content</h2>
+      <div class="form-grid">
+        <label class="field">
+          <span>Keywords</span>
+          <input id="keywordsInput" type="text" placeholder="fat loss for office workers" />
+        </label>
+
+        <label class="field">
+          <span>Post Type</span>
+          <select id="postTypeInput">
+            <option>Post</option>
+            <option>Carousel</option>
+            <option>Reel</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Tone</span>
+          <select id="toneInput">
+            <option>Premium</option>
+            <option>Motivational</option>
+            <option>Sales</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="actions">
+        <button id="generateBtn" class="btn btn-primary">Generate</button>
+        <button id="regenerateBtn" class="btn">Regenerate</button>
+        <span id="loading" class="loading hidden">Generating...</span>
+      </div>
+      <p id="errorMessage" class="error hidden"></p>
+    </section>
+
+    <section id="outputCard" class="card hidden">
+      <div class="output-head">
+        <h2>Generated Marketing Content</h2>
+        <div class="download-actions">
+          <button id="downloadCaptionBtn" class="btn">Download Caption</button>
+          <button id="downloadCarouselBtn" class="btn">Download Carousel</button>
+          <button id="downloadFullBtn" class="btn">Download Full Content</button>
+        </div>
+      </div>
+      <div id="outputSections" class="output-grid"></div>
+    </section>
+
+    <section class="card">
+      <h2>History</h2>
+      <button id="refreshHistoryBtn" class="btn">Refresh History</button>
+      <div id="historyList" class="history-list"></div>
+    </section>
+  </main>
+
+  <script src="/marketing-ai.js"></script>
+</body>
+</html>
