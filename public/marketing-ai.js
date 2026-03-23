@@ -197,7 +197,7 @@
       renderOutput(result.data);
       await loadHistory();
     } catch (e) {
-      showError(e.message || 'Could not generate content');
+      showError(e.message || 'Could not generate content. Please check API key and model settings.');
     } finally {
       setLoading(false);
     }

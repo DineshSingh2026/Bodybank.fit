@@ -88,9 +88,14 @@ function normalizeMarketingResponse(payload, input) {
 }
 
 async function callSonetApi({ keywords, postType, tone }) {
-  const apiKey = String(process.env.SONET_API_KEY || '').trim();
+  const apiKey = String(
+    process.env.SONET_API_KEY ||
+    process.env.SONNET_API_KEY ||
+    process.env.ANTHROPIC_API_KEY ||
+    ''
+  ).trim();
   if (!apiKey) {
-    throw new Error('SONET_API_KEY is not configured');
+    throw new Error('Marketing AI API key missing. Set SONET_API_KEY (or SONNET_API_KEY / ANTHROPIC_API_KEY).');
   }
 
   const endpoint = String(process.env.SONET_API_URL || 'https://api.anthropic.com/v1/messages').trim();
@@ -118,8 +123,12 @@ async function callSonetApi({ keywords, postType, tone }) {
   }
 
   const apiData = await response.json();
-  const firstContent = apiData && apiData.content && apiData.content[0] ? apiData.content[0] : null;
-  const textReply = firstContent && firstContent.type === 'text' ? firstContent.text : '';
+  const contentBlocks = Array.isArray(apiData && apiData.content) ? apiData.content : [];
+  const textReply = contentBlocks
+    .filter((block) => block && block.type === 'text' && typeof block.text === 'string')
+    .map((block) => block.text)
+    .join('\n')
+    .trim();
   const parsed = extractJsonObject(textReply);
   if (!parsed) {
     throw new Error('Invalid JSON returned from Sonet API');

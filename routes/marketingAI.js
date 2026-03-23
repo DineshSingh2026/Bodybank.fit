@@ -24,10 +24,11 @@ function createMarketingAIRouter({ run, queryAll }) {
       return res.json({ ok: true, data: aiResponse });
     } catch (e) {
       console.error('[marketing-ai generate]', e.message);
+      const safeMsg = String(e.message || '').slice(0, 240);
       if (String(e.message || '').toLowerCase().includes('json')) {
         return res.status(502).json({ error: 'AI returned invalid content. Please regenerate.' });
       }
-      return res.status(500).json({ error: 'Failed to generate marketing content. Please try again.' });
+      return res.status(500).json({ error: safeMsg || 'Failed to generate marketing content. Please try again.' });
     }
   });
 
