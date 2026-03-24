@@ -3003,9 +3003,7 @@ async function callAnthropicChat(systemContext, userMessage) {
   if (!apiKey || !apiKey.trim()) return null;
   const modelCandidates = Array.from(new Set([
     process.env.ANTHROPIC_MODEL,
-    'claude-sonnet-4-20250514',
-    'claude-sonnet-4-5',
-    'claude-3-5-sonnet-latest'
+    'claude-sonnet-4-20250514'
   ].map((m) => String(m || '').trim()).filter(Boolean)));
   let lastErr = null;
 
