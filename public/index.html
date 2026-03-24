@@ -3044,10 +3044,21 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
               <img src="AI%20assist.jpg" alt="" width="22" height="22">
               <span>AI Assist</span>
             </button>
-            <button type="button" class="admin-notify-btn bb-top-icon" onclick="toggleNotifyPanel(event)" title="Notifications" aria-label="Notifications">
-              <span class="notify-bell-icon" aria-hidden="true">🔔</span>
-              <span class="count" id="notifyCountTop">0</span>
-            </button>
+            <div class="admin-notify-wrap">
+              <button type="button" class="admin-notify-btn bb-top-icon" onclick="toggleNotifyPanel(event)" title="Notifications" aria-label="Notifications">
+                <span class="notify-bell-icon" aria-hidden="true">🔔</span>
+                <span class="count" id="notifyCountTop">0</span>
+              </button>
+              <div class="admin-notify-panel" id="notifyPanelDesktop">
+                <div class="admin-notify-header">
+                  <span>Notifications</span>
+                </div>
+                <div class="admin-notify-list" id="notifyListDesktop"></div>
+                <div class="admin-notify-footer">
+                  <button type="button" class="admin-notify-clear admin-notify-clear-all" id="notifyClearAllBtnDesktop" onclick="clearAllViewedNotifications()">Clear all</button>
+                </div>
+              </div>
+            </div>
             <span class="bb-top-user">Admin ▾</span>
             <button type="button" class="bb-top-logout" onclick="logoutAdmin()">Logout</button>
           </div>
@@ -4928,6 +4939,7 @@ async function loadNotifications() {
     const list = await apiCall('GET', '/api/notifications');
     const el = document.getElementById('notifyList');
     const userListEl = document.getElementById('userNotifyList');
+    const desktopListEl = document.getElementById('notifyListDesktop');
     const countEl = document.getElementById('notifyCount');
     const topCountEl = document.getElementById('notifyCountTop');
     const userCountEl = document.getElementById('userNotifyCount');
@@ -4952,15 +4964,18 @@ async function loadNotifications() {
     }).join('') : '<div class="admin-notify-empty">No notifications yet.</div>';
     el.innerHTML = itemHtml;
     if (userListEl) userListEl.innerHTML = itemHtml;
+    if (desktopListEl) desktopListEl.innerHTML = itemHtml;
     if (filtered.length > 0) {
       if (countEl) { countEl.textContent = filtered.length > 99 ? '99+' : filtered.length; countEl.classList.add('has-count'); }
       if (topCountEl) { topCountEl.textContent = filtered.length > 99 ? '99+' : filtered.length; topCountEl.classList.add('has-count'); }
       if (userCountEl) { userCountEl.textContent = countEl ? countEl.textContent : ''; userCountEl.classList.add('has-count'); }
       [document.getElementById('notifyClearAllBtn'), document.getElementById('userNotifyClearAllBtn')].forEach(function(btn) { if (btn) btn.disabled = false; });
+      [document.getElementById('notifyClearAllBtnDesktop')].forEach(function(btn) { if (btn) btn.disabled = false; });
       updateNotifyClearBtn();
       if (navigator.setAppBadge) navigator.setAppBadge(Math.min(filtered.length, 99)).catch(function(){});
     } else {
       [document.getElementById('notifyClearAllBtn'), document.getElementById('userNotifyClearAllBtn')].forEach(function(btn) { if (btn) btn.disabled = true; });
+      [document.getElementById('notifyClearAllBtnDesktop')].forEach(function(btn) { if (btn) btn.disabled = true; });
       if (countEl) countEl.classList.remove('has-count');
       if (topCountEl) topCountEl.classList.remove('has-count');
       if (userCountEl) userCountEl.classList.remove('has-count');
@@ -4970,6 +4985,7 @@ async function loadNotifications() {
   } catch (e) {
     if (document.getElementById('notifyList')) document.getElementById('notifyList').innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>';
     if (document.getElementById('userNotifyList')) document.getElementById('userNotifyList').innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>';
+    if (document.getElementById('notifyListDesktop')) document.getElementById('notifyListDesktop').innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>';
   }
 }
 
@@ -5072,9 +5088,7 @@ function toggleNotifyPanel(e) {
   }
 }
 function closeNotifyOnClickOutside(ev) {
-  var inAdmin = document.querySelector('.admin-notify-wrap') && document.querySelector('.admin-notify-wrap').contains(ev.target);
-  var inUser = document.querySelector('.user-notify-wrap') && document.querySelector('.user-notify-wrap').contains(ev.target);
-  if (inAdmin || inUser) return;
+  if (ev && ev.target && ev.target.closest && ev.target.closest('.admin-notify-wrap, .user-notify-wrap')) return;
   document.querySelectorAll('.admin-notify-panel.open').forEach(function(p) { p.classList.remove('open'); });
   document.removeEventListener('click', closeNotifyOnClickOutside);
 }
