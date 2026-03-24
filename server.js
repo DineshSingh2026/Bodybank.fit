@@ -3317,18 +3317,33 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
     }
     // ── End monthly report command detection ─────────────────────────────────
 
-    const context = await getAdminAIContext();
+    let context = '';
+    try {
+      context = await getAdminAIContext();
+    } catch (ctxErr) {
+      console.error('[admin ai-assist context]', ctxErr.message);
+      context = '';
+    }
     const hasOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim());
     const hasAnthropic = !!(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim());
     const hasAI = hasOpenAI || hasAnthropic;
 
     if (hasAI) {
-      const aiResult = await callAIChat(context, text);
-      if (aiResult && typeof aiResult === 'object') {
-        reply = aiResult.reply;
-        usage = aiResult.usage || null;
-      } else {
-        reply = aiResult;
+      try {
+        const aiResult = await callAIChat(context, text);
+        if (aiResult && typeof aiResult === 'object') {
+          reply = aiResult.reply;
+          usage = aiResult.usage || null;
+        } else {
+          reply = aiResult;
+        }
+      } catch (aiErr) {
+        console.error('[admin ai-assist provider]', aiErr.message);
+        if (context && context.trim()) {
+          reply = buildPoliteFallbackReply(context, text);
+        } else {
+          reply = 'AI provider is unavailable right now. Please try again in a moment.';
+        }
       }
     }
     if (reply == null || reply === '') {
