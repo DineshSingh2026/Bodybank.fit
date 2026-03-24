@@ -17,6 +17,7 @@ const { inferTimezoneFromCountry, getUserTimezone } = require('./utils/timezone'
 const { startCampaignScheduler, restartScheduler: restartCampaignScheduler, broadcastMessage: broadcastCampaignMessage } = require('./services/campaignScheduler');
 const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalizeCampaignDay, normalizeTime: normalizeCampaignTime } = require('./controllers/campaignController');
 const { generateMonthlyClientReport, monthLabel: monthLabelForReport } = require('./services/monthlyReportService');
+const { writeSundayCheckinPdf, writePart2Pdf } = require('./services/formPdfService');
 
 // ============ CONFIG ============
 const PORT = process.argv[2] || process.env.PORT || 3000;
@@ -1763,6 +1764,52 @@ app.get('/api/admin/part2-submissions', verifyToken, requireAdminOrSuperadmin, a
   }
 });
 
+app.get('/api/admin/sunday-checkins/:id/pdf', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const row = await queryOne('SELECT * FROM sunday_checkins WHERE id = ?', [req.params.id]);
+    if (!row) return res.status(404).json({ error: 'Sunday check-in not found' });
+
+    const reportsDir = path.join(__dirname, 'public', 'reports');
+    if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
+    const datePart = (row.created_at ? String(row.created_at).slice(0, 10) : new Date().toISOString().slice(0, 10)).replace(/[^0-9-]/g, '');
+    const baseName = `sunday-checkin-${safeFilePart(row.full_name, 'client')}-${datePart}`;
+    const fileName = `${baseName}-${Date.now()}.pdf`;
+    const outputPath = path.join(reportsDir, fileName);
+    const logoPath = path.join(__dirname, 'public', 'img', 'bodybank-logo-short.png');
+    await writeSundayCheckinPdf({ outputPath, record: row, logoPath });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${baseName}.pdf"`);
+    return res.sendFile(outputPath);
+  } catch (e) {
+    console.error('Admin sunday-checkin pdf error:', e.message);
+    return res.status(500).json({ error: 'Failed to generate Sunday check-in PDF' });
+  }
+});
+
+app.get('/api/admin/part2-submissions/:id/pdf', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const row = await queryOne('SELECT * FROM part2_audit WHERE id = ?', [req.params.id]);
+    if (!row) return res.status(404).json({ error: 'Part-2 submission not found' });
+
+    const reportsDir = path.join(__dirname, 'public', 'reports');
+    if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
+    const datePart = (row.created_at ? String(row.created_at).slice(0, 10) : new Date().toISOString().slice(0, 10)).replace(/[^0-9-]/g, '');
+    const baseName = `part2-${safeFilePart(row.name, 'client')}-${datePart}`;
+    const fileName = `${baseName}-${Date.now()}.pdf`;
+    const outputPath = path.join(reportsDir, fileName);
+    const logoPath = path.join(__dirname, 'public', 'img', 'bodybank-logo-short.png');
+    await writePart2Pdf({ outputPath, record: row, logoPath });
+
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="${baseName}.pdf"`);
+    return res.sendFile(outputPath);
+  } catch (e) {
+    console.error('Admin part2 pdf error:', e.message);
+    return res.status(500).json({ error: 'Failed to generate Part-2 PDF' });
+  }
+});
+
 app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const from = (req.query.from || '').trim();
@@ -3075,6 +3122,11 @@ function getMonthRange(monthKey) {
   const to = new Date(y, Math.max(0, m - 1) + 1, 1);
   if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null;
   return { from, to };
+}
+
+function safeFilePart(value, fallback = 'record') {
+  const cleaned = String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return cleaned || fallback;
 }
 
 async function findUserForMonthlyReport(clientQuery) {

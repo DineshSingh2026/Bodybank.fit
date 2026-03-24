@@ -4017,6 +4017,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <button class="modal-close" onclick="closeModal('part2ViewModal')">&times;</button>
     <h2>Part-2 Submission</h2>
     <div class="view-detail-body" id="part2ViewBody"></div>
+    <div class="view-detail-actions" id="part2ViewActions"></div>
   </div>
 </div>
 
@@ -4036,6 +4037,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('sundayCheckinViewModal')" aria-label="Close">×</button>
     <h2 class="sunday-checkin-title">Sunday Check-in</h2>
     <div class="view-detail-body" id="sundayCheckinViewBody"></div>
+    <div class="view-detail-actions" id="sundayCheckinViewActions"></div>
   </div>
 </div>
 
@@ -5476,6 +5478,7 @@ async function viewSundayCheckin(id) {
   const r = await apiCall('GET', '/api/sunday-checkin/' + id);
   if (r && r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
   const body = document.getElementById('sundayCheckinViewBody');
+  const actions = document.getElementById('sundayCheckinViewActions');
   if (!body) return;
   body.innerHTML = _row('Full Name', r.full_name) + _row('Reply Email', r.reply_email) + _row('Plan', r.plan) +
     _rowBlock('Current weight, waist & week', r.current_weight_waist_week) +
@@ -5491,6 +5494,11 @@ async function viewSundayCheckin(id) {
     _rowBlock('Improve for coming week', r.improve_next_week) +
     _rowBlock('Questions', r.questions || '—') +
     _row('Submitted', r.created_at ? new Date(r.created_at).toLocaleString() : '');
+  if (actions) {
+    var sid = String(id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    actions.innerHTML = '<button type="button" class="action-btn btn-view" onclick="downloadAdminFormPdf(\'sunday\', \'' +
+      sid + '\')">Download PDF</button>';
+  }
   openModal('sundayCheckinViewModal');
 }
 
@@ -5677,6 +5685,7 @@ async function viewPart2Submission(id) {
   const r = await apiCall('GET', '/api/part2/' + id);
   if (r && r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
   const body = document.getElementById('part2ViewBody');
+  const actions = document.getElementById('part2ViewActions');
   if (!body) return;
   body.innerHTML = _row('Name', r.name) + _row('Email', r.email) + _row('Mobile', r.mobile) +
     _row('Activity Level', r.activity_level) +
@@ -5689,7 +5698,52 @@ async function viewPart2Submission(id) {
     _rowBlock('Goals', r.goals) +
     _rowBlock('What compelled you', r.what_compelled) +
     _row('Submitted', r.created_at ? new Date(r.created_at).toLocaleString() : '');
+  if (actions) {
+    var pid = String(id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    actions.innerHTML = '<button type="button" class="action-btn btn-view" onclick="downloadAdminFormPdf(\'part2\', \'' +
+      pid + '\')">Download PDF</button>';
+  }
   openModal('part2ViewModal');
+}
+
+async function downloadAdminFormPdf(kind, id) {
+  if (!kind || !id) return;
+  if (!window.currentUser || !window.currentUser.token) {
+    showPopup('Login required', 'Please login again to download PDF.', '', 'OK', null, 'error');
+    return;
+  }
+  var endpoint = kind === 'sunday'
+    ? '/api/admin/sunday-checkins/' + encodeURIComponent(id) + '/pdf'
+    : '/api/admin/part2-submissions/' + encodeURIComponent(id) + '/pdf';
+  try {
+    const res = await fetch(endpoint, {
+      method: 'GET',
+      headers: { Authorization: 'Bearer ' + window.currentUser.token }
+    });
+    if (!res.ok) {
+      let msg = 'Failed to download PDF';
+      try {
+        const data = await res.json();
+        if (data && data.error) msg = data.error;
+      } catch (e) {}
+      showPopup('Error', msg, '', 'OK', null, 'error');
+      return;
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const fallback = kind === 'sunday' ? 'sunday-checkin.pdf' : 'part2-submission.pdf';
+    const cd = res.headers.get('content-disposition') || '';
+    const m = cd.match(/filename=\"([^\"]+)\"/i);
+    a.download = (m && m[1]) ? m[1] : fallback;
+    a.href = url;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    showPopup('Error', 'Failed to download PDF. Please try again.', '', 'OK', null, 'error');
+  }
 }
 
 async function loadAdminMessages() {
