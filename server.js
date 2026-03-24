@@ -3068,11 +3068,64 @@ async function callAIChat(systemContext, userMessage) {
 function parseMonthlyReportCommand(text) {
   const raw = String(text || '').trim();
   if (!raw) return null;
-  const m = raw.match(/\bmonthly\s+report\b(?:\s+(?:of|for)\s+(.+?))?(?:\s+(?:for|in)\s+(\d{4}-\d{2}|[a-zA-Z]+\s+\d{4}))?\s*$/i);
-  if (!m) return null;
-  const clientQuery = (m[1] || '').trim();
-  const monthRaw = (m[2] || '').trim();
-  let monthKey = '';
+  const normalized = raw.replace(/\s+/g, ' ').trim();
+  const hasReportIntent =
+    /\bmonthly\s+report\b/i.test(normalized) ||
+    (/\breport\b/i.test(normalized) && /\b(monthly|this month|last month)\b/i.test(normalized)) ||
+    (/\b(generate|create|make|download|get)\b/i.test(normalized) && /\breport\b/i.test(normalized));
+  if (!hasReportIntent) return null;
+
+  // Month extraction supports explicit yyyy-mm, "March 2026", and relative phrases.
+  let monthRaw = '';
+  const isoMonth = normalized.match(/\b(\d{4}-\d{2})\b/i);
+  if (isoMonth) {
+    monthRaw = isoMonth[1];
+  } else {
+    const namedMonth = normalized.match(/\b(?:for|in)\s+([a-zA-Z]+\s+\d{4})\b/i);
+    if (namedMonth) monthRaw = namedMonth[1];
+  }
+
+  let inferredMonthKey = '';
+  if (!monthRaw && /\bthis month\b/i.test(normalized)) {
+    const now = new Date();
+    inferredMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  } else if (!monthRaw && /\blast month\b/i.test(normalized)) {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    inferredMonthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  // Client extraction:
+  // 1) monthly report [of|for] <client> ...
+  // 2) report for <client> ...
+  // 3) for <email> / of <email>
+  let clientQuery = '';
+  const m1 = normalized.match(/\bmonthly\s+report\b(?:\s+(?:of|for)\s+(.+?))?(?:\s+(?:for|in)\s+(\d{4}-\d{2}|[a-zA-Z]+\s+\d{4}|this month|last month))?\s*$/i);
+  if (m1) {
+    clientQuery = (m1[1] || '').trim();
+    if (!monthRaw && (m1[2] || '').trim()) monthRaw = (m1[2] || '').trim();
+  }
+  if (!clientQuery) {
+    const m2 = normalized.match(/\breport\b.*?\bfor\s+(.+?)(?:\s+(?:for|in)\s+(\d{4}-\d{2}|[a-zA-Z]+\s+\d{4}|this month|last month))?\s*$/i);
+    if (m2) {
+      clientQuery = (m2[1] || '').trim();
+      if (!monthRaw && (m2[2] || '').trim()) monthRaw = (m2[2] || '').trim();
+    }
+  }
+  if (!clientQuery) {
+    const emailMatch = normalized.match(/\b(?:for|of)\s+([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/i);
+    if (emailMatch) clientQuery = (emailMatch[1] || '').trim();
+  }
+
+  // Clean common trailing phrases from client query.
+  clientQuery = clientQuery
+    .replace(/\b(this month|last month)\b/ig, '')
+    .replace(/\b(for|in)\s+\d{4}-\d{2}\b/ig, '')
+    .replace(/\b(for|in)\s+[a-zA-Z]+\s+\d{4}\b/ig, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  let monthKey = inferredMonthKey;
   if (monthRaw) {
     if (/^\d{4}-\d{2}$/.test(monthRaw)) {
       monthKey = monthRaw;
