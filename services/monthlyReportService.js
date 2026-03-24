@@ -26,16 +26,17 @@ function monthLabel(monthKey) {
 
 const C = {
   bg: '#0A0A0D',
-  panel: '#13131A',
-  panelSoft: '#1A1B24',
+  pageBg: '#F6F7FB',
+  panel: '#FFFFFF',
+  panelSoft: '#EDEFF5',
   gold: '#D4AF37',
   goldSoft: '#9F7E22',
-  text: '#F7F2E6',
-  muted: '#C7BFAE',
-  blue: '#6FA8FF',
-  violet: '#C390FF',
-  emerald: '#53D3AE',
-  danger: '#FF8C7A'
+  text: '#1A1F2E',
+  muted: '#5F667A',
+  blue: '#2F6FE4',
+  violet: '#7C56D8',
+  emerald: '#1E9E78',
+  danger: '#C75C4A'
 };
 
 function asList(value, max = 6) {
@@ -74,6 +75,7 @@ function drawCover(doc, meta) {
 }
 
 function drawPageHeader(doc, subtitle, logoPath) {
+  doc.rect(0, 0, doc.page.width, doc.page.height).fill(C.pageBg);
   doc.rect(0, 0, doc.page.width, 86).fill(C.bg);
   doc.lineWidth(1).strokeColor('#3B3424').moveTo(0, 86).lineTo(doc.page.width, 86).stroke();
   if (logoPath && fs.existsSync(logoPath)) {
@@ -86,12 +88,12 @@ function drawPageHeader(doc, subtitle, logoPath) {
 }
 
 function sectionTitle(doc, text, y) {
-  doc.roundedRect(36, y, 522, 26, 8).fillAndStroke(C.panelSoft, '#2C2B35');
+  doc.roundedRect(36, y, 522, 26, 8).fillAndStroke(C.panelSoft, '#D3D8E5');
   doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(10).text(text.toUpperCase(), 48, y + 8);
 }
 
 function drawKpiCard(doc, x, y, w, h, label, value, sub) {
-  doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#2F2B2E');
+  doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#D6DCEA');
   doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(9).text(label.toUpperCase(), x + 12, y + 10, { width: w - 24 });
   doc.fillColor(C.text).font('Helvetica-Bold').fontSize(20).text(String(value), x + 12, y + 30, { width: w - 24 });
   if (sub) doc.fillColor(C.muted).font('Helvetica').fontSize(9).text(sub, x + 12, y + 57, { width: w - 24 });
@@ -99,21 +101,21 @@ function drawKpiCard(doc, x, y, w, h, label, value, sub) {
 
 function drawLineChart(doc, cfg) {
   const { x, y, w, h, title, values, lineColor, labels } = cfg;
-  doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#2C2B35');
+  doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#D6DCEA');
   doc.fillColor(C.text).font('Helvetica-Bold').fontSize(10).text(title, x + 12, y + 10);
   const pad = 26;
   const cx = x + pad;
   const cy = y + pad;
   const cw = w - pad * 1.4;
   const ch = h - pad * 1.8;
-  doc.strokeColor('#2E3240').lineWidth(1);
+  doc.strokeColor('#E4E8F2').lineWidth(1);
   for (let i = 0; i <= 4; i += 1) {
     const gy = cy + (ch * i) / 4;
     doc.moveTo(cx, gy).lineTo(cx + cw, gy).stroke();
   }
   const valid = values.filter((v) => Number.isFinite(v));
   if (!valid.length) {
-    doc.fillColor('#8E95AA').font('Helvetica').fontSize(9).text('No data for selected month', cx + 4, cy + ch / 2 - 5);
+    doc.fillColor('#7A8196').font('Helvetica').fontSize(9).text('No data for selected month', cx + 4, cy + ch / 2 - 5);
     return;
   }
   const min = Math.min(...valid);
@@ -144,7 +146,7 @@ function drawLineChart(doc, cfg) {
   }
   const labelFirst = labels && labels.length ? labels[0] : '';
   const labelLast = labels && labels.length ? labels[labels.length - 1] : '';
-  doc.fillColor('#8E95AA').font('Helvetica').fontSize(8)
+  doc.fillColor('#707891').font('Helvetica').fontSize(8)
     .text(labelFirst, cx, cy + ch + 4, { width: 70 })
     .text(labelLast, cx + cw - 50, cy + ch + 4, { width: 50, align: 'right' });
 }
@@ -183,7 +185,7 @@ function addBulletList(doc, items, x, y, width, color = C.text) {
   let curY = y;
   const list = asList(items, 8);
   if (!list.length) {
-    doc.fillColor('#9AA0B3').font('Helvetica').fontSize(10).text('No data available.', x, curY, { width });
+    doc.fillColor('#7A8196').font('Helvetica').fontSize(10).text('No data available.', x, curY, { width });
     return curY + 18;
   }
   list.forEach((item) => {
@@ -260,7 +262,7 @@ function generateMonthlyClientReport(opts) {
     let y1 = addBulletList(doc, sundayRows, 42, 148, 510, C.text) + 8;
     doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(10).text('Recent Workout Discipline Snapshot', 42, y1);
     y1 = addBulletList(doc, workoutRows, 42, y1 + 18, 510, C.text) + 8;
-    doc.roundedRect(36, y1, 522, 120, 10).fillAndStroke(C.panel, '#2A2A34');
+    doc.roundedRect(36, y1, 522, 120, 10).fillAndStroke(C.panel, '#D6DCEA');
     doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(10).text('Strategic Interpretation', 50, y1 + 14);
     doc.fillColor(C.text).font('Helvetica').fontSize(10).text(
       'This month\'s data indicates the client\'s behavioral consistency and metric momentum. The coaching objective is to preserve adherence while increasing precision around training load and nutrition timing.',
@@ -285,9 +287,9 @@ function generateMonthlyClientReport(opts) {
     doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(10).text('Top Insights', 42, 130);
     let pY = addBulletList(doc, topInsights, 42, 148, 510, C.text) + 8;
     doc.fillColor(C.danger).font('Helvetica-Bold').fontSize(10).text('Risk Flags', 42, pY);
-    pY = addBulletList(doc, riskHints, 42, pY + 18, 510, '#FFD2CA') + 8;
+    pY = addBulletList(doc, riskHints, 42, pY + 18, 510, '#9A3E31') + 8;
     doc.fillColor(C.emerald).font('Helvetica-Bold').fontSize(10).text('Action Protocol (Next 30 days)', 42, pY);
-    addBulletList(doc, actionHints, 42, pY + 18, 510, '#D0F8EC');
+    addBulletList(doc, actionHints, 42, pY + 18, 510, '#146E59');
 
     // Footer page numbers
     const range = doc.bufferedPageRange();
