@@ -131,7 +131,14 @@ function normalizeMarketingResponse(payload, input) {
   ].join('. ');
 
   const imagePrompt = String(content.image_prompt || payload.image_prompt || fallbackImagePrompt).trim();
-  const imageUrl = buildMarketingImageUrl(imagePrompt, normalizedPostType);
+  const imageUrl = buildMarketingImageUrl({
+    imagePrompt,
+    postType: normalizedPostType,
+    keywords: input.keywords || '',
+    tone: input.tone || '',
+    hook: String(content.hook || ''),
+    caption: String(content.caption || '')
+  });
 
   const base = {
     title: String(payload.title || `Marketing Content for ${input.keywords}`).trim(),
@@ -174,12 +181,17 @@ function normalizeMarketingResponse(payload, input) {
   return base;
 }
 
-function buildMarketingImageUrl(imagePrompt, normalizedPostType) {
-  const width = normalizedPostType === 'Carousel' ? 1080 : 1080;
-  const height = normalizedPostType === 'Reel' ? 1920 : 1350;
-  const seed = Math.floor(Date.now() / 1000);
-  const encoded = encodeURIComponent(String(imagePrompt || '').slice(0, 900));
-  return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true`;
+function buildMarketingImageUrl({ imagePrompt, postType, keywords, tone, hook, caption }) {
+  const params = new URLSearchParams({
+    postType: String(postType || 'Post').slice(0, 30),
+    keywords: String(keywords || '').slice(0, 160),
+    tone: String(tone || '').slice(0, 50),
+    hook: String(hook || '').slice(0, 180),
+    caption: String(caption || '').slice(0, 280),
+    prompt: String(imagePrompt || '').slice(0, 900),
+    seed: String(Math.floor(Date.now() / 1000))
+  });
+  return `/api/marketing-ai/visual?${params.toString()}`;
 }
 
 async function callSonetApi({ keywords, postType, tone }) {
