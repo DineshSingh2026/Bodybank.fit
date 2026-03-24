@@ -3033,7 +3033,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
               <img src="AI%20assist.jpg" alt="" width="22" height="22">
               <span>AI Assist</span>
             </button>
-            <span class="bb-top-icon" aria-hidden="true">🔔</span>
+            <button type="button" class="admin-notify-btn bb-top-icon" onclick="toggleNotifyPanel(event)" title="Notifications" aria-label="Notifications">
+              <span class="notify-bell-icon" aria-hidden="true">🔔</span>
+              <span class="count" id="notifyCountTop">0</span>
+            </button>
             <span class="bb-top-user">Admin ▾</span>
             <button type="button" class="bb-top-logout" onclick="logoutAdmin()">Logout</button>
           </div>
@@ -4915,6 +4918,7 @@ async function loadNotifications() {
     const el = document.getElementById('notifyList');
     const userListEl = document.getElementById('userNotifyList');
     const countEl = document.getElementById('notifyCount');
+    const topCountEl = document.getElementById('notifyCountTop');
     const userCountEl = document.getElementById('userNotifyCount');
     const cleared = getClearedNotifyIds();
     if (!el) return;
@@ -4939,6 +4943,7 @@ async function loadNotifications() {
     if (userListEl) userListEl.innerHTML = itemHtml;
     if (filtered.length > 0) {
       if (countEl) { countEl.textContent = filtered.length > 99 ? '99+' : filtered.length; countEl.classList.add('has-count'); }
+      if (topCountEl) { topCountEl.textContent = filtered.length > 99 ? '99+' : filtered.length; topCountEl.classList.add('has-count'); }
       if (userCountEl) { userCountEl.textContent = countEl ? countEl.textContent : ''; userCountEl.classList.add('has-count'); }
       [document.getElementById('notifyClearAllBtn'), document.getElementById('userNotifyClearAllBtn')].forEach(function(btn) { if (btn) btn.disabled = false; });
       updateNotifyClearBtn();
@@ -4946,6 +4951,7 @@ async function loadNotifications() {
     } else {
       [document.getElementById('notifyClearAllBtn'), document.getElementById('userNotifyClearAllBtn')].forEach(function(btn) { if (btn) btn.disabled = true; });
       if (countEl) countEl.classList.remove('has-count');
+      if (topCountEl) topCountEl.classList.remove('has-count');
       if (userCountEl) userCountEl.classList.remove('has-count');
       updateNotifyClearBtn();
       if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
