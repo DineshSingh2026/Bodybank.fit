@@ -35,9 +35,9 @@ The service worker will then install the new version, clear old caches, and the 
    - Set `GOOGLE_CLIENT_ID` in `.env` and add your deployment origin to the OAuth client.
 
 5. **Admin AI (live server / optional)**
-   - To enable ChatGPT-style answers in the Admin dashboard, set `OPENAI_API_KEY` to your OpenAI API key (get one at [platform.openai.com/api-keys](https://platform.openai.com/api-keys)).
-   - On Render: Dashboard → your Web Service → Environment → Add `OPENAI_API_KEY` (value = `sk-...`), then Save (app will redeploy).
-   - Optional: `OPENAI_MODEL=gpt-4o-mini` (default) or `gpt-4o`.
+   - To enable Claude Sonnet answers in the Admin dashboard, set `ANTHROPIC_API_KEY`.
+   - On Render: Dashboard → your Web Service → Environment → Add `ANTHROPIC_API_KEY` (value = `sk-ant-...`), then Save (app will redeploy).
+   - Optional: `ANTHROPIC_MODEL=claude-sonnet-4-5`.
 
 ## Run
 

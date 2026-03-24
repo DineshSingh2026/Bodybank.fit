@@ -2986,10 +2986,6 @@ function estimateAICost({ provider, inputTokens, outputTokens }) {
     anthropic: {
       inputPerMillionUsd: toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, 3),
       outputPerMillionUsd: toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, 15)
-    },
-    openai: {
-      inputPerMillionUsd: toNumber(process.env.OPENAI_INPUT_PER_MILLION_USD, 0.15),
-      outputPerMillionUsd: toNumber(process.env.OPENAI_OUTPUT_PER_MILLION_USD, 0.6)
     }
   };
   const p = pricing[provider] || { inputPerMillionUsd: 0, outputPerMillionUsd: 0 };
@@ -3005,7 +3001,7 @@ function estimateAICost({ provider, inputTokens, outputTokens }) {
 async function callAnthropicChat(systemContext, userMessage) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || !apiKey.trim()) return null;
-  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514';
+  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5';
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
@@ -3043,52 +3039,9 @@ async function callAnthropicChat(systemContext, userMessage) {
   };
 }
 
-async function callOpenAIChat(systemContext, userMessage) {
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey || !apiKey.trim()) return null;
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer ' + apiKey.trim()
-    },
-    body: JSON.stringify({
-      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-      max_tokens: 4096,
-      messages: [
-        { role: 'system', content: buildAISystemContent(systemContext) },
-        { role: 'user', content: userMessage }
-      ]
-    })
-  });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error('OpenAI: ' + (err || response.statusText));
-  }
-  const data = await response.json();
-  const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-  const promptTokens = toNumber(data && data.usage && data.usage.prompt_tokens, 0);
-  const completionTokens = toNumber(data && data.usage && data.usage.completion_tokens, 0);
-  const usage = {
-    provider: 'openai',
-    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-    input_tokens: promptTokens,
-    output_tokens: completionTokens,
-    total_tokens: toNumber(data && data.usage && data.usage.total_tokens, promptTokens + completionTokens),
-    ...estimateAICost({ provider: 'openai', inputTokens: promptTokens, outputTokens: completionTokens })
-  };
-  return {
-    reply: content ? content.trim() : null,
-    usage
-  };
-}
-
-/** Prefer Anthropic (Claude Sonnet-class) when ANTHROPIC_API_KEY is set; else OpenAI. */
+/** Claude Sonnet-only provider for Admin AI Assist. */
 async function callAIChat(systemContext, userMessage) {
-  if (process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim()) {
-    return callAnthropicChat(systemContext, userMessage);
-  }
-  return callOpenAIChat(systemContext, userMessage);
+  return callAnthropicChat(systemContext, userMessage);
 }
 
 function parseMonthlyReportCommand(text) {
@@ -3252,7 +3205,7 @@ function buildPoliteFallbackReply(context, question) {
     answer = pendingSignups === 0 ? 'No one is pending approval right now.' : 'There are ' + pendingSignups + ' pending sign-up' + (pendingSignups === 1 ? '' : 's') + ' awaiting approval. Open the Pending Sign-ups tab to see names and approve them.';
     answer += suggestActions();
   } else {
-    answer = 'Here’s a snapshot of your current data:\n\n' + context.split('---').slice(0, 3).join('---').trim() + '\n\nIf you’d like answers to specific questions (e.g. “How many pending forms?”). For AI answers to any question, set OPENAI_API_KEY in .env and restart.';
+    answer = 'Here’s a snapshot of your current data:\n\n' + context.split('---').slice(0, 3).join('---').trim() + '\n\nIf you’d like answers to specific questions (e.g. “How many pending forms?”). For AI answers to any question, set ANTHROPIC_API_KEY in .env and restart.';
   }
   return answer;
 }
@@ -3269,7 +3222,7 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
     }
 
 
-    // ── Campaign command detection (before OpenAI) ──────────────────────────
+    // ── Campaign command detection (before provider call) ───────────────────
     const campaignCmd = parseAICampaignCommand(text);
     if (campaignCmd) {
       try {
@@ -3376,9 +3329,8 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
       console.error('[admin ai-assist context]', ctxErr.message);
       context = '';
     }
-    const hasOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim());
     const hasAnthropic = !!(process.env.ANTHROPIC_API_KEY && process.env.ANTHROPIC_API_KEY.trim());
-    const hasAI = hasOpenAI || hasAnthropic;
+    const hasAI = hasAnthropic;
 
     if (hasAI) {
       try {
@@ -3401,7 +3353,7 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
     if (reply == null || reply === '') {
       reply = hasAI
         ? 'I could not generate an answer right now. Please try again in a moment.'
-        : 'To enable AI answers using your live data, add ANTHROPIC_API_KEY (Claude Sonnet recommended) and/or OPENAI_API_KEY to the server .env file and restart.';
+        : 'To enable AI answers using your live data, add ANTHROPIC_API_KEY (Claude Sonnet) to the server .env file and restart.';
     }
     return res.json({ reply, usage });
   } catch (e) {
