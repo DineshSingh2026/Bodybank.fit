@@ -3001,42 +3001,65 @@ function estimateAICost({ provider, inputTokens, outputTokens }) {
 async function callAnthropicChat(systemContext, userMessage) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || !apiKey.trim()) return null;
-  const model = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5';
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey.trim(),
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
+  const modelCandidates = Array.from(new Set([
+    process.env.ANTHROPIC_MODEL,
+    'claude-sonnet-4-20250514',
+    'claude-sonnet-4-5',
+    'claude-3-5-sonnet-latest'
+  ].map((m) => String(m || '').trim()).filter(Boolean)));
+  let lastErr = null;
+
+  for (const model of modelCandidates) {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey.trim(),
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model,
+        // Keep this conservative to avoid quota/window rejections.
+        max_tokens: 2048,
+        system: buildAISystemContent(systemContext),
+        messages: [{ role: 'user', content: userMessage }]
+      })
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      const errMsg = 'Anthropic (' + model + '): ' + (errText || response.statusText);
+      lastErr = new Error(errMsg);
+      const low = errMsg.toLowerCase();
+      const shouldTryAnotherModel =
+        low.includes('model') ||
+        low.includes('not found') ||
+        low.includes('unsupported') ||
+        low.includes('invalid_request_error');
+      if (shouldTryAnotherModel) continue;
+      throw lastErr;
+    }
+
+    const data = await response.json();
+    const block = data.content && data.content[0];
+    const text = block && block.type === 'text' ? block.text : (typeof block?.text === 'string' ? block.text : '');
+    const inputTokens = toNumber(data && data.usage && data.usage.input_tokens, 0);
+    const outputTokens = toNumber(data && data.usage && data.usage.output_tokens, 0);
+    const usage = {
+      provider: 'anthropic',
       model,
-      max_tokens: 8192,
-      system: buildAISystemContent(systemContext),
-      messages: [{ role: 'user', content: userMessage }]
-    })
-  });
-  if (!response.ok) {
-    const err = await response.text();
-    throw new Error('Anthropic: ' + (err || response.statusText));
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      total_tokens: inputTokens + outputTokens,
+      ...estimateAICost({ provider: 'anthropic', inputTokens, outputTokens })
+    };
+    return {
+      reply: text ? text.trim() : null,
+      usage
+    };
   }
-  const data = await response.json();
-  const block = data.content && data.content[0];
-  const text = block && block.type === 'text' ? block.text : (typeof block?.text === 'string' ? block.text : '');
-  const inputTokens = toNumber(data && data.usage && data.usage.input_tokens, 0);
-  const outputTokens = toNumber(data && data.usage && data.usage.output_tokens, 0);
-  const usage = {
-    provider: 'anthropic',
-    model,
-    input_tokens: inputTokens,
-    output_tokens: outputTokens,
-    total_tokens: inputTokens + outputTokens,
-    ...estimateAICost({ provider: 'anthropic', inputTokens, outputTokens })
-  };
-  return {
-    reply: text ? text.trim() : null,
-    usage
-  };
+
+  throw lastErr || new Error('Anthropic: all model attempts failed');
 }
 
 /** Claude Sonnet-only provider for Admin AI Assist. */
@@ -3345,6 +3368,10 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
         console.error('[admin ai-assist provider]', aiErr.message);
         if (context && context.trim()) {
           reply = buildPoliteFallbackReply(context, text);
+          const details = String(aiErr && aiErr.message ? aiErr.message : '').replace(/\s+/g, ' ').slice(0, 220);
+          if (details) {
+            reply += `\n\nProvider warning: ${details}`;
+          }
         } else {
           reply = 'AI provider is unavailable right now. Please try again in a moment.';
         }
