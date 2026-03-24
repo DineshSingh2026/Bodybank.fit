@@ -266,6 +266,50 @@
     ].join('\n');
   }
 
+  function downloadBlobAsFile(blob, filename) {
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(blobUrl);
+  }
+
+  async function convertSvgBlobToPngBlob(svgBlob) {
+    return new Promise((resolve, reject) => {
+      try {
+        const image = new Image();
+        const svgUrl = URL.createObjectURL(svgBlob);
+        image.onload = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = image.naturalWidth || 1080;
+            canvas.height = image.naturalHeight || 1350;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(image, 0, 0);
+            canvas.toBlob((pngBlob) => {
+              URL.revokeObjectURL(svgUrl);
+              if (!pngBlob) return reject(new Error('PNG conversion failed'));
+              resolve(pngBlob);
+            }, 'image/png');
+          } catch (err) {
+            URL.revokeObjectURL(svgUrl);
+            reject(err);
+          }
+        };
+        image.onerror = () => {
+          URL.revokeObjectURL(svgUrl);
+          reject(new Error('SVG load failed'));
+        };
+        image.src = svgUrl;
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
   async function downloadImageFromUrl(imageUrl, fallbackFilename) {
     const safeUrl = String(imageUrl || '').trim();
     if (!safeUrl) return;
@@ -273,14 +317,13 @@
       const res = await fetch(safeUrl);
       if (!res.ok) throw new Error('Image request failed');
       const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = fallbackFilename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(blobUrl);
+      const isSvg = (blob.type || '').toLowerCase().includes('svg') || safeUrl.includes('/api/marketing-ai/visual');
+      if (isSvg) {
+        const pngBlob = await convertSvgBlobToPngBlob(blob);
+        downloadBlobAsFile(pngBlob, fallbackFilename);
+      } else {
+        downloadBlobAsFile(blob, fallbackFilename);
+      }
     } catch (e) {
       // Fallback for CORS-restricted image hosts.
       const a = document.createElement('a');

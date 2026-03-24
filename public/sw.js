@@ -1,5 +1,5 @@
 /* BodyBank PWA Service Worker — bump CACHE_NAME on each deploy so users get fresh content */
-const CACHE_NAME = 'bodybank-v30';
+const CACHE_NAME = 'bodybank-v31';
 
 self.addEventListener('install', (e) => {
   self.skipWaiting();
@@ -70,6 +70,7 @@ self.addEventListener('fetch', (e) => {
   if (req.method !== 'GET') return;
 
   const isNavigation = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
+  const isStaticCodeAsset = /\.(?:js|css)$/.test(url.pathname);
 
   /* HTML: network-first so users get latest meta/CSS updates */
   if (isNavigation) {
@@ -84,6 +85,21 @@ self.addEventListener('fetch', (e) => {
         .catch(() =>
           caches.match(req).then((cached) => cached || caches.match('/index.html'))
         )
+    );
+    return;
+  }
+
+  /* JS/CSS: network-first so deploys reflect immediately */
+  if (isStaticCodeAsset) {
+    e.respondWith(
+      fetch(req)
+        .then((res) => {
+          if (!res || res.status !== 200 || res.type !== 'basic') return res;
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
+          return res;
+        })
+        .catch(() => caches.match(req).then((cached) => cached || new Response('', { status: 503, statusText: 'Offline' })))
     );
     return;
   }

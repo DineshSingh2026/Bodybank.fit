@@ -49,21 +49,27 @@ function buildLuxuryMarketingSvg({ postType, keywords, tone, hook, caption, prom
   const height = isReel ? 1920 : 1350;
   const palette = toLuxuryPalette(tone);
   const title = String(keywords || 'BodyBank').trim() || 'BodyBank';
-  const hookLines = wrapByWords(hook || caption || prompt || title, 34, isReel ? 5 : 4);
-  const subLines = wrapByWords(caption || prompt || title, 44, isReel ? 4 : 3);
+  const hookLines = wrapByWords(hook || caption || prompt || title, isReel ? 24 : 28, isReel ? 5 : 4);
+  const subLines = wrapByWords(caption || prompt || title, isReel ? 34 : 40, isReel ? 4 : 3);
   const chips = wrapByWords(title, 18, 3);
+  const toneLabel = escapeXml(String(tone || 'Premium').toUpperCase());
+  const postLabel = escapeXml(String(postType || 'Post').toUpperCase());
+  const panelX = 70;
+  const panelY = isReel ? 250 : 210;
+  const panelW = width - 140;
+  const panelH = isReel ? 1080 : 860;
 
   const chipSvg = chips.map((chip, i) => {
-    const y = isReel ? 1540 + (i * 72) : 980 + (i * 72);
-    return `<g><rect x="78" y="${y}" rx="26" ry="26" width="420" height="54" fill="rgba(255,255,255,0.08)" stroke="rgba(230,192,95,0.45)"/><text x="110" y="${y + 35}" fill="#F8E7BB" font-size="28" font-family="Arial, sans-serif" font-weight="700">${escapeXml(chip)}</text></g>`;
+    const y = isReel ? 1540 + (i * 72) : 1020 + (i * 72);
+    return `<g><rect x="92" y="${y}" rx="26" ry="26" width="460" height="54" fill="rgba(255,255,255,0.08)" stroke="rgba(230,192,95,0.45)"/><text x="126" y="${y + 35}" fill="#F8E7BB" font-size="28" font-family="Montserrat,Arial,sans-serif" font-weight="700">${escapeXml(chip)}</text></g>`;
   }).join('');
 
-  const hookSvg = hookLines.map((line, i) => `<text x="82" y="${isReel ? 430 + (i * 72) : 360 + (i * 68)}" fill="#FFFFFF" font-size="${isReel ? 64 : 58}" font-family="Arial, sans-serif" font-weight="800">${escapeXml(line)}</text>`).join('');
-  const subSvg = subLines.map((line, i) => `<text x="84" y="${isReel ? 790 + (i * 52) : 690 + (i * 46)}" fill="rgba(255,255,255,0.88)" font-size="${isReel ? 40 : 34}" font-family="Arial, sans-serif" font-weight="500">${escapeXml(line)}</text>`).join('');
+  const hookSvg = hookLines.map((line, i) => `<text x="98" y="${isReel ? 430 + (i * 78) : 360 + (i * 72)}" fill="#FFFFFF" font-size="${isReel ? 64 : 60}" font-family="Montserrat,Arial,sans-serif" font-weight="800">${escapeXml(line)}</text>`).join('');
+  const subSvg = subLines.map((line, i) => `<text x="100" y="${isReel ? 860 + (i * 56) : 710 + (i * 48)}" fill="rgba(255,255,255,0.9)" font-size="${isReel ? 38 : 33}" font-family="Poppins,Arial,sans-serif" font-weight="500">${escapeXml(line)}</text>`).join('');
 
   const logoTag = logoDataUri
-    ? `<image href="${logoDataUri}" x="${width - 250}" y="56" width="164" height="164" />`
-    : `<text x="${width - 280}" y="145" fill="#F8E7BB" font-size="48" font-family="Arial, sans-serif" font-weight="800">BODYBANK</text>`;
+    ? `<image href="${logoDataUri}" x="${width - 246}" y="58" width="156" height="156" />`
+    : `<text x="${width - 330}" y="145" fill="#F8E7BB" font-size="42" font-family="Montserrat,Arial,sans-serif" font-weight="800">BODYBANK</text>`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
@@ -76,17 +82,26 @@ function buildLuxuryMarketingSvg({ postType, keywords, tone, hook, caption, prom
       <stop offset="0%" stop-color="rgba(230,192,95,0.35)" />
       <stop offset="100%" stop-color="rgba(230,192,95,0)" />
     </radialGradient>
+    <linearGradient id="panelGlass" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.10)" />
+      <stop offset="100%" stop-color="rgba(255,255,255,0.03)" />
+    </linearGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="rgba(0,0,0,0.45)"/>
+    </filter>
   </defs>
   <rect width="100%" height="100%" fill="url(#bg)" />
   <rect width="100%" height="100%" fill="url(#glow)" />
-  <rect x="30" y="30" width="${width - 60}" height="${height - 60}" rx="34" ry="34" fill="none" stroke="rgba(230,192,95,0.58)" stroke-width="4"/>
+  <rect x="26" y="26" width="${width - 52}" height="${height - 52}" rx="34" ry="34" fill="none" stroke="rgba(230,192,95,0.58)" stroke-width="3"/>
+  <rect x="${panelX}" y="${panelY}" width="${panelW}" height="${panelH}" rx="34" ry="34" fill="url(#panelGlass)" stroke="rgba(255,255,255,0.12)" filter="url(#softShadow)"/>
+  <rect x="${panelX + 1}" y="${panelY + 1}" width="${panelW - 2}" height="${panelH - 2}" rx="34" ry="34" fill="none" stroke="rgba(230,192,95,0.26)"/>
   ${logoTag}
-  <text x="84" y="130" fill="${palette.gold}" font-size="34" font-family="Arial, sans-serif" letter-spacing="4" font-weight="700">${escapeXml(String(postType || 'Post').toUpperCase())} | ${escapeXml(String(tone || 'Premium').toUpperCase())}</text>
+  <text x="94" y="128" fill="${palette.gold}" font-size="32" font-family="Montserrat,Arial,sans-serif" letter-spacing="4" font-weight="700">${postLabel} | ${toneLabel}</text>
   ${hookSvg}
   ${subSvg}
   ${chipSvg}
-  <text x="84" y="${height - 82}" fill="rgba(255,255,255,0.78)" font-size="28" font-family="Arial, sans-serif" font-weight="600">bodybank.fit</text>
-  <text x="${width - 332}" y="${height - 82}" fill="${palette.accent}" font-size="26" font-family="Arial, sans-serif">Train Smart. Look Premium.</text>
+  <text x="92" y="${height - 84}" fill="rgba(255,255,255,0.82)" font-size="28" font-family="Poppins,Arial,sans-serif" font-weight="600">bodybank.fit</text>
+  <text x="${width - 92}" y="${height - 84}" text-anchor="end" fill="${palette.accent}" font-size="24" font-family="Poppins,Arial,sans-serif">Train Smart. Look Premium.</text>
 </svg>`;
 }
 
