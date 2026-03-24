@@ -112,6 +112,19 @@ select {
   font-weight: 600;
 }
 
+.usage-meta {
+  margin-top: 10px;
+  color: #1f2937;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.usage-totals {
+  margin-top: 6px;
+  color: #4b5563;
+  font-size: 12px;
+}
+
 .error {
   margin-top: 12px;
   color: #b91c1c;

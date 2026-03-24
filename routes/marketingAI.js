@@ -142,13 +142,15 @@ function createMarketingAIRouter({ run, queryAll }) {
         return res.status(400).json({ error: 'keywords, postType, and tone are required' });
       }
 
-      const aiResponse = await callSonetApi({ keywords, postType, tone });
+      const aiResult = await callSonetApi({ keywords, postType, tone });
+      const aiResponse = aiResult && aiResult.data ? aiResult.data : aiResult;
+      const usage = aiResult && aiResult.usage ? aiResult.usage : null;
       await run(
         'INSERT INTO marketing_contents (keywords, post_type, tone, response_json) VALUES (?, ?, ?, ?::jsonb)',
         [keywords, postType, tone, JSON.stringify(aiResponse)]
       );
 
-      return res.json({ ok: true, data: aiResponse });
+      return res.json({ ok: true, data: aiResponse, usage });
     } catch (e) {
       console.error('[marketing-ai generate]', e.message);
       const safeMsg = String(e.message || '').slice(0, 240);

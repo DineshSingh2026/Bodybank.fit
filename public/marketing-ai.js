@@ -2,7 +2,11 @@
   const SESSION_KEY = 'bodybank_session';
   const state = {
     lastPayload: null,
-    lastInput: null
+    lastInput: null,
+    sessionUsage: {
+      totalTokens: 0,
+      totalInr: 0
+    }
   };
 
   const el = {
@@ -12,6 +16,8 @@
     generateBtn: document.getElementById('generateBtn'),
     regenerateBtn: document.getElementById('regenerateBtn'),
     loading: document.getElementById('loading'),
+    usageMeta: document.getElementById('usageMeta'),
+    usageTotals: document.getElementById('usageTotals'),
     errorMessage: document.getElementById('errorMessage'),
     outputCard: document.getElementById('outputCard'),
     outputSections: document.getElementById('outputSections'),
@@ -62,6 +68,43 @@
     }
     el.errorMessage.textContent = message;
     el.errorMessage.classList.remove('hidden');
+  }
+
+  function parseUsage(raw) {
+    const src = raw && typeof raw === 'object' ? raw : {};
+    const input = Number(src.input_tokens || 0);
+    const output = Number(src.output_tokens || 0);
+    const total = Number(src.total_tokens || (input + output));
+    const inr = Number(src.estimated_cost_inr || 0);
+    const usd = Number(src.estimated_cost_usd || 0);
+    return {
+      provider: String(src.provider || 'anthropic'),
+      model: String(src.model || ''),
+      input_tokens: Number.isFinite(input) ? input : 0,
+      output_tokens: Number.isFinite(output) ? output : 0,
+      total_tokens: Number.isFinite(total) ? total : 0,
+      estimated_cost_inr: Number.isFinite(inr) ? inr : 0,
+      estimated_cost_usd: Number.isFinite(usd) ? usd : 0
+    };
+  }
+
+  function formatUsageMeta(usage) {
+    if (!usage) return '';
+    return `Usage: ${usage.total_tokens} tokens (in ${usage.input_tokens} / out ${usage.output_tokens}) | Rs ${usage.estimated_cost_inr.toFixed(2)}${usage.model ? ` | ${usage.model}` : ''}`;
+  }
+
+  function updateUsageUi(rawUsage) {
+    if (!rawUsage) {
+      el.usageMeta.textContent = '';
+      el.usageMeta.classList.add('hidden');
+      return;
+    }
+    const usage = parseUsage(rawUsage);
+    el.usageMeta.textContent = formatUsageMeta(usage);
+    el.usageMeta.classList.remove('hidden');
+    state.sessionUsage.totalTokens += usage.total_tokens;
+    state.sessionUsage.totalInr += usage.estimated_cost_inr;
+    el.usageTotals.textContent = `Session total: ${state.sessionUsage.totalTokens} tokens | Rs ${state.sessionUsage.totalInr.toFixed(2)}`;
   }
 
   function formatValue(value) {
@@ -354,6 +397,7 @@
         body: JSON.stringify({ keywords, postType, tone })
       });
       renderOutput(result.data);
+      updateUsageUi(result.usage || null);
       await loadHistory();
     } catch (e) {
       showError(e.message || 'Could not generate content. Please check API key and model settings.');
@@ -374,6 +418,7 @@
         body: JSON.stringify(state.lastInput)
       });
       renderOutput(result.data);
+      updateUsageUi(result.usage || null);
       await loadHistory();
     } catch (e) {
       showError(e.message || 'Could not regenerate content');

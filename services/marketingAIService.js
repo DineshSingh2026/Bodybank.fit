@@ -111,6 +111,25 @@ function extractJsonObject(text) {
   }
 }
 
+function toNumber(value, fallback = 0) {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+function estimateAnthropicCost(inputTokens, outputTokens) {
+  const usdToInr = toNumber(process.env.AI_COST_USD_TO_INR, 83);
+  const inputPerMillion = toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, 3);
+  const outputPerMillion = toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, 15);
+  const inputUsd = (Math.max(0, inputTokens) / 1_000_000) * inputPerMillion;
+  const outputUsd = (Math.max(0, outputTokens) / 1_000_000) * outputPerMillion;
+  const totalUsd = inputUsd + outputUsd;
+  const totalInr = totalUsd * usdToInr;
+  return {
+    estimated_cost_usd: Number(totalUsd.toFixed(6)),
+    estimated_cost_inr: Number(totalInr.toFixed(4))
+  };
+}
+
 function normalizeMarketingResponse(payload, input) {
   if (!payload || typeof payload !== 'object') {
     throw new Error('AI returned empty payload');
@@ -230,6 +249,8 @@ async function callSonetApi({ keywords, postType, tone }) {
   }
 
   const apiData = await response.json();
+  const inputTokens = toNumber(apiData && apiData.usage && apiData.usage.input_tokens, 0);
+  const outputTokens = toNumber(apiData && apiData.usage && apiData.usage.output_tokens, 0);
   const contentBlocks = Array.isArray(apiData && apiData.content) ? apiData.content : [];
   const textReply = contentBlocks
     .filter((block) => block && block.type === 'text' && typeof block.text === 'string')
@@ -241,7 +262,16 @@ async function callSonetApi({ keywords, postType, tone }) {
     throw new Error('Invalid JSON returned from Sonet API');
   }
 
-  return normalizeMarketingResponse(parsed, { keywords, postType, tone });
+  const data = normalizeMarketingResponse(parsed, { keywords, postType, tone });
+  const usage = {
+    provider: 'anthropic',
+    model,
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: inputTokens + outputTokens,
+    ...estimateAnthropicCost(inputTokens, outputTokens)
+  };
+  return { data, usage };
 }
 
 module.exports = { callSonetApi, normalizeMarketingResponse };
