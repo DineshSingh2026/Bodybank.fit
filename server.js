@@ -6,6 +6,7 @@ const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
+const fs = require('fs');
 const webPush = require('web-push');
 const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken } = require('./middleware/auth');
 const progressRoutes = require('./routes/progress');
@@ -15,6 +16,7 @@ const progressService = require('./services/progressService');
 const { inferTimezoneFromCountry, getUserTimezone } = require('./utils/timezone');
 const { startCampaignScheduler, restartScheduler: restartCampaignScheduler, broadcastMessage: broadcastCampaignMessage } = require('./services/campaignScheduler');
 const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalizeCampaignDay, normalizeTime: normalizeCampaignTime } = require('./controllers/campaignController');
+const { generateMonthlyClientReport, monthLabel: monthLabelForReport } = require('./services/monthlyReportService');
 
 // ============ CONFIG ============
 const PORT = process.argv[2] || process.env.PORT || 3000;
@@ -2926,6 +2928,33 @@ function buildAISystemContent(systemContext) {
   return AI_SYSTEM_PROMPT + '\n\n--- LIVE DATABASE CONTEXT ---\n' + systemContext;
 }
 
+function toNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function estimateAICost({ provider, inputTokens, outputTokens }) {
+  const usdToInr = toNumber(process.env.AI_COST_USD_TO_INR, 83);
+  const pricing = {
+    anthropic: {
+      inputPerMillionUsd: toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, 3),
+      outputPerMillionUsd: toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, 15)
+    },
+    openai: {
+      inputPerMillionUsd: toNumber(process.env.OPENAI_INPUT_PER_MILLION_USD, 0.15),
+      outputPerMillionUsd: toNumber(process.env.OPENAI_OUTPUT_PER_MILLION_USD, 0.6)
+    }
+  };
+  const p = pricing[provider] || { inputPerMillionUsd: 0, outputPerMillionUsd: 0 };
+  const inUsd = ((toNumber(inputTokens) / 1000000) * p.inputPerMillionUsd) + ((toNumber(outputTokens) / 1000000) * p.outputPerMillionUsd);
+  const inInr = inUsd * usdToInr;
+  return {
+    estimated_cost_usd: Number(inUsd.toFixed(6)),
+    estimated_cost_inr: Number(inInr.toFixed(4)),
+    usd_to_inr: usdToInr
+  };
+}
+
 async function callAnthropicChat(systemContext, userMessage) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || !apiKey.trim()) return null;
@@ -2951,7 +2980,20 @@ async function callAnthropicChat(systemContext, userMessage) {
   const data = await response.json();
   const block = data.content && data.content[0];
   const text = block && block.type === 'text' ? block.text : (typeof block?.text === 'string' ? block.text : '');
-  return text ? text.trim() : null;
+  const inputTokens = toNumber(data && data.usage && data.usage.input_tokens, 0);
+  const outputTokens = toNumber(data && data.usage && data.usage.output_tokens, 0);
+  const usage = {
+    provider: 'anthropic',
+    model,
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: inputTokens + outputTokens,
+    ...estimateAICost({ provider: 'anthropic', inputTokens, outputTokens })
+  };
+  return {
+    reply: text ? text.trim() : null,
+    usage
+  };
 }
 
 async function callOpenAIChat(systemContext, userMessage) {
@@ -2978,7 +3020,20 @@ async function callOpenAIChat(systemContext, userMessage) {
   }
   const data = await response.json();
   const content = data.choices && data.choices[0] && data.choices[0].message && data.choices[0].message.content;
-  return content ? content.trim() : null;
+  const promptTokens = toNumber(data && data.usage && data.usage.prompt_tokens, 0);
+  const completionTokens = toNumber(data && data.usage && data.usage.completion_tokens, 0);
+  const usage = {
+    provider: 'openai',
+    model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+    input_tokens: promptTokens,
+    output_tokens: completionTokens,
+    total_tokens: toNumber(data && data.usage && data.usage.total_tokens, promptTokens + completionTokens),
+    ...estimateAICost({ provider: 'openai', inputTokens: promptTokens, outputTokens: completionTokens })
+  };
+  return {
+    reply: content ? content.trim() : null,
+    usage
+  };
 }
 
 /** Prefer Anthropic (Claude Sonnet-class) when ANTHROPIC_API_KEY is set; else OpenAI. */
@@ -2987,6 +3042,99 @@ async function callAIChat(systemContext, userMessage) {
     return callAnthropicChat(systemContext, userMessage);
   }
   return callOpenAIChat(systemContext, userMessage);
+}
+
+function parseMonthlyReportCommand(text) {
+  const raw = String(text || '').trim();
+  if (!raw) return null;
+  const m = raw.match(/\bmonthly\s+report\b(?:\s+(?:of|for)\s+(.+?))?(?:\s+(?:for|in)\s+(\d{4}-\d{2}|[a-zA-Z]+\s+\d{4}))?\s*$/i);
+  if (!m) return null;
+  const clientQuery = (m[1] || '').trim();
+  const monthRaw = (m[2] || '').trim();
+  let monthKey = '';
+  if (monthRaw) {
+    if (/^\d{4}-\d{2}$/.test(monthRaw)) {
+      monthKey = monthRaw;
+    } else {
+      const d = new Date(monthRaw);
+      if (!Number.isNaN(d.getTime())) {
+        monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+      }
+    }
+  }
+  if (!monthKey) {
+    const now = new Date();
+    monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  }
+  return { clientQuery, monthKey };
+}
+
+function getMonthRange(monthKey) {
+  const [y, m] = String(monthKey || '').split('-').map((n) => parseInt(n, 10));
+  const from = new Date(y, Math.max(0, m - 1), 1);
+  const to = new Date(y, Math.max(0, m - 1) + 1, 1);
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return null;
+  return { from, to };
+}
+
+async function findUserForMonthlyReport(clientQuery) {
+  const q = String(clientQuery || '').trim();
+  if (!q) return null;
+  const like = '%' + q.replace(/%/g, '\\%') + '%';
+  return queryOne(
+    `SELECT id, first_name, last_name, email
+     FROM users
+     WHERE role = 'user'
+       AND (email ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ? OR (COALESCE(first_name,'') || ' ' || COALESCE(last_name,'')) ILIKE ?)
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [like, like, like, like]
+  );
+}
+
+async function collectMonthlyReportData(userId, monthKey) {
+  const range = getMonthRange(monthKey);
+  if (!range) throw new Error('Invalid month format');
+  const fromIso = range.from.toISOString();
+  const toIso = range.to.toISOString();
+  const fromDate = fromIso.slice(0, 10);
+  const toDate = toIso.slice(0, 10);
+
+  const [progressLogs, dailyCheckins, sundayCheckins, workouts, part2] = await Promise.all([
+    queryAll(
+      `SELECT * FROM progress_logs
+       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at < ?::timestamptz
+       ORDER BY created_at ASC`,
+      [userId, fromIso, toIso]
+    ),
+    queryAll(
+      `SELECT * FROM daily_checkins
+       WHERE user_id = ? AND checkin_date >= ?::date AND checkin_date < ?::date
+       ORDER BY checkin_date ASC`,
+      [userId, fromDate, toDate]
+    ),
+    queryAll(
+      `SELECT * FROM sunday_checkins
+       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at < ?::timestamptz
+       ORDER BY created_at ASC`,
+      [userId, fromIso, toIso]
+    ),
+    queryAll(
+      `SELECT * FROM workout_logs
+       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at < ?::timestamptz
+       ORDER BY created_at ASC`,
+      [userId, fromIso, toIso]
+    ),
+    queryOne(
+      `SELECT * FROM part2_audit
+       WHERE LOWER(email) = LOWER((SELECT email FROM users WHERE id = ?))
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [userId]
+    )
+  ]);
+
+  return { progressLogs, dailyCheckins, sundayCheckins, workouts, part2 };
 }
 
 function buildPoliteFallbackReply(context, question) {
@@ -3059,6 +3207,7 @@ function buildPoliteFallbackReply(context, question) {
 
 app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => {
   let reply = '';
+  let usage = null;
   try {
     const { message } = req.body || {};
     const text = typeof message === 'string' ? message.trim() : '';
@@ -3115,9 +3264,58 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
         console.error('[ai-assist campaign]', cErr.message);
         reply = 'Campaign action failed. Please try again or use the Campaigns tab directly.';
       }
-      return res.json({ reply });
+      return res.json({ reply, usage });
     }
     // ── End campaign command detection ───────────────────────────────────────
+
+    // ── Monthly report command detection (PDF) ───────────────────────────────
+    const monthlyCmd = parseMonthlyReportCommand(text);
+    if (monthlyCmd) {
+      try {
+        if (!monthlyCmd.clientQuery) {
+          reply = 'Please specify the client name or email. Example: "monthly report of sai".';
+          return res.json({ reply, usage });
+        }
+        const user = await findUserForMonthlyReport(monthlyCmd.clientQuery);
+        if (!user) {
+          reply = `I could not find a client matching "${monthlyCmd.clientQuery}". Please use full name or email.`;
+          return res.json({ reply, usage });
+        }
+        const data = await collectMonthlyReportData(user.id, monthlyCmd.monthKey);
+        const insights = await progressService.getAdminUserProgress(user.id).catch(() => null);
+
+        const reportsDir = path.join(__dirname, 'public', 'reports');
+        if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
+        const fileName = `monthly-report-${user.id}-${monthlyCmd.monthKey}-${Date.now()}.pdf`;
+        const outputPath = path.join(reportsDir, fileName);
+        const logoPath = path.join(__dirname, 'public', 'img', 'bodybank-logo-short.png');
+
+        await generateMonthlyClientReport({
+          outputPath,
+          monthKey: monthlyCmd.monthKey,
+          user: {
+            id: user.id,
+            name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+            email: user.email || ''
+          },
+          data,
+          insights,
+          logoPath
+        });
+
+        const baseUrl = (process.env.PUBLIC_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
+        const reportUrl = `${baseUrl}/reports/${encodeURIComponent(fileName)}`;
+        reply =
+          `Monthly report generated for ${user.first_name || ''} ${user.last_name || ''} (${user.email || '-'})` +
+          `\nMonth: ${monthLabelForReport(monthlyCmd.monthKey)}` +
+          `\nDownload PDF: ${reportUrl}`;
+      } catch (reportErr) {
+        console.error('[admin ai-assist monthly-report]', reportErr.message);
+        reply = 'I could not generate the monthly PDF report right now. Please try again.';
+      }
+      return res.json({ reply, usage });
+    }
+    // ── End monthly report command detection ─────────────────────────────────
 
     const context = await getAdminAIContext();
     const hasOpenAI = !!(process.env.OPENAI_API_KEY && process.env.OPENAI_API_KEY.trim());
@@ -3125,18 +3323,24 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
     const hasAI = hasOpenAI || hasAnthropic;
 
     if (hasAI) {
-      reply = await callAIChat(context, text);
+      const aiResult = await callAIChat(context, text);
+      if (aiResult && typeof aiResult === 'object') {
+        reply = aiResult.reply;
+        usage = aiResult.usage || null;
+      } else {
+        reply = aiResult;
+      }
     }
     if (reply == null || reply === '') {
       reply = hasAI
         ? 'I could not generate an answer right now. Please try again in a moment.'
         : 'To enable AI answers using your live data, add ANTHROPIC_API_KEY (Claude Sonnet recommended) and/or OPENAI_API_KEY to the server .env file and restart.';
     }
-    return res.json({ reply });
+    return res.json({ reply, usage });
   } catch (e) {
     console.error('[admin ai-assist]', e.message);
     reply = 'I couldn’t look up the data right now. Please try again in a moment, or check the dashboard directly.';
-    return res.json({ reply });
+    return res.json({ reply, usage });
   }
 });
 

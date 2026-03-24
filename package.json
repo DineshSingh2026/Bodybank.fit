@@ -25,6 +25,7 @@
     "jsonwebtoken": "^9.0.3",
     "node-cron": "^4.2.1",
     "nodemailer": "^8.0.2",
+    "pdfkit": "^0.18.0",
     "pg": "^8.18.0",
     "uuid": "^11.1.0",
     "web-push": "^3.6.7"

@@ -1162,8 +1162,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-ai-assist-msg.assistant.admin-ai-assist-msg-md .admin-ai-md-ul{margin:4px 0 8px;padding-left:18px}
 .admin-ai-assist-msg.assistant.admin-ai-assist-msg-md .admin-ai-md-ul li{margin:2px 0}
 .admin-ai-assist-msg.assistant.admin-ai-assist-msg-md strong{color:#fff;font-weight:600}
+.admin-ai-assist-msg.assistant.admin-ai-assist-msg-md a{color:var(--gold);text-decoration:underline;word-break:break-all}
 .admin-ai-assist-copy-btn{position:absolute;top:8px;right:8px;z-index:2;padding:5px 10px;border-radius:8px;border:1px solid rgba(200,164,78,0.45);background:rgba(0,0,0,0.35);color:var(--gold);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.04em;text-transform:uppercase;cursor:pointer;transition:background .2s,color .2s,border-color .2s;-webkit-tap-highlight-color:transparent}
 .admin-ai-assist-copy-btn:hover,.admin-ai-assist-copy-btn:focus{background:rgba(200,164,78,0.15);color:var(--cream);border-color:var(--gold);outline:none}
+.admin-ai-assist-msg-usage{margin-top:8px;padding-top:7px;border-top:1px dashed rgba(255,255,255,0.15);font-size:11px;color:var(--muted);line-height:1.35;white-space:normal}
 @media(min-width:900px){
   .admin-ai-assist-panel{width:min(520px,calc(100vw - 40px));height:min(78dvh,720px);max-height:min(78dvh,720px)}
 }
@@ -1175,6 +1177,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-ai-assist-send:hover{opacity:.95;background:#20bd5a}
 .admin-ai-assist-send:disabled{opacity:.6;cursor:not-allowed}
 .admin-ai-assist-footer{padding:10px 16px 14px;border-top:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.15);flex-shrink:0}
+.admin-ai-assist-usage-summary{margin-bottom:10px;font-size:11px;color:var(--muted);line-height:1.4}
 .admin-ai-assist-done-btn{width:100%;padding:10px 16px;border:1px solid var(--bdr);border-radius:10px;background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:color .2s,background .2s,border-color .2s}
 .admin-ai-assist-done-btn:hover{color:var(--cream);background:rgba(255,255,255,0.06);border-color:var(--gold)}
 
@@ -3659,6 +3662,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         </button>
       </div>
       <div class="admin-ai-assist-footer">
+        <div class="admin-ai-assist-usage-summary" id="adminAiAssistUsageSummary">Session total: 0 tokens | Rs 0.00</div>
         <button type="button" class="admin-ai-assist-done-btn" onclick="closeAdminAiAssistPanel()">Close AI Assist</button>
       </div>
     </div>
@@ -5943,6 +5947,55 @@ function copyAdminAiReply(btn, plainText) {
     fallbackCopy();
   }
 }
+function parseAdminAiUsage(value) {
+  if (!value || typeof value !== 'object') return null;
+  var inTokens = Number(value.input_tokens || 0);
+  var outTokens = Number(value.output_tokens || 0);
+  var total = Number(value.total_tokens || (inTokens + outTokens));
+  var inr = Number(value.estimated_cost_inr || 0);
+  var usd = Number(value.estimated_cost_usd || 0);
+  return {
+    provider: String(value.provider || '').trim(),
+    model: String(value.model || '').trim(),
+    input_tokens: Number.isFinite(inTokens) ? inTokens : 0,
+    output_tokens: Number.isFinite(outTokens) ? outTokens : 0,
+    total_tokens: Number.isFinite(total) ? total : 0,
+    estimated_cost_inr: Number.isFinite(inr) ? inr : 0,
+    estimated_cost_usd: Number.isFinite(usd) ? usd : 0
+  };
+}
+function formatAdminAiUsageMeta(usage) {
+  if (!usage) return '';
+  var tokens = Number(usage.total_tokens || 0).toLocaleString('en-IN');
+  var inr = Number(usage.estimated_cost_inr || 0).toFixed(2);
+  var providerLabel = usage.provider ? usage.provider.toUpperCase() : 'AI';
+  var modelPart = usage.model ? (' | ' + usage.model) : '';
+  return providerLabel + modelPart + ' | Tokens: ' + tokens + ' | Cost: Rs ' + inr;
+}
+function renderAdminAiUsageMeta(usage) {
+  var line = formatAdminAiUsageMeta(usage);
+  if (!line) return '';
+  return '<div class="admin-ai-assist-msg-usage">' + line.replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>';
+}
+function updateAdminAiUsageTotals() {
+  var el = document.getElementById('adminAiAssistUsageSummary');
+  var container = document.getElementById('adminAiAssistMessages');
+  if (!el || !container) return;
+  var msgs = container.querySelectorAll('.admin-ai-assist-msg.assistant');
+  var totalTokens = 0;
+  var totalInr = 0;
+  for (var i = 0; i < msgs.length; i++) {
+    var usageRaw = msgs[i].getAttribute('data-usage');
+    if (!usageRaw) continue;
+    try {
+      var usage = parseAdminAiUsage(JSON.parse(usageRaw));
+      if (!usage) continue;
+      totalTokens += Number(usage.total_tokens || 0);
+      totalInr += Number(usage.estimated_cost_inr || 0);
+    } catch (e) {}
+  }
+  el.textContent = 'Session total: ' + totalTokens.toLocaleString('en-IN') + ' tokens | Rs ' + totalInr.toFixed(2);
+}
 function saveAdminAiAssistHistory() {
   var container = document.getElementById('adminAiAssistMessages');
   if (!container) return;
@@ -5957,7 +6010,12 @@ function saveAdminAiAssistHistory() {
       var inner = el.querySelector('.admin-ai-assist-msg-inner');
       text = inner ? inner.textContent.trim() : el.textContent.trim();
     }
-    items.push({ role: role, text: text, err: isErr });
+    var usage = null;
+    var usageRaw = el.getAttribute('data-usage');
+    if (usageRaw) {
+      try { usage = parseAdminAiUsage(JSON.parse(usageRaw)); } catch (e) { usage = null; }
+    }
+    items.push({ role: role, text: text, err: isErr, usage: usage });
   }
   if (items.length > ADMIN_AI_ASSIST_HISTORY_MAX) items = items.slice(-ADMIN_AI_ASSIST_HISTORY_MAX);
   try {
@@ -5976,25 +6034,33 @@ function loadAdminAiAssistHistory() {
     return;
   }
   if (!raw) {
+    container.innerHTML = '';
     if (welcome) welcome.style.display = '';
+    updateAdminAiUsageTotals();
     return;
   }
   var items;
   try {
     items = JSON.parse(raw);
   } catch (e2) {
+    container.innerHTML = '';
+    if (welcome) welcome.style.display = '';
+    updateAdminAiUsageTotals();
     return;
   }
   if (!Array.isArray(items) || items.length === 0) {
+    container.innerHTML = '';
     if (welcome) welcome.style.display = '';
+    updateAdminAiUsageTotals();
     return;
   }
   container.innerHTML = '';
   if (welcome) welcome.style.display = 'none';
   for (var j = 0; j < items.length; j++) {
-    appendAdminAiMessage(items[j].role, items[j].text, !!items[j].err, true);
+    appendAdminAiMessage(items[j].role, items[j].text, !!items[j].err, true, items[j].usage || null);
   }
   container.scrollTop = container.scrollHeight;
+  updateAdminAiUsageTotals();
 }
 /** Safe subset of markdown for assistant replies (escaped HTML + headings, lists, **bold**). */
 function renderAssistantMarkdown(text) {
@@ -6002,7 +6068,8 @@ function renderAssistantMarkdown(text) {
     return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
   function inline(s) {
-    return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    const withStrong = esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    return withStrong.replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
   }
   var lines = String(text || '').replace(/\r\n/g, '\n').split('\n');
   var parts = [];
@@ -6049,19 +6116,21 @@ function renderAssistantMarkdown(text) {
   closeList();
   return parts.join('');
 }
-function appendAdminAiMessage(role, text, isError, skipPersist) {
+function appendAdminAiMessage(role, text, isError, skipPersist, usageMeta) {
   var container = document.getElementById('adminAiAssistMessages');
   var welcome = document.getElementById('adminAiAssistWelcome');
   if (!container) return;
   if (welcome) welcome.style.display = 'none';
+  var usage = parseAdminAiUsage(usageMeta);
   var div = document.createElement('div');
   div.className = 'admin-ai-assist-msg ' + role + (isError ? ' error' : '');
   div.setAttribute('data-plain', text);
+  if (usage) div.setAttribute('data-usage', JSON.stringify(usage));
   var inner = document.createElement('div');
   inner.className = 'admin-ai-assist-msg-inner';
   if (role === 'assistant' && !isError) {
     div.className += ' admin-ai-assist-msg-md';
-    inner.innerHTML = renderAssistantMarkdown(text);
+    inner.innerHTML = renderAssistantMarkdown(text) + renderAdminAiUsageMeta(usage);
   } else {
     inner.textContent = text;
   }
@@ -6079,6 +6148,7 @@ function appendAdminAiMessage(role, text, isError, skipPersist) {
   }
   container.appendChild(div);
   container.scrollTop = container.scrollHeight;
+  updateAdminAiUsageTotals();
   if (!skipPersist) saveAdminAiAssistHistory();
 }
 async function sendAdminAiMessage() {
@@ -6094,8 +6164,9 @@ async function sendAdminAiMessage() {
   try {
     var data = await apiCall('POST', '/api/admin/ai-assist', { message: text });
     var reply = (data && data.reply) ? data.reply : '';
+    var usage = (data && data.usage) ? data.usage : null;
     if (reply) {
-      appendAdminAiMessage('assistant', reply);
+      appendAdminAiMessage('assistant', reply, false, false, usage);
     } else {
       appendAdminAiMessage('assistant', 'I couldn’t fetch an answer right now. Please make sure you’re logged in as admin and try again, or check the dashboard for your data.');
     }
@@ -6107,6 +6178,7 @@ async function sendAdminAiMessage() {
 }
 (function setupAdminAiAssistInput() {
   var input = document.getElementById('adminAiAssistInput');
+  updateAdminAiUsageTotals();
   if (!input) return;
   input.addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) {
