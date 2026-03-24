@@ -3151,35 +3151,22 @@ function getMonthRange(monthKey) {
   return { from, to };
 }
 
-function safeFilePart(value, fallback = 'record') {
-  const cleaned = String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
-  return cleaned || fallback;
+function shiftMonthKey(monthKey, deltaMonths) {
+  const [y, m] = String(monthKey || '').split('-').map((n) => parseInt(n, 10));
+  if (!Number.isFinite(y) || !Number.isFinite(m)) return null;
+  const d = new Date(y, m - 1 + deltaMonths, 1);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
 }
 
-async function findUserForMonthlyReport(clientQuery) {
-  const q = String(clientQuery || '').trim();
-  if (!q) return null;
-  const like = '%' + q.replace(/%/g, '\\%') + '%';
-  return queryOne(
-    `SELECT id, first_name, last_name, email
-     FROM users
-     WHERE role = 'user'
-       AND (email ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ? OR (COALESCE(first_name,'') || ' ' || COALESCE(last_name,'')) ILIKE ?)
-     ORDER BY created_at DESC
-     LIMIT 1`,
-    [like, like, like, like]
-  );
-}
-
-async function collectMonthlyReportData(userId, monthKey) {
+async function fetchMonthSliceForReport(userId, monthKey) {
   const range = getMonthRange(monthKey);
-  if (!range) throw new Error('Invalid month format');
+  if (!range) return null;
   const fromIso = range.from.toISOString();
   const toIso = range.to.toISOString();
   const fromDate = fromIso.slice(0, 10);
   const toDate = toIso.slice(0, 10);
-
-  const [progressLogs, dailyCheckins, sundayCheckins, workouts, part2] = await Promise.all([
+  const [progressLogs, dailyCheckins, sundayCheckins, workouts] = await Promise.all([
     queryAll(
       `SELECT * FROM progress_logs
        WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at < ?::timestamptz
@@ -3203,7 +3190,37 @@ async function collectMonthlyReportData(userId, monthKey) {
        WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at < ?::timestamptz
        ORDER BY created_at ASC`,
       [userId, fromIso, toIso]
-    ),
+    )
+  ]);
+  return { progressLogs, dailyCheckins, sundayCheckins, workouts, monthKey };
+}
+
+function safeFilePart(value, fallback = 'record') {
+  const cleaned = String(value || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  return cleaned || fallback;
+}
+
+async function findUserForMonthlyReport(clientQuery) {
+  const q = String(clientQuery || '').trim();
+  if (!q) return null;
+  const like = '%' + q.replace(/%/g, '\\%') + '%';
+  return queryOne(
+    `SELECT id, first_name, last_name, email
+     FROM users
+     WHERE role = 'user'
+       AND (email ILIKE ? OR first_name ILIKE ? OR last_name ILIKE ? OR (COALESCE(first_name,'') || ' ' || COALESCE(last_name,'')) ILIKE ?)
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [like, like, like, like]
+  );
+}
+
+async function collectMonthlyReportData(userId, monthKey) {
+  if (!getMonthRange(monthKey)) throw new Error('Invalid month format');
+  const prevKey = shiftMonthKey(monthKey, -1);
+  const [slice, previousMonth, part2] = await Promise.all([
+    fetchMonthSliceForReport(userId, monthKey),
+    prevKey ? fetchMonthSliceForReport(userId, prevKey) : Promise.resolve(null),
     queryOne(
       `SELECT * FROM part2_audit
        WHERE LOWER(email) = LOWER((SELECT email FROM users WHERE id = ?))
@@ -3212,8 +3229,9 @@ async function collectMonthlyReportData(userId, monthKey) {
       [userId]
     )
   ]);
-
-  return { progressLogs, dailyCheckins, sundayCheckins, workouts, part2 };
+  if (!slice) throw new Error('Invalid month format');
+  const { progressLogs, dailyCheckins, sundayCheckins, workouts } = slice;
+  return { progressLogs, dailyCheckins, sundayCheckins, workouts, part2, previousMonth };
 }
 
 function buildPoliteFallbackReply(context, question) {

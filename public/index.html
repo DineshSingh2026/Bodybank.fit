@@ -6420,15 +6420,25 @@ function destroyAdminProgressCharts() {
 function drawAdminProgressCharts(logs) {
   if (typeof Chart === 'undefined') return;
   destroyAdminProgressCharts();
+  function getLogDate(log) {
+    if (!log || typeof log !== 'object') return null;
+    var raw = log.created_at || log.checkin_date || log.date || null;
+    if (!raw) return null;
+    var d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  }
   var sorted = (logs || []).slice().sort(function(a,b) {
-    var da = new Date(a && a.created_at).getTime();
-    var db = new Date(b && b.created_at).getTime();
+    var ad = getLogDate(a);
+    var bd = getLogDate(b);
+    var da = ad ? ad.getTime() : 0;
+    var db = bd ? bd.getTime() : 0;
     da = isNaN(da) ? 0 : da;
     db = isNaN(db) ? 0 : db;
     return da - db;
   });
   var labels = sorted.map(function(l) {
-    var d = new Date(l.created_at);
+    var d = getLogDate(l);
+    if (!d) return '—';
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   });
   var scaleOpts = { ticks: { color: '#666' }, grid: { color: 'rgba(255,255,255,0.06)' } };
@@ -6459,7 +6469,8 @@ function drawAdminProgressCharts(logs) {
   }
   var byWeek = {};
   sorted.forEach(function(l) {
-    var d = new Date(l.created_at);
+    var d = getLogDate(l);
+    if (!d) return;
     var start = new Date(d); start.setDate(start.getDate() - start.getDay()); start.setHours(0,0,0,0);
     var key = start.toISOString().slice(0,10);
     if (!byWeek[key]) byWeek[key] = 0;
@@ -7627,9 +7638,23 @@ function destroyProgressCharts() {
 function drawProgressCharts(logs, meta) {
   if (typeof Chart === 'undefined') return;
   destroyProgressCharts();
-  var sorted = (logs || []).slice().sort(function(a,b) { return new Date(a.created_at) - new Date(b.created_at); });
+  function getLogDate(log) {
+    if (!log || typeof log !== 'object') return null;
+    var raw = log.created_at || log.checkin_date || log.date || null;
+    if (!raw) return null;
+    var d = new Date(raw);
+    return isNaN(d.getTime()) ? null : d;
+  }
+  var sorted = (logs || []).slice().sort(function(a,b) {
+    var ad = getLogDate(a);
+    var bd = getLogDate(b);
+    var at = ad ? ad.getTime() : 0;
+    var bt = bd ? bd.getTime() : 0;
+    return at - bt;
+  });
   var labels = sorted.map(function(l) {
-    var d = new Date(l.created_at);
+    var d = getLogDate(l);
+    if (!d) return '—';
     return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   });
   var chartOpts = { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#bfb9ab' } } }, scales: {} };
@@ -7684,7 +7709,8 @@ function drawProgressCharts(logs, meta) {
   if (sorted.length) {
     var byWeek = {};
     sorted.forEach(function(l) {
-      var d = new Date(l.created_at);
+      var d = getLogDate(l);
+      if (!d) return;
       var start = new Date(d); start.setDate(start.getDate() - start.getDay()); start.setHours(0,0,0,0);
       var key = start.toISOString().slice(0,10);
       if (!byWeek[key]) byWeek[key] = 0;
