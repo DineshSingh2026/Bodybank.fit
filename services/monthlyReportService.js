@@ -307,8 +307,8 @@ function drawHeroBand(doc, { user, monthKeyText, docId, logoPath }) {
   doc.fillColor('#F2F4FA').font(F(doc, 'display')).fontSize(21).text(displayName, 104, 62, { width: w - 200 });
   doc.fillColor(C.goldMid).font(F(doc, 'semi')).fontSize(10).text(monthKeyText, 104, 90);
 
-  doc.fillColor('#5C6578').font(F(doc, 'body')).fontSize(7.5).text(`DOCUMENT ${docId}`, w - 150, 34, { width: 110, align: 'right' });
-  doc.fillColor('#4A5568').font(F(doc, 'body')).fontSize(7).text(new Date().toISOString().slice(0, 19).replace('T', ' ') + ' UTC', w - 150, 48, { width: 110, align: 'right' });
+  doc.fillColor('#5C6578').font(F(doc, 'body')).fontSize(7.5).text(`DOCUMENT ${docId}`, w - 128, 28, { width: 112, align: 'right' });
+  doc.fillColor('#4A5568').font(F(doc, 'body')).fontSize(7).text(new Date().toISOString().slice(0, 19).replace('T', ' ') + ' UTC', w - 128, 42, { width: 112, align: 'right' });
 }
 
 function drawSparkBars(doc, x, y, barW, h, values, fillColor) {
@@ -347,25 +347,41 @@ function drawSparkLine(doc, x, y, w, h, values, strokeColor) {
   });
 }
 
+/** Vertical stack inside KPI card — avoids overlap between big number, MoM text, spark, and caption. */
 function drawKpiPremium(doc, x, y, w, h, { label, value, sub, mom, sparkVals, sparkMode, sparkColor }) {
+  const inset = 12;
+  const innerW = w - inset * 2;
   doc.save();
   doc.roundedRect(x, y, w, h, 11).fillAndStroke(C.panel, '#B8C2D6');
-  doc.roundedRect(x + 3, y + 8, 3.5, h - 16, 1).fill(C.gold);
+  const barInset = 10;
+  doc.roundedRect(x + 3, y + barInset, 3.2, h - barInset * 2, 1).fill(C.gold);
   doc.restore();
 
-  doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(7.5).text(label.toUpperCase(), x + 14, y + 12, { width: w - 20 });
-  doc.fillColor(C.text).font(F(doc, 'display')).fontSize(20).text(String(value), x + 14, y + 26, { width: w - 90 });
-  doc.fillColor(C.goldDark).font(F(doc, 'body')).fontSize(7).text(mom, x + 14, y + 52, { width: w - 20, lineGap: 2 });
-  if (sub) doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(8).text(sub, x + 14, y + h - 16, { width: w - 20 });
+  const sparkH = 15;
+  const subBand = sub ? 13 : 6;
+  const bottomSparkTop = y + h - subBand - sparkH - 6;
 
-  const sw = w - 28;
-  const sh = 18;
-  const sx = x + 14;
-  const sy = y + h - sh - 22;
+  let cy = y + 10;
+  doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(7.5).text(label.toUpperCase(), x + inset, cy, { width: innerW });
+  cy = doc.y + 3;
+
+  doc.fillColor(C.text).font(F(doc, 'display')).fontSize(17).text(String(value), x + inset, cy, { width: innerW });
+  cy = doc.y + 2;
+
+  doc.fillColor(C.goldDark).font(F(doc, 'body')).fontSize(6.9).text(mom || '', x + inset, cy, { width: innerW, lineGap: 1.5 });
+  cy = doc.y + 3;
+
+  const sparkTop = bottomSparkTop;
+  const sw = w - inset * 2;
+  const sx = x + inset;
   if (sparkMode === 'bars' && sparkVals && sparkVals.length) {
-    drawSparkBars(doc, sx, sy, sw, sh, sparkVals, sparkColor || C.gold);
+    drawSparkBars(doc, sx, sparkTop, sw, sparkH, sparkVals, sparkColor || C.gold);
   } else if (sparkMode === 'line' && sparkVals && sparkVals.length) {
-    drawSparkLine(doc, sx, sy, sw, sh, sparkVals, sparkColor || C.emerald);
+    drawSparkLine(doc, sx, sparkTop, sw, sparkH, sparkVals, sparkColor || C.emerald);
+  }
+
+  if (sub) {
+    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.2).text(sub, x + inset, y + h - 11, { width: innerW });
   }
 }
 
@@ -376,14 +392,17 @@ function sectionTitle(doc, text, y, contentW, margin) {
 
 function drawLineChart(doc, cfg) {
   const { x, y, w, h, title, values, lineColor, labels } = cfg;
+  const titleBarH = 22;
   doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#C5CDDC');
-  doc.rect(x + 1, y + 1, w - 2, 20).fill('#F8F9FC');
-  doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(8.5).text(title, x + 10, y + 5);
-  const pad = 26;
-  const cx = x + pad;
-  const cy = y + pad + 4;
-  const cw = w - pad * 1.35;
-  const ch = h - pad * 2;
+  doc.rect(x + 1, y + 1, w - 2, titleBarH).fill('#F8F9FC');
+  doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(8.5).text(title, x + 10, y + 6);
+  const padX = 24;
+  const padTop = titleBarH + 6;
+  const padBottom = 22;
+  const cx = x + padX;
+  const cy = y + padTop;
+  const cw = w - padX * 1.3;
+  const ch = h - padTop - padBottom;
   doc.strokeColor(C.grid).lineWidth(0.5);
   for (let i = 0; i <= 4; i += 1) {
     const gy = cy + (ch * i) / 4;
@@ -451,6 +470,18 @@ function addBulletList(doc, items, x, y, width, color, fontSize = 9) {
   return curY;
 }
 
+/** Height needed to render bullets (for layout before drawing boxes). */
+function measureBulletsHeight(doc, items, width, fontSize = 8) {
+  const list = asList(items, 12);
+  if (!list.length) return 16;
+  doc.font(F(doc, 'body')).fontSize(fontSize);
+  let h = 0;
+  list.forEach((item) => {
+    h += doc.heightOfString(item, { width: width - 10, lineGap: 2 }) + 5;
+  });
+  return h;
+}
+
 const PART2_LABELS = {
   name: 'Name',
   email: 'Email',
@@ -508,30 +539,47 @@ function drawAppendixPage(doc, {
 
   if (logoPath && fs.existsSync(logoPath)) {
     try {
-      doc.image(logoPath, doc.page.width - margin - 44, 14, { fit: [40, 40] });
+      const lh = 40;
+      doc.image(logoPath, doc.page.width - margin - 44, 12 + (64 - lh) / 2, { fit: [lh, lh] });
     } catch (e) { /* ignore */ }
   }
 
   let y = 78;
   sectionTitle(doc, 'Program signals (full list)', y, contentW, margin);
   y += 30;
-  const metricsBoxH = 108;
+  const metricsTextW = contentW - 24;
+  const perfH = measureBulletsHeight(doc, performanceLines.slice(0, 6), metricsTextW, 7.8);
+  let engineBlock = 0;
+  if (insightTags.length) {
+    engineBlock = 12 + measureBulletsHeight(doc, insightTags.slice(0, 4), metricsTextW, 7.8);
+  }
+  const metricsBoxH = Math.min(200, 30 + perfH + engineBlock + 10);
   doc.roundedRect(margin, y, contentW, metricsBoxH, 8).fillAndStroke(C.panel, '#B8C2D6');
-  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.5).text('Cumulative / lifetime context from progress analytics (not limited to this month).', margin + 12, y + 8, { width: contentW - 24 });
-  let innerY = addBulletList(doc, performanceLines.slice(0, 6), margin + 12, y + 22, contentW - 24, C.text, 7.8) + 6;
+  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.5).text('Cumulative / lifetime context from progress analytics (not limited to this month).', margin + 12, y + 8, { width: metricsTextW });
+  let innerY = addBulletList(doc, performanceLines.slice(0, 6), margin + 12, y + 22, metricsTextW, C.text, 7.8) + 6;
   if (insightTags.length) {
     doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('Engine signals', margin + 12, innerY);
-    addBulletList(doc, insightTags.slice(0, 4), margin + 12, innerY + 10, contentW - 24, C.emerald, 7.8);
+    addBulletList(doc, insightTags.slice(0, 4), margin + 12, innerY + 10, metricsTextW, C.emerald, 7.8);
   }
 
   y += metricsBoxH + 10;
-  doc.roundedRect(margin, y, contentW, 72, 8).fillAndStroke('#FFFAF5', '#E8D9B8');
-  doc.fillColor(C.danger).font(F(doc, 'semi')).fontSize(8).text('Risk focus', margin + 12, y + 8);
-  addBulletList(doc, riskLines.slice(0, 3), margin + 12, y + 22, contentW / 2 - 20, '#8F3A30', 7.8);
-  doc.fillColor(C.emerald).font(F(doc, 'semi')).fontSize(8).text('Action protocol', margin + contentW / 2 + 6, y + 8);
-  addBulletList(doc, actionLines.slice(0, 4), margin + contentW / 2 + 6, y + 22, contentW / 2 - 18, '#0F6B52', 7.8);
+  const splitGutter = 12;
+  const colHalf = (contentW - splitGutter) / 2;
+  const riskTextW = colHalf - 24;
+  const actTextW = colHalf - 24;
+  const riskBodyH = measureBulletsHeight(doc, riskLines.slice(0, 4), riskTextW, 7.8);
+  const actBodyH = measureBulletsHeight(doc, actionLines.slice(0, 5), actTextW, 7.8);
+  const splitInner = Math.max(riskBodyH, actBodyH, 28);
+  const splitBoxH = 12 + splitInner + 16;
+  doc.roundedRect(margin, y, contentW, splitBoxH, 8).fillAndStroke('#FFFAF5', '#E8D9B8');
+  const splitTitleY = y + 10;
+  const splitBodyY = y + 24;
+  doc.fillColor(C.danger).font(F(doc, 'semi')).fontSize(8).text('Risk focus', margin + 12, splitTitleY);
+  doc.fillColor(C.emerald).font(F(doc, 'semi')).fontSize(8).text('Action protocol', margin + colHalf + splitGutter + 12, splitTitleY);
+  addBulletList(doc, riskLines.slice(0, 4), margin + 12, splitBodyY, riskTextW, '#8F3A30', 7.8);
+  addBulletList(doc, actionLines.slice(0, 5), margin + colHalf + splitGutter + 12, splitBodyY, actTextW, '#0F6B52', 7.8);
 
-  y += 84;
+  y += splitBoxH + 12;
   sectionTitle(doc, 'Sunday check-in transcripts', y, contentW, margin);
   y += 28;
   const sundays = data.sundayCheckins || [];
@@ -540,10 +588,14 @@ function drawAppendixPage(doc, {
     y += 20;
   } else {
     sundays.slice(0, 7).forEach((r) => {
-      doc.roundedRect(margin, y, contentW, 46, 6).fillAndStroke('#FAFBFD', '#D0D6E6');
-      doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text(formatDate(r.created_at), margin + 10, y + 8);
-      doc.fillColor(C.text).font(F(doc, 'body')).fontSize(8.2).text(String(r.achievements || '—').slice(0, 520), margin + 10, y + 20, { width: contentW - 20, lineGap: 2 });
-      y += 52;
+      const body = String(r.achievements || '—').slice(0, 520);
+      doc.font(F(doc, 'body')).fontSize(8.2);
+      const bodyH = doc.heightOfString(body, { width: contentW - 28, lineGap: 2 });
+      const cardH = Math.min(100, Math.max(40, 26 + bodyH + 10));
+      doc.roundedRect(margin, y, contentW, cardH, 6).fillAndStroke('#FAFBFD', '#D0D6E6');
+      doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text(formatDate(r.created_at), margin + 12, y + 8);
+      doc.fillColor(C.text).font(F(doc, 'body')).fontSize(8.2).text(body, margin + 12, y + 20, { width: contentW - 24, lineGap: 2 });
+      y += cardH + 10;
     });
   }
 
@@ -554,19 +606,28 @@ function drawAppendixPage(doc, {
     doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(9).text('No workouts logged this month.', margin, y);
     y += 18;
   } else {
+    const xDate = margin + 8;
+    const xSess = margin + contentW * 0.22;
+    const xDur = margin + contentW * 0.72;
+    const wDate = xSess - xDate - 6;
+    const wSess = xDur - xSess - 8;
+    const wDur = margin + contentW - xDur - 8;
     doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(7.5);
-    doc.text('DATE', margin, y);
-    doc.text('SESSION', margin + 78, y);
-    doc.text('DURATION', margin + 280, y);
+    doc.text('DATE', xDate, y, { width: wDate });
+    doc.text('SESSION', xSess, y, { width: wSess });
+    doc.text('DURATION', xDur, y, { width: wDur, align: 'right' });
     y += 12;
     doc.moveTo(margin, y).lineTo(margin + contentW, y).lineWidth(0.5).strokeColor(C.grid).stroke();
-    y += 6;
+    y += 8;
     workouts.slice(0, 28).forEach((r) => {
-      doc.fillColor(C.text).font(F(doc, 'body')).fontSize(8);
-      doc.text(formatDate(r.created_at), margin, y, { width: 72 });
-      doc.text(String(r.workout_name || 'Workout').slice(0, 42), margin + 78, y, { width: 190 });
-      doc.text(`${num(r.duration_seconds, 0)} sec`, margin + 280, y, { width: 80 });
-      y += 14;
+      doc.font(F(doc, 'body')).fontSize(8);
+      const nm = String(r.workout_name || 'Workout').slice(0, 52);
+      const rowH = Math.max(14, doc.heightOfString(nm, { width: wSess, lineGap: 1 }) + 4);
+      doc.fillColor(C.text);
+      doc.text(formatDate(r.created_at), xDate, y, { width: wDate });
+      doc.text(nm, xSess, y, { width: wSess, lineGap: 1 });
+      doc.text(`${num(r.duration_seconds, 0)} sec`, xDur, y, { width: wDur, align: 'right' });
+      y += rowH;
     });
   }
 
@@ -608,9 +669,9 @@ function generateMonthlyClientReport(opts) {
     drawHeroBand(doc, { user, monthKeyText, docId, logoPath });
 
     const kpiY = 122;
-    const cardH = 82;
-    const chartY = kpiY + cardH + gap + 18;
-    const chartH = 138;
+    const cardH = 100;
+    const chartY = kpiY + cardH + gap + 16;
+    const chartH = 128;
 
     sectionTitle(doc, 'Performance scorecard · vs prior month', kpiY - 24, contentW, margin);
 
@@ -685,32 +746,46 @@ function generateMonthlyClientReport(opts) {
     const strategic = buildStrategicNarrative(reportSummary, data);
     const letter = buildCoachLetter(user.name || user.email || 'Client', reportSummary, prevSummary, strategic);
 
-    const letterY = chartY + chartH + gap + 10;
+    const letterY = chartY + chartH + gap + 8;
     sectionTitle(doc, 'Coach executive note', letterY - 14, contentW, margin);
-    doc.roundedRect(margin, letterY + 4, contentW, 72, 10).fill('#FFFCF5');
-    doc.roundedRect(margin, letterY + 4, contentW, 72, 10).lineWidth(1.5).strokeColor(C.gold).stroke();
-    doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('FROM THE COACHING DESK', margin + 16, letterY + 14);
-    doc.fillColor(C.text).font(F(doc, 'body')).fontSize(9).text(letter, margin + 16, letterY + 28, { width: contentW - 32, lineGap: 3 });
+    const letterPadX = 16;
+    const letterTextW = contentW - letterPadX * 2;
+    doc.font(F(doc, 'body')).fontSize(9);
+    const letterBodyH = doc.heightOfString(letter, { width: letterTextW, lineGap: 3 });
+    const letterBoxH = Math.min(198, Math.max(62, 34 + letterBodyH + 14));
+    const letterBoxTop = letterY + 4;
+    doc.roundedRect(margin, letterBoxTop, contentW, letterBoxH, 10).fill('#FFFCF5');
+    doc.roundedRect(margin, letterBoxTop, contentW, letterBoxH, 10).lineWidth(1.5).strokeColor(C.gold).stroke();
+    doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('FROM THE COACHING DESK', margin + letterPadX, letterBoxTop + 12);
+    doc.fillColor(C.text).font(F(doc, 'body')).fontSize(9).text(letter, margin + letterPadX, letterBoxTop + 26, { width: letterTextW, lineGap: 3 });
 
-    const stripY = letterY + 84;
-    doc.roundedRect(margin, stripY, contentW, 36, 8).fillAndStroke(C.panel, '#C5CDDC');
-    doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(7.5).text('AT A GLANCE', margin + 12, stripY + 8);
+    const stripY = letterBoxTop + letterBoxH + 10;
+    const stripH = 42;
+    doc.roundedRect(margin, stripY, contentW, stripH, 8).fillAndStroke(C.panel, '#C5CDDC');
+    doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(7.5).text('AT A GLANCE', margin + 12, stripY + 9);
     const glance = [
       `Weight (month): ${reportSummary.latestWeight != null ? `${reportSummary.latestWeight.toFixed(1)} kg` : '—'} · Δ ${reportSummary.weightDelta != null ? `${reportSummary.weightDelta >= 0 ? '+' : ''}${reportSummary.weightDelta.toFixed(1)} kg` : '—'}`,
       `Body fat: ${reportSummary.latestBodyFat != null ? `${reportSummary.latestBodyFat.toFixed(1)}%` : '—'} · Protein avg: ${reportSummary.avgProtein != null ? `${reportSummary.avgProtein.toFixed(0)} g` : '—'}`,
       `Sunday check-ins: ${reportSummary.sundayCount} · ${user.email || '—'}`
     ].join('   ·   ');
-    doc.fillColor(C.text).font(F(doc, 'body')).fontSize(8).text(glance, margin + 12, stripY + 20, { width: contentW - 24, lineGap: 2 });
+    doc.fillColor(C.text).font(F(doc, 'body')).fontSize(8).text(glance, margin + 12, stripY + 23, { width: contentW - 24, lineGap: 2 });
 
-    const colTop = stripY + 44;
+    const colTop = stripY + stripH + 10;
     const colW = (contentW - gap) / 2;
-    const colH = doc.page.height - margin - 22 - colTop;
+    const footerReserve = 28;
+    const maxColH = doc.page.height - margin - footerReserve - colTop;
+    const riskBlockH = measureBulletsHeight(doc, riskLines.slice(0, 4), colW - 24, 8.5);
+    const actBlockH = measureBulletsHeight(doc, actionLines.slice(0, 5), colW - 24, 8.5);
+    const colNeeded = Math.max(riskBlockH, actBlockH) + 36;
+    const colH = Math.max(56, Math.min(maxColH, colNeeded));
     doc.roundedRect(margin, colTop, colW, colH, 9).fillAndStroke(C.panel, '#B8C2D6');
     doc.roundedRect(margin + colW + gap, colTop, colW, colH, 9).fillAndStroke(C.panel, '#B8C2D6');
-    doc.fillColor(C.danger).font(F(doc, 'semi')).fontSize(9).text('Risk focus', margin + 12, colTop + 10);
-    addBulletList(doc, riskLines.slice(0, 4), margin + 12, colTop + 26, colW - 24, '#7A2E28', 8.5);
-    doc.fillColor(C.emerald).font(F(doc, 'semi')).fontSize(9).text('Action protocol', margin + colW + gap + 12, colTop + 10);
-    addBulletList(doc, actionLines.slice(0, 5), margin + colW + gap + 12, colTop + 26, colW - 24, '#0F6B52', 8.5);
+    const colHdrY = colTop + 12;
+    const colBodyY = colTop + 28;
+    doc.fillColor(C.danger).font(F(doc, 'semi')).fontSize(9).text('Risk focus', margin + 12, colHdrY);
+    doc.fillColor(C.emerald).font(F(doc, 'semi')).fontSize(9).text('Action protocol', margin + colW + gap + 12, colHdrY);
+    addBulletList(doc, riskLines.slice(0, 4), margin + 12, colBodyY, colW - 24, '#7A2E28', 8.5);
+    addBulletList(doc, actionLines.slice(0, 5), margin + colW + gap + 12, colBodyY, colW - 24, '#0F6B52', 8.5);
 
     doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.5)
       .text(`BODYBANK · PAGE 1 OF 2 · ${docId} · CONFIDENTIAL`, margin, doc.page.height - margin - 6, { width: contentW, align: 'center' });
