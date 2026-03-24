@@ -200,18 +200,16 @@ function generateMonthlyClientReport(opts) {
   return new Promise((resolve, reject) => {
     const { outputPath, monthKey, user, data, insights, logoPath } = opts;
     const reportSummary = summarize(data);
-    const doc = new PDFDocument({ size: 'A4', margin: 36, bufferPages: true });
+    const doc = new PDFDocument({ size: 'A4', margin: 36 });
     const stream = fs.createWriteStream(outputPath);
     doc.pipe(stream);
 
     const subtitle = `${monthLabel(monthKey)} | Client: ${user.name || user.email || user.id}`;
-    drawCover(doc, { title: 'BodyBank Monthly Progress Report', subtitle, logoPath });
-    doc.addPage();
     drawPageHeader(doc, subtitle, logoPath);
 
     const startY = 110;
     const cardW = 122;
-    const cardH = 78;
+    const cardH = 66;
     const gap = 10;
     sectionTitle(doc, 'Performance scorecard', 92);
     drawKpiCard(doc, 36, startY, cardW, cardH, 'Daily check-ins', reportSummary.dailyCount, 'Submissions this month');
@@ -225,20 +223,18 @@ function generateMonthlyClientReport(opts) {
     const stepsSeries = (data.dailyCheckins || []).map((r) => (r.steps != null ? num(r.steps) : null));
 
     drawLineChart(doc, {
-      x: 36, y: 210, w: 255, h: 170, title: 'Weight Trend (kg)', values: weightSeries, lineColor: C.gold, labels
+      x: 36, y: 186, w: 168, h: 156, title: 'Weight (kg)', values: weightSeries, lineColor: C.gold, labels
     });
     drawLineChart(doc, {
-      x: 303, y: 210, w: 255, h: 170, title: 'Body Fat Trend (%)', values: bfSeries, lineColor: C.violet, labels
+      x: 213, y: 186, w: 168, h: 156, title: 'Body Fat (%)', values: bfSeries, lineColor: C.violet, labels
     });
     drawLineChart(doc, {
-      x: 36, y: 390, w: 522, h: 158, title: 'Daily Steps Trend', values: stepsSeries, lineColor: C.emerald,
+      x: 390, y: 186, w: 168, h: 156, title: 'Steps Trend', values: stepsSeries, lineColor: C.emerald,
       labels: (data.dailyCheckins || []).map((r) => formatDate(r.checkin_date).slice(0, 6))
     });
 
-    let textY = 556;
-    sectionTitle(doc, 'Executive narrative', 556);
-    textY += 36;
-    doc.fillColor(C.text).font('Helvetica').fontSize(10);
+    sectionTitle(doc, 'Executive narrative & detailed intelligence', 352);
+    doc.fillColor(C.text).font('Helvetica').fontSize(9.4);
     const summaryText = [
       `Client: ${user.name || '-'} (${user.email || '-'})`,
       `Latest weight: ${reportSummary.latestWeight != null ? reportSummary.latestWeight.toFixed(1) + ' kg' : '-'}`,
@@ -247,31 +243,29 @@ function generateMonthlyClientReport(opts) {
       `Avg protein (daily): ${reportSummary.avgProtein != null ? reportSummary.avgProtein.toFixed(0) + ' g' : '-'}`,
       `Sunday check-ins submitted: ${reportSummary.sundayCount}`
     ].join('\n');
-    doc.text(summaryText, 36, textY, { width: 522, lineGap: 5 });
+    doc.roundedRect(36, 384, 255, 90, 10).fillAndStroke(C.panel, '#D6DCEA');
+    doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(9.5).text('Executive Summary', 48, 398);
+    doc.fillColor(C.text).font('Helvetica').fontSize(9.2).text(summaryText, 48, 414, { width: 232, lineGap: 3 });
 
-    doc.addPage();
-    drawPageHeader(doc, subtitle, logoPath);
-    sectionTitle(doc, 'Behavior & adherence intelligence', 92);
     const sundayRows = (data.sundayCheckins || []).map((r) =>
-      `${formatDate(r.created_at)}: ${String(r.achievements || '').slice(0, 85)}${String(r.achievements || '').length > 85 ? '...' : ''}`
+      `${formatDate(r.created_at)}: ${String(r.achievements || '').slice(0, 72)}${String(r.achievements || '').length > 72 ? '...' : ''}`
     );
     const workoutRows = (data.workouts || []).slice(-10).map((r) =>
       `${formatDate(r.created_at)} | ${String(r.workout_name || 'Workout')} | ${num(r.duration_seconds, 0)} sec`
     );
-    doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(10).text('Recent Sunday Check-in Highlights', 42, 130);
-    let y1 = addBulletList(doc, sundayRows, 42, 148, 510, C.text) + 8;
-    doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(10).text('Recent Workout Discipline Snapshot', 42, y1);
-    y1 = addBulletList(doc, workoutRows, 42, y1 + 18, 510, C.text) + 8;
-    doc.roundedRect(36, y1, 522, 120, 10).fillAndStroke(C.panel, '#D6DCEA');
-    doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(10).text('Strategic Interpretation', 50, y1 + 14);
+
+    doc.roundedRect(36, 482, 255, 274, 10).fillAndStroke(C.panel, '#D6DCEA');
+    doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(9.5).text('Behavior & Adherence', 48, 496);
+    doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(8.5).text('Sunday Highlights', 48, 514);
+    let y1 = addBulletList(doc, sundayRows, 48, 528, 232, C.text) + 4;
+    doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(8.5).text('Workout Snapshot', 48, y1);
+    y1 = addBulletList(doc, workoutRows, 48, y1 + 14, 232, C.text) + 4;
+    doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(8.5).text('Strategic Interpretation', 48, y1);
     doc.fillColor(C.text).font('Helvetica').fontSize(10).text(
-      'This month\'s data indicates the client\'s behavioral consistency and metric momentum. The coaching objective is to preserve adherence while increasing precision around training load and nutrition timing.',
-      50, y1 + 34, { width: 490, lineGap: 4 }
+      'Preserve compliance momentum while increasing protocol precision across training intensity, nutrition timing, and recovery quality.',
+      48, y1 + 14, { width: 232, lineGap: 3 }
     );
 
-    doc.addPage();
-    drawPageHeader(doc, subtitle, logoPath);
-    sectionTitle(doc, 'Coach insights, risks & action protocol', 92);
     const insightLines = insights && typeof insights === 'object'
       ? JSON.stringify(insights, null, 2)
         .replace(/[{}"]/g, '')
@@ -284,20 +278,17 @@ function generateMonthlyClientReport(opts) {
     const riskHints = insightLines.filter((l) => /risk|drop|plateau|sleep|stress/i.test(l)).slice(0, 6);
     const actionHints = insightLines.filter((l) => /action|plan|adjust|target|coach|next/i.test(l)).slice(0, 7);
 
-    doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(10).text('Top Insights', 42, 130);
-    let pY = addBulletList(doc, topInsights, 42, 148, 510, C.text) + 8;
-    doc.fillColor(C.danger).font('Helvetica-Bold').fontSize(10).text('Risk Flags', 42, pY);
-    pY = addBulletList(doc, riskHints, 42, pY + 18, 510, '#9A3E31') + 8;
-    doc.fillColor(C.emerald).font('Helvetica-Bold').fontSize(10).text('Action Protocol (Next 30 days)', 42, pY);
-    addBulletList(doc, actionHints, 42, pY + 18, 510, '#146E59');
+    doc.roundedRect(303, 384, 255, 372, 10).fillAndStroke(C.panel, '#D6DCEA');
+    doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(9.5).text('Coach Insights, Risks & Action Protocol', 315, 398, { width: 232 });
+    doc.fillColor(C.gold).font('Helvetica-Bold').fontSize(8.5).text('Top Insights', 315, 420);
+    let pY = addBulletList(doc, topInsights, 315, 434, 232, C.text) + 4;
+    doc.fillColor(C.danger).font('Helvetica-Bold').fontSize(8.5).text('Risk Flags', 315, pY);
+    pY = addBulletList(doc, riskHints, 315, pY + 14, 232, '#9A3E31') + 4;
+    doc.fillColor(C.emerald).font('Helvetica-Bold').fontSize(8.5).text('Action Protocol (Next 30 days)', 315, pY);
+    addBulletList(doc, actionHints, 315, pY + 14, 232, '#146E59');
 
-    // Footer page numbers
-    const range = doc.bufferedPageRange();
-    for (let i = 0; i < range.count; i += 1) {
-      doc.switchToPage(i);
-      doc.fillColor('#7F7764').font('Helvetica').fontSize(9)
-        .text(`Page ${i + 1} of ${range.count}`, 36, doc.page.height - 24, { width: 522, align: 'right' });
-    }
+    doc.fillColor('#7F7764').font('Helvetica').fontSize(8.5)
+      .text('CONFIDENTIAL PERFORMANCE DOSSIER | bodybank.fit', 36, doc.page.height - 22, { width: 522, align: 'center' });
 
     doc.end();
     stream.on('finish', () => resolve({ outputPath }));
