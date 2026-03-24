@@ -2090,6 +2090,17 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     background:rgba(201,168,76,0.14);
     color:var(--bb-gold);
   }
+  /* Keep desktop notification panel visible above scroll containers */
+  .bb-desktop-dashboard .admin-topbar .admin-notify-panel{
+    position:fixed;
+    top:86px;
+    right:24px;
+    left:auto;
+    margin-top:0;
+    width:min(380px,calc(100vw - 32px));
+    max-height:70vh;
+    z-index:10040;
+  }
 
   /* Stat cards */
   .bb-stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
