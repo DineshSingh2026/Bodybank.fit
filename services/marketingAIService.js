@@ -1,29 +1,20 @@
-function buildMarketingPrompt({ keywords, postType, tone }) {
-  const systemPrompt = [
-    'You are Marketing AI for bodybank.fit.',
-    'Generate premium fitness marketing content based on user inputs.',
-    'Return STRICT JSON only.',
-    'Keep content short, engaging, and ready to post.',
-    'Target Indian audience.',
-    'Include: hook, caption, carousel slides, reel script, WhatsApp message, hashtags, CTA, and design suggestions.',
-    'No markdown. No extra commentary.'
-  ].join(' ');
+function normalizePostType(postType) {
+  const raw = String(postType || '').trim().toLowerCase();
+  if (raw === 'carousel') return 'Carousel';
+  if (raw === 'reel') return 'Reel';
+  return 'Post';
+}
 
-  const userPrompt = [
-    `Generate content for: ${keywords}`,
-    `Post Type: ${postType}`,
-    `Tone: ${tone}`,
-    'Required JSON shape:',
-    JSON.stringify({
+function buildPostTypeShape(normalizedPostType) {
+  if (normalizedPostType === 'Carousel') {
+    return {
       title: '',
       input_keywords: '',
-      post_type: '',
+      post_type: 'Carousel',
       content: {
         hook: '',
         caption: '',
-        carousel_slides: [],
-        reel_script: '',
-        whatsapp_message: ''
+        carousel_slides: []
       },
       hashtags: [],
       cta: '',
@@ -32,7 +23,71 @@ function buildMarketingPrompt({ keywords, postType, tone }) {
         colors: '',
         visual_idea: ''
       }
-    }, null, 2)
+    };
+  }
+  if (normalizedPostType === 'Reel') {
+    return {
+      title: '',
+      input_keywords: '',
+      post_type: 'Reel',
+      content: {
+        hook: '',
+        caption: '',
+        reel_script: ''
+      },
+      hashtags: [],
+      cta: '',
+      design_suggestion: {
+        theme: '',
+        colors: '',
+        visual_idea: ''
+      }
+    };
+  }
+  return {
+    title: '',
+    input_keywords: '',
+    post_type: 'Post',
+    content: {
+      hook: '',
+      caption: ''
+    },
+    hashtags: [],
+    cta: '',
+    design_suggestion: {
+      theme: '',
+      colors: '',
+      visual_idea: ''
+    }
+  };
+}
+
+function buildMarketingPrompt({ keywords, postType, tone }) {
+  const normalizedPostType = normalizePostType(postType);
+  const requiredShape = buildPostTypeShape(normalizedPostType);
+  const systemPrompt = [
+    'You are Marketing AI for bodybank.fit.',
+    'Generate premium fitness marketing content based on user inputs.',
+    'Return STRICT JSON only.',
+    'Keep content short, engaging, direct, and ready to post.',
+    'Target Indian audience.',
+    `Generate only fields needed for selected post type: ${normalizedPostType}.`,
+    'Do not return templates, instructions, placeholders, or internal prompt text.',
+    'Write final copy that can be posted manually without edits.',
+    'No markdown. No extra commentary.'
+  ].join(' ');
+
+  const userPrompt = [
+    `Generate content for: ${keywords}`,
+    `Post Type: ${normalizedPostType}`,
+    `Tone: ${tone}`,
+    normalizedPostType === 'Post'
+      ? 'Create a normal social media post: one hook + one final caption + hashtags + CTA. Do not include slides/scenes/instructions.'
+      : normalizedPostType === 'Carousel'
+        ? 'Create carousel-ready output with concise slide-wise points and supporting caption.'
+        : 'Create reel-ready output with a concise final reel script and supporting caption.',
+    'Required JSON shape:',
+    JSON.stringify(requiredShape, null, 2)
   ].join('\n');
 
   return { systemPrompt, userPrompt };
@@ -62,10 +117,11 @@ function normalizeMarketingResponse(payload, input) {
     ? payload.design_suggestion
     : {};
 
-  return {
+  const normalizedPostType = normalizePostType(payload.post_type || input.postType || '');
+  const base = {
     title: String(payload.title || `Marketing Content for ${input.keywords}`).trim(),
     input_keywords: String(payload.input_keywords || input.keywords || '').trim(),
-    post_type: String(payload.post_type || input.postType || '').trim(),
+    post_type: normalizedPostType,
     content: {
       hook: String(content.hook || '').trim(),
       caption: String(content.caption || '').trim(),
@@ -85,6 +141,20 @@ function normalizeMarketingResponse(payload, input) {
       visual_idea: String(design.visual_idea || '').trim()
     }
   };
+
+  if (normalizedPostType === 'Post') {
+    base.content.carousel_slides = [];
+    base.content.reel_script = '';
+    base.content.whatsapp_message = '';
+  } else if (normalizedPostType === 'Carousel') {
+    base.content.reel_script = '';
+    base.content.whatsapp_message = '';
+  } else if (normalizedPostType === 'Reel') {
+    base.content.carousel_slides = [];
+    base.content.whatsapp_message = '';
+  }
+
+  return base;
 }
 
 async function callSonetApi({ keywords, postType, tone }) {

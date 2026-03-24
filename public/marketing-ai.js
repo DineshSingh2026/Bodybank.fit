@@ -72,6 +72,13 @@
     return String(value || '-');
   }
 
+  function normalizePostType(postType) {
+    const raw = String(postType || '').trim().toLowerCase();
+    if (raw === 'carousel') return 'Carousel';
+    if (raw === 'reel') return 'Reel';
+    return 'Post';
+  }
+
   function createOutputBlock(title, value) {
     const wrapper = document.createElement('article');
     wrapper.className = 'output-block';
@@ -112,21 +119,43 @@
     if (!payload) return;
     state.lastPayload = payload;
     el.outputSections.innerHTML = '';
-
-    const blocks = [
-      ['Hook', payload.content?.hook],
-      ['Caption', payload.content?.caption],
-      ['Carousel Slides', payload.content?.carousel_slides || []],
-      ['Reel Script', payload.content?.reel_script],
-      ['WhatsApp Message', payload.content?.whatsapp_message],
-      ['Hashtags', payload.hashtags || []],
-      ['CTA', payload.cta],
-      ['Design Suggestions', payload.design_suggestion || {}]
-    ];
+    const postType = normalizePostType(payload.post_type || state.lastInput?.postType || '');
+    let blocks = [];
+    if (postType === 'Post') {
+      blocks = [
+        ['Hook', payload.content?.hook],
+        ['Caption', payload.content?.caption],
+        ['Hashtags', payload.hashtags || []],
+        ['CTA', payload.cta],
+        ['Design Suggestions', payload.design_suggestion || {}]
+      ];
+    } else if (postType === 'Carousel') {
+      blocks = [
+        ['Hook', payload.content?.hook],
+        ['Caption', payload.content?.caption],
+        ['Carousel Slides', payload.content?.carousel_slides || []],
+        ['Hashtags', payload.hashtags || []],
+        ['CTA', payload.cta],
+        ['Design Suggestions', payload.design_suggestion || {}]
+      ];
+    } else {
+      blocks = [
+        ['Hook', payload.content?.hook],
+        ['Caption', payload.content?.caption],
+        ['Reel Script', payload.content?.reel_script],
+        ['Hashtags', payload.hashtags || []],
+        ['CTA', payload.cta],
+        ['Design Suggestions', payload.design_suggestion || {}]
+      ];
+    }
 
     blocks.forEach(([title, value]) => {
       el.outputSections.appendChild(createOutputBlock(title, value));
     });
+
+    el.downloadCaptionBtn.textContent = postType === 'Post' ? 'Download Post' : 'Download Caption';
+    el.downloadCarouselBtn.classList.toggle('hidden', postType !== 'Carousel');
+    el.downloadFullBtn.textContent = postType === 'Post' ? 'Download Post Full' : 'Download Full Content';
 
     el.outputCard.classList.remove('hidden');
   }
@@ -154,20 +183,53 @@
 
   function getFullText(payload) {
     if (!payload) return '';
+    const postType = normalizePostType(payload.post_type || state.lastInput?.postType || '');
+    if (postType === 'Post') {
+      return [
+        `Title: ${payload.title || ''}`,
+        `Keywords: ${payload.input_keywords || ''}`,
+        `Post Type: Post`,
+        '',
+        `Hook:\n${payload.content?.hook || ''}`,
+        '',
+        `Caption:\n${payload.content?.caption || ''}`,
+        '',
+        `Hashtags:\n${(payload.hashtags || []).join(' ')}`,
+        '',
+        `CTA:\n${payload.cta || ''}`,
+        '',
+        `Design Suggestion:\nTheme: ${payload.design_suggestion?.theme || ''}\nColors: ${payload.design_suggestion?.colors || ''}\nVisual Idea: ${payload.design_suggestion?.visual_idea || ''}`
+      ].join('\n');
+    }
+    if (postType === 'Carousel') {
+      return [
+        `Title: ${payload.title || ''}`,
+        `Keywords: ${payload.input_keywords || ''}`,
+        `Post Type: Carousel`,
+        '',
+        `Hook:\n${payload.content?.hook || ''}`,
+        '',
+        `Caption:\n${payload.content?.caption || ''}`,
+        '',
+        `Carousel Slides:\n${getCarouselText(payload)}`,
+        '',
+        `Hashtags:\n${(payload.hashtags || []).join(' ')}`,
+        '',
+        `CTA:\n${payload.cta || ''}`,
+        '',
+        `Design Suggestion:\nTheme: ${payload.design_suggestion?.theme || ''}\nColors: ${payload.design_suggestion?.colors || ''}\nVisual Idea: ${payload.design_suggestion?.visual_idea || ''}`
+      ].join('\n');
+    }
     return [
       `Title: ${payload.title || ''}`,
       `Keywords: ${payload.input_keywords || ''}`,
-      `Post Type: ${payload.post_type || ''}`,
+      `Post Type: Reel`,
       '',
       `Hook:\n${payload.content?.hook || ''}`,
       '',
       `Caption:\n${payload.content?.caption || ''}`,
       '',
-      `Carousel Slides:\n${getCarouselText(payload)}`,
-      '',
       `Reel Script:\n${payload.content?.reel_script || ''}`,
-      '',
-      `WhatsApp Message:\n${payload.content?.whatsapp_message || ''}`,
       '',
       `Hashtags:\n${(payload.hashtags || []).join(' ')}`,
       '',
@@ -258,17 +320,23 @@
 
   el.downloadCaptionBtn.addEventListener('click', () => {
     if (!state.lastPayload) return;
-    downloadFile('caption.txt', getCaptionText(state.lastPayload));
+    const postType = normalizePostType(state.lastPayload.post_type || state.lastInput?.postType || '');
+    const fileName = postType === 'Post' ? 'post.txt' : 'caption.txt';
+    downloadFile(fileName, getCaptionText(state.lastPayload));
   });
 
   el.downloadCarouselBtn.addEventListener('click', () => {
     if (!state.lastPayload) return;
+    const postType = normalizePostType(state.lastPayload.post_type || state.lastInput?.postType || '');
+    if (postType !== 'Carousel') return;
     downloadFile('carousel.txt', getCarouselText(state.lastPayload));
   });
 
   el.downloadFullBtn.addEventListener('click', () => {
     if (!state.lastPayload) return;
-    downloadFile('marketing.txt', getFullText(state.lastPayload));
+    const postType = normalizePostType(state.lastPayload.post_type || state.lastInput?.postType || '');
+    const fileName = postType === 'Post' ? 'post-full.txt' : postType === 'Carousel' ? 'carousel-full.txt' : 'reel-full.txt';
+    downloadFile(fileName, getFullText(state.lastPayload));
   });
 
   loadHistory();
