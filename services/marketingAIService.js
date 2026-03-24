@@ -14,7 +14,8 @@ function buildPostTypeShape(normalizedPostType) {
       content: {
         hook: '',
         caption: '',
-        carousel_slides: []
+        carousel_slides: [],
+        image_prompt: ''
       },
       hashtags: [],
       cta: '',
@@ -33,7 +34,8 @@ function buildPostTypeShape(normalizedPostType) {
       content: {
         hook: '',
         caption: '',
-        reel_script: ''
+        reel_script: '',
+        image_prompt: ''
       },
       hashtags: [],
       cta: '',
@@ -50,7 +52,8 @@ function buildPostTypeShape(normalizedPostType) {
     post_type: 'Post',
     content: {
       hook: '',
-      caption: ''
+      caption: '',
+      image_prompt: ''
     },
     hashtags: [],
     cta: '',
@@ -86,6 +89,7 @@ function buildMarketingPrompt({ keywords, postType, tone }) {
       : normalizedPostType === 'Carousel'
         ? 'Create carousel-ready output with concise slide-wise points and supporting caption.'
         : 'Create reel-ready output with a concise final reel script and supporting caption.',
+    'Also provide content.image_prompt as a high-quality visual generation prompt for an Instagram-ready image that matches the post.',
     'Required JSON shape:',
     JSON.stringify(requiredShape, null, 2)
   ].join('\n');
@@ -118,6 +122,17 @@ function normalizeMarketingResponse(payload, input) {
     : {};
 
   const normalizedPostType = normalizePostType(payload.post_type || input.postType || '');
+  const fallbackImagePrompt = [
+    `${normalizedPostType} creative for BodyBank fitness brand`,
+    `Target topic: ${input.keywords}`,
+    `Tone: ${input.tone || ''}`,
+    'Instagram post style, premium modern layout, high contrast, clean typography',
+    'No watermarks, no logos from other brands, no blurry text'
+  ].join('. ');
+
+  const imagePrompt = String(content.image_prompt || payload.image_prompt || fallbackImagePrompt).trim();
+  const imageUrl = buildMarketingImageUrl(imagePrompt, normalizedPostType);
+
   const base = {
     title: String(payload.title || `Marketing Content for ${input.keywords}`).trim(),
     input_keywords: String(payload.input_keywords || input.keywords || '').trim(),
@@ -129,7 +144,8 @@ function normalizeMarketingResponse(payload, input) {
         ? content.carousel_slides.map((item) => String(item || '').trim()).filter(Boolean)
         : [],
       reel_script: String(content.reel_script || '').trim(),
-      whatsapp_message: String(content.whatsapp_message || '').trim()
+      whatsapp_message: String(content.whatsapp_message || '').trim(),
+      image_prompt: imagePrompt
     },
     hashtags: Array.isArray(payload.hashtags)
       ? payload.hashtags.map((item) => String(item || '').trim()).filter(Boolean)
@@ -139,7 +155,8 @@ function normalizeMarketingResponse(payload, input) {
       theme: String(design.theme || '').trim(),
       colors: String(design.colors || '').trim(),
       visual_idea: String(design.visual_idea || '').trim()
-    }
+    },
+    image_url: imageUrl
   };
 
   if (normalizedPostType === 'Post') {
@@ -155,6 +172,14 @@ function normalizeMarketingResponse(payload, input) {
   }
 
   return base;
+}
+
+function buildMarketingImageUrl(imagePrompt, normalizedPostType) {
+  const width = normalizedPostType === 'Carousel' ? 1080 : 1080;
+  const height = normalizedPostType === 'Reel' ? 1920 : 1350;
+  const seed = Math.floor(Date.now() / 1000);
+  const encoded = encodeURIComponent(String(imagePrompt || '').slice(0, 900));
+  return `https://image.pollinations.ai/prompt/${encoded}?width=${width}&height=${height}&seed=${seed}&nologo=true&enhance=true`;
 }
 
 async function callSonetApi({ keywords, postType, tone }) {

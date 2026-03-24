@@ -139,6 +139,24 @@ select {
   margin-top: 14px;
 }
 
+.image-preview-wrap {
+  margin-top: 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 12px;
+  background: #fcfcfd;
+  display: flex;
+  justify-content: center;
+}
+
+#generatedImagePreview {
+  width: min(100%, 420px);
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  object-fit: cover;
+  background: #f3f4f6;
+}
+
 .output-block {
   border: 1px solid #e5e7eb;
   border-radius: 12px;

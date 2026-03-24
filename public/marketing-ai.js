@@ -15,6 +15,9 @@
     errorMessage: document.getElementById('errorMessage'),
     outputCard: document.getElementById('outputCard'),
     outputSections: document.getElementById('outputSections'),
+    imagePreviewWrap: document.getElementById('imagePreviewWrap'),
+    generatedImagePreview: document.getElementById('generatedImagePreview'),
+    downloadImageBtn: document.getElementById('downloadImageBtn'),
     downloadCaptionBtn: document.getElementById('downloadCaptionBtn'),
     downloadCarouselBtn: document.getElementById('downloadCarouselBtn'),
     downloadFullBtn: document.getElementById('downloadFullBtn'),
@@ -153,6 +156,18 @@
       el.outputSections.appendChild(createOutputBlock(title, value));
     });
 
+    const imageUrl = String(payload.image_url || '').trim();
+    if (imageUrl) {
+      el.generatedImagePreview.src = imageUrl;
+      el.generatedImagePreview.alt = `${postType} creative`;
+      el.imagePreviewWrap.classList.remove('hidden');
+      el.downloadImageBtn.classList.remove('hidden');
+    } else {
+      el.generatedImagePreview.removeAttribute('src');
+      el.imagePreviewWrap.classList.add('hidden');
+      el.downloadImageBtn.classList.add('hidden');
+    }
+
     el.downloadCaptionBtn.textContent = postType === 'Post' ? 'Download Post' : 'Download Caption';
     el.downloadCarouselBtn.classList.toggle('hidden', postType !== 'Carousel');
     el.downloadFullBtn.textContent = postType === 'Post' ? 'Download Post Full' : 'Download Full Content';
@@ -198,7 +213,11 @@
         '',
         `CTA:\n${payload.cta || ''}`,
         '',
-        `Design Suggestion:\nTheme: ${payload.design_suggestion?.theme || ''}\nColors: ${payload.design_suggestion?.colors || ''}\nVisual Idea: ${payload.design_suggestion?.visual_idea || ''}`
+        `Design Suggestion:\nTheme: ${payload.design_suggestion?.theme || ''}\nColors: ${payload.design_suggestion?.colors || ''}\nVisual Idea: ${payload.design_suggestion?.visual_idea || ''}`,
+        '',
+        `Image URL:\n${payload.image_url || ''}`,
+        '',
+        `Image Prompt:\n${payload.content?.image_prompt || ''}`
       ].join('\n');
     }
     if (postType === 'Carousel') {
@@ -217,7 +236,11 @@
         '',
         `CTA:\n${payload.cta || ''}`,
         '',
-        `Design Suggestion:\nTheme: ${payload.design_suggestion?.theme || ''}\nColors: ${payload.design_suggestion?.colors || ''}\nVisual Idea: ${payload.design_suggestion?.visual_idea || ''}`
+        `Design Suggestion:\nTheme: ${payload.design_suggestion?.theme || ''}\nColors: ${payload.design_suggestion?.colors || ''}\nVisual Idea: ${payload.design_suggestion?.visual_idea || ''}`,
+        '',
+        `Image URL:\n${payload.image_url || ''}`,
+        '',
+        `Image Prompt:\n${payload.content?.image_prompt || ''}`
       ].join('\n');
     }
     return [
@@ -235,8 +258,39 @@
       '',
       `CTA:\n${payload.cta || ''}`,
       '',
-      `Design Suggestion:\nTheme: ${payload.design_suggestion?.theme || ''}\nColors: ${payload.design_suggestion?.colors || ''}\nVisual Idea: ${payload.design_suggestion?.visual_idea || ''}`
+      `Design Suggestion:\nTheme: ${payload.design_suggestion?.theme || ''}\nColors: ${payload.design_suggestion?.colors || ''}\nVisual Idea: ${payload.design_suggestion?.visual_idea || ''}`,
+      '',
+      `Image URL:\n${payload.image_url || ''}`,
+      '',
+      `Image Prompt:\n${payload.content?.image_prompt || ''}`
     ].join('\n');
+  }
+
+  async function downloadImageFromUrl(imageUrl, fallbackFilename) {
+    const safeUrl = String(imageUrl || '').trim();
+    if (!safeUrl) return;
+    try {
+      const res = await fetch(safeUrl);
+      if (!res.ok) throw new Error('Image request failed');
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fallbackFilename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch (e) {
+      // Fallback for CORS-restricted image hosts.
+      const a = document.createElement('a');
+      a.href = safeUrl;
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
   }
 
   async function generateContent() {
@@ -323,6 +377,13 @@
     const postType = normalizePostType(state.lastPayload.post_type || state.lastInput?.postType || '');
     const fileName = postType === 'Post' ? 'post.txt' : 'caption.txt';
     downloadFile(fileName, getCaptionText(state.lastPayload));
+  });
+
+  el.downloadImageBtn.addEventListener('click', () => {
+    if (!state.lastPayload) return;
+    const postType = normalizePostType(state.lastPayload.post_type || state.lastInput?.postType || '');
+    const filename = postType === 'Reel' ? 'reel-image.png' : postType === 'Carousel' ? 'carousel-image.png' : 'post-image.png';
+    downloadImageFromUrl(state.lastPayload.image_url, filename);
   });
 
   el.downloadCarouselBtn.addEventListener('click', () => {
