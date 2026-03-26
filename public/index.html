@@ -6383,6 +6383,15 @@ function appendAdminAiMessage(role, text, isError, skipPersist, usageMeta) {
   updateAdminAiUsageTotals();
   if (!skipPersist) saveAdminAiAssistHistory();
 }
+// Track last-mentioned client name for pronoun resolution
+window._bbAiLastClient = window._bbAiLastClient || '';
+var _BB_PRONOUN_RE = /^(her|him|he|she|they|them|this|that|it|this\s+person|that\s+person|the\s+client|this\s+client|that\s+client)$/i;
+function _bbExtractClientName(txt) {
+  var m = txt.match(/\b(?:for|of|about)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b/);
+  if (m && m[1] && !_BB_PRONOUN_RE.test(m[1].trim())) return m[1].trim();
+  return '';
+}
+
 async function sendAdminAiMessage() {
   var input = document.getElementById('adminAiAssistInput');
   var sendBtn = document.getElementById('adminAiAssistSend');
@@ -6391,16 +6400,18 @@ async function sendAdminAiMessage() {
   var text = (input.value || '').trim();
   if (!text) return;
   input.value = '';
+  var extracted = _bbExtractClientName(text);
+  if (extracted) window._bbAiLastClient = extracted;
   appendAdminAiMessage('user', text);
   sendBtn.disabled = true;
   try {
-    var data = await apiCall('POST', '/api/admin/ai-assist', { message: text });
+    var data = await apiCall('POST', '/api/admin/ai-assist', { message: text, lastClient: window._bbAiLastClient || '' });
     var reply = (data && data.reply) ? data.reply : '';
     var usage = (data && data.usage) ? data.usage : null;
     if (reply) {
       appendAdminAiMessage('assistant', reply, false, false, usage);
     } else {
-      appendAdminAiMessage('assistant', 'I couldn’t fetch an answer right now. Please make sure you’re logged in as admin and try again, or check the dashboard for your data.');
+      appendAdminAiMessage('assistant', 'I could not fetch an answer right now. Please make sure you are logged in as admin and try again.');
     }
   } catch (e) {
     appendAdminAiMessage('assistant', 'Something went wrong. Please try again in a moment or check the dashboard directly.');

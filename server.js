@@ -2975,14 +2975,19 @@ async function callAIChat(baseContext, userMessage) {
   return callAnthropicChat(systemFull, userMessage, maxTokens);
 }
 
-function parseMonthlyReportCommand(text) {
+function parseMonthlyReportCommand(text, lastClient) {
   const raw = String(text || '').trim();
   if (!raw) return null;
   const normalized = raw.replace(/\s+/g, ' ').trim();
   const hasReportIntent =
     /\bmonthly\s+report\b/i.test(normalized) ||
-    (/\breport\b/i.test(normalized) && /\b(monthly|this month|last month)\b/i.test(normalized)) ||
-    (/\b(generate|create|make|download|get)\b/i.test(normalized) && /\breport\b/i.test(normalized));
+    /\bdetailed\s+report\b/i.test(normalized) ||
+    /\bfull\s+report\b/i.test(normalized) ||
+    /\bcomplete\s+report\b/i.test(normalized) ||
+    /\bperformance\s+report\b/i.test(normalized) ||
+    /\bin.?depth\s+report\b/i.test(normalized) ||
+    (/\breport\b/i.test(normalized) && /\b(monthly|this month|last month|for|of)\b/i.test(normalized)) ||
+    (/\b(generate|create|make|download|get|give\s+me)\b/i.test(normalized) && /\breport\b/i.test(normalized));
   if (!hasReportIntent) return null;
 
   // Month extraction supports explicit yyyy-mm, "March 2026", and relative phrases.
@@ -3025,6 +3030,18 @@ function parseMonthlyReportCommand(text) {
   if (!clientQuery) {
     const emailMatch = normalized.match(/\b(?:for|of)\s+([A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})\b/i);
     if (emailMatch) clientQuery = (emailMatch[1] || '').trim();
+  }
+
+  // Also extract client from "full/detailed/performance/complete report for X"
+  if (!clientQuery) {
+    const m3 = normalized.match(/\b(?:full|detailed|complete|performance|in.?depth)\s+report\s+(?:for|of)\s+(.+?)(?:\s+(?:for|in)\s+(?:\d{4}-\d{2}|[a-zA-Z]+\s+\d{4}|this month|last month))?\s*$/i);
+    if (m3) clientQuery = (m3[1] || '').trim();
+  }
+
+  // Pronoun resolution — use lastClient passed from frontend conversation history
+  const PRONOUNS = /^(her|him|he|she|they|them|this|that|it|this\s+person|that\s+person|the\s+client|this\s+client|that\s+client)$/i;
+  if ((!clientQuery || PRONOUNS.test(clientQuery.trim())) && lastClient) {
+    clientQuery = String(lastClient).trim();
   }
 
   // Clean common trailing phrases from client query.
@@ -3128,7 +3145,7 @@ async function findUserForMonthlyReport(clientQuery) {
 async function collectMonthlyReportData(userId, monthKey) {
   if (!getMonthRange(monthKey)) throw new Error('Invalid month format');
   const prevKey = shiftMonthKey(monthKey, -1);
-  const [slice, previousMonth, part2] = await Promise.all([
+  const [slice, previousMonth, part2, programs, tribeMember] = await Promise.all([
     fetchMonthSliceForReport(userId, monthKey),
     prevKey ? fetchMonthSliceForReport(userId, prevKey) : Promise.resolve(null),
     queryOne(
@@ -3137,11 +3154,26 @@ async function collectMonthlyReportData(userId, monthKey) {
        ORDER BY created_at DESC
        LIMIT 1`,
       [userId]
-    )
+    ),
+    queryAll(
+      `SELECT a.assigned_at, p.id as program_id, p.name as program_name
+       FROM user_program_assignments a
+       JOIN programs p ON p.id = a.program_id
+       WHERE a.user_id = ? AND a.removed_at IS NULL
+       ORDER BY a.assigned_at DESC`,
+      [userId]
+    ).catch(() => []),
+    queryOne(
+      `SELECT phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, status, notes, next_checkin
+       FROM tribe_members
+       WHERE LOWER(email) = LOWER((SELECT email FROM users WHERE id = ?))
+       ORDER BY start_date DESC LIMIT 1`,
+      [userId]
+    ).catch(() => null)
   ]);
   if (!slice) throw new Error('Invalid month format');
   const { progressLogs, dailyCheckins, sundayCheckins, workouts } = slice;
-  return { progressLogs, dailyCheckins, sundayCheckins, workouts, part2, previousMonth };
+  return { progressLogs, dailyCheckins, sundayCheckins, workouts, part2, previousMonth, programs: programs || [], tribeMember: tribeMember || null };
 }
 
 function buildPoliteFallbackReply(context, question) {
@@ -3216,7 +3248,7 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
   let reply = '';
   let usage = null;
   try {
-    const { message } = req.body || {};
+    const { message, lastClient } = req.body || {};
     const text = typeof message === 'string' ? message.trim() : '';
     if (!text) {
       reply = 'Please ask a question about your BodyBank data (e.g. “How many pending audit forms?” or “Summarize tribe members”).';
@@ -3276,7 +3308,7 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
     // ── End campaign command detection ───────────────────────────────────────
 
     // ── Monthly report command detection (PDF) ───────────────────────────────
-    const monthlyCmd = parseMonthlyReportCommand(text);
+    const monthlyCmd = parseMonthlyReportCommand(text, lastClient || '');
     if (monthlyCmd) {
       try {
         if (!monthlyCmd.clientQuery) {

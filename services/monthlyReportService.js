@@ -528,6 +528,8 @@ function drawAppendixPage(doc, {
   margin, contentW, user, monthKeyText, performanceLines, riskLines, actionLines, insightTags,
   data, part2LinesArr, logoPath
 }) {
+  const assignedPrograms = (data && data.programs) ? data.programs : [];
+  const tribeMember = (data && data.tribeMember) ? data.tribeMember : null;
   doc.addPage();
   doc.rect(0, 0, doc.page.width, doc.page.height).fill(C.pageBg);
   drawWatermark(doc);
@@ -580,6 +582,44 @@ function drawAppendixPage(doc, {
   addBulletList(doc, actionLines.slice(0, 5), margin + colHalf + splitGutter + 12, splitBodyY, actTextW, '#0F6B52', 7.8);
 
   y += splitBoxH + 12;
+  // Assigned Programs
+  if (assignedPrograms.length) {
+    y += 10;
+    sectionTitle(doc, 'Assigned programs', y, contentW, margin);
+    y += 28;
+    const progBoxH = Math.min(80, 16 + assignedPrograms.length * 18);
+    doc.roundedRect(margin, y, contentW, progBoxH, 8).fillAndStroke('#F5F8FF', '#B8C2D6');
+    let py = y + 10;
+    assignedPrograms.forEach(function(p, i) {
+      const bullet = i === 0 ? '\u2605 CURRENT' : '  ' + (i + 1) + '.';
+      const assigned = p.assigned_at ? new Date(p.assigned_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '\u2014';
+      doc.font(F(doc, i === 0 ? 'semi' : 'body')).fontSize(8)
+        .fillColor(i === 0 ? C.goldDark : C.muted)
+        .text(bullet + '  ' + (p.program_name || '\u2014') + '  \u00b7  Assigned: ' + assigned, margin + 12, py, { width: contentW - 24 });
+      py += 16;
+    });
+    y += progBoxH + 10;
+  }
+
+  // Tribe Member Status
+  if (tribeMember) {
+    sectionTitle(doc, 'Tribe member status', y, contentW, margin);
+    y += 28;
+    const tribeLines = [
+      'Status: ' + (tribeMember.status || '\u2014') + '  \u00b7  Phase: ' + (tribeMember.phase || '\u2014') + '  \u00b7  Started: ' + (tribeMember.start_date || '\u2014'),
+      'Weight: ' + (tribeMember.starting_weight || '\u2014') + 'kg \u2192 ' + (tribeMember.current_weight || '\u2014') + 'kg (target: ' + (tribeMember.target_weight || '\u2014') + 'kg)',
+    ];
+    if (tribeMember.notes) tribeLines.push('Trainer notes: ' + String(tribeMember.notes).slice(0, 180));
+    const tribeBoxH = 14 + tribeLines.length * 13;
+    doc.roundedRect(margin, y, contentW, tribeBoxH, 8).fillAndStroke('#F5FFF8', '#9DCDB8');
+    let ty = y + 8;
+    tribeLines.forEach(function(line) {
+      doc.font(F(doc, 'body')).fontSize(8).fillColor(C.text).text(line, margin + 12, ty, { width: contentW - 24 });
+      ty += 13;
+    });
+    y += tribeBoxH + 10;
+  }
+
   sectionTitle(doc, 'Sunday check-in transcripts', y, contentW, margin);
   y += 28;
   const sundays = data.sundayCheckins || [];
