@@ -288,7 +288,7 @@ function drawWatermark(doc) {
   doc.restore();
 }
 
-function drawHeroBand(doc, { user, monthKeyText, docId, logoPath }) {
+function drawHeroBand(doc, { user, monthKeyText, docId, logoPath, currentProgram }) {
   const w = doc.page.width;
   doc.rect(0, 0, w, 108).fill(C.bg);
   doc.moveTo(0, 108).lineTo(w, 108).lineWidth(3).strokeColor(C.gold).stroke();
@@ -307,7 +307,12 @@ function drawHeroBand(doc, { user, monthKeyText, docId, logoPath }) {
   doc.fillColor('#F2F4FA').font(F(doc, 'display')).fontSize(21).text(displayName, 104, 62, { width: w - 200 });
   doc.fillColor(C.goldMid).font(F(doc, 'semi')).fontSize(10).text(monthKeyText, 104, 90);
 
-  doc.fillColor('#5C6578').font(F(doc, 'body')).fontSize(7.5).text(`DOCUMENT ${docId}`, w - 128, 28, { width: 112, align: 'right' });
+  // Show current program in top-right corner
+  if (currentProgram) {
+    doc.fillColor(C.gold).font(F(doc, 'semi')).fontSize(7.5).text('PROGRAM', w - 188, 28, { width: 160, align: 'right' });
+    doc.fillColor('#E8ECF4').font(F(doc, 'body')).fontSize(8).text(currentProgram, w - 188, 40, { width: 160, align: 'right', lineGap: 1 });
+  }
+  doc.fillColor('#5C6578').font(F(doc, 'body')).fontSize(7.5).text('DOC ' + docId, w - 128, currentProgram ? 60 : 28, { width: 112, align: 'right' });
   doc.fillColor('#4A5568').font(F(doc, 'body')).fontSize(7).text(new Date().toISOString().slice(0, 19).replace('T', ' ') + ' UTC', w - 128, 42, { width: 112, align: 'right' });
 }
 
@@ -706,7 +711,8 @@ function generateMonthlyClientReport(opts) {
 
     doc.rect(0, 0, doc.page.width, doc.page.height).fill(C.pageBg);
     drawWatermark(doc);
-    drawHeroBand(doc, { user, monthKeyText, docId, logoPath });
+    const currentProgramName = (data.programs && data.programs.length) ? data.programs[0].program_name : null;
+    drawHeroBand(doc, { user, monthKeyText, docId, logoPath, currentProgram: currentProgramName });
 
     const kpiY = 122;
     const cardH = 100;
@@ -803,7 +809,9 @@ function generateMonthlyClientReport(opts) {
     const stripH = 42;
     doc.roundedRect(margin, stripY, contentW, stripH, 8).fillAndStroke(C.panel, '#C5CDDC');
     doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(7.5).text('AT A GLANCE', margin + 12, stripY + 9);
+    const programLabel = (data.programs && data.programs.length) ? data.programs[0].program_name : 'No program assigned';
     const glance = [
+      `Program: ${programLabel}`,
       `Weight (month): ${reportSummary.latestWeight != null ? `${reportSummary.latestWeight.toFixed(1)} kg` : '—'} · Δ ${reportSummary.weightDelta != null ? `${reportSummary.weightDelta >= 0 ? '+' : ''}${reportSummary.weightDelta.toFixed(1)} kg` : '—'}`,
       `Body fat: ${reportSummary.latestBodyFat != null ? `${reportSummary.latestBodyFat.toFixed(1)}%` : '—'} · Protein avg: ${reportSummary.avgProtein != null ? `${reportSummary.avgProtein.toFixed(0)} g` : '—'}`,
       `Sunday check-ins: ${reportSummary.sundayCount} · ${user.email || '—'}`
