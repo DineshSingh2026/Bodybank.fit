@@ -1181,6 +1181,19 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-ai-assist-done-btn{width:100%;padding:10px 16px;border:1px solid var(--bdr);border-radius:10px;background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:color .2s,background .2s,border-color .2s}
 .admin-ai-assist-done-btn:hover{color:var(--cream);background:rgba(255,255,255,0.06);border-color:var(--gold)}
 
+/* AI Assist — Quick Prompt Chips */
+.ai-prompt-wrap{flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.12)}
+.ai-prompt-tabs{display:flex;border-bottom:1px solid rgba(255,255,255,0.06)}
+.ai-prompt-tab{flex:1;padding:8px 4px;border:none;background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:600;letter-spacing:0.03em;cursor:pointer;transition:color .18s;border-bottom:2px solid transparent;margin-bottom:-1px;text-transform:uppercase}
+.ai-prompt-tab:hover{color:var(--cream)}
+.ai-prompt-tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.ai-prompt-chips{display:flex;flex-wrap:wrap;gap:6px;padding:9px 12px 10px;min-height:0}
+.ai-prompt-chips[hidden]{display:none}
+.ai-prompt-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:20px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.05);color:var(--cream);font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:500;cursor:pointer;transition:border-color .18s,background .18s,color .18s;white-space:nowrap;-webkit-tap-highlight-color:transparent}
+.ai-prompt-chip:hover{border-color:var(--gold);background:rgba(200,164,78,0.1);color:var(--gold)}
+.ai-prompt-chip.needs-client{border-style:dashed;border-color:rgba(200,164,78,0.35)}
+.ai-prompt-chip.needs-client:hover{border-style:solid}
+
 /* Performance Insights */
 .insights-filters{margin-bottom:24px;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
 .insights-filter-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
@@ -3676,9 +3689,70 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <button type="button" class="admin-ai-assist-close" onclick="closeAdminAiAssistPanel()" aria-label="Close">&times;</button>
       </div>
       <div class="admin-ai-assist-welcome" id="adminAiAssistWelcome">
-        <p>Elite coaching-style analysis on your live BodyBank data: profiles, workouts, check-ins, progress, and risks — plus quick answers on audits, tribe, and messages.</p>
-        <p class="admin-ai-assist-hint">Try &ldquo;Full report&rdquo; for the full structured breakdown, &ldquo;Quick summary&rdquo;, &ldquo;What next?&rdquo;, or &ldquo;Risk?&rdquo; — or ask &ldquo;How many pending audit forms?&rdquo;</p>
+        <p>Elite coaching intelligence on your live BodyBank data. Click a prompt below or type your question.</p>
       </div>
+
+      <!-- Quick Prompt Chips -->
+      <div class="ai-prompt-wrap" id="aiPromptWrap">
+        <div class="ai-prompt-tabs" id="aiPromptTabs">
+          <button class="ai-prompt-tab active" data-tab="reports" onclick="switchAiTab('reports')">Reports</button>
+          <button class="ai-prompt-tab" data-tab="programs" onclick="switchAiTab('programs')">Programs</button>
+          <button class="ai-prompt-tab" data-tab="rankings" onclick="switchAiTab('rankings')">Rankings</button>
+          <button class="ai-prompt-tab" data-tab="business" onclick="switchAiTab('business')">Business</button>
+        </div>
+
+        <!-- Reports -->
+        <div class="ai-prompt-chips" id="aiChips-reports">
+          <button class="ai-prompt-chip needs-client" data-fill="Detailed monthly report for ">📅 Monthly Report</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Full performance report for ">📊 Performance Report</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Quick summary of ">⚡ Quick Summary</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Report for ">📋 Custom Report</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Body metrics and weight trend for ">⚖️ Body Metrics</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Nutrition analysis for ">🍽️ Nutrition</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Training analysis for ">💪 Training</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Compliance check for ">✅ Compliance</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Is ">📉 Plateau Check</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Stress, sleep and lifestyle report for ">😴 Stress &amp; Sleep</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Show all Sunday check-ins for ">📝 Sunday Check-ins</button>
+        </div>
+
+        <!-- Programs -->
+        <div class="ai-prompt-chips" id="aiChips-programs" hidden>
+          <button class="ai-prompt-chip needs-client" data-fill="Which program should I assign to ">🎯 Best Program For</button>
+          <button class="ai-prompt-chip needs-client" data-fill="What is the current program for ">📄 Program Details</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Compare prescribed vs actual performance for ">🔍 Prescribed vs Actual</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Is ">📈 Program Progress</button>
+          <button class="ai-prompt-chip" data-send="List all 17 BodyBank programs with their goals and who they are best for">📚 All 17 Programs</button>
+          <button class="ai-prompt-chip" data-send="Which BodyBank programs are best for fat loss?">🔥 Best for Fat Loss</button>
+          <button class="ai-prompt-chip" data-send="Which BodyBank programs are best for muscle gain?">💪 Best for Muscle</button>
+          <button class="ai-prompt-chip" data-send="Which BodyBank programs work without a gym?">🏠 Home Programs</button>
+          <button class="ai-prompt-chip" data-send="Which BodyBank programs are best for beginners?">🌱 Beginner Programs</button>
+        </div>
+
+        <!-- Rankings -->
+        <div class="ai-prompt-chips" id="aiChips-rankings" hidden>
+          <button class="ai-prompt-chip" data-send="Show me the full compliance leaderboard this month">🏆 Leaderboard</button>
+          <button class="ai-prompt-chip" data-send="Who are my top 3 performing clients this month?">⭐ Top Performers</button>
+          <button class="ai-prompt-chip" data-send="Which clients are at risk or falling behind?">⚠️ At-Risk Clients</button>
+          <button class="ai-prompt-chip" data-send="Which clients need immediate attention today?">🚨 Needs Attention</button>
+          <button class="ai-prompt-chip" data-send="Compliance leaderboard for last 7 days">📆 Last 7 Days</button>
+          <button class="ai-prompt-chip" data-send="Who hasn't logged in or checked in for over 7 days?">😶 Inactive Clients</button>
+          <button class="ai-prompt-chip" data-send="Which clients missed their Sunday check-in this week?">❌ Missed Sunday</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Compare ">⚡ Compare Clients</button>
+        </div>
+
+        <!-- Business -->
+        <div class="ai-prompt-chips" id="aiChips-business" hidden>
+          <button class="ai-prompt-chip" data-send="Give me a full business overview">🏢 Business Overview</button>
+          <button class="ai-prompt-chip" data-send="How many active clients do I have?">👥 Active Clients</button>
+          <button class="ai-prompt-chip" data-send="How many pending audit forms are there?">📋 Pending Audits</button>
+          <button class="ai-prompt-chip" data-send="How many pending sign-ups are waiting for approval?">🔔 Pending Sign-ups</button>
+          <button class="ai-prompt-chip" data-send="What is the overall compliance rate across all clients this month?">📊 Overall Compliance</button>
+          <button class="ai-prompt-chip" data-send="How many meetings are scheduled?">📅 Meetings</button>
+        </div>
+      </div>
+      <!-- End Quick Prompt Chips -->
+
       <div class="admin-ai-assist-messages" id="adminAiAssistMessages"></div>
       <div class="admin-ai-assist-input-wrap">
         <textarea class="admin-ai-assist-input" id="adminAiAssistInput" placeholder="Type your question…" rows="1" maxlength="2000"></textarea>
@@ -6007,6 +6081,61 @@ function closeAdminAiAssistPanel() {
   }
   if (topBtn) topBtn.classList.remove('admin-ai-assist-top-btn-active');
 }
+
+// ── Quick Prompt Chips ────────────────────────────────────────────────────────
+function switchAiTab(tab) {
+  var tabs = document.querySelectorAll('.ai-prompt-tab');
+  var panels = document.querySelectorAll('.ai-prompt-chips');
+  tabs.forEach(function(t) { t.classList.toggle('active', t.dataset.tab === tab); });
+  panels.forEach(function(p) {
+    if (p.id === 'aiChips-' + tab) p.removeAttribute('hidden');
+    else p.setAttribute('hidden', '');
+  });
+}
+
+function hideAiPromptWrap() {
+  var wrap = document.getElementById('aiPromptWrap');
+  var welcome = document.getElementById('adminAiAssistWelcome');
+  if (wrap) wrap.style.display = 'none';
+  if (welcome) welcome.style.display = 'none';
+}
+
+(function() {
+  // Wire up chip clicks after DOM is ready
+  function initAiChips() {
+    var chips = document.querySelectorAll('.ai-prompt-chip');
+    chips.forEach(function(chip) {
+      chip.addEventListener('click', function() {
+        var fill = chip.dataset.fill;
+        var send = chip.dataset.send;
+        var input = document.getElementById('adminAiAssistInput');
+        if (!input) return;
+        if (send) {
+          // Send immediately
+          input.value = send;
+          sendAdminAiMessage();
+        } else if (fill) {
+          // Pre-fill input and focus — user types client name
+          input.value = fill;
+          input.focus();
+          // Move cursor to end
+          var len = input.value.length;
+          input.setSelectionRange(len, len);
+          // Resize textarea
+          input.style.height = 'auto';
+          input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+        }
+      });
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAiChips);
+  } else {
+    initAiChips();
+  }
+})();
+// ── End Quick Prompt Chips ────────────────────────────────────────────────────
+
 function getAdminAiAssistStorageKey() {
   try {
     var u = window.currentUser;
@@ -6132,6 +6261,8 @@ function loadAdminAiAssistHistory() {
   if (!raw) {
     container.innerHTML = '';
     if (welcome) welcome.style.display = '';
+    var wrapEl = document.getElementById('aiPromptWrap');
+    if (wrapEl) wrapEl.style.display = '';
     updateAdminAiUsageTotals();
     return;
   }
@@ -6141,12 +6272,16 @@ function loadAdminAiAssistHistory() {
   } catch (e2) {
     container.innerHTML = '';
     if (welcome) welcome.style.display = '';
+    var wrapEl2 = document.getElementById('aiPromptWrap');
+    if (wrapEl2) wrapEl2.style.display = '';
     updateAdminAiUsageTotals();
     return;
   }
   if (!Array.isArray(items) || items.length === 0) {
     container.innerHTML = '';
     if (welcome) welcome.style.display = '';
+    var wrapEl3 = document.getElementById('aiPromptWrap');
+    if (wrapEl3) wrapEl3.style.display = '';
     updateAdminAiUsageTotals();
     return;
   }
@@ -6217,6 +6352,7 @@ function appendAdminAiMessage(role, text, isError, skipPersist, usageMeta) {
   var welcome = document.getElementById('adminAiAssistWelcome');
   if (!container) return;
   if (welcome) welcome.style.display = 'none';
+  hideAiPromptWrap();
   var usage = parseAdminAiUsage(usageMeta);
   var div = document.createElement('div');
   div.className = 'admin-ai-assist-msg ' + role + (isError ? ' error' : '');
