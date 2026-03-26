@@ -2904,7 +2904,7 @@ async function callAnthropicChat(systemContentFull, userMessage) {
     'claude-sonnet-4-20250514'
   ].map((m) => String(m || '').trim()).filter(Boolean)));
   let lastErr = null;
-  const maxOut = Math.min(8192, Math.max(1024, parseInt(process.env.ADMIN_AI_MAX_OUTPUT_TOKENS || '4096', 10)));
+  const maxOut = Math.min(8192, Math.max(1024, parseInt(process.env.ADMIN_AI_MAX_OUTPUT_TOKENS || '8192', 10)));
 
   for (const model of modelCandidates) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
