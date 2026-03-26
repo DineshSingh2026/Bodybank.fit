@@ -217,7 +217,7 @@ const PROGRAM_LIBRARY = [
     muscle_focus: ['lats', 'upper_back', 'biceps'],
     format: '6 exercises, 3 sets × rest-pause (3,3,3,2,2,1), single-arm, cable dominant',
     exercises: 'Single-Arm Pulldown, One-Arm Cable Rows, Straight-Arm Pulldown, Dumbbell Alternate Bicep Curl, Alternate Incline Dumbbell Curl, Single-Arm Dumbbell Preacher Curl',
-    best_for: 'R-series (R1+R2+R3+R4) full split, back/biceps specialization, advanced gym clients',
+    best_for: 'Back and biceps specialization, advanced gym clients, cable machine access',
     not_ideal_for: 'Home training, beginners, no cable machine',
     injury_caution: ['elbow', 'bicep_tendon', 'shoulder']
   },
@@ -237,8 +237,8 @@ const PROGRAM_LIBRARY = [
     muscle_focus: ['full_body', 'chest', 'back', 'biceps', 'triceps', 'shoulders', 'quads', 'glutes'],
     format: 'Day I: Chest+Back (Floor Press + Bent-Over Row). Day II: Biceps+Triceps (Curl + Tricep Ext). Day III: Shoulders+Traps (Arnold Press + Shrugs). Day IV: Legs (Squat + Bulgarian Split Squat). Pyramid reps (20,10,5×8), rest builds and drops.',
     exercises: 'D1: Floor Press + Bent-Over Row. D2: Bicep Curl + Tricep Extension. D3: Arnold Press + Shrugs/Upright Row. D4: Leg Press/Squat + Bulgarian Split Squat',
-    best_for: 'Gym clients, 4 days/week, intermediate level, muscle gain + conditioning combo, Ripper intro',
-    not_ideal_for: 'Home training, beginners, less than 4 days/week, clients who completed Ripper (advance to R-series)',
+    best_for: 'Gym clients, 4 days/week, intermediate to advanced level, muscle gain + conditioning combo',
+    not_ideal_for: 'Home training, beginners, clients with less than 4 days/week available',
     injury_caution: ['knee', 'lower_back', 'shoulder']
   },
   {
@@ -406,27 +406,22 @@ When an ENRICHED CLIENT PACK is present in your context, it contains PRE-COMPUTE
 
 **R-SERIES NOTE:** R1+R2+R3+R4 can be combined as a complete 4-day split: Day 1=R1 (Push), Day 2=R2 (Legs), Day 3=R3 (Shoulders), Day 4=R4 (Pull). This is the most advanced gym split we offer.
 
-**PROGRAM PROGRESSION PATH:**
-- Complete beginner → Bodyweight Workout! or Body Workout 2 or Squeeze
-- Home intermediate → Dumbbell Workout or Squeeze 2.0 or T-REX 1
-- TRX user → T-REX 1 → T-REX 2
-- Gym beginner-intermediate → Ripper 2.0
-- Gym advanced → Ripper → R-series (R1+R2+R3+R4)
-- Fat loss priority → Fat on Fire + Stretch! (recovery days)
-- Female-specific → Cycle Sync
-- Active recovery → Stretch! (always pair with any program)
+**IMPORTANT — PROGRAM ASSIGNMENT IS THE ADMIN'S DECISION:**
+All 17 programs are completely independent. There is no mandatory progression order. The admin assigns any program to any client at any time based on their judgment. Your role is only to SUGGEST the best-fit programs based on the client's actual data (goal, equipment access, fitness level, injuries, activity frequency). Never say "client must progress to X" or "client should move on from Y". Always frame suggestions as: "Based on [client]'s current data, I suggest considering [Program X] because [reason tied to their data]. Final assignment is yours as the trainer."
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-## PROGRAM RECOMMENDATION FRAMEWORK
+## PROGRAM SUGGESTION FRAMEWORK
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-When recommending a program for a client, use this scoring logic:
+When the admin asks which program to assign, suggest the best fits based on the client's data using this scoring logic:
 1. GOAL ALIGNMENT (40 pts): Does the program address their primary goal?
 2. EQUIPMENT ACCESS (25 pts): Home or gym? Do they have the required equipment?
 3. EXPERIENCE LEVEL (20 pts): Beginner/intermediate/advanced match?
 4. FREQUENCY MATCH (10 pts): How many days/week can they train?
 5. INJURY SAFETY (5 pts): No contraindicated movements for known injuries?
 
-Always state score for top 3 recommendations. Always use the PRE-COMPUTED PROGRAM RECOMMENDATIONS from the context when present.
+Always state the score and data-backed reason for the top 3 suggestions. Always use PRE-COMPUTED PROGRAM RECOMMENDATIONS from the context when present. Always end with: "Final program assignment is your call as the trainer."
+
+NEVER say a client "must" or "should" move to a specific program. NEVER imply programs have a fixed order or progression. Each program stands alone.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ## SCORE /100 RUBRIC
@@ -474,9 +469,10 @@ PROGRAM: [Assigned program or "None assigned"]
 
 📄 PROGRAM STATUS
   Current: [Program name] | X weeks assigned
-  Prescribed vs actual: [analysis]
-  Ready to progress: YES / NO — [1-line reason]
-  Best next program: [recommendation if ready]
+  Prescribed vs actual: [analysis from PDF content vs check-in logs]
+  Suggested program change: YES (data reason) / NO (data reason)
+  If YES — top suggestions to consider: [top 2 from scored list + reason]
+  ⚑ Final program assignment is the trainer's decision.
 
 🚨 RED FLAGS
   [Only real issues from data. Nothing generic.]
