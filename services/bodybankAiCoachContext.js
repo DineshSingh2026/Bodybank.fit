@@ -487,6 +487,94 @@ PROGRAM: [Assigned program or "None assigned"]
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 \`\`\`
 
+**DETAILED / MONTHLY REPORT** (triggered by: "detailed report", "monthly report", "complete report", "everything about X"):
+This is the FULL deep-dive. Use EVERY data point from the enriched client pack. Miss nothing.
+Structure:
+\`\`\`
+╔══════════════════════════════════════════════════════╗
+  DETAILED CLIENT REPORT — [Full Name]
+  Period: [from] → [to]  |  Generated: [today's date]
+╚══════════════════════════════════════════════════════╝
+
+1. CLIENT PROFILE
+   Goal | Experience | Gym access | Days/week | Injuries | Gender
+   Audit form goals | Part-2 form goals | What compelled them
+   Sports history | Food preferences | Mental health notes | Vices
+
+2. PLATFORM TARGETS
+   Target weight | Target BF% | Weekly workout target (all goal entries, newest first)
+
+3. TRIBE STATUS
+   Phase | Start date | Starting weight → Current weight → Target weight
+   Activity days/week | Trainer notes | Next check-in date
+
+4. ASSIGNED PROGRAM
+   Program name | Assigned date
+   Full PDF analysis: workouts prescribed, nutrition targets, progression criteria
+   Prescribed vs actual compliance breakdown
+
+5. COMPLIANCE DEEP DIVE
+   Daily check-ins: X/Y (Z%)
+   Progress logs: X/Y (Z%)
+   Sunday check-ins: X/Y weeks (Z%)
+   Workouts: X sessions
+   Current streak: X days | Longest streak: [compute if possible]
+   Last activity: [date]
+
+6. BODY METRICS — FULL TIMELINE
+   Weight: List every entry date + value (from progress_logs AND weight_logs)
+   Body fat: List every entry
+   Net change: Xkg over X days = X.X kg/week
+   Trend: POSITIVE / STALLED / REGRESSING + reason
+
+7. NUTRITION — FULL BREAKDOWN
+   Every week's average calories + protein
+   Overall avg: Xcal | Xg protein | X L water | X hrs sleep
+   Deficit/surplus vs target
+   Hydration log data (if present)
+   Notable days (best/worst)
+
+8. TRAINING — SESSION BY SESSION
+   List ALL workout sessions: date | name | duration | feedback
+   Strength progression per lift (bench/squat/deadlift) with first → last
+   Workout types breakdown
+   Missing sessions vs. weekly target
+
+9. SUNDAY CHECK-INS — ALL ENTRIES
+   For each Sunday submission:
+   Date | Weight/waist | Total loss | Training compliance | Nutrition compliance
+   Sleep | Occupation stress | Other stress | Differences felt
+   Achievements | What to improve | Questions asked
+
+10. DAILY CHECK-INS — FULL LOG
+    Table: Date | Steps | Water | Protein | Sleep
+
+11. MESSAGE HISTORY
+    All messages between admin and client in this period
+
+12. MEETINGS
+    All scheduled/completed meetings with notes
+
+13. PROGRAM SUGGESTIONS
+    Top 5 scored programs with match score and reason (admin assigns at their discretion)
+
+14. RED FLAGS & RISK ANALYSIS
+    All flagged issues with severity + root cause + recommended intervention
+
+15. ACTION PLAN
+    1. [Immediate — this week]
+    2. [Short term — this month]
+    3. [Structural — program/nutrition/recovery]
+    4. [Mindset/accountability]
+    5. [Follow-up checkpoint — date + metric to check]
+
+16. OVERALL SCORE: XX/100
+    Score breakdown by category (compliance, nutrition, training, body composition, engagement)
+╔══════════════════════════════════════════════════════╗
+  END OF REPORT
+╚══════════════════════════════════════════════════════╝
+\`\`\`
+
 **QUICK QUESTIONS** (default): ≤3 short lines. Direct. Exact numbers. No intro.
 
 **COMPARISON**: Side-by-side table. Declare winner per row. End with gap analysis + action plan for trailing client.
@@ -505,10 +593,11 @@ PROGRAM: [Assigned program or "None assigned"]
 3. NEVER give ranges when a specific number is needed. Say "increase to 1,850 kcal" not "1,800-1,900".
 4. NEVER skip a report because a data point is missing. Flag it as "not logged" and continue.
 5. NEVER give generic advice. Every recommendation must tie to this client's specific data.
-6. ALWAYS give 3+ numbered action items in full reports.
+6. ALWAYS give 3+ numbered action items in full reports, 5+ in detailed/monthly reports.
 7. ALWAYS reference assigned program by name when making training recommendations.
 8. Output clean Markdown only. No JSON, no code, no stack traces.
 9. Be the smartest coaching brain in the room. Every answer must feel premium, precise, and valuable.
+10. For DETAILED / MONTHLY reports: use ALL 16 sections. Include every single data row — every daily check-in, every progress log entry, every Sunday check-in field, every workout session, every message. Do not summarise or truncate any section. If data is present, it MUST appear in the report. The system will already supply the full data — use it all.
 `;
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1057,7 +1146,7 @@ function recommendPrograms(profile) {
 // ─────────────────────────────────────────────────────────────────────────────
 // BUILD FULL CLIENT PACK
 // ─────────────────────────────────────────────────────────────────────────────
-async function buildClientPack(deps, userId, dateRange) {
+async function buildClientPack(deps, userId, dateRange, detailed = false) {
   const { queryAll, fs, rootDir } = deps;
   const user = await qOne(queryAll, 'SELECT id, first_name, last_name, email FROM users WHERE id = ?', [userId]);
   if (!user) return null;
@@ -1067,64 +1156,102 @@ async function buildClientPack(deps, userId, dateRange) {
   const fromIso = `${dr.from_date}T00:00:00.000Z`;
   const toIso = `${dr.to_date}T23:59:59.999Z`;
 
-  const [programs, progress, daily, sunday, workouts, audit, part2, tribe, meetings, goals] = await Promise.all([
+  // Detailed mode: no row limits on any table
+  const workoutLimit = detailed ? '' : 'LIMIT 50';
+  const sundayLimit = detailed ? '' : 'LIMIT 12';
+  const meetingLimit = detailed ? '' : 'LIMIT 5';
+
+  const [programs, progress, daily, sunday, workouts, audit, part2, tribe, meetings, goals,
+         hydration, weightLogs, threads] = await Promise.all([
+    // All assigned programs
     queryAll(
       `SELECT a.assigned_at, p.id as program_id, p.name as program_name, p.pdf_url
        FROM user_program_assignments a JOIN programs p ON p.id = a.program_id
-       WHERE a.user_id = ? AND a.removed_at IS NULL ORDER BY a.assigned_at DESC LIMIT 4`,
+       WHERE a.user_id = ? AND a.removed_at IS NULL ORDER BY a.assigned_at DESC`,
       [userId]
     ),
+    // All progress logs (every field)
     queryAll(
       `SELECT weight, body_fat, calories_intake, protein_intake, workout_completed, workout_type,
               strength_bench, strength_squat, strength_deadlift, sleep_hours, water_intake, created_at
        FROM progress_logs WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at <= ?::timestamptz ORDER BY created_at ASC`,
       [userId, fromIso, toIso]
     ),
+    // All daily check-ins
     queryAll(
       `SELECT checkin_date, steps, water_ml, protein_g, sleep_hours, created_at
        FROM daily_checkins WHERE user_id = ? AND checkin_date >= ?::date AND checkin_date <= ?::date ORDER BY checkin_date ASC`,
       [userId, dr.from_date, dr.to_date]
     ),
+    // All Sunday check-ins — every single field
     queryAll(
-      `SELECT plan, current_weight_waist_week, total_weight_loss, training_go, nutrition_go, sleep,
-              occupation_stress, other_stress, differences_felt, achievements, improve_next_week, created_at
-       FROM sunday_checkins WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at <= ?::timestamptz ORDER BY created_at DESC LIMIT 12`,
+      `SELECT plan, current_weight_waist_week, last_week_weight_waist, total_weight_loss,
+              training_go, nutrition_go, sleep, occupation_stress, other_stress,
+              differences_felt, achievements, improve_next_week, questions, created_at
+       FROM sunday_checkins WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at <= ?::timestamptz ORDER BY created_at DESC ${sundayLimit}`,
       [userId, fromIso, toIso]
     ),
+    // All workouts
     queryAll(
       `SELECT workout_name, duration_seconds, feedback, created_at FROM workout_logs
-       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at <= ?::timestamptz ORDER BY created_at DESC LIMIT 50`,
+       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at <= ?::timestamptz ORDER BY created_at ASC ${workoutLimit}`,
       [userId, fromIso, toIso]
     ),
+    // Full audit form
     queryAll(
       `SELECT first_name, last_name, email, city, goals, status, fitness_experience, motivation, created_at
        FROM audit_requests WHERE LOWER(email) = ? ORDER BY created_at DESC LIMIT 1`,
       [email]
     ),
+    // Full Part-2 intake
     queryAll(
       `SELECT name, email, mobile, activity_level, sports_history, injuries, mental_health, gym_experience,
               food_choices, vices_addictions, goals, what_compelled, created_at
        FROM part2_audit WHERE LOWER(email) = ? ORDER BY created_at DESC LIMIT 1`,
       [email]
     ),
+    // Tribe member row
     queryAll(
       `SELECT phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, status, notes, next_checkin
        FROM tribe_members WHERE LOWER(email) = ? ORDER BY start_date DESC LIMIT 1`,
       [email]
     ),
+    // Meetings
     queryAll(
       `SELECT meeting_date, time_slot, status, notes, created_at FROM meetings
-       WHERE user_id = ? ORDER BY created_at DESC LIMIT 5`,
+       WHERE user_id = ? ORDER BY created_at DESC ${meetingLimit}`,
       [userId]
     ),
+    // All user_goals entries
     queryAll(
       `SELECT target_weight, target_body_fat, weekly_workout_target, created_at
-       FROM user_goals WHERE user_id = ? ORDER BY created_at DESC LIMIT 3`,
+       FROM user_goals WHERE user_id = ? ORDER BY created_at DESC`,
       [userId]
-    )
+    ),
+    // Hydration logs
+    queryAll(
+      `SELECT amount_ml, glasses, created_at FROM hydration_logs
+       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at <= ?::timestamptz ORDER BY created_at ASC`,
+      [userId, fromIso, toIso]
+    ).catch(() => []),
+    // Dedicated weight logs
+    queryAll(
+      `SELECT weight_kg, created_at FROM weight_logs
+       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at <= ?::timestamptz ORDER BY created_at ASC`,
+      [userId, fromIso, toIso]
+    ).catch(() => []),
+    // Admin–client message threads (last 20 messages)
+    queryAll(
+      `SELECT tm.body, tm.sender_role, tm.created_at
+       FROM thread_messages tm
+       JOIN message_threads mt ON mt.id = tm.thread_id
+       WHERE mt.user_id = ? AND tm.created_at >= ?::timestamptz AND tm.created_at <= ?::timestamptz
+       ORDER BY tm.created_at ASC LIMIT 20`,
+      [userId, fromIso, toIso]
+    ).catch(() => [])
   ]);
 
-  // Extract PDF text for assigned programs
+  // Extract full PDF text for ALL assigned programs
   const programBlocks = [];
   for (const p of programs) {
     const fp = programFilePath(rootDir, p.program_id);
@@ -1141,6 +1268,9 @@ async function buildClientPack(deps, userId, dateRange) {
     daily_checkins: daily,
     sunday_checkins: sunday,
     workout_logs: workouts,
+    hydration_logs: hydration,
+    weight_logs: weightLogs,
+    message_history: threads,
     dateRange: dr
   };
 
@@ -1151,6 +1281,7 @@ async function buildClientPack(deps, userId, dateRange) {
   return {
     user: { id: user.id, name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email },
     period: dr,
+    detailed,
     user_profile: userProfile,
     computed_metrics: metrics,
     assigned_programs: programBlocks,
@@ -1164,160 +1295,285 @@ async function buildClientPack(deps, userId, dateRange) {
       progress_logs: progress,
       daily_checkins: daily,
       sunday_checkins: sunday,
-      workout_logs: workouts
+      workout_logs: workouts,
+      hydration_logs: hydration,
+      weight_logs: weightLogs,
+      message_history: threads
     }
   };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FORMAT ENRICHED CLIENT PACK AS HUMAN-READABLE TEXT (for system context)
+// detailed=true → every single row of every table, nothing truncated
 // ─────────────────────────────────────────────────────────────────────────────
 function formatPackAsText(pack) {
   const m = pack.computed_metrics;
   const u = pack.user;
   const dr = pack.period;
+  const detailed = pack.detailed || false;
+  const rd = pack.raw_data;
   const lines = [];
 
   lines.push(`\n${'═'.repeat(60)}`);
-  lines.push(`ENRICHED CLIENT PACK: ${u.name} (${u.email})`);
+  lines.push(`ENRICHED CLIENT PACK: ${u.name} (${u.email})${detailed ? ' — DETAILED / FULL REPORT MODE' : ''}`);
   lines.push(`PERIOD: ${dr.label} (${dr.from_date} → ${dr.to_date}, ${dr.days} days)`);
   lines.push(`${'═'.repeat(60)}`);
 
-  // User profile
+  // ── USER PROFILE ─────────────────────────────────────────────────────────────
   const prof = pack.user_profile;
   lines.push(`\n[USER PROFILE]`);
-  lines.push(`  Goal: ${prof.goal.replace('_', ' ').toUpperCase()}`);
-  lines.push(`  Experience: ${prof.experience_level}`);
-  lines.push(`  Gym access: ${prof.gym_access ? 'YES' : 'NO (home)'}`);
+  lines.push(`  Goal: ${prof.goal.replace(/_/g, ' ').toUpperCase()}`);
+  lines.push(`  Experience level: ${prof.experience_level}`);
+  lines.push(`  Gym access: ${prof.gym_access ? 'YES' : 'NO (home training)'}`);
   lines.push(`  Activity: ${prof.activity_days} days/week`);
   lines.push(`  Injuries: ${prof.injuries.length ? prof.injuries.join(', ') : 'none reported'}`);
   lines.push(`  Gender: ${prof.gender}`);
 
-  // Goals
-  if (pack.user_goals?.latest) {
-    const g = pack.user_goals.latest;
-    lines.push(`  Target weight: ${g.target_weight || 'not set'}kg | Target BF%: ${g.target_body_fat || 'not set'}% | Weekly workouts: ${g.weekly_workout_target || 'not set'}`);
+  // ── USER GOALS (platform targets) ────────────────────────────────────────────
+  if (pack.user_goals?.history?.length) {
+    lines.push(`\n[PLATFORM GOALS (user_goals table — all entries)]`);
+    pack.user_goals.history.forEach((g, i) => {
+      lines.push(`  ${i === 0 ? 'LATEST' : `Entry ${i + 1}`} (${g.created_at?.slice(0, 10)}): Target weight: ${g.target_weight ?? 'not set'}kg | Target BF%: ${g.target_body_fat ?? 'not set'}% | Weekly workouts: ${g.weekly_workout_target ?? 'not set'}`);
+    });
+  } else {
+    lines.push(`\n[PLATFORM GOALS]: Not set`);
   }
 
-  // Tribe
+  // ── TRIBE ─────────────────────────────────────────────────────────────────────
   if (pack.tribe_member) {
     const t = pack.tribe_member;
-    lines.push(`\n[TRIBE DATA]`);
+    lines.push(`\n[TRIBE MEMBER DATA]`);
     lines.push(`  Status: ${t.status} | Phase: ${t.phase} | Started: ${t.start_date}`);
-    lines.push(`  Starting weight: ${t.starting_weight}kg | Current: ${t.current_weight}kg | Target: ${t.target_weight}kg`);
+    lines.push(`  Starting weight: ${t.starting_weight ?? '-'}kg | Current: ${t.current_weight ?? '-'}kg | Target: ${t.target_weight ?? '-'}kg`);
+    lines.push(`  Activity per week: ${t.activity_per_week ?? '-'} days`);
     if (t.notes) lines.push(`  Trainer notes: ${t.notes}`);
-    if (t.next_checkin) lines.push(`  Next check-in: ${t.next_checkin}`);
+    if (t.next_checkin) lines.push(`  Next check-in scheduled: ${t.next_checkin}`);
+  } else {
+    lines.push(`\n[TRIBE MEMBER DATA]: Not in tribe`);
   }
 
-  // Assigned Programs
+  // ── ONBOARDING AUDIT ─────────────────────────────────────────────────────────
+  if (pack.latest_audit) {
+    const a = pack.latest_audit;
+    lines.push(`\n[ONBOARDING AUDIT FORM (submitted ${a.created_at?.slice(0, 10)})]`);
+    lines.push(`  Name: ${a.first_name || ''} ${a.last_name || ''} | City: ${a.city || '-'}`);
+    if (a.goals) lines.push(`  Goals stated: ${a.goals}`);
+    if (a.fitness_experience) lines.push(`  Fitness experience: ${a.fitness_experience}`);
+    if (a.motivation) lines.push(`  Motivation: ${a.motivation}`);
+    lines.push(`  Status: ${a.status}`);
+  } else {
+    lines.push(`\n[ONBOARDING AUDIT FORM]: Not submitted`);
+  }
+
+  // ── PART-2 INTAKE FORM (full) ─────────────────────────────────────────────────
+  if (pack.latest_part2) {
+    const p2 = pack.latest_part2;
+    lines.push(`\n[PART-2 DEEP INTAKE FORM (submitted ${p2.created_at?.slice(0, 10)})]`);
+    if (p2.goals) lines.push(`  Goals: ${p2.goals}`);
+    if (p2.injuries) lines.push(`  Injuries / medical: ${p2.injuries}`);
+    if (p2.mental_health) lines.push(`  Mental health notes: ${p2.mental_health}`);
+    if (p2.gym_experience) lines.push(`  Gym experience: ${p2.gym_experience}`);
+    if (p2.activity_level) lines.push(`  Activity level: ${p2.activity_level}`);
+    if (p2.sports_history) lines.push(`  Sports history: ${p2.sports_history}`);
+    if (p2.food_choices) lines.push(`  Food preferences: ${p2.food_choices}`);
+    if (p2.vices_addictions) lines.push(`  Vices / addictions: ${p2.vices_addictions}`);
+    if (p2.what_compelled) lines.push(`  What compelled them: ${p2.what_compelled}`);
+    if (p2.mobile) lines.push(`  Mobile: ${p2.mobile}`);
+  } else {
+    lines.push(`\n[PART-2 DEEP INTAKE FORM]: Not submitted`);
+  }
+
+  // ── ASSIGNED PROGRAMS (full PDF text) ────────────────────────────────────────
   if (pack.assigned_programs.length) {
-    lines.push(`\n[ASSIGNED PROGRAMS]`);
-    pack.assigned_programs.forEach(p => {
-      lines.push(`  → ${p.program_name} (assigned ${p.assigned_at?.slice(0, 10)})`);
-      if (p.extracted_pdf_text) lines.push(`  PDF CONTENT: ${p.extracted_pdf_text.slice(0, 500)}...`);
-      else lines.push(`  PDF: not extracted`);
+    lines.push(`\n[ASSIGNED PROGRAMS — ${pack.assigned_programs.length} total]`);
+    pack.assigned_programs.forEach((p, i) => {
+      lines.push(`  ${i + 1}. ${p.program_name} (assigned ${p.assigned_at?.slice(0, 10)})`);
+      if (p.extracted_pdf_text) {
+        lines.push(`     FULL PDF CONTENT:\n     ${p.extracted_pdf_text}`);
+      } else {
+        lines.push(`     PDF: not extractable (may be scanned image)`);
+      }
     });
   } else {
     lines.push(`\n[ASSIGNED PROGRAMS]: None assigned`);
   }
 
-  // Pre-computed metrics
-  lines.push(`\n[PRE-COMPUTED METRICS — GROUND TRUTH]`);
+  // ── PRE-COMPUTED METRICS ──────────────────────────────────────────────────────
+  lines.push(`\n${'─'.repeat(50)}`);
+  lines.push(`PRE-COMPUTED METRICS — GROUND TRUTH (server-computed)`);
+  lines.push(`${'─'.repeat(50)}`);
 
-  lines.push(`\n  COMPLIANCE:`);
-  lines.push(`    Daily check-ins: ${m.compliance.daily_checkins.count}/${m.compliance.daily_checkins.expected} days (${m.compliance.daily_checkins.pct ?? 'n/a'}%)`);
-  lines.push(`    Progress logs: ${m.compliance.progress_logs.count}/${m.compliance.progress_logs.expected} days (${m.compliance.progress_logs.pct ?? 'n/a'}%)`);
-  lines.push(`    Sunday check-ins: ${m.compliance.sunday_checkins.count}/${m.compliance.sunday_checkins.expected} weeks (${m.compliance.sunday_checkins.pct ?? 'n/a'}%)`);
-  lines.push(`    Workouts logged: ${m.compliance.workouts_logged}`);
-  lines.push(`    Current streak: ${m.compliance.streak_days} days`);
-  lines.push(`    Last check-in: ${m.compliance.last_checkin || 'never'}`);
+  lines.push(`\nCOMPLIANCE:`);
+  lines.push(`  Daily check-ins: ${m.compliance.daily_checkins.count}/${m.compliance.daily_checkins.expected} days (${m.compliance.daily_checkins.pct ?? 'n/a'}%)`);
+  lines.push(`  Progress logs: ${m.compliance.progress_logs.count}/${m.compliance.progress_logs.expected} days (${m.compliance.progress_logs.pct ?? 'n/a'}%)`);
+  lines.push(`  Sunday check-ins: ${m.compliance.sunday_checkins.count}/${m.compliance.sunday_checkins.expected} weeks (${m.compliance.sunday_checkins.pct ?? 'n/a'}%)`);
+  lines.push(`  Workouts logged: ${m.compliance.workouts_logged}`);
+  lines.push(`  Current streak: ${m.compliance.streak_days} days`);
+  lines.push(`  Last check-in: ${m.compliance.last_checkin || 'never'}`);
 
-  lines.push(`\n  WEIGHT:`);
+  lines.push(`\nWEIGHT & BODY COMPOSITION:`);
   if (m.weight.first !== null) {
     const arr = m.weight.delta < 0 ? '▼' : m.weight.delta > 0 ? '▲' : '→';
-    lines.push(`    ${m.weight.first}kg → ${m.weight.last}kg (${arr} ${Math.abs(m.weight.delta)}kg total | ${m.weight.per_week > 0 ? '+' : ''}${m.weight.per_week}kg/week)`);
-    lines.push(`    Trend: ${m.weight.trend.toUpperCase()} | Based on ${m.weight.logs_count} logs`);
-  } else lines.push(`    Weight: not logged this period`);
+    lines.push(`  ${m.weight.first}kg → ${m.weight.last}kg (${arr} ${Math.abs(m.weight.delta)}kg total | ${m.weight.per_week >= 0 ? '+' : ''}${m.weight.per_week}kg/week)`);
+    lines.push(`  Trend: ${m.weight.trend.toUpperCase()} | Based on ${m.weight.logs_count} progress logs`);
+  } else lines.push(`  Weight (progress_logs): not logged this period`);
+
+  if (rd.weight_logs?.length) {
+    const wl = rd.weight_logs;
+    lines.push(`  Dedicated weight_logs: ${wl.length} entries | First: ${wl[0].weight_kg}kg (${wl[0].created_at?.slice(0, 10)}) → Last: ${wl[wl.length-1].weight_kg}kg (${wl[wl.length-1].created_at?.slice(0, 10)})`);
+  }
 
   if (m.body_fat.first !== null) {
     const arr = m.body_fat.delta < 0 ? '▼' : m.body_fat.delta > 0 ? '▲' : '→';
-    lines.push(`    Body fat: ${m.body_fat.first}% → ${m.body_fat.last}% (${arr} ${Math.abs(m.body_fat.delta)}%)`);
-  } else lines.push(`    Body fat: not logged`);
+    lines.push(`  Body fat: ${m.body_fat.first}% → ${m.body_fat.last}% (${arr} ${Math.abs(m.body_fat.delta)}%)`);
+  } else lines.push(`  Body fat: not logged`);
 
-  lines.push(`\n  NUTRITION:`);
-  lines.push(`    Avg calories: ${m.nutrition.avg_calories ?? 'not logged'} kcal/day`);
+  lines.push(`\nNUTRITION:`);
+  lines.push(`  Avg calories: ${m.nutrition.avg_calories ?? 'not logged'} kcal/day`);
   if (m.nutrition.avg_protein_g !== null) {
-    const protTarget = m.nutrition.protein_target_min_g;
-    const deficit = protTarget ? ` — ${protTarget - m.nutrition.avg_protein_g > 0 ? 'DEFICIT' : 'OK'} vs ${protTarget}g target` : '';
-    lines.push(`    Avg protein: ${m.nutrition.avg_protein_g}g/day${deficit}`);
-  } else lines.push(`    Avg protein: not logged`);
-  lines.push(`    Avg water: ${m.nutrition.avg_water_l ?? 'not logged'} L/day`);
-  lines.push(`    Avg sleep: ${m.nutrition.avg_sleep_hrs ?? 'not logged'} hrs/night`);
+    const pt = m.nutrition.protein_target_min_g;
+    const gap = pt ? ` — ${pt - m.nutrition.avg_protein_g > 0 ? `DEFICIT: ${pt - m.nutrition.avg_protein_g}g/day below ${pt}g target` : `OK (meets minimum ${pt}g target)`}` : '';
+    lines.push(`  Avg protein: ${m.nutrition.avg_protein_g}g/day${gap}`);
+  } else lines.push(`  Avg protein: not logged`);
+  lines.push(`  Avg water: ${m.nutrition.avg_water_l ?? 'not logged'} L/day`);
+  lines.push(`  Avg sleep: ${m.nutrition.avg_sleep_hrs ?? 'not logged'} hrs/night`);
 
-  lines.push(`\n  TRAINING:`);
-  lines.push(`    Workouts completed: ${m.training.workouts_completed} sessions | Avg duration: ${m.training.avg_duration_min ?? 'n/a'} min`);
-  if (m.training.bench.first !== null) lines.push(`    Bench press: ${m.training.bench.first}kg → ${m.training.bench.last}kg (${m.training.bench.delta > 0 ? '▲' : '▼'} ${Math.abs(m.training.bench.delta)}kg)`);
-  else lines.push(`    Bench press: not logged`);
-  if (m.training.squat.first !== null) lines.push(`    Squat: ${m.training.squat.first}kg → ${m.training.squat.last}kg (${m.training.squat.delta > 0 ? '▲' : '▼'} ${Math.abs(m.training.squat.delta)}kg)`);
-  else lines.push(`    Squat: not logged`);
-  if (m.training.deadlift.first !== null) lines.push(`    Deadlift: ${m.training.deadlift.first}kg → ${m.training.deadlift.last}kg (${m.training.deadlift.delta > 0 ? '▲' : '▼'} ${Math.abs(m.training.deadlift.delta)}kg)`);
-  else lines.push(`    Deadlift: not logged`);
-
-  lines.push(`\n  CLIENT SCORE: ${m.score}/100`);
-  if (m.score_drivers.length) lines.push(`    Drivers: ${m.score_drivers.join(' | ')}`);
-
-  // Risk flags
-  if (m.risk_flags.length) {
-    lines.push(`\n  RISK FLAGS:`);
-    m.risk_flags.forEach(f => lines.push(`    ⚠ [${f.code}] ${f.msg}`));
-  } else {
-    lines.push(`\n  RISK FLAGS: None — client is on track`);
+  if (rd.hydration_logs?.length) {
+    const totalMl = rd.hydration_logs.reduce((s, r) => s + (n(r.amount_ml) || 0), 0);
+    const avgGlasses = rd.hydration_logs.reduce((s, r) => s + (n(r.glasses) || 0), 0) / rd.hydration_logs.length;
+    lines.push(`  Hydration logs (dedicated table): ${rd.hydration_logs.length} entries | Total: ${totalMl}ml | Avg glasses/day: ${avgGlasses.toFixed(1)}`);
   }
 
-  // Program recommendations
-  lines.push(`\n[PROGRAM RECOMMENDATIONS (scored from all 17 BodyBank programs):`);
+  lines.push(`\nTRAINING:`);
+  lines.push(`  Workouts: ${m.training.workouts_completed} sessions | Avg duration: ${m.training.avg_duration_min ?? 'n/a'} min`);
+  if (m.training.bench.first !== null) lines.push(`  Bench press: ${m.training.bench.first}kg → ${m.training.bench.last}kg (${m.training.bench.delta >= 0 ? '▲' : '▼'} ${Math.abs(m.training.bench.delta)}kg)`);
+  else lines.push(`  Bench press: not logged`);
+  if (m.training.squat.first !== null) lines.push(`  Squat: ${m.training.squat.first}kg → ${m.training.squat.last}kg (${m.training.squat.delta >= 0 ? '▲' : '▼'} ${Math.abs(m.training.squat.delta)}kg)`);
+  else lines.push(`  Squat: not logged`);
+  if (m.training.deadlift.first !== null) lines.push(`  Deadlift: ${m.training.deadlift.first}kg → ${m.training.deadlift.last}kg (${m.training.deadlift.delta >= 0 ? '▲' : '▼'} ${Math.abs(m.training.deadlift.delta)}kg)`);
+  else lines.push(`  Deadlift: not logged`);
+
+  lines.push(`\nCLIENT SCORE: ${m.score}/100`);
+  if (m.score_drivers.length) lines.push(`  Drivers: ${m.score_drivers.join(' | ')}`);
+
+  lines.push(`\nRISK FLAGS:`);
+  if (m.risk_flags.length) m.risk_flags.forEach(f => lines.push(`  ⚠ [${f.code}] ${f.msg}`));
+  else lines.push(`  None — client is on track`);
+
+  // ── PROGRAM SUGGESTIONS ───────────────────────────────────────────────────────
+  lines.push(`\n[PROGRAM SUGGESTIONS (all 17 scored — admin assigns at their discretion)]`);
   pack.program_recommendations.forEach((p, i) => {
-    lines.push(`  ${i + 1}. ${p.name} — ${p.match_score}/100`);
-    lines.push(`     ${p.duration_min} min | ${p.intensity} intensity | Gym: ${p.gym_required ? 'YES' : 'NO'}`);
+    lines.push(`  ${i + 1}. ${p.name} — ${p.match_score}/100 | ${p.duration_min}min | ${p.intensity} | Gym: ${p.gym_required ? 'YES' : 'NO'}`);
     lines.push(`     Best for: ${p.best_for}`);
   });
 
-  // Audit & Part2
-  if (pack.latest_audit) {
-    lines.push(`\n[ONBOARDING AUDIT]`);
-    const a = pack.latest_audit;
-    if (a.goals) lines.push(`  Goals: ${a.goals}`);
-    if (a.fitness_experience) lines.push(`  Fitness experience: ${a.fitness_experience}`);
-    if (a.motivation) lines.push(`  Motivation: ${a.motivation}`);
-  }
-  if (pack.latest_part2) {
-    lines.push(`\n[PART-2 INTAKE FORM]`);
-    const p2 = pack.latest_part2;
-    if (p2.injuries) lines.push(`  Injuries: ${p2.injuries}`);
-    if (p2.goals) lines.push(`  Goals: ${p2.goals}`);
-    if (p2.activity_level) lines.push(`  Activity level: ${p2.activity_level}`);
-    if (p2.gym_experience) lines.push(`  Gym experience: ${p2.gym_experience}`);
-    if (p2.food_choices) lines.push(`  Food preferences: ${p2.food_choices}`);
-    if (p2.mental_health) lines.push(`  Mental health: ${p2.mental_health}`);
-    if (p2.what_compelled) lines.push(`  What compelled them: ${p2.what_compelled}`);
-  }
-
-  // Recent meetings
+  // ── MEETINGS ──────────────────────────────────────────────────────────────────
   if (pack.recent_meetings?.length) {
-    lines.push(`\n[RECENT MEETINGS]`);
-    pack.recent_meetings.forEach(m => {
-      lines.push(`  ${m.meeting_date} ${m.time_slot} | ${m.status}${m.notes ? ' | Notes: ' + m.notes : ''}`);
+    lines.push(`\n[ALL MEETINGS (${pack.recent_meetings.length} in period)]`);
+    pack.recent_meetings.forEach(mt => {
+      lines.push(`  ${mt.meeting_date} ${mt.time_slot} | ${mt.status}${mt.notes ? ' | Notes: ' + mt.notes : ''}`);
     });
+  } else {
+    lines.push(`\n[MEETINGS]: None in this period`);
   }
 
-  // Sunday check-ins summary
-  if (pack.raw_data.sunday_checkins.length) {
-    lines.push(`\n[SUNDAY CHECK-INS (most recent ${Math.min(3, pack.raw_data.sunday_checkins.length)})]`);
-    pack.raw_data.sunday_checkins.slice(0, 3).forEach(s => {
-      lines.push(`  ${s.created_at?.slice(0, 10)} | Weight/waist: ${s.current_weight_waist_week || '-'} | Total loss: ${s.total_weight_loss || '-'}`);
-      if (s.achievements) lines.push(`    Achievements: ${s.achievements.slice(0, 100)}`);
-      if (s.improve_next_week) lines.push(`    Improve: ${s.improve_next_week.slice(0, 100)}`);
+  // ── MESSAGE HISTORY ───────────────────────────────────────────────────────────
+  if (rd.message_history?.length) {
+    lines.push(`\n[ADMIN–CLIENT MESSAGE HISTORY (${rd.message_history.length} messages in period)]`);
+    rd.message_history.forEach(msg => {
+      lines.push(`  [${msg.sender_role.toUpperCase()}] ${msg.created_at?.slice(0, 10)}: ${msg.body}`);
     });
+  } else {
+    lines.push(`\n[ADMIN–CLIENT MESSAGES]: None in this period`);
+  }
+
+  // ── ALL SUNDAY CHECK-INS (every field) ────────────────────────────────────────
+  if (rd.sunday_checkins.length) {
+    lines.push(`\n[ALL SUNDAY CHECK-INS — ${rd.sunday_checkins.length} submission(s)]`);
+    rd.sunday_checkins.forEach((s, i) => {
+      lines.push(`\n  Sunday #${i + 1} — ${s.created_at?.slice(0, 10)}`);
+      if (s.plan) lines.push(`    Plan / week summary: ${s.plan}`);
+      if (s.current_weight_waist_week) lines.push(`    Weight/waist this week: ${s.current_weight_waist_week}`);
+      if (s.last_week_weight_waist) lines.push(`    Last week weight/waist: ${s.last_week_weight_waist}`);
+      if (s.total_weight_loss) lines.push(`    Total weight loss to date: ${s.total_weight_loss}`);
+      if (s.training_go) lines.push(`    Training compliance: ${s.training_go}`);
+      if (s.nutrition_go) lines.push(`    Nutrition compliance: ${s.nutrition_go}`);
+      if (s.sleep) lines.push(`    Sleep notes: ${s.sleep}`);
+      if (s.occupation_stress) lines.push(`    Occupation stress: ${s.occupation_stress}`);
+      if (s.other_stress) lines.push(`    Other stress: ${s.other_stress}`);
+      if (s.differences_felt) lines.push(`    Differences felt: ${s.differences_felt}`);
+      if (s.achievements) lines.push(`    Achievements: ${s.achievements}`);
+      if (s.improve_next_week) lines.push(`    Improve next week: ${s.improve_next_week}`);
+      if (s.questions) lines.push(`    Questions: ${s.questions}`);
+    });
+  } else {
+    lines.push(`\n[SUNDAY CHECK-INS]: None in this period`);
+  }
+
+  // ── ALL DAILY CHECK-INS (every row) ──────────────────────────────────────────
+  if (rd.daily_checkins.length) {
+    lines.push(`\n[ALL DAILY CHECK-INS — ${rd.daily_checkins.length} days]`);
+    if (detailed) {
+      rd.daily_checkins.forEach(d => {
+        lines.push(`  ${d.checkin_date} | Steps: ${d.steps ?? '-'} | Water: ${d.water_ml ?? '-'}ml | Protein: ${d.protein_g ?? '-'}g | Sleep: ${d.sleep_hours ?? '-'}hrs`);
+      });
+    } else {
+      // Standard: first + last 5 + summary
+      const show = [...rd.daily_checkins.slice(0, 3), ...(rd.daily_checkins.length > 6 ? ['...'] : []), ...rd.daily_checkins.slice(-3)];
+      show.forEach(d => {
+        if (d === '...') { lines.push(`  ... (${rd.daily_checkins.length - 6} more rows) ...`); return; }
+        lines.push(`  ${d.checkin_date} | Steps: ${d.steps ?? '-'} | Water: ${d.water_ml ?? '-'}ml | Protein: ${d.protein_g ?? '-'}g | Sleep: ${d.sleep_hours ?? '-'}hrs`);
+      });
+    }
+  } else {
+    lines.push(`\n[DAILY CHECK-INS]: None in this period`);
+  }
+
+  // ── ALL PROGRESS LOGS (every row) ────────────────────────────────────────────
+  if (rd.progress_logs.length) {
+    lines.push(`\n[ALL PROGRESS LOGS — ${rd.progress_logs.length} entries]`);
+    if (detailed) {
+      rd.progress_logs.forEach(p => {
+        const parts = [`  ${p.created_at?.slice(0, 10)}`];
+        if (n(p.weight)) parts.push(`Weight:${p.weight}kg`);
+        if (n(p.body_fat)) parts.push(`BF:${p.body_fat}%`);
+        if (n(p.calories_intake)) parts.push(`Cal:${p.calories_intake}kcal`);
+        if (n(p.protein_intake)) parts.push(`Prot:${p.protein_intake}g`);
+        if (p.workout_completed) parts.push(`Workout:${p.workout_type || 'yes'}`);
+        if (n(p.strength_bench)) parts.push(`Bench:${p.strength_bench}kg`);
+        if (n(p.strength_squat)) parts.push(`Squat:${p.strength_squat}kg`);
+        if (n(p.strength_deadlift)) parts.push(`DL:${p.strength_deadlift}kg`);
+        if (n(p.sleep_hours)) parts.push(`Sleep:${p.sleep_hours}h`);
+        if (n(p.water_intake)) parts.push(`Water:${p.water_intake}L`);
+        lines.push(parts.join(' | '));
+      });
+    } else {
+      const show = [...rd.progress_logs.slice(0, 3), ...(rd.progress_logs.length > 6 ? [null] : []), ...rd.progress_logs.slice(-3)];
+      show.forEach(p => {
+        if (!p) { lines.push(`  ... (${rd.progress_logs.length - 6} more entries) ...`); return; }
+        const parts = [`  ${p.created_at?.slice(0, 10)}`];
+        if (n(p.weight)) parts.push(`Weight:${p.weight}kg`);
+        if (n(p.calories_intake)) parts.push(`Cal:${p.calories_intake}kcal`);
+        if (n(p.protein_intake)) parts.push(`Prot:${p.protein_intake}g`);
+        if (n(p.strength_bench)) parts.push(`Bench:${p.strength_bench}kg`);
+        lines.push(parts.join(' | '));
+      });
+    }
+  } else {
+    lines.push(`\n[PROGRESS LOGS]: None in this period`);
+  }
+
+  // ── ALL WORKOUT LOGS (every session) ─────────────────────────────────────────
+  if (rd.workout_logs.length) {
+    lines.push(`\n[ALL WORKOUT SESSIONS — ${rd.workout_logs.length} sessions]`);
+    rd.workout_logs.forEach(w => {
+      const dur = w.duration_seconds ? `${Math.round(w.duration_seconds / 60)}min` : '-';
+      const fb = w.feedback ? ` | Feedback: ${w.feedback}` : '';
+      lines.push(`  ${w.created_at?.slice(0, 10)} | ${w.workout_name || 'unnamed'} | ${dur}${fb}`);
+    });
+  } else {
+    lines.push(`\n[WORKOUT SESSIONS]: None in this period`);
   }
 
   return lines.join('\n');
@@ -1404,12 +1660,14 @@ async function buildBusinessStats(queryAll) {
 // ─────────────────────────────────────────────────────────────────────────────
 function detectIntent(text) {
   const t = text.toLowerCase();
+  const wantsDetailed = /\b(detailed\s+report|monthly\s+report|full\s+detailed|complete\s+report|everything|full\s+report|in.?depth\s+report|deep\s+dive|deep\s+report|thorough\s+report|comprehensive\s+report)\b/.test(t);
   return {
     wantsLeaderboard: /\b(rank|ranking|leaderboard|most\s+compliant|best\s+performing|worst\s+performing|top\s+clients?|who\s+is\s+doing\s+best|compliance\s+rate)\b/.test(t),
     wantsBusiness: /\b(business|overview|overall\s+stats?|how\s+many|active\s+clients?|at.?risk|pending)\b/.test(t),
     wantsComparison: /\bcompare\b/.test(t),
     wantsProgramRec: /\b(which\s+program|what\s+program|recommend.*program|program.*recommend|best\s+program\s+for|suggest.*program|assign.*program)\b/.test(t),
-    wantsReport: /\b(full\s+report|report\s+for|how\s+is.*doing|give\s+me.*report)\b/.test(t),
+    wantsReport: /\b(full\s+report|report\s+for|how\s+is.*doing|give\s+me.*report|tell\s+me\s+about|show\s+me)\b/.test(t) || wantsDetailed,
+    wantsDetailed,
     wantsNutrition: /\b(nutrition|calories?|protein|eating|diet|food)\b/.test(t),
     wantsPlateau: /\b(stuck|plateau|stall|not\s+progress|no\s+results?|not\s+losing|not\s+gaining)\b/.test(t)
   };
@@ -1470,7 +1728,7 @@ async function enrichAdminAiContext(deps, userMessage, baseContext) {
 
   for (const uid of ids) {
     try {
-      const pack = await buildClientPack(deps, uid, dateRange);
+      const pack = await buildClientPack(deps, uid, dateRange, intent.wantsDetailed);
       if (pack) parts.push(formatPackAsText(pack));
     } catch (e) {
       parts.push(`\n--- CLIENT PACK ERROR (user ${uid}): ${e.message} ---`);

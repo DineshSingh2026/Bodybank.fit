@@ -2896,7 +2896,7 @@ function estimateAICost({ provider, inputTokens, outputTokens }) {
   };
 }
 
-async function callAnthropicChat(systemContentFull, userMessage) {
+async function callAnthropicChat(systemContentFull, userMessage, maxTokensOverride) {
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey || !apiKey.trim()) return null;
   const modelCandidates = Array.from(new Set([
@@ -2904,7 +2904,8 @@ async function callAnthropicChat(systemContentFull, userMessage) {
     'claude-sonnet-4-20250514'
   ].map((m) => String(m || '').trim()).filter(Boolean)));
   let lastErr = null;
-  const maxOut = Math.min(8192, Math.max(1024, parseInt(process.env.ADMIN_AI_MAX_OUTPUT_TOKENS || '8192', 10)));
+  const defaultMax = Math.max(1024, parseInt(process.env.ADMIN_AI_MAX_OUTPUT_TOKENS || '8192', 10));
+  const maxOut = maxTokensOverride || defaultMax;
 
   for (const model of modelCandidates) {
     const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2967,7 +2968,11 @@ async function callAIChat(baseContext, userMessage) {
     console.error('[admin ai-assist enrich]', enrichErr.message);
   }
   const systemFull = bodybankAiCoach.buildTrainerSystemContent(enriched);
-  return callAnthropicChat(systemFull, userMessage);
+  // Detailed/monthly reports can produce very long responses — allow up to 16 384 tokens
+  const msgLower = String(userMessage || '').toLowerCase();
+  const isDetailed = /\b(detailed\s+report|monthly\s+report|complete\s+report|everything|full\s+report|in.?depth|deep\s+report|thorough|comprehensive\s+report)\b/.test(msgLower);
+  const maxTokens = isDetailed ? 16384 : undefined;
+  return callAnthropicChat(systemFull, userMessage, maxTokens);
 }
 
 function parseMonthlyReportCommand(text) {
