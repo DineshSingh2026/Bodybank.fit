@@ -1661,6 +1661,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-notify-item.workout .n-title{color:var(--gold)}
 .admin-notify-item.campaign .n-title{color:var(--gold)}
 .admin-notify-item.checkin .n-title{color:#a8e6cf}
+.admin-notify-item.admin_daily_compliance .n-title{color:var(--gold)}
 .admin-notify-item.inactivity_attention .n-title{color:#f59e0b}
 .admin-notify-item.inactivity_attention:hover{background:rgba(245,158,11,0.06)}
 .admin-notify-footer{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--bdr);background:rgba(0,0,0,0.2);flex-shrink:0}
@@ -1906,6 +1907,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-table td{padding:14px 16px;font-size:14px;color:var(--creamd);border-bottom:1px solid rgba(255,255,255,0.04)}
 .admin-table tr:hover td{background:rgba(200,164,78,0.03)}
 .status-badge{padding:4px 10px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.status-yes{background:rgba(80,200,120,0.15);color:#50c878}
+.status-missed{background:rgba(255,80,80,0.12);color:#ff6b6b}
 .status-pending{background:rgba(255,180,50,0.15);color:#ffb432}
 .status-active{background:rgba(80,200,120,0.15);color:#50c878}
 .status-completed{background:rgba(100,149,237,0.15);color:#6495ed}
@@ -3788,6 +3791,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="admin-tab" data-tab="part2" onclick="switchTab('part2')">Part-2 Form</div>
       <div class="admin-tab sc-style" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin')">Sunday Check-in</div>
       <div class="admin-tab" data-tab="dailycheckin" onclick="switchTab('dailycheckin')">Daily Check-In</div>
+        <div class="admin-tab" data-tab="dailycompliance" onclick="switchTab('dailycompliance')">Daily Compliance</div>
       <div class="admin-tab" data-tab="clientprogress" onclick="switchTab('clientprogress')">Client Progress</div>
       <div class="admin-tab" data-tab="programs" onclick="switchTab('programs')">Programs</div>
       <div class="admin-tab" data-tab="insights" onclick="switchTab('insights')">Performance Insights</div>
@@ -3937,6 +3941,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="admin-qa-grid">
             <a class="admin-qa-btn" href="#" onclick="switchTab('signups');return false"><span class="admin-qa-icon">&#128100;</span>Sign-ups</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('sundaycheckin');return false"><span class="admin-qa-icon">&#128197;</span>Check-Ins</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('dailycompliance');return false"><span class="admin-qa-icon">📊</span>Daily Compliance</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('workouts');return false"><span class="admin-qa-icon">&#127939;</span>Workouts</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="admin-qa-icon">&#128209;</span>Audits</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('programs');return false"><span class="admin-qa-icon">&#127919;</span>Programs</a>
@@ -4249,6 +4254,56 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <thead><tr><th>Name</th><th>Email</th><th>Date</th><th style="text-align:right;width:100px">Actions</th></tr></thead>
         <tbody id="dailyCheckinBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
       </table></div>
+    </div>
+
+    <!-- TAB: Daily Compliance -->
+    <div class="admin-tab-content" id="tab-dailycompliance">
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;margin-bottom:16px">
+        <div style="flex:1;min-width:240px">
+          <h3 class="admin-subsection-title" style="margin:0 0 6px">Daily Compliance (12:00–12:00 IST)</h3>
+          <p class="form-hint" id="dailyComplianceWindowLabel" style="margin:0;opacity:.9">Loading…</p>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
+          <button type="button" class="form-submit" onclick="loadDailyCompliancePreview()">Refresh</button>
+          <button type="button" class="action-btn btn-view" id="dailyComplianceSendBtn" onclick="sendDailyComplianceNow()" style="padding:10px 16px">Send report now</button>
+        </div>
+      </div>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:18px">
+        <div class="admin-summary-card" style="flex:1;min-width:240px;min-height:84px">
+          <span class="admin-summary-lbl">Active Users</span>
+          <span class="admin-summary-num num-gold" id="dailyComplianceSumUsers">—</span>
+        </div>
+        <div class="admin-summary-card" style="flex:1;min-width:240px;min-height:84px">
+          <span class="admin-summary-lbl">Daily Check-in</span>
+          <span class="admin-summary-num num-green" id="dailyComplianceSumYes">—</span>
+          <div class="form-hint" style="margin-top:8px;color:var(--muted)">Missed: <span id="dailyComplianceSumMissed" style="color:#ff6b6b;font-weight:700">—</span></div>
+        </div>
+        <div class="admin-summary-card" style="flex:1;min-width:240px;min-height:84px">
+          <span class="admin-summary-lbl">Legend</span>
+          <div class="form-hint" style="margin-top:2px;color:var(--creamd);line-height:1.6">
+            <span class="status-badge status-yes">Yes</span> submitted in the report window<br>
+            <span class="status-badge status-missed">Missed</span> not submitted in the report window
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-table-wrap">
+        <table class="admin-table admin-list-table" style="table-layout:fixed">
+          <thead>
+            <tr>
+              <th style="width:28%">User Name</th>
+              <th style="width:18%;text-align:center">Daily</th>
+              <th style="width:18%;text-align:center">My Progress</th>
+              <th style="width:18%;text-align:center">Sunday Check-in</th>
+              <th style="width:18%;text-align:center">Workout Logged</th>
+            </tr>
+          </thead>
+          <tbody id="dailyComplianceBody">
+            <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <!-- TAB 6: Part-2 Form -->
@@ -6866,6 +6921,89 @@ async function viewDailyCheckin(id) {
   openModal('dailyCheckinViewModal');
 }
 
+function _bbComplianceStatusPill(v) {
+  const s = String(v || '').trim();
+  return s === 'Yes'
+    ? '<span class="status-badge status-yes">Yes</span>'
+    : '<span class="status-badge status-missed">Missed</span>';
+}
+
+async function loadDailyCompliancePreview() {
+  const tbody = document.getElementById('dailyComplianceBody');
+  if (!tbody) return;
+
+  const labelEl = document.getElementById('dailyComplianceWindowLabel');
+  const sumUsersEl = document.getElementById('dailyComplianceSumUsers');
+  const sumYesEl = document.getElementById('dailyComplianceSumYes');
+  const sumMissedEl = document.getElementById('dailyComplianceSumMissed');
+
+  if (labelEl) labelEl.textContent = 'Loading…';
+  if (sumUsersEl) sumUsersEl.textContent = '—';
+  if (sumYesEl) sumYesEl.textContent = '—';
+  if (sumMissedEl) sumMissedEl.textContent = '—';
+
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+
+  try {
+    const data = await apiCall('GET', '/api/admin/daily-compliance-preview');
+    if (data && data.error) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(data.error) + '</td></tr>';
+      return;
+    }
+
+    const rows = Array.isArray(data && data.rows) ? data.rows : [];
+    if (labelEl && data && data.window_label_ist) labelEl.textContent = data.window_label_ist;
+
+    if (sumUsersEl && data && data.summary) sumUsersEl.textContent = data.summary.totalUsers != null ? data.summary.totalUsers : '—';
+    if (sumYesEl && data && data.summary) sumYesEl.textContent = data.summary.dailyYes != null ? data.summary.dailyYes : '—';
+    if (sumMissedEl && data && data.summary) sumMissedEl.textContent = data.summary.dailyMissed != null ? data.summary.dailyMissed : '—';
+
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No active users found for this report window.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = rows.map(function(r) {
+      return `
+        <tr>
+          <td data-label="User Name">${escapeHtml(r.name || '-')}</td>
+          <td data-label="Daily" style="text-align:center">${_bbComplianceStatusPill(r.daily_status)}</td>
+          <td data-label="My Progress" style="text-align:center">${_bbComplianceStatusPill(r.progress_status)}</td>
+          <td data-label="Sunday Check-in" style="text-align:center">${_bbComplianceStatusPill(r.sunday_status)}</td>
+          <td data-label="Workout Logged" style="text-align:center">${_bbComplianceStatusPill(r.workout_status)}</td>
+        </tr>
+      `;
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050;padding:24px">Failed to load daily compliance preview.</td></tr>';
+  }
+}
+
+async function sendDailyComplianceNow() {
+  const btn = document.getElementById('dailyComplianceSendBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn._orig = btn._orig || btn.innerHTML;
+    btn.innerHTML = 'Sending…';
+  }
+  try {
+    const out = await apiCall('POST', '/api/admin/daily-compliance-send', {});
+    if (out && out.error) {
+      showPopup('Error', out.error, '', 'OK', null, 'error');
+      return;
+    }
+    showPopup('Report Sent', 'Email + PDF should arrive shortly in the admin inbox.', '', 'OK');
+    await loadDailyCompliancePreview();
+  } catch (e) {
+    showPopup('Error', 'Failed to send report. Try again.', '', 'OK', null, 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = btn._orig || 'Send report now';
+    }
+  }
+}
+
 async function loadTribe() {
   const data = await apiCall('GET', '/api/tribe');
   const grid = document.querySelector('.tribe-grid');
@@ -7686,8 +7824,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns' };
-var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', programs: 'programs', insights: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns' };
+var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -7808,6 +7946,7 @@ function switchTab(tab) {
   if (tab === 'signups') loadPendingSignups();
   if (tab === 'sundaycheckin') loadSundayCheckins();
   if (tab === 'dailycheckin') loadDailyCheckins();
+  if (tab === 'dailycompliance') loadDailyCompliancePreview();
   if (tab === 'tribe') loadTribe();
   if (tab === 'part2') loadPart2Submissions();
   if (tab === 'insights') loadPerformanceInsights();

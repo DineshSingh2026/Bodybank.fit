@@ -2324,6 +2324,30 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* ignore */ }
+
+      // Admin Daily Compliance report readiness (12:00–12:00 IST window)
+      // Logged when the scheduled email is sent; drives the admin bell notification.
+      try {
+        const compliance = await queryAll(
+          `SELECT report_key, sent_at, window_start, window_end
+           FROM admin_daily_report_log
+           WHERE sent_at >= NOW() - INTERVAL '6 hours'
+           ORDER BY sent_at DESC
+           LIMIT 5`
+        );
+        compliance.forEach(r => {
+          const ws = String(r.window_start || '').slice(0, 10);
+          const we = String(r.window_end || '').slice(0, 10);
+          notifications.push({
+            id: 'dailycompliance-' + String(r.report_key || ''),
+            type: 'admin_daily_compliance',
+            title: 'Daily Compliance Report Ready',
+            desc: 'Window ' + ws + ' → ' + we,
+            time: r.sent_at,
+            link: 'dailycompliance'
+          });
+        });
+      } catch (_) { /* ignore */ }
     } else {
       const thread = await queryOne('SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1', [req.user.id]);
       if (thread) {
