@@ -392,6 +392,36 @@ function emailProgressNudge(email, firstName) {
   });
 }
 
+// Attention escalation for inactive users (2d / 5d milestones)
+function emailInactiveAttention(email, firstName, severity, inactiveDays) {
+  fire(async () => {
+    const name = firstName || 'there';
+    const sev = severity === 'P0' ? 'P0' : 'P1'; // treat unknown as P1
+    const days = inactiveDays != null ? String(inactiveDays) : '';
+    const isP0 = sev === 'P0';
+    const title = isP0 ? 'Urgent attention — please check in today' : 'A gentle attention — log today';
+    const preheader = isP0 ? 'We haven’t seen your daily check-in.' : 'Your check-in is waiting.';
+    const lead = `Dear ${name},`;
+    const bodyHtml =
+      isP0
+        ? `<p style="margin:0 0 16px">We haven’t seen your daily check-in for ${days} days. This is your moment to reset the rhythm.</p>
+<p style="margin:0">Log steps, water, protein, and sleep — and your Lifestyle Manager can support you properly again.</p>`
+        : `<p style="margin:0 0 16px">We haven’t seen your daily check-in for ${days} days. Even one quick check-in helps us keep you aligned.</p>
+<p style="margin:0">When you’re ready, log your steps, water, protein, and sleep — it takes two minutes.</p>`;
+
+    const html = luxuryWrap({
+      title,
+      preheader,
+      lead,
+      bodyHtml,
+      ctaLabel: 'Log daily check-in',
+      ctaUrl: APP_BASE + '/'
+    });
+
+    await sendMail(email, 'Attention — your daily check-in is waiting', html);
+  });
+}
+
 function emailDailyDigest(email, firstName, lines) {
   fire(async () => {
     const name = firstName || 'there';
@@ -451,6 +481,7 @@ module.exports = {
   emailSundayReminderToday,
   emailDailyCheckinReminder,
   emailProgressNudge,
+  emailInactiveAttention,
   emailDailyDigest,
   emailWeeklyDigest
 };

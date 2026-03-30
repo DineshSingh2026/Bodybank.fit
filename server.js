@@ -508,6 +508,16 @@ async function initDB() {
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_inbox_user ON user_inbox(user_id, created_at DESC)`); } catch (e) { /* ignore */ }
 
+  // Attention alert email dedupe log for inactive users (milestone-based, keyed by last check-in date)
+  await pool.query(`CREATE TABLE IF NOT EXISTS attention_email_log (
+    user_id TEXT NOT NULL,
+    milestone_key TEXT NOT NULL, -- e.g. '2d' | '5d'
+    last_checkin_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY(user_id, milestone_key, last_checkin_date)
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_attention_email_log_user ON attention_email_log(user_id)`); } catch (e) { /* ignore */ }
+
   await pool.query(`CREATE TABLE IF NOT EXISTS marketing_contents (
     id SERIAL PRIMARY KEY,
     keywords TEXT,
@@ -1235,7 +1245,23 @@ app.put('/api/meetings/:id', async (req, res) => {
 
 // ============ TRIBE MEMBERS ============
 app.get('/api/tribe', async (req, res) => {
-  const rows = await queryAll("SELECT * FROM tribe_members WHERE status='active' ORDER BY phase DESC, start_date ASC");
+  // Add recent daily-check-in context so admin can surface inactive/high-risk clients.
+  // NOTE: tribe_members.email is joined to users.email for inactivity calculations.
+  const rows = await queryAll(`
+    SELECT
+      tm.*,
+      u.id AS user_id,
+      u.email AS user_email,
+      u.created_at AS user_created_at,
+      (SELECT MAX(dc.checkin_date)::text
+         FROM daily_checkins dc
+        WHERE dc.user_id = u.id
+      ) AS last_checkin_date
+    FROM tribe_members tm
+    LEFT JOIN users u ON LOWER(u.email) = LOWER(tm.email)
+    WHERE tm.status = 'active'
+    ORDER BY tm.phase DESC, tm.start_date ASC
+  `);
   res.json(rows);
 });
 
@@ -1621,7 +1647,30 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
       [req.user.id]
     );
     if (!rows || rows.length === 0) {
-      return res.json({ streak: 0, todaySaved: false, atRisk: false, secondsUntilMidnight: null, weekly: {}, days: [] });
+      const toDateStr = (val) => {
+        if (!val) return null;
+        if (val instanceof Date) return val.toISOString().slice(0, 10);
+        return String(val).slice(0, 10);
+      };
+      const today = toDateStr(new Date());
+      const u = await queryOne('SELECT created_at FROM users WHERE id = ?', [req.user.id]);
+      const createdAtDate = toDateStr(u && u.created_at ? u.created_at : null);
+      let inactiveDays = null;
+      if (createdAtDate) {
+        inactiveDays = Math.floor((new Date(today + 'T00:00:00Z') - new Date(createdAtDate + 'T00:00:00Z')) / (24 * 60 * 60 * 1000));
+        if (inactiveDays < 0) inactiveDays = 0;
+      }
+      const inactiveSeverity = inactiveDays != null && inactiveDays >= 5 ? 'P0' : (inactiveDays != null && inactiveDays >= 2 ? 'P1' : null);
+      return res.json({
+        streak: 0,
+        todaySaved: false,
+        atRisk: false,
+        secondsUntilMidnight: null,
+        weekly: {},
+        days: [],
+        inactiveDays,
+        inactiveSeverity
+      });
     }
     const toDateStr = (val) => {
       if (!val) return null;
@@ -1631,6 +1680,14 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
     const today = toDateStr(new Date());
     const dates = new Set(rows.map(r => toDateStr(r.checkin_date)).filter(Boolean));
     const todaySaved = dates.has(today);
+    const lastCheckinDate = rows[0] ? toDateStr(rows[0].checkin_date) : null;
+    let inactiveDays = todaySaved ? 0 : (lastCheckinDate
+      ? Math.floor((new Date(today + 'T00:00:00Z') - new Date(lastCheckinDate + 'T00:00:00Z')) / (24 * 60 * 60 * 1000))
+      : null);
+    if (inactiveDays != null && inactiveDays < 0) inactiveDays = 0;
+    const inactiveSeverity = (!todaySaved && inactiveDays != null && inactiveDays >= 5)
+      ? 'P0'
+      : (!todaySaved && inactiveDays != null && inactiveDays >= 2 ? 'P1' : null);
     let streak = 0;
     const d = new Date();
     if (!todaySaved) d.setDate(d.getDate() - 1);
@@ -1657,6 +1714,8 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
       todaySaved: !!todaySaved,
       atRisk: !!atRisk,
       secondsUntilMidnight: atRisk ? secondsUntilMidnight : null,
+      inactiveDays,
+      inactiveSeverity,
       weekly: { avgSteps, avgWater, avgProtein, avgSleep },
       days: rows
     });
@@ -2072,7 +2131,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           title: 'Message from ' + name,
           desc: preview,
           time: m.created_at,
-          link: 'messages-meetings'
+            link: 'messages'
         });
       });
       const tribe = await queryAll("SELECT id, first_name, last_name, created_at FROM tribe_members WHERE status='active' ORDER BY created_at DESC LIMIT 10");
@@ -2289,11 +2348,11 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
         inboxMsgs.forEach(m => {
           notifications.push({
             id: 'inbox-' + m.id,
-            type: 'campaign',
+            type: m.type || 'campaign',
             title: m.title || 'BodyBank',
             desc: (m.body || '').substring(0, 120),
             time: m.created_at,
-            link: null
+            link: m.type === 'inactivity_attention' ? 'checkin' : null
           });
         });
       } catch (_) { /* non-critical */ }
@@ -2998,7 +3057,7 @@ async function callAnthropicChat(systemContentFull, userMessage, maxTokensOverri
   throw lastErr || new Error('Anthropic: all model attempts failed');
 }
 
-/** Claude Sonnet-only provider for Admin AI Assist (BodyBank coach prompt + enriched client/program context). */
+/** Claude Sonnet-only provider for Admin AI Assist (BodyBank Lifestyle Manager prompt + enriched client/program context). */
 async function callAIChat(baseContext, userMessage) {
   let enriched = baseContext || '';
   try {

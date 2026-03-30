@@ -1,7 +1,7 @@
 {
   "name": "Body Bank",
   "short_name": "Body Bank",
-  "description": "Build real, sustainable transformation with personalized fitness and nutrition coaching",
+  "description": "Build real, sustainable transformation with personalized fitness and nutrition guidance",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

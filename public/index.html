@@ -983,6 +983,8 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-notify-item.workout .n-title{color:var(--gold)}
 .admin-notify-item.campaign .n-title{color:var(--gold)}
 .admin-notify-item.checkin .n-title{color:#a8e6cf}
+.admin-notify-item.inactivity_attention .n-title{color:#f59e0b}
+.admin-notify-item.inactivity_attention:hover{background:rgba(245,158,11,0.06)}
 .admin-notify-footer{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap;padding:12px 16px;border-top:1px solid var(--bdr);background:rgba(0,0,0,0.2);flex-shrink:0}
 .admin-notify-clear{padding:8px 18px;border:1px solid var(--bdr);border-radius:6px;background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .2s}
 .admin-notify-clear:hover:not(:disabled){background:rgba(200,164,78,0.1);color:var(--gold);border-color:var(--gold)}
@@ -2596,6 +2598,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
               <span class="text">Save today&apos;s check-in to keep your streak!</span>
               <span class="streak-timer" id="streakTimerCountdown"></span>
             </div>
+            <div class="streak-at-risk-banner" id="inactivityAtRiskBanner" style="display:none">
+              <span class="icon" aria-hidden="true">⏳</span>
+              <span class="text" id="inactivityAtRiskText">We haven&apos;t seen your daily check-in yet.</span>
+              <button type="button" class="form-submit" id="inactivityAtRiskBtn" onclick="switchUserTab('checkin')" style="padding:8px 14px;margin:0 0 0 auto">Log daily check-in</button>
+            </div>
             <h3>Daily check-in <span class="streak-badge" id="microStreakBadge">0 day streak</span></h3>
             <div class="streak-timer" id="microStreakTimer" style="display:none"><span class="streak-timer-icon">⏱</span><span id="microStreakTimerText"></span></div>
             <form id="microGoalsForm" onsubmit="submitMicroGoals();return false">
@@ -3040,7 +3047,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="admin-tab" data-tab="signups" onclick="switchTab('signups')">Pending Sign-ups</div>
       <div class="admin-tab" data-tab="tribe" onclick="switchTab('tribe')">Tribe</div>
       <div class="admin-tab" data-tab="workouts" onclick="switchTab('workouts')">Workouts</div>
-      <div class="admin-tab" data-tab="messages-meetings" onclick="switchTab('messages-meetings')">Messages &amp; Meetings</div>
+      <div class="admin-tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
+      <div class="admin-tab" data-tab="meetings" onclick="switchTab('meetings')">Meetings</div>
       <div class="admin-tab" data-tab="part2" onclick="switchTab('part2')">Part-2 Form</div>
       <div class="admin-tab sc-style" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin')">Sunday Check-in</div>
       <div class="admin-tab" data-tab="dailycheckin" onclick="switchTab('dailycheckin')">Daily Check-In</div>
@@ -3186,7 +3194,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="admin-summary-card" onclick="switchTab('clientprogress');return false" role="button" tabindex="0" aria-label="Open Client Progress"><span class="admin-summary-lbl">MEMBERS</span><span class="admin-summary-num num-gold" id="dashMembers">24</span></div>
           <div class="admin-summary-card" onclick="switchTab('dailycheckin');return false" role="button" tabindex="0" aria-label="Open Daily Check-In"><span class="admin-summary-lbl">DAILY CHECK-IN</span><span class="admin-summary-num num-green" id="dashCheckins">18</span></div>
           <div class="admin-summary-card" onclick="switchTab('signups');return false" role="button" tabindex="0" aria-label="Open Pending Sign-ups"><span class="admin-summary-lbl">PENDING</span><span class="admin-summary-num num-orange" id="dashPending">3</span></div>
-          <div class="admin-summary-card" onclick="switchTab('messages-meetings');return false" role="button" tabindex="0" aria-label="Open Messages &amp; Meetings"><span class="admin-summary-lbl">MESSAGES</span><span class="admin-summary-num num-pink" id="dashMessages">2</span></div>
+          <div class="admin-summary-card" onclick="switchTab('messages');return false" role="button" tabindex="0" aria-label="Open Messages"><span class="admin-summary-lbl">MESSAGES</span><span class="admin-summary-num num-pink" id="dashMessages">2</span></div>
         </div>
         <div class="admin-quick-access">
           <h3 class="admin-qa-title">QUICK ACCESS</h3>
@@ -3306,10 +3314,15 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="admin-section-page">
         <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
         <div class="admin-section-cards">
-          <a class="admin-section-card" href="#" onclick="switchTab('messages-meetings');return false">
+          <a class="admin-section-card" href="#" onclick="switchTab('messages');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128172;</span>
-            <span class="admin-section-card-title">Messages &amp; Meetings</span>
-            <span class="admin-section-card-desc">Contact messages and meeting requests</span>
+            <span class="admin-section-card-title">Messages</span>
+            <span class="admin-section-card-desc">Contact messages and chat</span>
+          </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('meetings');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">&#128197;</span>
+            <span class="admin-section-card-title">Meetings</span>
+            <span class="admin-section-card-desc">Schedule calls and view requests</span>
           </a>
         </div>
       </div>
@@ -3401,8 +3414,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
     </div>
 
-    <!-- TAB: Messages & Meetings (minimal: Chat + Meetings) -->
-    <div class="admin-tab-content" id="tab-messages-meetings">
+    <!-- TAB: Messages (Contact messages + Chat) -->
+    <div class="admin-tab-content" id="tab-messages">
       <!-- 0. One-off contact messages (Contact Us form) -->
       <div class="admin-subsection-wrap">
         <h3 class="admin-subsection-title">Contact messages</h3>
@@ -3418,7 +3431,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <p class="form-hint" style="margin-bottom:12px">Click a client to view messages and reply.</p>
         <div id="adminThreadsList" class="admin-chat-list" style="max-width:520px"><p class="form-hint" style="padding:24px;margin:0">Loading…</p></div>
       </div>
-      <!-- 2. Meetings (user + admin scheduled) -->
+    </div>
+
+    <!-- TAB: Meetings (Schedule calls + meeting requests) -->
+    <div class="admin-tab-content" id="tab-meetings">
+      <!-- 0. Meetings (user + admin scheduled) -->
       <div class="admin-subsection-wrap">
         <h3 class="admin-subsection-title">Meetings</h3>
         <p class="form-hint" style="margin-bottom:12px">Schedule a call or view upcoming meetings.</p>
@@ -3704,7 +3721,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <button type="button" class="admin-ai-assist-close" onclick="closeAdminAiAssistPanel()" aria-label="Close">&times;</button>
       </div>
       <div class="admin-ai-assist-welcome" id="adminAiAssistWelcome">
-        <p>Elite coaching intelligence on your live BodyBank data. Click a prompt below or type your question.</p>
+        <p>Elite Lifestyle Manager intelligence on your live BodyBank data. Click a prompt below or type your question.</p>
       </div>
 
       <!-- Quick Prompt Chips -->
@@ -5370,7 +5387,33 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
   }
 
   // Client monitoring table (latest 8 tribe members)
-  members.sort(function(a, b) { return new Date(b.start_date || b.created_at || 0) - new Date(a.start_date || a.created_at || 0); });
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var todayDt = new Date(todayStr + 'T00:00:00Z');
+  function inactiveDaysFor(m) {
+    var last = m.last_checkin_date ? String(m.last_checkin_date).slice(0, 10) : '';
+    if (last) return Math.floor((todayDt - new Date(last + 'T00:00:00Z')) / (24 * 60 * 60 * 1000));
+    var created = m.user_created_at || m.start_date || m.created_at || null;
+    if (!created) return null;
+    var cd = String(created).slice(0, 10);
+    return Math.floor((todayDt - new Date(cd + 'T00:00:00Z')) / (24 * 60 * 60 * 1000));
+  }
+  function attentionPriority(m) {
+    var d = inactiveDaysFor(m);
+    if (d == null) return 2; // unknown / on track
+    if (d >= 5) return 0; // P0 High risk
+    if (d >= 2) return 1; // P1 Attention
+    return 2;
+  }
+  members.sort(function(a, b) {
+    var pa = attentionPriority(a);
+    var pb = attentionPriority(b);
+    if (pa !== pb) return pa - pb;
+    var da = inactiveDaysFor(a);
+    var db = inactiveDaysFor(b);
+    da = (da == null ? 0 : da);
+    db = (db == null ? 0 : db);
+    return db - da; // more inactive first within the same priority
+  });
   members = members.slice(0, 8);
   if (!members.length) {
     bbSetHtml('client-table-body', '<tr><td colspan="5" style="color:var(--bb-muted);text-align:center;padding:20px">No tribe members yet.</td></tr>');
@@ -5384,11 +5427,14 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
     var status = statusRaw ? statusRaw : 'active';
     var started = bbFmtShortDate(m.start_date || m.created_at);
     var apw = m.activity_per_week != null ? String(m.activity_per_week) + '/wk' : '—';
-
-    var risk = (status === 'inactive' || status === 'pending') ? 'High' : (status === 'completed' ? 'Low' : 'Medium');
-    var riskClass = (risk === 'High') ? 'high' : (risk === 'Low' ? 'low' : 'medium');
     var progress = (status === 'completed') ? 'Improving' : (status === 'inactive' ? 'Inactive' : (status === 'pending' ? 'At Risk' : 'Stalled'));
     var progClass = (progress === 'Improving') ? 'improving' : (progress === 'Inactive' ? 'inactive' : (progress === 'At Risk' ? 'at-risk' : 'stalled'));
+
+    // Attention based on daily check-in inactivity (P1 >= 2d, P0 >= 5d)
+    var idleDays = inactiveDaysFor(m);
+    var sevLabel = (idleDays != null && idleDays >= 5) ? 'P0 High' : (idleDays != null && idleDays >= 2 ? 'P1 Attention' : null);
+    var sevClass = (sevLabel ? (idleDays >= 5 ? 'high' : 'at-risk') : (status === 'completed' ? 'low' : 'medium'));
+    var rightLabel = sevLabel || apw;
 
     return (
       '<tr>' +
@@ -5396,7 +5442,7 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
         '<td>' + escapeHtml(phase) + '</td>' +
         '<td><span class="bb-pill ' + progClass + '">' + escapeHtml(status) + '</span></td>' +
         '<td>' + escapeHtml(started) + '</td>' +
-        '<td><span class="bb-pill ' + riskClass + '">' + escapeHtml(apw) + '</span></td>' +
+        '<td><span class="bb-pill ' + sevClass + '">' + escapeHtml(rightLabel) + '</span></td>' +
       '</tr>'
     );
   }).join('');
@@ -6572,8 +6618,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns' };
-var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', programs: 'programs', insights: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns' };
+var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', programs: 'programs', insights: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -6648,7 +6694,8 @@ function switchToSection(section) {
   window.scrollTo(0, 0);
 }
 function switchTab(tab) {
-  if (tab === 'messages' || tab === 'meetings') tab = 'messages-meetings';
+  // Backward compatibility: older links used the combined tab name.
+  if (tab === 'messages-meetings') tab = 'messages';
   var section = TAB_TO_SECTION[tab] || 'dashboard';
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.admin-nav-link').forEach(a => a.classList.remove('active'));
@@ -6686,7 +6733,8 @@ function switchTab(tab) {
   var adminWrap = document.querySelector('.admin-tab-content-wrap');
   if (adminWrap) adminWrap.scrollTop = 0;
   window.scrollTo(0, 0);
-  if (tab === 'messages-meetings') { loadAdminMessages(); loadAdminMeetings(); loadAdminThreads(); loadMeetingUserDropdown(); }
+  if (tab === 'messages') { loadAdminMessages(); loadAdminThreads(); }
+  if (tab === 'meetings') { loadAdminMeetings(); loadMeetingUserDropdown(); }
   if (tab === 'workouts') loadAdminWorkouts();
   if (tab === 'requests') loadRequests();
   if (tab === 'signups') loadPendingSignups();
@@ -7754,6 +7802,25 @@ async function loadMicroGoals() {
       if (el = document.getElementById('recapProtein')) el.textContent = w.avgProtein != null ? w.avgProtein : '—';
       if (el = document.getElementById('recapSleep')) el.textContent = w.avgSleep != null ? w.avgSleep : '—';
     }
+
+    // Inactivity attention banner (2d and 5d escalation)
+    try {
+      var inactBanner = document.getElementById('inactivityAtRiskBanner');
+      var inactText = document.getElementById('inactivityAtRiskText');
+      if (inactBanner) {
+        var inDays = (streak && streak.inactiveDays != null) ? Number(streak.inactiveDays) : null;
+        var sev = streak && streak.inactiveSeverity ? String(streak.inactiveSeverity) : null; // 'P0' | 'P1'
+        var show = !alreadyFilled && !!sev && inDays != null;
+        if (show) {
+          var prefix = sev === 'P0' ? 'High risk' : 'Attention';
+          if (inactText) inactText.textContent = 'We haven\u2019t seen your daily check-in for ' + inDays + ' days. ' + prefix + \u2014 log today.';
+          inactBanner.style.display = 'flex';
+        } else {
+          inactBanner.style.display = 'none';
+        }
+      }
+    } catch (_) {}
+
     checkUserPushStatus();
   } catch (e) {}
 }

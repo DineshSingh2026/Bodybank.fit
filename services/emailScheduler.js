@@ -83,6 +83,56 @@ async function runProgressNudge() {
   }
 }
 
+/** Daily 21:15 IST — attention escalation for inactive users (2d / 5d milestones) */
+async function runInactiveAttentionEscalation() {
+  if (!userEmail.isConfigured()) return;
+
+  const today = todayUtcDateString();
+  const todayDt = new Date(today + 'T00:00:00Z');
+  const users = await getApprovedUsersWithEmail();
+
+  for (const u of users) {
+    const rows = await _queryAll(
+      `SELECT
+        COALESCE(
+          (SELECT MAX(dc.checkin_date)::date FROM daily_checkins dc WHERE dc.user_id = ?),
+          (SELECT created_at::date FROM users u2 WHERE u2.id = ?)
+        ) AS last_date`,
+      [u.id, u.id]
+    );
+
+    if (!rows || !rows.length || !rows[0].last_date) continue;
+    const lastDate = String(rows[0].last_date).slice(0, 10);
+    const inactiveDays = Math.floor((todayDt - new Date(lastDate + 'T00:00:00Z')) / (24 * 60 * 60 * 1000));
+    if (inactiveDays < 2) continue;
+
+    const milestoneKey = inactiveDays >= 5 ? '5d' : '2d';
+    const severity = inactiveDays >= 5 ? 'P0' : 'P1';
+
+    const exists = await _queryAll(
+      'SELECT 1 FROM attention_email_log WHERE user_id = ? AND milestone_key = ? AND last_checkin_date = ? LIMIT 1',
+      [u.id, milestoneKey, lastDate]
+    );
+    if (exists && exists.length) continue;
+
+    await _queryAll(
+      'INSERT INTO attention_email_log (user_id, milestone_key, last_checkin_date) VALUES (?, ?, ?) ON CONFLICT DO NOTHING',
+      [u.id, milestoneKey, lastDate]
+    );
+
+    const inboxId = 'inact-' + milestoneKey + '-' + u.id + '-' + lastDate;
+    const title = severity === 'P0' ? 'High attention — check-in needed' : 'Attention — daily check-in waiting';
+    const body = 'We haven’t seen your daily check-in for ' + inactiveDays + ' days. Tap to log today and keep your momentum going.';
+
+    await _queryAll(
+      'INSERT INTO user_inbox (id, user_id, title, body, type, is_read, created_at) VALUES (?, ?, ?, ?, ?, FALSE, NOW()) ON CONFLICT DO NOTHING',
+      [inboxId, u.id, title, body, 'inactivity_attention']
+    );
+
+    userEmail.emailInactiveAttention(u.email, u.first_name || '', severity, inactiveDays);
+  }
+}
+
 /** Daily 07:30 IST — brief for yesterday’s check-in */
 async function runDailyDigest() {
   if (!userEmail.isConfigured()) return;
@@ -150,6 +200,7 @@ function startEmailScheduler({ queryAll }) {
   _jobs.push(cron.schedule('0 18 * * 6', wrap(runSaturdaySundayPrep), { timezone: TZ }));
   _jobs.push(cron.schedule('30 9 * * 0', wrap(runSundayMorningReminder), { timezone: TZ }));
   _jobs.push(cron.schedule('0 20 * * *', wrap(runDailyCheckinReminder), { timezone: TZ }));
+  _jobs.push(cron.schedule('15 21 * * *', wrap(runInactiveAttentionEscalation), { timezone: TZ }));
   _jobs.push(cron.schedule('30 7 * * *', wrap(runDailyDigest), { timezone: TZ }));
   _jobs.push(cron.schedule('0 8 * * 1', wrap(runWeeklyDigest), { timezone: TZ }));
   _jobs.push(cron.schedule('0 10 * * 1', wrap(runProgressNudge), { timezone: TZ }));

@@ -169,7 +169,7 @@ function drawCoachNoteBar(doc, noteText) {
   const y = doc.y;
   doc.roundedRect(x, y, w, 32, 8).fill(C.noteBg);
   doc.roundedRect(x, y, w, 32, 8).lineWidth(1.2).strokeColor(C.gold).stroke();
-  doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('COACH DESK', x + 12, y + 9);
+  doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('LIFESTYLE MANAGER DESK', x + 12, y + 9);
   doc.fillColor(C.text).font(F(doc, 'body')).fontSize(8.8).text(noteText, x + 12, y + 19, { width: w - 24 });
   doc.y = y + 40;
 }
@@ -274,7 +274,7 @@ function writePart2Pdf({ outputPath, record, logoPath }) {
     fieldCard(doc, 'What compelled you', record.what_compelled);
 
     doc.moveDown(0.2);
-    drawCoachNoteBar(doc, 'This intake should inform the next 30-day intervention plan and coaching priorities.');
+    drawCoachNoteBar(doc, 'This intake should inform the next 30-day intervention plan and Lifestyle Manager priorities.');
 
     drawFooterLuxury(doc);
     doc.end();

@@ -192,7 +192,7 @@ function buildCoachLetter(userName, summary, prevSummary, strategic) {
   const open = `${name}, this dossier captures how you executed against the BodyBank standard during the reporting window. `;
   let body = '';
   if (summary.dailyCount >= 12) {
-    body += 'Daily telemetry is strong — that level of visibility is what separates guesswork from precision coaching. ';
+    body += 'Daily telemetry is strong — that level of visibility is what separates guesswork from precision guidance. ';
   } else if (summary.dailyCount === 0) {
     body += 'We are flying with limited daily telemetry; the priority is not perfection — it is predictable touchpoints. ';
   } else {
@@ -793,7 +793,7 @@ function generateMonthlyClientReport(opts) {
     const letter = buildCoachLetter(user.name || user.email || 'Client', reportSummary, prevSummary, strategic);
 
     const letterY = chartY + chartH + gap + 8;
-    sectionTitle(doc, 'Coach executive note', letterY - 14, contentW, margin);
+    sectionTitle(doc, 'Lifestyle Manager executive note', letterY - 14, contentW, margin);
     const letterPadX = 16;
     const letterTextW = contentW - letterPadX * 2;
     doc.font(F(doc, 'body')).fontSize(9);
