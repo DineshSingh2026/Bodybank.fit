@@ -937,25 +937,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .bb-sc-trend{ font-size:12px; color:var(--muted); margin-top:4px; min-height:16px; }
 .bb-sc-trend.up{ color:#6ee7b7; }
 .bb-sc-trend.down{ color:#f87171; }
-.bb-sc-tier{
-  margin-top:10px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  padding:7px 12px;
-  border-radius:999px;
-  font-size:10px;
-  font-weight:900;
-  letter-spacing:1.4px;
-  text-transform:uppercase;
-  border:1px solid rgba(200,164,78,0.30);
-  background:rgba(200,164,78,0.10);
-  color:var(--gold);
-}
-.bb-sc-tier--needs{ border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.10); color:#ffb4b4; }
-.bb-sc-tier--building{ border-color:rgba(245,158,11,0.35); background:rgba(245,158,11,0.10); color:#ffd19a; }
-.bb-sc-tier--strong{ border-color:rgba(110,231,183,0.35); background:rgba(110,231,183,0.10); color:#b7f6d6; }
-.bb-sc-tier--elite{ border-color:rgba(200,164,78,0.55); background:rgba(200,164,78,0.14); color:var(--gold); }
 .bb-sc-weighted-wrap{
   margin-top:12px;
   position:relative;
@@ -3215,7 +3196,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
                 <div class="bb-sc-week" id="bbScoreWeekDesktop">—</div>
                 <div class="bb-sc-prog" id="bbScoreProgLineDesktop">—</div>
                 <div class="bb-sc-trend" id="bbScoreTrendDesktop"></div>
-                <div class="bb-sc-tier" id="bbScoreTierDesktop">—</div>
               </div>
             </div>
             <div class="bb-sc-weighted-wrap" id="bbScoreWeightedWrapDesktop">
@@ -3317,7 +3297,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
                 <div class="bb-sc-week" id="bbScoreWeekMobile">—</div>
                 <div class="bb-sc-prog" id="bbScoreProgLineMobile">—</div>
                 <div class="bb-sc-trend" id="bbScoreTrendMobile"></div>
-                <div class="bb-sc-tier" id="bbScoreTierMobile">—</div>
               </div>
             </div>
             <div class="bb-sc-weighted-wrap" id="bbScoreWeightedWrapMobile">
@@ -9205,21 +9184,11 @@ function renderScorecardEmpty(err) {
     if (pl) pl.textContent = '';
     var tr = document.getElementById('bbScoreTrend' + suf);
     if (tr) tr.textContent = '';
-    var tier = document.getElementById('bbScoreTier' + suf);
-    if (tier) { tier.textContent = '—'; tier.className = 'bb-sc-tier'; }
     var wb = document.getElementById('bbScoreWeightedBar' + suf);
     if (wb) wb.innerHTML = '';
     var wl = document.getElementById('bbScoreWeightedLegend' + suf);
     if (wl) wl.innerHTML = '';
   });
-}
-
-function bbScoreTierMeta(score) {
-  var s = Number(score) || 0;
-  if (s >= 85) return { label: 'Elite', cls: 'bb-sc-tier--elite' };
-  if (s >= 70) return { label: 'Strong', cls: 'bb-sc-tier--strong' };
-  if (s >= 40) return { label: 'Building', cls: 'bb-sc-tier--building' };
-  return { label: 'Needs Attention', cls: 'bb-sc-tier--needs' };
 }
 
 function renderWeightedBar(suf, d) {
@@ -9254,7 +9223,6 @@ function renderScorecard(d) {
   var suffixes = ['Mobile', 'Desktop'];
   var total = d.total != null ? Math.round(Number(d.total)) : 0;
   var prog = d.program_name || 'Your program';
-  var tierMeta = bbScoreTierMeta(total);
   suffixes.forEach(function (suf) {
     var valEl = document.getElementById('bbScoreVal' + suf);
     if (valEl) valEl.textContent = String(total);
@@ -9273,11 +9241,6 @@ function renderScorecard(d) {
         tr.textContent = '';
         tr.className = 'bb-sc-trend';
       }
-    }
-    var tierEl = document.getElementById('bbScoreTier' + suf);
-    if (tierEl) {
-      tierEl.textContent = tierMeta.label;
-      tierEl.className = 'bb-sc-tier ' + tierMeta.cls;
     }
     renderWeightedBar(suf, d);
     var pillars = document.getElementById('bbScorePillars' + suf);
