@@ -1131,7 +1131,26 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     flex:0 0 auto;
   }
 }
-.bb-lb-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+.bb-lb-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+.bb-lb-modes{ display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.bb-lb-modes button{
+  font-family:inherit; font-size:11px; letter-spacing:0.12em; text-transform:uppercase;
+  padding:8px 14px; border-radius:999px; border:1px solid rgba(255,255,255,0.12);
+  background:rgba(0,0,0,0.2); color:var(--muted); cursor:pointer; transition:border-color .2s,color .2s;
+}
+.bb-lb-modes button.is-active{ border-color:rgba(200,164,78,0.5); color:var(--gold); background:rgba(200,164,78,0.08); }
+.bb-sc-lb-row{ display:flex; flex-direction:column; align-items:flex-start; gap:8px; margin-top:12px; }
+.bb-sc-lb-pill{
+  font-size:12px; line-height:1.35; color:var(--cream);
+  padding:8px 12px; border-radius:10px; border:1px solid rgba(200,164,78,0.15);
+  background:rgba(200,164,78,0.05); max-width:100%;
+}
+.bb-sc-lb-pill--bb{ border-color:rgba(200,164,78,0.22); background:rgba(200,164,78,0.07); }
+.bb-sc-lb-muted{ font-size:12px; color:var(--muted); line-height:1.4; }
+.bb-sc-lb-settings{
+  font:inherit; font-size:11px; letter-spacing:0.08em; text-transform:uppercase;
+  background:none; border:none; color:rgba(200,164,78,0.85); cursor:pointer; padding:0; text-decoration:underline; text-underline-offset:3px;
+}
 .bb-lb-weeks{ display:flex; gap:8px; flex-wrap:wrap; }
 .bb-lb-weeks button{
   border-radius:8px; padding:6px 12px; font-size:11px; font-weight:700;
@@ -4764,15 +4783,19 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 <div class="modal-overlay" id="leaderboardOptInModal" onclick="if(event.target===this)closeModal('leaderboardOptInModal')">
   <div class="modal login-modal modal-with-scroll" style="max-width:440px">
     <button class="modal-close" onclick="closeModal('leaderboardOptInModal')" type="button">&times;</button>
-    <h2 style="margin-top:0">Program leaderboard</h2>
-    <p class="form-hint" style="margin-bottom:14px">Opt in to see your rank among members on the same assigned program. You can use a display name instead of your real name.</p>
+    <h2 style="margin-top:0">Leaderboard visibility</h2>
+    <p class="form-hint" style="margin-bottom:14px;line-height:1.45">Choose where you appear. Your weekly score still uses your program blend; BodyBank ranks everyone with one standard mix so all programs are comparable.</p>
     <div class="form-group">
       <label for="leaderboardDisplayName">Display name (optional)</label>
       <input type="text" class="form-input" id="leaderboardDisplayName" maxlength="80" placeholder="e.g. A.K. or Coach nickname" autocomplete="nickname">
     </div>
-    <label style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--cream);margin-bottom:16px;cursor:pointer">
-      <input type="checkbox" id="leaderboardOptInCheck" checked style="margin-top:4px">
-      <span>Yes, show me on the weekly leaderboard for my program cohort.</span>
+    <label style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--cream);margin-bottom:12px;cursor:pointer">
+      <input type="checkbox" id="leaderboardPubProgram" checked style="margin-top:4px">
+      <span><strong style="color:var(--cream)">Program cohort</strong> — same assigned program as you</span>
+    </label>
+    <label style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--cream);margin-bottom:18px;cursor:pointer">
+      <input type="checkbox" id="leaderboardPubGlobal" style="margin-top:4px">
+      <span><strong style="color:var(--cream)">BodyBank</strong> — all members who opt in (standard weekly score)</span>
     </label>
     <button type="button" class="form-submit" id="leaderboardOptInSubmit" onclick="submitLeaderboardOptIn()">Save</button>
   </div>
@@ -4787,9 +4810,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <button type="button" id="lbWeekPrev" onclick="loadScorecardLeaderboardModal('prev')">Last week</button>
       </div>
     </div>
+    <div class="bb-lb-modes">
+      <button type="button" id="lbModeProgram" class="is-active" onclick="bbSetLeaderboardBoardTab('program')">Program cohort</button>
+      <button type="button" id="lbModeDedication" onclick="bbSetLeaderboardBoardTab('dedication')">BodyBank</button>
+    </div>
     <p class="form-hint" id="scorecardLbSubtitle" style="margin-bottom:12px">—</p>
     <div id="scorecardLbBody" style="max-height:52vh;overflow:auto">Loading…</div>
-    <button type="button" class="form-submit" onclick="closeModal('scorecardLeaderboardModal')" style="margin-top:16px">Close</button>
+    <button type="button" class="form-submit" onclick="openLeaderboardOptInModal();closeModal('scorecardLeaderboardModal')" style="margin-top:14px;background:transparent;border:1px solid rgba(200,164,78,0.35);color:var(--cream);font-weight:600">Visibility settings</button>
+    <button type="button" class="form-submit" onclick="closeModal('scorecardLeaderboardModal')" style="margin-top:10px">Close</button>
   </div>
 </div>
 
@@ -9107,6 +9135,7 @@ async function loadTodayDashboard() {
 
 window._bbScorecardCache = null;
 window._bbLeaderboardWeekMode = 'this';
+window._bbLeaderboardBoardTab = 'program';
 
 async function loadScorecard() {
   if (!window.currentUser || !window.currentUser.token) return;
@@ -9219,16 +9248,25 @@ function renderScorecard(d) {
     var lb = document.getElementById('bbScoreLbRow' + suf);
     var inv = document.getElementById('bbScoreInvite' + suf);
     var btn = document.getElementById('bbScoreLeaderboardBtn' + suf);
-    if (d.opted_in && d.leaderboard_rank != null && d.cohort_size != null && d.cohort_size > 0) {
-      if (lb) lb.innerHTML = '<strong>#' + d.leaderboard_rank + '</strong> of ' + d.cohort_size + ' in your program cohort';
-      if (inv) inv.style.display = 'none';
-      if (btn) { btn.style.display = ''; btn.textContent = 'View leaderboard'; }
-    } else if (d.opted_in) {
-      if (lb) lb.innerHTML = 'Leaderboard: <span style="color:var(--muted)">Build the cohort \u2014 invite stays private until others opt in.</span>';
+    var lines = [];
+    if (d.opted_in && d.public_program && d.leaderboard_rank != null && d.cohort_size != null && d.cohort_size > 0) {
+      lines.push('<span class="bb-sc-lb-pill"><strong>#' + d.leaderboard_rank + '</strong> of ' + d.cohort_size + ' · program cohort</span>');
+    } else if (d.opted_in && d.public_program) {
+      lines.push('<span class="bb-sc-lb-muted">Program cohort: <span style="color:var(--muted)">others will appear as they opt in.</span></span>');
+    }
+    if (d.opted_in && d.public_global && d.global_rank != null && d.global_cohort_size != null && d.global_cohort_size > 0) {
+      lines.push('<span class="bb-sc-lb-pill bb-sc-lb-pill--bb"><strong>#' + d.global_rank + '</strong> of ' + d.global_cohort_size + ' · BodyBank</span>');
+    } else if (d.opted_in && d.public_global) {
+      lines.push('<span class="bb-sc-lb-muted">BodyBank: <span style="color:var(--muted)">you\u2019re on the board \u2014 invite others to grow the list.</span></span>');
+    }
+    if (d.opted_in) {
+      lines.push('<button type="button" class="bb-sc-lb-settings" onclick="openLeaderboardOptInModal()">Visibility</button>');
+    }
+    if (lb) lb.innerHTML = lines.length ? lines.join('') : '';
+    if (d.opted_in) {
       if (inv) inv.style.display = 'none';
       if (btn) { btn.style.display = ''; btn.textContent = 'View leaderboard'; }
     } else {
-      if (lb) lb.innerHTML = '';
       if (inv) inv.style.display = 'flex';
       if (btn) { btn.style.display = ''; btn.textContent = 'Leaderboard'; }
     }
@@ -9238,32 +9276,50 @@ function renderScorecard(d) {
 function handleScorecardLeaderboardCta() {
   var d = window._bbScorecardCache;
   if (!d) { loadScorecard(); return; }
-  if (d.opted_in) loadScorecardLeaderboardModal('this');
-  else openLeaderboardOptInModal();
+  if (d.opted_in) {
+    if (d.public_program) window._bbLeaderboardBoardTab = 'program';
+    else if (d.public_global) window._bbLeaderboardBoardTab = 'dedication';
+    else window._bbLeaderboardBoardTab = 'program';
+    loadScorecardLeaderboardModal('this');
+  } else openLeaderboardOptInModal();
 }
 
 function openLeaderboardOptInModal() {
   var d = window._bbScorecardCache;
   var inp = document.getElementById('leaderboardDisplayName');
-  var chk = document.getElementById('leaderboardOptInCheck');
+  var pp = document.getElementById('leaderboardPubProgram');
+  var pg = document.getElementById('leaderboardPubGlobal');
   if (inp) inp.value = (d && d.display_name) ? d.display_name : '';
-  if (chk) chk.checked = true;
+  if (pp) pp.checked = !d || d.public_program !== false;
+  if (pg) pg.checked = !!(d && d.public_global);
   openModal('leaderboardOptInModal');
 }
 
 async function submitLeaderboardOptIn() {
-  var chk = document.getElementById('leaderboardOptInCheck');
   var name = document.getElementById('leaderboardDisplayName');
-  var optIn = chk && chk.checked;
-  var body = { opt_in: !!optIn, display_name: name ? name.value : '' };
+  var pp = document.getElementById('leaderboardPubProgram');
+  var pg = document.getElementById('leaderboardPubGlobal');
+  var pubP = pp && pp.checked;
+  var pubG = pg && pg.checked;
+  var optIn = !!(pubP || pubG);
+  var body = { opt_in: optIn, display_name: name ? name.value : '', public_program: !!pubP, public_global: !!pubG };
   var res = await apiCall('POST', '/api/me/leaderboard-opt-in', body);
   if (res && res.error) {
     showPopup('Error', res.error, '', 'OK', null, 'error');
     return;
   }
   closeModal('leaderboardOptInModal');
-  showPopup('Saved', optIn ? 'You are on the program leaderboard.' : 'Leaderboard sharing is off.', '', 'OK', null, 'success');
+  showPopup('Saved', optIn ? 'Leaderboard visibility updated.' : 'Leaderboard sharing is off.', '', 'OK', null, 'success');
   loadScorecard();
+}
+
+function bbSetLeaderboardBoardTab(tab) {
+  window._bbLeaderboardBoardTab = tab === 'dedication' ? 'dedication' : 'program';
+  var p = document.getElementById('lbModeProgram');
+  var di = document.getElementById('lbModeDedication');
+  if (p) p.classList.toggle('is-active', window._bbLeaderboardBoardTab === 'program');
+  if (di) di.classList.toggle('is-active', window._bbLeaderboardBoardTab === 'dedication');
+  loadScorecardLeaderboardModal(null);
 }
 
 function bbScorecardWeekParam() {
@@ -9281,14 +9337,22 @@ async function loadScorecardLeaderboardModal(mode) {
   if (!window.currentUser) return;
   if (mode === 'this' || mode === 'prev') window._bbLeaderboardWeekMode = mode;
   else if (!window._bbLeaderboardWeekMode) window._bbLeaderboardWeekMode = 'this';
+  if (!window._bbLeaderboardBoardTab) window._bbLeaderboardBoardTab = 'program';
   var thisBtn = document.getElementById('lbWeekThis');
   var prevBtn = document.getElementById('lbWeekPrev');
   if (thisBtn && prevBtn) {
     if (window._bbLeaderboardWeekMode === 'prev') { prevBtn.classList.add('is-active'); thisBtn.classList.remove('is-active'); }
     else { thisBtn.classList.add('is-active'); prevBtn.classList.remove('is-active'); }
   }
+  var mp = document.getElementById('lbModeProgram');
+  var md = document.getElementById('lbModeDedication');
+  if (mp && md) {
+    mp.classList.toggle('is-active', window._bbLeaderboardBoardTab === 'program');
+    md.classList.toggle('is-active', window._bbLeaderboardBoardTab === 'dedication');
+  }
   var ws = bbScorecardWeekParam();
-  var url = '/api/me/leaderboard' + (ws ? '?week=' + encodeURIComponent(ws) : '');
+  var board = window._bbLeaderboardBoardTab === 'dedication' ? 'dedication' : 'program';
+  var url = '/api/me/leaderboard?board=' + encodeURIComponent(board) + (ws ? '&week=' + encodeURIComponent(ws) : '');
   var data = await apiCall('GET', url);
   var sub = document.getElementById('scorecardLbSubtitle');
   var bodyEl = document.getElementById('scorecardLbBody');
@@ -9298,11 +9362,17 @@ async function loadScorecardLeaderboardModal(mode) {
     openModal('scorecardLeaderboardModal');
     return;
   }
-  if (sub) sub.textContent = (data.program_name || '') + ' \u00b7 ' + (data.week_label || '');
+  if (sub) {
+    if (data.board === 'dedication') {
+      sub.textContent = 'BodyBank \u00b7 ' + (data.week_label || '') + ' \u00b7 standard weights';
+    } else {
+      sub.textContent = (data.program_name || '') + ' \u00b7 ' + (data.week_label || '');
+    }
+  }
   var uid = window.currentUser.id;
   if (bodyEl) {
     if (!data.rows || !data.rows.length) {
-      bodyEl.innerHTML = '<p class="form-hint">No opted-in members for this week yet.</p>';
+      bodyEl.innerHTML = '<p class="form-hint">No members on this board for this week yet.</p>';
     } else {
       bodyEl.innerHTML = '<table class="bb-lb-table"><thead><tr><th>#</th><th>Name</th><th>Score</th></tr></thead><tbody>' +
         data.rows.map(function (r) {

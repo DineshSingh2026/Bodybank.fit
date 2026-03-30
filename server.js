@@ -569,6 +569,8 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS score_weights JSONB`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_wheel_last_spin_date TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_wheel_last_label TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_public_program BOOLEAN DEFAULT TRUE`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_public_global BOOLEAN DEFAULT FALSE`); } catch (e) { /* ignore */ }
 
   // Sync programs table with PDF files on disk
   try {
@@ -2614,18 +2616,37 @@ app.get('/api/me/scorecard', verifyToken, async (req, res) => {
     const weekStart = scorecardSvc.normalizeWeekStart(weekParam);
     const prevWeek = scorecardSvc.previousWeekStart(weekStart);
     const urow = await queryOne(
-      'SELECT leaderboard_opt_in, leaderboard_display_name FROM users WHERE id = ?',
+      `SELECT leaderboard_opt_in, leaderboard_display_name,
+              COALESCE(leaderboard_public_program, TRUE) AS leaderboard_public_program,
+              COALESCE(leaderboard_public_global, FALSE) AS leaderboard_public_global
+       FROM users WHERE id = ?`,
       [req.user.id]
     );
     const optedIn = !!(urow && urow.leaderboard_opt_in);
+    const publicProgram = optedIn && !!urow.leaderboard_public_program;
+    const publicGlobal = optedIn && !!urow.leaderboard_public_global;
     const current = await scorecardSvc.computeWeeklyScore(req.user.id, weekStart);
     const previous = prevWeek ? await scorecardSvc.computeWeeklyScore(req.user.id, prevWeek) : null;
+    const dedication = await scorecardSvc.computeWeeklyScoreDedication(req.user.id, weekStart);
     let rank = null;
     let cohort_size = null;
+    let global_rank = null;
+    let global_cohort_size = null;
     if (optedIn && current && current.program_id) {
-      const r = await scorecardSvc.rankInCohort(req.user.id, current.program_id, weekStart, true);
+      const r = await scorecardSvc.rankInCohort(
+        req.user.id,
+        current.program_id,
+        weekStart,
+        optedIn,
+        publicProgram
+      );
       rank = r.rank;
       cohort_size = r.cohort_size;
+    }
+    if (optedIn) {
+      const g = await scorecardSvc.rankInGlobal(req.user.id, weekStart, true, publicGlobal);
+      global_rank = g.rank;
+      global_cohort_size = g.cohort_size;
     }
     const trend_delta =
       current && previous ? (current.total - previous.total) : null;
@@ -2633,9 +2654,14 @@ app.get('/api/me/scorecard', verifyToken, async (req, res) => {
       week_start: weekStart,
       week_label: current ? current.week_label : scorecardSvc.formatWeekRangeLabel(weekStart),
       opted_in: optedIn,
+      public_program: publicProgram,
+      public_global: publicGlobal,
       display_name: (urow && urow.leaderboard_display_name) || '',
-      leaderboard_rank: optedIn ? rank : null,
-      cohort_size: optedIn ? cohort_size : null,
+      leaderboard_rank: optedIn && publicProgram ? rank : null,
+      cohort_size: optedIn && publicProgram ? cohort_size : null,
+      global_rank: optedIn && publicGlobal ? global_rank : null,
+      global_cohort_size: optedIn && publicGlobal ? global_cohort_size : null,
+      dedication_total: dedication ? dedication.total : null,
       program_id: current ? current.program_id : null,
       program_name: current ? current.program_name : null,
       total: current ? current.total : 0,
@@ -2727,22 +2753,34 @@ app.post('/api/me/focus-wheel/spin', verifyToken, rateLimiter(10, 60000), async 
 app.post('/api/me/leaderboard-opt-in', verifyToken, rateLimiter(10, 60000), async (req, res) => {
   try {
     const body = req.body || {};
-    const optIn = !!body.opt_in;
+    let optIn = !!body.opt_in;
     const displayName = String(body.display_name || '').trim().slice(0, 80);
+    const publicProgram = body.public_program !== false;
+    const publicGlobal = !!body.public_global;
+    if (optIn && !publicProgram && !publicGlobal) {
+      return res.status(400).json({
+        error: 'Choose at least one: program cohort or BodyBank leaderboard.'
+      });
+    }
     if (optIn) {
       await run(
         `UPDATE users SET leaderboard_opt_in = TRUE, leaderboard_display_name = ?,
+         leaderboard_public_program = ?, leaderboard_public_global = ?,
          leaderboard_opt_in_at = COALESCE(leaderboard_opt_in_at, CURRENT_TIMESTAMP) WHERE id = ?`,
-        [displayName, req.user.id]
+        [displayName, publicProgram, publicGlobal, req.user.id]
       );
     } else {
       await run(
-        `UPDATE users SET leaderboard_opt_in = FALSE, leaderboard_display_name = '', leaderboard_opt_in_at = NULL WHERE id = ?`,
+        `UPDATE users SET leaderboard_opt_in = FALSE, leaderboard_display_name = '', leaderboard_opt_in_at = NULL,
+         leaderboard_public_program = TRUE, leaderboard_public_global = FALSE WHERE id = ?`,
         [req.user.id]
       );
     }
     const row = await queryOne(
-      'SELECT leaderboard_opt_in, leaderboard_display_name, leaderboard_opt_in_at FROM users WHERE id = ?',
+      `SELECT leaderboard_opt_in, leaderboard_display_name, leaderboard_opt_in_at,
+              COALESCE(leaderboard_public_program, TRUE) AS leaderboard_public_program,
+              COALESCE(leaderboard_public_global, FALSE) AS leaderboard_public_global
+       FROM users WHERE id = ?`,
       [req.user.id]
     );
     res.json({ ok: true, ...row });
@@ -2762,12 +2800,35 @@ app.get('/api/me/leaderboard', verifyToken, async (req, res) => {
     }
     const weekParam = (req.query.week || '').trim();
     const weekStart = scorecardSvc.normalizeWeekStart(weekParam);
+    const boardRaw = String(req.query.board || 'program').trim().toLowerCase();
+    const board = boardRaw === 'dedication' || boardRaw === 'global' || boardRaw === 'bodybank' ? 'dedication' : 'program';
+
+    if (board === 'dedication') {
+      const rows = await scorecardSvc.buildLeaderboardGlobal(weekStart, 50);
+      return res.json({
+        board: 'dedication',
+        week_start: weekStart,
+        week_label: scorecardSvc.formatWeekRangeLabel(weekStart),
+        program_id: null,
+        program_name: 'BodyBank',
+        rows
+      });
+    }
+
     const current = await scorecardSvc.computeWeeklyScore(req.user.id, weekStart);
     if (!current || !current.program_id) {
-      return res.json({ week_start: weekStart, week_label: scorecardSvc.formatWeekRangeLabel(weekStart), program_name: current ? current.program_name : null, rows: [] });
+      return res.json({
+        board: 'program',
+        week_start: weekStart,
+        week_label: scorecardSvc.formatWeekRangeLabel(weekStart),
+        program_id: null,
+        program_name: current ? current.program_name : null,
+        rows: []
+      });
     }
     const rows = await scorecardSvc.buildLeaderboard(current.program_id, weekStart, 50);
     res.json({
+      board: 'program',
       week_start: weekStart,
       week_label: current.week_label,
       program_id: current.program_id,

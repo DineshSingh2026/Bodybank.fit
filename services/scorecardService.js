@@ -220,14 +220,43 @@ function createScorecardService({ queryOne, queryAll }) {
       `SELECT DISTINCT u.id
        FROM users u
        JOIN user_program_assignments a ON a.user_id = u.id AND a.program_id = ? AND a.removed_at IS NULL
-       WHERE u.role = 'user' AND COALESCE(u.leaderboard_opt_in, FALSE) = TRUE`,
+       WHERE u.role = 'user' AND COALESCE(u.leaderboard_opt_in, FALSE) = TRUE
+         AND COALESCE(u.leaderboard_public_program, TRUE) = TRUE`,
       [programId]
     );
     return (rows || []).map((r) => r.id);
   }
 
-  async function rankInCohort(userId, programId, weekStartISO, optedIn) {
-    if (!optedIn || !programId) {
+  async function globalOptedInUserIds() {
+    const rows = await queryAll(
+      `SELECT u.id FROM users u
+       WHERE u.role = 'user'
+         AND COALESCE(u.leaderboard_opt_in, FALSE) = TRUE
+         AND COALESCE(u.leaderboard_public_global, FALSE) = TRUE`,
+      []
+    );
+    return (rows || []).map((r) => r.id);
+  }
+
+  /** Same week activity as program scorecard, but weights = BodyBank default (fair across programs). */
+  async function computeWeeklyScoreDedication(userId, weekStartISO) {
+    const weights = mergeWeights(null);
+    const workoutTarget = await getWorkoutTarget(userId, weights);
+    const slice = await fetchWeekSlice(userId, weekStartISO);
+    if (!slice) return null;
+    const pillars = computePillars(slice, weights, workoutTarget);
+    return {
+      week_start: weekStartISO,
+      week_label: formatWeekRangeLabel(weekStartISO),
+      program_id: null,
+      program_name: 'BodyBank',
+      weights,
+      ...pillars
+    };
+  }
+
+  async function rankInCohort(userId, programId, weekStartISO, optedIn, publicProgram) {
+    if (!optedIn || !programId || !publicProgram) {
       return { rank: null, cohort_size: null };
     }
     const ids = await cohortOptedInUserIds(programId);
@@ -245,12 +274,61 @@ function createScorecardService({ queryOne, queryAll }) {
     return { rank, cohort_size: scores.length };
   }
 
+  async function rankInGlobal(userId, weekStartISO, optedIn, publicGlobal) {
+    if (!optedIn || !publicGlobal) {
+      return { rank: null, cohort_size: null };
+    }
+    const ids = await globalOptedInUserIds();
+    if (!ids.length) {
+      return { rank: null, cohort_size: 0 };
+    }
+    const scores = [];
+    for (const uid of ids) {
+      const s = await computeWeeklyScoreDedication(uid, weekStartISO);
+      if (s) scores.push({ id: uid, total: s.total });
+    }
+    scores.sort((a, b) => b.total - a.total || String(a.id).localeCompare(String(b.id)));
+    const idx = scores.findIndex((x) => x.id === userId);
+    const rank = idx >= 0 ? idx + 1 : null;
+    return { rank, cohort_size: scores.length };
+  }
+
   async function buildLeaderboard(programId, weekStartISO, limit = 50) {
     if (!programId) return [];
     const ids = await cohortOptedInUserIds(programId);
     const rows = [];
     for (const uid of ids) {
       const s = await computeWeeklyScore(uid, weekStartISO);
+      if (!s) continue;
+      const u = await queryOne(
+        `SELECT id, first_name, last_name, leaderboard_display_name FROM users WHERE id = ?`,
+        [uid]
+      );
+      const display =
+        (u && u.leaderboard_display_name && String(u.leaderboard_display_name).trim()) ||
+        [u && u.first_name, u && u.last_name].filter(Boolean).join(' ').trim() ||
+        'Member';
+      rows.push({
+        user_id: uid,
+        display_name: display,
+        total: s.total,
+        pillars: {
+          daily: s.daily,
+          sunday: s.sunday,
+          workouts: s.workouts,
+          progress: s.progress
+        }
+      });
+    }
+    rows.sort((a, b) => b.total - a.total || String(a.user_id).localeCompare(String(b.user_id)));
+    return rows.slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
+  }
+
+  async function buildLeaderboardGlobal(weekStartISO, limit = 50) {
+    const ids = await globalOptedInUserIds();
+    const rows = [];
+    for (const uid of ids) {
+      const s = await computeWeeklyScoreDedication(uid, weekStartISO);
       if (!s) continue;
       const u = await queryOne(
         `SELECT id, first_name, last_name, leaderboard_display_name FROM users WHERE id = ?`,
@@ -334,8 +412,11 @@ function createScorecardService({ queryOne, queryAll }) {
     normalizeWeekStart,
     previousWeekStart: (iso) => addDaysISO(iso, -7),
     computeWeeklyScore,
+    computeWeeklyScoreDedication,
     rankInCohort,
+    rankInGlobal,
     buildLeaderboard,
+    buildLeaderboardGlobal,
     buildAdminLeaderboardPreview,
     formatWeekRangeLabel
   };
