@@ -31,7 +31,7 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursite.com (production)
 const VAPID_PUBLIC = (process.env.VAPID_PUBLIC_KEY || '').trim();
 const VAPID_PRIVATE = (process.env.VAPID_PRIVATE_KEY || '').trim();
-const RESET_BASE_URL = (process.env.RESET_BASE_URL || process.env.APP_BASE_URL || process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/$/, '') || (NODE_ENV === 'production' ? '' : 'http://localhost:3000');
+const RESET_BASE_URL = (process.env.RESET_BASE_URL || process.env.APP_BASE_URL || process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/$/, '') || (NODE_ENV === 'production' ? '' : `http://localhost:${PORT}`);
 const SMTP_HOST = (process.env.SMTP_HOST || '').trim();
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
 const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
