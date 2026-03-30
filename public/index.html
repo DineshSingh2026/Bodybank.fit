@@ -7813,7 +7813,7 @@ async function loadMicroGoals() {
         var show = !alreadyFilled && !!sev && inDays != null;
         if (show) {
           var prefix = sev === 'P0' ? 'High risk' : 'Attention';
-          if (inactText) inactText.textContent = 'We haven\u2019t seen your daily check-in for ' + inDays + ' days. ' + prefix + \u2014 log today.';
+          if (inactText) inactText.textContent = 'We haven\u2019t seen your daily check-in for ' + inDays + ' days. ' + prefix + ' \u2014 log today.';
           inactBanner.style.display = 'flex';
         } else {
           inactBanner.style.display = 'none';
