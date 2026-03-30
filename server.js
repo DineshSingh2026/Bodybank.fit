@@ -2909,7 +2909,7 @@ app.get('/api/admin/attention-clients', verifyToken, requireAdminOrSuperadmin, a
 app.get('/api/admin/users', async (req, res) => {
   try {
     const list = await queryAll(
-      "SELECT id, first_name, last_name, email, country, timezone, COALESCE(suspended, false) as suspended FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.bodybank.fit') AND (LOWER(first_name) NOT LIKE '%e2e%') ORDER BY first_name, last_name"
+      "SELECT id, first_name, last_name, email, country, timezone, profile_picture, COALESCE(suspended, false) as suspended FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.bodybank.fit') AND (LOWER(first_name) NOT LIKE '%e2e%') ORDER BY first_name, last_name"
     );
     res.json(list);
   } catch (e) {
