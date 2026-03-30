@@ -3385,20 +3385,17 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <!-- My Progress (embedded) -->
       <div id="checkin-progress" class="checkin-sub" style="display:none">
         <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
-        <p class="form-hint" style="margin-bottom:16px">Log your metrics for a specific date. Your Lifestyle Manager can share a link with you to view your progress and graphs.</p>
+        <p class="form-hint" style="margin-bottom:16px">Log body composition and training for a date. <strong>Water, protein &amp; sleep</strong> are logged once in <strong>Daily check-in</strong> (above) so they are not duplicated here.</p>
         <form id="progressFormC" onsubmit="submitProgressCheckin();return false" class="progress-form-grid">
           <div class="form-group" style="grid-column:1/-1"><label>Date <span class="req">*</span></label><input type="date" class="form-input" id="proDateC" required></div>
           <div class="form-group"><label>Weight (kg)</label><input type="number" step="0.1" class="form-input" id="proWeightC" placeholder="e.g. 72.5"></div>
           <div class="form-group"><label>Body fat %</label><input type="number" step="0.1" class="form-input" id="proBodyFatC" placeholder="e.g. 18"></div>
           <div class="form-group"><label>Calories intake</label><input type="number" class="form-input" id="proCaloriesC" placeholder="e.g. 2000"></div>
-          <div class="form-group"><label>Protein (g)</label><input type="number" class="form-input" id="proProteinC" placeholder="e.g. 120"></div>
           <div class="form-group"><label>Workout completed</label><label class="toggle-wrap"><input type="checkbox" id="proWorkoutDoneC"><span class="toggle-slider"></span></label></div>
           <div class="form-group"><label>Workout type</label><input type="text" class="form-input" id="proWorkoutTypeC" placeholder="e.g. Upper body"></div>
           <div class="form-group"><label>Bench (kg)</label><input type="number" step="0.1" class="form-input" id="proBenchC" placeholder="e.g. 60"></div>
           <div class="form-group"><label>Squat (kg)</label><input type="number" step="0.1" class="form-input" id="proSquatC" placeholder="e.g. 80"></div>
           <div class="form-group"><label>Deadlift (kg)</label><input type="number" step="0.1" class="form-input" id="proDeadliftC" placeholder="e.g. 100"></div>
-          <div class="form-group"><label>Sleep (hours)</label><input type="number" step="0.1" class="form-input" id="proSleepC" placeholder="e.g. 7.5"></div>
-          <div class="form-group"><label>Water (L)</label><input type="number" step="0.1" class="form-input" id="proWaterC" placeholder="e.g. 2.5"></div>
           <div class="form-group" style="grid-column:1/-1"><button type="submit" class="form-submit">Save for this date</button></div>
         </form>
         <p class="form-success" id="progressFormSuccessC" style="display:none;margin-top:12px">Saved. Your Lifestyle Manager can share your progress report with you.</p>
@@ -3414,20 +3411,17 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <!-- MY PROGRESS (log by date – no graphs; view shared by admin) -->
     <div class="user-section" id="usec-progress">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <p class="form-hint" style="margin-bottom:16px">Log your metrics for a specific date. Your Lifestyle Manager can share a link with you to view your progress and graphs.</p>
+      <p class="form-hint" style="margin-bottom:16px">Log body composition and training for a date. <strong>Water, protein &amp; sleep</strong> belong in <strong>Daily check-in</strong> on Home (micro-goals) so they are not duplicated here.</p>
       <form id="progressForm" onsubmit="submitProgress();return false" class="progress-form-grid">
         <div class="form-group" style="grid-column:1/-1"><label>Date <span class="req">*</span></label><input type="date" class="form-input" id="proDate" required></div>
         <div class="form-group"><label>Weight (kg)</label><input type="number" step="0.1" class="form-input" id="proWeight" placeholder="e.g. 72.5"></div>
         <div class="form-group"><label>Body fat %</label><input type="number" step="0.1" class="form-input" id="proBodyFat" placeholder="e.g. 18"></div>
         <div class="form-group"><label>Calories intake</label><input type="number" class="form-input" id="proCalories" placeholder="e.g. 2000"></div>
-        <div class="form-group"><label>Protein (g)</label><input type="number" class="form-input" id="proProtein" placeholder="e.g. 120"></div>
         <div class="form-group"><label>Workout completed</label><label class="toggle-wrap"><input type="checkbox" id="proWorkoutDone"><span class="toggle-slider"></span></label></div>
         <div class="form-group"><label>Workout type</label><input type="text" class="form-input" id="proWorkoutType" placeholder="e.g. Upper body"></div>
         <div class="form-group"><label>Bench (kg)</label><input type="number" step="0.1" class="form-input" id="proBench" placeholder="e.g. 60"></div>
         <div class="form-group"><label>Squat (kg)</label><input type="number" step="0.1" class="form-input" id="proSquat" placeholder="e.g. 80"></div>
         <div class="form-group"><label>Deadlift (kg)</label><input type="number" step="0.1" class="form-input" id="proDeadlift" placeholder="e.g. 100"></div>
-        <div class="form-group"><label>Sleep (hours)</label><input type="number" step="0.1" class="form-input" id="proSleep" placeholder="e.g. 7.5"></div>
-        <div class="form-group"><label>Water (L)</label><input type="number" step="0.1" class="form-input" id="proWater" placeholder="e.g. 2.5"></div>
         <div class="form-group" style="grid-column:1/-1"><button type="submit" class="form-submit" id="progressSubmitBtn">Save for this date</button></div>
       </form>
       <p class="form-success" id="progressFormSuccess" style="display:none;margin-top:12px">Saved. Your Lifestyle Manager can share your progress report with you.</p>
@@ -9401,27 +9395,24 @@ async function submitProgress() {
   var weight = document.getElementById('proWeight');
   var bodyFat = document.getElementById('proBodyFat');
   var calories = document.getElementById('proCalories');
-  var protein = document.getElementById('proProtein');
   var workoutDone = document.getElementById('proWorkoutDone');
   var workoutType = document.getElementById('proWorkoutType');
   var bench = document.getElementById('proBench');
   var squat = document.getElementById('proSquat');
   var deadlift = document.getElementById('proDeadlift');
-  var sleep = document.getElementById('proSleep');
-  var water = document.getElementById('proWater');
   var body = {
     log_date: proDateEl && proDateEl.value ? proDateEl.value : null,
     weight: weight && weight.value.trim() ? parseFloat(weight.value) : null,
     body_fat: bodyFat && bodyFat.value.trim() ? parseFloat(bodyFat.value) : null,
     calories_intake: calories && calories.value.trim() ? parseInt(calories.value, 10) : null,
-    protein_intake: protein && protein.value.trim() ? parseInt(protein.value, 10) : null,
+    protein_intake: null,
     workout_completed: workoutDone ? workoutDone.checked : false,
     workout_type: workoutType && workoutType.value.trim() ? workoutType.value.trim() : null,
     strength_bench: bench && bench.value.trim() ? parseFloat(bench.value) : null,
     strength_squat: squat && squat.value.trim() ? parseFloat(squat.value) : null,
     strength_deadlift: deadlift && deadlift.value.trim() ? parseFloat(deadlift.value) : null,
-    sleep_hours: sleep && sleep.value.trim() ? parseFloat(sleep.value) : null,
-    water_intake: water && water.value.trim() ? parseFloat(water.value) : null
+    sleep_hours: null,
+    water_intake: null
   };
   var btn = document.getElementById('progressSubmitBtn');
   if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
@@ -9441,7 +9432,7 @@ async function submitProgress() {
 function clearProgressForm() {
   var proDate = document.getElementById('proDate');
   if (proDate) proDate.value = new Date().toISOString().slice(0, 10);
-  var ids = ['proWeight','proBodyFat','proCalories','proProtein','proWorkoutType','proBench','proSquat','proDeadlift','proSleep','proWater'];
+  var ids = ['proWeight','proBodyFat','proCalories','proWorkoutType','proBench','proSquat','proDeadlift'];
   ids.forEach(function(id) {
     var el = document.getElementById(id);
     if (el) { if (el.type === 'checkbox') el.checked = false; else el.value = ''; }
@@ -9509,27 +9500,24 @@ async function submitProgressCheckin() {
   var weight = document.getElementById('proWeightC');
   var bodyFat = document.getElementById('proBodyFatC');
   var calories = document.getElementById('proCaloriesC');
-  var protein = document.getElementById('proProteinC');
   var workoutDone = document.getElementById('proWorkoutDoneC');
   var workoutType = document.getElementById('proWorkoutTypeC');
   var bench = document.getElementById('proBenchC');
   var squat = document.getElementById('proSquatC');
   var deadlift = document.getElementById('proDeadliftC');
-  var sleep = document.getElementById('proSleepC');
-  var water = document.getElementById('proWaterC');
   var body = {
     log_date: proDateEl && proDateEl.value ? proDateEl.value : null,
     weight: weight && weight.value.trim() ? parseFloat(weight.value) : null,
     body_fat: bodyFat && bodyFat.value.trim() ? parseFloat(bodyFat.value) : null,
     calories_intake: calories && calories.value.trim() ? parseInt(calories.value, 10) : null,
-    protein_intake: protein && protein.value.trim() ? parseInt(protein.value, 10) : null,
+    protein_intake: null,
     workout_completed: workoutDone ? workoutDone.checked : false,
     workout_type: workoutType && workoutType.value.trim() ? workoutType.value.trim() : null,
     strength_bench: bench && bench.value.trim() ? parseFloat(bench.value) : null,
     strength_squat: squat && squat.value.trim() ? parseFloat(squat.value) : null,
     strength_deadlift: deadlift && deadlift.value.trim() ? parseFloat(deadlift.value) : null,
-    sleep_hours: sleep && sleep.value.trim() ? parseFloat(sleep.value) : null,
-    water_intake: water && water.value.trim() ? parseFloat(water.value) : null
+    sleep_hours: null,
+    water_intake: null
   };
   var btn = document.querySelector('#progressFormC button[type="submit"]');
   if (btn) { btn.disabled = true; btn.textContent = 'Saving...'; }
@@ -9542,7 +9530,7 @@ async function submitProgressCheckin() {
   var successEl = document.getElementById('progressFormSuccessC');
   if (successEl) { successEl.style.display = 'block'; setTimeout(function() { successEl.style.display = 'none'; }, 5000); }
   proDateEl.value = new Date().toISOString().slice(0, 10);
-  ['proWeightC','proBodyFatC','proCaloriesC','proProteinC','proWorkoutTypeC','proBenchC','proSquatC','proDeadliftC','proSleepC','proWaterC'].forEach(function(id) {
+  ['proWeightC','proBodyFatC','proCaloriesC','proWorkoutTypeC','proBenchC','proSquatC','proDeadliftC'].forEach(function(id) {
     var el = document.getElementById(id);
     if (el) { if (el.type === 'checkbox') el.checked = false; else el.value = ''; }
   });
