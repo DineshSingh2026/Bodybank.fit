@@ -1,4 +1,6 @@
 const progressService = require('../services/progressService');
+const db = require('../config/db');
+const userEmail = require('../services/userEmailService');
 
 async function postProgress(req, res) {
   try {
@@ -16,6 +18,18 @@ async function postProgress(req, res) {
       workout_completed, workout_type, strength_bench, strength_squat, strength_deadlift,
       sleep_hours, water_intake
     });
+
+    try {
+      const u = await db.queryOne('SELECT email, first_name FROM users WHERE id = ?', [userId]);
+      if (u && u.email && userEmail.isConfigured()) {
+        const lines = [];
+        if (weight != null) lines.push(`Weight: ${weight} kg`);
+        if (body_fat != null) lines.push(`Body fat: ${body_fat}%`);
+        if (workout_completed) lines.push(`Workout: ${workout_type || 'completed'}`);
+        if (sleep_hours != null) lines.push(`Sleep: ${sleep_hours} h`);
+        userEmail.emailProgressSaved(u.email, u.first_name, lines);
+      }
+    } catch (e) { /* non-fatal */ }
 
     res.status(201).json({ success: true, message: 'Progress saved for this date' });
   } catch (e) {

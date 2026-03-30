@@ -19,6 +19,8 @@ const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalize
 const { generateMonthlyClientReport, monthLabel: monthLabelForReport } = require('./services/monthlyReportService');
 const { writeSundayCheckinPdf, writePart2Pdf } = require('./services/formPdfService');
 const bodybankAiCoach = require('./services/bodybankAiCoachContext');
+const userEmail = require('./services/userEmailService');
+const { startEmailScheduler } = require('./services/emailScheduler');
 
 // ============ CONFIG ============
 const PORT = process.argv[2] || process.env.PORT || 3000;
@@ -923,6 +925,7 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
       [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', '', '', 'user', 'pending']);
     sendPushToAdmins(JSON.stringify({ title: 'New sign-up (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) requested access` })).catch(() => {});
+    userEmail.emailGoogleSignupPending(emailNorm, given_name);
     res.json({
       id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', role: 'user',
       country: '', timezone: '', pending_approval: true,
@@ -947,6 +950,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
       const hash = bcrypt.hashSync(password, 10);
       await run("UPDATE users SET password = ?, first_name = ?, last_name = ?, phone = ?, country = ?, timezone = ?, approval_status = 'pending' WHERE id = ?",
         [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, existing.id]);
+      userEmail.emailSignupPending(emailNorm, first_name);
       return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
     }
     if (existing) return res.status(409).json({ error: 'Email already registered' });
@@ -956,6 +960,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, approval_status) VALUES (?,?,?,?,?,?,?,?,?)",
       [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, 'pending']);
     sendPushToAdmins(JSON.stringify({ title: 'New sign-up', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) requested access` })).catch(() => {});
+    userEmail.emailSignupPending(emailNorm, first_name);
     res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
@@ -989,32 +994,12 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
     if (NODE_ENV === 'production' && base.startsWith('http://')) base = 'https://' + base.slice(7);
     const resetLink = `${base}/reset-password?token=${encodeURIComponent(token)}`;
 
-    if (SMTP_HOST && SMTP_USER && SMTP_PASS) {
+    if (userEmail.isConfigured()) {
       try {
-        const nodemailer = require('nodemailer');
-        const isGmail = SMTP_HOST === 'smtp.gmail.com' || SMTP_HOST === 'gmail';
-        const transporter = nodemailer.createTransport(isGmail
-          ? { service: 'gmail', auth: { user: SMTP_USER, pass: SMTP_PASS } }
-          : {
-              host: SMTP_HOST,
-              port: SMTP_PORT,
-              secure: SMTP_SECURE,
-              auth: { user: SMTP_USER, pass: SMTP_PASS },
-              connectionTimeout: 10000,
-              greetingTimeout: 10000
-            });
-        const fromAddr = isGmail ? `BodyBank <${SMTP_USER}>` : (SMTP_FROM || `BodyBank <${SMTP_USER}>`);
-        await transporter.sendMail({
-          from: fromAddr,
-          to: emailNorm,
-          subject: 'Reset your BodyBank password',
-          html: `<p>Click the link below to reset your password. It expires in 24 hours.</p><p><a href="${resetLink}">${resetLink}</a></p><p>If you didn't request this, you can ignore this email.</p>`
-        });
-        console.log('[ForgotPassword] Reset email sent to', emailNorm, '| link base:', base);
+        userEmail.emailPasswordResetLuxury(emailNorm, resetLink);
+        console.log('[ForgotPassword] Reset email queued for', emailNorm, '| link base:', base);
       } catch (err) {
         console.error('[ForgotPassword] SMTP failed:', err.message);
-        if (err.response) console.error('[ForgotPassword] SMTP response:', err.response);
-        if (err.responseCode) console.error('[ForgotPassword] SMTP code:', err.responseCode);
       }
     } else if (NODE_ENV === 'production') {
       console.warn('[ForgotPassword] SMTP not configured (SMTP_HOST, SMTP_USER, SMTP_PASS) – user did not receive reset link');
@@ -1089,6 +1074,8 @@ app.post('/api/auth/reset-password', rateLimiter(10, 60000), async (req, res) =>
     await run("UPDATE users SET password = ? WHERE id = ?", [hash, row.user_id]);
     await run("UPDATE password_resets SET used = 1 WHERE id = ?", [row.id]);
 
+    userEmail.emailPasswordChanged(row.email, row.first_name);
+
     const sessionToken = signToken({ id: row.user_id, email: row.email, role: row.role });
     return res.json({
       ok: true,
@@ -1119,6 +1106,7 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
     await run(`INSERT INTO audit_requests (id,first_name,last_name,age,sex,email,phone,country,city,occupation,work_intensity,fitness_experience,goals,motivation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.first_name, b.last_name||'', b.age||null, b.sex||'', b.email, b.phone||'', b.country||'', b.city||'', b.occupation||'', b.work_intensity||'', b.fitness_experience||'', b.goals||'', b.motivation||'']);
     sendPushToAdmins(JSON.stringify({ title: 'New audit form', body: `${b.first_name || ''} ${b.last_name || ''} submitted a Body Audit` })).catch(() => {});
+    userEmail.emailAuditReceived(String(b.email).trim(), b.first_name);
     res.json({ id, message: 'Request submitted successfully' });
   } catch (e) {
     res.status(500).json({ error: 'Submission failed' });
@@ -1158,6 +1146,7 @@ app.post('/api/part2', rateLimiter(5, 60000), async (req, res) => {
     await run(`INSERT INTO part2_audit (id, name, email, mobile, sports_history, injuries, mental_health, gym_experience, food_choices, vices_addictions, goals, what_compelled, activity_level) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.name || '', b.email || '', b.mobile || '', b.sports_history || '', b.injuries || '', b.mental_health || '', b.gym_experience || '', b.food_choices || '', b.vices_addictions || '', b.goals || '', b.what_compelled || '', b.activity_level || '']);
     sendPushToAdmins(JSON.stringify({ title: 'New Part-2 form', body: `${b.name || ''} (${b.email || ''}) submitted Part-2 audit` })).catch(() => {});
+    userEmail.emailPart2Received(String(b.email).trim(), b.name);
     res.json({ id, message: 'Form submitted successfully' });
   } catch (e) {
     res.status(500).json({ error: 'Submission failed' });
@@ -1186,6 +1175,10 @@ app.post('/api/meetings', rateLimiter(10, 60000), async (req, res) => {
     const id = uuidv4();
     await run(`INSERT INTO meetings (id, user_id, user_name, user_email, user_phone, meeting_date, time_slot, status, notes) VALUES (?,?,?,?,?,?,?,?,?)`,
       [id, b.user_id, b.user_name||'', b.user_email||'', b.user_phone||'', b.meeting_date, b.time_slot, 'scheduled', b.notes||'']);
+    if (b.user_email && String(b.user_email).trim()) {
+      const dn = b.meeting_date ? new Date(b.meeting_date + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : String(b.meeting_date || '');
+      userEmail.emailMeetingScheduled(String(b.user_email).trim(), (b.user_name || '').split(/\s+/)[0] || 'there', dn, b.time_slot || '');
+    }
     res.json({ id, message: 'Call scheduled successfully' });
   } catch (e) {
     console.error('[meetings] POST error:', e.message);
@@ -1201,6 +1194,26 @@ app.get('/api/meetings', async (req, res) => {
 app.get('/api/meetings/user/:userId', async (req, res) => {
   const rows = await queryAll("SELECT * FROM meetings WHERE user_id = ? ORDER BY meeting_date DESC, created_at DESC", [req.params.userId]);
   res.json(rows);
+});
+
+app.get('/api/admin/meetings/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const row = await queryOne('SELECT * FROM meetings WHERE id = ?', [req.params.id]);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    res.json(row);
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to load meeting' });
+  }
+});
+
+app.get('/api/admin/contact-messages/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const row = await queryOne('SELECT * FROM contact_messages WHERE id = ?', [req.params.id]);
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    res.json(row);
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to load message' });
+  }
 });
 
 app.put('/api/meetings/:id', async (req, res) => {
@@ -1313,6 +1326,10 @@ app.post('/api/workouts', async (req, res) => {
     const id = uuidv4();
     await run("INSERT INTO workout_logs (id,user_id,workout_name,duration_seconds,feedback) VALUES (?,?,?,?,?)",
       [id, user_id, workout_name, duration_seconds || 0, feedback || '']);
+    const wu = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [user_id]);
+    if (wu && wu.email) {
+      userEmail.emailWorkoutLogged(wu.email, wu.first_name, workout_name, duration_seconds != null ? Math.round(duration_seconds / 60) : null);
+    }
     res.json({ id, message: 'Workout logged' });
   } catch (e) {
     console.error('Workout error:', e.message);
@@ -1342,6 +1359,7 @@ app.post('/api/contact', rateLimiter(5, 60000), async (req, res) => {
     await run("INSERT INTO contact_messages (id,user_id,name,phone,email,message) VALUES (?,?,?,?,?,?)",
       [id, user_id || null, name, phone || '', email || '', message]);
     sendPushToAdmins(JSON.stringify({ title: 'New contact message', body: `${name || 'Someone'}: ${String(message || '').slice(0, 80)}` })).catch(() => {});
+    if (email && String(email).includes('@')) userEmail.emailContactReceived(String(email).trim(), name);
     res.json({ id, message: 'Message sent' });
   } catch (e) {
     console.error('Contact error:', e.message);
@@ -1486,6 +1504,10 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
     const msg = await queryOne('SELECT id, thread_id, sender_id, sender_role, body, created_at FROM thread_messages WHERE id = ?', [msgId]);
     if (isAdmin && thread.user_id) {
       sendPushToUser(thread.user_id, JSON.stringify({ type: 'coach_reply', title: 'Lifestyle Manager replied', body: String(body).trim().slice(0, 100) })).catch(() => {});
+      const coachUser = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [thread.user_id]);
+      if (coachUser && coachUser.email) {
+        userEmail.emailCoachReply(coachUser.email, coachUser.first_name, String(body).trim());
+      }
     }
     if (!isAdmin) {
       const u = await queryOne('SELECT first_name, last_name, email FROM users WHERE id = ?', [thread.user_id]);
@@ -1507,6 +1529,12 @@ app.post('/api/sunday-checkin', rateLimiter(10, 60000), async (req, res) => {
     const id = uuidv4();
     await run(`INSERT INTO sunday_checkins (id, user_id, full_name, reply_email, plan, current_weight_waist_week, last_week_weight_waist, total_weight_loss, training_go, nutrition_go, sleep, occupation_stress, other_stress, differences_felt, achievements, improve_next_week, questions) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.user_id || null, b.full_name || '', b.reply_email || '', b.plan || '', b.current_weight_waist_week || '', b.last_week_weight_waist || '', b.total_weight_loss || '', b.training_go || '', b.nutrition_go || '', b.sleep || '', b.occupation_stress || '', b.other_stress || '', b.differences_felt || '', b.achievements || '', b.improve_next_week || '', b.questions || '']);
+    if (b.reply_email && String(b.reply_email).trim().includes('@')) {
+      userEmail.emailSundayCheckinReceived(String(b.reply_email).trim(), (b.full_name || 'there').split(/\s+/)[0]);
+    } else if (b.user_id) {
+      const su = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [b.user_id]);
+      if (su && su.email) userEmail.emailSundayCheckinReceived(su.email, su.first_name);
+    }
     res.json({ id, message: 'Sunday check-in submitted successfully' });
   } catch (e) {
     console.error('Sunday check-in error:', e.message);
@@ -1560,6 +1588,15 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
       [id, userId, today, steps != null ? steps : null, water_ml != null ? water_ml : null, protein_g != null ? protein_g : null, sleep_hours != null ? sleep_hours : null]
     );
     const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
+    const du = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [userId]);
+    if (du && du.email) {
+      const lines = [];
+      if (steps != null) lines.push(`Steps: ${steps}`);
+      if (water_ml != null) lines.push(`Water: ${water_ml} ml`);
+      if (protein_g != null) lines.push(`Protein: ${protein_g} g`);
+      if (sleep_hours != null) lines.push(`Sleep: ${sleep_hours} hrs`);
+      userEmail.emailDailyCheckinReceived(du.email, du.first_name, lines);
+    }
     res.json(row || { id, user_id: userId, checkin_date: today, steps, water_ml, protein_g, sleep_hours });
   } catch (e) {
     console.error('Daily check-in error:', e.message);
@@ -1957,6 +1994,7 @@ app.post('/api/admin/approve-user/:id', async (req, res) => {
       await run(`INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES (?,?,?,?,?,?,1,?,0,?,?,?,?,?)`,
         [tribeId, user.first_name || '', user.last_name || '', user.email || '', user.phone || '', city, today, null, null, null, '', 'Newly approved']);
     }
+    if (user.email) userEmail.emailAccountApproved(user.email, user.first_name);
     res.json({ message: 'User approved' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to approve user' });
@@ -1966,10 +2004,11 @@ app.post('/api/admin/approve-user/:id', async (req, res) => {
 app.post('/api/admin/reject-user/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    const user = await queryOne("SELECT id, role, email, first_name FROM users WHERE id = ?", [id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
     await run("UPDATE users SET approval_status = 'rejected' WHERE id = ?", [id]);
+    if (user.email) userEmail.emailAccountRejected(user.email, user.first_name);
     res.json({ message: 'User rejected' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to reject user' });
@@ -3886,10 +3925,11 @@ app.listen(PORT, '0.0.0.0', () => {
   initDB().then(async () => {
     console.log(`✅ DB ready | Admin: ${ADMIN_EMAIL} | Superadmin: ${SUPERADMIN_EMAIL}`);
     const resetBase = RESET_BASE_URL || '(from request)';
-    console.log(`🔐 Forgot password: /api/auth/forgot-password | Reset link base: ${resetBase} | Push: ${VAPID_PUBLIC && VAPID_PRIVATE ? 'On' : 'Off'} | Env: ${NODE_ENV}\n`);
+    console.log(`🔐 Forgot password: /api/auth/forgot-password | Reset link base: ${resetBase} | Push: ${VAPID_PUBLIC && VAPID_PRIVATE ? 'On' : 'Off'} | Member emails: ${userEmail.isConfigured() ? 'On (SMTP + reminders/digests)' : 'Off (set SMTP_*)'} | Env: ${NODE_ENV}\n`);
     // Start the campaign scheduler after DB is fully ready
     await startCampaignScheduler({ queryAll, run, sendPushToUser, uuidv4 })
       .catch(e => console.error('❌ Campaign scheduler failed to start:', e.message));
+    startEmailScheduler({ queryAll });
   }).catch(err => {
     console.error('Failed to init DB:', err);
     process.exit(1);

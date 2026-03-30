@@ -607,6 +607,12 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-list-table .btn-view-cell{text-align:right;white-space:nowrap}
 .admin-list-table .action-btn.btn-view{padding:8px 16px;border-radius:8px;font-size:12px;font-weight:600;background:rgba(200,164,78,0.2);color:var(--gold);border:1px solid rgba(200,164,78,0.4)}
 .admin-list-table .action-btn.btn-view:hover{background:rgba(200,164,78,0.35)}
+.admin-list-table tbody tr.admin-row-clickable{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.admin-list-table tbody tr.admin-row-clickable:hover{background:rgba(255,255,255,0.035)}
+.admin-meeting-item.admin-meeting-row-open{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.admin-meeting-item.admin-meeting-row-open:hover{background:rgba(200,164,78,0.08)}
+.admin-list-table tbody tr.admin-insights-row{cursor:pointer;-webkit-tap-highlight-color:transparent}
+.admin-list-table tbody tr.admin-insights-row:hover{background:rgba(255,255,255,0.035)}
 #tab-workouts .admin-list-table tbody td.admin-workout-cell-user,
 #tab-workouts .admin-list-table tbody td.admin-workout-cell-workout{max-width:min(220px,40vw);word-break:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:10px;padding-bottom:10px}
 #tab-workouts .admin-list-table tbody td.admin-workout-cell-date{white-space:nowrap;word-break:normal;padding-top:10px;padding-bottom:10px;color:var(--creamd)}
@@ -3397,6 +3403,15 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB: Messages & Meetings (minimal: Chat + Meetings) -->
     <div class="admin-tab-content" id="tab-messages-meetings">
+      <!-- 0. One-off contact messages (Contact Us form) -->
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Contact messages</h3>
+        <p class="form-hint" style="margin-bottom:12px">Tap a row to read the full message.</p>
+        <div class="admin-table-wrap"><table class="admin-table admin-list-table">
+          <thead><tr><th>From</th><th>Email</th><th>Preview</th><th>Date</th><th style="text-align:right;width:88px">Actions</th></tr></thead>
+          <tbody id="messagesBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
+        </table></div>
+      </div>
       <!-- 1. Chat (WhatsApp style): click user → open conversation, reply -->
       <div class="admin-subsection-wrap">
         <h3 class="admin-subsection-title">Chat</h3>
@@ -4157,6 +4172,22 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   </div>
 </div>
 
+<div class="modal-overlay view-detail-modal" id="adminContactViewModal" onclick="if(event.target===this)closeModal('adminContactViewModal')">
+  <div class="modal" style="max-width:560px">
+    <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('adminContactViewModal')" aria-label="Close">×</button>
+    <h2 class="sunday-checkin-title">Contact message</h2>
+    <div class="view-detail-body" id="adminContactViewBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay view-detail-modal" id="adminMeetingViewModal" onclick="if(event.target===this)closeModal('adminMeetingViewModal')">
+  <div class="modal" style="max-width:520px">
+    <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('adminMeetingViewModal')" aria-label="Close">×</button>
+    <h2 class="sunday-checkin-title">Meeting</h2>
+    <div class="view-detail-body" id="adminMeetingViewBody"></div>
+  </div>
+</div>
+
 <!-- USER: Elite card modal -->
 <div class="modal-overlay view-detail-modal" id="eliteCardModal" onclick="if(event.target===this)closeModal('eliteCardModal')">
   <div class="modal elite-card-modal" style="max-width:480px">
@@ -4865,7 +4896,7 @@ async function submitAudit(form) {
 
 // ========== ADMIN DASHBOARD ==========
 async function loadDashboard() {
-  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
+  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadAdminMessages(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
   if (typeof requestNotificationPermission === 'function') setTimeout(requestNotificationPermission, 500);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
@@ -5406,6 +5437,81 @@ function clearAdminFormFilters(which) {
   });
   if (typeof m.load === 'function') m.load();
 }
+
+function adminAttrId(id) {
+  if (id == null || id === '') return '';
+  return String(id).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+function ensureAdminPanelRowOpenDelegation() {
+  var root = document.getElementById('adminPanel');
+  if (!root || root._adminRowOpenDelegation) return;
+  root._adminRowOpenDelegation = true;
+  root.addEventListener('click', function(e) {
+    var meetDiv = e.target.closest && e.target.closest('.admin-meeting-item.admin-meeting-row-open[data-open-id]');
+    if (meetDiv) {
+      var mid = meetDiv.getAttribute('data-open-id');
+      if (mid) { viewAdminMeeting(mid); }
+      return;
+    }
+    var insTr = e.target.closest && e.target.closest('tr.admin-insights-row[data-insight-source][data-insight-id]');
+    if (insTr) {
+      var b = e.target.closest('button');
+      if (b) return;
+      var src = insTr.getAttribute('data-insight-source') || '';
+      var iid = insTr.getAttribute('data-insight-id') || '';
+      if (!src || !iid) return;
+      if (src === 'workouts') viewAdminWorkout(iid);
+      else if (src === 'sunday_checkin') viewSundayCheckin(iid);
+      else if (src === 'audit') viewRequest(iid);
+      else if (src === 'part2') viewPart2Submission(iid);
+      else if (src === 'meetings') viewAdminMeeting(iid);
+      else if (src === 'messages') viewAdminContactMessage(iid);
+      return;
+    }
+    var btn = e.target.closest && e.target.closest('button');
+    if (btn && !btn.classList.contains('btn-view')) return;
+    if (btn && btn.classList.contains('btn-view')) return;
+    var tr = e.target.closest && e.target.closest('tr[data-open-kind][data-open-id]');
+    if (!tr) return;
+    var kind = tr.getAttribute('data-open-kind') || '';
+    var oid = tr.getAttribute('data-open-id') || '';
+    if (!kind || !oid) return;
+    if (kind === 'audit') viewRequest(oid);
+    else if (kind === 'signup') viewSignupRequest(oid);
+    else if (kind === 'sunday') viewSundayCheckin(oid);
+    else if (kind === 'daily') viewDailyCheckin(oid);
+    else if (kind === 'workout') viewAdminWorkout(oid);
+    else if (kind === 'part2') viewPart2Submission(oid);
+    else if (kind === 'contact') viewAdminContactMessage(oid);
+  });
+}
+ensureAdminPanelRowOpenDelegation();
+
+async function viewAdminContactMessage(id) {
+  if (!id) return;
+  var r = await apiCall('GET', '/api/admin/contact-messages/' + encodeURIComponent(id));
+  if (r && r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
+  var body = document.getElementById('adminContactViewBody');
+  if (!body) return;
+  body.innerHTML = _row('Name', r.name) + _row('Email', r.email) + _row('Phone', r.phone) +
+    _rowBlock('Message', r.message) +
+    _row('Received', r.created_at ? new Date(r.created_at).toLocaleString() : '');
+  openModal('adminContactViewModal');
+}
+
+async function viewAdminMeeting(id) {
+  if (!id) return;
+  var r = await apiCall('GET', '/api/admin/meetings/' + encodeURIComponent(id));
+  if (r && r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
+  var body = document.getElementById('adminMeetingViewBody');
+  if (!body) return;
+  body.innerHTML = _row('Client', (r.user_name || r.user_email || '—')) + _row('Email', r.user_email) + _row('Phone', r.user_phone) +
+    _row('Date', r.meeting_date || '—') + _row('Time', r.time_slot || '—') + _row('Status', r.status || '—') +
+    _row('Booked', r.created_at ? new Date(r.created_at).toLocaleString() : '');
+  openModal('adminMeetingViewModal');
+}
+
 async function loadRequests() {
   const tbody = document.getElementById('requestsBody');
   if (!tbody) return;
@@ -5424,14 +5530,15 @@ async function loadRequests() {
   }
   tbody.innerHTML = data.map(r => {
     const sid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    return `<tr data-id="${escapeHtml(r.id||'')}">
+    const aid = adminAttrId(r.id || '');
+    return `<tr class="admin-row-clickable" data-open-kind="audit" data-open-id="${aid}" data-id="${escapeHtml(r.id||'')}">
       <td data-label="Name">${escapeHtml((r.first_name||'') + ' ' + (r.last_name||''))}</td>
       <td data-label="Email">${escapeHtml(r.email||'')}</td>
       <td data-label="Age">${r.age || '-'}</td>
       <td data-label="City">${escapeHtml(r.city||'')}</td>
       <td data-label="Actions" class="btn-view-cell">
-        <button class="action-btn btn-view" onclick="viewRequest('${sid}')">View</button>
-        <button class="action-btn btn-reject" onclick="removeAuditRequest('${sid}')">Remove</button>
+        <button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewRequest('${sid}')">View</button>
+        <button type="button" class="action-btn btn-reject" onclick="event.stopPropagation();removeAuditRequest('${sid}')">Remove</button>
       </td>
     </tr>`;
   }).join('');
@@ -5509,7 +5616,8 @@ async function loadPendingSignups() {
     const name = (u.first_name || '') + ' ' + (u.last_name || '').trim() || '-';
     const date = u.created_at ? new Date(u.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-';
     const id = String(u.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    return '<tr><td data-label="Name">' + escapeHtml(name) + '</td><td data-label="Email">' + escapeHtml(u.email || '-') + '</td><td data-label="Signed up">' + date + '</td><td data-label="Actions"><button class="action-btn btn-view" onclick="viewSignupRequest(\'' + id + '\')">View</button> <button class="action-btn btn-approve" onclick="approveUser(\'' + id + '\')">Approve</button> <button class="action-btn btn-reject" onclick="rejectUser(\'' + id + '\')">Reject</button></td></tr>';
+    var oid = adminAttrId(u.id || '');
+    return '<tr class="admin-row-clickable" data-open-kind="signup" data-open-id="' + oid + '"><td data-label="Name">' + escapeHtml(name) + '</td><td data-label="Email">' + escapeHtml(u.email || '-') + '</td><td data-label="Signed up">' + date + '</td><td data-label="Actions"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewSignupRequest(\'' + id + '\')">View</button> <button type="button" class="action-btn btn-approve" onclick="event.stopPropagation();approveUser(\'' + id + '\')">Approve</button> <button type="button" class="action-btn btn-reject" onclick="event.stopPropagation();rejectUser(\'' + id + '\')">Reject</button></td></tr>';
   }).join('');
 }
 
@@ -5575,7 +5683,8 @@ async function loadSundayCheckins() {
     var date = r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-';
     var id = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     var dispName = (r.full_name || '').trim() || [r.first_name, r.last_name].filter(Boolean).join(' ') || '—';
-    return '<tr><td data-label="Name">' + escapeHtml(dispName) + '</td><td data-label="Reply Email">' + escapeHtml(r.reply_email || '-') + '</td><td data-label="Submitted">' + date + '</td><td data-label="Actions" class="btn-view-cell"><button class="action-btn btn-view" onclick="viewSundayCheckin(\'' + id + '\')">View</button></td></tr>';
+    var oid = adminAttrId(r.id || '');
+    return '<tr class="admin-row-clickable" data-open-kind="sunday" data-open-id="' + oid + '"><td data-label="Name">' + escapeHtml(dispName) + '</td><td data-label="Reply Email">' + escapeHtml(r.reply_email || '-') + '</td><td data-label="Submitted">' + date + '</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewSundayCheckin(\'' + id + '\')">View</button></td></tr>';
   }).join('');
 }
 
@@ -5633,7 +5742,8 @@ async function loadDailyCheckins() {
     var date = r.checkin_date ? new Date(r.checkin_date).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '—';
     var id = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     var name = ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || '—';
-    return '<tr><td data-label="Name">' + escapeHtml(name) + '</td><td data-label="Email">' + escapeHtml(r.email || '—') + '</td><td data-label="Date">' + escapeHtml(date) + '</td><td data-label="Actions" class="btn-view-cell"><button class="action-btn btn-view" onclick="viewDailyCheckin(\'' + id + '\')">View</button></td></tr>';
+    var oid = adminAttrId(r.id || '');
+    return '<tr class="admin-row-clickable" data-open-kind="daily" data-open-id="' + oid + '"><td data-label="Name">' + escapeHtml(name) + '</td><td data-label="Email">' + escapeHtml(r.email || '—') + '</td><td data-label="Date">' + escapeHtml(date) + '</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewDailyCheckin(\'' + id + '\')">View</button></td></tr>';
   }).join('');
 }
 
@@ -5728,7 +5838,8 @@ async function loadAdminWorkouts() {
     var wo = (w.workout_name || '—').trim();
     var d = w.created_at ? new Date(w.created_at) : null;
     var dateStr = d ? d.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', year: 'numeric' }) : '—';
-    return '<tr><td class="admin-workout-cell-user" data-label="User" title="' + escapeHtml(user) + '">' + escapeHtml(user) + '</td><td class="admin-workout-cell-workout" data-label="Workout" title="' + escapeHtml(wo) + '">' + escapeHtml(wo) + '</td><td class="admin-workout-cell-date" data-label="Date">' + escapeHtml(dateStr) + '</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="viewAdminWorkout(\'' + id + '\')">View</button></td></tr>';
+    var oid = adminAttrId(w.id || '');
+    return '<tr class="admin-row-clickable" data-open-kind="workout" data-open-id="' + oid + '"><td class="admin-workout-cell-user" data-label="User" title="' + escapeHtml(user) + '">' + escapeHtml(user) + '</td><td class="admin-workout-cell-workout" data-label="Workout" title="' + escapeHtml(wo) + '">' + escapeHtml(wo) + '</td><td class="admin-workout-cell-date" data-label="Date">' + escapeHtml(dateStr) + '</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewAdminWorkout(\'' + id + '\')">View</button></td></tr>';
   }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
 }
 
@@ -5776,7 +5887,8 @@ async function loadPart2Submissions() {
     tbody.innerHTML = p2list.map(r => {
       const dt = r.created_at ? new Date(r.created_at).toLocaleDateString(undefined, { dateStyle: 'short' }) : '-';
       const pid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      return `<tr data-id="${escapeHtml(r.id||'')}"><td data-label="Name">${escapeHtml(r.name || '-')}</td><td data-label="Email">${escapeHtml(r.email || '-')}</td><td data-label="Date">${dt}</td><td data-label="Actions" class="btn-view-cell"><button class="action-btn btn-view" onclick="viewPart2Submission('${pid}')">View</button></td></tr>`;
+      var oid = adminAttrId(r.id || '');
+      return `<tr class="admin-row-clickable" data-open-kind="part2" data-open-id="${oid}" data-id="${escapeHtml(r.id||'')}"><td data-label="Name">${escapeHtml(r.name || '-')}</td><td data-label="Email">${escapeHtml(r.email || '-')}</td><td data-label="Date">${dt}</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewPart2Submission('${pid}')">View</button></td></tr>`;
     }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No Part-2 submissions match your filters.</td></tr>';
   } catch (e) { const tbody = document.getElementById('part2Body'); if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050">Failed to load.</td></tr>'; }
 }
@@ -5859,8 +5971,10 @@ async function loadAdminMessages() {
   tbody.innerHTML = list.length ? list.map(m => {
     const date = m.created_at ? new Date(m.created_at).toLocaleString() : '-';
     const msg = (m.message || '').slice(0, 80) + ((m.message || '').length > 80 ? '…' : '');
-    return '<tr><td data-label="From">' + escapeHtml(m.name||'-') + '</td><td data-label="Email">' + escapeHtml(m.email||'-') + '</td><td data-label="Message">' + escapeHtml(msg) + '</td><td data-label="Date">' + escapeHtml(date) + '</td></tr>';
-  }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No messages from users yet</td></tr>';
+    var mid = String(m.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    var oid = adminAttrId(m.id || '');
+    return '<tr class="admin-row-clickable" data-open-kind="contact" data-open-id="' + oid + '"><td data-label="From">' + escapeHtml(m.name||'-') + '</td><td data-label="Email">' + escapeHtml(m.email||'-') + '</td><td data-label="Message">' + escapeHtml(msg) + '</td><td data-label="Date">' + escapeHtml(date) + '</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewAdminContactMessage(\'' + mid + '\')">View</button></td></tr>';
+  }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No messages from users yet</td></tr>';
 }
 
 async function loadAdminMeetings() {
@@ -5874,7 +5988,8 @@ async function loadAdminMeetings() {
     el.innerHTML = list.map(m => {
       const date = m.meeting_date ? new Date(m.meeting_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '';
       const time = m.time_slot || '';
-      return '<div class="admin-meeting-item"><div class="admin-meeting-info"><div class="admin-meeting-client">' + escapeHtml(m.user_name || m.user_email || '—') + '</div><div class="admin-meeting-datetime">' + escapeHtml(date + (time ? ' · ' + time : '')) + '</div></div></div>';
+      var oid = adminAttrId(m.id || '');
+      return '<div class="admin-meeting-item admin-meeting-row-open" data-open-id="' + oid + '"><div class="admin-meeting-info"><div class="admin-meeting-client">' + escapeHtml(m.user_name || m.user_email || '—') + '</div><div class="admin-meeting-datetime">' + escapeHtml(date + (time ? ' · ' + time : '')) + '</div></div></div>';
     }).join('');
   } catch (e) { el.innerHTML = '<p class="form-hint" style="margin:0;padding:24px;color:#e05050">Failed to load meetings.</p>'; }
 }
@@ -5938,7 +6053,9 @@ async function loadPerformanceInsights() {
     tbodyEl.innerHTML = data.length ? data.map(r => {
       const type = typeLabels[r._source] || r._source || '—';
       const dt = (r._date || r.created_at) ? new Date(r._date || r.created_at).toLocaleString() : '—';
-      return '<tr><td data-label="Type">' + type + '</td><td data-label="Details">' + (detail(r) || '—') + '</td><td data-label="Date">' + dt + '</td></tr>';
+      var cells = '<td data-label="Type">' + escapeHtml(type) + '</td><td data-label="Details">' + escapeHtml(detail(r) || '—') + '</td><td data-label="Date">' + escapeHtml(dt) + '</td>';
+      if (!r.id || !r._source) return '<tr>' + cells + '</tr>';
+      return '<tr class="admin-insights-row" data-insight-source="' + escapeHtml(r._source) + '" data-insight-id="' + adminAttrId(r.id) + '">' + cells + '</tr>';
     }).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">No data for the selected filters.</td></tr>';
   } else {
     if (source === 'workouts' && theadEl) theadEl.innerHTML = '<tr><th>User</th><th>Workout</th><th>Duration</th><th>Date</th></tr>';
@@ -5947,12 +6064,37 @@ async function loadPerformanceInsights() {
     else if (source === 'part2' && theadEl) theadEl.innerHTML = '<tr><th>Name</th><th>Email</th><th>Activity</th><th>Date</th></tr>';
     else if (source === 'meetings' && theadEl) theadEl.innerHTML = '<tr><th>User</th><th>Email</th><th>Date</th><th>Time</th></tr>';
     else if (source === 'messages' && theadEl) theadEl.innerHTML = '<tr><th>Name</th><th>Email</th><th>Message</th><th>Date</th></tr>';
-    if (source === 'workouts') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="User">' + ((r.first_name||'')+' '+(r.last_name||'')).trim() + '</td><td data-label="Workout">' + (r.workout_name||'-') + '</td><td data-label="Duration">' + (r.duration_seconds != null ? Math.round(r.duration_seconds/60)+' min' : '-') + '</td><td data-label="Date">' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'sunday_checkin') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="Name">' + (r.full_name||'-') + '</td><td data-label="Reply Email">' + (r.reply_email||'-') + '</td><td data-label="Plan">' + (r.plan||'-') + '</td><td data-label="Date">' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'audit') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="Name">' + (r.first_name||'') + ' ' + (r.last_name||'') + '</td><td data-label="Email">' + (r.email||'-') + '</td><td data-label="City">' + (r.city||'-') + '</td><td data-label="Goals">' + (r.goals||'-').substring(0,50) + '</td><td data-label="Date">' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'part2') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="Name">' + (r.name||'-') + '</td><td data-label="Email">' + (r.email||'-') + '</td><td data-label="Activity">' + (r.activity_level||'-') + '</td><td data-label="Date">' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'meetings') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="User">' + (r.user_name||'-') + '</td><td data-label="Email">' + (r.user_email||'-') + '</td><td data-label="Date">' + (r.meeting_date||'-') + '</td><td data-label="Time">' + (r.time_slot||'-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
-    else if (source === 'messages') tbodyEl.innerHTML = data.length ? data.map(r => '<tr><td data-label="Name">' + (r.name||'-') + '</td><td data-label="Email">' + (r.email||'-') + '</td><td data-label="Message">' + ((r.message||'').substring(0,80) + ((r.message||'').length>80?'…':'')) + '</td><td data-label="Date">' + (r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td></tr>').join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    if (source === 'workouts') tbodyEl.innerHTML = data.length ? data.map(r => {
+      var cells = '<td data-label="User">' + escapeHtml(((r.first_name||'')+' '+(r.last_name||'')).trim()) + '</td><td data-label="Workout">' + escapeHtml(r.workout_name||'-') + '</td><td data-label="Duration">' + escapeHtml(r.duration_seconds != null ? Math.round(r.duration_seconds/60)+' min' : '-') + '</td><td data-label="Date">' + escapeHtml(r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td>';
+      if (!r.id) return '<tr>' + cells + '</tr>';
+      return '<tr class="admin-insights-row" data-insight-source="workouts" data-insight-id="' + adminAttrId(r.id) + '">' + cells + '</tr>';
+    }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    else if (source === 'sunday_checkin') tbodyEl.innerHTML = data.length ? data.map(r => {
+      var cells = '<td data-label="Name">' + escapeHtml(r.full_name||'-') + '</td><td data-label="Reply Email">' + escapeHtml(r.reply_email||'-') + '</td><td data-label="Plan">' + escapeHtml(r.plan||'-') + '</td><td data-label="Date">' + escapeHtml(r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td>';
+      if (!r.id) return '<tr>' + cells + '</tr>';
+      return '<tr class="admin-insights-row" data-insight-source="sunday_checkin" data-insight-id="' + adminAttrId(r.id) + '">' + cells + '</tr>';
+    }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    else if (source === 'audit') tbodyEl.innerHTML = data.length ? data.map(r => {
+      var cells = '<td data-label="Name">' + escapeHtml((r.first_name||'') + ' ' + (r.last_name||'')) + '</td><td data-label="Email">' + escapeHtml(r.email||'-') + '</td><td data-label="City">' + escapeHtml(r.city||'-') + '</td><td data-label="Goals">' + escapeHtml((r.goals||'-').substring(0,50)) + '</td><td data-label="Date">' + escapeHtml(r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td>';
+      if (!r.id) return '<tr>' + cells + '</tr>';
+      return '<tr class="admin-insights-row" data-insight-source="audit" data-insight-id="' + adminAttrId(r.id) + '">' + cells + '</tr>';
+    }).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    else if (source === 'part2') tbodyEl.innerHTML = data.length ? data.map(r => {
+      var cells = '<td data-label="Name">' + escapeHtml(r.name||'-') + '</td><td data-label="Email">' + escapeHtml(r.email||'-') + '</td><td data-label="Activity">' + escapeHtml(r.activity_level||'-') + '</td><td data-label="Date">' + escapeHtml(r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td>';
+      if (!r.id) return '<tr>' + cells + '</tr>';
+      return '<tr class="admin-insights-row" data-insight-source="part2" data-insight-id="' + adminAttrId(r.id) + '">' + cells + '</tr>';
+    }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    else if (source === 'meetings') tbodyEl.innerHTML = data.length ? data.map(r => {
+      var cells = '<td data-label="User">' + escapeHtml(r.user_name||'-') + '</td><td data-label="Email">' + escapeHtml(r.user_email||'-') + '</td><td data-label="Date">' + escapeHtml(r.meeting_date||'-') + '</td><td data-label="Time">' + escapeHtml(r.time_slot||'-') + '</td>';
+      if (!r.id) return '<tr>' + cells + '</tr>';
+      return '<tr class="admin-insights-row" data-insight-source="meetings" data-insight-id="' + adminAttrId(r.id) + '">' + cells + '</tr>';
+    }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
+    else if (source === 'messages') tbodyEl.innerHTML = data.length ? data.map(r => {
+      var prev = (r.message||'').substring(0,80) + ((r.message||'').length>80?'…':'');
+      var cells = '<td data-label="Name">' + escapeHtml(r.name||'-') + '</td><td data-label="Email">' + escapeHtml(r.email||'-') + '</td><td data-label="Message">' + escapeHtml(prev) + '</td><td data-label="Date">' + escapeHtml(r.created_at ? new Date(r.created_at).toLocaleString() : '-') + '</td>';
+      if (!r.id) return '<tr>' + cells + '</tr>';
+      return '<tr class="admin-insights-row" data-insight-source="messages" data-insight-id="' + adminAttrId(r.id) + '">' + cells + '</tr>';
+    }).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
     else tbodyEl.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--muted);padding:24px">No data.</td></tr>';
   }
 }
@@ -6544,7 +6686,7 @@ function switchTab(tab) {
   var adminWrap = document.querySelector('.admin-tab-content-wrap');
   if (adminWrap) adminWrap.scrollTop = 0;
   window.scrollTo(0, 0);
-  if (tab === 'messages-meetings') { loadAdminMeetings(); loadAdminThreads(); loadMeetingUserDropdown(); }
+  if (tab === 'messages-meetings') { loadAdminMessages(); loadAdminMeetings(); loadAdminThreads(); loadMeetingUserDropdown(); }
   if (tab === 'workouts') loadAdminWorkouts();
   if (tab === 'requests') loadRequests();
   if (tab === 'signups') loadPendingSignups();
