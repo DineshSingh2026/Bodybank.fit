@@ -941,6 +941,143 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-la-tag.unread{color:#ec4899;background:rgba(236,72,153,0.15)}
 .admin-la-tag.pending{color:#f59e0b;background:rgba(245,158,11,0.15)}
 .admin-la-loading{color:var(--muted);font-size:14px;padding:20px 0}
+
+/* Mobile Admin Attention Cards (luxury layout) */
+.admin-attention-card{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(200,164,78,0.18);
+  border-radius:14px;
+  padding:14px 14px;
+  margin-bottom:12px;
+  cursor:pointer;
+  transition:all .2s ease;
+  box-shadow:0 10px 30px rgba(0,0,0,0.25);
+  user-select:none;
+}
+.admin-attention-card:last-child{margin-bottom:0}
+.admin-attention-card:hover{
+  transform:translateY(-1px);
+  background:rgba(200,164,78,0.06);
+  border-color:rgba(200,164,78,0.45);
+}
+.admin-attention-card:focus{outline:none}
+.admin-attention-card-top{display:flex;align-items:flex-start;gap:12px}
+.admin-attention-avatar{
+  width:38px;height:38px;border-radius:50%;
+  background:rgba(200,164,78,0.12);
+  border:1px solid rgba(200,164,78,0.22);
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+  font-family:'Bebas Neue',sans-serif;
+  font-size:14px;
+  letter-spacing:1px;
+  font-weight:700;
+  color:var(--gold);
+}
+.admin-attention-head{flex:1;min-width:0}
+.admin-attention-name{font-size:14px;font-weight:800;color:var(--cream);line-height:1.25}
+.admin-attention-sub{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.35}
+.admin-attention-metrics{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+.admin-attention-kpi{
+  background:rgba(0,0,0,0.18);
+  border:1px solid rgba(200,164,78,0.14);
+  border-radius:12px;
+  padding:10px 12px;
+}
+.admin-attention-kpi .kpi-lbl{
+  font-size:10px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--creamd);
+  opacity:.9;
+  margin-bottom:6px;
+}
+.admin-attention-kpi .kpi-val{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:20px;
+  font-weight:800;
+  color:var(--cream);
+  line-height:1.05;
+}
+.admin-attention-kpi .kpi-sub{
+  margin-top:5px;
+  font-size:11px;
+  color:var(--muted);
+}
+.admin-attention-footer-hint{
+  margin-top:10px;
+  font-size:11px;
+  color:var(--muted);
+  opacity:.85;
+  letter-spacing:.4px;
+}
+
+.admin-attention-card--p0{
+  border-color:rgba(239,68,68,0.45);
+  box-shadow:0 12px 34px rgba(239,68,68,0.12);
+}
+.admin-attention-card--p0:hover{
+  background:rgba(239,68,68,0.07);
+  border-color:rgba(239,68,68,0.7);
+}
+.admin-attention-card--p1{
+  border-color:rgba(250,204,21,0.45);
+  box-shadow:0 12px 34px rgba(250,204,21,0.10);
+}
+.admin-attention-card--p1:hover{
+  background:rgba(250,204,21,0.06);
+  border-color:rgba(250,204,21,0.7);
+}
+
+/* Modal metrics layout */
+.admin-attn-modal-top{display:flex;align-items:flex-start;gap:12px}
+.admin-attn-modal-name{font-size:16px;font-weight:900;color:var(--cream);line-height:1.25}
+.admin-attn-modal-sub{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.4;max-width:90%}
+.admin-attn-modal-tag{flex-shrink:0;margin-top:2px}
+.admin-attn-modal-metrics{margin-top:14px;display:flex;flex-direction:column;gap:12px}
+.admin-attn-modal-kpi{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(200,164,78,0.18);
+  border-radius:12px;
+  padding:12px 14px;
+}
+.admin-attn-modal-kpi .kpi-lbl{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--creamd);opacity:.9;margin-bottom:6px}
+.admin-attn-modal-kpi .kpi-val{font-family:'Bebas Neue',sans-serif;font-size:22px;font-weight:900;color:var(--cream);line-height:1.05}
+.admin-attn-modal-kpi .kpi-sub{margin-top:6px;font-size:11px;color:var(--muted)}
+.admin-attn-modal-note{
+  margin-top:16px;
+  font-size:12px;
+  color:var(--muted);
+  line-height:1.5;
+  padding:12px 14px;
+  border:1px solid rgba(200,164,78,0.14);
+  border-radius:12px;
+  background:rgba(0,0,0,0.18);
+}
+
+/* Severity badges: red=P0, yellow=P1 (attention only) */
+.admin-attn-sev-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:4px 10px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:0.6px;
+  text-transform:uppercase;
+  border:1px solid rgba(255,255,255,0.12);
+}
+.admin-attn-sev-badge--p0{
+  color:#fff;
+  background:rgba(239,68,68,0.14);
+  border-color:rgba(239,68,68,0.48);
+}
+.admin-attn-sev-badge--p1{
+  color:#111827;
+  background:rgba(250,204,21,0.16);
+  border-color:rgba(250,204,21,0.52);
+}
 @media(max-width:480px){
   .admin-summary-num{font-size:24px}
   .admin-qa-btn{padding:14px 8px;font-size:10px}
@@ -4212,6 +4349,16 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   </div>
 </div>
 
+<!-- ADMIN: Attention Client View Modal -->
+<div class="modal-overlay view-detail-modal" id="adminAttentionClientViewModal" onclick="if(event.target===this)closeModal('adminAttentionClientViewModal')">
+  <div class="modal" style="max-width:600px">
+    <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('adminAttentionClientViewModal')" aria-label="Close">×</button>
+    <h2 class="sunday-checkin-title" id="adminAttentionClientViewTitle">Client Attention Details</h2>
+    <div class="view-detail-body" id="adminAttentionClientViewBody"></div>
+    <div class="view-detail-actions" id="adminAttentionClientViewActions"></div>
+  </div>
+</div>
+
 <!-- USER: Elite card modal -->
 <div class="modal-overlay view-detail-modal" id="eliteCardModal" onclick="if(event.target===this)closeModal('eliteCardModal')">
   <div class="modal elite-card-modal" style="max-width:480px">
@@ -5468,63 +5615,173 @@ async function bbRefreshMobileAdminRiskList() {
   listEl.innerHTML = '<p class="admin-la-loading">Loading…</p>';
 
   try {
-    var tribe = await apiCall('GET', '/api/tribe');
-    var members = Array.isArray(tribe) ? tribe.slice() : [];
-    var todayStr = new Date().toISOString().slice(0, 10);
-    var todayDt = new Date(todayStr + 'T00:00:00Z');
-
-    function inactiveDaysFor(m) {
-      var last = m.last_checkin_date ? String(m.last_checkin_date).slice(0, 10) : '';
-      if (last) return Math.floor((todayDt - new Date(last + 'T00:00:00Z')) / (24 * 60 * 60 * 1000));
-      var created = m.user_created_at || m.start_date || m.created_at || null;
-      if (!created) return null;
-      var cd = String(created).slice(0, 10);
-      return Math.floor((todayDt - new Date(cd + 'T00:00:00Z')) / (24 * 60 * 60 * 1000));
-    }
-
-    function sevFor(inactiveDays) {
-      if (inactiveDays == null) return null;
-      if (inactiveDays >= 5) return 'P0';
-      if (inactiveDays >= 2) return 'P1';
-      return null;
-    }
-
-    var scored = members
-      .map(function(m) {
-        var name = ((m.first_name || '') + ' ' + (m.last_name || '')).trim() || m.email || 'Unknown';
-        var days = inactiveDaysFor(m);
-        var sev = sevFor(days);
-        return { m: m, name: name, days: days, sev: sev };
-      })
-      .filter(function(x) { return !!x.sev && x.days != null; });
-
-    scored.sort(function(a, b) {
-      var pa = a.sev === 'P0' ? 0 : 1;
-      var pb = b.sev === 'P0' ? 0 : 1;
-      if (pa !== pb) return pa - pb;
-      return b.days - a.days;
+    var rows = await apiCall('GET', '/api/admin/attention-clients?limit=4');
+    var top = Array.isArray(rows) ? rows : [];
+    window._bbAttentionClientsCache = window._bbAttentionClientsCache || {};
+    // refresh cache to avoid stale values
+    window._bbAttentionClientsCache = {};
+    top.forEach(function(d) {
+      if (d && d.user_id) window._bbAttentionClientsCache[d.user_id] = d;
     });
 
-    var top = scored.slice(0, 4);
     if (!top.length) {
       listEl.innerHTML = '<p class="admin-la-loading" style="opacity:.9">No high risk clients right now.</p>';
       return;
     }
 
     listEl.innerHTML = top.map(function(x) {
-      var dotClass = x.sev === 'P0' ? 'red' : 'orange';
-      var tagText = x.sev === 'P0' ? 'P0 High' : 'P1 Attention';
-      var tagClass = x.sev === 'P0' ? 'unread' : 'pending';
-      return '<div class="admin-la-item">' +
-        '<span class="admin-la-dot ' + dotClass + '" aria-hidden="true"></span>' +
-        '<span class="admin-la-text">' + escapeHtml(x.name) + ' — ' + escapeHtml(String(x.days)) + ' days</span>' +
-        '<span class="admin-la-tag ' + tagClass + '">' + escapeHtml(tagText) + '</span>' +
+      var userId = String(x.user_id || '');
+      var name = x.name || 'Unknown';
+      var initials = name.split(' ').filter(Boolean).map(function(w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
+      var severity = x.severity === 'P0' ? 'P0 High' : 'P1 Attention';
+      var sevKey = x.severity === 'P0' ? 'p0' : 'p1';
+
+      var lastCheckin = x.last_checkin_date ? String(x.last_checkin_date).slice(0, 10) : '—';
+      var inactiveDays = x.inactive_days != null ? String(x.inactive_days) : '—';
+
+      var compCount = x.daily_checkins_count_7d != null ? Number(x.daily_checkins_count_7d) : 0;
+      var compPct = x.daily_checkins_pct_7d != null ? Math.round(Number(x.daily_checkins_pct_7d)) : 0;
+
+      var workoutsCount = x.workouts_count_7d != null ? Number(x.workouts_count_7d) : 0;
+      var lastWorkout = x.last_workout_date ? String(x.last_workout_date).slice(0, 10) : '—';
+
+      var sundayCount = x.sunday_checkins_count_14d != null ? Number(x.sunday_checkins_count_14d) : 0;
+      var lastSunday = x.last_sunday_checkin_date ? String(x.last_sunday_checkin_date).slice(0, 10) : '—';
+
+      return '<div class="admin-attention-card admin-attention-card--' + sevKey + '" role="button" tabindex="0" data-user-id="' + escapeHtml(userId) + '" onclick="viewAdminAttentionClientDetails(this.dataset.userId)">' +
+        '<div class="admin-attention-card-top">' +
+          '<div class="admin-attention-avatar" aria-hidden="true">' + escapeHtml(initials || 'BB') + '</div>' +
+          '<div class="admin-attention-head">' +
+            '<div class="admin-attention-name">' + escapeHtml(name) + '</div>' +
+            '<div class="admin-attention-sub">Last check-in: ' + escapeHtml(lastCheckin) + ' · Inactive: ' + escapeHtml(inactiveDays) + ' days</div>' +
+          '</div>' +
+          '<span class="admin-attn-sev-badge admin-attn-sev-badge--' + sevKey + '">' + escapeHtml(severity) + '</span>' +
+        '</div>' +
+
+        '<div class="admin-attention-metrics">' +
+          '<div class="admin-attention-kpi">' +
+            '<div class="kpi-lbl">7-Day Compliance</div>' +
+            '<div class="kpi-val">' + escapeHtml(String(compCount)) + '/7</div>' +
+            '<div class="kpi-sub">' + escapeHtml(String(compPct)) + '% daily check-in</div>' +
+          '</div>' +
+
+          '<div class="admin-attention-kpi">' +
+            '<div class="kpi-lbl">Workouts (7d)</div>' +
+            '<div class="kpi-val">' + escapeHtml(String(workoutsCount)) + '</div>' +
+            '<div class="kpi-sub">Last: ' + escapeHtml(lastWorkout) + '</div>' +
+          '</div>' +
+
+          '<div class="admin-attention-kpi">' +
+            '<div class="kpi-lbl">Sunday (14d)</div>' +
+            '<div class="kpi-val">' + escapeHtml(String(sundayCount)) + '</div>' +
+            '<div class="kpi-sub">Last: ' + escapeHtml(lastSunday) + '</div>' +
+          '</div>' +
+        '</div>' +
+
+        '<div class="admin-attention-footer-hint">Tap for full details</div>' +
       '</div>';
     }).join('');
   } catch (e) {
     listEl.innerHTML = '<p class="admin-la-loading">Could not load high risk list.</p>';
   }
 }
+
+function bbFmtYmdOrDash(s) {
+  if (!s) return '—';
+  var t = String(s).slice(0, 10);
+  try {
+    return new Date(t + 'T00:00:00Z').toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  } catch (_) {}
+  return t;
+}
+
+function viewAdminAttentionClientDetails(userId) {
+  var d = window._bbAttentionClientsCache ? window._bbAttentionClientsCache[userId] : null;
+  if (!d) {
+    showPopup('Error', 'Client details not available. Refresh admin attention list.', '', 'OK', null, 'error');
+    return;
+  }
+
+  var titleEl = document.getElementById('adminAttentionClientViewTitle');
+  var body = document.getElementById('adminAttentionClientViewBody');
+  var actions = document.getElementById('adminAttentionClientViewActions');
+  if (!body) return;
+
+  var sevText = d.severity === 'P0' ? 'P0 High' : 'P1 Attention';
+  var sevKey = d.severity === 'P0' ? 'p0' : 'p1';
+
+  var compCount = d.daily_checkins_count_7d != null ? Number(d.daily_checkins_count_7d) : 0;
+  var compPct = d.daily_checkins_pct_7d != null ? Math.round(Number(d.daily_checkins_pct_7d)) : 0;
+  var workoutsCount = d.workouts_count_7d != null ? Number(d.workouts_count_7d) : 0;
+  var lastWorkout = d.last_workout_date ? bbFmtYmdOrDash(d.last_workout_date) : '—';
+  var sundayCount = d.sunday_checkins_count_14d != null ? Number(d.sunday_checkins_count_14d) : 0;
+  var lastSunday = d.last_sunday_checkin_date ? bbFmtYmdOrDash(d.last_sunday_checkin_date) : '—';
+
+  var name = d.name || 'Client';
+  if (titleEl) titleEl.textContent = name + ' — ' + sevText;
+
+  body.innerHTML =
+    '<div class="admin-attn-modal-top">' +
+      '<div class="admin-attn-modal-name">' + escapeHtml(name) + '</div>' +
+      '<div class="admin-attn-modal-sub">Last check-in: ' + escapeHtml(bbFmtYmdOrDash(d.last_checkin_date)) + ' · Inactive: ' + escapeHtml(String(d.inactive_days)) + ' days</div>' +
+      '<div class="admin-attn-modal-tag"><span class="admin-attn-sev-badge admin-attn-sev-badge--' + sevKey + '">' + escapeHtml(sevText) + '</span></div>' +
+    '</div>' +
+    '<div class="admin-attn-modal-metrics">' +
+      '<div class="admin-attn-modal-kpi">' +
+        '<div class="kpi-lbl">7-Day Daily Check-in Compliance</div>' +
+        '<div class="kpi-val">' + escapeHtml(String(compCount)) + '/7</div>' +
+        '<div class="kpi-sub">' + escapeHtml(String(compPct)) + '%</div>' +
+      '</div>' +
+      '<div class="admin-attn-modal-kpi">' +
+        '<div class="kpi-lbl">Workouts Logged (7 days)</div>' +
+        '<div class="kpi-val">' + escapeHtml(String(workoutsCount)) + '</div>' +
+        '<div class="kpi-sub">Last workout: ' + escapeHtml(lastWorkout) + '</div>' +
+      '</div>' +
+      '<div class="admin-attn-modal-kpi">' +
+        '<div class="kpi-lbl">Sunday Check-ins (14 days)</div>' +
+        '<div class="kpi-val">' + escapeHtml(String(sundayCount)) + '</div>' +
+        '<div class="kpi-sub">Last Sunday: ' + escapeHtml(lastSunday) + '</div>' +
+      '</div>' +
+    '</div>' +
+    '<div class="admin-attn-modal-note">Jump into the exact admin lists below to act immediately.</div>';
+
+  if (actions) {
+    actions.innerHTML =
+      '<button type="button" class="action-btn btn-view" data-user-id="' + escapeHtml(String(userId || '')) + '" onclick="adminOpenDailyCheckinsForClient(this.dataset.userId)">Go to Daily Check-in</button>' +
+      '<button type="button" class="action-btn btn-view" data-user-id="' + escapeHtml(String(userId || '')) + '" onclick="adminOpenWorkoutsForClient(this.dataset.userId)">Go to Workouts</button>';
+  }
+
+  openModal('adminAttentionClientViewModal');
+}
+
+function adminOpenDailyCheckinsForClient(userId) {
+  var d = window._bbAttentionClientsCache ? window._bbAttentionClientsCache[userId] : null;
+  if (!d) return;
+  var search = d.email || d.name || '';
+  var se = document.getElementById('dcFilterSearch');
+  var fromEl = document.getElementById('dcFilterFrom');
+  var toEl = document.getElementById('dcFilterTo');
+  if (se) se.value = search;
+  if (fromEl) fromEl.value = '';
+  if (toEl) toEl.value = '';
+  closeModal('adminAttentionClientViewModal');
+  switchTab('dailycheckin');
+}
+
+function adminOpenWorkoutsForClient(userId) {
+  var d = window._bbAttentionClientsCache ? window._bbAttentionClientsCache[userId] : null;
+  if (!d) return;
+  var search = d.email || d.name || '';
+  var se = document.getElementById('woFilterSearch');
+  var fromEl = document.getElementById('woFilterFrom');
+  var toEl = document.getElementById('woFilterTo');
+  if (se) se.value = search;
+  if (fromEl) fromEl.value = '';
+  if (toEl) toEl.value = '';
+  closeModal('adminAttentionClientViewModal');
+  switchTab('workouts');
+}
+
 async function loadLiveActivity() {
   const listEl = document.getElementById('adminLiveActivityList');
   if (!listEl) return;

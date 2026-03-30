@@ -2630,6 +2630,94 @@ app.get('/api/admin/recent-activity', verifyToken, requireAdminOrSuperadmin, asy
   }
 });
 
+// ============ ADMIN: ATTNETION / HIGH RISK CLIENTS (mobile luxury cards) ============
+app.get('/api/admin/attention-clients', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rawLimit = req.query && req.query.limit ? parseInt(String(req.query.limit), 10) : 4;
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 1), 20) : 4;
+
+    // P1: inactive >= 2 days (no daily check-in), P0: inactive >= 5 days.
+    // Inactivity uses last daily_checkins.checkin_date; if none, falls back to users.created_at::date.
+    const rows = await queryAll(`
+      WITH last_checkin AS (
+        SELECT user_id, MAX(checkin_date)::date AS last_checkin_date
+        FROM daily_checkins
+        GROUP BY user_id
+      )
+      SELECT
+        u.id AS user_id,
+        u.email AS email,
+        TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) AS name,
+        lc.last_checkin_date::text AS last_checkin_date,
+        (CURRENT_DATE - COALESCE(lc.last_checkin_date, u.created_at::date))::int AS inactive_days,
+        CASE
+          WHEN (CURRENT_DATE - COALESCE(lc.last_checkin_date, u.created_at::date))::int >= 5 THEN 'P0'
+          WHEN (CURRENT_DATE - COALESCE(lc.last_checkin_date, u.created_at::date))::int >= 2 THEN 'P1'
+          ELSE NULL
+        END AS severity,
+
+        COALESCE(dc7.daily_checkins_count_7d, 0)::int AS daily_checkins_count_7d,
+        COALESCE(dc7.daily_checkins_pct_7d, 0)::float AS daily_checkins_pct_7d,
+
+        COALESCE(wl7.workouts_count_7d, 0)::int AS workouts_count_7d,
+        wl7.last_workout_date::text AS last_workout_date,
+
+        COALESCE(sc14.sunday_checkins_count_14d, 0)::int AS sunday_checkins_count_14d,
+        sc14.last_sunday_checkin_date::text AS last_sunday_checkin_date
+      FROM tribe_members tm
+      JOIN users u
+        ON LOWER(u.email) = LOWER(tm.email)
+      LEFT JOIN last_checkin lc
+        ON lc.user_id = u.id
+
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*)::int AS daily_checkins_count_7d,
+          (COUNT(*)::float * 100.0 / 7.0) AS daily_checkins_pct_7d
+        FROM daily_checkins dc
+        WHERE dc.user_id = u.id
+          AND dc.checkin_date >= (CURRENT_DATE - INTERVAL '6 days')::date
+      ) dc7 ON TRUE
+
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*)::int AS workouts_count_7d,
+          MAX(wl.created_at)::date AS last_workout_date
+        FROM workout_logs wl
+        WHERE wl.user_id = u.id
+          AND wl.created_at >= NOW() - INTERVAL '7 days'
+      ) wl7 ON TRUE
+
+      LEFT JOIN LATERAL (
+        SELECT
+          COUNT(*)::int AS sunday_checkins_count_14d,
+          MAX(sc.created_at)::date AS last_sunday_checkin_date
+        FROM sunday_checkins sc
+        WHERE sc.user_id = u.id
+          AND sc.created_at >= NOW() - INTERVAL '14 days'
+      ) sc14 ON TRUE
+
+      WHERE tm.status = 'active'
+        AND u.role = 'user'
+        AND COALESCE(u.approval_status, 'approved') = 'approved'
+        AND (CURRENT_DATE - COALESCE(lc.last_checkin_date, u.created_at::date))::int >= 2
+
+      ORDER BY
+        CASE
+          WHEN (CURRENT_DATE - COALESCE(lc.last_checkin_date, u.created_at::date))::int >= 5 THEN 0
+          ELSE 1
+        END ASC,
+        (CURRENT_DATE - COALESCE(lc.last_checkin_date, u.created_at::date))::int DESC
+      LIMIT ?
+    `, [limit]);
+
+    res.json(rows || []);
+  } catch (e) {
+    console.error('[attention-clients]', e.message);
+    res.status(500).json([]);
+  }
+});
+
 // ============ ADMIN: USERS LIST (for insights filter; exclude E2E test users) ============
 app.get('/api/admin/users', async (req, res) => {
   try {
