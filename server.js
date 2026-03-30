@@ -1259,6 +1259,7 @@ app.get('/api/tribe', async (req, res) => {
     SELECT
       tm.*,
       u.id AS user_id,
+      u.profile_picture AS profile_picture,
       u.email AS user_email,
       u.created_at AS user_created_at,
       (SELECT MAX(dc.checkin_date)::text
@@ -1418,7 +1419,7 @@ app.get('/api/threads', verifyToken, async (req, res) => {
       rows = await queryAll(
         `SELECT * FROM (
           SELECT DISTINCT ON (t.user_id) t.id, t.user_id, t.subject, t.created_at, t.updated_at,
-            u.first_name, u.last_name, u.email,
+            u.first_name, u.last_name, u.email, u.profile_picture,
             (SELECT body FROM thread_messages WHERE thread_id = t.id AND sender_role = 'user' ORDER BY created_at DESC LIMIT 1) AS last_message
           FROM message_threads t
           LEFT JOIN users u ON u.id = t.user_id
@@ -1491,7 +1492,7 @@ app.get('/api/threads/:id', verifyToken, async (req, res) => {
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
     if (!isAdmin && thread.user_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
     if (isAdmin) {
-      const user = await queryOne('SELECT id, first_name, last_name, email FROM users WHERE id = ?', [thread.user_id]);
+      const user = await queryOne('SELECT id, first_name, last_name, email, profile_picture FROM users WHERE id = ?', [thread.user_id]);
       thread.user = user || null;
     }
     res.json(thread);
@@ -2832,6 +2833,7 @@ app.get('/api/admin/attention-clients', verifyToken, requireAdminOrSuperadmin, a
       SELECT
         u.id AS user_id,
         u.email AS email,
+        u.profile_picture AS profile_picture,
         TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) AS name,
         lc.last_checkin_date::text AS last_checkin_date,
         (CURRENT_DATE - COALESCE(lc.last_checkin_date, u.created_at::date))::int AS inactive_days,

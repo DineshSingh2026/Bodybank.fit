@@ -1252,7 +1252,39 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   letter-spacing:1px;
   font-weight:700;
   color:var(--gold);
+  overflow:hidden;
+  position:relative;
+  padding:0;
 }
+.admin-attention-avatar .bb-admin-avatar{width:100%;height:100%;border:none;background:transparent;font-size:13px;}
+.admin-attn-modal-avatar-row{display:flex;align-items:center;gap:14px;margin-bottom:12px}
+.admin-attn-modal-avatar{width:52px;height:52px;border-radius:50%;overflow:hidden;flex-shrink:0;border:1px solid rgba(200,164,78,0.28);background:rgba(0,0,0,0.2);display:flex;align-items:center;justify-content:center}
+.admin-attn-modal-avatar .bb-admin-avatar{width:100%;height:100%;border:none;background:transparent;font-size:16px;}
+.admin-attn-modal-text{flex:1;min-width:0}
+
+/* Shared admin/user list avatars: photo or initials */
+.bb-admin-avatar{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:100%;height:100%;min-width:0;min-height:0;
+  border-radius:50%;overflow:hidden;position:relative;
+  box-sizing:border-box;
+}
+.bb-admin-avatar--initials{
+  font-family:'Bebas Neue',sans-serif;font-weight:700;letter-spacing:0.5px;
+}
+.bb-admin-avatar--pic{background:#0a0a0a;}
+.bb-admin-avatar-img{
+  position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;
+  display:block;z-index:1;
+}
+.bb-admin-avatar-img.bb-admin-avatar-img--err{display:none !important;}
+.bb-admin-avatar-fallback{
+  position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  font-family:'Bebas Neue',sans-serif;font-weight:700;font-size:inherit;letter-spacing:0.5px;
+  z-index:0;
+}
+.bb-admin-avatar--pic .bb-admin-avatar-fallback{font-size:11px;}
+.bb-admin-avatar--pic .bb-admin-avatar-img.bb-admin-avatar-img--err + .bb-admin-avatar-fallback{display:flex;}
 .admin-attention-head{flex:1;min-width:0}
 .admin-attention-name{font-size:13px;font-weight:900;color:var(--cream);line-height:1.25}
 .admin-attention-sub{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35}
@@ -1264,10 +1296,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   gap:8px;
 }
 .admin-attn-metric-row{
-  display:flex;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 4rem 3.25rem;
+  column-gap:10px;
   align-items:center;
-  justify-content:space-between;
-  gap:8px;
   padding:7px 10px;
   border:1px solid rgba(200,164,78,0.10);
   border-radius:10px;
@@ -1280,7 +1312,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   color:var(--creamd);
   opacity:.9;
   white-space:nowrap;
-  flex-shrink:0;
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  justify-self:start;
 }
 .admin-attn-metric-val{
   font-family:'Bebas Neue',sans-serif;
@@ -1290,14 +1325,19 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   line-height:1;
   margin:0;
   white-space:nowrap;
-  flex-shrink:0;
+  justify-self:stretch;
+  text-align:center;
+  width:100%;
+  font-variant-numeric:tabular-nums;
 }
 .admin-attn-metric-sub{
   font-size:10px;
   color:var(--muted);
   letter-spacing:.6px;
   white-space:nowrap;
-  flex-shrink:0;
+  justify-self:stretch;
+  text-align:right;
+  width:100%;
 }
 .admin-attention-footer-hint{
   margin-top:8px;
@@ -1705,7 +1745,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .tribe-card{padding:28px;background:var(--dark2);border:1px solid var(--bdr);border-radius:14px;transition:border-color .3s}
 .tribe-card:hover{border-color:rgba(200,164,78,0.4)}
 .tribe-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:16px}
-.tribe-avatar{width:48px;height:48px;border-radius:50%;background:var(--goldg);display:grid;place-items:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--black)}
+.tribe-avatar{width:48px;height:48px;border-radius:50%;background:var(--goldg);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--black);overflow:hidden;flex-shrink:0;position:relative}
+.tribe-avatar .bb-admin-avatar{width:100%;height:100%;border:none;background:transparent}
+.tribe-avatar .bb-admin-avatar--initials{color:var(--black)}
 .tribe-phase{padding:4px 10px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
 .phase-1{background:rgba(200,164,78,0.15);color:var(--gold)}
 .phase-2{background:rgba(80,200,120,0.15);color:#50c878}
@@ -2115,8 +2157,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .thread-msg{display:flex;align-items:flex-end;gap:10px;max-width:82%;animation:chatBubbleIn .25s ease-out}
 .thread-msg.user{align-self:flex-end;flex-direction:row-reverse}
 .thread-msg.admin{align-self:flex-start;flex-direction:row}
-.thread-msg-avatar{width:32px;height:32px;min-width:32px;min-height:32px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:700;color:var(--cream);background:rgba(255,255,255,0.08);border:1px solid var(--bdr)}
+.thread-msg-avatar{width:32px;height:32px;min-width:32px;min-height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--cream);background:rgba(255,255,255,0.08);border:1px solid var(--bdr);overflow:hidden;position:relative;flex-shrink:0}
 .thread-msg.user .thread-msg-avatar{background:linear-gradient(135deg,rgba(200,164,78,0.4),rgba(200,164,78,0.2));border-color:rgba(200,164,78,0.5);color:var(--gold)}
+.thread-msg-avatar .bb-admin-avatar{width:100%;height:100%;border:none;background:transparent;font-size:10px}
+.thread-msg.user .thread-msg-avatar .bb-admin-avatar--initials{color:var(--gold)}
 .thread-msg-bubble{position:relative;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.55;word-break:break-word;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
 .thread-msg.user .thread-msg-bubble{border-bottom-right-radius:4px;background:linear-gradient(135deg,rgba(200,164,78,0.28),rgba(200,164,78,0.12));border:1px solid rgba(200,164,78,0.45);color:var(--cream)}
 .thread-msg.admin .thread-msg-bubble{border-bottom-left-radius:4px;background:linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05));border:1px solid rgba(255,255,255,0.12);color:var(--cream)}
@@ -2147,7 +2191,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-chat-item{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);transition:background .2s;text-decoration:none;color:inherit}
 .admin-chat-item:last-child{border-bottom:none}
 .admin-chat-item:hover{background:rgba(200,164,78,0.08)}
-.admin-chat-avatar{width:48px;height:48px;min-width:48px;border-radius:50%;display:grid;place-items:center;font-size:16px;font-weight:600;color:var(--cream);background:rgba(200,164,78,0.25);border:1px solid rgba(200,164,78,0.4)}
+.admin-chat-avatar{width:48px;height:48px;min-width:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:var(--cream);background:rgba(200,164,78,0.25);border:1px solid rgba(200,164,78,0.4);overflow:hidden;position:relative;padding:0}
+.admin-chat-avatar .bb-admin-avatar{width:100%;height:100%;border:none;background:transparent;font-size:15px}
 .admin-chat-body{flex:1;min-width:0}
 .admin-chat-name{font-weight:600;color:var(--cream);font-size:15px;margin-bottom:2px}
 .admin-chat-preview{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -2639,7 +2684,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     display:flex;align-items:center;justify-content:center;
     font-size:12px;font-weight:700;color:var(--bb-text);
     flex-shrink:0;
+    overflow:hidden;
+    position:relative;
   }
+  .bb-client-table .client-avatar .bb-admin-avatar{width:100%;height:100%;border:none;background:transparent;font-size:11px}
 
   .bb-pill{
     display:inline-block;
@@ -4544,6 +4592,15 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <button type="button" class="form-submit" onclick="closeModal('scorecardBreakdownModal')" style="margin-top:16px">Done</button>
   </div>
 </div>
+<div class="modal-overlay" id="profilePhotoPromptModal" onclick="if(event.target===this)bbProfilePhotoPromptDismiss()">
+  <div class="modal login-modal" style="max-width:420px">
+    <button class="modal-close" onclick="bbProfilePhotoPromptDismiss()" type="button">&times;</button>
+    <h2 style="margin-top:0">Add your profile photo</h2>
+    <p class="form-hint" style="margin-bottom:18px;line-height:1.45">A clear photo helps your coach recognize you across the app. It only takes a moment.</p>
+    <button type="button" class="form-submit" onclick="bbProfilePhotoPromptGo()">Add photo</button>
+    <button type="button" class="form-submit" style="margin-top:12px;background:transparent;border:1px solid rgba(200,164,78,0.45);color:var(--cream);font-weight:600" onclick="bbProfilePhotoPromptDismiss()">Not now</button>
+  </div>
+</div>
 <div class="modal-overlay" id="leaderboardOptInModal" onclick="if(event.target===this)closeModal('leaderboardOptInModal')">
   <div class="modal login-modal modal-with-scroll" style="max-width:440px">
     <button class="modal-close" onclick="closeModal('leaderboardOptInModal')" type="button">&times;</button>
@@ -6012,7 +6069,6 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
   }
   var rows = members.map(function(m) {
     var name = ((m.first_name || '') + ' ' + (m.last_name || '')).trim() || m.email || 'Unknown';
-    var initials = name.split(' ').filter(Boolean).map(function(n) { return n[0]; }).join('').slice(0, 2).toUpperCase();
     var phase = m.phase != null ? String(m.phase) : '—';
     var statusRaw = (m.status || '').toString().toLowerCase();
     var status = statusRaw ? statusRaw : 'active';
@@ -6029,7 +6085,7 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
 
     return (
       '<tr>' +
-        '<td><div class="client-name"><div class="client-avatar">' + escapeHtml(initials) + '</div>' + escapeHtml(name) + '</div></td>' +
+        '<td><div class="client-name"><div class="client-avatar">' + bbAdminAvatarHtml(m.profile_picture, name) + '</div>' + escapeHtml(name) + '</div></td>' +
         '<td>' + escapeHtml(phase) + '</td>' +
         '<td><span class="bb-pill ' + progClass + '">' + escapeHtml(status) + '</span></td>' +
         '<td>' + escapeHtml(started) + '</td>' +
@@ -6063,7 +6119,6 @@ async function bbRefreshMobileAdminRiskList() {
     listEl.innerHTML = top.map(function(x) {
       var userId = String(x.user_id || '');
       var name = x.name || 'Unknown';
-      var initials = name.split(' ').filter(Boolean).map(function(w) { return w[0]; }).join('').slice(0, 2).toUpperCase();
       var severity = x.severity === 'P0' ? 'P0 High' : 'P1 Attention';
       var sevKey = x.severity === 'P0' ? 'p0' : 'p1';
 
@@ -6079,7 +6134,7 @@ async function bbRefreshMobileAdminRiskList() {
 
       return '<div class="admin-attention-card admin-attention-card--' + sevKey + '" role="button" tabindex="0" data-user-id="' + escapeHtml(userId) + '" onclick="viewAdminAttentionClientDetails(this.dataset.userId)">' +
         '<div class="admin-attention-card-top">' +
-          '<div class="admin-attention-avatar" aria-hidden="true">' + escapeHtml(initials || 'BB') + '</div>' +
+          '<div class="admin-attention-avatar" aria-hidden="true">' + bbAdminAvatarHtml(x.profile_picture, name) + '</div>' +
           '<div class="admin-attention-head">' +
             '<div class="admin-attention-name">' + escapeHtml(name) + '</div>' +
             '<div class="admin-attention-sub">Last check-in: ' + escapeHtml(lastCheckin) + ' · Inactive: ' + escapeHtml(inactiveDays) + ' days</div>' +
@@ -6148,10 +6203,13 @@ function viewAdminAttentionClientDetails(userId) {
   if (titleEl) titleEl.textContent = name + ' — ' + sevText;
 
   body.innerHTML =
-    '<div class="admin-attn-modal-top">' +
-      '<div class="admin-attn-modal-name">' + escapeHtml(name) + '</div>' +
-      '<div class="admin-attn-modal-sub">Last check-in: ' + escapeHtml(bbFmtYmdOrDash(d.last_checkin_date)) + ' · Inactive: ' + escapeHtml(String(d.inactive_days)) + ' days</div>' +
-      '<div class="admin-attn-modal-tag"><span class="admin-attn-sev-badge admin-attn-sev-badge--' + sevKey + '">' + escapeHtml(sevText) + '</span></div>' +
+    '<div class="admin-attn-modal-avatar-row">' +
+      '<div class="admin-attn-modal-avatar" aria-hidden="true">' + bbAdminAvatarHtml(d.profile_picture, name) + '</div>' +
+      '<div class="admin-attn-modal-text">' +
+        '<div class="admin-attn-modal-name">' + escapeHtml(name) + '</div>' +
+        '<div class="admin-attn-modal-sub">Last check-in: ' + escapeHtml(bbFmtYmdOrDash(d.last_checkin_date)) + ' · Inactive: ' + escapeHtml(String(d.inactive_days)) + ' days</div>' +
+        '<div class="admin-attn-modal-tag"><span class="admin-attn-sev-badge admin-attn-sev-badge--' + sevKey + '">' + escapeHtml(sevText) + '</span></div>' +
+      '</div>' +
     '</div>' +
     '<div class="admin-attn-modal-metrics">' +
       '<div class="admin-attn-modal-kpi">' +
@@ -6586,7 +6644,7 @@ async function loadTribe() {
   }
   
   grid.innerHTML = data.map(m => {
-    const initials = ((m.first_name||'')[0] || '') + ((m.last_name||'')[0] || '');
+    const dispName = ((m.first_name||'')+' '+(m.last_name||'')).trim() || '—';
     const phase = m.phase ?? 1;
     const phaseClass = 'phase-' + phase;
     const startDate = m.start_date ? new Date(m.start_date) : new Date();
@@ -6602,10 +6660,10 @@ async function loadTribe() {
     return `
       <div class="tribe-card">
         <div class="tribe-header">
-          <div class="tribe-avatar">${initials}</div>
+          <div class="tribe-avatar">${bbAdminAvatarHtml(m.profile_picture, dispName)}</div>
           <span class="tribe-phase ${phaseClass}">Phase ${phase}</span>
         </div>
-        <div class="tribe-name">${escapeHtml(((m.first_name||'')+' '+(m.last_name||'')).trim()) || '—'}</div>
+        <div class="tribe-name">${escapeHtml(dispName)}</div>
         <div class="tribe-meta">Joined ${weeksLabel} · ${escapeHtml(m.city || '') || 'Unknown'}</div>
         <div class="tribe-progress">
           <div class="tribe-progress-label"><span>Progress</span><span>${progress}%</span></div>
@@ -6700,6 +6758,21 @@ async function loadPart2Submissions() {
   } catch (e) { const tbody = document.getElementById('part2Body'); if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050">Failed to load.</td></tr>'; }
 }
 function escapeHtml(s) { if (s == null || s === '') return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+function bbUserInitialsFromDisplayName(name) {
+  var n = (name || '').trim();
+  if (!n) return '?';
+  return n.split(/\s+/).filter(Boolean).map(function(x) { return x[0]; }).join('').slice(0, 2).toUpperCase();
+}
+function bbAdminAvatarHtml(profilePicture, displayName) {
+  var pic = (profilePicture && String(profilePicture).trim()) || '';
+  var initials = bbUserInitialsFromDisplayName(displayName);
+  if (pic) {
+    return '<span class="bb-admin-avatar bb-admin-avatar--pic">' +
+      '<img class="bb-admin-avatar-img" src="' + escapeHtml(pic) + '" alt="" loading="lazy" decoding="async" onerror="this.classList.add(\'bb-admin-avatar-img--err\');"/>' +
+      '<span class="bb-admin-avatar-fallback">' + escapeHtml(initials) + '</span></span>';
+  }
+  return '<span class="bb-admin-avatar bb-admin-avatar--initials">' + escapeHtml(initials) + '</span>';
+}
 function copyPart2Link() {
   const el = document.getElementById('part2LinkInput');
   if (!el || !el.value) return;
@@ -9499,6 +9572,30 @@ function viewProgressLog(idx) {
 }
 
 // Profile
+var BB_PROFILE_PHOTO_PROMPT_KEY = 'bb_profile_photo_prompt_last_ymd';
+function bbProfilePhotoPromptYmd() {
+  return new Date().toISOString().slice(0, 10);
+}
+function bbShouldShowProfilePhotoPrompt() {
+  if (!window.currentUser || window.currentUser.role !== 'user') return false;
+  if ((window.currentUser.profile_picture || '').trim()) return false;
+  var last = '';
+  try { last = localStorage.getItem(BB_PROFILE_PHOTO_PROMPT_KEY) || ''; } catch (e) {}
+  return last !== bbProfilePhotoPromptYmd();
+}
+function maybeShowProfilePhotoPrompt() {
+  if (!bbShouldShowProfilePhotoPrompt()) return;
+  if (typeof openModal === 'function') openModal('profilePhotoPromptModal');
+}
+function bbProfilePhotoPromptDismiss() {
+  try { localStorage.setItem(BB_PROFILE_PHOTO_PROMPT_KEY, bbProfilePhotoPromptYmd()); } catch (e) {}
+  if (typeof closeModal === 'function') closeModal('profilePhotoPromptModal');
+}
+function bbProfilePhotoPromptGo() {
+  bbProfilePhotoPromptDismiss();
+  if (typeof switchUserTab === 'function') switchUserTab('profile');
+}
+
 async function loadProfile() {
   if (!window.currentUser) return;
   var skA = document.getElementById('profileAvatarSkeleton');
@@ -9525,6 +9622,7 @@ async function loadProfile() {
     window.currentUser.profile_picture = data.profile_picture || '';
     persistCurrentSession();
   }
+  maybeShowProfilePhotoPrompt();
 }
 
 var _eliteCardBlob = null;
@@ -9696,6 +9794,7 @@ async function saveProfile() {
     window.currentUser.profile_picture = body.profile_picture;
     setProfileAvatar(body.profile_picture);
     setUserWelcomeAvatar(body.profile_picture);
+    if (typeof closeModal === 'function') closeModal('profilePhotoPromptModal');
   }
   persistCurrentSession();
   document.getElementById('userWelcomeName').textContent = body.first_name || 'User';
@@ -10188,11 +10287,10 @@ async function loadAdminThreads() {
     if (list.length === 0) { el.innerHTML = '<p class="form-hint" style="padding:24px;margin:0;color:var(--muted)">No chats yet. Clients can start a conversation from their Messages section.</p>'; return; }
     el.innerHTML = list.map(function(t) {
       var name = [t.first_name, t.last_name].filter(Boolean).join(' ') || t.email || 'Client';
-      var initial = (name.charAt(0) || '?').toUpperCase();
       var preview = (t.last_message || 'No messages yet').slice(0, 50) + ((t.last_message || '').length > 50 ? '…' : '');
       var time = t.updated_at ? new Date(t.updated_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
       var safeId = (t.id || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      return '<div class="admin-chat-item" onclick="adminOpenThread(\'' + safeId + '\')" role="button" tabindex="0"><div class="admin-chat-avatar">' + escapeHtml(initial) + '</div><div class="admin-chat-body"><div class="admin-chat-name">' + escapeHtml(name) + '</div><div class="admin-chat-preview">' + escapeHtml(preview) + '</div></div><div class="admin-chat-time">' + escapeHtml(time) + '</div></div>';
+      return '<div class="admin-chat-item" onclick="adminOpenThread(\'' + safeId + '\')" role="button" tabindex="0"><div class="admin-chat-avatar">' + bbAdminAvatarHtml(t.profile_picture, name) + '</div><div class="admin-chat-body"><div class="admin-chat-name">' + escapeHtml(name) + '</div><div class="admin-chat-preview">' + escapeHtml(preview) + '</div></div><div class="admin-chat-time">' + escapeHtml(time) + '</div></div>';
     }).join('');
   } catch (e) {
     el.innerHTML = '<p class="form-hint" style="padding:24px;margin:0;color:#e05050">Failed to load chats.</p>';
@@ -10205,6 +10303,7 @@ async function adminOpenThread(threadId) {
     var thread = await apiCall('GET', '/api/threads/' + threadId);
     if (thread && thread.error) { alert(thread.error); return; }
     var name = thread.user ? [thread.user.first_name, thread.user.last_name].filter(Boolean).join(' ') || thread.user.email : 'User';
+    var userPic = thread.user && thread.user.profile_picture ? thread.user.profile_picture : '';
     document.getElementById('adminThreadModalTitle').textContent = 'Conversation with ' + name;
     document.getElementById('adminThreadReplyBody').value = '';
     var msgs = await apiCall('GET', '/api/threads/' + threadId + '/messages');
@@ -10214,8 +10313,10 @@ async function adminOpenThread(threadId) {
       var role = m.sender_role === 'admin' ? 'admin' : 'user';
       var time = m.created_at ? new Date(m.created_at).toLocaleString() : '';
       var label = role === 'admin' ? 'You' : 'User';
-      var avatar = label.charAt(0);
-      return '<div class="thread-msg ' + role + '"><div class="thread-msg-avatar">' + escapeHtml(avatar) + '</div><div class="thread-msg-bubble"><div>' + escapeHtml(m.body || '').replace(/\n/g,'<br>') + '</div><div class="thread-msg-meta">' + escapeHtml(label) + ' · ' + escapeHtml(time) + '</div></div></div>';
+      var avHtml = role === 'admin'
+        ? '<div class="thread-msg-avatar">' + escapeHtml(label.charAt(0)) + '</div>'
+        : '<div class="thread-msg-avatar">' + bbAdminAvatarHtml(userPic, name) + '</div>';
+      return '<div class="thread-msg ' + role + '">' + avHtml + '<div class="thread-msg-bubble"><div>' + escapeHtml(m.body || '').replace(/\n/g,'<br>') + '</div><div class="thread-msg-meta">' + escapeHtml(label) + ' · ' + escapeHtml(time) + '</div></div></div>';
     }).join('');
     box.scrollTop = box.scrollHeight;
     openModal('adminThreadModal');
@@ -10231,6 +10332,9 @@ async function adminSendThreadReply() {
   try {
     await apiCall('POST', '/api/threads/' + _adminCurrentThreadId + '/messages', { body: body });
     document.getElementById('adminThreadReplyBody').value = '';
+    var thread = await apiCall('GET', '/api/threads/' + _adminCurrentThreadId);
+    var uname = thread && thread.user ? [thread.user.first_name, thread.user.last_name].filter(Boolean).join(' ') || thread.user.email : 'User';
+    var userPic = thread && thread.user && thread.user.profile_picture ? thread.user.profile_picture : '';
     var msgs = await apiCall('GET', '/api/threads/' + _adminCurrentThreadId + '/messages');
     if (!Array.isArray(msgs)) msgs = [];
     var box = document.getElementById('adminThreadModalMessages');
@@ -10238,8 +10342,10 @@ async function adminSendThreadReply() {
       var role = m.sender_role === 'admin' ? 'admin' : 'user';
       var time = m.created_at ? new Date(m.created_at).toLocaleString() : '';
       var label = role === 'admin' ? 'You' : 'User';
-      var avatar = label.charAt(0);
-      return '<div class="thread-msg ' + role + '"><div class="thread-msg-avatar">' + escapeHtml(avatar) + '</div><div class="thread-msg-bubble"><div>' + escapeHtml(m.body || '').replace(/\n/g,'<br>') + '</div><div class="thread-msg-meta">' + escapeHtml(label) + ' · ' + escapeHtml(time) + '</div></div></div>';
+      var avHtml = role === 'admin'
+        ? '<div class="thread-msg-avatar">' + escapeHtml(label.charAt(0)) + '</div>'
+        : '<div class="thread-msg-avatar">' + bbAdminAvatarHtml(userPic, uname) + '</div>';
+      return '<div class="thread-msg ' + role + '">' + avHtml + '<div class="thread-msg-bubble"><div>' + escapeHtml(m.body || '').replace(/\n/g,'<br>') + '</div><div class="thread-msg-meta">' + escapeHtml(label) + ' · ' + escapeHtml(time) + '</div></div></div>';
     }).join('');
     box.scrollTop = box.scrollHeight;
   } catch (e) {
