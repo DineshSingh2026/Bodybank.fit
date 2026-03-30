@@ -169,6 +169,7 @@ async function queryOne(sql, params = []) {
 
 const { createScorecardService } = require('./services/scorecardService');
 const scorecardSvc = createScorecardService({ queryOne, queryAll });
+const focusWheelSvc = require('./services/focusWheelService');
 
 function normalizeGeoFields(country, timezone) {
   const cleanCountry = String(country || '').trim();
@@ -566,6 +567,8 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_display_name TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_opt_in_at TIMESTAMPTZ`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS score_weights JSONB`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_wheel_last_spin_date TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_wheel_last_label TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
 
   // Sync programs table with PDF files on disk
   try {
@@ -2652,6 +2655,72 @@ app.get('/api/me/scorecard', verifyToken, async (req, res) => {
   } catch (e) {
     console.error('scorecard error:', e);
     res.status(500).json({ error: e.message || 'Failed to load scorecard' });
+  }
+});
+
+// Daily luxury focus wheel (one spin per UTC day)
+app.get('/api/me/focus-wheel', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'user') return res.status(403).json({ error: 'Only for members' });
+    const ymd = focusWheelSvc.todayUTCYmd();
+    const row = await queryOne(
+      'SELECT focus_wheel_last_spin_date, focus_wheel_last_label FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    const last = row && String(row.focus_wheel_last_spin_date || '').trim();
+    const can_spin = last !== ymd;
+    const segments = await focusWheelSvc.buildFocusSegments({ queryAll, queryOne }, req.user.id, 8);
+    res.json({
+      can_spin,
+      date_ymd: ymd,
+      last_label: !can_spin ? String(row.focus_wheel_last_label || '') : null,
+      segments
+    });
+  } catch (e) {
+    console.error('[focus-wheel GET]', e.message);
+    res.status(500).json({ error: e.message || 'Failed to load focus wheel' });
+  }
+});
+
+app.post('/api/me/focus-wheel/spin', verifyToken, rateLimiter(10, 60000), async (req, res) => {
+  try {
+    if (req.user.role !== 'user') return res.status(403).json({ error: 'Only for members' });
+    const ymd = focusWheelSvc.todayUTCYmd();
+    const row = await queryOne(
+      'SELECT focus_wheel_last_spin_date, focus_wheel_last_label FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    const last = row && String(row.focus_wheel_last_spin_date || '').trim();
+    const segments = await focusWheelSvc.buildFocusSegments({ queryAll, queryOne }, req.user.id, 8);
+    if (last === ymd) {
+      return res.json({
+        ok: true,
+        already_spun: true,
+        date_ymd: ymd,
+        label: String(row.focus_wheel_last_label || ''),
+        winning_index: null,
+        segments
+      });
+    }
+    const n = segments.length;
+    const winning_index = Math.floor(Math.random() * n);
+    const label = segments[winning_index];
+    await run('UPDATE users SET focus_wheel_last_spin_date = ?, focus_wheel_last_label = ? WHERE id = ?', [
+      ymd,
+      label,
+      req.user.id
+    ]);
+    res.json({
+      ok: true,
+      already_spun: false,
+      date_ymd: ymd,
+      winning_index,
+      label,
+      segments
+    });
+  } catch (e) {
+    console.error('[focus-wheel POST]', e.message);
+    res.status(500).json({ error: e.message || 'Spin failed' });
   }
 });
 

@@ -1151,6 +1151,101 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 }
 .bb-sc-breakdown-list li span:last-child{ color:rgba(200,164,78,0.95); font-weight:700; }
 
+/* Daily Focus Wheel */
+.bb-fw-modal .bb-fw-kicker{ font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:rgba(200,164,78,0.65); margin:0 0 4px; }
+.bb-fw-modal .bb-fw-title{ font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:0.06em; color:var(--cream); }
+.bb-fw-modal .bb-fw-sub{ margin-bottom:16px; font-size:12px; line-height:1.45; }
+.bb-fw-stage{ position:relative; width:min(72vw,280px); height:min(72vw,280px); margin:8px auto 20px; }
+.bb-fw-pointer{
+  position:absolute; left:50%; top:-2px; transform:translateX(-50%); z-index:4;
+  width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent;
+  border-bottom:16px solid rgba(200,164,78,0.95);
+  filter:drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+}
+.bb-fw-rot{
+  position:absolute; inset:10px; border-radius:50%;
+  will-change:transform;
+  box-shadow:
+    inset 0 0 50px rgba(0,0,0,0.55),
+    0 0 0 3px rgba(200,164,78,0.14),
+    0 0 0 1px rgba(200,164,78,0.45),
+    0 16px 40px rgba(0,0,0,0.45);
+}
+.bb-fw-pie{
+  position:absolute; inset:0; border-radius:50%;
+  background:conic-gradient(
+    #1c1814 0deg 45deg,
+    #252018 45deg 90deg,
+    #1c1814 90deg 135deg,
+    #252018 135deg 180deg,
+    #1c1814 180deg 225deg,
+    #252018 225deg 270deg,
+    #1c1814 270deg 315deg,
+    #252018 315deg 360deg
+  );
+}
+.bb-fw-lblwrap{ position:absolute; inset:0; pointer-events:none; }
+.bb-fw-lbl{
+  position:absolute; left:50%; top:50%;
+  width:92px; margin-left:-46px;
+  font-size:8.5px; line-height:1.2;
+  text-align:center;
+  color:rgba(255,248,235,0.92);
+  text-transform:uppercase;
+  letter-spacing:0.06em;
+  font-weight:700;
+  transform:rotate(var(--a)) translateY(-100px) rotate(calc(-1 * var(--a)));
+  text-shadow:0 1px 5px rgba(0,0,0,0.9);
+  hyphens:auto;
+  word-break:break-word;
+}
+.bb-fw-hub{
+  position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+  width:52px; height:52px; border-radius:50%; z-index:3;
+  background:radial-gradient(circle at 35% 30%,rgba(60,52,40,0.98),rgba(12,10,8,0.98));
+  border:1px solid rgba(200,164,78,0.45);
+  box-shadow:inset 0 0 20px rgba(0,0,0,0.6),0 4px 16px rgba(0,0,0,0.5);
+  display:flex; align-items:center; justify-content:center;
+  font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:0.12em; color:rgba(200,164,78,0.9);
+  pointer-events:none;
+}
+.bb-fw-result{
+  text-align:center; padding:14px 12px; border-radius:12px;
+  border:1px solid rgba(200,164,78,0.22);
+  background:rgba(200,164,78,0.06);
+  font-size:15px; font-weight:600; color:var(--cream); line-height:1.45;
+  margin-bottom:14px;
+}
+.bb-fw-result .bb-fw-res-k{ font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(200,164,78,0.65); margin-bottom:8px; display:block; }
+.bb-fw-spin.form-submit:disabled{ opacity:0.45; cursor:not-allowed; }
+.bb-fw-foot{ font-size:11px; color:var(--muted); text-align:center; margin:12px 0 0; }
+.bb-focus-wheel-fab{
+  display:none;
+  align-items:center; justify-content:center;
+  position:fixed; right:max(16px,env(safe-area-inset-right));
+  bottom:calc(76px + env(safe-area-inset-bottom,0px));
+  width:52px; height:52px; border-radius:50%; z-index:10060;
+  border:1px solid rgba(200,164,78,0.45);
+  background:radial-gradient(circle at 30% 25%,rgba(55,48,36,0.95),rgba(10,9,8,0.96));
+  color:rgba(200,164,78,0.95);
+  cursor:pointer; padding:0;
+  box-shadow:0 10px 32px rgba(0,0,0,0.45),0 0 0 1px rgba(200,164,78,0.12);
+  transition:transform .2s ease, box-shadow .2s ease;
+}
+.bb-focus-wheel-fab:hover{ transform:scale(1.05); box-shadow:0 12px 36px rgba(200,164,78,0.15); }
+.bb-focus-wheel-fab.bb-fw-fab-pulse{ animation:bbFwPulse 2.4s ease-in-out infinite; }
+.bb-fw-fab-svg{ width:30px; height:30px; display:block; }
+@keyframes bbFwPulse{
+  0%,100%{ box-shadow:0 10px 32px rgba(0,0,0,0.45),0 0 0 1px rgba(200,164,78,0.12); }
+  50%{ box-shadow:0 10px 36px rgba(200,164,78,0.22),0 0 0 2px rgba(200,164,78,0.35); }
+}
+@media(min-width:768px){
+  .bb-focus-wheel-fab{
+    bottom:calc(24px + env(safe-area-inset-bottom,0px));
+    right:max(24px,env(safe-area-inset-right));
+  }
+}
+
 /* ===== EXTRA-WIDE (1440px+) ===== */
 @media(min-width:1440px){
   .admin-body,.user-body{padding:40px 56px 48px}
@@ -3463,6 +3558,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </button>
     </div>
   </nav>
+  <button type="button" id="bbFocusWheelFab" class="bb-focus-wheel-fab" onclick="openFocusWheelModal()" aria-label="Today's focus dial" title="Today's focus dial">
+    <svg class="bb-fw-fab-svg" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.35"/><circle cx="24" cy="24" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M24 8 L26 22 L24 20 L22 22 Z" fill="currentColor"/></svg>
+  </button>
 </div>
 
 <!-- ADMIN DASHBOARD -->
@@ -4627,6 +4725,27 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <p class="form-hint" id="scorecardLbSubtitle" style="margin-bottom:12px">—</p>
     <div id="scorecardLbBody" style="max-height:52vh;overflow:auto">Loading…</div>
     <button type="button" class="form-submit" onclick="closeModal('scorecardLeaderboardModal')" style="margin-top:16px">Close</button>
+  </div>
+</div>
+
+<!-- Daily Focus Wheel (luxury dial — once per UTC day) -->
+<div class="modal-overlay" id="focusWheelModal" onclick="if(event.target===this)closeModal('focusWheelModal')">
+  <div class="modal login-modal bb-fw-modal" style="max-width:min(94vw,400px)">
+    <button class="modal-close" onclick="closeModal('focusWheelModal')" type="button">&times;</button>
+    <p class="bb-fw-kicker">Daily ritual</p>
+    <h2 class="bb-fw-title" style="margin:0 0 6px">Today's focus</h2>
+    <p class="form-hint bb-fw-sub">One spin · One priority · Refreshes each UTC day</p>
+    <div class="bb-fw-stage" id="bbFwStage">
+      <div class="bb-fw-pointer" aria-hidden="true"></div>
+      <div class="bb-fw-rot" id="bbFwWheelRotate">
+        <div class="bb-fw-pie" id="bbFwPie"></div>
+        <div class="bb-fw-lblwrap" id="bbFwLabels"></div>
+      </div>
+      <div class="bb-fw-hub" aria-hidden="true"><span>BB</span></div>
+    </div>
+    <div id="bbFwResult" class="bb-fw-result" style="display:none"></div>
+    <button type="button" class="form-submit bb-fw-spin" id="bbFwSpinBtn" onclick="spinFocusWheel()">Spin the dial</button>
+    <p class="bb-fw-foot" id="bbFwFoot"></p>
   </div>
 </div>
 
@@ -8239,8 +8358,150 @@ function openUserDashboard(user) {
   if (typeof loadNotifications === 'function') loadNotifications();
   if (typeof startUserNotificationPolling === 'function') startUserNotificationPolling();
   setTimeout(function() { checkProgramAssignmentPopup(); }, 800);
+  setTimeout(function() { loadFocusWheelState(); }, 400);
   document.getElementById('ctName').value = (user.first_name + ' ' + user.last_name).trim();
   document.getElementById('ctEmail').value = user.email || '';
+}
+
+var _bbFwSpinning = false;
+function renderFocusWheelLabels(segments) {
+  var wrap = document.getElementById('bbFwLabels');
+  if (!wrap || !segments || !segments.length) return;
+  var n = segments.length;
+  var seg = 360 / n;
+  var html = '';
+  for (var i = 0; i < n; i++) {
+    var ang = i * seg + seg / 2;
+    var full = String(segments[i] || '');
+    var short = full.length > 38 ? full.slice(0, 36) + '\u2026' : full;
+    html += '<span class="bb-fw-lbl" style="--a:' + ang + 'deg" title="' + escapeHtml(full) + '">' + escapeHtml(short) + '</span>';
+  }
+  wrap.innerHTML = html;
+}
+function resetFocusWheelRotation() {
+  var rot = document.getElementById('bbFwWheelRotate');
+  if (!rot) return;
+  rot.style.transition = 'none';
+  rot.style.transform = 'rotate(0deg)';
+  void rot.offsetHeight;
+  rot.style.removeProperty('transition');
+}
+async function loadFocusWheelState() {
+  var fab = document.getElementById('bbFocusWheelFab');
+  if (!window.currentUser || window.currentUser.role !== 'user') {
+    if (fab) fab.style.display = 'none';
+    return;
+  }
+  var data = await apiCall('GET', '/api/me/focus-wheel');
+  if (!data || data.error) {
+    if (fab) fab.style.display = 'none';
+    return;
+  }
+  window._bbFocusWheel = data;
+  if (fab) {
+    fab.style.display = 'flex';
+    fab.classList.toggle('bb-fw-fab-pulse', !!data.can_spin);
+  }
+  if (data.can_spin) maybeAutoOpenFocusWheel(data.date_ymd);
+}
+function maybeAutoOpenFocusWheel(ymd) {
+  try {
+    var k = 'bb_fw_auto_' + (ymd || '');
+    if (sessionStorage.getItem(k)) return;
+    setTimeout(function() {
+      if (sessionStorage.getItem(k)) return;
+      if (!window._bbFocusWheel || !window._bbFocusWheel.can_spin) return;
+      openFocusWheelModal();
+    }, 1500);
+  } catch (e) {}
+}
+async function openFocusWheelModal() {
+  var data = await apiCall('GET', '/api/me/focus-wheel');
+  if (data && data.error) {
+    showPopup('Error', data.error, '', 'OK', null, 'error');
+    return;
+  }
+  try { if (data.date_ymd) sessionStorage.setItem('bb_fw_auto_' + data.date_ymd, '1'); } catch (e) {}
+  window._bbFocusWheel = data;
+  renderFocusWheelLabels(data.segments || []);
+  resetFocusWheelRotation();
+  var btn = document.getElementById('bbFwSpinBtn');
+  var res = document.getElementById('bbFwResult');
+  var foot = document.getElementById('bbFwFoot');
+  if (res) { res.style.display = 'none'; res.innerHTML = ''; }
+  if (foot) foot.textContent = '';
+  if (data.can_spin) {
+    if (btn) { btn.style.display = ''; btn.disabled = false; btn.textContent = 'Spin the dial'; }
+  } else {
+    if (btn) btn.style.display = 'none';
+    if (res) {
+      res.style.display = 'block';
+      res.innerHTML = '<span class="bb-fw-res-k">Your focus today</span>' + escapeHtml(data.last_label || '');
+    }
+    if (foot) foot.textContent = 'Come back tomorrow for a new spin (UTC).';
+  }
+  openModal('focusWheelModal');
+}
+async function spinFocusWheel() {
+  if (_bbFwSpinning) return;
+  var rot = document.getElementById('bbFwWheelRotate');
+  var btn = document.getElementById('bbFwSpinBtn');
+  var res = document.getElementById('bbFwResult');
+  var foot = document.getElementById('bbFwFoot');
+  if (btn) btn.disabled = true;
+  _bbFwSpinning = true;
+  var data = await apiCall('POST', '/api/me/focus-wheel/spin');
+  if (data && data.error) {
+    _bbFwSpinning = false;
+    if (btn) btn.disabled = false;
+    showPopup('Error', data.error, '', 'OK', null, 'error');
+    return;
+  }
+  if (data.already_spun) {
+    _bbFwSpinning = false;
+    if (btn) btn.style.display = 'none';
+    if (res) {
+      res.style.display = 'block';
+      res.innerHTML = '<span class="bb-fw-res-k">Your focus today</span>' + escapeHtml(data.label || '');
+    }
+    if (foot) foot.textContent = 'Come back tomorrow for a new spin (UTC).';
+    loadFocusWheelState();
+    return;
+  }
+  var win = data.winning_index;
+  var n = (data.segments && data.segments.length) || 8;
+  var seg = 360 / n;
+  var center = win * seg + seg / 2;
+  var extra = 360 * 6;
+  var toDeg = extra + ((360 - (center % 360)) % 360);
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (rot) {
+    rot.style.transition = 'none';
+    rot.style.transform = 'rotate(0deg)';
+    void rot.offsetHeight;
+    if (reduced) {
+      rot.style.transition = 'none';
+      rot.style.transform = 'rotate(' + toDeg + 'deg)';
+    } else {
+      requestAnimationFrame(function() {
+        requestAnimationFrame(function() {
+          rot.style.transition = 'transform 3.5s cubic-bezier(0.15, 0.85, 0.22, 1)';
+          rot.style.transform = 'rotate(' + toDeg + 'deg)';
+        });
+      });
+    }
+  }
+  var waitMs = reduced ? 80 : 3600;
+  setTimeout(function() {
+    _bbFwSpinning = false;
+    if (btn) btn.style.display = 'none';
+    if (res) {
+      res.style.display = 'block';
+      res.innerHTML = '<span class="bb-fw-res-k">Your focus today</span>' + escapeHtml(data.label || '');
+    }
+    if (foot) foot.textContent = 'Come back tomorrow for a new spin (UTC).';
+    loadFocusWheelState();
+  }, waitMs);
 }
 
 function openUserWhatsApp() {
@@ -8397,6 +8658,8 @@ function logoutUser() {
   var waFloat = document.getElementById('userWaFloat');
   if (waFloat) waFloat.style.display = 'none';
   if (userPanel) userPanel.classList.remove('open');
+  var bbFwFab = document.getElementById('bbFocusWheelFab');
+  if (bbFwFab) bbFwFab.style.display = 'none';
   document.body.classList.remove('site-nav-hidden','user-dashboard-open','admin-dashboard-open');
   unlockBodyScroll();
 }
