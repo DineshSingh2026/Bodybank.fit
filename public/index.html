@@ -3207,6 +3207,13 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#128202;</span>Analytics</a>
           </div>
         </div>
+        <div class="admin-live-activity" style="margin-top:12px">
+          <h3 class="admin-la-title">HIGH RISK / ATTENTION</h3>
+          <div class="admin-la-list" id="adminMobileRiskList">
+            <p class="admin-la-loading">Loading…</p>
+          </div>
+          <div class="form-hint" style="margin-top:10px;opacity:.9">Based on 2d / 5d daily check-in inactivity</div>
+        </div>
         <div class="admin-live-activity">
           <h3 class="admin-la-title">LIVE ACTIVITY</h3>
           <div class="admin-la-list" id="adminLiveActivityList">
@@ -5244,6 +5251,12 @@ async function loadStats() {
       await bbRefreshDesktopAdminDashboard(data);
     } catch (_) {}
   }
+
+  // Mobile: show high risk / attention list in the main dashboard card.
+  // This is needed because the desktop dashboard (bb-desktop-dashboard) is hidden on mobile via inline style.
+  if (document.getElementById('adminMobileRiskList')) {
+    try { await bbRefreshMobileAdminRiskList(); } catch (_) {}
+  }
 }
 
 window._bbDesktopCharts = window._bbDesktopCharts || {};
@@ -5447,6 +5460,70 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
     );
   }).join('');
   bbSetHtml('client-table-body', rows);
+}
+
+async function bbRefreshMobileAdminRiskList() {
+  var listEl = document.getElementById('adminMobileRiskList');
+  if (!listEl) return;
+  listEl.innerHTML = '<p class="admin-la-loading">Loading…</p>';
+
+  try {
+    var tribe = await apiCall('GET', '/api/tribe');
+    var members = Array.isArray(tribe) ? tribe.slice() : [];
+    var todayStr = new Date().toISOString().slice(0, 10);
+    var todayDt = new Date(todayStr + 'T00:00:00Z');
+
+    function inactiveDaysFor(m) {
+      var last = m.last_checkin_date ? String(m.last_checkin_date).slice(0, 10) : '';
+      if (last) return Math.floor((todayDt - new Date(last + 'T00:00:00Z')) / (24 * 60 * 60 * 1000));
+      var created = m.user_created_at || m.start_date || m.created_at || null;
+      if (!created) return null;
+      var cd = String(created).slice(0, 10);
+      return Math.floor((todayDt - new Date(cd + 'T00:00:00Z')) / (24 * 60 * 60 * 1000));
+    }
+
+    function sevFor(inactiveDays) {
+      if (inactiveDays == null) return null;
+      if (inactiveDays >= 5) return 'P0';
+      if (inactiveDays >= 2) return 'P1';
+      return null;
+    }
+
+    var scored = members
+      .map(function(m) {
+        var name = ((m.first_name || '') + ' ' + (m.last_name || '')).trim() || m.email || 'Unknown';
+        var days = inactiveDaysFor(m);
+        var sev = sevFor(days);
+        return { m: m, name: name, days: days, sev: sev };
+      })
+      .filter(function(x) { return !!x.sev && x.days != null; });
+
+    scored.sort(function(a, b) {
+      var pa = a.sev === 'P0' ? 0 : 1;
+      var pb = b.sev === 'P0' ? 0 : 1;
+      if (pa !== pb) return pa - pb;
+      return b.days - a.days;
+    });
+
+    var top = scored.slice(0, 4);
+    if (!top.length) {
+      listEl.innerHTML = '<p class="admin-la-loading" style="opacity:.9">No high risk clients right now.</p>';
+      return;
+    }
+
+    listEl.innerHTML = top.map(function(x) {
+      var dotClass = x.sev === 'P0' ? 'red' : 'orange';
+      var tagText = x.sev === 'P0' ? 'P0 High' : 'P1 Attention';
+      var tagClass = x.sev === 'P0' ? 'unread' : 'pending';
+      return '<div class="admin-la-item">' +
+        '<span class="admin-la-dot ' + dotClass + '" aria-hidden="true"></span>' +
+        '<span class="admin-la-text">' + escapeHtml(x.name) + ' — ' + escapeHtml(String(x.days)) + ' days</span>' +
+        '<span class="admin-la-tag ' + tagClass + '">' + escapeHtml(tagText) + '</span>' +
+      '</div>';
+    }).join('');
+  } catch (e) {
+    listEl.innerHTML = '<p class="admin-la-loading">Could not load high risk list.</p>';
+  }
 }
 async function loadLiveActivity() {
   const listEl = document.getElementById('adminLiveActivityList');
