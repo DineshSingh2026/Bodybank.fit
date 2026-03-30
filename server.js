@@ -2624,7 +2624,7 @@ app.get('/api/me/scorecard', verifyToken, async (req, res) => {
       cohort_size = r.cohort_size;
     }
     const trend_delta =
-      current && previous ? Math.round((current.total - previous.total) * 10) / 10 : null;
+      current && previous ? (current.total - previous.total) : null;
     res.json({
       week_start: weekStart,
       week_label: current ? current.week_label : scorecardSvc.formatWeekRangeLabel(weekStart),

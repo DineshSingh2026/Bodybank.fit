@@ -182,11 +182,11 @@ function createScorecardService({ queryOne, queryAll }) {
       progressScore * weights.progress;
 
     return {
-      daily: Math.round(dailyScore * 10) / 10,
-      sunday: Math.round(sundayScore * 10) / 10,
-      workouts: Math.round(workoutScore * 10) / 10,
-      progress: Math.round(progressScore * 10) / 10,
-      total: Math.round(total * 10) / 10,
+      daily: Math.round(dailyScore),
+      sunday: Math.round(sundayScore),
+      workouts: Math.round(workoutScore),
+      progress: Math.round(progressScore),
+      total: Math.round(total),
       breakdown: {
         daily_days: slice.dailyDays,
         sunday_done: slice.sundayCount >= 1,

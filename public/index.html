@@ -937,6 +937,100 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .bb-sc-trend{ font-size:12px; color:var(--muted); margin-top:4px; min-height:16px; }
 .bb-sc-trend.up{ color:#6ee7b7; }
 .bb-sc-trend.down{ color:#f87171; }
+.bb-sc-tier{
+  margin-top:10px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:7px 12px;
+  border-radius:999px;
+  font-size:10px;
+  font-weight:900;
+  letter-spacing:1.4px;
+  text-transform:uppercase;
+  border:1px solid rgba(200,164,78,0.30);
+  background:rgba(200,164,78,0.10);
+  color:var(--gold);
+}
+.bb-sc-tier--needs{ border-color:rgba(239,68,68,0.35); background:rgba(239,68,68,0.10); color:#ffb4b4; }
+.bb-sc-tier--building{ border-color:rgba(245,158,11,0.35); background:rgba(245,158,11,0.10); color:#ffd19a; }
+.bb-sc-tier--strong{ border-color:rgba(110,231,183,0.35); background:rgba(110,231,183,0.10); color:#b7f6d6; }
+.bb-sc-tier--elite{ border-color:rgba(200,164,78,0.55); background:rgba(200,164,78,0.14); color:var(--gold); }
+.bb-sc-weighted-wrap{
+  margin-top:12px;
+  position:relative;
+  z-index:1;
+}
+.bb-sc-weighted-track{
+  display:flex;
+  align-items:stretch;
+  gap:2px;
+  height:10px;
+  border:1px solid rgba(200,164,78,0.20);
+  border-radius:999px;
+  padding:2px;
+  background:rgba(255,255,255,0.04);
+  overflow:hidden;
+}
+.bb-sc-seg{
+  position:relative;
+  flex:1 1 0;
+  min-width:8px;
+  border-radius:999px;
+  overflow:hidden;
+  background:rgba(255,255,255,0.08);
+}
+.bb-sc-seg-fill{
+  height:100%;
+  width:0%;
+  border-radius:999px;
+  transition:width .45s ease;
+}
+.bb-sc-seg--daily .bb-sc-seg-fill{
+  background:linear-gradient(90deg, rgba(200,164,78,0.20), rgba(200,164,78,0.95));
+  box-shadow:0 0 10px rgba(200,164,78,0.30);
+}
+.bb-sc-seg--sunday .bb-sc-seg-fill{
+  background:linear-gradient(90deg, rgba(245,158,11,0.20), rgba(245,158,11,0.92));
+  box-shadow:0 0 10px rgba(245,158,11,0.28);
+}
+.bb-sc-seg--workouts .bb-sc-seg-fill{
+  background:linear-gradient(90deg, rgba(110,231,183,0.22), rgba(16,185,129,0.92));
+  box-shadow:0 0 10px rgba(16,185,129,0.28);
+}
+.bb-sc-seg--progress .bb-sc-seg-fill{
+  background:linear-gradient(90deg, rgba(168,85,247,0.22), rgba(139,92,246,0.92));
+  box-shadow:0 0 10px rgba(139,92,246,0.28);
+}
+.bb-sc-weighted-legend{
+  margin-top:8px;
+  display:grid;
+  grid-template-columns:repeat(2, minmax(0, 1fr));
+  gap:6px 10px;
+}
+.bb-sc-weighted-item{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  font-size:10px;
+  color:var(--muted);
+}
+.bb-sc-weighted-item strong{
+  color:var(--cream);
+  font-weight:700;
+}
+.bb-sc-weighted-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  flex-shrink:0;
+  margin-right:6px;
+}
+.bb-sc-weighted-dot--daily{ background:#d4af54; }
+.bb-sc-weighted-dot--sunday{ background:#f59e0b; }
+.bb-sc-weighted-dot--workouts{ background:#34d399; }
+.bb-sc-weighted-dot--progress{ background:#a78bfa; }
 .bb-sc-pillars{
   display:grid;
   grid-template-columns:repeat(2, minmax(0, 1fr));
@@ -2845,7 +2939,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
                 <div class="bb-sc-week" id="bbScoreWeekDesktop">—</div>
                 <div class="bb-sc-prog" id="bbScoreProgLineDesktop">—</div>
                 <div class="bb-sc-trend" id="bbScoreTrendDesktop"></div>
+                <div class="bb-sc-tier" id="bbScoreTierDesktop">—</div>
               </div>
+            </div>
+            <div class="bb-sc-weighted-wrap" id="bbScoreWeightedWrapDesktop">
+              <div class="bb-sc-weighted-track" id="bbScoreWeightedBarDesktop"></div>
+              <div class="bb-sc-weighted-legend" id="bbScoreWeightedLegendDesktop"></div>
             </div>
             <div class="bb-sc-pillars" id="bbScorePillarsDesktop"></div>
             <div class="bb-sc-lb-row" id="bbScoreLbRowDesktop"></div>
@@ -2942,7 +3041,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
                 <div class="bb-sc-week" id="bbScoreWeekMobile">—</div>
                 <div class="bb-sc-prog" id="bbScoreProgLineMobile">—</div>
                 <div class="bb-sc-trend" id="bbScoreTrendMobile"></div>
+                <div class="bb-sc-tier" id="bbScoreTierMobile">—</div>
               </div>
+            </div>
+            <div class="bb-sc-weighted-wrap" id="bbScoreWeightedWrapMobile">
+              <div class="bb-sc-weighted-track" id="bbScoreWeightedBarMobile"></div>
+              <div class="bb-sc-weighted-legend" id="bbScoreWeightedLegendMobile"></div>
             </div>
             <div class="bb-sc-pillars" id="bbScorePillarsMobile"></div>
             <div class="bb-sc-lb-row" id="bbScoreLbRowMobile"></div>
@@ -8589,13 +8693,58 @@ function renderScorecardEmpty(err) {
     if (w) w.textContent = err || 'Unavailable';
     var pl = document.getElementById('bbScoreProgLine' + suf);
     if (pl) pl.textContent = '';
+    var tr = document.getElementById('bbScoreTrend' + suf);
+    if (tr) tr.textContent = '';
+    var tier = document.getElementById('bbScoreTier' + suf);
+    if (tier) { tier.textContent = '—'; tier.className = 'bb-sc-tier'; }
+    var wb = document.getElementById('bbScoreWeightedBar' + suf);
+    if (wb) wb.innerHTML = '';
+    var wl = document.getElementById('bbScoreWeightedLegend' + suf);
+    if (wl) wl.innerHTML = '';
   });
+}
+
+function bbScoreTierMeta(score) {
+  var s = Number(score) || 0;
+  if (s >= 85) return { label: 'Elite', cls: 'bb-sc-tier--elite' };
+  if (s >= 70) return { label: 'Strong', cls: 'bb-sc-tier--strong' };
+  if (s >= 40) return { label: 'Building', cls: 'bb-sc-tier--building' };
+  return { label: 'Needs Attention', cls: 'bb-sc-tier--needs' };
+}
+
+function renderWeightedBar(suf, d) {
+  var track = document.getElementById('bbScoreWeightedBar' + suf);
+  var legend = document.getElementById('bbScoreWeightedLegend' + suf);
+  if (!track || !legend) return;
+  var keys = ['daily', 'sunday', 'workouts', 'progress'];
+  var labels = { daily: 'Daily', sunday: 'Sunday', workouts: 'Workouts', progress: 'Progress' };
+  var w = d.weights || {};
+  var p = d.pillars || {};
+  var weights = keys.map(function(k){ return Math.max(0, Number(w[k] || 0)); });
+  var sum = weights.reduce(function(a,b){ return a+b; }, 0);
+  var normalized = sum > 0.0001 ? weights.map(function(x){ return x / sum; }) : [0.25,0.25,0.25,0.25];
+  track.innerHTML = keys.map(function (k, i) {
+    var fill = Math.max(0, Math.min(100, Number(p[k] || 0)));
+    var pctW = (normalized[i] * 100).toFixed(2);
+    return '<div class="bb-sc-seg bb-sc-seg--' + k + '" style="flex:0 0 ' + pctW + '%" title="' + labels[k] + ': ' + fill + '/100 · weight ' + Math.round(normalized[i] * 100) + '%">' +
+      '<div class="bb-sc-seg-fill" style="width:' + fill + '%"></div>' +
+    '</div>';
+  }).join('');
+  legend.innerHTML = keys.map(function (k, i) {
+    var score = Math.max(0, Math.min(100, Number(p[k] || 0)));
+    var wPct = Math.round(normalized[i] * 100);
+    return '<div class="bb-sc-weighted-item">' +
+      '<span><span class="bb-sc-weighted-dot bb-sc-weighted-dot--' + k + '"></span>' + labels[k] + '</span>' +
+      '<strong>' + score + ' · ' + wPct + '%</strong>' +
+    '</div>';
+  }).join('');
 }
 
 function renderScorecard(d) {
   var suffixes = ['Mobile', 'Desktop'];
   var total = d.total != null ? Math.round(Number(d.total)) : 0;
   var prog = d.program_name || 'Your program';
+  var tierMeta = bbScoreTierMeta(total);
   suffixes.forEach(function (suf) {
     var valEl = document.getElementById('bbScoreVal' + suf);
     if (valEl) valEl.textContent = String(total);
@@ -8608,13 +8757,19 @@ function renderScorecard(d) {
       if (d.trend_delta != null && d.previous_total != null) {
         var up = d.trend_delta > 0;
         var down = d.trend_delta < 0;
-        tr.textContent = (up ? '\u2191 ' : down ? '\u2193 ' : '') + (d.trend_delta > 0 ? '+' : '') + d.trend_delta + ' vs last week';
+        tr.textContent = (up ? '\u2191 ' : down ? '\u2193 ' : '') + (d.trend_delta > 0 ? '+' : '') + Math.round(Number(d.trend_delta || 0)) + ' vs last week';
         tr.className = 'bb-sc-trend' + (up ? ' up' : down ? ' down' : '');
       } else {
         tr.textContent = '';
         tr.className = 'bb-sc-trend';
       }
     }
+    var tierEl = document.getElementById('bbScoreTier' + suf);
+    if (tierEl) {
+      tierEl.textContent = tierMeta.label;
+      tierEl.className = 'bb-sc-tier ' + tierMeta.cls;
+    }
+    renderWeightedBar(suf, d);
     var pillars = document.getElementById('bbScorePillars' + suf);
     if (pillars && d.pillars) {
       pillars.innerHTML = ['Daily', 'Sunday', 'Workouts', 'Progress'].map(function (label, i) {
