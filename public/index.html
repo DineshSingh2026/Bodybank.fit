@@ -1155,11 +1155,21 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .bb-fw-modal .bb-fw-kicker{ font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:rgba(200,164,78,0.65); margin:0 0 4px; }
 .bb-fw-modal .bb-fw-title{ font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:0.05em; color:var(--cream); }
 .bb-fw-modal .bb-fw-sub{ margin-bottom:16px; font-size:12px; line-height:1.45; }
-.bb-fw-stage{ position:relative; width:min(78vw,312px); height:min(78vw,312px); margin:8px auto 20px; }
+.bb-fw-stage{ position:relative; width:min(78vw,320px); height:min(78vw,320px); margin:8px auto 20px; }
 .bb-fw-pointer{
-  position:absolute; left:50%; top:-6px; transform:translateX(-50%); z-index:5;
+  position:absolute; left:50%; top:2px; transform:translateX(-50%); z-index:7;
+  width:32px; height:38px; pointer-events:none;
+}
+.bb-fw-needle{
+  position:absolute; left:50%; top:0; transform:translateX(-50%);
+  width:2px; height:22px;
+  background:linear-gradient(180deg,rgba(244,214,136,0.98),rgba(200,164,78,0.88));
+  box-shadow:0 0 8px rgba(200,164,78,0.38);
+}
+.bb-fw-needle-tip{
+  position:absolute; left:50%; top:20px; transform:translateX(-50%);
   width:0; height:0; border-left:10px solid transparent; border-right:10px solid transparent;
-  border-top:18px solid rgba(200,164,78,0.96);
+  border-top:16px solid rgba(214,178,96,0.96);
   filter:drop-shadow(0 3px 8px rgba(0,0,0,0.56));
 }
 .bb-fw-rot{
@@ -1167,12 +1177,23 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   will-change:transform;
   box-shadow:
     inset 0 0 56px rgba(0,0,0,0.62),
-    0 0 0 3px rgba(200,164,78,0.14),
-    0 0 0 1px rgba(200,164,78,0.48),
+    0 0 0 7px rgba(200,164,78,0.08),
+    0 0 0 2px rgba(200,164,78,0.5),
     0 16px 40px rgba(0,0,0,0.45);
 }
+.bb-fw-ticks{
+  position:absolute; inset:0; border-radius:50%; z-index:1;
+  background:repeating-conic-gradient(
+    from -90deg,
+    rgba(200,164,78,0.34) 0deg 1deg,
+    transparent 1deg 7.5deg
+  );
+  -webkit-mask:radial-gradient(circle,transparent 0 69%,#000 70% 76%,transparent 77%);
+  mask:radial-gradient(circle,transparent 0 69%,#000 70% 76%,transparent 77%);
+  opacity:0.9;
+}
 .bb-fw-pie{
-  position:absolute; inset:0; border-radius:50%;
+  position:absolute; inset:8px; border-radius:50%; z-index:2;
   background:conic-gradient(#191612 0deg 60deg,#241f18 60deg 120deg,#191612 120deg 180deg,#241f18 180deg 240deg,#191612 240deg 300deg,#241f18 300deg 360deg);
 }
 .bb-fw-pie::after{
@@ -1183,25 +1204,32 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .bb-fw-lblwrap{ position:absolute; inset:0; pointer-events:none; }
 .bb-fw-lbl{
   position:absolute; left:50%; top:50%;
-  width:84px; margin-left:-42px;
-  font-size:10px; line-height:1.12;
+  width:80px; height:64px; margin-left:-40px;
+  font-size:9px; line-height:1.05;
   text-align:center;
   color:rgba(255,248,235,0.96);
   text-transform:uppercase;
-  letter-spacing:0.04em;
+  letter-spacing:0.06em;
   font-weight:800;
-  transform:rotate(var(--a)) translateY(-122px) rotate(calc(-1 * var(--a)));
+  transform:rotate(var(--a)) translateY(-106px) rotate(calc(-1 * var(--a)));
   text-shadow:0 1px 5px rgba(0,0,0,0.9);
-  white-space:normal;
-  overflow-wrap:anywhere;
-  display:-webkit-box;
-  -webkit-line-clamp:2;
-  -webkit-box-orient:vertical;
-  overflow:hidden;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:5px; padding:6px 8px;
+  border:1px solid rgba(200,164,78,0.08);
+  border-radius:10px;
+  background:linear-gradient(180deg,rgba(0,0,0,0.12),rgba(0,0,0,0.2));
+  box-sizing:border-box;
+}
+.bb-fw-lbl-ico{
+  font-size:12px; line-height:1; color:rgba(214,178,96,0.95);
+}
+.bb-fw-lbl-txt{
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+  overflow:hidden; white-space:normal; overflow-wrap:anywhere;
 }
 .bb-fw-hub{
   position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
-  width:62px; height:62px; border-radius:50%; z-index:4;
+  width:62px; height:62px; border-radius:50%; z-index:6;
   background:radial-gradient(circle at 35% 30%,rgba(60,52,40,0.98),rgba(12,10,8,0.98));
   border:1px solid rgba(200,164,78,0.52);
   box-shadow:inset 0 0 20px rgba(0,0,0,0.6),0 4px 16px rgba(0,0,0,0.5),0 0 0 4px rgba(200,164,78,0.08);
@@ -1248,9 +1276,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 @media(max-width:520px){
   .bb-fw-modal .bb-fw-title{ font-size:28px; }
   .bb-fw-lbl{
-    width:72px; margin-left:-36px;
-    font-size:9px;
-    transform:rotate(var(--a)) translateY(-108px) rotate(calc(-1 * var(--a)));
+    width:70px; height:58px; margin-left:-35px;
+    font-size:8px;
+    transform:rotate(var(--a)) translateY(-98px) rotate(calc(-1 * var(--a)));
+    padding:5px 6px;
   }
 }
 
@@ -4744,8 +4773,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <h2 class="bb-fw-title" style="margin:0 0 6px">Today's focus</h2>
     <p class="form-hint bb-fw-sub">One spin · One action to execute today · Refreshes each UTC day</p>
     <div class="bb-fw-stage" id="bbFwStage">
-      <div class="bb-fw-pointer" aria-hidden="true"></div>
+      <div class="bb-fw-pointer" aria-hidden="true"><span class="bb-fw-needle"></span><span class="bb-fw-needle-tip"></span></div>
       <div class="bb-fw-rot" id="bbFwWheelRotate">
+        <div class="bb-fw-ticks" aria-hidden="true"></div>
         <div class="bb-fw-pie" id="bbFwPie"></div>
         <div class="bb-fw-lblwrap" id="bbFwLabels"></div>
       </div>
@@ -8376,7 +8406,19 @@ function wheelLabelCompact(txt) {
   var s = String(txt || '').trim();
   if (!s) return '';
   s = s.replace(/[.,:;!?]+$/g, '');
-  return s.length > 22 ? (s.slice(0, 20) + '\u2026') : s;
+  return s.length > 18 ? (s.slice(0, 16) + '\u2026') : s;
+}
+function wheelActionIcon(txt) {
+  var s = String(txt || '').toLowerCase();
+  if (/(step|walk)/.test(s)) return '\u{1F463}';
+  if (/(water|hydrat)/.test(s)) return '\u{1F4A7}';
+  if (/(protein|meal|nutrition)/.test(s)) return '\u{1F37D}';
+  if (/(sleep|bed)/.test(s)) return '\u{1F319}';
+  if (/(stretch|mobility|recovery)/.test(s)) return '\u{1F9D8}';
+  if (/(gym|workout|activation|set|form)/.test(s)) return '\u{1F3CB}';
+  if (/(breath)/.test(s)) return '\u{1FAC1}';
+  if (/(check-?in)/.test(s)) return '\u{2705}';
+  return '\u{2728}';
 }
 function wheelPieGradient(n) {
   n = Math.max(2, Number(n) || 6);
@@ -8402,7 +8444,8 @@ function renderFocusWheelLabels(segments) {
     var ang = i * seg + seg / 2;
     var full = String(segments[i] || '');
     var short = wheelLabelCompact(full);
-    html += '<span class="bb-fw-lbl" style="--a:' + ang + 'deg" title="' + escapeHtml(full) + '">' + escapeHtml(short) + '</span>';
+    var ico = wheelActionIcon(full);
+    html += '<span class="bb-fw-lbl" style="--a:' + ang + 'deg" title="' + escapeHtml(full) + '"><span class="bb-fw-lbl-ico">' + escapeHtml(ico) + '</span><span class="bb-fw-lbl-txt">' + escapeHtml(short) + '</span></span>';
   }
   wrap.innerHTML = html;
 }
