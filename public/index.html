@@ -872,6 +872,127 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     padding:20px 22px;
   }
 }
+
+/* Weekly scorecard — home (luxury, mobile + desktop) */
+.bb-scorecard{ margin-bottom:22px; }
+.bb-scorecard-inner{
+  position:relative;
+  border-radius:16px;
+  padding:22px 20px;
+  border:1px solid rgba(200,164,78,0.14);
+  background:linear-gradient(165deg, rgba(200,164,78,0.07) 0%, rgba(255,255,255,0.02) 42%, rgba(0,0,0,0.15) 100%);
+  box-shadow:0 12px 40px rgba(0,0,0,0.25);
+  overflow:hidden;
+}
+.bb-scorecard-inner::before{
+  content:"";
+  position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(ellipse 80% 50% at 20% 0%, rgba(200,164,78,0.12), transparent 55%);
+}
+.bb-sc-head{ display:flex; align-items:center; gap:18px; position:relative; z-index:1; }
+.bb-sc-ring{
+  flex-shrink:0;
+  width:92px; height:92px;
+  border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  border:2px solid rgba(200,164,78,0.35);
+  background:rgba(0,0,0,0.2);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+.bb-sc-ring-val{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:clamp(36px,8vw,44px);
+  line-height:1;
+  color:var(--gold);
+  letter-spacing:0.02em;
+}
+.bb-sc-meta{ flex:1; min-width:0; }
+.bb-sc-kicker{
+  font-size:10px; font-weight:700; letter-spacing:2.4px; text-transform:uppercase;
+  color:rgba(200,164,78,0.85); margin:0;
+}
+.bb-sc-week{ font-size:13px; color:var(--muted); margin-top:4px; }
+.bb-sc-prog{ font-size:14px; font-weight:600; color:var(--cream); margin-top:6px; }
+.bb-sc-trend{ font-size:12px; color:var(--muted); margin-top:4px; }
+.bb-sc-trend.up{ color:#6ee7b7; }
+.bb-sc-trend.down{ color:#f87171; }
+.bb-sc-pillars{
+  display:flex; flex-wrap:wrap; gap:8px;
+  margin-top:16px; position:relative; z-index:1;
+}
+.bb-sc-pillar{
+  font-size:11px; font-weight:600;
+  padding:6px 10px; border-radius:999px;
+  border:1px solid rgba(200,164,78,0.14);
+  background:rgba(0,0,0,0.2);
+  color:var(--cream);
+}
+.bb-sc-pillar span{ color:rgba(200,164,78,0.95); margin-left:4px; }
+.bb-sc-lb-row{
+  margin-top:14px; font-size:13px; color:var(--muted); position:relative; z-index:1;
+  line-height:1.45;
+}
+.bb-sc-lb-row strong{ color:var(--cream); font-weight:600; }
+.bb-sc-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:16px; position:relative; z-index:1; }
+.bb-sc-btn{
+  border-radius:10px;
+  padding:10px 16px;
+  font-size:12px; font-weight:700; letter-spacing:0.06em;
+  border:1px solid rgba(200,164,78,0.35);
+  background:rgba(200,164,78,0.1);
+  color:var(--gold);
+  cursor:pointer;
+}
+.bb-sc-btn:hover{ background:rgba(200,164,78,0.16); }
+.bb-sc-btn-ghost{
+  background:transparent;
+  border-color:rgba(255,255,255,0.12);
+  color:var(--cream);
+}
+.bb-sc-btn-ghost:hover{ border-color:rgba(200,164,78,0.35); color:var(--gold); }
+.bb-sc-invite{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:10px 14px;
+  border-radius:10px;
+  border:1px dashed rgba(200,164,78,0.28);
+  background:rgba(0,0,0,0.12);
+  color:var(--muted);
+  font-size:12px;
+  cursor:pointer;
+  width:100%;
+  justify-content:center;
+  margin-top:12px;
+  position:relative; z-index:1;
+  font-weight:600;
+}
+.bb-sc-invite:hover{ border-color:rgba(200,164,78,0.45); color:var(--cream); }
+.bb-scorecard--desktop{ display:none; }
+.bb-scorecard--mobile{ display:block; }
+@media(min-width:1024px){
+  .bb-scorecard--desktop{ display:block; }
+  .bb-scorecard--mobile{ display:none; }
+}
+.bb-user-desktop-dashboard .bb-scorecard--desktop{ margin-bottom:24px; }
+.bb-lb-head{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+.bb-lb-weeks{ display:flex; gap:8px; flex-wrap:wrap; }
+.bb-lb-weeks button{
+  border-radius:8px; padding:6px 12px; font-size:11px; font-weight:700;
+  border:1px solid rgba(200,164,78,0.2);
+  background:rgba(0,0,0,0.2); color:var(--cream); cursor:pointer;
+}
+.bb-lb-weeks button.is-active{ border-color:rgba(200,164,78,0.5); color:var(--gold); background:rgba(200,164,78,0.08); }
+.bb-lb-table{ width:100%; border-collapse:collapse; font-size:13px; }
+.bb-lb-table th{ text-align:left; padding:8px 6px; border-bottom:1px solid rgba(255,255,255,0.08); color:var(--muted); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; }
+.bb-lb-table td{ padding:10px 6px; border-bottom:1px solid rgba(255,255,255,0.05); color:var(--cream); }
+.bb-lb-table tr.is-self td{ background:rgba(200,164,78,0.06); }
+.bb-sc-breakdown-list{ margin:0; padding:0; list-style:none; }
+.bb-sc-breakdown-list li{
+  display:flex; justify-content:space-between; gap:12px;
+  padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.06);
+  font-size:13px; color:var(--cream);
+}
+.bb-sc-breakdown-list li span:last-child{ color:rgba(200,164,78,0.95); font-weight:700; }
+
 /* ===== EXTRA-WIDE (1440px+) ===== */
 @media(min-width:1440px){
   .admin-body,.user-body{padding:40px 56px 48px}
@@ -946,9 +1067,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-attention-card{
   background:rgba(255,255,255,0.03);
   border:1px solid rgba(200,164,78,0.18);
-  border-radius:14px;
-  padding:14px 14px;
-  margin-bottom:12px;
+  border-radius:12px;
+  padding:10px 12px;
+  margin-bottom:10px;
   cursor:pointer;
   transition:all .2s ease;
   box-shadow:0 10px 30px rgba(0,0,0,0.25);
@@ -963,50 +1084,63 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-attention-card:focus{outline:none}
 .admin-attention-card-top{display:flex;align-items:flex-start;gap:12px}
 .admin-attention-avatar{
-  width:38px;height:38px;border-radius:50%;
+  width:34px;height:34px;border-radius:50%;
   background:rgba(200,164,78,0.12);
   border:1px solid rgba(200,164,78,0.22);
   display:flex;align-items:center;justify-content:center;
   flex-shrink:0;
   font-family:'Bebas Neue',sans-serif;
-  font-size:14px;
+  font-size:13px;
   letter-spacing:1px;
   font-weight:700;
   color:var(--gold);
 }
 .admin-attention-head{flex:1;min-width:0}
-.admin-attention-name{font-size:14px;font-weight:800;color:var(--cream);line-height:1.25}
-.admin-attention-sub{font-size:12px;color:var(--muted);margin-top:5px;line-height:1.35}
-.admin-attention-metrics{display:flex;flex-direction:column;gap:10px;margin-top:12px}
-.admin-attention-kpi{
-  background:rgba(0,0,0,0.18);
-  border:1px solid rgba(200,164,78,0.14);
-  border-radius:12px;
-  padding:10px 12px;
+.admin-attention-name{font-size:13px;font-weight:900;color:var(--cream);line-height:1.25}
+.admin-attention-sub{font-size:11px;color:var(--muted);margin-top:4px;line-height:1.35}
+
+.admin-attn-compact-metrics{
+  margin-top:10px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
 }
-.admin-attention-kpi .kpi-lbl{
+.admin-attn-metric-row{
+  display:flex;
+  align-items:baseline;
+  justify-content:space-between;
+  gap:10px;
+  padding:8px 10px;
+  border:1px solid rgba(200,164,78,0.12);
+  border-radius:10px;
+  background:rgba(0,0,0,0.12);
+}
+.admin-attn-metric-lbl{
   font-size:10px;
-  letter-spacing:1.5px;
+  letter-spacing:1.3px;
   text-transform:uppercase;
   color:var(--creamd);
   opacity:.9;
-  margin-bottom:6px;
+  white-space:nowrap;
 }
-.admin-attention-kpi .kpi-val{
+.admin-attn-metric-val{
   font-family:'Bebas Neue',sans-serif;
-  font-size:20px;
-  font-weight:800;
+  font-size:18px;
+  font-weight:900;
   color:var(--cream);
-  line-height:1.05;
+  line-height:1;
+  margin-left:auto;
+  margin-right:auto;
 }
-.admin-attention-kpi .kpi-sub{
-  margin-top:5px;
-  font-size:11px;
+.admin-attn-metric-sub{
+  font-size:10px;
   color:var(--muted);
+  letter-spacing:.6px;
+  white-space:nowrap;
 }
 .admin-attention-footer-hint{
-  margin-top:10px;
-  font-size:11px;
+  margin-top:8px;
+  font-size:10px;
   color:var(--muted);
   opacity:.85;
   letter-spacing:.4px;
@@ -1247,7 +1381,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-tab-content.active{display:block}
 
 /* AI Assist (image icon) + WhatsApp FABs & Panel (admin only) */
-.admin-ai-wa-fab-wrap{position:fixed;bottom:max(24px,env(safe-area-inset-bottom));right:max(24px,env(safe-area-inset-right));z-index:350;display:flex;flex-direction:column;align-items:center;gap:14px}
+.admin-ai-wa-fab-wrap{position:fixed;bottom:max(24px,env(safe-area-inset-bottom));right:max(24px,env(safe-area-inset-right));z-index:10019;display:flex;flex-direction:column;align-items:center;gap:14px}
 .admin-ai-assist-fab{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 1px rgba(255,255,255,0.08);transition:transform .2s,box-shadow .2s;padding:0;background:rgba(6,6,6,0.95);flex-shrink:0}
 .admin-ai-assist-fab:hover{transform:scale(1.06);box-shadow:0 6px 24px rgba(0,180,216,0.4)}
 .admin-ai-assist-fab:focus{outline:none;box-shadow:0 0 0 3px rgba(0,180,216,0.5)}
@@ -1280,7 +1414,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     max-height:calc(100dvh - 88px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
   }
 }
-.admin-ai-assist-panel{position:fixed;bottom:130px;right:24px;width:min(440px,calc(100vw - 32px));height:min(78dvh,680px);max-height:min(78dvh,680px);min-height:0;background:var(--dark2);border:1px solid var(--bdr);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:351;display:flex;flex-direction:column;opacity:0;visibility:hidden;transform:translateY(12px) scale(0.96);transition:opacity .25s,visibility .25s,transform .25s;overflow:hidden}
+.admin-ai-assist-panel{position:fixed;bottom:130px;right:24px;width:min(440px,calc(100vw - 32px));height:min(78dvh,680px);max-height:min(78dvh,680px);min-height:0;background:var(--dark2);border:1px solid var(--bdr);border-radius:16px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:10020;display:flex;flex-direction:column;opacity:0;visibility:hidden;transform:translateY(12px) scale(0.96);transition:opacity .25s,visibility .25s,transform .25s;overflow:hidden}
 .admin-ai-assist-panel.open{opacity:1;visibility:visible;transform:translateY(0) scale(1)}
 .admin-ai-assist-panel[aria-hidden="false"]{opacity:1;visibility:visible;transform:translateY(0) scale(1)}
 .admin-ai-assist-header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--bdr);background:rgba(0,180,216,0.08);flex-shrink:0}
@@ -2635,6 +2769,27 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           </div>
         </div>
 
+        <div class="bb-scorecard bb-scorecard--desktop" id="bbScorecardDesktopWrap">
+          <div class="bb-scorecard-inner">
+            <div class="bb-sc-head">
+              <div class="bb-sc-ring" aria-hidden="true"><span class="bb-sc-ring-val" id="bbScoreValDesktop">—</span></div>
+              <div class="bb-sc-meta">
+                <p class="bb-sc-kicker">Weekly score</p>
+                <div class="bb-sc-week" id="bbScoreWeekDesktop">—</div>
+                <div class="bb-sc-prog" id="bbScoreProgLineDesktop">—</div>
+                <div class="bb-sc-trend" id="bbScoreTrendDesktop"></div>
+              </div>
+            </div>
+            <div class="bb-sc-pillars" id="bbScorePillarsDesktop"></div>
+            <div class="bb-sc-lb-row" id="bbScoreLbRowDesktop"></div>
+            <button type="button" class="bb-sc-invite" id="bbScoreInviteDesktop" onclick="handleScorecardLeaderboardCta()" style="display:none">Leaderboard off — tap to join</button>
+            <div class="bb-sc-actions">
+              <button type="button" class="bb-sc-btn bb-sc-btn-ghost" onclick="openScorecardBreakdownModal()">Breakdown</button>
+              <button type="button" class="bb-sc-btn" id="bbScoreLeaderboardBtnDesktop" onclick="handleScorecardLeaderboardCta()">Leaderboard</button>
+            </div>
+          </div>
+        </div>
+
         <div class="bb-chart-grid">
           <div class="bb-chart-card">
             <h3>Workouts Trend</h3>
@@ -2710,6 +2865,27 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <div id="welcomeAvatarPlaceholder" class="user-welcome-avatar-placeholder"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <h1><span class="welcome-label">Welcome</span><span class="welcome-name" id="userWelcomeName">User</span></h1>
         <p class="user-welcome-tag">Tribe Elite Member</p>
+
+        <div class="bb-scorecard bb-scorecard--mobile" id="bbScorecardMobileWrap">
+          <div class="bb-scorecard-inner">
+            <div class="bb-sc-head">
+              <div class="bb-sc-ring" aria-hidden="true"><span class="bb-sc-ring-val" id="bbScoreValMobile">—</span></div>
+              <div class="bb-sc-meta">
+                <p class="bb-sc-kicker">Weekly score</p>
+                <div class="bb-sc-week" id="bbScoreWeekMobile">—</div>
+                <div class="bb-sc-prog" id="bbScoreProgLineMobile">—</div>
+                <div class="bb-sc-trend" id="bbScoreTrendMobile"></div>
+              </div>
+            </div>
+            <div class="bb-sc-pillars" id="bbScorePillarsMobile"></div>
+            <div class="bb-sc-lb-row" id="bbScoreLbRowMobile"></div>
+            <button type="button" class="bb-sc-invite" id="bbScoreInviteMobile" onclick="handleScorecardLeaderboardCta()" style="display:none">Leaderboard off — tap to join</button>
+            <div class="bb-sc-actions">
+              <button type="button" class="bb-sc-btn bb-sc-btn-ghost" onclick="openScorecardBreakdownModal()">Breakdown</button>
+              <button type="button" class="bb-sc-btn" id="bbScoreLeaderboardBtnMobile" onclick="handleScorecardLeaderboardCta()">Leaderboard</button>
+            </div>
+          </div>
+        </div>
 
         <!-- Today dashboard -->
         <div class="today-dash" id="todayDash">
@@ -3747,6 +3923,48 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <tbody id="programAssignmentsBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Select a user</td></tr></tbody>
         </table></div>
       </div>
+
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Score rules (weekly scorecard)</h3>
+        <p class="form-hint" style="margin-bottom:12px">Pillar weights for clients assigned to each program. Values are normalized on save. Leave blank to use defaults when loading.</p>
+        <div class="admin-meeting-form" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:12px">
+          <select id="adminScoreRulesProgramId" class="form-input admin-meeting-select" style="min-width:220px;flex:1" onchange="loadAdminProgramScoreRules()"><option value="">Select program</option></select>
+          <button type="button" class="form-submit" style="width:auto;padding:12px 20px;margin:0" onclick="loadAdminProgramScoreRules()">Load</button>
+        </div>
+        <div id="adminScoreRulesForm" style="display:none;max-width:640px">
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:14px">
+            <div><label class="form-hint" for="asrDaily">Daily</label><input type="number" step="0.01" min="0" max="1" id="asrDaily" class="form-input" placeholder="0.28"></div>
+            <div><label class="form-hint" for="asrSunday">Sunday</label><input type="number" step="0.01" min="0" max="1" id="asrSunday" class="form-input" placeholder="0.22"></div>
+            <div><label class="form-hint" for="asrWorkouts">Workouts</label><input type="number" step="0.01" min="0" max="1" id="asrWorkouts" class="form-input" placeholder="0.35"></div>
+            <div><label class="form-hint" for="asrProgress">Progress</label><input type="number" step="0.01" min="0" max="1" id="asrProgress" class="form-input" placeholder="0.15"></div>
+            <div><label class="form-hint" for="asrTarget">Workout target / wk</label><input type="number" step="1" min="1" max="14" id="asrTarget" class="form-input" placeholder="4"></div>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+            <button type="button" class="form-submit" style="width:auto;padding:12px 20px;margin:0" onclick="saveAdminProgramScoreRules()">Save rules</button>
+            <button type="button" class="insights-apply-btn" onclick="resetAdminProgramScoreRules()">Clear (defaults)</button>
+          </div>
+        </div>
+        <p class="form-hint" id="adminScoreRulesStatus" style="margin-top:10px"></p>
+      </div>
+
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Leaderboard preview (cohort audit)</h3>
+        <p class="form-hint" style="margin-bottom:12px">All active assignments for the program. <strong>Public #</strong> is what opted-in clients see; everyone else shows “—”.</p>
+        <div class="admin-meeting-form" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:12px">
+          <select id="adminLbProgramId" class="form-input admin-meeting-select" style="min-width:220px;flex:1"><option value="">Select program</option></select>
+          <select id="adminLbWeek" class="form-input admin-meeting-select" style="min-width:160px">
+            <option value="this">This week</option>
+            <option value="prev">Last week</option>
+          </select>
+          <button type="button" class="form-submit" style="width:auto;padding:12px 20px;margin:0" onclick="loadAdminLeaderboardPreview()">Load</button>
+          <button type="button" class="insights-download-btn" onclick="downloadAdminLeaderboardCsv()">Download CSV</button>
+        </div>
+        <p class="form-hint" id="adminLbPreviewMeta" style="margin-bottom:8px"></p>
+        <div class="admin-table-wrap"><table class="admin-table">
+          <thead><tr><th>Admin #</th><th>Public #</th><th>Display</th><th>Client</th><th>Score</th><th>Opt-in</th><th>D / Su / Wo / Pr</th></tr></thead>
+          <tbody id="adminLbPreviewBody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Select a program and load</td></tr></tbody>
+        </table></div>
+      </div>
     </div>
 
     <!-- TAB: Performance Insights -->
@@ -4142,6 +4360,48 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="pdf-modal-footer">
       <button type="button" class="form-submit pdf-modal-back-btn" onclick="closePdfModal()">← Back to Programs</button>
     </div>
+  </div>
+</div>
+
+<!-- Scorecard: breakdown + leaderboard + opt-in -->
+<div class="modal-overlay" id="scorecardBreakdownModal" onclick="if(event.target===this)closeModal('scorecardBreakdownModal')">
+  <div class="modal login-modal modal-with-scroll" style="max-width:480px">
+    <button class="modal-close" onclick="closeModal('scorecardBreakdownModal')" type="button">&times;</button>
+    <h2 style="margin-top:0">Score breakdown</h2>
+    <p class="form-hint" id="scorecardBreakdownHint" style="margin-bottom:16px">How this week’s score is built from your program.</p>
+    <ul class="bb-sc-breakdown-list" id="scorecardBreakdownList"></ul>
+    <button type="button" class="form-submit" onclick="closeModal('scorecardBreakdownModal')" style="margin-top:16px">Done</button>
+  </div>
+</div>
+<div class="modal-overlay" id="leaderboardOptInModal" onclick="if(event.target===this)closeModal('leaderboardOptInModal')">
+  <div class="modal login-modal modal-with-scroll" style="max-width:440px">
+    <button class="modal-close" onclick="closeModal('leaderboardOptInModal')" type="button">&times;</button>
+    <h2 style="margin-top:0">Program leaderboard</h2>
+    <p class="form-hint" style="margin-bottom:14px">Opt in to see your rank among members on the same assigned program. You can use a display name instead of your real name.</p>
+    <div class="form-group">
+      <label for="leaderboardDisplayName">Display name (optional)</label>
+      <input type="text" class="form-input" id="leaderboardDisplayName" maxlength="80" placeholder="e.g. A.K. or Coach nickname" autocomplete="nickname">
+    </div>
+    <label style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--cream);margin-bottom:16px;cursor:pointer">
+      <input type="checkbox" id="leaderboardOptInCheck" checked style="margin-top:4px">
+      <span>Yes, show me on the weekly leaderboard for my program cohort.</span>
+    </label>
+    <button type="button" class="form-submit" id="leaderboardOptInSubmit" onclick="submitLeaderboardOptIn()">Save</button>
+  </div>
+</div>
+<div class="modal-overlay" id="scorecardLeaderboardModal" onclick="if(event.target===this)closeModal('scorecardLeaderboardModal')">
+  <div class="modal login-modal modal-with-scroll" style="max-width:520px">
+    <button class="modal-close" onclick="closeModal('scorecardLeaderboardModal')" type="button">&times;</button>
+    <div class="bb-lb-head">
+      <h2 style="margin:0;font-size:20px">Leaderboard</h2>
+      <div class="bb-lb-weeks">
+        <button type="button" id="lbWeekThis" class="is-active" onclick="loadScorecardLeaderboardModal('this')">This week</button>
+        <button type="button" id="lbWeekPrev" onclick="loadScorecardLeaderboardModal('prev')">Last week</button>
+      </div>
+    </div>
+    <p class="form-hint" id="scorecardLbSubtitle" style="margin-bottom:12px">—</p>
+    <div id="scorecardLbBody" style="max-height:52vh;overflow:auto">Loading…</div>
+    <button type="button" class="form-submit" onclick="closeModal('scorecardLeaderboardModal')" style="margin-top:16px">Close</button>
   </div>
 </div>
 
@@ -5643,10 +5903,8 @@ async function bbRefreshMobileAdminRiskList() {
       var compPct = x.daily_checkins_pct_7d != null ? Math.round(Number(x.daily_checkins_pct_7d)) : 0;
 
       var workoutsCount = x.workouts_count_7d != null ? Number(x.workouts_count_7d) : 0;
-      var lastWorkout = x.last_workout_date ? String(x.last_workout_date).slice(0, 10) : '—';
 
       var sundayCount = x.sunday_checkins_count_14d != null ? Number(x.sunday_checkins_count_14d) : 0;
-      var lastSunday = x.last_sunday_checkin_date ? String(x.last_sunday_checkin_date).slice(0, 10) : '—';
 
       return '<div class="admin-attention-card admin-attention-card--' + sevKey + '" role="button" tabindex="0" data-user-id="' + escapeHtml(userId) + '" onclick="viewAdminAttentionClientDetails(this.dataset.userId)">' +
         '<div class="admin-attention-card-top">' +
@@ -5658,27 +5916,25 @@ async function bbRefreshMobileAdminRiskList() {
           '<span class="admin-attn-sev-badge admin-attn-sev-badge--' + sevKey + '">' + escapeHtml(severity) + '</span>' +
         '</div>' +
 
-        '<div class="admin-attention-metrics">' +
-          '<div class="admin-attention-kpi">' +
-            '<div class="kpi-lbl">7-Day Compliance</div>' +
-            '<div class="kpi-val">' + escapeHtml(String(compCount)) + '/7</div>' +
-            '<div class="kpi-sub">' + escapeHtml(String(compPct)) + '% daily check-in</div>' +
+        '<div class="admin-attn-compact-metrics">' +
+          '<div class="admin-attn-metric-row">' +
+            '<span class="admin-attn-metric-lbl">7-Day</span>' +
+            '<span class="admin-attn-metric-val">' + escapeHtml(String(compCount)) + '/7</span>' +
+            '<span class="admin-attn-metric-sub">' + escapeHtml(String(compPct)) + '%</span>' +
           '</div>' +
-
-          '<div class="admin-attention-kpi">' +
-            '<div class="kpi-lbl">Workouts (7d)</div>' +
-            '<div class="kpi-val">' + escapeHtml(String(workoutsCount)) + '</div>' +
-            '<div class="kpi-sub">Last: ' + escapeHtml(lastWorkout) + '</div>' +
+          '<div class="admin-attn-metric-row">' +
+            '<span class="admin-attn-metric-lbl">Workouts</span>' +
+            '<span class="admin-attn-metric-val">' + escapeHtml(String(workoutsCount)) + '</span>' +
+            '<span class="admin-attn-metric-sub">7d</span>' +
           '</div>' +
-
-          '<div class="admin-attention-kpi">' +
-            '<div class="kpi-lbl">Sunday (14d)</div>' +
-            '<div class="kpi-val">' + escapeHtml(String(sundayCount)) + '</div>' +
-            '<div class="kpi-sub">Last: ' + escapeHtml(lastSunday) + '</div>' +
+          '<div class="admin-attn-metric-row">' +
+            '<span class="admin-attn-metric-lbl">Sunday</span>' +
+            '<span class="admin-attn-metric-val">' + escapeHtml(String(sundayCount)) + '</span>' +
+            '<span class="admin-attn-metric-sub">14d</span>' +
           '</div>' +
         '</div>' +
 
-        '<div class="admin-attention-footer-hint">Tap for full details</div>' +
+        '<div class="admin-attention-footer-hint">Details</div>' +
       '</div>';
     }).join('');
   } catch (e) {
@@ -6616,9 +6872,7 @@ function switchAiTab(tab) {
 }
 
 function hideAiPromptWrap() {
-  var wrap = document.getElementById('aiPromptWrap');
   var welcome = document.getElementById('adminAiAssistWelcome');
-  if (wrap) wrap.style.display = 'none';
   if (welcome) welcome.style.display = 'none';
 }
 
@@ -7422,11 +7676,187 @@ async function loadProgramsAdmin() {
     userSelect.innerHTML = userOpts;
     progSelect.innerHTML = progOpts;
     historySelect.innerHTML = userOpts;
+    var scoreProg = document.getElementById('adminScoreRulesProgramId');
+    var lbProg = document.getElementById('adminLbProgramId');
+    if (scoreProg) scoreProg.innerHTML = progOpts;
+    if (lbProg) lbProg.innerHTML = progOpts;
   } catch (e) {
     if (userSelect) userSelect.innerHTML = '<option value="">Error loading</option>';
     if (progSelect) progSelect.innerHTML = '<option value="">Error loading</option>';
     if (historySelect) historySelect.innerHTML = '<option value="">Error loading</option>';
+    var sp = document.getElementById('adminScoreRulesProgramId');
+    var lp = document.getElementById('adminLbProgramId');
+    if (sp) sp.innerHTML = '<option value="">Error loading</option>';
+    if (lp) lp.innerHTML = '<option value="">Error loading</option>';
   }
+}
+
+function adminLbWeekStartISO(mode) {
+  var d = new Date();
+  var wd = d.getUTCDay();
+  var diff = wd === 0 ? -6 : 1 - wd;
+  var mon = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + diff));
+  if (mode === 'prev') mon.setUTCDate(mon.getUTCDate() - 7);
+  return mon.toISOString().slice(0, 10);
+}
+
+async function loadAdminProgramScoreRules() {
+  var id = document.getElementById('adminScoreRulesProgramId') && document.getElementById('adminScoreRulesProgramId').value;
+  var form = document.getElementById('adminScoreRulesForm');
+  var status = document.getElementById('adminScoreRulesStatus');
+  if (!form) return;
+  if (!id) {
+    form.style.display = 'none';
+    if (status) status.textContent = '';
+    return;
+  }
+  var list = await apiCall('GET', '/api/admin/program-score-rules');
+  if (list && list.error) {
+    if (status) status.textContent = list.error;
+    return;
+  }
+  var found = (Array.isArray(list) ? list : []).find(function (p) { return p.id === id; });
+  if (!found) {
+    if (status) status.textContent = 'Program not found.';
+    return;
+  }
+  var sw = found.score_weights || {};
+  document.getElementById('asrDaily').value = sw.daily != null ? sw.daily : '';
+  document.getElementById('asrSunday').value = sw.sunday != null ? sw.sunday : '';
+  document.getElementById('asrWorkouts').value = sw.workouts != null ? sw.workouts : '';
+  document.getElementById('asrProgress').value = sw.progress != null ? sw.progress : '';
+  document.getElementById('asrTarget').value = sw.workout_target != null ? sw.workout_target : '';
+  form.style.display = 'block';
+  if (status) status.textContent = found.score_weights ? 'Custom rules loaded.' : 'No custom rules yet — defaults apply until you save.';
+}
+
+async function saveAdminProgramScoreRules() {
+  var id = document.getElementById('adminScoreRulesProgramId').value;
+  if (!id) return;
+  function pickFloat(elId) {
+    var el = document.getElementById(elId);
+    if (!el || !String(el.value).trim()) return undefined;
+    var v = parseFloat(el.value);
+    return isNaN(v) ? undefined : v;
+  }
+  function pickInt(elId) {
+    var el = document.getElementById(elId);
+    if (!el || !String(el.value).trim()) return undefined;
+    var v = parseInt(el.value, 10);
+    return isNaN(v) ? undefined : v;
+  }
+  var sw = {};
+  var a = pickFloat('asrDaily');
+  var b = pickFloat('asrSunday');
+  var c = pickFloat('asrWorkouts');
+  var e = pickFloat('asrProgress');
+  var t = pickInt('asrTarget');
+  if (a !== undefined) sw.daily = a;
+  if (b !== undefined) sw.sunday = b;
+  if (c !== undefined) sw.workouts = c;
+  if (e !== undefined) sw.progress = e;
+  if (t !== undefined) sw.workout_target = t;
+  if (Object.keys(sw).length === 0) {
+    showPopup('Missing', 'Enter at least one weight or workout target.', '', 'OK', null, 'error');
+    return;
+  }
+  var res = await apiCall('PUT', '/api/admin/program-score-rules/' + encodeURIComponent(id), { score_weights: sw });
+  if (res && res.error) {
+    showPopup('Error', res.error, '', 'OK', null, 'error');
+    return;
+  }
+  var st = document.getElementById('adminScoreRulesStatus');
+  if (st) st.textContent = 'Saved.';
+  showPopup('Saved', 'Score rules updated for this program.', '', 'OK');
+}
+
+async function resetAdminProgramScoreRules() {
+  var id = document.getElementById('adminScoreRulesProgramId').value;
+  if (!id) return;
+  if (!confirm('Remove custom score weights for this program? Clients will use default pillar weights.')) return;
+  var res = await apiCall('PUT', '/api/admin/program-score-rules/' + encodeURIComponent(id), { score_weights: null });
+  if (res && res.error) {
+    showPopup('Error', res.error, '', 'OK', null, 'error');
+    return;
+  }
+  document.getElementById('asrDaily').value = '';
+  document.getElementById('asrSunday').value = '';
+  document.getElementById('asrWorkouts').value = '';
+  document.getElementById('asrProgress').value = '';
+  document.getElementById('asrTarget').value = '';
+  var st = document.getElementById('adminScoreRulesStatus');
+  if (st) st.textContent = 'Cleared. Defaults apply.';
+  showPopup('Saved', 'Custom rules removed.', '', 'OK');
+}
+
+async function loadAdminLeaderboardPreview() {
+  var programId = document.getElementById('adminLbProgramId').value;
+  var weekMode = document.getElementById('adminLbWeek').value;
+  var tbody = document.getElementById('adminLbPreviewBody');
+  var meta = document.getElementById('adminLbPreviewMeta');
+  if (!programId) {
+    showPopup('Missing', 'Select a program.', '', 'OK', null, 'error');
+    return;
+  }
+  var ws = adminLbWeekStartISO(weekMode);
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  var data = await apiCall('GET', '/api/admin/leaderboard-preview?program_id=' + encodeURIComponent(programId) + '&week=' + encodeURIComponent(ws));
+  if (data && data.error) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(data.error) + '</td></tr>';
+    if (meta) meta.textContent = '';
+    window._adminLbLastPayload = null;
+    return;
+  }
+  window._adminLbLastPayload = data;
+  if (meta) meta.textContent = (data.program_name || '') + ' · ' + (data.week_label || '') + ' · ' + (data.rows ? data.rows.length : 0) + ' clients';
+  if (!data.rows || !data.rows.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">No active assignments for this program</td></tr>';
+    return;
+  }
+  tbody.innerHTML = data.rows.map(function (r) {
+    var pillars = r.pillars || {};
+    var pill = [pillars.daily, pillars.sunday, pillars.workouts, pillars.progress].map(function (x) { return x != null ? x : '\u2014'; }).join(' / ');
+    var opt = r.opted_in ? '<span style="color:#50c878">Yes</span>' : '<span style="color:var(--muted)">No</span>';
+    var pub = r.rank_public != null ? String(r.rank_public) : '\u2014';
+    return '<tr><td data-label="Admin #">' + r.rank_admin + '</td><td data-label="Public #">' + pub + '</td><td data-label="Display">' + escapeHtml(r.display_name) + '</td><td data-label="Client">' + escapeHtml(r.internal_name) + '</td><td data-label="Score">' + (r.total != null ? r.total : '\u2014') + '</td><td data-label="Opt-in">' + opt + '</td><td data-label="Pillars">' + escapeHtml(pill) + '</td></tr>';
+  }).join('');
+}
+
+function downloadAdminLeaderboardCsv() {
+  var data = window._adminLbLastPayload;
+  if (!data || !data.rows || !data.rows.length) {
+    showPopup('Nothing to export', 'Load a leaderboard first.', '', 'OK', null, 'error');
+    return;
+  }
+  var lines = [['admin_rank', 'public_rank', 'display_name', 'internal_name', 'email', 'opted_in', 'total', 'daily', 'sunday', 'workouts', 'progress', 'program', 'week_label']];
+  data.rows.forEach(function (r) {
+    var p = r.pillars || {};
+    lines.push([
+      r.rank_admin,
+      r.rank_public != null ? r.rank_public : '',
+      r.display_name,
+      r.internal_name,
+      r.email,
+      r.opted_in ? 'yes' : 'no',
+      r.total,
+      p.daily, p.sunday, p.workouts, p.progress,
+      data.program_name,
+      data.week_label
+    ]);
+  });
+  var csv = lines.map(function (row) {
+    return row.map(function (cell) {
+      var s = String(cell == null ? '' : cell);
+      if (/[",\n]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }).join(',');
+  }).join('\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'leaderboard-' + String(data.program_id || 'program').replace(/[^a-z0-9]+/gi, '-') + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 async function assignProgramToUser() {
@@ -7560,6 +7990,7 @@ function openUserDashboard(user) {
   loadUserStats();
   loadTodayDashboard();
   loadMicroGoals();
+  loadScorecard();
   loadProfile();
   loadWorkoutHistory();
   if (typeof loadNotifications === 'function') loadNotifications();
@@ -7787,6 +8218,7 @@ function switchUserTab(tab) {
     loadUserStats();
     loadTodayDashboard();
     loadMicroGoals();
+    loadScorecard();
     if (window.innerWidth >= 768) {
       setTimeout(function() { bbRefreshDesktopUserDashboard(); }, 150);
     }
@@ -8002,6 +8434,8 @@ async function bbRefreshDesktopUserDashboard() {
     );
   }).join('');
   bbUserSetHtml('u-activity-body', tbody || '<tr><td colspan="5" style="color:var(--bb-muted);text-align:center;padding:20px">No activity yet.</td></tr>');
+
+  loadScorecard();
 }
 
 // User stats (workouts this week, next call, days since last activity)
@@ -8063,6 +8497,191 @@ async function loadTodayDashboard() {
     }
     if (el = document.getElementById('todayCheckinCard')) el.style.display = data.pendingSundayCheckin ? 'block' : 'none';
   } catch (e) {}
+}
+
+window._bbScorecardCache = null;
+window._bbLeaderboardWeekMode = 'this';
+
+async function loadScorecard() {
+  if (!window.currentUser || !window.currentUser.token) return;
+  var data = await apiCall('GET', '/api/me/scorecard');
+  if (data && data.error) {
+    window._bbScorecardCache = null;
+    renderScorecardEmpty(data.error);
+    return;
+  }
+  window._bbScorecardCache = data;
+  renderScorecard(data);
+}
+
+function renderScorecardEmpty(err) {
+  ['Mobile', 'Desktop'].forEach(function (suf) {
+    var v = document.getElementById('bbScoreVal' + suf);
+    if (v) v.textContent = '—';
+    var w = document.getElementById('bbScoreWeek' + suf);
+    if (w) w.textContent = err || 'Unavailable';
+    var pl = document.getElementById('bbScoreProgLine' + suf);
+    if (pl) pl.textContent = '';
+  });
+}
+
+function renderScorecard(d) {
+  var suffixes = ['Mobile', 'Desktop'];
+  var total = d.total != null ? Math.round(Number(d.total)) : 0;
+  var prog = d.program_name || 'Your program';
+  suffixes.forEach(function (suf) {
+    var valEl = document.getElementById('bbScoreVal' + suf);
+    if (valEl) valEl.textContent = String(total);
+    var weekEl = document.getElementById('bbScoreWeek' + suf);
+    if (weekEl) weekEl.textContent = d.week_label || '—';
+    var plEl = document.getElementById('bbScoreProgLine' + suf);
+    if (plEl) plEl.textContent = prog + ' · pillar blend';
+    var tr = document.getElementById('bbScoreTrend' + suf);
+    if (tr) {
+      if (d.trend_delta != null && d.previous_total != null) {
+        var up = d.trend_delta > 0;
+        var down = d.trend_delta < 0;
+        tr.textContent = (up ? '\u2191 ' : down ? '\u2193 ' : '') + (d.trend_delta > 0 ? '+' : '') + d.trend_delta + ' vs last week';
+        tr.className = 'bb-sc-trend' + (up ? ' up' : down ? ' down' : '');
+      } else {
+        tr.textContent = '';
+        tr.className = 'bb-sc-trend';
+      }
+    }
+    var pillars = document.getElementById('bbScorePillars' + suf);
+    if (pillars && d.pillars) {
+      pillars.innerHTML = ['Daily', 'Sunday', 'Workouts', 'Progress'].map(function (label, i) {
+        var key = ['daily', 'sunday', 'workouts', 'progress'][i];
+        var val = d.pillars[key];
+        return '<span class="bb-sc-pillar">' + label + ' <span>' + (val != null ? val : '\u2014') + '</span></span>';
+      }).join('');
+    }
+    var lb = document.getElementById('bbScoreLbRow' + suf);
+    var inv = document.getElementById('bbScoreInvite' + suf);
+    var btn = document.getElementById('bbScoreLeaderboardBtn' + suf);
+    if (d.opted_in && d.leaderboard_rank != null && d.cohort_size != null && d.cohort_size > 0) {
+      if (lb) lb.innerHTML = '<strong>#' + d.leaderboard_rank + '</strong> of ' + d.cohort_size + ' in your program cohort';
+      if (inv) inv.style.display = 'none';
+      if (btn) { btn.style.display = ''; btn.textContent = 'View leaderboard'; }
+    } else if (d.opted_in) {
+      if (lb) lb.innerHTML = 'Leaderboard: <span style="color:var(--muted)">Build the cohort \u2014 invite stays private until others opt in.</span>';
+      if (inv) inv.style.display = 'none';
+      if (btn) { btn.style.display = ''; btn.textContent = 'View leaderboard'; }
+    } else {
+      if (lb) lb.innerHTML = '';
+      if (inv) inv.style.display = 'flex';
+      if (btn) { btn.style.display = ''; btn.textContent = 'Leaderboard'; }
+    }
+  });
+}
+
+function handleScorecardLeaderboardCta() {
+  var d = window._bbScorecardCache;
+  if (!d) { loadScorecard(); return; }
+  if (d.opted_in) loadScorecardLeaderboardModal('this');
+  else openLeaderboardOptInModal();
+}
+
+function openLeaderboardOptInModal() {
+  var d = window._bbScorecardCache;
+  var inp = document.getElementById('leaderboardDisplayName');
+  var chk = document.getElementById('leaderboardOptInCheck');
+  if (inp) inp.value = (d && d.display_name) ? d.display_name : '';
+  if (chk) chk.checked = true;
+  openModal('leaderboardOptInModal');
+}
+
+async function submitLeaderboardOptIn() {
+  var chk = document.getElementById('leaderboardOptInCheck');
+  var name = document.getElementById('leaderboardDisplayName');
+  var optIn = chk && chk.checked;
+  var body = { opt_in: !!optIn, display_name: name ? name.value : '' };
+  var res = await apiCall('POST', '/api/me/leaderboard-opt-in', body);
+  if (res && res.error) {
+    showPopup('Error', res.error, '', 'OK', null, 'error');
+    return;
+  }
+  closeModal('leaderboardOptInModal');
+  showPopup('Saved', optIn ? 'You are on the program leaderboard.' : 'Leaderboard sharing is off.', '', 'OK', null, 'success');
+  loadScorecard();
+}
+
+function bbScorecardWeekParam() {
+  var d = window._bbScorecardCache && window._bbScorecardCache.week_start;
+  if (!d) return '';
+  if (window._bbLeaderboardWeekMode === 'prev') {
+    var dt = new Date(d + 'T12:00:00Z');
+    dt.setUTCDate(dt.getUTCDate() - 7);
+    return dt.toISOString().slice(0, 10);
+  }
+  return d;
+}
+
+async function loadScorecardLeaderboardModal(mode) {
+  if (!window.currentUser) return;
+  if (mode === 'this' || mode === 'prev') window._bbLeaderboardWeekMode = mode;
+  else if (!window._bbLeaderboardWeekMode) window._bbLeaderboardWeekMode = 'this';
+  var thisBtn = document.getElementById('lbWeekThis');
+  var prevBtn = document.getElementById('lbWeekPrev');
+  if (thisBtn && prevBtn) {
+    if (window._bbLeaderboardWeekMode === 'prev') { prevBtn.classList.add('is-active'); thisBtn.classList.remove('is-active'); }
+    else { thisBtn.classList.add('is-active'); prevBtn.classList.remove('is-active'); }
+  }
+  var ws = bbScorecardWeekParam();
+  var url = '/api/me/leaderboard' + (ws ? '?week=' + encodeURIComponent(ws) : '');
+  var data = await apiCall('GET', url);
+  var sub = document.getElementById('scorecardLbSubtitle');
+  var bodyEl = document.getElementById('scorecardLbBody');
+  if (data && data.error) {
+    if (bodyEl) bodyEl.innerHTML = '<p class="form-hint" style="color:#e05050">' + escapeHtml(data.error) + '</p>';
+    if (sub) sub.textContent = '';
+    openModal('scorecardLeaderboardModal');
+    return;
+  }
+  if (sub) sub.textContent = (data.program_name || '') + ' \u00b7 ' + (data.week_label || '');
+  var uid = window.currentUser.id;
+  if (bodyEl) {
+    if (!data.rows || !data.rows.length) {
+      bodyEl.innerHTML = '<p class="form-hint">No opted-in members for this week yet.</p>';
+    } else {
+      bodyEl.innerHTML = '<table class="bb-lb-table"><thead><tr><th>#</th><th>Name</th><th>Score</th></tr></thead><tbody>' +
+        data.rows.map(function (r) {
+          var self = r.user_id === uid;
+          return '<tr class="' + (self ? 'is-self' : '') + '"><td>' + r.rank + '</td><td>' + escapeHtml(r.display_name) + (self ? ' <span style="color:var(--gold)">(you)</span>' : '') + '</td><td>' + (r.total != null ? r.total : '\u2014') + '</td></tr>';
+        }).join('') + '</tbody></table>';
+    }
+  }
+  openModal('scorecardLeaderboardModal');
+}
+
+function openScorecardBreakdownModal() {
+  var d = window._bbScorecardCache;
+  var list = document.getElementById('scorecardBreakdownList');
+  var hint = document.getElementById('scorecardBreakdownHint');
+  if (!list) return;
+  if (!d || !d.pillars) {
+    list.innerHTML = '<li>Load your scorecard first.</li>';
+    openModal('scorecardBreakdownModal');
+    return;
+  }
+  if (hint) hint.textContent = (d.program_name || 'Program') + ' \u00b7 ' + (d.week_label || '');
+  var b = d.breakdown || {};
+  var rows = [
+    ['Daily check-ins', d.pillars.daily, 'Days logged: ' + (b.daily_days != null ? b.daily_days : '\u2014') + ' / 7'],
+    ['Sunday check-in', d.pillars.sunday, b.sunday_done ? 'Submitted in this window' : 'Not submitted in this window'],
+    ['Workouts', d.pillars.workouts, 'Sessions: ' + (b.workouts_logged != null ? b.workouts_logged : '\u2014') + ' / target ' + (b.workout_target != null ? b.workout_target : '\u2014')],
+    ['Progress logs', d.pillars.progress, 'Distinct days: ' + (b.progress_days != null ? b.progress_days : '\u2014') + ' / 7']
+  ];
+  var w = d.weights || {};
+  var html = rows.map(function (r) {
+    return '<li><span>' + r[0] + '<br><span style="font-size:11px;color:var(--muted);font-weight:400">' + escapeHtml(r[2]) + '</span></span><span>' + (r[1] != null ? r[1] : '\u2014') + '</span></li>';
+  }).join('');
+  if (w && (w.daily != null || w.sunday != null)) {
+    html += '<li style="border:none;font-size:12px;color:var(--muted);padding-top:12px;list-style:none">Weights: daily ' + (Number(w.daily) || 0).toFixed(2) +
+      ' \u00b7 sunday ' + (Number(w.sunday) || 0).toFixed(2) + ' \u00b7 workouts ' + (Number(w.workouts) || 0).toFixed(2) + ' \u00b7 progress ' + (Number(w.progress) || 0).toFixed(2) + '</li>';
+  }
+  list.innerHTML = html;
+  openModal('scorecardBreakdownModal');
 }
 
 // Micro-goals: daily check-in + streaks
@@ -8182,6 +8801,7 @@ async function submitMicroGoals() {
     }
     loadMicroGoals();
     loadMicroGoals();
+    loadScorecard();
     showPopup('Saved', 'Daily check-in saved. Streak updated!', '', 'OK', null, 'success');
   } catch (e) {
     showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
@@ -8517,6 +9137,7 @@ async function submitProgress() {
   if (successEl) { successEl.style.display = 'block'; setTimeout(function() { successEl.style.display = 'none'; }, 5000); }
   clearProgressForm();
   loadProgressLogs();
+  loadScorecard();
 }
 
 function clearProgressForm() {
@@ -8628,6 +9249,7 @@ async function submitProgressCheckin() {
     if (el) { if (el.type === 'checkbox') el.checked = false; else el.value = ''; }
   });
   loadProgressLogsCheckin();
+  loadScorecard();
 }
 
 function viewProgressLog(idx) {
@@ -8925,6 +9547,7 @@ async function submitWorkout() {
   if (data.error) { if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Submit';} alert(data.error); return; }
   if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Submit';}
   loadUserStats();
+  loadScorecard();
   showPopup('Workout Logged!', 'Great session! Keep the consistency going.', '"The pain you feel today will be the strength you feel tomorrow."', 'OK');
   document.getElementById('wkName').value = '';
   document.getElementById('wkFeedback').value = '';
@@ -9079,6 +9702,7 @@ async function submitSundayCheckin() {
     if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = btn._orig || 'Submit Check-in'; }
     document.getElementById('sundayCheckinForm').reset();
     var succ = document.getElementById('scSuccess'); if (succ) succ.style.display = 'none';
+    loadScorecard();
     showPopup('Check-in Submitted!', 'Your Sunday check-in has been sent successfully.', '', 'OK', function() {
       showCheckinSubView('hub');
     });

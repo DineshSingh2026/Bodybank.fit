@@ -167,6 +167,9 @@ async function queryOne(sql, params = []) {
   return rows.length > 0 ? rows[0] : null;
 }
 
+const { createScorecardService } = require('./services/scorecardService');
+const scorecardSvc = createScorecardService({ queryOne, queryAll });
+
 function normalizeGeoFields(country, timezone) {
   const cleanCountry = String(country || '').trim();
   const cleanTimezone = String(timezone || '').trim() || inferTimezoneFromCountry(cleanCountry);
@@ -558,6 +561,11 @@ async function initDB() {
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_program_assignments_user ON user_program_assignments(user_id)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_program_assignments_program ON user_program_assignments(program_id)`); } catch (e) { /* ignore */ }
+
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_opt_in BOOLEAN DEFAULT FALSE`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_display_name TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_opt_in_at TIMESTAMPTZ`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS score_weights JSONB`); } catch (e) { /* ignore */ }
 
   // Sync programs table with PDF files on disk
   try {
@@ -2407,6 +2415,77 @@ app.get('/api/admin/program-catalog', verifyToken, requireAdminOrSuperadmin, asy
   }
 });
 
+// Weekly scorecard: per-program pillar weights (JSON) + cohort leaderboard audit
+app.get('/api/admin/program-score-rules', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll('SELECT id, name, score_weights FROM programs ORDER BY name');
+    const out = (rows || []).map((r) => {
+      let sw = r.score_weights;
+      if (typeof sw === 'string') {
+        try {
+          sw = JSON.parse(sw);
+        } catch (_) {
+          sw = null;
+        }
+      }
+      return { id: r.id, name: r.name, score_weights: sw };
+    });
+    res.json(out);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.put('/api/admin/program-score-rules/:programId', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const programId = req.params.programId;
+    const exists = await queryOne('SELECT id FROM programs WHERE id = ?', [programId]);
+    if (!exists) return res.status(404).json({ error: 'Program not found' });
+    const body = req.body || {};
+    if (body.score_weights === null) {
+      await run('UPDATE programs SET score_weights = NULL WHERE id = ?', [programId]);
+    } else if (typeof body.score_weights === 'object' && body.score_weights !== null) {
+      await run('UPDATE programs SET score_weights = ?::jsonb WHERE id = ?', [JSON.stringify(body.score_weights), programId]);
+    } else {
+      return res.status(400).json({ error: 'Body must include score_weights (object) or score_weights: null' });
+    }
+    const row = await queryOne('SELECT id, name, score_weights FROM programs WHERE id = ?', [programId]);
+    let sw = row.score_weights;
+    if (typeof sw === 'string') {
+      try {
+        sw = JSON.parse(sw);
+      } catch (_) {
+        sw = null;
+      }
+    }
+    res.json({ ok: true, id: row.id, name: row.name, score_weights: sw });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/leaderboard-preview', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const programId = (req.query.program_id || '').trim();
+    const weekParam = (req.query.week || '').trim();
+    if (!programId) return res.status(400).json({ error: 'program_id required' });
+    const weekStart = scorecardSvc.normalizeWeekStart(weekParam);
+    const prog = await queryOne('SELECT id, name FROM programs WHERE id = ?', [programId]);
+    if (!prog) return res.status(404).json({ error: 'Program not found' });
+    const rows = await scorecardSvc.buildAdminLeaderboardPreview(programId, weekStart);
+    res.json({
+      program_id: programId,
+      program_name: prog.name || programId,
+      week_start: weekStart,
+      week_label: scorecardSvc.formatWeekRangeLabel(weekStart),
+      rows
+    });
+  } catch (e) {
+    console.error('leaderboard-preview error:', e);
+    res.status(500).json({ error: e.message || 'Failed' });
+  }
+});
+
 app.get('/api/programs/user/:userId', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const userId = req.params.userId;
@@ -2519,6 +2598,112 @@ app.post('/api/me/program-assignments/:id/seen', verifyToken, async (req, res) =
       [id, req.user.id]
     );
     res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Weekly scorecard + cohort leaderboard (rank on client only when opted in)
+app.get('/api/me/scorecard', verifyToken, async (req, res) => {
+  try {
+    const weekParam = (req.query.week || '').trim();
+    const weekStart = scorecardSvc.normalizeWeekStart(weekParam);
+    const prevWeek = scorecardSvc.previousWeekStart(weekStart);
+    const urow = await queryOne(
+      'SELECT leaderboard_opt_in, leaderboard_display_name FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    const optedIn = !!(urow && urow.leaderboard_opt_in);
+    const current = await scorecardSvc.computeWeeklyScore(req.user.id, weekStart);
+    const previous = prevWeek ? await scorecardSvc.computeWeeklyScore(req.user.id, prevWeek) : null;
+    let rank = null;
+    let cohort_size = null;
+    if (optedIn && current && current.program_id) {
+      const r = await scorecardSvc.rankInCohort(req.user.id, current.program_id, weekStart, true);
+      rank = r.rank;
+      cohort_size = r.cohort_size;
+    }
+    const trend_delta =
+      current && previous ? Math.round((current.total - previous.total) * 10) / 10 : null;
+    res.json({
+      week_start: weekStart,
+      week_label: current ? current.week_label : scorecardSvc.formatWeekRangeLabel(weekStart),
+      opted_in: optedIn,
+      display_name: (urow && urow.leaderboard_display_name) || '',
+      leaderboard_rank: optedIn ? rank : null,
+      cohort_size: optedIn ? cohort_size : null,
+      program_id: current ? current.program_id : null,
+      program_name: current ? current.program_name : null,
+      total: current ? current.total : 0,
+      pillars: current
+        ? {
+            daily: current.daily,
+            sunday: current.sunday,
+            workouts: current.workouts,
+            progress: current.progress
+          }
+        : null,
+      breakdown: current ? current.breakdown : null,
+      weights: current ? current.weights : null,
+      trend_delta,
+      previous_total: previous ? previous.total : null
+    });
+  } catch (e) {
+    console.error('scorecard error:', e);
+    res.status(500).json({ error: e.message || 'Failed to load scorecard' });
+  }
+});
+
+app.post('/api/me/leaderboard-opt-in', verifyToken, rateLimiter(10, 60000), async (req, res) => {
+  try {
+    const body = req.body || {};
+    const optIn = !!body.opt_in;
+    const displayName = String(body.display_name || '').trim().slice(0, 80);
+    if (optIn) {
+      await run(
+        `UPDATE users SET leaderboard_opt_in = TRUE, leaderboard_display_name = ?,
+         leaderboard_opt_in_at = COALESCE(leaderboard_opt_in_at, CURRENT_TIMESTAMP) WHERE id = ?`,
+        [displayName, req.user.id]
+      );
+    } else {
+      await run(
+        `UPDATE users SET leaderboard_opt_in = FALSE, leaderboard_display_name = '', leaderboard_opt_in_at = NULL WHERE id = ?`,
+        [req.user.id]
+      );
+    }
+    const row = await queryOne(
+      'SELECT leaderboard_opt_in, leaderboard_display_name, leaderboard_opt_in_at FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    res.json({ ok: true, ...row });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/me/leaderboard', verifyToken, async (req, res) => {
+  try {
+    const urow = await queryOne(
+      'SELECT leaderboard_opt_in FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    if (!urow || !urow.leaderboard_opt_in) {
+      return res.status(403).json({ error: 'Leaderboard is only available after you opt in from your scorecard.' });
+    }
+    const weekParam = (req.query.week || '').trim();
+    const weekStart = scorecardSvc.normalizeWeekStart(weekParam);
+    const current = await scorecardSvc.computeWeeklyScore(req.user.id, weekStart);
+    if (!current || !current.program_id) {
+      return res.json({ week_start: weekStart, week_label: scorecardSvc.formatWeekRangeLabel(weekStart), program_name: current ? current.program_name : null, rows: [] });
+    }
+    const rows = await scorecardSvc.buildLeaderboard(current.program_id, weekStart, 50);
+    res.json({
+      week_start: weekStart,
+      week_label: current.week_label,
+      program_id: current.program_id,
+      program_name: current.program_name,
+      rows
+    });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
