@@ -73,7 +73,7 @@ ${cta}
 </td></tr></table></body></html>`;
 }
 
-async function sendMail(to, subject, html, text) {
+async function sendMail(to, subject, html, text, attachments) {
   if (!isConfigured() || !to) return false;
   try {
     const transporter = getTransporter();
@@ -83,7 +83,8 @@ async function sendMail(to, subject, html, text) {
       to: String(to).trim().toLowerCase(),
       subject,
       text: text || subject,
-      html
+      html,
+      attachments: Array.isArray(attachments) ? attachments : undefined
     });
     console.log('[userEmail] Sent:', subject, 'to', String(to).trim().toLowerCase());
     return true;

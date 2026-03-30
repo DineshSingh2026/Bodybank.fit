@@ -20,7 +20,7 @@ const { generateMonthlyClientReport, monthLabel: monthLabelForReport } = require
 const { writeSundayCheckinPdf, writePart2Pdf } = require('./services/formPdfService');
 const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
-const { startEmailScheduler } = require('./services/emailScheduler');
+const { startEmailScheduler, getAdminDailyComplianceReportData, sendAdminDailyComplianceReport } = require('./services/emailScheduler');
 
 // ============ CONFIG ============
 const PORT = process.argv[2] || process.env.PORT || 3000;
@@ -521,6 +521,16 @@ async function initDB() {
     PRIMARY KEY(user_id, milestone_key, last_checkin_date)
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_attention_email_log_user ON attention_email_log(user_id)`); } catch (e) { /* ignore */ }
+
+  // Daily admin compliance report dedupe log
+  await pool.query(`CREATE TABLE IF NOT EXISTS admin_daily_report_log (
+    report_key TEXT PRIMARY KEY,
+    window_start TIMESTAMP NOT NULL,
+    window_end TIMESTAMP NOT NULL,
+    recipient_email TEXT NOT NULL,
+    sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_admin_daily_report_log_sent_at ON admin_daily_report_log(sent_at DESC)`); } catch (e) { /* ignore */ }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS marketing_contents (
     id SERIAL PRIMARY KEY,
@@ -3044,6 +3054,35 @@ app.get('/api/admin/users', async (req, res) => {
     res.json(list);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// Preview daily compliance report payload (no email send)
+app.get('/api/admin/daily-compliance-preview', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const data = await getAdminDailyComplianceReportData({ queryAll });
+    if (data && data.reason) return res.status(400).json(data);
+    res.json({
+      window_start_utc: data.startIso,
+      window_end_utc: data.endIso,
+      window_label_ist: data.windowLabel,
+      summary: data.summary,
+      rows: data.rows
+    });
+  } catch (e) {
+    console.error('[daily-compliance-preview]', e.message);
+    res.status(500).json({ error: 'Failed to build daily compliance preview' });
+  }
+});
+
+// Manual admin trigger for daily compliance email report
+app.post('/api/admin/daily-compliance-send', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const out = await sendAdminDailyComplianceReport({ queryAll, force: true });
+    res.json(out);
+  } catch (e) {
+    console.error('[daily-compliance-send]', e.message);
+    res.status(500).json({ error: 'Failed to send daily compliance report' });
   }
 });
 
