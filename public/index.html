@@ -1175,6 +1175,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .bb-fw-modal .bb-fw-title{ font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:0.05em; color:var(--cream); }
 .bb-fw-modal .bb-fw-sub{ margin-bottom:16px; font-size:12px; line-height:1.45; }
 .bb-fw-stage{
+  --bb-fw-r: 118px;
   position:relative; width:min(82vw,340px); height:min(82vw,340px); margin:10px auto 22px;
   border-radius:50%;
   /* Outer gold rim (reference) */
@@ -1238,26 +1239,29 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   position:absolute; inset:0; border-radius:50%;
   background:radial-gradient(circle at 50% 0%,rgba(255,255,255,0.07),transparent 40%);
 }
-.bb-fw-lblwrap{ position:absolute; inset:0; pointer-events:none; z-index:4; }
-/* Labels sit on outer arc (reference); radius tuned for 8 segments */
+.bb-fw-lblwrap{ position:absolute; inset:0; pointer-events:none; z-index:4; overflow:visible; }
+/* Radial labels: pivot at box center (translate -50% -50%) then rotate + radial offset — matches pie segments */
 .bb-fw-lbl{
   position:absolute; left:50%; top:50%;
-  width:72px; height:56px; margin-left:-36px;
+  width:68px; height:52px; margin:0;
   font-size:8px; line-height:1.08;
   text-align:center;
   color:rgba(255,248,235,0.94);
   text-transform:uppercase;
   letter-spacing:0.05em;
   font-weight:800;
-  transform:rotate(var(--a)) translateY(-120px) rotate(calc(-1 * var(--a)));
+  transform-origin:center center;
+  transform:translate(-50%,-50%) rotate(var(--a)) translateY(calc(-1 * var(--bb-fw-r))) rotate(calc(-1 * var(--a)));
   text-shadow:0 1px 4px rgba(0,0,0,0.92);
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:3px; padding:5px 6px;
-  border:1px solid rgba(200,164,78,0.12);
-  border-radius:9px;
-  background:linear-gradient(165deg,rgba(18,16,14,0.55),rgba(0,0,0,0.35));
+  gap:2px; padding:5px 5px;
+  border:1px solid rgba(200,164,78,0.14);
+  border-radius:8px;
+  background:linear-gradient(165deg,rgba(22,19,16,0.72),rgba(6,5,4,0.45));
   box-sizing:border-box;
   font-variant-numeric: tabular-nums;
+  box-shadow:0 4px 14px rgba(0,0,0,0.45),inset 0 1px 0 rgba(255,255,255,0.04);
+  backface-visibility:hidden;
 }
 .bb-fw-lbl-ico{
   font-size:11px; line-height:1; color:rgba(214,178,96,0.95);
@@ -1320,12 +1324,14 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 }
 @media(max-width:520px){
   .bb-fw-modal .bb-fw-title{ font-size:28px; }
-  .bb-fw-stage{ width:min(86vw,300px); height:min(86vw,300px); }
+  .bb-fw-stage{
+    width:min(86vw,300px); height:min(86vw,300px);
+    --bb-fw-r: 104px;
+  }
   .bb-fw-lbl{
-    width:64px; height:52px; margin-left:-32px;
+    width:60px; height:48px;
     font-size:7px;
-    transform:rotate(var(--a)) translateY(-108px) rotate(calc(-1 * var(--a)));
-    padding:4px 5px;
+    padding:4px 4px;
   }
   .bb-fw-hub{ width:58px; height:58px; font-size:16px; }
 }
