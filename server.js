@@ -2669,7 +2669,7 @@ app.get('/api/me/focus-wheel', verifyToken, async (req, res) => {
     );
     const last = row && String(row.focus_wheel_last_spin_date || '').trim();
     const can_spin = last !== ymd;
-    const segments = await focusWheelSvc.buildFocusSegments({ queryAll, queryOne }, req.user.id, 8);
+    const segments = await focusWheelSvc.buildFocusSegments({ queryAll, queryOne }, req.user.id, 6);
     res.json({
       can_spin,
       date_ymd: ymd,
@@ -2691,7 +2691,7 @@ app.post('/api/me/focus-wheel/spin', verifyToken, rateLimiter(10, 60000), async 
       [req.user.id]
     );
     const last = row && String(row.focus_wheel_last_spin_date || '').trim();
-    const segments = await focusWheelSvc.buildFocusSegments({ queryAll, queryOne }, req.user.id, 8);
+    const segments = await focusWheelSvc.buildFocusSegments({ queryAll, queryOne }, req.user.id, 6);
     if (last === ymd) {
       return res.json({
         ok: true,

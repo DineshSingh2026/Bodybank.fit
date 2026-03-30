@@ -1,31 +1,30 @@
 /**
- * Daily "Focus Wheel" segments: mix of data-aware micro-goals and luxury short quotes.
- * Always returns exactly `count` labels (default 8).
+ * Daily "Focus Wheel" segments: concise, premium copy with data-aware nudges.
+ * Always returns exactly `count` labels (default 6).
  */
 function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
 }
 
 const STATIC_QUOTES = [
-  'Consistency compounds.',
-  'Progress over perfection.',
-  'One thing done well.',
-  'Recovery is performance.',
-  'Move with intention.',
-  'Small reps. Big effect.',
-  'Discipline is freedom.',
-  'Show up today.'
+  'Consistency compounds',
+  'Progress over perfection',
+  'One thing done well',
+  'Recovery is performance',
+  'Move with intention',
+  'Discipline is freedom',
+  'Show up today'
 ];
 
 const STATIC_HABITS = [
-  'Hydration: own your water.',
-  'Protein at every meal.',
-  'In bed fifteen minutes earlier.',
-  'Ten minutes of brisk walking.',
-  'Log your daily check-in.',
-  'One mindful meal today.',
-  'Stretch for five minutes.',
-  'Breathe before you scroll.'
+  'Hydration priority',
+  'Protein each meal',
+  'Sleep fifteen minutes earlier',
+  'Ten minute brisk walk',
+  'Complete daily check-in',
+  'One mindful meal',
+  'Five minute mobility',
+  'Breathe before scrolling'
 ];
 
 function dedupeLabels(arr) {
@@ -48,7 +47,7 @@ function shuffleInPlace(arr) {
   return arr;
 }
 
-async function buildFocusSegments({ queryAll, queryOne }, userId, count = 8) {
+async function buildFocusSegments({ queryAll, queryOne }, userId, count = 6) {
   const dynamic = [];
 
   const weekRows = await queryAll(
@@ -64,11 +63,11 @@ async function buildFocusSegments({ queryAll, queryOne }, userId, count = 8) {
 
   if (avgSteps != null && avgSteps > 0) {
     const target = clamp(Math.round(avgSteps + 750), 3000, 20000);
-    dynamic.push(`Aim for ${target.toLocaleString()} steps today`);
-    dynamic.push(`Beat your week: ${avgSteps.toLocaleString()}+ steps`);
+    dynamic.push(`${target.toLocaleString()} steps today`);
+    dynamic.push(`Beat ${avgSteps.toLocaleString()} avg steps`);
   } else {
-    dynamic.push('Build toward 6,000 steps today');
-    dynamic.push('Start with a 15-minute walk');
+    dynamic.push('Build toward 6,000 steps');
+    dynamic.push('Start a 15 minute walk');
   }
 
   const todayRow = await queryOne(
@@ -76,10 +75,10 @@ async function buildFocusSegments({ queryAll, queryOne }, userId, count = 8) {
     [userId]
   );
   if (todayRow && todayRow.water_ml != null && todayRow.water_ml < 1500) {
-    dynamic.push('Water focus: +500 ml today');
+    dynamic.push('Add 500 ml water');
   }
   if (todayRow && todayRow.protein_g != null && todayRow.protein_g < 80) {
-    dynamic.push('Protein: add 20 g today');
+    dynamic.push('Add 20 g protein');
   }
 
   const wo = await queryOne(
