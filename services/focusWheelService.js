@@ -1,6 +1,6 @@
 /**
  * Daily "Focus Wheel" segments: activity-only, adaptive to member baseline.
- * Always returns exactly `count` labels (default 6).
+ * Always returns exactly `count` labels (default 8, watch-dial segments).
  */
 function clamp(n, lo, hi) {
   return Math.max(lo, Math.min(hi, n));
@@ -24,7 +24,7 @@ const BASE_ACTIVITIES = [
   'Mobility: hips + T-spine'
 ];
 
-async function buildFocusSegments({ queryAll, queryOne }, userId, count = 6) {
+async function buildFocusSegments({ queryAll, queryOne }, userId, count = 8) {
   const weekRows = await queryAll(
     `SELECT steps, water_ml, protein_g, sleep_hours
      FROM daily_checkins
