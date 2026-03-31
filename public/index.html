@@ -1619,6 +1619,35 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   background:rgba(250,204,21,0.16);
   border-color:rgba(250,204,21,0.52);
 }
+.admin-attn-sev-badge--high{
+  color:#fff;
+  background:rgba(239,68,68,0.16);
+  border-color:rgba(239,68,68,0.58);
+}
+.admin-attn-sev-badge--medium{
+  color:#111827;
+  background:rgba(250,204,21,0.2);
+  border-color:rgba(250,204,21,0.56);
+}
+.admin-attn-sev-badge--focused{
+  color:#eafff6;
+  background:rgba(69,209,159,0.18);
+  border-color:rgba(69,209,159,0.58);
+}
+.tribe-board-card{margin-bottom:10px}
+.tribe-board-card:last-child{margin-bottom:0}
+.tribe-board-card.tribe-stage-high{
+  border-color:rgba(239,68,68,0.45);
+  box-shadow:0 12px 34px rgba(239,68,68,0.12);
+}
+.tribe-board-card.tribe-stage-medium{
+  border-color:rgba(250,204,21,0.45);
+  box-shadow:0 12px 34px rgba(250,204,21,0.10);
+}
+.tribe-board-card.tribe-stage-focused{
+  border-color:rgba(69,209,159,0.42);
+  box-shadow:0 12px 34px rgba(69,209,159,0.08);
+}
 @media(max-width:480px){
   .admin-summary-num{font-size:24px}
   .admin-qa-btn{padding:14px 8px;font-size:10px}
@@ -7083,6 +7112,20 @@ async function loadTribe() {
   }
 
   grid.innerHTML = data.map(m => {
+    function parseWeightNum(v) {
+      if (v == null) return null;
+      var s = String(v).trim();
+      if (!s) return null;
+      var m = s.match(/-?\d+(\.\d+)?/);
+      if (!m) return null;
+      var n = parseFloat(m[0]);
+      return Number.isFinite(n) ? n : null;
+    }
+    function fmtKg(v) {
+      if (v == null) return '—';
+      var rounded = Math.round(v * 10) / 10;
+      return (Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)) + ' kg';
+    }
     const dispName = ((m.first_name||'')+' '+(m.last_name||'')).trim() || '—';
     const phase = m.phase ?? 1;
     const phaseClass = 'phase-' + phase;
@@ -7101,42 +7144,63 @@ async function loadTribe() {
     const sunday = p.sunday != null ? p.sunday : '—';
     const workouts = p.workouts != null ? p.workouts : '—';
     const pr = p.progress != null ? p.progress : '—';
-    const weightChange = m.starting_weight != null && m.current_weight != null
-      ? m.starting_weight + ' → ' + m.current_weight + ' kg'
-      : (m.starting_weight != null ? m.starting_weight + ' kg' : '-');
+    const daily7 = (typeof daily === 'number' || /^\d+(\.\d+)?$/.test(String(daily))) ? Math.max(0, Math.min(7, Math.round((Number(daily) / 100) * 7))) : '—';
+    const dailyPct = (typeof daily === 'number' || /^\d+(\.\d+)?$/.test(String(daily))) ? Math.round(Number(daily)) : 0;
+    const sw = parseWeightNum(m.starting_weight);
+    const cw = parseWeightNum(m.current_weight);
+    const weightChange = sw != null && cw != null
+      ? fmtKg(sw) + ' → ' + fmtKg(cw)
+      : (sw != null ? fmtKg(sw) : '-');
     const activity = m.activity_per_week ?? 0;
     const nextCheckin = (m.next_checkin && String(m.next_checkin).trim()) ? m.next_checkin : '-';
     const lastCheckin = (m.last_checkin_date && String(m.last_checkin_date).trim()) ? String(m.last_checkin_date).slice(0, 10) : '-';
     const lastCheckinDate = (lastCheckin !== '-') ? new Date(lastCheckin + 'T00:00:00') : null;
     const inactiveDays = lastCheckinDate ? Math.max(0, Math.floor((Date.now() - lastCheckinDate.getTime()) / (24*60*60*1000))) : null;
-    const riskTag = inactiveDays == null ? 'No check-in' : (inactiveDays >= 14 ? 'High risk' : inactiveDays >= 7 ? 'At risk' : 'Active');
+    const stage = inactiveDays == null ? 'high' : (inactiveDays >= 14 ? 'high' : inactiveDays >= 7 ? 'medium' : 'focused');
+    const stageLabel = stage === 'high' ? 'High' : (stage === 'medium' ? 'Medium' : 'Focused');
+    const stageClass = 'admin-attn-sev-badge--' + stage;
+    const cardStageClass = 'tribe-stage-' + stage;
+    const riskTag = inactiveDays == null ? 'No check-in yet' : ('Inactive: ' + inactiveDays + ' day' + (inactiveDays === 1 ? '' : 's'));
 
     return `
-      <div class="tribe-card">
-        <div class="tribe-header">
-          <div class="tribe-avatar">${bbAdminAvatarHtml(m.profile_picture, dispName)}</div>
-          <span class="tribe-phase ${phaseClass}">Phase ${phase}</span>
-        </div>
-        <div class="tribe-name">${escapeHtml(dispName)}</div>
-        <div class="tribe-meta">Joined ${weeksLabel} · ${escapeHtml(m.city || '') || 'Unknown'} · ${escapeHtml(riskTag)}</div>
-        <div class="tribe-scoreline">
-          <div>
-            <div class="tribe-score-label">BodyBank score</div>
-            <div class="tribe-score-num">${score != null ? score : '—'}</div>
-            <div class="tribe-score-week">${escapeHtml(weekLabel)}</div>
+      <div class="admin-attention-card tribe-board-card ${cardStageClass}">
+        <div class="admin-attention-card-top">
+          <div class="admin-attention-avatar" aria-hidden="true">${bbAdminAvatarHtml(m.profile_picture, dispName)}</div>
+          <div class="admin-attention-head">
+            <div class="admin-attention-name">${escapeHtml(dispName)}</div>
+            <div class="admin-attention-sub">Joined ${weeksLabel} · Last check-in: ${escapeHtml(lastCheckin)} · ${escapeHtml(riskTag)}</div>
           </div>
-          <div class="tribe-trend ${trendClass}">${escapeHtml(trendText)}</div>
+          <span class="admin-attn-sev-badge ${stageClass}">${escapeHtml(stageLabel)}</span>
         </div>
-        <div class="tribe-progress">
-          <div class="tribe-progress-label"><span>Overall progress</span><span>${progress}%</span></div>
-          <div class="tribe-progress-bar"><div class="tribe-progress-fill" style="width:${progress}%"></div></div>
+
+        <div class="admin-attn-compact-metrics">
+          <div class="admin-attn-metric-row">
+            <span class="admin-attn-metric-lbl">BodyBank score</span>
+            <span class="admin-attn-metric-val">${score != null ? score : '—'}</span>
+            <span class="admin-attn-metric-sub">${escapeHtml(weekLabel)}</span>
+          </div>
+          <div class="admin-attn-metric-row">
+            <span class="admin-attn-metric-lbl">7-Day</span>
+            <span class="admin-attn-metric-val">${daily7}/7</span>
+            <span class="admin-attn-metric-sub">${dailyPct}%</span>
+          </div>
+          <div class="admin-attn-metric-row">
+            <span class="admin-attn-metric-lbl">Workouts</span>
+            <span class="admin-attn-metric-val">${workouts}</span>
+            <span class="admin-attn-metric-sub">pillar</span>
+          </div>
+          <div class="admin-attn-metric-row">
+            <span class="admin-attn-metric-lbl">Sunday</span>
+            <span class="admin-attn-metric-val">${sunday}</span>
+            <span class="admin-attn-metric-sub">pillar</span>
+          </div>
+          <div class="admin-attn-metric-row">
+            <span class="admin-attn-metric-lbl">Overall progress</span>
+            <span class="admin-attn-metric-val">${progress}%</span>
+            <span class="admin-attn-metric-sub">${escapeHtml(trendText)}</span>
+          </div>
         </div>
-        <div class="tribe-pillars">
-          <div class="tribe-pillar"><span class="k">Daily</span><span class="v">${daily}</span></div>
-          <div class="tribe-pillar"><span class="k">Sunday</span><span class="v">${sunday}</span></div>
-          <div class="tribe-pillar"><span class="k">Workouts</span><span class="v">${workouts}</span></div>
-          <div class="tribe-pillar"><span class="k">Progress</span><span class="v">${pr}</span></div>
-        </div>
+
         <div class="tribe-details">
           <div class="tribe-detail"><div class="label">Joined date</div><div class="val">${joinedDate}</div></div>
           <div class="tribe-detail"><div class="label">Duration</div><div class="val">${weeksIn} / 16 weeks</div></div>

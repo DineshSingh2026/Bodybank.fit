@@ -216,6 +216,41 @@ async function syncUserCountryAndTimezone(userId, email) {
   }
 }
 
+async function ensureApprovedUsersInActiveTribe() {
+  try {
+    const approved = await queryAll(
+      `SELECT id, email, first_name, last_name, phone, country, created_at
+       FROM users
+       WHERE role = 'user' AND COALESCE(approval_status, 'approved') = 'approved'`
+    );
+    let inserted = 0;
+    for (const u of (approved || [])) {
+      const emailNorm = String(u.email || '').trim().toLowerCase();
+      if (!emailNorm) continue;
+      const existing = await queryOne(
+        "SELECT id FROM tribe_members WHERE LOWER(email) = ?",
+        [emailNorm]
+      );
+      if (existing) continue;
+      const tribeId = uuidv4();
+      const startDate = u.created_at ? String(u.created_at).slice(0, 10) : new Date().toISOString().slice(0, 10);
+      const city = String(u.country || '').trim();
+      await run(
+        `INSERT INTO tribe_members
+         (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes, status)
+         VALUES (?,?,?,?,?,?,1,?,0,?,?,?,?,?,'active')`,
+        [tribeId, u.first_name || '', u.last_name || '', u.email || '', u.phone || '', city, startDate, null, null, null, '', 'Auto-synced approved member']
+      );
+      inserted++;
+    }
+    if (inserted > 0) {
+      console.log(`✅ Tribe sync: added ${inserted} approved user(s) to active tribe`);
+    }
+  } catch (e) {
+    console.warn('Tribe sync warning:', e.message);
+  }
+}
+
 // ============ DATABASE ============
 async function initDB() {
   pool = new Pool({ connectionString: DATABASE_URL });
@@ -672,6 +707,7 @@ async function initDB() {
       await seedData();
       console.log('✅ Sample data seeded');
     }
+    await ensureApprovedUsersInActiveTribe();
   } catch (e) {
     console.error('Seed check error:', e.message);
   }
@@ -2112,6 +2148,7 @@ app.post('/api/admin/approve-user/:id', async (req, res) => {
       await run(`INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES (?,?,?,?,?,?,1,?,0,?,?,?,?,?)`,
         [tribeId, user.first_name || '', user.last_name || '', user.email || '', user.phone || '', city, today, null, null, null, '', 'Newly approved']);
     }
+    await ensureApprovedUsersInActiveTribe();
     if (user.email) userEmail.emailAccountApproved(user.email, user.first_name);
     res.json({ message: 'User approved' });
   } catch (e) {
@@ -2968,6 +3005,7 @@ app.get('/api/me/programs/pdf', async (req, res) => {
 
 // ============ STATS ============
 app.get('/api/stats', async (req, res) => {
+  await ensureApprovedUsersInActiveTribe();
   const pending = await queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='pending'");
   const active = await queryAll("SELECT COUNT(*) as c FROM tribe_members WHERE status='active'");
   const completed = await queryAll("SELECT COUNT(*) as c FROM tribe_members WHERE status='completed'");
@@ -3117,8 +3155,17 @@ app.get('/api/admin/attention-clients', verifyToken, requireAdminOrSuperadmin, a
 // ============ ADMIN: USERS LIST (for insights filter; exclude E2E test users) ============
 app.get('/api/admin/users', async (req, res) => {
   try {
+    await ensureApprovedUsersInActiveTribe();
     const list = await queryAll(
-      "SELECT id, first_name, last_name, email, country, timezone, profile_picture, COALESCE(suspended, false) as suspended FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND (email NOT LIKE '%@test.bodybank.fit') AND (LOWER(first_name) NOT LIKE '%e2e%') ORDER BY first_name, last_name"
+      `SELECT DISTINCT u.id, u.first_name, u.last_name, u.email, u.country, u.timezone, u.profile_picture,
+              COALESCE(u.suspended, false) as suspended
+       FROM users u
+       INNER JOIN tribe_members tm ON LOWER(tm.email) = LOWER(u.email) AND COALESCE(tm.status, 'active') = 'active'
+       WHERE u.role = 'user'
+         AND (u.approval_status IS NULL OR u.approval_status = 'approved')
+         AND (u.email NOT LIKE '%@test.bodybank.fit')
+         AND (LOWER(u.first_name) NOT LIKE '%e2e%')
+       ORDER BY u.first_name, u.last_name`
     );
     res.json(list);
   } catch (e) {

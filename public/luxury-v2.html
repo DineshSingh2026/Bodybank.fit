@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BodyBank Luxury 3D - V2</title>
+  <style>
+    :root{
+      --bg:#050505;
+      --bg-soft:#0b0b0b;
+      --gold:#c8a44e;
+      --gold-2:#e0c27b;
+      --cream:#f1ebdf;
+      --muted:#b7ad98;
+      --bdr:rgba(200,164,78,.25);
+      --glass:rgba(255,255,255,.05);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background: radial-gradient(1000px 600px at 70% -20%, #1b1509 0%, var(--bg) 45%, #030303 100%);
+      color:var(--cream);
+      overflow-x:hidden;
+    }
+
+    /* 3D fixed background */
+    #sceneWrap{position:fixed;inset:0;z-index:0;pointer-events:none}
+    #scene{width:100%;height:100%;display:block}
+
+    .grain{
+      position:fixed; inset:0; z-index:1; pointer-events:none; opacity:.08;
+      background-image:radial-gradient(circle at 1px 1px, #fff 1px, transparent 0);
+      background-size:3px 3px;
+      mix-blend-mode:soft-light;
+    }
+
+    .page{position:relative;z-index:2}
+    .section{
+      min-height:100vh;
+      width:min(1120px,94vw);
+      margin:0 auto;
+      display:grid;
+      align-content:center;
+      padding:80px 20px;
+    }
+
+    .glass{
+      border:1px solid var(--bdr);
+      background:linear-gradient(150deg, rgba(255,255,255,.05), rgba(255,255,255,.01));
+      border-radius:28px;
+      padding:32px;
+      box-shadow:0 20px 80px rgba(0,0,0,.6), inset 0 0 0 1px rgba(255,255,255,.03);
+      backdrop-filter: blur(12px);
+    }
+
+    .tag{
+      display:inline-block;
+      text-transform:uppercase;
+      letter-spacing:.2em;
+      font-size:.72rem;
+      font-weight:700;
+      color:var(--gold);
+      margin-bottom:14px;
+    }
+
+    h1{
+      font-size:clamp(2.2rem,6vw,5.5rem);
+      line-height:.93;
+      margin-bottom:14px;
+      max-width:920px;
+    }
+
+    h2{
+      color:var(--gold-2);
+      font-size:clamp(1.6rem,3.2vw,2.6rem);
+      margin-bottom:10px;
+    }
+
+    p{
+      color:var(--muted);
+      line-height:1.75;
+      max-width:860px;
+    }
+
+    .cta{
+      margin-top:24px; display:flex; gap:12px; flex-wrap:wrap;
+    }
+    .btn{
+      text-decoration:none;
+      padding:12px 20px;
+      border-radius:999px;
+      border:1px solid var(--bdr);
+      color:var(--cream);
+      background:rgba(255,255,255,.03);
+      transition:transform .2s ease, opacity .2s ease;
+    }
+    .btn:hover{transform:translateY(-2px);opacity:.95}
+    .btn.gold{
+      border-color:transparent;
+      color:#111;
+      font-weight:700;
+      background:linear-gradient(135deg,var(--gold-2),var(--gold));
+    }
+
+    .metrics{
+      margin-top:24px;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+      gap:12px;
+    }
+    .metric{
+      border:1px solid rgba(255,255,255,.1);
+      background:rgba(255,255,255,.03);
+      border-radius:14px;
+      padding:14px;
+    }
+    .num{display:block;font-weight:800;font-size:1.45rem;color:var(--gold-2)}
+    .lbl{font-size:.75rem;text-transform:uppercase;letter-spacing:.08em;color:#b7ab94}
+
+    .cards{
+      margin-top:18px;
+      display:grid;
+      grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+      gap:12px;
+    }
+    .card{
+      border:1px solid rgba(255,255,255,.1);
+      border-radius:14px;
+      padding:14px;
+      background:rgba(0,0,0,.24);
+      color:#c7bda8;
+      line-height:1.6;
+    }
+    .card b{color:var(--gold-2)}
+
+    .footer{
+      min-height:40vh;
+      display:grid;place-items:center;
+      color:#9f9480;
+      font-size:.9rem;
+      padding:40px;
+    }
+
+    /* Mobile optimization */
+    @media (max-width: 768px){
+      .section{padding:70px 14px}
+      .glass{padding:20px;border-radius:18px}
+      p{line-height:1.65}
+    }
+  </style>
+</head>
+<body>
+  <div id="sceneWrap"><canvas id="scene"></canvas></div>
+  <div class="grain"></div>
+
+  <main class="page">
+    <section class="section" data-scene="hero">
+      <div class="glass">
+        <span class="tag">BodyBank Premium</span>
+        <h1>Luxury Body Transformation, Backed by Real Coaching Data.</h1>
+        <p>
+          Same BodyBank numbers, elevated into a cinematic digital experience that feels elite,
+          trustworthy, and conversion-focused.
+        </p>
+        <div class="cta">
+          <a class="btn gold" href="#">Book Body Audit</a>
+          <a class="btn" href="#journey">Explore Journey</a>
+        </div>
+
+        <div class="metrics">
+          <div class="metric"><span class="num" id="mActive">--</span><span class="lbl">Active Members</span></div>
+          <div class="metric"><span class="num" id="mWorkouts">--</span><span class="lbl">Workouts Logged</span></div>
+          <div class="metric"><span class="num" id="mCheckins">--</span><span class="lbl">Check-ins</span></div>
+          <div class="metric"><span class="num" id="mSuccess">--</span><span class="lbl">Success Rate</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="journey" data-scene="story">
+      <div class="glass">
+        <h2>A Cinematic Coaching Journey</h2>
+        <p>
+          As the user scrolls, the camera glides from identity to progress to transformation.
+          You keep your current content and API, while the visual language becomes high-end.
+        </p>
+        <div class="cards">
+          <div class="card"><b>Gold Ring</b> - discipline, consistency, structure</div>
+          <div class="card"><b>Glass Orb</b> - clarity, body awareness, transformation</div>
+          <div class="card"><b>Crystal Monoliths</b> - milestone stages and growth</div>
+          <div class="card"><b>Particle Field</b> - premium atmosphere and depth</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" data-scene="cta">
+      <div class="glass">
+        <h2>Ready to Enter the Premium Program?</h2>
+        <p>
+          This layout is optimized to keep focus on one final action, with high perceived value and clean luxury aesthetics.
+        </p>
+        <div class="cta">
+          <a class="btn gold" href="#">Start Your Audit</a>
+          <a class="btn" href="#">View Transformations</a>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer">BodyBank x FitChef - Luxury Performance Coaching</div>
+  </main>
+
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script>
+    // --------------------------------------------------
+    // 1) SAME DATA BINDING (/api/stats)
+    // --------------------------------------------------
+    async function loadStats() {
+      try {
+        const r = await fetch('/api/stats', { credentials: 'same-origin' });
+        const d = await r.json();
+        setText('mActive', d.active_members ?? 0);
+        setText('mWorkouts', d.workouts ?? 0);
+        setText('mCheckins', (d.check_ins ?? 0) + (d.daily_checkins ? ' + ' + d.daily_checkins : ''));
+        setText('mSuccess', (d.success_rate ?? 0) + '%');
+      } catch (_) {
+        setText('mActive', '--'); setText('mWorkouts', '--'); setText('mCheckins', '--'); setText('mSuccess', '92%');
+      }
+    }
+    function setText(id, v){ const el = document.getElementById(id); if(el) el.textContent = v; }
+    loadStats();
+
+    // --------------------------------------------------
+    // 2) THREE.JS LUXURY SCENE
+    // --------------------------------------------------
+    const canvas = document.getElementById('scene');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true, powerPreference: 'high-performance' });
+    const DPR = Math.min(window.devicePixelRatio || 1, 1.8);
+    renderer.setPixelRatio(DPR);
+    renderer.setSize(innerWidth, innerHeight);
+
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(42, innerWidth / innerHeight, 0.1, 120);
+    camera.position.set(0, 0.3, 9);
+
+    // Lights
+    scene.add(new THREE.HemisphereLight(0xf6ead4, 0x030303, 0.6));
+    const keyLight = new THREE.PointLight(0xffdd9a, 2.1, 40);
+    keyLight.position.set(4, 2, 3);
+    scene.add(keyLight);
+    const rimLight = new THREE.PointLight(0xc8a44e, 1.7, 30);
+    rimLight.position.set(-5, -2, -3);
+    scene.add(rimLight);
+
+    // Group container
+    const world = new THREE.Group();
+    scene.add(world);
+
+    // Gold ring
+    const ring = new THREE.Mesh(
+      new THREE.TorusGeometry(2.2, 0.08, 28, 220),
+      new THREE.MeshPhysicalMaterial({
+        color:0xc8a44e, metalness:.96, roughness:.16, clearcoat:1, clearcoatRoughness:.08
+      })
+    );
+    ring.position.set(-2.2, .2, 0);
+    ring.rotation.x = .35;
+    world.add(ring);
+
+    // Glass orb
+    const orb = new THREE.Mesh(
+      new THREE.SphereGeometry(1.15, 64, 64),
+      new THREE.MeshPhysicalMaterial({
+        color:0xf2e7cf, transmission:.92, thickness:.9, roughness:.05, ior:1.45, transparent:true, opacity:.96
+      })
+    );
+    orb.position.set(2.1, .1, -.5);
+    world.add(orb);
+
+    // Crystal monoliths
+    const monoliths = new THREE.Group();
+    const monoMat = new THREE.MeshStandardMaterial({ color:0x8e7742, metalness:.5, roughness:.35 });
+    for (let i=0; i<6; i++){
+      const h = 1 + Math.random()*2;
+      const m = new THREE.Mesh(new THREE.CylinderGeometry(.14,.24,h,6), monoMat);
+      m.position.set(-3 + i*1.15, -1.9 + h/2, -2.7 + Math.random());
+      m.rotation.y = Math.random()*Math.PI;
+      monoliths.add(m);
+    }
+    world.add(monoliths);
+
+    // Particle field
+    const pCount = innerWidth < 768 ? 500 : 1300; // mobile reduction
+    const pPos = new Float32Array(pCount * 3);
+    for(let i=0;i<pCount;i++){
+      pPos[i*3+0] = (Math.random()-0.5)*20;
+      pPos[i*3+1] = (Math.random()-0.5)*11;
+      pPos[i*3+2] = (Math.random()-0.5)*18;
+    }
+    const pGeo = new THREE.BufferGeometry();
+    pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+    const particles = new THREE.Points(
+      pGeo,
+      new THREE.PointsMaterial({ color:0xd9bd84, size:0.022, transparent:true, opacity:0.52 })
+    );
+    world.add(particles);
+
+    // --------------------------------------------------
+    // 3) SCROLL-LINKED CAMERA STORY
+    // --------------------------------------------------
+    function scrollProgress() {
+      const max = document.documentElement.scrollHeight - innerHeight;
+      return max > 0 ? (scrollY / max) : 0;
+    }
+
+    function lerp(a,b,t){ return a + (b-a)*t; }
+
+    // Scene keyframes by global progress
+    const keyframes = [
+      { t: 0.00, cam:{x: 0.0, y: 0.30, z: 9.0}, look:{x:0,y:0,z:0}, worldY:0.00 },
+      { t: 0.45, cam:{x: 1.2, y: 0.20, z: 7.2}, look:{x:0.3,y:0,z:0}, worldY:0.12 },
+      { t: 1.00, cam:{x:-0.6, y: 0.45, z: 6.2}, look:{x:0,y:0,z:0}, worldY:-0.08 }
+    ];
+
+    function sampleKF(p){
+      let a = keyframes[0], b = keyframes[keyframes.length-1];
+      for(let i=0;i<keyframes.length-1;i++){
+        if(p >= keyframes[i].t && p <= keyframes[i+1].t){ a=keyframes[i]; b=keyframes[i+1]; break; }
+      }
+      const span = (b.t - a.t) || 1;
+      const t = Math.max(0, Math.min(1, (p - a.t) / span));
+      return {
+        cam:{
+          x: lerp(a.cam.x, b.cam.x, t),
+          y: lerp(a.cam.y, b.cam.y, t),
+          z: lerp(a.cam.z, b.cam.z, t)
+        },
+        look:{
+          x: lerp(a.look.x, b.look.x, t),
+          y: lerp(a.look.y, b.look.y, t),
+          z: lerp(a.look.z, b.look.z, t)
+        },
+        worldY: lerp(a.worldY, b.worldY, t)
+      };
+    }
+
+    // --------------------------------------------------
+    // 4) PERF: auto fallback on low power devices
+    // --------------------------------------------------
+    const lowPower = (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4) || innerWidth < 420;
+    if (lowPower) {
+      renderer.setPixelRatio(1);
+      particles.material.size = 0.018;
+      particles.material.opacity = 0.40;
+    }
+
+    // --------------------------------------------------
+    // 5) ANIMATE LOOP
+    // --------------------------------------------------
+    const clock = new THREE.Clock();
+    function tick(){
+      const t = clock.getElapsedTime();
+      const p = scrollProgress();
+      const k = sampleKF(p);
+
+      // Camera from scroll
+      camera.position.set(k.cam.x, k.cam.y + Math.sin(t*0.2)*0.03, k.cam.z);
+      camera.lookAt(k.look.x, k.look.y, k.look.z);
+
+      // Object motion
+      ring.rotation.z = t*0.24;
+      ring.position.y = 0.2 + Math.sin(t*1.3)*0.07 + k.worldY;
+
+      orb.rotation.y = t*0.20;
+      orb.position.y = 0.1 + Math.cos(t*1.1)*0.10 + k.worldY*0.6;
+
+      monoliths.rotation.y = Math.sin(t*0.22)*0.15;
+      particles.rotation.y = t*0.012;
+
+      renderer.render(scene, camera);
+      requestAnimationFrame(tick);
+    }
+    tick();
+
+    addEventListener('resize', () => {
+      renderer.setSize(innerWidth, innerHeight);
+      camera.aspect = innerWidth / innerHeight;
+      camera.updateProjectionMatrix();
+    });
+  </script>
+</body>
+</html>
+

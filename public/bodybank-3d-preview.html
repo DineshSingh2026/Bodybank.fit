@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BodyBank 3D Preview</title>
+  <style>
+    :root {
+      --gold: #c8a44e;
+      --cream: #f2ece0;
+      --ink: #0a0a0a;
+      --panel: rgba(8, 8, 8, 0.74);
+      --border: rgba(200, 164, 78, 0.35);
+    }
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #000;
+      font-family: Inter, "Segoe UI", Arial, sans-serif;
+      color: var(--cream);
+    }
+
+    /* Base site: your existing site data and content remain unchanged */
+    #siteFrame {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: #000;
+      z-index: 1;
+    }
+
+    /* 3D enhancement layer */
+    #fxCanvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    /* Top panel for preview controls and data legend */
+    .panel {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: min(980px, calc(100% - 24px));
+      z-index: 3;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      backdrop-filter: blur(10px);
+      border-radius: 14px;
+      padding: 10px 12px;
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 12px;
+      align-items: center;
+    }
+    .title {
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      color: var(--gold);
+      text-transform: uppercase;
+      margin-bottom: 3px;
+    }
+    .desc {
+      font-size: 12px;
+      opacity: 0.9;
+      line-height: 1.4;
+    }
+    .right {
+      display: grid;
+      gap: 8px;
+    }
+    .kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 6px;
+    }
+    .kpi {
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 10px;
+      padding: 6px;
+      text-align: center;
+      background: rgba(255, 255, 255, 0.04);
+      min-height: 48px;
+    }
+    .kpi .n {
+      display: block;
+      color: #f8d893;
+      font-weight: 700;
+      font-size: 13px;
+      line-height: 1.1;
+      margin-bottom: 3px;
+    }
+    .kpi .l {
+      font-size: 10px;
+      opacity: 0.8;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tools {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+    .tools label { font-size: 11px; opacity: 0.8; }
+    .tools input[type="range"] { width: 130px; }
+    .btn {
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--cream);
+      font-size: 11px;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+    .btn.active {
+      background: linear-gradient(135deg, #e7c97f, #c8a44e);
+      color: #111;
+      border-color: transparent;
+      font-weight: 700;
+    }
+    @media (max-width: 820px) {
+      .panel {
+        grid-template-columns: 1fr;
+      }
+      .tools {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+      .kpis {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
+</head>
+<body>
+  <iframe id="siteFrame" src="/index.html" title="BodyBank site"></iframe>
+  <canvas id="fxCanvas"></canvas>
+
+  <div class="panel">
+    <div>
+      <div class="title">BodyBank 3D Preview (Same Data)</div>
+      <div class="desc">
+        This preview keeps your current site content/data as-is and layers premium 3D objects on top.
+        Objects map to stats: orb=active members, pillars=workouts/check-ins, ring=success.
+      </div>
+    </div>
+    <div class="right">
+      <div class="kpis">
+        <div class="kpi"><span class="n" id="nActive">--</span><span class="l">Active</span></div>
+        <div class="kpi"><span class="n" id="nWorkouts">--</span><span class="l">Workouts</span></div>
+        <div class="kpi"><span class="n" id="nCheckins">--</span><span class="l">Check-ins</span></div>
+        <div class="kpi"><span class="n" id="nSuccess">--</span><span class="l">Success</span></div>
+      </div>
+      <div class="tools">
+        <label for="fxIntensity">3D intensity</label>
+        <input id="fxIntensity" type="range" min="0" max="100" value="62" />
+        <button id="toggleFx" class="btn active" type="button">3D On</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+  <script>
+    (function () {
+      var nActive = document.getElementById('nActive');
+      var nWorkouts = document.getElementById('nWorkouts');
+      var nCheckins = document.getElementById('nCheckins');
+      var nSuccess = document.getElementById('nSuccess');
+      var fxIntensity = document.getElementById('fxIntensity');
+      var toggleFx = document.getElementById('toggleFx');
+      var canvas = document.getElementById('fxCanvas');
+
+      var stats = {
+        active_members: 0,
+        workouts: 0,
+        check_ins: 0,
+        daily_checkins: 0,
+        success_rate: 92
+      };
+
+      function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+      function mapRange(v, inA, inB, outA, outB) {
+        if (inB === inA) return outA;
+        var t = clamp((v - inA) / (inB - inA), 0, 1);
+        return outA + (outB - outA) * t;
+      }
+      function setKpis() {
+        nActive.textContent = String(stats.active_members || 0);
+        nWorkouts.textContent = String(stats.workouts || 0);
+        nCheckins.textContent = String((stats.check_ins || 0) + (stats.daily_checkins || 0));
+        nSuccess.textContent = String(stats.success_rate || 0) + '%';
+      }
+
+      fetch('/api/stats', { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          stats.active_members = Number(d.active_members || 0);
+          stats.workouts = Number(d.workouts || 0);
+          stats.check_ins = Number(d.check_ins || 0);
+          stats.daily_checkins = Number(d.daily_checkins || 0);
+          stats.success_rate = Number(d.success_rate || 92);
+          setKpis();
+          applyDataToObjects();
+        })
+        .catch(function () {
+          setKpis();
+          applyDataToObjects();
+        });
+
+      var renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+      var dpr = Math.min(window.devicePixelRatio || 1, 1.8);
+      renderer.setPixelRatio(dpr);
+      renderer.setSize(window.innerWidth, window.innerHeight);
+
+      var scene = new THREE.Scene();
+      var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+      camera.position.set(0, 0.6, 10.5);
+
+      // Lights
+      scene.add(new THREE.HemisphereLight(0xf4e5c6, 0x050505, 0.7));
+      var key = new THREE.PointLight(0xffdc9a, 2.0, 40);
+      key.position.set(4, 3, 4);
+      scene.add(key);
+      var rim = new THREE.PointLight(0xc8a44e, 1.6, 35);
+      rim.position.set(-5, -2, -3);
+      scene.add(rim);
+
+      var world = new THREE.Group();
+      scene.add(world);
+
+      // Gold success ring
+      var ring = new THREE.Mesh(
+        new THREE.TorusGeometry(2.4, 0.08, 28, 220),
+        new THREE.MeshPhysicalMaterial({
+          color: 0xc8a44e,
+          metalness: 0.95,
+          roughness: 0.18,
+          clearcoat: 1.0,
+          clearcoatRoughness: 0.08
+        })
+      );
+      ring.position.set(-2.8, 0.2, -0.5);
+      ring.rotation.x = 0.36;
+      world.add(ring);
+
+      // Active members orb (size responds to active_members)
+      var orb = new THREE.Mesh(
+        new THREE.SphereGeometry(1.1, 64, 64),
+        new THREE.MeshPhysicalMaterial({
+          color: 0xf0e2c0,
+          transmission: 0.86,
+          thickness: 0.8,
+          roughness: 0.05,
+          ior: 1.45,
+          transparent: true,
+          opacity: 0.92
+        })
+      );
+      orb.position.set(2.2, 0.15, -0.4);
+      world.add(orb);
+
+      // Data pillars: workouts and check-ins
+      var pillarMatA = new THREE.MeshStandardMaterial({ color: 0xc8a44e, metalness: 0.62, roughness: 0.30 });
+      var pillarMatB = new THREE.MeshStandardMaterial({ color: 0x8db4ff, metalness: 0.45, roughness: 0.34 });
+      var pillarW = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.30, 2.0, 8), pillarMatA);
+      var pillarC = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.30, 2.0, 8), pillarMatB);
+      pillarW.position.set(-0.2, -0.6, -1.2);
+      pillarC.position.set(0.9, -0.6, -1.2);
+      world.add(pillarW);
+      world.add(pillarC);
+
+      // Ambient particle field
+      var count = window.innerWidth < 820 ? 450 : 1200;
+      var arr = new Float32Array(count * 3);
+      for (var i = 0; i < count; i++) {
+        arr[i * 3] = (Math.random() - 0.5) * 22;
+        arr[i * 3 + 1] = (Math.random() - 0.5) * 12;
+        arr[i * 3 + 2] = (Math.random() - 0.5) * 16;
+      }
+      var pGeo = new THREE.BufferGeometry();
+      pGeo.setAttribute('position', new THREE.BufferAttribute(arr, 3));
+      var pMat = new THREE.PointsMaterial({ color: 0xd8bc80, size: 0.026, opacity: 0.52, transparent: true });
+      var particles = new THREE.Points(pGeo, pMat);
+      world.add(particles);
+
+      var fxOn = true;
+      var fxPower = 0.62;
+      function applyIntensity() {
+        var op = fxOn ? mapRange(fxPower, 0, 1, 0.0, 1.0) : 0.0;
+        canvas.style.opacity = String(op);
+      }
+
+      fxIntensity.addEventListener('input', function () {
+        fxPower = Number(fxIntensity.value) / 100;
+        applyIntensity();
+      });
+      toggleFx.addEventListener('click', function () {
+        fxOn = !fxOn;
+        toggleFx.textContent = fxOn ? '3D On' : '3D Off';
+        toggleFx.classList.toggle('active', fxOn);
+        applyIntensity();
+      });
+
+      function applyDataToObjects() {
+        // Orb scales with active members
+        var orbScale = mapRange(stats.active_members, 0, 300, 0.88, 1.6);
+        orb.scale.setScalar(orbScale);
+
+        // Ring thickness and emissive based on success rate
+        var sr = clamp(stats.success_rate || 0, 0, 100);
+        var glow = mapRange(sr, 0, 100, 0.15, 0.95);
+        ring.material.emissive = new THREE.Color(0x6b4f17);
+        ring.material.emissiveIntensity = glow * 0.55;
+
+        // Pillars from workouts/checkins
+        var wH = mapRange(stats.workouts, 0, 3000, 0.8, 4.4);
+        var cH = mapRange((stats.check_ins + stats.daily_checkins), 0, 3000, 0.8, 4.4);
+        pillarW.scale.y = wH / 2.0;
+        pillarC.scale.y = cH / 2.0;
+        pillarW.position.y = -1.6 + wH / 2;
+        pillarC.position.y = -1.6 + cH / 2;
+      }
+
+      applyIntensity();
+      applyDataToObjects();
+
+      var clock = new THREE.Clock();
+      function tick() {
+        var t = clock.getElapsedTime();
+        var y = window.scrollY || 0;
+        var h = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+        var sp = clamp(y / h, 0, 1);
+
+        camera.position.x = Math.sin(t * 0.17) * 0.20 + (sp - 0.5) * 0.5;
+        camera.position.y = 0.62 + Math.cos(t * 0.14) * 0.07;
+        camera.lookAt(0, 0, 0);
+
+        ring.rotation.z = t * 0.24;
+        ring.position.y = 0.2 + Math.sin(t * 1.2) * 0.07;
+        orb.rotation.y = t * 0.20;
+        orb.position.y = 0.15 + Math.cos(t * 1.05) * 0.11;
+        pillarW.rotation.y = Math.sin(t * 0.5) * 0.15;
+        pillarC.rotation.y = Math.cos(t * 0.45) * 0.15;
+        particles.rotation.y = t * 0.012;
+
+        renderer.render(scene, camera);
+        requestAnimationFrame(tick);
+      }
+      tick();
+
+      window.addEventListener('resize', function () {
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+      });
+    })();
+  </script>
+</body>
+</html>
+
