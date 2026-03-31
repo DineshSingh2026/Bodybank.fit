@@ -3,6 +3,17 @@ const { getCurrentStreak } = require('./streakService');
 const { getGoalCompletionPercent } = require('./goalService');
 const { getInsights } = require('./insightService');
 
+const MIN_REALISTIC_WEIGHT_KG = 25;
+const MAX_REALISTIC_WEIGHT_KG = 400;
+
+function normalizeWeightKg(value) {
+  if (value == null || value === '') return null;
+  const n = Number.parseFloat(String(value));
+  if (!Number.isFinite(n)) return null;
+  if (n < MIN_REALISTIC_WEIGHT_KG || n > MAX_REALISTIC_WEIGHT_KG) return null;
+  return n;
+}
+
 async function insertProgress(userId, data) {
   const {
     log_date,
@@ -24,7 +35,7 @@ async function insertProgress(userId, data) {
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, COALESCE(?, CURRENT_TIMESTAMP))`,
     [
       userId,
-      weight != null ? parseFloat(weight) : null,
+      normalizeWeightKg(weight),
       body_fat != null ? parseFloat(body_fat) : null,
       calories_intake != null ? parseInt(calories_intake, 10) : null,
       protein_intake != null ? parseInt(protein_intake, 10) : null,
@@ -58,14 +69,16 @@ async function getProgressWithMeta(userId) {
 
 function parseWeightFromText(txt) {
   if (!txt || typeof txt !== 'string') return null;
-  // Prefer explicit kg/kgs values and take the last one when multiple are present.
-  const kgMatches = [...txt.matchAll(/(\d+\.?\d*)\s*(?:kg|kgs)\b/ig)];
+  // Prefer explicit kg/kgs values and select a realistic body-weight candidate.
+  const kgMatches = [...txt.matchAll(/(\d+\.?\d*)\s*(?:kg|kgs)\b/ig)]
+    .map((m) => normalizeWeightKg(m[1]))
+    .filter((v) => v != null);
   if (kgMatches.length > 0) {
-    const last = kgMatches[kgMatches.length - 1];
-    return parseFloat(last[1]);
+    // Most forms put latest/current weight near the end.
+    return kgMatches[kgMatches.length - 1];
   }
   const m = txt.match(/(\d+\.?\d*)/);
-  return m ? parseFloat(m[1]) : null;
+  return m ? normalizeWeightKg(m[1]) : null;
 }
 
 function parseSleepFromText(txt) {
@@ -92,7 +105,7 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
     if (!d) return;
     byDate[d] = {
       created_at: row.created_at,
-      weight: row.weight != null ? parseFloat(row.weight) : null,
+      weight: normalizeWeightKg(row.weight),
       body_fat: row.body_fat != null ? parseFloat(row.body_fat) : null,
       calories_intake: row.calories_intake != null ? parseInt(row.calories_intake, 10) : null,
       protein_intake: row.protein_intake != null ? parseInt(row.protein_intake, 10) : null,
@@ -152,12 +165,15 @@ async function getAdminUserProgress(userId) {
   const now = new Date();
   const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
   const recent = logs.filter(l => new Date(l.created_at) >= thirtyDaysAgo);
-  const withWeight = logs.filter(l => l.weight != null);
-  const currentWeight = withWeight.length ? parseFloat(withWeight[withWeight.length - 1].weight) : null;
+  const withWeight = logs.filter(l => normalizeWeightKg(l.weight) != null)
+    .map((l) => ({ ...l, weight: normalizeWeightKg(l.weight) }));
+  const currentWeight = withWeight.length ? withWeight[withWeight.length - 1].weight : null;
   const weight30Ago = recent.length ? (() => {
     const past = logs.filter(l => new Date(l.created_at) <= thirtyDaysAgo);
-    const w = past.filter(l => l.weight != null);
-    return w.length ? parseFloat(w[w.length - 1].weight) : null;
+    const w = past
+      .filter(l => normalizeWeightKg(l.weight) != null)
+      .map((l) => ({ ...l, weight: normalizeWeightKg(l.weight) }));
+    return w.length ? w[w.length - 1].weight : null;
   })() : null;
   const weightChange = (currentWeight != null && weight30Ago != null && weight30Ago !== 0)
     ? (((currentWeight - weight30Ago) / weight30Ago) * 100).toFixed(1)
