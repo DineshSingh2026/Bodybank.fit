@@ -2110,6 +2110,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .admin-table th,.admin-table td{padding:10px 10px}
 }
 @media(max-width:768px){
+  .streak-at-risk-banner{grid-template-columns:auto minmax(0,1fr);align-items:start}
+  #inactivityAtRiskBanner .form-submit{grid-column:1 / -1;width:100%;justify-self:stretch;white-space:normal}
   .admin-mobile-nav-bar{display:none}
   .admin-tabs{display:none}
   .admin-body{padding:4px 12px max(76px,calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px))));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
@@ -2424,9 +2426,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 @keyframes streakPulse{0%,100%{opacity:1}50%{opacity:.85}}
 .streak-timer{font-size:11px;color:var(--gold);margin-top:6px;display:flex;align-items:center;gap:6px}
 .streak-timer-icon{font-size:14px;opacity:.9}
-.streak-at-risk-banner{display:flex;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,rgba(230,126,34,0.2),rgba(200,164,78,0.1));border:1px solid rgba(230,126,34,0.4);border-radius:10px;margin-bottom:16px}
+.streak-at-risk-banner{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,rgba(230,126,34,0.2),rgba(200,164,78,0.1));border:1px solid rgba(230,126,34,0.4);border-radius:10px;margin-bottom:16px}
 .streak-at-risk-banner .icon{font-size:24px}
-.streak-at-risk-banner .text{flex:1;font-size:13px;font-weight:600;color:var(--cream)}
+.streak-at-risk-banner .text{min-width:0;font-size:13px;font-weight:600;color:var(--cream);line-height:1.45}
+#inactivityAtRiskBanner .form-submit{margin:0!important;white-space:nowrap;justify-self:end}
 .micro-goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
 @media(min-width:600px){.micro-goals-grid{grid-template-columns:repeat(4,1fr)}}
 .micro-goal-field{display:flex;flex-direction:column;gap:6px}
