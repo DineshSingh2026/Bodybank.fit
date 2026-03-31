@@ -58,7 +58,13 @@ async function getProgressWithMeta(userId) {
 
 function parseWeightFromText(txt) {
   if (!txt || typeof txt !== 'string') return null;
-  const m = txt.match(/(\d+\.?\d*)\s*(?:kg|kgs)?/i) || txt.match(/(\d+\.?\d*)/);
+  // Prefer explicit kg/kgs values and take the last one when multiple are present.
+  const kgMatches = [...txt.matchAll(/(\d+\.?\d*)\s*(?:kg|kgs)\b/ig)];
+  if (kgMatches.length > 0) {
+    const last = kgMatches[kgMatches.length - 1];
+    return parseFloat(last[1]);
+  }
+  const m = txt.match(/(\d+\.?\d*)/);
   return m ? parseFloat(m[1]) : null;
 }
 

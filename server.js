@@ -40,6 +40,18 @@ const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
 const SMTP_USER = (process.env.SMTP_USER || '').trim();
 const SMTP_PASS = (process.env.SMTP_PASS || '').trim();
 const SMTP_FROM = (process.env.SMTP_FROM || 'BodyBank <noreply@bodybank.fit>').trim();
+const CAMPAIGNS_ENABLED = String(process.env.CAMPAIGNS_ENABLED || 'false').trim().toLowerCase() === 'true';
+
+async function safeRestartCampaignScheduler(logPrefix) {
+  if (!CAMPAIGNS_ENABLED) return;
+  const prefix = logPrefix || '[campaigns]';
+  await restartCampaignScheduler().catch(e => console.error(prefix + ' Restart error:', e.message));
+}
+
+async function safeBroadcastCampaignMessage(message) {
+  if (!CAMPAIGNS_ENABLED) return 0;
+  return broadcastCampaignMessage(message);
+}
 
 if (VAPID_PUBLIC && VAPID_PRIVATE) {
   try {
@@ -3927,14 +3939,14 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
           const cDayN = (cDay === 'daily') ? 'daily' : (normalizeCampaignDay(cDay) || cDay);
           const cTimeN = normalizeCampaignTime(cTime) || cTime;
           await run('INSERT INTO campaign_messages (id, day_of_week, time_of_day, message, is_active) VALUES (?, ?, ?, ?, TRUE)', [cId, cDayN, cTimeN, String(cMsg).trim()]);
-          await restartCampaignScheduler().catch(() => {});
+          await safeRestartCampaignScheduler('[ai-assist campaign]');
           reply = 'Campaign created! Day: ' + cDayN + ' | Time: ' + cTimeN + ' IST | Message: "' + cMsg + '". It will be broadcast to all active users at the scheduled time.';
         } else if (campaignCmd.action === 'pause') {
           const cRow = await queryOne('SELECT * FROM campaign_messages WHERE id = ?', [campaignCmd.id]);
           if (!cRow) { reply = 'Campaign not found. Use "list campaigns" to see available IDs.'; }
           else {
             await run('UPDATE campaign_messages SET is_active = FALSE WHERE id = ?', [campaignCmd.id]);
-            await restartCampaignScheduler().catch(() => {});
+            await safeRestartCampaignScheduler('[ai-assist campaign]');
             reply = 'Campaign paused: "' + cRow.message + '" (' + cRow.day_of_week + ' ' + cRow.time_of_day + ')';
           }
         } else if (campaignCmd.action === 'resume') {
@@ -3942,7 +3954,7 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
           if (!cRow) { reply = 'Campaign not found. Use "list campaigns" to see available IDs.'; }
           else {
             await run('UPDATE campaign_messages SET is_active = TRUE WHERE id = ?', [campaignCmd.id]);
-            await restartCampaignScheduler().catch(() => {});
+            await safeRestartCampaignScheduler('[ai-assist campaign]');
             reply = 'Campaign resumed: "' + cRow.message + '" (' + cRow.day_of_week + ' ' + cRow.time_of_day + ')';
           }
         } else if (campaignCmd.action === 'delete') {
@@ -3950,12 +3962,16 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
           if (!cRow) { reply = 'Campaign not found. Use "list campaigns" to see available IDs.'; }
           else {
             await run('DELETE FROM campaign_messages WHERE id = ?', [campaignCmd.id]);
-            await restartCampaignScheduler().catch(() => {});
+            await safeRestartCampaignScheduler('[ai-assist campaign]');
             reply = 'Campaign deleted: "' + cRow.message + '" (' + cRow.day_of_week + ' ' + cRow.time_of_day + ')';
           }
         } else if (campaignCmd.action === 'broadcast') {
-          const bSent = await broadcastCampaignMessage(campaignCmd.message);
-          reply = 'Broadcast sent! Message: "' + campaignCmd.message + '". Reached ' + bSent + ' user(s).';
+          if (!CAMPAIGNS_ENABLED) {
+            reply = 'Campaigns are currently on hold (CAMPAIGNS_ENABLED=false). Enable campaigns to broadcast.';
+          } else {
+            const bSent = await safeBroadcastCampaignMessage(campaignCmd.message);
+            reply = 'Broadcast sent! Message: "' + campaignCmd.message + '". Reached ' + bSent + ' user(s).';
+          }
         }
       } catch (cErr) {
         console.error('[ai-assist campaign]', cErr.message);
@@ -4322,7 +4338,7 @@ app.post('/api/campaigns', verifyToken, requireAdmin, async (req, res) => {
       [id, day || 'daily', time, String(message).trim()]
     );
     const row = await queryOne('SELECT * FROM campaign_messages WHERE id = ?', [id]);
-    await restartCampaignScheduler().catch(e => console.error('[campaigns] Restart error:', e.message));
+    await safeRestartCampaignScheduler('[campaigns]');
     res.json({ ok: true, campaign: row });
   } catch (e) {
     console.error('[campaigns] POST error:', e.message);
@@ -4352,7 +4368,7 @@ app.put('/api/campaigns/:id', verifyToken, requireAdmin, async (req, res) => {
     params.push(req.params.id);
     await run(`UPDATE campaign_messages SET ${updates.join(', ')} WHERE id = ?`, params);
     const row = await queryOne('SELECT * FROM campaign_messages WHERE id = ?', [req.params.id]);
-    await restartCampaignScheduler().catch(e => console.error('[campaigns] Restart error:', e.message));
+    await safeRestartCampaignScheduler('[campaigns]');
     res.json({ ok: true, campaign: row });
   } catch (e) {
     console.error('[campaigns] PUT error:', e.message);
@@ -4364,7 +4380,7 @@ app.put('/api/campaigns/:id', verifyToken, requireAdmin, async (req, res) => {
 app.delete('/api/campaigns/:id', verifyToken, requireAdmin, async (req, res) => {
   try {
     await run('DELETE FROM campaign_messages WHERE id = ?', [req.params.id]);
-    await restartCampaignScheduler().catch(e => console.error('[campaigns] Restart error:', e.message));
+    await safeRestartCampaignScheduler('[campaigns]');
     res.json({ ok: true });
   } catch (e) {
     console.error('[campaigns] DELETE error:', e.message);
@@ -4376,7 +4392,7 @@ app.delete('/api/campaigns/:id', verifyToken, requireAdmin, async (req, res) => 
 app.post('/api/campaigns/:id/pause', verifyToken, requireAdmin, async (req, res) => {
   try {
     await run('UPDATE campaign_messages SET is_active = FALSE WHERE id = ?', [req.params.id]);
-    await restartCampaignScheduler().catch(e => console.error('[campaigns] Restart error:', e.message));
+    await safeRestartCampaignScheduler('[campaigns]');
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Failed to pause campaign' });
@@ -4387,7 +4403,7 @@ app.post('/api/campaigns/:id/pause', verifyToken, requireAdmin, async (req, res)
 app.post('/api/campaigns/:id/resume', verifyToken, requireAdmin, async (req, res) => {
   try {
     await run('UPDATE campaign_messages SET is_active = TRUE WHERE id = ?', [req.params.id]);
-    await restartCampaignScheduler().catch(e => console.error('[campaigns] Restart error:', e.message));
+    await safeRestartCampaignScheduler('[campaigns]');
     res.json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Failed to resume campaign' });
@@ -4401,7 +4417,10 @@ app.post('/api/campaigns/broadcast', verifyToken, requireAdmin, async (req, res)
     if (!message || !String(message).trim()) {
       return res.status(400).json({ error: 'message is required' });
     }
-    const sent = await broadcastCampaignMessage(String(message).trim());
+    if (!CAMPAIGNS_ENABLED) {
+      return res.status(400).json({ error: 'Campaigns are on hold. Set CAMPAIGNS_ENABLED=true to send broadcasts.' });
+    }
+    const sent = await safeBroadcastCampaignMessage(String(message).trim());
     res.json({ ok: true, sent });
   } catch (e) {
     console.error('[campaigns] Broadcast error:', e.message);
@@ -4545,9 +4564,13 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`✅ DB ready | Admin: ${ADMIN_EMAIL} | Superadmin: ${SUPERADMIN_EMAIL}`);
     const resetBase = RESET_BASE_URL || '(from request)';
     console.log(`🔐 Forgot password: /api/auth/forgot-password | Reset link base: ${resetBase} | Push: ${VAPID_PUBLIC && VAPID_PRIVATE ? 'On' : 'Off'} | Member emails: ${userEmail.isConfigured() ? 'On (SMTP + reminders/digests)' : 'Off (set SMTP_*)'} | Env: ${NODE_ENV}\n`);
-    // Start the campaign scheduler after DB is fully ready
-    await startCampaignScheduler({ queryAll, run, sendPushToUser, uuidv4 })
-      .catch(e => console.error('❌ Campaign scheduler failed to start:', e.message));
+    // Start campaign scheduler only when enabled via environment
+    if (CAMPAIGNS_ENABLED) {
+      await startCampaignScheduler({ queryAll, run, sendPushToUser, uuidv4 })
+        .catch(e => console.error('❌ Campaign scheduler failed to start:', e.message));
+    } else {
+      console.log('⏸ Campaign scheduler is ON HOLD (CAMPAIGNS_ENABLED=false)');
+    }
     startEmailScheduler({ queryAll });
   }).catch(err => {
     console.error('Failed to init DB:', err);

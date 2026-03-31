@@ -6562,6 +6562,23 @@ function bbFmtYmdOrDash(s) {
   return t;
 }
 
+function bbNormalizeWeight(v) {
+  if (v == null) return null;
+  var s = String(v).trim();
+  if (!s) return null;
+  var m = s.match(/-?\d+(\.\d+)?/);
+  if (!m) return null;
+  var n = parseFloat(m[0]);
+  return Number.isFinite(n) ? n : null;
+}
+
+function bbFmtKg(v) {
+  var n = bbNormalizeWeight(v);
+  if (n == null) return '—';
+  var rounded = Math.round(n * 10) / 10;
+  return (Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)) + ' kg';
+}
+
 function viewAdminAttentionClientDetails(userId) {
   var d = window._bbAttentionClientsCache ? window._bbAttentionClientsCache[userId] : null;
   if (!d) {
@@ -8331,7 +8348,7 @@ async function loadAdminUserProgressDetail(userId, userName) {
     if (removeBtn) { removeBtn.style.display = ''; removeBtn.disabled = false; removeBtn.textContent = 'Remove user'; }
     detailEl.innerHTML = '<h3 class="admin-cp-heading">' + (userName || 'Client').replace(/</g, '&lt;') + '</h3><p class="admin-cp-placeholder">KPIs and charts below. Use the button to get a link to share with this client.' + (suspended ? ' <span style="color:var(--gold)">(User is suspended)</span>' : '') + '</p>';
     var kpis = [
-      { lbl: 'Current Weight', num: data.currentWeight != null ? data.currentWeight + ' kg' : '—' },
+      { lbl: 'Current Weight', num: bbFmtKg(data.currentWeight) },
       { lbl: 'Weight Change %', num: data.weightChangePercent != null ? data.weightChangePercent + '%' : '—' },
       { lbl: 'Strength Growth %', num: data.strengthGrowthPercent != null ? data.strengthGrowthPercent + '%' : '—' },
       { lbl: 'Consistency %', num: data.workoutConsistencyPercent != null ? data.workoutConsistencyPercent + '%' : '—' },
@@ -10276,7 +10293,7 @@ async function loadProgressLogs() {
   container.innerHTML = '<table><thead><tr><th>Date</th><th>Weight</th><th>Summary</th><th>View</th></tr></thead><tbody>' +
     _userProgressLogs.map(function(l, i) {
       var d = l.created_at ? new Date(l.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
-      var w = l.weight != null ? l.weight + ' kg' : '—';
+      var w = bbFmtKg(l.weight);
       var parts = [];
       if (l.body_fat != null) parts.push(l.body_fat + '% BF');
       if (l.workout_completed) parts.push(l.workout_type || 'Workout');
@@ -10303,7 +10320,7 @@ async function loadProgressLogsCheckin() {
   container.innerHTML = '<table><thead><tr><th>Date</th><th>Weight</th><th>Summary</th><th>View</th></tr></thead><tbody>' +
     _userProgressLogs.map(function(l, i) {
       var d = l.created_at ? new Date(l.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
-      var w = l.weight != null ? l.weight + ' kg' : '—';
+      var w = bbFmtKg(l.weight);
       var parts = [];
       if (l.body_fat != null) parts.push(l.body_fat + '% BF');
       if (l.workout_completed) parts.push(l.workout_type || 'Workout');
@@ -10360,14 +10377,14 @@ function viewProgressLog(idx) {
   var l = _userProgressLogs[idx];
   if (!l) return;
   var d = l.created_at ? new Date(l.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
-  var w = l.weight != null ? l.weight + ' kg' : '—';
+  var w = bbFmtKg(l.weight);
   var bf = l.body_fat != null ? l.body_fat + '%' : '—';
   var cal = l.calories_intake != null ? l.calories_intake : '—';
   var pro = l.protein_intake != null ? l.protein_intake + ' g' : '—';
   var workout = l.workout_completed ? (l.workout_type || 'Yes') : 'No';
-  var bench = l.strength_bench != null ? l.strength_bench + ' kg' : '—';
-  var squat = l.strength_squat != null ? l.strength_squat + ' kg' : '—';
-  var deadlift = l.strength_deadlift != null ? l.strength_deadlift + ' kg' : '—';
+  var bench = bbFmtKg(l.strength_bench);
+  var squat = bbFmtKg(l.strength_squat);
+  var deadlift = bbFmtKg(l.strength_deadlift);
   var sleep = l.sleep_hours != null ? l.sleep_hours + ' h' : '—';
   var water = l.water_intake != null ? l.water_intake + ' L' : '—';
   var body = document.getElementById('progressLogViewBody');
