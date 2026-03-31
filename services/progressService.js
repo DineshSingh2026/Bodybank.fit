@@ -150,11 +150,27 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
 async function getAdminUserProgress(userId) {
   const userRow = await db.queryOne('SELECT COALESCE(suspended, false) as suspended FROM users WHERE id = ?', [userId]);
   const suspended = userRow ? (userRow.suspended === true || userRow.suspended === 't') : false;
-  const [progressLogs, dailyCheckins, sundayCheckins] = await Promise.all([
+  const userIdentity = await db.queryOne('SELECT email FROM users WHERE id = ?', [userId]);
+  const userEmail = userIdentity && userIdentity.email ? String(userIdentity.email).trim().toLowerCase() : '';
+  const [progressLogs, dailyCheckins, sundayByUserId, sundayByEmail] = await Promise.all([
     db.queryAll('SELECT * FROM progress_logs WHERE user_id = ? ORDER BY created_at ASC', [userId]),
     db.queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date ASC', [userId]),
-    db.queryAll('SELECT current_weight_waist_week, last_week_weight_waist, sleep, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at ASC', [userId])
+    db.queryAll('SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at ASC', [userId]),
+    userEmail
+      ? db.queryAll(
+        'SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, created_at FROM sunday_checkins WHERE user_id IS NULL AND LOWER(COALESCE(reply_email, \'\')) = ? ORDER BY created_at ASC',
+        [userEmail]
+      )
+      : Promise.resolve([])
   ]);
+  const seenSundayIds = new Set();
+  const sundayCheckins = [...(sundayByUserId || []), ...(sundayByEmail || [])].filter((row) => {
+    const id = row && row.id ? String(row.id) : '';
+    if (!id) return true;
+    if (seenSundayIds.has(id)) return false;
+    seenSundayIds.add(id);
+    return true;
+  });
 
   const logs = mergeLogs(progressLogs, dailyCheckins, sundayCheckins);
 
