@@ -86,10 +86,10 @@ function getIstComplianceWindow(now = new Date()) {
   const y = istNow.getUTCFullYear();
   const m = istNow.getUTCMonth();
   const d = istNow.getUTCDate();
-  const noonIst = new Date(Date.UTC(y, m, d, 12, 0, 0));
-  const endIst = istNow.getTime() >= noonIst.getTime()
-    ? noonIst
-    : new Date(noonIst.getTime() - (24 * 60 * 60 * 1000));
+  const midnightIst = new Date(Date.UTC(y, m, d, 0, 0, 0));
+  const endIst = istNow.getTime() >= midnightIst.getTime()
+    ? midnightIst
+    : new Date(midnightIst.getTime() - (24 * 60 * 60 * 1000));
   const startIst = new Date(endIst.getTime() - (24 * 60 * 60 * 1000));
   return {
     startUtc: fromIstPseudoDate(startIst),
@@ -228,7 +228,7 @@ function buildAdminReportHtml({ rows, summary, windowLabel }) {
 
   return userEmail.luxuryWrap({
     title: 'Admin Daily Compliance Report',
-    preheader: '12:00 to 12:00 IST check-in compliance report',
+    preheader: '12:00 am to 12:00 am IST check-in compliance report',
     lead: 'Daily operations report for active clients.',
     bodyHtml: `
       <p style="margin:0 0 12px"><strong>Window:</strong> ${esc(windowLabel)}</p>
@@ -489,7 +489,8 @@ function startEmailScheduler({ queryAll }) {
   _jobs.push(cron.schedule('30 7 * * *', wrap(runDailyDigest), { timezone: TZ }));
   _jobs.push(cron.schedule('0 8 * * 1', wrap(runWeeklyDigest), { timezone: TZ }));
   _jobs.push(cron.schedule('0 10 * * 1', wrap(runProgressNudge), { timezone: TZ }));
-  _jobs.push(cron.schedule('10 12 * * *', wrap(sendAdminDailyComplianceReport), { timezone: TZ }));
+  // Send in the morning with previous day's 12:00 am–12:00 am IST window.
+  _jobs.push(cron.schedule('10 7 * * *', wrap(sendAdminDailyComplianceReport), { timezone: TZ }));
 
   console.log('[emailScheduler] Reminder & digest jobs started (timezone: ' + TZ + ')');
 }
