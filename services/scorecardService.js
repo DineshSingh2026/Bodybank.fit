@@ -227,12 +227,12 @@ function createScorecardService({ queryOne, queryAll }) {
     return (rows || []).map((r) => r.id);
   }
 
-  async function globalOptedInUserIds() {
+  async function globalLeaderboardUserIds() {
     const rows = await queryAll(
       `SELECT u.id FROM users u
        WHERE u.role = 'user'
-         AND COALESCE(u.leaderboard_opt_in, FALSE) = TRUE
-         AND COALESCE(u.leaderboard_public_global, FALSE) = TRUE`,
+        AND (u.approval_status IS NULL OR u.approval_status = 'approved')
+        AND COALESCE(u.suspended, FALSE) = FALSE`,
       []
     );
     return (rows || []).map((r) => r.id);
@@ -278,7 +278,7 @@ function createScorecardService({ queryOne, queryAll }) {
     if (!optedIn || !publicGlobal) {
       return { rank: null, cohort_size: null };
     }
-    const ids = await globalOptedInUserIds();
+    const ids = await globalLeaderboardUserIds();
     if (!ids.length) {
       return { rank: null, cohort_size: 0 };
     }
@@ -325,7 +325,7 @@ function createScorecardService({ queryOne, queryAll }) {
   }
 
   async function buildLeaderboardGlobal(weekStartISO, limit = 50) {
-    const ids = await globalOptedInUserIds();
+    const ids = await globalLeaderboardUserIds();
     const rows = [];
     for (const uid of ids) {
       const s = await computeWeeklyScoreDedication(uid, weekStartISO);

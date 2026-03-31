@@ -2731,7 +2731,7 @@ app.post('/api/me/program-assignments/:id/seen', verifyToken, async (req, res) =
   }
 });
 
-// Weekly scorecard + cohort leaderboard (rank on client only when opted in)
+// Weekly scorecard + global leaderboard (auto-visible once users start scoring)
 app.get('/api/me/scorecard', verifyToken, async (req, res) => {
   try {
     const weekParam = (req.query.week || '').trim();
@@ -2744,9 +2744,9 @@ app.get('/api/me/scorecard', verifyToken, async (req, res) => {
        FROM users WHERE id = ?`,
       [req.user.id]
     );
-    const optedIn = !!(urow && urow.leaderboard_opt_in);
-    const publicProgram = optedIn && !!urow.leaderboard_public_program;
-    const publicGlobal = optedIn && !!urow.leaderboard_public_global;
+    const optedIn = true;
+    const publicProgram = false;
+    const publicGlobal = true;
     const current = await scorecardSvc.computeWeeklyScore(req.user.id, weekStart);
     const previous = prevWeek ? await scorecardSvc.computeWeeklyScore(req.user.id, prevWeek) : null;
     const dedication = await scorecardSvc.computeWeeklyScoreDedication(req.user.id, weekStart);
@@ -2754,22 +2754,9 @@ app.get('/api/me/scorecard', verifyToken, async (req, res) => {
     let cohort_size = null;
     let global_rank = null;
     let global_cohort_size = null;
-    if (optedIn && current && current.program_id) {
-      const r = await scorecardSvc.rankInCohort(
-        req.user.id,
-        current.program_id,
-        weekStart,
-        optedIn,
-        publicProgram
-      );
-      rank = r.rank;
-      cohort_size = r.cohort_size;
-    }
-    if (optedIn) {
-      const g = await scorecardSvc.rankInGlobal(req.user.id, weekStart, true, publicGlobal);
-      global_rank = g.rank;
-      global_cohort_size = g.cohort_size;
-    }
+    const g = await scorecardSvc.rankInGlobal(req.user.id, weekStart, true, true);
+    global_rank = g.rank;
+    global_cohort_size = g.cohort_size;
     const trend_delta =
       current && previous ? (current.total - previous.total) : null;
     res.json({
@@ -2921,15 +2908,29 @@ app.post('/api/me/leaderboard-opt-in', verifyToken, rateLimiter(10, 60000), asyn
   }
 });
 
-app.get('/api/me/leaderboard', verifyToken, async (req, res) => {
+app.post('/api/me/leaderboard-profile', verifyToken, rateLimiter(10, 60000), async (req, res) => {
   try {
-    const urow = await queryOne(
-      'SELECT leaderboard_opt_in FROM users WHERE id = ?',
+    const body = req.body || {};
+    const displayName = String(body.display_name || '').trim().slice(0, 80);
+    await run(
+      `UPDATE users SET leaderboard_display_name = ?,
+       leaderboard_opt_in = TRUE,
+       leaderboard_public_global = TRUE
+       WHERE id = ?`,
+      [displayName, req.user.id]
+    );
+    const row = await queryOne(
+      `SELECT leaderboard_display_name FROM users WHERE id = ?`,
       [req.user.id]
     );
-    if (!urow || !urow.leaderboard_opt_in) {
-      return res.status(403).json({ error: 'Leaderboard is only available after you opt in from your scorecard.' });
-    }
+    res.json({ ok: true, display_name: (row && row.leaderboard_display_name) || '' });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/me/leaderboard', verifyToken, async (req, res) => {
+  try {
     const weekParam = (req.query.week || '').trim();
     const weekStart = scorecardSvc.normalizeWeekStart(weekParam);
     const boardRaw = String(req.query.board || 'program').trim().toLowerCase();
@@ -3196,6 +3197,100 @@ app.get('/api/admin/users', async (req, res) => {
     res.json(list);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/client-progress-audit', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    await ensureApprovedUsersInActiveTribe();
+    const users = await queryAll(
+      `SELECT DISTINCT u.id, u.first_name, u.last_name, u.email
+       FROM users u
+       INNER JOIN tribe_members tm ON LOWER(tm.email) = LOWER(u.email) AND COALESCE(tm.status, 'active') = 'active'
+       WHERE u.role = 'user'
+         AND (u.approval_status IS NULL OR u.approval_status = 'approved')
+         AND COALESCE(u.suspended, FALSE) = FALSE
+         AND (u.email NOT LIKE '%@test.bodybank.fit')
+         AND (LOWER(u.first_name) NOT LIKE '%e2e%')
+       ORDER BY u.first_name, u.last_name`
+    );
+
+    function normalizeAuditWeight(value) {
+      if (value == null || value === '') return null;
+      const n = Number.parseFloat(String(value));
+      if (!Number.isFinite(n)) return null;
+      if (n < 25 || n > 400) return null;
+      return n;
+    }
+    function parseSundayWeightCandidate(row) {
+      const txt = String((row && (row.current_weight_waist_week || row.last_week_weight_waist)) || '');
+      const kgMatches = [...txt.matchAll(/(\d+\.?\d*)\s*(?:kg|kgs)\b/ig)]
+        .map((m) => normalizeAuditWeight(m[1]))
+        .filter((v) => v != null);
+      if (kgMatches.length) return kgMatches[kgMatches.length - 1];
+      const m = txt.match(/(\d+\.?\d*)/);
+      return m ? normalizeAuditWeight(m[1]) : null;
+    }
+
+    const audits = await Promise.all((users || []).map(async (u) => {
+      const userId = u.id;
+      const email = String(u.email || '').trim().toLowerCase();
+      const displayName = [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email || u.id;
+      const [dailyCountRow, progressCountRow, sundayUserRows, sundayEmailRows, progress] = await Promise.all([
+        queryOne('SELECT COUNT(*)::int AS c FROM daily_checkins WHERE user_id = ?', [userId]),
+        queryOne('SELECT COUNT(*)::int AS c FROM progress_logs WHERE user_id = ?', [userId]),
+        queryAll('SELECT current_weight_waist_week, last_week_weight_waist FROM sunday_checkins WHERE user_id = ?', [userId]),
+        queryAll('SELECT current_weight_waist_week, last_week_weight_waist FROM sunday_checkins WHERE user_id IS NULL AND LOWER(COALESCE(reply_email, \'\')) = ?', [email]),
+        progressService.getAdminUserProgress(userId).catch(() => null)
+      ]);
+
+      const sundayRowsMerged = [...(sundayUserRows || []), ...(sundayEmailRows || [])];
+      const sundayHasWeightCandidate = sundayRowsMerged.some((r) => parseSundayWeightCandidate(r) != null);
+      const dailyCount = Number(dailyCountRow && dailyCountRow.c) || 0;
+      const progressLogCount = Number(progressCountRow && progressCountRow.c) || 0;
+      const sundayByUserIdCount = Array.isArray(sundayUserRows) ? sundayUserRows.length : 0;
+      const sundayByEmailFallbackCount = Array.isArray(sundayEmailRows) ? sundayEmailRows.length : 0;
+      const totalSundayCount = sundayByUserIdCount + sundayByEmailFallbackCount;
+      const activeStreak = progress && progress.activeStreak != null ? Number(progress.activeStreak) : 0;
+      const currentWeight = progress && progress.currentWeight != null ? Number(progress.currentWeight) : null;
+      const noDataAnywhere = (dailyCount + progressLogCount + totalSundayCount) === 0;
+      const weightMissingButSundayPresent = currentWeight == null && sundayHasWeightCandidate;
+      const streakZeroButDailyPresent = activeStreak === 0 && dailyCount > 0;
+      const issues = [];
+      if (weightMissingButSundayPresent) issues.push('weight_missing_from_sunday');
+      if (streakZeroButDailyPresent) issues.push('streak_not_reflecting_daily_checkins');
+      if (noDataAnywhere) issues.push('no_data_submitted');
+
+      return {
+        user_id: userId,
+        name: displayName,
+        email: u.email || '',
+        daily_checkins_count: dailyCount,
+        progress_logs_count: progressLogCount,
+        sunday_checkins_user_id_count: sundayByUserIdCount,
+        sunday_checkins_email_fallback_count: sundayByEmailFallbackCount,
+        current_weight_kg: currentWeight,
+        active_streak_days: activeStreak,
+        issue_count: issues.length,
+        issues
+      };
+    }));
+
+    const issueRows = audits.filter((a) => a.issue_count > 0);
+    res.json({
+      generated_at: new Date().toISOString(),
+      total_active_users: audits.length,
+      users_with_issues: issueRows.length,
+      issue_breakdown: {
+        weight_missing_from_sunday: issueRows.filter((r) => r.issues.includes('weight_missing_from_sunday')).length,
+        streak_not_reflecting_daily_checkins: issueRows.filter((r) => r.issues.includes('streak_not_reflecting_daily_checkins')).length,
+        no_data_submitted: issueRows.filter((r) => r.issues.includes('no_data_submitted')).length
+      },
+      rows: audits
+    });
+  } catch (e) {
+    console.error('[client-progress-audit]', e.message);
+    res.status(500).json({ error: 'Failed to run client progress audit' });
   }
 });
 

@@ -1503,7 +1503,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 }
 .admin-attn-metric-row{
   display:grid;
-  grid-template-columns:minmax(0,1fr) 4rem 3.25rem;
+  grid-template-columns:minmax(0,1fr) minmax(4.4rem,auto) minmax(6.8rem,auto);
   column-gap:10px;
   align-items:center;
   padding:7px 10px;
@@ -1544,6 +1544,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   justify-self:stretch;
   text-align:right;
   width:100%;
+  overflow:visible;
 }
 .admin-attention-footer-hint{
   margin-top:8px;
@@ -1634,19 +1635,49 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   background:rgba(69,209,159,0.18);
   border-color:rgba(69,209,159,0.58);
 }
-.tribe-board-card{margin-bottom:10px}
+.tribe-board-card{
+  margin-bottom:12px;
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(200,164,78,0.16) 0%, rgba(8,8,8,0.96) 38%, rgba(8,8,8,0.98) 100%);
+  border:1px solid rgba(200,164,78,0.28);
+  box-shadow:0 16px 40px rgba(0,0,0,0.36), inset 0 1px 0 rgba(255,255,255,0.04);
+}
 .tribe-board-card:last-child{margin-bottom:0}
 .tribe-board-card.tribe-stage-high{
   border-color:rgba(239,68,68,0.45);
-  box-shadow:0 12px 34px rgba(239,68,68,0.12);
+  box-shadow:0 16px 40px rgba(239,68,68,0.18), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .tribe-board-card.tribe-stage-medium{
   border-color:rgba(250,204,21,0.45);
-  box-shadow:0 12px 34px rgba(250,204,21,0.10);
+  box-shadow:0 16px 40px rgba(250,204,21,0.15), inset 0 1px 0 rgba(255,255,255,0.04);
 }
 .tribe-board-card.tribe-stage-focused{
   border-color:rgba(69,209,159,0.42);
-  box-shadow:0 12px 34px rgba(69,209,159,0.08);
+  box-shadow:0 16px 40px rgba(69,209,159,0.12), inset 0 1px 0 rgba(255,255,255,0.04);
+}
+.tribe-board-card .admin-attention-card-top{
+  padding-bottom:10px;
+  border-bottom:1px solid rgba(200,164,78,0.14);
+}
+.tribe-board-card .tribe-details{
+  margin-top:10px;
+  gap:10px;
+}
+.tribe-board-card .tribe-detail{
+  padding:9px 10px;
+  border:1px solid rgba(200,164,78,0.12);
+  border-radius:10px;
+  background:rgba(255,255,255,0.02);
+}
+.tribe-board-card .tribe-detail .label{
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:1.1px;
+}
+.tribe-board-card .tribe-detail .val{
+  margin-top:4px;
+  font-size:14px;
+  font-weight:600;
 }
 @media(max-width:480px){
   .admin-summary-num{font-size:24px}
@@ -4247,6 +4278,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB 2: Client Board -->
     <div class="admin-tab-content" id="tab-tribe">
+      <div class="admin-subsection-wrap" style="margin-bottom:14px">
+        <h3 class="admin-subsection-title" style="margin-bottom:6px">Client Performance Board</h3>
+        <p class="form-hint" style="margin:0">Premium live view of score, activity, check-in risk, and progress for all active clients.</p>
+      </div>
       <div class="tribe-grid">
         <div class="tribe-empty"><p>Loading…</p></div>
       </div>
@@ -4474,6 +4509,13 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="admin-cp-user-list-inner"><div id="adminCpUserList"><p class="admin-cp-placeholder">Loading users…</p></div></div>
         </div>
         <div class="admin-cp-detail">
+          <div style="margin-bottom:14px;padding:12px;border:1px solid rgba(200,164,78,0.2);border-radius:10px;background:rgba(255,255,255,0.02)">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+              <button type="button" class="action-btn btn-view" id="adminCpAuditBtn" onclick="runClientProgressAudit()" style="padding:10px 16px">Run full data audit</button>
+              <span class="form-hint" style="margin:0">Checks all active users for missing weight/streak hydration.</span>
+            </div>
+            <div id="adminCpAuditResult" style="margin-top:10px;display:none"></div>
+          </div>
           <div id="adminCpDetail"><p class="admin-cp-placeholder">Select a user to view progress.</p></div>
           <div id="adminCpShareWrap" class="admin-cp-share-wrap" style="display:none;margin:16px 0">
             <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
@@ -4986,22 +5028,13 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 <div class="modal-overlay" id="leaderboardOptInModal" onclick="if(event.target===this)closeModal('leaderboardOptInModal')">
   <div class="modal login-modal modal-with-scroll" style="max-width:440px">
     <button class="modal-close" onclick="closeModal('leaderboardOptInModal')" type="button">&times;</button>
-    <h2 style="margin-top:0">Leaderboard visibility</h2>
-    <p class="form-hint" style="margin-bottom:14px;line-height:1.45">Choose how you appear on the BodyBank leaderboard. Scoring uses one standard mix so every member is comparable.</p>
+    <h2 style="margin-top:0">Leaderboard nickname</h2>
+    <p class="form-hint" style="margin-bottom:14px;line-height:1.45">You are automatically shown on the BodyBank leaderboard once you score. Set a nickname if you want this to display instead of your name.</p>
     <div class="form-group">
-      <label for="leaderboardDisplayName">Display name (optional)</label>
+      <label for="leaderboardDisplayName">Nickname (optional)</label>
       <input type="text" class="form-input" id="leaderboardDisplayName" maxlength="80" placeholder="e.g. A.K. or Coach nickname" autocomplete="nickname">
     </div>
-    <!-- Program cohort option is kept for backwards compatibility but hidden for a single global leaderboard experience -->
-    <label style="display:none;align-items:flex-start;gap:10px;font-size:14px;color:var(--cream);margin-bottom:12px;cursor:pointer">
-      <input type="checkbox" id="leaderboardPubProgram" style="margin-top:4px">
-      <span><strong style="color:var(--cream)">Program cohort</strong> — same assigned program as you</span>
-    </label>
-    <label style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--cream);margin-bottom:18px;cursor:pointer">
-      <input type="checkbox" id="leaderboardPubGlobal" style="margin-top:4px">
-      <span><strong style="color:var(--cream)">BodyBank</strong> — all members who opt in (standard weekly score)</span>
-    </label>
-    <button type="button" class="form-submit" id="leaderboardOptInSubmit" onclick="submitLeaderboardOptIn()">Save</button>
+    <button type="button" class="form-submit" id="leaderboardOptInSubmit" onclick="submitLeaderboardNickname()">Save nickname</button>
   </div>
 </div>
 <div class="modal-overlay" id="scorecardLeaderboardModal" onclick="if(event.target===this)closeModal('scorecardLeaderboardModal')">
@@ -5020,7 +5053,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     </div>
     <p class="form-hint" id="scorecardLbSubtitle" style="margin-bottom:12px">—</p>
     <div id="scorecardLbBody" style="max-height:52vh;overflow:auto">Loading…</div>
-    <button type="button" class="form-submit" onclick="openLeaderboardOptInModal();closeModal('scorecardLeaderboardModal')" style="margin-top:14px;background:transparent;border:1px solid rgba(200,164,78,0.35);color:var(--cream);font-weight:600">Visibility settings</button>
+    <button type="button" class="form-submit" onclick="openLeaderboardOptInModal();closeModal('scorecardLeaderboardModal')" style="margin-top:14px;background:transparent;border:1px solid rgba(200,164,78,0.35);color:var(--cream);font-weight:600">Set nickname</button>
     <button type="button" class="form-submit" onclick="closeModal('scorecardLeaderboardModal')" style="margin-top:10px">Close</button>
   </div>
 </div>
@@ -7234,12 +7267,12 @@ async function loadTribe() {
           <div class="admin-attn-metric-row">
             <span class="admin-attn-metric-lbl">Workouts</span>
             <span class="admin-attn-metric-val">${workouts}</span>
-            <span class="admin-attn-metric-sub">pillar</span>
+            <span class="admin-attn-metric-sub">score</span>
           </div>
           <div class="admin-attn-metric-row">
             <span class="admin-attn-metric-lbl">Sunday</span>
             <span class="admin-attn-metric-val">${sunday}</span>
-            <span class="admin-attn-metric-sub">pillar</span>
+            <span class="admin-attn-metric-sub">score</span>
           </div>
           <div class="admin-attn-metric-row">
             <span class="admin-attn-metric-lbl">Overall progress</span>
@@ -8417,6 +8450,58 @@ async function loadAdminUserProgressDetail(userId, userName) {
   } catch (err) {
     console.error('Admin progress render error:', err);
     detailEl.innerHTML = '<div class="admin-cp-error-msg">Could not display data. Check console for details.</div>';
+  }
+}
+async function runClientProgressAudit() {
+  var btn = document.getElementById('adminCpAuditBtn');
+  var out = document.getElementById('adminCpAuditResult');
+  if (!out) return;
+  out.style.display = 'block';
+  out.innerHTML = '<p class="admin-cp-placeholder" style="margin:0">Running full client data audit…</p>';
+  if (btn) { btn.disabled = true; btn.textContent = 'Running audit…'; }
+  try {
+    var data = await apiCall('GET', '/api/admin/client-progress-audit');
+    if (!data || data.error) {
+      out.innerHTML = '<p class="admin-cp-error-msg" style="margin:0">' + escapeHtml((data && data.error) || 'Failed to run audit') + '</p>';
+      return;
+    }
+    var rows = Array.isArray(data.rows) ? data.rows : [];
+    var issueRows = rows.filter(function(r) { return Number(r.issue_count || 0) > 0; });
+    var summary = ''
+      + '<div style="margin-bottom:10px">'
+      + '<strong>Audit complete.</strong> '
+      + '<span style="color:var(--muted)">'
+      + 'Checked ' + rows.length + ' active users'
+      + ' · Users with issues: ' + Number(data.users_with_issues || 0)
+      + ' · Weight gaps: ' + Number(data.issue_breakdown && data.issue_breakdown.weight_missing_from_sunday || 0)
+      + ' · Streak gaps: ' + Number(data.issue_breakdown && data.issue_breakdown.streak_not_reflecting_daily_checkins || 0)
+      + '</span></div>';
+    if (!issueRows.length) {
+      out.innerHTML = summary + '<p class="form-hint" style="margin:0;color:#50c878">No hydration mismatches found.</p>';
+      return;
+    }
+    var table = '<div class="admin-table-wrap" style="margin:0"><table class="admin-table"><thead><tr>'
+      + '<th>User</th><th>Current Weight</th><th>Active Streak</th><th>Daily</th><th>Sunday(user_id)</th><th>Sunday(email)</th><th>Issues</th>'
+      + '</tr></thead><tbody>'
+      + issueRows.map(function(r) {
+        var issueText = Array.isArray(r.issues) ? r.issues.join(', ') : '';
+        var w = (r.current_weight_kg == null || r.current_weight_kg === '') ? '—' : bbFmtKg(r.current_weight_kg);
+        return '<tr>'
+          + '<td>' + escapeHtml(r.name || r.email || r.user_id || '') + '</td>'
+          + '<td>' + escapeHtml(String(w)) + '</td>'
+          + '<td>' + escapeHtml(String(r.active_streak_days != null ? r.active_streak_days + ' days' : '—')) + '</td>'
+          + '<td>' + escapeHtml(String(r.daily_checkins_count != null ? r.daily_checkins_count : 0)) + '</td>'
+          + '<td>' + escapeHtml(String(r.sunday_checkins_user_id_count != null ? r.sunday_checkins_user_id_count : 0)) + '</td>'
+          + '<td>' + escapeHtml(String(r.sunday_checkins_email_fallback_count != null ? r.sunday_checkins_email_fallback_count : 0)) + '</td>'
+          + '<td>' + escapeHtml(issueText) + '</td>'
+          + '</tr>';
+      }).join('')
+      + '</tbody></table></div>';
+    out.innerHTML = summary + table;
+  } catch (e) {
+    out.innerHTML = '<p class="admin-cp-error-msg" style="margin:0">Failed to run audit. Please try again.</p>';
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Run full data audit'; }
   }
 }
 async function loadClientProgressUsers() {
@@ -9653,7 +9738,7 @@ function renderScorecard(d) {
     var weekEl = document.getElementById('bbScoreWeek' + suf);
     if (weekEl) weekEl.textContent = d.week_label || '—';
     var plEl = document.getElementById('bbScoreProgLine' + suf);
-    if (plEl) plEl.textContent = prog + ' · pillar blend';
+    if (plEl) plEl.textContent = prog;
     var tr = document.getElementById('bbScoreTrend' + suf);
     if (tr) {
       if (d.trend_delta != null && d.previous_total != null) {
@@ -9687,65 +9772,43 @@ function renderScorecard(d) {
     var inv = document.getElementById('bbScoreInvite' + suf);
     var btn = document.getElementById('bbScoreLeaderboardBtn' + suf);
     var lines = [];
-    // Single global BodyBank leaderboard: only show BodyBank rank, not per-program cohort
-    if (d.opted_in && d.public_global && d.global_rank != null && d.global_cohort_size != null && d.global_cohort_size > 0) {
+    // Single global BodyBank leaderboard: auto-visible to all scoring members.
+    if (d.global_rank != null && d.global_cohort_size != null && d.global_cohort_size > 0) {
       lines.push('<span class="bb-sc-lb-pill bb-sc-lb-pill--bb"><strong>#' + d.global_rank + '</strong> of ' + d.global_cohort_size + ' · BodyBank leaderboard</span>');
-    } else if (d.opted_in && d.public_global) {
-      lines.push('<span class="bb-sc-lb-muted">BodyBank leaderboard: <span style="color:var(--muted)">you\u2019re on the board — invite others to grow the list.</span></span>');
-    }
-    if (d.opted_in) {
-      lines.push('<button type="button" class="bb-sc-lb-settings" onclick="openLeaderboardOptInModal()">Visibility</button>');
-    }
-    if (lb) lb.innerHTML = lines.length ? lines.join('') : '';
-    if (d.opted_in) {
-      if (inv) inv.style.display = 'none';
-      if (btn) { btn.style.display = ''; btn.textContent = 'View leaderboard'; }
     } else {
-      if (inv) inv.style.display = 'flex';
-      if (btn) { btn.style.display = ''; btn.textContent = 'Leaderboard'; }
+      lines.push('<span class="bb-sc-lb-muted">BodyBank leaderboard updates automatically as members submit this week.</span>');
     }
+    lines.push('<button type="button" class="bb-sc-lb-settings" onclick="openLeaderboardOptInModal()">Nickname</button>');
+    if (lb) lb.innerHTML = lines.length ? lines.join('') : '';
+    if (inv) inv.style.display = 'none';
+    if (btn) { btn.style.display = ''; btn.textContent = 'View leaderboard'; }
   });
 }
 
 function handleScorecardLeaderboardCta() {
   var d = window._bbScorecardCache;
   if (!d) { loadScorecard(); return; }
-  // Single global BodyBank leaderboard: if user is opted in with global visibility, open board; otherwise, show opt-in.
-  if (d.opted_in && d.public_global) {
-    window._bbLeaderboardBoardTab = 'dedication';
-    loadScorecardLeaderboardModal('this');
-  } else {
-    openLeaderboardOptInModal();
-  }
+  window._bbLeaderboardBoardTab = 'dedication';
+  loadScorecardLeaderboardModal('this');
 }
 
 function openLeaderboardOptInModal() {
   var d = window._bbScorecardCache;
   var inp = document.getElementById('leaderboardDisplayName');
-  var pp = document.getElementById('leaderboardPubProgram');
-  var pg = document.getElementById('leaderboardPubGlobal');
   if (inp) inp.value = (d && d.display_name) ? d.display_name : '';
-  // Default to BodyBank-only leaderboard for a single-board experience
-  if (pp) pp.checked = false;
-  if (pg) pg.checked = !!(d && d.public_global) || !d;
   openModal('leaderboardOptInModal');
 }
 
-async function submitLeaderboardOptIn() {
+async function submitLeaderboardNickname() {
   var name = document.getElementById('leaderboardDisplayName');
-  var pp = document.getElementById('leaderboardPubProgram');
-  var pg = document.getElementById('leaderboardPubGlobal');
-  var pubP = pp && pp.checked;
-  var pubG = pg && pg.checked;
-  var optIn = !!(pubP || pubG);
-  var body = { opt_in: optIn, display_name: name ? name.value : '', public_program: !!pubP, public_global: !!pubG };
-  var res = await apiCall('POST', '/api/me/leaderboard-opt-in', body);
+  var body = { display_name: name ? name.value : '' };
+  var res = await apiCall('POST', '/api/me/leaderboard-profile', body);
   if (res && res.error) {
     showPopup('Error', res.error, '', 'OK', null, 'error');
     return;
   }
   closeModal('leaderboardOptInModal');
-  showPopup('Saved', optIn ? 'Leaderboard visibility updated.' : 'Leaderboard sharing is off.', '', 'OK', null, 'success');
+  showPopup('Saved', 'Leaderboard nickname updated.', '', 'OK', null, 'success');
   loadScorecard();
 }
 
