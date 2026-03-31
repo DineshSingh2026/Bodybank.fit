@@ -2696,6 +2696,16 @@ app.get('/api/me/scorecard', verifyToken, async (req, res) => {
       global_rank: optedIn && publicGlobal ? global_rank : null,
       global_cohort_size: optedIn && publicGlobal ? global_cohort_size : null,
       dedication_total: dedication ? dedication.total : null,
+      dedication_pillars: dedication
+        ? {
+            daily: dedication.daily,
+            sunday: dedication.sunday,
+            workouts: dedication.workouts,
+            progress: dedication.progress
+          }
+        : null,
+      dedication_breakdown: dedication ? dedication.breakdown : null,
+      dedication_weights: dedication ? dedication.weights : null,
       program_id: current ? current.program_id : null,
       program_name: current ? current.program_name : null,
       total: current ? current.total : 0,

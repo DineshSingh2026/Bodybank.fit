@@ -4889,13 +4889,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <div class="modal login-modal modal-with-scroll" style="max-width:440px">
     <button class="modal-close" onclick="closeModal('leaderboardOptInModal')" type="button">&times;</button>
     <h2 style="margin-top:0">Leaderboard visibility</h2>
-    <p class="form-hint" style="margin-bottom:14px;line-height:1.45">Choose where you appear. Your weekly score still uses your program blend; BodyBank ranks everyone with one standard mix so all programs are comparable.</p>
+    <p class="form-hint" style="margin-bottom:14px;line-height:1.45">Choose how you appear on the BodyBank leaderboard. Scoring uses one standard mix so every member is comparable.</p>
     <div class="form-group">
       <label for="leaderboardDisplayName">Display name (optional)</label>
       <input type="text" class="form-input" id="leaderboardDisplayName" maxlength="80" placeholder="e.g. A.K. or Coach nickname" autocomplete="nickname">
     </div>
-    <label style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--cream);margin-bottom:12px;cursor:pointer">
-      <input type="checkbox" id="leaderboardPubProgram" checked style="margin-top:4px">
+    <!-- Program cohort option is kept for backwards compatibility but hidden for a single global leaderboard experience -->
+    <label style="display:none;align-items:flex-start;gap:10px;font-size:14px;color:var(--cream);margin-bottom:12px;cursor:pointer">
+      <input type="checkbox" id="leaderboardPubProgram" style="margin-top:4px">
       <span><strong style="color:var(--cream)">Program cohort</strong> — same assigned program as you</span>
     </label>
     <label style="display:flex;align-items:flex-start;gap:10px;font-size:14px;color:var(--cream);margin-bottom:18px;cursor:pointer">
@@ -4915,9 +4916,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <button type="button" id="lbWeekPrev" onclick="loadScorecardLeaderboardModal('prev')">Last week</button>
       </div>
     </div>
+    <!-- Single BodyBank leaderboard mode -->
     <div class="bb-lb-modes">
-      <button type="button" id="lbModeProgram" class="is-active" onclick="bbSetLeaderboardBoardTab('program')">Program cohort</button>
-      <button type="button" id="lbModeDedication" onclick="bbSetLeaderboardBoardTab('dedication')">BodyBank</button>
+      <button type="button" id="lbModeDedication" class="is-active" onclick="bbSetLeaderboardBoardTab('dedication')">BodyBank</button>
     </div>
     <p class="form-hint" id="scorecardLbSubtitle" style="margin-bottom:12px">—</p>
     <div id="scorecardLbBody" style="max-height:52vh;overflow:auto">Loading…</div>
@@ -9385,8 +9386,10 @@ function renderWeightedBar(suf, d) {
 
 function renderScorecard(d) {
   var suffixes = ['Mobile', 'Desktop'];
-  var total = d.total != null ? Math.round(Number(d.total)) : 0;
-  var prog = d.program_name || 'Your program';
+  // Use BodyBank dedication score as the primary value for users
+  var total = d.dedication_total != null ? Math.round(Number(d.dedication_total)) :
+    (d.total != null ? Math.round(Number(d.total)) : 0);
+  var prog = 'BodyBank score';
   suffixes.forEach(function (suf) {
     var valEl = document.getElementById('bbScoreVal' + suf);
     if (valEl) valEl.textContent = String(total);
@@ -9406,12 +9409,17 @@ function renderScorecard(d) {
         tr.className = 'bb-sc-trend';
       }
     }
-    renderWeightedBar(suf, d);
+    // For the weighted bar, prefer BodyBank (dedication) pillars/weights so leaderboard and scorecard align
+    var weightedData = d.dedication_pillars && d.dedication_weights
+      ? { pillars: d.dedication_pillars, weights: d.dedication_weights }
+      : d;
+    renderWeightedBar(suf, weightedData);
     var pillars = document.getElementById('bbScorePillars' + suf);
-    if (pillars && d.pillars) {
+    if (pillars && (d.dedication_pillars || d.pillars)) {
+      var srcPillars = d.dedication_pillars || d.pillars;
       pillars.innerHTML = ['Daily', 'Sunday', 'Workouts', 'Progress'].map(function (label, i) {
         var key = ['daily', 'sunday', 'workouts', 'progress'][i];
-        var val = d.pillars[key];
+        var val = srcPillars[key];
         return '<span class="bb-sc-pillar">' +
           '<span class="bb-sc-pillar-lbl">' + label + '</span>' +
           '<span class="bb-sc-pillar-val">' + (val != null ? val : '\u2014') + '</span>' +
@@ -9422,15 +9430,11 @@ function renderScorecard(d) {
     var inv = document.getElementById('bbScoreInvite' + suf);
     var btn = document.getElementById('bbScoreLeaderboardBtn' + suf);
     var lines = [];
-    if (d.opted_in && d.public_program && d.leaderboard_rank != null && d.cohort_size != null && d.cohort_size > 0) {
-      lines.push('<span class="bb-sc-lb-pill"><strong>#' + d.leaderboard_rank + '</strong> of ' + d.cohort_size + ' · program cohort</span>');
-    } else if (d.opted_in && d.public_program) {
-      lines.push('<span class="bb-sc-lb-muted">Program cohort: <span style="color:var(--muted)">others will appear as they opt in.</span></span>');
-    }
+    // Single global BodyBank leaderboard: only show BodyBank rank, not per-program cohort
     if (d.opted_in && d.public_global && d.global_rank != null && d.global_cohort_size != null && d.global_cohort_size > 0) {
-      lines.push('<span class="bb-sc-lb-pill bb-sc-lb-pill--bb"><strong>#' + d.global_rank + '</strong> of ' + d.global_cohort_size + ' · BodyBank</span>');
+      lines.push('<span class="bb-sc-lb-pill bb-sc-lb-pill--bb"><strong>#' + d.global_rank + '</strong> of ' + d.global_cohort_size + ' · BodyBank leaderboard</span>');
     } else if (d.opted_in && d.public_global) {
-      lines.push('<span class="bb-sc-lb-muted">BodyBank: <span style="color:var(--muted)">you\u2019re on the board \u2014 invite others to grow the list.</span></span>');
+      lines.push('<span class="bb-sc-lb-muted">BodyBank leaderboard: <span style="color:var(--muted)">you\u2019re on the board — invite others to grow the list.</span></span>');
     }
     if (d.opted_in) {
       lines.push('<button type="button" class="bb-sc-lb-settings" onclick="openLeaderboardOptInModal()">Visibility</button>');
@@ -9449,12 +9453,13 @@ function renderScorecard(d) {
 function handleScorecardLeaderboardCta() {
   var d = window._bbScorecardCache;
   if (!d) { loadScorecard(); return; }
-  if (d.opted_in) {
-    if (d.public_program) window._bbLeaderboardBoardTab = 'program';
-    else if (d.public_global) window._bbLeaderboardBoardTab = 'dedication';
-    else window._bbLeaderboardBoardTab = 'program';
+  // Single global BodyBank leaderboard: if user is opted in with global visibility, open board; otherwise, show opt-in.
+  if (d.opted_in && d.public_global) {
+    window._bbLeaderboardBoardTab = 'dedication';
     loadScorecardLeaderboardModal('this');
-  } else openLeaderboardOptInModal();
+  } else {
+    openLeaderboardOptInModal();
+  }
 }
 
 function openLeaderboardOptInModal() {
@@ -9463,8 +9468,9 @@ function openLeaderboardOptInModal() {
   var pp = document.getElementById('leaderboardPubProgram');
   var pg = document.getElementById('leaderboardPubGlobal');
   if (inp) inp.value = (d && d.display_name) ? d.display_name : '';
-  if (pp) pp.checked = !d || d.public_program !== false;
-  if (pg) pg.checked = !!(d && d.public_global);
+  // Default to BodyBank-only leaderboard for a single-board experience
+  if (pp) pp.checked = false;
+  if (pg) pg.checked = !!(d && d.public_global) || !d;
   openModal('leaderboardOptInModal');
 }
 
@@ -9487,11 +9493,10 @@ async function submitLeaderboardOptIn() {
 }
 
 function bbSetLeaderboardBoardTab(tab) {
-  window._bbLeaderboardBoardTab = tab === 'dedication' ? 'dedication' : 'program';
-  var p = document.getElementById('lbModeProgram');
+  // Force BodyBank (dedication) as the only leaderboard tab
+  window._bbLeaderboardBoardTab = 'dedication';
   var di = document.getElementById('lbModeDedication');
-  if (p) p.classList.toggle('is-active', window._bbLeaderboardBoardTab === 'program');
-  if (di) di.classList.toggle('is-active', window._bbLeaderboardBoardTab === 'dedication');
+  if (di) di.classList.add('is-active');
   loadScorecardLeaderboardModal(null);
 }
 
@@ -9510,21 +9515,18 @@ async function loadScorecardLeaderboardModal(mode) {
   if (!window.currentUser) return;
   if (mode === 'this' || mode === 'prev') window._bbLeaderboardWeekMode = mode;
   else if (!window._bbLeaderboardWeekMode) window._bbLeaderboardWeekMode = 'this';
-  if (!window._bbLeaderboardBoardTab) window._bbLeaderboardBoardTab = 'program';
+  if (!window._bbLeaderboardBoardTab) window._bbLeaderboardBoardTab = 'dedication';
   var thisBtn = document.getElementById('lbWeekThis');
   var prevBtn = document.getElementById('lbWeekPrev');
   if (thisBtn && prevBtn) {
     if (window._bbLeaderboardWeekMode === 'prev') { prevBtn.classList.add('is-active'); thisBtn.classList.remove('is-active'); }
     else { thisBtn.classList.add('is-active'); prevBtn.classList.remove('is-active'); }
   }
-  var mp = document.getElementById('lbModeProgram');
   var md = document.getElementById('lbModeDedication');
-  if (mp && md) {
-    mp.classList.toggle('is-active', window._bbLeaderboardBoardTab === 'program');
-    md.classList.toggle('is-active', window._bbLeaderboardBoardTab === 'dedication');
-  }
+  if (md) md.classList.add('is-active');
   var ws = bbScorecardWeekParam();
-  var board = window._bbLeaderboardBoardTab === 'dedication' ? 'dedication' : 'program';
+  // Always load the BodyBank dedication/global board
+  var board = 'dedication';
   var url = '/api/me/leaderboard?board=' + encodeURIComponent(board) + (ws ? '&week=' + encodeURIComponent(ws) : '');
   var data = await apiCall('GET', url);
   var sub = document.getElementById('scorecardLbSubtitle');
@@ -9567,7 +9569,8 @@ function openScorecardBreakdownModal() {
     openModal('scorecardBreakdownModal');
     return;
   }
-  if (hint) hint.textContent = (d.program_name || 'Program') + ' \u00b7 ' + (d.week_label || '');
+  // Show BodyBank as the context label so breakdown feels aligned with the global score
+  if (hint) hint.textContent = 'BodyBank \u00b7 ' + (d.week_label || '');
   var b = d.breakdown || {};
   var rows = [
     ['Daily check-ins', d.pillars.daily, 'Days logged: ' + (b.daily_days != null ? b.daily_days : '\u2014') + ' / 7'],
