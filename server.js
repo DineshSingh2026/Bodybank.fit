@@ -1331,7 +1331,11 @@ app.get('/api/tribe', async (req, res) => {
           WHERE dc.user_id = u.id
         ) AS last_checkin_date
       FROM tribe_members tm
-      LEFT JOIN users u ON LOWER(u.email) = LOWER(tm.email)
+      INNER JOIN users u
+        ON LOWER(u.email) = LOWER(tm.email)
+       AND u.role = 'user'
+       AND COALESCE(u.approval_status, 'approved') = 'approved'
+       AND COALESCE(u.suspended, FALSE) = FALSE
       WHERE tm.status = 'active'
       ORDER BY tm.phase DESC, tm.start_date ASC
     `);
@@ -3019,7 +3023,16 @@ app.get('/api/me/programs/pdf', async (req, res) => {
 app.get('/api/stats', async (req, res) => {
   await ensureApprovedUsersInActiveTribe();
   const pending = await queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='pending'");
-  const active = await queryAll("SELECT COUNT(*) as c FROM tribe_members WHERE status='active'");
+  const active = await queryAll(
+    `SELECT COUNT(*) as c
+       FROM tribe_members tm
+       INNER JOIN users u
+         ON LOWER(u.email) = LOWER(tm.email)
+        AND u.role = 'user'
+        AND COALESCE(u.approval_status, 'approved') = 'approved'
+        AND COALESCE(u.suspended, FALSE) = FALSE
+      WHERE tm.status = 'active'`
+  );
   const completed = await queryAll("SELECT COUNT(*) as c FROM tribe_members WHERE status='completed'");
   const total = await queryAll("SELECT COUNT(*) as c FROM tribe_members");
   const [workouts] = await queryAll("SELECT COUNT(*) as c FROM workout_logs");
@@ -3175,6 +3188,7 @@ app.get('/api/admin/users', async (req, res) => {
        INNER JOIN tribe_members tm ON LOWER(tm.email) = LOWER(u.email) AND COALESCE(tm.status, 'active') = 'active'
        WHERE u.role = 'user'
          AND (u.approval_status IS NULL OR u.approval_status = 'approved')
+         AND COALESCE(u.suspended, FALSE) = FALSE
          AND (u.email NOT LIKE '%@test.bodybank.fit')
          AND (LOWER(u.first_name) NOT LIKE '%e2e%')
        ORDER BY u.first_name, u.last_name`
@@ -3265,6 +3279,9 @@ app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async 
     await run('DELETE FROM weight_logs WHERE user_id = ?', [id]);
     await run('DELETE FROM daily_checkins WHERE user_id = ?', [id]);
     await run('DELETE FROM push_subscriptions WHERE user_id = ?', [id]);
+    if (user.email) {
+      await run('DELETE FROM tribe_members WHERE LOWER(email) = LOWER(?)', [user.email]);
+    }
     await run('DELETE FROM users WHERE id = ?', [id]);
     res.json({ message: 'User removed' });
   } catch (e) {

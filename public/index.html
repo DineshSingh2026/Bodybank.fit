@@ -7276,6 +7276,8 @@ async function archiveTribeMember(id, name) {
   }
   showPopup('Updated', 'Member removed from active tribe list.', '', 'OK');
   loadTribe();
+  loadStats();
+  loadClientProgressUsers();
 }
 
 async function deleteTribeMemberPermanently(id, name) {
@@ -7289,6 +7291,8 @@ async function deleteTribeMemberPermanently(id, name) {
   }
   showPopup('Deleted', 'Member has been permanently deleted from Tribe.', '', 'OK');
   loadTribe();
+  loadStats();
+  loadClientProgressUsers();
 }
 
 async function loadAdminWorkouts() {
@@ -8537,6 +8541,8 @@ async function adminRemoveUser() {
     if (sw) sw.style.display = 'none';
     if (suw) suw.style.display = 'none';
     window._adminCpSelectedUserId = null;
+    loadStats();
+    loadTribe();
   } catch (e) {
     showPopup('Error', 'Failed to remove user. Please try again.', '', 'OK', null, 'error');
   } finally {
