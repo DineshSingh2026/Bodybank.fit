@@ -1947,6 +1947,35 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   min-width:860px;
   table-layout:fixed;
 }
+#tab-dailycompliance .dc-head-wrap{
+  display:flex;
+  gap:12px;
+  flex-wrap:wrap;
+  justify-content:space-between;
+  align-items:flex-end;
+  margin-bottom:16px;
+}
+#tab-dailycompliance .dc-head-left{flex:1;min-width:240px}
+#tab-dailycompliance .dc-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  align-items:center;
+  justify-content:flex-end;
+}
+#tab-dailycompliance .dc-actions .form-submit,
+#tab-dailycompliance .dc-actions .action-btn{min-width:170px}
+@media(max-width:768px){
+  #tab-dailycompliance .dc-head-wrap{align-items:stretch}
+  #tab-dailycompliance .dc-head-left{min-width:0;width:100%}
+  #tab-dailycompliance .dc-actions{width:100%;justify-content:stretch}
+  #tab-dailycompliance .dc-actions .form-submit,
+  #tab-dailycompliance .dc-actions .action-btn{
+    width:100%;
+    margin:0;
+    min-width:0;
+  }
+}
 #tab-dailycompliance .admin-table th{
   white-space:nowrap;
   overflow:hidden;
@@ -4347,12 +4376,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
     <!-- TAB: Daily Compliance -->
     <div class="admin-tab-content" id="tab-dailycompliance">
-      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;margin-bottom:16px">
-        <div style="flex:1;min-width:240px">
-          <h3 class="admin-subsection-title" style="margin:0 0 6px">Daily Compliance (12:00–12:00 IST)</h3>
+      <div class="dc-head-wrap">
+        <div class="dc-head-left">
+          <h3 class="admin-subsection-title" style="margin:0 0 6px">Compliance window (12:00–12:00 IST)</h3>
           <p class="form-hint" id="dailyComplianceWindowLabel" style="margin:0;opacity:.9">Loading…</p>
         </div>
-        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end">
+        <div class="dc-actions">
           <button type="button" class="form-submit" onclick="loadDailyCompliancePreview()">Refresh</button>
           <button type="button" class="action-btn btn-view" id="dailyComplianceSendBtn" onclick="sendDailyComplianceNow()" style="padding:10px 16px">Send report now</button>
         </div>
