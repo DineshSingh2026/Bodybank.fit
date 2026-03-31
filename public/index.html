@@ -1974,24 +1974,36 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .admin-table td .action-btn{padding:8px 10px;font-size:10px;margin-left:2px}
 }
 
-/* Tribe Cards */
-.tribe-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.tribe-card{padding:28px;background:var(--dark2);border:1px solid var(--bdr);border-radius:14px;transition:border-color .3s}
-.tribe-card:hover{border-color:rgba(200,164,78,0.4)}
-.tribe-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:16px}
+/* Client Performance Board (replaces old Tribe cards) */
+.tribe-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.tribe-card{padding:22px;background:radial-gradient(120% 160% at 0% 0%, rgba(200,164,78,0.18) 0%, rgba(8,8,8,0.98) 35%, rgba(8,8,8,0.98) 100%);border:1px solid rgba(200,164,78,0.24);border-radius:16px;transition:border-color .3s,transform .22s;box-shadow:0 12px 34px rgba(0,0,0,0.35)}
+.tribe-card:hover{border-color:rgba(200,164,78,0.5);transform:translateY(-2px)}
+.tribe-header{display:flex;justify-content:space-between;align-items:start;margin-bottom:14px}
 .tribe-avatar{width:48px;height:48px;border-radius:50%;background:var(--goldg);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--black);overflow:hidden;flex-shrink:0;position:relative}
 .tribe-avatar .bb-admin-avatar{width:100%;height:100%;border:none;background:transparent}
 .tribe-avatar .bb-admin-avatar--initials{color:var(--black)}
-.tribe-phase{padding:4px 10px;border-radius:4px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
+.tribe-phase{padding:4px 10px;border-radius:999px;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase}
 .phase-1{background:rgba(200,164,78,0.15);color:var(--gold)}
 .phase-2{background:rgba(80,200,120,0.15);color:#50c878}
 .phase-3{background:rgba(100,149,237,0.15);color:#6495ed}
 .tribe-name{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;color:var(--cream);margin-bottom:2px}
-.tribe-meta{font-size:12px;color:var(--muted);margin-bottom:16px}
+.tribe-meta{font-size:12px;color:var(--muted);margin-bottom:10px}
+.tribe-scoreline{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:10px}
+.tribe-score-num{font-size:44px;font-weight:800;line-height:1;color:var(--gold)}
+.tribe-score-label{font-size:11px;letter-spacing:1.3px;text-transform:uppercase;color:rgba(200,164,78,0.8);margin-bottom:3px}
+.tribe-score-week{font-size:12px;color:var(--muted)}
+.tribe-trend{font-size:13px;font-weight:700;white-space:nowrap}
+.tribe-trend.up{color:#45d19f}
+.tribe-trend.down{color:#ff8f8f}
+.tribe-trend.flat{color:var(--muted)}
 .tribe-progress{margin-bottom:12px}
 .tribe-progress-label{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:6px}
-.tribe-progress-bar{height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden}
-.tribe-progress-fill{height:100%;border-radius:3px;background:var(--goldg);transition:width .6s}
+.tribe-progress-bar{height:7px;background:rgba(255,255,255,0.06);border-radius:5px;overflow:hidden}
+.tribe-progress-fill{height:100%;border-radius:5px;background:var(--goldg);transition:width .6s}
+.tribe-pillars{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:10px 0 12px}
+.tribe-pillar{padding:8px 6px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:9px;text-align:center}
+.tribe-pillar .k{display:block;font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted)}
+.tribe-pillar .v{display:block;font-size:15px;font-weight:700;color:var(--cream);margin-top:2px}
 .tribe-details{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .tribe-detail{font-size:12px}
 .tribe-detail .label{color:var(--muted)}
@@ -2586,6 +2598,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .progress-logs-list .progress-logs-empty{color:var(--muted);padding:16px;text-align:center;font-size:14px}
 .admin-client-progress-wrap{display:grid;grid-template-columns:minmax(280px,340px) 1fr;gap:28px;align-items:start;min-height:400px}
 .admin-cp-user-list{position:sticky;top:20px;max-height:80vh;overflow-y:auto}
+.admin-cp-user-filter{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 12px}
+.admin-cp-user-filter label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;cursor:pointer}
 .admin-cp-heading{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(200,164,78,0.7);margin-bottom:16px;font-family:var(--bb-font-heading,'Outfit',sans-serif)}
 .admin-cp-user-list-inner{background:rgba(0,0,0,0.3);border:1px solid rgba(200,164,78,0.12);border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.2)}
 .admin-cp-user-list .admin-cp-user-item{display:grid;grid-template-columns:1fr auto;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .25s ease}
@@ -2600,6 +2614,27 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-cp-user-list .admin-cp-user-item .cp-view-btn:hover{background:rgba(200,164,78,0.15);border-color:var(--gold);box-shadow:0 2px 12px rgba(200,164,78,0.2)}
 .admin-cp-user-list .admin-cp-user-item.selected .cp-view-btn{background:rgba(200,164,78,0.2);border-color:var(--gold)}
 .admin-cp-suspended-badge{font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:rgba(230,126,34,0.9);margin-left:8px;opacity:0.95}
+.tribe-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.tribe-actions .action-btn{padding:8px 12px;font-size:11px}
+.tribe-actions .tribe-archive-btn{
+  background:transparent;
+  color:var(--gold);
+  border:1px solid rgba(200,164,78,0.45);
+}
+.tribe-actions .tribe-archive-btn:hover{
+  background:rgba(200,164,78,0.14);
+  border-color:var(--gold);
+}
+.tribe-actions .tribe-delete-btn{
+  background:rgba(224,80,80,0.14);
+  color:#ffb5b5;
+  border:1px solid rgba(224,80,80,0.55);
+}
+.tribe-actions .tribe-delete-btn:hover{
+  background:rgba(224,80,80,0.24);
+  border-color:#ff7f7f;
+  color:#ffd2d2;
+}
 .admin-cp-placeholder{color:rgba(255,255,255,0.35);font-size:14px;padding:24px 20px;letter-spacing:0.2px}
 .admin-cp-error-msg{background:rgba(200,80,80,0.15);border:1px solid rgba(200,80,80,0.4);color:#e8b4b4;padding:16px;border-radius:8px;font-size:14px;margin:12px 0}
 .admin-cp-detail{min-height:300px;display:flex;flex-direction:column;gap:20px;overflow:visible;background:rgba(0,0,0,0.25);border:1px solid rgba(200,164,78,0.1);border-radius:14px;padding:24px;box-shadow:0 4px 24px rgba(0,0,0,0.15)}
@@ -3809,7 +3844,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="admin-tabs" id="adminTabs">
       <div class="admin-tab" data-tab="requests" onclick="switchTab('requests')">Audit forms</div>
       <div class="admin-tab" data-tab="signups" onclick="switchTab('signups')">Pending Sign-ups</div>
-      <div class="admin-tab" data-tab="tribe" onclick="switchTab('tribe')">Tribe</div>
+      <div class="admin-tab" data-tab="tribe" onclick="switchTab('tribe')">Client Board</div>
       <div class="admin-tab" data-tab="workouts" onclick="switchTab('workouts')">Workouts</div>
       <div class="admin-tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
       <div class="admin-tab" data-tab="meetings" onclick="switchTab('meetings')">Meetings</div>
@@ -3943,7 +3978,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
         <div class="bb-quick-actions">
           <a class="bb-quick-btn" href="#" onclick="switchTab('signups');return false"><span class="btn-icon">👤</span>Approve Sign-ups</a>
-          <a class="bb-quick-btn" href="#" onclick="switchTab('tribe');return false"><span class="btn-icon">👥</span>View Tribe</a>
+          <a class="bb-quick-btn" href="#" onclick="switchTab('tribe');return false"><span class="btn-icon">👥</span>Client Board</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('requests');return false"><span class="btn-icon">📋</span>Audit Forms</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('dailycheckin');return false"><span class="btn-icon">📅</span>Daily Check-ins</a>
           <a class="bb-quick-btn" href="#" onclick="switchToSection('analytics');return false"><span class="btn-icon">📈</span>Analytics</a>
@@ -4000,7 +4035,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <a class="admin-section-card" href="#" onclick="switchTab('tribe');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128101;</span>
             <span class="admin-section-card-title">Tribe</span>
-            <span class="admin-section-card-desc">Manage active tribe members</span>
+            <span class="admin-section-card-desc">Performance board for active clients</span>
           </a>
           <a class="admin-section-card" href="#" onclick="switchTab('clientprogress');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128200;</span>
@@ -4151,7 +4186,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
     </div>
 
-    <!-- TAB 2: Tribe -->
+    <!-- TAB 2: Client Board -->
     <div class="admin-tab-content" id="tab-tribe">
       <div class="tribe-grid">
         <div class="tribe-empty"><p>Loading…</p></div>
@@ -4374,6 +4409,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="admin-client-progress-wrap">
         <div class="admin-cp-user-list">
           <h3 class="admin-cp-heading">Clients</h3>
+          <div class="admin-cp-user-filter">
+            <label><input type="checkbox" id="adminCpShowSuspended" onchange="loadClientProgressUsers()"> Show suspended</label>
+          </div>
           <div class="admin-cp-user-list-inner"><div id="adminCpUserList"><p class="admin-cp-placeholder">Loading users…</p></div></div>
         </div>
         <div class="admin-cp-detail">
@@ -4383,6 +4421,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
               <button type="button" class="form-submit" id="adminCpShareBtn" onclick="getProgressReportLink()">Share link with user</button>
               <button type="button" class="action-btn btn-reject" id="adminCpSuspendBtn" onclick="adminSuspendUser()" style="padding:12px 20px;display:none">Suspend user</button>
               <button type="button" class="action-btn btn-approve" id="adminCpReactivateBtn" onclick="adminReactivateUser()" style="padding:12px 20px;display:none">Re-activate</button>
+              <button type="button" class="action-btn btn-reject" id="adminCpRemoveBtn" onclick="adminRemoveUser()" style="padding:12px 20px;display:none">Remove user</button>
             </div>
             <div id="adminCpShareUrlWrap" style="display:none;margin-top:12px">
               <label class="admin-cp-heading" style="margin-bottom:6px">Link to send to client (they can view their progress &amp; graphs)</label>
@@ -7035,14 +7074,14 @@ async function loadTribe() {
   const grid = document.querySelector('.tribe-grid');
   if (!grid) return;
   if (data.error || !Array.isArray(data)) {
-    grid.innerHTML = '<div class="tribe-empty"><p>Could not load tribe members.</p></div>';
+    grid.innerHTML = '<div class="tribe-empty"><p>Could not load client performance board.</p></div>';
     return;
   }
   if (data.length === 0) {
-    grid.innerHTML = '<div class="tribe-empty"><p>No tribe members yet. Approve requests to add members.</p></div>';
+    grid.innerHTML = '<div class="tribe-empty"><p>No active clients yet. Approve requests to add members.</p></div>';
     return;
   }
-  
+
   grid.innerHTML = data.map(m => {
     const dispName = ((m.first_name||'')+' '+(m.last_name||'')).trim() || '—';
     const phase = m.phase ?? 1;
@@ -7051,11 +7090,26 @@ async function loadTribe() {
     const weeksIn = Math.max(0, Math.round((Date.now() - startDate) / (7*24*60*60*1000)));
     const weeksLabel = weeksIn === 0 ? 'less than 1 week ago' : weeksIn + ' week' + (weeksIn > 1 ? 's' : '') + ' ago';
     const progress = Math.min(100, Math.round((weeksIn / 16) * 100));
+    const joinedDate = m.start_date ? new Date(m.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+    const score = m.score_total != null ? Math.round(Number(m.score_total)) : null;
+    const weekLabel = m.score_week_label || 'This week';
+    const trend = m.score_trend_delta != null ? Math.round(Number(m.score_trend_delta)) : null;
+    const trendClass = trend == null ? 'flat' : (trend > 0 ? 'up' : trend < 0 ? 'down' : 'flat');
+    const trendText = trend == null ? 'No comparison yet' : ((trend > 0 ? '↑ +' : trend < 0 ? '↓ ' : '→ ') + trend + ' vs last week');
+    const p = m.score_pillars || {};
+    const daily = p.daily != null ? p.daily : '—';
+    const sunday = p.sunday != null ? p.sunday : '—';
+    const workouts = p.workouts != null ? p.workouts : '—';
+    const pr = p.progress != null ? p.progress : '—';
     const weightChange = m.starting_weight != null && m.current_weight != null
       ? m.starting_weight + ' → ' + m.current_weight + ' kg'
       : (m.starting_weight != null ? m.starting_weight + ' kg' : '-');
     const activity = m.activity_per_week ?? 0;
     const nextCheckin = (m.next_checkin && String(m.next_checkin).trim()) ? m.next_checkin : '-';
+    const lastCheckin = (m.last_checkin_date && String(m.last_checkin_date).trim()) ? String(m.last_checkin_date).slice(0, 10) : '-';
+    const lastCheckinDate = (lastCheckin !== '-') ? new Date(lastCheckin + 'T00:00:00') : null;
+    const inactiveDays = lastCheckinDate ? Math.max(0, Math.floor((Date.now() - lastCheckinDate.getTime()) / (24*60*60*1000))) : null;
+    const riskTag = inactiveDays == null ? 'No check-in' : (inactiveDays >= 14 ? 'High risk' : inactiveDays >= 7 ? 'At risk' : 'Active');
 
     return `
       <div class="tribe-card">
@@ -7064,20 +7118,66 @@ async function loadTribe() {
           <span class="tribe-phase ${phaseClass}">Phase ${phase}</span>
         </div>
         <div class="tribe-name">${escapeHtml(dispName)}</div>
-        <div class="tribe-meta">Joined ${weeksLabel} · ${escapeHtml(m.city || '') || 'Unknown'}</div>
+        <div class="tribe-meta">Joined ${weeksLabel} · ${escapeHtml(m.city || '') || 'Unknown'} · ${escapeHtml(riskTag)}</div>
+        <div class="tribe-scoreline">
+          <div>
+            <div class="tribe-score-label">BodyBank score</div>
+            <div class="tribe-score-num">${score != null ? score : '—'}</div>
+            <div class="tribe-score-week">${escapeHtml(weekLabel)}</div>
+          </div>
+          <div class="tribe-trend ${trendClass}">${escapeHtml(trendText)}</div>
+        </div>
         <div class="tribe-progress">
-          <div class="tribe-progress-label"><span>Progress</span><span>${progress}%</span></div>
+          <div class="tribe-progress-label"><span>Overall progress</span><span>${progress}%</span></div>
           <div class="tribe-progress-bar"><div class="tribe-progress-fill" style="width:${progress}%"></div></div>
         </div>
+        <div class="tribe-pillars">
+          <div class="tribe-pillar"><span class="k">Daily</span><span class="v">${daily}</span></div>
+          <div class="tribe-pillar"><span class="k">Sunday</span><span class="v">${sunday}</span></div>
+          <div class="tribe-pillar"><span class="k">Workouts</span><span class="v">${workouts}</span></div>
+          <div class="tribe-pillar"><span class="k">Progress</span><span class="v">${pr}</span></div>
+        </div>
         <div class="tribe-details">
+          <div class="tribe-detail"><div class="label">Joined date</div><div class="val">${joinedDate}</div></div>
           <div class="tribe-detail"><div class="label">Duration</div><div class="val">${weeksIn} / 16 weeks</div></div>
           <div class="tribe-detail"><div class="label">Activity</div><div class="val">${activity}x / week</div></div>
+          <div class="tribe-detail"><div class="label">Last check-in</div><div class="val">${lastCheckin}</div></div>
           <div class="tribe-detail"><div class="label">Weight</div><div class="val">${weightChange}</div></div>
           <div class="tribe-detail"><div class="label">Next Check-in</div><div class="val">${nextCheckin}</div></div>
+        </div>
+        <div class="tribe-actions">
+          <button type="button" class="action-btn tribe-archive-btn" onclick="archiveTribeMember('${String(m.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${escapeHtml(dispName).replace(/'/g, '&#39;')}')">Remove from active tribe</button>
+          <button type="button" class="action-btn tribe-delete-btn" onclick="deleteTribeMemberPermanently('${String(m.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${escapeHtml(dispName).replace(/'/g, '&#39;')}')">Delete permanently</button>
         </div>
       </div>
     `;
   }).join('');
+}
+
+async function archiveTribeMember(id, name) {
+  if (!id) return;
+  var label = name || 'this member';
+  if (!confirm('Remove ' + label + ' from active tribe list? Their record will be kept as inactive.')) return;
+  var res = await apiCall('PUT', '/api/tribe/' + encodeURIComponent(id), { status: 'inactive' });
+  if (res && res.error) {
+    showPopup('Error', res.error, '', 'OK', null, 'error');
+    return;
+  }
+  showPopup('Updated', 'Member removed from active tribe list.', '', 'OK');
+  loadTribe();
+}
+
+async function deleteTribeMemberPermanently(id, name) {
+  if (!id) return;
+  var label = name || 'this member';
+  if (!confirm('Delete ' + label + ' permanently from Tribe? This cannot be undone.')) return;
+  var res = await apiCall('DELETE', '/api/tribe/' + encodeURIComponent(id));
+  if (res && res.error) {
+    showPopup('Error', res.error, '', 'OK', null, 'error');
+    return;
+  }
+  showPopup('Deleted', 'Member has been permanently deleted from Tribe.', '', 'OK');
+  loadTribe();
 }
 
 async function loadAdminWorkouts() {
@@ -8160,9 +8260,11 @@ async function loadAdminUserProgressDetail(userId, userName) {
     if (shareWrap) shareWrap.style.display = 'block';
     var suspendBtn = document.getElementById('adminCpSuspendBtn');
     var reactivateBtn = document.getElementById('adminCpReactivateBtn');
+    var removeBtn = document.getElementById('adminCpRemoveBtn');
     var suspended = !!(data.suspended);
     if (suspendBtn) { suspendBtn.style.display = suspended ? 'none' : ''; suspendBtn.disabled = false; suspendBtn.textContent = 'Suspend user'; }
     if (reactivateBtn) { reactivateBtn.style.display = suspended ? '' : 'none'; reactivateBtn.disabled = false; reactivateBtn.textContent = 'Re-activate'; }
+    if (removeBtn) { removeBtn.style.display = ''; removeBtn.disabled = false; removeBtn.textContent = 'Remove user'; }
     detailEl.innerHTML = '<h3 class="admin-cp-heading">' + (userName || 'Client').replace(/</g, '&lt;') + '</h3><p class="admin-cp-placeholder">KPIs and charts below. Use the button to get a link to share with this client.' + (suspended ? ' <span style="color:var(--gold)">(User is suspended)</span>' : '') + '</p>';
     var kpis = [
       { lbl: 'Current Weight', num: data.currentWeight != null ? data.currentWeight + ' kg' : '—' },
@@ -8206,6 +8308,9 @@ async function loadClientProgressUsers() {
   var listEl = document.getElementById('adminCpUserList');
   if (!listEl) return;
   listEl.innerHTML = '<p class="admin-cp-placeholder">Loading users…</p>';
+  var showSuspendedToggle = document.getElementById('adminCpShowSuspended');
+  var showSuspended = !!(showSuspendedToggle && showSuspendedToggle.checked);
+  window._adminCpShowSuspended = showSuspended;
   var data = await apiCall('GET', '/api/admin/users');
   if (data.error) {
     listEl.innerHTML = '<p class="admin-cp-placeholder">Error: ' + (data.error || '') + '</p>';
@@ -8216,8 +8321,10 @@ async function loadClientProgressUsers() {
     var email = (u.email || '').toLowerCase();
     var first = (u.first_name || '').toLowerCase();
     var name = (u.name || '').toLowerCase();
+    var suspended = !!(u.suspended === true || u.suspended === 't');
     if (email.indexOf('test.bodybank.fit') !== -1) return false;
     if (first.indexOf('e2e') !== -1 || name.indexOf('e2e') !== -1) return false;
+    if (!showSuspended && suspended) return false;
     return true;
   });
   if (!users.length) {
@@ -8291,6 +8398,38 @@ async function adminReactivateUser() {
     showPopup('Error', 'Failed to re-activate user. Please try again.', '', 'OK', null, 'error');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = 'Re-activate'; }
+  }
+}
+
+async function adminRemoveUser() {
+  var id = window._adminCpSelectedUserId;
+  if (!id) return;
+  if (!confirm('Remove this user permanently? This deletes their account and related activity logs. This cannot be undone.')) return;
+  var btn = document.getElementById('adminCpRemoveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Removing…'; }
+  try {
+    var res = await apiCall('DELETE', '/api/admin/users/' + encodeURIComponent(id));
+    if (res && res.error) {
+      showPopup('Error', res.error, '', 'OK', null, 'error');
+      return;
+    }
+    showPopup('Removed', 'User has been removed permanently.', '', 'OK');
+    await loadClientProgressUsers();
+    var detailEl = document.getElementById('adminCpDetail');
+    if (detailEl) detailEl.innerHTML = '<p class="admin-cp-placeholder">Select a user to view progress.</p>';
+    var kpisEl = document.getElementById('adminCpKpis');
+    var chartsEl = document.getElementById('adminCpCharts');
+    if (kpisEl) kpisEl.style.display = 'none';
+    if (chartsEl) chartsEl.style.display = 'none';
+    var sw = document.getElementById('adminCpShareWrap');
+    var suw = document.getElementById('adminCpShareUrlWrap');
+    if (sw) sw.style.display = 'none';
+    if (suw) suw.style.display = 'none';
+    window._adminCpSelectedUserId = null;
+  } catch (e) {
+    showPopup('Error', 'Failed to remove user. Please try again.', '', 'OK', null, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Remove user'; }
   }
 }
 
@@ -9326,6 +9465,7 @@ async function loadTodayDashboard() {
 window._bbScorecardCache = null;
 window._bbLeaderboardWeekMode = 'this';
 window._bbLeaderboardBoardTab = 'program';
+window._adminCpShowSuspended = false;
 
 async function loadScorecard() {
   if (!window.currentUser || !window.currentUser.token) return;

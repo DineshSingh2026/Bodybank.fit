@@ -1268,25 +1268,60 @@ app.put('/api/meetings/:id', async (req, res) => {
 
 // ============ TRIBE MEMBERS ============
 app.get('/api/tribe', async (req, res) => {
-  // Add recent daily-check-in context so admin can surface inactive/high-risk clients.
-  // NOTE: tribe_members.email is joined to users.email for inactivity calculations.
-  const rows = await queryAll(`
-    SELECT
-      tm.*,
-      u.id AS user_id,
-      u.profile_picture AS profile_picture,
-      u.email AS user_email,
-      u.created_at AS user_created_at,
-      (SELECT MAX(dc.checkin_date)::text
-         FROM daily_checkins dc
-        WHERE dc.user_id = u.id
-      ) AS last_checkin_date
-    FROM tribe_members tm
-    LEFT JOIN users u ON LOWER(u.email) = LOWER(tm.email)
-    WHERE tm.status = 'active'
-    ORDER BY tm.phase DESC, tm.start_date ASC
-  `);
-  res.json(rows);
+  try {
+    // Add recent daily-check-in context so admin can surface inactive/high-risk clients.
+    // NOTE: tribe_members.email is joined to users.email for inactivity calculations.
+    const rows = await queryAll(`
+      SELECT
+        tm.*,
+        u.id AS user_id,
+        u.profile_picture AS profile_picture,
+        u.email AS user_email,
+        u.created_at AS user_created_at,
+        (SELECT MAX(dc.checkin_date)::text
+           FROM daily_checkins dc
+          WHERE dc.user_id = u.id
+        ) AS last_checkin_date
+      FROM tribe_members tm
+      LEFT JOIN users u ON LOWER(u.email) = LOWER(tm.email)
+      WHERE tm.status = 'active'
+      ORDER BY tm.phase DESC, tm.start_date ASC
+    `);
+
+    const weekStart = scorecardSvc.normalizeWeekStart('');
+    const prevWeek = scorecardSvc.previousWeekStart(weekStart);
+    const enriched = await Promise.all((rows || []).map(async (r) => {
+      const uid = r && r.user_id ? String(r.user_id) : '';
+      if (!uid) {
+        return {
+          ...r,
+          score_total: null,
+          score_week_label: scorecardSvc.formatWeekRangeLabel(weekStart),
+          score_trend_delta: null,
+          score_pillars: null
+        };
+      }
+      const current = await scorecardSvc.computeWeeklyScoreDedication(uid, weekStart);
+      const previous = prevWeek ? await scorecardSvc.computeWeeklyScoreDedication(uid, prevWeek) : null;
+      return {
+        ...r,
+        score_total: current ? current.total : null,
+        score_week_label: current ? current.week_label : scorecardSvc.formatWeekRangeLabel(weekStart),
+        score_trend_delta: current && previous ? (current.total - previous.total) : null,
+        score_pillars: current ? {
+          daily: current.daily,
+          sunday: current.sunday,
+          workouts: current.workouts,
+          progress: current.progress
+        } : null
+      };
+    }));
+
+    res.json(enriched);
+  } catch (e) {
+    console.error('Tribe data error:', e.message);
+    res.status(500).json({ error: 'Failed to load client performance board' });
+  }
 });
 
 app.get('/api/tribe/:id', async (req, res) => {
