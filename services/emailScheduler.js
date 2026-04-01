@@ -10,7 +10,26 @@ const userEmail = require('./userEmailService');
 const PDFDocument = require('pdfkit');
 
 const TZ = 'Asia/Kolkata';
-const ADMIN_DAILY_REPORT_EMAIL = 'bodybank.fit369@gmail.com';
+const ADMIN_DAILY_REPORT_RECIPIENTS = (() => {
+  const raw = String(
+    process.env.ADMIN_DAILY_REPORT_EMAILS ||
+    process.env.ADMIN_DAILY_REPORT_EMAIL ||
+    process.env.SUPERADMIN_EMAIL ||
+    process.env.ADMIN_EMAIL ||
+    'bodybank.fit369@gmail.com'
+  );
+  const uniq = new Set();
+  return raw
+    .split(',')
+    .map((s) => String(s || '').trim())
+    .filter((s) => !!s && s.includes('@'))
+    .filter((s) => {
+      const k = s.toLowerCase();
+      if (uniq.has(k)) return false;
+      uniq.add(k);
+      return true;
+    });
+})();
 
 let _queryAll = null;
 let _jobs = [];
@@ -317,6 +336,7 @@ async function getAdminDailyComplianceReportData(opts = {}) {
 
 async function sendAdminDailyComplianceReport(opts = {}) {
   if (!userEmail.isConfigured()) return { sent: false, reason: 'smtp_not_configured' };
+  if (!ADMIN_DAILY_REPORT_RECIPIENTS.length) return { sent: false, reason: 'no_recipient_configured' };
   const data = await getAdminDailyComplianceReportData(opts);
   if (data && data.reason) return data;
   const reportKey = `daily-${data.window.endUtc.toISOString().slice(0, 10)}`;
@@ -332,26 +352,37 @@ async function sendAdminDailyComplianceReport(opts = {}) {
   const pdf = await buildAdminReportPdf({ rows, summary, windowLabel });
   const subject = `BodyBank Daily Compliance Report - ${fmtIst(window.endUtc)} IST`;
   const text = `BodyBank Daily Compliance Report\nWindow: ${windowLabel}\nActive: ${summary.totalUsers}\nDaily Yes: ${summary.dailyYes}\nDaily Missed: ${summary.dailyMissed}`;
-
-  const sent = await userEmail.sendMail(
-    ADMIN_DAILY_REPORT_EMAIL,
-    subject,
-    html,
-    text,
-    [{
-      filename: `bodybank-daily-compliance-${window.endUtc.toISOString().slice(0, 10)}.pdf`,
-      content: pdf,
-      contentType: 'application/pdf'
-    }]
-  );
-  if (!sent) return { sent: false, reason: 'mail_failed' };
+  let sentCount = 0;
+  const failedRecipients = [];
+  for (const to of ADMIN_DAILY_REPORT_RECIPIENTS) {
+    const sent = await userEmail.sendMail(
+      to,
+      subject,
+      html,
+      text,
+      [{
+        filename: `bodybank-daily-compliance-${window.endUtc.toISOString().slice(0, 10)}.pdf`,
+        content: pdf,
+        contentType: 'application/pdf'
+      }]
+    );
+    if (sent) sentCount++;
+    else failedRecipients.push(to);
+  }
+  if (sentCount === 0) return { sent: false, reason: 'mail_failed', failed_recipients: failedRecipients };
 
   await queryAll(
     'INSERT INTO admin_daily_report_log (report_key, window_start, window_end, recipient_email) VALUES (?, ?::timestamp, ?::timestamp, ?) ON CONFLICT DO NOTHING',
-    [reportKey, startIso, endIso, ADMIN_DAILY_REPORT_EMAIL]
+    [reportKey, startIso, endIso, ADMIN_DAILY_REPORT_RECIPIENTS.join(', ')]
   ).catch(() => {});
 
-  return { sent: true, reportKey, recipient: ADMIN_DAILY_REPORT_EMAIL, summary };
+  return {
+    sent: true,
+    reportKey,
+    recipients: ADMIN_DAILY_REPORT_RECIPIENTS,
+    failed_recipients: failedRecipients,
+    summary
+  };
 }
 
 /** Monday 10:00 IST — nudge if no progress in 14 days */
