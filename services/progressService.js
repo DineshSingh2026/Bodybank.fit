@@ -144,7 +144,12 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
 
   return Object.keys(byDate)
     .sort()
-    .map((d) => ({ ...byDate[d], created_at: byDate[d].created_at || d + 'T12:00:00' }));
+    .map((d) => ({
+      ...byDate[d],
+      checkin_date: d,
+      // Stable UTC noon so charts/admin parse dates consistently across timezones
+      created_at: byDate[d].created_at || `${d}T12:00:00.000Z`
+    }));
 }
 
 async function getAdminUserProgress(userId) {
@@ -175,6 +180,16 @@ async function getAdminUserProgress(userId) {
   const logs = mergeLogs(progressLogs, dailyCheckins, sundayCheckins);
 
   const streak = await getCurrentStreak(userId);
+  const daily7Row = await db.queryOne(
+    `SELECT COUNT(DISTINCT checkin_date)::int AS c
+     FROM daily_checkins
+     WHERE user_id = ?
+       AND checkin_date >= (CURRENT_DATE - INTERVAL '6 days')
+       AND checkin_date <= CURRENT_DATE`,
+    [userId]
+  );
+  const dailyCheckins7d = daily7Row && daily7Row.c != null ? Number(daily7Row.c) : 0;
+
   const goalPct = await getGoalCompletionPercent(userId);
   const insights = await getInsights(userId);
 
@@ -222,6 +237,8 @@ async function getAdminUserProgress(userId) {
     weightChangePercent: weightChange,
     strengthGrowthPercent: strengthGrowth,
     workoutConsistencyPercent: consistency,
+    /** Daily micro-goal check-ins logged in the last 7 calendar days (incl. today), max 7 */
+    dailyCheckins7d,
     activeStreak: streak,
     goalCompletionPercent: goalPct,
     averageCalories: avgCalories,

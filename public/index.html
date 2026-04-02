@@ -2734,7 +2734,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-cp-detail #adminCpShareWrap{flex-shrink:0}
 .admin-cp-detail #adminCpKpis{flex-shrink:0}
 .admin-cp-detail #adminCpCharts{flex-shrink:0;min-height:220px}
-.admin-cp-kpis{grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:16px}
+.admin-cp-kpis{grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:16px}
 @media(max-width:900px){.admin-cp-kpis{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:500px){.admin-cp-kpis{grid-template-columns:repeat(2,1fr)}}
 .admin-cp-kpi{background:rgba(200,164,78,0.08);border:1px solid rgba(200,164,78,0.25);border-radius:10px;padding:16px;text-align:center}
@@ -8243,8 +8243,11 @@ function drawAdminProgressCharts(logs) {
   destroyAdminProgressCharts();
   function getLogDate(log) {
     if (!log || typeof log !== 'object') return null;
-    var raw = log.created_at || log.checkin_date || log.date || null;
+    var raw = log.checkin_date || log.created_at || log.date || null;
     if (!raw) return null;
+    if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      raw = raw + 'T12:00:00.000Z';
+    }
     var d = new Date(raw);
     return isNaN(d.getTime()) ? null : d;
   }
@@ -8421,8 +8424,9 @@ async function loadAdminUserProgressDetail(userId, userName) {
       { lbl: 'Current Weight', num: bbFmtKg(data.currentWeight) },
       { lbl: 'Weight Change %', num: data.weightChangePercent != null ? data.weightChangePercent + '%' : '—' },
       { lbl: 'Strength Growth %', num: data.strengthGrowthPercent != null ? data.strengthGrowthPercent + '%' : '—' },
-      { lbl: 'Consistency %', num: data.workoutConsistencyPercent != null ? data.workoutConsistencyPercent + '%' : '—' },
-      { lbl: 'Active Streak', num: data.activeStreak != null ? data.activeStreak + ' days' : '—' },
+      { lbl: 'Daily check-in (7d)', num: data.dailyCheckins7d != null ? data.dailyCheckins7d + '/7' : '—' },
+      { lbl: 'Workout log %', num: data.workoutConsistencyPercent != null ? data.workoutConsistencyPercent + '%' : '—' },
+      { lbl: 'Active streak', num: data.activeStreak != null ? data.activeStreak + ' days' : '—' },
       { lbl: 'Goal Completion %', num: data.goalCompletionPercent != null ? Math.round(data.goalCompletionPercent) + '%' : '—' }
     ];
     kpisEl.innerHTML = kpis.map(function(k) { return '<div class="admin-cp-kpi"><span class="num">' + k.num + '</span><span class="lbl">' + k.lbl + '</span></div>'; }).join('');

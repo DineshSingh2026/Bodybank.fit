@@ -1,52 +1,36 @@
 const db = require('../config/db');
 
 /**
- * Calculate current streak from engagement days:
- * - any daily_checkins submission OR
- * - any progress_logs entry with workout_completed = true
- * for consecutive days counting backward from latest active day.
+ * Normalize DB date / Date → YYYY-MM-DD (UTC calendar day), matching /api/daily-checkin/streak.
+ */
+function toDateStr(val) {
+  if (val == null || val === '') return null;
+  if (val instanceof Date) return val.toISOString().slice(0, 10);
+  return String(val).slice(0, 10);
+}
+
+/**
+ * Daily check-in streak — same algorithm as GET /api/daily-checkin/streak (user dashboard).
  */
 async function getCurrentStreak(userId) {
-  const [dailyRows, workoutRows] = await Promise.all([
-    db.queryAll(
-      `SELECT checkin_date as d
-       FROM daily_checkins
-       WHERE user_id = ?
-       ORDER BY checkin_date DESC`,
-      [userId]
-    ),
-    db.queryAll(
-      `SELECT date(created_at) as d
-       FROM progress_logs
-       WHERE user_id = ? AND workout_completed = true
-       ORDER BY created_at DESC`,
-      [userId]
-    )
-  ]);
-  const activeDateSet = new Set();
-  (dailyRows || []).forEach((r) => {
-    const d = r && r.d ? String(r.d).slice(0, 10) : '';
-    if (d) activeDateSet.add(d);
-  });
-  (workoutRows || []).forEach((r) => {
-    const d = r && r.d ? String(r.d).slice(0, 10) : '';
-    if (d) activeDateSet.add(d);
-  });
-  const sortedDates = Array.from(activeDateSet).sort().reverse();
-  if (!sortedDates.length) return 0;
-
+  const rows = await db.queryAll(
+    `SELECT checkin_date FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365`,
+    [userId]
+  );
+  if (!rows || !rows.length) return 0;
+  const today = toDateStr(new Date());
+  const dates = new Set(rows.map((r) => toDateStr(r.checkin_date)).filter(Boolean));
+  const todaySaved = dates.has(today);
   let streak = 0;
-
-  for (let i = 0; i < sortedDates.length; i++) {
-    const d = sortedDates[i];
-    const diff = i === 0
-      ? Math.floor((new Date() - new Date(d + 'T12:00:00')) / (24 * 60 * 60 * 1000))
-      : Math.floor((new Date(sortedDates[i - 1]) - new Date(d)) / (24 * 60 * 60 * 1000));
-    if (i === 0 && diff > 1) break;
-    if (i > 0 && diff > 1) break;
+  const d = new Date();
+  if (!todaySaved) d.setDate(d.getDate() - 1);
+  for (let i = 0; i < 365; i++) {
+    const ds = toDateStr(d);
+    if (!ds || !dates.has(ds)) break;
     streak++;
+    d.setDate(d.getDate() - 1);
   }
   return streak;
 }
 
-module.exports = { getCurrentStreak };
+module.exports = { getCurrentStreak, toDateStr };
