@@ -263,7 +263,9 @@ function weeklyCompletedSessions(workoutRows) {
   (workoutRows || []).forEach((w) => {
     const done = w.workout_completed === true || w.workout_completed === 1 || w.workout_completed === 't';
     if (!done) return;
-    const raw = (w.session_date || (w.created_at ? String(w.created_at).slice(0, 10) : '')).slice(0, 10);
+    let raw = w.session_date || (w.created_at ? String(w.created_at).slice(0, 10) : '');
+    if (raw instanceof Date) raw = raw.toISOString().slice(0, 10);
+    else raw = String(raw || '').slice(0, 10);
     if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return;
     const [y, mo, day] = raw.split('-').map((x) => parseInt(x, 10));
     const d = new Date(y, mo - 1, day);
