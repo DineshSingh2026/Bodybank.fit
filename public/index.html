@@ -2110,8 +2110,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .admin-table th,.admin-table td{padding:10px 10px}
 }
 @media(max-width:768px){
-  .streak-at-risk-banner{grid-template-columns:auto minmax(0,1fr);align-items:start}
-  #inactivityAtRiskBanner .form-submit{grid-column:1 / -1;width:100%;justify-self:stretch;white-space:normal}
+  .streak-at-risk-banner:not(#inactivityAtRiskBanner){grid-template-columns:auto minmax(0,1fr);align-items:start}
+  #streakAtRiskBanner .streak-timer{grid-column:1 / -1;justify-self:end;text-align:right}
   .admin-mobile-nav-bar{display:none}
   .admin-tabs{display:none}
   .admin-body{padding:4px 12px max(76px,calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px))));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
@@ -2429,7 +2429,24 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .streak-at-risk-banner{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,rgba(230,126,34,0.2),rgba(200,164,78,0.1));border:1px solid rgba(230,126,34,0.4);border-radius:10px;margin-bottom:16px}
 .streak-at-risk-banner .icon{font-size:24px}
 .streak-at-risk-banner .text{min-width:0;font-size:13px;font-weight:600;color:var(--cream);line-height:1.45}
-#inactivityAtRiskBanner .form-submit{margin:0!important;white-space:nowrap;justify-self:end}
+/* Inactivity CTA: always stack button under message — avoids narrow text column + overlap with wide button */
+#inactivityAtRiskBanner.streak-at-risk-banner{
+  grid-template-columns:auto minmax(0,1fr);
+  grid-auto-rows:auto;
+}
+#inactivityAtRiskBanner .icon{align-self:start}
+#inactivityAtRiskBanner .text{grid-column:2;grid-row:1}
+#inactivityAtRiskBanner .form-submit{
+  grid-column:1 / -1;
+  grid-row:2;
+  width:100%;
+  max-width:100%;
+  margin:4px 0 0!important;
+  justify-self:stretch;
+  align-self:stretch;
+  white-space:normal;
+  box-sizing:border-box;
+}
 .micro-goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
 @media(min-width:600px){.micro-goals-grid{grid-template-columns:repeat(4,1fr)}}
 .micro-goal-field{display:flex;flex-direction:column;gap:6px}
@@ -3495,7 +3512,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <div class="streak-at-risk-banner" id="inactivityAtRiskBanner" style="display:none">
               <span class="icon" aria-hidden="true">⏳</span>
               <span class="text" id="inactivityAtRiskText">We haven&apos;t seen your daily check-in yet.</span>
-              <button type="button" class="form-submit" id="inactivityAtRiskBtn" onclick="switchUserTab('checkin')" style="padding:8px 14px;margin:0 0 0 auto">Log daily check-in</button>
+              <button type="button" class="form-submit" id="inactivityAtRiskBtn" onclick="switchUserTab('checkin')" style="padding:10px 14px">Log daily check-in</button>
             </div>
             <h3>Daily check-in <span class="streak-badge" id="microStreakBadge">0 day streak</span></h3>
             <div class="streak-timer" id="microStreakTimer" style="display:none"><span class="streak-timer-icon">⏱</span><span id="microStreakTimerText"></span></div>
@@ -6161,7 +6178,17 @@ async function loadNotifications() {
     const cleared = getClearedNotifyIds();
     if (!el) return;
     const filtered = Array.isArray(list) ? list.filter(n => n.id && !cleared.includes(n.id)) : [];
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+    /* If Web Push is active, OS notifications are already sent when events occur (service worker).
+       Do not fire new Notification() on every app open — that duplicated alerts and felt like "only when I open the app". */
+    var skipBrowserToasts = false;
+    try {
+      if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
+        var regSw = await navigator.serviceWorker.ready;
+        var pushSub = await regSw.pushManager.getSubscription();
+        skipBrowserToasts = !!pushSub;
+      }
+    } catch (e) {}
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && !skipBrowserToasts) {
       var browserSent = getBrowserNotifiedIds();
       var newIds = [];
       filtered.forEach(function(n) {

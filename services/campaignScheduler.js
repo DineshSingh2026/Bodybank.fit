@@ -105,11 +105,6 @@ async function broadcastMessage(message) {
 
   const trimmed = String(message).trim();
   const bodyForChat = trimmed.slice(0, 5000);
-  const pushPayload = JSON.stringify({
-    title: 'BodyBank',
-    body: trimmed,
-    icon: '/icons/icon-192.png',
-  });
 
   // Resolve one admin to use as "Lifestyle Manager" sender for chat messages
   let lifestyleManagerId = null;
@@ -128,11 +123,14 @@ async function broadcastMessage(message) {
 
   for (const user of users) {
     // 1. Write to in-app inbox (always — no push subscription required)
+    const inboxRowId = _uuidv4();
+    var inboxInsertOk = false;
     try {
       await _run(
         'INSERT INTO user_inbox (id, user_id, title, body, type, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
-        [_uuidv4(), user.id, 'BodyBank', trimmed, 'campaign']
+        [inboxRowId, user.id, 'BodyBank', trimmed, 'campaign']
       );
+      inboxInsertOk = true;
       inboxCount++;
     } catch (e) {
       console.warn(`[Campaign] Inbox insert failed for user ${user.id}: ${e.message}`);
@@ -165,11 +163,19 @@ async function broadcastMessage(message) {
       }
     }
 
-    // 3. Push notification (silent fail if user has not subscribed)
-    try {
-      await _sendPushToUser(user.id, pushPayload);
-      pushCount++;
-    } catch (_) { /* expected for users without push subscriptions */ }
+    // 3. Push notification (only if inbox row exists; id matches bell list)
+    if (inboxInsertOk) {
+      try {
+        const pushPayload = JSON.stringify({
+          title: 'BodyBank',
+          body: trimmed.slice(0, 200),
+          icon: '/icons/icon-192.png',
+          id: 'inbox-' + inboxRowId
+        });
+        await _sendPushToUser(user.id, pushPayload);
+        pushCount++;
+      } catch (_) { /* expected for users without push subscriptions */ }
+    }
   }
 
   // Persist aggregate send log

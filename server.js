@@ -1005,7 +1005,7 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
     const hash = bcrypt.hashSync(password, 10);
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
       [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', '', '', 'user', 'pending']);
-    sendPushToAdmins(JSON.stringify({ title: 'New sign-up (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) requested access` })).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: 'New sign-up (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
     userEmail.emailGoogleSignupPending(emailNorm, given_name);
     res.json({
       id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', role: 'user',
@@ -1040,7 +1040,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     const hash = bcrypt.hashSync(password, 10);
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, approval_status) VALUES (?,?,?,?,?,?,?,?,?)",
       [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, 'pending']);
-    sendPushToAdmins(JSON.stringify({ title: 'New sign-up', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) requested access` })).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: 'New sign-up', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
     userEmail.emailSignupPending(emailNorm, first_name);
     res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
   } catch (e) {
@@ -1186,7 +1186,7 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
     const id = uuidv4();
     await run(`INSERT INTO audit_requests (id,first_name,last_name,age,sex,email,phone,country,city,occupation,work_intensity,fitness_experience,goals,motivation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.first_name, b.last_name||'', b.age||null, b.sex||'', b.email, b.phone||'', b.country||'', b.city||'', b.occupation||'', b.work_intensity||'', b.fitness_experience||'', b.goals||'', b.motivation||'']);
-    sendPushToAdmins(JSON.stringify({ title: 'New audit form', body: `${b.first_name || ''} ${b.last_name || ''} submitted a Body Audit` })).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: 'New audit form', body: `${b.first_name || ''} ${b.last_name || ''} submitted a Body Audit`, id: 'audit-' + id })).catch(() => {});
     userEmail.emailAuditReceived(String(b.email).trim(), b.first_name);
     res.json({ id, message: 'Request submitted successfully' });
   } catch (e) {
@@ -1226,7 +1226,7 @@ app.post('/api/part2', rateLimiter(5, 60000), async (req, res) => {
     const id = uuidv4();
     await run(`INSERT INTO part2_audit (id, name, email, mobile, sports_history, injuries, mental_health, gym_experience, food_choices, vices_addictions, goals, what_compelled, activity_level) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.name || '', b.email || '', b.mobile || '', b.sports_history || '', b.injuries || '', b.mental_health || '', b.gym_experience || '', b.food_choices || '', b.vices_addictions || '', b.goals || '', b.what_compelled || '', b.activity_level || '']);
-    sendPushToAdmins(JSON.stringify({ title: 'New Part-2 form', body: `${b.name || ''} (${b.email || ''}) submitted Part-2 audit` })).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: 'New Part-2 form', body: `${b.name || ''} (${b.email || ''}) submitted Part-2 audit`, id: 'part2-' + id })).catch(() => {});
     userEmail.emailPart2Received(String(b.email).trim(), b.name);
     res.json({ id, message: 'Form submitted successfully' });
   } catch (e) {
@@ -1495,7 +1495,7 @@ app.post('/api/contact', rateLimiter(5, 60000), async (req, res) => {
     const id = uuidv4();
     await run("INSERT INTO contact_messages (id,user_id,name,phone,email,message) VALUES (?,?,?,?,?,?)",
       [id, user_id || null, name, phone || '', email || '', message]);
-    sendPushToAdmins(JSON.stringify({ title: 'New contact message', body: `${name || 'Someone'}: ${String(message || '').slice(0, 80)}` })).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: 'New contact message', body: `${name || 'Someone'}: ${String(message || '').slice(0, 80)}`, id: 'message-' + id })).catch(() => {});
     if (email && String(email).includes('@')) userEmail.emailContactReceived(String(email).trim(), name);
     res.json({ id, message: 'Message sent' });
   } catch (e) {
@@ -1640,7 +1640,7 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
     await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
     const msg = await queryOne('SELECT id, thread_id, sender_id, sender_role, body, created_at FROM thread_messages WHERE id = ?', [msgId]);
     if (isAdmin && thread.user_id) {
-      sendPushToUser(thread.user_id, JSON.stringify({ type: 'coach_reply', title: 'Lifestyle Manager replied', body: String(body).trim().slice(0, 100) })).catch(() => {});
+      sendPushToUser(thread.user_id, JSON.stringify({ type: 'coach_reply', title: 'Lifestyle Manager replied', body: String(body).trim().slice(0, 100), id: 'chat-' + msgId })).catch(() => {});
       const coachUser = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [thread.user_id]);
       if (coachUser && coachUser.email) {
         userEmail.emailCoachReply(coachUser.email, coachUser.first_name, String(body).trim());
@@ -1649,7 +1649,7 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
     if (!isAdmin) {
       const u = await queryOne('SELECT first_name, last_name, email FROM users WHERE id = ?', [thread.user_id]);
       const userName = u ? [(u.first_name || '').trim(), (u.last_name || '').trim()].filter(Boolean).join(' ') || u.email : 'A client';
-      sendPushToAdmins(JSON.stringify({ title: 'New message', body: `${userName}: ${String(body).trim().slice(0, 80)}` })).catch(() => {});
+      sendPushToAdmins(JSON.stringify({ title: 'New message', body: `${userName}: ${String(body).trim().slice(0, 80)}`, id: 'chat-' + msgId })).catch(() => {});
     }
     res.status(201).json(msg);
   } catch (e) {
@@ -2667,7 +2667,18 @@ app.post('/api/programs/assign', verifyToken, requireAdminOrSuperadmin, async (r
       'INSERT INTO user_program_assignments (id, user_id, program_id, assigned_by) VALUES (?, ?, ?, ?)',
       [id, user_id, program_id, req.user.id]
     );
-    try { await sendPushToUser(user_id, JSON.stringify({ type: 'program_assigned', assignmentId: id })); } catch (_) {}
+    try {
+      await sendPushToUser(
+        user_id,
+        JSON.stringify({
+          type: 'program_assigned',
+          title: 'Program assigned',
+          body: 'Your lifestyle manager assigned a new program — open the app to view it.',
+          id: 'program-' + id,
+          assignmentId: id
+        })
+      );
+    } catch (_) {}
     res.json({ id });
   } catch (e) {
     res.status(500).json({ error: e.message });
