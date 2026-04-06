@@ -4451,7 +4451,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         </div>
       </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table admin-workouts-table">
-        <thead><tr><th>User</th><th>Session date</th><th>Type</th><th>Duration</th><th>Logged</th></tr></thead>
+        <thead><tr><th>User</th><th>Session date</th><th>Type</th><th>Duration</th><th>Logged</th><th style="text-align:right;width:88px">Actions</th></tr></thead>
         <tbody id="workoutsBody"></tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
@@ -7637,7 +7637,7 @@ async function deleteTribeMemberPermanently(id, name) {
 async function loadAdminWorkouts() {
   const tbody = document.getElementById('workoutsBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
   var wf = document.getElementById('woFilterFrom');
   var wt = document.getElementById('woFilterTo');
   var ws = document.getElementById('woFilterSearch');
@@ -7647,7 +7647,7 @@ async function loadAdminWorkouts() {
   if (ws && ws.value.trim()) qs.push('search=' + encodeURIComponent(ws.value.trim()));
   const data = await apiCall('GET', '/api/admin/workouts' + (qs.length ? '?' + qs.join('&') : ''));
   if (data && data.error) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
     return;
   }
   const list = Array.isArray(data) ? data : [];
@@ -7660,15 +7660,21 @@ async function loadAdminWorkouts() {
     var ds = w.duration_seconds != null ? Math.max(0, Math.round(Number(w.duration_seconds))) : 0;
     var durStr = ds > 0 ? Math.floor(ds / 60) + 'm ' + (ds % 60) + 's' : '—';
     var logD = w.created_at ? new Date(w.created_at) : null;
-    var loggedStr = logD ? logD.toLocaleString(undefined, { month: 'numeric', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+    var isMobile = window.innerWidth <= 768;
+    var loggedStr = logD
+      ? (isMobile
+        ? logD.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+        : logD.toLocaleString(undefined, { month: 'numeric', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }))
+      : '—';
     var oid = adminAttrId(w.id || '');
     return '<tr class="admin-row-clickable" data-open-kind="workout" data-open-id="' + oid + '">' +
       '<td class="admin-workout-cell-user" data-label="User" title="' + escapeHtml(user) + '">' + escapeHtml(user) + '</td>' +
       '<td data-label="Session">' + escapeHtml(sessStr) + '</td>' +
       '<td data-label="Type" title="' + escapeHtml(typeStr) + '">' + escapeHtml(typeStr.length > 42 ? typeStr.slice(0, 40) + '…' : typeStr) + '</td>' +
       '<td data-label="Duration">' + escapeHtml(durStr) + '</td>' +
-      '<td data-label="Logged">' + escapeHtml(loggedStr) + '</td></tr>';
-  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
+      '<td data-label="Logged">' + escapeHtml(loggedStr) + '</td>' +
+      '<td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewAdminWorkout(\'' + id + '\')">View</button></td></tr>';
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
 }
 
 function _wkFmtKg(v) {
