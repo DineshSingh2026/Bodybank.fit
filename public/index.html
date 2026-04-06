@@ -2152,12 +2152,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .admin-list-table tbody tr{display:table-row!important;margin:0;padding:0;background:transparent!important;border:none!important;border-radius:0}
   .admin-list-table tbody td{display:table-cell!important;padding:10px 8px!important}
   .admin-list-table tbody td::before{display:none!important}
-  /* Workouts is row-clickable; show as stacked cards on mobile to avoid header/value overlap */
-  #tab-workouts .admin-list-table thead{display:none!important}
-  #tab-workouts .admin-list-table tbody tr{display:block!important;width:100%;margin-bottom:12px;padding:14px;background:rgba(200,164,78,0.06)!important;border:1px solid var(--bdr)!important;border-radius:8px}
-  #tab-workouts .admin-list-table tbody td{display:block!important;padding:6px 0!important;font-size:13px!important}
-  #tab-workouts .admin-list-table tbody td::before{display:block!important;content:attr(data-label);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
-  #tab-workouts .admin-list-table tbody td.admin-workout-cell-user{max-width:none;white-space:normal;overflow:visible;text-overflow:clip}
   #tab-dailycheckin .admin-table-wrap,#tab-sundaycheckin .admin-table-wrap,#tab-part2 .admin-table-wrap,#tab-requests .admin-table-wrap,#tab-workouts .admin-table-wrap{overflow-x:auto;min-width:0}
   .insights-table-wrap .admin-table thead{display:none}
   .insights-table-wrap .admin-table tbody tr{display:block;width:100%;margin-bottom:12px;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
@@ -7718,8 +7712,6 @@ async function viewAdminWorkout(id) {
   var sessionLabel = sessionDay ? new Date(sessionDay + 'T12:00:00').toLocaleDateString(undefined, { dateStyle: 'full' }) : '—';
   var woType = (r.workout_type || r.workout_name || '—').trim();
   var splitNotes = wkSplitOtherDetailsFromNotes(r.feedback);
-  var waterL = r.water_liters != null && r.water_liters !== '' ? Number(r.water_liters) : null;
-  var waterStr = waterL != null && !isNaN(waterL) ? waterL + ' L' : '—';
   body.innerHTML = _row('User', fullName) +
     _row('Email', r.email || '—') +
     _row('Phone', r.phone || '—') +
@@ -7728,12 +7720,6 @@ async function viewAdminWorkout(id) {
     _row('Duration', mm + 'm ' + ss + 's') +
     _row('Logged at', when) +
     _wkAdminStrengthRows(r) +
-    _row('Weight', _wkFmtKg(r.weight_kg)) +
-    _row('Body fat %', r.body_fat_percent != null && r.body_fat_percent !== '' ? String(r.body_fat_percent) : '—') +
-    _row('Calories', r.calories != null && r.calories !== '' ? String(r.calories) : '—') +
-    _row('Protein (g)', r.protein_g != null && r.protein_g !== '' ? String(r.protein_g) : '—') +
-    _row('Water', waterStr) +
-    _row('Sleep (hrs)', r.sleep_hrs != null && r.sleep_hrs !== '' ? String(r.sleep_hrs) : '—') +
     _row('Workout completed', r.workout_completed ? 'Yes' : 'No') +
     _row('Intensity', r.intensity || '—') +
     _row('Energy level', r.energy_level || '—') +

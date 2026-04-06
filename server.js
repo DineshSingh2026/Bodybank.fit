@@ -1509,8 +1509,9 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
     const id = uuidv4();
     const dur = parseInt(b.duration_seconds, 10);
     const notes = String(b.notes || '').trim().slice(0, 5000);
-    const waterLiters = b.water != null && b.water !== '' ? parseFloat(b.water) : null;
-    const sleepH = b.sleep_hrs != null && b.sleep_hrs !== '' ? parseFloat(b.sleep_hrs) : null;
+    // Body/nutrition fields are owned by Daily/Sunday check-ins, not My Workout.
+    const waterLiters = null;
+    const sleepH = null;
     const sl = workoutSessionLifts.parseSessionLifts(b);
     const canon = workoutSessionLifts.canonicalLiftsFromSessionLifts(sl);
     const legacyBench = b.bench_kg != null && b.bench_kg !== '' ? parseFloat(b.bench_kg) : null;
@@ -1539,12 +1540,12 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
         benchKg,
         squatKg,
         deadliftKg,
-        b.weight_kg != null && b.weight_kg !== '' ? parseFloat(b.weight_kg) : null,
-        b.body_fat_percent != null && b.body_fat_percent !== '' ? parseFloat(b.body_fat_percent) : null,
-        b.calories != null && b.calories !== '' ? parseInt(b.calories, 10) : null,
-        b.protein_g != null && b.protein_g !== '' ? parseInt(b.protein_g, 10) : null,
-        waterLiters != null && !Number.isNaN(waterLiters) ? waterLiters : null,
-        sleepH != null && !Number.isNaN(sleepH) ? sleepH : null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
         !!b.workout_completed,
         b.intensity ? String(b.intensity).slice(0, 40) : null,
         b.energy_level ? String(b.energy_level).slice(0, 40) : null
@@ -1558,17 +1559,17 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
     if (hasProgress) {
       await progressService.insertProgress(userId, {
         log_date: date,
-        weight: b.weight_kg,
-        body_fat: b.body_fat_percent,
-        calories_intake: b.calories,
-        protein_intake: b.protein_g,
+        weight: null,
+        body_fat: null,
+        calories_intake: null,
+        protein_intake: null,
         workout_completed: !!b.workout_completed,
         workout_type: workoutType,
         strength_bench: benchKg,
         strength_squat: squatKg,
         strength_deadlift: deadliftKg,
-        sleep_hours: sleepH,
-        water_intake: waterLiters != null && !Number.isNaN(waterLiters) ? waterLiters : null
+        sleep_hours: null,
+        water_intake: null
       });
     }
     const wu = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [userId]);
