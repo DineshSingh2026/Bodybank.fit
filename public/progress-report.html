@@ -74,13 +74,26 @@
         });
         chartInstances = {};
       }
-      function drawCharts(logs) {
+      function getLogDate(log) {
+        if (!log || typeof log !== 'object') return null;
+        var raw = log.checkin_date || log.created_at || null;
+        if (!raw) return null;
+        if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) raw = raw + 'T12:00:00.000Z';
+        var d = new Date(raw);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      function drawCharts(data) {
         destroyCharts();
         if (typeof Chart === 'undefined') return;
-        var sorted = (logs || []).slice().sort(function(a,b) { return new Date(a.created_at) - new Date(b.created_at); });
+        var logs = (data && data.logs) ? data.logs : (Array.isArray(data) ? data : []);
+        var sorted = (logs || []).slice().sort(function(a,b) {
+          var ad = getLogDate(a);
+          var bd = getLogDate(b);
+          return (ad ? ad.getTime() : 0) - (bd ? bd.getTime() : 0);
+        });
         var labels = sorted.map(function(l) {
-          var d = new Date(l.created_at);
-          return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+          var d = getLogDate(l);
+          return d ? d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : '—';
         });
         var scaleOpts = { ticks: { color: '#666' }, grid: { color: 'rgba(255,255,255,0.06)' } };
         var chartOpts = { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#bfb9ab' } } } };
@@ -115,23 +128,35 @@
             }
           });
         }
-        var byWeek = {};
-        sorted.forEach(function(l) {
-          var d = new Date(l.created_at);
-          var start = new Date(d); start.setDate(start.getDate() - start.getDay()); start.setHours(0,0,0,0);
-          var key = start.toISOString().slice(0,10);
-          if (!byWeek[key]) byWeek[key] = 0;
-          if (l.workout_completed) byWeek[key]++;
-        });
-        var weeks = Object.keys(byWeek).sort().slice(-8);
-        if (weeks.length) {
-          addChart('rWeekly', 'Weekly workouts', {
+        var weeklyFromApi = data && Array.isArray(data.weeklyWorkoutSessions) ? data.weeklyWorkoutSessions : null;
+        if (weeklyFromApi && weeklyFromApi.length) {
+          addChart('rWeekly', 'Weekly completed sessions (My Workout)', {
             type: 'bar',
             data: {
-              labels: weeks.map(function(k) { return new Date(k).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }),
-              datasets: [{ label: 'Workouts', data: weeks.map(function(k) { return byWeek[k] || 0; }), backgroundColor: 'rgba(200,164,78,0.6)', borderColor: '#c8a44e', borderWidth: 1 }]
+              labels: weeklyFromApi.map(function(w) { return w.label || w.weekStart; }),
+              datasets: [{ label: 'Sessions', data: weeklyFromApi.map(function(w) { return w.count != null ? w.count : 0; }), backgroundColor: 'rgba(200,164,78,0.6)', borderColor: '#c8a44e', borderWidth: 1 }]
             }
           });
+        } else {
+          var byWeek = {};
+          sorted.forEach(function(l) {
+            var d = getLogDate(l);
+            if (!d) return;
+            var start = new Date(d); start.setDate(start.getDate() - start.getDay()); start.setHours(0,0,0,0);
+            var key = start.toISOString().slice(0,10);
+            if (!byWeek[key]) byWeek[key] = 0;
+            if (l.workout_completed) byWeek[key]++;
+          });
+          var weeks = Object.keys(byWeek).sort().slice(-8);
+          if (weeks.length) {
+            addChart('rWeekly', 'Weekly workouts (days with completed)', {
+              type: 'bar',
+              data: {
+                labels: weeks.map(function(k) { return new Date(k).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); }),
+                datasets: [{ label: 'Days', data: weeks.map(function(k) { return byWeek[k] || 0; }), backgroundColor: 'rgba(200,164,78,0.6)', borderColor: '#c8a44e', borderWidth: 1 }]
+              }
+            });
+          }
         }
         if (sorted.filter(function(l) { return l.calories_intake != null; }).length) {
           addChart('rCalories', 'Calories trend', {
@@ -143,6 +168,12 @@
           addChart('rProtein', 'Protein intake', {
             type: 'line',
             data: { labels: labels, datasets: [{ label: 'Protein (g)', data: sorted.map(function(l) { return l.protein_intake; }), borderColor: '#a68c3e', backgroundColor: 'rgba(166,140,62,0.1)', fill: true, tension: 0.3 }] }
+          });
+        }
+        if (sorted.filter(function(l) { return l.water_intake != null; }).length) {
+          addChart('rWater', 'Water (ml)', {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: 'Water (ml)', data: sorted.map(function(l) { return l.water_intake; }), borderColor: '#5dade2', backgroundColor: 'rgba(93,173,226,0.1)', fill: true, tension: 0.3 }] }
           });
         }
         if (sorted.filter(function(l) { return l.steps != null; }).length) {
@@ -172,18 +203,23 @@
           { lbl: 'Current Weight', num: data.currentWeight != null ? data.currentWeight + ' kg' : '—' },
           { lbl: 'Weight Change %', num: data.weightChangePercent != null ? data.weightChangePercent + '%' : '—' },
           { lbl: 'Strength Growth %', num: data.strengthGrowthPercent != null ? data.strengthGrowthPercent + '%' : '—' },
+          { lbl: 'Daily check-in (7d)', num: data.dailyCheckins7d != null ? data.dailyCheckins7d + '/7' : '—' },
           { lbl: 'Consistency %', num: data.workoutConsistencyPercent != null ? data.workoutConsistencyPercent + '%' : '—' },
           { lbl: 'Active Streak', num: data.activeStreak != null ? data.activeStreak + ' days' : '—' },
           { lbl: 'Goal Completion %', num: data.goalCompletionPercent != null ? Math.round(data.goalCompletionPercent) + '%' : '—' }
         ];
         var kpisEl = document.getElementById('reportKpis');
         if (kpisEl) kpisEl.innerHTML = kpis.map(function(k) { return '<div class="kpi"><span class="num">' + k.num + '</span><span class="lbl">' + k.lbl + '</span></div>'; }).join('');
+        if (data.sourceStats) {
+          var ss = data.sourceStats;
+          kpisEl.insertAdjacentHTML('afterend', '<p class="sub" style="margin-top:12px;font-size:0.8rem">Data merged from daily check-ins (' + ss.dailyCheckins + '), Sunday check-ins (' + ss.sundayCheckins + '), My Workout (' + ss.workoutSessions + '), progress logs (' + ss.progressLogs + ').</p>');
+        }
         var insEl = document.getElementById('reportInsights');
         if (insEl && data.insights && data.insights.length) {
           insEl.innerHTML = '<strong>Insights:</strong> ' + data.insights.join(' • ');
           insEl.style.display = 'block';
         }
-        drawCharts(data.logs || []);
+        drawCharts(data);
       }
       var params = new URLSearchParams(window.location.search);
       var token = params.get('t') || params.get('token');

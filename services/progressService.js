@@ -115,7 +115,8 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
       strength_squat: row.strength_squat != null ? parseFloat(row.strength_squat) : null,
       strength_deadlift: row.strength_deadlift != null ? parseFloat(row.strength_deadlift) : null,
       sleep_hours: row.sleep_hours != null ? parseFloat(row.sleep_hours) : null,
-      water_intake: row.water_intake != null ? parseFloat(row.water_intake) : null,
+      // progress_logs.water_intake is stored in litres; merged series uses ml (same as daily_checkins)
+      water_intake: row.water_intake != null ? parseFloat(row.water_intake) * 1000 : null,
       steps: null
     };
   });
@@ -152,12 +153,145 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
     }));
 }
 
+function maxLift(a, b) {
+  if (a == null || a === '' || Number.isNaN(Number(a))) return b != null && b !== '' ? parseFloat(b) : null;
+  if (b == null || b === '' || Number.isNaN(Number(b))) return parseFloat(a);
+  return Math.max(parseFloat(a), parseFloat(b));
+}
+
+function parseSessionLiftsObj(raw) {
+  if (raw == null || raw === '') return null;
+  if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) return raw;
+  if (typeof raw === 'string') {
+    try {
+      const o = JSON.parse(raw);
+      return o && typeof o === 'object' && !Array.isArray(o) ? o : null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function mergeSessionLiftsMax(existing, incoming) {
+  const inc = parseSessionLiftsObj(incoming);
+  if (!inc || !Object.keys(inc).length) return parseSessionLiftsObj(existing);
+  const ex = parseSessionLiftsObj(existing) || {};
+  const out = { ...ex };
+  Object.keys(inc).forEach((k) => {
+    const n = parseFloat(inc[k]);
+    if (!Number.isFinite(n) || n <= 0) return;
+    const pn = out[k] != null ? parseFloat(out[k]) : null;
+    out[k] = pn == null || !Number.isFinite(pn) ? n : Math.max(pn, n);
+  });
+  return Object.keys(out).length ? out : null;
+}
+
+/** Merge workout_logs session rows (My Workout) into daily merged logs by session_date */
+function mergeWorkoutSessionsIntoLogs(baseLogs, workoutRows) {
+  if (!workoutRows || !workoutRows.length) return baseLogs || [];
+  const byDate = {};
+  (baseLogs || []).forEach((row) => {
+    const d = row.checkin_date || (row.created_at ? String(row.created_at).slice(0, 10) : '');
+    if (d) byDate[d] = { ...row };
+  });
+  const byDaySessions = {};
+  workoutRows.forEach((w) => {
+    const raw = w.session_date || (w.created_at ? String(w.created_at).slice(0, 10) : '');
+    const d = raw.slice(0, 10);
+    if (!d) return;
+    if (!byDaySessions[d]) byDaySessions[d] = [];
+    byDaySessions[d].push(w);
+  });
+  Object.keys(byDaySessions).forEach((d) => {
+    const sessions = byDaySessions[d];
+    const cur = byDate[d] || {
+      checkin_date: d,
+      created_at: `${d}T12:00:00.000Z`,
+      weight: null,
+      body_fat: null,
+      calories_intake: null,
+      protein_intake: null,
+      workout_completed: false,
+      workout_type: null,
+      strength_bench: null,
+      strength_squat: null,
+      strength_deadlift: null,
+      sleep_hours: null,
+      water_intake: null,
+      steps: null
+    };
+    const next = { ...cur };
+    let totalDur = 0;
+    let mergedSl = null;
+    let lastFeedback = next.session_notes || null;
+    sessions.forEach((w) => {
+      if (w.duration_seconds != null) totalDur += parseInt(w.duration_seconds, 10) || 0;
+      if (w.weight_kg != null && w.weight_kg !== '' && next.weight == null) next.weight = normalizeWeightKg(w.weight_kg);
+      if (w.body_fat_percent != null && w.body_fat_percent !== '' && next.body_fat == null) next.body_fat = parseFloat(w.body_fat_percent);
+      if (w.calories != null && w.calories !== '' && next.calories_intake == null) next.calories_intake = parseInt(w.calories, 10);
+      if (w.protein_g != null && w.protein_g !== '' && next.protein_intake == null) next.protein_intake = parseInt(w.protein_g, 10);
+      next.strength_bench = maxLift(next.strength_bench, w.bench_kg);
+      next.strength_squat = maxLift(next.strength_squat, w.squat_kg);
+      next.strength_deadlift = maxLift(next.strength_deadlift, w.deadlift_kg);
+      mergedSl = mergeSessionLiftsMax(mergedSl, w.session_lifts);
+      if (w.water_liters != null && w.water_liters !== '' && next.water_intake == null) next.water_intake = parseFloat(w.water_liters) * 1000;
+      if (w.sleep_hrs != null && w.sleep_hrs !== '' && next.sleep_hours == null) next.sleep_hours = parseFloat(w.sleep_hrs);
+      if (w.workout_completed === true || w.workout_completed === 1 || w.workout_completed === 't') next.workout_completed = true;
+      if (w.workout_type) next.workout_type = w.workout_type;
+      if (w.intensity) next.intensity = String(w.intensity);
+      if (w.energy_level) next.energy_level = String(w.energy_level);
+      if (w.feedback && String(w.feedback).trim()) lastFeedback = String(w.feedback).trim().slice(0, 500);
+    });
+    next.duration_seconds = totalDur > 0 ? totalDur : next.duration_seconds;
+    if (mergedSl && typeof mergedSl === 'object' && Object.keys(mergedSl).length) next.session_lifts = mergedSl;
+    if (lastFeedback) next.session_notes = lastFeedback;
+    byDate[d] = next;
+  });
+  return Object.keys(byDate)
+    .sort()
+    .map((d) => ({
+      ...byDate[d],
+      checkin_date: d,
+      created_at: byDate[d].created_at || `${d}T12:00:00.000Z`
+    }));
+}
+
+/** Count completed My Workout sessions per calendar week (Sun–Sat), aligned with admin chart logic */
+function weeklyCompletedSessions(workoutRows) {
+  const byWeek = {};
+  (workoutRows || []).forEach((w) => {
+    const done = w.workout_completed === true || w.workout_completed === 1 || w.workout_completed === 't';
+    if (!done) return;
+    const raw = (w.session_date || (w.created_at ? String(w.created_at).slice(0, 10) : '')).slice(0, 10);
+    if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return;
+    const [y, mo, day] = raw.split('-').map((x) => parseInt(x, 10));
+    const d = new Date(y, mo - 1, day);
+    if (Number.isNaN(d.getTime())) return;
+    const start = new Date(d);
+    start.setDate(start.getDate() - start.getDay());
+    start.setHours(0, 0, 0, 0);
+    const key = `${start.getFullYear()}-${String(start.getMonth() + 1).padStart(2, '0')}-${String(start.getDate()).padStart(2, '0')}`;
+    byWeek[key] = (byWeek[key] || 0) + 1;
+  });
+  const weeks = Object.keys(byWeek).sort().slice(-12);
+  return weeks.map((k) => {
+    const [Y, M, D] = k.split('-').map((x) => parseInt(x, 10));
+    const dt = new Date(Y, M - 1, D);
+    return {
+      weekStart: k,
+      label: dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      count: byWeek[k] || 0
+    };
+  });
+}
+
 async function getAdminUserProgress(userId) {
   const userRow = await db.queryOne('SELECT COALESCE(suspended, false) as suspended FROM users WHERE id = ?', [userId]);
   const suspended = userRow ? (userRow.suspended === true || userRow.suspended === 't') : false;
   const userIdentity = await db.queryOne('SELECT email FROM users WHERE id = ?', [userId]);
   const userEmail = userIdentity && userIdentity.email ? String(userIdentity.email).trim().toLowerCase() : '';
-  const [progressLogs, dailyCheckins, sundayByUserId, sundayByEmail] = await Promise.all([
+  const [progressLogs, dailyCheckins, sundayByUserId, sundayByEmail, workoutSessions] = await Promise.all([
     db.queryAll('SELECT * FROM progress_logs WHERE user_id = ? ORDER BY created_at ASC', [userId]),
     db.queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date ASC', [userId]),
     db.queryAll('SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at ASC', [userId]),
@@ -166,7 +300,13 @@ async function getAdminUserProgress(userId) {
         'SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, created_at FROM sunday_checkins WHERE user_id IS NULL AND LOWER(COALESCE(reply_email, \'\')) = ? ORDER BY created_at ASC',
         [userEmail]
       )
-      : Promise.resolve([])
+      : Promise.resolve([]),
+    db.queryAll(
+      `SELECT id, session_date, workout_type, duration_seconds, feedback, bench_kg, squat_kg, deadlift_kg,
+              session_lifts, weight_kg, body_fat_percent, calories, protein_g, water_liters, sleep_hrs, workout_completed, intensity, energy_level, created_at
+       FROM workout_logs WHERE user_id = ? ORDER BY created_at ASC`,
+      [userId]
+    )
   ]);
   const seenSundayIds = new Set();
   const sundayCheckins = [...(sundayByUserId || []), ...(sundayByEmail || [])].filter((row) => {
@@ -177,7 +317,7 @@ async function getAdminUserProgress(userId) {
     return true;
   });
 
-  const logs = mergeLogs(progressLogs, dailyCheckins, sundayCheckins);
+  const logs = mergeWorkoutSessionsIntoLogs(mergeLogs(progressLogs, dailyCheckins, sundayCheckins), workoutSessions || []);
 
   const streak = await getCurrentStreak(userId);
   const daily7Row = await db.queryOne(
@@ -245,7 +385,16 @@ async function getAdminUserProgress(userId) {
     averageSleep: avgSleep,
     insights,
     logs,
-    suspended
+    suspended,
+    /** Row counts feeding the merged timeline (admin transparency) */
+    sourceStats: {
+      progressLogs: progressLogs.length,
+      dailyCheckins: dailyCheckins.length,
+      sundayCheckins: sundayCheckins.length,
+      workoutSessions: workoutSessions.length
+    },
+    /** Completed My Workout sessions per week — use for weekly chart (true session count) */
+    weeklyWorkoutSessions: weeklyCompletedSessions(workoutSessions || [])
   };
 }
 

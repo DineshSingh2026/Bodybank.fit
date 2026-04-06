@@ -376,6 +376,26 @@ You are TRAINER-FACING ONLY. Never speak as if the client is reading this. Be di
 When an ENRICHED CLIENT PACK is present in your context, it contains PRE-COMPUTED METRICS computed by the server (not estimated). Trust these numbers completely. Your job is to interpret them, provide Lifestyle Manager insight, and give action items — not to re-calculate.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+## PRODUCT DATA MODEL — CLIENT TRACKING (AUTHORITATIVE)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+BodyBank splits client data into **three separate product surfaces** plus legacy progress snapshots. Do **not** confuse them when advising:
+
+1. **Daily check-in** (table: \`daily_checkins\`): Micro-goals **per calendar day** — **steps**, **water (ml)**, **protein (g)**, **sleep (hours)**. This is the client’s lifestyle/habit log. It does **not** include gym lift numbers.
+
+2. **Sunday check-in** (table: \`sunday_checkins\`): **Weekly** narrative form — plan, weight/waist text, training/nutrition compliance, long-form sleep/stress, achievements, questions. Weight may be parsed from free text for trends.
+
+3. **My Workout** (table: \`workout_logs\`): **Training sessions** — **session_date**, **workout_type** (e.g. Push/Pull/Legs/Full Body), **duration_seconds**, notes/feedback, **workout_completed**, **intensity**, **energy_level**.  
+   - **Structured lifts** are stored in JSON column **\`session_lifts\`**: exercise keys (e.g. \`bench_press\`, \`back_squat\`, \`deadlift\`, \`bicep_curl\`, …) → kg. Fields shown depend on **workout_type** (Push vs Pull vs Legs, etc.).  
+   - **Canonical columns** \`bench_kg\`, \`squat_kg\`, \`deadlift_kg\` map from \`session_lifts\` for charts (bench_press → bench; back_squat/squat → squat; deadlift/RDL → deadlift).  
+   - **Body composition and daily nutrition** (weight, calories, water, sleep) are **not** collected in My Workout anymore — those belong in **Daily check-in** or **Sunday check-in**. If you see null legacy columns on old rows, ignore unless context requires.
+
+4. **Progress logs** (table: \`progress_logs\`): Historical snapshots (weight, macros, strength triple, etc.) when clients or integrations log them — distinct from the three flows above.
+
+5. **Admin “Client Progress”** merges **progress_logs + daily_checkins + sunday_checkins + workout_logs** by date for charts. The pack may include **\`sourceStats\`** (row counts per source) when supplied by the API. **Weekly “completed sessions”** bars count **My Workout rows with workout_completed**, not daily check-in days.
+
+When interpreting lifts: use **\`session_lifts\`** for exercise-level detail; use **canonical bench/squat/deadlift** for long-run strength trends. Never tell a client they “did not log protein on workout day” if **daily check-in** has protein — they are different screens.
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ## COMPLETE PROGRAM LIBRARY — ALL 17 BODYBANK PROGRAMS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
@@ -462,10 +482,10 @@ PROGRAM: [Assigned program or "None assigned"]
   Water: X L avg | Sleep: X hrs avg
 
 💪 TRAINING
-  Workouts: X sessions | Avg duration: X min
-  Bench: Xkg → Xkg (▲Xkg) [if logged]
-  Squat: Xkg → Xkg (▲Xkg) [if logged]
-  Deadlift: Xkg → Xkg (▲Xkg) [if logged]
+  My Workout: X sessions (Y marked completed) | Avg duration: X min
+  Canonical strength (bench/squat/deadlift from progress + My Workout): Xkg → Xkg where logged
+  Structured session_lifts (per exercise, kg): reference enriched pack — Push/Pull/Legs have different exercise keys
+  Intensity / energy: from My Workout when present
 
 📄 PROGRAM STATUS
   Current: [Program name] | Assigned: [date] | [X] weeks on this program
@@ -559,9 +579,10 @@ Structure:
    Notable days (best/worst)
 
 8. TRAINING — SESSION BY SESSION
-   List ALL workout sessions: date | name | duration | feedback
-   Strength progression per lift (bench/squat/deadlift) with first → last
-   Workout types breakdown
+   List ALL My Workout sessions: session_date | workout_type | duration | completed | intensity | energy | notes
+   Include **session_lifts** JSON (per-exercise kg) when present — do not collapse to only three lifts if the client logged Push/Pull-specific movements
+   Canonical bench/squat/deadlift columns + progression first → last
+   Workout types breakdown (Push / Pull / Legs / Full Body / etc.)
    Missing sessions vs. weekly target
 
 9. SUNDAY CHECK-INS — ALL ENTRIES
@@ -959,8 +980,11 @@ function computeClientMetrics(data) {
   const durSecs = workout_logs.map(r => n(r.duration_seconds)).filter(v => v > 0);
   const avgDurMin = durSecs.length ? Math.round(durSecs.reduce((a, b) => a + b, 0) / durSecs.length / 60) : null;
   const completedBool = progress_logs.filter(r => r.workout_completed === true || r.workout_completed === 1).length;
+  const sessionsMarkedDone = workout_logs.filter(
+    (r) => r.workout_completed === true || r.workout_completed === 1 || r.workout_completed === 't'
+  ).length;
 
-  // Lift progression
+  // Lift progression (progress_logs first; fallback to My Workout canonical kg columns)
   function liftTrend(field) {
     const vals = progress_logs.filter(r => n(r[field]) > 0);
     if (!vals.length) return { first: null, last: null, delta: null };
@@ -968,9 +992,24 @@ function computeClientMetrics(data) {
     const l = n(vals[vals.length - 1][field]);
     return { first: f, last: l, delta: Math.round((l - f) * 10) / 10 };
   }
-  const bench = liftTrend('strength_bench');
-  const squat = liftTrend('strength_squat');
-  const deadlift = liftTrend('strength_deadlift');
+  function liftTrendWorkout(col) {
+    const vals = workout_logs
+      .filter((r) => n(r[col]) > 0)
+      .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+    if (!vals.length) return { first: null, last: null, delta: null };
+    const f = n(vals[0][col]);
+    const l = n(vals[vals.length - 1][col]);
+    return { first: f, last: l, delta: Math.round((l - f) * 10) / 10 };
+  }
+  function mergeLift(pLog, wCol) {
+    const p = pLog;
+    const w = liftTrendWorkout(wCol);
+    if (p.first != null || p.last != null) return p;
+    return w;
+  }
+  const bench = mergeLift(liftTrend('strength_bench'), 'bench_kg');
+  const squat = mergeLift(liftTrend('strength_squat'), 'squat_kg');
+  const deadlift = mergeLift(liftTrend('strength_deadlift'), 'deadlift_kg');
 
   // ── GOAL TARGETS ─────────────────────────────────────────────────────────────
   const goalTargetWeight = n(user_goals?.latest?.target_weight) || n(tribe_member?.target_weight) || null;
@@ -1065,8 +1104,14 @@ function computeClientMetrics(data) {
       protein_target_min_g: goalProteinMin
     },
     training: {
-      workouts_completed: workoutCount, avg_duration_min: avgDurMin, completed_from_logs: completedBool,
-      bench, squat, deadlift
+      workouts_completed: workoutCount,
+      sessions_total: workoutCount,
+      sessions_marked_completed: sessionsMarkedDone,
+      avg_duration_min: avgDurMin,
+      completed_from_logs: completedBool,
+      bench,
+      squat,
+      deadlift
     },
     goals: { target_weight: goalTargetWeight, weekly_workout_target: n(user_goals?.latest?.weekly_workout_target) || null, target_body_fat: n(user_goals?.latest?.target_body_fat) || null },
     risk_flags: riskFlags,
@@ -1241,10 +1286,14 @@ async function buildClientPack(deps, userId, dateRange, detailed = false) {
        FROM sunday_checkins WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at <= ?::timestamptz ORDER BY created_at DESC ${sundayLimit}`,
       [userId, fromIso, toIso]
     ),
-    // All workouts
+    // All My Workout sessions (session_date + structured lifts + canonical kg)
     queryAll(
-      `SELECT workout_name, duration_seconds, feedback, created_at FROM workout_logs
-       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at <= ?::timestamptz ORDER BY created_at ASC ${workoutLimit}`,
+      `SELECT session_date, workout_type, workout_name, duration_seconds, feedback,
+              bench_kg, squat_kg, deadlift_kg, session_lifts, intensity, energy_level,
+              workout_completed, created_at
+       FROM workout_logs
+       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at <= ?::timestamptz
+       ORDER BY created_at ASC ${workoutLimit}`,
       [userId, fromIso, toIso]
     ),
     // Full audit form
@@ -1496,7 +1545,11 @@ function formatPackAsText(pack) {
   }
 
   lines.push(`\nTRAINING:`);
-  lines.push(`  Workouts: ${m.training.workouts_completed} sessions | Avg duration: ${m.training.avg_duration_min ?? 'n/a'} min`);
+  lines.push(
+    `  My Workout: ${m.training.sessions_total ?? m.training.workouts_completed} session rows | ` +
+      `${m.training.sessions_marked_completed ?? '—'} marked completed | Avg duration: ${m.training.avg_duration_min ?? 'n/a'} min`
+  );
+  lines.push(`  Strength trends use progress_logs when present; else canonical kg from My Workout (bench_kg/squat_kg/deadlift_kg).`);
   if (m.training.bench.first !== null) lines.push(`  Bench press: ${m.training.bench.first}kg → ${m.training.bench.last}kg (${m.training.bench.delta >= 0 ? '▲' : '▼'} ${Math.abs(m.training.bench.delta)}kg)`);
   else lines.push(`  Bench press: not logged`);
   if (m.training.squat.first !== null) lines.push(`  Squat: ${m.training.squat.first}kg → ${m.training.squat.last}kg (${m.training.squat.delta >= 0 ? '▲' : '▼'} ${Math.abs(m.training.squat.delta)}kg)`);
@@ -1615,15 +1668,40 @@ function formatPackAsText(pack) {
   }
 
   // ── ALL WORKOUT LOGS (every session) ─────────────────────────────────────────
+  function formatSessionLifts(sl) {
+    if (sl == null || sl === '') return '';
+    let o = sl;
+    if (typeof o === 'string') {
+      try {
+        o = JSON.parse(o);
+      } catch {
+        return '';
+      }
+    }
+    if (!o || typeof o !== 'object') return '';
+    return Object.keys(o)
+      .map((k) => `${k}:${o[k]}kg`)
+      .join(', ');
+  }
   if (rd.workout_logs.length) {
-    lines.push(`\n[ALL WORKOUT SESSIONS — ${rd.workout_logs.length} sessions]`);
-    rd.workout_logs.forEach(w => {
+    lines.push(`\n[ALL MY WORKOUT SESSIONS — ${rd.workout_logs.length} rows]`);
+    rd.workout_logs.forEach((w) => {
+      const day = w.session_date ? String(w.session_date).slice(0, 10) : w.created_at?.slice(0, 10);
       const dur = w.duration_seconds ? `${Math.round(w.duration_seconds / 60)}min` : '-';
-      const fb = w.feedback ? ` | Feedback: ${w.feedback}` : '';
-      lines.push(`  ${w.created_at?.slice(0, 10)} | ${w.workout_name || 'unnamed'} | ${dur}${fb}`);
+      const typ = w.workout_type || w.workout_name || '—';
+      const done = w.workout_completed ? 'completed' : 'not completed';
+      const canon = [n(w.bench_kg) ? `bench:${w.bench_kg}` : '', n(w.squat_kg) ? `sq:${w.squat_kg}` : '', n(w.deadlift_kg) ? `dl:${w.deadlift_kg}` : '']
+        .filter(Boolean)
+        .join(' ');
+      const sl = formatSessionLifts(w.session_lifts);
+      const ie = [w.intensity ? `intensity:${w.intensity}` : '', w.energy_level ? `energy:${w.energy_level}` : ''].filter(Boolean).join(' | ');
+      const fb = w.feedback ? ` | Notes: ${String(w.feedback).slice(0, 400)}` : '';
+      lines.push(
+        `  ${day} | ${typ} | ${dur} | ${done}${canon ? ` | ${canon}` : ''}${sl ? ` | session_lifts: ${sl}` : ''}${ie ? ` | ${ie}` : ''}${fb}`
+      );
     });
   } else {
-    lines.push(`\n[WORKOUT SESSIONS]: None in this period`);
+    lines.push(`\n[MY WORKOUT SESSIONS]: None in this period`);
   }
 
   return lines.join('\n');

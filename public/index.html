@@ -2110,7 +2110,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .admin-table th,.admin-table td{padding:10px 10px}
 }
 @media(max-width:768px){
-  .streak-at-risk-banner:not(#inactivityAtRiskBanner){grid-template-columns:auto minmax(0,1fr);align-items:start}
+  .streak-at-risk-banner{grid-template-columns:auto minmax(0,1fr);align-items:start}
   #streakAtRiskBanner .streak-timer{grid-column:1 / -1;justify-self:end;text-align:right}
   .admin-mobile-nav-bar{display:none}
   .admin-tabs{display:none}
@@ -2429,24 +2429,70 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .streak-at-risk-banner{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,rgba(230,126,34,0.2),rgba(200,164,78,0.1));border:1px solid rgba(230,126,34,0.4);border-radius:10px;margin-bottom:16px}
 .streak-at-risk-banner .icon{font-size:24px}
 .streak-at-risk-banner .text{min-width:0;font-size:13px;font-weight:600;color:var(--cream);line-height:1.45}
-/* Inactivity CTA: always stack button under message — avoids narrow text column + overlap with wide button */
-#inactivityAtRiskBanner.streak-at-risk-banner{
-  grid-template-columns:auto minmax(0,1fr);
-  grid-auto-rows:auto;
+/* Inactivity risk — premium card (separate from streak grid; no cramped 3-col layout) */
+.bb-inactivity-risk{
+  margin-bottom:16px;
+  border-radius:18px;
+  padding:1px;
+  background:linear-gradient(145deg, rgba(200,164,78,0.45) 0%, rgba(230,126,34,0.18) 45%, rgba(200,164,78,0.08) 100%);
+  box-shadow:0 12px 40px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.07);
 }
-#inactivityAtRiskBanner .icon{align-self:start}
-#inactivityAtRiskBanner .text{grid-column:2;grid-row:1}
-#inactivityAtRiskBanner .form-submit{
-  grid-column:1 / -1;
-  grid-row:2;
-  width:100%;
-  max-width:100%;
-  margin:4px 0 0!important;
-  justify-self:stretch;
-  align-self:stretch;
-  white-space:normal;
+.bb-inactivity-risk__inner{
+  border-radius:17px;
+  padding:18px 18px 17px;
+  background:linear-gradient(168deg, rgba(26,22,18,0.97) 0%, rgba(10,9,8,0.99) 55%, rgba(14,12,10,1) 100%);
+  border:1px solid rgba(200,164,78,0.14);
   box-sizing:border-box;
 }
+.bb-inactivity-risk__row{
+  display:flex;
+  align-items:flex-start;
+  gap:14px;
+  margin-bottom:16px;
+}
+.bb-inactivity-risk__icon-wrap{
+  width:44px;height:44px;min-width:44px;
+  border-radius:14px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:22px;line-height:1;
+  background:rgba(230,126,34,0.14);
+  border:1px solid rgba(230,126,34,0.28);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06);
+}
+.bb-inactivity-risk__copy{
+  flex:1;min-width:0;
+  display:flex;flex-direction:column;gap:8px;
+}
+.bb-inactivity-risk__eyebrow{
+  font-size:10px;font-weight:700;letter-spacing:2.2px;text-transform:uppercase;
+  color:rgba(200,164,78,0.9);
+  line-height:1.3;
+}
+.bb-inactivity-risk__message{
+  margin:0;
+  font-size:14px;line-height:1.55;font-weight:500;
+  color:rgba(251,248,240,0.92);
+  letter-spacing:0.01em;
+}
+.bb-inactivity-risk__btn{
+  display:block;width:100%;box-sizing:border-box;
+  margin:0;padding:14px 20px;
+  border:none;border-radius:14px;
+  cursor:pointer;
+  font-family:'Outfit',sans-serif;
+  font-size:13px;font-weight:700;letter-spacing:0.04em;
+  color:#141008;
+  text-align:center;
+  white-space:normal;
+  line-height:1.35;
+  background:linear-gradient(180deg, #edd9a8 0%, #c8a44e 48%, #a88638 100%);
+  box-shadow:0 4px 16px rgba(200,164,78,0.22), inset 0 1px 0 rgba(255,255,255,0.35);
+  transition:transform .12s ease, box-shadow .2s ease, opacity .2s ease;
+  -webkit-tap-highlight-color:transparent;
+}
+.bb-inactivity-risk__btn:hover{opacity:0.96;box-shadow:0 6px 22px rgba(200,164,78,0.3), inset 0 1px 0 rgba(255,255,255,0.35)}
+.bb-inactivity-risk__btn:active{transform:scale(0.985)}
+.bb-inactivity-risk__btn:focus-visible{outline:2px solid rgba(200,164,78,0.55);outline-offset:2px}
 .micro-goals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:16px;margin-bottom:20px}
 @media(min-width:600px){.micro-goals-grid{grid-template-columns:repeat(4,1fr)}}
 .micro-goal-field{display:flex;flex-direction:column;gap:6px}
@@ -3252,6 +3298,57 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .bb-user-desktop-dashboard canvas{width:100% !important;max-height:220px}
 }
 
+/* My Workout — session form */
+#usec-workout.wk-session-page{background:#0d0d0d}
+#usec-workout .wk-session-inner{max-width:560px;margin:0 auto;padding:0 4px max(100px,calc(56px + env(safe-area-inset-bottom,0px)))}
+#usec-workout .wk-session-title{font-family:Syne,sans-serif;font-size:clamp(22px,4vw,28px);font-weight:700;color:var(--bb-gold);letter-spacing:.04em;margin-bottom:8px}
+#usec-workout .wk-session-lead{color:var(--bb-muted);font-size:14px;margin-bottom:24px;line-height:1.5}
+#usec-workout .wk-sec{margin-bottom:8px}
+#usec-workout .wk-sec-title{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(201,168,76,.85);margin-bottom:14px}
+#usec-workout .wk-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:520px){#usec-workout .wk-row2{grid-template-columns:1fr}}
+#usec-workout .wk-field label,#usec-workout .wk-stepper-field label,#usec-workout .wk-lift-field label{display:block;font-size:12px;color:var(--bb-muted);margin-bottom:8px}
+#usec-workout .wk-input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid #2a2a2a;background:#1a1a1a;color:var(--bb-text);font-size:15px;font-family:inherit;box-sizing:border-box}
+#usec-workout .wk-input:focus{outline:none;border-color:rgba(201,168,76,.45)}
+#usec-workout .wk-textarea{min-height:100px;resize:vertical}
+#usec-workout .wk-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23c9a84c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+#usec-workout .wk-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.25),transparent);margin:22px 0}
+#usec-workout .wk-timer-block{margin-top:8px}
+#usec-workout .wk-timer-label{font-size:12px;color:var(--bb-muted);margin-bottom:8px;display:block}
+#usec-workout .wk-timer-row{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;min-width:0;width:100%}
+#usec-workout .wk-timer-digits{font-family:ui-monospace,Menlo,monospace;font-size:clamp(18px,4.2vw,28px);font-weight:600;color:var(--bb-gold);letter-spacing:.04em;flex:1 1 auto;min-width:0;white-space:nowrap;line-height:1.2}
+#usec-workout .wk-tsep{opacity:.45;margin:0 1px}
+#usec-workout .wk-timer-paused{font-size:11px;color:var(--bb-orange);opacity:0;transition:opacity .2s;flex:0 0 auto;white-space:nowrap}
+#usec-workout .wk-timer-paused.show{opacity:1}
+#usec-workout .wk-timer-play,#usec-workout .wk-timer-reset{padding:8px 12px;border-radius:10px;border:1px solid rgba(201,168,76,.35);background:#1a1a1a;color:var(--bb-gold);font-weight:600;cursor:pointer;font-size:13px;flex-shrink:0;line-height:1.2;white-space:nowrap}
+#usec-workout .wk-timer-play:hover,#usec-workout .wk-timer-reset:hover{background:rgba(201,168,76,.08)}
+#usec-workout .wk-stepper{display:flex;align-items:center;gap:4px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:4px 6px}
+#usec-workout .wk-step-btn{width:40px;height:40px;border:none;border-radius:8px;background:rgba(201,168,76,.12);color:var(--bb-gold);font-size:18px;font-weight:600;cursor:pointer;line-height:1}
+#usec-workout .wk-step-btn:hover{background:rgba(201,168,76,.22)}
+#usec-workout .wk-step-val{flex:1;border:none;background:transparent;color:var(--bb-text);text-align:center;font-size:16px;font-weight:600;min-width:0}
+#usec-workout .wk-lift-input{-moz-appearance:textfield}
+#usec-workout .wk-lift-input::-webkit-outer-spin-button,#usec-workout .wk-lift-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#usec-workout .wk-muted-note{font-size:12px;color:var(--bb-muted);margin-bottom:12px}
+#usec-workout .wk-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:12px 14px;background:#141414;border:1px solid #252525;border-radius:10px}
+#usec-workout .wk-toggle-label{font-size:14px;color:var(--bb-text)}
+#usec-workout .wk-switch{position:relative;display:inline-block;width:48px;height:26px}
+#usec-workout .wk-switch input{opacity:0;width:0;height:0}
+#usec-workout .wk-switch-slider{position:absolute;inset:0;background:#333;border-radius:999px;transition:.2s}
+#usec-workout .wk-switch-slider:before{position:absolute;content:'';height:20px;width:20px;left:3px;bottom:3px;background:#888;border-radius:50%;transition:.2s}
+#usec-workout .wk-switch input:checked + .wk-switch-slider{background:rgba(201,168,76,.35)}
+#usec-workout .wk-switch input:checked + .wk-switch-slider:before{transform:translateX(22px);background:var(--bb-gold)}
+#usec-workout .wk-save-btn{width:100%;margin-top:8px;padding:16px 24px;border:none;border-radius:12px;background:linear-gradient(135deg,#d4b456,#c9a84c,#8a6f2e);color:#0a0a0a;font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 28px rgba(201,168,76,.2)}
+#usec-workout .wk-save-btn:hover{filter:brightness(1.06)}
+#usec-workout .wk-save-btn:disabled{opacity:.55;cursor:not-allowed}
+#usec-workout .wk-session-toast{position:sticky;top:8px;z-index:5;margin-bottom:12px;padding:12px 16px;border-radius:10px;background:rgba(46,204,113,.12);border:1px solid rgba(46,204,113,.35);color:#a8e6cf;font-size:14px;text-align:center}
+#usec-workout .workout-history h3{font-size:14px;font-weight:600;color:var(--bb-gold);margin-bottom:12px;letter-spacing:.04em}
+#usec-workout .wh-item{display:flex;justify-content:space-between;gap:12px;padding:12px 14px;margin-bottom:8px;background:#141414;border:1px solid #252525;border-radius:10px;align-items:flex-start}
+#usec-workout .wh-name{font-weight:600;color:var(--cream);font-size:14px}
+#usec-workout .wh-meta{font-size:12px;color:var(--bb-muted);line-height:1.4}
+
+.admin-cp-charts .chart-wrap canvas{max-height:240px}
+#adminChartWater,#adminChartSessionDuration{margin-bottom:0}
+
 </style>
 <link rel="stylesheet" href="/mobile-fix.css?v=20">
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
@@ -3303,8 +3400,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <a class="user-sidebar-link active" href="#" data-tab="home" onclick="switchUserTab('home');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9632;</span>Home</a>
         <a class="user-sidebar-link" href="#" data-tab="workout" onclick="switchUserTab('workout');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127947;</span>My Workout</a>
         <a class="user-sidebar-link" href="#" data-tab="programs" onclick="switchUserTab('programs');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127919;</span>My Programs</a>
-        <a class="user-sidebar-link" href="#" data-tab="progress" onclick="switchUserTab('progress');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128200;</span>My Progress</a>
-        <a class="user-sidebar-link" href="#" data-tab="checkin" onclick="switchUserTab('checkin');return false"><span class="user-sidebar-icon" aria-hidden="true">&#10003;</span>Sunday Check-in</a>
+        <a class="user-sidebar-link" href="#" data-tab="checkin" onclick="switchUserTab('checkin');return false"><span class="user-sidebar-icon" aria-hidden="true">&#10003;</span>Check-in</a>
         <a class="user-sidebar-link" href="#" data-tab="messages" onclick="switchUserTab('messages');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
         <a class="user-sidebar-link" href="#" data-tab="profile" onclick="switchUserTab('profile');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128100;</span>My Profile</a>
         <a class="user-sidebar-link" href="#" data-tab="contact" onclick="switchUserTab('contact');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9993;</span>Contact Us</a>
@@ -3448,8 +3544,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
         <div class="bb-quick-actions">
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('workout');return false"><span class="btn-icon">🏋️</span>Log Workout</a>
-          <a class="bb-quick-btn" href="#" onclick="switchUserTab('progress');return false"><span class="btn-icon">📈</span>My Progress</a>
-          <a class="bb-quick-btn" href="#" onclick="switchUserTab('checkin');return false"><span class="btn-icon">✅</span>Sunday Check-in</a>
+          <a class="bb-quick-btn" href="#" onclick="switchUserTab('programs');return false"><span class="btn-icon">📋</span>Programs</a>
+          <a class="bb-quick-btn" href="#" onclick="switchUserTab('checkin');return false"><span class="btn-icon">✅</span>Check-in</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('messages');return false"><span class="btn-icon">💬</span>Messages</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('contact');return false"><span class="btn-icon">📅</span>Schedule Call</a>
         </div>
@@ -3509,10 +3605,17 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
               <span class="text">Save today&apos;s check-in to keep your streak!</span>
               <span class="streak-timer" id="streakTimerCountdown"></span>
             </div>
-            <div class="streak-at-risk-banner" id="inactivityAtRiskBanner" style="display:none">
-              <span class="icon" aria-hidden="true">⏳</span>
-              <span class="text" id="inactivityAtRiskText">We haven&apos;t seen your daily check-in yet.</span>
-              <button type="button" class="form-submit" id="inactivityAtRiskBtn" onclick="switchUserTab('checkin')" style="padding:10px 14px">Log daily check-in</button>
+            <div class="bb-inactivity-risk" id="inactivityAtRiskBanner" style="display:none" role="alert">
+              <div class="bb-inactivity-risk__inner">
+                <div class="bb-inactivity-risk__row">
+                  <span class="bb-inactivity-risk__icon-wrap" aria-hidden="true">⏳</span>
+                  <div class="bb-inactivity-risk__copy">
+                    <span class="bb-inactivity-risk__eyebrow">Daily check-in</span>
+                    <p class="bb-inactivity-risk__message" id="inactivityAtRiskText">We haven&apos;t seen your daily check-in yet.</p>
+                  </div>
+                </div>
+                <button type="button" class="bb-inactivity-risk__btn" id="inactivityAtRiskBtn" onclick="switchUserTab('checkin')">Open check-in</button>
+              </div>
             </div>
             <h3>Daily check-in <span class="streak-badge" id="microStreakBadge">0 day streak</span></h3>
             <div class="streak-timer" id="microStreakTimer" style="display:none"><span class="streak-timer-icon">⏱</span><span id="microStreakTimerText"></span></div>
@@ -3551,12 +3654,82 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         </div>
 
         <div class="welcome-cards">
-          <div class="welcome-card" onclick="switchUserTab('workout')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M2 12h4V8H2v4zM18 12h4V8h-4v4zM6 12h12"/></svg></div><div class="wc-copy"><div class="wc-title">My Workout</div><div class="wc-desc">Log your training sessions</div></div></div>
-          <div class="welcome-card" onclick="switchUserTab('progress')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div><div class="wc-copy"><div class="wc-title">My Progress</div><div class="wc-desc">Log daily metrics and view analytics</div></div></div>
-          <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-copy"><div class="wc-title sc-style">Sunday Check-in<span class="req">*</span></div><div class="wc-desc">Complete your weekly check-in form</div></div></div>
+          <div class="welcome-card" onclick="switchUserTab('workout')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M2 12h4V8H2v4zM18 12h4V8h-4v4zM6 12h12"/></svg></div><div class="wc-copy"><div class="wc-title">My Workout</div><div class="wc-desc">Log sessions, lifts, and body metrics</div></div></div>
+          <div class="welcome-card" onclick="switchUserTab('programs')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div><div class="wc-copy"><div class="wc-title">My Programs</div><div class="wc-desc">PDFs assigned by your manager</div></div></div>
+          <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-copy"><div class="wc-title sc-style">Check-in</div><div class="wc-desc">Daily &amp; Sunday check-ins</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('messages')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-copy"><div class="wc-title">Messages</div><div class="wc-desc">Chat with your Lifestyle Manager</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-copy"><div class="wc-title">My Profile</div><div class="wc-desc">View and update your information</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-copy"><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHECK-IN: Daily + Sunday (hub — My Progress tab removed per product) -->
+    <div class="user-section" id="usec-checkin">
+      <div id="checkin-hub" class="checkin-hub">
+        <div class="checkin-hub-back"><button type="button" class="checkin-back-btn" onclick="switchUserTab('home')">← Back</button></div>
+        <h2 class="sunday-checkin-title" style="margin-bottom:8px">Check-in</h2>
+        <p class="form-hint" style="margin-bottom:20px">Choose daily micro-goals or your weekly Sunday form.</p>
+        <div class="checkin-hub-cards">
+          <div class="checkin-option-card" onclick="showCheckinSubView('daily')">
+            <div class="checkin-card-icon"><svg viewBox="0 0 24 24"><path d="M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></div>
+            <div class="checkin-card-title">Daily Check-in</div>
+            <div class="checkin-card-desc">Log steps, water, protein &amp; sleep for today</div>
+          </div>
+          <div class="checkin-option-card" onclick="showCheckinSubView('sunday')">
+            <div class="checkin-card-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+            <div class="checkin-card-title">Sunday Check-in</div>
+            <div class="checkin-card-desc">Complete your weekly review form</div>
+          </div>
+        </div>
+      </div>
+      <div id="checkin-sunday" class="checkin-sub" style="display:none">
+        <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
+        <p class="form-hint" style="margin-bottom:20px">All fields are mandatory. Please provide detailed answers where requested.</p>
+        <form id="sundayCheckinForm" onsubmit="submitSundayCheckin();return false">
+        <div class="form-group"><label>Full Name <span class="req">*</span></label><input type="text" class="form-input" id="scFullName" placeholder="Your full name" required></div>
+        <div class="form-group"><label>State the plan you're on <span class="req">*</span></label><input type="text" class="form-input" id="scPlan" placeholder="e.g. 12 week fat loss" required></div>
+        <div class="form-group"><label>Current weight (lbs), waist measurement and week of training you've just completed <span class="req">*</span></label><textarea class="form-input" id="scCurrentWeight" rows="5" placeholder="e.g. week 1, 180 lbs, 34 in waist" required></textarea></div>
+        <div class="form-group"><label>Last week's weight (lbs) and waist measurement <span class="req">*</span></label><textarea class="form-input" id="scLastWeek" rows="4" placeholder="e.g. 182 lbs, 35 in" required></textarea></div>
+        <div class="form-group"><label>What is your total weight loss? (Or gain if on a muscle building plan) <span class="req">*</span></label><textarea class="form-input" id="scTotalLoss" rows="4" required></textarea></div>
+        <div class="form-group"><label>How did your training go? Did you complete all scheduled sessions including cardio? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scTraining" rows="6" placeholder="Describe your training week in detail" required></textarea></div>
+        <div class="form-group"><label>How did your nutrition go? Did you follow the meal plan exactly and take all supplements as specified? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scNutrition" rows="6" placeholder="Describe your nutrition adherence" required></textarea></div>
+        <div class="form-group"><label>What time did you go to bed/wake up on average? Did you get 8 hours sleep? Were there any difficulties sleeping? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scSleep" rows="6" required></textarea></div>
+        <div class="form-group"><label>What's your occupation and how much stress did this give you last week? <span class="req">*</span></label><textarea class="form-input" id="scOccupationStress" rows="4" required></textarea></div>
+        <div class="form-group"><label>Have you had any other noticeable stress this past week? If so can you pinpoint the cause? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scOtherStress" rows="5" required></textarea></div>
+        <div class="form-group"><label>What differences have you seen and felt both physically and mentally? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scDifferences" rows="6" required></textarea></div>
+        <div class="form-group"><label>Biggest achievements this week? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scAchievements" rows="5" required></textarea></div>
+        <div class="form-group"><label>What do you think you could do to improve for the coming week? <span class="req">*</span></label><textarea class="form-input" id="scImprove" rows="5" required></textarea></div>
+        <div class="form-group"><label>Questions?</label><textarea class="form-input" id="scQuestions" rows="4" placeholder="Any questions or notes (optional)"></textarea></div>
+        <button type="submit" class="form-submit" id="scSubmitBtn">Submit Check-in</button>
+      </form>
+        <p class="form-success" id="scSuccess" style="display:none;text-align:center;margin-top:16px">Check-in submitted successfully.</p>
+      </div>
+      <div id="checkin-daily" class="checkin-sub" style="display:none">
+        <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
+        <div class="micro-goals-wrap">
+          <h3>Daily check-in <span class="streak-badge" id="dailyStreakBadge">0 day streak</span></h3>
+          <form id="dailyCheckinForm" onsubmit="submitDailyCheckinForm();return false">
+            <div class="micro-goals-grid">
+              <div class="micro-goal-field">
+                <label>Steps</label>
+                <input type="number" id="dailySteps" placeholder="e.g. 8000" min="0">
+              </div>
+              <div class="micro-goal-field">
+                <label>Water (ml)</label>
+                <input type="number" id="dailyWater" placeholder="e.g. 2000" min="0">
+              </div>
+              <div class="micro-goal-field">
+                <label>Protein (g)</label>
+                <input type="number" id="dailyProtein" placeholder="e.g. 120" min="0">
+              </div>
+              <div class="micro-goal-field">
+                <label>Sleep (hrs)</label>
+                <input type="number" id="dailySleep" placeholder="e.g. 7.5" min="0" step="0.5">
+              </div>
+            </div>
+            <button type="submit" class="micro-goals-submit">Save today</button>
+          </form>
         </div>
       </div>
     </div>
@@ -3604,30 +3777,98 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     </div>
 
     <!-- MY WORKOUT -->
-    <div class="user-section" id="usec-workout">
+    <div class="user-section wk-session-page" id="usec-workout">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <div class="form-section-title">Log your session</div>
-      <div class="form-group"><label>Workout Name <span class="req">*</span></label><input type="text" class="form-input" id="wkName" placeholder="e.g. Upper body, Cardio"><span class="form-hint">Name this training session</span></div>
-      <div class="timer-display">
-        <div class="timer-digits"><span id="tHr">00</span><span class="timer-sep">:</span><span id="tMin">00</span><span class="timer-sep">:</span><span id="tSec">00</span></div>
-        <div id="timerPausedLabel" class="timer-paused-label" aria-live="polite">Paused</div>
-      </div>
-      <button class="timer-btn" id="timerBtn" onclick="toggleTimer()">▶</button>
-      <button class="timer-reset" onclick="resetTimer()">Reset Timer</button>
-      <div class="form-divider"></div>
-      <div class="form-group"><label>Feedback <span class="req">*</span></label><textarea class="form-input" id="wkFeedback" placeholder="How did it go? Notes on intensity, sets, reps..." rows="4"></textarea><span class="form-hint">Brief notes help track progress</span></div>
-      <button class="form-submit" onclick="submitWorkout()">Submit</button>
-      <div class="workout-programs-box" style="margin-top:28px">
-        <div class="welcome-card" onclick="switchUserTab('programs')">
-          <div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div>
-          <div class="wc-copy"><div class="wc-title">My Programs</div><div class="wc-desc">Programs assigned by your lifestyle manager. View the PDF and click the video link to watch and perform.</div></div>
+      <div id="wkSessionToast" class="wk-session-toast" role="status" aria-live="polite" style="display:none">Session saved successfully!</div>
+      <div class="wk-session-inner">
+        <h2 class="wk-session-title">My Workout</h2>
+        <p class="wk-session-lead">Log one full session — training, lifts for that day’s focus, and how it felt.</p>
+
+        <div class="wk-sec">
+          <div class="wk-sec-title">Session info</div>
+          <div class="wk-row2">
+            <div class="wk-field"><label for="wkSessionDate">Date <span class="req">*</span></label><input type="date" class="wk-input" id="wkSessionDate" required></div>
+            <div class="wk-field"><label for="wkType">Workout type <span class="req">*</span></label>
+              <select class="wk-input wk-select" id="wkType" required>
+                <option value="">Select type</option>
+                <optgroup label="Strength / PPL">
+                  <option value="Push (Chest, Shoulders, Triceps)">Push (Chest, Shoulders, Triceps)</option>
+                  <option value="Pull (Back, Biceps)">Pull (Back, Biceps)</option>
+                  <option value="Legs (Quads, Hamstrings, Glutes)">Legs (Quads, Hamstrings, Glutes)</option>
+                  <option value="Full Body">Full Body</option>
+                </optgroup>
+                <optgroup label="Other">
+                  <option value="Upper Body">Upper Body</option>
+                  <option value="Lower Body">Lower Body</option>
+                  <option value="Cardio">Cardio</option>
+                  <option value="HIIT">HIIT</option>
+                  <option value="Mobility / Stretching">Mobility / Stretching</option>
+                  <option value="Rest Day">Rest Day</option>
+                  <option value="Other">Other</option>
+                </optgroup>
+              </select>
+            </div>
+          </div>
+          <div class="wk-timer-block">
+            <label class="wk-timer-label">Duration</label>
+            <div class="wk-timer-row">
+              <div class="wk-timer-digits"><span id="tHr">00</span><span class="wk-tsep">:</span><span id="tMin">00</span><span class="wk-tsep">:</span><span id="tSec">00</span></div>
+              <div id="timerPausedLabel" class="wk-timer-paused" aria-live="polite">Paused</div>
+              <button type="button" class="wk-timer-play" id="timerBtn" onclick="toggleTimer()" aria-label="Play or pause timer">▶</button>
+              <button type="button" class="wk-timer-reset" onclick="resetTimer()">Reset</button>
+            </div>
+          </div>
         </div>
+
+        <div class="wk-divider"></div>
+
+        <div class="wk-sec wk-strength-sec" id="wkStrengthSection" style="display:none">
+          <div class="wk-sec-title">Strength — session loads</div>
+          <p class="wk-muted-note" id="wkStrengthHint">Fields match your workout type. Enter your top working weight (kg) for each.</p>
+          <div id="wkStrengthFields" class="wk-strength-fields"></div>
+        </div>
+
+        <div class="wk-divider"></div>
+
+        <div class="wk-sec">
+          <div class="wk-sec-title">Session feel</div>
+          <div class="wk-toggle-row"><span class="wk-toggle-label">Workout completed</span><label class="wk-switch"><input type="checkbox" id="wkCompleted"><span class="wk-switch-slider"></span></label></div>
+          <div class="wk-row2">
+            <div class="wk-field"><label for="wkIntensity">Intensity</label>
+              <select class="wk-input wk-select" id="wkIntensity">
+                <option value="">—</option>
+                <option value="Easy">Easy</option>
+                <option value="Moderate">Moderate</option>
+                <option value="Hard">Hard</option>
+                <option value="Max Effort">Max Effort</option>
+              </select>
+            </div>
+            <div class="wk-field"><label for="wkEnergy">Energy level</label>
+              <select class="wk-input wk-select" id="wkEnergy">
+                <option value="">—</option>
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+              </select>
+            </div>
+          </div>
+          <div class="wk-field"><label for="wkNotes">Notes / feedback</label><textarea class="wk-input wk-textarea" id="wkNotes" rows="4" placeholder="How did it go? Sets, reps, PRs, anything notable..."></textarea></div>
+        </div>
+
+        <button type="button" class="wk-save-btn" id="wkSaveBtn" onclick="submitWorkoutSession()">Save session</button>
+
+        <div class="workout-programs-box" style="margin-top:28px">
+          <div class="welcome-card" onclick="switchUserTab('programs')">
+            <div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div>
+            <div class="wc-copy"><div class="wc-title">My Programs</div><div class="wc-desc">Programs assigned by your lifestyle manager.</div></div>
+          </div>
+        </div>
+        <div id="wkHistorySkeleton" class="skeleton-wrapper" style="display:none">
+          <div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div><div class="skeleton skeleton-line"></div>
+        </div>
+        <div class="user-section-divider"></div>
+        <div class="workout-history" id="wkHistory"></div>
       </div>
-      <div id="wkHistorySkeleton" class="skeleton-wrapper" style="display:none">
-        <div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div><div class="skeleton skeleton-line"></div>
-      </div>
-      <div class="user-section-divider"></div>
-      <div class="workout-history" id="wkHistory"></div>
     </div>
 
     <!-- MY PROGRAMS -->
@@ -3683,132 +3924,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div>
         </div>
         <div class="my-meetings" id="myMeetingsList"></div>
-      </div>
-    </div>
-
-    <!-- CHECK-IN HUB (3 options) + sub-views -->
-    <div class="user-section" id="usec-checkin">
-      <!-- Hub: 3 options -->
-      <div id="checkin-hub" class="checkin-hub">
-        <div class="checkin-hub-back"><button type="button" class="checkin-back-btn" onclick="switchUserTab('home')">← Back</button></div>
-        <p class="form-hint" style="margin-bottom:20px">Choose what you want to do:</p>
-        <div class="checkin-hub-cards">
-          <div class="checkin-option-card" onclick="showCheckinSubView('daily')">
-            <div class="checkin-card-icon"><svg viewBox="0 0 24 24"><path d="M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></div>
-            <div class="checkin-card-title">Daily Check-in</div>
-            <div class="checkin-card-desc">Log steps, water, protein & sleep for today</div>
-          </div>
-          <div class="checkin-option-card" onclick="showCheckinSubView('sunday')">
-            <div class="checkin-card-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
-            <div class="checkin-card-title">Sunday Check-in</div>
-            <div class="checkin-card-desc">Complete your weekly review form</div>
-          </div>
-          <div class="checkin-option-card" onclick="showCheckinSubView('progress')">
-            <div class="checkin-card-icon"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M18 17V9"/><path d="M13 17V5"/><path d="M8 17v-3"/></svg></div>
-            <div class="checkin-card-title">My Progress</div>
-            <div class="checkin-card-desc">Log metrics by date and view your analytics</div>
-          </div>
-        </div>
-      </div>
-      <!-- Sunday Check-in -->
-      <div id="checkin-sunday" class="checkin-sub" style="display:none">
-        <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
-        <p class="form-hint" style="margin-bottom:20px">All fields are mandatory. Please provide detailed answers where requested.</p>
-        <form id="sundayCheckinForm" onsubmit="submitSundayCheckin();return false">
-        <div class="form-group"><label>Full Name <span class="req">*</span></label><input type="text" class="form-input" id="scFullName" placeholder="Your full name" required></div>
-        <div class="form-group"><label>State the plan you're on <span class="req">*</span></label><input type="text" class="form-input" id="scPlan" placeholder="e.g. 12 week fat loss" required></div>
-        <div class="form-group"><label>Current weight (lbs), waist measurement and week of training you've just completed <span class="req">*</span></label><textarea class="form-input" id="scCurrentWeight" rows="5" placeholder="e.g. week 1, 180 lbs, 34 in waist" required></textarea></div>
-        <div class="form-group"><label>Last week's weight (lbs) and waist measurement <span class="req">*</span></label><textarea class="form-input" id="scLastWeek" rows="4" placeholder="e.g. 182 lbs, 35 in" required></textarea></div>
-        <div class="form-group"><label>What is your total weight loss? (Or gain if on a muscle building plan) <span class="req">*</span></label><textarea class="form-input" id="scTotalLoss" rows="4" required></textarea></div>
-        <div class="form-group"><label>How did your training go? Did you complete all scheduled sessions including cardio? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scTraining" rows="6" placeholder="Describe your training week in detail" required></textarea></div>
-        <div class="form-group"><label>How did your nutrition go? Did you follow the meal plan exactly and take all supplements as specified? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scNutrition" rows="6" placeholder="Describe your nutrition adherence" required></textarea></div>
-        <div class="form-group"><label>What time did you go to bed/wake up on average? Did you get 8 hours sleep? Were there any difficulties sleeping? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scSleep" rows="6" required></textarea></div>
-        <div class="form-group"><label>What's your occupation and how much stress did this give you last week? <span class="req">*</span></label><textarea class="form-input" id="scOccupationStress" rows="4" required></textarea></div>
-        <div class="form-group"><label>Have you had any other noticeable stress this past week? If so can you pinpoint the cause? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scOtherStress" rows="5" required></textarea></div>
-        <div class="form-group"><label>What differences have you seen and felt both physically and mentally? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scDifferences" rows="6" required></textarea></div>
-        <div class="form-group"><label>Biggest achievements this week? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scAchievements" rows="5" required></textarea></div>
-        <div class="form-group"><label>What do you think you could do to improve for the coming week? <span class="req">*</span></label><textarea class="form-input" id="scImprove" rows="5" required></textarea></div>
-        <div class="form-group"><label>Questions?</label><textarea class="form-input" id="scQuestions" rows="4" placeholder="Any questions or notes (optional)"></textarea></div>
-        <button type="submit" class="form-submit" id="scSubmitBtn">Submit Check-in</button>
-      </form>
-        <p class="form-success" id="scSuccess" style="display:none;text-align:center;margin-top:16px">Check-in submitted successfully.</p>
-      </div>
-      <!-- Daily Check-in -->
-      <div id="checkin-daily" class="checkin-sub" style="display:none">
-        <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
-        <div class="micro-goals-wrap">
-          <h3>Daily check-in <span class="streak-badge" id="dailyStreakBadge">0 day streak</span></h3>
-          <form id="dailyCheckinForm" onsubmit="submitDailyCheckinForm();return false">
-            <div class="micro-goals-grid">
-              <div class="micro-goal-field">
-                <label>Steps</label>
-                <input type="number" id="dailySteps" placeholder="e.g. 8000" min="0">
-              </div>
-              <div class="micro-goal-field">
-                <label>Water (ml)</label>
-                <input type="number" id="dailyWater" placeholder="e.g. 2000" min="0">
-              </div>
-              <div class="micro-goal-field">
-                <label>Protein (g)</label>
-                <input type="number" id="dailyProtein" placeholder="e.g. 120" min="0">
-              </div>
-              <div class="micro-goal-field">
-                <label>Sleep (hrs)</label>
-                <input type="number" id="dailySleep" placeholder="e.g. 7.5" min="0" step="0.5">
-              </div>
-            </div>
-            <button type="submit" class="micro-goals-submit">Save today</button>
-          </form>
-        </div>
-      </div>
-      <!-- My Progress (embedded) -->
-      <div id="checkin-progress" class="checkin-sub" style="display:none">
-        <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
-        <p class="form-hint" style="margin-bottom:16px">Log body composition and training for a date. <strong>Water, protein &amp; sleep</strong> are logged once in <strong>Daily check-in</strong> (above) so they are not duplicated here.</p>
-        <form id="progressFormC" onsubmit="submitProgressCheckin();return false" class="progress-form-grid">
-          <div class="form-group" style="grid-column:1/-1"><label>Date <span class="req">*</span></label><input type="date" class="form-input" id="proDateC" required></div>
-          <div class="form-group"><label>Weight (kg)</label><input type="number" step="0.1" class="form-input" id="proWeightC" placeholder="e.g. 72.5"></div>
-          <div class="form-group"><label>Body fat %</label><input type="number" step="0.1" class="form-input" id="proBodyFatC" placeholder="e.g. 18"></div>
-          <div class="form-group"><label>Calories intake</label><input type="number" class="form-input" id="proCaloriesC" placeholder="e.g. 2000"></div>
-          <div class="form-group"><label>Workout completed</label><label class="toggle-wrap"><input type="checkbox" id="proWorkoutDoneC"><span class="toggle-slider"></span></label></div>
-          <div class="form-group"><label>Workout type</label><input type="text" class="form-input" id="proWorkoutTypeC" placeholder="e.g. Upper body"></div>
-          <div class="form-group"><label>Bench (kg)</label><input type="number" step="0.1" class="form-input" id="proBenchC" placeholder="e.g. 60"></div>
-          <div class="form-group"><label>Squat (kg)</label><input type="number" step="0.1" class="form-input" id="proSquatC" placeholder="e.g. 80"></div>
-          <div class="form-group"><label>Deadlift (kg)</label><input type="number" step="0.1" class="form-input" id="proDeadliftC" placeholder="e.g. 100"></div>
-          <div class="form-group" style="grid-column:1/-1"><button type="submit" class="form-submit">Save for this date</button></div>
-        </form>
-        <p class="form-success" id="progressFormSuccessC" style="display:none;margin-top:12px">Saved. Your Lifestyle Manager can share your progress report with you.</p>
-        <div class="progress-logs-section" style="margin-top:28px">
-          <h3 class="admin-cp-heading" style="margin-bottom:12px">Submission logs</h3>
-          <div id="progressLogsListC" class="progress-logs-list">
-            <p class="admin-cp-placeholder">No entries yet. Save a log above to see them here.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- MY PROGRESS (log by date – no graphs; view shared by admin) -->
-    <div class="user-section" id="usec-progress">
-      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <p class="form-hint" style="margin-bottom:16px">Log body composition and training for a date. <strong>Water, protein &amp; sleep</strong> belong in <strong>Daily check-in</strong> on Home (micro-goals) so they are not duplicated here.</p>
-      <form id="progressForm" onsubmit="submitProgress();return false" class="progress-form-grid">
-        <div class="form-group" style="grid-column:1/-1"><label>Date <span class="req">*</span></label><input type="date" class="form-input" id="proDate" required></div>
-        <div class="form-group"><label>Weight (kg)</label><input type="number" step="0.1" class="form-input" id="proWeight" placeholder="e.g. 72.5"></div>
-        <div class="form-group"><label>Body fat %</label><input type="number" step="0.1" class="form-input" id="proBodyFat" placeholder="e.g. 18"></div>
-        <div class="form-group"><label>Calories intake</label><input type="number" class="form-input" id="proCalories" placeholder="e.g. 2000"></div>
-        <div class="form-group"><label>Workout completed</label><label class="toggle-wrap"><input type="checkbox" id="proWorkoutDone"><span class="toggle-slider"></span></label></div>
-        <div class="form-group"><label>Workout type</label><input type="text" class="form-input" id="proWorkoutType" placeholder="e.g. Upper body"></div>
-        <div class="form-group"><label>Bench (kg)</label><input type="number" step="0.1" class="form-input" id="proBench" placeholder="e.g. 60"></div>
-        <div class="form-group"><label>Squat (kg)</label><input type="number" step="0.1" class="form-input" id="proSquat" placeholder="e.g. 80"></div>
-        <div class="form-group"><label>Deadlift (kg)</label><input type="number" step="0.1" class="form-input" id="proDeadlift" placeholder="e.g. 100"></div>
-        <div class="form-group" style="grid-column:1/-1"><button type="submit" class="form-submit" id="progressSubmitBtn">Save for this date</button></div>
-      </form>
-      <p class="form-success" id="progressFormSuccess" style="display:none;margin-top:12px">Saved. Your Lifestyle Manager can share your progress report with you.</p>
-      <div class="progress-logs-section" style="margin-top:28px">
-        <h3 class="admin-cp-heading" style="margin-bottom:12px">Submission logs</h3>
-        <div id="progressLogsList" class="progress-logs-list">
-          <p class="admin-cp-placeholder">No entries yet. Save a log above to see it here.</p>
-        </div>
       </div>
     </div>
 
@@ -4325,8 +4440,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           </div>
         </div>
       </div>
-      <div class="admin-table-wrap"><table class="admin-table admin-list-table">
-        <thead><tr><th>User</th><th>Workout</th><th>Date</th><th style="text-align:right;width:88px">Actions</th></tr></thead>
+      <div class="admin-table-wrap"><table class="admin-table admin-list-table admin-workouts-table">
+        <thead><tr><th>User</th><th>Session date</th><th>Type</th><th>Duration</th><th>Logged</th><th style="text-align:right;width:88px">Actions</th></tr></thead>
         <tbody id="workoutsBody"></tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
@@ -4556,11 +4671,16 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div id="adminCpCharts" class="progress-charts admin-cp-charts" style="display:none;margin-top:20px">
             <div class="chart-wrap"><canvas id="adminChartWeight"></canvas><p class="chart-title">Weight over time</p></div>
             <div class="chart-wrap"><canvas id="adminChartStrength"></canvas><p class="chart-title">Strength over time</p></div>
-            <div class="chart-wrap"><canvas id="adminChartWeeklyWorkouts"></canvas><p class="chart-title">Weekly workout frequency</p></div>
+            <div class="chart-wrap"><canvas id="adminChartWeeklyWorkouts"></canvas><p class="chart-title">Weekly completed sessions (My Workout)</p></div>
             <div class="chart-wrap"><canvas id="adminChartCalories"></canvas><p class="chart-title">Calories trend</p></div>
             <div class="chart-wrap"><canvas id="adminChartProtein"></canvas><p class="chart-title">Protein intake trend</p></div>
+            <div class="chart-wrap"><canvas id="adminChartWater"></canvas><p class="chart-title">Water (ml — merged daily + workout)</p></div>
+            <div class="chart-wrap"><canvas id="adminChartSessionDuration"></canvas><p class="chart-title">Session duration (min, My Workout)</p></div>
             <div class="chart-wrap"><canvas id="adminChartSteps"></canvas><p class="chart-title">Steps (Daily check-in)</p></div>
-            <div class="chart-wrap"><canvas id="adminChartSleep"></canvas><p class="chart-title">Sleep hours (all sources)</p></div>
+            <div class="chart-wrap"><canvas id="adminChartSleep"></canvas><p class="chart-title">Sleep hours (daily + Sunday + merged)</p></div>
+            <div class="chart-wrap"><canvas id="adminChartSessionLiftsDetail"></canvas><p class="chart-title">Session loads — bench / squat / deadlift (from My Workout)</p></div>
+            <div class="chart-wrap"><canvas id="adminChartIntensity"></canvas><p class="chart-title">Session intensity (My Workout)</p></div>
+            <div class="chart-wrap"><canvas id="adminChartEnergy"></canvas><p class="chart-title">Energy level (My Workout)</p></div>
           </div>
         </div>
       </div>
@@ -5282,7 +5402,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 </div>
 
 <div class="modal-overlay view-detail-modal" id="adminWorkoutViewModal" onclick="if(event.target===this)closeModal('adminWorkoutViewModal')">
-  <div class="modal" style="max-width:600px">
+  <div class="modal" style="max-width:720px">
     <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('adminWorkoutViewModal')" aria-label="Close">×</button>
     <h2 class="sunday-checkin-title">Workout log</h2>
     <div class="view-detail-body" id="adminWorkoutViewBody"></div>
@@ -5781,13 +5901,143 @@ async function loadUserPrograms() {
   }
 }
 
+function wkParseNum(el, fallback) {
+  if (!el) return fallback;
+  var v = parseFloat(String(el.value || '').replace(',', '.'));
+  return isNaN(v) ? fallback : v;
+}
+/** Workout type (exact select value) → list of { key, label } for session loads (kg) */
+var WK_LIFT_PROFILES = {
+  'Push (Chest, Shoulders, Triceps)': [
+    { key: 'bench_press', label: 'Bench press' },
+    { key: 'incline_press', label: 'Incline / DB press' },
+    { key: 'overhead_press', label: 'Overhead press' },
+    { key: 'lateral_raise', label: 'Lateral raise' },
+    { key: 'triceps_pushdown', label: 'Triceps pushdown' }
+  ],
+  'Pull (Back, Biceps)': [
+    { key: 'deadlift', label: 'Deadlift' },
+    { key: 'barbell_row', label: 'Barbell row' },
+    { key: 'lat_pulldown', label: 'Lat pulldown' },
+    { key: 'bicep_curl', label: 'Bicep curl' },
+    { key: 'face_pull', label: 'Face pull' }
+  ],
+  'Legs (Quads, Hamstrings, Glutes)': [
+    { key: 'back_squat', label: 'Back squat' },
+    { key: 'romanian_deadlift', label: 'Romanian deadlift' },
+    { key: 'leg_press', label: 'Leg press' },
+    { key: 'leg_curl', label: 'Leg curl' },
+    { key: 'calf_raise', label: 'Calf raise' }
+  ],
+  'Full Body': [
+    { key: 'bench_press', label: 'Bench press' },
+    { key: 'back_squat', label: 'Back squat' },
+    { key: 'deadlift', label: 'Deadlift' }
+  ],
+  'Upper Body': [
+    { key: 'bench_press', label: 'Bench press' },
+    { key: 'overhead_press', label: 'Overhead press' },
+    { key: 'barbell_row', label: 'Barbell row' },
+    { key: 'bicep_curl', label: 'Bicep curl' }
+  ],
+  'Lower Body': [
+    { key: 'back_squat', label: 'Back squat' },
+    { key: 'deadlift', label: 'Deadlift' },
+    { key: 'leg_press', label: 'Leg press' }
+  ]
+};
+var WK_LIFT_LABELS = (function () {
+  var m = {};
+  Object.keys(WK_LIFT_PROFILES).forEach(function (pk) {
+    WK_LIFT_PROFILES[pk].forEach(function (item) { m[item.key] = item.label; });
+  });
+  return m;
+})();
+function wkShouldShowStrength(typeStr) {
+  var t = (typeStr || '').trim();
+  if (!t) return false;
+  return !/^(Cardio|HIIT|Mobility\s*\/\s*Stretching|Rest Day|Other)$/i.test(t);
+}
+function wkCollectSessionLifts() {
+  var out = {};
+  document.querySelectorAll('#wkStrengthFields input[data-lift-key]').forEach(function (inp) {
+    var k = inp.getAttribute('data-lift-key');
+    var v = parseFloat(String(inp.value || '').replace(',', '.'));
+    if (k && !isNaN(v) && v > 0) out[k] = Math.round(v * 100) / 100;
+  });
+  return out;
+}
+function wkRenderStrengthFields() {
+  var sel = document.getElementById('wkType');
+  var container = document.getElementById('wkStrengthFields');
+  var hint = document.getElementById('wkStrengthHint');
+  if (!sel || !container) return;
+  var t = (sel.value || '').trim();
+  if (!wkShouldShowStrength(t)) {
+    container.innerHTML = '';
+    return;
+  }
+  var profile = WK_LIFT_PROFILES[t];
+  if (!profile || !profile.length) {
+    container.innerHTML = '<p class="wk-muted-note">No lift fields for this type — use notes for details.</p>';
+    if (hint) hint.style.display = 'none';
+    return;
+  }
+  if (hint) hint.style.display = 'block';
+  var html = '';
+  for (var i = 0; i < profile.length; i += 2) {
+    html += '<div class="wk-row2">';
+    html += '<div class="wk-lift-field"><label for="wk-lift-' + profile[i].key + '">' + profile[i].label + ' (kg)</label>' +
+      '<input type="number" class="wk-input wk-lift-input" id="wk-lift-' + profile[i].key + '" data-lift-key="' + profile[i].key + '" inputmode="decimal" step="0.5" min="0" placeholder="0"></div>';
+    if (profile[i + 1]) {
+      html += '<div class="wk-lift-field"><label for="wk-lift-' + profile[i + 1].key + '">' + profile[i + 1].label + ' (kg)</label>' +
+        '<input type="number" class="wk-input wk-lift-input" id="wk-lift-' + profile[i + 1].key + '" data-lift-key="' + profile[i + 1].key + '" inputmode="decimal" step="0.5" min="0" placeholder="0"></div>';
+    } else {
+      html += '<div class="wk-lift-field wk-lift-spacer" aria-hidden="true"></div>';
+    }
+    html += '</div>';
+  }
+  container.innerHTML = html;
+}
+function wkApplySessionLiftsToInputs(lifts) {
+  if (!lifts || typeof lifts !== 'object') return;
+  Object.keys(lifts).forEach(function (k) {
+    var el = document.querySelector('#wkStrengthFields input[data-lift-key="' + k + '"]');
+    if (el) el.value = lifts[k] != null ? String(lifts[k]) : '';
+  });
+}
+function wkSyncStrengthSection() {
+  var sel = document.getElementById('wkType');
+  var sec = document.getElementById('wkStrengthSection');
+  if (!sel || !sec) return;
+  sec.style.display = wkShouldShowStrength(sel.value) ? 'block' : 'none';
+  wkRenderStrengthFields();
+}
+function initWorkoutSessionUI() {
+  var d = document.getElementById('wkSessionDate');
+  if (d && !d.value) d.value = new Date().toISOString().slice(0, 10);
+  var wt = document.getElementById('wkType');
+  if (wt && !wt._wkBound) {
+    wt._wkBound = true;
+    wt.addEventListener('change', wkSyncStrengthSection);
+  }
+  wkSyncStrengthSection();
+  loadWorkoutHistory();
+}
+
 function saveWorkoutStateToStorage() {
   try {
-    var wkNameEl = document.getElementById('wkName');
-    var wkFeedbackEl = document.getElementById('wkFeedback');
     sessionStorage.setItem('bbWorkoutTimerSeconds', String(timerSeconds));
-    sessionStorage.setItem('bbWorkoutName', wkNameEl ? wkNameEl.value || '' : '');
-    sessionStorage.setItem('bbWorkoutFeedback', wkFeedbackEl ? wkFeedbackEl.value || '' : '');
+    var snap = {
+      sessionDate: (document.getElementById('wkSessionDate') || {}).value || '',
+      workoutType: (document.getElementById('wkType') || {}).value || '',
+      notes: (document.getElementById('wkNotes') || {}).value || '',
+      lifts: wkCollectSessionLifts(),
+      completed: document.getElementById('wkCompleted') && document.getElementById('wkCompleted').checked,
+      intensity: (document.getElementById('wkIntensity') || {}).value || '',
+      energy: (document.getElementById('wkEnergy') || {}).value || ''
+    };
+    sessionStorage.setItem('bbWorkoutFormSnap', JSON.stringify(snap));
     sessionStorage.setItem('bbWorkoutSavedAt', String(Date.now()));
   } catch (e) {}
 }
@@ -5795,22 +6045,31 @@ function saveWorkoutStateToStorage() {
 function restoreWorkoutStateFromStorage() {
   try {
     var secs = parseInt(sessionStorage.getItem('bbWorkoutTimerSeconds') || '0', 10);
-    if (isNaN(secs) || secs < 0) return false;
-    var name = sessionStorage.getItem('bbWorkoutName') || '';
-    var feedback = sessionStorage.getItem('bbWorkoutFeedback') || '';
-    timerSeconds = secs;
-    timerRunning = false;
-    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
-    updateTimerDisplay();
-    var btn = document.getElementById('timerBtn');
-    if (btn) btn.textContent = '▶';
-    var wkNameEl = document.getElementById('wkName');
-    var wkFeedbackEl = document.getElementById('wkFeedback');
-    if (wkNameEl) wkNameEl.value = name;
-    if (wkFeedbackEl) wkFeedbackEl.value = feedback;
+    var raw = sessionStorage.getItem('bbWorkoutFormSnap');
+    var snap = null;
+    try { snap = raw ? JSON.parse(raw) : null; } catch (_) { snap = null; }
+    if (!isNaN(secs) && secs >= 0) {
+      timerSeconds = secs;
+      timerRunning = false;
+      if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+      updateTimerDisplay();
+      var btn = document.getElementById('timerBtn');
+      if (btn) btn.textContent = '▶';
+    }
+    if (snap && typeof snap === 'object') {
+      function setVal(id, v) { var el = document.getElementById(id); if (el && v != null && v !== '') el.value = v; }
+      setVal('wkSessionDate', snap.sessionDate);
+      setVal('wkType', snap.workoutType);
+      setVal('wkNotes', snap.notes);
+      setVal('wkIntensity', snap.intensity);
+      setVal('wkEnergy', snap.energy);
+      var c = document.getElementById('wkCompleted');
+      if (c && snap.completed) c.checked = true;
+      wkSyncStrengthSection();
+      if (snap.lifts && typeof snap.lifts === 'object') wkApplySessionLiftsToInputs(snap.lifts);
+    }
     sessionStorage.removeItem('bbWorkoutTimerSeconds');
-    sessionStorage.removeItem('bbWorkoutName');
-    sessionStorage.removeItem('bbWorkoutFeedback');
+    sessionStorage.removeItem('bbWorkoutFormSnap');
     sessionStorage.removeItem('bbWorkoutSavedAt');
     return true;
   } catch (e) { return false; }
@@ -7361,7 +7620,7 @@ async function deleteTribeMemberPermanently(id, name) {
 async function loadAdminWorkouts() {
   const tbody = document.getElementById('workoutsBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
   var wf = document.getElementById('woFilterFrom');
   var wt = document.getElementById('woFilterTo');
   var ws = document.getElementById('woFilterSearch');
@@ -7371,21 +7630,48 @@ async function loadAdminWorkouts() {
   if (ws && ws.value.trim()) qs.push('search=' + encodeURIComponent(ws.value.trim()));
   const data = await apiCall('GET', '/api/admin/workouts' + (qs.length ? '?' + qs.join('&') : ''));
   if (data && data.error) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
     return;
   }
   const list = Array.isArray(data) ? data : [];
   tbody.innerHTML = list.map(function(w) {
     var id = String(w.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     var user = ((w.first_name || '') + ' ' + (w.last_name || '')).trim() || '—';
-    var wo = (w.workout_name || '—').trim();
-    var d = w.created_at ? new Date(w.created_at) : null;
-    var dateStr = d ? d.toLocaleDateString(undefined, { month: 'numeric', day: 'numeric', year: 'numeric' }) : '—';
+    var typeStr = (w.workout_type || w.workout_name || '—').trim();
+    var sessionD = w.session_date ? String(w.session_date).slice(0, 10) : '';
+    var sessStr = sessionD ? new Date(sessionD + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+    var ds = w.duration_seconds != null ? Math.max(0, Math.round(Number(w.duration_seconds))) : 0;
+    var durStr = ds > 0 ? Math.floor(ds / 60) + 'm ' + (ds % 60) + 's' : '—';
+    var logD = w.created_at ? new Date(w.created_at) : null;
+    var loggedStr = logD ? logD.toLocaleString(undefined, { month: 'numeric', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
     var oid = adminAttrId(w.id || '');
-    return '<tr class="admin-row-clickable" data-open-kind="workout" data-open-id="' + oid + '"><td class="admin-workout-cell-user" data-label="User" title="' + escapeHtml(user) + '">' + escapeHtml(user) + '</td><td class="admin-workout-cell-workout" data-label="Workout" title="' + escapeHtml(wo) + '">' + escapeHtml(wo) + '</td><td class="admin-workout-cell-date" data-label="Date">' + escapeHtml(dateStr) + '</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewAdminWorkout(\'' + id + '\')">View</button></td></tr>';
-  }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
+    return '<tr class="admin-row-clickable" data-open-kind="workout" data-open-id="' + oid + '">' +
+      '<td class="admin-workout-cell-user" data-label="User" title="' + escapeHtml(user) + '">' + escapeHtml(user) + '</td>' +
+      '<td data-label="Session">' + escapeHtml(sessStr) + '</td>' +
+      '<td data-label="Type" title="' + escapeHtml(typeStr) + '">' + escapeHtml(typeStr.length > 42 ? typeStr.slice(0, 40) + '…' : typeStr) + '</td>' +
+      '<td data-label="Duration">' + escapeHtml(durStr) + '</td>' +
+      '<td data-label="Logged">' + escapeHtml(loggedStr) + '</td>' +
+      '<td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewAdminWorkout(\'' + id + '\')">View</button></td></tr>';
+  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
 }
 
+function _wkFmtKg(v) {
+  if (v == null || v === '') return '—';
+  var n = Number(v);
+  return isNaN(n) ? '—' : n + ' kg';
+}
+function _wkAdminStrengthRows(r) {
+  var sl = r.session_lifts;
+  if (typeof sl === 'string') { try { sl = JSON.parse(sl); } catch (e) { sl = null; } }
+  if (sl && typeof sl === 'object' && Object.keys(sl).length) {
+    return Object.keys(sl).sort().map(function (k) {
+      return _row(WK_LIFT_LABELS[k] || k, _wkFmtKg(sl[k]));
+    }).join('');
+  }
+  return _row('Bench', _wkFmtKg(r.bench_kg)) +
+    _row('Squat', _wkFmtKg(r.squat_kg)) +
+    _row('Deadlift', _wkFmtKg(r.deadlift_kg));
+}
 async function viewAdminWorkout(id) {
   if (!id) return;
   const r = await apiCall('GET', '/api/admin/workouts/' + encodeURIComponent(id));
@@ -7397,13 +7683,29 @@ async function viewAdminWorkout(id) {
   var ss = dur % 60;
   var fullName = ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || '—';
   var when = r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' }) : '—';
+  var sessionDay = r.session_date ? String(r.session_date).slice(0, 10) : '';
+  var sessionLabel = sessionDay ? new Date(sessionDay + 'T12:00:00').toLocaleDateString(undefined, { dateStyle: 'full' }) : '—';
+  var woType = (r.workout_type || r.workout_name || '—').trim();
+  var waterL = r.water_liters != null && r.water_liters !== '' ? Number(r.water_liters) : null;
+  var waterStr = waterL != null && !isNaN(waterL) ? waterL + ' L' : '—';
   body.innerHTML = _row('User', fullName) +
     _row('Email', r.email || '—') +
     _row('Phone', r.phone || '—') +
-    _row('Workout', r.workout_name || '—') +
+    _row('Session date', sessionLabel) +
+    _row('Workout type', woType) +
     _row('Duration', mm + 'm ' + ss + 's') +
     _row('Logged at', when) +
-    _rowBlock('Feedback / notes', (r.feedback && String(r.feedback).trim()) ? r.feedback : '—');
+    _wkAdminStrengthRows(r) +
+    _row('Weight', _wkFmtKg(r.weight_kg)) +
+    _row('Body fat %', r.body_fat_percent != null && r.body_fat_percent !== '' ? String(r.body_fat_percent) : '—') +
+    _row('Calories', r.calories != null && r.calories !== '' ? String(r.calories) : '—') +
+    _row('Protein (g)', r.protein_g != null && r.protein_g !== '' ? String(r.protein_g) : '—') +
+    _row('Water', waterStr) +
+    _row('Sleep (hrs)', r.sleep_hrs != null && r.sleep_hrs !== '' ? String(r.sleep_hrs) : '—') +
+    _row('Workout completed', r.workout_completed ? 'Yes' : 'No') +
+    _row('Intensity', r.intensity || '—') +
+    _row('Energy level', r.energy_level || '—') +
+    _rowBlock('Notes / feedback', (r.feedback && String(r.feedback).trim()) ? r.feedback : '—');
   openModal('adminWorkoutViewModal');
 }
 
@@ -8265,7 +8567,8 @@ function destroyAdminProgressCharts() {
   });
   adminProgressChartInstances = {};
 }
-function drawAdminProgressCharts(logs) {
+function drawAdminProgressCharts(data) {
+  var logs = (data && data.logs) ? data.logs : (Array.isArray(data) ? data : []);
   if (typeof Chart === 'undefined') return;
   destroyAdminProgressCharts();
   function getLogDate(log) {
@@ -8310,30 +8613,92 @@ function drawAdminProgressCharts(logs) {
       data: {
         labels: labels,
         datasets: [
-          { label: 'Bench', data: sorted.map(function(l) { return l.strength_bench; }), borderColor: '#c8a44e', tension: 0.3 },
-          { label: 'Squat', data: sorted.map(function(l) { return l.strength_squat; }), borderColor: '#d0b058', tension: 0.3 },
-          { label: 'Deadlift', data: sorted.map(function(l) { return l.strength_deadlift; }), borderColor: '#a68c3e', tension: 0.3 }
+          { label: 'Bench (canonical)', data: sorted.map(function(l) { return l.strength_bench; }), borderColor: '#c8a44e', tension: 0.3 },
+          { label: 'Squat (canonical)', data: sorted.map(function(l) { return l.strength_squat; }), borderColor: '#d0b058', tension: 0.3 },
+          { label: 'Deadlift (canonical)', data: sorted.map(function(l) { return l.strength_deadlift; }), borderColor: '#a68c3e', tension: 0.3 }
         ]
       },
       options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
     });
   }
-  var byWeek = {};
-  sorted.forEach(function(l) {
-    var d = getLogDate(l);
-    if (!d) return;
-    var start = new Date(d); start.setDate(start.getDate() - start.getDay()); start.setHours(0,0,0,0);
-    var key = start.toISOString().slice(0,10);
-    if (!byWeek[key]) byWeek[key] = 0;
-    if (l.workout_completed) byWeek[key]++;
-  });
-  var weeks = Object.keys(byWeek).sort().slice(-8);
-  var weekLabels = weeks.map(function(k) { return new Date(k).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); });
-  var weekCounts = weeks.map(function(k) { return byWeek[k] || 0; });
+  function slKey(l, key) {
+    var sl = l.session_lifts;
+    if (typeof sl === 'string') { try { sl = JSON.parse(sl); } catch (e) { return null; } }
+    if (!sl || sl[key] == null || sl[key] === '') return null;
+    var n = parseFloat(sl[key]);
+    return Number.isFinite(n) ? n : null;
+  }
+  if (sorted.some(function(l) { return slKey(l, 'bench_press') != null || slKey(l, 'back_squat') != null || slKey(l, 'deadlift') != null; })) {
+    var ctxSl = document.getElementById('adminChartSessionLiftsDetail');
+    if (ctxSl) adminProgressChartInstances.sessionLiftsDetail = new Chart(ctxSl.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [
+          { label: 'Bench press', data: sorted.map(function(l) { return slKey(l, 'bench_press'); }), borderColor: '#c8a44e', tension: 0.3 },
+          { label: 'Back squat', data: sorted.map(function(l) { return slKey(l, 'back_squat'); }), borderColor: '#d0b058', tension: 0.3 },
+          { label: 'Deadlift', data: sorted.map(function(l) { return slKey(l, 'deadlift'); }), borderColor: '#a68c3e', tension: 0.3 }
+        ]
+      },
+      options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+    });
+  }
+  function intensityNum(s) {
+    if (!s) return null;
+    var m = { Easy: 1, Moderate: 2, Hard: 3, 'Max Effort': 4 };
+    return m[String(s)] != null ? m[String(s)] : null;
+  }
+  function energyNum(s) {
+    if (!s) return null;
+    var m = { Low: 1, Medium: 2, High: 3 };
+    return m[String(s)] != null ? m[String(s)] : null;
+  }
+  if (sorted.some(function(l) { return l.intensity; })) {
+    var ctxI = document.getElementById('adminChartIntensity');
+    if (ctxI) adminProgressChartInstances.intensity = new Chart(ctxI.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{ label: 'Intensity (1–4)', data: sorted.map(function(l) { return intensityNum(l.intensity); }), borderColor: '#e8b84a', backgroundColor: 'rgba(232,184,74,0.08)', fill: true, tension: 0.3 }]
+      },
+      options: { ...chartOpts, scales: { x: scaleOpts, y: { ...scaleOpts, min: 0, max: 5, ticks: { ...scaleOpts.ticks, stepSize: 1 } } } }
+    });
+  }
+  if (sorted.some(function(l) { return l.energy_level; })) {
+    var ctxE = document.getElementById('adminChartEnergy');
+    if (ctxE) adminProgressChartInstances.energy = new Chart(ctxE.getContext('2d'), {
+      type: 'line',
+      data: {
+        labels: labels,
+        datasets: [{ label: 'Energy (1–3)', data: sorted.map(function(l) { return energyNum(l.energy_level); }), borderColor: '#7cb87c', backgroundColor: 'rgba(124,184,124,0.08)', fill: true, tension: 0.3 }]
+      },
+      options: { ...chartOpts, scales: { x: scaleOpts, y: { ...scaleOpts, min: 0, max: 4, ticks: { ...scaleOpts.ticks, stepSize: 1 } } } }
+    });
+  }
+  var weeklyFromApi = data && Array.isArray(data.weeklyWorkoutSessions) ? data.weeklyWorkoutSessions : null;
+  var weekLabels;
+  var weekCounts;
+  if (weeklyFromApi && weeklyFromApi.length) {
+    weekLabels = weeklyFromApi.map(function(w) { return w.label || w.weekStart; });
+    weekCounts = weeklyFromApi.map(function(w) { return w.count != null ? w.count : 0; });
+  } else {
+    var byWeek = {};
+    sorted.forEach(function(l) {
+      var d = getLogDate(l);
+      if (!d) return;
+      var start = new Date(d); start.setDate(start.getDate() - start.getDay()); start.setHours(0,0,0,0);
+      var key = start.toISOString().slice(0,10);
+      if (!byWeek[key]) byWeek[key] = 0;
+      if (l.workout_completed) byWeek[key]++;
+    });
+    var weeks = Object.keys(byWeek).sort().slice(-8);
+    weekLabels = weeks.map(function(k) { return new Date(k).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); });
+    weekCounts = weeks.map(function(k) { return byWeek[k] || 0; });
+  }
   var ctx = document.getElementById('adminChartWeeklyWorkouts');
-  if (ctx && weekLabels.length) adminProgressChartInstances.weeklyWorkouts = new Chart(ctx.getContext('2d'), {
+  if (ctx && weekLabels && weekLabels.length) adminProgressChartInstances.weeklyWorkouts = new Chart(ctx.getContext('2d'), {
     type: 'bar',
-    data: { labels: weekLabels, datasets: [{ label: 'Workouts', data: weekCounts, backgroundColor: 'rgba(200,164,78,0.6)', borderColor: '#c8a44e', borderWidth: 1 }] },
+    data: { labels: weekLabels, datasets: [{ label: 'Completed sessions', data: weekCounts, backgroundColor: 'rgba(200,164,78,0.6)', borderColor: '#c8a44e', borderWidth: 1 }] },
     options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
   });
   if (sorted.filter(function(l) { return l.calories_intake != null; }).length) {
@@ -8349,6 +8714,22 @@ function drawAdminProgressCharts(logs) {
     if (ctx) adminProgressChartInstances.protein = new Chart(ctx.getContext('2d'), {
       type: 'line',
       data: { labels: labels, datasets: [{ label: 'Protein (g)', data: sorted.map(function(l) { return l.protein_intake; }), borderColor: '#a68c3e', backgroundColor: 'rgba(166,140,62,0.1)', fill: true, tension: 0.3 }] },
+      options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+    });
+  }
+  if (sorted.filter(function(l) { return l.water_intake != null; }).length) {
+    var ctxW = document.getElementById('adminChartWater');
+    if (ctxW) adminProgressChartInstances.water = new Chart(ctxW.getContext('2d'), {
+      type: 'line',
+      data: { labels: labels, datasets: [{ label: 'Water (ml)', data: sorted.map(function(l) { return l.water_intake; }), borderColor: '#5dade2', backgroundColor: 'rgba(93,173,226,0.1)', fill: true, tension: 0.3 }] },
+      options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+    });
+  }
+  if (sorted.filter(function(l) { return l.duration_seconds != null && Number(l.duration_seconds) > 0; }).length) {
+    var ctxDur = document.getElementById('adminChartSessionDuration');
+    if (ctxDur) adminProgressChartInstances.sessionDuration = new Chart(ctxDur.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: [{ label: 'Minutes', data: sorted.map(function(l) { return l.duration_seconds != null ? Math.round(Number(l.duration_seconds) / 60) : null; }), backgroundColor: 'rgba(200,164,78,0.55)', borderColor: '#c8a44e', borderWidth: 1 }] },
       options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
     });
   }
@@ -8464,10 +8845,14 @@ async function loadAdminUserProgressDetail(userId, userName) {
       else insightLines = [String(data.insights)];
     }
     if (insightLines.length) detailEl.innerHTML += '<p class="progress-insights" style="margin-top:12px"><strong>Insights:</strong> ' + insightLines.join(' • ') + '</p>';
+    if (data.sourceStats) {
+      var ss = data.sourceStats;
+      detailEl.innerHTML += '<p class="form-hint" style="margin-top:12px;line-height:1.5">Merged timeline: <strong>' + (ss.dailyCheckins != null ? ss.dailyCheckins : '0') + '</strong> daily check-in rows · <strong>' + (ss.sundayCheckins != null ? ss.sundayCheckins : '0') + '</strong> Sunday check-ins · <strong>' + (ss.workoutSessions != null ? ss.workoutSessions : '0') + '</strong> My Workout sessions · <strong>' + (ss.progressLogs != null ? ss.progressLogs : '0') + '</strong> progress log rows.</p>';
+    }
     try {
       var prevChartErr = document.getElementById('adminCpChartsError');
       if (prevChartErr) prevChartErr.remove();
-      drawAdminProgressCharts(data.logs || []);
+      drawAdminProgressCharts(data);
     } catch (chartErr) {
       console.error('Admin progress charts error:', chartErr);
       var prevChartErr = document.getElementById('adminCpChartsError');
@@ -9363,7 +9748,6 @@ var USER_TAB_LABELS = {
   home: 'Home',
   workout: 'My Workout',
   programs: 'My Programs',
-  progress: 'My Progress',
   checkin: 'Check-in',
   messages: 'Messages',
   profile: 'My Profile',
@@ -9373,8 +9757,7 @@ var USER_TAB_SUBTITLES = {
   home: 'Your dashboard and daily actions in one place.',
   workout: 'Log sessions and review recent training history.',
   programs: 'Programs assigned by your lifestyle manager.',
-  progress: 'Track body metrics and keep every entry visible.',
-  checkin: 'Daily check-in, Sunday check-in, or My progress.',
+  checkin: 'Daily check-in and Sunday weekly review.',
   messages: 'Chat directly with your Lifestyle Manager in one clean thread.',
   profile: 'Keep your personal and contact details up to date.',
   contact: 'Schedule calls or send support requests quickly.'
@@ -9383,18 +9766,16 @@ function showCheckinSubView(view) {
   var hub = document.getElementById('checkin-hub');
   var sunday = document.getElementById('checkin-sunday');
   var daily = document.getElementById('checkin-daily');
-  var progress = document.getElementById('checkin-progress');
   if (hub) hub.style.display = view === 'hub' ? '' : 'none';
   if (sunday) sunday.style.display = view === 'sunday' ? '' : 'none';
   if (daily) daily.style.display = view === 'daily' ? '' : 'none';
-  if (progress) progress.style.display = view === 'progress' ? '' : 'none';
   if (view === 'sunday') loadSundayCheckinDefaults();
   if (view === 'daily') loadDailyCheckinForm();
-  if (view === 'progress') { var d = document.getElementById('proDateC'); if (d) d.value = new Date().toISOString().slice(0, 10); loadProgressLogsCheckin(); }
   var wrap = document.getElementById('userTabContentWrap');
   if (wrap) wrap.scrollTop = 0;
 }
 function switchUserTab(tab) {
+  if (tab === 'progress') tab = 'workout';
   document.querySelectorAll('.user-sidebar-link[data-tab]').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.user-bottom-nav-item').forEach(function(t) { t.classList.remove('active'); });
   document.querySelectorAll('.user-section').forEach(function(s) { s.classList.remove('active'); });
@@ -9422,13 +9803,6 @@ function switchUserTab(tab) {
       setTimeout(function() { bbRefreshDesktopUserDashboard(); }, 150);
     }
   }
-  if (tab === 'progress') {
-    var proDate = document.getElementById('proDate');
-    if (proDate) proDate.value = new Date().toISOString().slice(0, 10);
-    var successEl = document.getElementById('progressFormSuccess');
-    if (successEl) successEl.style.display = 'none';
-    loadProgressLogs();
-  }
   if (tab === 'messages') loadUserMessagesSection();
   if (tab === 'contact') {
     var today = new Date().toISOString().split('T')[0];
@@ -9441,9 +9815,17 @@ function switchUserTab(tab) {
     if (mtgBtn) mtgBtn.textContent = 'Schedule Call';
     loadMyMeetings();
   }
-  if (tab === 'checkin') { showCheckinSubView('hub'); loadSundayCheckinDefaults(); }
   if (tab === 'programs') loadUserPrograms();
-  if (tab === 'workout') restoreWorkoutStateFromStorage();
+  if (tab === 'checkin') { showCheckinSubView('hub'); loadSundayCheckinDefaults(); }
+  var bbFwFab = document.getElementById('bbFocusWheelFab');
+  if (bbFwFab) {
+    if (tab === 'workout') bbFwFab.style.display = 'none';
+    else if (typeof loadFocusWheelState === 'function') loadFocusWheelState();
+  }
+  if (tab === 'workout') {
+    restoreWorkoutStateFromStorage();
+    initWorkoutSessionUI();
+  }
 }
 
 window._bbUserCharts = window._bbUserCharts || {};
@@ -10027,7 +10409,7 @@ async function loadMicroGoals() {
         if (show) {
           var prefix = sev === 'P0' ? 'High risk' : 'Attention';
           if (inactText) inactText.textContent = 'We haven\u2019t seen your daily check-in for ' + inDays + ' days. ' + prefix + ' \u2014 log today.';
-          inactBanner.style.display = 'flex';
+          inactBanner.style.display = 'block';
         } else {
           inactBanner.style.display = 'none';
         }
@@ -10359,6 +10741,7 @@ async function loadUserProgress() {
 }
 async function submitProgress() {
   if (!window.currentUser) return;
+  if (!document.getElementById('proDate')) return;
   var proDateEl = document.getElementById('proDate');
   var weight = document.getElementById('proWeight');
   var bodyFat = document.getElementById('proBodyFat');
@@ -10769,6 +11152,7 @@ function toggleTimer() {
     clearInterval(timerInterval);
     timerRunning = false;
     document.getElementById('timerBtn').textContent = '▶';
+    updateTimerDisplay();
   } else {
     timerRunning = true;
     document.getElementById('timerBtn').textContent = '⏸';
@@ -10807,33 +11191,75 @@ function updateTimerDisplay() {
   }
 }
 
-async function submitWorkout() {
-  if (!window.currentUser) { alert('Please login first'); return; }
-  const name = document.getElementById('wkName').value.trim();
-  const feedback = document.getElementById('wkFeedback').value.trim();
-  if (!name) { alert('Enter workout name'); return; }
-  if (!feedback) { alert('Enter feedback'); return; }
-
-  var btn=document.querySelector('#usec-workout .form-submit');
-  if(btn){btn.disabled=true;btn.classList.add('loading');btn._orig=btn.innerHTML;btn.innerHTML='<span class="btn-spinner"></span> Submitting...';}
-  try {
-  const data = await apiCall('POST', '/api/workouts', {
-    user_id: window.currentUser.id,
-    workout_name: name,
+async function submitWorkoutSession() {
+  if (!window.currentUser || !window.currentUser.token) { alert('Please log in first.'); return; }
+  var dateEl = document.getElementById('wkSessionDate');
+  var typeEl = document.getElementById('wkType');
+  var date = dateEl ? dateEl.value : '';
+  var workoutType = typeEl ? typeEl.value.trim() : '';
+  if (!date || !workoutType) { alert('Please choose date and workout type.'); return; }
+  var showStr = wkShouldShowStrength(workoutType);
+  var lifts = showStr ? wkCollectSessionLifts() : {};
+  var notesEl = document.getElementById('wkNotes');
+  var body = {
+    date: date,
+    workout_type: workoutType,
     duration_seconds: timerSeconds,
-    feedback: feedback
-  });
+    notes: notesEl && notesEl.value ? notesEl.value.trim().slice(0, 5000) : '',
+    session_lifts: Object.keys(lifts).length ? lifts : null,
+    workout_completed: !!(document.getElementById('wkCompleted') && document.getElementById('wkCompleted').checked),
+    intensity: (document.getElementById('wkIntensity') && document.getElementById('wkIntensity').value) ? document.getElementById('wkIntensity').value : null,
+    energy_level: (document.getElementById('wkEnergy') && document.getElementById('wkEnergy').value) ? document.getElementById('wkEnergy').value : null
+  };
 
-  if (data.error) { if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Submit';} alert(data.error); return; }
-  if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Submit';}
-  loadUserStats();
-  loadScorecard();
-  showPopup('Workout Logged!', 'Great session! Keep the consistency going.', '"The pain you feel today will be the strength you feel tomorrow."', 'OK');
-  document.getElementById('wkName').value = '';
-  document.getElementById('wkFeedback').value = '';
-  resetTimer();
-  loadWorkoutHistory();
-  } catch(e) { if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Submit';} alert('Failed to log workout.'); }
+  var btn = document.getElementById('wkSaveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    var data = await apiCall('POST', '/api/workouts/session', body);
+    if (data && data.error) {
+      alert(data.error);
+      if (btn) { btn.disabled = false; btn.textContent = 'Save session'; }
+      return;
+    }
+    var toast = document.getElementById('wkSessionToast');
+    if (toast) {
+      toast.style.display = 'block';
+      setTimeout(function() { toast.style.display = 'none'; }, 3000);
+    }
+    loadUserStats();
+    loadScorecard();
+    if (typeof bbRefreshDesktopUserDashboard === 'function') setTimeout(function() { bbRefreshDesktopUserDashboard(); }, 150);
+    resetTimer();
+    loadWorkoutHistory();
+    if (btn) { btn.disabled = false; btn.textContent = 'Save session'; }
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save session'; }
+    alert('Failed to save session.');
+  }
+}
+
+function wkFmtDur(sec) {
+  sec = parseInt(sec, 10) || 0;
+  var m = Math.floor(sec / 60);
+  var s = sec % 60;
+  return m + 'm ' + s + 's';
+}
+
+function wkHistoryLiftBits(w) {
+  var sl = w.session_lifts;
+  if (typeof sl === 'string') { try { sl = JSON.parse(sl); } catch (e) { sl = null; } }
+  if (sl && typeof sl === 'object' && Object.keys(sl).length) {
+    return Object.keys(sl).slice(0, 5).map(function (k) {
+      var lab = (WK_LIFT_LABELS[k] || k).split(/\s+/)[0];
+      return lab + ' ' + sl[k];
+    }).join(' · ');
+  }
+  var bits = [];
+  if (w.bench_kg) bits.push('Bench ' + w.bench_kg);
+  if (w.squat_kg) bits.push('Sq ' + w.squat_kg);
+  if (w.deadlift_kg) bits.push('DL ' + w.deadlift_kg);
+  if (w.weight_kg) bits.push('Wt ' + w.weight_kg + ' kg');
+  return bits.join(' · ');
 }
 
 async function loadWorkoutHistory() {
@@ -10847,15 +11273,18 @@ async function loadWorkoutHistory() {
   if (!el) return;
   el.style.display = 'block';
   if (data.error || !Array.isArray(data) || data.length === 0) {
-    el.innerHTML = '<p style="text-align:center;color:var(--muted);margin-top:20px">No workouts yet. Start your first session!</p>';
+    el.innerHTML = '<p style="text-align:center;color:var(--muted);margin-top:20px">No sessions yet. Log your first workout above.</p>';
     return;
   }
-  el.innerHTML = '<h3>Recent Workouts</h3>' + data.slice(0, 10).map(w => {
-    const dur = w.duration_seconds;
-    const m = Math.floor(dur / 60);
-    const s = dur % 60;
-    const date = new Date(w.created_at).toLocaleDateString();
-    return '<div class="wh-item"><div><div class="wh-name">' + w.workout_name + '</div><div class="wh-meta">' + date + '</div></div><div class="wh-meta">' + m + 'm ' + s + 's</div></div>';
+  el.innerHTML = '<h3>Recent sessions</h3>' + data.slice(0, 12).map(function(w) {
+    var dur = w.duration_seconds || 0;
+    var sessionDay = w.session_date ? String(w.session_date).slice(0, 10) : '';
+    var when = sessionDay
+      ? new Date(sessionDay + 'T12:00:00').toLocaleDateString()
+      : (w.created_at ? new Date(w.created_at).toLocaleDateString() : '—');
+    var type = (w.workout_type || w.workout_name || '—').trim();
+    var sub = wkHistoryLiftBits(w);
+    return '<div class="wh-item"><div><div class="wh-name">' + escapeHtml(type) + '</div><div class="wh-meta">' + escapeHtml(when) + (sub ? ' · ' + escapeHtml(sub) : '') + '</div></div><div class="wh-meta">' + escapeHtml(wkFmtDur(dur)) + '</div></div>';
   }).join('');
 }
 
@@ -11973,7 +12402,7 @@ async function refreshApp(btn) {
 // PWA Service Worker registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js?v=20').then(function(reg) {
+    navigator.serviceWorker.register('/sw.js?v=21').then(function(reg) {
       if (reg.waiting) navigator.serviceWorker.addEventListener('controllerchange', function() { window.location.reload(); });
       reg.addEventListener('updatefound', function() {
         var w = reg.installing;

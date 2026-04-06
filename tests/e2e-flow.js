@@ -18,7 +18,7 @@ const testUser = {
 };
 const TEST_PROFILE_PICTURE = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9sX0Xr0AAAAASUVORK5CYII=';
 
-let createdIds = { userId: null, auditId: null, part2Id: null, meetingId: null, workoutId: null, contactId: null, checkinId: null, dailyCheckinId: null };
+let createdIds = { userId: null, auditId: null, part2Id: null, meetingId: null, workoutId: null, sessionWorkoutId: null, contactId: null, checkinId: null, dailyCheckinId: null };
 let failures = [];
 
 function request(method, path, body = null, opts = {}) {
@@ -69,7 +69,18 @@ async function queryDb(sql, params = []) {
   }
 }
 
+/** Align local DB with server.js init (session_lifts JSONB) when E2E runs against a long-lived server */
+async function ensureWorkoutSessionLiftsColumn() {
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  try {
+    await pool.query('ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS session_lifts JSONB');
+  } finally {
+    await pool.end();
+  }
+}
+
 async function runTests() {
+  await ensureWorkoutSessionLiftsColumn();
   console.log('=== E2E: Sign up ===');
   const signup = await request('POST', '/api/auth/signup', {
     email: testUser.email,
@@ -178,6 +189,42 @@ async function runTests() {
   createdIds.workoutId = workout.body?.id;
   console.log(workout.status === 200 ? '  OK' : '  FAIL');
 
+  console.log('=== E2E: Workout session (authenticated) ===');
+  const sessionDate = new Date().toISOString().slice(0, 10);
+  const wkSession = await request('POST', '/api/workouts/session', {
+    date: sessionDate,
+    workout_type: 'Full Body',
+    duration_seconds: 1850,
+    notes: 'E2E full session',
+    session_lifts: { bench_press: 62.5, back_squat: 90, deadlift: 110 },
+    bench_kg: 62.5,
+    squat_kg: 90,
+    deadlift_kg: 110,
+    workout_completed: true,
+    intensity: 'Hard',
+    energy_level: 'High'
+  }, { auth: { token: userTokenAfterReset } });
+  assert(wkSession.status === 200 && wkSession.body?.id, `Workout session POST: ${wkSession.status} ${JSON.stringify(wkSession.body)}`);
+  createdIds.sessionWorkoutId = wkSession.body.id;
+  const sessionRows = await queryDb(
+    'SELECT session_date, workout_type, bench_kg, squat_kg, deadlift_kg, session_lifts, water_liters, calories, protein_g FROM workout_logs WHERE id = ?',
+    [createdIds.sessionWorkoutId]
+  );
+  assert(sessionRows.length === 1, 'Session row exists in DB');
+  assert(sessionRows[0].workout_type === 'Full Body', 'workout_type saved');
+  assert(Number(sessionRows[0].bench_kg) === 62.5, 'bench_kg saved');
+  assert(Number(sessionRows[0].squat_kg) === 90, 'squat_kg saved');
+  assert(Number(sessionRows[0].deadlift_kg) === 110, 'deadlift_kg saved');
+  if (sessionRows[0].session_lifts != null) {
+    const sl = typeof sessionRows[0].session_lifts === 'string'
+      ? JSON.parse(sessionRows[0].session_lifts)
+      : sessionRows[0].session_lifts;
+    assert(sl && Number(sl.bench_press) === 62.5 && Number(sl.back_squat) === 90 && Number(sl.deadlift) === 110, 'session_lifts JSON');
+  }
+  assert(sessionRows[0].session_date != null, 'session_date set');
+  assert(sessionRows[0].water_liters == null && sessionRows[0].calories == null && sessionRows[0].protein_g == null, 'body/nutrition columns empty when not sent');
+  console.log(wkSession.status === 200 ? '  OK' : '  FAIL');
+
   console.log('=== E2E: Contact message ===');
   const contact = await request('POST', '/api/contact', {
     user_id: userId,
@@ -223,7 +270,7 @@ async function runTests() {
     water_ml: 2500,
     protein_g: 180,
     sleep_hours: 7.5
-  }, { auth: { token: userToken } });
+  }, { auth: { token: userTokenAfterReset } });
   assert(dailyCheckin.status === 200 && dailyCheckin.body?.id, 'Daily check-in POST');
   createdIds.dailyCheckinId = dailyCheckin.body?.id;
   console.log(dailyCheckin.status === 200 ? '  OK' : '  FAIL');

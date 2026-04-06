@@ -13,6 +13,7 @@ const progressRoutes = require('./routes/progress');
 const { createMarketingAIRouter } = require('./routes/marketingAI');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
+const workoutSessionLifts = require('./services/workoutSessionLifts');
 const { inferTimezoneFromCountry, getUserTimezone } = require('./utils/timezone');
 const { startCampaignScheduler, restartScheduler: restartCampaignScheduler, broadcastMessage: broadcastCampaignMessage } = require('./services/campaignScheduler');
 const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalizeCampaignDay, normalizeTime: normalizeCampaignTime } = require('./controllers/campaignController');
@@ -628,6 +629,29 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_wheel_last_label TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_public_program BOOLEAN DEFAULT TRUE`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_public_global BOOLEAN DEFAULT FALSE`); } catch (e) { /* ignore */ }
+
+  const wkCols = [
+    ['session_date', 'DATE'],
+    ['workout_type', 'TEXT'],
+    ['session_lifts', 'JSONB'],
+    ['bench_kg', 'REAL'],
+    ['squat_kg', 'REAL'],
+    ['deadlift_kg', 'REAL'],
+    ['weight_kg', 'REAL'],
+    ['body_fat_percent', 'REAL'],
+    ['calories', 'INTEGER'],
+    ['protein_g', 'INTEGER'],
+    ['water_liters', 'REAL'],
+    ['sleep_hrs', 'REAL'],
+    ['workout_completed', 'BOOLEAN'],
+    ['intensity', 'TEXT'],
+    ['energy_level', 'TEXT']
+  ];
+  for (const [col, typ] of wkCols) {
+    try {
+      await pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS ${col} ${typ}`);
+    } catch (e) { /* ignore */ }
+  }
 
   // Sync programs table with PDF files on disk
   try {
@@ -1474,6 +1498,95 @@ app.post('/api/workouts', async (req, res) => {
   }
 });
 
+/** Full workout session (My Workout redesign) — authenticated user, extended columns + progress_logs when body metrics present */
+app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const b = req.body || {};
+    const date = String(b.date || '').trim().slice(0, 10);
+    const workoutType = String(b.workout_type || '').trim();
+    if (!date || !workoutType) return res.status(400).json({ error: 'Date and workout type are required' });
+    const id = uuidv4();
+    const dur = parseInt(b.duration_seconds, 10);
+    const notes = String(b.notes || '').trim().slice(0, 5000);
+    const waterLiters = b.water != null && b.water !== '' ? parseFloat(b.water) : null;
+    const sleepH = b.sleep_hrs != null && b.sleep_hrs !== '' ? parseFloat(b.sleep_hrs) : null;
+    const sl = workoutSessionLifts.parseSessionLifts(b);
+    const canon = workoutSessionLifts.canonicalLiftsFromSessionLifts(sl);
+    const legacyBench = b.bench_kg != null && b.bench_kg !== '' ? parseFloat(b.bench_kg) : null;
+    const legacySquat = b.squat_kg != null && b.squat_kg !== '' ? parseFloat(b.squat_kg) : null;
+    const legacyDl = b.deadlift_kg != null && b.deadlift_kg !== '' ? parseFloat(b.deadlift_kg) : null;
+    const benchKg = canon.bench_kg != null ? canon.bench_kg : legacyBench;
+    const squatKg = canon.squat_kg != null ? canon.squat_kg : legacySquat;
+    const deadliftKg = canon.deadlift_kg != null ? canon.deadlift_kg : legacyDl;
+    const sessionLiftsForDb = workoutSessionLifts.hasAnySessionLift(sl) ? sl : null;
+    await run(
+      `INSERT INTO workout_logs (
+        id, user_id, workout_name, duration_seconds, feedback,
+        session_date, workout_type, session_lifts, bench_kg, squat_kg, deadlift_kg,
+        weight_kg, body_fat_percent, calories, protein_g, water_liters, sleep_hrs,
+        workout_completed, intensity, energy_level
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [
+        id,
+        userId,
+        workoutType,
+        Number.isFinite(dur) ? dur : 0,
+        notes,
+        date,
+        workoutType,
+        sessionLiftsForDb,
+        benchKg,
+        squatKg,
+        deadliftKg,
+        b.weight_kg != null && b.weight_kg !== '' ? parseFloat(b.weight_kg) : null,
+        b.body_fat_percent != null && b.body_fat_percent !== '' ? parseFloat(b.body_fat_percent) : null,
+        b.calories != null && b.calories !== '' ? parseInt(b.calories, 10) : null,
+        b.protein_g != null && b.protein_g !== '' ? parseInt(b.protein_g, 10) : null,
+        waterLiters != null && !Number.isNaN(waterLiters) ? waterLiters : null,
+        sleepH != null && !Number.isNaN(sleepH) ? sleepH : null,
+        !!b.workout_completed,
+        b.intensity ? String(b.intensity).slice(0, 40) : null,
+        b.energy_level ? String(b.energy_level).slice(0, 40) : null
+      ]
+    );
+    // Workout session: structured lifts + session completion sync to progress_logs (canonical bench/squat/dead map from session_lifts when present).
+    const hasProgress =
+      workoutSessionLifts.hasAnySessionLift(sl) ||
+      [legacyBench, legacySquat, legacyDl].some((v) => v != null && v !== '' && !Number.isNaN(v)) ||
+      !!b.workout_completed;
+    if (hasProgress) {
+      await progressService.insertProgress(userId, {
+        log_date: date,
+        weight: b.weight_kg,
+        body_fat: b.body_fat_percent,
+        calories_intake: b.calories,
+        protein_intake: b.protein_g,
+        workout_completed: !!b.workout_completed,
+        workout_type: workoutType,
+        strength_bench: benchKg,
+        strength_squat: squatKg,
+        strength_deadlift: deadliftKg,
+        sleep_hours: sleepH,
+        water_intake: waterLiters != null && !Number.isNaN(waterLiters) ? waterLiters : null
+      });
+    }
+    const wu = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [userId]);
+    if (wu && wu.email) {
+      userEmail.emailWorkoutLogged(
+        wu.email,
+        wu.first_name,
+        workoutType,
+        Number.isFinite(dur) ? Math.round(dur / 60) : null
+      );
+    }
+    res.json({ id, message: 'Session saved' });
+  } catch (e) {
+    console.error('Workout session error:', e.message);
+    res.status(500).json({ error: 'Failed to save session' });
+  }
+});
+
 // Admin: get all workouts (must be before :userId to avoid conflict)
 app.get('/api/workouts', async (req, res) => {
   const rows = await queryAll(`SELECT w.*, u.first_name, u.last_name, u.email 
@@ -2023,8 +2136,7 @@ app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req
     const from = (req.query.from || '').trim();
     const to = (req.query.to || '').trim();
     const search = (req.query.search || '').trim();
-    let sql = `SELECT w.id, w.user_id, w.workout_name, w.duration_seconds, w.feedback, w.created_at,
-         u.first_name, u.last_name, u.email
+    let sql = `SELECT w.*, u.first_name, u.last_name, u.email
        FROM workout_logs w
        JOIN users u ON w.user_id = u.id
        WHERE 1=1`;
@@ -2040,8 +2152,8 @@ app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req
     if (search) {
       const q = '%' + search.replace(/%/g, '\\%') + '%';
       sql +=
-        ' AND (u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.email ILIKE ? OR w.workout_name ILIKE ? OR COALESCE(w.feedback,\'\') ILIKE ?)';
-      params.push(q, q, q, q, q);
+        ' AND (u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.email ILIKE ? OR w.workout_name ILIKE ? OR COALESCE(w.workout_type,\'\') ILIKE ? OR COALESCE(w.feedback,\'\') ILIKE ?)';
+      params.push(q, q, q, q, q, q);
     }
     sql += ' ORDER BY w.created_at DESC LIMIT 250';
     const rows = await queryAll(sql, params);
@@ -3599,11 +3711,16 @@ async function getAdminAIContext() {
       });
     } else lines.push('  (None.)');
 
-    const recentWorkouts = await queryAll("SELECT w.workout_name, w.duration_seconds, w.feedback, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 15");
-    lines.push('\n--- RECENT WORKOUT LOGS ---');
+    const recentWorkouts = await queryAll(`SELECT w.workout_name, w.workout_type, w.session_date, w.duration_seconds, w.workout_completed,
+      w.bench_kg, w.squat_kg, w.deadlift_kg, w.intensity, w.energy_level, w.feedback, w.created_at, u.first_name, u.last_name
+      FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 15`);
+    lines.push('\n--- RECENT MY WORKOUT SESSIONS ---');
     if (recentWorkouts && recentWorkouts.length > 0) {
       recentWorkouts.forEach(r => {
-        lines.push(`  ${(r.first_name || '')} ${(r.last_name || '')} | ${r.workout_name || ''} | ${r.duration_seconds || 0}s | ${(r.feedback || '').slice(0, 40)} | ${r.created_at || ''}`);
+        const day = r.session_date ? String(r.session_date).slice(0, 10) : '';
+        const typ = (r.workout_type || r.workout_name || '').trim();
+        const lifts = [r.bench_kg, r.squat_kg, r.deadlift_kg].some(x => x != null && x !== '') ? ` B/S/DL:${r.bench_kg ?? '—'}/${r.squat_kg ?? '—'}/${r.deadlift_kg ?? '—'}` : '';
+        lines.push(`  ${(r.first_name || '')} ${(r.last_name || '')} | ${day || '—'} | ${typ} | ${r.duration_seconds || 0}s | done:${r.workout_completed ? 'yes' : 'no'}${lifts} | ${(r.feedback || '').slice(0, 36)} | ${r.created_at || ''}`);
       });
     } else lines.push('  (None.)');
 
