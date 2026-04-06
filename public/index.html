@@ -3809,6 +3809,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
               </select>
             </div>
           </div>
+          <div class="wk-field" id="wkOtherDetailsWrap" style="display:none;margin-top:12px">
+            <label for="wkOtherDetails">Other workout details <span class="req">*</span></label>
+            <textarea class="wk-input wk-textarea" id="wkOtherDetails" rows="3" placeholder="Write what you did (exercise names, sets, reps, weights, cardio details, etc.)"></textarea>
+          </div>
           <div class="wk-timer-block">
             <label class="wk-timer-label">Duration</label>
             <div class="wk-timer-row">
@@ -6011,6 +6015,11 @@ function wkSyncStrengthSection() {
   var sec = document.getElementById('wkStrengthSection');
   if (!sel || !sec) return;
   sec.style.display = wkShouldShowStrength(sel.value) ? 'block' : 'none';
+  var otherWrap = document.getElementById('wkOtherDetailsWrap');
+  var otherInput = document.getElementById('wkOtherDetails');
+  var isOther = String(sel.value || '').trim() === 'Other';
+  if (otherWrap) otherWrap.style.display = isOther ? 'block' : 'none';
+  if (otherInput) otherInput.required = isOther;
   wkRenderStrengthFields();
 }
 function initWorkoutSessionUI() {
@@ -6032,6 +6041,7 @@ function saveWorkoutStateToStorage() {
       sessionDate: (document.getElementById('wkSessionDate') || {}).value || '',
       workoutType: (document.getElementById('wkType') || {}).value || '',
       notes: (document.getElementById('wkNotes') || {}).value || '',
+      otherDetails: (document.getElementById('wkOtherDetails') || {}).value || '',
       lifts: wkCollectSessionLifts(),
       completed: document.getElementById('wkCompleted') && document.getElementById('wkCompleted').checked,
       intensity: (document.getElementById('wkIntensity') || {}).value || '',
@@ -6061,6 +6071,7 @@ function restoreWorkoutStateFromStorage() {
       setVal('wkSessionDate', snap.sessionDate);
       setVal('wkType', snap.workoutType);
       setVal('wkNotes', snap.notes);
+      setVal('wkOtherDetails', snap.otherDetails);
       setVal('wkIntensity', snap.intensity);
       setVal('wkEnergy', snap.energy);
       var c = document.getElementById('wkCompleted');
@@ -7660,6 +7671,15 @@ function _wkFmtKg(v) {
   var n = Number(v);
   return isNaN(n) ? '—' : n + ' kg';
 }
+function wkSplitOtherDetailsFromNotes(text) {
+  var raw = (text == null) ? '' : String(text);
+  var re = /(?:^|\n\n)Other workout details:\s*([\s\S]*)$/i;
+  var m = raw.match(re);
+  if (!m) return { other: '', clean: raw.trim() };
+  var other = String(m[1] || '').trim();
+  var clean = raw.slice(0, m.index).trim();
+  return { other: other, clean: clean };
+}
 function _wkAdminStrengthRows(r) {
   var sl = r.session_lifts;
   if (typeof sl === 'string') { try { sl = JSON.parse(sl); } catch (e) { sl = null; } }
@@ -7686,6 +7706,7 @@ async function viewAdminWorkout(id) {
   var sessionDay = r.session_date ? String(r.session_date).slice(0, 10) : '';
   var sessionLabel = sessionDay ? new Date(sessionDay + 'T12:00:00').toLocaleDateString(undefined, { dateStyle: 'full' }) : '—';
   var woType = (r.workout_type || r.workout_name || '—').trim();
+  var splitNotes = wkSplitOtherDetailsFromNotes(r.feedback);
   var waterL = r.water_liters != null && r.water_liters !== '' ? Number(r.water_liters) : null;
   var waterStr = waterL != null && !isNaN(waterL) ? waterL + ' L' : '—';
   body.innerHTML = _row('User', fullName) +
@@ -7705,7 +7726,8 @@ async function viewAdminWorkout(id) {
     _row('Workout completed', r.workout_completed ? 'Yes' : 'No') +
     _row('Intensity', r.intensity || '—') +
     _row('Energy level', r.energy_level || '—') +
-    _rowBlock('Notes / feedback', (r.feedback && String(r.feedback).trim()) ? r.feedback : '—');
+    _rowBlock('Other workout details', splitNotes.other || '—') +
+    _rowBlock('Notes / feedback', splitNotes.clean || '—');
   openModal('adminWorkoutViewModal');
 }
 
@@ -11201,11 +11223,19 @@ async function submitWorkoutSession() {
   var showStr = wkShouldShowStrength(workoutType);
   var lifts = showStr ? wkCollectSessionLifts() : {};
   var notesEl = document.getElementById('wkNotes');
+  var otherDetailsEl = document.getElementById('wkOtherDetails');
+  var otherDetails = otherDetailsEl && otherDetailsEl.value ? otherDetailsEl.value.trim() : '';
+  if (workoutType === 'Other' && !otherDetails) { alert('Please add details for "Other" workout type.'); return; }
+  var baseNotes = notesEl && notesEl.value ? notesEl.value.trim() : '';
+  var finalNotes = baseNotes;
+  if (workoutType === 'Other' && otherDetails) {
+    finalNotes = (baseNotes ? (baseNotes + '\n\n') : '') + 'Other workout details: ' + otherDetails;
+  }
   var body = {
     date: date,
     workout_type: workoutType,
     duration_seconds: timerSeconds,
-    notes: notesEl && notesEl.value ? notesEl.value.trim().slice(0, 5000) : '',
+    notes: finalNotes.slice(0, 5000),
     session_lifts: Object.keys(lifts).length ? lifts : null,
     workout_completed: !!(document.getElementById('wkCompleted') && document.getElementById('wkCompleted').checked),
     intensity: (document.getElementById('wkIntensity') && document.getElementById('wkIntensity').value) ? document.getElementById('wkIntensity').value : null,
@@ -11261,6 +11291,13 @@ function wkHistoryLiftBits(w) {
   if (w.weight_kg) bits.push('Wt ' + w.weight_kg + ' kg');
   return bits.join(' · ');
 }
+function wkHistoryOtherDetailsSnippet(w) {
+  var split = wkSplitOtherDetailsFromNotes(w && w.feedback);
+  if (!split.other) return '';
+  var v = split.other.replace(/\s+/g, ' ').trim();
+  if (v.length > 42) v = v.slice(0, 40) + '…';
+  return 'Other: ' + v;
+}
 
 async function loadWorkoutHistory() {
   if (!window.currentUser) return;
@@ -11283,7 +11320,7 @@ async function loadWorkoutHistory() {
       ? new Date(sessionDay + 'T12:00:00').toLocaleDateString()
       : (w.created_at ? new Date(w.created_at).toLocaleDateString() : '—');
     var type = (w.workout_type || w.workout_name || '—').trim();
-    var sub = wkHistoryLiftBits(w);
+    var sub = [wkHistoryLiftBits(w), wkHistoryOtherDetailsSnippet(w)].filter(Boolean).join(' · ');
     return '<div class="wh-item"><div><div class="wh-name">' + escapeHtml(type) + '</div><div class="wh-meta">' + escapeHtml(when) + (sub ? ' · ' + escapeHtml(sub) : '') + '</div></div><div class="wh-meta">' + escapeHtml(wkFmtDur(dur)) + '</div></div>';
   }).join('');
 }

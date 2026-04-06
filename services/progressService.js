@@ -197,7 +197,9 @@ function mergeWorkoutSessionsIntoLogs(baseLogs, workoutRows) {
   });
   const byDaySessions = {};
   workoutRows.forEach((w) => {
-    const raw = w.session_date || (w.created_at ? String(w.created_at).slice(0, 10) : '');
+    let raw = w.session_date || (w.created_at ? String(w.created_at).slice(0, 10) : '');
+    if (raw instanceof Date) raw = raw.toISOString().slice(0, 10);
+    else raw = String(raw || '').slice(0, 10);
     const d = raw.slice(0, 10);
     if (!d) return;
     if (!byDaySessions[d]) byDaySessions[d] = [];
