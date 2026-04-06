@@ -2152,6 +2152,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   .admin-list-table tbody tr{display:table-row!important;margin:0;padding:0;background:transparent!important;border:none!important;border-radius:0}
   .admin-list-table tbody td{display:table-cell!important;padding:10px 8px!important}
   .admin-list-table tbody td::before{display:none!important}
+  /* Workouts is row-clickable; show as stacked cards on mobile to avoid header/value overlap */
+  #tab-workouts .admin-list-table thead{display:none!important}
+  #tab-workouts .admin-list-table tbody tr{display:block!important;width:100%;margin-bottom:12px;padding:14px;background:rgba(200,164,78,0.06)!important;border:1px solid var(--bdr)!important;border-radius:8px}
+  #tab-workouts .admin-list-table tbody td{display:block!important;padding:6px 0!important;font-size:13px!important}
+  #tab-workouts .admin-list-table tbody td::before{display:block!important;content:attr(data-label);font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:3px}
+  #tab-workouts .admin-list-table tbody td.admin-workout-cell-user{max-width:none;white-space:normal;overflow:visible;text-overflow:clip}
   #tab-dailycheckin .admin-table-wrap,#tab-sundaycheckin .admin-table-wrap,#tab-part2 .admin-table-wrap,#tab-requests .admin-table-wrap,#tab-workouts .admin-table-wrap{overflow-x:auto;min-width:0}
   .insights-table-wrap .admin-table thead{display:none}
   .insights-table-wrap .admin-table tbody tr{display:block;width:100%;margin-bottom:12px;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
@@ -4445,7 +4451,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         </div>
       </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table admin-workouts-table">
-        <thead><tr><th>User</th><th>Session date</th><th>Type</th><th>Duration</th><th>Logged</th><th style="text-align:right;width:88px">Actions</th></tr></thead>
+        <thead><tr><th>User</th><th>Session date</th><th>Type</th><th>Duration</th><th>Logged</th></tr></thead>
         <tbody id="workoutsBody"></tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
@@ -7631,7 +7637,7 @@ async function deleteTribeMemberPermanently(id, name) {
 async function loadAdminWorkouts() {
   const tbody = document.getElementById('workoutsBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
   var wf = document.getElementById('woFilterFrom');
   var wt = document.getElementById('woFilterTo');
   var ws = document.getElementById('woFilterSearch');
@@ -7641,7 +7647,7 @@ async function loadAdminWorkouts() {
   if (ws && ws.value.trim()) qs.push('search=' + encodeURIComponent(ws.value.trim()));
   const data = await apiCall('GET', '/api/admin/workouts' + (qs.length ? '?' + qs.join('&') : ''));
   if (data && data.error) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
     return;
   }
   const list = Array.isArray(data) ? data : [];
@@ -7661,9 +7667,8 @@ async function loadAdminWorkouts() {
       '<td data-label="Session">' + escapeHtml(sessStr) + '</td>' +
       '<td data-label="Type" title="' + escapeHtml(typeStr) + '">' + escapeHtml(typeStr.length > 42 ? typeStr.slice(0, 40) + '…' : typeStr) + '</td>' +
       '<td data-label="Duration">' + escapeHtml(durStr) + '</td>' +
-      '<td data-label="Logged">' + escapeHtml(loggedStr) + '</td>' +
-      '<td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewAdminWorkout(\'' + id + '\')">View</button></td></tr>';
-  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
+      '<td data-label="Logged">' + escapeHtml(loggedStr) + '</td></tr>';
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
 }
 
 function _wkFmtKg(v) {
