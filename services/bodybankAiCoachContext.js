@@ -380,9 +380,9 @@ When an ENRICHED CLIENT PACK is present in your context, it contains PRE-COMPUTE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 BodyBank splits client data into **three separate product surfaces** plus legacy progress snapshots. Do **not** confuse them when advising:
 
-1. **Daily check-in** (table: \`daily_checkins\`): Micro-goals **per calendar day** — **steps**, **water (ml)**, **protein (g)**, **sleep (hours)**. This is the client’s lifestyle/habit log. It does **not** include gym lift numbers.
+1. **Daily check-in** (table: \`daily_checkins\`): Micro-goals **per calendar day** — **steps**, **water (litres; stored as \`water_ml\` in DB)**, **protein (g)**, **sleep (hours)**. This is the client’s lifestyle/habit log. It does **not** include gym lift numbers.
 
-2. **Sunday check-in** (table: \`sunday_checkins\`): **Weekly** narrative form — plan, weight/waist text, training/nutrition compliance, long-form sleep/stress, achievements, questions. Weight may be parsed from free text for trends.
+2. **Sunday check-in** (table: \`sunday_checkins\`): **Weekly** narrative form — plan, **body fat %** (numeric field), weight/waist text, training/nutrition compliance, long-form sleep/stress, achievements, questions. Weight may still be parsed from free text when needed; body fat % is stored explicitly and merged into client progress charts.
 
 3. **My Workout** (table: \`workout_logs\`): **Training sessions** — **session_date**, **workout_type** (e.g. Push/Pull/Legs/Full Body), **duration_seconds**, notes/feedback, **workout_completed**, **intensity**, **energy_level**.  
    - **Structured lifts** are stored in JSON column **\`session_lifts\`**: exercise keys (e.g. \`bench_press\`, \`back_squat\`, \`deadlift\`, \`bicep_curl\`, …) → kg. Fields shown depend on **workout_type** (Push vs Pull vs Legs, etc.).  
@@ -970,7 +970,7 @@ function computeClientMetrics(data) {
   const avgProt = avgProtLog || avgProtDaily;
   const avgWaterLog = avg(progress_logs, 'water_intake'); // litres
   const avgWaterDailyMl = avg(daily_checkins, 'water_ml');
-  const avgWater = avgWaterLog || (avgWaterDailyMl ? Math.round(avgWaterDailyMl / 100) / 10 : null);
+  const avgWater = avgWaterLog || (avgWaterDailyMl != null ? Math.round((avgWaterDailyMl / 1000) * 100) / 100 : null);
   const avgSleepLog = avg(progress_logs, 'sleep_hours');
   const avgSleepDaily = avg(daily_checkins, 'sleep_hours');
   const avgSleep = avgSleepLog || avgSleepDaily;
@@ -1619,14 +1619,14 @@ function formatPackAsText(pack) {
     lines.push(`\n[ALL DAILY CHECK-INS — ${rd.daily_checkins.length} days]`);
     if (detailed) {
       rd.daily_checkins.forEach(d => {
-        lines.push(`  ${d.checkin_date} | Steps: ${d.steps ?? '-'} | Water: ${d.water_ml ?? '-'}ml | Protein: ${d.protein_g ?? '-'}g | Sleep: ${d.sleep_hours ?? '-'}hrs`);
+        lines.push(`  ${d.checkin_date} | Steps: ${d.steps ?? '-'} | Water: ${d.water_ml != null ? (Number(d.water_ml) / 1000).toFixed(2) + 'L' : '-'} | Protein: ${d.protein_g ?? '-'}g | Sleep: ${d.sleep_hours ?? '-'}hrs`);
       });
     } else {
       // Standard: first + last 5 + summary
       const show = [...rd.daily_checkins.slice(0, 3), ...(rd.daily_checkins.length > 6 ? ['...'] : []), ...rd.daily_checkins.slice(-3)];
       show.forEach(d => {
         if (d === '...') { lines.push(`  ... (${rd.daily_checkins.length - 6} more rows) ...`); return; }
-        lines.push(`  ${d.checkin_date} | Steps: ${d.steps ?? '-'} | Water: ${d.water_ml ?? '-'}ml | Protein: ${d.protein_g ?? '-'}g | Sleep: ${d.sleep_hours ?? '-'}hrs`);
+        lines.push(`  ${d.checkin_date} | Steps: ${d.steps ?? '-'} | Water: ${d.water_ml != null ? (Number(d.water_ml) / 1000).toFixed(2) + 'L' : '-'} | Protein: ${d.protein_g ?? '-'}g | Sleep: ${d.sleep_hours ?? '-'}hrs`);
       });
     }
   } else {

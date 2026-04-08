@@ -114,6 +114,12 @@
             data: { labels: labels, datasets: [{ label: 'Weight (kg)', data: sorted.map(function(l) { return l.weight; }), borderColor: '#c8a44e', backgroundColor: 'rgba(200,164,78,0.1)', fill: true, tension: 0.3 }] }
           });
         }
+        if (sorted.filter(function(l) { return l.body_fat != null; }).length) {
+          addChart('rBodyFat', 'Body fat % (progress logs + Sunday check-in)', {
+            type: 'line',
+            data: { labels: labels, datasets: [{ label: 'Body fat %', data: sorted.map(function(l) { return l.body_fat; }), borderColor: '#a68c3e', backgroundColor: 'rgba(166,140,62,0.12)', fill: true, tension: 0.3 }] }
+          });
+        }
         var hasStrength = sorted.some(function(l) { return l.strength_bench != null || l.strength_squat != null || l.strength_deadlift != null; });
         if (hasStrength) {
           addChart('rStrength', 'Strength over time', {
@@ -171,9 +177,9 @@
           });
         }
         if (sorted.filter(function(l) { return l.water_intake != null; }).length) {
-          addChart('rWater', 'Water (ml)', {
+          addChart('rWater', 'Water (L)', {
             type: 'line',
-            data: { labels: labels, datasets: [{ label: 'Water (ml)', data: sorted.map(function(l) { return l.water_intake; }), borderColor: '#5dade2', backgroundColor: 'rgba(93,173,226,0.1)', fill: true, tension: 0.3 }] }
+            data: { labels: labels, datasets: [{ label: 'Water (L)', data: sorted.map(function(l) { return l.water_intake; }), borderColor: '#5dade2', backgroundColor: 'rgba(93,173,226,0.1)', fill: true, tension: 0.3 }] }
           });
         }
         if (sorted.filter(function(l) { return l.steps != null; }).length) {

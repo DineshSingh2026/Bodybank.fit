@@ -210,6 +210,11 @@ function writeSundayCheckinPdf({ outputPath, record, logoPath }) {
 
     sectionTitle(doc, 'Plan & baseline');
     fieldCard(doc, 'Plan', record.plan);
+    fieldCard(
+      doc,
+      'Body fat % (current)',
+      record.body_fat_percent != null && record.body_fat_percent !== '' ? String(record.body_fat_percent) : '—'
+    );
     fieldCard(doc, 'Current weight, waist & week', record.current_weight_waist_week);
     fieldCard(doc, 'Last week weight & waist', record.last_week_weight_waist);
     fieldCard(doc, 'Total weight loss / gain', record.total_weight_loss);

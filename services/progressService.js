@@ -14,6 +14,15 @@ function normalizeWeightKg(value) {
   return n;
 }
 
+/** Body fat % for charts (progress logs, Sunday check-in, legacy workout rows) */
+function normalizeBodyFatPercent(value) {
+  if (value == null || value === '') return null;
+  const n = Number.parseFloat(String(value).replace(/,/g, ''));
+  if (!Number.isFinite(n)) return null;
+  if (n < 2 || n > 70) return null;
+  return Math.round(n * 100) / 100;
+}
+
 async function insertProgress(userId, data) {
   const {
     log_date,
@@ -106,7 +115,7 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
     byDate[d] = {
       created_at: row.created_at,
       weight: normalizeWeightKg(row.weight),
-      body_fat: row.body_fat != null ? parseFloat(row.body_fat) : null,
+      body_fat: normalizeBodyFatPercent(row.body_fat),
       calories_intake: row.calories_intake != null ? parseInt(row.calories_intake, 10) : null,
       protein_intake: row.protein_intake != null ? parseInt(row.protein_intake, 10) : null,
       workout_completed: !!row.workout_completed,
@@ -115,8 +124,8 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
       strength_squat: row.strength_squat != null ? parseFloat(row.strength_squat) : null,
       strength_deadlift: row.strength_deadlift != null ? parseFloat(row.strength_deadlift) : null,
       sleep_hours: row.sleep_hours != null ? parseFloat(row.sleep_hours) : null,
-      // progress_logs.water_intake is stored in litres; merged series uses ml (same as daily_checkins)
-      water_intake: row.water_intake != null ? parseFloat(row.water_intake) * 1000 : null,
+      // Merged log water_intake is litres (progress_logs store L; daily_checkins water_ml merged as L)
+      water_intake: row.water_intake != null ? parseFloat(row.water_intake) : null,
       steps: null
     };
   });
@@ -128,7 +137,7 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
     if (row.steps != null) base.steps = parseInt(row.steps, 10);
     if (row.protein_g != null && base.protein_intake == null) base.protein_intake = parseInt(row.protein_g, 10);
     if (row.sleep_hours != null && base.sleep_hours == null) base.sleep_hours = parseFloat(row.sleep_hours);
-    if (row.water_ml != null && base.water_intake == null) base.water_intake = parseFloat(row.water_ml);
+    if (row.water_ml != null && base.water_intake == null) base.water_intake = parseFloat(row.water_ml) / 1000;
     byDate[d] = base;
   });
 
@@ -138,6 +147,8 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
     const base = byDate[d] || { created_at: row.created_at || d + 'T12:00:00', weight: null, body_fat: null, calories_intake: null, protein_intake: null, workout_completed: false, workout_type: null, strength_bench: null, strength_squat: null, strength_deadlift: null, sleep_hours: null, water_intake: null, steps: null };
     const w = parseWeightFromText(row.current_weight_waist_week || row.last_week_weight_waist);
     if (w != null && base.weight == null) base.weight = w;
+    const bfSun = normalizeBodyFatPercent(row.body_fat_percent);
+    if (bfSun != null && base.body_fat == null) base.body_fat = bfSun;
     const s = parseSleepFromText(row.sleep);
     if (s != null && base.sleep_hours == null) base.sleep_hours = s;
     byDate[d] = base;
@@ -230,14 +241,17 @@ function mergeWorkoutSessionsIntoLogs(baseLogs, workoutRows) {
     sessions.forEach((w) => {
       if (w.duration_seconds != null) totalDur += parseInt(w.duration_seconds, 10) || 0;
       if (w.weight_kg != null && w.weight_kg !== '' && next.weight == null) next.weight = normalizeWeightKg(w.weight_kg);
-      if (w.body_fat_percent != null && w.body_fat_percent !== '' && next.body_fat == null) next.body_fat = parseFloat(w.body_fat_percent);
+      {
+        const bfW = normalizeBodyFatPercent(w.body_fat_percent);
+        if (bfW != null && next.body_fat == null) next.body_fat = bfW;
+      }
       if (w.calories != null && w.calories !== '' && next.calories_intake == null) next.calories_intake = parseInt(w.calories, 10);
       if (w.protein_g != null && w.protein_g !== '' && next.protein_intake == null) next.protein_intake = parseInt(w.protein_g, 10);
       next.strength_bench = maxLift(next.strength_bench, w.bench_kg);
       next.strength_squat = maxLift(next.strength_squat, w.squat_kg);
       next.strength_deadlift = maxLift(next.strength_deadlift, w.deadlift_kg);
       mergedSl = mergeSessionLiftsMax(mergedSl, w.session_lifts);
-      if (w.water_liters != null && w.water_liters !== '' && next.water_intake == null) next.water_intake = parseFloat(w.water_liters) * 1000;
+      if (w.water_liters != null && w.water_liters !== '' && next.water_intake == null) next.water_intake = parseFloat(w.water_liters);
       if (w.sleep_hrs != null && w.sleep_hrs !== '' && next.sleep_hours == null) next.sleep_hours = parseFloat(w.sleep_hrs);
       if (w.workout_completed === true || w.workout_completed === 1 || w.workout_completed === 't') next.workout_completed = true;
       if (w.workout_type) next.workout_type = w.workout_type;
@@ -298,10 +312,10 @@ async function getAdminUserProgress(userId) {
   const [progressLogs, dailyCheckins, sundayByUserId, sundayByEmail, workoutSessions] = await Promise.all([
     db.queryAll('SELECT * FROM progress_logs WHERE user_id = ? ORDER BY created_at ASC', [userId]),
     db.queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date ASC', [userId]),
-    db.queryAll('SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at ASC', [userId]),
+    db.queryAll('SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, body_fat_percent, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at ASC', [userId]),
     userEmail
       ? db.queryAll(
-        'SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, created_at FROM sunday_checkins WHERE user_id IS NULL AND LOWER(COALESCE(reply_email, \'\')) = ? ORDER BY created_at ASC',
+        'SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, body_fat_percent, created_at FROM sunday_checkins WHERE user_id IS NULL AND LOWER(COALESCE(reply_email, \'\')) = ? ORDER BY created_at ASC',
         [userEmail]
       )
       : Promise.resolve([]),

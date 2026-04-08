@@ -466,7 +466,7 @@ async function runDailyDigest() {
     const r = d[0];
     const lines = [];
     if (r.steps != null) lines.push(`Steps: ${r.steps}`);
-    if (r.water_ml != null) lines.push(`Water: ${r.water_ml} ml`);
+    if (r.water_ml != null) lines.push(`Water: ${(Number(r.water_ml) / 1000).toFixed(r.water_ml % 1000 === 0 ? 1 : 2)} L`);
     if (r.protein_g != null) lines.push(`Protein: ${r.protein_g} g`);
     if (r.sleep_hours != null) lines.push(`Sleep: ${r.sleep_hours} hrs`);
     userEmail.emailDailyDigest(u.email, u.first_name || '', lines);

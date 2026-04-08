@@ -257,6 +257,7 @@ async function runTests() {
     full_name: 'E2E Tester',
     reply_email: testUser.email,
     plan: 'Phase 1',
+    body_fat_percent: 18.5,
     current_weight_waist_week: '70kg',
     achievements: 'E2E test'
   });
@@ -267,7 +268,7 @@ async function runTests() {
   console.log('=== E2E: Daily check-in ===');
   const dailyCheckin = await request('POST', '/api/daily-checkin', {
     steps: 10000,
-    water_ml: 2500,
+    water_liters: 2.5,
     protein_g: 180,
     sleep_hours: 7.5
   }, { auth: { token: userTokenAfterReset } });
@@ -319,7 +320,7 @@ async function runTests() {
   const adminDailyList = await request('GET', '/api/admin/daily-checkins', null, { auth: { token: adminToken } });
   assert(adminDailyList.status === 200 && Array.isArray(adminDailyList.body) && adminDailyList.body.some(d => d.id === createdIds.dailyCheckinId), 'Admin daily check-ins list');
   const adminDailyDetail = await request('GET', `/api/admin/daily-checkins/${createdIds.dailyCheckinId}`, null, { auth: { token: adminToken } });
-  assert(adminDailyDetail.status === 200 && adminDailyDetail.body?.steps === 10000, 'Admin daily check-in detail');
+  assert(adminDailyDetail.status === 200 && Number(adminDailyDetail.body?.steps) === 10000, 'Admin daily check-in detail');
   console.log(adminDailyDetail.status === 200 ? '  OK' : '  FAIL');
 
   console.log('=== E2E: Admin – db-view ===');

@@ -456,8 +456,10 @@ async function initDB() {
     achievements TEXT DEFAULT '',
     improve_next_week TEXT DEFAULT '',
     questions TEXT DEFAULT '',
+    body_fat_percent REAL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
+  try { await pool.query(`ALTER TABLE sunday_checkins ADD COLUMN IF NOT EXISTS body_fat_percent REAL`); } catch (e) { /* ignore */ }
 
   // Client Progress Analytics: user_goals, progress_logs
   await pool.query(`
@@ -1773,13 +1775,22 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
 });
 
 // ============ SUNDAY CHECK-IN (User submit) ============
+function parseSundayBodyFatPercent(raw) {
+  if (raw == null || raw === '') return null;
+  const n = parseFloat(String(raw).replace(/,/g, ''));
+  if (!Number.isFinite(n)) return null;
+  if (n < 2 || n > 70) return null;
+  return Math.round(n * 100) / 100;
+}
+
 app.post('/api/sunday-checkin', rateLimiter(10, 60000), async (req, res) => {
   try {
     const b = req.body || {};
     if (!b.full_name) return res.status(400).json({ error: 'Full name is required' });
+    const bodyFatPct = parseSundayBodyFatPercent(b.body_fat_percent);
     const id = uuidv4();
-    await run(`INSERT INTO sunday_checkins (id, user_id, full_name, reply_email, plan, current_weight_waist_week, last_week_weight_waist, total_weight_loss, training_go, nutrition_go, sleep, occupation_stress, other_stress, differences_felt, achievements, improve_next_week, questions) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [id, b.user_id || null, b.full_name || '', b.reply_email || '', b.plan || '', b.current_weight_waist_week || '', b.last_week_weight_waist || '', b.total_weight_loss || '', b.training_go || '', b.nutrition_go || '', b.sleep || '', b.occupation_stress || '', b.other_stress || '', b.differences_felt || '', b.achievements || '', b.improve_next_week || '', b.questions || '']);
+    await run(`INSERT INTO sunday_checkins (id, user_id, full_name, reply_email, plan, current_weight_waist_week, last_week_weight_waist, total_weight_loss, training_go, nutrition_go, sleep, occupation_stress, other_stress, differences_felt, achievements, improve_next_week, questions, body_fat_percent) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [id, b.user_id || null, b.full_name || '', b.reply_email || '', b.plan || '', b.current_weight_waist_week || '', b.last_week_weight_waist || '', b.total_weight_loss || '', b.training_go || '', b.nutrition_go || '', b.sleep || '', b.occupation_stress || '', b.other_stress || '', b.differences_felt || '', b.achievements || '', b.improve_next_week || '', b.questions || '', bodyFatPct]);
     if (b.reply_email && String(b.reply_email).trim().includes('@')) {
       userEmail.emailSundayCheckinReceived(String(b.reply_email).trim(), (b.full_name || 'there').split(/\s+/)[0]);
     } else if (b.user_id) {
@@ -1803,12 +1814,16 @@ app.get('/api/sunday-checkin/last-weight/:userId', async (req, res) => {
     const userId = req.params.userId;
     if (!userId) return res.status(400).json({ error: 'Missing user id' });
     const rows = await queryAll(
-      'SELECT current_weight_waist_week FROM sunday_checkins WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
+      'SELECT current_weight_waist_week, body_fat_percent FROM sunday_checkins WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
       [userId]
     );
-    if (!rows.length) return res.json({ last_week_weight_waist: '' });
+    if (!rows.length) return res.json({ last_week_weight_waist: '', last_body_fat_percent: null });
     const value = (rows[0].current_weight_waist_week || '').trim();
-    res.json({ last_week_weight_waist: value });
+    const bf = rows[0].body_fat_percent;
+    res.json({
+      last_week_weight_waist: value,
+      last_body_fat_percent: bf != null && bf !== '' ? Number(bf) : null
+    });
   } catch (e) {
     console.error('Failed to get last sunday weight', e.message);
     res.status(500).json({ error: 'Failed to load last week weight' });
@@ -1822,11 +1837,39 @@ app.get('/api/sunday-checkin/:id', async (req, res) => {
 });
 
 // ============ DAILY CHECK-IN (micro-goals: steps, water, protein, sleep) ============
+// DB stores water_ml; API accepts water_liters (preferred) or legacy water_ml; responses include water_liters.
+function waterMlFromDailyBody(body) {
+  const b = body || {};
+  if (b.water_liters != null && b.water_liters !== '') {
+    const L = parseFloat(String(b.water_liters).replace(/,/g, ''));
+    if (!Number.isFinite(L) || L < 0 || L > 25) return null;
+    return Math.round(L * 1000);
+  }
+  if (b.water_ml != null && b.water_ml !== '') {
+    const ml = parseInt(String(b.water_ml).replace(/,/g, ''), 10);
+    if (!Number.isFinite(ml) || ml < 0) return null;
+    return ml;
+  }
+  return null;
+}
+function attachWaterLitersToDailyRow(row) {
+  if (!row || typeof row !== 'object') return row;
+  const out = { ...row };
+  if (out.water_ml != null && out.water_ml !== '') {
+    out.water_liters = Math.round((Number(out.water_ml) / 1000) * 1000) / 1000;
+  } else {
+    out.water_liters = null;
+  }
+  return out;
+}
+
 // User can fill only once per day for streak
 app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, res) => {
   try {
     const userId = req.user.id;
-    const { steps, water_ml, protein_g, sleep_hours } = req.body || {};
+    const b = req.body || {};
+    const { steps, protein_g, sleep_hours } = b;
+    const waterMl = waterMlFromDailyBody(b);
     const today = new Date().toISOString().slice(0, 10);
     const existing = await queryOne('SELECT id FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
     if (existing) {
@@ -1836,19 +1879,19 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
     await run(
       `INSERT INTO daily_checkins (id, user_id, checkin_date, steps, water_ml, protein_g, sleep_hours)
        VALUES (?, ?, ?::date, ?, ?, ?, ?)`,
-      [id, userId, today, steps != null ? steps : null, water_ml != null ? water_ml : null, protein_g != null ? protein_g : null, sleep_hours != null ? sleep_hours : null]
+      [id, userId, today, steps != null ? steps : null, waterMl, protein_g != null ? protein_g : null, sleep_hours != null ? sleep_hours : null]
     );
     const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
     const du = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [userId]);
     if (du && du.email) {
       const lines = [];
       if (steps != null) lines.push(`Steps: ${steps}`);
-      if (water_ml != null) lines.push(`Water: ${water_ml} ml`);
+      if (waterMl != null) lines.push(`Water: ${(waterMl / 1000).toFixed(waterMl % 1000 === 0 ? 1 : 2)} L`);
       if (protein_g != null) lines.push(`Protein: ${protein_g} g`);
       if (sleep_hours != null) lines.push(`Sleep: ${sleep_hours} hrs`);
       userEmail.emailDailyCheckinReceived(du.email, du.first_name, lines);
     }
-    res.json(row || { id, user_id: userId, checkin_date: today, steps, water_ml, protein_g, sleep_hours });
+    res.json(attachWaterLitersToDailyRow(row) || attachWaterLitersToDailyRow({ id, user_id: userId, checkin_date: today, steps, water_ml: waterMl, protein_g, sleep_hours }));
   } catch (e) {
     console.error('Daily check-in error:', e.message);
     res.status(500).json({ error: 'Failed to save check-in' });
@@ -1859,7 +1902,7 @@ app.get('/api/daily-checkin/today', verifyToken, async (req, res) => {
   try {
     const today = new Date().toISOString().slice(0, 10);
     const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [req.user.id, today]);
-    res.json(row || { checkin_date: today });
+    res.json(row ? attachWaterLitersToDailyRow(row) : { checkin_date: today, water_liters: null });
   } catch (e) {
     res.status(500).json({ error: 'Failed to load check-in' });
   }
@@ -1931,7 +1974,9 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
     weekStart.setHours(0, 0, 0, 0);
     const weekData = rows.filter(r => new Date(r.checkin_date) >= weekStart);
     const avgSteps = weekData.length ? Math.round(weekData.reduce((s, r) => s + (r.steps || 0), 0) / weekData.length) : null;
-    const avgWater = weekData.length ? Math.round(weekData.reduce((s, r) => s + (r.water_ml || 0), 0) / weekData.length) : null;
+    const avgWater = weekData.length
+      ? Math.round((weekData.reduce((s, r) => s + (r.water_ml || 0), 0) / weekData.length / 1000) * 100) / 100
+      : null;
     const avgProtein = weekData.length ? Math.round(weekData.reduce((s, r) => s + (r.protein_g || 0), 0) / weekData.length) : null;
     const avgSleep = weekData.length ? (weekData.reduce((s, r) => s + (r.sleep_hours || 0), 0) / weekData.length).toFixed(1) : null;
     res.json({
@@ -1942,7 +1987,7 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
       inactiveDays,
       inactiveSeverity,
       weekly: { avgSteps, avgWater, avgProtein, avgSleep },
-      days: rows
+      days: rows.map((r) => attachWaterLitersToDailyRow(r))
     });
   } catch (e) {
     res.status(500).json({ error: 'Failed to load streak' });
@@ -1969,7 +2014,7 @@ app.get('/api/admin/daily-checkins', verifyToken, requireAdminOrSuperadmin, asyn
     }
     sql += ` ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 250`;
     const rows = await queryAll(sql, params);
-    res.json(rows);
+    res.json(rows.map((r) => attachWaterLitersToDailyRow(r)));
   } catch (e) {
     console.error('Admin daily check-ins list error:', e.message);
     res.status(500).json({ error: 'Failed to load daily check-ins' });
@@ -1986,7 +2031,7 @@ app.get('/api/admin/daily-checkins/:id', verifyToken, requireAdminOrSuperadmin, 
       [req.params.id]
     );
     if (!row) return res.status(404).json({ error: 'Not found' });
-    res.json(row);
+    res.json(attachWaterLitersToDailyRow(row));
   } catch (e) {
     console.error('Admin daily check-in detail error:', e.message);
     res.status(500).json({ error: 'Failed to load daily check-in' });
@@ -2448,7 +2493,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           const who = [d.first_name, d.last_name].filter(Boolean).join(' ') || d.email || 'User';
           const bits = [];
           if (d.steps != null) bits.push(`${d.steps} steps`);
-          if (d.water_ml != null) bits.push(`${d.water_ml}ml water`);
+          if (d.water_ml != null) bits.push(`${(Number(d.water_ml) / 1000).toFixed(d.water_ml % 1000 === 0 ? 1 : 2)}L water`);
           if (d.protein_g != null) bits.push(`${d.protein_g}g protein`);
           if (d.sleep_hours != null) bits.push(`${d.sleep_hours}h sleep`);
           notifications.push({
@@ -3762,7 +3807,7 @@ async function getAdminAIContext() {
     lines.push('\n--- DAILY CHECK-INS (steps, water, protein, sleep) ---');
     if (recentDailyCheckins && recentDailyCheckins.length > 0) {
       recentDailyCheckins.forEach(r => {
-        lines.push(`  ${(r.first_name || '')} ${(r.last_name || '')} | ${r.checkin_date || ''} | steps: ${r.steps ?? '-'} | water: ${r.water_ml ?? '-'} ml | protein: ${r.protein_g ?? '-'} g | sleep: ${r.sleep_hours ?? '-'} hrs | ${r.created_at || ''}`);
+        lines.push(`  ${(r.first_name || '')} ${(r.last_name || '')} | ${r.checkin_date || ''} | steps: ${r.steps ?? '-'} | water: ${r.water_ml != null ? (Number(r.water_ml) / 1000).toFixed(2) + ' L' : '-'} | protein: ${r.protein_g ?? '-'} g | sleep: ${r.sleep_hours ?? '-'} hrs | ${r.created_at || ''}`);
       });
     } else lines.push('  (None.)');
 
@@ -4457,7 +4502,7 @@ async function getSuperadminDashboardData(filters = {}) {
     audit,
     part2,
     sunday_checkins,
-    daily_checkins,
+    daily_checkins: daily_checkins.map((r) => attachWaterLitersToDailyRow(r)),
     program_assignments,
     users,
     workouts,

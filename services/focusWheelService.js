@@ -59,7 +59,7 @@ async function buildFocusSegments({ queryAll, queryOne }, userId, count = 8) {
     const tarL = (targetMl / 1000).toFixed(1);
     activities.push(`Water +40% (${baseL}L→${tarL}L)`);
   } else {
-    activities.push('Hydration focus: +800 ml');
+    activities.push('Hydration focus: +0.8 L');
   }
 
   // Protein: progressive but not extreme

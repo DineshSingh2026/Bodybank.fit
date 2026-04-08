@@ -438,7 +438,7 @@ function emailDailyDigest(email, firstName, lines) {
       ctaLabel: 'Open BodyBank',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Your BodyBank daily brief', html);
+    await sendMail(email, 'Your BodyBank yesterdays Daily Brief', html);
   });
 }
 

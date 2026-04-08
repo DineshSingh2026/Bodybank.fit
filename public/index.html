@@ -3314,13 +3314,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 #usec-workout .wk-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23c9a84c' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
 #usec-workout .wk-divider{height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,.25),transparent);margin:22px 0}
 #usec-workout .wk-timer-block{margin-top:8px}
-#usec-workout .wk-timer-label{font-size:12px;color:var(--bb-muted);margin-bottom:8px;display:block}
-#usec-workout .wk-timer-row{display:flex;flex-wrap:nowrap;align-items:center;gap:8px;min-width:0;width:100%}
-#usec-workout .wk-timer-digits{font-family:ui-monospace,Menlo,monospace;font-size:clamp(18px,4.2vw,28px);font-weight:600;color:var(--bb-gold);letter-spacing:.04em;flex:1 1 auto;min-width:0;white-space:nowrap;line-height:1.2}
-#usec-workout .wk-tsep{opacity:.45;margin:0 1px}
-#usec-workout .wk-timer-paused{font-size:11px;color:var(--bb-orange);opacity:0;transition:opacity .2s;flex:0 0 auto;white-space:nowrap}
+#usec-workout .wk-timer-label{font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(201,168,76,.75);margin-bottom:10px;display:block;text-align:center}
+#usec-workout .wk-timer-main{display:flex;flex-direction:column;align-items:center;gap:12px;width:100%}
+#usec-workout .wk-timer-digits{font-family:ui-monospace,Menlo,Consolas,monospace;font-size:clamp(32px,9vw,48px);font-weight:700;color:var(--bb-gold);letter-spacing:.06em;white-space:nowrap;line-height:1;text-align:center;tabular-nums;font-variant-numeric:tabular-nums}
+#usec-workout .wk-tsep{opacity:.5;margin:0 2px;font-weight:500}
+#usec-workout .wk-timer-actions{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px}
+#usec-workout .wk-timer-paused{font-size:11px;color:var(--bb-orange);opacity:0;transition:opacity .2s;white-space:nowrap}
 #usec-workout .wk-timer-paused.show{opacity:1}
-#usec-workout .wk-timer-play,#usec-workout .wk-timer-reset{padding:8px 12px;border-radius:10px;border:1px solid rgba(201,168,76,.35);background:#1a1a1a;color:var(--bb-gold);font-weight:600;cursor:pointer;font-size:13px;flex-shrink:0;line-height:1.2;white-space:nowrap}
+#usec-workout .wk-timer-play,#usec-workout .wk-timer-reset{padding:8px 14px;border-radius:10px;border:1px solid rgba(201,168,76,.35);background:#1a1a1a;color:var(--bb-gold);font-weight:600;cursor:pointer;font-size:13px;line-height:1.2;white-space:nowrap}
 #usec-workout .wk-timer-play:hover,#usec-workout .wk-timer-reset:hover{background:rgba(201,168,76,.08)}
 #usec-workout .wk-stepper{display:flex;align-items:center;gap:4px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:10px;padding:4px 6px}
 #usec-workout .wk-step-btn{width:40px;height:40px;border:none;border-radius:8px;background:rgba(201,168,76,.12);color:var(--bb-gold);font-size:18px;font-weight:600;cursor:pointer;line-height:1}
@@ -3329,14 +3330,23 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 #usec-workout .wk-lift-input{-moz-appearance:textfield}
 #usec-workout .wk-lift-input::-webkit-outer-spin-button,#usec-workout .wk-lift-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 #usec-workout .wk-muted-note{font-size:12px;color:var(--bb-muted);margin-bottom:12px}
-#usec-workout .wk-toggle-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px;padding:12px 14px;background:#141414;border:1px solid #252525;border-radius:10px}
-#usec-workout .wk-toggle-label{font-size:14px;color:var(--bb-text)}
-#usec-workout .wk-switch{position:relative;display:inline-block;width:48px;height:26px}
+#usec-workout .wk-feel-row{display:flex;flex-direction:row;align-items:flex-end;gap:10px;margin-bottom:14px;width:100%;min-width:0}
+#usec-workout .wk-feel-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:5px}
+#usec-workout .wk-feel-col.wk-feel-done{flex:0 0 auto;min-width:72px}
+#usec-workout .wk-feel-mini-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--bb-muted);line-height:1.2;white-space:nowrap}
+#usec-workout .wk-feel-switchline{display:flex;align-items:center;gap:8px;min-height:42px}
+#usec-workout .wk-feel-select{width:100%;padding:9px 10px;font-size:13px;border-radius:8px}
+#usec-workout .wk-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
 #usec-workout .wk-switch input{opacity:0;width:0;height:0}
 #usec-workout .wk-switch-slider{position:absolute;inset:0;background:#333;border-radius:999px;transition:.2s}
-#usec-workout .wk-switch-slider:before{position:absolute;content:'';height:20px;width:20px;left:3px;bottom:3px;background:#888;border-radius:50%;transition:.2s}
+#usec-workout .wk-switch-slider:before{position:absolute;content:'';height:18px;width:18px;left:3px;bottom:3px;background:#888;border-radius:50%;transition:.2s}
 #usec-workout .wk-switch input:checked + .wk-switch-slider{background:rgba(201,168,76,.35)}
-#usec-workout .wk-switch input:checked + .wk-switch-slider:before{transform:translateX(22px);background:var(--bb-gold)}
+#usec-workout .wk-switch input:checked + .wk-switch-slider:before{transform:translateX(20px);background:var(--bb-gold)}
+@media(max-width:380px){
+  #usec-workout .wk-feel-row{gap:6px}
+  #usec-workout .wk-feel-mini-label{font-size:9px;letter-spacing:.06em}
+  #usec-workout .wk-feel-select{font-size:12px;padding:8px 8px}
+}
 #usec-workout .wk-save-btn{width:100%;margin-top:8px;padding:16px 24px;border:none;border-radius:12px;background:linear-gradient(135deg,#d4b456,#c9a84c,#8a6f2e);color:#0a0a0a;font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 28px rgba(201,168,76,.2)}
 #usec-workout .wk-save-btn:hover{filter:brightness(1.06)}
 #usec-workout .wk-save-btn:disabled{opacity:.55;cursor:not-allowed}
@@ -3347,7 +3357,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 #usec-workout .wh-meta{font-size:12px;color:var(--bb-muted);line-height:1.4}
 
 .admin-cp-charts .chart-wrap canvas{max-height:240px}
-#adminChartWater,#adminChartSessionDuration{margin-bottom:0}
+#adminChartWater,#adminChartSessionDuration,#adminChartBodyFat{margin-bottom:0}
 
 </style>
 <link rel="stylesheet" href="/mobile-fix.css?v=20">
@@ -3499,7 +3509,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <div class="prog-pct" id="u-prog-steps-pct">—</div>
           </div>
           <div class="bb-program-card">
-            <div class="prog-label">Water (ml)</div>
+            <div class="prog-label">Water (L)</div>
             <div class="prog-number" id="u-prog-water">—</div>
             <div class="bb-progress-bar-track"><div class="bb-progress-bar-fill" id="u-prog-water-bar" style="width:0%"></div></div>
             <div class="prog-pct" id="u-prog-water-pct">—</div>
@@ -3626,8 +3636,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
                   <input type="number" id="microSteps" placeholder="e.g. 8000" min="0">
                 </div>
                 <div class="micro-goal-field">
-                  <label>Water (ml)</label>
-                  <input type="number" id="microWater" placeholder="e.g. 2000" min="0">
+                  <label>Water (L)</label>
+                  <input type="number" id="microWater" placeholder="e.g. 2.5" min="0" max="15" step="0.1" inputmode="decimal">
                 </div>
                 <div class="micro-goal-field">
                   <label>Protein (g)</label>
@@ -3689,6 +3699,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <form id="sundayCheckinForm" onsubmit="submitSundayCheckin();return false">
         <div class="form-group"><label>Full Name <span class="req">*</span></label><input type="text" class="form-input" id="scFullName" placeholder="Your full name" required></div>
         <div class="form-group"><label>State the plan you're on <span class="req">*</span></label><input type="text" class="form-input" id="scPlan" placeholder="e.g. 12 week fat loss" required></div>
+        <div class="form-group"><label>Current body fat % <span class="req">*</span></label><input type="number" class="form-input" id="scBodyFat" min="2" max="70" step="0.1" inputmode="decimal" required placeholder="e.g. 18.5" title="Enter your best current estimate (calipers, scale, or professional reading)"></div>
         <div class="form-group"><label>Current weight (lbs), waist measurement and week of training you've just completed <span class="req">*</span></label><textarea class="form-input" id="scCurrentWeight" rows="5" placeholder="e.g. week 1, 180 lbs, 34 in waist" required></textarea></div>
         <div class="form-group"><label>Last week's weight (lbs) and waist measurement <span class="req">*</span></label><textarea class="form-input" id="scLastWeek" rows="4" placeholder="e.g. 182 lbs, 35 in" required></textarea></div>
         <div class="form-group"><label>What is your total weight loss? (Or gain if on a muscle building plan) <span class="req">*</span></label><textarea class="form-input" id="scTotalLoss" rows="4" required></textarea></div>
@@ -3716,8 +3727,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
                 <input type="number" id="dailySteps" placeholder="e.g. 8000" min="0">
               </div>
               <div class="micro-goal-field">
-                <label>Water (ml)</label>
-                <input type="number" id="dailyWater" placeholder="e.g. 2000" min="0">
+                <label>Water (L)</label>
+                <input type="number" id="dailyWater" placeholder="e.g. 2.5" min="0" max="15" step="0.1" inputmode="decimal">
               </div>
               <div class="micro-goal-field">
                 <label>Protein (g)</label>
@@ -3815,11 +3826,13 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           </div>
           <div class="wk-timer-block">
             <label class="wk-timer-label">Duration</label>
-            <div class="wk-timer-row">
+            <div class="wk-timer-main">
               <div class="wk-timer-digits"><span id="tHr">00</span><span class="wk-tsep">:</span><span id="tMin">00</span><span class="wk-tsep">:</span><span id="tSec">00</span></div>
-              <div id="timerPausedLabel" class="wk-timer-paused" aria-live="polite">Paused</div>
-              <button type="button" class="wk-timer-play" id="timerBtn" onclick="toggleTimer()" aria-label="Play or pause timer">▶</button>
-              <button type="button" class="wk-timer-reset" onclick="resetTimer()">Reset</button>
+              <div class="wk-timer-actions">
+                <div id="timerPausedLabel" class="wk-timer-paused" aria-live="polite">Paused</div>
+                <button type="button" class="wk-timer-play" id="timerBtn" onclick="toggleTimer()" aria-label="Play or pause timer">▶</button>
+                <button type="button" class="wk-timer-reset" onclick="resetTimer()">Reset</button>
+              </div>
             </div>
           </div>
         </div>
@@ -3836,10 +3849,16 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
         <div class="wk-sec">
           <div class="wk-sec-title">Session feel</div>
-          <div class="wk-toggle-row"><span class="wk-toggle-label">Workout completed</span><label class="wk-switch"><input type="checkbox" id="wkCompleted"><span class="wk-switch-slider"></span></label></div>
-          <div class="wk-row2">
-            <div class="wk-field"><label for="wkIntensity">Intensity</label>
-              <select class="wk-input wk-select" id="wkIntensity">
+          <div class="wk-feel-row">
+            <div class="wk-feel-col wk-feel-done">
+              <span class="wk-feel-mini-label">Done</span>
+              <div class="wk-feel-switchline">
+                <label class="wk-switch" title="Workout completed"><input type="checkbox" id="wkCompleted" aria-label="Workout completed"><span class="wk-switch-slider"></span></label>
+              </div>
+            </div>
+            <div class="wk-feel-col">
+              <label class="wk-feel-mini-label" for="wkIntensity">Intensity</label>
+              <select class="wk-input wk-select wk-feel-select" id="wkIntensity">
                 <option value="">—</option>
                 <option value="Easy">Easy</option>
                 <option value="Moderate">Moderate</option>
@@ -3847,8 +3866,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
                 <option value="Max Effort">Max Effort</option>
               </select>
             </div>
-            <div class="wk-field"><label for="wkEnergy">Energy level</label>
-              <select class="wk-input wk-select" id="wkEnergy">
+            <div class="wk-feel-col">
+              <label class="wk-feel-mini-label" for="wkEnergy">Energy</label>
+              <select class="wk-input wk-select wk-feel-select" id="wkEnergy">
                 <option value="">—</option>
                 <option value="Low">Low</option>
                 <option value="Medium">Medium</option>
@@ -4674,11 +4694,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div id="adminCpKpis" class="admin-cp-kpis" style="display:none"></div>
           <div id="adminCpCharts" class="progress-charts admin-cp-charts" style="display:none;margin-top:20px">
             <div class="chart-wrap"><canvas id="adminChartWeight"></canvas><p class="chart-title">Weight over time</p></div>
+            <div class="chart-wrap"><canvas id="adminChartBodyFat"></canvas><p class="chart-title">Body fat % (progress logs + Sunday check-in)</p></div>
             <div class="chart-wrap"><canvas id="adminChartStrength"></canvas><p class="chart-title">Strength over time</p></div>
             <div class="chart-wrap"><canvas id="adminChartWeeklyWorkouts"></canvas><p class="chart-title">Weekly completed sessions (My Workout)</p></div>
             <div class="chart-wrap"><canvas id="adminChartCalories"></canvas><p class="chart-title">Calories trend</p></div>
             <div class="chart-wrap"><canvas id="adminChartProtein"></canvas><p class="chart-title">Protein intake trend</p></div>
-            <div class="chart-wrap"><canvas id="adminChartWater"></canvas><p class="chart-title">Water (ml — merged daily + workout)</p></div>
+            <div class="chart-wrap"><canvas id="adminChartWater"></canvas><p class="chart-title">Water (L — merged daily + workout)</p></div>
             <div class="chart-wrap"><canvas id="adminChartSessionDuration"></canvas><p class="chart-title">Session duration (min, My Workout)</p></div>
             <div class="chart-wrap"><canvas id="adminChartSteps"></canvas><p class="chart-title">Steps (Daily check-in)</p></div>
             <div class="chart-wrap"><canvas id="adminChartSleep"></canvas><p class="chart-title">Sleep hours (daily + Sunday + merged)</p></div>
@@ -7325,6 +7346,7 @@ async function viewSundayCheckin(id) {
   const actions = document.getElementById('sundayCheckinViewActions');
   if (!body) return;
   body.innerHTML = _row('Full Name', r.full_name) + _row('Reply Email', r.reply_email) + _row('Plan', r.plan) +
+    _row('Body fat % (current)', r.body_fat_percent != null && r.body_fat_percent !== '' ? String(r.body_fat_percent) : '—') +
     _rowBlock('Current weight, waist & week', r.current_weight_waist_week) +
     _rowBlock('Last week weight & waist', r.last_week_weight_waist) +
     _rowBlock('Total weight loss/gain', r.total_weight_loss) +
@@ -7388,7 +7410,7 @@ async function viewDailyCheckin(id) {
     _row('Phone', r.phone || '—') +
     _row('Check-in date', r.checkin_date ? new Date(r.checkin_date).toLocaleDateString(undefined, { dateStyle: 'full' }) : '—') +
     _row('Steps', r.steps != null ? r.steps : '—') +
-    _row('Water (ml)', r.water_ml != null ? r.water_ml : '—') +
+    _row('Water (L)', (r.water_liters != null && r.water_liters !== '') ? String(Math.round(Number(r.water_liters) * 1000) / 1000) : (r.water_ml != null ? String(Math.round((Number(r.water_ml) / 1000) * 1000) / 1000) : '—')) +
     _row('Protein (g)', r.protein_g != null ? r.protein_g : '—') +
     _row('Sleep (hrs)', r.sleep_hours != null ? r.sleep_hours : '—') +
     _row('Saved at', r.created_at ? new Date(r.created_at).toLocaleString() : '—');
@@ -8624,6 +8646,14 @@ function drawAdminProgressCharts(data) {
       options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
     });
   }
+  if (sorted.filter(function(l) { return l.body_fat != null; }).length) {
+    var ctxBf = document.getElementById('adminChartBodyFat');
+    if (ctxBf) adminProgressChartInstances.bodyFat = new Chart(ctxBf.getContext('2d'), {
+      type: 'line',
+      data: { labels: labels, datasets: [{ label: 'Body fat %', data: sorted.map(function(l) { return l.body_fat; }), borderColor: '#a68c3e', backgroundColor: 'rgba(166,140,62,0.12)', fill: true, tension: 0.3 }] },
+      options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
+    });
+  }
   var hasStrength = sorted.some(function(l) { return l.strength_bench != null || l.strength_squat != null || l.strength_deadlift != null; });
   if (hasStrength) {
     var ctx = document.getElementById('adminChartStrength');
@@ -8740,7 +8770,7 @@ function drawAdminProgressCharts(data) {
     var ctxW = document.getElementById('adminChartWater');
     if (ctxW) adminProgressChartInstances.water = new Chart(ctxW.getContext('2d'), {
       type: 'line',
-      data: { labels: labels, datasets: [{ label: 'Water (ml)', data: sorted.map(function(l) { return l.water_intake; }), borderColor: '#5dade2', backgroundColor: 'rgba(93,173,226,0.1)', fill: true, tension: 0.3 }] },
+      data: { labels: labels, datasets: [{ label: 'Water (L)', data: sorted.map(function(l) { return l.water_intake; }), borderColor: '#5dade2', backgroundColor: 'rgba(93,173,226,0.1)', fill: true, tension: 0.3 }] },
       options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
     });
   }
@@ -9977,19 +10007,19 @@ async function bbRefreshDesktopUserDashboard() {
 
   // Progress cards: daily check-in values + streak
   var steps = dailyToday && dailyToday.steps != null ? parseInt(dailyToday.steps, 10) : null;
-  var water = dailyToday && dailyToday.water_ml != null ? parseInt(dailyToday.water_ml, 10) : null;
+  var water = dailyToday ? bbDailyWaterLitersFromRow(dailyToday) : null;
   var protein = dailyToday && dailyToday.protein_g != null ? parseInt(dailyToday.protein_g, 10) : null;
   var sleep = dailyToday && dailyToday.sleep_hours != null ? parseFloat(dailyToday.sleep_hours) : null;
   var streakN = dailyStreak && dailyStreak.streak != null ? parseInt(dailyStreak.streak, 10) : 0;
 
-  var stepGoal = 8000, waterGoal = 2000, proteinGoal = 120, sleepGoal = 8;
+  var stepGoal = 8000, waterGoal = 2, proteinGoal = 120, sleepGoal = 8;
   bbUserSetText('u-prog-steps', steps != null ? String(steps) : '—');
   bbUserSetBar('u-prog-steps-bar', steps != null ? (steps / stepGoal) * 100 : 0);
   bbUserSetText('u-prog-steps-pct', steps != null ? Math.round((steps / stepGoal) * 100) + '% of ' + stepGoal : '—');
 
-  bbUserSetText('u-prog-water', water != null ? String(water) : '—');
+  bbUserSetText('u-prog-water', water != null ? (Math.round(water * 100) / 100) + ' L' : '—');
   bbUserSetBar('u-prog-water-bar', water != null ? (water / waterGoal) * 100 : 0);
-  bbUserSetText('u-prog-water-pct', water != null ? Math.round((water / waterGoal) * 100) + '% of ' + waterGoal : '—');
+  bbUserSetText('u-prog-water-pct', water != null ? Math.round((water / waterGoal) * 100) + '% of ' + waterGoal + ' L' : '—');
 
   bbUserSetText('u-prog-protein', protein != null ? String(protein) : '—');
   bbUserSetBar('u-prog-protein-bar', protein != null ? (protein / proteinGoal) * 100 : 0);
@@ -10345,6 +10375,25 @@ function openScorecardBreakdownModal() {
   openModal('scorecardBreakdownModal');
 }
 
+/** Daily API returns water_liters; DB field water_ml is legacy integer ml */
+function bbDailyWaterLitersFromRow(row) {
+  if (!row) return null;
+  if (row.water_liters != null && row.water_liters !== '') {
+    var a = Number(row.water_liters);
+    return Number.isFinite(a) ? a : null;
+  }
+  if (row.water_ml != null && row.water_ml !== '') {
+    var b = Number(row.water_ml) / 1000;
+    return Number.isFinite(b) ? b : null;
+  }
+  return null;
+}
+function bbFmtWaterLitersForInput(L) {
+  if (L == null || !Number.isFinite(L)) return '';
+  var n = Math.round(L * 1000) / 1000;
+  return (n % 1 === 0) ? String(n) : String(n);
+}
+
 // Micro-goals: daily check-in + streaks
 async function loadMicroGoals() {
   if (!window.currentUser) return;
@@ -10354,16 +10403,16 @@ async function loadMicroGoals() {
       apiCall('GET', '/api/daily-checkin/streak')
     ]);
     var el;
-    var alreadyFilled = today && (today.steps != null || today.water_ml != null || today.protein_g != null || today.sleep_hours != null);
+    var alreadyFilled = today && (today.steps != null || today.water_ml != null || today.water_liters != null || today.protein_g != null || today.sleep_hours != null);
     if (alreadyFilled) {
       if (el = document.getElementById('microSteps')) { el.value = today.steps != null ? today.steps : ''; el.disabled = true; }
-      if (el = document.getElementById('microWater')) { el.value = today.water_ml != null ? today.water_ml : ''; el.disabled = true; }
+      if (el = document.getElementById('microWater')) { el.value = bbFmtWaterLitersForInput(bbDailyWaterLitersFromRow(today)); el.disabled = true; }
       if (el = document.getElementById('microProtein')) { el.value = today.protein_g != null ? today.protein_g : ''; el.disabled = true; }
       if (el = document.getElementById('microSleep')) { el.value = today.sleep_hours != null ? today.sleep_hours : ''; el.disabled = true; }
       if (el = document.querySelector('#microGoalsForm .micro-goals-submit')) { el.disabled = true; el.textContent = 'Already checked in today'; }
     } else {
       if (el = document.getElementById('microSteps')) { el.disabled = false; el.value = today && today.steps != null ? today.steps : ''; }
-      if (el = document.getElementById('microWater')) { el.disabled = false; el.value = today && today.water_ml != null ? today.water_ml : ''; }
+      if (el = document.getElementById('microWater')) { el.disabled = false; el.value = today ? bbFmtWaterLitersForInput(bbDailyWaterLitersFromRow(today)) : ''; }
       if (el = document.getElementById('microProtein')) { el.disabled = false; el.value = today && today.protein_g != null ? today.protein_g : ''; }
       if (el = document.getElementById('microSleep')) { el.disabled = false; el.value = today && today.sleep_hours != null ? today.sleep_hours : ''; }
       if (el = document.querySelector('#microGoalsForm .micro-goals-submit')) { el.disabled = false; el.textContent = 'Save today'; }
@@ -10412,7 +10461,7 @@ async function loadMicroGoals() {
     if (streak && streak.weekly) {
       var w = streak.weekly;
       if (el = document.getElementById('recapSteps')) el.textContent = w.avgSteps != null ? w.avgSteps : '—';
-      if (el = document.getElementById('recapWater')) el.textContent = w.avgWater != null ? w.avgWater : '—';
+      if (el = document.getElementById('recapWater')) el.textContent = w.avgWater != null ? (w.avgWater + ' L') : '—';
       if (el = document.getElementById('recapProtein')) el.textContent = w.avgProtein != null ? w.avgProtein : '—';
       if (el = document.getElementById('recapSleep')) el.textContent = w.avgSleep != null ? w.avgSleep : '—';
     }
@@ -10442,12 +10491,12 @@ async function loadMicroGoals() {
 async function submitMicroGoals() {
   if (!window.currentUser) return;
   var steps = parseInt(document.getElementById('microSteps').value, 10);
-  var water = parseInt(document.getElementById('microWater').value, 10);
+  var water = parseFloat(String(document.getElementById('microWater').value || '').replace(/,/g, ''));
   var protein = parseInt(document.getElementById('microProtein').value, 10);
   var sleep = parseFloat(document.getElementById('microSleep').value);
   var body = {};
   if (!isNaN(steps)) body.steps = steps;
-  if (!isNaN(water)) body.water_ml = water;
+  if (!isNaN(water) && water >= 0) body.water_liters = water;
   if (!isNaN(protein)) body.protein_g = protein;
   if (!isNaN(sleep)) body.sleep_hours = sleep;
   if (Object.keys(body).length === 0) return;
@@ -10478,16 +10527,16 @@ async function loadDailyCheckinForm() {
       apiCall('GET', '/api/daily-checkin/streak')
     ]);
     var el;
-    var alreadyFilled = today && (today.steps != null || today.water_ml != null || today.protein_g != null || today.sleep_hours != null);
+    var alreadyFilled = today && (today.steps != null || today.water_ml != null || today.water_liters != null || today.protein_g != null || today.sleep_hours != null);
     if (alreadyFilled) {
       if (el = document.getElementById('dailySteps')) { el.value = today.steps != null ? today.steps : ''; el.disabled = true; }
-      if (el = document.getElementById('dailyWater')) { el.value = today.water_ml != null ? today.water_ml : ''; el.disabled = true; }
+      if (el = document.getElementById('dailyWater')) { el.value = bbFmtWaterLitersForInput(bbDailyWaterLitersFromRow(today)); el.disabled = true; }
       if (el = document.getElementById('dailyProtein')) { el.value = today.protein_g != null ? today.protein_g : ''; el.disabled = true; }
       if (el = document.getElementById('dailySleep')) { el.value = today.sleep_hours != null ? today.sleep_hours : ''; el.disabled = true; }
       if (el = document.querySelector('#dailyCheckinForm .micro-goals-submit')) { el.disabled = true; el.textContent = 'Already checked in today'; }
     } else {
       if (el = document.getElementById('dailySteps')) { el.disabled = false; el.value = today && today.steps != null ? today.steps : ''; }
-      if (el = document.getElementById('dailyWater')) { el.disabled = false; el.value = today && today.water_ml != null ? today.water_ml : ''; }
+      if (el = document.getElementById('dailyWater')) { el.disabled = false; el.value = today ? bbFmtWaterLitersForInput(bbDailyWaterLitersFromRow(today)) : ''; }
       if (el = document.getElementById('dailyProtein')) { el.disabled = false; el.value = today && today.protein_g != null ? today.protein_g : ''; }
       if (el = document.getElementById('dailySleep')) { el.disabled = false; el.value = today && today.sleep_hours != null ? today.sleep_hours : ''; }
       if (el = document.querySelector('#dailyCheckinForm .micro-goals-submit')) { el.disabled = false; el.textContent = 'Save today'; }
@@ -10504,12 +10553,12 @@ async function loadDailyCheckinForm() {
 async function submitDailyCheckinForm() {
   if (!window.currentUser) return;
   var steps = parseInt(document.getElementById('dailySteps').value, 10);
-  var water = parseInt(document.getElementById('dailyWater').value, 10);
+  var water = parseFloat(String(document.getElementById('dailyWater').value || '').replace(/,/g, ''));
   var protein = parseInt(document.getElementById('dailyProtein').value, 10);
   var sleep = parseFloat(document.getElementById('dailySleep').value);
   var body = {};
   if (!isNaN(steps)) body.steps = steps;
-  if (!isNaN(water)) body.water_ml = water;
+  if (!isNaN(water) && water >= 0) body.water_liters = water;
   if (!isNaN(protein)) body.protein_g = protein;
   if (!isNaN(sleep)) body.sleep_hours = sleep;
   if (Object.keys(body).length === 0) return;
@@ -11412,18 +11461,26 @@ async function loadSundayCheckinDefaults() {
       var input = document.getElementById('scLastWeek');
       if (input && !input.value.trim()) input.value = data.last_week_weight_waist;
     }
+    if (data && data.last_body_fat_percent != null && !Number.isNaN(Number(data.last_body_fat_percent))) {
+      var bfEl = document.getElementById('scBodyFat');
+      if (bfEl && !String(bfEl.value || '').trim()) bfEl.value = String(Number(data.last_body_fat_percent));
+    }
   } catch (e) { console.warn('Could not load last week weight', e); }
 }
 
 async function submitSundayCheckin() {
   var fullName = document.getElementById('scFullName').value.trim();
   if (!fullName) { alert('Full name is required.'); return; }
+  var bfRaw = (document.getElementById('scBodyFat') && document.getElementById('scBodyFat').value) ? String(document.getElementById('scBodyFat').value).trim() : '';
+  var bfNum = bfRaw ? parseFloat(bfRaw.replace(/,/g, '')) : NaN;
+  if (!Number.isFinite(bfNum) || bfNum < 2 || bfNum > 70) { alert('Please enter a valid body fat % between 2 and 70.'); return; }
   var replyEmail = (window.currentUser && window.currentUser.email) ? window.currentUser.email : '';
   var payload = {
     user_id: window.currentUser ? window.currentUser.id : null,
     full_name: fullName,
     reply_email: replyEmail,
     plan: document.getElementById('scPlan').value.trim(),
+    body_fat_percent: bfNum,
     current_weight_waist_week: document.getElementById('scCurrentWeight').value.trim(),
     last_week_weight_waist: document.getElementById('scLastWeek').value.trim(),
     total_weight_loss: document.getElementById('scTotalLoss').value.trim(),
@@ -12259,7 +12316,7 @@ function renderSuperadminData(data, readOnly) {
   renderCards('saAudit', data.audit, ['first_name', 'last_name', 'email', 'city', 'goals', 'status', 'created_at']);
   renderCards('saPart2', data.part2, ['name', 'email', 'mobile', 'activity_level', 'created_at']);
   renderCards('saSunday', data.sunday_checkins, ['full_name', 'reply_email', 'total_weight_loss', 'achievements', 'created_at']);
-  renderCards('saDaily', data.daily_checkins, ['first_name', 'last_name', 'email', 'checkin_date', 'steps', 'water_ml', 'protein_g', 'sleep_hours', 'created_at']);
+  renderCards('saDaily', data.daily_checkins, ['first_name', 'last_name', 'email', 'checkin_date', 'steps', 'water_liters', 'protein_g', 'sleep_hours', 'created_at']);
   renderCards('saPrograms', data.program_assignments, ['first_name', 'last_name', 'email', 'program_name', 'assigned_at']);
   renderCards('saUsers', data.users, ['first_name', 'last_name', 'email', 'approval_status', 'created_at']);
   renderCards('saWorkouts', data.workouts, ['workout_name', 'duration_seconds', 'feedback', 'first_name', 'last_name', 'created_at']);
