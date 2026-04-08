@@ -14,7 +14,27 @@ const { createMarketingAIRouter } = require('./routes/marketingAI');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
 const workoutSessionLifts = require('./services/workoutSessionLifts');
-const { inferTimezoneFromCountry, getUserTimezone } = require('./utils/timezone');
+const {
+  inferTimezoneFromCountry,
+  getUserTimezone,
+  safeTimezone,
+  formatDateTimeInTimezone,
+  formatCalendarDateYmdInTimezone
+} = require('./utils/timezone');
+
+function attachAdminWorkoutRowTimezone(row) {
+  if (!row) return row;
+  const tz = getUserTimezone(row);
+  const safe = safeTimezone(tz);
+  const next = { ...row, user_timezone: tz };
+  next.logged_at_local = row.created_at
+    ? formatDateTimeInTimezone(row.created_at, safe, { dateStyle: 'medium', timeStyle: 'short' })
+    : null;
+  next.session_date_label_local = row.session_date
+    ? formatCalendarDateYmdInTimezone(String(row.session_date).slice(0, 10), safe)
+    : null;
+  return next;
+}
 const { startCampaignScheduler, restartScheduler: restartCampaignScheduler, broadcastMessage: broadcastCampaignMessage } = require('./services/campaignScheduler');
 const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalizeCampaignDay, normalizeTime: normalizeCampaignTime } = require('./controllers/campaignController');
 const { generateMonthlyClientReport, monthLabel: monthLabelForReport } = require('./services/monthlyReportService');
@@ -2182,7 +2202,7 @@ app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req
     const from = (req.query.from || '').trim();
     const to = (req.query.to || '').trim();
     const search = (req.query.search || '').trim();
-    let sql = `SELECT w.*, u.first_name, u.last_name, u.email
+    let sql = `SELECT w.*, u.first_name, u.last_name, u.email, u.country, u.timezone
        FROM workout_logs w
        JOIN users u ON w.user_id = u.id
        WHERE 1=1`;
@@ -2203,7 +2223,7 @@ app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req
     }
     sql += ' ORDER BY w.created_at DESC LIMIT 250';
     const rows = await queryAll(sql, params);
-    res.json(rows);
+    res.json(rows.map(attachAdminWorkoutRowTimezone));
   } catch (e) {
     console.error('Admin workouts list error:', e.message);
     res.status(500).json({ error: 'Failed to load workouts' });
@@ -2213,12 +2233,12 @@ app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req
 app.get('/api/admin/workouts/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const row = await queryOne(
-      `SELECT w.*, u.first_name, u.last_name, u.email, u.phone
+      `SELECT w.*, u.first_name, u.last_name, u.email, u.phone, u.country, u.timezone
        FROM workout_logs w JOIN users u ON u.id = w.user_id WHERE w.id = ?`,
       [req.params.id]
     );
     if (!row) return res.status(404).json({ error: 'Not found' });
-    res.json(row);
+    res.json(attachAdminWorkoutRowTimezone(row));
   } catch (e) {
     console.error('Admin workout detail error:', e.message);
     res.status(500).json({ error: 'Failed to load workout' });
@@ -3472,6 +3492,7 @@ app.get('/api/admin/daily-compliance-preview', verifyToken, requireAdminOrSupera
       window_start_utc: data.startIso,
       window_end_utc: data.endIso,
       window_label_ist: data.windowLabel,
+      report_ist_dates: data.reportIstDates || [],
       summary: data.summary,
       rows: data.rows
     });

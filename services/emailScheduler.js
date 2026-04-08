@@ -8,6 +8,7 @@
 const cron = require('node-cron');
 const userEmail = require('./userEmailService');
 const PDFDocument = require('pdfkit');
+const { collectIanaDatesSpannedByUtcRange } = require('../utils/timezone');
 
 const TZ = 'Asia/Kolkata';
 const ADMIN_DAILY_REPORT_RECIPIENTS = (() => {
@@ -136,7 +137,7 @@ function buildAdminReportPdf({ rows, summary, windowLabel }) {
     doc.on('error', reject);
 
     const pageW = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    const col = { name: 190, daily: 82, progress: 82, sunday: 82, workout: 82 };
+    const col = { name: 128, tz: 78, daily: 70, progress: 70, sunday: 70, workout: 70 };
     const rowH = 24;
 
     function drawHeader() {
@@ -180,8 +181,8 @@ function buildAdminReportPdf({ rows, summary, windowLabel }) {
       ensureSpace(rowH + 8);
       const y = doc.y;
       let x = doc.page.margins.left;
-      const labels = ['User Name', 'Daily', 'Progress', 'Sunday', 'Workout'];
-      const widths = [col.name, col.daily, col.progress, col.sunday, col.workout];
+      const labels = ['User Name', 'TZ', 'Daily', 'Progress', 'Sunday', 'Workout'];
+      const widths = [col.name, col.tz, col.daily, col.progress, col.sunday, col.workout];
       doc.fillColor('#111111').font('Helvetica-Bold').fontSize(10);
       for (let i = 0; i < labels.length; i++) {
         doc.roundedRect(x, y, widths[i], rowH, 4).fillAndStroke('#EFE7D2', '#D1C099');
@@ -213,6 +214,8 @@ function buildAdminReportPdf({ rows, summary, windowLabel }) {
       let x = doc.page.margins.left;
       doc.fillColor('#1B1B1B').font('Helvetica').fontSize(9).text(String(rows[i].name || '-'), x + 8, y + 7, { width: col.name - 16, ellipsis: true });
       x += col.name;
+      doc.fillColor('#444444').font('Helvetica').fontSize(7).text(String(rows[i].user_timezone || 'UTC').replace(/_/g, ' '), x + 4, y + 8, { width: col.tz - 8, ellipsis: true });
+      x += col.tz;
       drawStatus(rows[i].daily_status, x, y, col.daily); x += col.daily;
       drawStatus(rows[i].progress_status, x, y, col.progress); x += col.progress;
       drawStatus(rows[i].sunday_status, x, y, col.sunday); x += col.sunday;
@@ -222,22 +225,31 @@ function buildAdminReportPdf({ rows, summary, windowLabel }) {
     }
 
     doc.moveDown(0.7);
-    doc.fillColor('#666666').font('Helvetica').fontSize(9).text('Legend: Yes = submitted in report window, Missed = not submitted.', { align: 'left' });
+    doc
+      .fillColor('#666666')
+      .font('Helvetica')
+      .fontSize(8)
+      .text(
+        'Daily check-in & workout use IST calendar day(s) in the window (checkin_date / session_date). Progress & Sunday use submission time (UTC window). TZ = client profile.',
+        { align: 'left' }
+      );
     doc.end();
   });
 }
 
 function buildAdminReportHtml({ rows, summary, windowLabel }) {
   const esc = userEmail.escapeHtml;
-  const rowHtml = rows.map((r) => {
+    const rowHtml = rows.map((r) => {
     const status = (v) => {
       const yes = String(v) === 'Yes';
       const bg = yes ? '#E8F5EE' : '#FDEBEC';
       const fg = yes ? '#0F6A43' : '#A13B44';
       return `<span style="display:inline-block;padding:4px 10px;border-radius:999px;background:${bg};color:${fg};font-weight:700;font-size:12px">${esc(v)}</span>`;
     };
+    const tzShort = esc(String(r.user_timezone || 'UTC').replace(/_/g, ' '));
     return `<tr>
       <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08)">${esc(r.name || '-')}</td>
+      <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:12px;color:#ccc">${tzShort}</td>
       <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08);text-align:center">${status(r.daily_status)}</td>
       <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08);text-align:center">${status(r.progress_status)}</td>
       <td style="padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.08);text-align:center">${status(r.sunday_status)}</td>
@@ -247,10 +259,11 @@ function buildAdminReportHtml({ rows, summary, windowLabel }) {
 
   return userEmail.luxuryWrap({
     title: 'Admin Daily Compliance Report',
-    preheader: '12:00 am to 12:00 am IST check-in compliance report',
+    preheader: 'IST-window compliance: daily & workout by calendar day; progress & Sunday by submission time',
     lead: 'Daily operations report for active clients.',
     bodyHtml: `
       <p style="margin:0 0 12px"><strong>Window:</strong> ${esc(windowLabel)}</p>
+      <p style="margin:0 0 12px;font-size:13px;opacity:.92">Daily &amp; workout: <strong>Yes</strong> if <code style="font-size:12px">checkin_date</code> / <code style="font-size:12px">session_date</code> matches an IST calendar day in this window. Progress &amp; Sunday: submission time falls in the UTC window. <strong>TZ</strong> = client profile.</p>
       <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 16px;border-collapse:collapse;background:rgba(255,255,255,0.02);border:1px solid rgba(200,164,78,0.25);border-radius:12px;overflow:hidden">
         <tr>
           <td style="padding:14px"><strong>Active Users:</strong> ${summary.totalUsers}</td>
@@ -262,13 +275,14 @@ function buildAdminReportHtml({ rows, summary, windowLabel }) {
         <thead>
           <tr style="background:rgba(200,164,78,0.14);color:#f5f0e8">
             <th style="padding:10px 12px;text-align:left">User Name</th>
+            <th style="padding:10px 12px;text-align:left">TZ</th>
             <th style="padding:10px 12px;text-align:center">Daily Check-in</th>
             <th style="padding:10px 12px;text-align:center">My Progress</th>
             <th style="padding:10px 12px;text-align:center">Sunday Check-in</th>
             <th style="padding:10px 12px;text-align:center">Workout Logged</th>
           </tr>
         </thead>
-        <tbody>${rowHtml || '<tr><td colspan="5" style="padding:12px;text-align:center;color:#bbb">No active users found.</td></tr>'}</tbody>
+        <tbody>${rowHtml || '<tr><td colspan="6" style="padding:12px;text-align:center;color:#bbb">No active users found.</td></tr>'}</tbody>
       </table>
     `
   });
@@ -281,16 +295,17 @@ async function getAdminDailyComplianceReportData(opts = {}) {
   const window = getIstComplianceWindow(now);
   const startIso = window.startUtc.toISOString().slice(0, 19).replace('T', ' ');
   const endIso = window.endUtc.toISOString().slice(0, 19).replace('T', ' ');
+  const reportIstDates = collectIanaDatesSpannedByUtcRange(window.startUtc, window.endUtc, TZ);
 
   const rows = await queryAll(
     `SELECT
       u.id,
       TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')) AS name,
+      COALESCE(NULLIF(TRIM(u.timezone), ''), 'UTC') AS user_timezone,
       CASE WHEN EXISTS (
         SELECT 1 FROM daily_checkins d
         WHERE d.user_id = u.id
-          AND d.created_at >= ?::timestamp
-          AND d.created_at < ?::timestamp
+          AND d.checkin_date = ANY(?::date[])
       ) THEN 'Yes' ELSE 'Missed' END AS daily_status,
       CASE WHEN EXISTS (
         SELECT 1 FROM progress_logs p
@@ -307,15 +322,15 @@ async function getAdminDailyComplianceReportData(opts = {}) {
       CASE WHEN EXISTS (
         SELECT 1 FROM workout_logs w
         WHERE w.user_id = u.id
-          AND w.created_at >= ?::timestamp
-          AND w.created_at < ?::timestamp
+          AND w.session_date IS NOT NULL
+          AND w.session_date::date = ANY(?::date[])
       ) THEN 'Yes' ELSE 'Missed' END AS workout_status
     FROM users u
     WHERE u.role = 'user'
       AND COALESCE(u.approval_status, 'approved') = 'approved'
       AND COALESCE(u.suspended, FALSE) = FALSE
     ORDER BY TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')), u.email`,
-    [startIso, endIso, startIso, endIso, startIso, endIso, startIso, endIso]
+    [reportIstDates, startIso, endIso, startIso, endIso, reportIstDates]
   );
 
   const summary = {
@@ -323,12 +338,13 @@ async function getAdminDailyComplianceReportData(opts = {}) {
     dailyYes: rows.filter(r => r.daily_status === 'Yes').length,
     dailyMissed: rows.filter(r => r.daily_status !== 'Yes').length
   };
-  const windowLabel = `${fmtIst(window.startUtc)} IST to ${fmtIst(window.endUtc)} IST`;
+  const windowLabel = `${fmtIst(window.startUtc)} IST → ${fmtIst(window.endUtc)} IST · IST day(s): ${reportIstDates.join(', ')}`;
   return {
     window,
     startIso,
     endIso,
     windowLabel,
+    reportIstDates,
     rows,
     summary
   };

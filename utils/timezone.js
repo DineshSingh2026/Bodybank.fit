@@ -151,11 +151,77 @@ function getLocalDateParts(date, timeZone) {
   };
 }
 
+/** Returns a valid IANA zone or UTC if invalid (Intl-safe). */
+function safeTimezone(timeZone) {
+  const s = String(timeZone || '').trim() || 'UTC';
+  try {
+    Intl.DateTimeFormat(undefined, { timeZone: s });
+    return s;
+  } catch {
+    return 'UTC';
+  }
+}
+
+/**
+ * Format an instant in a specific IANA timezone (for admin/client-local display).
+ */
+function formatDateTimeInTimezone(dateInput, timeZone, options = {}) {
+  const d = dateInput instanceof Date ? dateInput : new Date(dateInput);
+  if (Number.isNaN(d.getTime())) return '';
+  const tz = safeTimezone(timeZone);
+  return new Intl.DateTimeFormat(options.locale || 'en-GB', {
+    timeZone: tz,
+    dateStyle: options.dateStyle || 'medium',
+    timeStyle: options.timeStyle || 'short',
+    ...options
+  }).format(d);
+}
+
+/**
+ * Calendar YYYY-MM-DD shown in a zone (uses UTC noon anchor to avoid boundary shifts).
+ */
+function formatCalendarDateYmdInTimezone(dateYmd, timeZone) {
+  const raw = String(dateYmd || '').slice(0, 10);
+  const m = raw.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const da = Number(m[3]);
+  const utcNoon = new Date(Date.UTC(y, mo - 1, da, 12, 0, 0));
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: safeTimezone(timeZone),
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric'
+  }).format(utcNoon);
+}
+
+/**
+ * All calendar dates (YYYY-MM-DD) in `timeZone` that occur during [startUtc, endUtc).
+ */
+function collectIanaDatesSpannedByUtcRange(startUtc, endUtc, timeZone) {
+  const start = startUtc instanceof Date ? startUtc : new Date(startUtc);
+  const end = endUtc instanceof Date ? endUtc : new Date(endUtc);
+  const tz = safeTimezone(timeZone);
+  const set = new Set();
+  const step = 60 * 60 * 1000;
+  for (let t = start.getTime(); t < end.getTime(); t += step) {
+    set.add(getLocalDateParts(new Date(t), tz).date);
+  }
+  const endEdge = new Date(end.getTime() - 1);
+  if (endEdge >= start) set.add(getLocalDateParts(endEdge, tz).date);
+  return Array.from(set).sort();
+}
+
 module.exports = {
   inferTimezoneFromCountry,
   getUserTimezone,
   extractLocalDateTimeParts,
   localDateTimeToUtcIso,
   addDaysToDateString,
-  getLocalDateParts
+  getLocalDateParts,
+  safeTimezone,
+  formatDateTimeInTimezone,
+  formatCalendarDateYmdInTimezone,
+  collectIanaDatesSpannedByUtcRange
 };

@@ -4465,7 +4465,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         </div>
       </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table admin-workouts-table">
-        <thead><tr><th>User</th><th>Session date</th><th>Type</th><th>Duration</th><th>Logged</th><th style="text-align:right;width:88px">Actions</th></tr></thead>
+        <thead><tr><th>User</th><th>Client TZ</th><th>Session date</th><th>Type</th><th>Duration</th><th>Logged (client)</th><th style="text-align:right;width:88px">Actions</th></tr></thead>
         <tbody id="workoutsBody"></tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
@@ -4573,7 +4573,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="admin-tab-content" id="tab-dailycompliance">
       <div class="dc-head-wrap">
         <div class="dc-head-left">
-          <h3 class="admin-subsection-title" style="margin:0 0 6px">Compliance window (12:00 am–12:00 am IST)</h3>
+          <h3 class="admin-subsection-title" style="margin:0 0 6px">Compliance window (IST operations day)</h3>
           <p class="form-hint" id="dailyComplianceWindowLabel" style="margin:0;opacity:.9">Loading…</p>
         </div>
         <div class="dc-actions">
@@ -4595,8 +4595,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <div class="admin-summary-card" style="flex:1;min-width:240px;min-height:84px">
           <span class="admin-summary-lbl">Legend</span>
           <div class="form-hint" style="margin-top:2px;color:var(--creamd);line-height:1.6">
-            <span class="status-badge status-yes">Yes</span> submitted in the report window<br>
-            <span class="status-badge status-missed">Missed</span> not submitted in the report window
+            <span class="status-badge status-yes">Yes</span> Daily &amp; workout: calendar day matches IST day(s) in window; Progress &amp; Sunday: submission time in UTC window<br>
+            <span class="status-badge status-missed">Missed</span> otherwise · <strong>TZ</strong> = client profile
           </div>
         </div>
       </div>
@@ -4605,15 +4605,16 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <table class="admin-table admin-list-table" style="table-layout:fixed">
           <thead>
             <tr>
-              <th style="width:28%">User Name</th>
-              <th style="width:18%;text-align:center">Daily</th>
-              <th style="width:18%;text-align:center">My Progress</th>
-              <th style="width:18%;text-align:center">Sunday Check-in</th>
-              <th style="width:18%;text-align:center">Workout Logged</th>
+              <th style="width:22%">User Name</th>
+              <th style="width:12%;text-align:left">TZ</th>
+              <th style="width:16%;text-align:center">Daily</th>
+              <th style="width:16%;text-align:center">My Progress</th>
+              <th style="width:16%;text-align:center">Sunday Check-in</th>
+              <th style="width:16%;text-align:center">Workout Logged</th>
             </tr>
           </thead>
           <tbody id="dailyComplianceBody">
-            <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
+            <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
           </tbody>
         </table>
       </div>
@@ -7438,12 +7439,12 @@ async function loadDailyCompliancePreview() {
   if (sumYesEl) sumYesEl.textContent = '—';
   if (sumMissedEl) sumMissedEl.textContent = '—';
 
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
 
   try {
     const data = await apiCall('GET', '/api/admin/daily-compliance-preview');
     if (data && data.error) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(data.error) + '</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(data.error) + '</td></tr>';
       return;
     }
 
@@ -7455,14 +7456,17 @@ async function loadDailyCompliancePreview() {
     if (sumMissedEl && data && data.summary) sumMissedEl.textContent = data.summary.dailyMissed != null ? data.summary.dailyMissed : '—';
 
     if (!rows.length) {
-      tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No active users found for this report window.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No active users found for this report window.</td></tr>';
       return;
     }
 
     tbody.innerHTML = rows.map(function(r) {
+      var tz = String(r.user_timezone || 'UTC').replace(/_/g, ' ');
+      if (tz.length > 28) tz = tz.slice(0, 26) + '…';
       return `
         <tr>
           <td data-label="User Name">${escapeHtml(r.name || '-')}</td>
+          <td data-label="TZ" title="${escapeHtml(r.user_timezone || '')}" style="font-size:13px;color:var(--creamd)">${escapeHtml(tz)}</td>
           <td data-label="Daily" style="text-align:center">${_bbComplianceStatusPill(r.daily_status)}</td>
           <td data-label="My Progress" style="text-align:center">${_bbComplianceStatusPill(r.progress_status)}</td>
           <td data-label="Sunday Check-in" style="text-align:center">${_bbComplianceStatusPill(r.sunday_status)}</td>
@@ -7471,7 +7475,7 @@ async function loadDailyCompliancePreview() {
       `;
     }).join('');
   } catch (e) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050;padding:24px">Failed to load daily compliance preview.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050;padding:24px">Failed to load daily compliance preview.</td></tr>';
   }
 }
 
@@ -7653,7 +7657,7 @@ async function deleteTribeMemberPermanently(id, name) {
 async function loadAdminWorkouts() {
   const tbody = document.getElementById('workoutsBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
   var wf = document.getElementById('woFilterFrom');
   var wt = document.getElementById('woFilterTo');
   var ws = document.getElementById('woFilterSearch');
@@ -7663,7 +7667,7 @@ async function loadAdminWorkouts() {
   if (ws && ws.value.trim()) qs.push('search=' + encodeURIComponent(ws.value.trim()));
   const data = await apiCall('GET', '/api/admin/workouts' + (qs.length ? '?' + qs.join('&') : ''));
   if (data && data.error) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
     return;
   }
   const list = Array.isArray(data) ? data : [];
@@ -7672,25 +7676,31 @@ async function loadAdminWorkouts() {
     var user = ((w.first_name || '') + ' ' + (w.last_name || '')).trim() || '—';
     var typeStr = (w.workout_type || w.workout_name || '—').trim();
     var sessionD = w.session_date ? String(w.session_date).slice(0, 10) : '';
-    var sessStr = sessionD ? new Date(sessionD + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+    var sessStr = w.session_date_label_local
+      ? String(w.session_date_label_local)
+      : (sessionD ? new Date(sessionD + 'T12:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—');
     var ds = w.duration_seconds != null ? Math.max(0, Math.round(Number(w.duration_seconds))) : 0;
     var durStr = ds > 0 ? Math.floor(ds / 60) + 'm ' + (ds % 60) + 's' : '—';
     var logD = w.created_at ? new Date(w.created_at) : null;
     var isMobile = window.innerWidth <= 768;
-    var loggedStr = logD
-      ? (isMobile
-        ? logD.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
-        : logD.toLocaleString(undefined, { month: 'numeric', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }))
-      : '—';
+    var loggedStr = w.logged_at_local
+      ? String(w.logged_at_local)
+      : (logD
+        ? (isMobile
+          ? logD.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
+          : logD.toLocaleString(undefined, { month: 'numeric', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }))
+        : '—');
+    var tzShort = (w.user_timezone || '').replace(/_/g, ' ') || '—';
     var oid = adminAttrId(w.id || '');
     return '<tr class="admin-row-clickable" data-open-kind="workout" data-open-id="' + oid + '">' +
       '<td class="admin-workout-cell-user" data-label="User" title="' + escapeHtml(user) + '">' + escapeHtml(user) + '</td>' +
+      '<td data-label="Client TZ" title="' + escapeHtml(w.user_timezone || '') + '">' + escapeHtml(tzShort.length > 22 ? tzShort.slice(0, 20) + '…' : tzShort) + '</td>' +
       '<td data-label="Session">' + escapeHtml(sessStr) + '</td>' +
       '<td data-label="Type" title="' + escapeHtml(typeStr) + '">' + escapeHtml(typeStr.length > 42 ? typeStr.slice(0, 40) + '…' : typeStr) + '</td>' +
       '<td data-label="Duration">' + escapeHtml(durStr) + '</td>' +
       '<td data-label="Logged">' + escapeHtml(loggedStr) + '</td>' +
       '<td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewAdminWorkout(\'' + id + '\')">View</button></td></tr>';
-  }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
+  }).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">No workouts match your filters.</td></tr>';
 }
 
 function _wkFmtKg(v) {
@@ -7729,18 +7739,24 @@ async function viewAdminWorkout(id) {
   var mm = Math.floor(dur / 60);
   var ss = dur % 60;
   var fullName = ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || '—';
-  var when = r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' }) : '—';
+  var whenBrowser = r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'full', timeStyle: 'short' }) : '—';
+  var whenLocal = r.logged_at_local || whenBrowser;
   var sessionDay = r.session_date ? String(r.session_date).slice(0, 10) : '';
-  var sessionLabel = sessionDay ? new Date(sessionDay + 'T12:00:00').toLocaleDateString(undefined, { dateStyle: 'full' }) : '—';
+  var sessionLabel = r.session_date_label_local
+    ? String(r.session_date_label_local)
+    : (sessionDay ? new Date(sessionDay + 'T12:00:00').toLocaleDateString(undefined, { dateStyle: 'full' }) : '—');
+  var tzLabel = (r.user_timezone || 'UTC').replace(/_/g, ' ');
   var woType = (r.workout_type || r.workout_name || '—').trim();
   var splitNotes = wkSplitOtherDetailsFromNotes(r.feedback);
   body.innerHTML = _row('User', fullName) +
     _row('Email', r.email || '—') +
     _row('Phone', r.phone || '—') +
-    _row('Session date', sessionLabel) +
+    _row('Client timezone (IANA)', r.user_timezone || 'UTC') +
+    _row('Session date (client calendar day)', sessionLabel) +
     _row('Workout type', woType) +
     _row('Duration', mm + 'm ' + ss + 's') +
-    _row('Logged at', when) +
+    _row('Logged at (client local · ' + tzLabel + ')', whenLocal) +
+    _row('Logged at (this device)', whenBrowser) +
     _wkAdminStrengthRows(r) +
     _row('Workout completed', r.workout_completed ? 'Yes' : 'No') +
     _row('Intensity', r.intensity || '—') +
