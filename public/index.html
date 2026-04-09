@@ -1315,6 +1315,45 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .bb-fw-result .bb-fw-res-k{ font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(200,164,78,0.65); margin-bottom:8px; display:block; }
 .bb-fw-spin.form-submit:disabled{ opacity:0.45; cursor:not-allowed; }
 .bb-fw-foot{ font-size:11px; color:var(--muted); text-align:center; margin:12px 0 0; }
+.bb-fw-feedback-row{
+  display:flex; align-items:center; justify-content:center; gap:10px;
+  margin:10px 0 0; padding:8px 10px;
+  border-radius:10px;
+  border:1px solid rgba(200,164,78,0.12);
+  background:rgba(0,0,0,0.12);
+}
+.bb-fw-feedback-row label{
+  display:flex; align-items:center; gap:10px; cursor:pointer;
+  font-size:12px; color:rgba(245,240,232,0.82); user-select:none;
+  line-height:1.35; text-align:left;
+}
+.bb-fw-feedback-row .bb-fw-fb-hint{ font-size:10px; color:var(--muted); font-weight:400; display:block; margin-top:2px; }
+.bb-fw-feedback-row input[type="checkbox"]{
+  width:0; height:0; opacity:0; position:absolute;
+}
+.bb-fw-switch{
+  flex-shrink:0; width:40px; height:22px; border-radius:999px;
+  background:rgba(60,52,42,0.95);
+  border:1px solid rgba(200,164,78,0.22);
+  position:relative; transition:background .2s ease, border-color .2s ease;
+}
+.bb-fw-switch::after{
+  content:''; position:absolute; top:2px; left:2px;
+  width:16px; height:16px; border-radius:50%;
+  background:linear-gradient(165deg,rgba(220,200,150,0.95),rgba(160,130,70,0.85));
+  box-shadow:0 1px 4px rgba(0,0,0,0.35);
+  transition:transform .22s cubic-bezier(0.4,0,0.2,1);
+}
+.bb-fw-feedback-row input:checked + .bb-fw-switch{
+  background:rgba(90,72,38,0.95);
+  border-color:rgba(200,164,78,0.45);
+}
+.bb-fw-feedback-row input:checked + .bb-fw-switch::after{
+  transform:translateX(18px);
+}
+.bb-fw-feedback-row input:focus-visible + .bb-fw-switch{
+  outline:2px solid rgba(200,164,78,0.5); outline-offset:2px;
+}
 /* Allow dial pointer / rim to render without modal clipping */
 #focusWheelModal .modal.bb-fw-modal{ overflow:visible; }
 .bb-focus-wheel-fab{
@@ -1700,6 +1739,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-notify-panel{display:none;position:absolute;top:100%;right:0;margin-top:8px;width:380px;max-width:calc(100vw - 32px);max-height:420px;background:var(--dark2);border:1px solid var(--bdr);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:50;overflow:hidden;flex-direction:column;flex:1 1 auto}
 .admin-notify-panel.open{display:flex}
 .admin-notify-header{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--bdr);font-size:13px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);flex-shrink:0}
+.bb-notify-sound-btn{margin-left:auto;flex-shrink:0;width:38px;height:34px;border-radius:8px;border:1px solid rgba(200,164,78,0.35);background:rgba(0,0,0,0.2);cursor:pointer;font-size:17px;line-height:1;display:grid;place-items:center;transition:background .2s,border-color .2s}
+.bb-notify-sound-btn:hover{background:rgba(200,164,78,0.1);border-color:rgba(200,164,78,0.55)}
+.bb-notify-sound-btn[aria-pressed="false"]{opacity:.65}
 .admin-notify-header input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--gold)}
 .admin-notify-browser-prompt{padding:14px 16px;border-bottom:1px solid var(--bdr);background:rgba(200,164,78,0.06);flex-shrink:0}
 .admin-notify-prompt-txt{font-size:12px;color:var(--creamd);line-height:1.5;margin-bottom:12px}
@@ -3363,6 +3405,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 <link rel="stylesheet" href="/mobile-fix.css?v=20">
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="js/notification-sounds.js?v=1"></script>
 </head>
 <body>
 
@@ -3381,6 +3424,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="admin-notify-header">
             <input type="checkbox" id="userNotifySelectAll" onchange="toggleNotifySelectAll(this)" title="Select all">
             <span>Notifications</span>
+            <button type="button" class="bb-notify-sound-btn" onclick="toggleNotifySoundsUI(event)" aria-pressed="true" title="Notification sounds" aria-label="Toggle notification sounds">🔊</button>
           </div>
           <div class="admin-notify-list" id="userNotifyList"></div>
           <div class="admin-notify-footer">
@@ -3998,6 +4042,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="admin-notify-header">
             <input type="checkbox" id="notifySelectAll" onchange="toggleNotifySelectAll(this)" title="Select all">
             <span>Notifications</span>
+            <button type="button" class="bb-notify-sound-btn" onclick="toggleNotifySoundsUI(event)" aria-pressed="true" title="Notification sounds" aria-label="Toggle notification sounds">🔊</button>
           </div>
           <div class="admin-notify-browser-prompt" id="notifyEnablePrompt" style="display:none">
             <p class="admin-notify-prompt-txt">Get alerts in Chrome &amp; Safari when new sign-ups, messages, or check-ins arrive.</p>
@@ -4127,6 +4172,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
               <div class="admin-notify-panel" id="notifyPanelDesktop">
                 <div class="admin-notify-header">
                   <span>Notifications</span>
+                  <button type="button" class="bb-notify-sound-btn" onclick="toggleNotifySoundsUI(event)" aria-pressed="true" title="Notification sounds" aria-label="Toggle notification sounds">🔊</button>
                 </div>
                 <div class="admin-notify-list" id="notifyListDesktop"></div>
                 <div class="admin-notify-footer">
@@ -5241,6 +5287,16 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="bb-fw-hub" aria-hidden="true"><span>BB</span></div>
     </div>
     <div id="bbFwResult" class="bb-fw-result" style="display:none"></div>
+    <div class="bb-fw-feedback-row" id="bbFwFeedbackRow">
+      <label for="bbFwFeedbackChk">
+        <input type="checkbox" id="bbFwFeedbackChk" autocomplete="off" aria-describedby="bbFwFeedbackHint">
+        <span class="bb-fw-switch" aria-hidden="true"></span>
+        <span>
+          Spin feedback
+          <span class="bb-fw-fb-hint" id="bbFwFeedbackHint">Soft tick · light haptics on phone</span>
+        </span>
+      </label>
+    </div>
     <button type="button" class="form-submit bb-fw-spin" id="bbFwSpinBtn" onclick="spinFocusWheel()">Spin the dial</button>
     <p class="bb-fw-foot" id="bbFwFoot"></p>
   </div>
@@ -6469,6 +6525,7 @@ async function loadNotifications() {
     const cleared = getClearedNotifyIds();
     if (!el) return;
     const filtered = Array.isArray(list) ? list.filter(n => n.id && !cleared.includes(n.id)) : [];
+    const isAdminUser = window.currentUser && (window.currentUser.role === 'admin' || window.currentUser.role === 'superadmin');
     /* If Web Push is active, OS notifications are already sent when events occur (service worker).
        Do not fire new Notification() on every app open — that duplicated alerts and felt like "only when I open the app". */
     var skipBrowserToasts = false;
@@ -6515,6 +6572,8 @@ async function loadNotifications() {
       updateNotifyClearBtn();
       if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
     }
+    if (typeof bbNotifyProcessNewSounds === 'function') bbNotifyProcessNewSounds(filtered, !!isAdminUser);
+    if (typeof bbNotifyRefreshSoundButtons === 'function') bbNotifyRefreshSoundButtons();
   } catch (e) {
     if (document.getElementById('notifyList')) document.getElementById('notifyList').innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>';
     if (document.getElementById('userNotifyList')) document.getElementById('userNotifyList').innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>';
@@ -8067,6 +8126,7 @@ function downloadInsightsCSV() {
 
 function logoutAdmin() {
   window.currentUser = null;
+  if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
   if (typeof stopAdminNotificationPolling === 'function') stopAdminNotificationPolling();
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
@@ -9458,6 +9518,88 @@ function openUserDashboard(user) {
 }
 
 var _bbFwSpinning = false;
+var BB_FW_FB_KEY = 'bb_fw_spin_feedback';
+var _bbFwAudioCtx = null;
+var _bbFwSpinTickTimers = [];
+
+function bbFwSpinFeedbackEnabled() {
+  try {
+    return localStorage.getItem(BB_FW_FB_KEY) === '1';
+  } catch (e) {
+    return false;
+  }
+}
+function bbFwSetSpinFeedbackEnabled(on) {
+  try {
+    localStorage.setItem(BB_FW_FB_KEY, on ? '1' : '0');
+  } catch (e) {}
+}
+function bbFwEnsureAudio() {
+  var Ctx = window.AudioContext || window.webkitAudioContext;
+  if (!Ctx) return null;
+  if (!_bbFwAudioCtx) _bbFwAudioCtx = new Ctx();
+  var p = _bbFwAudioCtx.resume();
+  if (p && typeof p.then === 'function') p.catch(function () {});
+  return _bbFwAudioCtx;
+}
+function bbFwPlaySoftTick() {
+  var ctx = _bbFwAudioCtx;
+  if (!ctx) return;
+  if (ctx.state === 'suspended') {
+    var pr = ctx.resume();
+    if (pr && typeof pr.then === 'function') pr.catch(function () {});
+  }
+  var t = ctx.currentTime;
+  var osc = ctx.createOscillator();
+  var gain = ctx.createGain();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(2100, t);
+  osc.frequency.exponentialRampToValueAtTime(480, t + 0.02);
+  gain.gain.setValueAtTime(0.0001, t);
+  gain.gain.exponentialRampToValueAtTime(0.055, t + 0.0025);
+  gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start(t);
+  osc.stop(t + 0.036);
+}
+function bbFwHapticLight() {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.vibrate) navigator.vibrate(9);
+  } catch (e) {}
+}
+function bbFwClearSpinTickTimers() {
+  for (var i = 0; i < _bbFwSpinTickTimers.length; i++) clearTimeout(_bbFwSpinTickTimers[i]);
+  _bbFwSpinTickTimers = [];
+}
+/** ~20 soft ticks over spin; haptic every 4th tick (mobile). Off by default — user opts in via toggle. */
+function bbFwStartSpinFeedback(durationMs, reducedMotion) {
+  bbFwClearSpinTickTimers();
+  if (reducedMotion || !bbFwSpinFeedbackEnabled()) return;
+  var n = 20;
+  var hapticEvery = 4;
+  for (var i = 0; i < n; i++) {
+    (function (idx) {
+      var id = setTimeout(function () {
+        bbFwPlaySoftTick();
+        if (idx % hapticEvery === 0) bbFwHapticLight();
+      }, (durationMs / n) * idx);
+      _bbFwSpinTickTimers.push(id);
+    })(i);
+  }
+}
+function bbFwSyncFeedbackToggle() {
+  var chk = document.getElementById('bbFwFeedbackChk');
+  if (!chk) return;
+  chk.checked = bbFwSpinFeedbackEnabled();
+  if (chk._bbFwFbBound) return;
+  chk._bbFwFbBound = true;
+  chk.addEventListener('change', function () {
+    bbFwSetSpinFeedbackEnabled(!!chk.checked);
+    if (chk.checked) bbFwEnsureAudio();
+  });
+}
+
 function wheelLabelCompact(txt) {
   var s = String(txt || '').trim();
   if (!s) return '';
@@ -9557,6 +9699,7 @@ async function openFocusWheelModal() {
   var foot = document.getElementById('bbFwFoot');
   if (res) { res.style.display = 'none'; res.innerHTML = ''; }
   if (foot) foot.textContent = '';
+  bbFwSyncFeedbackToggle();
   if (data.can_spin) {
     if (btn) { btn.style.display = ''; btn.disabled = false; btn.textContent = 'Spin the dial'; }
   } else {
@@ -9571,6 +9714,7 @@ async function openFocusWheelModal() {
 }
 async function spinFocusWheel() {
   if (_bbFwSpinning) return;
+  if (bbFwSpinFeedbackEnabled()) bbFwEnsureAudio();
   var rot = document.getElementById('bbFwWheelRotate');
   var btn = document.getElementById('bbFwSpinBtn');
   var res = document.getElementById('bbFwResult');
@@ -9580,6 +9724,7 @@ async function spinFocusWheel() {
   var data = await apiCall('POST', '/api/me/focus-wheel/spin');
   if (data && data.error) {
     _bbFwSpinning = false;
+    bbFwClearSpinTickTimers();
     if (btn) btn.disabled = false;
     showPopup('Error', data.error, '', 'OK', null, 'error');
     return;
@@ -9602,6 +9747,8 @@ async function spinFocusWheel() {
   var extra = 360 * 10;
   var toDeg = extra + ((360 - (center % 360)) % 360);
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var spinDurationMs = reduced ? 0 : 7200;
+  bbFwStartSpinFeedback(spinDurationMs, reduced);
   if (rot) {
     rot.style.transition = 'none';
     rot.style.transform = 'rotate(0deg)';
@@ -9620,6 +9767,7 @@ async function spinFocusWheel() {
   }
   var waitMs = reduced ? 100 : 7300;
   setTimeout(function() {
+    bbFwClearSpinTickTimers();
     _bbFwSpinning = false;
     if (btn) btn.style.display = 'none';
     if (res) {
@@ -9774,6 +9922,7 @@ function initUserWaFloat() {
 
 function logoutUser() {
   window.currentUser = null;
+  if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
   if (typeof stopUserNotificationPolling === 'function') stopUserNotificationPolling();
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
   try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
@@ -12326,6 +12475,7 @@ function renderSuperadminData(data, readOnly) {
 }
 
 function logoutSuperadmin() {
+  if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
   document.getElementById('superadminPanel').classList.remove('open');
   document.body.classList.remove('site-nav-hidden');
