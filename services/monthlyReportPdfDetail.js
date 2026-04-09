@@ -74,6 +74,10 @@ function sectionTitle(doc, text, y, contentW, margin) {
   doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8.5).text(text.toUpperCase(), margin + 10, y + 7);
 }
 
+function pageTextBottom(doc, margin) {
+  return doc.page.height - margin - 22;
+}
+
 function measureBulletsHeight(doc, items, width, fontSize = 8) {
   const list = Array.isArray(items) ? items.map((v) => String(v || '').trim()).filter(Boolean) : [];
   if (!list.length) return 14;
@@ -85,17 +89,106 @@ function measureBulletsHeight(doc, items, width, fontSize = 8) {
   return h;
 }
 
-function addBulletList(doc, items, x, y, width, color, fontSize = 9) {
+/**
+ * PDFKit auto-inserts pages when wrapped text exceeds the page bottom. We split manually and use
+ * the paginator so logical y stays in sync (avoids blank “ghost” pages).
+ */
+function drawWrappedTextPaginated(doc, text, x, y, width, paginator, margin, fontSize, lineGap, color = C.text) {
+  let rest = String(text || '');
+  let curY = y;
+  doc.font(F(doc, 'body')).fontSize(fontSize);
+  doc.fillColor(color);
+  while (rest.length) {
+    rest = rest.replace(/^\s+/, '');
+    if (!rest.length) break;
+    let bottom = pageTextBottom(doc, margin);
+    let maxH = bottom - curY - 2;
+    if (maxH < 12) {
+      curY = paginator.ensure(curY, 28);
+      continue;
+    }
+    let lo = 1;
+    let hi = rest.length;
+    let best = 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      const h = doc.heightOfString(rest.slice(0, mid), { width, lineGap });
+      if (h <= maxH) {
+        best = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    if (best < 1) best = 1;
+    let rawEnd = best;
+    if (best < rest.length) {
+      const sp = rest.slice(0, best).lastIndexOf(' ');
+      if (sp > 8) rawEnd = sp;
+    }
+    const chunk = rest.slice(0, rawEnd).trimEnd();
+    const piece = chunk.length ? chunk : rest.slice(0, 1);
+    doc.text(piece, x, curY, { width, lineGap });
+    rest = rest.slice(rawEnd).replace(/^\s+/, '');
+    const h = doc.heightOfString(piece, { width, lineGap });
+    curY += h + (rest.length ? 4 : 0);
+  }
+  return curY;
+}
+
+function addBulletList(doc, items, x, y, width, color, fontSize = 9, paginator = null, margin = 36) {
   const list = Array.isArray(items) ? items.map((v) => String(v || '').trim()).filter(Boolean) : [];
   let curY = y;
   if (!list.length) {
     doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(fontSize).text('—', x, curY, { width });
     return curY + 14;
   }
-  list.forEach((item) => {
-    doc.fillColor(C.goldMid).font(F(doc, 'semi')).fontSize(fontSize).text('•', x, curY);
-    doc.fillColor(color).font(F(doc, 'body')).fontSize(fontSize).text(item, x + 10, curY, { width: width - 10, lineGap: 2 });
-    curY = doc.y + 3;
+  const tw = width - 10;
+  list.forEach((raw) => {
+    let rest = raw;
+    let showBullet = true;
+    while (rest.length) {
+      rest = rest.replace(/^\s+/, '');
+      if (!rest.length) break;
+      let bottom = pageTextBottom(doc, margin);
+      let maxH = bottom - curY - 2;
+      if (maxH < 14 && paginator) {
+        curY = paginator.ensure(curY, 24);
+        continue;
+      }
+      bottom = pageTextBottom(doc, margin);
+      maxH = bottom - curY - 2;
+      doc.font(F(doc, 'body')).fontSize(fontSize);
+      let lo = 1;
+      let hi = rest.length;
+      let best = 1;
+      while (lo <= hi) {
+        const mid = (lo + hi) >> 1;
+        const h = doc.heightOfString(rest.slice(0, mid), { width: tw, lineGap: 2 });
+        if (h <= maxH) {
+          best = mid;
+          lo = mid + 1;
+        } else {
+          hi = mid - 1;
+        }
+      }
+      if (best < 1) best = 1;
+      let rawEnd = best;
+      if (best < rest.length) {
+        const sp = rest.slice(0, best).lastIndexOf(' ');
+        if (sp > 8) rawEnd = sp;
+      }
+      const chunk = rest.slice(0, rawEnd).trimEnd();
+      const piece = chunk.length ? chunk : rest.slice(0, 1);
+      if (showBullet) {
+        doc.fillColor(C.goldMid).font(F(doc, 'semi')).fontSize(fontSize).text('•', x, curY);
+      }
+      doc.fillColor(color).font(F(doc, 'body')).fontSize(fontSize).text(piece, x + 10, curY, { width: tw, lineGap: 2 });
+      rest = rest.slice(rawEnd).replace(/^\s+/, '');
+      const h = doc.heightOfString(piece, { width: tw, lineGap: 2 });
+      curY += h + 4;
+      showBullet = false;
+    }
   });
   return curY;
 }
@@ -127,6 +220,8 @@ function createPaginator(doc, margin, contentW, docId) {
     doc.rect(0, 50, doc.page.width, 2).fill(C.gold);
     doc.fillColor(C.goldMid).font(F(doc, 'semi')).fontSize(8).text('BODYBANK · MONTHLY DOSSIER · CONTINUED', margin, 18);
     pageNum += 1;
+    doc.x = margin;
+    doc.y = contentTop;
     return contentTop;
   }
   return { ensure, drawFooter, get pageNum() { return pageNum; } };
@@ -143,25 +238,23 @@ function drawProsConsBlock(doc, margin, y, contentW, title, block, paginator) {
   const prosH = pros.length ? measureBulletsHeight(doc, pros, colW, 7.4) : 14;
   const consH = cons.length ? measureBulletsHeight(doc, cons, colW, 7.4) : 14;
   doc.font(F(doc, 'body')).fontSize(7.4);
-  const noteH = note ? doc.heightOfString(note, { width: contentW - pad * 2, lineGap: 2 }) + 10 : 0;
   const innerH = Math.max(prosH, consH);
-  const boxH = 20 + innerH + (note ? noteH + 8 : 0) + 12;
-  /* sectionTitle 22px + gap 28px + box + padding */
-  y = paginator.ensure(y, 22 + 28 + boxH + 16);
+  const boxH = 20 + innerH + 12;
+  const noteHead = note ? Math.min(120, doc.heightOfString(note, { width: contentW - pad * 2, lineGap: 2 }) + 14) : 0;
+  /* sectionTitle 22px + gap 28px + box; note flows below the box with paginated text (no PDFKit auto-pages) */
+  y = paginator.ensure(y, 22 + 28 + boxH + 16 + noteHead);
   sectionTitle(doc, title, y, contentW, margin);
   y += 28;
   doc.roundedRect(margin, y, contentW, boxH, 8).fillAndStroke('#FFFCF7', '#E5D8C4');
   doc.fillColor(C.emerald).font(F(doc, 'semi')).fontSize(7.4).text('Strengths / signals', margin + pad, y + 8);
   doc.fillColor(C.danger).font(F(doc, 'semi')).fontSize(7.4).text('Gaps / risks', margin + pad + colW + colGap, y + 8);
-  addBulletList(doc, pros, margin + pad, y + 18, colW, C.text, 7.4);
-  addBulletList(doc, cons, margin + pad + colW + colGap, y + 18, colW, C.text, 7.4);
+  addBulletList(doc, pros, margin + pad, y + 18, colW, C.text, 7.4, paginator, margin);
+  addBulletList(doc, cons, margin + pad + colW + colGap, y + 18, colW, C.text, 7.4, paginator, margin);
+  let outY = y + boxH + 10;
   if (note) {
-    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.3).text(note, margin + pad, y + 22 + innerH, {
-      width: contentW - pad * 2,
-      lineGap: 2
-    });
+    outY = drawWrappedTextPaginated(doc, note, margin + pad, y + boxH + 6, contentW - pad * 2, paginator, margin, 7.3, 2, C.muted);
   }
-  return y + boxH + 14;
+  return outY + 12;
 }
 
 function renderKeyValueObject(doc, margin, y, contentW, obj, paginator) {
@@ -175,14 +268,10 @@ function renderKeyValueObject(doc, margin, y, contentW, obj, paginator) {
     const raw = obj[k];
     const label = k.replace(/_/g, ' ');
     const val = formatVal(raw, 3200);
-    doc.font(F(doc, 'body')).fontSize(7.8);
-    const textH = doc.heightOfString(`${label}: ${val}`, { width: contentW - 24, lineGap: 2 });
-    const rowH = Math.max(22, textH + 10);
-    y = paginator.ensure(y, rowH + 8);
-    doc.roundedRect(margin, y, contentW, rowH, 5).fillAndStroke('#FAFBFD', '#D8DEEA');
-    doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(7.2).text(label, margin + 10, y + 5, { width: contentW - 20 });
-    doc.fillColor(C.text).font(F(doc, 'body')).fontSize(7.6).text(val, margin + 10, y + 16, { width: contentW - 20, lineGap: 2 });
-    y += rowH + 6;
+    y = paginator.ensure(y, 36);
+    doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(7.2).text(label, margin + 10, y + 4, { width: contentW - 20 });
+    y = drawWrappedTextPaginated(doc, val, margin + 10, y + 16, contentW - 20, paginator, margin, 7.6, 2, C.text);
+    y += 12;
   }
   return y;
 }
@@ -475,10 +564,10 @@ function renderLuxuryDetailSections(doc, ctx) {
     y + 8,
     { width: metricsTextW }
   );
-  addBulletList(doc, (performanceLines || []).slice(0, 12), margin + 12, y + 20, metricsTextW, C.text, 7.6);
+  addBulletList(doc, (performanceLines || []).slice(0, 12), margin + 12, y + 20, metricsTextW, C.text, 7.6, paginator, margin);
   if ((insightTags || []).length) {
     doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(7.8).text('Engine insight tags', margin + 12, y + 22 + perfH);
-    addBulletList(doc, insightTags.slice(0, 12), margin + 12, y + 32 + perfH, metricsTextW, C.emerald, 7.6);
+    addBulletList(doc, insightTags.slice(0, 12), margin + 12, y + 32 + perfH, metricsTextW, C.emerald, 7.6, paginator, margin);
   }
   y += metricsBoxH + 12;
 

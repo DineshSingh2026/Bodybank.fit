@@ -778,12 +778,16 @@ function drawVisualAnalyticsPage(doc, {
     labels: hydLab
   });
 
-  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.2).text(
-    'Each chart uses a distinct palette colour. Empty charts mean no rows in that table for this month.',
-    margin,
-    rowY + chartH + 14,
-    { width: contentW, align: 'center', lineGap: 2 }
-  );
+  const footnote =
+    'Each chart uses a distinct palette colour. Empty charts mean no rows in that table for this month.';
+  const footY = rowY + chartH + 14;
+  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.2).text(footnote, margin, footY, {
+    width: contentW,
+    align: 'center',
+    lineGap: 2
+  });
+  const footH = doc.heightOfString(footnote, { width: contentW, lineGap: 2 });
+  return footY + footH + 12;
 }
 
 /** Two line series overlaid (aligned by index). */
@@ -1043,7 +1047,7 @@ function generateMonthlyClientReport(opts) {
       labels: stepLabels
     });
 
-    drawVisualAnalyticsPage(doc, { margin, contentW, gap, monthKeyText, user, data });
+    const afterVisualY = drawVisualAnalyticsPage(doc, { margin, contentW, gap, monthKeyText, user, data });
 
     const coachPayload = extractCoachPayload(insights);
     const performanceLines = formatCoachPerformanceLines(coachPayload);
@@ -1057,7 +1061,7 @@ function generateMonthlyClientReport(opts) {
         ? String(aiNarrative.executive_summary).trim()
         : fallbackLetter;
 
-    const letterY = chartY + chartH + gap + 8;
+    const letterY = afterVisualY + 8;
     sectionTitle(doc, 'Executive dossier — lead coach narrative', letterY - 14, contentW, margin);
     const letterPadX = 16;
     const letterTextW = contentW - letterPadX * 2;
