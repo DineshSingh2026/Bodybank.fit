@@ -1,13 +1,94 @@
 /**
  * In-app notification sounds (Web Audio). User: default chime; water-related: drip;
- * Admin: brighter chime. Respects localStorage mute + prefers-reduced-motion.
+ * Admin: brighter chime.
+ * Sounds are ON by default (localStorage bb_notify_sounds_on unset or '1'). Mute via bell 🔊 only.
+ * Skipped when prefers-reduced-motion: reduce (accessibility).
  */
 (function (w) {
   'use strict';
 
   var STORAGE = 'bb_notify_sounds_on';
+  var HINT_SESSION_KEY = 'bb_sound_unlock_hint_dismissed_v1';
   var MAX_SEEN = 450;
   var ctx = null;
+
+  function hintDismissedThisSession() {
+    try {
+      return sessionStorage.getItem(HINT_SESSION_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function markHintDismissed() {
+    try {
+      sessionStorage.setItem(HINT_SESSION_KEY, '1');
+    } catch (e) {}
+  }
+
+  function isAudioRunning() {
+    var c = getCtx();
+    return !!(c && c.state === 'running');
+  }
+
+  function hideUnlockHintBar() {
+    var el = document.getElementById('bbSoundUnlockHint');
+    if (el) el.hidden = true;
+  }
+
+  function ensureUnlockHintEl() {
+    var el = document.getElementById('bbSoundUnlockHint');
+    if (el) return el;
+    el = document.createElement('div');
+    el.id = 'bbSoundUnlockHint';
+    el.className = 'bb-sound-unlock-hint';
+    el.setAttribute('role', 'status');
+    el.hidden = true;
+    el.innerHTML =
+      '<div class="bb-sound-unlock-inner">' +
+      '<p class="bb-sound-unlock-txt"><strong>In-app notification sounds</strong> — Your browser asks for <strong>one tap</strong> on this visit to unlock audio. After that, chimes work automatically. Tap <strong>Unlock sounds</strong> or tap anywhere on the app.</p>' +
+      '<div class="bb-sound-unlock-actions">' +
+      '<button type="button" class="bb-sound-unlock-btn bb-sound-unlock-primary">Unlock sounds</button>' +
+      '<button type="button" class="bb-sound-unlock-btn bb-sound-unlock-secondary">Dismiss</button>' +
+      '</div></div>';
+    document.body.appendChild(el);
+    el.querySelector('.bb-sound-unlock-primary').addEventListener('click', function (e) {
+      e.stopPropagation();
+      w.bbNotifyPrimeAudio();
+    });
+    el.querySelector('.bb-sound-unlock-secondary').addEventListener('click', function (e) {
+      e.stopPropagation();
+      markHintDismissed();
+      hideUnlockHintBar();
+    });
+    return el;
+  }
+
+  /**
+   * One short gesture unlocks Web Audio for this tab (browser policy). Shows a bar until dismissed or unlocked.
+   */
+  w.bbNotifyTryShowUnlockHint = function () {
+    if (!w.currentUser) return;
+    if (hintDismissedThisSession()) return;
+    if (!w.bbNotifySoundsEnabled()) return;
+    if (w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (isAudioRunning()) {
+      markHintDismissed();
+      return;
+    }
+    var el = ensureUnlockHintEl();
+    el.hidden = false;
+  };
+
+  /** Call after a deliberate tap — unlocks audio and plays a sample chime. */
+  w.bbNotifyPrimeAudio = function () {
+    if (!w.bbNotifySoundsEnabled()) return;
+    resume();
+    var isAd = w.currentUser && (w.currentUser.role === 'admin' || w.currentUser.role === 'superadmin');
+    w.bbNotifyPlayKind(isAd ? 'admin' : 'default');
+    markHintDismissed();
+    hideUnlockHintBar();
+  };
 
   function getCtx() {
     var C = w.AudioContext || w.webkitAudioContext;
@@ -150,6 +231,10 @@
 
   w.bbNotifyResetSoundState = function () {
     w._bbNotifySoundState = null;
+    try {
+      sessionStorage.removeItem(HINT_SESSION_KEY);
+    } catch (e) {}
+    hideUnlockHintBar();
   };
 
   function trimSet(s) {
@@ -207,15 +292,19 @@
     });
   };
 
-  function unlock() {
+  function unlockFromGesture() {
     resume();
+    if (isAudioRunning()) {
+      markHintDismissed();
+      hideUnlockHintBar();
+    }
   }
   if (typeof document !== 'undefined') {
     document.addEventListener(
       'DOMContentLoaded',
       function () {
         ['click', 'touchstart'].forEach(function (evName) {
-          document.body.addEventListener(evName, unlock, { once: true, passive: true });
+          document.body.addEventListener(evName, unlockFromGesture, { once: true, passive: true });
         });
       },
       { once: true }

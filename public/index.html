@@ -1195,11 +1195,15 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .bb-fw-modal .bb-fw-kicker{ font-size:10px; letter-spacing:0.28em; text-transform:uppercase; color:rgba(200,164,78,0.65); margin:0 0 4px; }
 .bb-fw-modal .bb-fw-title{ font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:0.05em; color:var(--cream); }
 .bb-fw-modal .bb-fw-sub{ margin-bottom:16px; font-size:12px; line-height:1.45; }
+/* Mobile-first: original dial proportions (user-confirmed good on phones) */
 .bb-fw-stage{
-  --bb-fw-r: 118px;
-  position:relative; width:min(82vw,340px); height:min(82vw,340px); margin:10px auto 22px;
-  border-radius:50%;
-  /* Outer gold rim (reference) */
+  --bb-fw-r: 104px;
+  position: relative;
+  width: min(86vw, 300px);
+  height: min(86vw, 300px);
+  margin: 10px auto 22px;
+  border-radius: 50%;
+  box-sizing: border-box;
   box-shadow:
     0 0 0 1px rgba(200,164,78,0.35),
     0 0 0 3px rgba(10,9,8,0.95),
@@ -1264,7 +1268,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 /* Radial labels: pivot at box center (translate -50% -50%) then rotate + radial offset — matches pie segments */
 .bb-fw-lbl{
   position:absolute; left:50%; top:50%;
-  width:68px; height:52px; margin:0;
+  width:60px; height:52px; margin:0;
   font-size:8px; line-height:1.08;
   text-align:center;
   color:rgba(255,248,235,0.94);
@@ -1315,47 +1319,54 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .bb-fw-result .bb-fw-res-k{ font-size:10px; letter-spacing:0.2em; text-transform:uppercase; color:rgba(200,164,78,0.65); margin-bottom:8px; display:block; }
 .bb-fw-spin.form-submit:disabled{ opacity:0.45; cursor:not-allowed; }
 .bb-fw-foot{ font-size:11px; color:var(--muted); text-align:center; margin:12px 0 0; }
-.bb-fw-feedback-row{
-  display:flex; align-items:center; justify-content:center; gap:10px;
-  margin:10px 0 0; padding:8px 10px;
-  border-radius:10px;
-  border:1px solid rgba(200,164,78,0.12);
-  background:rgba(0,0,0,0.12);
+/* Desktop+: overflow visible (modal defaults to overflow-x:hidden). Do NOT use % height on
+   .bb-fw-stage — parent height is auto so % resolves to 0 and collapses the dial (labels pile up). */
+@media (min-width:521px){
+  #focusWheelModal .modal.bb-fw-modal{
+    overflow-x: visible;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: min(96vw, 400px);
+    box-sizing: border-box;
+    padding-left: max(24px, env(safe-area-inset-left));
+    padding-right: max(24px, env(safe-area-inset-right));
+  }
+  #focusWheelModal .modal.bb-fw-modal .bb-fw-kicker,
+  #focusWheelModal .modal.bb-fw-modal .bb-fw-title,
+  #focusWheelModal .modal.bb-fw-modal .bb-fw-sub{
+    text-align: center;
+  }
+  #focusWheelModal .modal.bb-fw-modal .bb-fw-title{
+    padding-left: 44px;
+    padding-right: 44px;
+    box-sizing: border-box;
+  }
+  #focusWheelModal .modal.bb-fw-modal .bb-fw-sub{
+    padding: 0 8px;
+  }
+  #focusWheelModal .modal.bb-fw-modal .bb-fw-stage{
+    width: 300px;
+    height: 300px;
+    max-width: 100%;
+    --bb-fw-r: 118px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  #focusWheelModal .modal.bb-fw-modal .bb-fw-lbl{
+    width: 68px;
+    height: 52px;
+    font-size: 7.5px;
+    letter-spacing: 0.04em;
+    padding: 4px 5px;
+    gap: 2px;
+  }
+  #focusWheelModal .modal.bb-fw-modal .bb-fw-lbl-txt{
+    -webkit-line-clamp: 3;
+  }
+  #focusWheelModal .modal.bb-fw-modal .bb-fw-lbl-ico{
+    font-size: 10px;
+  }
 }
-.bb-fw-feedback-row label{
-  display:flex; align-items:center; gap:10px; cursor:pointer;
-  font-size:12px; color:rgba(245,240,232,0.82); user-select:none;
-  line-height:1.35; text-align:left;
-}
-.bb-fw-feedback-row .bb-fw-fb-hint{ font-size:10px; color:var(--muted); font-weight:400; display:block; margin-top:2px; }
-.bb-fw-feedback-row input[type="checkbox"]{
-  width:0; height:0; opacity:0; position:absolute;
-}
-.bb-fw-switch{
-  flex-shrink:0; width:40px; height:22px; border-radius:999px;
-  background:rgba(60,52,42,0.95);
-  border:1px solid rgba(200,164,78,0.22);
-  position:relative; transition:background .2s ease, border-color .2s ease;
-}
-.bb-fw-switch::after{
-  content:''; position:absolute; top:2px; left:2px;
-  width:16px; height:16px; border-radius:50%;
-  background:linear-gradient(165deg,rgba(220,200,150,0.95),rgba(160,130,70,0.85));
-  box-shadow:0 1px 4px rgba(0,0,0,0.35);
-  transition:transform .22s cubic-bezier(0.4,0,0.2,1);
-}
-.bb-fw-feedback-row input:checked + .bb-fw-switch{
-  background:rgba(90,72,38,0.95);
-  border-color:rgba(200,164,78,0.45);
-}
-.bb-fw-feedback-row input:checked + .bb-fw-switch::after{
-  transform:translateX(18px);
-}
-.bb-fw-feedback-row input:focus-visible + .bb-fw-switch{
-  outline:2px solid rgba(200,164,78,0.5); outline-offset:2px;
-}
-/* Allow dial pointer / rim to render without modal clipping */
-#focusWheelModal .modal.bb-fw-modal{ overflow:visible; }
 .bb-focus-wheel-fab{
   display:none;
   align-items:center; justify-content:center;
@@ -1384,10 +1395,6 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 }
 @media(max-width:520px){
   .bb-fw-modal .bb-fw-title{ font-size:28px; }
-  .bb-fw-stage{
-    width:min(86vw,300px); height:min(86vw,300px);
-    --bb-fw-r: 104px;
-  }
   .bb-fw-lbl{
     width:60px; height:48px;
     font-size:7px;
@@ -1742,6 +1749,36 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .bb-notify-sound-btn{margin-left:auto;flex-shrink:0;width:38px;height:34px;border-radius:8px;border:1px solid rgba(200,164,78,0.35);background:rgba(0,0,0,0.2);cursor:pointer;font-size:17px;line-height:1;display:grid;place-items:center;transition:background .2s,border-color .2s}
 .bb-notify-sound-btn:hover{background:rgba(200,164,78,0.1);border-color:rgba(200,164,78,0.55)}
 .bb-notify-sound-btn[aria-pressed="false"]{opacity:.65}
+/* One-time-per-session: browser requires a gesture before Web Audio (notification chimes) */
+.bb-sound-unlock-hint{
+  position:fixed; left:max(10px, env(safe-area-inset-left)); right:max(10px, env(safe-area-inset-right));
+  bottom:max(12px, env(safe-area-inset-bottom)); z-index:10055;
+  max-width:min(520px, calc(100vw - 20px)); margin:0 auto;
+  padding:14px 16px; border-radius:14px; box-sizing:border-box;
+  background:linear-gradient(165deg, rgba(28,24,18,0.98), rgba(12,10,8,0.99));
+  border:1px solid rgba(200,164,78,0.45);
+  box-shadow:0 12px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(0,0,0,0.3);
+}
+.bb-sound-unlock-inner{ display:flex; flex-direction:column; gap:12px; }
+.bb-sound-unlock-txt{ margin:0; font-size:13px; line-height:1.5; color:var(--cream); }
+.bb-sound-unlock-txt strong{ color:rgba(200,164,78,0.95); font-weight:700; }
+.bb-sound-unlock-actions{ display:flex; flex-wrap:wrap; gap:10px; justify-content:flex-end; }
+.bb-sound-unlock-btn{
+  font-family:'Outfit',sans-serif; font-size:12px; font-weight:600; letter-spacing:0.06em;
+  text-transform:uppercase; padding:10px 16px; border-radius:8px; cursor:pointer; border:1px solid transparent;
+}
+.bb-sound-unlock-primary{
+  background:rgba(200,164,78,0.22); color:var(--cream); border-color:rgba(200,164,78,0.5);
+}
+.bb-sound-unlock-primary:hover{ background:rgba(200,164,78,0.32); }
+.bb-sound-unlock-secondary{
+  background:transparent; color:var(--muted); border-color:rgba(255,255,255,0.12);
+}
+.bb-sound-unlock-secondary:hover{ color:var(--cream); border-color:rgba(255,255,255,0.2); }
+@media(max-width:480px){
+  .bb-sound-unlock-actions{ flex-direction:column; align-items:stretch; }
+  .bb-sound-unlock-btn{ width:100%; text-align:center; }
+}
 .admin-notify-header input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--gold)}
 .admin-notify-browser-prompt{padding:14px 16px;border-bottom:1px solid var(--bdr);background:rgba(200,164,78,0.06);flex-shrink:0}
 .admin-notify-prompt-txt{font-size:12px;color:var(--creamd);line-height:1.5;margin-bottom:12px}
@@ -3405,7 +3442,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 <link rel="stylesheet" href="/mobile-fix.css?v=20">
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="js/notification-sounds.js?v=1"></script>
+<script src="js/notification-sounds.js?v=2"></script>
 </head>
 <body>
 
@@ -5271,7 +5308,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
 <!-- Daily Focus Wheel (luxury dial — once per UTC day) -->
 <div class="modal-overlay" id="focusWheelModal" onclick="if(event.target===this)closeModal('focusWheelModal')">
-  <div class="modal login-modal bb-fw-modal" style="max-width:min(94vw,400px)">
+  <div class="modal login-modal bb-fw-modal">
     <button class="modal-close" onclick="closeModal('focusWheelModal')" type="button">&times;</button>
     <p class="bb-fw-kicker">Daily ritual</p>
     <h2 class="bb-fw-title" style="margin:0 0 6px">Today's focus</h2>
@@ -5287,16 +5324,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="bb-fw-hub" aria-hidden="true"><span>BB</span></div>
     </div>
     <div id="bbFwResult" class="bb-fw-result" style="display:none"></div>
-    <div class="bb-fw-feedback-row" id="bbFwFeedbackRow">
-      <label for="bbFwFeedbackChk">
-        <input type="checkbox" id="bbFwFeedbackChk" autocomplete="off" aria-describedby="bbFwFeedbackHint">
-        <span class="bb-fw-switch" aria-hidden="true"></span>
-        <span>
-          Spin feedback
-          <span class="bb-fw-fb-hint" id="bbFwFeedbackHint">Soft tick · light haptics on phone</span>
-        </span>
-      </label>
-    </div>
     <button type="button" class="form-submit bb-fw-spin" id="bbFwSpinBtn" onclick="spinFocusWheel()">Spin the dial</button>
     <p class="bb-fw-foot" id="bbFwFoot"></p>
   </div>
@@ -6374,6 +6401,9 @@ async function loadDashboard() {
   if (typeof requestNotificationPermission === 'function') setTimeout(requestNotificationPermission, 500);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
+  setTimeout(function () {
+    if (typeof bbNotifyTryShowUnlockHint === 'function') bbNotifyTryShowUnlockHint();
+  }, 900);
 }
 
 const SESSION_KEY = 'bodybank_session';
@@ -9513,27 +9543,17 @@ function openUserDashboard(user) {
   if (typeof startUserNotificationPolling === 'function') startUserNotificationPolling();
   setTimeout(function() { checkProgramAssignmentPopup(); }, 800);
   setTimeout(function() { loadFocusWheelState(); }, 400);
+  setTimeout(function () {
+    if (typeof bbNotifyTryShowUnlockHint === 'function') bbNotifyTryShowUnlockHint();
+  }, 900);
   document.getElementById('ctName').value = (user.first_name + ' ' + user.last_name).trim();
   document.getElementById('ctEmail').value = user.email || '';
 }
 
 var _bbFwSpinning = false;
-var BB_FW_FB_KEY = 'bb_fw_spin_feedback';
 var _bbFwAudioCtx = null;
 var _bbFwSpinTickTimers = [];
 
-function bbFwSpinFeedbackEnabled() {
-  try {
-    return localStorage.getItem(BB_FW_FB_KEY) === '1';
-  } catch (e) {
-    return false;
-  }
-}
-function bbFwSetSpinFeedbackEnabled(on) {
-  try {
-    localStorage.setItem(BB_FW_FB_KEY, on ? '1' : '0');
-  } catch (e) {}
-}
 function bbFwEnsureAudio() {
   var Ctx = window.AudioContext || window.webkitAudioContext;
   if (!Ctx) return null;
@@ -9572,10 +9592,10 @@ function bbFwClearSpinTickTimers() {
   for (var i = 0; i < _bbFwSpinTickTimers.length; i++) clearTimeout(_bbFwSpinTickTimers[i]);
   _bbFwSpinTickTimers = [];
 }
-/** ~20 soft ticks over spin; haptic every 4th tick (mobile). Off by default — user opts in via toggle. */
+/** ~20 soft ticks over spin; haptic every 4th tick (mobile). On by default; skipped if reduced motion. */
 function bbFwStartSpinFeedback(durationMs, reducedMotion) {
   bbFwClearSpinTickTimers();
-  if (reducedMotion || !bbFwSpinFeedbackEnabled()) return;
+  if (reducedMotion) return;
   var n = 20;
   var hapticEvery = 4;
   for (var i = 0; i < n; i++) {
@@ -9588,18 +9608,6 @@ function bbFwStartSpinFeedback(durationMs, reducedMotion) {
     })(i);
   }
 }
-function bbFwSyncFeedbackToggle() {
-  var chk = document.getElementById('bbFwFeedbackChk');
-  if (!chk) return;
-  chk.checked = bbFwSpinFeedbackEnabled();
-  if (chk._bbFwFbBound) return;
-  chk._bbFwFbBound = true;
-  chk.addEventListener('change', function () {
-    bbFwSetSpinFeedbackEnabled(!!chk.checked);
-    if (chk.checked) bbFwEnsureAudio();
-  });
-}
-
 function wheelLabelCompact(txt) {
   var s = String(txt || '').trim();
   if (!s) return '';
@@ -9699,7 +9707,6 @@ async function openFocusWheelModal() {
   var foot = document.getElementById('bbFwFoot');
   if (res) { res.style.display = 'none'; res.innerHTML = ''; }
   if (foot) foot.textContent = '';
-  bbFwSyncFeedbackToggle();
   if (data.can_spin) {
     if (btn) { btn.style.display = ''; btn.disabled = false; btn.textContent = 'Spin the dial'; }
   } else {
@@ -9714,7 +9721,7 @@ async function openFocusWheelModal() {
 }
 async function spinFocusWheel() {
   if (_bbFwSpinning) return;
-  if (bbFwSpinFeedbackEnabled()) bbFwEnsureAudio();
+  bbFwEnsureAudio();
   var rot = document.getElementById('bbFwWheelRotate');
   var btn = document.getElementById('bbFwSpinBtn');
   var res = document.getElementById('bbFwResult');
@@ -12427,6 +12434,9 @@ function loadSuperadminDashboard() {
       });
       if (cur) sel.value = cur;
     }
+    setTimeout(function () {
+      if (typeof bbNotifyTryShowUnlockHint === 'function') bbNotifyTryShowUnlockHint();
+    }, 900);
   }).catch(function() {
     if (loading) { loading.textContent = 'Failed to load dashboard.'; loading.style.display = 'block'; }
   });
