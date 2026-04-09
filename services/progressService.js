@@ -1,5 +1,5 @@
 const db = require('../config/db');
-const { getCurrentStreak } = require('./streakService');
+const { getCurrentStreak, buildStreakHistoryFromCheckinRows } = require('./streakService');
 const { getGoalCompletionPercent } = require('./goalService');
 const { getInsights } = require('./insightService');
 
@@ -338,6 +338,7 @@ async function getAdminUserProgress(userId) {
   const logs = mergeWorkoutSessionsIntoLogs(mergeLogs(progressLogs, dailyCheckins, sundayCheckins), workoutSessions || []);
 
   const streak = await getCurrentStreak(userId);
+  const streakHistory = buildStreakHistoryFromCheckinRows(dailyCheckins);
   const daily7Row = await db.queryOne(
     `SELECT COUNT(DISTINCT checkin_date)::int AS c
      FROM daily_checkins
@@ -398,6 +399,8 @@ async function getAdminUserProgress(userId) {
     /** Daily micro-goal check-ins logged in the last 7 calendar days (incl. today), max 7 */
     dailyCheckins7d,
     activeStreak: streak,
+    /** Daily check-in streak over last 120 days (same rules as member app / KPI) */
+    streakHistory,
     goalCompletionPercent: goalPct,
     averageCalories: avgCalories,
     averageSleep: avgSleep,

@@ -4785,6 +4785,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <div class="chart-wrap"><canvas id="adminChartWater"></canvas><p class="chart-title">Water (L — merged daily + workout)</p></div>
             <div class="chart-wrap"><canvas id="adminChartSessionDuration"></canvas><p class="chart-title">Session duration (min, My Workout)</p></div>
             <div class="chart-wrap"><canvas id="adminChartSteps"></canvas><p class="chart-title">Steps (Daily check-in)</p></div>
+            <div class="chart-wrap"><canvas id="adminChartStreak"></canvas><p class="chart-title">Daily check-in streak (consecutive days)</p></div>
             <div class="chart-wrap"><canvas id="adminChartSleep"></canvas><p class="chart-title">Sleep hours (daily + Sunday + merged)</p></div>
             <div class="chart-wrap"><canvas id="adminChartSessionLiftsDetail"></canvas><p class="chart-title">Session loads — bench / squat / deadlift (from My Workout)</p></div>
             <div class="chart-wrap"><canvas id="adminChartIntensity"></canvas><p class="chart-title">Session intensity (My Workout)</p></div>
@@ -8888,6 +8889,42 @@ function drawAdminProgressCharts(data) {
       options: { ...chartOpts, scales: { x: scaleOpts, y: scaleOpts } }
     });
   }
+  var streakHist = data && Array.isArray(data.streakHistory) ? data.streakHistory : [];
+  if (streakHist.length) {
+    var lblStreak = streakHist.map(function (p) {
+      var raw = String(p.date || '');
+      var pr = raw.split('-');
+      if (pr.length < 3) return raw;
+      var dt = new Date(parseInt(pr[0], 10), parseInt(pr[1], 10) - 1, parseInt(pr[2], 10));
+      return isNaN(dt.getTime()) ? raw : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
+    var ctxStreak = document.getElementById('adminChartStreak');
+    if (ctxStreak) {
+      adminProgressChartInstances.streak = new Chart(ctxStreak.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: lblStreak,
+          datasets: [{
+            label: 'Consecutive days',
+            data: streakHist.map(function (p) { return p.streak != null ? Number(p.streak) : 0; }),
+            borderColor: '#f4d03f',
+            backgroundColor: 'rgba(244,208,63,0.14)',
+            fill: true,
+            tension: 0.25,
+            pointRadius: 0,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          ...chartOpts,
+          scales: {
+            x: { ...scaleOpts, ticks: { ...scaleOpts.ticks, maxTicksLimit: 14 } },
+            y: { ...scaleOpts, min: 0, beginAtZero: true, ticks: { ...scaleOpts.ticks, precision: 0 } }
+          }
+        }
+      });
+    }
+  }
 }
 window._adminCpSelectedUserId = null;
 async function getProgressReportLink() {
@@ -9537,6 +9574,12 @@ function openUserDashboard(user) {
   loadTodayDashboard();
   loadMicroGoals();
   loadScorecard();
+  // Desktop home (≥768px) uses u-stat-*, charts, u-prog-*, u-activity-body — only filled by bbRefreshDesktopUserDashboard
+  if (window.innerWidth >= 768) {
+    setTimeout(function () {
+      if (typeof bbRefreshDesktopUserDashboard === 'function') bbRefreshDesktopUserDashboard();
+    }, 150);
+  }
   loadProfile();
   loadWorkoutHistory();
   if (typeof loadNotifications === 'function') loadNotifications();
@@ -10066,7 +10109,6 @@ function bbUserEsc(s) {
 async function bbRefreshDesktopUserDashboard() {
   if (window.innerWidth < 768) return;
   if (!window.currentUser || !window.currentUser.id) return;
-  if (typeof Chart === 'undefined') return;
 
   // Keep welcome name in desktop topbar in sync
   var nameEl = document.getElementById('userWelcomeName');
@@ -10138,7 +10180,7 @@ async function bbRefreshDesktopUserDashboard() {
   var labels = days.map(function(k) { return bbUserFmtDate(k); });
   var values = days.map(function(k) { return byDay[k] || 0; });
   var ctx1 = document.getElementById('u-chart-workouts');
-  if (ctx1) {
+  if (ctx1 && typeof Chart !== 'undefined') {
     bbUserDestroyChart('workouts');
     window._bbUserCharts.workouts = new Chart(ctx1, {
       type: 'line',
@@ -10152,7 +10194,7 @@ async function bbRefreshDesktopUserDashboard() {
   var done = Math.min(goal, workoutsThisWeek);
   var remaining = Math.max(0, goal - done);
   var ctx2 = document.getElementById('u-chart-goal');
-  if (ctx2) {
+  if (ctx2 && typeof Chart !== 'undefined') {
     bbUserDestroyChart('goal');
     window._bbUserCharts.goal = new Chart(ctx2, {
       type: 'doughnut',
@@ -10223,6 +10265,29 @@ async function bbRefreshDesktopUserDashboard() {
 
   loadScorecard();
 }
+
+(function () {
+  var lastW = typeof window !== 'undefined' ? window.innerWidth : 0;
+  window.addEventListener(
+    'resize',
+    function () {
+      var w = window.innerWidth;
+      if (
+        lastW < 768 &&
+        w >= 768 &&
+        window.currentUser &&
+        document.getElementById('usec-home') &&
+        document.getElementById('usec-home').classList.contains('active')
+      ) {
+        setTimeout(function () {
+          if (typeof bbRefreshDesktopUserDashboard === 'function') bbRefreshDesktopUserDashboard();
+        }, 150);
+      }
+      lastW = w;
+    },
+    { passive: true }
+  );
+})();
 
 // User stats (workouts this week, next call, days since last activity)
 async function loadUserStats() {
