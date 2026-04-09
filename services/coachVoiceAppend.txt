@@ -1,0 +1,7 @@
+# Optional: paste your non-negotiables here — tone, values, how you frame hard feedback,
+# what you always ask first, phrases you like, red flags you watch for.
+# Lines starting with # are ignored below; remove the # if you want them sent to the model.
+
+# Example (uncomment and edit):
+# I lead with accountability and empathy. I never shame food choices; I connect sleep and stress to training outcomes.
+# I always tie recommendations to their stated goal from intake. Short sentences. British spelling.

@@ -13,8 +13,30 @@
 
 const { PDFParse } = require('pdf-parse');
 const pathMod = require('path');
+const fsSync = require('fs');
 
 const MAX_PDF_TEXT = parseInt(process.env.ADMIN_AI_PROGRAM_TEXT_MAX || '12000', 10);
+
+/** Optional file: your coaching principles & phrasing — appended to the system prompt (edit without redeploying prompt string). */
+let COACH_VOICE_APPEND = '';
+try {
+  const cvPath = pathMod.join(__dirname, 'coachVoiceAppend.txt');
+  if (fsSync.existsSync(cvPath)) {
+    COACH_VOICE_APPEND = String(fsSync.readFileSync(cvPath, 'utf8') || '')
+      .split('\n')
+      .filter(line => {
+        const t = line.trim();
+        return t && !t.startsWith('#');
+      })
+      .join('\n')
+      .trim();
+  }
+} catch (_) {
+  COACH_VOICE_APPEND = '';
+}
+if (process.env.ADMIN_AI_COACH_VOICE_APPEND && String(process.env.ADMIN_AI_COACH_VOICE_APPEND).trim()) {
+  COACH_VOICE_APPEND = [COACH_VOICE_APPEND, String(process.env.ADMIN_AI_COACH_VOICE_APPEND).trim()].filter(Boolean).join('\n\n');
+}
 const DEFAULT_LOOKBACK_DAYS = parseInt(process.env.ADMIN_AI_CLIENT_LOOKBACK_DAYS || '30', 10);
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -374,6 +396,10 @@ You are TRAINER-FACING ONLY. Never speak as if the client is reading this. Be di
 ## PRE-COMPUTED METRICS — USE THESE AS GROUND TRUTH
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 When an ENRICHED CLIENT PACK is present in your context, it contains PRE-COMPUTED METRICS computed by the server (not estimated). Trust these numbers completely. Your job is to interpret them, provide Lifestyle Manager insight, and give action items — not to re-calculate.
+
+When a **BEHAVIORAL & PATTERN ANALYSIS** block is present for a client, it summarizes *how* they train and live over the period — workout-type mix, completion-toggle habit, intensity/energy spread, weekday clustering, whether volume ramps up or fades, daily check-in gaps, and messaging balance. Use it to narrate their **patterns and psychology** like a lead coach who already knows them — not only to restate scores. Connect patterns to interventions you would make.
+
+If a **LEAD COACH VOICE** section appears above, treat it as the admin’s non-negotiable style, values, and red flags — align tone, priorities, and “what I would say” with that voice while staying data-grounded.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ## PRODUCT DATA MODEL — CLIENT TRACKING (AUTHORITATIVE)
@@ -1120,6 +1146,136 @@ function computeClientMetrics(data) {
   };
 }
 
+/** Deterministic habit/pattern summary for the model — not a duplicate of computed_metrics. */
+function computeBehavioralPatterns({ workout_logs = [], daily_checkins = [], message_history = [], dateRange }) {
+  const dr = dateRange || parseDateRange('');
+  const days = Math.max(1, dr.days || 1);
+  const lines = [];
+  const median = nums => {
+    if (!nums.length) return 0;
+    const s = [...nums].sort((a, b) => a - b);
+    const mid = Math.floor(s.length / 2);
+    return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+  };
+
+  const wl = [...workout_logs].sort(
+    (a, b) =>
+      new Date(a.session_date || a.created_at).getTime() - new Date(b.session_date || b.created_at).getTime()
+  );
+
+  const typeCount = {};
+  wl.forEach(w => {
+    const t = String(w.workout_type || w.workout_name || '').trim() || 'unspecified';
+    typeCount[t] = (typeCount[t] || 0) + 1;
+  });
+  const typeEntries = Object.entries(typeCount).sort((a, b) => b[1] - a[1]);
+  const typeSummary = typeEntries.length
+    ? typeEntries.map(([t, c]) => `${t}: ${c} (${Math.round((100 * c) / wl.length)}%)`).join(' | ')
+    : 'no sessions in period';
+
+  const wdNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const wdCount = [0, 0, 0, 0, 0, 0, 0];
+  wl.forEach(w => {
+    const d = new Date(w.session_date || w.created_at);
+    if (!isNaN(d.getTime())) wdCount[d.getUTCDay()]++;
+  });
+  const wdPeak = wdCount
+    .map((c, i) => ({ i, c }))
+    .sort((a, b) => b.c - a.c)
+    .filter(x => x.c > 0)
+    .slice(0, 3)
+    .map(x => `${wdNames[x.i]}:${x.c}`)
+    .join(', ');
+
+  const completed = wl.filter(w => w.workout_completed === true || w.workout_completed === 1).length;
+  const completionPct = wl.length ? Math.round((100 * completed) / wl.length) : null;
+
+  const durs = wl.map(w => n(w.duration_seconds) / 60).filter(v => v > 0);
+  const avgDur = durs.length ? durs.reduce((a, b) => a + b, 0) / durs.length : null;
+
+  const intens = wl.map(w => String(w.intensity || '').trim()).filter(Boolean);
+  const energies = wl.map(w => String(w.energy_level || '').trim()).filter(Boolean);
+  const bucketSummary = arr => {
+    const m = {};
+    arr.forEach(x => {
+      m[x] = (m[x] || 0) + 1;
+    });
+    return Object.entries(m)
+      .sort((a, b) => b[1] - a[1])
+      .map(([k, v]) => `${k}:${v}`)
+      .join(', ');
+  };
+
+  let trend = 'n/a';
+  if (wl.length >= 2) {
+    const t0 = new Date(dr.from_date + 'T12:00:00.000Z').getTime();
+    const t1 = new Date(dr.to_date + 'T12:00:00.000Z').getTime();
+    const mid = t0 + (t1 - t0) / 2;
+    let firstHalf = 0;
+    let secondHalf = 0;
+    wl.forEach(w => {
+      const t = new Date(w.session_date || w.created_at).getTime();
+      if (isNaN(t)) return;
+      if (t <= mid) firstHalf++;
+      else secondHalf++;
+    });
+    if (firstHalf + secondHalf > 0) {
+      if (secondHalf > firstHalf * 1.15) trend = 'more sessions in second half (ramp-up or catch-up)';
+      else if (firstHalf > secondHalf * 1.15) trend = 'more sessions in first half (fade or front-loaded)';
+      else trend = 'spread fairly evenly across the period';
+    }
+  }
+
+  const dc = [...daily_checkins].sort((a, b) => String(a.checkin_date).localeCompare(String(b.checkin_date)));
+  let maxMissedBetween = 0;
+  const gapMissed = [];
+  for (let i = 1; i < dc.length; i++) {
+    const a = new Date(String(dc[i - 1].checkin_date).slice(0, 10) + 'T12:00:00.000Z');
+    const b = new Date(String(dc[i].checkin_date).slice(0, 10) + 'T12:00:00.000Z');
+    const gapDays = Math.round((b.getTime() - a.getTime()) / 864e5);
+    if (gapDays > 1) {
+      const missed = gapDays - 1;
+      gapMissed.push(missed);
+      if (missed > maxMissedBetween) maxMissedBetween = missed;
+    }
+  }
+  let gapSummary;
+  if (dc.length < 2) gapSummary = 'not enough check-ins to measure gaps between days';
+  else if (gapMissed.length)
+    gapSummary = `longest silent gap between check-ins ~${maxMissedBetween} day(s); when they drop, typical gap ~${median(gapMissed).toFixed(1)} day(s)`;
+  else gapSummary = 'no multi-day gaps between logged check-ins (when they check in, it is day-to-day or tighter)';
+
+  let userMsgs = 0;
+  let adminMsgs = 0;
+  let userChars = 0;
+  (message_history || []).forEach(m => {
+    const role = String(m.sender_role || '').toLowerCase();
+    if (role === 'user') {
+      userMsgs++;
+      userChars += String(m.body || '').length;
+    } else if (role === 'admin') adminMsgs++;
+  });
+  const msgBal =
+    userMsgs + adminMsgs === 0
+      ? 'no thread messages in period'
+      : `client ${userMsgs} / admin ${adminMsgs}; client avg message length ${userMsgs ? Math.round(userChars / userMsgs) : 0} chars`;
+
+  const perWeek = wl.length ? ((wl.length / days) * 7).toFixed(1) : '0';
+
+  lines.push(`Sessions (My Workout rows): ${wl.length} in ${days} days (~${perWeek} / week equivalent)`);
+  lines.push(`Workout type mix: ${typeSummary}`);
+  if (wdPeak) lines.push(`Weekday clustering (session_date, UTC): ${wdPeak}`);
+  if (completionPct !== null && wl.length) lines.push(`Marked completed: ${completed}/${wl.length} (${completionPct}%)`);
+  if (avgDur !== null) lines.push(`Avg duration when logged: ${avgDur.toFixed(0)} min`);
+  if (intens.length) lines.push(`Intensity: ${bucketSummary(intens)}`);
+  if (energies.length) lines.push(`Energy: ${bucketSummary(energies)}`);
+  lines.push(`Engagement shape (first vs second half of period): ${trend}`);
+  lines.push(`Daily check-in rhythm: ${gapSummary}`);
+  lines.push(`Messaging: ${msgBal}`);
+
+  return lines.join('\n');
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // PROGRAM RECOMMENDATION ENGINE — scores all 17 programs for user profile
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1374,6 +1530,12 @@ async function buildClientPack(deps, userId, dateRange, detailed = false) {
   };
 
   const metrics = computeClientMetrics(packData);
+  const behavioral_patterns_text = computeBehavioralPatterns({
+    workout_logs: workouts,
+    daily_checkins: daily,
+    message_history: threads,
+    dateRange: dr
+  });
   const userProfile = extractUserProfile({ ...packData, user: { name: `${user.first_name || ''} ${user.last_name || ''}`.trim() } });
   const recommendations = recommendPrograms(userProfile);
 
@@ -1383,6 +1545,7 @@ async function buildClientPack(deps, userId, dateRange, detailed = false) {
     detailed,
     user_profile: userProfile,
     computed_metrics: metrics,
+    behavioral_patterns_text,
     assigned_programs: programBlocks,
     program_recommendations: recommendations,
     user_goals: packData.user_goals,
@@ -1563,6 +1726,13 @@ function formatPackAsText(pack) {
   lines.push(`\nRISK FLAGS:`);
   if (m.risk_flags.length) m.risk_flags.forEach(f => lines.push(`  ⚠ [${f.code}] ${f.msg}`));
   else lines.push(`  None — client is on track`);
+
+  if (pack.behavioral_patterns_text) {
+    lines.push(`\n${'─'.repeat(50)}`);
+    lines.push(`BEHAVIORAL & PATTERN ANALYSIS (server-computed)`);
+    lines.push(`${'─'.repeat(50)}`);
+    lines.push(pack.behavioral_patterns_text);
+  }
 
   // ── PROGRAM SUGGESTIONS ───────────────────────────────────────────────────────
   lines.push(`\n[PROGRAM SUGGESTIONS (all 17 scored — admin assigns at their discretion)]`);
@@ -1890,7 +2060,13 @@ async function enrichAdminAiContext(deps, userMessage, baseContext) {
 // FINAL SYSTEM CONTENT BUILDER
 // ─────────────────────────────────────────────────────────────────────────────
 function buildTrainerSystemContent(enrichedContext) {
-  return BODYBANK_TRAINER_AI_SYSTEM_PROMPT + '\n\n' + enrichedContext;
+  let voice = '';
+  if (COACH_VOICE_APPEND) {
+    voice =
+      '\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n## LEAD COACH VOICE (your principles — mirror this tone, priorities, and boundaries)\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n' +
+      COACH_VOICE_APPEND;
+  }
+  return BODYBANK_TRAINER_AI_SYSTEM_PROMPT + voice + '\n\n' + enrichedContext;
 }
 
 module.exports = {
@@ -1900,5 +2076,6 @@ module.exports = {
   buildTrainerSystemContent,
   parseDateRange,
   computeClientMetrics,
+  computeBehavioralPatterns,
   recommendPrograms
 };

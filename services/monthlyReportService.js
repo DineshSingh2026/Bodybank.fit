@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
+const { renderLuxuryDetailSections } = require('./monthlyReportPdfDetail');
 
 const FONT_DIR = path.join(__dirname, '..', 'assets', 'fonts');
 
@@ -78,6 +79,21 @@ const C = {
   danger: '#B03A32',
   grid: '#D0D6E4',
   heroAccent: '#1A1510'
+};
+
+/** Distinct saturated colors for multi-series / bar charts (WCAG-friendly on light panels). */
+const VIBRANT = {
+  coral: '#F43F5E',
+  teal: '#14B8A6',
+  amber: '#F59E0B',
+  violet: '#8B5CF6',
+  sky: '#0EA5E9',
+  lime: '#84CC16',
+  rose: '#EC4899',
+  indigo: '#6366F1',
+  orange: '#F97316',
+  cyan: '#06B6D4',
+  chartLine: ['#E11D48', '#0891B2', '#CA8A04', '#7C3AED', '#059669', '#EA580C', '#DB2777', '#4F46E5']
 };
 
 function asList(value, max = 10) {
@@ -353,13 +369,13 @@ function drawSparkLine(doc, x, y, w, h, values, strokeColor) {
 }
 
 /** Vertical stack inside KPI card — avoids overlap between big number, MoM text, spark, and caption. */
-function drawKpiPremium(doc, x, y, w, h, { label, value, sub, mom, sparkVals, sparkMode, sparkColor }) {
+function drawKpiPremium(doc, x, y, w, h, { label, value, sub, mom, sparkVals, sparkMode, sparkColor, accentColor }) {
   const inset = 12;
   const innerW = w - inset * 2;
   doc.save();
   doc.roundedRect(x, y, w, h, 11).fillAndStroke(C.panel, '#B8C2D6');
   const barInset = 10;
-  doc.roundedRect(x + 3, y + barInset, 3.2, h - barInset * 2, 1).fill(C.gold);
+  doc.roundedRect(x + 3, y + barInset, 3.2, h - barInset * 2, 1).fill(accentColor || C.gold);
   doc.restore();
 
   const sparkH = 15;
@@ -460,6 +476,384 @@ function drawLineChart(doc, cfg) {
     .text(labelLast, cx + cw - 52, cy + ch + 4, { width: 52, align: 'right' });
 }
 
+/** Vertical bar chart — one bar per value; each bar can use a rotating color. */
+function drawVerticalBarChart(doc, cfg) {
+  const { x, y, w, h, title, values, labels } = cfg;
+  const titleBarH = 22;
+  doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#C5CDDC');
+  doc.rect(x + 1, y + 1, w - 2, titleBarH).fill('#F8FAFC');
+  doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(8.5).text(title, x + 10, y + 6);
+  const nums = (values || []).map((v) => (Number.isFinite(Number(v)) ? Number(v) : null));
+  const valid = nums.filter((v) => v != null && v > 0);
+  const cx = x + 14;
+  const cw = w - 28;
+  const ch = h - titleBarH - 30;
+  const cy = y + titleBarH + 8;
+  if (!valid.length) {
+    doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(8.5).text('No numeric data this month', cx, cy + ch * 0.35, { width: cw, align: 'center' });
+    return;
+  }
+  const max = Math.max(...valid);
+  const n = nums.length;
+  const gap = Math.max(1.5, cw * 0.04 / Math.max(n, 1));
+  const barW = Math.max(3, (cw - gap * (n - 1)) / n);
+  nums.forEach((v, i) => {
+    if (v == null || v <= 0) return;
+    const bh = (v / max) * ch;
+    const bx = cx + i * (barW + gap);
+    const by = cy + ch - bh;
+    const col = VIBRANT.chartLine[i % VIBRANT.chartLine.length];
+    doc.roundedRect(bx, by, barW, bh, 2).fill(col);
+  });
+  if (labels && labels.length === n && n <= 14) {
+    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(5.8);
+    nums.forEach((_, i) => {
+      const lab = String(labels[i] || '').slice(0, 4);
+      doc.text(lab, cx + i * (barW + gap), cy + ch + 3, { width: barW + gap, align: 'center' });
+    });
+  }
+}
+
+/** Horizontal stacked bars for category counts (e.g. workout_type). */
+function drawHorizontalCategoryBars(doc, cfg) {
+  const { x, y, w, h, title, items } = cfg;
+  const titleBarH = 22;
+  doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#C5CDDC');
+  doc.rect(x + 1, y + 1, w - 2, titleBarH).fill('#F8FAFC');
+  doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(8.5).text(title, x + 10, y + 6);
+  const list = (items || []).filter((it) => it && Number(it.value) > 0);
+  const innerTop = y + titleBarH + 6;
+  const innerH = h - titleBarH - 20;
+  if (!list.length) {
+    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(8.5).text('No categories logged', x + 16, innerTop + innerH * 0.3, { width: w - 32, align: 'center' });
+    return;
+  }
+  const max = Math.max(...list.map((it) => Number(it.value)), 1);
+  const rowH = Math.min(16, Math.max(9, innerH / Math.max(list.length, 1) - 3));
+  let ry = innerTop;
+  list.forEach((it, i) => {
+    const val = Number(it.value);
+    const lab = String(it.label || '—').replace(/\s+/g, ' ').trim().slice(0, 22);
+    const barMaxW = w - 108;
+    const bw = (val / max) * barMaxW;
+    doc.fillColor(C.text).font(F(doc, 'body')).fontSize(6.8).text(lab, x + 8, ry + 2, { width: 74 });
+    doc.roundedRect(x + 84, ry + 1, barMaxW, rowH - 2, 2).fill('#E8EDF5');
+    doc.roundedRect(x + 84, ry + 1, Math.max(2, bw), rowH - 2, 2).fill(VIBRANT.chartLine[i % VIBRANT.chartLine.length]);
+    doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(7).text(String(val), x + w - 26, ry + 2, { width: 22, align: 'right' });
+    ry += rowH + 3;
+    if (ry > y + h - 14) return;
+  });
+}
+
+function aggregateWorkoutTypes(workouts) {
+  const m = {};
+  (workouts || []).forEach((w) => {
+    const t = String(w.workout_type || w.workout_name || 'Other').trim() || 'Other';
+    m[t] = (m[t] || 0) + 1;
+  });
+  return Object.entries(m)
+    .map(([label, value]) => ({ label, value }))
+    .sort((a, b) => b.value - a.value)
+    .slice(0, 8);
+}
+
+/** Second page — six colorful charts from all logged series. */
+function drawVisualAnalyticsPage(doc, {
+  margin,
+  contentW,
+  gap,
+  monthKeyText,
+  user,
+  data
+}) {
+  doc.addPage();
+  doc.rect(0, 0, doc.page.width, doc.page.height).fill(C.pageBg);
+  drawWatermark(doc);
+  doc.rect(0, 0, doc.page.width, 56).fill(C.bg);
+  doc.rect(0, 54, doc.page.width, 2).fill(C.gold);
+  doc.fillColor(C.gold).font(F(doc, 'display')).fontSize(12).text('VISUAL ANALYTICS', margin, 14);
+  doc.fillColor('#A5B4FC').font(F(doc, 'body')).fontSize(8.5).text(
+    `${monthKeyText} · ${(user.name || user.email || 'Client').slice(0, 48)}`,
+    margin,
+    32,
+    { width: contentW }
+  );
+
+  const daily = data.dailyCheckins || [];
+  const prog = data.progressLogs || [];
+  const wk = data.workouts || [];
+
+  const stepLabelsDaily = daily.map((r) => formatDate(r.checkin_date).slice(0, 9));
+  const proteinSeries = daily.map((r) => (r.protein_g != null ? num(r.protein_g) : null));
+  const sleepSeriesDaily = daily.map((r) => (r.sleep_hours != null ? num(r.sleep_hours) : null));
+  const waterMlSeries = daily.map((r) => (r.water_ml != null ? num(r.water_ml) : null));
+  const calSeries = prog.map((r) => (r.calories_intake != null ? num(r.calories_intake) : null));
+  const labelsProg = prog.map((r) => formatDate(r.created_at).slice(0, 9));
+  const benchSeries = prog.map((r) => (r.strength_bench != null ? num(r.strength_bench) : null));
+  const squatSeries = prog.map((r) => (r.strength_squat != null ? num(r.strength_squat) : null));
+
+  const wl = (data.weightLogs || []).map((r) => (r.weight_kg != null ? num(r.weight_kg) : null));
+  const wlLabels = (data.weightLogs || []).map((r) => formatDate(r.created_at).slice(0, 9));
+
+  const durSessions = (wk || []).map((r) => (r.duration_seconds != null ? num(r.duration_seconds) / 60 : null));
+  const durLabels = (wk || []).map((r) => formatDate(r.created_at || r.session_date).slice(0, 6));
+
+  const chartH = 120;
+  const chartW = (contentW - gap * 2) / 3;
+  let rowY = margin + 62;
+
+  sectionTitle(doc, 'Nutrition, recovery & body metrics — color series', rowY - 20, contentW, margin);
+  rowY += 6;
+
+  drawLineChart(doc, {
+    x: margin,
+    y: rowY,
+    w: chartW,
+    h: chartH,
+    title: 'Daily protein (g)',
+    values: proteinSeries,
+    lineColor: VIBRANT.coral,
+    labels: stepLabelsDaily
+  });
+  drawLineChart(doc, {
+    x: margin + chartW + gap,
+    y: rowY,
+    w: chartW,
+    h: chartH,
+    title: 'Daily sleep (hours)',
+    values: sleepSeriesDaily,
+    lineColor: VIBRANT.teal,
+    labels: stepLabelsDaily
+  });
+  drawLineChart(doc, {
+    x: margin + (chartW + gap) * 2,
+    y: rowY,
+    w: chartW,
+    h: chartH,
+    title: 'Daily water (ml)',
+    values: waterMlSeries,
+    lineColor: VIBRANT.sky,
+    labels: stepLabelsDaily
+  });
+
+  rowY += chartH + gap + 18;
+  sectionTitle(doc, 'Training load, intake & distribution', rowY - 20, contentW, margin);
+  rowY += 6;
+
+  drawLineChart(doc, {
+    x: margin,
+    y: rowY,
+    w: chartW,
+    h: chartH,
+    title: 'Calories (progress log)',
+    values: calSeries,
+    lineColor: VIBRANT.amber,
+    labels: labelsProg
+  });
+
+  const deadSeries = prog.map((r) => (r.strength_deadlift != null ? num(r.strength_deadlift) : null));
+  const bfProgSeries = prog.map((r) => (r.body_fat != null ? num(r.body_fat) : null));
+  const hasBenchAny = benchSeries.some((v) => v != null && Number.isFinite(v));
+  const hasSquatAny = squatSeries.some((v) => v != null && Number.isFinite(v));
+  const hasDeadAny = deadSeries.some((v) => v != null && Number.isFinite(v));
+  const hasBfProg = bfProgSeries.some((v) => v != null && Number.isFinite(v));
+
+  if (hasBenchAny && hasSquatAny) {
+    drawMultiLineChart(doc, {
+      x: margin + chartW + gap,
+      y: rowY,
+      w: chartW,
+      h: chartH,
+      title: 'Strength — bench vs squat (kg)',
+      series: [
+        { values: benchSeries, color: VIBRANT.violet, label: 'Bench' },
+        { values: squatSeries, color: VIBRANT.orange, label: 'Squat' }
+      ],
+      labels: labelsProg
+    });
+  } else if (hasBenchAny) {
+    drawLineChart(doc, {
+      x: margin + chartW + gap,
+      y: rowY,
+      w: chartW,
+      h: chartH,
+      title: 'Bench press (kg)',
+      values: benchSeries,
+      lineColor: VIBRANT.violet,
+      labels: labelsProg
+    });
+  } else if (hasSquatAny) {
+    drawLineChart(doc, {
+      x: margin + chartW + gap,
+      y: rowY,
+      w: chartW,
+      h: chartH,
+      title: 'Squat (kg)',
+      values: squatSeries,
+      lineColor: VIBRANT.orange,
+      labels: labelsProg
+    });
+  } else if (hasDeadAny) {
+    drawLineChart(doc, {
+      x: margin + chartW + gap,
+      y: rowY,
+      w: chartW,
+      h: chartH,
+      title: 'Deadlift (kg)',
+      values: deadSeries,
+      lineColor: VIBRANT.indigo,
+      labels: labelsProg
+    });
+  } else if (hasBfProg) {
+    drawLineChart(doc, {
+      x: margin + chartW + gap,
+      y: rowY,
+      w: chartW,
+      h: chartH,
+      title: 'Body fat % (progress log)',
+      values: bfProgSeries,
+      lineColor: VIBRANT.lime,
+      labels: labelsProg
+    });
+  } else {
+    drawLineChart(doc, {
+      x: margin + chartW + gap,
+      y: rowY,
+      w: chartW,
+      h: chartH,
+      title: 'Protein (progress log, g)',
+      values: prog.map((r) => (r.protein_intake != null ? num(r.protein_intake) : null)),
+      lineColor: VIBRANT.coral,
+      labels: labelsProg
+    });
+  }
+
+  const lastN = 18;
+  const durSlice = durSessions.slice(-lastN);
+  const durLabSlice = durLabels.slice(-lastN);
+  drawVerticalBarChart(doc, {
+    x: margin + (chartW + gap) * 2,
+    y: rowY,
+    w: chartW,
+    h: chartH,
+    title: 'Session duration (min, last sessions)',
+    values: durSlice,
+    labels: durLabSlice
+  });
+
+  rowY += chartH + gap + 18;
+  sectionTitle(doc, 'Weight & workout mix', rowY - 20, contentW, margin);
+  rowY += 6;
+
+  drawLineChart(doc, {
+    x: margin,
+    y: rowY,
+    w: chartW,
+    h: chartH,
+    title: 'Weight — dedicated logs (kg)',
+    values: wl.length ? wl : [],
+    lineColor: VIBRANT.rose,
+    labels: wlLabels
+  });
+
+  drawHorizontalCategoryBars(doc, {
+    x: margin + chartW + gap,
+    y: rowY,
+    w: chartW,
+    h: chartH,
+    title: 'Workout type / name mix',
+    items: aggregateWorkoutTypes(wk)
+  });
+
+  const hyd = data.hydrationLogs || [];
+  const hydLab = hyd.map((h) => formatDate(h.created_at).slice(0, 9));
+  drawLineChart(doc, {
+    x: margin + (chartW + gap) * 2,
+    y: rowY,
+    w: chartW,
+    h: chartH,
+    title: 'Hydration logs (ml per entry)',
+    values: hyd.map((h) => (h.amount_ml != null ? num(h.amount_ml) : null)),
+    lineColor: VIBRANT.cyan,
+    labels: hydLab
+  });
+
+  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.2).text(
+    'Each chart uses a distinct palette colour. Empty charts mean no rows in that table for this month.',
+    margin,
+    rowY + chartH + 14,
+    { width: contentW, align: 'center', lineGap: 2 }
+  );
+}
+
+/** Two line series overlaid (aligned by index). */
+function drawMultiLineChart(doc, cfg) {
+  const { x, y, w, h, title, series, labels } = cfg;
+  const titleBarH = 22;
+  doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#C5CDDC');
+  doc.rect(x + 1, y + 1, w - 2, titleBarH).fill('#F8FAFC');
+  doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(8.5).text(title, x + 10, y + 6);
+  const padX = 22;
+  const padTop = titleBarH + 6;
+  const padBottom = 26;
+  const cx = x + padX;
+  const cy = y + padTop;
+  const cw = w - padX * 1.4;
+  const ch = h - padTop - padBottom;
+  doc.strokeColor(C.grid).lineWidth(0.45);
+  for (let i = 0; i <= 4; i += 1) {
+    const gy = cy + (ch * i) / 4;
+    doc.moveTo(cx, gy).lineTo(cx + cw, gy).stroke();
+  }
+
+  let allVals = [];
+  (series || []).forEach((s) => {
+    (s.values || []).forEach((v) => {
+      if (v != null && Number.isFinite(v)) allVals.push(v);
+    });
+  });
+  if (!allVals.length) {
+    doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(8.5).text('No strength data this month', cx, cy + ch * 0.35, { width: cw, align: 'center' });
+    return;
+  }
+  const min = Math.min(...allVals);
+  const max = Math.max(...allVals);
+  const spread = max - min || 1;
+
+  (series || []).forEach((s) => {
+    const stroke = s.color || VIBRANT.violet;
+    const vals = s.values || [];
+    doc.strokeColor(stroke).lineWidth(1.6).opacity(0.95);
+    let started = false;
+    for (let i = 0; i < vals.length; i += 1) {
+      const v = vals[i];
+      if (!Number.isFinite(v)) continue;
+      const px = cx + (vals.length === 1 ? cw / 2 : (cw * i) / Math.max(vals.length - 1, 1));
+      const py = cy + ch - ((v - min) / spread) * ch;
+      if (!started) {
+        doc.moveTo(px, py);
+        started = true;
+      } else doc.lineTo(px, py);
+    }
+    doc.stroke();
+    doc.opacity(1);
+    vals.forEach((v, i) => {
+      if (!Number.isFinite(v)) return;
+      const px = cx + (vals.length === 1 ? cw / 2 : (cw * i) / Math.max(vals.length - 1, 1));
+      const py = cy + ch - ((v - min) / spread) * ch;
+      doc.fillColor(stroke).circle(px, py, 2.2).fill();
+    });
+  });
+
+  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(6.5);
+  (series || []).slice(0, 3).forEach((s, i) => {
+    doc.fillColor(s.color || VIBRANT.violet).text(`● ${s.label || 'S' + (i + 1)}`, x + 12 + i * 78, y + h - 16);
+  });
+  const labelFirst = labels && labels.length ? labels[0] : '';
+  const labelLast = labels && labels.length ? labels[labels.length - 1] : '';
+  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(6.8).text(labelFirst, cx, cy + ch + 4, { width: 70 }).text(labelLast, cx + cw - 52, cy + ch + 4, { width: 52, align: 'right' });
+}
+
 function addBulletList(doc, items, x, y, width, color, fontSize = 9) {
   let curY = y;
   const list = asList(items, 12);
@@ -529,169 +923,9 @@ function part2Lines(part2) {
   return lines;
 }
 
-function drawAppendixPage(doc, {
-  margin, contentW, user, monthKeyText, performanceLines, riskLines, actionLines, insightTags,
-  data, part2LinesArr, logoPath
-}) {
-  const assignedPrograms = (data && data.programs) ? data.programs : [];
-  const tribeMember = (data && data.tribeMember) ? data.tribeMember : null;
-  doc.addPage();
-  doc.rect(0, 0, doc.page.width, doc.page.height).fill(C.pageBg);
-  drawWatermark(doc);
-
-  doc.rect(0, 0, doc.page.width, 64).fill(C.bg);
-  doc.rect(0, 62, doc.page.width, 2).fill(C.gold);
-  doc.fillColor(C.gold).font(F(doc, 'display')).fontSize(12).text('APPENDIX — SOURCE DETAIL', margin, 22);
-  doc.fillColor('#9EC4FF').font(F(doc, 'body')).fontSize(9).text(`${user.name || user.email} · ${monthKeyText}`, margin, 40, { width: contentW });
-
-  if (logoPath && fs.existsSync(logoPath)) {
-    try {
-      const lh = 40;
-      doc.image(logoPath, doc.page.width - margin - 44, 12 + (64 - lh) / 2, { fit: [lh, lh] });
-    } catch (e) { /* ignore */ }
-  }
-
-  let y = 78;
-  sectionTitle(doc, 'Program signals (full list)', y, contentW, margin);
-  y += 30;
-  const metricsTextW = contentW - 24;
-  const perfH = measureBulletsHeight(doc, performanceLines.slice(0, 6), metricsTextW, 7.8);
-  let engineBlock = 0;
-  if (insightTags.length) {
-    engineBlock = 12 + measureBulletsHeight(doc, insightTags.slice(0, 4), metricsTextW, 7.8);
-  }
-  const metricsBoxH = Math.min(200, 30 + perfH + engineBlock + 10);
-  doc.roundedRect(margin, y, contentW, metricsBoxH, 8).fillAndStroke(C.panel, '#B8C2D6');
-  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.5).text('Cumulative / lifetime context from progress analytics (not limited to this month).', margin + 12, y + 8, { width: metricsTextW });
-  let innerY = addBulletList(doc, performanceLines.slice(0, 6), margin + 12, y + 22, metricsTextW, C.text, 7.8) + 6;
-  if (insightTags.length) {
-    doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('Engine signals', margin + 12, innerY);
-    addBulletList(doc, insightTags.slice(0, 4), margin + 12, innerY + 10, metricsTextW, C.emerald, 7.8);
-  }
-
-  y += metricsBoxH + 10;
-  const splitGutter = 12;
-  const colHalf = (contentW - splitGutter) / 2;
-  const riskTextW = colHalf - 24;
-  const actTextW = colHalf - 24;
-  const riskBodyH = measureBulletsHeight(doc, riskLines.slice(0, 4), riskTextW, 7.8);
-  const actBodyH = measureBulletsHeight(doc, actionLines.slice(0, 5), actTextW, 7.8);
-  const splitInner = Math.max(riskBodyH, actBodyH, 28);
-  const splitBoxH = 12 + splitInner + 16;
-  doc.roundedRect(margin, y, contentW, splitBoxH, 8).fillAndStroke('#FFFAF5', '#E8D9B8');
-  const splitTitleY = y + 10;
-  const splitBodyY = y + 24;
-  doc.fillColor(C.danger).font(F(doc, 'semi')).fontSize(8).text('Risk focus', margin + 12, splitTitleY);
-  doc.fillColor(C.emerald).font(F(doc, 'semi')).fontSize(8).text('Action protocol', margin + colHalf + splitGutter + 12, splitTitleY);
-  addBulletList(doc, riskLines.slice(0, 4), margin + 12, splitBodyY, riskTextW, '#8F3A30', 7.8);
-  addBulletList(doc, actionLines.slice(0, 5), margin + colHalf + splitGutter + 12, splitBodyY, actTextW, '#0F6B52', 7.8);
-
-  y += splitBoxH + 12;
-  // Assigned Programs
-  if (assignedPrograms.length) {
-    y += 10;
-    sectionTitle(doc, 'Assigned programs', y, contentW, margin);
-    y += 28;
-    const progBoxH = Math.min(80, 16 + assignedPrograms.length * 18);
-    doc.roundedRect(margin, y, contentW, progBoxH, 8).fillAndStroke('#F5F8FF', '#B8C2D6');
-    let py = y + 10;
-    assignedPrograms.forEach(function(p, i) {
-      const bullet = i === 0 ? '\u2605 CURRENT' : '  ' + (i + 1) + '.';
-      const assigned = p.assigned_at ? new Date(p.assigned_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '\u2014';
-      doc.font(F(doc, i === 0 ? 'semi' : 'body')).fontSize(8)
-        .fillColor(i === 0 ? C.goldDark : C.muted)
-        .text(bullet + '  ' + (p.program_name || '\u2014') + '  \u00b7  Assigned: ' + assigned, margin + 12, py, { width: contentW - 24 });
-      py += 16;
-    });
-    y += progBoxH + 10;
-  }
-
-  // Tribe Member Status
-  if (tribeMember) {
-    sectionTitle(doc, 'Tribe member status', y, contentW, margin);
-    y += 28;
-    const tribeLines = [
-      'Status: ' + (tribeMember.status || '\u2014') + '  \u00b7  Phase: ' + (tribeMember.phase || '\u2014') + '  \u00b7  Started: ' + (tribeMember.start_date || '\u2014'),
-      'Weight: ' + (tribeMember.starting_weight || '\u2014') + 'kg \u2192 ' + (tribeMember.current_weight || '\u2014') + 'kg (target: ' + (tribeMember.target_weight || '\u2014') + 'kg)',
-    ];
-    if (tribeMember.notes) tribeLines.push('Trainer notes: ' + String(tribeMember.notes).slice(0, 180));
-    const tribeBoxH = 14 + tribeLines.length * 13;
-    doc.roundedRect(margin, y, contentW, tribeBoxH, 8).fillAndStroke('#F5FFF8', '#9DCDB8');
-    let ty = y + 8;
-    tribeLines.forEach(function(line) {
-      doc.font(F(doc, 'body')).fontSize(8).fillColor(C.text).text(line, margin + 12, ty, { width: contentW - 24 });
-      ty += 13;
-    });
-    y += tribeBoxH + 10;
-  }
-
-  sectionTitle(doc, 'Sunday check-in transcripts', y, contentW, margin);
-  y += 28;
-  const sundays = data.sundayCheckins || [];
-  if (!sundays.length) {
-    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(9).text('No Sunday check-ins in this month.', margin, y, { width: contentW });
-    y += 20;
-  } else {
-    sundays.slice(0, 7).forEach((r) => {
-      const body = String(r.achievements || '—').slice(0, 520);
-      doc.font(F(doc, 'body')).fontSize(8.2);
-      const bodyH = doc.heightOfString(body, { width: contentW - 28, lineGap: 2 });
-      const cardH = Math.min(100, Math.max(40, 26 + bodyH + 10));
-      doc.roundedRect(margin, y, contentW, cardH, 6).fillAndStroke('#FAFBFD', '#D0D6E6');
-      doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text(formatDate(r.created_at), margin + 12, y + 8);
-      doc.fillColor(C.text).font(F(doc, 'body')).fontSize(8.2).text(body, margin + 12, y + 20, { width: contentW - 24, lineGap: 2 });
-      y += cardH + 10;
-    });
-  }
-
-  sectionTitle(doc, 'Workout log (chronological)', y, contentW, margin);
-  y += 28;
-  const workouts = data.workouts || [];
-  if (!workouts.length) {
-    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(9).text('No workouts logged this month.', margin, y);
-    y += 18;
-  } else {
-    const xDate = margin + 8;
-    const xSess = margin + contentW * 0.22;
-    const xDur = margin + contentW * 0.72;
-    const wDate = xSess - xDate - 6;
-    const wSess = xDur - xSess - 8;
-    const wDur = margin + contentW - xDur - 8;
-    doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(7.5);
-    doc.text('DATE', xDate, y, { width: wDate });
-    doc.text('SESSION', xSess, y, { width: wSess });
-    doc.text('DURATION', xDur, y, { width: wDur, align: 'right' });
-    y += 12;
-    doc.moveTo(margin, y).lineTo(margin + contentW, y).lineWidth(0.5).strokeColor(C.grid).stroke();
-    y += 8;
-    workouts.slice(0, 28).forEach((r) => {
-      doc.font(F(doc, 'body')).fontSize(8);
-      const nm = String(r.workout_name || 'Workout').slice(0, 52);
-      const rowH = Math.max(14, doc.heightOfString(nm, { width: wSess, lineGap: 1 }) + 4);
-      doc.fillColor(C.text);
-      doc.text(formatDate(r.created_at), xDate, y, { width: wDate });
-      doc.text(nm, xSess, y, { width: wSess, lineGap: 1 });
-      doc.text(`${num(r.duration_seconds, 0)} sec`, xDur, y, { width: wDur, align: 'right' });
-      y += rowH;
-    });
-  }
-
-  if (part2LinesArr.length) {
-    y += 10;
-    if (y > 720) y = 720;
-    sectionTitle(doc, 'Latest Part-2 intake (on file)', y, contentW, margin);
-    y += 28;
-    doc.roundedRect(margin, y, contentW, Math.min(80, 20 + part2LinesArr.length * 11), 8).fillAndStroke(C.panel, '#B8C2D6');
-    addBulletList(doc, part2LinesArr.slice(0, 8), margin + 10, y + 8, contentW - 20, C.text, 7.8);
-  }
-
-  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.5)
-    .text('BODYBANK · CONFIDENTIAL APPENDIX · bodybank.fit', margin, doc.page.height - margin - 4, { width: contentW, align: 'center' });
-}
-
 function generateMonthlyClientReport(opts) {
   return new Promise((resolve, reject) => {
-    const { outputPath, monthKey, user, data, insights, logoPath } = opts;
+    const { outputPath, monthKey, user, data, insights, logoPath, aiNarrative } = opts;
     const prevData = data.previousMonth || null;
     const reportSummary = summarize(data);
     const prevSummary = prevData ? summarize(prevData) : null;
@@ -737,7 +971,8 @@ function generateMonthlyClientReport(opts) {
       mom: formatIntMom(reportSummary.dailyCount, prevSummary ? prevSummary.dailyCount : null),
       sparkVals: sparkDaily,
       sparkMode: 'bars',
-      sparkColor: C.gold
+      sparkColor: VIBRANT.coral,
+      accentColor: VIBRANT.coral
     });
     drawKpiPremium(doc, margin + kpiW + gap, kpiY, kpiW, cardH, {
       label: 'Workouts',
@@ -746,7 +981,8 @@ function generateMonthlyClientReport(opts) {
       mom: formatIntMom(reportSummary.workoutCount, prevSummary ? prevSummary.workoutCount : null),
       sparkVals: sparkWorkouts,
       sparkMode: 'bars',
-      sparkColor: C.goldMid
+      sparkColor: VIBRANT.teal,
+      accentColor: VIBRANT.teal
     });
     drawKpiPremium(doc, margin + (kpiW + gap) * 2, kpiY, kpiW, cardH, {
       label: 'Avg steps',
@@ -755,7 +991,8 @@ function generateMonthlyClientReport(opts) {
       mom: formatAvgMom(reportSummary.avgSteps, prevSummary ? prevSummary.avgSteps : null, 'steps', 0),
       sparkVals: sparkSteps,
       sparkMode: 'line',
-      sparkColor: C.emerald
+      sparkColor: VIBRANT.lime,
+      accentColor: VIBRANT.lime
     });
     drawKpiPremium(doc, margin + (kpiW + gap) * 3, kpiY, kpiW, cardH, {
       label: 'Avg sleep',
@@ -764,7 +1001,8 @@ function generateMonthlyClientReport(opts) {
       mom: formatAvgMom(reportSummary.avgSleep, prevSummary ? prevSummary.avgSleep : null, 'h', 1),
       sparkVals: sparkSleep.length ? sparkSleep : [],
       sparkMode: 'line',
-      sparkColor: C.violet
+      sparkColor: VIBRANT.sky,
+      accentColor: VIBRANT.sky
     });
 
     const labels = (data.progressLogs || []).map((r) => formatDate(r.created_at).slice(0, 9));
@@ -775,14 +1013,37 @@ function generateMonthlyClientReport(opts) {
 
     sectionTitle(doc, 'Biometric & activity curves', chartY - 22, contentW, margin);
     drawLineChart(doc, {
-      x: margin, y: chartY, w: chartW, h: chartH, title: 'Weight (kg)', values: weightSeries, lineColor: C.gold, labels
+      x: margin,
+      y: chartY,
+      w: chartW,
+      h: chartH,
+      title: 'Weight (kg)',
+      values: weightSeries,
+      lineColor: VIBRANT.chartLine[0],
+      labels
     });
     drawLineChart(doc, {
-      x: margin + chartW + gap, y: chartY, w: chartW, h: chartH, title: 'Body fat (%)', values: bfSeries, lineColor: C.violet, labels
+      x: margin + chartW + gap,
+      y: chartY,
+      w: chartW,
+      h: chartH,
+      title: 'Body fat (%)',
+      values: bfSeries,
+      lineColor: VIBRANT.rose,
+      labels
     });
     drawLineChart(doc, {
-      x: margin + (chartW + gap) * 2, y: chartY, w: chartW, h: chartH, title: 'Steps', values: stepsSeries, lineColor: C.emerald, labels: stepLabels
+      x: margin + (chartW + gap) * 2,
+      y: chartY,
+      w: chartW,
+      h: chartH,
+      title: 'Steps',
+      values: stepsSeries,
+      lineColor: VIBRANT.lime,
+      labels: stepLabels
     });
+
+    drawVisualAnalyticsPage(doc, { margin, contentW, gap, monthKeyText, user, data });
 
     const coachPayload = extractCoachPayload(insights);
     const performanceLines = formatCoachPerformanceLines(coachPayload);
@@ -790,19 +1051,23 @@ function generateMonthlyClientReport(opts) {
     const insightTags = coachPayload ? coachPayload.insightTags : [];
     const actionLines = deriveActionLines(coachPayload, reportSummary, insightTags);
     const strategic = buildStrategicNarrative(reportSummary, data);
-    const letter = buildCoachLetter(user.name || user.email || 'Client', reportSummary, prevSummary, strategic);
+    const fallbackLetter = buildCoachLetter(user.name || user.email || 'Client', reportSummary, prevSummary, strategic);
+    const letter =
+      aiNarrative && aiNarrative.executive_summary && String(aiNarrative.executive_summary).trim()
+        ? String(aiNarrative.executive_summary).trim()
+        : fallbackLetter;
 
     const letterY = chartY + chartH + gap + 8;
-    sectionTitle(doc, 'Lifestyle Manager executive note', letterY - 14, contentW, margin);
+    sectionTitle(doc, 'Executive dossier — lead coach narrative', letterY - 14, contentW, margin);
     const letterPadX = 16;
     const letterTextW = contentW - letterPadX * 2;
     doc.font(F(doc, 'body')).fontSize(9);
     const letterBodyH = doc.heightOfString(letter, { width: letterTextW, lineGap: 3 });
-    const letterBoxH = Math.min(198, Math.max(62, 34 + letterBodyH + 14));
+    const letterBoxH = Math.min(420, Math.max(62, 34 + letterBodyH + 14));
     const letterBoxTop = letterY + 4;
     doc.roundedRect(margin, letterBoxTop, contentW, letterBoxH, 10).fill('#FFFCF5');
     doc.roundedRect(margin, letterBoxTop, contentW, letterBoxH, 10).lineWidth(1.5).strokeColor(C.gold).stroke();
-    doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('FROM THE COACHING DESK', margin + letterPadX, letterBoxTop + 12);
+    doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('FROM THE COACHING DESK · FULL MONTH SIGNAL', margin + letterPadX, letterBoxTop + 12);
     doc.fillColor(C.text).font(F(doc, 'body')).fontSize(9).text(letter, margin + letterPadX, letterBoxTop + 26, { width: letterTextW, lineGap: 3 });
 
     const stripY = letterBoxTop + letterBoxH + 10;
@@ -835,22 +1100,18 @@ function generateMonthlyClientReport(opts) {
     addBulletList(doc, riskLines.slice(0, 4), margin + 12, colBodyY, colW - 24, '#7A2E28', 8.5);
     addBulletList(doc, actionLines.slice(0, 5), margin + colW + gap + 12, colBodyY, colW - 24, '#0F6B52', 8.5);
 
-    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.5)
-      .text(`BODYBANK · PAGE 1 OF 2 · ${docId} · CONFIDENTIAL`, margin, doc.page.height - margin - 6, { width: contentW, align: 'center' });
-
-    const p2lines = part2Lines(data.part2);
-    drawAppendixPage(doc, {
+    const detailStartY = colTop + colH + 12;
+    renderLuxuryDetailSections(doc, {
       margin,
       contentW,
       user,
       monthKeyText,
-      performanceLines,
-      riskLines,
-      actionLines,
-      insightTags,
       data,
-      part2LinesArr: p2lines,
-      logoPath
+      aiNarrative: aiNarrative || null,
+      performanceLines,
+      insightTags,
+      docId,
+      startY: detailStartY
     });
 
     doc.end();
@@ -859,4 +1120,9 @@ function generateMonthlyClientReport(opts) {
   });
 }
 
-module.exports = { generateMonthlyClientReport, monthLabel };
+module.exports = {
+  generateMonthlyClientReport,
+  monthLabel,
+  summarize,
+  daysInMonthKey
+};

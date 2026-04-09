@@ -17,7 +17,13 @@ const workoutSessionLifts = require('./services/workoutSessionLifts');
 const { inferTimezoneFromCountry, getUserTimezone } = require('./utils/timezone');
 const { startCampaignScheduler, restartScheduler: restartCampaignScheduler, broadcastMessage: broadcastCampaignMessage } = require('./services/campaignScheduler');
 const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalizeCampaignDay, normalizeTime: normalizeCampaignTime } = require('./controllers/campaignController');
-const { generateMonthlyClientReport, monthLabel: monthLabelForReport } = require('./services/monthlyReportService');
+const {
+  generateMonthlyClientReport,
+  monthLabel: monthLabelForReport,
+  summarize: summarizeMonthlyReportData,
+  daysInMonthKey: daysInMonthKeyForReport
+} = require('./services/monthlyReportService');
+const monthlyReportNarrative = require('./services/monthlyReportNarrative');
 const { writeSundayCheckinPdf, writePart2Pdf } = require('./services/formPdfService');
 const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
@@ -4101,7 +4107,22 @@ async function findUserForMonthlyReport(clientQuery) {
 async function collectMonthlyReportData(userId, monthKey) {
   if (!getMonthRange(monthKey)) throw new Error('Invalid month format');
   const prevKey = shiftMonthKey(monthKey, -1);
-  const [slice, previousMonth, part2, programs, tribeMember] = await Promise.all([
+  const range = getMonthRange(monthKey);
+  const fromIso = range.from.toISOString();
+  const toIso = range.to.toISOString();
+  const [
+    slice,
+    previousMonth,
+    part2,
+    programs,
+    tribeMember,
+    audit,
+    userGoals,
+    hydrationLogs,
+    weightLogs,
+    meetings,
+    messages
+  ] = await Promise.all([
     fetchMonthSliceForReport(userId, monthKey),
     prevKey ? fetchMonthSliceForReport(userId, prevKey) : Promise.resolve(null),
     queryOne(
@@ -4125,11 +4146,64 @@ async function collectMonthlyReportData(userId, monthKey) {
        WHERE LOWER(email) = LOWER((SELECT email FROM users WHERE id = ?))
        ORDER BY start_date DESC LIMIT 1`,
       [userId]
-    ).catch(() => null)
+    ).catch(() => null),
+    queryOne(
+      `SELECT * FROM audit_requests
+       WHERE LOWER(email) = LOWER((SELECT email FROM users WHERE id = ?))
+       ORDER BY created_at DESC LIMIT 1`,
+      [userId]
+    ).catch(() => null),
+    queryAll(
+      `SELECT target_weight, target_body_fat, weekly_workout_target, created_at
+       FROM user_goals WHERE user_id = ? ORDER BY created_at DESC`,
+      [userId]
+    ).catch(() => []),
+    queryAll(
+      `SELECT amount_ml, glasses, created_at FROM hydration_logs
+       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at < ?::timestamptz
+       ORDER BY created_at ASC`,
+      [userId, fromIso, toIso]
+    ).catch(() => []),
+    queryAll(
+      `SELECT weight_kg, created_at FROM weight_logs
+       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at < ?::timestamptz
+       ORDER BY created_at ASC`,
+      [userId, fromIso, toIso]
+    ).catch(() => []),
+    queryAll(
+      `SELECT meeting_date, time_slot, status, notes, created_at FROM meetings
+       WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at < ?::timestamptz
+       ORDER BY created_at ASC`,
+      [userId, fromIso, toIso]
+    ).catch(() => []),
+    queryAll(
+      `SELECT tm.body, tm.sender_role, tm.created_at
+       FROM thread_messages tm
+       JOIN message_threads mt ON mt.id = tm.thread_id
+       WHERE mt.user_id = ? AND tm.created_at >= ?::timestamptz AND tm.created_at < ?::timestamptz
+       ORDER BY tm.created_at ASC
+       LIMIT 250`,
+      [userId, fromIso, toIso]
+    ).catch(() => [])
   ]);
   if (!slice) throw new Error('Invalid month format');
   const { progressLogs, dailyCheckins, sundayCheckins, workouts } = slice;
-  return { progressLogs, dailyCheckins, sundayCheckins, workouts, part2, previousMonth, programs: programs || [], tribeMember: tribeMember || null };
+  return {
+    progressLogs,
+    dailyCheckins,
+    sundayCheckins,
+    workouts,
+    part2,
+    previousMonth,
+    programs: programs || [],
+    tribeMember: tribeMember || null,
+    audit: audit || null,
+    userGoals: userGoals || [],
+    hydrationLogs: hydrationLogs || [],
+    weightLogs: weightLogs || [],
+    meetings: meetings || [],
+    messages: messages || []
+  };
 }
 
 function buildPoliteFallbackReply(context, question) {
@@ -4283,6 +4357,42 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
         const data = await collectMonthlyReportData(user.id, monthlyCmd.monthKey);
         const insights = await progressService.getAdminUserProgress(user.id).catch(() => null);
 
+        const reportSummary = Object.assign(summarizeMonthlyReportData(data), {
+          _daysInMonth: daysInMonthKeyForReport(monthlyCmd.monthKey)
+        });
+        const prevSummary = data.previousMonth ? summarizeMonthlyReportData(data.previousMonth) : null;
+        let aiNarrative = monthlyReportNarrative.buildHeuristicNarrative({
+          data,
+          reportSummary,
+          prevSummary,
+          insights
+        });
+        if (
+          String(process.env.MONTHLY_REPORT_AI || '1').trim() !== '0' &&
+          process.env.ANTHROPIC_API_KEY &&
+          process.env.ANTHROPIC_API_KEY.trim()
+        ) {
+          try {
+            const fetched = await monthlyReportNarrative.fetchMonthlyReportNarrative({
+              data,
+              user: {
+                id: user.id,
+                name: `${user.first_name || ''} ${user.last_name || ''}`.trim(),
+                email: user.email || ''
+              },
+              monthKey: monthlyCmd.monthKey,
+              monthKeyText: monthLabelForReport(monthlyCmd.monthKey),
+              reportSummary,
+              prevSummary,
+              insights,
+              callAnthropicChat: (system, userMsg, maxTok) => callAnthropicChat(system, userMsg, maxTok)
+            });
+            if (fetched) aiNarrative = fetched;
+          } catch (narErr) {
+            console.error('[admin ai-assist monthly-report narrative]', narErr.message);
+          }
+        }
+
         const reportsDir = path.join(__dirname, 'public', 'reports');
         if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
         const fileName = `monthly-report-${user.id}-${monthlyCmd.monthKey}-${Date.now()}.pdf`;
@@ -4299,7 +4409,8 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
           },
           data,
           insights,
-          logoPath
+          logoPath,
+          aiNarrative
         });
 
         const baseUrl = (process.env.PUBLIC_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
