@@ -53,8 +53,7 @@ function buildSnapshot({ data, user, monthKey, monthKeyText, reportSummary, prev
       userGoals: data.userGoals || [],
       hydrationLogs: data.hydrationLogs || [],
       weightLogs: data.weightLogs || [],
-      meetings: data.meetings || [],
-      messages: data.messages || []
+      meetings: data.meetings || []
     }
   };
   let json = JSON.stringify(sanitizeForSnapshot(payload), null, 0);
@@ -79,7 +78,7 @@ TASK — Output ONLY valid JSON (no markdown fences, no commentary before or aft
     "workouts": { "pros": [], "cons": [], "note": "" },
     "tribe_programs": { "pros": [], "cons": [], "note": "" },
     "hydration_weight_goals": { "pros": [], "cons": [], "note": "" },
-    "meetings_messages": { "pros": [], "cons": [], "note": "" }
+    "meetings": { "pros": [], "cons": [], "note": "" }
   }
 }
 
@@ -122,7 +121,6 @@ function buildHeuristicNarrative({ data, reportSummary, prevSummary, insights })
   const hyd = data.hydrationLogs || [];
   const wl = data.weightLogs || [];
   const mtg = data.meetings || [];
-  const msg = data.messages || [];
 
   const daysExpected = reportSummary._daysInMonth || 30;
   const dailyPct = daysExpected ? Math.round((daily.length / daysExpected) * 100) : 0;
@@ -220,10 +218,10 @@ function buildHeuristicNarrative({ data, reportSummary, prevSummary, insights })
     'Align goal targets with what was actually logged this month.'
   );
 
-  const meetings_messages = sec(
-    mtg.length || msg.length ? ['Touchpoints this month support relationship and clarification of barriers.'] : ['No meetings or thread messages in window — async engagement only.'],
-    !msg.length ? ['Inbox silence may hide friction; confirm off-platform contact if needed.'] : [],
-    'Messages are context for tone, accountability, and follow-through — not a substitute for medical advice.'
+  const meetingsSec = sec(
+    mtg.length ? ['Scheduled touchpoints are on record for accountability and planning.'] : ['No meetings logged in this month — coaching may be app-only.'],
+    mtg.length ? [] : ['No in-person or scheduled video slots captured in the system this month.'],
+    'Meeting notes summarise intent; execution still lives in daily logs and workouts.'
   );
 
   return {
@@ -237,7 +235,7 @@ function buildHeuristicNarrative({ data, reportSummary, prevSummary, insights })
       workouts,
       tribe_programs,
       hydration_weight_goals,
-      meetings_messages
+      meetings: meetingsSec
     },
     _source: 'heuristic'
   };

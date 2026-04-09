@@ -110,9 +110,15 @@ function createPaginator(doc, margin, contentW, docId) {
       { width: contentW, align: 'center' }
     );
   }
+  const contentTop = margin + 58;
   function ensure(y, needH) {
-    const bottom = doc.page.height - margin - 22;
+    const bottom = doc.page.height - margin - 18;
     if (y + needH <= bottom) return y;
+    /* Avoid chaining empty pages: if we're already at the top of a continuation page
+       but the block is taller than one page, stay here and draw (may clip) rather than addPage again. */
+    if (y <= contentTop + 8 && needH > bottom - contentTop - 10) {
+      return y;
+    }
     drawFooter();
     doc.addPage();
     doc.rect(0, 0, doc.page.width, doc.page.height).fill(C.pageBg);
@@ -121,7 +127,7 @@ function createPaginator(doc, margin, contentW, docId) {
     doc.rect(0, 50, doc.page.width, 2).fill(C.gold);
     doc.fillColor(C.goldMid).font(F(doc, 'semi')).fontSize(8).text('BODYBANK · MONTHLY DOSSIER · CONTINUED', margin, 18);
     pageNum += 1;
-    return margin + 58;
+    return contentTop;
   }
   return { ensure, drawFooter, get pageNum() { return pageNum; } };
 }
@@ -140,7 +146,8 @@ function drawProsConsBlock(doc, margin, y, contentW, title, block, paginator) {
   const noteH = note ? doc.heightOfString(note, { width: contentW - pad * 2, lineGap: 2 }) + 10 : 0;
   const innerH = Math.max(prosH, consH);
   const boxH = 20 + innerH + (note ? noteH + 8 : 0) + 12;
-  y = paginator.ensure(y, boxH + 36);
+  /* sectionTitle 22px + gap 28px + box + padding */
+  y = paginator.ensure(y, 22 + 28 + boxH + 16);
   sectionTitle(doc, title, y, contentW, margin);
   y += 28;
   doc.roundedRect(margin, y, contentW, boxH, 8).fillAndStroke('#FFFCF7', '#E5D8C4');
@@ -160,11 +167,9 @@ function drawProsConsBlock(doc, margin, y, contentW, title, block, paginator) {
 function renderKeyValueObject(doc, margin, y, contentW, obj, paginator) {
   const keys = Object.keys(obj || {}).filter((k) => k !== 'id');
   if (!keys.length) {
-    y = paginator.ensure(y, 30);
-    sectionTitle(doc, title, y, contentW, margin);
-    y += 28;
+    y = paginator.ensure(y, 24);
     doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(8.5).text('No data on file.', margin, y, { width: contentW });
-    return y + 22;
+    return y + 20;
   }
   for (const k of keys) {
     const raw = obj[k];
@@ -375,18 +380,16 @@ function renderGoalsHydrationWeight(doc, margin, y, contentW, data, paginator) {
   return y + 8;
 }
 
-function renderMeetingsMessages(doc, margin, y, contentW, data, paginator) {
+function renderMeetingsOnly(doc, margin, y, contentW, data, paginator) {
   y = paginator.ensure(y, 36);
-  sectionTitle(doc, 'Meetings & in-app messages (month window)', y, contentW, margin);
+  sectionTitle(doc, 'Meetings (month window)', y, contentW, margin);
   y += 28;
   const mtg = data.meetings || [];
   if (mtg.length) {
-    doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('Meetings', margin, y);
-    y += 12;
     mtg.forEach((m) => {
       const line = `${m.meeting_date || '—'} ${m.time_slot || ''} · ${m.status || ''}${m.notes ? ' · ' + formatVal(m.notes, 1200) : ''}`;
       const hh = doc.heightOfString(line, { width: contentW - 16, lineGap: 2 }) + 10;
-      y = paginator.ensure(y, hh);
+      y = paginator.ensure(y, hh + 4);
       doc.roundedRect(margin, y, contentW, hh, 5).fillAndStroke('#F7F5FF', '#D4CCE8');
       doc.fillColor(C.text).font(F(doc, 'body')).fontSize(7.4).text(line, margin + 8, y + 5, { width: contentW - 16, lineGap: 2 });
       y += hh + 4;
@@ -395,24 +398,6 @@ function renderMeetingsMessages(doc, margin, y, contentW, data, paginator) {
     doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(8).text('No meetings in this month.', margin, y, { width: contentW });
     y += 16;
   }
-  const msgs = data.messages || [];
-  y = paginator.ensure(y, 28);
-  doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('Thread messages', margin, y);
-  y += 14;
-  if (!msgs.length) {
-    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(8).text('No messages in this month.', margin, y, { width: contentW });
-    return y + 20;
-  }
-  msgs.forEach((m) => {
-    const role = String(m.sender_role || '').toUpperCase();
-    const body = formatVal(m.body, 3500);
-    const hh = doc.heightOfString(body, { width: contentW - 24, lineGap: 2 }) + 22;
-    y = paginator.ensure(y, hh);
-    doc.roundedRect(margin, y, contentW, hh, 5).fillAndStroke('#FAFAFA', '#D0D0D0');
-    doc.fillColor(C.violet).font(F(doc, 'semi')).fontSize(7).text(`${role} · ${formatDate(m.created_at)}`, margin + 10, y + 6);
-    doc.fillColor(C.text).font(F(doc, 'body')).fontSize(7.3).text(body, margin + 10, y + 18, { width: contentW - 20, lineGap: 2 });
-    y += hh + 4;
-  });
   return y;
 }
 
@@ -468,7 +453,11 @@ function renderLuxuryDetailSections(doc, ctx) {
 
   const paginator = createPaginator(doc, margin, contentW, docId);
   let y = startY;
-  const sec = (aiNarrative && aiNarrative.sections) || {};
+  const secRaw = (aiNarrative && aiNarrative.sections) || {};
+  const sec = {
+    ...secRaw,
+    meetings: secRaw.meetings || secRaw.meetings_messages
+  };
 
   /* Engine snapshot (lifetime) */
   y = paginator.ensure(y, 50);
@@ -538,8 +527,8 @@ function renderLuxuryDetailSections(doc, ctx) {
   y = drawProsConsBlock(doc, margin, y, contentW, 'Section 8 · Goals · hydration · weight', sec.hydration_weight_goals, paginator);
   y = renderGoalsHydrationWeight(doc, margin, y, contentW, data, paginator);
 
-  y = drawProsConsBlock(doc, margin, y, contentW, 'Section 9 · Meetings & messages', sec.meetings_messages, paginator);
-  y = renderMeetingsMessages(doc, margin, y, contentW, data, paginator);
+  y = drawProsConsBlock(doc, margin, y, contentW, 'Section 9 · Meetings', sec.meetings, paginator);
+  y = renderMeetingsOnly(doc, margin, y, contentW, data, paginator);
 
   paginator.drawFooter();
 }

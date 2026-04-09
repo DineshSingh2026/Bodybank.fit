@@ -3952,6 +3952,27 @@ function parseMonthlyReportCommand(text, lastClient) {
     (/\b(generate|create|make|download|get|give\s+me)\b/i.test(normalized) && /\breport\b/i.test(normalized));
   if (!hasReportIntent) return null;
 
+  /* Explicit phrasing so month + client are never ambiguous */
+  const lastMonthFor = normalized.match(/\bmonthly\s+report\s+last\s+month\s+for\s+(.+)/i);
+  const forLastMonth = normalized.match(/\bmonthly\s+report\s+for\s+(.+?)\s+last\s+month\b/i);
+  if (lastMonthFor || forLastMonth) {
+    const rawClient = String((lastMonthFor && lastMonthFor[1]) || (forLastMonth && forLastMonth[1]) || '').trim();
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    const mk = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+    let clientQuery = rawClient
+      .replace(/\b(this month|last month)\b/gi, '')
+      .replace(/\b(for|in)\s+\d{4}-\d{2}\b/gi, '')
+      .replace(/\b(for|in)\s+[a-zA-Z]+\s+\d{4}\b/gi, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    const PRONOUNS = /^(her|him|he|she|they|them|this|that|it|this\s+person|that\s+person|the\s+client|this\s+client|that\s+client)$/i;
+    if ((!clientQuery || PRONOUNS.test(clientQuery)) && lastClient) {
+      clientQuery = String(lastClient).trim();
+    }
+    return { clientQuery, monthKey: mk };
+  }
+
   // Month extraction supports explicit yyyy-mm, "March 2026", and relative phrases.
   let monthRaw = '';
   const isoMonth = normalized.match(/\b(\d{4}-\d{2})\b/i);
@@ -4120,8 +4141,7 @@ async function collectMonthlyReportData(userId, monthKey) {
     userGoals,
     hydrationLogs,
     weightLogs,
-    meetings,
-    messages
+    meetings
   ] = await Promise.all([
     fetchMonthSliceForReport(userId, monthKey),
     prevKey ? fetchMonthSliceForReport(userId, prevKey) : Promise.resolve(null),
@@ -4175,15 +4195,6 @@ async function collectMonthlyReportData(userId, monthKey) {
        WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at < ?::timestamptz
        ORDER BY created_at ASC`,
       [userId, fromIso, toIso]
-    ).catch(() => []),
-    queryAll(
-      `SELECT tm.body, tm.sender_role, tm.created_at
-       FROM thread_messages tm
-       JOIN message_threads mt ON mt.id = tm.thread_id
-       WHERE mt.user_id = ? AND tm.created_at >= ?::timestamptz AND tm.created_at < ?::timestamptz
-       ORDER BY tm.created_at ASC
-       LIMIT 250`,
-      [userId, fromIso, toIso]
     ).catch(() => [])
   ]);
   if (!slice) throw new Error('Invalid month format');
@@ -4201,8 +4212,7 @@ async function collectMonthlyReportData(userId, monthKey) {
     userGoals: userGoals || [],
     hydrationLogs: hydrationLogs || [],
     weightLogs: weightLogs || [],
-    meetings: meetings || [],
-    messages: messages || []
+    meetings: meetings || []
   };
 }
 

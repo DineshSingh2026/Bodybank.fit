@@ -2032,6 +2032,17 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .ai-prompt-chip.needs-client{border-style:dashed;border-color:rgba(200,164,78,0.35)}
 .ai-prompt-chip.needs-client:hover{border-style:solid}
 
+/* AI Assist — Reports scope (client + month) */
+.ai-reports-scope{padding:10px 12px 8px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(200,164,78,0.04)}
+.ai-reports-scope[hidden]{display:none!important}
+.ai-reports-scope-row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px}
+.ai-reports-scope-label{font-size:10px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.ai-assist-scope-select{min-width:200px;max-width:min(100%,420px);flex:1;padding:8px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:rgba(0,0,0,0.25);color:var(--cream);font-family:'Outfit',sans-serif;font-size:12px}
+.ai-assist-scope-month{padding:7px 10px;border:1px solid rgba(255,255,255,0.12);border-radius:8px;background:rgba(0,0,0,0.25);color:var(--cream);font-family:'Outfit',sans-serif;font-size:12px}
+.ai-assist-month-preset{padding:6px 10px;border:1px solid rgba(200,164,78,0.35);border-radius:20px;background:transparent;color:var(--gold);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer;transition:background .18s}
+.ai-assist-month-preset:hover{background:rgba(200,164,78,0.1)}
+.ai-reports-scope-hint{margin:6px 0 0;font-size:10.5px;color:var(--muted);line-height:1.35;max-width:720px}
+
 /* Performance Insights */
 .insights-filters{margin-bottom:24px;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
 .insights-filter-row{display:flex;flex-wrap:wrap;align-items:center;gap:12px}
@@ -4995,6 +5006,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
       <div class="admin-ai-assist-welcome" id="adminAiAssistWelcome">
         <p>Elite Lifestyle Manager intelligence on your live BodyBank data. Click a prompt below or type your question.</p>
+        <p class="admin-ai-assist-month-hint" style="margin-top:10px;font-size:12px;color:var(--muted, #64748b);line-height:1.45">Use the <strong>Client</strong> and <strong>Month</strong> row under Reports, then tap a chip — no need to type names or dates. You can still type freely if you prefer.</p>
       </div>
 
       <!-- Quick Prompt Chips -->
@@ -5006,9 +5018,25 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <button class="ai-prompt-tab" data-tab="business" onclick="switchAiTab('business')">Business</button>
         </div>
 
+        <div class="ai-reports-scope" id="aiReportsScope">
+          <div class="ai-reports-scope-row">
+            <label class="ai-reports-scope-label" for="aiAssistReportClient">Client</label>
+            <select id="aiAssistReportClient" class="ai-assist-scope-select">
+              <option value="">— Select client —</option>
+            </select>
+            <label class="ai-reports-scope-label" for="aiAssistReportMonth">Month</label>
+            <input type="month" id="aiAssistReportMonth" class="ai-assist-scope-month" />
+            <button type="button" class="ai-assist-month-preset" id="aiAssistMonthThis">This month</button>
+            <button type="button" class="ai-assist-month-preset" id="aiAssistMonthLast">Prior month</button>
+          </div>
+          <p class="ai-reports-scope-hint">Monthly PDF chips use the month shown. Other report chips add only the selected client name.</p>
+        </div>
+
         <!-- Reports -->
         <div class="ai-prompt-chips" id="aiChips-reports">
-          <button class="ai-prompt-chip needs-client" data-fill="Detailed monthly report for ">📅 Monthly Report</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Detailed monthly report for " data-monthly-iso="1">📅 Monthly Report (PDF)</button>
+          <button class="ai-prompt-chip needs-client" data-monthly-last="1">📅 Monthly Report (last month)</button>
+          <button class="ai-prompt-chip needs-client" data-fill="Monthly report for " data-monthly-iso="1">📅 Monthly Report (set month)</button>
           <button class="ai-prompt-chip needs-client" data-fill="Full performance report for ">📊 Performance Report</button>
           <button class="ai-prompt-chip needs-client" data-fill="Quick summary of ">⚡ Quick Summary</button>
           <button class="ai-prompt-chip needs-client" data-fill="Report for ">📋 Custom Report</button>
@@ -8224,6 +8252,8 @@ function toggleAdminAiAssistPanel() {
   panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
   if (topBtn) topBtn.classList.toggle('admin-ai-assist-top-btn-active', isOpen);
   if (isOpen) {
+    setAiAssistReportMonthIfEmpty();
+    populateAiAssistReportUsers();
     setTimeout(function() {
       var input = document.getElementById('adminAiAssistInput');
       if (input) input.focus();
@@ -8241,6 +8271,67 @@ function closeAdminAiAssistPanel() {
 }
 
 // ── Quick Prompt Chips ────────────────────────────────────────────────────────
+function getAiAssistReportClientName() {
+  var sel = document.getElementById('aiAssistReportClient');
+  if (!sel || !sel.value) return '';
+  var opt = sel.options[sel.selectedIndex];
+  return (opt && (opt.dataset.fullName || opt.textContent || '')).trim() || '';
+}
+
+function setAiAssistReportMonthIfEmpty() {
+  var inp = document.getElementById('aiAssistReportMonth');
+  if (!inp || inp.value) return;
+  var d = new Date();
+  inp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function setAiAssistMonthThis() {
+  var inp = document.getElementById('aiAssistReportMonth');
+  if (!inp) return;
+  var d = new Date();
+  inp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+function setAiAssistMonthLast() {
+  var inp = document.getElementById('aiAssistReportMonth');
+  if (!inp) return;
+  var d = new Date();
+  d.setMonth(d.getMonth() - 1);
+  inp.value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0');
+}
+
+var _bbAiReportUsersLoading = false;
+function populateAiAssistReportUsers() {
+  var sel = document.getElementById('aiAssistReportClient');
+  if (!sel || _bbAiReportUsersLoading) return;
+  _bbAiReportUsersLoading = true;
+  apiCall('GET', '/api/admin/users').then(function(list) {
+    _bbAiReportUsersLoading = false;
+    if (list && list.error) return;
+    if (!Array.isArray(list)) list = [];
+    var keep = sel.value;
+    sel.innerHTML = '';
+    var opt0 = document.createElement('option');
+    opt0.value = '';
+    opt0.textContent = '— Select client —';
+    sel.appendChild(opt0);
+    list.forEach(function(u) {
+      var name = [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email || String(u.id);
+      var o = document.createElement('option');
+      o.value = String(u.id);
+      o.textContent = name + (u.email ? ' (' + u.email + ')' : '');
+      o.dataset.fullName = name;
+      sel.appendChild(o);
+    });
+    if (keep) {
+      sel.value = keep;
+      if (sel.value !== keep) sel.value = '';
+    }
+  }).catch(function() {
+    _bbAiReportUsersLoading = false;
+  });
+}
+
 function switchAiTab(tab) {
   var tabs = document.querySelectorAll('.ai-prompt-tab');
   var panels = document.querySelectorAll('.ai-prompt-chips');
@@ -8249,6 +8340,16 @@ function switchAiTab(tab) {
     if (p.id === 'aiChips-' + tab) p.removeAttribute('hidden');
     else p.setAttribute('hidden', '');
   });
+  var scope = document.getElementById('aiReportsScope');
+  if (scope) {
+    if (tab === 'reports') {
+      scope.removeAttribute('hidden');
+      setAiAssistReportMonthIfEmpty();
+      populateAiAssistReportUsers();
+    } else {
+      scope.setAttribute('hidden', '');
+    }
+  }
 }
 
 function hideAiPromptWrap() {
@@ -8257,7 +8358,14 @@ function hideAiPromptWrap() {
 }
 
 (function() {
-  // Wire up chip clicks after DOM is ready
+  function focusAiInput(input) {
+    input.focus();
+    var len = input.value.length;
+    input.setSelectionRange(len, len);
+    input.style.height = 'auto';
+    input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+  }
+
   function initAiChips() {
     var chips = document.querySelectorAll('.ai-prompt-chip');
     chips.forEach(function(chip) {
@@ -8267,22 +8375,53 @@ function hideAiPromptWrap() {
         var input = document.getElementById('adminAiAssistInput');
         if (!input) return;
         if (send) {
-          // Send immediately
           input.value = send;
           sendAdminAiMessage();
-        } else if (fill) {
-          // Pre-fill input and focus — user types client name
-          input.value = fill;
-          input.focus();
-          // Move cursor to end
-          var len = input.value.length;
-          input.setSelectionRange(len, len);
-          // Resize textarea
-          input.style.height = 'auto';
-          input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+          return;
         }
+
+        var inReports = chip.closest && chip.closest('#aiChips-reports');
+        var needsClientReports = chip.classList.contains('needs-client') && inReports;
+        var cn = needsClientReports ? getAiAssistReportClientName() : '';
+
+        if (needsClientReports && !cn && (fill || chip.dataset.monthlyLast || chip.dataset.monthlyIso)) {
+          alert('Choose a client in the Client row above.');
+          return;
+        }
+
+        if (chip.dataset.monthlyLast === '1') {
+          input.value = 'Monthly report last month for ' + cn;
+        } else if (chip.dataset.monthlyIso === '1') {
+          var mEl = document.getElementById('aiAssistReportMonth');
+          var mv = mEl && mEl.value;
+          if (!mv) {
+            alert('Choose a month, or use This month / Prior month.');
+            return;
+          }
+          input.value = fill + cn + ' for ' + mv;
+        } else if (fill) {
+          var suffix = chip.dataset.suffix || '';
+          if (needsClientReports) {
+            input.value = fill + cn + suffix;
+          } else {
+            input.value = fill + suffix;
+          }
+        } else {
+          return;
+        }
+
+        if (cn) {
+          var first = cn.split(/\s+/)[0];
+          if (first) window._bbAiLastClient = first;
+        }
+        focusAiInput(input);
       });
     });
+
+    var btnThis = document.getElementById('aiAssistMonthThis');
+    var btnLast = document.getElementById('aiAssistMonthLast');
+    if (btnThis) btnThis.addEventListener('click', setAiAssistMonthThis);
+    if (btnLast) btnLast.addEventListener('click', setAiAssistMonthLast);
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', initAiChips);
