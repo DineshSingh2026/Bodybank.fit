@@ -3421,12 +3421,16 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 #usec-workout .wk-lift-input{-moz-appearance:textfield}
 #usec-workout .wk-lift-input::-webkit-outer-spin-button,#usec-workout .wk-lift-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 #usec-workout .wk-muted-note{font-size:12px;color:var(--bb-muted);margin-bottom:12px}
-#usec-workout .wk-feel-row{display:flex;flex-direction:row;align-items:flex-end;gap:10px;margin-bottom:14px;width:100%;min-width:0}
+#usec-workout .wk-feel-row{display:flex;flex-direction:row;align-items:flex-start;flex-wrap:wrap;gap:12px 14px;margin-bottom:14px;width:100%;min-width:0}
 #usec-workout .wk-feel-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:5px}
-#usec-workout .wk-feel-col.wk-feel-done{flex:0 0 auto;min-width:72px}
+#usec-workout .wk-feel-col.wk-feel-done{flex:1 1 200px;min-width:min(100%,220px);max-width:100%;align-items:flex-start}
+#usec-workout .wk-feel-col.wk-feel-compact{flex:0 1 112px;max-width:120px;min-width:88px}
+#usec-workout .wk-feel-done-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(201,168,76,.92);line-height:1.35;margin:0}
+#usec-workout .wk-feel-hint{font-size:11px;line-height:1.4;color:var(--bb-muted);margin:0 0 8px 0;max-width:280px}
 #usec-workout .wk-feel-mini-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--bb-muted);line-height:1.2;white-space:nowrap}
-#usec-workout .wk-feel-switchline{display:flex;align-items:center;gap:8px;min-height:42px}
-#usec-workout .wk-feel-select{width:100%;padding:9px 10px;font-size:13px;border-radius:8px}
+#usec-workout .wk-feel-switchline{display:flex;align-items:center;gap:10px;min-height:36px}
+#usec-workout .wk-feel-switchline .wk-feel-toggle-caption{font-size:12px;font-weight:600;color:var(--bb-text);line-height:1.25;max-width:200px}
+#usec-workout .wk-feel-select{width:100%;max-width:120px;padding:8px 9px;font-size:12px;border-radius:8px}
 #usec-workout .wk-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
 #usec-workout .wk-switch input{opacity:0;width:0;height:0}
 #usec-workout .wk-switch-slider{position:absolute;inset:0;background:#333;border-radius:999px;transition:.2s}
@@ -3434,9 +3438,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 #usec-workout .wk-switch input:checked + .wk-switch-slider{background:rgba(201,168,76,.35)}
 #usec-workout .wk-switch input:checked + .wk-switch-slider:before{transform:translateX(20px);background:var(--bb-gold)}
 @media(max-width:380px){
-  #usec-workout .wk-feel-row{gap:6px}
+  #usec-workout .wk-feel-row{gap:10px}
   #usec-workout .wk-feel-mini-label{font-size:9px;letter-spacing:.06em}
-  #usec-workout .wk-feel-select{font-size:12px;padding:8px 8px}
+  #usec-workout .wk-feel-select{font-size:11px;padding:7px 8px}
+  #usec-workout .wk-feel-col.wk-feel-compact{flex:1 1 calc(50% - 8px);max-width:none;min-width:0}
 }
 #usec-workout .wk-save-btn{width:100%;margin-top:8px;padding:16px 24px;border:none;border-radius:12px;background:linear-gradient(135deg,#d4b456,#c9a84c,#8a6f2e);color:#0a0a0a;font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 28px rgba(201,168,76,.2)}
 #usec-workout .wk-save-btn:hover{filter:brightness(1.06)}
@@ -3944,12 +3949,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="wk-sec-title">Session feel</div>
           <div class="wk-feel-row">
             <div class="wk-feel-col wk-feel-done">
-              <span class="wk-feel-mini-label">Done</span>
+              <p class="wk-feel-done-title" id="wkFeelDoneHeading">Session complete</p>
+              <p class="wk-feel-hint" id="wkFeelDoneHint">On when you finish; off if you stopped early or didn’t train.</p>
               <div class="wk-feel-switchline">
-                <label class="wk-switch" title="Workout completed"><input type="checkbox" id="wkCompleted" aria-label="Workout completed"><span class="wk-switch-slider"></span></label>
+                <label class="wk-switch" title="Mark this session as completed"><input type="checkbox" id="wkCompleted" aria-label="I completed this workout session" aria-describedby="wkFeelDoneHint"><span class="wk-switch-slider"></span></label>
+                <span class="wk-feel-toggle-caption" id="wkFeelToggleCaption">Yes — I completed this session</span>
               </div>
             </div>
-            <div class="wk-feel-col">
+            <div class="wk-feel-col wk-feel-compact">
               <label class="wk-feel-mini-label" for="wkIntensity">Intensity</label>
               <select class="wk-input wk-select wk-feel-select" id="wkIntensity">
                 <option value="">—</option>
@@ -3959,7 +3966,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
                 <option value="Max Effort">Max Effort</option>
               </select>
             </div>
-            <div class="wk-feel-col">
+            <div class="wk-feel-col wk-feel-compact">
               <label class="wk-feel-mini-label" for="wkEnergy">Energy</label>
               <select class="wk-input wk-select wk-feel-select" id="wkEnergy">
                 <option value="">—</option>
