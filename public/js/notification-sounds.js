@@ -46,7 +46,7 @@
     el.hidden = true;
     el.innerHTML =
       '<div class="bb-sound-unlock-inner">' +
-      '<p class="bb-sound-unlock-txt"><strong>In-app notification sounds</strong> — Your browser asks for <strong>one tap</strong> on this visit to unlock audio. After that, chimes work automatically. Tap <strong>Unlock sounds</strong> or tap anywhere on the app.</p>' +
+      '<p class="bb-sound-unlock-txt"><strong>In-app notification sounds</strong> — Your browser asks for <strong>one tap</strong> on this visit to unlock audio. After that, chimes work for everyone on the site (not only on this device). On iPhone, turn the <strong>Ring/Silent</strong> switch off if you hear nothing. Tap <strong>Unlock sounds</strong> or tap anywhere on the app.</p>' +
       '<div class="bb-sound-unlock-actions">' +
       '<button type="button" class="bb-sound-unlock-btn bb-sound-unlock-primary">Unlock sounds</button>' +
       '<button type="button" class="bb-sound-unlock-btn bb-sound-unlock-secondary">Dismiss</button>' +
@@ -83,11 +83,17 @@
   /** Call after a deliberate tap — unlocks audio and plays a sample chime. */
   w.bbNotifyPrimeAudio = function () {
     if (!w.bbNotifySoundsEnabled()) return;
-    resume();
     var isAd = w.currentUser && (w.currentUser.role === 'admin' || w.currentUser.role === 'superadmin');
-    w.bbNotifyPlayKind(isAd ? 'admin' : 'default');
-    markHintDismissed();
-    hideUnlockHintBar();
+    var p = w.bbNotifyPlayKind(isAd ? 'admin' : 'default');
+    if (p && typeof p.then === 'function') {
+      p.then(function () {
+        markHintDismissed();
+        hideUnlockHintBar();
+      });
+    } else {
+      markHintDismissed();
+      hideUnlockHintBar();
+    }
   };
 
   function getCtx() {
@@ -97,6 +103,7 @@
     return ctx;
   }
 
+  /** Sync resume (e.g. inside a tap handler). Prefer resumePromise before scheduling audio. */
   function resume() {
     var c = getCtx();
     if (c && c.state === 'suspended') {
@@ -104,6 +111,38 @@
       if (p && typeof p.then === 'function') p.catch(function () {});
     }
     return c;
+  }
+
+  /**
+   * iOS Safari / mobile Chrome: AudioContext.resume() is async — oscillators scheduled before the
+   * promise resolves produce silence. Always await this before playing notification chimes.
+   */
+  function resumePromise() {
+    return new Promise(function (resolve) {
+      var c = getCtx();
+      if (!c) {
+        resolve(null);
+        return;
+      }
+      if (c.state === 'running') {
+        resolve(c);
+        return;
+      }
+      if (c.state !== 'suspended') {
+        resolve(c);
+        return;
+      }
+      var p = c.resume();
+      if (p && typeof p.then === 'function') {
+        p.then(function () {
+          resolve(c);
+        }).catch(function () {
+          resolve(null);
+        });
+      } else {
+        resolve(c);
+      }
+    });
   }
 
   function playTone(freq, dur, vol, type, delayMs) {
@@ -174,14 +213,18 @@
   };
 
   w.bbNotifyPlayKind = function (kind) {
-    if (!w.bbNotifySoundsEnabled()) return;
-    if (w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (!w.bbNotifySoundsEnabled()) return Promise.resolve();
+    if (w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
     try {
-      resume();
-      if (kind === 'water') playWater();
-      else if (kind === 'admin') playAdmin();
-      else playDefault();
-    } catch (e) {}
+      return resumePromise().then(function (c) {
+        if (!c || c.state !== 'running') return;
+        if (kind === 'water') playWater();
+        else if (kind === 'admin') playAdmin();
+        else playDefault();
+      });
+    } catch (e) {
+      return Promise.resolve();
+    }
   };
 
   w.toggleNotifySoundsUI = function (ev) {
@@ -191,7 +234,6 @@
     }
     var next = !w.bbNotifySoundsEnabled();
     w.bbNotifySetSoundsEnabled(next);
-    resume();
     if (next) {
       var isAd = w.currentUser && (w.currentUser.role === 'admin' || w.currentUser.role === 'superadmin');
       w.bbNotifyPlayKind(isAd ? 'admin' : 'default');
@@ -293,19 +335,26 @@
   };
 
   function unlockFromGesture() {
-    resume();
-    if (isAudioRunning()) {
-      markHintDismissed();
-      hideUnlockHintBar();
-    }
+    resumePromise().then(function (c) {
+      if (c && c.state === 'running') {
+        markHintDismissed();
+        hideUnlockHintBar();
+      }
+    });
   }
+  /* iOS/Safari: passive:true touch listeners do not count as user activation for AudioContext.
+     Use passive:false on touch + pointer so the first tap/scroll-start can unlock. */
   if (typeof document !== 'undefined') {
     document.addEventListener(
       'DOMContentLoaded',
       function () {
-        ['click', 'touchstart'].forEach(function (evName) {
-          document.body.addEventListener(evName, unlockFromGesture, { once: true, passive: true });
-        });
+        var body = document.body;
+        if (!body) return;
+        var touchOpts = { capture: true, once: true, passive: false };
+        body.addEventListener('touchstart', unlockFromGesture, touchOpts);
+        body.addEventListener('touchend', unlockFromGesture, touchOpts);
+        body.addEventListener('pointerdown', unlockFromGesture, touchOpts);
+        body.addEventListener('click', unlockFromGesture, { capture: true, once: true, passive: true });
       },
       { once: true }
     );
