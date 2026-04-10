@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const userEmail = require('../services/userEmailService');
-const { triggerBloodAnalysis } = require('../services/bloodAnalysisService');
+const { triggerBloodAnalysis, ensureHealthReportPdf } = require('../services/bloodAnalysisService');
 
 const MAX_B64_CHARS = 22 * 1024 * 1024;
 
@@ -102,10 +102,11 @@ function createBloodRouter(deps) {
       if (!report) return res.status(404).json({ error: 'Not found' });
       const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
       if (report.user_id !== req.user.id && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
-      if (!report.pdf_path || !fs.existsSync(report.pdf_path)) {
+      const pdfPath = await ensureHealthReportPdf(db, req.params.reportId);
+      if (!pdfPath || !fs.existsSync(pdfPath)) {
         return res.status(404).json({ error: 'PDF not ready yet' });
       }
-      res.download(report.pdf_path, 'BodyBank_Health_Report.pdf');
+      res.download(pdfPath, 'BodyBank_Health_Report.pdf');
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
@@ -147,11 +148,12 @@ function createBloodRouter(deps) {
   router.post('/admin/send/:reportId', adminOnly, async (req, res) => {
     try {
       const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [req.params.reportId]);
-      if (!report || report.status !== 'complete') {
-        return res.status(400).json({ success: false, error: 'Report not ready' });
+      if (!report) {
+        return res.status(404).json({ success: false, error: 'Report not found' });
       }
-      if (!report.pdf_path || !fs.existsSync(report.pdf_path)) {
-        return res.status(400).json({ success: false, error: 'PDF missing on disk' });
+      const pdfPath = await ensureHealthReportPdf(db, req.params.reportId);
+      if (!pdfPath || !fs.existsSync(pdfPath)) {
+        return res.status(400).json({ success: false, error: 'Report not ready' });
       }
 
       let aiReport = report.ai_report;
@@ -166,7 +168,7 @@ function createBloodRouter(deps) {
       const emailed = await userEmail.emailHealthReportWithPdf({
         toEmail: report.user_email,
         firstName: (report.user_name || '').split(/\s+/)[0] || 'there',
-        pdfPath: report.pdf_path,
+        pdfPath,
         adminNotes: report.admin_notes || '',
         overallStatus: aiReport && aiReport.overall_status,
         summary: aiReport && aiReport.overall_summary_short

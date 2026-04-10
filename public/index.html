@@ -1840,18 +1840,29 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .bb-sound-unlock-actions{ flex-direction:column; align-items:stretch; }
   .bb-sound-unlock-btn{ width:100%; text-align:center; }
 }
-/* Workout timer: non-blocking notice when leaving My Workout while timer is running */
-.bb-workout-timer-toast{
+/* Workout timer: banner when timer runs while user is on another tab (wall-clock + localStorage) */
+.bb-workout-timer-banner{
   position:fixed; left:max(10px, env(safe-area-inset-left)); right:max(10px, env(safe-area-inset-right));
   bottom:max(72px, calc(12px + env(safe-area-inset-bottom))); z-index:10054;
-  max-width:min(480px, calc(100vw - 20px)); margin:0 auto;
+  max-width:min(440px, calc(100vw - 20px)); margin:0 auto;
   padding:12px 14px; border-radius:12px; box-sizing:border-box;
   font-size:13px; line-height:1.45; color:var(--cream);
   background:linear-gradient(165deg, rgba(28,24,18,0.98), rgba(12,10,8,0.99));
   border:1px solid rgba(200,164,78,0.4);
   box-shadow:0 8px 28px rgba(0,0,0,0.5);
 }
-.bb-workout-timer-toast[hidden]{ display:none !important; }
+.bb-workout-timer-banner[hidden]{ display:none !important; }
+.bb-wk-ban-title{ font-weight:700; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:rgba(200,164,78,0.95); margin-bottom:4px; }
+.bb-wk-ban-msg{ font-size:12px; color:var(--muted); line-height:1.4; margin-bottom:6px; }
+.bb-wk-ban-time{ font-family:ui-monospace,Menlo,Consolas,monospace; font-size:1.15rem; font-weight:700; color:var(--bb-gold); font-variant-numeric:tabular-nums; margin-bottom:10px; }
+.bb-wk-ban-actions{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.bb-wk-ban-actions button{
+  padding:8px 12px; border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; border:1px solid rgba(200,164,78,0.45);
+  background:rgba(200,164,78,0.12); color:var(--bb-gold); font-family:'Outfit',sans-serif;
+}
+.bb-wk-ban-actions button.bb-wk-ban-secondary{ background:transparent; color:var(--muted); border-color:rgba(255,255,255,0.12); }
+.bb-wk-ban-actions button.bb-wk-ban-danger{ border-color:rgba(255,107,107,0.5); color:#ff8a8a; background:rgba(255,80,80,0.08); }
+.bb-wk-ban-actions button:hover{ filter:brightness(1.08); }
 .admin-notify-header input[type=checkbox]{width:16px;height:16px;cursor:pointer;accent-color:var(--gold)}
 .admin-notify-browser-prompt{padding:14px 16px;border-bottom:1px solid var(--bdr);background:rgba(200,164,78,0.06);flex-shrink:0}
 .admin-notify-prompt-txt{font-size:12px;color:var(--creamd);line-height:1.5;margin-bottom:12px}
@@ -6533,11 +6544,24 @@ function initWorkoutSessionUI() {
   }
   wkSyncStrengthSection();
   loadWorkoutHistory();
+  if (!window._wkTimerLifecycleBound) {
+    window._wkTimerLifecycleBound = true;
+    document.addEventListener('visibilitychange', function () {
+      if (typeof wkOnVisibilityChange === 'function') wkOnVisibilityChange();
+    });
+    window.addEventListener('pageshow', function () {
+      if (typeof wkOnVisibilityChange === 'function') wkOnVisibilityChange();
+    });
+    window.addEventListener('pagehide', function () {
+      if (typeof wkPersistTimerState === 'function') wkPersistTimerState();
+    });
+  }
 }
 
 function saveWorkoutStateToStorage() {
   try {
-    sessionStorage.setItem('bbWorkoutTimerSeconds', String(timerSeconds));
+    var ts = typeof wkGetTimerElapsedSeconds === 'function' ? wkGetTimerElapsedSeconds() : 0;
+    sessionStorage.setItem('bbWorkoutTimerSeconds', String(ts));
     /* Set only when saving before leaving to program PDF — restoreWorkoutStateFromStorage runs only if this flag is set */
     sessionStorage.setItem('bbWorkoutRestorePending', '1');
     var snap = {
@@ -6565,9 +6589,12 @@ function restoreWorkoutStateFromStorage() {
     var raw = sessionStorage.getItem('bbWorkoutFormSnap');
     var snap = null;
     try { snap = raw ? JSON.parse(raw) : null; } catch (_) { snap = null; }
-    timerSeconds = secs;
+    if (typeof wkClearTimerInterval === 'function') wkClearTimerInterval();
+    timerBaselineSeconds = secs;
     timerRunning = false;
-    if (timerInterval) { clearInterval(timerInterval); timerInterval = null; }
+    timerWallStartMs = null;
+    if (typeof wkReleaseWakeLock === 'function') wkReleaseWakeLock();
+    if (typeof wkClearTimerStorage === 'function') wkClearTimerStorage();
     updateTimerDisplay();
     var btn = document.getElementById('timerBtn');
     if (btn) btn.textContent = '▶';
@@ -6594,7 +6621,13 @@ function restoreWorkoutStateFromStorage() {
 
 async function openPdfModal(programId, programName) {
   function doOpen() {
-    if (timerRunning && timerInterval) { clearInterval(timerInterval); timerInterval = null; timerRunning = false; }
+    if (timerRunning) {
+      timerBaselineSeconds = typeof wkGetTimerElapsedSeconds === 'function' ? wkGetTimerElapsedSeconds() : 0;
+      timerRunning = false;
+      timerWallStartMs = null;
+      if (typeof wkClearTimerInterval === 'function') wkClearTimerInterval();
+      if (typeof wkReleaseWakeLock === 'function') wkReleaseWakeLock();
+    }
     saveWorkoutStateToStorage();
     var url = '/program-viewer.html?url=' + encodeURIComponent(window._pdfResUrl || '') + '&name=' + encodeURIComponent(programName || 'Program PDF');
     window.location.href = url;
@@ -6607,7 +6640,7 @@ async function openPdfModal(programId, programName) {
       showPopup('Workout Timer Paused', 'The timer has been temporarily paused while you review the program. Resume the timer when you\'re ready to continue, then save your workout after completion.', '', 'OK', doOpen);
       return;
     }
-    if (!timerRunning && timerSeconds > 0) {
+    if (!timerRunning && typeof wkGetTimerElapsedSeconds === 'function' && wkGetTimerElapsedSeconds() > 0) {
       showPopup('Opening program', 'Your workout data is saved. Resume the timer when you return and save your workout.', '', 'OK', doOpen);
       return;
     }
@@ -10584,6 +10617,7 @@ function initUserWaFloat() {
 }
 
 function logoutUser() {
+  if (typeof wkLogoutTimerCleanup === 'function') wkLogoutTimerCleanup();
   window.currentUser = null;
   if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
   if (typeof stopUserNotificationPolling === 'function') stopUserNotificationPolling();
@@ -10644,23 +10678,6 @@ function showCheckinSubView(view) {
   var wrap = document.getElementById('userTabContentWrap');
   if (wrap) wrap.scrollTop = 0;
 }
-/** Shown when user leaves My Workout while the session timer is running (SPA — timer keeps ticking). */
-function showWorkoutTimerBackgroundToast() {
-  var el = document.getElementById('bbWorkoutTimerToast');
-  if (!el) {
-    el = document.createElement('div');
-    el.id = 'bbWorkoutTimerToast';
-    el.className = 'bb-workout-timer-toast';
-    el.setAttribute('role', 'status');
-    document.body.appendChild(el);
-  }
-  el.textContent = 'Timer keeps running in the background. Open My Workout to pause, reset, or save your session.';
-  el.hidden = false;
-  if (el._hideT) clearTimeout(el._hideT);
-  el._hideT = setTimeout(function () {
-    el.hidden = true;
-  }, 5200);
-}
 function switchUserTab(tab) {
   if (tab === 'progress') tab = 'workout';
   var wasOnWorkout = !!(document.getElementById('usec-workout') && document.getElementById('usec-workout').classList.contains('active'));
@@ -10712,11 +10729,15 @@ function switchUserTab(tab) {
     else if (typeof loadFocusWheelState === 'function') loadFocusWheelState();
   }
   if (tab === 'workout') {
-    restoreWorkoutStateFromStorage();
+    var pdfRestored = restoreWorkoutStateFromStorage();
     initWorkoutSessionUI();
+    if (!pdfRestored && typeof wkRestoreTimerFromStorage === 'function') wkRestoreTimerFromStorage();
+    if (typeof timerRunning !== 'undefined' && timerRunning && typeof wkHideWorkoutBackgroundBanner === 'function') {
+      wkHideWorkoutBackgroundBanner();
+    }
   }
   if (wasOnWorkout && tab !== 'workout' && typeof timerRunning !== 'undefined' && timerRunning) {
-    showWorkoutTimerBackgroundToast();
+    if (typeof wkEnsureWorkoutBackgroundBanner === 'function') wkEnsureWorkoutBackgroundBanner();
   }
 }
 
@@ -12103,6 +12124,8 @@ function loadAdminBloodReports() {
       el.innerHTML = reports.map(function (r) {
         var id = String(r._id || r.id || '').replace(/'/g, "\\'");
         var isReady = r.status === 'complete';
+        var stLower = String(r.status || '').toLowerCase();
+        var isProcessing = stLower === 'pending' || stLower === 'extracting' || stLower === 'analysing';
         var isSent = !!r.sentToUser;
         var statusColors = { Good: '#3dd68c', Excellent: '#3dd68c', Fair: '#f5a623', Poor: '#ff5c5c', Critical: '#ff5c5c' };
         var ar = r.aiReport || {};
@@ -12129,8 +12152,8 @@ function loadAdminBloodReports() {
           notesEsc + '</textarea>' +
           '<button type="button" class="form-hint" style="margin-top:4px;border:1px solid rgba(255,255,255,0.12);background:transparent;color:inherit;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px" onclick="adminBloodSaveNotes(\'' + id + '\')">Save note</button></div>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-          '<button type="button" class="nav-login" style="flex:1;min-width:120px;padding:8px;font-size:12px" onclick="adminBloodDownloadPdf(\'' + id + '\')">Download PDF</button>' +
-          '<button type="button" class="form-submit" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isSent ? '0.45' : '1') + '" ' + (isSent ? 'disabled' : '') + ' onclick="adminBloodSend(\'' + id + '\')">' + (isSent ? 'Sent' : 'Send to client') + '</button>' +
+          '<button type="button" class="nav-login" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isProcessing ? '0.45' : '1') + '" ' + (isProcessing ? 'disabled title="Report is still processing"' : '') + ' onclick="adminBloodDownloadPdf(\'' + id + '\')">Download PDF</button>' +
+          '<button type="button" class="form-submit" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isSent || isProcessing ? '0.45' : '1') + '" ' + (isSent || isProcessing ? 'disabled' : '') + ' ' + (isProcessing ? 'title="Report is still processing"' : '') + ' onclick="adminBloodSend(\'' + id + '\')">' + (isSent ? 'Sent' : 'Send to client') + '</button>' +
           '</div></div>'
         );
       }).join('');
@@ -12166,7 +12189,11 @@ function adminBloodDownloadPdf(reportId) {
   var url = (typeof API !== 'undefined' ? API : '') + '/api/blood/pdf/' + encodeURIComponent(reportId);
   fetch(url, { headers: { Authorization: 'Bearer ' + window.currentUser.token } })
     .then(function (r) {
-      if (!r.ok) throw new Error('bad');
+      if (!r.ok) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          throw new Error((j && j.error) || ('Download failed (' + r.status + ')'));
+        });
+      }
       return r.blob();
     })
     .then(function (blob) {
@@ -12176,8 +12203,8 @@ function adminBloodDownloadPdf(reportId) {
       a.click();
       URL.revokeObjectURL(a.href);
     })
-    .catch(function () {
-      showPopup('Download', 'PDF not ready or access denied.', '', 'OK', null, 'error');
+    .catch(function (err) {
+      showPopup('Download', (err && err.message) || 'PDF not ready or access denied.', '', 'OK', null, 'error');
     });
 }
 
@@ -12955,53 +12982,285 @@ async function saveProfile() {
   showPopup('Profile Updated', 'Your information has been saved.', '', 'OK');
 }
 
-// Workout Timer
+// Workout Timer — wall clock + localStorage (accurate when tab is throttled or app is in background)
+var WK_TIMER_LS = 'bb_wk_timer_v2';
+var wkWakeLock = null;
+var wkPersistTimerDebounce = null;
+
 let timerInterval = null;
-let timerSeconds = 0;
+let timerBaselineSeconds = 0;
+let timerWallStartMs = null;
 let timerRunning = false;
+var oneHourPopupShown = false;
+
+function wkGetTimerElapsedSeconds() {
+  if (!timerRunning) return Math.max(0, Math.floor(timerBaselineSeconds || 0));
+  if (timerWallStartMs == null) return Math.max(0, Math.floor(timerBaselineSeconds || 0));
+  return Math.max(0, Math.floor(timerBaselineSeconds + (Date.now() - timerWallStartMs) / 1000));
+}
+
+function wkClearTimerInterval() {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
+
+function wkEnsureTimerInterval() {
+  wkClearTimerInterval();
+  if (!timerRunning) return;
+  timerInterval = setInterval(function () {
+    updateTimerDisplay();
+    wkPersistTimerStateThrottled();
+  }, 1000);
+}
+
+function wkPersistTimerStateThrottled() {
+  if (wkPersistTimerDebounce) return;
+  wkPersistTimerDebounce = setTimeout(function () {
+    wkPersistTimerDebounce = null;
+    wkPersistTimerState();
+  }, 400);
+}
+
+function wkPersistTimerState() {
+  try {
+    if (!window.currentUser || !window.currentUser.id) return;
+    var key = WK_TIMER_LS + '_' + window.currentUser.id;
+    var wall = timerRunning ? timerWallStartMs : null;
+    if (timerRunning && wall == null) wall = Date.now();
+    localStorage.setItem(
+      key,
+      JSON.stringify({
+        baseline: timerBaselineSeconds,
+        running: !!timerRunning,
+        wallStartMs: wall,
+        oneHour: !!oneHourPopupShown
+      })
+    );
+  } catch (e) {}
+}
+
+function wkClearTimerStorage() {
+  try {
+    if (window.currentUser && window.currentUser.id) {
+      localStorage.removeItem(WK_TIMER_LS + '_' + window.currentUser.id);
+    }
+  } catch (e) {}
+}
+
+function wkRestoreTimerFromStorage() {
+  if (!window.currentUser || !window.currentUser.id) return false;
+  try {
+    var raw = localStorage.getItem(WK_TIMER_LS + '_' + window.currentUser.id);
+    if (!raw) return false;
+    var o = JSON.parse(raw);
+    if (!o || typeof o.baseline !== 'number') return false;
+    timerBaselineSeconds = Math.max(0, o.baseline);
+    oneHourPopupShown = !!o.oneHour;
+    wkClearTimerInterval();
+    var btn = document.getElementById('timerBtn');
+    if (o.running === true && o.wallStartMs != null) {
+      timerRunning = true;
+      timerWallStartMs = o.wallStartMs;
+      if (btn) btn.textContent = '⏸';
+      wkEnsureTimerInterval();
+      wkRequestWakeLock();
+    } else {
+      timerRunning = false;
+      timerWallStartMs = null;
+      if (btn) btn.textContent = '▶';
+    }
+    updateTimerDisplay();
+    if (timerRunning) wkEnsureWorkoutBackgroundBanner();
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+function wkOnVisibilityChange() {
+  updateTimerDisplay();
+  if (timerRunning) {
+    wkEnsureTimerInterval();
+    wkReacquireWakeLockIfNeeded();
+  }
+  wkPersistTimerState();
+  var secWork = document.getElementById('usec-workout');
+  if (timerRunning && secWork && !secWork.classList.contains('active')) {
+    wkEnsureWorkoutBackgroundBanner();
+  }
+}
+
+function wkRequestWakeLock() {
+  if (!timerRunning || !('wakeLock' in navigator)) return;
+  navigator.wakeLock
+    .request('screen')
+    .then(function (wl) {
+      wkWakeLock = wl;
+      if (wkWakeLock && typeof wkWakeLock.addEventListener === 'function') {
+        wkWakeLock.addEventListener('release', function () {
+          wkWakeLock = null;
+        });
+      }
+    })
+    .catch(function () {});
+}
+
+function wkReacquireWakeLockIfNeeded() {
+  if (!timerRunning || document.visibilityState !== 'visible' || !('wakeLock' in navigator)) return;
+  if (wkWakeLock) return;
+  wkRequestWakeLock();
+}
+
+function wkReleaseWakeLock() {
+  try {
+    if (wkWakeLock && typeof wkWakeLock.release === 'function') {
+      var p = wkWakeLock.release();
+      if (p && typeof p.then === 'function') p.catch(function () {});
+    }
+  } catch (e) {}
+  wkWakeLock = null;
+}
+
+function wkFormatHMS(sec) {
+  sec = Math.max(0, Math.floor(sec || 0));
+  var h = Math.floor(sec / 3600);
+  var m = Math.floor((sec % 3600) / 60);
+  var s = sec % 60;
+  return String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function wkHideWorkoutBackgroundBanner() {
+  var el = document.getElementById('bbWorkoutTimerBanner');
+  if (el) el.hidden = true;
+  if (el && el._bannerTick) {
+    clearInterval(el._bannerTick);
+    el._bannerTick = null;
+  }
+}
+
+function wkEnsureWorkoutBackgroundBanner() {
+  if (!timerRunning) return;
+  var el = document.getElementById('bbWorkoutTimerBanner');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'bbWorkoutTimerBanner';
+    el.className = 'bb-workout-timer-banner';
+    el.setAttribute('role', 'status');
+    el.setAttribute('aria-live', 'polite');
+    el.innerHTML =
+      '<div class="bb-wk-ban-title">Timer running in background</div>' +
+      '<div class="bb-wk-ban-msg">The clock keeps going if you change section, switch apps, or take a call. Pause or reset here when you are done.</div>' +
+      '<div class="bb-wk-ban-time" id="bbWkBannerTime"></div>' +
+      '<div class="bb-wk-ban-actions">' +
+      '<button type="button" class="bb-wk-ban-open">My Workout</button>' +
+      '<button type="button" class="bb-wk-ban-secondary bb-wk-ban-pause">Pause</button>' +
+      '<button type="button" class="bb-wk-ban-danger bb-wk-ban-reset">Reset</button>' +
+      '</div>';
+    document.body.appendChild(el);
+    el.querySelector('.bb-wk-ban-open').onclick = function () {
+      if (typeof switchUserTab === 'function') switchUserTab('workout');
+      wkHideWorkoutBackgroundBanner();
+    };
+    el.querySelector('.bb-wk-ban-pause').onclick = function () {
+      if (typeof toggleTimer === 'function') toggleTimer();
+    };
+    el.querySelector('.bb-wk-ban-reset').onclick = function () {
+      if (typeof resetTimer === 'function') resetTimer();
+    };
+  }
+  el.hidden = false;
+  var tEl = document.getElementById('bbWkBannerTime');
+  if (tEl) tEl.textContent = wkFormatHMS(wkGetTimerElapsedSeconds());
+  if (el._bannerTick) clearInterval(el._bannerTick);
+  el._bannerTick = setInterval(function () {
+    if (!timerRunning) {
+      wkHideWorkoutBackgroundBanner();
+      return;
+    }
+    var te = document.getElementById('bbWkBannerTime');
+    if (te) te.textContent = wkFormatHMS(wkGetTimerElapsedSeconds());
+  }, 500);
+}
+
+function wkUpdateWorkoutBannerClock() {
+  var el = document.getElementById('bbWorkoutTimerBanner');
+  if (!el || el.hidden) return;
+  var tEl = document.getElementById('bbWkBannerTime');
+  if (tEl) tEl.textContent = wkFormatHMS(wkGetTimerElapsedSeconds());
+}
+
+function wkLogoutTimerCleanup() {
+  wkClearTimerInterval();
+  timerRunning = false;
+  timerWallStartMs = null;
+  timerBaselineSeconds = 0;
+  oneHourPopupShown = false;
+  wkReleaseWakeLock();
+  wkHideWorkoutBackgroundBanner();
+  try {
+    var u = window.currentUser && window.currentUser.id;
+    if (u) localStorage.removeItem(WK_TIMER_LS + '_' + u);
+  } catch (e) {}
+}
 
 function toggleTimer() {
+  var btn = document.getElementById('timerBtn');
   if (timerRunning) {
-    clearInterval(timerInterval);
+    timerBaselineSeconds = wkGetTimerElapsedSeconds();
     timerRunning = false;
-    document.getElementById('timerBtn').textContent = '▶';
+    timerWallStartMs = null;
+    wkClearTimerInterval();
+    wkReleaseWakeLock();
+    if (btn) btn.textContent = '▶';
     updateTimerDisplay();
+    wkPersistTimerState();
+    wkHideWorkoutBackgroundBanner();
   } else {
     timerRunning = true;
-    document.getElementById('timerBtn').textContent = '⏸';
-    timerInterval = setInterval(() => {
-      timerSeconds++;
-      updateTimerDisplay();
-    }, 1000);
+    timerWallStartMs = Date.now();
+    if (btn) btn.textContent = '⏸';
+    wkEnsureTimerInterval();
+    wkRequestWakeLock();
+    updateTimerDisplay();
+    wkPersistTimerState();
   }
 }
 
 function resetTimer() {
-  clearInterval(timerInterval);
-  timerInterval = null;
+  wkClearTimerInterval();
   timerRunning = false;
-  timerSeconds = 0;
+  timerWallStartMs = null;
+  timerBaselineSeconds = 0;
   oneHourPopupShown = false;
+  wkReleaseWakeLock();
   updateTimerDisplay();
-  document.getElementById('timerBtn').textContent = '▶';
+  var btn = document.getElementById('timerBtn');
+  if (btn) btn.textContent = '▶';
+  wkClearTimerStorage();
+  wkHideWorkoutBackgroundBanner();
 }
 
-var oneHourPopupShown = false;
 function updateTimerDisplay() {
-  const h = Math.floor(timerSeconds / 3600);
-  const m = Math.floor((timerSeconds % 3600) / 60);
-  const s = timerSeconds % 60;
-  document.getElementById('tHr').textContent = String(h).padStart(2, '0');
-  document.getElementById('tMin').textContent = String(m).padStart(2, '0');
-  document.getElementById('tSec').textContent = String(s).padStart(2, '0');
+  var sec = wkGetTimerElapsedSeconds();
+  var tHr = document.getElementById('tHr');
+  var tMin = document.getElementById('tMin');
+  var tSec = document.getElementById('tSec');
+  if (tHr) tHr.textContent = String(Math.floor(sec / 3600)).padStart(2, '0');
+  if (tMin) tMin.textContent = String(Math.floor((sec % 3600) / 60)).padStart(2, '0');
+  if (tSec) tSec.textContent = String(sec % 60).padStart(2, '0');
   var pausedEl = document.getElementById('timerPausedLabel');
-  if (pausedEl) pausedEl.classList.toggle('show', !timerRunning && timerSeconds > 0);
-  if (timerSeconds >= 3600 && timerRunning && !oneHourPopupShown) {
+  if (pausedEl) pausedEl.classList.toggle('show', !timerRunning && sec > 0);
+  if (sec >= 3600 && timerRunning && !oneHourPopupShown) {
     oneHourPopupShown = true;
     if (!confirm('Workout has exceeded 1 hour. Continue timing?')) {
       resetTimer();
+    } else {
+      wkPersistTimerState();
     }
   }
+  wkUpdateWorkoutBannerClock();
 }
 
 async function submitWorkoutSession() {
@@ -13025,7 +13284,7 @@ async function submitWorkoutSession() {
   var body = {
     date: date,
     workout_type: workoutType,
-    duration_seconds: timerSeconds,
+    duration_seconds: typeof wkGetTimerElapsedSeconds === 'function' ? wkGetTimerElapsedSeconds() : Math.max(0, Math.floor(timerBaselineSeconds || 0)),
     notes: finalNotes.slice(0, 5000),
     session_lifts: Object.keys(lifts).length ? lifts : null,
     workout_completed: !!(document.getElementById('wkCompleted') && document.getElementById('wkCompleted').checked),

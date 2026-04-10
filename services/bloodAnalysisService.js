@@ -1,5 +1,7 @@
 'use strict';
 
+const fs = require('fs');
+
 const {
   parseAnthropicJson,
   formatAnthropicApiError,
@@ -281,4 +283,76 @@ Provide complete clinical analysis as JSON.`
   }
 }
 
-module.exports = { triggerBloodAnalysis };
+/**
+ * Returns an absolute path to the report PDF, generating it from DB fields if the file is missing
+ * (e.g. PDF step failed earlier, file deleted, or server path changed).
+ */
+async function ensureHealthReportPdf(db, reportId) {
+  const { run, queryOne } = db;
+  try {
+    const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [reportId]);
+    if (!report) return null;
+    if (report.pdf_path && fs.existsSync(report.pdf_path)) {
+      return report.pdf_path;
+    }
+
+    let extracted = report.extracted_blood_data;
+    if (extracted == null) extracted = null;
+    else if (typeof extracted === 'string') {
+      try {
+        extracted = JSON.parse(extracted);
+      } catch (_) {
+        extracted = null;
+      }
+    }
+    let aiReport = report.ai_report;
+    if (aiReport == null) aiReport = null;
+    else if (typeof aiReport === 'string') {
+      try {
+        aiReport = JSON.parse(aiReport);
+      } catch (_) {
+        aiReport = null;
+      }
+    }
+    let nutritionSnapshot = report.nutrition_snapshot;
+    if (nutritionSnapshot == null) nutritionSnapshot = {};
+    else if (typeof nutritionSnapshot === 'string') {
+      try {
+        nutritionSnapshot = JSON.parse(nutritionSnapshot);
+      } catch (_) {
+        nutritionSnapshot = {};
+      }
+    }
+
+    if (!extracted || !Array.isArray(extracted.panels) || !aiReport || typeof aiReport !== 'object') {
+      return null;
+    }
+
+    const user = await queryOne(`SELECT id, first_name, last_name, email FROM users WHERE id = ?`, [report.user_id]);
+    if (!user) return null;
+    const userName =
+      [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.email || 'Member';
+
+    const bloodForPdf = { panels: normalizePanelsForPdf(extracted) };
+    const pdfPath = await generateHealthReportPdf({
+      reportId,
+      user: {
+        name: userName,
+        age: report.user_age || '—',
+        gender: report.user_gender || '—',
+        goal: report.user_goal || '—'
+      },
+      blood_analysis: bloodForPdf,
+      nutrition_analysis: nutritionSnapshot || {},
+      ai_report: aiReport
+    });
+
+    await run(`UPDATE blood_analysis_reports SET pdf_path = ?, status = 'complete' WHERE id = ?`, [pdfPath, reportId]);
+    return pdfPath;
+  } catch (err) {
+    console.error('[BodyBank] ensureHealthReportPdf failed:', err && err.message);
+    return null;
+  }
+}
+
+module.exports = { triggerBloodAnalysis, ensureHealthReportPdf };
