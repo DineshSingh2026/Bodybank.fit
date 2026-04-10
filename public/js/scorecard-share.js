@@ -1,29 +1,32 @@
 /**
- * BodyBank — scorecard PNG for native share (16:9 / 9:16).
- * Mirrors home dashboard scorecard (ring + weighted bar + pillars) + member line + FitChef credit.
+ * BodyBank — ultra-luxury scorecard PNG for native share (16:9 / 9:16).
+ * Editorial layout: Playfair + Bebas + Outfit, full bleed composition, statement pillar cards.
  */
 (function () {
   'use strict';
 
-  var GOLD = '#c9a84c';
-  var GOLD_LINE = 'rgba(200,164,78,0.35)';
-  var CREAM = '#f5f0e8';
-  var MUTED = '#94a3b8';
-  var GREEN = '#6ee7b7';
-  var RED = '#f87171';
+  var GOLD = '#d4b968';
+  var GOLD_SOFT = 'rgba(212,185,104,0.92)';
+  var GOLD_LINE = 'rgba(200,164,78,0.42)';
+  var GOLD_DIM = 'rgba(200,164,78,0.28)';
+  var CREAM = '#f7f2ea';
+  var MUTED = '#9ca8b8';
+  var MUTED_SOFT = 'rgba(247,242,234,0.55)';
+  var GREEN = '#5ee9b5';
+  var RED = '#ff8a8a';
 
   var DASH_SEG = {
-    daily: { c0: 'rgba(200,164,78,0.25)', c1: 'rgba(200,164,78,0.95)' },
-    sunday: { c0: 'rgba(245,158,11,0.25)', c1: 'rgba(245,158,11,0.92)' },
-    workouts: { c0: 'rgba(110,231,183,0.28)', c1: 'rgba(16,185,129,0.92)' },
-    progress: { c0: 'rgba(168,85,247,0.25)', c1: 'rgba(139,92,246,0.92)' }
+    daily: { c0: 'rgba(200,164,78,0.25)', c1: 'rgba(212,175,84,0.98)' },
+    sunday: { c0: 'rgba(245,158,11,0.25)', c1: 'rgba(251,191,36,0.95)' },
+    workouts: { c0: 'rgba(110,231,183,0.28)', c1: 'rgba(52,211,153,0.95)' },
+    progress: { c0: 'rgba(167,139,250,0.28)', c1: 'rgba(167,139,250,0.95)' }
   };
 
   var DOT_COLORS = {
-    daily: '#d4af54',
-    sunday: '#f59e0b',
+    daily: '#e8c86a',
+    sunday: '#fbbf24',
     workouts: '#34d399',
-    progress: '#a78bfa'
+    progress: '#c4b5fd'
   };
 
   var DIM = {
@@ -131,98 +134,250 @@
     return o;
   }
 
-  async function ensureFonts() {
-    if (document.fonts && document.fonts.ready) {
-      try {
-        await document.fonts.ready;
-      } catch (e) {
-        /* ignore */
-      }
+  async function ensureLuxuryFonts() {
+    if (!document.fonts || !document.fonts.load) {
+      return;
+    }
+    var specs = [
+      "400 28px 'Playfair Display'",
+      "400 36px 'Playfair Display'",
+      "italic 600 34px 'Playfair Display'",
+      "italic 600 28px 'Playfair Display'",
+      "600 32px 'Playfair Display'",
+      "italic 600 56px 'Cormorant Garamond'",
+      "italic 600 52px 'Cormorant Garamond'",
+      "italic 600 42px 'Cormorant Garamond'",
+      "400 220px 'Bebas Neue'",
+      "400 120px 'Bebas Neue'",
+      "400 80px 'Bebas Neue'",
+      "400 72px 'Bebas Neue'",
+      "400 58px 'Bebas Neue'",
+      "500 24px 'Cormorant Garamond'",
+      "600 22px 'Outfit'",
+      "600 28px 'Outfit'",
+      "700 34px 'Outfit'",
+      "700 44px 'Outfit'",
+      "700 58px 'Outfit'",
+      "700 56px 'Outfit'",
+      "800 17px 'Outfit'",
+      "800 20px 'Outfit'"
+    ];
+    await Promise.all(
+      specs.map(function (s) {
+        return document.fonts.load(s).catch(function () {
+          return null;
+        });
+      })
+    );
+    try {
+      await document.fonts.ready;
+    } catch (e) {
+      /* ignore */
     }
   }
 
-  function drawBackdrop(ctx, W, H) {
+  function drawBackdropLuxury(ctx, W, H) {
     var g = ctx.createLinearGradient(0, 0, W, H);
-    g.addColorStop(0, '#08080a');
-    g.addColorStop(0.5, '#0e0e12');
-    g.addColorStop(1, '#050506');
+    g.addColorStop(0, '#040406');
+    g.addColorStop(0.4, '#0b0b10');
+    g.addColorStop(1, '#020203');
     ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    var r1 = ctx.createRadialGradient(W * 0.1, H * 0.06, 0, W * 0.1, H * 0.06, W * 0.65);
+    r1.addColorStop(0, 'rgba(200,164,78,0.16)');
+    r1.addColorStop(0.5, 'rgba(200,164,78,0.03)');
+    r1.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = r1;
+    ctx.fillRect(0, 0, W, H);
+
+    var r2 = ctx.createRadialGradient(W * 0.92, H * 0.95, 0, W * 0.92, H * 0.95, H * 0.45);
+    r2.addColorStop(0, 'rgba(160,120,60,0.1)');
+    r2.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = r2;
+    ctx.fillRect(0, 0, W, H);
+
+    var rv = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.28, W / 2, H / 2, Math.max(W, H) * 0.75);
+    rv.addColorStop(0, 'rgba(0,0,0,0)');
+    rv.addColorStop(1, 'rgba(0,0,0,0.52)');
+    ctx.fillStyle = rv;
     ctx.fillRect(0, 0, W, H);
   }
 
-  /** Dashboard-style inner card (.bb-scorecard-inner) */
-  function drawScorecardPanel(ctx, x, y, w, h, r) {
-    ctx.save();
+  function drawLuxuryCardPanel(ctx, x, y, w, h, r) {
     roundRectPath(ctx, x, y, w, h, r);
-    var panel = ctx.createLinearGradient(x, y, x + w, y + h);
-    panel.addColorStop(0, 'rgba(200,164,78,0.12)');
-    panel.addColorStop(0.42, 'rgba(255,255,255,0.03)');
-    panel.addColorStop(1, 'rgba(0,0,0,0.22)');
-    ctx.fillStyle = panel;
+    ctx.fillStyle = 'rgba(6,6,10,0.94)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(200,164,78,0.22)';
-    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = 'rgba(200,164,78,0.5)';
+    ctx.lineWidth = 2;
     ctx.stroke();
-    var rg = ctx.createRadialGradient(x + w * 0.2, y, 0, x + w * 0.2, y, w * 0.9);
-    rg.addColorStop(0, 'rgba(200,164,78,0.18)');
-    rg.addColorStop(0.58, 'rgba(0,0,0,0)');
+    roundRectPath(ctx, x + 2, y + 2, w - 4, h - 4, Math.max(0, r - 2));
+    ctx.strokeStyle = 'rgba(0,0,0,0.45)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
     ctx.save();
     roundRectPath(ctx, x, y, w, h, r);
     ctx.clip();
-    ctx.fillStyle = rg;
+    var lg = ctx.createLinearGradient(x, y, x, y + h * 0.5);
+    lg.addColorStop(0, 'rgba(200,164,78,0.11)');
+    lg.addColorStop(0.55, 'rgba(255,255,255,0.02)');
+    lg.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = lg;
     ctx.fillRect(x, y, w, h);
-    ctx.restore();
     ctx.restore();
   }
 
-  /** Static ring like dashboard — full circle, score inside (Bebas). */
-  function drawDashboardRing(ctx, cx, cy, radius, scoreStr, ringPx) {
+  function drawCornerOrnaments(ctx, x, y, w, h, len, lw) {
+    len = len || 36;
+    lw = lw || 2;
     ctx.save();
-    var glow = ctx.createRadialGradient(cx, cy, radius * 0.3, cx, cy, radius * 1.35);
-    glow.addColorStop(0, 'rgba(200,164,78,0.2)');
+    ctx.strokeStyle = GOLD_LINE;
+    ctx.lineWidth = lw;
+    ctx.lineCap = 'square';
+    // TL
+    ctx.beginPath();
+    ctx.moveTo(x, y + len);
+    ctx.lineTo(x, y);
+    ctx.lineTo(x + len, y);
+    ctx.stroke();
+    // TR
+    ctx.beginPath();
+    ctx.moveTo(x + w - len, y);
+    ctx.lineTo(x + w, y);
+    ctx.lineTo(x + w, y + len);
+    ctx.stroke();
+    // BR
+    ctx.beginPath();
+    ctx.moveTo(x + w, y + h - len);
+    ctx.lineTo(x + w, y + h);
+    ctx.lineTo(x + w - len, y + h);
+    ctx.stroke();
+    // BL
+    ctx.beginPath();
+    ctx.moveTo(x + len, y + h);
+    ctx.lineTo(x, y + h);
+    ctx.lineTo(x, y + h - len);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawLuxuryRing(ctx, cx, cy, radius, scoreStr, ringPx, useAdvanceCenter) {
+    ctx.save();
+    var glow = ctx.createRadialGradient(cx, cy, radius * 0.25, cx, cy, radius * 1.45);
+    glow.addColorStop(0, 'rgba(212,185,104,0.35)');
+    glow.addColorStop(0.55, 'rgba(200,164,78,0.08)');
     glow.addColorStop(1, 'rgba(0,0,0,0)');
     ctx.fillStyle = glow;
     ctx.beginPath();
-    ctx.arc(cx, cy, radius + 10, 0, Math.PI * 2);
+    ctx.arc(cx, cy, radius + 14, 0, Math.PI * 2);
     ctx.fill();
+
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    var inner = ctx.createRadialGradient(cx - radius * 0.35, cy - radius * 0.35, 0, cx, cy, radius);
-    inner.addColorStop(0, 'rgba(200,164,78,0.22)');
-    inner.addColorStop(0.55, 'rgba(0,0,0,0.32)');
-    inner.addColorStop(1, 'rgba(0,0,0,0.38)');
+    var inner = ctx.createRadialGradient(cx, cy, 0, cx, cy, radius);
+    inner.addColorStop(0, 'rgba(200,164,78,0.24)');
+    inner.addColorStop(0.48, 'rgba(10,10,14,0.88)');
+    inner.addColorStop(1, 'rgba(0,0,0,0.52)');
     ctx.fillStyle = inner;
     ctx.fill();
+
     ctx.beginPath();
     ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(200,164,78,0.5)';
+    ctx.strokeStyle = 'rgba(200,164,78,0.55)';
     ctx.lineWidth = ringPx;
     ctx.stroke();
     ctx.beginPath();
-    ctx.arc(cx, cy, radius - ringPx * 0.5, 0, Math.PI * 2);
-    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.arc(cx, cy, radius - ringPx * 0.45, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(255,255,255,0.07)';
     ctx.lineWidth = 1;
     ctx.stroke();
     ctx.restore();
 
+    drawRingScoreText(ctx, cx, cy, scoreStr, radius, useAdvanceCenter);
+  }
+
+  /**
+   * Center score in ring. useAdvanceCenter (16:9): geometric center via measureText.width only —
+   * avoids bounding-box dx that often skews Bebas digits. Default false keeps optical dx for 9:16.
+   */
+  function drawRingScoreText(ctx, cx, cy, scoreStr, radius, useAdvanceCenter) {
+    var digits = String(scoreStr).length;
+    var mult = digits >= 3 ? 0.98 : digits === 2 ? 1.12 : 1.18;
+    var fs = Math.round(radius * mult);
+    fs = Math.max(fs, Math.round(radius * 0.82));
+    var s = String(scoreStr);
     ctx.save();
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    var fs = Math.round(radius * 0.92);
     ctx.font = "400 " + fs + "px 'Bebas Neue', 'Impact', sans-serif";
     ctx.fillStyle = GOLD;
-    ctx.fillText(scoreStr, cx, cy + fs * 0.06);
+    ctx.letterSpacing = '0px';
+    if ('fontKerning' in ctx) ctx.fontKerning = 'normal';
+
+    var m = ctx.measureText(s);
+    var ascent =
+      typeof m.actualBoundingBoxAscent === 'number' && !isNaN(m.actualBoundingBoxAscent)
+        ? m.actualBoundingBoxAscent
+        : fs * 0.72;
+    var descent =
+      typeof m.actualBoundingBoxDescent === 'number' && !isNaN(m.actualBoundingBoxDescent)
+        ? m.actualBoundingBoxDescent
+        : fs * 0.28;
+    var baselineY = cy + (ascent - descent) / 2;
+
+    var dx = 0;
+    if (!useAdvanceCenter) {
+      if (typeof m.actualBoundingBoxLeft === 'number' && typeof m.actualBoundingBoxRight === 'number') {
+        dx = (m.actualBoundingBoxLeft - m.actualBoundingBoxRight) / 2;
+      }
+    }
+
+    ctx.textBaseline = 'alphabetic';
+    ctx.shadowColor = 'rgba(200,164,78,0.28)';
+    ctx.shadowBlur = useAdvanceCenter ? 12 : 18;
+    if (useAdvanceCenter) {
+      ctx.textAlign = 'left';
+      ctx.fillText(s, cx - m.width / 2, baselineY);
+    } else {
+      ctx.textAlign = 'center';
+      ctx.fillText(s, cx + dx, baselineY);
+    }
+    ctx.shadowBlur = 0;
     ctx.restore();
   }
 
-  function drawDashboardBar(ctx, keys, norm, pillars, x, y, barW, barH, padInner) {
+  /** Center pillar / small numeric Bebas strings (no inherited letter-spacing). */
+  function drawNumericCentered(ctx, text, cx, cyMid, fs) {
+    var s = String(text);
+    ctx.save();
+    ctx.letterSpacing = '0px';
+    if ('fontKerning' in ctx) ctx.fontKerning = 'normal';
+    var m = ctx.measureText(s);
+    var ascent =
+      typeof m.actualBoundingBoxAscent === 'number' && !isNaN(m.actualBoundingBoxAscent)
+        ? m.actualBoundingBoxAscent
+        : fs * 0.72;
+    var descent =
+      typeof m.actualBoundingBoxDescent === 'number' && !isNaN(m.actualBoundingBoxDescent)
+        ? m.actualBoundingBoxDescent
+        : fs * 0.28;
+    var baselineY = cyMid + (ascent - descent) / 2;
+    var dx = 0;
+    if (typeof m.actualBoundingBoxLeft === 'number' && typeof m.actualBoundingBoxRight === 'number') {
+      dx = (m.actualBoundingBoxLeft - m.actualBoundingBoxRight) / 2;
+    }
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'center';
+    ctx.fillText(s, cx + dx, baselineY);
+    ctx.restore();
+  }
+
+  function drawWeightedBar(ctx, keys, norm, pillars, x, y, barW, barH, padInner) {
     var trackR = barH / 2;
     ctx.save();
     roundRectPath(ctx, x, y, barW, barH, trackR);
-    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
     ctx.fill();
-    ctx.strokeStyle = 'rgba(200,164,78,0.22)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = GOLD_DIM;
+    ctx.lineWidth = 1.5;
     ctx.stroke();
     ctx.restore();
 
@@ -230,7 +385,7 @@
     var innerY = y + padInner;
     var innerW = barW - padInner * 2;
     var innerH = barH - padInner * 2;
-    var gap = 2;
+    var gap = 1;
     var totalGap = gap * (keys.length - 1);
     var avail = innerW - totalGap;
     var x0 = innerX;
@@ -240,9 +395,9 @@
       var r = innerH / 2;
       var dc = DASH_SEG[k] || DASH_SEG.daily;
       ctx.save();
-      roundRectPath(ctx, x0, innerY, Math.max(segW, 4), innerH, r);
+      roundRectPath(ctx, x0, innerY, Math.max(segW, 5), innerH, r);
       ctx.clip();
-      ctx.fillStyle = 'rgba(255,255,255,0.08)';
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
       ctx.fillRect(x0, innerY, segW, innerH);
       var fillW = (segW * fillPct) / 100;
       if (fillW > 0.5) {
@@ -257,98 +412,135 @@
     });
   }
 
-  function drawLegendGrid(ctx, keys, norm, pillars, labels, x, y, totalW, rowH, fsLbl, fsStrong, gapX, gapY, dotR) {
-    dotR = dotR == null ? 5 : dotR;
-    var colW = (totalW - gapX) / 2;
-    var midY = 0;
-    keys.forEach(function (k, i) {
-      var col = i % 2;
-      var row = Math.floor(i / 2);
-      var bx = x + col * (colW + gapX);
-      var by = y + row * (rowH + gapY);
-      midY = by + rowH / 2;
-      var score = Math.max(0, Math.min(100, Math.round(Number(pillars[k] || 0))));
-      var wPct = Math.round(norm[i] * 100);
-      var dot = DOT_COLORS[k] || GOLD;
-      ctx.save();
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = dot;
-      ctx.beginPath();
-      ctx.arc(bx + dotR + 4, midY, dotR, 0, Math.PI * 2);
+  /** One luxury pillar card with mini bar — full space use. */
+  function drawPillarStatementCard(ctx, k, i, keys, norm, pillars, labels, bx, by, cw, ch, fsLabel, fsNum, fsMeta) {
+    var score = Math.max(0, Math.min(100, Math.round(Number(pillars[k] || 0))));
+    var wPct = Math.round(norm[i] * 100);
+    var dot = DOT_COLORS[k] || GOLD;
+    var dc = DASH_SEG[k] || DASH_SEG.daily;
+    if (ch < 200) {
+      var sc = Math.max(0.55, Math.min(1, ch / 200));
+      fsLabel = Math.max(11, Math.round(fsLabel * sc));
+      var capNum = Math.max(34, Math.min(Math.round(ch * 0.34), 92));
+      fsNum = Math.max(34, Math.min(Math.round(fsNum * sc), capNum));
+      fsMeta = Math.max(14, Math.min(Math.round(fsMeta * sc), Math.round(ch * 0.17)));
+    }
+
+    ctx.save();
+    roundRectPath(ctx, bx, by, cw, ch, 12);
+    var cardG = ctx.createLinearGradient(bx, by, bx + cw, by + ch);
+    cardG.addColorStop(0, 'rgba(200,164,78,0.1)');
+    cardG.addColorStop(0.35, 'rgba(255,255,255,0.03)');
+    cardG.addColorStop(1, 'rgba(0,0,0,0.35)');
+    ctx.fillStyle = cardG;
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(200,164,78,0.32)';
+    ctx.lineWidth = 1.25;
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(bx + 10, by + 3);
+    ctx.lineTo(bx + cw - 10, by + 3);
+    ctx.strokeStyle = dot;
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+    var cx = bx + cw / 2;
+    var barH = Math.max(14, Math.round(ch * 0.11));
+    var padBottom = Math.max(8, Math.round(ch * 0.035));
+    var padTop = Math.max(14, Math.round(ch * 0.048));
+    var gapLN = Math.max(20, Math.round(fsNum * 0.3));
+    var gapNM = Math.max(14, Math.round(fsNum * 0.18));
+    var gapMetaBar = Math.max(12, Math.round(fsMeta * 0.58));
+
+    var labelCy = by + padTop + fsLabel * 0.55;
+    var numberCy = labelCy + fsLabel * 0.62 + gapLN + fsNum * 0.42;
+    var metaCy = numberCy + fsNum * 0.44 + gapNM + fsMeta * 0.35;
+    var barY = metaCy + fsMeta * 0.62 + gapMetaBar;
+
+    if (barY + barH > by + ch - padBottom) {
+      barY = by + ch - padBottom - barH;
+      metaCy = barY - gapMetaBar - fsMeta * 0.55;
+      numberCy = metaCy - gapNM - fsNum * 0.48 - fsMeta * 0.2;
+      labelCy = numberCy - gapLN - fsNum * 0.48 - fsLabel * 0.55;
+      if (labelCy < by + padTop + fsLabel * 0.45) {
+        labelCy = by + padTop + fsLabel * 0.55;
+        var minMid =
+          labelCy + fsLabel * 0.62 + gapLN + fsNum * 0.42;
+        if (numberCy < minMid) numberCy = minMid;
+        minMid = numberCy + fsNum * 0.44 + gapNM + fsMeta * 0.35;
+        if (metaCy < minMid) metaCy = minMid;
+        barY = metaCy + fsMeta * 0.62 + gapMetaBar;
+        if (barY + barH > by + ch - padBottom) {
+          barY = by + ch - padBottom - barH;
+        }
+      }
+    }
+
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = GOLD_SOFT;
+    ctx.font = '800 ' + fsLabel + 'px "Outfit", system-ui, sans-serif';
+    ctx.letterSpacing = '0.22em';
+    ctx.fillText(String(labels[k]).toUpperCase(), cx, labelCy);
+    ctx.letterSpacing = '0px';
+    if ('fontKerning' in ctx) ctx.fontKerning = 'normal';
+
+    ctx.font = "400 " + fsNum + "px 'Bebas Neue', 'Impact', sans-serif";
+    ctx.fillStyle = CREAM;
+    drawNumericCentered(ctx, String(score), cx, numberCy, fsNum);
+
+    ctx.font = '600 ' + fsMeta + 'px "Outfit", system-ui, sans-serif';
+    ctx.fillStyle = MUTED;
+    ctx.fillText('Weight · ' + wPct + '%', cx, metaCy);
+    var barX = bx + 14;
+    var barW = cw - 28;
+    roundRectPath(ctx, barX, barY, barW, barH, barH / 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.07)';
+    ctx.fill();
+    var fillW = (barW * score) / 100;
+    if (fillW > 1) {
+      roundRectPath(ctx, barX, barY, fillW, barH, barH / 2);
+      var lg = ctx.createLinearGradient(barX, barY, barX + fillW, barY);
+      lg.addColorStop(0, dc.c0);
+      lg.addColorStop(1, dc.c1);
+      ctx.fillStyle = lg;
       ctx.fill();
-      ctx.textAlign = 'left';
-      ctx.fillStyle = MUTED;
-      ctx.font = '600 ' + fsLbl + 'px "Outfit", system-ui, sans-serif';
-      ctx.fillText(labels[k], bx + dotR * 2 + 14, midY);
-      var strong = score + ' · ' + wPct + '%';
-      ctx.font = '700 ' + fsStrong + 'px "Outfit", system-ui, sans-serif';
-      ctx.textAlign = 'right';
-      ctx.fillStyle = CREAM;
-      ctx.fillText(strong, bx + colW - 4, midY);
-      ctx.restore();
-    });
+    }
+    ctx.restore();
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
   }
 
-  function drawPillarTiles(ctx, keys, pillars, labels, x, y, totalW, tileH, gap, fsLbl, fsVal, rTile) {
-    var colW = (totalW - gap) / 2;
-    keys.forEach(function (k, i) {
-      var col = i % 2;
-      var row = Math.floor(i / 2);
-      var bx = x + col * (colW + gap);
-      var by = y + row * (tileH + gap);
-      ctx.save();
-      roundRectPath(ctx, bx, by, colW, tileH, rTile);
-      ctx.fillStyle = 'rgba(0,0,0,0.22)';
-      ctx.fill();
-      ctx.strokeStyle = 'rgba(200,164,78,0.22)';
-      ctx.lineWidth = 1.25;
-      ctx.stroke();
-      ctx.restore();
-      ctx.save();
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = 'rgba(200,164,78,0.95)';
-      ctx.font = '800 ' + fsLbl + 'px "Outfit", system-ui, sans-serif';
-      ctx.letterSpacing = '0.14em';
-      ctx.fillText(String(labels[k]).toUpperCase(), bx + colW / 2, by + tileH * 0.34);
-      ctx.letterSpacing = '0';
-      var v = pillars[k] != null ? String(Math.round(Number(pillars[k]))) : '—';
-      ctx.font = "400 " + fsVal + "px 'Bebas Neue', 'Impact', sans-serif";
-      ctx.fillStyle = CREAM;
-      ctx.fillText(v, bx + colW / 2, by + tileH * 0.72);
-      ctx.restore();
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'alphabetic';
-    });
-  }
-
-  async function drawFitchefFooter(ctx, W, H, yTop, maxLogoH, fsCo, fsUrl) {
-    fsCo = fsCo || 16;
-    fsUrl = fsUrl || 14;
-    var padX = Math.round(W * 0.08);
+  async function drawFitchefFooter(ctx, W, H, yTop, maxLogoH, fsCo, fsUrl, fsHost) {
+    fsCo = fsCo || 26;
+    fsUrl = fsUrl || 22;
+    fsHost = fsHost || 20;
+    var padX = Math.round(W * 0.06);
     ctx.strokeStyle = GOLD_LINE;
-    ctx.lineWidth = 1;
+    ctx.lineWidth = 1.5;
     ctx.beginPath();
     ctx.moveTo(padX, yTop);
     ctx.lineTo(W - padX, yTop);
     ctx.stroke();
 
-    var cy = yTop + 26;
+    var cy = yTop + 32;
     var fitchefImg = null;
     try {
       fitchefImg = await loadImage(absAsset('img/Fitchef logo.png'));
     } catch (e) {
-      /* text-only credit */
+      /* text-only */
     }
     if (fitchefImg && fitchefImg.naturalWidth) {
       var lh = maxLogoH;
       var lw = (fitchefImg.naturalWidth / fitchefImg.naturalHeight) * lh;
       ctx.drawImage(fitchefImg, (W - lw) / 2, cy, lw, lh);
-      cy += lh + 12;
+      cy += lh + 14;
     } else {
-      cy += 6;
+      cy += 4;
     }
 
     ctx.textAlign = 'center';
@@ -356,15 +548,86 @@
     ctx.fillStyle = GOLD;
     ctx.font = '600 ' + fsCo + 'px "Outfit", system-ui, sans-serif';
     ctx.fillText('Co-Powered by FitChef Nutrition', W / 2, cy);
-    cy += Math.round(fsCo * 1.45);
+    cy += Math.round(fsCo * 1.55);
     ctx.font = '500 ' + fsUrl + 'px "Outfit", system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(200,164,78,0.92)';
+    ctx.fillStyle = 'rgba(212,185,104,0.95)';
     ctx.fillText('www.Fitchef.fit', W / 2, cy);
+    cy += Math.round(fsUrl * 1.55);
+    ctx.font = '700 ' + fsHost + 'px "Outfit", system-ui, sans-serif';
+    ctx.fillStyle = 'rgba(200, 164, 78, 0.78)';
+    ctx.fillText(shareBrandHost(), W / 2, cy);
+  }
 
-    var fsHost = Math.max(14, Math.round((fsUrl || 14) * 0.95));
-    ctx.font = '600 ' + fsHost + 'px "Outfit", system-ui, sans-serif';
-    ctx.fillStyle = 'rgba(200, 164, 78, 0.72)';
-    ctx.fillText(shareBrandHost(), W / 2, H - Math.max(18, Math.round(fsHost * 1.15)));
+  function drawTaglineStrip(ctx, W, x0, y, wInner, fsItalic, subtleGlow) {
+    var line = 'Data-led coaching · Lifestyle management · Results that compound';
+    var cx = x0 + wInner / 2;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = "italic 600 " + fsItalic + "px 'Playfair Display', Georgia, serif";
+    var blur = subtleGlow
+      ? Math.max(5, Math.round(fsItalic * 0.2))
+      : Math.max(12, Math.round(fsItalic * 0.45));
+    ctx.shadowColor = subtleGlow ? 'rgba(212, 175, 100, 0.5)' : 'rgba(212, 175, 100, 0.85)';
+    ctx.shadowBlur = blur;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.fillStyle = '#f2e6c4';
+    ctx.fillText(line, cx, y);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = GOLD;
+    ctx.fillText(line, cx, y);
+    ctx.restore();
+  }
+
+  /** Layout height for 16:9 tagline (Playfair metrics + slack so the block never touches the bar). */
+  function tagline169BlockHeight(fs) {
+    var lineGap = Math.round(fs * 0.36);
+    return (
+      Math.round(fs * 1.05) +
+      Math.round(fs * 1.28) +
+      lineGap +
+      Math.round(fs * 0.58) +
+      24
+    );
+  }
+
+  function pickTagline169Fs(ctx, wInner) {
+    var lines = ['Data-led coaching · Lifestyle management', 'Results that compound'];
+    var maxW = Math.max(200, wInner - 56);
+    var fs;
+    var i;
+    for (fs = 26; fs >= 17; fs--) {
+      ctx.font = "italic 600 " + fs + "px 'Playfair Display', Georgia, serif";
+      var ok = true;
+      for (i = 0; i < lines.length; i++) {
+        if (ctx.measureText(lines[i]).width > maxW) {
+          ok = false;
+          break;
+        }
+      }
+      if (ok) return fs;
+    }
+    return 17;
+  }
+
+  function drawTagline169Block(ctx, x0, yTop, wInner, fs) {
+    var lines = ['Data-led coaching · Lifestyle management', 'Results that compound'];
+    var cx = x0 + wInner / 2;
+    var lineGap = Math.round(fs * 0.36);
+    var y = yTop + Math.round(fs * 1.02);
+    var i;
+    ctx.save();
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    for (i = 0; i < lines.length; i++) {
+      ctx.font = "italic 600 " + fs + "px 'Playfair Display', Georgia, serif";
+      ctx.shadowBlur = 0;
+      ctx.fillStyle = GOLD;
+      ctx.fillText(lines[i], cx, y);
+      if (i === 0) y += Math.round(fs * 1.28) + lineGap;
+    }
+    ctx.restore();
   }
 
   async function drawScorecard169(canvas, d) {
@@ -374,23 +637,24 @@
     if (!ctx) throw new Error('canvas');
     canvas.width = W;
     canvas.height = H;
-    await ensureFonts();
+    await ensureLuxuryFonts();
 
-    drawBackdrop(ctx, W, H);
+    drawBackdropLuxury(ctx, W, H);
 
-    var footerH = 218;
-    var margin = 40;
+    var footerH = 198;
+    var margin = 8;
     var cardX = margin;
     var cardY = margin;
     var cardW = W - margin * 2;
     var cardH = H - margin - footerH;
-    drawScorecardPanel(ctx, cardX, cardY, cardW, cardH, 18);
+    drawLuxuryCardPanel(ctx, cardX, cardY, cardW, cardH, 12);
 
-    var px = cardX + 32;
-    var py = cardY + 28;
-    var innerW = cardW - 64;
-    var logoH = 132;
+    var padX = 28;
+    var px = cardX + padX;
+    var py = cardY + 22;
+    var innerW = cardW - padX * 2;
 
+    var logoH = 112;
     try {
       var logo = await loadImage(absAsset('img/logo.png'));
       var lh = logoH;
@@ -404,60 +668,100 @@
     ctx.textAlign = 'right';
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = GOLD;
-    ctx.font = '700 38px "Outfit", system-ui, sans-serif';
-    ctx.fillText(memberName, cardX + cardW - 32, py + 42);
-    ctx.fillStyle = 'rgba(212, 175, 55, 0.95)';
-    ctx.font = '800 15px "Outfit", system-ui, sans-serif';
-    ctx.letterSpacing = '0.26em';
-    ctx.fillText('TRIBE ELITE MEMBER', cardX + cardW - 32, py + 78);
+    ctx.font = '700 58px "Outfit", system-ui, sans-serif';
+    ctx.fillText(memberName, cardX + cardW - padX, py + 54);
+    ctx.fillStyle = GOLD_SOFT;
+    ctx.font = '800 19px "Outfit", system-ui, sans-serif';
+    ctx.letterSpacing = '0.24em';
+    ctx.fillText('TRIBE ELITE MEMBER', cardX + cardW - padX, py + 100);
     ctx.letterSpacing = '0';
-    ctx.textAlign = 'left';
 
     var S = computeScoreData(d);
-    var headY = py + logoH + 32;
-    var ringR = 100;
-    var ringLine = 3;
-    var rcx = px + ringR + 6;
-    var rcy = headY + ringR;
-    drawDashboardRing(ctx, rcx, rcy, ringR, String(S.total), ringLine);
+    var yHero = py + logoH + 8;
+    var wLeft = Math.floor(innerW * 0.29);
+    wLeft = Math.max(360, Math.min(540, wLeft));
+    var xLeft = px;
+    var colGap = 36;
+    var xRight = px + wLeft + colGap;
+    var wRight = innerW - wLeft - colGap;
 
-    var metaX = px + ringR * 2 + 44;
+    var rcx = xLeft + wLeft / 2;
+    var maxRing = Math.min(190, Math.floor((wLeft - 8) / 2));
+    var ringR = maxRing;
+    var minPillarH = 176;
+    var gapPillarBar = 32;
+    var barH = 44;
+    var gapBarTagline = 56;
+    var pillarBottom = cardY + cardH - 14;
+    var taglineFsLayout = pickTagline169Fs(ctx, innerW);
+    var rcy;
+    var ringBottom;
+    var heroBottom;
+    var pillarY;
+    var barY;
+    var taglineTop;
+    var planOk;
+    var tries;
+
+    for (tries = 0; tries < 48; tries++) {
+      rcy = yHero + ringR + 2;
+      ringBottom = rcy + ringR + 6;
+      heroBottom = Math.max(ringBottom, S.trendText ? yHero + 300 : yHero + 222);
+      pillarY = pillarBottom - minPillarH;
+      barY = pillarY - gapPillarBar - barH;
+      taglineTop = barY - gapBarTagline - tagline169BlockHeight(taglineFsLayout);
+      planOk = heroBottom <= taglineTop - 10;
+      if (planOk) break;
+      if (ringR > 112) ringR -= 5;
+      else if (taglineFsLayout > 17) taglineFsLayout -= 1;
+      else if (minPillarH > 136) minPillarH -= 4;
+      else break;
+    }
+    if (!planOk) {
+      while (pillarY > cardY + 380 && heroBottom > taglineTop - 6) {
+        minPillarH = Math.max(128, minPillarH - 5);
+        pillarY = pillarBottom - minPillarH;
+        barY = pillarY - gapPillarBar - barH;
+        taglineTop = barY - gapBarTagline - tagline169BlockHeight(taglineFsLayout);
+      }
+    }
+
+    drawLuxuryRing(ctx, rcx, rcy, ringR, String(S.total), 5, true);
+
     ctx.textAlign = 'left';
-    ctx.fillStyle = 'rgba(200,164,78,0.95)';
-    ctx.font = '800 15px "Outfit", system-ui, sans-serif';
-    ctx.letterSpacing = '0.26em';
-    ctx.fillText('WEEKLY SCORE', metaX, headY + 22);
+    ctx.fillStyle = GOLD;
+    ctx.font = '800 22px "Outfit", system-ui, sans-serif';
+    ctx.letterSpacing = '0.22em';
+    ctx.fillText('WEEKLY PERFORMANCE INDEX', xRight, yHero + 44);
     ctx.letterSpacing = '0';
-    ctx.fillStyle = MUTED;
-    ctx.font = '500 30px "Outfit", system-ui, sans-serif';
-    ctx.fillText(S.weekLabel, metaX, headY + 58);
+
+    ctx.font = "italic 600 56px 'Cormorant Garamond', 'Playfair Display', Georgia, serif";
     ctx.fillStyle = CREAM;
-    ctx.font = '700 32px "Outfit", system-ui, sans-serif';
-    ctx.fillText('BodyBank score', metaX, headY + 98);
+    ctx.fillText(S.weekLabel, xRight, yHero + 124);
+
+    ctx.font = "400 80px 'Bebas Neue', Impact, sans-serif";
+    ctx.fillStyle = MUTED;
+    ctx.fillText('BODYBANK SCORE', xRight, yHero + 210);
+
     if (S.trendText) {
+      ctx.font = '700 36px "Outfit", system-ui, sans-serif';
       ctx.fillStyle = S.trendUp ? GREEN : S.trendDown ? RED : MUTED;
-      ctx.font = '600 24px "Outfit", system-ui, sans-serif';
-      ctx.fillText(S.trendText, metaX, headY + 136);
+      ctx.fillText(S.trendText, xRight, yHero + 278);
     }
 
-    var barY = headY + ringR * 2 + 40;
-    var barH = 36;
-    var barW = innerW;
-    drawDashboardBar(ctx, S.keys, S.norm, S.pillars, px, barY, barW, barH, 4);
+    drawTagline169Block(ctx, px, taglineTop, innerW, taglineFsLayout);
+    drawWeightedBar(ctx, S.keys, S.norm, S.pillars, px, barY, innerW, barH, 6);
 
-    var legRowH = 44;
-    var legY = barY + barH + 22;
-    drawLegendGrid(ctx, S.keys, S.norm, S.pillars, S.labels, px, legY, barW, legRowH, 18, 22, 20, 12, 7);
+    var pillarH = Math.max(128, pillarBottom - pillarY);
+    var gapC = 14;
+    var cardWi = (innerW - gapC * 3) / 4;
+    S.keys.forEach(function (k, i) {
+      drawPillarStatementCard(ctx, k, i, S.keys, S.norm, S.pillars, S.labels, px + i * (cardWi + gapC), pillarY, cardWi, pillarH, 17, 92, 32);
+    });
 
-    var pillarY = legY + legRowH * 2 + 12 + 18;
-    var tileH = 108;
-    var remain = cardY + cardH - pillarY - 16;
-    if (remain < tileH * 2 + 14) {
-      tileH = Math.max(88, Math.floor((remain - 14) / 2));
-    }
-    drawPillarTiles(ctx, S.keys, S.pillars, S.labels, px, pillarY, barW, tileH, 14, 15, 48, 14);
+    drawCornerOrnaments(ctx, cardX + 8, cardY + 8, cardW - 16, cardH - 16, 40, 2);
 
-    await drawFitchefFooter(ctx, W, H, cardY + cardH + 14, 58, 22, 18);
+    await drawFitchefFooter(ctx, W, H, cardY + cardH + 6, 46, 26, 23, 20);
   }
 
   async function drawScorecard916(canvas, d) {
@@ -467,86 +771,102 @@
     if (!ctx) throw new Error('canvas');
     canvas.width = W;
     canvas.height = H;
-    await ensureFonts();
+    await ensureLuxuryFonts();
 
-    drawBackdrop(ctx, W, H);
+    drawBackdropLuxury(ctx, W, H);
 
-    var footerH = 232;
-    var margin = 28;
+    var footerH = 248;
+    var margin = 18;
     var cardX = margin;
     var cardY = margin;
     var cardW = W - margin * 2;
     var cardH = H - margin - footerH;
-    drawScorecardPanel(ctx, cardX, cardY, cardW, cardH, 16);
+    drawLuxuryCardPanel(ctx, cardX, cardY, cardW, cardH, 12);
 
-    var px = cardX + 24;
-    var py = cardY + 22;
-    var innerW = cardW - 48;
-    var logoH = 92;
+    var px = cardX + 22;
+    var py = cardY + 18;
+    var innerW = cardW - 44;
+    var logoH = 100;
 
     try {
-      var logo = await loadImage(absAsset('img/logo.png'));
-      var lh = logoH;
-      var lw = (logo.naturalWidth / logo.naturalHeight) * lh;
-      ctx.drawImage(logo, px, py, lw, lh);
-    } catch (e) {}
+      var logo2 = await loadImage(absAsset('img/logo.png'));
+      var lh2 = logoH;
+      var lw2 = (logo2.naturalWidth / logo2.naturalHeight) * lh2;
+      ctx.drawImage(logo2, px, py, lw2, lh2);
+    } catch (e2) {
+      /* skip */
+    }
 
     var memberName = memberDisplayName(d);
     ctx.textAlign = 'right';
-    ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = GOLD;
-    ctx.font = '700 32px "Outfit", system-ui, sans-serif';
-    ctx.fillText(memberName, cardX + cardW - 24, py + 36);
-    ctx.fillStyle = 'rgba(212, 175, 55, 0.95)';
-    ctx.font = '800 13px "Outfit", system-ui, sans-serif';
-    ctx.letterSpacing = '0.22em';
-    ctx.fillText('TRIBE ELITE MEMBER', cardX + cardW - 24, py + 68);
+    ctx.font = '700 44px "Outfit", system-ui, sans-serif';
+    ctx.fillText(memberName, cardX + cardW - 22, py + 46);
+    ctx.fillStyle = GOLD_SOFT;
+    ctx.font = '800 16px "Outfit", system-ui, sans-serif';
+    ctx.letterSpacing = '0.26em';
+    ctx.fillText('TRIBE ELITE MEMBER', cardX + cardW - 22, py + 88);
     ctx.letterSpacing = '0';
     ctx.textAlign = 'left';
 
     var S = computeScoreData(d);
-    var headY = py + logoH + 26;
-    var ringR = 92;
-    var rcx = cardX + cardW / 2;
-    var rcy = headY + ringR;
-    drawDashboardRing(ctx, rcx, rcy, ringR, String(S.total), 3);
+    var y1 = py + logoH + 10;
 
     ctx.textAlign = 'center';
-    ctx.fillStyle = 'rgba(200,164,78,0.95)';
-    ctx.font = '800 13px "Outfit", system-ui, sans-serif';
-    ctx.letterSpacing = '0.22em';
-    ctx.fillText('WEEKLY SCORE', rcx, rcy + ringR + 32);
+    ctx.fillStyle = GOLD;
+    ctx.font = '800 18px "Outfit", system-ui, sans-serif';
+    ctx.letterSpacing = '0.28em';
+    ctx.fillText('WEEKLY PERFORMANCE INDEX', px + innerW / 2, y1 + 26);
     ctx.letterSpacing = '0';
-    ctx.fillStyle = MUTED;
-    ctx.font = '500 24px "Outfit", system-ui, sans-serif';
-    ctx.fillText(S.weekLabel, rcx, rcy + ringR + 64);
+
+    ctx.font = "italic 600 42px 'Cormorant Garamond', 'Playfair Display', Georgia, serif";
     ctx.fillStyle = CREAM;
-    ctx.font = '700 26px "Outfit", system-ui, sans-serif';
-    ctx.fillText('BodyBank score', rcx, rcy + ringR + 100);
+    ctx.fillText(S.weekLabel, px + innerW / 2, y1 + 88);
+
+    var ringR = 148;
+    var rcx = px + innerW / 2;
+    var rcy = y1 + 132 + ringR;
+    drawLuxuryRing(ctx, rcx, rcy, ringR, String(S.total), 5);
+
+    var ringBottom = rcy + ringR + 12;
+    ctx.font = "400 58px 'Bebas Neue', Impact, sans-serif";
+    ctx.fillStyle = MUTED;
+    ctx.fillText('BODYBANK SCORE', rcx, ringBottom + 78);
+
+    var barY = ringBottom + 108;
     if (S.trendText) {
+      ctx.font = '700 30px "Outfit", system-ui, sans-serif';
       ctx.fillStyle = S.trendUp ? GREEN : S.trendDown ? RED : MUTED;
-      ctx.font = '600 20px "Outfit", system-ui, sans-serif';
-      ctx.fillText(S.trendText, rcx, rcy + ringR + 136);
+      ctx.fillText(S.trendText, rcx, ringBottom + 148);
+      barY = ringBottom + 186;
     }
+
+    var barH = 48;
+    drawWeightedBar(ctx, S.keys, S.norm, S.pillars, px, barY, innerW, barH, 6);
+
+    var taglineFs916 = pickTagline169Fs(ctx, innerW);
+    var gapBarTag = 26;
+    var taglineTop = barY + barH + gapBarTag;
+    var taglineH = tagline169BlockHeight(taglineFs916);
+    drawTagline169Block(ctx, px, taglineTop, innerW, taglineFs916);
+
+    var pillarY = taglineTop + taglineH + 26;
+    var gapC = 12;
+    var colW = (innerW - gapC) / 2;
+    var row1H = Math.floor((cardY + cardH - pillarY - gapC - 18) / 2);
+    var row2Y = pillarY + row1H + gapC;
+    S.keys.forEach(function (k, i) {
+      var col = i % 2;
+      var row = Math.floor(i / 2);
+      var bx = px + col * (colW + gapC);
+      var by = row === 0 ? pillarY : row2Y;
+      drawPillarStatementCard(ctx, k, i, S.keys, S.norm, S.pillars, S.labels, bx, by, colW, row1H, 14, 108, 22);
+    });
+
+    drawCornerOrnaments(ctx, cardX + 8, cardY + 8, cardW - 16, cardH - 16, 34, 2);
+
     ctx.textAlign = 'left';
-
-    var barY = rcy + ringR + 158;
-    var barH = 30;
-    drawDashboardBar(ctx, S.keys, S.norm, S.pillars, px, barY, innerW, barH, 3);
-
-    var legRowH = 40;
-    var legY = barY + barH + 18;
-    drawLegendGrid(ctx, S.keys, S.norm, S.pillars, S.labels, px, legY, innerW, legRowH, 16, 20, 14, 10, 6);
-
-    var pillarY = legY + legRowH * 2 + 10 + 16;
-    var tileH = 96;
-    var remain = cardY + cardH - pillarY - 12;
-    if (remain < tileH * 2 + 12) {
-      tileH = Math.max(80, Math.floor((remain - 12) / 2));
-    }
-    drawPillarTiles(ctx, S.keys, S.pillars, S.labels, px, pillarY, innerW, tileH, 12, 14, 42, 12);
-
-    await drawFitchefFooter(ctx, W, H, cardY + cardH + 12, 52, 20, 17);
+    await drawFitchefFooter(ctx, W, H, cardY + cardH + 6, 54, 26, 24, 21);
   }
 
   async function drawScorecardShare(canvas, d, aspect) {

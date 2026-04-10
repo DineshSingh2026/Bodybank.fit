@@ -1103,9 +1103,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 }
 .bb-score-share-modal .bb-score-share-preview{
   width:100%;
+  max-height:min(48vh,420px);
   height:auto;
   display:block;
-  aspect-ratio:16/9;
+  object-fit:contain;
   vertical-align:top;
 }
 .bb-score-share-modal .bb-score-share-preview-wrap--story .bb-score-share-preview,
@@ -13064,7 +13065,7 @@ function applySafeAreaFix() {
 window.addEventListener('load', applySafeAreaFix);
 window.addEventListener('resize', applySafeAreaFix);
 </script>
-<script src="js/scorecard-share.js?v=5"></script>
+<script src="js/scorecard-share.js?v=17"></script>
 <script>
 (function() {
   var lastTouchEnd = 0;
