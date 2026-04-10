@@ -3958,6 +3958,15 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-copy"><div class="wc-title">My Profile</div><div class="wc-desc">View and update your information</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-copy"><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div></div>
         </div>
+
+        <section class="my-health-reports" id="myHealthReportsSection" aria-label="My health reports" style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+            <h3 style="font-family:Syne,system-ui,sans-serif;font-size:1.05rem;font-weight:700;margin:0">My health reports</h3>
+            <button type="button" onclick="document.getElementById('bloodUploadInputHome').click()" class="nav-login" style="padding:8px 14px;font-size:12px">+ Upload report</button>
+            <input type="file" id="bloodUploadInputHome" accept=".pdf,image/*" style="display:none" onchange="uploadUserBloodReport(event)" />
+          </div>
+          <div id="myReportsList"></div>
+        </section>
       </div>
     </div>
 
@@ -4363,6 +4372,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <a class="admin-sidebar-link" href="#" data-section="forms" onclick="switchToSection('forms');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128203;</span>Forms</a>
         <a class="admin-sidebar-link" href="#" data-section="analytics" onclick="switchToSection('analytics');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128200;</span>Analytics</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('nutrition');return false"><span class="admin-sidebar-icon" aria-hidden="true">🥗</span>Nutrition AI</a>
+        <a class="admin-sidebar-link" href="#" onclick="switchTab('blood');return false"><span class="admin-sidebar-icon" aria-hidden="true">🩺</span>Blood Reports</a>
         <a class="admin-sidebar-link" href="#" data-section="messages" onclick="switchToSection('messages');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
         <a class="admin-sidebar-link" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128161;</span>AI Assist</a>
         <a class="admin-sidebar-link" href="/marketing-ai.html"><span class="admin-sidebar-icon" aria-hidden="true">&#129302;</span>Marketing AI</a>
@@ -4410,6 +4420,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <a class="admin-nav-link" href="#" onclick="switchTab('nutrition');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">🥗</span>Nutrition AI
         </a>
+        <a class="admin-nav-link" href="#" onclick="switchTab('blood');closeAdminNavDrawer();return false">
+          <span class="admin-nav-link-icon" aria-hidden="true">🩺</span>Blood Reports
+        </a>
         <a class="admin-nav-link" href="#" data-section="messages" onclick="switchToSection('messages');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128172;</span>Messages
         </a>
@@ -4440,6 +4453,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="admin-tab" data-tab="insights" onclick="switchTab('insights')">Performance Insights</div>
       <div class="admin-tab" data-tab="campaigns" onclick="switchTab('campaigns')">Campaigns</div>
       <div class="admin-tab" data-tab="nutrition" onclick="switchTab('nutrition')">Nutrition AI</div>
+      <div class="admin-tab" data-tab="blood" onclick="switchTab('blood')">Blood Reports</div>
     </div>
 
     <div class="admin-tab-content-wrap">
@@ -4567,6 +4581,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <a class="bb-quick-btn" href="#" onclick="switchTab('requests');return false"><span class="btn-icon">📋</span>Audit Forms</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('dailycheckin');return false"><span class="btn-icon">📅</span>Daily Check-ins</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('nutrition');return false"><span class="btn-icon">🥗</span>Nutrition AI</a>
+          <a class="bb-quick-btn" href="#" onclick="switchTab('blood');return false"><span class="btn-icon">🩺</span>Blood Reports</a>
           <a class="bb-quick-btn" href="#" onclick="switchToSection('analytics');return false"><span class="btn-icon">📈</span>Analytics</a>
           <a class="bb-quick-btn" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="btn-icon">💡</span>AI Assist</a>
         </div>
@@ -4593,6 +4608,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <a class="admin-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="admin-qa-icon">&#128209;</span>Audits</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('programs');return false"><span class="admin-qa-icon">&#127919;</span>Programs</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('nutrition');return false"><span class="admin-qa-icon">🥗</span>Nutrition report</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('blood');return false"><span class="admin-qa-icon">🩺</span>Blood reports</a>
             <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#128202;</span>Analytics</a>
           </div>
         </div>
@@ -4697,6 +4713,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <span class="admin-section-card-icon" aria-hidden="true">🥗</span>
             <span class="admin-section-card-title">Nutrition AI</span>
             <span class="admin-section-card-desc">Daily meal logs, macros, and CSV export</span>
+          </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('blood');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">🩺</span>
+            <span class="admin-section-card-title">Blood Reports</span>
+            <span class="admin-section-card-desc">AI blood analysis, PDF review, send to clients</span>
           </a>
           <a class="admin-section-card" href="#" onclick="switchTab('campaigns');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128228;</span>
@@ -5245,6 +5266,26 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       </div>
     </div>
 
+    <div class="admin-tab-content admin-blood-page" id="tab-blood">
+      <div class="admin-nutrition-header">
+        <div>
+          <h3>Blood reports</h3>
+          <p class="form-hint" style="margin:4px 0 0">AI extraction and clinical report — review PDF, add a note, then send to the member by email and inbox.</p>
+        </div>
+        <div class="admin-nutrition-controls">
+          <label class="form-hint" for="adminBloodStatusFilter" style="margin:0 8px 0 0">Filter</label>
+          <select id="adminBloodStatusFilter" aria-label="Report status" onchange="loadAdminBloodReports()" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.1);color:var(--text,#f0ede8);padding:8px 12px;border-radius:8px;font-size:13px;">
+            <option value="all">All</option>
+            <option value="complete">Ready to send</option>
+            <option value="pending">Processing</option>
+            <option value="sent">Sent</option>
+          </select>
+          <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminBloodReports()">Refresh</button>
+        </div>
+      </div>
+      <div id="adminBloodReportsList" class="admin-blood-reports-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
+    </div>
+
     </div><!-- .admin-tab-content-wrap -->
 
     <div class="admin-ai-assist-panel" id="adminAiAssistPanel" role="dialog" aria-label="AI Assist chat" aria-hidden="true">
@@ -5731,6 +5772,18 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <div class="form-group"><label>Mobile (WhatsApp) <span class="req">*</span></label><input type="tel" class="form-input" placeholder="Your WhatsApp number" required></div>
     <div class="form-group"><label>Password <span class="req">*</span></label><div class="pw-wrap"><input type="password" class="form-input" placeholder="Create a password" id="pwSignup"><button class="pw-toggle" onclick="document.getElementById('pwSignup').type=document.getElementById('pwSignup').type==='password'?'text':'password'">&#128065;</button></div></div>
     <div class="form-group"><label>Confirm Password <span class="req">*</span></label><input type="password" class="form-input" placeholder="Confirm your password"></div>
+    <details class="signup-blood-opt" style="margin:12px 0;border:1px solid rgba(200,164,78,0.25);border-radius:10px;padding:10px 12px;background:rgba(0,0,0,0.15)">
+      <summary style="cursor:pointer;font-size:13px;color:var(--gold);font-weight:600">Optional: blood lab report (after approval we&apos;ll upload it when you first log in)</summary>
+      <p class="form-hint" style="margin:8px 0 10px;font-size:12px">PDF or photo — max 8 MB. You can skip and upload anytime from Home.</p>
+      <input type="file" id="signupBloodFile" accept=".pdf,image/*" style="font-size:12px;width:100%" />
+      <div class="form-hint" style="margin:10px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.04em">Symptoms (optional)</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <label class="form-hint" style="display:flex;align-items:center;gap:6px;font-size:11px"><input type="checkbox" name="signupSym" value="fatigue" /> Fatigue</label>
+        <label class="form-hint" style="display:flex;align-items:center;gap:6px;font-size:11px"><input type="checkbox" name="signupSym" value="poor_sleep" /> Poor sleep</label>
+        <label class="form-hint" style="display:flex;align-items:center;gap:6px;font-size:11px"><input type="checkbox" name="signupSym" value="brain_fog" /> Brain fog</label>
+        <label class="form-hint" style="display:flex;align-items:center;gap:6px;font-size:11px"><input type="checkbox" name="signupSym" value="bloating" /> Bloating</label>
+      </div>
+    </details>
     <button class="form-submit" onclick="handleSignup()">Sign-up Now</button>
     <div id="googleBtnSignup" class="google-btn-wrap" style="margin-top:12px;min-height:48px"></div>
     <p class="login-footer">Already have an account? <a href="#" onclick="openModal('loginModal');closeModal('signupModal');return false;">Login</a></p>
@@ -6263,13 +6316,15 @@ if(window.location.hash==='#workout'){history.replaceState(null,'',location.path
   try {
     var p = new URLSearchParams(window.location.search);
     if (p.get('adminNutrition') === '1') window.__bbOpenAdminNutrition = true;
+    if (p.get('adminBlood') === '1') window.__bbOpenAdminBlood = true;
     if (p.get('checkinDaily') === '1') window.__bbOpenCheckinDaily = true;
     if (window.location.hash === '#admin-nutrition') window.__bbOpenAdminNutrition = true;
+    if (window.location.hash === '#admin-blood') window.__bbOpenAdminBlood = true;
     if (window.location.hash === '#checkin-daily') window.__bbOpenCheckinDaily = true;
-    if (window.__bbOpenAdminNutrition || window.__bbOpenCheckinDaily) {
-      if (p.get('adminNutrition') === '1' || p.get('checkinDaily') === '1') {
+    if (window.__bbOpenAdminNutrition || window.__bbOpenAdminBlood || window.__bbOpenCheckinDaily) {
+      if (p.get('adminNutrition') === '1' || p.get('adminBlood') === '1' || p.get('checkinDaily') === '1') {
         if (window.history && window.history.replaceState) window.history.replaceState(null, '', window.location.pathname);
-      } else if (window.location.hash === '#admin-nutrition' || window.location.hash === '#checkin-daily') {
+      } else if (window.location.hash === '#admin-nutrition' || window.location.hash === '#admin-blood' || window.location.hash === '#checkin-daily') {
         if (window.history && window.history.replaceState) window.history.replaceState(null, '', window.location.pathname + window.location.search);
       }
     }
@@ -6670,20 +6725,52 @@ async function handleSignup() {
   const confirm = inputs[5].value;
   if (!email || !password) { showPopup('Missing Fields', 'Email and password are required.', '', 'OK'); return; }
   if (password !== confirm) { showPopup('Password Mismatch', 'Passwords do not match. Please try again.', '', 'OK'); return; }
+
+  window.__bbSignupBloodQueued = null;
+  var bloodIn = document.getElementById('signupBloodFile');
+  if (bloodIn && bloodIn.files && bloodIn.files[0]) {
+    var file = bloodIn.files[0];
+    if (file.size > 8 * 1024 * 1024) {
+      showPopup('File too large', 'Blood report must be 8 MB or smaller for sign-up. You can upload a larger file after you log in.', '', 'OK');
+      return;
+    }
+    try {
+      var dataUrl = await new Promise(function (resolve, reject) {
+        var fr = new FileReader();
+        fr.onload = function () { resolve(fr.result); };
+        fr.onerror = function () { reject(new Error('read')); };
+        fr.readAsDataURL(file);
+      });
+      var comma = String(dataUrl).indexOf(',');
+      var b64 = comma >= 0 ? String(dataUrl).slice(comma + 1) : String(dataUrl);
+      var symptoms = Array.prototype.slice.call(document.querySelectorAll('input[name="signupSym"]:checked')).map(function (c) { return c.value; });
+      window.__bbSignupBloodQueued = { b64: b64, mime: file.type || 'application/pdf', symptoms: symptoms };
+    } catch (e) {
+      showPopup('Upload', 'Could not read the blood report file. Try again or skip for now.', '', 'OK');
+      return;
+    }
+  }
   
   var sBtn=modal.querySelector('.form-submit');
   if(sBtn){sBtn.disabled=true;sBtn.classList.add('loading');sBtn._orig=sBtn.innerHTML;sBtn.innerHTML='<span class="btn-spinner"></span> Creating account...';}
   try {
     const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone });
-    if (data.error) { if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';} showPopup('Sign-up Error', data.error, '', 'OK', null, 'error'); return; }
+    if (data.error) {
+      window.__bbSignupBloodQueued = null;
+      if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
+      showPopup('Sign-up Error', data.error, '', 'OK', null, 'error');
+      return;
+    }
     if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
     closeModal('signupModal');
+    if (bloodIn) bloodIn.value = '';
     if (data.pending_approval) {
       showPopup('Sign-up Successful!', 'Waiting for Admin approval. You will be able to log in once approved. For instant approval, reach out to Admin on WhatsApp.', '', 'OK', () => {});
     } else {
       showPopup('Registered Successfully!', 'CONSISTENCY has its fruits, so does PATIENCE.', 'We will get back to you after the review', 'Login Now', () => { openModal('loginModal'); });
     }
   } catch (e) {
+    window.__bbSignupBloodQueued = null;
     if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
     showPopup('Error', 'Sign-up failed. Please try again.', '', 'OK', null, 'error');
   }
@@ -6753,15 +6840,42 @@ async function loadDashboard() {
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
   if (typeof bbMaybeOpenAdminNutritionAfterLoad === 'function') bbMaybeOpenAdminNutritionAfterLoad();
+  if (typeof bbMaybeOpenAdminBloodAfterLoad === 'function') bbMaybeOpenAdminBloodAfterLoad();
 }
 
 function bbMaybeOpenAdminNutritionAfterLoad() {
   if (!window.__bbOpenAdminNutrition) return;
   window.__bbOpenAdminNutrition = false;
-  if (!window.currentUser || window.currentUser.role !== 'admin') return;
+  var r = window.currentUser && window.currentUser.role;
+  if (!window.currentUser || (r !== 'admin' && r !== 'superadmin')) return;
   setTimeout(function () {
     if (typeof switchTab === 'function') switchTab('nutrition');
   }, 280);
+}
+
+function bbMaybeOpenAdminBloodAfterLoad() {
+  if (!window.__bbOpenAdminBlood) return;
+  window.__bbOpenAdminBlood = false;
+  var r = window.currentUser && window.currentUser.role;
+  if (!window.currentUser) return;
+  if (r === 'admin') {
+    setTimeout(function () {
+      if (typeof switchTab === 'function') switchTab('blood');
+    }, 280);
+    return;
+  }
+  if (r === 'superadmin') {
+    setTimeout(function () {
+      if (typeof showPopup === 'function') {
+        showPopup(
+          'Blood reports',
+          'The Blood Reports workspace is in the Lifestyle Manager (admin) dashboard. Log in with your admin account to review PDFs and email clients.',
+          '',
+          'OK'
+        );
+      }
+    }, 350);
+  }
 }
 
 function bbMaybeOpenCheckinDailyAfterLoad() {
@@ -9042,8 +9156,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', nutrition: 'Nutrition AI' };
-var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', nutrition: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', nutrition: 'Nutrition AI', blood: 'Blood Reports' };
+var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', nutrition: 'analytics', blood: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -9172,6 +9286,7 @@ function switchTab(tab) {
   if (tab === 'programs') loadProgramsAdmin();
   if (tab === 'campaigns') loadCampaigns();
   if (tab === 'nutrition') loadAdminNutritionReport();
+  if (tab === 'blood') loadAdminBloodReports();
 }
 var adminProgressChartInstances = {};
 function destroyAdminProgressCharts() {
@@ -10085,6 +10200,10 @@ function openUserDashboard(user) {
   document.getElementById('ctName').value = (user.first_name + ' ' + user.last_name).trim();
   document.getElementById('ctEmail').value = user.email || '';
   if (typeof bbMaybeOpenCheckinDailyAfterLoad === 'function') bbMaybeOpenCheckinDailyAfterLoad();
+  setTimeout(function () {
+    if (typeof bbProcessQueuedSignupBloodUpload === 'function') bbProcessQueuedSignupBloodUpload();
+  }, 500);
+  if (typeof loadMyHealthReports === 'function') loadMyHealthReports();
 }
 
 var _bbFwSpinning = false;
@@ -10568,6 +10687,7 @@ function switchUserTab(tab) {
     loadTodayDashboard();
     loadMicroGoals();
     loadScorecard();
+    if (typeof loadMyHealthReports === 'function') loadMyHealthReports();
     if (window.innerWidth >= 768) {
       setTimeout(function() { bbRefreshDesktopUserDashboard(); }, 150);
     }
@@ -11960,6 +12080,208 @@ function exportAdminNutritionCsv() {
     .catch(function () {
       if (typeof showPopup === 'function') showPopup('Export', 'Could not download CSV.', '', 'OK', null, 'error');
     });
+}
+
+// ----- Blood reports (admin + member) -----
+function loadAdminBloodReports() {
+  var el = document.getElementById('adminBloodReportsList');
+  var sel = document.getElementById('adminBloodStatusFilter');
+  if (!el) return;
+  var st = sel && sel.value ? sel.value : 'all';
+  el.innerHTML = '<p class="form-hint" style="padding:20px">Loading…</p>';
+  apiCall('GET', '/api/blood/admin/all?status=' + encodeURIComponent(st))
+    .then(function (data) {
+      if (data && data.error) {
+        el.innerHTML = '<p class="form-hint" style="color:#e05050;padding:20px">' + escapeHtml(data.error) + '</p>';
+        return;
+      }
+      var reports = (data && data.reports) || [];
+      if (!reports.length) {
+        el.innerHTML = '<p class="form-hint" style="text-align:center;padding:2rem">No reports found.</p>';
+        return;
+      }
+      el.innerHTML = reports.map(function (r) {
+        var id = String(r._id || r.id || '').replace(/'/g, "\\'");
+        var isReady = r.status === 'complete';
+        var isSent = !!r.sentToUser;
+        var statusColors = { Good: '#3dd68c', Excellent: '#3dd68c', Fair: '#f5a623', Poor: '#ff5c5c', Critical: '#ff5c5c' };
+        var ar = r.aiReport || {};
+        var sc = statusColors[ar.overall_status] || '#8a8880';
+        var initials = (r.userName || '?').split(/\s+/).map(function (n) { return n[0]; }).join('').slice(0, 2).toUpperCase();
+        var findings = (ar.key_findings || []).slice(0, 3).map(function (f) {
+          var bg = f.severity === 'critical' ? 'rgba(255,92,92,0.12)' : f.severity === 'good' ? 'rgba(61,214,140,0.12)' : 'rgba(245,166,35,0.12)';
+          var col = f.severity === 'critical' ? '#ff5c5c' : f.severity === 'good' ? '#3dd68c' : '#f5a623';
+          var ic = f.severity === 'critical' ? '⚠' : f.severity === 'good' ? '✓' : '▲';
+          return '<span style="font-size:10px;padding:3px 8px;border-radius:99px;background:' + bg + ';color:' + col + '">' + ic + ' ' + escapeHtml(f.title || '') + '</span>';
+        }).join(' ');
+        var notesEsc = escapeHtml(r.adminNotes || '');
+        return (
+          '<div style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:1.1rem;margin-bottom:10px;min-width:280px">' +
+          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">' +
+          '<div style="width:38px;height:38px;border-radius:50%;background:var(--surface2,#1e2328);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--gold)">' + escapeHtml(initials) + '</div>' +
+          '<div style="flex:1;min-width:120px"><div style="font-weight:700">' + escapeHtml(r.userName || '—') + '</div>' +
+          '<div class="form-hint" style="margin:2px 0 0">' + escapeHtml(r.userGoal || '—') + ' · ' + (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '') + '</div></div>' +
+          (isReady ? '<div style="font-size:20px;font-weight:700;color:' + sc + '">' + escapeHtml(ar.overall_status || '—') + '</div>' : '<div class="form-hint">' + escapeHtml(String(r.status || '').replace(/_/g, ' ')) + '</div>') +
+          (isSent ? '<span class="form-hint" style="background:rgba(61,214,140,0.12);color:#3dd68c;padding:3px 8px;border-radius:99px;font-size:10px">Sent</span>' : '') +
+          '</div>' +
+          (isReady && findings ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">' + findings + '</div>' : '') +
+          '<div style="margin-bottom:8px"><textarea id="blood-notes-' + id + '" rows="2" placeholder="Optional note for the client…" style="width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#111;color:inherit;font-size:12px">' +
+          notesEsc + '</textarea>' +
+          '<button type="button" class="form-hint" style="margin-top:4px;border:1px solid rgba(255,255,255,0.12);background:transparent;color:inherit;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px" onclick="adminBloodSaveNotes(\'' + id + '\')">Save note</button></div>' +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+          '<button type="button" class="nav-login" style="flex:1;min-width:120px;padding:8px;font-size:12px" onclick="adminBloodDownloadPdf(\'' + id + '\')">Download PDF</button>' +
+          '<button type="button" class="form-submit" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isSent ? '0.45' : '1') + '" ' + (isSent ? 'disabled' : '') + ' onclick="adminBloodSend(\'' + id + '\')">' + (isSent ? 'Sent' : 'Send to client') + '</button>' +
+          '</div></div>'
+        );
+      }).join('');
+    })
+    .catch(function () {
+      el.innerHTML = '<p class="form-hint" style="color:#e05050;padding:20px">Network error</p>';
+    });
+}
+
+function adminBloodSaveNotes(reportId) {
+  var ta = document.getElementById('blood-notes-' + reportId);
+  var body = { adminNotes: ta ? ta.value : '' };
+  apiCall('PUT', '/api/blood/admin/notes/' + encodeURIComponent(reportId), body).then(function (d) {
+    if (d && d.error) showPopup('Note', d.error, '', 'OK', null, 'error');
+    else if (typeof nutritionShowToast === 'function') nutritionShowToast('Note saved', 'success');
+  });
+}
+
+function adminBloodSend(reportId) {
+  if (!confirm('Send this report to the client by email and inbox?')) return;
+  apiCall('POST', '/api/blood/admin/send/' + encodeURIComponent(reportId), {}).then(function (d) {
+    if (d && (d.error || (d.success === false && d.error))) {
+      showPopup('Send failed', (d.error || d.message || 'Unknown'), '', 'OK', null, 'error');
+      return;
+    }
+    if (typeof nutritionShowToast === 'function') nutritionShowToast('Report sent', 'success');
+    loadAdminBloodReports();
+  });
+}
+
+function adminBloodDownloadPdf(reportId) {
+  if (!window.currentUser || !window.currentUser.token) return;
+  var url = (typeof API !== 'undefined' ? API : '') + '/api/blood/pdf/' + encodeURIComponent(reportId);
+  fetch(url, { headers: { Authorization: 'Bearer ' + window.currentUser.token } })
+    .then(function (r) {
+      if (!r.ok) throw new Error('bad');
+      return r.blob();
+    })
+    .then(function (blob) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'BodyBank_Health_Report.pdf';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    })
+    .catch(function () {
+      showPopup('Download', 'PDF not ready or access denied.', '', 'OK', null, 'error');
+    });
+}
+
+function userBloodDownloadPdf(reportId) {
+  adminBloodDownloadPdf(reportId);
+}
+
+async function bbProcessQueuedSignupBloodUpload() {
+  var q = window.__bbSignupBloodQueued;
+  if (!q || !window.currentUser || !window.currentUser.token) return;
+  window.__bbSignupBloodQueued = null;
+  try {
+    var res = await apiCall('POST', '/api/blood/upload', {
+      bloodReportBase64: q.b64,
+      bloodReportMimeType: q.mime,
+      symptoms: q.symptoms || []
+    });
+    if (res && res.error) {
+      console.warn('[blood] deferred upload:', res.error);
+      return;
+    }
+    if (typeof nutritionShowToast === 'function') nutritionShowToast('Blood report uploaded — analysis started.', 'success');
+    if (typeof loadMyHealthReports === 'function') loadMyHealthReports();
+  } catch (e) {
+    console.warn('[blood] deferred upload failed', e);
+  }
+}
+
+function loadMyHealthReports() {
+  var el = document.getElementById('myReportsList');
+  if (!el || !window.currentUser || !window.currentUser.token) return;
+  el.innerHTML = '<p class="form-hint" style="padding:16px">Loading…</p>';
+  apiCall('GET', '/api/blood/my-reports')
+    .then(function (data) {
+      if (data && data.error) {
+        el.innerHTML = '<p class="form-hint" style="color:#e05050">' + escapeHtml(data.error) + '</p>';
+        return;
+      }
+      var reports = (data && data.reports) || [];
+      if (!reports.length) {
+        el.innerHTML =
+          '<div style="text-align:center;padding:1.5rem;background:var(--surface,#161a1e);border-radius:12px;border:1px solid rgba(255,255,255,0.06)">' +
+          '<div style="font-size:1.75rem;margin-bottom:6px">🩺</div><p style="margin:0 0 10px;font-weight:600">No health reports yet</p>' +
+          '<p class="form-hint" style="margin:0 0 12px">Upload a lab report for AI analysis (coach review before email).</p>' +
+          '<button type="button" class="form-submit" style="width:auto;padding:10px 18px" onclick="document.getElementById(\'bloodUploadInputHome\').click()">Upload blood report</button></div>';
+        return;
+      }
+      var statusColor = { Good: '#3dd68c', Excellent: '#3dd68c', Fair: '#f5a623', Poor: '#ff5c5c', Critical: '#ff5c5c' };
+      el.innerHTML = reports
+        .map(function (r) {
+          var ar = r.aiReport || {};
+          var rid = String(r._id || r.id || '');
+          var dt = r.createdAt ? new Date(r.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+          var titleCol = r.status === 'complete' ? statusColor[ar.overall_status] || 'var(--text,#f0ede8)' : '#f5a623';
+          var titleText = r.status === 'complete' ? ar.overall_status || 'Complete' : 'Processing…';
+          var sum = r.status === 'complete' && ar.overall_summary_short ? escapeHtml(String(ar.overall_summary_short).slice(0, 120)) + '…' : '';
+          var btn =
+            r.status === 'complete' && r.sentToUser
+              ? '<button type="button" class="form-submit" style="padding:8px 14px;font-size:12px" onclick="userBloodDownloadPdf(\'' +
+                rid.replace(/'/g, "\\'") +
+                '\')">Download PDF</button>'
+              : r.status === 'complete'
+                ? '<span class="form-hint" style="background:rgba(245,166,35,0.12);padding:5px 10px;border-radius:6px;font-size:11px">Pending coach review</span>'
+                : '<span class="form-hint" style="font-size:11px">Analysing…</span>';
+          return (
+            '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;margin-bottom:8px;background:var(--surface,#161a1e);border-radius:10px;border:1px solid rgba(255,255,255,0.06)">' +
+            '<div style="flex:1;min-width:140px"><div class="form-hint" style="margin:0 0 4px">' +
+            escapeHtml(dt) +
+            '</div><div style="font-weight:700;color:' +
+            titleCol +
+            '">' +
+            escapeHtml(titleText) +
+            '</div>' +
+            (sum ? '<div class="form-hint" style="margin-top:4px;line-height:1.4">' + sum + '</div>' : '') +
+            '</div><div>' +
+            btn +
+            '</div></div>'
+          );
+        })
+        .join('');
+    })
+    .catch(function () {
+      el.innerHTML = '<p class="form-hint" style="color:#e05050">Could not load reports.</p>';
+    });
+}
+
+function uploadUserBloodReport(ev) {
+  var f = ev.target && ev.target.files && ev.target.files[0];
+  if (!f || !window.currentUser || !window.currentUser.token) return;
+  var reader = new FileReader();
+  reader.onload = function () {
+    var s = String(reader.result || '');
+    var i = s.indexOf(',');
+    var b64 = i >= 0 ? s.slice(i + 1) : s;
+    apiCall('POST', '/api/blood/upload', { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [] }).then(function (res) {
+      if (res && res.error) showPopup('Upload', res.error, '', 'OK', null, 'error');
+      else {
+        if (typeof nutritionShowToast === 'function') nutritionShowToast('Uploaded — analysis in progress.', 'success');
+        loadMyHealthReports();
+      }
+    });
+  };
+  reader.readAsDataURL(f);
+  ev.target.value = '';
 }
 
 // Push notifications (opt-in) — mobile + desktop copies; always refresh status even if micro-goals fail
@@ -13711,6 +14033,7 @@ function loadSuperadminDashboard() {
       });
       if (cur) sel.value = cur;
     }
+    if (typeof bbMaybeOpenAdminBloodAfterLoad === 'function') bbMaybeOpenAdminBloodAfterLoad();
   }).catch(function() {
     if (loading) { loading.textContent = 'Failed to load dashboard.'; loading.style.display = 'block'; }
   });

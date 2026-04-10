@@ -11,6 +11,7 @@ const webPush = require('web-push');
 const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken } = require('./middleware/auth');
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, runWeeklyNutritionEmailJob } = require('./routes/nutrition');
+const { createBloodRouter } = require('./routes/blood');
 const { createMarketingAIRouter } = require('./routes/marketingAI');
 const cron = require('node-cron');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
@@ -132,7 +133,7 @@ app.use(cors({
   origin: NODE_ENV === 'production' && ALLOWED_ORIGIN ? ALLOWED_ORIGIN.split(',').map(s => s.trim()) : true,
   credentials: true
 }));
-app.use(express.json({ limit: '8mb' }));
+app.use(express.json({ limit: '20mb' }));
 
 // Security headers
 app.use((req, res, next) => {
@@ -559,6 +560,39 @@ async function initDB() {
     PRIMARY KEY (user_id, stat_date)
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_nutrition_daily_stats_date ON nutrition_daily_stats(stat_date)`); } catch (e) { /* ignore */ }
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS blood_analysis_reports (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    blood_report_file_path TEXT,
+    symptoms JSONB DEFAULT '[]'::jsonb,
+    extracted_blood_data JSONB,
+    nutrition_snapshot JSONB,
+    ai_report JSONB,
+    pdf_path TEXT,
+    admin_notes TEXT,
+    sent_to_user BOOLEAN DEFAULT FALSE,
+    sent_at TIMESTAMPTZ,
+    status TEXT DEFAULT 'pending',
+    user_name TEXT,
+    user_email TEXT,
+    user_age TEXT,
+    user_gender TEXT,
+    user_goal TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try {
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_blood_reports_user_created ON blood_analysis_reports(user_id, created_at DESC)`
+    );
+  } catch (e) {
+    /* ignore */
+  }
+  try {
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_blood_reports_status ON blood_analysis_reports(status)`);
+  } catch (e) {
+    /* ignore */
+  }
 
   // Push notification subscriptions
   await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
@@ -4546,6 +4580,17 @@ app.use(
     rateLimiter
   })
 );
+app.use(
+  '/api/blood',
+  createBloodRouter({
+    run,
+    queryOne,
+    queryAll,
+    verifyToken,
+    requireAdminOrSuperadmin,
+    rateLimiter
+  })
+);
 app.use('/api/marketing-ai', createMarketingAIRouter({ run, queryAll }));
 app.get('/api/admin/user-progress/:userId', (req, res, next) => {
   if (NODE_ENV === 'development' && (!req.headers.authorization || !String(req.headers.authorization).startsWith('Bearer '))) {
@@ -4999,6 +5044,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
 // Deep link into SPA admin Nutrition tab (bookmark / share)
 app.get(['/admin/nutrition-report', '/admin/nutrition-report/'], (req, res) => {
   res.redirect(302, '/?adminNutrition=1');
+});
+app.get(['/admin/blood-reports', '/admin/blood-reports/'], (req, res) => {
+  res.redirect(302, '/?adminBlood=1');
 });
 
 // Public programs list (used by Admin "Assign Program" tab)

@@ -2,7 +2,8 @@
 
 /**
  * Luxury transactional & lifecycle emails for BodyBank members.
- * Requires SMTP_HOST, SMTP_USER, SMTP_PASS (same as password reset).
+ * Single Nodemailer transport: SMTP_HOST, SMTP_USER, SMTP_PASS (same as password reset).
+ * Nutrition day/weekly digests and blood-report PDFs use this same `sendMail` path — no second provider or extra env vars.
  */
 
 const SMTP_HOST = (process.env.SMTP_HOST || '').trim();
@@ -78,6 +79,7 @@ async function sendMail(to, subject, html, text, attachments) {
   try {
     const transporter = getTransporter();
     console.log('[userEmail] Sending:', subject, 'to', String(to).trim().toLowerCase());
+    // All member-facing mail (nutrition AI summaries, health PDFs, digests, etc.) shares this From + SMTP session.
     await transporter.sendMail({
       from: fromAddress(),
       to: String(to).trim().toLowerCase(),
@@ -534,6 +536,39 @@ async function emailNutritionWeeklySummary(email, firstName, report) {
   return sendMail(email, 'Your BodyBank weekly nutrition summary', html);
 }
 
+/** Blood + nutrition PDF from AI pipeline — attachment + luxury HTML shell */
+async function emailHealthReportWithPdf({ toEmail, firstName, pdfPath, adminNotes, overallStatus, summary }) {
+  if (!isConfigured() || !toEmail || !pdfPath) return false;
+  const fs = require('fs');
+  const pathMod = require('path');
+  if (!fs.existsSync(pdfPath)) return false;
+  const name = firstName || 'there';
+  const statusLine = overallStatus
+    ? `<p style="margin:0 0 12px"><strong>Overall status:</strong> ${escapeHtml(String(overallStatus))}</p>`
+    : '';
+  const sum = summary ? `<p style="margin:0 0 12px;line-height:1.6">${escapeHtml(String(summary))}</p>` : '';
+  const notes = adminNotes
+    ? `<p style="margin:16px 0 0;border-left:3px solid #c8a44e;padding-left:12px;line-height:1.6"><strong>Note from your coach:</strong><br/>${escapeHtml(String(adminNotes)).replace(/\n/g, '<br/>')}</p>`
+    : '';
+  const bodyHtml = `<p style="margin:0 0 12px">Your personalised BodyBank health report (blood work and nutrition context) is attached as a PDF.</p>${statusLine}${sum}${notes}`;
+  const html = luxuryWrap({
+    title: 'Your health report is ready',
+    preheader: 'Blood analysis PDF attached.',
+    lead: `Dear ${escapeHtml(name)},`,
+    bodyHtml,
+    ctaLabel: 'Open BodyBank',
+    ctaUrl: APP_BASE + '/'
+  });
+  const attachments = [{ filename: pathMod.basename(pdfPath), path: pdfPath }];
+  return sendMail(
+    String(toEmail).trim().toLowerCase(),
+    'Your BodyBank health report',
+    html,
+    'Your BodyBank health report is ready. See the attached PDF.',
+    attachments
+  );
+}
+
 module.exports = {
   isConfigured,
   sendMail,
@@ -562,5 +597,6 @@ module.exports = {
   emailDailyDigest,
   emailWeeklyDigest,
   emailNutritionDayReport,
-  emailNutritionWeeklySummary
+  emailNutritionWeeklySummary,
+  emailHealthReportWithPdf
 };

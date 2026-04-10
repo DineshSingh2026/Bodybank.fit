@@ -351,6 +351,88 @@ async function countMealsForDay(db, userId, ymd) {
   return row && row.c != null ? Number(row.c) : 0;
 }
 
+/**
+ * Last-N-days nutrition snapshot for blood report PDF / clinical pass (Postgres rows).
+ * Shape matches ReportLab `nutrition_analysis` section (averages, top_meals, meal_quality_score).
+ */
+async function computeNutritionSummaryForUserWindow(db, userId, startYmd, endYmd) {
+  const rows = await db.queryAll(
+    `SELECT log_date::text AS log_date, ai_result, meal_score
+     FROM nutrition_meal_logs
+     WHERE user_id = ? AND log_date >= ?::date AND log_date <= ?::date`,
+    [userId, startYmd, endYmd]
+  );
+  if (!rows || !rows.length) return null;
+
+  const daySet = new Set();
+  const totals = { calories: 0, protein: 0, carbs: 0, fat: 0, fiber: 0 };
+  const mealFreq = {};
+
+  for (const row of rows) {
+    const ymd = String(row.log_date || '').slice(0, 10);
+    if (ymd) daySet.add(ymd);
+    let ar = row.ai_result;
+    if (typeof ar === 'string') {
+      try {
+        ar = JSON.parse(ar);
+      } catch {
+        ar = null;
+      }
+    }
+    if (!ar || typeof ar !== 'object') continue;
+    totals.calories += Number(ar.calories) || 0;
+    totals.protein += Number(ar.protein) || 0;
+    totals.carbs += Number(ar.carbs) || 0;
+    totals.fat += Number(ar.fat) || 0;
+    totals.fiber += Number(ar.fiber) || 0;
+    const dish = String(ar.dish || '').trim();
+    if (dish) {
+      if (!mealFreq[dish]) mealFreq[dish] = { count: 0, totalCal: 0 };
+      mealFreq[dish].count += 1;
+      mealFreq[dish].totalCal += Number(ar.calories) || 0;
+    }
+  }
+
+  const days = Math.max(1, daySet.size);
+  const topMeals = Object.entries(mealFreq)
+    .sort((a, b) => b[1].count - a[1].count)
+    .slice(0, 6)
+    .map(([name, d]) => {
+      const avgCal = Math.round(d.totalCal / d.count);
+      return {
+        name,
+        frequency: d.count,
+        avg_calories: avgCal,
+        assessment: avgCal < 400 ? 'Good' : avgCal < 700 ? 'Fair' : 'Poor'
+      };
+    });
+
+  const scores = rows.map((r) => r.meal_score).filter((x) => x != null && Number.isFinite(Number(x)));
+  const avgScore = scores.length
+    ? parseFloat((scores.reduce((s, v) => s + Number(v), 0) / scores.length).toFixed(1))
+    : null;
+
+  return {
+    days_tracked: daySet.size,
+    averages: {
+      calories: Math.round(totals.calories / days),
+      protein: Math.round(totals.protein / days),
+      carbs: Math.round(totals.carbs / days),
+      fat: Math.round(totals.fat / days),
+      fiber: Math.round(totals.fiber / days)
+    },
+    meal_quality_score: avgScore,
+    quality_interpretation: !avgScore
+      ? 'No data'
+      : avgScore >= 7
+        ? 'Good overall diet quality'
+        : avgScore >= 5
+          ? 'Moderate — some areas for improvement'
+          : 'Below average — significant dietary changes recommended',
+    top_meals: topMeals
+  };
+}
+
 async function nutritionLoggingStreak(db, userId) {
   const rows = await db.queryAll(
     `SELECT DISTINCT log_date FROM nutrition_meal_logs WHERE user_id = ? ORDER BY log_date DESC LIMIT 400`,
@@ -380,11 +462,14 @@ module.exports = {
   computeMealScore,
   callClaudeNutrition,
   normalizeAiResult,
+  parseAnthropicJson,
+  formatAnthropicApiError,
   getUserGoals,
   sumWorkoutCaloriesOut,
   recomputeDailyStats,
   countMealsForDay,
   nutritionLoggingStreak,
+  computeNutritionSummaryForUserWindow,
   todayYmdInTz,
   STREAK_TZ,
   DEFAULT_CAL_GOAL,
