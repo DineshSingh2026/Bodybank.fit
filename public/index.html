@@ -9088,13 +9088,18 @@ function drawAdminProgressCharts(data) {
     sorted.forEach(function(l) {
       var d = getLogDate(l);
       if (!d) return;
-      var start = new Date(d); start.setDate(start.getDate() - start.getDay()); start.setHours(0,0,0,0);
-      var key = start.toISOString().slice(0,10);
+      var start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      start.setDate(start.getDate() - start.getDay());
+      var key = start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0');
       if (!byWeek[key]) byWeek[key] = 0;
       if (l.workout_completed) byWeek[key]++;
     });
     var weeks = Object.keys(byWeek).sort().slice(-8);
-    weekLabels = weeks.map(function(k) { return new Date(k).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); });
+    weekLabels = weeks.map(function(k) {
+      var pr = k.split('-');
+      var dt = new Date(parseInt(pr[0], 10), parseInt(pr[1], 10) - 1, parseInt(pr[2], 10));
+      return isNaN(dt.getTime()) ? k : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    });
     weekCounts = weeks.map(function(k) { return byWeek[k] || 0; });
   }
   var ctx = document.getElementById('adminChartWeeklyWorkouts');
@@ -11194,8 +11199,11 @@ function drawProgressCharts(logs, meta) {
   destroyProgressCharts();
   function getLogDate(log) {
     if (!log || typeof log !== 'object') return null;
-    var raw = log.created_at || log.checkin_date || log.date || null;
+    var raw = log.checkin_date || log.created_at || log.date || null;
     if (!raw) return null;
+    if (typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+      raw = raw + 'T12:00:00.000Z';
+    }
     var d = new Date(raw);
     return isNaN(d.getTime()) ? null : d;
   }
@@ -11258,21 +11266,28 @@ function drawProgressCharts(logs, meta) {
       });
     }
   }
+  var weeklyFromApi = meta && Array.isArray(meta.weeklyWorkoutSessions) ? meta.weeklyWorkoutSessions : null;
   var weekLabels = [];
   var weekCounts = [];
-  if (sorted.length) {
+  if (weeklyFromApi && weeklyFromApi.length) {
+    weekLabels = weeklyFromApi.map(function(w) { return w.label || w.weekStart; });
+    weekCounts = weeklyFromApi.map(function(w) { return w.count != null ? w.count : 0; });
+  } else if (sorted.length) {
     var byWeek = {};
     sorted.forEach(function(l) {
       var d = getLogDate(l);
       if (!d) return;
-      var start = new Date(d); start.setDate(start.getDate() - start.getDay()); start.setHours(0,0,0,0);
-      var key = start.toISOString().slice(0,10);
+      var start = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+      start.setDate(start.getDate() - start.getDay());
+      var key = start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-' + String(start.getDate()).padStart(2, '0');
       if (!byWeek[key]) byWeek[key] = 0;
       if (l.workout_completed) byWeek[key]++;
     });
     var weeks = Object.keys(byWeek).sort();
     weeks.slice(-8).forEach(function(k) {
-      weekLabels.push(new Date(k).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+      var pr = k.split('-');
+      var dt = new Date(parseInt(pr[0], 10), parseInt(pr[1], 10) - 1, parseInt(pr[2], 10));
+      weekLabels.push(isNaN(dt.getTime()) ? k : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
       weekCounts.push(byWeek[k] || 0);
     });
   }

@@ -68,12 +68,60 @@ async function getProgressForUser(userId, limit = 365) {
   return rows;
 }
 
+/**
+ * Same merged timeline as admin Client Progress (progress_logs + daily + Sunday + My Workout).
+ * Member charts previously used only progress_logs, so check-ins / workouts after a given date could be missing.
+ */
+async function loadMergedUserProgressSources(userId) {
+  const userIdentity = await db.queryOne('SELECT email FROM users WHERE id = ?', [userId]);
+  const userEmail = userIdentity && userIdentity.email ? String(userIdentity.email).trim().toLowerCase() : '';
+  const [progressLogs, dailyCheckins, sundayByUserId, sundayByEmail, workoutSessions] = await Promise.all([
+    db.queryAll('SELECT * FROM progress_logs WHERE user_id = ? ORDER BY created_at ASC', [userId]),
+    db.queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date ASC', [userId]),
+    db.queryAll('SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, body_fat_percent, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at ASC', [userId]),
+    userEmail
+      ? db.queryAll(
+        'SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, body_fat_percent, created_at FROM sunday_checkins WHERE user_id IS NULL AND LOWER(COALESCE(reply_email, \'\')) = ? ORDER BY created_at ASC',
+        [userEmail]
+      )
+      : Promise.resolve([]),
+    db.queryAll(
+      `SELECT id, session_date, workout_type, duration_seconds, feedback, bench_kg, squat_kg, deadlift_kg,
+              session_lifts, weight_kg, body_fat_percent, calories, protein_g, water_liters, sleep_hrs, workout_completed, intensity, energy_level, created_at
+       FROM workout_logs WHERE user_id = ? ORDER BY created_at ASC`,
+      [userId]
+    )
+  ]);
+  const seenSundayIds = new Set();
+  const sundayCheckins = [...(sundayByUserId || []), ...(sundayByEmail || [])].filter((row) => {
+    const id = row && row.id ? String(row.id) : '';
+    if (!id) return true;
+    if (seenSundayIds.has(id)) return false;
+    seenSundayIds.add(id);
+    return true;
+  });
+  const logs = mergeWorkoutSessionsIntoLogs(mergeLogs(progressLogs, dailyCheckins, sundayCheckins), workoutSessions || []);
+  return {
+    logs,
+    progressLogs,
+    dailyCheckins,
+    sundayCheckins,
+    workoutSessions: workoutSessions || []
+  };
+}
+
 async function getProgressWithMeta(userId) {
-  const logs = await getProgressForUser(userId);
+  const { logs, workoutSessions } = await loadMergedUserProgressSources(userId);
   const streak = await getCurrentStreak(userId);
   const goalPct = await getGoalCompletionPercent(userId);
   const insights = await getInsights(userId);
-  return { logs, streak, goalCompletionPercent: goalPct, insights };
+  return {
+    logs,
+    streak,
+    goalCompletionPercent: goalPct,
+    insights,
+    weeklyWorkoutSessions: weeklyCompletedSessions(workoutSessions)
+  };
 }
 
 function parseWeightFromText(txt) {
@@ -307,35 +355,13 @@ function weeklyCompletedSessions(workoutRows) {
 async function getAdminUserProgress(userId) {
   const userRow = await db.queryOne('SELECT COALESCE(suspended, false) as suspended FROM users WHERE id = ?', [userId]);
   const suspended = userRow ? (userRow.suspended === true || userRow.suspended === 't') : false;
-  const userIdentity = await db.queryOne('SELECT email FROM users WHERE id = ?', [userId]);
-  const userEmail = userIdentity && userIdentity.email ? String(userIdentity.email).trim().toLowerCase() : '';
-  const [progressLogs, dailyCheckins, sundayByUserId, sundayByEmail, workoutSessions] = await Promise.all([
-    db.queryAll('SELECT * FROM progress_logs WHERE user_id = ? ORDER BY created_at ASC', [userId]),
-    db.queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date ASC', [userId]),
-    db.queryAll('SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, body_fat_percent, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at ASC', [userId]),
-    userEmail
-      ? db.queryAll(
-        'SELECT id, current_weight_waist_week, last_week_weight_waist, sleep, body_fat_percent, created_at FROM sunday_checkins WHERE user_id IS NULL AND LOWER(COALESCE(reply_email, \'\')) = ? ORDER BY created_at ASC',
-        [userEmail]
-      )
-      : Promise.resolve([]),
-    db.queryAll(
-      `SELECT id, session_date, workout_type, duration_seconds, feedback, bench_kg, squat_kg, deadlift_kg,
-              session_lifts, weight_kg, body_fat_percent, calories, protein_g, water_liters, sleep_hrs, workout_completed, intensity, energy_level, created_at
-       FROM workout_logs WHERE user_id = ? ORDER BY created_at ASC`,
-      [userId]
-    )
-  ]);
-  const seenSundayIds = new Set();
-  const sundayCheckins = [...(sundayByUserId || []), ...(sundayByEmail || [])].filter((row) => {
-    const id = row && row.id ? String(row.id) : '';
-    if (!id) return true;
-    if (seenSundayIds.has(id)) return false;
-    seenSundayIds.add(id);
-    return true;
-  });
-
-  const logs = mergeWorkoutSessionsIntoLogs(mergeLogs(progressLogs, dailyCheckins, sundayCheckins), workoutSessions || []);
+  const {
+    logs,
+    progressLogs,
+    dailyCheckins,
+    sundayCheckins,
+    workoutSessions
+  } = await loadMergedUserProgressSources(userId);
 
   const streak = await getCurrentStreak(userId);
   const streakHistory = buildStreakHistoryFromCheckinRows(dailyCheckins);
@@ -415,8 +441,14 @@ async function getAdminUserProgress(userId) {
       workoutSessions: workoutSessions.length
     },
     /** Completed My Workout sessions per week — use for weekly chart (true session count) */
-    weeklyWorkoutSessions: weeklyCompletedSessions(workoutSessions || [])
+    weeklyWorkoutSessions: weeklyCompletedSessions(workoutSessions)
   };
 }
 
-module.exports = { insertProgress, getProgressForUser, getProgressWithMeta, getAdminUserProgress };
+module.exports = {
+  insertProgress,
+  getProgressForUser,
+  getProgressWithMeta,
+  getAdminUserProgress,
+  loadMergedUserProgressSources
+};

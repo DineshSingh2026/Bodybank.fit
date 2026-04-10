@@ -142,8 +142,11 @@ function createScorecardService({ queryOne, queryAll }) {
       ),
       queryAll(
         `SELECT id FROM workout_logs
-         WHERE user_id = ? AND created_at >= ?::timestamptz AND created_at < ?::timestamptz`,
-        [userId, fromIso, toIso]
+         WHERE user_id = ? AND (
+           (session_date IS NOT NULL AND session_date >= ?::date AND session_date < ?::date)
+           OR (session_date IS NULL AND created_at >= ?::timestamptz AND created_at < ?::timestamptz)
+         )`,
+        [userId, weekStartISO, weekEndExclusive, fromIso, toIso]
       ),
       queryAll(
         `SELECT created_at::date AS d FROM progress_logs
