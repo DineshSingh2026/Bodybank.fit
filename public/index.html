@@ -438,7 +438,13 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 
 @media(max-width:900px){
   body{font-size:17px;line-height:1.65}
-  nav{padding:10px 28px;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(28px,env(safe-area-inset-right));padding-top:max(20px,env(safe-area-inset-top))}.nm{display:none}.nav-right{display:flex;align-items:center;gap:14px;margin-left:auto}.nt{display:flex;margin-left:12px;padding:10px 12px;min-width:48px;min-height:48px}
+  nav{padding:10px 28px;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(28px,env(safe-area-inset-right));padding-top:max(20px,env(safe-area-inset-top));gap:12px;min-width:0}
+  .nm{display:none}
+  .nb{flex-shrink:1;min-width:0;max-width:min(240px,46vw)}
+  .nav-logo-img{max-width:100%;width:auto;height:auto;object-fit:contain}
+  .nav-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex:1;min-width:0;justify-content:flex-end}
+  .nav-tagline{flex:1 1 auto;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+  .nt{display:flex;flex-shrink:0;margin-left:0;padding:10px 12px;min-width:48px;min-height:48px}
   .pwa-standalone nav{padding-right:max(36px,env(safe-area-inset-right))}
   .pwa-standalone .nav-right{gap:16px}
   .pwa-standalone .nt{margin-left:14px;padding:10px 14px}
@@ -5474,6 +5480,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <li><a href="#results">Transformations</a></li>
     <li><a href="tribe-stories.html">Tribe Stories</a></li>
     <li><a href="our-story.html">Our Story</a></li>
+    <li><a href="blog.html">Blog</a></li>
     <li><a href="#contact">Contact us</a></li>
   </ul>
   <div class="nav-right">
@@ -5489,6 +5496,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
   <a href="#results" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Transformations</a>
   <a href="tribe-stories.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Tribe Stories</a>
   <a href="our-story.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Our Story</a>
+  <a href="blog.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Blog</a>
   <a href="#contact" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Contact us</a>
   <a href="#" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll();openModal('loginModal');return false;">Login</a>
   <a href="#" class="pwa-add-homescreen" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll();handlePwaAddToHomescreen();return false;">Add to Home Screen</a>
