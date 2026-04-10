@@ -2587,6 +2587,110 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .micro-goals-wrap .streak-badge[data-at-risk="true"],.streak-badge[data-at-risk="true"]{background:rgba(230,126,34,0.3);box-shadow:0 0 16px rgba(230,126,34,0.4);animation:streakPulse 1.5s ease-in-out infinite}
 @keyframes streakGlow{from{box-shadow:0 0 20px rgba(255,215,0,0.3)}to{box-shadow:0 0 28px rgba(255,215,0,0.5)}}
 @keyframes streakPulse{0%,100%{opacity:1}50%{opacity:.85}}
+/* Nutrition check-in (daily) + admin nutrition report */
+.nutrition-checkin{margin-top:20px;padding:16px 0 8px;border-top:1px solid var(--bdr)}
+.nutri-section-header{margin-bottom:14px}
+.nutri-section-title{font-family:var(--bb-font-heading, 'Rajdhani',sans-serif);font-size:14px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin:0 0 6px;display:flex;align-items:center;gap:8px}
+.nutri-badge-new{font-size:9px;background:rgba(46,204,113,0.15);color:var(--bb-green);border:1px solid rgba(46,204,113,0.35);padding:2px 8px;border-radius:99px;font-family:var(--bb-font-body,'DM Sans',sans-serif);font-weight:600;letter-spacing:0;text-transform:none}
+.nutri-section-sub{font-size:12px;color:var(--muted);margin:0;line-height:1.5}
+.nutrition-checkin .meal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:12px}
+@media (min-width:768px){.nutrition-checkin .meal-grid{grid-template-columns:repeat(4,1fr)}}
+.nutrition-checkin .meal-slot{background:var(--bb-surface);border:1px solid var(--bb-border);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:8px;transition:border-color .2s}
+.nutrition-checkin .meal-slot.uploading{border-color:var(--bb-orange)}
+.nutrition-checkin .meal-slot.analyzed{border-color:var(--bb-green)}
+.nutrition-checkin .meal-slot.low-conf{border-color:var(--bb-red)}
+.nutrition-checkin .meal-slot-header{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
+.nutrition-checkin .meal-type-label{font-family:var(--bb-font-heading);font-size:12px;font-weight:700;color:var(--cream)}
+.nutrition-checkin .meal-time-hint{font-size:10px;color:var(--muted);margin-top:2px}
+.nutrition-checkin .meal-status-badge{font-size:9px;padding:2px 7px;border-radius:99px;background:var(--bb-surface-hover);color:var(--muted);white-space:nowrap}
+.nutrition-checkin .meal-status-badge.analyzed{background:rgba(46,204,113,0.12);color:var(--bb-green)}
+.nutrition-checkin .meal-status-badge.analyzing{background:rgba(230,126,34,0.15);color:var(--bb-orange)}
+.nutrition-checkin .meal-status-badge.error{background:rgba(192,57,43,0.15);color:var(--bb-red)}
+.nutrition-checkin .meal-upload-area{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.nutrition-checkin .upload-trigger-btn{min-height:44px;width:100%;padding:10px;border:1.5px dashed var(--bb-border);background:transparent;color:var(--muted);border-radius:8px;font-family:var(--bb-font-body);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+.nutrition-checkin .upload-trigger-btn:hover{border-color:var(--bb-green);color:var(--bb-green);background:rgba(46,204,113,0.06)}
+.nutrition-checkin .upload-or{font-size:10px;color:var(--muted);text-align:center}
+.nutrition-checkin .manual-entry-btn{min-height:44px;width:100%;padding:8px;border:1px solid var(--bb-border);background:transparent;color:var(--muted);border-radius:8px;font-size:11px;cursor:pointer}
+.nutrition-checkin .meal-preview{position:relative}
+.nutrition-checkin .meal-preview img{width:100%;height:88px;object-fit:cover;border-radius:8px;display:block;max-width:100%}
+.nutrition-checkin .remove-photo-btn{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.65);color:#fff;border:none;border-radius:99px;font-size:10px;padding:3px 8px;cursor:pointer}
+.nutrition-checkin .manual-textarea{width:100%;box-sizing:border-box;background:var(--bb-surface-hover);border:1px solid var(--bb-border);border-radius:8px;padding:8px;color:var(--cream);font-family:var(--bb-font-body);font-size:12px;resize:none;line-height:1.45}
+.nutrition-checkin .portion-selector label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;display:block}
+.nutrition-checkin .portion-btns{display:flex;gap:4px}
+.nutrition-checkin .portion-btn{flex:1;min-height:40px;padding:6px 2px;border:1px solid var(--bb-border);background:transparent;color:var(--muted);border-radius:8px;font-size:11px;cursor:pointer}
+.nutrition-checkin .portion-btn.active{background:rgba(46,204,113,0.12);color:var(--bb-green);border-color:rgba(46,204,113,0.35)}
+.nutrition-checkin .analyze-single-btn{min-height:44px;width:100%;padding:10px;background:var(--bb-green);color:#0d0f11;border:none;border-radius:8px;font-family:var(--bb-font-heading);font-weight:700;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px}
+.nutrition-checkin .analyze-single-btn:disabled{opacity:.45;cursor:not-allowed}
+.nutrition-checkin .meal-result{background:var(--bb-surface-hover);border-radius:8px;padding:10px;font-size:11px}
+.nutrition-checkin .meal-result .dish-name{font-family:var(--bb-font-heading);font-size:12px;font-weight:700;margin-bottom:4px;color:var(--cream)}
+.nutrition-checkin .meal-result .macro-row{display:flex;gap:4px;flex-wrap:wrap}
+.nutrition-checkin .meal-result .mpill{padding:2px 6px;border-radius:99px;font-size:9px;font-weight:600}
+.nutrition-checkin .meal-result .score-row{margin-top:6px;font-size:10px;color:var(--muted)}
+.nutrition-checkin .submit-all-btn{min-height:48px;width:100%;padding:14px;background:var(--bb-green);color:#0d0f11;border:none;border-radius:14px;font-family:var(--bb-font-heading);font-weight:700;font-size:13px;cursor:pointer;margin-bottom:12px}
+.nutrition-checkin .submit-all-btn:disabled{opacity:.4;cursor:not-allowed}
+.nutrition-checkin .daily-nutrition-summary{background:var(--bb-surface);border:1px solid var(--bb-border);border-radius:14px;padding:16px;margin-bottom:12px}
+.nutrition-checkin .summary-title{font-family:var(--bb-font-heading);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
+.nutrition-checkin .macro-totals-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
+@media (max-width:480px){.nutrition-checkin .macro-totals-grid{grid-template-columns:repeat(3,1fr)}}
+.nutrition-checkin .macro-total{background:var(--bb-surface-hover);border-radius:8px;padding:10px 6px;text-align:center}
+.nutrition-checkin .macro-total.cal{border-top:2px solid var(--bb-orange)}
+.nutrition-checkin .macro-total.pro{border-top:2px solid var(--bb-green)}
+.nutrition-checkin .macro-total.carb{border-top:2px solid var(--bb-gold)}
+.nutrition-checkin .macro-total.fat{border-top:2px solid var(--bb-red)}
+.nutrition-checkin .macro-total.score{border-top:2px solid var(--bb-purple)}
+.nutrition-checkin .mt-val{font-family:var(--bb-font-heading);font-size:1.05rem;font-weight:700;color:var(--cream)}
+.nutrition-checkin .mt-label{font-size:9px;color:var(--muted);text-transform:uppercase;margin-top:2px}
+.nutrition-checkin .nutri-energy-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;padding:10px 12px;background:rgba(46,204,113,0.06);border:1px solid rgba(46,204,113,0.2);border-radius:8px;margin-bottom:10px;font-size:12px}
+.nutrition-checkin .nutri-energy-lbl{color:var(--muted)}
+.nutrition-checkin .nutri-energy-val{font-family:var(--bb-font-heading);font-weight:700;color:var(--bb-green)}
+.nutrition-checkin .nutri-energy-val.surplus{color:var(--bb-red)}
+.nutrition-checkin .progress-bars{display:flex;flex-direction:column;gap:8px}
+.nutrition-checkin .prog-row{display:flex;align-items:center;gap:8px}
+.nutrition-checkin .prog-lbl{font-size:11px;color:var(--muted);width:58px;flex-shrink:0}
+.nutrition-checkin .prog-track{flex:1;height:5px;background:var(--bb-surface-hover);border-radius:99px;overflow:hidden}
+.nutrition-checkin .prog-fill{height:100%;border-radius:99px;transition:width .4s ease}
+.nutrition-checkin .prog-fill.amber{background:var(--bb-orange)}
+.nutrition-checkin .prog-fill.green{background:var(--bb-green)}
+.nutrition-checkin .prog-pct{font-size:11px;color:var(--muted);width:36px;text-align:right}
+.nutrition-checkin .streak-indicator{display:flex;align-items:center;gap:12px;background:rgba(46,204,113,0.06);border:1px solid rgba(46,204,113,0.15);border-radius:14px;padding:12px 14px}
+.nutrition-checkin .streak-count{font-family:var(--bb-font-heading);font-size:1.25rem;font-weight:700;color:var(--bb-green)}
+.nutrition-checkin .streak-label{font-size:11px;color:var(--muted)}
+.nutrition-checkin .spinner-sm{width:14px;height:14px;border:2px solid rgba(0,0,0,.2);border-top-color:#0d0f11;border-radius:50%;animation:bbNutriSpin .7s linear infinite}
+@keyframes bbNutriSpin{to{transform:rotate(360deg)}}
+.nutrition-checkin .meal-grid,.nutrition-checkin .macro-totals-grid{overflow-x:hidden}
+.bb-nutrition-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;max-width:90%;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.admin-nutrition-page .admin-nutrition-header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
+.admin-nutrition-page .admin-nutrition-header h3{margin:0;font-family:var(--bb-font-heading);font-size:1.25rem;color:var(--cream)}
+.admin-nutrition-controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.admin-nutrition-controls input[type="date"]{background:var(--bb-surface);border:1px solid var(--bb-border);border-radius:8px;padding:8px 12px;color:var(--cream);font-size:13px}
+.admin-nutrition-banner{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:16px}
+@media (min-width:768px){.admin-nutrition-banner{grid-template-columns:repeat(4,1fr)}}
+.admin-nutrition-stat{background:var(--bb-surface);border:1px solid var(--bb-border);border-radius:14px;padding:14px}
+.admin-nutrition-stat .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.admin-nutrition-stat .val{font-family:var(--bb-font-heading);font-size:1.35rem;font-weight:700;color:var(--cream)}
+.admin-nutrition-stat .sub{font-size:11px;color:var(--muted);margin-top:4px}
+.admin-nutrition-client-card{background:var(--bb-surface);border:1px solid var(--bb-border);border-radius:14px;padding:16px;margin-bottom:12px}
+.admin-nutrition-client-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:12px}
+.admin-nutrition-avatar{width:40px;height:40px;border-radius:50%;background:var(--bb-surface-hover);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--bb-green);font-size:13px;flex-shrink:0}
+.admin-nutrition-client-head .info{flex:1;min-width:0}
+.admin-nutrition-client-head .name{font-weight:700;color:var(--cream)}
+.admin-nutrition-client-head .meta{font-size:11px;color:var(--muted);margin-top:2px}
+.admin-nutrition-score-ring{width:48px;height:48px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid var(--bb-border);flex-shrink:0}
+.admin-nutrition-thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
+.admin-nutrition-thumb{border:1px solid var(--bb-border);border-radius:8px;overflow:hidden}
+.admin-nutrition-thumb.logged{border-color:var(--bb-green)}
+.admin-nutrition-thumb.low-conf{border-color:var(--bb-red)}
+.admin-nutrition-thumb img{width:100%;height:64px;object-fit:cover;display:block;max-width:100%}
+.admin-nutrition-thumb .ph{height:64px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);background:var(--bb-surface-hover)}
+.admin-nutrition-thumb .lbl{font-size:9px;padding:4px 6px;color:var(--muted);text-transform:uppercase}
+.admin-nutrition-macros{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
+.admin-nutrition-mchip{font-size:11px;padding:4px 10px;border-radius:99px;font-weight:600}
+.admin-nutrition-actions{display:flex;flex-wrap:wrap;gap:8px}
+.admin-nutrition-actions .btn{flex:1;min-width:120px;min-height:44px;padding:8px 12px;border:1px solid var(--bb-border);background:transparent;color:var(--muted);border-radius:8px;font-size:12px;cursor:pointer}
+.admin-nutrition-actions .btn:hover{color:var(--cream);background:var(--bb-surface-hover)}
+.admin-nutrition-week-wrap{margin-top:20px;padding:16px;background:var(--bb-surface);border:1px solid var(--bb-border);border-radius:14px}
+.admin-nutrition-week-wrap h4{margin:0 0 12px;font-size:14px;color:var(--gold)}
+.admin-nutrition-chart-box{position:relative;height:200px;max-width:560px;margin:0 auto 12px}
 .streak-timer{font-size:11px;color:var(--gold);margin-top:6px;display:flex;align-items:center;gap:6px}
 .streak-timer-icon{font-size:14px;opacity:.9}
 .streak-at-risk-banner{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:10px;padding:12px 16px;background:linear-gradient(90deg,rgba(230,126,34,0.2),rgba(200,164,78,0.1));border:1px solid rgba(230,126,34,0.4);border-radius:10px;margin-bottom:16px}
@@ -3864,7 +3968,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="checkin-option-card" onclick="showCheckinSubView('daily')">
             <div class="checkin-card-icon"><svg viewBox="0 0 24 24"><path d="M19 4H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2z"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/></svg></div>
             <div class="checkin-card-title">Daily Check-in</div>
-            <div class="checkin-card-desc">Log steps, water, protein &amp; sleep for today</div>
+            <div class="checkin-card-desc">Steps, water, protein, sleep &amp; AI meal logging</div>
           </div>
           <div class="checkin-option-card" onclick="showCheckinSubView('sunday')">
             <div class="checkin-card-icon"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
@@ -3922,6 +4026,47 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <button type="submit" class="micro-goals-submit">Save today</button>
           </form>
         </div>
+        <section class="nutrition-checkin" id="nutritionCheckin" aria-label="Nutrition AI check-in">
+          <div class="nutri-section-header">
+            <h3 class="nutri-section-title">Nutrition <span class="nutri-badge-new">AI</span></h3>
+            <p class="nutri-section-sub">Log meals by photo or short description. Macros are estimated automatically.</p>
+          </div>
+          <div class="meal-grid" id="nutritionMealGrid" aria-live="polite"></div>
+          <button type="button" class="submit-all-btn" id="submitAllBtn" onclick="nutritionSubmitAllMeals()">Submit all &amp; send report</button>
+          <div class="daily-nutrition-summary" id="dailyNutritionSummary" style="display:none">
+            <div class="summary-title">Today&apos;s nutrition</div>
+            <div class="macro-totals-grid">
+              <div class="macro-total cal"><div class="mt-val" id="nutriTotCal">0</div><div class="mt-label">kcal</div></div>
+              <div class="macro-total pro"><div class="mt-val" id="nutriTotPro">0g</div><div class="mt-label">protein</div></div>
+              <div class="macro-total carb"><div class="mt-val" id="nutriTotCarb">0g</div><div class="mt-label">carbs</div></div>
+              <div class="macro-total fat"><div class="mt-val" id="nutriTotFat">0g</div><div class="mt-label">fat</div></div>
+              <div class="macro-total score"><div class="mt-val" id="nutriTotScore">&mdash;</div><div class="mt-label">meal score</div></div>
+            </div>
+            <div class="nutri-energy-row" id="nutriEnergyRow" style="display:none">
+              <span class="nutri-energy-lbl">Energy (burn &minus; intake)</span>
+              <span class="nutri-energy-val" id="nutriEnergyVal"></span>
+            </div>
+            <div class="progress-bars">
+              <div class="prog-row">
+                <span class="prog-lbl">Calories</span>
+                <div class="prog-track"><div class="prog-fill amber" id="nutriPbCal" style="width:0%"></div></div>
+                <span class="prog-pct" id="nutriPpCal">0%</span>
+              </div>
+              <div class="prog-row">
+                <span class="prog-lbl">Protein</span>
+                <div class="prog-track"><div class="prog-fill green" id="nutriPbPro" style="width:0%"></div></div>
+                <span class="prog-pct" id="nutriPpPro">0%</span>
+              </div>
+            </div>
+          </div>
+          <div class="streak-indicator" id="nutritionStreakBar" style="display:none">
+            <span class="streak-flame" aria-hidden="true">&#128293;</span>
+            <div>
+              <div class="streak-count" id="nutritionStreakCount">0</div>
+              <div class="streak-label">day meal logging streak</div>
+            </div>
+          </div>
+        </section>
       </div>
     </div>
 
@@ -4214,6 +4359,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <a class="admin-sidebar-link" href="#" data-section="programs" onclick="switchToSection('programs');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127919;</span>Programs</a>
         <a class="admin-sidebar-link" href="#" data-section="forms" onclick="switchToSection('forms');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128203;</span>Forms</a>
         <a class="admin-sidebar-link" href="#" data-section="analytics" onclick="switchToSection('analytics');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128200;</span>Analytics</a>
+        <a class="admin-sidebar-link" href="#" onclick="switchTab('nutrition');return false"><span class="admin-sidebar-icon" aria-hidden="true">🥗</span>Nutrition AI</a>
         <a class="admin-sidebar-link" href="#" data-section="messages" onclick="switchToSection('messages');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
         <a class="admin-sidebar-link" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128161;</span>AI Assist</a>
         <a class="admin-sidebar-link" href="/marketing-ai.html"><span class="admin-sidebar-icon" aria-hidden="true">&#129302;</span>Marketing AI</a>
@@ -4258,6 +4404,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <a class="admin-nav-link" href="#" data-section="analytics" onclick="switchToSection('analytics');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128200;</span>Analytics
         </a>
+        <a class="admin-nav-link" href="#" onclick="switchTab('nutrition');closeAdminNavDrawer();return false">
+          <span class="admin-nav-link-icon" aria-hidden="true">🥗</span>Nutrition AI
+        </a>
         <a class="admin-nav-link" href="#" data-section="messages" onclick="switchToSection('messages');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128172;</span>Messages
         </a>
@@ -4287,6 +4436,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="admin-tab" data-tab="programs" onclick="switchTab('programs')">Programs</div>
       <div class="admin-tab" data-tab="insights" onclick="switchTab('insights')">Performance Insights</div>
       <div class="admin-tab" data-tab="campaigns" onclick="switchTab('campaigns')">Campaigns</div>
+      <div class="admin-tab" data-tab="nutrition" onclick="switchTab('nutrition')">Nutrition AI</div>
     </div>
 
     <div class="admin-tab-content-wrap">
@@ -4413,6 +4563,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <a class="bb-quick-btn" href="#" onclick="switchTab('tribe');return false"><span class="btn-icon">👥</span>Client Board</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('requests');return false"><span class="btn-icon">📋</span>Audit Forms</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('dailycheckin');return false"><span class="btn-icon">📅</span>Daily Check-ins</a>
+          <a class="bb-quick-btn" href="#" onclick="switchTab('nutrition');return false"><span class="btn-icon">🥗</span>Nutrition AI</a>
           <a class="bb-quick-btn" href="#" onclick="switchToSection('analytics');return false"><span class="btn-icon">📈</span>Analytics</a>
           <a class="bb-quick-btn" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="btn-icon">💡</span>AI Assist</a>
         </div>
@@ -4537,6 +4688,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <span class="admin-section-card-icon" aria-hidden="true">&#128200;</span>
             <span class="admin-section-card-title">Performance Insights</span>
             <span class="admin-section-card-desc">Filters, charts, and CSV export</span>
+          </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('nutrition');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">🥗</span>
+            <span class="admin-section-card-title">Nutrition AI</span>
+            <span class="admin-section-card-desc">Daily meal logs, macros, and CSV export</span>
           </a>
           <a class="admin-section-card" href="#" onclick="switchTab('campaigns');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128228;</span>
@@ -5062,6 +5218,26 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <div id="campaignsList" style="max-width:760px">
           <p class="form-hint" style="padding:24px;margin:0">Loading…</p>
         </div>
+      </div>
+    </div>
+
+    <div class="admin-tab-content admin-nutrition-page" id="tab-nutrition">
+      <div class="admin-nutrition-header">
+        <div>
+          <h3>Nutrition report</h3>
+          <p class="form-hint" style="margin:4px 0 0">AI meal logs and daily stats per client (date uses server timezone when omitted).</p>
+        </div>
+        <div class="admin-nutrition-controls">
+          <input type="date" id="adminNutritionReportDate" aria-label="Report date" onchange="loadAdminNutritionReport()" />
+          <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminNutritionReport()">Refresh</button>
+          <button type="button" class="nav-login" style="padding:10px 18px;margin:0" onclick="exportAdminNutritionCsv()">Export CSV</button>
+        </div>
+      </div>
+      <div class="admin-nutrition-banner" id="adminNutritionBanner"></div>
+      <div id="adminNutritionClientList"></div>
+      <div class="admin-nutrition-week-wrap" id="adminNutritionWeekWrap" style="display:none">
+        <h4>7-day calories (first client on list)</h4>
+        <div class="admin-nutrition-chart-box"><canvas id="adminNutritionWeekChart" aria-label="Weekly calories chart"></canvas></div>
       </div>
     </div>
 
@@ -6079,6 +6255,22 @@ updateGoogleButtonVisibility();
 if(window.location.hash==='#login'){openModal('loginModal');history.replaceState(null,'',location.pathname+location.search)}
 if(window.location.hash==='#programs'){history.replaceState(null,'',location.pathname+location.search);var _wait=setInterval(function(){var el=document.getElementById('usec-programs');if(el){clearInterval(_wait);if(typeof switchUserTab==='function')switchUserTab('programs');}},50);}
 if(window.location.hash==='#workout'){history.replaceState(null,'',location.pathname+location.search);var _w=setInterval(function(){var el=document.getElementById('usec-workout');if(el){clearInterval(_w);if(typeof switchUserTab==='function')switchUserTab('workout');}},50);}
+(function bbReadNutritionDeepLinks(){
+  try {
+    var p = new URLSearchParams(window.location.search);
+    if (p.get('adminNutrition') === '1') window.__bbOpenAdminNutrition = true;
+    if (p.get('checkinDaily') === '1') window.__bbOpenCheckinDaily = true;
+    if (window.location.hash === '#admin-nutrition') window.__bbOpenAdminNutrition = true;
+    if (window.location.hash === '#checkin-daily') window.__bbOpenCheckinDaily = true;
+    if (window.__bbOpenAdminNutrition || window.__bbOpenCheckinDaily) {
+      if (p.get('adminNutrition') === '1' || p.get('checkinDaily') === '1') {
+        if (window.history && window.history.replaceState) window.history.replaceState(null, '', window.location.pathname);
+      } else if (window.location.hash === '#admin-nutrition' || window.location.hash === '#checkin-daily') {
+        if (window.history && window.history.replaceState) window.history.replaceState(null, '', window.location.pathname + window.location.search);
+      }
+    }
+  } catch (e) {}
+})();
 (function(){
   var params=new URLSearchParams(window.location.search);
   var resetToken=(params.get('reset')||'').replace(/[^a-fA-F0-9-]/g,'');
@@ -6556,6 +6748,28 @@ async function loadDashboard() {
   await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadAdminMessages(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
+  if (typeof bbMaybeOpenAdminNutritionAfterLoad === 'function') bbMaybeOpenAdminNutritionAfterLoad();
+}
+
+function bbMaybeOpenAdminNutritionAfterLoad() {
+  if (!window.__bbOpenAdminNutrition) return;
+  window.__bbOpenAdminNutrition = false;
+  if (!window.currentUser || window.currentUser.role !== 'admin') return;
+  setTimeout(function () {
+    if (typeof switchTab === 'function') switchTab('nutrition');
+  }, 280);
+}
+
+function bbMaybeOpenCheckinDailyAfterLoad() {
+  if (!window.__bbOpenCheckinDaily) return;
+  window.__bbOpenCheckinDaily = false;
+  if (!window.currentUser) return;
+  var r = window.currentUser.role;
+  if (r === 'admin' || r === 'superadmin') return;
+  setTimeout(function () {
+    if (typeof switchUserTab === 'function') switchUserTab('checkin');
+    if (typeof showCheckinSubView === 'function') showCheckinSubView('daily');
+  }, 280);
 }
 
 const SESSION_KEY = 'bodybank_session';
@@ -8824,8 +9038,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns' };
-var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', nutrition: 'Nutrition AI' };
+var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', nutrition: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -8953,6 +9167,7 @@ function switchTab(tab) {
   if (tab === 'clientprogress') loadClientProgressUsers();
   if (tab === 'programs') loadProgramsAdmin();
   if (tab === 'campaigns') loadCampaigns();
+  if (tab === 'nutrition') loadAdminNutritionReport();
 }
 var adminProgressChartInstances = {};
 function destroyAdminProgressCharts() {
@@ -9865,6 +10080,7 @@ function openUserDashboard(user) {
   }, 500);
   document.getElementById('ctName').value = (user.first_name + ' ' + user.last_name).trim();
   document.getElementById('ctEmail').value = user.email || '';
+  if (typeof bbMaybeOpenCheckinDailyAfterLoad === 'function') bbMaybeOpenCheckinDailyAfterLoad();
 }
 
 var _bbFwSpinning = false;
@@ -10298,7 +10514,10 @@ function showCheckinSubView(view) {
   if (sunday) sunday.style.display = view === 'sunday' ? '' : 'none';
   if (daily) daily.style.display = view === 'daily' ? '' : 'none';
   if (view === 'sunday') loadSundayCheckinDefaults();
-  if (view === 'daily') loadDailyCheckinForm();
+  if (view === 'daily') {
+    loadDailyCheckinForm();
+    loadNutritionCheckinPanel();
+  }
   var wrap = document.getElementById('userTabContentWrap');
   if (wrap) wrap.scrollTop = 0;
 }
@@ -11102,6 +11321,625 @@ async function submitDailyCheckinForm() {
     showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
     if (btn) { btn.disabled = false; btn.textContent = 'Save today'; }
   }
+}
+
+// ----- Nutrition AI (daily check-in + admin report) -----
+var bbNutritionMeals = ['breakfast', 'lunch', 'snack', 'dinner'];
+var bbNutritionMealMeta = {
+  breakfast: { label: 'Breakfast', hint: '7–9 AM' },
+  lunch: { label: 'Lunch', hint: '12–2 PM' },
+  snack: { label: 'Snack', hint: '3:30–5 PM' },
+  dinner: { label: 'Dinner', hint: '7–9 PM' }
+};
+var bbNutritionState = {
+  photos: {},
+  mimes: {},
+  portions: { breakfast: 'medium', lunch: 'medium', snack: 'medium', dinner: 'medium' },
+  results: {},
+  scores: {},
+  goals: { cal: 2000, pro: 150 }
+};
+var bbNutritionGridReady = false;
+var adminNutritionWeekChartInst = null;
+
+function nutritionTodayYmd() {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+  } catch (e) {
+    return new Date().toISOString().slice(0, 10);
+  }
+}
+
+function bbParseNutritionAi(ar) {
+  if (ar == null) return null;
+  if (typeof ar === 'string') {
+    try { ar = JSON.parse(ar); } catch (e) { return null; }
+  }
+  return typeof ar === 'object' ? ar : null;
+}
+
+function bbNutritionDailyStatsNorm(stats) {
+  if (!stats) return null;
+  if (stats.totalCalories != null || stats.calorieGoal != null) return stats;
+  return {
+    totalCalories: stats.total_calories,
+    totalProtein: stats.total_protein,
+    totalCarbs: stats.total_carbs,
+    totalFat: stats.total_fat,
+    totalFiber: stats.total_fiber,
+    calorieGoal: stats.calorie_goal,
+    proteinGoal: stats.protein_goal,
+    mealsLogged: stats.meals_logged,
+    caloriesOut: stats.calories_out,
+    energyDifference: stats.energy_difference,
+    mealQualityScore: stats.meal_quality_score
+  };
+}
+
+function nutritionShowToast(msg, type) {
+  var t = document.querySelector('.bb-nutrition-toast');
+  if (t) t.remove();
+  t = document.createElement('div');
+  t.className = 'bb-nutrition-toast';
+  t.setAttribute('role', 'status');
+  t.textContent = msg;
+  if (type === 'error') { t.style.background = 'var(--bb-red)'; t.style.color = '#fff'; }
+  else if (type === 'warn') { t.style.background = 'var(--bb-orange)'; t.style.color = '#0d0f11'; }
+  else { t.style.background = 'var(--bb-green)'; t.style.color = '#0d0f11'; }
+  document.body.appendChild(t);
+  setTimeout(function () { if (t.parentNode) t.remove(); }, 2800);
+}
+
+function bbNutritionMealSlotHtml(mt) {
+  var meta = bbNutritionMealMeta[mt] || { label: mt, hint: '' };
+  var esc = function (s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); };
+  return (
+    '<div class="meal-slot" data-meal="' + esc(mt) + '" id="mslot-' + esc(mt) + '">' +
+      '<div class="meal-slot-header"><div><div class="meal-type-label">' + esc(meta.label) + '</div>' +
+      '<div class="meal-time-hint">' + esc(meta.hint) + '</div></div>' +
+      '<div class="meal-status-badge" id="badge-' + esc(mt) + '">Not logged</div></div>' +
+      '<div class="meal-upload-area" id="upload-' + esc(mt) + '">' +
+      '<input type="file" id="file-' + esc(mt) + '" accept="image/*" capture="environment" style="display:none" onchange="nutritionHandleMealPhoto(event,\'' + esc(mt) + '\')" />' +
+      '<button type="button" class="upload-trigger-btn" onclick="document.getElementById(\'file-' + esc(mt) + '\').click()">Take / upload photo</button>' +
+      '<span class="upload-or">or</span>' +
+      '<button type="button" class="manual-entry-btn" onclick="nutritionToggleManual(\'' + esc(mt) + '\')">Enter manually</button></div>' +
+      '<div class="meal-preview" id="preview-' + esc(mt) + '" style="display:none">' +
+      '<img id="previewImg-' + esc(mt) + '" src="" alt="" />' +
+      '<button type="button" class="remove-photo-btn" onclick="nutritionRemovePhoto(\'' + esc(mt) + '\')">Remove</button></div>' +
+      '<div class="manual-entry-box" id="manual-' + esc(mt) + '" style="display:none">' +
+      '<textarea id="note-' + esc(mt) + '" class="manual-textarea" rows="3" placeholder="e.g. 2 rotis, dal, sabzi — medium portion"></textarea></div>' +
+      '<div class="portion-selector" id="portion-' + esc(mt) + '" style="display:none">' +
+      '<label>Portion</label><div class="portion-btns">' +
+      '<button type="button" class="portion-btn" data-size="small" onclick="nutritionSetPortion(\'' + esc(mt) + '\',\'small\')">Small</button>' +
+      '<button type="button" class="portion-btn active" data-size="medium" onclick="nutritionSetPortion(\'' + esc(mt) + '\',\'medium\')">Medium</button>' +
+      '<button type="button" class="portion-btn" data-size="large" onclick="nutritionSetPortion(\'' + esc(mt) + '\',\'large\')">Large</button></div></div>' +
+      '<div class="meal-actions" id="actions-' + esc(mt) + '" style="display:none">' +
+      '<button type="button" class="analyze-single-btn" onclick="nutritionAnalyzeSingle(\'' + esc(mt) + '\')">' +
+      '<span class="spinner-sm" id="spin-' + esc(mt) + '" style="display:none"></span>Analyze &amp; save</button></div>' +
+      '<div class="meal-result" id="result-' + esc(mt) + '" style="display:none"></div></div>'
+  );
+}
+
+function nutritionEnsureMealGrid() {
+  var g = document.getElementById('nutritionMealGrid');
+  if (!g || bbNutritionGridReady) return;
+  g.innerHTML = bbNutritionMeals.map(bbNutritionMealSlotHtml).join('');
+  bbNutritionGridReady = true;
+}
+
+function nutritionSetBadge(mt, text, cls) {
+  var b = document.getElementById('badge-' + mt);
+  if (!b) return;
+  b.textContent = text;
+  b.className = 'meal-status-badge' + (cls ? ' ' + cls : '');
+}
+
+function nutritionHandleMealPhoto(ev, mt) {
+  var file = ev.target.files && ev.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function (e) {
+    var dataUrl = e.target.result;
+    var base64 = dataUrl.split(',')[1];
+    bbNutritionState.photos[mt] = base64;
+    bbNutritionState.mimes[mt] = file.type || 'image/jpeg';
+    var img = document.getElementById('previewImg-' + mt);
+    var prev = document.getElementById('preview-' + mt);
+    var up = document.getElementById('upload-' + mt);
+    if (img) img.src = dataUrl;
+    if (prev) prev.style.display = 'block';
+    if (up) up.style.display = 'none';
+    var por = document.getElementById('portion-' + mt);
+    var act = document.getElementById('actions-' + mt);
+    if (por) por.style.display = 'block';
+    if (act) act.style.display = 'block';
+    var slot = document.getElementById('mslot-' + mt);
+    if (slot) slot.classList.add('uploading');
+    nutritionSetBadge(mt, 'Photo ready', 'analyzing');
+  };
+  reader.readAsDataURL(file);
+}
+
+function nutritionRemovePhoto(mt) {
+  delete bbNutritionState.photos[mt];
+  delete bbNutritionState.mimes[mt];
+  var inp = document.getElementById('file-' + mt);
+  if (inp) inp.value = '';
+  var img = document.getElementById('previewImg-' + mt);
+  if (img) img.src = '';
+  var prev = document.getElementById('preview-' + mt);
+  if (prev) prev.style.display = 'none';
+  var up = document.getElementById('upload-' + mt);
+  if (up) up.style.display = 'flex';
+  var hasNote = document.getElementById('note-' + mt) && document.getElementById('note-' + mt).value.trim();
+  var por = document.getElementById('portion-' + mt);
+  var act = document.getElementById('actions-' + mt);
+  if (!hasNote) {
+    if (por) por.style.display = 'none';
+    if (act) act.style.display = 'none';
+  }
+  var slot = document.getElementById('mslot-' + mt);
+  if (slot) slot.classList.remove('uploading', 'analyzed', 'low-conf');
+  nutritionSetBadge(mt, 'Not logged', '');
+}
+
+function nutritionToggleManual(mt) {
+  var box = document.getElementById('manual-' + mt);
+  if (!box) return;
+  var vis = box.style.display !== 'none';
+  box.style.display = vis ? 'none' : 'block';
+  if (!vis) {
+    var por = document.getElementById('portion-' + mt);
+    var act = document.getElementById('actions-' + mt);
+    if (por) por.style.display = 'block';
+    if (act) act.style.display = 'block';
+  }
+}
+
+function nutritionSetPortion(mt, size) {
+  bbNutritionState.portions[mt] = size;
+  var slot = document.getElementById('mslot-' + mt);
+  if (!slot) return;
+  slot.querySelectorAll('.portion-btn').forEach(function (btn) {
+    btn.classList.toggle('active', btn.getAttribute('data-size') === size);
+  });
+}
+
+function nutritionRenderMealResult(mt, result, score) {
+  var el = document.getElementById('result-' + mt);
+  if (!el || !result) return;
+  var conf = (result.confidence || '').toLowerCase();
+  var confColor = conf === 'high' ? 'var(--bb-green)' : conf === 'medium' ? 'var(--bb-orange)' : 'var(--bb-red)';
+  el.style.display = 'block';
+  el.innerHTML =
+    '<div class="dish-name">' + escapeHtml(result.dish || 'Meal') + '</div>' +
+    '<div class="macro-row">' +
+    '<span class="mpill" style="background:rgba(230,126,34,0.15);color:var(--bb-orange)">' + escapeHtml(String(result.calories != null ? result.calories : '—')) + ' kcal</span>' +
+    '<span class="mpill" style="background:rgba(46,204,113,0.12);color:var(--bb-green)">' + escapeHtml(String(result.protein != null ? result.protein : '—')) + 'g pro</span>' +
+    '<span class="mpill" style="background:rgba(200,164,78,0.15);color:var(--bb-gold)">' + escapeHtml(String(result.carbs != null ? result.carbs : '—')) + 'g carb</span>' +
+    '<span class="mpill" style="background:rgba(192,57,43,0.12);color:var(--bb-red)">' + escapeHtml(String(result.fat != null ? result.fat : '—')) + 'g fat</span></div>' +
+    '<div class="score-row">Score: <strong style="color:var(--bb-green)">' + escapeHtml(String(score)) + '/10</strong> · <span style="color:' + confColor + '">' + escapeHtml(conf || '—') + '</span></div>' +
+    (result.tips ? '<div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.45">' + escapeHtml(result.tips) + '</div>' : '');
+}
+
+function nutritionUpdateSummaryFromState() {
+  var vals = Object.keys(bbNutritionState.results).map(function (k) { return bbNutritionState.results[k]; }).filter(Boolean);
+  if (!vals.length) return;
+  var totCal = vals.reduce(function (s, r) { return s + (parseInt(r.calories, 10) || 0); }, 0);
+  var totPro = vals.reduce(function (s, r) { return s + (parseInt(r.protein, 10) || 0); }, 0);
+  var totCarb = vals.reduce(function (s, r) { return s + (parseInt(r.carbs, 10) || 0); }, 0);
+  var totFat = vals.reduce(function (s, r) { return s + (parseInt(r.fat, 10) || 0); }, 0);
+  var scVals = Object.keys(bbNutritionState.scores).map(function (k) { return bbNutritionState.scores[k]; });
+  var avgScore = scVals.length ? (scVals.reduce(function (a, b) { return a + b; }, 0) / scVals.length).toFixed(1) : '—';
+  var cg = bbNutritionState.goals.cal || 2000;
+  var pg = bbNutritionState.goals.pro || 150;
+  var sumEl = document.getElementById('dailyNutritionSummary');
+  if (sumEl) sumEl.style.display = 'block';
+  var el;
+  if (el = document.getElementById('nutriTotCal')) el.textContent = String(totCal);
+  if (el = document.getElementById('nutriTotPro')) el.textContent = totPro + 'g';
+  if (el = document.getElementById('nutriTotCarb')) el.textContent = totCarb + 'g';
+  if (el = document.getElementById('nutriTotFat')) el.textContent = totFat + 'g';
+  if (el = document.getElementById('nutriTotScore')) el.textContent = avgScore;
+  var calPct = Math.min(100, Math.round((totCal / cg) * 100));
+  var proPct = Math.min(100, Math.round((totPro / pg) * 100));
+  if (el = document.getElementById('nutriPbCal')) el.style.width = calPct + '%';
+  if (el = document.getElementById('nutriPbPro')) el.style.width = proPct + '%';
+  if (el = document.getElementById('nutriPpCal')) el.textContent = calPct + '%';
+  if (el = document.getElementById('nutriPpPro')) el.textContent = proPct + '%';
+}
+
+function nutritionApplyEnergyRow(statsNorm) {
+  var row = document.getElementById('nutriEnergyRow');
+  var valEl = document.getElementById('nutriEnergyVal');
+  if (!row || !valEl || !statsNorm) return;
+  var ed = statsNorm.energyDifference;
+  if (ed == null && statsNorm.energy_difference != null) ed = statsNorm.energy_difference;
+  if (ed == null) { row.style.display = 'none'; return; }
+  ed = Number(ed);
+  row.style.display = 'flex';
+  valEl.textContent = (ed >= 0 ? '+' : '') + ed + ' kcal';
+  valEl.className = 'nutri-energy-val' + (ed < 0 ? ' surplus' : '');
+}
+
+async function nutritionAnalyzeSingle(mt, opts) {
+  opts = opts || {};
+  var autoNotify = opts.autoNotifyOnComplete !== false;
+  if (!window.currentUser || !window.currentUser.id) {
+    nutritionShowToast('Sign in required', 'error');
+    return;
+  }
+  var photo = bbNutritionState.photos[mt];
+  var noteEl = document.getElementById('note-' + mt);
+  var note = noteEl ? noteEl.value.trim() : '';
+  if (!photo && !note) {
+    nutritionShowToast('Add a photo or a short description', 'warn');
+    return;
+  }
+  var btn = document.querySelector('#mslot-' + mt + ' .analyze-single-btn');
+  var spin = document.getElementById('spin-' + mt);
+  if (btn) btn.disabled = true;
+  if (spin) spin.style.display = 'inline-block';
+  nutritionSetBadge(mt, 'Analyzing…', 'analyzing');
+  var slot = document.getElementById('mslot-' + mt);
+  if (slot) slot.classList.add('uploading');
+  var body = {
+    imageBase64: photo || null,
+    mimeType: bbNutritionState.mimes[mt] || 'image/jpeg',
+    mealType: mt,
+    portionSize: bbNutritionState.portions[mt] || 'medium',
+    manualNote: note,
+    autoNotifyOnComplete: autoNotify
+  };
+  var data = await apiCall('POST', '/api/nutrition/analyze', body);
+  if (data && data.error) {
+    nutritionSetBadge(mt, 'Error', 'error');
+    nutritionShowToast(data.error, 'error');
+    if (btn) btn.disabled = false;
+    if (spin) spin.style.display = 'none';
+    if (slot) slot.classList.remove('uploading');
+    return;
+  }
+  bbNutritionState.results[mt] = data.aiResult;
+  bbNutritionState.scores[mt] = data.mealScore;
+  var ds = bbNutritionDailyStatsNorm(data.dailyStats);
+  if (ds && ds.calorieGoal != null) bbNutritionState.goals.cal = ds.calorieGoal;
+  if (ds && ds.proteinGoal != null) bbNutritionState.goals.pro = ds.proteinGoal;
+  nutritionRenderMealResult(mt, data.aiResult, data.mealScore);
+  nutritionUpdateSummaryFromState();
+  nutritionApplyEnergyRow(ds);
+  var conf = (data.aiResult && data.aiResult.confidence || '').toLowerCase();
+  nutritionSetBadge(mt, conf ? ('✓ ' + conf) : 'Logged', 'analyzed');
+  if (slot) {
+    slot.classList.remove('uploading');
+    slot.classList.add('analyzed');
+    if (conf === 'low') slot.classList.add('low-conf');
+    else slot.classList.remove('low-conf');
+  }
+  if (conf === 'low') nutritionShowToast('Low confidence — consider a clearer photo', 'warn');
+  else nutritionShowToast('Saved: ' + mt, 'success');
+  if (data.streak != null) {
+    var sb = document.getElementById('nutritionStreakBar');
+    var sc = document.getElementById('nutritionStreakCount');
+    if (sb && sc) {
+      sc.textContent = String(data.streak);
+      sb.style.display = data.streak > 0 ? 'flex' : 'none';
+    }
+  }
+  if (btn) btn.disabled = false;
+  if (spin) spin.style.display = 'none';
+}
+
+async function nutritionSubmitAllMeals() {
+  if (!window.currentUser || !window.currentUser.id) return;
+  var ymd = nutritionTodayYmd();
+  var pending = bbNutritionMeals.filter(function (m) {
+    var n = document.getElementById('note-' + m);
+    var has = bbNutritionState.photos[m] || (n && n.value.trim());
+    return has && !bbNutritionState.results[m];
+  });
+  var sub = document.getElementById('submitAllBtn');
+  if (pending.length) {
+    if (sub) { sub.disabled = true; sub.textContent = 'Analyzing…'; }
+    for (var i = 0; i < pending.length; i++) {
+      await nutritionAnalyzeSingle(pending[i], { autoNotifyOnComplete: false });
+    }
+    if (sub) { sub.disabled = false; sub.textContent = 'Submit all & send report'; }
+  }
+  var anyMeal = bbNutritionMeals.some(function (m) { return !!bbNutritionState.results[m]; });
+  if (!anyMeal) {
+    nutritionShowToast('Log at least one meal first', 'warn');
+    return;
+  }
+  var res = await apiCall('POST', '/api/nutrition/notify', { date: ymd });
+  if (res && res.error) nutritionShowToast(res.error, 'error');
+  else nutritionShowToast('Report sent to email & inbox', 'success');
+}
+
+async function loadNutritionCheckinPanel() {
+  if (!window.currentUser || !window.currentUser.id) return;
+  nutritionEnsureMealGrid();
+  var ymd = nutritionTodayYmd();
+  var uid = window.currentUser.id;
+  var data = await apiCall('GET', '/api/nutrition/log/' + encodeURIComponent(uid) + '/' + ymd);
+  if (data && data.error) return;
+  bbNutritionState.photos = {};
+  bbNutritionState.mimes = {};
+  bbNutritionState.results = {};
+  bbNutritionState.scores = {};
+  bbNutritionState.portions = { breakfast: 'medium', lunch: 'medium', snack: 'medium', dinner: 'medium' };
+  bbNutritionMeals.forEach(function (mt) {
+    nutritionRemovePhoto(mt);
+    var ne = document.getElementById('note-' + mt);
+    if (ne) ne.value = '';
+    var man = document.getElementById('manual-' + mt);
+    if (man) man.style.display = 'none';
+    var resEl = document.getElementById('result-' + mt);
+    if (resEl) { resEl.style.display = 'none'; resEl.innerHTML = ''; }
+    nutritionSetPortion(mt, bbNutritionState.portions[mt] || 'medium');
+  });
+  var meals = data.meals || [];
+  meals.forEach(function (m) {
+    var mt = m.meal_type;
+    if (!mt) return;
+    var ar = bbParseNutritionAi(m.ai_result);
+    if (ar) {
+      bbNutritionState.results[mt] = ar;
+      if (m.meal_score != null) bbNutritionState.scores[mt] = Number(m.meal_score);
+      nutritionRenderMealResult(mt, ar, m.meal_score);
+      nutritionSetBadge(mt, 'Logged', 'analyzed');
+      var slot = document.getElementById('mslot-' + mt);
+      if (slot) {
+        slot.classList.add('analyzed');
+        if ((ar.confidence || '').toLowerCase() === 'low') slot.classList.add('low-conf');
+      }
+    }
+    if (m.manual_note && document.getElementById('note-' + mt)) {
+      document.getElementById('note-' + mt).value = m.manual_note;
+    }
+    if (m.portion_size) nutritionSetPortion(mt, m.portion_size);
+    if (m.photo_data) {
+      var mime = m.photo_mime || 'image/jpeg';
+      var url = 'data:' + mime + ';base64,' + m.photo_data;
+      bbNutritionState.photos[mt] = m.photo_data;
+      bbNutritionState.mimes[mt] = mime;
+      var img = document.getElementById('previewImg-' + mt);
+      var prev = document.getElementById('preview-' + mt);
+      var up = document.getElementById('upload-' + mt);
+      if (img) img.src = url;
+      if (prev) prev.style.display = 'block';
+      if (up) up.style.display = 'none';
+      var por = document.getElementById('portion-' + mt);
+      var act = document.getElementById('actions-' + mt);
+      if (por) por.style.display = 'block';
+      if (act) act.style.display = 'block';
+    }
+  });
+  var ds = bbNutritionDailyStatsNorm(data.dailyStats);
+  if (ds && ds.calorieGoal != null) bbNutritionState.goals.cal = ds.calorieGoal;
+  if (ds && ds.proteinGoal != null) bbNutritionState.goals.pro = ds.proteinGoal;
+  nutritionUpdateSummaryFromState();
+  nutritionApplyEnergyRow(ds);
+  if (data.streak != null) {
+    var sb = document.getElementById('nutritionStreakBar');
+    var sc = document.getElementById('nutritionStreakCount');
+    if (sb && sc) {
+      sc.textContent = String(data.streak);
+      sb.style.display = data.streak > 0 ? 'flex' : 'none';
+    }
+  }
+}
+
+function loadAdminNutritionReport() {
+  if (!window.currentUser || (window.currentUser.role !== 'admin' && window.currentUser.role !== 'superadmin')) return;
+  var dEl = document.getElementById('adminNutritionReportDate');
+  if (dEl && !dEl.value) dEl.value = nutritionTodayYmd();
+  var date = dEl ? dEl.value : nutritionTodayYmd();
+  var banner = document.getElementById('adminNutritionBanner');
+  var list = document.getElementById('adminNutritionClientList');
+  if (banner) banner.innerHTML = '<p class="form-hint">Loading…</p>';
+  if (list) list.innerHTML = '';
+  fetch((typeof API !== 'undefined' ? API : '') + '/api/nutrition/admin/report?date=' + encodeURIComponent(date), {
+    headers: { Authorization: 'Bearer ' + (window.currentUser && window.currentUser.token ? window.currentUser.token : '') }
+  })
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, data: j }; }); })
+    .then(function (res) {
+      var data = res.data;
+      if (!res.ok || !data || data.error) {
+        if (banner) banner.innerHTML = '<p class="form-hint" style="color:#e05050">' + escapeHtml(data && data.error ? data.error : (!res.ok ? 'Request failed' : 'Failed')) + '</p>';
+        return;
+      }
+      var agg = data.aggregate || {};
+      if (banner) {
+        banner.innerHTML =
+          '<div class="admin-nutrition-stat"><div class="lbl">Meals today</div><div class="val" style="color:var(--bb-green)">' + escapeHtml(String(agg.totalMeals || 0)) + '</div>' +
+          '<div class="sub">' + escapeHtml(String(agg.clientsLogged || 0)) + ' clients</div></div>' +
+          '<div class="admin-nutrition-stat"><div class="lbl">Avg kcal</div><div class="val" style="color:var(--bb-orange)">' + escapeHtml(String(agg.avgCalories || 0)) + '</div><div class="sub">per client</div></div>' +
+          '<div class="admin-nutrition-stat"><div class="lbl">Avg meal score</div><div class="val" style="color:var(--bb-purple)">' + escapeHtml(String(agg.avgMealScore != null ? agg.avgMealScore : '—')) + '</div><div class="sub">/10</div></div>' +
+          '<div class="admin-nutrition-stat"><div class="lbl">Avg energy diff</div><div class="val" style="color:' + ((agg.avgEnergyDiff || 0) >= 0 ? 'var(--bb-green)' : 'var(--bb-red)') + '">' +
+          escapeHtml(String((agg.avgEnergyDiff || 0) >= 0 ? '+' : '') + (agg.avgEnergyDiff || 0)) + '</div><div class="sub">burn − intake</div></div>';
+      }
+      var clients = data.clients || [];
+      if (!list) return;
+      if (!clients.length) {
+        list.innerHTML = '<p class="form-hint" style="text-align:center;padding:2rem">No nutrition data for this date.</p>';
+        var ww = document.getElementById('adminNutritionWeekWrap');
+        if (ww) ww.style.display = 'none';
+        return;
+      }
+      list.innerHTML = clients.map(function (c) {
+        var stats = c.dailyStats;
+        var sn = stats ? bbNutritionDailyStatsNorm(stats) : null;
+        var energyDiff = sn && sn.energyDifference != null ? Number(sn.energyDifference) : null;
+        var score = sn && sn.mealQualityScore != null ? Number(sn.mealQualityScore) : null;
+        var scoreColor = score == null ? 'var(--bb-border)' : score >= 7 ? 'var(--bb-green)' : score >= 5 ? 'var(--bb-orange)' : 'var(--bb-red)';
+        var initials = (c.userName || '?').split(/\s+/).map(function (x) { return x[0]; }).join('').slice(0, 2).toUpperCase();
+        var mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'];
+        var mealMap = {};
+        (c.meals || []).forEach(function (m) { mealMap[m.meal_type] = m; });
+        var thumbs = mealTypes.map(function (type) {
+          var meal = mealMap[type];
+          var ar = meal ? bbParseNutritionAi(meal.ai_result) : null;
+          var low = ar && (ar.confidence || '').toLowerCase() === 'low';
+          var hasPhoto = meal && meal.photo_data;
+          var inner = hasPhoto
+            ? '<img src="data:' + escapeHtml(meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data + '" alt=""/>'
+            : '<div class="ph">' + (meal ? 'Text' : '—') + '</div>';
+          return '<div class="admin-nutrition-thumb' + (meal ? ' logged' : '') + (low ? ' low-conf' : '') + '">' + inner +
+            '<div class="lbl">' + escapeHtml(type) + (ar && ar.calories != null ? ' · ' + ar.calories + ' kcal' : '') + '</div></div>';
+        }).join('');
+        var macroRow = sn
+          ? '<div class="admin-nutrition-macros">' +
+            '<span class="admin-nutrition-mchip" style="background:rgba(230,126,34,0.15);color:var(--bb-orange)">' + (sn.totalCalories || 0) + ' kcal</span>' +
+            '<span class="admin-nutrition-mchip" style="background:rgba(46,204,113,0.12);color:var(--bb-green)">' + (sn.totalProtein || 0) + 'g protein</span>' +
+            '<span class="admin-nutrition-mchip" style="background:rgba(200,164,78,0.15);color:var(--bb-gold)">' + (sn.totalCarbs || 0) + 'g carbs</span>' +
+            '<span class="admin-nutrition-mchip" style="background:rgba(192,57,43,0.12);color:var(--bb-red)">' + (sn.totalFat || 0) + 'g fat</span></div>'
+          : '<p class="form-hint">No aggregated stats</p>';
+        var energyHtml = energyDiff != null
+          ? '<p class="form-hint" style="margin-bottom:10px"><strong>Energy (burn − intake):</strong> ' + (energyDiff >= 0 ? '+' : '') + energyDiff + ' kcal</p>'
+          : '';
+        var uidEsc = String(c.userId || '').replace(/"/g, '&quot;');
+        return '<div class="admin-nutrition-client-card">' +
+          '<div class="admin-nutrition-client-head">' +
+          '<div class="admin-nutrition-avatar">' + escapeHtml(initials) + '</div>' +
+          '<div class="info"><div class="name">' + escapeHtml(c.userName || '') + '</div>' +
+          '<div class="meta">' + escapeHtml(c.userEmail || '') + ' · Target ' + (sn && sn.calorieGoal != null ? sn.calorieGoal + ' kcal' : '—') + '</div></div>' +
+          '<div class="admin-nutrition-score-ring" style="border-color:' + scoreColor + '">' +
+          '<span style="font-weight:700;color:' + scoreColor + '">' + (score != null ? score.toFixed(1) : '—') + '</span><span style="font-size:8px;color:var(--muted)">score</span></div></div>' +
+          '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' + macroRow + energyHtml +
+          '<div class="admin-nutrition-actions">' +
+          '<button type="button" class="btn" onclick="adminNutritionAnalyzeAll(\'' + uidEsc + '\')">Re-run AI</button>' +
+          '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'both\')">Email + inbox</button>' +
+          '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'email\')">Email only</button>' +
+          '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'message\')">Inbox only</button>' +
+          '<button type="button" class="btn" onclick="adminNutritionViewLog(\'' + uidEsc + '\')">View log</button></div>' +
+          (c.notified ? '<p class="form-hint" style="margin-top:8px">Notified today ✓</p>' : '') +
+          '</div>';
+      }).join('');
+      adminNutritionDrawWeekChart(clients[0] && clients[0].userId, date);
+    })
+    .catch(function () {
+      if (banner) banner.innerHTML = '<p class="form-hint" style="color:#e05050">Network error</p>';
+    });
+}
+
+function adminNutritionDrawWeekChart(userId, endDate) {
+  var wrap = document.getElementById('adminNutritionWeekWrap');
+  var canvas = document.getElementById('adminNutritionWeekChart');
+  if (!wrap || !canvas || !userId || typeof Chart === 'undefined') {
+    if (wrap) wrap.style.display = 'none';
+    return;
+  }
+  fetch((typeof API !== 'undefined' ? API : '') + '/api/nutrition/report/' + encodeURIComponent(userId) + '?date=' + encodeURIComponent(endDate), {
+    headers: { Authorization: 'Bearer ' + (window.currentUser && window.currentUser.token ? window.currentUser.token : '') }
+  })
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, rep: j }; }); })
+    .then(function (x) {
+      if (!x.ok) {
+        if (wrap) wrap.style.display = 'none';
+        return;
+      }
+      var rep = x.rep;
+      var days = (rep && rep.days) || [];
+      if (!days.length) {
+        wrap.style.display = 'none';
+        return;
+      }
+      wrap.style.display = 'block';
+      if (adminNutritionWeekChartInst) {
+        adminNutritionWeekChartInst.destroy();
+        adminNutritionWeekChartInst = null;
+      }
+      var labels = days.map(function (d) {
+        var s = String(d.stat_date || '').slice(0, 10);
+        var p = s.split('-');
+        return p.length === 3 ? p[1] + '/' + p[2] : s;
+      });
+      var cals = days.map(function (d) { return parseInt(d.total_calories, 10) || 0; });
+      adminNutritionWeekChartInst = new Chart(canvas.getContext('2d'), {
+        type: 'bar',
+        data: { labels: labels, datasets: [{ label: 'kcal', data: cals, backgroundColor: 'rgba(200,164,78,0.45)', borderColor: 'rgba(200,164,78,0.9)', borderWidth: 1 }] },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { labels: { color: '#bfb9ab' } } },
+          scales: {
+            x: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+            y: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,0.06)' }, beginAtZero: true }
+          }
+        }
+      });
+    })
+    .catch(function () {
+      if (wrap) wrap.style.display = 'none';
+    });
+}
+
+async function adminNutritionAnalyzeAll(userId) {
+  var dEl = document.getElementById('adminNutritionReportDate');
+  var date = dEl && dEl.value ? dEl.value : nutritionTodayYmd();
+  if (typeof nutritionShowToast === 'function') nutritionShowToast('Re-analyzing meals…', 'warn');
+  var res = await apiCall('POST', '/api/nutrition/analyze-all/' + encodeURIComponent(userId), { date: date });
+  if (res && res.error) {
+    if (typeof showPopup === 'function') showPopup('Re-run AI', res.error, '', 'OK', null, 'error');
+    else alert(res.error);
+    return;
+  }
+  var n = res && res.analyzed != null ? res.analyzed : 0;
+  var errN = res && res.errors && res.errors.length ? res.errors.length : 0;
+  if (typeof nutritionShowToast === 'function') nutritionShowToast('Updated ' + n + ' meal(s)' + (errN ? ' (' + errN + ' errors)' : ''), errN ? 'warn' : 'success');
+  loadAdminNutritionReport();
+}
+
+async function adminNutritionNotify(userId, channel) {
+  var dEl = document.getElementById('adminNutritionReportDate');
+  var date = dEl && dEl.value ? dEl.value : nutritionTodayYmd();
+  var res = await apiCall('POST', '/api/nutrition/notify', { userId: userId, date: date, channel: channel || 'both' });
+  if (res && res.error) {
+    if (typeof showPopup === 'function') showPopup('Notify failed', res.error, '', 'OK', null, 'error');
+    else alert(res.error);
+    return;
+  }
+  nutritionShowToast('Sent', 'success');
+  loadAdminNutritionReport();
+}
+
+async function adminNutritionViewLog(userId) {
+  var dEl = document.getElementById('adminNutritionReportDate');
+  var date = dEl && dEl.value ? dEl.value : nutritionTodayYmd();
+  var data = await apiCall('GET', '/api/nutrition/log/' + encodeURIComponent(userId) + '/' + date);
+  if (data && data.error) {
+    if (typeof showPopup === 'function') showPopup('Log', data.error, '', 'OK');
+    return;
+  }
+  var lines = (data.meals || []).map(function (m) {
+    var ar = bbParseNutritionAi(m.ai_result) || {};
+    return (m.meal_type || '') + ': ' + (ar.dish || '') + ' — ' + (ar.calories != null ? ar.calories + ' kcal' : '');
+  });
+  if (typeof showPopup === 'function') showPopup('Meals ' + date, lines.join('\n') || 'No meals', '', 'OK');
+  else alert(lines.join('\n'));
+}
+
+function exportAdminNutritionCsv() {
+  if (!window.currentUser || !window.currentUser.token) return;
+  var dEl = document.getElementById('adminNutritionReportDate');
+  var date = dEl && dEl.value ? dEl.value : nutritionTodayYmd();
+  var url = (typeof API !== 'undefined' ? API : '') + '/api/nutrition/admin/export?date=' + encodeURIComponent(date);
+  fetch(url, { headers: { Authorization: 'Bearer ' + window.currentUser.token } })
+    .then(function (r) {
+      if (!r.ok) throw new Error('Export failed');
+      return r.blob();
+    })
+    .then(function (blob) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'nutrition-' + date + '.csv';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    })
+    .catch(function () {
+      if (typeof showPopup === 'function') showPopup('Export', 'Could not download CSV.', '', 'OK', null, 'error');
+    });
 }
 
 // Push notifications (opt-in) — mobile + desktop copies; always refresh status even if micro-goals fail

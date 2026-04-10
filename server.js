@@ -10,7 +10,9 @@ const fs = require('fs');
 const webPush = require('web-push');
 const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken } = require('./middleware/auth');
 const progressRoutes = require('./routes/progress');
+const { createNutritionRouter, runWeeklyNutritionEmailJob } = require('./routes/nutrition');
 const { createMarketingAIRouter } = require('./routes/marketingAI');
+const cron = require('node-cron');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
 const workoutSessionLifts = require('./services/workoutSessionLifts');
@@ -517,6 +519,46 @@ async function initDB() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_user_date ON daily_checkins(user_id, checkin_date)`); } catch (e) { /* ignore */ }
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS nutrition_meal_logs (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    log_date DATE NOT NULL,
+    meal_type TEXT NOT NULL,
+    photo_data TEXT,
+    photo_mime TEXT,
+    manual_note TEXT,
+    portion_size TEXT DEFAULT 'medium',
+    ai_result JSONB NOT NULL DEFAULT '{}'::jsonb,
+    meal_score INTEGER,
+    submitted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    notified_at TIMESTAMPTZ
+  )`);
+  try {
+    await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_nutrition_meal_user_date_type ON nutrition_meal_logs(user_id, log_date, meal_type)`);
+  } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_nutrition_meal_logs_date ON nutrition_meal_logs(log_date)`); } catch (e) { /* ignore */ }
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS nutrition_daily_stats (
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    stat_date DATE NOT NULL,
+    total_calories INTEGER DEFAULT 0,
+    total_protein INTEGER DEFAULT 0,
+    total_carbs INTEGER DEFAULT 0,
+    total_fat INTEGER DEFAULT 0,
+    total_fiber INTEGER DEFAULT 0,
+    calorie_goal INTEGER,
+    protein_goal INTEGER,
+    meals_logged INTEGER DEFAULT 0,
+    calories_out INTEGER DEFAULT 0,
+    energy_difference INTEGER,
+    weekly_avg_calories REAL,
+    weekly_avg_protein REAL,
+    meal_quality_score REAL,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, stat_date)
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_nutrition_daily_stats_date ON nutrition_daily_stats(stat_date)`); } catch (e) { /* ignore */ }
 
   // Push notification subscriptions
   await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
@@ -4493,6 +4535,17 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
 
 // ============ CLIENT PROGRESS ANALYTICS (JWT-protected) ============
 app.use('/api/progress', progressRoutes);
+app.use(
+  '/api/nutrition',
+  createNutritionRouter({
+    run,
+    queryOne,
+    queryAll,
+    verifyToken,
+    requireAdminOrSuperadmin,
+    rateLimiter
+  })
+);
 app.use('/api/marketing-ai', createMarketingAIRouter({ run, queryAll }));
 app.get('/api/admin/user-progress/:userId', (req, res, next) => {
   if (NODE_ENV === 'development' && (!req.headers.authorization || !String(req.headers.authorization).startsWith('Bearer '))) {
@@ -4943,6 +4996,11 @@ app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
 }));
 
+// Deep link into SPA admin Nutrition tab (bookmark / share)
+app.get(['/admin/nutrition-report', '/admin/nutrition-report/'], (req, res) => {
+  res.redirect(302, '/?adminNutrition=1');
+});
+
 // Public programs list (used by Admin "Assign Program" tab)
 // Kept very simple and safe: just returns id, name and PDF URL.
 app.get('/api/programs', async (req, res) => {
@@ -4988,6 +5046,21 @@ app.listen(PORT, '0.0.0.0', () => {
       console.log('⏸ Campaign scheduler is ON HOLD (CAMPAIGNS_ENABLED=false)');
     }
     startEmailScheduler({ queryAll });
+
+    try {
+      cron.schedule(
+        '0 8 * * 0',
+        () => {
+          runWeeklyNutritionEmailJob({ queryAll, queryOne, run }).catch((e) =>
+            console.warn('[nutrition] Weekly cron error:', e.message)
+          );
+        },
+        { timezone: 'Asia/Kolkata' }
+      );
+      console.log('✅ Nutrition weekly email cron scheduled (Sun 08:00 Asia/Kolkata)');
+    } catch (e) {
+      console.warn('Nutrition cron schedule skipped:', e.message);
+    }
   }).catch(err => {
     console.error('Failed to init DB:', err);
     process.exit(1);

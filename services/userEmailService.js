@@ -458,6 +458,82 @@ function emailWeeklyDigest(email, firstName, lines) {
   });
 }
 
+/** Dark-card HTML nutrition day report (matches Nutrition AI feature). */
+async function emailNutritionDayReport(email, firstName, payload) {
+  if (!isConfigured() || !email) return false;
+  const name = firstName || 'there';
+  const { formattedDate, stats, meals, energyDiff } = payload;
+  const s = stats || {};
+  const mealRows = (meals || [])
+    .map((m) => {
+      const ar = m.aiResult || {};
+      const mt = String(m.mealType || '').replace(/^\w/, (c) => c.toUpperCase());
+      return `<div style="border-bottom:1px solid #1e2328;padding:12px 0">
+  <div style="font-weight:600;margin-bottom:4px">${escapeHtml(mt)}: ${escapeHtml(ar.dish || '—')}</div>
+  <div style="font-size:12px;color:#8a8880">${escapeHtml(String(ar.calories ?? '—'))} kcal · ${escapeHtml(String(ar.protein ?? '—'))}g protein · ${escapeHtml(String(ar.carbs ?? '—'))}g carbs · ${escapeHtml(String(ar.fat ?? '—'))}g fat · Score: ${escapeHtml(String(m.mealScore ?? '—'))}/10</div>
+</div>`;
+    })
+    .join('');
+
+  const ed =
+    energyDiff != null && Number.isFinite(Number(energyDiff))
+      ? `<div style="background:${Number(energyDiff) >= 0 ? 'rgba(61,214,140,0.1)' : 'rgba(255,92,92,0.1)'};border:1px solid ${Number(energyDiff) >= 0 ? 'rgba(61,214,140,0.25)' : 'rgba(255,92,92,0.25)'};border-radius:10px;padding:16px;margin-bottom:24px">
+  <div style="font-size:12px;color:#8a8880;margin-bottom:4px">ENERGY DIFFERENCE (Burned − Intake)</div>
+  <div style="font-size:24px;font-weight:700;color:${Number(energyDiff) >= 0 ? '#3dd68c' : '#ff5c5c'}">${Number(energyDiff) >= 0 ? '+' : ''}${escapeHtml(String(energyDiff))} kcal</div>
+</div>`
+      : '';
+
+  const inner = `<div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;background:#0d0f11;color:#f0ede8;padding:32px;border-radius:16px">
+  <h2 style="color:#3dd68c;margin-bottom:4px">BodyBank Nutrition Report</h2>
+  <p style="color:#8a8880;margin-bottom:24px">${escapeHtml(formattedDate || '')}</p>
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
+    <div style="background:#161a1e;border-radius:10px;padding:14px;text-align:center"><div style="font-size:11px;color:#8a8880;margin-bottom:4px">CALORIES</div><div style="font-size:22px;font-weight:700;color:#f5a623">${escapeHtml(String(s.totalCalories ?? '—'))}</div></div>
+    <div style="background:#161a1e;border-radius:10px;padding:14px;text-align:center"><div style="font-size:11px;color:#8a8880;margin-bottom:4px">PROTEIN</div><div style="font-size:22px;font-weight:700;color:#3dd68c">${escapeHtml(String(s.totalProtein ?? '—'))}g</div></div>
+    <div style="background:#161a1e;border-radius:10px;padding:14px;text-align:center"><div style="font-size:11px;color:#8a8880;margin-bottom:4px">CARBS</div><div style="font-size:22px;font-weight:700;color:#4da6ff">${escapeHtml(String(s.totalCarbs ?? '—'))}g</div></div>
+    <div style="background:#161a1e;border-radius:10px;padding:14px;text-align:center"><div style="font-size:11px;color:#8a8880;margin-bottom:4px">FAT</div><div style="font-size:22px;font-weight:700;color:#ff5c5c">${escapeHtml(String(s.totalFat ?? '—'))}g</div></div>
+  </div>
+  ${ed}
+  ${mealRows}
+  <div style="margin-top:24px;background:#161a1e;border-radius:10px;padding:14px">
+    <div style="font-size:11px;color:#8a8880;margin-bottom:4px">MEAL QUALITY SCORE</div>
+    <div style="font-size:28px;font-weight:700;color:#3dd68c">${escapeHtml(String(s.mealQualityScore ?? '—'))}/10</div>
+  </div>
+</div>`;
+
+  const html = luxuryWrap({
+    title: 'Your nutrition report',
+    preheader: `Macros for ${formattedDate || 'today'}.`,
+    lead: `Dear ${name},`,
+    bodyHtml: inner,
+    ctaLabel: 'Open BodyBank',
+    ctaUrl: APP_BASE + '/'
+  });
+  return sendMail(email, `Your BodyBank Nutrition Report — ${formattedDate || ''}`, html);
+}
+
+async function emailNutritionWeeklySummary(email, firstName, report) {
+  if (!isConfigured() || !email) return false;
+  const name = firstName || 'there';
+  const r = report || {};
+  const bodyHtml = `<p style="margin:0 0 16px">Here is your 7-day nutrition snapshot from BodyBank AI.</p>
+<ul style="margin:0;padding-left:20px;color:#d4cfc4;line-height:1.8">
+<li>Avg daily calories: <strong>${escapeHtml(String(r.avgCalories ?? '—'))}</strong></li>
+<li>Avg daily protein: <strong>${escapeHtml(String(r.avgProtein ?? '—'))} g</strong></li>
+<li>Avg meal quality score: <strong>${escapeHtml(String(r.avgScore ?? '—'))}/10</strong></li>
+<li>Avg energy difference (burn − intake): <strong>${escapeHtml(String(r.avgEnergyDiff ?? '—'))} kcal</strong></li>
+<li>Days with logged data: <strong>${escapeHtml(String(r.daysLogged ?? '—'))}</strong></li>
+</ul>`;
+  const html = luxuryWrap({
+    title: 'Weekly nutrition overview',
+    preheader: 'Your 7-day BodyBank nutrition summary.',
+    lead: `Dear ${name},`,
+    bodyHtml,
+    ctaLabel: 'Open BodyBank',
+    ctaUrl: APP_BASE + '/'
+  });
+  return sendMail(email, 'Your BodyBank weekly nutrition summary', html);
+}
+
 module.exports = {
   isConfigured,
   sendMail,
@@ -484,5 +560,7 @@ module.exports = {
   emailProgressNudge,
   emailInactiveAttention,
   emailDailyDigest,
-  emailWeeklyDigest
+  emailWeeklyDigest,
+  emailNutritionDayReport,
+  emailNutritionWeeklySummary
 };
