@@ -1,4 +1,5 @@
 node_modules/
+uploads/
 data/*.db
 data/*.bat
 data/*.txt
