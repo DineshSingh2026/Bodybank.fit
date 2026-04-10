@@ -28,6 +28,12 @@ const { writeSundayCheckinPdf, writePart2Pdf } = require('./services/formPdfServ
 const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
 const { startEmailScheduler, getAdminDailyComplianceReportData, sendAdminDailyComplianceReport } = require('./services/emailScheduler');
+const {
+  toDateStr: streakDateToYmd,
+  computeStreakState,
+  todayYmdInTz: streakTodayYmdInTz,
+  STREAK_TZ: STREAK_TIMEZONE
+} = require('./services/streakService');
 
 // ============ CONFIG ============
 const PORT = process.argv[2] || process.env.PORT || 3000;
@@ -1876,7 +1882,7 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
     const b = req.body || {};
     const { steps, protein_g, sleep_hours } = b;
     const waterMl = waterMlFromDailyBody(b);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = streakTodayYmdInTz(STREAK_TIMEZONE) || streakDateToYmd(new Date());
     const existing = await queryOne('SELECT id FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
     if (existing) {
       return res.status(400).json({ error: 'You can only fill the daily check-in once per day.' });
@@ -1906,7 +1912,7 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
 
 app.get('/api/daily-checkin/today', verifyToken, async (req, res) => {
   try {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = streakTodayYmdInTz(STREAK_TIMEZONE) || streakDateToYmd(new Date());
     const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [req.user.id, today]);
     res.json(row ? attachWaterLitersToDailyRow(row) : { checkin_date: today, water_liters: null });
   } catch (e) {
@@ -1921,14 +1927,9 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
       [req.user.id]
     );
     if (!rows || rows.length === 0) {
-      const toDateStr = (val) => {
-        if (!val) return null;
-        if (val instanceof Date) return val.toISOString().slice(0, 10);
-        return String(val).slice(0, 10);
-      };
-      const today = toDateStr(new Date());
+      const today = streakTodayYmdInTz(STREAK_TIMEZONE) || streakDateToYmd(new Date());
       const u = await queryOne('SELECT created_at FROM users WHERE id = ?', [req.user.id]);
-      const createdAtDate = toDateStr(u && u.created_at ? u.created_at : null);
+      const createdAtDate = streakDateToYmd(u && u.created_at ? u.created_at : null);
       let inactiveDays = null;
       if (createdAtDate) {
         inactiveDays = Math.floor((new Date(today + 'T00:00:00Z') - new Date(createdAtDate + 'T00:00:00Z')) / (24 * 60 * 60 * 1000));
@@ -1946,15 +1947,8 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
         inactiveSeverity
       });
     }
-    const toDateStr = (val) => {
-      if (!val) return null;
-      if (val instanceof Date) return val.toISOString().slice(0, 10);
-      return String(val).slice(0, 10);
-    };
-    const today = toDateStr(new Date());
-    const dates = new Set(rows.map(r => toDateStr(r.checkin_date)).filter(Boolean));
-    const todaySaved = dates.has(today);
-    const lastCheckinDate = rows[0] ? toDateStr(rows[0].checkin_date) : null;
+    const { today, todaySaved, streak } = computeStreakState(rows, null);
+    const lastCheckinDate = rows[0] ? streakDateToYmd(rows[0].checkin_date) : null;
     let inactiveDays = todaySaved ? 0 : (lastCheckinDate
       ? Math.floor((new Date(today + 'T00:00:00Z') - new Date(lastCheckinDate + 'T00:00:00Z')) / (24 * 60 * 60 * 1000))
       : null);
@@ -1962,15 +1956,6 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
     const inactiveSeverity = (!todaySaved && inactiveDays != null && inactiveDays >= 5)
       ? 'P0'
       : (!todaySaved && inactiveDays != null && inactiveDays >= 2 ? 'P1' : null);
-    let streak = 0;
-    const d = new Date();
-    if (!todaySaved) d.setDate(d.getDate() - 1);
-    for (let i = 0; i < 365; i++) {
-      const ds = toDateStr(d);
-      if (!dates.has(ds)) break;
-      streak++;
-      d.setDate(d.getDate() - 1);
-    }
     const atRisk = !todaySaved && streak > 0;
     const now = new Date();
     const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);

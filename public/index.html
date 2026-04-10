@@ -8975,20 +8975,27 @@ function drawAdminProgressCharts(data) {
     var d = new Date(raw);
     return isNaN(d.getTime()) ? null : d;
   }
+  function chartYmdFromLog(log) {
+    if (!log || typeof log !== 'object') return '';
+    var c = log.checkin_date;
+    if (c != null && c !== '') {
+      var mm = String(c).match(/^(\d{4}-\d{2}-\d{2})/);
+      if (mm) return mm[1];
+    }
+    var gd = getLogDate(log);
+    if (!gd || isNaN(gd.getTime())) return '';
+    return gd.toISOString().slice(0, 10);
+  }
+  function shortLabelFromYmd(ymd) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || ''));
+    if (!m) return '—';
+    var dt = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+    return isNaN(dt.getTime()) ? String(ymd) : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
   var sorted = (logs || []).slice().sort(function(a,b) {
-    var ad = getLogDate(a);
-    var bd = getLogDate(b);
-    var da = ad ? ad.getTime() : 0;
-    var db = bd ? bd.getTime() : 0;
-    da = isNaN(da) ? 0 : da;
-    db = isNaN(db) ? 0 : db;
-    return da - db;
+    return chartYmdFromLog(a).localeCompare(chartYmdFromLog(b));
   });
-  var labels = sorted.map(function(l) {
-    var d = getLogDate(l);
-    if (!d) return '—';
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  });
+  var labels = sorted.map(function(l) { return shortLabelFromYmd(chartYmdFromLog(l)); });
   var scaleOpts = { ticks: { color: '#666' }, grid: { color: 'rgba(255,255,255,0.06)' } };
   var chartOpts = { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#bfb9ab' } } }, scales: {} };
   if (sorted.filter(function(l) { return l.weight != null; }).length) {
@@ -11207,18 +11214,27 @@ function drawProgressCharts(logs, meta) {
     var d = new Date(raw);
     return isNaN(d.getTime()) ? null : d;
   }
+  function chartYmdFromLog(log) {
+    if (!log || typeof log !== 'object') return '';
+    var c = log.checkin_date;
+    if (c != null && c !== '') {
+      var mm = String(c).match(/^(\d{4}-\d{2}-\d{2})/);
+      if (mm) return mm[1];
+    }
+    var gd = getLogDate(log);
+    if (!gd || isNaN(gd.getTime())) return '';
+    return gd.toISOString().slice(0, 10);
+  }
+  function shortLabelFromYmd(ymd) {
+    var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || ''));
+    if (!m) return '—';
+    var dt = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+    return isNaN(dt.getTime()) ? String(ymd) : dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
   var sorted = (logs || []).slice().sort(function(a,b) {
-    var ad = getLogDate(a);
-    var bd = getLogDate(b);
-    var at = ad ? ad.getTime() : 0;
-    var bt = bd ? bd.getTime() : 0;
-    return at - bt;
+    return chartYmdFromLog(a).localeCompare(chartYmdFromLog(b));
   });
-  var labels = sorted.map(function(l) {
-    var d = getLogDate(l);
-    if (!d) return '—';
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-  });
+  var labels = sorted.map(function(l) { return shortLabelFromYmd(chartYmdFromLog(l)); });
   var chartOpts = { responsive: true, maintainAspectRatio: true, plugins: { legend: { labels: { color: '#bfb9ab' } } }, scales: {} };
   var scaleOpts = { ticks: { color: '#666' }, grid: { color: 'rgba(255,255,255,0.06)' } };
 

@@ -23,6 +23,24 @@ function normalizeBodyFatPercent(value) {
   return Math.round(n * 100) / 100;
 }
 
+/**
+ * Postgres DATE / TIMESTAMP (node-pg → Date) and ISO-ish strings → YYYY-MM-DD merge key.
+ * Never use String(date).slice(0, 10) — that yields "Wed Apr 01" and breaks timelines.
+ */
+function toYmdKey(val) {
+  if (val == null || val === '') return '';
+  if (val instanceof Date) {
+    if (Number.isNaN(val.getTime())) return '';
+    return val.toISOString().slice(0, 10);
+  }
+  const s = String(val).trim();
+  const head = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (head) return head[1];
+  const t = Date.parse(s);
+  if (!Number.isNaN(t)) return new Date(t).toISOString().slice(0, 10);
+  return '';
+}
+
 async function insertProgress(userId, data) {
   const {
     log_date,
@@ -158,7 +176,7 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
   const byDate = {};
 
   progressLogs.forEach((row) => {
-    const d = (row.created_at ? String(row.created_at) : '').slice(0, 10);
+    const d = toYmdKey(row.created_at);
     if (!d) return;
     byDate[d] = {
       created_at: row.created_at,
@@ -179,7 +197,7 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
   });
 
   (dailyCheckins || []).forEach((row) => {
-    const d = (row.checkin_date ? String(row.checkin_date) : '').slice(0, 10);
+    const d = toYmdKey(row.checkin_date);
     if (!d) return;
     const base = byDate[d] || { created_at: d + 'T12:00:00', weight: null, body_fat: null, calories_intake: null, protein_intake: null, workout_completed: false, workout_type: null, strength_bench: null, strength_squat: null, strength_deadlift: null, sleep_hours: null, water_intake: null, steps: null };
     if (row.steps != null) base.steps = parseInt(row.steps, 10);
@@ -190,7 +208,7 @@ function mergeLogs(progressLogs, dailyCheckins, sundayCheckins) {
   });
 
   (sundayCheckins || []).forEach((row) => {
-    const d = (row.created_at ? String(row.created_at) : '').slice(0, 10);
+    const d = toYmdKey(row.created_at);
     if (!d) return;
     const base = byDate[d] || { created_at: row.created_at || d + 'T12:00:00', weight: null, body_fat: null, calories_intake: null, protein_intake: null, workout_completed: false, workout_type: null, strength_bench: null, strength_squat: null, strength_deadlift: null, sleep_hours: null, water_intake: null, steps: null };
     const w = parseWeightFromText(row.current_weight_waist_week || row.last_week_weight_waist);
@@ -251,15 +269,12 @@ function mergeWorkoutSessionsIntoLogs(baseLogs, workoutRows) {
   if (!workoutRows || !workoutRows.length) return baseLogs || [];
   const byDate = {};
   (baseLogs || []).forEach((row) => {
-    const d = row.checkin_date || (row.created_at ? String(row.created_at).slice(0, 10) : '');
+    const d = toYmdKey(row.checkin_date) || toYmdKey(row.created_at);
     if (d) byDate[d] = { ...row };
   });
   const byDaySessions = {};
   workoutRows.forEach((w) => {
-    let raw = w.session_date || (w.created_at ? String(w.created_at).slice(0, 10) : '');
-    if (raw instanceof Date) raw = raw.toISOString().slice(0, 10);
-    else raw = String(raw || '').slice(0, 10);
-    const d = raw.slice(0, 10);
+    const d = toYmdKey(w.session_date) || toYmdKey(w.created_at);
     if (!d) return;
     if (!byDaySessions[d]) byDaySessions[d] = [];
     byDaySessions[d].push(w);
@@ -327,9 +342,7 @@ function weeklyCompletedSessions(workoutRows) {
   (workoutRows || []).forEach((w) => {
     const done = w.workout_completed === true || w.workout_completed === 1 || w.workout_completed === 't';
     if (!done) return;
-    let raw = w.session_date || (w.created_at ? String(w.created_at).slice(0, 10) : '');
-    if (raw instanceof Date) raw = raw.toISOString().slice(0, 10);
-    else raw = String(raw || '').slice(0, 10);
+    const raw = toYmdKey(w.session_date) || toYmdKey(w.created_at);
     if (!raw || !/^\d{4}-\d{2}-\d{2}$/.test(raw)) return;
     const [y, mo, day] = raw.split('-').map((x) => parseInt(x, 10));
     const d = new Date(y, mo - 1, day);

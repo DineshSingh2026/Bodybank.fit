@@ -1,12 +1,58 @@
 const db = require('../config/db');
 
+/** Bodybank product default: compare “today” to calendar check-in dates in IST. */
+const STREAK_TZ = 'Asia/Kolkata';
+
 /**
- * Normalize DB date / Date → YYYY-MM-DD (UTC calendar day), matching /api/daily-checkin/streak.
+ * Normalize DB date / Date → YYYY-MM-DD (never String(date).slice — pg Date → "Wed Apr 01…").
  */
 function toDateStr(val) {
   if (val == null || val === '') return null;
-  if (val instanceof Date) return val.toISOString().slice(0, 10);
-  return String(val).slice(0, 10);
+  if (val instanceof Date) {
+    if (Number.isNaN(val.getTime())) return null;
+    return val.toISOString().slice(0, 10);
+  }
+  const s = String(val).trim();
+  const m = s.match(/^(\d{4}-\d{2}-\d{2})/);
+  if (m) return m[1];
+  const t = Date.parse(s);
+  if (!Number.isNaN(t)) return new Date(t).toISOString().slice(0, 10);
+  return null;
+}
+
+function todayYmdInTz(timeZone) {
+  try {
+    const s = new Intl.DateTimeFormat('en-CA', { timeZone }).format(new Date());
+    return s.length >= 10 ? s.slice(0, 10) : null;
+  } catch {
+    return toDateStr(new Date());
+  }
+}
+
+function addCalendarDaysYmd(ymd, delta) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || '').trim());
+  if (!m) return null;
+  const y = parseInt(m[1], 10);
+  const mo = parseInt(m[2], 10) - 1;
+  const d = parseInt(m[3], 10);
+  const dt = new Date(Date.UTC(y, mo, d));
+  dt.setUTCDate(dt.getUTCDate() + delta);
+  return dt.toISOString().slice(0, 10);
+}
+
+/** Shared by GET /api/daily-checkin/streak and getCurrentStreak (no duplicate DB + logic drift). */
+function computeStreakState(rows, todayOverrideYmd) {
+  const today = todayOverrideYmd || todayYmdInTz(STREAK_TZ) || toDateStr(new Date());
+  const dates = new Set((rows || []).map((r) => toDateStr(r.checkin_date)).filter(Boolean));
+  const todaySaved = today ? dates.has(today) : false;
+  let streak = 0;
+  let cursor = todaySaved ? today : addCalendarDaysYmd(today, -1);
+  for (let i = 0; i < 365; i++) {
+    if (!cursor || !dates.has(cursor)) break;
+    streak++;
+    cursor = addCalendarDaysYmd(cursor, -1);
+  }
+  return { today, todaySaved, dates, streak };
 }
 
 /**
@@ -18,19 +64,7 @@ async function getCurrentStreak(userId) {
     [userId]
   );
   if (!rows || !rows.length) return 0;
-  const today = toDateStr(new Date());
-  const dates = new Set(rows.map((r) => toDateStr(r.checkin_date)).filter(Boolean));
-  const todaySaved = dates.has(today);
-  let streak = 0;
-  const d = new Date();
-  if (!todaySaved) d.setDate(d.getDate() - 1);
-  for (let i = 0; i < 365; i++) {
-    const ds = toDateStr(d);
-    if (!ds || !dates.has(ds)) break;
-    streak++;
-    d.setDate(d.getDate() - 1);
-  }
-  return streak;
+  return computeStreakState(rows, null).streak;
 }
 
 /**
@@ -38,26 +72,17 @@ async function getCurrentStreak(userId) {
  * Mirrors the loop in getCurrentStreak with a fixed "today" = asOfStr.
  */
 function streakAsOfEndOfDay(allDatesSet, asOfStr) {
+  if (!asOfStr || !/^(\d{4})-(\d{2})-(\d{2})$/.test(String(asOfStr).trim())) return 0;
   const dates = new Set([...allDatesSet].filter((x) => x <= asOfStr));
   const todaySaved = dates.has(asOfStr);
   let streak = 0;
-  const d = new Date(asOfStr + 'T12:00:00');
-  if (isNaN(d.getTime())) return 0;
-  if (!todaySaved) d.setDate(d.getDate() - 1);
+  let cursor = todaySaved ? asOfStr : addCalendarDaysYmd(asOfStr, -1);
   for (let i = 0; i < 365; i++) {
-    const ds = toDateStr(d);
-    if (!ds || !dates.has(ds)) break;
+    if (!cursor || !dates.has(cursor)) break;
     streak++;
-    d.setDate(d.getDate() - 1);
+    cursor = addCalendarDaysYmd(cursor, -1);
   }
   return streak;
-}
-
-function addDaysYmd(ymd, deltaDays) {
-  const parts = String(ymd || '').split('-').map(Number);
-  if (parts.length < 3) return null;
-  const dt = new Date(parts[0], parts[1] - 1, parts[2] + deltaDays);
-  return toDateStr(dt);
 }
 
 /**
@@ -72,11 +97,11 @@ function buildStreakHistoryFromCheckinRows(rows) {
     const s = toDateStr(raw);
     if (s) all.add(s);
   });
-  const anchor = toDateStr(new Date());
+  const anchor = todayYmdInTz(STREAK_TZ) || toDateStr(new Date());
   if (!anchor) return [];
   const out = [];
   for (let i = 119; i >= 0; i--) {
-    const asOfStr = addDaysYmd(anchor, -i);
+    const asOfStr = addCalendarDaysYmd(anchor, -i);
     if (!asOfStr) continue;
     out.push({ date: asOfStr, streak: streakAsOfEndOfDay(all, asOfStr) });
   }
@@ -87,5 +112,9 @@ module.exports = {
   getCurrentStreak,
   toDateStr,
   buildStreakHistoryFromCheckinRows,
-  streakAsOfEndOfDay
+  streakAsOfEndOfDay,
+  addCalendarDaysYmd,
+  todayYmdInTz,
+  computeStreakState,
+  STREAK_TZ
 };
