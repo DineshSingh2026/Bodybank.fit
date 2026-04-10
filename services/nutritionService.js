@@ -104,6 +104,37 @@ Return ONLY valid JSON, no markdown, no explanation:
 All numeric values must be integers. confidence must be exactly: high, medium, or low.`;
 }
 
+/** Map Anthropic HTTP errors to short, actionable messages for the app UI. */
+function formatAnthropicApiError(status, data) {
+  const raw =
+    data && data.error && typeof data.error.message === 'string'
+      ? data.error.message
+      : data && typeof data.error === 'string'
+        ? data.error
+        : '';
+  const low = raw.toLowerCase();
+  if (
+    low.includes('credit') ||
+    low.includes('billing') ||
+    low.includes('balance') ||
+    low.includes('purchase') ||
+    low.includes('plans & billing')
+  ) {
+    return (
+      'Anthropic API has no credits on this key. Open https://console.anthropic.com → Plans & billing, add credits, ' +
+      'put the key in ANTHROPIC_API_KEY on your server, then restart.'
+    );
+  }
+  if (status === 401 || (low.includes('invalid') && low.includes('api key'))) {
+    return 'Nutrition AI: Anthropic rejected the API key. Check ANTHROPIC_API_KEY in your server .env and restart.';
+  }
+  if (status === 429 || low.includes('rate limit')) {
+    return 'Nutrition AI is temporarily rate-limited. Try again in a minute.';
+  }
+  if (raw) return raw.length > 280 ? raw.slice(0, 277) + '…' : raw;
+  return `Claude API error (${status})`;
+}
+
 async function callClaudeNutrition({
   apiKey,
   model,
@@ -143,7 +174,12 @@ async function callClaudeNutrition({
 
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const msg = data.error && data.error.message ? data.error.message : `Claude API error ${res.status}`;
+    const msg = formatAnthropicApiError(res.status, data);
+    if (res.status === 402 || res.status === 403) {
+      console.warn('[nutrition/claude]', res.status, data && data.error);
+    } else {
+      console.warn('[nutrition/claude]', res.status, (data && data.error) || data);
+    }
     throw new Error(msg);
   }
   const block = (data.content || []).find((b) => b.type === 'text');
