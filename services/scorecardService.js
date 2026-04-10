@@ -221,7 +221,8 @@ function createScorecardService({ queryOne, queryAll }) {
        FROM users u
        JOIN user_program_assignments a ON a.user_id = u.id AND a.program_id = ? AND a.removed_at IS NULL
        WHERE u.role = 'user' AND COALESCE(u.leaderboard_opt_in, FALSE) = TRUE
-         AND COALESCE(u.leaderboard_public_program, TRUE) = TRUE`,
+         AND COALESCE(u.leaderboard_public_program, TRUE) = TRUE
+         AND TRIM(COALESCE(u.leaderboard_display_name, '')) <> ''`,
       [programId]
     );
     return (rows || []).map((r) => r.id);
@@ -232,7 +233,10 @@ function createScorecardService({ queryOne, queryAll }) {
       `SELECT u.id FROM users u
        WHERE u.role = 'user'
         AND (u.approval_status IS NULL OR u.approval_status = 'approved')
-        AND COALESCE(u.suspended, FALSE) = FALSE`,
+        AND COALESCE(u.suspended, FALSE) = FALSE
+        AND COALESCE(u.leaderboard_opt_in, FALSE) = TRUE
+        AND COALESCE(u.leaderboard_public_global, FALSE) = TRUE
+        AND TRIM(COALESCE(u.leaderboard_display_name, '')) <> ''`,
       []
     );
     return (rows || []).map((r) => r.id);
@@ -304,10 +308,8 @@ function createScorecardService({ queryOne, queryAll }) {
         `SELECT id, first_name, last_name, leaderboard_display_name FROM users WHERE id = ?`,
         [uid]
       );
-      const display =
-        (u && u.leaderboard_display_name && String(u.leaderboard_display_name).trim()) ||
-        [u && u.first_name, u && u.last_name].filter(Boolean).join(' ').trim() ||
-        'Member';
+      const nick = u && u.leaderboard_display_name ? String(u.leaderboard_display_name).trim() : '';
+      const display = nick || 'Member';
       rows.push({
         user_id: uid,
         display_name: display,
@@ -334,10 +336,8 @@ function createScorecardService({ queryOne, queryAll }) {
         `SELECT id, first_name, last_name, leaderboard_display_name FROM users WHERE id = ?`,
         [uid]
       );
-      const display =
-        (u && u.leaderboard_display_name && String(u.leaderboard_display_name).trim()) ||
-        [u && u.first_name, u && u.last_name].filter(Boolean).join(' ').trim() ||
-        'Member';
+      const nick = u && u.leaderboard_display_name ? String(u.leaderboard_display_name).trim() : '';
+      const display = nick || 'Member';
       rows.push({
         user_id: uid,
         display_name: display,

@@ -2,98 +2,65 @@
  * In-app notification sounds (Web Audio). User: default chime; water-related: drip;
  * Admin: brighter chime.
  * Sounds are ON by default (localStorage bb_notify_sounds_on unset or '1'). Mute via bell 🔊 only.
+ * No unlock banner: audio is armed on login tap (see bbNotifyArmAudioForGesture) and unlocked on first pointer/touch.
  * Skipped when prefers-reduced-motion: reduce (accessibility).
  */
 (function (w) {
   'use strict';
 
   var STORAGE = 'bb_notify_sounds_on';
-  var HINT_SESSION_KEY = 'bb_sound_unlock_hint_dismissed_v1';
   var MAX_SEEN = 450;
   var ctx = null;
-
-  function hintDismissedThisSession() {
-    try {
-      return sessionStorage.getItem(HINT_SESSION_KEY) === '1';
-    } catch (e) {
-      return false;
-    }
-  }
-
-  function markHintDismissed() {
-    try {
-      sessionStorage.setItem(HINT_SESSION_KEY, '1');
-    } catch (e) {}
-  }
-
-  function isAudioRunning() {
-    var c = getCtx();
-    return !!(c && c.state === 'running');
-  }
+  var silentUnlockAttached = false;
 
   function hideUnlockHintBar() {
     var el = document.getElementById('bbSoundUnlockHint');
     if (el) el.hidden = true;
   }
 
-  function ensureUnlockHintEl() {
-    var el = document.getElementById('bbSoundUnlockHint');
-    if (el) return el;
-    el = document.createElement('div');
-    el.id = 'bbSoundUnlockHint';
-    el.className = 'bb-sound-unlock-hint';
-    el.setAttribute('role', 'status');
-    el.hidden = true;
-    el.innerHTML =
-      '<div class="bb-sound-unlock-inner">' +
-      '<p class="bb-sound-unlock-txt"><strong>In-app notification sounds</strong> — Your browser asks for <strong>one tap</strong> on this visit to unlock audio. After that, chimes work for everyone on the site (not only on this device). On iPhone, turn the <strong>Ring/Silent</strong> switch off if you hear nothing. Tap <strong>Unlock sounds</strong> or tap anywhere on the app.</p>' +
-      '<div class="bb-sound-unlock-actions">' +
-      '<button type="button" class="bb-sound-unlock-btn bb-sound-unlock-primary">Unlock sounds</button>' +
-      '<button type="button" class="bb-sound-unlock-btn bb-sound-unlock-secondary">Dismiss</button>' +
-      '</div></div>';
-    document.body.appendChild(el);
-    el.querySelector('.bb-sound-unlock-primary').addEventListener('click', function (e) {
-      e.stopPropagation();
-      w.bbNotifyPrimeAudio();
-    });
-    el.querySelector('.bb-sound-unlock-secondary').addEventListener('click', function (e) {
-      e.stopPropagation();
-      markHintDismissed();
-      hideUnlockHintBar();
-    });
-    return el;
-  }
-
   /**
-   * One short gesture unlocks Web Audio for this tab (browser policy). Shows a bar until dismissed or unlocked.
+   * Call synchronously from login/submit button handler (before any await) so iOS/Safari
+   * keeps user activation for Web Audio.
    */
-  w.bbNotifyTryShowUnlockHint = function () {
-    if (!w.currentUser) return;
-    if (hintDismissedThisSession()) return;
+  w.bbNotifyArmAudioForGesture = function () {
     if (!w.bbNotifySoundsEnabled()) return;
     if (w.matchMedia && w.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    if (isAudioRunning()) {
-      markHintDismissed();
-      return;
+    var c = getCtx();
+    if (!c) return;
+    try {
+      if (c.state === 'suspended') {
+        var p = c.resume();
+        if (p && typeof p.then === 'function') p.catch(function () {});
+      }
+      var buf = c.createBuffer(1, 1, c.sampleRate);
+      var src = c.createBufferSource();
+      src.buffer = buf;
+      var g = c.createGain();
+      g.gain.value = 0.0001;
+      src.connect(g);
+      g.connect(c.destination);
+      src.start(0);
+    } catch (e) {
+      /* ignore */
     }
-    var el = ensureUnlockHintEl();
-    el.hidden = false;
   };
 
-  /** Call after a deliberate tap — unlocks audio and plays a sample chime. */
+  /** Play login chime (call from the same stack as a tap when possible). */
+  w.bbNotifyPlayLoginChime = function (isAdmin) {
+    w.bbNotifyPlayKind(isAdmin ? 'admin' : 'default');
+  };
+
+  /** @deprecated No UI; kept for compatibility. */
+  w.bbNotifyTryShowUnlockHint = function () {};
+
+  /** Unlock + sample chime (e.g. if triggered from a button). */
   w.bbNotifyPrimeAudio = function () {
     if (!w.bbNotifySoundsEnabled()) return;
+    w.bbNotifyArmAudioForGesture();
     var isAd = w.currentUser && (w.currentUser.role === 'admin' || w.currentUser.role === 'superadmin');
     var p = w.bbNotifyPlayKind(isAd ? 'admin' : 'default');
-    if (p && typeof p.then === 'function') {
-      p.then(function () {
-        markHintDismissed();
-        hideUnlockHintBar();
-      });
-    } else {
-      markHintDismissed();
-      hideUnlockHintBar();
-    }
+    if (p && typeof p.then === 'function') p.then(hideUnlockHintBar);
+    else hideUnlockHintBar();
   };
 
   function getCtx() {
@@ -235,6 +202,7 @@
     var next = !w.bbNotifySoundsEnabled();
     w.bbNotifySetSoundsEnabled(next);
     if (next) {
+      w.bbNotifyArmAudioForGesture();
       var isAd = w.currentUser && (w.currentUser.role === 'admin' || w.currentUser.role === 'superadmin');
       w.bbNotifyPlayKind(isAd ? 'admin' : 'default');
     }
@@ -273,9 +241,6 @@
 
   w.bbNotifyResetSoundState = function () {
     w._bbNotifySoundState = null;
-    try {
-      sessionStorage.removeItem(HINT_SESSION_KEY);
-    } catch (e) {}
     hideUnlockHintBar();
   };
 
@@ -334,29 +299,30 @@
     });
   };
 
-  function unlockFromGesture() {
-    resumePromise().then(function (c) {
-      if (c && c.state === 'running') {
-        markHintDismissed();
-        hideUnlockHintBar();
+  function attachSilentUnlockUntilRunning() {
+    if (silentUnlockAttached) return;
+    silentUnlockAttached = true;
+    function bind() {
+      var body = document.body;
+      if (!body) return;
+      var opts = { capture: true, passive: false };
+      function tryResume() {
+        resumePromise().then(function (c) {
+          if (c && c.state === 'running') {
+            body.removeEventListener('pointerdown', tryResume, opts);
+            body.removeEventListener('touchstart', tryResume, opts);
+            hideUnlockHintBar();
+          }
+        });
       }
-    });
+      body.addEventListener('pointerdown', tryResume, opts);
+      body.addEventListener('touchstart', tryResume, opts);
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', bind, { once: true });
+    } else {
+      bind();
+    }
   }
-  /* iOS/Safari: passive:true touch listeners do not count as user activation for AudioContext.
-     Use passive:false on touch + pointer so the first tap/scroll-start can unlock. */
-  if (typeof document !== 'undefined') {
-    document.addEventListener(
-      'DOMContentLoaded',
-      function () {
-        var body = document.body;
-        if (!body) return;
-        var touchOpts = { capture: true, once: true, passive: false };
-        body.addEventListener('touchstart', unlockFromGesture, touchOpts);
-        body.addEventListener('touchend', unlockFromGesture, touchOpts);
-        body.addEventListener('pointerdown', unlockFromGesture, touchOpts);
-        body.addEventListener('click', unlockFromGesture, { capture: true, once: true, passive: true });
-      },
-      { once: true }
-    );
-  }
+  attachSilentUnlockUntilRunning();
 })(window);

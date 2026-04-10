@@ -1076,6 +1076,60 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   color:var(--cream);
 }
 .bb-sc-btn-ghost:hover{ border-color:rgba(200,164,78,0.35); color:var(--gold); }
+.bb-sc-btn-share{
+  border-color:rgba(46,204,113,0.38)!important;
+  color:#b6f0d2!important;
+  background:rgba(46,204,113,0.1)!important;
+}
+.bb-sc-btn-share:hover{
+  border-color:rgba(46,204,113,0.55)!important;
+  background:rgba(46,204,113,0.16)!important;
+  color:#d1fae5!important;
+}
+.bb-sc-btn-share:disabled{ opacity:0.65; cursor:not-allowed; }
+.bb-score-share-modal .bb-score-share-preview-wrap{
+  border-radius:12px;
+  overflow:hidden;
+  border:1px solid rgba(200,164,78,0.22);
+  background:#08080a;
+  line-height:0;
+  margin-bottom:4px;
+}
+.bb-score-share-modal .bb-score-share-preview{
+  width:100%;
+  height:auto;
+  display:block;
+  aspect-ratio:16/9;
+  vertical-align:top;
+}
+.bb-score-share-modal .bb-score-share-preview-wrap--story .bb-score-share-preview,
+.bb-score-share-modal .bb-score-share-preview.bb-score-share-preview--story{
+  aspect-ratio:9/16;
+  max-height:min(62vh,640px);
+  width:auto;
+  max-width:100%;
+  margin:0 auto;
+}
+.bb-score-share-modal .bb-score-share-preview-wrap--story{
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  background:#050506;
+}
+.bb-score-share-format-actions{ display:flex; flex-direction:column; gap:12px; margin-top:8px; }
+.bb-score-share-format-actions .bb-sc-fmt-169{
+  background:linear-gradient(135deg,#d4b456,#c9a84c,#8a6f2e)!important;
+  color:#0a0a0a!important;
+  border:none!important;
+  font-weight:700!important;
+}
+.bb-score-share-format-actions .bb-sc-fmt-916{
+  background:transparent!important;
+  border:1px solid rgba(200,164,78,0.5)!important;
+  color:var(--cream)!important;
+  font-weight:600!important;
+}
+.bb-score-share-modal .bb-score-share-actions{ display:flex; flex-direction:column; gap:10px; margin-top:16px; }
 .bb-sc-invite{
   display:inline-flex; align-items:center; gap:8px;
   padding:10px 14px;
@@ -2608,6 +2662,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .weekly-recap-item .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
 .weekly-recap-item .num{font-size:18px;font-weight:700;color:var(--gold)}
 .push-enable-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px 20px;background:rgba(200,164,78,0.1);border:1px solid rgba(200,164,78,0.35);border-radius:10px;margin-top:16px;flex-wrap:wrap;text-align:center}
+.user-welcome .push-enable-wrap{margin:8px auto 28px;max-width:min(400px,100%)}
+.bb-user-desktop-dashboard .bb-user-push-desktop{margin:0 0 24px}
 .push-enable-wrap p{margin:0;min-width:0;font-size:13px;color:var(--creamd);max-width:320px}
 .push-enable-btn{padding:10px 20px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-weight:700;font-size:12px;letter-spacing:.5px;cursor:pointer;box-shadow:0 6px 18px rgba(200,164,78,0.22)}
 .push-enable-btn:hover{opacity:.95}
@@ -3403,8 +3459,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 /* My Workout — session form */
 #usec-workout.wk-session-page{background:#0d0d0d}
 #usec-workout .wk-session-inner{max-width:560px;margin:0 auto;padding:0 4px max(100px,calc(56px + env(safe-area-inset-bottom,0px)))}
-#usec-workout .wk-session-title{font-family:Syne,sans-serif;font-size:clamp(22px,4vw,28px);font-weight:700;color:var(--bb-gold);letter-spacing:.04em;margin-bottom:8px}
-#usec-workout .wk-session-lead{color:var(--bb-muted);font-size:14px;margin-bottom:24px;line-height:1.5}
 #usec-workout .wk-sec{margin-bottom:8px}
 #usec-workout .wk-sec-title{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(201,168,76,.85);margin-bottom:14px}
 #usec-workout .wk-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
@@ -3432,16 +3486,19 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 #usec-workout .wk-lift-input{-moz-appearance:textfield}
 #usec-workout .wk-lift-input::-webkit-outer-spin-button,#usec-workout .wk-lift-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 #usec-workout .wk-muted-note{font-size:12px;color:var(--bb-muted);margin-bottom:12px}
-#usec-workout .wk-feel-row{display:flex;flex-direction:row;align-items:flex-start;flex-wrap:wrap;gap:12px 14px;margin-bottom:14px;width:100%;min-width:0}
-#usec-workout .wk-feel-col{flex:1 1 0;min-width:0;display:flex;flex-direction:column;gap:5px}
-#usec-workout .wk-feel-col.wk-feel-done{flex:1 1 200px;min-width:min(100%,220px);max-width:100%;align-items:flex-start}
-#usec-workout .wk-feel-col.wk-feel-compact{flex:0 1 112px;max-width:120px;min-width:88px}
-#usec-workout .wk-feel-done-title{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:rgba(201,168,76,.92);line-height:1.35;margin:0}
-#usec-workout .wk-feel-hint{font-size:11px;line-height:1.4;color:var(--bb-muted);margin:0 0 8px 0;max-width:280px}
-#usec-workout .wk-feel-mini-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--bb-muted);line-height:1.2;white-space:nowrap}
-#usec-workout .wk-feel-switchline{display:flex;align-items:center;gap:10px;min-height:36px}
-#usec-workout .wk-feel-switchline .wk-feel-toggle-caption{font-size:12px;font-weight:600;color:var(--bb-text);line-height:1.25;max-width:200px}
-#usec-workout .wk-feel-select{width:100%;max-width:120px;padding:8px 9px;font-size:12px;border-radius:8px}
+#usec-workout .wk-feel-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;align-items:start;width:100%;min-width:0;margin-bottom:4px}
+#usec-workout .wk-feel-left{min-width:0;display:flex;flex-direction:column;gap:8px}
+#usec-workout .wk-feel-right{min-width:0;display:flex;flex-direction:column;justify-content:flex-start}
+#usec-workout .wk-feel-dd-row{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;width:100%;align-items:end}
+#usec-workout .wk-feel-dd{display:flex;flex-direction:column;gap:6px;min-width:0}
+#usec-workout .wk-feel-hint{font-size:11px;line-height:1.45;color:var(--bb-muted);margin:0;max-width:36em}
+#usec-workout .wk-feel-mini-label{font-size:10px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--bb-muted);line-height:1.2}
+#usec-workout .wk-feel-switchline{display:flex;align-items:center;gap:10px;min-height:36px;flex-wrap:wrap}
+#usec-workout .wk-feel-switchline .wk-feel-toggle-caption{font-size:12px;font-weight:600;color:var(--bb-text);line-height:1.25;flex:1;min-width:0}
+#usec-workout .wk-feel-select{width:100%;padding:10px 12px;font-size:13px;border-radius:10px;box-sizing:border-box}
+@media(max-width:560px){
+  #usec-workout .wk-feel-layout{grid-template-columns:1fr}
+}
 #usec-workout .wk-switch{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
 #usec-workout .wk-switch input{opacity:0;width:0;height:0}
 #usec-workout .wk-switch-slider{position:absolute;inset:0;background:#333;border-radius:999px;transition:.2s}
@@ -3449,10 +3506,9 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 #usec-workout .wk-switch input:checked + .wk-switch-slider{background:rgba(201,168,76,.35)}
 #usec-workout .wk-switch input:checked + .wk-switch-slider:before{transform:translateX(20px);background:var(--bb-gold)}
 @media(max-width:380px){
-  #usec-workout .wk-feel-row{gap:10px}
+  #usec-workout .wk-feel-dd-row{gap:10px}
   #usec-workout .wk-feel-mini-label{font-size:9px;letter-spacing:.06em}
-  #usec-workout .wk-feel-select{font-size:11px;padding:7px 8px}
-  #usec-workout .wk-feel-col.wk-feel-compact{flex:1 1 calc(50% - 8px);max-width:none;min-width:0}
+  #usec-workout .wk-feel-select{font-size:12px;padding:9px 10px}
 }
 #usec-workout .wk-save-btn{width:100%;margin-top:8px;padding:16px 24px;border:none;border-radius:12px;background:linear-gradient(135deg,#d4b456,#c9a84c,#8a6f2e);color:#0a0a0a;font-weight:700;font-size:15px;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 28px rgba(201,168,76,.2)}
 #usec-workout .wk-save-btn:hover{filter:brightness(1.06)}
@@ -3470,7 +3526,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 <link rel="stylesheet" href="/mobile-fix.css?v=20">
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="js/notification-sounds.js?v=3"></script>
+<script src="js/notification-sounds.js?v=4"></script>
 </head>
 <body>
 
@@ -3574,6 +3630,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           </div>
         </div>
 
+        <div class="push-enable-wrap bb-user-push-desktop" id="pushEnableWrapDesktop">
+          <p>Get workout &amp; check-in reminders, and know when your Lifestyle Manager replies.</p>
+          <button type="button" class="push-enable-btn" id="pushEnableBtnDesktop" onclick="enablePushNotifications()">Enable notifications</button>
+        </div>
+
         <div class="bb-scorecard bb-scorecard--desktop" id="bbScorecardDesktopWrap">
           <div class="bb-scorecard-inner">
             <div class="bb-sc-head">
@@ -3594,6 +3655,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <button type="button" class="bb-sc-invite" id="bbScoreInviteDesktop" onclick="handleScorecardLeaderboardCta()" style="display:none">Leaderboard off — tap to join</button>
             <div class="bb-sc-actions">
               <button type="button" class="bb-sc-btn bb-sc-btn-ghost" onclick="openScorecardBreakdownModal()">Breakdown</button>
+              <button type="button" class="bb-sc-btn bb-sc-btn-share bb-sc-share-btn" id="bbScoreShareBtnDesktop" onclick="shareScorecardImage()">Share image</button>
               <button type="button" class="bb-sc-btn" id="bbScoreLeaderboardBtnDesktop" onclick="handleScorecardLeaderboardCta()">Leaderboard</button>
             </div>
           </div>
@@ -3675,6 +3737,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <h1><span class="welcome-label">Welcome</span><span class="welcome-name" id="userWelcomeName">User</span></h1>
         <p class="user-welcome-tag">Tribe Elite Member</p>
 
+        <div class="push-enable-wrap" id="pushEnableWrap">
+          <p>Get workout &amp; check-in reminders, and know when your Lifestyle Manager replies.</p>
+          <button type="button" class="push-enable-btn" id="pushEnableBtn" onclick="enablePushNotifications()">Enable notifications</button>
+        </div>
+
         <div class="bb-scorecard bb-scorecard--mobile" id="bbScorecardMobileWrap">
           <div class="bb-scorecard-inner">
             <div class="bb-sc-head">
@@ -3695,6 +3762,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
             <button type="button" class="bb-sc-invite" id="bbScoreInviteMobile" onclick="handleScorecardLeaderboardCta()" style="display:none">Leaderboard off — tap to join</button>
             <div class="bb-sc-actions">
               <button type="button" class="bb-sc-btn bb-sc-btn-ghost" onclick="openScorecardBreakdownModal()">Breakdown</button>
+              <button type="button" class="bb-sc-btn bb-sc-btn-share bb-sc-share-btn" id="bbScoreShareBtnMobile" onclick="shareScorecardImage()">Share image</button>
               <button type="button" class="bb-sc-btn" id="bbScoreLeaderboardBtnMobile" onclick="handleScorecardLeaderboardCta()">Leaderboard</button>
             </div>
           </div>
@@ -3764,10 +3832,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
               <div class="weekly-recap-item"><span class="lbl">Avg water</span><span class="num" id="recapWater">—</span></div>
               <div class="weekly-recap-item"><span class="lbl">Avg protein</span><span class="num" id="recapProtein">—</span></div>
               <div class="weekly-recap-item"><span class="lbl">Avg sleep</span><span class="num" id="recapSleep">—</span></div>
-            </div>
-            <div class="push-enable-wrap" id="pushEnableWrap">
-              <p>Get workout &amp; check-in reminders, and know when your Lifestyle Manager replies.</p>
-              <button type="button" class="push-enable-btn" id="pushEnableBtn" onclick="enablePushNotifications()">Enable notifications</button>
             </div>
           </div>
         </div>
@@ -3901,9 +3965,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
       <div id="wkSessionToast" class="wk-session-toast" role="status" aria-live="polite" style="display:none">Session saved successfully!</div>
       <div class="wk-session-inner">
-        <h2 class="wk-session-title">My Workout</h2>
-        <p class="wk-session-lead">Log one full session — training, lifts for that day’s focus, and how it felt.</p>
-
         <div class="wk-sec">
           <div class="wk-sec-title">Session info</div>
           <div class="wk-row2">
@@ -3958,33 +4019,36 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 
         <div class="wk-sec">
           <div class="wk-sec-title">Session feel</div>
-          <div class="wk-feel-row">
-            <div class="wk-feel-col wk-feel-done">
-              <p class="wk-feel-done-title" id="wkFeelDoneHeading">Session complete</p>
+          <div class="wk-feel-layout">
+            <div class="wk-feel-left">
               <p class="wk-feel-hint" id="wkFeelDoneHint">On when you finish; off if you stopped early or didn’t train.</p>
               <div class="wk-feel-switchline">
                 <label class="wk-switch" title="Mark this session as completed"><input type="checkbox" id="wkCompleted" aria-label="I completed this workout session" aria-describedby="wkFeelDoneHint"><span class="wk-switch-slider"></span></label>
                 <span class="wk-feel-toggle-caption" id="wkFeelToggleCaption">Yes — I completed this session</span>
               </div>
             </div>
-            <div class="wk-feel-col wk-feel-compact">
-              <label class="wk-feel-mini-label" for="wkIntensity">Intensity</label>
-              <select class="wk-input wk-select wk-feel-select" id="wkIntensity">
-                <option value="">—</option>
-                <option value="Easy">Easy</option>
-                <option value="Moderate">Moderate</option>
-                <option value="Hard">Hard</option>
-                <option value="Max Effort">Max Effort</option>
-              </select>
-            </div>
-            <div class="wk-feel-col wk-feel-compact">
-              <label class="wk-feel-mini-label" for="wkEnergy">Energy</label>
-              <select class="wk-input wk-select wk-feel-select" id="wkEnergy">
-                <option value="">—</option>
-                <option value="Low">Low</option>
-                <option value="Medium">Medium</option>
-                <option value="High">High</option>
-              </select>
+            <div class="wk-feel-right">
+              <div class="wk-feel-dd-row">
+                <div class="wk-feel-dd">
+                  <label class="wk-feel-mini-label" for="wkIntensity">Intensity</label>
+                  <select class="wk-input wk-select wk-feel-select" id="wkIntensity">
+                    <option value="">—</option>
+                    <option value="Easy">Easy</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Hard">Hard</option>
+                    <option value="Max Effort">Max Effort</option>
+                  </select>
+                </div>
+                <div class="wk-feel-dd">
+                  <label class="wk-feel-mini-label" for="wkEnergy">Energy</label>
+                  <select class="wk-input wk-select wk-feel-select" id="wkEnergy">
+                    <option value="">—</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+              </div>
             </div>
           </div>
           <div class="wk-field"><label for="wkNotes">Notes / feedback</label><textarea class="wk-input wk-textarea" id="wkNotes" rows="4" placeholder="How did it go? Sets, reps, PRs, anything notable..."></textarea></div>
@@ -5312,6 +5376,31 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
     <button type="button" class="form-submit" onclick="closeModal('scorecardBreakdownModal')" style="margin-top:16px">Done</button>
   </div>
 </div>
+<div class="modal-overlay" id="bbScoreShareFormatModal" onclick="if(event.target===this)closeScorecardShareFormatModal()" aria-hidden="true">
+  <div class="modal login-modal bb-score-share-modal" style="max-width:420px">
+    <button type="button" class="modal-close" onclick="closeScorecardShareFormatModal()" aria-label="Close">&times;</button>
+    <h2 style="margin-top:0">Share image</h2>
+    <p class="form-hint" style="margin-bottom:6px;line-height:1.45">Pick the shape for where you’re posting. Both are high-resolution PNG files — no link.</p>
+    <div class="bb-score-share-format-actions">
+      <button type="button" class="form-submit bb-sc-fmt-169" onclick="bbScoreSharePickFormat('16:9')">16:9 — Feed &amp; WhatsApp</button>
+      <button type="button" class="form-submit bb-sc-fmt-916" onclick="bbScoreSharePickFormat('9:16')">9:16 — Instagram Story</button>
+    </div>
+  </div>
+</div>
+<div class="modal-overlay bb-score-share-overlay" id="bbScoreShareModal" onclick="if(event.target===this)closeScorecardShareModal()" aria-hidden="true">
+  <div class="modal login-modal bb-score-share-modal" style="max-width:520px">
+    <button type="button" class="modal-close" onclick="closeScorecardShareModal()" aria-label="Close">&times;</button>
+    <h2 style="margin-top:0">Share your score</h2>
+    <p class="form-hint" style="margin-bottom:14px;line-height:1.45">Use your phone’s share sheet to send the image to WhatsApp and other apps, or save and upload to Instagram.</p>
+    <div class="bb-score-share-preview-wrap" id="bbScoreSharePreviewWrap">
+      <img id="bbScoreSharePreview" class="bb-score-share-preview" alt="" />
+    </div>
+    <div class="bb-score-share-actions">
+      <button type="button" class="form-submit" id="bbScoreShareNative">Open share menu</button>
+      <button type="button" class="form-submit" id="bbScoreShareDownload" style="margin-top:0;background:transparent;border:1px solid rgba(200,164,78,0.45);color:var(--cream);font-weight:600">Save image</button>
+    </div>
+  </div>
+</div>
 <div class="modal-overlay" id="profilePhotoPromptModal" onclick="if(event.target===this)bbProfilePhotoPromptDismiss()">
   <div class="modal login-modal" style="max-width:420px">
     <button class="modal-close" onclick="bbProfilePhotoPromptDismiss()" type="button">&times;</button>
@@ -5324,13 +5413,13 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 <div class="modal-overlay" id="leaderboardOptInModal" onclick="if(event.target===this)closeModal('leaderboardOptInModal')">
   <div class="modal login-modal modal-with-scroll" style="max-width:440px">
     <button class="modal-close" onclick="closeModal('leaderboardOptInModal')" type="button">&times;</button>
-    <h2 style="margin-top:0">Leaderboard nickname</h2>
-    <p class="form-hint" style="margin-bottom:14px;line-height:1.45">You are automatically shown on the BodyBank leaderboard once you score. Set a nickname if you want this to display instead of your name.</p>
+    <h2 style="margin-top:0">Join the leaderboard</h2>
+    <p class="form-hint" style="margin-bottom:14px;line-height:1.45">Choose a <strong>nickname</strong> to appear on the BodyBank leaderboard. Your real name is <strong>not</strong> shown — only this nickname (required to join).</p>
     <div class="form-group">
-      <label for="leaderboardDisplayName">Nickname (optional)</label>
-      <input type="text" class="form-input" id="leaderboardDisplayName" maxlength="80" placeholder="e.g. A.K. or Coach nickname" autocomplete="nickname">
+      <label for="leaderboardDisplayName">Leaderboard nickname <span style="color:var(--gold)">*</span></label>
+      <input type="text" class="form-input" id="leaderboardDisplayName" maxlength="80" placeholder="e.g. A.K. or Coach Mo" autocomplete="nickname" required>
     </div>
-    <button type="button" class="form-submit" id="leaderboardOptInSubmit" onclick="submitLeaderboardNickname()">Save nickname</button>
+    <button type="button" class="form-submit" id="leaderboardOptInSubmit" onclick="submitLeaderboardNickname()">Save &amp; appear on leaderboard</button>
   </div>
 </div>
 <div class="modal-overlay" id="scorecardLeaderboardModal" onclick="if(event.target===this)closeModal('scorecardLeaderboardModal')">
@@ -6309,7 +6398,8 @@ async function adminLogin() {
   const email = emailEl.value.trim().toLowerCase();
   const pw = pwEl.value;
   if (!email || !pw) { showPopup('Missing Fields', 'Please enter email and password.', '', 'OK'); return; }
-  
+  if (typeof bbNotifyArmAudioForGesture === 'function') bbNotifyArmAudioForGesture();
+
   var btn=document.querySelector('#loginModal .form-submit');
   if(btn){btn.disabled=true;btn.classList.add('loading');btn._orig=btn.innerHTML;btn.innerHTML='<span class="btn-spinner"></span> Logging in...';}
   try {
@@ -6330,6 +6420,7 @@ async function adminLogin() {
       console.warn('Admin login response missing token – Client Progress will require re-login.');
     }
     if (data.role === 'admin') {
+      if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(true);
       document.getElementById('adminPanel').classList.add('open');
       document.body.classList.add('site-nav-hidden');
       document.body.classList.add('admin-dashboard-open');
@@ -6338,6 +6429,7 @@ async function adminLogin() {
         if (typeof loadAdminAiAssistHistory === 'function') loadAdminAiAssistHistory();
       });
     } else if (data.role === 'superadmin') {
+      if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(true);
       document.getElementById('superadminPanel').classList.add('open');
       document.body.classList.add('site-nav-hidden');
       document.body.classList.add('admin-dashboard-open');
@@ -6347,6 +6439,8 @@ async function adminLogin() {
       // Store user data and show popup
       window._pendingUser = data;
       showPopup('Welcome, ' + data.first_name + '!', 'Your transformation journey continues.', 'CONSISTENCY has its fruits, so does PATIENCE.', "Let's Go", function() {
+        if (typeof bbNotifyArmAudioForGesture === 'function') bbNotifyArmAudioForGesture();
+        if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(false);
         openUserDashboard(window._pendingUser);
       });
     }
@@ -6451,12 +6545,8 @@ async function submitAudit(form) {
 // ========== ADMIN DASHBOARD ==========
 async function loadDashboard() {
   await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadAdminMessages(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
-  if (typeof requestNotificationPermission === 'function') setTimeout(requestNotificationPermission, 500);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
-  setTimeout(function () {
-    if (typeof bbNotifyTryShowUnlockHint === 'function') bbNotifyTryShowUnlockHint();
-  }, 900);
 }
 
 const SESSION_KEY = 'bodybank_session';
@@ -9749,9 +9839,9 @@ function openUserDashboard(user) {
   if (typeof startUserNotificationPolling === 'function') startUserNotificationPolling();
   setTimeout(function() { checkProgramAssignmentPopup(); }, 800);
   setTimeout(function() { loadFocusWheelState(); }, 400);
-  setTimeout(function () {
-    if (typeof bbNotifyTryShowUnlockHint === 'function') bbNotifyTryShowUnlockHint();
-  }, 900);
+  setTimeout(function() {
+    if (typeof checkUserPushStatus === 'function') checkUserPushStatus();
+  }, 500);
   document.getElementById('ctName').value = (user.first_name + ' ' + user.last_name).trim();
   document.getElementById('ctEmail').value = user.email || '';
 }
@@ -10172,7 +10262,7 @@ var USER_TAB_LABELS = {
 };
 var USER_TAB_SUBTITLES = {
   home: 'Your dashboard and daily actions in one place.',
-  workout: 'Log sessions and review recent training history.',
+  workout: 'Log one full session — training, lifts for that day’s focus, and how it felt.',
   programs: 'Programs assigned by your lifestyle manager.',
   checkin: 'Daily check-in and Sunday weekly review.',
   messages: 'Chat directly with your Lifestyle Manager in one clean thread.',
@@ -10648,12 +10738,6 @@ function renderScorecard(d) {
     var inv = document.getElementById('bbScoreInvite' + suf);
     var btn = document.getElementById('bbScoreLeaderboardBtn' + suf);
     var lines = [];
-    // Single global BodyBank leaderboard: auto-visible to all scoring members.
-    if (d.global_rank != null && d.global_cohort_size != null && d.global_cohort_size > 0) {
-      lines.push('<span class="bb-sc-lb-pill bb-sc-lb-pill--bb"><strong>#' + d.global_rank + '</strong> of ' + d.global_cohort_size + ' · BodyBank leaderboard</span>');
-    } else {
-      lines.push('<span class="bb-sc-lb-muted">BodyBank leaderboard updates automatically as members submit this week.</span>');
-    }
     lines.push('<button type="button" class="bb-sc-lb-settings" onclick="openLeaderboardOptInModal()">Nickname</button>');
     if (lb) lb.innerHTML = lines.length ? lines.join('') : '';
     if (inv) inv.style.display = 'none';
@@ -10677,14 +10761,20 @@ function openLeaderboardOptInModal() {
 
 async function submitLeaderboardNickname() {
   var name = document.getElementById('leaderboardDisplayName');
-  var body = { display_name: name ? name.value : '' };
+  var raw = name ? String(name.value || '').trim() : '';
+  if (!raw) {
+    showPopup('Nickname required', 'Enter a leaderboard nickname. It is what others see instead of your real name.', '', 'OK', null, 'error');
+    if (name) name.focus();
+    return;
+  }
+  var body = { display_name: raw.slice(0, 80) };
   var res = await apiCall('POST', '/api/me/leaderboard-profile', body);
   if (res && res.error) {
     showPopup('Error', res.error, '', 'OK', null, 'error');
     return;
   }
   closeModal('leaderboardOptInModal');
-  showPopup('Saved', 'Leaderboard nickname updated.', '', 'OK', null, 'success');
+  showPopup('Saved', 'You will appear on the leaderboard as “' + raw + '”.', '', 'OK', null, 'success');
   loadScorecard();
 }
 
@@ -10895,8 +10985,10 @@ async function loadMicroGoals() {
       }
     } catch (_) {}
 
-    checkUserPushStatus();
   } catch (e) {}
+  finally {
+    if (typeof checkUserPushStatus === 'function') checkUserPushStatus();
+  }
 }
 
 async function submitMicroGoals() {
@@ -10991,44 +11083,68 @@ async function submitDailyCheckinForm() {
   }
 }
 
-// Push notifications (opt-in) — check on load so we don't re-prompt if already enabled
+// Push notifications (opt-in) — mobile + desktop copies; always refresh status even if micro-goals fail
+function bbGetPushEnablePairs() {
+  return [
+    { wrap: document.getElementById('pushEnableWrap'), btn: document.getElementById('pushEnableBtn') },
+    { wrap: document.getElementById('pushEnableWrapDesktop'), btn: document.getElementById('pushEnableBtnDesktop') }
+  ].filter(function (p) {
+    return p.wrap;
+  });
+}
+function bbSetPushEnableUiState(show, btnLabel, btnDisabled) {
+  bbGetPushEnablePairs().forEach(function (p) {
+    p.wrap.style.display = show ? 'flex' : 'none';
+    if (p.btn) {
+      p.btn.textContent = btnLabel || 'Enable notifications';
+      p.btn.disabled = !!btnDisabled;
+    }
+  });
+}
 async function checkUserPushStatus() {
-  var wrap = document.getElementById('pushEnableWrap');
-  var btn = document.getElementById('pushEnableBtn');
-  if (!wrap) return;
-  if (!('Notification' in window) || !('serviceWorker' in navigator)) { wrap.style.display = 'none'; return; }
-  if (Notification.permission === 'denied') { wrap.style.display = 'none'; return; }
+  var pairs = bbGetPushEnablePairs();
+  if (!pairs.length) return;
+  if (!('Notification' in window) || !('serviceWorker' in navigator)) {
+    bbSetPushEnableUiState(false);
+    return;
+  }
+  if (Notification.permission === 'denied') {
+    bbSetPushEnableUiState(false);
+    return;
+  }
   if (Notification.permission === 'granted') {
     try {
       var reg = await navigator.serviceWorker.ready;
       var sub = await reg.pushManager.getSubscription();
       if (sub) {
-        wrap.style.display = 'none';
-        if (btn) { btn.textContent = 'Enabled'; btn.disabled = true; }
+        bbSetPushEnableUiState(false, 'Enabled', true);
         return;
       }
     } catch (e) {}
   }
-  wrap.style.display = 'flex';
-  if (btn) { btn.disabled = false; btn.textContent = 'Enable notifications'; }
+  bbSetPushEnableUiState(true, 'Enable notifications', false);
 }
 async function enablePushNotifications() {
   if (!('Notification' in window) || !('serviceWorker' in navigator)) {
     showPopup('Not supported', 'Push notifications are not supported in this browser.', '', 'OK', null, 'error');
     return;
   }
-  var btn = document.getElementById('pushEnableBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+  bbGetPushEnablePairs().forEach(function (p) {
+    if (p.btn) {
+      p.btn.disabled = true;
+      p.btn.textContent = 'Checking…';
+    }
+  });
   try {
     var perm = await Notification.requestPermission();
     if (perm !== 'granted') {
-      if (btn) { btn.disabled = false; btn.textContent = 'Enable notifications'; }
+      bbSetPushEnableUiState(true, 'Enable notifications', false);
       return;
     }
     var keyRes = await apiCall('GET', '/api/push/vapid-public');
     var publicKey = keyRes && keyRes.publicKey;
     if (!publicKey) {
-      if (btn) { btn.disabled = false; btn.textContent = 'Enable notifications'; }
+      bbSetPushEnableUiState(true, 'Enable notifications', false);
       showPopup('Setup required', 'Push notifications are not configured. Add VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to the server.', '', 'OK', null, 'error');
       return;
     }
@@ -11039,12 +11155,10 @@ async function enablePushNotifications() {
     });
     var subJson = sub.toJSON ? sub.toJSON() : { endpoint: sub.endpoint, keys: { p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh')))), auth: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth')))) } };
     await apiCall('POST', '/api/push/subscribe', { endpoint: subJson.endpoint, keys: subJson.keys || {} });
-    if (btn) { btn.textContent = 'Enabled'; btn.disabled = true; }
-    var wrap = document.getElementById('pushEnableWrap');
-    if (wrap) wrap.style.display = 'none';
+    bbSetPushEnableUiState(false, 'Enabled', true);
     showPopup('Enabled', 'You will get reminders and Lifestyle Manager replies.', '', 'OK', null, 'success');
   } catch (e) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Enable notifications'; }
+    bbSetPushEnableUiState(true, 'Enable notifications', false);
     showPopup('Error', e.message || 'Failed to enable.', '', 'OK', null, 'error');
   }
 }
@@ -12336,6 +12450,7 @@ async function handleResetPassword() {
   if (!tokenEl || !tokenEl.value) { showPopup('Error', 'Invalid reset link. Request a new one from Forgot Password.', '', 'OK'); return; }
   if (!newPw || newPw.length < 6) { showPopup('Error', 'Password must be at least 6 characters.', '', 'OK'); return; }
   if (newPw !== confirmPw) { showPopup('Error', 'Passwords do not match.', '', 'OK'); return; }
+  if (typeof bbNotifyArmAudioForGesture === 'function') bbNotifyArmAudioForGesture();
   var btn = document.getElementById('resetSubmitBtn');
   if (btn) { btn.disabled = true; btn._orig = btn.innerHTML; btn.innerHTML = 'Updating…'; }
   try {
@@ -12347,7 +12462,11 @@ async function handleResetPassword() {
       history.replaceState(null, '', location.pathname);
       window.currentUser = data;
       try { localStorage.setItem(SESSION_KEY, JSON.stringify(data)); } catch (e) {}
-      showPopup('Password Updated Successfully', 'Your password has been changed and you are now signed in.', '', 'Continue', function() { openUserDashboard(data); });
+      showPopup('Password Updated Successfully', 'Your password has been changed and you are now signed in.', '', 'Continue', function() {
+        if (typeof bbNotifyArmAudioForGesture === 'function') bbNotifyArmAudioForGesture();
+        if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(false);
+        openUserDashboard(data);
+      });
     }
   } catch (e) {
     showPopup('Error', 'Failed to update password. The link may have expired.', '', 'OK');
@@ -12446,6 +12565,7 @@ function handleGoogleResponse(response) {
     closeModal('googleCompleteModal');
     _pendingGoogleToken = null;
     if (data.role === 'admin') {
+      if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(true);
       document.getElementById('adminPanel').classList.add('open');
       document.body.classList.add('site-nav-hidden');
       document.body.classList.add('admin-dashboard-open');
@@ -12454,12 +12574,14 @@ function handleGoogleResponse(response) {
         if (typeof loadAdminAiAssistHistory === 'function') loadAdminAiAssistHistory();
       });
     } else if (data.role === 'superadmin') {
+      if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(true);
       document.getElementById('superadminPanel').classList.add('open');
       document.body.classList.add('site-nav-hidden');
       document.body.classList.add('admin-dashboard-open');
       lockBodyScroll();
       loadSuperadminDashboard();
     } else {
+      if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(false);
       openUserDashboard(data);
     }
   }).catch(function(e) {
@@ -12498,6 +12620,8 @@ function restoreSession() {
       if (justResetPassword) {
         window._pendingUser = data;
         showPopup('Password Updated Successfully', 'Your password has been changed and you are now signed in.', '', 'Continue', function() {
+          if (typeof bbNotifyArmAudioForGesture === 'function') bbNotifyArmAudioForGesture();
+          if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(false);
           openUserDashboard(window._pendingUser);
         });
         return;
@@ -12689,9 +12813,6 @@ function loadSuperadminDashboard() {
       });
       if (cur) sel.value = cur;
     }
-    setTimeout(function () {
-      if (typeof bbNotifyTryShowUnlockHint === 'function') bbNotifyTryShowUnlockHint();
-    }, 900);
   }).catch(function() {
     if (loading) { loading.textContent = 'Failed to load dashboard.'; loading.style.display = 'block'; }
   });
@@ -12935,6 +13056,7 @@ function applySafeAreaFix() {
 window.addEventListener('load', applySafeAreaFix);
 window.addEventListener('resize', applySafeAreaFix);
 </script>
+<script src="js/scorecard-share.js?v=5"></script>
 <script>
 (function() {
   var lastTouchEnd = 0;

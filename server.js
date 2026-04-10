@@ -2919,9 +2919,12 @@ app.get('/api/me/scorecard', verifyToken, async (req, res) => {
        FROM users WHERE id = ?`,
       [req.user.id]
     );
-    const optedIn = true;
-    const publicProgram = false;
-    const publicGlobal = true;
+    const optedIn = !!(urow && urow.leaderboard_opt_in);
+    const publicProgram = !!(urow && urow.leaderboard_public_program);
+    const publicGlobal = !!(urow && urow.leaderboard_public_global);
+    const dn = (urow && String(urow.leaderboard_display_name || '').trim()) || '';
+    const inCohortLb = optedIn && dn.length > 0 && publicProgram;
+    const inGlobalLb = optedIn && dn.length > 0 && publicGlobal;
     const current = await scorecardSvc.computeWeeklyScore(req.user.id, weekStart);
     const previous = prevWeek ? await scorecardSvc.computeWeeklyScore(req.user.id, prevWeek) : null;
     const dedication = await scorecardSvc.computeWeeklyScoreDedication(req.user.id, weekStart);
@@ -2929,7 +2932,16 @@ app.get('/api/me/scorecard', verifyToken, async (req, res) => {
     let cohort_size = null;
     let global_rank = null;
     let global_cohort_size = null;
-    const g = await scorecardSvc.rankInGlobal(req.user.id, weekStart, true, true);
+    const cohortRes = await scorecardSvc.rankInCohort(
+      req.user.id,
+      current ? current.program_id : null,
+      weekStart,
+      inCohortLb,
+      publicProgram
+    );
+    rank = cohortRes.rank;
+    cohort_size = cohortRes.cohort_size;
+    const g = await scorecardSvc.rankInGlobal(req.user.id, weekStart, inGlobalLb, publicGlobal);
     global_rank = g.rank;
     global_cohort_size = g.cohort_size;
     const trend_delta =
@@ -2941,10 +2953,10 @@ app.get('/api/me/scorecard', verifyToken, async (req, res) => {
       public_program: publicProgram,
       public_global: publicGlobal,
       display_name: (urow && urow.leaderboard_display_name) || '',
-      leaderboard_rank: optedIn && publicProgram ? rank : null,
-      cohort_size: optedIn && publicProgram ? cohort_size : null,
-      global_rank: optedIn && publicGlobal ? global_rank : null,
-      global_cohort_size: optedIn && publicGlobal ? global_cohort_size : null,
+      leaderboard_rank: inCohortLb ? rank : null,
+      cohort_size: inCohortLb ? cohort_size : null,
+      global_rank: inGlobalLb ? global_rank : null,
+      global_cohort_size: inGlobalLb ? global_cohort_size : null,
       dedication_total: dedication ? dedication.total : null,
       dedication_pillars: dedication
         ? {
@@ -3056,6 +3068,11 @@ app.post('/api/me/leaderboard-opt-in', verifyToken, rateLimiter(10, 60000), asyn
         error: 'Choose at least one: program cohort or BodyBank leaderboard.'
       });
     }
+    if (optIn && !displayName) {
+      return res.status(400).json({
+        error: 'Leaderboard nickname is required. It is shown instead of your real name.'
+      });
+    }
     if (optIn) {
       await run(
         `UPDATE users SET leaderboard_opt_in = TRUE, leaderboard_display_name = ?,
@@ -3087,10 +3104,17 @@ app.post('/api/me/leaderboard-profile', verifyToken, rateLimiter(10, 60000), asy
   try {
     const body = req.body || {};
     const displayName = String(body.display_name || '').trim().slice(0, 80);
+    if (!displayName) {
+      return res.status(400).json({
+        error: 'Enter a leaderboard nickname (required). It is shown instead of your real name.'
+      });
+    }
     await run(
       `UPDATE users SET leaderboard_display_name = ?,
        leaderboard_opt_in = TRUE,
-       leaderboard_public_global = TRUE
+       leaderboard_public_program = TRUE,
+       leaderboard_public_global = TRUE,
+       leaderboard_opt_in_at = COALESCE(leaderboard_opt_in_at, CURRENT_TIMESTAMP)
        WHERE id = ?`,
       [displayName, req.user.id]
     );
