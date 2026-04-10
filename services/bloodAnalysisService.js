@@ -7,7 +7,27 @@ const {
   formatAnthropicApiError,
   computeNutritionSummaryForUserWindow
 } = require('./nutritionService');
-const { generateHealthReportPdf } = require('./pdfService');
+const { generateHealthReportPdfWithFallback } = require('./pdfService');
+
+function parseDbJsonColumn(v) {
+  if (v == null) return null;
+  if (Buffer.isBuffer(v)) {
+    try {
+      return JSON.parse(v.toString('utf8'));
+    } catch (_) {
+      return null;
+    }
+  }
+  if (typeof v === 'object') return v;
+  if (typeof v === 'string') {
+    try {
+      return JSON.parse(v);
+    } catch (_) {
+      return null;
+    }
+  }
+  return null;
+}
 
 function anthropicTextFromMessage(data) {
   const blocks = data && Array.isArray(data.content) ? data.content : [];
@@ -257,7 +277,7 @@ Provide complete clinical analysis as JSON.`
     );
 
     const bloodForPdf = { panels: normalizePanelsForPdf(extractedBloodData) };
-    const pdfPath = await generateHealthReportPdf({
+    const pdfPath = await generateHealthReportPdfWithFallback({
       reportId,
       user: {
         name: userName,
@@ -296,35 +316,14 @@ async function ensureHealthReportPdf(db, reportId) {
       return report.pdf_path;
     }
 
-    let extracted = report.extracted_blood_data;
-    if (extracted == null) extracted = null;
-    else if (typeof extracted === 'string') {
-      try {
-        extracted = JSON.parse(extracted);
-      } catch (_) {
-        extracted = null;
-      }
-    }
-    let aiReport = report.ai_report;
-    if (aiReport == null) aiReport = null;
-    else if (typeof aiReport === 'string') {
-      try {
-        aiReport = JSON.parse(aiReport);
-      } catch (_) {
-        aiReport = null;
-      }
-    }
-    let nutritionSnapshot = report.nutrition_snapshot;
-    if (nutritionSnapshot == null) nutritionSnapshot = {};
-    else if (typeof nutritionSnapshot === 'string') {
-      try {
-        nutritionSnapshot = JSON.parse(nutritionSnapshot);
-      } catch (_) {
-        nutritionSnapshot = {};
-      }
+    let extracted = parseDbJsonColumn(report.extracted_blood_data);
+    let aiReport = parseDbJsonColumn(report.ai_report);
+    let nutritionSnapshot = parseDbJsonColumn(report.nutrition_snapshot);
+    if (nutritionSnapshot == null || typeof nutritionSnapshot !== 'object' || Array.isArray(nutritionSnapshot)) {
+      nutritionSnapshot = {};
     }
 
-    if (!extracted || !Array.isArray(extracted.panels) || !aiReport || typeof aiReport !== 'object') {
+    if (!extracted || !Array.isArray(extracted.panels) || !aiReport || typeof aiReport !== 'object' || Array.isArray(aiReport)) {
       return null;
     }
 
@@ -334,7 +333,7 @@ async function ensureHealthReportPdf(db, reportId) {
       [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.email || 'Member';
 
     const bloodForPdf = { panels: normalizePanelsForPdf(extracted) };
-    const pdfPath = await generateHealthReportPdf({
+    const pdfPath = await generateHealthReportPdfWithFallback({
       reportId,
       user: {
         name: userName,
