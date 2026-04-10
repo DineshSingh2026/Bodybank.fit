@@ -2607,8 +2607,11 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .nutrition-checkin .meal-status-badge.analyzing{background:rgba(230,126,34,0.15);color:var(--bb-orange)}
 .nutrition-checkin .meal-status-badge.error{background:rgba(192,57,43,0.15);color:var(--bb-red)}
 .nutrition-checkin .meal-upload-area{display:flex;flex-direction:column;gap:6px;align-items:stretch}
+.nutrition-checkin .meal-upload-btns{display:flex;flex-direction:column;gap:8px;width:100%}
 .nutrition-checkin .upload-trigger-btn{min-height:44px;width:100%;padding:10px;border:1.5px dashed var(--bb-border);background:transparent;color:var(--muted);border-radius:8px;font-family:var(--bb-font-body);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
 .nutrition-checkin .upload-trigger-btn:hover{border-color:var(--bb-green);color:var(--bb-green);background:rgba(46,204,113,0.06)}
+.nutrition-checkin .upload-gallery-btn{min-height:44px;width:100%;padding:10px;border:1px solid var(--bb-border);background:var(--bb-surface-hover);color:var(--cream);border-radius:8px;font-family:var(--bb-font-body);font-size:11px;font-weight:600;cursor:pointer;transition:all .2s}
+.nutrition-checkin .upload-gallery-btn:hover{border-color:var(--bb-gold);color:var(--bb-gold)}
 .nutrition-checkin .upload-or{font-size:10px;color:var(--muted);text-align:center}
 .nutrition-checkin .manual-entry-btn{min-height:44px;width:100%;padding:8px;border:1px solid var(--bb-border);background:transparent;color:var(--muted);border-radius:8px;font-size:11px;cursor:pointer}
 .nutrition-checkin .meal-preview{position:relative}
@@ -11399,8 +11402,11 @@ function bbNutritionMealSlotHtml(mt) {
       '<div class="meal-time-hint">' + esc(meta.hint) + '</div></div>' +
       '<div class="meal-status-badge" id="badge-' + esc(mt) + '">Not logged</div></div>' +
       '<div class="meal-upload-area" id="upload-' + esc(mt) + '">' +
-      '<input type="file" id="file-' + esc(mt) + '" accept="image/*" capture="environment" style="display:none" onchange="nutritionHandleMealPhoto(event,\'' + esc(mt) + '\')" />' +
-      '<button type="button" class="upload-trigger-btn" onclick="document.getElementById(\'file-' + esc(mt) + '\').click()">Take / upload photo</button>' +
+      '<input type="file" id="file-camera-' + esc(mt) + '" accept="image/*" capture="environment" style="display:none" onchange="nutritionHandleMealPhoto(event,\'' + esc(mt) + '\')" />' +
+      '<input type="file" id="file-upload-' + esc(mt) + '" accept="image/*" style="display:none" onchange="nutritionHandleMealPhoto(event,\'' + esc(mt) + '\')" />' +
+      '<div class="meal-upload-btns">' +
+      '<button type="button" class="upload-trigger-btn" onclick="document.getElementById(\'file-camera-' + esc(mt) + '\').click()">Take photo</button>' +
+      '<button type="button" class="upload-gallery-btn" onclick="document.getElementById(\'file-upload-' + esc(mt) + '\').click()">Upload from device</button></div>' +
       '<span class="upload-or">or</span>' +
       '<button type="button" class="manual-entry-btn" onclick="nutritionToggleManual(\'' + esc(mt) + '\')">Enter manually</button></div>' +
       '<div class="meal-preview" id="preview-' + esc(mt) + '" style="display:none">' +
@@ -11422,7 +11428,10 @@ function bbNutritionMealSlotHtml(mt) {
 
 function nutritionEnsureMealGrid() {
   var g = document.getElementById('nutritionMealGrid');
-  if (!g || bbNutritionGridReady) return;
+  if (!g) return;
+  var SLOT_VER = 'v2-dual-upload';
+  if (g.getAttribute('data-bb-slot-ver') === SLOT_VER && bbNutritionGridReady) return;
+  g.setAttribute('data-bb-slot-ver', SLOT_VER);
   g.innerHTML = bbNutritionMeals.map(bbNutritionMealSlotHtml).join('');
   bbNutritionGridReady = true;
 }
@@ -11456,15 +11465,25 @@ function nutritionHandleMealPhoto(ev, mt) {
     var slot = document.getElementById('mslot-' + mt);
     if (slot) slot.classList.add('uploading');
     nutritionSetBadge(mt, 'Photo ready', 'analyzing');
+    var camIn = document.getElementById('file-camera-' + mt);
+    var upIn = document.getElementById('file-upload-' + mt);
+    if (camIn) camIn.value = '';
+    if (upIn) upIn.value = '';
   };
   reader.readAsDataURL(file);
+}
+
+function nutritionClearMealFileInputs(mt) {
+  ['file-camera-' + mt, 'file-upload-' + mt].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
 }
 
 function nutritionRemovePhoto(mt) {
   delete bbNutritionState.photos[mt];
   delete bbNutritionState.mimes[mt];
-  var inp = document.getElementById('file-' + mt);
-  if (inp) inp.value = '';
+  nutritionClearMealFileInputs(mt);
   var img = document.getElementById('previewImg-' + mt);
   if (img) img.src = '';
   var prev = document.getElementById('preview-' + mt);
