@@ -35,6 +35,75 @@ function anthropicTextFromMessage(data) {
   return blocks.map((b) => (b && b.type === 'text' ? b.text || '' : '')).join('');
 }
 
+function parseAnyJsonBlock(text) {
+  const t = String(text || '');
+  if (!t.trim()) return null;
+  try {
+    return JSON.parse(t);
+  } catch (_) {}
+
+  const fence = /```(?:json)?\s*([\s\S]*?)```/gi;
+  let m;
+  while ((m = fence.exec(t))) {
+    const body = String(m[1] || '').trim();
+    if (!body) continue;
+    try {
+      return JSON.parse(body);
+    } catch (_) {}
+  }
+
+  for (let i = 0; i < t.length; i += 1) {
+    if (t[i] !== '{') continue;
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    for (let j = i; j < t.length; j += 1) {
+      const ch = t[j];
+      if (inStr) {
+        if (esc) {
+          esc = false;
+        } else if (ch === '\\') {
+          esc = true;
+        } else if (ch === '"') {
+          inStr = false;
+        }
+        continue;
+      }
+      if (ch === '"') {
+        inStr = true;
+        continue;
+      }
+      if (ch === '{') depth += 1;
+      else if (ch === '}') depth -= 1;
+      if (depth === 0) {
+        const candidate = t.slice(i, j + 1);
+        try {
+          return JSON.parse(candidate);
+        } catch (_) {
+          break;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function unwrapExtractionRoot(extracted) {
+  if (!extracted || typeof extracted !== 'object' || Array.isArray(extracted)) return null;
+  if (extracted.panels || extracted.Panels || extracted.markers) return extracted;
+  const maybe =
+    extracted.result ||
+    extracted.results ||
+    extracted.report ||
+    extracted.data ||
+    extracted.payload ||
+    null;
+  if (maybe && typeof maybe === 'object' && !Array.isArray(maybe)) {
+    if (maybe.panels || maybe.Panels || maybe.markers) return maybe;
+  }
+  return extracted;
+}
+
 async function callAnthropicMessages({ apiKey, model, maxTokens, system, userContent }) {
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -90,6 +159,7 @@ function resolveStoredPdfPath(pdfPath) {
 
 /** Normalize extraction JSON so PDF regeneration tolerates minor model/schema drift. */
 function coerceExtractedForPdf(extracted) {
+  extracted = unwrapExtractionRoot(extracted);
   if (!extracted || typeof extracted !== 'object' || Array.isArray(extracted)) return null;
   let panels = extracted.panels;
   if (!Array.isArray(panels) && Array.isArray(extracted.Panels)) {
@@ -97,6 +167,13 @@ function coerceExtractedForPdf(extracted) {
   }
   if (!Array.isArray(panels) && panels && typeof panels === 'object') {
     panels = [panels];
+  }
+  if (!Array.isArray(panels) || panels.length === 0) {
+    if (Array.isArray(extracted.tests) && extracted.tests.length) {
+      panels = [{ name: extracted.lab_name || 'Lab results', markers: extracted.tests }];
+    } else if (Array.isArray(extracted.results) && extracted.results.length) {
+      panels = [{ name: extracted.lab_name || 'Lab results', markers: extracted.results }];
+    }
   }
   if (!Array.isArray(panels) || panels.length === 0) {
     if (Array.isArray(extracted.markers) && extracted.markers.length) {
@@ -169,6 +246,8 @@ async function triggerBloodAnalysis(db, reportId, imageBase64, mimeType, userId)
 
   const model =
     (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514').trim();
+  const extractionMaxTokens = Math.max(700, parseInt(process.env.ANTHROPIC_BLOOD_EXTRACT_MAX_TOKENS || '1800', 10) || 1800);
+  const analysisMaxTokens = Math.max(2500, parseInt(process.env.ANTHROPIC_BLOOD_ANALYSIS_MAX_TOKENS || '5500', 10) || 5500);
 
   const { run, queryOne, queryAll } = db;
 
@@ -178,7 +257,7 @@ async function triggerBloodAnalysis(db, reportId, imageBase64, mimeType, userId)
     const extractRes = await callAnthropicMessages({
       apiKey,
       model,
-      maxTokens: 4000,
+      maxTokens: extractionMaxTokens,
       system: `You are a medical data extraction specialist. Extract ALL blood test markers from the lab report.
 
 Return ONLY valid JSON, no markdown:
@@ -210,7 +289,7 @@ Extract EVERY visible marker. Use standard clinical ranges if reference range is
     });
 
     const extractText = anthropicTextFromMessage(extractRes);
-    const extractedBloodDataRaw = parseAnthropicJson(extractText);
+    const extractedBloodDataRaw = parseAnyJsonBlock(extractText) || parseAnthropicJson(extractText);
     const extractedBloodData = coerceExtractedForPdf(extractedBloodDataRaw);
     if (!extractedBloodData || !Array.isArray(extractedBloodData.panels) || extractedBloodData.panels.length === 0) {
       throw new Error('Extraction did not return valid panels JSON');
@@ -262,7 +341,7 @@ Extract EVERY visible marker. Use standard clinical ranges if reference range is
     const analysisRes = await callAnthropicMessages({
       apiKey,
       model,
-      maxTokens: 8000,
+      maxTokens: analysisMaxTokens,
       system: `You are a Senior Consultant Physician and Sports Nutritionist with 20 years of clinical experience specialising in metabolic health, micronutrient deficiencies, and performance nutrition.
 
 Analyse the blood report data and nutrition tracking data. Produce a comprehensive, clinically accurate report.
