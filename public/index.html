@@ -12684,25 +12684,36 @@ async function drawNutritionShareCard(mt) {
   ctx.lineTo(W - 74, footerY);
   ctx.stroke();
 
-  var brandY = footerY + 120;
+  var brandY = footerY + 132;
   var bodybankLogo = await nutritionShareLoadImage('/img/bodybank-logo-short.png');
   var fitchefLogo = await nutritionShareLoadImage('/img/Fitchef logo.png');
   if (bodybankLogo && fitchefLogo) {
-    var bbH = 84;
+    // Make brand lockup clearly visible and centered.
+    var bbH = 112;
     var bbW = Math.round((bodybankLogo.naturalWidth / Math.max(1, bodybankLogo.naturalHeight)) * bbH);
-    var fcH = 84;
+    var fcH = 112;
     var fcW = Math.round((fitchefLogo.naturalWidth / Math.max(1, fitchefLogo.naturalHeight)) * fcH);
-    var xMarkW = 54;
-    var totalW = bbW + 30 + xMarkW + 30 + fcW;
+    var xMarkW = 74;
+    var totalW = bbW + 36 + xMarkW + 36 + fcW;
     var startX = Math.round((W - totalW) / 2);
-    ctx.drawImage(bodybankLogo, startX, brandY - bbH + 10, bbW, bbH);
+
+    // Soft backdrop so logos stay readable over dark textures.
+    ctx.fillStyle = 'rgba(255,255,255,0.03)';
+    nutritionShareRoundRectPath(ctx, startX - 20, brandY - fcH + 2, totalW + 40, fcH + 22, 26);
+    ctx.fill();
+
+    ctx.drawImage(bodybankLogo, startX, brandY - bbH + 12, bbW, bbH);
     ctx.fillStyle = '#d7c9a0';
-    ctx.font = "800 58px 'Outfit','Segoe UI',sans-serif";
-    ctx.fillText('X', startX + bbW + 30, brandY + 2);
-    ctx.drawImage(fitchefLogo, startX + bbW + 30 + xMarkW + 30, brandY - fcH + 10, fcW, fcH);
+    ctx.font = "800 74px 'Outfit','Segoe UI',sans-serif";
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('X', startX + bbW + 36 + Math.round(xMarkW / 2), brandY - 28);
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
+    ctx.drawImage(fitchefLogo, startX + bbW + 36 + xMarkW + 36, brandY - fcH + 12, fcW, fcH);
   } else {
     ctx.fillStyle = '#d9c598';
-    ctx.font = "700 46px 'Outfit','Segoe UI',sans-serif";
+    ctx.font = "700 58px 'Outfit','Segoe UI',sans-serif";
     ctx.textAlign = 'center';
     ctx.fillText('Bodybank X Fitchef', W / 2, brandY);
     ctx.textAlign = 'left';
