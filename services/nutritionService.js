@@ -283,6 +283,69 @@ async function callClaudeNutrition({
   return { aiResult, rawText: text, usage };
 }
 
+async function validateNutritionMealInput({
+  apiKey,
+  model,
+  imageBase64,
+  mimeType,
+  mealType,
+  manualNote
+}) {
+  const textNote = String(manualNote || '').replace(/\s+/g, ' ').trim().slice(0, 500);
+  const content = [];
+  if (imageBase64 && String(imageBase64).length > 50) {
+    const mt = mimeType && /^image\/(jpeg|png|gif|webp)$/i.test(mimeType) ? mimeType : 'image/jpeg';
+    content.push({
+      type: 'image',
+      source: { type: 'base64', media_type: mt, data: String(imageBase64).replace(/\s/g, '') }
+    });
+  }
+  content.push({
+    type: 'text',
+    text: `Meal type: ${String(mealType || '').slice(0, 40)}. User note: ${textNote || '(none)'}`
+  });
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 120,
+        system: `You are a strict food-input validator for a nutrition app.
+Return ONLY valid JSON:
+{
+  "is_food_meal": true,
+  "confidence": "high|medium|low",
+  "reason": "short reason"
+}
+Mark is_food_meal=false when input appears non-food (documents, faces, pets, random objects, scenery, gym equipment, screenshots, forms, medicine strips without meal context).`,
+        messages: [{ role: 'user', content }]
+      })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(formatAnthropicApiError(res.status, data));
+    }
+    const block = (data.content || []).find((b) => b.type === 'text');
+    const parsed = parseAnthropicJson(block && block.text ? block.text : '');
+    const decision = !!(parsed && parsed.is_food_meal === true);
+    const confidence = String((parsed && parsed.confidence) || 'low').toLowerCase();
+    const reason = String((parsed && parsed.reason) || '').trim().slice(0, 200);
+    return {
+      isFoodMeal: decision,
+      confidence: ['high', 'medium', 'low'].includes(confidence) ? confidence : 'low',
+      reason: reason || (decision ? 'Looks like a food meal entry.' : 'Input does not appear to be a meal.')
+    };
+  } catch (_) {
+    // Fail-open to avoid blocking valid users during transient validator issues.
+    return { isFoodMeal: true, confidence: 'low', reason: 'Validation unavailable; allowed.' };
+  }
+}
+
 async function getUserGoals(db, userId) {
   const row = await db.queryOne(
     'SELECT target_weight, weekly_workout_target FROM user_goals WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
@@ -563,6 +626,7 @@ module.exports = {
   countMealsForDay,
   nutritionLoggingStreak,
   computeNutritionSummaryForUserWindow,
+  validateNutritionMealInput,
   classifyMealConfidence,
   summarizeDailyConfidence,
   todayYmdInTz,

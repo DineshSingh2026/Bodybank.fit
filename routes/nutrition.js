@@ -8,6 +8,7 @@ const {
   MEAL_TYPES,
   computeMealScore,
   callClaudeNutrition,
+  validateNutritionMealInput,
   normalizeAiResult,
   classifyMealConfidence,
   summarizeDailyConfidence,
@@ -181,6 +182,20 @@ function createNutritionRouter(deps) {
       if (!note) return res.status(400).json({ error: 'Please add meal details in text. This is required for analysis.' });
       if (!img && !note) return res.status(400).json({ error: 'Provide a photo or a text description.' });
       if (img && img.length > MAX_B64_CHARS) return res.status(400).json({ error: 'Image too large.' });
+      const mealValidation = await validateNutritionMealInput({
+        apiKey,
+        model,
+        imageBase64: img || null,
+        mimeType: mimeType || 'image/jpeg',
+        mealType: mt,
+        manualNote: note
+      });
+      if (!mealValidation.isFoodMeal) {
+        return res.status(400).json({
+          error:
+            'This does not look like a valid food meal upload. Please upload a meal photo and add meal details text.'
+        });
+      }
 
       const ymd = ymdOrToday(req.body, req.query);
       if (img) {
@@ -482,6 +497,18 @@ function createNutritionRouter(deps) {
         if (!img && !note) continue;
         if (img.length > MAX_B64_CHARS) {
           errors.push({ mealType: mt, error: 'Image too large' });
+          continue;
+        }
+        const mealValidation = await validateNutritionMealInput({
+          apiKey,
+          model,
+          imageBase64: img || null,
+          mimeType: row.photo_mime || 'image/jpeg',
+          mealType: mt,
+          manualNote: note
+        });
+        if (!mealValidation.isFoodMeal) {
+          errors.push({ mealType: mt, error: 'Input does not look like a valid food meal.' });
           continue;
         }
 

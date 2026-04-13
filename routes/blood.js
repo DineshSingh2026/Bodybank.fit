@@ -4,7 +4,12 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const userEmail = require('../services/userEmailService');
-const { triggerBloodAnalysis, ensureHealthReportPdf, resolveStoredUploadPath } = require('../services/bloodAnalysisService');
+const {
+  triggerBloodAnalysis,
+  ensureHealthReportPdf,
+  validateBloodReportInput,
+  resolveStoredUploadPath
+} = require('../services/bloodAnalysisService');
 
 const MAX_B64_CHARS = 22 * 1024 * 1024;
 const MAX_BLOOD_FILE_BYTES = Math.floor(MAX_B64_CHARS * 3 / 4);
@@ -76,6 +81,21 @@ function createBloodRouter(deps) {
       if (b64.length > MAX_B64_CHARS) return res.status(400).json({ error: 'File payload too large' });
 
       const mime = String(bloodReportMimeType || 'image/jpeg').slice(0, 80);
+      const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+      const model =
+        (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514').trim();
+      const reportValidation = await validateBloodReportInput({
+        apiKey,
+        model,
+        imageBase64: b64,
+        mimeType: mime
+      });
+      if (!reportValidation.isBloodReport) {
+        return res.status(400).json({
+          success: false,
+          error: 'This file does not look like a blood lab report. Please upload a valid blood test report (PDF/image).'
+        });
+      }
       const ext = mime.toLowerCase().includes('pdf') ? 'pdf' : mime.includes('png') ? 'png' : 'jpg';
       const uploadsRoot = path.resolve(process.cwd(), (process.env.UPLOADS_DIR || './uploads').replace(/^\.\//, ''));
       const fileDir = path.join(uploadsRoot, 'blood-reports');

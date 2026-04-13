@@ -179,6 +179,46 @@ function bloodMediaBlock(imageBase64, mimeType) {
   };
 }
 
+async function validateBloodReportInput({ apiKey, model, imageBase64, mimeType }) {
+  const validationModel =
+    (process.env.ANTHROPIC_MODEL_BLOOD_VALIDATOR || model || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514').trim();
+  try {
+    const resp = await callAnthropicMessages({
+      apiKey,
+      model: validationModel,
+      maxTokens: 120,
+      system: `You are a strict validator for uploaded blood lab reports.
+Return ONLY valid JSON:
+{
+  "is_blood_report": true,
+  "confidence": "high|medium|low",
+  "reason": "short reason"
+}
+Set is_blood_report=false when the file is not a blood lab report (e.g. nutrition chart, xray, prescription, invoice, random image, selfie, other document type).`,
+      userContent: [
+        bloodMediaBlock(imageBase64, mimeType),
+        {
+          type: 'text',
+          text: 'Decide if this is a blood test laboratory report that can be clinically analyzed into blood markers.'
+        }
+      ]
+    });
+    const text = anthropicTextFromMessage(resp);
+    const parsed = parseAnyJsonBlock(text) || parseAnthropicJson(text);
+    const isBlood = !!(parsed && parsed.is_blood_report === true);
+    const confidence = String((parsed && parsed.confidence) || 'low').toLowerCase();
+    const reason = String((parsed && parsed.reason) || '').trim().slice(0, 220);
+    return {
+      isBloodReport: isBlood,
+      confidence: ['high', 'medium', 'low'].includes(confidence) ? confidence : 'low',
+      reason: reason || (isBlood ? 'Appears to be a blood lab report.' : 'Not recognized as a blood lab report.')
+    };
+  } catch (_) {
+    // Fail-open to avoid blocking valid users during temporary API/validator issues.
+    return { isBloodReport: true, confidence: 'low', reason: 'Validation unavailable; allowed.' };
+  }
+}
+
 /**
  * Try stored path as-is, then relative to process.cwd() (handles moved servers / ephemeral disks).
  */
@@ -569,4 +609,9 @@ async function ensureHealthReportPdf(db, reportId) {
   }
 }
 
-module.exports = { triggerBloodAnalysis, ensureHealthReportPdf, resolveStoredUploadPath: resolveStoredPdfPath };
+module.exports = {
+  triggerBloodAnalysis,
+  ensureHealthReportPdf,
+  validateBloodReportInput,
+  resolveStoredUploadPath: resolveStoredPdfPath
+};
