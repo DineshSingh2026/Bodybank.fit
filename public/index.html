@@ -1244,13 +1244,35 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .bb-lb-table th{ text-align:left; padding:8px 6px; border-bottom:1px solid rgba(255,255,255,0.08); color:var(--muted); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; }
 .bb-lb-table td{ padding:10px 6px; border-bottom:1px solid rgba(255,255,255,0.05); color:var(--cream); }
 .bb-lb-table tr.is-self td{ background:rgba(200,164,78,0.06); }
+.bb-lb-trophy{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:24px;height:20px;padding:0 8px;border-radius:999px;
+  margin-right:8px;font-size:11px;font-weight:700;letter-spacing:.04em;
+  border:1px solid rgba(200,164,78,0.24);background:rgba(200,164,78,0.08);color:var(--gold)
+}
+.bb-lb-trophy.r1{background:linear-gradient(135deg,#f7e7a4,#d7b24a);color:#1a1608;border-color:#f1d77a}
+.bb-lb-trophy.r2{background:linear-gradient(135deg,#e5edf5,#aeb9c8);color:#121820;border-color:#d0dae7}
+.bb-lb-trophy.r3{background:linear-gradient(135deg,#e7be93,#b57d52);color:#1d120b;border-color:#deb08a}
+.bb-lb-rank-good{display:inline-flex;align-items:center;gap:6px}
 .bb-lb-mobile-list{display:flex;flex-direction:column;gap:8px}
 .bb-lb-mobile-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,0.08);border-radius:10px;background:rgba(255,255,255,0.02)}
 .bb-lb-mobile-item.is-self{border-color:rgba(200,164,78,0.35);background:rgba(200,164,78,0.08)}
 .bb-lb-mobile-left{display:flex;align-items:center;gap:10px;min-width:0}
 .bb-lb-mobile-rank{font-size:12px;color:var(--muted);min-width:22px}
 .bb-lb-mobile-name{font-size:15px;color:var(--cream);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:56vw}
-.bb-lb-mobile-score{font-size:22px;color:var(--cream);font-weight:800;line-height:1}
+.bb-lb-mobile-score{font-size:13px;color:var(--cream);font-weight:600;line-height:1}
+.bb-lb-mobile-score-wrap{display:flex;align-items:center;gap:8px}
+.bb-lb-mobile-rankchip{
+  display:inline-flex;align-items:center;justify-content:center;
+  min-width:22px;height:20px;padding:0 7px;border-radius:999px;
+  border:1px solid rgba(255,255,255,0.16);font-size:11px;color:var(--muted);background:rgba(255,255,255,0.03)
+}
+.bb-lb-mobile-item.top10{border-color:rgba(200,164,78,0.35);box-shadow:0 8px 18px rgba(0,0,0,0.24), inset 0 0 0 1px rgba(200,164,78,0.1)}
+.bb-lb-mobile-item.top10 .bb-lb-mobile-name{color:#f4efe2}
+.bb-lb-head{padding-bottom:8px;border-bottom:1px solid rgba(255,255,255,0.08);margin-bottom:10px}
+@media(min-width:769px){
+  #scorecardLeaderboardModal .modal{max-width:560px}
+}
 @media(max-width:768px){
   #scorecardLeaderboardModal .modal{max-width:min(96vw,520px)!important;padding:20px 14px}
   #scorecardLeaderboardModal .bb-lb-head h2{font-size:28px!important}
@@ -11656,6 +11678,14 @@ async function loadScorecardLeaderboardModal(mode) {
     }
   }
   var uid = window.currentUser.id;
+  function trophyForRank(rank) {
+    var r = Number(rank);
+    if (!Number.isFinite(r) || r < 1 || r > 10) return '';
+    if (r === 1) return '<span class="bb-lb-trophy r1">🏆 #1</span>';
+    if (r === 2) return '<span class="bb-lb-trophy r2">🥈 #2</span>';
+    if (r === 3) return '<span class="bb-lb-trophy r3">🥉 #3</span>';
+    return '<span class="bb-lb-trophy">🏅 #' + r + '</span>';
+  }
   if (bodyEl) {
     if (!data.rows || !data.rows.length) {
       bodyEl.innerHTML = '<p class="form-hint">No members on this board for this week yet.</p>';
@@ -11664,19 +11694,23 @@ async function loadScorecardLeaderboardModal(mode) {
       if (isMobileLb) {
         bodyEl.innerHTML = '<div class="bb-lb-mobile-list">' + data.rows.map(function (r) {
           var self = r.user_id === uid;
-          return '<div class="bb-lb-mobile-item ' + (self ? 'is-self' : '') + '">' +
+          var rank = Number(r.rank) || 0;
+          var trophy = trophyForRank(rank);
+          return '<div class="bb-lb-mobile-item ' + (self ? 'is-self' : '') + ' ' + (rank <= 10 ? 'top10' : '') + '">' +
             '<div class="bb-lb-mobile-left">' +
-              '<span class="bb-lb-mobile-rank">#' + r.rank + '</span>' +
+              '<span class="bb-lb-mobile-rankchip">#' + rank + '</span>' +
               '<span class="bb-lb-mobile-name">' + escapeHtml(r.display_name) + (self ? ' <span style="color:var(--gold)">(you)</span>' : '') + '</span>' +
             '</div>' +
-            '<span class="bb-lb-mobile-score">' + (r.total != null ? r.total : '\u2014') + '</span>' +
+            '<span class="bb-lb-mobile-score-wrap">' + trophy + '<span class="bb-lb-mobile-score">' + (r.total != null ? r.total : '\u2014') + '</span></span>' +
           '</div>';
         }).join('') + '</div>';
       } else {
         bodyEl.innerHTML = '<table class="bb-lb-table"><thead><tr><th>#</th><th>Name</th><th>Score</th></tr></thead><tbody>' +
           data.rows.map(function (r) {
             var self = r.user_id === uid;
-            return '<tr class="' + (self ? 'is-self' : '') + '"><td>' + r.rank + '</td><td>' + escapeHtml(r.display_name) + (self ? ' <span style="color:var(--gold)">(you)</span>' : '') + '</td><td>' + (r.total != null ? r.total : '\u2014') + '</td></tr>';
+            var rank = Number(r.rank) || 0;
+            var trophy = trophyForRank(rank);
+            return '<tr class="' + (self ? 'is-self' : '') + '"><td>' + rank + '</td><td><span class="bb-lb-rank-good">' + trophy + escapeHtml(r.display_name) + (self ? ' <span style="color:var(--gold)">(you)</span>' : '') + '</span></td><td>' + (r.total != null ? r.total : '\u2014') + '</td></tr>';
           }).join('') + '</tbody></table>';
       }
     }
