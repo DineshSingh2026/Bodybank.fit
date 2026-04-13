@@ -9,6 +9,7 @@ const path = require('path');
 const fs = require('fs');
 const webPush = require('web-push');
 const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken } = require('./middleware/auth');
+const { safeExtraHttpHeaders, optionalApiAccessLog } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, runWeeklyNutritionEmailJob } = require('./routes/nutrition');
 const { createBloodRouter } = require('./routes/blood');
@@ -145,6 +146,7 @@ app.use((req, res, next) => {
   }
   next();
 });
+app.use(safeExtraHttpHeaders);
 
 // Simple rate limiter (in-memory)
 const rateLimit = {};
@@ -171,6 +173,8 @@ if (NODE_ENV !== 'production') {
     next();
   });
 }
+
+app.use(optionalApiAccessLog);
 
 let pool;
 
