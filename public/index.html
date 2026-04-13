@@ -2644,6 +2644,16 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .nutrition-checkin .submit-all-btn{min-height:48px;width:100%;padding:14px;background:var(--bb-green);color:#0d0f11;border:none;border-radius:14px;font-family:var(--bb-font-heading);font-weight:700;font-size:13px;cursor:pointer;margin-bottom:12px}
 .nutrition-checkin .submit-all-btn:disabled{opacity:.4;cursor:not-allowed}
 .nutrition-checkin .daily-nutrition-summary{background:var(--bb-surface);border:1px solid var(--bb-border);border-radius:14px;padding:16px;margin-bottom:12px}
+.nutrition-checkin .nutri-trend-wrap{margin-top:12px;padding:14px;border-radius:14px;background:linear-gradient(160deg,rgba(26,22,18,0.95),rgba(12,11,10,0.98));border:1px solid rgba(200,164,78,0.22);box-shadow:0 10px 32px rgba(0,0,0,0.32)}
+.nutrition-checkin .nutri-trend-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.nutrition-checkin .nutri-trend-title{font-family:var(--bb-font-heading);font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--gold)}
+.nutrition-checkin .nutri-trend-sub{font-size:10px;color:var(--muted)}
+.nutrition-checkin .nutri-trend-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+@media (max-width:560px){.nutrition-checkin .nutri-trend-grid{grid-template-columns:repeat(2,1fr)}}
+.nutrition-checkin .nutri-trend-chip{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 10px}
+.nutrition-checkin .nutri-trend-chip .lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.nutrition-checkin .nutri-trend-chip .val{font-family:var(--bb-font-heading);font-size:1rem;color:var(--cream);font-weight:700;margin-top:2px}
+.nutrition-checkin .nutri-trend-chart-box{position:relative;height:210px}
 .nutrition-checkin .summary-title{font-family:var(--bb-font-heading);font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;margin-bottom:10px}
 .nutrition-checkin .macro-totals-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:12px}
 @media (max-width:480px){.nutrition-checkin .macro-totals-grid{grid-template-columns:repeat(3,1fr)}}
@@ -4081,6 +4091,18 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
                 <div class="prog-track"><div class="prog-fill green" id="nutriPbPro" style="width:0%"></div></div>
                 <span class="prog-pct" id="nutriPpPro">0%</span>
               </div>
+            </div>
+            <div class="nutri-trend-wrap" id="nutriTrendWrap" style="display:none">
+              <div class="nutri-trend-head">
+                <div class="nutri-trend-title">7-day performance</div>
+                <div class="nutri-trend-sub" id="nutriTrendSub">Daily macro trend</div>
+              </div>
+              <div class="nutri-trend-grid">
+                <div class="nutri-trend-chip"><div class="lbl">Avg kcal</div><div class="val" id="nutriTrendAvgCal">—</div></div>
+                <div class="nutri-trend-chip"><div class="lbl">Avg protein</div><div class="val" id="nutriTrendAvgPro">—</div></div>
+                <div class="nutri-trend-chip"><div class="lbl">Avg score</div><div class="val" id="nutriTrendAvgScore">—</div></div>
+              </div>
+              <div class="nutri-trend-chart-box"><canvas id="nutriTrendChart" aria-label="Weekly nutrition trend"></canvas></div>
             </div>
           </div>
           <div class="streak-indicator" id="nutritionStreakBar" style="display:none">
@@ -11509,6 +11531,7 @@ var bbNutritionState = {
 };
 var bbNutritionGridReady = false;
 var adminNutritionWeekChartInst = null;
+var userNutritionTrendChartInst = null;
 
 function nutritionTodayYmd() {
   try {
@@ -11629,6 +11652,7 @@ function nutritionEnsureMealGrid() {
   g.setAttribute('data-bb-slot-ver', SLOT_VER);
   g.innerHTML = bbNutritionMeals.map(bbNutritionMealSlotHtml).join('');
   bbNutritionGridReady = true;
+  nutritionUpdateSubmitAllState();
 }
 
 function nutritionSetBadge(mt, text, cls) {
@@ -11636,6 +11660,24 @@ function nutritionSetBadge(mt, text, cls) {
   if (!b) return;
   b.textContent = text;
   b.className = 'meal-status-badge' + (cls ? ' ' + cls : '');
+}
+
+function nutritionSetAnalyzeLocked(mt, locked) {
+  var btn = document.querySelector('#mslot-' + mt + ' .analyze-single-btn');
+  if (!btn) return;
+  btn.disabled = !!locked;
+  btn.textContent = locked ? 'Analyzed' : 'Analyze & save';
+}
+
+function nutritionUpdateSubmitAllState() {
+  var sub = document.getElementById('submitAllBtn');
+  if (!sub) return;
+  var readyPhotos = bbNutritionMeals.filter(function (m) { return !!bbNutritionState.photos[m]; }).length;
+  var allReady = readyPhotos === bbNutritionMeals.length;
+  sub.disabled = !allReady;
+  sub.title = allReady ? '' : 'Upload all 4 meal photos to enable this bulk action.';
+  if (!allReady) sub.textContent = 'Submit all & send report (upload all 4 photos)';
+  else sub.textContent = 'Submit all & send report';
 }
 
 function nutritionHandleMealPhoto(ev, mt) {
@@ -11669,6 +11711,7 @@ function nutritionHandleMealPhoto(ev, mt) {
     if (camIn) camIn.value = '';
     if (upIn) upIn.value = '';
     if (noteEl && typeof noteEl.focus === 'function') noteEl.focus();
+    nutritionUpdateSubmitAllState();
   };
   reader.readAsDataURL(file);
 }
@@ -11711,6 +11754,7 @@ function nutritionRemovePhoto(mt) {
   if (slot) slot.classList.remove('uploading', 'analyzed', 'low-conf');
   nutritionSetBadge(mt, 'Not logged', '');
   nutritionSetPhotoRemovable(mt, true);
+  nutritionUpdateSubmitAllState();
 }
 
 function nutritionToggleManual(mt) {
@@ -11817,11 +11861,107 @@ function nutritionApplyEnergyRow(statsNorm) {
   valEl.className = 'nutri-energy-val' + (ed < 0 ? ' surplus' : '');
 }
 
+function nutritionDestroyUserTrendChart() {
+  if (userNutritionTrendChartInst) {
+    try { userNutritionTrendChartInst.destroy(); } catch (e) {}
+    userNutritionTrendChartInst = null;
+  }
+}
+
+async function nutritionRenderUserTrend(uid, endDate) {
+  var wrap = document.getElementById('nutriTrendWrap');
+  var canvas = document.getElementById('nutriTrendChart');
+  var sub = document.getElementById('nutriTrendSub');
+  if (!wrap || !canvas || !uid || typeof Chart === 'undefined') return;
+  var rep = await apiCall('GET', '/api/nutrition/report/' + encodeURIComponent(uid) + '?date=' + encodeURIComponent(endDate));
+  if (!rep || rep.error || !Array.isArray(rep.days) || !rep.days.length) {
+    wrap.style.display = 'none';
+    nutritionDestroyUserTrendChart();
+    return;
+  }
+  var days = rep.days.slice(-7);
+  var labels = days.map(function (d) {
+    var s = String(d.stat_date || '').slice(0, 10);
+    var p = s.split('-');
+    return p.length === 3 ? (p[1] + '/' + p[2]) : s;
+  });
+  var cals = days.map(function (d) { return parseInt(d.total_calories, 10) || 0; });
+  var protein = days.map(function (d) { return parseInt(d.total_protein, 10) || 0; });
+  var score = days.map(function (d) { return Number(d.meal_quality_score) || 0; });
+  var avgCal = Math.round(cals.reduce(function (a, b) { return a + b; }, 0) / Math.max(1, cals.length));
+  var avgPro = Math.round(protein.reduce(function (a, b) { return a + b; }, 0) / Math.max(1, protein.length));
+  var avgScore = (score.reduce(function (a, b) { return a + b; }, 0) / Math.max(1, score.length)).toFixed(1);
+  var el;
+  if (el = document.getElementById('nutriTrendAvgCal')) el.textContent = avgCal + ' kcal';
+  if (el = document.getElementById('nutriTrendAvgPro')) el.textContent = avgPro + ' g';
+  if (el = document.getElementById('nutriTrendAvgScore')) el.textContent = avgScore + '/10';
+  if (sub) sub.textContent = 'Updated daily from your check-ins';
+
+  wrap.style.display = 'block';
+  nutritionDestroyUserTrendChart();
+  userNutritionTrendChartInst = new Chart(canvas.getContext('2d'), {
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Calories',
+          data: cals,
+          yAxisID: 'yCal',
+          backgroundColor: 'rgba(245,166,35,0.28)',
+          borderColor: 'rgba(245,166,35,0.95)',
+          borderWidth: 1,
+          borderRadius: 6
+        },
+        {
+          type: 'line',
+          label: 'Protein (g)',
+          data: protein,
+          yAxisID: 'yPro',
+          borderColor: 'rgba(46,204,113,0.95)',
+          backgroundColor: 'rgba(46,204,113,0.15)',
+          borderWidth: 2.2,
+          pointRadius: 3,
+          tension: 0.35
+        },
+        {
+          type: 'line',
+          label: 'Meal score',
+          data: score,
+          yAxisID: 'yScore',
+          borderColor: 'rgba(155,89,182,0.95)',
+          backgroundColor: 'rgba(155,89,182,0.12)',
+          borderWidth: 2,
+          pointRadius: 2.5,
+          tension: 0.35
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { labels: { color: '#bfb9ab', boxWidth: 10, usePointStyle: true } } },
+      scales: {
+        x: { ticks: { color: '#8f8a7e' }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        yCal: { type: 'linear', position: 'left', beginAtZero: true, ticks: { color: '#f5a623' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+        yPro: { type: 'linear', position: 'right', beginAtZero: true, ticks: { color: '#3dd68c' }, grid: { drawOnChartArea: false } },
+        yScore: { type: 'linear', position: 'right', min: 0, max: 10, ticks: { color: '#9b59b6', stepSize: 2 }, grid: { drawOnChartArea: false } }
+      }
+    }
+  });
+}
+
 async function nutritionAnalyzeSingle(mt, opts) {
   opts = opts || {};
   var autoNotify = opts.autoNotifyOnComplete !== false;
   if (!window.currentUser || !window.currentUser.id) {
     nutritionShowToast('Sign in required', 'error');
+    return;
+  }
+  if (bbNutritionState.results && bbNutritionState.results[mt]) {
+    nutritionSetAnalyzeLocked(mt, true);
+    nutritionShowToast('Already analyzed for this meal.', 'warn');
     return;
   }
   var photo = bbNutritionState.photos[mt];
@@ -11875,6 +12015,7 @@ async function nutritionAnalyzeSingle(mt, opts) {
     else slot.classList.remove('low-conf');
   }
   nutritionSetPhotoRemovable(mt, false);
+  nutritionSetAnalyzeLocked(mt, true);
   if ((mc && mc.level === 'low') || conf === 'low') nutritionShowToast('Low confidence — consider a clearer photo', 'warn');
   else nutritionShowToast('Saved: ' + mt, 'success');
   if (data.streak != null) {
@@ -11891,6 +12032,12 @@ async function nutritionAnalyzeSingle(mt, opts) {
 
 async function nutritionSubmitAllMeals() {
   if (!window.currentUser || !window.currentUser.id) return;
+  var hasAllPhotos = bbNutritionMeals.every(function (m) { return !!bbNutritionState.photos[m]; });
+  if (!hasAllPhotos) {
+    nutritionShowToast('Upload all 4 meal photos first for bulk submit', 'warn');
+    nutritionUpdateSubmitAllState();
+    return;
+  }
   var ymd = nutritionTodayYmd();
   var pending = bbNutritionMeals.filter(function (m) {
     var n = document.getElementById('note-' + m);
@@ -11903,7 +12050,7 @@ async function nutritionSubmitAllMeals() {
     for (var i = 0; i < pending.length; i++) {
       await nutritionAnalyzeSingle(pending[i], { autoNotifyOnComplete: false });
     }
-    if (sub) { sub.disabled = false; sub.textContent = 'Submit all & send report'; }
+    nutritionUpdateSubmitAllState();
   }
   var anyMeal = bbNutritionMeals.some(function (m) { return !!bbNutritionState.results[m]; });
   if (!anyMeal) {
@@ -11930,6 +12077,7 @@ async function loadNutritionCheckinPanel() {
   bbNutritionState.portions = { breakfast: 'medium', lunch: 'medium', snack: 'medium', dinner: 'medium' };
   bbNutritionMeals.forEach(function (mt) {
     nutritionRemovePhoto(mt);
+    nutritionSetAnalyzeLocked(mt, false);
     var ne = document.getElementById('note-' + mt);
     if (ne) ne.value = '';
     var man = document.getElementById('manual-' + mt);
@@ -11957,6 +12105,7 @@ async function loadNutritionCheckinPanel() {
         slot.classList.add('analyzed');
         if ((mc && mc.level === 'low') || (ar.confidence || '').toLowerCase() === 'low') slot.classList.add('low-conf');
       }
+      nutritionSetAnalyzeLocked(mt, true);
     }
     if (m.manual_note && document.getElementById('note-' + mt)) {
       document.getElementById('note-' + mt).value = m.manual_note;
@@ -11985,6 +12134,7 @@ async function loadNutritionCheckinPanel() {
   if (ds && ds.proteinGoal != null) bbNutritionState.goals.pro = ds.proteinGoal;
   nutritionUpdateSummaryFromState();
   nutritionApplyEnergyRow(ds);
+  await nutritionRenderUserTrend(uid, ymd);
   if (data.streak != null) {
     var sb = document.getElementById('nutritionStreakBar');
     var sc = document.getElementById('nutritionStreakCount');
@@ -11993,6 +12143,7 @@ async function loadNutritionCheckinPanel() {
       sb.style.display = data.streak > 0 ? 'flex' : 'none';
     }
   }
+  nutritionUpdateSubmitAllState();
 }
 
 function loadAdminNutritionReport() {
