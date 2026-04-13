@@ -1940,14 +1940,25 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .lb-controls-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:10px}
 .lb-control-card{background:rgba(0,0,0,0.28);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px}
 .lb-inline-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}
+.lb-advanced-details{margin:8px 0;border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,0,0,0.2)}
+.lb-advanced-details summary{cursor:pointer;list-style:none;padding:10px 12px;font-weight:700;color:var(--cream)}
+.lb-advanced-details summary::-webkit-details-marker{display:none}
+.lb-advanced-body{padding:8px 10px 10px}
 .lb-registry-details{margin-top:12px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,0,0,0.22)}
 .lb-registry-details summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:700;color:var(--cream)}
 .lb-registry-details summary::-webkit-details-marker{display:none}
 .lb-registry-details[open] summary{border-bottom:1px solid rgba(255,255,255,0.08)}
 .lb-registry-body{padding:10px}
 @media(max-width:768px){
+  #tab-leaderboard .admin-subsection-wrap{padding:10px}
   .lb-kpi-grid{grid-template-columns:1fr;gap:8px}
   .lb-kpi-value{font-size:22px}
+  .lb-control-card{padding:8px}
+  #tab-leaderboard #adminVirtualLeaderboardBody td[data-label="Virtual ID"],
+  #tab-leaderboard #adminVirtualLeaderboardBody td[data-label="Tier"],
+  #tab-leaderboard #adminVirtualLeaderboardBody td[data-label="Status"],
+  #tab-leaderboard #adminVirtualLeaderboardBody td[data-label="Pillars"]{display:none!important}
+  #tab-leaderboard #adminVirtualRegistryBody td[data-label="Tier"]{display:none!important}
 }
 
 .admin-mobile-nav-bar{display:none!important}
@@ -5261,51 +5272,56 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         </div>
         <div class="lb-inline-actions">
           <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="saveAdminVirtualLeaderboardConfig()">Save controls</button>
-        </div>
-
-        <div class="lb-controls-grid">
-          <div class="lb-control-card">
-            <label class="form-hint" for="adminVirtualBoardMode">Board</label>
-            <select id="adminVirtualBoardMode" class="form-input" onchange="onAdminVirtualBoardModeChange();loadAdminVirtualLeaderboardLive()">
-              <option value="dedication">BodyBank</option>
-              <option value="program">Program</option>
-            </select>
-          </div>
-          <div id="adminVirtualProgramWrap" class="lb-control-card" style="display:none">
-            <label class="form-hint" for="adminVirtualProgramId">Program</label>
-            <select id="adminVirtualProgramId" class="form-input admin-meeting-select" style="min-width:200px">
-              <option value="">Select program</option>
-            </select>
-          </div>
-          <div class="lb-control-card">
-            <label class="form-hint" for="adminVirtualWeekMode">Week</label>
-            <select id="adminVirtualWeekMode" class="form-input">
-              <option value="this">This week</option>
-              <option value="prev">Last week</option>
-            </select>
-          </div>
-          <div class="lb-control-card">
-            <label class="form-hint" for="adminVirtualViewMode">View</label>
-            <select id="adminVirtualViewMode" class="form-input">
-              <option value="all">All</option>
-              <option value="real">Real only</option>
-              <option value="virtual">Virtual only</option>
-            </select>
-          </div>
-        </div>
-        <div class="lb-inline-actions">
-          <label class="form-hint" style="display:flex;align-items:center;gap:8px">
-            <input type="checkbox" id="adminVirtualIncludeForTesting">
-            Include virtual for testing (default OFF)
-          </label>
           <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminVirtualLeaderboardLive()">Load ranking</button>
         </div>
 
-        <div class="lb-inline-actions">
-          <button type="button" class="insights-apply-btn" onclick="regenerateAdminVirtualAliases()">Regenerate aliases</button>
-          <span class="form-hint" id="adminVirtualCollisionMeta">Collisions: 0</span>
-        </div>
-        <div id="adminVirtualCollisionList" class="form-hint" style="margin-bottom:12px"></div>
+        <details class="lb-advanced-details" id="adminVirtualAdvancedDetails">
+          <summary>Advanced filters and safety</summary>
+          <div class="lb-advanced-body">
+            <div class="lb-controls-grid">
+              <div class="lb-control-card">
+                <label class="form-hint" for="adminVirtualBoardMode">Board</label>
+                <select id="adminVirtualBoardMode" class="form-input" onchange="onAdminVirtualBoardModeChange();loadAdminVirtualLeaderboardLive()">
+                  <option value="dedication">BodyBank</option>
+                  <option value="program">Program</option>
+                </select>
+              </div>
+              <div id="adminVirtualProgramWrap" class="lb-control-card" style="display:none">
+                <label class="form-hint" for="adminVirtualProgramId">Program</label>
+                <select id="adminVirtualProgramId" class="form-input admin-meeting-select" style="min-width:200px">
+                  <option value="">Select program</option>
+                </select>
+              </div>
+              <div class="lb-control-card">
+                <label class="form-hint" for="adminVirtualWeekMode">Week</label>
+                <select id="adminVirtualWeekMode" class="form-input">
+                  <option value="this">This week</option>
+                  <option value="prev">Last week</option>
+                </select>
+              </div>
+              <div class="lb-control-card">
+                <label class="form-hint" for="adminVirtualViewMode">View</label>
+                <select id="adminVirtualViewMode" class="form-input">
+                  <option value="all">All</option>
+                  <option value="real">Real only</option>
+                  <option value="virtual">Virtual only</option>
+                </select>
+              </div>
+            </div>
+            <div class="lb-inline-actions">
+              <label class="form-hint" style="display:flex;align-items:center;gap:8px">
+                <input type="checkbox" id="adminVirtualIncludeForTesting">
+                Include virtual for testing (default OFF)
+              </label>
+            </div>
+            <div class="lb-inline-actions">
+              <button type="button" class="insights-apply-btn" onclick="regenerateAdminVirtualAliases()">Regenerate aliases</button>
+              <span class="form-hint" id="adminVirtualCollisionMeta">Collisions: 0</span>
+            </div>
+            <div id="adminVirtualCollisionList" class="form-hint" style="margin-bottom:4px"></div>
+          </div>
+        </details>
+
         <p class="form-hint" id="adminVirtualMeta" style="margin-bottom:8px"></p>
         <div class="admin-table-wrap"><table class="admin-table">
           <thead><tr><th>#</th><th>Name</th><th>Type</th><th>Virtual ID</th><th>Tier</th><th>Status</th><th>Score</th><th>D / Su / Wo / Pr</th></tr></thead>
@@ -10306,6 +10322,8 @@ function onAdminVirtualBoardModeChange() {
 async function loadAdminVirtualLeaderboardSection() {
   await loadProgramsAdmin();
   onAdminVirtualBoardModeChange();
+  var adv = document.getElementById('adminVirtualAdvancedDetails');
+  if (adv) adv.open = window.innerWidth > 768;
   await loadAdminVirtualLeaderboardConfig();
   await loadAdminVirtualLeaderboardLive();
   await loadAdminVirtualRegistry();
