@@ -2012,7 +2012,8 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-tab-content.active{display:block}
 
 /* AI Assist (image icon) + WhatsApp FABs & Panel (admin only) */
-.admin-ai-wa-fab-wrap{position:fixed;bottom:max(24px,env(safe-area-inset-bottom));right:max(24px,env(safe-area-inset-right));z-index:10019;display:flex;flex-direction:column;align-items:center;gap:14px}
+.admin-ai-wa-fab-wrap{position:fixed;bottom:max(24px,env(safe-area-inset-bottom));right:max(24px,env(safe-area-inset-right));z-index:10019;display:none;flex-direction:column;align-items:center;gap:14px}
+body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .admin-ai-assist-fab{width:56px;height:56px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.35),0 0 0 1px rgba(255,255,255,0.08);transition:transform .2s,box-shadow .2s;padding:0;background:rgba(6,6,6,0.95);flex-shrink:0}
 .admin-ai-assist-fab:hover{transform:scale(1.06);box-shadow:0 6px 24px rgba(0,180,216,0.4)}
 .admin-ai-assist-fab:focus{outline:none;box-shadow:0 0 0 3px rgba(0,180,216,0.5)}
@@ -3855,6 +3856,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('messages');return false"><span class="btn-icon">💬</span>Messages</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('contact');return false"><span class="btn-icon">📅</span>Schedule Call</a>
         </div>
+        <section class="my-health-reports" id="myHealthReportsSectionDesktop" aria-label="My health reports (desktop)" style="margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+            <h3 style="font-family:Syne,system-ui,sans-serif;font-size:1.05rem;font-weight:700;margin:0">My health reports</h3>
+            <button type="button" onclick="openBloodUploadPicker()" class="nav-login" style="padding:8px 14px;font-size:12px">+ Upload report</button>
+            <input type="file" id="bloodUploadInputHomeDesktop" accept=".pdf,image/*" style="display:none" onchange="uploadUserBloodReport(event)" />
+          </div>
+          <div id="myReportsListDesktop"></div>
+        </section>
       </div>
       <div class="user-welcome">
         <img id="welcomeAvatar" class="user-welcome-avatar" src="" alt="" style="display:none">
@@ -3970,14 +3979,6 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-copy"><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div></div>
         </div>
 
-        <section class="my-health-reports" id="myHealthReportsSection" aria-label="My health reports" style="margin-top:20px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
-            <h3 style="font-family:Syne,system-ui,sans-serif;font-size:1.05rem;font-weight:700;margin:0">My health reports</h3>
-            <button type="button" onclick="document.getElementById('bloodUploadInputHome').click()" class="nav-login" style="padding:8px 14px;font-size:12px">+ Upload report</button>
-            <input type="file" id="bloodUploadInputHome" accept=".pdf,image/*" style="display:none" onchange="uploadUserBloodReport(event)" />
-          </div>
-          <div id="myReportsList"></div>
-        </section>
       </div>
     </div>
 
@@ -4132,6 +4133,14 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           View my Elite Card
         </button>
       </div>
+      <section class="my-health-reports" id="myHealthReportsSection" aria-label="My health reports" style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
+          <h3 style="font-family:Syne,system-ui,sans-serif;font-size:1.05rem;font-weight:700;margin:0">My health reports</h3>
+          <button type="button" onclick="openBloodUploadPicker()" class="nav-login" style="padding:8px 14px;font-size:12px">+ Upload report</button>
+          <input type="file" id="bloodUploadInputHome" accept=".pdf,image/*" style="display:none" onchange="uploadUserBloodReport(event)" />
+        </div>
+        <div id="myReportsList"></div>
+      </section>
       </div>
     </div>
 
@@ -5305,7 +5314,10 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
           <img src="AI%20assist.jpg" alt="" class="admin-ai-assist-header-img" width="24" height="24">
           <span>AI Assist</span>
         </div>
-        <button type="button" class="admin-ai-assist-close" onclick="closeAdminAiAssistPanel()" aria-label="Close">&times;</button>
+        <div style="display:flex;align-items:center;gap:8px">
+          <button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.14);background:transparent;color:var(--muted);padding:6px 10px;border-radius:10px;cursor:pointer;font-size:11px" onclick="closeAdminAiAssistPanel()" aria-label="Hide AI Assist" title="Hide">Hide</button>
+          <button type="button" class="admin-ai-assist-close" onclick="closeAdminAiAssistPanel()" aria-label="Close" title="Close">&times;</button>
+        </div>
       </div>
       <div class="admin-ai-assist-welcome" id="adminAiAssistWelcome">
         <p>Elite Lifestyle Manager intelligence on your live BodyBank data. Click a prompt below or type your question.</p>
@@ -5400,6 +5412,12 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
         <div class="admin-ai-assist-usage-summary" id="adminAiAssistUsageSummary">Session total: 0 tokens | Rs 0.00</div>
         <button type="button" class="admin-ai-assist-done-btn" onclick="closeAdminAiAssistPanel()">Close AI Assist</button>
       </div>
+    </div>
+
+    <div class="admin-ai-wa-fab-wrap" id="adminAiAssistFabWrap" aria-hidden="false">
+      <button type="button" class="admin-ai-assist-fab" onclick="toggleAdminAiAssistPanel();return false" aria-label="Open AI Assist" title="AI Assist">
+        <img src="AI%20assist.jpg" alt="" class="admin-ai-assist-fab-img-el" width="32" height="32">
+      </button>
     </div>
   </div>
   </div>
@@ -8715,6 +8733,8 @@ function toggleAdminAiAssistPanel() {
   var isOpen = panel.classList.toggle('open');
   panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
   if (topBtn) topBtn.classList.toggle('admin-ai-assist-top-btn-active', isOpen);
+  var fabWrap = document.getElementById('adminAiAssistFabWrap');
+  if (fabWrap) fabWrap.style.display = isOpen ? 'none' : '';
   if (isOpen) {
     setAiAssistReportMonthIfEmpty();
     populateAiAssistReportUsers();
@@ -8732,6 +8752,8 @@ function closeAdminAiAssistPanel() {
     panel.setAttribute('aria-hidden', 'true');
   }
   if (topBtn) topBtn.classList.remove('admin-ai-assist-top-btn-active');
+  var fabWrap = document.getElementById('adminAiAssistFabWrap');
+  if (fabWrap) fabWrap.style.display = '';
 }
 
 // ── Quick Prompt Chips ────────────────────────────────────────────────────────
@@ -12252,6 +12274,19 @@ function userBloodDownloadPdf(reportId) {
   adminBloodDownloadPdf(reportId);
 }
 
+function openBloodUploadPicker() {
+  var inputs = [
+    document.getElementById('bloodUploadInputHomeDesktop'),
+    document.getElementById('bloodUploadInputHome')
+  ];
+  for (var i = 0; i < inputs.length; i += 1) {
+    if (inputs[i]) {
+      inputs[i].click();
+      return;
+    }
+  }
+}
+
 async function bbProcessQueuedSignupBloodUpload() {
   var q = window.__bbSignupBloodQueued;
   if (!q || !window.currentUser || !window.currentUser.token) return;
@@ -12274,26 +12309,36 @@ async function bbProcessQueuedSignupBloodUpload() {
 }
 
 function loadMyHealthReports() {
-  var el = document.getElementById('myReportsList');
-  if (!el || !window.currentUser || !window.currentUser.token) return;
-  el.innerHTML = '<p class="form-hint" style="padding:16px">Loading…</p>';
+  var targets = [
+    document.getElementById('myReportsList'),
+    document.getElementById('myReportsListDesktop')
+  ].filter(function (n) { return !!n; });
+  if (!targets.length || !window.currentUser || !window.currentUser.token) return;
+  targets.forEach(function (el) {
+    el.innerHTML = '<p class="form-hint" style="padding:16px">Loading…</p>';
+  });
   apiCall('GET', '/api/blood/my-reports')
     .then(function (data) {
       if (data && data.error) {
-        el.innerHTML = '<p class="form-hint" style="color:#e05050">' + escapeHtml(data.error) + '</p>';
+        targets.forEach(function (el) {
+          el.innerHTML = '<p class="form-hint" style="color:#e05050">' + escapeHtml(data.error) + '</p>';
+        });
         return;
       }
       var reports = (data && data.reports) || [];
       if (!reports.length) {
-        el.innerHTML =
+        var emptyHtml =
           '<div style="text-align:center;padding:1.5rem;background:var(--surface,#161a1e);border-radius:12px;border:1px solid rgba(255,255,255,0.06)">' +
           '<div style="font-size:1.75rem;margin-bottom:6px">🩺</div><p style="margin:0 0 10px;font-weight:600">No health reports yet</p>' +
           '<p class="form-hint" style="margin:0 0 12px">Upload a lab report for AI analysis (coach review before email).</p>' +
-          '<button type="button" class="form-submit" style="width:auto;padding:10px 18px" onclick="document.getElementById(\'bloodUploadInputHome\').click()">Upload blood report</button></div>';
+          '<button type="button" class="form-submit" style="width:auto;padding:10px 18px" onclick="openBloodUploadPicker()">Upload blood report</button></div>';
+        targets.forEach(function (el) {
+          el.innerHTML = emptyHtml;
+        });
         return;
       }
       var statusColor = { Good: '#3dd68c', Excellent: '#3dd68c', Fair: '#f5a623', Poor: '#ff5c5c', Critical: '#ff5c5c' };
-      el.innerHTML = reports
+      var reportsHtml = reports
         .map(function (r) {
           var ar = r.aiReport || {};
           var rid = String(r._id || r.id || '');
@@ -12325,9 +12370,14 @@ function loadMyHealthReports() {
           );
         })
         .join('');
+      targets.forEach(function (el) {
+        el.innerHTML = reportsHtml;
+      });
     })
     .catch(function () {
-      el.innerHTML = '<p class="form-hint" style="color:#e05050">Could not load reports.</p>';
+      targets.forEach(function (el) {
+        el.innerHTML = '<p class="form-hint" style="color:#e05050">Could not load reports.</p>';
+      });
     });
 }
 
