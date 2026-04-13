@@ -754,6 +754,28 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_wheel_last_label TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_public_program BOOLEAN DEFAULT TRUE`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_public_global BOOLEAN DEFAULT FALSE`); } catch (e) { /* ignore */ }
+  await pool.query(`CREATE TABLE IF NOT EXISTS leaderboard_virtual_config (
+    id INTEGER PRIMARY KEY,
+    enabled BOOLEAN DEFAULT TRUE,
+    virtual_count INTEGER DEFAULT 15,
+    volatility TEXT DEFAULT 'medium',
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS leaderboard_virtual_registry (
+    virtual_id TEXT PRIMARY KEY,
+    display_name TEXT NOT NULL,
+    tier TEXT DEFAULT 'pro',
+    status TEXT DEFAULT 'active',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try {
+    await pool.query(
+      `INSERT INTO leaderboard_virtual_config (id, enabled, virtual_count, volatility)
+       VALUES (1, TRUE, 15, 'medium')
+       ON CONFLICT (id) DO NOTHING`
+    );
+  } catch (e) { /* ignore */ }
 
   const wkCols = [
     ['session_date', 'DATE'],
@@ -2824,6 +2846,151 @@ app.get('/api/admin/program-score-rules', verifyToken, requireAdminOrSuperadmin,
   }
 });
 
+const VIRTUAL_NAME_POOL = [
+  'Aarav N', 'Ishaan K', 'Vihaan R', 'Aditya S', 'Reyansh M',
+  'Arjun P', 'Kabir T', 'Krish V', 'Ayaan D', 'Rudra L',
+  'Anaya R', 'Myra K', 'Kiara S', 'Sara M', 'Rhea P',
+  'Siya T', 'Aisha N', 'Ira D', 'Diya L', 'Navya V',
+  'Kunal R', 'Mihir P', 'Nisha T', 'Rohan K', 'Aman S',
+  'Yash M', 'Dev P', 'Nirav T', 'Harsh D', 'Pranav L',
+  'Mehul V', 'Ritika N', 'Tanya R', 'Saanvi K', 'Neha S',
+  'Pooja M', 'Manav P', 'Rahul T', 'Raghav D', 'Karan L'
+];
+
+function clampNum(n, lo, hi) {
+  return Math.max(lo, Math.min(hi, n));
+}
+
+function hashStringStable(text) {
+  const s = String(text || '');
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i += 1) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function todayUtcYmd() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+async function ensureVirtualLeaderboardRegistrySeeded() {
+  const row = await queryOne('SELECT COUNT(*)::int AS c FROM leaderboard_virtual_registry');
+  const count = parseInt(row && row.c, 10) || 0;
+  if (count > 0) return;
+  for (let i = 1; i <= 30; i += 1) {
+    const virtualId = 'bot_' + String(i).padStart(3, '0');
+    const tier = i <= 10 ? 'starter' : i <= 22 ? 'pro' : 'elite';
+    const display = VIRTUAL_NAME_POOL[(i - 1) % VIRTUAL_NAME_POOL.length];
+    await run(
+      `INSERT INTO leaderboard_virtual_registry (virtual_id, display_name, tier, status)
+       VALUES (?, ?, ?, 'active') ON CONFLICT (virtual_id) DO NOTHING`,
+      [virtualId, display, tier]
+    );
+  }
+}
+
+async function getVirtualLeaderboardConfig() {
+  await ensureVirtualLeaderboardRegistrySeeded();
+  const row = await queryOne('SELECT * FROM leaderboard_virtual_config WHERE id = 1');
+  const enabled = row ? !!row.enabled : true;
+  const virtualCount = clampNum(parseInt(row && row.virtual_count, 10) || 15, 0, 30);
+  const rawVol = String((row && row.volatility) || 'medium').toLowerCase();
+  const volatility = ['low', 'medium', 'high'].includes(rawVol) ? rawVol : 'medium';
+  return { enabled, virtual_count: virtualCount, volatility };
+}
+
+async function getVirtualRegistryRows(limitCount = 15) {
+  await ensureVirtualLeaderboardRegistrySeeded();
+  const n = clampNum(parseInt(limitCount, 10) || 15, 0, 30);
+  if (n <= 0) return [];
+  return queryAll(
+    `SELECT virtual_id, display_name, tier, status
+     FROM leaderboard_virtual_registry
+     WHERE COALESCE(status, 'active') = 'active'
+     ORDER BY virtual_id ASC
+     LIMIT ?`,
+    [n]
+  );
+}
+
+function buildVirtualScore(virtualId, tier, volatility, weekStart) {
+  const t = String((tier || 'pro')).toLowerCase();
+  const vol = String((volatility || 'medium')).toLowerCase();
+  const wk = String(weekStart || '');
+  const day = todayUtcYmd();
+  const baseSeed = hashStringStable(virtualId + '|base|' + wk);
+  const daySeed = hashStringStable(virtualId + '|day|' + day);
+  const trendSeed = hashStringStable(virtualId + '|trend|' + wk);
+  let floor = 55;
+  let ceil = 88;
+  if (t === 'starter') {
+    floor = 42; ceil = 74;
+  } else if (t === 'elite') {
+    floor = 72; ceil = 97;
+  }
+  const amp = vol === 'low' ? 2.4 : vol === 'high' ? 8.2 : 5.2;
+  const base = floor + (baseSeed % Math.max(1, ceil - floor + 1));
+  const jitter = (((daySeed % 1000) / 1000) - 0.5) * amp;
+  const trend = (((trendSeed % 13) - 6) * 0.45);
+  const total = Math.round(clampNum(base + jitter + trend, 30, 99));
+  const daily = Math.round(clampNum(total + ((hashStringStable(virtualId + '|d') % 11) - 5), 20, 100));
+  const sunday = Math.round(clampNum(total + ((hashStringStable(virtualId + '|s') % 15) - 7), 0, 100));
+  const workouts = Math.round(clampNum(total + ((hashStringStable(virtualId + '|w') % 13) - 6), 0, 100));
+  const progress = Math.round(clampNum(total + ((hashStringStable(virtualId + '|p') % 17) - 8), 0, 100));
+  return { total, pillars: { daily, sunday, workouts, progress } };
+}
+
+async function buildVirtualLeaderboardRows({ weekStart, limitCount, volatility }) {
+  const rows = await getVirtualRegistryRows(limitCount);
+  return (rows || []).map((r) => {
+    const sc = buildVirtualScore(r.virtual_id, r.tier, volatility, weekStart);
+    return {
+      user_id: r.virtual_id,
+      virtual_id: r.virtual_id,
+      display_name: String(r.display_name || 'Member').slice(0, 80),
+      total: sc.total,
+      pillars: sc.pillars,
+      is_virtual: true,
+      tier: String(r.tier || 'pro'),
+      status: String(r.status || 'active')
+    };
+  });
+}
+
+function mergeLeaderboardRows(realRows, virtualRows) {
+  const merged = ([]).concat(realRows || [], virtualRows || []);
+  merged.sort((a, b) => (Number(b.total) || 0) - (Number(a.total) || 0) || String(a.user_id).localeCompare(String(b.user_id)));
+  return merged.map((r, i) => ({ ...r, rank: i + 1 }));
+}
+
+async function getRealUserNameSetLower() {
+  const users = await queryAll(
+    `SELECT first_name, last_name, leaderboard_display_name
+     FROM users
+     WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'approved') AND COALESCE(suspended, FALSE) = FALSE`
+  );
+  const set = new Set();
+  (users || []).forEach((u) => {
+    const full = [u.first_name, u.last_name].filter(Boolean).join(' ').trim();
+    const dn = String(u.leaderboard_display_name || '').trim();
+    if (full) set.add(full.toLowerCase());
+    if (dn) set.add(dn.toLowerCase());
+  });
+  return set;
+}
+
+async function listVirtualNameCollisions() {
+  const [virtuals, realSet] = await Promise.all([
+    queryAll(`SELECT virtual_id, display_name FROM leaderboard_virtual_registry ORDER BY virtual_id ASC`),
+    getRealUserNameSetLower()
+  ]);
+  return (virtuals || [])
+    .filter((v) => realSet.has(String(v.display_name || '').trim().toLowerCase()))
+    .map((v) => ({ virtual_id: v.virtual_id, display_name: v.display_name }));
+}
+
 app.put('/api/admin/program-score-rules/:programId', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const programId = req.params.programId;
@@ -2861,12 +3028,45 @@ app.get('/api/admin/leaderboard-preview', verifyToken, requireAdminOrSuperadmin,
     const prog = await queryOne('SELECT id, name FROM programs WHERE id = ?', [programId]);
     if (!prog) return res.status(404).json({ error: 'Program not found' });
     const rows = await scorecardSvc.buildAdminLeaderboardPreview(programId, weekStart);
+    const includeVirtual = String(req.query.include_virtual_for_testing || '').toLowerCase() === 'true';
+    let mergedRows = rows;
+    if (includeVirtual) {
+      const cfg = await getVirtualLeaderboardConfig();
+      if (cfg.enabled && cfg.virtual_count > 0) {
+        const virtualRows = await buildVirtualLeaderboardRows({
+          weekStart,
+          limitCount: cfg.virtual_count,
+          volatility: cfg.volatility
+        });
+        const baseReal = (rows || []).map((r) => ({
+          user_id: r.user_id,
+          display_name: r.display_name,
+          total: r.total,
+          pillars: r.pillars || {},
+          is_virtual: false
+        }));
+        mergedRows = mergeLeaderboardRows(baseReal, virtualRows).map((r) => ({
+          rank_admin: r.rank,
+          rank_public: r.is_virtual ? null : null,
+          display_name: r.display_name,
+          internal_name: r.is_virtual ? '(virtual)' : '',
+          email: '',
+          opted_in: !r.is_virtual,
+          total: r.total,
+          pillars: r.pillars || {},
+          is_virtual: !!r.is_virtual,
+          virtual_id: r.virtual_id || null,
+          tier: r.tier || null,
+          status: r.status || null
+        }));
+      }
+    }
     res.json({
       program_id: programId,
       program_name: prog.name || programId,
       week_start: weekStart,
       week_label: scorecardSvc.formatWeekRangeLabel(weekStart),
-      rows
+      rows: mergedRows
     });
   } catch (e) {
     console.error('leaderboard-preview error:', e);
@@ -3231,15 +3431,27 @@ app.get('/api/me/leaderboard', verifyToken, async (req, res) => {
     const boardRaw = String(req.query.board || 'program').trim().toLowerCase();
     const board = boardRaw === 'dedication' || boardRaw === 'global' || boardRaw === 'bodybank' ? 'dedication' : 'program';
 
+    const cfg = await getVirtualLeaderboardConfig();
     if (board === 'dedication') {
-      const rows = await scorecardSvc.buildLeaderboardGlobal(weekStart, 50);
+      const rowsReal = await scorecardSvc.buildLeaderboardGlobal(weekStart, 50);
+      const virtualRows =
+        cfg.enabled && cfg.virtual_count > 0
+          ? await buildVirtualLeaderboardRows({
+              weekStart,
+              limitCount: cfg.virtual_count,
+              volatility: cfg.volatility
+            })
+          : [];
+      const rows = mergeLeaderboardRows(rowsReal, virtualRows).slice(0, 50);
       return res.json({
         board: 'dedication',
         week_start: weekStart,
         week_label: scorecardSvc.formatWeekRangeLabel(weekStart),
         program_id: null,
         program_name: 'BodyBank',
-        rows
+        rows,
+        virtual_enabled: cfg.enabled,
+        virtual_count: cfg.virtual_count
       });
     }
 
@@ -3254,17 +3466,215 @@ app.get('/api/me/leaderboard', verifyToken, async (req, res) => {
         rows: []
       });
     }
-    const rows = await scorecardSvc.buildLeaderboard(current.program_id, weekStart, 50);
+    const rowsReal = await scorecardSvc.buildLeaderboard(current.program_id, weekStart, 50);
+    const virtualRows =
+      cfg.enabled && cfg.virtual_count > 0
+        ? await buildVirtualLeaderboardRows({
+            weekStart,
+            limitCount: cfg.virtual_count,
+            volatility: cfg.volatility
+          })
+        : [];
+    const rows = mergeLeaderboardRows(rowsReal, virtualRows).slice(0, 50);
     res.json({
       board: 'program',
       week_start: weekStart,
       week_label: current.week_label,
       program_id: current.program_id,
       program_name: current.program_name,
-      rows
+      rows,
+      virtual_enabled: cfg.enabled,
+      virtual_count: cfg.virtual_count
     });
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/leaderboard/virtual-config', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const cfg = await getVirtualLeaderboardConfig();
+    const collisions = await listVirtualNameCollisions();
+    res.json({
+      ...cfg,
+      collisions
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to load virtual leaderboard config' });
+  }
+});
+
+app.put('/api/admin/leaderboard/virtual-config', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const enabled = body.enabled !== false;
+    const virtualCount = clampNum(parseInt(body.virtual_count, 10) || 15, 0, 30);
+    const rawVol = String(body.volatility || 'medium').toLowerCase();
+    const volatility = ['low', 'medium', 'high'].includes(rawVol) ? rawVol : 'medium';
+    await run(
+      `UPDATE leaderboard_virtual_config
+       SET enabled = ?, virtual_count = ?, volatility = ?, updated_at = CURRENT_TIMESTAMP
+       WHERE id = 1`,
+      [enabled, virtualCount, volatility]
+    );
+    const cfg = await getVirtualLeaderboardConfig();
+    res.json({ ok: true, ...cfg });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to save virtual leaderboard config' });
+  }
+});
+
+app.post('/api/admin/leaderboard/virtual-regenerate-aliases', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const [virtualRows, realSet] = await Promise.all([
+      queryAll(`SELECT virtual_id FROM leaderboard_virtual_registry ORDER BY virtual_id ASC`),
+      getRealUserNameSetLower()
+    ]);
+    const used = new Set();
+    const names = [];
+    for (let i = 0; i < VIRTUAL_NAME_POOL.length; i += 1) names.push(VIRTUAL_NAME_POOL[i]);
+    let ptr = 0;
+    for (const row of virtualRows || []) {
+      let chosen = '';
+      for (let guard = 0; guard < names.length + 100; guard += 1) {
+        const base = names[ptr % names.length];
+        ptr += 1;
+        const candidate = guard > names.length ? `${base} ${String((guard % 90) + 10)}` : base;
+        const k = candidate.toLowerCase();
+        if (realSet.has(k) || used.has(k)) continue;
+        chosen = candidate;
+        used.add(k);
+        break;
+      }
+      if (!chosen) {
+        chosen = `Member ${String(hashStringStable(row.virtual_id) % 900 + 100)}`;
+      }
+      await run(
+        `UPDATE leaderboard_virtual_registry
+         SET display_name = ?, updated_at = CURRENT_TIMESTAMP
+         WHERE virtual_id = ?`,
+        [chosen, row.virtual_id]
+      );
+    }
+    const collisions = await listVirtualNameCollisions();
+    res.json({ ok: true, collisions });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to regenerate aliases' });
+  }
+});
+
+app.get('/api/admin/leaderboard/live', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const boardRaw = String(req.query.board || 'dedication').trim().toLowerCase();
+    const board = boardRaw === 'program' ? 'program' : 'dedication';
+    const weekStart = scorecardSvc.normalizeWeekStart(String(req.query.week || '').trim());
+    const viewMode = String(req.query.view || 'all').toLowerCase();
+    const includeVirtualForTesting = String(req.query.include_virtual_for_testing || '').toLowerCase() === 'true';
+    const cfg = await getVirtualLeaderboardConfig();
+    let realRows = [];
+    let programId = null;
+    let programName = 'BodyBank';
+    if (board === 'program') {
+      programId = String(req.query.program_id || '').trim();
+      if (!programId) return res.status(400).json({ error: 'program_id required for program board' });
+      const prog = await queryOne('SELECT id, name FROM programs WHERE id = ?', [programId]);
+      if (!prog) return res.status(404).json({ error: 'Program not found' });
+      programName = prog.name || programId;
+      realRows = await scorecardSvc.buildLeaderboard(programId, weekStart, 100);
+    } else {
+      realRows = await scorecardSvc.buildLeaderboardGlobal(weekStart, 100);
+    }
+    const virtualRows =
+      cfg.enabled && includeVirtualForTesting && cfg.virtual_count > 0
+        ? await buildVirtualLeaderboardRows({
+            weekStart,
+            limitCount: cfg.virtual_count,
+            volatility: cfg.volatility
+          })
+        : [];
+    const merged = mergeLeaderboardRows(realRows, virtualRows);
+    const rowsFiltered = merged.filter((r) => {
+      if (viewMode === 'real') return !r.is_virtual;
+      if (viewMode === 'virtual') return !!r.is_virtual;
+      return true;
+    });
+    const collisions = await listVirtualNameCollisions();
+    res.json({
+      board,
+      program_id: programId,
+      program_name: programName,
+      week_start: weekStart,
+      week_label: scorecardSvc.formatWeekRangeLabel(weekStart),
+      view: viewMode,
+      include_virtual_for_testing: includeVirtualForTesting,
+      rows: rowsFiltered,
+      counts: {
+        real_clients: realRows.length,
+        virtual_competitors: virtualRows.length,
+        shown_on_user_leaderboard: (mergeLeaderboardRows(realRows, virtualRows).slice(0, 50)).length
+      },
+      virtual_config: cfg,
+      collisions
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to load admin leaderboard live view' });
+  }
+});
+
+app.get('/api/admin/leaderboard/virtual-registry', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const weekStart = scorecardSvc.normalizeWeekStart(String(req.query.week || '').trim());
+    await ensureVirtualLeaderboardRegistrySeeded();
+    const cfg = await getVirtualLeaderboardConfig();
+    const rows = await queryAll(
+      `SELECT virtual_id, display_name, tier, status
+       FROM leaderboard_virtual_registry
+       ORDER BY virtual_id ASC`
+    );
+    const out = (rows || []).map((r) => {
+      const sc = buildVirtualScore(r.virtual_id, r.tier, cfg.volatility, weekStart);
+      return {
+        virtual_id: r.virtual_id,
+        display_name: r.display_name,
+        tier: r.tier || 'pro',
+        status: r.status || 'active',
+        current_score: sc.total
+      };
+    });
+    res.json({
+      week_start: weekStart,
+      week_label: scorecardSvc.formatWeekRangeLabel(weekStart),
+      rows: out
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to load virtual registry' });
+  }
+});
+
+app.put('/api/admin/leaderboard/virtual-registry/:virtualId', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const virtualId = String(req.params.virtualId || '').trim();
+    if (!virtualId) return res.status(400).json({ error: 'virtualId required' });
+    const body = req.body || {};
+    let status = String(body.status || '').toLowerCase();
+    if (!['active', 'paused'].includes(status)) status = 'active';
+    let tier = String(body.tier || '').toLowerCase();
+    if (!['starter', 'pro', 'elite'].includes(tier)) tier = 'pro';
+    const displayName = String(body.display_name || '').trim().slice(0, 80);
+    await run(
+      `UPDATE leaderboard_virtual_registry
+       SET status = ?, tier = ?, display_name = COALESCE(NULLIF(?, ''), display_name), updated_at = CURRENT_TIMESTAMP
+       WHERE virtual_id = ?`,
+      [status, tier, displayName, virtualId]
+    );
+    const row = await queryOne(
+      `SELECT virtual_id, display_name, tier, status FROM leaderboard_virtual_registry WHERE virtual_id = ?`,
+      [virtualId]
+    );
+    if (!row) return res.status(404).json({ error: 'Virtual row not found' });
+    res.json({ ok: true, row });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Failed to update virtual registry row' });
   }
 });
 
