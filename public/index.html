@@ -2054,6 +2054,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .admin-ai-assist-header-img{width:24px;height:24px;object-fit:contain}
 .admin-ai-assist-close{width:36px;height:36px;border:none;background:transparent;color:var(--muted);font-size:24px;cursor:pointer;line-height:1;border-radius:8px;transition:color .2s,background .2s}
 .admin-ai-assist-close:hover{color:var(--cream);background:rgba(255,255,255,0.06)}
+.admin-ai-assist-head-btn{border:1px solid rgba(255,255,255,0.16);background:transparent;color:var(--muted);padding:6px 10px;border-radius:10px;cursor:pointer;font-size:11px;line-height:1.1}
+.admin-ai-assist-head-btn:hover{color:var(--cream);border-color:rgba(200,164,78,0.5);background:rgba(200,164,78,0.1)}
 .admin-ai-assist-welcome{padding:14px 16px;font-size:13px;color:var(--muted);line-height:1.5;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0}
 .admin-ai-assist-welcome p{margin:0 0 8px}
 .admin-ai-assist-welcome p:last-child{margin-bottom:0}
@@ -5344,6 +5346,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <span>AI Assist</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px">
+          <button type="button" class="admin-ai-assist-head-btn" id="adminAiPromptToggleBtn" onclick="setAiPromptCollapsed(!getAiPromptCollapsed())" aria-label="Toggle prefix fields" title="Toggle prefix fields">Hide prefixes</button>
           <button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.14);background:transparent;color:var(--muted);padding:6px 10px;border-radius:10px;cursor:pointer;font-size:11px" onclick="closeAdminAiAssistPanel()" aria-label="Hide AI Assist" title="Hide">Hide</button>
           <button type="button" class="admin-ai-assist-close" onclick="closeAdminAiAssistPanel()" aria-label="Close" title="Close">&times;</button>
         </div>
@@ -8800,11 +8803,18 @@ function setAiPromptCollapsed(collapsed) {
   var isCollapsed = !!collapsed;
   if (wrap) wrap.style.display = isCollapsed ? 'none' : '';
   if (openRow) openRow.style.display = isCollapsed ? '' : 'none';
+  updateAiPromptToggleBtn(isCollapsed);
   try { localStorage.setItem(ADMIN_AI_PROMPT_COLLAPSE_KEY, isCollapsed ? '1' : '0'); } catch (e) {}
 }
 
 function getAiPromptCollapsed() {
   try { return localStorage.getItem(ADMIN_AI_PROMPT_COLLAPSE_KEY) === '1'; } catch (e) { return false; }
+}
+
+function updateAiPromptToggleBtn(collapsed) {
+  var btn = document.getElementById('adminAiPromptToggleBtn');
+  if (!btn) return;
+  btn.textContent = collapsed ? 'Open prefixes' : 'Hide prefixes';
 }
 
 // ── Quick Prompt Chips ────────────────────────────────────────────────────────
