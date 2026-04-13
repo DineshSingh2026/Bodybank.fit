@@ -12687,33 +12687,34 @@ async function drawNutritionShareCard(mt) {
   var bodybankLogo = await nutritionShareLoadImage('/img/bodybank-logo-short.png');
   var fitchefLogo = await nutritionShareLoadImage('/img/Fitchef logo.png');
   if (bodybankLogo && fitchefLogo) {
-    var bbH = 100;
+    var bbH = 132;
     var bbW = Math.round((bodybankLogo.naturalWidth / Math.max(1, bodybankLogo.naturalHeight)) * bbH);
-    var fcH = 100;
+    var fcH = 132;
     var fcW = Math.round((fitchefLogo.naturalWidth / Math.max(1, fitchefLogo.naturalHeight)) * fcH);
-    ctx.font = "800 72px 'Outfit','Segoe UI',sans-serif";
+    var xPx = 96;
+    ctx.font = "800 " + xPx + "px 'Outfit','Segoe UI',sans-serif";
     var xW = Math.ceil(ctx.measureText('X').width);
-    var gap = 40;
+    var gap = 48;
     var totalW = bbW + gap + xW + gap + fcW;
     var startX = Math.round((W - totalW) / 2);
-    var rowMidY = footerY + 108;
-    var rowH = Math.max(bbH, fcH, 72);
-    var padX = 32;
-    var padY = 24;
-    ctx.fillStyle = 'rgba(255,255,255,0.04)';
-    nutritionShareRoundRectPath(
-      ctx,
-      startX - padX,
-      Math.round(rowMidY - rowH / 2 - padY),
-      totalW + 2 * padX,
-      rowH + 2 * padY,
-      28
-    );
-    ctx.fill();
+    var rowMidY = footerY + 112;
+    var rowH = Math.max(bbH, fcH, Math.round(xPx * 0.92));
+    var padX = 40;
+    var padY = 28;
+    var pillX = startX - padX;
+    var pillY = Math.round(rowMidY - rowH / 2 - padY);
+    var pillW = totalW + 2 * padX;
+    var pillH = rowH + 2 * padY;
+    ctx.save();
+    nutritionShareRoundRectPath(ctx, pillX, pillY, pillW, pillH, 32);
+    ctx.clip();
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
     var bbTop = Math.round(rowMidY - bbH / 2);
-    var fcTop = Math.round(rowMidY - fcH / 2);
+    var fcTop = Math.round(rowMidY - fcH / 2 - 4);
     ctx.drawImage(bodybankLogo, startX, bbTop, bbW, bbH);
-    ctx.fillStyle = '#d7c9a0';
+    ctx.fillStyle = '#f5f2eb';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('X', startX + bbW + gap + xW / 2, rowMidY);
@@ -12725,7 +12726,7 @@ async function drawNutritionShareCard(mt) {
     ctx.font = "700 58px 'Outfit','Segoe UI',sans-serif";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('Bodybank X Fitchef', W / 2, footerY + 108);
+    ctx.fillText('Bodybank X Fitchef', W / 2, footerY + 112);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
   }
