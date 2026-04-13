@@ -2801,6 +2801,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .admin-nutrition-actions{display:flex;flex-wrap:wrap;gap:8px}
 .admin-nutrition-actions .btn{flex:1;min-width:120px;min-height:44px;padding:8px 12px;border:1px solid var(--bb-border);background:transparent;color:var(--muted);border-radius:8px;font-size:12px;cursor:pointer}
 .admin-nutrition-actions .btn:hover{color:var(--cream);background:var(--bb-surface-hover)}
+.admin-nutrition-quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
+.admin-nutrition-quick-actions .btn{min-height:40px;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700}
+.admin-nutrition-quick-actions .btn.download{border:1px solid rgba(200,164,78,0.45);background:rgba(200,164,78,0.12);color:var(--gold)}
+.admin-nutrition-quick-actions .btn.download:hover{background:rgba(200,164,78,0.18)}
 .admin-nutrition-week-wrap{margin-top:20px;padding:16px;background:var(--bb-surface);border:1px solid var(--bb-border);border-radius:14px}
 .admin-nutrition-week-wrap h4{margin:0 0 12px;font-size:14px;color:var(--gold)}
 .admin-nutrition-chart-box{position:relative;height:200px;max-width:560px;margin:0 auto 12px}
@@ -12517,6 +12521,41 @@ function nutritionShareRoundRectPath(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+function nutritionShareLoadImage(src) {
+  return new Promise(function (resolve) {
+    if (!src) return resolve(null);
+    var img = new Image();
+    img.onload = function () { resolve(img); };
+    img.onerror = function () { resolve(null); };
+    img.src = src;
+  });
+}
+
+function nutritionShareDrawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+  var words = String(text || '').split(/\s+/).filter(Boolean);
+  if (!words.length) return y;
+  var lines = [];
+  var line = words[0] || '';
+  for (var i = 1; i < words.length; i++) {
+    var test = line + ' ' + words[i];
+    if (ctx.measureText(test).width <= maxWidth) line = test;
+    else {
+      lines.push(line);
+      line = words[i];
+      if (lines.length >= maxLines) break;
+    }
+  }
+  if (lines.length < maxLines) lines.push(line);
+  if (lines.length > maxLines) lines = lines.slice(0, maxLines);
+  if (lines.length === maxLines && words.length > 0) {
+    var last = lines[maxLines - 1];
+    while (ctx.measureText(last + '...').width > maxWidth && last.length > 3) last = last.slice(0, -1);
+    lines[maxLines - 1] = last + '...';
+  }
+  for (var k = 0; k < lines.length; k++) ctx.fillText(lines[k], x, y + (k * lineHeight));
+  return y + (lines.length * lineHeight);
+}
+
 async function drawNutritionShareCard(mt) {
   var canvas = document.getElementById('nutritionShareCardCanvas');
   if (!canvas) return null;
@@ -12547,13 +12586,15 @@ async function drawNutritionShareCard(mt) {
 
   // Header
   ctx.fillStyle = '#f1e6c8';
-  ctx.font = "700 72px 'Outfit','Segoe UI',sans-serif";
+  ctx.font = "700 68px 'Outfit','Segoe UI',sans-serif";
   ctx.fillText(meta.label || 'Meal', 74, 125);
   ctx.fillStyle = confMeta.level === 'high' ? '#3dd68c' : confMeta.level === 'medium' ? '#f5a623' : '#ff6868';
-  ctx.font = "600 44px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText(confMeta.level === 'high' ? 'High confidence' : confMeta.level === 'medium' ? 'Medium confidence' : 'Low confidence', 560, 125);
+  ctx.font = "600 38px 'Outfit','Segoe UI',sans-serif";
+  ctx.textAlign = 'right';
+  ctx.fillText(confMeta.level === 'high' ? 'High confidence' : confMeta.level === 'medium' ? 'Medium confidence' : 'Low confidence', W - 74, 125);
+  ctx.textAlign = 'left';
   ctx.fillStyle = '#a99a7f';
-  ctx.font = "500 46px 'Outfit','Segoe UI',sans-serif";
+  ctx.font = "500 40px 'Outfit','Segoe UI',sans-serif";
   ctx.fillText(meta.hint || '', 74, 190);
 
   // Meal image region
@@ -12566,12 +12607,7 @@ async function drawNutritionShareCard(mt) {
   ctx.clip();
   if (bbNutritionState.photos && bbNutritionState.photos[mt]) {
     try {
-      var mealImg = new Image();
-      mealImg.src = 'data:' + (bbNutritionState.mimes[mt] || 'image/jpeg') + ';base64,' + bbNutritionState.photos[mt];
-      await new Promise(function (resolve) {
-        mealImg.onload = resolve;
-        mealImg.onerror = resolve;
-      });
+      var mealImg = await nutritionShareLoadImage('data:' + (bbNutritionState.mimes[mt] || 'image/jpeg') + ';base64,' + bbNutritionState.photos[mt]);
       if (mealImg.naturalWidth && mealImg.naturalHeight) {
         var ratio = Math.max(imgW / mealImg.naturalWidth, imgH / mealImg.naturalHeight);
         var dw = mealImg.naturalWidth * ratio;
@@ -12594,11 +12630,11 @@ async function drawNutritionShareCard(mt) {
   ctx.restore();
 
   // Dish and macro chips
-  var yText = 890;
+  var yText = 872;
   ctx.fillStyle = '#efe4c7';
-  ctx.font = "700 64px 'Outfit','Segoe UI',sans-serif";
-  var dish = String(result.dish || 'Meal').slice(0, 44);
-  ctx.fillText(dish, 74, yText);
+  ctx.font = "700 58px 'Outfit','Segoe UI',sans-serif";
+  var dish = String(result.dish || 'Meal');
+  var dishEndY = nutritionShareDrawWrappedText(ctx, dish, 74, yText, W - 148, 66, 2);
 
   function chip(x, y, w, txt, bgc, tc) {
     ctx.fillStyle = bgc;
@@ -12614,7 +12650,7 @@ async function drawNutritionShareCard(mt) {
   var pro = String(result.protein != null ? result.protein : '—') + 'g pro';
   var carb = String(result.carbs != null ? result.carbs : '—') + 'g carb';
   var fat = String(result.fat != null ? result.fat : '—') + 'g fat';
-  var chipY = 970;
+  var chipY = dishEndY + 18;
   chip(72, chipY, 220, cals, 'rgba(230,126,34,0.18)', '#f6b46d');
   chip(308, chipY, 220, pro, 'rgba(46,204,113,0.16)', '#85e8ae');
   chip(544, chipY, 220, carb, 'rgba(52,152,219,0.16)', '#90cbf0');
@@ -12622,35 +12658,55 @@ async function drawNutritionShareCard(mt) {
 
   // Score and trust
   var trustColor = confMeta.level === 'high' ? '#3dd68c' : confMeta.level === 'medium' ? '#f5a623' : '#ff6868';
+  var scoreY = chipY + 170;
   ctx.fillStyle = '#c7bcaa';
-  ctx.font = "600 52px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText('Score: ', 74, 1135);
+  ctx.font = "600 50px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText('Score: ', 74, scoreY);
   ctx.fillStyle = '#f0e4c5';
-  ctx.font = "800 58px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText(String(score) + '/10', 255, 1136);
+  ctx.font = "800 56px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText(String(score) + '/10', 240, scoreY + 1);
   ctx.fillStyle = trustColor;
-  ctx.font = "700 58px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText((confMeta.level || 'medium').charAt(0).toUpperCase() + (confMeta.level || 'medium').slice(1), 456, 1136);
+  ctx.font = "700 56px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText((confMeta.level || 'medium').charAt(0).toUpperCase() + (confMeta.level || 'medium').slice(1), 438, scoreY + 1);
   ctx.fillStyle = '#c7bcaa';
-  ctx.font = "600 52px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText('Trust: ', 74, 1212);
+  ctx.font = "600 50px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText('Trust: ', 74, scoreY + 76);
   ctx.fillStyle = trustColor;
-  ctx.font = "700 58px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText(confMeta.label || 'Moderate confidence', 250, 1212);
+  ctx.font = "700 50px 'Outfit','Segoe UI',sans-serif";
+  nutritionShareDrawWrappedText(ctx, confMeta.label || 'Moderate confidence', 234, scoreY + 76, W - 308, 56, 1);
 
   // Footer
+  var footerY = H - 292;
   ctx.strokeStyle = 'rgba(200,164,78,0.35)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(74, 1310);
-  ctx.lineTo(W - 74, 1310);
+  ctx.moveTo(74, footerY);
+  ctx.lineTo(W - 74, footerY);
   ctx.stroke();
-  ctx.fillStyle = '#d9c598';
-  ctx.font = "600 50px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText('Co-powered by', 240, 1436);
-  ctx.fillStyle = '#f7d16f';
-  ctx.font = "800 62px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText('Fitchef', 610, 1436);
+
+  var brandY = footerY + 120;
+  var bodybankLogo = await nutritionShareLoadImage('/img/bodybank-logo-short.png');
+  var fitchefLogo = await nutritionShareLoadImage('/img/Fitchef logo.png');
+  if (bodybankLogo && fitchefLogo) {
+    var bbH = 54;
+    var bbW = Math.round((bodybankLogo.naturalWidth / Math.max(1, bodybankLogo.naturalHeight)) * bbH);
+    var fcH = 54;
+    var fcW = Math.round((fitchefLogo.naturalWidth / Math.max(1, fitchefLogo.naturalHeight)) * fcH);
+    var xMarkW = 36;
+    var totalW = bbW + 22 + xMarkW + 22 + fcW;
+    var startX = Math.round((W - totalW) / 2);
+    ctx.drawImage(bodybankLogo, startX, brandY - bbH + 8, bbW, bbH);
+    ctx.fillStyle = '#d7c9a0';
+    ctx.font = "700 44px 'Outfit','Segoe UI',sans-serif";
+    ctx.fillText('X', startX + bbW + 22, brandY);
+    ctx.drawImage(fitchefLogo, startX + bbW + 22 + xMarkW + 22, brandY - fcH + 8, fcW, fcH);
+  } else {
+    ctx.fillStyle = '#d9c598';
+    ctx.font = "700 46px 'Outfit','Segoe UI',sans-serif";
+    ctx.textAlign = 'center';
+    ctx.fillText('Bodybank X Fitchef', W / 2, brandY);
+    ctx.textAlign = 'left';
+  }
 
   _nutritionShareCardBlob = null;
   _nutritionShareCardMealType = String(mt || '');
@@ -13159,7 +13215,11 @@ function loadAdminNutritionReport() {
           '<div class="meta">' + escapeHtml(c.userEmail || '') + ' · Target ' + (sn && sn.calorieGoal != null ? sn.calorieGoal + ' kcal' : '—') + '</div></div>' +
           '<div class="admin-nutrition-score-ring" style="border-color:' + scoreColor + '">' +
           '<span style="font-weight:700;color:' + scoreColor + '">' + (score != null ? score.toFixed(1) : '—') + '</span><span style="font-size:8px;color:var(--muted)">score</span></div></div>' +
-          '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' + macroRow + energyHtml + weeklyProteinHtml + usageHtml +
+          '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' +
+          '<div class="admin-nutrition-quick-actions">' +
+            '<button type="button" class="btn download" onclick="adminNutritionDownloadPhotos(\'' + uidEsc + '\')">Download images</button>' +
+          '</div>' +
+          macroRow + energyHtml + weeklyProteinHtml + usageHtml +
           '<div class="admin-nutrition-actions">' +
           '<button type="button" class="btn" onclick="adminNutritionAnalyzeAll(\'' + uidEsc + '\')">Re-run AI</button>' +
           '<button type="button" class="btn" onclick="adminNutritionDrawWeekChart(\'' + uidEsc + '\')">Protein trend</button>' +
@@ -13167,7 +13227,6 @@ function loadAdminNutritionReport() {
           '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'both\')">Email + inbox</button>' +
           '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'email\')">Email only</button>' +
           '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'message\')">Inbox only</button>' +
-          '<button type="button" class="btn" onclick="adminNutritionDownloadPhotos(\'' + uidEsc + '\')">Download images</button>' +
           '<button type="button" class="btn" onclick="adminNutritionViewLog(\'' + uidEsc + '\')">View log</button></div>' +
           (c.notified ? '<p class="form-hint" style="margin-top:8px">Notified today ✓</p>' : '') +
           '</div>';
