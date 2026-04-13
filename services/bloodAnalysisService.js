@@ -359,15 +359,19 @@ Provide complete clinical analysis as JSON.`
       ai_report: aiReport
     });
 
-    await run(`UPDATE blood_analysis_reports SET pdf_path = ?, status = 'complete' WHERE id = ?`, [
-      pdfPath,
-      reportId
-    ]);
+    await run(
+      `UPDATE blood_analysis_reports SET pdf_path = ?, status = 'complete', analysis_last_error = NULL WHERE id = ?`,
+      [pdfPath, reportId]
+    );
     console.log(`[BodyBank] Blood analysis complete: user=${userId} report=${reportId}`);
     return pdfPath;
   } catch (err) {
     console.error('[BodyBank] Blood analysis failed:', err);
-    await run(`UPDATE blood_analysis_reports SET status = 'failed' WHERE id = ?`, [reportId]).catch(() => {});
+    const errMsg = String((err && err.message) || err || 'Unknown error').slice(0, 4000);
+    await run(`UPDATE blood_analysis_reports SET status = 'failed', analysis_last_error = ? WHERE id = ?`, [
+      errMsg,
+      reportId
+    ]).catch(() => {});
     throw err;
   }
 }
@@ -419,7 +423,10 @@ async function ensureHealthReportPdf(db, reportId) {
       ai_report: aiReport
     });
 
-    await run(`UPDATE blood_analysis_reports SET pdf_path = ?, status = 'complete' WHERE id = ?`, [pdfPath, reportId]);
+    await run(
+      `UPDATE blood_analysis_reports SET pdf_path = ?, status = 'complete', analysis_last_error = NULL WHERE id = ?`,
+      [pdfPath, reportId]
+    );
     return pdfPath;
   } catch (err) {
     console.error('[BodyBank] ensureHealthReportPdf failed:', err && err.message);
@@ -427,4 +434,4 @@ async function ensureHealthReportPdf(db, reportId) {
   }
 }
 
-module.exports = { triggerBloodAnalysis, ensureHealthReportPdf };
+module.exports = { triggerBloodAnalysis, ensureHealthReportPdf, resolveStoredUploadPath: resolveStoredPdfPath };

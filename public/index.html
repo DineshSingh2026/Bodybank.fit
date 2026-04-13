@@ -12131,7 +12131,12 @@ function loadAdminBloodReports() {
           stLower === 'analysing' ||
           stLower === 'generating_pdf';
         var isFailed = stLower === 'failed';
+        var isRunning = stLower === 'extracting' || stLower === 'analysing';
+        var canRetry =
+          !isRunning && (isFailed || stLower === 'pending' || stLower === 'generating_pdf');
         var isSent = !!r.sentToUser;
+        var lastErrRaw = r.analysisLastError ? String(r.analysisLastError) : '';
+        var lastErrEsc = lastErrRaw ? escapeHtml(lastErrRaw) : '';
         var statusColors = { Good: '#3dd68c', Excellent: '#3dd68c', Fair: '#f5a623', Poor: '#ff5c5c', Critical: '#ff5c5c' };
         var ar = r.aiReport || {};
         var sc = statusColors[ar.overall_status] || '#8a8880';
@@ -12156,7 +12161,20 @@ function loadAdminBloodReports() {
           '<div style="margin-bottom:8px"><textarea id="blood-notes-' + id + '" rows="2" placeholder="Optional note for the client…" style="width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#111;color:inherit;font-size:12px">' +
           notesEsc + '</textarea>' +
           '<button type="button" class="form-hint" style="margin-top:4px;border:1px solid rgba(255,255,255,0.12);background:transparent;color:inherit;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px" onclick="adminBloodSaveNotes(\'' + id + '\')">Save note</button></div>' +
+          (isFailed && lastErrEsc
+            ? '<div class="form-hint" style="margin-bottom:8px;padding:10px 12px;border-radius:8px;background:rgba(255,92,92,0.1);border:1px solid rgba(255,92,92,0.35);color:#ffc9c9;font-size:12px;line-height:1.45;word-break:break-word"><strong style="color:#ff8a8a">Last error</strong><br/>' +
+              lastErrEsc +
+              '</div>'
+            : '') +
+          (isFailed && !lastErrEsc
+            ? '<div class="form-hint" style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:11px">No error details were saved for this run. Use Retry after fixing API credits, or check server logs.</div>'
+            : '') +
           '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+          (canRetry
+            ? '<button type="button" class="form-hint" style="flex:1;min-width:100px;padding:8px;font-size:12px;border:1px solid rgba(230,192,95,0.45);background:rgba(230,192,95,0.1);color:var(--gold);border-radius:8px;cursor:pointer" onclick="adminBloodRetry(\'' +
+              id +
+              '\')">Retry analysis</button>'
+            : '') +
           '<button type="button" class="nav-login" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isProcessing || isFailed ? '0.45' : '1') + '" ' +
           (isProcessing ? 'disabled title="Report is still processing"' : '') +
           (isFailed ? 'disabled title="Analysis failed — ask the client to upload a new report"' : '') +
@@ -12178,6 +12196,19 @@ function adminBloodSaveNotes(reportId) {
   apiCall('PUT', '/api/blood/admin/notes/' + encodeURIComponent(reportId), body).then(function (d) {
     if (d && d.error) showPopup('Note', d.error, '', 'OK', null, 'error');
     else if (typeof nutritionShowToast === 'function') nutritionShowToast('Note saved', 'success');
+  });
+}
+
+function adminBloodRetry(reportId) {
+  if (!window.currentUser || !window.currentUser.token) return;
+  if (!confirm('Re-run AI analysis on the saved lab file? This uses your Anthropic (Claude) API credits.')) return;
+  apiCall('POST', '/api/blood/admin/retry/' + encodeURIComponent(reportId), {}).then(function (d) {
+    if (d && (d.error || d.success === false)) {
+      showPopup('Retry failed', String(d.error || d.message || 'Unknown error'), '', 'OK', null, 'error');
+      return;
+    }
+    if (typeof nutritionShowToast === 'function') nutritionShowToast((d && d.message) || 'Analysis restarted', 'success');
+    loadAdminBloodReports();
   });
 }
 

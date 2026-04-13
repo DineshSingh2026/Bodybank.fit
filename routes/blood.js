@@ -4,9 +4,10 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const userEmail = require('../services/userEmailService');
-const { triggerBloodAnalysis, ensureHealthReportPdf } = require('../services/bloodAnalysisService');
+const { triggerBloodAnalysis, ensureHealthReportPdf, resolveStoredUploadPath } = require('../services/bloodAnalysisService');
 
 const MAX_B64_CHARS = 22 * 1024 * 1024;
+const MAX_BLOOD_FILE_BYTES = Math.floor(MAX_B64_CHARS * 3 / 4);
 
 function mapReportRow(r) {
   if (!r) return null;
@@ -32,8 +33,18 @@ function mapReportRow(r) {
     sentAt: r.sent_at,
     adminNotes: r.admin_notes,
     pdfUrl: r.pdf_path,
-    aiReport
+    aiReport,
+    analysisLastError: r.analysis_last_error || ''
   };
+}
+
+function mimeFromBloodFilePath(fp) {
+  const lower = String(fp || '').toLowerCase();
+  if (lower.endsWith('.pdf')) return 'application/pdf';
+  if (lower.endsWith('.png')) return 'image/png';
+  if (lower.endsWith('.webp')) return 'image/webp';
+  if (lower.endsWith('.gif')) return 'image/gif';
+  return 'image/jpeg';
 }
 
 function createBloodRouter(deps) {
@@ -215,6 +226,85 @@ function createBloodRouter(deps) {
       res.json({ success: true });
     } catch (e) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  router.post('/admin/retry/:reportId', adminOnly, rateLimiter(3, 120000), async (req, res) => {
+    try {
+      const { reportId } = req.params;
+      const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [reportId]);
+      if (!report) {
+        return res.status(404).json({ success: false, error: 'Report not found' });
+      }
+      const st = String(report.status || '').toLowerCase();
+      if (st === 'extracting' || st === 'analysing') {
+        return res.status(409).json({
+          success: false,
+          error: 'Analysis is already in progress for this report. Wait or refresh in a minute.'
+        });
+      }
+      if (st !== 'failed' && st !== 'pending' && st !== 'generating_pdf') {
+        return res.status(400).json({
+          success: false,
+          error: 'Retry is only for failed, stuck pending, or incomplete PDF reports.'
+        });
+      }
+
+      const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+      if (!apiKey) {
+        return res.status(503).json({
+          success: false,
+          error: 'ANTHROPIC_API_KEY is not set on the server. Add credits / key in environment and try again.'
+        });
+      }
+
+      const rawPath = report.blood_report_file_path;
+      const resolved = rawPath ? resolveStoredUploadPath(String(rawPath).trim()) : null;
+      if (!resolved || !fs.existsSync(resolved)) {
+        return res.status(400).json({
+          success: false,
+          error:
+            'Original lab file is missing from server storage (common after redeploy without persistent disk). Ask the client to upload the report again.'
+        });
+      }
+
+      let buf;
+      try {
+        buf = fs.readFileSync(resolved);
+      } catch (readErr) {
+        return res.status(400).json({
+          success: false,
+          error: `Could not read lab file: ${readErr && readErr.message ? readErr.message : 'read error'}`
+        });
+      }
+      if (!buf || buf.length === 0) {
+        return res.status(400).json({ success: false, error: 'Lab file is empty.' });
+      }
+      if (buf.length > MAX_BLOOD_FILE_BYTES) {
+        return res.status(400).json({ success: false, error: 'Lab file is too large to reprocess.' });
+      }
+
+      const b64 = buf.toString('base64');
+      const mime = mimeFromBloodFilePath(resolved);
+      const userId = report.user_id;
+
+      await run(
+        `UPDATE blood_analysis_reports SET status = 'pending', pdf_path = NULL, extracted_blood_data = NULL, nutrition_snapshot = NULL, ai_report = NULL, analysis_last_error = NULL WHERE id = ?`,
+        [reportId]
+      );
+
+      triggerBloodAnalysis(db, reportId, b64, mime, userId).catch((err) =>
+        console.error('[blood] Retry pipeline failed:', err && err.message)
+      );
+
+      return res.json({
+        success: true,
+        message:
+          'Analysis restarted using the saved lab file. Refresh this list in a minute. If it fails again, the last error will show on the card.'
+      });
+    } catch (e) {
+      console.error('[blood admin retry]', e.message);
+      res.status(500).json({ success: false, error: e.message || 'Retry failed' });
     }
   });
 

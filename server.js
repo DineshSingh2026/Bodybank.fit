@@ -597,6 +597,11 @@ async function initDB() {
   } catch (e) {
     /* ignore */
   }
+  try {
+    await pool.query(`ALTER TABLE blood_analysis_reports ADD COLUMN IF NOT EXISTS analysis_last_error TEXT`);
+  } catch (e) {
+    /* ignore */
+  }
 
   // Push notification subscriptions
   await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
