@@ -2719,6 +2719,16 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .nutrition-checkin .meal-result .macro-row{display:flex;gap:4px;flex-wrap:wrap}
 .nutrition-checkin .meal-result .mpill{padding:2px 6px;border-radius:99px;font-size:9px;font-weight:600}
 .nutrition-checkin .meal-result .score-row{margin-top:6px;font-size:10px;color:var(--muted)}
+.nutrition-checkin .meal-result .share-row{display:flex;gap:8px;margin-top:10px}
+.nutrition-checkin .meal-result .share-btn{
+  flex:1;min-height:36px;padding:8px 10px;border-radius:8px;cursor:pointer;font-size:11px;font-weight:700;
+  border:1px solid rgba(200,164,78,0.45);background:rgba(200,164,78,0.12);color:var(--gold)
+}
+.nutrition-checkin .meal-result .share-btn.secondary{
+  border:1px solid rgba(255,255,255,0.12);background:transparent;color:var(--cream);font-weight:600
+}
+.nutrition-share-card-wrap{display:inline-block;border-radius:16px;overflow:hidden;box-shadow:0 10px 34px rgba(0,0,0,0.42);max-width:100%}
+.nutrition-share-card-wrap canvas{display:block;max-width:100%;height:auto;max-height:min(560px,70vh)}
 .nutrition-checkin .submit-all-btn{min-height:48px;width:100%;padding:14px;background:var(--bb-green);color:#0d0f11;border:none;border-radius:14px;font-family:var(--bb-font-heading);font-weight:700;font-size:13px;cursor:pointer;margin-bottom:12px}
 .nutrition-checkin .submit-all-btn:disabled{opacity:.4;cursor:not-allowed}
 .nutrition-checkin .daily-nutrition-summary{background:var(--bb-surface);border:1px solid var(--bb-border);border-radius:14px;padding:16px;margin-bottom:12px}
@@ -3118,13 +3128,16 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .chart-wrap canvas{max-height:200px;width:100%!important}
 .chart-title{font-size:12px;color:var(--muted);margin-top:8px;text-align:center}
 .chart-wrap-nutrition-lux{
+  grid-column:1 / -1;
   background:
     radial-gradient(120% 90% at 10% 0%, rgba(101,198,255,0.14) 0%, rgba(14,16,20,0) 52%),
     radial-gradient(120% 90% at 100% 100%, rgba(242,196,79,0.2) 0%, rgba(14,16,20,0) 58%),
     linear-gradient(158deg, rgba(18,20,24,0.96) 0%, rgba(10,11,13,0.98) 54%, rgba(14,16,18,1) 100%);
   border:1px solid rgba(200,164,78,0.35);
   box-shadow:0 12px 38px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.05);
+  min-height:320px;
 }
+.chart-wrap-nutrition-lux canvas{max-height:260px!important}
 .chart-wrap-nutrition-lux .chart-title{color:#ddd3bd}
 .chart-wrap-nutrition-lux .chart-kpis{
   display:grid;
@@ -3160,6 +3173,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 }
 .chart-wrap-nutrition-lux .chart-kpi .trend.up{color:#3dd68c}
 .chart-wrap-nutrition-lux .chart-kpi .trend.down{color:#ff7f7f}
+.chart-wrap-nutrition-lux .chart-kpi .trend.na{color:#9c9587}
 .chart-wrap-nutrition-lux.is-loading{
   position:relative;
   overflow:hidden;
@@ -5276,7 +5290,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
                 <div class="chart-kpi"><div class="lbl">Avg score</div><div class="val" id="adminNutriKpiScore">—</div><div class="trend" id="adminNutriKpiScoreTrend">vs prev week —</div></div>
               </div>
               <canvas id="adminChartNutritionLuxury"></canvas>
-              <p class="chart-title">Fitchef Nutrition luxury trend — calories, protein, carbs, fat, score</p>
+              <p class="chart-title">Fitchef Nutrition 14-day trend — calories and protein</p>
               <p class="chart-foot">CoPowered by Fitchef</p>
             </div>
           </div>
@@ -5570,6 +5584,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <div class="admin-nutrition-controls">
           <input type="date" id="adminNutritionReportDate" aria-label="Report date" onchange="loadAdminNutritionReport()" />
           <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminNutritionReport()">Refresh</button>
+          <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="adminNutritionDownloadAllPhotos()">Download all images</button>
           <button type="button" class="nav-login" style="padding:10px 18px;margin:0" onclick="exportAdminNutritionCsv()">Export CSV</button>
         </div>
       </div>
@@ -6262,6 +6277,23 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="elite-card-actions">
         <button type="button" class="form-submit" onclick="saveEliteCard()">Save card</button>
         <button type="button" class="nav-login" style="padding:12px 24px" onclick="shareEliteCard()">Share</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- USER: Nutrition smart-share card modal -->
+<div class="modal-overlay view-detail-modal" id="nutritionShareCardModal" onclick="if(event.target===this)closeModal('nutritionShareCardModal')">
+  <div class="modal elite-card-modal" style="max-width:460px">
+    <button type="button" class="modal-close" onclick="closeModal('nutritionShareCardModal')" aria-label="Close">×</button>
+    <h2 class="sunday-checkin-title">Share Nutrition Card</h2>
+    <div class="elite-card-modal-body">
+      <div class="nutrition-share-card-wrap" id="nutritionShareCardWrap">
+        <canvas id="nutritionShareCardCanvas"></canvas>
+      </div>
+      <div class="elite-card-actions">
+        <button type="button" class="form-submit" onclick="saveNutritionShareCard()">Save image</button>
+        <button type="button" class="nav-login" style="padding:12px 24px" onclick="shareNutritionShareCard()">Share</button>
       </div>
     </div>
   </div>
@@ -9949,9 +9981,9 @@ async function drawAdminNutritionLuxuryChart(userId) {
   if (kpiCarb) kpiCarb.textContent = Math.round(avg(carbs)) + ' g';
   if (kpiScore) kpiScore.textContent = (avg(score)).toFixed(1) + '/10';
   function trendText(curr, prev, suffix, fixed) {
-    if (!Number.isFinite(curr) || !Number.isFinite(prev) || prev === 0) return { text: 'vs prev week —', cls: '' };
+    if (!Number.isFinite(curr) || !Number.isFinite(prev) || prev === 0) return { text: 'vs prev week —', cls: 'na' };
     var delta = curr - prev;
-    if (Math.abs(delta) < 0.01) return { text: 'vs prev week \u2192 0' + (suffix || ''), cls: '' };
+    if (Math.abs(delta) < 0.01) return { text: 'vs prev week \u2192 0' + (suffix || ''), cls: 'na' };
     var dir = delta > 0 ? '\u2191' : '\u2193';
     var val = fixed != null ? Math.abs(delta).toFixed(fixed) : Math.round(Math.abs(delta));
     return { text: 'vs prev week ' + dir + ' ' + val + (suffix || ''), cls: delta > 0 ? 'up' : 'down' };
@@ -10019,45 +10051,6 @@ async function drawAdminNutritionLuxuryChart(userId) {
           pointHoverRadius: 4.2,
           tension: 0.36,
           fill: true
-        },
-        {
-          type: 'line',
-          label: 'Carbs (g)',
-          data: carbs,
-          yAxisID: 'yMacro',
-          borderColor: 'rgba(52,152,219,0.95)',
-          backgroundColor: gradCarb,
-          borderWidth: 2,
-          pointRadius: 2.8,
-          pointHoverRadius: 3.8,
-          tension: 0.36,
-          fill: true
-        },
-        {
-          type: 'line',
-          label: 'Fat (g)',
-          data: fat,
-          yAxisID: 'yMacro',
-          borderColor: 'rgba(241,196,15,0.95)',
-          backgroundColor: gradFat,
-          borderWidth: 2,
-          pointRadius: 2.8,
-          pointHoverRadius: 3.8,
-          tension: 0.36,
-          fill: true
-        },
-        {
-          type: 'line',
-          label: 'Meal score',
-          data: score,
-          yAxisID: 'yScore',
-          borderColor: 'rgba(155,89,182,0.98)',
-          backgroundColor: gradScore,
-          borderWidth: 2.1,
-          pointRadius: 3,
-          pointHoverRadius: 4,
-          tension: 0.36,
-          fill: true
         }
       ]
     },
@@ -10067,7 +10060,7 @@ async function drawAdminNutritionLuxuryChart(userId) {
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: {
-          labels: { color: '#e9e3d4', boxWidth: 10, usePointStyle: true, pointStyle: 'circle' }
+          labels: { color: '#e9e3d4', boxWidth: 10, usePointStyle: true, pointStyle: 'circle', padding: 16 }
         },
         tooltip: {
           backgroundColor: 'rgba(14,16,20,0.96)',
@@ -10079,10 +10072,9 @@ async function drawAdminNutritionLuxuryChart(userId) {
         }
       },
       scales: {
-        x: { ticks: { color: '#a6a09a' }, grid: { color: 'rgba(255,255,255,0.05)' } },
-        yCal: { type: 'linear', position: 'left', beginAtZero: true, ticks: { color: '#ffb86b' }, grid: { color: 'rgba(255,255,255,0.08)' } },
-        yMacro: { type: 'linear', position: 'right', beginAtZero: true, ticks: { color: '#93ffd3' }, grid: { drawOnChartArea: false } },
-        yScore: { type: 'linear', position: 'right', min: 0, max: 10, ticks: { color: '#cb9ef2', stepSize: 2 }, grid: { drawOnChartArea: false } }
+        x: { ticks: { color: '#a6a09a', maxTicksLimit: 8 }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        yCal: { type: 'linear', position: 'left', beginAtZero: true, ticks: { color: '#ffb86b', maxTicksLimit: 5 }, grid: { color: 'rgba(255,255,255,0.08)' } },
+        yMacro: { type: 'linear', position: 'right', beginAtZero: true, ticks: { color: '#93ffd3', maxTicksLimit: 5 }, grid: { drawOnChartArea: false } }
       }
     }
   });
@@ -12236,7 +12228,10 @@ var bbNutritionState = {
 };
 var bbNutritionGridReady = false;
 var adminNutritionWeekChartInst = null;
+var adminNutritionClientPhotoCache = {};
 var userNutritionTrendChartInst = null;
+var _nutritionShareCardBlob = null;
+var _nutritionShareCardMealType = '';
 
 function nutritionTodayYmd() {
   try {
@@ -12504,7 +12499,227 @@ function nutritionRenderMealResult(mt, result, score, mealConfidence) {
     '<span class="mpill" style="background:rgba(200,164,78,0.15);color:var(--bb-gold)">' + escapeHtml(String(result.carbs != null ? result.carbs : '—')) + 'g carb</span>' +
     '<span class="mpill" style="background:rgba(192,57,43,0.12);color:var(--bb-red)">' + escapeHtml(String(result.fat != null ? result.fat : '—')) + 'g fat</span></div>' +
     '<div class="score-row">Score: <strong style="color:var(--bb-green)">' + escapeHtml(String(score)) + '/10</strong> · <span style="color:' + confColor + '">' + escapeHtml(conf || '—') + '</span></div>' +
-    '<div class="score-row">Trust: <strong style="color:' + (confMeta.level === 'high' ? 'var(--bb-green)' : confMeta.level === 'medium' ? 'var(--bb-orange)' : 'var(--bb-red)') + '">' + escapeHtml(confMeta.label) + '</strong></div>';
+    '<div class="score-row">Trust: <strong style="color:' + (confMeta.level === 'high' ? 'var(--bb-green)' : confMeta.level === 'medium' ? 'var(--bb-orange)' : 'var(--bb-red)') + '">' + escapeHtml(confMeta.label) + '</strong></div>' +
+    '<div class="share-row">' +
+      '<button type="button" class="share-btn" onclick="openNutritionShareCard(\'' + escapeHtml(String(mt)) + '\')">Share result</button>' +
+      '<button type="button" class="share-btn secondary" onclick="saveNutritionShareCardFromMeal(\'' + escapeHtml(String(mt)) + '\')">Save card</button>' +
+    '</div>';
+}
+
+function nutritionShareRoundRectPath(ctx, x, y, w, h, r) {
+  var rr = Math.max(0, Math.min(r, Math.min(w, h) / 2));
+  ctx.beginPath();
+  ctx.moveTo(x + rr, y);
+  ctx.arcTo(x + w, y, x + w, y + h, rr);
+  ctx.arcTo(x + w, y + h, x, y + h, rr);
+  ctx.arcTo(x, y + h, x, y, rr);
+  ctx.arcTo(x, y, x + w, y, rr);
+  ctx.closePath();
+}
+
+async function drawNutritionShareCard(mt) {
+  var canvas = document.getElementById('nutritionShareCardCanvas');
+  if (!canvas) return null;
+  var result = bbNutritionState.results && bbNutritionState.results[mt];
+  if (!result) return null;
+  var score = bbNutritionState.scores && bbNutritionState.scores[mt];
+  if (score == null) score = '—';
+  var confMeta = (bbNutritionState.confidence && bbNutritionState.confidence[mt]) || nutritionClassifyConfidence(result, !!bbNutritionState.photos[mt], true, bbNutritionState.photos[mt] ? 'ai' : 'manual');
+  var meta = bbNutritionMealMeta[mt] || { label: String(mt || 'Meal'), hint: '' };
+
+  var W = 1080;
+  var H = 1700;
+  canvas.width = W;
+  canvas.height = H;
+  var ctx = canvas.getContext('2d');
+  if (!ctx) return null;
+
+  // Background and frame
+  var bg = ctx.createLinearGradient(0, 0, 0, H);
+  bg.addColorStop(0, '#111417');
+  bg.addColorStop(1, '#0a0c0f');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, W, H);
+  ctx.strokeStyle = 'rgba(200,164,78,0.75)';
+  ctx.lineWidth = 8;
+  nutritionShareRoundRectPath(ctx, 20, 20, W - 40, H - 40, 44);
+  ctx.stroke();
+
+  // Header
+  ctx.fillStyle = '#f1e6c8';
+  ctx.font = "700 72px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText(meta.label || 'Meal', 74, 125);
+  ctx.fillStyle = confMeta.level === 'high' ? '#3dd68c' : confMeta.level === 'medium' ? '#f5a623' : '#ff6868';
+  ctx.font = "600 44px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText(confMeta.level === 'high' ? 'High confidence' : confMeta.level === 'medium' ? 'Medium confidence' : 'Low confidence', 560, 125);
+  ctx.fillStyle = '#a99a7f';
+  ctx.font = "500 46px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText(meta.hint || '', 74, 190);
+
+  // Meal image region
+  var imgTop = 230;
+  var imgX = 52;
+  var imgW = W - 104;
+  var imgH = 560;
+  nutritionShareRoundRectPath(ctx, imgX, imgTop, imgW, imgH, 32);
+  ctx.save();
+  ctx.clip();
+  if (bbNutritionState.photos && bbNutritionState.photos[mt]) {
+    try {
+      var mealImg = new Image();
+      mealImg.src = 'data:' + (bbNutritionState.mimes[mt] || 'image/jpeg') + ';base64,' + bbNutritionState.photos[mt];
+      await new Promise(function (resolve) {
+        mealImg.onload = resolve;
+        mealImg.onerror = resolve;
+      });
+      if (mealImg.naturalWidth && mealImg.naturalHeight) {
+        var ratio = Math.max(imgW / mealImg.naturalWidth, imgH / mealImg.naturalHeight);
+        var dw = mealImg.naturalWidth * ratio;
+        var dh = mealImg.naturalHeight * ratio;
+        var dx = imgX + (imgW - dw) / 2;
+        var dy = imgTop + (imgH - dh) / 2;
+        ctx.drawImage(mealImg, dx, dy, dw, dh);
+      } else {
+        ctx.fillStyle = '#1f2429';
+        ctx.fillRect(imgX, imgTop, imgW, imgH);
+      }
+    } catch (e) {
+      ctx.fillStyle = '#1f2429';
+      ctx.fillRect(imgX, imgTop, imgW, imgH);
+    }
+  } else {
+    ctx.fillStyle = '#1f2429';
+    ctx.fillRect(imgX, imgTop, imgW, imgH);
+  }
+  ctx.restore();
+
+  // Dish and macro chips
+  var yText = 890;
+  ctx.fillStyle = '#efe4c7';
+  ctx.font = "700 64px 'Outfit','Segoe UI',sans-serif";
+  var dish = String(result.dish || 'Meal').slice(0, 44);
+  ctx.fillText(dish, 74, yText);
+
+  function chip(x, y, w, txt, bgc, tc) {
+    ctx.fillStyle = bgc;
+    nutritionShareRoundRectPath(ctx, x, y, w, 88, 44);
+    ctx.fill();
+    ctx.fillStyle = tc;
+    ctx.font = "700 40px 'Outfit','Segoe UI',sans-serif";
+    ctx.textAlign = 'center';
+    ctx.fillText(txt, x + (w / 2), y + 56);
+    ctx.textAlign = 'left';
+  }
+  var cals = String(result.calories != null ? result.calories : '—') + ' kcal';
+  var pro = String(result.protein != null ? result.protein : '—') + 'g pro';
+  var carb = String(result.carbs != null ? result.carbs : '—') + 'g carb';
+  var fat = String(result.fat != null ? result.fat : '—') + 'g fat';
+  var chipY = 970;
+  chip(72, chipY, 220, cals, 'rgba(230,126,34,0.18)', '#f6b46d');
+  chip(308, chipY, 220, pro, 'rgba(46,204,113,0.16)', '#85e8ae');
+  chip(544, chipY, 220, carb, 'rgba(52,152,219,0.16)', '#90cbf0');
+  chip(780, chipY, 220, fat, 'rgba(192,57,43,0.16)', '#f2a39a');
+
+  // Score and trust
+  var trustColor = confMeta.level === 'high' ? '#3dd68c' : confMeta.level === 'medium' ? '#f5a623' : '#ff6868';
+  ctx.fillStyle = '#c7bcaa';
+  ctx.font = "600 52px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText('Score: ', 74, 1135);
+  ctx.fillStyle = '#f0e4c5';
+  ctx.font = "800 58px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText(String(score) + '/10', 255, 1136);
+  ctx.fillStyle = trustColor;
+  ctx.font = "700 58px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText((confMeta.level || 'medium').charAt(0).toUpperCase() + (confMeta.level || 'medium').slice(1), 456, 1136);
+  ctx.fillStyle = '#c7bcaa';
+  ctx.font = "600 52px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText('Trust: ', 74, 1212);
+  ctx.fillStyle = trustColor;
+  ctx.font = "700 58px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText(confMeta.label || 'Moderate confidence', 250, 1212);
+
+  // Footer
+  ctx.strokeStyle = 'rgba(200,164,78,0.35)';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(74, 1310);
+  ctx.lineTo(W - 74, 1310);
+  ctx.stroke();
+  ctx.fillStyle = '#d9c598';
+  ctx.font = "600 50px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText('Co-powered by', 240, 1436);
+  ctx.fillStyle = '#f7d16f';
+  ctx.font = "800 62px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText('Fitchef', 610, 1436);
+
+  _nutritionShareCardBlob = null;
+  _nutritionShareCardMealType = String(mt || '');
+  await new Promise(function (resolve) {
+    canvas.toBlob(function (blob) {
+      _nutritionShareCardBlob = blob || null;
+      resolve();
+    }, 'image/png', 1);
+  });
+  return _nutritionShareCardBlob;
+}
+
+async function openNutritionShareCard(mt) {
+  if (!bbNutritionState.results || !bbNutritionState.results[mt]) {
+    nutritionShowToast('Analyze this meal first to share.', 'warn');
+    return;
+  }
+  await drawNutritionShareCard(mt);
+  openModal('nutritionShareCardModal');
+}
+
+async function saveNutritionShareCard() {
+  var blob = _nutritionShareCardBlob;
+  if (!blob) {
+    var meal = _nutritionShareCardMealType;
+    if (!meal) return;
+    blob = await drawNutritionShareCard(meal);
+  }
+  if (!blob) return;
+  var dateTag = nutritionTodayYmd();
+  var mealTag = _nutritionShareCardMealType || 'meal';
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'bodybank_fitchef_' + mealTag + '_' + dateTag + '.png';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function shareNutritionShareCard() {
+  var blob = _nutritionShareCardBlob;
+  if (!blob) {
+    var meal = _nutritionShareCardMealType;
+    if (!meal) return;
+    blob = await drawNutritionShareCard(meal);
+  }
+  if (!blob) return;
+  var mealTag = _nutritionShareCardMealType || 'meal';
+  var file = new File([blob], 'bodybank_fitchef_' + mealTag + '.png', { type: 'image/png' });
+  var title = 'My BodyBank X Fitchef Nutrition result';
+  var text = 'My nutrition result card from BodyBank X Fitchef.';
+  if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ title: title, text: text, files: [file] });
+      closeModal('nutritionShareCardModal');
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+  }
+  await saveNutritionShareCard();
+}
+
+async function saveNutritionShareCardFromMeal(mt) {
+  if (!bbNutritionState.results || !bbNutritionState.results[mt]) {
+    nutritionShowToast('Analyze this meal first to save a card.', 'warn');
+    return;
+  }
+  await drawNutritionShareCard(mt);
+  await saveNutritionShareCard();
 }
 
 function nutritionUpdateSummaryFromState() {
@@ -12879,6 +13094,11 @@ function loadAdminNutritionReport() {
           '<div class="sub">' + escapeHtml(String(agg.clientsLogged || 0)) + ' clients</div></div>';
       }
       var clients = data.clients || [];
+      adminNutritionClientPhotoCache = {};
+      clients.forEach(function (c) {
+        if (!c || !c.userId) return;
+        adminNutritionClientPhotoCache[String(c.userId)] = c;
+      });
       if (!list) return;
       if (!clients.length) {
         list.innerHTML = '<p class="form-hint" style="text-align:center;padding:2rem">No nutrition data for this date.</p>';
@@ -12947,6 +13167,7 @@ function loadAdminNutritionReport() {
           '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'both\')">Email + inbox</button>' +
           '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'email\')">Email only</button>' +
           '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'message\')">Inbox only</button>' +
+          '<button type="button" class="btn" onclick="adminNutritionDownloadPhotos(\'' + uidEsc + '\')">Download images</button>' +
           '<button type="button" class="btn" onclick="adminNutritionViewLog(\'' + uidEsc + '\')">View log</button></div>' +
           (c.notified ? '<p class="form-hint" style="margin-top:8px">Notified today ✓</p>' : '') +
           '</div>';
@@ -12956,6 +13177,98 @@ function loadAdminNutritionReport() {
     .catch(function () {
       if (banner) banner.innerHTML = '<p class="form-hint" style="color:#e05050">Network error</p>';
     });
+}
+
+function adminNutritionDownloadPhotos(userId) {
+  var uid = String(userId || '');
+  var client = adminNutritionClientPhotoCache[uid];
+  var dateEl = document.getElementById('adminNutritionReportDate');
+  var ymd = dateEl && dateEl.value ? String(dateEl.value) : nutritionTodayYmd();
+  if (!client || !Array.isArray(client.meals)) {
+    if (typeof showPopup === 'function') showPopup('Download images', 'Client data not loaded. Refresh Nutrition report and try again.', '', 'OK', null, 'error');
+    return;
+  }
+  var photos = client.meals.filter(function (m) { return m && m.photo_data; });
+  if (!photos.length) {
+    if (typeof showPopup === 'function') showPopup('Download images', 'No uploaded meal photos found for this client on selected date.', '', 'OK', null, 'error');
+    return;
+  }
+  function extFromMime(mime) {
+    var m = String(mime || '').toLowerCase();
+    if (m.indexOf('png') >= 0) return 'png';
+    if (m.indexOf('webp') >= 0) return 'webp';
+    if (m.indexOf('gif') >= 0) return 'gif';
+    return 'jpg';
+  }
+  var safeBase = function (name) {
+    return (name || 'client').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 36) || 'client';
+  };
+  var triggerPhotoDownload = function (meal, idx, base, delayBase) {
+    var mime = meal.photo_mime || 'image/jpeg';
+    var ext = extFromMime(mime);
+    var mealType = String(meal.meal_type || ('meal_' + (idx + 1))).replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+    var fileName = 'nutrition_' + base + '_' + ymd + '_' + mealType + '.' + ext;
+    try {
+      var a = document.createElement('a');
+      a.href = 'data:' + mime + ';base64,' + meal.photo_data;
+      a.download = fileName;
+      document.body.appendChild(a);
+      setTimeout(function () { a.click(); a.remove(); }, delayBase + (idx * 220));
+    } catch (e) {}
+  };
+  var base = safeBase(client.userName || 'client');
+  photos.forEach(function (meal, idx) {
+    triggerPhotoDownload(meal, idx, base, 0);
+  });
+  if (typeof nutritionShowToast === 'function') nutritionShowToast('Downloading ' + photos.length + ' image(s)…', 'success');
+}
+
+function adminNutritionDownloadAllPhotos() {
+  var keys = Object.keys(adminNutritionClientPhotoCache || {});
+  if (!keys.length) {
+    if (typeof showPopup === 'function') showPopup('Download all images', 'No client nutrition data loaded. Refresh first.', '', 'OK', null, 'error');
+    return;
+  }
+  var dateEl = document.getElementById('adminNutritionReportDate');
+  var ymd = dateEl && dateEl.value ? String(dateEl.value) : nutritionTodayYmd();
+  function extFromMime(mime) {
+    var m = String(mime || '').toLowerCase();
+    if (m.indexOf('png') >= 0) return 'png';
+    if (m.indexOf('webp') >= 0) return 'webp';
+    if (m.indexOf('gif') >= 0) return 'gif';
+    return 'jpg';
+  }
+  function safeBase(name) {
+    return (name || 'client').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 36) || 'client';
+  }
+  var total = 0;
+  var delay = 0;
+  keys.forEach(function (uid) {
+    var c = adminNutritionClientPhotoCache[uid];
+    if (!c || !Array.isArray(c.meals)) return;
+    var base = safeBase(c.userName || uid);
+    c.meals.forEach(function (meal, idx) {
+      if (!meal || !meal.photo_data) return;
+      var mime = meal.photo_mime || 'image/jpeg';
+      var ext = extFromMime(mime);
+      var mealType = String(meal.meal_type || ('meal_' + (idx + 1))).replace(/[^a-z0-9]+/gi, '_').toLowerCase();
+      var fileName = 'nutrition_' + base + '_' + ymd + '_' + mealType + '.' + ext;
+      try {
+        var a = document.createElement('a');
+        a.href = 'data:' + mime + ';base64,' + meal.photo_data;
+        a.download = fileName;
+        document.body.appendChild(a);
+        setTimeout(function () { a.click(); a.remove(); }, delay);
+        delay += 220;
+        total += 1;
+      } catch (e) {}
+    });
+  });
+  if (!total) {
+    if (typeof showPopup === 'function') showPopup('Download all images', 'No uploaded meal photos found for selected date.', '', 'OK', null, 'error');
+    return;
+  }
+  if (typeof nutritionShowToast === 'function') nutritionShowToast('Downloading ' + total + ' image(s) from all clients…', 'success');
 }
 
 function adminNutritionDrawWeekChart(userId, endDate) {
