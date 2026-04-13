@@ -12505,7 +12505,7 @@ function nutritionRenderMealResult(mt, result, score, mealConfidence) {
     '<div class="score-row">Score: <strong style="color:var(--bb-green)">' + escapeHtml(String(score)) + '/10</strong> · <span style="color:' + confColor + '">' + escapeHtml(conf || '—') + '</span></div>' +
     '<div class="score-row">Trust: <strong style="color:' + (confMeta.level === 'high' ? 'var(--bb-green)' : confMeta.level === 'medium' ? 'var(--bb-orange)' : 'var(--bb-red)') + '">' + escapeHtml(confMeta.label) + '</strong></div>' +
     '<div class="share-row">' +
-      '<button type="button" class="share-btn" onclick="openNutritionShareCard(\'' + escapeHtml(String(mt)) + '\')">Share result</button>' +
+      '<button type="button" class="share-btn" onclick="nutritionQuickShareFromMeal(\'' + escapeHtml(String(mt)) + '\')">Share result</button>' +
       '<button type="button" class="share-btn secondary" onclick="saveNutritionShareCardFromMeal(\'' + escapeHtml(String(mt)) + '\')">Save card</button>' +
     '</div>';
 }
@@ -12688,18 +12688,18 @@ async function drawNutritionShareCard(mt) {
   var bodybankLogo = await nutritionShareLoadImage('/img/bodybank-logo-short.png');
   var fitchefLogo = await nutritionShareLoadImage('/img/Fitchef logo.png');
   if (bodybankLogo && fitchefLogo) {
-    var bbH = 54;
+    var bbH = 84;
     var bbW = Math.round((bodybankLogo.naturalWidth / Math.max(1, bodybankLogo.naturalHeight)) * bbH);
-    var fcH = 54;
+    var fcH = 84;
     var fcW = Math.round((fitchefLogo.naturalWidth / Math.max(1, fitchefLogo.naturalHeight)) * fcH);
-    var xMarkW = 36;
-    var totalW = bbW + 22 + xMarkW + 22 + fcW;
+    var xMarkW = 54;
+    var totalW = bbW + 30 + xMarkW + 30 + fcW;
     var startX = Math.round((W - totalW) / 2);
-    ctx.drawImage(bodybankLogo, startX, brandY - bbH + 8, bbW, bbH);
+    ctx.drawImage(bodybankLogo, startX, brandY - bbH + 10, bbW, bbH);
     ctx.fillStyle = '#d7c9a0';
-    ctx.font = "700 44px 'Outfit','Segoe UI',sans-serif";
-    ctx.fillText('X', startX + bbW + 22, brandY);
-    ctx.drawImage(fitchefLogo, startX + bbW + 22 + xMarkW + 22, brandY - fcH + 8, fcW, fcH);
+    ctx.font = "800 58px 'Outfit','Segoe UI',sans-serif";
+    ctx.fillText('X', startX + bbW + 30, brandY + 2);
+    ctx.drawImage(fitchefLogo, startX + bbW + 30 + xMarkW + 30, brandY - fcH + 10, fcW, fcH);
   } else {
     ctx.fillStyle = '#d9c598';
     ctx.font = "700 46px 'Outfit','Segoe UI',sans-serif";
@@ -12767,6 +12767,35 @@ async function shareNutritionShareCard() {
     }
   }
   await saveNutritionShareCard();
+}
+
+async function nutritionQuickShareFromMeal(mt) {
+  if (!bbNutritionState.results || !bbNutritionState.results[mt]) {
+    nutritionShowToast('Analyze this meal first to share.', 'warn');
+    return;
+  }
+  await drawNutritionShareCard(mt);
+  var blob = _nutritionShareCardBlob;
+  if (!blob) {
+    openNutritionShareCard(mt);
+    return;
+  }
+  var mealTag = String(mt || 'meal');
+  var file = new File([blob], 'bodybank_fitchef_' + mealTag + '.png', { type: 'image/png' });
+  var canNativeShare = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
+  if (canNativeShare) {
+    try {
+      await navigator.share({
+        title: 'My BodyBank X Fitchef Nutrition result',
+        text: 'My nutrition result card from BodyBank X Fitchef.',
+        files: [file]
+      });
+      return;
+    } catch (e) {
+      if (e && e.name === 'AbortError') return;
+    }
+  }
+  openNutritionShareCard(mt);
 }
 
 async function saveNutritionShareCardFromMeal(mt) {
