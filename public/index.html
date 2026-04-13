@@ -1474,7 +1474,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .admin-qa-grid{gap:18px}
 }
 @media(max-width:767px){
-  .admin-body{margin-left:0;padding-bottom:max(80px,calc(70px + env(safe-area-inset-bottom)))}
+  .admin-body{margin-left:0;padding-bottom:calc(70px + env(safe-area-inset-bottom,0px))}
   .admin-bottom-nav{display:flex}
   .admin-top-hamburger{display:none}
   .admin-mobile-nav-bar{display:none}
@@ -2289,11 +2289,11 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   #streakAtRiskBanner .streak-timer{grid-column:1 / -1;justify-self:end;text-align:right}
   .admin-mobile-nav-bar{display:none}
   .admin-tabs{display:none}
-  .admin-body{padding:4px 12px max(76px,calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px))));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
+  .admin-body{padding:4px 12px calc(70px + env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
   .admin-top{position:sticky;top:0;z-index:20;flex-shrink:0;padding:6px 12px;padding-top:2px;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));gap:8px}
   .admin-current-section-wrap{margin-bottom:4px;padding:2px 0;flex-shrink:0}
   .admin-section-page{padding-top:8px}
-  .admin-tab-content-wrap{flex:1;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:8px 0 calc(90px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)));margin:0;border-radius:0;border:none;background:transparent;box-sizing:border-box}
+  .admin-tab-content-wrap{flex:1;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding:8px 0 0;margin:0;border-radius:0;border:none;background:transparent;box-sizing:border-box}
   .admin-notify-panel{position:fixed;left:16px;right:16px;top:60px;margin-top:0;width:auto;max-width:none;max-height:60vh}
   .admin-top-left img{height:44px}
   .admin-top-right{justify-content:flex-end;flex-wrap:nowrap;gap:10px}
@@ -2359,7 +2359,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 }
 @media(max-width:600px){
   .admin-stats{flex-direction:column;align-items:flex-start}
-  .admin-body{padding:2px 12px max(76px,calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px))));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));box-sizing:border-box}
+  .admin-body{padding:2px 12px calc(70px + env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));box-sizing:border-box}
   .admin-top{padding:6px 12px;padding-top:0;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));gap:6px}
   .admin-table{font-size:14px}
   .admin-table th,.admin-table td{font-size:14px}
@@ -2897,13 +2897,13 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   .user-body{margin-left:270px}
 }
 @media(max-width:767px){
-  .user-body{margin-left:0;padding-bottom:max(80px,calc(70px + env(safe-area-inset-bottom)))}
+  .user-body{margin-left:0;padding-bottom:calc(70px + env(safe-area-inset-bottom,0px))}
   .user-bottom-nav{display:flex!important;width:100%!important;left:0!important;right:0!important}
 }
 @media(max-width:768px){
   .welcome-cards{grid-template-columns:1fr;max-width:520px;gap:12px}
   .user-current-section{font-size:19px;letter-spacing:1.5px}
-  .user-body{padding:4px 12px max(76px,calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px))));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
+  .user-body{padding:4px 12px calc(70px + env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));flex:1;min-height:0;display:flex;flex-direction:column;box-sizing:border-box}
   .user-top{position:sticky;top:0;z-index:20;flex-shrink:0;padding:6px 12px;padding-top:2px;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));gap:8px}
   .user-current-section-wrap{margin-bottom:4px;padding:2px 0;flex-shrink:0;align-items:flex-start}
   .user-current-subtitle{font-size:12px}
@@ -2937,7 +2937,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   .timer-sep{font-size:30px}
 }
 @media(max-width:600px){
-  .user-body{padding:2px 12px max(76px,calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px))));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));box-sizing:border-box}
+  .user-body{padding:2px 12px calc(70px + env(safe-area-inset-bottom,0px));padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));box-sizing:border-box}
   .user-top{padding:6px 12px;padding-top:0;padding-left:max(12px,env(safe-area-inset-left));padding-right:max(12px,env(safe-area-inset-right));gap:6px}
   .user-top-left img{height:40px}
   .user-top-right{flex-wrap:nowrap;gap:8px}
@@ -14713,7 +14713,7 @@ window.addEventListener('resize', applySafeAreaFix);
     padding-top:4px !important;
     padding-left:max(12px,env(safe-area-inset-left,0px)) !important;
     padding-right:max(12px,env(safe-area-inset-right,0px)) !important;
-    padding-bottom:max(88px,calc(80px + env(safe-area-inset-bottom,0px))) !important;
+    padding-bottom:calc(70px + env(safe-area-inset-bottom,0px)) !important;
   }
   html.android-mobile .admin-current-section-wrap,
   html.android-mobile .user-current-section-wrap{
@@ -14736,7 +14736,7 @@ window.addEventListener('resize', applySafeAreaFix);
   html.android-mobile .admin-tab-content-wrap,
   html.android-mobile .user-tab-content-wrap{
     padding-top:8px !important;
-    padding-bottom:calc(96px + env(safe-area-inset-bottom,0px)) !important;
+    padding-bottom:0 !important;
   }
   html.android-mobile .user-welcome{
     padding:36px 18px 44px !important;
