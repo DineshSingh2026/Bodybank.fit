@@ -104,6 +104,10 @@ function createBloodRouter(deps) {
       if (report.user_id !== req.user.id && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
       const pdfPath = await ensureHealthReportPdf(db, req.params.reportId);
       if (!pdfPath || !fs.existsSync(pdfPath)) {
+        const st = String(report.status || '').toLowerCase();
+        if (st === 'failed') {
+          return res.status(410).json({ error: 'Blood analysis failed for this report. Ask the client to upload a new lab report.' });
+        }
         return res.status(404).json({ error: 'PDF not ready yet' });
       }
       res.download(pdfPath, 'BodyBank_Health_Report.pdf');

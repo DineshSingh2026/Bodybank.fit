@@ -12125,7 +12125,12 @@ function loadAdminBloodReports() {
         var id = String(r._id || r.id || '').replace(/'/g, "\\'");
         var isReady = r.status === 'complete';
         var stLower = String(r.status || '').toLowerCase();
-        var isProcessing = stLower === 'pending' || stLower === 'extracting' || stLower === 'analysing';
+        var isProcessing =
+          stLower === 'pending' ||
+          stLower === 'extracting' ||
+          stLower === 'analysing' ||
+          stLower === 'generating_pdf';
+        var isFailed = stLower === 'failed';
         var isSent = !!r.sentToUser;
         var statusColors = { Good: '#3dd68c', Excellent: '#3dd68c', Fair: '#f5a623', Poor: '#ff5c5c', Critical: '#ff5c5c' };
         var ar = r.aiReport || {};
@@ -12152,8 +12157,12 @@ function loadAdminBloodReports() {
           notesEsc + '</textarea>' +
           '<button type="button" class="form-hint" style="margin-top:4px;border:1px solid rgba(255,255,255,0.12);background:transparent;color:inherit;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px" onclick="adminBloodSaveNotes(\'' + id + '\')">Save note</button></div>' +
           '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
-          '<button type="button" class="nav-login" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isProcessing ? '0.45' : '1') + '" ' + (isProcessing ? 'disabled title="Report is still processing"' : '') + ' onclick="adminBloodDownloadPdf(\'' + id + '\')">Download PDF</button>' +
-          '<button type="button" class="form-submit" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isSent || isProcessing ? '0.45' : '1') + '" ' + (isSent || isProcessing ? 'disabled' : '') + ' ' + (isProcessing ? 'title="Report is still processing"' : '') + ' onclick="adminBloodSend(\'' + id + '\')">' + (isSent ? 'Sent' : 'Send to client') + '</button>' +
+          '<button type="button" class="nav-login" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isProcessing || isFailed ? '0.45' : '1') + '" ' +
+          (isProcessing ? 'disabled title="Report is still processing"' : '') +
+          (isFailed ? 'disabled title="Analysis failed — ask the client to upload a new report"' : '') +
+          (!isProcessing && !isFailed ? 'onclick="adminBloodDownloadPdf(\'' + id + '\')"' : '') +
+          '>Download PDF</button>' +
+          '<button type="button" class="form-submit" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isSent || isProcessing || isFailed ? '0.45' : '1') + '" ' + (isSent || isProcessing || isFailed ? 'disabled' : '') + ' ' + (isProcessing ? 'title="Report is still processing"' : isFailed ? 'title="Cannot send a failed report"' : '') + ' onclick="adminBloodSend(\'' + id + '\')">' + (isSent ? 'Sent' : 'Send to client') + '</button>' +
           '</div></div>'
         );
       }).join('');

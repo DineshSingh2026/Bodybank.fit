@@ -1,6 +1,7 @@
 'use strict';
 
 const fs = require('fs');
+const path = require('path');
 
 const {
   parseAnthropicJson,
@@ -71,6 +72,74 @@ function bloodMediaBlock(imageBase64, mimeType) {
     type: 'image',
     source: { type: 'base64', media_type: mt, data }
   };
+}
+
+/**
+ * Try stored path as-is, then relative to process.cwd() (handles moved servers / ephemeral disks).
+ */
+function resolveStoredPdfPath(pdfPath) {
+  if (pdfPath == null) return null;
+  const s = String(pdfPath).trim();
+  if (!s) return null;
+  if (fs.existsSync(s)) return s;
+  const normalized = s.replace(/\\/g, '/').replace(/^\.\/+/, '');
+  const fromCwd = path.resolve(process.cwd(), normalized);
+  if (fs.existsSync(fromCwd)) return fromCwd;
+  return null;
+}
+
+/** Normalize extraction JSON so PDF regeneration tolerates minor model/schema drift. */
+function coerceExtractedForPdf(extracted) {
+  if (!extracted || typeof extracted !== 'object' || Array.isArray(extracted)) return null;
+  let panels = extracted.panels;
+  if (!Array.isArray(panels) && Array.isArray(extracted.Panels)) {
+    panels = extracted.Panels;
+  }
+  if (!Array.isArray(panels) && panels && typeof panels === 'object') {
+    panels = [panels];
+  }
+  if (!Array.isArray(panels) || panels.length === 0) {
+    if (Array.isArray(extracted.markers) && extracted.markers.length) {
+      panels = [
+        {
+          name: extracted.lab_name || 'Lab results',
+          markers: extracted.markers
+        }
+      ];
+    } else {
+      return null;
+    }
+  }
+  return { ...extracted, panels };
+}
+
+/** Normalize analysis JSON for PDF (wrapped array or nested object). */
+function coerceAiReportForPdf(aiReport) {
+  if (aiReport == null) return null;
+  let r = aiReport;
+  if (typeof r === 'string') {
+    try {
+      r = JSON.parse(r);
+    } catch (_) {
+      return null;
+    }
+  }
+  if (!r || typeof r !== 'object') return null;
+  if (Array.isArray(r)) {
+    if (r.length === 1 && r[0] && typeof r[0] === 'object' && !Array.isArray(r[0])) return r[0];
+    return null;
+  }
+  if (r.report && typeof r.report === 'object' && !Array.isArray(r.report)) {
+    const inner = r.report;
+    if (
+      inner.overall_status != null ||
+      inner.overall_summary_short != null ||
+      (Array.isArray(inner.key_findings) && inner.key_findings.length)
+    ) {
+      return inner;
+    }
+  }
+  return r;
 }
 
 function normalizePanelsForPdf(extracted) {
@@ -312,12 +381,16 @@ async function ensureHealthReportPdf(db, reportId) {
   try {
     const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [reportId]);
     if (!report) return null;
-    if (report.pdf_path && fs.existsSync(report.pdf_path)) {
-      return report.pdf_path;
+    const existingPdf = report.pdf_path ? resolveStoredPdfPath(report.pdf_path) : null;
+    if (existingPdf) {
+      if (existingPdf !== String(report.pdf_path || '').trim()) {
+        await run(`UPDATE blood_analysis_reports SET pdf_path = ? WHERE id = ?`, [existingPdf, reportId]).catch(() => {});
+      }
+      return existingPdf;
     }
 
-    let extracted = parseDbJsonColumn(report.extracted_blood_data);
-    let aiReport = parseDbJsonColumn(report.ai_report);
+    let extracted = coerceExtractedForPdf(parseDbJsonColumn(report.extracted_blood_data));
+    let aiReport = coerceAiReportForPdf(parseDbJsonColumn(report.ai_report));
     let nutritionSnapshot = parseDbJsonColumn(report.nutrition_snapshot);
     if (nutritionSnapshot == null || typeof nutritionSnapshot !== 'object' || Array.isArray(nutritionSnapshot)) {
       nutritionSnapshot = {};
