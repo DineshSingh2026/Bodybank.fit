@@ -8783,10 +8783,13 @@ function toggleAdminAiAssistPanel() {
     setAiAssistReportMonthIfEmpty();
     populateAiAssistReportUsers();
     setAiPromptCollapsed(getAiPromptCollapsed());
-    setTimeout(function() {
-      var input = document.getElementById('adminAiAssistInput');
-      if (input) input.focus();
-    }, 100);
+    // On mobile, avoid auto-focus to prevent viewport jump that hides the panel header.
+    if (window.innerWidth > 768) {
+      setTimeout(function() {
+        var input = document.getElementById('adminAiAssistInput');
+        if (input) input.focus();
+      }, 100);
+    }
   }
 }
 function closeAdminAiAssistPanel() {
