@@ -4050,10 +4050,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <button type="submit" class="micro-goals-submit">Save today</button>
           </form>
         </div>
-        <section class="nutrition-checkin" id="nutritionCheckin" aria-label="Nutrition AI check-in">
+        <section class="nutrition-checkin" id="nutritionCheckin" aria-label="Fitchef Nutrition check-in">
           <div class="nutri-section-header">
-            <h3 class="nutri-section-title">Nutrition <span class="nutri-badge-new">AI</span></h3>
-            <p class="nutri-section-sub">Log meals by photo or short description. Macros are estimated automatically.</p>
+            <h3 class="nutri-section-title"><a href="https://www.fitchef.fit" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">Fitchef Nutrition</a> <span class="nutri-badge-new">Fitchef</span></h3>
+            <p class="nutri-section-sub">CoPowered by Fitchef. Fitched Nutrition.</p>
           </div>
           <div class="meal-grid" id="nutritionMealGrid" aria-live="polite"></div>
           <button type="button" class="submit-all-btn" id="submitAllBtn" onclick="nutritionSubmitAllMeals()">Submit all &amp; send report</button>
@@ -11653,6 +11653,9 @@ function nutritionHandleMealPhoto(ev, mt) {
     if (img) img.src = dataUrl;
     if (prev) prev.style.display = 'block';
     if (up) up.style.display = 'none';
+    var man = document.getElementById('manual-' + mt);
+    var noteEl = document.getElementById('note-' + mt);
+    if (man) man.style.display = 'block';
     var por = document.getElementById('portion-' + mt);
     var act = document.getElementById('actions-' + mt);
     if (por) por.style.display = 'block';
@@ -11665,6 +11668,7 @@ function nutritionHandleMealPhoto(ev, mt) {
     var upIn = document.getElementById('file-upload-' + mt);
     if (camIn) camIn.value = '';
     if (upIn) upIn.value = '';
+    if (noteEl && typeof noteEl.focus === 'function') noteEl.focus();
   };
   reader.readAsDataURL(file);
 }
@@ -12294,7 +12298,7 @@ function loadAdminBloodReports() {
         var isFailed = stLower === 'failed';
         var isRunning = stLower === 'extracting' || stLower === 'analysing';
         var canRetry =
-          !isRunning && (isFailed || stLower === 'pending' || stLower === 'generating_pdf');
+          isRunning || isFailed || stLower === 'pending' || stLower === 'generating_pdf';
         var isSent = !!r.sentToUser;
         var lastErrRaw = r.analysisLastError ? String(r.analysisLastError) : '';
         var lastErrEsc = lastErrRaw ? escapeHtml(lastErrRaw) : '';
@@ -12343,7 +12347,7 @@ function loadAdminBloodReports() {
           (canRetry
             ? '<button type="button" class="form-hint" style="flex:1;min-width:100px;padding:8px;font-size:12px;border:1px solid rgba(230,192,95,0.45);background:rgba(230,192,95,0.1);color:var(--gold);border-radius:8px;cursor:pointer" onclick="adminBloodRetry(\'' +
               id +
-              '\')">Retry analysis</button>'
+              '\', ' + (isRunning ? 'true' : 'false') + ')">' + (isRunning ? 'Force retry' : 'Retry analysis') + '</button>'
             : '') +
           '<button type="button" class="nav-login" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isProcessing || isFailed ? '0.45' : '1') + '" ' +
           (isProcessing ? 'disabled title="Report is still processing"' : '') +
@@ -12369,10 +12373,13 @@ function adminBloodSaveNotes(reportId) {
   });
 }
 
-function adminBloodRetry(reportId) {
+function adminBloodRetry(reportId, force) {
   if (!window.currentUser || !window.currentUser.token) return;
-  if (!confirm('Re-run AI analysis on the saved lab file? This uses your Anthropic (Claude) API credits.')) return;
-  apiCall('POST', '/api/blood/admin/retry/' + encodeURIComponent(reportId), {}).then(function (d) {
+  var msg = force
+    ? 'Force retry this report now? Use this only if the report looks stuck.'
+    : 'Re-run AI analysis on the saved lab file? This uses your Anthropic (Claude) API credits.';
+  if (!confirm(msg)) return;
+  apiCall('POST', '/api/blood/admin/retry/' + encodeURIComponent(reportId), { force: !!force }).then(function (d) {
     if (d && (d.error || d.success === false)) {
       showPopup('Retry failed', String(d.error || d.message || 'Unknown error'), '', 'OK', null, 'error');
       return;

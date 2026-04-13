@@ -249,10 +249,11 @@ function createBloodRouter(deps) {
         return res.status(404).json({ success: false, error: 'Report not found' });
       }
       const st = String(report.status || '').toLowerCase();
-      if (st === 'extracting' || st === 'analysing') {
+      const force = !!(req.body && (req.body.force === true || req.body.force === 'true'));
+      if ((st === 'extracting' || st === 'analysing') && !force) {
         return res.status(409).json({
           success: false,
-          error: 'Analysis is already in progress for this report. Wait or refresh in a minute.'
+          error: 'Analysis is currently in progress. Use force retry for stuck jobs.'
         });
       }
       if (st !== 'failed' && st !== 'pending' && st !== 'generating_pdf') {

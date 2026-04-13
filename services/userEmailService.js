@@ -486,7 +486,7 @@ async function emailNutritionDayReport(email, firstName, payload) {
       : '';
 
   const inner = `<div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;background:#0d0f11;color:#f0ede8;padding:32px;border-radius:16px">
-  <h2 style="color:#3dd68c;margin-bottom:4px">BodyBank Nutrition Report</h2>
+  <h2 style="color:#3dd68c;margin-bottom:4px">Fitchef Nutrition Report</h2>
   <p style="color:#8a8880;margin-bottom:24px">${escapeHtml(formattedDate || '')}</p>
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
     <div style="background:#161a1e;border-radius:10px;padding:14px;text-align:center"><div style="font-size:11px;color:#8a8880;margin-bottom:4px">CALORIES</div><div style="font-size:22px;font-weight:700;color:#f5a623">${escapeHtml(String(s.totalCalories ?? '—'))}</div></div>
@@ -503,21 +503,21 @@ async function emailNutritionDayReport(email, firstName, payload) {
 </div>`;
 
   const html = luxuryWrap({
-    title: 'Your nutrition report',
-    preheader: `Macros for ${formattedDate || 'today'}.`,
+    title: 'Your Bodybank X Fitchef Nutrition report',
+    preheader: `CoPowered by Fitchef. Macros for ${formattedDate || 'today'}.`,
     lead: `Dear ${name},`,
     bodyHtml: inner,
     ctaLabel: 'Open BodyBank',
     ctaUrl: APP_BASE + '/'
   });
-  return sendMail(email, `Your BodyBank Nutrition Report — ${formattedDate || ''}`, html);
+  return sendMail(email, `Your Bodybank X Fitchef Nutrition report — ${formattedDate || ''}`, html);
 }
 
 async function emailNutritionWeeklySummary(email, firstName, report) {
   if (!isConfigured() || !email) return false;
   const name = firstName || 'there';
   const r = report || {};
-  const bodyHtml = `<p style="margin:0 0 16px">Here is your 7-day nutrition snapshot from BodyBank AI.</p>
+  const bodyHtml = `<p style="margin:0 0 16px">CoPowered by Fitchef. Here is your 7-day Fitchef Nutrition snapshot.</p>
 <ul style="margin:0;padding-left:20px;color:#d4cfc4;line-height:1.8">
 <li>Avg daily calories: <strong>${escapeHtml(String(r.avgCalories ?? '—'))}</strong></li>
 <li>Avg daily protein: <strong>${escapeHtml(String(r.avgProtein ?? '—'))} g</strong></li>
@@ -526,14 +526,14 @@ async function emailNutritionWeeklySummary(email, firstName, report) {
 <li>Days with logged data: <strong>${escapeHtml(String(r.daysLogged ?? '—'))}</strong></li>
 </ul>`;
   const html = luxuryWrap({
-    title: 'Weekly nutrition overview',
-    preheader: 'Your 7-day BodyBank nutrition summary.',
+    title: 'Weekly Fitchef Nutrition overview',
+    preheader: 'Your 7-day Bodybank X Fitchef Nutrition report.',
     lead: `Dear ${name},`,
     bodyHtml,
     ctaLabel: 'Open BodyBank',
     ctaUrl: APP_BASE + '/'
   });
-  return sendMail(email, 'Your BodyBank weekly nutrition summary', html);
+  return sendMail(email, 'Your Bodybank X Fitchef Nutrition report', html);
 }
 
 /** Blood + nutrition PDF from AI pipeline — attachment + luxury HTML shell */

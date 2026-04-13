@@ -105,8 +105,12 @@ function unwrapExtractionRoot(extracted) {
 }
 
 async function callAnthropicMessages({ apiKey, model, maxTokens, system, userContent }) {
+  const timeoutMs = Math.max(30000, parseInt(process.env.ANTHROPIC_BLOOD_REQUEST_TIMEOUT_MS || '240000', 10) || 240000);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(new Error(`Anthropic request timed out after ${timeoutMs}ms`)), timeoutMs);
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
+    signal: controller.signal,
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': apiKey,
@@ -118,7 +122,7 @@ async function callAnthropicMessages({ apiKey, model, maxTokens, system, userCon
       system,
       messages: [{ role: 'user', content: userContent }]
     })
-  });
+  }).finally(() => clearTimeout(timer));
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
     const msg = formatAnthropicApiError(res.status, data);

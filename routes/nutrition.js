@@ -122,7 +122,7 @@ async function sendNutritionNotifications(db, { userId, ymd, userRow, channel })
       await db.run('INSERT INTO user_inbox (id, user_id, title, body, type, is_read) VALUES (?, ?, ?, ?, ?, FALSE)', [
         uuidv4(),
         userId,
-        `Nutrition report — ${formattedDate}`,
+        `Your Bodybank X Fitchef Nutrition report — ${formattedDate}`,
         bodyText,
         'nutrition_report'
       ]);
@@ -709,7 +709,7 @@ function createNutritionRouter(deps) {
       await run('INSERT INTO user_inbox (id, user_id, title, body, type, is_read) VALUES (?, ?, ?, ?, ?, FALSE)', [
         uuidv4(),
         uid,
-        'Weekly nutrition summary',
+        'Fitchef Nutrition weekly summary',
         `Avg ${weekly.report.avgCalories} kcal/day · ${weekly.report.avgProtein}g protein · score ${weekly.report.avgScore}/10 · energy diff ${weekly.report.avgEnergyDiff} kcal (${weekly.report.daysLogged} days).`,
         'nutrition_weekly'
       ]);
