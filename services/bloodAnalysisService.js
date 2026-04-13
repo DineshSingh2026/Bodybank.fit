@@ -210,8 +210,9 @@ Extract EVERY visible marker. Use standard clinical ranges if reference range is
     });
 
     const extractText = anthropicTextFromMessage(extractRes);
-    const extractedBloodData = parseAnthropicJson(extractText);
-    if (!extractedBloodData || !Array.isArray(extractedBloodData.panels)) {
+    const extractedBloodDataRaw = parseAnthropicJson(extractText);
+    const extractedBloodData = coerceExtractedForPdf(extractedBloodDataRaw);
+    if (!extractedBloodData || !Array.isArray(extractedBloodData.panels) || extractedBloodData.panels.length === 0) {
       throw new Error('Extraction did not return valid panels JSON');
     }
 
