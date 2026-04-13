@@ -3117,6 +3117,75 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .chart-wrap{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:16px;min-height:220px}
 .chart-wrap canvas{max-height:200px;width:100%!important}
 .chart-title{font-size:12px;color:var(--muted);margin-top:8px;text-align:center}
+.chart-wrap-nutrition-lux{
+  background:
+    radial-gradient(120% 90% at 10% 0%, rgba(101,198,255,0.14) 0%, rgba(14,16,20,0) 52%),
+    radial-gradient(120% 90% at 100% 100%, rgba(242,196,79,0.2) 0%, rgba(14,16,20,0) 58%),
+    linear-gradient(158deg, rgba(18,20,24,0.96) 0%, rgba(10,11,13,0.98) 54%, rgba(14,16,18,1) 100%);
+  border:1px solid rgba(200,164,78,0.35);
+  box-shadow:0 12px 38px rgba(0,0,0,0.42), inset 0 1px 0 rgba(255,255,255,0.05);
+}
+.chart-wrap-nutrition-lux .chart-title{color:#ddd3bd}
+.chart-wrap-nutrition-lux .chart-kpis{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:8px;
+  margin:2px 0 10px;
+}
+.chart-wrap-nutrition-lux .chart-kpi{
+  border:1px solid rgba(255,255,255,0.14);
+  border-radius:10px;
+  background:rgba(255,255,255,0.04);
+  padding:8px 8px;
+  text-align:center;
+}
+.chart-wrap-nutrition-lux .chart-kpi .lbl{
+  font-size:9px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:#b8b1a2;
+}
+.chart-wrap-nutrition-lux .chart-kpi .val{
+  margin-top:2px;
+  font-family:var(--bb-font-heading);
+  font-size:14px;
+  color:#f2eee4;
+  font-weight:700;
+}
+.chart-wrap-nutrition-lux .chart-kpi .trend{
+  margin-top:2px;
+  font-size:10px;
+  letter-spacing:.02em;
+  color:#9c9587;
+}
+.chart-wrap-nutrition-lux .chart-kpi .trend.up{color:#3dd68c}
+.chart-wrap-nutrition-lux .chart-kpi .trend.down{color:#ff7f7f}
+.chart-wrap-nutrition-lux.is-loading{
+  position:relative;
+  overflow:hidden;
+}
+.chart-wrap-nutrition-lux.is-loading::after{
+  content:'';
+  position:absolute;
+  top:0;
+  left:-140%;
+  width:65%;
+  height:100%;
+  background:linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.12) 45%, rgba(255,255,255,0) 100%);
+  animation:bbNutriLuxShimmer 1.3s ease-in-out infinite;
+}
+@keyframes bbNutriLuxShimmer{
+  0%{left:-140%}
+  100%{left:165%}
+}
+.chart-wrap-nutrition-lux .chart-foot{
+  margin-top:10px;
+  text-align:center;
+  font-size:11px;
+  letter-spacing:.04em;
+  color:var(--gold);
+  opacity:.95;
+}
 .progress-logs-list{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;overflow-x:auto}
 .progress-logs-list table{width:100%;min-width:320px;border-collapse:collapse;font-size:13px}
 .progress-logs-list th{text-align:left;padding:10px 12px;color:var(--gold);font-weight:600;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(200,164,78,0.06)}
@@ -5199,6 +5268,17 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <div class="chart-wrap"><canvas id="adminChartSessionLiftsDetail"></canvas><p class="chart-title">Session loads — bench / squat / deadlift (from My Workout)</p></div>
             <div class="chart-wrap"><canvas id="adminChartIntensity"></canvas><p class="chart-title">Session intensity (My Workout)</p></div>
             <div class="chart-wrap"><canvas id="adminChartEnergy"></canvas><p class="chart-title">Energy level (My Workout)</p></div>
+            <div class="chart-wrap chart-wrap-nutrition-lux" id="adminChartNutritionLuxuryWrap" style="display:none">
+              <div class="chart-kpis" id="adminChartNutritionLuxuryKpis">
+                <div class="chart-kpi"><div class="lbl">Avg kcal</div><div class="val" id="adminNutriKpiCal">—</div><div class="trend" id="adminNutriKpiCalTrend">vs prev week —</div></div>
+                <div class="chart-kpi"><div class="lbl">Avg protein</div><div class="val" id="adminNutriKpiPro">—</div><div class="trend" id="adminNutriKpiProTrend">vs prev week —</div></div>
+                <div class="chart-kpi"><div class="lbl">Avg carbs</div><div class="val" id="adminNutriKpiCarb">—</div><div class="trend" id="adminNutriKpiCarbTrend">vs prev week —</div></div>
+                <div class="chart-kpi"><div class="lbl">Avg score</div><div class="val" id="adminNutriKpiScore">—</div><div class="trend" id="adminNutriKpiScoreTrend">vs prev week —</div></div>
+              </div>
+              <canvas id="adminChartNutritionLuxury"></canvas>
+              <p class="chart-title">Fitchef Nutrition luxury trend — calories, protein, carbs, fat, score</p>
+              <p class="chart-foot">CoPowered by Fitchef</p>
+            </div>
           </div>
         </div>
       </div>
@@ -9829,6 +9909,186 @@ function drawAdminProgressCharts(data) {
     }
   }
 }
+async function drawAdminNutritionLuxuryChart(userId) {
+  var wrap = document.getElementById('adminChartNutritionLuxuryWrap');
+  var canvas = document.getElementById('adminChartNutritionLuxury');
+  if (!wrap || !canvas || !userId || typeof Chart === 'undefined') return;
+  wrap.classList.add('is-loading');
+  wrap.style.display = 'none';
+  if (adminProgressChartInstances.nutritionLuxury) {
+    try { adminProgressChartInstances.nutritionLuxury.destroy(); } catch (e) {}
+    adminProgressChartInstances.nutritionLuxury = null;
+  }
+  var rep = await apiCall('GET', '/api/nutrition/report/' + encodeURIComponent(userId) + '?date=' + encodeURIComponent(nutritionTodayYmd()));
+  if (!rep || rep.error || !Array.isArray(rep.days) || !rep.days.length) {
+    wrap.classList.remove('is-loading');
+    return;
+  }
+  var days = rep.days.slice(-14);
+  var labels = days.map(function (d) {
+    var s = String(d.stat_date || '').slice(0, 10);
+    var p = s.split('-');
+    return p.length === 3 ? (p[1] + '/' + p[2]) : s;
+  });
+  var cals = days.map(function (d) { return parseInt(d.total_calories, 10) || 0; });
+  var protein = days.map(function (d) { return parseInt(d.total_protein, 10) || 0; });
+  var carbs = days.map(function (d) { return parseInt(d.total_carbs, 10) || 0; });
+  var fat = days.map(function (d) { return parseInt(d.total_fat, 10) || 0; });
+  var score = days.map(function (d) { return Number(d.meal_quality_score) || 0; });
+  var avg = function (arr) { return arr.length ? (arr.reduce(function (a, b) { return a + b; }, 0) / arr.length) : 0; };
+  var kpiCal = document.getElementById('adminNutriKpiCal');
+  var kpiPro = document.getElementById('adminNutriKpiPro');
+  var kpiCarb = document.getElementById('adminNutriKpiCarb');
+  var kpiScore = document.getElementById('adminNutriKpiScore');
+  var kpiCalTrend = document.getElementById('adminNutriKpiCalTrend');
+  var kpiProTrend = document.getElementById('adminNutriKpiProTrend');
+  var kpiCarbTrend = document.getElementById('adminNutriKpiCarbTrend');
+  var kpiScoreTrend = document.getElementById('adminNutriKpiScoreTrend');
+  if (kpiCal) kpiCal.textContent = Math.round(avg(cals)) + ' kcal';
+  if (kpiPro) kpiPro.textContent = Math.round(avg(protein)) + ' g';
+  if (kpiCarb) kpiCarb.textContent = Math.round(avg(carbs)) + ' g';
+  if (kpiScore) kpiScore.textContent = (avg(score)).toFixed(1) + '/10';
+  function trendText(curr, prev, suffix, fixed) {
+    if (!Number.isFinite(curr) || !Number.isFinite(prev) || prev === 0) return { text: 'vs prev week —', cls: '' };
+    var delta = curr - prev;
+    if (Math.abs(delta) < 0.01) return { text: 'vs prev week \u2192 0' + (suffix || ''), cls: '' };
+    var dir = delta > 0 ? '\u2191' : '\u2193';
+    var val = fixed != null ? Math.abs(delta).toFixed(fixed) : Math.round(Math.abs(delta));
+    return { text: 'vs prev week ' + dir + ' ' + val + (suffix || ''), cls: delta > 0 ? 'up' : 'down' };
+  }
+  var curr7 = days.slice(-7);
+  var prev7 = days.slice(Math.max(0, days.length - 14), Math.max(0, days.length - 7));
+  var currCals = avg(curr7.map(function (d) { return parseInt(d.total_calories, 10) || 0; }));
+  var prevCals = avg(prev7.map(function (d) { return parseInt(d.total_calories, 10) || 0; }));
+  var currPro = avg(curr7.map(function (d) { return parseInt(d.total_protein, 10) || 0; }));
+  var prevPro = avg(prev7.map(function (d) { return parseInt(d.total_protein, 10) || 0; }));
+  var currCarb = avg(curr7.map(function (d) { return parseInt(d.total_carbs, 10) || 0; }));
+  var prevCarb = avg(prev7.map(function (d) { return parseInt(d.total_carbs, 10) || 0; }));
+  var currScore = avg(curr7.map(function (d) { return Number(d.meal_quality_score) || 0; }));
+  var prevScore = avg(prev7.map(function (d) { return Number(d.meal_quality_score) || 0; }));
+  var tCal = trendText(currCals, prevCals, ' kcal');
+  var tPro = trendText(currPro, prevPro, ' g');
+  var tCarb = trendText(currCarb, prevCarb, ' g');
+  var tScore = trendText(currScore, prevScore, '', 1);
+  if (kpiCalTrend) { kpiCalTrend.className = 'trend ' + tCal.cls; kpiCalTrend.textContent = tCal.text; }
+  if (kpiProTrend) { kpiProTrend.className = 'trend ' + tPro.cls; kpiProTrend.textContent = tPro.text; }
+  if (kpiCarbTrend) { kpiCarbTrend.className = 'trend ' + tCarb.cls; kpiCarbTrend.textContent = tCarb.text; }
+  if (kpiScoreTrend) { kpiScoreTrend.className = 'trend ' + tScore.cls; kpiScoreTrend.textContent = tScore.text; }
+
+  var ctx = canvas.getContext('2d');
+  var gradCal = ctx.createLinearGradient(0, 0, 0, 220);
+  gradCal.addColorStop(0, 'rgba(255,159,64,0.58)');
+  gradCal.addColorStop(1, 'rgba(255,159,64,0.08)');
+  var gradPro = ctx.createLinearGradient(0, 0, 0, 220);
+  gradPro.addColorStop(0, 'rgba(46,204,113,0.28)');
+  gradPro.addColorStop(1, 'rgba(46,204,113,0.03)');
+  var gradCarb = ctx.createLinearGradient(0, 0, 0, 220);
+  gradCarb.addColorStop(0, 'rgba(52,152,219,0.26)');
+  gradCarb.addColorStop(1, 'rgba(52,152,219,0.03)');
+  var gradFat = ctx.createLinearGradient(0, 0, 0, 220);
+  gradFat.addColorStop(0, 'rgba(241,196,15,0.24)');
+  gradFat.addColorStop(1, 'rgba(241,196,15,0.03)');
+  var gradScore = ctx.createLinearGradient(0, 0, 0, 220);
+  gradScore.addColorStop(0, 'rgba(155,89,182,0.22)');
+  gradScore.addColorStop(1, 'rgba(155,89,182,0.03)');
+
+  adminProgressChartInstances.nutritionLuxury = new Chart(ctx, {
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          type: 'bar',
+          label: 'Calories',
+          data: cals,
+          yAxisID: 'yCal',
+          backgroundColor: gradCal,
+          borderColor: 'rgba(255,159,64,0.95)',
+          borderWidth: 1.1,
+          borderRadius: 8,
+          maxBarThickness: 22
+        },
+        {
+          type: 'line',
+          label: 'Protein (g)',
+          data: protein,
+          yAxisID: 'yMacro',
+          borderColor: 'rgba(46,204,113,0.98)',
+          backgroundColor: gradPro,
+          borderWidth: 2.3,
+          pointRadius: 3.2,
+          pointHoverRadius: 4.2,
+          tension: 0.36,
+          fill: true
+        },
+        {
+          type: 'line',
+          label: 'Carbs (g)',
+          data: carbs,
+          yAxisID: 'yMacro',
+          borderColor: 'rgba(52,152,219,0.95)',
+          backgroundColor: gradCarb,
+          borderWidth: 2,
+          pointRadius: 2.8,
+          pointHoverRadius: 3.8,
+          tension: 0.36,
+          fill: true
+        },
+        {
+          type: 'line',
+          label: 'Fat (g)',
+          data: fat,
+          yAxisID: 'yMacro',
+          borderColor: 'rgba(241,196,15,0.95)',
+          backgroundColor: gradFat,
+          borderWidth: 2,
+          pointRadius: 2.8,
+          pointHoverRadius: 3.8,
+          tension: 0.36,
+          fill: true
+        },
+        {
+          type: 'line',
+          label: 'Meal score',
+          data: score,
+          yAxisID: 'yScore',
+          borderColor: 'rgba(155,89,182,0.98)',
+          backgroundColor: gradScore,
+          borderWidth: 2.1,
+          pointRadius: 3,
+          pointHoverRadius: 4,
+          tension: 0.36,
+          fill: true
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: true,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: {
+          labels: { color: '#e9e3d4', boxWidth: 10, usePointStyle: true, pointStyle: 'circle' }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(14,16,20,0.96)',
+          borderColor: 'rgba(200,164,78,0.4)',
+          borderWidth: 1,
+          titleColor: '#f2eee4',
+          bodyColor: '#d7d0c2',
+          padding: 10
+        }
+      },
+      scales: {
+        x: { ticks: { color: '#a6a09a' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+        yCal: { type: 'linear', position: 'left', beginAtZero: true, ticks: { color: '#ffb86b' }, grid: { color: 'rgba(255,255,255,0.08)' } },
+        yMacro: { type: 'linear', position: 'right', beginAtZero: true, ticks: { color: '#93ffd3' }, grid: { drawOnChartArea: false } },
+        yScore: { type: 'linear', position: 'right', min: 0, max: 10, ticks: { color: '#cb9ef2', stepSize: 2 }, grid: { drawOnChartArea: false } }
+      }
+    }
+  });
+  wrap.classList.remove('is-loading');
+  wrap.style.display = 'block';
+}
 window._adminCpSelectedUserId = null;
 async function getProgressReportLink() {
   var userId = window._adminCpSelectedUserId;
@@ -9932,6 +10192,7 @@ async function loadAdminUserProgressDetail(userId, userName) {
       var prevChartErr = document.getElementById('adminCpChartsError');
       if (prevChartErr) prevChartErr.remove();
       drawAdminProgressCharts(data);
+      await drawAdminNutritionLuxuryChart(userId);
     } catch (chartErr) {
       console.error('Admin progress charts error:', chartErr);
       var prevChartErr = document.getElementById('adminCpChartsError');
@@ -12578,7 +12839,9 @@ async function loadNutritionCheckinPanel() {
   if (ds && ds.proteinGoal != null) bbNutritionState.goals.pro = ds.proteinGoal;
   nutritionUpdateSummaryFromState();
   nutritionApplyEnergyRow(ds);
-  await nutritionRenderUserTrend(uid, ymd);
+  var trendWrap = document.getElementById('nutriTrendWrap');
+  if (trendWrap) trendWrap.style.display = 'none';
+  nutritionDestroyUserTrendChart();
   if (data.streak != null) {
     var sb = document.getElementById('nutritionStreakBar');
     var sc = document.getElementById('nutritionStreakCount');
@@ -12892,6 +13155,7 @@ function loadAdminBloodReports() {
           stLower === 'generating_pdf';
         var isFailed = stLower === 'failed';
         var isRunning = stLower === 'extracting' || stLower === 'analysing';
+        var isPendingOnly = stLower === 'pending';
         var canRetry =
           isRunning || isFailed || stLower === 'pending' || stLower === 'generating_pdf';
         var isSent = !!r.sentToUser;
@@ -12923,6 +13187,9 @@ function loadAdminBloodReports() {
           '<div style="flex:1;min-width:120px"><div style="font-weight:700">' + escapeHtml(r.userName || '—') + '</div>' +
           '<div class="form-hint" style="margin:2px 0 0">' + escapeHtml(r.userGoal || '—') + ' · ' + (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '') + '</div></div>' +
           (isReady ? '<div style="font-size:20px;font-weight:700;color:' + sc + '">' + escapeHtml(ar.overall_status || '—') + '</div>' : '<div class="form-hint">' + escapeHtml(String(r.status || '').replace(/_/g, ' ')) + '</div>') +
+          (isPendingOnly
+            ? '<span class="form-hint" style="background:rgba(200,164,78,0.14);color:var(--gold);padding:3px 8px;border-radius:99px;font-size:10px;border:1px solid rgba(200,164,78,0.35)">Waiting for admin action</span>'
+            : '') +
           (isSent ? '<span class="form-hint" style="background:rgba(61,214,140,0.12);color:#3dd68c;padding:3px 8px;border-radius:99px;font-size:10px">Sent</span>' : '') +
           '</div>' +
           (isReady && findings ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">' + findings + '</div>' : '') +
@@ -12942,7 +13209,7 @@ function loadAdminBloodReports() {
           (canRetry
             ? '<button type="button" class="form-hint" style="flex:1;min-width:100px;padding:8px;font-size:12px;border:1px solid rgba(230,192,95,0.45);background:rgba(230,192,95,0.1);color:var(--gold);border-radius:8px;cursor:pointer" onclick="adminBloodRetry(\'' +
               id +
-              '\', ' + (isRunning ? 'true' : 'false') + ')">' + (isRunning ? 'Force retry' : 'Retry analysis') + '</button>'
+              '\', ' + (isRunning ? 'true' : 'false') + ', ' + (isPendingOnly ? 'true' : 'false') + ')">' + (isRunning ? 'Force retry' : (isPendingOnly ? 'Process now' : 'Retry analysis')) + '</button>'
             : '') +
           '<button type="button" class="nav-login" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isProcessing || isFailed ? '0.45' : '1') + '" ' +
           (isProcessing ? 'disabled title="Report is still processing"' : '') +
@@ -12968,11 +13235,13 @@ function adminBloodSaveNotes(reportId) {
   });
 }
 
-function adminBloodRetry(reportId, force) {
+function adminBloodRetry(reportId, force, isPendingOnly) {
   if (!window.currentUser || !window.currentUser.token) return;
-  var msg = force
-    ? 'Force retry this report now? Use this only if the report looks stuck.'
-    : 'Re-run AI analysis on the saved lab file? This uses your Anthropic (Claude) API credits.';
+  var msg = isPendingOnly
+    ? 'Process this pending report now? Credits will be used only after you continue.'
+    : force
+      ? 'Force retry this report now? Use this only if the report looks stuck.'
+      : 'Re-run AI analysis on the saved lab file? This uses your Anthropic (Claude) API credits.';
   if (!confirm(msg)) return;
   apiCall('POST', '/api/blood/admin/retry/' + encodeURIComponent(reportId), { force: !!force }).then(function (d) {
     if (d && (d.error || d.success === false)) {

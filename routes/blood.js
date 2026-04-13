@@ -13,6 +13,7 @@ const {
 
 const MAX_B64_CHARS = 22 * 1024 * 1024;
 const MAX_BLOOD_FILE_BYTES = Math.floor(MAX_B64_CHARS * 3 / 4);
+const BLOOD_AUTO_PROCESS_ON_UPLOAD = String(process.env.BLOOD_AUTO_PROCESS_ON_UPLOAD || 'false').toLowerCase() === 'true';
 
 function mapReportRow(r) {
   if (!r) return null;
@@ -128,11 +129,20 @@ function createBloodRouter(deps) {
         ]
       );
 
-      triggerBloodAnalysis(db, reportId, b64, mime, userId).catch((err) =>
-        console.error('[blood] Analysis pipeline failed:', err && err.message)
-      );
+      if (BLOOD_AUTO_PROCESS_ON_UPLOAD) {
+        triggerBloodAnalysis(db, reportId, b64, mime, userId).catch((err) =>
+          console.error('[blood] Analysis pipeline failed:', err && err.message)
+        );
+      }
 
-      res.json({ success: true, reportId });
+      res.json({
+        success: true,
+        reportId,
+        status: 'pending',
+        message: BLOOD_AUTO_PROCESS_ON_UPLOAD
+          ? 'Report uploaded and analysis started.'
+          : 'Report uploaded. Analysis will start only when admin clicks Process now.'
+      });
     } catch (e) {
       console.error('[blood upload]', e.message);
       res.status(500).json({ success: false, error: e.message || 'Upload failed' });
