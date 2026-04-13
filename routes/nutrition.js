@@ -27,6 +27,28 @@ function ymdOrToday(body, query) {
   return todayYmdInTz(STREAK_TZ) || new Date().toISOString().slice(0, 10);
 }
 
+async function buildWeeklyNutritionSummary(db, userId, endYmd) {
+  const rows = await db.queryAll(
+    `SELECT stat_date, total_calories, total_protein, meal_quality_score, energy_difference
+     FROM nutrition_daily_stats
+     WHERE user_id = ? AND stat_date >= (?::date - INTERVAL '6 days') AND stat_date <= ?::date
+     ORDER BY stat_date ASC`,
+    [userId, endYmd, endYmd]
+  );
+  const list = rows || [];
+  const len = list.length;
+  const avgCal = len ? Math.round(list.reduce((s, r) => s + (parseInt(r.total_calories, 10) || 0), 0) / len) : 0;
+  const avgPro = len ? Math.round(list.reduce((s, r) => s + (parseInt(r.total_protein, 10) || 0), 0) / len) : 0;
+  const avgScore = len
+    ? (list.reduce((s, r) => s + (parseFloat(r.meal_quality_score) || 0), 0) / len).toFixed(1)
+    : '0.0';
+  const avgEn = len ? Math.round(list.reduce((s, r) => s + (parseInt(r.energy_difference, 10) || 0), 0) / len) : 0;
+  return {
+    rows: list,
+    report: { avgCalories: avgCal, avgProtein: avgPro, avgScore, avgEnergyDiff: avgEn, daysLogged: len }
+  };
+}
+
 async function alreadyNotifiedToday(db, userId, ymd) {
   const row = await db.queryOne(
     'SELECT 1 AS x FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date AND notified_at IS NOT NULL LIMIT 1',
@@ -563,6 +585,7 @@ function createNutritionRouter(deps) {
           'SELECT * FROM nutrition_daily_stats WHERE user_id = ? AND stat_date = ?::date',
           [uid, ymd]
         );
+        const weekly = await buildWeeklyNutritionSummary(db, uid, ymd);
         const name = [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email;
         const notified = (meals || []).some((m) => m.notified_at != null);
         clients.push({
@@ -572,6 +595,14 @@ function createNutritionRouter(deps) {
           userGoal: null,
           meals: meals || [],
           dailyStats: stats || null,
+          weekly: {
+            avgProtein: weekly.report.avgProtein,
+            daysLogged: weekly.report.daysLogged,
+            trend: weekly.rows.map((r) => ({
+              date: String(r.stat_date || '').slice(0, 10),
+              protein: parseInt(r.total_protein, 10) || 0
+            }))
+          },
           notified
         });
         totalMeals += (meals || []).length;
@@ -636,6 +667,43 @@ function createNutritionRouter(deps) {
     } catch (e) {
       console.error('[nutrition export]', e.message);
       res.status(500).send('Export failed');
+    }
+  });
+
+  router.post('/admin/share-weekly/:userId', adminOnly, rateLimiter(10, 60000), async (req, res) => {
+    try {
+      const uid = String(req.params.userId || '').trim();
+      if (!uid) return res.status(400).json({ error: 'Invalid userId' });
+      const ymd = ymdOrToday(req.body, req.query);
+      const userRow = await queryOne('SELECT id, email, first_name FROM users WHERE id = ?', [uid]);
+      if (!userRow) return res.status(404).json({ error: 'User not found' });
+      if (!userRow.email) return res.status(400).json({ error: 'User email missing' });
+
+      const weekly = await buildWeeklyNutritionSummary(db, uid, ymd);
+      if (!weekly.report.daysLogged) {
+        return res.status(400).json({ error: 'No nutrition data in the last 7 days for this user.' });
+      }
+
+      const emailed = await userEmail.emailNutritionWeeklySummary(userRow.email, userRow.first_name || 'there', weekly.report);
+      if (!emailed) {
+        if (!userEmail.isConfigured()) {
+          return res.status(503).json({ error: 'Email is not configured (SMTP).' });
+        }
+        return res.status(500).json({ error: 'Failed to send weekly nutrition report email.' });
+      }
+
+      await run('INSERT INTO user_inbox (id, user_id, title, body, type, is_read) VALUES (?, ?, ?, ?, ?, FALSE)', [
+        uuidv4(),
+        uid,
+        'Weekly nutrition summary',
+        `Avg ${weekly.report.avgCalories} kcal/day · ${weekly.report.avgProtein}g protein · score ${weekly.report.avgScore}/10 · energy diff ${weekly.report.avgEnergyDiff} kcal (${weekly.report.daysLogged} days).`,
+        'nutrition_weekly'
+      ]);
+
+      res.json({ ok: true });
+    } catch (e) {
+      console.error('[nutrition share-weekly]', e.message);
+      res.status(500).json({ error: e.message || 'share-weekly failed' });
     }
   });
 

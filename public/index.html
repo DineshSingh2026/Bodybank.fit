@@ -12045,6 +12045,12 @@ function loadAdminNutritionReport() {
         var energyHtml = energyDiff != null
           ? '<p class="form-hint" style="margin-bottom:10px"><strong>Energy (burn − intake):</strong> ' + (energyDiff >= 0 ? '+' : '') + energyDiff + ' kcal</p>'
           : '';
+        var weeklyAvgProtein = c.weekly && c.weekly.avgProtein != null ? Number(c.weekly.avgProtein) : null;
+        var weeklyDays = c.weekly && c.weekly.daysLogged != null ? Number(c.weekly.daysLogged) : 0;
+        var weeklyProteinHtml = weeklyAvgProtein != null
+          ? '<p class="form-hint" style="margin-bottom:10px"><strong>Avg protein this week:</strong> ' + weeklyAvgProtein + ' g/day' +
+            (weeklyDays > 0 ? ' · ' + weeklyDays + ' day(s)' : '') + '</p>'
+          : '';
         var uidEsc = String(c.userId || '').replace(/"/g, '&quot;');
         var usageRows = [];
         (c.meals || []).forEach(function (meal) {
@@ -12061,9 +12067,11 @@ function loadAdminNutritionReport() {
           '<div class="meta">' + escapeHtml(c.userEmail || '') + ' · Target ' + (sn && sn.calorieGoal != null ? sn.calorieGoal + ' kcal' : '—') + '</div></div>' +
           '<div class="admin-nutrition-score-ring" style="border-color:' + scoreColor + '">' +
           '<span style="font-weight:700;color:' + scoreColor + '">' + (score != null ? score.toFixed(1) : '—') + '</span><span style="font-size:8px;color:var(--muted)">score</span></div></div>' +
-          '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' + macroRow + energyHtml + usageHtml +
+          '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' + macroRow + energyHtml + weeklyProteinHtml + usageHtml +
           '<div class="admin-nutrition-actions">' +
           '<button type="button" class="btn" onclick="adminNutritionAnalyzeAll(\'' + uidEsc + '\')">Re-run AI</button>' +
+          '<button type="button" class="btn" onclick="adminNutritionDrawWeekChart(\'' + uidEsc + '\')">Protein trend</button>' +
+          '<button type="button" class="btn" onclick="adminNutritionShareWeekly(\'' + uidEsc + '\')">Share report</button>' +
           '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'both\')">Email + inbox</button>' +
           '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'email\')">Email only</button>' +
           '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'message\')">Inbox only</button>' +
@@ -12085,7 +12093,12 @@ function adminNutritionDrawWeekChart(userId, endDate) {
     if (wrap) wrap.style.display = 'none';
     return;
   }
-  fetch((typeof API !== 'undefined' ? API : '') + '/api/nutrition/report/' + encodeURIComponent(userId) + '?date=' + encodeURIComponent(endDate), {
+  var end = endDate;
+  if (!end) {
+    var dEl = document.getElementById('adminNutritionReportDate');
+    end = dEl && dEl.value ? dEl.value : nutritionTodayYmd();
+  }
+  fetch((typeof API !== 'undefined' ? API : '') + '/api/nutrition/report/' + encodeURIComponent(userId) + '?date=' + encodeURIComponent(end), {
     headers: { Authorization: 'Bearer ' + (window.currentUser && window.currentUser.token ? window.currentUser.token : '') }
   })
     .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, rep: j }; }); })
@@ -12110,10 +12123,22 @@ function adminNutritionDrawWeekChart(userId, endDate) {
         var p = s.split('-');
         return p.length === 3 ? p[1] + '/' + p[2] : s;
       });
-      var cals = days.map(function (d) { return parseInt(d.total_calories, 10) || 0; });
+      var proteins = days.map(function (d) { return parseInt(d.total_protein, 10) || 0; });
       adminNutritionWeekChartInst = new Chart(canvas.getContext('2d'), {
-        type: 'bar',
-        data: { labels: labels, datasets: [{ label: 'kcal', data: cals, backgroundColor: 'rgba(200,164,78,0.45)', borderColor: 'rgba(200,164,78,0.9)', borderWidth: 1 }] },
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Protein (g)',
+            data: proteins,
+            backgroundColor: 'rgba(46,204,113,0.2)',
+            borderColor: 'rgba(46,204,113,0.95)',
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointRadius: 3
+          }]
+        },
         options: {
           responsive: true,
           maintainAspectRatio: false,
@@ -12128,6 +12153,18 @@ function adminNutritionDrawWeekChart(userId, endDate) {
     .catch(function () {
       if (wrap) wrap.style.display = 'none';
     });
+}
+
+async function adminNutritionShareWeekly(userId) {
+  var dEl = document.getElementById('adminNutritionReportDate');
+  var date = dEl && dEl.value ? dEl.value : nutritionTodayYmd();
+  var res = await apiCall('POST', '/api/nutrition/admin/share-weekly/' + encodeURIComponent(userId), { date: date });
+  if (res && res.error) {
+    if (typeof showPopup === 'function') showPopup('Share report failed', res.error, '', 'OK', null, 'error');
+    else alert(res.error);
+    return;
+  }
+  nutritionShowToast('Weekly report shared to client', 'success');
 }
 
 async function adminNutritionAnalyzeAll(userId) {
