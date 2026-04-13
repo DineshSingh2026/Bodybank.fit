@@ -2094,6 +2094,13 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 
 /* AI Assist — Quick Prompt Chips */
 .ai-prompt-wrap{flex-shrink:0;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.12)}
+.ai-prompt-topbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.ai-prompt-topbar-title{font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--muted)}
+.ai-prompt-collapse-btn{width:28px;height:28px;border:1px solid rgba(255,255,255,0.16);border-radius:8px;background:transparent;color:var(--muted);font-size:16px;line-height:1;cursor:pointer}
+.ai-prompt-collapse-btn:hover{color:var(--cream);border-color:rgba(200,164,78,0.5);background:rgba(200,164,78,0.1)}
+.ai-prompt-open-row{padding:8px 12px;border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.08)}
+.ai-prompt-open-btn{width:auto;padding:7px 12px;border:1px solid rgba(200,164,78,0.35);border-radius:18px;background:transparent;color:var(--gold);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;cursor:pointer}
+.ai-prompt-open-btn:hover{background:rgba(200,164,78,0.12)}
 .ai-prompt-tabs{display:flex;border-bottom:1px solid rgba(255,255,255,0.06)}
 .ai-prompt-tab{flex:1;padding:8px 4px;border:none;background:transparent;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:600;letter-spacing:0.03em;cursor:pointer;transition:color .18s;border-bottom:2px solid transparent;margin-bottom:-1px;text-transform:uppercase}
 .ai-prompt-tab:hover{color:var(--cream)}
@@ -5348,6 +5355,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 
       <!-- Quick Prompt Chips -->
       <div class="ai-prompt-wrap" id="aiPromptWrap">
+        <div class="ai-prompt-topbar">
+          <span class="ai-prompt-topbar-title">Quick prefix fields</span>
+          <button type="button" class="ai-prompt-collapse-btn" onclick="setAiPromptCollapsed(true)" aria-label="Close prefix fields" title="Close">×</button>
+        </div>
         <div class="ai-prompt-tabs" id="aiPromptTabs">
           <button class="ai-prompt-tab active" data-tab="reports" onclick="switchAiTab('reports')">Reports</button>
           <button class="ai-prompt-tab" data-tab="programs" onclick="switchAiTab('programs')">Programs</button>
@@ -5422,6 +5433,9 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         </div>
       </div>
       <!-- End Quick Prompt Chips -->
+      <div class="ai-prompt-open-row" id="aiPromptOpenRow" style="display:none">
+        <button type="button" class="ai-prompt-open-btn" onclick="setAiPromptCollapsed(false)">Open prefix fields</button>
+      </div>
 
       <div class="admin-ai-assist-messages" id="adminAiAssistMessages"></div>
       <div class="admin-ai-assist-input-wrap">
@@ -6966,6 +6980,7 @@ function bbMaybeOpenCheckinDailyAfterLoad() {
 const SESSION_KEY = 'bodybank_session';
 const ADMIN_AI_ASSIST_HISTORY_KEY_PREFIX = 'bodybank_admin_ai_hist_v1_';
 const ADMIN_AI_ASSIST_HISTORY_MAX = 100;
+const ADMIN_AI_PROMPT_COLLAPSE_KEY = 'bodybank_admin_ai_prompt_collapsed_v1';
 const RESET_SUCCESS_KEY = 'bodybank_reset_success';
 const NOTIFY_CLEARED_KEY = 'bodybank_notify_cleared';
 const NOTIFY_BROWSER_SENT_KEY = 'bodybank_notify_browser_sent';
@@ -8760,6 +8775,7 @@ function toggleAdminAiAssistPanel() {
   if (isOpen) {
     setAiAssistReportMonthIfEmpty();
     populateAiAssistReportUsers();
+    setAiPromptCollapsed(getAiPromptCollapsed());
     setTimeout(function() {
       var input = document.getElementById('adminAiAssistInput');
       if (input) input.focus();
@@ -8776,6 +8792,19 @@ function closeAdminAiAssistPanel() {
   if (topBtn) topBtn.classList.remove('admin-ai-assist-top-btn-active');
   var fabWrap = document.getElementById('adminAiAssistFabWrap');
   if (fabWrap) fabWrap.style.display = '';
+}
+
+function setAiPromptCollapsed(collapsed) {
+  var wrap = document.getElementById('aiPromptWrap');
+  var openRow = document.getElementById('aiPromptOpenRow');
+  var isCollapsed = !!collapsed;
+  if (wrap) wrap.style.display = isCollapsed ? 'none' : '';
+  if (openRow) openRow.style.display = isCollapsed ? '' : 'none';
+  try { localStorage.setItem(ADMIN_AI_PROMPT_COLLAPSE_KEY, isCollapsed ? '1' : '0'); } catch (e) {}
+}
+
+function getAiPromptCollapsed() {
+  try { return localStorage.getItem(ADMIN_AI_PROMPT_COLLAPSE_KEY) === '1'; } catch (e) { return false; }
 }
 
 // ── Quick Prompt Chips ────────────────────────────────────────────────────────
@@ -8861,8 +8890,7 @@ function switchAiTab(tab) {
 }
 
 function hideAiPromptWrap() {
-  var welcome = document.getElementById('adminAiAssistWelcome');
-  if (welcome) welcome.style.display = 'none';
+  setAiPromptCollapsed(true);
 }
 
 (function() {
