@@ -151,10 +151,17 @@ function generateHealthReportPdfPdfKit(payload) {
 }
 
 async function generateHealthReportPdfWithFallback(payload) {
+  const allowFallback = String(process.env.ALLOW_LEGACY_PDFKIT_FALLBACK || '').trim().toLowerCase() === 'true';
   try {
     return await generateHealthReportPdf(payload);
   } catch (err) {
-    console.warn('[pdfService] ReportLab PDF failed; using Node PDFKit fallback:', err && err.message);
+    if (!allowFallback) {
+      const msg =
+        'Strict template PDF generation failed. Install/verify Python + ReportLab on server to preserve the standard report design. ' +
+        `Original error: ${(err && err.message) || err}`;
+      throw new Error(msg);
+    }
+    console.warn('[pdfService] ReportLab PDF failed; using legacy Node PDFKit fallback:', err && err.message);
     return generateHealthReportPdfPdfKit(payload);
   }
 }
