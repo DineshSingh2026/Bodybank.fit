@@ -9,6 +9,8 @@ const {
   computeMealScore,
   callClaudeNutrition,
   normalizeAiResult,
+  classifyMealConfidence,
+  summarizeDailyConfidence,
   recomputeDailyStats,
   countMealsForDay,
   nutritionLoggingStreak,
@@ -170,6 +172,12 @@ function createNutritionRouter(deps) {
       });
 
       const mealScore = computeMealScore(aiResult);
+      const mealConfidence = classifyMealConfidence({
+        aiResult,
+        hasImage: !!img,
+        hasManualNote: !!note,
+        source: 'ai'
+      });
       const id = uuidv4();
 
       const photoStore = img ? img.slice(0, MAX_B64_CHARS) : null;
@@ -205,6 +213,25 @@ function createNutritionRouter(deps) {
       const dailyStats = await recomputeDailyStats(db, userId, ymd);
       const nMeals = await countMealsForDay(db, userId, ymd);
       const streak = await nutritionLoggingStreak(db, userId);
+      const dailyRows = await queryAll(
+        `SELECT photo_data, manual_note, ai_result
+         FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date`,
+        [userId, ymd]
+      );
+      const dailyConfidence = summarizeDailyConfidence(
+        (dailyRows || []).map((r) => {
+          let ar = r.ai_result;
+          if (typeof ar === 'string') {
+            try { ar = JSON.parse(ar); } catch (_) { ar = null; }
+          }
+          return classifyMealConfidence({
+            aiResult: ar || {},
+            hasImage: !!(r.photo_data && String(r.photo_data).trim()),
+            hasManualNote: !!(r.manual_note && String(r.manual_note).trim()),
+            source: 'ai'
+          });
+        })
+      );
 
       let notifyResult = null;
       const forceNotify = triggerNotify === true || triggerNotify === 'true';
@@ -218,6 +245,8 @@ function createNutritionRouter(deps) {
       res.json({
         aiResult,
         mealScore,
+        mealConfidence,
+        dailyConfidence,
         date: ymd,
         dailyStats,
         mealsLoggedToday: nMeals,
@@ -261,6 +290,12 @@ function createNutritionRouter(deps) {
       const ps = String(portionSize || 'medium').toLowerCase();
       const portion = ['small', 'medium', 'large'].includes(ps) ? ps : 'medium';
       const note = String(manualNote || '').trim();
+      const mealConfidence = classifyMealConfidence({
+        aiResult,
+        hasImage: false,
+        hasManualNote: !!note,
+        source: 'manual'
+      });
 
       await run(
         `INSERT INTO nutrition_meal_logs (
@@ -279,7 +314,26 @@ function createNutritionRouter(deps) {
       const dailyStats = await recomputeDailyStats(db, userId, ymd);
       const nMeals = await countMealsForDay(db, userId, ymd);
       const streak = await nutritionLoggingStreak(db, userId);
-      res.json({ aiResult, mealScore, date: ymd, dailyStats, mealsLoggedToday: nMeals, streak });
+      const dailyRows = await queryAll(
+        `SELECT photo_data, manual_note, ai_result
+         FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date`,
+        [userId, ymd]
+      );
+      const dailyConfidence = summarizeDailyConfidence(
+        (dailyRows || []).map((r) => {
+          let ar = r.ai_result;
+          if (typeof ar === 'string') {
+            try { ar = JSON.parse(ar); } catch (_) { ar = null; }
+          }
+          return classifyMealConfidence({
+            aiResult: ar || {},
+            hasImage: !!(r.photo_data && String(r.photo_data).trim()),
+            hasManualNote: !!(r.manual_note && String(r.manual_note).trim()),
+            source: r.photo_data ? 'ai' : 'manual'
+          });
+        })
+      );
+      res.json({ aiResult, mealScore, mealConfidence, dailyConfidence, date: ymd, dailyStats, mealsLoggedToday: nMeals, streak });
     } catch (e) {
       console.error('[nutrition log]', e.message);
       res.status(500).json({ error: e.message || 'Save failed' });
@@ -306,7 +360,21 @@ function createNutritionRouter(deps) {
         [uid, d]
       );
       const streak = uid === req.user.id ? await nutritionLoggingStreak(db, uid) : null;
-      res.json({ date: d, userId: uid, meals, dailyStats: stats || null, streak });
+      const mealsWithConfidence = (meals || []).map((m) => {
+        let ar = m.ai_result;
+        if (typeof ar === 'string') {
+          try { ar = JSON.parse(ar); } catch (_) { ar = null; }
+        }
+        const mc = classifyMealConfidence({
+          aiResult: ar || {},
+          hasImage: !!(m.photo_data && String(m.photo_data).trim()),
+          hasManualNote: !!(m.manual_note && String(m.manual_note).trim()),
+          source: m.photo_data ? 'ai' : 'manual'
+        });
+        return { ...m, meal_confidence: mc };
+      });
+      const dailyConfidence = summarizeDailyConfidence(mealsWithConfidence.map((m) => m.meal_confidence));
+      res.json({ date: d, userId: uid, meals: mealsWithConfidence, dailyConfidence, dailyStats: stats || null, streak });
     } catch (e) {
       console.error('[nutrition get log]', e.message);
       res.status(500).json({ error: e.message });

@@ -74,6 +74,69 @@ function normalizeAiResult(raw) {
   };
 }
 
+/**
+ * Confidence policy for nutrition AI output.
+ * Returns a stable UI-safe label users can understand without reading model internals.
+ */
+function classifyMealConfidence({ aiResult, hasImage, hasManualNote, source }) {
+  const src = String(source || 'ai').toLowerCase();
+  if (src === 'manual') {
+    return {
+      level: 'high',
+      label: 'High confidence (manual entry)',
+      score: 5
+    };
+  }
+
+  const conf = String((aiResult && aiResult.confidence) || '').toLowerCase();
+  let score = conf === 'high' ? 4 : conf === 'medium' ? 3 : conf === 'low' ? 1 : 2;
+  if (hasImage) score += 1;
+  if (hasManualNote) score += 1;
+
+  const calories = Number(aiResult && aiResult.calories);
+  const protein = Number(aiResult && aiResult.protein);
+  const carbs = Number(aiResult && aiResult.carbs);
+  const fat = Number(aiResult && aiResult.fat);
+  if (![calories, protein, carbs, fat].every((n) => Number.isFinite(n))) score -= 1;
+
+  score = Math.max(0, Math.min(5, score));
+  let level = 'low';
+  let label = 'Low confidence';
+  if (score >= 4) {
+    level = 'high';
+    label = 'High confidence';
+  } else if (score >= 2) {
+    level = 'medium';
+    label = 'Moderate confidence';
+  }
+  return { level, label, score };
+}
+
+function summarizeDailyConfidence(items) {
+  const list = Array.isArray(items) ? items : [];
+  if (!list.length) {
+    return { level: 'low', label: 'Low confidence', score: 0, meals: 0 };
+  }
+  const sum = list.reduce((s, it) => s + (Number(it && it.score) || 0), 0);
+  const avg = sum / list.length;
+  let level = 'low';
+  let label = 'Low confidence';
+  if (avg >= 4) {
+    level = 'high';
+    label = 'High confidence';
+  } else if (avg >= 2) {
+    level = 'medium';
+    label = 'Moderate confidence';
+  }
+  return {
+    level,
+    label,
+    score: Math.round(avg * 10) / 10,
+    meals: list.length,
+    lowMeals: list.filter((x) => x && x.level === 'low').length
+  };
+}
+
 function buildSystemPrompt(portionSize, manualNote) {
   const ps = portionSize || 'medium';
   const note = (manualNote || '').replace(/\s+/g, ' ').trim().slice(0, 800);
@@ -470,6 +533,8 @@ module.exports = {
   countMealsForDay,
   nutritionLoggingStreak,
   computeNutritionSummaryForUserWindow,
+  classifyMealConfidence,
+  summarizeDailyConfidence,
   todayYmdInTz,
   STREAK_TZ,
   DEFAULT_CAL_GOAL,

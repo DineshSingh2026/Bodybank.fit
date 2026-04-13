@@ -11503,6 +11503,7 @@ var bbNutritionState = {
   mimes: {},
   portions: { breakfast: 'medium', lunch: 'medium', snack: 'medium', dinner: 'medium' },
   results: {},
+  confidence: {},
   scores: {},
   goals: { cal: 2000, pro: 150 }
 };
@@ -11523,6 +11524,36 @@ function bbParseNutritionAi(ar) {
     try { ar = JSON.parse(ar); } catch (e) { return null; }
   }
   return typeof ar === 'object' ? ar : null;
+}
+
+function nutritionClassifyConfidence(aiResult, hasPhoto, hasNote, source) {
+  var src = String(source || 'ai').toLowerCase();
+  if (src === 'manual') {
+    return { level: 'high', label: 'High confidence (manual entry)', score: 5 };
+  }
+  var conf = String((aiResult && aiResult.confidence) || '').toLowerCase();
+  var score = conf === 'high' ? 4 : conf === 'medium' ? 3 : conf === 'low' ? 1 : 2;
+  if (hasPhoto) score += 1;
+  if (hasNote) score += 1;
+  var nums = [aiResult && aiResult.calories, aiResult && aiResult.protein, aiResult && aiResult.carbs, aiResult && aiResult.fat];
+  var allFinite = nums.every(function (n) { return Number.isFinite(Number(n)); });
+  if (!allFinite) score -= 1;
+  score = Math.max(0, Math.min(5, score));
+  if (score >= 4) return { level: 'high', label: 'High confidence', score: score };
+  if (score >= 2) return { level: 'medium', label: 'Moderate confidence', score: score };
+  return { level: 'low', label: 'Low confidence', score: score };
+}
+
+function nutritionSummarizeDailyConfidence() {
+  var vals = Object.keys(bbNutritionState.confidence || {})
+    .map(function (k) { return bbNutritionState.confidence[k]; })
+    .filter(Boolean);
+  if (!vals.length) return null;
+  var sum = vals.reduce(function (s, v) { return s + (Number(v.score) || 0); }, 0);
+  var avg = sum / vals.length;
+  if (avg >= 4) return { level: 'high', label: 'High confidence', score: Math.round(avg * 10) / 10, meals: vals.length };
+  if (avg >= 2) return { level: 'medium', label: 'Moderate confidence', score: Math.round(avg * 10) / 10, meals: vals.length };
+  return { level: 'low', label: 'Low confidence', score: Math.round(avg * 10) / 10, meals: vals.length };
 }
 
 function bbNutritionDailyStatsNorm(stats) {
@@ -11688,9 +11719,15 @@ function nutritionSetPortion(mt, size) {
   });
 }
 
-function nutritionRenderMealResult(mt, result, score) {
+function nutritionRenderMealResult(mt, result, score, mealConfidence) {
   var el = document.getElementById('result-' + mt);
   if (!el || !result) return;
+  var confMeta = mealConfidence || nutritionClassifyConfidence(
+    result,
+    !!bbNutritionState.photos[mt],
+    !!(document.getElementById('note-' + mt) && document.getElementById('note-' + mt).value.trim()),
+    bbNutritionState.photos[mt] ? 'ai' : 'manual'
+  );
   var conf = (result.confidence || '').toLowerCase();
   var confColor = conf === 'high' ? 'var(--bb-green)' : conf === 'medium' ? 'var(--bb-orange)' : 'var(--bb-red)';
   el.style.display = 'block';
@@ -11702,6 +11739,7 @@ function nutritionRenderMealResult(mt, result, score) {
     '<span class="mpill" style="background:rgba(200,164,78,0.15);color:var(--bb-gold)">' + escapeHtml(String(result.carbs != null ? result.carbs : '—')) + 'g carb</span>' +
     '<span class="mpill" style="background:rgba(192,57,43,0.12);color:var(--bb-red)">' + escapeHtml(String(result.fat != null ? result.fat : '—')) + 'g fat</span></div>' +
     '<div class="score-row">Score: <strong style="color:var(--bb-green)">' + escapeHtml(String(score)) + '/10</strong> · <span style="color:' + confColor + '">' + escapeHtml(conf || '—') + '</span></div>' +
+    '<div class="score-row">Trust: <strong style="color:' + (confMeta.level === 'high' ? 'var(--bb-green)' : confMeta.level === 'medium' ? 'var(--bb-orange)' : 'var(--bb-red)') + '">' + escapeHtml(confMeta.label) + '</strong></div>' +
     (result.tips ? '<div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.45">' + escapeHtml(result.tips) + '</div>' : '');
 }
 
@@ -11730,6 +11768,25 @@ function nutritionUpdateSummaryFromState() {
   if (el = document.getElementById('nutriPbPro')) el.style.width = proPct + '%';
   if (el = document.getElementById('nutriPpCal')) el.textContent = calPct + '%';
   if (el = document.getElementById('nutriPpPro')) el.textContent = proPct + '%';
+  var confMeta = nutritionSummarizeDailyConfidence();
+  var sumWrap = document.getElementById('dailyNutritionSummary');
+  if (sumWrap) {
+    var confRow = document.getElementById('nutriConfidenceRow');
+    if (!confRow) {
+      confRow = document.createElement('div');
+      confRow.id = 'nutriConfidenceRow';
+      confRow.style.marginTop = '8px';
+      confRow.style.fontSize = '11px';
+      confRow.style.color = 'var(--muted)';
+      sumWrap.appendChild(confRow);
+    }
+    if (confMeta) {
+      var c = confMeta.level === 'high' ? 'var(--bb-green)' : confMeta.level === 'medium' ? 'var(--bb-orange)' : 'var(--bb-red)';
+      confRow.innerHTML = 'Output confidence: <strong style="color:' + c + '">' + escapeHtml(confMeta.label) + '</strong> (' + confMeta.meals + ' meals)';
+    } else {
+      confRow.textContent = '';
+    }
+  }
 }
 
 function nutritionApplyEnergyRow(statsNorm) {
@@ -11784,22 +11841,24 @@ async function nutritionAnalyzeSingle(mt, opts) {
     return;
   }
   bbNutritionState.results[mt] = data.aiResult;
+  var mc = data.mealConfidence || nutritionClassifyConfidence(data.aiResult, !!photo, !!note, photo ? 'ai' : 'manual');
+  bbNutritionState.confidence[mt] = mc;
   bbNutritionState.scores[mt] = data.mealScore;
   var ds = bbNutritionDailyStatsNorm(data.dailyStats);
   if (ds && ds.calorieGoal != null) bbNutritionState.goals.cal = ds.calorieGoal;
   if (ds && ds.proteinGoal != null) bbNutritionState.goals.pro = ds.proteinGoal;
-  nutritionRenderMealResult(mt, data.aiResult, data.mealScore);
+  nutritionRenderMealResult(mt, data.aiResult, data.mealScore, mc);
   nutritionUpdateSummaryFromState();
   nutritionApplyEnergyRow(ds);
   var conf = (data.aiResult && data.aiResult.confidence || '').toLowerCase();
-  nutritionSetBadge(mt, conf ? ('✓ ' + conf) : 'Logged', 'analyzed');
+  nutritionSetBadge(mt, mc && mc.label ? ('✓ ' + mc.label) : (conf ? ('✓ ' + conf) : 'Logged'), 'analyzed');
   if (slot) {
     slot.classList.remove('uploading');
     slot.classList.add('analyzed');
-    if (conf === 'low') slot.classList.add('low-conf');
+    if (mc && mc.level === 'low') slot.classList.add('low-conf');
     else slot.classList.remove('low-conf');
   }
-  if (conf === 'low') nutritionShowToast('Low confidence — consider a clearer photo', 'warn');
+  if ((mc && mc.level === 'low') || conf === 'low') nutritionShowToast('Low confidence — consider a clearer photo', 'warn');
   else nutritionShowToast('Saved: ' + mt, 'success');
   if (data.streak != null) {
     var sb = document.getElementById('nutritionStreakBar');
@@ -11849,6 +11908,7 @@ async function loadNutritionCheckinPanel() {
   bbNutritionState.photos = {};
   bbNutritionState.mimes = {};
   bbNutritionState.results = {};
+  bbNutritionState.confidence = {};
   bbNutritionState.scores = {};
   bbNutritionState.portions = { breakfast: 'medium', lunch: 'medium', snack: 'medium', dinner: 'medium' };
   bbNutritionMeals.forEach(function (mt) {
@@ -11868,13 +11928,17 @@ async function loadNutritionCheckinPanel() {
     var ar = bbParseNutritionAi(m.ai_result);
     if (ar) {
       bbNutritionState.results[mt] = ar;
+      var hasPhoto = !!(m.photo_data && String(m.photo_data).trim());
+      var hasNote = !!(m.manual_note && String(m.manual_note).trim());
+      var mc = m.meal_confidence || nutritionClassifyConfidence(ar, hasPhoto, hasNote, hasPhoto ? 'ai' : 'manual');
+      bbNutritionState.confidence[mt] = mc;
       if (m.meal_score != null) bbNutritionState.scores[mt] = Number(m.meal_score);
-      nutritionRenderMealResult(mt, ar, m.meal_score);
-      nutritionSetBadge(mt, 'Logged', 'analyzed');
+      nutritionRenderMealResult(mt, ar, m.meal_score, mc);
+      nutritionSetBadge(mt, mc && mc.label ? ('✓ ' + mc.label) : 'Logged', 'analyzed');
       var slot = document.getElementById('mslot-' + mt);
       if (slot) {
         slot.classList.add('analyzed');
-        if ((ar.confidence || '').toLowerCase() === 'low') slot.classList.add('low-conf');
+        if ((mc && mc.level === 'low') || (ar.confidence || '').toLowerCase() === 'low') slot.classList.add('low-conf');
       }
     }
     if (m.manual_note && document.getElementById('note-' + mt)) {
