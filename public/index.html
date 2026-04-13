@@ -12684,39 +12684,50 @@ async function drawNutritionShareCard(mt) {
   ctx.lineTo(W - 74, footerY);
   ctx.stroke();
 
-  var brandY = footerY + 132;
   var bodybankLogo = await nutritionShareLoadImage('/img/bodybank-logo-short.png');
   var fitchefLogo = await nutritionShareLoadImage('/img/Fitchef logo.png');
   if (bodybankLogo && fitchefLogo) {
-    // Make brand lockup clearly visible and centered.
-    var bbH = 112;
+    var bbH = 100;
     var bbW = Math.round((bodybankLogo.naturalWidth / Math.max(1, bodybankLogo.naturalHeight)) * bbH);
-    var fcH = 112;
+    var fcH = 100;
     var fcW = Math.round((fitchefLogo.naturalWidth / Math.max(1, fitchefLogo.naturalHeight)) * fcH);
-    var xMarkW = 74;
-    var totalW = bbW + 36 + xMarkW + 36 + fcW;
+    ctx.font = "800 72px 'Outfit','Segoe UI',sans-serif";
+    var xW = Math.ceil(ctx.measureText('X').width);
+    var gap = 40;
+    var totalW = bbW + gap + xW + gap + fcW;
     var startX = Math.round((W - totalW) / 2);
-
-    // Soft backdrop so logos stay readable over dark textures.
-    ctx.fillStyle = 'rgba(255,255,255,0.03)';
-    nutritionShareRoundRectPath(ctx, startX - 20, brandY - fcH + 2, totalW + 40, fcH + 22, 26);
+    var rowMidY = footerY + 108;
+    var rowH = Math.max(bbH, fcH, 72);
+    var padX = 32;
+    var padY = 24;
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    nutritionShareRoundRectPath(
+      ctx,
+      startX - padX,
+      Math.round(rowMidY - rowH / 2 - padY),
+      totalW + 2 * padX,
+      rowH + 2 * padY,
+      28
+    );
     ctx.fill();
-
-    ctx.drawImage(bodybankLogo, startX, brandY - bbH + 12, bbW, bbH);
+    var bbTop = Math.round(rowMidY - bbH / 2);
+    var fcTop = Math.round(rowMidY - fcH / 2);
+    ctx.drawImage(bodybankLogo, startX, bbTop, bbW, bbH);
     ctx.fillStyle = '#d7c9a0';
-    ctx.font = "800 74px 'Outfit','Segoe UI',sans-serif";
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('X', startX + bbW + 36 + Math.round(xMarkW / 2), brandY - 28);
+    ctx.fillText('X', startX + bbW + gap + xW / 2, rowMidY);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
-    ctx.drawImage(fitchefLogo, startX + bbW + 36 + xMarkW + 36, brandY - fcH + 12, fcW, fcH);
+    ctx.drawImage(fitchefLogo, startX + bbW + gap + xW + gap, fcTop, fcW, fcH);
   } else {
     ctx.fillStyle = '#d9c598';
     ctx.font = "700 58px 'Outfit','Segoe UI',sans-serif";
     ctx.textAlign = 'center';
-    ctx.fillText('Bodybank X Fitchef', W / 2, brandY);
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Bodybank X Fitchef', W / 2, footerY + 108);
     ctx.textAlign = 'left';
+    ctx.textBaseline = 'alphabetic';
   }
 
   _nutritionShareCardBlob = null;
