@@ -12,6 +12,15 @@ const MAX_BLOOD_FILE_BYTES = Math.floor(MAX_B64_CHARS * 3 / 4);
 function mapReportRow(r) {
   if (!r) return null;
   const id = r.id;
+  const parseJson = (val) => {
+    if (!val) return null;
+    if (typeof val === 'object') return val;
+    try {
+      return JSON.parse(val);
+    } catch (_) {
+      return null;
+    }
+  };
   let aiReport = r.ai_report;
   if (typeof aiReport === 'string') {
     try {
@@ -34,7 +43,10 @@ function mapReportRow(r) {
     adminNotes: r.admin_notes,
     pdfUrl: r.pdf_path,
     aiReport,
-    analysisLastError: r.analysis_last_error || ''
+    analysisLastError: r.analysis_last_error || '',
+    extractionAiUsage: parseJson(r.extraction_ai_usage),
+    analysisAiUsage: parseJson(r.analysis_ai_usage),
+    totalAiUsage: parseJson(r.total_ai_usage)
   };
 }
 
@@ -289,7 +301,10 @@ function createBloodRouter(deps) {
       const userId = report.user_id;
 
       await run(
-        `UPDATE blood_analysis_reports SET status = 'pending', pdf_path = NULL, extracted_blood_data = NULL, nutrition_snapshot = NULL, ai_report = NULL, analysis_last_error = NULL WHERE id = ?`,
+        `UPDATE blood_analysis_reports
+         SET status = 'pending', pdf_path = NULL, extracted_blood_data = NULL, nutrition_snapshot = NULL, ai_report = NULL,
+             extraction_ai_usage = NULL, analysis_ai_usage = NULL, total_ai_usage = NULL, analysis_last_error = NULL
+         WHERE id = ?`,
         [reportId]
       );
 

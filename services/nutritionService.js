@@ -140,7 +140,7 @@ function summarizeDailyConfidence(items) {
 function buildSystemPrompt(portionSize, manualNote) {
   const ps = portionSize || 'medium';
   const note = (manualNote || '').replace(/\s+/g, ' ').trim().slice(0, 800);
-  return `You are a professional sports nutritionist and food recognition AI with expertise in Indian, Asian, and international cuisines. Analyze the meal photo with maximum accuracy.
+  return `You are a nutrition macro estimator. Keep output compact and numeric-first.
 
 ACCURACY RULES:
 - If the portion appears ${ps}, adjust calorie estimates accordingly: small=-25%, medium=baseline, large=+35%
@@ -148,12 +148,13 @@ ACCURACY RULES:
 - For mixed dishes (thali, biryani, dal-rice), estimate each component separately then sum
 - Always provide realistic ranges; use the midpoint as your estimate
 - Sodium estimates for Indian food: add 200-400mg for home cooking, 400-800mg for restaurant
+- IMPORTANT: Keep text very short to reduce token usage. No paragraphs.
 
 Return ONLY valid JSON, no markdown, no explanation:
 {
-  "dish": "exact dish name",
-  "description": "brief description including cooking method",
-  "serving": "estimated serving size e.g. 1 plate ~380g",
+  "dish": "short dish name",
+  "description": "",
+  "serving": "short serving text",
   "weight": 380,
   "calories": 520,
   "protein": 28,
@@ -162,7 +163,7 @@ Return ONLY valid JSON, no markdown, no explanation:
   "fiber": 6,
   "sodium": 680,
   "confidence": "high",
-  "tips": "one specific fitness tip about this meal"
+  "tips": ""
 }
 All numeric values must be integers. confidence must be exactly: high, medium, or low.`;
 }
@@ -198,6 +199,25 @@ function formatAnthropicApiError(status, data) {
   return `Claude API error (${status})`;
 }
 
+function toNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function estimateAnthropicUsageCost(inputTokens, outputTokens) {
+  const usdToInr = toNumber(process.env.AI_COST_USD_TO_INR, 83);
+  const inputPerMillionUsd = toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, 3);
+  const outputPerMillionUsd = toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, 15);
+  const inUsd =
+    (toNumber(inputTokens, 0) / 1000000) * inputPerMillionUsd +
+    (toNumber(outputTokens, 0) / 1000000) * outputPerMillionUsd;
+  const inInr = inUsd * usdToInr;
+  return {
+    estimated_cost_usd: Number(inUsd.toFixed(6)),
+    estimated_cost_inr: Number(inInr.toFixed(4))
+  };
+}
+
 async function callClaudeNutrition({
   apiKey,
   model,
@@ -229,7 +249,7 @@ async function callClaudeNutrition({
     },
     body: JSON.stringify({
       model,
-      max_tokens: 1000,
+      max_tokens: 450,
       system,
       messages: [{ role: 'user', content }]
     })
@@ -250,7 +270,17 @@ async function callClaudeNutrition({
   const parsed = parseAnthropicJson(text);
   const aiResult = normalizeAiResult(parsed);
   if (!aiResult) throw new Error('Could not parse nutrition response from AI');
-  return { aiResult, rawText: text };
+  const inputTokens = toNumber(data && data.usage && data.usage.input_tokens, 0);
+  const outputTokens = toNumber(data && data.usage && data.usage.output_tokens, 0);
+  const usage = {
+    provider: 'anthropic',
+    model: String(model || ''),
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: inputTokens + outputTokens,
+    ...estimateAnthropicUsageCost(inputTokens, outputTokens)
+  };
+  return { aiResult, rawText: text, usage };
 }
 
 async function getUserGoals(db, userId) {

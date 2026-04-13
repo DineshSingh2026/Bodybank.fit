@@ -127,6 +127,38 @@ async function callAnthropicMessages({ apiKey, model, maxTokens, system, userCon
   return data;
 }
 
+function toNumber(value, fallback = 0) {
+  const num = Number(value);
+  return Number.isFinite(num) ? num : fallback;
+}
+
+function estimateAnthropicUsageCost(inputTokens, outputTokens) {
+  const usdToInr = toNumber(process.env.AI_COST_USD_TO_INR, 83);
+  const inputPerMillionUsd = toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, 3);
+  const outputPerMillionUsd = toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, 15);
+  const inUsd =
+    (toNumber(inputTokens, 0) / 1000000) * inputPerMillionUsd +
+    (toNumber(outputTokens, 0) / 1000000) * outputPerMillionUsd;
+  const inInr = inUsd * usdToInr;
+  return {
+    estimated_cost_usd: Number(inUsd.toFixed(6)),
+    estimated_cost_inr: Number(inInr.toFixed(4))
+  };
+}
+
+function usageFromAnthropicResponse(data, model) {
+  const inputTokens = toNumber(data && data.usage && data.usage.input_tokens, 0);
+  const outputTokens = toNumber(data && data.usage && data.usage.output_tokens, 0);
+  return {
+    provider: 'anthropic',
+    model: String(model || ''),
+    input_tokens: inputTokens,
+    output_tokens: outputTokens,
+    total_tokens: inputTokens + outputTokens,
+    ...estimateAnthropicUsageCost(inputTokens, outputTokens)
+  };
+}
+
 function bloodMediaBlock(imageBase64, mimeType) {
   const mime = String(mimeType || 'image/jpeg').toLowerCase();
   const data = String(imageBase64 || '').replace(/\s/g, '');
@@ -287,6 +319,11 @@ Extract EVERY visible marker. Use standard clinical ranges if reference range is
         { type: 'text', text: 'Extract all blood test markers from this lab report. Return complete JSON.' }
       ]
     });
+    const extractionUsage = usageFromAnthropicResponse(extractRes, model);
+    await run(`UPDATE blood_analysis_reports SET extraction_ai_usage = ?::jsonb WHERE id = ?`, [
+      JSON.stringify(extractionUsage),
+      reportId
+    ]).catch(() => {});
 
     const extractText = anthropicTextFromMessage(extractRes);
     const extractedBloodDataRaw = parseAnyJsonBlock(extractText) || parseAnthropicJson(extractText);
@@ -413,6 +450,18 @@ Provide complete clinical analysis as JSON.`
         }
       ]
     });
+    const analysisUsage = usageFromAnthropicResponse(analysisRes, model);
+    const totalUsage = {
+      provider: 'anthropic',
+      model: String(model || ''),
+      input_tokens: toNumber(extractionUsage.input_tokens) + toNumber(analysisUsage.input_tokens),
+      output_tokens: toNumber(extractionUsage.output_tokens) + toNumber(analysisUsage.output_tokens),
+      total_tokens: toNumber(extractionUsage.total_tokens) + toNumber(analysisUsage.total_tokens),
+      estimated_cost_usd:
+        Number((toNumber(extractionUsage.estimated_cost_usd) + toNumber(analysisUsage.estimated_cost_usd)).toFixed(6)),
+      estimated_cost_inr:
+        Number((toNumber(extractionUsage.estimated_cost_inr) + toNumber(analysisUsage.estimated_cost_inr)).toFixed(4))
+    };
 
     const analysisText = anthropicTextFromMessage(analysisRes);
     const aiReport = parseAnthropicJson(analysisText);
@@ -421,8 +470,10 @@ Provide complete clinical analysis as JSON.`
     }
 
     await run(
-      `UPDATE blood_analysis_reports SET ai_report = ?::jsonb, nutrition_snapshot = ?::jsonb, status = 'generating_pdf' WHERE id = ?`,
-      [JSON.stringify(aiReport), JSON.stringify(nutritionSummary || {}), reportId]
+      `UPDATE blood_analysis_reports
+       SET ai_report = ?::jsonb, nutrition_snapshot = ?::jsonb, analysis_ai_usage = ?::jsonb, total_ai_usage = ?::jsonb, status = 'generating_pdf'
+       WHERE id = ?`,
+      [JSON.stringify(aiReport), JSON.stringify(nutritionSummary || {}), JSON.stringify(analysisUsage), JSON.stringify(totalUsage), reportId]
     );
 
     const bloodForPdf = { panels: normalizePanelsForPdf(extractedBloodData) };

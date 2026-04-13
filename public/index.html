@@ -11739,8 +11739,7 @@ function nutritionRenderMealResult(mt, result, score, mealConfidence) {
     '<span class="mpill" style="background:rgba(200,164,78,0.15);color:var(--bb-gold)">' + escapeHtml(String(result.carbs != null ? result.carbs : '—')) + 'g carb</span>' +
     '<span class="mpill" style="background:rgba(192,57,43,0.12);color:var(--bb-red)">' + escapeHtml(String(result.fat != null ? result.fat : '—')) + 'g fat</span></div>' +
     '<div class="score-row">Score: <strong style="color:var(--bb-green)">' + escapeHtml(String(score)) + '/10</strong> · <span style="color:' + confColor + '">' + escapeHtml(conf || '—') + '</span></div>' +
-    '<div class="score-row">Trust: <strong style="color:' + (confMeta.level === 'high' ? 'var(--bb-green)' : confMeta.level === 'medium' ? 'var(--bb-orange)' : 'var(--bb-red)') + '">' + escapeHtml(confMeta.label) + '</strong></div>' +
-    (result.tips ? '<div style="font-size:10px;color:var(--muted);margin-top:4px;line-height:1.45">' + escapeHtml(result.tips) + '</div>' : '');
+    '<div class="score-row">Trust: <strong style="color:' + (confMeta.level === 'high' ? 'var(--bb-green)' : confMeta.level === 'medium' ? 'var(--bb-orange)' : 'var(--bb-red)') + '">' + escapeHtml(confMeta.label) + '</strong></div>';
 }
 
 function nutritionUpdateSummaryFromState() {
@@ -11812,8 +11811,9 @@ async function nutritionAnalyzeSingle(mt, opts) {
   var photo = bbNutritionState.photos[mt];
   var noteEl = document.getElementById('note-' + mt);
   var note = noteEl ? noteEl.value.trim() : '';
-  if (!photo && !note) {
-    nutritionShowToast('Add a photo or a short description', 'warn');
+  if (!note) {
+    nutritionShowToast('Meal details text is mandatory before Analyze & save', 'warn');
+    if (noteEl && typeof noteEl.focus === 'function') noteEl.focus();
     return;
   }
   var btn = document.querySelector('#mslot-' + mt + ' .analyze-single-btn');
@@ -12046,6 +12046,14 @@ function loadAdminNutritionReport() {
           ? '<p class="form-hint" style="margin-bottom:10px"><strong>Energy (burn − intake):</strong> ' + (energyDiff >= 0 ? '+' : '') + energyDiff + ' kcal</p>'
           : '';
         var uidEsc = String(c.userId || '').replace(/"/g, '&quot;');
+        var usageRows = [];
+        (c.meals || []).forEach(function (meal) {
+          var u = parseAdminAiUsage(meal && meal.ai_usage ? meal.ai_usage : null);
+          if (!u || Number(u.total_tokens || 0) <= 0) return;
+          var mealLabel = String((meal && meal.meal_type) || 'meal');
+          usageRows.push(renderUsageLine(mealLabel, u));
+        });
+        var usageHtml = renderAdminUsageBlock('Nutrition AI tokens and cost', usageRows.join(''));
         return '<div class="admin-nutrition-client-card">' +
           '<div class="admin-nutrition-client-head">' +
           '<div class="admin-nutrition-avatar">' + escapeHtml(initials) + '</div>' +
@@ -12053,7 +12061,7 @@ function loadAdminNutritionReport() {
           '<div class="meta">' + escapeHtml(c.userEmail || '') + ' · Target ' + (sn && sn.calorieGoal != null ? sn.calorieGoal + ' kcal' : '—') + '</div></div>' +
           '<div class="admin-nutrition-score-ring" style="border-color:' + scoreColor + '">' +
           '<span style="font-weight:700;color:' + scoreColor + '">' + (score != null ? score.toFixed(1) : '—') + '</span><span style="font-size:8px;color:var(--muted)">score</span></div></div>' +
-          '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' + macroRow + energyHtml +
+          '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' + macroRow + energyHtml + usageHtml +
           '<div class="admin-nutrition-actions">' +
           '<button type="button" class="btn" onclick="adminNutritionAnalyzeAll(\'' + uidEsc + '\')">Re-run AI</button>' +
           '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'both\')">Email + inbox</button>' +
@@ -12190,6 +12198,26 @@ function exportAdminNutritionCsv() {
 }
 
 // ----- Blood reports (admin + member) -----
+function formatUsageMoney(usage) {
+  if (!usage) return '';
+  var usd = Number(usage.estimated_cost_usd || 0).toFixed(5);
+  var inr = Number(usage.estimated_cost_inr || 0).toFixed(3);
+  return '$' + usd + ' (Rs ' + inr + ')';
+}
+function formatUsageTokens(usage) {
+  if (!usage) return '0';
+  return Number(usage.total_tokens || 0).toLocaleString('en-IN');
+}
+function renderUsageLine(label, usage) {
+  if (!usage) return '';
+  return '<div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><span>' + escapeHtml(label) + '</span><span>' +
+    escapeHtml(formatUsageTokens(usage) + ' tokens · ' + formatUsageMoney(usage)) + '</span></div>';
+}
+function renderAdminUsageBlock(title, linesHtml) {
+  if (!linesHtml) return '';
+  return '<div style="margin:8px 0 10px;padding:9px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:11px;line-height:1.45">' +
+    '<div style="font-weight:700;color:#c8bca2;margin-bottom:4px">' + escapeHtml(title) + '</div>' + linesHtml + '</div>';
+}
 function loadAdminBloodReports() {
   var el = document.getElementById('adminBloodReportsList');
   var sel = document.getElementById('adminBloodStatusFilter');
@@ -12223,6 +12251,14 @@ function loadAdminBloodReports() {
         var isSent = !!r.sentToUser;
         var lastErrRaw = r.analysisLastError ? String(r.analysisLastError) : '';
         var lastErrEsc = lastErrRaw ? escapeHtml(lastErrRaw) : '';
+        var totalUsage = parseAdminAiUsage(r.totalAiUsage || null);
+        var extractionUsage = parseAdminAiUsage(r.extractionAiUsage || null);
+        var analysisUsage = parseAdminAiUsage(r.analysisAiUsage || null);
+        var usageLines = '';
+        if (totalUsage) usageLines += renderUsageLine('Total request usage', totalUsage);
+        if (extractionUsage) usageLines += renderUsageLine('Extraction call', extractionUsage);
+        if (analysisUsage) usageLines += renderUsageLine('Clinical analysis call', analysisUsage);
+        var usageHtml = renderAdminUsageBlock('AI tokens and cost', usageLines);
         var statusColors = { Good: '#3dd68c', Excellent: '#3dd68c', Fair: '#f5a623', Poor: '#ff5c5c', Critical: '#ff5c5c' };
         var ar = r.aiReport || {};
         var sc = statusColors[ar.overall_status] || '#8a8880';
@@ -12255,6 +12291,7 @@ function loadAdminBloodReports() {
           (isFailed && !lastErrEsc
             ? '<div class="form-hint" style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:11px">No error details were saved for this run. Use Retry after fixing API credits, or check server logs.</div>'
             : '') +
+          usageHtml +
           '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
           (canRetry
             ? '<button type="button" class="form-hint" style="flex:1;min-width:100px;padding:8px;font-size:12px;border:1px solid rgba(230,192,95,0.45);background:rgba(230,192,95,0.1);color:var(--gold);border-radius:8px;cursor:pointer" onclick="adminBloodRetry(\'' +

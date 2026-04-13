@@ -156,12 +156,13 @@ function createNutritionRouter(deps) {
       const note = String(manualNote || '').trim();
 
       const img = imageBase64 ? String(imageBase64).replace(/\s/g, '') : '';
+      if (!note) return res.status(400).json({ error: 'Please add meal details in text. This is required for analysis.' });
       if (!img && !note) return res.status(400).json({ error: 'Provide a photo or a text description.' });
       if (img && img.length > MAX_B64_CHARS) return res.status(400).json({ error: 'Image too large.' });
 
       const ymd = ymdOrToday(req.body, req.query);
 
-      const { aiResult } = await callClaudeNutrition({
+      const { aiResult, usage } = await callClaudeNutrition({
         apiKey,
         model,
         imageBase64: img || null,
@@ -185,14 +186,15 @@ function createNutritionRouter(deps) {
 
       await run(
         `INSERT INTO nutrition_meal_logs (
-          id, user_id, log_date, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, meal_score, submitted_at
-        ) VALUES (?, ?, ?::date, ?, ?, ?, ?, ?, ?::jsonb, ?, CURRENT_TIMESTAMP)
+          id, user_id, log_date, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, ai_usage, meal_score, submitted_at
+        ) VALUES (?, ?, ?::date, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, CURRENT_TIMESTAMP)
         ON CONFLICT (user_id, log_date, meal_type) DO UPDATE SET
           photo_data = COALESCE(EXCLUDED.photo_data, nutrition_meal_logs.photo_data),
           photo_mime = COALESCE(EXCLUDED.photo_mime, nutrition_meal_logs.photo_mime),
           manual_note = EXCLUDED.manual_note,
           portion_size = EXCLUDED.portion_size,
           ai_result = EXCLUDED.ai_result,
+          ai_usage = EXCLUDED.ai_usage,
           meal_score = EXCLUDED.meal_score,
           submitted_at = CURRENT_TIMESTAMP,
           notified_at = NULL`,
@@ -206,6 +208,7 @@ function createNutritionRouter(deps) {
           note,
           portion,
           JSON.stringify(aiResult),
+          JSON.stringify(usage || {}),
           mealScore
         ]
       );
@@ -244,6 +247,7 @@ function createNutritionRouter(deps) {
 
       res.json({
         aiResult,
+        usage,
         mealScore,
         mealConfidence,
         dailyConfidence,
@@ -351,7 +355,7 @@ function createNutritionRouter(deps) {
         return res.status(403).json({ error: 'Forbidden' });
       }
       const meals = await queryAll(
-        `SELECT id, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, meal_score, submitted_at, notified_at
+        `SELECT id, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, ai_usage, meal_score, submitted_at, notified_at
          FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date ORDER BY meal_type`,
         [uid, d]
       );
@@ -435,6 +439,10 @@ function createNutritionRouter(deps) {
 
         const img = row.photo_data ? String(row.photo_data).replace(/\s/g, '') : '';
         const note = String(row.manual_note || '').trim();
+        if (!note) {
+          errors.push({ mealType: mt, error: 'Text meal details are required for re-analysis.' });
+          continue;
+        }
         if (!img && !note) continue;
         if (img.length > MAX_B64_CHARS) {
           errors.push({ mealType: mt, error: 'Image too large' });
@@ -445,7 +453,7 @@ function createNutritionRouter(deps) {
         const portion = ['small', 'medium', 'large'].includes(ps) ? ps : 'medium';
 
         try {
-          const { aiResult } = await callClaudeNutrition({
+          const { aiResult, usage } = await callClaudeNutrition({
             apiKey,
             model,
             imageBase64: img || null,
@@ -458,11 +466,11 @@ function createNutritionRouter(deps) {
 
           await run(
             `UPDATE nutrition_meal_logs
-             SET ai_result = ?::jsonb, meal_score = ?, submitted_at = CURRENT_TIMESTAMP, notified_at = NULL
+             SET ai_result = ?::jsonb, ai_usage = ?::jsonb, meal_score = ?, submitted_at = CURRENT_TIMESTAMP, notified_at = NULL
              WHERE user_id = ? AND log_date = ?::date AND meal_type = ?`,
-            [JSON.stringify(aiResult), mealScore, targetUserId, ymd, mt]
+            [JSON.stringify(aiResult), JSON.stringify(usage || {}), mealScore, targetUserId, ymd, mt]
           );
-          results.push({ mealType: mt, mealScore });
+          results.push({ mealType: mt, mealScore, usage });
         } catch (e) {
           errors.push({ mealType: mt, error: e.message || 'Analysis failed' });
         }
@@ -547,7 +555,7 @@ function createNutritionRouter(deps) {
         );
         if (!u) continue;
         const meals = await queryAll(
-          `SELECT meal_type, photo_data, photo_mime, ai_result, meal_score, manual_note, notified_at
+          `SELECT meal_type, photo_data, photo_mime, ai_result, ai_usage, meal_score, manual_note, notified_at
            FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date`,
           [uid, ymd]
         );

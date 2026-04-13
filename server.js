@@ -602,6 +602,26 @@ async function initDB() {
   } catch (e) {
     /* ignore */
   }
+  try {
+    await pool.query(`ALTER TABLE blood_analysis_reports ADD COLUMN IF NOT EXISTS extraction_ai_usage JSONB`);
+  } catch (e) {
+    /* ignore */
+  }
+  try {
+    await pool.query(`ALTER TABLE blood_analysis_reports ADD COLUMN IF NOT EXISTS analysis_ai_usage JSONB`);
+  } catch (e) {
+    /* ignore */
+  }
+  try {
+    await pool.query(`ALTER TABLE blood_analysis_reports ADD COLUMN IF NOT EXISTS total_ai_usage JSONB`);
+  } catch (e) {
+    /* ignore */
+  }
+  try {
+    await pool.query(`ALTER TABLE nutrition_meal_logs ADD COLUMN IF NOT EXISTS ai_usage JSONB`);
+  } catch (e) {
+    /* ignore */
+  }
 
   // Push notification subscriptions
   await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
