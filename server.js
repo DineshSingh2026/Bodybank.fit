@@ -2943,21 +2943,25 @@ function buildVirtualScore(virtualId, tier, volatility, weekStart) {
   const baseSeed = hashStringStable(virtualId + '|base|' + wk);
   const daySeed = hashStringStable(virtualId + '|day|' + day);
   const trendSeed = hashStringStable(virtualId + '|trend|' + wk);
-  let floor = 55;
-  let ceil = 88;
+  let startFloor = 6;
+  let startCeil = 18;
+  let endFloor = 52;
+  let endCeil = 76;
   if (t === 'starter') {
-    floor = 42; ceil = 74;
+    startFloor = 3; startCeil = 14; endFloor = 40; endCeil = 66;
   } else if (t === 'elite') {
-    floor = 72; ceil = 97;
+    startFloor = 10; startCeil = 24; endFloor = 64; endCeil = 90;
   }
   const weekIndex = dayIndexWithinWeek(wk, day);
-  const weekProgress = weekIndex == null ? 1 : weekIndex < 0 ? 0 : weekIndex >= 6 ? 1 : ((weekIndex + 1) / 7);
-  // Spread each virtual user across a stable ceiling band, then ramp from floor -> ceiling through week.
-  const bandTop = floor + (baseSeed % Math.max(1, ceil - floor + 1));
-  const amp = vol === 'low' ? 1.4 : vol === 'high' ? 4.8 : 3.0;
+  const rawProgress = weekIndex == null ? 1 : weekIndex < 0 ? 0 : weekIndex >= 6 ? 1 : ((weekIndex + 1) / 7);
+  // Non-linear weekly growth: slower at start, faster mid-to-late week.
+  const weekProgress = Math.pow(rawProgress, 1.22);
+  const bandStart = startFloor + (baseSeed % Math.max(1, startCeil - startFloor + 1));
+  const bandEnd = endFloor + ((baseSeed >> 4) % Math.max(1, endCeil - endFloor + 1));
+  const amp = vol === 'low' ? 1.2 : vol === 'high' ? 3.4 : 2.2;
   const jitter = (((daySeed % 1000) / 1000) - 0.5) * amp;
-  const trend = (((trendSeed % 13) - 6) * 0.22);
-  const ramped = floor + ((bandTop - floor) * weekProgress);
+  const trend = (((trendSeed % 13) - 6) * 0.14);
+  const ramped = bandStart + ((bandEnd - bandStart) * weekProgress);
   const total = Math.round(clampNum(ramped + jitter + trend, 20, 99));
   const daily = Math.round(clampNum(total + ((hashStringStable(virtualId + '|d') % 11) - 5), 20, 100));
   const sunday = Math.round(clampNum(total + ((hashStringStable(virtualId + '|s') % 15) - 7), 0, 100));
