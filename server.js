@@ -2875,6 +2875,14 @@ function todayUtcYmd() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function dayIndexWithinWeek(weekStartISO, ymdISO) {
+  const s = parseISODate(String(weekStartISO || '').slice(0, 10));
+  const d = parseISODate(String(ymdISO || '').slice(0, 10));
+  if (!s || !d) return null;
+  const diffDays = Math.floor((d.getTime() - s.getTime()) / (24 * 60 * 60 * 1000));
+  return diffDays;
+}
+
 async function ensureVirtualLeaderboardRegistrySeeded() {
   const row = await queryOne('SELECT COUNT(*)::int AS c FROM leaderboard_virtual_registry');
   const count = parseInt(row && row.c, 10) || 0;
@@ -2930,11 +2938,15 @@ function buildVirtualScore(virtualId, tier, volatility, weekStart) {
   } else if (t === 'elite') {
     floor = 72; ceil = 97;
   }
-  const amp = vol === 'low' ? 2.4 : vol === 'high' ? 8.2 : 5.2;
-  const base = floor + (baseSeed % Math.max(1, ceil - floor + 1));
+  const weekIndex = dayIndexWithinWeek(wk, day);
+  const weekProgress = weekIndex == null ? 1 : weekIndex < 0 ? 0 : weekIndex >= 6 ? 1 : ((weekIndex + 1) / 7);
+  // Spread each virtual user across a stable ceiling band, then ramp from floor -> ceiling through week.
+  const bandTop = floor + (baseSeed % Math.max(1, ceil - floor + 1));
+  const amp = vol === 'low' ? 1.4 : vol === 'high' ? 4.8 : 3.0;
   const jitter = (((daySeed % 1000) / 1000) - 0.5) * amp;
-  const trend = (((trendSeed % 13) - 6) * 0.45);
-  const total = Math.round(clampNum(base + jitter + trend, 30, 99));
+  const trend = (((trendSeed % 13) - 6) * 0.22);
+  const ramped = floor + ((bandTop - floor) * weekProgress);
+  const total = Math.round(clampNum(ramped + jitter + trend, 20, 99));
   const daily = Math.round(clampNum(total + ((hashStringStable(virtualId + '|d') % 11) - 5), 20, 100));
   const sunday = Math.round(clampNum(total + ((hashStringStable(virtualId + '|s') % 15) - 7), 0, 100));
   const workouts = Math.round(clampNum(total + ((hashStringStable(virtualId + '|w') % 13) - 6), 0, 100));
