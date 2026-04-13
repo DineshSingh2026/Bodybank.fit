@@ -1931,6 +1931,24 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-subsection-wrap{margin-bottom:28px}
 .admin-subsection-wrap:last-child{margin-bottom:0}
 .admin-subsection-title{font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;padding-bottom:6px;border-bottom:1px solid var(--bdr)}
+#tab-leaderboard .admin-subsection-wrap{margin-bottom:18px;background:linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015));border:1px solid rgba(200,164,78,0.16);border-radius:14px;padding:14px}
+#tab-leaderboard .admin-subsection-title{margin-bottom:8px}
+.lb-kpi-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0 12px}
+.lb-kpi-card{background:rgba(6,6,6,0.45);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:10px 12px}
+.lb-kpi-label{font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+.lb-kpi-value{font-size:24px;font-weight:800;line-height:1.15;margin-top:4px}
+.lb-controls-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:10px}
+.lb-control-card{background:rgba(0,0,0,0.28);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:10px}
+.lb-inline-actions{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:8px 0}
+.lb-registry-details{margin-top:12px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,0,0,0.22)}
+.lb-registry-details summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:700;color:var(--cream)}
+.lb-registry-details summary::-webkit-details-marker{display:none}
+.lb-registry-details[open] summary{border-bottom:1px solid rgba(255,255,255,0.08)}
+.lb-registry-body{padding:10px}
+@media(max-width:768px){
+  .lb-kpi-grid{grid-template-columns:1fr;gap:8px}
+  .lb-kpi-value{font-size:22px}
+}
 
 .admin-mobile-nav-bar{display:none!important}
 @media(max-width:768px){
@@ -5206,33 +5224,33 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <!-- TAB: Leader Board (real vs virtual) -->
     <div class="admin-tab-content" id="tab-leaderboard">
       <div class="admin-subsection-wrap">
-        <h3 class="admin-subsection-title">Leader Board Registry</h3>
-        <p class="form-hint" style="margin-bottom:12px">User-facing board can include virtual competitors without affecting admin KPIs.</p>
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin-bottom:14px">
-          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:10px;padding:12px">
-            <div class="form-hint">Real clients</div>
-            <div id="adminVirtualCountReal" style="font-size:22px;font-weight:700;color:var(--cream)">0</div>
+        <h3 class="admin-subsection-title">Leader Board Control Center</h3>
+        <p class="form-hint" style="margin-bottom:6px">Clean split between real and virtual competitors. Admin analytics remain real-only by default.</p>
+        <div class="lb-kpi-grid">
+          <div class="lb-kpi-card">
+            <div class="lb-kpi-label">Real clients</div>
+            <div id="adminVirtualCountReal" class="lb-kpi-value" style="color:var(--cream)">0</div>
           </div>
-          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:10px;padding:12px">
-            <div class="form-hint">Virtual competitors</div>
-            <div id="adminVirtualCountVirtual" style="font-size:22px;font-weight:700;color:var(--gold)">0</div>
+          <div class="lb-kpi-card">
+            <div class="lb-kpi-label">Virtual competitors</div>
+            <div id="adminVirtualCountVirtual" class="lb-kpi-value" style="color:var(--gold)">0</div>
           </div>
-          <div style="background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:10px;padding:12px">
-            <div class="form-hint">Shown on user leaderboard</div>
-            <div id="adminVirtualCountShown" style="font-size:22px;font-weight:700;color:#50c878">0</div>
+          <div class="lb-kpi-card">
+            <div class="lb-kpi-label">Shown on user leaderboard</div>
+            <div id="adminVirtualCountShown" class="lb-kpi-value" style="color:#50c878">0</div>
           </div>
         </div>
 
-        <div class="admin-meeting-form" style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:12px">
-          <label class="form-hint" style="display:flex;align-items:center;gap:8px">
-            <input type="checkbox" id="adminVirtualEnabledToggle" checked>
-            Enable virtual competitors
-          </label>
-          <div>
+        <div class="lb-controls-grid">
+          <div class="lb-control-card">
+            <label class="form-hint" style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+              <input type="checkbox" id="adminVirtualEnabledToggle" checked>
+              Enable virtual competitors
+            </label>
             <label class="form-hint" for="adminVirtualCountInput">Virtual count</label>
-            <input type="number" id="adminVirtualCountInput" class="form-input" min="0" max="30" step="1" value="15" style="width:110px">
+            <input type="number" id="adminVirtualCountInput" class="form-input" min="0" max="30" step="1" value="15" style="width:120px">
           </div>
-          <div>
+          <div class="lb-control-card">
             <label class="form-hint" for="adminVirtualVolatilityInput">Volatility</label>
             <select id="adminVirtualVolatilityInput" class="form-input">
               <option value="low">Low</option>
@@ -5240,31 +5258,33 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               <option value="high">High</option>
             </select>
           </div>
+        </div>
+        <div class="lb-inline-actions">
           <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="saveAdminVirtualLeaderboardConfig()">Save controls</button>
         </div>
 
-        <div class="admin-meeting-form" style="display:flex;flex-wrap:wrap;gap:10px;align-items:end;margin-bottom:12px">
-          <div>
+        <div class="lb-controls-grid">
+          <div class="lb-control-card">
             <label class="form-hint" for="adminVirtualBoardMode">Board</label>
             <select id="adminVirtualBoardMode" class="form-input" onchange="onAdminVirtualBoardModeChange();loadAdminVirtualLeaderboardLive()">
               <option value="dedication">BodyBank</option>
               <option value="program">Program</option>
             </select>
           </div>
-          <div id="adminVirtualProgramWrap" style="display:none">
+          <div id="adminVirtualProgramWrap" class="lb-control-card" style="display:none">
             <label class="form-hint" for="adminVirtualProgramId">Program</label>
             <select id="adminVirtualProgramId" class="form-input admin-meeting-select" style="min-width:200px">
               <option value="">Select program</option>
             </select>
           </div>
-          <div>
+          <div class="lb-control-card">
             <label class="form-hint" for="adminVirtualWeekMode">Week</label>
             <select id="adminVirtualWeekMode" class="form-input">
               <option value="this">This week</option>
               <option value="prev">Last week</option>
             </select>
           </div>
-          <div>
+          <div class="lb-control-card">
             <label class="form-hint" for="adminVirtualViewMode">View</label>
             <select id="adminVirtualViewMode" class="form-input">
               <option value="all">All</option>
@@ -5272,6 +5292,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               <option value="virtual">Virtual only</option>
             </select>
           </div>
+        </div>
+        <div class="lb-inline-actions">
           <label class="form-hint" style="display:flex;align-items:center;gap:8px">
             <input type="checkbox" id="adminVirtualIncludeForTesting">
             Include virtual for testing (default OFF)
@@ -5279,7 +5301,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminVirtualLeaderboardLive()">Load ranking</button>
         </div>
 
-        <div class="admin-meeting-form" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:8px">
+        <div class="lb-inline-actions">
           <button type="button" class="insights-apply-btn" onclick="regenerateAdminVirtualAliases()">Regenerate aliases</button>
           <span class="form-hint" id="adminVirtualCollisionMeta">Collisions: 0</span>
         </div>
@@ -5290,11 +5312,15 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <tbody id="adminVirtualLeaderboardBody"><tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Load ranking</td></tr></tbody>
         </table></div>
 
-        <h4 class="admin-subsection-title" style="margin-top:18px">Virtual Client Registry</h4>
-        <div class="admin-table-wrap"><table class="admin-table">
-          <thead><tr><th>Virtual ID</th><th>Display name</th><th>Tier</th><th>Current score</th><th>Status</th><th>Action</th></tr></thead>
-          <tbody id="adminVirtualRegistryBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
-        </table></div>
+        <details class="lb-registry-details">
+          <summary>Virtual Client Registry</summary>
+          <div class="lb-registry-body">
+            <div class="admin-table-wrap"><table class="admin-table">
+              <thead><tr><th>Virtual ID</th><th>Display name</th><th>Tier</th><th>Current score</th><th>Status</th><th>Action</th></tr></thead>
+              <tbody id="adminVirtualRegistryBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
+            </table></div>
+          </div>
+        </details>
       </div>
     </div>
 

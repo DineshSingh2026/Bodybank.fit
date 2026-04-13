@@ -2875,6 +2875,18 @@ function todayUtcYmd() {
   return new Date().toISOString().slice(0, 10);
 }
 
+function parseISODate(s) {
+  if (!s || typeof s !== 'string') return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s.trim());
+  if (!m) return null;
+  const y = parseInt(m[1], 10);
+  const mo = parseInt(m[2], 10) - 1;
+  const d = parseInt(m[3], 10);
+  const dt = new Date(Date.UTC(y, mo, d, 12, 0, 0));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo || dt.getUTCDate() !== d) return null;
+  return dt;
+}
+
 function dayIndexWithinWeek(weekStartISO, ymdISO) {
   const s = parseISODate(String(weekStartISO || '').slice(0, 10));
   const d = parseISODate(String(ymdISO || '').slice(0, 10));
