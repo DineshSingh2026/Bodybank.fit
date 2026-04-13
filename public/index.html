@@ -5440,10 +5440,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         </div>
       </div>
       <!-- End Quick Prompt Chips -->
-      <div class="ai-prompt-open-row" id="aiPromptOpenRow" style="display:none">
-        <button type="button" class="ai-prompt-open-btn" onclick="setAiPromptCollapsed(false)">Open prefix fields</button>
-      </div>
-
       <div class="admin-ai-assist-messages" id="adminAiAssistMessages"></div>
       <div class="admin-ai-assist-input-wrap">
         <textarea class="admin-ai-assist-input" id="adminAiAssistInput" placeholder="Type your question…" rows="1" maxlength="2000"></textarea>
@@ -8782,7 +8778,8 @@ function toggleAdminAiAssistPanel() {
   if (isOpen) {
     setAiAssistReportMonthIfEmpty();
     populateAiAssistReportUsers();
-    setAiPromptCollapsed(getAiPromptCollapsed());
+    // Open AI Assist in history-first mode; prefixes are optional via header toggle.
+    setAiPromptCollapsed(true);
     // On mobile, avoid auto-focus to prevent viewport jump that hides the panel header.
     if (window.innerWidth > 768) {
       setTimeout(function() {
@@ -8806,10 +8803,8 @@ function closeAdminAiAssistPanel() {
 
 function setAiPromptCollapsed(collapsed) {
   var wrap = document.getElementById('aiPromptWrap');
-  var openRow = document.getElementById('aiPromptOpenRow');
   var isCollapsed = !!collapsed;
   if (wrap) wrap.style.display = isCollapsed ? 'none' : '';
-  if (openRow) openRow.style.display = isCollapsed ? '' : 'none';
   updateAiPromptToggleBtn(isCollapsed);
   try { localStorage.setItem(ADMIN_AI_PROMPT_COLLAPSE_KEY, isCollapsed ? '1' : '0'); } catch (e) {}
 }
@@ -9109,8 +9104,7 @@ function loadAdminAiAssistHistory() {
   if (!raw) {
     container.innerHTML = '';
     if (welcome) welcome.style.display = '';
-    var wrapEl = document.getElementById('aiPromptWrap');
-    if (wrapEl) wrapEl.style.display = '';
+    setAiPromptCollapsed(true);
     updateAdminAiUsageTotals();
     return;
   }
@@ -9120,16 +9114,14 @@ function loadAdminAiAssistHistory() {
   } catch (e2) {
     container.innerHTML = '';
     if (welcome) welcome.style.display = '';
-    var wrapEl2 = document.getElementById('aiPromptWrap');
-    if (wrapEl2) wrapEl2.style.display = '';
+    setAiPromptCollapsed(true);
     updateAdminAiUsageTotals();
     return;
   }
   if (!Array.isArray(items) || items.length === 0) {
     container.innerHTML = '';
     if (welcome) welcome.style.display = '';
-    var wrapEl3 = document.getElementById('aiPromptWrap');
-    if (wrapEl3) wrapEl3.style.display = '';
+    setAiPromptCollapsed(true);
     updateAdminAiUsageTotals();
     return;
   }
