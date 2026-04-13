@@ -60,7 +60,7 @@ function normalizeAiResult(raw) {
   const conf = ['high', 'medium', 'low'].includes(confidence) ? confidence : 'medium';
   return {
     dish: String(raw.dish || 'Meal').slice(0, 200),
-    description: String(raw.description || '').slice(0, 500),
+    description: '',
     serving: String(raw.serving || '').slice(0, 120),
     calories: clampInt(raw.calories, 0, 15000),
     protein: clampInt(raw.protein, 0, 500),
@@ -70,7 +70,7 @@ function normalizeAiResult(raw) {
     sodium: clampInt(raw.sodium, 0, 20000),
     weight: clampInt(raw.weight, 0, 5000),
     confidence: conf,
-    tips: String(raw.tips || '').slice(0, 500)
+    tips: ''
   };
 }
 

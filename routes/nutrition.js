@@ -183,6 +183,18 @@ function createNutritionRouter(deps) {
       if (img && img.length > MAX_B64_CHARS) return res.status(400).json({ error: 'Image too large.' });
 
       const ymd = ymdOrToday(req.body, req.query);
+      if (img) {
+        const dayPhotoRow = await queryOne(
+          `SELECT COALESCE(SUM(photo_upload_count), 0)::int AS n
+           FROM nutrition_meal_logs
+           WHERE user_id = ? AND log_date = ?::date`,
+          [userId, ymd]
+        );
+        const dayPhotoCount = parseInt(dayPhotoRow && dayPhotoRow.n, 10) || 0;
+        if (dayPhotoCount >= 4) {
+          return res.status(429).json({ error: 'Daily photo upload limit reached (4). Try again tomorrow.' });
+        }
+      }
 
       const { aiResult, usage } = await callClaudeNutrition({
         apiKey,
@@ -208,8 +220,8 @@ function createNutritionRouter(deps) {
 
       await run(
         `INSERT INTO nutrition_meal_logs (
-          id, user_id, log_date, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, ai_usage, meal_score, submitted_at
-        ) VALUES (?, ?, ?::date, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, CURRENT_TIMESTAMP)
+          id, user_id, log_date, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, ai_usage, photo_upload_count, meal_score, submitted_at
+        ) VALUES (?, ?, ?::date, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT (user_id, log_date, meal_type) DO UPDATE SET
           photo_data = COALESCE(EXCLUDED.photo_data, nutrition_meal_logs.photo_data),
           photo_mime = COALESCE(EXCLUDED.photo_mime, nutrition_meal_logs.photo_mime),
@@ -217,6 +229,7 @@ function createNutritionRouter(deps) {
           portion_size = EXCLUDED.portion_size,
           ai_result = EXCLUDED.ai_result,
           ai_usage = EXCLUDED.ai_usage,
+          photo_upload_count = nutrition_meal_logs.photo_upload_count + CASE WHEN EXCLUDED.photo_data IS NOT NULL THEN 1 ELSE 0 END,
           meal_score = EXCLUDED.meal_score,
           submitted_at = CURRENT_TIMESTAMP,
           notified_at = NULL`,
@@ -231,6 +244,7 @@ function createNutritionRouter(deps) {
           portion,
           JSON.stringify(aiResult),
           JSON.stringify(usage || {}),
+          img ? 1 : 0,
           mealScore
         ]
       );

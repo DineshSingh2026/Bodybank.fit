@@ -11606,7 +11606,7 @@ function bbNutritionMealSlotHtml(mt) {
       '<button type="button" class="manual-entry-btn" onclick="nutritionToggleManual(\'' + esc(mt) + '\')">Enter manually</button></div>' +
       '<div class="meal-preview" id="preview-' + esc(mt) + '" style="display:none">' +
       '<img id="previewImg-' + esc(mt) + '" src="" alt="" />' +
-      '<button type="button" class="remove-photo-btn" onclick="nutritionRemovePhoto(\'' + esc(mt) + '\')">Remove</button></div>' +
+      '<button type="button" class="remove-photo-btn" id="remove-photo-' + esc(mt) + '" onclick="nutritionRemovePhoto(\'' + esc(mt) + '\')">Remove</button></div>' +
       '<div class="manual-entry-box" id="manual-' + esc(mt) + '" style="display:none">' +
       '<textarea id="note-' + esc(mt) + '" class="manual-textarea" rows="3" placeholder="e.g. 2 rotis, dal, sabzi — medium portion"></textarea></div>' +
       '<div class="portion-selector" id="portion-' + esc(mt) + '" style="display:none">' +
@@ -11660,6 +11660,7 @@ function nutritionHandleMealPhoto(ev, mt) {
     var slot = document.getElementById('mslot-' + mt);
     if (slot) slot.classList.add('uploading');
     nutritionSetBadge(mt, 'Photo ready', 'analyzing');
+    nutritionSetPhotoRemovable(mt, true);
     var camIn = document.getElementById('file-camera-' + mt);
     var upIn = document.getElementById('file-upload-' + mt);
     if (camIn) camIn.value = '';
@@ -11675,7 +11676,17 @@ function nutritionClearMealFileInputs(mt) {
   });
 }
 
+function nutritionSetPhotoRemovable(mt, canRemove) {
+  var btn = document.getElementById('remove-photo-' + mt);
+  if (!btn) return;
+  btn.style.display = canRemove ? 'inline-block' : 'none';
+}
+
 function nutritionRemovePhoto(mt) {
+  if (bbNutritionState.results && bbNutritionState.results[mt]) {
+    nutritionShowToast('Photo cannot be removed after analysis.', 'warn');
+    return;
+  }
   delete bbNutritionState.photos[mt];
   delete bbNutritionState.mimes[mt];
   nutritionClearMealFileInputs(mt);
@@ -11695,6 +11706,7 @@ function nutritionRemovePhoto(mt) {
   var slot = document.getElementById('mslot-' + mt);
   if (slot) slot.classList.remove('uploading', 'analyzed', 'low-conf');
   nutritionSetBadge(mt, 'Not logged', '');
+  nutritionSetPhotoRemovable(mt, true);
 }
 
 function nutritionToggleManual(mt) {
@@ -11858,6 +11870,7 @@ async function nutritionAnalyzeSingle(mt, opts) {
     if (mc && mc.level === 'low') slot.classList.add('low-conf');
     else slot.classList.remove('low-conf');
   }
+  nutritionSetPhotoRemovable(mt, false);
   if ((mc && mc.level === 'low') || conf === 'low') nutritionShowToast('Low confidence — consider a clearer photo', 'warn');
   else nutritionShowToast('Saved: ' + mt, 'success');
   if (data.streak != null) {
@@ -11960,6 +11973,7 @@ async function loadNutritionCheckinPanel() {
       var act = document.getElementById('actions-' + mt);
       if (por) por.style.display = 'block';
       if (act) act.style.display = 'block';
+      nutritionSetPhotoRemovable(mt, !ar);
     }
   });
   var ds = bbNutritionDailyStatsNorm(data.dailyStats);
@@ -12000,11 +12014,7 @@ function loadAdminNutritionReport() {
       if (banner) {
         banner.innerHTML =
           '<div class="admin-nutrition-stat"><div class="lbl">Meals today</div><div class="val" style="color:var(--bb-green)">' + escapeHtml(String(agg.totalMeals || 0)) + '</div>' +
-          '<div class="sub">' + escapeHtml(String(agg.clientsLogged || 0)) + ' clients</div></div>' +
-          '<div class="admin-nutrition-stat"><div class="lbl">Avg kcal</div><div class="val" style="color:var(--bb-orange)">' + escapeHtml(String(agg.avgCalories || 0)) + '</div><div class="sub">per client</div></div>' +
-          '<div class="admin-nutrition-stat"><div class="lbl">Avg meal score</div><div class="val" style="color:var(--bb-purple)">' + escapeHtml(String(agg.avgMealScore != null ? agg.avgMealScore : '—')) + '</div><div class="sub">/10</div></div>' +
-          '<div class="admin-nutrition-stat"><div class="lbl">Avg energy diff</div><div class="val" style="color:' + ((agg.avgEnergyDiff || 0) >= 0 ? 'var(--bb-green)' : 'var(--bb-red)') + '">' +
-          escapeHtml(String((agg.avgEnergyDiff || 0) >= 0 ? '+' : '') + (agg.avgEnergyDiff || 0)) + '</div><div class="sub">burn − intake</div></div>';
+          '<div class="sub">' + escapeHtml(String(agg.clientsLogged || 0)) + ' clients</div></div>';
       }
       var clients = data.clients || [];
       if (!list) return;

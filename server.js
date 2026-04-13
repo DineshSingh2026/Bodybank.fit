@@ -535,6 +535,7 @@ async function initDB() {
     manual_note TEXT,
     portion_size TEXT DEFAULT 'medium',
     ai_result JSONB NOT NULL DEFAULT '{}'::jsonb,
+    photo_upload_count INTEGER DEFAULT 0,
     meal_score INTEGER,
     submitted_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     notified_at TIMESTAMPTZ
@@ -619,6 +620,11 @@ async function initDB() {
   }
   try {
     await pool.query(`ALTER TABLE nutrition_meal_logs ADD COLUMN IF NOT EXISTS ai_usage JSONB`);
+  } catch (e) {
+    /* ignore */
+  }
+  try {
+    await pool.query(`ALTER TABLE nutrition_meal_logs ADD COLUMN IF NOT EXISTS photo_upload_count INTEGER DEFAULT 0`);
   } catch (e) {
     /* ignore */
   }
