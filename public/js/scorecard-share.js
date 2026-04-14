@@ -920,6 +920,45 @@
     }, 4000);
   }
 
+  function blobToDataUrl(blob) {
+    return new Promise(function (resolve) {
+      if (!blob) return resolve('');
+      var fr = new FileReader();
+      fr.onload = function () { resolve(String(fr.result || '')); };
+      fr.onerror = function () { resolve(''); };
+      fr.readAsDataURL(blob);
+    });
+  }
+
+  async function shareScorecardToBodybankFeed(blob, aspect) {
+    var dataUrl = await blobToDataUrl(blob);
+    if (!dataUrl) throw new Error('Could not prepare image for feed upload.');
+    var username = '';
+    if (typeof window.bbResolveFeedPostingName === 'function') {
+      username = await window.bbResolveFeedPostingName({ promptIfMissing: true });
+    }
+    if (!username && typeof window.bbCurrentFeedUsername === 'function') {
+      username = window.bbCurrentFeedUsername();
+    }
+    if (!username) throw new Error('Set nickname first to share on BodyBank Feed.');
+    var d = window._bbScorecardCache || {};
+    var caption = 'My weekly BodyBank scorecard (' + (aspect === '9:16' ? 'Story' : 'Feed') + '). ' +
+      String(d.week_label || '').trim();
+    var resp = await fetch('/api/feed/upload', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageData: dataUrl, caption: caption.trim(), username: username })
+    });
+    var res = await resp.json().catch(function () { return {}; });
+    if (!resp.ok) throw new Error(res.error || 'Feed share failed.');
+    if (typeof window.showPopup === 'function') {
+      window.showPopup('Shared', 'Your scorecard was shared to BodyBank Feed.', '', 'OK', null, 'success');
+    }
+    if (typeof window.loadUserEliteFeedGrid === 'function') window.loadUserEliteFeedGrid();
+    if (typeof window.loadAdminEliteFeedGrid === 'function') window.loadAdminEliteFeedGrid();
+  }
+
   function closeScorecardShareFormatModal() {
     var m = document.getElementById('bbScoreShareFormatModal');
     if (!m) return;
@@ -1041,6 +1080,25 @@
           }
         } else {
           fallbackDownload(blob, fn);
+        }
+      };
+    }
+    var toFeed = document.getElementById('bbScoreShareToFeed');
+    if (toFeed) {
+      toFeed.onclick = async function () {
+        toFeed.disabled = true;
+        var old = toFeed.textContent;
+        toFeed.textContent = 'Sharing…';
+        try {
+          await shareScorecardToBodybankFeed(blob, aspect);
+          closeScorecardShareModal();
+        } catch (err) {
+          if (typeof showPopup === 'function') {
+            showPopup('Share', err && err.message ? err.message : 'Could not share to BodyBank Feed.', '', 'OK', null, 'error');
+          }
+        } finally {
+          toFeed.disabled = false;
+          toFeed.textContent = old;
         }
       };
     }

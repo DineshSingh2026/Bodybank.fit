@@ -6061,6 +6061,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <img id="bbScoreSharePreview" class="bb-score-share-preview" alt="" />
     </div>
     <div class="bb-score-share-actions">
+      <button type="button" class="form-submit" id="bbScoreShareToFeed" style="margin-top:0;background:linear-gradient(135deg,#d6b35a 0%,#c8a44e 50%,#a98a3c 100%);color:#090909;font-weight:700">Share to BodyBank Feed</button>
       <button type="button" class="form-submit" id="bbScoreShareNative">Open share menu</button>
       <button type="button" class="form-submit" id="bbScoreShareDownload" style="margin-top:0;background:transparent;border:1px solid rgba(200,164,78,0.45);color:var(--cream);font-weight:600">Save image</button>
     </div>
@@ -6399,6 +6400,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <canvas id="nutritionShareCardCanvas"></canvas>
       </div>
       <div class="elite-card-actions">
+        <button type="button" class="form-submit" onclick="shareNutritionToBodybankFeed()">Share to BodyBank Feed</button>
         <button type="button" class="form-submit" onclick="saveNutritionShareCard()">Save image</button>
         <button type="button" class="nav-login" style="padding:12px 24px" onclick="shareNutritionShareCard()">Share</button>
       </div>
@@ -13694,6 +13696,63 @@ async function shareNutritionShareCard() {
     }
   }
   await saveNutritionShareCard();
+}
+
+async function nutritionBlobToDataUrl(blob) {
+  if (!blob) return '';
+  return await new Promise(function (resolve) {
+    var fr = new FileReader();
+    fr.onload = function () { resolve(String(fr.result || '')); };
+    fr.onerror = function () { resolve(''); };
+    fr.readAsDataURL(blob);
+  });
+}
+
+async function shareNutritionToBodybankFeed() {
+  var blob = _nutritionShareCardBlob;
+  if (!blob) {
+    var meal = _nutritionShareCardMealType;
+    if (!meal) return;
+    blob = await drawNutritionShareCard(meal);
+  }
+  if (!blob) {
+    nutritionShowToast('Could not prepare image for feed.', 'error');
+    return;
+  }
+  var dataUrl = await nutritionBlobToDataUrl(blob);
+  if (!dataUrl) {
+    nutritionShowToast('Could not read image for feed upload.', 'error');
+    return;
+  }
+  var username = '';
+  if (typeof bbResolveFeedPostingName === 'function') {
+    username = await bbResolveFeedPostingName({ promptIfMissing: true });
+  }
+  if (!username && typeof bbCurrentFeedUsername === 'function') {
+    username = bbCurrentFeedUsername();
+  }
+  if (!username) {
+    nutritionShowToast('Set your nickname first, then share to feed.', 'warn');
+    return;
+  }
+  var mealTag = _nutritionShareCardMealType || 'meal';
+  var caption = 'My ' + mealTag + ' nutrition card from BodyBank X Fitchef.';
+  try {
+    var resp = await fetch('/api/feed/upload', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageData: dataUrl, caption: caption, username: username })
+    });
+    var data = await resp.json().catch(function () { return {}; });
+    if (!resp.ok) throw new Error(data.error || 'Feed share failed');
+    nutritionShowToast('Shared to BodyBank Feed.', 'success');
+    closeModal('nutritionShareCardModal');
+    if (typeof loadUserEliteFeedGrid === 'function') loadUserEliteFeedGrid();
+    if (typeof loadAdminEliteFeedGrid === 'function') loadAdminEliteFeedGrid();
+  } catch (e) {
+    nutritionShowToast(e.message || 'Could not share to feed.', 'error');
+  }
 }
 
 async function nutritionQuickShareFromMeal(mt) {
