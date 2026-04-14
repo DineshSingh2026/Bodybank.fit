@@ -571,6 +571,9 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .checkin-option-card .checkin-card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;color:var(--cream);text-transform:uppercase;margin:0}
 .checkin-option-card .checkin-card-desc{font-size:12px;color:var(--muted);line-height:1.45;margin:0}
 .checkin-sub .user-section-back{display:block!important;margin-bottom:16px}
+#usec-elitefeed .user-section-back{display:flex!important;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
+#usec-elitefeed .user-section-back .back-btn{display:inline-flex!important;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif}
+#usec-elitefeed .user-section-back .back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
 .checkin-sub .user-section-back .back-btn,.checkin-sub .checkin-back-bottom .back-btn{display:inline-flex!important;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
 .checkin-sub .user-section-back .back-btn:hover,.checkin-sub .checkin-back-bottom .back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
 .checkin-back-bottom{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06)}
@@ -4487,7 +4490,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 
     <!-- ELITE FEED (all community posts) — matches /dashboard.html Feed Studio layout -->
     <div class="user-section" id="usec-elitefeed">
-      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
+      <div class="user-section-back">
+        <button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button>
+        <button type="button" class="back-btn" onclick="backToWebsiteFromUserPanel()">← Back to website</button>
+      </div>
       <div class="bb-ef-studio">
         <div class="bb-ef-shell">
           <header class="bb-ef-header">
@@ -4898,7 +4904,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     </div>
     <div class="admin-tab-content" id="tab-elitefeed-section">
       <div class="admin-section-page">
-        <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
+        <div class="admin-section-back" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px">
+          <button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button>
+          <button type="button" class="admin-back-btn" onclick="backToWebsiteFromAdminPanel();return false">← Back to website</button>
+        </div>
         <div class="bb-ef-studio">
           <div class="bb-ef-shell">
             <header class="bb-ef-header">
@@ -11551,6 +11560,37 @@ function initUserWaFloat() {
     window.open('https://wa.me/919502575669', '_blank', 'noopener,noreferrer');
   };
   window.addEventListener('resize', refreshPos);
+}
+
+function backToWebsiteFromUserPanel() {
+  var userPanel = document.getElementById('userPanel');
+  var waFloat = document.getElementById('userWaFloat');
+  if (waFloat) waFloat.style.display = 'none';
+  if (userPanel) userPanel.classList.remove('open');
+  var bbFwFab = document.getElementById('bbFocusWheelFab');
+  if (bbFwFab) bbFwFab.style.display = 'none';
+  document.body.classList.remove('site-nav-hidden', 'user-dashboard-open');
+  unlockBodyScroll();
+  if (typeof switchUserTab === 'function') switchUserTab('home');
+  window.scrollTo(0, 0);
+  var hero = document.getElementById('hero');
+  if (hero && typeof hero.scrollIntoView === 'function') {
+    try { hero.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { hero.scrollIntoView(true); }
+  }
+}
+
+function backToWebsiteFromAdminPanel() {
+  if (typeof closeAdminNavDrawer === 'function') closeAdminNavDrawer();
+  if (typeof closeAdminAiAssistPanel === 'function') closeAdminAiAssistPanel();
+  var adminPanel = document.getElementById('adminPanel');
+  if (adminPanel) adminPanel.classList.remove('open');
+  document.body.classList.remove('site-nav-hidden', 'admin-dashboard-open');
+  unlockBodyScroll();
+  window.scrollTo(0, 0);
+  var hero = document.getElementById('hero');
+  if (hero && typeof hero.scrollIntoView === 'function') {
+    try { hero.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { hero.scrollIntoView(true); }
+  }
 }
 
 function logoutUser() {
