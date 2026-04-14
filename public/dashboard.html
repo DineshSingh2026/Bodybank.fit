@@ -11,56 +11,56 @@
 </head>
 <body>
   <div class="dash-back-bar">
-    <a href="/index.html#login" class="dash-back-link">← Back to website</a>
+    <a href="/index.html" class="dash-back-link" id="dashBackLink">← Back to dashboard</a>
   </div>
   <div class="dash-shell">
     <header class="dash-header">
       <div>
-        <h1>Welcome to BodyBank Elite Feed Studio</h1>
-        <p>Capture and publish your transformations.</p>
+        <h1>BodyBank Elite Feed Studio</h1>
+        <p>Create a post in 3 steps: choose photo, write caption, publish.</p>
       </div>
       <div class="dash-actions">
         <a class="brand-link" href="https://www.instagram.com/bodybank.fit/" target="_blank" rel="noopener noreferrer">BodyBank.fit</a>
-        <button id="captureNowTop" class="btn btn-accent" type="button">Capture Now</button>
+        <button id="captureNowTop" class="btn btn-accent" type="button">Open Camera</button>
       </div>
     </header>
 
     <section class="camera-panel card">
-      <h2>Camera Capture</h2>
+      <h2>Step 1: Choose Photo</h2>
       <div class="camera-wrap">
         <video id="cameraPreview" playsinline autoplay muted></video>
         <canvas id="captureCanvas" class="hidden"></canvas>
       </div>
       <div class="camera-controls">
         <button id="startCameraBtn" class="btn" type="button">Start Camera</button>
-        <button id="captureBtn" class="btn btn-accent" type="button">Capture</button>
-        <button id="uploadImageBtn" class="btn" type="button">Upload Photo</button>
+        <button id="captureBtn" class="btn btn-accent" type="button">Capture Photo</button>
+        <button id="uploadImageBtn" class="btn" type="button">Upload from Phone</button>
         <input id="imageUploadInput" type="file" accept="image/*" class="hidden" aria-label="Upload photo">
       </div>
     </section>
 
     <section class="post-panel card">
-      <h2>Preview & Post</h2>
+      <h2>Step 2: Caption and Publish</h2>
       <img id="postPreview" alt="Captured preview with BodyBank overlay" class="post-preview hidden" loading="lazy">
       <label for="captionInput">Caption</label>
-      <textarea id="captionInput" rows="3" maxlength="240" placeholder="Write a short transformation caption..."></textarea>
+      <textarea id="captionInput" rows="3" maxlength="240" placeholder="Write your caption (required before posting)..."></textarea>
       <div class="camera-controls">
-        <button id="retakeBtn" class="btn" type="button">Retake</button>
-        <button id="postBtn" class="btn btn-accent" type="button">Post</button>
+        <button id="retakeBtn" class="btn" type="button">Choose Another Photo</button>
+        <button id="postBtn" class="btn btn-accent" type="button">Publish Post</button>
       </div>
       <p id="postStatus" class="status-text"></p>
     </section>
 
     <section class="user-posts card">
       <div class="user-posts-head">
-        <h2>Your Posts</h2>
+        <h2>Step 3: Your Recent Posts</h2>
         <button id="refreshPostsBtn" class="btn btn-small" type="button">Refresh</button>
       </div>
       <div id="userPostsGrid" class="user-grid"></div>
     </section>
   </div>
 
-  <button class="capture-fab" id="captureFab" type="button" aria-label="Capture now">📸 Capture Now</button>
+  <button class="capture-fab" id="captureFab" type="button" aria-label="Open camera">Open Camera</button>
 
   <div id="loginWall" class="login-wall hidden">
     <div class="login-wall-card">

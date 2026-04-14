@@ -13,8 +13,20 @@
   var captionInput = document.getElementById('captionInput');
   var imageUploadInput = document.getElementById('imageUploadInput');
   var userPostsGrid = document.getElementById('userPostsGrid');
+  var dashBackLink = document.getElementById('dashBackLink');
   var stream = null;
   var capturedDataUrl = '';
+
+  // Keep users/admin inside app dashboard flow; avoid forcing login hash.
+  if (dashBackLink) {
+    if (session && (session.token || session.user || session.email || session.role)) {
+      dashBackLink.href = '/index.html';
+      dashBackLink.textContent = '← Back to dashboard';
+    } else {
+      dashBackLink.href = '/index.html#login';
+      dashBackLink.textContent = '← Back to website';
+    }
+  }
 
   function setStatus(text, tone) {
     postStatus.textContent = text || '';
@@ -171,7 +183,7 @@
       });
       var data = await resp.json();
       if (!resp.ok) throw new Error(data.error || 'Upload failed');
-      setStatus('Posted to BodyBank Elite Feed.', 'ok');
+      setStatus('Post published successfully.', 'ok');
       captionInput.value = '';
       await loadUserPosts();
     } catch (e) {
@@ -186,7 +198,7 @@
       var data = await resp.json();
       var posts = Array.isArray(data.posts) ? data.posts : [];
       if (!posts.length) {
-        userPostsGrid.innerHTML = '<p style="grid-column:1/-1;color:#ababab;margin:4px 0 0">No posts yet. Capture your first transformation.</p>';
+        userPostsGrid.innerHTML = '<p style="grid-column:1/-1;color:#ababab;margin:4px 0 0">No posts yet. Create your first post from above.</p>';
         return;
       }
       userPostsGrid.innerHTML = posts.slice(0, 18).map(function (p) {
