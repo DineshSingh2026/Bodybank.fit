@@ -28,10 +28,10 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/bodybank-feed-preview.css?v=20260414h">
+<link rel="stylesheet" href="/css/bodybank-feed-preview.css?v=20260414i">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/elite-feed-studio-inapp.css?v=20260414c">
-<script src="/js/bodybank-feed-preview.js?v=20260414f" defer></script>
+<script src="/js/bodybank-feed-preview.js?v=20260414i" defer></script>
 <style>
 :root{
   --black:#060606;--dark:#060606;--dark2:#060606;--dark3:#0a0a0a;
@@ -13024,17 +13024,28 @@ function nutritionDraftUserKey() {
   return String((window.currentUser && window.currentUser.id) || 'guest');
 }
 
-function nutritionDraftPurgeExpired(map) {
+function nutritionDraftPurgeOldDates(map) {
   var src = map || nutritionDraftReadAll();
   var now = Date.now();
+  var keepMs = 14 * 24 * 60 * 60 * 1000; // keep a short history; active restore is date-scoped
   var changed = false;
   Object.keys(src).forEach(function (uid) {
     var userMap = src[uid] || {};
-    Object.keys(userMap).forEach(function (mt) {
-      var row = userMap[mt];
-      var ts = Number(row && row.ts);
-      if (!ts || (now - ts) > (24 * 60 * 60 * 1000)) {
-        delete userMap[mt];
+    Object.keys(userMap).forEach(function (dateKey) {
+      var dayMap = userMap[dateKey];
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(dateKey)) {
+        delete userMap[dateKey];
+        changed = true;
+        return;
+      }
+      var ts = Date.parse(dateKey + 'T00:00:00Z');
+      if (!Number.isFinite(ts) || (now - ts) > keepMs) {
+        delete userMap[dateKey];
+        changed = true;
+        return;
+      }
+      if (!dayMap || !Object.keys(dayMap).length) {
+        delete userMap[dateKey];
         changed = true;
       }
     });
@@ -13049,28 +13060,32 @@ function nutritionDraftPurgeExpired(map) {
   return src;
 }
 
-function nutritionDraftSaveMealPhoto(mt, b64, mime) {
-  if (!mt || !b64) return;
-  var all = nutritionDraftPurgeExpired();
+function nutritionDraftSaveMealPhoto(mt, b64, mime, ymd) {
+  if (!mt || !b64 || !ymd) return;
+  var all = nutritionDraftPurgeOldDates();
   var uid = nutritionDraftUserKey();
   all[uid] = all[uid] || {};
-  all[uid][mt] = { b64: String(b64), mime: String(mime || 'image/jpeg'), ts: Date.now() };
+  all[uid][ymd] = all[uid][ymd] || {};
+  all[uid][ymd][mt] = { b64: String(b64), mime: String(mime || 'image/jpeg') };
   nutritionDraftWriteAll(all);
 }
 
-function nutritionDraftRemoveMealPhoto(mt) {
-  var all = nutritionDraftPurgeExpired();
+function nutritionDraftRemoveMealPhoto(mt, ymd) {
+  if (!mt || !ymd) return;
+  var all = nutritionDraftPurgeOldDates();
   var uid = nutritionDraftUserKey();
-  if (!all[uid] || !all[uid][mt]) return;
-  delete all[uid][mt];
+  if (!all[uid] || !all[uid][ymd] || !all[uid][ymd][mt]) return;
+  delete all[uid][ymd][mt];
+  if (!Object.keys(all[uid][ymd]).length) delete all[uid][ymd];
   if (!Object.keys(all[uid]).length) delete all[uid];
   nutritionDraftWriteAll(all);
 }
 
-function nutritionDraftLoadUserMeals() {
-  var all = nutritionDraftPurgeExpired();
+function nutritionDraftLoadUserMeals(ymd) {
+  if (!ymd) return {};
+  var all = nutritionDraftPurgeOldDates();
   var uid = nutritionDraftUserKey();
-  return (all && all[uid]) ? all[uid] : {};
+  return (all && all[uid] && all[uid][ymd]) ? all[uid][ymd] : {};
 }
 
 function nutritionApplyMealPhotoPreview(mt, b64, mime, canRemove) {
@@ -13263,7 +13278,7 @@ function nutritionHandleMealPhoto(ev, mt) {
     if (camIn) camIn.value = '';
     if (upIn) upIn.value = '';
     if (noteEl && typeof noteEl.focus === 'function') noteEl.focus();
-    nutritionDraftSaveMealPhoto(mt, base64, bbNutritionState.mimes[mt]);
+    nutritionDraftSaveMealPhoto(mt, base64, bbNutritionState.mimes[mt], nutritionTodayYmd());
     nutritionUpdateSubmitAllState();
   };
   reader.readAsDataURL(file);
@@ -13308,7 +13323,7 @@ function nutritionRemovePhoto(mt, opts) {
   if (slot) slot.classList.remove('uploading', 'analyzed', 'low-conf');
   nutritionSetBadge(mt, 'Not logged', '');
   nutritionSetPhotoRemovable(mt, true);
-  if (!opts.keepDraft) nutritionDraftRemoveMealPhoto(mt);
+  if (!opts.keepDraft) nutritionDraftRemoveMealPhoto(mt, nutritionTodayYmd());
   nutritionUpdateSubmitAllState();
 }
 
@@ -13932,7 +13947,7 @@ async function nutritionAnalyzeSingle(mt, opts) {
     else slot.classList.remove('low-conf');
   }
   nutritionSetPhotoRemovable(mt, false);
-  nutritionDraftRemoveMealPhoto(mt);
+  nutritionDraftRemoveMealPhoto(mt, nutritionTodayYmd());
   nutritionSetAnalyzeLocked(mt, true);
   if ((mc && mc.level === 'low') || conf === 'low') nutritionShowToast('Low confidence — consider a clearer photo', 'warn');
   else nutritionShowToast('Saved: ' + mt, 'success');
@@ -14004,7 +14019,7 @@ async function loadNutritionCheckinPanel() {
     if (resEl) { resEl.style.display = 'none'; resEl.innerHTML = ''; }
     nutritionSetPortion(mt, bbNutritionState.portions[mt] || 'medium');
   });
-  var draftMeals = nutritionDraftLoadUserMeals();
+  var draftMeals = nutritionDraftLoadUserMeals(ymd);
   bbNutritionMeals.forEach(function (mt) {
     var d = draftMeals && draftMeals[mt];
     if (!d || !d.b64) return;
@@ -14041,7 +14056,7 @@ async function loadNutritionCheckinPanel() {
     if (m.photo_data) {
       var mime = m.photo_mime || 'image/jpeg';
       nutritionApplyMealPhotoPreview(mt, m.photo_data, mime, !ar);
-      nutritionDraftRemoveMealPhoto(mt);
+      nutritionDraftRemoveMealPhoto(mt, ymd);
       nutritionSetPhotoRemovable(mt, !ar);
     }
   });
