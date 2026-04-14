@@ -5662,6 +5662,30 @@ app.post('/api/feed/upload', feedUpload ? feedUpload.single('image') : (req, _re
   }
 });
 
+app.post('/api/feed/delete', (req, res) => {
+  try {
+    const postId = String(req.body?.postId || '').trim();
+    const username = String(req.body?.username || '').trim().toLowerCase();
+    if (!postId) return res.status(400).json({ error: 'postId is required.' });
+    if (!username) return res.status(400).json({ error: 'username is required.' });
+
+    const posts = readFeedPosts();
+    const idx = posts.findIndex((p) => String(p.id || '') === postId);
+    if (idx < 0) return res.status(404).json({ error: 'Post not found.' });
+
+    const owner = String(posts[idx].username || '').trim().toLowerCase();
+    if (owner !== username) {
+      return res.status(403).json({ error: 'You can delete only your own posts.' });
+    }
+
+    const [removed] = posts.splice(idx, 1);
+    writeFeedPosts(posts);
+    return res.json({ ok: true, removedId: removed?.id || postId });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to delete post.' });
+  }
+});
+
 app.use((req, res) => {
   if (req.method === 'GET' && !req.path.startsWith('/api/')) {
     res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');

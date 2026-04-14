@@ -1,0 +1,78 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="760" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B0B0B"/>
+      <stop offset="1" stop-color="#050505"/>
+    </linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#D6B35A"/>
+      <stop offset="0.55" stop-color="#C8A44E"/>
+      <stop offset="1" stop-color="#A98A3C"/>
+    </linearGradient>
+    <linearGradient id="cardTop" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#1B1B1B"/>
+      <stop offset="1" stop-color="#101010"/>
+    </linearGradient>
+    <filter id="shadow" x="-40%" y="-40%" width="180%" height="220%">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#000000" flood-opacity="0.48"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="760" fill="url(#bg)"/>
+
+  <text x="600" y="92" text-anchor="middle" fill="#F3E3BF" font-size="54" font-family="Inter, Arial, sans-serif" font-weight="800">
+    BodyBank Elite Feed
+  </text>
+  <text x="600" y="132" text-anchor="middle" fill="#B9B2A2" font-size="24" font-family="Inter, Arial, sans-serif" font-weight="500">
+    Latest from our community
+  </text>
+
+  <!-- Left floating card -->
+  <g transform="translate(300 210) rotate(-6)" filter="url(#shadow)">
+    <rect width="250" height="380" rx="20" fill="url(#cardTop)" stroke="rgba(255,255,255,0.15)"/>
+    <circle cx="28" cy="30" r="14" fill="#111" stroke="#C8A44E" stroke-width="1.5"/>
+    <text x="52" y="28" fill="#F5F5F5" font-size="14" font-family="Inter, Arial, sans-serif" font-weight="700">@rajesh</text>
+    <text x="52" y="46" fill="#A8A8A8" font-size="12" font-family="Inter, Arial, sans-serif">1h</text>
+    <rect x="12" y="58" width="226" height="258" rx="14" fill="#0A0A0A"/>
+    <circle cx="125" cy="186" r="92" fill="#0D0D0D" stroke="#BDA15A" stroke-width="5"/>
+    <text x="125" y="198" text-anchor="middle" fill="#1FA244" font-size="44" letter-spacing="8" font-family="Inter, Arial, sans-serif" font-weight="800">FIT</text>
+    <text x="20" y="350" fill="#F2F2F2" font-size="14" font-family="Inter, Arial, sans-serif">d 124</text>
+    <text x="88" y="350" fill="#B8B8B8" font-size="14" font-family="Inter, Arial, sans-serif">=¬ 18</text>
+  </g>
+
+  <!-- Center hero card -->
+  <g transform="translate(475 165)" filter="url(#shadow)">
+    <rect width="250" height="390" rx="20" fill="url(#cardTop)" stroke="rgba(255,255,255,0.18)"/>
+    <circle cx="28" cy="30" r="14" fill="#111" stroke="#C8A44E" stroke-width="1.5"/>
+    <text x="52" y="28" fill="#F5F5F5" font-size="14" font-family="Inter, Arial, sans-serif" font-weight="700">@bodybank</text>
+    <text x="52" y="46" fill="#A8A8A8" font-size="12" font-family="Inter, Arial, sans-serif">56m</text>
+    <rect x="12" y="58" width="226" height="266" rx="14" fill="#0A0A0A"/>
+    <rect x="22" y="68" width="206" height="246" rx="12" fill="#1A1A1A"/>
+    <rect x="34" y="86" width="182" height="210" rx="10" fill="#111" stroke="#C8A44E" stroke-opacity="0.4"/>
+    <text x="125" y="200" text-anchor="middle" fill="#D6B35A" font-size="30" font-family="Inter, Arial, sans-serif" font-weight="700">BodyBank</text>
+    <text x="125" y="228" text-anchor="middle" fill="#F0F0F0" font-size="18" font-family="Inter, Arial, sans-serif">Transformation</text>
+    <text x="20" y="360" fill="#F2F2F2" font-size="14" font-family="Inter, Arial, sans-serif">d 207</text>
+    <text x="90" y="360" fill="#B8B8B8" font-size="14" font-family="Inter, Arial, sans-serif">=¬ 34</text>
+  </g>
+
+  <!-- Right floating card -->
+  <g transform="translate(650 210) rotate(6)" filter="url(#shadow)">
+    <rect width="250" height="380" rx="20" fill="url(#cardTop)" stroke="rgba(255,255,255,0.15)"/>
+    <circle cx="28" cy="30" r="14" fill="#111" stroke="#C8A44E" stroke-width="1.5"/>
+    <text x="52" y="28" fill="#F5F5F5" font-size="14" font-family="Inter, Arial, sans-serif" font-weight="700">@kanshika</text>
+    <text x="52" y="46" fill="#A8A8A8" font-size="12" font-family="Inter, Arial, sans-serif">2h</text>
+    <rect x="12" y="58" width="226" height="258" rx="14" fill="#0A0A0A"/>
+    <rect x="24" y="70" width="202" height="234" rx="12" fill="#101010"/>
+    <circle cx="125" cy="185" r="72" fill="#171717" stroke="#2BA850" stroke-width="5"/>
+    <text x="125" y="196" text-anchor="middle" fill="#2BA850" font-size="26" letter-spacing="6" font-family="Inter, Arial, sans-serif" font-weight="800">BB</text>
+    <text x="20" y="350" fill="#F2F2F2" font-size="14" font-family="Inter, Arial, sans-serif">d 98</text>
+    <text x="84" y="350" fill="#B8B8B8" font-size="14" font-family="Inter, Arial, sans-serif">=¬ 12</text>
+  </g>
+
+  <g transform="translate(510 634)">
+    <rect width="180" height="52" rx="26" fill="url(#gold)"/>
+    <text x="90" y="33" text-anchor="middle" fill="#090909" font-size="20" font-family="Inter, Arial, sans-serif" font-weight="800">
+      Explore Feed
+    </text>
+  </g>
+</svg>

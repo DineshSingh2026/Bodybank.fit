@@ -106,7 +106,7 @@ html, body { margin: 0; padding: 0; background: radial-gradient(1400px 900px at 
 .trend-item { border-radius: 12px; overflow: hidden; background: var(--surface); aspect-ratio: 1 / 1; box-shadow: 0 8px 20px rgba(0,0,0,.3); transform: translateY(8px); opacity: 0; animation: fadeUp .5s ease forwards; }
 .trend-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-.feed-list { width: min(100%, 760px); margin: 10px auto 100px; padding: 0 12px 20px; display: grid; gap: 14px; }
+.feed-list { width: min(100%, 680px); margin: 10px auto 100px; padding: 0 12px 20px; display: grid; gap: 12px; justify-items: center; }
 
 .feed-card {
   background: linear-gradient(160deg, rgba(255,255,255,.1), rgba(255,255,255,.03) 35%, rgba(255,255,255,.015));
@@ -118,6 +118,7 @@ html, body { margin: 0; padding: 0; background: radial-gradient(1400px 900px at 
   transform: translateY(14px);
   opacity: 0;
   transition: transform .35s ease, opacity .35s ease, box-shadow .3s ease;
+  width: min(100%, 520px);
 }
 .feed-card.in-view {
   transform: translateY(0);
@@ -136,6 +137,7 @@ html, body { margin: 0; padding: 0; background: radial-gradient(1400px 900px at 
   position: relative;
   width: 100%;
   aspect-ratio: 4 / 5;
+  max-height: 340px;
   overflow: hidden;
   background: #0a0a0a;
   touch-action: pan-y pinch-zoom;
@@ -217,6 +219,12 @@ html, body { margin: 0; padding: 0; background: radial-gradient(1400px 900px at 
 @media (min-width: 900px) {
   .trend-row { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .feed-list { padding: 0 0 24px; }
+}
+
+@media (max-width: 520px) {
+  .feed-image-wrap {
+    max-height: 280px;
+  }
 }
 
 @media (max-width: 560px) {
