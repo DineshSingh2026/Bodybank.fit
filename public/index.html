@@ -6787,13 +6787,31 @@ function scheduleEliteFeedNudge(){
     var now=Date.now();
     var prev=parseInt(localStorage.getItem(key)||'0',10);
     if (prev && (now - prev) < 24*60*60*1000) return;
-    setTimeout(function(){
-      if (window.currentUser) return;
+    var shown = false;
+    function tryOpenNudge(){
+      if (shown || window.currentUser) return;
       var openLayer=document.querySelector('.modal-overlay.open, .popup-overlay.show, .mm.open');
       if (openLayer) return;
+      shown = true;
       openEliteFeedNudge();
       localStorage.setItem(key, String(Date.now()));
-    }, 18000);
+    }
+    // Show right after the Transformations area by observing the next section.
+    var triggerSection = document.getElementById('bodybankFeedPreview') || document.getElementById('results');
+    if (triggerSection && 'IntersectionObserver' in window) {
+      var obs = new IntersectionObserver(function(entries){
+        entries.forEach(function(entry){
+          if (entry.isIntersecting) {
+            tryOpenNudge();
+            obs.disconnect();
+          }
+        });
+      }, { threshold: 0.3 });
+      obs.observe(triggerSection);
+    } else {
+      // Fallback for old browsers: keep a short delay.
+      setTimeout(tryOpenNudge, 2500);
+    }
   }catch(_){}
 }
 window.addEventListener('load', scheduleEliteFeedNudge);
