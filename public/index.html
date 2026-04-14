@@ -12996,6 +12996,7 @@ var bbNutritionState = {
   scores: {},
   goals: { cal: 2000, pro: 150 }
 };
+var BB_NUTRITION_DRAFT_KEY = 'bb_nutrition_meal_photo_drafts_v1';
 var bbNutritionGridReady = false;
 var adminNutritionWeekChartInst = null;
 var adminNutritionClientPhotoCache = {};
@@ -13009,6 +13010,87 @@ function nutritionTodayYmd() {
   } catch (e) {
     return new Date().toISOString().slice(0, 10);
   }
+}
+
+function nutritionDraftReadAll() {
+  try { return JSON.parse(localStorage.getItem(BB_NUTRITION_DRAFT_KEY) || '{}') || {}; } catch (_) { return {}; }
+}
+
+function nutritionDraftWriteAll(map) {
+  try { localStorage.setItem(BB_NUTRITION_DRAFT_KEY, JSON.stringify(map || {})); } catch (_) {}
+}
+
+function nutritionDraftUserKey() {
+  return String((window.currentUser && window.currentUser.id) || 'guest');
+}
+
+function nutritionDraftPurgeExpired(map) {
+  var src = map || nutritionDraftReadAll();
+  var now = Date.now();
+  var changed = false;
+  Object.keys(src).forEach(function (uid) {
+    var userMap = src[uid] || {};
+    Object.keys(userMap).forEach(function (mt) {
+      var row = userMap[mt];
+      var ts = Number(row && row.ts);
+      if (!ts || (now - ts) > (24 * 60 * 60 * 1000)) {
+        delete userMap[mt];
+        changed = true;
+      }
+    });
+    if (!Object.keys(userMap).length) {
+      delete src[uid];
+      changed = true;
+    } else {
+      src[uid] = userMap;
+    }
+  });
+  if (changed) nutritionDraftWriteAll(src);
+  return src;
+}
+
+function nutritionDraftSaveMealPhoto(mt, b64, mime) {
+  if (!mt || !b64) return;
+  var all = nutritionDraftPurgeExpired();
+  var uid = nutritionDraftUserKey();
+  all[uid] = all[uid] || {};
+  all[uid][mt] = { b64: String(b64), mime: String(mime || 'image/jpeg'), ts: Date.now() };
+  nutritionDraftWriteAll(all);
+}
+
+function nutritionDraftRemoveMealPhoto(mt) {
+  var all = nutritionDraftPurgeExpired();
+  var uid = nutritionDraftUserKey();
+  if (!all[uid] || !all[uid][mt]) return;
+  delete all[uid][mt];
+  if (!Object.keys(all[uid]).length) delete all[uid];
+  nutritionDraftWriteAll(all);
+}
+
+function nutritionDraftLoadUserMeals() {
+  var all = nutritionDraftPurgeExpired();
+  var uid = nutritionDraftUserKey();
+  return (all && all[uid]) ? all[uid] : {};
+}
+
+function nutritionApplyMealPhotoPreview(mt, b64, mime, canRemove) {
+  if (!mt || !b64) return;
+  bbNutritionState.photos[mt] = b64;
+  bbNutritionState.mimes[mt] = mime || 'image/jpeg';
+  var img = document.getElementById('previewImg-' + mt);
+  var prev = document.getElementById('preview-' + mt);
+  var up = document.getElementById('upload-' + mt);
+  var url = 'data:' + (mime || 'image/jpeg') + ';base64,' + b64;
+  if (img) img.src = url;
+  if (prev) prev.style.display = 'block';
+  if (up) up.style.display = 'none';
+  var man = document.getElementById('manual-' + mt);
+  var por = document.getElementById('portion-' + mt);
+  var act = document.getElementById('actions-' + mt);
+  if (man) man.style.display = 'block';
+  if (por) por.style.display = 'block';
+  if (act) act.style.display = 'block';
+  nutritionSetPhotoRemovable(mt, !!canRemove);
 }
 
 function bbParseNutritionAi(ar) {
@@ -13181,6 +13263,7 @@ function nutritionHandleMealPhoto(ev, mt) {
     if (camIn) camIn.value = '';
     if (upIn) upIn.value = '';
     if (noteEl && typeof noteEl.focus === 'function') noteEl.focus();
+    nutritionDraftSaveMealPhoto(mt, base64, bbNutritionState.mimes[mt]);
     nutritionUpdateSubmitAllState();
   };
   reader.readAsDataURL(file);
@@ -13199,7 +13282,8 @@ function nutritionSetPhotoRemovable(mt, canRemove) {
   btn.style.display = canRemove ? 'inline-block' : 'none';
 }
 
-function nutritionRemovePhoto(mt) {
+function nutritionRemovePhoto(mt, opts) {
+  opts = opts || {};
   if (bbNutritionState.results && bbNutritionState.results[mt]) {
     nutritionShowToast('Photo cannot be removed after analysis.', 'warn');
     return;
@@ -13224,6 +13308,7 @@ function nutritionRemovePhoto(mt) {
   if (slot) slot.classList.remove('uploading', 'analyzed', 'low-conf');
   nutritionSetBadge(mt, 'Not logged', '');
   nutritionSetPhotoRemovable(mt, true);
+  if (!opts.keepDraft) nutritionDraftRemoveMealPhoto(mt);
   nutritionUpdateSubmitAllState();
 }
 
@@ -13847,6 +13932,7 @@ async function nutritionAnalyzeSingle(mt, opts) {
     else slot.classList.remove('low-conf');
   }
   nutritionSetPhotoRemovable(mt, false);
+  nutritionDraftRemoveMealPhoto(mt);
   nutritionSetAnalyzeLocked(mt, true);
   if ((mc && mc.level === 'low') || conf === 'low') nutritionShowToast('Low confidence — consider a clearer photo', 'warn');
   else nutritionShowToast('Saved: ' + mt, 'success');
@@ -13908,7 +13994,7 @@ async function loadNutritionCheckinPanel() {
   bbNutritionState.scores = {};
   bbNutritionState.portions = { breakfast: 'medium', lunch: 'medium', snack: 'medium', dinner: 'medium' };
   bbNutritionMeals.forEach(function (mt) {
-    nutritionRemovePhoto(mt);
+    nutritionRemovePhoto(mt, { keepDraft: true });
     nutritionSetAnalyzeLocked(mt, false);
     var ne = document.getElementById('note-' + mt);
     if (ne) ne.value = '';
@@ -13917,6 +14003,15 @@ async function loadNutritionCheckinPanel() {
     var resEl = document.getElementById('result-' + mt);
     if (resEl) { resEl.style.display = 'none'; resEl.innerHTML = ''; }
     nutritionSetPortion(mt, bbNutritionState.portions[mt] || 'medium');
+  });
+  var draftMeals = nutritionDraftLoadUserMeals();
+  bbNutritionMeals.forEach(function (mt) {
+    var d = draftMeals && draftMeals[mt];
+    if (!d || !d.b64) return;
+    nutritionApplyMealPhotoPreview(mt, d.b64, d.mime || 'image/jpeg', true);
+    var slot = document.getElementById('mslot-' + mt);
+    if (slot) slot.classList.add('uploading');
+    nutritionSetBadge(mt, 'Photo ready', 'analyzing');
   });
   var meals = data.meals || [];
   meals.forEach(function (m) {
@@ -13945,19 +14040,8 @@ async function loadNutritionCheckinPanel() {
     if (m.portion_size) nutritionSetPortion(mt, m.portion_size);
     if (m.photo_data) {
       var mime = m.photo_mime || 'image/jpeg';
-      var url = 'data:' + mime + ';base64,' + m.photo_data;
-      bbNutritionState.photos[mt] = m.photo_data;
-      bbNutritionState.mimes[mt] = mime;
-      var img = document.getElementById('previewImg-' + mt);
-      var prev = document.getElementById('preview-' + mt);
-      var up = document.getElementById('upload-' + mt);
-      if (img) img.src = url;
-      if (prev) prev.style.display = 'block';
-      if (up) up.style.display = 'none';
-      var por = document.getElementById('portion-' + mt);
-      var act = document.getElementById('actions-' + mt);
-      if (por) por.style.display = 'block';
-      if (act) act.style.display = 'block';
+      nutritionApplyMealPhotoPreview(mt, m.photo_data, mime, !ar);
+      nutritionDraftRemoveMealPhoto(mt);
       nutritionSetPhotoRemovable(mt, !ar);
     }
   });
