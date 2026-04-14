@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BodyBank Dashboard Feed Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/dashboard.css">
+</head>
+<body>
+  <div class="dash-shell">
+    <header class="dash-header">
+      <div>
+        <h1>Welcome to BodyBank Elite Feed Studio</h1>
+        <p>Capture and publish your transformations.</p>
+      </div>
+      <div class="dash-actions">
+        <a class="brand-link" href="https://www.instagram.com/bodybank.fit/" target="_blank" rel="noopener noreferrer">BodyBank.fit</a>
+        <button id="captureNowTop" class="btn btn-accent" type="button">Capture Now</button>
+      </div>
+    </header>
+
+    <section class="camera-panel card">
+      <h2>Camera Capture</h2>
+      <div class="camera-wrap">
+        <video id="cameraPreview" playsinline autoplay muted></video>
+        <canvas id="captureCanvas" class="hidden"></canvas>
+      </div>
+      <div class="camera-controls">
+        <button id="startCameraBtn" class="btn" type="button">Start Camera</button>
+        <button id="captureBtn" class="btn btn-accent" type="button">Capture</button>
+      </div>
+    </section>
+
+    <section class="post-panel card">
+      <h2>Preview & Post</h2>
+      <img id="postPreview" alt="Captured preview with BodyBank overlay" class="post-preview hidden" loading="lazy">
+      <label for="captionInput">Caption</label>
+      <textarea id="captionInput" rows="3" maxlength="240" placeholder="Write a short transformation caption..."></textarea>
+      <div class="camera-controls">
+        <button id="retakeBtn" class="btn" type="button">Retake</button>
+        <button id="postBtn" class="btn btn-accent" type="button">Post</button>
+      </div>
+      <p id="postStatus" class="status-text"></p>
+    </section>
+
+    <section class="user-posts card">
+      <div class="user-posts-head">
+        <h2>Your Posts</h2>
+        <button id="refreshPostsBtn" class="btn btn-small" type="button">Refresh</button>
+      </div>
+      <div id="userPostsGrid" class="user-grid"></div>
+    </section>
+  </div>
+
+  <button class="capture-fab" id="captureFab" type="button" aria-label="Capture now">📸 Capture Now</button>
+
+  <div id="loginWall" class="login-wall hidden">
+    <div class="login-wall-card">
+      <h3>Member Access Required</h3>
+      <p>Please sign in through the main BodyBank website to continue to the Elite Feed Studio.</p>
+      <a href="/index.html" class="btn login-wall-cta">Go to Sign In</a>
+    </div>
+  </div>
+
+  <script src="/js/dashboard.js" defer></script>
+</body>
+</html>

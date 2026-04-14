@@ -1,0 +1,35 @@
+.bb-feed-preview-sec { background: #060606; padding: 26px 0 70px; }
+.bb-feed-preview-inner { width: min(1200px, 100% - 28px); margin: 0 auto; }
+.bb-feed-preview-head { text-align: center; margin-bottom: 18px; }
+.bb-feed-preview-title { margin: 0 0 6px; font-size: clamp(28px, 3.5vw, 42px); color: #f2ece0; font-weight: 700; }
+.bb-feed-preview-sub { margin: 0; color: #bfb9ab; font-size: 15px; }
+.bb-feed-preview-row {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(190px, 1fr);
+  gap: 12px;
+  overflow-x: auto;
+  padding: 4px 1px 8px;
+  scroll-snap-type: x mandatory;
+}
+.bb-feed-preview-row::-webkit-scrollbar { height: 6px; }
+.bb-feed-preview-row::-webkit-scrollbar-thumb { background: rgba(255,255,255,.2); border-radius: 99px; }
+.bb-feed-preview-card {
+  background: #111;
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 14px;
+  overflow: hidden;
+  scroll-snap-align: start;
+}
+.bb-feed-preview-card img { width: 100%; aspect-ratio: 4/5; display: block; object-fit: cover; background: #090909; }
+.bb-feed-preview-meta { padding: 8px 10px; color: #f2ece0; font-size: 13px; }
+.bb-feed-preview-actions { display: flex; justify-content: center; margin-top: 20px; }
+.bb-feed-preview-btn {
+  background: linear-gradient(135deg, #d6b35a 0%, #c8a44e 50%, #a98a3c 100%);
+  color: #090909;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 999px;
+  padding: 11px 20px;
+  box-shadow: 0 12px 22px rgba(200,164,78,.35);
+}

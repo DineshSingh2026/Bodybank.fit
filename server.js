@@ -7,6 +7,12 @@ const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
 const path = require('path');
 const fs = require('fs');
+let multer = null;
+try {
+  multer = require('multer');
+} catch (_) {
+  multer = null;
+}
 const webPush = require('web-push');
 const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken } = require('./middleware/auth');
 const { safeExtraHttpHeaders, optionalApiAccessLog } = require('./middleware/safeSecurityLayers');
@@ -58,6 +64,8 @@ const SMTP_USER = (process.env.SMTP_USER || '').trim();
 const SMTP_PASS = (process.env.SMTP_PASS || '').trim();
 const SMTP_FROM = (process.env.SMTP_FROM || 'BodyBank <noreply@bodybank.fit>').trim();
 const CAMPAIGNS_ENABLED = String(process.env.CAMPAIGNS_ENABLED || 'false').trim().toLowerCase() === 'true';
+const FEED_POSTS_FILE = path.join(__dirname, 'posts.json');
+const FEED_UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 async function safeRestartCampaignScheduler(logPrefix) {
   if (!CAMPAIGNS_ENABLED) return;
@@ -228,6 +236,52 @@ function validateProfilePicture(profilePicture) {
   if (!bytes) return 'Could not process this image.';
   if (bytes > 5 * 1024 * 1024) return 'Profile photo must be 5 MB or smaller.';
   return null;
+}
+
+function ensureFeedStorage() {
+  if (!fs.existsSync(FEED_UPLOADS_DIR)) fs.mkdirSync(FEED_UPLOADS_DIR, { recursive: true });
+  if (!fs.existsSync(FEED_POSTS_FILE)) fs.writeFileSync(FEED_POSTS_FILE, '[]', 'utf8');
+}
+
+function readFeedPosts() {
+  try {
+    ensureFeedStorage();
+    const raw = fs.readFileSync(FEED_POSTS_FILE, 'utf8');
+    const list = JSON.parse(raw);
+    if (!Array.isArray(list)) return [];
+    return list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  } catch (e) {
+    console.warn('[feed] Failed reading posts.json:', e.message);
+    return [];
+  }
+}
+
+function writeFeedPosts(posts) {
+  ensureFeedStorage();
+  fs.writeFileSync(FEED_POSTS_FILE, JSON.stringify(posts, null, 2), 'utf8');
+}
+
+async function saveFeedImageFromDataUrl(dataUrl) {
+  const match = String(dataUrl || '').match(/^data:image\/(png|jpe?g|webp);base64,(.+)$/i);
+  if (!match) throw new Error('Provide a valid PNG/JPEG/WEBP base64 image.');
+  ensureFeedStorage();
+  const ext = match[1].toLowerCase().replace('jpeg', 'jpg');
+  const base64 = match[2];
+  const fileName = `feed-${Date.now()}-${Math.floor(Math.random() * 1e6)}.${ext}`;
+  const outPath = path.join(FEED_UPLOADS_DIR, fileName);
+  const buf = Buffer.from(base64, 'base64');
+  fs.writeFileSync(outPath, buf);
+  return `/uploads/${fileName}`;
+}
+
+async function saveFeedImageFromBuffer(buffer, originalName) {
+  ensureFeedStorage();
+  const ext = String(path.extname(originalName || '') || '.jpg').toLowerCase().replace('.jpeg', '.jpg');
+  const safeExt = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext) ? ext : '.jpg';
+  const fileName = `feed-${Date.now()}-${Math.floor(Math.random() * 1e6)}${safeExt}`;
+  const outPath = path.join(FEED_UPLOADS_DIR, fileName);
+  fs.writeFileSync(outPath, buffer);
+  return `/uploads/${fileName}`;
 }
 
 async function syncUserCountryAndTimezone(userId, email) {
@@ -5530,6 +5584,81 @@ app.get('/api/programs', async (req, res) => {
     res.json(rows);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+const feedUpload = multer
+  ? multer({
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 8 * 1024 * 1024 }
+    })
+  : null;
+
+app.use('/uploads', express.static(FEED_UPLOADS_DIR, {
+  maxAge: NODE_ENV === 'production' ? '7d' : 0
+}));
+
+app.get('/api/feed/posts', (req, res) => {
+  try {
+    const limitRaw = parseInt(req.query.limit, 10);
+    const offsetRaw = parseInt(req.query.offset, 10);
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 24) : 10;
+    const offset = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
+    const posts = readFeedPosts();
+    const page = posts.slice(offset, offset + limit);
+    return res.json({
+      posts: page,
+      hasMore: offset + limit < posts.length,
+      total: posts.length
+    });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load feed posts.' });
+  }
+});
+
+app.get('/api/feed/user-posts', (req, res) => {
+  try {
+    const username = String(req.query.username || '').trim().toLowerCase();
+    const all = readFeedPosts();
+    const posts = username
+      ? all.filter((p) => String(p.username || '').toLowerCase() === username)
+      : all;
+    return res.json({ posts });
+  } catch (e) {
+    return res.status(500).json({ error: 'Failed to load user posts.' });
+  }
+});
+
+app.post('/api/feed/upload', feedUpload ? feedUpload.single('image') : (req, _res, next) => next(), async (req, res) => {
+  try {
+    const caption = String(req.body?.caption || '').trim().slice(0, 240);
+    const username = String(req.body?.username || 'bodybank_member').trim().slice(0, 32) || 'bodybank_member';
+    let imageUrl = '';
+
+    if (req.file && req.file.buffer && req.file.buffer.length) {
+      imageUrl = await saveFeedImageFromBuffer(req.file.buffer, req.file.originalname);
+    } else if (req.body && req.body.imageData) {
+      imageUrl = await saveFeedImageFromDataUrl(req.body.imageData);
+    } else {
+      return res.status(400).json({ error: 'Image is required (multipart "image" or base64 imageData).' });
+    }
+
+    const posts = readFeedPosts();
+    const createdAt = new Date().toISOString();
+    const post = {
+      id: uuidv4(),
+      imageUrl,
+      likes: Math.floor(Math.random() * 70) + 12,
+      caption: caption || 'BodyBank.fit transformation in progress.',
+      username,
+      featured: String(req.body?.featured || '') === '1',
+      createdAt
+    };
+    posts.unshift(post);
+    writeFeedPosts(posts);
+    return res.status(201).json({ ok: true, post, imageUrl });
+  } catch (e) {
+    return res.status(500).json({ error: e.message || 'Upload failed.' });
   }
 });
 

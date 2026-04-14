@@ -1,0 +1,110 @@
+[
+  {
+    "id": "e824652b-c21b-4662-af0a-db35be78dbd8",
+    "imageUrl": "/uploads/feed-1776136258396-789044.png",
+    "likes": 59,
+    "caption": "Local API smoke test post",
+    "username": "qa.local",
+    "featured": false,
+    "createdAt": "2026-04-14T03:10:58.397Z"
+  },
+  {
+    "id": "dummy-1776135951272",
+    "imageUrl": "/img/transformations/IMG_5958.jpeg",
+    "likes": 60,
+    "caption": "Week 3 check-in: stronger and leaner.",
+    "username": "member.raj",
+    "featured": true,
+    "createdAt": "2026-04-14T03:05:51.272Z"
+  },
+  {
+    "id": "dummy-1776135951273",
+    "imageUrl": "/img/transformations/IMG_5959.jpeg",
+    "likes": 71,
+    "caption": "From inconsistency to structure with BodyBank.fit.",
+    "username": "member.kiara",
+    "featured": false,
+    "createdAt": "2026-04-14T02:05:51.272Z"
+  },
+  {
+    "id": "dummy-1776135951274",
+    "imageUrl": "/img/transformations/IMG_5962.jpeg",
+    "likes": 82,
+    "caption": "Protein, training, sleep - locked in.",
+    "username": "member.vik",
+    "featured": true,
+    "createdAt": "2026-04-14T01:05:51.272Z"
+  },
+  {
+    "id": "dummy-1776135951275",
+    "imageUrl": "/img/transformations/IMG_5970.jpeg",
+    "likes": 93,
+    "caption": "No shortcuts, only habits that stay.",
+    "username": "member.ana",
+    "featured": false,
+    "createdAt": "2026-04-14T00:05:51.272Z"
+  },
+  {
+    "id": "dummy-1776135951276",
+    "imageUrl": "/img/transformations/IMG_5940.jpeg",
+    "likes": 104,
+    "caption": "Transformation phase active.",
+    "username": "member.dev",
+    "featured": true,
+    "createdAt": "2026-04-13T23:05:51.272Z"
+  },
+  {
+    "id": "seed-1",
+    "imageUrl": "/img/transformations/6095797176152821202.jpg",
+    "likes": 182,
+    "caption": "Started strong and stayed consistent with BodyBank.fit.",
+    "username": "bodybank",
+    "featured": true,
+    "createdAt": "2026-04-10T09:30:00.000Z"
+  },
+  {
+    "id": "seed-2",
+    "imageUrl": "/img/transformations/IMG_5949.jpeg",
+    "likes": 165,
+    "caption": "Lifestyle > temporary diet. Results that stick.",
+    "username": "bodybank",
+    "featured": false,
+    "createdAt": "2026-04-09T07:45:00.000Z"
+  },
+  {
+    "id": "seed-3",
+    "imageUrl": "/img/transformations/IMG_5952.jpeg",
+    "likes": 149,
+    "caption": "Mindset upgraded. Body followed.",
+    "username": "bodybank",
+    "featured": false,
+    "createdAt": "2026-04-08T08:10:00.000Z"
+  },
+  {
+    "id": "seed-4",
+    "imageUrl": "/img/transformations/IMG_5954.jpeg",
+    "likes": 131,
+    "caption": "Building the fit identity one day at a time.",
+    "username": "bodybank",
+    "featured": false,
+    "createdAt": "2026-04-07T12:20:00.000Z"
+  },
+  {
+    "id": "seed-5",
+    "imageUrl": "/img/transformations/IMG_5956.jpeg",
+    "likes": 124,
+    "caption": "No crash plans. Only sustainable progress.",
+    "username": "bodybank",
+    "featured": false,
+    "createdAt": "2026-04-06T14:00:00.000Z"
+  },
+  {
+    "id": "seed-6",
+    "imageUrl": "/img/transformations/IMG_5961.webp",
+    "likes": 118,
+    "caption": "Transformation is now a lifestyle.",
+    "username": "bodybank",
+    "featured": true,
+    "createdAt": "2026-04-05T16:35:00.000Z"
+  }
+]

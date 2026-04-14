@@ -28,6 +28,8 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&family=Syne:wght@400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/bodybank-feed-preview.css">
+<script src="/js/bodybank-feed-preview.js" defer></script>
 <style>
 :root{
   --black:#060606;--dark:#060606;--dark2:#060606;--dark3:#0a0a0a;
@@ -314,6 +316,19 @@ body.site-nav-hidden nav#nv{display:none !important}
 /* MODAL OVERLAY */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:10030;align-items:center;justify-content:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-sizing:border-box}
 .modal-overlay.open{display:flex}
+.elite-feed-nudge-overlay{display:none;position:fixed;inset:0;z-index:10045;background:rgba(0,0,0,0.78);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))}
+.elite-feed-nudge-overlay.open{display:flex}
+.elite-feed-nudge-card{position:relative;width:min(92vw,520px);border-radius:18px;border:1px solid rgba(200,164,78,0.35);background:linear-gradient(165deg,rgba(17,17,17,0.98),rgba(8,8,8,0.96));box-shadow:0 16px 44px rgba(0,0,0,0.45);padding:22px 20px 18px;text-align:left}
+.elite-feed-nudge-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);color:#fff;font-size:22px;line-height:1;cursor:pointer}
+.elite-feed-nudge-kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:700}
+.elite-feed-nudge-kicker img{width:22px;height:22px;object-fit:contain}
+.elite-feed-nudge-title{margin:12px 0 8px;font-size:30px;line-height:1.15;color:var(--cream);font-family:'Syne',system-ui,sans-serif;font-weight:700}
+.elite-feed-nudge-msg{margin:0;color:#d1c7b3;font-size:15px;line-height:1.55}
+.elite-feed-nudge-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
+.elite-feed-nudge-btn{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:10px 16px;font-weight:700;font-size:13px;text-decoration:none;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease}
+.elite-feed-nudge-btn:hover{transform:translateY(-1px)}
+.elite-feed-nudge-btn.primary{background:linear-gradient(135deg,#d6b35a 0%,#c8a44e 50%,#a98a3c 100%);color:#090909;border:0;box-shadow:0 10px 20px rgba(200,164,78,.34)}
+.elite-feed-nudge-btn.ghost{background:transparent;color:var(--cream);border:1px solid rgba(255,255,255,0.22)}
 .modal{background:var(--dark2);border:1.5px solid var(--gold);border-radius:20px;padding:44px 40px;max-width:440px;width:100%;position:relative;max-height:90vh;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:auto;box-sizing:border-box;flex-shrink:0}
 .modal-close{position:absolute;top:max(16px,env(safe-area-inset-top));right:max(20px,env(safe-area-inset-right));background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:grid;place-items:center;border-radius:8px;transition:background .2s;-webkit-tap-highlight-color:transparent}
 .modal-close:hover,.modal-close:focus{background:rgba(200,164,78,0.1);outline:none}
@@ -2899,7 +2914,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .user-section-back{display:none}
 .user-panel .back-btn{display:none}
 .user-bottom-nav{display:none!important;position:fixed!important;top:auto!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;min-width:100%;max-width:100vw;min-height:70px;height:calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)));padding:0 0 max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)) 0;background:#0d0d0d;border-top:1px solid rgba(200,164,78,0.15);border-radius:0;z-index:9999;box-shadow:none;flex-shrink:0;margin:0;box-sizing:border-box}
-.user-bottom-nav-inner{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;width:100%;height:100%;min-width:0;padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px));column-gap:2px;box-sizing:border-box;overflow:hidden}
+.user-bottom-nav-inner{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:stretch;width:100%;height:100%;min-width:0;padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px));column-gap:2px;box-sizing:border-box;overflow:hidden}
 .user-bottom-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;width:100%;min-width:0;min-height:56px;padding:10px 4px;background:none;border:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.3px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;position:relative;box-sizing:border-box;overflow:hidden}
 .user-bottom-nav-item:hover,.user-bottom-nav-item:focus{color:var(--cream);outline:none}
 .user-bottom-nav-item.active{color:var(--gold)}
@@ -3878,6 +3893,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <a class="user-sidebar-link" href="#" data-tab="programs" onclick="switchUserTab('programs');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127919;</span>My Programs</a>
         <a class="user-sidebar-link" href="#" data-tab="checkin" onclick="switchUserTab('checkin');return false"><span class="user-sidebar-icon" aria-hidden="true">&#10003;</span>Check-in</a>
         <a class="user-sidebar-link" href="#" data-tab="messages" onclick="switchUserTab('messages');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
+        <a class="user-sidebar-link" href="/dashboard.html"><span class="user-sidebar-icon" aria-hidden="true">&#128248;</span>Elite Feed</a>
         <a class="user-sidebar-link" href="#" data-tab="profile" onclick="switchUserTab('profile');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128100;</span>My Profile</a>
         <a class="user-sidebar-link" href="#" data-tab="contact" onclick="switchUserTab('contact');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9993;</span>Contact Us</a>
       </nav>
@@ -4029,6 +4045,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('programs');return false"><span class="btn-icon">📋</span>Programs</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('checkin');return false"><span class="btn-icon">✅</span>Check-in</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('messages');return false"><span class="btn-icon">💬</span>Messages</a>
+          <a class="bb-quick-btn" href="/dashboard.html"><span class="btn-icon">📸</span>Elite Feed</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('contact');return false"><span class="btn-icon">📅</span>Schedule Call</a>
         </div>
         <section class="my-health-reports" id="myHealthReportsSectionDesktop" aria-label="My health reports (desktop)" style="margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
@@ -4521,6 +4538,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <button type="button" class="user-bottom-nav-item" data-tab="messages" onclick="switchUserTab('messages')" aria-label="Messages">
         <span class="user-bottom-nav-icon" aria-hidden="true">&#128172;</span>
         <span class="user-bottom-nav-label">Messages</span>
+      </button>
+      <button type="button" class="user-bottom-nav-item" onclick="openEliteFeedDashboard()" aria-label="Elite Feed">
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#128248;</span>
+        <span class="user-bottom-nav-label">Elite Feed</span>
       </button>
     </div>
   </nav>
@@ -6104,6 +6125,19 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   </div>
 </div>
 
+<div class="elite-feed-nudge-overlay" id="eliteFeedNudgeModal" onclick="if(event.target===this)closeEliteFeedNudge()">
+  <div class="elite-feed-nudge-card" role="dialog" aria-modal="true" aria-labelledby="eliteFeedNudgeTitle">
+    <button type="button" class="elite-feed-nudge-close" aria-label="Close" onclick="closeEliteFeedNudge()">×</button>
+    <span class="elite-feed-nudge-kicker"><img src="/img/Bodybank logo.png" alt="">BodyBank Elite Feed</span>
+    <h3 class="elite-feed-nudge-title" id="eliteFeedNudgeTitle">See Real Member Results in One Feed</h3>
+    <p class="elite-feed-nudge-msg">Explore transformation posts from our community. Open the Elite Feed now, or continue browsing the website and check it anytime.</p>
+    <div class="elite-feed-nudge-actions">
+      <a href="/feed.html" class="elite-feed-nudge-btn primary">Explore Elite Feed</a>
+      <button type="button" class="elite-feed-nudge-btn ghost" onclick="closeEliteFeedNudge()">Continue Browsing</button>
+    </div>
+  </div>
+</div>
+
 
 <!-- SIGNUP MODAL -->
 <div class="modal-overlay" id="signupModal" onclick="if(event.target===this)closeModal('signupModal')">
@@ -6525,6 +6559,19 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   </div>
 </section>
 
+<section class="bb-feed-preview-sec" id="bodybankFeedPreview">
+  <div class="bb-feed-preview-inner">
+    <div class="bb-feed-preview-head">
+      <h2 class="bb-feed-preview-title">BodyBank Elite Feed</h2>
+      <p class="bb-feed-preview-sub">From Our Community · <a href="https://www.instagram.com/bodybank.fit/" target="_blank" rel="noopener noreferrer" style="color:#fff;text-decoration:none;font-weight:600">BodyBank.fit</a></p>
+    </div>
+    <div class="bb-feed-preview-row" id="bbFeedPreviewRow" aria-live="polite"></div>
+    <div class="bb-feed-preview-actions">
+      <a href="/feed.html" class="bb-feed-preview-btn">Explore Feed</a>
+    </div>
+  </div>
+</section>
+
 <!-- FAQ -->
 <section class="sec" id="faq">
   <div class="si">
@@ -6574,6 +6621,42 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 <script>
 /* Nav stays fixed with same size at all scroll positions - no scroll class applied */
 function toggleFaq(e){const o=e.classList.contains('op');document.querySelectorAll('.fi').forEach(i=>i.classList.remove('op'));if(!o)e.classList.add('op')}
+
+function openEliteFeedDashboard(){
+  window.location.href='/dashboard.html';
+}
+function closeEliteFeedNudge(){
+  var modal = document.getElementById('eliteFeedNudgeModal');
+  if (!modal) return;
+  modal.classList.remove('open');
+  unlockBodyScroll();
+}
+function openEliteFeedNudge(){
+  var modal = document.getElementById('eliteFeedNudgeModal');
+  if (!modal) return;
+  modal.classList.add('open');
+  lockBodyScroll();
+}
+function scheduleEliteFeedNudge(){
+  try{
+    if (window.currentUser) return;
+    var userPanel = document.getElementById('userPanel');
+    var adminPanel = document.getElementById('adminPanel');
+    if ((userPanel && userPanel.classList.contains('open')) || (adminPanel && adminPanel.classList.contains('open'))) return;
+    var key='bb_elite_feed_nudge_last_seen_at';
+    var now=Date.now();
+    var prev=parseInt(localStorage.getItem(key)||'0',10);
+    if (prev && (now - prev) < 24*60*60*1000) return;
+    setTimeout(function(){
+      if (window.currentUser) return;
+      var openLayer=document.querySelector('.modal-overlay.open, .popup-overlay.show, .mm.open');
+      if (openLayer) return;
+      openEliteFeedNudge();
+      localStorage.setItem(key, String(Date.now()));
+    }, 18000);
+  }catch(_){}
+}
+window.addEventListener('load', scheduleEliteFeedNudge);
 
 var _scrollLockCount=0,_savedScrollY=0;
 function lockBodyScroll(){
@@ -16242,10 +16325,16 @@ window.addEventListener('resize', applySafeAreaFix);
     height:calc(78px + env(safe-area-inset-bottom,0px)) !important;
     padding-bottom:env(safe-area-inset-bottom,0px) !important;
   }
-  html.android-mobile .admin-bottom-nav-inner,
-  html.android-mobile .user-bottom-nav-inner{
+  html.android-mobile .admin-bottom-nav-inner{
     display:grid !important;
     grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+    justify-content:initial !important;
+    padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px)) !important;
+    column-gap:2px !important;
+  }
+  html.android-mobile .user-bottom-nav-inner{
+    display:grid !important;
+    grid-template-columns:repeat(6,minmax(0,1fr)) !important;
     justify-content:initial !important;
     padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px)) !important;
     column-gap:2px !important;

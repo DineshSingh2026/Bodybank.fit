@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BodyBank Elite Feed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/feed.css">
+</head>
+<body>
+  <header class="feed-top">
+    <div class="feed-top-left">
+      <img class="feed-top-logo" src="/img/Bodybank logo.png" alt="BodyBank logo" loading="lazy">
+      <div class="feed-top-copy">
+        <h1>BodyBank Elite Feed</h1>
+        <p>Real Member Transformations</p>
+      </div>
+    </div>
+    <a class="feed-brand-link" href="https://www.instagram.com/bodybank.fit/" target="_blank" rel="noopener noreferrer">BodyBank.fit</a>
+  </header>
+
+  <section class="feed-pills" aria-label="Feed tags">
+    <span class="feed-pill active">Reels Style</span>
+    <span class="feed-pill">Featured</span>
+    <span class="feed-pill">Transformations</span>
+    <span class="feed-pill">Trending</span>
+  </section>
+
+  <section class="feed-trending" id="feedTrending">
+    <div class="trend-title">Trending Posts</div>
+    <div class="trend-row" id="trendRow"></div>
+  </section>
+
+  <main class="feed-list" id="feedList" aria-live="polite"></main>
+  <div id="feedSkeleton" class="feed-skeleton"></div>
+  <div id="feedEnd" class="feed-end hidden">You have reached the latest posts.</div>
+
+  <a class="feed-cta" href="/dashboard.html">Login to Post</a>
+
+  <script src="/js/feed.js" defer></script>
+</body>
+</html>
