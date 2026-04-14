@@ -698,6 +698,8 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-section-back{display:flex;align-items:center;margin-bottom:10px;width:100%}
 .admin-section-back .admin-back-btn{display:inline-flex;align-items:center;gap:6px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;transition:all .2s;min-height:40px}
 .admin-section-back .admin-back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
+.admin-section-back .admin-back-btn.admin-back-btn-gold{background:var(--goldg);border-color:transparent;color:var(--black);font-weight:700}
+.admin-section-back .admin-back-btn.admin-back-btn-gold:hover{background:var(--goldg);opacity:.95;border-color:transparent}
 /* Admin home - premium luxury styling */
 .admin-home-hero{margin-bottom:28px;padding:0 2px;border-bottom:1px solid rgba(200,164,78,0.12);padding-bottom:20px}
 .admin-home-hero h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(28px,5vw,38px);letter-spacing:4px;color:var(--cream);margin-bottom:12px;text-transform:uppercase;background:linear-gradient(135deg,#f2ece0 0%,#c8a44e 50%,#bfb9ab 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.2}
@@ -4496,25 +4498,24 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       </div>
       <div class="bb-ef-studio">
         <div class="bb-ef-shell">
-          <header class="bb-ef-header">
+          <header class="bb-ef-header bb-uf-header">
             <div>
-              <h1>Welcome to BodyBank Elite Feed Studio</h1>
-              <p>Capture and publish your transformations — browse every community post below. Same feed as the public page.</p>
+              <h1>BodyBank Elite Feed</h1>
+              <p>Latest posts from the community.</p>
             </div>
             <div class="bb-ef-actions">
               <a class="bb-ef-brand-link" href="https://www.instagram.com/bodybank.fit/" target="_blank" rel="noopener noreferrer">BodyBank.fit</a>
-              <a class="bb-ef-btn bb-ef-btn-accent" href="/dashboard.html">📸 Capture Now</a>
+              <a class="bb-ef-btn bb-ef-btn-accent" href="/dashboard.html">📸 Post Now</a>
             </div>
           </header>
-          <section class="bb-ef-card" aria-labelledby="bb-ef-all-posts-title">
+          <section class="bb-ef-card bb-uf-card-shell" aria-labelledby="bb-ef-all-posts-title">
             <div class="bb-ef-posts-head">
               <h2 id="bb-ef-all-posts-title">All posts</h2>
               <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadUserEliteFeedGrid()">Refresh</button>
             </div>
-            <div id="userEliteFeedGrid" class="bb-ef-grid"></div>
+            <div id="userEliteFeedGrid" class="bb-uf-feed-list"></div>
             <p id="userEliteFeedEmpty" class="bb-ef-status bb-ef-empty" role="status">No posts yet. Open the posting studio to share the first one.</p>
           </section>
-          <p class="bb-ef-status bb-ef-foot"><a href="/feed.html" class="bb-ef-muted-link">Open public feed page →</a></p>
         </div>
       </div>
     </div>
@@ -4853,6 +4854,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <a class="bb-quick-btn" href="#" onclick="switchTab('tribe');return false"><span class="btn-icon">👥</span>Client Board</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('requests');return false"><span class="btn-icon">📋</span>Audit Forms</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('dailycheckin');return false"><span class="btn-icon">📅</span>Daily Check-ins</a>
+          <a class="bb-quick-btn" href="#" onclick="switchToSection('elitefeed');return false"><span class="btn-icon">📸</span>Elite Feed</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('leaderboard');return false"><span class="btn-icon">🏆</span>Leader Board</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('nutrition');return false"><span class="btn-icon">🥗</span>Nutrition AI</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('blood');return false"><span class="btn-icon">🩺</span>Blood Reports</a>
@@ -4880,6 +4882,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <a class="admin-qa-btn" href="#" onclick="switchTab('workouts');return false"><span class="admin-qa-icon">&#127939;</span>Workouts</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('tribe');return false"><span class="admin-qa-icon">&#128101;</span>Client Board</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="admin-qa-icon">&#128209;</span>Audits</a>
+            <a class="admin-qa-btn" href="#" onclick="switchToSection('elitefeed');return false"><span class="admin-qa-icon">&#128248;</span>Elite Feed</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('programs');return false"><span class="admin-qa-icon">&#127919;</span>Programs</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('leaderboard');return false"><span class="admin-qa-icon">🏆</span>Leader board</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('nutrition');return false"><span class="admin-qa-icon">🥗</span>Nutrition report</a>
@@ -4906,14 +4909,13 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="admin-section-page">
         <div class="admin-section-back" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px">
           <button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button>
-          <button type="button" class="admin-back-btn" onclick="backToWebsiteFromAdminPanel();return false">← Back to website</button>
+          <button type="button" class="admin-back-btn admin-back-btn-gold" onclick="backToWebsiteFromAdminPanel();return false">← Back to website</button>
         </div>
         <div class="bb-ef-studio">
           <div class="bb-ef-shell">
             <header class="bb-ef-header">
               <div>
                 <h1>Welcome to BodyBank Elite Feed Studio</h1>
-                <p>All community posts — same data as the member app and public feed. Use the studio to capture new posts.</p>
               </div>
               <div class="bb-ef-actions">
                 <a class="bb-ef-brand-link" href="https://www.instagram.com/bodybank.fit/" target="_blank" rel="noopener noreferrer">BodyBank.fit</a>
@@ -6710,6 +6712,114 @@ function bbEliteFeedCardHtml(p){
   try { if (p.createdAt) dt = new Date(p.createdAt).toLocaleString(); } catch (_) {}
   return '<article class="bb-ef-tile-wrap"><div class="bb-ef-tile"><img src="'+bbEscapeHtml(img)+'" alt="" loading="lazy" decoding="async"></div><div class="bb-ef-tile-meta"><div class="bb-ef-tile-user">@'+un+'</div><div class="bb-ef-tile-cap">'+cap+'</div><div class="bb-ef-tile-date">'+bbEscapeHtml(dt)+'</div></div></article>';
 }
+var BB_USER_FEED_LIKES_KEY = 'bb_user_feed_likes_v1';
+var BB_USER_FEED_COMMENTS_KEY = 'bb_user_feed_comments_v1';
+var _bbUserFeedPostsCache = [];
+function bbUserFeedLikedMap(){
+  try { return JSON.parse(localStorage.getItem(BB_USER_FEED_LIKES_KEY) || '{}'); } catch (_) { return {}; }
+}
+function bbUserFeedCommentsMap(){
+  try { return JSON.parse(localStorage.getItem(BB_USER_FEED_COMMENTS_KEY) || '{}'); } catch (_) { return {}; }
+}
+function bbUserFeedSaveLikes(map){
+  try { localStorage.setItem(BB_USER_FEED_LIKES_KEY, JSON.stringify(map || {})); } catch (_) {}
+}
+function bbUserFeedSaveComments(map){
+  try { localStorage.setItem(BB_USER_FEED_COMMENTS_KEY, JSON.stringify(map || {})); } catch (_) {}
+}
+function bbUserFeedRelativeTime(iso){
+  var t = new Date(iso).getTime();
+  if (!t) return 'now';
+  var d = Math.max(1, Math.floor((Date.now() - t) / 1000));
+  if (d < 60) return d + 's';
+  if (d < 3600) return Math.floor(d / 60) + 'm';
+  if (d < 86400) return Math.floor(d / 3600) + 'h';
+  return Math.floor(d / 86400) + 'd';
+}
+function bbUserFeedCardHtml(p){
+  var rawUrl = String(p.imageUrl || '').trim();
+  var img = rawUrl.replace(/^http:\/\//i,'https://');
+  if (!img) img = '/img/logo.png';
+  var cap = bbEscapeHtml(String(p.caption || '').slice(0, 320));
+  var postId = String(p.id || '');
+  var user = bbEscapeHtml(String(p.username || 'bodybank').replace(/[^\w.]/g, '').toLowerCase() || 'bodybank');
+  var liked = !!bbUserFeedLikedMap()[postId];
+  var likes = Number(p.likes || 0) + (liked ? 1 : 0);
+  var commentsMap = bbUserFeedCommentsMap();
+  var comments = Array.isArray(commentsMap[postId]) ? commentsMap[postId] : [];
+  var commentsHtml = '';
+  if (comments.length) {
+    var latest = comments.slice(-2);
+    commentsHtml = latest.map(function(c){
+      return '<div class="bb-uf-comment-item">' + bbEscapeHtml(String(c || '').slice(0, 120)) + '</div>';
+    }).join('');
+  }
+  return ''
+    + '<article class="bb-uf-post" data-post-id="' + bbEscapeHtml(postId) + '">'
+    +   '<div class="bb-uf-post-top">'
+    +     '<div class="bb-uf-post-user">'
+    +       '<img class="bb-uf-post-avatar" src="/img/logo.png" alt="" loading="lazy">'
+    +       '<div><div class="bb-uf-post-name">' + user + '</div><div class="bb-uf-post-time">' + bbEscapeHtml(bbUserFeedRelativeTime(p.createdAt)) + '</div></div>'
+    +     '</div>'
+    +   '</div>'
+    +   '<div class="bb-uf-post-img-wrap"><img class="bb-uf-post-img" src="' + bbEscapeHtml(img) + '" alt="BodyBank post" loading="lazy" decoding="async"></div>'
+    +   '<div class="bb-uf-post-actions">'
+    +     '<button type="button" class="bb-uf-action-btn js-uf-like ' + (liked ? 'is-liked' : '') + '" aria-label="Like post">❤</button>'
+    +     '<button type="button" class="bb-uf-action-btn js-uf-comment" aria-label="Comment on post">💬</button>'
+    +   '</div>'
+    +   '<div class="bb-uf-post-meta">'
+    +     '<div class="bb-uf-likes"><span>' + likes + '</span> likes</div>'
+    +     '<div class="bb-uf-caption"><strong>' + user + '</strong> ' + cap + '</div>'
+    +     '<div class="bb-uf-comments">' + (comments.length ? (comments.length + ' comments') : 'No comments yet') + commentsHtml + '</div>'
+    +   '</div>'
+    + '</article>';
+}
+function bbRenderUserFeed(posts){
+  var grid = document.getElementById('userEliteFeedGrid');
+  var empty = document.getElementById('userEliteFeedEmpty');
+  if (!grid) return;
+  _bbUserFeedPostsCache = Array.isArray(posts) ? posts.slice() : [];
+  if (!_bbUserFeedPostsCache.length) {
+    grid.innerHTML = '';
+    if (empty) empty.classList.add('is-visible');
+    return;
+  }
+  grid.innerHTML = _bbUserFeedPostsCache.map(bbUserFeedCardHtml).join('');
+  if (empty) empty.classList.remove('is-visible');
+}
+function bbBindUserFeedActions(){
+  var grid = document.getElementById('userEliteFeedGrid');
+  if (!grid || grid._bbBound) return;
+  grid._bbBound = true;
+  grid.addEventListener('click', function(e){
+    var likeBtn = e.target && e.target.closest ? e.target.closest('.js-uf-like') : null;
+    var commentBtn = e.target && e.target.closest ? e.target.closest('.js-uf-comment') : null;
+    if (!likeBtn && !commentBtn) return;
+    var postEl = e.target.closest('.bb-uf-post');
+    if (!postEl) return;
+    var id = String(postEl.getAttribute('data-post-id') || '');
+    if (!id) return;
+    if (likeBtn) {
+      var likes = bbUserFeedLikedMap();
+      likes[id] = !likes[id];
+      bbUserFeedSaveLikes(likes);
+      bbRenderUserFeed(_bbUserFeedPostsCache);
+      return;
+    }
+    if (commentBtn) {
+      var txt = window.prompt('Add a comment');
+      if (!txt) return;
+      var clean = String(txt).trim();
+      if (!clean) return;
+      var map = bbUserFeedCommentsMap();
+      var arr = Array.isArray(map[id]) ? map[id] : [];
+      arr.push(clean.slice(0, 120));
+      map[id] = arr.slice(-50);
+      bbUserFeedSaveComments(map);
+      bbRenderUserFeed(_bbUserFeedPostsCache);
+    }
+  });
+}
 async function bbFetchAllFeedPosts(){
   var all = [];
   var offset = 0;
@@ -6729,17 +6839,12 @@ async function loadUserEliteFeedGrid(){
   var grid = document.getElementById('userEliteFeedGrid');
   var empty = document.getElementById('userEliteFeedEmpty');
   if (!grid) return;
+  bbBindUserFeedActions();
   grid.innerHTML = '<p class="bb-ef-status" style="grid-column:1/-1;padding:20px">Loading…</p>';
   if (empty) empty.classList.remove('is-visible');
   try {
     var posts = await bbFetchAllFeedPosts();
-    if (!posts.length) {
-      grid.innerHTML = '';
-      if (empty) empty.classList.add('is-visible');
-      return;
-    }
-    grid.innerHTML = posts.map(bbEliteFeedCardHtml).join('');
-    if (empty) empty.classList.remove('is-visible');
+    bbRenderUserFeed(posts);
   } catch (e) {
     grid.innerHTML = '<p class="bb-ef-status" style="grid-column:1/-1;padding:20px">Could not load the feed. Try Refresh.</p>';
     if (empty) empty.classList.remove('is-visible');
