@@ -6640,7 +6640,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <div class="bb-fp-top">
           <img class="bb-fp-avatar" src="/img/Bodybank%20logo.png" alt="BodyBank">
           <div>
-            <div class="bb-fp-name">Ramesh</div>
+            <div class="bb-fp-name">Kanshika Mittal</div>
             <div class="bb-fp-time">2h</div>
           </div>
         </div>
@@ -6657,13 +6657,13 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <img class="bb-fp-avatar" src="/img/Bodybank%20logo.png" alt="BodyBank">
           <div>
             <div class="bb-fp-name">Idris</div>
-            <div class="bb-fp-time">1h</div>
+            <div class="bb-fp-time">4h</div>
           </div>
         </div>
-        <div class="bb-fp-img bb-fp-img--2"></div>
+        <div class="bb-fp-img bb-fp-img--3"></div>
         <div class="bb-fp-meta">
-          <span class="bb-fp-like"><span class="bb-fp-like-icon">❤</span> <span class="bb-fp-like-count">314</span></span>
-          <span class="bb-fp-comment">💬 47</span>
+          <span class="bb-fp-like"><span class="bb-fp-like-icon">❤</span> <span class="bb-fp-like-count">684</span></span>
+          <span class="bb-fp-comment">💬 286</span>
         </div>
       </article>
 
@@ -6672,14 +6672,14 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <div class="bb-fp-top">
           <img class="bb-fp-avatar" src="/img/Bodybank%20logo.png" alt="BodyBank">
           <div>
-            <div class="bb-fp-name">Sahiti</div>
-            <div class="bb-fp-time">4h</div>
+            <div class="bb-fp-name">Suresh Kumar</div>
+            <div class="bb-fp-time">1h</div>
           </div>
         </div>
-        <div class="bb-fp-img bb-fp-img--3"></div>
+        <div class="bb-fp-img bb-fp-img--2"></div>
         <div class="bb-fp-meta">
-          <span class="bb-fp-like"><span class="bb-fp-like-icon">❤</span> <span class="bb-fp-like-count">98</span></span>
-          <span class="bb-fp-comment">💬 14</span>
+          <span class="bb-fp-like"><span class="bb-fp-like-icon">❤</span> <span class="bb-fp-like-count">314</span></span>
+          <span class="bb-fp-comment">💬 47</span>
         </div>
       </article>
     </div>
@@ -6796,17 +6796,25 @@ function bbEscapeHtml(s){
   if (s == null || s === '') return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
+function bbNormalizeFeedName(s){
+  return String(s || '').trim().toLowerCase().replace(/[^\w]/g, '');
+}
 function bbCurrentFeedUsername(){
   var session = null;
   try { session = JSON.parse(localStorage.getItem('bodybank_session') || 'null'); } catch(_){}
   var role = String((session && (session.role || (session.user && session.user.role))) || '').toLowerCase();
-  var base = String((session && (session.user && session.user.username)) || (session && session.first_name) || (session && session.email) || 'member');
+  if (role !== 'admin' && role !== 'superadmin') {
+    var savedNick = '';
+    try { savedNick = String(localStorage.getItem('bb_feed_post_nickname') || '').trim(); } catch (_) {}
+    if (savedNick) return savedNick.slice(0, 32);
+  }
+  var base = String((session && (session.user && session.user.username)) || (session && session.first_name) || (session && session.email) || 'Member');
   if (role === 'admin' || role === 'superadmin') base = 'admin.' + base;
-  return base.trim().toLowerCase().replace(/[^\w.]/g,'') || 'member';
+  return String(base).trim().slice(0, 32) || 'Member';
 }
 function bbCanManageFeedPost(p){
-  var mine = bbCurrentFeedUsername();
-  var owner = String((p && p.username) || '').trim().toLowerCase().replace(/[^\w.]/g, '');
+  var mine = bbNormalizeFeedName(bbCurrentFeedUsername());
+  var owner = bbNormalizeFeedName((p && p.username) || '');
   return !!owner && owner === mine;
 }
 function bbEliteFeedCardHtml(p){
@@ -6852,7 +6860,7 @@ function bbUserFeedCardHtml(p){
   if (!img) img = '/img/logo.png';
   var cap = bbEscapeHtml(String(p.caption || '').slice(0, 320));
   var postId = String(p.id || '');
-  var user = bbEscapeHtml(String(p.username || 'bodybank').replace(/[^\w.]/g, '').toLowerCase() || 'bodybank');
+  var user = bbEscapeHtml(String(p.username || 'BodyBank').trim().slice(0, 32) || 'BodyBank');
   var liked = !!bbUserFeedLikedMap()[postId];
   var canDelete = bbCanManageFeedPost(p);
   var likes = Number(p.likes || 0) + (liked ? 1 : 0);
@@ -7055,6 +7063,43 @@ async function loadAdminEliteFeedGrid(){
    Quick Post Sheet
    ============================== */
 var _bbPS = { stream: null, dataUrl: '' };
+var _bbFeedPostNicknameCache = null;
+
+async function bbResolveFeedPostingName(opts) {
+  var options = opts || {};
+  var session = null;
+  try { session = JSON.parse(localStorage.getItem('bodybank_session') || 'null'); } catch(_){}
+  var role = String((session && (session.role || (session.user && session.user.role))) || '').toLowerCase();
+  if (role === 'admin' || role === 'superadmin') {
+    return bbCurrentFeedUsername();
+  }
+  if (_bbFeedPostNicknameCache) return _bbFeedPostNicknameCache;
+  try {
+    var score = await apiCall('GET', '/api/me/scorecard');
+    var nick = String((score && score.display_name) || '').trim();
+    if (nick) {
+      _bbFeedPostNicknameCache = nick.slice(0, 32);
+      try { localStorage.setItem('bb_feed_post_nickname', _bbFeedPostNicknameCache); } catch (_) {}
+      return _bbFeedPostNicknameCache;
+    }
+  } catch (_) {}
+  if (options.promptIfMissing) {
+    window._bbPendingFeedPostStart = true;
+    showPopup(
+      'Enable scorecard nickname',
+      'To post in Elite Feed without showing your real name, enable Scorecard nickname first.',
+      'Not now',
+      'Set nickname',
+      function () {
+        openLeaderboardOptInModal();
+        var btn = document.getElementById('leaderboardOptInSubmit');
+        if (btn) btn.textContent = 'Save nickname & start 1st post';
+      },
+      'error'
+    );
+  }
+  return '';
+}
 
 function openBbPostSheet() {
   var overlay = document.getElementById('bbPostSheetOverlay');
@@ -7171,7 +7216,12 @@ async function bbPostSheetSubmit() {
   if (btn) { btn.disabled = true; btn.textContent = 'Posting…'; }
   _bbPSSetStatus('');
   try {
-    var username = bbCurrentFeedUsername();
+    var username = await bbResolveFeedPostingName({ promptIfMissing: true });
+    if (!username) {
+      _bbPSSetStatus('Set your scorecard nickname first, then post.');
+      if (btn) { btn.disabled = false; btn.textContent = 'Publish'; }
+      return;
+    }
     var resp = await fetch('/api/feed/upload', {
       method: 'POST',
       credentials: 'same-origin',
@@ -12584,7 +12634,17 @@ async function submitLeaderboardNickname() {
     return;
   }
   closeModal('leaderboardOptInModal');
-  showPopup('Saved', 'You will appear on the leaderboard as “' + raw + '”.', '', 'OK', null, 'success');
+  _bbFeedPostNicknameCache = raw.slice(0, 32);
+  try { localStorage.setItem('bb_feed_post_nickname', _bbFeedPostNicknameCache); } catch (_) {}
+  var fromFeed = !!window._bbPendingFeedPostStart;
+  window._bbPendingFeedPostStart = false;
+  var btn = document.getElementById('leaderboardOptInSubmit');
+  if (btn) btn.textContent = 'Save & appear on leaderboard';
+  if (fromFeed) {
+    showPopup('Nickname saved', 'Perfect. Nickname saved — start your first post now.', '', 'Start posting', function(){ openBbPostSheet(); }, 'success');
+  } else {
+    showPopup('Saved', 'You will appear on the leaderboard as “' + raw + '”.', '', 'OK', null, 'success');
+  }
   loadScorecard();
 }
 

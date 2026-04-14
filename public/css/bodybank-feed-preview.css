@@ -114,18 +114,22 @@
   background-position: center;
 }
 .bb-fp-img--1 {
-  background: linear-gradient(
-    160deg,
-    #0d0d0d 0%, #1a1a1a 30%,
-    #1c1408 55%, #2a1e04 75%, #0d0d0d 100%
-  );
+  background:
+    radial-gradient(ellipse at 50% 60%, rgba(200,164,78,.24) 0%, rgba(200,164,78,.02) 62%, transparent 74%),
+    url('/img/tribe%20card%20kanshika.png') center / contain no-repeat,
+    linear-gradient(
+      160deg,
+      #0d0d0d 0%, #1a1a1a 30%,
+      #1c1408 55%, #2a1e04 75%, #0d0d0d 100%
+    );
   position: relative;
+  padding: 8px;
 }
 .bb-fp-img--1::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 60%, rgba(200,164,78,.22) 0%, transparent 68%);
+  background: radial-gradient(ellipse at 50% 60%, rgba(0,0,0,.18) 0%, transparent 70%);
 }
 
 .bb-fp-img--2 {
@@ -135,6 +139,11 @@
     #1a1408 50%, #231b06 70%, #050505 100%
   );
   position: relative;
+  background:
+    radial-gradient(ellipse at 50% 58%, rgba(200,164,78,.18) 0%, rgba(200,164,78,.03) 64%, transparent 76%),
+    url('/img/score%20card.jpeg') center / contain no-repeat,
+    linear-gradient(145deg, #050505 0%, #111 25%, #1a1408 50%, #231b06 70%, #050505 100%);
+  padding: 8px;
 }
 .bb-fp-img--2::after {
   content: '';
@@ -143,7 +152,7 @@
   background: radial-gradient(ellipse at 48% 52%, rgba(200,164,78,.32) 0%, transparent 60%);
 }
 .bb-fp-img--2::before {
-  content: 'BodyBank';
+  content: '';
   position: absolute;
   bottom: 18px;
   left: 50%;
@@ -157,18 +166,18 @@
 }
 
 .bb-fp-img--3 {
-  background: linear-gradient(
-    155deg,
-    #0b0b0b 0%, #171717 30%,
-    #151109 55%, #1e1806 75%, #0b0b0b 100%
-  );
+  background:
+    radial-gradient(ellipse at 50% 58%, rgba(200,164,78,.18) 0%, rgba(200,164,78,.03) 64%, transparent 76%),
+    url('/img/Idris.jpeg') center / contain no-repeat,
+    linear-gradient(155deg, #0b0b0b 0%, #171717 30%, #151109 55%, #1e1806 75%, #0b0b0b 100%);
   position: relative;
+  padding: 8px;
 }
 .bb-fp-img--3::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse at 50% 55%, rgba(200,164,78,.18) 0%, transparent 65%);
+  background: radial-gradient(ellipse at 50% 55%, rgba(0,0,0,.15) 0%, transparent 68%);
 }
 
 /* Card meta */

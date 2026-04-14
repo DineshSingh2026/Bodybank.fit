@@ -16,6 +16,7 @@
   var dashBackLink = document.getElementById('dashBackLink');
   var stream = null;
   var capturedDataUrl = '';
+  var feedNicknameCache = '';
 
   // Keep users/admin inside app dashboard flow; avoid forcing login hash.
   if (dashBackLink) {
@@ -39,10 +40,32 @@
     if (role === 'admin' || role === 'superadmin') {
       base = 'admin.' + base;
     }
-    return String(base)
-      .trim()
-      .toLowerCase()
-      .replace(/[^\w.]/g, '') || 'bodybank_member';
+    return String(base).trim().slice(0, 32) || 'bodybank_member';
+  }
+  async function resolvePostingName() {
+    var role = String(session?.role || session?.user?.role || '').toLowerCase();
+    if (role === 'admin' || role === 'superadmin') return currentUsername();
+    if (!feedNicknameCache) {
+      try { feedNicknameCache = String(localStorage.getItem('bb_feed_post_nickname') || '').trim().slice(0, 32); } catch (_) {}
+    }
+    if (feedNicknameCache) return feedNicknameCache;
+    var token = String(session?.token || session?.user?.token || '');
+    if (!token) return '';
+    try {
+      var resp = await fetch('/api/me/scorecard', {
+        headers: { Authorization: 'Bearer ' + token }
+      });
+      var data = await resp.json().catch(function () { return {}; });
+      if (resp.ok) {
+        var nick = String(data?.display_name || '').trim().slice(0, 32);
+        if (nick) {
+          feedNicknameCache = nick;
+          try { localStorage.setItem('bb_feed_post_nickname', nick); } catch (_) {}
+          return nick;
+        }
+      }
+    } catch (_) {}
+    return '';
   }
 
   async function startCamera() {
@@ -172,13 +195,20 @@
     }
     setStatus('Posting...', 'default');
     try {
+      var postingName = await resolvePostingName();
+      if (!postingName) {
+        setStatus('Enable scorecard nickname first, then post.', 'error');
+        var goSetup = window.confirm('Set your scorecard nickname first so your real name is not shown. Open dashboard setup now?');
+        if (goSetup) window.location.href = '/index.html';
+        return;
+      }
       var resp = await fetch('/api/feed/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageData: capturedDataUrl,
           caption: caption,
-          username: currentUsername()
+          username: postingName
         })
       });
       var data = await resp.json();
@@ -194,7 +224,9 @@
   async function loadUserPosts() {
     userPostsGrid.innerHTML = '';
     try {
-      var resp = await fetch('/api/feed/user-posts?username=' + encodeURIComponent(currentUsername()));
+      var nameForPosts = await resolvePostingName();
+      if (!nameForPosts) nameForPosts = currentUsername();
+      var resp = await fetch('/api/feed/user-posts?username=' + encodeURIComponent(nameForPosts));
       var data = await resp.json();
       var posts = Array.isArray(data.posts) ? data.posts : [];
       if (!posts.length) {

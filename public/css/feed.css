@@ -14,10 +14,10 @@ html, body { margin: 0; padding: 0; background: radial-gradient(1400px 900px at 
   position: sticky;
   top: 0;
   z-index: 20;
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  gap: 14px;
   padding: 18px 16px 14px;
   background: rgba(9, 9, 9, 0.62);
   backdrop-filter: blur(16px) saturate(130%);
@@ -49,10 +49,10 @@ html, body { margin: 0; padding: 0; background: radial-gradient(1400px 900px at 
   margin: 0;
   font-size: clamp(18px, 4.2vw, 34px);
   font-weight: 800;
-  line-height: 1.1;
-  white-space: nowrap;
+  line-height: 1.15;
+  white-space: normal;
   overflow: hidden;
-  text-overflow: ellipsis;
+  text-overflow: clip;
 }
 .feed-top p {
   margin: 6px 0 0;
@@ -73,7 +73,16 @@ html, body { margin: 0; padding: 0; background: radial-gradient(1400px 900px at 
   padding: 9px 14px;
   background: rgba(255, 255, 255, 0.06);
   flex: 0 0 auto;
-  margin-left: auto;
+  margin-left: 0;
+}
+
+.feed-top-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
 }
 
 .feed-pills {
@@ -229,14 +238,23 @@ html, body { margin: 0; padding: 0; background: radial-gradient(1400px 900px at 
 
 @media (max-width: 560px) {
   .feed-top {
-    align-items: center;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+    gap: 10px;
   }
   .feed-top-logo {
     width: 36px;
     height: 36px;
     margin-top: 0;
   }
-  .feed-top h1 { font-size: 28px; }
+  .feed-top h1 {
+    font-size: 26px;
+    line-height: 1.12;
+  }
+  .feed-top-actions {
+    justify-content: flex-start;
+    width: 100%;
+  }
   .feed-brand-link {
     margin-top: 0;
     padding: 8px 11px;
@@ -246,7 +264,7 @@ html, body { margin: 0; padding: 0; background: radial-gradient(1400px 900px at 
 }
 
 @media (max-width: 420px) {
-  .feed-top h1 { font-size: 24px; }
+  .feed-top h1 { font-size: 22px; }
   .feed-top-logo { width: 32px; height: 32px; }
   .feed-brand-link { padding: 7px 10px; font-size: 11px; }
 }
