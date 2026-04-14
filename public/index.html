@@ -572,8 +572,8 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .checkin-option-card .checkin-card-desc{font-size:12px;color:var(--muted);line-height:1.45;margin:0}
 .checkin-sub .user-section-back{display:block!important;margin-bottom:16px}
 #usec-elitefeed .user-section-back{display:flex!important;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
-#usec-elitefeed .user-section-back .back-btn{display:inline-flex!important;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif}
-#usec-elitefeed .user-section-back .back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
+#usec-elitefeed .user-section-back .back-btn{display:inline-flex!important;align-items:center;gap:6px;padding:8px 14px;background:var(--goldg);border:1px solid transparent;color:var(--black);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif}
+#usec-elitefeed .user-section-back .back-btn:hover{opacity:.95}
 .checkin-sub .user-section-back .back-btn,.checkin-sub .checkin-back-bottom .back-btn{display:inline-flex!important;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
 .checkin-sub .user-section-back .back-btn:hover,.checkin-sub .checkin-back-bottom .back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
 .checkin-back-bottom{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06)}
@@ -4494,7 +4494,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <div class="user-section" id="usec-elitefeed">
       <div class="user-section-back">
         <button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button>
-        <button type="button" class="back-btn" onclick="backToWebsiteFromUserPanel()">← Back to website</button>
       </div>
       <div class="bb-ef-studio">
         <div class="bb-ef-shell">
@@ -4505,7 +4504,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             </div>
             <div class="bb-ef-actions">
               <a class="bb-ef-brand-link" href="https://www.instagram.com/bodybank.fit/" target="_blank" rel="noopener noreferrer">BodyBank.fit</a>
-              <a class="bb-ef-btn bb-ef-btn-accent" href="/dashboard.html">📸 Post Now</a>
+              <a class="bb-ef-btn bb-ef-btn-accent" href="/dashboard.html">Post Now</a>
             </div>
           </header>
           <section class="bb-ef-card bb-uf-card-shell" aria-labelledby="bb-ef-all-posts-title">
@@ -4908,18 +4907,18 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <div class="admin-tab-content" id="tab-elitefeed-section">
       <div class="admin-section-page">
         <div class="admin-section-back" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px">
-          <button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button>
-          <button type="button" class="admin-back-btn admin-back-btn-gold" onclick="backToWebsiteFromAdminPanel();return false">← Back to website</button>
+          <button type="button" class="admin-back-btn admin-back-btn-gold" onclick="switchToSection('dashboard');return false">← Back</button>
         </div>
         <div class="bb-ef-studio">
           <div class="bb-ef-shell">
-            <header class="bb-ef-header">
+            <header class="bb-ef-header bb-af-header">
               <div>
-                <h1>Welcome to BodyBank Elite Feed Studio</h1>
+                <h1>BodyBank Elite Feed</h1>
+                <p>All posts in one place.</p>
               </div>
               <div class="bb-ef-actions">
                 <a class="bb-ef-brand-link" href="https://www.instagram.com/bodybank.fit/" target="_blank" rel="noopener noreferrer">BodyBank.fit</a>
-                <a class="bb-ef-btn bb-ef-btn-accent" href="/dashboard.html">📸 Capture Now</a>
+                <a class="bb-ef-btn bb-ef-btn-accent" href="/dashboard.html">Post Now</a>
               </div>
             </header>
             <section class="bb-ef-card" aria-labelledby="bb-ef-admin-all-posts">
@@ -4930,7 +4929,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               <div id="adminEliteFeedGrid" class="bb-ef-grid"></div>
               <p id="adminEliteFeedEmpty" class="bb-ef-status bb-ef-empty" role="status">No posts yet.</p>
             </section>
-            <p class="bb-ef-status bb-ef-foot"><a href="/feed.html" class="bb-ef-muted-link">Open public feed page →</a></p>
           </div>
         </div>
       </div>
@@ -11761,7 +11759,7 @@ var USER_TAB_SUBTITLES = {
   programs: 'Programs assigned by your lifestyle manager.',
   checkin: 'Daily check-in and Sunday weekly review.',
   messages: 'Chat directly with your Lifestyle Manager in one clean thread.',
-  elitefeed: 'Transformation posts from the whole community — same feed as the public page.',
+  elitefeed: 'All community posts in one feed.',
   profile: 'Keep your personal and contact details up to date.',
   contact: 'Schedule calls or send support requests quickly.'
 };

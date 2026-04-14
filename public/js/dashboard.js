@@ -11,6 +11,7 @@
   var postPreview = document.getElementById('postPreview');
   var postStatus = document.getElementById('postStatus');
   var captionInput = document.getElementById('captionInput');
+  var imageUploadInput = document.getElementById('imageUploadInput');
   var userPostsGrid = document.getElementById('userPostsGrid');
   var stream = null;
   var capturedDataUrl = '';
@@ -107,9 +108,54 @@
     setStatus('Captured. Add caption and post.', 'ok');
   }
 
+  async function handleImageUpload(file) {
+    if (!file) return;
+    if (!/^image\//i.test(file.type || '')) {
+      setStatus('Please select an image file.', 'error');
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      setStatus('Image should be 8 MB or smaller.', 'error');
+      return;
+    }
+    setStatus('Processing image…', 'default');
+    try {
+      var dataUrl = await new Promise(function (resolve, reject) {
+        var fr = new FileReader();
+        fr.onload = function () { resolve(String(fr.result || '')); };
+        fr.onerror = function () { reject(new Error('read_failed')); };
+        fr.readAsDataURL(file);
+      });
+      var img = await new Promise(function (resolve, reject) {
+        var i = new Image();
+        i.onload = function () { resolve(i); };
+        i.onerror = function () { reject(new Error('invalid_image')); };
+        i.src = dataUrl;
+      });
+      captureCanvas.width = img.naturalWidth || img.width || 1080;
+      captureCanvas.height = img.naturalHeight || img.height || 1350;
+      var ctx = captureCanvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, captureCanvas.width, captureCanvas.height);
+      await drawOverlay(ctx, captureCanvas.width, captureCanvas.height);
+      capturedDataUrl = captureCanvas.toDataURL('image/jpeg', 0.9);
+      postPreview.src = capturedDataUrl;
+      postPreview.classList.remove('hidden');
+      setStatus('Image ready. Add caption and post.', 'ok');
+    } catch (_) {
+      setStatus('Could not process this image. Try another file.', 'error');
+    } finally {
+      if (imageUploadInput) imageUploadInput.value = '';
+    }
+  }
+
   async function uploadPost() {
     if (!capturedDataUrl) {
-      setStatus('Capture a photo first.', 'error');
+      setStatus('Capture or upload a photo first.', 'error');
+      return;
+    }
+    var caption = String(captionInput.value || '').trim();
+    if (!caption) {
+      setStatus('Please add a caption before posting.', 'error');
       return;
     }
     setStatus('Posting...', 'default');
@@ -119,7 +165,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           imageData: capturedDataUrl,
-          caption: (captionInput.value || '').trim(),
+          caption: caption,
           username: currentUsername()
         })
       });
@@ -153,10 +199,19 @@
 
   document.getElementById('startCameraBtn').addEventListener('click', startCamera);
   document.getElementById('captureBtn').addEventListener('click', captureFrame);
+  document.getElementById('uploadImageBtn').addEventListener('click', function () {
+    if (imageUploadInput) imageUploadInput.click();
+  });
+  if (imageUploadInput) {
+    imageUploadInput.addEventListener('change', function () {
+      var file = imageUploadInput.files && imageUploadInput.files[0];
+      if (file) handleImageUpload(file);
+    });
+  }
   document.getElementById('retakeBtn').addEventListener('click', function () {
     capturedDataUrl = '';
     postPreview.classList.add('hidden');
-    setStatus('Retake ready.', 'default');
+    setStatus('Ready for a new photo.', 'default');
   });
   document.getElementById('postBtn').addEventListener('click', uploadPost);
   document.getElementById('refreshPostsBtn').addEventListener('click', loadUserPosts);
