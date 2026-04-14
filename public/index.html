@@ -2921,6 +2921,14 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .user-bottom-nav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:3px;background:var(--gold);border-radius:2px}
 .user-bottom-nav-icon{display:flex;align-items:center;justify-content:center;width:24px;height:24px;font-size:20px;line-height:1;margin-bottom:4px;flex-shrink:0}
 .user-bottom-nav-label{display:block;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;min-height:14px}
+.bb-elitefeed-toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:16px}
+.bb-elitefeed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-top:4px}
+.bb-elitefeed-card{border-radius:12px;overflow:hidden;border:1px solid rgba(200,164,78,0.2);background:rgba(0,0,0,0.35)}
+.bb-elitefeed-card img{width:100%;aspect-ratio:4/5;object-fit:cover;display:block;background:#111}
+.bb-elitefeed-meta{padding:10px 10px 12px;font-size:12px;color:var(--muted)}
+.bb-elitefeed-user{color:var(--gold);font-weight:600;margin-bottom:4px}
+.bb-elitefeed-cap{color:var(--cream);line-height:1.35;margin-bottom:6px;word-break:break-word}
+.bb-elitefeed-date{font-size:10px;opacity:0.75}
 /* Breadcrumbs */
 .user-breadcrumb{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);margin-bottom:24px;flex-wrap:wrap}
 .user-breadcrumb span{opacity:.7}
@@ -3893,7 +3901,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <a class="user-sidebar-link" href="#" data-tab="programs" onclick="switchUserTab('programs');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127919;</span>My Programs</a>
         <a class="user-sidebar-link" href="#" data-tab="checkin" onclick="switchUserTab('checkin');return false"><span class="user-sidebar-icon" aria-hidden="true">&#10003;</span>Check-in</a>
         <a class="user-sidebar-link" href="#" data-tab="messages" onclick="switchUserTab('messages');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
-        <a class="user-sidebar-link" href="/dashboard.html"><span class="user-sidebar-icon" aria-hidden="true">&#128248;</span>Elite Feed</a>
+        <a class="user-sidebar-link" href="#" data-tab="elitefeed" onclick="switchUserTab('elitefeed');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128248;</span>Elite Feed</a>
         <a class="user-sidebar-link" href="#" data-tab="profile" onclick="switchUserTab('profile');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128100;</span>My Profile</a>
         <a class="user-sidebar-link" href="#" data-tab="contact" onclick="switchUserTab('contact');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9993;</span>Contact Us</a>
       </nav>
@@ -4045,7 +4053,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('programs');return false"><span class="btn-icon">📋</span>Programs</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('checkin');return false"><span class="btn-icon">✅</span>Check-in</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('messages');return false"><span class="btn-icon">💬</span>Messages</a>
-          <a class="bb-quick-btn" href="/dashboard.html"><span class="btn-icon">📸</span>Elite Feed</a>
+          <a class="bb-quick-btn" href="#" onclick="switchUserTab('elitefeed');return false"><span class="btn-icon">📸</span>Elite Feed</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('contact');return false"><span class="btn-icon">📅</span>Schedule Call</a>
         </div>
         <section class="my-health-reports" id="myHealthReportsSectionDesktop" aria-label="My health reports (desktop)" style="margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
@@ -4483,6 +4491,20 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       </div>
     </div>
 
+    <!-- ELITE FEED (all community posts) -->
+    <div class="user-section" id="usec-elitefeed">
+      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
+      <div class="form-section-title">Elite Feed</div>
+      <p class="form-hint" style="margin-bottom:14px">Posts from every member. Refresh to see the latest. Use the posting studio to add yours.</p>
+      <div class="bb-elitefeed-toolbar">
+        <button type="button" class="form-submit" style="margin:0" onclick="loadUserEliteFeedGrid()">Refresh</button>
+        <a href="/dashboard.html" class="nav-login" style="display:inline-flex;align-items:center;padding:10px 16px;text-decoration:none">Post / capture</a>
+        <a href="/feed.html" class="nav-login" style="display:inline-flex;align-items:center;padding:10px 16px;text-decoration:none">Public feed page</a>
+      </div>
+      <div id="userEliteFeedGrid" class="bb-elitefeed-grid"></div>
+      <p id="userEliteFeedEmpty" class="form-hint" style="display:none;text-align:center;padding:24px">No posts yet. Open the posting studio to share the first one.</p>
+    </div>
+
     <!-- CONTACT US -->
     <div class="user-section" id="usec-contact">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
@@ -4539,7 +4561,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <span class="user-bottom-nav-icon" aria-hidden="true">&#128172;</span>
         <span class="user-bottom-nav-label">Messages</span>
       </button>
-      <button type="button" class="user-bottom-nav-item" onclick="openEliteFeedDashboard()" aria-label="Elite Feed">
+      <button type="button" class="user-bottom-nav-item" data-tab="elitefeed" onclick="switchUserTab('elitefeed')" aria-label="Elite Feed">
         <span class="user-bottom-nav-icon" aria-hidden="true">&#128248;</span>
         <span class="user-bottom-nav-label">Elite Feed</span>
       </button>
@@ -4594,6 +4616,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       </div>
       <nav class="admin-sidebar-nav">
         <a class="admin-sidebar-link active" href="#" data-section="dashboard" onclick="switchToSection('dashboard');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128202;</span>Dashboard</a>
+        <a class="admin-sidebar-link" href="#" data-section="elitefeed" onclick="switchToSection('elitefeed');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128248;</span>Elite Feed</a>
         <a class="admin-sidebar-link" href="#" data-section="clients" onclick="switchToSection('clients');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128101;</span>Clients</a>
         <a class="admin-sidebar-link" href="#" data-section="training" onclick="switchToSection('training');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127947;</span>Training</a>
         <a class="admin-sidebar-link" href="#" data-section="programs" onclick="switchToSection('programs');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127919;</span>Programs</a>
@@ -4630,6 +4653,9 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <nav class="admin-nav-drawer-links">
         <a class="admin-nav-link" href="#" data-section="dashboard" onclick="switchToSection('dashboard');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128202;</span>Dashboard
+        </a>
+        <a class="admin-nav-link" href="#" data-section="elitefeed" onclick="switchToSection('elitefeed');closeAdminNavDrawer();return false">
+          <span class="admin-nav-link-icon" aria-hidden="true">&#128248;</span>Elite Feed
         </a>
         <a class="admin-nav-link" href="#" data-section="clients" onclick="switchToSection('clients');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128101;</span>Clients
@@ -4860,6 +4886,20 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <p class="admin-la-loading">Loading…</p>
           </div>
         </div>
+      </div>
+    </div>
+    <div class="admin-tab-content" id="tab-elitefeed-section">
+      <div class="admin-section-page">
+        <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
+        <div class="form-section-title" style="margin-top:0">Elite Feed</div>
+        <p class="form-hint" style="margin-bottom:14px">All community posts (same data as the public feed and member app).</p>
+        <div class="bb-elitefeed-toolbar">
+          <button type="button" class="form-submit" style="margin:0" onclick="loadAdminEliteFeedGrid()">Refresh</button>
+          <a href="/feed.html" class="nav-login" style="display:inline-flex;align-items:center;padding:10px 16px;text-decoration:none">Public feed page</a>
+          <a href="/dashboard.html" class="nav-login" style="display:inline-flex;align-items:center;padding:10px 16px;text-decoration:none">Posting studio</a>
+        </div>
+        <div id="adminEliteFeedGrid" class="bb-elitefeed-grid"></div>
+        <p id="adminEliteFeedEmpty" class="form-hint" style="display:none;text-align:center;padding:24px">No posts yet.</p>
       </div>
     </div>
     <div class="admin-tab-content" id="tab-clients-section">
@@ -6624,6 +6664,71 @@ function toggleFaq(e){const o=e.classList.contains('op');document.querySelectorA
 
 function openEliteFeedDashboard(){
   window.location.href='/dashboard.html';
+}
+function bbEscapeHtml(s){
+  if (s == null || s === '') return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function bbEliteFeedCardHtml(p){
+  var rawUrl = String(p.imageUrl || '').trim();
+  var img = rawUrl.replace(/^http:\/\//i,'https://');
+  if (!img) img = '/img/logo.png';
+  var cap = bbEscapeHtml(String(p.caption || '').slice(0, 200));
+  var un = bbEscapeHtml(String(p.username || 'member').replace(/^@/, ''));
+  var dt = '';
+  try { if (p.createdAt) dt = new Date(p.createdAt).toLocaleString(); } catch (_) {}
+  return '<article class="bb-elitefeed-card"><img src="'+bbEscapeHtml(img)+'" alt="" loading="lazy" decoding="async"><div class="bb-elitefeed-meta"><div class="bb-elitefeed-user">@'+un+'</div><div class="bb-elitefeed-cap">'+cap+'</div><div class="bb-elitefeed-date">'+bbEscapeHtml(dt)+'</div></div></article>';
+}
+async function bbFetchAllFeedPosts(){
+  var all = [];
+  var offset = 0;
+  var limit = 24;
+  for (var guard = 0; guard < 80; guard++) {
+    var r = await fetch('/api/feed/posts?limit=' + limit + '&offset=' + offset, { credentials: 'same-origin' });
+    if (!r.ok) throw new Error('feed_http');
+    var j = await r.json();
+    var batch = j.posts || [];
+    all = all.concat(batch);
+    if (!j.hasMore || !batch.length) break;
+    offset += limit;
+  }
+  return all;
+}
+async function loadUserEliteFeedGrid(){
+  var grid = document.getElementById('userEliteFeedGrid');
+  var empty = document.getElementById('userEliteFeedEmpty');
+  if (!grid) return;
+  grid.innerHTML = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px">Loading…</p>';
+  if (empty) empty.style.display = 'none';
+  try {
+    var posts = await bbFetchAllFeedPosts();
+    if (!posts.length) {
+      grid.innerHTML = '';
+      if (empty) empty.style.display = '';
+      return;
+    }
+    grid.innerHTML = posts.map(bbEliteFeedCardHtml).join('');
+  } catch (e) {
+    grid.innerHTML = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px">Could not load the feed. Try Refresh.</p>';
+  }
+}
+async function loadAdminEliteFeedGrid(){
+  var grid = document.getElementById('adminEliteFeedGrid');
+  var empty = document.getElementById('adminEliteFeedEmpty');
+  if (!grid) return;
+  grid.innerHTML = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px">Loading…</p>';
+  if (empty) empty.style.display = 'none';
+  try {
+    var posts = await bbFetchAllFeedPosts();
+    if (!posts.length) {
+      grid.innerHTML = '';
+      if (empty) empty.style.display = '';
+      return;
+    }
+    grid.innerHTML = posts.map(bbEliteFeedCardHtml).join('');
+  } catch (e) {
+    grid.innerHTML = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px">Could not load the feed. Try Refresh.</p>';
+  }
 }
 function closeEliteFeedNudge(){
   var modal = document.getElementById('eliteFeedNudgeModal');
@@ -9717,12 +9822,16 @@ function switchToSection(section) {
   var sectionContent = document.getElementById('tab-' + section + '-section');
   if (sectionContent) sectionContent.classList.add('active');
   var sectionEl = document.getElementById('adminCurrentSection');
-  if (sectionEl) sectionEl.textContent = section.charAt(0).toUpperCase() + section.slice(1);
+  if (sectionEl) {
+    if (section === 'elitefeed') sectionEl.textContent = 'Elite Feed';
+    else sectionEl.textContent = section.charAt(0).toUpperCase() + section.slice(1);
+  }
   var backBtn = document.getElementById('adminBackToSection');
   if (backBtn) { backBtn.classList.remove('visible'); backBtn.removeAttribute('data-section'); }
   var adminWrap = document.querySelector('.admin-tab-content-wrap');
   if (adminWrap) adminWrap.scrollTop = 0;
   window.scrollTo(0, 0);
+  if (section === 'elitefeed' && typeof loadAdminEliteFeedGrid === 'function') loadAdminEliteFeedGrid();
 }
 function switchTab(tab) {
   // Backward compatibility: older links used the combined tab name.
@@ -11453,6 +11562,7 @@ var USER_TAB_LABELS = {
   programs: 'My Programs',
   checkin: 'Check-in',
   messages: 'Messages',
+  elitefeed: 'Elite Feed',
   profile: 'My Profile',
   contact: 'Contact Us'
 };
@@ -11462,6 +11572,7 @@ var USER_TAB_SUBTITLES = {
   programs: 'Programs assigned by your lifestyle manager.',
   checkin: 'Daily check-in and Sunday weekly review.',
   messages: 'Chat directly with your Lifestyle Manager in one clean thread.',
+  elitefeed: 'Transformation posts from the whole community — same feed as the public page.',
   profile: 'Keep your personal and contact details up to date.',
   contact: 'Schedule calls or send support requests quickly.'
 };
@@ -11512,6 +11623,7 @@ function switchUserTab(tab) {
     }
   }
   if (tab === 'messages') loadUserMessagesSection();
+  if (tab === 'elitefeed' && typeof loadUserEliteFeedGrid === 'function') loadUserEliteFeedGrid();
   if (tab === 'contact') {
     var today = new Date().toISOString().split('T')[0];
     var mtgDateEl = document.getElementById('mtgDate');
