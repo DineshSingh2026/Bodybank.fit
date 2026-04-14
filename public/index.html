@@ -4502,15 +4502,14 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               <h1>BodyBank Elite Feed</h1>
               <p>Latest posts from the community.</p>
             </div>
-            <div class="bb-ef-actions">
-              <a class="bb-ef-brand-link" href="https://www.instagram.com/bodybank.fit/" target="_blank" rel="noopener noreferrer">BodyBank.fit</a>
-              <a class="bb-ef-btn bb-ef-btn-accent" href="/dashboard.html">Post Now</a>
-            </div>
           </header>
           <section class="bb-ef-card bb-uf-card-shell" aria-labelledby="bb-ef-all-posts-title">
             <div class="bb-ef-posts-head">
               <h2 id="bb-ef-all-posts-title">All posts</h2>
-              <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadUserEliteFeedGrid()">Refresh</button>
+              <div style="display:flex;align-items:center;gap:8px">
+                <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadUserEliteFeedGrid()">Refresh</button>
+                <button type="button" class="bb-post-fab" onclick="openBbPostSheet()" aria-label="New post" title="New post">＋</button>
+              </div>
             </div>
             <div id="userEliteFeedGrid" class="bb-uf-feed-list"></div>
             <p id="userEliteFeedEmpty" class="bb-ef-status bb-ef-empty" role="status">No posts yet. Open the posting studio to share the first one.</p>
@@ -4916,15 +4915,14 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
                 <h1>BodyBank Elite Feed</h1>
                 <p>All posts in one place.</p>
               </div>
-              <div class="bb-ef-actions">
-                <a class="bb-ef-brand-link" href="https://www.instagram.com/bodybank.fit/" target="_blank" rel="noopener noreferrer">BodyBank.fit</a>
-                <a class="bb-ef-btn bb-ef-btn-accent" href="/dashboard.html">Post Now</a>
-              </div>
             </header>
             <section class="bb-ef-card" aria-labelledby="bb-ef-admin-all-posts">
               <div class="bb-ef-posts-head">
                 <h2 id="bb-ef-admin-all-posts">All posts</h2>
-                <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadAdminEliteFeedGrid()">Refresh</button>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadAdminEliteFeedGrid()">Refresh</button>
+                  <button type="button" class="bb-post-fab" onclick="openBbPostSheet()" aria-label="New post" title="New post">＋</button>
+                </div>
               </div>
               <div id="adminEliteFeedGrid" class="bb-ef-grid"></div>
               <p id="adminEliteFeedEmpty" class="bb-ef-status bb-ef-empty" role="status">No posts yet.</p>
@@ -6689,6 +6687,55 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   </div>
 </footer>
 
+<!-- ===== Quick Post Sheet ===== -->
+<div class="bb-post-sheet-overlay" id="bbPostSheetOverlay" onclick="if(event.target===this)closeBbPostSheet()" role="dialog" aria-modal="true" aria-label="New post">
+  <div class="bb-post-sheet">
+    <div class="bb-post-sheet-handle"></div>
+    <div class="bb-post-sheet-header">
+      <span class="bb-post-sheet-title">New Post</span>
+      <button type="button" class="bb-post-sheet-close" onclick="closeBbPostSheet()" aria-label="Close">&times;</button>
+    </div>
+    <div class="bb-post-sheet-body">
+      <!-- Step 1: choose source -->
+      <div id="bbPostSheetChoose">
+        <div class="bb-post-choose">
+          <button type="button" class="bb-post-choose-btn" onclick="bbPostSheetOpenCamera()">
+            <span class="bb-post-choose-icon">📷</span>
+            <span>Take Photo</span>
+          </button>
+          <button type="button" class="bb-post-choose-btn" onclick="bbPostSheetUpload()">
+            <span class="bb-post-choose-icon">🖼️</span>
+            <span>Upload Photo</span>
+          </button>
+        </div>
+        <input type="file" id="bbPostFileInput" accept="image/*" class="bb-post-hidden-input" aria-label="Upload photo from device">
+      </div>
+      <!-- Camera live view -->
+      <div id="bbPostSheetCamera" style="display:none">
+        <div class="bb-post-camera-wrap">
+          <video id="bbPostCameraVideo" playsinline autoplay muted class="bb-post-camera-video"></video>
+        </div>
+        <div class="bb-post-actions">
+          <button type="button" class="bb-post-btn bb-post-btn-secondary" onclick="bbPostSheetCancelCamera()">Cancel</button>
+          <button type="button" class="bb-post-btn bb-post-btn-gold" onclick="bbPostSheetCapture()">Capture Photo</button>
+        </div>
+      </div>
+      <!-- Step 2: preview + caption -->
+      <div id="bbPostSheetPreview" style="display:none">
+        <div class="bb-post-preview-wrap">
+          <img id="bbPostPreviewImg" class="bb-post-preview-img" alt="Your photo">
+        </div>
+        <textarea id="bbPostCaptionInput" class="bb-post-caption" rows="3" maxlength="240" placeholder="Write a caption…"></textarea>
+        <div class="bb-post-actions">
+          <button type="button" class="bb-post-btn bb-post-btn-secondary" onclick="bbPostSheetShowChoose()">Retake</button>
+          <button type="button" class="bb-post-btn bb-post-btn-gold" id="bbPostPublishBtn" onclick="bbPostSheetSubmit()">Publish</button>
+        </div>
+      </div>
+      <p class="bb-post-status" id="bbPostSheetStatus"></p>
+    </div>
+  </div>
+</div>
+
 <script>
 /* Nav stays fixed with same size at all scroll positions - no scroll class applied */
 function toggleFaq(e){const o=e.classList.contains('op');document.querySelectorAll('.fi').forEach(i=>i.classList.remove('op'));if(!o)e.classList.add('op')}
@@ -6868,6 +6915,152 @@ async function loadAdminEliteFeedGrid(){
     if (empty) empty.classList.remove('is-visible');
   }
 }
+/* ==============================
+   Quick Post Sheet
+   ============================== */
+var _bbPS = { stream: null, dataUrl: '' };
+
+function openBbPostSheet() {
+  var overlay = document.getElementById('bbPostSheetOverlay');
+  if (!overlay) return;
+  _bbPS.dataUrl = '';
+  bbPostSheetShowChoose();
+  overlay.classList.add('open');
+  lockBodyScroll();
+}
+function closeBbPostSheet() {
+  var overlay = document.getElementById('bbPostSheetOverlay');
+  if (overlay) overlay.classList.remove('open');
+  _bbPSStopCamera();
+  unlockBodyScroll();
+}
+function _bbPSStopCamera() {
+  if (_bbPS.stream) {
+    _bbPS.stream.getTracks().forEach(function(t){ t.stop(); });
+    _bbPS.stream = null;
+  }
+}
+function bbPostSheetShowChoose() {
+  var ch = document.getElementById('bbPostSheetChoose');
+  var cam = document.getElementById('bbPostSheetCamera');
+  var prev = document.getElementById('bbPostSheetPreview');
+  if (ch) ch.style.display = '';
+  if (cam) cam.style.display = 'none';
+  if (prev) prev.style.display = 'none';
+  _bbPSSetStatus('');
+}
+function bbPostSheetCancelCamera() {
+  _bbPSStopCamera();
+  document.getElementById('bbPostSheetCamera').style.display = 'none';
+  document.getElementById('bbPostSheetChoose').style.display = '';
+  _bbPSSetStatus('');
+}
+async function bbPostSheetOpenCamera() {
+  _bbPSSetStatus('');
+  try {
+    _bbPS.stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment', width: { ideal: 1080 }, height: { ideal: 1350 } },
+      audio: false
+    });
+    var video = document.getElementById('bbPostCameraVideo');
+    video.srcObject = _bbPS.stream;
+    document.getElementById('bbPostSheetChoose').style.display = 'none';
+    document.getElementById('bbPostSheetCamera').style.display = '';
+  } catch(e) {
+    _bbPSSetStatus('Camera not available. Use "Upload Photo" instead.');
+  }
+}
+function bbPostSheetCapture() {
+  var video = document.getElementById('bbPostCameraVideo');
+  if (!video || !video.videoWidth) { _bbPSSetStatus('Camera not ready yet.'); return; }
+  var c = document.createElement('canvas');
+  c.width = video.videoWidth; c.height = video.videoHeight;
+  var ctx = c.getContext('2d');
+  ctx.drawImage(video, 0, 0);
+  var sh = Math.max(72, Math.round(c.height * 0.11));
+  var y = c.height - sh;
+  var grad = ctx.createLinearGradient(0, y, 0, c.height);
+  grad.addColorStop(0, 'rgba(0,0,0,0)');
+  grad.addColorStop(1, 'rgba(0,0,0,0.78)');
+  ctx.fillStyle = grad; ctx.fillRect(0, y, c.width, sh);
+  ctx.fillStyle = '#c8a44e';
+  ctx.font = 'bold ' + Math.max(16, Math.round(sh * 0.34)) + 'px Inter,sans-serif';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('BodyBank', Math.round(sh * 0.22), y + sh * 0.62);
+  _bbPSStopCamera();
+  document.getElementById('bbPostSheetCamera').style.display = 'none';
+  _bbPSShowPreview(c.toDataURL('image/jpeg', 0.9));
+}
+function bbPostSheetUpload() {
+  var inp = document.getElementById('bbPostFileInput');
+  if (inp) inp.click();
+}
+function _bbPSShowPreview(dataUrl) {
+  _bbPS.dataUrl = dataUrl;
+  var img = document.getElementById('bbPostPreviewImg');
+  if (img) img.src = dataUrl;
+  document.getElementById('bbPostSheetChoose').style.display = 'none';
+  document.getElementById('bbPostSheetCamera').style.display = 'none';
+  document.getElementById('bbPostSheetPreview').style.display = '';
+  document.getElementById('bbPostCaptionInput').value = '';
+  _bbPSSetStatus('Photo ready. Add a caption and publish.');
+}
+function _bbPSSetStatus(msg) {
+  var el = document.getElementById('bbPostSheetStatus');
+  if (el) el.textContent = msg || '';
+}
+(function() {
+  document.addEventListener('DOMContentLoaded', function() {
+    var inp = document.getElementById('bbPostFileInput');
+    if (!inp) return;
+    inp.addEventListener('change', function() {
+      var file = inp.files && inp.files[0];
+      if (!file) return;
+      if (!/^image\//i.test(file.type)) { _bbPSSetStatus('Please choose an image file.'); inp.value=''; return; }
+      if (file.size > 8 * 1024 * 1024) { _bbPSSetStatus('Image must be under 8 MB.'); inp.value=''; return; }
+      _bbPSSetStatus('Loading…');
+      var fr = new FileReader();
+      fr.onload = function() { _bbPSShowPreview(String(fr.result)); };
+      fr.onerror = function() { _bbPSSetStatus('Could not read file. Try another image.'); };
+      fr.readAsDataURL(file);
+      inp.value = '';
+    });
+  });
+})();
+async function bbPostSheetSubmit() {
+  var caption = String((document.getElementById('bbPostCaptionInput').value || '')).trim();
+  if (!caption) { _bbPSSetStatus('Please write a caption first.'); return; }
+  if (!_bbPS.dataUrl) { _bbPSSetStatus('No photo selected.'); return; }
+  var btn = document.getElementById('bbPostPublishBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Posting…'; }
+  _bbPSSetStatus('');
+  try {
+    var session = null;
+    try { session = JSON.parse(localStorage.getItem('bodybank_session') || 'null'); } catch(_){}
+    var role = String((session && (session.role || (session.user && session.user.role))) || '').toLowerCase();
+    var base = String((session && (session.user && session.user.username)) || (session && session.first_name) || (session && session.email) || 'member');
+    if (role === 'admin' || role === 'superadmin') base = 'admin.' + base;
+    var username = base.trim().toLowerCase().replace(/[^\w.]/g,'') || 'member';
+    var resp = await fetch('/api/feed/upload', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ imageData: _bbPS.dataUrl, caption: caption, username: username })
+    });
+    var data = await resp.json();
+    if (!resp.ok) throw new Error(data.error || 'Upload failed');
+    _bbPSSetStatus('✓ Posted!');
+    setTimeout(function(){
+      closeBbPostSheet();
+      if (typeof loadUserEliteFeedGrid === 'function') loadUserEliteFeedGrid();
+      if (typeof loadAdminEliteFeedGrid === 'function') loadAdminEliteFeedGrid();
+    }, 800);
+  } catch(e) {
+    _bbPSSetStatus(e.message || 'Post failed. Try again.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Publish'; }
+  }
+}
+
 function closeEliteFeedNudge(){
   var modal = document.getElementById('eliteFeedNudgeModal');
   if (!modal) return;
