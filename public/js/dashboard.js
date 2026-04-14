@@ -2,7 +2,7 @@
   var session = null;
   try { session = JSON.parse(localStorage.getItem('bodybank_session') || 'null'); } catch (_) {}
   var loginWall = document.getElementById('loginWall');
-  if (!session || (!session.token && !session.user && !session.email)) {
+  if (!session || (!session.token && !session.user && !session.email && !session.role)) {
     if (loginWall) loginWall.classList.remove('hidden');
   }
 
@@ -21,7 +21,12 @@
   }
 
   function currentUsername() {
-    return String(session?.user?.username || session?.first_name || session?.email || 'bodybank_member')
+    var role = String(session?.role || session?.user?.role || '').toLowerCase();
+    var base = String(session?.user?.username || session?.first_name || session?.email || 'bodybank_member');
+    if (role === 'admin' || role === 'superadmin') {
+      base = 'admin.' + base;
+    }
+    return String(base)
       .trim()
       .toLowerCase()
       .replace(/[^\w.]/g, '') || 'bodybank_member';
