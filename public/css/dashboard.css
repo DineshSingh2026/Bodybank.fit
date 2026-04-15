@@ -154,6 +154,43 @@ textarea {
   font-weight: 700;
   color: #ff6e6e;
 }
+.user-tile-actions {
+  margin-top: 6px;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition: opacity .16s ease, transform .16s ease;
+  pointer-events: none;
+}
+.user-tile:hover .user-tile-actions,
+.user-tile:focus-within .user-tile-actions {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.user-tile-action {
+  border: 1px solid rgba(255,255,255,.16);
+  background: rgba(0,0,0,.44);
+  color: #f1ede1;
+  border-radius: 999px;
+  min-width: 30px;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+}
+.user-tile-action:hover {
+  border-color: rgba(200,164,78,.48);
+  background: rgba(200,164,78,.18);
+}
+.user-tile-action.is-active {
+  color: #ff6e6e;
+  border-color: rgba(255,110,110,.5);
+  background: rgba(255,110,110,.18);
+}
 
 .capture-fab {
   position: fixed;

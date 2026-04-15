@@ -17,6 +17,8 @@
   var stream = null;
   var capturedDataUrl = '';
   var feedNicknameCache = '';
+  var localTileLikes = {};
+  var localTileComments = {};
 
   // Keep users/admin inside app dashboard flow; avoid forcing login hash.
   if (dashBackLink) {
@@ -51,6 +53,32 @@
     if (d < 3600) return Math.floor(d / 60) + 'm';
     if (d < 86400) return Math.floor(d / 3600) + 'h';
     return Math.floor(d / 86400) + 'd';
+  }
+
+  function bindTileActions() {
+    if (!userPostsGrid || userPostsGrid._bbBound) return;
+    userPostsGrid._bbBound = true;
+    userPostsGrid.addEventListener('click', function (e) {
+      var likeBtn = e.target && e.target.closest ? e.target.closest('.js-tile-like') : null;
+      var commentBtn = e.target && e.target.closest ? e.target.closest('.js-tile-comment') : null;
+      if (!likeBtn && !commentBtn) return;
+      var tile = e.target.closest('.user-tile');
+      if (!tile) return;
+      var postId = String(tile.getAttribute('data-post-id') || '');
+      if (!postId) return;
+      if (likeBtn) {
+        localTileLikes[postId] = !localTileLikes[postId];
+        loadUserPosts();
+        return;
+      }
+      if (commentBtn) {
+        var txt = window.prompt('Add a comment');
+        if (!txt || !txt.trim()) return;
+        localTileComments[postId] = (localTileComments[postId] || 0) + 1;
+        setStatus('Comment saved locally for preview.', 'ok');
+        loadUserPosts();
+      }
+    });
   }
 
   function currentUsername() {
@@ -260,20 +288,29 @@
         return;
       }
       userPostsGrid.innerHTML = all.slice(0, 18).map(function (p) {
+        var postId = String((p && p.id) || '');
         var img = String((p && p.imageUrl) || '').trim() || '/img/Bodybank%20logo.png';
         var user = String((p && p.username) || 'BodyBank').trim().slice(0, 32) || 'BodyBank';
         var cap = String((p && p.caption) || '').trim().slice(0, 64);
-        var likes = Number((p && p.likes) || 0) || 0;
+        var likesBase = Number((p && p.likes) || 0) || 0;
+        var liked = !!localTileLikes[postId];
+        var likes = likesBase + (liked ? 1 : 0);
+        var cCount = Number(localTileComments[postId] || 0);
         return ''
-          + '<article class="user-tile" title="' + escHtml(user) + '">'
+          + '<article class="user-tile" data-post-id="' + escHtml(postId) + '" title="' + escHtml(user) + '">'
           +   '<img src="' + escHtml(img) + '" alt="Feed post" loading="lazy">'
           +   '<div class="user-tile-overlay">'
           +     '<div class="user-tile-top"><span class="nm">' + escHtml(user) + '</span><span class="tm">' + escHtml(relTime(p && p.createdAt)) + '</span></div>'
           +     '<div class="user-tile-cap">' + escHtml(cap || 'BodyBank Elite Feed') + '</div>'
-          +     '<div class="user-tile-meta">❤ ' + likes + '</div>'
+          +     '<div class="user-tile-meta">❤ ' + likes + ' · 💬 ' + cCount + '</div>'
+          +     '<div class="user-tile-actions">'
+          +       '<button type="button" class="user-tile-action js-tile-like ' + (liked ? 'is-active' : '') + '" aria-label="Like">❤</button>'
+          +       '<button type="button" class="user-tile-action js-tile-comment" aria-label="Comment">💬</button>'
+          +     '</div>'
           +   '</div>'
           + '</article>';
       }).join('');
+      bindTileActions();
     } catch (_) {
       userPostsGrid.innerHTML = '<p style="grid-column:1/-1;color:#ababab;margin:4px 0 0">Unable to load feed posts.</p>';
     }
