@@ -224,20 +224,29 @@
   async function loadUserPosts() {
     userPostsGrid.innerHTML = '';
     try {
-      var nameForPosts = await resolvePostingName();
-      if (!nameForPosts) nameForPosts = currentUsername();
-      var resp = await fetch('/api/feed/user-posts?username=' + encodeURIComponent(nameForPosts));
-      var data = await resp.json();
-      var posts = Array.isArray(data.posts) ? data.posts : [];
-      if (!posts.length) {
-        userPostsGrid.innerHTML = '<p style="grid-column:1/-1;color:#ababab;margin:4px 0 0">No posts yet. Create your first post from above.</p>';
+      var all = [];
+      var offset = 0;
+      var limit = 24;
+      for (var guard = 0; guard < 80; guard++) {
+        var resp = await fetch('/api/feed/posts?limit=' + limit + '&offset=' + offset);
+        var data = await resp.json().catch(function () { return {}; });
+        if (!resp.ok) throw new Error((data && data.error) || 'feed_http');
+        var batch = Array.isArray(data.posts) ? data.posts : [];
+        all = all.concat(batch);
+        if (!data.hasMore || !batch.length) break;
+        offset += limit;
+      }
+      if (!all.length) {
+        userPostsGrid.innerHTML = '<p style="grid-column:1/-1;color:#ababab;margin:4px 0 0">No posts yet. Create the first post from above.</p>';
         return;
       }
-      userPostsGrid.innerHTML = posts.slice(0, 18).map(function (p) {
-        return '<div class="user-tile"><img src="' + p.imageUrl + '" alt="Your post" loading="lazy"></div>';
+      userPostsGrid.innerHTML = all.slice(0, 18).map(function (p) {
+        var img = String((p && p.imageUrl) || '');
+        var user = String((p && p.username) || 'BodyBank');
+        return '<div class="user-tile" title="' + user.replace(/"/g, '&quot;') + '"><img src="' + img + '" alt="Feed post" loading="lazy"></div>';
       }).join('');
     } catch (_) {
-      userPostsGrid.innerHTML = '<p style="grid-column:1/-1;color:#ababab;margin:4px 0 0">Unable to load your posts.</p>';
+      userPostsGrid.innerHTML = '<p style="grid-column:1/-1;color:#ababab;margin:4px 0 0">Unable to load feed posts.</p>';
     }
   }
 
