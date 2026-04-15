@@ -5709,12 +5709,11 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="admin-nutrition-header">
         <div>
           <h3>Nutrition report</h3>
-          <p class="form-hint" style="margin:4px 0 0">AI meal logs and daily stats per client (date uses server timezone when omitted).</p>
+          <p class="form-hint" style="margin:4px 0 0">AI meal logs and daily stats per client. Meal photos are used for analysis only and are not stored (date uses server timezone when omitted).</p>
         </div>
         <div class="admin-nutrition-controls">
           <input type="date" id="adminNutritionReportDate" aria-label="Report date" onchange="loadAdminNutritionReport()" />
           <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminNutritionReport()">Refresh</button>
-          <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="adminNutritionDownloadAllPhotos()">Download all images</button>
           <button type="button" class="nav-login" style="padding:10px 18px;margin:0" onclick="exportAdminNutritionCsv()">Export CSV</button>
         </div>
       </div>
@@ -13101,13 +13100,7 @@ function nutritionDraftPurgeOldDates(map) {
 }
 
 function nutritionDraftSaveMealPhoto(mt, b64, mime, ymd) {
-  if (!mt || !b64 || !ymd) return;
-  var all = nutritionDraftPurgeOldDates();
-  var uid = nutritionDraftUserKey();
-  all[uid] = all[uid] || {};
-  all[uid][ymd] = all[uid][ymd] || {};
-  all[uid][ymd][mt] = { b64: String(b64), mime: String(mime || 'image/jpeg') };
-  nutritionDraftWriteAll(all);
+  /* Meal photos are never persisted (no localStorage / no DB). Intentionally a no-op. */
 }
 
 function nutritionDraftRemoveMealPhoto(mt, ymd) {
@@ -13122,10 +13115,7 @@ function nutritionDraftRemoveMealPhoto(mt, ymd) {
 }
 
 function nutritionDraftLoadUserMeals(ymd) {
-  if (!ymd) return {};
-  var all = nutritionDraftPurgeOldDates();
-  var uid = nutritionDraftUserKey();
-  return (all && all[uid] && all[uid][ymd]) ? all[uid][ymd] : {};
+  return {};
 }
 
 function nutritionApplyMealPhotoPreview(mt, b64, mime, canRemove) {
@@ -13279,17 +13269,24 @@ function nutritionSetAnalyzeLocked(mt, locked) {
 function nutritionUpdateSubmitAllState() {
   var sub = document.getElementById('submitAllBtn');
   if (!sub) return;
-  var readyPhotos = bbNutritionMeals.filter(function (m) { return !!bbNutritionState.photos[m]; }).length;
-  var allReady = readyPhotos === bbNutritionMeals.length;
-  sub.disabled = !allReady;
-  sub.title = allReady ? '' : 'Upload all 4 meal photos to enable this bulk action.';
-  if (!allReady) sub.textContent = 'Submit all & send report (upload all 4 photos)';
-  else sub.textContent = 'Submit all & send report';
+  var notesReady = bbNutritionMeals.every(function (m) {
+    var n = document.getElementById('note-' + m);
+    return n && n.value.trim();
+  });
+  sub.disabled = !notesReady;
+  sub.title = notesReady ? '' : 'Add meal details for all four meals to enable submit.';
+  sub.textContent = notesReady ? 'Submit all & send report' : 'Submit all & send report (add details for all 4 meals)';
 }
 
 function nutritionHandleMealPhoto(ev, mt) {
   var file = ev.target.files && ev.target.files[0];
   if (!file) return;
+  var maxBytes = 10 * 1024 * 1024;
+  if (file.size > maxBytes) {
+    nutritionShowToast('Photo must be 10 MB or smaller.', 'error');
+    nutritionClearMealFileInputs(mt);
+    return;
+  }
   var reader = new FileReader();
   reader.onload = function (e) {
     var dataUrl = e.target.result;
@@ -13318,7 +13315,6 @@ function nutritionHandleMealPhoto(ev, mt) {
     if (camIn) camIn.value = '';
     if (upIn) upIn.value = '';
     if (noteEl && typeof noteEl.focus === 'function') noteEl.focus();
-    nutritionDraftSaveMealPhoto(mt, base64, bbNutritionState.mimes[mt], nutritionTodayYmd());
     nutritionUpdateSubmitAllState();
   };
   reader.readAsDataURL(file);
@@ -13329,6 +13325,19 @@ function nutritionClearMealFileInputs(mt) {
     var el = document.getElementById(id);
     if (el) el.value = '';
   });
+}
+
+/** Drop in-memory meal photo preview after successful analyze (photos are never stored). */
+function nutritionClearPreviewAfterAnalyze(mt) {
+  delete bbNutritionState.photos[mt];
+  delete bbNutritionState.mimes[mt];
+  nutritionClearMealFileInputs(mt);
+  var img = document.getElementById('previewImg-' + mt);
+  if (img) img.src = '';
+  var prev = document.getElementById('preview-' + mt);
+  if (prev) prev.style.display = 'none';
+  var up = document.getElementById('upload-' + mt);
+  if (up) up.style.display = 'flex';
 }
 
 function nutritionSetPhotoRemovable(mt, canRemove) {
@@ -13392,11 +13401,13 @@ function nutritionSetPortion(mt, size) {
 function nutritionRenderMealResult(mt, result, score, mealConfidence) {
   var el = document.getElementById('result-' + mt);
   if (!el || !result) return;
+  var hadPhoto = !!result._bbAnalyzedWithPhoto;
+  var src = result._bbEntrySource === 'manual' ? 'manual' : 'ai';
   var confMeta = mealConfidence || nutritionClassifyConfidence(
     result,
-    !!bbNutritionState.photos[mt],
+    hadPhoto,
     !!(document.getElementById('note-' + mt) && document.getElementById('note-' + mt).value.trim()),
-    bbNutritionState.photos[mt] ? 'ai' : 'manual'
+    src
   );
   var conf = (result.confidence || '').toLowerCase();
   var confColor = conf === 'high' ? 'var(--bb-green)' : conf === 'medium' ? 'var(--bb-orange)' : 'var(--bb-red)';
@@ -13505,7 +13516,7 @@ async function drawNutritionShareCard(mt) {
   if (!result) return null;
   var score = bbNutritionState.scores && bbNutritionState.scores[mt];
   if (score == null) score = '—';
-  var confMeta = (bbNutritionState.confidence && bbNutritionState.confidence[mt]) || nutritionClassifyConfidence(result, !!bbNutritionState.photos[mt], true, bbNutritionState.photos[mt] ? 'ai' : 'manual');
+  var confMeta = (bbNutritionState.confidence && bbNutritionState.confidence[mt]) || nutritionClassifyConfidence(result, !!result._bbAnalyzedWithPhoto, true, result._bbEntrySource === 'manual' ? 'manual' : 'ai');
   var meta = bbNutritionMealMeta[mt] || { label: String(mt || 'Meal'), hint: '' };
 
   var W = 1080;
@@ -14056,7 +14067,12 @@ async function nutritionAnalyzeSingle(mt, opts) {
     return;
   }
   bbNutritionState.results[mt] = data.aiResult;
-  var mc = data.mealConfidence || nutritionClassifyConfidence(data.aiResult, !!photo, !!note, photo ? 'ai' : 'manual');
+  var mc = data.mealConfidence || nutritionClassifyConfidence(
+    data.aiResult,
+    !!(data.aiResult && data.aiResult._bbAnalyzedWithPhoto),
+    !!note,
+    data.aiResult && data.aiResult._bbEntrySource === 'manual' ? 'manual' : 'ai'
+  );
   bbNutritionState.confidence[mt] = mc;
   bbNutritionState.scores[mt] = data.mealScore;
   var ds = bbNutritionDailyStatsNorm(data.dailyStats);
@@ -14075,6 +14091,7 @@ async function nutritionAnalyzeSingle(mt, opts) {
   }
   nutritionSetPhotoRemovable(mt, false);
   nutritionDraftRemoveMealPhoto(mt, nutritionTodayYmd());
+  nutritionClearPreviewAfterAnalyze(mt);
   nutritionSetAnalyzeLocked(mt, true);
   if ((mc && mc.level === 'low') || conf === 'low') nutritionShowToast('Low confidence — consider a clearer photo', 'warn');
   else nutritionShowToast('Saved: ' + mt, 'success');
@@ -14092,9 +14109,12 @@ async function nutritionAnalyzeSingle(mt, opts) {
 
 async function nutritionSubmitAllMeals() {
   if (!window.currentUser || !window.currentUser.id) return;
-  var hasAllPhotos = bbNutritionMeals.every(function (m) { return !!bbNutritionState.photos[m]; });
-  if (!hasAllPhotos) {
-    nutritionShowToast('Upload all 4 meal photos first for bulk submit', 'warn');
+  var notesReady = bbNutritionMeals.every(function (m) {
+    var n = document.getElementById('note-' + m);
+    return n && n.value.trim();
+  });
+  if (!notesReady) {
+    nutritionShowToast('Add meal details for all four meals before submitting.', 'warn');
     nutritionUpdateSubmitAllState();
     return;
   }
@@ -14124,6 +14144,7 @@ async function nutritionSubmitAllMeals() {
 
 async function loadNutritionCheckinPanel() {
   if (!window.currentUser || !window.currentUser.id) return;
+  try { localStorage.removeItem(BB_NUTRITION_DRAFT_KEY); } catch (_) {}
   nutritionEnsureMealGrid();
   var ymd = nutritionTodayYmd();
   var uid = window.currentUser.id;
@@ -14146,15 +14167,6 @@ async function loadNutritionCheckinPanel() {
     if (resEl) { resEl.style.display = 'none'; resEl.innerHTML = ''; }
     nutritionSetPortion(mt, bbNutritionState.portions[mt] || 'medium');
   });
-  var draftMeals = nutritionDraftLoadUserMeals(ymd);
-  bbNutritionMeals.forEach(function (mt) {
-    var d = draftMeals && draftMeals[mt];
-    if (!d || !d.b64) return;
-    nutritionApplyMealPhotoPreview(mt, d.b64, d.mime || 'image/jpeg', true);
-    var slot = document.getElementById('mslot-' + mt);
-    if (slot) slot.classList.add('uploading');
-    nutritionSetBadge(mt, 'Photo ready', 'analyzing');
-  });
   var meals = data.meals || [];
   meals.forEach(function (m) {
     var mt = m.meal_type;
@@ -14162,9 +14174,10 @@ async function loadNutritionCheckinPanel() {
     var ar = bbParseNutritionAi(m.ai_result);
     if (ar) {
       bbNutritionState.results[mt] = ar;
-      var hasPhoto = !!(m.photo_data && String(m.photo_data).trim());
+      var hasPhoto = !!ar._bbAnalyzedWithPhoto;
       var hasNote = !!(m.manual_note && String(m.manual_note).trim());
-      var mc = m.meal_confidence || nutritionClassifyConfidence(ar, hasPhoto, hasNote, hasPhoto ? 'ai' : 'manual');
+      var src = ar._bbEntrySource === 'manual' ? 'manual' : 'ai';
+      var mc = m.meal_confidence || nutritionClassifyConfidence(ar, hasPhoto, hasNote, src);
       bbNutritionState.confidence[mt] = mc;
       if (m.meal_score != null) bbNutritionState.scores[mt] = Number(m.meal_score);
       nutritionRenderMealResult(mt, ar, m.meal_score, mc);
@@ -14180,12 +14193,6 @@ async function loadNutritionCheckinPanel() {
       document.getElementById('note-' + mt).value = m.manual_note;
     }
     if (m.portion_size) nutritionSetPortion(mt, m.portion_size);
-    if (m.photo_data) {
-      var mime = m.photo_mime || 'image/jpeg';
-      nutritionApplyMealPhotoPreview(mt, m.photo_data, mime, !ar);
-      nutritionDraftRemoveMealPhoto(mt, ymd);
-      nutritionSetPhotoRemovable(mt, !ar);
-    }
   });
   var ds = bbNutritionDailyStatsNorm(data.dailyStats);
   if (ds && ds.calorieGoal != null) bbNutritionState.goals.cal = ds.calorieGoal;
@@ -14247,7 +14254,6 @@ function loadAdminNutritionReport() {
       list.innerHTML = clients.map(function (c) {
         var stats = c.dailyStats;
         var sn = stats ? bbNutritionDailyStatsNorm(stats) : null;
-        var energyDiff = sn && sn.energyDifference != null ? Number(sn.energyDifference) : null;
         var score = sn && sn.mealQualityScore != null ? Number(sn.mealQualityScore) : null;
         var scoreColor = score == null ? 'var(--bb-border)' : score >= 7 ? 'var(--bb-green)' : score >= 5 ? 'var(--bb-orange)' : 'var(--bb-red)';
         var initials = (c.userName || '?').split(/\s+/).map(function (x) { return x[0]; }).join('').slice(0, 2).toUpperCase();
@@ -14258,10 +14264,9 @@ function loadAdminNutritionReport() {
           var meal = mealMap[type];
           var ar = meal ? bbParseNutritionAi(meal.ai_result) : null;
           var low = ar && (ar.confidence || '').toLowerCase() === 'low';
-          var hasPhoto = meal && meal.photo_data;
-          var inner = hasPhoto
-            ? '<img src="data:' + escapeHtml(meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data + '" alt=""/>'
-            : '<div class="ph">' + (meal ? 'Text' : '—') + '</div>';
+          var inner = meal && ar && ar.calories != null
+            ? '<div class="ph" style="font-weight:800;color:var(--bb-green);font-size:14px">' + ar.calories + '</div>'
+            : '<div class="ph">' + (meal ? 'Logged' : '—') + '</div>';
           return '<div class="admin-nutrition-thumb' + (meal ? ' logged' : '') + (low ? ' low-conf' : '') + '">' + inner +
             '<div class="lbl">' + escapeHtml(type) + (ar && ar.calories != null ? ' · ' + ar.calories + ' kcal' : '') + '</div></div>';
         }).join('');
@@ -14341,9 +14346,6 @@ function loadAdminNutritionReport() {
           '<div class="admin-nutrition-score-ring" style="border-color:' + scoreColor + '">' +
           '<span style="font-weight:700;color:' + scoreColor + '">' + (score != null ? score.toFixed(1) : '—') + '</span><span style="font-size:8px;color:var(--muted)">score</span></div></div>' +
           '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' +
-          '<div class="admin-nutrition-quick-actions">' +
-            '<button type="button" class="btn download" onclick="adminNutritionDownloadPhotos(\'' + uidEsc + '\')">Download images</button>' +
-          '</div>' +
           summaryHtml + weeklyProteinHtml + usageHtml +
           '<div class="admin-nutrition-actions">' +
           '<button type="button" class="btn" onclick="adminNutritionAnalyzeAll(\'' + uidEsc + '\')">Re-run AI</button>' +
@@ -14364,95 +14366,15 @@ function loadAdminNutritionReport() {
 }
 
 function adminNutritionDownloadPhotos(userId) {
-  var uid = String(userId || '');
-  var client = adminNutritionClientPhotoCache[uid];
-  var dateEl = document.getElementById('adminNutritionReportDate');
-  var ymd = dateEl && dateEl.value ? String(dateEl.value) : nutritionTodayYmd();
-  if (!client || !Array.isArray(client.meals)) {
-    if (typeof showPopup === 'function') showPopup('Download images', 'Client data not loaded. Refresh Nutrition report and try again.', '', 'OK', null, 'error');
-    return;
+  if (typeof showPopup === 'function') {
+    showPopup('Meal photos', 'Meal photos are not stored. Only AI nutrition results and text notes are kept.', '', 'OK', null, 'error');
   }
-  var photos = client.meals.filter(function (m) { return m && m.photo_data; });
-  if (!photos.length) {
-    if (typeof showPopup === 'function') showPopup('Download images', 'No uploaded meal photos found for this client on selected date.', '', 'OK', null, 'error');
-    return;
-  }
-  function extFromMime(mime) {
-    var m = String(mime || '').toLowerCase();
-    if (m.indexOf('png') >= 0) return 'png';
-    if (m.indexOf('webp') >= 0) return 'webp';
-    if (m.indexOf('gif') >= 0) return 'gif';
-    return 'jpg';
-  }
-  var safeBase = function (name) {
-    return (name || 'client').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 36) || 'client';
-  };
-  var triggerPhotoDownload = function (meal, idx, base, delayBase) {
-    var mime = meal.photo_mime || 'image/jpeg';
-    var ext = extFromMime(mime);
-    var mealType = String(meal.meal_type || ('meal_' + (idx + 1))).replace(/[^a-z0-9]+/gi, '_').toLowerCase();
-    var fileName = 'nutrition_' + base + '_' + ymd + '_' + mealType + '.' + ext;
-    try {
-      var a = document.createElement('a');
-      a.href = 'data:' + mime + ';base64,' + meal.photo_data;
-      a.download = fileName;
-      document.body.appendChild(a);
-      setTimeout(function () { a.click(); a.remove(); }, delayBase + (idx * 220));
-    } catch (e) {}
-  };
-  var base = safeBase(client.userName || 'client');
-  photos.forEach(function (meal, idx) {
-    triggerPhotoDownload(meal, idx, base, 0);
-  });
-  if (typeof nutritionShowToast === 'function') nutritionShowToast('Downloading ' + photos.length + ' image(s)…', 'success');
 }
 
 function adminNutritionDownloadAllPhotos() {
-  var keys = Object.keys(adminNutritionClientPhotoCache || {});
-  if (!keys.length) {
-    if (typeof showPopup === 'function') showPopup('Download all images', 'No client nutrition data loaded. Refresh first.', '', 'OK', null, 'error');
-    return;
+  if (typeof showPopup === 'function') {
+    showPopup('Meal photos', 'Meal photos are not stored. Use Export CSV for macro summaries.', '', 'OK', null, 'error');
   }
-  var dateEl = document.getElementById('adminNutritionReportDate');
-  var ymd = dateEl && dateEl.value ? String(dateEl.value) : nutritionTodayYmd();
-  function extFromMime(mime) {
-    var m = String(mime || '').toLowerCase();
-    if (m.indexOf('png') >= 0) return 'png';
-    if (m.indexOf('webp') >= 0) return 'webp';
-    if (m.indexOf('gif') >= 0) return 'gif';
-    return 'jpg';
-  }
-  function safeBase(name) {
-    return (name || 'client').replace(/[^a-z0-9]+/gi, '_').replace(/^_+|_+$/g, '').slice(0, 36) || 'client';
-  }
-  var total = 0;
-  var delay = 0;
-  keys.forEach(function (uid) {
-    var c = adminNutritionClientPhotoCache[uid];
-    if (!c || !Array.isArray(c.meals)) return;
-    var base = safeBase(c.userName || uid);
-    c.meals.forEach(function (meal, idx) {
-      if (!meal || !meal.photo_data) return;
-      var mime = meal.photo_mime || 'image/jpeg';
-      var ext = extFromMime(mime);
-      var mealType = String(meal.meal_type || ('meal_' + (idx + 1))).replace(/[^a-z0-9]+/gi, '_').toLowerCase();
-      var fileName = 'nutrition_' + base + '_' + ymd + '_' + mealType + '.' + ext;
-      try {
-        var a = document.createElement('a');
-        a.href = 'data:' + mime + ';base64,' + meal.photo_data;
-        a.download = fileName;
-        document.body.appendChild(a);
-        setTimeout(function () { a.click(); a.remove(); }, delay);
-        delay += 220;
-        total += 1;
-      } catch (e) {}
-    });
-  });
-  if (!total) {
-    if (typeof showPopup === 'function') showPopup('Download all images', 'No uploaded meal photos found for selected date.', '', 'OK', null, 'error');
-    return;
-  }
-  if (typeof nutritionShowToast === 'function') nutritionShowToast('Downloading ' + total + ' image(s) from all clients…', 'success');
 }
 
 function adminNutritionDrawWeekChart(userId, endDate) {

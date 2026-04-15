@@ -19,7 +19,37 @@ const {
   STREAK_TZ
 } = nutritionService;
 
-const MAX_B64_CHARS = 6 * 1024 * 1024;
+/** ~10 MiB decoded image → base64 length cap (single-request analyze only; never persisted). */
+const MAX_NUTRITION_IMAGE_B64_CHARS = 14 * 1024 * 1024;
+
+function buildAiResultForStorage(baseAi, { analyzedWithPhoto, entrySource }) {
+  if (!baseAi || typeof baseAi !== 'object') return baseAi;
+  return {
+    ...baseAi,
+    _bbAnalyzedWithPhoto: !!analyzedWithPhoto,
+    _bbEntrySource: entrySource === 'manual' ? 'manual' : 'ai'
+  };
+}
+
+function parseAiResultRow(raw) {
+  let ar = raw;
+  if (typeof ar === 'string') {
+    try {
+      ar = JSON.parse(ar);
+    } catch (_) {
+      ar = null;
+    }
+  }
+  return ar && typeof ar === 'object' ? ar : {};
+}
+
+function confidenceFromLogRow(r) {
+  const ar = parseAiResultRow(r.ai_result);
+  const hasImage = !!ar._bbAnalyzedWithPhoto;
+  const hasManualNote = !!(r.manual_note && String(r.manual_note).trim());
+  const source = ar._bbEntrySource === 'manual' ? 'manual' : 'ai';
+  return classifyMealConfidence({ aiResult: ar, hasImage, hasManualNote, source });
+}
 
 function ymdOrToday(body, query) {
   const raw = (body && body.date) || (query && query.date) || '';
@@ -181,7 +211,9 @@ function createNutritionRouter(deps) {
       const img = imageBase64 ? String(imageBase64).replace(/\s/g, '') : '';
       if (!note) return res.status(400).json({ error: 'Please add meal details in text. This is required for analysis.' });
       if (!img && !note) return res.status(400).json({ error: 'Provide a photo or a text description.' });
-      if (img && img.length > MAX_B64_CHARS) return res.status(400).json({ error: 'Image too large.' });
+      if (img && img.length > MAX_NUTRITION_IMAGE_B64_CHARS) {
+        return res.status(400).json({ error: 'Image too large (max 10 MB).' });
+      }
       const mealValidation = await validateNutritionMealInput({
         apiKey,
         model,
@@ -211,7 +243,7 @@ function createNutritionRouter(deps) {
         }
       }
 
-      const { aiResult, usage } = await callClaudeNutrition({
+      const { aiResult: aiRaw, usage } = await callClaudeNutrition({
         apiKey,
         model,
         imageBase64: img || null,
@@ -221,7 +253,8 @@ function createNutritionRouter(deps) {
         manualNote: note
       });
 
-      const mealScore = computeMealScore(aiResult);
+      const mealScore = computeMealScore(aiRaw);
+      const aiResult = buildAiResultForStorage(aiRaw, { analyzedWithPhoto: !!img, entrySource: 'ai' });
       const mealConfidence = classifyMealConfidence({
         aiResult,
         hasImage: !!img,
@@ -229,22 +262,20 @@ function createNutritionRouter(deps) {
         source: 'ai'
       });
       const id = uuidv4();
-
-      const photoStore = img ? img.slice(0, MAX_B64_CHARS) : null;
-      const photoMime = img ? String(mimeType || 'image/jpeg').slice(0, 40) : null;
+      const photoUploadDelta = img ? 1 : 0;
 
       await run(
         `INSERT INTO nutrition_meal_logs (
           id, user_id, log_date, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, ai_usage, photo_upload_count, meal_score, submitted_at
-        ) VALUES (?, ?, ?::date, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?::date, ?, NULL, NULL, ?, ?, ?::jsonb, ?::jsonb, ?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT (user_id, log_date, meal_type) DO UPDATE SET
-          photo_data = COALESCE(EXCLUDED.photo_data, nutrition_meal_logs.photo_data),
-          photo_mime = COALESCE(EXCLUDED.photo_mime, nutrition_meal_logs.photo_mime),
+          photo_data = NULL,
+          photo_mime = NULL,
           manual_note = EXCLUDED.manual_note,
           portion_size = EXCLUDED.portion_size,
           ai_result = EXCLUDED.ai_result,
           ai_usage = EXCLUDED.ai_usage,
-          photo_upload_count = nutrition_meal_logs.photo_upload_count + CASE WHEN EXCLUDED.photo_data IS NOT NULL THEN 1 ELSE 0 END,
+          photo_upload_count = nutrition_meal_logs.photo_upload_count + EXCLUDED.photo_upload_count,
           meal_score = EXCLUDED.meal_score,
           submitted_at = CURRENT_TIMESTAMP,
           notified_at = NULL`,
@@ -253,13 +284,11 @@ function createNutritionRouter(deps) {
           userId,
           ymd,
           mt,
-          photoStore,
-          photoMime,
           note,
           portion,
           JSON.stringify(aiResult),
           JSON.stringify(usage || {}),
-          img ? 1 : 0,
+          photoUploadDelta,
           mealScore
         ]
       );
@@ -268,24 +297,11 @@ function createNutritionRouter(deps) {
       const nMeals = await countMealsForDay(db, userId, ymd);
       const streak = await nutritionLoggingStreak(db, userId);
       const dailyRows = await queryAll(
-        `SELECT photo_data, manual_note, ai_result
+        `SELECT manual_note, ai_result
          FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date`,
         [userId, ymd]
       );
-      const dailyConfidence = summarizeDailyConfidence(
-        (dailyRows || []).map((r) => {
-          let ar = r.ai_result;
-          if (typeof ar === 'string') {
-            try { ar = JSON.parse(ar); } catch (_) { ar = null; }
-          }
-          return classifyMealConfidence({
-            aiResult: ar || {},
-            hasImage: !!(r.photo_data && String(r.photo_data).trim()),
-            hasManualNote: !!(r.manual_note && String(r.manual_note).trim()),
-            source: 'ai'
-          });
-        })
-      );
+      const dailyConfidence = summarizeDailyConfidence((dailyRows || []).map((r) => confidenceFromLogRow(r)));
 
       let notifyResult = null;
       const forceNotify = triggerNotify === true || triggerNotify === 'true';
@@ -340,13 +356,14 @@ function createNutritionRouter(deps) {
       if (!aiResult) return res.status(400).json({ error: 'Invalid macros' });
 
       const mealScore = computeMealScore(aiResult);
+      const aiStored = buildAiResultForStorage(aiResult, { analyzedWithPhoto: false, entrySource: 'manual' });
       const ymd = ymdOrToday({ date: dateBody }, req.query);
       const id = uuidv4();
       const ps = String(portionSize || 'medium').toLowerCase();
       const portion = ['small', 'medium', 'large'].includes(ps) ? ps : 'medium';
       const note = String(manualNote || '').trim();
       const mealConfidence = classifyMealConfidence({
-        aiResult,
+        aiResult: aiStored,
         hasImage: false,
         hasManualNote: !!note,
         source: 'manual'
@@ -357,38 +374,36 @@ function createNutritionRouter(deps) {
           id, user_id, log_date, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, meal_score, submitted_at
         ) VALUES (?, ?, ?::date, ?, NULL, NULL, ?, ?, ?::jsonb, ?, CURRENT_TIMESTAMP)
         ON CONFLICT (user_id, log_date, meal_type) DO UPDATE SET
+          photo_data = NULL,
+          photo_mime = NULL,
           manual_note = EXCLUDED.manual_note,
           portion_size = EXCLUDED.portion_size,
           ai_result = EXCLUDED.ai_result,
           meal_score = EXCLUDED.meal_score,
           submitted_at = CURRENT_TIMESTAMP,
           notified_at = NULL`,
-        [id, userId, ymd, mt, note, portion, JSON.stringify(aiResult), mealScore]
+        [id, userId, ymd, mt, note, portion, JSON.stringify(aiStored), mealScore]
       );
 
       const dailyStats = await recomputeDailyStats(db, userId, ymd);
       const nMeals = await countMealsForDay(db, userId, ymd);
       const streak = await nutritionLoggingStreak(db, userId);
       const dailyRows = await queryAll(
-        `SELECT photo_data, manual_note, ai_result
+        `SELECT manual_note, ai_result
          FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date`,
         [userId, ymd]
       );
-      const dailyConfidence = summarizeDailyConfidence(
-        (dailyRows || []).map((r) => {
-          let ar = r.ai_result;
-          if (typeof ar === 'string') {
-            try { ar = JSON.parse(ar); } catch (_) { ar = null; }
-          }
-          return classifyMealConfidence({
-            aiResult: ar || {},
-            hasImage: !!(r.photo_data && String(r.photo_data).trim()),
-            hasManualNote: !!(r.manual_note && String(r.manual_note).trim()),
-            source: r.photo_data ? 'ai' : 'manual'
-          });
-        })
-      );
-      res.json({ aiResult, mealScore, mealConfidence, dailyConfidence, date: ymd, dailyStats, mealsLoggedToday: nMeals, streak });
+      const dailyConfidence = summarizeDailyConfidence((dailyRows || []).map((r) => confidenceFromLogRow(r)));
+      res.json({
+        aiResult: aiStored,
+        mealScore,
+        mealConfidence,
+        dailyConfidence,
+        date: ymd,
+        dailyStats,
+        mealsLoggedToday: nMeals,
+        streak
+      });
     } catch (e) {
       console.error('[nutrition log]', e.message);
       res.status(500).json({ error: e.message || 'Save failed' });
@@ -406,7 +421,7 @@ function createNutritionRouter(deps) {
         return res.status(403).json({ error: 'Forbidden' });
       }
       const meals = await queryAll(
-        `SELECT id, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, ai_usage, meal_score, submitted_at, notified_at
+        `SELECT id, meal_type, manual_note, portion_size, ai_result, ai_usage, meal_score, submitted_at, notified_at
          FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date ORDER BY meal_type`,
         [uid, d]
       );
@@ -415,19 +430,10 @@ function createNutritionRouter(deps) {
         [uid, d]
       );
       const streak = uid === req.user.id ? await nutritionLoggingStreak(db, uid) : null;
-      const mealsWithConfidence = (meals || []).map((m) => {
-        let ar = m.ai_result;
-        if (typeof ar === 'string') {
-          try { ar = JSON.parse(ar); } catch (_) { ar = null; }
-        }
-        const mc = classifyMealConfidence({
-          aiResult: ar || {},
-          hasImage: !!(m.photo_data && String(m.photo_data).trim()),
-          hasManualNote: !!(m.manual_note && String(m.manual_note).trim()),
-          source: m.photo_data ? 'ai' : 'manual'
-        });
-        return { ...m, meal_confidence: mc };
-      });
+      const mealsWithConfidence = (meals || []).map((m) => ({
+        ...m,
+        meal_confidence: confidenceFromLogRow(m)
+      }));
       const dailyConfidence = summarizeDailyConfidence(mealsWithConfidence.map((m) => m.meal_confidence));
       res.json({ date: d, userId: uid, meals: mealsWithConfidence, dailyConfidence, dailyStats: stats || null, streak });
     } catch (e) {
@@ -475,7 +481,7 @@ function createNutritionRouter(deps) {
       const ymd = ymdOrToday(req.body, req.query);
 
       const rows = await queryAll(
-        `SELECT meal_type, photo_data, photo_mime, manual_note, portion_size
+        `SELECT meal_type, manual_note, portion_size, ai_result
          FROM nutrition_meal_logs
          WHERE user_id = ? AND log_date = ?::date`,
         [targetUserId, ymd]
@@ -488,22 +494,18 @@ function createNutritionRouter(deps) {
         const mt = String(row.meal_type || '').toLowerCase();
         if (!MEAL_TYPES.has(mt)) continue;
 
-        const img = row.photo_data ? String(row.photo_data).replace(/\s/g, '') : '';
         const note = String(row.manual_note || '').trim();
         if (!note) {
           errors.push({ mealType: mt, error: 'Text meal details are required for re-analysis.' });
           continue;
         }
-        if (!img && !note) continue;
-        if (img.length > MAX_B64_CHARS) {
-          errors.push({ mealType: mt, error: 'Image too large' });
-          continue;
-        }
+        const prevAr = parseAiResultRow(row.ai_result);
+        const entrySrc = prevAr._bbEntrySource === 'manual' ? 'manual' : 'ai';
         const mealValidation = await validateNutritionMealInput({
           apiKey,
           model,
-          imageBase64: img || null,
-          mimeType: row.photo_mime || 'image/jpeg',
+          imageBase64: null,
+          mimeType: 'image/jpeg',
           mealType: mt,
           manualNote: note
         });
@@ -516,20 +518,22 @@ function createNutritionRouter(deps) {
         const portion = ['small', 'medium', 'large'].includes(ps) ? ps : 'medium';
 
         try {
-          const { aiResult, usage } = await callClaudeNutrition({
+          const { aiResult: aiRaw, usage } = await callClaudeNutrition({
             apiKey,
             model,
-            imageBase64: img || null,
-            mimeType: row.photo_mime || 'image/jpeg',
+            imageBase64: null,
+            mimeType: 'image/jpeg',
             mealType: mt,
             portionSize: portion,
             manualNote: note
           });
-          const mealScore = computeMealScore(aiResult);
+          const mealScore = computeMealScore(aiRaw);
+          const aiResult = buildAiResultForStorage(aiRaw, { analyzedWithPhoto: false, entrySource: entrySrc });
 
           await run(
             `UPDATE nutrition_meal_logs
-             SET ai_result = ?::jsonb, ai_usage = ?::jsonb, meal_score = ?, submitted_at = CURRENT_TIMESTAMP, notified_at = NULL
+             SET photo_data = NULL, photo_mime = NULL,
+                 ai_result = ?::jsonb, ai_usage = ?::jsonb, meal_score = ?, submitted_at = CURRENT_TIMESTAMP, notified_at = NULL
              WHERE user_id = ? AND log_date = ?::date AND meal_type = ?`,
             [JSON.stringify(aiResult), JSON.stringify(usage || {}), mealScore, targetUserId, ymd, mt]
           );
@@ -618,7 +622,7 @@ function createNutritionRouter(deps) {
         );
         if (!u) continue;
         const meals = await queryAll(
-          `SELECT meal_type, photo_data, photo_mime, ai_result, ai_usage, meal_score, manual_note, notified_at
+          `SELECT meal_type, ai_result, ai_usage, meal_score, manual_note, notified_at
            FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date`,
           [uid, ymd]
         );
