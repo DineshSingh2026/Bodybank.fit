@@ -14498,8 +14498,10 @@ function adminNutritionDownloadPhotos(userId) {
         var mt = String(m.meal_type || ('meal' + (idx + 1))).toLowerCase().replace(/[^a-z0-9_-]/g, '');
         var mime = String(m.photo_mime || '');
         var ext = mime.indexOf('png') > -1 ? 'png' : mime.indexOf('webp') > -1 ? 'webp' : 'jpg';
+        var raw = String(m.photo_data || '').trim();
+        var href = raw.indexOf('data:') === 0 ? raw : ('data:' + (mime || 'image/jpeg') + ';base64,' + raw);
         var a = document.createElement('a');
-        a.href = m.photo_data;
+        a.href = href;
         a.download = 'nutrition-' + safeDate + '-' + mt + '.' + ext;
         document.body.appendChild(a);
         a.click();
