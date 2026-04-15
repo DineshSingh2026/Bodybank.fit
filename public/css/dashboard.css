@@ -96,9 +96,64 @@ textarea {
 .status-text { min-height: 22px; color: var(--muted); margin: 12px 0 2px; }
 
 .user-posts-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 10px; }
-.user-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.user-tile { border-radius: 10px; overflow: hidden; background: #090909; aspect-ratio: 1/1; border: 1px solid rgba(255,255,255,.08); }
+.user-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.user-tile {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #090909;
+  aspect-ratio: 4/5;
+  border: 1px solid rgba(255,255,255,.10);
+  box-shadow: 0 8px 18px rgba(0,0,0,.34);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.user-tile:hover {
+  transform: translateY(-2px);
+  border-color: rgba(200,164,78,.45);
+  box-shadow: 0 16px 30px rgba(0,0,0,.45);
+}
 .user-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.user-tile-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8px 9px;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,.64) 40%, rgba(0,0,0,.88) 100%);
+}
+.user-tile-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.user-tile-top .nm {
+  font-size: 11px;
+  font-weight: 700;
+  color: #f5f0e3;
+  max-width: 70%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.user-tile-top .tm {
+  font-size: 10px;
+  color: #b8b2a3;
+}
+.user-tile-cap {
+  font-size: 10px;
+  color: #d5d1c4;
+  line-height: 1.3;
+  max-height: 2.6em;
+  overflow: hidden;
+}
+.user-tile-meta {
+  margin-top: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  color: #ff6e6e;
+}
 
 .capture-fab {
   position: fixed;
@@ -147,4 +202,5 @@ textarea {
   .dash-actions { width: 100%; justify-content: stretch; }
   .dash-actions > * { flex: 1 1 0; }
   .camera-controls { grid-template-columns: 1fr; }
+  .user-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }

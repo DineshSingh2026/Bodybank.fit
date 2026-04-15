@@ -34,6 +34,25 @@
     postStatus.style.color = tone === 'error' ? '#ff8f88' : tone === 'ok' ? '#7be39f' : '#ababab';
   }
 
+  function escHtml(v) {
+    return String(v == null ? '' : v)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function relTime(iso) {
+    var t = new Date(iso).getTime();
+    if (!t) return 'now';
+    var d = Math.max(1, Math.floor((Date.now() - t) / 1000));
+    if (d < 60) return d + 's';
+    if (d < 3600) return Math.floor(d / 60) + 'm';
+    if (d < 86400) return Math.floor(d / 3600) + 'h';
+    return Math.floor(d / 86400) + 'd';
+  }
+
   function currentUsername() {
     var role = String(session?.role || session?.user?.role || '').toLowerCase();
     var base = String(session?.user?.username || session?.first_name || session?.email || 'bodybank_member');
@@ -241,9 +260,19 @@
         return;
       }
       userPostsGrid.innerHTML = all.slice(0, 18).map(function (p) {
-        var img = String((p && p.imageUrl) || '');
-        var user = String((p && p.username) || 'BodyBank');
-        return '<div class="user-tile" title="' + user.replace(/"/g, '&quot;') + '"><img src="' + img + '" alt="Feed post" loading="lazy"></div>';
+        var img = String((p && p.imageUrl) || '').trim() || '/img/Bodybank%20logo.png';
+        var user = String((p && p.username) || 'BodyBank').trim().slice(0, 32) || 'BodyBank';
+        var cap = String((p && p.caption) || '').trim().slice(0, 64);
+        var likes = Number((p && p.likes) || 0) || 0;
+        return ''
+          + '<article class="user-tile" title="' + escHtml(user) + '">'
+          +   '<img src="' + escHtml(img) + '" alt="Feed post" loading="lazy">'
+          +   '<div class="user-tile-overlay">'
+          +     '<div class="user-tile-top"><span class="nm">' + escHtml(user) + '</span><span class="tm">' + escHtml(relTime(p && p.createdAt)) + '</span></div>'
+          +     '<div class="user-tile-cap">' + escHtml(cap || 'BodyBank Elite Feed') + '</div>'
+          +     '<div class="user-tile-meta">❤ ' + likes + '</div>'
+          +   '</div>'
+          + '</article>';
       }).join('');
     } catch (_) {
       userPostsGrid.innerHTML = '<p style="grid-column:1/-1;color:#ababab;margin:4px 0 0">Unable to load feed posts.</p>';
