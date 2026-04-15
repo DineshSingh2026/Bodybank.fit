@@ -1486,7 +1486,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     font-size: 10px;
   }
 }
-.bb-focus-wheel-fab{
+.bb-elite-feed-fab{
   display:none;
   align-items:center; justify-content:center;
   position:fixed; right:max(16px,env(safe-area-inset-right));
@@ -1499,15 +1499,16 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   box-shadow:0 10px 32px rgba(0,0,0,0.45),0 0 0 1px rgba(200,164,78,0.12);
   transition:transform .2s ease, box-shadow .2s ease;
 }
-.bb-focus-wheel-fab:hover{ transform:scale(1.05); box-shadow:0 12px 36px rgba(200,164,78,0.15); }
-.bb-focus-wheel-fab.bb-fw-fab-pulse{ animation:bbFwPulse 2.4s ease-in-out infinite; }
-.bb-fw-fab-svg{ width:30px; height:30px; display:block; }
+.bb-elite-feed-fab:hover{ transform:scale(1.05); box-shadow:0 12px 36px rgba(200,164,78,0.15); }
+.bb-ef-fab-svg{ width:28px; height:28px; display:block; }
+.bb-ef-fab-svg .bb-ef-cam{ fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
+.bb-ef-fab-svg .bb-ef-dot{ fill:currentColor; }
 @keyframes bbFwPulse{
   0%,100%{ box-shadow:0 10px 32px rgba(0,0,0,0.45),0 0 0 1px rgba(200,164,78,0.12); }
   50%{ box-shadow:0 10px 36px rgba(200,164,78,0.22),0 0 0 2px rgba(200,164,78,0.35); }
 }
 @media(min-width:768px){
-  .bb-focus-wheel-fab{
+  .bb-elite-feed-fab{
     bottom:calc(24px + env(safe-area-inset-bottom,0px));
     right:max(24px,env(safe-area-inset-right));
   }
@@ -2961,7 +2962,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .user-section-back{display:none}
 .user-panel .back-btn{display:none}
 .user-bottom-nav{display:none!important;position:fixed!important;top:auto!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;min-width:100%;max-width:100vw;min-height:70px;height:calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)));padding:0 0 max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)) 0;background:#0d0d0d;border-top:1px solid rgba(200,164,78,0.15);border-radius:0;z-index:9999;box-shadow:none;flex-shrink:0;margin:0;box-sizing:border-box}
-.user-bottom-nav-inner{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:stretch;width:100%;height:100%;min-width:0;padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px));column-gap:2px;box-sizing:border-box;overflow:hidden}
+.user-bottom-nav-inner{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;width:100%;height:100%;min-width:0;padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px));column-gap:2px;box-sizing:border-box;overflow:hidden}
 .user-bottom-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;width:100%;min-width:0;min-height:56px;padding:10px 4px;background:none;border:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.3px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;position:relative;box-sizing:border-box;overflow:hidden}
 .user-bottom-nav-item:hover,.user-bottom-nav-item:focus{color:var(--cream);outline:none}
 .user-bottom-nav-item.active{color:var(--gold)}
@@ -3937,6 +3938,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <nav class="user-sidebar-nav">
         <a class="user-sidebar-link active" href="#" data-tab="home" onclick="switchUserTab('home');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9632;</span>Home</a>
         <a class="user-sidebar-link" href="#" data-tab="workout" onclick="switchUserTab('workout');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127947;</span>My Workout</a>
+        <a class="user-sidebar-link" href="/ai-trainer.html"><span class="user-sidebar-icon" aria-hidden="true">&#129302;</span>AI Trainer</a>
         <a class="user-sidebar-link" href="#" data-tab="programs" onclick="switchUserTab('programs');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127919;</span>My Programs</a>
         <a class="user-sidebar-link" href="#" data-tab="checkin" onclick="switchUserTab('checkin');return false"><span class="user-sidebar-icon" aria-hidden="true">&#10003;</span>Check-in</a>
         <a class="user-sidebar-link" href="#" data-tab="messages" onclick="switchUserTab('messages');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
@@ -4089,6 +4091,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 
         <div class="bb-quick-actions">
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('workout');return false"><span class="btn-icon">🏋️</span>Log Workout</a>
+          <a class="bb-quick-btn" href="/ai-trainer.html"><span class="btn-icon">🤖</span>AI Trainer</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('programs');return false"><span class="btn-icon">📋</span>Programs</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('checkin');return false"><span class="btn-icon">✅</span>Check-in</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('messages');return false"><span class="btn-icon">💬</span>Messages</a>
@@ -4215,6 +4218,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-copy"><div class="wc-title sc-style">Check-in</div><div class="wc-desc">Daily &amp; Sunday check-ins</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('messages')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-copy"><div class="wc-title">Messages</div><div class="wc-desc">Chat with your Lifestyle Manager</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-copy"><div class="wc-title">My Profile</div><div class="wc-desc">View and update your information</div></div></div>
+          <div class="welcome-card" onclick="window.location.href='/ai-trainer.html'"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 3a2 2 0 0 1 2 2v2h1.8A3.2 3.2 0 0 1 19 10.2V16a3 3 0 0 1-3 3h-1v2h-2v-2h-2v2H9v-2H8a3 3 0 0 1-3-3v-5.8A3.2 3.2 0 0 1 8.2 7H10V5a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/></svg></div><div class="wc-copy"><div class="wc-title">AI Trainer</div><div class="wc-desc">Train live with AI pose feedback</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-copy"><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div></div>
         </div>
 
@@ -4614,14 +4618,14 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <span class="user-bottom-nav-icon" aria-hidden="true">&#128172;</span>
         <span class="user-bottom-nav-label">Messages</span>
       </button>
-      <button type="button" class="user-bottom-nav-item" data-tab="elitefeed" onclick="switchUserTab('elitefeed')" aria-label="Elite Feed">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#128248;</span>
-        <span class="user-bottom-nav-label">Elite Feed</span>
-      </button>
     </div>
   </nav>
-  <button type="button" id="bbFocusWheelFab" class="bb-focus-wheel-fab" onclick="openFocusWheelModal()" aria-label="Today's focus dial" title="Today's focus dial">
-    <svg class="bb-fw-fab-svg" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="20" fill="none" stroke="currentColor" stroke-width="1.2" opacity="0.35"/><circle cx="24" cy="24" r="14" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M24 8 L26 22 L24 20 L22 22 Z" fill="currentColor"/></svg>
+  <button type="button" id="bbEliteFeedFab" class="bb-elite-feed-fab" onclick="switchUserTab('elitefeed')" aria-label="Open Elite Feed" title="Open Elite Feed">
+    <svg class="bb-ef-fab-svg" viewBox="0 0 24 24" aria-hidden="true">
+      <rect class="bb-ef-cam" x="4.4" y="4.4" width="15.2" height="15.2" rx="4.2"></rect>
+      <circle class="bb-ef-cam" cx="12" cy="12" r="4"></circle>
+      <circle class="bb-ef-dot" cx="16.7" cy="7.3" r="1.05"></circle>
+    </svg>
   </button>
 </div>
 
@@ -7382,6 +7386,7 @@ function openModal(id){
     el.addEventListener('keydown',_focusTrapHandler);
   }
   if (id==='loginModal'||id==='signupModal') updateGoogleButtonVisibility();
+  if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab();
 }
 var _googleButtonRendered=false;
 async function updateGoogleButtonVisibility(){
@@ -7407,6 +7412,7 @@ function closeModal(id){
     unlockBodyScroll();
     if(_modalTrigger&&typeof _modalTrigger.focus==='function'){setTimeout(function(){_modalTrigger.focus();},10);_modalTrigger=null;}
   }
+  if (typeof bbUpdateEliteFeedFab === 'function') setTimeout(function(){ bbUpdateEliteFeedFab(); }, 30);
 }
 function togglePw(){const i=document.getElementById('pwInput');i.type=i.type==='password'?'text':'password'}
 const ob=new IntersectionObserver(e=>{e.forEach(n=>{if(n.isIntersecting)n.target.classList.add('v')})},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
@@ -11708,7 +11714,7 @@ function openUserDashboard(user) {
   if (typeof loadNotifications === 'function') loadNotifications();
   if (typeof startUserNotificationPolling === 'function') startUserNotificationPolling();
   setTimeout(function() { checkProgramAssignmentPopup(); }, 800);
-  setTimeout(function() { loadFocusWheelState(); }, 400);
+  setTimeout(function() { if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab('home'); }, 400);
   setTimeout(function() {
     if (typeof checkUserPushStatus === 'function') checkUserPushStatus();
   }, 500);
@@ -12103,8 +12109,8 @@ function backToWebsiteFromUserPanel() {
   var waFloat = document.getElementById('userWaFloat');
   if (waFloat) waFloat.style.display = 'none';
   if (userPanel) userPanel.classList.remove('open');
-  var bbFwFab = document.getElementById('bbFocusWheelFab');
-  if (bbFwFab) bbFwFab.style.display = 'none';
+  var bbFeedFab = document.getElementById('bbEliteFeedFab');
+  if (bbFeedFab) bbFeedFab.style.display = 'none';
   document.body.classList.remove('site-nav-hidden', 'user-dashboard-open');
   unlockBodyScroll();
   if (typeof switchUserTab === 'function') switchUserTab('home');
@@ -12150,8 +12156,8 @@ function logoutUser() {
   var waFloat = document.getElementById('userWaFloat');
   if (waFloat) waFloat.style.display = 'none';
   if (userPanel) userPanel.classList.remove('open');
-  var bbFwFab = document.getElementById('bbFocusWheelFab');
-  if (bbFwFab) bbFwFab.style.display = 'none';
+  var bbFeedFab = document.getElementById('bbEliteFeedFab');
+  if (bbFeedFab) bbFeedFab.style.display = 'none';
   document.body.classList.remove('site-nav-hidden','user-dashboard-open','admin-dashboard-open');
   unlockBodyScroll();
 }
@@ -12239,11 +12245,7 @@ function switchUserTab(tab) {
   }
   if (tab === 'programs') loadUserPrograms();
   if (tab === 'checkin') { showCheckinSubView('hub'); loadSundayCheckinDefaults(); }
-  var bbFwFab = document.getElementById('bbFocusWheelFab');
-  if (bbFwFab) {
-    if (tab === 'workout') bbFwFab.style.display = 'none';
-    else if (typeof loadFocusWheelState === 'function') loadFocusWheelState();
-  }
+  if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(tab);
   if (tab === 'workout') {
     var pdfRestored = restoreWorkoutStateFromStorage();
     initWorkoutSessionUI();
@@ -12255,6 +12257,41 @@ function switchUserTab(tab) {
   if (wasOnWorkout && tab !== 'workout' && typeof timerRunning !== 'undefined' && timerRunning) {
     if (typeof wkEnsureWorkoutBackgroundBanner === 'function') wkEnsureWorkoutBackgroundBanner();
   }
+}
+
+function bbIsTypingInputContext() {
+  var ae = document.activeElement;
+  if (!ae) return false;
+  if (ae.isContentEditable) return true;
+  var t = String(ae.tagName || '').toUpperCase();
+  return t === 'INPUT' || t === 'TEXTAREA' || t === 'SELECT';
+}
+function bbIsVirtualKeyboardOpen() {
+  try {
+    if (!window.visualViewport) return false;
+    return (window.innerHeight - window.visualViewport.height) > 150;
+  } catch (_) { return false; }
+}
+function bbUpdateEliteFeedFab(tab) {
+  var fab = document.getElementById('bbEliteFeedFab');
+  if (!fab) return;
+  if (!window.currentUser || window.currentUser.role !== 'user') { fab.style.display = 'none'; return; }
+  var userPanel = document.getElementById('userPanel');
+  if (!userPanel || !userPanel.classList.contains('open')) { fab.style.display = 'none'; return; }
+  var activeTab = tab;
+  if (!activeTab) {
+    var activeSec = document.querySelector('.user-section.active');
+    activeTab = activeSec ? String(activeSec.id || '').replace(/^usec-/, '') : '';
+  }
+  // Keep this CTA non-intrusive: Home only + hidden while typing, keyboard open, or any modal layer is open.
+  var shouldShow = activeTab === 'home' && !bbIsTypingInputContext() && !bbIsVirtualKeyboardOpen() && !(typeof isOverlayOpen === 'function' && isOverlayOpen());
+  fab.style.display = shouldShow ? 'flex' : 'none';
+}
+document.addEventListener('focusin', function(){ if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(); });
+document.addEventListener('focusout', function(){ setTimeout(function(){ if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(); }, 60); });
+window.addEventListener('resize', function(){ if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(); });
+if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
+  window.visualViewport.addEventListener('resize', function(){ if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(); });
 }
 
 window._bbUserCharts = window._bbUserCharts || {};
@@ -17222,7 +17259,7 @@ window.addEventListener('resize', applySafeAreaFix);
   }
   html.android-mobile .user-bottom-nav-inner{
     display:grid !important;
-    grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
     justify-content:initial !important;
     padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px)) !important;
     column-gap:2px !important;
