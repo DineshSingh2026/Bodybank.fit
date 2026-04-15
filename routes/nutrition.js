@@ -21,6 +21,7 @@ const {
 
 /** ~10 MiB decoded image → base64 length cap (single-request analyze only; never persisted). */
 const MAX_NUTRITION_IMAGE_B64_CHARS = 14 * 1024 * 1024;
+let _lastNutritionPhotoPurgeYmd = '';
 
 function buildAiResultForStorage(baseAi, { analyzedWithPhoto, entrySource }) {
   if (!baseAi || typeof baseAi !== 'object') return baseAi;
@@ -45,10 +46,23 @@ function parseAiResultRow(raw) {
 
 function confidenceFromLogRow(r) {
   const ar = parseAiResultRow(r.ai_result);
-  const hasImage = !!ar._bbAnalyzedWithPhoto;
+  const hasImage = !!ar._bbAnalyzedWithPhoto || !!(r && r.photo_data && String(r.photo_data).trim());
   const hasManualNote = !!(r.manual_note && String(r.manual_note).trim());
   const source = ar._bbEntrySource === 'manual' ? 'manual' : 'ai';
   return classifyMealConfidence({ aiResult: ar, hasImage, hasManualNote, source });
+}
+
+async function purgeOldNutritionPhotos(db) {
+  const todayYmd = todayYmdInTz(STREAK_TZ) || new Date().toISOString().slice(0, 10);
+  if (_lastNutritionPhotoPurgeYmd === todayYmd) return;
+  await db.run(
+    `UPDATE nutrition_meal_logs
+     SET photo_data = NULL, photo_mime = NULL
+     WHERE log_date < ?::date
+       AND (photo_data IS NOT NULL OR photo_mime IS NOT NULL)`,
+    [todayYmd]
+  );
+  _lastNutritionPhotoPurgeYmd = todayYmd;
 }
 
 function ymdOrToday(body, query) {
@@ -179,6 +193,10 @@ function createNutritionRouter(deps) {
 
   const router = require('express').Router();
   router.use(verifyToken);
+  router.use(async (_req, _res, next) => {
+    try { await purgeOldNutritionPhotos(db); } catch (_) {}
+    next();
+  });
   const adminOnly = requireAdminOrSuperadmin;
 
   router.post('/analyze', rateLimiter(20, 60000), async (req, res) => {
@@ -263,19 +281,21 @@ function createNutritionRouter(deps) {
       });
       const id = uuidv4();
       const photoUploadDelta = img ? 1 : 0;
+      const photoStore = img ? img.slice(0, MAX_NUTRITION_IMAGE_B64_CHARS) : null;
+      const photoMime = img ? String(mimeType || 'image/jpeg').slice(0, 40) : null;
 
       await run(
         `INSERT INTO nutrition_meal_logs (
           id, user_id, log_date, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, ai_usage, photo_upload_count, meal_score, submitted_at
-        ) VALUES (?, ?, ?::date, ?, NULL, NULL, ?, ?, ?::jsonb, ?::jsonb, ?, ?, CURRENT_TIMESTAMP)
+        ) VALUES (?, ?, ?::date, ?, ?, ?, ?, ?, ?::jsonb, ?::jsonb, ?, ?, CURRENT_TIMESTAMP)
         ON CONFLICT (user_id, log_date, meal_type) DO UPDATE SET
-          photo_data = NULL,
-          photo_mime = NULL,
+          photo_data = COALESCE(EXCLUDED.photo_data, nutrition_meal_logs.photo_data),
+          photo_mime = COALESCE(EXCLUDED.photo_mime, nutrition_meal_logs.photo_mime),
           manual_note = EXCLUDED.manual_note,
           portion_size = EXCLUDED.portion_size,
           ai_result = EXCLUDED.ai_result,
           ai_usage = EXCLUDED.ai_usage,
-          photo_upload_count = nutrition_meal_logs.photo_upload_count + EXCLUDED.photo_upload_count,
+          photo_upload_count = nutrition_meal_logs.photo_upload_count + CASE WHEN EXCLUDED.photo_data IS NOT NULL THEN 1 ELSE 0 END,
           meal_score = EXCLUDED.meal_score,
           submitted_at = CURRENT_TIMESTAMP,
           notified_at = NULL`,
@@ -284,6 +304,8 @@ function createNutritionRouter(deps) {
           userId,
           ymd,
           mt,
+          photoStore,
+          photoMime,
           note,
           portion,
           JSON.stringify(aiResult),
@@ -374,8 +396,6 @@ function createNutritionRouter(deps) {
           id, user_id, log_date, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, meal_score, submitted_at
         ) VALUES (?, ?, ?::date, ?, NULL, NULL, ?, ?, ?::jsonb, ?, CURRENT_TIMESTAMP)
         ON CONFLICT (user_id, log_date, meal_type) DO UPDATE SET
-          photo_data = NULL,
-          photo_mime = NULL,
           manual_note = EXCLUDED.manual_note,
           portion_size = EXCLUDED.portion_size,
           ai_result = EXCLUDED.ai_result,
@@ -421,7 +441,7 @@ function createNutritionRouter(deps) {
         return res.status(403).json({ error: 'Forbidden' });
       }
       const meals = await queryAll(
-        `SELECT id, meal_type, manual_note, portion_size, ai_result, ai_usage, meal_score, submitted_at, notified_at
+        `SELECT id, meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result, ai_usage, meal_score, submitted_at, notified_at
          FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date ORDER BY meal_type`,
         [uid, d]
       );
@@ -481,7 +501,7 @@ function createNutritionRouter(deps) {
       const ymd = ymdOrToday(req.body, req.query);
 
       const rows = await queryAll(
-        `SELECT meal_type, manual_note, portion_size, ai_result
+        `SELECT meal_type, photo_data, photo_mime, manual_note, portion_size, ai_result
          FROM nutrition_meal_logs
          WHERE user_id = ? AND log_date = ?::date`,
         [targetUserId, ymd]
@@ -495,6 +515,7 @@ function createNutritionRouter(deps) {
         if (!MEAL_TYPES.has(mt)) continue;
 
         const note = String(row.manual_note || '').trim();
+        const img = row.photo_data ? String(row.photo_data).replace(/\s/g, '') : '';
         if (!note) {
           errors.push({ mealType: mt, error: 'Text meal details are required for re-analysis.' });
           continue;
@@ -504,8 +525,8 @@ function createNutritionRouter(deps) {
         const mealValidation = await validateNutritionMealInput({
           apiKey,
           model,
-          imageBase64: null,
-          mimeType: 'image/jpeg',
+          imageBase64: img || null,
+          mimeType: row.photo_mime || 'image/jpeg',
           mealType: mt,
           manualNote: note
         });
@@ -521,19 +542,18 @@ function createNutritionRouter(deps) {
           const { aiResult: aiRaw, usage } = await callClaudeNutrition({
             apiKey,
             model,
-            imageBase64: null,
-            mimeType: 'image/jpeg',
+            imageBase64: img || null,
+            mimeType: row.photo_mime || 'image/jpeg',
             mealType: mt,
             portionSize: portion,
             manualNote: note
           });
           const mealScore = computeMealScore(aiRaw);
-          const aiResult = buildAiResultForStorage(aiRaw, { analyzedWithPhoto: false, entrySource: entrySrc });
+          const aiResult = buildAiResultForStorage(aiRaw, { analyzedWithPhoto: !!img, entrySource: entrySrc });
 
           await run(
             `UPDATE nutrition_meal_logs
-             SET photo_data = NULL, photo_mime = NULL,
-                 ai_result = ?::jsonb, ai_usage = ?::jsonb, meal_score = ?, submitted_at = CURRENT_TIMESTAMP, notified_at = NULL
+             SET ai_result = ?::jsonb, ai_usage = ?::jsonb, meal_score = ?, submitted_at = CURRENT_TIMESTAMP, notified_at = NULL
              WHERE user_id = ? AND log_date = ?::date AND meal_type = ?`,
             [JSON.stringify(aiResult), JSON.stringify(usage || {}), mealScore, targetUserId, ymd, mt]
           );
@@ -622,7 +642,7 @@ function createNutritionRouter(deps) {
         );
         if (!u) continue;
         const meals = await queryAll(
-          `SELECT meal_type, ai_result, ai_usage, meal_score, manual_note, notified_at
+          `SELECT meal_type, photo_data, photo_mime, ai_result, ai_usage, meal_score, manual_note, notified_at
            FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date`,
           [uid, ymd]
         );

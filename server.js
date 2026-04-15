@@ -686,16 +686,6 @@ async function initDB() {
   } catch (e) {
     /* ignore */
   }
-  try {
-    const pr = await pool.query(
-      `UPDATE nutrition_meal_logs SET photo_data = NULL, photo_mime = NULL WHERE photo_data IS NOT NULL OR photo_mime IS NOT NULL`
-    );
-    const n = pr && (pr.rowCount != null ? pr.rowCount : pr.row_count);
-    if (n) console.log('[nutrition] Cleared stored meal photo blobs from', n, 'row(s) (analyze-and-forget policy).');
-  } catch (e) {
-    console.warn('[nutrition] Could not clear legacy photo blobs:', e.message);
-  }
-
   // Push notification subscriptions
   await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
     id TEXT PRIMARY KEY,
