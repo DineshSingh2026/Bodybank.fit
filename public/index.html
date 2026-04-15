@@ -12987,7 +12987,7 @@ async function loadMicroGoals() {
     if (streak && streak.weekly) {
       var w = streak.weekly;
       if (el = document.getElementById('recapSteps')) el.textContent = w.avgSteps != null ? w.avgSteps : '—';
-      if (el = document.getElementById('recapWater')) el.textContent = w.avgWater != null ? (w.avgWater + ' L') : '—';
+      if (el = document.getElementById('recapWater')) el.textContent = w.avgWater != null ? (w.avgWater + '\u00A0L') : '—';
       if (el = document.getElementById('recapProtein')) el.textContent = w.avgProtein != null ? w.avgProtein : '—';
       if (el = document.getElementById('recapSleep')) el.textContent = w.avgSleep != null ? w.avgSleep : '—';
     }
