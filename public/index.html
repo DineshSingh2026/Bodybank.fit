@@ -32,6 +32,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/elite-feed-studio-inapp.css?v=20260414c">
 <script src="/js/bodybank-feed-preview.js?v=20260414i" defer></script>
+<script src="/js/bb-pwa-update.js?v=1" defer></script>
 <style>
 :root{
   --black:#060606;--dark:#060606;--dark2:#060606;--dark3:#0a0a0a;
@@ -17111,37 +17112,6 @@ document.getElementById('superadminBlocks') && document.getElementById('superadm
   setTimeout(updatePwaVisibility, 500);
 })();
 
-// App refresh (works well in standalone PWA)
-async function refreshApp(btn) {
-  try {
-    if (btn && btn.classList) btn.classList.add('is-spinning');
-    if ('serviceWorker' in navigator) {
-      const reg = await navigator.serviceWorker.getRegistration();
-      if (reg) await reg.update();
-    }
-  } catch (e) {
-    // ignore
-  } finally {
-    // small delay so spinner is visible, then reload
-    setTimeout(function() { window.location.reload(); }, 120);
-  }
-}
-
-// PWA Service Worker registration
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js?v=21').then(function(reg) {
-      if (reg.waiting) navigator.serviceWorker.addEventListener('controllerchange', function() { window.location.reload(); });
-      reg.addEventListener('updatefound', function() {
-        var w = reg.installing;
-        w.addEventListener('statechange', function() {
-          if (w.state === 'installed' && navigator.serviceWorker.controller) window.location.reload();
-        });
-      });
-    }).catch(function() {});
-  });
-}
-
 function applySafeAreaFix() {
   try {
     var el = document.createElement('div');
@@ -17160,7 +17130,6 @@ window.addEventListener('resize', applySafeAreaFix);
 <script src="js/scorecard-share.js?v=17"></script>
 <script>
 (function() {
-  var lastTouchEnd = 0;
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function(eventName) {
     document.addEventListener(eventName, function(e) {
       e.preventDefault();
@@ -17169,11 +17138,6 @@ window.addEventListener('resize', applySafeAreaFix);
   document.addEventListener('touchmove', function(e) {
     if (e.touches && e.touches.length > 1) e.preventDefault();
   }, { passive: false });
-  document.addEventListener('touchend', function(e) {
-    var now = Date.now();
-    if (now - lastTouchEnd <= 300) e.preventDefault();
-    lastTouchEnd = now;
-  }, false);
   document.addEventListener('wheel', function(e) {
     if (e.ctrlKey) e.preventDefault();
   }, { passive: false });

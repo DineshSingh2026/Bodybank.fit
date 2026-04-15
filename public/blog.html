@@ -9,6 +9,7 @@
 <meta name="apple-mobile-web-app-title" content="Body Bank" />
 <meta name="mobile-web-app-capable" content="yes" />
 <link rel="manifest" href="/manifest.json" />
+<script src="/js/bb-pwa-update.js?v=1" defer></script>
 <link rel="stylesheet" href="/mobile-fix.css?v=20" />
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20" />
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-8G93TR92QT"></script>
@@ -772,11 +773,6 @@ window.addEventListener('DOMContentLoaded',function(){
   }
 });
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js?v=20').then(function(r) { console.log('SW registered', r.scope); }).catch(function(e) { console.log('SW failed', e); });
-  });
-}
 </script>
 </body>
 </html>

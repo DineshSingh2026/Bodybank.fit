@@ -14,6 +14,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 
 <link rel="manifest" href="/manifest.json" />
+<script src="/js/bb-pwa-update.js?v=1" defer></script>
 <link rel="stylesheet" href="/mobile-fix.css?v=20" />
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20" />
 <!-- Google tag (gtag.js) - GA4 -->
@@ -235,12 +236,5 @@ async function submitPart2(e) {
   <p>Co-Powered by <a href="https://www.Fitchef.fit" target="_blank" rel="noopener">FitChef Nutrition</a></p>
   <p><a href="https://www.Fitchef.fit" target="_blank" rel="noopener">www.Fitchef.fit</a></p>
 </footer>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js?v=20').then(function(r) { console.log('SW registered', r.scope); }).catch(function(e) { console.log('SW failed', e); });
-  });
-}
-</script>
 </body>
 </html>

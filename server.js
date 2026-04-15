@@ -5338,11 +5338,13 @@ app.get('/api/superadmin/shared', async (req, res) => {
 // ============ SERVE FRONTEND ============
 // PWA: serve service worker and manifest with no-cache so updates apply quickly
 app.get('/sw.js', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
   res.sendFile(path.join(__dirname, 'public', 'sw.js'));
 });
 app.get('/manifest.json', (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
   res.sendFile(path.join(__dirname, 'public', 'manifest.json'));
 });
 // ============ CAMPAIGN API ============
@@ -5484,7 +5486,8 @@ app.get('/api/campaigns/log', verifyToken, requireAdmin, async (req, res) => {
 
 // Serve index.html with no-cache so users get latest UI after deploys
 app.get(['/', '/index.html'], (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
@@ -5568,7 +5571,13 @@ document.getElementById('f').onsubmit=async function(e){
 </script></body></html>`;
 }
 app.use(express.static(path.join(__dirname, 'public'), {
-  maxAge: NODE_ENV === 'production' ? '7d' : 0
+  maxAge: NODE_ENV === 'production' ? '7d' : 0,
+  setHeaders: (res, filePath) => {
+    if (/\.html$/i.test(filePath)) {
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+    }
+  }
 }));
 
 // Deep link into SPA admin Nutrition tab (bookmark / share)

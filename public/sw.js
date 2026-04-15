@@ -1,11 +1,11 @@
-/* BodyBank PWA Service Worker — bump CACHE_NAME on each deploy so users get fresh content */
-const CACHE_NAME = 'bodybank-v42';
+/* BodyBank PWA Service Worker — bump CACHE_NAME on each deploy */
+const CACHE_NAME = 'bodybank-v43';
 
-self.addEventListener('install', (e) => {
+self.addEventListener('install', () => {
   self.skipWaiting();
 });
 
-/* Push notifications — show banner even when app/website is closed (Zomato-style) */
+/* Push notifications — show banner even when app/website is closed */
 self.addEventListener('push', (e) => {
   if (!e.data) return;
   let title = 'Body Bank';
@@ -36,7 +36,7 @@ self.addEventListener('notificationclick', (e) => {
   e.notification.close();
   const url = (e.notification.data && e.notification.data.url) || '/';
   e.waitUntil(
-    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function(clientList) {
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
       for (var i = 0; i < clientList.length; i++) {
         if (clientList[i].url && clientList[i].focus) {
           clientList[i].navigate(url);
@@ -60,19 +60,15 @@ self.addEventListener('activate', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   const url = new URL(req.url);
-  /* Only cache http/https — chrome-extension etc. unsupported */
   if (url.protocol !== 'http:' && url.protocol !== 'https:') return;
 
-  /* API: network only */
   if (url.pathname.startsWith('/api/')) return;
-  /* Reset password: always network, never cache */
   if (url.pathname === '/reset-password') return;
   if (req.method !== 'GET') return;
 
   const isNavigation = req.mode === 'navigate' || (req.headers.get('accept') || '').includes('text/html');
   const isStaticCodeAsset = /\.(?:js|css)$/.test(url.pathname);
 
-  /* HTML: network-first so users get latest meta/CSS updates */
   if (isNavigation) {
     e.respondWith(
       fetch(req)
@@ -82,14 +78,11 @@ self.addEventListener('fetch', (e) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
           return res;
         })
-        .catch(() =>
-          caches.match(req).then((cached) => cached || caches.match('/index.html'))
-        )
+        .catch(() => caches.match(req).then((cached) => cached || caches.match('/index.html')))
     );
     return;
   }
 
-  /* JS/CSS: network-first so deploys reflect immediately */
   if (isStaticCodeAsset) {
     e.respondWith(
       fetch(req)
@@ -99,21 +92,24 @@ self.addEventListener('fetch', (e) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
           return res;
         })
-        .catch(() => caches.match(req).then((cached) => cached || new Response('', { status: 503, statusText: 'Offline' })))
+        .catch(() =>
+          caches.match(req).then((cached) => cached || new Response('', { status: 503, statusText: 'Offline' }))
+        )
     );
     return;
   }
 
-  /* Static: cache-first with network fallback */
   e.respondWith(
     caches.match(req).then((cached) => {
       if (cached) return cached;
-      return fetch(req).then((res) => {
-        if (!res || res.status !== 200 || res.type !== 'basic') return res;
-        const clone = res.clone();
-        caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
-        return res;
-      }).catch(() => new Response('', { status: 503, statusText: 'Offline' }));
+      return fetch(req)
+        .then((res) => {
+          if (!res || res.status !== 200 || res.type !== 'basic') return res;
+          const clone = res.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(req, clone)).catch(() => {});
+          return res;
+        })
+        .catch(() => new Response('', { status: 503, statusText: 'Offline' }));
     })
   );
 });

@@ -114,8 +114,9 @@ main::-webkit-scrollbar,
   padding-bottom: calc(var(--safe-bottom) + 8px);
 }
 
+/* Allow browser pull-to-refresh / normal overscroll; modals use overscroll-behavior:contain */
 html, body {
-  overscroll-behavior: none;
+  overscroll-behavior-y: auto;
 }
 
 /* Prevent hero/landing content from being cut off on any device */
