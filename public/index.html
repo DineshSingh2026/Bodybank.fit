@@ -13115,7 +13115,8 @@ var bbNutritionState = {
   results: {},
   confidence: {},
   scores: {},
-  goals: { cal: 2000, pro: 150 }
+  goals: { cal: 2000, pro: 150 },
+  reportSentToday: false
 };
 /* Shared data for the calorie equation card (populated by two separate functions) */
 var _bbNutriEqData = { target: null, eaten: null, workout: 0 };
@@ -13355,10 +13356,23 @@ function nutritionSetAnalyzeLocked(mt, locked) {
 function nutritionUpdateSubmitAllState() {
   var sub = document.getElementById('submitAllBtn');
   if (!sub) return;
+  var allAnalyzed = bbNutritionMeals.every(function (m) { return !!(bbNutritionState.results && bbNutritionState.results[m]); });
   var notesReady = bbNutritionMeals.every(function (m) {
     var n = document.getElementById('note-' + m);
     return n && n.value.trim();
   });
+  if (bbNutritionState.reportSentToday) {
+    sub.disabled = true;
+    sub.title = 'Report already sent for today.';
+    sub.textContent = 'Report already sent today';
+    return;
+  }
+  if (allAnalyzed) {
+    sub.disabled = true;
+    sub.title = 'All four meals are already analyzed.';
+    sub.textContent = 'All 4 meals analyzed';
+    return;
+  }
   sub.disabled = !notesReady;
   sub.title = notesReady ? '' : 'Add meal details for all four meals to enable submit.';
   sub.textContent = notesReady ? 'Submit all & send report' : 'Submit all & send report (add details for all 4 meals)';
@@ -13998,14 +14012,12 @@ function nutritionUpdateSummaryFromState() {
 function nutritionApplyEnergyRow(statsNorm) {
   var row = document.getElementById('nutriEnergyRow');
   var valEl = document.getElementById('nutriEnergyVal');
-  if (!row || !valEl || !statsNorm) return;
-  var ed = statsNorm.energyDifference;
-  if (ed == null && statsNorm.energy_difference != null) ed = statsNorm.energy_difference;
-  if (ed == null) { row.style.display = 'none'; } else {
-    ed = Number(ed);
-    row.style.display = 'flex';
-    valEl.textContent = (ed >= 0 ? '+' : '') + ed + ' kcal';
-    valEl.className = 'nutri-energy-val' + (ed < 0 ? ' surplus' : '');
+  if (!statsNorm) return;
+  // User dashboard requirement: never show burn-intake equation row.
+  if (row) row.style.display = 'none';
+  if (valEl) {
+    valEl.textContent = '';
+    valEl.className = 'nutri-energy-val';
   }
   /* Update workout calories in equation */
   var wo = statsNorm.caloriesOut;
@@ -14160,6 +14172,7 @@ async function nutritionAnalyzeSingle(mt, opts) {
   );
   bbNutritionState.confidence[mt] = mc;
   bbNutritionState.scores[mt] = data.mealScore;
+  bbNutritionState.reportSentToday = false;
   var ds = bbNutritionDailyStatsNorm(data.dailyStats);
   if (ds && ds.calorieGoal != null) bbNutritionState.goals.cal = ds.calorieGoal;
   if (ds && ds.proteinGoal != null) bbNutritionState.goals.pro = ds.proteinGoal;
@@ -14223,7 +14236,11 @@ async function nutritionSubmitAllMeals() {
   }
   var res = await apiCall('POST', '/api/nutrition/notify', { date: ymd });
   if (res && res.error) nutritionShowToast(res.error, 'error');
-  else nutritionShowToast('Report sent to email & inbox', 'success');
+  else {
+    bbNutritionState.reportSentToday = true;
+    nutritionShowToast('Report sent to email & inbox', 'success');
+  }
+  nutritionUpdateSubmitAllState();
 }
 
 async function loadNutritionCheckinPanel() {
@@ -14240,6 +14257,7 @@ async function loadNutritionCheckinPanel() {
   bbNutritionState.confidence = {};
   bbNutritionState.scores = {};
   bbNutritionState.portions = { breakfast: 'medium', lunch: 'medium', snack: 'medium', dinner: 'medium' };
+  bbNutritionState.reportSentToday = false;
   bbNutritionMeals.forEach(function (mt) {
     nutritionRemovePhoto(mt, { keepDraft: true });
     nutritionSetAnalyzeLocked(mt, false);
@@ -14283,6 +14301,7 @@ async function loadNutritionCheckinPanel() {
       nutritionSetPhotoRemovable(mt, !ar);
     }
   });
+  bbNutritionState.reportSentToday = meals.some(function (m) { return !!(m && m.notified_at); });
   var ds = bbNutritionDailyStatsNorm(data.dailyStats);
   if (ds && ds.calorieGoal != null) bbNutritionState.goals.cal = ds.calorieGoal;
   if (ds && ds.proteinGoal != null) bbNutritionState.goals.pro = ds.proteinGoal;
@@ -14442,13 +14461,10 @@ function loadAdminNutritionReport() {
           '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' +
           summaryHtml + weeklyProteinHtml + usageHtml +
           '<div class="admin-nutrition-actions">' +
-          '<button type="button" class="btn" onclick="adminNutritionAnalyzeAll(\'' + uidEsc + '\')">Re-run AI</button>' +
           '<button type="button" class="btn" onclick="adminNutritionDrawWeekChart(\'' + uidEsc + '\')">Protein trend</button>' +
-          '<button type="button" class="btn" onclick="adminNutritionShareWeekly(\'' + uidEsc + '\')">Share report</button>' +
           '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'both\')">Email + inbox</button>' +
-          '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'email\')">Email only</button>' +
-          '<button type="button" class="btn" onclick="adminNutritionNotify(\'' + uidEsc + '\',\'message\')">Inbox only</button>' +
-          '<button type="button" class="btn" onclick="adminNutritionViewLog(\'' + uidEsc + '\')">View log</button></div>' +
+          '<button type="button" class="btn" onclick="adminNutritionViewLog(\'' + uidEsc + '\')">View log</button>' +
+          '<button type="button" class="btn" onclick="adminNutritionDownloadPhotos(\'' + uidEsc + '\')">Download image</button></div>' +
           (c.notified ? '<p class="form-hint" style="margin-top:8px">Notified today ✓</p>' : '') +
           '</div>';
       }).join('');
@@ -14460,9 +14476,39 @@ function loadAdminNutritionReport() {
 }
 
 function adminNutritionDownloadPhotos(userId) {
-  if (typeof showPopup === 'function') {
-    showPopup('Meal photos', 'Meal photos are not stored. Only AI nutrition results and text notes are kept.', '', 'OK', null, 'error');
-  }
+  var dEl = document.getElementById('adminNutritionReportDate');
+  var date = dEl && dEl.value ? dEl.value : nutritionTodayYmd();
+  fetch((typeof API !== 'undefined' ? API : '') + '/api/nutrition/log/' + encodeURIComponent(userId) + '/' + encodeURIComponent(date), {
+    headers: { Authorization: 'Bearer ' + (window.currentUser && window.currentUser.token ? window.currentUser.token : '') }
+  })
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, log: j }; }); })
+    .then(function (x) {
+      if (!x.ok || !x.log) {
+        if (typeof showPopup === 'function') showPopup('Download image', (x.log && x.log.error) || 'Unable to load meal log.', '', 'OK', null, 'error');
+        return;
+      }
+      var meals = Array.isArray(x.log.meals) ? x.log.meals : [];
+      var rowsWithPhoto = meals.filter(function (m) { return !!(m && m.photo_data); });
+      if (!rowsWithPhoto.length) {
+        if (typeof showPopup === 'function') showPopup('Download image', 'No meal photos available for selected date.', '', 'OK', null, 'error');
+        return;
+      }
+      var safeDate = String(date || '').replace(/[^\d-]/g, '') || 'nutrition';
+      rowsWithPhoto.forEach(function (m, idx) {
+        var mt = String(m.meal_type || ('meal' + (idx + 1))).toLowerCase().replace(/[^a-z0-9_-]/g, '');
+        var mime = String(m.photo_mime || '');
+        var ext = mime.indexOf('png') > -1 ? 'png' : mime.indexOf('webp') > -1 ? 'webp' : 'jpg';
+        var a = document.createElement('a');
+        a.href = m.photo_data;
+        a.download = 'nutrition-' + safeDate + '-' + mt + '.' + ext;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      });
+    })
+    .catch(function () {
+      if (typeof showPopup === 'function') showPopup('Download image', 'Network error while downloading images.', '', 'OK', null, 'error');
+    });
 }
 
 function adminNutritionDownloadAllPhotos() {
