@@ -2831,12 +2831,25 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .admin-nutrition-client-head .meta{font-size:11px;color:var(--muted);margin-top:2px}
 .admin-nutrition-score-ring{width:48px;height:48px;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;border:3px solid var(--bb-border);flex-shrink:0}
 .admin-nutrition-thumbs{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
-.admin-nutrition-thumb{border:1px solid var(--bb-border);border-radius:8px;overflow:hidden}
+.admin-nutrition-thumb{border:1px solid var(--bb-border);border-radius:8px;overflow:hidden;cursor:default}
+.admin-nutrition-thumb.has-photo{cursor:pointer}
+.admin-nutrition-thumb.has-photo:hover img{opacity:.85}
 .admin-nutrition-thumb.logged{border-color:var(--bb-green)}
 .admin-nutrition-thumb.low-conf{border-color:var(--bb-red)}
-.admin-nutrition-thumb img{width:100%;height:64px;object-fit:cover;display:block;max-width:100%}
+.admin-nutrition-thumb img{width:100%;height:64px;object-fit:cover;display:block;max-width:100%;transition:opacity .15s}
 .admin-nutrition-thumb .ph{height:64px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);background:var(--bb-surface-hover)}
 .admin-nutrition-thumb .lbl{font-size:9px;padding:4px 6px;color:var(--muted);text-transform:uppercase}
+/* Meal image lightbox */
+#bbMealLightbox{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);align-items:center;justify-content:center;flex-direction:column}
+#bbMealLightbox.open{display:flex}
+#bbMealLightbox .bb-lb-img{max-width:min(92vw,600px);max-height:72vh;border-radius:12px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.6)}
+#bbMealLightbox .bb-lb-bar{display:flex;align-items:center;justify-content:space-between;width:min(92vw,600px);margin-top:14px;gap:12px}
+#bbMealLightbox .bb-lb-label{color:#d4af37;font-size:13px;font-weight:600;text-transform:capitalize;letter-spacing:.5px}
+#bbMealLightbox .bb-lb-actions{display:flex;gap:10px}
+#bbMealLightbox .bb-lb-btn{background:rgba(212,175,55,.15);border:1px solid rgba(212,175,55,.4);color:#d4af37;border-radius:8px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:background .15s}
+#bbMealLightbox .bb-lb-btn:hover{background:rgba(212,175,55,.28)}
+#bbMealLightbox .bb-lb-close{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.18);color:#fff;border-radius:8px;padding:8px 14px;font-size:13px;cursor:pointer;transition:background .15s}
+#bbMealLightbox .bb-lb-close:hover{background:rgba(255,255,255,.16)}
 .admin-nutrition-macros{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px}
 .admin-nutrition-mchip{font-size:11px;padding:4px 10px;border-radius:99px;font-weight:600}
 .admin-nutrition-actions{display:flex;flex-wrap:wrap;gap:8px}
@@ -14377,10 +14390,13 @@ function loadAdminNutritionReport() {
           var ar = meal ? bbParseNutritionAi(meal.ai_result) : null;
           var low = ar && (ar.confidence || '').toLowerCase() === 'low';
           var hasPhoto = meal && meal.photo_data;
+          var photoSrc = hasPhoto ? ('data:' + (meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data) : '';
+          var photoLabel = type + (ar && ar.calories != null ? ' · ' + ar.calories + ' kcal' : '');
+          var clickAttr = hasPhoto ? ' onclick="bbMealLightboxOpen(' + JSON.stringify(photoSrc) + ',' + JSON.stringify(photoLabel) + ')"' : '';
           var inner = hasPhoto
-            ? '<img src="data:' + escapeHtml(meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data + '" alt=""/>'
+            ? '<img src="' + escapeHtml(photoSrc) + '" alt="' + escapeHtml(type) + ' photo"/>'
             : '<div class="ph">' + (meal ? 'Logged' : '—') + '</div>';
-          return '<div class="admin-nutrition-thumb' + (meal ? ' logged' : '') + (low ? ' low-conf' : '') + '">' + inner +
+          return '<div class="admin-nutrition-thumb' + (meal ? ' logged' : '') + (low ? ' low-conf' : '') + (hasPhoto ? ' has-photo' : '') + '"' + clickAttr + '>' + inner +
             '<div class="lbl">' + escapeHtml(type) + (ar && ar.calories != null ? ' · ' + ar.calories + ' kcal' : '') + '</div></div>';
         }).join('');
         var intakeCalories = sn && sn.totalCalories != null ? Number(sn.totalCalories) : 0;
@@ -14479,6 +14495,38 @@ function loadAdminNutritionReport() {
     });
 }
 
+function bbMealLightboxOpen(src, label) {
+  var lb = document.getElementById('bbMealLightbox');
+  var img = document.getElementById('bbMealLightboxImg');
+  var lbl = document.getElementById('bbMealLightboxLabel');
+  if (!lb || !img) return;
+  img.src = src;
+  if (lbl) lbl.textContent = label || '';
+  lb._downloadSrc = src;
+  lb._downloadLabel = label || 'meal';
+  lb.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function bbMealLightboxClose(e) {
+  if (e && e.target && e.target.closest && e.target.closest('.bb-lb-img,.bb-lb-bar')) return;
+  var lb = document.getElementById('bbMealLightbox');
+  if (lb) lb.classList.remove('open');
+  document.body.style.overflow = '';
+}
+function bbMealLightboxDownload(e) {
+  if (e) e.stopPropagation();
+  var lb = document.getElementById('bbMealLightbox');
+  if (!lb || !lb._downloadSrc) return;
+  var a = document.createElement('a');
+  a.href = lb._downloadSrc;
+  a.download = 'meal-' + String(lb._downloadLabel).toLowerCase().replace(/[^a-z0-9_-]/g, '-') + '.jpg';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+}
+document.addEventListener('keydown', function (e) {
+  if (e.key === 'Escape') bbMealLightboxClose();
+});
 function adminNutritionDownloadPhotos(userId) {
   var dEl = document.getElementById('adminNutritionReportDate');
   var date = dEl && dEl.value ? dEl.value : nutritionTodayYmd();
@@ -17382,5 +17430,21 @@ window.addEventListener('resize', applySafeAreaFix);
   }
 }
 </style>
+
+<!-- Meal image lightbox -->
+<div id="bbMealLightbox" role="dialog" aria-modal="true" onclick="bbMealLightboxClose(event)">
+  <img id="bbMealLightboxImg" class="bb-lb-img" src="" alt="Meal photo">
+  <div class="bb-lb-bar">
+    <span id="bbMealLightboxLabel" class="bb-lb-label"></span>
+    <div class="bb-lb-actions">
+      <button class="bb-lb-btn" onclick="bbMealLightboxDownload(event)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        Download
+      </button>
+      <button class="bb-lb-close" onclick="bbMealLightboxClose()">✕ Close</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
