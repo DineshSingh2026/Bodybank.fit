@@ -14376,6 +14376,7 @@ function loadAdminNutritionReport() {
         if (ww) ww.style.display = 'none';
         return;
       }
+      window._bbMealPhotoMap = {};
       list.innerHTML = clients.map(function (c) {
         var stats = c.dailyStats;
         var sn = stats ? bbNutritionDailyStatsNorm(stats) : null;
@@ -14385,16 +14386,22 @@ function loadAdminNutritionReport() {
         var mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'];
         var mealMap = {};
         (c.meals || []).forEach(function (m) { mealMap[m.meal_type] = m; });
+        var uid = String(c.userId);
         var thumbs = mealTypes.map(function (type) {
           var meal = mealMap[type];
           var ar = meal ? bbParseNutritionAi(meal.ai_result) : null;
           var low = ar && (ar.confidence || '').toLowerCase() === 'low';
           var hasPhoto = meal && meal.photo_data;
-          var photoSrc = hasPhoto ? ('data:' + (meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data) : '';
-          var photoLabel = type + (ar && ar.calories != null ? ' · ' + ar.calories + ' kcal' : '');
-          var clickAttr = hasPhoto ? ' onclick="bbMealLightboxOpen(' + JSON.stringify(photoSrc) + ',' + JSON.stringify(photoLabel) + ')"' : '';
+          var mapKey = uid + '_' + type;
+          if (hasPhoto) {
+            window._bbMealPhotoMap[mapKey] = {
+              src: 'data:' + (meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data,
+              label: type + (ar && ar.calories != null ? ' \u00b7 ' + ar.calories + ' kcal' : '')
+            };
+          }
+          var clickAttr = hasPhoto ? ' onclick="bbMealLightboxOpen(\'' + mapKey + '\')"' : '';
           var inner = hasPhoto
-            ? '<img src="' + escapeHtml(photoSrc) + '" alt="' + escapeHtml(type) + ' photo"/>'
+            ? '<img src="data:' + escapeHtml(meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data + '" alt="' + escapeHtml(type) + ' photo"/>'
             : '<div class="ph">' + (meal ? 'Logged' : '—') + '</div>';
           return '<div class="admin-nutrition-thumb' + (meal ? ' logged' : '') + (low ? ' low-conf' : '') + (hasPhoto ? ' has-photo' : '') + '"' + clickAttr + '>' + inner +
             '<div class="lbl">' + escapeHtml(type) + (ar && ar.calories != null ? ' · ' + ar.calories + ' kcal' : '') + '</div></div>';
@@ -14495,15 +14502,17 @@ function loadAdminNutritionReport() {
     });
 }
 
-function bbMealLightboxOpen(src, label) {
+function bbMealLightboxOpen(key) {
+  var entry = window._bbMealPhotoMap && window._bbMealPhotoMap[key];
+  if (!entry || !entry.src) return;
   var lb = document.getElementById('bbMealLightbox');
   var img = document.getElementById('bbMealLightboxImg');
   var lbl = document.getElementById('bbMealLightboxLabel');
   if (!lb || !img) return;
-  img.src = src;
-  if (lbl) lbl.textContent = label || '';
-  lb._downloadSrc = src;
-  lb._downloadLabel = label || 'meal';
+  img.src = entry.src;
+  if (lbl) lbl.textContent = entry.label || '';
+  lb._downloadSrc = entry.src;
+  lb._downloadLabel = entry.label || 'meal';
   lb.classList.add('open');
   document.body.style.overflow = 'hidden';
 }
