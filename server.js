@@ -64,7 +64,6 @@ const SMTP_USER = (process.env.SMTP_USER || '').trim();
 const SMTP_PASS = (process.env.SMTP_PASS || '').trim();
 const SMTP_FROM = (process.env.SMTP_FROM || 'BodyBank <noreply@bodybank.fit>').trim();
 const CAMPAIGNS_ENABLED = String(process.env.CAMPAIGNS_ENABLED || 'false').trim().toLowerCase() === 'true';
-const FEED_POSTS_FILE = path.join(__dirname, 'posts.json');
 const FEED_UPLOADS_DIR = path.join(__dirname, 'uploads');
 
 async function safeRestartCampaignScheduler(logPrefix) {
@@ -238,50 +237,33 @@ function validateProfilePicture(profilePicture) {
   return null;
 }
 
-function ensureFeedStorage() {
-  if (!fs.existsSync(FEED_UPLOADS_DIR)) fs.mkdirSync(FEED_UPLOADS_DIR, { recursive: true });
-  if (!fs.existsSync(FEED_POSTS_FILE)) fs.writeFileSync(FEED_POSTS_FILE, '[]', 'utf8');
+// ── Feed helpers: PostgreSQL-backed, survive all deployments ─────────
+function feedRowToPost(row) {
+  return {
+    id: row.id,
+    username: row.username,
+    caption: row.caption || '',
+    imageUrl: `/api/feed/image/${row.id}`,
+    likes: row.likes || 0,
+    featured: !!row.featured,
+    createdAt: row.created_at
+  };
 }
 
-function readFeedPosts() {
-  try {
-    ensureFeedStorage();
-    const raw = fs.readFileSync(FEED_POSTS_FILE, 'utf8');
-    const list = JSON.parse(raw);
-    if (!Array.isArray(list)) return [];
-    return list.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-  } catch (e) {
-    console.warn('[feed] Failed reading posts.json:', e.message);
-    return [];
-  }
-}
-
-function writeFeedPosts(posts) {
-  ensureFeedStorage();
-  fs.writeFileSync(FEED_POSTS_FILE, JSON.stringify(posts, null, 2), 'utf8');
-}
-
-async function saveFeedImageFromDataUrl(dataUrl) {
+function parseFeedImageInput(dataUrl) {
   const match = String(dataUrl || '').match(/^data:image\/(png|jpe?g|webp);base64,(.+)$/i);
   if (!match) throw new Error('Provide a valid PNG/JPEG/WEBP base64 image.');
-  ensureFeedStorage();
-  const ext = match[1].toLowerCase().replace('jpeg', 'jpg');
-  const base64 = match[2];
-  const fileName = `feed-${Date.now()}-${Math.floor(Math.random() * 1e6)}.${ext}`;
-  const outPath = path.join(FEED_UPLOADS_DIR, fileName);
-  const buf = Buffer.from(base64, 'base64');
-  fs.writeFileSync(outPath, buf);
-  return `/uploads/${fileName}`;
+  const mime = match[1].toLowerCase() === 'jpg' ? 'image/jpeg'
+             : match[1].toLowerCase() === 'jpeg' ? 'image/jpeg'
+             : match[1].toLowerCase() === 'png'  ? 'image/png'
+             : 'image/webp';
+  return { imageData: dataUrl, imageMime: mime };
 }
 
-async function saveFeedImageFromBuffer(buffer, originalName) {
-  ensureFeedStorage();
-  const ext = String(path.extname(originalName || '') || '.jpg').toLowerCase().replace('.jpeg', '.jpg');
-  const safeExt = ['.jpg', '.jpeg', '.png', '.webp'].includes(ext) ? ext : '.jpg';
-  const fileName = `feed-${Date.now()}-${Math.floor(Math.random() * 1e6)}${safeExt}`;
-  const outPath = path.join(FEED_UPLOADS_DIR, fileName);
-  fs.writeFileSync(outPath, buffer);
-  return `/uploads/${fileName}`;
+function bufferToFeedDataUrl(buffer, originalName) {
+  const ext = String(path.extname(originalName || '') || '.jpg').toLowerCase();
+  const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+  return { imageData: `data:${mime};base64,${buffer.toString('base64')}`, imageMime: mime };
 }
 
 async function syncUserCountryAndTimezone(userId, email) {
@@ -811,6 +793,20 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_wheel_last_label TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_public_program BOOLEAN DEFAULT TRUE`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_public_global BOOLEAN DEFAULT FALSE`); } catch (e) { /* ignore */ }
+
+  // ── Elite Feed posts — persistent across deployments ──────────────
+  await pool.query(`CREATE TABLE IF NOT EXISTS feed_posts (
+    id TEXT PRIMARY KEY,
+    username TEXT NOT NULL DEFAULT 'bodybank_member',
+    caption TEXT DEFAULT '',
+    image_data TEXT DEFAULT '',
+    image_mime TEXT DEFAULT 'image/jpeg',
+    likes INTEGER DEFAULT 0,
+    featured BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_feed_posts_created_at ON feed_posts(created_at DESC)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_feed_posts_username ON feed_posts(username)`); } catch (e) { /* ignore */ }
   await pool.query(`CREATE TABLE IF NOT EXISTS leaderboard_virtual_config (
     id INTEGER PRIMARY KEY,
     enabled BOOLEAN DEFAULT TRUE,
@@ -5616,94 +5612,129 @@ const feedUpload = multer
     })
   : null;
 
+// Serve legacy uploaded images (existing posts that were saved as files before migration)
 app.use('/uploads', express.static(FEED_UPLOADS_DIR, {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
 }));
 
-app.get('/api/feed/posts', (req, res) => {
+// ── GET /api/feed/image/:id — serve post image from PostgreSQL ──────
+app.get('/api/feed/image/:id', async (req, res) => {
   try {
-    const limitRaw = parseInt(req.query.limit, 10);
+    const row = await queryOne('SELECT image_data, image_mime FROM feed_posts WHERE id = $1', [req.params.id]);
+    if (!row || !row.image_data) return res.status(404).send('Not found');
+    const data = String(row.image_data);
+    const mime = String(row.image_mime || 'image/jpeg');
+    // Strip data URL prefix if present, send raw buffer
+    const b64 = data.includes(',') ? data.split(',')[1] : data;
+    const buf = Buffer.from(b64, 'base64');
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+    return res.send(buf);
+  } catch (e) {
+    return res.status(500).send('Error');
+  }
+});
+
+// ── GET /api/feed/posts ─────────────────────────────────────────────
+app.get('/api/feed/posts', async (req, res) => {
+  try {
+    const limitRaw  = parseInt(req.query.limit, 10);
     const offsetRaw = parseInt(req.query.offset, 10);
-    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 24) : 10;
+    const limit  = Number.isFinite(limitRaw)  ? Math.min(Math.max(limitRaw, 1), 24) : 10;
     const offset = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
-    const posts = readFeedPosts();
-    const page = posts.slice(offset, offset + limit);
+
+    const countRow = await queryOne('SELECT COUNT(*)::int AS total FROM feed_posts', []);
+    const total = (countRow && countRow.total) ? Number(countRow.total) : 0;
+    const rows = await queryAll(
+      'SELECT id, username, caption, image_mime, likes, featured, created_at FROM feed_posts ORDER BY created_at DESC LIMIT $1 OFFSET $2',
+      [limit, offset]
+    );
     return res.json({
-      posts: page,
-      hasMore: offset + limit < posts.length,
-      total: posts.length
+      posts: rows.map(feedRowToPost),
+      hasMore: offset + limit < total,
+      total
     });
   } catch (e) {
+    console.error('[feed] GET /posts error:', e.message);
     return res.status(500).json({ error: 'Failed to load feed posts.' });
   }
 });
 
-app.get('/api/feed/user-posts', (req, res) => {
+// ── GET /api/feed/user-posts ────────────────────────────────────────
+app.get('/api/feed/user-posts', async (req, res) => {
   try {
     const username = String(req.query.username || '').trim().toLowerCase();
-    const all = readFeedPosts();
-    const posts = username
-      ? all.filter((p) => String(p.username || '').toLowerCase() === username)
-      : all;
-    return res.json({ posts });
+    let rows;
+    if (username) {
+      rows = await queryAll(
+        'SELECT id, username, caption, image_mime, likes, featured, created_at FROM feed_posts WHERE LOWER(username) = $1 ORDER BY created_at DESC',
+        [username]
+      );
+    } else {
+      rows = await queryAll(
+        'SELECT id, username, caption, image_mime, likes, featured, created_at FROM feed_posts ORDER BY created_at DESC',
+        []
+      );
+    }
+    return res.json({ posts: rows.map(feedRowToPost) });
   } catch (e) {
+    console.error('[feed] GET /user-posts error:', e.message);
     return res.status(500).json({ error: 'Failed to load user posts.' });
   }
 });
 
+// ── POST /api/feed/upload ───────────────────────────────────────────
 app.post('/api/feed/upload', feedUpload ? feedUpload.single('image') : (req, _res, next) => next(), async (req, res) => {
   try {
-    const caption = String(req.body?.caption || '').trim().slice(0, 240);
+    const caption  = String(req.body?.caption  || '').trim().slice(0, 240);
     const username = String(req.body?.username || 'bodybank_member').trim().slice(0, 32) || 'bodybank_member';
-    let imageUrl = '';
+    const featured = String(req.body?.featured || '') === '1';
+    let imageData = '', imageMime = 'image/jpeg';
 
     if (req.file && req.file.buffer && req.file.buffer.length) {
-      imageUrl = await saveFeedImageFromBuffer(req.file.buffer, req.file.originalname);
+      const parsed = bufferToFeedDataUrl(req.file.buffer, req.file.originalname);
+      imageData = parsed.imageData;
+      imageMime = parsed.imageMime;
     } else if (req.body && req.body.imageData) {
-      imageUrl = await saveFeedImageFromDataUrl(req.body.imageData);
+      const parsed = parseFeedImageInput(req.body.imageData);
+      imageData = parsed.imageData;
+      imageMime = parsed.imageMime;
     } else {
       return res.status(400).json({ error: 'Image is required (multipart "image" or base64 imageData).' });
     }
 
-    const posts = readFeedPosts();
-    const createdAt = new Date().toISOString();
-    const post = {
-      id: uuidv4(),
-      imageUrl,
-      likes: Math.floor(Math.random() * 70) + 12,
-      caption: caption || 'BodyBank.fit transformation in progress.',
-      username,
-      featured: String(req.body?.featured || '') === '1',
-      createdAt
-    };
-    posts.unshift(post);
-    writeFeedPosts(posts);
-    return res.status(201).json({ ok: true, post, imageUrl });
+    const id = uuidv4();
+    const likes = Math.floor(Math.random() * 70) + 12;
+    await pool.query(
+      `INSERT INTO feed_posts (id, username, caption, image_data, image_mime, likes, featured)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+      [id, username, caption || 'BodyBank.fit transformation in progress.', imageData, imageMime, likes, featured]
+    );
+    const post = feedRowToPost({ id, username, caption, image_mime: imageMime, likes, featured, created_at: new Date().toISOString() });
+    return res.status(201).json({ ok: true, post, imageUrl: post.imageUrl });
   } catch (e) {
+    console.error('[feed] POST /upload error:', e.message);
     return res.status(500).json({ error: e.message || 'Upload failed.' });
   }
 });
 
-app.post('/api/feed/delete', (req, res) => {
+// ── POST /api/feed/delete ───────────────────────────────────────────
+app.post('/api/feed/delete', async (req, res) => {
   try {
-    const postId = String(req.body?.postId || '').trim();
+    const postId  = String(req.body?.postId  || '').trim();
     const username = String(req.body?.username || '').trim().toLowerCase();
-    if (!postId) return res.status(400).json({ error: 'postId is required.' });
+    if (!postId)   return res.status(400).json({ error: 'postId is required.' });
     if (!username) return res.status(400).json({ error: 'username is required.' });
 
-    const posts = readFeedPosts();
-    const idx = posts.findIndex((p) => String(p.id || '') === postId);
-    if (idx < 0) return res.status(404).json({ error: 'Post not found.' });
-
-    const owner = String(posts[idx].username || '').trim().toLowerCase();
-    if (owner !== username) {
+    const row = await queryOne('SELECT id, username FROM feed_posts WHERE id = $1', [postId]);
+    if (!row) return res.status(404).json({ error: 'Post not found.' });
+    if (String(row.username || '').toLowerCase() !== username) {
       return res.status(403).json({ error: 'You can delete only your own posts.' });
     }
-
-    const [removed] = posts.splice(idx, 1);
-    writeFeedPosts(posts);
-    return res.json({ ok: true, removedId: removed?.id || postId });
+    await pool.query('DELETE FROM feed_posts WHERE id = $1', [postId]);
+    return res.json({ ok: true, removedId: postId });
   } catch (e) {
+    console.error('[feed] POST /delete error:', e.message);
     return res.status(500).json({ error: 'Failed to delete post.' });
   }
 });
