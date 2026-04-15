@@ -4620,7 +4620,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       </button>
     </div>
   </nav>
-  <button type="button" id="bbEliteFeedFab" class="bb-elite-feed-fab" onclick="switchUserTab('elitefeed')" aria-label="Open Elite Feed" title="Open Elite Feed">
+  <button type="button" id="bbEliteFeedFab" class="bb-elite-feed-fab" onclick="bbHandleUserFabClick()" aria-label="Open Elite Feed" title="Open Elite Feed" data-mode="feed">
     <svg class="bb-ef-fab-svg" viewBox="0 0 24 24" aria-hidden="true">
       <rect class="bb-ef-cam" x="4.4" y="4.4" width="15.2" height="15.2" rx="4.2"></rect>
       <circle class="bb-ef-cam" cx="12" cy="12" r="4"></circle>
@@ -12272,6 +12272,35 @@ function bbIsVirtualKeyboardOpen() {
     return (window.innerHeight - window.visualViewport.height) > 150;
   } catch (_) { return false; }
 }
+function bbSetUserFabIcon(mode) {
+  var fab = document.getElementById('bbEliteFeedFab');
+  if (!fab) return;
+  var svg = fab.querySelector('svg');
+  if (!svg) return;
+  if (mode === 'trainer') {
+    svg.innerHTML =
+      '<rect class="bb-ef-cam" x="4.8" y="6.3" width="14.4" height="11.2" rx="2.4"></rect>' +
+      '<circle class="bb-ef-cam" cx="9.3" cy="11.8" r="1.4"></circle>' +
+      '<circle class="bb-ef-cam" cx="14.7" cy="11.8" r="1.4"></circle>' +
+      '<path class="bb-ef-cam" d="M10.2 15h3.6"></path>' +
+      '<path class="bb-ef-cam" d="M9 6.3V4.8m6 1.5V4.8"></path>';
+  } else {
+    svg.innerHTML =
+      '<rect class="bb-ef-cam" x="4.4" y="4.4" width="15.2" height="15.2" rx="4.2"></rect>' +
+      '<circle class="bb-ef-cam" cx="12" cy="12" r="4"></circle>' +
+      '<circle class="bb-ef-dot" cx="16.7" cy="7.3" r="1.05"></circle>';
+  }
+}
+function bbHandleUserFabClick() {
+  var fab = document.getElementById('bbEliteFeedFab');
+  if (!fab) return;
+  var mode = fab.getAttribute('data-mode') || 'feed';
+  if (mode === 'trainer') {
+    window.location.href = '/ai-trainer.html';
+    return;
+  }
+  if (typeof switchUserTab === 'function') switchUserTab('elitefeed');
+}
 function bbUpdateEliteFeedFab(tab) {
   var fab = document.getElementById('bbEliteFeedFab');
   if (!fab) return;
@@ -12283,8 +12312,21 @@ function bbUpdateEliteFeedFab(tab) {
     var activeSec = document.querySelector('.user-section.active');
     activeTab = activeSec ? String(activeSec.id || '').replace(/^usec-/, '') : '';
   }
-  // Keep this CTA non-intrusive: Home only + hidden while typing, keyboard open, or any modal layer is open.
-  var shouldShow = activeTab === 'home' && !bbIsTypingInputContext() && !bbIsVirtualKeyboardOpen() && !(typeof isOverlayOpen === 'function' && isOverlayOpen());
+  var isHome = activeTab === 'home';
+  var isWorkout = activeTab === 'workout';
+  if (isWorkout) {
+    fab.setAttribute('data-mode', 'trainer');
+    fab.setAttribute('aria-label', 'Open AI Trainer');
+    fab.setAttribute('title', 'Open AI Trainer');
+    bbSetUserFabIcon('trainer');
+  } else {
+    fab.setAttribute('data-mode', 'feed');
+    fab.setAttribute('aria-label', 'Open Elite Feed');
+    fab.setAttribute('title', 'Open Elite Feed');
+    bbSetUserFabIcon('feed');
+  }
+  // Non-intrusive rule: show only on Home/Workout and hide while typing, keyboard open, or any modal layer is open.
+  var shouldShow = (isHome || isWorkout) && !bbIsTypingInputContext() && !bbIsVirtualKeyboardOpen() && !(typeof isOverlayOpen === 'function' && isOverlayOpen());
   fab.style.display = shouldShow ? 'flex' : 'none';
 }
 document.addEventListener('focusin', function(){ if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(); });

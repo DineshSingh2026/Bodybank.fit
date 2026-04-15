@@ -80,11 +80,13 @@ html, body { margin: 0; padding: 0; background: radial-gradient(1400px 900px at 
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 10px;
   min-width: 0;
 }
+.feed-back-link { white-space: nowrap; }
 
+/* Force direct posts-first experience for explore feed. */
 .feed-pills {
   display: flex;
   gap: 8px;
@@ -114,6 +116,11 @@ html, body { margin: 0; padding: 0; background: radial-gradient(1400px 900px at 
 .trend-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .trend-item { border-radius: 12px; overflow: hidden; background: var(--surface); aspect-ratio: 1 / 1; box-shadow: 0 8px 20px rgba(0,0,0,.3); transform: translateY(8px); opacity: 0; animation: fadeUp .5s ease forwards; }
 .trend-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+.feed-pills,
+.feed-trending {
+  display: none !important;
+}
 
 .feed-list { width: min(100%, 680px); margin: 10px auto 100px; padding: 0 12px 20px; display: grid; gap: 12px; justify-items: center; }
 

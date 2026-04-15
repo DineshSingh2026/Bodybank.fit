@@ -8,11 +8,14 @@
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
   <style>
-    :root{--bg:#09090c;--panel:#0f1117;--card:#161921;--line:#1f2433;--txt:#eef0f7;--muted:#8a93a8;--gold:#f5a623;--red:#ff4f6a;--green:#3de68b}
+    :root{--bg:#09090c;--panel:#0f1117;--card:#161921;--line:#1f2433;--txt:#eef0f7;--muted:#8a93a8;--gold:#c8a44e;--gold-strong:#e4bb5a;--red:#ff4f6a;--green:#3de68b}
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,Arial,sans-serif}
     .hdr{position:sticky;top:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:rgba(9,9,12,.92);border-bottom:1px solid var(--line);z-index:10}
-    .logo{font-weight:800;letter-spacing:.04em}.logo strong{color:var(--gold)}
+    .logo{display:inline-flex;align-items:center}
+    .logo-img{height:30px;width:auto;display:block;filter:drop-shadow(0 0 8px rgba(200,164,78,.15))}
+    .back-link{color:#9aa3b9;text-decoration:none;font-size:13px;transition:color .2s ease}
+    .back-link:hover{color:var(--gold-strong)}
     .wrap{max-width:1450px;margin:0 auto;padding:14px;display:grid;grid-template-columns:280px 1fr 280px;gap:12px}
     @media(max-width:1200px){.wrap{grid-template-columns:280px 1fr}.right{display:none}}
     @media(max-width:760px){.wrap{grid-template-columns:1fr}.left{order:2}.stage-wrap{order:1}}
@@ -21,13 +24,13 @@
     select,button{width:100%;border-radius:10px}
     select{background:var(--card);color:var(--txt);border:1px solid #2c3347;padding:10px}
     .btn{border:none;padding:11px;font-weight:700;cursor:pointer}
-    .btn-start{background:var(--gold);color:#111}
+    .btn-start{background:linear-gradient(180deg,var(--gold-strong),var(--gold));color:#111}
     .btn-stop{background:transparent;border:1px solid var(--red);color:var(--red);margin-top:7px}
     .btn:disabled{opacity:.35;cursor:not-allowed}
     .set-btn{margin-top:7px;background:transparent;border:1px dashed #2c3347;color:var(--muted);padding:10px}
     .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
     .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
-    .num{font-size:26px;color:var(--gold);font-weight:800}.lbl{font-size:11px;color:#5f6880;text-transform:uppercase;letter-spacing:.1em}
+    .num{font-size:26px;color:var(--gold-strong);font-weight:800}.lbl{font-size:11px;color:#5f6880;text-transform:uppercase;letter-spacing:.1em}
     .stage-wrap{position:sticky;top:64px}
     .stage{position:relative;aspect-ratio:4/3;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
     #vid,#cvs{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}#vid{object-fit:cover;opacity:0}
@@ -35,13 +38,13 @@
     .overlay.hidden{display:none}
     .ov{max-width:320px;text-align:center;padding:20px;color:var(--muted)}
     .ov h3{margin:0 0 8px;color:var(--txt)}
-    .badge{position:absolute;top:12px;left:12px;z-index:4;background:rgba(245,166,35,.9);color:#111;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800}
+    .badge{position:absolute;top:12px;left:12px;z-index:4;background:rgba(200,164,78,.95);color:#111;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800}
     .warn{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:4;background:rgba(255,79,106,.9);padding:6px 12px;border-radius:999px;font-size:12px}
     .hidden{display:none}
     .feedback{font-size:14px;color:var(--muted);line-height:1.5;margin:0}
     .feedback.good{color:var(--green)}.feedback.warn{color:var(--gold)}.feedback.error{color:var(--red)}
     .bar{height:6px;border-radius:99px;background:#08090d;margin-top:10px;overflow:hidden}
-    .fill{height:100%;width:0;background:linear-gradient(90deg,#c47d10,#f5a623)}
+    .fill{height:100%;width:0;background:linear-gradient(90deg,#a27f2f,var(--gold-strong))}
     .hist{max-height:200px;overflow:auto}
     .row{display:flex;justify-content:space-between;background:var(--card);border:1px solid var(--line);padding:8px;border-radius:8px;font-size:12px;margin-bottom:6px}
     .tip{font-size:13px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px}
@@ -49,8 +52,8 @@
 </head>
 <body>
   <header class="hdr">
-    <div class="logo">Body<strong>Bank</strong></div>
-    <a href="/index.html" style="color:#8a93a8;text-decoration:none;font-size:13px">Back to Dashboard</a>
+    <div class="logo"><img class="logo-img" src="/img/logo.png" alt="BodyBank" /></div>
+    <a href="/index.html" class="back-link">Back to Dashboard</a>
   </header>
   <div class="wrap">
     <aside class="left">
