@@ -5484,11 +5484,21 @@ app.get('/api/campaigns/log', verifyToken, requireAdmin, async (req, res) => {
   }
 });
 
-// Serve index.html with no-cache so users get latest UI after deploys
+// Serve HTML pages with no-cache so users always get latest UI after deploys
 app.get(['/', '/index.html'], (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+app.get('/ai-trainer.html', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(path.join(__dirname, 'public', 'ai-trainer.html'));
+});
+app.get('/feed.html', (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(path.join(__dirname, 'public', 'feed.html'));
 });
 
 // Server-rendered reset password page — token validated on server, no client-side URL parsing

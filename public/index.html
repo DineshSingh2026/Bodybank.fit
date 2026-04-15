@@ -3939,7 +3939,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <nav class="user-sidebar-nav">
         <a class="user-sidebar-link active" href="#" data-tab="home" onclick="switchUserTab('home');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9632;</span>Home</a>
         <a class="user-sidebar-link" href="#" data-tab="workout" onclick="switchUserTab('workout');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127947;</span>My Workout</a>
-        <a class="user-sidebar-link" href="/ai-trainer.html"><span class="user-sidebar-icon" aria-hidden="true">&#129302;</span>AI Trainer</a>
+        <a class="user-sidebar-link" href="/ai-trainer.html?v=2"><span class="user-sidebar-icon" aria-hidden="true">&#129302;</span>AI Trainer</a>
         <a class="user-sidebar-link" href="#" data-tab="programs" onclick="switchUserTab('programs');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127919;</span>My Programs</a>
         <a class="user-sidebar-link" href="#" data-tab="checkin" onclick="switchUserTab('checkin');return false"><span class="user-sidebar-icon" aria-hidden="true">&#10003;</span>Check-in</a>
         <a class="user-sidebar-link" href="#" data-tab="messages" onclick="switchUserTab('messages');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
@@ -4092,7 +4092,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 
         <div class="bb-quick-actions">
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('workout');return false"><span class="btn-icon">🏋️</span>Log Workout</a>
-          <a class="bb-quick-btn" href="/ai-trainer.html"><span class="btn-icon">🤖</span>AI Trainer</a>
+          <a class="bb-quick-btn" href="/ai-trainer.html?v=2"><span class="btn-icon">🤖</span>AI Trainer</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('programs');return false"><span class="btn-icon">📋</span>Programs</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('checkin');return false"><span class="btn-icon">✅</span>Check-in</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('messages');return false"><span class="btn-icon">💬</span>Messages</a>
@@ -4219,7 +4219,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-copy"><div class="wc-title sc-style">Check-in</div><div class="wc-desc">Daily &amp; Sunday check-ins</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('messages')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-copy"><div class="wc-title">Messages</div><div class="wc-desc">Chat with your Lifestyle Manager</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-copy"><div class="wc-title">My Profile</div><div class="wc-desc">View and update your information</div></div></div>
-          <div class="welcome-card" onclick="window.location.href='/ai-trainer.html'"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 3a2 2 0 0 1 2 2v2h1.8A3.2 3.2 0 0 1 19 10.2V16a3 3 0 0 1-3 3h-1v2h-2v-2h-2v2H9v-2H8a3 3 0 0 1-3-3v-5.8A3.2 3.2 0 0 1 8.2 7H10V5a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/></svg></div><div class="wc-copy"><div class="wc-title">AI Trainer</div><div class="wc-desc">Train live with AI pose feedback</div></div></div>
+          <div class="welcome-card" onclick="window.location.href='/ai-trainer.html?v=2'"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 3a2 2 0 0 1 2 2v2h1.8A3.2 3.2 0 0 1 19 10.2V16a3 3 0 0 1-3 3h-1v2h-2v-2h-2v2H9v-2H8a3 3 0 0 1-3-3v-5.8A3.2 3.2 0 0 1 8.2 7H10V5a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/></svg></div><div class="wc-copy"><div class="wc-title">AI Trainer</div><div class="wc-desc">Train live with AI pose feedback</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-copy"><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div></div>
         </div>
 
@@ -12297,7 +12297,7 @@ function bbHandleUserFabClick() {
   if (!fab) return;
   var mode = fab.getAttribute('data-mode') || 'feed';
   if (mode === 'trainer') {
-    window.location.href = '/ai-trainer.html';
+    window.location.href = '/ai-trainer.html?v=2';
     return;
   }
   if (typeof switchUserTab === 'function') switchUserTab('elitefeed');

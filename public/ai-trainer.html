@@ -3,6 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
   <title>BodyBank — AI Fitness Trainer</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
@@ -312,26 +315,33 @@ function evaluateJoints(lm, exKey, phase) {
   const s = { L_knee:'neut', R_knee:'neut', L_elbow:'neut', R_elbow:'neut', torso:'neut', hip:'neut' };
 
   if (exKey === 'squat') {
-    // Knees are the critical joints — evaluate when in descent
+    // Knees always colored — green when deep, amber when partial, red when barely bending
     if (vis(lm,LM.LH) && vis(lm,LM.LK) && vis(lm,LM.LA)) {
       const k = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]);
-      if (phase === 'down') s.L_knee = k < 90 ? 'good' : k < 115 ? 'warn' : 'bad';
+      // standing upright (>155): neutral; starting descent: warn; deep: good
+      s.L_knee = k > 155 ? 'neut' : k < 95 ? 'good' : k < 130 ? 'warn' : 'bad';
     }
     if (vis(lm,LM.RH) && vis(lm,LM.RK) && vis(lm,LM.RA)) {
       const k = angle(lm[LM.RH], lm[LM.RK], lm[LM.RA]);
-      if (phase === 'down') s.R_knee = k < 90 ? 'good' : k < 115 ? 'warn' : 'bad';
+      s.R_knee = k > 155 ? 'neut' : k < 95 ? 'good' : k < 130 ? 'warn' : 'bad';
+    }
+    // Torso upright check (always on)
+    if (vis(lm,LM.LS) && vis(lm,LM.LH)) {
+      const lean = Math.abs(lm[LM.LS].x - lm[LM.LH].x);
+      s.torso = lean < 0.10 ? 'good' : lean < 0.20 ? 'warn' : 'bad';
     }
   }
 
   if (exKey === 'pushup') {
-    // Elbow depth in descent
+    // Elbows always colored — shows form at every point
     if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
       const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
-      if (phase === 'down') s.L_elbow = e < 90 ? 'good' : e < 120 ? 'warn' : 'bad';
+      // fully extended (>155): neutral ready; bending: color by depth
+      s.L_elbow = e > 155 ? 'neut' : e < 90 ? 'good' : e < 120 ? 'warn' : 'bad';
     }
     if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
       const e = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
-      if (phase === 'down') s.R_elbow = e < 90 ? 'good' : e < 120 ? 'warn' : 'bad';
+      s.R_elbow = e > 155 ? 'neut' : e < 90 ? 'good' : e < 120 ? 'warn' : 'bad';
     }
     // Body alignment — always active
     if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA)) {
