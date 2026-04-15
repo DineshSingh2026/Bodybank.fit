@@ -445,6 +445,7 @@ function createNutritionRouter(deps) {
          FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date ORDER BY meal_type`,
         [uid, d]
       );
+      await recomputeDailyStats(db, uid, d);
       const stats = await queryOne(
         'SELECT * FROM nutrition_daily_stats WHERE user_id = ? AND stat_date = ?::date',
         [uid, d]
@@ -641,6 +642,7 @@ function createNutritionRouter(deps) {
           [uid]
         );
         if (!u) continue;
+        await recomputeDailyStats(db, uid, ymd);
         const meals = await queryAll(
           `SELECT meal_type, photo_data, photo_mime, ai_result, ai_usage, meal_score, manual_note, notified_at
            FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date`,

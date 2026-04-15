@@ -24,6 +24,7 @@ const cron = require('node-cron');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
 const workoutSessionLifts = require('./services/workoutSessionLifts');
+const { recomputeDailyStats: recomputeNutritionDailyStats } = require('./services/nutritionService');
 const { inferTimezoneFromCountry, getUserTimezone } = require('./utils/timezone');
 const { startCampaignScheduler, restartScheduler: restartCampaignScheduler, broadcastMessage: broadcastCampaignMessage } = require('./services/campaignScheduler');
 const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalizeCampaignDay, normalizeTime: normalizeCampaignTime } = require('./controllers/campaignController');
@@ -1687,6 +1688,7 @@ app.post('/api/workouts', async (req, res) => {
     const id = uuidv4();
     await run("INSERT INTO workout_logs (id,user_id,workout_name,duration_seconds,feedback) VALUES (?,?,?,?,?)",
       [id, user_id, workout_name, duration_seconds || 0, feedback || '']);
+    await safeRecomputeNutritionForDate(String(user_id), new Date().toISOString().slice(0, 10));
     const wu = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [user_id]);
     if (wu && wu.email) {
       userEmail.emailWorkoutLogged(wu.email, wu.first_name, workout_name, duration_seconds != null ? Math.round(duration_seconds / 60) : null);
@@ -1751,6 +1753,7 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
         b.energy_level ? String(b.energy_level).slice(0, 40) : null
       ]
     );
+    await safeRecomputeNutritionForDate(userId, date);
     // Workout session: structured lifts + session completion sync to progress_logs (canonical bench/squat/dead map from session_lifts when present).
     const hasProgress =
       workoutSessionLifts.hasAnySessionLift(sl) ||
@@ -2061,6 +2064,15 @@ function attachWaterLitersToDailyRow(row) {
   return out;
 }
 
+async function safeRecomputeNutritionForDate(userId, ymd) {
+  try {
+    if (!userId || !ymd || !/^\d{4}-\d{2}-\d{2}$/.test(String(ymd))) return;
+    await recomputeNutritionDailyStats({ run, queryOne, queryAll }, String(userId), String(ymd));
+  } catch (e) {
+    console.warn('[nutrition recompute sync]', e.message);
+  }
+}
+
 // User can fill only once per day for streak
 app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, res) => {
   try {
@@ -2079,6 +2091,7 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
        VALUES (?, ?, ?::date, ?, ?, ?, ?)`,
       [id, userId, today, steps != null ? steps : null, waterMl, protein_g != null ? protein_g : null, sleep_hours != null ? sleep_hours : null]
     );
+    await safeRecomputeNutritionForDate(userId, today);
     const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
     const du = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [userId]);
     if (du && du.email) {
