@@ -887,6 +887,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     min-width:0;
     padding:14px;
     border-radius:10px;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:4px;
   }
 
   /* Welcome cards: horizontal 3-column grid below dashboard */
@@ -2950,17 +2954,9 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .micro-goals-submit{width:100%;padding:12px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;transition:opacity .2s}
 .micro-goals-submit:hover{opacity:.95}
 .weekly-recap{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--bdr)}
-.weekly-recap-item{flex:1;min-width:100px;text-align:center;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px}
-.weekly-recap-item .lbl{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);margin-bottom:4px}
-.weekly-recap-item .num{
-  font-size:18px;
-  font-weight:700;
-  color:var(--gold);
-  white-space:nowrap;
-  word-break:keep-all;
-  line-height:1.2;
-  display:inline-block;
-}
+.weekly-recap-item{flex:1;min-width:90px;text-align:center;padding:12px;background:rgba(0,0,0,0.2);border-radius:8px;display:flex;flex-direction:column;align-items:center;gap:4px}
+.weekly-recap-item .lbl{display:block;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);white-space:nowrap;line-height:1.2}
+.weekly-recap-item .num{display:block;font-size:18px;font-weight:700;color:var(--gold);white-space:nowrap;line-height:1.2}
 .push-enable-wrap{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px 20px;background:rgba(200,164,78,0.1);border:1px solid rgba(200,164,78,0.35);border-radius:10px;margin-top:16px;flex-wrap:wrap;text-align:center}
 .user-welcome .push-enable-wrap{margin:8px auto 28px;max-width:min(400px,100%)}
 .bb-user-desktop-dashboard .bb-user-push-desktop{margin:0 0 24px}
