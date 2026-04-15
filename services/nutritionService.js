@@ -359,7 +359,7 @@ async function getUserGoals(db, userId) {
   return { calorieGoal, proteinGoal };
 }
 
-/** Estimated kcal burned: use logged calories when present, else ~5 kcal/min from duration */
+/** Estimated workout kcal burned: use logged calories when present, else ~5 kcal/min from duration */
 async function sumWorkoutCaloriesOut(db, userId, ymd) {
   const rows = await db.queryAll(
     `SELECT duration_seconds, calories, workout_completed
@@ -382,6 +382,86 @@ async function sumWorkoutCaloriesOut(db, userId, ymd) {
     }
   });
   return sum;
+}
+
+/**
+ * Resolve lightweight anthropometric profile for step-calorie estimation.
+ * Uses latest known values and safe defaults when profile data is missing.
+ */
+async function getUserEnergyProfile(db, userId) {
+  const user = await db.queryOne('SELECT id, email FROM users WHERE id = ?', [userId]);
+  const email = user && user.email ? String(user.email).trim().toLowerCase() : '';
+
+  let weightKg = null;
+  const wl = await db.queryOne(
+    `SELECT weight_kg
+     FROM weight_logs
+     WHERE user_id = ?
+     ORDER BY created_at DESC
+     LIMIT 1`,
+    [userId]
+  );
+  if (wl && wl.weight_kg != null) weightKg = Number(wl.weight_kg);
+
+  if (!Number.isFinite(weightKg) && email) {
+    const tm = await db.queryOne(
+      `SELECT current_weight, target_weight
+       FROM tribe_members
+       WHERE LOWER(email) = ?
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [email]
+    );
+    if (tm && tm.current_weight != null) weightKg = Number(tm.current_weight);
+    else if (tm && tm.target_weight != null) weightKg = Number(tm.target_weight);
+  }
+
+  if (!Number.isFinite(weightKg)) {
+    const ug = await db.queryOne(
+      `SELECT target_weight
+       FROM user_goals
+       WHERE user_id = ?
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [userId]
+    );
+    if (ug && ug.target_weight != null) weightKg = Number(ug.target_weight);
+  }
+
+  if (!Number.isFinite(weightKg) || weightKg <= 0) weightKg = 70;
+
+  let sex = '';
+  if (email) {
+    const ar = await db.queryOne(
+      `SELECT sex
+       FROM audit_requests
+       WHERE LOWER(email) = ?
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [email]
+    );
+    sex = String((ar && ar.sex) || '').toLowerCase();
+  }
+  const isFemale = /^(f|female|woman|girl)$/.test(sex);
+
+  // Conservative walking defaults (sports-science friendly for broad populations).
+  const strideMeters = isFemale ? 0.70 : 0.78;
+  const kcalPerKgPerKm = isFemale ? 0.72 : 0.78;
+  return { weightKg, strideMeters, kcalPerKgPerKm };
+}
+
+/** Step kcal estimate from date-scoped daily checkin steps. */
+async function sumStepCaloriesOut(db, userId, ymd) {
+  const row = await db.queryOne(
+    'SELECT steps FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date LIMIT 1',
+    [userId, ymd]
+  );
+  const steps = row && row.steps != null ? Number(row.steps) : 0;
+  if (!Number.isFinite(steps) || steps <= 0) return 0;
+  const profile = await getUserEnergyProfile(db, userId);
+  const distanceKm = (steps * profile.strideMeters) / 1000;
+  const kcal = distanceKm * profile.weightKg * profile.kcalPerKgPerKm;
+  return Math.max(0, Math.round(kcal));
 }
 
 async function recomputeDailyStats(db, userId, ymd) {
@@ -418,7 +498,9 @@ async function recomputeDailyStats(db, userId, ymd) {
   });
   const mealsLogged = (meals || []).length;
   const { calorieGoal, proteinGoal } = await getUserGoals(db, userId);
-  const caloriesOut = await sumWorkoutCaloriesOut(db, userId, ymd);
+  const workoutCaloriesOut = await sumWorkoutCaloriesOut(db, userId, ymd);
+  const stepCaloriesOut = await sumStepCaloriesOut(db, userId, ymd);
+  const caloriesOut = workoutCaloriesOut + stepCaloriesOut;
   const energyDifference = caloriesOut - totalCalories;
 
   const weekAgg = await db.queryAll(
@@ -445,9 +527,9 @@ async function recomputeDailyStats(db, userId, ymd) {
   await db.run(
     `INSERT INTO nutrition_daily_stats (
       user_id, stat_date, total_calories, total_protein, total_carbs, total_fat, total_fiber,
-      calorie_goal, protein_goal, meals_logged, calories_out, energy_difference,
+      calorie_goal, protein_goal, meals_logged, calories_out, workout_calories_out, step_calories_out, energy_difference,
       weekly_avg_calories, weekly_avg_protein, meal_quality_score, updated_at
-    ) VALUES (?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT (user_id, stat_date) DO UPDATE SET
       total_calories = EXCLUDED.total_calories,
       total_protein = EXCLUDED.total_protein,
@@ -458,6 +540,8 @@ async function recomputeDailyStats(db, userId, ymd) {
       protein_goal = EXCLUDED.protein_goal,
       meals_logged = EXCLUDED.meals_logged,
       calories_out = EXCLUDED.calories_out,
+      workout_calories_out = EXCLUDED.workout_calories_out,
+      step_calories_out = EXCLUDED.step_calories_out,
       energy_difference = EXCLUDED.energy_difference,
       weekly_avg_calories = EXCLUDED.weekly_avg_calories,
       weekly_avg_protein = EXCLUDED.weekly_avg_protein,
@@ -475,6 +559,8 @@ async function recomputeDailyStats(db, userId, ymd) {
       proteinGoal,
       mealsLogged,
       caloriesOut,
+      workoutCaloriesOut,
+      stepCaloriesOut,
       energyDifference,
       weeklyAvgCalories,
       weeklyAvgProtein,
@@ -492,6 +578,8 @@ async function recomputeDailyStats(db, userId, ymd) {
     proteinGoal,
     mealsLogged,
     caloriesOut,
+    workoutCaloriesOut,
+    stepCaloriesOut,
     energyDifference,
     weeklyAvgCalories,
     weeklyAvgProtein,

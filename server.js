@@ -611,6 +611,8 @@ async function initDB() {
     protein_goal INTEGER,
     meals_logged INTEGER DEFAULT 0,
     calories_out INTEGER DEFAULT 0,
+    workout_calories_out INTEGER DEFAULT 0,
+    step_calories_out INTEGER DEFAULT 0,
     energy_difference INTEGER,
     weekly_avg_calories REAL,
     weekly_avg_protein REAL,
@@ -619,6 +621,8 @@ async function initDB() {
     PRIMARY KEY (user_id, stat_date)
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_nutrition_daily_stats_date ON nutrition_daily_stats(stat_date)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE nutrition_daily_stats ADD COLUMN IF NOT EXISTS workout_calories_out INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE nutrition_daily_stats ADD COLUMN IF NOT EXISTS step_calories_out INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS blood_analysis_reports (
     id TEXT PRIMARY KEY,

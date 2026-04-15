@@ -13189,6 +13189,8 @@ function bbNutritionDailyStatsNorm(stats) {
     proteinGoal: stats.protein_goal,
     mealsLogged: stats.meals_logged,
     caloriesOut: stats.calories_out,
+    workoutCaloriesOut: stats.workout_calories_out,
+    stepCaloriesOut: stats.step_calories_out,
     energyDifference: stats.energy_difference,
     mealQualityScore: stats.meal_quality_score
   };
@@ -14270,7 +14272,7 @@ function loadAdminNutritionReport() {
           return '<div class="admin-nutrition-thumb' + (meal ? ' logged' : '') + (low ? ' low-conf' : '') + '">' + inner +
             '<div class="lbl">' + escapeHtml(type) + (ar && ar.calories != null ? ' · ' + ar.calories + ' kcal' : '') + '</div></div>';
         }).join('');
-        var totalCalories = sn && sn.totalCalories != null ? Number(sn.totalCalories) : 0;
+        var intakeCalories = sn && sn.totalCalories != null ? Number(sn.totalCalories) : 0;
         var totalProtein = sn && sn.totalProtein != null ? Number(sn.totalProtein) : 0;
         var totalCarbs = sn && sn.totalCarbs != null ? Number(sn.totalCarbs) : 0;
         var totalFat = sn && sn.totalFat != null ? Number(sn.totalFat) : 0;
@@ -14279,7 +14281,9 @@ function loadAdminNutritionReport() {
         var carbGoal = Math.round((calGoal * 0.50) / 4);
         var fatGoal = Math.round((calGoal * 0.25) / 9);
         var caloriesOut = sn && sn.caloriesOut != null ? Number(sn.caloriesOut) : 0;
-        var remaining = calGoal - totalCalories + caloriesOut;
+        var workoutOut = sn && sn.workoutCaloriesOut != null ? Number(sn.workoutCaloriesOut) : 0;
+        var stepsOut = sn && sn.stepCaloriesOut != null ? Number(sn.stepCaloriesOut) : 0;
+        var balance = caloriesOut - intakeCalories;
         var carbPct = Math.max(0, Math.min(100, Math.round((totalCarbs / Math.max(1, carbGoal)) * 100)));
         var proPct = Math.max(0, Math.min(100, Math.round((totalProtein / Math.max(1, proGoal)) * 100)));
         var fatPct = Math.max(0, Math.min(100, Math.round((totalFat / Math.max(1, fatGoal)) * 100)));
@@ -14305,14 +14309,13 @@ function loadAdminNutritionReport() {
         var confText = confLevel ? (confLevel.charAt(0).toUpperCase() + confLevel.slice(1) + ' confidence') : 'N/A';
         var summaryHtml = sn
           ? '<div class="admin-nutrition-equation">' +
-              '<div class="eq-cell"><span class="eq-num">' + calGoal + '</span><span class="eq-lbl">Target</span></div>' +
+              '<div class="eq-cell"><span class="eq-num">' + caloriesOut + '</span><span class="eq-lbl">Outage</span></div>' +
               '<span class="eq-op">−</span>' +
-              '<div class="eq-cell"><span class="eq-num">' + totalCalories + '</span><span class="eq-lbl">Eaten</span></div>' +
-              '<span class="eq-op">+</span>' +
-              '<div class="eq-cell"><span class="eq-num">' + caloriesOut + '</span><span class="eq-lbl">Workout</span></div>' +
+              '<div class="eq-cell"><span class="eq-num">' + intakeCalories + '</span><span class="eq-lbl">Intake</span></div>' +
               '<span class="eq-op">=</span>' +
-              '<div class="eq-cell result' + (remaining < 0 ? ' over' : '') + '"><span class="eq-num">' + remaining + '</span><span class="eq-lbl">Remaining</span></div>' +
+              '<div class="eq-cell result' + (balance < 0 ? ' over' : '') + '"><span class="eq-num">' + (balance > 0 ? '+' : '') + balance + '</span><span class="eq-lbl">Balance</span></div>' +
             '</div>' +
+            '<p class="admin-nutrition-confidence" style="margin:0 0 10px">Outage split: Workout ' + workoutOut + ' kcal + Steps ' + stepsOut + ' kcal</p>' +
             '<div class="admin-nutrition-macro-bars">' +
               '<div class="bar-row"><span class="bar-lbl">Carbs</span><div class="bar-track"><div class="bar-fill amber" style="width:' + carbPct + '%"></div></div><span class="bar-goal">' + totalCarbs + ' / ' + carbGoal + ' g</span></div>' +
               '<div class="bar-row"><span class="bar-lbl">Protein</span><div class="bar-track"><div class="bar-fill green" style="width:' + proPct + '%"></div></div><span class="bar-goal">' + totalProtein + ' / ' + proGoal + ' g</span></div>' +
@@ -14342,7 +14345,7 @@ function loadAdminNutritionReport() {
           '<div class="admin-nutrition-client-head">' +
           '<div class="admin-nutrition-avatar">' + escapeHtml(initials) + '</div>' +
           '<div class="info"><div class="name">' + escapeHtml(c.userName || '') + '</div>' +
-          '<div class="meta">' + escapeHtml(c.userEmail || '') + ' · Target ' + (sn && sn.calorieGoal != null ? sn.calorieGoal + ' kcal' : '—') + '</div></div>' +
+          '<div class="meta">' + escapeHtml(c.userEmail || '') + ' · Intake vs outage balance</div></div>' +
           '<div class="admin-nutrition-score-ring" style="border-color:' + scoreColor + '">' +
           '<span style="font-weight:700;color:' + scoreColor + '">' + (score != null ? score.toFixed(1) : '—') + '</span><span style="font-size:8px;color:var(--muted)">score</span></div></div>' +
           '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' +
