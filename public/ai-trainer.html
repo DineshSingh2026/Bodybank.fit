@@ -3,284 +3,889 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>BodyBank - AI Fitness Trainer</title>
+  <title>BodyBank — AI Fitness Trainer</title>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
   <style>
-    :root{--bg:#09090c;--panel:#0f1117;--card:#161921;--line:#1f2433;--txt:#eef0f7;--muted:#8a93a8;--gold:#c8a44e;--gold-strong:#e4bb5a;--red:#ff4f6a;--green:#3de68b}
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--txt);font-family:Inter,Arial,sans-serif}
-    .hdr{position:sticky;top:0;height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;background:rgba(9,9,12,.92);border-bottom:1px solid var(--line);z-index:10}
-    .logo{display:inline-flex;align-items:center}
-    .logo-img{height:30px;width:auto;display:block;filter:drop-shadow(0 0 8px rgba(200,164,78,.15))}
-    .back-link{color:#9aa3b9;text-decoration:none;font-size:13px;transition:color .2s ease}
-    .back-link:hover{color:var(--gold-strong)}
-    .wrap{max-width:1450px;margin:0 auto;padding:14px;display:grid;grid-template-columns:280px 1fr 280px;gap:12px}
-    @media(max-width:1200px){.wrap{grid-template-columns:280px 1fr}.right{display:none}}
-    @media(max-width:760px){.wrap{grid-template-columns:1fr}.left{order:2}.stage-wrap{order:1}}
-    .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
-    .title{font-size:11px;color:#5f6880;text-transform:uppercase;letter-spacing:.12em;margin:0 0 10px}
-    select,button{width:100%;border-radius:10px}
-    select{background:var(--card);color:var(--txt);border:1px solid #2c3347;padding:10px}
-    .btn{border:none;padding:11px;font-weight:700;cursor:pointer}
-    .btn-start{background:linear-gradient(180deg,var(--gold-strong),var(--gold));color:#111}
-    .btn-stop{background:transparent;border:1px solid var(--red);color:var(--red);margin-top:7px}
-    .btn:disabled{opacity:.35;cursor:not-allowed}
-    .set-btn{margin-top:7px;background:transparent;border:1px dashed #2c3347;color:var(--muted);padding:10px}
-    .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px;text-align:center}
-    .num{font-size:26px;color:var(--gold-strong);font-weight:800}.lbl{font-size:11px;color:#5f6880;text-transform:uppercase;letter-spacing:.1em}
-    .stage-wrap{position:sticky;top:64px}
-    .stage{position:relative;aspect-ratio:4/3;background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:hidden}
-    #vid,#cvs{position:absolute;inset:0;width:100%;height:100%;transform:scaleX(-1)}#vid{object-fit:cover;opacity:0}
-    .overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(9,9,12,.9);z-index:5}
-    .overlay.hidden{display:none}
-    .ov{max-width:320px;text-align:center;padding:20px;color:var(--muted)}
-    .ov h3{margin:0 0 8px;color:var(--txt)}
-    .badge{position:absolute;top:12px;left:12px;z-index:4;background:rgba(200,164,78,.95);color:#111;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:800}
-    .warn{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);z-index:4;background:rgba(255,79,106,.9);padding:6px 12px;border-radius:999px;font-size:12px}
-    .hidden{display:none}
-    .feedback{font-size:14px;color:var(--muted);line-height:1.5;margin:0}
-    .feedback.good{color:var(--green)}.feedback.warn{color:var(--gold)}.feedback.error{color:var(--red)}
-    .bar{height:6px;border-radius:99px;background:#08090d;margin-top:10px;overflow:hidden}
-    .fill{height:100%;width:0;background:linear-gradient(90deg,#a27f2f,var(--gold-strong))}
-    .hist{max-height:200px;overflow:auto}
-    .row{display:flex;justify-content:space-between;background:var(--card);border:1px solid var(--line);padding:8px;border-radius:8px;font-size:12px;margin-bottom:6px}
-    .tip{font-size:13px;color:var(--muted);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px;margin-bottom:6px}
+    :root {
+      --bg: #09090c; --panel: #0f1117; --card: #161921; --line: #1f2433;
+      --txt: #eef0f7; --muted: #8a93a8;
+      --gold: #c8a44e; --gold-strong: #e4bb5a;
+      --red: #ff4f6a; --green: #3de68b; --amber: #e4bb5a;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: var(--bg); color: var(--txt); font-family: Inter, Arial, sans-serif; min-height: 100vh; }
+
+    /* ── HEADER ── */
+    .hdr {
+      position: sticky; top: 0; height: 52px; z-index: 20;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 16px; background: rgba(9,9,12,.93); border-bottom: 1px solid var(--line);
+    }
+    .logo { display: inline-flex; align-items: center; }
+    .logo-img { height: 30px; width: auto; filter: drop-shadow(0 0 8px rgba(200,164,78,.18)); }
+    .back-link { color: #9aa3b9; text-decoration: none; font-size: 13px; transition: color .2s; }
+    .back-link:hover { color: var(--gold-strong); }
+
+    /* ── LAYOUT ── */
+    .wrap {
+      max-width: 1460px; margin: 0 auto; padding: 14px;
+      display: grid; grid-template-columns: 280px 1fr 280px; gap: 12px;
+    }
+    @media(max-width:1200px) { .wrap { grid-template-columns: 280px 1fr; } .right { display: none; } }
+    @media(max-width:760px)  { .wrap { grid-template-columns: 1fr; } .left { order: 2; } .stage-wrap { order: 1; } }
+
+    /* ── CARDS ── */
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin-bottom: 10px; }
+    .title { font-size: 11px; color: #5f6880; text-transform: uppercase; letter-spacing: .12em; margin-bottom: 10px; }
+
+    /* ── CONTROLS ── */
+    select, .btn, .set-btn { width: 100%; border-radius: 10px; font-size: 14px; }
+    select { background: var(--card); color: var(--txt); border: 1px solid #2c3347; padding: 10px; cursor: pointer; }
+    .btn { border: none; padding: 11px; font-weight: 700; cursor: pointer; transition: filter .15s, transform .12s; }
+    .btn-start { background: linear-gradient(180deg, var(--gold-strong), var(--gold)); color: #111; }
+    .btn-start:not(:disabled):hover { filter: brightness(1.09); }
+    .btn-start:not(:disabled):active { transform: scale(.98); }
+    .btn-stop { background: transparent; border: 1px solid var(--red); color: var(--red); margin-top: 7px; }
+    .btn-stop:not(:disabled):hover { background: rgba(255,79,106,.1); }
+    .btn:disabled { opacity: .35; cursor: not-allowed; pointer-events: none; }
+    .set-btn {
+      margin-top: 7px; background: transparent; border: 1px dashed #2c3347;
+      color: var(--muted); padding: 10px; cursor: pointer; transition: border-color .2s, color .2s;
+    }
+    .set-btn:not(:disabled):hover { border-color: var(--gold); color: var(--gold); }
+    .set-btn:disabled { opacity: .35; cursor: not-allowed; }
+
+    /* ── STATS ── */
+    .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px; text-align: center; }
+    .num { font-size: 26px; color: var(--gold-strong); font-weight: 800; line-height: 1; }
+    .lbl { font-size: 11px; color: #5f6880; text-transform: uppercase; letter-spacing: .1em; margin-top: 3px; }
+
+    /* ── FEEDBACK ── */
+    .feedback { font-size: 14px; color: var(--muted); line-height: 1.5; }
+    .feedback.good  { color: var(--green); }
+    .feedback.warn  { color: var(--amber); }
+    .feedback.error { color: var(--red); }
+    .bar { height: 6px; border-radius: 99px; background: #08090d; margin-top: 10px; overflow: hidden; }
+    .fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #a27f2f, var(--gold-strong));
+      transition: width .35s ease, background .35s;
+    }
+    .fill.good { background: linear-gradient(90deg, #1ea85a, #3de68b); }
+    .fill.bad  { background: linear-gradient(90deg, #c43040, #ff4f6a); }
+    .bar-row { display: flex; justify-content: space-between; font-size: 11px; color: #5f6880; margin-top: 5px; }
+
+    /* ── SCORE CHIP ── */
+    .score-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 12px; font-weight: 700;
+      padding: 4px 12px; border-radius: 999px; margin-top: 8px;
+      border: 1px solid transparent;
+    }
+    .score-chip.good  { background: rgba(61,230,139,.12);  border-color: rgba(61,230,139,.35);  color: var(--green); }
+    .score-chip.warn  { background: rgba(228,187,90,.12);  border-color: rgba(228,187,90,.35);  color: var(--amber); }
+    .score-chip.bad   { background: rgba(255,79,106,.12);  border-color: rgba(255,79,106,.35);  color: var(--red); }
+    .score-chip.hidden { display: none !important; }
+
+    /* ── CAMERA STAGE ── */
+    .stage-wrap { position: sticky; top: 68px; }
+    .stage {
+      position: relative; aspect-ratio: 4/3;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 14px; overflow: hidden;
+      box-shadow: 0 8px 40px rgba(0,0,0,.55);
+    }
+    #vid, #cvs { position: absolute; inset: 0; width: 100%; height: 100%; transform: scaleX(-1); }
+    #vid { object-fit: cover; opacity: 0; }
+
+    /* ── OVERLAYS ── */
+    .overlay { position: absolute; inset: 0; z-index: 5; display: flex; align-items: center; justify-content: center; background: rgba(9,9,12,.9); }
+    .overlay.hidden { display: none !important; }
+    .ov { max-width: 320px; text-align: center; padding: 24px; color: var(--muted); }
+    .ov h3 { margin-bottom: 10px; color: var(--txt); font-size: 18px; }
+    .ov p  { font-size: 14px; line-height: 1.5; }
+
+    /* ── STAGE BADGES ── */
+    .badge {
+      position: absolute; top: 12px; left: 12px; z-index: 4;
+      background: rgba(200,164,78,.95); color: #111;
+      padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: .05em;
+    }
+    .phase-badge {
+      position: absolute; top: 12px; right: 12px; z-index: 4;
+      padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 800; letter-spacing: .05em;
+      opacity: 0; transition: opacity .25s, background .25s, color .25s;
+    }
+    .phase-badge.visible { opacity: 1; }
+    .phase-badge.down    { background: rgba(61,230,139,.88); color: #001a0b; }
+    .phase-badge.up      { background: rgba(30,30,45,.88);   color: var(--muted); }
+    .warn-banner {
+      position: absolute; bottom: 13px; left: 50%; transform: translateX(-50%); z-index: 4;
+      background: rgba(255,79,106,.9); padding: 6px 16px; border-radius: 999px;
+      font-size: 12px; font-weight: 600; white-space: nowrap;
+    }
+    .hidden { display: none !important; }
+
+    /* ── HISTORY & TIPS ── */
+    .hist { max-height: 220px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+    .hist::-webkit-scrollbar { width: 4px; }
+    .hist::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+    .row {
+      display: flex; justify-content: space-between; align-items: center;
+      background: var(--card); border: 1px solid var(--line);
+      padding: 7px 10px; border-radius: 8px; font-size: 12px; margin-bottom: 6px;
+    }
+    .tip {
+      font-size: 13px; color: var(--muted); background: var(--card);
+      border: 1px solid var(--line); border-radius: 8px;
+      padding: 8px 8px 8px 20px; margin-bottom: 6px;
+      line-height: 1.4; position: relative;
+    }
+    .tip::before { content: '▸'; position: absolute; left: 7px; top: 9px; color: var(--gold); font-size: 11px; }
   </style>
 </head>
 <body>
-  <header class="hdr">
-    <div class="logo"><img class="logo-img" src="/img/logo.png" alt="BodyBank" /></div>
-    <a href="/index.html" class="back-link">Back to Dashboard</a>
-  </header>
-  <div class="wrap">
-    <aside class="left">
-      <div class="card">
-        <p class="title">Exercise</p>
-        <select id="exSel">
-          <option value="auto">Auto Detect</option>
-          <option value="squat">Squat</option>
-          <option value="pushup">Push-up</option>
-          <option value="plank">Plank</option>
-          <option value="jumpingjack">Jumping Jack</option>
-        </select>
+
+<header class="hdr">
+  <div class="logo"><img class="logo-img" src="/img/logo.png" alt="BodyBank" /></div>
+  <a href="/index.html" class="back-link">← Back to Dashboard</a>
+</header>
+
+<div class="wrap">
+
+  <!-- LEFT PANEL -->
+  <aside class="left">
+    <div class="card">
+      <p class="title">Exercise</p>
+      <select id="exSel">
+        <option value="auto">🤖 Auto Detect</option>
+        <option value="squat">🦵 Squat</option>
+        <option value="pushup">💪 Push-up</option>
+        <option value="plank">🧘 Plank</option>
+        <option value="jumpingjack">⚡ Jumping Jack</option>
+      </select>
+    </div>
+    <div class="card">
+      <p class="title">Controls</p>
+      <button id="startBtn" class="btn btn-start">▶ Start Workout</button>
+      <button id="stopBtn"  class="btn btn-stop"  disabled>■ Stop Workout</button>
+      <button id="setBtn"   class="set-btn"        disabled>+ Complete Set</button>
+    </div>
+    <div class="card">
+      <p class="title">Session Stats</p>
+      <div class="stats">
+        <div class="stat"><div id="repCount" class="num">0</div><div class="lbl">Reps</div></div>
+        <div class="stat"><div id="setCount" class="num">0</div><div class="lbl">Sets</div></div>
+        <div class="stat"><div id="timerEl"  class="num">0:00</div><div class="lbl">Time</div></div>
+        <div class="stat"><div id="fpsEl"    class="num">--</div><div class="lbl">FPS</div></div>
       </div>
-      <div class="card">
-        <p class="title">Controls</p>
-        <button id="startBtn" class="btn btn-start">Start Workout</button>
-        <button id="stopBtn" class="btn btn-stop" disabled>Stop Workout</button>
-        <button id="setBtn" class="set-btn" disabled>+ Complete Set</button>
-      </div>
-      <div class="card">
-        <p class="title">Session Stats</p>
-        <div class="stats">
-          <div class="stat"><div id="repCount" class="num">0</div><div class="lbl">Reps</div></div>
-          <div class="stat"><div id="setCount" class="num">0</div><div class="lbl">Sets</div></div>
-          <div class="stat"><div id="timerEl" class="num">0:00</div><div class="lbl">Time</div></div>
-          <div class="stat"><div id="fpsEl" class="num">--</div><div class="lbl">FPS</div></div>
+    </div>
+    <div class="card">
+      <p class="title">Live Feedback</p>
+      <p id="fbText" class="feedback">Waiting to start…</p>
+      <div class="bar"><div id="formFill" class="fill"></div></div>
+      <div class="bar-row"><span>Form quality</span><span id="formPct">—</span></div>
+      <div id="scoreChip" class="score-chip hidden"></div>
+    </div>
+  </aside>
+
+  <!-- CAMERA STAGE -->
+  <main class="stage-wrap">
+    <div class="stage" id="stage">
+      <div id="badgeEx"    class="badge">Auto</div>
+      <div id="phaseBadge" class="phase-badge">UP</div>
+      <div id="noPerson"   class="warn-banner hidden">👤 No person — step into frame</div>
+      <div id="idleOv"  class="overlay">
+        <div class="ov">
+          <h3>Ready to Train</h3>
+          <p>Select an exercise and tap <strong>Start Workout</strong>.</p>
         </div>
       </div>
-      <div class="card">
-        <p class="title">Live Feedback</p>
-        <p id="fbText" class="feedback">Waiting to start...</p>
-        <div class="bar"><div id="formFill" class="fill"></div></div>
+      <div id="loadOv" class="overlay hidden">
+        <div class="ov"><h3>Loading AI Model…</h3><p>Initialising camera. A few seconds.</p></div>
       </div>
-    </aside>
-    <main class="stage-wrap">
-      <div class="stage">
-        <div id="badgeEx" class="badge">Auto</div>
-        <div id="noPerson" class="warn hidden">No person detected - step into frame</div>
-        <div id="idleOv" class="overlay"><div class="ov"><h3>Ready to Train</h3><p>Choose an exercise and click Start Workout.</p></div></div>
-        <div id="loadOv" class="overlay hidden"><div class="ov"><h3>Loading Model</h3><p>Initializing camera and AI.</p></div></div>
-        <div id="errOv" class="overlay hidden"><div class="ov"><h3 id="errTitle">Camera Error</h3><p id="errMsg"></p></div></div>
-        <video id="vid" autoplay playsinline muted></video>
-        <canvas id="cvs"></canvas>
+      <div id="errOv" class="overlay hidden">
+        <div class="ov"><h3 id="errTitle">Camera Error</h3><p id="errMsg"></p></div>
       </div>
-    </main>
-    <aside class="right">
-      <div class="card">
-        <p class="title">Rep History</p>
-        <div id="repHist" class="hist"><div class="tip">No reps yet.</div></div>
-      </div>
-      <div class="card">
-        <p class="title">Exercise Tips</p>
-        <div id="tipsEl"></div>
-      </div>
-    </aside>
-  </div>
-  <script>
-    const LM = { LS: 11, RS: 12, LE: 13, RE: 14, LW: 15, RW: 16, LH: 23, RH: 24, LK: 25, RK: 26, LA: 27, RA: 28 };
-    const TIPS = {
-      auto: ["Step back so full body is visible.", "Good lighting improves tracking.", "Auto mode detects your movement."],
-      squat: ["Keep chest up.", "Push knees out.", "Drive up through heels."],
-      pushup: ["Keep body straight.", "Lower under control.", "Full lockout at top."],
-      plank: ["Keep hips level.", "Brace your core.", "Breathe steadily."],
-      jumpingjack: ["Land softly.", "Reach overhead.", "Keep a smooth rhythm."]
-    };
-    const $ = (id) => document.getElementById(id);
-    const exSel = $("exSel"), startBtn = $("startBtn"), stopBtn = $("stopBtn"), setBtn = $("setBtn");
-    const repCount = $("repCount"), setCount = $("setCount"), timerEl = $("timerEl"), fpsEl = $("fpsEl"), fbText = $("fbText"), formFill = $("formFill");
-    const vid = $("vid"), cvs = $("cvs"), badgeEx = $("badgeEx"), noPerson = $("noPerson");
-    const idleOv = $("idleOv"), loadOv = $("loadOv"), errOv = $("errOv"), errTitle = $("errTitle"), errMsg = $("errMsg");
-    const repHist = $("repHist"), tipsEl = $("tipsEl");
-    let cam = null, pose = null, stream = null, detector = null, running = false, sessionStart = null, timerId = null;
-    let fpsFrames = 0, fpsLast = performance.now(), currentFps = 0, noPersonFrames = 0;
+      <video id="vid" autoplay playsinline muted></video>
+      <canvas id="cvs"></canvas>
+    </div>
+  </main>
 
-    function showTips(mode) { const list = TIPS[mode] || TIPS.auto; tipsEl.innerHTML = list.map((t) => `<div class="tip">${t}</div>`).join(""); }
-    function angle(A, B, C) { const r = Math.atan2(C.y - B.y, C.x - B.x) - Math.atan2(A.y - B.y, A.x - B.x); let a = Math.abs((r * 180) / Math.PI); if (a > 180) a = 360 - a; return a; }
-    function vis(lm, i, t = 0.4) { return lm[i] && lm[i].visibility > t; }
-    function setFeedback(text, type, score = 0) { fbText.textContent = text; fbText.className = `feedback ${type || ""}`; formFill.style.width = `${Math.max(0, Math.min(100, score))}%`; }
-    function showOverlay(type, title, msg) {
-      idleOv.classList.add("hidden"); loadOv.classList.add("hidden"); errOv.classList.add("hidden");
-      if (type === "idle") idleOv.classList.remove("hidden");
-      if (type === "load") loadOv.classList.remove("hidden");
-      if (type === "err") { errTitle.textContent = title || "Camera Error"; errMsg.textContent = msg || "Please check camera access."; errOv.classList.remove("hidden"); }
-    }
-    function addHistory(label, value) {
-      if (repHist.children.length && repHist.children[0].classList.contains("tip")) repHist.innerHTML = "";
-      const t = new Date().toLocaleTimeString();
-      const node = document.createElement("div");
-      node.className = "row";
-      node.innerHTML = `<span>${t} - ${label}</span><strong>${value}</strong>`;
-      repHist.prepend(node);
-      if (repHist.children.length > 30) repHist.removeChild(repHist.lastChild);
-    }
-    function updateTimer() {
-      if (!sessionStart) return;
-      const s = Math.floor((Date.now() - sessionStart) / 1000);
-      timerEl.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
-    }
+  <!-- RIGHT PANEL -->
+  <aside class="right">
+    <div class="card">
+      <p class="title">Rep History</p>
+      <div id="repHist" class="hist"><div class="tip">No reps yet.</div></div>
+    </div>
+    <div class="card">
+      <p class="title">Exercise Tips</p>
+      <div id="tipsEl"></div>
+    </div>
+  </aside>
 
-    class Detector {
-      constructor() { this.reps = 0; this.sets = 0; this.phase = "up"; this.jj = "closed"; }
-      markSet() { if (this.reps > 0) this.sets += 1; this.reps = 0; this.phase = "up"; this.jj = "closed"; }
-      process(lm, mode) {
-        if (!lm || lm.length < 29) return { text: "No landmarks detected.", kind: "error", score: 0, repAdded: false, ex: "Auto" };
-        const ex = mode === "auto" ? this.autoMode(lm) : mode;
-        if (ex === "squat") return this.squat(lm);
-        if (ex === "pushup") return this.pushup(lm);
-        if (ex === "plank") return this.plank(lm);
-        return this.jumpingJack(lm);
-      }
-      autoMode(lm) {
-        if (vis(lm, LM.LW) && vis(lm, LM.RW) && lm[LM.LW].y < lm[LM.LS].y - 0.05 && lm[LM.RW].y < lm[LM.RS].y - 0.05) return "jumpingjack";
-        if (vis(lm, LM.LS) && vis(lm, LM.LE) && vis(lm, LM.LW)) {
-          const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
-          if (e < 120) return "pushup";
-        }
-        if (vis(lm, LM.LS) && vis(lm, LM.LH) && vis(lm, LM.LA)) {
-          const b = angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]);
-          if (b > 150 && b < 190) return "plank";
-        }
-        return "squat";
-      }
-      squat(lm) {
-        if (!(vis(lm, LM.LH) && vis(lm, LM.LK) && vis(lm, LM.LA))) return { text: "Lower body not visible.", kind: "error", score: 0, repAdded: false, ex: "Squat" };
-        const k = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]); let repAdded = false;
-        if (this.phase === "up" && k < 90) this.phase = "down";
-        if (this.phase === "down" && k > 160) { this.phase = "up"; this.reps += 1; repAdded = true; }
-        const good = k < 75; const txt = this.phase === "up" ? "Go down to start squat." : (good ? "Great depth - drive up." : "Go lower for better form.");
-        return { text: txt, kind: good ? "good" : "warn", score: Math.max(35, 100 - Math.abs(85 - k) * 1.4), repAdded, ex: "Squat" };
-      }
-      pushup(lm) {
-        if (!(vis(lm, LM.LS) && vis(lm, LM.LE) && vis(lm, LM.LW))) return { text: "Upper body not visible.", kind: "error", score: 0, repAdded: false, ex: "Push-up" };
-        const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]); let repAdded = false;
-        if (this.phase === "up" && e < 95) this.phase = "down";
-        if (this.phase === "down" && e > 160) { this.phase = "up"; this.reps += 1; repAdded = true; }
-        const good = e < 75; const txt = this.phase === "up" ? "Lower under control." : (good ? "Great depth - push up." : "Lower chest a bit more.");
-        return { text: txt, kind: good ? "good" : "warn", score: Math.max(35, 100 - Math.abs(80 - e) * 1.3), repAdded, ex: "Push-up" };
-      }
-      plank(lm) {
-        if (!(vis(lm, LM.LS) && vis(lm, LM.LH) && vis(lm, LM.LA))) return { text: "Full side profile needed.", kind: "error", score: 0, repAdded: false, ex: "Plank" };
-        const b = angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]);
-        const delta = Math.abs(b - 170); const good = delta < 10;
-        return { text: good ? "Perfect plank hold." : "Adjust hips to stay straight.", kind: good ? "good" : "warn", score: Math.max(25, 100 - delta * 4), repAdded: false, ex: "Plank" };
-      }
-      jumpingJack(lm) {
-        if (!(vis(lm, LM.LW) && vis(lm, LM.RW) && vis(lm, LM.LS) && vis(lm, LM.RS))) return { text: "Arms not visible.", kind: "error", score: 0, repAdded: false, ex: "Jumping Jack" };
-        const armsUp = lm[LM.LW].y < lm[LM.LS].y - 0.04 && lm[LM.RW].y < lm[LM.RS].y - 0.04;
-        const sw = Math.abs(lm[LM.LS].x - lm[LM.RS].x), aw = Math.abs(lm[LM.LA].x - lm[LM.RA].x);
-        const open = armsUp && aw > sw * 1.1; let repAdded = false;
-        if (this.jj === "closed" && open) this.jj = "open";
-        if (this.jj === "open" && !open) { this.jj = "closed"; this.reps += 1; repAdded = true; }
-        return { text: open ? "Return to start." : "Jump and raise arms overhead.", kind: open ? "good" : "warn", score: open ? 92 : 58, repAdded, ex: "Jumping Jack" };
+</div><!-- /wrap -->
+
+<script>
+// ════════════════════════════════════════════════════════════════
+//  CONSTANTS
+// ════════════════════════════════════════════════════════════════
+const LM = { LS:11,RS:12, LE:13,RE:14, LW:15,RW:16, LH:23,RH:24, LK:25,RK:26, LA:27,RA:28 };
+
+// Per-status colors (joint fill / bone stroke variants)
+const CLR = {
+  GOOD:    '#3de68b',  WARN:    '#e4bb5a',  BAD:    '#ff4f6a',  NEUT: 'rgba(255,255,255,0.32)',
+  BG_GOOD: 'rgba(61,230,139,0.80)',
+  BG_WARN: 'rgba(228,187,90,0.80)',
+  BG_BAD:  'rgba(255,79,106,0.80)',
+  BG_NEUT: 'rgba(255,255,255,0.18)',
+};
+function byStatus(st, isBone) {
+  if (st==='good') return isBone ? CLR.BG_GOOD : CLR.GOOD;
+  if (st==='warn') return isBone ? CLR.BG_WARN : CLR.WARN;
+  if (st==='bad')  return isBone ? CLR.BG_BAD  : CLR.BAD;
+  return isBone ? CLR.BG_NEUT : CLR.NEUT;
+}
+
+// Bone definitions: each bone has a status "key" so it inherits the joint color
+const BONES = [
+  { a:LM.LS, b:LM.RS,  k:'torso'   }, { a:LM.LS, b:LM.LH,  k:'torso'   },
+  { a:LM.RS, b:LM.RH,  k:'torso'   }, { a:LM.LH, b:LM.RH,  k:'hip'     },
+  { a:LM.LS, b:LM.LE,  k:'L_elbow' }, { a:LM.LE, b:LM.LW,  k:'L_elbow' },
+  { a:LM.RS, b:LM.RE,  k:'R_elbow' }, { a:LM.RE, b:LM.RW,  k:'R_elbow' },
+  { a:LM.LH, b:LM.LK,  k:'L_knee'  }, { a:LM.LK, b:LM.LA,  k:'L_knee'  },
+  { a:LM.RH, b:LM.RK,  k:'R_knee'  }, { a:LM.RK, b:LM.RA,  k:'R_knee'  },
+];
+const JOINT_KEY = {
+  [LM.LS]:'torso',   [LM.RS]:'torso',
+  [LM.LH]:'hip',     [LM.RH]:'hip',
+  [LM.LE]:'L_elbow', [LM.LW]:'L_elbow',
+  [LM.RE]:'R_elbow', [LM.RW]:'R_elbow',
+  [LM.LK]:'L_knee',  [LM.LA]:'L_knee',
+  [LM.RK]:'R_knee',  [LM.RA]:'R_knee',
+};
+const ALL_JOINT_IDS = [LM.LS,LM.RS,LM.LE,LM.RE,LM.LW,LM.RW,LM.LH,LM.RH,LM.LK,LM.RK,LM.LA,LM.RA];
+
+const TIPS = {
+  auto:        ['Step back so full body is visible.','Good lighting improves tracking.','Auto mode detects your movement.'],
+  squat:       ['Keep chest up and back neutral.','Push knees outward — never inward.','Drive up through your heels.','Aim below parallel for full range.'],
+  pushup:      ['Keep body in one straight line.','Lower until elbows hit ~90°.','Exhale as you push up explosively.','Hands slightly wider than shoulders.'],
+  plank:       ['Squeeze core and glutes throughout.','Keep hips level — not sagging or piked.','Breathe steadily; never hold your breath.','Gaze slightly forward, not straight down.'],
+  jumpingjack: ['Land with softly bent knees.','Arms fully extend overhead each rep.','Keep a smooth, steady rhythm.','Stay upright and controlled.'],
+};
+
+// ════════════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════════════
+const $   = id => document.getElementById(id);
+const vis = (lm, i, t=0.38) => lm[i] && lm[i].visibility > t;
+
+function angle(A, B, C) {
+  const r = Math.atan2(C.y - B.y, C.x - B.x) - Math.atan2(A.y - B.y, A.x - B.x);
+  let a = Math.abs(r * 180 / Math.PI);
+  if (a > 180) a = 360 - a;
+  return a;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  DOM REFERENCES
+// ════════════════════════════════════════════════════════════════
+const exSel      = $('exSel'),    startBtn   = $('startBtn'), stopBtn    = $('stopBtn'), setBtn     = $('setBtn');
+const repCount   = $('repCount'), setCount   = $('setCount'), timerEl    = $('timerEl'), fpsEl      = $('fpsEl');
+const fbText     = $('fbText'),   formFill   = $('formFill'), formPct    = $('formPct'), scoreChip  = $('scoreChip');
+const vid        = $('vid'),      cvs        = $('cvs'),      badgeEx    = $('badgeEx'), phaseBadge = $('phaseBadge'), noPerson = $('noPerson');
+const idleOv     = $('idleOv'),   loadOv     = $('loadOv'),   errOv      = $('errOv'),   errTitle   = $('errTitle'), errMsg   = $('errMsg');
+const repHist    = $('repHist'),  tipsEl     = $('tipsEl');
+
+let cam=null, pose=null, stream=null, detector=null, running=false, sessionStart=null, timerId=null;
+let fpsFrames=0, fpsLast=performance.now(), currentFps=0, noPersonFrames=0;
+
+// ════════════════════════════════════════════════════════════════
+//  JOINT STATUS EVALUATOR
+//  Returns a map of key → 'good'|'warn'|'bad'|'neut'
+//  that drives per-bone and per-joint colors.
+// ════════════════════════════════════════════════════════════════
+function evaluateJoints(lm, exKey, phase) {
+  const s = { L_knee:'neut', R_knee:'neut', L_elbow:'neut', R_elbow:'neut', torso:'neut', hip:'neut' };
+
+  if (exKey === 'squat') {
+    // Knees are the critical joints — evaluate when in descent
+    if (vis(lm,LM.LH) && vis(lm,LM.LK) && vis(lm,LM.LA)) {
+      const k = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]);
+      if (phase === 'down') s.L_knee = k < 90 ? 'good' : k < 115 ? 'warn' : 'bad';
+    }
+    if (vis(lm,LM.RH) && vis(lm,LM.RK) && vis(lm,LM.RA)) {
+      const k = angle(lm[LM.RH], lm[LM.RK], lm[LM.RA]);
+      if (phase === 'down') s.R_knee = k < 90 ? 'good' : k < 115 ? 'warn' : 'bad';
+    }
+  }
+
+  if (exKey === 'pushup') {
+    // Elbow depth in descent
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      if (phase === 'down') s.L_elbow = e < 90 ? 'good' : e < 120 ? 'warn' : 'bad';
+    }
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      if (phase === 'down') s.R_elbow = e < 90 ? 'good' : e < 120 ? 'warn' : 'bad';
+    }
+    // Body alignment — always active
+    if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA)) {
+      const d = Math.abs(angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]) - 175);
+      const st = d < 8 ? 'good' : d < 16 ? 'warn' : 'bad';
+      s.torso = st; s.hip = st; s.L_knee = st; s.R_knee = st;
+    }
+  }
+
+  if (exKey === 'plank') {
+    // Shoulder-hip-ankle line should be ~170°
+    if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA)) {
+      const d = Math.abs(angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]) - 170);
+      const st = d < 8 ? 'good' : d < 18 ? 'warn' : 'bad';
+      s.torso = st; s.hip = st; s.L_knee = st; s.R_knee = st;
+    }
+  }
+
+  if (exKey === 'jumpingjack') {
+    const armsUp = vis(lm,LM.LW) && vis(lm,LM.RW) &&
+                   lm[LM.LW].y < lm[LM.LS].y - 0.04 &&
+                   lm[LM.RW].y < lm[LM.RS].y - 0.04;
+    s.L_elbow = armsUp ? 'good' : 'warn';
+    s.R_elbow = armsUp ? 'good' : 'warn';
+    if (vis(lm,LM.LA) && vis(lm,LM.RA) && vis(lm,LM.LS) && vis(lm,LM.RS)) {
+      const sw = Math.abs(lm[LM.LS].x - lm[LM.RS].x);
+      const aw = Math.abs(lm[LM.LA].x - lm[LM.RA].x);
+      const st = aw > sw * 1.1 ? 'good' : 'warn';
+      s.L_knee = st; s.R_knee = st; s.hip = st;
+    }
+  }
+
+  return s;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  DRAWING ENGINE
+// ════════════════════════════════════════════════════════════════
+
+// Draws the skeleton with per-bone status coloring + glow
+function drawSmartSkeleton(ctx, lm, jStatus, w, h) {
+  ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+
+  // Bones
+  for (const bone of BONES) {
+    const A = lm[bone.a], B = lm[bone.b];
+    if (!A || !B || A.visibility < 0.28 || B.visibility < 0.28) continue;
+    const c = byStatus(jStatus[bone.k] || 'neut', true);
+    const active = jStatus[bone.k] !== 'neut';
+    ctx.strokeStyle  = c;
+    ctx.lineWidth    = active ? 4.5 : 3;
+    ctx.shadowColor  = c;
+    ctx.shadowBlur   = active ? 9 : 2;
+    ctx.beginPath();
+    ctx.moveTo(A.x * w, A.y * h);
+    ctx.lineTo(B.x * w, B.y * h);
+    ctx.stroke();
+  }
+  ctx.shadowBlur = 0;
+
+  // Joint circles
+  for (const i of ALL_JOINT_IDS) {
+    const pt = lm[i];
+    if (!pt || pt.visibility < 0.30) continue;
+    const st = jStatus[JOINT_KEY[i]] || 'neut';
+    const c  = byStatus(st, false);
+    const active = st !== 'neut';
+
+    // Core dot
+    ctx.beginPath();
+    ctx.arc(pt.x * w, pt.y * h, active ? 6.5 : 5, 0, Math.PI * 2);
+    ctx.fillStyle   = c;
+    ctx.shadowColor = c;
+    ctx.shadowBlur  = active ? 16 : 5;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Outer ring (status indicator halo)
+    const [r, g, b2] = st==='good'?[61,230,139]:st==='warn'?[228,187,90]:st==='bad'?[255,79,106]:[255,255,255];
+    ctx.beginPath();
+    ctx.arc(pt.x * w, pt.y * h, 13, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(${r},${g},${b2},${active ? 0.30 : 0.08})`;
+    ctx.lineWidth   = 2;
+    ctx.stroke();
+  }
+
+  // Head dot
+  const nose = lm[0];
+  if (nose && nose.visibility > 0.4) {
+    ctx.beginPath();
+    ctx.arc(nose.x * w, nose.y * h, 4, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(255,255,255,0.8)';
+    ctx.fill();
+  }
+}
+
+// Draw the angle arc between segments A-B and B-C at joint B
+function drawAngleArc(ctx, A, B, C, w, h, radius, color) {
+  const bx = B.x * w, by = B.y * h;
+  const sa = Math.atan2(A.y * h - by, A.x * w - bx);
+  const ea = Math.atan2(C.y * h - by, C.x * w - bx);
+  let diff = ea - sa;
+  while (diff >  Math.PI) diff -= 2 * Math.PI;
+  while (diff < -Math.PI) diff += 2 * Math.PI;
+  ctx.beginPath();
+  ctx.arc(bx, by, radius, sa, ea, diff < 0);
+  ctx.strokeStyle = color;
+  ctx.lineWidth   = 2.5;
+  ctx.shadowColor = color;
+  ctx.shadowBlur  = 8;
+  ctx.stroke();
+  ctx.shadowBlur  = 0;
+}
+
+// Draw a readable text pill on a horizontally-flipped canvas (CSS scaleX(-1))
+// The key trick: ctx.scale(-1,1) + draw at negated x = text appears correctly
+function drawPill(ctx, cx, cy, text, color) {
+  ctx.save();
+  ctx.scale(-1, 1);
+  const mx = -cx;
+  ctx.font = 'bold 11px Inter, Arial, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const tw = ctx.measureText(text).width;
+  const pw = tw + 16, ph = 21, r = 6;
+  const bx = mx - pw / 2, by = cy - ph / 2;
+  // Background
+  ctx.fillStyle = 'rgba(5,5,10,0.82)';
+  ctx.beginPath();
+  ctx.moveTo(bx + r, by); ctx.lineTo(bx + pw - r, by);
+  ctx.quadraticCurveTo(bx + pw, by,      bx + pw, by + r);
+  ctx.lineTo(bx + pw, by + ph - r);
+  ctx.quadraticCurveTo(bx + pw, by + ph, bx + pw - r, by + ph);
+  ctx.lineTo(bx + r, by + ph);
+  ctx.quadraticCurveTo(bx, by + ph,      bx, by + ph - r);
+  ctx.lineTo(bx, by + r);
+  ctx.quadraticCurveTo(bx, by,           bx + r, by);
+  ctx.closePath();
+  ctx.fill();
+  // Text
+  ctx.fillStyle = color;
+  ctx.fillText(text, mx, cy);
+  ctx.restore();
+}
+
+// Exercise-specific coaching overlays (guide lines, angle labels, cues)
+function drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h) {
+
+  // ── SQUAT ────────────────────────────────────────────────────
+  if (exKey === 'squat') {
+    // Left knee angle arc + value label
+    if (vis(lm,LM.LH) && vis(lm,LM.LK) && vis(lm,LM.LA)) {
+      const k  = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]);
+      const kc = byStatus(jStatus.L_knee || 'neut', false);
+      drawAngleArc(ctx, lm[LM.LH], lm[LM.LK], lm[LM.LA], w, h, 24, kc);
+      drawPill(ctx, lm[LM.LK].x * w, lm[LM.LK].y * h - 32, `${Math.round(k)}°`, kc);
+    }
+    // Right knee angle arc + value label
+    if (vis(lm,LM.RH) && vis(lm,LM.RK) && vis(lm,LM.RA)) {
+      const k  = angle(lm[LM.RH], lm[LM.RK], lm[LM.RA]);
+      const kc = byStatus(jStatus.R_knee || 'neut', false);
+      drawAngleArc(ctx, lm[LM.RH], lm[LM.RK], lm[LM.RA], w, h, 24, kc);
+      drawPill(ctx, lm[LM.RK].x * w, lm[LM.RK].y * h - 32, `${Math.round(k)}°`, kc);
+    }
+    // Dashed depth guide at hip height
+    if (vis(lm,LM.LH) && vis(lm,LM.RH)) {
+      const hy = ((lm[LM.LH].y + lm[LM.RH].y) / 2) * h;
+      ctx.save();
+      ctx.setLineDash([7, 5]);
+      ctx.strokeStyle = 'rgba(255,255,255,0.11)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(0, hy); ctx.lineTo(w, hy);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+  }
+
+  // ── PUSH-UP ──────────────────────────────────────────────────
+  if (exKey === 'pushup') {
+    // Left elbow angle arc + label
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e  = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      const ec = byStatus(jStatus.L_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.LS], lm[LM.LE], lm[LM.LW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.LE].x * w, lm[LM.LE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    // Right elbow angle arc + label
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e  = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      const ec = byStatus(jStatus.R_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.RS], lm[LM.RE], lm[LM.RW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.RE].x * w, lm[LM.RE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    // Body alignment dashed line + cue
+    if (vis(lm,LM.LS) && vis(lm,LM.LA)) {
+      const ba  = vis(lm,LM.LH) ? angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]) : 175;
+      const d   = Math.abs(ba - 175);
+      const lnC = d < 8 ? CLR.BG_GOOD : d < 16 ? CLR.BG_WARN : CLR.BG_BAD;
+      ctx.save();
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = lnC;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(lm[LM.LS].x * w, lm[LM.LS].y * h);
+      ctx.lineTo(lm[LM.LA].x * w, lm[LM.LA].y * h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+      if (d >= 8) {
+        const mx = (lm[LM.LS].x + lm[LM.LA].x) / 2 * w;
+        const my = (lm[LM.LS].y + lm[LM.LA].y) / 2 * h;
+        drawPill(ctx, mx, my, d < 16 ? 'Tighten core' : 'Fix body alignment', lnC);
       }
     }
+  }
 
-    async function startWorkout() {
-      startBtn.disabled = true; exSel.disabled = true; showOverlay("load"); detector = new Detector();
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { width: { ideal: 640 }, height: { ideal: 480 }, facingMode: "user" }, audio: false });
-      } catch (e) {
-        showOverlay("err", "Camera Permission Error", "Please allow camera access and retry.");
-        startBtn.disabled = false; exSel.disabled = false; return;
-      }
-      vid.srcObject = stream;
-      await new Promise((r) => { if (vid.readyState >= 2) r(); else vid.onloadeddata = r; });
-      cvs.width = cvs.clientWidth; cvs.height = cvs.clientHeight;
-      pose = new Pose({ locateFile: (f) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
-      pose.setOptions({ modelComplexity: 1, smoothLandmarks: true, minDetectionConfidence: 0.55, minTrackingConfidence: 0.5 });
-      const ctx = cvs.getContext("2d");
-      pose.onResults((results) => {
-        fpsFrames += 1;
-        const now = performance.now();
-        if (now - fpsLast >= 1000) { currentFps = fpsFrames; fpsFrames = 0; fpsLast = now; fpsEl.textContent = currentFps; }
-        ctx.clearRect(0, 0, cvs.width, cvs.height);
-        if (results.image) ctx.drawImage(results.image, 0, 0, cvs.width, cvs.height);
-        if (!running) return;
-        const lm = results.poseLandmarks || null;
-        if (!lm) { noPersonFrames += 1; if (noPersonFrames > 40) noPerson.classList.remove("hidden"); return; }
-        noPersonFrames = 0; noPerson.classList.add("hidden");
-        drawConnectors(ctx, lm, POSE_CONNECTIONS, { color: "rgba(245,166,35,.75)", lineWidth: 3 });
-        drawLandmarks(ctx, lm, { color: "#f5a623", lineWidth: 1, radius: 3 });
-        const out = detector.process(lm, exSel.value);
-        setFeedback(out.text, out.kind, out.score);
-        badgeEx.textContent = out.ex;
-        if (out.repAdded) addHistory(out.ex, `#${detector.reps}`);
-        repCount.textContent = detector.reps;
-        setCount.textContent = detector.sets;
-      });
-      cam = new Camera(vid, { onFrame: async () => { if (running) await pose.send({ image: vid }); }, width: 640, height: 480 });
-      running = true;
-      showOverlay("idle"); idleOv.classList.add("hidden");
-      stopBtn.disabled = false; setBtn.disabled = false;
-      sessionStart = Date.now(); timerId = setInterval(updateTimer, 1000);
-      showTips(exSel.value);
-      cam.start();
+  // ── PLANK ────────────────────────────────────────────────────
+  if (exKey === 'plank') {
+    if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA)) {
+      const ba  = angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]);
+      const d   = Math.abs(ba - 170);
+      const lnC = d < 8 ? CLR.BG_GOOD : d < 18 ? CLR.BG_WARN : CLR.BG_BAD;
+      // Alignment line shoulder → ankle
+      ctx.save();
+      ctx.setLineDash([9, 5]);
+      ctx.strokeStyle = lnC;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(lm[LM.LS].x * w, lm[LM.LS].y * h);
+      ctx.lineTo(lm[LM.LA].x * w, lm[LM.LA].y * h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+      // Angle label near hip
+      drawPill(ctx, lm[LM.LH].x * w, lm[LM.LH].y * h - 28,
+               `${Math.round(ba)}° (target 170°)`, lnC);
+      // Corrective cue below hip
+      const cue = ba < 162 ? '▲ Raise hips' : ba > 178 ? '▼ Lower hips' : '✓ Perfect';
+      drawPill(ctx, lm[LM.LH].x * w, lm[LM.LH].y * h + 26, cue, lnC);
     }
+  }
 
-    async function stopWorkout() {
-      running = false;
-      if (cam) { try { cam.stop(); } catch (_) {} cam = null; }
-      if (stream) { stream.getTracks().forEach((t) => t.stop()); stream = null; }
-      if (timerId) { clearInterval(timerId); timerId = null; }
-      showOverlay("idle");
-      startBtn.disabled = false; exSel.disabled = false; stopBtn.disabled = true; setBtn.disabled = true;
-      try {
-        const duration = sessionStart ? Math.floor((Date.now() - sessionStart) / 1000) : 0;
-        await fetch("/api/workout/save", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ exercise: exSel.value, reps: Number(repCount.textContent || 0), sets: Number(setCount.textContent || 0), duration, timestamp: new Date().toISOString() })
-        });
-      } catch (_) {}
-      sessionStart = null;
+  // ── JUMPING JACK ─────────────────────────────────────────────
+  if (exKey === 'jumpingjack') {
+    const armsUp = vis(lm,LM.LW) && vis(lm,LM.RW) &&
+                   lm[LM.LW].y < lm[LM.LS].y - 0.04 &&
+                   lm[LM.RW].y < lm[LM.RS].y - 0.04;
+    // Wrist cues
+    if (vis(lm,LM.LW))
+      drawPill(ctx, lm[LM.LW].x*w, lm[LM.LW].y*h - 24, armsUp ? '✓' : '↑ Raise', armsUp ? CLR.GOOD : CLR.WARN);
+    if (vis(lm,LM.RW))
+      drawPill(ctx, lm[LM.RW].x*w, lm[LM.RW].y*h - 24, armsUp ? '✓' : '↑ Raise', armsUp ? CLR.GOOD : CLR.WARN);
+    // Ankle spread cues
+    if (vis(lm,LM.LA) && vis(lm,LM.RA) && vis(lm,LM.LS) && vis(lm,LM.RS)) {
+      const sw = Math.abs(lm[LM.LS].x - lm[LM.RS].x);
+      const aw = Math.abs(lm[LM.LA].x - lm[LM.RA].x);
+      const lo = aw > sw * 1.1;
+      drawPill(ctx, lm[LM.LA].x*w, lm[LM.LA].y*h + 24, lo ? '✓' : '→ Out', lo ? CLR.GOOD : CLR.WARN);
+      drawPill(ctx, lm[LM.RA].x*w, lm[LM.RA].y*h + 24, lo ? '✓' : '← Out', lo ? CLR.GOOD : CLR.WARN);
     }
+  }
+}
 
-    startBtn.addEventListener("click", startWorkout);
-    stopBtn.addEventListener("click", stopWorkout);
-    setBtn.addEventListener("click", () => {
-      if (!detector) return;
-      if (detector.reps > 0) addHistory("Set Complete", `${detector.reps} reps`);
-      detector.markSet();
-      repCount.textContent = detector.reps;
-      setCount.textContent = detector.sets;
-      setFeedback("Set complete. Recover and go again.", "good", 90);
+// ════════════════════════════════════════════════════════════════
+//  EXERCISE DETECTOR
+// ════════════════════════════════════════════════════════════════
+class Detector {
+  constructor() { this.reps = 0; this.sets = 0; this.phase = 'up'; this.jj = 'closed'; }
+
+  markSet() {
+    if (this.reps > 0) this.sets++;
+    this.reps = 0; this.phase = 'up'; this.jj = 'closed';
+  }
+
+  process(lm, mode) {
+    if (!lm || lm.length < 29)
+      return { text:'No landmarks — position yourself.', kind:'error', score:0, repAdded:false, ex:'Auto', exKey:'auto', phase:this.phase };
+    const exKey = mode === 'auto' ? this._auto(lm) : mode;
+    const r = exKey==='squat'       ? this._squat(lm)
+            : exKey==='pushup'      ? this._pushup(lm)
+            : exKey==='plank'       ? this._plank(lm)
+            : exKey==='jumpingjack' ? this._jj(lm)
+            : { text:'Select an exercise.', kind:'warn', score:0, repAdded:false, ex:'Auto' };
+    return { ...r, exKey, phase: this.phase };
+  }
+
+  _auto(lm) {
+    if (vis(lm,LM.LW) && vis(lm,LM.RW) &&
+        lm[LM.LW].y < lm[LM.LS].y - 0.05 &&
+        lm[LM.RW].y < lm[LM.RS].y - 0.05) return 'jumpingjack';
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW) &&
+        angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]) < 120) return 'pushup';
+    if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA)) {
+      const b = angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]);
+      if (b > 150 && b < 190) return 'plank';
+    }
+    return 'squat';
+  }
+
+  _squat(lm) {
+    if (!(vis(lm,LM.LH) && vis(lm,LM.LK) && vis(lm,LM.LA)))
+      return { text:'Lower body not visible — step back.', kind:'error', score:0, repAdded:false, ex:'Squat' };
+    const lk = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]);
+    const rk = (vis(lm,LM.RH)&&vis(lm,LM.RK)&&vis(lm,LM.RA)) ? angle(lm[LM.RH],lm[LM.RK],lm[LM.RA]) : lk;
+    const k  = (lk + rk) / 2;
+    let repAdded = false;
+    if (this.phase === 'up'   && k < 90)  this.phase = 'down';
+    if (this.phase === 'down' && k > 155) { this.phase = 'up'; this.reps++; repAdded = true; }
+    const deep = k < 90, perfect = k < 80;
+    const score = this.phase === 'down' ? Math.max(20, 100 - Math.abs(85 - k) * 1.5) : 60;
+    const text  = this.phase === 'up'   ? 'Go down to start your squat.'
+                : perfect               ? '✓ Deep squat — drive up hard!'
+                : deep                  ? '✓ Good depth — keep going!'
+                :                         '↓ Go lower — target 90° or below.';
+    return { text, kind: this.phase==='up'?'warn': deep?'good':'warn', score:Math.round(score), repAdded, ex:'Squat' };
+  }
+
+  _pushup(lm) {
+    if (!(vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)))
+      return { text:'Upper body not visible.', kind:'error', score:0, repAdded:false, ex:'Push-up' };
+    const le = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+    const re = (vis(lm,LM.RS)&&vis(lm,LM.RE)&&vis(lm,LM.RW)) ? angle(lm[LM.RS],lm[LM.RE],lm[LM.RW]) : le;
+    const e  = (le + re) / 2;
+    let repAdded = false;
+    if (this.phase === 'up'   && e < 95)  this.phase = 'down';
+    if (this.phase === 'down' && e > 155) { this.phase = 'up'; this.reps++; repAdded = true; }
+    let bodyScore = 75;
+    if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA))
+      bodyScore = Math.max(0, 100 - Math.abs(angle(lm[LM.LS],lm[LM.LH],lm[LM.LA]) - 175) * 4);
+    const deep  = e < 90;
+    const depth = this.phase === 'down' ? Math.max(20, 100 - Math.abs(80 - e) * 1.4) : 60;
+    const score = Math.round(depth * 0.6 + bodyScore * 0.4);
+    const text  = this.phase === 'up' ? 'Lower your body under control.'
+                : deep                ? '✓ Great depth — push up!'
+                :                       '↓ Lower chest to 90° elbow angle.';
+    return { text, kind: this.phase==='up'?'warn': deep?'good':'warn', score, repAdded, ex:'Push-up' };
+  }
+
+  _plank(lm) {
+    if (!(vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA)))
+      return { text:'Full side view needed — turn sideways.', kind:'error', score:0, repAdded:false, ex:'Plank' };
+    const ba    = angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]);
+    const delta = Math.abs(ba - 170);
+    const good  = delta < 8, ok = delta < 18;
+    const score = Math.max(20, 100 - delta * 4.5);
+    const text  = good            ? '✓ Perfect plank — keep holding!'
+                : ba < 162        ? '▲ Raise your hips slightly.'
+                : ba > 178        ? '▼ Lower your hips slightly.'
+                :                   '↔ Adjust alignment.';
+    return { text, kind: good?'good':ok?'warn':'error', score:Math.round(score), repAdded:false, ex:'Plank' };
+  }
+
+  _jj(lm) {
+    if (!(vis(lm,LM.LW) && vis(lm,LM.RW) && vis(lm,LM.LS) && vis(lm,LM.RS)))
+      return { text:'Arms not visible.', kind:'error', score:0, repAdded:false, ex:'Jumping Jack' };
+    const armsUp = lm[LM.LW].y < lm[LM.LS].y - 0.04 && lm[LM.RW].y < lm[LM.RS].y - 0.04;
+    let legsOut = false;
+    if (vis(lm,LM.LA) && vis(lm,LM.RA)) {
+      const sw = Math.abs(lm[LM.LS].x - lm[LM.RS].x);
+      const aw = Math.abs(lm[LM.LA].x - lm[LM.RA].x);
+      legsOut = aw > sw * 1.1;
+    }
+    const isOpen = armsUp && legsOut;
+    let repAdded = false;
+    if (this.jj === 'closed' && isOpen)  this.jj = 'open';
+    if (this.jj === 'open'   && !isOpen) { this.jj = 'closed'; this.reps++; repAdded = true; }
+    const score = armsUp ? (legsOut ? 95 : 65) : 40;
+    const text  = isOpen ? '✓ Open — return to start.' : '↑ Jump! Arms overhead, legs out.';
+    return { text, kind: isOpen?'good':'warn', score, repAdded, ex:'Jumping Jack' };
+  }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  UI HELPERS
+// ════════════════════════════════════════════════════════════════
+function showTips(mode) {
+  tipsEl.innerHTML = (TIPS[mode] || TIPS.auto).map(t => `<div class="tip">${t}</div>`).join('');
+}
+
+function setFeedback(text, kind, score) {
+  fbText.textContent = text;
+  fbText.className   = `feedback ${kind || ''}`;
+  const p = Math.max(0, Math.min(100, score || 0));
+  formFill.style.width = `${p}%`;
+  formPct.textContent  = `${Math.round(p)}%`;
+  formFill.className   = 'fill' + (kind==='good' ? ' good' : kind==='error' || kind==='bad' ? ' bad' : '');
+  // Score chip
+  if (kind && kind !== 'error' && p > 0) {
+    scoreChip.textContent = p >= 80 ? '✓ Great form' : p >= 55 ? '⚠ Needs work' : '✗ Fix form';
+    scoreChip.className   = `score-chip ${p >= 80 ? 'good' : p >= 55 ? 'warn' : 'bad'}`;
+  } else {
+    scoreChip.className = 'score-chip hidden';
+  }
+}
+
+function showOverlay(type, title, msg) {
+  idleOv.classList.add('hidden'); loadOv.classList.add('hidden'); errOv.classList.add('hidden');
+  if (type === 'idle') idleOv.classList.remove('hidden');
+  if (type === 'load') loadOv.classList.remove('hidden');
+  if (type === 'err')  { errTitle.textContent = title || 'Camera Error'; errMsg.textContent = msg || ''; errOv.classList.remove('hidden'); }
+}
+
+function updatePhaseBadge(phase, exKey) {
+  if (!phase || exKey === 'plank' || exKey === 'jumpingjack' || exKey === 'auto') {
+    phaseBadge.classList.remove('visible', 'down', 'up');
+    return;
+  }
+  phaseBadge.textContent = phase === 'down' ? '↓ DOWN' : '↑ UP';
+  phaseBadge.className   = `phase-badge visible ${phase}`;
+}
+
+function addHistory(label, value, score) {
+  if (repHist.children.length && repHist.children[0].classList.contains('tip'))
+    repHist.innerHTML = '';
+  const t   = new Date().toLocaleTimeString();
+  const q   = score >= 75 ? '✓' : score >= 45 ? '⚠' : '✗';
+  const qc  = score >= 75 ? '#3de68b' : score >= 45 ? '#e4bb5a' : '#ff4f6a';
+  const el  = document.createElement('div');
+  el.className = 'row';
+  el.innerHTML = `<span>${t} — ${label} ${value}</span><strong style="color:${qc}">${q} ${Math.round(score || 0)}%</strong>`;
+  repHist.prepend(el);
+  if (repHist.children.length > 40) repHist.removeChild(repHist.lastChild);
+}
+
+function updateTimer() {
+  if (!sessionStart) return;
+  const s = Math.floor((Date.now() - sessionStart) / 1000);
+  timerEl.textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+// ════════════════════════════════════════════════════════════════
+//  WORKOUT FLOW
+// ════════════════════════════════════════════════════════════════
+async function startWorkout() {
+  startBtn.disabled = true; exSel.disabled = true;
+  showOverlay('load');
+  detector = new Detector();
+
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { width:{ ideal:640 }, height:{ ideal:480 }, facingMode:'user' },
+      audio: false
     });
-    exSel.addEventListener("change", () => { showTips(exSel.value); badgeEx.textContent = exSel.value === "auto" ? "Auto" : exSel.options[exSel.selectedIndex].text; });
-    showTips("auto");
-  </script>
+  } catch (e) {
+    showOverlay('err', 'Camera Permission Error', 'Allow camera access in browser settings and retry.');
+    startBtn.disabled = false; exSel.disabled = false; return;
+  }
+
+  vid.srcObject = stream;
+  await new Promise(r => { if (vid.readyState >= 2) r(); else vid.onloadeddata = r; });
+  cvs.width  = cvs.clientWidth;
+  cvs.height = cvs.clientHeight;
+
+  pose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
+  pose.setOptions({ modelComplexity:1, smoothLandmarks:true, minDetectionConfidence:.55, minTrackingConfidence:.5 });
+
+  const ctx = cvs.getContext('2d');
+  pose.onResults(results => {
+    // FPS counter
+    fpsFrames++;
+    const now = performance.now();
+    if (now - fpsLast >= 1000) { currentFps = fpsFrames; fpsFrames = 0; fpsLast = now; fpsEl.textContent = currentFps; }
+
+    const w = cvs.width, h = cvs.height;
+    ctx.clearRect(0, 0, w, h);
+    if (results.image) ctx.drawImage(results.image, 0, 0, w, h);
+    if (!running) return;
+
+    const lm = results.poseLandmarks || null;
+    if (!lm) {
+      noPersonFrames++;
+      if (noPersonFrames > 40) noPerson.classList.remove('hidden');
+      return;
+    }
+    noPersonFrames = 0; noPerson.classList.add('hidden');
+
+    // Run detector
+    const out    = detector.process(lm, exSel.value);
+    const exKey  = out.exKey || exSel.value;
+    const phase  = out.phase || 'up';
+
+    // Evaluate joint status → drive all colors
+    const jStatus = evaluateJoints(lm, exKey, phase);
+
+    // ── SMART DRAWING ──
+    drawSmartSkeleton(ctx, lm, jStatus, w, h);
+    drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h);
+
+    // ── UI UPDATES ──
+    setFeedback(out.text, out.kind, out.score);
+    updatePhaseBadge(phase, exKey);
+    badgeEx.textContent = out.ex;
+    if (out.repAdded) addHistory(out.ex, `#${detector.reps}`, out.score);
+    repCount.textContent = detector.reps;
+    setCount.textContent = detector.sets;
+  });
+
+  cam = new Camera(vid, {
+    onFrame: async () => { if (running) await pose.send({ image: vid }); },
+    width: 640, height: 480
+  });
+  running = true;
+  showOverlay('idle'); idleOv.classList.add('hidden');
+  stopBtn.disabled = false; setBtn.disabled = false;
+  sessionStart = Date.now();
+  timerId = setInterval(updateTimer, 1000);
+  showTips(exSel.value);
+  cam.start();
+}
+
+async function stopWorkout() {
+  running = false;
+  if (cam)    { try { cam.stop(); } catch (_) {} cam = null; }
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (timerId){ clearInterval(timerId); timerId = null; }
+  showOverlay('idle');
+  startBtn.disabled = false; exSel.disabled = false;
+  stopBtn.disabled  = true;  setBtn.disabled = true;
+  phaseBadge.classList.remove('visible', 'down', 'up');
+  try {
+    const dur = sessionStart ? Math.floor((Date.now() - sessionStart) / 1000) : 0;
+    await fetch('/api/workout/save', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        exercise: exSel.value,
+        reps: Number(repCount.textContent || 0),
+        sets: Number(setCount.textContent || 0),
+        duration: dur, timestamp: new Date().toISOString()
+      })
+    });
+  } catch (_) {}
+  sessionStart = null;
+}
+
+// ── EVENTS ────────────────────────────────────────────────────
+startBtn.addEventListener('click', startWorkout);
+stopBtn.addEventListener('click',  stopWorkout);
+setBtn.addEventListener('click', () => {
+  if (!detector) return;
+  if (detector.reps > 0) addHistory('Set Complete', `${detector.reps} reps`, 80);
+  detector.markSet();
+  repCount.textContent = detector.reps;
+  setCount.textContent = detector.sets;
+  setFeedback('Set complete. Rest and go again.', 'good', 92);
+});
+exSel.addEventListener('change', () => {
+  showTips(exSel.value);
+  badgeEx.textContent = exSel.value === 'auto' ? 'Auto' : exSel.options[exSel.selectedIndex].text;
+  if (detector && detector.reps > 0) detector.markSet();
+});
+
+// ── INIT ──────────────────────────────────────────────────────
+showTips('auto');
+</script>
 </body>
 </html>
