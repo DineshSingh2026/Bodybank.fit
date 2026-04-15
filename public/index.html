@@ -2787,6 +2787,16 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .nutrition-checkin .prog-fill.amber{background:var(--bb-orange)}
 .nutrition-checkin .prog-fill.green{background:var(--bb-green)}
 .nutrition-checkin .prog-pct{font-size:11px;color:var(--muted);width:36px;text-align:right}
+.nutrition-checkin .prog-fill.red{background:var(--bb-red)}
+.nutrition-checkin .prog-goal{font-size:11px;color:var(--muted);min-width:80px;text-align:right;white-space:nowrap;flex-shrink:0}
+.nutrition-checkin .nutri-cal-equation{display:flex;align-items:center;justify-content:space-between;gap:6px;background:rgba(200,164,78,0.07);border:1px solid rgba(200,164,78,0.20);border-radius:12px;padding:14px 12px;margin-bottom:14px}
+.nutrition-checkin .nutri-eq-cell{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:44px}
+.nutrition-checkin .nutri-eq-num{font-family:var(--bb-font-heading);font-size:1.05rem;font-weight:700;color:var(--cream);line-height:1}
+.nutrition-checkin .nutri-eq-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.nutrition-checkin .nutri-eq-op{font-size:1rem;color:rgba(255,255,255,0.30);flex-shrink:0;padding:0 1px}
+.nutrition-checkin .nutri-eq-cell--result .nutri-eq-num{color:var(--bb-green)}
+.nutrition-checkin .nutri-eq-cell--result.over .nutri-eq-num{color:var(--bb-red)}
+@media(max-width:420px){.nutrition-checkin .nutri-cal-equation{padding:10px 8px;gap:3px}.nutrition-checkin .nutri-eq-num{font-size:.9rem}.nutrition-checkin .nutri-eq-op{font-size:.85rem}}
 .nutrition-checkin .streak-indicator{display:flex;align-items:center;gap:12px;background:rgba(46,204,113,0.06);border:1px solid rgba(46,204,113,0.15);border-radius:14px;padding:12px 14px}
 .nutrition-checkin .streak-count{font-family:var(--bb-font-heading);font-size:1.25rem;font-weight:700;color:var(--bb-green)}
 .nutrition-checkin .streak-label{font-size:11px;color:var(--muted)}
@@ -4258,6 +4268,28 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <button type="button" class="submit-all-btn" id="submitAllBtn" onclick="nutritionSubmitAllMeals()">Submit all &amp; send report</button>
           <div class="daily-nutrition-summary" id="dailyNutritionSummary" style="display:none">
             <div class="summary-title">Today&apos;s nutrition</div>
+            <!-- Calorie equation: Target − Eaten + Workout = Remaining -->
+            <div class="nutri-cal-equation" id="nutriCalEquation">
+              <div class="nutri-eq-cell">
+                <span class="nutri-eq-num" id="nutriEqTarget">—</span>
+                <span class="nutri-eq-lbl">Target</span>
+              </div>
+              <span class="nutri-eq-op">−</span>
+              <div class="nutri-eq-cell">
+                <span class="nutri-eq-num" id="nutriEqEaten">—</span>
+                <span class="nutri-eq-lbl">Eaten</span>
+              </div>
+              <span class="nutri-eq-op">+</span>
+              <div class="nutri-eq-cell">
+                <span class="nutri-eq-num" id="nutriEqWorkout">0</span>
+                <span class="nutri-eq-lbl">Workout</span>
+              </div>
+              <span class="nutri-eq-op">=</span>
+              <div class="nutri-eq-cell nutri-eq-cell--result" id="nutriEqResultCell">
+                <span class="nutri-eq-num" id="nutriEqRemaining">—</span>
+                <span class="nutri-eq-lbl">Remaining</span>
+              </div>
+            </div>
             <div class="macro-totals-grid">
               <div class="macro-total cal"><div class="mt-val" id="nutriTotCal">0</div><div class="mt-label">kcal</div></div>
               <div class="macro-total pro"><div class="mt-val" id="nutriTotPro">0g</div><div class="mt-label">protein</div></div>
@@ -4276,9 +4308,19 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
                 <span class="prog-pct" id="nutriPpCal">0%</span>
               </div>
               <div class="prog-row">
+                <span class="prog-lbl">Carbs</span>
+                <div class="prog-track"><div class="prog-fill amber" id="nutriPbCarb" style="width:0%"></div></div>
+                <span class="prog-goal" id="nutriPpCarb">0 / — g</span>
+              </div>
+              <div class="prog-row">
                 <span class="prog-lbl">Protein</span>
                 <div class="prog-track"><div class="prog-fill green" id="nutriPbPro" style="width:0%"></div></div>
-                <span class="prog-pct" id="nutriPpPro">0%</span>
+                <span class="prog-goal" id="nutriPpPro">0 / — g</span>
+              </div>
+              <div class="prog-row">
+                <span class="prog-lbl">Fat</span>
+                <div class="prog-track"><div class="prog-fill red" id="nutriPbFat" style="width:0%"></div></div>
+                <span class="prog-goal" id="nutriPpFat">0 / — g</span>
               </div>
             </div>
             <div class="nutri-trend-wrap" id="nutriTrendWrap" style="display:none">
@@ -12998,6 +13040,8 @@ var bbNutritionState = {
   scores: {},
   goals: { cal: 2000, pro: 150 }
 };
+/* Shared data for the calorie equation card (populated by two separate functions) */
+var _bbNutriEqData = { target: null, eaten: null, workout: 0 };
 var BB_NUTRITION_DRAFT_KEY = 'bb_nutrition_meal_photo_drafts_v1';
 var bbNutritionGridReady = false;
 var adminNutritionWeekChartInst = null;
@@ -13793,6 +13837,28 @@ async function saveNutritionShareCardFromMeal(mt) {
   await saveNutritionShareCard();
 }
 
+function _bbRenderNutriEquation() {
+  var target = _bbNutriEqData.target;
+  var eaten = _bbNutriEqData.eaten;
+  var workout = _bbNutriEqData.workout || 0;
+  var el;
+  if (el = document.getElementById('nutriEqTarget')) el.textContent = target != null ? String(target) : '—';
+  if (el = document.getElementById('nutriEqEaten')) el.textContent = eaten != null ? String(eaten) : '—';
+  if (el = document.getElementById('nutriEqWorkout')) el.textContent = String(workout);
+  var resultCell = document.getElementById('nutriEqResultCell');
+  var remainEl = document.getElementById('nutriEqRemaining');
+  if (target != null && eaten != null) {
+    var remaining = target - eaten + workout;
+    if (remainEl) remainEl.textContent = String(remaining);
+    if (resultCell) {
+      resultCell.classList.toggle('over', remaining < 0);
+    }
+  } else {
+    if (remainEl) remainEl.textContent = '—';
+    if (resultCell) resultCell.classList.remove('over');
+  }
+}
+
 function nutritionUpdateSummaryFromState() {
   var vals = Object.keys(bbNutritionState.results).map(function (k) { return bbNutritionState.results[k]; }).filter(Boolean);
   if (!vals.length) return;
@@ -13804,6 +13870,9 @@ function nutritionUpdateSummaryFromState() {
   var avgScore = scVals.length ? (scVals.reduce(function (a, b) { return a + b; }, 0) / scVals.length).toFixed(1) : '—';
   var cg = bbNutritionState.goals.cal || 2000;
   var pg = bbNutritionState.goals.pro || 150;
+  /* Derive carb and fat goals from calorie goal using standard macro splits */
+  var carbGoal = Math.round((cg * 0.50) / 4);   /* 50 % of kcal from carbs, 4 kcal/g */
+  var fatGoal  = Math.round((cg * 0.25) / 9);   /* 25 % of kcal from fat,  9 kcal/g  */
   var sumEl = document.getElementById('dailyNutritionSummary');
   if (sumEl) sumEl.style.display = 'block';
   var el;
@@ -13812,12 +13881,26 @@ function nutritionUpdateSummaryFromState() {
   if (el = document.getElementById('nutriTotCarb')) el.textContent = totCarb + 'g';
   if (el = document.getElementById('nutriTotFat')) el.textContent = totFat + 'g';
   if (el = document.getElementById('nutriTotScore')) el.textContent = avgScore;
+  /* Calories progress bar */
   var calPct = Math.min(100, Math.round((totCal / cg) * 100));
-  var proPct = Math.min(100, Math.round((totPro / pg) * 100));
   if (el = document.getElementById('nutriPbCal')) el.style.width = calPct + '%';
-  if (el = document.getElementById('nutriPbPro')) el.style.width = proPct + '%';
   if (el = document.getElementById('nutriPpCal')) el.textContent = calPct + '%';
-  if (el = document.getElementById('nutriPpPro')) el.textContent = proPct + '%';
+  /* Carbs goal bar */
+  var carbPct = Math.min(100, Math.round((totCarb / carbGoal) * 100));
+  if (el = document.getElementById('nutriPbCarb')) el.style.width = carbPct + '%';
+  if (el = document.getElementById('nutriPpCarb')) el.textContent = totCarb + ' / ' + carbGoal + ' g';
+  /* Protein goal bar */
+  var proPct = Math.min(100, Math.round((totPro / pg) * 100));
+  if (el = document.getElementById('nutriPbPro')) el.style.width = proPct + '%';
+  if (el = document.getElementById('nutriPpPro')) el.textContent = totPro + ' / ' + pg + ' g';
+  /* Fat goal bar */
+  var fatPct = Math.min(100, Math.round((totFat / fatGoal) * 100));
+  if (el = document.getElementById('nutriPbFat')) el.style.width = fatPct + '%';
+  if (el = document.getElementById('nutriPpFat')) el.textContent = totFat + ' / ' + fatGoal + ' g';
+  /* Update equation eaten + target */
+  _bbNutriEqData.target = cg;
+  _bbNutriEqData.eaten = totCal;
+  _bbRenderNutriEquation();
   var confMeta = nutritionSummarizeDailyConfidence();
   var sumWrap = document.getElementById('dailyNutritionSummary');
   if (sumWrap) {
@@ -13845,11 +13928,19 @@ function nutritionApplyEnergyRow(statsNorm) {
   if (!row || !valEl || !statsNorm) return;
   var ed = statsNorm.energyDifference;
   if (ed == null && statsNorm.energy_difference != null) ed = statsNorm.energy_difference;
-  if (ed == null) { row.style.display = 'none'; return; }
-  ed = Number(ed);
-  row.style.display = 'flex';
-  valEl.textContent = (ed >= 0 ? '+' : '') + ed + ' kcal';
-  valEl.className = 'nutri-energy-val' + (ed < 0 ? ' surplus' : '');
+  if (ed == null) { row.style.display = 'none'; } else {
+    ed = Number(ed);
+    row.style.display = 'flex';
+    valEl.textContent = (ed >= 0 ? '+' : '') + ed + ' kcal';
+    valEl.className = 'nutri-energy-val' + (ed < 0 ? ' surplus' : '');
+  }
+  /* Update workout calories in equation */
+  var wo = statsNorm.caloriesOut;
+  if (wo == null && statsNorm.calories_out != null) wo = statsNorm.calories_out;
+  _bbNutriEqData.workout = Number(wo) || 0;
+  /* Also sync target from server goal if available */
+  if (statsNorm.calorieGoal != null) _bbNutriEqData.target = Number(statsNorm.calorieGoal);
+  _bbRenderNutriEquation();
 }
 
 function nutritionDestroyUserTrendChart() {
