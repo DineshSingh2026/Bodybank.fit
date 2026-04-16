@@ -40,6 +40,7 @@ const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
 const coinService = require('./services/coinService');
 const { notifyAsync } = require('./utils/notify');
+const { verifyToken: verifyNutritionPhotoLink } = require('./utils/nutritionPhotoLink');
 const { startEmailScheduler, getAdminDailyComplianceReportData, sendAdminDailyComplianceReport } = require('./services/emailScheduler');
 const {
   toDateStr: streakDateToYmd,
@@ -5867,6 +5868,35 @@ app.get('/api/feed/image/:id', async (req, res) => {
     res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
     return res.send(buf);
   } catch (e) {
+    return res.status(500).send('Error');
+  }
+});
+
+// ── GET /api/public/nutrition-photo/:mealId — signed public URL for Twilio media fetch ──
+app.get('/api/public/nutrition-photo/:mealId', async (req, res) => {
+  try {
+    const mealId = String(req.params.mealId || '').trim();
+    const e = String(req.query.e || '').trim();
+    const sig = String(req.query.sig || '').trim();
+    if (!mealId || !e || !sig) return res.status(400).send('Bad request');
+    if (!verifyNutritionPhotoLink(mealId, e, sig)) return res.status(403).send('Forbidden');
+
+    const row = await queryOne(
+      `SELECT photo_data, photo_mime
+       FROM nutrition_meal_logs
+       WHERE id = $1
+       LIMIT 1`,
+      [mealId]
+    );
+    if (!row || !row.photo_data) return res.status(404).send('Not found');
+    const data = String(row.photo_data || '');
+    const mime = String(row.photo_mime || 'image/jpeg');
+    const b64 = data.includes(',') ? data.split(',')[1] : data;
+    const buf = Buffer.from(b64, 'base64');
+    res.setHeader('Content-Type', mime);
+    res.setHeader('Cache-Control', 'public, max-age=300');
+    return res.send(buf);
+  } catch (_) {
     return res.status(500).send('Error');
   }
 });

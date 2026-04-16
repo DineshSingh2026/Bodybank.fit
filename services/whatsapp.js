@@ -28,10 +28,11 @@ function getClient() {
 }
 
 /**
- * sendWhatsApp(message)
+ * sendWhatsApp(message, opts?)
+ * opts.mediaUrl: string | string[]
  * Fire-and-forget safe. Returns { ok, sid? } or { ok:false, reason }.
  */
-async function sendWhatsApp(message) {
+async function sendWhatsApp(message, opts = {}) {
   const body = String(message || '').trim();
   if (!body) return { ok: false, reason: 'empty_message' };
 
@@ -43,10 +44,18 @@ async function sendWhatsApp(message) {
   }
 
   try {
+    const mediaRaw = opts && opts.mediaUrl != null ? opts.mediaUrl : null;
+    const mediaList = Array.isArray(mediaRaw) ? mediaRaw : (mediaRaw ? [mediaRaw] : []);
+    const mediaUrl = mediaList
+      .map((x) => String(x || '').trim())
+      .filter(Boolean)
+      .slice(0, 10);
+
     const result = await getClient().messages.create({
       from : SANDBOX_FROM,
       to   : toWaAddr(ADMIN_WHATSAPP),
-      body
+      body,
+      ...(mediaUrl.length ? { mediaUrl } : {})
     });
     return { ok: true, sid: result.sid };
   } catch (err) {

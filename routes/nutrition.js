@@ -5,6 +5,7 @@ const userEmail = require('../services/userEmailService');
 const nutritionService = require('../services/nutritionService');
 const coinService = require('../services/coinService');
 const { notifyAsync } = require('../utils/notify');
+const { buildSignedPhotoUrl } = require('../utils/nutritionPhotoLink');
 
 const {
   MEAL_TYPES,
@@ -73,6 +74,17 @@ function ymdOrToday(body, query) {
   const s = String(raw).trim().slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   return todayYmdInTz(STREAK_TZ) || new Date().toISOString().slice(0, 10);
+}
+
+function appBaseUrlFromReq(req) {
+  return (
+    process.env.PUBLIC_URL ||
+    process.env.RESET_BASE_URL ||
+    process.env.APP_BASE_URL ||
+    process.env.SITE_URL ||
+    process.env.RENDER_EXTERNAL_URL ||
+    (req ? (req.protocol + '://' + req.get('host')) : '')
+  );
 }
 
 async function safeAwardCoins(db, userId, eventType, eventKey, coinsDelta, meta, createdAtYmd) {
@@ -341,6 +353,16 @@ function createNutritionRouter(deps) {
           mealScore
         ]
       );
+      const latestMealWithPhoto = await queryOne(
+        `SELECT id, photo_data
+         FROM nutrition_meal_logs
+         WHERE user_id = ? AND log_date = ?::date AND meal_type = ?
+         LIMIT 1`,
+        [userId, ymd, mt]
+      ).catch(() => null);
+      const mealPhotoUrl = latestMealWithPhoto && latestMealWithPhoto.id && latestMealWithPhoto.photo_data
+        ? buildSignedPhotoUrl(appBaseUrlFromReq(req), latestMealWithPhoto.id, 24 * 60 * 60 * 1000)
+        : null;
 
       const dailyStats = await recomputeDailyStats(db, userId, ymd);
       const nMeals = await countMealsForDay(db, userId, ymd);
@@ -376,7 +398,7 @@ function createNutritionRouter(deps) {
         notifyAsync('NUTRITION_DAY_COMPLETE', { name: nuUser ? `${nuUser.first_name || ''} ${nuUser.last_name || ''}`.trim() : userId, email: nuUser ? nuUser.email : userId, mobile: nuUser ? (nuUser.phone || '—') : '—', date: ymd, meals: nMeals });
       } else {
         const nuUser = await queryOne('SELECT email, first_name, last_name, phone FROM users WHERE id = ?', [userId]).catch(() => null);
-        notifyAsync('NUTRITION_MEAL_LOGGED', { name: nuUser ? `${nuUser.first_name || ''} ${nuUser.last_name || ''}`.trim() : userId, email: nuUser ? nuUser.email : userId, mobile: nuUser ? (nuUser.phone || '—') : '—', mealType, date: ymd, score: mealScore || '—', calories: aiResult && aiResult.calories ? aiResult.calories : '—', protein: aiResult && aiResult.protein ? aiResult.protein + ' g' : '—' });
+        notifyAsync('NUTRITION_MEAL_LOGGED', { name: nuUser ? `${nuUser.first_name || ''} ${nuUser.last_name || ''}`.trim() : userId, email: nuUser ? nuUser.email : userId, mobile: nuUser ? (nuUser.phone || '—') : '—', mealType, date: ymd, score: mealScore || '—', calories: aiResult && aiResult.calories ? aiResult.calories : '—', protein: aiResult && aiResult.protein ? aiResult.protein + ' g' : '—', mediaUrl: mealPhotoUrl });
       }
 
       res.json({
@@ -449,6 +471,16 @@ function createNutritionRouter(deps) {
           notified_at = NULL`,
         [id, userId, ymd, mt, note, portion, JSON.stringify(aiStored), mealScore]
       );
+      const latestManualMeal = await queryOne(
+        `SELECT id, photo_data
+         FROM nutrition_meal_logs
+         WHERE user_id = ? AND log_date = ?::date AND meal_type = ?
+         LIMIT 1`,
+        [userId, ymd, mt]
+      ).catch(() => null);
+      const manualMealPhotoUrl = latestManualMeal && latestManualMeal.id && latestManualMeal.photo_data
+        ? buildSignedPhotoUrl(appBaseUrlFromReq(req), latestManualMeal.id, 24 * 60 * 60 * 1000)
+        : null;
 
       const dailyStats = await recomputeDailyStats(db, userId, ymd);
       const nMeals = await countMealsForDay(db, userId, ymd);
@@ -474,7 +506,7 @@ function createNutritionRouter(deps) {
         notifyAsync('NUTRITION_DAY_COMPLETE', { name: nlUser ? `${nlUser.first_name || ''} ${nlUser.last_name || ''}`.trim() : userId, email: nlUser ? nlUser.email : userId, mobile: nlUser ? (nlUser.phone || '—') : '—', date: ymd, meals: nMeals });
       } else {
         const nlUser = await queryOne('SELECT email, first_name, last_name, phone FROM users WHERE id = ?', [userId]).catch(() => null);
-        notifyAsync('NUTRITION_MEAL_LOGGED', { name: nlUser ? `${nlUser.first_name || ''} ${nlUser.last_name || ''}`.trim() : userId, email: nlUser ? nlUser.email : userId, mobile: nlUser ? (nlUser.phone || '—') : '—', mealType: mt, date: ymd, score: mealScore || '—', calories: aiStored && aiStored.calories ? aiStored.calories : '—', protein: aiStored && aiStored.protein ? aiStored.protein + ' g' : '—' });
+        notifyAsync('NUTRITION_MEAL_LOGGED', { name: nlUser ? `${nlUser.first_name || ''} ${nlUser.last_name || ''}`.trim() : userId, email: nlUser ? nlUser.email : userId, mobile: nlUser ? (nlUser.phone || '—') : '—', mealType: mt, date: ymd, score: mealScore || '—', calories: aiStored && aiStored.calories ? aiStored.calories : '—', protein: aiStored && aiStored.protein ? aiStored.protein + ' g' : '—', mediaUrl: manualMealPhotoUrl });
       }
       res.json({
         aiResult: aiStored,

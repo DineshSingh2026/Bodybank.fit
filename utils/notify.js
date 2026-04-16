@@ -86,7 +86,8 @@ async function notify(eventType, payload = {}, opts = {}) {
     const fp = `${eventType}::${s(payload.email || payload.userId || payload.username || payload.action || '')}`;
     if (isDup(fp, ttl)) return;
     mark(fp);
-    await sendWhatsApp(buildMessage(eventType, formatter(payload), meta.priority));
+    const media = payload && payload.mediaUrl ? payload.mediaUrl : null;
+    await sendWhatsApp(buildMessage(eventType, formatter(payload), meta.priority), { mediaUrl: media });
   } catch (err) {
     console.error('[notify] unexpected error:', err.message);
   }
