@@ -55,10 +55,11 @@ function confidenceFromLogRow(r) {
 async function purgeOldNutritionPhotos(db) {
   const todayYmd = todayYmdInTz(STREAK_TZ) || new Date().toISOString().slice(0, 10);
   if (_lastNutritionPhotoPurgeYmd === todayYmd) return;
+  // Retain photos for 3 days (today + 2 previous days). Delete anything 3+ days old.
   await db.run(
     `UPDATE nutrition_meal_logs
      SET photo_data = NULL, photo_mime = NULL
-     WHERE log_date < ?::date
+     WHERE log_date <= (?::date - INTERVAL '3 days')
        AND (photo_data IS NOT NULL OR photo_mime IS NOT NULL)`,
     [todayYmd]
   );
@@ -644,7 +645,7 @@ function createNutritionRouter(deps) {
         if (!u) continue;
         await recomputeDailyStats(db, uid, ymd);
         const meals = await queryAll(
-          `SELECT meal_type, photo_data, photo_mime, ai_result, ai_usage, meal_score, manual_note, notified_at
+          `SELECT meal_type, photo_data, photo_mime, ai_result, ai_usage, meal_score, manual_note, notified_at, photo_upload_count
            FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date`,
           [uid, ymd]
         );

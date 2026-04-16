@@ -2840,6 +2840,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .admin-nutrition-thumb.low-conf{border-color:var(--bb-red)}
 .admin-nutrition-thumb img{width:100%;height:64px;object-fit:cover;display:block;max-width:100%;transition:transform .2s ease,opacity .15s}
 .admin-nutrition-thumb .ph{height:64px;display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--muted);background:var(--bb-surface-hover)}
+.admin-nutrition-thumb .ph.expired{color:rgba(200,164,78,0.5);background:rgba(200,164,78,0.05);font-style:italic;flex-direction:column;gap:3px}
+.admin-nutrition-thumb .ph.expired svg{opacity:.45}
 .admin-nutrition-thumb .lbl{font-size:9px;padding:4px 6px;color:var(--muted);text-transform:uppercase}
 /* Meal image lightbox */
 #bbMealLightbox{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);align-items:center;justify-content:center;flex-direction:column}
@@ -5745,7 +5747,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="admin-nutrition-header">
         <div>
           <h3>Nutrition report</h3>
-          <p class="form-hint" style="margin:4px 0 0">AI meal logs and daily stats per client. Meal photos are visible for the selected date and auto-cleared on next date (server timezone).</p>
+          <p class="form-hint" style="margin:4px 0 0">AI meal logs and daily stats per client. Meal photos are retained for <strong style="color:var(--gold)">3 days</strong> then auto-removed — all scores, macros and logs are kept permanently.</p>
         </div>
         <div class="admin-nutrition-controls">
           <input type="date" id="adminNutritionReportDate" aria-label="Report date" onchange="loadAdminNutritionReport()" />
@@ -14411,6 +14413,7 @@ function loadAdminNutritionReport() {
           var ar = meal ? bbParseNutritionAi(meal.ai_result) : null;
           var low = ar && (ar.confidence || '').toLowerCase() === 'low';
           var hasPhoto = meal && meal.photo_data;
+          var photoExpired = meal && !meal.photo_data && (meal.photo_upload_count > 0);
           var mapKey = uid + '_' + type;
           if (hasPhoto) {
             window._bbMealPhotoMap[mapKey] = {
@@ -14419,9 +14422,16 @@ function loadAdminNutritionReport() {
             };
           }
           var clickAttr = hasPhoto ? ' onclick="bbMealLightboxOpen(\'' + mapKey + '\')"' : '';
-          var inner = hasPhoto
-            ? '<img src="data:' + escapeHtml(meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data + '" alt="' + escapeHtml(type) + ' photo"/>'
-            : '<div class="ph">' + (meal ? 'Logged' : '—') + '</div>';
+          var inner;
+          if (hasPhoto) {
+            inner = '<img src="data:' + escapeHtml(meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data + '" alt="' + escapeHtml(type) + ' photo"/>';
+          } else if (photoExpired) {
+            inner = '<div class="ph expired">' +
+              '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +
+              'Expired</div>';
+          } else {
+            inner = '<div class="ph">' + (meal ? 'Logged' : '—') + '</div>';
+          }
           return '<div class="admin-nutrition-thumb' + (meal ? ' logged' : '') + (low ? ' low-conf' : '') + (hasPhoto ? ' has-photo' : '') + '"' + clickAttr + '>' + inner +
             '<div class="lbl">' + escapeHtml(type) + (ar && ar.calories != null ? ' · ' + ar.calories + ' kcal' : '') + '</div></div>';
         }).join('');
