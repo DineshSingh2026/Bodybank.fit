@@ -49,7 +49,7 @@ function fromAddress() {
  */
 function luxuryWrap({ title, preheader, lead, bodyHtml, ctaLabel, ctaUrl }) {
   const ph = escapeHtml(preheader || title || '');
-  const safeLead = lead ? `<p style="margin:0 0 24px;font-size:17px;line-height:1.65;color:#f5f0e8;font-weight:400">${escapeHtml(lead)}</p>` : '';
+  const safeLead = lead ? `<p style="margin:0 0 18px;font-size:15px;line-height:1.6;color:#f5f0e8;font-weight:400">${escapeHtml(lead)}</p>` : '';
   const cta = ctaLabel && ctaUrl
     ? `<p style="margin:28px 0 0"><a href="${escapeHtml(ctaUrl)}" style="display:inline-block;padding:14px 28px;background:linear-gradient(135deg,#c8a44e,#a8863a);color:#0d0d0d;text-decoration:none;font-weight:600;font-size:14px;letter-spacing:0.5px;border-radius:8px">${escapeHtml(ctaLabel)}</a></p>`
     : '';
@@ -63,14 +63,14 @@ function luxuryWrap({ title, preheader, lead, bodyHtml, ctaLabel, ctaUrl }) {
 <p style="margin:0;font-size:11px;letter-spacing:4px;text-transform:uppercase;color:#c8a44e;font-family:system-ui,-apple-system,sans-serif">BodyBank</p>
 <h1 style="margin:12px 0 0;font-size:22px;font-weight:400;color:#f5f0e8;letter-spacing:0.5px">${escapeHtml(title)}</h1>
 </td></tr>
-<tr><td style="padding:28px 36px 36px;color:#d4cfc4;font-size:15px;line-height:1.7">
+<tr><td style="padding:24px 32px 30px;color:#d4cfc4;font-size:14px;line-height:1.6">
 ${safeLead}
 ${bodyHtml || ''}
 ${cta}
-<p style="margin:32px 0 0;font-size:12px;color:#888;font-family:system-ui,-apple-system,sans-serif;line-height:1.5">With care,<br><span style="color:#c8a44e">Your Lifestyle Team</span></p>
+<p style="margin:24px 0 0;font-size:11px;color:#8a8880;font-family:system-ui,-apple-system,sans-serif;line-height:1.5">BodyBank Team</p>
 </td></tr>
 </table>
-<p style="margin:24px 0 0;font-size:11px;color:#555;font-family:system-ui,-apple-system,sans-serif">You are receiving this because you use BodyBank. If this wasn’t you, you can ignore this message.</p>
+<p style="margin:20px 0 0;font-size:10px;color:#555;font-family:system-ui,-apple-system,sans-serif">You are receiving this email because you use BodyBank.</p>
 </td></tr></table></body></html>`;
 }
 
@@ -115,7 +115,7 @@ function emailSignupPending(email, firstName) {
       ctaLabel: 'Visit BodyBank',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Welcome — your BodyBank request is received', html);
+    await sendMail(email, 'Application Received', html);
   });
 }
 
@@ -135,7 +135,7 @@ function emailAccountApproved(email, firstName) {
       ctaLabel: 'Open your dashboard',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'You’re approved — welcome to BodyBank', html);
+    await sendMail(email, 'Account Approved', html);
   });
 }
 
@@ -151,7 +151,7 @@ function emailAccountRejected(email, firstName) {
       ctaLabel: 'Return to BodyBank',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Update on your BodyBank application', html);
+    await sendMail(email, 'Application Update', html);
   });
 }
 
@@ -166,7 +166,7 @@ function emailPasswordResetLuxury(email, resetLink) {
       ctaLabel: 'Reset password',
       ctaUrl: resetLink
     });
-    await sendMail(email, 'Reset your BodyBank password', html);
+    await sendMail(email, 'Password Reset', html);
   });
 }
 
@@ -181,7 +181,7 @@ function emailPasswordChanged(email, firstName) {
       ctaLabel: 'Sign in',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Your BodyBank password was updated', html);
+    await sendMail(email, 'Password Updated', html);
   });
 }
 
@@ -197,7 +197,7 @@ function emailAuditReceived(email, firstName) {
       ctaLabel: 'Open BodyBank',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'We received your Body Audit', html);
+    await sendMail(email, 'Body Audit Received', html);
   });
 }
 
@@ -213,7 +213,7 @@ function emailPart2Received(email, name) {
       ctaLabel: 'Open BodyBank',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'We received your Part-2 form', html);
+    await sendMail(email, 'Part-2 Received', html);
   });
 }
 
@@ -229,7 +229,7 @@ function emailSundayCheckinReceived(email, firstName) {
       ctaLabel: 'View your dashboard',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Sunday check-in received — thank you', html);
+    await sendMail(email, 'Sunday Check-in Received', html);
   });
 }
 
@@ -245,7 +245,7 @@ function emailDailyCheckinReceived(email, firstName, summaryLines) {
       ctaLabel: 'Open BodyBank',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Daily check-in saved — nice work', html);
+    await sendMail(email, 'Daily Check-in Saved', html);
   });
 }
 
@@ -261,7 +261,7 @@ function emailProgressSaved(email, firstName, summaryLines) {
       ctaLabel: 'View progress',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Progress saved — keep going', html);
+    await sendMail(email, 'Progress Saved', html);
   });
 }
 
@@ -278,7 +278,7 @@ function emailWorkoutLogged(email, firstName, workoutName, durationMin) {
       ctaLabel: 'Open BodyBank',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Workout logged — well done', html);
+    await sendMail(email, 'Workout Logged', html);
   });
 }
 
@@ -296,7 +296,7 @@ function emailMeetingScheduled(email, firstName, dateStr, timeStr) {
       ctaLabel: 'Open BodyBank',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Your BodyBank call is scheduled', html);
+    await sendMail(email, 'Call Scheduled', html);
   });
 }
 
@@ -311,7 +311,7 @@ function emailContactReceived(email, name) {
       ctaLabel: 'Open BodyBank',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'We received your message — BodyBank', html);
+    await sendMail(email, 'Message Received', html);
   });
 }
 
@@ -328,7 +328,7 @@ function emailCoachReply(email, firstName, preview) {
       ctaLabel: 'Read message',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'New message from your Lifestyle Manager', html);
+    await sendMail(email, 'New Coach Message', html);
   });
 }
 
@@ -346,7 +346,7 @@ function emailSundayReminderTomorrow(email, firstName) {
       ctaLabel: 'Open check-in',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Tomorrow — Sunday check-in awaits', html);
+    await sendMail(email, 'Sunday Check-in Tomorrow', html);
   });
 }
 
@@ -361,7 +361,7 @@ function emailSundayReminderToday(email, firstName) {
       ctaLabel: 'Submit check-in',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Reminder — Sunday check-in', html);
+    await sendMail(email, 'Sunday Check-in Reminder', html);
   });
 }
 
@@ -376,7 +376,7 @@ function emailDailyCheckinReminder(email, firstName) {
       ctaLabel: 'Log today',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Gentle reminder — daily check-in', html);
+    await sendMail(email, 'Daily Check-in Reminder', html);
   });
 }
 
@@ -391,7 +391,7 @@ function emailProgressNudge(email, firstName) {
       ctaLabel: 'Log progress',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Your progress — we’re here for you', html);
+    await sendMail(email, 'Progress Reminder', html);
   });
 }
 
@@ -421,7 +421,7 @@ function emailInactiveAttention(email, firstName, severity, inactiveDays) {
       ctaUrl: APP_BASE + '/'
     });
 
-    await sendMail(email, 'Attention — your daily check-in is waiting', html);
+    await sendMail(email, 'Daily Check-in Attention', html);
   });
 }
 
@@ -433,14 +433,14 @@ function emailDailyDigest(email, firstName, lines) {
       ? arr.map(l => `<p style="margin:0 0 10px;border-bottom:1px solid rgba(255,255,255,0.06);padding-bottom:10px">${escapeHtml(l)}</p>`).join('')
       : '<p style="margin:0">No micro-goals were logged yesterday — today is a fresh chance to show up for yourself.</p>';
     const html = luxuryWrap({
-      title: 'Your yesterday at a glance',
-      preheader: 'BodyBank daily brief.',
+      title: 'Daily Check-in Summary',
+      preheader: 'BodyBank daily check-in.',
       lead: `Dear ${name},`,
       bodyHtml: body,
       ctaLabel: 'Open BodyBank',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Your BodyBank yesterdays Daily Brief', html);
+    await sendMail(email, 'Daily Check-in Summary', html);
   });
 }
 
@@ -456,7 +456,7 @@ function emailWeeklyDigest(email, firstName, lines) {
       ctaLabel: 'Open dashboard',
       ctaUrl: APP_BASE + '/'
     });
-    await sendMail(email, 'Your BodyBank weekly review', html);
+    await sendMail(email, 'Weekly Review', html);
   });
 }
 
@@ -503,14 +503,14 @@ async function emailNutritionDayReport(email, firstName, payload) {
 </div>`;
 
   const html = luxuryWrap({
-    title: 'Your Bodybank X Fitchef Nutrition report',
+    title: 'Nutrition Report',
     preheader: `CoPowered by Fitchef. Macros for ${formattedDate || 'today'}.`,
     lead: `Dear ${name},`,
     bodyHtml: inner,
     ctaLabel: 'Open BodyBank',
     ctaUrl: APP_BASE + '/'
   });
-  return sendMail(email, `Your Bodybank X Fitchef Nutrition report — ${formattedDate || ''}`, html);
+  return sendMail(email, `Nutrition Report — ${formattedDate || ''}`, html);
 }
 
 async function emailNutritionWeeklySummary(email, firstName, report) {
@@ -526,14 +526,14 @@ async function emailNutritionWeeklySummary(email, firstName, report) {
 <li>Days with logged data: <strong>${escapeHtml(String(r.daysLogged ?? '—'))}</strong></li>
 </ul>`;
   const html = luxuryWrap({
-    title: 'Weekly Fitchef Nutrition overview',
+    title: 'Weekly Nutrition Summary',
     preheader: 'Your 7-day Bodybank X Fitchef Nutrition report.',
     lead: `Dear ${name},`,
     bodyHtml,
     ctaLabel: 'Open BodyBank',
     ctaUrl: APP_BASE + '/'
   });
-  return sendMail(email, 'Your Bodybank X Fitchef Nutrition report', html);
+  return sendMail(email, 'Weekly Nutrition Summary', html);
 }
 
 async function emailAdminNutritionDailySummary(email, payload) {
@@ -583,14 +583,14 @@ async function emailAdminNutritionDailySummary(email, payload) {
 <p style="margin:14px 0 0;color:#8a8880">${escapeHtml(String(p.exportHint || ''))}</p>`;
 
   const html = luxuryWrap({
-    title: 'Admin Nutrition Daily Digest',
+    title: 'Admin Nutrition Summary',
     preheader: `All-user nutrition summary for ${p.date || 'selected date'}`,
     lead: 'Nutrition snapshot across all users.',
     bodyHtml,
     ctaLabel: 'Open Admin Nutrition',
     ctaUrl: p.adminNutritionUrl || (APP_BASE + '/?adminNutrition=1')
   });
-  return sendMail(email, `Admin Nutrition Daily Digest — ${p.date || ''}`, html);
+  return sendMail(email, `Admin Nutrition Summary — ${p.date || ''}`, html);
 }
 
 /** Blood + nutrition PDF from AI pipeline — attachment + luxury HTML shell */
@@ -619,7 +619,7 @@ async function emailHealthReportWithPdf({ toEmail, firstName, pdfPath, adminNote
   const attachments = [{ filename: pathMod.basename(pdfPath), path: pdfPath }];
   return sendMail(
     String(toEmail).trim().toLowerCase(),
-    'Your BodyBank health report',
+    'Health Report',
     html,
     'Your BodyBank health report is ready. See the attached PDF.',
     attachments
