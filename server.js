@@ -2314,7 +2314,8 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
 app.get('/api/coins/summary', verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    await safeApplyCoinPenaltiesForUser(userId);
+    // Keep read endpoints side-effect free so refresh/reload never mutates balances.
+    // Penalties are still handled by cron + activity write flows.
     const summary = await coinService.getCoinSummary({ run, queryOne, queryAll }, userId);
     res.json(summary);
   } catch (e) {
@@ -2326,7 +2327,7 @@ app.get('/api/coins/summary', verifyToken, async (req, res) => {
 app.get('/api/coins/ledger', verifyToken, async (req, res) => {
   try {
     const userId = req.user.id;
-    await safeApplyCoinPenaltiesForUser(userId);
+    // Read-only request: do not apply penalties on UI refresh.
     const rows = await coinService.listCoinLedger({ run, queryOne, queryAll }, userId, req.query.limit);
     res.json(rows || []);
   } catch (e) {
