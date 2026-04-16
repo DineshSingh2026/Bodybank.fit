@@ -106,7 +106,7 @@ function createBloodRouter(deps) {
       const filePath = path.join(fileDir, fileName);
       fs.writeFileSync(filePath, Buffer.from(b64, 'base64'));
 
-      const u = await queryOne(`SELECT id, first_name, last_name, email FROM users WHERE id = ?`, [userId]);
+      const u = await queryOne(`SELECT id, first_name, last_name, email, phone FROM users WHERE id = ?`, [userId]);
       const displayName = [u && u.first_name, u && u.last_name].filter(Boolean).join(' ').trim() || (u && u.email) || '';
 
       const symList = Array.isArray(symptoms) ? symptoms.map((s) => String(s).slice(0, 80)) : [];
@@ -136,7 +136,7 @@ function createBloodRouter(deps) {
         );
       }
 
-      notifyAsync('BLOOD_REPORT_UPLOADED', { name: displayName, email: u && u.email ? u.email : '—', goal: userGoal || '—' });
+      notifyAsync('BLOOD_REPORT_UPLOADED', { name: displayName, email: u && u.email ? u.email : '—', mobile: u && u.phone ? u.phone : '—', goal: userGoal || '—' });
       res.json({
         success: true,
         reportId,

@@ -1178,7 +1178,7 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
     const token = signToken({ id: user.id, email: user.email, role: user.role });
     if (user.role === 'user') {
-      notifyAsync('USER_LOGIN', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, role: user.role });
+      notifyAsync('USER_LOGIN', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, role: user.role, mobile: user.phone || '—' });
     }
     res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', token });
   } catch (e) {
@@ -1528,7 +1528,7 @@ app.post('/api/meetings', rateLimiter(10, 60000), async (req, res) => {
       const dn = b.meeting_date ? new Date(b.meeting_date + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : String(b.meeting_date || '');
       userEmail.emailMeetingScheduled(String(b.user_email).trim(), (b.user_name || '').split(/\s+/)[0] || 'there', dn, b.time_slot || '');
     }
-    notifyAsync('MEETING_SCHEDULED', { name: b.user_name || '—', email: b.user_email || '—', date: b.meeting_date || '—', slot: b.time_slot || '—' });
+    notifyAsync('MEETING_SCHEDULED', { name: b.user_name || '—', email: b.user_email || '—', mobile: b.user_phone || '—', date: b.meeting_date || '—', slot: b.time_slot || '—' });
     res.json({ id, message: 'Call scheduled successfully' });
   } catch (e) {
     console.error('[meetings] POST error:', e.message);
@@ -1733,7 +1733,7 @@ app.post('/api/workouts', async (req, res) => {
     await run("INSERT INTO workout_logs (id,user_id,workout_name,duration_seconds,feedback) VALUES (?,?,?,?,?)",
       [id, user_id, workout_name, duration_seconds || 0, feedback || '']);
     await safeRecomputeNutritionForDate(String(user_id), new Date().toISOString().slice(0, 10));
-    const wu = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [user_id]);
+    const wu = await queryOne('SELECT email, first_name, phone FROM users WHERE id = ?', [user_id]);
     if (wu && wu.email) {
       userEmail.emailWorkoutLogged(wu.email, wu.first_name, workout_name, duration_seconds != null ? Math.round(duration_seconds / 60) : null);
     }
@@ -1747,7 +1747,7 @@ app.post('/api/workouts', async (req, res) => {
       { source: 'workouts_legacy', workoutName: workout_name },
       ymd
     );
-    notifyAsync('WORKOUT_LOGGED', { name: wu ? `${wu.first_name || ''}`.trim() : user_id, email: wu ? wu.email : user_id, type: workout_name, duration: duration_seconds != null ? Math.round(duration_seconds / 60) + ' min' : '—' });
+    notifyAsync('WORKOUT_LOGGED', { name: wu ? `${wu.first_name || ''}`.trim() : user_id, email: wu ? wu.email : user_id, mobile: wu ? wu.phone : '—', type: workout_name, duration: duration_seconds != null ? Math.round(duration_seconds / 60) + ' min' : '—' });
     res.json({ id, message: 'Workout logged' });
   } catch (e) {
     console.error('Workout error:', e.message);
@@ -1830,7 +1830,7 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
         water_intake: null
       });
     }
-    const wu = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [userId]);
+    const wu = await queryOne('SELECT email, first_name, phone FROM users WHERE id = ?', [userId]);
     if (wu && wu.email) {
       userEmail.emailWorkoutLogged(
         wu.email,
@@ -1848,7 +1848,7 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
       { source: 'workouts_session', workoutType },
       date
     );
-    if (wu) notifyAsync('WORKOUT_LOGGED', { name: `${wu.first_name || ''}`.trim(), email: wu.email, type: workoutType, duration: Number.isFinite(dur) ? Math.round(dur / 60) + ' min' : '—' });
+    if (wu) notifyAsync('WORKOUT_LOGGED', { name: `${wu.first_name || ''}`.trim(), email: wu.email, mobile: wu.phone || '—', type: workoutType, duration: Number.isFinite(dur) ? Math.round(dur / 60) + ' min' : '—' });
     res.json({ id, message: 'Session saved' });
   } catch (e) {
     console.error('Workout session error:', e.message);
@@ -2195,7 +2195,7 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
     );
     await safeRecomputeNutritionForDate(userId, today);
     const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
-    const du = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [userId]);
+    const du = await queryOne('SELECT email, first_name, phone FROM users WHERE id = ?', [userId]);
     if (du && du.email) {
       const lines = [];
       if (steps != null) lines.push(`Steps: ${steps}`);
@@ -2243,10 +2243,11 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
         today
       );
     }
-    const dcUser = await queryOne('SELECT first_name, last_name, email FROM users WHERE id = ?', [userId]).catch(() => null);
+    const dcUser = await queryOne('SELECT first_name, last_name, email, phone FROM users WHERE id = ?', [userId]).catch(() => null);
     notifyAsync('DAILY_CHECKIN', {
       name    : dcUser ? `${dcUser.first_name || ''} ${dcUser.last_name || ''}`.trim() : userId,
       email   : dcUser ? dcUser.email : userId,
+      mobile  : dcUser ? (dcUser.phone || '—') : '—',
       steps   : steps != null ? steps : '—',
       water   : waterMl != null ? (waterMl / 1000).toFixed(2) + ' L' : '—',
       protein : protein_g != null ? protein_g + ' g' : '—',
@@ -2689,7 +2690,7 @@ app.post('/api/admin/approve-user/:id', async (req, res) => {
     }
     await ensureApprovedUsersInActiveTribe();
     if (user.email) userEmail.emailAccountApproved(user.email, user.first_name);
-    notifyAsync('USER_APPROVED', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email });
+    notifyAsync('USER_APPROVED', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, mobile: user.phone || '—' });
     res.json({ message: 'User approved' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to approve user' });
@@ -2699,12 +2700,12 @@ app.post('/api/admin/approve-user/:id', async (req, res) => {
 app.post('/api/admin/reject-user/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await queryOne("SELECT id, role, email, first_name FROM users WHERE id = ?", [id]);
+    const user = await queryOne("SELECT id, role, email, first_name, phone FROM users WHERE id = ?", [id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
     await run("UPDATE users SET approval_status = 'rejected' WHERE id = ?", [id]);
     if (user.email) userEmail.emailAccountRejected(user.email, user.first_name);
-    notifyAsync('USER_REJECTED', { name: user.first_name || '', email: user.email });
+    notifyAsync('USER_REJECTED', { name: user.first_name || '', email: user.email, mobile: user.phone || '—' });
     res.json({ message: 'User rejected' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to reject user' });
@@ -4346,8 +4347,8 @@ app.post('/api/admin/users/:id/suspend', verifyToken, requireAdminOrSuperadmin, 
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only suspend client users' });
     await run("UPDATE users SET suspended = TRUE WHERE id = ?", [id]);
-    const suspUser = await queryOne("SELECT first_name, last_name, email FROM users WHERE id = ?", [id]).catch(() => null);
-    notifyAsync('USER_SUSPENDED', { name: suspUser ? `${suspUser.first_name || ''} ${suspUser.last_name || ''}`.trim() : id, email: suspUser ? suspUser.email : id });
+    const suspUser = await queryOne("SELECT first_name, last_name, email, phone FROM users WHERE id = ?", [id]).catch(() => null);
+    notifyAsync('USER_SUSPENDED', { name: suspUser ? `${suspUser.first_name || ''} ${suspUser.last_name || ''}`.trim() : id, email: suspUser ? suspUser.email : id, mobile: suspUser ? (suspUser.phone || '—') : '—' });
     res.json({ message: 'User suspended' });
   } catch (e) {
     console.error('Suspend user error:', e.message);
@@ -4362,8 +4363,8 @@ app.post('/api/admin/users/:id/reactivate', verifyToken, requireAdminOrSuperadmi
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only reactivate client users' });
     await run("UPDATE users SET suspended = FALSE WHERE id = ?", [id]);
-    const reactUser = await queryOne("SELECT first_name, last_name, email FROM users WHERE id = ?", [id]).catch(() => null);
-    notifyAsync('USER_REACTIVATED', { name: reactUser ? `${reactUser.first_name || ''} ${reactUser.last_name || ''}`.trim() : id, email: reactUser ? reactUser.email : id });
+    const reactUser = await queryOne("SELECT first_name, last_name, email, phone FROM users WHERE id = ?", [id]).catch(() => null);
+    notifyAsync('USER_REACTIVATED', { name: reactUser ? `${reactUser.first_name || ''} ${reactUser.last_name || ''}`.trim() : id, email: reactUser ? reactUser.email : id, mobile: reactUser ? (reactUser.phone || '—') : '—' });
     res.json({ message: 'User reactivated' });
   } catch (e) {
     console.error('Reactivate user error:', e.message);
@@ -4375,7 +4376,7 @@ app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async 
   try {
     const { id } = req.params;
     if (NODE_ENV !== 'production') console.log('[DELETE /api/admin/users/:id] id=', id);
-    const user = await queryOne("SELECT id, role, email FROM users WHERE id = ?", [id]);
+    const user = await queryOne("SELECT id, role, email, phone FROM users WHERE id = ?", [id]);
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only remove client users' });
     const threads = await queryAll('SELECT id FROM message_threads WHERE user_id = ?', [id]);
@@ -4398,7 +4399,7 @@ app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async 
       await run('DELETE FROM tribe_members WHERE LOWER(email) = LOWER(?)', [user.email]);
     }
     await run('DELETE FROM users WHERE id = ?', [id]);
-    notifyAsync('USER_DELETED', { name: id, email: user.email });
+    notifyAsync('USER_DELETED', { name: id, email: user.email, mobile: user.phone || '—' });
     res.json({ message: 'User removed' });
   } catch (e) {
     console.error('Delete user error:', e.message);
