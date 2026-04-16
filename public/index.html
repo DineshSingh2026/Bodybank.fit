@@ -1597,6 +1597,14 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-la-tag.unread{color:#ec4899;background:rgba(236,72,153,0.15)}
 .admin-la-tag.pending{color:#f59e0b;background:rgba(245,158,11,0.15)}
 .admin-la-loading{color:var(--muted);font-size:14px;padding:20px 0}
+.admin-coin-list{display:flex;flex-direction:column;gap:0}
+.admin-coin-row{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.admin-coin-row:last-child{border-bottom:none}
+.admin-coin-rank{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;color:#1a1408;background:radial-gradient(circle at 30% 30%,#f5d889 0%,#c8a44e 55%,#8a6f2e 100%)}
+.admin-coin-meta{min-width:0}
+.admin-coin-name{font-size:13px;font-weight:700;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-coin-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.admin-coin-bal{font-family:var(--bb-font-heading);font-size:18px;font-weight:700;color:var(--gold);white-space:nowrap}
 
 /* Mobile Admin Attention Cards (luxury layout) */
 .admin-attention-card{
@@ -4982,6 +4990,13 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           </table>
         </div>
 
+        <div class="bb-table-card">
+          <h3>Coin Leaderboard</h3>
+          <div id="adminCoinBoardDesktop" class="admin-coin-list">
+            <p class="admin-la-loading">Loading...</p>
+          </div>
+        </div>
+
         <div class="bb-quick-actions">
           <a class="bb-quick-btn" href="#" onclick="switchTab('signups');return false"><span class="btn-icon">👤</span>Approve Sign-ups</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('tribe');return false"><span class="btn-icon">👥</span>Client Board</a>
@@ -5021,6 +5036,12 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <a class="admin-qa-btn" href="#" onclick="switchTab('nutrition');return false"><span class="admin-qa-icon">🥗</span>Nutrition report</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('blood');return false"><span class="admin-qa-icon">🩺</span>Blood reports</a>
             <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#128202;</span>Analytics</a>
+          </div>
+        </div>
+        <div class="admin-live-activity">
+          <h3 class="admin-la-title">COIN LEADERBOARD</h3>
+          <div class="admin-la-list admin-coin-list" id="adminCoinBoardMobile">
+            <p class="admin-la-loading">Loading...</p>
           </div>
         </div>
         <div class="admin-live-activity" style="margin-top:12px">
@@ -8477,6 +8498,51 @@ async function loadStats() {
   if (document.getElementById('adminMobileRiskList')) {
     try { await bbRefreshMobileAdminRiskList(); } catch (_) {}
   }
+  try { await loadAdminCoinLeaderboard(); } catch (_) {}
+}
+
+function bbAdminCoinName(row) {
+  var first = row && row.first_name ? String(row.first_name).trim() : '';
+  var last = row && row.last_name ? String(row.last_name).trim() : '';
+  var full = (first + ' ' + last).trim();
+  return full || String((row && row.email) || 'Client');
+}
+async function loadAdminCoinLeaderboard() {
+  var desktop = document.getElementById('adminCoinBoardDesktop');
+  var mobile = document.getElementById('adminCoinBoardMobile');
+  if (!desktop && !mobile) return;
+  var data = await apiCall('GET', '/api/admin/coins/leaderboard?limit=20');
+  if (!data || data.error) {
+    var err = '<p class="admin-la-loading">Unable to load coin leaderboard.</p>';
+    if (desktop) desktop.innerHTML = err;
+    if (mobile) mobile.innerHTML = err;
+    return;
+  }
+  var rows = Array.isArray(data.rows) ? data.rows : [];
+  if (!rows.length) {
+    var empty = '<p class="admin-la-loading">No coin data yet.</p>';
+    if (desktop) desktop.innerHTML = empty;
+    if (mobile) mobile.innerHTML = empty;
+    return;
+  }
+  var html = rows.map(function (r, idx) {
+    var name = bbUserEsc(bbAdminCoinName(r));
+    var email = bbUserEsc(String((r && r.email) || ''));
+    var bal = Number(r && r.balance);
+    var earned = Number(r && r.lifetime_earned);
+    return (
+      '<div class="admin-coin-row">' +
+        '<div class="admin-coin-rank">#' + (idx + 1) + '</div>' +
+        '<div class="admin-coin-meta">' +
+          '<div class="admin-coin-name">' + name + '</div>' +
+          '<div class="admin-coin-sub">' + email + ' · Earned ' + (Number.isFinite(earned) ? earned.toLocaleString('en-US') : '0') + '</div>' +
+        '</div>' +
+        '<div class="admin-coin-bal">' + (Number.isFinite(bal) ? bal.toLocaleString('en-US') : '0') + '</div>' +
+      '</div>'
+    );
+  }).join('');
+  if (desktop) desktop.innerHTML = html;
+  if (mobile) mobile.innerHTML = html;
 }
 
 window._bbDesktopCharts = window._bbDesktopCharts || {};

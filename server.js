@@ -4150,6 +4150,36 @@ app.get('/api/admin/users', async (req, res) => {
   }
 });
 
+app.get('/api/admin/coins/leaderboard', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 20));
+    const rows = await queryAll(
+      `SELECT
+         u.id AS user_id,
+         u.first_name,
+         u.last_name,
+         u.email,
+         u.profile_picture,
+         COALESCE(cw.balance, 0)::int AS balance,
+         COALESCE(cw.lifetime_earned, 0)::int AS lifetime_earned,
+         COALESCE(cw.lifetime_redeemed, 0)::int AS lifetime_redeemed,
+         cw.updated_at
+       FROM users u
+       LEFT JOIN coin_wallet cw ON cw.user_id = u.id
+       WHERE u.role = 'user'
+         AND (u.approval_status IS NULL OR u.approval_status = 'approved')
+         AND COALESCE(u.suspended, FALSE) = FALSE
+       ORDER BY COALESCE(cw.balance, 0) DESC, COALESCE(cw.lifetime_earned, 0) DESC, LOWER(u.email) ASC
+       LIMIT ?`,
+      [limit]
+    );
+    res.json({ rows: rows || [] });
+  } catch (e) {
+    console.error('[admin coins leaderboard]', e.message);
+    res.status(500).json({ error: 'Failed to load coin leaderboard' });
+  }
+});
+
 app.get('/api/admin/client-progress-audit', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     await ensureApprovedUsersInActiveTribe();
