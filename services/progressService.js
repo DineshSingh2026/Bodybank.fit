@@ -6,6 +6,13 @@ const { getInsights } = require('./insightService');
 const MIN_REALISTIC_WEIGHT_KG = 25;
 const MAX_REALISTIC_WEIGHT_KG = 400;
 
+function poundsToKg(value) {
+  const n = Number.parseFloat(String(value));
+  if (!Number.isFinite(n) || n <= 0) return null;
+  const kg = n * 0.45359237;
+  return normalizeWeightKg(kg);
+}
+
 function normalizeWeightKg(value) {
   if (value == null || value === '') return null;
   const n = Number.parseFloat(String(value));
@@ -144,16 +151,27 @@ async function getProgressWithMeta(userId) {
 
 function parseWeightFromText(txt) {
   if (!txt || typeof txt !== 'string') return null;
+  const raw = String(txt).trim();
   // Prefer explicit kg/kgs values and select a realistic body-weight candidate.
-  const kgMatches = [...txt.matchAll(/(\d+\.?\d*)\s*(?:kg|kgs)\b/ig)]
+  const kgMatches = [...raw.matchAll(/(\d+\.?\d*)\s*(?:kg|kgs)\b/ig)]
     .map((m) => normalizeWeightKg(m[1]))
     .filter((v) => v != null);
   if (kgMatches.length > 0) {
-    // Most forms put latest/current weight near the end.
     return kgMatches[kgMatches.length - 1];
   }
-  const m = txt.match(/(\d+\.?\d*)/);
-  return m ? normalizeWeightKg(m[1]) : null;
+
+  // Sunday check-in prompts ask for lbs, so convert explicit pound values to kg.
+  const lbMatches = [...raw.matchAll(/(\d+\.?\d*)\s*(?:lb|lbs|pounds?)\b/ig)]
+    .map((m) => poundsToKg(m[1]))
+    .filter((v) => v != null);
+  if (lbMatches.length > 0) {
+    return lbMatches[lbMatches.length - 1];
+  }
+
+  // Only allow unitless values when the whole field is just a single number.
+  // This avoids accidentally treating "week 4, waist 34" as body weight.
+  const exact = raw.match(/^\s*(\d+\.?\d*)\s*$/);
+  return exact ? normalizeWeightKg(exact[1]) : null;
 }
 
 function parseSleepFromText(txt) {

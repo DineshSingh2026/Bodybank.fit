@@ -1923,6 +1923,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   border:1px solid rgba(200,164,78,0.4);
   box-shadow:0 8px 28px rgba(0,0,0,0.5);
 }
+@media(max-width:768px){
+  .bb-workout-timer-banner{
+    bottom:max(96px, calc(20px + env(safe-area-inset-bottom)));
+  }
+}
 .bb-workout-timer-banner[hidden]{ display:none !important; }
 .bb-wk-ban-title{ font-weight:700; font-size:12px; letter-spacing:0.06em; text-transform:uppercase; color:rgba(200,164,78,0.95); margin-bottom:4px; }
 .bb-wk-ban-msg{ font-size:12px; color:var(--muted); line-height:1.4; margin-bottom:6px; }
@@ -11979,6 +11984,7 @@ function openUserDashboard(user) {
   loadTodayDashboard();
   loadMicroGoals();
   loadScorecard();
+  bbLoadCoinSummary(true);
   // Desktop home (≥768px) uses u-stat-*, charts, u-prog-*, u-activity-body — only filled by bbRefreshDesktopUserDashboard
   if (window.innerWidth >= 768) {
     setTimeout(function () {
@@ -12414,6 +12420,8 @@ function backToWebsiteFromAdminPanel() {
 function logoutUser() {
   if (typeof wkLogoutTimerCleanup === 'function') wkLogoutTimerCleanup();
   window.currentUser = null;
+  bbCoinState = { balance: null, lifetimeEarned: null, lifetimeRedeemed: null, updatedAt: null, lastLoadedAt: 0 };
+  bbRenderCoinSummary();
   if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
   if (typeof stopUserNotificationPolling === 'function') stopUserNotificationPolling();
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
