@@ -1,0 +1,58 @@
+'use strict';
+
+// BodyBank — WhatsApp alert service via Twilio Sandbox
+// All errors are swallowed; the app NEVER crashes due to this module.
+
+const TWILIO_SID        = process.env.TWILIO_SID        || '';
+const TWILIO_AUTH       = process.env.TWILIO_AUTH       || '';
+const ADMIN_WHATSAPP    = process.env.ADMIN_WHATSAPP    || ''; // e.g. +91XXXXXXXXXX or whatsapp:+91XXXXXXXXXX
+const SANDBOX_FROM      = 'whatsapp:+14155238886';             // Twilio sandbox number
+
+let _client = null;
+
+function isConfigured() {
+  return Boolean(TWILIO_SID && TWILIO_AUTH && ADMIN_WHATSAPP);
+}
+
+function toWaAddr(raw) {
+  const v = String(raw || '').trim();
+  return v.startsWith('whatsapp:') ? v : `whatsapp:${v}`;
+}
+
+function getClient() {
+  if (!_client) {
+    const twilio = require('twilio');
+    _client = twilio(TWILIO_SID, TWILIO_AUTH);
+  }
+  return _client;
+}
+
+/**
+ * sendWhatsApp(message)
+ * Fire-and-forget safe. Returns { ok, sid? } or { ok:false, reason }.
+ */
+async function sendWhatsApp(message) {
+  const body = String(message || '').trim();
+  if (!body) return { ok: false, reason: 'empty_message' };
+
+  if (!isConfigured()) {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[whatsapp] SKIPPED (env not configured). Message:', body.slice(0, 120));
+    }
+    return { ok: false, reason: 'not_configured' };
+  }
+
+  try {
+    const result = await getClient().messages.create({
+      from : SANDBOX_FROM,
+      to   : toWaAddr(ADMIN_WHATSAPP),
+      body
+    });
+    return { ok: true, sid: result.sid };
+  } catch (err) {
+    console.error('[whatsapp] send error:', err.message, { code: err.code, status: err.status });
+    return { ok: false, reason: 'send_failed', error: err.message };
+  }
+}
+
+module.exports = { sendWhatsApp, isConfigured };

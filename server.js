@@ -39,6 +39,7 @@ const { writeSundayCheckinPdf, writePart2Pdf } = require('./services/formPdfServ
 const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
 const coinService = require('./services/coinService');
+const { notifyAsync } = require('./utils/notify');
 const { startEmailScheduler, getAdminDailyComplianceReportData, sendAdminDailyComplianceReport } = require('./services/emailScheduler');
 const {
   toDateStr: streakDateToYmd,
@@ -1176,6 +1177,9 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     await syncUserCountryAndTimezone(user.id, user.email);
     user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
     const token = signToken({ id: user.id, email: user.email, role: user.role });
+    if (user.role === 'user') {
+      notifyAsync('USER_LOGIN', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, role: user.role });
+    }
     res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', token });
   } catch (e) {
     console.error('[Login] Error:', e.message);
@@ -1257,6 +1261,7 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
       [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', '', '', 'user', 'pending']);
     sendPushToAdmins(JSON.stringify({ title: 'New sign-up (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
     userEmail.emailGoogleSignupPending(emailNorm, given_name);
+    notifyAsync('USER_SIGNUP_GOOGLE', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—' });
     res.json({
       id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', role: 'user',
       country: '', timezone: '', pending_approval: true,
@@ -1292,6 +1297,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
       [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, 'pending']);
     sendPushToAdmins(JSON.stringify({ title: 'New sign-up', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
     userEmail.emailSignupPending(emailNorm, first_name);
+    notifyAsync('USER_SIGNUP', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—' });
     res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
@@ -1336,6 +1342,7 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
       console.warn('[ForgotPassword] SMTP not configured (SMTP_HOST, SMTP_USER, SMTP_PASS) – user did not receive reset link');
     }
 
+    notifyAsync('PASSWORD_RESET_REQUEST', { email: emailNorm });
     const includeLink = NODE_ENV !== 'production';
     return res.json({ ok: true, message: "Please check your email if an account exists with this address.", resetLink: includeLink ? resetLink : undefined });
   } catch (e) {
@@ -1406,6 +1413,7 @@ app.post('/api/auth/reset-password', rateLimiter(10, 60000), async (req, res) =>
     await run("UPDATE password_resets SET used = 1 WHERE id = ?", [row.id]);
 
     userEmail.emailPasswordChanged(row.email, row.first_name);
+    notifyAsync('PASSWORD_RESET_DONE', { email: row.email });
 
     const sessionToken = signToken({ id: row.user_id, email: row.email, role: row.role });
     return res.json({
@@ -1487,6 +1495,7 @@ app.post('/api/part2', rateLimiter(5, 60000), async (req, res) => {
         { formId: id }
       );
     }
+    notifyAsync('PART2_FORM', { name: b.name || '—', email: b.email || '—', mobile: b.mobile || '—', goals: b.goals || '—' });
     res.json({ id, message: 'Form submitted successfully' });
   } catch (e) {
     res.status(500).json({ error: 'Submission failed' });
@@ -1519,6 +1528,7 @@ app.post('/api/meetings', rateLimiter(10, 60000), async (req, res) => {
       const dn = b.meeting_date ? new Date(b.meeting_date + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : String(b.meeting_date || '');
       userEmail.emailMeetingScheduled(String(b.user_email).trim(), (b.user_name || '').split(/\s+/)[0] || 'there', dn, b.time_slot || '');
     }
+    notifyAsync('MEETING_SCHEDULED', { name: b.user_name || '—', email: b.user_email || '—', date: b.meeting_date || '—', slot: b.time_slot || '—' });
     res.json({ id, message: 'Call scheduled successfully' });
   } catch (e) {
     console.error('[meetings] POST error:', e.message);
@@ -1737,6 +1747,7 @@ app.post('/api/workouts', async (req, res) => {
       { source: 'workouts_legacy', workoutName: workout_name },
       ymd
     );
+    notifyAsync('WORKOUT_LOGGED', { name: wu ? `${wu.first_name || ''}`.trim() : user_id, email: wu ? wu.email : user_id, type: workout_name, duration: duration_seconds != null ? Math.round(duration_seconds / 60) + ' min' : '—' });
     res.json({ id, message: 'Workout logged' });
   } catch (e) {
     console.error('Workout error:', e.message);
@@ -1837,6 +1848,7 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
       { source: 'workouts_session', workoutType },
       date
     );
+    if (wu) notifyAsync('WORKOUT_LOGGED', { name: `${wu.first_name || ''}`.trim(), email: wu.email, type: workoutType, duration: Number.isFinite(dur) ? Math.round(dur / 60) + ' min' : '—' });
     res.json({ id, message: 'Session saved' });
   } catch (e) {
     console.error('Workout session error:', e.message);
@@ -1867,6 +1879,7 @@ app.post('/api/contact', rateLimiter(5, 60000), async (req, res) => {
       [id, user_id || null, name, phone || '', email || '', message]);
     sendPushToAdmins(JSON.stringify({ title: 'New contact message', body: `${name || 'Someone'}: ${String(message || '').slice(0, 80)}`, id: 'message-' + id })).catch(() => {});
     if (email && String(email).includes('@')) userEmail.emailContactReceived(String(email).trim(), name);
+    notifyAsync('CONTACT_MESSAGE', { name, email: email || '—', phone: phone || '—', message });
     res.json({ id, message: 'Message sent' });
   } catch (e) {
     console.error('Contact error:', e.message);
@@ -2064,6 +2077,7 @@ app.post('/api/sunday-checkin', rateLimiter(10, 60000), async (req, res) => {
         ymd
       );
     }
+    notifyAsync('SUNDAY_CHECKIN', { name: b.full_name || '—', email: b.reply_email || '—', training: b.training_go || '—', nutrition: b.nutrition_go || '—' });
     res.json({ id, message: 'Sunday check-in submitted successfully' });
   } catch (e) {
     console.error('Sunday check-in error:', e.message);
@@ -2229,6 +2243,15 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
         today
       );
     }
+    const dcUser = await queryOne('SELECT first_name, last_name, email FROM users WHERE id = ?', [userId]).catch(() => null);
+    notifyAsync('DAILY_CHECKIN', {
+      name    : dcUser ? `${dcUser.first_name || ''} ${dcUser.last_name || ''}`.trim() : userId,
+      email   : dcUser ? dcUser.email : userId,
+      steps   : steps != null ? steps : '—',
+      water   : waterMl != null ? (waterMl / 1000).toFixed(2) + ' L' : '—',
+      protein : protein_g != null ? protein_g + ' g' : '—',
+      sleep   : sleep_hours != null ? sleep_hours + ' hrs' : '—'
+    });
     res.json(attachWaterLitersToDailyRow(row) || attachWaterLitersToDailyRow({ id, user_id: userId, checkin_date: today, steps, water_ml: waterMl, protein_g, sleep_hours }));
   } catch (e) {
     console.error('Daily check-in error:', e.message);
@@ -2666,6 +2689,7 @@ app.post('/api/admin/approve-user/:id', async (req, res) => {
     }
     await ensureApprovedUsersInActiveTribe();
     if (user.email) userEmail.emailAccountApproved(user.email, user.first_name);
+    notifyAsync('USER_APPROVED', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email });
     res.json({ message: 'User approved' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to approve user' });
@@ -2680,6 +2704,7 @@ app.post('/api/admin/reject-user/:id', async (req, res) => {
     if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
     await run("UPDATE users SET approval_status = 'rejected' WHERE id = ?", [id]);
     if (user.email) userEmail.emailAccountRejected(user.email, user.first_name);
+    notifyAsync('USER_REJECTED', { name: user.first_name || '', email: user.email });
     res.json({ message: 'User rejected' });
   } catch (e) {
     res.status(500).json({ error: 'Failed to reject user' });
@@ -4311,6 +4336,8 @@ app.post('/api/admin/users/:id/suspend', verifyToken, requireAdminOrSuperadmin, 
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only suspend client users' });
     await run("UPDATE users SET suspended = TRUE WHERE id = ?", [id]);
+    const suspUser = await queryOne("SELECT first_name, last_name, email FROM users WHERE id = ?", [id]).catch(() => null);
+    notifyAsync('USER_SUSPENDED', { name: suspUser ? `${suspUser.first_name || ''} ${suspUser.last_name || ''}`.trim() : id, email: suspUser ? suspUser.email : id });
     res.json({ message: 'User suspended' });
   } catch (e) {
     console.error('Suspend user error:', e.message);
@@ -4325,6 +4352,8 @@ app.post('/api/admin/users/:id/reactivate', verifyToken, requireAdminOrSuperadmi
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only reactivate client users' });
     await run("UPDATE users SET suspended = FALSE WHERE id = ?", [id]);
+    const reactUser = await queryOne("SELECT first_name, last_name, email FROM users WHERE id = ?", [id]).catch(() => null);
+    notifyAsync('USER_REACTIVATED', { name: reactUser ? `${reactUser.first_name || ''} ${reactUser.last_name || ''}`.trim() : id, email: reactUser ? reactUser.email : id });
     res.json({ message: 'User reactivated' });
   } catch (e) {
     console.error('Reactivate user error:', e.message);
@@ -4359,6 +4388,7 @@ app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async 
       await run('DELETE FROM tribe_members WHERE LOWER(email) = LOWER(?)', [user.email]);
     }
     await run('DELETE FROM users WHERE id = ?', [id]);
+    notifyAsync('USER_DELETED', { name: id, email: user.email });
     res.json({ message: 'User removed' });
   } catch (e) {
     console.error('Delete user error:', e.message);
@@ -5946,10 +5976,22 @@ app.use((req, res) => {
 // ============ ERROR HANDLER ============
 app.use((err, req, res, next) => {
   console.error(`[ERROR] ${err.message}`);
+  notifyAsync('SERVER_ERROR', { action: `${req.method} ${req.originalUrl}`, error: err.message }, { noDedup: false });
   if (err instanceof SyntaxError) {
     return res.status(400).json({ error: 'Invalid JSON in request body' });
   }
   res.status(500).json({ error: 'Internal server error' });
+});
+
+process.on('unhandledRejection', (reason) => {
+  const msg = reason && reason.message ? reason.message : String(reason);
+  console.error('[unhandledRejection]', msg);
+  notifyAsync('SERVER_ERROR', { action: 'process.unhandledRejection', error: msg });
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('[uncaughtException]', err.message);
+  notifyAsync('SERVER_ERROR', { action: 'process.uncaughtException', error: err.message });
 });
 
 // ============ START ============

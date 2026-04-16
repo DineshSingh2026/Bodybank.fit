@@ -4,6 +4,7 @@ const { v4: uuidv4 } = require('uuid');
 const userEmail = require('../services/userEmailService');
 const nutritionService = require('../services/nutritionService');
 const coinService = require('../services/coinService');
+const { notifyAsync } = require('../utils/notify');
 
 const {
   MEAL_TYPES,
@@ -371,6 +372,11 @@ function createNutritionRouter(deps) {
           { date: ymd, mealsLogged: nMeals },
           ymd
         );
+        const nuUser = await queryOne('SELECT email, first_name, last_name FROM users WHERE id = ?', [userId]).catch(() => null);
+        notifyAsync('NUTRITION_DAY_COMPLETE', { name: nuUser ? `${nuUser.first_name || ''} ${nuUser.last_name || ''}`.trim() : userId, email: nuUser ? nuUser.email : userId, date: ymd, meals: nMeals });
+      } else {
+        const nuUser = await queryOne('SELECT email, first_name, last_name FROM users WHERE id = ?', [userId]).catch(() => null);
+        notifyAsync('NUTRITION_MEAL_LOGGED', { name: nuUser ? `${nuUser.first_name || ''} ${nuUser.last_name || ''}`.trim() : userId, email: nuUser ? nuUser.email : userId, mealType, date: ymd, score: mealScore || '—', calories: aiResult && aiResult.calories ? aiResult.calories : '—', protein: aiResult && aiResult.protein ? aiResult.protein + ' g' : '—' });
       }
 
       res.json({
@@ -464,6 +470,11 @@ function createNutritionRouter(deps) {
           { date: ymd, mealsLogged: nMeals },
           ymd
         );
+        const nlUser = await queryOne('SELECT email, first_name, last_name FROM users WHERE id = ?', [userId]).catch(() => null);
+        notifyAsync('NUTRITION_DAY_COMPLETE', { name: nlUser ? `${nlUser.first_name || ''} ${nlUser.last_name || ''}`.trim() : userId, email: nlUser ? nlUser.email : userId, date: ymd, meals: nMeals });
+      } else {
+        const nlUser = await queryOne('SELECT email, first_name, last_name FROM users WHERE id = ?', [userId]).catch(() => null);
+        notifyAsync('NUTRITION_MEAL_LOGGED', { name: nlUser ? `${nlUser.first_name || ''} ${nlUser.last_name || ''}`.trim() : userId, email: nlUser ? nlUser.email : userId, mealType: mt, date: ymd, score: mealScore || '—', calories: aiStored && aiStored.calories ? aiStored.calories : '—', protein: aiStored && aiStored.protein ? aiStored.protein + ' g' : '—' });
       }
       res.json({
         aiResult: aiStored,
