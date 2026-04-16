@@ -2704,6 +2704,40 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .micro-goals-wrap .streak-badge[data-tier="diamond"]{background:linear-gradient(135deg,rgba(180,220,255,0.2),rgba(200,164,78,0.2));box-shadow:0 0 20px rgba(200,164,78,0.35)}
 .micro-goals-wrap .streak-badge[data-tier="legend"]{background:linear-gradient(135deg,rgba(255,215,0,0.3),rgba(200,164,78,0.25));box-shadow:0 0 24px rgba(255,215,0,0.4);animation:streakGlow 2s ease-in-out infinite alternate}
 .micro-goals-wrap .streak-badge[data-at-risk="true"],.streak-badge[data-at-risk="true"]{background:rgba(230,126,34,0.3);box-shadow:0 0 16px rgba(230,126,34,0.4);animation:streakPulse 1.5s ease-in-out infinite}
+.bb-coin-card{
+  margin:0 auto 18px;
+  width:min(560px,100%);
+  border-radius:14px;
+  padding:14px 16px;
+  border:1px solid rgba(200,164,78,0.3);
+  background:linear-gradient(165deg,rgba(200,164,78,0.14),rgba(20,16,10,0.96));
+  box-shadow:0 10px 28px rgba(0,0,0,0.3),inset 0 0 0 1px rgba(255,255,255,0.04);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+}
+.bb-coin-card .coin-left{display:flex;align-items:center;gap:10px;min-width:0}
+.bb-coin-card .coin-ico{
+  width:32px;height:32px;border-radius:50%;
+  display:grid;place-items:center;
+  font-size:15px;
+  border:1px solid rgba(200,164,78,0.45);
+  background:radial-gradient(circle at 30% 30%,#f5d889 0%,#c8a44e 55%,#8a6f2e 100%);
+  color:#1a1408;
+  box-shadow:0 2px 8px rgba(200,164,78,0.25);
+}
+.bb-coin-card .coin-copy{min-width:0}
+.bb-coin-card .coin-title{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.bb-coin-card .coin-balance{font-family:var(--bb-font-heading);font-weight:700;font-size:20px;line-height:1.1;color:var(--gold);white-space:nowrap}
+.bb-coin-card .coin-sub{font-size:11px;color:#cbbf9f;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.bb-coin-card .coin-btn{
+  border:1px solid rgba(200,164,78,0.45);
+  background:rgba(200,164,78,0.14);
+  color:var(--gold);
+  border-radius:10px;
+  padding:8px 12px;
+  font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  cursor:pointer;white-space:nowrap;
+}
+.bb-coin-card .coin-btn:hover{background:rgba(200,164,78,0.22)}
 @keyframes streakGlow{from{box-shadow:0 0 20px rgba(255,215,0,0.3)}to{box-shadow:0 0 28px rgba(255,215,0,0.5)}}
 @keyframes streakPulse{0%,100%{opacity:1}50%{opacity:.85}}
 /* Nutrition check-in (daily) + admin nutrition report */
@@ -3833,6 +3867,18 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     margin:0;
   }
   .user-topbar .topbar-right{display:flex;align-items:center;gap:16px}
+  .user-topbar .topbar-right .bb-coin-pill{
+    display:inline-flex;align-items:center;gap:8px;
+    padding:8px 12px;border-radius:999px;
+    border:1px solid rgba(200,164,78,0.42);
+    background:rgba(200,164,78,0.12);
+    color:var(--gold);font-size:12px;font-weight:700;letter-spacing:.04em;
+  }
+  .user-topbar .topbar-right .bb-coin-pill .coin-dot{
+    width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10px;
+    background:radial-gradient(circle at 30% 30%,#f5d889 0%,#c8a44e 55%,#8a6f2e 100%);
+    color:#1a1408;
+  }
   .user-topbar input[type="search"]{
     background:var(--bb-surface);
     border:1px solid var(--bb-border);
@@ -3997,6 +4043,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <h1>Welcome back, <span id="bbUserWelcomeName">User</span> 👋</h1>
           <div class="topbar-right">
             <input type="search" placeholder="Search..." aria-label="Search">
+            <button type="button" class="bb-coin-pill" onclick="bbOpenCoinHistory()" aria-label="View coin activity">
+              <span class="coin-dot">●</span>
+              <span id="bbCoinBalanceDesktop">—</span>
+            </button>
             <span class="bb-top-icon" aria-hidden="true">🔔</span>
             <span class="bb-top-user">Member ▾</span>
             <button type="button" class="bb-top-logout bb-user-logout" onclick="logoutUser()">Logout</button>
@@ -4142,6 +4192,17 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <div id="welcomeAvatarPlaceholder" class="user-welcome-avatar-placeholder"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <h1><span class="welcome-label">Welcome</span><span class="welcome-name" id="userWelcomeName">User</span></h1>
         <p class="user-welcome-tag">Tribe Elite Member</p>
+        <div class="bb-coin-card" id="bbCoinCardMobile">
+          <div class="coin-left">
+            <span class="coin-ico" aria-hidden="true">◉</span>
+            <div class="coin-copy">
+              <div class="coin-title">Gold Coins</div>
+              <div class="coin-balance" id="bbCoinBalanceMobile">—</div>
+              <div class="coin-sub" id="bbCoinSubMobile">Tracking your consistency</div>
+            </div>
+          </div>
+          <button type="button" class="coin-btn" onclick="bbOpenCoinHistory()">Activity</button>
+        </div>
 
         <div class="push-enable-wrap" id="pushEnableWrap">
           <p>Get workout &amp; check-in reminders, and know when your Lifestyle Manager replies.</p>
@@ -12255,6 +12316,7 @@ function switchUserTab(tab) {
     loadTodayDashboard();
     loadMicroGoals();
     loadScorecard();
+    bbLoadCoinSummary(true);
     if (typeof loadMyHealthReports === 'function') loadMyHealthReports();
     if (window.innerWidth >= 768) {
       setTimeout(function() { bbRefreshDesktopUserDashboard(); }, 150);
@@ -12396,9 +12458,76 @@ function bbUserFmtDate(s) {
 function bbUserEsc(s) {
   return (typeof escapeHtml === 'function') ? escapeHtml(s) : String(s || '').replace(/[&<>"']/g, function(c) { return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]); });
 }
+var bbCoinState = { balance: null, lifetimeEarned: null, lifetimeRedeemed: null, updatedAt: null, lastLoadedAt: 0 };
+function bbCoinFmt(n) {
+  var x = Number(n);
+  if (!Number.isFinite(x)) return '—';
+  return x.toLocaleString('en-US') + ' coins';
+}
+function bbCoinEventLabel(t) {
+  var m = {
+    daily_checkin: 'Daily check-in',
+    workout_session: 'Workout',
+    sunday_checkin: 'Sunday check-in',
+    nutrition_day_complete: 'Nutrition complete',
+    part2_complete: 'Part-2 form',
+    daily_goal_water: 'Water goal',
+    daily_goal_protein: 'Protein goal',
+    daily_goal_sleep: 'Sleep goal',
+    penalty_missed_daily_checkin: 'Missed daily check-in'
+  };
+  return m[t] || String(t || 'Activity');
+}
+function bbRenderCoinSummary() {
+  var balanceText = bbCoinFmt(bbCoinState.balance);
+  var el;
+  if (el = document.getElementById('bbCoinBalanceMobile')) el.textContent = balanceText;
+  if (el = document.getElementById('bbCoinBalanceDesktop')) el.textContent = balanceText;
+  if (el = document.getElementById('bbCoinSubMobile')) {
+    var earned = Number(bbCoinState.lifetimeEarned);
+    el.textContent = Number.isFinite(earned) ? ('Lifetime earned: ' + earned.toLocaleString('en-US')) : 'Tracking your consistency';
+  }
+}
+async function bbLoadCoinSummary(force) {
+  if (!window.currentUser || !window.currentUser.token) return;
+  var now = Date.now();
+  if (!force && bbCoinState.lastLoadedAt && (now - bbCoinState.lastLoadedAt < 12000)) return;
+  bbCoinState.lastLoadedAt = now;
+  try {
+    var s = await apiCall('GET', '/api/coins/summary');
+    if (s && !s.error) {
+      bbCoinState.balance = Number(s.balance);
+      bbCoinState.lifetimeEarned = Number(s.lifetimeEarned);
+      bbCoinState.lifetimeRedeemed = Number(s.lifetimeRedeemed);
+      bbCoinState.updatedAt = s.updatedAt || null;
+      bbRenderCoinSummary();
+    }
+  } catch (_) {}
+}
+async function bbOpenCoinHistory() {
+  if (!window.currentUser || !window.currentUser.token) return;
+  try {
+    var rows = await apiCall('GET', '/api/coins/ledger?limit=20');
+    if (!Array.isArray(rows)) rows = [];
+    if (!rows.length) {
+      if (typeof showPopup === 'function') showPopup('Coin Activity', 'No coin activity yet.', '', 'OK', null, 'success');
+      return;
+    }
+    var lines = rows.map(function (r) {
+      var d = r && r.created_at ? bbUserFmtDate(r.created_at) : '';
+      var delta = Number(r && r.coins_delta);
+      var sign = delta > 0 ? '+' : '';
+      return d + '  ' + sign + delta + '  ' + bbCoinEventLabel(r && r.event_type);
+    });
+    if (typeof showPopup === 'function') showPopup('Coin Activity', lines.join('\n'), '', 'OK', null, 'success');
+  } catch (_) {
+    if (typeof showPopup === 'function') showPopup('Coin Activity', 'Unable to load coin history right now.', '', 'OK', null, 'error');
+  }
+}
 async function bbRefreshDesktopUserDashboard() {
   if (window.innerWidth < 768) return;
   if (!window.currentUser || !window.currentUser.id) return;
+  bbLoadCoinSummary(false);
 
   // Keep welcome name in desktop topbar in sync
   var nameEl = document.getElementById('userWelcomeName');
@@ -13061,6 +13190,7 @@ async function submitMicroGoals() {
     loadMicroGoals();
     loadMicroGoals();
     loadScorecard();
+    bbLoadCoinSummary(true);
     showPopup('Saved', 'Daily check-in saved. Streak updated!', '', 'OK', null, 'success');
   } catch (e) {
     showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
@@ -13122,6 +13252,7 @@ async function submitDailyCheckinForm() {
     }
     loadDailyCheckinForm();
     loadMicroGoals();
+    bbLoadCoinSummary(true);
     showPopup('Saved', 'Daily check-in saved. Streak updated!', '', 'OK', null, 'success');
   } catch (e) {
     showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
@@ -16068,6 +16199,7 @@ async function submitWorkoutSession() {
     }
     loadUserStats();
     loadScorecard();
+    bbLoadCoinSummary(true);
     if (typeof bbRefreshDesktopUserDashboard === 'function') setTimeout(function() { bbRefreshDesktopUserDashboard(); }, 150);
     resetTimer();
     loadWorkoutHistory();
