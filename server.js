@@ -17,7 +17,7 @@ const webPush = require('web-push');
 const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken } = require('./middleware/auth');
 const { safeExtraHttpHeaders, optionalApiAccessLog } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
-const { createNutritionRouter, runWeeklyNutritionEmailJob } = require('./routes/nutrition');
+const { createNutritionRouter, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
 const { createBloodRouter } = require('./routes/blood');
 const { createMarketingAIRouter } = require('./routes/marketingAI');
 const cron = require('node-cron');
@@ -64,6 +64,7 @@ const SMTP_SECURE = process.env.SMTP_SECURE === 'true';
 const SMTP_USER = (process.env.SMTP_USER || '').trim();
 const SMTP_PASS = (process.env.SMTP_PASS || '').trim();
 const SMTP_FROM = (process.env.SMTP_FROM || 'BodyBank <noreply@bodybank.fit>').trim();
+const NUTRITION_ADMIN_REPORT_EMAIL = (process.env.NUTRITION_ADMIN_REPORT_EMAIL || ADMIN_EMAIL || '').trim();
 const CAMPAIGNS_ENABLED = String(process.env.CAMPAIGNS_ENABLED || 'false').trim().toLowerCase() === 'true';
 const FEED_UPLOADS_DIR = path.join(__dirname, 'uploads');
 
@@ -5800,6 +5801,22 @@ app.listen(PORT, '0.0.0.0', () => {
       console.log('✅ Nutrition weekly email cron scheduled (Sun 08:00 Asia/Kolkata)');
     } catch (e) {
       console.warn('Nutrition cron schedule skipped:', e.message);
+    }
+
+    try {
+      cron.schedule(
+        '0 8 * * *',
+        () => {
+          runAdminNutritionDailyEmailJob({
+            queryAll,
+            adminEmail: NUTRITION_ADMIN_REPORT_EMAIL
+          }).catch((e) => console.warn('[nutrition] Admin daily digest cron error:', e.message));
+        },
+        { timezone: 'Asia/Kolkata' }
+      );
+      console.log(`✅ Nutrition admin daily digest cron scheduled (Daily 08:00 Asia/Kolkata -> ${NUTRITION_ADMIN_REPORT_EMAIL || 'not set'})`);
+    } catch (e) {
+      console.warn('Nutrition admin daily digest cron schedule skipped:', e.message);
     }
   }).catch(err => {
     console.error('Failed to init DB:', err);

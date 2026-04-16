@@ -536,6 +536,63 @@ async function emailNutritionWeeklySummary(email, firstName, report) {
   return sendMail(email, 'Your Bodybank X Fitchef Nutrition report', html);
 }
 
+async function emailAdminNutritionDailySummary(email, payload) {
+  if (!isConfigured() || !email) return false;
+  const p = payload || {};
+  const a = p.aggregate || {};
+  const users = Array.isArray(p.users) ? p.users : [];
+  const rows = users
+    .map((u) => `<tr>
+      <td style="padding:10px 8px;border-bottom:1px solid #1e2328;color:#f0ede8">${escapeHtml(String(u.userName || '—'))}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #1e2328;color:#8a8880">${escapeHtml(String(u.userEmail || '—'))}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #1e2328;text-align:center">${escapeHtml(String(u.mealsLogged ?? 0))}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #1e2328;text-align:center">${escapeHtml(String(u.photosUploaded ?? 0))}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #1e2328;text-align:center">${escapeHtml(String(u.photosAvailable ?? 0))}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #1e2328;text-align:center">${escapeHtml(String(u.photosExpired ?? 0))}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #1e2328;text-align:center">${escapeHtml(String(u.calories ?? 0))}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #1e2328;text-align:center">${escapeHtml(String(u.protein ?? 0))}</td>
+      <td style="padding:10px 8px;border-bottom:1px solid #1e2328;text-align:center">${escapeHtml(String(u.score ?? '—'))}</td>
+    </tr>`)
+    .join('');
+
+  const bodyHtml = `<p style="margin:0 0 14px">Daily admin nutrition digest for <strong>${escapeHtml(String(p.date || ''))}</strong>.</p>
+<div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px">
+  <div style="background:#161a1e;border-radius:10px;padding:12px"><div style="font-size:11px;color:#8a8880">Users Logged</div><div style="font-size:20px;font-weight:700;color:#f5a623">${escapeHtml(String(a.users ?? 0))}</div></div>
+  <div style="background:#161a1e;border-radius:10px;padding:12px"><div style="font-size:11px;color:#8a8880">Meals Logged</div><div style="font-size:20px;font-weight:700;color:#3dd68c">${escapeHtml(String(a.meals ?? 0))}</div></div>
+  <div style="background:#161a1e;border-radius:10px;padding:12px"><div style="font-size:11px;color:#8a8880">Avg Meal Score</div><div style="font-size:20px;font-weight:700;color:#4da6ff">${escapeHtml(String(a.avgScore ?? '—'))}</div></div>
+</div>
+<p style="margin:0 0 14px;color:#8a8880">Photos uploaded: <strong style="color:#f0ede8">${escapeHtml(String(a.photosUploaded ?? 0))}</strong> · Available now: <strong style="color:#f0ede8">${escapeHtml(String(a.photosAvailable ?? 0))}</strong> · Expired by retention: <strong style="color:#f0ede8">${escapeHtml(String((a.photosUploaded ?? 0) - (a.photosAvailable ?? 0)))}</strong></p>
+<div style="overflow:auto;border:1px solid #1e2328;border-radius:10px">
+  <table style="width:100%;border-collapse:collapse;min-width:720px;font-family:system-ui,sans-serif;font-size:12px">
+    <thead>
+      <tr style="background:#111518;color:#8a8880;text-transform:uppercase;letter-spacing:.04em">
+        <th style="padding:10px 8px;text-align:left">User</th>
+        <th style="padding:10px 8px;text-align:left">Email</th>
+        <th style="padding:10px 8px;text-align:center">Meals</th>
+        <th style="padding:10px 8px;text-align:center">Photos Uploaded</th>
+        <th style="padding:10px 8px;text-align:center">Photos Available</th>
+        <th style="padding:10px 8px;text-align:center">Photos Expired</th>
+        <th style="padding:10px 8px;text-align:center">Calories</th>
+        <th style="padding:10px 8px;text-align:center">Protein</th>
+        <th style="padding:10px 8px;text-align:center">Score</th>
+      </tr>
+    </thead>
+    <tbody>${rows || '<tr><td colspan="9" style="padding:12px;color:#8a8880">No data for this date.</td></tr>'}</tbody>
+  </table>
+</div>
+<p style="margin:14px 0 0;color:#8a8880">${escapeHtml(String(p.exportHint || ''))}</p>`;
+
+  const html = luxuryWrap({
+    title: 'Admin Nutrition Daily Digest',
+    preheader: `All-user nutrition summary for ${p.date || 'selected date'}`,
+    lead: 'Nutrition snapshot across all users.',
+    bodyHtml,
+    ctaLabel: 'Open Admin Nutrition',
+    ctaUrl: p.adminNutritionUrl || (APP_BASE + '/?adminNutrition=1')
+  });
+  return sendMail(email, `Admin Nutrition Daily Digest — ${p.date || ''}`, html);
+}
+
 /** Blood + nutrition PDF from AI pipeline — attachment + luxury HTML shell */
 async function emailHealthReportWithPdf({ toEmail, firstName, pdfPath, adminNotes, overallStatus, summary }) {
   if (!isConfigured() || !toEmail || !pdfPath) return false;
@@ -598,5 +655,6 @@ module.exports = {
   emailWeeklyDigest,
   emailNutritionDayReport,
   emailNutritionWeeklySummary,
+  emailAdminNutritionDailySummary,
   emailHealthReportWithPdf
 };

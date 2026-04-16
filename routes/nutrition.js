@@ -817,4 +817,92 @@ async function runWeeklyNutritionEmailJob({ queryAll, queryOne, run }) {
   console.log(`[nutrition] Weekly job: ${n} user(s) with stats emailed.`);
 }
 
-module.exports = { createNutritionRouter, sendNutritionNotifications, runWeeklyNutritionEmailJob };
+async function runAdminNutritionDailyEmailJob({ queryAll, reportDateYmd, adminEmail }) {
+  if (!userEmail.isConfigured()) return false;
+  const to = String(adminEmail || process.env.NUTRITION_ADMIN_REPORT_EMAIL || process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+  if (!to) return false;
+
+  const todayYmd = todayYmdInTz(STREAK_TZ) || new Date().toISOString().slice(0, 10);
+  const targetYmd = String(reportDateYmd || '').trim() || String(
+    new Date(new Date(todayYmd + 'T00:00:00Z').getTime() - 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+  );
+
+  const rows = await queryAll(
+    `SELECT
+       u.id AS user_id,
+       u.first_name,
+       u.last_name,
+       u.email,
+       COALESCE(ds.total_calories, 0) AS total_calories,
+       COALESCE(ds.total_protein, 0) AS total_protein,
+       ds.meal_quality_score,
+       ds.energy_difference,
+       COUNT(n.id)::int AS meals_logged,
+       COUNT(*) FILTER (WHERE n.photo_upload_count > 0)::int AS meals_with_photo_uploads,
+       COUNT(*) FILTER (WHERE n.photo_data IS NOT NULL)::int AS meals_with_photo_available
+     FROM nutrition_meal_logs n
+     JOIN users u ON u.id = n.user_id
+     LEFT JOIN nutrition_daily_stats ds ON ds.user_id = n.user_id AND ds.stat_date = n.log_date
+     WHERE n.log_date = ?::date
+     GROUP BY
+       u.id, u.first_name, u.last_name, u.email,
+       ds.total_calories, ds.total_protein, ds.meal_quality_score, ds.energy_difference
+     ORDER BY u.email ASC`,
+    [targetYmd]
+  );
+
+  const users = rows || [];
+  const totals = users.reduce(
+    (acc, r) => {
+      acc.users += 1;
+      acc.meals += Number(r.meals_logged) || 0;
+      acc.photosUploaded += Number(r.meals_with_photo_uploads) || 0;
+      acc.photosAvailable += Number(r.meals_with_photo_available) || 0;
+      acc.calories += Number(r.total_calories) || 0;
+      if (r.meal_quality_score != null) {
+        acc.scoreSum += Number(r.meal_quality_score) || 0;
+        acc.scoreN += 1;
+      }
+      return acc;
+    },
+    { users: 0, meals: 0, photosUploaded: 0, photosAvailable: 0, calories: 0, scoreSum: 0, scoreN: 0 }
+  );
+
+  const avgScore = totals.scoreN ? (totals.scoreSum / totals.scoreN).toFixed(1) : '—';
+  const adminNutritionUrl = `${(process.env.APP_BASE_URL || process.env.SITE_URL || 'https://bodybank.fit').replace(/\/$/, '')}/?adminNutrition=1`;
+  const exportHint = `Use Admin > Nutrition > date ${targetYmd} > Export CSV / Download image in dashboard.`;
+
+  const ok = await userEmail.emailAdminNutritionDailySummary(to, {
+    date: targetYmd,
+    aggregate: {
+      users: totals.users,
+      meals: totals.meals,
+      photosUploaded: totals.photosUploaded,
+      photosAvailable: totals.photosAvailable,
+      avgScore,
+      totalCalories: totals.calories
+    },
+    users: users.map((r) => ({
+      userName: [r.first_name, r.last_name].filter(Boolean).join(' ').trim() || r.email,
+      userEmail: r.email,
+      mealsLogged: Number(r.meals_logged) || 0,
+      photosUploaded: Number(r.meals_with_photo_uploads) || 0,
+      photosAvailable: Number(r.meals_with_photo_available) || 0,
+      photosExpired: Math.max(0, (Number(r.meals_with_photo_uploads) || 0) - (Number(r.meals_with_photo_available) || 0)),
+      calories: Number(r.total_calories) || 0,
+      protein: Number(r.total_protein) || 0,
+      score: r.meal_quality_score != null ? Number(r.meal_quality_score).toFixed(1) : '—'
+    })),
+    adminNutritionUrl,
+    exportHint
+  });
+
+  if (ok) {
+    console.log(`[nutrition] Admin daily digest emailed to ${to} for ${targetYmd} (${totals.users} users).`);
+  } else {
+    console.warn(`[nutrition] Admin daily digest failed for ${to} (${targetYmd}).`);
+  }
+  return ok;
+}
+
+module.exports = { createNutritionRouter, sendNutritionNotifications, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob };
