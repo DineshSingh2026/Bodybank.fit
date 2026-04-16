@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const userEmail = require('../services/userEmailService');
+const { notifyAsync } = require('../utils/notify');
 const {
   triggerBloodAnalysis,
   ensureHealthReportPdf,
@@ -135,6 +136,7 @@ function createBloodRouter(deps) {
         );
       }
 
+      notifyAsync('BLOOD_REPORT_UPLOADED', { name: displayName, email: u && u.email ? u.email : '—', goal: userGoal || '—' });
       res.json({
         success: true,
         reportId,
@@ -254,6 +256,7 @@ function createBloodRouter(deps) {
         req.params.reportId
       ]);
 
+      notifyAsync('BLOOD_REPORT_SENT', { name: report.user_name || '—', email: report.user_email || '—' });
       res.json({ success: true });
     } catch (e) {
       console.error('[blood admin send]', e.message);

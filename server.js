@@ -4322,6 +4322,16 @@ app.get('/api/admin/daily-compliance-preview', verifyToken, requireAdminOrSupera
 app.post('/api/admin/daily-compliance-send', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const out = await sendAdminDailyComplianceReport({ queryAll, force: true });
+    if (out && out.sent) {
+      const data = await getAdminDailyComplianceReportData({ queryAll }).catch(() => null);
+      if (data && data.summary) {
+        const total = data.summary.totalUsers || 0;
+        const yes   = data.summary.dailyYes   || 0;
+        const miss  = data.summary.dailyMissed || 0;
+        const rate  = total > 0 ? Math.round((yes / total) * 100) + '%' : '—';
+        notifyAsync('DAILY_COMPLIANCE_SENT', { total, checkedIn: yes, missed: miss, rate });
+      }
+    }
     res.json(out);
   } catch (e) {
     console.error('[daily-compliance-send]', e.message);
@@ -5936,6 +5946,7 @@ app.post('/api/feed/upload', feedUpload ? feedUpload.single('image') : (req, _re
       [id, username, caption || 'BodyBank.fit transformation in progress.', imageData, imageMime, likes, featured]
     );
     const post = feedRowToPost({ id, username, caption, image_mime: imageMime, likes, featured, created_at: new Date().toISOString() });
+    notifyAsync('FEED_POST_UPLOADED', { username, caption });
     return res.status(201).json({ ok: true, post, imageUrl: post.imageUrl });
   } catch (e) {
     console.error('[feed] POST /upload error:', e.message);
@@ -6055,6 +6066,63 @@ app.listen(PORT, '0.0.0.0', () => {
       console.log('✅ Coin penalty cron scheduled (Daily 00:10 Asia/Kolkata)');
     } catch (e) {
       console.warn('Coin penalty cron schedule skipped:', e.message);
+    }
+
+    // ── Daily executive WhatsApp digest — 09:00 IST ──────────────────
+    try {
+      cron.schedule(
+        '0 9 * * *',
+        async () => {
+          try {
+            const { notifyAsync: _na } = require('./utils/notify');
+            const today = new Date();
+            const ymd = today.toISOString().slice(0, 10);
+            const yesterday = new Date(today - 86400000).toISOString().slice(0, 10);
+
+            const [
+              usersRow,
+              signupsRow,
+              checkinsRow,
+              workoutsRow,
+              mealsRow,
+              bloodRow,
+              messagesRow,
+              coinsRow
+            ] = await Promise.all([
+              queryOne(`SELECT COUNT(*) AS n FROM users WHERE role='user' AND COALESCE(approval_status,'approved')='approved' AND COALESCE(suspended,FALSE)=FALSE`),
+              queryOne(`SELECT COUNT(*) AS n FROM users WHERE role='user' AND DATE(created_at AT TIME ZONE 'Asia/Kolkata') = ?::date`, [yesterday]),
+              queryOne(`SELECT COUNT(*) AS n FROM daily_checkins WHERE checkin_date = ?::date`, [yesterday]),
+              queryOne(`SELECT COUNT(*) AS n FROM workout_logs WHERE DATE(created_at AT TIME ZONE 'Asia/Kolkata') = ?::date`, [yesterday]),
+              queryOne(`SELECT COUNT(*) AS n FROM nutrition_meal_logs WHERE log_date = ?::date`, [yesterday]),
+              queryOne(`SELECT COUNT(*) AS n FROM blood_analysis_reports WHERE DATE(created_at AT TIME ZONE 'Asia/Kolkata') = ?::date`, [yesterday]),
+              queryOne(`SELECT COUNT(*) AS n FROM thread_messages WHERE sender_role='user' AND DATE(created_at AT TIME ZONE 'Asia/Kolkata') = ?::date`, [yesterday]),
+              queryOne(`SELECT COALESCE(SUM(coins_delta),0) AS n FROM coin_ledger WHERE coins_delta > 0 AND DATE(created_at AT TIME ZONE 'Asia/Kolkata') = ?::date`, [yesterday])
+            ]).catch(() => Array(8).fill({ n: '—' }));
+
+            const digestDate = new Date(yesterday + 'T00:00:00').toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+
+            _na('DAILY_DIGEST', {
+              date          : digestDate,
+              totalUsers    : usersRow    && usersRow.n    != null ? usersRow.n    : '—',
+              signups       : signupsRow  && signupsRow.n  != null ? signupsRow.n  : '—',
+              logins        : '—',
+              checkins      : checkinsRow && checkinsRow.n != null ? checkinsRow.n : '—',
+              workouts      : workoutsRow && workoutsRow.n != null ? workoutsRow.n : '—',
+              meals         : mealsRow    && mealsRow.n    != null ? mealsRow.n    : '—',
+              bloodReports  : bloodRow    && bloodRow.n    != null ? bloodRow.n    : '—',
+              messages      : messagesRow && messagesRow.n != null ? messagesRow.n : '—',
+              coinsAwarded  : coinsRow    && coinsRow.n    != null ? coinsRow.n    : '—'
+            }, { noDedup: true });
+            console.log('[digest] Daily WhatsApp digest sent for', yesterday);
+          } catch (e) {
+            console.warn('[digest] Daily digest cron error:', e.message);
+          }
+        },
+        { timezone: 'Asia/Kolkata' }
+      );
+      console.log('✅ Daily WhatsApp executive digest cron scheduled (Daily 09:00 Asia/Kolkata)');
+    } catch (e) {
+      console.warn('Daily digest cron schedule skipped:', e.message);
     }
   }).catch(err => {
     console.error('Failed to init DB:', err);
