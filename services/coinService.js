@@ -167,15 +167,17 @@ async function listCoinLedger(db, userId, limit) {
 
 async function runDailyCoinPenaltyJob({ queryAll, queryOne, run }) {
   const db = { queryAll, queryOne, run };
-  const today = todayYmdInTz(STREAK_TZ) || new Date().toISOString().slice(0, 10);
   const users = await queryAll(
-    `SELECT id FROM users
+    `SELECT id, COALESCE(NULLIF(TRIM(timezone),''), 'Asia/Kolkata') AS timezone
+     FROM users
      WHERE role = 'user'
        AND (approval_status IS NULL OR approval_status = 'approved')
        AND COALESCE(suspended, FALSE) = FALSE`
   );
   let n = 0;
   for (const u of users || []) {
+    const userTz = (u.timezone && u.timezone.trim()) ? u.timezone.trim() : STREAK_TZ;
+    const today = todayYmdInTz(userTz) || new Date().toISOString().slice(0, 10);
     const r = await applyMissedDailyPenaltiesForUser(db, u.id, today);
     if (r.penaltiesApplied > 0) n += 1;
   }

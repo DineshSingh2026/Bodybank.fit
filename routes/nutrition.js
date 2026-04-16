@@ -69,11 +69,26 @@ async function purgeOldNutritionPhotos(db) {
   _lastNutritionPhotoPurgeYmd = todayYmd;
 }
 
-function ymdOrToday(body, query) {
+/**
+ * Returns explicit date from body/query, or today in the user's timezone.
+ * @param {object} body - request body
+ * @param {object} query - request query
+ * @param {string|null} userTz - IANA timezone string (from authenticated user); falls back to STREAK_TZ
+ */
+function ymdOrToday(body, query, userTz) {
   const raw = (body && body.date) || (query && query.date) || '';
   const s = String(raw).trim().slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
-  return todayYmdInTz(STREAK_TZ) || new Date().toISOString().slice(0, 10);
+  const tz = (userTz && typeof userTz === 'string' && userTz.trim()) ? userTz.trim() : STREAK_TZ;
+  return todayYmdInTz(tz) || new Date().toISOString().slice(0, 10);
+}
+
+/** Fetch the authenticated user's IANA timezone from DB (falls back to STREAK_TZ) */
+async function getUserTz(db, userId) {
+  try {
+    const r = await db.queryOne('SELECT timezone FROM users WHERE id = ?', [userId]);
+    return (r && r.timezone && r.timezone.trim()) ? r.timezone.trim() : STREAK_TZ;
+  } catch (_) { return STREAK_TZ; }
 }
 
 function appBaseUrlFromReq(req) {
@@ -102,9 +117,10 @@ async function safeAwardCoins(db, userId, eventType, eventKey, coinsDelta, meta,
   }
 }
 
-async function safeApplyPenalties(db, userId) {
+async function safeApplyPenalties(db, userId, userTz) {
   try {
-    const today = todayYmdInTz(STREAK_TZ) || new Date().toISOString().slice(0, 10);
+    const tz = (userTz && typeof userTz === 'string' && userTz.trim()) ? userTz.trim() : STREAK_TZ;
+    const today = todayYmdInTz(tz) || new Date().toISOString().slice(0, 10);
     await coinService.applyMissedDailyPenaltiesForUser(db, String(userId), today);
   } catch (e) {
     console.warn('[coins penalty][nutrition]', e.message);
@@ -286,7 +302,8 @@ function createNutritionRouter(deps) {
         });
       }
 
-      const ymd = ymdOrToday(req.body, req.query);
+      const _userTz = await getUserTz(db, userId);
+      const ymd = ymdOrToday(req.body, req.query, _userTz);
       if (img) {
         const dayPhotoRow = await queryOne(
           `SELECT COALESCE(SUM(photo_upload_count), 0)::int AS n
@@ -383,7 +400,7 @@ function createNutritionRouter(deps) {
         notifyResult = await sendNutritionNotifications(db, { userId, ymd, userRow: u, channel: 'both' });
       }
 
-      await safeApplyPenalties(db, userId);
+      await safeApplyPenalties(db, userId, _userTz);
       if (nMeals >= 4) {
         await safeAwardCoins(
           db,
@@ -446,7 +463,8 @@ function createNutritionRouter(deps) {
 
       const mealScore = computeMealScore(aiResult);
       const aiStored = buildAiResultForStorage(aiResult, { analyzedWithPhoto: false, entrySource: 'manual' });
-      const ymd = ymdOrToday({ date: dateBody }, req.query);
+      const _logUserTz = await getUserTz(db, userId);
+      const ymd = ymdOrToday({ date: dateBody }, req.query, _logUserTz);
       const id = uuidv4();
       const ps = String(portionSize || 'medium').toLowerCase();
       const portion = ['small', 'medium', 'large'].includes(ps) ? ps : 'medium';
@@ -491,7 +509,7 @@ function createNutritionRouter(deps) {
         [userId, ymd]
       );
       const dailyConfidence = summarizeDailyConfidence((dailyRows || []).map((r) => confidenceFromLogRow(r)));
-      await safeApplyPenalties(db, userId);
+      await safeApplyPenalties(db, userId, _logUserTz);
       if (nMeals >= 4) {
         await safeAwardCoins(
           db,

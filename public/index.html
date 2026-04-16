@@ -6401,13 +6401,25 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <h2>Create your account</h2>
     <div class="modal-body-scroll">
     <div class="form-row">
-      <div class="form-group"><label>First Name <span class="req">*</span></label><input type="text" class="form-input" placeholder="First name" required></div>
-      <div class="form-group"><label>Last Name <span class="req">*</span></label><input type="text" class="form-input" placeholder="Last name" required></div>
+      <div class="form-group"><label>First Name <span class="req">*</span></label><input type="text" class="form-input" id="suFirst" placeholder="First name" required></div>
+      <div class="form-group"><label>Last Name <span class="req">*</span></label><input type="text" class="form-input" id="suLast" placeholder="Last name" required></div>
     </div>
-    <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" class="form-input" placeholder="Enter your email" name="email" required></div>
-    <div class="form-group"><label>Mobile (WhatsApp) <span class="req">*</span></label><input type="tel" class="form-input" placeholder="Your WhatsApp number" required></div>
+    <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" class="form-input" id="suEmail" placeholder="Enter your email" required></div>
+    <div class="form-group"><label>Mobile / WhatsApp <span class="req">*</span></label><input type="tel" class="form-input" id="suPhone" placeholder="+91XXXXXXXXXX" required></div>
+    <div class="form-row">
+      <div class="form-group"><label>Date of Birth <span class="req">*</span></label><input type="date" class="form-input" id="suDob" required></div>
+      <div class="form-group"><label>Gender <span class="req">*</span></label><select class="form-input" id="suGender" required><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Country <span class="req">*</span></label><input type="text" class="form-input" id="suCountry" placeholder="Your country" required></div>
+      <div class="form-group"><label>Timezone <span class="req">*</span></label><select class="form-input" id="suTimezone" required><option value="">Detecting…</option><optgroup label="Asia"><option value="Asia/Kolkata">India (IST, UTC+5:30)</option><option value="Asia/Dubai">UAE / Dubai (GST, UTC+4)</option><option value="Asia/Riyadh">Saudi Arabia (AST, UTC+3)</option><option value="Asia/Kuwait">Kuwait (AST, UTC+3)</option><option value="Asia/Qatar">Qatar (AST, UTC+3)</option><option value="Asia/Bahrain">Bahrain (AST, UTC+3)</option><option value="Asia/Muscat">Oman / Muscat (GST, UTC+4)</option><option value="Asia/Karachi">Pakistan (PKT, UTC+5)</option><option value="Asia/Dhaka">Bangladesh (BST, UTC+6)</option><option value="Asia/Kathmandu">Nepal (NPT, UTC+5:45)</option><option value="Asia/Colombo">Sri Lanka (SLST, UTC+5:30)</option><option value="Asia/Singapore">Singapore (SGT, UTC+8)</option><option value="Asia/Kuala_Lumpur">Malaysia (MYT, UTC+8)</option><option value="Asia/Jakarta">Indonesia / Jakarta (WIB, UTC+7)</option><option value="Asia/Manila">Philippines (PHT, UTC+8)</option><option value="Asia/Tokyo">Japan (JST, UTC+9)</option><option value="Asia/Seoul">South Korea (KST, UTC+9)</option><option value="Asia/Shanghai">China (CST, UTC+8)</option></optgroup><optgroup label="Europe"><option value="Europe/London">UK / London (GMT/BST)</option><option value="Europe/Paris">France / Paris (CET, UTC+1)</option><option value="Europe/Berlin">Germany / Berlin (CET, UTC+1)</option><option value="Europe/Rome">Italy / Rome (CET, UTC+1)</option><option value="Europe/Amsterdam">Netherlands (CET, UTC+1)</option><option value="Europe/Oslo">Norway / Oslo (CET, UTC+1)</option><option value="Europe/Stockholm">Sweden / Stockholm (CET, UTC+1)</option><option value="Europe/Copenhagen">Denmark (CET, UTC+1)</option><option value="Europe/Helsinki">Finland (EET, UTC+2)</option><option value="Europe/Dublin">Ireland / Dublin (GMT/IST)</option></optgroup><optgroup label="Americas"><option value="America/New_York">US — New York (ET, UTC-5/-4)</option><option value="America/Chicago">US — Chicago (CT, UTC-6/-5)</option><option value="America/Denver">US — Denver (MT, UTC-7/-6)</option><option value="America/Los_Angeles">US — Los Angeles (PT, UTC-8/-7)</option><option value="America/Phoenix">US — Phoenix (MST, UTC-7)</option><option value="America/Anchorage">US — Anchorage (AKST, UTC-9)</option><option value="Pacific/Honolulu">US — Hawaii (HST, UTC-10)</option><option value="America/Toronto">Canada / Toronto (ET, UTC-5/-4)</option><option value="America/Vancouver">Canada / Vancouver (PT, UTC-8/-7)</option><option value="America/Sao_Paulo">Brazil / São Paulo (BRT, UTC-3)</option><option value="America/Mexico_City">Mexico (CST, UTC-6)</option></optgroup><optgroup label="Oceania"><option value="Australia/Sydney">Australia / Sydney (AEST, UTC+10/11)</option><option value="Australia/Brisbane">Australia / Brisbane (AEST, UTC+10)</option><option value="Australia/Perth">Australia / Perth (AWST, UTC+8)</option><option value="Pacific/Auckland">New Zealand (NZST, UTC+12/13)</option></optgroup><optgroup label="Africa"><option value="Africa/Johannesburg">South Africa (SAST, UTC+2)</option><option value="Africa/Lagos">Nigeria (WAT, UTC+1)</option><option value="Africa/Nairobi">Kenya (EAT, UTC+3)</option></optgroup><optgroup label="UTC"><option value="UTC">UTC (Coordinated Universal Time)</option></optgroup></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>State / Province</label><input type="text" class="form-input" id="suState" placeholder="State or Province"></div>
+      <div class="form-group"><label>City</label><input type="text" class="form-input" id="suCity" placeholder="Your city"></div>
+    </div>
     <div class="form-group"><label>Password <span class="req">*</span></label><div class="pw-wrap"><input type="password" class="form-input" placeholder="Create a password" id="pwSignup"><button class="pw-toggle" onclick="document.getElementById('pwSignup').type=document.getElementById('pwSignup').type==='password'?'text':'password'">&#128065;</button></div></div>
-    <div class="form-group"><label>Confirm Password <span class="req">*</span></label><input type="password" class="form-input" placeholder="Confirm your password"></div>
+    <div class="form-group"><label>Confirm Password <span class="req">*</span></label><input type="password" class="form-input" id="suConfirmPw" placeholder="Confirm your password"></div>
     <details class="signup-blood-opt" style="margin:12px 0;border:1px solid rgba(200,164,78,0.25);border-radius:10px;padding:10px 12px;background:rgba(0,0,0,0.15)">
       <summary style="cursor:pointer;font-size:13px;color:var(--gold);font-weight:600">Optional: blood lab report (after approval we&apos;ll upload it when you first log in)</summary>
       <p class="form-hint" style="margin:8px 0 10px;font-size:12px">PDF or photo — max 8 MB. You can skip and upload anytime from Home.</p>
@@ -6438,7 +6450,19 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="form-group"><label>Last Name</label><input type="text" class="form-input" id="gcLast" placeholder="Last name" readonly style="opacity:0.9"></div>
     </div>
     <div class="form-group"><label>Email</label><input type="email" class="form-input" id="gcEmail" placeholder="Your email" readonly style="opacity:0.9"></div>
-    <div class="form-group"><label>Mobile (WhatsApp) <span class="req">*</span></label><input type="tel" class="form-input" id="gcPhone" placeholder="Your WhatsApp number" required></div>
+    <div class="form-group"><label>Mobile / WhatsApp <span class="req">*</span></label><input type="tel" class="form-input" id="gcPhone" placeholder="+91XXXXXXXXXX" required></div>
+    <div class="form-row">
+      <div class="form-group"><label>Date of Birth <span class="req">*</span></label><input type="date" class="form-input" id="gcDob" required></div>
+      <div class="form-group"><label>Gender <span class="req">*</span></label><select class="form-input" id="gcGender" required><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Country <span class="req">*</span></label><input type="text" class="form-input" id="gcCountry" placeholder="Your country" required></div>
+      <div class="form-group"><label>Timezone <span class="req">*</span></label><select class="form-input" id="gcTimezone" required><option value="">Detecting…</option><optgroup label="Asia"><option value="Asia/Kolkata">India (IST, UTC+5:30)</option><option value="Asia/Dubai">UAE / Dubai (GST, UTC+4)</option><option value="Asia/Riyadh">Saudi Arabia (AST, UTC+3)</option><option value="Asia/Kuwait">Kuwait (AST, UTC+3)</option><option value="Asia/Qatar">Qatar (AST, UTC+3)</option><option value="Asia/Bahrain">Bahrain (AST, UTC+3)</option><option value="Asia/Muscat">Oman / Muscat (GST, UTC+4)</option><option value="Asia/Karachi">Pakistan (PKT, UTC+5)</option><option value="Asia/Dhaka">Bangladesh (BST, UTC+6)</option><option value="Asia/Kathmandu">Nepal (NPT, UTC+5:45)</option><option value="Asia/Colombo">Sri Lanka (SLST, UTC+5:30)</option><option value="Asia/Singapore">Singapore (SGT, UTC+8)</option><option value="Asia/Kuala_Lumpur">Malaysia (MYT, UTC+8)</option><option value="Asia/Jakarta">Indonesia / Jakarta (WIB, UTC+7)</option><option value="Asia/Manila">Philippines (PHT, UTC+8)</option><option value="Asia/Tokyo">Japan (JST, UTC+9)</option><option value="Asia/Seoul">South Korea (KST, UTC+9)</option><option value="Asia/Shanghai">China (CST, UTC+8)</option></optgroup><optgroup label="Europe"><option value="Europe/London">UK / London (GMT/BST)</option><option value="Europe/Paris">France / Paris (CET, UTC+1)</option><option value="Europe/Berlin">Germany / Berlin (CET, UTC+1)</option><option value="Europe/Rome">Italy / Rome (CET, UTC+1)</option><option value="Europe/Amsterdam">Netherlands (CET, UTC+1)</option><option value="Europe/Oslo">Norway / Oslo (CET, UTC+1)</option><option value="Europe/Stockholm">Sweden / Stockholm (CET, UTC+1)</option><option value="Europe/Copenhagen">Denmark (CET, UTC+1)</option><option value="Europe/Helsinki">Finland (EET, UTC+2)</option><option value="Europe/Dublin">Ireland / Dublin (GMT/IST)</option></optgroup><optgroup label="Americas"><option value="America/New_York">US — New York (ET, UTC-5/-4)</option><option value="America/Chicago">US — Chicago (CT, UTC-6/-5)</option><option value="America/Denver">US — Denver (MT, UTC-7/-6)</option><option value="America/Los_Angeles">US — Los Angeles (PT, UTC-8/-7)</option><option value="America/Phoenix">US — Phoenix (MST, UTC-7)</option><option value="America/Anchorage">US — Anchorage (AKST, UTC-9)</option><option value="Pacific/Honolulu">US — Hawaii (HST, UTC-10)</option><option value="America/Toronto">Canada / Toronto (ET, UTC-5/-4)</option><option value="America/Vancouver">Canada / Vancouver (PT, UTC-8/-7)</option><option value="America/Sao_Paulo">Brazil / São Paulo (BRT, UTC-3)</option><option value="America/Mexico_City">Mexico (CST, UTC-6)</option></optgroup><optgroup label="Oceania"><option value="Australia/Sydney">Australia / Sydney (AEST, UTC+10/11)</option><option value="Australia/Brisbane">Australia / Brisbane (AEST, UTC+10)</option><option value="Australia/Perth">Australia / Perth (AWST, UTC+8)</option><option value="Pacific/Auckland">New Zealand (NZST, UTC+12/13)</option></optgroup><optgroup label="Africa"><option value="Africa/Johannesburg">South Africa (SAST, UTC+2)</option><option value="Africa/Lagos">Nigeria (WAT, UTC+1)</option><option value="Africa/Nairobi">Kenya (EAT, UTC+3)</option></optgroup><optgroup label="UTC"><option value="UTC">UTC (Coordinated Universal Time)</option></optgroup></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>State / Province</label><input type="text" class="form-input" id="gcState" placeholder="State or Province"></div>
+      <div class="form-group"><label>City</label><input type="text" class="form-input" id="gcCity" placeholder="Your city"></div>
+    </div>
     <div class="form-group"><label>Password <span class="req">*</span></label><div class="pw-wrap"><input type="password" class="form-input" id="gcPw" placeholder="Create a password"><button class="pw-toggle" onclick="var i=document.getElementById('gcPw');i.type=i.type==='password'?'text':'password'">&#128065;</button></div></div>
     <div class="form-group"><label>Confirm Password <span class="req">*</span></label><input type="password" class="form-input" id="gcPwConfirm" placeholder="Confirm your password"></div>
     <button class="form-submit" onclick="handleGoogleCompleteSubmit()">Complete Sign-up</button>
@@ -8005,18 +8029,65 @@ async function adminLogin() {
 }
 
 // ========== SIGNUP ==========
+// Auto-detect and pre-select timezone in signup / google complete modals
+(function bbAutoTz() {
+  function setTz(selId) {
+    try {
+      var tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (!tz) return;
+      var sel = document.getElementById(selId);
+      if (!sel) return;
+      var opts = sel.options;
+      for (var i = 0; i < opts.length; i++) {
+        if (opts[i].value === tz) { sel.selectedIndex = i; return; }
+      }
+      // If exact match not found, add it as first option
+      var opt = document.createElement('option');
+      opt.value = tz;
+      opt.text = tz + ' (detected)';
+      sel.insertBefore(opt, sel.options[1]);
+      sel.selectedIndex = 1;
+    } catch (_) {}
+  }
+  function trySet() {
+    setTz('suTimezone');
+    setTz('gcTimezone');
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', trySet);
+  else trySet();
+})();
+
 async function handleSignup() {
-  const modal = document.getElementById('signupModal');
-  if (!modal) { showPopup('Error', 'Form not found.', '', 'OK'); return; }
-  const inputs = modal.querySelectorAll('.form-input');
-  if (inputs.length < 6) { showPopup('Error', 'Form fields not found.', '', 'OK'); return; }
-  const first_name = inputs[0].value.trim();
-  const last_name = inputs[1].value.trim();
-  const email = inputs[2].value.trim();
-  const phone = inputs[3].value.trim();
-  const password = document.getElementById('pwSignup') ? document.getElementById('pwSignup').value : inputs[4].value;
-  const confirm = inputs[5].value;
-  if (!email || !password) { showPopup('Missing Fields', 'Email and password are required.', '', 'OK'); return; }
+  var first_name = (document.getElementById('suFirst') || {}).value || '';
+  var last_name  = (document.getElementById('suLast')  || {}).value || '';
+  var email      = (document.getElementById('suEmail') || {}).value || '';
+  var phone      = (document.getElementById('suPhone') || {}).value || '';
+  var dob        = (document.getElementById('suDob')    || {}).value || '';
+  var gender     = (document.getElementById('suGender') || {}).value || '';
+  var country    = (document.getElementById('suCountry')|| {}).value || '';
+  var timezone   = (document.getElementById('suTimezone')|| {}).value || '';
+  var state_province = (document.getElementById('suState') || {}).value || '';
+  var city       = (document.getElementById('suCity')   || {}).value || '';
+  var password   = (document.getElementById('pwSignup') || {}).value || '';
+  var confirm    = (document.getElementById('suConfirmPw')|| {}).value || '';
+  first_name = String(first_name).trim();
+  last_name  = String(last_name).trim();
+  email      = String(email).trim();
+  phone      = String(phone).trim();
+  dob        = String(dob).trim();
+  gender     = String(gender).trim();
+  country    = String(country).trim();
+  timezone   = String(timezone).trim();
+  state_province = String(state_province).trim();
+  city       = String(city).trim();
+  if (!first_name) { showPopup('Missing Fields', 'First name is required.', '', 'OK'); return; }
+  if (!email) { showPopup('Missing Fields', 'Email is required.', '', 'OK'); return; }
+  if (!phone) { showPopup('Missing Fields', 'Mobile number is required.', '', 'OK'); return; }
+  if (!dob) { showPopup('Missing Fields', 'Date of birth is required.', '', 'OK'); return; }
+  if (!gender) { showPopup('Missing Fields', 'Please select your gender.', '', 'OK'); return; }
+  if (!country) { showPopup('Missing Fields', 'Country is required.', '', 'OK'); return; }
+  if (!timezone) { showPopup('Missing Fields', 'Please select your timezone.', '', 'OK'); return; }
+  if (!password) { showPopup('Missing Fields', 'Password is required.', '', 'OK'); return; }
   if (password !== confirm) { showPopup('Password Mismatch', 'Passwords do not match. Please try again.', '', 'OK'); return; }
 
   window.__bbSignupBloodQueued = null;
@@ -8047,7 +8118,7 @@ async function handleSignup() {
   var sBtn=modal.querySelector('.form-submit');
   if(sBtn){sBtn.disabled=true;sBtn.classList.add('loading');sBtn._orig=sBtn.innerHTML;sBtn.innerHTML='<span class="btn-spinner"></span> Creating account...';}
   try {
-    const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone });
+    const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone, dob, gender, country, timezone, state_province, city });
     if (data.error) {
       window.__bbSignupBloodQueued = null;
       if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
@@ -8071,11 +8142,20 @@ async function handleSignup() {
 
 async function handleGoogleCompleteSubmit() {
   if (!_pendingGoogleToken) { showPopup('Error', 'Session expired. Please sign up with Google again.', '', 'OK', null, 'error'); return; }
-  var ph = document.getElementById('gcPhone'), pw = document.getElementById('gcPw'), cf = document.getElementById('gcPwConfirm');
-  var phone = ph ? ph.value.trim() : '';
-  var password = pw ? pw.value : '';
-  var confirmVal = cf ? cf.value : '';
+  var phone    = ((document.getElementById('gcPhone')||{}).value||'').trim();
+  var dob      = ((document.getElementById('gcDob')||{}).value||'').trim();
+  var gender   = ((document.getElementById('gcGender')||{}).value||'').trim();
+  var country  = ((document.getElementById('gcCountry')||{}).value||'').trim();
+  var timezone = ((document.getElementById('gcTimezone')||{}).value||'').trim();
+  var state_province = ((document.getElementById('gcState')||{}).value||'').trim();
+  var city     = ((document.getElementById('gcCity')||{}).value||'').trim();
+  var password = (document.getElementById('gcPw')||{}).value||'';
+  var confirmVal = (document.getElementById('gcPwConfirm')||{}).value||'';
   if (!phone) { showPopup('Missing Field', 'Mobile (WhatsApp) number is required.', '', 'OK'); return; }
+  if (!dob) { showPopup('Missing Field', 'Date of birth is required.', '', 'OK'); return; }
+  if (!gender) { showPopup('Missing Field', 'Please select your gender.', '', 'OK'); return; }
+  if (!country) { showPopup('Missing Field', 'Country is required.', '', 'OK'); return; }
+  if (!timezone) { showPopup('Missing Field', 'Please select your timezone.', '', 'OK'); return; }
   if (!password) { showPopup('Missing Field', 'Password is required.', '', 'OK'); return; }
   if (password.length < 6) { showPopup('Invalid Password', 'Password must be at least 6 characters.', '', 'OK'); return; }
   if (password !== confirmVal) { showPopup('Password Mismatch', 'Passwords do not match.', '', 'OK'); return; }
@@ -8083,7 +8163,7 @@ async function handleGoogleCompleteSubmit() {
   var sBtn = modal ? modal.querySelector('.form-submit') : null;
   if (sBtn) { sBtn.disabled = true; sBtn.classList.add('loading'); sBtn._orig = sBtn.innerHTML; sBtn.innerHTML = '<span class="btn-spinner"></span> Creating account...'; }
   try {
-    var data = await apiCall('POST', '/api/auth/google-complete', { id_token: _pendingGoogleToken, phone: phone, password: password });
+    var data = await apiCall('POST', '/api/auth/google-complete', { id_token: _pendingGoogleToken, phone, password, dob, gender, country, timezone, state_province, city });
     if (data.error) { if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; } showPopup('Error', data.error, '', 'OK', null, 'error'); return; }
     _pendingGoogleToken = null;
     closeModal('googleCompleteModal');
@@ -9190,8 +9270,16 @@ async function viewSignupRequest(id) {
   const body = document.getElementById('signupViewBody');
   const actions = document.getElementById('signupViewActions');
   if (!body) return;
+  var _age = '';
+  if (r.dob) { try { var _bd = new Date(r.dob); var _ag = Math.floor((Date.now() - _bd.getTime()) / (365.25*24*3600*1000)); _age = ' (' + _ag + ' yrs)'; } catch(_){} }
   body.innerHTML = _row('Name', (r.first_name || '') + ' ' + (r.last_name || '').trim()) +
-    _row('Email', r.email) + _row('Phone', r.phone || '—') +
+    _row('Email', r.email) + _row('Mobile', r.phone || '—') +
+    _row('DOB', r.dob ? (new Date(r.dob).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'})) + _age : '—') +
+    _row('Gender', r.gender || '—') +
+    _row('Country', r.country || '—') +
+    _row('State / Province', r.state_province || '—') +
+    _row('City', r.city || '—') +
+    _row('Timezone', r.timezone || '—') +
     _row('Requested', r.created_at ? new Date(r.created_at).toLocaleString() : '');
   if (actions) {
     const sid = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");

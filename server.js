@@ -344,6 +344,10 @@ async function initDB() {
     last_name TEXT DEFAULT '',
     phone TEXT DEFAULT '',
     country TEXT DEFAULT '',
+    state_province TEXT DEFAULT '',
+    city TEXT DEFAULT '',
+    dob DATE,
+    gender TEXT DEFAULT '',
     timezone TEXT DEFAULT '',
     profile_picture TEXT DEFAULT '',
     role TEXT DEFAULT 'user',
@@ -354,6 +358,10 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN country TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN timezone TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN suspended BOOLEAN DEFAULT FALSE`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN state_province TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN city TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN dob DATE`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN gender TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
   await pool.query("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL").catch(() => {});
 
   await pool.query(`CREATE TABLE IF NOT EXISTS audit_requests (
@@ -1236,10 +1244,10 @@ app.post('/api/auth/google', async (req, res) => {
   }
 });
 
-// Google Sign-up: complete profile (phone, password) for new Google users
+// Google Sign-up: complete profile (phone, password + new fields) for new Google users
 app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) => {
   try {
-    const { id_token, phone, password } = req.body || {};
+    const { id_token, phone, password, dob, gender, country, timezone, state_province, city } = req.body || {};
     if (!id_token) return res.status(400).json({ error: 'ID token required' });
     if (!phone || typeof phone !== 'string' || !phone.trim()) return res.status(400).json({ error: 'Mobile (WhatsApp) number is required' });
     if (!password || typeof password !== 'string') return res.status(400).json({ error: 'Password is required' });
@@ -1253,19 +1261,25 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
 
     const emailNorm = String(email).trim().toLowerCase();
     const phoneTrimmed = String(phone || '').trim();
+    const geo = normalizeGeoFields(country, timezone);
+    const cleanDob = dob && String(dob).trim() ? String(dob).trim().slice(0, 10) : null;
+    const cleanGender = String(gender || '').trim().slice(0, 20);
+    const cleanState = String(state_province || '').trim().slice(0, 100);
+    const cleanCity = String(city || '').trim().slice(0, 100);
+
     const existing = await queryOne("SELECT id, approval_status FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (existing) return res.status(409).json({ error: 'Email already registered. Please log in instead.' });
 
     const id = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
-    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
-      [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', '', '', 'user', 'pending']);
+    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, state_province, city, dob, gender, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, 'user', 'pending']);
     sendPushToAdmins(JSON.stringify({ title: 'New sign-up (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
     userEmail.emailGoogleSignupPending(emailNorm, given_name);
-    notifyAsync('USER_SIGNUP_GOOGLE', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—' });
+    notifyAsync('USER_SIGNUP_GOOGLE', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—' });
     res.json({
       id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', role: 'user',
-      country: '', timezone: '', pending_approval: true,
+      country: geo.country, timezone: geo.timezone, pending_approval: true,
       message: 'Your account has been created and is pending admin approval.'
     });
   } catch (e) {
@@ -1276,17 +1290,21 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
 
 app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
   try {
-    const { email, password, first_name, last_name, phone, country, timezone } = req.body || {};
+    const { email, password, first_name, last_name, phone, country, timezone, state_province, city, dob, gender } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
     if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
     const geo = normalizeGeoFields(country, timezone);
+    const cleanDob = dob && String(dob).trim() ? String(dob).trim().slice(0, 10) : null;
+    const cleanGender = String(gender || '').trim().slice(0, 20);
+    const cleanState = String(state_province || '').trim().slice(0, 100);
+    const cleanCity = String(city || '').trim().slice(0, 100);
 
     const emailNorm = String(email).trim().toLowerCase();
     const existing = await queryOne("SELECT id, approval_status FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (existing && existing.approval_status === 'rejected') {
       const hash = bcrypt.hashSync(password, 10);
-      await run("UPDATE users SET password = ?, first_name = ?, last_name = ?, phone = ?, country = ?, timezone = ?, approval_status = 'pending' WHERE id = ?",
-        [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, existing.id]);
+      await run("UPDATE users SET password=?, first_name=?, last_name=?, phone=?, country=?, timezone=?, state_province=?, city=?, dob=?, gender=?, approval_status='pending' WHERE id=?",
+        [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, existing.id]);
       userEmail.emailSignupPending(emailNorm, first_name);
       return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
     }
@@ -1294,8 +1312,8 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
 
     const id = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
-    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, approval_status) VALUES (?,?,?,?,?,?,?,?,?)",
-      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, 'pending']);
+    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, state_province, city, dob, gender, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, 'pending']);
     sendPushToAdmins(JSON.stringify({ title: 'New sign-up', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
     userEmail.emailSignupPending(emailNorm, first_name);
     notifyAsync('USER_SIGNUP', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—' });
@@ -1685,18 +1703,22 @@ app.delete('/api/tribe/:id', async (req, res) => {
 
 // ============ USER PROFILE ============
 app.get('/api/profile/:id', async (req, res) => {
-  const user = await queryOne("SELECT id,email,first_name,last_name,phone,country,timezone,profile_picture,role,created_at FROM users WHERE id=?", [req.params.id]);
+  const user = await queryOne("SELECT id,email,first_name,last_name,phone,country,state_province,city,dob,gender,timezone,profile_picture,role,created_at FROM users WHERE id=?", [req.params.id]);
   if (!user) return res.status(404).json({ error: 'Not found' });
   res.json(user);
 });
 
 app.put('/api/profile/:id', async (req, res) => {
-  const { first_name, last_name, phone, email, profile_picture, country, timezone } = req.body || {};
+  const { first_name, last_name, phone, email, profile_picture, country, timezone, state_province, city, dob, gender } = req.body || {};
   const updates = [], values = [];
   if (first_name !== undefined) { updates.push('first_name=?'); values.push(first_name); }
   if (last_name !== undefined) { updates.push('last_name=?'); values.push(last_name); }
   if (phone !== undefined) { updates.push('phone=?'); values.push(phone); }
   if (country !== undefined) { updates.push('country=?'); values.push(String(country || '').trim()); }
+  if (state_province !== undefined) { updates.push('state_province=?'); values.push(String(state_province || '').trim().slice(0, 100)); }
+  if (city !== undefined) { updates.push('city=?'); values.push(String(city || '').trim().slice(0, 100)); }
+  if (dob !== undefined) { updates.push('dob=?'); values.push(dob && String(dob).trim() ? String(dob).trim().slice(0, 10) : null); }
+  if (gender !== undefined) { updates.push('gender=?'); values.push(String(gender || '').trim().slice(0, 20)); }
   if (timezone !== undefined) {
     const tzValue = String(timezone || '').trim() || inferTimezoneFromCountry(country);
     updates.push('timezone=?');
@@ -2183,7 +2205,9 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
     const b = req.body || {};
     const { steps, protein_g, sleep_hours } = b;
     const waterMl = waterMlFromDailyBody(b);
-    const today = streakTodayYmdInTz(STREAK_TIMEZONE) || streakDateToYmd(new Date());
+    const _userTzRow = await queryOne('SELECT timezone FROM users WHERE id = ?', [userId]).catch(() => null);
+    const _userTz = (_userTzRow && _userTzRow.timezone) ? _userTzRow.timezone : STREAK_TIMEZONE;
+    const today = streakTodayYmdInTz(_userTz) || streakDateToYmd(new Date());
     const existing = await queryOne('SELECT id FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
     if (existing) {
       return res.status(400).json({ error: 'You can only fill the daily check-in once per day.' });
@@ -2263,7 +2287,9 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
 
 app.get('/api/daily-checkin/today', verifyToken, async (req, res) => {
   try {
-    const today = streakTodayYmdInTz(STREAK_TIMEZONE) || streakDateToYmd(new Date());
+    const _utzRow = await queryOne('SELECT timezone FROM users WHERE id = ?', [req.user.id]).catch(() => null);
+    const _utz = (_utzRow && _utzRow.timezone) ? _utzRow.timezone : STREAK_TIMEZONE;
+    const today = streakTodayYmdInTz(_utz) || streakDateToYmd(new Date());
     const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [req.user.id, today]);
     res.json(row ? attachWaterLitersToDailyRow(row) : { checkin_date: today, water_liters: null });
   } catch (e) {
@@ -2273,14 +2299,15 @@ app.get('/api/daily-checkin/today', verifyToken, async (req, res) => {
 
 app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
   try {
+    const _uRow = await queryOne('SELECT created_at, timezone FROM users WHERE id = ?', [req.user.id]);
+    const _uTz = (_uRow && _uRow.timezone) ? _uRow.timezone : STREAK_TIMEZONE;
     const rows = await queryAll(
       `SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365`,
       [req.user.id]
     );
     if (!rows || rows.length === 0) {
-      const today = streakTodayYmdInTz(STREAK_TIMEZONE) || streakDateToYmd(new Date());
-      const u = await queryOne('SELECT created_at FROM users WHERE id = ?', [req.user.id]);
-      const createdAtDate = streakDateToYmd(u && u.created_at ? u.created_at : null);
+      const today = streakTodayYmdInTz(_uTz) || streakDateToYmd(new Date());
+      const createdAtDate = streakDateToYmd(_uRow && _uRow.created_at ? _uRow.created_at : null);
       let inactiveDays = null;
       if (createdAtDate) {
         inactiveDays = Math.floor((new Date(today + 'T00:00:00Z') - new Date(createdAtDate + 'T00:00:00Z')) / (24 * 60 * 60 * 1000));
@@ -2298,7 +2325,7 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
         inactiveSeverity
       });
     }
-    const { today, todaySaved, streak } = computeStreakState(rows, null);
+    const { today, todaySaved, streak } = computeStreakState(rows, null, _uTz);
     const lastCheckinDate = rows[0] ? streakDateToYmd(rows[0].checkin_date) : null;
     let inactiveDays = todaySaved ? 0 : (lastCheckinDate
       ? Math.floor((new Date(today + 'T00:00:00Z') - new Date(lastCheckinDate + 'T00:00:00Z')) / (24 * 60 * 60 * 1000))
@@ -2715,7 +2742,7 @@ app.post('/api/admin/reject-user/:id', async (req, res) => {
 
 app.get('/api/admin/pending-signup/:id', async (req, res) => {
   try {
-    const user = await queryOne("SELECT id, email, first_name, last_name, phone, country, timezone, created_at FROM users WHERE id = ? AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')", [req.params.id]);
+    const user = await queryOne("SELECT id, email, first_name, last_name, phone, country, state_province, city, dob, gender, timezone, created_at FROM users WHERE id = ? AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')", [req.params.id]);
     if (!user) return res.status(404).json({ error: 'Not found' });
     res.json(user);
   } catch (e) {

@@ -46,7 +46,7 @@ function yesterdayUtcDateString() {
 
 async function getApprovedUsersWithEmail() {
   return _queryAll(
-    "SELECT id, email, first_name, last_name FROM users WHERE role = 'user' AND COALESCE(approval_status,'approved') = 'approved' AND email IS NOT NULL AND TRIM(email) <> ''"
+    "SELECT id, email, first_name, last_name, COALESCE(NULLIF(TRIM(timezone),''), 'Asia/Kolkata') AS timezone FROM users WHERE role = 'user' AND COALESCE(approval_status,'approved') = 'approved' AND email IS NOT NULL AND TRIM(email) <> ''"
   );
 }
 
@@ -59,28 +59,33 @@ async function runSaturdaySundayPrep() {
   }
 }
 
-/** Sunday 09:30 IST — nudge if no Sunday check-in submitted today (UTC date match with app storage) */
+/** Per-user local date helper — uses each user's confirmed IANA timezone */
+function todayInTz(tz) {
+  try { return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date()); } catch (_) { return new Date().toISOString().slice(0, 10); }
+}
+
+/** Sunday 09:30 IST — nudge if no Sunday check-in submitted (checked against each user's local date) */
 async function runSundayMorningReminder() {
   if (!userEmail.isConfigured()) return;
-  const today = todayUtcDateString();
   const users = await getApprovedUsersWithEmail();
   for (const u of users) {
+    const userToday = todayInTz(u.timezone || TZ);
     const done = await _queryAll(
       "SELECT id FROM sunday_checkins WHERE created_at::date = ?::date AND (user_id = ? OR (reply_email IS NOT NULL AND LOWER(TRIM(reply_email)) = LOWER(TRIM(?))))",
-      [today, u.id, u.email]
+      [userToday, u.id, u.email]
     );
     if (done && done.length) continue;
     userEmail.emailSundayReminderToday(u.email, u.first_name || '');
   }
 }
 
-/** Daily 20:00 IST — daily check-in nudge (no row for “today” UTC) */
+/** Daily 20:00 IST — daily check-in nudge (checked against each user's own local date) */
 async function runDailyCheckinReminder() {
   if (!userEmail.isConfigured()) return;
-  const today = todayUtcDateString();
   const users = await getApprovedUsersWithEmail();
   for (const u of users) {
-    const row = await _queryAll('SELECT id FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [u.id, today]);
+    const userToday = todayInTz(u.timezone || TZ);
+    const row = await _queryAll('SELECT id FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [u.id, userToday]);
     if (row && row.length) continue;
     userEmail.emailDailyCheckinReminder(u.email, u.first_name || '');
   }
@@ -282,6 +287,8 @@ async function getAdminDailyComplianceReportData(opts = {}) {
   const startIso = window.startUtc.toISOString().slice(0, 19).replace('T', ' ');
   const endIso = window.endUtc.toISOString().slice(0, 19).replace('T', ' ');
 
+  const complianceDate = window.startUtc.toISOString().slice(0, 10); // IST "yesterday" date — used as per-user compliance date
+
   const rows = await queryAll(
     `SELECT
       u.id,
@@ -289,8 +296,7 @@ async function getAdminDailyComplianceReportData(opts = {}) {
       CASE WHEN EXISTS (
         SELECT 1 FROM daily_checkins d
         WHERE d.user_id = u.id
-          AND d.created_at >= ?::timestamp
-          AND d.created_at < ?::timestamp
+          AND d.checkin_date = ?::date
       ) THEN 'Yes' ELSE 'Missed' END AS daily_status,
       CASE WHEN EXISTS (
         SELECT 1 FROM progress_logs p
@@ -315,7 +321,7 @@ async function getAdminDailyComplianceReportData(opts = {}) {
       AND COALESCE(u.approval_status, 'approved') = 'approved'
       AND COALESCE(u.suspended, FALSE) = FALSE
     ORDER BY TRIM(COALESCE(u.first_name, '') || ' ' || COALESCE(u.last_name, '')), u.email`,
-    [startIso, endIso, startIso, endIso, startIso, endIso, startIso, endIso]
+    [complianceDate, startIso, endIso, startIso, endIso, startIso, endIso]
   );
 
   const summary = {

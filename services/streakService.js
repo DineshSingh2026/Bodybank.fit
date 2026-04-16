@@ -40,9 +40,12 @@ function addCalendarDaysYmd(ymd, delta) {
   return dt.toISOString().slice(0, 10);
 }
 
-/** Shared by GET /api/daily-checkin/streak and getCurrentStreak (no duplicate DB + logic drift). */
-function computeStreakState(rows, todayOverrideYmd) {
-  const today = todayOverrideYmd || todayYmdInTz(STREAK_TZ) || toDateStr(new Date());
+/** Shared by GET /api/daily-checkin/streak and getCurrentStreak (no duplicate DB + logic drift).
+ *  @param {string|null} userTimezone - IANA timezone string; falls back to STREAK_TZ (IST) if not provided.
+ */
+function computeStreakState(rows, todayOverrideYmd, userTimezone) {
+  const tz = (userTimezone && typeof userTimezone === 'string' && userTimezone.trim()) ? userTimezone.trim() : STREAK_TZ;
+  const today = todayOverrideYmd || todayYmdInTz(tz) || toDateStr(new Date());
   const dates = new Set((rows || []).map((r) => toDateStr(r.checkin_date)).filter(Boolean));
   const todaySaved = today ? dates.has(today) : false;
   let streak = 0;
@@ -86,18 +89,20 @@ function streakAsOfEndOfDay(allDatesSet, asOfStr) {
 }
 
 /**
- * Last 120 calendar days ending server "today" (same anchor as getCurrentStreak), one point per day.
+ * Last 120 calendar days ending user's "today" (per their timezone), one point per day.
  * @param {Array<{checkin_date?: string}>} rows - daily_checkins rows or plain date strings
+ * @param {string|null} userTimezone - IANA timezone string; falls back to STREAK_TZ (IST) if not provided.
  * @returns {Array<{ date: string, streak: number }>}
  */
-function buildStreakHistoryFromCheckinRows(rows) {
+function buildStreakHistoryFromCheckinRows(rows, userTimezone) {
+  const tz = (userTimezone && typeof userTimezone === 'string' && userTimezone.trim()) ? userTimezone.trim() : STREAK_TZ;
   const all = new Set();
   (rows || []).forEach((r) => {
     const raw = typeof r === 'string' ? r : r && r.checkin_date;
     const s = toDateStr(raw);
     if (s) all.add(s);
   });
-  const anchor = todayYmdInTz(STREAK_TZ) || toDateStr(new Date());
+  const anchor = todayYmdInTz(tz) || toDateStr(new Date());
   if (!anchor) return [];
   const out = [];
   for (let i = 119; i >= 0; i--) {
