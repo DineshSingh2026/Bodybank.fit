@@ -3,6 +3,7 @@
 const { v4: uuidv4 } = require('uuid');
 const userEmail = require('../services/userEmailService');
 const nutritionService = require('../services/nutritionService');
+const coinService = require('../services/coinService');
 
 const {
   MEAL_TYPES,
@@ -71,6 +72,30 @@ function ymdOrToday(body, query) {
   const s = String(raw).trim().slice(0, 10);
   if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
   return todayYmdInTz(STREAK_TZ) || new Date().toISOString().slice(0, 10);
+}
+
+async function safeAwardCoins(db, userId, eventType, eventKey, coinsDelta, meta, createdAtYmd) {
+  try {
+    await coinService.awardCoins(db, {
+      userId: String(userId),
+      eventType,
+      eventKey,
+      coinsDelta,
+      meta: meta || {},
+      createdAtYmd
+    });
+  } catch (e) {
+    console.warn('[coins award][nutrition]', e.message);
+  }
+}
+
+async function safeApplyPenalties(db, userId) {
+  try {
+    const today = todayYmdInTz(STREAK_TZ) || new Date().toISOString().slice(0, 10);
+    await coinService.applyMissedDailyPenaltiesForUser(db, String(userId), today);
+  } catch (e) {
+    console.warn('[coins penalty][nutrition]', e.message);
+  }
 }
 
 async function buildWeeklyNutritionSummary(db, userId, endYmd) {
@@ -335,6 +360,19 @@ function createNutritionRouter(deps) {
         notifyResult = await sendNutritionNotifications(db, { userId, ymd, userRow: u, channel: 'both' });
       }
 
+      await safeApplyPenalties(db, userId);
+      if (nMeals >= 4) {
+        await safeAwardCoins(
+          db,
+          userId,
+          'nutrition_day_complete',
+          `coins:nutrition_day_complete:${userId}:${ymd}`,
+          coinService.COIN_RULES.NUTRITION_DAY_COMPLETE,
+          { date: ymd, mealsLogged: nMeals },
+          ymd
+        );
+      }
+
       res.json({
         aiResult,
         usage,
@@ -415,6 +453,18 @@ function createNutritionRouter(deps) {
         [userId, ymd]
       );
       const dailyConfidence = summarizeDailyConfidence((dailyRows || []).map((r) => confidenceFromLogRow(r)));
+      await safeApplyPenalties(db, userId);
+      if (nMeals >= 4) {
+        await safeAwardCoins(
+          db,
+          userId,
+          'nutrition_day_complete',
+          `coins:nutrition_day_complete:${userId}:${ymd}`,
+          coinService.COIN_RULES.NUTRITION_DAY_COMPLETE,
+          { date: ymd, mealsLogged: nMeals },
+          ymd
+        );
+      }
       res.json({
         aiResult: aiStored,
         mealScore,

@@ -38,6 +38,7 @@ const monthlyReportNarrative = require('./services/monthlyReportNarrative');
 const { writeSundayCheckinPdf, writePart2Pdf } = require('./services/formPdfService');
 const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
+const coinService = require('./services/coinService');
 const { startEmailScheduler, getAdminDailyComplianceReportData, sendAdminDailyComplianceReport } = require('./services/emailScheduler');
 const {
   toDateStr: streakDateToYmd,
@@ -562,6 +563,29 @@ async function initDB() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_user_date ON daily_checkins(user_id, checkin_date)`); } catch (e) { /* ignore */ }
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS coin_wallet (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    balance INTEGER NOT NULL DEFAULT 0,
+    lifetime_earned INTEGER NOT NULL DEFAULT 0,
+    lifetime_redeemed INTEGER NOT NULL DEFAULT 0,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS coin_ledger (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    event_type TEXT NOT NULL,
+    event_key TEXT NOT NULL UNIQUE,
+    coins_delta INTEGER NOT NULL,
+    meta_json JSONB NOT NULL DEFAULT '{}'::jsonb,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS coin_penalty_state (
+    user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    last_penalty_date DATE,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_coin_ledger_user_date ON coin_ledger(user_id, created_at DESC)`); } catch (_) {}
 
   await pool.query(`CREATE TABLE IF NOT EXISTS nutrition_meal_logs (
     id TEXT PRIMARY KEY,
@@ -1454,6 +1478,15 @@ app.post('/api/part2', rateLimiter(5, 60000), async (req, res) => {
       [id, b.name || '', b.email || '', b.mobile || '', b.sports_history || '', b.injuries || '', b.mental_health || '', b.gym_experience || '', b.food_choices || '', b.vices_addictions || '', b.goals || '', b.what_compelled || '', b.activity_level || '']);
     sendPushToAdmins(JSON.stringify({ title: 'New Part-2 form', body: `${b.name || ''} (${b.email || ''}) submitted Part-2 audit`, id: 'part2-' + id })).catch(() => {});
     userEmail.emailPart2Received(String(b.email).trim(), b.name);
+    if (b.user_id) {
+      await safeAwardCoins(
+        String(b.user_id),
+        'part2_complete',
+        `coins:part2_complete:${String(b.user_id)}`,
+        coinService.COIN_RULES.PART2_COMPLETE,
+        { formId: id }
+      );
+    }
     res.json({ id, message: 'Form submitted successfully' });
   } catch (e) {
     res.status(500).json({ error: 'Submission failed' });
@@ -1694,6 +1727,16 @@ app.post('/api/workouts', async (req, res) => {
     if (wu && wu.email) {
       userEmail.emailWorkoutLogged(wu.email, wu.first_name, workout_name, duration_seconds != null ? Math.round(duration_seconds / 60) : null);
     }
+    const ymd = new Date().toISOString().slice(0, 10);
+    await safeApplyCoinPenaltiesForUser(String(user_id));
+    await safeAwardCoins(
+      String(user_id),
+      'workout_session',
+      `coins:workout_session:${String(user_id)}:${ymd}`,
+      coinService.COIN_RULES.WORKOUT_SESSION,
+      { source: 'workouts_legacy', workoutName: workout_name },
+      ymd
+    );
     res.json({ id, message: 'Workout logged' });
   } catch (e) {
     console.error('Workout error:', e.message);
@@ -1785,6 +1828,15 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
         Number.isFinite(dur) ? Math.round(dur / 60) : null
       );
     }
+    await safeApplyCoinPenaltiesForUser(userId);
+    await safeAwardCoins(
+      userId,
+      'workout_session',
+      `coins:workout_session:${userId}:${date}`,
+      coinService.COIN_RULES.WORKOUT_SESSION,
+      { source: 'workouts_session', workoutType },
+      date
+    );
     res.json({ id, message: 'Session saved' });
   } catch (e) {
     console.error('Workout session error:', e.message);
@@ -1999,6 +2051,19 @@ app.post('/api/sunday-checkin', rateLimiter(10, 60000), async (req, res) => {
       const su = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [b.user_id]);
       if (su && su.email) userEmail.emailSundayCheckinReceived(su.email, su.first_name);
     }
+    if (b.user_id) {
+      const ymd = streakTodayYmdInTz(STREAK_TIMEZONE) || streakDateToYmd(new Date());
+      const weekKey = coinService.isoWeekKey(ymd);
+      await safeApplyCoinPenaltiesForUser(String(b.user_id));
+      await safeAwardCoins(
+        String(b.user_id),
+        'sunday_checkin',
+        `coins:sunday_checkin:${String(b.user_id)}:${weekKey}`,
+        coinService.COIN_RULES.SUNDAY_CHECKIN,
+        { checkinId: id, weekKey },
+        ymd
+      );
+    }
     res.json({ id, message: 'Sunday check-in submitted successfully' });
   } catch (e) {
     console.error('Sunday check-in error:', e.message);
@@ -2074,6 +2139,28 @@ async function safeRecomputeNutritionForDate(userId, ymd) {
   }
 }
 
+async function safeAwardCoins(userId, eventType, eventKey, coinsDelta, meta, createdAtYmd) {
+  try {
+    if (!userId || !eventType || !eventKey) return;
+    await coinService.awardCoins(
+      { run, queryOne, queryAll },
+      { userId: String(userId), eventType, eventKey, coinsDelta, meta: meta || {}, createdAtYmd }
+    );
+  } catch (e) {
+    console.warn('[coins award]', e.message);
+  }
+}
+
+async function safeApplyCoinPenaltiesForUser(userId) {
+  try {
+    if (!userId) return;
+    const today = streakTodayYmdInTz(STREAK_TIMEZONE) || streakDateToYmd(new Date());
+    await coinService.applyMissedDailyPenaltiesForUser({ run, queryOne, queryAll }, String(userId), today);
+  } catch (e) {
+    console.warn('[coins penalty]', e.message);
+  }
+}
+
 // User can fill only once per day for streak
 app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, res) => {
   try {
@@ -2102,6 +2189,45 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
       if (protein_g != null) lines.push(`Protein: ${protein_g} g`);
       if (sleep_hours != null) lines.push(`Sleep: ${sleep_hours} hrs`);
       userEmail.emailDailyCheckinReceived(du.email, du.first_name, lines);
+    }
+    await safeApplyCoinPenaltiesForUser(userId);
+    await safeAwardCoins(
+      userId,
+      'daily_checkin',
+      `coins:daily_checkin:${userId}:${today}`,
+      coinService.COIN_RULES.DAILY_CHECKIN,
+      { checkinDate: today },
+      today
+    );
+    if (waterMl != null && waterMl >= 2000) {
+      await safeAwardCoins(
+        userId,
+        'daily_goal_water',
+        `coins:daily_goal_water:${userId}:${today}`,
+        3,
+        { waterMl, targetMl: 2000 },
+        today
+      );
+    }
+    if (protein_g != null && Number(protein_g) >= 100) {
+      await safeAwardCoins(
+        userId,
+        'daily_goal_protein',
+        `coins:daily_goal_protein:${userId}:${today}`,
+        3,
+        { proteinG: Number(protein_g), targetG: 100 },
+        today
+      );
+    }
+    if (sleep_hours != null && Number(sleep_hours) >= 7) {
+      await safeAwardCoins(
+        userId,
+        'daily_goal_sleep',
+        `coins:daily_goal_sleep:${userId}:${today}`,
+        3,
+        { sleepHours: Number(sleep_hours), targetHours: 7 },
+        today
+      );
     }
     res.json(attachWaterLitersToDailyRow(row) || attachWaterLitersToDailyRow({ id, user_id: userId, checkin_date: today, steps, water_ml: waterMl, protein_g, sleep_hours }));
   } catch (e) {
@@ -2182,6 +2308,30 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: 'Failed to load streak' });
+  }
+});
+
+app.get('/api/coins/summary', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    await safeApplyCoinPenaltiesForUser(userId);
+    const summary = await coinService.getCoinSummary({ run, queryOne, queryAll }, userId);
+    res.json(summary);
+  } catch (e) {
+    console.error('[coins summary]', e.message);
+    res.status(500).json({ error: 'Failed to load coin summary' });
+  }
+});
+
+app.get('/api/coins/ledger', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    await safeApplyCoinPenaltiesForUser(userId);
+    const rows = await coinService.listCoinLedger({ run, queryOne, queryAll }, userId, req.query.limit);
+    res.json(rows || []);
+  } catch (e) {
+    console.error('[coins ledger]', e.message);
+    res.status(500).json({ error: 'Failed to load coin history' });
   }
 });
 
@@ -5817,6 +5967,21 @@ app.listen(PORT, '0.0.0.0', () => {
       console.log(`✅ Nutrition admin daily digest cron scheduled (Daily 08:00 Asia/Kolkata -> ${NUTRITION_ADMIN_REPORT_EMAIL || 'not set'})`);
     } catch (e) {
       console.warn('Nutrition admin daily digest cron schedule skipped:', e.message);
+    }
+
+    try {
+      cron.schedule(
+        '10 0 * * *',
+        () => {
+          coinService
+            .runDailyCoinPenaltyJob({ queryAll, queryOne, run })
+            .catch((e) => console.warn('[coins] Daily penalty cron error:', e.message));
+        },
+        { timezone: 'Asia/Kolkata' }
+      );
+      console.log('✅ Coin penalty cron scheduled (Daily 00:10 Asia/Kolkata)');
+    } catch (e) {
+      console.warn('Coin penalty cron schedule skipped:', e.message);
     }
   }).catch(err => {
     console.error('Failed to init DB:', err);
