@@ -5905,25 +5905,39 @@ app.get('/api/public/nutrition-photo/:mealId', async (req, res) => {
     const mealId = String(req.params.mealId || '').trim();
     const e = String(req.query.e || '').trim();
     const sig = String(req.query.sig || '').trim();
-    if (!mealId || !e || !sig) return res.status(400).send('Bad request');
-    if (!verifyNutritionPhotoLink(mealId, e, sig)) return res.status(403).send('Forbidden');
+    if (!mealId || !e || !sig) {
+      console.warn('[photo-serve] Missing params mealId=%s e=%s sig=%s', mealId, !!e, !!sig);
+      return res.status(400).send('Bad request');
+    }
+    if (!verifyNutritionPhotoLink(mealId, e, sig)) {
+      console.warn('[photo-serve] Invalid or expired signature for mealId=%s expiry=%s now=%s', mealId, e, Date.now());
+      return res.status(403).send('Forbidden');
+    }
 
     const row = await queryOne(
-      `SELECT photo_data, photo_mime
-       FROM nutrition_meal_logs
-       WHERE id = $1
-       LIMIT 1`,
+      'SELECT photo_data, photo_mime FROM nutrition_meal_logs WHERE id = ? LIMIT 1',
       [mealId]
     );
-    if (!row || !row.photo_data) return res.status(404).send('Not found');
+    if (!row || !row.photo_data) {
+      console.warn('[photo-serve] No photo found for mealId=%s (purged or missing)', mealId);
+      return res.status(404).send('Not found');
+    }
     const data = String(row.photo_data || '');
     const mime = String(row.photo_mime || 'image/jpeg');
     const b64 = data.includes(',') ? data.split(',')[1] : data;
     const buf = Buffer.from(b64, 'base64');
+    // WhatsApp / Twilio hard limit is 5 MB for images
+    if (buf.length > 5 * 1024 * 1024) {
+      console.warn('[photo-serve] Photo too large for Twilio: %d bytes for mealId=%s', buf.length, mealId);
+      return res.status(413).send('Photo too large');
+    }
+    console.log('[photo-serve] Serving photo mealId=%s size=%d mime=%s', mealId, buf.length, mime);
     res.setHeader('Content-Type', mime);
+    res.setHeader('Content-Length', buf.length);
     res.setHeader('Cache-Control', 'public, max-age=300');
     return res.send(buf);
-  } catch (_) {
+  } catch (err) {
+    console.error('[photo-serve] Error for mealId=%s:', req.params.mealId, err.message);
     return res.status(500).send('Error');
   }
 });

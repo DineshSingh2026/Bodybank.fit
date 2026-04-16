@@ -92,14 +92,26 @@ async function getUserTz(db, userId) {
 }
 
 function appBaseUrlFromReq(req) {
-  return (
-    process.env.PUBLIC_URL ||
-    process.env.RESET_BASE_URL ||
-    process.env.APP_BASE_URL ||
-    process.env.SITE_URL ||
-    process.env.RENDER_EXTERNAL_URL ||
-    (req ? (req.protocol + '://' + req.get('host')) : '')
-  );
+  // RENDER_EXTERNAL_URL is auto-set by Render as https:// — highest priority for public media URLs
+  const candidates = [
+    process.env.RENDER_EXTERNAL_URL,
+    process.env.PUBLIC_URL,
+    process.env.APP_BASE_URL,
+    process.env.SITE_URL,
+    process.env.RESET_BASE_URL,
+    req ? (req.protocol + '://' + req.get('host')) : ''
+  ];
+  for (const c of candidates) {
+    if (c && typeof c === 'string' && c.trim() && c.includes('://')) {
+      let url = String(c).trim().replace(/\/$/, '');
+      // Always force HTTPS — Twilio and WhatsApp reject HTTP media URLs
+      if (url.startsWith('http://') && !url.includes('localhost') && !url.includes('127.0.0.1')) {
+        url = 'https://' + url.slice(7);
+      }
+      return url;
+    }
+  }
+  return '';
 }
 
 async function safeAwardCoins(db, userId, eventType, eventKey, coinsDelta, meta, createdAtYmd) {
@@ -377,9 +389,20 @@ function createNutritionRouter(deps) {
          LIMIT 1`,
         [userId, ymd, mt]
       ).catch(() => null);
-      const mealPhotoUrl = latestMealWithPhoto && latestMealWithPhoto.id && latestMealWithPhoto.photo_data
-        ? buildSignedPhotoUrl(appBaseUrlFromReq(req), latestMealWithPhoto.id, 24 * 60 * 60 * 1000)
-        : null;
+      const mealPhotoUrl = (() => {
+        if (!latestMealWithPhoto || !latestMealWithPhoto.id || !latestMealWithPhoto.photo_data) return null;
+        const baseUrl = appBaseUrlFromReq(req);
+        if (!baseUrl) { console.warn('[nutrition] appBaseUrlFromReq returned empty — mediaUrl skipped'); return null; }
+        // Guard: estimate binary size from base64 — skip if likely > 4.5 MB (WhatsApp hard limit 5 MB)
+        const b64raw = String(latestMealWithPhoto.photo_data || '');
+        const b64 = b64raw.includes(',') ? b64raw.slice(b64raw.indexOf(',') + 1) : b64raw;
+        const approxBytes = Math.floor(b64.length * 0.75);
+        if (approxBytes > 4.5 * 1024 * 1024) {
+          console.warn('[nutrition] Photo too large for Twilio (%d approx bytes) — mediaUrl skipped', approxBytes);
+          return null;
+        }
+        return buildSignedPhotoUrl(baseUrl, latestMealWithPhoto.id, 24 * 60 * 60 * 1000);
+      })();
 
       const dailyStats = await recomputeDailyStats(db, userId, ymd);
       const nMeals = await countMealsForDay(db, userId, ymd);
@@ -496,9 +519,19 @@ function createNutritionRouter(deps) {
          LIMIT 1`,
         [userId, ymd, mt]
       ).catch(() => null);
-      const manualMealPhotoUrl = latestManualMeal && latestManualMeal.id && latestManualMeal.photo_data
-        ? buildSignedPhotoUrl(appBaseUrlFromReq(req), latestManualMeal.id, 24 * 60 * 60 * 1000)
-        : null;
+      const manualMealPhotoUrl = (() => {
+        if (!latestManualMeal || !latestManualMeal.id || !latestManualMeal.photo_data) return null;
+        const baseUrl = appBaseUrlFromReq(req);
+        if (!baseUrl) { console.warn('[nutrition/log] appBaseUrlFromReq returned empty — mediaUrl skipped'); return null; }
+        const b64raw = String(latestManualMeal.photo_data || '');
+        const b64 = b64raw.includes(',') ? b64raw.slice(b64raw.indexOf(',') + 1) : b64raw;
+        const approxBytes = Math.floor(b64.length * 0.75);
+        if (approxBytes > 4.5 * 1024 * 1024) {
+          console.warn('[nutrition/log] Photo too large for Twilio (%d approx bytes) — mediaUrl skipped', approxBytes);
+          return null;
+        }
+        return buildSignedPhotoUrl(baseUrl, latestManualMeal.id, 24 * 60 * 60 * 1000);
+      })();
 
       const dailyStats = await recomputeDailyStats(db, userId, ymd);
       const nMeals = await countMealsForDay(db, userId, ymd);
