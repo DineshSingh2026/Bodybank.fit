@@ -2886,6 +2886,36 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .admin-nutrition-thumb .ph.expired svg{opacity:.45}
 .admin-nutrition-thumb .lbl{font-size:9px;padding:4px 6px;color:var(--muted);text-transform:uppercase}
 /* Meal image lightbox */
+/* ── Coin History Modal ─────────────────────────────── */
+#bbCoinHistoryModal{display:none;position:fixed;inset:0;z-index:9990;background:rgba(0,0,0,.78);align-items:flex-end;justify-content:center;padding:0}
+#bbCoinHistoryModal.open{display:flex;animation:bbCoinModalIn .22s ease-out}
+@keyframes bbCoinModalIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+#bbCoinHistoryModal .chm-box{background:#161310;border-radius:20px 20px 0 0;border:1px solid rgba(212,175,55,.18);border-bottom:none;width:100%;max-width:520px;max-height:82vh;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 -8px 40px rgba(0,0,0,.5)}
+#bbCoinHistoryModal .chm-head{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid rgba(212,175,55,.12);flex-shrink:0}
+#bbCoinHistoryModal .chm-title{font-family:var(--bb-font-heading,serif);font-size:17px;font-weight:700;color:#d4af37;letter-spacing:.04em}
+#bbCoinHistoryModal .chm-close{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:rgba(255,255,255,.7);border-radius:8px;padding:6px 12px;font-size:13px;cursor:pointer;line-height:1;transition:background .15s}
+#bbCoinHistoryModal .chm-close:hover{background:rgba(255,255,255,.14)}
+#bbCoinHistoryModal .chm-summary{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:rgba(212,175,55,.06);border-bottom:1px solid rgba(212,175,55,.1);flex-shrink:0}
+#bbCoinHistoryModal .chm-bal-label{font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:rgba(203,191,159,.7)}
+#bbCoinHistoryModal .chm-bal-val{font-family:var(--bb-font-heading,serif);font-size:22px;font-weight:700;color:#d4af37;letter-spacing:.02em}
+#bbCoinHistoryModal .chm-bal-sub{font-size:11px;color:rgba(203,191,159,.55);margin-top:2px}
+#bbCoinHistoryModal .chm-scroll{overflow-y:auto;flex:1;padding:4px 0 12px}
+#bbCoinHistoryModal .chm-scroll::-webkit-scrollbar{width:3px}
+#bbCoinHistoryModal .chm-scroll::-webkit-scrollbar-thumb{background:rgba(212,175,55,.25);border-radius:2px}
+#bbCoinHistoryModal .chm-col-head{display:grid;grid-template-columns:72px 1fr 52px;gap:0;padding:8px 20px 6px;border-bottom:1px solid rgba(255,255,255,.05)}
+#bbCoinHistoryModal .chm-col-head span{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:rgba(203,191,159,.45);font-weight:600}
+#bbCoinHistoryModal .chm-col-head span:last-child{text-align:right}
+#bbCoinHistoryModal .chm-row{display:grid;grid-template-columns:72px 1fr 52px;gap:0;padding:11px 20px;border-bottom:1px solid rgba(255,255,255,.04);align-items:center;transition:background .12s}
+#bbCoinHistoryModal .chm-row:hover{background:rgba(212,175,55,.05)}
+#bbCoinHistoryModal .chm-row:last-child{border-bottom:none}
+#bbCoinHistoryModal .chm-date{font-size:11px;color:rgba(203,191,159,.55);white-space:nowrap}
+#bbCoinHistoryModal .chm-label{font-size:13px;color:rgba(255,255,255,.82);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#bbCoinHistoryModal .chm-delta{font-size:14px;font-weight:700;text-align:right;white-space:nowrap;font-family:var(--bb-font-heading,serif)}
+#bbCoinHistoryModal .chm-delta.pos{color:#d4af37}
+#bbCoinHistoryModal .chm-delta.neg{color:rgba(220,80,80,.85)}
+#bbCoinHistoryModal .chm-empty{text-align:center;padding:40px 20px;color:rgba(203,191,159,.45);font-size:13px}
+#bbCoinHistoryModal .chm-loading{text-align:center;padding:40px 20px;color:rgba(203,191,159,.45);font-size:13px}
+/* ── Meal Lightbox ──────────────────────────────────── */
 #bbMealLightbox{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);align-items:center;justify-content:center;flex-direction:column}
 #bbMealLightbox.open{display:flex}
 #bbMealLightbox .bb-lb-img{max-width:min(92vw,600px);max-height:72vh;border-radius:12px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.6)}
@@ -12570,24 +12600,60 @@ async function bbLoadCoinSummary(force) {
     }
   } catch (_) {}
 }
+function bbCoinHistoryModalClose() {
+  var m = document.getElementById('bbCoinHistoryModal');
+  if (m) m.classList.remove('open');
+}
+function bbCoinHistoryModalBgClose(e) {
+  if (e && e.target === document.getElementById('bbCoinHistoryModal')) bbCoinHistoryModalClose();
+}
 async function bbOpenCoinHistory() {
   if (!window.currentUser || !window.currentUser.token) return;
+  var modal = document.getElementById('bbCoinHistoryModal');
+  var body = document.getElementById('chmScrollBody');
+  var balVal = document.getElementById('chmBalVal');
+  var balSub = document.getElementById('chmBalSub');
+  if (!modal) return;
+
+  // populate summary header
+  if (balVal) balVal.textContent = bbCoinState.balance != null ? bbCoinState.balance.toLocaleString('en-US') + ' coins' : '—';
+  if (balSub) {
+    var earned = Number(bbCoinState.lifetimeEarned);
+    balSub.textContent = Number.isFinite(earned) ? 'Lifetime earned: ' + earned.toLocaleString('en-US') : '';
+  }
+
+  if (body) body.innerHTML = '<div class="chm-loading">Loading\u2026</div>';
+  modal.classList.add('open');
+
   try {
-    var rows = await apiCall('GET', '/api/coins/ledger?limit=20');
+    var rows = await apiCall('GET', '/api/coins/ledger?limit=40');
     if (!Array.isArray(rows)) rows = [];
     if (!rows.length) {
-      if (typeof showPopup === 'function') showPopup('Coin Activity', 'No coin activity yet.', '', 'OK', null, 'success');
+      if (body) body.innerHTML = '<div class="chm-empty">No coin activity yet.</div>';
       return;
     }
-    var lines = rows.map(function (r) {
-      var d = r && r.created_at ? bbUserFmtDate(r.created_at) : '';
+    var html = rows.map(function (r) {
+      var raw = r && r.created_at ? r.created_at : '';
+      var dateStr = '';
+      if (raw) {
+        try {
+          var dt = new Date(raw);
+          dateStr = dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        } catch (_) { dateStr = raw.slice(0, 10); }
+      }
       var delta = Number(r && r.coins_delta);
       var sign = delta > 0 ? '+' : '';
-      return d + '  ' + sign + delta + '  ' + bbCoinEventLabel(r && r.event_type);
-    });
-    if (typeof showPopup === 'function') showPopup('Coin Activity', lines.join('\n'), '', 'OK', null, 'success');
+      var cls = delta >= 0 ? 'pos' : 'neg';
+      var label = bbCoinEventLabel(r && r.event_type);
+      return '<div class="chm-row">'
+        + '<span class="chm-date">' + dateStr + '</span>'
+        + '<span class="chm-label">' + label + '</span>'
+        + '<span class="chm-delta ' + cls + '">' + sign + delta + '</span>'
+        + '</div>';
+    }).join('');
+    if (body) body.innerHTML = html;
   } catch (_) {
-    if (typeof showPopup === 'function') showPopup('Coin Activity', 'Unable to load coin history right now.', '', 'OK', null, 'error');
+    if (body) body.innerHTML = '<div class="chm-empty">Unable to load activity.</div>';
   }
 }
 async function bbRefreshDesktopUserDashboard() {
@@ -14760,7 +14826,7 @@ function bbMealLightboxDownload(e) {
   a.remove();
 }
 document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape') bbMealLightboxClose();
+  if (e.key === 'Escape') { bbMealLightboxClose(); bbCoinHistoryModalClose(); }
 });
 function adminNutritionDownloadPhotos(userId) {
   var dEl = document.getElementById('adminNutritionReportDate');
@@ -17668,6 +17734,30 @@ window.addEventListener('resize', applySafeAreaFix);
 </style>
 
 <!-- Meal image lightbox -->
+<div id="bbCoinHistoryModal" role="dialog" aria-modal="true" onclick="bbCoinHistoryModalBgClose(event)">
+  <div class="chm-box" onclick="event.stopPropagation()">
+    <div class="chm-head">
+      <span class="chm-title">◉ Coin Activity</span>
+      <button class="chm-close" onclick="bbCoinHistoryModalClose()">✕ Close</button>
+    </div>
+    <div class="chm-summary">
+      <div>
+        <div class="chm-bal-label">Current Balance</div>
+        <div class="chm-bal-val" id="chmBalVal">—</div>
+        <div class="chm-bal-sub" id="chmBalSub">Lifetime earned: —</div>
+      </div>
+    </div>
+    <div class="chm-col-head">
+      <span>Date</span>
+      <span>Activity</span>
+      <span style="text-align:right">Coins</span>
+    </div>
+    <div class="chm-scroll" id="chmScrollBody">
+      <div class="chm-loading">Loading…</div>
+    </div>
+  </div>
+</div>
+
 <div id="bbMealLightbox" role="dialog" aria-modal="true" onclick="bbMealLightboxClose(event)">
   <img id="bbMealLightboxImg" class="bb-lb-img" src="" alt="Meal photo">
   <div class="bb-lb-bar">
