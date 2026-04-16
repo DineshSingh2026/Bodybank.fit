@@ -8115,7 +8115,8 @@ async function handleSignup() {
     }
   }
   
-  var sBtn=modal.querySelector('.form-submit');
+  var modal = document.getElementById('signupModal');
+  var sBtn = modal ? modal.querySelector('.form-submit') : null;
   if(sBtn){sBtn.disabled=true;sBtn.classList.add('loading');sBtn._orig=sBtn.innerHTML;sBtn.innerHTML='<span class="btn-spinner"></span> Creating account...';}
   try {
     const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone, dob, gender, country, timezone, state_province, city });
