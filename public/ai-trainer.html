@@ -624,71 +624,138 @@ let formScoreSum = 0, formScoreCount = 0;
 let _savedSessionData = null;
 
 // ════════════════════════════════════════════════════════════════
-//  VOICE COACH ENGINE
+//  VOICE COACH ENGINE  — Professional · Motivational · Attentive
 // ════════════════════════════════════════════════════════════════
 const VC = {
-  synth:       window.speechSynthesis || null,
-  voice:       null,       // resolved male voice
-  lastSpoken:  0,          // timestamp of last utterance
-  cooldown:    1600,       // ms between any two utterances
-  lastPhase:   null,       // previous phase string to detect changes
-  lastKind:    null,       // previous kind to detect form changes
-  badFrames:   0,          // consecutive bad-form frames
-  noPersonSpoken: false,   // avoid repeating no-person cue
+  synth:    window.speechSynthesis || null,
+  voice:    null,
+
+  // State tracking
+  lastSpoken:            0,
+  lastPhase:             null,
+  badFrames:             0,
+  goodFrames:            0,
+  noPersonSpoken:        false,
+  lastRepCount:          0,
+  lastEncouragementAt:   0,
+  introSpoken:           false,
+  _keepAliveId:          null,
 
   get enabled() { const el = $('vcToggle'); return el ? el.checked : false; },
   get volume()  { const el = $('vcVolume'); return el ? parseFloat(el.value) : 0.9; },
 
-  // Per-exercise, per-event cues for a male coaching voice
+  // ── Cue Library ──────────────────────────────────────────────
   CUES: {
-    // countdown
-    countdown: { 3:'Three', 2:'Two', 1:'One. Get ready!', go:'Go! Let\'s crush it!' },
 
-    // phase-change cues keyed by exKey + phase transition
+    // Exercise introduction — spoken once when the session starts
+    intro: {
+      squat:         'Alright, let\'s do squats! Stand feet shoulder-width apart, chest up, and back straight. I\'m watching every rep — let\'s go!',
+      pushup:        'Push-up time! Get into a strong plank position. Hands just wider than your shoulders. Keep that body in a perfect straight line. Let\'s move!',
+      plank:         'Plank hold! Engage your core, squeeze your glutes, and keep those hips perfectly level. I\'ll be watching your alignment the whole time. Hold strong!',
+      jumpingjack:   'Jumping jacks! Stay light on your feet and get those arms fully overhead on every single rep. Let\'s keep a nice steady rhythm. Here we go!',
+      biccurl:       'Bicep curls! Pin those upper arms tight to your sides — no swinging. Control every inch of the movement. Let\'s build those biceps!',
+      shoulderpress: 'Shoulder press! Core braced, back straight. Press directly overhead and lock those arms out at the top. Let\'s build strong shoulders!',
+      bentoverrow:   'Bent-over rows! Hinge at the hips, keep that back flat, and pull with your back — not your arms. Full extension on every rep. Let\'s go!',
+      auto:          'AI Trainer is active! I\'m watching your movement patterns and counting every rep. Just start moving and I\'ll guide you through everything. Let\'s train!',
+    },
+
+    // Countdown
+    countdown: {
+      3: 'Three.',
+      2: 'Two.',
+      1: 'One. Get into position!',
+      go: 'Go! Let\'s get to work!',
+    },
+
+    // Phase cues — spoken on every phase transition
     phase: {
-      squat:         { down:'Go down!',       up:'Drive up! Push through your heels!' },
-      pushup:        { down:'Lower down.',     up:'Push up! Full extension!' },
-      plank:         { hold:'Hold that plank. Tight core!' },
-      jumpingjack:   { open:'Jump out!',       close:'Back together!' },
-      biccurl:       { up:'Curl it up! Squeeze!', down:'Lower slowly. Control.' },
-      shoulderpress: { up:'Press overhead! Lock it out!', down:'Bring it down. Control.' },
-      bentoverrow:   { up:'Row! Pull that elbow back!',   down:'Lower. Full extension.' },
+      squat:         { down: 'Down you go!',           up: 'Drive up! Push through those heels!' },
+      pushup:        { down: 'Lower with control.',    up: 'Push it up! Full extension!' },
+      plank:         { hold: 'Hold it! Core tight, breathe steady.' },
+      jumpingjack:   { open: 'Out!',                  close: 'Together!' },
+      biccurl:       { up:   'Curl it up! Squeeze hard at the top!', down: 'Lower slowly — feel that stretch.' },
+      shoulderpress: { up:   'Press! Lock those arms out!',          down: 'Lower with control. Back to start.' },
+      bentoverrow:   { up:   'Row! Pull that elbow back — squeeze!', down: 'Lower fully. Full range of motion.' },
     },
 
-    // rep-count praise
-    repPraise: ['Good rep!', 'Nice one!', 'That\'s it!', 'Keep going!', 'Strong rep!', 'Perfect!'],
+    // Rep praise — two pools, rotated randomly
+    repPraiseGood: [
+      'Beautiful rep! Keep that form!',
+      'Perfect! Exactly like that — keep going!',
+      'Outstanding rep! You\'re doing brilliantly!',
+      'Excellent! Textbook form — don\'t stop!',
+      'Yes! That\'s exactly how it\'s done!',
+      'Superb! Stay focused and keep pushing!',
+    ],
+    repPraiseOk: [
+      'Good rep! Stay consistent!',
+      'Nice one! Keep that rhythm going!',
+      'That\'s it! One more just like that!',
+      'Well done! Don\'t slow down now!',
+      'Good work! Keep the momentum!',
+      'Keep going! You\'ve got more in you!',
+    ],
 
-    // form-correction cues keyed by exKey
+    // Rep milestones — celebrated at key numbers
+    milestones: {
+      5:  'Five reps in! Excellent start — keep that pace!',
+      10: 'Ten reps! You are absolutely on fire right now — don\'t stop!',
+      15: 'Fifteen reps! Incredible discipline! Push for even more!',
+      20: 'Twenty reps! That is outstanding dedication — keep it up!',
+      25: 'Twenty five reps! You are a machine! Stay strong!',
+      30: 'Thirty reps! Unbelievable! You should be very proud of this effort!',
+    },
+
+    // Form corrections — polite, specific, actionable
     correction: {
-      squat:         'Go lower. Chest up.',
-      pushup:        'Straighten your body. Tight core.',
-      plank:         'Hips level. Hold steady.',
-      jumpingjack:   'Arms all the way up.',
-      biccurl:       'Keep that upper arm still. Don\'t swing.',
-      shoulderpress: 'Press to full lockout. Straighten those arms.',
-      bentoverrow:   'Pull the elbow past your torso. Squeeze the back.',
+      squat:         'Come on — get a little lower! Chest up and push those knees outward. You can do it!',
+      pushup:        'Watch your body alignment. Keep everything in one straight line and that core tight throughout!',
+      plank:         'Careful — keep those hips perfectly level. Don\'t let them drop or pike. Hold it steady!',
+      jumpingjack:   'Get those arms all the way up overhead on every rep — full range of motion!',
+      biccurl:       'Keep that upper arm pinned to your side! No swinging — the slower the better!',
+      shoulderpress: 'Press all the way to full lockout! Straighten those arms completely at the top!',
+      bentoverrow:   'Pull that elbow past your torso and squeeze your back hard at the top of every rep!',
     },
 
-    // set complete
-    setDone: 'Set complete! Rest up. You earned it.',
+    // Periodic encouragement — spoken when nothing else fires for ~30 s
+    encouragement: [
+      'Looking strong! Stay focused and keep that quality high!',
+      'I can see you working hard — don\'t you dare stop now!',
+      'Fantastic effort! Your consistency is what makes champions!',
+      'Keep it up! Every rep is making you stronger — trust the process!',
+      'You\'ve got this! Stay with it — I believe in you!',
+      'Great work! Stay present, stay focused, and keep pushing!',
+      'You are doing brilliantly! Don\'t let up — finish strong!',
+    ],
 
-    // session done
-    sessionDone: 'Great session! Well done. Check your stats.',
+    // Good form streak acknowledgement
+    goodStreak: [
+      'Your form is absolutely spot on right now — keep it exactly like that!',
+      'Perfect technique! That\'s the standard right there — maintain it!',
+      'Excellent form! Your coach is very pleased — stay sharp!',
+    ],
 
-    // no person
-    noPerson: 'Step into the frame. I can\'t see you.',
+    // No person detected
+    noPerson: [
+      'I can\'t quite see you. Please step fully into the frame so I can guide you.',
+      'Step into the frame — I need to see your full body to coach you properly.',
+    ],
+
+    // Set complete
+    setDone: 'Excellent set! Take a short breath, shake it out, and get ready for the next one. You earned that rest!',
+
+    // Session complete
+    sessionDone: 'Session complete! That was a truly outstanding effort today. Check your stats and be incredibly proud of what you just achieved!',
   },
 
-  // Pick and initialise the best available male voice
+  // ── Voice init ───────────────────────────────────────────────
   init() {
     if (!this.synth) {
-      const el = $('vcStatus'); if (el) el.textContent = 'Not supported in this browser';
-      return;
+      const el = $('vcStatus'); if (el) el.textContent = 'Not supported in this browser'; return;
     }
     const load = () => {
       const voices = this.synth.getVoices();
       if (!voices.length) return;
-      // Priority order: labelled male+English → known male name → any English → first available
       const prefer = [
         v => /male/i.test(v.name) && /en[-_]/i.test(v.lang),
         v => /david|mark|alex|google uk english male|microsoft david|microsoft mark|daniel|james|fred/i.test(v.name),
@@ -704,37 +771,33 @@ const VC = {
     };
     load();
     this.synth.onvoiceschanged = load;
-    // Retry after 500ms in case onvoiceschanged fires before we attach the handler
     setTimeout(load, 500);
   },
 
-  // ── Core speak ──────────────────────────────────────────────
-  // Fix: Chrome silently drops speak() called immediately after cancel().
-  // Solution: always cancel first, then use a short setTimeout before speak().
+  // ── Core speak (Chrome-safe) ──────────────────────────────────
   speak(text, opts = {}) {
     if (!this.enabled || !this.synth || !text) return;
     const now = Date.now();
-    const cd = opts.cooldown !== undefined ? opts.cooldown : this.cooldown;
+    const cd = opts.cooldown !== undefined ? opts.cooldown : 1500;
     if (now - this.lastSpoken < cd) return;
     this.lastSpoken = now;
     this.synth.cancel();
-    // setTimeout gap is the Chrome-required breathing room after cancel()
     setTimeout(() => {
       if (!this.synth) return;
       const u = new SpeechSynthesisUtterance(text);
-      if (this.voice) u.voice = this.voice;   // only set if resolved; else browser uses default
+      if (this.voice) u.voice = this.voice;
       u.volume = this.volume;
-      u.rate   = opts.rate  !== undefined ? opts.rate  : 1.05;
-      u.pitch  = opts.pitch !== undefined ? opts.pitch : 0.88;
+      u.rate   = opts.rate  !== undefined ? opts.rate  : 1.0;
+      u.pitch  = opts.pitch !== undefined ? opts.pitch : 0.85;
       u.lang   = 'en-US';
       this.synth.speak(u);
     }, 60);
   },
 
-  // ── Chrome keepalive ─────────────────────────────────────────
-  // Chrome pauses speechSynthesis when tab is throttled. Calling resume()
-  // every 10 s while a workout is active prevents the silent freeze.
-  _keepAliveId: null,
+  // Pick a random item from an array
+  _pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; },
+
+  // ── Chrome keepalive ──────────────────────────────────────────
   startKeepAlive() {
     this.stopKeepAlive();
     this._keepAliveId = setInterval(() => {
@@ -745,73 +808,111 @@ const VC = {
     if (this._keepAliveId) { clearInterval(this._keepAliveId); this._keepAliveId = null; }
   },
 
-  // ── Test function ─────────────────────────────────────────────
+  // ── Test button ───────────────────────────────────────────────
   test() {
-    const el = $('vcStatus');
-    const prev = el ? el.textContent : '';
-    if (!this.synth) { if (el) el.textContent = 'Not supported'; return; }
-    if (el) el.textContent = 'Speaking…';
-    // Force enabled for the test regardless of toggle
-    const saved = this.lastSpoken; this.lastSpoken = 0;
-    const wasEnabled = $('vcToggle') ? $('vcToggle').checked : true;
-    if ($('vcToggle')) $('vcToggle').checked = true;
-    this.speak("Coach is ready. Let's get to work!", { cooldown: 0, rate: 1.05, pitch: 0.88 });
+    if (!this.synth) { const el=$('vcStatus'); if(el) el.textContent='Not supported'; return; }
+    const el = $('vcStatus'); if (el) el.textContent = 'Speaking…';
+    const tog = $('vcToggle');
+    const was = tog ? tog.checked : true;
+    if (tog) tog.checked = true;
+    const prev = this.lastSpoken; this.lastSpoken = 0;
+    this.speak("Hey! Your coach is ready. Let's have a great session today — I'll be with you every single rep!", { cooldown: 0 });
     setTimeout(() => {
-      if ($('vcToggle') && !wasEnabled) $('vcToggle').checked = false;
+      if (tog && !was) tog.checked = false;
+      this.lastSpoken = prev;
       if (el) el.textContent = this.voice ? '✓ ' + this.voice.name.slice(0, 22) : 'No voice found';
-    }, 3000);
+    }, 4000);
   },
 
-  // Called every frame from the pose results handler
-  onFrame(out, lm) {
+  // ── Speak exercise intro (called once at session start) ───────
+  speakIntro(exKey) {
+    if (this.introSpoken) return;
+    this.introSpoken = true;
+    const cue = this.CUES.intro[exKey] || this.CUES.intro.auto;
+    this.speak(cue, { cooldown: 0, rate: 0.98 });
+  },
+
+  // ── Main per-frame handler ────────────────────────────────────
+  onFrame(out, lm, repCountNow) {
     if (!this.enabled) return;
     const exKey = out.exKey || 'auto';
     const phase = out.phase || 'up';
     const kind  = out.kind  || '';
+    const now   = Date.now();
 
-    // ── No person ──
+    // 1 ── No person in frame
     if (!lm) {
       if (!this.noPersonSpoken) {
-        this.speak(this.CUES.noPerson, { cooldown: 4000 });
+        this.speak(this._pick(this.CUES.noPerson), { cooldown: 5000 });
         this.noPersonSpoken = true;
       }
       return;
     }
     this.noPersonSpoken = false;
 
-    // ── Rep completed ──
-    if (out.repAdded) {
-      const praise = this.CUES.repPraise[Math.floor(Math.random() * this.CUES.repPraise.length)];
-      this.speak(praise, { cooldown: 0 });
+    // 2 ── Rep milestone (checked before per-rep praise so milestone wins)
+    const reps = repCountNow || 0;
+    if (reps > this.lastRepCount) {
+      const milestone = this.CUES.milestones[reps];
+      if (milestone) {
+        this.speak(milestone, { cooldown: 0, rate: 1.02 });
+        this.lastRepCount = reps;
+        this.lastPhase = phase;
+        return;
+      }
+      // Per-rep praise: good form → premium praise pool, else standard pool
+      const pool = (kind === 'good') ? this.CUES.repPraiseGood : this.CUES.repPraiseOk;
+      this.speak(this._pick(pool), { cooldown: 0 });
+      this.lastRepCount = reps;
       this.lastPhase = phase;
       return;
     }
 
-    // ── Phase change ──
+    // 3 ── Phase change (direction cue)
     if (phase !== this.lastPhase && this.lastPhase !== null) {
       const exCues = this.CUES.phase[exKey] || {};
       const cue = exCues[phase] || exCues.hold || null;
-      if (cue) { this.speak(cue, { cooldown: 800 }); this.lastPhase = phase; return; }
+      if (cue) { this.speak(cue, { cooldown: 700 }); this.lastPhase = phase; return; }
     }
     this.lastPhase = phase;
 
-    // ── Sustained bad form (every 3 s if form is poor) ──
+    // 4 ── Sustained bad form → correction (triggers after ~2.5 s of bad form)
     if (kind === 'error' || kind === 'bad') {
       this.badFrames++;
-      if (this.badFrames === 55) { // ~2 s at 25fps
+      this.goodFrames = 0;
+      if (this.badFrames === 62) {
         const cue = this.CUES.correction[exKey];
-        if (cue) this.speak(cue, { cooldown: 3000 });
+        if (cue) { this.speak(cue, { cooldown: 4000, rate: 0.97 }); }
         this.badFrames = 0;
       }
+      return;
+    }
+    this.badFrames = 0;
+
+    // 5 ── Sustained great form → praise streak (~5 s of good form)
+    if (kind === 'good') {
+      this.goodFrames++;
+      if (this.goodFrames === 130) {
+        this.speak(this._pick(this.CUES.goodStreak), { cooldown: 6000 });
+        this.goodFrames = 0;
+        return;
+      }
     } else {
-      this.badFrames = 0;
+      this.goodFrames = 0;
+    }
+
+    // 6 ── Periodic encouragement (every ~30 s of silence)
+    if (now - this.lastSpoken > 30000 && now - this.lastEncouragementAt > 30000) {
+      this.speak(this._pick(this.CUES.encouragement), { cooldown: 0, rate: 0.99 });
+      this.lastEncouragementAt = now;
     }
   },
 
-  // Reset state between sessions
+  // ── Reset between sessions ────────────────────────────────────
   reset() {
-    this.lastPhase = null; this.lastKind = null;
-    this.badFrames = 0; this.noPersonSpoken = false; this.lastSpoken = 0;
+    this.lastPhase = null; this.badFrames = 0; this.goodFrames = 0;
+    this.noPersonSpoken = false; this.lastSpoken = 0; this.lastRepCount = 0;
+    this.lastEncouragementAt = 0; this.introSpoken = false;
     if (this.synth) this.synth.cancel();
   },
 };
@@ -1626,6 +1727,7 @@ function showPrepCountdown(exerciseText, tip, onDone) {
       prepOv.classList.add('hidden');
       VC.speak(VC.CUES.countdown.go, { cooldown: 0 });
       VC.startKeepAlive();
+      setTimeout(() => VC.speakIntro(exSel.value), 1800);
       onDone();
     } else {
       prepNum.textContent = n;
@@ -1781,7 +1883,7 @@ async function startWorkout() {
     const hs = $('hudSets'); if (hs) hs.textContent = detector.sets;
 
     // Voice coach — fires only on meaningful events, never every frame
-    VC.onFrame(out, lm);
+    VC.onFrame(out, lm, detector ? detector.reps : 0);
   });
 
   cam = new Camera(vid, {
