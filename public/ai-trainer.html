@@ -770,24 +770,48 @@ const VC = {
   /** @param opts.noCancel If true, queues after current speech (use for countdown chains). */
   /** @param opts.bypassCooldown If true, ignore spacing guard (countdown / scripted chains). */
   speak(text, opts = {}) {
-    if (!this.enabled || !this.synth || !text) return;
+    const cb = typeof opts.onEnd === 'function' ? opts.onEnd : null;
+    let endFired = false;
+    function fireEnd() {
+      if (endFired || !cb) return;
+      endFired = true;
+      try { cb(); } catch (_) {}
+    }
+    if (!this.enabled || !this.synth || !text) {
+      setTimeout(fireEnd, 0);
+      return;
+    }
     const now = Date.now();
     const cd = opts.cooldown !== undefined ? opts.cooldown : 2000;
-    if (!opts.bypassCooldown && now - this.lastSpoken < cd) return;
+    if (!opts.bypassCooldown && now - this.lastSpoken < cd) {
+      setTimeout(fireEnd, 0);
+      return;
+    }
     this.lastSpoken = now;
     if (!opts.noCancel) this.synth.cancel();
     const delayMs = opts.noCancel ? 40 : 60;
     setTimeout(() => {
-      if (!this.synth) return;
+      if (!this.synth) {
+        fireEnd();
+        return;
+      }
       const u = new SpeechSynthesisUtterance(text);
       if (this.voice) u.voice = this.voice;
       u.volume = this.volume;
       u.rate   = opts.rate  !== undefined ? opts.rate  : this._humanRate;
       u.pitch  = opts.pitch !== undefined ? opts.pitch : this._humanPitch;
       u.lang   = 'en-US';
-      if (typeof opts.onEnd === 'function') {
-        u.onend = () => { try { opts.onEnd(); } catch (_) {} };
-      }
+      let safety = null;
+      const done = () => {
+        if (safety) {
+          clearTimeout(safety);
+          safety = null;
+        }
+        fireEnd();
+      };
+      if (cb) safety = setTimeout(done, 14000);
+      u.onend = done;
+      u.onerror = done;
       this.synth.speak(u);
     }, delayMs);
   },
@@ -1936,9 +1960,13 @@ async function startWorkout() {
   }
 
   vid.srcObject = stream;
+  try { vid.playsInline = true; } catch (_) {}
+  await vid.play().catch(() => {});
   await new Promise(r => { if (vid.readyState >= 2) r(); else vid.onloadeddata = r; });
-  cvs.width  = cvs.clientWidth  || window.innerWidth;
-  cvs.height = cvs.clientHeight || window.innerHeight;
+  const cw = cvs.clientWidth || window.innerWidth;
+  const ch = cvs.clientHeight || window.innerHeight;
+  cvs.width  = Math.max(320, cw);
+  cvs.height = Math.max(240, ch);
 
   pose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
   pose.setOptions({ modelComplexity:1, smoothLandmarks:true, minDetectionConfidence:.55, minTrackingConfidence:.5 });
@@ -1986,11 +2014,16 @@ async function startWorkout() {
   });
 
   cam = new Camera(vid, {
-    onFrame: async () => { if (running) await pose.send({ image: vid }); },
+    onFrame: async () => {
+      try {
+        await pose.send({ image: vid });
+      } catch (e) {}
+    },
     width: 1280, height: 720
   });
+  try { cam.start(); } catch (e) {}
 
-  // Show prep countdown, then launch session
+  // Show prep countdown, then launch session (camera already running so preview / pose warm up)
   const exLabel = exSel.value === 'auto' ? 'Auto Detect' : exSel.options[exSel.selectedIndex].text.replace(/^[\S]+\s/, '');
   const tip = (TIPS[exSel.value] || TIPS.auto)[0];
   showPrepCountdown(exLabel, tip, () => {
@@ -2002,7 +2035,6 @@ async function startWorkout() {
     sessionStart = Date.now();
     timerId = setInterval(updateTimer, 1000);
     showTips(exSel.value);
-    cam.start();
   });
 }
 

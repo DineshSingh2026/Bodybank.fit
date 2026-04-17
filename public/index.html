@@ -3252,15 +3252,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .popup-title.error-popup{background:linear-gradient(135deg,#ff6b6b 0%,#e05050 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .popup-msg{color:var(--creamd);font-size:18px;line-height:1.65;margin-bottom:8px}
 .popup-quote{color:var(--gold);font-size:16px;font-style:italic;margin-top:16px;opacity:.95}
-.popup-overlay.bb-login-welcome .popup-msg{white-space:pre-line}
-.popup-login-extras{margin-top:14px;padding-top:14px;border-top:1px solid rgba(200,164,78,0.15)}
-.popup-login-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:12px 20px;margin-bottom:8px}
-.popup-secondary-btn{background:transparent;border:1px dashed rgba(200,164,78,0.45);color:var(--gold);font-size:13px;font-weight:600;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'Outfit',sans-serif}
-.popup-secondary-btn:hover{border-color:var(--gold);color:var(--cream)}
-.popup-tts-mute{font-size:12px;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
-.popup-tts-mute input{accent-color:var(--gold)}
-.popup-tap-hear{width:100%;margin-top:8px;padding:12px;background:rgba(200,164,78,0.12);border:1px solid var(--gold);border-radius:8px;color:var(--cream);font-weight:600;font-size:14px;cursor:pointer;font-family:'Outfit',sans-serif}
-.popup-privacy-note{font-size:11px;color:#6a7285;margin:10px 0 0;line-height:1.45}
 .popup-btn{margin-top:28px;padding:14px 44px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:16px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer}
 @media(max-width:600px){.popup-overlay{padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}.popup-box{width:95%;max-width:calc(100vw - 32px);padding:40px 24px}.popup-title{font-size:30px}.popup-msg{font-size:19px}.popup-quote{font-size:17px}.popup-btn{font-size:17px;padding:16px 44px;min-height:52px}}
 @keyframes popUp{from{transform:scale(0.7);opacity:0}to{transform:scale(1);opacity:1}}
@@ -6203,14 +6194,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <div class="popup-title" id="popupTitle">Success!</div>
     <div class="popup-msg" id="popupMsg">Operation completed.</div>
     <div class="popup-quote" id="popupQuote"></div>
-    <div class="popup-login-extras" id="popupLoginExtras" hidden>
-      <div class="popup-login-row">
-        <button type="button" class="popup-secondary-btn" id="bbWelcomeHearAgain">Hear again</button>
-        <label class="popup-tts-mute"><input type="checkbox" id="bbWelcomeMuteTTS" /> Mute voice</label>
-      </div>
-      <button type="button" class="popup-tap-hear" id="bbWelcomeTapToHear" hidden>Tap to hear welcome</button>
-      <p class="popup-privacy-note" id="bbWelcomePrivacyNote"></p>
-    </div>
     <button class="popup-btn" id="popupBtn" onclick="closePopup('popupSuccess')">Continue</button>
   </div>
 </div>
@@ -8046,349 +8029,6 @@ async function checkProgramAssignmentPopup() {
   } catch (e) { /* ignore */ }
 }
 
-// ========== LOGIN WELCOME (daily motivation, time-of-day, role, streak, TTS) ==========
-var BB_LOGIN_TTS_MUTE_KEY = 'bb_login_tts_muted';
-
-function bbLoginDisplayName(user) {
-  if (!user) return 'there';
-  var fn = String(user.first_name || '').trim();
-  if (fn) return fn;
-  try {
-    var em = String(user.email || '').trim();
-    if (em.indexOf('@') > 0) {
-      var local = em.split('@')[0].replace(/[._-]+/g, ' ').trim();
-      if (local) return local.charAt(0).toUpperCase() + local.slice(1).toLowerCase();
-    }
-  } catch (e) {}
-  return 'there';
-}
-
-function bbLocalToday() {
-  var d = new Date();
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-
-function bbYesterdayStr() {
-  var d = new Date();
-  d.setDate(d.getDate() - 1);
-  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
-}
-
-function bbTimeGreeting() {
-  var h = new Date().getHours();
-  if (h >= 5 && h < 12) return 'Good morning';
-  if (h >= 12 && h < 17) return 'Good afternoon';
-  return 'Good evening';
-}
-
-function bbLoginDailyMessageIndex(poolLen) {
-  if (!poolLen) return 0;
-  var ds = new Date().toDateString();
-  var h = 2166136261;
-  for (var i = 0; i < ds.length; i++) h = Math.imul(h ^ ds.charCodeAt(i), 16777619);
-  return (h >>> 0) % poolLen;
-}
-
-function bbLoginDailyMotivationLines() {
-  return [
-    'Today is a fresh page — show up for yourself, even in a small way. Progress loves consistency more than perfection.',
-    'Small steps you repeat become the life you build. Whatever you planned for your health today counts — start where you are.',
-    'You do not need to be perfect to move forward. You only need to be honest with yourself and kind enough to try again.',
-    'Energy comes and goes; discipline is quieter, and it is enough. One good choice now makes the next one easier.',
-    'Your body is listening to how you speak to it. Choose encouragement — it is fuel, not fluff.',
-    'Strength is not only what you lift — it is showing up on the days that feel ordinary. Those days add up.',
-    'Rest is not the opposite of progress; it is part of it. Move with intention, recover with respect.',
-    'Comparison steals joy from your own lane. Compare yourself only to who you were yesterday.',
-    'Habits are votes for the person you are becoming. Cast one vote today that you will be proud of tonight.',
-    'Discomfort is often growth in disguise. Breathe, adjust, and keep going at a pace you can sustain.',
-    'You are allowed to reset as many times as it takes. What matters is that you keep returning to the path.',
-    'Clarity follows action more often than the other way around. Begin — the next step will get clearer.',
-    'Celebrate the boring reps — they are the ones that build real change when nobody is watching.',
-    'Hydrate, breathe, move. The basics are not basic when you do them with care.',
-    'Protect your peace like a workout: schedule it, defend it, repeat it.',
-    'If today feels heavy, shrink the goal until it feels honest. A five-minute win still moves the needle.',
-    'Courage is not the absence of doubt — it is moving while doubt sits in the passenger seat.',
-    'Your future self is quietly rooting for the choices you make right now.',
-    'Consistency beats intensity when intensity burns you out. Play the long game.',
-    'You belong in spaces that care about health — including this one. Welcome back to your journey.',
-    'Let today be grounded: one mindful meal, one honest effort, one moment of gratitude for your body.',
-    'Motivation is a spark; routine is the fire. Stoke it gently and it will warm you for weeks.',
-    'Every expert was once a beginner who refused to quit on a random Tuesday.',
-    'Give yourself credit for returning — that is harder than starting once and never looking back.',
-    'Balance is not doing everything; it is choosing what matters most this season and owning it.',
-    'You are building a life you can live in, not a highlight reel. Steady wins.',
-    'When the world feels loud, simplify: one breath, one rep, one next right thing.',
-    'Health is not a destination you arrive at — it is a conversation you keep having with yourself.',
-    'Thank yourself for logging in. That single choice already says you care about what is ahead.'
-  ];
-}
-
-function bbLoginWelcomeContextLines(user) {
-  var lines = [];
-  var role = user && user.role ? user.role : 'user';
-  if (role === 'admin' || role === 'superadmin') {
-    lines.push('Clear communication lifts every member — thank you for leading with care today.');
-  } else {
-    lines.push('Your health story matters — take today one honest step at a time.');
-  }
-
-  var id = user && user.id ? String(user.id) : '';
-  var today = bbLocalToday();
-  var last = id ? localStorage.getItem('bb_login_last_' + id) : null;
-  var streak = id ? parseInt(localStorage.getItem('bb_login_streak_' + id) || '0', 10) : 0;
-  if (!id) {
-    lines.push('Glad you are here with us.');
-  } else if (last === today) {
-    lines.push('Good to see you again today.');
-  } else if (last === bbYesterdayStr()) {
-    var next = streak + 1;
-    lines.push('That makes ' + next + ' day' + (next === 1 ? '' : 's') + ' in a row logging in — nice consistency.');
-  } else if (last) {
-    lines.push('Welcome back — ease in and take one clear step forward.');
-  } else {
-    lines.push('First welcome from this browser — we are glad you are here.');
-  }
-
-  if (id) {
-    var ym = today.slice(0, 7);
-    var mk = 'bb_login_month_banner_' + id;
-    if (localStorage.getItem(mk) !== ym) {
-      lines.push('New month — set one intention you can actually keep.');
-    }
-  }
-
-  if (user && user.created_at) {
-    try {
-      var c = new Date(user.created_at);
-      var now = new Date();
-      if (!isNaN(c.getTime()) && c.getMonth() === now.getMonth() && c.getDate() === now.getDate() && now.getFullYear() > c.getFullYear()) {
-        var years = now.getFullYear() - c.getFullYear();
-        if (years >= 1) {
-          lines.push('Happy ' + years + '-year BodyBank anniversary — thank you for growing with us.');
-        }
-      }
-    } catch (e) {}
-  }
-
-  if (role === 'admin' || role === 'superadmin') {
-    lines.push('Next: check Client Progress or Messages when you are ready.');
-  } else {
-    lines.push('Next: open Programs or log a workout — small wins stack.');
-  }
-  return lines;
-}
-
-/** Returns { title, msg, quote, speechText } — single source for UI + TTS. */
-function bbBuildLoginWelcome(user) {
-  var pool = bbLoginDailyMotivationLines();
-  var daily = pool[bbLoginDailyMessageIndex(pool.length)];
-  var name = bbLoginDisplayName(user);
-  var greet = bbTimeGreeting();
-  var ctx = bbLoginWelcomeContextLines(user);
-  var body = ctx.join('\n\n') + '\n\n' + daily;
-  var quote = 'Voice plays on this device only — nothing is uploaded.\n— A little inspiration for your day from BodyBank.';
-  var speech = greet + ', ' + name + '. ' + ctx.join(' ') + ' ' + daily + ' Thanks for being part of BodyBank.';
-  return {
-    title: greet + ', ' + name + '!',
-    msg: body,
-    quote: quote,
-    speechText: speech
-  };
-}
-
-function bbLoginWelcomeRecordVisit(user) {
-  if (!user || !user.id) return;
-  var id = String(user.id);
-  var today = bbLocalToday();
-  var keyDay = 'bb_login_last_' + id;
-  var keyStreak = 'bb_login_streak_' + id;
-  var keyMonth = 'bb_login_month_banner_' + id;
-  var last = localStorage.getItem(keyDay);
-  var streak = parseInt(localStorage.getItem(keyStreak) || '0', 10) || 0;
-  var ym = today.slice(0, 7);
-  if (last !== today) {
-    var yest = bbYesterdayStr();
-    if (last === yest) streak = streak + 1;
-    else if (last) streak = 1;
-    else streak = 1;
-    localStorage.setItem(keyDay, today);
-    localStorage.setItem(keyStreak, String(streak));
-  }
-  localStorage.setItem(keyMonth, ym);
-}
-
-function bbLoginWelcomeResetChrome() {
-  try {
-    if (bbLoginWelcomeTTS._utterTimer) {
-      clearTimeout(bbLoginWelcomeTTS._utterTimer);
-      bbLoginWelcomeTTS._utterTimer = null;
-    }
-    if (bbLoginWelcomeTTS._watchTimer) {
-      clearTimeout(bbLoginWelcomeTTS._watchTimer);
-      bbLoginWelcomeTTS._watchTimer = null;
-    }
-  } catch (e) {}
-  try { bbLoginWelcomeTTS.cancel(); } catch (e) {}
-  var ov = document.getElementById('popupSuccess');
-  if (ov) ov.classList.remove('bb-login-welcome');
-  var ex = document.getElementById('popupLoginExtras');
-  if (ex) ex.hidden = true;
-  var tap = document.getElementById('bbWelcomeTapToHear');
-  if (tap) tap.hidden = true;
-  window._bbLastWelcomePack = null;
-  window._bbLastWelcomeUser = null;
-}
-
-var bbLoginWelcomeTTS = {
-  synth: typeof window !== 'undefined' && window.speechSynthesis ? window.speechSynthesis : null,
-  voice: null,
-  _voicesReady: false,
-  _utterTimer: null,
-  _watchTimer: null,
-  init: function () {
-    var self = this;
-    if (!this.synth) return;
-    function pick() {
-      var voices = self.synth.getVoices();
-      if (!voices || !voices.length) return;
-      self._voicesReady = true;
-      var prefer = [
-        function (v) { return /male/i.test(v.name) && /en[-_]/i.test(v.lang); },
-        function (v) { return /david|mark|alex|google uk english male|microsoft david|microsoft mark|daniel|james|fred/i.test(v.name); },
-        function (v) { return /en[-_]/i.test(v.lang); }
-      ];
-      for (var p = 0; p < prefer.length; p++) {
-        for (var i = 0; i < voices.length; i++) {
-          if (prefer[p](voices[i])) {
-            self.voice = voices[i];
-            break;
-          }
-        }
-        if (self.voice) break;
-      }
-      if (!self.voice) self.voice = voices[0] || null;
-    }
-    pick();
-    try { this.synth.onvoiceschanged = pick; } catch (e) {}
-    setTimeout(pick, 400);
-  },
-  cancel: function () {
-    try { if (this.synth) this.synth.cancel(); } catch (e) {}
-  },
-  isMuted: function () {
-    try { return sessionStorage.getItem(BB_LOGIN_TTS_MUTE_KEY) === '1'; } catch (e) { return false; }
-  },
-  setMuted: function (v) {
-    try {
-      if (v) sessionStorage.setItem(BB_LOGIN_TTS_MUTE_KEY, '1');
-      else sessionStorage.removeItem(BB_LOGIN_TTS_MUTE_KEY);
-    } catch (e) {}
-  },
-  speakWelcome: function (user, pack, opts) {
-    var self = this;
-    opts = opts || {};
-    if (!this.synth) return;
-    try {
-      if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    } catch (e) {}
-    if (this.isMuted()) return;
-    pack = pack || bbBuildLoginWelcome(user);
-    var text = pack.speechText || (bbTimeGreeting() + ', ' + bbLoginDisplayName(user) + '. ' + pack.msg);
-    this.cancel();
-    var tapEl = document.getElementById('bbWelcomeTapToHear');
-    if (tapEl) tapEl.hidden = true;
-    if (this._utterTimer) {
-      clearTimeout(this._utterTimer);
-      this._utterTimer = null;
-    }
-    if (this._watchTimer) {
-      clearTimeout(this._watchTimer);
-      this._watchTimer = null;
-    }
-    this._utterTimer = setTimeout(function () {
-      self._utterTimer = null;
-      if (!self.synth) return;
-      if (self.isMuted()) return;
-      if (!self._voicesReady || !self.voice) {
-        var voices = self.synth.getVoices();
-        if (voices && voices.length) {
-          self.voice = self.voice || voices[0];
-          self._voicesReady = true;
-        }
-      }
-      var started = false;
-      var u = new SpeechSynthesisUtterance(text);
-      if (self.voice) u.voice = self.voice;
-      u.volume = 0.9;
-      u.rate = 0.84;
-      u.pitch = 0.88;
-      u.lang = 'en-US';
-      u.onstart = function () {
-        started = true;
-        if (tapEl) tapEl.hidden = true;
-      };
-      u.onerror = function () {
-        if (tapEl) tapEl.hidden = false;
-      };
-      self.synth.speak(u);
-      self._watchTimer = setTimeout(function () {
-        self._watchTimer = null;
-        if (!started && tapEl && !self.isMuted()) tapEl.hidden = false;
-      }, 900);
-    }, opts.deferMs != null ? opts.deferMs : 70);
-  }
-};
-bbLoginWelcomeTTS.init();
-
-function bbLoginWelcomeAfterOpen(user, pack) {
-  window._bbLastWelcomePack = pack;
-  window._bbLastWelcomeUser = user;
-  var ov = document.getElementById('popupSuccess');
-  if (ov) ov.classList.add('bb-login-welcome');
-  var ex = document.getElementById('popupLoginExtras');
-  var hear = document.getElementById('bbWelcomeHearAgain');
-  var mute = document.getElementById('bbWelcomeMuteTTS');
-  var tap = document.getElementById('bbWelcomeTapToHear');
-  var priv = document.getElementById('bbWelcomePrivacyNote');
-  if (priv) {
-    priv.textContent = 'Voice uses your browser’s speech — it stays on this device and is not sent to our servers.';
-  }
-  if (mute) {
-    mute.checked = bbLoginWelcomeTTS.isMuted();
-    mute.onchange = function () {
-      bbLoginWelcomeTTS.setMuted(!!mute.checked);
-      if (mute.checked) bbLoginWelcomeTTS.cancel();
-      else bbLoginWelcomeTTS.speakWelcome(user, pack, { deferMs: 80 });
-    };
-  }
-  if (hear) {
-    hear.onclick = function () {
-      if (bbLoginWelcomeTTS.isMuted()) return;
-      bbLoginWelcomeTTS.speakWelcome(user, pack, { deferMs: 80 });
-    };
-  }
-  if (tap) {
-    tap.onclick = function () {
-      tap.hidden = true;
-      bbLoginWelcomeTTS.speakWelcome(user, pack, { deferMs: 40 });
-    };
-  }
-  if (ex) ex.hidden = false;
-  if (!bbLoginWelcomeTTS.isMuted()) {
-    bbLoginWelcomeTTS.speakWelcome(user, pack, { deferMs: 120 });
-  }
-}
-
-function bbShowLoginWelcomePopup(user, onContinue, continueLabel) {
-  var wrap = function () {
-    try { bbLoginWelcomeRecordVisit(user); } catch (e) {}
-    if (onContinue) onContinue();
-  };
-  var pack = bbBuildLoginWelcome(user);
-  showPopup(pack.title, pack.msg, pack.quote, continueLabel || "Let's Go", wrap);
-  try { bbLoginWelcomeAfterOpen(user, pack); } catch (e) {}
-}
-
 // ========== LOGIN ==========
 async function adminLogin() {
   const emailEl = document.querySelector('#loginModal input[type=email]');
@@ -8426,7 +8066,6 @@ async function adminLogin() {
       lockBodyScroll();
       loadDashboard().finally(function() {
         if (typeof loadAdminAiAssistHistory === 'function') loadAdminAiAssistHistory();
-        bbShowLoginWelcomePopup(data, null, 'Continue');
       });
     } else if (data.role === 'superadmin') {
       if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(true);
@@ -8435,14 +8074,13 @@ async function adminLogin() {
       document.body.classList.add('admin-dashboard-open');
       lockBodyScroll();
       loadSuperadminDashboard();
-      bbShowLoginWelcomePopup(data, null, 'Continue');
     } else {
       window._pendingUser = data;
-      bbShowLoginWelcomePopup(data, function() {
+      showPopup('Welcome, ' + data.first_name + '!', 'Your transformation journey continues.', 'CONSISTENCY has its fruits, so does PATIENCE.', "Let's Go", function() {
         if (typeof bbNotifyArmAudioForGesture === 'function') bbNotifyArmAudioForGesture();
         if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(false);
         openUserDashboard(window._pendingUser);
-      }, "Let's Go");
+      });
     }
   } catch (e) {
     if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Login Now';}
@@ -17466,7 +17104,6 @@ async function sendContact() {
 var POPUP_ICON_SUCCESS = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>';
 var POPUP_ICON_ERROR = '<svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
 function showPopup(title, msg, quote, btnText, callback, type) {
-  try { bbLoginWelcomeResetChrome(); } catch (e) {}
   var titleEl = document.getElementById('popupTitle');
   var msgEl = document.getElementById('popupMsg');
   var quoteEl = document.getElementById('popupQuote');
@@ -17487,7 +17124,6 @@ function showPopup(title, msg, quote, btnText, callback, type) {
     btn.textContent = btnText || 'OK';
     window._popupCallback = callback || null;
     btn.onclick = function() {
-      try { bbLoginWelcomeResetChrome(); } catch (e) {}
       if (overlay) overlay.classList.remove('show');
       if (window._popupCallback) {
         var cb = window._popupCallback;
@@ -17499,14 +17135,7 @@ function showPopup(title, msg, quote, btnText, callback, type) {
   }
   if (overlay) { overlay.classList.add('show'); lockBodyScroll(); }
 }
-function closePopup(id) {
-  var el = document.getElementById(id);
-  if (el) el.classList.remove('show');
-  if (id === 'popupSuccess') {
-    try { bbLoginWelcomeResetChrome(); } catch (e) {}
-  }
-  unlockBodyScroll();
-}
+function closePopup(id) { var el = document.getElementById(id); if (el) el.classList.remove('show'); unlockBodyScroll(); }
 function openPopup(id) { var el = document.getElementById(id); if (el) { el.classList.add('show'); lockBodyScroll(); } }
 
 async function handleForgotPassword() {
@@ -17663,7 +17292,6 @@ function handleGoogleResponse(response) {
       lockBodyScroll();
       loadDashboard().finally(function() {
         if (typeof loadAdminAiAssistHistory === 'function') loadAdminAiAssistHistory();
-        bbShowLoginWelcomePopup(data, null, 'Continue');
       });
     } else if (data.role === 'superadmin') {
       if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(true);
@@ -17672,12 +17300,9 @@ function handleGoogleResponse(response) {
       document.body.classList.add('admin-dashboard-open');
       lockBodyScroll();
       loadSuperadminDashboard();
-      bbShowLoginWelcomePopup(data, null, 'Continue');
     } else {
-      bbShowLoginWelcomePopup(data, function() {
-        if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(false);
-        openUserDashboard(data);
-      }, "Let's Go");
+      if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(false);
+      openUserDashboard(data);
     }
   }).catch(function(e) {
     showPopup('Error', 'Google authentication failed. Please try again.', '', 'OK');
