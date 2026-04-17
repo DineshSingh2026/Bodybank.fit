@@ -1464,6 +1464,14 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
     await run(`INSERT INTO audit_requests (id,first_name,last_name,age,sex,email,phone,country,city,occupation,work_intensity,fitness_experience,goals,motivation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.first_name, b.last_name||'', b.age||null, b.sex||'', b.email, b.phone||'', b.country||'', b.city||'', b.occupation||'', b.work_intensity||'', b.fitness_experience||'', b.goals||'', b.motivation||'']);
     sendPushToAdmins(JSON.stringify({ title: 'New audit form', body: `${b.first_name || ''} ${b.last_name || ''} submitted a Body Audit`, id: 'audit-' + id })).catch(() => {});
+    notifyAsync('AUDIT_FORM', {
+      name: `${b.first_name || ''} ${b.last_name || ''}`.trim() || '—',
+      email: b.email || '—',
+      mobile: b.phone || '—',
+      city: b.city || '—',
+      country: b.country || '—',
+      goals: b.goals || '—'
+    });
     userEmail.emailAuditReceived(String(b.email).trim(), b.first_name);
     res.json({ id, message: 'Request submitted successfully' });
   } catch (e) {

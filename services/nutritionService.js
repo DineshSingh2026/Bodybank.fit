@@ -218,6 +218,19 @@ function estimateAnthropicUsageCost(inputTokens, outputTokens) {
   };
 }
 
+function macroDerivedCalories(aiResult) {
+  const protein = toNumber(aiResult && aiResult.protein, 0);
+  const carbs = toNumber(aiResult && aiResult.carbs, 0);
+  const fat = toNumber(aiResult && aiResult.fat, 0);
+  return protein * 4 + carbs * 4 + fat * 9;
+}
+
+function calorieMacroGapPct(aiResult) {
+  const calories = Math.max(1, toNumber(aiResult && aiResult.calories, 0));
+  const derived = macroDerivedCalories(aiResult);
+  return Math.abs(calories - derived) / calories;
+}
+
 async function callClaudeNutrition({
   apiKey,
   model,
@@ -240,47 +253,58 @@ async function callClaudeNutrition({
   }
   content.push({ type: 'text', text: userText });
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': apiKey,
-      'anthropic-version': '2023-06-01'
-    },
-    body: JSON.stringify({
-      model,
-      max_tokens: 450,
-      system,
-      messages: [{ role: 'user', content }]
-    })
-  });
+  async function invokeOnce() {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 450,
+        temperature: 0,
+        system,
+        messages: [{ role: 'user', content }]
+      })
+    });
 
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) {
-    const msg = formatAnthropicApiError(res.status, data);
-    if (res.status === 402 || res.status === 403) {
-      console.warn('[nutrition/claude]', res.status, data && data.error);
-    } else {
-      console.warn('[nutrition/claude]', res.status, (data && data.error) || data);
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg = formatAnthropicApiError(res.status, data);
+      if (res.status === 402 || res.status === 403) {
+        console.warn('[nutrition/claude]', res.status, data && data.error);
+      } else {
+        console.warn('[nutrition/claude]', res.status, (data && data.error) || data);
+      }
+      throw new Error(msg);
     }
-    throw new Error(msg);
+    const block = (data.content || []).find((b) => b.type === 'text');
+    const text = block && block.text ? block.text : '';
+    const parsed = parseAnthropicJson(text);
+    const aiResult = normalizeAiResult(parsed);
+    if (!aiResult) throw new Error('Could not parse nutrition response from AI');
+    const inputTokens = toNumber(data && data.usage && data.usage.input_tokens, 0);
+    const outputTokens = toNumber(data && data.usage && data.usage.output_tokens, 0);
+    const usage = {
+      provider: 'anthropic',
+      model: String(model || ''),
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      total_tokens: inputTokens + outputTokens,
+      ...estimateAnthropicUsageCost(inputTokens, outputTokens)
+    };
+    return { aiResult, rawText: text, usage };
   }
-  const block = (data.content || []).find((b) => b.type === 'text');
-  const text = block && block.text ? block.text : '';
-  const parsed = parseAnthropicJson(text);
-  const aiResult = normalizeAiResult(parsed);
-  if (!aiResult) throw new Error('Could not parse nutrition response from AI');
-  const inputTokens = toNumber(data && data.usage && data.usage.input_tokens, 0);
-  const outputTokens = toNumber(data && data.usage && data.usage.output_tokens, 0);
-  const usage = {
-    provider: 'anthropic',
-    model: String(model || ''),
-    input_tokens: inputTokens,
-    output_tokens: outputTokens,
-    total_tokens: inputTokens + outputTokens,
-    ...estimateAnthropicUsageCost(inputTokens, outputTokens)
-  };
-  return { aiResult, rawText: text, usage };
+
+  const first = await invokeOnce();
+  const firstGap = calorieMacroGapPct(first.aiResult);
+  if (firstGap <= 0.15) return first;
+
+  const second = await invokeOnce();
+  const secondGap = calorieMacroGapPct(second.aiResult);
+  return secondGap <= firstGap ? second : first;
 }
 
 async function validateNutritionMealInput({
