@@ -1190,7 +1190,18 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     if (user.role === 'user') {
       notifyAsync('USER_LOGIN', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, role: user.role, mobile: user.phone || '—' });
     }
-    res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', token });
+    res.json({
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name,
+      last_name: user.last_name,
+      profile_picture: user.profile_picture || '',
+      role: user.role,
+      country: user.country || '',
+      timezone: user.timezone || '',
+      token,
+      created_at: user.created_at != null ? user.created_at : null
+    });
   } catch (e) {
     console.error('[Login] Error:', e.message);
     res.status(500).json({ error: 'Server error. Please try again.' });
@@ -1238,7 +1249,18 @@ app.post('/api/auth/google', async (req, res) => {
     await syncUserCountryAndTimezone(user.id, user.email);
     user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
     const token = signToken({ id: user.id, email: user.email, role: user.role });
-    res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', token });
+    res.json({
+      id: user.id,
+      email: user.email,
+      first_name: user.first_name || '',
+      last_name: user.last_name || '',
+      profile_picture: user.profile_picture || '',
+      role: user.role,
+      country: user.country || '',
+      timezone: user.timezone || '',
+      token,
+      created_at: user.created_at != null ? user.created_at : null
+    });
   } catch (e) {
     console.error('Google auth error:', e);
     res.status(500).json({ error: 'Google auth failed' });

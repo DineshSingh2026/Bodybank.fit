@@ -149,21 +149,6 @@
     }
     .tip::before { content: '▸'; position: absolute; left: 7px; top: 9px; color: var(--gold); font-size: 11px; }
 
-    /* ── VOICE COACH TOGGLE ── */
-    .vc-toggle { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
-    .vc-toggle input { opacity: 0; width: 0; height: 0; }
-    .vc-slider {
-      position: absolute; inset: 0; cursor: pointer;
-      background: #2c3347; border-radius: 24px; transition: background .25s;
-    }
-    .vc-slider::before {
-      content: ''; position: absolute;
-      width: 18px; height: 18px; left: 3px; top: 3px;
-      background: #fff; border-radius: 50%; transition: transform .25s;
-    }
-    .vc-toggle input:checked + .vc-slider { background: var(--gold); }
-    .vc-toggle input:checked + .vc-slider::before { transform: translateX(18px); }
-
     /* ── FULLSCREEN WORKOUT MODE ── */
     body.in-workout .hdr { opacity: 0; pointer-events: none; transition: opacity .3s; }
     body.in-workout .left,
@@ -429,12 +414,9 @@
     </div>
     <div class="card">
       <p class="title">Voice Coach</p>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-        <span style="font-size:13px;color:var(--muted)">🎙️ Male Coach</span>
-        <label class="vc-toggle">
-          <input type="checkbox" id="vcToggle" checked />
-          <span class="vc-slider"></span>
-        </label>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
+        <span style="font-size:13px;color:var(--muted)">🎙️ Male coach · always on</span>
+        <span style="font-size:11px;color:var(--gold);font-weight:600;border:1px solid #3d3420;border-radius:999px;padding:3px 10px">On</span>
       </div>
       <div style="display:flex;align-items:center;gap:10px">
         <span style="font-size:11px;color:#5f6880;white-space:nowrap">Volume</span>
@@ -442,7 +424,7 @@
                style="flex:1;accent-color:var(--gold);cursor:pointer" />
       </div>
       <div id="vcStatus" style="font-size:11px;color:#5f6880;margin-top:8px;text-align:center">Ready</div>
-      <button onclick="VC.test()" style="margin-top:8px;width:100%;padding:8px;border-radius:8px;background:transparent;border:1px dashed #2c3347;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='#2c3347';this.style.color='var(--muted)'">🔊 Test Voice</button>
+      <button type="button" id="vcTestBtn" onclick="VC.test()" style="margin-top:8px;width:100%;padding:8px;border-radius:8px;background:transparent;border:1px dashed #2c3347;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='#2c3347';this.style.color='var(--muted)'">🔊 Test Voice</button>
     </div>
   </aside>
 
@@ -456,6 +438,7 @@
         <div class="ov">
           <h3>Ready to Train</h3>
           <p>Select an exercise and tap <strong>Start Workout</strong>.</p>
+          <p style="margin-top:12px;font-size:14px;line-height:1.45;color:#9aa3b8">Your coach speaks in a calm, steady voice throughout each session. You can tap anywhere once for an early hello — or press Start and he will greet you first, then count you in.</p>
         </div>
       </div>
       <div id="loadOv" class="overlay hidden">
@@ -641,7 +624,11 @@ const VC = {
   introSpoken:           false,
   _keepAliveId:          null,
 
-  get enabled() { const el = $('vcToggle'); return el ? el.checked : false; },
+  /** Polite landing message — played once per tab session after first user gesture (browser speech policy). */
+  WELCOME_TEXT:
+    "Welcome to BodyBank's AI Trainer. I'm glad you're here. I'll stay with you through every rep — clear guidance, steady encouragement, and respectful form feedback. Choose your exercise and press Start when you're ready. Let's make this a session you can be proud of.",
+
+  get enabled() { return true; },
   get volume()  { const el = $('vcVolume'); return el ? parseFloat(el.value) : 0.9; },
 
   // ── Cue Library ──────────────────────────────────────────────
@@ -659,12 +646,13 @@ const VC = {
       auto:          'AI Trainer is active! I\'m watching your movement patterns and counting every rep. Just start moving and I\'ll guide you through everything. Let\'s train!',
     },
 
-    // Countdown
+    // Countdown — short beats so each fits a calm cadence when queued
     countdown: {
-      3: 'Three.',
-      2: 'Two.',
-      1: 'One. Get into position!',
-      go: 'Go! Let\'s get to work!',
+      3: 'Three…',
+      2: 'Two…',
+      1: 'One.',
+      position: 'Get into position when you\'re ready.',
+      go: 'Here we go — begin.',
     },
 
     // Phase cues — spoken on every phase transition
@@ -774,24 +762,34 @@ const VC = {
     setTimeout(load, 500);
   },
 
+  // Calmer, more human pacing (defaults; callers may override)
+  _humanRate:  0.86,
+  _humanPitch: 0.88,
+
   // ── Core speak (Chrome-safe) ──────────────────────────────────
+  /** @param opts.noCancel If true, queues after current speech (use for countdown chains). */
+  /** @param opts.bypassCooldown If true, ignore spacing guard (countdown / scripted chains). */
   speak(text, opts = {}) {
     if (!this.enabled || !this.synth || !text) return;
     const now = Date.now();
-    const cd = opts.cooldown !== undefined ? opts.cooldown : 1500;
-    if (now - this.lastSpoken < cd) return;
+    const cd = opts.cooldown !== undefined ? opts.cooldown : 2000;
+    if (!opts.bypassCooldown && now - this.lastSpoken < cd) return;
     this.lastSpoken = now;
-    this.synth.cancel();
+    if (!opts.noCancel) this.synth.cancel();
+    const delayMs = opts.noCancel ? 40 : 60;
     setTimeout(() => {
       if (!this.synth) return;
       const u = new SpeechSynthesisUtterance(text);
       if (this.voice) u.voice = this.voice;
       u.volume = this.volume;
-      u.rate   = opts.rate  !== undefined ? opts.rate  : 1.0;
-      u.pitch  = opts.pitch !== undefined ? opts.pitch : 0.85;
+      u.rate   = opts.rate  !== undefined ? opts.rate  : this._humanRate;
+      u.pitch  = opts.pitch !== undefined ? opts.pitch : this._humanPitch;
       u.lang   = 'en-US';
+      if (typeof opts.onEnd === 'function') {
+        u.onend = () => { try { opts.onEnd(); } catch (_) {} };
+      }
       this.synth.speak(u);
-    }, 60);
+    }, delayMs);
   },
 
   // Pick a random item from an array
@@ -812,16 +810,44 @@ const VC = {
   test() {
     if (!this.synth) { const el=$('vcStatus'); if(el) el.textContent='Not supported'; return; }
     const el = $('vcStatus'); if (el) el.textContent = 'Speaking…';
-    const tog = $('vcToggle');
-    const was = tog ? tog.checked : true;
-    if (tog) tog.checked = true;
     const prev = this.lastSpoken; this.lastSpoken = 0;
-    this.speak("Hey! Your coach is ready. Let's have a great session today — I'll be with you every single rep!", { cooldown: 0 });
-    setTimeout(() => {
-      if (tog && !was) tog.checked = false;
+    const restore = () => {
       this.lastSpoken = prev;
       if (el) el.textContent = this.voice ? '✓ ' + this.voice.name.slice(0, 22) : 'No voice found';
-    }, 4000);
+    };
+    this.speak("Hey there — I'm your coach. Whenever you're ready, we'll take it one rep at a time, together.", { cooldown: 0, bypassCooldown: true, rate: this._humanRate, pitch: this._humanPitch, onEnd: restore });
+  },
+
+  _welcomeKey: 'bb_ai_trainer_welcome_done',
+  _welcomeInFlight: null,
+
+  /** One polite welcome per tab; safe to call from multiple places (dedupes in-flight). */
+  awaitWelcomeOnce() {
+    const KEY = this._welcomeKey;
+    try {
+      if (sessionStorage.getItem(KEY)) return Promise.resolve();
+    } catch (_) { return Promise.resolve(); }
+    if (this._welcomeInFlight) return this._welcomeInFlight;
+    this._welcomeInFlight = new Promise((resolve) => {
+      if (!this.synth) {
+        try { sessionStorage.setItem(KEY, '1'); } catch (_) {}
+        this._welcomeInFlight = null;
+        resolve();
+        return;
+      }
+      const st = $('vcStatus'); if (st) st.textContent = 'Speaking…';
+      const prev = this.lastSpoken; this.lastSpoken = 0;
+      const finish = () => {
+        try { sessionStorage.setItem(KEY, '1'); } catch (_) {}
+        this.lastSpoken = prev;
+        const el = $('vcStatus');
+        if (el) el.textContent = this.voice ? '✓ ' + this.voice.name.slice(0, 22) : 'No voice found';
+        this._welcomeInFlight = null;
+        resolve();
+      };
+      this.speak(this.WELCOME_TEXT, { cooldown: 0, rate: 0.84, pitch: 0.87, bypassCooldown: true, onEnd: finish });
+    });
+    return this._welcomeInFlight;
   },
 
   // ── Speak exercise intro (called once at session start) ───────
@@ -829,7 +855,7 @@ const VC = {
     if (this.introSpoken) return;
     this.introSpoken = true;
     const cue = this.CUES.intro[exKey] || this.CUES.intro.auto;
-    this.speak(cue, { cooldown: 0, rate: 0.98 });
+    this.speak(cue, { cooldown: 0, bypassCooldown: true, rate: 0.88, pitch: this._humanPitch });
   },
 
   // ── Main per-frame handler ────────────────────────────────────
@@ -855,7 +881,7 @@ const VC = {
     if (reps > this.lastRepCount) {
       const milestone = this.CUES.milestones[reps];
       if (milestone) {
-        this.speak(milestone, { cooldown: 0, rate: 1.02 });
+        this.speak(milestone, { cooldown: 0, rate: 0.9, pitch: this._humanPitch });
         this.lastRepCount = reps;
         this.lastPhase = phase;
         return;
@@ -872,7 +898,7 @@ const VC = {
     if (phase !== this.lastPhase && this.lastPhase !== null) {
       const exCues = this.CUES.phase[exKey] || {};
       const cue = exCues[phase] || exCues.hold || null;
-      if (cue) { this.speak(cue, { cooldown: 700 }); this.lastPhase = phase; return; }
+      if (cue) { this.speak(cue, { cooldown: 950 }); this.lastPhase = phase; return; }
     }
     this.lastPhase = phase;
 
@@ -882,7 +908,7 @@ const VC = {
       this.goodFrames = 0;
       if (this.badFrames === 62) {
         const cue = this.CUES.correction[exKey];
-        if (cue) { this.speak(cue, { cooldown: 4000, rate: 0.97 }); }
+        if (cue) { this.speak(cue, { cooldown: 4500, rate: 0.86, pitch: this._humanPitch }); }
         this.badFrames = 0;
       }
       return;
@@ -902,8 +928,8 @@ const VC = {
     }
 
     // 6 ── Periodic encouragement (every ~30 s of silence)
-    if (now - this.lastSpoken > 30000 && now - this.lastEncouragementAt > 30000) {
-      this.speak(this._pick(this.CUES.encouragement), { cooldown: 0, rate: 0.99 });
+    if (now - this.lastSpoken > 36000 && now - this.lastEncouragementAt > 36000) {
+      this.speak(this._pick(this.CUES.encouragement), { cooldown: 0, rate: 0.86, pitch: this._humanPitch });
       this.lastEncouragementAt = now;
     }
   },
@@ -918,6 +944,33 @@ const VC = {
 };
 
 VC.init();
+
+// Optional early welcome on first tap (Start waits for welcome inside startWorkout).
+(function bindWelcomeGesture() {
+  const KEY = VC._welcomeKey;
+  function done() {
+    try { window.removeEventListener('pointerdown', onFirst, true); } catch (_) {}
+  }
+  function onFirst(ev) {
+    let skipWelcome = false;
+    try {
+      const t = ev.target;
+      if (t && t.closest) {
+        if (t.closest('#startBtn') || t.closest('#vcTestBtn')) skipWelcome = true;
+      }
+    } catch (_) {}
+    try {
+      if (sessionStorage.getItem(KEY)) { done(); return; }
+    } catch (_) { done(); return; }
+    done();
+    if (skipWelcome) return;
+    void VC.awaitWelcomeOnce();
+  }
+  try {
+    if (sessionStorage.getItem(KEY)) return;
+  } catch (_) { return; }
+  window.addEventListener('pointerdown', onFirst, true);
+})();
 
 // ════════════════════════════════════════════════════════════════
 //  JOINT STATUS EVALUATOR
@@ -1718,22 +1771,62 @@ function showPrepCountdown(exerciseText, tip, onDone) {
   idleOv.classList.add('hidden');
   loadOv.classList.add('hidden');
   prepOv.classList.remove('hidden');
-  let n = 3; prepNum.textContent = n;
-  VC.speak(VC.CUES.countdown[3], { cooldown: 0 });
-  const iv = setInterval(() => {
-    n--;
-    if (n <= 0) {
-      clearInterval(iv);
-      prepOv.classList.add('hidden');
-      VC.speak(VC.CUES.countdown.go, { cooldown: 0 });
-      VC.startKeepAlive();
-      setTimeout(() => VC.speakIntro(exSel.value), 1800);
-      onDone();
-    } else {
-      prepNum.textContent = n;
-      VC.speak(VC.CUES.countdown[n], { cooldown: 0 });
+
+  const cdRate = 0.8;
+  const cdPitch = VC._humanPitch;
+  const MS_BETWEEN_COUNT = 300;
+  const MS_BEFORE_GO = 320;
+  const breath = () => new Promise(r => setTimeout(r, MS_BETWEEN_COUNT));
+
+  /** Queue-friendly TTS so each number finishes before the next (no cancel between cues). */
+  async function runCountdownVoice() {
+    VC.lastSpoken = 0;
+    for (let k = 3; k >= 1; k--) {
+      prepNum.textContent = k;
+      await new Promise((resolve) => {
+        VC.speak(VC.CUES.countdown[k], {
+          cooldown: 0,
+          bypassCooldown: true,
+          noCancel: true,
+          rate: cdRate,
+          pitch: cdPitch,
+          onEnd: resolve,
+        });
+      });
+      await breath();
     }
-  }, 1000);
+    await new Promise((resolve) => {
+      VC.speak(VC.CUES.countdown.position, {
+        cooldown: 0,
+        bypassCooldown: true,
+        noCancel: true,
+        rate: 0.84,
+        pitch: cdPitch,
+        onEnd: resolve,
+      });
+    });
+    await new Promise(r => setTimeout(r, MS_BEFORE_GO));
+    await new Promise((resolve) => {
+      VC.speak(VC.CUES.countdown.go, {
+        cooldown: 0,
+        bypassCooldown: true,
+        noCancel: true,
+        rate: 0.82,
+        pitch: cdPitch,
+        onEnd: resolve,
+      });
+    });
+  }
+
+  void (async () => {
+    try {
+      await runCountdownVoice();
+    } catch (_) {}
+    prepOv.classList.add('hidden');
+    VC.startKeepAlive();
+    setTimeout(() => VC.speakIntro(exSel.value), 1200);
+    onDone();
+  })();
 }
 
 function showSessionSummary(reps, sets, dur, avgForm, exercise, exKey) {
@@ -1818,6 +1911,12 @@ async function saveAiTrainerSession(data) {
 async function startWorkout() {
   startBtn.disabled = true; exSel.disabled = true;
   formScoreSum = 0; formScoreCount = 0;
+
+  try {
+    await VC.awaitWelcomeOnce();
+    await new Promise(r => setTimeout(r, 720));
+  } catch (_) {}
+
   VC.reset();
 
   // Enter fullscreen CSS mode immediately
@@ -1936,7 +2035,7 @@ async function stopWorkout() {
 
   VC.stopKeepAlive();
   VC.reset();
-  VC.speak(VC.CUES.sessionDone, { cooldown: 0 });
+  VC.speak(VC.CUES.sessionDone, { cooldown: 0, bypassCooldown: true });
   // Show luxury summary (save happens via Save button)
   showSessionSummary(finalReps, finalSets, dur, avgForm, exLabel, exKey);
 }
@@ -1954,7 +2053,7 @@ function doCompleteSet() {
   const hr = $('hudReps'); if (hr) hr.textContent = detector.reps;
   const hs = $('hudSets'); if (hs) hs.textContent = detector.sets;
   setFeedback('Set complete. Rest and go again.', 'good', 92);
-  VC.speak(VC.CUES.setDone, { cooldown: 0 });
+  VC.speak(VC.CUES.setDone, { cooldown: 0, bypassCooldown: true });
 }
 setBtn.addEventListener('click', doCompleteSet);
 
