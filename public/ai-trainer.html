@@ -646,13 +646,12 @@ const VC = {
       auto:          'AI Trainer is active! I\'m watching your movement patterns and counting every rep. Just start moving and I\'ll guide you through everything. Let\'s train!',
     },
 
-    // Countdown — short beats so each fits a calm cadence when queued
+    // Countdown — concise; go cue still polite
     countdown: {
-      3: 'Three…',
-      2: 'Two…',
+      3: 'Three.',
+      2: 'Two.',
       1: 'One.',
-      position: 'Get into position when you\'re ready.',
-      go: 'Here we go — begin.',
+      go: 'Get set. Begin when you\'re ready.',
     },
 
     // Phase cues — spoken on every phase transition
@@ -762,9 +761,9 @@ const VC = {
     setTimeout(load, 500);
   },
 
-  // Calmer, more human pacing (defaults; callers may override)
-  _humanRate:  0.86,
-  _humanPitch: 0.88,
+  // Polite but responsive (defaults; callers may override)
+  _humanRate:  0.93,
+  _humanPitch: 0.87,
 
   // ── Core speak (Chrome-safe) ──────────────────────────────────
   /** @param opts.noCancel If true, queues after current speech (use for countdown chains). */
@@ -782,7 +781,7 @@ const VC = {
       return;
     }
     const now = Date.now();
-    const cd = opts.cooldown !== undefined ? opts.cooldown : 2000;
+    const cd = opts.cooldown !== undefined ? opts.cooldown : 1200;
     if (!opts.bypassCooldown && now - this.lastSpoken < cd) {
       setTimeout(fireEnd, 0);
       return;
@@ -809,7 +808,7 @@ const VC = {
         }
         fireEnd();
       };
-      if (cb) safety = setTimeout(done, 14000);
+      if (cb) safety = setTimeout(done, 8000);
       u.onend = done;
       u.onerror = done;
       this.synth.speak(u);
@@ -869,7 +868,7 @@ const VC = {
         this._welcomeInFlight = null;
         resolve();
       };
-      this.speak(this.WELCOME_TEXT, { cooldown: 0, rate: 0.84, pitch: 0.87, bypassCooldown: true, onEnd: finish });
+      this.speak(this.WELCOME_TEXT, { cooldown: 0, rate: 0.9, pitch: 0.87, bypassCooldown: true, onEnd: finish });
     });
     return this._welcomeInFlight;
   },
@@ -879,7 +878,7 @@ const VC = {
     if (this.introSpoken) return;
     this.introSpoken = true;
     const cue = this.CUES.intro[exKey] || this.CUES.intro.auto;
-    this.speak(cue, { cooldown: 0, bypassCooldown: true, rate: 0.88, pitch: this._humanPitch });
+    this.speak(cue, { cooldown: 0, bypassCooldown: true, rate: 0.93, pitch: this._humanPitch });
   },
 
   // ── Main per-frame handler ────────────────────────────────────
@@ -905,14 +904,14 @@ const VC = {
     if (reps > this.lastRepCount) {
       const milestone = this.CUES.milestones[reps];
       if (milestone) {
-        this.speak(milestone, { cooldown: 0, rate: 0.9, pitch: this._humanPitch });
+        this.speak(milestone, { cooldown: 0, rate: 0.95, pitch: this._humanPitch });
         this.lastRepCount = reps;
         this.lastPhase = phase;
         return;
       }
       // Per-rep praise: good form → premium praise pool, else standard pool
       const pool = (kind === 'good') ? this.CUES.repPraiseGood : this.CUES.repPraiseOk;
-      this.speak(this._pick(pool), { cooldown: 0 });
+      this.speak(this._pick(pool), { cooldown: 0, rate: 0.93, pitch: this._humanPitch });
       this.lastRepCount = reps;
       this.lastPhase = phase;
       return;
@@ -922,7 +921,7 @@ const VC = {
     if (phase !== this.lastPhase && this.lastPhase !== null) {
       const exCues = this.CUES.phase[exKey] || {};
       const cue = exCues[phase] || exCues.hold || null;
-      if (cue) { this.speak(cue, { cooldown: 950 }); this.lastPhase = phase; return; }
+      if (cue) { this.speak(cue, { cooldown: 650, rate: 0.94, pitch: this._humanPitch }); this.lastPhase = phase; return; }
     }
     this.lastPhase = phase;
 
@@ -932,7 +931,7 @@ const VC = {
       this.goodFrames = 0;
       if (this.badFrames === 62) {
         const cue = this.CUES.correction[exKey];
-        if (cue) { this.speak(cue, { cooldown: 4500, rate: 0.86, pitch: this._humanPitch }); }
+        if (cue) { this.speak(cue, { cooldown: 3200, rate: 0.9, pitch: this._humanPitch }); }
         this.badFrames = 0;
       }
       return;
@@ -943,7 +942,7 @@ const VC = {
     if (kind === 'good') {
       this.goodFrames++;
       if (this.goodFrames === 130) {
-        this.speak(this._pick(this.CUES.goodStreak), { cooldown: 6000 });
+        this.speak(this._pick(this.CUES.goodStreak), { cooldown: 4500, rate: 0.93, pitch: this._humanPitch });
         this.goodFrames = 0;
         return;
       }
@@ -952,8 +951,8 @@ const VC = {
     }
 
     // 6 ── Periodic encouragement (every ~30 s of silence)
-    if (now - this.lastSpoken > 36000 && now - this.lastEncouragementAt > 36000) {
-      this.speak(this._pick(this.CUES.encouragement), { cooldown: 0, rate: 0.86, pitch: this._humanPitch });
+    if (now - this.lastSpoken > 28000 && now - this.lastEncouragementAt > 28000) {
+      this.speak(this._pick(this.CUES.encouragement), { cooldown: 0, rate: 0.92, pitch: this._humanPitch });
       this.lastEncouragementAt = now;
     }
   },
@@ -1781,9 +1780,9 @@ document.addEventListener('fullscreenchange', () => {
   if (!document.fullscreenElement && running) stopWorkout();
 });
 window.addEventListener('resize', () => {
-  if (running && cvs) {
-    cvs.width  = cvs.clientWidth  || window.innerWidth;
-    cvs.height = cvs.clientHeight || window.innerHeight;
+  if (cvs && document.body.classList.contains('in-workout')) {
+    cvs.width  = Math.max(320, cvs.clientWidth  || window.innerWidth);
+    cvs.height = Math.max(240, cvs.clientHeight || window.innerHeight);
   }
 });
 
@@ -1796,13 +1795,11 @@ function showPrepCountdown(exerciseText, tip, onDone) {
   loadOv.classList.add('hidden');
   prepOv.classList.remove('hidden');
 
-  const cdRate = 0.8;
+  const cdRate = 0.95;
   const cdPitch = VC._humanPitch;
-  const MS_BETWEEN_COUNT = 300;
-  const MS_BEFORE_GO = 320;
-  const breath = () => new Promise(r => setTimeout(r, MS_BETWEEN_COUNT));
+  const MS_BETWEEN_COUNT = 140;
 
-  /** Queue-friendly TTS so each number finishes before the next (no cancel between cues). */
+  /** Queue-friendly TTS — shorter gaps, snappier feel. */
   async function runCountdownVoice() {
     VC.lastSpoken = 0;
     for (let k = 3; k >= 1; k--) {
@@ -1817,25 +1814,15 @@ function showPrepCountdown(exerciseText, tip, onDone) {
           onEnd: resolve,
         });
       });
-      await breath();
+      await new Promise(r => setTimeout(r, MS_BETWEEN_COUNT));
     }
-    await new Promise((resolve) => {
-      VC.speak(VC.CUES.countdown.position, {
-        cooldown: 0,
-        bypassCooldown: true,
-        noCancel: true,
-        rate: 0.84,
-        pitch: cdPitch,
-        onEnd: resolve,
-      });
-    });
-    await new Promise(r => setTimeout(r, MS_BEFORE_GO));
+    await new Promise(r => setTimeout(r, 120));
     await new Promise((resolve) => {
       VC.speak(VC.CUES.countdown.go, {
         cooldown: 0,
         bypassCooldown: true,
         noCancel: true,
-        rate: 0.82,
+        rate: 0.94,
         pitch: cdPitch,
         onEnd: resolve,
       });
@@ -1848,7 +1835,7 @@ function showPrepCountdown(exerciseText, tip, onDone) {
     } catch (_) {}
     prepOv.classList.add('hidden');
     VC.startKeepAlive();
-    setTimeout(() => VC.speakIntro(exSel.value), 1200);
+    setTimeout(() => VC.speakIntro(exSel.value), 450);
     onDone();
   })();
 }
@@ -1938,7 +1925,7 @@ async function startWorkout() {
 
   try {
     await VC.awaitWelcomeOnce();
-    await new Promise(r => setTimeout(r, 720));
+    await new Promise(r => setTimeout(r, 280));
   } catch (_) {}
 
   VC.reset();
@@ -1969,7 +1956,7 @@ async function startWorkout() {
   cvs.height = Math.max(240, ch);
 
   pose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
-  pose.setOptions({ modelComplexity:1, smoothLandmarks:true, minDetectionConfidence:.55, minTrackingConfidence:.5 });
+  pose.setOptions({ modelComplexity:0, smoothLandmarks:true, minDetectionConfidence:.5, minTrackingConfidence:.45 });
 
   const ctx = cvs.getContext('2d');
   pose.onResults(results => {
@@ -1980,16 +1967,30 @@ async function startWorkout() {
     const w = cvs.width, h = cvs.height;
     ctx.clearRect(0, 0, w, h);
     if (results.image) ctx.drawImage(results.image, 0, 0, w, h);
-    if (!running) return;
 
     const lm = results.poseLandmarks || null;
     if (!lm) {
-      noPersonFrames++;
-      if (noPersonFrames > 40) noPerson.classList.remove('hidden');
-      VC.onFrame({ exKey: exSel.value, phase: 'up', kind: 'error', repAdded: false }, null);
+      if (running) {
+        noPersonFrames++;
+        if (noPersonFrames > 40) noPerson.classList.remove('hidden');
+        VC.onFrame({ exKey: exSel.value, phase: 'up', kind: 'error', repAdded: false }, null);
+      }
       return;
     }
-    noPersonFrames = 0; noPerson.classList.add('hidden');
+
+    const exKeyPrev = exSel.value;
+    if (!running) {
+      noPersonFrames = 0;
+      noPerson.classList.add('hidden');
+      const ph = 'up';
+      const jPrev = evaluateJoints(lm, exKeyPrev, ph);
+      drawSmartSkeleton(ctx, lm, jPrev, w, h);
+      drawCoachingOverlay(ctx, lm, exKeyPrev, jPrev, w, h);
+      return;
+    }
+
+    noPersonFrames = 0;
+    noPerson.classList.add('hidden');
 
     const out    = detector.process(lm, exSel.value);
     const exKey  = out.exKey || exSel.value;
@@ -2009,7 +2010,6 @@ async function startWorkout() {
     const hr = $('hudReps'); if (hr) hr.textContent = detector.reps;
     const hs = $('hudSets'); if (hs) hs.textContent = detector.sets;
 
-    // Voice coach — fires only on meaningful events, never every frame
     VC.onFrame(out, lm, detector ? detector.reps : 0);
   });
 
@@ -2019,7 +2019,7 @@ async function startWorkout() {
         await pose.send({ image: vid });
       } catch (e) {}
     },
-    width: 1280, height: 720
+    width: 960, height: 540
   });
   try { cam.start(); } catch (e) {}
 
