@@ -163,6 +163,9 @@
       aspect-ratio: unset; border-radius: 0; border: none;
       width: 100% !important; height: 100% !important;
     }
+    /* Hide stage-level badges in workout mode — HUD already shows them */
+    body.in-workout .badge,
+    body.in-workout .phase-badge { display: none !important; }
 
     /* ── PRE-START COUNTDOWN OVERLAY ── */
     #prepOv {
