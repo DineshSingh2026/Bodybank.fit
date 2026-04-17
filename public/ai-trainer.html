@@ -149,6 +149,21 @@
     }
     .tip::before { content: '▸'; position: absolute; left: 7px; top: 9px; color: var(--gold); font-size: 11px; }
 
+    /* ── VOICE COACH TOGGLE ── */
+    .vc-toggle { position: relative; display: inline-block; width: 42px; height: 24px; flex-shrink: 0; }
+    .vc-toggle input { opacity: 0; width: 0; height: 0; }
+    .vc-slider {
+      position: absolute; inset: 0; cursor: pointer;
+      background: #2c3347; border-radius: 24px; transition: background .25s;
+    }
+    .vc-slider::before {
+      content: ''; position: absolute;
+      width: 18px; height: 18px; left: 3px; top: 3px;
+      background: #fff; border-radius: 50%; transition: transform .25s;
+    }
+    .vc-toggle input:checked + .vc-slider { background: var(--gold); }
+    .vc-toggle input:checked + .vc-slider::before { transform: translateX(18px); }
+
     /* ── FULLSCREEN WORKOUT MODE ── */
     body.in-workout .hdr { opacity: 0; pointer-events: none; transition: opacity .3s; }
     body.in-workout .left,
@@ -412,6 +427,22 @@
       <div class="bar-row"><span>Form quality</span><span id="formPct">—</span></div>
       <div id="scoreChip" class="score-chip hidden"></div>
     </div>
+    <div class="card">
+      <p class="title">Voice Coach</p>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:13px;color:var(--muted)">🎙️ Male Coach</span>
+        <label class="vc-toggle">
+          <input type="checkbox" id="vcToggle" checked />
+          <span class="vc-slider"></span>
+        </label>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <span style="font-size:11px;color:#5f6880;white-space:nowrap">Volume</span>
+        <input type="range" id="vcVolume" min="0" max="1" step="0.1" value="0.9"
+               style="flex:1;accent-color:var(--gold);cursor:pointer" />
+      </div>
+      <div id="vcStatus" style="font-size:11px;color:#5f6880;margin-top:8px;text-align:center">Ready</div>
+    </div>
   </aside>
 
   <!-- CAMERA STAGE -->
@@ -590,6 +621,159 @@ let fpsFrames=0, fpsLast=performance.now(), currentFps=0, noPersonFrames=0;
 let formScoreSum = 0, formScoreCount = 0;
 // Snapshot of session data for summary save
 let _savedSessionData = null;
+
+// ════════════════════════════════════════════════════════════════
+//  VOICE COACH ENGINE
+// ════════════════════════════════════════════════════════════════
+const VC = {
+  synth:       window.speechSynthesis || null,
+  voice:       null,       // resolved male voice
+  lastSpoken:  0,          // timestamp of last utterance
+  cooldown:    1600,       // ms between any two utterances
+  lastPhase:   null,       // previous phase string to detect changes
+  lastKind:    null,       // previous kind to detect form changes
+  badFrames:   0,          // consecutive bad-form frames
+  noPersonSpoken: false,   // avoid repeating no-person cue
+
+  get enabled() { const el = $('vcToggle'); return el ? el.checked : false; },
+  get volume()  { const el = $('vcVolume'); return el ? parseFloat(el.value) : 0.9; },
+
+  // Per-exercise, per-event cues for a male coaching voice
+  CUES: {
+    // countdown
+    countdown: { 3:'Three', 2:'Two', 1:'One. Get ready!', go:'Go! Let\'s crush it!' },
+
+    // phase-change cues keyed by exKey + phase transition
+    phase: {
+      squat:         { down:'Go down!',       up:'Drive up! Push through your heels!' },
+      pushup:        { down:'Lower down.',     up:'Push up! Full extension!' },
+      plank:         { hold:'Hold that plank. Tight core!' },
+      jumpingjack:   { open:'Jump out!',       close:'Back together!' },
+      biccurl:       { up:'Curl it up! Squeeze!', down:'Lower slowly. Control.' },
+      shoulderpress: { up:'Press overhead! Lock it out!', down:'Bring it down. Control.' },
+      bentoverrow:   { up:'Row! Pull that elbow back!',   down:'Lower. Full extension.' },
+    },
+
+    // rep-count praise
+    repPraise: ['Good rep!', 'Nice one!', 'That\'s it!', 'Keep going!', 'Strong rep!', 'Perfect!'],
+
+    // form-correction cues keyed by exKey
+    correction: {
+      squat:         'Go lower. Chest up.',
+      pushup:        'Straighten your body. Tight core.',
+      plank:         'Hips level. Hold steady.',
+      jumpingjack:   'Arms all the way up.',
+      biccurl:       'Keep that upper arm still. Don\'t swing.',
+      shoulderpress: 'Press to full lockout. Straighten those arms.',
+      bentoverrow:   'Pull the elbow past your torso. Squeeze the back.',
+    },
+
+    // set complete
+    setDone: 'Set complete! Rest up. You earned it.',
+
+    // session done
+    sessionDone: 'Great session! Well done. Check your stats.',
+
+    // no person
+    noPerson: 'Step into the frame. I can\'t see you.',
+  },
+
+  // Pick and initialise the best available male voice
+  init() {
+    if (!this.synth) return;
+    const load = () => {
+      const voices = this.synth.getVoices();
+      if (!voices.length) return;
+      // Priority: explicit male English voices, then any English, then default
+      const prefer = [
+        v => /male/i.test(v.name) && /en[-_]/i.test(v.lang),
+        v => /david|mark|alex|google uk english male|microsoft david|microsoft mark|daniel/i.test(v.name),
+        v => /en[-_]/i.test(v.lang),
+      ];
+      for (const fn of prefer) {
+        const found = voices.find(fn);
+        if (found) { this.voice = found; break; }
+      }
+      if (!this.voice) this.voice = voices[0] || null;
+      const el = $('vcStatus');
+      if (el && this.voice) el.textContent = this.voice.name.slice(0, 26);
+    };
+    load();
+    this.synth.onvoiceschanged = load;
+  },
+
+  // Core speak function — respects toggle, cooldown, volume
+  speak(text, opts = {}) {
+    if (!this.enabled || !this.synth || !text) return;
+    const now = Date.now();
+    const cd = opts.cooldown !== undefined ? opts.cooldown : this.cooldown;
+    if (now - this.lastSpoken < cd) return;
+    this.lastSpoken = now;
+    this.synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.voice  = this.voice;
+    u.volume = this.volume;
+    u.rate   = opts.rate || 1.05;   // slightly faster → energetic
+    u.pitch  = opts.pitch || 0.88;  // slightly lower → male feel
+    u.lang   = 'en-US';
+    this.synth.speak(u);
+  },
+
+  // Called every frame from the pose results handler
+  onFrame(out, lm) {
+    if (!this.enabled) return;
+    const exKey = out.exKey || 'auto';
+    const phase = out.phase || 'up';
+    const kind  = out.kind  || '';
+
+    // ── No person ──
+    if (!lm) {
+      if (!this.noPersonSpoken) {
+        this.speak(this.CUES.noPerson, { cooldown: 4000 });
+        this.noPersonSpoken = true;
+      }
+      return;
+    }
+    this.noPersonSpoken = false;
+
+    // ── Rep completed ──
+    if (out.repAdded) {
+      const praise = this.CUES.repPraise[Math.floor(Math.random() * this.CUES.repPraise.length)];
+      this.speak(praise, { cooldown: 0 });
+      this.lastPhase = phase;
+      return;
+    }
+
+    // ── Phase change ──
+    if (phase !== this.lastPhase && this.lastPhase !== null) {
+      const exCues = this.CUES.phase[exKey] || {};
+      const cue = exCues[phase] || exCues.hold || null;
+      if (cue) { this.speak(cue, { cooldown: 800 }); this.lastPhase = phase; return; }
+    }
+    this.lastPhase = phase;
+
+    // ── Sustained bad form (every 3 s if form is poor) ──
+    if (kind === 'error' || kind === 'bad') {
+      this.badFrames++;
+      if (this.badFrames === 55) { // ~2 s at 25fps
+        const cue = this.CUES.correction[exKey];
+        if (cue) this.speak(cue, { cooldown: 3000 });
+        this.badFrames = 0;
+      }
+    } else {
+      this.badFrames = 0;
+    }
+  },
+
+  // Reset state between sessions
+  reset() {
+    this.lastPhase = null; this.lastKind = null;
+    this.badFrames = 0; this.noPersonSpoken = false; this.lastSpoken = 0;
+    if (this.synth) this.synth.cancel();
+  },
+};
+
+VC.init();
 
 // ════════════════════════════════════════════════════════════════
 //  JOINT STATUS EVALUATOR
@@ -1391,10 +1575,18 @@ function showPrepCountdown(exerciseText, tip, onDone) {
   loadOv.classList.add('hidden');
   prepOv.classList.remove('hidden');
   let n = 3; prepNum.textContent = n;
+  VC.speak(VC.CUES.countdown[3], { cooldown: 0 });
   const iv = setInterval(() => {
     n--;
-    if (n <= 0) { clearInterval(iv); prepOv.classList.add('hidden'); onDone(); }
-    else prepNum.textContent = n;
+    if (n <= 0) {
+      clearInterval(iv);
+      prepOv.classList.add('hidden');
+      VC.speak(VC.CUES.countdown.go, { cooldown: 0 });
+      onDone();
+    } else {
+      prepNum.textContent = n;
+      VC.speak(VC.CUES.countdown[n], { cooldown: 0 });
+    }
   }, 1000);
 }
 
@@ -1480,6 +1672,7 @@ async function saveAiTrainerSession(data) {
 async function startWorkout() {
   startBtn.disabled = true; exSel.disabled = true;
   formScoreSum = 0; formScoreCount = 0;
+  VC.reset();
 
   // Enter fullscreen CSS mode immediately
   enterWorkoutMode();
@@ -1520,6 +1713,7 @@ async function startWorkout() {
     if (!lm) {
       noPersonFrames++;
       if (noPersonFrames > 40) noPerson.classList.remove('hidden');
+      VC.onFrame({ exKey: exSel.value, phase: 'up', kind: 'error', repAdded: false }, null);
       return;
     }
     noPersonFrames = 0; noPerson.classList.add('hidden');
@@ -1541,6 +1735,9 @@ async function startWorkout() {
     setCount.textContent = detector.sets;
     const hr = $('hudReps'); if (hr) hr.textContent = detector.reps;
     const hs = $('hudSets'); if (hs) hs.textContent = detector.sets;
+
+    // Voice coach — fires only on meaningful events, never every frame
+    VC.onFrame(out, lm);
   });
 
   cam = new Camera(vid, {
@@ -1591,6 +1788,8 @@ async function stopWorkout() {
   const hudSetBtn = $('hudSetBtn'); if (hudSetBtn) hudSetBtn.disabled = true;
   phaseBadge.classList.remove('visible', 'down', 'up');
 
+  VC.reset();
+  VC.speak(VC.CUES.sessionDone, { cooldown: 0 });
   // Show luxury summary (save happens via Save button)
   showSessionSummary(finalReps, finalSets, dur, avgForm, exLabel, exKey);
 }
@@ -1608,6 +1807,7 @@ function doCompleteSet() {
   const hr = $('hudReps'); if (hr) hr.textContent = detector.reps;
   const hs = $('hudSets'); if (hs) hs.textContent = detector.sets;
   setFeedback('Set complete. Rest and go again.', 'good', 92);
+  VC.speak(VC.CUES.setDone, { cooldown: 0 });
 }
 setBtn.addEventListener('click', doCompleteSet);
 
