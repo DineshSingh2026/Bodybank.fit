@@ -385,6 +385,9 @@
         <option value="pushup">💪 Push-up</option>
         <option value="plank">🧘 Plank</option>
         <option value="jumpingjack">⚡ Jumping Jack</option>
+        <option value="biccurl">💪 Bicep Curl</option>
+        <option value="shoulderpress">🏋️ Shoulder Press</option>
+        <option value="bentoverrow">🔄 Bent-over Row</option>
       </select>
     </div>
     <div class="card">
@@ -551,7 +554,10 @@ const TIPS = {
   squat:       ['Keep chest up and back neutral.','Push knees outward — never inward.','Drive up through your heels.','Aim below parallel for full range.'],
   pushup:      ['Keep body in one straight line.','Lower until elbows hit ~90°.','Exhale as you push up explosively.','Hands slightly wider than shoulders.'],
   plank:       ['Squeeze core and glutes throughout.','Keep hips level — not sagging or piked.','Breathe steadily; never hold your breath.','Gaze slightly forward, not straight down.'],
-  jumpingjack: ['Land with softly bent knees.','Arms fully extend overhead each rep.','Keep a smooth, steady rhythm.','Stay upright and controlled.'],
+  jumpingjack:   ['Land with softly bent knees.','Arms fully extend overhead each rep.','Keep a smooth, steady rhythm.','Stay upright and controlled.'],
+  biccurl:       ['Keep upper arm pinned to your side — no swinging.','Curl until your forearm is vertical.','Lower slowly — 2 sec down for max tension.','Squeeze hard at the top of every rep.'],
+  shoulderpress: ['Keep your core braced and back straight.','Press directly overhead — not in front.','Lower until elbows reach 90° each rep.','Keep both arms moving at the same speed.'],
+  bentoverrow:   ['Turn sideways to camera for best tracking.','Hinge at hips to ~45° — back flat, not rounded.','Pull elbow past your hip — squeeze the back.','Lower slowly and fully extend each rep.'],
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -650,6 +656,70 @@ function evaluateJoints(lm, exKey, phase) {
       const aw = Math.abs(lm[LM.LA].x - lm[LM.RA].x);
       const st = aw > sw * 1.1 ? 'good' : 'warn';
       s.L_knee = st; s.R_knee = st; s.hip = st;
+    }
+  }
+
+  // ── BICEP CURL ──────────────────────────────────────────────
+  if (exKey === 'biccurl') {
+    // Elbow angle: Shoulder → Elbow → Wrist
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      // Extended (>150): neutral; curling (80–150): warn; peak curl (<50): good; mid-bad: amber
+      s.L_elbow = e > 150 ? 'neut' : e < 50 ? 'good' : e < 100 ? 'warn' : 'bad';
+    }
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      s.R_elbow = e > 150 ? 'neut' : e < 50 ? 'good' : e < 100 ? 'warn' : 'bad';
+    }
+    // Torso sway check — upper arm must not swing
+    if (vis(lm,LM.LS) && vis(lm,LM.LH)) {
+      const lean = Math.abs(lm[LM.LS].x - lm[LM.LH].x);
+      s.torso = lean < 0.08 ? 'good' : lean < 0.18 ? 'warn' : 'bad';
+    }
+  }
+
+  // ── SHOULDER PRESS ──────────────────────────────────────────
+  if (exKey === 'shoulderpress') {
+    // Elbow angle at both sides
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      // Bottom (elbows ~90°): warn; pressing (100–155°): warn; locked out (>155°): good
+      s.L_elbow = e < 80 ? 'warn' : e > 155 ? 'good' : 'warn';
+    }
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      s.R_elbow = e < 80 ? 'warn' : e > 155 ? 'good' : 'warn';
+    }
+    // Wrists above shoulders = locked-out good position → colour torso green
+    if (vis(lm,LM.LW) && vis(lm,LM.LS) && vis(lm,LM.RW) && vis(lm,LM.RS)) {
+      const lwAbove = lm[LM.LW].y < lm[LM.LS].y - 0.05;
+      const rwAbove = lm[LM.RW].y < lm[LM.RS].y - 0.05;
+      s.torso = (lwAbove && rwAbove) ? 'good' : 'warn';
+    }
+    // Back lean check
+    if (vis(lm,LM.LS) && vis(lm,LM.LH)) {
+      const lean = Math.abs(lm[LM.LS].x - lm[LM.LH].x);
+      if (lean > 0.20) { s.torso = 'bad'; s.hip = 'bad'; }
+    }
+  }
+
+  // ── BENT-OVER ROW ────────────────────────────────────────────
+  if (exKey === 'bentoverrow') {
+    // Elbow pull angle: Shoulder → Elbow → Wrist
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      // Hanging (>145°): neutral; mid-pull (80–145°): warn; peak row (<75°): good
+      s.L_elbow = e > 145 ? 'neut' : e < 75 ? 'good' : 'warn';
+    }
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      s.R_elbow = e > 145 ? 'neut' : e < 75 ? 'good' : 'warn';
+    }
+    // Torso hinge: shoulder–hip–knee angle should be 45–90° (bent over)
+    if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LK)) {
+      const ta = angle(lm[LM.LS], lm[LM.LH], lm[LM.LK]);
+      s.torso = (ta > 40 && ta < 100) ? 'good' : ta < 40 ? 'warn' : 'bad';
+      s.hip   = s.torso;
     }
   }
 
@@ -883,6 +953,120 @@ function drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h) {
       drawPill(ctx, lm[LM.RA].x*w, lm[LM.RA].y*h + 24, lo ? '✓' : '← Out', lo ? CLR.GOOD : CLR.WARN);
     }
   }
+
+  // ── BICEP CURL ───────────────────────────────────────────────
+  if (exKey === 'biccurl') {
+    // Left elbow angle arc + label
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e  = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      const ec = byStatus(jStatus.L_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.LS], lm[LM.LE], lm[LM.LW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.LE].x * w, lm[LM.LE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    // Right elbow angle arc + label
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e  = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      const ec = byStatus(jStatus.R_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.RS], lm[LM.RE], lm[LM.RW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.RE].x * w, lm[LM.RE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    // Dashed vertical guide line from shoulder downward — "keep upper arm here"
+    if (vis(lm,LM.LS) && vis(lm,LM.LH)) {
+      const lean = Math.abs(lm[LM.LS].x - lm[LM.LH].x);
+      const lnC  = lean < 0.08 ? CLR.BG_GOOD : lean < 0.18 ? CLR.BG_WARN : CLR.BG_BAD;
+      ctx.save();
+      ctx.setLineDash([5, 4]);
+      ctx.strokeStyle = lnC;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(lm[LM.LS].x * w, lm[LM.LS].y * h);
+      ctx.lineTo(lm[LM.LS].x * w, lm[LM.LH].y * h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+      if (lean >= 0.18)
+        drawPill(ctx, lm[LM.LS].x * w, (lm[LM.LS].y + lm[LM.LH].y) / 2 * h, 'Keep upper arm still', CLR.BAD);
+    }
+  }
+
+  // ── SHOULDER PRESS ───────────────────────────────────────────
+  if (exKey === 'shoulderpress') {
+    // Left elbow angle arc + label
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e  = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      const ec = byStatus(jStatus.L_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.LS], lm[LM.LE], lm[LM.LW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.LE].x * w, lm[LM.LE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    // Right elbow angle arc + label
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e  = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      const ec = byStatus(jStatus.R_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.RS], lm[LM.RE], lm[LM.RW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.RE].x * w, lm[LM.RE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    // Dashed target-height line above head when wrists are near lockout
+    if (vis(lm,LM.LW) && vis(lm,LM.RW) && vis(lm,LM.LS) && vis(lm,LM.RS)) {
+      const lwAbove = lm[LM.LW].y < lm[LM.LS].y - 0.05;
+      const rwAbove = lm[LM.RW].y < lm[LM.RS].y - 0.05;
+      const targetY = Math.min(lm[LM.LW].y, lm[LM.RW].y) * h - 14;
+      const lnC = (lwAbove && rwAbove) ? CLR.BG_GOOD : CLR.BG_WARN;
+      ctx.save();
+      ctx.setLineDash([8, 5]);
+      ctx.strokeStyle = lnC;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(0, targetY); ctx.lineTo(w, targetY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+      const cue = (lwAbove && rwAbove) ? '✓ Arms locked out' : '↑ Press to full extension';
+      drawPill(ctx, w / 2, targetY + 18, cue, lnC);
+    }
+    // Symmetry warning if elbows differ by > 20°
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW) && vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const le = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      const re = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      if (Math.abs(le - re) > 20)
+        drawPill(ctx, w / 2, (lm[LM.LS].y + 0.06) * h, 'Keep arms even', CLR.WARN);
+    }
+  }
+
+  // ── BENT-OVER ROW ────────────────────────────────────────────
+  if (exKey === 'bentoverrow') {
+    // Left elbow angle arc + label
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e  = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      const ec = byStatus(jStatus.L_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.LS], lm[LM.LE], lm[LM.LW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.LE].x * w, lm[LM.LE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    // Right elbow angle arc + label
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e  = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      const ec = byStatus(jStatus.R_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.RS], lm[LM.RE], lm[LM.RW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.RE].x * w, lm[LM.RE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    // Torso hinge angle label near hip + posture dashed line
+    if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LK)) {
+      const ta   = angle(lm[LM.LS], lm[LM.LH], lm[LM.LK]);
+      const taC  = (ta > 40 && ta < 100) ? CLR.BG_GOOD : ta < 40 ? CLR.BG_WARN : CLR.BG_BAD;
+      ctx.save();
+      ctx.setLineDash([8, 5]);
+      ctx.strokeStyle = taC;
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(lm[LM.LS].x * w, lm[LM.LS].y * h);
+      ctx.lineTo(lm[LM.LH].x * w, lm[LM.LH].y * h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+      drawPill(ctx, lm[LM.LH].x * w, lm[LM.LH].y * h - 28,
+               `Torso ${Math.round(ta)}° (target 45–90°)`, taC);
+      const postCue = ta > 100 ? '↓ Hinge more at hips' : ta < 35 ? '↑ Raise torso slightly' : '✓ Good hinge';
+      drawPill(ctx, lm[LM.LH].x * w, lm[LM.LH].y * h + 26, postCue, taC);
+    }
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -900,10 +1084,13 @@ class Detector {
     if (!lm || lm.length < 29)
       return { text:'No landmarks — position yourself.', kind:'error', score:0, repAdded:false, ex:'Auto', exKey:'auto', phase:this.phase };
     const exKey = mode === 'auto' ? this._auto(lm) : mode;
-    const r = exKey==='squat'       ? this._squat(lm)
-            : exKey==='pushup'      ? this._pushup(lm)
-            : exKey==='plank'       ? this._plank(lm)
-            : exKey==='jumpingjack' ? this._jj(lm)
+    const r = exKey==='squat'         ? this._squat(lm)
+            : exKey==='pushup'        ? this._pushup(lm)
+            : exKey==='plank'         ? this._plank(lm)
+            : exKey==='jumpingjack'   ? this._jj(lm)
+            : exKey==='biccurl'       ? this._biccurl(lm)
+            : exKey==='shoulderpress' ? this._shoulderpress(lm)
+            : exKey==='bentoverrow'   ? this._bentoverrow(lm)
             : { text:'Select an exercise.', kind:'warn', score:0, repAdded:false, ex:'Auto' };
     return { ...r, exKey, phase: this.phase };
   }
@@ -991,6 +1178,107 @@ class Detector {
     const score = armsUp ? (legsOut ? 95 : 65) : 40;
     const text  = isOpen ? '✓ Open — return to start.' : '↑ Jump! Arms overhead, legs out.';
     return { text, kind: isOpen?'good':'warn', score, repAdded, ex:'Jumping Jack' };
+  }
+
+  // ── BICEP CURL ───────────────────────────────────────────────
+  _biccurl(lm) {
+    if (!(vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)))
+      return { text:'Upper body not visible — face the camera.', kind:'error', score:0, repAdded:false, ex:'Bicep Curl' };
+
+    const le = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+    const re = (vis(lm,LM.RS)&&vis(lm,LM.RE)&&vis(lm,LM.RW)) ? angle(lm[LM.RS],lm[LM.RE],lm[LM.RW]) : le;
+    const e  = (le + re) / 2;
+    let repAdded = false;
+
+    // Rep: phase 'down' = arm extended (>145°), phase 'up' = peak curl (<55°)
+    if (this.phase === 'down' && e < 55)  this.phase = 'up';
+    if (this.phase === 'up'  && e > 145) { this.phase = 'down'; this.reps++; repAdded = true; }
+
+    // Upper-arm sway penalty
+    let swayScore = 100;
+    if (vis(lm,LM.LS) && vis(lm,LM.LH)) {
+      const lean = Math.abs(lm[LM.LS].x - lm[LM.LH].x);
+      swayScore = Math.max(30, 100 - lean * 400);
+    }
+
+    const peakBonus = this.phase === 'up' ? Math.max(30, 100 - Math.abs(40 - e) * 1.8) : 55;
+    const score = Math.round(peakBonus * 0.65 + swayScore * 0.35);
+
+    const text = this.phase === 'down' ? 'Curl both arms up — squeeze the biceps.'
+               : e < 55               ? '✓ Peak curl — hold and lower slowly.'
+               :                        '↑ Curl higher — target below 50°.';
+    return { text, kind: this.phase==='up' && e < 55 ? 'good' : 'warn', score, repAdded, ex:'Bicep Curl' };
+  }
+
+  // ── SHOULDER PRESS ───────────────────────────────────────────
+  _shoulderpress(lm) {
+    if (!(vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)))
+      return { text:'Upper body not visible — face the camera.', kind:'error', score:0, repAdded:false, ex:'Shoulder Press' };
+
+    const le = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+    const re = (vis(lm,LM.RS)&&vis(lm,LM.RE)&&vis(lm,LM.RW)) ? angle(lm[LM.RS],lm[LM.RE],lm[LM.RW]) : le;
+    const e  = (le + re) / 2;
+
+    // Wrists must be above shoulders for lockout detection
+    const lwAbove = vis(lm,LM.LW) && lm[LM.LW].y < lm[LM.LS].y - 0.05;
+    const rwAbove = vis(lm,LM.RW) && lm[LM.RW].y < lm[LM.RS].y - 0.05;
+    const lockedOut = e > 155 && lwAbove && rwAbove;
+    const atBottom  = e < 100;
+    let repAdded = false;
+
+    // Rep: 'down' = elbows bent at bottom (~90°), 'up' = arms locked overhead
+    if (this.phase === 'down' && lockedOut)  this.phase = 'up';
+    if (this.phase === 'up'  && atBottom)    { this.phase = 'down'; this.reps++; repAdded = true; }
+
+    // Back lean penalty
+    let backScore = 100;
+    if (vis(lm,LM.LS) && vis(lm,LM.LH)) {
+      const lean = Math.abs(lm[LM.LS].x - lm[LM.LH].x);
+      backScore = Math.max(30, 100 - lean * 350);
+    }
+
+    // Symmetry score
+    let symScore = 100;
+    if (vis(lm,LM.RS)&&vis(lm,LM.RE)&&vis(lm,LM.RW))
+      symScore = Math.max(40, 100 - Math.abs(le - re) * 2);
+
+    const extensionScore = lockedOut ? 100 : Math.max(30, 100 - Math.abs(165 - e) * 2);
+    const score = Math.round(extensionScore * 0.5 + backScore * 0.3 + symScore * 0.2);
+
+    const text = this.phase === 'down' ? 'Press the bar overhead — full extension.'
+               : lockedOut             ? '✓ Locked out — lower with control.'
+               :                        '↑ Push to full lockout — straighten arms.';
+    return { text, kind: lockedOut ? 'good' : atBottom ? 'warn' : 'warn', score, repAdded, ex:'Shoulder Press' };
+  }
+
+  // ── BENT-OVER ROW ────────────────────────────────────────────
+  _bentoverrow(lm) {
+    if (!(vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)))
+      return { text:'Upper body not visible — step back or turn sideways.', kind:'error', score:0, repAdded:false, ex:'Bent-over Row' };
+
+    const le = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+    const re = (vis(lm,LM.RS)&&vis(lm,LM.RE)&&vis(lm,LM.RW)) ? angle(lm[LM.RS],lm[LM.RE],lm[LM.RW]) : le;
+    const e  = (le + re) / 2;
+    let repAdded = false;
+
+    // Rep: 'down' = arm extended (>140°), 'up' = elbow pulled back (<80°)
+    if (this.phase === 'down' && e < 80)   this.phase = 'up';
+    if (this.phase === 'up'  && e > 140)  { this.phase = 'down'; this.reps++; repAdded = true; }
+
+    // Torso hinge quality: shoulder–hip–knee angle should be 40–100°
+    let torsoScore = 75;
+    if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LK)) {
+      const ta = angle(lm[LM.LS], lm[LM.LH], lm[LM.LK]);
+      torsoScore = (ta > 40 && ta < 100) ? 100 : Math.max(20, 100 - Math.abs(70 - ta) * 2.5);
+    }
+
+    const pullDepth = this.phase === 'up' ? Math.max(30, 100 - Math.abs(65 - e) * 1.6) : 50;
+    const score = Math.round(pullDepth * 0.55 + torsoScore * 0.45);
+
+    const text = this.phase === 'down' ? 'Pull elbow to hip — squeeze your back.'
+               : e < 80               ? '✓ Peak row — lower slowly to full extension.'
+               :                        '↑ Pull higher — get elbow past your torso.';
+    return { text, kind: this.phase==='up' && e < 80 ? 'good' : 'warn', score, repAdded, ex:'Bent-over Row' };
   }
 }
 
