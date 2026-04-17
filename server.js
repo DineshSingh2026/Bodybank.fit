@@ -39,7 +39,8 @@ const { writeSundayCheckinPdf, writePart2Pdf } = require('./services/formPdfServ
 const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
 const coinService = require('./services/coinService');
-const { notifyAsync } = require('./utils/notify');
+const { notify, notifyAsync, formatEventMessage } = require('./utils/notify');
+const { sendWhatsApp } = require('./services/whatsapp');
 const { verifyToken: verifyNutritionPhotoLink } = require('./utils/nutritionPhotoLink');
 const { startEmailScheduler, getAdminDailyComplianceReportData, sendAdminDailyComplianceReport } = require('./services/emailScheduler');
 const {
@@ -1464,8 +1465,7 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
     await run(`INSERT INTO audit_requests (id,first_name,last_name,age,sex,email,phone,country,city,occupation,work_intensity,fitness_experience,goals,motivation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.first_name, b.last_name||'', b.age||null, b.sex||'', b.email, b.phone||'', b.country||'', b.city||'', b.occupation||'', b.work_intensity||'', b.fitness_experience||'', b.goals||'', b.motivation||'']);
     sendPushToAdmins(JSON.stringify({ title: 'New audit form', body: `${b.first_name || ''} ${b.last_name || ''} submitted a Body Audit`, id: 'audit-' + id })).catch(() => {});
-    console.log('[audit] firing AUDIT_FORM notify for:', b.email);
-    notifyAsync('AUDIT_FORM', {
+    const auditPayload = {
       name: `${b.first_name || ''} ${b.last_name || ''}`.trim() || '—',
       email: b.email || '—',
       mobile: b.phone || '—',
@@ -1476,7 +1476,19 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
       occupation: b.occupation || '—',
       work_intensity: b.work_intensity || '—',
       fitness_experience: b.fitness_experience || '—'
-    });
+    };
+    console.log('[audit] firing AUDIT_FORM notify for:', b.email);
+    let auditNotifyResult = await notify('AUDIT_FORM', auditPayload, { noDedup: true });
+    if (!auditNotifyResult || !auditNotifyResult.ok) {
+      const formatted = formatEventMessage('AUDIT_FORM', auditPayload);
+      if (formatted && formatted.message) {
+        console.warn('[audit] notifier path failed, trying direct WhatsApp fallback for:', b.email);
+        auditNotifyResult = await sendWhatsApp(formatted.message);
+      }
+    }
+    if (!auditNotifyResult || !auditNotifyResult.ok) {
+      console.error('[audit] WhatsApp send ultimately failed for:', b.email, auditNotifyResult);
+    }
     userEmail.emailAuditReceived(String(b.email).trim(), b.first_name);
     res.json({ id, message: 'Request submitted successfully' });
   } catch (e) {

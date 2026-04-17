@@ -79,22 +79,40 @@ function buildMessage(eventType, lines, priority) {
   return [`${tierIcon(priority)} BodyBank Admin Update`, `Event: ${eventType}`, ...lines].join('\n');
 }
 
+function formatEventMessage(eventType, payload = {}) {
+  const formatter = FORMATTERS[eventType];
+  if (!formatter) return null;
+  const meta = EVENT_META[eventType] || { priority: PRIORITY.INFO, dedup: 5 * 60 * 1000 };
+  return {
+    meta,
+    message: buildMessage(eventType, formatter(payload), meta.priority)
+  };
+}
+
 async function notify(eventType, payload = {}, opts = {}) {
   try {
-    const formatter = FORMATTERS[eventType];
-    if (!formatter) { console.warn('[notify] no formatter for event:', eventType); return; }
-    const meta = EVENT_META[eventType] || { priority: PRIORITY.INFO, dedup: 5 * 60 * 1000 };
+    const formatted = formatEventMessage(eventType, payload);
+    if (!formatted) {
+      console.warn('[notify] no formatter for event:', eventType);
+      return { ok: false, reason: 'missing_formatter' };
+    }
+    const meta = formatted.meta;
     const ttl = opts.noDedup ? 0 : meta.dedup;
     const fp = `${eventType}::${s(payload.email || payload.userId || payload.username || payload.action || '')}`;
-    if (isDup(fp, ttl)) { console.log('[notify] dedup skip:', fp); return; }
+    if (isDup(fp, ttl)) {
+      console.log('[notify] dedup skip:', fp);
+      return { ok: false, reason: 'dedup_skipped' };
+    }
     mark(fp);
     const media = payload && payload.mediaUrl ? payload.mediaUrl : null;
-    const result = await sendWhatsApp(buildMessage(eventType, formatter(payload), meta.priority), { mediaUrl: media });
+    const result = await sendWhatsApp(formatted.message, { mediaUrl: media });
     if (!result.ok) {
       console.warn(`[notify] ${eventType} WhatsApp NOT sent — reason: ${result.reason}`, result.error || result.missing || '');
     }
+    return result;
   } catch (err) {
     console.error('[notify] unexpected error for', eventType, ':', err.message);
+    return { ok: false, reason: 'notify_exception', error: err.message };
   }
 }
 
@@ -102,4 +120,4 @@ function notifyAsync(eventType, payload, opts) {
   notify(eventType, payload, opts).catch(err => console.error('[notifyAsync] uncaught:', eventType, err.message));
 }
 
-module.exports = { notify, notifyAsync, FORMATTERS, EVENT_META, PRIORITY };
+module.exports = { notify, notifyAsync, buildMessage, formatEventMessage, FORMATTERS, EVENT_META, PRIORITY };
