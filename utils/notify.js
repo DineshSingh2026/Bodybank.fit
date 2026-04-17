@@ -114,7 +114,8 @@ async function notify(eventType, payload = {}, opts = {}) {
     const media = payload && payload.mediaUrl ? payload.mediaUrl : null;
     const result = await sendWhatsAppWithFallback(formatted.message, {
       mediaUrl: media,
-      templateSid: templateSidForEvent(eventType)
+      templateSid: templateSidForEvent(eventType),
+      preferTemplate: true
     });
     if (!result.ok) {
       console.warn(`[notify] ${eventType} WhatsApp NOT sent — reason: ${result.reason}`, result.error || result.missing || '');

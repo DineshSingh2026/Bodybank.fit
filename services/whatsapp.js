@@ -107,16 +107,24 @@ async function sendWhatsAppTemplate(templateSid, variables = {}, opts = {}) {
 }
 
 async function sendWhatsAppWithFallback(message, opts = {}) {
-  const firstAttempt = opts.forceTemplate
-    ? { ok: false, reason: 'template_forced' }
-    : await sendWhatsApp(message, opts);
+  const templateSid = String(opts.templateSid || GENERIC_TEMPLATE_SID || '').trim();
+  const shouldPreferTemplate = Boolean(opts.forceTemplate || (opts.preferTemplate && templateSid));
 
+  if (shouldPreferTemplate) {
+    const templateResult = await sendWhatsAppTemplate(templateSid, { 1: flattenTemplateText(message) }, opts);
+    if (templateResult.ok || opts.forceTemplate) return templateResult;
+
+    console.warn('[whatsapp] template-first send failed, trying plain text fallback');
+    const plainFallback = await sendWhatsApp(message, opts);
+    if (plainFallback.ok) return plainFallback;
+    return Number(plainFallback.code) === 63016 ? templateResult : plainFallback;
+  }
+
+  const firstAttempt = await sendWhatsApp(message, opts);
   if (firstAttempt.ok) return firstAttempt;
 
-  const shouldRetryAsTemplate = opts.forceTemplate || Number(firstAttempt.code) === 63016;
+  const shouldRetryAsTemplate = Number(firstAttempt.code) === 63016;
   if (!shouldRetryAsTemplate) return firstAttempt;
-
-  const templateSid = String(opts.templateSid || GENERIC_TEMPLATE_SID || '').trim();
   if (!templateSid) {
     return {
       ok: false,
