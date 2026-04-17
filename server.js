@@ -40,7 +40,7 @@ const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
 const coinService = require('./services/coinService');
 const { notify, notifyAsync, formatEventMessage } = require('./utils/notify');
-const { sendWhatsApp } = require('./services/whatsapp');
+const { sendWhatsApp, sendWhatsAppTemplate } = require('./services/whatsapp');
 const { verifyToken: verifyNutritionPhotoLink } = require('./utils/nutritionPhotoLink');
 const { startEmailScheduler, getAdminDailyComplianceReportData, sendAdminDailyComplianceReport } = require('./services/emailScheduler');
 const {
@@ -1478,7 +1478,23 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
       fitness_experience: b.fitness_experience || '—'
     };
     console.log('[audit] firing AUDIT_FORM notify for:', b.email);
-    let auditNotifyResult = await notify('AUDIT_FORM', auditPayload, { noDedup: true });
+    const auditTemplateSid = String(process.env.TWILIO_AUDIT_TEMPLATE_SID || '').trim();
+    let auditNotifyResult = null;
+    if (auditTemplateSid) {
+      auditNotifyResult = await sendWhatsAppTemplate(auditTemplateSid, {
+        1: auditPayload.name,
+        2: auditPayload.email,
+        3: auditPayload.mobile,
+        4: `${auditPayload.city}, ${auditPayload.country}`,
+        5: `${auditPayload.age} | ${auditPayload.sex}`,
+        6: auditPayload.occupation,
+        7: auditPayload.work_intensity,
+        8: auditPayload.fitness_experience
+      });
+    }
+    if (!auditNotifyResult || !auditNotifyResult.ok) {
+      auditNotifyResult = await notify('AUDIT_FORM', auditPayload, { noDedup: true });
+    }
     if (!auditNotifyResult || !auditNotifyResult.ok) {
       const formatted = formatEventMessage('AUDIT_FORM', auditPayload);
       if (formatted && formatted.message) {

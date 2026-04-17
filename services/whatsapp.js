@@ -6,7 +6,7 @@
 const TWILIO_SID        = process.env.TWILIO_SID        || '';
 const TWILIO_AUTH       = process.env.TWILIO_AUTH       || '';
 const ADMIN_WHATSAPP    = process.env.ADMIN_WHATSAPP    || ''; // e.g. +91XXXXXXXXXX or whatsapp:+91XXXXXXXXXX
-const SANDBOX_FROM      = 'whatsapp:+14155238886';             // Twilio sandbox number
+const WHATSAPP_FROM     = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886';
 
 let _client = null;
 
@@ -25,6 +25,15 @@ function getClient() {
     _client = twilio(TWILIO_SID, TWILIO_AUTH);
   }
   return _client;
+}
+
+function cleanTemplateVars(vars = {}) {
+  const out = {};
+  Object.keys(vars || {}).forEach((key) => {
+    const raw = vars[key];
+    out[String(key)] = String(raw == null ? '' : raw).replace(/[\r\n]+/g, ' ').trim();
+  });
+  return out;
 }
 
 /**
@@ -51,7 +60,7 @@ async function sendWhatsApp(message, opts = {}) {
       .slice(0, 10);
 
     const result = await getClient().messages.create({
-      from : SANDBOX_FROM,
+      from : WHATSAPP_FROM,
       to   : toWaAddr(ADMIN_WHATSAPP),
       body,
       ...(mediaUrl.length ? { mediaUrl } : {})
@@ -64,4 +73,29 @@ async function sendWhatsApp(message, opts = {}) {
   }
 }
 
-module.exports = { sendWhatsApp, isConfigured };
+async function sendWhatsAppTemplate(templateSid, variables = {}, opts = {}) {
+  const sid = String(templateSid || '').trim();
+  if (!sid) return { ok: false, reason: 'missing_template_sid' };
+
+  if (!isConfigured()) {
+    const missing = ['TWILIO_SID', 'TWILIO_AUTH', 'ADMIN_WHATSAPP'].filter(k => !process.env[k]);
+    console.warn('[whatsapp] TEMPLATE SKIPPED — missing env vars:', missing.join(', '));
+    return { ok: false, reason: 'not_configured', missing };
+  }
+
+  try {
+    const result = await getClient().messages.create({
+      from: WHATSAPP_FROM,
+      to: toWaAddr(opts.to || ADMIN_WHATSAPP),
+      contentSid: sid,
+      contentVariables: JSON.stringify(cleanTemplateVars(variables))
+    });
+    console.log('[whatsapp] template sent OK → sid:', result.sid, '| template:', sid, '| to:', toWaAddr(opts.to || ADMIN_WHATSAPP));
+    return { ok: true, sid: result.sid };
+  } catch (err) {
+    console.error('[whatsapp] TEMPLATE SEND FAILED →', err.message, { code: err.code, status: err.status, templateSid: sid, to: toWaAddr(opts.to || ADMIN_WHATSAPP) });
+    return { ok: false, reason: 'template_send_failed', error: err.message, code: err.code, status: err.status };
+  }
+}
+
+module.exports = { sendWhatsApp, sendWhatsAppTemplate, isConfigured };
