@@ -7695,6 +7695,32 @@ const sEl=document.getElementById('statNum');if(sEl)statOb.observe(sEl.closest('
 // ========== API CONNECTION ==========
 const API = '';  // same origin
 
+let _bbSessionExpiryHandled = false;
+function bbIsExpiredAuthError(message) {
+  var m = String(message || '').toLowerCase();
+  return m.indexOf('invalid or expired token') !== -1
+    || m.indexOf('authentication required') !== -1
+    || m.indexOf('jwt expired') !== -1;
+}
+function bbHandleExpiredSession() {
+  if (_bbSessionExpiryHandled) return;
+  _bbSessionExpiryHandled = true;
+  try {
+    if (window.currentUser && window.currentUser.role === 'admin') logoutAdmin();
+    else if (window.currentUser && window.currentUser.role === 'superadmin') logoutSuperadmin();
+    else logoutUser();
+  } catch (_) {
+    window.currentUser = null;
+    try { localStorage.removeItem('bodybank_session'); } catch (e) {}
+  }
+  try {
+    showPopup('Session Expired', 'Your session has expired. Please log in again.', '', 'OK', null, 'error');
+  } catch (_) {
+    alert('Session expired. Please log in again.');
+  }
+  setTimeout(function() { _bbSessionExpiryHandled = false; }, 1500);
+}
+
 async function apiCall(method, url, body) {
   const opts = { method, headers: {'Content-Type':'application/json'} };
   if (window.currentUser && window.currentUser.token) opts.headers['Authorization'] = 'Bearer ' + window.currentUser.token;
@@ -7706,6 +7732,10 @@ async function apiCall(method, url, body) {
     try { data = text ? JSON.parse(text) : {}; } catch (_) { data = {}; }
     if (!res.ok) {
       if (!data.error) data.error = data.message || 'Request failed (' + res.status + ')';
+      if (window.currentUser && window.currentUser.token && (res.status === 401 || res.status === 403) && bbIsExpiredAuthError(data.error || data.message || '')) {
+        bbHandleExpiredSession();
+        return { error: 'Session expired. Please log in again.', authExpired: true };
+      }
     }
     return data;
   } catch (e) {
