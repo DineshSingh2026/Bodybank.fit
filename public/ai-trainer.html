@@ -441,7 +441,6 @@
     <div class="card">
       <p class="title">Exercise</p>
       <select id="exSel">
-        <option value="auto">🤖 Auto Detect</option>
         <option value="squat">🦵 Squat</option>
         <option value="pushup">💪 Push-up</option>
         <option value="plank">🧘 Plank</option>
@@ -492,7 +491,7 @@
   <!-- CAMERA STAGE -->
   <main class="stage-wrap">
     <div class="stage" id="stage">
-      <div id="badgeEx"    class="badge">Auto</div>
+      <div id="badgeEx"    class="badge">🦵 Squat</div>
       <div id="phaseBadge" class="phase-badge">UP</div>
       <div id="noPerson"   class="warn-banner hidden">👤 No person — step into frame</div>
       <div id="idleOv"  class="overlay">
@@ -521,7 +520,7 @@
       <!-- IN-WORKOUT HUD -->
       <div id="wkHud" class="hidden">
         <div class="hud-top">
-          <div id="hudExBadge" class="hud-ex-badge">Auto</div>
+          <div id="hudExBadge" class="hud-ex-badge">🦵 Squat</div>
           <div id="hudPhaseBadge" class="hud-phase-badge"></div>
         </div>
         <div class="hud-mid">
@@ -625,7 +624,6 @@ const JOINT_KEY = {
 const ALL_JOINT_IDS = [LM.LS,LM.RS,LM.LE,LM.RE,LM.LW,LM.RW,LM.LH,LM.RH,LM.LK,LM.RK,LM.LA,LM.RA];
 
 const TIPS = {
-  auto:        ['Step back so full body is visible.','Good lighting improves tracking.','Auto mode detects your movement.'],
   squat:       ['Keep chest up and back neutral.','Push knees outward — never inward.','Drive up through your heels.','Aim below parallel for full range.'],
   pushup:      ['Keep body in one straight line.','Lower until elbows hit ~90°.','Exhale as you push up explosively.','Hands slightly wider than shoulders.'],
   plank:       ['Squeeze core and glutes throughout.','Keep hips level — not sagging or piked.','Breathe steadily; never hold your breath.','Gaze slightly forward, not straight down.'],
@@ -633,6 +631,12 @@ const TIPS = {
   biccurl:       ['Keep upper arm pinned to your side — no swinging.','Curl until your forearm is vertical.','Lower slowly — 2 sec down for max tension.','Squeeze hard at the top of every rep.'],
   shoulderpress: ['Keep your core braced and back straight.','Press directly overhead — not in front.','Lower until elbows reach 90° each rep.','Keep both arms moving at the same speed.'],
   bentoverrow:   ['Turn sideways to camera for best tracking.','Hinge at hips to ~45° — back flat, not rounded.','Pull elbow past your hip — squeeze the back.','Lower slowly and fully extend each rep.'],
+};
+
+/** Short exercise name for badges when landmarks are missing or mode is unknown */
+const EX_LABEL_BY_MODE = {
+  squat: 'Squat', pushup: 'Push-up', plank: 'Plank', jumpingjack: 'Jumping Jack',
+  biccurl: 'Bicep Curl', shoulderpress: 'Shoulder Press', bentoverrow: 'Bent-over Row',
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -726,7 +730,6 @@ const VC = {
       biccurl:       'Bicep curls! Pin those upper arms tight to your sides — no swinging. Control every inch of the movement. Let\'s build those biceps!',
       shoulderpress: 'Shoulder press! Core braced, back straight. Press directly overhead and lock those arms out at the top. Let\'s build strong shoulders!',
       bentoverrow:   'Bent-over rows! Hinge at the hips, keep that back flat, and pull with your back — not your arms. Full extension on every rep. Let\'s go!',
-      auto:          'AI Trainer is active! I\'m watching your movement patterns and counting every rep. Just start moving and I\'ll guide you through everything. Let\'s train!',
     },
 
     // Countdown — digits + fast TTS (most engines read quickly); brief go
@@ -971,14 +974,14 @@ const VC = {
     if (this.introSpoken) return;
     this.introSpoken = true;
     if (this._muted) return;
-    const cue = this.CUES.intro[exKey] || this.CUES.intro.auto;
+    const cue = this.CUES.intro[exKey] || this.CUES.intro.squat;
     this.speak(cue, { cooldown: 0, bypassCooldown: true, rate: 0.93, pitch: this._humanPitch });
   },
 
   // ── Main per-frame handler ────────────────────────────────────
   onFrame(out, lm, repCountNow) {
     if (!this.enabled) return;
-    const exKey = out.exKey || 'auto';
+    const exKey = out.exKey || 'squat';
     const phase = out.phase || 'up';
     const kind  = out.kind  || '';
     const now   = Date.now();
@@ -1612,9 +1615,11 @@ class Detector {
   }
 
   process(lm, mode) {
-    if (!lm || lm.length < 29)
-      return { text:'No landmarks — position yourself.', kind:'error', score:0, repAdded:false, ex:'Auto', exKey:'auto', phase:this.phase };
-    const exKey = mode === 'auto' ? this._auto(lm) : mode;
+    if (!lm || lm.length < 29) {
+      const ex = EX_LABEL_BY_MODE[mode] || 'Exercise';
+      return { text:'No landmarks — position yourself.', kind:'error', score:0, repAdded:false, ex, exKey: mode, phase:this.phase };
+    }
+    const exKey = mode;
     const r = exKey==='squat'         ? this._squat(lm)
             : exKey==='pushup'        ? this._pushup(lm)
             : exKey==='plank'         ? this._plank(lm)
@@ -1622,21 +1627,8 @@ class Detector {
             : exKey==='biccurl'       ? this._biccurl(lm)
             : exKey==='shoulderpress' ? this._shoulderpress(lm)
             : exKey==='bentoverrow'   ? this._bentoverrow(lm)
-            : { text:'Select an exercise.', kind:'warn', score:0, repAdded:false, ex:'Auto' };
+            : { text:'Select an exercise.', kind:'warn', score:0, repAdded:false, ex:'Exercise' };
     return { ...r, exKey, phase: this.phase };
-  }
-
-  _auto(lm) {
-    if (vis(lm,LM.LW) && vis(lm,LM.RW) &&
-        lm[LM.LW].y < lm[LM.LS].y - 0.05 &&
-        lm[LM.RW].y < lm[LM.RS].y - 0.05) return 'jumpingjack';
-    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW) &&
-        angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]) < 120) return 'pushup';
-    if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA)) {
-      const b = angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]);
-      if (b > 150 && b < 190) return 'plank';
-    }
-    return 'squat';
   }
 
   _squat(lm) {
@@ -1934,7 +1926,7 @@ class Detector {
 //  UI HELPERS
 // ════════════════════════════════════════════════════════════════
 function showTips(mode) {
-  tipsEl.innerHTML = (TIPS[mode] || TIPS.auto).map(t => `<div class="tip">${t}</div>`).join('');
+  tipsEl.innerHTML = (TIPS[mode] || TIPS.squat).map(t => `<div class="tip">${t}</div>`).join('');
 }
 
 function setFeedback(text, kind, score) {
@@ -1973,7 +1965,7 @@ function showOverlay(type, title, msg) {
 }
 
 function updatePhaseBadge(phase, exKey) {
-  if (!phase || exKey === 'plank' || exKey === 'jumpingjack' || exKey === 'auto') {
+  if (!phase || exKey === 'plank' || exKey === 'jumpingjack') {
     phaseBadge.classList.remove('visible', 'down', 'up');
     const h = $('hudPhaseBadge'); if (h) h.classList.remove('visible','down','up');
     return;
@@ -2372,7 +2364,7 @@ if (hudSetBtnEl) hudSetBtnEl.addEventListener('click', doCompleteSet);
 
 exSel.addEventListener('change', () => {
   showTips(exSel.value);
-  badgeEx.textContent = exSel.value === 'auto' ? 'Auto' : exSel.options[exSel.selectedIndex].text;
+  badgeEx.textContent = exSel.options[exSel.selectedIndex].text;
   if (detector && detector.reps > 0) detector.markSet();
 });
 
@@ -2408,7 +2400,7 @@ if (sumAgainBtn) {
 }
 
 // ── INIT ──────────────────────────────────────────────────────
-showTips('auto');
+showTips(exSel.value);
 </script>
 </body>
 </html>
