@@ -1493,21 +1493,33 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 }
 .bb-elite-feed-fab{
   display:none;
-  align-items:center; justify-content:center;
+  align-items:center; justify-content:center; gap:8px;
   position:fixed; right:max(16px,env(safe-area-inset-right));
   bottom:calc(76px + env(safe-area-inset-bottom,0px));
-  width:52px; height:52px; border-radius:50%; z-index:10060;
+  min-width:52px; height:52px; border-radius:999px; z-index:10060;
   border:1px solid rgba(200,164,78,0.45);
   background:radial-gradient(circle at 30% 25%,rgba(55,48,36,0.95),rgba(10,9,8,0.96));
   color:rgba(200,164,78,0.95);
-  cursor:pointer; padding:0;
+  cursor:pointer; padding:0 14px 0 12px;
   box-shadow:0 10px 32px rgba(0,0,0,0.45),0 0 0 1px rgba(200,164,78,0.12);
-  transition:transform .2s ease, box-shadow .2s ease;
+  transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 }
-.bb-elite-feed-fab:hover{ transform:scale(1.05); box-shadow:0 12px 36px rgba(200,164,78,0.15); }
-.bb-ef-fab-svg{ width:28px; height:28px; display:block; }
+.bb-elite-feed-fab:hover{
+  transform:translateY(-1px);
+  border-color:rgba(200,164,78,0.62);
+  box-shadow:0 12px 36px rgba(200,164,78,0.15);
+}
+.bb-ef-fab-svg{ width:24px; height:24px; display:block; flex-shrink:0; }
 .bb-ef-fab-svg .bb-ef-cam{ fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .bb-ef-fab-svg .bb-ef-dot{ fill:currentColor; }
+.bb-elite-feed-fab-label{
+  font-size:12px;
+  font-weight:700;
+  letter-spacing:.02em;
+  color:rgba(228,187,90,0.98);
+  white-space:nowrap;
+  line-height:1;
+}
 @keyframes bbFwPulse{
   0%,100%{ box-shadow:0 10px 32px rgba(0,0,0,0.45),0 0 0 1px rgba(200,164,78,0.12); }
   50%{ box-shadow:0 10px 36px rgba(200,164,78,0.22),0 0 0 2px rgba(200,164,78,0.35); }
@@ -1517,6 +1529,11 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
     bottom:calc(24px + env(safe-area-inset-bottom,0px));
     right:max(24px,env(safe-area-inset-right));
   }
+}
+@media(max-width:520px){
+  .bb-elite-feed-fab{ padding:0 12px 0 10px; gap:7px; }
+  .bb-ef-fab-svg{ width:22px; height:22px; }
+  .bb-elite-feed-fab-label{ font-size:11.5px; }
 }
 @media(max-width:520px){
   .bb-fw-modal .bb-fw-title{ font-size:28px; }
@@ -4760,6 +4777,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <circle class="bb-ef-cam" cx="12" cy="12" r="4"></circle>
       <circle class="bb-ef-dot" cx="16.7" cy="7.3" r="1.05"></circle>
     </svg>
+    <span class="bb-elite-feed-fab-label" id="bbEliteFeedFabLabel">Elite Feed</span>
   </button>
 </div>
 
@@ -4813,7 +4831,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <a class="admin-sidebar-link" href="#" data-section="programs" onclick="switchToSection('programs');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127919;</span>Programs</a>
         <a class="admin-sidebar-link" href="#" data-section="forms" onclick="switchToSection('forms');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128203;</span>Forms</a>
         <a class="admin-sidebar-link" href="#" data-section="analytics" onclick="switchToSection('analytics');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128200;</span>Analytics</a>
-        <a class="admin-sidebar-link" href="#" onclick="switchTab('leaderboard');return false"><span class="admin-sidebar-icon" aria-hidden="true">🏆</span>Leader Board</a>
+        <a class="admin-sidebar-link" href="#" onclick="switchTab('leaderboards');return false"><span class="admin-sidebar-icon" aria-hidden="true">🏆</span>Leader Boards</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('nutrition');return false"><span class="admin-sidebar-icon" aria-hidden="true">🥗</span>Nutrition AI</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('blood');return false"><span class="admin-sidebar-icon" aria-hidden="true">🩺</span>Blood Reports</a>
         <a class="admin-sidebar-link" href="#" data-section="messages" onclick="switchToSection('messages');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
@@ -4863,8 +4881,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <a class="admin-nav-link" href="#" data-section="analytics" onclick="switchToSection('analytics');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128200;</span>Analytics
         </a>
-        <a class="admin-nav-link" href="#" onclick="switchTab('leaderboard');closeAdminNavDrawer();return false">
-          <span class="admin-nav-link-icon" aria-hidden="true">🏆</span>Leader Board
+        <a class="admin-nav-link" href="#" onclick="switchTab('leaderboards');closeAdminNavDrawer();return false">
+          <span class="admin-nav-link-icon" aria-hidden="true">🏆</span>Leader Boards
         </a>
         <a class="admin-nav-link" href="#" onclick="switchTab('nutrition');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">🥗</span>Nutrition AI
@@ -4901,7 +4919,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="admin-tab" data-tab="programs" onclick="switchTab('programs')">Programs</div>
       <div class="admin-tab" data-tab="insights" onclick="switchTab('insights')">Performance Insights</div>
       <div class="admin-tab" data-tab="campaigns" onclick="switchTab('campaigns')">Campaigns</div>
-      <div class="admin-tab" data-tab="leaderboard" onclick="switchTab('leaderboard')">Leader Board</div>
+      <div class="admin-tab" data-tab="leaderboards" onclick="switchTab('leaderboards')">Leader Boards</div>
       <div class="admin-tab" data-tab="nutrition" onclick="switchTab('nutrition')">Nutrition AI</div>
       <div class="admin-tab" data-tab="blood" onclick="switchTab('blood')">Blood Reports</div>
     </div>
@@ -5038,7 +5056,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <a class="bb-quick-btn" href="#" onclick="switchTab('requests');return false"><span class="btn-icon">📋</span>Audit Forms</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('dailycheckin');return false"><span class="btn-icon">📅</span>Daily Check-ins</a>
           <a class="bb-quick-btn" href="#" onclick="switchToSection('elitefeed');return false"><span class="btn-icon">📸</span>Elite Feed</a>
-          <a class="bb-quick-btn" href="#" onclick="switchTab('leaderboard');return false"><span class="btn-icon">🏆</span>Leader Board</a>
+          <a class="bb-quick-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="btn-icon">🏆</span>Leader Boards</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('nutrition');return false"><span class="btn-icon">🥗</span>Nutrition AI</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('blood');return false"><span class="btn-icon">🩺</span>Blood Reports</a>
           <a class="bb-quick-btn" href="#" onclick="switchToSection('analytics');return false"><span class="btn-icon">📈</span>Analytics</a>
@@ -5067,7 +5085,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <a class="admin-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="admin-qa-icon">&#128209;</span>Audits</a>
             <a class="admin-qa-btn" href="#" onclick="switchToSection('elitefeed');return false"><span class="admin-qa-icon">&#128248;</span>Elite Feed</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('programs');return false"><span class="admin-qa-icon">&#127919;</span>Programs</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('leaderboard');return false"><span class="admin-qa-icon">🏆</span>Leader board</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="admin-qa-icon">🏆</span>Leader boards</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('nutrition');return false"><span class="admin-qa-icon">🥗</span>Nutrition report</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('blood');return false"><span class="admin-qa-icon">🩺</span>Blood reports</a>
             <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#128202;</span>Analytics</a>
@@ -5647,7 +5665,29 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       </div>
     </div>
 
-    <!-- TAB: Leader Board (real vs virtual) -->
+    <!-- TAB: Leader Boards -->
+    <div class="admin-tab-content" id="tab-leaderboards">
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Leader Boards</h3>
+        <p class="form-hint" style="margin-bottom:12px">Choose which leaderboard you want to open.</p>
+        <div class="admin-qa-grid">
+          <a class="admin-qa-btn" href="#" onclick="switchTab('coinleaderboard');return false"><span class="admin-qa-icon">🪙</span>Coin leaderboard</a>
+          <a class="admin-qa-btn" href="#" onclick="switchTab('leaderboard');return false"><span class="admin-qa-icon">🏆</span>User leaderboard</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="admin-tab-content" id="tab-coinleaderboard">
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Coin Leaderboard</h3>
+        <p class="form-hint" style="margin-bottom:12px">Top users by coin balance and lifetime earned.</p>
+        <div class="admin-la-list admin-coin-list" id="adminCoinBoardTab">
+          <p class="admin-la-loading">Loading...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB: User Leader Board (real vs virtual) -->
     <div class="admin-tab-content" id="tab-leaderboard">
       <div class="admin-subsection-wrap">
         <h3 class="admin-subsection-title">Leader Board Control Center</h3>
@@ -8626,12 +8666,14 @@ function bbAdminCoinName(row) {
 async function loadAdminCoinLeaderboard() {
   var desktop = document.getElementById('adminCoinBoardDesktop');
   var mobile = document.getElementById('adminCoinBoardMobile');
-  if (!desktop && !mobile) return;
+  var tab = document.getElementById('adminCoinBoardTab');
+  if (!desktop && !mobile && !tab) return;
   var data = await apiCall('GET', '/api/admin/coins/leaderboard?limit=20');
   if (!data || data.error) {
     var err = '<p class="admin-la-loading">Unable to load coin leaderboard.</p>';
     if (desktop) desktop.innerHTML = err;
     if (mobile) mobile.innerHTML = err;
+    if (tab) tab.innerHTML = err;
     return;
   }
   var rows = Array.isArray(data.rows) ? data.rows : [];
@@ -8639,6 +8681,7 @@ async function loadAdminCoinLeaderboard() {
     var empty = '<p class="admin-la-loading">No coin data yet.</p>';
     if (desktop) desktop.innerHTML = empty;
     if (mobile) mobile.innerHTML = empty;
+    if (tab) tab.innerHTML = empty;
     return;
   }
   var html = rows.map(function (r, idx) {
@@ -8659,6 +8702,7 @@ async function loadAdminCoinLeaderboard() {
   }).join('');
   if (desktop) desktop.innerHTML = html;
   if (mobile) mobile.innerHTML = html;
+  if (tab) tab.innerHTML = html;
 }
 
 window._bbDesktopCharts = window._bbDesktopCharts || {};
@@ -10612,8 +10656,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', nutrition: 'Nutrition AI', blood: 'Blood Reports' };
-var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', nutrition: 'analytics', blood: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports' };
+var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -10744,7 +10788,9 @@ function switchTab(tab) {
   if (tab === 'insights') loadPerformanceInsights();
   if (tab === 'clientprogress') loadClientProgressUsers();
   if (tab === 'programs') loadProgramsAdmin();
+  if (tab === 'leaderboards') loadAdminCoinLeaderboard();
   if (tab === 'leaderboard') loadAdminVirtualLeaderboardSection();
+  if (tab === 'coinleaderboard') loadAdminCoinLeaderboard();
   if (tab === 'campaigns') loadCampaigns();
   if (tab === 'nutrition') loadAdminNutritionReport();
   if (tab === 'blood') loadAdminBloodReports();
@@ -12576,6 +12622,11 @@ function bbSetUserFabIcon(mode) {
       '<circle class="bb-ef-dot" cx="16.7" cy="7.3" r="1.05"></circle>';
   }
 }
+function bbSetUserFabLabel(text) {
+  var lbl = document.getElementById('bbEliteFeedFabLabel');
+  if (!lbl) return;
+  lbl.textContent = text || '';
+}
 function bbHandleUserFabClick() {
   var fab = document.getElementById('bbEliteFeedFab');
   if (!fab) return;
@@ -12604,11 +12655,13 @@ function bbUpdateEliteFeedFab(tab) {
     fab.setAttribute('aria-label', 'Open AI Trainer');
     fab.setAttribute('title', 'Open AI Trainer');
     bbSetUserFabIcon('trainer');
+    bbSetUserFabLabel('AI Trainer');
   } else {
     fab.setAttribute('data-mode', 'feed');
     fab.setAttribute('aria-label', 'Open Elite Feed');
     fab.setAttribute('title', 'Open Elite Feed');
     bbSetUserFabIcon('feed');
+    bbSetUserFabLabel('Elite Feed');
   }
   // Non-intrusive rule: show only on Home/Workout and hide while typing, keyboard open, or any modal layer is open.
   var shouldShow = (isHome || isWorkout) && !bbIsTypingInputContext() && !bbIsVirtualKeyboardOpen() && !(typeof isOverlayOpen === 'function' && isOverlayOpen());
