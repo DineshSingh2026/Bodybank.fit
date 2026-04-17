@@ -185,12 +185,32 @@
     @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
     .prep-head { font-size: 20px; font-weight: 800; color: var(--txt); margin-bottom: 8px; }
     .prep-hint { font-size: 14px; color: var(--muted); line-height: 1.6; }
-    .prep-ex-badge {
-      display: inline-block; margin-bottom: 18px;
-      background: rgba(200,164,78,.18); border: 1px solid rgba(200,164,78,.4);
-      color: var(--gold); padding: 5px 16px; border-radius: 999px;
-      font-size: 12px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+    .vc-row-top {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; margin-bottom: 12px; flex-wrap: wrap;
     }
+    .vc-voice-label { font-size: 13px; color: var(--muted); letter-spacing: .02em; }
+    .vc-switch {
+      position: relative; width: 48px; height: 28px; flex-shrink: 0;
+      border-radius: 999px; background: #252a36; border: 1px solid #3a4154;
+      cursor: pointer; transition: background .2s, border-color .2s, box-shadow .2s;
+      padding: 0;
+    }
+    .vc-switch:hover { border-color: rgba(200,164,78,.45); }
+    .vc-switch[aria-pressed="true"] {
+      background: rgba(200,164,78,.22); border-color: rgba(200,164,78,.55);
+      box-shadow: 0 0 0 1px rgba(200,164,78,.15) inset;
+    }
+    .vc-switch::after {
+      content: ''; position: absolute; top: 4px; left: 4px;
+      width: 18px; height: 18px; border-radius: 50%;
+      background: linear-gradient(180deg, #fff, #e8e8ec);
+      box-shadow: 0 2px 6px rgba(0,0,0,.35);
+      transition: transform .22s cubic-bezier(.22,.68,0,1);
+    }
+    .vc-switch[aria-pressed="true"]::after { transform: translateX(20px); }
+    .vc-vol-row { display: flex; align-items: center; gap: 10px; transition: opacity .2s; }
+    .vc-vol-row.is-muted { opacity: .42; pointer-events: none; }
 
     /* ── WORKOUT HUD ── */
     #wkHud {
@@ -414,17 +434,17 @@
     </div>
     <div class="card">
       <p class="title">Voice Coach</p>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:6px">
-        <span style="font-size:13px;color:var(--muted)">🎙️ Male coach · always on</span>
-        <span style="font-size:11px;color:var(--gold);font-weight:600;border:1px solid #3d3420;border-radius:999px;padding:3px 10px">On</span>
+      <div class="vc-row-top">
+        <span class="vc-voice-label">Coach voice</span>
+        <button type="button" class="vc-switch" id="vcVoiceToggle" aria-pressed="true" title="Turn coach voice on or off" aria-label="Toggle coach voice"></button>
       </div>
-      <div style="display:flex;align-items:center;gap:10px">
+      <div class="vc-vol-row" id="vcVolRow">
         <span style="font-size:11px;color:#5f6880;white-space:nowrap">Volume</span>
         <input type="range" id="vcVolume" min="0" max="1" step="0.1" value="0.9"
                style="flex:1;accent-color:var(--gold);cursor:pointer" />
       </div>
       <div id="vcStatus" style="font-size:11px;color:#5f6880;margin-top:8px;text-align:center">Ready</div>
-      <button type="button" id="vcTestBtn" onclick="VC.test()" style="margin-top:8px;width:100%;padding:8px;border-radius:8px;background:transparent;border:1px dashed #2c3347;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='#2c3347';this.style.color='var(--muted)'">🔊 Test Voice</button>
+      <button type="button" id="vcTestBtn" onclick="VC.test()" style="margin-top:8px;width:100%;padding:8px;border-radius:8px;background:transparent;border:1px dashed #2c3347;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='#2c3347';this.style.color='var(--muted)'">Test voice</button>
     </div>
   </aside>
 
@@ -448,13 +468,12 @@
         <div class="ov"><h3 id="errTitle">Camera Error</h3><p id="errMsg"></p></div>
       </div>
 
-      <!-- PRE-START COUNTDOWN -->
+      <!-- PRE-START COUNTDOWN — same copy & timing for every workout -->
       <div id="prepOv" class="hidden">
         <div class="prep-inner">
           <span id="prepNum" class="prep-num">3</span>
-          <div id="prepExBadge" class="prep-ex-badge">Squat</div>
-          <div class="prep-head">Get into position!</div>
-          <p id="prepHint" class="prep-hint">Step back so your full body is visible. Good lighting helps tracking.</p>
+          <div id="prepHead" class="prep-head">Prepare</div>
+          <p id="prepHint" class="prep-hint">Full body in frame. Soft, even lighting.</p>
         </div>
       </div>
 
@@ -621,15 +640,38 @@ const VC = {
   noPersonSpoken:        false,
   lastRepCount:          0,
   lastEncouragementAt:   0,
+  lastPhaseCueAt:        0,
   introSpoken:           false,
   _keepAliveId:          null,
+  _muted:                false,
 
   /** Polite landing message — played once per tab session after first user gesture (browser speech policy). */
   WELCOME_TEXT:
     "Welcome to BodyBank's AI Trainer. I'm glad you're here. I'll stay with you through every rep — clear guidance, steady encouragement, and respectful form feedback. Choose your exercise and press Start when you're ready. Let's make this a session you can be proud of.",
 
-  get enabled() { return true; },
+  get enabled() { return !this._muted; },
   get volume()  { const el = $('vcVolume'); return el ? parseFloat(el.value) : 0.9; },
+
+  _STORAGE_MUTE: 'bb_ai_trainer_voice_muted',
+
+  setMuted(muted) {
+    this._muted = !!muted;
+    try { localStorage.setItem(this._STORAGE_MUTE, this._muted ? '1' : '0'); } catch (_) {}
+    if (this._muted && this.synth) try { this.synth.cancel(); } catch (_) {}
+    this._syncVoiceUi();
+  },
+
+  _syncVoiceUi() {
+    const btn = $('vcVoiceToggle');
+    if (btn) btn.setAttribute('aria-pressed', this._muted ? 'false' : 'true');
+    const row = $('vcVolRow');
+    if (row) row.classList.toggle('is-muted', this._muted);
+    const st = $('vcStatus');
+    if (st && this.synth) {
+      if (this._muted) st.textContent = 'Voice off';
+      else if (this.voice) st.textContent = '✓ ' + this.voice.name.slice(0, 22);
+    }
+  },
 
   // ── Cue Library ──────────────────────────────────────────────
   CUES: {
@@ -646,12 +688,12 @@ const VC = {
       auto:          'AI Trainer is active! I\'m watching your movement patterns and counting every rep. Just start moving and I\'ll guide you through everything. Let\'s train!',
     },
 
-    // Countdown — concise; go cue still polite
+    // Countdown — short words + fast TTS; brief go so session starts quickly
     countdown: {
-      3: 'Three.',
-      2: 'Two.',
-      1: 'One.',
-      go: 'Get set. Begin when you\'re ready.',
+      3: 'Three',
+      2: 'Two',
+      1: 'One',
+      go: 'Go!',
     },
 
     // Phase cues — spoken on every phase transition
@@ -737,6 +779,13 @@ const VC = {
 
   // ── Voice init ───────────────────────────────────────────────
   init() {
+    try { this._muted = localStorage.getItem(this._STORAGE_MUTE) === '1'; } catch (_) { this._muted = false; }
+    const btn = $('vcVoiceToggle');
+    if (btn) {
+      btn.addEventListener('click', () => this.setMuted(!this._muted));
+    }
+    this._syncVoiceUi();
+
     if (!this.synth) {
       const el = $('vcStatus'); if (el) el.textContent = 'Not supported in this browser'; return;
     }
@@ -754,7 +803,8 @@ const VC = {
       }
       if (!this.voice) this.voice = voices[0] || null;
       const el = $('vcStatus');
-      if (el) el.textContent = this.voice ? '✓ ' + this.voice.name.slice(0, 22) : 'No voice found';
+      if (el && !this._muted) el.textContent = this.voice ? '✓ ' + this.voice.name.slice(0, 22) : 'No voice found';
+      this._syncVoiceUi();
     };
     load();
     this.synth.onvoiceschanged = load;
@@ -767,6 +817,7 @@ const VC = {
 
   // ── Core speak (Chrome-safe) ──────────────────────────────────
   /** @param opts.noCancel If true, queues after current speech (use for countdown chains). */
+  /** @param opts.queueDelay Ms before enqueue (default 40/60); use 0 for tight countdown chains. */
   /** @param opts.bypassCooldown If true, ignore spacing guard (countdown / scripted chains). */
   speak(text, opts = {}) {
     const cb = typeof opts.onEnd === 'function' ? opts.onEnd : null;
@@ -776,19 +827,19 @@ const VC = {
       endFired = true;
       try { cb(); } catch (_) {}
     }
-    if (!this.enabled || !this.synth || !text) {
+    if (this._muted || !this.synth || !text) {
       setTimeout(fireEnd, 0);
       return;
     }
     const now = Date.now();
-    const cd = opts.cooldown !== undefined ? opts.cooldown : 1200;
+    const cd = opts.cooldown !== undefined ? opts.cooldown : 2200;
     if (!opts.bypassCooldown && now - this.lastSpoken < cd) {
       setTimeout(fireEnd, 0);
       return;
     }
     this.lastSpoken = now;
     if (!opts.noCancel) this.synth.cancel();
-    const delayMs = opts.noCancel ? 40 : 60;
+    const delayMs = opts.queueDelay !== undefined ? opts.queueDelay : (opts.noCancel ? 40 : 60);
     setTimeout(() => {
       if (!this.synth) {
         fireEnd();
@@ -832,6 +883,7 @@ const VC = {
   // ── Test button ───────────────────────────────────────────────
   test() {
     if (!this.synth) { const el=$('vcStatus'); if(el) el.textContent='Not supported'; return; }
+    if (this._muted) { const el = $('vcStatus'); if (el) el.textContent = 'Unmute to test'; return; }
     const el = $('vcStatus'); if (el) el.textContent = 'Speaking…';
     const prev = this.lastSpoken; this.lastSpoken = 0;
     const restore = () => {
@@ -877,6 +929,7 @@ const VC = {
   speakIntro(exKey) {
     if (this.introSpoken) return;
     this.introSpoken = true;
+    if (this._muted) return;
     const cue = this.CUES.intro[exKey] || this.CUES.intro.auto;
     this.speak(cue, { cooldown: 0, bypassCooldown: true, rate: 0.93, pitch: this._humanPitch });
   },
@@ -892,7 +945,7 @@ const VC = {
     // 1 ── No person in frame
     if (!lm) {
       if (!this.noPersonSpoken) {
-        this.speak(this._pick(this.CUES.noPerson), { cooldown: 5000 });
+        this.speak(this._pick(this.CUES.noPerson), { cooldown: 8000 });
         this.noPersonSpoken = true;
       }
       return;
@@ -901,6 +954,9 @@ const VC = {
 
     // 2 ── Rep milestone (checked before per-rep praise so milestone wins)
     const reps = repCountNow || 0;
+    const PHASE_CUE_GAP_MS = 2800;
+    const REP_PRAISE_EVERY = 3;
+
     if (reps > this.lastRepCount) {
       const milestone = this.CUES.milestones[reps];
       if (milestone) {
@@ -909,40 +965,50 @@ const VC = {
         this.lastPhase = phase;
         return;
       }
-      // Per-rep praise: good form → premium praise pool, else standard pool
-      const pool = (kind === 'good') ? this.CUES.repPraiseGood : this.CUES.repPraiseOk;
-      this.speak(this._pick(pool), { cooldown: 0, rate: 0.93, pitch: this._humanPitch });
       this.lastRepCount = reps;
       this.lastPhase = phase;
+      if (reps > 0 && reps % REP_PRAISE_EVERY === 0) {
+        const pool = (kind === 'good') ? this.CUES.repPraiseGood : this.CUES.repPraiseOk;
+        this.speak(this._pick(pool), { cooldown: 3800, rate: 0.93, pitch: this._humanPitch });
+      }
       return;
     }
 
-    // 3 ── Phase change (direction cue)
+    // 3 ── Phase change (direction cue) — spaced so the coach is not constant
     if (phase !== this.lastPhase && this.lastPhase !== null) {
       const exCues = this.CUES.phase[exKey] || {};
       const cue = exCues[phase] || exCues.hold || null;
-      if (cue) { this.speak(cue, { cooldown: 650, rate: 0.94, pitch: this._humanPitch }); this.lastPhase = phase; return; }
+      if (cue) {
+        if (now - this.lastPhaseCueAt < PHASE_CUE_GAP_MS) {
+          this.lastPhase = phase;
+        } else {
+          this.speak(cue, { cooldown: PHASE_CUE_GAP_MS, rate: 0.94, pitch: this._humanPitch });
+          this.lastPhaseCueAt = now;
+          this.lastPhase = phase;
+        }
+        return;
+      }
     }
     this.lastPhase = phase;
 
-    // 4 ── Sustained bad form → correction (triggers after ~2.5 s of bad form)
+    // 4 ── Sustained bad form → correction (after ~3 s of bad form)
     if (kind === 'error' || kind === 'bad') {
       this.badFrames++;
       this.goodFrames = 0;
-      if (this.badFrames === 62) {
+      if (this.badFrames === 92) {
         const cue = this.CUES.correction[exKey];
-        if (cue) { this.speak(cue, { cooldown: 3200, rate: 0.9, pitch: this._humanPitch }); }
+        if (cue) { this.speak(cue, { cooldown: 5200, rate: 0.9, pitch: this._humanPitch }); }
         this.badFrames = 0;
       }
       return;
     }
     this.badFrames = 0;
 
-    // 5 ── Sustained great form → praise streak (~5 s of good form)
+    // 5 ── Sustained great form → praise streak (~7 s of good form)
     if (kind === 'good') {
       this.goodFrames++;
-      if (this.goodFrames === 130) {
-        this.speak(this._pick(this.CUES.goodStreak), { cooldown: 4500, rate: 0.93, pitch: this._humanPitch });
+      if (this.goodFrames === 200) {
+        this.speak(this._pick(this.CUES.goodStreak), { cooldown: 6500, rate: 0.93, pitch: this._humanPitch });
         this.goodFrames = 0;
         return;
       }
@@ -950,9 +1016,10 @@ const VC = {
       this.goodFrames = 0;
     }
 
-    // 6 ── Periodic encouragement (every ~30 s of silence)
-    if (now - this.lastSpoken > 28000 && now - this.lastEncouragementAt > 28000) {
-      this.speak(this._pick(this.CUES.encouragement), { cooldown: 0, rate: 0.92, pitch: this._humanPitch });
+    // 6 ── Periodic encouragement (long gaps — calm, not chatty)
+    const ENC_GAP_MS = 52000;
+    if (now - this.lastSpoken > ENC_GAP_MS && now - this.lastEncouragementAt > ENC_GAP_MS) {
+      this.speak(this._pick(this.CUES.encouragement), { cooldown: 4200, rate: 0.92, pitch: this._humanPitch });
       this.lastEncouragementAt = now;
     }
   },
@@ -961,7 +1028,7 @@ const VC = {
   reset() {
     this.lastPhase = null; this.badFrames = 0; this.goodFrames = 0;
     this.noPersonSpoken = false; this.lastSpoken = 0; this.lastRepCount = 0;
-    this.lastEncouragementAt = 0; this.introSpoken = false;
+    this.lastEncouragementAt = 0; this.lastPhaseCueAt = 0; this.introSpoken = false;
     if (this.synth) this.synth.cancel();
   },
 };
@@ -1474,14 +1541,33 @@ function drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h) {
 }
 
 // ════════════════════════════════════════════════════════════════
-//  EXERCISE DETECTOR
+//  EXERCISE DETECTOR  — hysteresis + frame streaks + min rep interval
 // ════════════════════════════════════════════════════════════════
 class Detector {
-  constructor() { this.reps = 0; this.sets = 0; this.phase = 'up'; this.jj = 'closed'; }
+  static get MIN_REP_MS() { return 420; }
+  static get FR_DOWN() { return 2; }
+  static get FR_STAND() { return 3; }
+
+  constructor() {
+    this.reps = 0; this.sets = 0; this.phase = 'up'; this.jj = 'closed';
+    this._lastRepMs = 0;
+    this._resetJitter();
+  }
+
+  _resetJitter() {
+    this._lastRepMs = 0;
+    this._sqDn = this._sqSt = 0;
+    this._puDn = this._puSt = 0;
+    this._jjOS = this._jjCS = 0;
+    this._bcUS = this._bcES = 0;
+    this._shLo = this._shBt = 0;
+    this._roUS = this._roES = 0;
+  }
 
   markSet() {
     if (this.reps > 0) this.sets++;
     this.reps = 0; this.phase = 'up'; this.jj = 'closed';
+    this._resetJitter();
   }
 
   process(lm, mode) {
@@ -1519,8 +1605,31 @@ class Detector {
     const rk = (vis(lm,LM.RH)&&vis(lm,LM.RK)&&vis(lm,LM.RA)) ? angle(lm[LM.RH],lm[LM.RK],lm[LM.RA]) : lk;
     const k  = (lk + rk) / 2;
     let repAdded = false;
-    if (this.phase === 'up'   && k < 90)  this.phase = 'down';
-    if (this.phase === 'down' && k > 155) { this.phase = 'up'; this.reps++; repAdded = true; }
+    const DOWN_TH = 94, STAND_TH = 156;
+    const t = performance.now();
+    if (this.phase === 'up') {
+      if (k < DOWN_TH) this._sqDn++; else this._sqDn = 0;
+      if (this._sqDn >= Detector.FR_DOWN) {
+        this.phase = 'down';
+        this._sqDn = 0;
+        this._sqSt = 0;
+      }
+    } else {
+      if (k > STAND_TH) {
+        this._sqSt++;
+        if (this._sqSt >= Detector.FR_STAND) {
+          if (t - this._lastRepMs >= Detector.MIN_REP_MS) {
+            this.phase = 'up';
+            this.reps++;
+            repAdded = true;
+            this._lastRepMs = t;
+          }
+          this._sqSt = 0;
+        }
+      } else {
+        this._sqSt = 0;
+      }
+    }
     const deep = k < 90, perfect = k < 80;
     const score = this.phase === 'down' ? Math.max(20, 100 - Math.abs(85 - k) * 1.5) : 60;
     const text  = this.phase === 'up'   ? 'Go down to start your squat.'
@@ -1537,8 +1646,31 @@ class Detector {
     const re = (vis(lm,LM.RS)&&vis(lm,LM.RE)&&vis(lm,LM.RW)) ? angle(lm[LM.RS],lm[LM.RE],lm[LM.RW]) : le;
     const e  = (le + re) / 2;
     let repAdded = false;
-    if (this.phase === 'up'   && e < 95)  this.phase = 'down';
-    if (this.phase === 'down' && e > 155) { this.phase = 'up'; this.reps++; repAdded = true; }
+    const DOWN_TH = 97, STAND_TH = 154;
+    const t = performance.now();
+    if (this.phase === 'up') {
+      if (e < DOWN_TH) this._puDn++; else this._puDn = 0;
+      if (this._puDn >= Detector.FR_DOWN) {
+        this.phase = 'down';
+        this._puDn = 0;
+        this._puSt = 0;
+      }
+    } else {
+      if (e > STAND_TH) {
+        this._puSt++;
+        if (this._puSt >= Detector.FR_STAND) {
+          if (t - this._lastRepMs >= Detector.MIN_REP_MS) {
+            this.phase = 'up';
+            this.reps++;
+            repAdded = true;
+            this._lastRepMs = t;
+          }
+          this._puSt = 0;
+        }
+      } else {
+        this._puSt = 0;
+      }
+    }
     let bodyScore = 75;
     if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA))
       bodyScore = Math.max(0, 100 - Math.abs(angle(lm[LM.LS],lm[LM.LH],lm[LM.LA]) - 175) * 4);
@@ -1577,8 +1709,24 @@ class Detector {
     }
     const isOpen = armsUp && legsOut;
     let repAdded = false;
-    if (this.jj === 'closed' && isOpen)  this.jj = 'open';
-    if (this.jj === 'open'   && !isOpen) { this.jj = 'closed'; this.reps++; repAdded = true; }
+    const t = performance.now();
+    if (this.jj === 'closed' && isOpen) {
+      this._jjOS++;
+      if (this._jjOS >= 2) { this.jj = 'open'; this._jjOS = 0; }
+    } else this._jjOS = 0;
+
+    if (this.jj === 'open' && !isOpen) {
+      this._jjCS++;
+      if (this._jjCS >= 2) {
+        if (t - this._lastRepMs >= Detector.MIN_REP_MS) {
+          this.jj = 'closed';
+          this.reps++;
+          repAdded = true;
+          this._lastRepMs = t;
+        }
+        this._jjCS = 0;
+      }
+    } else this._jjCS = 0;
     const score = armsUp ? (legsOut ? 95 : 65) : 40;
     const text  = isOpen ? '✓ Open — return to start.' : '↑ Jump! Arms overhead, legs out.';
     return { text, kind: isOpen?'good':'warn', score, repAdded, ex:'Jumping Jack' };
@@ -1593,10 +1741,28 @@ class Detector {
     const re = (vis(lm,LM.RS)&&vis(lm,LM.RE)&&vis(lm,LM.RW)) ? angle(lm[LM.RS],lm[LM.RE],lm[LM.RW]) : le;
     const e  = (le + re) / 2;
     let repAdded = false;
+    const t = performance.now();
+    const CURL_TH = 58, EXT_TH = 142;
 
-    // Rep: phase 'down' = arm extended (>145°), phase 'up' = peak curl (<55°)
-    if (this.phase === 'down' && e < 55)  this.phase = 'up';
-    if (this.phase === 'up'  && e > 145) { this.phase = 'down'; this.reps++; repAdded = true; }
+    if (this.phase === 'down') {
+      if (e < CURL_TH) this._bcUS++; else this._bcUS = 0;
+      if (this._bcUS >= Detector.FR_DOWN) {
+        this.phase = 'up';
+        this._bcUS = 0;
+        this._bcES = 0;
+      }
+    } else {
+      if (e > EXT_TH) this._bcES++; else this._bcES = 0;
+      if (this._bcES >= Detector.FR_DOWN) {
+        if (t - this._lastRepMs >= Detector.MIN_REP_MS) {
+          this.phase = 'down';
+          this.reps++;
+          repAdded = true;
+          this._lastRepMs = t;
+        }
+        this._bcES = 0;
+      }
+    }
 
     // Upper-arm sway penalty
     let swayScore = 100;
@@ -1629,10 +1795,29 @@ class Detector {
     const lockedOut = e > 155 && lwAbove && rwAbove;
     const atBottom  = e < 100;
     let repAdded = false;
+    const t = performance.now();
 
-    // Rep: 'down' = elbows bent at bottom (~90°), 'up' = arms locked overhead
-    if (this.phase === 'down' && lockedOut)  this.phase = 'up';
-    if (this.phase === 'up'  && atBottom)    { this.phase = 'down'; this.reps++; repAdded = true; }
+    if (this.phase === 'down' && lockedOut) {
+      this._shLo++;
+      if (this._shLo >= Detector.FR_DOWN) {
+        this.phase = 'up';
+        this._shLo = 0;
+        this._shBt = 0;
+      }
+    } else this._shLo = 0;
+
+    if (this.phase === 'up' && atBottom) {
+      this._shBt++;
+      if (this._shBt >= Detector.FR_DOWN) {
+        if (t - this._lastRepMs >= Detector.MIN_REP_MS) {
+          this.phase = 'down';
+          this.reps++;
+          repAdded = true;
+          this._lastRepMs = t;
+        }
+        this._shBt = 0;
+      }
+    } else this._shBt = 0;
 
     // Back lean penalty
     let backScore = 100;
@@ -1664,10 +1849,28 @@ class Detector {
     const re = (vis(lm,LM.RS)&&vis(lm,LM.RE)&&vis(lm,LM.RW)) ? angle(lm[LM.RS],lm[LM.RE],lm[LM.RW]) : le;
     const e  = (le + re) / 2;
     let repAdded = false;
+    const t = performance.now();
+    const PULL_TH = 82, EXT_TH = 138;
 
-    // Rep: 'down' = arm extended (>140°), 'up' = elbow pulled back (<80°)
-    if (this.phase === 'down' && e < 80)   this.phase = 'up';
-    if (this.phase === 'up'  && e > 140)  { this.phase = 'down'; this.reps++; repAdded = true; }
+    if (this.phase === 'down') {
+      if (e < PULL_TH) this._roUS++; else this._roUS = 0;
+      if (this._roUS >= Detector.FR_DOWN) {
+        this.phase = 'up';
+        this._roUS = 0;
+        this._roES = 0;
+      }
+    } else {
+      if (e > EXT_TH) this._roES++; else this._roES = 0;
+      if (this._roES >= Detector.FR_DOWN) {
+        if (t - this._lastRepMs >= Detector.MIN_REP_MS) {
+          this.phase = 'down';
+          this.reps++;
+          repAdded = true;
+          this._lastRepMs = t;
+        }
+        this._roES = 0;
+      }
+    }
 
     // Torso hinge quality: shoulder–hip–knee angle should be 40–100°
     let torsoScore = 75;
@@ -1786,47 +1989,51 @@ window.addEventListener('resize', () => {
   }
 });
 
-function showPrepCountdown(exerciseText, tip, onDone) {
-  const prepOv   = $('prepOv');
-  const prepNum  = $('prepNum');
-  $('prepExBadge').textContent = exerciseText.toUpperCase();
-  $('prepHint').textContent    = tip;
+function showPrepCountdown(onDone) {
+  const prepOv  = $('prepOv');
+  const prepNum = $('prepNum');
+  const prepHead = $('prepHead');
+  const prepHint = $('prepHint');
+  if (prepHead) prepHead.textContent = 'Prepare';
+  if (prepHint) prepHint.textContent = 'Full body in frame. Soft, even lighting.';
   idleOv.classList.add('hidden');
   loadOv.classList.add('hidden');
   prepOv.classList.remove('hidden');
 
-  const cdRate = 0.95;
+  const cdRate = 1.12;
   const cdPitch = VC._humanPitch;
-  const MS_BETWEEN_COUNT = 140;
+  const MS_BETWEEN_COUNT = 55;
+  const VIS_STEP_MS = 520;
 
-  /** Queue-friendly TTS — shorter gaps, snappier feel. */
+  /** Same 3-2-1 + Go for every workout; voice optional when muted. */
   async function runCountdownVoice() {
     VC.lastSpoken = 0;
-    for (let k = 3; k >= 1; k--) {
-      prepNum.textContent = k;
-      await new Promise((resolve) => {
-        VC.speak(VC.CUES.countdown[k], {
-          cooldown: 0,
-          bypassCooldown: true,
-          noCancel: true,
-          rate: cdRate,
-          pitch: cdPitch,
-          onEnd: resolve,
-        });
-      });
-      await new Promise(r => setTimeout(r, MS_BETWEEN_COUNT));
+    if (VC._muted) {
+      for (let k = 3; k >= 1; k--) {
+        prepNum.textContent = String(k);
+        await new Promise(r => setTimeout(r, VIS_STEP_MS));
+      }
+      await new Promise(r => setTimeout(r, 40));
+      return;
     }
-    await new Promise(r => setTimeout(r, 120));
-    await new Promise((resolve) => {
-      VC.speak(VC.CUES.countdown.go, {
+    const speakCd = (text, rate) => new Promise((resolve) => {
+      VC.speak(text, {
         cooldown: 0,
         bypassCooldown: true,
         noCancel: true,
-        rate: 0.94,
+        queueDelay: 0,
+        rate,
         pitch: cdPitch,
         onEnd: resolve,
       });
     });
+    for (let k = 3; k >= 1; k--) {
+      prepNum.textContent = String(k);
+      await speakCd(VC.CUES.countdown[k], cdRate);
+      await new Promise(r => setTimeout(r, MS_BETWEEN_COUNT));
+    }
+    await new Promise(r => setTimeout(r, 35));
+    await speakCd(VC.CUES.countdown.go, 1.05);
   }
 
   void (async () => {
@@ -2024,9 +2231,7 @@ async function startWorkout() {
   try { cam.start(); } catch (e) {}
 
   // Show prep countdown, then launch session (camera already running so preview / pose warm up)
-  const exLabel = exSel.value === 'auto' ? 'Auto Detect' : exSel.options[exSel.selectedIndex].text.replace(/^[\S]+\s/, '');
-  const tip = (TIPS[exSel.value] || TIPS.auto)[0];
-  showPrepCountdown(exLabel, tip, () => {
+  showPrepCountdown(() => {
     running = true;
     $('wkHud').classList.remove('hidden');
     idleOv.classList.add('hidden');
