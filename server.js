@@ -1470,7 +1470,11 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
       mobile: b.phone || '—',
       city: b.city || '—',
       country: b.country || '—',
-      goals: b.goals || '—'
+      age: b.age || '—',
+      sex: b.sex || '—',
+      occupation: b.occupation || '—',
+      work_intensity: b.work_intensity || '—',
+      fitness_experience: b.fitness_experience || '—'
     });
     userEmail.emailAuditReceived(String(b.email).trim(), b.first_name);
     res.json({ id, message: 'Request submitted successfully' });
