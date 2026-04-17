@@ -1,6 +1,6 @@
 'use strict';
 
-const { sendWhatsApp } = require('../services/whatsapp');
+const { sendWhatsAppWithFallback } = require('../services/whatsapp');
 
 const PRIORITY = { CRITICAL: 'CRITICAL', IMPORTANT: 'IMPORTANT', INFO: 'INFO' };
 const EVENT_META = {
@@ -89,6 +89,13 @@ function formatEventMessage(eventType, payload = {}) {
   };
 }
 
+function templateSidForEvent(eventType) {
+  const perEvent = process.env[`TWILIO_${String(eventType || '').trim()}_TEMPLATE_SID`] || '';
+  if (perEvent) return perEvent;
+  if (eventType === 'AUDIT_FORM' && process.env.TWILIO_AUDIT_TEMPLATE_SID) return process.env.TWILIO_AUDIT_TEMPLATE_SID;
+  return process.env.TWILIO_WHATSAPP_TEMPLATE_SID || '';
+}
+
 async function notify(eventType, payload = {}, opts = {}) {
   try {
     const formatted = formatEventMessage(eventType, payload);
@@ -105,7 +112,10 @@ async function notify(eventType, payload = {}, opts = {}) {
     }
     mark(fp);
     const media = payload && payload.mediaUrl ? payload.mediaUrl : null;
-    const result = await sendWhatsApp(formatted.message, { mediaUrl: media });
+    const result = await sendWhatsAppWithFallback(formatted.message, {
+      mediaUrl: media,
+      templateSid: templateSidForEvent(eventType)
+    });
     if (!result.ok) {
       console.warn(`[notify] ${eventType} WhatsApp NOT sent — reason: ${result.reason}`, result.error || result.missing || '');
     }

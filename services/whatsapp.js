@@ -7,6 +7,7 @@ const TWILIO_SID        = process.env.TWILIO_SID        || '';
 const TWILIO_AUTH       = process.env.TWILIO_AUTH       || '';
 const ADMIN_WHATSAPP    = process.env.ADMIN_WHATSAPP    || ''; // e.g. +91XXXXXXXXXX or whatsapp:+91XXXXXXXXXX
 const WHATSAPP_FROM     = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886';
+const GENERIC_TEMPLATE_SID = process.env.TWILIO_WHATSAPP_TEMPLATE_SID || '';
 
 let _client = null;
 
@@ -34,6 +35,13 @@ function cleanTemplateVars(vars = {}) {
     out[String(key)] = String(raw == null ? '' : raw).replace(/[\r\n]+/g, ' ').trim();
   });
   return out;
+}
+
+function flattenTemplateText(message) {
+  return String(message == null ? '' : message)
+    .replace(/\s*\n+\s*/g, ' | ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 /**
@@ -69,7 +77,7 @@ async function sendWhatsApp(message, opts = {}) {
     return { ok: true, sid: result.sid };
   } catch (err) {
     console.error('[whatsapp] SEND FAILED →', err.message, { code: err.code, status: err.status, to: toWaAddr(ADMIN_WHATSAPP) });
-    return { ok: false, reason: 'send_failed', error: err.message };
+    return { ok: false, reason: 'send_failed', error: err.message, code: err.code, status: err.status };
   }
 }
 
@@ -98,4 +106,29 @@ async function sendWhatsAppTemplate(templateSid, variables = {}, opts = {}) {
   }
 }
 
-module.exports = { sendWhatsApp, sendWhatsAppTemplate, isConfigured };
+async function sendWhatsAppWithFallback(message, opts = {}) {
+  const firstAttempt = opts.forceTemplate
+    ? { ok: false, reason: 'template_forced' }
+    : await sendWhatsApp(message, opts);
+
+  if (firstAttempt.ok) return firstAttempt;
+
+  const shouldRetryAsTemplate = opts.forceTemplate || Number(firstAttempt.code) === 63016;
+  if (!shouldRetryAsTemplate) return firstAttempt;
+
+  const templateSid = String(opts.templateSid || GENERIC_TEMPLATE_SID || '').trim();
+  if (!templateSid) {
+    return {
+      ok: false,
+      reason: 'missing_template_sid',
+      error: firstAttempt.error || 'Template SID required for WhatsApp outside window',
+      code: firstAttempt.code,
+      status: firstAttempt.status
+    };
+  }
+
+  console.warn('[whatsapp] retrying with template sender');
+  return sendWhatsAppTemplate(templateSid, { 1: flattenTemplateText(message) }, opts);
+}
+
+module.exports = { sendWhatsApp, sendWhatsAppTemplate, sendWhatsAppWithFallback, isConfigured };
