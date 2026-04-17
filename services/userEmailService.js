@@ -477,13 +477,6 @@ async function emailNutritionDayReport(email, firstName, payload) {
     })
     .join('');
 
-  const ed =
-    energyDiff != null && Number.isFinite(Number(energyDiff))
-      ? `<div style="background:${Number(energyDiff) >= 0 ? 'rgba(61,214,140,0.1)' : 'rgba(255,92,92,0.1)'};border:1px solid ${Number(energyDiff) >= 0 ? 'rgba(61,214,140,0.25)' : 'rgba(255,92,92,0.25)'};border-radius:10px;padding:16px;margin-bottom:24px">
-  <div style="font-size:12px;color:#8a8880;margin-bottom:4px">ENERGY DIFFERENCE (Burned − Intake)</div>
-  <div style="font-size:24px;font-weight:700;color:${Number(energyDiff) >= 0 ? '#3dd68c' : '#ff5c5c'}">${Number(energyDiff) >= 0 ? '+' : ''}${escapeHtml(String(energyDiff))} kcal</div>
-</div>`
-      : '';
 
   const inner = `<div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;background:#0d0f11;color:#f0ede8;padding:32px;border-radius:16px">
   <h2 style="color:#3dd68c;margin-bottom:4px">Fitchef Nutrition Report</h2>
@@ -494,7 +487,6 @@ async function emailNutritionDayReport(email, firstName, payload) {
     <div style="background:#161a1e;border-radius:10px;padding:14px;text-align:center"><div style="font-size:11px;color:#8a8880;margin-bottom:4px">CARBS</div><div style="font-size:22px;font-weight:700;color:#4da6ff">${escapeHtml(String(s.totalCarbs ?? '—'))}g</div></div>
     <div style="background:#161a1e;border-radius:10px;padding:14px;text-align:center"><div style="font-size:11px;color:#8a8880;margin-bottom:4px">FAT</div><div style="font-size:22px;font-weight:700;color:#ff5c5c">${escapeHtml(String(s.totalFat ?? '—'))}g</div></div>
   </div>
-  ${ed}
   ${mealRows}
   <div style="margin-top:24px;background:#161a1e;border-radius:10px;padding:14px">
     <div style="font-size:11px;color:#8a8880;margin-bottom:4px">MEAL QUALITY SCORE</div>
