@@ -5043,13 +5043,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           </table>
         </div>
 
-        <div class="bb-table-card">
-          <h3>Coin Leaderboard</h3>
-          <div id="adminCoinBoardDesktop" class="admin-coin-list">
-            <p class="admin-la-loading">Loading...</p>
-          </div>
-        </div>
-
         <div class="bb-quick-actions">
           <a class="bb-quick-btn" href="#" onclick="switchTab('signups');return false"><span class="btn-icon">👤</span>Approve Sign-ups</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('tribe');return false"><span class="btn-icon">👥</span>Client Board</a>
@@ -5092,12 +5085,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           </div>
         </div>
         <div class="admin-live-activity">
-          <h3 class="admin-la-title">COIN LEADERBOARD</h3>
-          <div class="admin-la-list admin-coin-list" id="adminCoinBoardMobile">
-            <p class="admin-la-loading">Loading...</p>
-          </div>
-        </div>
-        <div class="admin-live-activity" style="margin-top:12px">
           <h3 class="admin-la-title">HIGH RISK / ATTENTION</h3>
           <div class="admin-la-list" id="adminMobileRiskList">
             <p class="admin-la-loading">Loading…</p>
@@ -5553,10 +5540,11 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             </div>
             <div id="adminCpAuditResult" style="margin-top:10px;display:none"></div>
           </div>
-          <div id="adminCpDetail"><p class="admin-cp-placeholder">Select a user to view progress.</p></div>
-          <div id="adminCpShareWrap" class="admin-cp-share-wrap" style="display:none;margin:16px 0">
+          <div id="adminCpShareWrap" class="admin-cp-share-wrap" style="display:none;margin:0 0 16px 0">
+            <p class="form-hint" style="margin:0 0 8px 0">Client actions — Elite card opens preview; use Save card in the modal to download.</p>
             <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
               <button type="button" class="form-submit" id="adminCpShareBtn" onclick="getProgressReportLink()">Share link with user</button>
+              <button type="button" class="action-btn btn-view" id="adminCpEliteCardBtn" onclick="openAdminEliteCardModal()" style="padding:10px 16px" title="Preview or save client Elite card">Elite card</button>
               <button type="button" class="action-btn btn-reject" id="adminCpSuspendBtn" onclick="adminSuspendUser()" style="padding:12px 20px;display:none">Suspend user</button>
               <button type="button" class="action-btn btn-approve" id="adminCpReactivateBtn" onclick="adminReactivateUser()" style="padding:12px 20px;display:none">Re-activate</button>
               <button type="button" class="action-btn btn-reject" id="adminCpRemoveBtn" onclick="adminRemoveUser()" style="padding:12px 20px;display:none">Remove user</button>
@@ -5569,6 +5557,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               </div>
             </div>
           </div>
+          <div id="adminCpDetail"><p class="admin-cp-placeholder">Select a user to view progress.</p></div>
           <div id="adminCpKpis" class="admin-cp-kpis" style="display:none"></div>
           <div id="adminCpCharts" class="progress-charts admin-cp-charts" style="display:none;margin-top:20px">
             <div class="chart-wrap"><canvas id="adminChartWeight"></canvas><p class="chart-title">Weight over time</p></div>
@@ -5668,7 +5657,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <!-- TAB: Leader Boards -->
     <div class="admin-tab-content" id="tab-leaderboards">
       <div class="admin-subsection-wrap">
-        <h3 class="admin-subsection-title">Leader Boards</h3>
         <p class="form-hint" style="margin-bottom:12px">Choose which leaderboard you want to open.</p>
         <div class="admin-qa-grid">
           <a class="admin-qa-btn" href="#" onclick="switchTab('coinleaderboard');return false"><span class="admin-qa-icon">🪙</span>Coin leaderboard</a>
@@ -5679,7 +5667,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 
     <div class="admin-tab-content" id="tab-coinleaderboard">
       <div class="admin-subsection-wrap">
-        <h3 class="admin-subsection-title">Coin Leaderboard</h3>
         <p class="form-hint" style="margin-bottom:12px">Top users by coin balance and lifetime earned.</p>
         <div class="admin-la-list admin-coin-list" id="adminCoinBoardTab">
           <p class="admin-la-loading">Loading...</p>
@@ -8684,7 +8671,6 @@ async function loadStats() {
   if (document.getElementById('adminMobileRiskList')) {
     try { await bbRefreshMobileAdminRiskList(); } catch (_) {}
   }
-  try { await loadAdminCoinLeaderboard(); } catch (_) {}
 }
 
 function bbAdminCoinName(row) {
@@ -8694,24 +8680,18 @@ function bbAdminCoinName(row) {
   return full || String((row && row.email) || 'Client');
 }
 async function loadAdminCoinLeaderboard() {
-  var desktop = document.getElementById('adminCoinBoardDesktop');
-  var mobile = document.getElementById('adminCoinBoardMobile');
   var tab = document.getElementById('adminCoinBoardTab');
-  if (!desktop && !mobile && !tab) return;
+  if (!tab) return;
   var data = await apiCall('GET', '/api/admin/coins/leaderboard?limit=20');
   if (!data || data.error) {
     var err = '<p class="admin-la-loading">Unable to load coin leaderboard.</p>';
-    if (desktop) desktop.innerHTML = err;
-    if (mobile) mobile.innerHTML = err;
-    if (tab) tab.innerHTML = err;
+    tab.innerHTML = err;
     return;
   }
   var rows = Array.isArray(data.rows) ? data.rows : [];
   if (!rows.length) {
     var empty = '<p class="admin-la-loading">No coin data yet.</p>';
-    if (desktop) desktop.innerHTML = empty;
-    if (mobile) mobile.innerHTML = empty;
-    if (tab) tab.innerHTML = empty;
+    tab.innerHTML = empty;
     return;
   }
   var html = rows.map(function (r, idx) {
@@ -8730,9 +8710,7 @@ async function loadAdminCoinLeaderboard() {
       '</div>'
     );
   }).join('');
-  if (desktop) desktop.innerHTML = html;
-  if (mobile) mobile.innerHTML = html;
-  if (tab) tab.innerHTML = html;
+  tab.innerHTML = html;
 }
 
 window._bbDesktopCharts = window._bbDesktopCharts || {};
@@ -11212,6 +11190,7 @@ async function drawAdminNutritionLuxuryChart(userId) {
   wrap.style.display = 'block';
 }
 window._adminCpSelectedUserId = null;
+window._adminCpSelectedClientName = '';
 async function getProgressReportLink() {
   var userId = window._adminCpSelectedUserId;
   if (!userId) return;
@@ -11244,6 +11223,7 @@ function copyProgressReportLink() {
 async function loadAdminUserProgressDetail(userId, userName) {
   userId = String(userId || '').trim();
   window._adminCpSelectedUserId = userId;
+  window._adminCpSelectedClientName = String(userName || '').trim();
   var detailEl = document.getElementById('adminCpDetail');
   var kpisEl = document.getElementById('adminCpKpis');
   var chartsEl = document.getElementById('adminCpCharts');
@@ -11253,12 +11233,21 @@ async function loadAdminUserProgressDetail(userId, userName) {
   detailEl.innerHTML = '<p class="admin-cp-placeholder">Loading…</p>';
   if (!userId) {
     detailEl.innerHTML = '<div class="admin-cp-error-msg">No client selected. Click a name from the list.</div>';
+    if (shareWrap) shareWrap.style.display = 'none';
     return;
   }
   kpisEl.style.display = 'none';
   chartsEl.style.display = 'none';
-  if (shareWrap) shareWrap.style.display = 'none';
+  if (shareWrap) shareWrap.style.display = 'block';
   if (shareUrlWrap) shareUrlWrap.style.display = 'none';
+  (function hideCpAdminBtnsUntilLoaded() {
+    var sb = document.getElementById('adminCpSuspendBtn');
+    var rb = document.getElementById('adminCpReactivateBtn');
+    var xb = document.getElementById('adminCpRemoveBtn');
+    if (sb) { sb.style.display = 'none'; sb.disabled = true; }
+    if (rb) { rb.style.display = 'none'; rb.disabled = true; }
+    if (xb) { xb.style.display = 'none'; xb.disabled = true; }
+  })();
   destroyAdminProgressCharts();
   document.querySelectorAll('.admin-cp-user-item').forEach(function(el) { el.classList.remove('selected'); if (el.getAttribute('data-user-id') === userId) el.classList.add('selected'); });
   var data;
@@ -11280,7 +11269,6 @@ async function loadAdminUserProgressDetail(userId, userName) {
     return;
   }
   try {
-    if (shareWrap) shareWrap.style.display = 'block';
     var suspendBtn = document.getElementById('adminCpSuspendBtn');
     var reactivateBtn = document.getElementById('adminCpReactivateBtn');
     var removeBtn = document.getElementById('adminCpRemoveBtn');
@@ -11327,7 +11315,8 @@ async function loadAdminUserProgressDetail(userId, userName) {
       chartsEl.insertBefore(warn, chartsEl.firstChild);
     }
     chartsEl.style.display = 'grid';
-    if (kpisEl.scrollIntoView) kpisEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    var cpScroll = document.getElementById('adminCpShareWrap');
+    if (cpScroll && cpScroll.scrollIntoView) cpScroll.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   } catch (err) {
     console.error('Admin progress render error:', err);
     detailEl.innerHTML = '<div class="admin-cp-error-msg">Could not display data. Check console for details.</div>';
@@ -11439,6 +11428,7 @@ async function loadClientProgressUsers() {
   if (sw) sw.style.display = 'none';
   if (suw) suw.style.display = 'none';
   window._adminCpSelectedUserId = null;
+  window._adminCpSelectedClientName = '';
   destroyAdminProgressCharts();
 }
 
@@ -11507,6 +11497,7 @@ async function adminRemoveUser() {
     if (sw) sw.style.display = 'none';
     if (suw) suw.style.display = 'none';
     window._adminCpSelectedUserId = null;
+    window._adminCpSelectedClientName = '';
     loadStats();
     loadTribe();
   } catch (e) {
@@ -16021,60 +16012,107 @@ function getEliteCardFullName() {
   return '';
 }
 
+/** Renders the Elite card image + name onto #eliteCardCanvas; resolves when PNG blob is ready. */
+function renderEliteCardToCanvas(fullName) {
+  return new Promise(function(resolve, reject) {
+    var name = String(fullName || '').trim();
+    if (!name) {
+      reject(new Error('Name required'));
+      return;
+    }
+    var canvas = document.getElementById('eliteCardCanvas');
+    var wrap = document.getElementById('eliteCardWrap');
+    if (!canvas || !wrap) {
+      reject(new Error('Card UI not available'));
+      return;
+    }
+    wrap.style.opacity = '0.5';
+    var img = new Image();
+    img.onload = function() {
+      try {
+        var w = img.naturalWidth;
+        var h = img.naturalHeight;
+        if (!w || !h) { w = 900; h = 540; }
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        var nameX = w * 0.120;
+        var nameY = h * 0.52;
+        var maxW = w * 0.7;
+        var fontSize = Math.round(w * 0.055);
+        if (fontSize < 28) fontSize = 28;
+        ctx.font = "600 " + fontSize + "px 'Outfit', 'Segoe UI', sans-serif";
+        if (ctx.measureText(name).width > maxW) {
+          fontSize = Math.round(fontSize * (maxW / ctx.measureText(name).width));
+          ctx.font = "600 " + fontSize + "px 'Outfit', 'Segoe UI', sans-serif";
+        }
+        ctx.fillStyle = '#0a0a0a';
+        ctx.shadowColor = 'rgba(0,0,0,0.15)';
+        ctx.shadowBlur = 2;
+        ctx.shadowOffsetY = 1;
+        ctx.fillText(name, nameX, nameY);
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+        _eliteCardBlob = null;
+        canvas.toBlob(function(blob) {
+          _eliteCardBlob = blob;
+          wrap.style.opacity = '1';
+          resolve(blob);
+        }, 'image/png', 1);
+      } catch (e) {
+        wrap.style.opacity = '1';
+        reject(e);
+      }
+    };
+    img.onerror = function() {
+      wrap.style.opacity = '1';
+      reject(new Error('Could not load card image'));
+    };
+    img.src = '/img/Elite%20new%20card.jpeg';
+  });
+}
+
 async function openEliteCardModal() {
   var fullName = getEliteCardFullName();
   if (!fullName) {
     showPopup('Name required', 'Please add your first and last name in your profile, then try again.', '', 'OK', null, 'error');
     return;
   }
-  var canvas = document.getElementById('eliteCardCanvas');
-  var wrap = document.getElementById('eliteCardWrap');
-  if (!canvas || !wrap) return;
-  wrap.style.opacity = '0.5';
+  var h2 = document.querySelector('#eliteCardModal .sunday-checkin-title');
+  if (h2) h2.textContent = 'Your Elite Member Card';
   try {
-    var img = new Image();
-    await new Promise(function(resolve, reject) {
-      img.onload = resolve;
-      img.onerror = function() { reject(new Error('Could not load card image')); };
-      img.src = '/img/Elite%20new%20card.jpeg';
-    });
-    var w = img.naturalWidth;
-    var h = img.naturalHeight;
-    if (!w || !h) { w = 900; h = 540; }
-    canvas.width = w;
-    canvas.height = h;
-    var ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    var nameX = w * 0.120;
-    var nameY = h * 0.52;
-    var maxW = w * 0.7;
-    var fontSize = Math.round(w * 0.055);
-    if (fontSize < 28) fontSize = 28;
-    ctx.font = "600 " + fontSize + "px 'Outfit', 'Segoe UI', sans-serif";
-    if (ctx.measureText(fullName).width > maxW) {
-      fontSize = Math.round(fontSize * (maxW / ctx.measureText(fullName).width));
-      ctx.font = "600 " + fontSize + "px 'Outfit', 'Segoe UI', sans-serif";
-    }
-    ctx.fillStyle = '#0a0a0a';
-    ctx.shadowColor = 'rgba(0,0,0,0.15)';
-    ctx.shadowBlur = 2;
-    ctx.shadowOffsetY = 1;
-    ctx.fillText(fullName, nameX, nameY);
-    ctx.shadowColor = 'transparent';
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetY = 0;
-    _eliteCardBlob = null;
-    canvas.toBlob(function(blob) { _eliteCardBlob = blob; }, 'image/png', 1);
+    await renderEliteCardToCanvas(fullName);
     openModal('eliteCardModal');
   } catch (e) {
     showPopup('Error', (e && e.message) || 'Could not generate Elite card.', '', 'OK', null, 'error');
   }
-  wrap.style.opacity = '1';
 }
 
-async function saveEliteCard() {
+async function openAdminEliteCardModal() {
+  if (!window._adminCpSelectedUserId) {
+    showPopup('Client required', 'Select a client from the list first.', '', 'OK', null, 'error');
+    return;
+  }
+  var fullName = (window._adminCpSelectedClientName || '').trim();
+  if (!fullName) {
+    showPopup('Name required', 'This client has no display name on file.', '', 'OK', null, 'error');
+    return;
+  }
+  var h2 = document.querySelector('#eliteCardModal .sunday-checkin-title');
+  if (h2) h2.textContent = 'Client Elite card';
+  try {
+    await renderEliteCardToCanvas(fullName);
+    openModal('eliteCardModal');
+  } catch (e) {
+    showPopup('Error', (e && e.message) || 'Could not generate Elite card.', '', 'OK', null, 'error');
+  }
+}
+
+async function saveEliteCard(downloadFilename) {
   var blob = _eliteCardBlob;
   if (!blob) {
     var canvas = document.getElementById('eliteCardCanvas');
@@ -16083,7 +16121,7 @@ async function saveEliteCard() {
   if (!blob) return;
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'bodybank-elite-card.png';
+  a.download = downloadFilename || 'bodybank-elite-card.png';
   a.click();
   URL.revokeObjectURL(a.href);
 }
