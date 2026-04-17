@@ -16036,7 +16036,7 @@ async function openEliteCardModal() {
     await new Promise(function(resolve, reject) {
       img.onload = resolve;
       img.onerror = function() { reject(new Error('Could not load card image')); };
-      img.src = '/Elite%20card%204.png';
+      img.src = '/img/Elite%20new%20card.jpeg';
     });
     var w = img.naturalWidth;
     var h = img.naturalHeight;
@@ -16047,7 +16047,7 @@ async function openEliteCardModal() {
     ctx.drawImage(img, 0, 0);
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    var nameX = w * 0.065;
+    var nameX = w * 0.120;
     var nameY = h * 0.52;
     var maxW = w * 0.7;
     var fontSize = Math.round(w * 0.055);
