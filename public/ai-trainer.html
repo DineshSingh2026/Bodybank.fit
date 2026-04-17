@@ -1123,8 +1123,67 @@ function showSessionSummary(reps, sets, dur, avgForm, exercise, exKey) {
   setTimeout(() => { const f = $('sumFormFill'); if (f) f.style.width = fp + '%'; }, 250);
   $('sumStatus').textContent = ''; $('sumStatus').className = 'sum-status';
   $('sumSaveBtn').disabled = false;
-  _savedSessionData = { exercise: exKey, reps, sets, duration: dur, timestamp: new Date().toISOString() };
+  _savedSessionData = { exerciseKey: exKey, workoutName: exercise, reps, sets, duration: dur, timestamp: new Date().toISOString() };
   $('summaryModal').classList.remove('hidden');
+}
+
+function getCurrentSession() {
+  try {
+    if (window.currentUser && typeof window.currentUser === 'object') return window.currentUser;
+  } catch (_) {}
+  try {
+    const raw = localStorage.getItem('bodybank_session');
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch (_) {
+    return null;
+  }
+}
+
+async function saveAiTrainerSession(data) {
+  const session = getCurrentSession();
+  const headers = { 'Content-Type': 'application/json' };
+  if (session && session.token) headers.Authorization = 'Bearer ' + session.token;
+
+  const date = new Date().toISOString().slice(0, 10);
+  const workoutType = String(data.workoutName || 'AI Trainer').trim();
+  const reps = Number(data.reps || 0);
+  const sets = Number(data.sets || 0);
+  const durationSeconds = Number(data.duration || 0);
+
+  // Primary path: authenticated modern endpoint.
+  if (session && session.token) {
+    const modernPayload = {
+      date,
+      workout_type: workoutType,
+      duration_seconds: durationSeconds,
+      workout_completed: true,
+      notes: `AI Trainer session — reps: ${reps}, sets: ${sets}`
+    };
+    const modernRes = await fetch('/api/workouts/session', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(modernPayload)
+    });
+    if (modernRes.ok) return modernRes;
+  }
+
+  // Fallback path: legacy endpoint.
+  const userId = session && session.id ? session.id : null;
+  if (!userId) {
+    return { ok: false };
+  }
+  return fetch('/api/workouts', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_id: userId,
+      workout_name: workoutType,
+      duration_seconds: durationSeconds,
+      feedback: `AI Trainer session — reps: ${reps}, sets: ${sets}`
+    })
+  });
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1285,10 +1344,7 @@ if (sumSaveBtn) {
     const st = $('sumStatus');
     st.textContent = 'Saving…'; st.className = 'sum-status';
     try {
-      const res = await fetch('/api/workout/save', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(_savedSessionData)
-      });
+      const res = await saveAiTrainerSession(_savedSessionData);
       if (res.ok) { st.textContent = '✓ Saved to workout log!'; st.className = 'sum-status ok'; }
       else        { st.textContent = 'Save failed — try again.'; st.className = 'sum-status err'; sumSaveBtn.disabled = false; }
     } catch(_) { st.textContent = 'Network error — check connection.'; st.className = 'sum-status err'; sumSaveBtn.disabled = false; }
