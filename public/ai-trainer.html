@@ -729,11 +729,11 @@ const VC = {
       auto:          'AI Trainer is active! I\'m watching your movement patterns and counting every rep. Just start moving and I\'ll guide you through everything. Let\'s train!',
     },
 
-    // Countdown — short words + fast TTS; brief go so session starts quickly
+    // Countdown — digits + fast TTS (most engines read quickly); brief go
     countdown: {
-      3: 'Three',
-      2: 'Two',
-      1: 'One',
+      3: '3',
+      2: '2',
+      1: '1',
       go: 'Go!',
     },
 
@@ -2041,10 +2041,11 @@ function showPrepCountdown(onDone) {
   loadOv.classList.add('hidden');
   prepOv.classList.remove('hidden');
 
-  const cdRate = 1.12;
+  const cdRate = 1.34;
   const cdPitch = VC._humanPitch;
-  const MS_BETWEEN_COUNT = 55;
-  const VIS_STEP_MS = 520;
+  /** Max ms per digit — caps slow TTS engines so countdown stays snappy on every exercise. */
+  const DIGIT_CAP_MS = 280;
+  const VIS_STEP_MS = 300;
 
   /** Same 3-2-1 + Go for every workout; voice optional when muted. */
   async function runCountdownVoice() {
@@ -2054,27 +2055,51 @@ function showPrepCountdown(onDone) {
         prepNum.textContent = String(k);
         await new Promise(r => setTimeout(r, VIS_STEP_MS));
       }
-      await new Promise(r => setTimeout(r, 40));
+      await new Promise(r => setTimeout(r, 28));
       return;
     }
-    const speakCd = (text, rate) => new Promise((resolve) => {
-      VC.speak(text, {
-        cooldown: 0,
-        bypassCooldown: true,
-        noCancel: true,
-        queueDelay: 0,
-        rate,
-        pitch: cdPitch,
-        onEnd: resolve,
+    function speakCd(text, rate) {
+      return new Promise((resolve) => {
+        VC.speak(text, {
+          cooldown: 0,
+          bypassCooldown: true,
+          noCancel: true,
+          queueDelay: 0,
+          rate,
+          pitch: cdPitch,
+          onEnd: resolve,
+        });
       });
-    });
+    }
+    /** Per-digit TTS capped — some engines stretch “Three” and felt slow on certain exercises. */
+    function speakDigitCapped(text, rate) {
+      return new Promise((resolve) => {
+        let done = false;
+        const finish = (fromTimer) => {
+          if (done) return;
+          done = true;
+          clearTimeout(t);
+          if (fromTimer && VC.synth) try { VC.synth.cancel(); } catch (_) {}
+          resolve();
+        };
+        const t = setTimeout(() => finish(true), DIGIT_CAP_MS);
+        VC.speak(text, {
+          cooldown: 0,
+          bypassCooldown: true,
+          noCancel: true,
+          queueDelay: 0,
+          rate,
+          pitch: cdPitch,
+          onEnd: () => finish(false),
+        });
+      });
+    }
     for (let k = 3; k >= 1; k--) {
       prepNum.textContent = String(k);
-      await speakCd(VC.CUES.countdown[k], cdRate);
-      await new Promise(r => setTimeout(r, MS_BETWEEN_COUNT));
+      await speakDigitCapped(VC.CUES.countdown[k], cdRate);
     }
-    await new Promise(r => setTimeout(r, 35));
-    await speakCd(VC.CUES.countdown.go, 1.05);
+    await new Promise(r => setTimeout(r, 16));
+    await speakCd(VC.CUES.countdown.go, 1.12);
   }
 
   void (async () => {
@@ -2083,7 +2108,7 @@ function showPrepCountdown(onDone) {
     } catch (_) {}
     prepOv.classList.add('hidden');
     VC.startKeepAlive();
-    setTimeout(() => VC.speakIntro(exSel.value), 450);
+    setTimeout(() => VC.speakIntro(exSel.value), 280);
     onDone();
   })();
 }
