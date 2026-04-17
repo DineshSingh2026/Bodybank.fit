@@ -124,7 +124,7 @@
     }
     .phase-badge.visible { opacity: 1; }
     .phase-badge.down    { background: rgba(61,230,139,.88); color: #001a0b; }
-    .phase-badge.up      { background: rgba(30,30,45,.88);   color: var(--muted); }
+    .phase-badge.up      { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); color: #fff; }
     .warn-banner {
       position: absolute; bottom: 13px; left: 50%; transform: translateX(-50%); z-index: 4;
       background: rgba(255,79,106,.9); padding: 6px 16px; border-radius: 999px;
@@ -198,8 +198,8 @@
     #wkHud.hidden { display: none !important; }
     .hud-top {
       display: flex; align-items: center; justify-content: space-between;
-      padding: 12px 14px; gap: 8px;
-      background: linear-gradient(180deg, rgba(0,0,0,.6) 0%, transparent 100%);
+      padding: max(12px, env(safe-area-inset-top, 0px)) 14px 12px 14px; gap: 8px;
+      background: linear-gradient(180deg, rgba(0,0,0,.72) 0%, transparent 100%);
       pointer-events: auto;
     }
     .hud-ex-badge {
@@ -214,7 +214,7 @@
     }
     .hud-phase-badge.visible { opacity: 1; }
     .hud-phase-badge.down { background: rgba(61,230,139,.88); color: #001a0b; }
-    .hud-phase-badge.up   { background: rgba(30,30,45,.88); color: var(--muted); }
+    .hud-phase-badge.up   { background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35); color: #fff; }
     .hud-mid {
       display: flex; justify-content: center; padding: 0 20px;
       pointer-events: none;
