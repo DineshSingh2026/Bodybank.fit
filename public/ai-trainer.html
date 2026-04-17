@@ -18,24 +18,58 @@
       --red: #ff4f6a; --green: #3de68b; --amber: #e4bb5a;
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: var(--bg); color: var(--txt); font-family: Inter, Arial, sans-serif; min-height: 100vh; }
+    body { background: var(--bg); color: var(--txt); font-family: Inter, Arial, sans-serif; min-height: 100vh; overflow-x: hidden; }
 
-    /* ── HEADER ── */
+    /* ── HEADER — grid keeps logo & link in separate tracks (no overlap on narrow widths) ── */
     .hdr {
-      position: sticky; top: 0; height: 52px; z-index: 20;
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 16px; background: rgba(9,9,12,.93); border-bottom: 1px solid var(--line);
+      position: sticky; top: 0; z-index: 100;
+      display: grid;
+      grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+      align-items: center;
+      gap: 12px;
+      min-height: 52px;
+      padding: max(8px, env(safe-area-inset-top, 0px)) max(16px, env(safe-area-inset-right, 0px)) 10px max(16px, env(safe-area-inset-left, 0px));
+      background: rgba(9,9,12,.96);
+      border-bottom: 1px solid var(--line);
+      isolation: isolate;
     }
-    .logo { display: inline-flex; align-items: center; }
-    .logo-img { height: 30px; width: auto; filter: drop-shadow(0 0 8px rgba(200,164,78,.18)); }
-    .back-link { color: #9aa3b9; text-decoration: none; font-size: 13px; transition: color .2s; }
-    .back-link:hover { color: var(--gold-strong); }
+    .logo {
+      display: inline-flex;
+      align-items: center;
+      flex-shrink: 0;
+      max-width: min(200px, 46vw);
+    }
+    .logo-img {
+      height: clamp(26px, 5vw, 30px);
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      filter: drop-shadow(0 0 8px rgba(200,164,78,.18));
+      display: block;
+    }
+    .hdr .back-link {
+      justify-self: end;
+      color: #9aa3b9;
+      text-decoration: none;
+      font-size: clamp(11px, 3.2vw, 13px);
+      transition: color .2s;
+      min-width: 0;
+      text-align: right;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      padding: 6px 0 6px 8px;
+    }
+    .hdr .back-link:hover { color: var(--gold-strong); }
 
     /* ── LAYOUT ── */
     .wrap {
       max-width: 1460px; margin: 0 auto; padding: 14px;
       display: grid; grid-template-columns: 280px 1fr 280px; gap: 12px;
+      min-width: 0;
     }
+    .left, .right, .stage-wrap { min-width: 0; }
     @media(max-width:1200px) { .wrap { grid-template-columns: 280px 1fr; } .right { display: none; } }
     @media(max-width:760px)  { .wrap { grid-template-columns: 1fr; } .left { order: 2; } .stage-wrap { order: 1; } }
 
@@ -45,7 +79,13 @@
 
     /* ── CONTROLS ── */
     select, .btn, .set-btn { width: 100%; border-radius: 10px; font-size: 14px; }
-    select { background: var(--card); color: var(--txt); border: 1px solid #2c3347; padding: 10px; cursor: pointer; }
+    select {
+      background: var(--card); color: var(--txt); border: 1px solid #2c3347;
+      padding: 10px 12px; cursor: pointer;
+      line-height: 1.35; min-height: 44px;
+      max-width: 100%;
+    }
+    #exSel { font-size: 14px; }
     .btn { border: none; padding: 11px; font-weight: 700; cursor: pointer; transition: filter .15s, transform .12s; }
     .btn-start { background: linear-gradient(180deg, var(--gold-strong), var(--gold)); color: #111; }
     .btn-start:not(:disabled):hover { filter: brightness(1.09); }
@@ -60,10 +100,10 @@
     .set-btn:not(:disabled):hover { border-color: var(--gold); color: var(--gold); }
     .set-btn:disabled { opacity: .35; cursor: not-allowed; }
 
-    /* ── STATS ── */
+    /* ── STATS — scoped so large figures never collide with global/header typography ── */
     .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px; text-align: center; }
-    .num { font-size: 26px; color: var(--gold-strong); font-weight: 800; line-height: 1; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 10px; text-align: center; min-width: 0; }
+    .stat .stat-num { font-size: 26px; color: var(--gold-strong); font-weight: 800; line-height: 1.1; word-break: break-all; }
     .lbl { font-size: 11px; color: #5f6880; text-transform: uppercase; letter-spacing: .1em; margin-top: 3px; }
 
     /* ── FEEDBACK ── */
@@ -94,7 +134,8 @@
     .score-chip.hidden { display: none !important; }
 
     /* ── CAMERA STAGE ── */
-    .stage-wrap { position: sticky; top: 68px; }
+    /* Sticky offset ≈ header block (padding + bar + safe area) */
+    .stage-wrap { position: sticky; top: calc(70px + env(safe-area-inset-top, 0px)); }
     .stage {
       position: relative; aspect-ratio: 4/3;
       background: var(--panel); border: 1px solid var(--line);
@@ -419,10 +460,10 @@
     <div class="card">
       <p class="title">Session Stats</p>
       <div class="stats">
-        <div class="stat"><div id="repCount" class="num">0</div><div class="lbl">Reps</div></div>
-        <div class="stat"><div id="setCount" class="num">0</div><div class="lbl">Sets</div></div>
-        <div class="stat"><div id="timerEl"  class="num">0:00</div><div class="lbl">Time</div></div>
-        <div class="stat"><div id="fpsEl"    class="num">--</div><div class="lbl">FPS</div></div>
+        <div class="stat"><div id="repCount" class="stat-num">0</div><div class="lbl">Reps</div></div>
+        <div class="stat"><div id="setCount" class="stat-num">0</div><div class="lbl">Sets</div></div>
+        <div class="stat"><div id="timerEl"  class="stat-num">0:00</div><div class="lbl">Time</div></div>
+        <div class="stat"><div id="fpsEl"    class="stat-num">--</div><div class="lbl">FPS</div></div>
       </div>
     </div>
     <div class="card">
