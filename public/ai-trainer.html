@@ -442,6 +442,7 @@
                style="flex:1;accent-color:var(--gold);cursor:pointer" />
       </div>
       <div id="vcStatus" style="font-size:11px;color:#5f6880;margin-top:8px;text-align:center">Ready</div>
+      <button onclick="VC.test()" style="margin-top:8px;width:100%;padding:8px;border-radius:8px;background:transparent;border:1px dashed #2c3347;color:var(--muted);font-size:12px;font-weight:600;cursor:pointer" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='#2c3347';this.style.color='var(--muted)'">🔊 Test Voice</button>
     </div>
   </aside>
 
@@ -680,14 +681,17 @@ const VC = {
 
   // Pick and initialise the best available male voice
   init() {
-    if (!this.synth) return;
+    if (!this.synth) {
+      const el = $('vcStatus'); if (el) el.textContent = 'Not supported in this browser';
+      return;
+    }
     const load = () => {
       const voices = this.synth.getVoices();
       if (!voices.length) return;
-      // Priority: explicit male English voices, then any English, then default
+      // Priority order: labelled male+English → known male name → any English → first available
       const prefer = [
         v => /male/i.test(v.name) && /en[-_]/i.test(v.lang),
-        v => /david|mark|alex|google uk english male|microsoft david|microsoft mark|daniel/i.test(v.name),
+        v => /david|mark|alex|google uk english male|microsoft david|microsoft mark|daniel|james|fred/i.test(v.name),
         v => /en[-_]/i.test(v.lang),
       ];
       for (const fn of prefer) {
@@ -696,13 +700,17 @@ const VC = {
       }
       if (!this.voice) this.voice = voices[0] || null;
       const el = $('vcStatus');
-      if (el && this.voice) el.textContent = this.voice.name.slice(0, 26);
+      if (el) el.textContent = this.voice ? '✓ ' + this.voice.name.slice(0, 22) : 'No voice found';
     };
     load();
     this.synth.onvoiceschanged = load;
+    // Retry after 500ms in case onvoiceschanged fires before we attach the handler
+    setTimeout(load, 500);
   },
 
-  // Core speak function — respects toggle, cooldown, volume
+  // ── Core speak ──────────────────────────────────────────────
+  // Fix: Chrome silently drops speak() called immediately after cancel().
+  // Solution: always cancel first, then use a short setTimeout before speak().
   speak(text, opts = {}) {
     if (!this.enabled || !this.synth || !text) return;
     const now = Date.now();
@@ -710,13 +718,48 @@ const VC = {
     if (now - this.lastSpoken < cd) return;
     this.lastSpoken = now;
     this.synth.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.voice  = this.voice;
-    u.volume = this.volume;
-    u.rate   = opts.rate || 1.05;   // slightly faster → energetic
-    u.pitch  = opts.pitch || 0.88;  // slightly lower → male feel
-    u.lang   = 'en-US';
-    this.synth.speak(u);
+    // setTimeout gap is the Chrome-required breathing room after cancel()
+    setTimeout(() => {
+      if (!this.synth) return;
+      const u = new SpeechSynthesisUtterance(text);
+      if (this.voice) u.voice = this.voice;   // only set if resolved; else browser uses default
+      u.volume = this.volume;
+      u.rate   = opts.rate  !== undefined ? opts.rate  : 1.05;
+      u.pitch  = opts.pitch !== undefined ? opts.pitch : 0.88;
+      u.lang   = 'en-US';
+      this.synth.speak(u);
+    }, 60);
+  },
+
+  // ── Chrome keepalive ─────────────────────────────────────────
+  // Chrome pauses speechSynthesis when tab is throttled. Calling resume()
+  // every 10 s while a workout is active prevents the silent freeze.
+  _keepAliveId: null,
+  startKeepAlive() {
+    this.stopKeepAlive();
+    this._keepAliveId = setInterval(() => {
+      if (this.synth && this.synth.speaking) this.synth.resume();
+    }, 10000);
+  },
+  stopKeepAlive() {
+    if (this._keepAliveId) { clearInterval(this._keepAliveId); this._keepAliveId = null; }
+  },
+
+  // ── Test function ─────────────────────────────────────────────
+  test() {
+    const el = $('vcStatus');
+    const prev = el ? el.textContent : '';
+    if (!this.synth) { if (el) el.textContent = 'Not supported'; return; }
+    if (el) el.textContent = 'Speaking…';
+    // Force enabled for the test regardless of toggle
+    const saved = this.lastSpoken; this.lastSpoken = 0;
+    const wasEnabled = $('vcToggle') ? $('vcToggle').checked : true;
+    if ($('vcToggle')) $('vcToggle').checked = true;
+    this.speak("Coach is ready. Let's get to work!", { cooldown: 0, rate: 1.05, pitch: 0.88 });
+    setTimeout(() => {
+      if ($('vcToggle') && !wasEnabled) $('vcToggle').checked = false;
+      if (el) el.textContent = this.voice ? '✓ ' + this.voice.name.slice(0, 22) : 'No voice found';
+    }, 3000);
   },
 
   // Called every frame from the pose results handler
@@ -1582,6 +1625,7 @@ function showPrepCountdown(exerciseText, tip, onDone) {
       clearInterval(iv);
       prepOv.classList.add('hidden');
       VC.speak(VC.CUES.countdown.go, { cooldown: 0 });
+      VC.startKeepAlive();
       onDone();
     } else {
       prepNum.textContent = n;
@@ -1788,6 +1832,7 @@ async function stopWorkout() {
   const hudSetBtn = $('hudSetBtn'); if (hudSetBtn) hudSetBtn.disabled = true;
   phaseBadge.classList.remove('visible', 'down', 'up');
 
+  VC.stopKeepAlive();
   VC.reset();
   VC.speak(VC.CUES.sessionDone, { cooldown: 0 });
   // Show luxury summary (save happens via Save button)
