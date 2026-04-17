@@ -2041,11 +2041,13 @@ function showPrepCountdown(onDone) {
   loadOv.classList.add('hidden');
   prepOv.classList.remove('hidden');
 
-  const cdRate = 1.34;
+  const cdRate = 1.15;
   const cdPitch = VC._humanPitch;
-  /** Max ms per digit — caps slow TTS engines so countdown stays snappy on every exercise. */
-  const DIGIT_CAP_MS = 280;
-  const VIS_STEP_MS = 300;
+  /** Max ms per digit — high enough that short “3/2/1” usually finishes naturally; still caps runaway TTS. */
+  const DIGIT_CAP_MS = 480;
+  /** Breath between digits (voice + muted) — same pacing for all workouts. */
+  const GAP_AFTER_DIGIT_MS = 72;
+  const VIS_STEP_MS = 420;
 
   /** Same 3-2-1 + Go for every workout; voice optional when muted. */
   async function runCountdownVoice() {
@@ -2054,8 +2056,9 @@ function showPrepCountdown(onDone) {
       for (let k = 3; k >= 1; k--) {
         prepNum.textContent = String(k);
         await new Promise(r => setTimeout(r, VIS_STEP_MS));
+        await new Promise(r => setTimeout(r, GAP_AFTER_DIGIT_MS));
       }
-      await new Promise(r => setTimeout(r, 28));
+      await new Promise(r => setTimeout(r, 48));
       return;
     }
     function speakCd(text, rate) {
@@ -2097,9 +2100,10 @@ function showPrepCountdown(onDone) {
     for (let k = 3; k >= 1; k--) {
       prepNum.textContent = String(k);
       await speakDigitCapped(VC.CUES.countdown[k], cdRate);
+      await new Promise(r => setTimeout(r, GAP_AFTER_DIGIT_MS));
     }
-    await new Promise(r => setTimeout(r, 16));
-    await speakCd(VC.CUES.countdown.go, 1.12);
+    await new Promise(r => setTimeout(r, 52));
+    await speakCd(VC.CUES.countdown.go, 1.02);
   }
 
   void (async () => {
@@ -2108,7 +2112,7 @@ function showPrepCountdown(onDone) {
     } catch (_) {}
     prepOv.classList.add('hidden');
     VC.startKeepAlive();
-    setTimeout(() => VC.speakIntro(exSel.value), 280);
+    setTimeout(() => VC.speakIntro(exSel.value), 380);
     onDone();
   })();
 }
