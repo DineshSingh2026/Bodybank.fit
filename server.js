@@ -1464,6 +1464,7 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
     await run(`INSERT INTO audit_requests (id,first_name,last_name,age,sex,email,phone,country,city,occupation,work_intensity,fitness_experience,goals,motivation) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.first_name, b.last_name||'', b.age||null, b.sex||'', b.email, b.phone||'', b.country||'', b.city||'', b.occupation||'', b.work_intensity||'', b.fitness_experience||'', b.goals||'', b.motivation||'']);
     sendPushToAdmins(JSON.stringify({ title: 'New audit form', body: `${b.first_name || ''} ${b.last_name || ''} submitted a Body Audit`, id: 'audit-' + id })).catch(() => {});
+    console.log('[audit] firing AUDIT_FORM notify for:', b.email);
     notifyAsync('AUDIT_FORM', {
       name: `${b.first_name || ''} ${b.last_name || ''}`.trim() || '—',
       email: b.email || '—',
@@ -1486,6 +1487,17 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
 app.get('/api/audit', async (req, res) => {
   const rows = await queryAll("SELECT * FROM audit_requests ORDER BY created_at DESC");
   res.json(rows);
+});
+
+// ── WhatsApp test (admin only) ── send a test message to verify Twilio config
+app.get('/api/admin/test-whatsapp', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  const { sendWhatsApp, isConfigured } = require('./services/whatsapp');
+  if (!isConfigured()) {
+    const missing = ['TWILIO_SID', 'TWILIO_AUTH', 'ADMIN_WHATSAPP'].filter(k => !process.env[k]);
+    return res.status(400).json({ ok: false, reason: 'not_configured', missing });
+  }
+  const result = await sendWhatsApp(`🧪 BodyBank WhatsApp Test\nSent at: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}\nIf you received this, Twilio is working correctly.`);
+  res.json(result);
 });
 
 app.get('/api/audit/:id', async (req, res) => {

@@ -37,10 +37,9 @@ async function sendWhatsApp(message, opts = {}) {
   if (!body) return { ok: false, reason: 'empty_message' };
 
   if (!isConfigured()) {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('[whatsapp] SKIPPED (env not configured). Message:', body.slice(0, 120));
-    }
-    return { ok: false, reason: 'not_configured' };
+    const missing = ['TWILIO_SID', 'TWILIO_AUTH', 'ADMIN_WHATSAPP'].filter(k => !process.env[k]);
+    console.warn('[whatsapp] SKIPPED — missing env vars:', missing.join(', '));
+    return { ok: false, reason: 'not_configured', missing };
   }
 
   try {
@@ -57,9 +56,10 @@ async function sendWhatsApp(message, opts = {}) {
       body,
       ...(mediaUrl.length ? { mediaUrl } : {})
     });
+    console.log('[whatsapp] sent OK → sid:', result.sid, '| to:', toWaAddr(ADMIN_WHATSAPP));
     return { ok: true, sid: result.sid };
   } catch (err) {
-    console.error('[whatsapp] send error:', err.message, { code: err.code, status: err.status });
+    console.error('[whatsapp] SEND FAILED →', err.message, { code: err.code, status: err.status, to: toWaAddr(ADMIN_WHATSAPP) });
     return { ok: false, reason: 'send_failed', error: err.message };
   }
 }

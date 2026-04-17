@@ -82,21 +82,24 @@ function buildMessage(eventType, lines, priority) {
 async function notify(eventType, payload = {}, opts = {}) {
   try {
     const formatter = FORMATTERS[eventType];
-    if (!formatter) return;
+    if (!formatter) { console.warn('[notify] no formatter for event:', eventType); return; }
     const meta = EVENT_META[eventType] || { priority: PRIORITY.INFO, dedup: 5 * 60 * 1000 };
     const ttl = opts.noDedup ? 0 : meta.dedup;
     const fp = `${eventType}::${s(payload.email || payload.userId || payload.username || payload.action || '')}`;
-    if (isDup(fp, ttl)) return;
+    if (isDup(fp, ttl)) { console.log('[notify] dedup skip:', fp); return; }
     mark(fp);
     const media = payload && payload.mediaUrl ? payload.mediaUrl : null;
-    await sendWhatsApp(buildMessage(eventType, formatter(payload), meta.priority), { mediaUrl: media });
+    const result = await sendWhatsApp(buildMessage(eventType, formatter(payload), meta.priority), { mediaUrl: media });
+    if (!result.ok) {
+      console.warn(`[notify] ${eventType} WhatsApp NOT sent — reason: ${result.reason}`, result.error || result.missing || '');
+    }
   } catch (err) {
-    console.error('[notify] unexpected error:', err.message);
+    console.error('[notify] unexpected error for', eventType, ':', err.message);
   }
 }
 
 function notifyAsync(eventType, payload, opts) {
-  notify(eventType, payload, opts).catch(() => {});
+  notify(eventType, payload, opts).catch(err => console.error('[notifyAsync] uncaught:', eventType, err.message));
 }
 
 module.exports = { notify, notifyAsync, FORMATTERS, EVENT_META, PRIORITY };
