@@ -6,18 +6,28 @@
 const TWILIO_SID        = process.env.TWILIO_SID        || '';
 const TWILIO_AUTH       = process.env.TWILIO_AUTH       || '';
 const ADMIN_WHATSAPP    = process.env.ADMIN_WHATSAPP    || ''; // e.g. +91XXXXXXXXXX or whatsapp:+91XXXXXXXXXX
+const ADMIN_WHATSAPP_LIST = process.env.ADMIN_WHATSAPP_LIST || ''; // comma-separated list
 const WHATSAPP_FROM     = process.env.TWILIO_WHATSAPP_FROM || 'whatsapp:+14155238886';
 const GENERIC_TEMPLATE_SID = process.env.TWILIO_WHATSAPP_TEMPLATE_SID || '';
 
 let _client = null;
 
 function isConfigured() {
-  return Boolean(TWILIO_SID && TWILIO_AUTH && ADMIN_WHATSAPP);
+  return Boolean(TWILIO_SID && TWILIO_AUTH && getAdminRecipients().length);
 }
 
 function toWaAddr(raw) {
   const v = String(raw || '').trim();
   return v.startsWith('whatsapp:') ? v : `whatsapp:${v}`;
+}
+
+function getAdminRecipients() {
+  const rawList = String(ADMIN_WHATSAPP_LIST || '').trim();
+  const list = rawList
+    ? rawList.split(',').map((v) => String(v || '').trim()).filter(Boolean)
+    : [];
+  if (list.length) return [...new Set(list)];
+  return ADMIN_WHATSAPP ? [String(ADMIN_WHATSAPP).trim()] : [];
 }
 
 function getClient() {
@@ -54,7 +64,9 @@ async function sendWhatsApp(message, opts = {}) {
   if (!body) return { ok: false, reason: 'empty_message' };
 
   if (!isConfigured()) {
-    const missing = ['TWILIO_SID', 'TWILIO_AUTH', 'ADMIN_WHATSAPP'].filter(k => !process.env[k]);
+    const hasRecipients = getAdminRecipients().length > 0;
+    const missing = ['TWILIO_SID', 'TWILIO_AUTH'].filter(k => !process.env[k]);
+    if (!hasRecipients) missing.push('ADMIN_WHATSAPP or ADMIN_WHATSAPP_LIST');
     console.warn('[whatsapp] SKIPPED — missing env vars:', missing.join(', '));
     return { ok: false, reason: 'not_configured', missing };
   }
@@ -67,16 +79,39 @@ async function sendWhatsApp(message, opts = {}) {
       .filter(Boolean)
       .slice(0, 10);
 
-    const result = await getClient().messages.create({
-      from : WHATSAPP_FROM,
-      to   : toWaAddr(ADMIN_WHATSAPP),
-      body,
-      ...(mediaUrl.length ? { mediaUrl } : {})
+    const recipients = opts.to
+      ? [String(opts.to).trim()].filter(Boolean)
+      : getAdminRecipients();
+    const results = await Promise.allSettled(
+      recipients.map((to) => getClient().messages.create({
+        from : WHATSAPP_FROM,
+        to   : toWaAddr(to),
+        body,
+        ...(mediaUrl.length ? { mediaUrl } : {})
+      }))
+    );
+    const success = results
+      .map((r, i) => ({ r, to: recipients[i] }))
+      .filter(({ r }) => r.status === 'fulfilled');
+    const failed = results
+      .map((r, i) => ({ r, to: recipients[i] }))
+      .filter(({ r }) => r.status === 'rejected');
+
+    success.forEach(({ r, to }) => {
+      console.log('[whatsapp] sent OK → sid:', r.value.sid, '| to:', toWaAddr(to));
     });
-    console.log('[whatsapp] sent OK → sid:', result.sid, '| to:', toWaAddr(ADMIN_WHATSAPP));
-    return { ok: true, sid: result.sid };
+    failed.forEach(({ r, to }) => {
+      const err = r.reason || {};
+      console.error('[whatsapp] SEND FAILED →', err.message, { code: err.code, status: err.status, to: toWaAddr(to) });
+    });
+
+    if (!success.length) {
+      const err = failed[0] && failed[0].r && failed[0].r.reason ? failed[0].r.reason : {};
+      return { ok: false, reason: 'send_failed', error: err.message, code: err.code, status: err.status };
+    }
+    return { ok: true, sid: success[0].r.value.sid };
   } catch (err) {
-    console.error('[whatsapp] SEND FAILED →', err.message, { code: err.code, status: err.status, to: toWaAddr(ADMIN_WHATSAPP) });
+    console.error('[whatsapp] SEND FAILED →', err.message, { code: err.code, status: err.status });
     return { ok: false, reason: 'send_failed', error: err.message, code: err.code, status: err.status };
   }
 }
@@ -86,22 +121,47 @@ async function sendWhatsAppTemplate(templateSid, variables = {}, opts = {}) {
   if (!sid) return { ok: false, reason: 'missing_template_sid' };
 
   if (!isConfigured()) {
-    const missing = ['TWILIO_SID', 'TWILIO_AUTH', 'ADMIN_WHATSAPP'].filter(k => !process.env[k]);
+    const hasRecipients = getAdminRecipients().length > 0;
+    const missing = ['TWILIO_SID', 'TWILIO_AUTH'].filter(k => !process.env[k]);
+    if (!hasRecipients) missing.push('ADMIN_WHATSAPP or ADMIN_WHATSAPP_LIST');
     console.warn('[whatsapp] TEMPLATE SKIPPED — missing env vars:', missing.join(', '));
     return { ok: false, reason: 'not_configured', missing };
   }
 
   try {
-    const result = await getClient().messages.create({
-      from: WHATSAPP_FROM,
-      to: toWaAddr(opts.to || ADMIN_WHATSAPP),
-      contentSid: sid,
-      contentVariables: JSON.stringify(cleanTemplateVars(variables))
+    const recipients = opts.to
+      ? [String(opts.to).trim()].filter(Boolean)
+      : getAdminRecipients();
+    const results = await Promise.allSettled(
+      recipients.map((to) => getClient().messages.create({
+        from: WHATSAPP_FROM,
+        to: toWaAddr(to),
+        contentSid: sid,
+        contentVariables: JSON.stringify(cleanTemplateVars(variables))
+      }))
+    );
+    const success = results
+      .map((r, i) => ({ r, to: recipients[i] }))
+      .filter(({ r }) => r.status === 'fulfilled');
+    const failed = results
+      .map((r, i) => ({ r, to: recipients[i] }))
+      .filter(({ r }) => r.status === 'rejected');
+
+    success.forEach(({ r, to }) => {
+      console.log('[whatsapp] template sent OK → sid:', r.value.sid, '| template:', sid, '| to:', toWaAddr(to));
     });
-    console.log('[whatsapp] template sent OK → sid:', result.sid, '| template:', sid, '| to:', toWaAddr(opts.to || ADMIN_WHATSAPP));
-    return { ok: true, sid: result.sid };
+    failed.forEach(({ r, to }) => {
+      const err = r.reason || {};
+      console.error('[whatsapp] TEMPLATE SEND FAILED →', err.message, { code: err.code, status: err.status, templateSid: sid, to: toWaAddr(to) });
+    });
+
+    if (!success.length) {
+      const err = failed[0] && failed[0].r && failed[0].r.reason ? failed[0].r.reason : {};
+      return { ok: false, reason: 'template_send_failed', error: err.message, code: err.code, status: err.status };
+    }
+    return { ok: true, sid: success[0].r.value.sid };
   } catch (err) {
-    console.error('[whatsapp] TEMPLATE SEND FAILED →', err.message, { code: err.code, status: err.status, templateSid: sid, to: toWaAddr(opts.to || ADMIN_WHATSAPP) });
+    console.error('[whatsapp] TEMPLATE SEND FAILED →', err.message, { code: err.code, status: err.status, templateSid: sid });
     return { ok: false, reason: 'template_send_failed', error: err.message, code: err.code, status: err.status };
   }
 }
