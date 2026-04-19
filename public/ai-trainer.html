@@ -1267,11 +1267,11 @@ function evaluateJoints(lm, exKey, phase) {
   if (exKey === 'lunge') {
     if (vis(lm,LM.LH) && vis(lm,LM.LK) && vis(lm,LM.LA)) {
       const k = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]);
-      s.L_knee = k > 155 ? 'neut' : k < 95 ? 'good' : k < 130 ? 'warn' : 'bad';
+      s.L_knee = k > 155 ? 'warn' : k < 95 ? 'good' : k < 130 ? 'warn' : 'bad';
     }
     if (vis(lm,LM.RH) && vis(lm,LM.RK) && vis(lm,LM.RA)) {
       const k = angle(lm[LM.RH], lm[LM.RK], lm[LM.RA]);
-      s.R_knee = k > 155 ? 'neut' : k < 95 ? 'good' : k < 130 ? 'warn' : 'bad';
+      s.R_knee = k > 155 ? 'warn' : k < 95 ? 'good' : k < 130 ? 'warn' : 'bad';
     }
     if (vis(lm,LM.LS) && vis(lm,LM.LH)) {
       const lean = Math.abs(lm[LM.LS].x - lm[LM.LH].x);
@@ -1291,33 +1291,64 @@ function evaluateJoints(lm, exKey, phase) {
     if (vis(lm,LM.LH) && vis(lm,LM.LA)) {
       const lift = lm[LM.LA].y - lm[LM.LH].y;
       if (phase === 'down') s.hip = lift > 0.33 ? 'good' : lift > 0.29 ? 'warn' : 'bad';
-      else s.hip = lift > 0.31 ? 'warn' : 'neut';
+      else s.hip = lift > 0.31 ? 'warn' : 'warn';
     }
   }
 
-  if (exKey === 'lateralraise' || exKey === 'frontraise') {
+  if (exKey === 'lateralraise') {
     if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
       const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
-      s.L_elbow = e > 155 ? 'good' : e > 130 ? 'warn' : 'bad';
+      if (phase === 'up') {
+        s.L_elbow = (e >= 142 && e <= 178) ? 'good' : (e < 105 ? 'bad' : 'warn');
+      } else {
+        s.L_elbow = 'warn';
+      }
     }
     if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
       const e = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
-      s.R_elbow = e > 155 ? 'good' : e > 130 ? 'warn' : 'bad';
+      if (phase === 'up') {
+        s.R_elbow = (e >= 142 && e <= 178) ? 'good' : (e < 105 ? 'bad' : 'warn');
+      } else {
+        s.R_elbow = 'warn';
+      }
     }
     if (vis(lm,LM.LS) && vis(lm,LM.RS)) {
       const sh = Math.abs(lm[LM.LS].y - lm[LM.RS].y);
-      s.torso = sh < 0.05 ? 'good' : sh < 0.10 ? 'warn' : 'bad';
+      s.torso = sh < 0.045 ? 'good' : sh < 0.09 ? 'warn' : 'bad';
+    }
+  }
+
+  if (exKey === 'frontraise') {
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      if (phase === 'up') {
+        s.L_elbow = (e >= 145 && e <= 178) ? 'good' : (e < 108 ? 'bad' : 'warn');
+      } else {
+        s.L_elbow = 'warn';
+      }
+    }
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      if (phase === 'up') {
+        s.R_elbow = (e >= 145 && e <= 178) ? 'good' : (e < 108 ? 'bad' : 'warn');
+      } else {
+        s.R_elbow = 'warn';
+      }
+    }
+    if (vis(lm,LM.LS) && vis(lm,LM.RS)) {
+      const sh = Math.abs(lm[LM.LS].y - lm[LM.RS].y);
+      s.torso = sh < 0.045 ? 'good' : sh < 0.09 ? 'warn' : 'bad';
     }
   }
 
   if (exKey === 'tricepsdip') {
     if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
       const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
-      s.L_elbow = e > 155 ? 'neut' : e < 95 ? 'good' : e < 125 ? 'warn' : 'bad';
+      s.L_elbow = e > 158 ? 'warn' : e < 92 ? 'good' : e < 128 ? 'warn' : 'bad';
     }
     if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
       const e = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
-      s.R_elbow = e > 155 ? 'neut' : e < 95 ? 'good' : e < 125 ? 'warn' : 'bad';
+      s.R_elbow = e > 158 ? 'warn' : e < 92 ? 'good' : e < 128 ? 'warn' : 'bad';
     }
     if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA)) {
       const ba = angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]);
@@ -2136,9 +2167,9 @@ class Detector {
     const kB = Math.max(lk, rk);
     const asym = Math.abs(lk - rk);
     let repAdded = false;
-    const DOWN_ENTER = 102, DOWN_HOLD = 96, UP_EXIT = 148, UP_STAND = 138;
+    const DOWN_ENTER = 100, DOWN_HOLD = 94, UP_EXIT = 150, UP_STAND = 136;
     const t = performance.now();
-    const lungeShape = asym > 7 || (kF < 115 && kB > kF + 10);
+    const lungeShape = asym > 8 || (kF < 112 && kB > kF + 11);
 
     if (this.phase === 'up') {
       if (kF < DOWN_ENTER && lungeShape) this._lgDn++; else this._lgDn = 0;
@@ -2163,7 +2194,7 @@ class Detector {
         this._lgSt = 0;
       }
     }
-    const deep = kF < 92;
+    const deep = kF < 90;
     const score = this.phase === 'down'
       ? Math.max(25, Math.min(100, 100 - Math.abs(88 - kF) * 1.35 - (lungeShape ? 0 : 22)))
       : 62;
@@ -2190,8 +2221,8 @@ class Detector {
     else this._cfEma = this._cfEma * 0.9 + m * 0.1;
     let repAdded = false;
     const t = performance.now();
-    const toeLift = m > this._cfEma + 0.019;
-    const heelDown = this._cfPeak > 0 && m < this._cfPeak - 0.013;
+    const toeLift = m > this._cfEma + 0.017;
+    const heelDown = this._cfPeak > 0 && m < this._cfPeak - 0.014;
 
     if (this.phase === 'up') {
       if (toeLift) {
@@ -2224,9 +2255,9 @@ class Detector {
     const score = onToes ? Math.round(Math.max(30, Math.min(100, 60 + (m - this._cfEma) * 900))) : 58;
     const text = this.phase === 'up'
       ? 'Rise onto the balls of your feet — squeeze at the top.'
-      : onToes && m > this._cfEma + 0.024 ? '✓ Nice height — lower heels slowly.'
+      : onToes && m > this._cfEma + 0.022 ? '✓ Nice height — lower heels slowly.'
       : 'Lower with control — full range.';
-    return { text, kind: onToes && m > this._cfEma + 0.022 ? 'good' : 'warn', score, repAdded, ex:'Calf Raise' };
+    return { text, kind: onToes && m > this._cfEma + 0.020 ? 'good' : 'warn', score, repAdded, ex:'Calf Raise' };
   }
 
   _latArmsDown(lm) {
@@ -2235,16 +2266,16 @@ class Detector {
     const rSpread = Math.abs(lm[LM.RW].x - lm[LM.RS].x);
     const lLow = lm[LM.LW].y > lm[LM.LS].y - 0.04;
     const rLow = lm[LM.RW].y > lm[LM.RS].y - 0.04;
-    return lSpread < 0.15 && rSpread < 0.15 && lLow && rLow;
+    return lSpread < 0.14 && rSpread < 0.14 && lLow && rLow;
   }
 
   _latArmsUp(lm) {
     if (!(vis(lm,LM.LW) && vis(lm,LM.RW) && vis(lm,LM.LS) && vis(lm,LM.RS))) return false;
     const lSpread = Math.abs(lm[LM.LW].x - lm[LM.LS].x);
     const rSpread = Math.abs(lm[LM.RW].x - lm[LM.RS].x);
-    const lH = Math.abs(lm[LM.LW].y - lm[LM.LS].y) < 0.11;
-    const rH = Math.abs(lm[LM.RW].y - lm[LM.RS].y) < 0.11;
-    return lSpread > 0.175 && rSpread > 0.175 && lH && rH;
+    const lH = Math.abs(lm[LM.LW].y - lm[LM.LS].y) < 0.10;
+    const rH = Math.abs(lm[LM.RW].y - lm[LM.RS].y) < 0.10;
+    return lSpread > 0.18 && rSpread > 0.18 && lH && rH;
   }
 
   _lateralraise(lm) {
@@ -2287,8 +2318,8 @@ class Detector {
     const score = Math.round(this.phase === 'up' ? sym * 0.55 + Math.min(100, ext * 0.45) : sym * 0.7 + 25);
     const text = this.phase === 'down'
       ? 'Raise arms out to the sides — wrists near shoulder height.'
-      : (ext > 152 ? '✓ Strong top — lower slowly with control.' : '↑ Reach a bit higher — soft elbows, full wings.');
-    return { text, kind: this.phase === 'up' && ext > 150 ? 'good' : 'warn', score, repAdded, ex:'Lateral Raise' };
+      : (ext > 153 ? '✓ Strong top — lower slowly with control.' : '↑ Reach a bit higher — soft elbows, full wings.');
+    return { text, kind: this.phase === 'up' && ext > 151 ? 'good' : 'warn', score, repAdded, ex:'Lateral Raise' };
   }
 
   _tricepsdip(lm) {
@@ -2298,7 +2329,7 @@ class Detector {
     const re = (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) ? angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]) : le;
     const e = (le + re) / 2;
     let repAdded = false;
-    const DOWN_TH = 102, STAND_TH = 152;
+    const DOWN_TH = 99, STAND_TH = 154;
     const t = performance.now();
     if (this.phase === 'up') {
       if (e < DOWN_TH) this._tdDn++; else this._tdDn = 0;
@@ -2326,8 +2357,8 @@ class Detector {
     let align = 78;
     if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA))
       align = Math.max(25, 100 - Math.abs(angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]) - 176) * 3.2);
-    const deep = e < 96;
-    const depth = this.phase === 'down' ? Math.max(22, 100 - Math.abs(92 - e) * 1.35) : 58;
+    const deep = e < 94;
+    const depth = this.phase === 'down' ? Math.max(22, 100 - Math.abs(90 - e) * 1.35) : 58;
     const score = Math.round(depth * 0.62 + align * 0.38);
     const text = this.phase === 'up' ? 'Lower by bending elbows — keep them tracking back.'
                : deep ? '✓ Solid depth — press away to full extension.'
@@ -2344,10 +2375,10 @@ class Detector {
 
   _frArmsUp(lm) {
     if (!(vis(lm,LM.LW) && vis(lm,LM.RW) && vis(lm,LM.LS) && vis(lm,LM.RS))) return false;
-    const lUp = lm[LM.LW].y < lm[LM.LS].y - 0.055;
-    const rUp = lm[LM.RW].y < lm[LM.RS].y - 0.055;
-    const lNarrow = Math.abs(lm[LM.LW].x - lm[LM.LS].x) < 0.14;
-    const rNarrow = Math.abs(lm[LM.RW].x - lm[LM.RS].x) < 0.14;
+    const lUp = lm[LM.LW].y < lm[LM.LS].y - 0.052;
+    const rUp = lm[LM.RW].y < lm[LM.RS].y - 0.052;
+    const lNarrow = Math.abs(lm[LM.LW].x - lm[LM.LS].x) < 0.13;
+    const rNarrow = Math.abs(lm[LM.RW].x - lm[LM.RS].x) < 0.13;
     return lUp && rUp && lNarrow && rNarrow;
   }
 
@@ -2394,9 +2425,9 @@ class Detector {
     const score = Math.round(sym * 0.45 + heightScore * 0.55);
     const text = this.phase === 'down'
       ? 'Raise both arms straight out in front — to shoulder height.'
-      : hAvg > 0.065 ? '✓ Good height — lower slowly, no lean back.'
+      : hAvg > 0.060 ? '✓ Good height — lower slowly, no lean back.'
       : '↑ Lift a little higher — stop at shoulder height.';
-    return { text, kind: this.phase === 'up' && hAvg > 0.062 ? 'good' : 'warn', score, repAdded, ex:'Front Raise' };
+    return { text, kind: this.phase === 'up' && hAvg > 0.058 ? 'good' : 'warn', score, repAdded, ex:'Front Raise' };
   }
 }
 
