@@ -448,6 +448,11 @@
         <option value="biccurl">💪 Bicep Curl</option>
         <option value="shoulderpress">🏋️ Shoulder Press</option>
         <option value="bentoverrow">🔄 Bent-over Row</option>
+        <option value="lunge">🦵 Lunge</option>
+        <option value="calfraise">👟 Calf Raise</option>
+        <option value="lateralraise">🪽 Lateral Raise</option>
+        <option value="tricepsdip">💺 Triceps Dip</option>
+        <option value="frontraise">⬆️ Front Raise</option>
       </select>
     </div>
     <div class="card">
@@ -631,12 +636,18 @@ const TIPS = {
   biccurl:       ['Keep upper arm pinned to your side — no swinging.','Curl until your forearm is vertical.','Lower slowly — 2 sec down for max tension.','Squeeze hard at the top of every rep.'],
   shoulderpress: ['Keep your core braced and back straight.','Press directly overhead — not in front.','Lower until elbows reach 90° each rep.','Keep both arms moving at the same speed.'],
   bentoverrow:   ['Turn sideways to camera for best tracking.','Hinge at hips to ~45° — back flat, not rounded.','Pull elbow past your hip — squeeze the back.','Lower slowly and fully extend each rep.'],
+  lunge:         ['Face the camera — one foot clearly in front.','Keep torso tall — chest up, core braced.','Lower until front thigh is near parallel.','Drive up through the front heel every rep.'],
+  calfraise:     ['Stand tall — full body in frame.','Keep knees soft-straight — do not squat the rep.','Rise onto the balls of both feet, pause briefly.','Lower heels slowly with control.'],
+  lateralraise:  ['Stand with feet hip-width, slight bend in elbows.','Raise arms out to the sides to shoulder height.','Lead with elbows — wrists level with or below elbows at top.','Lower slowly — no shrugging or swinging.'],
+  tricepsdip:    ['Hands on a stable chair or bench behind you.','Keep elbows pointing back — not flared wide.','Lower until elbows reach ~90°, then press up.','Face the camera so arms stay visible.'],
+  frontraise:    ['Stand tall with palms facing your thighs.','Raise both arms straight out in front to shoulder height.','Keep a slight elbow bend — do not lock aggressively.','Lower with control — no leaning back.'],
 };
 
 /** Short exercise name for badges when landmarks are missing or mode is unknown */
 const EX_LABEL_BY_MODE = {
   squat: 'Squat', pushup: 'Push-up', plank: 'Plank', jumpingjack: 'Jumping Jack',
   biccurl: 'Bicep Curl', shoulderpress: 'Shoulder Press', bentoverrow: 'Bent-over Row',
+  lunge: 'Lunge', calfraise: 'Calf Raise', lateralraise: 'Lateral Raise', tricepsdip: 'Triceps Dip', frontraise: 'Front Raise',
 };
 
 // ════════════════════════════════════════════════════════════════
@@ -730,6 +741,11 @@ const VC = {
       biccurl:       'Bicep curls! Pin those upper arms tight to your sides — no swinging. Control every inch of the movement. Let\'s build those biceps!',
       shoulderpress: 'Shoulder press! Core braced, back straight. Press directly overhead and lock those arms out at the top. Let\'s build strong shoulders!',
       bentoverrow:   'Bent-over rows! Hinge at the hips, keep that back flat, and pull with your back — not your arms. Full extension on every rep. Let\'s go!',
+      lunge:         'Lunges! One foot forward, chest tall, core tight. I\'ll count every clean rep — control the descent and drive up strong!',
+      calfraise:     'Calf raises! Knees stay tall and straight, rise onto the balls of your feet, squeeze at the top, and lower slowly. Let\'s build those calves!',
+      lateralraise:  'Lateral raises! Arms out to the sides like wings — shoulder height, soft elbows, no swinging. Smooth up, smooth down!',
+      tricepsdip:    'Triceps dips! Hands anchored, elbows tracking back, lower with control and press away. Let\'s hit those triceps!',
+      frontraise:    'Front raises! Arms straight out in front to shoulder height — no leaning back. Control every inch!',
     },
 
     // Countdown — digits + fast TTS (most engines read quickly); brief go
@@ -749,6 +765,11 @@ const VC = {
       biccurl:       { up:   'Curl it up! Squeeze hard at the top!', down: 'Lower slowly — feel that stretch.' },
       shoulderpress: { up:   'Press! Lock those arms out!',          down: 'Lower with control. Back to start.' },
       bentoverrow:   { up:   'Row! Pull that elbow back — squeeze!', down: 'Lower fully. Full range of motion.' },
+      lunge:         { down: 'Lower steady — front knee tracks over toes.', up: 'Drive up! Push through that front heel!' },
+      calfraise:     { down: 'Rise up! Balls of the feet — squeeze!', up: 'Lower heels slowly — full control.' },
+      lateralraise:  { up: 'Lift out wide — shoulder height!', down: 'Lower slowly — fight the gravity.' },
+      tricepsdip:    { down: 'Lower with control — feel the triceps.', up: 'Press up! Straighten those arms!' },
+      frontraise:    { up: 'Raise straight out in front!', down: 'Lower with control — stay tall.' },
     },
 
     // Rep praise — two pools, rotated randomly
@@ -788,6 +809,11 @@ const VC = {
       biccurl:       'Keep that upper arm pinned to your side! No swinging — the slower the better!',
       shoulderpress: 'Press all the way to full lockout! Straighten those arms completely at the top!',
       bentoverrow:   'Pull that elbow past your torso and squeeze your back hard at the top of every rep!',
+      lunge:         'Stay tall — do not lean forward. Push the front knee out and drive through the heel!',
+      calfraise:     'Keep those knees straight — this is calves only, not a squat. Rise higher on the toes!',
+      lateralraise:  'No shrugging! Lead with the elbows and stop at shoulder height — slow and controlled.',
+      tricepsdip:    'Keep elbows pointing backward — do not let them flare wide. Use full range every rep!',
+      frontraise:    'Do not lean back — brace your core and lift only to shoulder height with soft elbows!',
     },
 
     // Periodic encouragement — spoken when nothing else fires for ~30 s
@@ -1238,6 +1264,69 @@ function evaluateJoints(lm, exKey, phase) {
     }
   }
 
+  if (exKey === 'lunge') {
+    if (vis(lm,LM.LH) && vis(lm,LM.LK) && vis(lm,LM.LA)) {
+      const k = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]);
+      s.L_knee = k > 155 ? 'neut' : k < 95 ? 'good' : k < 130 ? 'warn' : 'bad';
+    }
+    if (vis(lm,LM.RH) && vis(lm,LM.RK) && vis(lm,LM.RA)) {
+      const k = angle(lm[LM.RH], lm[LM.RK], lm[LM.RA]);
+      s.R_knee = k > 155 ? 'neut' : k < 95 ? 'good' : k < 130 ? 'warn' : 'bad';
+    }
+    if (vis(lm,LM.LS) && vis(lm,LM.LH)) {
+      const lean = Math.abs(lm[LM.LS].x - lm[LM.LH].x);
+      s.torso = lean < 0.12 ? 'good' : lean < 0.22 ? 'warn' : 'bad';
+    }
+  }
+
+  if (exKey === 'calfraise') {
+    if (vis(lm,LM.LH) && vis(lm,LM.LK) && vis(lm,LM.LA)) {
+      const k = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]);
+      s.L_knee = k > 160 ? 'good' : k > 145 ? 'warn' : 'bad';
+    }
+    if (vis(lm,LM.RH) && vis(lm,LM.RK) && vis(lm,LM.RA)) {
+      const k = angle(lm[LM.RH], lm[LM.RK], lm[LM.RA]);
+      s.R_knee = k > 160 ? 'good' : k > 145 ? 'warn' : 'bad';
+    }
+    if (vis(lm,LM.LH) && vis(lm,LM.LA)) {
+      const lift = lm[LM.LA].y - lm[LM.LH].y;
+      if (phase === 'down') s.hip = lift > 0.33 ? 'good' : lift > 0.29 ? 'warn' : 'bad';
+      else s.hip = lift > 0.31 ? 'warn' : 'neut';
+    }
+  }
+
+  if (exKey === 'lateralraise' || exKey === 'frontraise') {
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      s.L_elbow = e > 155 ? 'good' : e > 130 ? 'warn' : 'bad';
+    }
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      s.R_elbow = e > 155 ? 'good' : e > 130 ? 'warn' : 'bad';
+    }
+    if (vis(lm,LM.LS) && vis(lm,LM.RS)) {
+      const sh = Math.abs(lm[LM.LS].y - lm[LM.RS].y);
+      s.torso = sh < 0.05 ? 'good' : sh < 0.10 ? 'warn' : 'bad';
+    }
+  }
+
+  if (exKey === 'tricepsdip') {
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      s.L_elbow = e > 155 ? 'neut' : e < 95 ? 'good' : e < 125 ? 'warn' : 'bad';
+    }
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      s.R_elbow = e > 155 ? 'neut' : e < 95 ? 'good' : e < 125 ? 'warn' : 'bad';
+    }
+    if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA)) {
+      const ba = angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]);
+      const d = Math.abs(ba - 175);
+      const st = d < 12 ? 'good' : d < 22 ? 'warn' : 'bad';
+      s.torso = st; s.hip = st;
+    }
+  }
+
   return s;
 }
 
@@ -1582,6 +1671,109 @@ function drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h) {
       drawPill(ctx, lm[LM.LH].x * w, lm[LM.LH].y * h + 26, postCue, taC);
     }
   }
+
+  if (exKey === 'lunge') {
+    if (vis(lm,LM.LH) && vis(lm,LM.LK) && vis(lm,LM.LA)) {
+      const k  = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]);
+      const kc = byStatus(jStatus.L_knee || 'neut', false);
+      drawAngleArc(ctx, lm[LM.LH], lm[LM.LK], lm[LM.LA], w, h, 24, kc);
+      drawPill(ctx, lm[LM.LK].x * w, lm[LM.LK].y * h - 32, `${Math.round(k)}°`, kc);
+    }
+    if (vis(lm,LM.RH) && vis(lm,LM.RK) && vis(lm,LM.RA)) {
+      const k  = angle(lm[LM.RH], lm[LM.RK], lm[LM.RA]);
+      const kc = byStatus(jStatus.R_knee || 'neut', false);
+      drawAngleArc(ctx, lm[LM.RH], lm[LM.RK], lm[LM.RA], w, h, 24, kc);
+      drawPill(ctx, lm[LM.RK].x * w, lm[LM.RK].y * h - 32, `${Math.round(k)}°`, kc);
+    }
+    if (vis(lm,LM.LH) && vis(lm,LM.LK) && vis(lm,LM.LA) && vis(lm,LM.RH) && vis(lm,LM.RK) && vis(lm,LM.RA)) {
+      const lk = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]);
+      const rk = angle(lm[LM.RH], lm[LM.RK], lm[LM.RA]);
+      if (Math.abs(lk - rk) > 12)
+        drawPill(ctx, w / 2, (lm[LM.LH].y + 0.05) * h, 'Front leg deeper', CLR.WARN);
+    }
+  }
+
+  if (exKey === 'calfraise') {
+    if (vis(lm,LM.LH) && vis(lm,LM.LA)) {
+      const lift = lm[LM.LA].y - lm[LM.LH].y;
+      const k = vis(lm,LM.LK) ? angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]) : 180;
+      const kc = byStatus(jStatus.L_knee || 'neut', false);
+      drawPill(ctx, lm[LM.LA].x * w, lm[LM.LA].y * h - 22, `Lift ${(lift * 100).toFixed(0)}`, kc);
+      drawPill(ctx, lm[LM.LK].x * w, lm[LM.LK].y * h - 36, `${Math.round(k)}° knee`, kc);
+    }
+    if (vis(lm,LM.LH) && vis(lm,LM.LA)) {
+      ctx.save();
+      ctx.setLineDash([6, 4]);
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.moveTo(lm[LM.LH].x * w, lm[LM.LH].y * h);
+      ctx.lineTo(lm[LM.LA].x * w, lm[LM.LA].y * h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.restore();
+    }
+  }
+
+  if (exKey === 'lateralraise') {
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e  = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      const ec = byStatus(jStatus.L_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.LS], lm[LM.LE], lm[LM.LW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.LE].x * w, lm[LM.LE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e  = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      const ec = byStatus(jStatus.R_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.RS], lm[LM.RE], lm[LM.RW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.RE].x * w, lm[LM.RE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    if (vis(lm,LM.LS) && vis(lm,LM.LW)) {
+      const spread = Math.abs(lm[LM.LW].x - lm[LM.LS].x);
+      drawPill(ctx, lm[LM.LW].x * w, lm[LM.LW].y * h + 22, `W ${(spread * 100).toFixed(0)}`, spread > 0.17 ? CLR.GOOD : CLR.WARN);
+    }
+    if (vis(lm,LM.RS) && vis(lm,LM.RW)) {
+      const spread = Math.abs(lm[LM.RW].x - lm[LM.RS].x);
+      drawPill(ctx, lm[LM.RW].x * w, lm[LM.RW].y * h + 22, `W ${(spread * 100).toFixed(0)}`, spread > 0.17 ? CLR.GOOD : CLR.WARN);
+    }
+  }
+
+  if (exKey === 'tricepsdip') {
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e  = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      const ec = byStatus(jStatus.L_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.LS], lm[LM.LE], lm[LM.LW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.LE].x * w, lm[LM.LE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e  = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      const ec = byStatus(jStatus.R_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.RS], lm[LM.RE], lm[LM.RW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.RE].x * w, lm[LM.RE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+  }
+
+  if (exKey === 'frontraise') {
+    if (vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)) {
+      const e  = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+      const ec = byStatus(jStatus.L_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.LS], lm[LM.LE], lm[LM.LW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.LE].x * w, lm[LM.LE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    if (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) {
+      const e  = angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]);
+      const ec = byStatus(jStatus.R_elbow || 'neut', false);
+      drawAngleArc(ctx, lm[LM.RS], lm[LM.RE], lm[LM.RW], w, h, 22, ec);
+      drawPill(ctx, lm[LM.RE].x * w, lm[LM.RE].y * h - 30, `${Math.round(e)}°`, ec);
+    }
+    if (vis(lm,LM.LS) && vis(lm,LM.LW) && vis(lm,LM.RS) && vis(lm,LM.RW)) {
+      const lh = lm[LM.LS].y - lm[LM.LW].y;
+      const rh = lm[LM.RS].y - lm[LM.RW].y;
+      const avg = (lh + rh) / 2;
+      const hc = avg > 0.055 ? CLR.GOOD : avg > 0.02 ? CLR.WARN : CLR.WARN;
+      drawPill(ctx, w / 2, (lm[LM.LS].y + 0.08) * h, `Height ${(avg * 100).toFixed(0)}`, hc);
+    }
+  }
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1606,6 +1798,15 @@ class Detector {
     this._bcUS = this._bcES = 0;
     this._shLo = this._shBt = 0;
     this._roUS = this._roES = 0;
+    this._lgDn = this._lgSt = 0;
+    this._cfToe = this._cfFlat = 0;
+    this._cfEma = null;
+    this._cfPeak = 0;
+    this._lrUp = this._lrDn = 0;
+    this._lrSynced = false;
+    this._frUp = this._frDn = 0;
+    this._frSynced = false;
+    this._tdDn = this._tdSt = 0;
   }
 
   markSet() {
@@ -1627,6 +1828,11 @@ class Detector {
             : exKey==='biccurl'       ? this._biccurl(lm)
             : exKey==='shoulderpress' ? this._shoulderpress(lm)
             : exKey==='bentoverrow'   ? this._bentoverrow(lm)
+            : exKey==='lunge'         ? this._lunge(lm)
+            : exKey==='calfraise'     ? this._calfraise(lm)
+            : exKey==='lateralraise'  ? this._lateralraise(lm)
+            : exKey==='tricepsdip'    ? this._tricepsdip(lm)
+            : exKey==='frontraise'    ? this._frontraise(lm)
             : { text:'Select an exercise.', kind:'warn', score:0, repAdded:false, ex:'Exercise' };
     return { ...r, exKey, phase: this.phase };
   }
@@ -1919,6 +2125,278 @@ class Detector {
                : e < 80               ? '✓ Peak row — lower slowly to full extension.'
                :                        '↑ Pull higher — get elbow past your torso.';
     return { text, kind: this.phase==='up' && e < 80 ? 'good' : 'warn', score, repAdded, ex:'Bent-over Row' };
+  }
+
+  _lunge(lm) {
+    if (!(vis(lm,LM.LH) && vis(lm,LM.LK) && vis(lm,LM.LA)))
+      return { text:'Lower body not visible — step back.', kind:'error', score:0, repAdded:false, ex:'Lunge' };
+    const lk = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]);
+    const rk = (vis(lm,LM.RH) && vis(lm,LM.RK) && vis(lm,LM.RA)) ? angle(lm[LM.RH], lm[LM.RK], lm[LM.RA]) : lk;
+    const kF = Math.min(lk, rk);
+    const kB = Math.max(lk, rk);
+    const asym = Math.abs(lk - rk);
+    let repAdded = false;
+    const DOWN_ENTER = 102, DOWN_HOLD = 96, UP_EXIT = 148, UP_STAND = 138;
+    const t = performance.now();
+    const lungeShape = asym > 7 || (kF < 115 && kB > kF + 10);
+
+    if (this.phase === 'up') {
+      if (kF < DOWN_ENTER && lungeShape) this._lgDn++; else this._lgDn = 0;
+      if (this._lgDn >= Detector.FR_DOWN) {
+        this.phase = 'down';
+        this._lgDn = 0;
+        this._lgSt = 0;
+      }
+    } else {
+      if (kF > UP_EXIT && kB > UP_STAND - 10) {
+        this._lgSt++;
+        if (this._lgSt >= Detector.FR_STAND) {
+          if (t - this._lastRepMs >= Detector.MIN_REP_MS) {
+            this.phase = 'up';
+            this.reps++;
+            repAdded = true;
+            this._lastRepMs = t;
+          }
+          this._lgSt = 0;
+        }
+      } else {
+        this._lgSt = 0;
+      }
+    }
+    const deep = kF < 92;
+    const score = this.phase === 'down'
+      ? Math.max(25, Math.min(100, 100 - Math.abs(88 - kF) * 1.35 - (lungeShape ? 0 : 22)))
+      : 62;
+    const text = this.phase === 'up'
+      ? (lungeShape ? 'Step out — lower until front knee bends clearly.' : 'Stagger feet — one leg clearly in front.')
+      : deep ? '✓ Solid depth — drive up through the front heel!'
+             : kF < DOWN_HOLD ? '✓ Good lunge — stand tall to finish the rep.'
+             : '↓ Go deeper — front thigh toward parallel.';
+    return { text, kind: this.phase === 'down' && deep ? 'good' : this.phase === 'down' ? 'warn' : 'warn', score: Math.round(score), repAdded, ex:'Lunge' };
+  }
+
+  _calfraise(lm) {
+    if (!(vis(lm,LM.LH) && vis(lm,LM.LK) && vis(lm,LM.LA)))
+      return { text:'Lower body not visible — step back.', kind:'error', score:0, repAdded:false, ex:'Calf Raise' };
+    const lk = angle(lm[LM.LH], lm[LM.LK], lm[LM.LA]);
+    const rk = (vis(lm,LM.RH) && vis(lm,LM.RK) && vis(lm,LM.RA)) ? angle(lm[LM.RH], lm[LM.RK], lm[LM.RA]) : lk;
+    const kneeAvg = (lk + rk) / 2;
+    if (kneeAvg < 138)
+      return { text:'Straighten knees slightly — calf raise, not a squat.', kind:'warn', score:45, repAdded:false, ex:'Calf Raise' };
+    const hy = (lm[LM.LH].y + lm[LM.RH].y) / 2;
+    const ay = (vis(lm,LM.LA) && vis(lm,LM.RA)) ? (lm[LM.LA].y + lm[LM.RA].y) / 2 : lm[LM.LA].y;
+    const m = ay - hy;
+    if (this._cfEma == null) this._cfEma = m;
+    else this._cfEma = this._cfEma * 0.9 + m * 0.1;
+    let repAdded = false;
+    const t = performance.now();
+    const toeLift = m > this._cfEma + 0.019;
+    const heelDown = this._cfPeak > 0 && m < this._cfPeak - 0.013;
+
+    if (this.phase === 'up') {
+      if (toeLift) {
+        this._cfToe++;
+        if (this._cfToe >= 3) {
+          this.phase = 'down';
+          this._cfPeak = m;
+          this._cfToe = 0;
+          this._cfFlat = 0;
+        }
+      } else this._cfToe = 0;
+    } else {
+      if (m > this._cfPeak) this._cfPeak = m;
+      if (heelDown) {
+        this._cfFlat++;
+        if (this._cfFlat >= 3) {
+          if (t - this._lastRepMs >= Detector.MIN_REP_MS) {
+            this.phase = 'up';
+            this.reps++;
+            repAdded = true;
+            this._lastRepMs = t;
+            this._cfEma = this._cfEma * 0.65 + m * 0.35;
+          }
+          this._cfFlat = 0;
+          this._cfPeak = 0;
+        }
+      } else this._cfFlat = 0;
+    }
+    const onToes = this.phase === 'down';
+    const score = onToes ? Math.round(Math.max(30, Math.min(100, 60 + (m - this._cfEma) * 900))) : 58;
+    const text = this.phase === 'up'
+      ? 'Rise onto the balls of your feet — squeeze at the top.'
+      : onToes && m > this._cfEma + 0.024 ? '✓ Nice height — lower heels slowly.'
+      : 'Lower with control — full range.';
+    return { text, kind: onToes && m > this._cfEma + 0.022 ? 'good' : 'warn', score, repAdded, ex:'Calf Raise' };
+  }
+
+  _latArmsDown(lm) {
+    if (!(vis(lm,LM.LW) && vis(lm,LM.RW) && vis(lm,LM.LS) && vis(lm,LM.RS))) return false;
+    const lSpread = Math.abs(lm[LM.LW].x - lm[LM.LS].x);
+    const rSpread = Math.abs(lm[LM.RW].x - lm[LM.RS].x);
+    const lLow = lm[LM.LW].y > lm[LM.LS].y - 0.04;
+    const rLow = lm[LM.RW].y > lm[LM.RS].y - 0.04;
+    return lSpread < 0.15 && rSpread < 0.15 && lLow && rLow;
+  }
+
+  _latArmsUp(lm) {
+    if (!(vis(lm,LM.LW) && vis(lm,LM.RW) && vis(lm,LM.LS) && vis(lm,LM.RS))) return false;
+    const lSpread = Math.abs(lm[LM.LW].x - lm[LM.LS].x);
+    const rSpread = Math.abs(lm[LM.RW].x - lm[LM.RS].x);
+    const lH = Math.abs(lm[LM.LW].y - lm[LM.LS].y) < 0.11;
+    const rH = Math.abs(lm[LM.RW].y - lm[LM.RS].y) < 0.11;
+    return lSpread > 0.175 && rSpread > 0.175 && lH && rH;
+  }
+
+  _lateralraise(lm) {
+    if (!(vis(lm,LM.LW) && vis(lm,LM.RW) && vis(lm,LM.LS) && vis(lm,LM.RS)))
+      return { text:'Upper body not visible — face the camera.', kind:'error', score:0, repAdded:false, ex:'Lateral Raise' };
+    if (!this._lrSynced) {
+      this._lrSynced = true;
+      this.phase = this._latArmsUp(lm) ? 'up' : 'down';
+    }
+    const le = vis(lm,LM.LE) ? angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]) : 180;
+    const re = vis(lm,LM.RE) ? angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]) : 180;
+    let repAdded = false;
+    const t = performance.now();
+
+    if (this.phase === 'down') {
+      if (this._latArmsUp(lm)) {
+        this._lrUp++;
+        if (this._lrUp >= Detector.FR_DOWN) {
+          this.phase = 'up';
+          this._lrUp = 0;
+          this._lrDn = 0;
+        }
+      } else this._lrUp = 0;
+    } else {
+      if (this._latArmsDown(lm)) {
+        this._lrDn++;
+        if (this._lrDn >= Detector.FR_STAND) {
+          if (t - this._lastRepMs >= Detector.MIN_REP_MS) {
+            this.phase = 'down';
+            this.reps++;
+            repAdded = true;
+            this._lastRepMs = t;
+          }
+          this._lrDn = 0;
+        }
+      } else this._lrDn = 0;
+    }
+    const sym = Math.max(40, 100 - Math.abs(le - re) * 2.2);
+    const ext = ((le + re) / 2);
+    const score = Math.round(this.phase === 'up' ? sym * 0.55 + Math.min(100, ext * 0.45) : sym * 0.7 + 25);
+    const text = this.phase === 'down'
+      ? 'Raise arms out to the sides — wrists near shoulder height.'
+      : (ext > 152 ? '✓ Strong top — lower slowly with control.' : '↑ Reach a bit higher — soft elbows, full wings.');
+    return { text, kind: this.phase === 'up' && ext > 150 ? 'good' : 'warn', score, repAdded, ex:'Lateral Raise' };
+  }
+
+  _tricepsdip(lm) {
+    if (!(vis(lm,LM.LS) && vis(lm,LM.LE) && vis(lm,LM.LW)))
+      return { text:'Arms not visible — adjust camera or position.', kind:'error', score:0, repAdded:false, ex:'Triceps Dip' };
+    const le = angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]);
+    const re = (vis(lm,LM.RS) && vis(lm,LM.RE) && vis(lm,LM.RW)) ? angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]) : le;
+    const e = (le + re) / 2;
+    let repAdded = false;
+    const DOWN_TH = 102, STAND_TH = 152;
+    const t = performance.now();
+    if (this.phase === 'up') {
+      if (e < DOWN_TH) this._tdDn++; else this._tdDn = 0;
+      if (this._tdDn >= Detector.FR_DOWN) {
+        this.phase = 'down';
+        this._tdDn = 0;
+        this._tdSt = 0;
+      }
+    } else {
+      if (e > STAND_TH) {
+        this._tdSt++;
+        if (this._tdSt >= Detector.FR_STAND) {
+          if (t - this._lastRepMs >= Detector.MIN_REP_MS) {
+            this.phase = 'up';
+            this.reps++;
+            repAdded = true;
+            this._lastRepMs = t;
+          }
+          this._tdSt = 0;
+        }
+      } else {
+        this._tdSt = 0;
+      }
+    }
+    let align = 78;
+    if (vis(lm,LM.LS) && vis(lm,LM.LH) && vis(lm,LM.LA))
+      align = Math.max(25, 100 - Math.abs(angle(lm[LM.LS], lm[LM.LH], lm[LM.LA]) - 176) * 3.2);
+    const deep = e < 96;
+    const depth = this.phase === 'down' ? Math.max(22, 100 - Math.abs(92 - e) * 1.35) : 58;
+    const score = Math.round(depth * 0.62 + align * 0.38);
+    const text = this.phase === 'up' ? 'Lower by bending elbows — keep them tracking back.'
+               : deep ? '✓ Solid depth — press away to full extension.'
+               : '↓ Lower a bit more — aim near 90° at the elbows.';
+    return { text, kind: this.phase === 'down' && deep ? 'good' : 'warn', score, repAdded, ex:'Triceps Dip' };
+  }
+
+  _frArmsDown(lm) {
+    if (!(vis(lm,LM.LW) && vis(lm,LM.RW) && vis(lm,LM.LS) && vis(lm,LM.RS))) return false;
+    const lOk = lm[LM.LW].y > lm[LM.LS].y - 0.03 && Math.abs(lm[LM.LW].x - lm[LM.LS].x) < 0.14;
+    const rOk = lm[LM.RW].y > lm[LM.RS].y - 0.03 && Math.abs(lm[LM.RW].x - lm[LM.RS].x) < 0.14;
+    return lOk && rOk;
+  }
+
+  _frArmsUp(lm) {
+    if (!(vis(lm,LM.LW) && vis(lm,LM.RW) && vis(lm,LM.LS) && vis(lm,LM.RS))) return false;
+    const lUp = lm[LM.LW].y < lm[LM.LS].y - 0.055;
+    const rUp = lm[LM.RW].y < lm[LM.RS].y - 0.055;
+    const lNarrow = Math.abs(lm[LM.LW].x - lm[LM.LS].x) < 0.14;
+    const rNarrow = Math.abs(lm[LM.RW].x - lm[LM.RS].x) < 0.14;
+    return lUp && rUp && lNarrow && rNarrow;
+  }
+
+  _frontraise(lm) {
+    if (!(vis(lm,LM.LW) && vis(lm,LM.RW) && vis(lm,LM.LS) && vis(lm,LM.RS)))
+      return { text:'Upper body not visible — face the camera.', kind:'error', score:0, repAdded:false, ex:'Front Raise' };
+    if (!this._frSynced) {
+      this._frSynced = true;
+      this.phase = this._frArmsUp(lm) ? 'up' : 'down';
+    }
+    const le = vis(lm,LM.LE) ? angle(lm[LM.LS], lm[LM.LE], lm[LM.LW]) : 175;
+    const re = vis(lm,LM.RE) ? angle(lm[LM.RS], lm[LM.RE], lm[LM.RW]) : 175;
+    let repAdded = false;
+    const t = performance.now();
+
+    if (this.phase === 'down') {
+      if (this._frArmsUp(lm)) {
+        this._frUp++;
+        if (this._frUp >= Detector.FR_DOWN) {
+          this.phase = 'up';
+          this._frUp = 0;
+          this._frDn = 0;
+        }
+      } else this._frUp = 0;
+    } else {
+      if (this._frArmsDown(lm)) {
+        this._frDn++;
+        if (this._frDn >= Detector.FR_STAND) {
+          if (t - this._lastRepMs >= Detector.MIN_REP_MS) {
+            this.phase = 'down';
+            this.reps++;
+            repAdded = true;
+            this._lastRepMs = t;
+          }
+          this._frDn = 0;
+        }
+      } else this._frDn = 0;
+    }
+    const lh = lm[LM.LS].y - lm[LM.LW].y;
+    const rh = lm[LM.RS].y - lm[LM.RW].y;
+    const hAvg = (lh + rh) / 2;
+    const sym = Math.max(38, 100 - Math.abs(le - re) * 2.4);
+    const heightScore = Math.min(100, Math.max(25, hAvg * 520));
+    const score = Math.round(sym * 0.45 + heightScore * 0.55);
+    const text = this.phase === 'down'
+      ? 'Raise both arms straight out in front — to shoulder height.'
+      : hAvg > 0.065 ? '✓ Good height — lower slowly, no lean back.'
+      : '↑ Lift a little higher — stop at shoulder height.';
+    return { text, kind: this.phase === 'up' && hAvg > 0.062 ? 'good' : 'warn', score, repAdded, ex:'Front Raise' };
   }
 }
 
