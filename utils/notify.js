@@ -153,7 +153,7 @@ const FORMATTERS = {
   DAILY_DIGEST: (p) => ['📋 Daily Executive Digest', `📅 Date: ${s(p.date)}`, `👥 Active Users: ${s(p.totalUsers)}`, `🆕 Signups: ${s(p.signups)}`, `🔐 Logins: ${s(p.logins)}`, `📋 Check-ins: ${s(p.checkins)}`, `🏋️ Workouts: ${s(p.workouts)}`, `🍽️ Meals: ${s(p.meals)}`, `🩸 Blood Reports: ${s(p.bloodReports)}`, `💬 Messages: ${s(p.messages)}`, `🪙 Coins Awarded: ${s(p.coinsAwarded)}`],
   SERVER_ERROR: (p) => ['🔴 Server Error', `📌 ${s(p.action)}`, `💥 ${String(p.error || '').slice(0, 300)}`, `⏰ ${ts()}`]
 };
-const DETAILED_EVENTS = new Set(['SUNDAY_CHECKIN', 'PART2_FORM', 'NUTRITION_MEAL_LOGGED']);
+const DETAILED_EVENTS = new Set(['SUNDAY_CHECKIN', 'PART2_FORM']);
 
 function buildMessage(eventType, lines, priority) {
   return [`${tierIcon(priority)} BodyBank Admin Update`, `Event: ${eventType}`, ...lines].join('\n');
