@@ -153,6 +153,7 @@ const FORMATTERS = {
   DAILY_DIGEST: (p) => ['📋 Daily Executive Digest', `📅 Date: ${s(p.date)}`, `👥 Active Users: ${s(p.totalUsers)}`, `🆕 Signups: ${s(p.signups)}`, `🔐 Logins: ${s(p.logins)}`, `📋 Check-ins: ${s(p.checkins)}`, `🏋️ Workouts: ${s(p.workouts)}`, `🍽️ Meals: ${s(p.meals)}`, `🩸 Blood Reports: ${s(p.bloodReports)}`, `💬 Messages: ${s(p.messages)}`, `🪙 Coins Awarded: ${s(p.coinsAwarded)}`],
   SERVER_ERROR: (p) => ['🔴 Server Error', `📌 ${s(p.action)}`, `💥 ${String(p.error || '').slice(0, 300)}`, `⏰ ${ts()}`]
 };
+const DETAILED_EVENTS = new Set(['SUNDAY_CHECKIN', 'PART2_FORM']);
 
 function buildMessage(eventType, lines, priority) {
   return [`${tierIcon(priority)} BodyBank Admin Update`, `Event: ${eventType}`, ...lines].join('\n');
@@ -162,9 +163,10 @@ function formatEventMessage(eventType, payload = {}) {
   const formatter = FORMATTERS[eventType];
   if (!formatter) return null;
   const meta = EVENT_META[eventType] || { priority: PRIORITY.INFO, dedup: 5 * 60 * 1000 };
+  const detailLines = DETAILED_EVENTS.has(eventType) ? payloadLines(payload) : [];
   return {
     meta,
-    message: buildMessage(eventType, [...formatter(payload), ...payloadLines(payload)], meta.priority)
+    message: buildMessage(eventType, [...formatter(payload), ...detailLines], meta.priority)
   };
 }
 
