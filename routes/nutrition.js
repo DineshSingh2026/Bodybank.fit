@@ -466,7 +466,7 @@ function createNutritionRouter(deps) {
         notifyAsync('NUTRITION_DAY_COMPLETE', { name: nuUser ? `${nuUser.first_name || ''} ${nuUser.last_name || ''}`.trim() : userId, email: nuUser ? nuUser.email : userId, mobile: nuUser ? (nuUser.phone || '—') : '—', date: ymd, meals: nMeals, mediaUrl: mealPhotoUrl });
       } else {
         const nuUser = await queryOne('SELECT email, first_name, last_name, phone FROM users WHERE id = ?', [userId]).catch(() => null);
-        notifyAsync('NUTRITION_MEAL_LOGGED', { name: nuUser ? `${nuUser.first_name || ''} ${nuUser.last_name || ''}`.trim() : userId, email: nuUser ? nuUser.email : userId, mobile: nuUser ? (nuUser.phone || '—') : '—', mealType, date: ymd, score: mealScore || '—', calories: aiResult && aiResult.calories ? aiResult.calories : '—', protein: aiResult && aiResult.protein ? aiResult.protein + ' g' : '—', mediaUrl: mealPhotoUrl });
+        notifyAsync('NUTRITION_MEAL_LOGGED', { name: nuUser ? `${nuUser.first_name || ''} ${nuUser.last_name || ''}`.trim() : userId, email: nuUser ? nuUser.email : userId, mobile: nuUser ? (nuUser.phone || '—') : '—', mealType, date: ymd, score: mealScore || '—', calories: aiResult && aiResult.calories ? aiResult.calories : '—', protein: aiResult && aiResult.protein ? aiResult.protein + ' g' : '—', carbs: aiResult && aiResult.carbs ? aiResult.carbs + ' g' : '—', fat: aiResult && aiResult.fat ? aiResult.fat + ' g' : '—', mediaUrl: mealPhotoUrl });
       }
 
       res.json({
@@ -585,7 +585,7 @@ function createNutritionRouter(deps) {
         notifyAsync('NUTRITION_DAY_COMPLETE', { name: nlUser ? `${nlUser.first_name || ''} ${nlUser.last_name || ''}`.trim() : userId, email: nlUser ? nlUser.email : userId, mobile: nlUser ? (nlUser.phone || '—') : '—', date: ymd, meals: nMeals, mediaUrl: manualMealPhotoUrl });
       } else {
         const nlUser = await queryOne('SELECT email, first_name, last_name, phone FROM users WHERE id = ?', [userId]).catch(() => null);
-        notifyAsync('NUTRITION_MEAL_LOGGED', { name: nlUser ? `${nlUser.first_name || ''} ${nlUser.last_name || ''}`.trim() : userId, email: nlUser ? nlUser.email : userId, mobile: nlUser ? (nlUser.phone || '—') : '—', mealType: mt, date: ymd, score: mealScore || '—', calories: aiStored && aiStored.calories ? aiStored.calories : '—', protein: aiStored && aiStored.protein ? aiStored.protein + ' g' : '—', mediaUrl: manualMealPhotoUrl });
+        notifyAsync('NUTRITION_MEAL_LOGGED', { name: nlUser ? `${nlUser.first_name || ''} ${nlUser.last_name || ''}`.trim() : userId, email: nlUser ? nlUser.email : userId, mobile: nlUser ? (nlUser.phone || '—') : '—', mealType: mt, date: ymd, score: mealScore || '—', calories: aiStored && aiStored.calories ? aiStored.calories : '—', protein: aiStored && aiStored.protein ? aiStored.protein + ' g' : '—', carbs: aiStored && aiStored.carbs ? aiStored.carbs + ' g' : '—', fat: aiStored && aiStored.fat ? aiStored.fat + ' g' : '—', mediaUrl: manualMealPhotoUrl });
       }
       res.json({
         aiResult: aiStored,

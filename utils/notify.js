@@ -142,7 +142,7 @@ const FORMATTERS = {
   PART2_FORM: (p) => ['📋 Part-2 Form Submitted', ...userLines(p), `🎯 Goals: ${s(p.goals)}`, `⏰ ${ts()}`],
   MEETING_SCHEDULED: (p) => ['📅 Call Scheduled', ...userLines(p), `📆 Date: ${s(p.date)}`, `🕐 Slot: ${s(p.slot)}`, `⏰ ${ts()}`],
   CONTACT_MESSAGE: (p) => ['💬 Contact Message', ...userLines(p), `📝 ${String(p.message || '').slice(0, 180)}`, `⏰ ${ts()}`],
-  NUTRITION_MEAL_LOGGED: (p) => ['🍽️ Meal Logged', ...userLines(p), `🥗 Meal: ${s(p.mealType)}`, `📅 Date: ${s(p.date)}`, `⭐ Score: ${s(p.score)}`, `🔥 Calories: ${s(p.calories)}`, `🥩 Protein: ${s(p.protein)}`, `⏰ ${ts()}`],
+  NUTRITION_MEAL_LOGGED: (p) => ['🍽️ Meal Logged', ...userLines(p), `🥗 Meal: ${s(p.mealType)}`, `📅 Date: ${s(p.date)}`, `⭐ Score: ${s(p.score)}`, `🔥 Calories: ${s(p.calories)}`, `🥩 Protein: ${s(p.protein)}`, `🍚 Carbs: ${s(p.carbs)}`, `🥑 Fats: ${s(p.fat)}`, `⏰ ${ts()}`],
   NUTRITION_DAY_COMPLETE: (p) => ['🌟 Nutrition Day Complete', ...userLines(p), `📅 Date: ${s(p.date)}`, `🍽️ Meals: ${s(p.meals)}/4`, `⏰ ${ts()}`],
   BLOOD_REPORT_UPLOADED: (p) => ['🩸 Blood Report Uploaded', ...userLines(p), `🎯 Goal: ${s(p.goal)}`, `⏰ ${ts()}`],
   BLOOD_REPORT_SENT: (p) => ['📤 Blood Report Sent to User', ...userLines(p), `⏰ ${ts()}`],
@@ -153,7 +153,7 @@ const FORMATTERS = {
   DAILY_DIGEST: (p) => ['📋 Daily Executive Digest', `📅 Date: ${s(p.date)}`, `👥 Active Users: ${s(p.totalUsers)}`, `🆕 Signups: ${s(p.signups)}`, `🔐 Logins: ${s(p.logins)}`, `📋 Check-ins: ${s(p.checkins)}`, `🏋️ Workouts: ${s(p.workouts)}`, `🍽️ Meals: ${s(p.meals)}`, `🩸 Blood Reports: ${s(p.bloodReports)}`, `💬 Messages: ${s(p.messages)}`, `🪙 Coins Awarded: ${s(p.coinsAwarded)}`],
   SERVER_ERROR: (p) => ['🔴 Server Error', `📌 ${s(p.action)}`, `💥 ${String(p.error || '').slice(0, 300)}`, `⏰ ${ts()}`]
 };
-const DETAILED_EVENTS = new Set(['SUNDAY_CHECKIN', 'PART2_FORM']);
+const DETAILED_EVENTS = new Set(['SUNDAY_CHECKIN', 'PART2_FORM', 'NUTRITION_MEAL_LOGGED']);
 
 function buildMessage(eventType, lines, priority) {
   return [`${tierIcon(priority)} BodyBank Admin Update`, `Event: ${eventType}`, ...lines].join('\n');
