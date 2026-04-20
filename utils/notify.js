@@ -44,6 +44,85 @@ function tierIcon(t) { return t === PRIORITY.CRITICAL ? '🔴' : (t === PRIORITY
 function isDup(fp, ttl) { const t = _dedup.get(fp); return !!(ttl && t && (Date.now() - t < ttl)); }
 function mark(fp) { _dedup.set(fp, Date.now()); }
 function userLines(p) { return [`👤 ${s(p.name)}`, `📧 ${s(p.email)}`, `📱 ${s(p.mobile || p.phone)}`]; }
+function titleFromKey(key) {
+  return String(key || '')
+    .replace(/\./g, ' → ')
+    .replace(/_/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
+}
+function isSensitivePayloadKey(key) {
+  const k = String(key || '').toLowerCase();
+  return (
+    k.includes('password') ||
+    k.includes('token') ||
+    k.includes('secret') ||
+    k.includes('authorization') ||
+    k.includes('auth') ||
+    k.includes('cookie') ||
+    k.includes('session') ||
+    k.includes('base64') ||
+    k === 'photo_data' ||
+    k === 'image_data' ||
+    k === 'imagedata'
+  );
+}
+function flattenPayload(payload, prefix = '', out = []) {
+  if (payload == null) return out;
+  if (Array.isArray(payload)) {
+    payload.forEach((v, i) => flattenPayload(v, `${prefix}[${i}]`, out));
+    return out;
+  }
+  if (typeof payload === 'object') {
+    Object.keys(payload).forEach((k) => {
+      const next = prefix ? `${prefix}.${k}` : k;
+      const v = payload[k];
+      if (v != null && typeof v === 'object') flattenPayload(v, next, out);
+      else out.push([next, v]);
+    });
+    return out;
+  }
+  out.push([prefix || 'value', payload]);
+  return out;
+}
+function payloadLines(payload = {}) {
+  const pairs = flattenPayload(payload);
+  const lines = [];
+  for (const [key, value] of pairs) {
+    if (isSensitivePayloadKey(key)) continue;
+    if (value == null || value === '') continue;
+    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    lines.push(`• ${titleFromKey(key)}: ${text}`);
+  }
+  return lines;
+}
+function chunkMessage(message, maxChars = 1500) {
+  const rawLines = String(message || '').split('\n');
+  const chunks = [];
+  let current = '';
+  rawLines.forEach((line) => {
+    const next = current ? `${current}\n${line}` : line;
+    if (next.length <= maxChars) {
+      current = next;
+      return;
+    }
+    if (current) chunks.push(current);
+    if (line.length <= maxChars) {
+      current = line;
+      return;
+    }
+    let rest = line;
+    while (rest.length > maxChars) {
+      chunks.push(rest.slice(0, maxChars));
+      rest = rest.slice(maxChars);
+    }
+    current = rest;
+  });
+  if (current) chunks.push(current);
+  if (chunks.length <= 1) return chunks;
+  return chunks.map((c, i) => `[${i + 1}/${chunks.length}]\n${c}`);
+}
 
 const FORMATTERS = {
   USER_SIGNUP: (p) => ['🆕 New Signup', ...userLines(p), `🌍 ${s(p.country)}`, `⏰ ${ts()}`],
@@ -57,7 +136,7 @@ const FORMATTERS = {
   USER_REACTIVATED: (p) => ['♻️ User Reactivated', ...userLines(p), `⏰ ${ts()}`],
   USER_DELETED: (p) => ['🗑️ User Deleted', ...userLines(p), `⏰ ${ts()}`],
   DAILY_CHECKIN: (p) => ['📋 Daily Check-in', ...userLines(p), `👣 Steps: ${s(p.steps)}`, `💧 Water: ${s(p.water)}`, `🥩 Protein: ${s(p.protein)}`, `😴 Sleep: ${s(p.sleep)}`, `⏰ ${ts()}`],
-  SUNDAY_CHECKIN: (p) => ['📝 Sunday Check-in', ...userLines(p), `🏋️ Training: ${s(p.training)}`, `🥗 Nutrition: ${s(p.nutrition)}`, `⏰ ${ts()}`],
+  SUNDAY_CHECKIN: (p) => ['📝 Sunday Check-in', ...userLines(p), `🏋️ Training: ${s(p.training_go || p.training)}`, `🥗 Nutrition: ${s(p.nutrition_go || p.nutrition)}`, `⏰ ${ts()}`],
   WORKOUT_LOGGED: (p) => ['🏋️ Workout Logged', ...userLines(p), `🎯 Type: ${s(p.type)}`, `⏱ Duration: ${s(p.duration)}`, `⏰ ${ts()}`],
   AUDIT_FORM: (p) => ['📋 Audit Form Submitted', ...userLines(p), `🌍 ${s(p.city)}, ${s(p.country)}`, `🎂 Age: ${s(p.age)}  |  ${s(p.sex)}`, `💼 Occupation: ${s(p.occupation)}`, `🏃 Work Intensity: ${s(p.work_intensity)}`, `💪 Fitness Level: ${s(p.fitness_experience)}`, `⏰ ${ts()}`],
   PART2_FORM: (p) => ['📋 Part-2 Form Submitted', ...userLines(p), `🎯 Goals: ${s(p.goals)}`, `⏰ ${ts()}`],
@@ -85,7 +164,7 @@ function formatEventMessage(eventType, payload = {}) {
   const meta = EVENT_META[eventType] || { priority: PRIORITY.INFO, dedup: 5 * 60 * 1000 };
   return {
     meta,
-    message: buildMessage(eventType, formatter(payload), meta.priority)
+    message: buildMessage(eventType, [...formatter(payload), ...payloadLines(payload)], meta.priority)
   };
 }
 
@@ -112,15 +191,21 @@ async function notify(eventType, payload = {}, opts = {}) {
     }
     mark(fp);
     const media = payload && payload.mediaUrl ? payload.mediaUrl : null;
-    const result = await sendWhatsAppWithFallback(formatted.message, {
-      mediaUrl: media,
-      templateSid: templateSidForEvent(eventType),
-      preferTemplate: true
-    });
-    if (!result.ok) {
-      console.warn(`[notify] ${eventType} WhatsApp NOT sent — reason: ${result.reason}`, result.error || result.missing || '');
+    const chunks = chunkMessage(formatted.message, 1500);
+    let last = { ok: false, reason: 'not_sent' };
+    for (let i = 0; i < chunks.length; i++) {
+      const result = await sendWhatsAppWithFallback(chunks[i], {
+        mediaUrl: i === 0 ? media : null,
+        templateSid: templateSidForEvent(eventType),
+        preferTemplate: true
+      });
+      last = result;
+      if (!result.ok) {
+        console.warn(`[notify] ${eventType} WhatsApp chunk ${i + 1}/${chunks.length} NOT sent — reason: ${result.reason}`, result.error || result.missing || '');
+        return result;
+      }
     }
-    return result;
+    return last;
   } catch (err) {
     console.error('[notify] unexpected error for', eventType, ':', err.message);
     return { ok: false, reason: 'notify_exception', error: err.message };

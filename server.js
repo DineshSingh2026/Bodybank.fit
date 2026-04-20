@@ -1494,7 +1494,10 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
       sex: b.sex || '—',
       occupation: b.occupation || '—',
       work_intensity: b.work_intensity || '—',
-      fitness_experience: b.fitness_experience || '—'
+      fitness_experience: b.fitness_experience || '—',
+      goals: b.goals || '—',
+      motivation: b.motivation || '—',
+      raw: b
     };
     console.log('[audit] firing AUDIT_FORM notify for:', b.email);
     const auditTemplateSid = String(process.env.TWILIO_AUDIT_TEMPLATE_SID || '').trim();
@@ -1585,7 +1588,21 @@ app.post('/api/part2', rateLimiter(5, 60000), async (req, res) => {
         { formId: id }
       );
     }
-    notifyAsync('PART2_FORM', { name: b.name || '—', email: b.email || '—', mobile: b.mobile || '—', goals: b.goals || '—' });
+    notifyAsync('PART2_FORM', {
+      name: b.name || '—',
+      email: b.email || '—',
+      mobile: b.mobile || '—',
+      goals: b.goals || '—',
+      sports_history: b.sports_history || '—',
+      injuries: b.injuries || '—',
+      mental_health: b.mental_health || '—',
+      gym_experience: b.gym_experience || '—',
+      food_choices: b.food_choices || '—',
+      vices_addictions: b.vices_addictions || '—',
+      what_compelled: b.what_compelled || '—',
+      activity_level: b.activity_level || '—',
+      user_id: b.user_id || '—'
+    });
     res.json({ id, message: 'Form submitted successfully' });
   } catch (e) {
     res.status(500).json({ error: 'Submission failed' });
@@ -2240,7 +2257,25 @@ app.post('/api/sunday-checkin', rateLimiter(10, 60000), async (req, res) => {
         ymd
       );
     }
-    notifyAsync('SUNDAY_CHECKIN', { name: b.full_name || '—', email: b.reply_email || '—', training: b.training_go || '—', nutrition: b.nutrition_go || '—' });
+    notifyAsync('SUNDAY_CHECKIN', {
+      name: b.full_name || '—',
+      email: b.reply_email || '—',
+      user_id: b.user_id || '—',
+      plan: b.plan || '—',
+      current_weight_waist_week: b.current_weight_waist_week || '—',
+      last_week_weight_waist: b.last_week_weight_waist || '—',
+      total_weight_loss: b.total_weight_loss || '—',
+      training_go: b.training_go || '—',
+      nutrition_go: b.nutrition_go || '—',
+      sleep: b.sleep || '—',
+      occupation_stress: b.occupation_stress || '—',
+      other_stress: b.other_stress || '—',
+      differences_felt: b.differences_felt || '—',
+      achievements: b.achievements || '—',
+      improve_next_week: b.improve_next_week || '—',
+      questions: b.questions || '—',
+      body_fat_percent: bodyFatPct != null ? bodyFatPct : '—'
+    });
     res.json({ id, message: 'Sunday check-in submitted successfully' });
   } catch (e) {
     console.error('Sunday check-in error:', e.message);
