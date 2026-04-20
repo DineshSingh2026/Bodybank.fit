@@ -4527,6 +4527,9 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="form-section-title">Contact details</div>
       <div class="form-group"><label>Mobile number <span class="form-hint" style="display:inline;font-weight:400">(Linked to WhatsApp)</span></label><input type="tel" class="form-input" id="profPhone" placeholder="e.g. +91 98765 43210"><span class="form-hint">Used for scheduling and support</span></div>
       <div class="form-group"><label>Email address</label><input type="email" class="form-input" id="profEmail" placeholder="e.g. john@example.com"><span class="form-error" id="profEmailError" style="display:none"></span></div>
+      <div class="form-divider"></div>
+      <div class="form-section-title">Body metrics</div>
+      <div class="form-group"><label for="profHeightCm">Height (cm) <span class="form-hint" style="display:inline;font-weight:400">— for nutrition energy (RMR)</span></label><input type="number" class="form-input" id="profHeightCm" min="100" max="230" step="1" inputmode="numeric" placeholder="e.g. 175"><span class="form-hint">Whole centimeters, 100–230. Used with your weight and age for daily energy estimates.</span><span class="form-error" id="profHeightError" style="display:none"></span></div>
       <p class="form-success" id="profileSaveSuccess" style="display:none;text-align:center;margin-top:12px">Profile updated successfully.</p>
       <div style="display:flex;gap:14px;justify-content:center;margin-top:24px">
         <button class="nav-login" style="padding:12px 32px" onclick="loadProfile()">Discard</button>
@@ -6293,6 +6296,18 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <button type="button" class="form-submit" style="margin-top:12px;background:transparent;border:1px solid rgba(200,164,78,0.45);color:var(--cream);font-weight:600" onclick="bbProfilePhotoPromptDismiss()">Not now</button>
   </div>
 </div>
+<div class="modal-overlay" id="heightRequiredModal" style="z-index:100025;background:rgba(6,6,6,0.92)" role="dialog" aria-modal="true" aria-labelledby="heightRequiredTitle">
+  <div class="modal login-modal" style="max-width:420px">
+    <h2 id="heightRequiredTitle" style="margin-top:0">Add your height</h2>
+    <p class="form-hint" style="margin-bottom:16px;line-height:1.45">We use your height with your weight and age to estimate resting metabolism (RMR) for nutrition energy. Please enter your real height in centimeters.</p>
+    <div class="form-group">
+      <label for="heightRequiredInputCm">Height (cm) <span style="color:var(--gold)">*</span></label>
+      <input type="number" class="form-input" id="heightRequiredInputCm" min="100" max="230" step="1" inputmode="numeric" placeholder="e.g. 175" autocomplete="off">
+    </div>
+    <span class="form-error" id="heightRequiredError" style="display:none;margin-bottom:12px"></span>
+    <button type="button" class="form-submit" onclick="submitHeightRequiredModal()">Save &amp; continue</button>
+  </div>
+</div>
 <div class="modal-overlay" id="leaderboardOptInModal" onclick="if(event.target===this)closeModal('leaderboardOptInModal')">
   <div class="modal login-modal modal-with-scroll" style="max-width:440px">
     <button class="modal-close" onclick="closeModal('leaderboardOptInModal')" type="button">&times;</button>
@@ -7603,6 +7618,7 @@ async function updateGoogleButtonVisibility(){
   }
 }
 function closeModal(id){
+  if (id === 'heightRequiredModal' && window._bbHeightGate) return;
   var el = document.getElementById(id);
   if (el) {
     el.classList.remove('open');
@@ -15998,6 +16014,49 @@ function bbProfilePhotoPromptGo() {
   if (typeof switchUserTab === 'function') switchUserTab('profile');
 }
 
+function bbProfileNeedsHeight(profile) {
+  if (!profile || profile.role !== 'user') return false;
+  var h = profile.height_cm;
+  if (h == null || h === '') return true;
+  var n = typeof h === 'number' ? h : parseInt(h, 10);
+  return !Number.isFinite(n) || n < 100 || n > 230;
+}
+function bbOpenHeightRequiredModal() {
+  if (!window.currentUser || window.currentUser.role !== 'user') return;
+  var inp = document.getElementById('heightRequiredInputCm');
+  var err = document.getElementById('heightRequiredError');
+  if (inp) inp.value = '';
+  if (err) { err.style.display = 'none'; err.textContent = ''; }
+  window._bbHeightGate = true;
+  openModal('heightRequiredModal');
+}
+async function submitHeightRequiredModal() {
+  if (!window.currentUser) return;
+  var inp = document.getElementById('heightRequiredInputCm');
+  var err = document.getElementById('heightRequiredError');
+  var raw = inp ? String(inp.value || '').trim() : '';
+  var h = parseInt(raw, 10);
+  if (!Number.isFinite(h) || h < 100 || h > 230) {
+    if (err) { err.textContent = 'Enter a whole number between 100 and 230 (centimeters).'; err.style.display = 'block'; }
+    return;
+  }
+  var data = await apiCall('PUT', '/api/profile/' + window.currentUser.id, { height_cm: h });
+  if (data && data.error) {
+    if (err) { err.textContent = data.error; err.style.display = 'block'; }
+    return;
+  }
+  window.currentUser.height_cm = h;
+  var prof = document.getElementById('profHeightCm');
+  if (prof) prof.value = String(h);
+  var phErr = document.getElementById('profHeightError');
+  if (phErr) { phErr.style.display = 'none'; phErr.textContent = ''; }
+  persistCurrentSession();
+  window._bbHeightGate = false;
+  closeModal('heightRequiredModal');
+  maybeShowProfilePhotoPrompt();
+  if (typeof loadNutritionCheckinPanel === 'function') loadNutritionCheckinPanel();
+}
+
 async function loadProfile() {
   if (!window.currentUser) return;
   var skA = document.getElementById('profileAvatarSkeleton');
@@ -16018,13 +16077,25 @@ async function loadProfile() {
   document.getElementById('profLastName').value = data.last_name || '';
   document.getElementById('profPhone').value = data.phone || '';
   document.getElementById('profEmail').value = data.email || '';
+  var hProf = document.getElementById('profHeightCm');
+  if (hProf) {
+    if (data.height_cm != null && data.height_cm !== '') hProf.value = String(data.height_cm);
+    else hProf.value = '';
+  }
+  var phErr = document.getElementById('profHeightError');
+  if (phErr) { phErr.style.display = 'none'; phErr.textContent = ''; }
   setProfileAvatar(data.profile_picture || '');
   setUserWelcomeAvatar(data.profile_picture || '');
   if (window.currentUser) {
     window.currentUser.profile_picture = data.profile_picture || '';
+    window.currentUser.height_cm = data.height_cm != null && data.height_cm !== '' ? Number(data.height_cm) : null;
     persistCurrentSession();
   }
-  maybeShowProfilePhotoPrompt();
+  if (bbProfileNeedsHeight({ role: window.currentUser.role, height_cm: data.height_cm })) {
+    bbOpenHeightRequiredModal();
+  } else {
+    maybeShowProfilePhotoPrompt();
+  }
 }
 
 var _eliteCardBlob = null;
@@ -16214,9 +16285,11 @@ async function saveProfile() {
   if (!window.currentUser) return;
   var emailVal = document.getElementById('profEmail').value.trim();
   var emailErr = document.getElementById('profEmailError');
+  var heightErr = document.getElementById('profHeightError');
   var successEl = document.getElementById('profileSaveSuccess');
   document.querySelectorAll('#usec-profile .form-input').forEach(function(inp) { inp.classList.remove('has-error','has-success'); });
   if (emailErr) { emailErr.style.display = 'none'; emailErr.textContent = ''; }
+  if (heightErr) { heightErr.style.display = 'none'; heightErr.textContent = ''; }
   if (successEl) successEl.style.display = 'none';
   if (emailVal && !validateEmail(emailVal)) {
     if (emailErr) { emailErr.textContent = 'Please enter a valid email address'; emailErr.style.display = 'block'; }
@@ -16229,27 +16302,53 @@ async function saveProfile() {
     phone: document.getElementById('profPhone').value.trim(),
     email: emailVal
   };
+  var hEl = document.getElementById('profHeightCm');
+  var heightRaw = hEl ? String(hEl.value || '').trim() : '';
+  if (heightRaw !== '') {
+    var hc = parseInt(heightRaw, 10);
+    if (!Number.isFinite(hc) || hc < 100 || hc > 230) {
+      if (heightErr) { heightErr.textContent = 'Height must be a whole number between 100 and 230 cm.'; heightErr.style.display = 'block'; }
+      if (hEl) hEl.classList.add('has-error');
+      return;
+    }
+    body.height_cm = hc;
+  }
   if (window._pendingAvatar) {
     body.profile_picture = window._pendingAvatar;
     window._pendingAvatar = null;
   }
   const data = await apiCall('PUT', '/api/profile/' + window.currentUser.id, body);
-  if (data.error) { if (emailErr) { emailErr.textContent = data.error; emailErr.style.display = 'block'; document.getElementById('profEmail').classList.add('has-error'); } else alert(data.error); return; }
+  if (data.error) {
+    if (data.error.indexOf('Height') >= 0 && heightErr) {
+      heightErr.textContent = data.error;
+      heightErr.style.display = 'block';
+      if (hEl) hEl.classList.add('has-error');
+    } else if (emailErr) { emailErr.textContent = data.error; emailErr.style.display = 'block'; document.getElementById('profEmail').classList.add('has-error'); }
+    else alert(data.error);
+    return;
+  }
   window.currentUser.first_name = body.first_name;
   window.currentUser.last_name = body.last_name;
   window.currentUser.email = body.email;
   window.currentUser.phone = body.phone;
+  if (body.height_cm !== undefined) window.currentUser.height_cm = body.height_cm;
   if (body.profile_picture) {
     window.currentUser.profile_picture = body.profile_picture;
     setProfileAvatar(body.profile_picture);
     setUserWelcomeAvatar(body.profile_picture);
     if (typeof closeModal === 'function') closeModal('profilePhotoPromptModal');
   }
+  if (body.height_cm !== undefined) {
+    window._bbHeightGate = false;
+    if (typeof closeModal === 'function') closeModal('heightRequiredModal');
+    maybeShowProfilePhotoPrompt();
+  }
   persistCurrentSession();
   document.getElementById('userWelcomeName').textContent = body.first_name || 'User';
   if (successEl) { successEl.style.display = 'block'; successEl.style.textAlign = 'center'; }
   document.querySelectorAll('#usec-profile .form-input').forEach(function(inp) { inp.classList.add('has-success'); });
   showPopup('Profile Updated', 'Your information has been saved.', '', 'OK');
+  if (body.height_cm !== undefined && typeof loadNutritionCheckinPanel === 'function') loadNutritionCheckinPanel();
 }
 
 // Workout Timer — wall clock + localStorage (accurate when tab is throttled or app is in background)

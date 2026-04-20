@@ -417,7 +417,7 @@ function mifflinStJeorRmr(weightKg, heightCm, ageYears, isFemale) {
  * Anthropometrics for RMR. Height defaults by sex when unknown (population prior).
  */
 async function getUserRmrProfile(db, userId) {
-  const user = await db.queryOne('SELECT id, email, dob, gender FROM users WHERE id = ?', [userId]);
+  const user = await db.queryOne('SELECT id, email, dob, gender, height_cm FROM users WHERE id = ?', [userId]);
   const email = user && user.email ? String(user.email).trim().toLowerCase() : '';
 
   let isFemale = isFemaleFromSexString(user && user.gender);
@@ -450,9 +450,16 @@ async function getUserRmrProfile(db, userId) {
   const ep = await getUserEnergyProfile(db, userId);
   const weightKg = ep.weightKg;
 
-  let heightCm = isFemale ? 162 : 175;
-  if (!gotSexFromUser) heightCm = 170;
-  const heightDefaulted = true;
+  let heightCm;
+  let heightDefaulted = true;
+  const storedH = user && user.height_cm != null && user.height_cm !== '' ? parseInt(user.height_cm, 10) : NaN;
+  if (Number.isFinite(storedH) && storedH >= 100 && storedH <= 230) {
+    heightCm = storedH;
+    heightDefaulted = false;
+  } else {
+    heightCm = isFemale ? 162 : 175;
+    if (!gotSexFromUser) heightCm = 170;
+  }
 
   const rmr = mifflinStJeorRmr(weightKg, heightCm, ageYears, isFemale);
 

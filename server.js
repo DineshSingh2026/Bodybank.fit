@@ -363,6 +363,7 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN city TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN dob DATE`); } catch (e) { /* column may exist */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN gender TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS height_cm INTEGER`); } catch (e) { /* ignore */ }
   await pool.query("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL").catch(() => {});
 
   await pool.query(`CREATE TABLE IF NOT EXISTS audit_requests (
@@ -1194,7 +1195,7 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     if (user.role === 'user') {
       notifyAsync('USER_LOGIN', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, role: user.role, mobile: user.phone || '—' });
     }
-    res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', token });
+    res.json({ id: user.id, email: user.email, first_name: user.first_name, last_name: user.last_name, profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', height_cm: user.height_cm != null && user.height_cm !== '' ? Number(user.height_cm) : null, token });
   } catch (e) {
     console.error('[Login] Error:', e.message);
     res.status(500).json({ error: 'Server error. Please try again.' });
@@ -1242,7 +1243,7 @@ app.post('/api/auth/google', async (req, res) => {
     await syncUserCountryAndTimezone(user.id, user.email);
     user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
     const token = signToken({ id: user.id, email: user.email, role: user.role });
-    res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', token });
+    res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', height_cm: user.height_cm != null && user.height_cm !== '' ? Number(user.height_cm) : null, token });
   } catch (e) {
     console.error('Google auth error:', e);
     res.status(500).json({ error: 'Google auth failed' });
@@ -1421,7 +1422,7 @@ app.post('/api/auth/reset-password', rateLimiter(10, 60000), async (req, res) =>
     if (pw.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
     const row = await queryOne(
-      "SELECT pr.id, pr.user_id, pr.used, pr.expires_at, u.role, u.password, u.email, u.first_name, u.last_name, u.profile_picture, u.country, u.timezone FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
+      "SELECT pr.id, pr.user_id, pr.used, pr.expires_at, u.role, u.password, u.email, u.first_name, u.last_name, u.profile_picture, u.country, u.timezone, u.height_cm FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
       [token]
     );
     if (!row || row.used) return res.status(400).json({ error: 'Invalid or expired reset token' });
@@ -1451,6 +1452,7 @@ app.post('/api/auth/reset-password', rateLimiter(10, 60000), async (req, res) =>
       role: row.role,
       country: row.country || '',
       timezone: row.timezone || '',
+      height_cm: row.height_cm != null && row.height_cm !== '' ? Number(row.height_cm) : null,
       token: sessionToken
     });
   } catch (e) {
@@ -1759,14 +1761,15 @@ app.delete('/api/tribe/:id', async (req, res) => {
 
 // ============ USER PROFILE ============
 app.get('/api/profile/:id', async (req, res) => {
-  const user = await queryOne("SELECT id,email,first_name,last_name,phone,country,state_province,city,dob,gender,timezone,profile_picture,role,created_at FROM users WHERE id=?", [req.params.id]);
+  const user = await queryOne("SELECT id,email,first_name,last_name,phone,country,state_province,city,dob,gender,height_cm,timezone,profile_picture,role,created_at FROM users WHERE id=?", [req.params.id]);
   if (!user) return res.status(404).json({ error: 'Not found' });
   res.json(user);
 });
 
 app.put('/api/profile/:id', async (req, res) => {
-  const { first_name, last_name, phone, email, profile_picture, country, timezone, state_province, city, dob, gender } = req.body || {};
+  const { first_name, last_name, phone, email, profile_picture, country, timezone, state_province, city, dob, gender, height_cm } = req.body || {};
   const updates = [], values = [];
+  let heightUpdated = false;
   if (first_name !== undefined) { updates.push('first_name=?'); values.push(first_name); }
   if (last_name !== undefined) { updates.push('last_name=?'); values.push(last_name); }
   if (phone !== undefined) { updates.push('phone=?'); values.push(phone); }
@@ -1775,6 +1778,21 @@ app.put('/api/profile/:id', async (req, res) => {
   if (city !== undefined) { updates.push('city=?'); values.push(String(city || '').trim().slice(0, 100)); }
   if (dob !== undefined) { updates.push('dob=?'); values.push(dob && String(dob).trim() ? String(dob).trim().slice(0, 10) : null); }
   if (gender !== undefined) { updates.push('gender=?'); values.push(String(gender || '').trim().slice(0, 20)); }
+  if (height_cm !== undefined) {
+    if (height_cm === null || height_cm === '') {
+      updates.push('height_cm=?');
+      values.push(null);
+      heightUpdated = true;
+    } else {
+      const h = parseInt(height_cm, 10);
+      if (!Number.isFinite(h) || h < 100 || h > 230) {
+        return res.status(400).json({ error: 'Height must be a whole number between 100 and 230 cm' });
+      }
+      updates.push('height_cm=?');
+      values.push(h);
+      heightUpdated = true;
+    }
+  }
   if (timezone !== undefined) {
     const tzValue = String(timezone || '').trim() || inferTimezoneFromCountry(country);
     updates.push('timezone=?');
@@ -1797,6 +1815,12 @@ app.put('/api/profile/:id', async (req, res) => {
   values.push(req.params.id);
   try {
     await run(`UPDATE users SET ${updates.join(',')} WHERE id=?`, values);
+    if (heightUpdated) {
+      const tzRow = await queryOne('SELECT timezone FROM users WHERE id = ?', [req.params.id]);
+      const uTz = (tzRow && tzRow.timezone) ? tzRow.timezone : STREAK_TIMEZONE;
+      const today = streakTodayYmdInTz(uTz) || streakDateToYmd(new Date());
+      await safeRecomputeNutritionForDate(req.params.id, today);
+    }
     res.json({ message: 'Profile updated' });
   } catch (e) {
     res.status(500).json({ error: 'Update failed' });
