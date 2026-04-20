@@ -642,6 +642,10 @@ async function initDB() {
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_nutrition_daily_stats_date ON nutrition_daily_stats(stat_date)`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE nutrition_daily_stats ADD COLUMN IF NOT EXISTS workout_calories_out INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE nutrition_daily_stats ADD COLUMN IF NOT EXISTS step_calories_out INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE nutrition_daily_stats ADD COLUMN IF NOT EXISTS rmr_kcal_est INTEGER`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE nutrition_daily_stats ADD COLUMN IF NOT EXISTS tef_kcal_est INTEGER`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE nutrition_daily_stats ADD COLUMN IF NOT EXISTS total_out_est_kcal INTEGER`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE nutrition_daily_stats ADD COLUMN IF NOT EXISTS energy_balance_est INTEGER`); } catch (e) { /* ignore */ }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS blood_analysis_reports (
     id TEXT PRIMARY KEY,

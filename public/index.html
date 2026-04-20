@@ -13739,6 +13739,10 @@ function bbNutritionDailyStatsNorm(stats) {
     workoutCaloriesOut: stats.workout_calories_out,
     stepCaloriesOut: stats.step_calories_out,
     energyDifference: stats.energy_difference,
+    rmrKcalEst: stats.rmr_kcal_est,
+    tefKcalEst: stats.tef_kcal_est,
+    totalOutEstKcal: stats.total_out_est_kcal,
+    energyBalanceEst: stats.energy_balance_est,
     mealQualityScore: stats.meal_quality_score
   };
 }
@@ -14880,6 +14884,10 @@ function loadAdminNutritionReport() {
         var workoutOut = sn && sn.workoutCaloriesOut != null ? Number(sn.workoutCaloriesOut) : 0;
         var stepsOut = sn && sn.stepCaloriesOut != null ? Number(sn.stepCaloriesOut) : 0;
         var balance = caloriesOut - intakeCalories;
+        var rmrEst = sn && sn.rmrKcalEst != null ? Number(sn.rmrKcalEst) : null;
+        var tefEst = sn && sn.tefKcalEst != null ? Number(sn.tefKcalEst) : null;
+        var totalOutEst = sn && sn.totalOutEstKcal != null ? Number(sn.totalOutEstKcal) : null;
+        var balanceEst = sn && sn.energyBalanceEst != null ? Number(sn.energyBalanceEst) : null;
         var carbPct = Math.max(0, Math.min(100, Math.round((totalCarbs / Math.max(1, carbGoal)) * 100)));
         var proPct = Math.max(0, Math.min(100, Math.round((totalProtein / Math.max(1, proGoal)) * 100)));
         var fatPct = Math.max(0, Math.min(100, Math.round((totalFat / Math.max(1, fatGoal)) * 100)));
@@ -14904,17 +14912,39 @@ function loadAdminNutritionReport() {
         }
         var confText = confLevel ? (confLevel.charAt(0).toUpperCase() + confLevel.slice(1) + ' confidence') : 'N/A';
         var balClass = balance > 0 ? 'excess' : balance < 0 ? 'deficit' : 'neutral';
-        var balText = balance > 0 ? 'Excess' : balance < 0 ? 'Deficit' : 'Balanced';
+        var balText = balance > 0 ? 'More burn (activity)' : balance < 0 ? 'Less burn (activity)' : 'Balanced (activity)';
+        var balEstClass = balanceEst != null && balanceEst > 0 ? 'excess' : balanceEst != null && balanceEst < 0 ? 'deficit' : 'neutral';
+        var balEstText = balanceEst == null ? '—' : balanceEst > 0 ? 'Surplus' : balanceEst < 0 ? 'Deficit' : 'Balanced';
         var summaryHtml = sn
           ? '<div class="admin-nutrition-equation">' +
-              '<div class="eq-cell"><span class="eq-num">' + caloriesOut + '</span><span class="eq-lbl">Outage</span></div>' +
+              '<div class="eq-cell"><span class="eq-num">' + (rmrEst != null ? rmrEst : '—') + '</span><span class="eq-lbl">RMR est</span></div>' +
+              '<span class="eq-op">+</span>' +
+              '<div class="eq-cell"><span class="eq-num">' + (tefEst != null ? tefEst : '—') + '</span><span class="eq-lbl">TEF ~9%</span></div>' +
+              '<span class="eq-op">+</span>' +
+              '<div class="eq-cell"><span class="eq-num">' + workoutOut + '</span><span class="eq-lbl">Workout</span></div>' +
+              '<span class="eq-op">+</span>' +
+              '<div class="eq-cell"><span class="eq-num">' + stepsOut + '</span><span class="eq-lbl">Steps</span></div>' +
+              '<span class="eq-op">=</span>' +
+              '<div class="eq-cell"><span class="eq-num">' + (totalOutEst != null ? totalOutEst : '—') + '</span><span class="eq-lbl">Total out est</span></div>' +
+            '</div>' +
+            '<div class="admin-nutrition-equation" style="margin-top:10px">' +
+              '<div class="eq-cell"><span class="eq-num">' + intakeCalories + '</span><span class="eq-lbl">Intake</span></div>' +
+              '<span class="eq-op">−</span>' +
+              '<div class="eq-cell"><span class="eq-num">' + (totalOutEst != null ? totalOutEst : '—') + '</span><span class="eq-lbl">Total out est</span></div>' +
+              '<span class="eq-op">=</span>' +
+              '<div class="eq-cell result' + (balanceEst != null && balanceEst < 0 ? ' over' : '') + '"><span class="eq-num">' + (balanceEst == null ? '—' : (balanceEst > 0 ? '+' : '') + balanceEst) + '</span><span class="eq-lbl">Daily balance est</span></div>' +
+            '</div>' +
+            '<div class="admin-nutrition-balance-chip ' + balEstClass + '">Daily: ' + balEstText + '</div>' +
+            '<p class="admin-nutrition-confidence" style="margin:0 0 6px">RMR = Mifflin–St Jeor; height/age use profile when available, else conservative defaults.</p>' +
+            '<div class="admin-nutrition-equation" style="opacity:0.92">' +
+              '<div class="eq-cell"><span class="eq-num">' + caloriesOut + '</span><span class="eq-lbl">Activity only</span></div>' +
               '<span class="eq-op">−</span>' +
               '<div class="eq-cell"><span class="eq-num">' + intakeCalories + '</span><span class="eq-lbl">Intake</span></div>' +
               '<span class="eq-op">=</span>' +
-              '<div class="eq-cell result' + (balance < 0 ? ' over' : '') + '"><span class="eq-num">' + (balance > 0 ? '+' : '') + balance + '</span><span class="eq-lbl">Balance</span></div>' +
+              '<div class="eq-cell result' + (balance < 0 ? ' over' : '') + '"><span class="eq-num">' + (balance > 0 ? '+' : '') + balance + '</span><span class="eq-lbl">Activity Δ</span></div>' +
             '</div>' +
-            '<div class="admin-nutrition-balance-chip ' + balClass + '">' + balText + '</div>' +
-            '<p class="admin-nutrition-confidence" style="margin:0 0 10px">Outage split: Workout ' + workoutOut + ' kcal + Steps ' + stepsOut + ' kcal</p>' +
+            '<div class="admin-nutrition-balance-chip ' + balClass + '">Activity: ' + balText + '</div>' +
+            '<p class="admin-nutrition-confidence" style="margin:0 0 10px">Workout kcal only when logged on completed sessions. Activity = Workout ' + workoutOut + ' + Steps ' + stepsOut + '.</p>' +
             '<div class="admin-nutrition-macro-bars">' +
               '<div class="bar-row"><span class="bar-lbl">Carbs</span><div class="bar-track"><div class="bar-fill amber" style="width:' + carbPct + '%"></div></div><span class="bar-goal">' + totalCarbs + ' / ' + carbGoal + ' g</span></div>' +
               '<div class="bar-row"><span class="bar-lbl">Protein</span><div class="bar-track"><div class="bar-fill green" style="width:' + proPct + '%"></div></div><span class="bar-goal">' + totalProtein + ' / ' + proGoal + ' g</span></div>' +
@@ -14944,7 +14974,7 @@ function loadAdminNutritionReport() {
           '<div class="admin-nutrition-client-head">' +
           '<div class="admin-nutrition-avatar">' + escapeHtml(initials) + '</div>' +
           '<div class="info"><div class="name">' + escapeHtml(c.userName || '') + '</div>' +
-          '<div class="meta">' + escapeHtml(c.userEmail || '') + ' · Intake vs outage balance</div></div>' +
+          '<div class="meta">' + escapeHtml(c.userEmail || '') + ' · Nutrition energy (RMR + TEF + activity)</div></div>' +
           '<div class="admin-nutrition-score-ring" style="border-color:' + scoreColor + '">' +
           '<span style="font-weight:700;color:' + scoreColor + '">' + (score != null ? score.toFixed(1) : '—') + '</span><span style="font-size:8px;color:var(--muted)">score</span></div></div>' +
           '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' +

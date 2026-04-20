@@ -370,6 +370,103 @@ Mark is_food_meal=false when input appears non-food (documents, faces, pets, ran
   }
 }
 
+/** Age in full years from ISO date string (YYYY-MM-DD). */
+function ageYearsFromDob(dob) {
+  if (!dob) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(dob));
+  if (!m) return null;
+  const y = parseInt(m[1], 10);
+  const mo = parseInt(m[2], 10) - 1;
+  const d = parseInt(m[3], 10);
+  const birth = new Date(Date.UTC(y, mo, d));
+  if (Number.isNaN(birth.getTime())) return null;
+  const t = new Date();
+  let age = t.getUTCFullYear() - birth.getUTCFullYear();
+  const md = t.getUTCMonth() - birth.getUTCMonth();
+  if (md < 0 || (md === 0 && t.getUTCDate() < birth.getUTCDate())) age -= 1;
+  if (age < 14 || age > 100) return null;
+  return age;
+}
+
+function isFemaleFromSexString(s) {
+  return /^(f|female|woman|girl|w)$/.test(String(s || '').toLowerCase().trim());
+}
+
+function isMaleFromSexString(s) {
+  return /^(m|male|man|boy)$/.test(String(s || '').toLowerCase().trim());
+}
+
+function knownBinarySexFromString(s) {
+  return isFemaleFromSexString(s) || isMaleFromSexString(s);
+}
+
+/**
+ * Mifflin–St Jeor RMR (kcal/day), rounded.
+ * W kg, H cm, A years.
+ */
+function mifflinStJeorRmr(weightKg, heightCm, ageYears, isFemale) {
+  const W = Math.max(30, Math.min(300, Number(weightKg) || 70));
+  const H = Math.max(100, Math.min(230, Number(heightCm) || 170));
+  const A = Math.max(14, Math.min(100, Number(ageYears) || 35));
+  const x = 10 * W + 6.25 * H - 5 * A;
+  const rmr = Math.round(isFemale ? x - 161 : x + 5);
+  return Math.max(800, Math.min(4500, rmr));
+}
+
+/**
+ * Anthropometrics for RMR. Height defaults by sex when unknown (population prior).
+ */
+async function getUserRmrProfile(db, userId) {
+  const user = await db.queryOne('SELECT id, email, dob, gender FROM users WHERE id = ?', [userId]);
+  const email = user && user.email ? String(user.email).trim().toLowerCase() : '';
+
+  let isFemale = isFemaleFromSexString(user && user.gender);
+  let gotSexFromUser = knownBinarySexFromString(user && user.gender);
+  if (!gotSexFromUser && email) {
+    const ar = await db.queryOne(
+      `SELECT sex FROM audit_requests WHERE LOWER(email) = ? ORDER BY created_at DESC LIMIT 1`,
+      [email]
+    );
+    if (ar && ar.sex) {
+      isFemale = isFemaleFromSexString(ar.sex);
+      gotSexFromUser = knownBinarySexFromString(ar.sex);
+    }
+  }
+
+  let ageYears = user && user.dob ? ageYearsFromDob(user.dob) : null;
+  if (ageYears == null && email) {
+    const ar = await db.queryOne(
+      `SELECT age FROM audit_requests WHERE LOWER(email) = ? AND age IS NOT NULL ORDER BY created_at DESC LIMIT 1`,
+      [email]
+    );
+    if (ar && ar.age != null) {
+      const a = parseInt(ar.age, 10);
+      if (Number.isFinite(a) && a >= 14 && a <= 100) ageYears = a;
+    }
+  }
+  const ageDefaulted = ageYears == null;
+  if (ageYears == null) ageYears = 35;
+
+  const ep = await getUserEnergyProfile(db, userId);
+  const weightKg = ep.weightKg;
+
+  let heightCm = isFemale ? 162 : 175;
+  if (!gotSexFromUser) heightCm = 170;
+  const heightDefaulted = true;
+
+  const rmr = mifflinStJeorRmr(weightKg, heightCm, ageYears, isFemale);
+
+  return {
+    rmr,
+    weightKg,
+    heightCm,
+    ageYears,
+    isFemale,
+    heightDefaulted,
+    ageDefaulted
+  };
+}
+
 async function getUserGoals(db, userId) {
   const row = await db.queryOne(
     'SELECT target_weight, weekly_workout_target FROM user_goals WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
@@ -383,10 +480,13 @@ async function getUserGoals(db, userId) {
   return { calorieGoal, proteinGoal };
 }
 
-/** Estimated workout kcal burned: use logged calories when present, else ~5 kcal/min from duration */
+/**
+ * Workout kcal: only positive logged calories on completed sessions.
+ * workout_completed FALSE excludes the row; NULL/TRUE counts (legacy rows).
+ */
 async function sumWorkoutCaloriesOut(db, userId, ymd) {
   const rows = await db.queryAll(
-    `SELECT duration_seconds, calories, workout_completed
+    `SELECT calories, workout_completed
      FROM workout_logs
      WHERE user_id = ?
        AND (
@@ -397,13 +497,9 @@ async function sumWorkoutCaloriesOut(db, userId, ymd) {
   );
   let sum = 0;
   (rows || []).forEach((w) => {
+    if (w.workout_completed === false) return;
     const c = w.calories != null ? parseInt(w.calories, 10) : NaN;
     if (Number.isFinite(c) && c > 0) sum += c;
-    else {
-      const sec = parseInt(w.duration_seconds, 10) || 0;
-      const min = sec / 60;
-      sum += Math.round(min * 5);
-    }
   });
   return sum;
 }
@@ -527,6 +623,13 @@ async function recomputeDailyStats(db, userId, ymd) {
   const caloriesOut = workoutCaloriesOut + stepCaloriesOut;
   const energyDifference = caloriesOut - totalCalories;
 
+  const rmrProfile = await getUserRmrProfile(db, userId);
+  const rmrKcalEst = rmrProfile.rmr;
+  const tefKcalEst = Math.round(totalCalories * 0.09);
+  const activityOut = workoutCaloriesOut + stepCaloriesOut;
+  const totalOutEstKcal = rmrKcalEst + activityOut + tefKcalEst;
+  const energyBalanceEst = totalCalories - totalOutEstKcal;
+
   const weekAgg = await db.queryAll(
     `SELECT log_date,
             SUM(COALESCE((ai_result->>'calories')::int, 0)) AS cals,
@@ -552,8 +655,9 @@ async function recomputeDailyStats(db, userId, ymd) {
     `INSERT INTO nutrition_daily_stats (
       user_id, stat_date, total_calories, total_protein, total_carbs, total_fat, total_fiber,
       calorie_goal, protein_goal, meals_logged, calories_out, workout_calories_out, step_calories_out, energy_difference,
+      rmr_kcal_est, tef_kcal_est, total_out_est_kcal, energy_balance_est,
       weekly_avg_calories, weekly_avg_protein, meal_quality_score, updated_at
-    ) VALUES (?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    ) VALUES (?, ?::date, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT (user_id, stat_date) DO UPDATE SET
       total_calories = EXCLUDED.total_calories,
       total_protein = EXCLUDED.total_protein,
@@ -567,6 +671,10 @@ async function recomputeDailyStats(db, userId, ymd) {
       workout_calories_out = EXCLUDED.workout_calories_out,
       step_calories_out = EXCLUDED.step_calories_out,
       energy_difference = EXCLUDED.energy_difference,
+      rmr_kcal_est = EXCLUDED.rmr_kcal_est,
+      tef_kcal_est = EXCLUDED.tef_kcal_est,
+      total_out_est_kcal = EXCLUDED.total_out_est_kcal,
+      energy_balance_est = EXCLUDED.energy_balance_est,
       weekly_avg_calories = EXCLUDED.weekly_avg_calories,
       weekly_avg_protein = EXCLUDED.weekly_avg_protein,
       meal_quality_score = EXCLUDED.meal_quality_score,
@@ -586,6 +694,10 @@ async function recomputeDailyStats(db, userId, ymd) {
       workoutCaloriesOut,
       stepCaloriesOut,
       energyDifference,
+      rmrKcalEst,
+      tefKcalEst,
+      totalOutEstKcal,
+      energyBalanceEst,
       weeklyAvgCalories,
       weeklyAvgProtein,
       mealQualityScore
@@ -605,6 +717,10 @@ async function recomputeDailyStats(db, userId, ymd) {
     workoutCaloriesOut,
     stepCaloriesOut,
     energyDifference,
+    rmrKcalEst,
+    tefKcalEst,
+    totalOutEstKcal,
+    energyBalanceEst,
     weeklyAvgCalories,
     weeklyAvgProtein,
     mealQualityScore
