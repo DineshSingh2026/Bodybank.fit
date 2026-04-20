@@ -33,37 +33,6 @@ const EVENT_META = {
   SERVER_ERROR: { priority: PRIORITY.CRITICAL, dedup: 3 * 60 * 1000 }
 };
 
-/** Short human-readable line under the machine event id. */
-const EVENT_HEADLINE = {
-  USER_SIGNUP: 'New signup',
-  USER_SIGNUP_GOOGLE: 'New signup (Google)',
-  USER_LOGIN: 'User login',
-  PASSWORD_RESET_REQUEST: 'Password reset requested',
-  PASSWORD_RESET_DONE: 'Password reset completed',
-  USER_APPROVED: 'User approved',
-  USER_REJECTED: 'User rejected',
-  USER_SUSPENDED: 'User suspended',
-  USER_REACTIVATED: 'User reactivated',
-  USER_DELETED: 'User deleted',
-  DAILY_CHECKIN: 'Daily check-in',
-  SUNDAY_CHECKIN: 'Sunday check-in',
-  WORKOUT_LOGGED: 'Workout logged',
-  AUDIT_FORM: 'Body audit submitted',
-  PART2_FORM: 'Part 2 form submitted',
-  MEETING_SCHEDULED: 'Call scheduled',
-  CONTACT_MESSAGE: 'Contact message',
-  NUTRITION_MEAL_LOGGED: 'Meal logged',
-  NUTRITION_DAY_COMPLETE: 'Nutrition day complete',
-  BLOOD_REPORT_UPLOADED: 'Blood report uploaded',
-  BLOOD_REPORT_SENT: 'Blood report sent to user',
-  FEED_POST_UPLOADED: 'Feed post uploaded',
-  COIN_EARNED: 'Coins earned',
-  COIN_PENALTY: 'Coin penalty',
-  DAILY_COMPLIANCE_SENT: 'Daily compliance report sent',
-  DAILY_DIGEST: 'Daily executive digest',
-  SERVER_ERROR: 'Server error'
-};
-
 const _dedup = new Map();
 function s(v) { return (v === null || v === undefined || v === '') ? '—' : String(v).trim() || '—'; }
 function ts() {
@@ -74,19 +43,15 @@ function ts() {
 function tierIcon(t) { return t === PRIORITY.CRITICAL ? '🔴' : (t === PRIORITY.IMPORTANT ? '🟡' : '🟢'); }
 function isDup(fp, ttl) { const t = _dedup.get(fp); return !!(ttl && t && (Date.now() - t < ttl)); }
 function mark(fp) { _dedup.set(fp, Date.now()); }
-
-const SKIP_TOP_LEVEL_KEYS = new Set(['raw']);
-
-function labelFromKey(key) {
-  const k0 = String(key || '').split('.').pop() || key;
-  const k = String(k0 || '')
+function userLines(p) { return [`👤 ${s(p.name)}`, `📧 ${s(p.email)}`, `📱 ${s(p.mobile || p.phone)}`]; }
+function titleFromKey(key) {
+  return String(key || '')
+    .replace(/\./g, ' → ')
     .replace(/_/g, ' ')
     .replace(/\s+/g, ' ')
-    .trim();
-  if (!k) return 'Field';
-  return k.replace(/\b\w/g, (m) => m.toUpperCase());
+    .trim()
+    .replace(/\b\w/g, (m) => m.toUpperCase());
 }
-
 function isSensitivePayloadKey(key) {
   const k = String(key || '').toLowerCase();
   return (
@@ -94,7 +59,7 @@ function isSensitivePayloadKey(key) {
     k.includes('token') ||
     k.includes('secret') ||
     k.includes('authorization') ||
-    (k.includes('auth') && !k.includes('author')) ||
+    k.includes('auth') ||
     k.includes('cookie') ||
     k.includes('session') ||
     k.includes('base64') ||
@@ -103,7 +68,6 @@ function isSensitivePayloadKey(key) {
     k === 'imagedata'
   );
 }
-
 function flattenPayload(payload, prefix = '', out = []) {
   if (payload == null) return out;
   if (Array.isArray(payload)) {
@@ -112,7 +76,6 @@ function flattenPayload(payload, prefix = '', out = []) {
   }
   if (typeof payload === 'object') {
     Object.keys(payload).forEach((k) => {
-      if (!prefix && SKIP_TOP_LEVEL_KEYS.has(k)) return;
       const next = prefix ? `${prefix}.${k}` : k;
       const v = payload[k];
       if (v != null && typeof v === 'object') flattenPayload(v, next, out);
@@ -123,88 +86,17 @@ function flattenPayload(payload, prefix = '', out = []) {
   out.push([prefix || 'value', payload]);
   return out;
 }
-
-const KEY_LABEL_OVERRIDES = {
-  mealType: 'Meal type',
-  type: 'Workout type',
-  mobile: 'Phone',
-  phone: 'Phone',
-  user_id: 'User ID',
-  reply_email: 'Email',
-  mediaUrl: 'Media URL'
-};
-
-function displayLabel(key) {
-  const leaf = String(key || '').split('.').pop() || key;
-  const o = KEY_LABEL_OVERRIDES[leaf];
-  if (o) return o;
-  return labelFromKey(leaf);
-}
-
-function formatValue(value) {
-  if (value == null || value === '') return null;
-  if (typeof value === 'string') return value.trim() || null;
-  try {
-    return JSON.stringify(value);
-  } catch {
-    return String(value);
-  }
-}
-
-const PREFERRED_KEYS_FIRST = [
-  'name',
-  'email',
-  'mobile',
-  'phone',
-  'user_id',
-  'username',
-  'date',
-  'mealType',
-  'type',
-  'duration',
-  'steps',
-  'water',
-  'protein',
-  'sleep',
-  'goal',
-  'action',
-  'error'
-];
-
-function preferredIndex(leafKey) {
-  const i = PREFERRED_KEYS_FIRST.indexOf(leafKey);
-  return i === -1 ? 999 : i;
-}
-
-function payloadDetailLines(payload = {}) {
+function payloadLines(payload = {}) {
   const pairs = flattenPayload(payload);
-  const byLeaf = new Map();
-  for (const [fullKey, value] of pairs) {
-    if (isSensitivePayloadKey(fullKey)) continue;
-    const text = formatValue(value);
-    if (text == null) continue;
-    const leaf = String(fullKey || '').split('.').pop() || fullKey;
-    if (leaf === 'phone' || leaf === 'mobile') {
-      const prev = byLeaf.get('_phone_merge');
-      if (!prev || prev === '—') byLeaf.set('_phone_merge', text);
-      continue;
-    }
-    if (!byLeaf.has(leaf)) byLeaf.set(leaf, text);
+  const lines = [];
+  for (const [key, value] of pairs) {
+    if (isSensitivePayloadKey(key)) continue;
+    if (value == null || value === '') continue;
+    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    lines.push(`• ${titleFromKey(key)}: ${text}`);
   }
-  if (byLeaf.has('_phone_merge')) {
-    byLeaf.set('phone', byLeaf.get('_phone_merge'));
-    byLeaf.delete('_phone_merge');
-  }
-  const entries = [...byLeaf.entries()].filter(([k]) => k !== '_phone_merge');
-  entries.sort((a, b) => {
-    const pa = preferredIndex(a[0]);
-    const pb = preferredIndex(b[0]);
-    if (pa !== pb) return pa - pb;
-    return displayLabel(a[0]).localeCompare(displayLabel(b[0]), 'en');
-  });
-  return entries.map(([k, v]) => `${displayLabel(k)}: ${v}`);
+  return lines;
 }
-
 function chunkMessage(message, maxChars = 1500) {
   const rawLines = String(message || '').split('\n');
   const chunks = [];
@@ -232,32 +124,47 @@ function chunkMessage(message, maxChars = 1500) {
   return chunks.map((c, i) => `[${i + 1}/${chunks.length}]\n${c}`);
 }
 
-function buildAdminMessage(eventType, payload, priority) {
-  const headline = EVENT_HEADLINE[eventType] || String(eventType || '').replace(/_/g, ' ').toLowerCase();
-  const details = payloadDetailLines(payload);
-  const lines = [
-    `${tierIcon(priority)} BodyBank Admin Update`,
-    `Event: ${eventType}`,
-    headline,
-    details.length ? '—' : '',
-    ...details,
-    '—',
-    `Recorded: ${ts()}`
-  ].filter((ln, i, arr) => !(ln === '' && (arr[i - 1] === '—' || arr[i + 1] === '—')));
-  return lines.join('\n');
-}
+const FORMATTERS = {
+  USER_SIGNUP: (p) => ['🆕 New Signup', ...userLines(p), `🌍 ${s(p.country)}`, `⏰ ${ts()}`],
+  USER_SIGNUP_GOOGLE: (p) => ['🆕 New Signup (Google)', ...userLines(p), `⏰ ${ts()}`],
+  USER_LOGIN: (p) => ['🔐 User Login', ...userLines(p), `⏰ ${ts()}`],
+  PASSWORD_RESET_REQUEST: (p) => ['🔑 Password Reset Requested', `📧 ${s(p.email)}`, `⏰ ${ts()}`],
+  PASSWORD_RESET_DONE: (p) => ['✅ Password Reset Complete', `📧 ${s(p.email)}`, `⏰ ${ts()}`],
+  USER_APPROVED: (p) => ['✅ User Approved', ...userLines(p), `⏰ ${ts()}`],
+  USER_REJECTED: (p) => ['❌ User Rejected', ...userLines(p), `⏰ ${ts()}`],
+  USER_SUSPENDED: (p) => ['🚫 User Suspended', ...userLines(p), `⏰ ${ts()}`],
+  USER_REACTIVATED: (p) => ['♻️ User Reactivated', ...userLines(p), `⏰ ${ts()}`],
+  USER_DELETED: (p) => ['🗑️ User Deleted', ...userLines(p), `⏰ ${ts()}`],
+  DAILY_CHECKIN: (p) => ['📋 Daily Check-in', ...userLines(p), `👣 Steps: ${s(p.steps)}`, `💧 Water: ${s(p.water)}`, `🥩 Protein: ${s(p.protein)}`, `😴 Sleep: ${s(p.sleep)}`, `⏰ ${ts()}`],
+  SUNDAY_CHECKIN: (p) => ['📝 Sunday Check-in', ...userLines(p), `🏋️ Training: ${s(p.training_go || p.training)}`, `🥗 Nutrition: ${s(p.nutrition_go || p.nutrition)}`, `⏰ ${ts()}`],
+  WORKOUT_LOGGED: (p) => ['🏋️ Workout Logged', ...userLines(p), `🎯 Type: ${s(p.type)}`, `⏱ Duration: ${s(p.duration)}`, `⏰ ${ts()}`],
+  AUDIT_FORM: (p) => ['📋 Audit Form Submitted', ...userLines(p), `🌍 ${s(p.city)}, ${s(p.country)}`, `🎂 Age: ${s(p.age)}  |  ${s(p.sex)}`, `💼 Occupation: ${s(p.occupation)}`, `🏃 Work Intensity: ${s(p.work_intensity)}`, `💪 Fitness Level: ${s(p.fitness_experience)}`, `⏰ ${ts()}`],
+  PART2_FORM: (p) => ['📋 Part-2 Form Submitted', ...userLines(p), `🎯 Goals: ${s(p.goals)}`, `⏰ ${ts()}`],
+  MEETING_SCHEDULED: (p) => ['📅 Call Scheduled', ...userLines(p), `📆 Date: ${s(p.date)}`, `🕐 Slot: ${s(p.slot)}`, `⏰ ${ts()}`],
+  CONTACT_MESSAGE: (p) => ['💬 Contact Message', ...userLines(p), `📝 ${String(p.message || '').slice(0, 180)}`, `⏰ ${ts()}`],
+  NUTRITION_MEAL_LOGGED: (p) => ['🍽️ Meal Logged', ...userLines(p), `🥗 Meal: ${s(p.mealType)}`, `📅 Date: ${s(p.date)}`, `⭐ Score: ${s(p.score)}`, `🔥 Calories: ${s(p.calories)}`, `🥩 Protein: ${s(p.protein)}`, `⏰ ${ts()}`],
+  NUTRITION_DAY_COMPLETE: (p) => ['🌟 Nutrition Day Complete', ...userLines(p), `📅 Date: ${s(p.date)}`, `🍽️ Meals: ${s(p.meals)}/4`, `⏰ ${ts()}`],
+  BLOOD_REPORT_UPLOADED: (p) => ['🩸 Blood Report Uploaded', ...userLines(p), `🎯 Goal: ${s(p.goal)}`, `⏰ ${ts()}`],
+  BLOOD_REPORT_SENT: (p) => ['📤 Blood Report Sent to User', ...userLines(p), `⏰ ${ts()}`],
+  FEED_POST_UPLOADED: (p) => ['📸 Feed Post Uploaded', `👤 ${s(p.username)}`, `📝 ${String(p.caption || '').slice(0, 120)}`, `⏰ ${ts()}`],
+  COIN_EARNED: (p) => ['🪙 Coins Earned', ...userLines(p), `➕ +${s(p.delta)} (${s(p.reason)})`, `💰 Balance: ${s(p.balance)}`, `⏰ ${ts()}`],
+  COIN_PENALTY: (p) => ['⚠️ Coin Penalty', ...userLines(p), `➖ ${s(p.delta)} (${s(p.reason)})`, `💰 Balance: ${s(p.balance)}`, `⏰ ${ts()}`],
+  DAILY_COMPLIANCE_SENT: (p) => ['📊 Daily Compliance Report Sent', `👥 Total: ${s(p.total)}`, `✅ Check-ins: ${s(p.checkedIn)}`, `❌ Missed: ${s(p.missed)}`, `📈 Rate: ${s(p.rate)}`, `⏰ ${ts()}`],
+  DAILY_DIGEST: (p) => ['📋 Daily Executive Digest', `📅 Date: ${s(p.date)}`, `👥 Active Users: ${s(p.totalUsers)}`, `🆕 Signups: ${s(p.signups)}`, `🔐 Logins: ${s(p.logins)}`, `📋 Check-ins: ${s(p.checkins)}`, `🏋️ Workouts: ${s(p.workouts)}`, `🍽️ Meals: ${s(p.meals)}`, `🩸 Blood Reports: ${s(p.bloodReports)}`, `💬 Messages: ${s(p.messages)}`, `🪙 Coins Awarded: ${s(p.coinsAwarded)}`],
+  SERVER_ERROR: (p) => ['🔴 Server Error', `📌 ${s(p.action)}`, `💥 ${String(p.error || '').slice(0, 300)}`, `⏰ ${ts()}`]
+};
 
-/** Plain text body only (same layout as WhatsApp); for tests or custom channels. */
-function buildMessage(eventType, payload = {}) {
-  const meta = EVENT_META[eventType] || { priority: PRIORITY.INFO, dedup: 5 * 60 * 1000 };
-  return buildAdminMessage(eventType, payload, meta.priority);
+function buildMessage(eventType, lines, priority) {
+  return [`${tierIcon(priority)} BodyBank Admin Update`, `Event: ${eventType}`, ...lines].join('\n');
 }
 
 function formatEventMessage(eventType, payload = {}) {
+  const formatter = FORMATTERS[eventType];
+  if (!formatter) return null;
   const meta = EVENT_META[eventType] || { priority: PRIORITY.INFO, dedup: 5 * 60 * 1000 };
   return {
     meta,
-    message: buildAdminMessage(eventType, payload, meta.priority)
+    message: buildMessage(eventType, [...formatter(payload), ...payloadLines(payload)], meta.priority)
   };
 }
 
@@ -309,4 +216,4 @@ function notifyAsync(eventType, payload, opts) {
   notify(eventType, payload, opts).catch(err => console.error('[notifyAsync] uncaught:', eventType, err.message));
 }
 
-module.exports = { notify, notifyAsync, buildMessage, formatEventMessage, EVENT_HEADLINE, EVENT_META, PRIORITY };
+module.exports = { notify, notifyAsync, buildMessage, formatEventMessage, FORMATTERS, EVENT_META, PRIORITY };

@@ -1496,7 +1496,8 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
       work_intensity: b.work_intensity || '—',
       fitness_experience: b.fitness_experience || '—',
       goals: b.goals || '—',
-      motivation: b.motivation || '—'
+      motivation: b.motivation || '—',
+      raw: b
     };
     console.log('[audit] firing AUDIT_FORM notify for:', b.email);
     const auditTemplateSid = String(process.env.TWILIO_AUDIT_TEMPLATE_SID || '').trim();
