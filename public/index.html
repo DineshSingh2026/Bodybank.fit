@@ -14325,18 +14325,23 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   var balLine = balanceEst == null ? '—' : (balanceEst > 0 ? '+' + balanceEst + ' kcal' : balanceEst + ' kcal');
 
   var nameStr = String(c.userName || 'Member').trim() || 'Member';
-  var logoCenterY = 92;
-  var logoMaxH = 76;
+  var logoCenterY = 90;
+  var logoMaxH = 72;
   var lockupPadY = Math.round(logoMaxH * 0.22);
-  var lockupBottom = logoCenterY + Math.round(logoMaxH / 2) + lockupPadY;
-  var titleBaseline = lockupBottom + 54;
-  var nameLineH = 58;
-  var nameY = titleBaseline + 46;
+  var lockupHalf = Math.round(logoMaxH / 2);
+  var lockupBottom = logoCenterY + lockupHalf + lockupPadY;
+  var gapLockupToKicker = 40;
+  var gapKickerToName = 72;
+  var gapNameToElite = 24;
+  var gapEliteToDate = 24;
+  var titleBaseline = lockupBottom + gapLockupToKicker;
+  var nameLineH = 56;
+  var nameY = titleBaseline + gapKickerToName;
   ctx.font = "600 56px 'Playfair Display','Georgia',serif";
   var nameLines = nutritionShareWrapLinesForWidth(ctx, nameStr, W - 280, 2);
   var lastNameBaseline = nameY + (nameLines.length - 1) * nameLineH;
-  var eliteY = lastNameBaseline + 26;
-  var dateY = eliteY + 34;
+  var eliteY = lastNameBaseline + gapNameToElite;
+  var dateY = eliteY + gapEliteToDate;
   var ringCy = Math.round(nameY + (nameLines.length * nameLineH) * 0.5 - 6);
   var headerBlockBottom = Math.max(dateY + 38, ringCy + 118);
   var gridTop = headerBlockBottom + 38;
@@ -14374,10 +14379,10 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   await nutritionShareDrawPartnerLockupTop(ctx, W, logoCenterY, logoMaxH);
 
   ctx.fillStyle = '#c8bba8';
-  ctx.font = "500 32px 'Outfit','Segoe UI',sans-serif";
+  ctx.font = "500 30px 'Outfit','Segoe UI',sans-serif";
   ctx.textAlign = 'center';
   ctx.textBaseline = 'alphabetic';
-  ctx.letterSpacing = '0.12em';
+  ctx.letterSpacing = '0.14em';
   ctx.fillText('Daily nutrition insight', W / 2, titleBaseline);
   ctx.letterSpacing = '0';
   ctx.textAlign = 'left';
@@ -14392,15 +14397,17 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   }
   ctx.letterSpacing = '0';
 
-  ctx.font = "600 22px 'Outfit','Segoe UI',sans-serif";
+  ctx.font = "600 21px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#c9a84c';
-  ctx.letterSpacing = '0.28em';
+  ctx.letterSpacing = '0.26em';
   ctx.fillText('TRIBE ELITE MEMBER', W / 2, eliteY);
   ctx.letterSpacing = '0';
 
   ctx.font = "500 28px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#8a7d6e';
+  ctx.letterSpacing = '0.06em';
   ctx.fillText(adminNutritionFmtCardDate(reportDate), W / 2, dateY);
+  ctx.letterSpacing = '0';
 
   var ringCx = W - 158;
   var ringR = 102;
