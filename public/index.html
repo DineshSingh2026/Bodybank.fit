@@ -14337,36 +14337,38 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   nutritionShareRoundRectPath(ctx, 36, 36, W - 72, H - 72, 40);
   ctx.stroke();
 
-  var logoCenterY = 108;
-  var logoMaxH = 86;
+  var logoCenterY = 74;
+  var logoMaxH = 80;
   await nutritionShareDrawPartnerLockupTop(ctx, W, logoCenterY, logoMaxH);
-  var logoBandBottom = logoCenterY + logoMaxH + Math.round(logoMaxH * 0.42) + 18;
+  var logoBandBottom = logoCenterY + logoMaxH + Math.round(logoMaxH * 0.36) + 10;
 
-  ctx.fillStyle = '#e8dcc4';
-  ctx.font = "600 42px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = '#d8ccb8';
+  ctx.font = "500 36px 'Outfit','Segoe UI',sans-serif";
   ctx.textAlign = 'center';
-  var titleY = logoBandBottom + 36;
+  var titleY = logoBandBottom + 26;
   ctx.fillText('Daily nutrition insight', W / 2, titleY);
   ctx.textAlign = 'left';
 
-  var nameY = titleY + 96;
-  ctx.font = "800 68px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillStyle = '#f5efe3';
+  var nameY = titleY + 78;
+  ctx.font = "600 58px 'Playfair Display','Georgia',serif";
+  ctx.fillStyle = '#faf6ef';
   var nameStr = String(c.userName || 'Member').trim() || 'Member';
-  var nameEndY = nutritionShareDrawWrappedText(ctx, nameStr, 56, nameY, W - 340, 76, 2);
+  var nameEndY = nutritionShareDrawWrappedText(ctx, nameStr, 56, nameY, W - 300, 66, 2);
 
-  ctx.font = "500 34px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillStyle = '#b5a68e';
-  var emailY = Math.max(nameEndY + 32, nameY + 160);
-  var emailDisp = nutritionShareTruncateToWidth(ctx, String(c.userEmail || ''), W - 340);
-  ctx.fillText(emailDisp, 56, emailY);
+  var eliteY = nameEndY + 22;
+  ctx.font = "600 24px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = '#c9a84c';
+  ctx.letterSpacing = '0.22em';
+  ctx.fillText('TRIBE ELITE MEMBER', 56, eliteY);
+  ctx.letterSpacing = '0';
 
-  ctx.font = "600 32px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillStyle = '#d4b05c';
-  ctx.fillText(adminNutritionFmtCardDate(reportDate), 56, emailY + 50);
+  var dateY = eliteY + 42;
+  ctx.font = "500 30px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = '#a89880';
+  ctx.fillText(adminNutritionFmtCardDate(reportDate), 56, dateY);
 
   var ringCx = W - 158;
-  var ringCy = nameY + 78;
+  var ringCy = nameY + 72;
   ctx.beginPath();
   ctx.arc(ringCx, ringCy, 96, 0, Math.PI * 2);
   ctx.strokeStyle = score != null ? scoreColor : 'rgba(200,164,78,0.35)';
@@ -14383,8 +14385,8 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 
-  var headerBlockBottom = Math.max(emailY + 50 + 36, ringCy + 96 + 28);
-  var gridTop = headerBlockBottom + 52;
+  var headerBlockBottom = Math.max(dateY + 40, ringCy + 102 + 24);
+  var gridTop = headerBlockBottom + 44;
   var pad = 48;
   var gap = 14;
   var colW = Math.floor((W - pad * 2 - gap * 3) / 4);
@@ -14419,19 +14421,23 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
     ctx.lineWidth = 3;
     nutritionShareRoundRectPath(ctx, x, gridTop, colW, cellImgH, radius);
     ctx.stroke();
-    var capY = gridTop + cellImgH + 22;
-    ctx.fillStyle = '#c4b59a';
-    ctx.font = "700 28px 'Outfit','Segoe UI',sans-serif";
+    var cx = x + colW / 2;
+    var capTop = gridTop + cellImgH + 28;
     ctx.textAlign = 'center';
-    ctx.fillText(mt.charAt(0).toUpperCase() + mt.slice(1), x + colW / 2, capY);
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = '#c4b59a';
+    ctx.font = "700 26px 'Outfit','Segoe UI',sans-serif";
+    var mealLbl = mt.charAt(0).toUpperCase() + mt.slice(1);
+    ctx.fillText(mealLbl, cx, capTop + 16);
     var kcal = ar && ar.calories != null ? String(ar.calories) + ' kcal' : (meal ? 'Logged' : '—');
-    ctx.font = "700 32px 'Outfit','Segoe UI',sans-serif";
+    ctx.font = "700 30px 'Outfit','Segoe UI',sans-serif";
     ctx.fillStyle = '#f2e8d4';
-    ctx.fillText(kcal, x + colW / 2, capY + 44);
+    ctx.fillText(kcal, cx, capTop + 52);
+    ctx.textBaseline = 'alphabetic';
     ctx.textAlign = 'left';
   }
 
-  var mealBlockH = cellImgH + 22 + 44 + 28;
+  var mealBlockH = cellImgH + 28 + 68 + 16;
   var macrosY = gridTop + mealBlockH + 56;
   ctx.fillStyle = '#d4b05c';
   ctx.font = "800 40px 'Outfit','Segoe UI',sans-serif";
@@ -14451,48 +14457,67 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   ctx.stroke();
 
   var energyBoxY = sumY + 36;
-  ctx.fillStyle = 'rgba(200,164,78,0.08)';
-  nutritionShareRoundRectPath(ctx, 48, energyBoxY, W - 96, 268, 28);
+  var energyBoxH = 312;
+  ctx.fillStyle = 'rgba(200,164,78,0.09)';
+  nutritionShareRoundRectPath(ctx, 48, energyBoxY, W - 96, energyBoxH, 28);
   ctx.fill();
-  ctx.strokeStyle = 'rgba(200,164,78,0.28)';
+  ctx.strokeStyle = 'rgba(200,164,78,0.32)';
   ctx.lineWidth = 2;
-  nutritionShareRoundRectPath(ctx, 48, energyBoxY, W - 96, 268, 28);
+  nutritionShareRoundRectPath(ctx, 48, energyBoxY, W - 96, energyBoxH, 28);
   ctx.stroke();
 
-  ctx.font = "700 36px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillStyle = '#b5a68e';
-  ctx.fillText('Energy summary (estimated)', 72, energyBoxY + 48);
-  ctx.font = "800 44px 'Outfit','Segoe UI',sans-serif";
+  var ex = 72;
+  var ey = energyBoxY;
+  ctx.font = "700 34px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = '#d4c4a8';
+  ctx.fillText('Estimated daily energy balance', ex, ey + 46);
+  ctx.font = "500 24px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = '#7d7365';
+  ctx.fillText('Modelled from intake, RMR, TEF, training & daily movement', ex, ey + 82);
+
+  ctx.font = "600 32px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = '#9a8f7e';
+  ctx.fillText('Energy in', ex, ey + 132);
+  ctx.font = "800 42px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#5ee08a';
-  ctx.fillText('+' + intakeCalories + ' kcal intake', 72, energyBoxY + 108);
+  ctx.fillText('+' + intakeCalories + ' kcal', ex + 220, ey + 132);
+
+  ctx.font = "600 32px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = '#9a8f7e';
+  ctx.fillText('Estimated expenditure', ex, ey + 186);
   ctx.font = "700 40px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = totalOutEst != null ? '#f0e6d4' : '#666';
-  ctx.fillText(totalOutEst != null ? totalOutEst + ' kcal out (est.)' : '— kcal out (est.)', 72, energyBoxY + 168);
-  ctx.font = "800 44px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillStyle = balanceEst == null ? '#888' : balanceEst > 0 ? '#2ecc71' : balanceEst < 0 ? '#ff6b6b' : '#b8a78c';
-  ctx.fillText('Daily net: ' + balLine, 72, energyBoxY + 228);
+  ctx.fillText(totalOutEst != null ? totalOutEst + ' kcal' : '—', ex + 220, ey + 186);
 
-  var taglineY = energyBoxY + 268 + 72;
-  ctx.fillStyle = 'rgba(200,164,78,0.55)';
   ctx.font = "600 32px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = '#9a8f7e';
+  ctx.fillText('Net balance', ex, ey + 242);
+  ctx.font = "800 42px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = balanceEst == null ? '#888' : balanceEst > 0 ? '#2ecc71' : balanceEst < 0 ? '#ff6b6b' : '#b8a78c';
+  var netLabel = balanceEst == null ? '—' : (balanceEst > 0 ? 'Surplus · +' + balanceEst + ' kcal' : balanceEst < 0 ? 'Deficit · ' + balanceEst + ' kcal' : 'Balanced');
+  ctx.fillText(netLabel, ex + 220, ey + 242);
+
+  var taglineY = energyBoxY + energyBoxH + 64;
+  ctx.fillStyle = '#c9a84c';
+  ctx.font = "600 38px 'Outfit','Segoe UI',sans-serif";
   ctx.textAlign = 'center';
   ctx.fillText('Train smart · Nourish with precision', W / 2, taglineY);
   ctx.textAlign = 'left';
 
-  var footY = H - 102;
+  var footY = H - 118;
   ctx.strokeStyle = 'rgba(200,164,78,0.35)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(52, footY - 58);
-  ctx.lineTo(W - 52, footY - 58);
+  ctx.moveTo(52, footY - 64);
+  ctx.lineTo(W - 52, footY - 64);
   ctx.stroke();
-  ctx.fillStyle = '#8a7d6a';
-  ctx.font = "600 30px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = '#b8a990';
+  ctx.font = "600 38px 'Outfit','Segoe UI',sans-serif";
   ctx.textAlign = 'center';
-  ctx.fillText('BodyBank · Precision lifestyle tracking', W / 2, footY - 8);
-  ctx.font = "500 28px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillStyle = '#6d6354';
-  ctx.fillText('Co-powered by FitChef Nutrition  ·  Fitchef.fit', W / 2, footY + 32);
+  ctx.fillText('BodyBank · Precision lifestyle tracking', W / 2, footY - 6);
+  ctx.font = "500 34px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = '#9a8d78';
+  ctx.fillText('Co-powered by FitChef Nutrition  ·  Fitchef.fit', W / 2, footY + 44);
   ctx.textAlign = 'left';
 
   return await new Promise(function (resolve) {
