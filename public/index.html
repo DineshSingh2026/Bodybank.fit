@@ -14336,7 +14336,7 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   var eliteY = nameEndY + 22;
   var dateY = eliteY + 42;
   var ringCy = nameY + 72;
-  var headerBlockBottom = Math.max(dateY + 38, ringCy + 108);
+  var headerBlockBottom = Math.max(dateY + 38, ringCy + 118);
   var gridTop = headerBlockBottom + 38;
   var cellImgH = 368;
   var mealBlockH = cellImgH + 24 + 66 + 30;
@@ -14377,36 +14377,37 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   ctx.fillText('Daily nutrition insight', W / 2, titleY);
   ctx.textAlign = 'left';
 
+  ctx.textAlign = 'center';
   ctx.font = "600 58px 'Playfair Display','Georgia',serif";
   ctx.fillStyle = '#faf6ef';
   for (var nl = 0; nl < nameLines.length; nl++) {
-    ctx.fillText(nameLines[nl], 56, nameY + nl * 66);
+    ctx.fillText(nameLines[nl], W / 2, nameY + nl * 66);
   }
 
   ctx.font = "600 24px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#c9a84c';
   ctx.letterSpacing = '0.22em';
-  ctx.fillText('TRIBE ELITE MEMBER', 56, eliteY);
+  ctx.fillText('TRIBE ELITE MEMBER', W / 2, eliteY);
   ctx.letterSpacing = '0';
 
   ctx.font = "500 30px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#a89880';
-  ctx.fillText(adminNutritionFmtCardDate(reportDate), 56, dateY);
+  ctx.fillText(adminNutritionFmtCardDate(reportDate), W / 2, dateY);
 
   var ringCx = W - 158;
+  var ringR = 102;
   ctx.beginPath();
-  ctx.arc(ringCx, ringCy, 96, 0, Math.PI * 2);
+  ctx.arc(ringCx, ringCy, ringR, 0, Math.PI * 2);
   ctx.strokeStyle = score != null ? scoreColor : 'rgba(200,164,78,0.35)';
-  ctx.lineWidth = 9;
+  ctx.lineWidth = 7;
   ctx.stroke();
   ctx.fillStyle = scoreColor;
-  ctx.font = "800 54px 'Outfit','Segoe UI',sans-serif";
-  ctx.textAlign = 'center';
+  ctx.font = "800 44px 'Outfit','Segoe UI',sans-serif";
   ctx.textBaseline = 'middle';
-  ctx.fillText(score != null ? score.toFixed(1) : '—', ringCx, ringCy - 22);
-  ctx.font = "700 20px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText(score != null ? score.toFixed(1) : '—', ringCx, ringCy - 12);
+  ctx.font = "700 17px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#9a8b78';
-  ctx.fillText('MEAL SCORE', ringCx, ringCy + 54);
+  ctx.fillText('MEAL SCORE', ringCx, ringCy + 26);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 
