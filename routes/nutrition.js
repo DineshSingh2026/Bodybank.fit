@@ -819,7 +819,7 @@ function createNutritionRouter(deps) {
 
       for (const uid of uids) {
         const u = await queryOne(
-          'SELECT id, first_name, last_name, email FROM users WHERE id = ?',
+          'SELECT id, first_name, last_name, email, profile_picture FROM users WHERE id = ?',
           [uid]
         );
         if (!u) continue;
@@ -840,6 +840,7 @@ function createNutritionRouter(deps) {
           userId: u.id,
           userName: name,
           userEmail: u.email,
+          profile_picture: u.profile_picture || '',
           userGoal: null,
           meals: meals || [],
           dailyStats: stats || null,

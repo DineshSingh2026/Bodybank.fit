@@ -308,14 +308,16 @@ function createScorecardService({ queryOne, queryAll }) {
       const s = await computeWeeklyScore(uid, weekStartISO);
       if (!s) continue;
       const u = await queryOne(
-        `SELECT id, first_name, last_name, leaderboard_display_name FROM users WHERE id = ?`,
+        `SELECT id, first_name, last_name, leaderboard_display_name, profile_picture FROM users WHERE id = ?`,
         [uid]
       );
       const nick = u && u.leaderboard_display_name ? String(u.leaderboard_display_name).trim() : '';
       const display = nick || 'Member';
+      const pic = u && u.profile_picture ? String(u.profile_picture).trim() : '';
       rows.push({
         user_id: uid,
         display_name: display,
+        profile_picture: pic,
         total: s.total,
         pillars: {
           daily: s.daily,
@@ -336,14 +338,16 @@ function createScorecardService({ queryOne, queryAll }) {
       const s = await computeWeeklyScoreDedication(uid, weekStartISO);
       if (!s) continue;
       const u = await queryOne(
-        `SELECT id, first_name, last_name, leaderboard_display_name FROM users WHERE id = ?`,
+        `SELECT id, first_name, last_name, leaderboard_display_name, profile_picture FROM users WHERE id = ?`,
         [uid]
       );
       const nick = u && u.leaderboard_display_name ? String(u.leaderboard_display_name).trim() : '';
       const display = nick || 'Member';
+      const pic = u && u.profile_picture ? String(u.profile_picture).trim() : '';
       rows.push({
         user_id: uid,
         display_name: display,
+        profile_picture: pic,
         total: s.total,
         pillars: {
           daily: s.daily,

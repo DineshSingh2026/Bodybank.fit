@@ -1271,6 +1271,13 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .bb-lb-table th{ text-align:left; padding:8px 6px; border-bottom:1px solid rgba(255,255,255,0.08); color:var(--muted); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; }
 .bb-lb-table td{ padding:10px 6px; border-bottom:1px solid rgba(255,255,255,0.05); color:var(--cream); }
 .bb-lb-table tr.is-self td{ background:rgba(200,164,78,0.06); }
+.bb-lb-namecell{ display:flex; align-items:center; gap:10px; min-width:0; }
+.bb-lb-av{ width:36px; height:36px; border-radius:50%; overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.06); }
+.bb-lb-av .bb-admin-avatar{ width:100%; height:100%; }
+.bb-lb-av .bb-admin-avatar--initials{ font-size:12px; }
+.bb-lb-mobile-av{ width:36px; height:36px; border-radius:50%; overflow:hidden; flex-shrink:0; display:flex; align-items:center; justify-content:center; background:rgba(255,255,255,0.06); }
+.bb-lb-mobile-av .bb-admin-avatar{ width:100%; height:100%; }
+.bb-lb-mobile-av .bb-admin-avatar--initials{ font-size:12px; }
 .bb-lb-trophy{
   display:inline-flex;align-items:center;justify-content:center;
   min-width:24px;height:20px;padding:0 8px;border-radius:999px;
@@ -2890,7 +2897,9 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .admin-nutrition-stat .sub{font-size:11px;color:var(--muted);margin-top:4px}
 .admin-nutrition-client-card{background:linear-gradient(165deg,rgba(200,164,78,0.06) 0%,var(--bb-surface) 38%,#141416 100%);border:1px solid rgba(200,164,78,0.18);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 12px 40px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.04)}
 .admin-nutrition-client-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:12px}
-.admin-nutrition-avatar{width:40px;height:40px;border-radius:50%;background:var(--bb-surface-hover);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--bb-green);font-size:13px;flex-shrink:0}
+.admin-nutrition-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;background:var(--bb-surface-hover);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.admin-nutrition-avatar .bb-admin-avatar{width:100%;height:100%}
+.admin-nutrition-avatar .bb-admin-avatar--initials{color:var(--bb-green);font-size:13px;font-weight:700}
 .admin-nutrition-client-head .info{flex:1;min-width:0}
 .admin-nutrition-client-head .name{font-weight:700;color:var(--cream)}
 .admin-nutrition-client-head .meta{font-size:11px;color:var(--muted);margin-top:2px}
@@ -13407,6 +13416,7 @@ async function loadScorecardLeaderboardModal(mode) {
           var trophy = trophyForRank(rank);
           return '<div class="bb-lb-mobile-item ' + (self ? 'is-self' : '') + ' ' + (rank <= 10 ? 'top10' : '') + '">' +
             '<div class="bb-lb-mobile-left">' +
+              '<span class="bb-lb-mobile-av" aria-hidden="true">' + bbAdminAvatarHtml(r.profile_picture || '', r.display_name || '') + '</span>' +
               '<span class="bb-lb-mobile-rankchip">#' + rank + '</span>' +
               '<span class="bb-lb-mobile-name">' + escapeHtml(r.display_name) + (self ? ' <span style="color:var(--gold)">(you)</span>' : '') + '</span>' +
             '</div>' +
@@ -13419,7 +13429,7 @@ async function loadScorecardLeaderboardModal(mode) {
             var self = r.user_id === uid;
             var rank = Number(r.rank) || 0;
             var trophy = trophyForRank(rank);
-            return '<tr class="' + (self ? 'is-self' : '') + '"><td>' + rank + '</td><td><span class="bb-lb-rank-good">' + trophy + escapeHtml(r.display_name) + (self ? ' <span style="color:var(--gold)">(you)</span>' : '') + '</span></td><td>' + (r.total != null ? r.total : '\u2014') + '</td></tr>';
+            return '<tr class="' + (self ? 'is-self' : '') + '"><td>' + rank + '</td><td><div class="bb-lb-namecell"><span class="bb-lb-av" aria-hidden="true">' + bbAdminAvatarHtml(r.profile_picture || '', r.display_name || '') + '</span><span class="bb-lb-rank-good">' + trophy + escapeHtml(r.display_name) + (self ? ' <span style="color:var(--gold)">(you)</span>' : '') + '</span></div></td><td>' + (r.total != null ? r.total : '\u2014') + '</td></tr>';
           }).join('') + '</tbody></table>';
       }
     }
@@ -15360,7 +15370,6 @@ function loadAdminNutritionReport() {
         var sn = stats ? bbNutritionDailyStatsNorm(stats) : null;
         var score = sn && sn.mealQualityScore != null ? Number(sn.mealQualityScore) : null;
         var scoreColor = score == null ? 'var(--bb-border)' : score >= 7 ? 'var(--bb-green)' : score >= 5 ? 'var(--bb-orange)' : 'var(--bb-red)';
-        var initials = (c.userName || '?').split(/\s+/).map(function (x) { return x[0]; }).join('').slice(0, 2).toUpperCase();
         var mealTypes = ['breakfast', 'lunch', 'snack', 'dinner'];
         var mealMap = {};
         (c.meals || []).forEach(function (m) { mealMap[m.meal_type] = m; });
@@ -15493,7 +15502,7 @@ function loadAdminNutritionReport() {
         var usageHtml = renderAdminUsageBlock('Nutrition AI tokens and cost', usageRows.join(''));
         return '<div class="admin-nutrition-client-card">' +
           '<div class="admin-nutrition-client-head">' +
-          '<div class="admin-nutrition-avatar">' + escapeHtml(initials) + '</div>' +
+          '<div class="admin-nutrition-avatar" aria-hidden="true">' + bbAdminAvatarHtml(c.profile_picture || '', c.userName || '') + '</div>' +
           '<div class="info"><div class="name">' + escapeHtml(c.userName || '') + '</div>' +
           '<div class="meta">' + escapeHtml(c.userEmail || '') + ' · Nutrition energy (RMR + TEF + activity)</div></div>' +
           '<div class="admin-nutrition-score-ring" style="border-color:' + scoreColor + '">' +
