@@ -364,6 +364,11 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN dob DATE`); } catch (e) { /* column may exist */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN gender TEXT DEFAULT ''`); } catch (e) { /* column may exist */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS height_cm INTEGER`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_type TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS primary_training_days_per_week INTEGER`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS diet_type TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS injury_limitations TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stress_level_baseline INTEGER`); } catch (e) { /* ignore */ }
   await pool.query("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL").catch(() => {});
 
   await pool.query(`CREATE TABLE IF NOT EXISTS audit_requests (
@@ -1769,13 +1774,31 @@ app.delete('/api/tribe/:id', async (req, res) => {
 
 // ============ USER PROFILE ============
 app.get('/api/profile/:id', async (req, res) => {
-  const user = await queryOne("SELECT id,email,first_name,last_name,phone,country,state_province,city,dob,gender,height_cm,timezone,profile_picture,role,created_at FROM users WHERE id=?", [req.params.id]);
+  const user = await queryOne("SELECT id,email,first_name,last_name,phone,country,state_province,city,dob,gender,height_cm,goal_type,primary_training_days_per_week,diet_type,injury_limitations,stress_level_baseline,timezone,profile_picture,role,created_at FROM users WHERE id=?", [req.params.id]);
   if (!user) return res.status(404).json({ error: 'Not found' });
   res.json(user);
 });
 
 app.put('/api/profile/:id', async (req, res) => {
-  const { first_name, last_name, phone, email, profile_picture, country, timezone, state_province, city, dob, gender, height_cm } = req.body || {};
+  const {
+    first_name,
+    last_name,
+    phone,
+    email,
+    profile_picture,
+    country,
+    timezone,
+    state_province,
+    city,
+    dob,
+    gender,
+    height_cm,
+    goal_type,
+    primary_training_days_per_week,
+    diet_type,
+    injury_limitations,
+    stress_level_baseline
+  } = req.body || {};
   const updates = [], values = [];
   let heightUpdated = false;
   if (first_name !== undefined) { updates.push('first_name=?'); values.push(first_name); }
@@ -1786,6 +1809,35 @@ app.put('/api/profile/:id', async (req, res) => {
   if (city !== undefined) { updates.push('city=?'); values.push(String(city || '').trim().slice(0, 100)); }
   if (dob !== undefined) { updates.push('dob=?'); values.push(dob && String(dob).trim() ? String(dob).trim().slice(0, 10) : null); }
   if (gender !== undefined) { updates.push('gender=?'); values.push(String(gender || '').trim().slice(0, 20)); }
+  if (goal_type !== undefined) { updates.push('goal_type=?'); values.push(String(goal_type || '').trim().slice(0, 40)); }
+  if (diet_type !== undefined) { updates.push('diet_type=?'); values.push(String(diet_type || '').trim().slice(0, 30)); }
+  if (injury_limitations !== undefined) { updates.push('injury_limitations=?'); values.push(String(injury_limitations || '').trim().slice(0, 500)); }
+  if (primary_training_days_per_week !== undefined) {
+    if (primary_training_days_per_week === null || primary_training_days_per_week === '') {
+      updates.push('primary_training_days_per_week=?');
+      values.push(null);
+    } else {
+      const n = parseInt(primary_training_days_per_week, 10);
+      if (!Number.isFinite(n) || n < 0 || n > 14) {
+        return res.status(400).json({ error: 'Primary training days per week must be between 0 and 14' });
+      }
+      updates.push('primary_training_days_per_week=?');
+      values.push(n);
+    }
+  }
+  if (stress_level_baseline !== undefined) {
+    if (stress_level_baseline === null || stress_level_baseline === '') {
+      updates.push('stress_level_baseline=?');
+      values.push(null);
+    } else {
+      const n = parseInt(stress_level_baseline, 10);
+      if (!Number.isFinite(n) || n < 1 || n > 5) {
+        return res.status(400).json({ error: 'Stress level baseline must be between 1 and 5' });
+      }
+      updates.push('stress_level_baseline=?');
+      values.push(n);
+    }
+  }
   if (height_cm !== undefined) {
     if (height_cm === null || height_cm === '') {
       updates.push('height_cm=?');

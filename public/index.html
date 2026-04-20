@@ -4530,6 +4530,17 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="form-divider"></div>
       <div class="form-section-title">Body metrics</div>
       <div class="form-group"><label for="profHeightCm">Height (cm) <span class="form-hint" style="display:inline;font-weight:400">— for nutrition energy (RMR)</span></label><input type="number" class="form-input" id="profHeightCm" min="100" max="230" step="1" inputmode="numeric" placeholder="e.g. 175"><span class="form-hint">Whole centimeters, 100–230. Used with your weight and age for daily energy estimates.</span><span class="form-error" id="profHeightError" style="display:none"></span></div>
+      <div class="form-divider"></div>
+      <div class="form-section-title">Progress coaching profile</div>
+      <div class="form-row">
+        <div class="form-group"><label>Goal type</label><select class="form-input" id="profGoalType"><option value="">Select goal</option><option value="fat_loss">Fat loss</option><option value="recomp">Recomp</option><option value="muscle_gain">Muscle gain</option><option value="performance">Performance</option><option value="general_fitness">General fitness</option></select></div>
+        <div class="form-group"><label>Diet type</label><select class="form-input" id="profDietType"><option value="">Select diet</option><option value="veg">Veg</option><option value="non_veg">Non-veg</option><option value="vegan">Vegan</option><option value="eggetarian">Eggetarian</option><option value="pescatarian">Pescatarian</option><option value="keto">Keto</option><option value="other">Other</option></select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Primary training days / week</label><input type="number" class="form-input" id="profPrimaryTrainingDays" min="0" max="14" step="1" inputmode="numeric" placeholder="e.g. 4"></div>
+        <div class="form-group"><label>Stress baseline (1–5)</label><select class="form-input" id="profStressBaseline"><option value="">Select</option><option value="1">1 - Very low</option><option value="2">2 - Low</option><option value="3">3 - Moderate</option><option value="4">4 - High</option><option value="5">5 - Very high</option></select></div>
+      </div>
+      <div class="form-group"><label>Injury limitations / tags</label><input type="text" class="form-input" id="profInjuryLimitations" maxlength="500" placeholder="e.g. lower_back, left_knee, shoulder_impingement"><span class="form-hint">Use short tags or comma-separated notes for trainer context.</span><span class="form-error" id="profMetaError" style="display:none"></span></div>
       <p class="form-success" id="profileSaveSuccess" style="display:none;text-align:center;margin-top:12px">Profile updated successfully.</p>
       <div style="display:flex;gap:14px;justify-content:center;margin-top:24px">
         <button class="nav-login" style="padding:12px 32px" onclick="loadProfile()">Discard</button>
@@ -16143,6 +16154,16 @@ async function loadProfile() {
   document.getElementById('profLastName').value = data.last_name || '';
   document.getElementById('profPhone').value = data.phone || '';
   document.getElementById('profEmail').value = data.email || '';
+  var goalEl = document.getElementById('profGoalType');
+  if (goalEl) goalEl.value = data.goal_type || '';
+  var dietEl = document.getElementById('profDietType');
+  if (dietEl) dietEl.value = data.diet_type || '';
+  var tdEl = document.getElementById('profPrimaryTrainingDays');
+  if (tdEl) tdEl.value = data.primary_training_days_per_week != null ? String(data.primary_training_days_per_week) : '';
+  var stressEl = document.getElementById('profStressBaseline');
+  if (stressEl) stressEl.value = data.stress_level_baseline != null ? String(data.stress_level_baseline) : '';
+  var injEl = document.getElementById('profInjuryLimitations');
+  if (injEl) injEl.value = data.injury_limitations || '';
   var hProf = document.getElementById('profHeightCm');
   if (hProf) {
     if (data.height_cm != null && data.height_cm !== '') hProf.value = String(data.height_cm);
@@ -16150,11 +16171,18 @@ async function loadProfile() {
   }
   var phErr = document.getElementById('profHeightError');
   if (phErr) { phErr.style.display = 'none'; phErr.textContent = ''; }
+  var metaErr = document.getElementById('profMetaError');
+  if (metaErr) { metaErr.style.display = 'none'; metaErr.textContent = ''; }
   setProfileAvatar(data.profile_picture || '');
   setUserWelcomeAvatar(data.profile_picture || '');
   if (window.currentUser) {
     window.currentUser.profile_picture = data.profile_picture || '';
     window.currentUser.height_cm = data.height_cm != null && data.height_cm !== '' ? Number(data.height_cm) : null;
+    window.currentUser.goal_type = data.goal_type || '';
+    window.currentUser.primary_training_days_per_week = data.primary_training_days_per_week != null ? Number(data.primary_training_days_per_week) : null;
+    window.currentUser.diet_type = data.diet_type || '';
+    window.currentUser.injury_limitations = data.injury_limitations || '';
+    window.currentUser.stress_level_baseline = data.stress_level_baseline != null ? Number(data.stress_level_baseline) : null;
     persistCurrentSession();
   }
   if (bbProfileNeedsHeight({ role: window.currentUser.role, height_cm: data.height_cm })) {
@@ -16352,10 +16380,12 @@ async function saveProfile() {
   var emailVal = document.getElementById('profEmail').value.trim();
   var emailErr = document.getElementById('profEmailError');
   var heightErr = document.getElementById('profHeightError');
+  var metaErr = document.getElementById('profMetaError');
   var successEl = document.getElementById('profileSaveSuccess');
   document.querySelectorAll('#usec-profile .form-input').forEach(function(inp) { inp.classList.remove('has-error','has-success'); });
   if (emailErr) { emailErr.style.display = 'none'; emailErr.textContent = ''; }
   if (heightErr) { heightErr.style.display = 'none'; heightErr.textContent = ''; }
+  if (metaErr) { metaErr.style.display = 'none'; metaErr.textContent = ''; }
   if (successEl) successEl.style.display = 'none';
   if (emailVal && !validateEmail(emailVal)) {
     if (emailErr) { emailErr.textContent = 'Please enter a valid email address'; emailErr.style.display = 'block'; }
@@ -16368,6 +16398,38 @@ async function saveProfile() {
     phone: document.getElementById('profPhone').value.trim(),
     email: emailVal
   };
+  var goalTypeEl = document.getElementById('profGoalType');
+  var dietTypeEl = document.getElementById('profDietType');
+  var trainingDaysEl = document.getElementById('profPrimaryTrainingDays');
+  var stressBaseEl = document.getElementById('profStressBaseline');
+  var injuryEl = document.getElementById('profInjuryLimitations');
+  body.goal_type = goalTypeEl ? String(goalTypeEl.value || '').trim() : '';
+  body.diet_type = dietTypeEl ? String(dietTypeEl.value || '').trim() : '';
+  body.injury_limitations = injuryEl ? String(injuryEl.value || '').trim() : '';
+  var tdRaw = trainingDaysEl ? String(trainingDaysEl.value || '').trim() : '';
+  if (tdRaw !== '') {
+    var td = parseInt(tdRaw, 10);
+    if (!Number.isFinite(td) || td < 0 || td > 14) {
+      if (metaErr) { metaErr.textContent = 'Primary training days must be a whole number between 0 and 14.'; metaErr.style.display = 'block'; }
+      if (trainingDaysEl) trainingDaysEl.classList.add('has-error');
+      return;
+    }
+    body.primary_training_days_per_week = td;
+  } else {
+    body.primary_training_days_per_week = null;
+  }
+  var stressRaw = stressBaseEl ? String(stressBaseEl.value || '').trim() : '';
+  if (stressRaw !== '') {
+    var stress = parseInt(stressRaw, 10);
+    if (!Number.isFinite(stress) || stress < 1 || stress > 5) {
+      if (metaErr) { metaErr.textContent = 'Stress baseline must be between 1 and 5.'; metaErr.style.display = 'block'; }
+      if (stressBaseEl) stressBaseEl.classList.add('has-error');
+      return;
+    }
+    body.stress_level_baseline = stress;
+  } else {
+    body.stress_level_baseline = null;
+  }
   var hEl = document.getElementById('profHeightCm');
   var heightRaw = hEl ? String(hEl.value || '').trim() : '';
   if (heightRaw !== '') {
@@ -16389,6 +16451,11 @@ async function saveProfile() {
       heightErr.textContent = data.error;
       heightErr.style.display = 'block';
       if (hEl) hEl.classList.add('has-error');
+    } else if ((data.error.indexOf('training days') >= 0 || data.error.indexOf('Stress level') >= 0) && metaErr) {
+      metaErr.textContent = data.error;
+      metaErr.style.display = 'block';
+      if (trainingDaysEl) trainingDaysEl.classList.add('has-error');
+      if (stressBaseEl) stressBaseEl.classList.add('has-error');
     } else if (emailErr) { emailErr.textContent = data.error; emailErr.style.display = 'block'; document.getElementById('profEmail').classList.add('has-error'); }
     else alert(data.error);
     return;
@@ -16398,6 +16465,11 @@ async function saveProfile() {
   window.currentUser.email = body.email;
   window.currentUser.phone = body.phone;
   if (body.height_cm !== undefined) window.currentUser.height_cm = body.height_cm;
+  window.currentUser.goal_type = body.goal_type;
+  window.currentUser.diet_type = body.diet_type;
+  window.currentUser.injury_limitations = body.injury_limitations;
+  window.currentUser.primary_training_days_per_week = body.primary_training_days_per_week;
+  window.currentUser.stress_level_baseline = body.stress_level_baseline;
   if (body.profile_picture) {
     window.currentUser.profile_picture = body.profile_picture;
     setProfileAvatar(body.profile_picture);
