@@ -8356,6 +8356,8 @@ const RESET_SUCCESS_KEY = 'bodybank_reset_success';
 const NOTIFY_CLEARED_KEY = 'bodybank_notify_cleared';
 const NOTIFY_BROWSER_SENT_KEY = 'bodybank_notify_browser_sent';
 const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
+/** Target decoded JPEG size under Anthropic’s 5 MiB image limit (margin for API). */
+const NUTRITION_MEAL_IMAGE_MAX_DECODED = Math.floor(4.3 * 1024 * 1024);
 function getClearedNotifyIds() { try { const s = localStorage.getItem(NOTIFY_CLEARED_KEY); return s ? JSON.parse(s) : []; } catch (e) { return []; } }
 function setClearedNotifyIds(ids) { try { localStorage.setItem(NOTIFY_CLEARED_KEY, JSON.stringify(ids)); } catch (e) {} }
 function getBrowserNotifiedIds() { try { const s = localStorage.getItem(NOTIFY_BROWSER_SENT_KEY); return s ? JSON.parse(s) : []; } catch (e) { return []; } }
@@ -8448,6 +8450,54 @@ function compressImageToDataUrl(file) {
     img.onerror = function() {
       URL.revokeObjectURL(objectUrl);
       reject(new Error('Could not process this image.'));
+    };
+    img.src = objectUrl;
+  });
+}
+
+/** Resize/compress meal photos so Claude API (5 MiB decoded max) never rejects them. */
+function compressNutritionMealPhotoToDataUrl(file) {
+  return new Promise(function(resolve, reject) {
+    var objectUrl = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function() {
+      try {
+        var maxSides = [1920, 1600, 1440, 1280, 1080, 960, 800, 640];
+        var output = null;
+        for (var si = 0; si < maxSides.length; si++) {
+          var maxSide = maxSides[si];
+          var canvas = document.createElement('canvas');
+          var width = img.width || maxSide;
+          var height = img.height || maxSide;
+          var scale = Math.min(1, maxSide / Math.max(width, height));
+          canvas.width = Math.max(1, Math.round(width * scale));
+          canvas.height = Math.max(1, Math.round(height * scale));
+          var ctx = canvas.getContext('2d', { alpha: false });
+          ctx.fillStyle = '#0a0a0a';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+          var quality = 0.88;
+          output = canvas.toDataURL('image/jpeg', quality);
+          while (getDataUrlBytes(output) > NUTRITION_MEAL_IMAGE_MAX_DECODED && quality > 0.42) {
+            quality -= 0.07;
+            output = canvas.toDataURL('image/jpeg', quality);
+          }
+          if (getDataUrlBytes(output) <= NUTRITION_MEAL_IMAGE_MAX_DECODED) break;
+        }
+        URL.revokeObjectURL(objectUrl);
+        if (!output || getDataUrlBytes(output) > NUTRITION_MEAL_IMAGE_MAX_DECODED) {
+          reject(new Error('Could not reduce this photo enough. Try a smaller image.'));
+          return;
+        }
+        resolve(output);
+      } catch (err) {
+        URL.revokeObjectURL(objectUrl);
+        reject(new Error('Could not process this image.'));
+      }
+    };
+    img.onerror = function() {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Could not read this image. Try another photo.'));
     };
     img.src = objectUrl;
   });
@@ -13876,12 +13926,18 @@ function nutritionHandleMealPhoto(ev, mt) {
     nutritionClearMealFileInputs(mt);
     return;
   }
-  var reader = new FileReader();
-  reader.onload = function (e) {
-    var dataUrl = e.target.result;
+  if (!file.type || !file.type.startsWith('image/')) {
+    nutritionShowToast('Please choose an image file.', 'error');
+    nutritionClearMealFileInputs(mt);
+    return;
+  }
+  nutritionSetBadge(mt, 'Optimizing photo…', 'analyzing');
+  var slot = document.getElementById('mslot-' + mt);
+  if (slot) slot.classList.add('uploading');
+  compressNutritionMealPhotoToDataUrl(file).then(function (dataUrl) {
     var base64 = dataUrl.split(',')[1];
     bbNutritionState.photos[mt] = base64;
-    bbNutritionState.mimes[mt] = file.type || 'image/jpeg';
+    bbNutritionState.mimes[mt] = 'image/jpeg';
     var img = document.getElementById('previewImg-' + mt);
     var prev = document.getElementById('preview-' + mt);
     var up = document.getElementById('upload-' + mt);
@@ -13895,8 +13951,7 @@ function nutritionHandleMealPhoto(ev, mt) {
     var act = document.getElementById('actions-' + mt);
     if (por) por.style.display = 'block';
     if (act) act.style.display = 'block';
-    var slot = document.getElementById('mslot-' + mt);
-    if (slot) slot.classList.add('uploading');
+    if (slot) slot.classList.remove('uploading');
     nutritionSetBadge(mt, 'Photo ready', 'analyzing');
     nutritionSetPhotoRemovable(mt, true);
     var camIn = document.getElementById('file-camera-' + mt);
@@ -13905,8 +13960,12 @@ function nutritionHandleMealPhoto(ev, mt) {
     if (upIn) upIn.value = '';
     if (noteEl && typeof noteEl.focus === 'function') noteEl.focus();
     nutritionUpdateSubmitAllState();
-  };
-  reader.readAsDataURL(file);
+  }).catch(function (err) {
+    if (slot) slot.classList.remove('uploading');
+    nutritionSetBadge(mt, '', '');
+    nutritionShowToast((err && err.message) || 'Could not process photo.', 'error');
+    nutritionClearMealFileInputs(mt);
+  });
 }
 
 function nutritionClearMealFileInputs(mt) {

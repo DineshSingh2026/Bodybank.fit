@@ -195,6 +195,14 @@ function formatAnthropicApiError(status, data) {
   if (status === 429 || low.includes('rate limit')) {
     return 'Nutrition AI is temporarily rate-limited. Try again in a minute.';
   }
+  if (
+    low.includes('exceeds 5 mb') ||
+    low.includes('5242880') ||
+    (low.includes('image') && low.includes('maximum') && low.includes('base64')) ||
+    (low.includes('messages.') && low.includes('base64') && low.includes('image'))
+  ) {
+    return 'Photo is too large for analysis. Please choose a smaller image or retake the photo.';
+  }
   if (raw) return raw.length > 280 ? raw.slice(0, 277) + '…' : raw;
   return `Claude API error (${status})`;
 }

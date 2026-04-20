@@ -24,7 +24,30 @@ const {
 
 /** ~10 MiB decoded image → base64 length cap (single-request analyze only; never persisted). */
 const MAX_NUTRITION_IMAGE_B64_CHARS = 14 * 1024 * 1024;
+/** Anthropic base64 images must decode to ≤ 5 MiB; stay under with margin. */
+const NUTRITION_IMAGE_DECODE_LIMIT_BYTES = Math.floor(4.5 * 1024 * 1024);
 let _lastNutritionPhotoPurgeYmd = '';
+
+function approxDecodedBytesFromBase64(b64) {
+  const s = String(b64 || '').replace(/\s/g, '');
+  if (!s.length) return 0;
+  const pad = s.length >= 2 && s.endsWith('==') ? 2 : s.endsWith('=') ? 1 : 0;
+  return Math.max(0, Math.floor((s.length * 3) / 4) - pad);
+}
+
+function userFacingNutritionAnalyzeError(err) {
+  const m = String((err && err.message) || err || '');
+  const low = m.toLowerCase();
+  if (low.includes('exceeds 5 mb') || low.includes('5242880')) {
+    return 'Photo is too large for analysis. Please choose a smaller image or retake the photo.';
+  }
+  if (low.includes('too large') && low.includes('photo')) return m;
+  if (m.includes('messages.') && m.includes('base64')) {
+    return 'Photo is too large for analysis. Please choose a smaller image or retake the photo.';
+  }
+  if (m.length > 220) return 'Analysis failed. Please try again with a smaller or clearer photo.';
+  return m || 'Analysis failed';
+}
 
 function buildAiResultForStorage(baseAi, { analyzedWithPhoto, entrySource }) {
   if (!baseAi || typeof baseAi !== 'object') return baseAi;
@@ -299,6 +322,11 @@ function createNutritionRouter(deps) {
       if (img && img.length > MAX_NUTRITION_IMAGE_B64_CHARS) {
         return res.status(400).json({ error: 'Image too large (max 10 MB).' });
       }
+      if (img && approxDecodedBytesFromBase64(img) > NUTRITION_IMAGE_DECODE_LIMIT_BYTES) {
+        return res.status(400).json({
+          error: 'This photo is too large to analyze. Please choose a smaller image or take a new photo.'
+        });
+      }
       const mealValidation = await validateNutritionMealInput({
         apiKey,
         model,
@@ -456,7 +484,7 @@ function createNutritionRouter(deps) {
       });
     } catch (e) {
       console.error('[nutrition analyze]', e.message);
-      res.status(500).json({ error: e.message || 'Analysis failed' });
+      res.status(500).json({ error: userFacingNutritionAnalyzeError(e) });
     }
   });
 
@@ -664,6 +692,14 @@ function createNutritionRouter(deps) {
         const img = row.photo_data ? String(row.photo_data).replace(/\s/g, '') : '';
         if (!note) {
           errors.push({ mealType: mt, error: 'Text meal details are required for re-analysis.' });
+          continue;
+        }
+        if (img && approxDecodedBytesFromBase64(img) > NUTRITION_IMAGE_DECODE_LIMIT_BYTES) {
+          errors.push({
+            mealType: mt,
+            error:
+              'Stored photo is too large for AI analysis (over 4.5 MB). Ask the user to re-log the meal with a smaller image.'
+          });
           continue;
         }
         const prevAr = parseAiResultRow(row.ai_result);
