@@ -53,7 +53,8 @@ function mapReportRow(r) {
     analysisLastError: r.analysis_last_error || '',
     extractionAiUsage: parseJson(r.extraction_ai_usage),
     analysisAiUsage: parseJson(r.analysis_ai_usage),
-    totalAiUsage: parseJson(r.total_ai_usage)
+    totalAiUsage: parseJson(r.total_ai_usage),
+    profile_picture: String(r.client_profile_picture || '').trim()
   };
 }
 
@@ -196,7 +197,10 @@ function createBloodRouter(deps) {
         extra = ' AND r.sent_to_user = true';
       }
       const rows = await queryAll(
-        `SELECT r.* FROM blood_analysis_reports r WHERE 1=1 ${extra} ORDER BY r.created_at DESC`
+        `SELECT r.*, u.profile_picture AS client_profile_picture
+         FROM blood_analysis_reports r
+         LEFT JOIN users u ON u.id = r.user_id
+         WHERE 1=1 ${extra} ORDER BY r.created_at DESC`
       );
       res.json({ reports: (rows || []).map((r) => mapReportRow(r)) });
     } catch (e) {

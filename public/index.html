@@ -1622,13 +1622,19 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 .admin-la-tag.pending{color:#f59e0b;background:rgba(245,158,11,0.15)}
 .admin-la-loading{color:var(--muted);font-size:14px;padding:20px 0}
 .admin-coin-list{display:flex;flex-direction:column;gap:0}
-.admin-coin-row{display:grid;grid-template-columns:34px 1fr auto;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
+.admin-coin-row{display:grid;grid-template-columns:40px 34px 1fr auto;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
 .admin-coin-row:last-child{border-bottom:none}
+.admin-coin-av{width:40px;height:40px;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.06);flex-shrink:0}
+.admin-coin-av .bb-admin-avatar{width:100%;height:100%}
+.admin-coin-av .bb-admin-avatar--initials{font-size:12px;color:var(--gold)}
 .admin-coin-rank{width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:700;color:#1a1408;background:radial-gradient(circle at 30% 30%,#f5d889 0%,#c8a44e 55%,#8a6f2e 100%)}
 .admin-coin-meta{min-width:0}
 .admin-coin-name{font-size:13px;font-weight:700;color:var(--cream);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .admin-coin-sub{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .admin-coin-bal{font-family:var(--bb-font-heading);font-size:18px;font-weight:700;color:var(--gold);white-space:nowrap}
+.admin-blood-card-av{width:38px;height:38px;border-radius:50%;overflow:hidden;flex-shrink:0;display:flex;align-items:center;justify-content:center;background:var(--surface2,#1e2328)}
+.admin-blood-card-av .bb-admin-avatar{width:100%;height:100%}
+.admin-blood-card-av .bb-admin-avatar--initials{color:var(--gold);font-size:12px;font-weight:700}
 
 /* Mobile Admin Attention Cards (luxury layout) */
 .admin-attention-card{
@@ -8812,8 +8818,10 @@ async function loadAdminCoinLeaderboard() {
     var email = bbUserEsc(String((r && r.email) || ''));
     var bal = Number(r && r.balance);
     var earned = Number(r && r.lifetime_earned);
+    var dispName = bbAdminCoinName(r);
     return (
       '<div class="admin-coin-row">' +
+        '<div class="admin-coin-av" aria-hidden="true">' + bbAdminAvatarHtml((r && r.profile_picture) || '', dispName) + '</div>' +
         '<div class="admin-coin-rank">#' + (idx + 1) + '</div>' +
         '<div class="admin-coin-meta">' +
           '<div class="admin-coin-name">' + name + '</div>' +
@@ -15817,7 +15825,6 @@ function loadAdminBloodReports() {
         var statusColors = { Good: '#3dd68c', Excellent: '#3dd68c', Fair: '#f5a623', Poor: '#ff5c5c', Critical: '#ff5c5c' };
         var ar = r.aiReport || {};
         var sc = statusColors[ar.overall_status] || '#8a8880';
-        var initials = (r.userName || '?').split(/\s+/).map(function (n) { return n[0]; }).join('').slice(0, 2).toUpperCase();
         var findings = (ar.key_findings || []).slice(0, 3).map(function (f) {
           var bg = f.severity === 'critical' ? 'rgba(255,92,92,0.12)' : f.severity === 'good' ? 'rgba(61,214,140,0.12)' : 'rgba(245,166,35,0.12)';
           var col = f.severity === 'critical' ? '#ff5c5c' : f.severity === 'good' ? '#3dd68c' : '#f5a623';
@@ -15828,7 +15835,7 @@ function loadAdminBloodReports() {
         return (
           '<div style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:1.1rem;margin-bottom:10px;min-width:280px">' +
           '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">' +
-          '<div style="width:38px;height:38px;border-radius:50%;background:var(--surface2,#1e2328);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;color:var(--gold)">' + escapeHtml(initials) + '</div>' +
+          '<div class="admin-blood-card-av" aria-hidden="true">' + bbAdminAvatarHtml(r.profile_picture || '', r.userName || '') + '</div>' +
           '<div style="flex:1;min-width:120px"><div style="font-weight:700">' + escapeHtml(r.userName || '—') + '</div>' +
           '<div class="form-hint" style="margin:2px 0 0">' + escapeHtml(r.userGoal || '—') + ' · ' + (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '') + '</div></div>' +
           (isReady ? '<div style="font-size:20px;font-weight:700;color:' + sc + '">' + escapeHtml(ar.overall_status || '—') + '</div>' : '<div class="form-hint">' + escapeHtml(String(r.status || '').replace(/_/g, ' ')) + '</div>') +
