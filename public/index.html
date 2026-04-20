@@ -14163,9 +14163,9 @@ function nutritionShareGetImageInkBounds(img) {
   };
 }
 
-function nutritionShareDrawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+function nutritionShareWrapLinesForWidth(ctx, text, maxWidth, maxLines) {
   var words = String(text || '').split(/\s+/).filter(Boolean);
-  if (!words.length) return y;
+  if (!words.length) return [];
   var lines = [];
   var line = words[0] || '';
   for (var i = 1; i < words.length; i++) {
@@ -14184,6 +14184,11 @@ function nutritionShareDrawWrappedText(ctx, text, x, y, maxWidth, lineHeight, ma
     while (ctx.measureText(last + '...').width > maxWidth && last.length > 3) last = last.slice(0, -1);
     lines[maxLines - 1] = last + '...';
   }
+  return lines;
+}
+
+function nutritionShareDrawWrappedText(ctx, text, x, y, maxWidth, lineHeight, maxLines) {
+  var lines = nutritionShareWrapLinesForWidth(ctx, text, maxWidth, maxLines);
   for (var k = 0; k < lines.length; k++) ctx.fillText(lines[k], x, y + (k * lineHeight));
   return y + (lines.length * lineHeight);
 }
@@ -14261,9 +14266,9 @@ async function nutritionShareDrawPartnerLockupTop(ctx, W, centerY, logoMaxH) {
 
 function adminPremiumDrawMacroBar(ctx, W, y, label, fillHex, pct, rightText) {
   var padL = 52;
-  var labelW = 132;
+  var labelW = 178;
   var barX = padL + labelW;
-  var valueW = 228;
+  var valueW = 200;
   var barW = W - padL - labelW - valueW - 52;
   var barH = 42;
   var r = 21;
@@ -14291,9 +14296,7 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   if (!c || !c.userId) return null;
   var canvas = document.createElement('canvas');
   var W = 1080;
-  var H = 2320;
   canvas.width = W;
-  canvas.height = H;
   var ctx = canvas.getContext('2d');
   if (!ctx) return null;
 
@@ -14321,6 +14324,35 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   var balanceEst = sn && sn.energyBalanceEst != null ? Number(sn.energyBalanceEst) : null;
   var balLine = balanceEst == null ? '—' : (balanceEst > 0 ? '+' + balanceEst + ' kcal' : balanceEst + ' kcal');
 
+  var nameStr = String(c.userName || 'Member').trim() || 'Member';
+  var logoCenterY = 88;
+  var logoMaxH = 76;
+  var logoBandBottom = logoCenterY + Math.round(logoMaxH * 0.72) + 24;
+  var titleY = logoBandBottom + 20;
+  var nameY = titleY + 68;
+  ctx.font = "600 58px 'Playfair Display','Georgia',serif";
+  var nameLines = nutritionShareWrapLinesForWidth(ctx, nameStr, W - 300, 2);
+  var nameEndY = nameY + nameLines.length * 66;
+  var eliteY = nameEndY + 22;
+  var dateY = eliteY + 42;
+  var ringCy = nameY + 72;
+  var headerBlockBottom = Math.max(dateY + 38, ringCy + 108);
+  var gridTop = headerBlockBottom + 38;
+  var cellImgH = 368;
+  var mealBlockH = cellImgH + 24 + 66 + 30;
+  var macrosY = gridTop + mealBlockH + 52;
+  var barY = macrosY + 52;
+  var barStep = 88;
+  var sumY = barY + barStep * 3 + 56;
+  var energyBoxY = sumY + 32;
+  var energyBoxH = 288;
+  var taglineY = energyBoxY + energyBoxH + 30;
+  var footDivY = taglineY + 34;
+  var foot1Y = footDivY + 34;
+  var foot2Y = foot1Y + 28;
+  var H = foot2Y + 76;
+  canvas.height = H;
+
   var bg = ctx.createLinearGradient(0, 0, W, H);
   bg.addColorStop(0, '#12151a');
   bg.addColorStop(0.45, '#0d0f12');
@@ -14337,60 +14369,50 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   nutritionShareRoundRectPath(ctx, 36, 36, W - 72, H - 72, 40);
   ctx.stroke();
 
-  var logoCenterY = 96;
-  var logoMaxH = 76;
   await nutritionShareDrawPartnerLockupTop(ctx, W, logoCenterY, logoMaxH);
-  var logoBandBottom = logoCenterY + Math.round(logoMaxH * 0.72) + 28;
 
   ctx.fillStyle = '#d8ccb8';
   ctx.font = "500 36px 'Outfit','Segoe UI',sans-serif";
   ctx.textAlign = 'center';
-  var titleY = logoBandBottom + 26;
   ctx.fillText('Daily nutrition insight', W / 2, titleY);
   ctx.textAlign = 'left';
 
-  var nameY = titleY + 78;
   ctx.font = "600 58px 'Playfair Display','Georgia',serif";
   ctx.fillStyle = '#faf6ef';
-  var nameStr = String(c.userName || 'Member').trim() || 'Member';
-  var nameEndY = nutritionShareDrawWrappedText(ctx, nameStr, 56, nameY, W - 300, 66, 2);
+  for (var nl = 0; nl < nameLines.length; nl++) {
+    ctx.fillText(nameLines[nl], 56, nameY + nl * 66);
+  }
 
-  var eliteY = nameEndY + 22;
   ctx.font = "600 24px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#c9a84c';
   ctx.letterSpacing = '0.22em';
   ctx.fillText('TRIBE ELITE MEMBER', 56, eliteY);
   ctx.letterSpacing = '0';
 
-  var dateY = eliteY + 42;
   ctx.font = "500 30px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#a89880';
   ctx.fillText(adminNutritionFmtCardDate(reportDate), 56, dateY);
 
   var ringCx = W - 158;
-  var ringCy = nameY + 72;
   ctx.beginPath();
   ctx.arc(ringCx, ringCy, 96, 0, Math.PI * 2);
   ctx.strokeStyle = score != null ? scoreColor : 'rgba(200,164,78,0.35)';
   ctx.lineWidth = 9;
   ctx.stroke();
   ctx.fillStyle = scoreColor;
-  ctx.font = "800 62px 'Outfit','Segoe UI',sans-serif";
+  ctx.font = "800 54px 'Outfit','Segoe UI',sans-serif";
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.fillText(score != null ? score.toFixed(1) : '—', ringCx, ringCy - 8);
-  ctx.font = "700 22px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText(score != null ? score.toFixed(1) : '—', ringCx, ringCy - 22);
+  ctx.font = "700 20px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#9a8b78';
-  ctx.fillText('MEAL SCORE', ringCx, ringCy + 44);
+  ctx.fillText('MEAL SCORE', ringCx, ringCy + 54);
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
 
-  var headerBlockBottom = Math.max(dateY + 40, ringCy + 102 + 24);
-  var gridTop = headerBlockBottom + 44;
   var pad = 48;
   var gap = 14;
   var colW = Math.floor((W - pad * 2 - gap * 3) / 4);
-  var cellImgH = 368;
   var radius = 22;
 
   for (var i = 0; i < 4; i++) {
@@ -14422,32 +14444,27 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
     nutritionShareRoundRectPath(ctx, x, gridTop, colW, cellImgH, radius);
     ctx.stroke();
     var cx = Math.round(x + colW / 2);
-    var capY0 = gridTop + cellImgH + 26;
+    var capY0 = gridTop + cellImgH + 24;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = '#c4b59a';
     ctx.font = "700 26px 'Outfit','Segoe UI',sans-serif";
     var mealLbl = mt.charAt(0).toUpperCase() + mt.slice(1);
-    ctx.fillText(mealLbl, cx, capY0 + 26);
+    ctx.fillText(mealLbl, cx, capY0 + 28);
     var kcal = ar && ar.calories != null ? String(ar.calories) + ' kcal' : (meal ? 'Logged' : '—');
     ctx.font = "700 30px 'Outfit','Segoe UI',sans-serif";
     ctx.fillStyle = '#f2e8d4';
-    ctx.fillText(kcal, cx, capY0 + 64);
+    ctx.fillText(kcal, cx, capY0 + 66);
     ctx.textAlign = 'left';
   }
 
-  var mealBlockH = cellImgH + 26 + 64 + 22;
-  var macrosY = gridTop + mealBlockH + 56;
   ctx.fillStyle = '#d4b05c';
   ctx.font = "800 40px 'Outfit','Segoe UI',sans-serif";
   ctx.fillText('Macronutrients', 52, macrosY);
-  var barStep = 88;
-  var barY = macrosY + 52;
   adminPremiumDrawMacroBar(ctx, W, barY, 'Carbs', '#e67e22', carbPct, totalCarbs + ' / ' + carbGoal + ' g');
   adminPremiumDrawMacroBar(ctx, W, barY + barStep, 'Protein', '#2ecc71', proPct, totalProtein + ' / ' + proGoal + ' g');
   adminPremiumDrawMacroBar(ctx, W, barY + barStep * 2, 'Fat', '#c0392b', fatPct, totalFat + ' / ' + fatGoal + ' g');
 
-  var sumY = barY + barStep * 3 + 64;
   ctx.strokeStyle = 'rgba(200,164,78,0.45)';
   ctx.lineWidth = 3;
   ctx.beginPath();
@@ -14455,8 +14472,6 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   ctx.lineTo(W - 52, sumY);
   ctx.stroke();
 
-  var energyBoxY = sumY + 36;
-  var energyBoxH = 348;
   ctx.fillStyle = 'rgba(200,164,78,0.09)';
   nutritionShareRoundRectPath(ctx, 48, energyBoxY, W - 96, energyBoxH, 28);
   ctx.fill();
@@ -14470,14 +14485,11 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   ctx.font = "700 34px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#d4c4a8';
   ctx.fillText('Estimated daily energy balance', ex, ey + 46);
-  ctx.font = "500 24px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillStyle = '#7d7365';
-  ctx.fillText('Modelled from intake, RMR, TEF, training & daily movement', ex, ey + 82);
 
   var valR = W - 72;
-  var rowEnergyY = ey + 140;
-  var rowOutY = ey + 214;
-  var rowNetY = ey + 288;
+  var rowEnergyY = ey + 102;
+  var rowOutY = ey + 172;
+  var rowNetY = ey + 242;
   ctx.textBaseline = 'alphabetic';
   ctx.font = "600 30px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#9a8f7e';
@@ -14508,27 +14520,25 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   ctx.fillText(netLabel, valR, rowNetY);
   ctx.textAlign = 'left';
 
-  var taglineY = energyBoxY + energyBoxH + 56;
   ctx.fillStyle = '#c9a84c';
-  ctx.font = "600 28px 'Outfit','Segoe UI',sans-serif";
+  ctx.font = "600 24px 'Outfit','Segoe UI',sans-serif";
   ctx.textAlign = 'center';
   ctx.fillText('Train smart · Nourish with precision', W / 2, taglineY);
   ctx.textAlign = 'left';
 
-  var footY = H - 118;
   ctx.strokeStyle = 'rgba(200,164,78,0.35)';
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(52, footY - 64);
-  ctx.lineTo(W - 52, footY - 64);
+  ctx.moveTo(52, footDivY);
+  ctx.lineTo(W - 52, footDivY);
   ctx.stroke();
   ctx.fillStyle = '#b8a990';
   ctx.font = "600 26px 'Outfit','Segoe UI',sans-serif";
   ctx.textAlign = 'center';
-  ctx.fillText('BodyBank · Precision lifestyle tracking', W / 2, footY - 6);
+  ctx.fillText('BodyBank · Precision lifestyle tracking', W / 2, foot1Y);
   ctx.font = "500 22px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#9a8d78';
-  ctx.fillText('Co-powered by FitChef Nutrition  ·  Fitchef.fit', W / 2, footY + 38);
+  ctx.fillText('Co-powered by FitChef Nutrition  ·  Fitchef.fit', W / 2, foot2Y);
   ctx.textAlign = 'left';
 
   return await new Promise(function (resolve) {
