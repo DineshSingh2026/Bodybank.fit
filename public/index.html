@@ -644,6 +644,21 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 #tab-workouts .admin-list-table tbody td.admin-workout-cell-workout{max-width:min(220px,40vw);word-break:normal;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:10px;padding-bottom:10px}
 #tab-workouts .admin-list-table tbody td.admin-workout-cell-date{white-space:nowrap;word-break:normal;padding-top:10px;padding-bottom:10px;color:var(--creamd)}
 #tab-workouts .admin-list-table .btn-view-cell{padding-top:10px;padding-bottom:10px}
+/* Workouts table: avoid squeezed/overlapping headers (esp. when mobile forces table-layout:fixed on .admin-table) */
+#tab-workouts .admin-workouts-table{table-layout:auto;min-width:720px;width:100%}
+#tab-workouts .admin-workouts-table thead th{
+  white-space:normal;
+  line-height:1.25;
+  letter-spacing:0.1em;
+  vertical-align:bottom;
+  padding:12px 10px;
+}
+#tab-workouts .admin-workouts-table thead th.admin-workouts-th-actions{
+  text-align:right;
+  white-space:nowrap;
+  width:96px;
+  min-width:88px;
+}
 .admin-table-wrap{width:100%;max-width:100%;min-width:0;overflow-x:auto;overflow-y:auto;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--bdr) transparent;touch-action:pan-x pan-y}
 .admin-table-wrap::-webkit-scrollbar{width:8px;height:10px}
 .admin-table-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,0.04)}
@@ -2460,6 +2475,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   .admin-tab-content{padding:0;box-sizing:border-box}
   .admin-tab-content-wrap .admin-table-wrap,.admin-tab-content-wrap .insights-table-wrap{max-height:none;overflow:visible;margin-bottom:8px;margin-left:0;margin-right:0;width:100%;padding:0;min-width:0;box-sizing:border-box}
   .admin-tab-content-wrap .admin-table-wrap .admin-table,.admin-tab-content-wrap .insights-table-wrap .admin-table{width:100%!important;min-width:0!important;table-layout:fixed}
+  #tab-workouts .admin-table-wrap .admin-workouts-table{width:auto!important;min-width:720px!important;table-layout:auto!important}
   .admin-tab-content-wrap .tribe-grid{max-height:none;overflow:visible;display:flex;flex-direction:column;gap:24px;box-sizing:border-box;width:100%;min-width:0;margin:0;padding:0}
   .admin-tab-content-wrap .admin-welcome,.admin-tab-content-wrap .admin-stats{padding-left:0;padding-right:0}
   .admin-table{min-width:0!important;width:100%!important}
@@ -5380,7 +5396,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         </div>
       </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table admin-workouts-table">
-        <thead><tr><th>User</th><th>Session date</th><th>Type</th><th>Duration</th><th>Logged</th><th style="text-align:right;width:88px">Actions</th></tr></thead>
+        <thead><tr><th>User</th><th>Session</th><th>Type</th><th>Duration</th><th>Logged</th><th class="admin-workouts-th-actions">Actions</th></tr></thead>
         <tbody id="workoutsBody"></tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
