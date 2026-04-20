@@ -1253,11 +1253,15 @@ app.post('/api/auth/google', async (req, res) => {
 // Google Sign-up: complete profile (phone, password + new fields) for new Google users
 app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) => {
   try {
-    const { id_token, phone, password, dob, gender, country, timezone, state_province, city } = req.body || {};
+    const { id_token, phone, password, dob, gender, country, timezone, state_province, city, height_cm } = req.body || {};
     if (!id_token) return res.status(400).json({ error: 'ID token required' });
     if (!phone || typeof phone !== 'string' || !phone.trim()) return res.status(400).json({ error: 'Mobile (WhatsApp) number is required' });
     if (!password || typeof password !== 'string') return res.status(400).json({ error: 'Password is required' });
     if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const heightParsed = parseInt(height_cm, 10);
+    if (!Number.isFinite(heightParsed) || heightParsed < 100 || heightParsed > 230) {
+      return res.status(400).json({ error: 'Height must be a whole number between 100 and 230 cm' });
+    }
 
     const parts = id_token.split('.');
     if (parts.length !== 3) return res.status(400).json({ error: 'Invalid token' });
@@ -1278,8 +1282,8 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
 
     const id = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
-    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, state_province, city, dob, gender, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, 'user', 'pending']);
+    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, state_province, city, dob, gender, height_cm, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'pending']);
     sendPushToAdmins(JSON.stringify({ title: 'New sign-up (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
     userEmail.emailGoogleSignupPending(emailNorm, given_name);
     notifyAsync('USER_SIGNUP_GOOGLE', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—' });
@@ -1296,9 +1300,13 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
 
 app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
   try {
-    const { email, password, first_name, last_name, phone, country, timezone, state_province, city, dob, gender } = req.body || {};
+    const { email, password, first_name, last_name, phone, country, timezone, state_province, city, dob, gender, height_cm } = req.body || {};
     if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
     if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const heightParsed = parseInt(height_cm, 10);
+    if (!Number.isFinite(heightParsed) || heightParsed < 100 || heightParsed > 230) {
+      return res.status(400).json({ error: 'Height must be a whole number between 100 and 230 cm' });
+    }
     const geo = normalizeGeoFields(country, timezone);
     const cleanDob = dob && String(dob).trim() ? String(dob).trim().slice(0, 10) : null;
     const cleanGender = String(gender || '').trim().slice(0, 20);
@@ -1309,8 +1317,8 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     const existing = await queryOne("SELECT id, approval_status FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (existing && existing.approval_status === 'rejected') {
       const hash = bcrypt.hashSync(password, 10);
-      await run("UPDATE users SET password=?, first_name=?, last_name=?, phone=?, country=?, timezone=?, state_province=?, city=?, dob=?, gender=?, approval_status='pending' WHERE id=?",
-        [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, existing.id]);
+      await run("UPDATE users SET password=?, first_name=?, last_name=?, phone=?, country=?, timezone=?, state_province=?, city=?, dob=?, gender=?, height_cm=?, approval_status='pending' WHERE id=?",
+        [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, existing.id]);
       userEmail.emailSignupPending(emailNorm, first_name);
       return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
     }
@@ -1318,8 +1326,8 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
 
     const id = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
-    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, state_province, city, dob, gender, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, 'pending']);
+    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, state_province, city, dob, gender, height_cm, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'pending']);
     sendPushToAdmins(JSON.stringify({ title: 'New sign-up', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
     userEmail.emailSignupPending(emailNorm, first_name);
     notifyAsync('USER_SIGNUP', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—' });

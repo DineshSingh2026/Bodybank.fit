@@ -6457,6 +6457,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="form-group"><label>Date of Birth <span class="req">*</span></label><input type="date" class="form-input" id="suDob" required></div>
       <div class="form-group"><label>Gender <span class="req">*</span></label><select class="form-input" id="suGender" required><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option></select></div>
     </div>
+    <div class="form-group"><label>Height (cm) <span class="req">*</span></label><input type="number" class="form-input" id="suHeightCm" min="100" max="230" step="1" inputmode="numeric" placeholder="e.g. 175" required><span class="form-hint">Whole centimeters (100–230). Used for your nutrition energy estimate (RMR).</span></div>
     <div class="form-row">
       <div class="form-group"><label>Country <span class="req">*</span></label><input type="text" class="form-input" id="suCountry" placeholder="Your country" required></div>
       <div class="form-group"><label>Timezone <span class="req">*</span></label><select class="form-input" id="suTimezone" required><option value="">Detecting…</option><optgroup label="Asia"><option value="Asia/Kolkata">India (IST, UTC+5:30)</option><option value="Asia/Dubai">UAE / Dubai (GST, UTC+4)</option><option value="Asia/Riyadh">Saudi Arabia (AST, UTC+3)</option><option value="Asia/Kuwait">Kuwait (AST, UTC+3)</option><option value="Asia/Qatar">Qatar (AST, UTC+3)</option><option value="Asia/Bahrain">Bahrain (AST, UTC+3)</option><option value="Asia/Muscat">Oman / Muscat (GST, UTC+4)</option><option value="Asia/Karachi">Pakistan (PKT, UTC+5)</option><option value="Asia/Dhaka">Bangladesh (BST, UTC+6)</option><option value="Asia/Kathmandu">Nepal (NPT, UTC+5:45)</option><option value="Asia/Colombo">Sri Lanka (SLST, UTC+5:30)</option><option value="Asia/Singapore">Singapore (SGT, UTC+8)</option><option value="Asia/Kuala_Lumpur">Malaysia (MYT, UTC+8)</option><option value="Asia/Jakarta">Indonesia / Jakarta (WIB, UTC+7)</option><option value="Asia/Manila">Philippines (PHT, UTC+8)</option><option value="Asia/Tokyo">Japan (JST, UTC+9)</option><option value="Asia/Seoul">South Korea (KST, UTC+9)</option><option value="Asia/Shanghai">China (CST, UTC+8)</option></optgroup><optgroup label="Europe"><option value="Europe/London">UK / London (GMT/BST)</option><option value="Europe/Paris">France / Paris (CET, UTC+1)</option><option value="Europe/Berlin">Germany / Berlin (CET, UTC+1)</option><option value="Europe/Rome">Italy / Rome (CET, UTC+1)</option><option value="Europe/Amsterdam">Netherlands (CET, UTC+1)</option><option value="Europe/Oslo">Norway / Oslo (CET, UTC+1)</option><option value="Europe/Stockholm">Sweden / Stockholm (CET, UTC+1)</option><option value="Europe/Copenhagen">Denmark (CET, UTC+1)</option><option value="Europe/Helsinki">Finland (EET, UTC+2)</option><option value="Europe/Dublin">Ireland / Dublin (GMT/IST)</option></optgroup><optgroup label="Americas"><option value="America/New_York">US — New York (ET, UTC-5/-4)</option><option value="America/Chicago">US — Chicago (CT, UTC-6/-5)</option><option value="America/Denver">US — Denver (MT, UTC-7/-6)</option><option value="America/Los_Angeles">US — Los Angeles (PT, UTC-8/-7)</option><option value="America/Phoenix">US — Phoenix (MST, UTC-7)</option><option value="America/Anchorage">US — Anchorage (AKST, UTC-9)</option><option value="Pacific/Honolulu">US — Hawaii (HST, UTC-10)</option><option value="America/Toronto">Canada / Toronto (ET, UTC-5/-4)</option><option value="America/Vancouver">Canada / Vancouver (PT, UTC-8/-7)</option><option value="America/Sao_Paulo">Brazil / São Paulo (BRT, UTC-3)</option><option value="America/Mexico_City">Mexico (CST, UTC-6)</option></optgroup><optgroup label="Oceania"><option value="Australia/Sydney">Australia / Sydney (AEST, UTC+10/11)</option><option value="Australia/Brisbane">Australia / Brisbane (AEST, UTC+10)</option><option value="Australia/Perth">Australia / Perth (AWST, UTC+8)</option><option value="Pacific/Auckland">New Zealand (NZST, UTC+12/13)</option></optgroup><optgroup label="Africa"><option value="Africa/Johannesburg">South Africa (SAST, UTC+2)</option><option value="Africa/Lagos">Nigeria (WAT, UTC+1)</option><option value="Africa/Nairobi">Kenya (EAT, UTC+3)</option></optgroup><optgroup label="UTC"><option value="UTC">UTC (Coordinated Universal Time)</option></optgroup></select></div>
@@ -6502,6 +6503,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="form-group"><label>Date of Birth <span class="req">*</span></label><input type="date" class="form-input" id="gcDob" required></div>
       <div class="form-group"><label>Gender <span class="req">*</span></label><select class="form-input" id="gcGender" required><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option></select></div>
     </div>
+    <div class="form-group"><label>Height (cm) <span class="req">*</span></label><input type="number" class="form-input" id="gcHeightCm" min="100" max="230" step="1" inputmode="numeric" placeholder="e.g. 175" required><span class="form-hint">Whole centimeters (100–230). Used for your nutrition energy estimate (RMR).</span></div>
     <div class="form-row">
       <div class="form-group"><label>Country <span class="req">*</span></label><input type="text" class="form-input" id="gcCountry" placeholder="Your country" required></div>
       <div class="form-group"><label>Timezone <span class="req">*</span></label><select class="form-input" id="gcTimezone" required><option value="">Detecting…</option><optgroup label="Asia"><option value="Asia/Kolkata">India (IST, UTC+5:30)</option><option value="Asia/Dubai">UAE / Dubai (GST, UTC+4)</option><option value="Asia/Riyadh">Saudi Arabia (AST, UTC+3)</option><option value="Asia/Kuwait">Kuwait (AST, UTC+3)</option><option value="Asia/Qatar">Qatar (AST, UTC+3)</option><option value="Asia/Bahrain">Bahrain (AST, UTC+3)</option><option value="Asia/Muscat">Oman / Muscat (GST, UTC+4)</option><option value="Asia/Karachi">Pakistan (PKT, UTC+5)</option><option value="Asia/Dhaka">Bangladesh (BST, UTC+6)</option><option value="Asia/Kathmandu">Nepal (NPT, UTC+5:45)</option><option value="Asia/Colombo">Sri Lanka (SLST, UTC+5:30)</option><option value="Asia/Singapore">Singapore (SGT, UTC+8)</option><option value="Asia/Kuala_Lumpur">Malaysia (MYT, UTC+8)</option><option value="Asia/Jakarta">Indonesia / Jakarta (WIB, UTC+7)</option><option value="Asia/Manila">Philippines (PHT, UTC+8)</option><option value="Asia/Tokyo">Japan (JST, UTC+9)</option><option value="Asia/Seoul">South Korea (KST, UTC+9)</option><option value="Asia/Shanghai">China (CST, UTC+8)</option></optgroup><optgroup label="Europe"><option value="Europe/London">UK / London (GMT/BST)</option><option value="Europe/Paris">France / Paris (CET, UTC+1)</option><option value="Europe/Berlin">Germany / Berlin (CET, UTC+1)</option><option value="Europe/Rome">Italy / Rome (CET, UTC+1)</option><option value="Europe/Amsterdam">Netherlands (CET, UTC+1)</option><option value="Europe/Oslo">Norway / Oslo (CET, UTC+1)</option><option value="Europe/Stockholm">Sweden / Stockholm (CET, UTC+1)</option><option value="Europe/Copenhagen">Denmark (CET, UTC+1)</option><option value="Europe/Helsinki">Finland (EET, UTC+2)</option><option value="Europe/Dublin">Ireland / Dublin (GMT/IST)</option></optgroup><optgroup label="Americas"><option value="America/New_York">US — New York (ET, UTC-5/-4)</option><option value="America/Chicago">US — Chicago (CT, UTC-6/-5)</option><option value="America/Denver">US — Denver (MT, UTC-7/-6)</option><option value="America/Los_Angeles">US — Los Angeles (PT, UTC-8/-7)</option><option value="America/Phoenix">US — Phoenix (MST, UTC-7)</option><option value="America/Anchorage">US — Anchorage (AKST, UTC-9)</option><option value="Pacific/Honolulu">US — Hawaii (HST, UTC-10)</option><option value="America/Toronto">Canada / Toronto (ET, UTC-5/-4)</option><option value="America/Vancouver">Canada / Vancouver (PT, UTC-8/-7)</option><option value="America/Sao_Paulo">Brazil / São Paulo (BRT, UTC-3)</option><option value="America/Mexico_City">Mexico (CST, UTC-6)</option></optgroup><optgroup label="Oceania"><option value="Australia/Sydney">Australia / Sydney (AEST, UTC+10/11)</option><option value="Australia/Brisbane">Australia / Brisbane (AEST, UTC+10)</option><option value="Australia/Perth">Australia / Perth (AWST, UTC+8)</option><option value="Pacific/Auckland">New Zealand (NZST, UTC+12/13)</option></optgroup><optgroup label="Africa"><option value="Africa/Johannesburg">South Africa (SAST, UTC+2)</option><option value="Africa/Lagos">Nigeria (WAT, UTC+1)</option><option value="Africa/Nairobi">Kenya (EAT, UTC+3)</option></optgroup><optgroup label="UTC"><option value="UTC">UTC (Coordinated Universal Time)</option></optgroup></select></div>
@@ -8145,6 +8147,7 @@ async function handleSignup() {
   var timezone   = (document.getElementById('suTimezone')|| {}).value || '';
   var state_province = (document.getElementById('suState') || {}).value || '';
   var city       = (document.getElementById('suCity')   || {}).value || '';
+  var height_cm_raw = (document.getElementById('suHeightCm') || {}).value || '';
   var password   = (document.getElementById('pwSignup') || {}).value || '';
   var confirm    = (document.getElementById('suConfirmPw')|| {}).value || '';
   first_name = String(first_name).trim();
@@ -8157,6 +8160,7 @@ async function handleSignup() {
   timezone   = String(timezone).trim();
   state_province = String(state_province).trim();
   city       = String(city).trim();
+  var height_cm = parseInt(String(height_cm_raw).trim(), 10);
   if (!first_name) { showPopup('Missing Fields', 'First name is required.', '', 'OK'); return; }
   if (!email) { showPopup('Missing Fields', 'Email is required.', '', 'OK'); return; }
   if (!phone) { showPopup('Missing Fields', 'Mobile number is required.', '', 'OK'); return; }
@@ -8164,6 +8168,7 @@ async function handleSignup() {
   if (!gender) { showPopup('Missing Fields', 'Please select your gender.', '', 'OK'); return; }
   if (!country) { showPopup('Missing Fields', 'Country is required.', '', 'OK'); return; }
   if (!timezone) { showPopup('Missing Fields', 'Please select your timezone.', '', 'OK'); return; }
+  if (!Number.isFinite(height_cm) || height_cm < 100 || height_cm > 230) { showPopup('Height', 'Please enter your height in centimeters (whole number between 100 and 230).', '', 'OK'); return; }
   if (!password) { showPopup('Missing Fields', 'Password is required.', '', 'OK'); return; }
   if (password !== confirm) { showPopup('Password Mismatch', 'Passwords do not match. Please try again.', '', 'OK'); return; }
 
@@ -8196,7 +8201,7 @@ async function handleSignup() {
   var sBtn = modal ? modal.querySelector('.form-submit') : null;
   if(sBtn){sBtn.disabled=true;sBtn.classList.add('loading');sBtn._orig=sBtn.innerHTML;sBtn.innerHTML='<span class="btn-spinner"></span> Creating account...';}
   try {
-    const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone, dob, gender, country, timezone, state_province, city });
+    const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone, dob, gender, country, timezone, state_province, city, height_cm });
     if (data.error) {
       window.__bbSignupBloodQueued = null;
       if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
@@ -8227,6 +8232,7 @@ async function handleGoogleCompleteSubmit() {
   var timezone = ((document.getElementById('gcTimezone')||{}).value||'').trim();
   var state_province = ((document.getElementById('gcState')||{}).value||'').trim();
   var city     = ((document.getElementById('gcCity')||{}).value||'').trim();
+  var height_cm = parseInt(String((document.getElementById('gcHeightCm')||{}).value||'').trim(), 10);
   var password = (document.getElementById('gcPw')||{}).value||'';
   var confirmVal = (document.getElementById('gcPwConfirm')||{}).value||'';
   if (!phone) { showPopup('Missing Field', 'Mobile (WhatsApp) number is required.', '', 'OK'); return; }
@@ -8234,6 +8240,7 @@ async function handleGoogleCompleteSubmit() {
   if (!gender) { showPopup('Missing Field', 'Please select your gender.', '', 'OK'); return; }
   if (!country) { showPopup('Missing Field', 'Country is required.', '', 'OK'); return; }
   if (!timezone) { showPopup('Missing Field', 'Please select your timezone.', '', 'OK'); return; }
+  if (!Number.isFinite(height_cm) || height_cm < 100 || height_cm > 230) { showPopup('Height', 'Please enter your height in centimeters (whole number between 100 and 230).', '', 'OK'); return; }
   if (!password) { showPopup('Missing Field', 'Password is required.', '', 'OK'); return; }
   if (password.length < 6) { showPopup('Invalid Password', 'Password must be at least 6 characters.', '', 'OK'); return; }
   if (password !== confirmVal) { showPopup('Password Mismatch', 'Passwords do not match.', '', 'OK'); return; }
@@ -8241,7 +8248,7 @@ async function handleGoogleCompleteSubmit() {
   var sBtn = modal ? modal.querySelector('.form-submit') : null;
   if (sBtn) { sBtn.disabled = true; sBtn.classList.add('loading'); sBtn._orig = sBtn.innerHTML; sBtn.innerHTML = '<span class="btn-spinner"></span> Creating account...'; }
   try {
-    var data = await apiCall('POST', '/api/auth/google-complete', { id_token: _pendingGoogleToken, phone, password, dob, gender, country, timezone, state_province, city });
+    var data = await apiCall('POST', '/api/auth/google-complete', { id_token: _pendingGoogleToken, phone, password, dob, gender, country, timezone, state_province, city, height_cm });
     if (data.error) { if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; } showPopup('Error', data.error, '', 'OK', null, 'error'); return; }
     _pendingGoogleToken = null;
     closeModal('googleCompleteModal');
