@@ -2963,8 +2963,11 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .admin-nutrition-equation .eq-num{font-family:var(--bb-font-heading);font-size:1rem;font-weight:700;color:var(--cream);line-height:1}
 .admin-nutrition-equation .eq-lbl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .admin-nutrition-equation .eq-op{font-size:.95rem;color:rgba(255,255,255,.32);flex-shrink:0}
-.admin-nutrition-equation .eq-cell.result .eq-num{color:var(--bb-green)}
+.admin-nutrition-equation .eq-cell.intake-in .eq-num{color:var(--bb-green)}
+.admin-nutrition-equation .eq-cell.result .eq-num{color:var(--cream)}
+.admin-nutrition-equation .eq-cell.result.surplus .eq-num{color:var(--bb-green)}
 .admin-nutrition-equation .eq-cell.result.over .eq-num{color:var(--bb-red)}
+.admin-nutrition-equation .eq-cell.result.balanced .eq-num{color:var(--muted)}
 .admin-nutrition-macro-bars{display:flex;flex-direction:column;gap:8px;margin-bottom:10px}
 .admin-nutrition-macro-bars .bar-row{display:flex;align-items:center;gap:8px}
 .admin-nutrition-macro-bars .bar-lbl{font-size:11px;color:var(--muted);width:52px;flex-shrink:0}
@@ -15004,6 +15007,11 @@ function loadAdminNutritionReport() {
         var confText = confLevel ? (confLevel.charAt(0).toUpperCase() + confLevel.slice(1) + ' confidence') : 'N/A';
         var balEstClass = balanceEst != null && balanceEst > 0 ? 'excess' : balanceEst != null && balanceEst < 0 ? 'deficit' : 'neutral';
         var balEstText = balanceEst == null ? '—' : balanceEst > 0 ? 'Surplus' : balanceEst < 0 ? 'Deficit' : 'Balanced';
+        var balanceEstRowClass = 'eq-cell result';
+        if (balanceEst != null && balanceEst > 0) balanceEstRowClass += ' surplus';
+        else if (balanceEst != null && balanceEst < 0) balanceEstRowClass += ' over';
+        else if (balanceEst != null && balanceEst === 0) balanceEstRowClass += ' balanced';
+        var balanceEstNumStr = balanceEst == null ? '—' : (balanceEst > 0 ? '+' + balanceEst : balanceEst === 0 ? '0' : String(balanceEst));
         var summaryHtml = sn
           ? '<div class="admin-nutrition-equation">' +
               '<div class="eq-cell"><span class="eq-num">' + (rmrEst != null ? rmrEst : '—') + '</span><span class="eq-lbl">RMR est</span></div>' +
@@ -15017,11 +15025,11 @@ function loadAdminNutritionReport() {
               '<div class="eq-cell"><span class="eq-num">' + (totalOutEst != null ? totalOutEst : '—') + '</span><span class="eq-lbl">Total out est</span></div>' +
             '</div>' +
             '<div class="admin-nutrition-equation" style="margin-top:10px">' +
-              '<div class="eq-cell"><span class="eq-num">' + intakeCalories + '</span><span class="eq-lbl">Intake</span></div>' +
+              '<div class="eq-cell intake-in"><span class="eq-num">+' + intakeCalories + '</span><span class="eq-lbl">Intake</span></div>' +
               '<span class="eq-op">−</span>' +
               '<div class="eq-cell"><span class="eq-num">' + (totalOutEst != null ? totalOutEst : '—') + '</span><span class="eq-lbl">Total out est</span></div>' +
               '<span class="eq-op">=</span>' +
-              '<div class="eq-cell result' + (balanceEst != null && balanceEst < 0 ? ' over' : '') + '"><span class="eq-num">' + (balanceEst == null ? '—' : (balanceEst > 0 ? '+' : '') + balanceEst) + '</span><span class="eq-lbl">Daily balance est</span></div>' +
+              '<div class="' + balanceEstRowClass + '"><span class="eq-num">' + balanceEstNumStr + '</span><span class="eq-lbl">Daily balance est</span></div>' +
             '</div>' +
             '<div class="admin-nutrition-balance-chip ' + balEstClass + '">Daily: ' + balEstText + '</div>' +
             '<p class="admin-nutrition-confidence" style="margin:0 0 6px">RMR = Mifflin–St Jeor; height/age use profile when available, else conservative defaults.</p>' +
