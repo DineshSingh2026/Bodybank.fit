@@ -495,13 +495,40 @@ async function getUserGoals(db, userId) {
   return { calorieGoal, proteinGoal };
 }
 
+function isWorkoutMarkedCompleted(flag) {
+  if (flag === false || flag === 0) return false;
+  const s = String(flag == null ? '' : flag).toLowerCase().trim();
+  if (s === 'false' || s === 'f' || s === '0' || s === 'no' || s === 'n') return false;
+  return true;
+}
+
+function estimateWorkoutCaloriesFromDuration(row, weightKg) {
+  const durSec = row && row.duration_seconds != null ? Number(row.duration_seconds) : 0;
+  if (!Number.isFinite(durSec) || durSec <= 0) return 0;
+  const minutes = durSec / 60;
+  const wt = Number.isFinite(weightKg) && weightKg > 0 ? weightKg : 70;
+
+  const intensity = String((row && row.intensity) || '').toLowerCase();
+  let met = 6.0; // moderate default
+  if (intensity.includes('low') || intensity.includes('light')) met = 4.5;
+  else if (intensity.includes('high') || intensity.includes('hard') || intensity.includes('vigorous')) met = 8.5;
+
+  const type = String((row && (row.workout_type || row.workout_name)) || '').toLowerCase();
+  if (/(yoga|stretch|mobility|walk)/.test(type)) met = Math.min(met, 3.8);
+  else if (/(hiit|crossfit|sprint|circuit)/.test(type)) met = Math.max(met, 8.8);
+  else if (/(strength|push|pull|legs|upper|lower|weights|gym)/.test(type)) met = Math.max(met, 6.0);
+
+  const kcal = met * 3.5 * wt / 200 * minutes;
+  return Math.max(0, Math.round(kcal));
+}
+
 /**
- * Workout kcal: only positive logged calories on completed sessions.
- * workout_completed FALSE excludes the row; NULL/TRUE counts (legacy rows).
+ * Workout kcal: prefer logged calories; fallback to duration-based estimate.
+ * workout_completed FALSE/0/'f' excludes the row; NULL/TRUE counts (legacy rows).
  */
 async function sumWorkoutCaloriesOut(db, userId, ymd) {
   const rows = await db.queryAll(
-    `SELECT calories, workout_completed
+    `SELECT calories, workout_completed, duration_seconds, intensity, workout_type, workout_name
      FROM workout_logs
      WHERE user_id = ?
        AND (
@@ -510,11 +537,16 @@ async function sumWorkoutCaloriesOut(db, userId, ymd) {
        )`,
     [userId, ymd, ymd]
   );
+  const profile = await getUserEnergyProfile(db, userId);
   let sum = 0;
   (rows || []).forEach((w) => {
-    if (w.workout_completed === false) return;
-    const c = w.calories != null ? parseInt(w.calories, 10) : NaN;
-    if (Number.isFinite(c) && c > 0) sum += c;
+    if (!isWorkoutMarkedCompleted(w.workout_completed)) return;
+    const logged = w.calories != null ? parseInt(w.calories, 10) : NaN;
+    if (Number.isFinite(logged) && logged > 0) {
+      sum += logged;
+      return;
+    }
+    sum += estimateWorkoutCaloriesFromDuration(w, profile.weightKg);
   });
   return sum;
 }
