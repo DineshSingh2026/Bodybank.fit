@@ -13954,8 +13954,9 @@ function nutritionSetBadge(mt, text, cls) {
 function nutritionSetAnalyzeLocked(mt, locked) {
   var btn = document.querySelector('#mslot-' + mt + ' .analyze-single-btn');
   if (!btn) return;
-  btn.disabled = !!locked;
-  btn.textContent = locked ? 'Analyzed' : 'Analyze & save';
+  // Keep re-analyze available even after a meal has been analyzed.
+  btn.disabled = false;
+  btn.textContent = locked ? 'Re-analyze' : 'Analyze & save';
 }
 
 function nutritionUpdateSubmitAllState() {
@@ -14061,9 +14062,17 @@ function nutritionSetPhotoRemovable(mt, canRemove) {
 
 function nutritionRemovePhoto(mt, opts) {
   opts = opts || {};
-  if (bbNutritionState.results && bbNutritionState.results[mt]) {
-    nutritionShowToast('Photo cannot be removed after analysis.', 'warn');
-    return;
+  var hadResult = !!(bbNutritionState.results && bbNutritionState.results[mt]);
+  if (hadResult) {
+    delete bbNutritionState.results[mt];
+    delete bbNutritionState.confidence[mt];
+    delete bbNutritionState.scores[mt];
+    var resEl = document.getElementById('result-' + mt);
+    if (resEl) {
+      resEl.style.display = 'none';
+      resEl.innerHTML = '';
+    }
+    nutritionSetAnalyzeLocked(mt, false);
   }
   delete bbNutritionState.photos[mt];
   delete bbNutritionState.mimes[mt];
@@ -14085,6 +14094,7 @@ function nutritionRemovePhoto(mt, opts) {
   if (slot) slot.classList.remove('uploading', 'analyzed', 'low-conf');
   nutritionSetBadge(mt, 'Not logged', '');
   nutritionSetPhotoRemovable(mt, true);
+  if (hadResult) nutritionUpdateSummaryFromState();
   if (!opts.keepDraft) nutritionDraftRemoveMealPhoto(mt, nutritionTodayYmd());
   nutritionUpdateSubmitAllState();
 }
@@ -15146,11 +15156,6 @@ async function nutritionAnalyzeSingle(mt, opts) {
     nutritionShowToast('Sign in required', 'error');
     return;
   }
-  if (bbNutritionState.results && bbNutritionState.results[mt]) {
-    nutritionSetAnalyzeLocked(mt, true);
-    nutritionShowToast('Already analyzed for this meal.', 'warn');
-    return;
-  }
   var photo = bbNutritionState.photos[mt];
   var noteEl = document.getElementById('note-' + mt);
   var note = noteEl ? noteEl.value.trim() : '';
@@ -15207,7 +15212,7 @@ async function nutritionAnalyzeSingle(mt, opts) {
     if (mc && mc.level === 'low') slot.classList.add('low-conf');
     else slot.classList.remove('low-conf');
   }
-  nutritionSetPhotoRemovable(mt, false);
+  nutritionSetPhotoRemovable(mt, true);
   nutritionDraftRemoveMealPhoto(mt, nutritionTodayYmd());
   nutritionSetAnalyzeLocked(mt, true);
   if ((mc && mc.level === 'low') || conf === 'low') nutritionShowToast('Low confidence — consider a clearer photo', 'warn');

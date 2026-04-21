@@ -345,15 +345,27 @@ function createNutritionRouter(deps) {
       const _userTz = await getUserTz(db, userId);
       const ymd = ymdOrToday(req.body, req.query, _userTz);
       if (img) {
-        const dayPhotoRow = await queryOne(
-          `SELECT COALESCE(SUM(photo_upload_count), 0)::int AS n
+        // Enforce slot-based quota (max 4 meal slots/day), not retry-attempt quota.
+        // Re-analyzing the same meal slot should not consume another daily slot.
+        const existingMealRow = await queryOne(
+          `SELECT COALESCE(photo_upload_count, 0)::int AS photo_upload_count
            FROM nutrition_meal_logs
-           WHERE user_id = ? AND log_date = ?::date`,
-          [userId, ymd]
+           WHERE user_id = ? AND log_date = ?::date AND meal_type = ?
+           LIMIT 1`,
+          [userId, ymd, mt]
         );
-        const dayPhotoCount = parseInt(dayPhotoRow && dayPhotoRow.n, 10) || 0;
-        if (dayPhotoCount >= 4) {
-          return res.status(429).json({ error: 'Daily photo upload limit reached (4). Try again tomorrow.' });
+        const mealHasPhotoSlot = (parseInt(existingMealRow && existingMealRow.photo_upload_count, 10) || 0) > 0;
+        if (!mealHasPhotoSlot) {
+          const dayPhotoSlotsRow = await queryOne(
+            `SELECT COUNT(*)::int AS n
+             FROM nutrition_meal_logs
+             WHERE user_id = ? AND log_date = ?::date AND COALESCE(photo_upload_count, 0) > 0`,
+            [userId, ymd]
+          );
+          const dayPhotoSlots = parseInt(dayPhotoSlotsRow && dayPhotoSlotsRow.n, 10) || 0;
+          if (dayPhotoSlots >= 4) {
+            return res.status(429).json({ error: 'Daily photo upload limit reached (4). Try again tomorrow.' });
+          }
         }
       }
 
@@ -391,7 +403,10 @@ function createNutritionRouter(deps) {
           portion_size = EXCLUDED.portion_size,
           ai_result = EXCLUDED.ai_result,
           ai_usage = EXCLUDED.ai_usage,
-          photo_upload_count = nutrition_meal_logs.photo_upload_count + CASE WHEN EXCLUDED.photo_data IS NOT NULL THEN 1 ELSE 0 END,
+          photo_upload_count = CASE
+            WHEN EXCLUDED.photo_data IS NOT NULL THEN GREATEST(nutrition_meal_logs.photo_upload_count, 1)
+            ELSE nutrition_meal_logs.photo_upload_count
+          END,
           meal_score = EXCLUDED.meal_score,
           submitted_at = CURRENT_TIMESTAMP,
           notified_at = NULL`,
