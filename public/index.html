@@ -2985,6 +2985,14 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .admin-nutrition-actions .btn{flex:1;min-width:110px;min-height:44px;padding:8px 12px;border:1px solid rgba(200,164,78,0.2);background:rgba(200,164,78,0.05);color:rgba(200,164,78,0.75);border-radius:8px;font-size:12px;font-weight:600;letter-spacing:.03em;cursor:pointer;transition:all .18s}
 .admin-nutrition-actions .btn:hover{border-color:rgba(200,164,78,0.45);background:rgba(200,164,78,0.12);color:var(--gold);transform:translateY(-1px)}
 .admin-nutrition-actions .btn:active{transform:scale(0.97);transition:transform .08s}
+.admin-nutrition-actions .btn.share-mini{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto;min-width:unset;padding:8px 10px}
+.admin-nutrition-actions .btn.share-mini .icn{font-size:13px;line-height:1}
+.admin-nutrition-actions .btn.share-mini .tag{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:rgba(200,164,78,0.14);border:1px solid rgba(200,164,78,0.28);font-size:10px;letter-spacing:.02em;color:var(--gold);font-weight:700;text-transform:uppercase}
+.admin-nutrition-actions .btn.share-mini .txt{font-size:11px;letter-spacing:.02em}
+@media (max-width:560px){
+  .admin-nutrition-actions .btn.share-mini{padding:8px;min-height:40px}
+  .admin-nutrition-actions .btn.share-mini .txt{display:none}
+}
 .admin-nutrition-quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
 .admin-nutrition-quick-actions .btn{min-height:40px;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700}
 .admin-nutrition-quick-actions .btn.download{border:1px solid rgba(200,164,78,0.45);background:rgba(200,164,78,0.12);color:var(--gold)}
@@ -13728,6 +13736,7 @@ var adminNutritionClientPhotoCache = {};
 var userNutritionTrendChartInst = null;
 var _nutritionShareCardBlob = null;
 var _nutritionShareCardMealType = '';
+var _nutritionShareCardAdminPayload = null;
 
 function nutritionTodayYmd() {
   try {
@@ -14638,15 +14647,26 @@ async function saveAdminNutritionPremiumCard(userId) {
   }
 }
 
-async function drawNutritionShareCard(mt) {
+async function drawNutritionShareCard(mt, opts) {
   var canvas = document.getElementById('nutritionShareCardCanvas');
   if (!canvas) return null;
-  var result = bbNutritionState.results && bbNutritionState.results[mt];
+  var adminPayload = opts && opts.payload ? opts.payload : null;
+  var result = adminPayload && adminPayload.aiResult ? adminPayload.aiResult : (bbNutritionState.results && bbNutritionState.results[mt]);
   if (!result) return null;
-  var score = bbNutritionState.scores && bbNutritionState.scores[mt];
+  var score = adminPayload && adminPayload.mealScore != null
+    ? Number(adminPayload.mealScore)
+    : (bbNutritionState.scores && bbNutritionState.scores[mt]);
   if (score == null) score = '—';
-  var confMeta = (bbNutritionState.confidence && bbNutritionState.confidence[mt]) || nutritionClassifyConfidence(result, !!result._bbAnalyzedWithPhoto, true, result._bbEntrySource === 'manual' ? 'manual' : 'ai');
-  var meta = bbNutritionMealMeta[mt] || { label: String(mt || 'Meal'), hint: '' };
+  var confMeta = adminPayload
+    ? nutritionClassifyConfidence(
+      result,
+      !!adminPayload.photoData,
+      !!(adminPayload.manualNote && String(adminPayload.manualNote).trim()),
+      result && result._bbEntrySource === 'manual' ? 'manual' : 'ai'
+    )
+    : ((bbNutritionState.confidence && bbNutritionState.confidence[mt]) || nutritionClassifyConfidence(result, !!result._bbAnalyzedWithPhoto, true, result._bbEntrySource === 'manual' ? 'manual' : 'ai'));
+  var mealType = adminPayload && adminPayload.mealType ? String(adminPayload.mealType) : String(mt || '');
+  var meta = bbNutritionMealMeta[mealType] || { label: String(mealType || 'Meal'), hint: '' };
 
   var W = 1080;
   var H = 1700;
@@ -14679,17 +14699,36 @@ async function drawNutritionShareCard(mt) {
   ctx.font = "500 40px 'Outfit','Segoe UI',sans-serif";
   ctx.fillText(meta.hint || '', 74, 190);
 
+  if (adminPayload && adminPayload.userName) {
+    var nameText = String(adminPayload.userName || '').trim();
+    var nameLines = nutritionShareWrapLinesForWidth(ctx, nameText, W - 160, 2);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#faf6ef';
+    ctx.font = "700 50px 'Playfair Display','Georgia',serif";
+    for (var i = 0; i < nameLines.length; i++) {
+      ctx.fillText(nameLines[i], W / 2, 250 + i * 58);
+    }
+    ctx.fillStyle = '#c9a84c';
+    ctx.font = "600 26px 'Outfit','Segoe UI',sans-serif";
+    ctx.letterSpacing = '0.2em';
+    ctx.fillText('TRIBE ELITE MEMBER', W / 2, 250 + (nameLines.length * 58) + 52);
+    ctx.letterSpacing = '0';
+    ctx.textAlign = 'left';
+  }
+
   // Meal image region
-  var imgTop = 230;
+  var imgTop = adminPayload ? 370 : 230;
   var imgX = 52;
   var imgW = W - 104;
   var imgH = 560;
   nutritionShareRoundRectPath(ctx, imgX, imgTop, imgW, imgH, 32);
   ctx.save();
   ctx.clip();
-  if (bbNutritionState.photos && bbNutritionState.photos[mt]) {
+  var sharePhotoData = adminPayload && adminPayload.photoData ? String(adminPayload.photoData) : (bbNutritionState.photos && bbNutritionState.photos[mealType] ? String(bbNutritionState.photos[mealType]) : '');
+  var sharePhotoMime = adminPayload && adminPayload.photoMime ? String(adminPayload.photoMime) : (bbNutritionState.mimes[mealType] || 'image/jpeg');
+  if (sharePhotoData) {
     try {
-      var mealImg = await nutritionShareLoadImage('data:' + (bbNutritionState.mimes[mt] || 'image/jpeg') + ';base64,' + bbNutritionState.photos[mt]);
+      var mealImg = await nutritionShareLoadImage('data:' + (sharePhotoMime || 'image/jpeg') + ';base64,' + sharePhotoData);
       if (mealImg.naturalWidth && mealImg.naturalHeight) {
         var ratio = Math.max(imgW / mealImg.naturalWidth, imgH / mealImg.naturalHeight);
         var dw = mealImg.naturalWidth * ratio;
@@ -14816,7 +14855,8 @@ async function drawNutritionShareCard(mt) {
   }
 
   _nutritionShareCardBlob = null;
-  _nutritionShareCardMealType = String(mt || '');
+  _nutritionShareCardMealType = String(mealType || mt || '');
+  _nutritionShareCardAdminPayload = adminPayload || null;
   await new Promise(function (resolve) {
     canvas.toBlob(function (blob) {
       _nutritionShareCardBlob = blob || null;
@@ -14840,7 +14880,7 @@ async function saveNutritionShareCard() {
   if (!blob) {
     var meal = _nutritionShareCardMealType;
     if (!meal) return;
-    blob = await drawNutritionShareCard(meal);
+    blob = await drawNutritionShareCard(meal, _nutritionShareCardAdminPayload ? { payload: _nutritionShareCardAdminPayload } : null);
   }
   if (!blob) return;
   var dateTag = nutritionTodayYmd();
@@ -14857,7 +14897,7 @@ async function shareNutritionShareCard() {
   if (!blob) {
     var meal = _nutritionShareCardMealType;
     if (!meal) return;
-    blob = await drawNutritionShareCard(meal);
+    blob = await drawNutritionShareCard(meal, _nutritionShareCardAdminPayload ? { payload: _nutritionShareCardAdminPayload } : null);
   }
   if (!blob) return;
   var mealTag = _nutritionShareCardMealType || 'meal';
@@ -15413,7 +15453,15 @@ function loadAdminNutritionReport() {
           if (hasPhoto) {
             window._bbMealPhotoMap[mapKey] = {
               src: 'data:' + (meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data,
-              label: type + (ar && ar.calories != null ? ' \u00b7 ' + ar.calories + ' kcal' : '')
+              label: type + (ar && ar.calories != null ? ' \u00b7 ' + ar.calories + ' kcal' : ''),
+              userName: c.userName || '',
+              userEmail: c.userEmail || '',
+              mealType: type,
+              mealScore: meal.meal_score,
+              aiResult: ar || null,
+              photoData: meal.photo_data || '',
+              photoMime: meal.photo_mime || 'image/jpeg',
+              manualNote: meal.manual_note || ''
             };
           }
           var clickAttr = hasPhoto ? ' onclick="bbMealLightboxOpen(\'' + mapKey + '\')"' : '';
@@ -15430,6 +15478,14 @@ function loadAdminNutritionReport() {
           return '<div class="admin-nutrition-thumb' + (meal ? ' logged' : '') + (low ? ' low-conf' : '') + (hasPhoto ? ' has-photo' : '') + '"' + clickAttr + '>' + inner +
             '<div class="lbl">' + escapeHtml(type) + (ar && ar.calories != null ? ' · ' + ar.calories + ' kcal' : '') + '</div></div>';
         }).join('');
+        var quickShareBtns = mealTypes.map(function (type) {
+          var meal = mealMap[type];
+          if (!meal || !meal.photo_data) return '';
+          var mtEsc = String(type).replace(/"/g, '&quot;');
+          var abbr = String(type || '').slice(0, 1).toUpperCase() || 'M';
+          return '<button type="button" class="btn share-mini" onclick="adminNutritionShareMealCard(\'' + uidEsc + '\',\'' + mtEsc + '\')" title="Share ' + escapeHtml(type) + ' card" aria-label="Share ' + escapeHtml(type) + ' card">' +
+            '<span class="icn" aria-hidden="true">↗</span><span class="tag">' + escapeHtml(abbr) + '</span><span class="txt">' + escapeHtml(type) + '</span></button>';
+        }).filter(Boolean).join('');
         var intakeCalories = sn && sn.totalCalories != null ? Number(sn.totalCalories) : 0;
         var totalProtein = sn && sn.totalProtein != null ? Number(sn.totalProtein) : 0;
         var totalCarbs = sn && sn.totalCarbs != null ? Number(sn.totalCarbs) : 0;
@@ -15537,6 +15593,7 @@ function loadAdminNutritionReport() {
           '<div class="admin-nutrition-score-ring" style="border-color:' + scoreColor + '">' +
           '<span style="font-weight:700;color:' + scoreColor + '">' + (score != null ? score.toFixed(1) : '—') + '</span><span style="font-size:8px;color:var(--muted)">score</span></div></div>' +
           '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' +
+          (quickShareBtns ? '<div class="admin-nutrition-actions" style="margin-top:10px">' + quickShareBtns + '</div>' : '') +
           summaryHtml + weeklyProteinHtml + usageHtml +
           '<div class="admin-nutrition-actions">' +
           '<button type="button" class="btn" onclick="adminNutritionDrawWeekChart(\'' + uidEsc + '\')">Protein trend</button>' +
@@ -15563,6 +15620,7 @@ function bbMealLightboxOpen(key) {
   if (!lb || !img) return;
   img.src = entry.src;
   if (lbl) lbl.textContent = entry.label || '';
+  lb._mealShareEntry = entry;
   lb._downloadSrc = entry.src;
   lb._downloadLabel = entry.label || 'meal';
   lb.classList.add('open');
@@ -15571,7 +15629,10 @@ function bbMealLightboxOpen(key) {
 function bbMealLightboxClose(e) {
   if (e && e.target && e.target.closest && e.target.closest('.bb-lb-img,.bb-lb-bar')) return;
   var lb = document.getElementById('bbMealLightbox');
-  if (lb) lb.classList.remove('open');
+  if (lb) {
+    lb.classList.remove('open');
+    lb._mealShareEntry = null;
+  }
   document.body.style.overflow = '';
 }
 function bbMealLightboxDownload(e) {
@@ -15584,6 +15645,50 @@ function bbMealLightboxDownload(e) {
   document.body.appendChild(a);
   a.click();
   a.remove();
+}
+async function adminNutritionShareMealCardFromLightbox(e) {
+  if (e) e.stopPropagation();
+  var lb = document.getElementById('bbMealLightbox');
+  var entry = lb && lb._mealShareEntry ? lb._mealShareEntry : null;
+  if (!entry || !entry.photoData) {
+    if (typeof showPopup === 'function') showPopup('Share meal card', 'Meal photo is required to create a share card.', '', 'OK', null, 'error');
+    return;
+  }
+  var payload = {
+    userName: entry.userName || entry.userEmail || 'Tribe Elite Member',
+    mealType: String(entry.mealType || 'meal'),
+    mealScore: entry.mealScore,
+    aiResult: entry.aiResult || {},
+    photoData: entry.photoData,
+    photoMime: entry.photoMime || 'image/jpeg',
+    manualNote: entry.manualNote || ''
+  };
+  await drawNutritionShareCard(payload.mealType, { payload: payload });
+  openModal('nutritionShareCardModal');
+}
+async function adminNutritionShareMealCard(userId, mealType) {
+  var c = adminNutritionClientPhotoCache[String(userId)];
+  if (!c || !Array.isArray(c.meals)) {
+    if (typeof showPopup === 'function') showPopup('Share meal card', 'Load the nutrition report first, then try again.', '', 'OK', null, 'error');
+    return;
+  }
+  var mt = String(mealType || '').toLowerCase();
+  var meal = c.meals.find(function (m) { return String(m && m.meal_type || '').toLowerCase() === mt; });
+  if (!meal || !meal.photo_data) {
+    if (typeof showPopup === 'function') showPopup('Share meal card', 'Meal photo is not available for this slot.', '', 'OK', null, 'error');
+    return;
+  }
+  var payload = {
+    userName: c.userName || c.userEmail || 'Tribe Elite Member',
+    mealType: mt,
+    mealScore: meal.meal_score,
+    aiResult: bbParseNutritionAi(meal.ai_result) || {},
+    photoData: meal.photo_data,
+    photoMime: meal.photo_mime || 'image/jpeg',
+    manualNote: meal.manual_note || ''
+  };
+  await drawNutritionShareCard(mt, { payload: payload });
+  openModal('nutritionShareCardModal');
 }
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape') { bbMealLightboxClose(); bbCoinHistoryModalClose(); }
@@ -18716,6 +18821,9 @@ window.addEventListener('resize', applySafeAreaFix);
       <button class="bb-lb-btn" onclick="bbMealLightboxDownload(event)">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Download
+      </button>
+      <button class="bb-lb-btn" onclick="adminNutritionShareMealCardFromLightbox(event)">
+        Share card
       </button>
       <button class="bb-lb-close" onclick="bbMealLightboxClose()">✕ Close</button>
     </div>

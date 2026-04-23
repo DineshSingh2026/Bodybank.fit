@@ -3142,6 +3142,32 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
         });
       } catch (_) { /* ignore */ }
 
+      // Nutrition meal uploads from users
+      try {
+        const nutritionLogs = await queryAll(
+          `SELECT n.id, n.meal_type, n.log_date, n.submitted_at, n.meal_score, u.first_name, u.last_name, u.email
+           FROM nutrition_meal_logs n
+           LEFT JOIN users u ON u.id = n.user_id
+           ORDER BY n.submitted_at DESC NULLS LAST, n.log_date DESC
+           LIMIT 40`
+        );
+        nutritionLogs.forEach(n => {
+          const who = [n.first_name, n.last_name].filter(Boolean).join(' ') || n.email || 'User';
+          const meal = String(n.meal_type || '').trim();
+          const mealLabel = meal ? meal.charAt(0).toUpperCase() + meal.slice(1) : 'Meal';
+          const score = n.meal_score != null ? ` · score ${n.meal_score}/10` : '';
+          const datePart = n.log_date ? ` · ${String(n.log_date).slice(0, 10)}` : '';
+          notifications.push({
+            id: 'nutrition-' + String(n.id),
+            type: 'checkin',
+            title: 'Nutrition Meal Uploaded',
+            desc: `${who} — ${mealLabel}${score}${datePart}`,
+            time: n.submitted_at || n.log_date,
+            link: 'nutrition'
+          });
+        });
+      } catch (_) { /* ignore */ }
+
       // Admin Daily Compliance report readiness (12:00–12:00 IST window)
       // Logged when the scheduled email is sent; drives the admin bell notification.
       try {
