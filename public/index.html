@@ -7697,7 +7697,15 @@ function closeModal(id){
     el.classList.remove('open');
     if(_focusTrapHandler){el.removeEventListener('keydown',_focusTrapHandler);_focusTrapHandler=null;}
     unlockBodyScroll();
-    if(_modalTrigger&&typeof _modalTrigger.focus==='function'){setTimeout(function(){_modalTrigger.focus();},10);_modalTrigger=null;}
+    if (_modalTrigger && typeof _modalTrigger.focus === 'function') {
+      var returnFocusEl = _modalTrigger;
+      _modalTrigger = null;
+      setTimeout(function () {
+        if (returnFocusEl && typeof returnFocusEl.focus === 'function') returnFocusEl.focus();
+      }, 10);
+    } else {
+      _modalTrigger = null;
+    }
   }
   if (typeof bbUpdateEliteFeedFab === 'function') setTimeout(function(){ bbUpdateEliteFeedFab(); }, 30);
 }
@@ -15668,18 +15676,26 @@ async function adminNutritionShareMealCardFromLightbox(e) {
 }
 async function adminNutritionShareMealCard(userId, mealType) {
   var c = adminNutritionClientPhotoCache[String(userId)];
-  if (!c || !Array.isArray(c.meals)) {
-    if (typeof showPopup === 'function') showPopup('Share meal card', 'Load the nutrition report first, then try again.', '', 'OK', null, 'error');
-    return;
-  }
   var mt = String(mealType || '').toLowerCase();
-  var meal = c.meals.find(function (m) { return String(m && m.meal_type || '').toLowerCase() === mt; });
+  var meal = null;
+  if (c && Array.isArray(c.meals)) {
+    meal = c.meals.find(function (m) { return String(m && m.meal_type || '').toLowerCase() === mt; });
+  }
+  if (!meal) {
+    var dEl = document.getElementById('adminNutritionReportDate');
+    var date = dEl && dEl.value ? dEl.value : nutritionTodayYmd();
+    var data = await apiCall('GET', '/api/nutrition/log/' + encodeURIComponent(userId) + '/' + encodeURIComponent(date));
+    if (data && !data.error && Array.isArray(data.meals)) {
+      meal = data.meals.find(function (m) { return String(m && m.meal_type || '').toLowerCase() === mt; }) || null;
+      if (!c) c = { userName: '', userEmail: '' };
+    }
+  }
   if (!meal || !meal.photo_data) {
     if (typeof showPopup === 'function') showPopup('Share meal card', 'Meal photo is not available for this slot.', '', 'OK', null, 'error');
     return;
   }
   var payload = {
-    userName: c.userName || c.userEmail || 'Tribe Elite Member',
+    userName: (c && (c.userName || c.userEmail)) || 'Tribe Elite Member',
     mealType: mt,
     mealScore: meal.meal_score,
     aiResult: bbParseNutritionAi(meal.ai_result) || {},
