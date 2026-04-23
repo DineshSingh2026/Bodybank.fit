@@ -2985,14 +2985,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .admin-nutrition-actions .btn{flex:1;min-width:110px;min-height:44px;padding:8px 12px;border:1px solid rgba(200,164,78,0.2);background:rgba(200,164,78,0.05);color:rgba(200,164,78,0.75);border-radius:8px;font-size:12px;font-weight:600;letter-spacing:.03em;cursor:pointer;transition:all .18s}
 .admin-nutrition-actions .btn:hover{border-color:rgba(200,164,78,0.45);background:rgba(200,164,78,0.12);color:var(--gold);transform:translateY(-1px)}
 .admin-nutrition-actions .btn:active{transform:scale(0.97);transition:transform .08s}
-.admin-nutrition-actions .btn.share-mini{display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto;min-width:unset;padding:8px 10px}
-.admin-nutrition-actions .btn.share-mini .icn{font-size:13px;line-height:1}
-.admin-nutrition-actions .btn.share-mini .tag{display:inline-flex;align-items:center;justify-content:center;min-width:18px;height:18px;padding:0 5px;border-radius:999px;background:rgba(200,164,78,0.14);border:1px solid rgba(200,164,78,0.28);font-size:10px;letter-spacing:.02em;color:var(--gold);font-weight:700;text-transform:uppercase}
-.admin-nutrition-actions .btn.share-mini .txt{font-size:11px;letter-spacing:.02em}
-@media (max-width:560px){
-  .admin-nutrition-actions .btn.share-mini{padding:8px;min-height:40px}
-  .admin-nutrition-actions .btn.share-mini .txt{display:none}
-}
 .admin-nutrition-quick-actions{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}
 .admin-nutrition-quick-actions .btn{min-height:40px;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700}
 .admin-nutrition-quick-actions .btn.download{border:1px solid rgba(200,164,78,0.45);background:rgba(200,164,78,0.12);color:var(--gold)}
@@ -14677,7 +14669,7 @@ async function drawNutritionShareCard(mt, opts) {
   var meta = bbNutritionMealMeta[mealType] || { label: String(mealType || 'Meal'), hint: '' };
 
   var W = 1080;
-  var H = 1700;
+  var H = adminPayload ? 1860 : 1700;
   canvas.width = W;
   canvas.height = H;
   var ctx = canvas.getContext('2d');
@@ -14709,23 +14701,23 @@ async function drawNutritionShareCard(mt, opts) {
 
   if (adminPayload && adminPayload.userName) {
     var nameText = String(adminPayload.userName || '').trim();
-    var nameLines = nutritionShareWrapLinesForWidth(ctx, nameText, W - 160, 2);
+    var nameLines = nutritionShareWrapLinesForWidth(ctx, nameText, W - 180, 2);
     ctx.textAlign = 'center';
     ctx.fillStyle = '#faf6ef';
-    ctx.font = "700 50px 'Playfair Display','Georgia',serif";
+    ctx.font = "700 44px 'Playfair Display','Georgia',serif";
     for (var i = 0; i < nameLines.length; i++) {
-      ctx.fillText(nameLines[i], W / 2, 250 + i * 58);
+      ctx.fillText(nameLines[i], W / 2, 248 + i * 54);
     }
     ctx.fillStyle = '#c9a84c';
-    ctx.font = "600 26px 'Outfit','Segoe UI',sans-serif";
+    ctx.font = "600 22px 'Outfit','Segoe UI',sans-serif";
     ctx.letterSpacing = '0.2em';
-    ctx.fillText('TRIBE ELITE MEMBER', W / 2, 250 + (nameLines.length * 58) + 52);
+    ctx.fillText('TRIBE ELITE MEMBER', W / 2, 248 + (nameLines.length * 54) + 44);
     ctx.letterSpacing = '0';
     ctx.textAlign = 'left';
   }
 
   // Meal image region
-  var imgTop = adminPayload ? 370 : 230;
+  var imgTop = adminPayload ? 392 : 230;
   var imgX = 52;
   var imgW = W - 104;
   var imgH = 560;
@@ -14759,7 +14751,7 @@ async function drawNutritionShareCard(mt, opts) {
   ctx.restore();
 
   // Dish and macro chips
-  var yText = 872;
+  var yText = imgTop + imgH + 82;
   ctx.fillStyle = '#efe4c7';
   ctx.font = "700 58px 'Outfit','Segoe UI',sans-serif";
   var dish = String(result.dish || 'Meal');
@@ -14802,7 +14794,7 @@ async function drawNutritionShareCard(mt, opts) {
   ctx.fillText('Trust: ', 74, scoreY + 76);
   ctx.fillStyle = trustColor;
   ctx.font = "700 50px 'Outfit','Segoe UI',sans-serif";
-  nutritionShareDrawWrappedText(ctx, confMeta.label || 'Moderate confidence', 234, scoreY + 76, W - 308, 56, 1);
+  nutritionShareDrawWrappedText(ctx, confMeta.label || 'Moderate confidence', 234, scoreY + 76, W - 320, 56, 1);
 
   // Footer
   var footerY = H - 292;
@@ -15486,14 +15478,6 @@ function loadAdminNutritionReport() {
           return '<div class="admin-nutrition-thumb' + (meal ? ' logged' : '') + (low ? ' low-conf' : '') + (hasPhoto ? ' has-photo' : '') + '"' + clickAttr + '>' + inner +
             '<div class="lbl">' + escapeHtml(type) + (ar && ar.calories != null ? ' · ' + ar.calories + ' kcal' : '') + '</div></div>';
         }).join('');
-        var quickShareBtns = mealTypes.map(function (type) {
-          var meal = mealMap[type];
-          if (!meal || !meal.photo_data) return '';
-          var mtEsc = String(type).replace(/"/g, '&quot;');
-          var abbr = String(type || '').slice(0, 1).toUpperCase() || 'M';
-          return '<button type="button" class="btn share-mini" onclick="adminNutritionShareMealCard(\'' + uidEsc + '\',\'' + mtEsc + '\')" title="Share ' + escapeHtml(type) + ' card" aria-label="Share ' + escapeHtml(type) + ' card">' +
-            '<span class="icn" aria-hidden="true">↗</span><span class="tag">' + escapeHtml(abbr) + '</span><span class="txt">' + escapeHtml(type) + '</span></button>';
-        }).filter(Boolean).join('');
         var intakeCalories = sn && sn.totalCalories != null ? Number(sn.totalCalories) : 0;
         var totalProtein = sn && sn.totalProtein != null ? Number(sn.totalProtein) : 0;
         var totalCarbs = sn && sn.totalCarbs != null ? Number(sn.totalCarbs) : 0;
@@ -15601,7 +15585,6 @@ function loadAdminNutritionReport() {
           '<div class="admin-nutrition-score-ring" style="border-color:' + scoreColor + '">' +
           '<span style="font-weight:700;color:' + scoreColor + '">' + (score != null ? score.toFixed(1) : '—') + '</span><span style="font-size:8px;color:var(--muted)">score</span></div></div>' +
           '<div class="admin-nutrition-thumbs">' + thumbs + '</div>' +
-          (quickShareBtns ? '<div class="admin-nutrition-actions" style="margin-top:10px">' + quickShareBtns + '</div>' : '') +
           summaryHtml + weeklyProteinHtml + usageHtml +
           '<div class="admin-nutrition-actions">' +
           '<button type="button" class="btn" onclick="adminNutritionDrawWeekChart(\'' + uidEsc + '\')">Protein trend</button>' +
@@ -15654,12 +15637,12 @@ function bbMealLightboxDownload(e) {
   a.click();
   a.remove();
 }
-async function adminNutritionShareMealCardFromLightbox(e) {
+async function adminNutritionSaveMealCardFromLightbox(e) {
   if (e) e.stopPropagation();
   var lb = document.getElementById('bbMealLightbox');
   var entry = lb && lb._mealShareEntry ? lb._mealShareEntry : null;
   if (!entry || !entry.photoData) {
-    if (typeof showPopup === 'function') showPopup('Share meal card', 'Meal photo is required to create a share card.', '', 'OK', null, 'error');
+    if (typeof showPopup === 'function') showPopup('Save card', 'Meal photo is required to save the card.', '', 'OK', null, 'error');
     return;
   }
   var payload = {
@@ -15672,7 +15655,8 @@ async function adminNutritionShareMealCardFromLightbox(e) {
     manualNote: entry.manualNote || ''
   };
   await drawNutritionShareCard(payload.mealType, { payload: payload });
-  openModal('nutritionShareCardModal');
+  await saveNutritionShareCard();
+  if (typeof nutritionShowToast === 'function') nutritionShowToast('Card saved.', 'success');
 }
 async function adminNutritionShareMealCard(userId, mealType) {
   var c = adminNutritionClientPhotoCache[String(userId)];
@@ -18838,8 +18822,8 @@ window.addEventListener('resize', applySafeAreaFix);
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Download
       </button>
-      <button class="bb-lb-btn" onclick="adminNutritionShareMealCardFromLightbox(event)">
-        Share card
+      <button class="bb-lb-btn" onclick="adminNutritionSaveMealCardFromLightbox(event)">
+        Save card
       </button>
       <button class="bb-lb-close" onclick="bbMealLightboxClose()">✕ Close</button>
     </div>
