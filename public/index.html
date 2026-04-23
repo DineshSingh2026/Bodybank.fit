@@ -3377,6 +3377,11 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 }
 .chart-wrap-nutrition-lux canvas{max-height:260px!important}
 .chart-wrap-nutrition-lux .chart-title{color:#ddd3bd}
+.chart-wrap-nutrition-lux .chart-lux-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 10px}
+.chart-wrap-nutrition-lux .chart-lux-user{font-family:var(--bb-font-heading);font-size:13px;letter-spacing:.05em;color:#f2eee4;font-weight:700}
+.chart-wrap-nutrition-lux .chart-lux-save-btn{border:1px solid rgba(200,164,78,0.4);background:rgba(200,164,78,0.12);color:var(--gold);border-radius:8px;padding:8px 12px;font-size:11px;font-weight:700;letter-spacing:.05em;cursor:pointer;transition:all .18s}
+.chart-wrap-nutrition-lux .chart-lux-save-btn:hover{background:rgba(200,164,78,0.2);transform:translateY(-1px)}
+.chart-wrap-nutrition-lux .chart-lux-save-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
 .chart-wrap-nutrition-lux .chart-kpis{
   display:grid;
   grid-template-columns:repeat(4,minmax(0,1fr));
@@ -5641,6 +5646,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <div class="chart-wrap"><canvas id="adminChartIntensity"></canvas><p class="chart-title">Session intensity (My Workout)</p></div>
             <div class="chart-wrap"><canvas id="adminChartEnergy"></canvas><p class="chart-title">Energy level (My Workout)</p></div>
             <div class="chart-wrap chart-wrap-nutrition-lux" id="adminChartNutritionLuxuryWrap" style="display:none">
+              <div class="chart-lux-head">
+                <div class="chart-lux-user" id="adminNutriCardUser">Client nutrition card</div>
+                <button type="button" class="chart-lux-save-btn" id="adminNutriSaveBtn" onclick="saveAdminNutritionLuxuryCard()">Save image</button>
+              </div>
               <div class="chart-kpis" id="adminChartNutritionLuxuryKpis">
                 <div class="chart-kpi"><div class="lbl">Avg kcal</div><div class="val" id="adminNutriKpiCal">—</div><div class="trend" id="adminNutriKpiCalTrend">vs prev week —</div></div>
                 <div class="chart-kpi"><div class="lbl">Avg protein</div><div class="val" id="adminNutriKpiPro">—</div><div class="trend" id="adminNutriKpiProTrend">vs prev week —</div></div>
@@ -11198,6 +11207,11 @@ async function drawAdminNutritionLuxuryChart(userId) {
   var wrap = document.getElementById('adminChartNutritionLuxuryWrap');
   var canvas = document.getElementById('adminChartNutritionLuxury');
   if (!wrap || !canvas || !userId || typeof Chart === 'undefined') return;
+  var userEl = document.getElementById('adminNutriCardUser');
+  if (userEl) {
+    var fullName = String(window._adminCpSelectedClientName || '').trim();
+    userEl.textContent = fullName ? (fullName + ' · nutrition card') : 'Client nutrition card';
+  }
   wrap.classList.add('is-loading');
   wrap.style.display = 'none';
   if (adminProgressChartInstances.nutritionLuxury) {
@@ -11333,6 +11347,157 @@ async function drawAdminNutritionLuxuryChart(userId) {
   });
   wrap.classList.remove('is-loading');
   wrap.style.display = 'block';
+}
+async function saveAdminNutritionLuxuryCard() {
+  var wrap = document.getElementById('adminChartNutritionLuxuryWrap');
+  var chartCanvas = document.getElementById('adminChartNutritionLuxury');
+  if (!wrap || !chartCanvas || !adminProgressChartInstances.nutritionLuxury) {
+    if (typeof showPopup === 'function') showPopup('Save image', 'Load client nutrition chart first.', '', 'OK', null, 'error');
+    return;
+  }
+  var btn = document.getElementById('adminNutriSaveBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    var userName = String(window._adminCpSelectedClientName || 'Client').trim() || 'Client';
+    var kpiCal = (document.getElementById('adminNutriKpiCal') || {}).textContent || '—';
+    var kpiPro = (document.getElementById('adminNutriKpiPro') || {}).textContent || '—';
+    var kpiCarb = (document.getElementById('adminNutriKpiCarb') || {}).textContent || '—';
+    var kpiScore = (document.getElementById('adminNutriKpiScore') || {}).textContent || '—';
+    var tCal = (document.getElementById('adminNutriKpiCalTrend') || {}).textContent || 'vs prev week —';
+    var tPro = (document.getElementById('adminNutriKpiProTrend') || {}).textContent || 'vs prev week —';
+    var tCarb = (document.getElementById('adminNutriKpiCarbTrend') || {}).textContent || 'vs prev week —';
+    var tScore = (document.getElementById('adminNutriKpiScoreTrend') || {}).textContent || 'vs prev week —';
+    var W = 1280;
+    var H = 1680;
+    var c = document.createElement('canvas');
+    c.width = W;
+    c.height = H;
+    var ctx = c.getContext('2d');
+    if (!ctx) throw new Error('canvas_failed');
+
+    var bg = ctx.createLinearGradient(0, 0, 0, H);
+    bg.addColorStop(0, '#111417');
+    bg.addColorStop(1, '#0a0c0f');
+    ctx.fillStyle = bg;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.strokeStyle = 'rgba(200,164,78,0.78)';
+    ctx.lineWidth = 8;
+    nutritionShareRoundRectPath(ctx, 20, 20, W - 40, H - 40, 40);
+    ctx.stroke();
+
+    ctx.fillStyle = '#f2eee4';
+    ctx.textAlign = 'center';
+    ctx.font = "700 58px 'Outfit','Segoe UI',sans-serif";
+    ctx.fillText('Client Progress Nutrition Card', W / 2, 106);
+    ctx.font = "700 52px 'Playfair Display','Georgia',serif";
+    ctx.fillText(userName, W / 2, 178);
+    ctx.fillStyle = '#c9a84c';
+    ctx.font = "600 24px 'Outfit','Segoe UI',sans-serif";
+    ctx.letterSpacing = '0.16em';
+    ctx.fillText('TRIBE ELITE MEMBER', W / 2, 222);
+    ctx.letterSpacing = '0';
+    ctx.textAlign = 'left';
+
+    var cardX = 58;
+    var cardY = 260;
+    var cardW = W - 116;
+    var cardH = H - 390;
+    ctx.fillStyle = 'rgba(20,24,30,0.92)';
+    ctx.strokeStyle = 'rgba(200,164,78,0.42)';
+    ctx.lineWidth = 2;
+    nutritionShareRoundRectPath(ctx, cardX, cardY, cardW, cardH, 24);
+    ctx.fill();
+    ctx.stroke();
+
+    function drawKpi(x, y, title, value, trend) {
+      var bw = Math.floor((cardW - 36 - (3 * 14)) / 4);
+      ctx.fillStyle = 'rgba(255,255,255,0.03)';
+      ctx.strokeStyle = 'rgba(255,255,255,0.14)';
+      ctx.lineWidth = 1;
+      nutritionShareRoundRectPath(ctx, x, y, bw, 190, 14);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#b8b1a2';
+      ctx.font = "700 20px 'Outfit','Segoe UI',sans-serif";
+      ctx.textAlign = 'center';
+      ctx.fillText(String(title).toUpperCase(), x + bw / 2, y + 40);
+      ctx.fillStyle = '#f2eee4';
+      ctx.font = "700 46px 'Outfit','Segoe UI',sans-serif";
+      ctx.fillText(String(value), x + bw / 2, y + 100);
+      ctx.fillStyle = '#9c9587';
+      ctx.font = "500 20px 'Outfit','Segoe UI',sans-serif";
+      var lines = nutritionShareWrapLinesForWidth(ctx, String(trend), bw - 20, 2);
+      for (var i = 0; i < lines.length; i++) ctx.fillText(lines[i], x + bw / 2, y + 138 + i * 24);
+      ctx.textAlign = 'left';
+      return bw;
+    }
+
+    var kpiY = cardY + 28;
+    var kx = cardX + 18;
+    var bw0 = drawKpi(kx, kpiY, 'Avg kcal', kpiCal, tCal);
+    drawKpi(kx + bw0 + 14, kpiY, 'Avg protein', kpiPro, tPro);
+    drawKpi(kx + (bw0 + 14) * 2, kpiY, 'Avg carbs', kpiCarb, tCarb);
+    drawKpi(kx + (bw0 + 14) * 3, kpiY, 'Avg score', kpiScore, tScore);
+
+    var chartX = cardX + 20;
+    var chartY = kpiY + 218;
+    var chartW = cardW - 40;
+    var chartH = 620;
+    ctx.fillStyle = 'rgba(10,14,20,0.76)';
+    ctx.strokeStyle = 'rgba(255,255,255,0.08)';
+    ctx.lineWidth = 1;
+    nutritionShareRoundRectPath(ctx, chartX, chartY, chartW, chartH, 16);
+    ctx.fill();
+    ctx.stroke();
+    ctx.drawImage(chartCanvas, chartX + 18, chartY + 14, chartW - 36, chartH - 28);
+
+    ctx.fillStyle = '#ddd3bd';
+    ctx.font = "600 34px 'Outfit','Segoe UI',sans-serif";
+    ctx.textAlign = 'center';
+    ctx.fillText('Fitchef Nutrition 14-day trend — calories and protein', W / 2, chartY + chartH + 58);
+    ctx.fillStyle = '#d4af37';
+    ctx.font = "500 30px 'Outfit','Segoe UI',sans-serif";
+    ctx.fillText('CoPowered by Fitchef', W / 2, chartY + chartH + 106);
+
+    var bodybankLogo = await nutritionShareLoadImage('/img/bodybank-logo-short.png');
+    var fitchefLogo = await nutritionShareLoadImage('/img/Fitchef logo.png');
+    var lockY = H - 124;
+    if (bodybankLogo && fitchefLogo) {
+      var bbH = 70;
+      var fcH = 70;
+      var bbW = Math.round((bodybankLogo.naturalWidth / Math.max(1, bodybankLogo.naturalHeight)) * bbH);
+      var fcW = Math.round((fitchefLogo.naturalWidth / Math.max(1, fitchefLogo.naturalHeight)) * fcH);
+      var xGap = 28;
+      var xW = 36;
+      var startX = Math.round((W - (bbW + xGap + xW + xGap + fcW)) / 2);
+      ctx.drawImage(bodybankLogo, startX, lockY - bbH + 12, bbW, bbH);
+      ctx.fillStyle = '#f5f2eb';
+      ctx.font = "700 48px 'Outfit','Segoe UI',sans-serif";
+      ctx.fillText('X', startX + bbW + xGap + xW / 2, lockY - 16);
+      ctx.drawImage(fitchefLogo, startX + bbW + xGap + xW + xGap, lockY - fcH + 12, fcW, fcH);
+    } else {
+      ctx.fillStyle = '#d9c598';
+      ctx.font = "700 42px 'Outfit','Segoe UI',sans-serif";
+      ctx.textAlign = 'center';
+      ctx.fillText('BodyBank X Fitchef', W / 2, lockY - 12);
+    }
+    ctx.textAlign = 'left';
+
+    var blob = await new Promise(function (resolve) { c.toBlob(resolve, 'image/png', 1); });
+    if (!blob) throw new Error('blob_failed');
+    var slug = userName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'client';
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'bodybank-nutrition-progress-' + slug + '-' + nutritionTodayYmd() + '.png';
+    a.click();
+    URL.revokeObjectURL(a.href);
+    if (typeof nutritionShowToast === 'function') nutritionShowToast('Progress card saved.', 'success');
+  } catch (e) {
+    if (typeof showPopup === 'function') showPopup('Save image', 'Could not save nutrition card. Please try again.', '', 'OK', null, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Save image'; }
+  }
 }
 window._adminCpSelectedUserId = null;
 window._adminCpSelectedClientName = '';
