@@ -14780,21 +14780,43 @@ async function drawNutritionShareCard(mt, opts) {
   // Score and trust
   var trustColor = confMeta.level === 'high' ? '#3dd68c' : confMeta.level === 'medium' ? '#f5a623' : '#ff6868';
   var scoreY = chipY + 170;
+  var leftX = 74;
+  var gap = 18;
+  var scoreLabel = 'Score:';
+  var scoreValue = String(score) + '/10';
+  var scoreTrustWord = (confMeta.level || 'medium').charAt(0).toUpperCase() + (confMeta.level || 'medium').slice(1);
+
   ctx.fillStyle = '#c7bcaa';
   ctx.font = "600 50px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText('Score: ', 74, scoreY);
+  ctx.fillText(scoreLabel, leftX, scoreY);
+  var scoreLabelW = ctx.measureText(scoreLabel).width;
+
+  var scoreValueX = leftX + scoreLabelW + gap;
   ctx.fillStyle = '#f0e4c5';
   ctx.font = "800 56px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText(String(score) + '/10', 240, scoreY + 1);
+  ctx.fillText(scoreValue, scoreValueX, scoreY + 1);
+  var scoreValueW = ctx.measureText(scoreValue).width;
+
+  var scoreTrustX = scoreValueX + scoreValueW + gap;
+  var scoreTrustMaxX = W - 74;
   ctx.fillStyle = trustColor;
   ctx.font = "700 56px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText((confMeta.level || 'medium').charAt(0).toUpperCase() + (confMeta.level || 'medium').slice(1), 438, scoreY + 1);
+  if (scoreTrustX + ctx.measureText(scoreTrustWord).width > scoreTrustMaxX) {
+    scoreTrustX = leftX;
+    scoreY += 62;
+  }
+  ctx.fillText(scoreTrustWord, scoreTrustX, scoreY + 1);
+
+  var trustY = scoreY + 76;
+  var trustLabel = 'Trust:';
   ctx.fillStyle = '#c7bcaa';
   ctx.font = "600 50px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText('Trust: ', 74, scoreY + 76);
+  ctx.fillText(trustLabel, leftX, trustY);
+  var trustLabelW = ctx.measureText(trustLabel).width;
+  var trustTextX = leftX + trustLabelW + gap;
   ctx.fillStyle = trustColor;
   ctx.font = "700 50px 'Outfit','Segoe UI',sans-serif";
-  nutritionShareDrawWrappedText(ctx, confMeta.label || 'Moderate confidence', 234, scoreY + 76, W - 320, 56, 1);
+  nutritionShareDrawWrappedText(ctx, confMeta.label || 'Moderate confidence', trustTextX, trustY, W - trustTextX - 74, 56, 1);
 
   // Footer
   var footerY = H - 292;
