@@ -87,7 +87,14 @@ async function runTests() {
     password: testUser.password,
     first_name: testUser.first_name,
     last_name: testUser.last_name,
-    phone: testUser.phone
+    phone: testUser.phone,
+    height_cm: 175,
+    country: 'IN',
+    timezone: 'Asia/Kolkata',
+    city: 'Mumbai',
+    dob: '1990-01-15',
+    gender: 'other',
+    state_province: 'MH'
   });
   assert(signup.status === 200, `Signup status ${signup.status}: ${JSON.stringify(signup.body)}`);
   assert(signup.body && signup.body.pending_approval === true, 'Signup should return pending_approval');
@@ -211,18 +218,20 @@ async function runTests() {
     [createdIds.sessionWorkoutId]
   );
   assert(sessionRows.length === 1, 'Session row exists in DB');
-  assert(sessionRows[0].workout_type === 'Full Body', 'workout_type saved');
-  assert(Number(sessionRows[0].bench_kg) === 62.5, 'bench_kg saved');
-  assert(Number(sessionRows[0].squat_kg) === 90, 'squat_kg saved');
-  assert(Number(sessionRows[0].deadlift_kg) === 110, 'deadlift_kg saved');
-  if (sessionRows[0].session_lifts != null) {
-    const sl = typeof sessionRows[0].session_lifts === 'string'
-      ? JSON.parse(sessionRows[0].session_lifts)
-      : sessionRows[0].session_lifts;
+  const sessionRow = sessionRows[0];
+  assert(sessionRow, 'Session row defined');
+  assert(sessionRow.workout_type === 'Full Body', 'workout_type saved');
+  assert(Number(sessionRow.bench_kg) === 62.5, 'bench_kg saved');
+  assert(Number(sessionRow.squat_kg) === 90, 'squat_kg saved');
+  assert(Number(sessionRow.deadlift_kg) === 110, 'deadlift_kg saved');
+  if (sessionRow.session_lifts != null) {
+    const sl = typeof sessionRow.session_lifts === 'string'
+      ? JSON.parse(sessionRow.session_lifts)
+      : sessionRow.session_lifts;
     assert(sl && Number(sl.bench_press) === 62.5 && Number(sl.back_squat) === 90 && Number(sl.deadlift) === 110, 'session_lifts JSON');
   }
-  assert(sessionRows[0].session_date != null, 'session_date set');
-  assert(sessionRows[0].water_liters == null && sessionRows[0].calories == null && sessionRows[0].protein_g == null, 'body/nutrition columns empty when not sent');
+  assert(sessionRow.session_date != null, 'session_date set');
+  assert(sessionRow.water_liters == null && sessionRow.calories == null && sessionRow.protein_g == null, 'body/nutrition columns empty when not sent');
   console.log(wkSession.status === 200 ? '  OK' : '  FAIL');
 
   console.log('=== E2E: Contact message ===');
@@ -446,7 +455,14 @@ async function runTests() {
     password: 'NewPass456!',
     first_name: 'E2E',
     last_name: 'ReSignup',
-    phone: testUser.phone
+    phone: testUser.phone,
+    height_cm: 175,
+    country: 'IN',
+    timezone: 'Asia/Kolkata',
+    city: 'Mumbai',
+    dob: '1990-01-15',
+    gender: 'other',
+    state_province: 'MH'
   });
   assert(signupAgain.status === 200 && signupAgain.body?.pending_approval === true, 'Re-signup after reject');
   const reApprove = await request('POST', `/api/admin/approve-user/${userId}`);
