@@ -11462,20 +11462,27 @@ async function saveAdminNutritionLuxuryCard() {
 
     var bodybankLogo = await nutritionShareLoadImage('/img/bodybank-logo-short.png');
     var fitchefLogo = await nutritionShareLoadImage('/img/Fitchef logo.png');
-    var lockY = H - 124;
+    var lockY = H - 118;
     if (bodybankLogo && fitchefLogo) {
-      var bbH = 70;
-      var fcH = 70;
+      var bbH = 86;
+      var fcH = 86;
       var bbW = Math.round((bodybankLogo.naturalWidth / Math.max(1, bodybankLogo.naturalHeight)) * bbH);
       var fcW = Math.round((fitchefLogo.naturalWidth / Math.max(1, fitchefLogo.naturalHeight)) * fcH);
-      var xGap = 28;
-      var xW = 36;
+      var xGap = 30;
+      var xW = 44;
       var startX = Math.round((W - (bbW + xGap + xW + xGap + fcW)) / 2);
-      ctx.drawImage(bodybankLogo, startX, lockY - bbH + 12, bbW, bbH);
+      var rowMidY = lockY - 18;
+      var bbTop = Math.round(rowMidY - bbH / 2);
+      var fcTop = Math.round(rowMidY - fcH / 2);
+      ctx.drawImage(bodybankLogo, startX, bbTop, bbW, bbH);
       ctx.fillStyle = '#f5f2eb';
-      ctx.font = "700 48px 'Outfit','Segoe UI',sans-serif";
-      ctx.fillText('X', startX + bbW + xGap + xW / 2, lockY - 16);
-      ctx.drawImage(fitchefLogo, startX + bbW + xGap + xW + xGap, lockY - fcH + 12, fcW, fcH);
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = "700 52px 'Outfit','Segoe UI',sans-serif";
+      ctx.fillText('X', startX + bbW + xGap + xW / 2, rowMidY + 1);
+      ctx.textAlign = 'left';
+      ctx.textBaseline = 'alphabetic';
+      ctx.drawImage(fitchefLogo, startX + bbW + xGap + xW + xGap, fcTop, fcW, fcH);
     } else {
       ctx.fillStyle = '#d9c598';
       ctx.font = "700 42px 'Outfit','Segoe UI',sans-serif";
