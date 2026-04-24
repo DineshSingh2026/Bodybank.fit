@@ -14442,22 +14442,6 @@ async function nutritionShareDrawPartnerLockupTop(ctx, W, centerY, logoMaxH) {
     drawW = maxW;
     drawH = Math.round((ink.sh / Math.max(1, ink.sw)) * drawW);
   }
-  var padX = Math.round(drawH * 0.32);
-  var padY = Math.round(drawH * 0.22);
-  var pillW = drawW + 2 * padX;
-  var pillH = drawH + 2 * padY;
-  var pillX = Math.round((W - pillW) / 2);
-  var pillY = Math.round(centerY - pillH / 2);
-  ctx.save();
-  nutritionShareRoundRectPath(ctx, pillX, pillY, pillW, pillH, Math.round(pillH * 0.28));
-  ctx.clip();
-  ctx.fillStyle = 'rgba(200,164,78,0.10)';
-  ctx.fillRect(pillX, pillY, pillW, pillH);
-  ctx.restore();
-  ctx.strokeStyle = 'rgba(200,164,78,0.45)';
-  ctx.lineWidth = 2;
-  nutritionShareRoundRectPath(ctx, pillX, pillY, pillW, pillH, Math.round(pillH * 0.28));
-  ctx.stroke();
   var imgX = Math.round((W - drawW) / 2);
   var imgTop = Math.round(centerY - drawH / 2);
   ctx.drawImage(lockup, ink.sx, ink.sy, ink.sw, ink.sh, imgX, imgTop, drawW, drawH);
@@ -14980,21 +14964,6 @@ async function drawNutritionShareCard(mt, opts) {
       drawW = maxLockW;
       drawH = Math.round((ink.sh / Math.max(1, ink.sw)) * drawW);
     }
-    var padX = 40;
-    var padY = 28;
-    var pillW = drawW + 2 * padX;
-    var pillH = drawH + 2 * padY;
-    var pillX = Math.round((W - pillW) / 2);
-    var pillY = Math.round(rowMidY - pillH / 2);
-    ctx.save();
-    nutritionShareRoundRectPath(ctx, pillX, pillY, pillW, pillH, 32);
-    ctx.fillStyle = 'rgba(200,164,78,0.10)';
-    ctx.fill();
-    ctx.restore();
-    ctx.strokeStyle = 'rgba(200,164,78,0.45)';
-    ctx.lineWidth = 2;
-    nutritionShareRoundRectPath(ctx, pillX, pillY, pillW, pillH, 32);
-    ctx.stroke();
     var imgX = Math.round((W - drawW) / 2);
     var imgTop = Math.round(rowMidY - drawH / 2);
     ctx.drawImage(lockupLogo, ink.sx, ink.sy, ink.sw, ink.sh, imgX, imgTop, drawW, drawH);
