@@ -7062,7 +7062,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   </div>
   <div class="fb"><span>&copy; 2026 Body Bank. All rights reserved</span><span class="d">·</span><a href="#">Privacy Policy</a><span class="d">·</span><a href="#">Terms of Service</a></div>
   <div class="fitchef-credit">
-    <a href="https://www.Fitchef.fit" target="_blank" rel="noopener"><img src="img/Fitchef logo.png" alt="FitChef Nutrition" class="fitchef-logo" loading="lazy" decoding="async"></a>
+    <a href="https://www.Fitchef.fit" target="_blank" rel="noopener"><img src="img/bodybank%20X%20fitchef%20logo.png" alt="BodyBank × FitChef" class="fitchef-logo" loading="lazy" decoding="async"></a>
     <p>Co-Powered by <a href="https://www.Fitchef.fit" target="_blank" rel="noopener">FitChef Nutrition</a></p>
     <p><a href="https://www.Fitchef.fit" target="_blank" rel="noopener">www.Fitchef.fit</a></p>
   </div>
@@ -11461,7 +11461,7 @@ async function saveAdminNutritionLuxuryCard() {
     ctx.fillText('CoPowered by Fitchef', W / 2, chartY + chartH + 106);
 
     var bodybankLogo = await nutritionShareLoadImage('/img/bodybank-logo-short.png');
-    var fitchefLogo = await nutritionShareLoadImage('/img/Fitchef logo.png');
+    var fitchefLogo = await nutritionShareLoadImage('/img/bodybank%20X%20fitchef%20logo.png');
     var lockY = H - 118;
     if (bodybankLogo && fitchefLogo) {
       var bbH = 86;
@@ -14436,7 +14436,7 @@ function nutritionShareTruncateToWidth(ctx, text, maxW) {
 
 async function nutritionShareDrawPartnerLockupTop(ctx, W, centerY, logoMaxH) {
   var bodybankLogo = await nutritionShareLoadImage('/img/bodybank-logo-short.png');
-  var fitchefLogo = await nutritionShareLoadImage('/img/Fitchef logo.png');
+  var fitchefLogo = await nutritionShareLoadImage('/img/bodybank%20X%20fitchef%20logo.png');
   if (!bodybankLogo || !fitchefLogo) {
     ctx.fillStyle = '#d9c598';
     ctx.font = "700 44px 'Outfit','Segoe UI',sans-serif";
@@ -15000,7 +15000,7 @@ async function drawNutritionShareCard(mt, opts) {
   ctx.stroke();
 
   var bodybankLogo = await nutritionShareLoadImage('/img/bodybank-logo-short.png');
-  var fitchefLogo = await nutritionShareLoadImage('/img/Fitchef logo.png');
+  var fitchefLogo = await nutritionShareLoadImage('/img/bodybank%20X%20fitchef%20logo.png');
   if (bodybankLogo && fitchefLogo) {
     var bbInk = nutritionShareGetImageInkBounds(bodybankLogo) || { sx: 0, sy: 0, sw: bodybankLogo.naturalWidth, sh: bodybankLogo.naturalHeight };
     var fcInk = nutritionShareGetImageInkBounds(fitchefLogo) || { sx: 0, sy: 0, sw: fitchefLogo.naturalWidth, sh: fitchefLogo.naturalHeight };

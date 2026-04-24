@@ -479,6 +479,7 @@ async function emailNutritionDayReport(email, firstName, payload) {
 
 
   const inner = `<div style="font-family:system-ui,sans-serif;max-width:600px;margin:0 auto;background:#0d0f11;color:#f0ede8;padding:32px;border-radius:16px">
+  <div style="text-align:center;margin:0 0 20px"><img src="${APP_BASE}/img/bodybank%20X%20fitchef%20logo.png" alt="BodyBank × FitChef" width="220" style="max-width:100%;height:auto;display:inline-block;border:0" /></div>
   <h2 style="color:#3dd68c;margin-bottom:4px">Fitchef Nutrition Report</h2>
   <p style="color:#8a8880;margin-bottom:24px">${escapeHtml(formattedDate || '')}</p>
   <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px">
@@ -509,7 +510,8 @@ async function emailNutritionWeeklySummary(email, firstName, report) {
   if (!isConfigured() || !email) return false;
   const name = firstName || 'there';
   const r = report || {};
-  const bodyHtml = `<p style="margin:0 0 16px">CoPowered by Fitchef. Here is your 7-day Fitchef Nutrition snapshot.</p>
+  const bodyHtml = `<div style="text-align:center;margin:0 0 20px"><img src="${APP_BASE}/img/bodybank%20X%20fitchef%20logo.png" alt="BodyBank × FitChef" width="220" style="max-width:100%;height:auto;display:inline-block;border:0" /></div>
+<p style="margin:0 0 16px">CoPowered by Fitchef. Here is your 7-day Fitchef Nutrition snapshot.</p>
 <ul style="margin:0;padding-left:20px;color:#d4cfc4;line-height:1.8">
 <li>Avg daily calories: <strong>${escapeHtml(String(r.avgCalories ?? '—'))}</strong></li>
 <li>Avg daily protein: <strong>${escapeHtml(String(r.avgProtein ?? '—'))} g</strong></li>
@@ -547,7 +549,8 @@ async function emailAdminNutritionDailySummary(email, payload) {
     </tr>`)
     .join('');
 
-  const bodyHtml = `<p style="margin:0 0 14px">Daily admin nutrition digest for <strong>${escapeHtml(String(p.date || ''))}</strong>.</p>
+  const bodyHtml = `<div style="text-align:center;margin:0 0 20px"><img src="${APP_BASE}/img/bodybank%20X%20fitchef%20logo.png" alt="BodyBank × FitChef" width="220" style="max-width:100%;height:auto;display:inline-block;border:0" /></div>
+<p style="margin:0 0 14px">Daily admin nutrition digest for <strong>${escapeHtml(String(p.date || ''))}</strong>.</p>
 <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-bottom:16px">
   <div style="background:#161a1e;border-radius:10px;padding:12px"><div style="font-size:11px;color:#8a8880">Users Logged</div><div style="font-size:20px;font-weight:700;color:#f5a623">${escapeHtml(String(a.users ?? 0))}</div></div>
   <div style="background:#161a1e;border-radius:10px;padding:12px"><div style="font-size:11px;color:#8a8880">Meals Logged</div><div style="font-size:20px;font-weight:700;color:#3dd68c">${escapeHtml(String(a.meals ?? 0))}</div></div>

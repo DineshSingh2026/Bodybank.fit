@@ -530,7 +530,7 @@
     var cy = yTop + 32;
     var fitchefImg = null;
     try {
-      fitchefImg = await loadImage(absAsset('img/Fitchef logo.png'));
+      fitchefImg = await loadImage(absAsset('img/bodybank%20X%20fitchef%20logo.png'));
     } catch (e) {
       /* text-only */
     }
