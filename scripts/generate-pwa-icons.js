@@ -5,7 +5,7 @@
 const sharp = require('sharp');
 const path = require('path');
 
-const SRC = path.join(__dirname, '../public/img/bodybank-logo-short.png');
+const SRC = path.join(__dirname, '../public/img/bodybank X fitchef logo.png');
 const OUT_DIR = path.join(__dirname, '../public/icons');
 const SAFE_RATIO = 0.80; // Logo uses 80% of canvas - leaves 10% padding on each edge
 

@@ -68,8 +68,8 @@ function buildLuxuryMarketingSvg({ postType, keywords, tone, hook, caption, prom
   const subSvg = subLines.map((line, i) => `<text x="100" y="${isReel ? 860 + (i * 56) : 710 + (i * 48)}" fill="rgba(255,255,255,0.9)" font-size="${isReel ? 38 : 33}" font-family="Poppins,Arial,sans-serif" font-weight="500">${escapeXml(line)}</text>`).join('');
 
   const logoTag = logoDataUri
-    ? `<image href="${logoDataUri}" x="${width - 246}" y="58" width="156" height="156" />`
-    : `<text x="${width - 330}" y="145" fill="#F8E7BB" font-size="42" font-family="Montserrat,Arial,sans-serif" font-weight="800">BODYBANK</text>`;
+    ? `<image href="${logoDataUri}" x="${width - 248}" y="70" width="220" height="64" preserveAspectRatio="xMidYMid meet" />`
+    : `<text x="${width - 248}" y="112" text-anchor="end" fill="#F8E7BB" font-size="28" font-family="Montserrat,Arial,sans-serif" font-weight="700">BodyBank × FitChef</text>`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
@@ -116,7 +116,7 @@ function createMarketingAIRouter({ run, queryAll }) {
       const hook = String(req.query?.hook || '').trim();
       const caption = String(req.query?.caption || '').trim();
       const prompt = String(req.query?.prompt || '').trim();
-      const logoPath = path.join(__dirname, '..', 'public', 'img', 'bodybank-logo-short.png');
+      const logoPath = path.join(__dirname, '..', 'public', 'img', 'bodybank X fitchef logo.png');
       let logoDataUri = '';
       if (fs.existsSync(logoPath)) {
         const b64 = fs.readFileSync(logoPath).toString('base64');

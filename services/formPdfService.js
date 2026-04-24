@@ -77,20 +77,21 @@ function drawWatermark(doc) {
 /** Matches monthly report hero: black band, gold rules, logo, hierarchy. */
 function drawLuxuryHero(doc, { headline, subline, clientLine, logoPath }) {
   const w = doc.page.width;
+  const textX = 258;
+  const textW = Math.max(180, w - textX - 188);
   doc.rect(0, 0, w, 108).fill(C.bg);
   doc.moveTo(0, 108).lineTo(w, 108).lineWidth(3).strokeColor(C.gold).stroke();
   doc.moveTo(0, 111).lineTo(w, 111).lineWidth(0.5).strokeColor(C.goldDark).stroke();
 
   if (logoPath && fs.existsSync(logoPath)) {
     try {
-      doc.image(logoPath, 40, 28, { fit: [52, 52] });
+      doc.image(logoPath, 40, 28, { fit: [200, 52] });
     } catch (e) { /* ignore */ }
   }
 
-  doc.fillColor(C.gold).font(F(doc, 'display')).fontSize(11).text('BODYBANK', 104, 30);
-  doc.fillColor('#8FA0C4').font(F(doc, 'body')).fontSize(8.5).text('PRIVATE FORM DOSSIER', 104, 46);
-  doc.fillColor('#F2F4FA').font(F(doc, 'display')).fontSize(19).text(headline, 104, 62, { width: w - 200 });
-  doc.fillColor(C.goldMid).font(F(doc, 'semi')).fontSize(9.5).text(subline, 104, 88, { width: w - 200 });
+  doc.fillColor('#8FA0C4').font(F(doc, 'body')).fontSize(8.5).text('PRIVATE FORM DOSSIER', textX, 46);
+  doc.fillColor('#F2F4FA').font(F(doc, 'display')).fontSize(19).text(headline, textX, 62, { width: textW });
+  doc.fillColor(C.goldMid).font(F(doc, 'semi')).fontSize(9.5).text(subline, textX, 88, { width: textW });
 
   const docId = crypto.randomBytes(4).toString('hex').toUpperCase();
   doc.fillColor('#5C6578').font(F(doc, 'body')).fontSize(7.5).text(`DOC ${docId}`, w - 128, 28, { width: 112, align: 'right' });

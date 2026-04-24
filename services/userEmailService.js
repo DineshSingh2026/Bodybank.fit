@@ -497,7 +497,7 @@ async function emailNutritionDayReport(email, firstName, payload) {
 
   const html = luxuryWrap({
     title: 'Nutrition Report',
-    preheader: `CoPowered by Fitchef. Macros for ${formattedDate || 'today'}.`,
+    preheader: `Macros for ${formattedDate || 'today'}.`,
     lead: `Dear ${name},`,
     bodyHtml: inner,
     ctaLabel: 'Open BodyBank',
@@ -511,7 +511,7 @@ async function emailNutritionWeeklySummary(email, firstName, report) {
   const name = firstName || 'there';
   const r = report || {};
   const bodyHtml = `<div style="text-align:center;margin:0 0 20px"><img src="${APP_BASE}/img/bodybank%20X%20fitchef%20logo.png" alt="BodyBank × FitChef" width="220" style="max-width:100%;height:auto;display:inline-block;border:0" /></div>
-<p style="margin:0 0 16px">CoPowered by Fitchef. Here is your 7-day Fitchef Nutrition snapshot.</p>
+<p style="margin:0 0 16px">Here is your 7-day nutrition snapshot.</p>
 <ul style="margin:0;padding-left:20px;color:#d4cfc4;line-height:1.8">
 <li>Avg daily calories: <strong>${escapeHtml(String(r.avgCalories ?? '—'))}</strong></li>
 <li>Avg daily protein: <strong>${escapeHtml(String(r.avgProtein ?? '—'))} g</strong></li>
@@ -521,7 +521,7 @@ async function emailNutritionWeeklySummary(email, firstName, report) {
 </ul>`;
   const html = luxuryWrap({
     title: 'Weekly Nutrition Summary',
-    preheader: 'Your 7-day Bodybank X Fitchef Nutrition report.',
+    preheader: 'Your 7-day nutrition report.',
     lead: `Dear ${name},`,
     bodyHtml,
     ctaLabel: 'Open BodyBank',

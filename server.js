@@ -2711,7 +2711,7 @@ app.get('/api/admin/sunday-checkins/:id/pdf', verifyToken, requireAdminOrSuperad
     const baseName = `sunday-checkin-${safeFilePart(row.full_name, 'client')}-${datePart}`;
     const fileName = `${baseName}-${Date.now()}.pdf`;
     const outputPath = path.join(reportsDir, fileName);
-    const logoPath = path.join(__dirname, 'public', 'img', 'bodybank-logo-short.png');
+    const logoPath = path.join(__dirname, 'public', 'img', 'bodybank X fitchef logo.png');
     await writeSundayCheckinPdf({ outputPath, record: row, logoPath });
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -2734,7 +2734,7 @@ app.get('/api/admin/part2-submissions/:id/pdf', verifyToken, requireAdminOrSuper
     const baseName = `part2-${safeFilePart(row.name, 'client')}-${datePart}`;
     const fileName = `${baseName}-${Date.now()}.pdf`;
     const outputPath = path.join(reportsDir, fileName);
-    const logoPath = path.join(__dirname, 'public', 'img', 'bodybank-logo-short.png');
+    const logoPath = path.join(__dirname, 'public', 'img', 'bodybank X fitchef logo.png');
     await writePart2Pdf({ outputPath, record: row, logoPath });
 
     res.setHeader('Content-Type', 'application/pdf');
@@ -5483,7 +5483,7 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
         if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
         const fileName = `monthly-report-${user.id}-${monthlyCmd.monthKey}-${Date.now()}.pdf`;
         const outputPath = path.join(reportsDir, fileName);
-        const logoPath = path.join(__dirname, 'public', 'img', 'bodybank-logo-short.png');
+        const logoPath = path.join(__dirname, 'public', 'img', 'bodybank X fitchef logo.png');
 
         await generateMonthlyClientReport({
           outputPath,

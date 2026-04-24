@@ -538,17 +538,13 @@
       var lh = maxLogoH;
       var lw = (fitchefImg.naturalWidth / fitchefImg.naturalHeight) * lh;
       ctx.drawImage(fitchefImg, (W - lw) / 2, cy, lw, lh);
-      cy += lh + 14;
+      cy += lh + 10;
     } else {
       cy += 4;
     }
 
     ctx.textAlign = 'center';
     ctx.textBaseline = 'alphabetic';
-    ctx.fillStyle = GOLD;
-    ctx.font = '600 ' + fsCo + 'px "Outfit", system-ui, sans-serif';
-    ctx.fillText('Co-Powered by FitChef Nutrition', W / 2, cy);
-    cy += Math.round(fsCo * 1.55);
     ctx.font = '500 ' + fsUrl + 'px "Outfit", system-ui, sans-serif';
     ctx.fillStyle = 'rgba(212,185,104,0.95)';
     ctx.fillText('www.Fitchef.fit', W / 2, cy);
