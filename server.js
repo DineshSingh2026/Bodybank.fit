@@ -214,6 +214,8 @@ async function queryOne(sql, params = []) {
 
 const { createScorecardService } = require('./services/scorecardService');
 const scorecardSvc = createScorecardService({ queryOne, queryAll });
+const { createMuscleRankingService } = require('./services/muscleRankingService');
+const muscleRankingSvc = createMuscleRankingService({ queryOne, queryAll });
 const focusWheelSvc = require('./services/focusWheelService');
 
 function normalizeGeoFields(country, timezone) {
@@ -3784,6 +3786,19 @@ app.get('/api/me/scorecard', verifyToken, async (req, res) => {
   } catch (e) {
     console.error('scorecard error:', e);
     res.status(500).json({ error: e.message || 'Failed to load scorecard' });
+  }
+});
+
+// Muscle ranking — strength-based regional scores from logged lifts (read-only)
+app.get('/api/me/muscle-ranking', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'user') return res.status(403).json({ error: 'Only for members' });
+    const data = await muscleRankingSvc.computeMuscleRanking(req.user.id);
+    if (!data) return res.status(404).json({ error: 'User not found' });
+    res.json(data);
+  } catch (e) {
+    console.error('[muscle-ranking]', e.message);
+    res.status(500).json({ error: e.message || 'Failed to compute muscle ranking' });
   }
 });
 

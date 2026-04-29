@@ -283,6 +283,74 @@ body.site-nav-hidden nav#nv{display:none !important}
 .stat-sec{padding:100px 48px;position:relative;overflow:hidden}
 .stat-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(200,164,78,0.06),transparent 60%)}
 .stat-sec::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.2}
+.arsenal-sec{position:relative;padding:96px 48px;background:linear-gradient(180deg,#060606 0%,#050505 100%);overflow:hidden}
+.arsenal-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 18% 20%,rgba(200,164,78,0.1),transparent 40%),radial-gradient(circle at 82% 78%,rgba(200,164,78,0.08),transparent 42%);pointer-events:none}
+.arsenal-inner{position:relative;z-index:2;max-width:1220px;margin:0 auto}
+.arsenal-head{text-align:center;margin-bottom:42px}
+.arsenal-kicker{display:inline-block;font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);font-weight:600}
+.arsenal-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(38px,6vw,76px);letter-spacing:2px;line-height:1;margin:12px 0;color:var(--cream)}
+.arsenal-sub{max-width:760px;margin:0 auto;color:var(--creamd);font-size:16px;line-height:1.75}
+.arsenal-stage{display:block}
+.arsenal-media-wrap{display:none}
+.arsenal-copy{display:flex;flex-direction:column;gap:22px;max-width:920px;margin:0 auto}
+.arsenal-item{--ars-accent:200,164,78;position:relative;min-height:auto;padding:26px 24px;border-radius:18px;border:1px solid rgba(255,255,255,0.08);background:linear-gradient(160deg,rgba(16,16,16,0.97),rgba(8,8,8,0.94));box-shadow:0 12px 26px rgba(0,0,0,0.22);transition:border-color .35s ease,background .35s ease,box-shadow .35s ease,transform .35s ease}
+.arsenal-item::before{content:'';position:absolute;inset:0;border-radius:18px;background:linear-gradient(130deg,rgba(var(--ars-accent),0.12),transparent 32%,transparent 68%,rgba(var(--ars-accent),0.08));opacity:0;transition:opacity .3s ease;pointer-events:none}
+.arsenal-item.is-active{border-color:rgba(var(--ars-accent),0.58);background:linear-gradient(160deg,rgba(20,18,14,0.96),rgba(8,8,8,0.95));box-shadow:0 18px 38px rgba(0,0,0,0.35),0 0 0 1px rgba(var(--ars-accent),0.22),0 0 24px rgba(var(--ars-accent),0.2);transform:translateY(-1px)}
+.arsenal-item.is-active::before{opacity:1}
+.arsenal-item-top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:14px}
+.arsenal-tag{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:rgba(var(--ars-accent),0.95);font-weight:700}
+.arsenal-no{font-family:'Bebas Neue',sans-serif;font-size:30px;color:rgba(var(--ars-accent),0.95);letter-spacing:1.8px;line-height:1}
+.arsenal-item-grid{display:grid;grid-template-columns:minmax(260px,1.08fr) minmax(260px,0.92fr);gap:22px;align-items:stretch}
+.arsenal-item-preview{width:100%;height:100%;border:1px solid rgba(var(--ars-accent),0.3);border-radius:14px;background:rgba(0,0,0,0.42);padding:10px}
+.arsenal-item-preview img{width:100%;height:100%;max-height:68vh;object-fit:contain;object-position:center;display:block;border-radius:10px;background:#050505}
+.arsenal-item-copy{display:flex;flex-direction:column;align-items:flex-start}
+.arsenal-item h3{font-size:clamp(28px,3vw,40px);line-height:1.05;color:var(--cream);font-family:'Bebas Neue',sans-serif;letter-spacing:1px;margin-bottom:14px}
+.arsenal-item p{font-size:15px;line-height:1.78;color:var(--creamd);margin-bottom:18px}
+.arsenal-pills{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
+.arsenal-pill{display:inline-flex;align-items:center;padding:7px 12px;border:1px solid rgba(var(--ars-accent),0.38);border-radius:999px;background:rgba(var(--ars-accent),0.11);font-size:12px;color:#efe7d6;letter-spacing:.35px}
+.arsenal-cta{display:inline-flex;align-items:center;gap:8px;color:rgba(var(--ars-accent),0.95);font-size:13px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;text-decoration:none;position:relative;padding:10px 0 2px;margin-top:auto}
+.arsenal-cta::after{content:'';position:absolute;left:0;bottom:-2px;width:100%;height:1px;background:linear-gradient(90deg,rgba(var(--ars-accent),1),transparent);transform:scaleX(0.3);transform-origin:left;transition:transform .3s ease}
+.arsenal-cta:hover::after{transform:scaleX(1)}
+.arsenal-cta:hover{color:#fff}
+.arsenal-item[data-arsenal-theme="trainer"]{--ars-accent:58,176,255}
+.arsenal-item[data-arsenal-theme="fitchef"]{--ars-accent:22,196,140}
+.arsenal-item[data-arsenal-theme="muscle"]{--ars-accent:168,123,255}
+.arsenal-item[data-arsenal-theme="coin"]{--ars-accent:200,164,78}
+@media(max-width:1100px){
+  .arsenal-sec{padding:80px 28px}
+  .arsenal-copy{max-width:100%}
+  .arsenal-item-grid{grid-template-columns:1fr}
+  .arsenal-item-preview{margin-bottom:4px}
+}
+@media(max-width:700px){
+  .arsenal-sec{padding:56px 16px}
+  .arsenal-head{margin-bottom:24px}
+  .arsenal-sub{font-size:15px}
+  .arsenal-copy{gap:14px}
+  .arsenal-item{padding:18px 16px;min-height:auto;scroll-margin-top:84px}
+  .arsenal-item-grid{gap:14px}
+  .arsenal-item p{font-size:15px;line-height:1.7;max-width:100%;margin-bottom:16px}
+  .arsenal-item h3{font-size:34px}
+  .arsenal-item-preview{padding:4px;border-radius:12px}
+  .arsenal-item-preview img{height:min(78dvh,760px);max-height:82vh;min-height:54vh;border-radius:8px}
+  .arsenal-pill{font-size:11px;padding:6px 10px}
+  .arsenal-cta{font-size:12px}
+}
+@media(max-width:420px){
+  .arsenal-item-preview{padding:3px}
+  .arsenal-item-preview img{height:min(80dvh,760px);max-height:84vh;min-height:56vh}
+}
+@media(max-width:430px) and (min-height:780px){
+  .arsenal-item-preview img{height:min(82dvh,820px);min-height:60vh}
+}
+@media(max-width:390px){
+  .arsenal-item{padding:16px 14px}
+  .arsenal-item h3{font-size:31px}
+  .arsenal-item-preview img{height:min(83dvh,820px)}
+}
+@media (prefers-reduced-motion: reduce){
+  .arsenal-item,.arsenal-cta::after{transition:none!important}
+}
 .stat-inner{max-width:1000px;margin:0 auto;display:flex;justify-content:center;align-items:center}
 .stat-left{position:relative;z-index:1}
 .stat-eyebrow{font-size:11px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
@@ -4084,6 +4152,245 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
+<!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
+<style>
+/* ── Variables ── */
+:root{
+  --mr-strong:#2ecc71;
+  --mr-avg:#c8a44e;
+  --mr-weak:#e74c3c;
+  --mr-strong-dim:rgba(46,204,113,0.18);
+  --mr-avg-dim:rgba(200,164,78,0.18);
+  --mr-weak-dim:rgba(231,76,60,0.18);
+  --mr-surface:#111111;
+  --mr-card:#151515;
+  --mr-border:rgba(200,164,78,0.12);
+  --mr-gold:#c8a44e;
+}
+
+/* ── Page layout ── */
+#usec-muscle{display:flex;flex-direction:column;gap:0}
+.mr-page-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:18px;flex-wrap:wrap}
+.mr-page-header--solo{justify-content:flex-end}
+
+/* ── Audit Index pill ── */
+.mr-audit-pill{background:var(--mr-card);border:1px solid var(--mr-border);border-radius:10px;padding:12px 18px;min-width:170px;text-align:center;flex-shrink:0}
+.mr-audit-pill-label{font-size:9px;letter-spacing:2px;color:var(--mr-gold);text-transform:uppercase;display:block;margin-bottom:4px}
+.mr-audit-pill-score{display:flex;align-items:baseline;justify-content:center;gap:2px}
+.mr-audit-num{font-family:'Bebas Neue',sans-serif;font-size:42px;color:var(--mr-gold);line-height:1}
+.mr-audit-den{font-size:14px;color:rgba(200,164,78,0.6);line-height:1}
+.mr-audit-delta{font-size:11px;margin-top:2px;font-weight:600}
+.mr-audit-delta.up{color:var(--mr-strong)}
+.mr-audit-delta.down{color:var(--mr-weak)}
+
+/* ── Main 2-col grid ── */
+.mr-main-grid{display:grid;grid-template-columns:260px 1fr;gap:16px;margin-bottom:16px}
+@media(max-width:767px){.mr-main-grid{grid-template-columns:1fr}}
+
+/* ── Body panel ── */
+.mr-body-panel{background:var(--mr-card);border:1px solid var(--mr-border);border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.mr-body-wrap{position:relative;width:100%;max-width:220px;margin:0 auto}
+.mr-body-svg{width:100%;height:auto;display:block}
+
+/* SVG region fills */
+.mr-svg-region{fill:rgba(30,30,30,0.6);stroke:rgba(200,164,78,0.10);stroke-width:0.8;transition:fill 0.4s,filter 0.4s;cursor:pointer}
+.mr-svg-region:hover{stroke:rgba(200,164,78,0.35);stroke-width:1.2}
+.mr-svg-region[data-tier="Strong"]{fill:rgba(46,204,113,0.30)}
+.mr-svg-region[data-tier="Average"]{fill:rgba(200,164,78,0.28)}
+.mr-svg-region[data-tier="Weak"]{fill:rgba(231,76,60,0.32)}
+.mr-svg-region[data-glow="Strong"]{filter:url(#mr-glow-green)}
+.mr-svg-region[data-glow="Average"]{filter:url(#mr-glow-gold)}
+.mr-svg-region[data-glow="Weak"]{filter:url(#mr-glow-red)}
+
+/* Callouts — measurement cards + bridge + dimension bracket (see mrRenderCallouts) */
+.mr-callouts{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.mr-callout{position:absolute;inset:0;pointer-events:none}
+.mr-callout-bridge{position:absolute;height:2px;border-radius:1px;pointer-events:none}
+.mr-dim{position:absolute;display:flex;align-items:center;height:10px;transform:translateY(-50%);pointer-events:none;color:inherit}
+.mr-dim-track{flex:1;height:2px;border-radius:1px;opacity:0.95}
+.mr-dim-wedge{flex-shrink:0;width:0;height:0;border-style:solid}
+/* Inward arrows: outer wedges point toward centre of span */
+.mr-dim-wedge--L{border-width:5px 0 5px 7px;border-color:transparent transparent transparent currentColor;margin-right:-1px}
+.mr-dim-wedge--R{border-width:5px 7px 5px 0;border-color:transparent currentColor transparent transparent;margin-left:-1px}
+.mr-callout-card{position:absolute;box-sizing:border-box;width:104px;padding:8px 9px 7px;border-radius:10px;background:rgba(12,10,9,0.92);border:1px solid rgba(255,255,255,0.12);box-shadow:0 4px 14px rgba(0,0,0,0.45);pointer-events:none}
+.mr-callout--Strong .mr-callout-card{border-color:rgba(46,204,113,0.55);box-shadow:0 0 0 1px rgba(46,204,113,0.10),0 4px 14px rgba(0,0,0,0.45)}
+.mr-callout--Average .mr-callout-card{border-color:rgba(200,164,78,0.55);box-shadow:0 0 0 1px rgba(200,164,78,0.08),0 4px 14px rgba(0,0,0,0.45)}
+.mr-callout--Weak .mr-callout-card{border-color:rgba(231,76,60,0.55);box-shadow:0 0 0 1px rgba(231,76,60,0.10),0 4px 14px rgba(0,0,0,0.45)}
+.mr-callout-card-title{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:1.2px;line-height:1.1;margin:0}
+.mr-callout-metric{display:flex;align-items:baseline;gap:2px;margin-top:4px;line-height:1}
+.mr-callout-num{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#f4f0e8;font-weight:400;letter-spacing:0.5px}
+.mr-callout-sl{font-size:10px;font-weight:600;color:rgba(244,240,232,0.55)}
+.mr-callout-foot{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:10px;font-weight:600;color:rgba(244,240,232,0.92);letter-spacing:0.2px}
+.mr-callout-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.mr-callout--Strong{color:var(--mr-strong)}
+.mr-callout--Strong .mr-callout-bridge,.mr-callout--Strong .mr-dim-track{background:var(--mr-strong)}
+.mr-callout--Strong .mr-callout-card-title{color:var(--mr-strong)}
+.mr-callout--Strong .mr-callout-dot{background:var(--mr-strong);box-shadow:0 0 6px rgba(46,204,113,0.5)}
+.mr-callout--Average{color:var(--mr-avg)}
+.mr-callout--Average .mr-callout-bridge,.mr-callout--Average .mr-dim-track{background:var(--mr-avg)}
+.mr-callout--Average .mr-callout-card-title{color:var(--mr-avg)}
+.mr-callout--Average .mr-callout-dot{background:var(--mr-avg);box-shadow:0 0 6px rgba(200,164,78,0.35)}
+.mr-callout--Weak{color:var(--mr-weak)}
+.mr-callout--Weak .mr-callout-bridge,.mr-callout--Weak .mr-dim-track{background:var(--mr-weak)}
+.mr-callout--Weak .mr-callout-card-title{color:var(--mr-weak)}
+.mr-callout--Weak .mr-callout-dot{background:var(--mr-weak);box-shadow:0 0 6px rgba(231,76,60,0.35)}
+.mr-callout-card--right{text-align:right}
+.mr-callout-card--right .mr-callout-metric{justify-content:flex-end}
+.mr-callout-card--right .mr-callout-foot{justify-content:flex-end}
+
+/* Legend */
+.mr-legend{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--creamd)}
+.mr-legend-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;flex-shrink:0}
+.mr-legend-dot--strong{background:var(--mr-strong)}
+.mr-legend-dot--avg{background:var(--mr-avg)}
+.mr-legend-dot--weak{background:var(--mr-weak)}
+.mr-legend-hint{font-size:10px;color:var(--muted);text-align:center}
+
+/* ── Scores panel ── */
+.mr-scores-panel{background:var(--mr-card);border:1px solid var(--mr-border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:0}
+.mr-scores-header{font-size:10px;letter-spacing:2px;color:var(--mr-gold);margin-bottom:12px;text-transform:uppercase}
+.mr-scores-list{flex:1;display:flex;flex-direction:column;gap:2px}
+.mr-score-row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.mr-score-row:last-child{border-bottom:none}
+.mr-score-icon{width:38px;height:38px;background:rgba(255,255,255,0.04);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.mr-score-info{flex:1;min-width:0}
+.mr-score-label{font-size:13px;font-weight:600;color:#fff}
+.mr-score-tier{font-size:10px;margin-top:1px}
+.mr-score-tier.Strong{color:var(--mr-strong)}
+.mr-score-tier.Average{color:var(--mr-avg)}
+.mr-score-tier.Weak{color:var(--mr-weak)}
+.mr-score-tier.no_data{color:var(--muted)}
+.mr-score-val{text-align:right;flex-shrink:0}
+.mr-score-num{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#fff;line-height:1}
+.mr-score-den{font-size:10px;color:var(--muted)}
+.mr-score-delta{font-size:10px;font-weight:600;margin-top:1px}
+.mr-score-delta.up{color:var(--mr-strong)}
+.mr-score-delta.down{color:var(--mr-weak)}
+.mr-score-delta.same{color:var(--muted)}
+.mr-sparkline{width:54px;height:24px;flex-shrink:0}
+
+.mr-view-report-btn{margin-top:14px;background:none;border:1px solid var(--mr-border);color:var(--mr-gold);padding:8px 14px;border-radius:8px;font-size:12px;cursor:pointer;letter-spacing:0.5px;transition:background 0.2s}
+.mr-view-report-btn:hover{background:rgba(200,164,78,0.08)}
+
+/* ── Bottom grid (insight + ranking, history full width) ── */
+.mr-bottom-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.mr-card--history{grid-column:1/-1}
+@media(max-width:599px){.mr-bottom-grid{grid-template-columns:1fr}.mr-card--history{grid-column:auto}}
+
+/* ── Generic card ── */
+.mr-card{background:var(--mr-card);border:1px solid var(--mr-border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.mr-card-title{font-size:10px;letter-spacing:2px;color:var(--mr-gold);text-transform:uppercase}
+.mr-card-top-row{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.mr-link-btn{background:none;border:none;color:var(--mr-gold);font-size:11px;cursor:pointer;padding:0;letter-spacing:0.5px;text-decoration:underline}
+
+/* ── Body Insight card ── */
+.mr-insight-body{display:flex;align-items:flex-start;gap:12px;background:rgba(231,76,60,0.06);border:1px solid rgba(231,76,60,0.15);border-radius:8px;padding:12px}
+.mr-insight-icon{font-size:18px;flex-shrink:0;color:var(--mr-weak)}
+.mr-insight-main{font-size:13px;font-weight:600;color:#fff;line-height:1.4;margin:0 0 4px}
+.mr-insight-sub{font-size:11px;color:var(--creamd);margin:0;line-height:1.5}
+.mr-insight-body.balanced{background:rgba(46,204,113,0.06);border-color:rgba(46,204,113,0.15)}
+.mr-insight-body.balanced .mr-insight-icon{color:var(--mr-strong)}
+
+/* ── Your Ranking card ── */
+.mr-rank-pills{display:flex;flex-wrap:wrap;gap:8px}
+.mr-rank-pill{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:10px 12px;text-align:center;flex:1;min-width:80px}
+.mr-rank-pill-icon{font-size:20px;margin-bottom:4px}
+.mr-rank-pill-val{font-family:'Bebas Neue',sans-serif;font-size:15px;line-height:1;color:#fff}
+.mr-rank-pill-label{font-size:9px;color:var(--muted);margin-top:2px;letter-spacing:0.3px}
+.mr-rank-pill-sub{font-size:9px;margin-top:2px;font-weight:600}
+.mr-rank-pill-sub.Strong{color:var(--mr-strong)}
+.mr-rank-pill-sub.Average{color:var(--mr-avg)}
+.mr-rank-pill-sub.Weak{color:var(--mr-weak)}
+.mr-rank-context{font-size:10px;color:var(--muted);margin-top:4px}
+.mr-rank-info{background:rgba(200,164,78,0.06);border-radius:8px;padding:10px;font-size:11px;color:var(--creamd);line-height:1.5}
+
+/* ── Score History card ── */
+.mr-history-chart-wrap{position:relative;width:100%;height:120px}
+.mr-history-canvas{width:100%!important;height:100%!important}
+.mr-history-no-data{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--muted);text-align:center;padding:8px}
+.mr-history-range{font-size:10px;color:var(--muted)}
+
+/* ── Detail panel ── */
+.mr-detail-panel{margin-top:16px;background:var(--mr-card);border:1px solid var(--mr-border);border-radius:12px;padding:16px}
+.mr-detail-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.mr-detail-header h3{font-size:14px;font-weight:700;color:#fff;letter-spacing:0.5px}
+.mr-detail-close{background:none;border:1px solid var(--mr-border);color:var(--creamd);width:28px;height:28px;border-radius:6px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center}
+.mr-detail-list{display:flex;flex-direction:column;gap:10px}
+.mr-detail-row{display:flex;align-items:center;gap:12px;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px}
+.mr-detail-icon{font-size:22px;flex-shrink:0}
+.mr-detail-info{flex:1;min-width:0}
+.mr-detail-label{font-size:13px;font-weight:600;color:#fff;margin-bottom:2px}
+.mr-detail-bar-wrap{height:4px;background:rgba(255,255,255,0.07);border-radius:4px;overflow:hidden;width:100%}
+.mr-detail-bar{height:100%;border-radius:4px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1)}
+.mr-detail-bar.Strong{background:var(--mr-strong)}
+.mr-detail-bar.Average{background:var(--mr-avg)}
+.mr-detail-bar.Weak{background:var(--mr-weak)}
+.mr-detail-meta{font-size:10px;color:var(--muted);margin-top:4px}
+.mr-detail-score{text-align:right;flex-shrink:0}
+.mr-detail-score-num{font-family:'Bebas Neue',sans-serif;font-size:24px;color:#fff;line-height:1}
+.mr-detail-score-tier{font-size:10px;font-weight:700}
+.mr-detail-score-tier.Strong{color:var(--mr-strong)}
+.mr-detail-score-tier.Average{color:var(--mr-avg)}
+.mr-detail-score-tier.Weak{color:var(--mr-weak)}
+.mr-detail-score-tier.no_data{color:var(--muted)}
+
+/* ── State messages (loading / error / empty) ── */
+.mr-state-msg{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;gap:12px;color:var(--creamd);font-size:13px;line-height:1.6}
+.mr-state-msg--err{color:#e05050}
+.mr-spinner{width:32px;height:32px;border:3px solid rgba(200,164,78,0.15);border-top-color:var(--mr-gold);border-radius:50%;animation:mr-spin 0.8s linear infinite}
+@keyframes mr-spin{to{transform:rotate(360deg)}}
+
+/* ── Region icons ── */
+.mr-icon-chest::before{content:'💪'}
+.mr-icon-back::before{content:'🔙'}
+
+/* ── Placeholder banner (shown when no real data) ── */
+.mr-placeholder-banner{display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(200,164,78,0.10),rgba(200,164,78,0.05));border:1px solid rgba(200,164,78,0.30);border-radius:12px;padding:14px 16px;margin-bottom:16px;flex-wrap:wrap}
+.mr-pb-icon{font-size:22px;flex-shrink:0}
+.mr-placeholder-banner strong{font-size:13px;font-weight:700;color:#fff;display:block;margin-bottom:2px}
+.mr-placeholder-banner p{font-size:11px;color:var(--creamd);margin:0;line-height:1.5}
+.mr-placeholder-banner > div{flex:1;min-width:160px}
+.mr-pb-btn{background:var(--goldg);color:#060606;border:none;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0}
+.mr-server-error{background:rgba(231,76,60,0.08);border:1px solid rgba(231,76,60,0.2);border-radius:8px;padding:10px 14px;font-size:11px;color:#e05050;margin-bottom:12px}
+
+/* ── Unranked region (no data yet) — subtle gold pulse ── */
+.mr-svg-region[data-unranked]{fill:rgba(200,164,78,0.08);animation:mr-pulse-unranked 2.5s ease-in-out infinite}
+@keyframes mr-pulse-unranked{0%,100%{fill:rgba(200,164,78,0.06)}50%{fill:rgba(200,164,78,0.16)}}
+
+/* ── Unranked score row styling ── */
+.mr-score-row--unranked{opacity:0.65}
+.mr-score-num--lock{color:rgba(200,164,78,0.5)!important;font-size:18px}
+.mr-audit-delta--hint{color:rgba(200,164,78,0.5);font-size:10px}
+.mr-insight-body.info{background:rgba(200,164,78,0.06);border-color:rgba(200,164,78,0.18)}
+.mr-insight-body.info .mr-insight-icon{color:var(--mr-avg)}
+
+/* ── Home screen Muscle Ranking card accent ── */
+.wc-muscle{border-color:rgba(200,164,78,0.30)!important;background:rgba(200,164,78,0.05)!important}
+.wc-muscle:hover{background:rgba(200,164,78,0.10)!important;border-color:rgba(200,164,78,0.50)!important}
+.wc-muscle-icon{background:rgba(200,164,78,0.12)!important}
+.wc-muscle-tag{display:inline-block;font-size:9px;font-weight:700;letter-spacing:1px;background:var(--goldg);color:#060606;padding:2px 6px;border-radius:4px;margin-top:4px}
+
+/* ── Responsive tweaks ── */
+@media(max-width:767px){
+  .mr-page-header{gap:10px}
+  .mr-audit-pill{min-width:140px;padding:10px 14px}
+  .mr-audit-num{font-size:32px}
+  .mr-scores-panel{padding:12px}
+  .mr-body-wrap{max-width:180px}
+  .mr-card{padding:12px}
+  .mr-history-chart-wrap{height:90px}
+  .mr-placeholder-banner{flex-direction:column;gap:10px}
+}
+@media(min-width:768px){
+  #usec-muscle{padding:4px 0}
+  .mr-main-grid{grid-template-columns:240px 1fr}
+}
+@media(min-width:1024px){
+  .mr-main-grid{grid-template-columns:280px 1fr}
+  .mr-bottom-grid{grid-template-columns:1fr 1fr}
+}
+</style>
+<!-- ══════════════════════════════════════════════════════ -->
 </head>
 <body>
 
@@ -4137,6 +4444,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <a class="user-sidebar-link" href="#" data-tab="messages" onclick="switchUserTab('messages');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
         <a class="user-sidebar-link" href="#" data-tab="elitefeed" onclick="switchUserTab('elitefeed');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128248;</span>Elite Feed</a>
         <a class="user-sidebar-link" href="#" data-tab="profile" onclick="switchUserTab('profile');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128100;</span>My Profile</a>
+        <a class="user-sidebar-link" href="#" data-tab="muscle" onclick="switchUserTab('muscle');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128170;</span>Muscle Ranking</a>
         <a class="user-sidebar-link" href="#" data-tab="contact" onclick="switchUserTab('contact');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9993;</span>Contact Us</a>
       </nav>
     </aside>
@@ -4428,6 +4736,20 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-copy"><div class="wc-title">My Profile</div><div class="wc-desc">View and update your information</div></div></div>
           <div class="welcome-card" onclick="window.location.href='/ai-trainer.html?v=2'"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 3a2 2 0 0 1 2 2v2h1.8A3.2 3.2 0 0 1 19 10.2V16a3 3 0 0 1-3 3h-1v2h-2v-2h-2v2H9v-2H8a3 3 0 0 1-3-3v-5.8A3.2 3.2 0 0 1 8.2 7H10V5a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/></svg></div><div class="wc-copy"><div class="wc-title">AI Trainer</div><div class="wc-desc">Train live with AI pose feedback</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-copy"><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div></div>
+          <div class="welcome-card wc-muscle" onclick="switchUserTab('muscle')">
+            <div class="wc-icon-wrap wc-muscle-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6.5 6.5C5 5 5 3 6.5 2S10 2 10 4v1c0 1 .5 2 1.5 2.5L14 9"/>
+                <path d="M17.5 17.5C19 19 19 21 17.5 22S14 22 14 20v-1c0-1-.5-2-1.5-2.5L10 15"/>
+                <path d="M14 9c1-1 3-1 4 .5s.5 3.5-1 4.5l-7 3c-1.5 1-3.5.5-4.5-1S5 13 6.5 12l2-1"/>
+              </svg>
+            </div>
+            <div class="wc-copy">
+              <div class="wc-title" style="color:var(--gold)">Muscle Ranking</div>
+              <div class="wc-desc">See your strength heatmap &amp; scores</div>
+              <div class="wc-muscle-tag">NEW</div>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -4755,6 +5077,218 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         </div>
       </div>
     </div>
+
+    <!-- MUSCLE RANKING -->
+    <div class="user-section" id="usec-muscle">
+      <div class="user-section-back">
+        <button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button>
+      </div>
+
+      <!-- Loading state -->
+      <div id="mr-loading" class="mr-state-msg" style="display:none">
+        <div class="mr-spinner"></div>
+        <p>Analysing your strength data…</p>
+      </div>
+
+      <!-- Main content — always rendered, placeholder when no lifts logged -->
+      <div id="mr-content" style="display:none">
+
+        <!-- Placeholder unlock banner (hidden when real data present) -->
+        <div id="mr-placeholder-banner" class="mr-placeholder-banner" style="display:none">
+          <span class="mr-pb-icon">🔓</span>
+          <div>
+            <strong>Unlock Your Real Scores</strong>
+            <p>Log any workout with lifts (bench, squat, deadlift…) to replace these previews with your actual Muscle Ranking.</p>
+          </div>
+          <button type="button" class="mr-pb-btn" onclick="switchUserTab('workout')">Log Workout →</button>
+        </div>
+
+        <!-- Inline server error (non-blocking) -->
+        <div id="mr-server-error" class="mr-server-error" style="display:none"></div>
+
+        <!-- Top row: Body Audit only (title + subtitle come from dashboard tab chrome) -->
+        <div class="mr-page-header mr-page-header--solo">
+          <div class="mr-audit-pill">
+            <span class="mr-audit-pill-label">BODY AUDIT INDEX</span>
+            <div class="mr-audit-pill-score">
+              <span class="mr-audit-num" id="mr-audit-num">—</span>
+              <span class="mr-audit-den">/100</span>
+            </div>
+            <div class="mr-audit-delta" id="mr-audit-delta"></div>
+          </div>
+        </div>
+
+        <!-- Main 2-column layout -->
+        <div class="mr-main-grid">
+
+          <!-- Left — 3D body heatmap -->
+          <div class="mr-body-panel">
+            <div class="mr-body-wrap">
+              <!-- SVG body figure with colour-coded muscle regions -->
+              <svg class="mr-body-svg" viewBox="0 0 220 500" aria-label="Body muscle heatmap" role="img">
+                <defs>
+                  <filter id="mr-glow-green" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="4" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                  <filter id="mr-glow-gold" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="3" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                  <filter id="mr-glow-red" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur stdDeviation="4" result="blur"/>
+                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+                  </filter>
+                  <linearGradient id="mr-grad-body" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stop-color="#1e1e1e"/>
+                    <stop offset="100%" stop-color="#141414"/>
+                  </linearGradient>
+                </defs>
+
+                <!-- ── Base silhouette ── -->
+                <!-- Head -->
+                <ellipse cx="110" cy="38" rx="24" ry="30" fill="#1c1c1c" stroke="rgba(200,164,78,0.18)" stroke-width="1.2"/>
+                <!-- Neck -->
+                <rect x="101" y="66" width="18" height="20" rx="4" fill="#1c1c1c" stroke="rgba(200,164,78,0.10)" stroke-width="1"/>
+
+                <!-- SHOULDERS region — left & right deltoids -->
+                <path id="mr-svg-shoulders-l" class="mr-svg-region" data-region="shoulders"
+                  d="M 100,68 Q 72,74 52,94 L 56,112 Q 78,96 102,88 Z"/>
+                <path id="mr-svg-shoulders-r" class="mr-svg-region" data-region="shoulders"
+                  d="M 120,68 Q 148,74 168,94 L 164,112 Q 142,96 118,88 Z"/>
+
+                <!-- CHEST region -->
+                <path id="mr-svg-chest" class="mr-svg-region" data-region="chest"
+                  d="M 58,88 L 102,78 L 118,78 L 162,88 Q 165,118 160,155 Q 135,162 110,160 Q 85,162 60,155 Q 55,118 58,88 Z"/>
+
+                <!-- CORE region -->
+                <path id="mr-svg-core" class="mr-svg-region" data-region="core"
+                  d="M 62,155 Q 85,162 110,160 Q 135,162 158,155 L 155,250 Q 135,256 110,255 Q 85,256 65,250 Z"/>
+
+                <!-- Hips / pelvis (neutral) -->
+                <path d="M 68,250 Q 85,256 110,255 Q 135,256 152,250 L 155,278 Q 140,285 110,284 Q 80,285 65,278 Z"
+                  fill="#1a1a1a" stroke="rgba(200,164,78,0.08)" stroke-width="1"/>
+
+                <!-- BACK — shown as lat wings visible from front -->
+                <path id="mr-svg-back-l" class="mr-svg-region" data-region="back"
+                  d="M 54,94 L 62,88 L 58,155 L 44,170 L 42,130 Z"/>
+                <path id="mr-svg-back-r" class="mr-svg-region" data-region="back"
+                  d="M 166,94 L 158,88 L 162,155 L 176,170 L 178,130 Z"/>
+
+                <!-- ARMS region — left & right upper arm -->
+                <path id="mr-svg-arms-l" class="mr-svg-region" data-region="arms"
+                  d="M 52,96 L 60,92 L 56,160 L 40,170 L 34,210 L 24,210 L 28,165 L 42,132 Z"/>
+                <path id="mr-svg-arms-r" class="mr-svg-region" data-region="arms"
+                  d="M 168,96 L 160,92 L 164,160 L 180,170 L 186,210 L 196,210 L 192,165 L 178,132 Z"/>
+
+                <!-- Forearms (neutral) -->
+                <path d="M 25,210 L 35,210 L 30,330 L 18,328 Z" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
+                <path d="M 195,210 L 185,210 L 190,330 L 202,328 Z" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
+                <!-- Hands -->
+                <ellipse cx="24" cy="336" rx="9" ry="12" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
+                <ellipse cx="196" cy="336" rx="9" ry="12" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
+
+                <!-- LEGS region — left & right quads/thighs -->
+                <path id="mr-svg-legs-l" class="mr-svg-region" data-region="legs"
+                  d="M 68,278 L 108,278 L 106,398 L 78,400 L 65,278 Z"/>
+                <path id="mr-svg-legs-r" class="mr-svg-region" data-region="legs"
+                  d="M 152,278 L 112,278 L 114,398 L 142,400 L 155,278 Z"/>
+
+                <!-- Calves (neutral) -->
+                <path d="M 78,400 L 106,398 L 104,468 L 76,468 Z" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
+                <path d="M 142,400 L 114,398 L 116,468 L 144,468 Z" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
+                <!-- Feet -->
+                <ellipse cx="90" cy="474" rx="15" ry="8" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
+                <ellipse cx="130" cy="474" rx="15" ry="8" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
+              </svg>
+
+              <!-- Callout labels (positioned over SVG) -->
+              <div class="mr-callouts" id="mr-callouts">
+                <!-- Populated by JS -->
+              </div>
+            </div>
+
+            <!-- Legend -->
+            <div class="mr-legend">
+              <span class="mr-legend-dot mr-legend-dot--strong"></span>Strong
+              <span class="mr-legend-dot mr-legend-dot--avg"></span>Average
+              <span class="mr-legend-dot mr-legend-dot--weak"></span>Weak
+            </div>
+            <p class="mr-legend-hint">Tap a region to see details</p>
+          </div>
+
+          <!-- Right — Muscle scores list -->
+          <div class="mr-scores-panel">
+            <div class="mr-scores-header">MUSCLE SCORES</div>
+            <div class="mr-scores-list" id="mr-scores-list">
+              <!-- Populated by JS -->
+            </div>
+            <button type="button" class="mr-view-report-btn" id="mr-view-report-btn" onclick="mrToggleDetailPanel()">
+              View Detailed Report →
+            </button>
+          </div>
+        </div>
+
+        <!-- Bottom grid: insight + ranking, score history full width -->
+        <div class="mr-bottom-grid">
+
+          <!-- Body Insight -->
+          <div class="mr-card mr-card--insight">
+            <div class="mr-card-title">BODY INSIGHT</div>
+            <div class="mr-insight-body" id="mr-insight-body">
+              <div class="mr-insight-icon">⚠</div>
+              <div>
+                <p class="mr-insight-main" id="mr-insight-main">—</p>
+                <p class="mr-insight-sub" id="mr-insight-sub">—</p>
+              </div>
+            </div>
+            <button type="button" class="mr-link-btn" onclick="switchUserTab('workout')">View Full Analysis →</button>
+          </div>
+
+          <!-- Your Ranking -->
+          <div class="mr-card mr-card--rank">
+            <div class="mr-card-top-row">
+              <div class="mr-card-title">YOUR RANKING</div>
+              <button type="button" class="mr-link-btn" onclick="mrToggleRankInfo()" id="mr-rank-info-btn">How it works?</button>
+            </div>
+            <div id="mr-rank-info-panel" class="mr-rank-info" style="display:none">
+              <p>Rankings compare your muscle groups against each other based on your logged lifts relative to your body weight. Stronger regions are where your training has produced the best relative strength.</p>
+            </div>
+            <div class="mr-rank-pills" id="mr-rank-pills">
+              <!-- Populated by JS -->
+            </div>
+            <p class="mr-rank-context" id="mr-rank-context">Based on your logged lifts relative to body weight</p>
+          </div>
+
+          <!-- Score History -->
+          <div class="mr-card mr-card--history">
+            <div class="mr-card-top-row">
+              <div class="mr-card-title">SCORE HISTORY</div>
+              <span class="mr-history-range">All Time</span>
+            </div>
+            <div class="mr-history-chart-wrap">
+              <canvas id="mr-history-canvas" class="mr-history-canvas"></canvas>
+              <div class="mr-history-no-data" id="mr-history-no-data" style="display:none">
+                Not enough history yet. Keep logging!
+              </div>
+            </div>
+          </div>
+
+        </div><!-- /mr-bottom-grid -->
+
+        <!-- Detail panel (shown on "View Detailed Report") -->
+        <div class="mr-detail-panel" id="mr-detail-panel" style="display:none">
+          <div class="mr-detail-header">
+            <h3>Detailed Region Analysis</h3>
+            <button type="button" class="mr-detail-close" onclick="mrToggleDetailPanel()">✕</button>
+          </div>
+          <div class="mr-detail-list" id="mr-detail-list">
+            <!-- Populated by JS -->
+          </div>
+        </div>
+
+      </div><!-- /mr-content -->
+    </div><!-- /usec-muscle -->
 
     <!-- ELITE FEED (all community posts) — matches /dashboard.html Feed Studio layout -->
     <div class="user-section" id="usec-elitefeed">
@@ -6833,6 +7367,31 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   </div>
 </section>
 
+<!-- THE BODYBANK ARSENAL -->
+<section class="arsenal-sec" id="arsenal">
+  <div class="arsenal-inner">
+    <div class="arsenal-head rv">
+      <div class="gold-line"></div>
+      <span class="arsenal-kicker">Product Engine</span>
+      <h2 class="arsenal-title">The BodyBank Arsenal</h2>
+      <p class="arsenal-sub">A cinematic look at the four features that drive every transformation across training, nutrition, motivation, and body intelligence.</p>
+    </div>
+    <div class="arsenal-stage">
+      <div class="arsenal-media-wrap">
+        <div class="arsenal-media" id="arsenalMediaPanel">
+          <img id="arsenalMediaImage" src="/img/AI%20trainer.jpeg" alt="AI Trainer real-time form coaching preview" loading="lazy" decoding="async">
+          <div class="arsenal-badge">
+            <span class="arsenal-badge-num" id="arsenalMediaNumber">01</span>
+            <span class="arsenal-badge-tag" id="arsenalMediaTag">AI Trainer</span>
+          </div>
+          <div class="arsenal-progress" id="arsenalProgress" aria-hidden="true"></div>
+        </div>
+      </div>
+      <div class="arsenal-copy" id="arsenalCopy"></div>
+    </div>
+  </div>
+</section>
+
 <!-- TRANSFORMATIONS -->
 <section class="sec" id="results" style="background:var(--black);padding-bottom:100px">
   <div class="si rv">
@@ -7119,6 +7678,103 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 <script>
 /* Nav stays fixed with same size at all scroll positions - no scroll class applied */
 function toggleFaq(e){const o=e.classList.contains('op');document.querySelectorAll('.fi').forEach(i=>i.classList.remove('op'));if(!o)e.classList.add('op')}
+
+function initBodyBankArsenal(){
+  var arsenalRoot = document.getElementById('arsenal');
+  if(!arsenalRoot) return;
+  var copyWrap = document.getElementById('arsenalCopy');
+  if(!copyWrap) return;
+
+  var features = [
+    {
+      tag: 'AI Trainer',
+      theme: 'trainer',
+      number: '01',
+      title: 'Real-time form coach',
+      desc: 'Your phone camera becomes a personal trainer. Live joint-angle tracking, rep counting, and instant depth feedback - every single rep, every session. No equipment needed.',
+      pills: ['Live rep count', 'Joint angles', 'Depth detection'],
+      ctaHref: '/ai-trainer.html?v=2',
+      image: '/img/AI%20trainer.jpeg',
+      imageAlt: 'AI Trainer real-time form coaching preview'
+    },
+    {
+      tag: 'FitChef Nutrition',
+      theme: 'fitchef',
+      number: '02',
+      title: 'Snap a meal, get your macros',
+      desc: 'Photograph any dish and AI instantly breaks down calories, protein, carbs and fat - with high-confidence portion analysis. From ragi dosa to biryani, it knows.',
+      pills: ['1-tap logging', '4 macros tracked', 'AI portion sizing'],
+      ctaHref: '/nutrition-tracker.html',
+      image: '/img/Fitchef%20Nutrition.jpeg',
+      imageAlt: 'FitChef nutrition AI meal macro analysis preview'
+    },
+    {
+      tag: 'Muscle Ranking',
+      theme: 'muscle',
+      number: '03',
+      title: 'Know your body\'s weak spots',
+      desc: 'AI maps every muscle group, measures each zone and ranks them Strong, Average or Weak. Your Body Audit Index tells you exactly where to focus - updated every week.',
+      pills: ['Score 64/100', '3 muscle zones', 'Weekly update'],
+      ctaHref: '#',
+      ctaAction: 'audit',
+      image: '/img/Muscle%20Ranking.jpeg',
+      imageAlt: 'Muscle ranking body audit analysis preview'
+    },
+    {
+      tag: 'BB Coins',
+      theme: 'coin',
+      number: '04',
+      title: 'Train more, pay less',
+      desc: 'Every workout, meal log and body submission earns you BB Coins. Stack them up and redeem against your next renewal - the more you show up, the less you pay.',
+      pills: ['Earn on every activity', 'Redeemable on renewal', '170 coins earned'],
+      ctaHref: '#',
+      ctaAction: 'audit',
+      image: '/img/BB%20Coin.jpeg',
+      imageAlt: 'BB Coins rewards and redemption preview'
+    }
+  ];
+
+  copyWrap.innerHTML = features.map(function(feature, idx){
+    return '<article class="arsenal-item' + (idx === 0 ? ' is-active' : '') + '" data-arsenal-index="' + idx + '" data-arsenal-theme="' + (feature.theme || 'coin') + '">' +
+      '<div class="arsenal-item-top"><span class="arsenal-tag">' + feature.tag + '</span><span class="arsenal-no">' + feature.number + '</span></div>' +
+      '<div class="arsenal-item-grid">' +
+        '<div class="arsenal-item-preview"><img src="' + feature.image + '" alt="' + feature.imageAlt + '" loading="lazy" decoding="async"></div>' +
+        '<div class="arsenal-item-copy">' +
+          '<h3>' + feature.title + '</h3>' +
+          '<p>' + feature.desc + '</p>' +
+          '<div class="arsenal-pills">' + feature.pills.map(function(pill){ return '<span class="arsenal-pill">' + pill + '</span>'; }).join('') + '</div>' +
+          '<a class="arsenal-cta" href="' + feature.ctaHref + '"' + (feature.ctaAction ? ' data-cta-action="' + feature.ctaAction + '"' : '') + '>Explore feature <span aria-hidden="true">→</span></a>' +
+        '</div>' +
+      '</div>' +
+      '</article>';
+  }).join('');
+
+  var cards = Array.prototype.slice.call(copyWrap.querySelectorAll('.arsenal-item'));
+  if('IntersectionObserver' in window && cards.length){
+    var activeObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if(entry.isIntersecting){
+          cards.forEach(function(card){ card.classList.remove('is-active'); });
+          entry.target.classList.add('is-active');
+        }
+      });
+    }, { threshold: 0.45, rootMargin: '-10% 0px -30% 0px' });
+    cards.forEach(function(card){ activeObserver.observe(card); });
+  }
+
+  copyWrap.addEventListener('click', function(e){
+    var target = e.target;
+    if(!(target instanceof Element)) return;
+    var cta = target.closest('.arsenal-cta');
+    if(!cta) return;
+    var action = cta.getAttribute('data-cta-action');
+    if(action === 'audit'){
+      e.preventDefault();
+      if(typeof openModal === 'function') openModal('auditModal');
+    }
+  });
+}
+initBodyBankArsenal();
 
 function openEliteFeedDashboard(){
   window.location.href='/dashboard.html';
@@ -12372,8 +13028,10 @@ function openUserDashboard(user) {
   setTimeout(function() {
     if (typeof checkUserPushStatus === 'function') checkUserPushStatus();
   }, 500);
-  document.getElementById('ctName').value = (user.first_name + ' ' + user.last_name).trim();
-  document.getElementById('ctEmail').value = user.email || '';
+  var ctNameEl = document.getElementById('ctName');
+  if (ctNameEl) ctNameEl.value = ((user.first_name || '') + ' ' + (user.last_name || '')).trim();
+  var ctEmailEl = document.getElementById('ctEmail');
+  if (ctEmailEl) ctEmailEl.value = user.email || '';
   if (typeof bbMaybeOpenCheckinDailyAfterLoad === 'function') bbMaybeOpenCheckinDailyAfterLoad();
   setTimeout(function () {
     if (typeof bbProcessQueuedSignupBloodUpload === 'function') bbProcessQueuedSignupBloodUpload();
@@ -12791,6 +13449,8 @@ function backToWebsiteFromAdminPanel() {
 
 function logoutUser() {
   if (typeof wkLogoutTimerCleanup === 'function') wkLogoutTimerCleanup();
+  // Reset muscle ranking cache so next login fetches fresh data
+  if (typeof mrData !== 'undefined') { mrData = null; mrLoaded = false; }
   window.currentUser = null;
   bbCoinState = { balance: null, lifetimeEarned: null, lifetimeRedeemed: null, updatedAt: null, lastLoadedAt: 0 };
   bbRenderCoinSummary();
@@ -12828,10 +13488,12 @@ var USER_TAB_LABELS = {
   messages: 'Messages',
   elitefeed: 'Elite Feed',
   profile: 'My Profile',
+  muscle: 'Muscle Ranking',
   contact: 'Contact Us'
 };
 var USER_TAB_SUBTITLES = {
   home: 'Your dashboard and daily actions in one place.',
+  muscle: 'Your body analysed, ranked, and improved — based on your logged lifts.',
   workout: 'Log one full session — training, lifts for that day’s focus, and how it felt.',
   programs: 'Programs assigned by your lifestyle manager.',
   checkin: 'Daily check-in and Sunday weekly review.',
@@ -12901,6 +13563,7 @@ function switchUserTab(tab) {
     loadMyMeetings();
   }
   if (tab === 'programs') loadUserPrograms();
+  if (tab === 'muscle') loadMuscleRanking();
   if (tab === 'checkin') { showCheckinSubView('hub'); loadSundayCheckinDefaults(); }
   if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(tab);
   if (tab === 'workout') {
@@ -18952,6 +19615,586 @@ window.addEventListener('resize', applySafeAreaFix);
     </div>
   </div>
 </div>
+
+<!-- ══════════════════════ MUSCLE RANKING LOGIC ══════════════════════ -->
+<script>
+(function() {
+'use strict';
+
+// ── Constants ──────────────────────────────────────────────────────────────
+
+var MR_REGION_META = {
+  chest:     { label: 'Chest',     icon: '🫁', svgIds: ['mr-svg-chest'] },
+  back:      { label: 'Back',      icon: '🏋️', svgIds: ['mr-svg-back-l','mr-svg-back-r'] },
+  shoulders: { label: 'Shoulders', icon: '💪', svgIds: ['mr-svg-shoulders-l','mr-svg-shoulders-r'] },
+  arms:      { label: 'Arms',      icon: '💪', svgIds: ['mr-svg-arms-l','mr-svg-arms-r'] },
+  legs:      { label: 'Legs',      icon: '🦵', svgIds: ['mr-svg-legs-l','mr-svg-legs-r'] },
+  core:      { label: 'Core',      icon: '⚡',  svgIds: ['mr-svg-core'] }
+};
+
+// Callout layout: side + dimension line on body (viewBox Y 0–500, X as fraction of overlay width)
+var MR_CALLOUT_LAYOUT = {
+  shoulders: { side: 'left',  dimY: 86,  dimX0: 0.40, dimX1: 0.82 },
+  chest:     { side: 'left',  dimY: 116, dimX0: 0.42, dimX1: 0.80 },
+  core:      { side: 'left',  dimY: 206, dimX0: 0.44, dimX1: 0.76 },
+  legs:      { side: 'left',  dimY: 322, dimX0: 0.38, dimX1: 0.76 },
+  back:      { side: 'right', dimY: 102, dimX0: 0.18, dimX1: 0.46 },
+  arms:      { side: 'right', dimY: 172, dimX0: 0.20, dimX1: 0.50 }
+};
+
+var mrData = null;
+var mrLoaded = false;
+var mrHistoryChart = null;
+var mrDetailOpen = false;
+
+// ── Public entry — always renders the full UI ─────────────────────────────
+
+window.loadMuscleRanking = async function() {
+  if (!window.currentUser) return;
+
+  // Don't reload if already loaded (user switching tabs)
+  if (mrLoaded && mrData) {
+    mrShowState('content');
+    return;
+  }
+
+  mrShowState('loading');
+
+  var data = await apiCall('GET', '/api/me/muscle-ranking');
+
+  if (!data || data.error) {
+    // Show a minimal inline error inside content — not a dead-end blank page
+    var errEl = document.getElementById('mr-server-error');
+    if (errEl) {
+      errEl.textContent = (data && data.error) ? data.error : 'Could not load data. Tap retry.';
+      errEl.style.display = '';
+    }
+    // Still try to render with whatever partial data we have, or use placeholder
+    if (!data || !data.regions) {
+      data = mrPlaceholderData();
+    }
+  }
+
+  mrData = data;
+  mrLoaded = true;
+  mrRender(data);
+  mrShowState('content');
+};
+
+// Placeholder data shown when API fails completely (network error etc.)
+function mrPlaceholderData() {
+  var regions = ['chest','back','shoulders','arms','legs','core'].map(function(k) {
+    return { key: k, label: k.charAt(0).toUpperCase() + k.slice(1), score: null, tier: 'unranked', best_lift_kg: null };
+  });
+  return {
+    has_data: false, is_placeholder: true,
+    audit_index: null, audit_index_delta: null,
+    regions: regions, upper_avg: null, lower_avg: null,
+    body_insight: {
+      type: 'no_data',
+      message: 'Log your first workout to unlock your Muscle Ranking.',
+      detail: 'Any logged lift — bench press, squat, deadlift — starts generating your personalised heatmap.',
+      pct: 0
+    },
+    self_ranking: { strongest: null, weakest: null, above_avg_regions: [], below_avg_regions: [] },
+    history: [],
+    bodyweight_kg: 75,
+    is_female: false,
+    formula_version: 1
+  };
+}
+
+// ── Show / hide state panels ──────────────────────────────────────────────
+
+function mrShowState(state) {
+  var loadEl = document.getElementById('mr-loading');
+  var contentEl = document.getElementById('mr-content');
+  if (loadEl) loadEl.style.display = state === 'loading' ? '' : 'none';
+  if (contentEl) contentEl.style.display = state === 'content' ? '' : 'none';
+}
+
+// ── Main render ───────────────────────────────────────────────────────────
+
+function mrRender(d) {
+  // Placeholder banner
+  var banner = document.getElementById('mr-placeholder-banner');
+  if (banner) banner.style.display = d.is_placeholder ? '' : 'none';
+
+  mrRenderAuditIndex(d);
+  mrRenderSvgRegions(d);
+  mrRenderCallouts(d);
+  mrRenderScoresList(d);
+  mrRenderInsight(d);
+  mrRenderRanking(d);
+  mrRenderHistory(d);
+  mrRenderDetailList(d);
+}
+
+// Audit index
+function mrRenderAuditIndex(d) {
+  var numEl = document.getElementById('mr-audit-num');
+  var deltaEl = document.getElementById('mr-audit-delta');
+  if (numEl) {
+    if (d.audit_index !== null) {
+      numEl.textContent = String(d.audit_index);
+      numEl.style.color = '';
+    } else {
+      numEl.textContent = '—';
+      numEl.style.color = 'rgba(200,164,78,0.35)';
+    }
+  }
+  if (deltaEl) {
+    if (d.is_placeholder) {
+      deltaEl.textContent = 'Log lifts to generate your score';
+      deltaEl.className = 'mr-audit-delta mr-audit-delta--hint';
+    } else if (d.audit_index_delta !== null && d.audit_index_delta !== 0) {
+      var up = d.audit_index_delta > 0;
+      deltaEl.textContent = (up ? '↑ +' : '↓ ') + d.audit_index_delta + ' pts recently';
+      deltaEl.className = 'mr-audit-delta ' + (up ? 'up' : 'down');
+    } else {
+      deltaEl.textContent = '';
+      deltaEl.className = 'mr-audit-delta';
+    }
+  }
+}
+
+// Colour-code SVG regions
+function mrRenderSvgRegions(d) {
+  (d.regions || []).forEach(function(region) {
+    var meta = MR_REGION_META[region.key];
+    if (!meta) return;
+    var svgTier = (region.tier === 'no_data' || region.tier === 'unranked') ? null : region.tier;
+    meta.svgIds.forEach(function(id) {
+      var el = document.getElementById(id);
+      if (!el) return;
+      if (svgTier) {
+        el.setAttribute('data-tier', svgTier);
+        el.setAttribute('data-glow', svgTier);
+        el.removeAttribute('data-unranked');
+      } else {
+        el.removeAttribute('data-tier');
+        el.removeAttribute('data-glow');
+        // Give unranked regions a subtle pulsing glow to look alive
+        el.setAttribute('data-unranked', 'true');
+      }
+      el.setAttribute('title', region.label + (region.score !== null ? ' ' + region.score + '/100' : ' — log lifts to unlock'));
+      el.onclick = function() { mrShowRegionTooltip(region); };
+    });
+  });
+}
+
+function mrCalloutTierUi(tier) {
+  if (tier === 'Strong') return { css: 'Strong', status: 'Strong' };
+  if (tier === 'Weak') return { css: 'Weak', status: 'Weak' };
+  return { css: 'Average', status: 'Avg' };
+}
+
+// Measurement-style callouts: tier card + horizontal bridge + dimension bracket on body
+function mrRenderCallouts(d) {
+  var wrap = document.getElementById('mr-callouts');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+
+  var svgEl = wrap.previousElementSibling;
+  if (!svgEl) return;
+  var svgW = svgEl.clientWidth || 220;
+  var svgH = svgEl.clientHeight || 500;
+
+  var vbH = 500;
+  try {
+    var vb = svgEl.viewBox && svgEl.viewBox.baseVal;
+    if (vb && vb.height) vbH = vb.height;
+  } catch (e) { /* ignore */ }
+
+  var cardW = Math.min(112, Math.max(90, Math.round(svgW * 0.36)));
+  var inset = Math.max(4, Math.round(svgW * 0.022));
+  var cardH = 70;
+  var gap = 5;
+
+  var byKey = {};
+  (d.regions || []).forEach(function(r) { byKey[r.key] = r; });
+
+  var order = ['shoulders', 'chest', 'back', 'arms', 'core', 'legs'];
+  order.forEach(function(key) {
+    var region = byKey[key];
+    if (!region || region.score === null) return;
+    var cfg = MR_CALLOUT_LAYOUT[key];
+    if (!cfg) return;
+
+    var tUi = mrCalloutTierUi(region.tier);
+    var dimYpx = (cfg.dimY / vbH) * svgH;
+    var dimLeftPx = cfg.dimX0 * svgW;
+    var dimRightPx = cfg.dimX1 * svgW;
+    var dimW = Math.max(20, dimRightPx - dimLeftPx);
+
+    var root = document.createElement('div');
+    root.className = 'mr-callout mr-callout--' + tUi.css;
+
+    var dim = document.createElement('div');
+    dim.className = 'mr-dim';
+    dim.style.left = Math.round(dimLeftPx) + 'px';
+    dim.style.width = Math.round(dimW) + 'px';
+    dim.style.top = Math.round(dimYpx) + 'px';
+    var wL = document.createElement('span');
+    wL.className = 'mr-dim-wedge mr-dim-wedge--L';
+    var tr = document.createElement('span');
+    tr.className = 'mr-dim-track';
+    var wR = document.createElement('span');
+    wR.className = 'mr-dim-wedge mr-dim-wedge--R';
+    dim.appendChild(wL);
+    dim.appendChild(tr);
+    dim.appendChild(wR);
+
+    var bridge = document.createElement('div');
+    bridge.className = 'mr-callout-bridge';
+    bridge.style.top = Math.round(dimYpx - 1) + 'px';
+
+    var card = document.createElement('div');
+    card.className = 'mr-callout-card' + (cfg.side === 'right' ? ' mr-callout-card--right' : '');
+    card.style.width = cardW + 'px';
+    var cardTop = Math.round(Math.min(svgH - cardH - 2, Math.max(2, dimYpx - cardH / 2)));
+    card.style.top = cardTop + 'px';
+
+    if (cfg.side === 'left') {
+      card.style.left = inset + 'px';
+      var cardRight = inset + cardW;
+      var b0 = cardRight + gap;
+      var b1 = dimLeftPx - gap;
+      var bw = Math.round(b1 - b0);
+      if (bw < 10) { b0 = Math.max(inset + cardW * 0.5, dimLeftPx - 28); bw = Math.max(10, Math.round(dimLeftPx - gap - b0)); }
+      bridge.style.left = Math.round(b0) + 'px';
+      bridge.style.width = Math.max(8, bw) + 'px';
+    } else {
+      card.style.left = Math.round(svgW - inset - cardW) + 'px';
+      var cardLeft = svgW - inset - cardW;
+      var b0 = dimRightPx + gap;
+      var b1 = cardLeft - gap;
+      var bw = Math.round(b1 - b0);
+      if (bw < 10) { b1 = Math.min(svgW - inset - cardW * 0.45, dimRightPx + 28); bw = Math.max(10, Math.round(b1 - (dimRightPx + gap))); b0 = b1 - bw; }
+      bridge.style.left = Math.round(b0) + 'px';
+      bridge.style.width = Math.max(8, bw) + 'px';
+    }
+
+    card.innerHTML = '<div class="mr-callout-card-title">' + escapeHtml(region.label.toUpperCase()) + '</div>'
+      + '<div class="mr-callout-metric"><span class="mr-callout-num">' + escapeHtml(String(region.score)) + '</span><span class="mr-callout-sl">/100</span></div>'
+      + '<div class="mr-callout-foot"><span class="mr-callout-dot"></span><span>' + escapeHtml(tUi.status) + '</span></div>';
+
+    root.appendChild(dim);
+    root.appendChild(bridge);
+    root.appendChild(card);
+    wrap.appendChild(root);
+  });
+}
+
+// Scores list (right panel)
+function mrRenderScoresList(d) {
+  var list = document.getElementById('mr-scores-list');
+  if (!list) return;
+
+  var regionOrder = ['chest','back','shoulders','arms','legs','core'];
+  var byKey = {};
+  (d.regions || []).forEach(function(r) { byKey[r.key] = r; });
+
+  list.innerHTML = regionOrder.map(function(key) {
+    var r = byKey[key];
+    if (!r) return '';
+    var meta = MR_REGION_META[key] || {};
+    var score = r.score !== null ? r.score : null;
+    var isUnranked = r.tier === 'unranked' || r.tier === 'no_data';
+    var tierClass = isUnranked ? 'no_data' : r.tier;
+    var tierLabel = isUnranked ? 'Log lifts to unlock' : r.tier;
+    var scoreDisplay = score !== null ? score : '?';
+    var rowExtra = isUnranked ? ' mr-score-row--unranked' : '';
+
+    return '<div class="mr-score-row' + rowExtra + '">'
+      + '<div class="mr-score-icon">' + (meta.icon || '💪') + '</div>'
+      + '<div class="mr-score-info">'
+        + '<div class="mr-score-label">' + escapeHtml(r.label) + '</div>'
+        + '<div class="mr-score-tier ' + tierClass + '">' + tierLabel + '</div>'
+      + '</div>'
+      + '<svg class="mr-sparkline" id="mr-spark-' + key + '" viewBox="0 0 54 24"></svg>'
+      + '<div class="mr-score-val">'
+        + '<div class="mr-score-num' + (isUnranked ? ' mr-score-num--lock' : '') + '">' + scoreDisplay + '</div>'
+        + (score !== null ? '<div class="mr-score-den">/100</div>' : '<div class="mr-score-den">/?</div>')
+      + '</div>'
+    + '</div>';
+  }).join('');
+
+  // Draw sparklines after DOM update
+  setTimeout(function() { mrDrawSparklines(d); }, 60);
+}
+
+// Mini sparklines per muscle (shows history of that region's score from snapshots)
+function mrDrawSparklines(d) {
+  var history = d.history || [];
+  if (history.length < 2) return;
+
+  // We only have audit_index in history, not per-region. Draw a line showing global trend.
+  // Colour it by current score tier of each region.
+  var regionOrder = ['chest','back','shoulders','arms','legs','core'];
+  var byKey = {};
+  (d.regions || []).forEach(function(r) { byKey[r.key] = r; });
+
+  regionOrder.forEach(function(key) {
+    var el = document.getElementById('mr-spark-' + key);
+    if (!el) return;
+    var r = byKey[key];
+    if (!r || r.score === null) { el.innerHTML = ''; return; }
+
+    var color = r.tier === 'Strong' ? '#2ecc71' : r.tier === 'Average' ? '#c8a44e' : '#e74c3c';
+
+    // Use overall audit index trend as the sparkline shape, normalize 0-100 to svg coords
+    var vals = history.map(function(p) { return p.index !== null ? p.index : null; }).filter(function(v) { return v !== null; });
+    if (vals.length < 2) { el.innerHTML = ''; return; }
+
+    var minV = Math.min.apply(null, vals);
+    var maxV = Math.max.apply(null, vals);
+    var range = maxV - minV || 1;
+    var W = 54, H = 24, pad = 2;
+    var pts = vals.map(function(v, i) {
+      var x = pad + (i / (vals.length - 1)) * (W - pad * 2);
+      var y = H - pad - ((v - minV) / range) * (H - pad * 2);
+      return [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
+    });
+
+    var d2 = pts.map(function(p, i) { return (i === 0 ? 'M' : 'L') + p[0] + ' ' + p[1]; }).join(' ');
+    el.innerHTML = '<polyline points="' + pts.map(function(p){ return p.join(','); }).join(' ') + '"'
+      + ' fill="none" stroke="' + color + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'
+      + '<circle cx="' + pts[pts.length-1][0] + '" cy="' + pts[pts.length-1][1] + '" r="2.5" fill="' + color + '"/>';
+  });
+}
+
+// Body insight card
+function mrRenderInsight(d) {
+  var mainEl = document.getElementById('mr-insight-main');
+  var subEl = document.getElementById('mr-insight-sub');
+  var bodyEl = document.getElementById('mr-insight-body');
+  if (!mainEl || !subEl) return;
+
+  var ins = d.body_insight || {
+    type: 'no_data',
+    message: 'Log your first workout to unlock your Muscle Ranking.',
+    detail: 'Any logged lift starts generating your personalised heatmap.',
+    pct: 0
+  };
+
+  mainEl.textContent = ins.message;
+  subEl.textContent = ins.detail;
+  if (bodyEl) {
+    var isGood = ins.type === 'balanced';
+    var isInfo = ins.type === 'no_data';
+    bodyEl.className = 'mr-insight-body' + (isGood ? ' balanced' : '') + (isInfo ? ' info' : '');
+    var icon = bodyEl.querySelector('.mr-insight-icon');
+    if (icon) icon.textContent = isGood ? '✓' : isInfo ? '💡' : '⚠';
+  }
+}
+
+// Self ranking card
+function mrRenderRanking(d) {
+  var pillsEl = document.getElementById('mr-rank-pills');
+  var ctxEl = document.getElementById('mr-rank-context');
+  var sr = d.self_ranking;
+  if (!pillsEl || !sr) return;
+
+  var pills = [];
+
+  if (sr.strongest) {
+    var meta = MR_REGION_META[sr.strongest.key] || {};
+    pills.push({
+      icon: meta.icon || '💪',
+      val: '#1 Region',
+      label: sr.strongest.label,
+      sub: 'Keep it up!',
+      tier: sr.strongest.tier
+    });
+  }
+
+  if (sr.weakest && sr.weakest.key !== (sr.strongest && sr.strongest.key)) {
+    var meta2 = MR_REGION_META[sr.weakest.key] || {};
+    pills.push({
+      icon: meta2.icon || '💪',
+      val: 'Weakest',
+      label: sr.weakest.label,
+      sub: 'Focus here!',
+      tier: sr.weakest.tier
+    });
+  }
+
+  if (d.upper_avg !== null && d.lower_avg !== null) {
+    var balPct = Math.round((Math.min(d.upper_avg, d.lower_avg) / Math.max(d.upper_avg, d.lower_avg)) * 100);
+    pills.push({
+      icon: '⚖',
+      val: balPct + '% balance',
+      label: 'Upper vs Lower',
+      sub: balPct >= 85 ? 'Good balance' : 'Work on balance',
+      tier: balPct >= 85 ? 'Strong' : 'Average'
+    });
+  }
+
+  if (!pills.length) {
+    pillsEl.innerHTML = '<div class="mr-rank-pill" style="flex:1;opacity:0.5">'
+      + '<div class="mr-rank-pill-icon">🔒</div>'
+      + '<div class="mr-rank-pill-val">Unranked</div>'
+      + '<div class="mr-rank-pill-label">All Regions</div>'
+      + '<div class="mr-rank-pill-sub">Log lifts to rank</div>'
+      + '</div>';
+    if (ctxEl) ctxEl.textContent = 'Your ranking unlocks after your first logged workout';
+    return;
+  }
+
+  pillsEl.innerHTML = pills.map(function(p) {
+    return '<div class="mr-rank-pill">'
+      + '<div class="mr-rank-pill-icon">' + p.icon + '</div>'
+      + '<div class="mr-rank-pill-val">' + escapeHtml(p.val) + '</div>'
+      + '<div class="mr-rank-pill-label">' + escapeHtml(p.label) + '</div>'
+      + '<div class="mr-rank-pill-sub ' + (p.tier || '') + '">' + escapeHtml(p.sub) + '</div>'
+    + '</div>';
+  }).join('');
+
+  if (ctxEl) ctxEl.textContent = 'Based on logged lifts vs body weight (' + (d.bodyweight_kg || '—') + ' kg)';
+}
+
+// Score history chart (Canvas)
+function mrRenderHistory(d) {
+  var canvas = document.getElementById('mr-history-canvas');
+  var noDataEl = document.getElementById('mr-history-no-data');
+  if (!canvas) return;
+
+  var history = (d.history || []).filter(function(p) { return p.index !== null; });
+
+  if (history.length < 2) {
+    canvas.style.display = 'none';
+    if (noDataEl) noDataEl.style.display = '';
+    return;
+  }
+
+  canvas.style.display = '';
+  if (noDataEl) noDataEl.style.display = 'none';
+
+  // Destroy previous chart instance
+  if (mrHistoryChart) { try { mrHistoryChart.destroy(); } catch(e){} mrHistoryChart = null; }
+
+  var labels = history.map(function(p) { return p.label; });
+  var values = history.map(function(p) { return p.index; });
+
+  if (typeof Chart === 'undefined') return;
+
+  mrHistoryChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        data: values,
+        borderColor: '#c8a44e',
+        backgroundColor: 'rgba(200,164,78,0.07)',
+        borderWidth: 2,
+        pointRadius: function(ctx) {
+          return ctx.dataIndex === values.length - 1 ? 5 : 2;
+        },
+        pointBackgroundColor: function(ctx) {
+          return ctx.dataIndex === values.length - 1 ? '#c8a44e' : 'rgba(200,164,78,0.6)';
+        },
+        tension: 0.35,
+        fill: true
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      animation: { duration: 600 },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) { return 'Index: ' + ctx.raw; }
+          },
+          backgroundColor: '#1a1a1a',
+          borderColor: 'rgba(200,164,78,0.3)',
+          borderWidth: 1,
+          titleColor: '#c8a44e',
+          bodyColor: '#f2ece0'
+        }
+      },
+      scales: {
+        x: {
+          ticks: { color: '#666', font: { size: 9 }, maxTicksLimit: 6 },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        },
+        y: {
+          min: 0, max: 100,
+          ticks: { color: '#666', font: { size: 9 }, stepSize: 25 },
+          grid: { color: 'rgba(255,255,255,0.04)' }
+        }
+      }
+    }
+  });
+}
+
+// Detailed report panel
+function mrRenderDetailList(d) {
+  var el = document.getElementById('mr-detail-list');
+  if (!el) return;
+
+  var regionOrder = ['chest','back','shoulders','arms','legs','core'];
+  var byKey = {};
+  (d.regions || []).forEach(function(r) { byKey[r.key] = r; });
+
+  el.innerHTML = regionOrder.map(function(key) {
+    var r = byKey[key];
+    if (!r) return '';
+    var meta = MR_REGION_META[key] || {};
+    var score = r.score !== null ? r.score : 0;
+    var tierClass = r.tier === 'no_data' ? 'no_data' : r.tier;
+    var barW = r.score !== null ? r.score : 0;
+    var bestKg = r.best_lift_kg !== null ? r.best_lift_kg + ' kg best lift' : 'No lift data';
+
+    return '<div class="mr-detail-row">'
+      + '<div class="mr-detail-icon">' + (meta.icon || '💪') + '</div>'
+      + '<div class="mr-detail-info">'
+        + '<div class="mr-detail-label">' + escapeHtml(r.label) + '</div>'
+        + '<div class="mr-detail-bar-wrap"><div class="mr-detail-bar ' + tierClass + '" style="width:' + barW + '%"></div></div>'
+        + '<div class="mr-detail-meta">' + escapeHtml(bestKg) + ' · Formula v' + (d.formula_version || 1) + '</div>'
+      + '</div>'
+      + '<div class="mr-detail-score">'
+        + '<div class="mr-detail-score-num">' + (r.score !== null ? r.score : '—') + '</div>'
+        + '<div class="mr-detail-score-tier ' + tierClass + '">' + (r.tier === 'no_data' ? 'No data' : r.tier) + '</div>'
+      + '</div>'
+    + '</div>';
+  }).join('');
+}
+
+// ── UI helpers ────────────────────────────────────────────────────────────
+
+window.mrToggleDetailPanel = function() {
+  var panel = document.getElementById('mr-detail-panel');
+  if (!panel) return;
+  mrDetailOpen = !mrDetailOpen;
+  panel.style.display = mrDetailOpen ? '' : 'none';
+  var btn = document.getElementById('mr-view-report-btn');
+  if (btn) btn.textContent = mrDetailOpen ? 'Hide Detailed Report ↑' : 'View Detailed Report →';
+};
+
+window.mrToggleRankInfo = function() {
+  var info = document.getElementById('mr-rank-info-panel');
+  if (!info) return;
+  info.style.display = info.style.display === 'none' ? '' : 'none';
+};
+
+function mrShowRegionTooltip(region) {
+  // Brief tap-to-highlight: flash the score card row
+  var rows = document.querySelectorAll('.mr-score-row');
+  rows.forEach(function(row) {
+    var label = row.querySelector('.mr-score-label');
+    if (label && label.textContent === region.label) {
+      row.style.background = 'rgba(200,164,78,0.08)';
+      setTimeout(function() { row.style.background = ''; }, 800);
+    }
+  });
+}
+
+})();
+</script>
+<!-- ════════════════════════════════════════════════════════════════════ -->
 
 </body>
 </html>

@@ -11,6 +11,7 @@
     "test": "node scripts/ensure-password-resets-table.js && node tests/e2e-flow.js",
     "build:pwa-icons": "node scripts/generate-pwa-icons.js",
     "clean-e2e": "node scripts/clean-e2e-data.js",
+    "seed:muscle-demo": "node scripts/seed-muscle-ranking-demo.js",
     "backfill:nutrition-stats": "node scripts/backfill-nutrition-daily-stats.js"
   },
   "engines": {
