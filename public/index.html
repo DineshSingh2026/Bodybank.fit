@@ -7707,7 +7707,8 @@ function initBodyBankArsenal(){
       title: 'Real-time form coach',
       desc: 'Your phone camera becomes a personal trainer. Live joint-angle tracking, rep counting, and instant depth feedback - every single rep, every session. No equipment needed.',
       pills: ['Live rep count', 'Joint angles', 'Depth detection'],
-      ctaHref: '/ai-trainer.html?v=2',
+      ctaHref: '#',
+      ctaAction: 'openSignup',
       image: '/img/AI%20trainer.jpeg',
       imageAlt: 'AI Trainer real-time form coaching preview',
       images: [
@@ -7726,7 +7727,8 @@ function initBodyBankArsenal(){
       title: 'Snap a meal, get your macros',
       desc: 'Photograph any dish and AI instantly breaks down calories, protein, carbs and fat - with high-confidence portion analysis. From ragi dosa to biryani, it knows.',
       pills: ['1-tap logging', '4 macros tracked', 'AI portion sizing'],
-      ctaHref: '/nutrition-tracker.html',
+      ctaHref: '#',
+      ctaAction: 'openSignup',
       image: '/img/Fitchef%20Nutrition.jpeg',
       imageAlt: 'FitChef nutrition AI meal macro analysis preview',
       images: [
@@ -7745,7 +7747,7 @@ function initBodyBankArsenal(){
       desc: 'AI maps every muscle group, measures each zone and ranks them Strong, Average or Weak. Your Body Audit Index tells you exactly where to focus - updated every week.',
       pills: ['Score 64/100', '3 muscle zones', 'Weekly update'],
       ctaHref: '#',
-      ctaAction: 'audit',
+      ctaAction: 'openSignup',
       image: '/img/Muscle%20Ranking.jpeg',
       imageAlt: 'Muscle ranking body audit analysis preview',
       images: [
@@ -7761,7 +7763,7 @@ function initBodyBankArsenal(){
       desc: 'Every workout, meal log and body submission earns you BB Coins. Stack them up and redeem against your next renewal - the more you show up, the less you pay.',
       pills: ['Earn on every activity', 'Redeemable on renewal', '170 coins earned'],
       ctaHref: '#',
-      ctaAction: 'audit',
+      ctaAction: 'openSignup',
       image: '/img/BB%20Coin.jpeg',
       imageAlt: 'BB Coins rewards and redemption preview'
     }
@@ -7854,6 +7856,23 @@ function initBodyBankArsenal(){
     var cta = target.closest('.arsenal-cta');
     if(!cta) return;
     var action = cta.getAttribute('data-cta-action');
+    if(action === 'openSignup'){
+      e.preventDefault();
+      if (typeof openModal === 'function') openModal('signupModal');
+      return;
+    }
+    if(action === 'clientOnlyAiTrainer'){
+      var session = null;
+      try { session = JSON.parse(localStorage.getItem('bodybank_session') || 'null'); } catch (_) {}
+      var role = String(session && session.role || '').toLowerCase();
+      var hasToken = !!(session && session.token);
+      if(!(hasToken && role === 'user')){
+        e.preventDefault();
+        if (typeof openModal === 'function') openModal('loginModal');
+        return;
+      }
+      return;
+    }
     if(action === 'audit'){
       e.preventDefault();
       if(typeof openModal === 'function') openModal('auditModal');

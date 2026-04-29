@@ -2649,6 +2649,24 @@ function getCurrentSession() {
   }
 }
 
+function enforceAiTrainerClientAccess() {
+  const session = getCurrentSession();
+  const role = String(session && session.role || '').toLowerCase();
+  const hasToken = !!(session && session.token);
+  const allowed = hasToken && role === 'user';
+  if (allowed) return true;
+  try {
+    window.location.replace('/index.html#login');
+  } catch (_) {
+    window.location.href = '/index.html#login';
+  }
+  return false;
+}
+
+if (!enforceAiTrainerClientAccess()) {
+  throw new Error('AI Trainer requires signed-in client access.');
+}
+
 async function saveAiTrainerSession(data) {
   const session = getCurrentSession();
   const headers = { 'Content-Type': 'application/json' };
