@@ -314,6 +314,7 @@ body.site-nav-hidden nav#nv{display:none !important}
 .arsenal-carousel-dot.is-active{background:rgba(var(--ars-accent),0.95);box-shadow:0 0 8px rgba(var(--ars-accent),0.6)}
 .arsenal-item-copy{display:flex;flex-direction:column;align-items:flex-start}
 .arsenal-item h3{font-size:clamp(28px,3vw,40px);line-height:1.05;color:var(--cream);font-family:'Bebas Neue',sans-serif;letter-spacing:1px;margin-bottom:14px}
+.arsenal-powered{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:1.3px;text-transform:uppercase;font-weight:700;padding:5px 10px;border-radius:999px;margin:-2px 0 12px;border:1px solid rgba(var(--ars-accent),0.46);background:rgba(var(--ars-accent),0.14);color:rgba(var(--ars-accent),0.98)}
 .arsenal-item p{font-size:15px;line-height:1.78;color:var(--creamd);margin-bottom:18px}
 .arsenal-pills{display:flex;flex-wrap:wrap;gap:10px;margin-bottom:20px}
 .arsenal-pill{display:inline-flex;align-items:center;padding:7px 12px;border:1px solid rgba(var(--ars-accent),0.38);border-radius:999px;background:rgba(var(--ars-accent),0.11);font-size:12px;color:#efe7d6;letter-spacing:.35px}
@@ -386,6 +387,15 @@ body.site-nav-hidden nav#nv{display:none !important}
 .fi.op .fq .ar{transform:rotate(180deg);background:rgba(200,164,78,0.1)}
 .fa{max-height:0;overflow:hidden;transition:max-height .4s ease,padding .3s;color:var(--creamd);font-size:14px;line-height:1.7}
 .fi.op .fa{max-height:200px;padding-bottom:20px}
+
+/* WIN-BACK BANNER */
+.winback{position:relative;padding:0 48px 24px;background:var(--black)}
+.winback-inner{max-width:980px;margin:0 auto;border:1px solid rgba(200,164,78,0.35);border-radius:18px;background:linear-gradient(160deg,rgba(20,18,14,0.95),rgba(10,10,10,0.96));box-shadow:0 14px 36px rgba(0,0,0,0.35);padding:22px 22px 18px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.winback-copy h3{font-family:'Bebas Neue',sans-serif;letter-spacing:1.2px;font-size:clamp(28px,4vw,42px);line-height:1;color:var(--cream);margin:0 0 8px}
+.winback-copy p{color:var(--creamd);font-size:15px;line-height:1.65;margin:0;max-width:680px}
+.winback-copy .winback-meta{display:block;margin-top:8px;font-size:12px;color:#bcae90;letter-spacing:.4px}
+.winback-cta{display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(200,164,78,0.52);border-radius:999px;padding:11px 18px;min-width:180px;color:var(--gold);text-decoration:none;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:rgba(200,164,78,0.08);transition:all .25s}
+.winback-cta:hover{background:rgba(200,164,78,0.16);color:#f0ddae}
 
 /* FINAL CTA */
 .fcta{padding:120px 48px;text-align:center;position:relative;overflow:hidden}
@@ -568,6 +578,10 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .ph-body{padding:24px}.ph-items{grid-template-columns:1fr}
   .fq{font-size:17px}.fa{font-size:15px}
   .stat-sec,.fcta{padding:64px 24px}
+  .winback{padding:0 24px 18px}
+  .winback-inner{padding:18px 16px}
+  .winback-copy p{font-size:14px}
+  .winback-cta{width:100%}
   .fcta p{font-size:18px}.fcta .bold{font-size:19px}
   footer{padding:32px 20px 20px}
   .fe{font-size:16px}.fb{font-size:12px}
@@ -641,6 +655,7 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
   .popup-box,.forgot-box{padding:28px 20px;width:95%;max-width:calc(100vw - 24px);margin:0 auto;box-sizing:border-box}
   .popup-overlay{padding:max(16px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
   .fcta-inner h2,.fcta h2{font-size:30px}
+  .winback{padding:0 14px 14px}
   .fcta p{font-size:17px}.fcta .bold{font-size:18px}
 }
 .checkin-hub-back{margin-bottom:16px}
@@ -7607,8 +7622,20 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>How long until results?</span><span class="ar">▾</span></div><div class="fa">Phase 1 (Weeks 1-4): Mental clarity, better sleep, energy. Phase 2 (Weeks 5-12): Visible fat loss, measurable strength. Phase 3 (Weeks 13-16): Changes stick. This becomes your life. Most people see big changes by week 8. But the magic? Phase 3 when you realize this is permanent.</div></div>
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>What if life disrupts? (travel, stress, etc.)</span><span class="ar">▾</span></div><div class="fa">You course correct fast, adjust and keep going. Phase 3 teaches damage control protocols. The plan bends, doesn't break. No restart.</div></div>
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>Why 4-month commitment?</span><span class="ar">▾</span></div><div class="fa">Phase 1 alone = foundation (not results). Phase 1+2 = temporary loss. Phase 1+2+3 = PERMANENT. 92% maintain results after the program because lasting habits create lasting change.<br>Short programs = Short results<br>Real commitment = Permanent change.</div></div>
+      <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>How does Win Your Membership Back work?</span><span class="ar">▾</span></div><div class="fa">You earn BB Coins through verified consistency: workouts, meal logs, body submissions, and streaks. Redeem these coins at renewal to reduce your fee - up to a full membership win-back depending on coins earned and eligible activity.</div></div>
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>What's the guarantee?</span><span class="ar">▾</span></div><div class="fa">This isn't another instant gratification quest. Given our honesty and your mutual effort, we're bound to taste ultimate transformation, as you've seen above in the results.</div></div>
     </div>
+  </div>
+</section>
+
+<section class="winback" aria-label="Win your membership back">
+  <div class="winback-inner rv">
+    <div class="winback-copy">
+      <h3>Win Your Membership Back</h3>
+      <p>Your consistency earns BB Coins. Redeem them at renewal and reduce what you pay - the more verified activity you complete, the more you can win back.</p>
+      <span class="winback-meta">Workouts + meal logs + body submissions + streaks -> renewal value. Terms apply.</span>
+    </div>
+    <a href="#" class="winback-cta" onclick="openModal('signupModal');return false;">See Eligibility</a>
   </div>
 </section>
 
@@ -7725,6 +7752,7 @@ function initBodyBankArsenal(){
       theme: 'fitchef',
       number: '02',
       title: 'Snap a meal, get your macros',
+      poweredBy: 'Powered by FitChef',
       desc: 'Photograph any dish and AI instantly breaks down calories, protein, carbs and fat - with high-confidence portion analysis. From ragi dosa to biryani, it knows.',
       pills: ['1-tap logging', '4 macros tracked', 'AI portion sizing'],
       ctaHref: '#',
@@ -7797,6 +7825,7 @@ function initBodyBankArsenal(){
         renderArsenalImage(feature) +
         '<div class="arsenal-item-copy">' +
           '<h3>' + feature.title + '</h3>' +
+          (feature.poweredBy ? '<span class="arsenal-powered">' + feature.poweredBy + '</span>' : '') +
           '<p>' + feature.desc + '</p>' +
           '<div class="arsenal-pills">' + feature.pills.map(function(pill){ return '<span class="arsenal-pill">' + pill + '</span>'; }).join('') + '</div>' +
           '<a class="arsenal-cta" href="' + feature.ctaHref + '"' + (feature.ctaAction ? ' data-cta-action="' + feature.ctaAction + '"' : '') + '>Explore feature <span aria-hidden="true">→</span></a>' +
