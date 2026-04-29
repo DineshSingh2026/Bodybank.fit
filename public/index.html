@@ -303,6 +303,15 @@ body.site-nav-hidden nav#nv{display:none !important}
 .arsenal-item-grid{display:grid;grid-template-columns:minmax(260px,1.08fr) minmax(260px,0.92fr);gap:22px;align-items:stretch}
 .arsenal-item-preview{width:100%;height:100%;border:1px solid rgba(var(--ars-accent),0.3);border-radius:14px;background:rgba(0,0,0,0.42);padding:10px}
 .arsenal-item-preview img{width:100%;height:100%;max-height:68vh;object-fit:contain;object-position:center;display:block;border-radius:10px;background:#050505}
+.arsenal-image-carousel{position:relative}
+.arsenal-image-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;border-radius:10px;scrollbar-width:none}
+.arsenal-image-track::-webkit-scrollbar{display:none}
+.arsenal-carousel-image{flex:0 0 100%;width:100%;height:100%;max-height:68vh;object-fit:contain;object-position:center;display:block;background:#050505;scroll-snap-align:start}
+.arsenal-swipe-hint{position:absolute;left:10px;bottom:12px;z-index:2;font-size:11px;letter-spacing:.5px;color:#f3ead7;background:rgba(5,5,5,0.72);border:1px solid rgba(var(--ars-accent),0.45);border-radius:999px;padding:6px 10px;backdrop-filter:blur(3px);pointer-events:none}
+.arsenal-image-carousel.is-interacted .arsenal-swipe-hint{opacity:0;transition:opacity .25s ease}
+.arsenal-carousel-dots{display:flex;gap:6px;justify-content:center;margin-top:10px}
+.arsenal-carousel-dot{width:7px;height:7px;border-radius:50%;border:0;background:rgba(255,255,255,0.35);padding:0;cursor:pointer}
+.arsenal-carousel-dot.is-active{background:rgba(var(--ars-accent),0.95);box-shadow:0 0 8px rgba(var(--ars-accent),0.6)}
 .arsenal-item-copy{display:flex;flex-direction:column;align-items:flex-start}
 .arsenal-item h3{font-size:clamp(28px,3vw,40px);line-height:1.05;color:var(--cream);font-family:'Bebas Neue',sans-serif;letter-spacing:1px;margin-bottom:14px}
 .arsenal-item p{font-size:15px;line-height:1.78;color:var(--creamd);margin-bottom:18px}
@@ -333,20 +342,25 @@ body.site-nav-hidden nav#nv{display:none !important}
   .arsenal-item h3{font-size:34px}
   .arsenal-item-preview{padding:4px;border-radius:12px}
   .arsenal-item-preview img{height:min(78dvh,760px);max-height:82vh;min-height:54vh;border-radius:8px}
+  .arsenal-carousel-image{height:min(78dvh,760px);max-height:82vh;min-height:54vh;border-radius:8px}
   .arsenal-pill{font-size:11px;padding:6px 10px}
   .arsenal-cta{font-size:12px}
+  .arsenal-swipe-hint{font-size:10px;padding:5px 9px;bottom:10px}
 }
 @media(max-width:420px){
   .arsenal-item-preview{padding:3px}
   .arsenal-item-preview img{height:min(80dvh,760px);max-height:84vh;min-height:56vh}
+  .arsenal-carousel-image{height:min(80dvh,760px);max-height:84vh;min-height:56vh}
 }
 @media(max-width:430px) and (min-height:780px){
   .arsenal-item-preview img{height:min(82dvh,820px);min-height:60vh}
+  .arsenal-carousel-image{height:min(82dvh,820px);min-height:60vh}
 }
 @media(max-width:390px){
   .arsenal-item{padding:16px 14px}
   .arsenal-item h3{font-size:31px}
   .arsenal-item-preview img{height:min(83dvh,820px)}
+  .arsenal-carousel-image{height:min(83dvh,820px)}
 }
 @media (prefers-reduced-motion: reduce){
   .arsenal-item,.arsenal-cta::after{transition:none!important}
@@ -7695,7 +7709,15 @@ function initBodyBankArsenal(){
       pills: ['Live rep count', 'Joint angles', 'Depth detection'],
       ctaHref: '/ai-trainer.html?v=2',
       image: '/img/AI%20trainer.jpeg',
-      imageAlt: 'AI Trainer real-time form coaching preview'
+      imageAlt: 'AI Trainer real-time form coaching preview',
+      images: [
+        { src: '/img/AI%20trainer.jpeg', alt: 'AI Trainer push-up form coaching preview' },
+        { src: '/img/Bicep%20curls.jpeg', alt: 'AI Trainer bicep curl coaching preview' },
+        { src: '/img/squat.jpeg', alt: 'AI Trainer squat coaching preview' },
+        { src: '/img/shoulder%20press.jpeg', alt: 'AI Trainer shoulder press coaching preview' },
+        { src: '/img/chest.png', alt: 'AI Trainer chest press coaching preview' },
+        { src: '/img/deadlift.png', alt: 'AI Trainer deadlift coaching preview' }
+      ]
     },
     {
       tag: 'FitChef Nutrition',
@@ -7734,11 +7756,32 @@ function initBodyBankArsenal(){
     }
   ];
 
+  function renderArsenalImage(feature){
+    if(!feature.images || !feature.images.length){
+      return '<div class="arsenal-item-preview"><img src="' + feature.image + '" alt="' + feature.imageAlt + '" loading="lazy" decoding="async"></div>';
+    }
+    return '<div class="arsenal-item-preview">' +
+      '<div class="arsenal-image-carousel" data-carousel-label="' + feature.tag + '">' +
+        '<div class="arsenal-image-track">' +
+          feature.images.map(function(item){
+            return '<img class="arsenal-carousel-image" src="' + item.src + '" alt="' + item.alt + '" loading="lazy" decoding="async">';
+          }).join('') +
+        '</div>' +
+        '<div class="arsenal-swipe-hint">Swipe right to view more</div>' +
+        '<div class="arsenal-carousel-dots">' +
+          feature.images.map(function(_, dotIdx){
+            return '<button type="button" class="arsenal-carousel-dot' + (dotIdx === 0 ? ' is-active' : '') + '" aria-label="View image ' + (dotIdx + 1) + '"></button>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
   copyWrap.innerHTML = features.map(function(feature, idx){
     return '<article class="arsenal-item' + (idx === 0 ? ' is-active' : '') + '" data-arsenal-index="' + idx + '" data-arsenal-theme="' + (feature.theme || 'coin') + '">' +
       '<div class="arsenal-item-top"><span class="arsenal-tag">' + feature.tag + '</span><span class="arsenal-no">' + feature.number + '</span></div>' +
       '<div class="arsenal-item-grid">' +
-        '<div class="arsenal-item-preview"><img src="' + feature.image + '" alt="' + feature.imageAlt + '" loading="lazy" decoding="async"></div>' +
+        renderArsenalImage(feature) +
         '<div class="arsenal-item-copy">' +
           '<h3>' + feature.title + '</h3>' +
           '<p>' + feature.desc + '</p>' +
@@ -7748,6 +7791,38 @@ function initBodyBankArsenal(){
       '</div>' +
       '</article>';
   }).join('');
+
+  var carousels = Array.prototype.slice.call(copyWrap.querySelectorAll('.arsenal-image-carousel'));
+  carousels.forEach(function(carousel){
+    var track = carousel.querySelector('.arsenal-image-track');
+    var dots = Array.prototype.slice.call(carousel.querySelectorAll('.arsenal-carousel-dot'));
+    if(!track || !dots.length) return;
+
+    function setActiveDot(index){
+      dots.forEach(function(dot, dotIdx){ dot.classList.toggle('is-active', dotIdx === index); });
+    }
+
+    function currentIndex(){
+      var width = track.clientWidth || 1;
+      return Math.max(0, Math.min(dots.length - 1, Math.round(track.scrollLeft / width)));
+    }
+
+    track.addEventListener('scroll', function(){
+      setActiveDot(currentIndex());
+    }, { passive: true });
+
+    track.addEventListener('touchstart', function(){
+      carousel.classList.add('is-interacted');
+    }, { passive: true });
+
+    dots.forEach(function(dot, idx){
+      dot.addEventListener('click', function(){
+        carousel.classList.add('is-interacted');
+        track.scrollTo({ left: track.clientWidth * idx, behavior: 'smooth' });
+        setActiveDot(idx);
+      });
+    });
+  });
 
   var cards = Array.prototype.slice.call(copyWrap.querySelectorAll('.arsenal-item'));
   if('IntersectionObserver' in window && cards.length){
