@@ -4545,6 +4545,27 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .mr-md-ex-freq{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:2px 6px;background:rgba(52,211,153,0.10);color:#34d399;border:1px solid rgba(52,211,153,0.25);border-radius:4px;white-space:nowrap}
 .mr-md-ex-blurb{font-size:10.5px;color:rgba(244,240,232,0.5);line-height:1.45}
 
+/* ── Attention Needed card (Phase 3) ── */
+.mr-attention-card{border-left:3px solid rgba(217,119,6,0.6);margin-bottom:16px;gap:12px}
+.mr-attention-head{display:flex;flex-direction:column;gap:2px}
+.mr-attention-title{font-size:10px;letter-spacing:2px;color:var(--mr-avg);text-transform:uppercase;font-weight:700}
+.mr-attention-sub{font-size:11px;color:var(--muted);letter-spacing:0.2px}
+.mr-attention-list{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.mr-attention-row{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:8px;background:rgba(217,119,6,0.05);border:1px solid rgba(217,119,6,0.12);cursor:pointer;transition:background 0.15s ease,border-color 0.15s ease,transform 0.15s ease}
+.mr-attention-row:hover{background:rgba(217,119,6,0.10);border-color:rgba(217,119,6,0.28);transform:translateY(-1px)}
+.mr-attention-row:focus-visible{outline:2px solid var(--mr-avg);outline-offset:2px}
+.mr-attention-icon{flex-shrink:0;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(217,119,6,0.18);color:var(--mr-avg);font-size:14px;font-weight:700}
+.mr-attention-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mr-attention-name{font-size:13px;font-weight:600;color:#fff;line-height:1.3}
+.mr-attention-meta{font-size:11px;color:var(--mr-avg);font-weight:600;letter-spacing:0.2px}
+.mr-attention-cta{flex-shrink:0;font-size:11px;color:var(--mr-gold);font-weight:600;letter-spacing:0.2px;white-space:nowrap}
+.mr-attention-cta::after{content:" →"}
+@media(max-width:560px){
+  .mr-attention-row{padding:9px 10px;gap:10px}
+  .mr-attention-cta{font-size:10px}
+  .mr-attention-name{font-size:12px}
+}
+
 /* Make existing score rows tappable */
 .mr-score-row{cursor:pointer;transition:background .2s}
 .mr-score-row:hover{background:rgba(200,164,78,0.05)}
@@ -5323,6 +5344,15 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             Share
           </button>
+        </div>
+
+        <!-- Attention Needed: neglected muscles alert (Phase 3) -->
+        <div class="mr-card mr-attention-card" id="mr-attention-card" style="display:none">
+          <div class="mr-attention-head">
+            <div class="mr-attention-title">Attention Needed</div>
+            <div class="mr-attention-sub">Muscles that haven't been trained recently</div>
+          </div>
+          <div class="mr-attention-list" id="mr-attention-list"></div>
         </div>
 
         <!-- Main 2-column layout -->
@@ -20315,6 +20345,7 @@ function mrRender(d) {
   if (shareBtn) shareBtn.style.display = d.is_placeholder ? 'none' : '';
 
   mrRenderAuditIndex(d);
+  mrRenderAttentionCard(d);
   mrRenderSvgRegions(d);
   mrRenderCallouts(d);
   mrRenderScoresList(d);
@@ -20350,6 +20381,120 @@ function mrRenderAuditIndex(d) {
       deltaEl.className = 'mr-audit-delta';
     }
   }
+}
+
+// ── Attention Needed (Phase 3) ────────────────────────────────────────────
+// Flags muscle groups whose primary lifts haven't been trained in 14+ days
+// (or never). Depends on Phase 2 fields: d.last_lifts. Depends on Phase 1
+// globals: MR_MUSCLE_ATLAS, MR_EXERCISE_CATALOG, mrOpenMuscleDetail.
+function mrRenderAttentionCard(d) {
+  var card = document.getElementById('mr-attention-card');
+  var listEl = document.getElementById('mr-attention-list');
+  if (!card || !listEl) return;
+
+  if (!d || d.is_placeholder) {
+    card.style.display = 'none';
+    listEl.innerHTML = '';
+    return;
+  }
+
+  var atlas = (typeof MR_MUSCLE_ATLAS !== 'undefined') ? MR_MUSCLE_ATLAS : null;
+  var catalog = (typeof MR_EXERCISE_CATALOG !== 'undefined') ? MR_EXERCISE_CATALOG : null;
+  if (!atlas) {
+    card.style.display = 'none';
+    listEl.innerHTML = '';
+    return;
+  }
+
+  var lastLifts = (d.last_lifts && typeof d.last_lifts === 'object') ? d.last_lifts : {};
+  var STALE_DAYS = 14;
+  var NEVER_RANK = Number.POSITIVE_INFINITY;
+  var now = Date.now();
+
+  var groupKeys = ['chest', 'back', 'shoulders', 'arms', 'core', 'legs'];
+  var neglected = [];
+
+  groupKeys.forEach(function(gKey) {
+    var group = atlas[gKey];
+    if (!group || !Array.isArray(group.exercises) || !group.exercises.length) return;
+
+    var bestDays = NEVER_RANK;
+    var firstExerciseKey = group.exercises[0];
+
+    group.exercises.forEach(function(eKey) {
+      var entry = lastLifts[eKey];
+      if (!entry || !entry.date) return;
+      var t = Date.parse(entry.date);
+      if (isNaN(t)) return;
+      var days = Math.floor((now - t) / 86400000);
+      if (days < 0) days = 0;
+      if (days < bestDays) bestDays = days;
+    });
+
+    var isNeglected = (bestDays === NEVER_RANK) || (bestDays > STALE_DAYS);
+    if (!isNeglected) return;
+
+    neglected.push({
+      key: gKey,
+      label: (group.label) || (MR_REGION_META[gKey] && MR_REGION_META[gKey].label) || gKey,
+      days: bestDays,
+      firstExerciseKey: firstExerciseKey
+    });
+  });
+
+  if (!neglected.length) {
+    card.style.display = 'none';
+    listEl.innerHTML = '';
+    return;
+  }
+
+  // Most stale first; "never" (Infinity) sorts to the top.
+  neglected.sort(function(a, b) { return b.days - a.days; });
+  var top = neglected.slice(0, 3);
+
+  listEl.innerHTML = '';
+  top.forEach(function(item) {
+    var daysText = (item.days === NEVER_RANK)
+      ? 'Never trained'
+      : (item.days + ' day' + (item.days === 1 ? '' : 's') + ' since last trained');
+
+    var exLabel = '';
+    if (item.firstExerciseKey) {
+      if (catalog && catalog[item.firstExerciseKey] && catalog[item.firstExerciseKey].label) {
+        exLabel = catalog[item.firstExerciseKey].label;
+      } else {
+        exLabel = String(item.firstExerciseKey).replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+      }
+    }
+
+    var row = document.createElement('div');
+    row.className = 'mr-attention-row';
+    row.setAttribute('role', 'button');
+    row.setAttribute('tabindex', '0');
+    row.setAttribute('data-group', item.key);
+    row.setAttribute('aria-label', item.label + ' — ' + daysText + (exLabel ? '. Try ' + exLabel : ''));
+
+    row.innerHTML = '<div class="mr-attention-icon" aria-hidden="true">!</div>'
+      + '<div class="mr-attention-body">'
+      +   '<div class="mr-attention-name">' + escapeHtml(item.label) + '</div>'
+      +   '<div class="mr-attention-meta">' + escapeHtml(daysText) + '</div>'
+      + '</div>'
+      + (exLabel ? '<div class="mr-attention-cta">Try ' + escapeHtml(exLabel) + '</div>' : '');
+
+    var openDetail = function() {
+      if (typeof mrOpenMuscleDetail === 'function') {
+        mrOpenMuscleDetail(item.key);
+      }
+    };
+    row.addEventListener('click', openDetail);
+    row.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openDetail(); }
+    });
+
+    listEl.appendChild(row);
+  });
+
+  card.style.display = '';
 }
 
 // Colour-code SVG regions
