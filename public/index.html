@@ -4522,7 +4522,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 
 .mr-md-body{padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
 .mr-md-hero{position:relative;width:100%;background:linear-gradient(180deg,#181d23 0%,#0d1015 100%);border-radius:12px;border:1px solid rgba(255,255,255,0.05);padding:18px;margin-bottom:18px;overflow:hidden;display:flex;align-items:center;justify-content:center}
-.mr-md-hero-img{width:100%;max-width:280px;height:auto;max-height:340px;display:block;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.5))}
+/* Source SVGs use grey/white fills on a transparent canvas, which read as
+   "grey blob" on a dark card. Same invert+screen blend trick used on the
+   body heatmap (.mr-body-svg image) makes them transparent + bright. */
+.mr-md-hero-img{width:100%;max-width:280px;height:auto;max-height:340px;display:block;filter:invert(1) contrast(1.15) drop-shadow(0 4px 16px rgba(0,0,0,0.5));mix-blend-mode:screen}
 .mr-md-hero-overlay{position:relative;flex:1;padding:0 12px;align-self:center}
 .mr-md-overview{font-size:13px;line-height:1.55;color:rgba(244,240,232,0.78);margin:0}
 @media(max-width:560px){
@@ -4539,7 +4542,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .mr-md-muscles{display:flex;flex-direction:column;gap:10px}
 .mr-md-muscle{display:flex;gap:12px;padding:12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;transition:background .2s,border-color .2s}
 .mr-md-muscle:hover{background:rgba(255,255,255,0.04);border-color:rgba(200,164,78,0.25)}
-.mr-md-muscle-img{width:64px;height:80px;flex-shrink:0;background:rgba(0,0,0,0.25);border-radius:8px;padding:6px;object-fit:contain;border:1px solid rgba(255,255,255,0.04)}
+.mr-md-muscle-img{width:64px;height:80px;flex-shrink:0;background:transparent;border-radius:8px;padding:4px;object-fit:contain;border:none;filter:invert(1) contrast(1.15);mix-blend-mode:screen}
 .mr-md-muscle-info{flex:1;min-width:0}
 .mr-md-muscle-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:#f4f0e8;line-height:1.1;margin-bottom:4px}
 .mr-md-muscle-fn{font-size:11.5px;line-height:1.5;color:rgba(244,240,232,0.65);margin-bottom:6px}
