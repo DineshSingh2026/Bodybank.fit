@@ -22283,22 +22283,63 @@ window.loadBodySnapshots = async function loadBodySnapshots() {
   bbBodyShowError('');
   timelineEl.innerHTML = '<p class="form-hint" style="padding:18px;text-align:center;color:rgba(244,240,232,0.5)">Loading…</p>';
   if (emptyEl) emptyEl.style.display = 'none';
+
+  // Defensive fetch: read body as text first so we can survive
+  //  (a) non-JSON error pages from a CDN/proxy (5xx HTML),
+  //  (b) empty 200 responses, and
+  //  (c) any res.json() parse failures that previously surfaced as a generic
+  //      "Network error" toast on the live server.
+  var res, raw;
   try {
-    var res = await fetch('/api/me/body/snapshots', { headers: bbBodyAuthHeader() });
-    if (!res.ok) {
-      bbBodyShowError('Could not load your snapshots (' + res.status + '). Try refresh.');
+    res = await fetch('/api/me/body/snapshots', {
+      headers: bbBodyAuthHeader(),
+      cache: 'no-store',
+      credentials: 'same-origin'
+    });
+  } catch (eFetch) {
+    console.warn('[my-body] fetch failed:', eFetch && eFetch.message);
+    bbBodyShowError('Couldn’t reach the server. Check your connection and try again.');
+    timelineEl.innerHTML = '';
+    bbBodySnapshots = [];
+    return;
+  }
+  try { raw = await res.text(); } catch (_) { raw = ''; }
+
+  // 404 most often means the server hasn't picked up the new endpoint yet
+  // (stale Node process). Treat it as an empty timeline rather than an error
+  // so the user sees the empty state and the "+ Add Snapshot" CTA.
+  if (res.status === 404) {
+    console.warn('[my-body] GET /api/me/body/snapshots returned 404 — treating as empty.');
+    bbBodySnapshots = [];
+    bbBodyRenderTimeline();
+    return;
+  }
+
+  if (!res.ok) {
+    var msg = '';
+    try { var j = raw ? JSON.parse(raw) : null; if (j && j.error) msg = j.error; } catch (_) {}
+    bbBodyShowError('Could not load your snapshots (' + res.status + ').' + (msg ? ' ' + msg : ' Try refresh.'));
+    console.warn('[my-body] GET error', res.status, raw && raw.slice(0, 200));
+    timelineEl.innerHTML = '';
+    bbBodySnapshots = [];
+    return;
+  }
+
+  // OK response. Parse JSON with a defensive try so a partial / non-JSON body
+  // doesn't fall through to the generic "Network error" toast.
+  var data = null;
+  if (raw) {
+    try { data = JSON.parse(raw); }
+    catch (eParse) {
+      console.warn('[my-body] response was not JSON:', raw.slice(0, 200));
+      bbBodyShowError('Server response was malformed. Try refreshing in a moment.');
       timelineEl.innerHTML = '';
       bbBodySnapshots = [];
       return;
     }
-    var data = await res.json();
-    bbBodySnapshots = (data && Array.isArray(data.snapshots)) ? data.snapshots : [];
-    bbBodyRenderTimeline();
-  } catch (e) {
-    bbBodyShowError('Network error loading snapshots. Try again.');
-    timelineEl.innerHTML = '';
-    bbBodySnapshots = [];
   }
+  bbBodySnapshots = (data && Array.isArray(data.snapshots)) ? data.snapshots : [];
+  bbBodyRenderTimeline();
 };
 
 function bbBodyRenderTimeline() {

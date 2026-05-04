@@ -873,9 +873,19 @@ async function initDB() {
     notes TEXT,
     created_at TIMESTAMP DEFAULT NOW()
   )`);
+  // Defensive ALTERs — cover EVERY column in the table so a deploy that landed
+  // mid-evolution (i.e. a body_snapshots row created with a partial schema)
+  // upgrades cleanly the next time the server boots. Each is wrapped in its
+  // own try so one ADD failing won't skip the rest.
+  try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS photo_front TEXT`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS photo_side TEXT`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS photo_back TEXT`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS bodyweight_kg REAL`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS waist_cm REAL`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS measurements JSONB`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS shared_with_manager BOOLEAN DEFAULT FALSE`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS notes TEXT`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_body_snapshots_user_date ON body_snapshots(user_id, snapshot_date DESC)`); } catch (e) { /* ignore */ }
   await pool.query(`CREATE TABLE IF NOT EXISTS leaderboard_virtual_config (
     id INTEGER PRIMARY KEY,
@@ -6355,16 +6365,69 @@ app.post('/api/me/body/snapshot', verifyToken, bodyUploadFields, async (req, res
 app.get('/api/me/body/snapshots', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'user') return res.status(403).json({ error: 'Only for members' });
-    var rows = await queryAll(
-      `SELECT id, user_id, snapshot_date, photo_front, photo_side, photo_back,
-              bodyweight_kg, waist_cm, measurements, notes,
-              shared_with_manager, created_at
-         FROM body_snapshots
-        WHERE user_id = ?
-        ORDER BY snapshot_date DESC, id DESC
-        LIMIT 200`,
-      [req.user.id]
-    );
+    var rows;
+    try {
+      rows = await queryAll(
+        `SELECT id, user_id, snapshot_date, photo_front, photo_side, photo_back,
+                bodyweight_kg, waist_cm, measurements, notes,
+                shared_with_manager, created_at
+           FROM body_snapshots
+          WHERE user_id = ?
+          ORDER BY snapshot_date DESC, id DESC
+          LIMIT 200`,
+        [req.user.id]
+      );
+    } catch (eFull) {
+      // Table or one of the newer columns is missing on this deploy.
+      // Self-heal: run the same idempotent CREATE / ALTERs that initDB does,
+      // then retry. If the retry still fails we fall back to a minimal SELECT
+      // so the user always sees their snapshots (even if a column is missing).
+      console.warn('[body-snapshot GET] full SELECT failed, attempting self-heal:', eFull && eFull.message);
+      try {
+        await pool.query(`CREATE TABLE IF NOT EXISTS body_snapshots (
+          id SERIAL PRIMARY KEY,
+          user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+          snapshot_date TEXT NOT NULL,
+          photo_front TEXT, photo_side TEXT, photo_back TEXT,
+          bodyweight_kg REAL, waist_cm REAL,
+          measurements JSONB,
+          shared_with_manager BOOLEAN DEFAULT FALSE,
+          notes TEXT,
+          created_at TIMESTAMP DEFAULT NOW()
+        )`);
+        var addCols = ['photo_front TEXT','photo_side TEXT','photo_back TEXT','bodyweight_kg REAL','waist_cm REAL','measurements JSONB','shared_with_manager BOOLEAN DEFAULT FALSE','notes TEXT','created_at TIMESTAMP DEFAULT NOW()'];
+        for (var ci = 0; ci < addCols.length; ci++) {
+          try { await pool.query('ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS ' + addCols[ci]); } catch (_) {}
+        }
+      } catch (eHeal) {
+        console.warn('[body-snapshot GET] self-heal create/alter failed:', eHeal && eHeal.message);
+      }
+      try {
+        rows = await queryAll(
+          `SELECT id, user_id, snapshot_date, photo_front, photo_side, photo_back,
+                  bodyweight_kg, waist_cm, measurements, notes,
+                  shared_with_manager, created_at
+             FROM body_snapshots
+            WHERE user_id = ?
+            ORDER BY snapshot_date DESC, id DESC
+            LIMIT 200`,
+          [req.user.id]
+        );
+      } catch (eRetry) {
+        console.warn('[body-snapshot GET] retry failed, using minimal SELECT:', eRetry && eRetry.message);
+        // Final fallback: minimal columns. Returns an empty list if even this
+        // throws (rather than letting the route 500 → "Network error" toast).
+        try {
+          rows = await queryAll(
+            `SELECT id, user_id, snapshot_date FROM body_snapshots WHERE user_id = ? ORDER BY snapshot_date DESC, id DESC LIMIT 200`,
+            [req.user.id]
+          );
+        } catch (eMin) {
+          console.warn('[body-snapshot GET] minimal SELECT also failed:', eMin && eMin.message);
+          rows = [];
+        }
+      }
+    }
     return res.json({ snapshots: (rows || []).map(bbBodyRowToJson) });
   } catch (e) {
     console.error('[body-snapshot GET]', e.message);
