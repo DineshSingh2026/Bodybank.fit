@@ -4485,6 +4485,69 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 #mr-share-card .sc-tier.Weak{color:#ef4444}
 #mr-share-card .sc-footer{text-align:center;margin-top:16px;font-size:9px;letter-spacing:1.5px;color:rgba(244,240,232,0.2);text-transform:uppercase}
 
+/* ── Muscle Drill-Down Panel (Phase 1) ─────────────────────────────────────── */
+.mr-md-overlay{position:fixed;inset:0;z-index:10035;background:rgba(5,7,10,0.78);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);display:none;align-items:center;justify-content:center;padding:max(24px,env(safe-area-inset-top)) max(20px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;animation:mrMdFade .18s ease-out}
+.mr-md-overlay.open{display:flex}
+@keyframes mrMdFade{from{opacity:0}to{opacity:1}}
+.mr-md-panel{width:min(560px,100%);max-height:calc(100dvh - 48px);background:#0e1216;border:1px solid rgba(200,164,78,0.22);border-radius:16px;box-shadow:0 16px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;overflow:hidden;animation:mrMdSlide .25s cubic-bezier(.22,1,.36,1)}
+@keyframes mrMdSlide{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
+.mr-md-head{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;background:linear-gradient(180deg,rgba(200,164,78,0.06) 0%,transparent 100%)}
+.mr-md-back{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(244,240,232,0.85);padding:6px 11px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.04em;flex-shrink:0;font-family:'Outfit',sans-serif;transition:background .2s,border-color .2s}
+.mr-md-back:hover{background:rgba(255,255,255,0.1);border-color:rgba(200,164,78,0.4)}
+.mr-md-back svg{flex-shrink:0}
+.mr-md-title-block{flex:1;min-width:0}
+.mr-md-tier{display:inline-block;font-size:9px;font-weight:700;letter-spacing:1.5px;padding:3px 8px;border-radius:10px;text-transform:uppercase;margin-bottom:6px}
+.mr-md-tier.Strong{background:rgba(52,211,153,0.14);color:#34d399;border:1px solid rgba(52,211,153,0.35)}
+.mr-md-tier.Average{background:rgba(217,119,6,0.14);color:#d97706;border:1px solid rgba(217,119,6,0.35)}
+.mr-md-tier.Weak{background:rgba(239,68,68,0.14);color:#ef4444;border:1px solid rgba(239,68,68,0.35)}
+.mr-md-tier.Unranked{background:rgba(255,255,255,0.06);color:rgba(244,240,232,0.5);border:1px solid rgba(255,255,255,0.08)}
+.mr-md-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1.5px;color:#f4f0e8;margin:0;line-height:1}
+.mr-md-tagline{font-size:11px;letter-spacing:.04em;color:rgba(244,240,232,0.55);margin-top:4px}
+.mr-md-score-block{flex-shrink:0;text-align:right;display:flex;align-items:baseline;gap:2px;padding-top:14px}
+.mr-md-score-num{font-family:'Bebas Neue',sans-serif;font-size:38px;color:var(--mr-gold);line-height:1}
+.mr-md-score-den{font-size:11px;color:rgba(244,240,232,0.4)}
+
+.mr-md-body{padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
+.mr-md-hero{position:relative;width:100%;background:linear-gradient(180deg,#181d23 0%,#0d1015 100%);border-radius:12px;border:1px solid rgba(255,255,255,0.05);padding:18px;margin-bottom:18px;overflow:hidden;display:flex;align-items:center;justify-content:center}
+.mr-md-hero-img{width:100%;max-width:280px;height:auto;max-height:340px;display:block;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.5))}
+.mr-md-hero-overlay{position:relative;flex:1;padding:0 12px;align-self:center}
+.mr-md-overview{font-size:13px;line-height:1.55;color:rgba(244,240,232,0.78);margin:0}
+@media(max-width:560px){
+  .mr-md-hero{flex-direction:column;padding:14px}
+  .mr-md-hero-img{max-width:200px;max-height:260px;margin-bottom:12px}
+  .mr-md-hero-overlay{padding:0}
+  .mr-md-overview{font-size:12.5px;text-align:center}
+}
+
+.mr-md-section{margin-bottom:18px}
+.mr-md-section:last-child{margin-bottom:0}
+.mr-md-section-title{font-size:10px;letter-spacing:2px;color:var(--mr-gold);text-transform:uppercase;margin-bottom:10px;font-weight:700}
+
+.mr-md-muscles{display:flex;flex-direction:column;gap:10px}
+.mr-md-muscle{display:flex;gap:12px;padding:12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;transition:background .2s,border-color .2s}
+.mr-md-muscle:hover{background:rgba(255,255,255,0.04);border-color:rgba(200,164,78,0.25)}
+.mr-md-muscle-img{width:64px;height:80px;flex-shrink:0;background:rgba(0,0,0,0.25);border-radius:8px;padding:6px;object-fit:contain;border:1px solid rgba(255,255,255,0.04)}
+.mr-md-muscle-info{flex:1;min-width:0}
+.mr-md-muscle-name{font-family:'Bebas Neue',sans-serif;font-size:16px;letter-spacing:1px;color:#f4f0e8;line-height:1.1;margin-bottom:4px}
+.mr-md-muscle-fn{font-size:11.5px;line-height:1.5;color:rgba(244,240,232,0.65);margin-bottom:6px}
+.mr-md-muscle-tags{display:flex;flex-wrap:wrap;gap:5px}
+.mr-md-tag{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:3px 7px;background:rgba(200,164,78,0.1);color:rgba(200,164,78,0.85);border:1px solid rgba(200,164,78,0.2);border-radius:5px;white-space:nowrap}
+
+.mr-md-exercises{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+@media(max-width:560px){.mr-md-exercises{grid-template-columns:1fr}}
+.mr-md-ex{padding:10px 12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:8px;display:flex;flex-direction:column;gap:4px}
+.mr-md-ex-row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.mr-md-ex-name{font-size:12.5px;font-weight:700;color:#f4f0e8;letter-spacing:.02em}
+.mr-md-ex-weight{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--mr-gold);white-space:nowrap;letter-spacing:.5px}
+.mr-md-ex-weight--empty{color:rgba(244,240,232,0.3)}
+.mr-md-ex-blurb{font-size:10.5px;color:rgba(244,240,232,0.5);line-height:1.45}
+
+/* Make existing score rows tappable */
+.mr-score-row{cursor:pointer;transition:background .2s}
+.mr-score-row:hover{background:rgba(200,164,78,0.05)}
+.mr-score-row--unranked{cursor:default}
+.mr-score-row--unranked:hover{background:transparent}
+
 /* ── Home screen Muscle Ranking card accent ── */
 .wc-muscle{border-color:rgba(200,164,78,0.30)!important;background:rgba(200,164,78,0.05)!important}
 .wc-muscle:hover{background:rgba(200,164,78,0.10)!important;border-color:rgba(200,164,78,0.50)!important}
@@ -5420,6 +5483,49 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         </div>
 
       </div><!-- /mr-content -->
+
+      <!-- ── Muscle Drill-Down Panel (Phase 1: anatomy + sub-muscles + exercises) ── -->
+      <div class="mr-md-overlay" id="mr-md-overlay" onclick="mrCloseMuscleDetail(event)" aria-hidden="true">
+        <div class="mr-md-panel" role="dialog" aria-modal="true" aria-labelledby="mr-md-title" onclick="event.stopPropagation()">
+          <div class="mr-md-head">
+            <button type="button" class="mr-md-back" onclick="mrCloseMuscleDetail()" aria-label="Close">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Back</span>
+            </button>
+            <div class="mr-md-title-block">
+              <div class="mr-md-tier" id="mr-md-tier-pill"></div>
+              <h2 class="mr-md-title" id="mr-md-title">Muscle</h2>
+              <div class="mr-md-tagline" id="mr-md-tagline"></div>
+            </div>
+            <div class="mr-md-score-block">
+              <div class="mr-md-score-num" id="mr-md-score-num">—</div>
+              <div class="mr-md-score-den">/100</div>
+            </div>
+          </div>
+
+          <div class="mr-md-body">
+            <!-- Hero anatomy -->
+            <div class="mr-md-hero">
+              <img class="mr-md-hero-img" id="mr-md-hero-img" alt="" />
+              <div class="mr-md-hero-overlay">
+                <p class="mr-md-overview" id="mr-md-overview"></p>
+              </div>
+            </div>
+
+            <!-- Specific muscles within the group -->
+            <div class="mr-md-section">
+              <div class="mr-md-section-title">Specific Muscles</div>
+              <div class="mr-md-muscles" id="mr-md-muscles"></div>
+            </div>
+
+            <!-- Exercises that train this group -->
+            <div class="mr-md-section">
+              <div class="mr-md-section-title">Exercises that train this</div>
+              <div class="mr-md-exercises" id="mr-md-exercises"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div><!-- /usec-muscle -->
 
     <!-- ELITE FEED (all community posts) — matches /dashboard.html Feed Studio layout -->
@@ -19965,6 +20071,141 @@ var MR_REGION_META = {
   core:      { label: 'Core',      icon: '⚡',  svgIds: ['mr-svg-core', 'mr-svg-core-bv'] }
 };
 
+// ── Muscle Atlas — Phase 1 drill-down data ──────────────────────────────────
+// Maps each high-level group to its hero anatomy SVG, the specific muscles
+// inside it, and the exercises that train it. All SVG paths point to
+// /img/muscles/ which holds clean-named copies of the medical-grade artwork.
+var MR_EXERCISE_CATALOG = {
+  bench_press:       { label: 'Bench Press',       blurb: 'Horizontal press. The classic chest builder.' },
+  incline_press:     { label: 'Incline Press',     blurb: 'Press at an upward angle. Targets upper chest.' },
+  overhead_press:    { label: 'Overhead Press',    blurb: 'Vertical press. King of shoulder size.' },
+  lateral_raise:     { label: 'Lateral Raise',     blurb: 'Isolates side delts. Builds shoulder width.' },
+  triceps_pushdown:  { label: 'Triceps Pushdown',  blurb: 'Direct triceps work. Locks out elbow extension.' },
+  bicep_curl:        { label: 'Bicep Curl',        blurb: 'Direct biceps work. Elbow flexion.' },
+  deadlift:          { label: 'Deadlift',          blurb: 'Total-body lift. Hits back, hips, and grip.' },
+  barbell_row:       { label: 'Barbell Row',       blurb: 'Horizontal pull. Thickens the mid-back.' },
+  lat_pulldown:      { label: 'Lat Pulldown',      blurb: 'Vertical pull. Builds the lats / "wings".' },
+  face_pull:         { label: 'Face Pull',         blurb: 'Rear delts and middle traps. Posture builder.' },
+  back_squat:        { label: 'Back Squat',        blurb: 'King of leg lifts. Total lower-body strength.' },
+  romanian_deadlift: { label: 'Romanian Deadlift', blurb: 'Hip-hinge variant. Targets posterior chain.' },
+  leg_press:         { label: 'Leg Press',         blurb: 'Machine variant of squat. Lower spinal load.' },
+  leg_curl:          { label: 'Leg Curl',          blurb: 'Direct hamstring work. Knee flexion.' },
+  calf_raise:        { label: 'Calf Raise',        blurb: 'Direct calf work. Ankle plantar flexion.' }
+};
+
+var MR_MUSCLE_ATLAS = {
+  chest: {
+    label: 'Chest',
+    tagline: 'The pressing powerhouse',
+    overview: 'The chest is built around the pectoralis major — a fan-shaped muscle that drives all push movements. Every press, dip, and fly hits this muscle.',
+    heroSvg: '/img/muscles/chest.svg',
+    muscles: [
+      { key:'pectoralis_major', label:'Pectoralis Major',
+        svg:'/img/muscles/chest_pectoralis.svg',
+        function:'Horizontal arm adduction and shoulder flexion. Drives every pressing motion.',
+        exercises:['bench_press','incline_press'] }
+    ],
+    exercises: ['bench_press','incline_press']
+  },
+  back: {
+    label: 'Back',
+    tagline: 'Pulling powerhouse',
+    overview: 'Your back is a stack of muscles — lats give width, traps and rhomboids give thickness, erectors give the foundation. Built by every pull.',
+    heroSvg: '/img/muscles/back.svg',
+    muscles: [
+      { key:'latissimus_dorsi', label:'Latissimus Dorsi & Teres Major',
+        svg:'/img/muscles/back_lats.svg',
+        function:'Pulls arms down and back. The "wings" of your back. Built by pull-ups and rows.',
+        exercises:['lat_pulldown','barbell_row','deadlift'] },
+      { key:'trapezius_upper', label:'Trapezius (Upper)',
+        svg:'/img/muscles/back_traps_upper.svg',
+        function:'Elevates the shoulder blade. Built by deadlifts and shrugs.',
+        exercises:['deadlift'] },
+      { key:'trapezius_middle', label:'Trapezius (Middle)',
+        svg:'/img/muscles/back_traps_middle.svg',
+        function:'Retracts the shoulder blades. Built by rows and face pulls.',
+        exercises:['barbell_row','face_pull'] }
+    ],
+    exercises: ['barbell_row','lat_pulldown','deadlift','face_pull']
+  },
+  shoulders: {
+    label: 'Shoulders',
+    tagline: 'Three-headed deltoid',
+    overview: 'The deltoid has three heads — front (presses), side (raises), and rear (pulls). Hitting all three creates round, capped shoulders.',
+    heroSvg: '/img/muscles/shoulders.svg',
+    muscles: [
+      { key:'deltoid_front', label:'Anterior Deltoid',
+        svg:'/img/muscles/shoulders.svg',
+        function:'Front of shoulder. Drives overhead and bench presses.',
+        exercises:['overhead_press','bench_press'] },
+      { key:'deltoid_side', label:'Lateral Deltoid',
+        svg:'/img/muscles/shoulders.svg',
+        function:'Side of shoulder. Lateral raises and overhead press build width.',
+        exercises:['lateral_raise','overhead_press'] },
+      { key:'deltoid_rear', label:'Posterior Deltoid',
+        svg:'/img/muscles/shoulders_rear.svg',
+        function:'Back of shoulder. Posture-critical. Built by face pulls and rows.',
+        exercises:['face_pull','barbell_row'] }
+    ],
+    exercises: ['overhead_press','lateral_raise','face_pull']
+  },
+  arms: {
+    label: 'Arms',
+    tagline: 'Biceps + Triceps',
+    overview: 'Triceps make up two-thirds of arm size. Biceps shape the front. Both grow with direct work and as synergists in heavy compounds.',
+    heroSvg: '/img/muscles/arms.svg',
+    muscles: [
+      { key:'biceps_brachii', label:'Biceps Brachii',
+        svg:'/img/muscles/arms.svg',
+        function:'Front of upper arm. Flexes the elbow. Built by curls, rows, and pulldowns.',
+        exercises:['bicep_curl','barbell_row','lat_pulldown'] },
+      { key:'triceps_brachii', label:'Triceps Brachii',
+        svg:'/img/muscles/arms_triceps.svg',
+        function:'Three heads on the back of upper arm. Extends the elbow. Drives all presses.',
+        exercises:['triceps_pushdown','bench_press','overhead_press'] }
+    ],
+    exercises: ['bicep_curl','triceps_pushdown']
+  },
+  core: {
+    label: 'Core',
+    tagline: 'Your trunk stabilizer',
+    overview: 'The core is more than abs — it includes obliques, deep stabilizers, and lower back. Engaged in every compound lift, especially deadlifts and squats.',
+    heroSvg: '/img/muscles/core.svg',
+    muscles: [
+      { key:'rectus_abdominis', label:'Rectus Abdominis',
+        svg:'/img/muscles/core_abs.svg',
+        function:'The "six-pack" muscle. Flexes the trunk forward.',
+        exercises:['deadlift','back_squat'] }
+    ],
+    exercises: ['deadlift','back_squat']
+  },
+  legs: {
+    label: 'Legs',
+    tagline: 'The total lower body',
+    overview: 'Quads, hamstrings, glutes, and calves — built by squats, deadlifts, and direct work. The biggest, most metabolically demanding muscles you have.',
+    heroSvg: '/img/muscles/legs.svg',
+    muscles: [
+      { key:'quadriceps', label:'Quadriceps',
+        svg:'/img/muscles/legs_quads.svg',
+        function:'Four-headed front-thigh muscle. Extends the knee. Built by squats.',
+        exercises:['back_squat','leg_press'] },
+      { key:'hamstrings', label:'Hamstrings',
+        svg:'/img/muscles/legs_hamstrings.svg',
+        function:'Back of thigh. Flexes the knee, extends the hip. Built by RDLs and leg curls.',
+        exercises:['romanian_deadlift','leg_curl'] },
+      { key:'gluteus_maximus', label:'Gluteus Maximus',
+        svg:'/img/muscles/legs_glutes.svg',
+        function:'Largest muscle in the body. Hip extension. Trained by squats and deadlifts.',
+        exercises:['back_squat','romanian_deadlift'] },
+      { key:'calves', label:'Calves',
+        svg:'/img/muscles/legs_calves.svg',
+        function:'Lower leg muscle. Plantar flexes the ankle. Trained by calf raises.',
+        exercises:['calf_raise'] }
+    ],
+    exercises: ['back_squat','romanian_deadlift','leg_press','leg_curl','calf_raise']
+  }
+};
+
 // side: left | right | center — splits chest vs back onto opposite sides (fixes overlap)
 var MR_ANNOTATION_POS = {
   shoulders: { top: '7%',  side: 'left' },
@@ -20126,7 +20367,10 @@ function mrRenderSvgRegions(d) {
         el.setAttribute('data-unranked', 'true');
       }
       el.setAttribute('title', region.label + (region.score !== null ? ' ' + region.score + '/100' : ' — log lifts to unlock'));
-      el.onclick = function() { mrShowRegionTooltip(region); };
+      var isUnranked = region.tier === 'no_data' || region.tier === 'unranked';
+      el.onclick = isUnranked
+        ? function() { mrShowRegionTooltip(region); }
+        : function() { mrOpenMuscleDetail(region.key); };
     });
   });
 }
@@ -20192,6 +20436,14 @@ function mrRenderCallouts(d) {
       wrap.appendChild(cal);
     }
 
+    // Make the chip itself tappable as a shortcut into the muscle drill-down
+    inner.style.pointerEvents = 'auto';
+    inner.style.cursor = 'pointer';
+    inner.setAttribute('role', 'button');
+    inner.setAttribute('tabindex', '0');
+    inner.addEventListener('click', function(){ mrOpenMuscleDetail(key); });
+    inner.addEventListener('keydown', function(ev){ if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); mrOpenMuscleDetail(key); } });
+
     box.appendChild(wrap);
   });
 }
@@ -20216,7 +20468,8 @@ function mrRenderScoresList(d) {
     var scoreDisplay = score !== null ? score : '?';
     var rowExtra = isUnranked ? ' mr-score-row--unranked' : '';
 
-    return '<div class="mr-score-row' + rowExtra + '">'
+    var clickAttr = isUnranked ? '' : ' onclick="mrOpenMuscleDetail(\'' + key + '\')" role="button" tabindex="0"';
+    return '<div class="mr-score-row' + rowExtra + '" data-mr-key="' + key + '"' + clickAttr + '>'
       + '<div class="mr-score-icon">' + (meta.icon || '💪') + '</div>'
       + '<div class="mr-score-info">'
         + '<div class="mr-score-label">' + escapeHtml(r.label) + '</div>'
@@ -20521,6 +20774,103 @@ window.mrSetBodyView = function(side) {
   }
   if (mrData) mrRenderCallouts(mrData);
 };
+
+// ── Muscle drill-down (Phase 1) ──────────────────────────────────────────────
+function mrEscapeAttr(s) { return String(s == null ? '' : s).replace(/"/g, '&quot;'); }
+
+window.mrOpenMuscleDetail = function(groupKey) {
+  var atlas = MR_MUSCLE_ATLAS[groupKey];
+  if (!atlas) return;
+  var overlay = document.getElementById('mr-md-overlay');
+  if (!overlay) return;
+
+  // Region data (score, tier) from the live mrData
+  var region = null;
+  if (mrData && mrData.regions) {
+    for (var i = 0; i < mrData.regions.length; i++) {
+      if (mrData.regions[i].key === groupKey) { region = mrData.regions[i]; break; }
+    }
+  }
+
+  // Header: tier pill, title, tagline, score
+  var tier = region && region.tier ? region.tier : 'Unranked';
+  var tierClass = (tier === 'no_data' || tier === 'unranked') ? 'Unranked' : tier;
+  var tierLabel = tierClass === 'Unranked' ? 'Log Lifts' : tierClass;
+  var tierEl = document.getElementById('mr-md-tier-pill');
+  if (tierEl) { tierEl.className = 'mr-md-tier ' + tierClass; tierEl.textContent = tierLabel; }
+  var titleEl = document.getElementById('mr-md-title');
+  if (titleEl) titleEl.textContent = atlas.label;
+  var tagEl = document.getElementById('mr-md-tagline');
+  if (tagEl) tagEl.textContent = atlas.tagline || '';
+  var numEl = document.getElementById('mr-md-score-num');
+  if (numEl) numEl.textContent = (region && region.score != null) ? region.score : '—';
+
+  // Hero anatomy + overview
+  var heroImg = document.getElementById('mr-md-hero-img');
+  if (heroImg) { heroImg.src = atlas.heroSvg; heroImg.alt = atlas.label + ' anatomy'; }
+  var ovEl = document.getElementById('mr-md-overview');
+  if (ovEl) ovEl.textContent = atlas.overview || '';
+
+  // Specific muscles
+  var musclesWrap = document.getElementById('mr-md-muscles');
+  if (musclesWrap) {
+    musclesWrap.innerHTML = (atlas.muscles || []).map(function(m) {
+      var tags = (m.exercises || []).map(function(eKey) {
+        var ex = MR_EXERCISE_CATALOG[eKey];
+        return ex ? '<span class="mr-md-tag">' + escapeHtml(ex.label) + '</span>' : '';
+      }).join('');
+      return '<div class="mr-md-muscle">'
+        + '<img class="mr-md-muscle-img" src="' + mrEscapeAttr(m.svg) + '" alt="' + mrEscapeAttr(m.label) + '" loading="lazy"/>'
+        + '<div class="mr-md-muscle-info">'
+        +   '<div class="mr-md-muscle-name">' + escapeHtml(m.label) + '</div>'
+        +   '<div class="mr-md-muscle-fn">' + escapeHtml(m.function || '') + '</div>'
+        +   (tags ? '<div class="mr-md-muscle-tags">' + tags + '</div>' : '')
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  // Exercises with last weight pulled from session_lifts in mrData (if exposed)
+  // Fallback: just show description, no weight
+  var exWrap = document.getElementById('mr-md-exercises');
+  if (exWrap) {
+    var lastLifts = (mrData && mrData.last_lifts) ? mrData.last_lifts : {};
+    exWrap.innerHTML = (atlas.exercises || []).map(function(eKey) {
+      var ex = MR_EXERCISE_CATALOG[eKey];
+      if (!ex) return '';
+      var w = lastLifts[eKey];
+      var weightHtml = (w && w > 0)
+        ? '<span class="mr-md-ex-weight">' + escapeHtml(String(w)) + ' kg</span>'
+        : '<span class="mr-md-ex-weight mr-md-ex-weight--empty">—</span>';
+      return '<div class="mr-md-ex">'
+        +   '<div class="mr-md-ex-row"><span class="mr-md-ex-name">' + escapeHtml(ex.label) + '</span>' + weightHtml + '</div>'
+        +   '<div class="mr-md-ex-blurb">' + escapeHtml(ex.blurb) + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.body.style.overflow = 'hidden';
+};
+
+window.mrCloseMuscleDetail = function(e) {
+  // Only close on direct overlay click (not panel content)
+  if (e && e.type === 'click' && e.target && e.target.id !== 'mr-md-overlay') return;
+  var overlay = document.getElementById('mr-md-overlay');
+  if (!overlay) return;
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+  document.body.style.overflow = '';
+};
+
+// Esc key closes
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') {
+    var overlay = document.getElementById('mr-md-overlay');
+    if (overlay && overlay.classList.contains('open')) window.mrCloseMuscleDetail();
+  }
+});
 
 // ── Share card — pixel-perfect replica of the dashboard muscle ranking view ──
 window.mrShareCard = function() {
