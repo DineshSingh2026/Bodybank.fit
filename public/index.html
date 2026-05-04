@@ -5402,11 +5402,22 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
                   <option value="Push (Chest, Shoulders, Triceps)">Push (Chest, Shoulders, Triceps)</option>
                   <option value="Pull (Back, Biceps)">Pull (Back, Biceps)</option>
                   <option value="Legs (Quads, Hamstrings, Glutes)">Legs (Quads, Hamstrings, Glutes)</option>
-                  <option value="Full Body">Full Body</option>
-                </optgroup>
-                <optgroup label="Other">
                   <option value="Upper Body">Upper Body</option>
                   <option value="Lower Body">Lower Body</option>
+                  <option value="Full Body">Full Body</option>
+                </optgroup>
+                <optgroup label="Strength / Single muscle (Bro split)">
+                  <option value="Chest">Chest</option>
+                  <option value="Back">Back</option>
+                  <option value="Shoulders">Shoulders</option>
+                  <option value="Arms (Biceps, Triceps)">Arms (Biceps, Triceps)</option>
+                  <option value="Biceps">Biceps</option>
+                  <option value="Triceps">Triceps</option>
+                  <option value="Core / Abs">Core / Abs</option>
+                  <option value="Glutes &amp; Hamstrings">Glutes &amp; Hamstrings</option>
+                  <option value="Quads &amp; Calves">Quads &amp; Calves</option>
+                </optgroup>
+                <optgroup label="Other">
                   <option value="Cardio">Cardio</option>
                   <option value="HIIT">HIIT</option>
                   <option value="Mobility / Stretching">Mobility / Stretching</option>
@@ -9200,6 +9211,44 @@ var WK_LIFT_PROFILES = {
     { key: 'back_squat', label: 'Back squat' },
     { key: 'deadlift', label: 'Deadlift' },
     { key: 'leg_press', label: 'Leg press' }
+  ],
+  // ── Bro split / single-muscle profiles (mirror MR_MUSCLE_ATLAS exercise mapping) ──
+  'Chest': [
+    { key: 'bench_press', label: 'Bench press' },
+    { key: 'incline_press', label: 'Incline / DB press' }
+  ],
+  'Back': [
+    { key: 'deadlift', label: 'Deadlift' },
+    { key: 'barbell_row', label: 'Barbell row' },
+    { key: 'lat_pulldown', label: 'Lat pulldown' },
+    { key: 'face_pull', label: 'Face pull' }
+  ],
+  'Shoulders': [
+    { key: 'overhead_press', label: 'Overhead press' },
+    { key: 'lateral_raise', label: 'Lateral raise' },
+    { key: 'face_pull', label: 'Face pull' }
+  ],
+  'Arms (Biceps, Triceps)': [
+    { key: 'bicep_curl', label: 'Bicep curl' },
+    { key: 'triceps_pushdown', label: 'Triceps pushdown' }
+  ],
+  'Biceps': [
+    { key: 'bicep_curl', label: 'Bicep curl' }
+  ],
+  'Triceps': [
+    { key: 'triceps_pushdown', label: 'Triceps pushdown' }
+  ],
+  // Core / Abs has no DB-tracked lift in this catalog — let the user log notes.
+  // Falls through to the "No lift fields" hint in wkRenderStrengthFields().
+  'Glutes & Hamstrings': [
+    { key: 'romanian_deadlift', label: 'Romanian deadlift' },
+    { key: 'leg_curl', label: 'Leg curl' },
+    { key: 'deadlift', label: 'Deadlift' }
+  ],
+  'Quads & Calves': [
+    { key: 'back_squat', label: 'Back squat' },
+    { key: 'leg_press', label: 'Leg press' },
+    { key: 'calf_raise', label: 'Calf raise' }
   ]
 };
 var WK_LIFT_LABELS = (function () {
