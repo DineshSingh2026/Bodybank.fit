@@ -10191,12 +10191,72 @@ async function loadRequests() {
 function _row(label, val) { return '<div class="view-detail-row"><span class="view-detail-label">' + escapeHtml(label) + '</span><span class="view-detail-val">' + escapeHtml(val || '—') + '</span></div>'; }
 function _rowBlock(label, val) { return '<div class="view-detail-row"><span class="view-detail-label">' + escapeHtml(label) + '</span><span class="view-detail-val block">' + escapeHtml(val || '—') + '</span></div>'; }
 
+function formatAuditContactCopy(r) {
+  if (!r) return '';
+  var name = ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || '—';
+  var dash = function(v) { return (v != null && String(v).trim() !== '') ? String(v).trim() : '—'; };
+  var city = dash(r.city);
+  var country = dash(r.country);
+  var locParts = [];
+  if (city !== '—') locParts.push(city);
+  if (country !== '—') locParts.push(country);
+  var locationLine = locParts.length ? locParts.join(', ') : '—';
+  var lines = [
+    'BodyBank · Audit contact',
+    'Name: ' + name,
+    'WhatsApp: ' + dash(r.phone),
+    'Email: ' + dash(r.email),
+    'City, country: ' + locationLine,
+    'Age: ' + (r.age != null && r.age !== '' ? String(r.age) : '—'),
+    'Sex: ' + dash(r.sex),
+    'Occupation: ' + dash(r.occupation),
+    'Work intensity: ' + dash(r.work_intensity),
+    'Fitness experience: ' + dash(r.fitness_experience)
+  ];
+  if (r.goals && String(r.goals).trim()) lines.push('Goals: ' + String(r.goals).trim());
+  if (r.motivation && String(r.motivation).trim()) lines.push('Motivation: ' + String(r.motivation).trim());
+  lines.push('Submitted: ' + (r.created_at ? new Date(r.created_at).toLocaleString() : '—'));
+  return lines.join('\n');
+}
+
+function copyAuditContact(r) {
+  var text = formatAuditContactCopy(r);
+  if (!text) { showPopup('Error', 'Nothing to copy.', '', 'OK', null, 'error'); return; }
+  function fallbackCopy(str) {
+    var ta = document.createElement('textarea');
+    ta.value = str;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand('copy');
+      showPopup('Copied', 'Contact details copied. Paste into WhatsApp or your notes.', '', 'OK');
+    } catch (e) {
+      showPopup('Copy failed', 'Could not copy to clipboard.', '', 'OK', null, 'error');
+    }
+    document.body.removeChild(ta);
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function() {
+      showPopup('Copied', 'Contact details copied. Paste into WhatsApp or your notes.', '', 'OK');
+    }).catch(function() { fallbackCopy(text); });
+  } else {
+    fallbackCopy(text);
+  }
+}
+
+function copyAuditContactFromLastView() {
+  copyAuditContact(window.__lastAuditForCopy);
+}
+
 async function viewRequest(id) {
   const r = await apiCall('GET', '/api/audit/' + id);
   if (r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
   const body = document.getElementById('auditViewBody');
   const actions = document.getElementById('auditViewActions');
   if (!body) return;
+  window.__lastAuditForCopy = r;
   body.innerHTML = _row('Name', (r.first_name || '') + ' ' + (r.last_name || '').trim()) +
     _row('Age', r.age) + _row('Sex', r.sex) +
     _row('Email', r.email) + _row('Phone', r.phone) +
@@ -10207,7 +10267,8 @@ async function viewRequest(id) {
     _row('Submitted', r.created_at ? new Date(r.created_at).toLocaleString() : '');
   if (actions) {
     var rid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    actions.innerHTML = '<button class="action-btn btn-reject" onclick="closeModal(\'auditViewModal\');removeAuditRequest(\'' + rid + '\')">Remove</button>';
+    actions.innerHTML = '<button type="button" class="action-btn btn-view" onclick="copyAuditContactFromLastView()">Copy contact</button>' +
+      '<button type="button" class="action-btn btn-reject" onclick="closeModal(\'auditViewModal\');removeAuditRequest(\'' + rid + '\')">Remove</button>';
   }
   openModal('auditViewModal');
 }
