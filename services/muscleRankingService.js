@@ -155,6 +155,15 @@ const REGION_EXERCISES = {
   ]
 };
 
+// Canonical exercise keys we surface in the drill-down.
+// Used for the Phase 2 last_lifts + frequency_30d response fields.
+const TRACKED_LIFT_KEYS = [
+  'bench_press', 'incline_press', 'overhead_press', 'lateral_raise',
+  'triceps_pushdown', 'bicep_curl', 'deadlift', 'barbell_row',
+  'lat_pulldown', 'face_pull', 'back_squat', 'romanian_deadlift',
+  'leg_press', 'leg_curl', 'calf_raise'
+];
+
 // Score-to-week improvement estimate
 const IMPROVEMENT_ESTIMATE = {
   legs: '+10–14 Score in 4 Weeks',
@@ -254,6 +263,60 @@ function extractBestLift(region, workoutRows, progressRows) {
   }
 
   return best;
+}
+
+/**
+ * Build per-exercise "most recent logged weight" map from workout rows.
+ * Returns: { [liftKey]: { weight_kg: number, date: 'YYYY-MM-DD' } }
+ * Iterates the rows once; for each tracked lift, keeps the entry with the
+ * latest YMD (session_date preferred, falls back to created_at).
+ */
+function buildLastLifts(workoutRows) {
+  const out = {};
+  for (const row of workoutRows) {
+    const sl = row.session_lifts;
+    if (!sl || typeof sl !== 'object') continue;
+    const ymd = rowYmd(row.session_date) || rowYmd(row.created_at);
+    if (!ymd) continue;
+
+    for (const k of TRACKED_LIFT_KEYS) {
+      const w = num(sl[k]);
+      if (w === null || w <= 0) continue;
+      const prev = out[k];
+      if (!prev || ymd > prev.date) {
+        out[k] = { weight_kg: Math.round(w * 10) / 10, date: ymd };
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Build per-exercise count of distinct sessions in the last 30 days
+ * that included that lift. Returns: { [liftKey]: integer }
+ * Counts a lift once per unique session date.
+ */
+function buildFrequency30d(workoutRows) {
+  const cutoff = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10);
+  const seen = {}; // { liftKey: Set<ymd> }
+  for (const row of workoutRows) {
+    const sl = row.session_lifts;
+    if (!sl || typeof sl !== 'object') continue;
+    const ymd = rowYmd(row.session_date) || rowYmd(row.created_at);
+    if (!ymd || ymd < cutoff) continue;
+
+    for (const k of TRACKED_LIFT_KEYS) {
+      const w = num(sl[k]);
+      if (w === null || w <= 0) continue;
+      if (!seen[k]) seen[k] = new Set();
+      seen[k].add(ymd);
+    }
+  }
+  const out = {};
+  for (const k of Object.keys(seen)) {
+    out[k] = seen[k].size;
+  }
+  return out;
 }
 
 /**
@@ -456,6 +519,10 @@ function createMuscleRankingService({ queryOne, queryAll }) {
     // 8. Score history — compute monthly snapshots (last 6 months)
     const history = buildScoreHistory(workoutRows, progressRows, bodyweightKg, isFemale);
 
+    // 8b. Drill-down per-exercise data (Phase 2): last logged weight + 30d frequency
+    const lastLifts = buildLastLifts(workoutRows);
+    const frequency30d = buildFrequency30d(workoutRows);
+
     // 9. Prev week delta (compare last vs second-to-last history point)
     let indexDelta = null;
     if (history.length >= 2) {
@@ -516,6 +583,8 @@ function createMuscleRankingService({ queryOne, queryAll }) {
       recommendation: finalRecommendation,
       self_ranking: finalSelfRanking,
       history,
+      last_lifts: lastLifts,
+      frequency_30d: frequency30d,
       has_data: hasRealData,
       is_placeholder: !hasRealData
     };

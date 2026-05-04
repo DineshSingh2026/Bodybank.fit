@@ -4540,6 +4540,9 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .mr-md-ex-name{font-size:12.5px;font-weight:700;color:#f4f0e8;letter-spacing:.02em}
 .mr-md-ex-weight{font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--mr-gold);white-space:nowrap;letter-spacing:.5px}
 .mr-md-ex-weight--empty{color:rgba(244,240,232,0.3)}
+.mr-md-ex-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:1px}
+.mr-md-ex-date{font-size:10px;letter-spacing:.04em;color:rgba(244,240,232,0.4)}
+.mr-md-ex-freq{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:2px 6px;background:rgba(52,211,153,0.10);color:#34d399;border:1px solid rgba(52,211,153,0.25);border-radius:4px;white-space:nowrap}
 .mr-md-ex-blurb{font-size:10.5px;color:rgba(244,240,232,0.5);line-height:1.45}
 
 /* Make existing score rows tappable */
@@ -20778,6 +20781,22 @@ window.mrSetBodyView = function(side) {
 // ── Muscle drill-down (Phase 1) ──────────────────────────────────────────────
 function mrEscapeAttr(s) { return String(s == null ? '' : s).replace(/"/g, '&quot;'); }
 
+// "5d ago" / "2w ago" / "Today" relative date label from a YYYY-MM-DD string.
+function mrFormatRelativeDate(ymd) {
+  if (!ymd) return '';
+  var m = String(ymd).match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!m) return '';
+  var then = Date.UTC(parseInt(m[1], 10), parseInt(m[2], 10) - 1, parseInt(m[3], 10));
+  var now = Date.now();
+  var days = Math.floor((now - then) / 86400000);
+  if (days <= 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return days + 'd ago';
+  if (days < 30) return Math.floor(days / 7) + 'w ago';
+  if (days < 365) return Math.floor(days / 30) + 'mo ago';
+  return Math.floor(days / 365) + 'y ago';
+}
+
 window.mrOpenMuscleDetail = function(groupKey) {
   var atlas = MR_MUSCLE_ATLAS[groupKey];
   if (!atlas) return;
@@ -20835,15 +20854,29 @@ window.mrOpenMuscleDetail = function(groupKey) {
   var exWrap = document.getElementById('mr-md-exercises');
   if (exWrap) {
     var lastLifts = (mrData && mrData.last_lifts) ? mrData.last_lifts : {};
+    var freq30d = (mrData && mrData.frequency_30d) ? mrData.frequency_30d : {};
     exWrap.innerHTML = (atlas.exercises || []).map(function(eKey) {
       var ex = MR_EXERCISE_CATALOG[eKey];
       if (!ex) return '';
-      var w = lastLifts[eKey];
-      var weightHtml = (w && w > 0)
-        ? '<span class="mr-md-ex-weight">' + escapeHtml(String(w)) + ' kg</span>'
+      var lift = lastLifts[eKey];
+      var weightVal = lift && typeof lift === 'object' ? lift.weight_kg : lift;
+      var weightHtml = (weightVal && weightVal > 0)
+        ? '<span class="mr-md-ex-weight">' + escapeHtml(String(weightVal)) + ' kg</span>'
         : '<span class="mr-md-ex-weight mr-md-ex-weight--empty">—</span>';
+      var dateLabel = (lift && lift.date) ? mrFormatRelativeDate(lift.date) : '';
+      var dateHtml = dateLabel
+        ? '<span class="mr-md-ex-date">' + escapeHtml(dateLabel) + '</span>'
+        : '';
+      var freq = parseInt(freq30d[eKey], 10);
+      var freqHtml = (freq && freq > 0)
+        ? '<span class="mr-md-ex-freq">Trained ' + freq + '× in 30d</span>'
+        : '';
+      var metaHtml = (dateHtml || freqHtml)
+        ? '<div class="mr-md-ex-meta">' + dateHtml + freqHtml + '</div>'
+        : '';
       return '<div class="mr-md-ex">'
         +   '<div class="mr-md-ex-row"><span class="mr-md-ex-name">' + escapeHtml(ex.label) + '</span>' + weightHtml + '</div>'
+        +   metaHtml
         +   '<div class="mr-md-ex-blurb">' + escapeHtml(ex.blurb) + '</div>'
         + '</div>';
     }).join('');
