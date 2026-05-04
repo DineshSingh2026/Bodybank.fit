@@ -5529,49 +5529,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         </div>
 
       </div><!-- /mr-content -->
-
-      <!-- ── Muscle Drill-Down Panel (Phase 1: anatomy + sub-muscles + exercises) ── -->
-      <div class="mr-md-overlay" id="mr-md-overlay" onclick="mrCloseMuscleDetail(event)" aria-hidden="true">
-        <div class="mr-md-panel" role="dialog" aria-modal="true" aria-labelledby="mr-md-title" onclick="event.stopPropagation()">
-          <div class="mr-md-head">
-            <button type="button" class="mr-md-back" onclick="mrCloseMuscleDetail()" aria-label="Close">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-              <span>Back</span>
-            </button>
-            <div class="mr-md-title-block">
-              <div class="mr-md-tier" id="mr-md-tier-pill"></div>
-              <h2 class="mr-md-title" id="mr-md-title">Muscle</h2>
-              <div class="mr-md-tagline" id="mr-md-tagline"></div>
-            </div>
-            <div class="mr-md-score-block">
-              <div class="mr-md-score-num" id="mr-md-score-num">—</div>
-              <div class="mr-md-score-den">/100</div>
-            </div>
-          </div>
-
-          <div class="mr-md-body">
-            <!-- Hero anatomy -->
-            <div class="mr-md-hero">
-              <img class="mr-md-hero-img" id="mr-md-hero-img" alt="" />
-              <div class="mr-md-hero-overlay">
-                <p class="mr-md-overview" id="mr-md-overview"></p>
-              </div>
-            </div>
-
-            <!-- Specific muscles within the group -->
-            <div class="mr-md-section">
-              <div class="mr-md-section-title">Specific Muscles</div>
-              <div class="mr-md-muscles" id="mr-md-muscles"></div>
-            </div>
-
-            <!-- Exercises that train this group -->
-            <div class="mr-md-section">
-              <div class="mr-md-section-title">Exercises that train this</div>
-              <div class="mr-md-exercises" id="mr-md-exercises"></div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div><!-- /usec-muscle -->
 
     <!-- ELITE FEED (all community posts) — matches /dashboard.html Feed Studio layout -->
@@ -21359,6 +21316,43 @@ window.mrShareCard = function() {
 })();
 </script>
 <!-- ════════════════════════════════════════════════════════════════════ -->
+
+<!-- ── Muscle Drill-Down Panel (lifted to body level so position:fixed isn't trapped by ancestor transforms) ── -->
+<div class="mr-md-overlay" id="mr-md-overlay" onclick="mrCloseMuscleDetail(event)" aria-hidden="true">
+  <div class="mr-md-panel" role="dialog" aria-modal="true" aria-labelledby="mr-md-title" onclick="event.stopPropagation()">
+    <div class="mr-md-head">
+      <button type="button" class="mr-md-back" onclick="mrCloseMuscleDetail()" aria-label="Close">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+        <span>Back</span>
+      </button>
+      <div class="mr-md-title-block">
+        <div class="mr-md-tier" id="mr-md-tier-pill"></div>
+        <h2 class="mr-md-title" id="mr-md-title">Muscle</h2>
+        <div class="mr-md-tagline" id="mr-md-tagline"></div>
+      </div>
+      <div class="mr-md-score-block">
+        <div class="mr-md-score-num" id="mr-md-score-num">—</div>
+        <div class="mr-md-score-den">/100</div>
+      </div>
+    </div>
+    <div class="mr-md-body">
+      <div class="mr-md-hero">
+        <img class="mr-md-hero-img" id="mr-md-hero-img" alt="" />
+        <div class="mr-md-hero-overlay">
+          <p class="mr-md-overview" id="mr-md-overview"></p>
+        </div>
+      </div>
+      <div class="mr-md-section">
+        <div class="mr-md-section-title">Specific Muscles</div>
+        <div class="mr-md-muscles" id="mr-md-muscles"></div>
+      </div>
+      <div class="mr-md-section">
+        <div class="mr-md-section-title">Exercises that train this</div>
+        <div class="mr-md-exercises" id="mr-md-exercises"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- WhatsApp FAB – public website -->
 <a class="wa-public-fab" href="https://wa.me/919502575669" target="_blank" rel="noopener noreferrer" aria-label="Chat with us on WhatsApp" title="Chat on WhatsApp">
