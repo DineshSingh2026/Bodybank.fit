@@ -3250,7 +3250,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .user-section-back{display:none}
 .user-panel .back-btn{display:none}
 .user-bottom-nav{display:none!important;position:fixed!important;top:auto!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;min-width:100%;max-width:100vw;min-height:70px;height:calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)));padding:0 0 max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)) 0;background:#0d0d0d;border-top:1px solid rgba(200,164,78,0.15);border-radius:0;z-index:9999;box-shadow:none;flex-shrink:0;margin:0;box-sizing:border-box}
-.user-bottom-nav-inner{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;width:100%;height:100%;min-width:0;padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px));column-gap:2px;box-sizing:border-box;overflow:hidden}
+.user-bottom-nav-inner{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:stretch;width:100%;height:100%;min-width:0;padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px));column-gap:2px;box-sizing:border-box;overflow:hidden}
 .user-bottom-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;width:100%;min-width:0;min-height:56px;padding:10px 4px;background:none;border:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.3px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;position:relative;box-sizing:border-box;overflow:hidden}
 .user-bottom-nav-item:hover,.user-bottom-nav-item:focus{color:var(--cream);outline:none}
 .user-bottom-nav-item.active{color:var(--gold)}
@@ -4652,6 +4652,116 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   .mr-main-grid{grid-template-columns:280px 1fr}
   .mr-bottom-grid{grid-template-columns:1fr 1fr}
 }
+
+/* ── My Body section (Phase 1) ── */
+#usec-body{display:none;flex-direction:column;gap:14px;padding:16px 16px calc(96px + env(safe-area-inset-bottom,0px));max-width:920px;margin:0 auto;width:100%;box-sizing:border-box}
+#usec-body.active{display:flex}
+.bbody-cta-card{display:flex;align-items:center;justify-content:space-between;gap:14px;background:linear-gradient(135deg,rgba(200,164,78,0.14),rgba(200,164,78,0.04));border:1px solid rgba(200,164,78,0.28);border-radius:12px;padding:14px 16px}
+.bbody-cta-text{flex:1;min-width:0}
+.bbody-cta-title{font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;font-size:18px;color:#f4f0e8;line-height:1.1}
+.bbody-cta-sub{font-size:12.5px;color:rgba(244,240,232,0.65);margin-top:3px;line-height:1.4}
+.bbody-cta-btn{flex-shrink:0;background:#c8a44e;color:#1a1410;border:none;border-radius:10px;padding:11px 16px;font-weight:700;font-size:13px;letter-spacing:.4px;cursor:pointer;transition:transform .15s,filter .15s;-webkit-tap-highlight-color:transparent}
+.bbody-cta-btn:hover{filter:brightness(1.08)}
+.bbody-cta-btn:active{transform:scale(.97)}
+.bbody-compare-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;background:rgba(168,123,255,0.12);border:1px solid rgba(168,123,255,0.35);border-radius:10px;padding:10px 14px;font-size:13px;color:#f4f0e8}
+.bbody-compare-banner-text{flex:1;min-width:0}
+.bbody-compare-banner-cancel{background:transparent;border:1px solid rgba(168,123,255,0.5);color:#d8c5ff;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bbody-compare-banner-cancel:hover{background:rgba(168,123,255,0.1)}
+.bbody-error{background:rgba(220,80,80,0.1);border:1px solid rgba(220,80,80,0.35);color:#f8c8c8;padding:10px 14px;border-radius:10px;font-size:13px}
+.bbody-empty{text-align:center;padding:40px 18px;background:rgba(255,255,255,0.025);border:1px dashed rgba(255,255,255,0.1);border-radius:12px}
+.bbody-empty-icon{font-size:42px;margin-bottom:12px}
+.bbody-empty-title{font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;font-size:22px;color:#f4f0e8;margin-bottom:6px}
+.bbody-empty-sub{font-size:13px;line-height:1.5;color:rgba(244,240,232,0.65);max-width:340px;margin:0 auto 18px}
+.bbody-empty-cta{background:#c8a44e;color:#1a1410;border:none;border-radius:10px;padding:13px 20px;font-weight:700;font-size:14px;letter-spacing:.5px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.bbody-empty-cta:active{transform:scale(.97)}
+.bbody-timeline{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px}
+.bbody-snap-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;transition:border-color .2s,transform .15s,box-shadow .2s;cursor:default}
+.bbody-snap-card:hover{border-color:rgba(200,164,78,0.3)}
+.bbody-snap-card.is-compare-target{border-color:rgba(168,123,255,0.65);box-shadow:0 0 0 2px rgba(168,123,255,0.2)}
+.bbody-snap-thumb{position:relative;width:100%;aspect-ratio:3/4;background:#0e0c0a;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.bbody-snap-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.bbody-snap-thumb-empty{font-size:38px;opacity:.45}
+.bbody-snap-date-pill{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.65);color:#f4f0e8;font-size:11px;font-weight:600;letter-spacing:.4px;padding:4px 9px;border-radius:6px;backdrop-filter:blur(4px)}
+.bbody-snap-info{padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px}
+.bbody-snap-metrics{display:flex;flex-wrap:wrap;gap:6px}
+.bbody-snap-metric{font-size:11.5px;font-weight:600;color:rgba(244,240,232,0.78);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);padding:4px 9px;border-radius:6px}
+.bbody-snap-metric strong{color:#c8a44e;font-weight:700;margin-right:3px}
+.bbody-snap-actions{display:flex;gap:6px;justify-content:space-between;margin-top:2px}
+.bbody-snap-action{flex:1;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);color:#f4f0e8;font-size:12px;font-weight:600;padding:7px 8px;border-radius:7px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:background .15s,border-color .15s}
+.bbody-snap-action:hover{background:rgba(255,255,255,0.07);border-color:rgba(200,164,78,0.3)}
+.bbody-snap-action.is-compare{color:#d8c5ff;border-color:rgba(168,123,255,0.3)}
+.bbody-snap-action.is-delete{color:#f8c8c8;border-color:rgba(220,80,80,0.3)}
+.bbody-snap-action.is-delete:hover{background:rgba(220,80,80,0.1)}
+
+/* Modals (overlay + dialog) */
+.bbody-modal-overlay{position:fixed;inset:0;background:rgba(8,6,4,0.78);z-index:9500;display:none;align-items:flex-end;justify-content:center;padding:0;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
+.bbody-modal-overlay.is-open{display:flex}
+.bbody-modal{background:#15110d;color:#f4f0e8;width:100%;max-width:560px;max-height:92vh;border-radius:16px 16px 0 0;border:1px solid rgba(200,164,78,0.18);display:flex;flex-direction:column;overflow:hidden;animation:bbodyModalUp .22s ease-out}
+@keyframes bbodyModalUp{from{transform:translateY(40px);opacity:0}to{transform:translateY(0);opacity:1}}
+@media(min-width:720px){
+  .bbody-modal-overlay{align-items:center;padding:24px}
+  .bbody-modal{border-radius:16px;max-height:88vh}
+}
+.bbody-modal--full{max-width:920px}
+.bbody-modal-overlay--full .bbody-modal{max-width:920px}
+.bbody-modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0}
+.bbody-modal-title{margin:0;font-family:'Bebas Neue',sans-serif;letter-spacing:1.5px;font-size:18px;color:#f4f0e8}
+.bbody-modal-close{background:transparent;border:none;color:rgba(244,240,232,0.7);font-size:18px;cursor:pointer;padding:6px 10px;border-radius:6px;-webkit-tap-highlight-color:transparent}
+.bbody-modal-close:hover{background:rgba(255,255,255,0.06);color:#f4f0e8}
+.bbody-modal-body{padding:16px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:14px}
+.bbody-modal-actions{display:flex;gap:10px;justify-content:flex-end;padding-top:6px;border-top:1px solid rgba(255,255,255,0.05);margin-top:6px;padding-top:14px}
+.bbody-btn{padding:10px 18px;border-radius:9px;font-size:13px;font-weight:700;letter-spacing:.4px;border:none;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:filter .15s,transform .15s}
+.bbody-btn:active{transform:scale(.97)}
+.bbody-btn-gold{background:#c8a44e;color:#1a1410}
+.bbody-btn-gold:hover{filter:brightness(1.08)}
+.bbody-btn-gold[disabled]{opacity:.6;cursor:wait}
+.bbody-btn-ghost{background:transparent;color:#f4f0e8;border:1px solid rgba(255,255,255,0.15)}
+.bbody-btn-ghost:hover{background:rgba(255,255,255,0.05)}
+.bbody-modal-msg{font-size:12.5px;line-height:1.5;padding:8px 10px;border-radius:8px;background:rgba(220,80,80,0.1);border:1px solid rgba(220,80,80,0.3);color:#f8c8c8}
+.bbody-modal-msg.is-ok{background:rgba(80,200,120,0.08);border-color:rgba(80,200,120,0.3);color:#c8f0d8}
+
+/* Photo upload row */
+.bbody-photo-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.bbody-photo-pick{display:flex;flex-direction:column;align-items:center;gap:5px;cursor:pointer}
+.bbody-photo-pick input[type=file]{position:absolute;opacity:0;pointer-events:none;width:1px;height:1px}
+.bbody-photo-thumb{width:100%;aspect-ratio:3/4;background:#0e0c0a;border:1px dashed rgba(255,255,255,0.18);border-radius:8px;display:flex;align-items:center;justify-content:center;overflow:hidden;color:rgba(244,240,232,0.5);font-size:11px;font-weight:700;letter-spacing:1.2px;transition:border-color .15s}
+.bbody-photo-pick:hover .bbody-photo-thumb{border-color:rgba(200,164,78,0.45)}
+.bbody-photo-thumb img{width:100%;height:100%;object-fit:cover}
+.bbody-photo-placeholder{opacity:.7}
+.bbody-photo-label{font-size:10.5px;letter-spacing:1.2px;color:rgba(244,240,232,0.55);font-weight:600;text-transform:uppercase}
+
+/* Form */
+.bbody-form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:520px){.bbody-form-grid{grid-template-columns:1fr}}
+.bbody-form-group{display:flex;flex-direction:column;gap:5px}
+.bbody-form-label{font-size:11px;letter-spacing:1.2px;color:rgba(244,240,232,0.6);font-weight:600;text-transform:uppercase}
+.bbody-form-input{background:rgba(0,0,0,0.35);border:1px solid rgba(255,255,255,0.1);color:#f4f0e8;padding:10px 12px;border-radius:8px;font-size:14px;font-family:inherit;width:100%;box-sizing:border-box;transition:border-color .15s}
+.bbody-form-input:focus{outline:none;border-color:rgba(200,164,78,0.55)}
+.bbody-form-textarea{resize:vertical;min-height:60px}
+
+/* Compare modal stage */
+.bbody-modal--full{max-height:96vh}
+.bbody-compare-body{gap:12px}
+.bbody-compare-dates{display:flex;align-items:center;justify-content:center;gap:14px;font-size:13px;color:rgba(244,240,232,0.85)}
+.bbody-compare-date{font-family:'Bebas Neue',sans-serif;letter-spacing:1.2px;font-size:18px;color:#f4f0e8}
+.bbody-compare-date-arrow{color:rgba(200,164,78,0.7)}
+.bbody-compare-stage{position:relative;width:100%;aspect-ratio:3/4;max-height:62vh;background:#0a0907;border-radius:12px;overflow:hidden;user-select:none;touch-action:none;border:1px solid rgba(255,255,255,0.06)}
+.bbody-compare-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0a0907}
+.bbody-compare-img--a{z-index:1}
+.bbody-compare-img--b{z-index:2;clip-path:inset(0 50% 0 0);-webkit-clip-path:inset(0 50% 0 0)}
+.bbody-compare-handle{position:absolute;top:0;bottom:0;left:50%;width:2px;background:#c8a44e;transform:translateX(-1px);z-index:3;cursor:ew-resize;touch-action:none}
+.bbody-compare-handle-bar{position:absolute;inset:0;background:rgba(200,164,78,0.85);box-shadow:0 0 12px rgba(200,164,78,0.5)}
+.bbody-compare-handle-grip{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#c8a44e;color:#1a1410;width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:16px;box-shadow:0 4px 12px rgba(0,0,0,0.5);cursor:ew-resize}
+.bbody-compare-stage-empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:rgba(244,240,232,0.55);font-size:13px;text-align:center;padding:24px;z-index:4}
+.bbody-compare-stats{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding-top:4px}
+.bbody-compare-stat{display:flex;flex-direction:column;align-items:flex-start;gap:2px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);padding:8px 12px;border-radius:8px;min-width:120px}
+.bbody-compare-stat-label{font-size:10px;letter-spacing:1px;color:rgba(244,240,232,0.55);text-transform:uppercase;font-weight:700}
+.bbody-compare-stat-val{font-size:13.5px;color:#f4f0e8;font-weight:600}
+.bbody-compare-stat-delta{font-size:12px;font-weight:700}
+.bbody-compare-stat-delta.is-good{color:#7be39a}
+.bbody-compare-stat-delta.is-bad{color:#f4a890}
+.bbody-compare-stat-delta.is-flat{color:rgba(244,240,232,0.6)}
+
 </style>
 <!-- ══════════════════════════════════════════════════════ -->
 </head>
@@ -4707,6 +4817,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <a class="user-sidebar-link" href="#" data-tab="messages" onclick="switchUserTab('messages');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
         <a class="user-sidebar-link" href="#" data-tab="elitefeed" onclick="switchUserTab('elitefeed');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128248;</span>Elite Feed</a>
         <a class="user-sidebar-link" href="#" data-tab="profile" onclick="switchUserTab('profile');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128100;</span>My Profile</a>
+        <a class="user-sidebar-link" href="#" data-tab="body" onclick="switchUserTab('body');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128248;</span>My Body</a>
         <a class="user-sidebar-link" href="#" data-tab="muscle" onclick="switchUserTab('muscle');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128170;</span>Muscle Ranking</a>
         <a class="user-sidebar-link" href="#" data-tab="contact" onclick="switchUserTab('contact');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9993;</span>Contact Us</a>
       </nav>
@@ -5618,6 +5729,35 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       </div>
     </div>
 
+    <!-- MY BODY (Phase 1) -->
+    <div class="user-section" id="usec-body">
+      <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
+
+      <div class="bbody-cta-card" id="bbBodyCtaCard">
+        <div class="bbody-cta-text">
+          <div class="bbody-cta-title">Today's Snapshot</div>
+          <div class="bbody-cta-sub">Capture progress photos and a quick measurement.</div>
+        </div>
+        <button type="button" class="bbody-cta-btn" onclick="bbBodyOpenUpload()">+ Add Snapshot</button>
+      </div>
+
+      <div class="bbody-compare-banner" id="bbBodyCompareBanner" style="display:none">
+        <span class="bbody-compare-banner-text" id="bbBodyCompareBannerText">Tap another snapshot to compare.</span>
+        <button type="button" class="bbody-compare-banner-cancel" onclick="bbBodyExitCompareMode()">Cancel</button>
+      </div>
+
+      <div class="bbody-error" id="bbBodyError" style="display:none" role="alert"></div>
+
+      <div class="bbody-empty" id="bbBodyEmpty" style="display:none">
+        <div class="bbody-empty-icon" aria-hidden="true">📸</div>
+        <div class="bbody-empty-title">No snapshots yet</div>
+        <div class="bbody-empty-sub">Photos and measurements you log here will build your transformation timeline.</div>
+        <button type="button" class="bbody-empty-cta" onclick="bbBodyOpenUpload()">Take Your First Snapshot</button>
+      </div>
+
+      <div class="bbody-timeline" id="bbBodyTimeline" aria-live="polite"></div>
+    </div>
+
     <!-- CONTACT US -->
     <div class="user-section" id="usec-contact">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
@@ -5673,6 +5813,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <button type="button" class="user-bottom-nav-item" data-tab="messages" onclick="switchUserTab('messages')" aria-label="Messages">
         <span class="user-bottom-nav-icon" aria-hidden="true">&#128172;</span>
         <span class="user-bottom-nav-label">Messages</span>
+      </button>
+      <button type="button" class="user-bottom-nav-item" data-tab="body" onclick="switchUserTab('body')" aria-label="My Body">
+        <span class="user-bottom-nav-icon" aria-hidden="true">&#128248;</span>
+        <span class="user-bottom-nav-label">Body</span>
       </button>
     </div>
   </nav>
@@ -13989,6 +14133,7 @@ var USER_TAB_LABELS = {
   messages: 'Messages',
   elitefeed: 'Elite Feed',
   profile: 'My Profile',
+  body: 'My Body',
   muscle: 'Muscle Ranking',
   contact: 'Contact Us'
 };
@@ -14001,6 +14146,7 @@ var USER_TAB_SUBTITLES = {
   messages: 'Chat directly with your Lifestyle Manager in one clean thread.',
   elitefeed: 'All community posts in one feed.',
   profile: 'Keep your personal and contact details up to date.',
+  body: 'Track your transformation — photos and measurements over time.',
   contact: 'Schedule calls or send support requests quickly.'
 };
 function showCheckinSubView(view) {
@@ -14064,6 +14210,7 @@ function switchUserTab(tab) {
     loadMyMeetings();
   }
   if (tab === 'programs') loadUserPrograms();
+  if (tab === 'body' && typeof loadBodySnapshots === 'function') loadBodySnapshots();
   if (tab === 'muscle') loadMuscleRanking();
   if (tab === 'checkin') { showCheckinSubView('hub'); loadSundayCheckinDefaults(); }
   if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(tab);
@@ -20009,7 +20156,7 @@ window.addEventListener('resize', applySafeAreaFix);
   }
   html.android-mobile .user-bottom-nav-inner{
     display:grid !important;
-    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+    grid-template-columns:repeat(6,minmax(0,1fr)) !important;
     justify-content:initial !important;
     padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px)) !important;
     column-gap:2px !important;
@@ -21650,6 +21797,570 @@ window.mrShareCard = function() {
     </div>
   </div>
 </div>
+
+<!-- ── My Body modals (lifted to body root so position:fixed isn't trapped by ancestor transforms) ── -->
+<div class="bbody-modal-overlay" id="bb-body-upload-modal" aria-hidden="true" onclick="bbBodyUploadOverlayClick(event)">
+  <div class="bbody-modal" role="dialog" aria-modal="true" aria-labelledby="bbBodyUploadTitle" onclick="event.stopPropagation()">
+    <div class="bbody-modal-head">
+      <h3 class="bbody-modal-title" id="bbBodyUploadTitle">Add Snapshot</h3>
+      <button type="button" class="bbody-modal-close" onclick="bbBodyCloseUpload()" aria-label="Close">✕</button>
+    </div>
+    <form id="bbBodyUploadForm" class="bbody-modal-body" onsubmit="event.preventDefault(); bbBodySubmitUpload(this);">
+      <div class="bbody-photo-row">
+        <label class="bbody-photo-pick" data-view="front">
+          <input type="file" name="front" accept="image/*" capture="environment" onchange="bbBodyPhotoPreview(this)">
+          <div class="bbody-photo-thumb" data-view="front"><span class="bbody-photo-placeholder">FRONT</span></div>
+          <div class="bbody-photo-label">Front</div>
+        </label>
+        <label class="bbody-photo-pick" data-view="side">
+          <input type="file" name="side" accept="image/*" capture="environment" onchange="bbBodyPhotoPreview(this)">
+          <div class="bbody-photo-thumb" data-view="side"><span class="bbody-photo-placeholder">SIDE</span></div>
+          <div class="bbody-photo-label">Side</div>
+        </label>
+        <label class="bbody-photo-pick" data-view="back">
+          <input type="file" name="back" accept="image/*" capture="environment" onchange="bbBodyPhotoPreview(this)">
+          <div class="bbody-photo-thumb" data-view="back"><span class="bbody-photo-placeholder">BACK</span></div>
+          <div class="bbody-photo-label">Back</div>
+        </label>
+      </div>
+
+      <div class="bbody-form-grid">
+        <div class="bbody-form-group">
+          <label class="bbody-form-label">Bodyweight (kg)</label>
+          <input type="number" name="bodyweight_kg" step="0.1" min="20" max="400" inputmode="decimal" placeholder="e.g. 75.4" class="bbody-form-input">
+        </div>
+        <div class="bbody-form-group">
+          <label class="bbody-form-label">Waist (cm)</label>
+          <input type="number" name="waist_cm" step="0.1" min="40" max="200" inputmode="decimal" placeholder="e.g. 82" class="bbody-form-input">
+        </div>
+        <div class="bbody-form-group">
+          <label class="bbody-form-label">Date</label>
+          <input type="date" name="snapshot_date" class="bbody-form-input" id="bbBodyUploadDate">
+        </div>
+      </div>
+
+      <div class="bbody-form-group">
+        <label class="bbody-form-label">Notes (optional)</label>
+        <textarea name="notes" rows="2" maxlength="2000" placeholder="How did the week feel?" class="bbody-form-input bbody-form-textarea"></textarea>
+      </div>
+
+      <div class="bbody-modal-msg" id="bbBodyUploadMsg" style="display:none"></div>
+
+      <div class="bbody-modal-actions">
+        <button type="button" class="bbody-btn bbody-btn-ghost" onclick="bbBodyCloseUpload()">Cancel</button>
+        <button type="submit" class="bbody-btn bbody-btn-gold" id="bbBodyUploadSubmit">Save Snapshot</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="bbody-modal-overlay bbody-modal-overlay--full" id="bb-body-compare-modal" aria-hidden="true" onclick="bbBodyCompareOverlayClick(event)">
+  <div class="bbody-modal bbody-modal--full" role="dialog" aria-modal="true" aria-labelledby="bbBodyCompareTitle" onclick="event.stopPropagation()">
+    <div class="bbody-modal-head">
+      <h3 class="bbody-modal-title" id="bbBodyCompareTitle">Compare</h3>
+      <button type="button" class="bbody-modal-close" onclick="bbBodyCloseCompare()" aria-label="Close">✕</button>
+    </div>
+    <div class="bbody-modal-body bbody-compare-body">
+      <div class="bbody-compare-dates">
+        <div class="bbody-compare-date" id="bbBodyCompareDateA">—</div>
+        <span class="bbody-compare-date-arrow">→</span>
+        <div class="bbody-compare-date" id="bbBodyCompareDateB">—</div>
+      </div>
+      <div class="bbody-compare-stage" id="bbBodyCompareStage">
+        <img class="bbody-compare-img bbody-compare-img--a" id="bbBodyCompareImgA" alt="Earlier snapshot">
+        <img class="bbody-compare-img bbody-compare-img--b" id="bbBodyCompareImgB" alt="Later snapshot">
+        <div class="bbody-compare-handle" id="bbBodyCompareHandle">
+          <div class="bbody-compare-handle-bar"></div>
+          <div class="bbody-compare-handle-grip" aria-hidden="true">↔</div>
+        </div>
+        <div class="bbody-compare-stage-empty" id="bbBodyCompareNoPhoto" style="display:none">No photos to compare for these snapshots.</div>
+      </div>
+      <div class="bbody-compare-stats" id="bbBodyCompareStats"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ── My Body section logic (Phase 1) ── -->
+<script>
+(function() {
+'use strict';
+
+var BODY_API_BASE = '/api/me/body';
+var BODY_TIMELINE_EL_ID = 'bbBodyTimeline';
+var BODY_EMPTY_EL_ID = 'bbBodyEmpty';
+var BODY_ERR_EL_ID = 'bbBodyError';
+var BODY_BANNER_EL_ID = 'bbBodyCompareBanner';
+var BODY_BANNER_TXT_ID = 'bbBodyCompareBannerText';
+
+var bbBodySnapshots = [];
+var bbBodyCompareFirstId = null;
+var bbBodyCompareDragState = null;
+
+function bbBodyEscape(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function bbBodyFmtDate(ymd) {
+  var s = String(ymd || '');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  try {
+    var d = new Date(s + 'T00:00:00Z');
+    return d.toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric', timeZone:'UTC' });
+  } catch (_) { return s; }
+}
+
+function bbBodyDaysBetween(a, b) {
+  if (!a || !b) return null;
+  try {
+    var d1 = new Date(a + 'T00:00:00Z').getTime();
+    var d2 = new Date(b + 'T00:00:00Z').getTime();
+    if (!isFinite(d1) || !isFinite(d2)) return null;
+    return Math.round(Math.abs(d2 - d1) / (24 * 3600 * 1000));
+  } catch (_) { return null; }
+}
+
+function bbBodyAuthHeader() {
+  var h = {};
+  if (window.currentUser && window.currentUser.token) {
+    h['Authorization'] = 'Bearer ' + window.currentUser.token;
+  }
+  return h;
+}
+
+function bbBodyShowError(msg) {
+  var el = document.getElementById(BODY_ERR_EL_ID);
+  if (!el) return;
+  if (msg) {
+    el.textContent = msg;
+    el.style.display = '';
+  } else {
+    el.textContent = '';
+    el.style.display = 'none';
+  }
+}
+
+window.loadBodySnapshots = async function loadBodySnapshots() {
+  var timelineEl = document.getElementById(BODY_TIMELINE_EL_ID);
+  var emptyEl = document.getElementById(BODY_EMPTY_EL_ID);
+  if (!timelineEl) return;
+  bbBodyShowError('');
+  timelineEl.innerHTML = '<p class="form-hint" style="padding:18px;text-align:center;color:rgba(244,240,232,0.5)">Loading…</p>';
+  if (emptyEl) emptyEl.style.display = 'none';
+  try {
+    var res = await fetch('/api/me/body/snapshots', { headers: bbBodyAuthHeader() });
+    if (!res.ok) {
+      bbBodyShowError('Could not load your snapshots (' + res.status + '). Try refresh.');
+      timelineEl.innerHTML = '';
+      bbBodySnapshots = [];
+      return;
+    }
+    var data = await res.json();
+    bbBodySnapshots = (data && Array.isArray(data.snapshots)) ? data.snapshots : [];
+    bbBodyRenderTimeline();
+  } catch (e) {
+    bbBodyShowError('Network error loading snapshots. Try again.');
+    timelineEl.innerHTML = '';
+    bbBodySnapshots = [];
+  }
+};
+
+function bbBodyRenderTimeline() {
+  var timelineEl = document.getElementById(BODY_TIMELINE_EL_ID);
+  var emptyEl = document.getElementById(BODY_EMPTY_EL_ID);
+  if (!timelineEl) return;
+  if (!bbBodySnapshots.length) {
+    timelineEl.innerHTML = '';
+    if (emptyEl) emptyEl.style.display = '';
+    bbBodyExitCompareMode();
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+
+  var html = '';
+  for (var i = 0; i < bbBodySnapshots.length; i++) {
+    var s = bbBodySnapshots[i];
+    var thumbUrl = s.photo_front || s.photo_side || s.photo_back || '';
+    var bw = (s.bodyweight_kg !== null && s.bodyweight_kg !== undefined) ? Number(s.bodyweight_kg).toFixed(1) + ' kg' : '';
+    var waist = (s.waist_cm !== null && s.waist_cm !== undefined) ? Number(s.waist_cm).toFixed(1) + ' cm' : '';
+    var isCompareTarget = (bbBodyCompareFirstId !== null && bbBodyCompareFirstId === s.id);
+    var dateLabel = bbBodyFmtDate(s.snapshot_date);
+    html += '<div class="bbody-snap-card' + (isCompareTarget ? ' is-compare-target' : '') + '" data-id="' + bbBodyEscape(s.id) + '">';
+    html += '<div class="bbody-snap-thumb">';
+    if (thumbUrl) {
+      html += '<img src="' + bbBodyEscape(thumbUrl) + '" alt="Snapshot from ' + bbBodyEscape(dateLabel) + '" loading="lazy">';
+    } else {
+      html += '<span class="bbody-snap-thumb-empty" aria-hidden="true">📷</span>';
+    }
+    html += '<span class="bbody-snap-date-pill">' + bbBodyEscape(dateLabel) + '</span>';
+    html += '</div>';
+    html += '<div class="bbody-snap-info">';
+    html += '<div class="bbody-snap-metrics">';
+    if (bw) html += '<span class="bbody-snap-metric"><strong>BW</strong>' + bbBodyEscape(bw) + '</span>';
+    if (waist) html += '<span class="bbody-snap-metric"><strong>W</strong>' + bbBodyEscape(waist) + '</span>';
+    if (!bw && !waist) html += '<span class="bbody-snap-metric" style="opacity:.6">No measurements</span>';
+    html += '</div>';
+    html += '<div class="bbody-snap-actions">';
+    html += '<button type="button" class="bbody-snap-action is-compare" onclick="bbBodyEnterCompareMode(' + bbBodyEscape(s.id) + ')">' + (isCompareTarget ? 'Selected' : 'Compare') + '</button>';
+    html += '<button type="button" class="bbody-snap-action is-delete" onclick="bbBodyDeleteSnapshot(' + bbBodyEscape(s.id) + ')" aria-label="Delete snapshot">Delete</button>';
+    html += '</div>';
+    html += '</div>';
+    html += '</div>';
+  }
+  timelineEl.innerHTML = html;
+}
+
+function bbBodyShowCompareBanner() {
+  var banner = document.getElementById(BODY_BANNER_EL_ID);
+  var txt = document.getElementById(BODY_BANNER_TXT_ID);
+  if (!banner) return;
+  if (bbBodyCompareFirstId === null) {
+    banner.style.display = 'none';
+    return;
+  }
+  var first = null;
+  for (var i = 0; i < bbBodySnapshots.length; i++) {
+    if (bbBodySnapshots[i].id === bbBodyCompareFirstId) { first = bbBodySnapshots[i]; break; }
+  }
+  if (!first) {
+    banner.style.display = 'none';
+    return;
+  }
+  var lbl = bbBodyFmtDate(first.snapshot_date);
+  if (txt) txt.textContent = 'Tap another snapshot to compare with ' + lbl + '.';
+  banner.style.display = '';
+}
+
+window.bbBodyEnterCompareMode = function(snapshotId) {
+  var idNum = Number(snapshotId);
+  if (!isFinite(idNum)) return;
+  if (bbBodyCompareFirstId === null) {
+    bbBodyCompareFirstId = idNum;
+    bbBodyShowCompareBanner();
+    bbBodyRenderTimeline();
+    return;
+  }
+  if (bbBodyCompareFirstId === idNum) {
+    bbBodyExitCompareMode();
+    return;
+  }
+  var firstId = bbBodyCompareFirstId;
+  bbBodyCompareFirstId = null;
+  bbBodyShowCompareBanner();
+  bbBodyRenderTimeline();
+  bbBodyCompare(firstId, idNum);
+};
+
+window.bbBodyExitCompareMode = function() {
+  bbBodyCompareFirstId = null;
+  bbBodyShowCompareBanner();
+  bbBodyRenderTimeline();
+};
+
+window.bbBodyDeleteSnapshot = async function(snapshotId) {
+  var idNum = Number(snapshotId);
+  if (!isFinite(idNum)) return;
+  if (!window.confirm('Delete this snapshot? This cannot be undone.')) return;
+  try {
+    var res = await fetch('/api/me/body/snapshot/' + idNum, {
+      method: 'DELETE',
+      headers: bbBodyAuthHeader()
+    });
+    if (!res.ok) {
+      var msg = 'Delete failed (' + res.status + ').';
+      try { var j = await res.json(); if (j && j.error) msg = j.error; } catch (_) {}
+      bbBodyShowError(msg);
+      return;
+    }
+    if (bbBodyCompareFirstId === idNum) bbBodyCompareFirstId = null;
+    await window.loadBodySnapshots();
+  } catch (e) {
+    bbBodyShowError('Network error deleting snapshot.');
+  }
+};
+
+// ── Upload modal ────────────────────────────────────────────────
+window.bbBodyOpenUpload = function() {
+  var ov = document.getElementById('bb-body-upload-modal');
+  if (!ov) return;
+  var form = document.getElementById('bbBodyUploadForm');
+  if (form) form.reset();
+  // Reset previews
+  var thumbs = ov.querySelectorAll('.bbody-photo-thumb');
+  for (var i = 0; i < thumbs.length; i++) {
+    var v = thumbs[i].getAttribute('data-view') || '';
+    thumbs[i].innerHTML = '<span class="bbody-photo-placeholder">' + v.toUpperCase() + '</span>';
+  }
+  // Default date = today (local)
+  var now = new Date();
+  var ymd = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+  var dateEl = document.getElementById('bbBodyUploadDate');
+  if (dateEl) dateEl.value = ymd;
+  var msg = document.getElementById('bbBodyUploadMsg');
+  if (msg) { msg.style.display = 'none'; msg.textContent = ''; msg.classList.remove('is-ok'); }
+  var btn = document.getElementById('bbBodyUploadSubmit');
+  if (btn) { btn.disabled = false; btn.textContent = 'Save Snapshot'; }
+  ov.classList.add('is-open');
+  ov.setAttribute('aria-hidden', 'false');
+  document.addEventListener('keydown', bbBodyUploadKeyHandler);
+};
+
+window.bbBodyCloseUpload = function() {
+  var ov = document.getElementById('bb-body-upload-modal');
+  if (!ov) return;
+  ov.classList.remove('is-open');
+  ov.setAttribute('aria-hidden', 'true');
+  document.removeEventListener('keydown', bbBodyUploadKeyHandler);
+};
+
+window.bbBodyUploadOverlayClick = function(ev) {
+  if (ev && ev.target && ev.target.id === 'bb-body-upload-modal') {
+    window.bbBodyCloseUpload();
+  }
+};
+
+function bbBodyUploadKeyHandler(ev) {
+  if (ev && ev.key === 'Escape') window.bbBodyCloseUpload();
+}
+
+window.bbBodyPhotoPreview = function(input) {
+  if (!input || !input.files || !input.files[0]) return;
+  var f = input.files[0];
+  var pickEl = input.closest ? input.closest('.bbody-photo-pick') : null;
+  if (!pickEl) return;
+  var thumb = pickEl.querySelector('.bbody-photo-thumb');
+  if (!thumb) return;
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.alt = 'Preview';
+    img.src = e.target.result;
+    thumb.innerHTML = '';
+    thumb.appendChild(img);
+  };
+  reader.readAsDataURL(f);
+};
+
+window.bbBodySubmitUpload = async function(form) {
+  if (!form) return;
+  var btn = document.getElementById('bbBodyUploadSubmit');
+  var msg = document.getElementById('bbBodyUploadMsg');
+  function showMsg(text, ok) {
+    if (!msg) return;
+    msg.textContent = text;
+    msg.style.display = '';
+    msg.classList.remove('is-ok');
+    if (ok) msg.classList.add('is-ok');
+  }
+  if (msg) { msg.style.display = 'none'; msg.textContent = ''; msg.classList.remove('is-ok'); }
+
+  var fd = new FormData(form);
+  // Strip empty file fields so multer doesn't choke
+  // (Browsers send empty files as size=0 — that's fine; multer will treat as missing.)
+
+  // Light client validation: at least one of photo / bw / waist
+  var bwVal = String(fd.get('bodyweight_kg') || '').trim();
+  var wsVal = String(fd.get('waist_cm') || '').trim();
+  var hasPhoto = false;
+  ['front','side','back'].forEach(function(name) {
+    var f = fd.get(name);
+    if (f && typeof f === 'object' && f.size && f.size > 0) hasPhoto = true;
+  });
+  if (!bwVal && !wsVal && !hasPhoto) {
+    showMsg('Add at least one photo or a measurement.', false);
+    return;
+  }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  try {
+    var res = await fetch('/api/me/body/snapshot', {
+      method: 'POST',
+      headers: bbBodyAuthHeader(),
+      body: fd
+    });
+    var text = await res.text();
+    var data = {};
+    try { data = text ? JSON.parse(text) : {}; } catch (_) {}
+    if (!res.ok) {
+      showMsg((data && data.error) ? data.error : ('Save failed (' + res.status + ').'), false);
+      if (btn) { btn.disabled = false; btn.textContent = 'Save Snapshot'; }
+      return;
+    }
+    showMsg('Snapshot saved.', true);
+    setTimeout(function() {
+      window.bbBodyCloseUpload();
+      window.loadBodySnapshots();
+    }, 380);
+  } catch (e) {
+    showMsg('Network error. Try again.', false);
+    if (btn) { btn.disabled = false; btn.textContent = 'Save Snapshot'; }
+  }
+};
+
+// ── Compare modal ────────────────────────────────────────────────
+function bbBodyCompareDeltaCell(label, a, b, unit, lowerIsBetter) {
+  var wrap = '<div class="bbody-compare-stat">';
+  wrap += '<span class="bbody-compare-stat-label">' + bbBodyEscape(label) + '</span>';
+  if ((a === null || a === undefined) && (b === null || b === undefined)) {
+    wrap += '<span class="bbody-compare-stat-val">—</span>';
+    wrap += '</div>';
+    return wrap;
+  }
+  var aTxt = (a === null || a === undefined) ? '—' : Number(a).toFixed(1);
+  var bTxt = (b === null || b === undefined) ? '—' : Number(b).toFixed(1);
+  wrap += '<span class="bbody-compare-stat-val">' + bbBodyEscape(aTxt) + ' → ' + bbBodyEscape(bTxt) + ' ' + bbBodyEscape(unit) + '</span>';
+  if (a !== null && a !== undefined && b !== null && b !== undefined) {
+    var delta = Number(b) - Number(a);
+    var sign = delta > 0 ? '+' : (delta < 0 ? '−' : '');
+    var abs = Math.abs(delta).toFixed(1);
+    var cls = 'is-flat';
+    if (Math.abs(delta) > 0.05) {
+      if (lowerIsBetter) cls = (delta < 0) ? 'is-good' : 'is-bad';
+      else cls = (delta > 0) ? 'is-good' : 'is-bad';
+    }
+    wrap += '<span class="bbody-compare-stat-delta ' + cls + '">' + sign + abs + ' ' + bbBodyEscape(unit) + '</span>';
+  }
+  wrap += '</div>';
+  return wrap;
+}
+
+window.bbBodyCompare = function(idA, idB) {
+  var aId = Number(idA), bId = Number(idB);
+  var a = null, b = null;
+  for (var i = 0; i < bbBodySnapshots.length; i++) {
+    var s = bbBodySnapshots[i];
+    if (s.id === aId) a = s;
+    if (s.id === bId) b = s;
+  }
+  if (!a || !b) {
+    bbBodyShowError('Could not find one of the snapshots to compare.');
+    return;
+  }
+  // Order: earlier date = A, later date = B
+  if (String(a.snapshot_date) > String(b.snapshot_date)) {
+    var tmp = a; a = b; b = tmp;
+  }
+
+  var ov = document.getElementById('bb-body-compare-modal');
+  if (!ov) return;
+
+  var dateA = document.getElementById('bbBodyCompareDateA');
+  var dateB = document.getElementById('bbBodyCompareDateB');
+  if (dateA) dateA.textContent = bbBodyFmtDate(a.snapshot_date);
+  if (dateB) dateB.textContent = bbBodyFmtDate(b.snapshot_date);
+
+  var imgA = document.getElementById('bbBodyCompareImgA');
+  var imgB = document.getElementById('bbBodyCompareImgB');
+  var noPhoto = document.getElementById('bbBodyCompareNoPhoto');
+  var handle = document.getElementById('bbBodyCompareHandle');
+
+  var aSrc = a.photo_front || a.photo_side || a.photo_back || '';
+  var bSrc = b.photo_front || b.photo_side || b.photo_back || '';
+  if (imgA) imgA.src = aSrc || '';
+  if (imgB) imgB.src = bSrc || '';
+  if (imgA) imgA.style.display = aSrc ? '' : 'none';
+  if (imgB) imgB.style.display = bSrc ? '' : 'none';
+  if (handle) handle.style.display = (aSrc && bSrc) ? '' : 'none';
+  if (noPhoto) noPhoto.style.display = (!aSrc && !bSrc) ? '' : 'none';
+
+  // Reset slider to 50%
+  bbBodyCompareSetSliderPct(50);
+
+  // Stats
+  var statsEl = document.getElementById('bbBodyCompareStats');
+  if (statsEl) {
+    var html = '';
+    html += bbBodyCompareDeltaCell('Bodyweight', a.bodyweight_kg, b.bodyweight_kg, 'kg', true);
+    html += bbBodyCompareDeltaCell('Waist', a.waist_cm, b.waist_cm, 'cm', true);
+    var days = bbBodyDaysBetween(a.snapshot_date, b.snapshot_date);
+    if (days !== null) {
+      html += '<div class="bbody-compare-stat">';
+      html += '<span class="bbody-compare-stat-label">Time gap</span>';
+      html += '<span class="bbody-compare-stat-val">' + days + ' day' + (days === 1 ? '' : 's') + '</span>';
+      html += '</div>';
+    }
+    statsEl.innerHTML = html;
+  }
+
+  ov.classList.add('is-open');
+  ov.setAttribute('aria-hidden', 'false');
+  document.addEventListener('keydown', bbBodyCompareKeyHandler);
+
+  // Wire slider drag
+  bbBodyCompareWireDrag();
+};
+
+function bbBodyCompareSetSliderPct(pct) {
+  var p = Math.max(0, Math.min(100, Number(pct) || 0));
+  var imgB = document.getElementById('bbBodyCompareImgB');
+  var handle = document.getElementById('bbBodyCompareHandle');
+  if (imgB) {
+    var inset = 'inset(0 ' + (100 - p) + '% 0 0)';
+    imgB.style.clipPath = inset;
+    imgB.style.webkitClipPath = inset;
+  }
+  if (handle) handle.style.left = p + '%';
+}
+
+function bbBodyCompareWireDrag() {
+  var stage = document.getElementById('bbBodyCompareStage');
+  if (!stage || stage.__bbWired) return;
+  stage.__bbWired = true;
+
+  function onDown(ev) {
+    bbBodyCompareDragState = { active: true };
+    onMove(ev);
+    ev.preventDefault();
+  }
+  function clientX(ev) {
+    if (ev.touches && ev.touches[0]) return ev.touches[0].clientX;
+    if (ev.changedTouches && ev.changedTouches[0]) return ev.changedTouches[0].clientX;
+    return ev.clientX || 0;
+  }
+  function onMove(ev) {
+    if (!bbBodyCompareDragState || !bbBodyCompareDragState.active) return;
+    var rect = stage.getBoundingClientRect();
+    if (!rect.width) return;
+    var x = clientX(ev) - rect.left;
+    var pct = (x / rect.width) * 100;
+    bbBodyCompareSetSliderPct(pct);
+  }
+  function onUp() {
+    bbBodyCompareDragState = null;
+  }
+
+  stage.addEventListener('mousedown', onDown);
+  stage.addEventListener('touchstart', onDown, { passive: false });
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('touchmove', onMove, { passive: false });
+  document.addEventListener('mouseup', onUp);
+  document.addEventListener('touchend', onUp);
+  document.addEventListener('touchcancel', onUp);
+}
+
+window.bbBodyCloseCompare = function() {
+  var ov = document.getElementById('bb-body-compare-modal');
+  if (!ov) return;
+  ov.classList.remove('is-open');
+  ov.setAttribute('aria-hidden', 'true');
+  document.removeEventListener('keydown', bbBodyCompareKeyHandler);
+  bbBodyCompareDragState = null;
+};
+
+window.bbBodyCompareOverlayClick = function(ev) {
+  if (ev && ev.target && ev.target.id === 'bb-body-compare-modal') {
+    window.bbBodyCloseCompare();
+  }
+};
+
+function bbBodyCompareKeyHandler(ev) {
+  if (ev && ev.key === 'Escape') window.bbBodyCloseCompare();
+}
+
+})();
+</script>
+<!-- ════════════════════════════════════════════════════════════════════ -->
 
 <!-- WhatsApp FAB – public website -->
 <a class="wa-public-fab" href="https://wa.me/919502575669" target="_blank" rel="noopener noreferrer" aria-label="Chat with us on WhatsApp" title="Chat on WhatsApp">

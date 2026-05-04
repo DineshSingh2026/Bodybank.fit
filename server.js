@@ -856,6 +856,27 @@ async function initDB() {
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_feed_posts_created_at ON feed_posts(created_at DESC)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_feed_posts_username ON feed_posts(username)`); } catch (e) { /* ignore */ }
+  // ── My Body section (Phase 1) ──
+  // Photos + bodyweight + waist; measurements JSONB and shared_with_manager
+  // are forward-compat for Phases 2 & 4. user_id is TEXT to match users.id.
+  await pool.query(`CREATE TABLE IF NOT EXISTS body_snapshots (
+    id SERIAL PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    snapshot_date TEXT NOT NULL,
+    photo_front TEXT,
+    photo_side TEXT,
+    photo_back TEXT,
+    bodyweight_kg REAL,
+    waist_cm REAL,
+    measurements JSONB,
+    shared_with_manager BOOLEAN DEFAULT FALSE,
+    notes TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+  )`);
+  try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS measurements JSONB`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS shared_with_manager BOOLEAN DEFAULT FALSE`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS notes TEXT`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_body_snapshots_user_date ON body_snapshots(user_id, snapshot_date DESC)`); } catch (e) { /* ignore */ }
   await pool.query(`CREATE TABLE IF NOT EXISTS leaderboard_virtual_config (
     id INTEGER PRIMARY KEY,
     enabled BOOLEAN DEFAULT TRUE,
@@ -6082,6 +6103,212 @@ app.get('/api/programs', async (req, res) => {
     res.json(rows);
   } catch (e) {
     res.status(500).json({ error: e.message });
+  }
+});
+
+// ── Body snapshots (My Body section) ────────────────────────────────
+// Phase 1 forward-compat contract (locked):
+//  • measurements JSONB is the home for chest/arms/hips/thighs in Phase 2
+//    (keys: chest_cm, arms_cm, hips_cm, thighs_cm — left/right merge or split TBD).
+//  • shared_with_manager BOOLEAN powers Phase 4 admin/manager view.
+//  • photo_front/side/back are PLAIN relative URLs (e.g. /uploads/body/<uid>/<ts>-front.jpg)
+//    so Phase 5 can rewrite them through a background-removal pipeline.
+//  • Phase 3 home dashboard "days since last snapshot" is derivable from the
+//    GET /api/me/body/snapshots first item's snapshot_date.
+// Files live on disk under <root>/uploads/body/<user_id>/ — served by the
+// existing app.use('/uploads', express.static(...)) mount below.
+var BODY_UPLOADS_DIR = path.join(FEED_UPLOADS_DIR, 'body');
+function bbBodyEnsureDir(p) {
+  try { fs.mkdirSync(p, { recursive: true }); } catch (_) {}
+}
+function bbBodyExtFromMime(mime, originalName) {
+  var m = String(mime || '').toLowerCase();
+  if (m === 'image/png') return '.png';
+  if (m === 'image/webp') return '.webp';
+  if (m === 'image/heic' || m === 'image/heif') return '.heic';
+  if (m === 'image/jpeg' || m === 'image/jpg') return '.jpg';
+  var ext = String(path.extname(originalName || '') || '').toLowerCase();
+  if (ext === '.png' || ext === '.webp' || ext === '.heic' || ext === '.heif') return ext;
+  return '.jpg';
+}
+function bbBodyValidYmd(s) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(s || '').trim());
+}
+function bbBodyTodayUTC() {
+  return new Date().toISOString().slice(0, 10);
+}
+function bbBodyParseFloat(v) {
+  if (v === undefined || v === null || v === '') return null;
+  var n = parseFloat(String(v));
+  return isFinite(n) ? n : null;
+}
+function bbBodyParseMeasurements(raw) {
+  if (raw === undefined || raw === null || raw === '') return null;
+  if (typeof raw === 'object') return raw;
+  try {
+    var obj = JSON.parse(String(raw));
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) return obj;
+  } catch (_) {}
+  return null;
+}
+function bbBodyRowToJson(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    snapshot_date: row.snapshot_date,
+    photo_front: row.photo_front || null,
+    photo_side: row.photo_side || null,
+    photo_back: row.photo_back || null,
+    bodyweight_kg: row.bodyweight_kg !== null && row.bodyweight_kg !== undefined ? Number(row.bodyweight_kg) : null,
+    waist_cm: row.waist_cm !== null && row.waist_cm !== undefined ? Number(row.waist_cm) : null,
+    measurements: row.measurements || null,
+    notes: row.notes || '',
+    shared_with_manager: !!row.shared_with_manager,
+    created_at: row.created_at
+  };
+}
+
+var bodyUpload = multer
+  ? multer({
+      storage: multer.memoryStorage(),
+      limits: { fileSize: 12 * 1024 * 1024, files: 3 }
+    })
+  : null;
+
+var bodyUploadFields = bodyUpload
+  ? bodyUpload.fields([
+      { name: 'front', maxCount: 1 },
+      { name: 'side',  maxCount: 1 },
+      { name: 'back',  maxCount: 1 }
+    ])
+  : function(req, _res, next) { next(); };
+
+app.post('/api/me/body/snapshot', verifyToken, bodyUploadFields, async (req, res) => {
+  try {
+    if (req.user.role !== 'user') return res.status(403).json({ error: 'Only for members' });
+    var userId = req.user.id;
+    var body = req.body || {};
+    var snapshotDate = String(body.snapshot_date || '').trim();
+    if (!snapshotDate) snapshotDate = bbBodyTodayUTC();
+    if (!bbBodyValidYmd(snapshotDate)) {
+      return res.status(400).json({ error: 'snapshot_date must be YYYY-MM-DD.' });
+    }
+    var bodyweightKg = bbBodyParseFloat(body.bodyweight_kg);
+    var waistCm      = bbBodyParseFloat(body.waist_cm);
+    var measurements = bbBodyParseMeasurements(body.measurements);
+    var notes = String(body.notes || '').trim().slice(0, 2000) || null;
+
+    var files = (req.files && typeof req.files === 'object') ? req.files : {};
+    var hasFront = !!(files.front && files.front[0]);
+    var hasSide  = !!(files.side  && files.side[0]);
+    var hasBack  = !!(files.back  && files.back[0]);
+    var hasAnyPhoto = hasFront || hasSide || hasBack;
+    var hasAnyMetric = (bodyweightKg !== null) || (waistCm !== null);
+    if (!hasAnyPhoto && !hasAnyMetric) {
+      return res.status(400).json({ error: 'Add at least one photo, bodyweight, or waist measurement.' });
+    }
+
+    // Persist files to disk
+    var dir = path.join(BODY_UPLOADS_DIR, String(userId));
+    bbBodyEnsureDir(dir);
+    var ts = Date.now();
+    var photoFront = null, photoSide = null, photoBack = null;
+    function saveOne(fileObj, viewName) {
+      if (!fileObj || !fileObj.buffer) return null;
+      var ext = bbBodyExtFromMime(fileObj.mimetype, fileObj.originalname);
+      var fname = ts + '-' + viewName + ext;
+      var full  = path.join(dir, fname);
+      fs.writeFileSync(full, fileObj.buffer);
+      return '/uploads/body/' + encodeURIComponent(String(userId)) + '/' + fname;
+    }
+    try {
+      if (hasFront) photoFront = saveOne(files.front[0], 'front');
+      if (hasSide)  photoSide  = saveOne(files.side[0],  'side');
+      if (hasBack)  photoBack  = saveOne(files.back[0],  'back');
+    } catch (e) {
+      console.error('[body-snapshot] file save error:', e.message);
+      return res.status(500).json({ error: 'Could not save photo to disk.' });
+    }
+
+    var inserted = await queryOne(
+      `INSERT INTO body_snapshots
+         (user_id, snapshot_date, photo_front, photo_side, photo_back,
+          bodyweight_kg, waist_cm, measurements, notes, shared_with_manager)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       RETURNING id, user_id, snapshot_date, photo_front, photo_side, photo_back,
+                 bodyweight_kg, waist_cm, measurements, notes,
+                 shared_with_manager, created_at`,
+      [
+        userId,
+        snapshotDate,
+        photoFront,
+        photoSide,
+        photoBack,
+        bodyweightKg,
+        waistCm,
+        measurements ? JSON.stringify(measurements) : null,
+        notes,
+        false
+      ]
+    );
+
+    return res.status(201).json({ snapshot: bbBodyRowToJson(inserted) });
+  } catch (e) {
+    console.error('[body-snapshot POST]', e.message);
+    return res.status(500).json({ error: e.message || 'Failed to save snapshot.' });
+  }
+});
+
+app.get('/api/me/body/snapshots', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'user') return res.status(403).json({ error: 'Only for members' });
+    var rows = await queryAll(
+      `SELECT id, user_id, snapshot_date, photo_front, photo_side, photo_back,
+              bodyweight_kg, waist_cm, measurements, notes,
+              shared_with_manager, created_at
+         FROM body_snapshots
+        WHERE user_id = ?
+        ORDER BY snapshot_date DESC, id DESC
+        LIMIT 200`,
+      [req.user.id]
+    );
+    return res.json({ snapshots: (rows || []).map(bbBodyRowToJson) });
+  } catch (e) {
+    console.error('[body-snapshot GET]', e.message);
+    return res.status(500).json({ error: e.message || 'Failed to load snapshots.' });
+  }
+});
+
+app.delete('/api/me/body/snapshot/:id', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'user') return res.status(403).json({ error: 'Only for members' });
+    var idNum = parseInt(req.params.id, 10);
+    if (!Number.isFinite(idNum) || idNum <= 0) {
+      return res.status(400).json({ error: 'Invalid snapshot id.' });
+    }
+    var existing = await queryOne(
+      `SELECT id, user_id, photo_front, photo_side, photo_back
+         FROM body_snapshots WHERE id = ? AND user_id = ?`,
+      [idNum, req.user.id]
+    );
+    if (!existing) return res.status(404).json({ error: 'Snapshot not found.' });
+    await run(`DELETE FROM body_snapshots WHERE id = ? AND user_id = ?`, [idNum, req.user.id]);
+
+    // Best-effort: unlink the on-disk files (only if they live in our upload dir)
+    var paths = [existing.photo_front, existing.photo_side, existing.photo_back];
+    for (var i = 0; i < paths.length; i++) {
+      var rel = paths[i];
+      if (!rel || typeof rel !== 'string') continue;
+      if (rel.indexOf('/uploads/body/') !== 0) continue;
+      try {
+        var diskPath = path.join(FEED_UPLOADS_DIR, rel.replace(/^\/uploads\//, ''));
+        if (fs.existsSync(diskPath)) fs.unlinkSync(diskPath);
+      } catch (_) { /* best effort */ }
+    }
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('[body-snapshot DELETE]', e.message);
+    return res.status(500).json({ error: e.message || 'Failed to delete snapshot.' });
   }
 });
 
