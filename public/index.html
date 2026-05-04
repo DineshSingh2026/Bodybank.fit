@@ -4491,10 +4491,11 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 @keyframes mrMdFade{from{opacity:0}to{opacity:1}}
 .mr-md-panel{width:min(560px,100%);max-height:calc(100dvh - 48px);background:#0e1216;border:1px solid rgba(200,164,78,0.22);border-radius:16px;box-shadow:0 16px 60px rgba(0,0,0,0.6);display:flex;flex-direction:column;overflow:hidden;animation:mrMdSlide .25s cubic-bezier(.22,1,.36,1)}
 @keyframes mrMdSlide{from{opacity:0;transform:translateY(16px) scale(.98)}to{opacity:1;transform:translateY(0) scale(1)}}
-.mr-md-head{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(255,255,255,0.06);flex-shrink:0;background:linear-gradient(180deg,rgba(200,164,78,0.06) 0%,transparent 100%)}
-.mr-md-back{display:flex;align-items:center;gap:5px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);color:rgba(244,240,232,0.85);padding:6px 11px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;letter-spacing:.04em;flex-shrink:0;font-family:'Outfit',sans-serif;transition:background .2s,border-color .2s}
-.mr-md-back:hover{background:rgba(255,255,255,0.1);border-color:rgba(200,164,78,0.4)}
-.mr-md-back svg{flex-shrink:0}
+.mr-md-head{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-bottom:1px solid rgba(200,164,78,0.18);flex-shrink:0;background:#0e1216;position:sticky;top:0;z-index:2;box-shadow:0 4px 12px rgba(0,0,0,0.3)}
+.mr-md-back{display:flex;align-items:center;gap:6px;background:rgba(200,164,78,0.18);border:1px solid rgba(200,164,78,0.5);color:var(--mr-gold);padding:9px 14px;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;letter-spacing:.04em;flex-shrink:0;font-family:'Outfit',sans-serif;transition:background .2s,border-color .2s,transform .15s;-webkit-tap-highlight-color:transparent;min-height:40px}
+.mr-md-back:hover{background:rgba(200,164,78,0.28);border-color:var(--mr-gold)}
+.mr-md-back:active{transform:scale(0.96)}
+.mr-md-back svg{flex-shrink:0;width:16px;height:16px}
 .mr-md-title-block{flex:1;min-width:0}
 .mr-md-tier{display:inline-block;font-size:9px;font-weight:700;letter-spacing:1.5px;padding:3px 8px;border-radius:10px;text-transform:uppercase;margin-bottom:6px}
 .mr-md-tier.Strong{background:rgba(52,211,153,0.14);color:#34d399;border:1px solid rgba(52,211,153,0.35)}
@@ -4506,6 +4507,18 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .mr-md-score-block{flex-shrink:0;text-align:right;display:flex;align-items:baseline;gap:2px;padding-top:14px}
 .mr-md-score-num{font-family:'Bebas Neue',sans-serif;font-size:38px;color:var(--mr-gold);line-height:1}
 .mr-md-score-den{font-size:11px;color:rgba(244,240,232,0.4)}
+
+/* Mobile: fullscreen panel so the sticky back button sits cleanly at the top */
+@media(max-width:560px){
+  .mr-md-overlay{padding:0;align-items:stretch;justify-content:stretch}
+  .mr-md-panel{width:100%;max-width:none;max-height:100dvh;height:100dvh;border-radius:0;border:none}
+  .mr-md-head{padding:max(12px,env(safe-area-inset-top)) 14px 12px;gap:10px}
+  .mr-md-back{padding:10px 14px;font-size:13px;min-height:44px}
+  .mr-md-title{font-size:22px}
+  .mr-md-score-num{font-size:32px}
+  .mr-md-score-block{padding-top:max(12px,env(safe-area-inset-top))}
+  .mr-md-body{padding:14px;padding-bottom:max(20px,env(safe-area-inset-bottom))}
+}
 
 .mr-md-body{padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
 .mr-md-hero{position:relative;width:100%;background:linear-gradient(180deg,#181d23 0%,#0d1015 100%);border-radius:12px;border:1px solid rgba(255,255,255,0.05);padding:18px;margin-bottom:18px;overflow:hidden;display:flex;align-items:center;justify-content:center}
