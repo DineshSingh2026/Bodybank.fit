@@ -4679,7 +4679,9 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bbody-snap-card:hover{border-color:rgba(200,164,78,0.3)}
 .bbody-snap-card.is-compare-target{border-color:rgba(168,123,255,0.65);box-shadow:0 0 0 2px rgba(168,123,255,0.2)}
 .bbody-snap-thumb{position:relative;width:100%;aspect-ratio:3/4;background:#0e0c0a;display:flex;align-items:center;justify-content:center;overflow:hidden}
-.bbody-snap-thumb img{width:100%;height:100%;object-fit:cover;display:block}
+/* Phase 5: transparent PNGs (bg-removed) must let the dark thumb bg show through;
+   ensure no UA-default white fills in around the alpha channel. */
+.bbody-snap-thumb img{width:100%;height:100%;object-fit:cover;display:block;background:transparent}
 .bbody-snap-thumb-empty{font-size:38px;opacity:.45}
 .bbody-snap-date-pill{position:absolute;top:8px;left:8px;background:rgba(0,0,0,0.65);color:#f4f0e8;font-size:11px;font-weight:600;letter-spacing:.4px;padding:4px 9px;border-radius:6px;backdrop-filter:blur(4px)}
 .bbody-snap-info{padding:10px 12px 12px;display:flex;flex-direction:column;gap:8px}
@@ -4692,6 +4694,33 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bbody-snap-action.is-compare{color:#d8c5ff;border-color:rgba(168,123,255,0.3)}
 .bbody-snap-action.is-delete{color:#f8c8c8;border-color:rgba(220,80,80,0.3)}
 .bbody-snap-action.is-delete:hover{background:rgba(220,80,80,0.1)}
+.bbody-snap-action.is-share{color:#c8e7c0;border-color:rgba(120,200,120,0.28)}
+.bbody-snap-action.is-share:hover{background:rgba(120,200,120,0.10)}
+.bbody-snap-action.is-share.is-on{background:rgba(120,200,120,0.18);border-color:rgba(120,200,120,0.55);color:#e0f5d8}
+.bbody-snap-action.is-share[disabled]{opacity:.6;cursor:wait}
+/* Phase 4: admin Body sub-tab grid + lightbox */
+.admin-cp-subtabs{display:flex}
+.admin-cp-subtab:hover{color:#f4f0e8}
+.admin-cp-body-grid{display:flex}
+.admin-cp-body-card{flex:0 0 auto;width:160px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;overflow:hidden;cursor:pointer;transition:border-color .15s,transform .15s}
+.admin-cp-body-card:hover{border-color:rgba(200,164,78,0.5);transform:translateY(-2px)}
+.admin-cp-body-card-thumb{width:100%;aspect-ratio:3/4;background:rgba(0,0,0,0.35);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.admin-cp-body-card-thumb img{width:100%;height:100%;object-fit:cover}
+.admin-cp-body-card-thumb-empty{font-size:28px;opacity:.45}
+.admin-cp-body-card-meta{padding:8px 10px;font-size:12px;color:#f4f0e8;line-height:1.35}
+.admin-cp-body-card-date{font-weight:700;font-size:12px;color:var(--gold);letter-spacing:.5px;margin-bottom:3px}
+.admin-cp-body-card-metrics{color:rgba(244,240,232,0.75);font-size:11.5px}
+.admin-cp-body-lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.88);z-index:2147483600;display:none;align-items:center;justify-content:center;padding:24px}
+.admin-cp-body-lightbox.is-open{display:flex}
+.admin-cp-body-lightbox-inner{max-width:min(95vw,900px);max-height:90vh;background:#1a1410;border:1px solid rgba(200,164,78,0.3);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.admin-cp-body-lightbox-img{flex:1;min-height:0;background:#000;display:flex;align-items:center;justify-content:center;overflow:auto}
+.admin-cp-body-lightbox-img img{max-width:100%;max-height:80vh;display:block}
+.admin-cp-body-lightbox-meta{padding:10px 16px;background:rgba(255,255,255,0.03);color:#f4f0e8;font-size:13px;display:flex;justify-content:space-between;align-items:center;gap:12px}
+.admin-cp-body-lightbox-close{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);color:#f4f0e8;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-weight:700}
+.admin-cp-body-lightbox-close:hover{background:rgba(255,255,255,0.12)}
+.admin-cp-body-views{display:flex;gap:6px;flex-wrap:wrap}
+.admin-cp-body-view-btn{background:rgba(200,164,78,0.10);border:1px solid rgba(200,164,78,0.35);color:var(--gold);padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.admin-cp-body-view-btn.is-active,.admin-cp-body-view-btn:hover{background:rgba(200,164,78,0.22)}
 
 /* Modals (overlay + dialog) */
 .bbody-modal-overlay{position:fixed;inset:0;background:rgba(8,6,4,0.78);z-index:9500;display:none;align-items:flex-end;justify-content:center;padding:0;backdrop-filter:blur(2px);-webkit-backdrop-filter:blur(2px)}
@@ -4739,6 +4768,15 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bbody-form-input:focus{outline:none;border-color:rgba(200,164,78,0.55)}
 .bbody-form-textarea{resize:vertical;min-height:60px}
 
+/* Phase 5: bg-removal opt-in toggle */
+.bbody-bgr-toggle{display:flex;align-items:flex-start;gap:10px;background:rgba(200,164,78,0.06);border:1px solid rgba(200,164,78,0.22);border-radius:10px;padding:11px 13px;cursor:pointer;-webkit-tap-highlight-color:transparent;transition:border-color .15s,background .15s}
+.bbody-bgr-toggle:hover{border-color:rgba(200,164,78,0.4);background:rgba(200,164,78,0.09)}
+.bbody-bgr-toggle input[type=checkbox]{flex-shrink:0;margin:2px 0 0;width:16px;height:16px;accent-color:#c8a44e;cursor:pointer}
+.bbody-bgr-toggle-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+.bbody-bgr-toggle-title{font-size:13px;font-weight:700;color:#f4f0e8;letter-spacing:.2px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bbody-bgr-toggle-rec{font-size:9.5px;letter-spacing:1px;font-weight:700;text-transform:uppercase;background:rgba(200,164,78,0.18);color:#e8c977;padding:2px 7px;border-radius:5px;border:1px solid rgba(200,164,78,0.35)}
+.bbody-bgr-toggle-sub{font-size:11.5px;line-height:1.45;color:rgba(244,240,232,0.62)}
+
 /* Compare modal stage */
 .bbody-modal--full{max-height:96vh}
 .bbody-compare-body{gap:12px}
@@ -4746,6 +4784,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bbody-compare-date{font-family:'Bebas Neue',sans-serif;letter-spacing:1.2px;font-size:18px;color:#f4f0e8}
 .bbody-compare-date-arrow{color:rgba(200,164,78,0.7)}
 .bbody-compare-stage{position:relative;width:100%;aspect-ratio:3/4;max-height:62vh;background:#0a0907;border-radius:12px;overflow:hidden;user-select:none;touch-action:none;border:1px solid rgba(255,255,255,0.06)}
+/* Phase 5: bg-removed PNGs need a neutral dark backdrop, NOT the browser's
+   default white, when they sit on the slider stage. */
 .bbody-compare-img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#0a0907}
 .bbody-compare-img--a{z-index:1}
 .bbody-compare-img--b{z-index:2;clip-path:inset(0 50% 0 0);-webkit-clip-path:inset(0 50% 0 0)}
@@ -5098,6 +5138,23 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               <div class="weekly-recap-item"><span class="lbl">Avg water</span><span class="num" id="recapWater">—</span></div>
               <div class="weekly-recap-item"><span class="lbl">Avg protein</span><span class="num" id="recapProtein">—</span></div>
               <div class="weekly-recap-item"><span class="lbl">Avg sleep</span><span class="num" id="recapSleep">—</span></div>
+            </div>
+          </div>
+        </div>
+
+        <div id="bbBodyHomePromptCard" class="bb-body-home-prompt" style="display:none" role="region" aria-label="Body snapshot reminder">
+          <div class="bb-body-home-prompt__inner">
+            <div class="bb-body-home-prompt__icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            </div>
+            <div class="bb-body-home-prompt__copy">
+              <div class="bb-body-home-prompt__eyebrow">My Body</div>
+              <div class="bb-body-home-prompt__title" id="bbBodyHomePromptTitle">Time for a new snapshot</div>
+              <div class="bb-body-home-prompt__sub" id="bbBodyHomePromptSub">Capture your progress photos and bodyweight to see how far you&apos;ve come.</div>
+            </div>
+            <div class="bb-body-home-prompt__actions">
+              <button type="button" class="bb-body-home-prompt__cta" id="bbBodyHomePromptCta">Take Snapshot</button>
+              <button type="button" class="bb-body-home-prompt__dismiss" id="bbBodyHomePromptDismiss">Not now</button>
             </div>
           </div>
         </div>
@@ -5737,6 +5794,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <div class="bbody-cta-text">
           <div class="bbody-cta-title">Today's Snapshot</div>
           <div class="bbody-cta-sub">Capture progress photos and a quick measurement.</div>
+          <div class="bbody-cta-sub" style="margin-top:6px;font-size:11.5px;opacity:.85">Photos and measurements are private. You can opt to share specific snapshots with your coach.</div>
         </div>
         <button type="button" class="bbody-cta-btn" onclick="bbBodyOpenUpload()">+ Add Snapshot</button>
       </div>
@@ -6607,6 +6665,11 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               </div>
             </div>
           </div>
+          <!-- Phase 4: sub-tabs for the user-detail view (Progress | Body) -->
+          <div id="adminCpSubTabs" class="admin-cp-subtabs" style="display:none;margin:0 0 14px 0;border-bottom:1px solid rgba(255,255,255,0.08);gap:0;flex-wrap:nowrap;overflow-x:auto">
+            <button type="button" class="admin-cp-subtab active" data-cp-subtab="progress" onclick="bbAdminCpSwitchSubtab('progress')" style="padding:10px 16px;background:none;border:none;border-bottom:2px solid var(--gold);color:var(--gold);font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:12px;cursor:pointer">Progress</button>
+            <button type="button" class="admin-cp-subtab" data-cp-subtab="body" onclick="bbAdminCpSwitchSubtab('body')" style="padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:12px;cursor:pointer">Body</button>
+          </div>
           <div id="adminCpDetail"><p class="admin-cp-placeholder">Select a user to view progress.</p></div>
           <div id="adminCpKpis" class="admin-cp-kpis" style="display:none"></div>
           <div id="adminCpCharts" class="progress-charts admin-cp-charts" style="display:none;margin-top:20px">
@@ -6639,6 +6702,11 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               <p class="chart-title">Fitchef Nutrition 14-day trend — calories and protein</p>
               <p class="chart-foot">CoPowered by Fitchef</p>
             </div>
+          </div>
+          <!-- Phase 4: Body sub-tab panel — only shared snapshots are loaded here. -->
+          <div id="adminCpBodyPanel" class="admin-cp-body-panel" style="display:none;margin-top:20px">
+            <div id="adminCpBodyStatus" class="admin-cp-placeholder">Loading shared snapshots…</div>
+            <div id="adminCpBodyGrid" class="admin-cp-body-grid" style="display:none;gap:14px;flex-wrap:wrap"></div>
           </div>
         </div>
       </div>
@@ -7679,6 +7747,21 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <h2 class="sunday-checkin-title" id="adminAttentionClientViewTitle">Client Attention Details</h2>
     <div class="view-detail-body" id="adminAttentionClientViewBody"></div>
     <div class="view-detail-actions" id="adminAttentionClientViewActions"></div>
+  </div>
+</div>
+
+<!-- Phase 4: Admin body-snapshot lightbox (single instance, content swapped per click) -->
+<div class="admin-cp-body-lightbox" id="adminCpBodyLightbox" role="dialog" aria-modal="true" aria-label="Body snapshot" onclick="if(event.target===this)bbAdminCpBodyCloseLightbox()">
+  <div class="admin-cp-body-lightbox-inner">
+    <div class="admin-cp-body-lightbox-meta">
+      <div>
+        <div id="adminCpBodyLbDate" style="font-weight:700;color:var(--gold);letter-spacing:.5px"></div>
+        <div id="adminCpBodyLbMetrics" style="font-size:12px;color:rgba(244,240,232,0.75);margin-top:2px"></div>
+      </div>
+      <div class="admin-cp-body-views" id="adminCpBodyLbViews"></div>
+      <button type="button" class="admin-cp-body-lightbox-close" onclick="bbAdminCpBodyCloseLightbox()">Close</button>
+    </div>
+    <div class="admin-cp-body-lightbox-img"><img id="adminCpBodyLbImg" alt="Body snapshot"></div>
   </div>
 </div>
 
@@ -12830,6 +12913,11 @@ async function loadAdminUserProgressDetail(userId, userName) {
   userId = String(userId || '').trim();
   window._adminCpSelectedUserId = userId;
   window._adminCpSelectedClientName = String(userName || '').trim();
+  // Phase 4: invalidate cached body snapshots when switching users
+  if (window._adminCpBodyLoadedFor !== userId) {
+    window._adminCpBodyLoadedFor = null;
+    window._adminCpBodySnapshots = [];
+  }
   var detailEl = document.getElementById('adminCpDetail');
   var kpisEl = document.getElementById('adminCpKpis');
   var chartsEl = document.getElementById('adminCpCharts');
@@ -12882,6 +12970,10 @@ async function loadAdminUserProgressDetail(userId, userName) {
     if (suspendBtn) { suspendBtn.style.display = suspended ? 'none' : ''; suspendBtn.disabled = false; suspendBtn.textContent = 'Suspend user'; }
     if (reactivateBtn) { reactivateBtn.style.display = suspended ? '' : 'none'; reactivateBtn.disabled = false; reactivateBtn.textContent = 'Re-activate'; }
     if (removeBtn) { removeBtn.style.display = ''; removeBtn.disabled = false; removeBtn.textContent = 'Remove user'; }
+    // Phase 4: reveal sub-tabs (Progress | Body) and reset to Progress view
+    var cpSubtabs = document.getElementById('adminCpSubTabs');
+    if (cpSubtabs) cpSubtabs.style.display = 'flex';
+    bbAdminCpSwitchSubtab('progress');
     detailEl.innerHTML = '<h3 class="admin-cp-heading">' + (userName || 'Client').replace(/</g, '&lt;') + '</h3><p class="admin-cp-placeholder">KPIs and charts below. Use the button to get a link to share with this client.' + (suspended ? ' <span style="color:var(--gold)">(User is suspended)</span>' : '') + '</p>';
     var kpis = [
       { lbl: 'Current Weight', num: bbFmtKg(data.currentWeight) },
@@ -12928,6 +13020,185 @@ async function loadAdminUserProgressDetail(userId, userName) {
     detailEl.innerHTML = '<div class="admin-cp-error-msg">Could not display data. Check console for details.</div>';
   }
 }
+
+// ── Phase 4: admin Client Progress detail — Body sub-tab ───────────
+// Switches between the existing "Progress" view and the new "Body" view (shared snapshots only).
+// We don't tear down the Progress DOM; we just hide/show it so revisiting is instant.
+window._adminCpBodySnapshots = [];
+window._adminCpBodyLoadedFor = null;
+function bbAdminCpSwitchSubtab(which) {
+  var tabs = document.querySelectorAll('.admin-cp-subtab');
+  for (var i = 0; i < tabs.length; i++) {
+    var k = tabs[i].getAttribute('data-cp-subtab');
+    var on = (k === which);
+    tabs[i].classList.toggle('active', on);
+    tabs[i].style.color = on ? 'var(--gold)' : 'var(--muted)';
+    tabs[i].style.borderBottomColor = on ? 'var(--gold)' : 'transparent';
+  }
+  var detailEl = document.getElementById('adminCpDetail');
+  var kpisEl = document.getElementById('adminCpKpis');
+  var chartsEl = document.getElementById('adminCpCharts');
+  var bodyPanel = document.getElementById('adminCpBodyPanel');
+  if (which === 'body') {
+    if (detailEl) detailEl.style.display = 'none';
+    if (kpisEl) kpisEl.style.display = 'none';
+    if (chartsEl) chartsEl.style.display = 'none';
+    if (bodyPanel) bodyPanel.style.display = '';
+    bbAdminCpLoadBody();
+  } else {
+    if (detailEl) detailEl.style.display = '';
+    if (kpisEl && kpisEl.innerHTML.trim()) kpisEl.style.display = 'grid';
+    if (chartsEl && chartsEl.children && chartsEl.children.length) chartsEl.style.display = 'grid';
+    if (bodyPanel) bodyPanel.style.display = 'none';
+  }
+}
+
+async function bbAdminCpLoadBody() {
+  var userId = window._adminCpSelectedUserId || '';
+  var statusEl = document.getElementById('adminCpBodyStatus');
+  var gridEl = document.getElementById('adminCpBodyGrid');
+  if (!gridEl || !statusEl) return;
+  if (!userId) {
+    statusEl.style.display = '';
+    statusEl.textContent = 'Select a user from the list first.';
+    gridEl.style.display = 'none';
+    gridEl.innerHTML = '';
+    return;
+  }
+  if (window._adminCpBodyLoadedFor === userId && Array.isArray(window._adminCpBodySnapshots)) {
+    bbAdminCpRenderBody(window._adminCpBodySnapshots);
+    return;
+  }
+  statusEl.style.display = '';
+  statusEl.textContent = 'Loading shared snapshots…';
+  gridEl.style.display = 'none';
+  gridEl.innerHTML = '';
+  try {
+    var data = await apiCall('GET', '/api/admin/users/' + encodeURIComponent(userId) + '/body/snapshots');
+    if (data && data.error) {
+      statusEl.textContent = 'Error: ' + data.error;
+      return;
+    }
+    var snaps = (data && Array.isArray(data.snapshots)) ? data.snapshots : [];
+    window._adminCpBodySnapshots = snaps;
+    window._adminCpBodyLoadedFor = userId;
+    bbAdminCpRenderBody(snaps);
+  } catch (e) {
+    statusEl.textContent = 'Network error loading shared snapshots.';
+  }
+}
+
+function bbAdminCpRenderBody(snaps) {
+  var statusEl = document.getElementById('adminCpBodyStatus');
+  var gridEl = document.getElementById('adminCpBodyGrid');
+  if (!gridEl || !statusEl) return;
+  if (!snaps || !snaps.length) {
+    statusEl.style.display = '';
+    statusEl.textContent = "This member hasn't shared any body snapshots yet.";
+    gridEl.style.display = 'none';
+    gridEl.innerHTML = '';
+    return;
+  }
+  statusEl.style.display = 'none';
+  gridEl.style.display = 'flex';
+  function fmtDate(ymd) {
+    var s = String(ymd || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+    try { return new Date(s + 'T00:00:00Z').toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric', timeZone:'UTC' }); }
+    catch (_) { return s; }
+  }
+  var html = '';
+  for (var i = 0; i < snaps.length; i++) {
+    var s = snaps[i];
+    var thumb = s.photo_front || s.photo_side || s.photo_back || '';
+    var bw = (s.bodyweight_kg != null) ? Number(s.bodyweight_kg).toFixed(1) + ' kg' : '';
+    var waist = (s.waist_cm != null) ? Number(s.waist_cm).toFixed(1) + ' cm' : '';
+    var meta = [bw && ('BW ' + bw), waist && ('W ' + waist)].filter(Boolean).join(' · ') || 'No measurements';
+    var dateLbl = fmtDate(s.snapshot_date);
+    html += '<div class="admin-cp-body-card" data-idx="' + i + '" onclick="bbAdminCpBodyOpenLightbox(' + i + ')">';
+    html += '<div class="admin-cp-body-card-thumb">';
+    if (thumb) html += '<img src="' + escapeHtml(thumb) + '" alt="Snapshot ' + escapeHtml(dateLbl) + '" loading="lazy">';
+    else html += '<span class="admin-cp-body-card-thumb-empty" aria-hidden="true">📷</span>';
+    html += '</div>';
+    html += '<div class="admin-cp-body-card-meta">';
+    html += '<div class="admin-cp-body-card-date">' + escapeHtml(dateLbl) + '</div>';
+    html += '<div class="admin-cp-body-card-metrics">' + escapeHtml(meta) + '</div>';
+    html += '</div>';
+    html += '</div>';
+  }
+  gridEl.innerHTML = html;
+}
+
+function bbAdminCpBodyOpenLightbox(idx) {
+  var snaps = window._adminCpBodySnapshots || [];
+  var s = snaps[idx];
+  if (!s) return;
+  var lb = document.getElementById('adminCpBodyLightbox');
+  var img = document.getElementById('adminCpBodyLbImg');
+  var dateEl = document.getElementById('adminCpBodyLbDate');
+  var metricsEl = document.getElementById('adminCpBodyLbMetrics');
+  var viewsEl = document.getElementById('adminCpBodyLbViews');
+  if (!lb || !img) return;
+  function fmtDate(ymd) {
+    var s2 = String(ymd || '');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s2)) return s2;
+    try { return new Date(s2 + 'T00:00:00Z').toLocaleDateString(undefined, { year:'numeric', month:'short', day:'numeric', timeZone:'UTC' }); }
+    catch (_) { return s2; }
+  }
+  if (dateEl) dateEl.textContent = fmtDate(s.snapshot_date);
+  var bw = (s.bodyweight_kg != null) ? Number(s.bodyweight_kg).toFixed(1) + ' kg' : '';
+  var waist = (s.waist_cm != null) ? Number(s.waist_cm).toFixed(1) + ' cm' : '';
+  var meta = [bw && ('BW ' + bw), waist && ('Waist ' + waist)].filter(Boolean).join(' · ');
+  if (metricsEl) metricsEl.textContent = meta || 'No measurements logged';
+  var views = [];
+  if (s.photo_front) views.push({ k: 'front', lbl: 'Front', url: s.photo_front });
+  if (s.photo_side)  views.push({ k: 'side',  lbl: 'Side',  url: s.photo_side });
+  if (s.photo_back)  views.push({ k: 'back',  lbl: 'Back',  url: s.photo_back });
+  if (viewsEl) {
+    if (views.length > 1) {
+      viewsEl.innerHTML = views.map(function(v, i) {
+        return '<button type="button" class="admin-cp-body-view-btn' + (i === 0 ? ' is-active' : '') + '" data-url="' + escapeHtml(v.url) + '" onclick="bbAdminCpBodyShowView(this)">' + escapeHtml(v.lbl) + '</button>';
+      }).join('');
+    } else {
+      viewsEl.innerHTML = '';
+    }
+  }
+  if (views.length) {
+    img.src = views[0].url;
+    img.alt = 'Body snapshot ' + (s.snapshot_date || '');
+    img.style.display = '';
+  } else {
+    img.removeAttribute('src');
+    img.style.display = 'none';
+  }
+  lb.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function bbAdminCpBodyShowView(btn) {
+  if (!btn) return;
+  var url = btn.getAttribute('data-url') || '';
+  var img = document.getElementById('adminCpBodyLbImg');
+  if (img && url) img.src = url;
+  var btns = document.querySelectorAll('.admin-cp-body-view-btn');
+  for (var i = 0; i < btns.length; i++) btns[i].classList.toggle('is-active', btns[i] === btn);
+}
+
+function bbAdminCpBodyCloseLightbox() {
+  var lb = document.getElementById('adminCpBodyLightbox');
+  if (lb) lb.classList.remove('is-open');
+  document.body.style.overflow = '';
+  var img = document.getElementById('adminCpBodyLbImg');
+  if (img) img.removeAttribute('src');
+}
+
+document.addEventListener('keydown', function(e) {
+  if (e && (e.key === 'Escape' || e.keyCode === 27)) {
+    var lb = document.getElementById('adminCpBodyLightbox');
+    if (lb && lb.classList.contains('is-open')) bbAdminCpBodyCloseLightbox();
+  }
+});
+
 async function runClientProgressAudit() {
   var btn = document.getElementById('adminCpAuditBtn');
   var out = document.getElementById('adminCpAuditResult');
@@ -13033,6 +13304,11 @@ async function loadClientProgressUsers() {
   var suw = document.getElementById('adminCpShareUrlWrap');
   if (sw) sw.style.display = 'none';
   if (suw) suw.style.display = 'none';
+  // Phase 4: hide sub-tabs and body panel when no user is selected
+  var cpSubtabs = document.getElementById('adminCpSubTabs');
+  var cpBodyPanel = document.getElementById('adminCpBodyPanel');
+  if (cpSubtabs) cpSubtabs.style.display = 'none';
+  if (cpBodyPanel) cpBodyPanel.style.display = 'none';
   window._adminCpSelectedUserId = null;
   window._adminCpSelectedClientName = '';
   destroyAdminProgressCharts();
@@ -13658,6 +13934,7 @@ function openUserDashboard(user) {
   loadMicroGoals();
   loadScorecard();
   bbLoadCoinSummary(true);
+  if (typeof window.bbBodyHomeMaybePrompt === 'function') window.bbBodyHomeMaybePrompt();
   // Desktop home (≥768px) uses u-stat-*, charts, u-prog-*, u-activity-body — only filled by bbRefreshDesktopUserDashboard
   if (window.innerWidth >= 768) {
     setTimeout(function () {
@@ -14192,6 +14469,7 @@ function switchUserTab(tab) {
     loadScorecard();
     bbLoadCoinSummary(true);
     if (typeof loadMyHealthReports === 'function') loadMyHealthReports();
+    if (typeof window.bbBodyHomeMaybePrompt === 'function') window.bbBodyHomeMaybePrompt();
     if (window.innerWidth >= 768) {
       setTimeout(function() { bbRefreshDesktopUserDashboard(); }, 150);
     }
@@ -21839,10 +22117,37 @@ window.mrShareCard = function() {
         </div>
       </div>
 
+      <div class="bbody-form-grid">
+        <div class="bbody-form-group">
+          <label class="bbody-form-label">Chest (cm) <span style="opacity:.55;font-weight:400">optional</span></label>
+          <input type="number" name="chest_cm" step="0.1" min="0" max="250" inputmode="decimal" placeholder="e.g. 95" class="bbody-form-input">
+        </div>
+        <div class="bbody-form-group">
+          <label class="bbody-form-label">Arms (cm) <span style="opacity:.55;font-weight:400">avg L+R</span></label>
+          <input type="number" name="arms_cm" step="0.1" min="0" max="100" inputmode="decimal" placeholder="e.g. 35" class="bbody-form-input">
+        </div>
+        <div class="bbody-form-group">
+          <label class="bbody-form-label">Hips (cm) <span style="opacity:.55;font-weight:400">optional</span></label>
+          <input type="number" name="hips_cm" step="0.1" min="0" max="200" inputmode="decimal" placeholder="e.g. 95" class="bbody-form-input">
+        </div>
+        <div class="bbody-form-group">
+          <label class="bbody-form-label">Thighs (cm) <span style="opacity:.55;font-weight:400">avg L+R</span></label>
+          <input type="number" name="thighs_cm" step="0.1" min="0" max="120" inputmode="decimal" placeholder="e.g. 55" class="bbody-form-input">
+        </div>
+      </div>
+
       <div class="bbody-form-group">
         <label class="bbody-form-label">Notes (optional)</label>
         <textarea name="notes" rows="2" maxlength="2000" placeholder="How did the week feel?" class="bbody-form-input bbody-form-textarea"></textarea>
       </div>
+
+      <label class="bbody-bgr-toggle">
+        <input type="checkbox" name="remove_bg" id="bbBodyRemoveBg" value="1" checked>
+        <span class="bbody-bgr-toggle-text">
+          <span class="bbody-bgr-toggle-title">Auto-remove background <span class="bbody-bgr-toggle-rec">recommended</span></span>
+          <span class="bbody-bgr-toggle-sub">Strips the room/lighting so you can focus on body shape changes. Uncheck to upload your photo as-is.</span>
+        </span>
+      </label>
 
       <div class="bbody-modal-msg" id="bbBodyUploadMsg" style="display:none"></div>
 
@@ -21999,10 +22304,32 @@ function bbBodyRenderTimeline() {
     html += '<div class="bbody-snap-metrics">';
     if (bw) html += '<span class="bbody-snap-metric"><strong>BW</strong>' + bbBodyEscape(bw) + '</span>';
     if (waist) html += '<span class="bbody-snap-metric"><strong>W</strong>' + bbBodyEscape(waist) + '</span>';
-    if (!bw && !waist) html += '<span class="bbody-snap-metric" style="opacity:.6">No measurements</span>';
+    var ms = (s.measurements && typeof s.measurements === 'object') ? s.measurements : null;
+    var hasMeas = false;
+    if (ms) {
+      var chipDefs = [
+        { key: 'chest_cm',  label: 'Chest' },
+        { key: 'arms_cm',   label: 'Arms' },
+        { key: 'hips_cm',   label: 'Hips' },
+        { key: 'thighs_cm', label: 'Thighs' }
+      ];
+      for (var ci = 0; ci < chipDefs.length; ci++) {
+        var def = chipDefs[ci];
+        var v = ms[def.key];
+        if (v === null || v === undefined || v === '') continue;
+        var nv = Number(v);
+        if (!isFinite(nv) || nv <= 0) continue;
+        hasMeas = true;
+        html += '<span class="bbody-snap-metric"><strong>' + bbBodyEscape(def.label) + '</strong>' + bbBodyEscape(nv.toFixed(1) + 'cm') + '</span>';
+      }
+    }
+    if (!bw && !waist && !hasMeas) html += '<span class="bbody-snap-metric" style="opacity:.6">No measurements</span>';
     html += '</div>';
+    var shared = !!s.shared_with_manager;
+    var shareLbl = shared ? 'Shared with coach ✓' : 'Share with coach';
     html += '<div class="bbody-snap-actions">';
     html += '<button type="button" class="bbody-snap-action is-compare" onclick="bbBodyEnterCompareMode(' + bbBodyEscape(s.id) + ')">' + (isCompareTarget ? 'Selected' : 'Compare') + '</button>';
+    html += '<button type="button" class="bbody-snap-action is-share' + (shared ? ' is-on' : '') + '" data-id="' + bbBodyEscape(s.id) + '" aria-pressed="' + (shared ? 'true' : 'false') + '" onclick="bbBodyToggleShare(' + bbBodyEscape(s.id) + ')">' + bbBodyEscape(shareLbl) + '</button>';
     html += '<button type="button" class="bbody-snap-action is-delete" onclick="bbBodyDeleteSnapshot(' + bbBodyEscape(s.id) + ')" aria-label="Delete snapshot">Delete</button>';
     html += '</div>';
     html += '</div>';
@@ -22080,6 +22407,54 @@ window.bbBodyDeleteSnapshot = async function(snapshotId) {
   }
 };
 
+// Phase 4: opt-in share toggle. Optimistic UI; reverts the local cached flag on failure.
+window.bbBodyToggleShare = async function(snapshotId) {
+  var idNum = Number(snapshotId);
+  if (!isFinite(idNum)) return;
+  var snap = null;
+  for (var i = 0; i < bbBodySnapshots.length; i++) {
+    if (Number(bbBodySnapshots[i].id) === idNum) { snap = bbBodySnapshots[i]; break; }
+  }
+  if (!snap) return;
+  var prev = !!snap.shared_with_manager;
+  var next = !prev;
+  snap.shared_with_manager = next;
+  bbBodyRenderTimeline();
+  var btn = document.querySelector('.bbody-snap-action.is-share[data-id="' + bbBodyEscape(idNum) + '"]');
+  if (btn) btn.setAttribute('disabled', 'disabled');
+  try {
+    var res = await fetch('/api/me/body/snapshot/' + idNum, {
+      method: 'PATCH',
+      headers: (function() {
+        var h = bbBodyAuthHeader();
+        h['Content-Type'] = 'application/json';
+        return h;
+      })(),
+      body: JSON.stringify({ shared_with_manager: next })
+    });
+    if (!res.ok) {
+      snap.shared_with_manager = prev;
+      var msg = 'Could not update sharing (' + res.status + ').';
+      try { var j = await res.json(); if (j && j.error) msg = j.error; } catch (_) {}
+      bbBodyShowError(msg);
+      bbBodyRenderTimeline();
+      return;
+    }
+    try {
+      var data = await res.json();
+      if (data && data.snapshot && typeof data.snapshot.shared_with_manager === 'boolean') {
+        snap.shared_with_manager = data.snapshot.shared_with_manager;
+      }
+    } catch (_) {}
+    bbBodyShowError('');
+    bbBodyRenderTimeline();
+  } catch (e) {
+    snap.shared_with_manager = prev;
+    bbBodyShowError('Network error updating sharing.');
+    bbBodyRenderTimeline();
+  }
+};
+
 // ── Upload modal ────────────────────────────────────────────────
 window.bbBodyOpenUpload = function() {
   var ov = document.getElementById('bb-body-upload-modal');
@@ -22097,6 +22472,9 @@ window.bbBodyOpenUpload = function() {
   var ymd = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   var dateEl = document.getElementById('bbBodyUploadDate');
   if (dateEl) dateEl.value = ymd;
+  // Phase 5: bg-removal opt-in defaults to ON each time the modal opens.
+  var rmBgEl = document.getElementById('bbBodyRemoveBg');
+  if (rmBgEl) rmBgEl.checked = true;
   var msg = document.getElementById('bbBodyUploadMsg');
   if (msg) { msg.style.display = 'none'; msg.textContent = ''; msg.classList.remove('is-ok'); }
   var btn = document.getElementById('bbBodyUploadSubmit');
@@ -22159,6 +22537,12 @@ window.bbBodySubmitUpload = async function(form) {
   // Strip empty file fields so multer doesn't choke
   // (Browsers send empty files as size=0 — that's fine; multer will treat as missing.)
 
+  // Phase 5: explicitly send remove_bg ('1' or '0') so server knows the user's
+  // choice. Native unchecked checkboxes are omitted from FormData by default,
+  // which would (incorrectly) fall through to the server-side default of ON.
+  var rmBgEl = document.getElementById('bbBodyRemoveBg');
+  fd.set('remove_bg', (rmBgEl && rmBgEl.checked) ? '1' : '0');
+
   // Light client validation: at least one of photo / bw / waist
   var bwVal = String(fd.get('bodyweight_kg') || '').trim();
   var wsVal = String(fd.get('waist_cm') || '').trim();
@@ -22167,12 +22551,40 @@ window.bbBodySubmitUpload = async function(form) {
     var f = fd.get(name);
     if (f && typeof f === 'object' && f.size && f.size > 0) hasPhoto = true;
   });
-  if (!bwVal && !wsVal && !hasPhoto) {
+  // Build optional measurements object (chest/arms/hips/thighs) — locked contract
+  var measurementsObj = {};
+  var measurementKeys = ['chest_cm', 'arms_cm', 'hips_cm', 'thighs_cm'];
+  var hasMeasurement = false;
+  for (var mi = 0; mi < measurementKeys.length; mi++) {
+    var mk = measurementKeys[mi];
+    var raw = String(fd.get(mk) || '').trim();
+    if (!raw) continue;
+    var num = Number(raw);
+    if (isFinite(num) && num > 0) {
+      measurementsObj[mk] = num;
+      hasMeasurement = true;
+    }
+  }
+  // Always send measurements field (as JSON string), even when empty
+  fd.set('measurements', JSON.stringify(measurementsObj));
+  // Strip the raw form fields so they don't get persisted as separate columns
+  for (var mj = 0; mj < measurementKeys.length; mj++) {
+    fd.delete(measurementKeys[mj]);
+  }
+
+  if (!bwVal && !wsVal && !hasPhoto && !hasMeasurement) {
     showMsg('Add at least one photo or a measurement.', false);
     return;
   }
 
-  if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+  // Phase 5: bg-removal can take a few seconds on the server (esp. cold start
+  // when the model is being downloaded for the first time). Surface that to
+  // the user so the spinner button doesn't feel broken.
+  var willRemoveBg = !!(rmBgEl && rmBgEl.checked) && hasPhoto;
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = willRemoveBg ? 'Processing…' : 'Saving…';
+  }
   try {
     var res = await fetch('/api/me/body/snapshot', {
       method: 'POST',
@@ -22273,6 +22685,24 @@ window.bbBodyCompare = function(idA, idB) {
     var html = '';
     html += bbBodyCompareDeltaCell('Bodyweight', a.bodyweight_kg, b.bodyweight_kg, 'kg', true);
     html += bbBodyCompareDeltaCell('Waist', a.waist_cm, b.waist_cm, 'cm', true);
+    // Optional limb / hip measurements — only render when present on BOTH snapshots
+    var aMs = (a.measurements && typeof a.measurements === 'object') ? a.measurements : {};
+    var bMs = (b.measurements && typeof b.measurements === 'object') ? b.measurements : {};
+    var measDefs = [
+      { key: 'chest_cm',  label: 'Chest',  lowerIsBetter: false },
+      { key: 'arms_cm',   label: 'Arms',   lowerIsBetter: false },
+      { key: 'hips_cm',   label: 'Hips',   lowerIsBetter: true  },
+      { key: 'thighs_cm', label: 'Thighs', lowerIsBetter: false }
+    ];
+    for (var di = 0; di < measDefs.length; di++) {
+      var d = measDefs[di];
+      var av = aMs[d.key], bv = bMs[d.key];
+      var aOk = (av !== null && av !== undefined && av !== '' && isFinite(Number(av)) && Number(av) > 0);
+      var bOk = (bv !== null && bv !== undefined && bv !== '' && isFinite(Number(bv)) && Number(bv) > 0);
+      if (aOk && bOk) {
+        html += bbBodyCompareDeltaCell(d.label, Number(av), Number(bv), 'cm', d.lowerIsBetter);
+      }
+    }
     var days = bbBodyDaysBetween(a.snapshot_date, b.snapshot_date);
     if (days !== null) {
       html += '<div class="bbody-compare-stat">';
@@ -22361,6 +22791,130 @@ function bbBodyCompareKeyHandler(ev) {
 })();
 </script>
 <!-- ════════════════════════════════════════════════════════════════════ -->
+
+<!-- My Body — Home dashboard prompt (Phase 3) -->
+<style>
+.bb-body-home-prompt{max-width:860px;margin:0 auto 22px;padding:0}
+.bb-body-home-prompt__inner{position:relative;display:flex;align-items:center;gap:16px;flex-wrap:wrap;padding:18px 22px;background:linear-gradient(180deg,rgba(22,18,12,0.96) 0%,rgba(10,8,6,0.98) 100%);border:1px solid rgba(200,164,78,0.28);border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,0.3),0 0 0 1px rgba(200,164,78,0.05) inset;overflow:hidden}
+.bb-body-home-prompt__inner::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;background:linear-gradient(180deg,rgba(200,164,78,0.95),rgba(200,164,78,0.25));border-radius:999px;opacity:.95}
+.bb-body-home-prompt__icon{width:52px;height:52px;flex:0 0 52px;border-radius:14px;background:rgba(200,164,78,0.08);border:1px solid rgba(200,164,78,0.2);display:grid;place-items:center;color:var(--gold)}
+.bb-body-home-prompt__icon svg{width:28px;height:28px}
+.bb-body-home-prompt__copy{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1 1 240px}
+.bb-body-home-prompt__eyebrow{font-size:11px;font-weight:600;letter-spacing:3px;text-transform:uppercase;color:var(--gold);opacity:.9}
+.bb-body-home-prompt__title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1.5px;color:var(--cream);line-height:1.05}
+.bb-body-home-prompt__sub{font-size:13px;color:var(--muted);line-height:1.45}
+.bb-body-home-prompt__actions{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-left:auto}
+.bb-body-home-prompt__cta{appearance:none;border:none;cursor:pointer;padding:11px 22px;border-radius:999px;font-family:'Syne',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#0c0a06;background:linear-gradient(135deg,var(--gold) 0%,var(--goldb) 100%);box-shadow:0 4px 14px rgba(200,164,78,0.28);transition:transform .15s ease,box-shadow .25s ease}
+.bb-body-home-prompt__cta:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(200,164,78,0.35)}
+.bb-body-home-prompt__cta:active{transform:translateY(0) scale(0.97)}
+.bb-body-home-prompt__dismiss{appearance:none;background:transparent;border:none;cursor:pointer;color:var(--muted);font-size:12px;letter-spacing:0.5px;padding:6px 4px;text-decoration:underline;text-underline-offset:3px}
+.bb-body-home-prompt__dismiss:hover{color:var(--cream)}
+@media (max-width:560px){
+  .bb-body-home-prompt__inner{padding:16px 16px;gap:12px}
+  .bb-body-home-prompt__actions{margin-left:0;width:100%;justify-content:space-between}
+  .bb-body-home-prompt__title{font-size:22px}
+}
+</style>
+<script>
+(function(){
+  var DISMISS_KEY = 'bbBodyPromptDismissedAt';
+  var DISMISS_WINDOW_MS = 24 * 60 * 60 * 1000;        // 24h
+  var THRESHOLD_DAYS = 14;
+  var inFlight = false;
+
+  function getCard(){ return document.getElementById('bbBodyHomePromptCard'); }
+
+  function hideCard(){
+    var card = getCard();
+    if (card) card.style.display = 'none';
+  }
+
+  function showCard(daysSince){
+    var card = getCard();
+    if (!card) return;
+    var titleEl = document.getElementById('bbBodyHomePromptTitle');
+    var subEl = document.getElementById('bbBodyHomePromptSub');
+    if (daysSince === null) {
+      if (titleEl) titleEl.textContent = 'Take your first snapshot';
+      if (subEl) subEl.textContent = 'Capture photos and bodyweight to start tracking your transformation.';
+    } else {
+      if (titleEl) titleEl.textContent = 'Time for a new snapshot';
+      if (subEl) subEl.textContent = 'It has been ' + daysSince + ' days since your last update — log a new one to keep your timeline fresh.';
+    }
+    card.style.display = '';
+  }
+
+  function dismissed(){
+    try {
+      var raw = localStorage.getItem(DISMISS_KEY);
+      if (!raw) return false;
+      var t = parseInt(raw, 10);
+      if (!t || isNaN(t)) return false;
+      return (Date.now() - t) < DISMISS_WINDOW_MS;
+    } catch (e) { return false; }
+  }
+
+  function wireHandlersOnce(){
+    var card = getCard();
+    if (!card || card.getAttribute('data-bb-wired') === '1') return;
+    card.setAttribute('data-bb-wired', '1');
+    var ctaBtn = document.getElementById('bbBodyHomePromptCta');
+    var dismissBtn = document.getElementById('bbBodyHomePromptDismiss');
+    if (ctaBtn) {
+      ctaBtn.addEventListener('click', function(){
+        try {
+          if (typeof switchUserTab === 'function') switchUserTab('body');
+        } catch(e){}
+        setTimeout(function(){
+          if (typeof window.bbBodyOpenUpload === 'function') window.bbBodyOpenUpload();
+        }, 250);
+      });
+    }
+    if (dismissBtn) {
+      dismissBtn.addEventListener('click', function(){
+        try { localStorage.setItem(DISMISS_KEY, String(Date.now())); } catch(e){}
+        hideCard();
+      });
+    }
+  }
+
+  window.bbBodyHomeMaybePrompt = function bbBodyHomeMaybePrompt(){
+    if (!window.currentUser || !window.currentUser.token) return;
+    if (inFlight) return;
+    wireHandlersOnce();
+    if (dismissed()) { hideCard(); return; }
+    inFlight = true;
+    fetch('/api/me/body/snapshots', {
+      headers: { Authorization: 'Bearer ' + window.currentUser.token }
+    }).then(function(res){
+      if (!res.ok) throw new Error('snapshot fetch failed');
+      return res.json();
+    }).then(function(data){
+      var snaps = (data && Array.isArray(data.snapshots)) ? data.snapshots : [];
+      if (snaps.length === 0) {
+        showCard(null);
+        return;
+      }
+      var first = snaps[0];
+      var dateStr = first && first.snapshot_date;
+      if (!dateStr) { showCard(null); return; }
+      var lastMs = Date.parse(dateStr + 'T00:00:00Z');
+      if (isNaN(lastMs)) { showCard(null); return; }
+      var days = Math.floor((Date.now() - lastMs) / 86400000);
+      if (days > THRESHOLD_DAYS) {
+        showCard(days);
+      } else {
+        hideCard();
+      }
+    }).catch(function(){
+      // Network/auth failure — never surface on home, just don't show.
+      hideCard();
+    }).then(function(){
+      inFlight = false;
+    });
+  };
+})();
+</script>
 
 <!-- WhatsApp FAB – public website -->
 <a class="wa-public-fab" href="https://wa.me/919502575669" target="_blank" rel="noopener noreferrer" aria-label="Chat with us on WhatsApp" title="Chat on WhatsApp">

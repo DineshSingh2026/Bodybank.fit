@@ -6183,6 +6183,59 @@ var bodyUploadFields = bodyUpload
     ])
   : function(req, _res, next) { next(); };
 
+// ── Phase 5: AI background removal ────────────────────────────────
+// We lazy-load `@imgly/background-removal-node` (ESM-only, ONNX-based, ~80 MB
+// model auto-downloads on first call and is cached under node_modules). The
+// dynamic import keeps server start-up cheap even on machines that haven't run
+// `npm install` for this dep yet — the upload route just falls back to saving
+// the original photo if the module / model can't be loaded.
+var BB_BG_REMOVAL_DISABLED = String(process.env.BB_BG_REMOVAL_DISABLED || '').toLowerCase() === '1';
+var bbBgRemovalModulePromise = null;
+function bbLoadBgRemoval() {
+  if (BB_BG_REMOVAL_DISABLED) return Promise.resolve(null);
+  if (!bbBgRemovalModulePromise) {
+    bbBgRemovalModulePromise = (async () => {
+      try {
+        // eslint-disable-next-line no-new-func -- avoid CJS transpilers turning
+        // the dynamic import into a require() call (which would fail on this ESM dep).
+        var dynImport = new Function('s', 'return import(s)');
+        var mod = await dynImport('@imgly/background-removal-node');
+        return mod && (mod.removeBackground || (mod.default && mod.default.removeBackground))
+          ? mod
+          : null;
+      } catch (e) {
+        console.warn('[body-snapshot] bg-removal module unavailable:', e && e.message);
+        return null;
+      }
+    })();
+  }
+  return bbBgRemovalModulePromise;
+}
+// Returns a PNG Buffer with bg removed, or null if processing failed / not available.
+async function bbBodyRemoveBackground(buffer) {
+  try {
+    if (!buffer || !buffer.length) return null;
+    var mod = await bbLoadBgRemoval();
+    if (!mod) return null;
+    var removeBackground = mod.removeBackground || (mod.default && mod.default.removeBackground);
+    if (typeof removeBackground !== 'function') return null;
+    // The node build accepts a Buffer/Uint8Array/Blob and returns a Blob.
+    var out = await removeBackground(buffer, { output: { format: 'image/png', quality: 0.92 } });
+    if (!out) return null;
+    // out is a Blob (web-style). Convert to Buffer.
+    if (typeof out.arrayBuffer === 'function') {
+      var ab = await out.arrayBuffer();
+      return Buffer.from(ab);
+    }
+    if (Buffer.isBuffer(out)) return out;
+    if (out instanceof Uint8Array) return Buffer.from(out);
+    return null;
+  } catch (e) {
+    console.warn('[body-snapshot] bg-removal failed, falling back to original:', e && e.message);
+    return null;
+  }
+}
+
 app.post('/api/me/body/snapshot', verifyToken, bodyUploadFields, async (req, res) => {
   try {
     if (req.user.role !== 'user') return res.status(403).json({ error: 'Only for members' });
@@ -6209,22 +6262,61 @@ app.post('/api/me/body/snapshot', verifyToken, bodyUploadFields, async (req, res
     }
 
     // Persist files to disk
+    // Phase 5 naming convention (locked):
+    //   • Original (raw upload) is always written at  <ts>-<view>-orig.<ext>
+    //     so we never lose the source data.
+    //   • If background-removal succeeds, the processed PNG is written at
+    //     <ts>-<view>.png  and that URL is stored in the DB.
+    //   • If bg-removal is opted out OR fails, we copy/keep the original at
+    //     <ts>-<view>.<ext> as the canonical (DB-stored) path. This keeps the
+    //     `photo_*` columns as plain relative URLs (Phase 1 contract).
+    //   • Backwards-compat: existing snapshots from Phase 1 already point to
+    //     <ts>-<view>.<ext>, which still resolves on disk.
     var dir = path.join(BODY_UPLOADS_DIR, String(userId));
     bbBodyEnsureDir(dir);
     var ts = Date.now();
     var photoFront = null, photoSide = null, photoBack = null;
-    function saveOne(fileObj, viewName) {
+
+    // Opt-in (default ON). Accept '0', 'false', 'off', '' as opt-out.
+    var rmFlagRaw = body.remove_bg;
+    if (rmFlagRaw === undefined || rmFlagRaw === null) rmFlagRaw = '1';
+    var rmFlag = String(rmFlagRaw).toLowerCase().trim();
+    var wantBgRemoval = !(rmFlag === '0' || rmFlag === 'false' || rmFlag === 'off' || rmFlag === '');
+
+    async function saveOne(fileObj, viewName) {
       if (!fileObj || !fileObj.buffer) return null;
-      var ext = bbBodyExtFromMime(fileObj.mimetype, fileObj.originalname);
-      var fname = ts + '-' + viewName + ext;
-      var full  = path.join(dir, fname);
-      fs.writeFileSync(full, fileObj.buffer);
+      var origExt = bbBodyExtFromMime(fileObj.mimetype, fileObj.originalname);
+
+      // 1) Always preserve the source upload (best-effort; non-fatal on failure).
+      try {
+        var origName = ts + '-' + viewName + '-orig' + origExt;
+        fs.writeFileSync(path.join(dir, origName), fileObj.buffer);
+      } catch (eOrig) {
+        console.warn('[body-snapshot] could not save original copy:', eOrig && eOrig.message);
+      }
+
+      // 2) Try bg-removal if requested.
+      var processedBuf = null;
+      if (wantBgRemoval) {
+        processedBuf = await bbBodyRemoveBackground(fileObj.buffer);
+      }
+
+      var canonicalExt, canonicalBuf;
+      if (processedBuf && processedBuf.length) {
+        canonicalExt = '.png';
+        canonicalBuf = processedBuf;
+      } else {
+        canonicalExt = origExt;
+        canonicalBuf = fileObj.buffer;
+      }
+      var fname = ts + '-' + viewName + canonicalExt;
+      fs.writeFileSync(path.join(dir, fname), canonicalBuf);
       return '/uploads/body/' + encodeURIComponent(String(userId)) + '/' + fname;
     }
     try {
-      if (hasFront) photoFront = saveOne(files.front[0], 'front');
-      if (hasSide)  photoSide  = saveOne(files.side[0],  'side');
-      if (hasBack)  photoBack  = saveOne(files.back[0],  'back');
+      if (hasFront) photoFront = await saveOne(files.front[0], 'front');
+      if (hasSide)  photoSide  = await saveOne(files.side[0],  'side');
+      if (hasBack)  photoBack  = await saveOne(files.back[0],  'back');
     } catch (e) {
       console.error('[body-snapshot] file save error:', e.message);
       return res.status(500).json({ error: 'Could not save photo to disk.' });
@@ -6279,6 +6371,72 @@ app.get('/api/me/body/snapshots', verifyToken, async (req, res) => {
   }
 });
 
+// PATCH /api/me/body/snapshot/:id — update only the shared_with_manager flag.
+// Phase 4 contract (locked): the ONLY field accepted here is shared_with_manager.
+// Any other field on the request body is silently ignored. Owner-checked.
+app.patch('/api/me/body/snapshot/:id', verifyToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'user') return res.status(403).json({ error: 'Only for members' });
+    var idNum = parseInt(req.params.id, 10);
+    if (!Number.isFinite(idNum) || idNum <= 0) {
+      return res.status(400).json({ error: 'Invalid snapshot id.' });
+    }
+    var body = req.body || {};
+    if (!Object.prototype.hasOwnProperty.call(body, 'shared_with_manager')) {
+      return res.status(400).json({ error: 'shared_with_manager is required.' });
+    }
+    var raw = body.shared_with_manager;
+    var shared;
+    if (raw === true || raw === 'true' || raw === 1 || raw === '1') shared = true;
+    else if (raw === false || raw === 'false' || raw === 0 || raw === '0' || raw === null) shared = false;
+    else return res.status(400).json({ error: 'shared_with_manager must be a boolean.' });
+
+    var existing = await queryOne(
+      `SELECT id FROM body_snapshots WHERE id = ? AND user_id = ?`,
+      [idNum, req.user.id]
+    );
+    if (!existing) return res.status(404).json({ error: 'Snapshot not found.' });
+
+    var updated = await queryOne(
+      `UPDATE body_snapshots
+          SET shared_with_manager = ?
+        WHERE id = ? AND user_id = ?
+       RETURNING id, user_id, snapshot_date, photo_front, photo_side, photo_back,
+                 bodyweight_kg, waist_cm, measurements, notes,
+                 shared_with_manager, created_at`,
+      [shared, idNum, req.user.id]
+    );
+    if (!updated) return res.status(404).json({ error: 'Snapshot not found.' });
+    return res.json({ ok: true, snapshot: bbBodyRowToJson(updated) });
+  } catch (e) {
+    console.error('[body-snapshot PATCH]', e.message);
+    return res.status(500).json({ error: e.message || 'Failed to update snapshot.' });
+  }
+});
+
+// GET /api/admin/users/:userId/body/snapshots — admin/manager view.
+// Privacy contract (locked): NEVER returns rows where shared_with_manager = FALSE.
+app.get('/api/admin/users/:userId/body/snapshots', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    var targetUserId = String(req.params.userId || '').trim();
+    if (!targetUserId) return res.status(400).json({ error: 'Invalid user id.' });
+    var rows = await queryAll(
+      `SELECT id, user_id, snapshot_date, photo_front, photo_side, photo_back,
+              bodyweight_kg, waist_cm, measurements, notes,
+              shared_with_manager, created_at
+         FROM body_snapshots
+        WHERE user_id = ? AND shared_with_manager = TRUE
+        ORDER BY snapshot_date DESC, id DESC
+        LIMIT 200`,
+      [targetUserId]
+    );
+    return res.json({ snapshots: (rows || []).map(bbBodyRowToJson) });
+  } catch (e) {
+    console.error('[admin body-snapshots GET]', e.message);
+    return res.status(500).json({ error: e.message || 'Failed to load shared snapshots.' });
+  }
+});
+
 app.delete('/api/me/body/snapshot/:id', verifyToken, async (req, res) => {
   try {
     if (req.user.role !== 'user') return res.status(403).json({ error: 'Only for members' });
@@ -6295,6 +6453,9 @@ app.delete('/api/me/body/snapshot/:id', verifyToken, async (req, res) => {
     await run(`DELETE FROM body_snapshots WHERE id = ? AND user_id = ?`, [idNum, req.user.id]);
 
     // Best-effort: unlink the on-disk files (only if they live in our upload dir)
+    // Phase 5: also unlink the `<ts>-<view>-orig.<ext>` sibling we save alongside
+    // the canonical (bg-removed) file. We don't know the original extension, so
+    // glob the directory for any file whose basename starts with that prefix.
     var paths = [existing.photo_front, existing.photo_side, existing.photo_back];
     for (var i = 0; i < paths.length; i++) {
       var rel = paths[i];
@@ -6303,6 +6464,20 @@ app.delete('/api/me/body/snapshot/:id', verifyToken, async (req, res) => {
       try {
         var diskPath = path.join(FEED_UPLOADS_DIR, rel.replace(/^\/uploads\//, ''));
         if (fs.existsSync(diskPath)) fs.unlinkSync(diskPath);
+        // Also clean up the preserved original (best-effort).
+        var baseName = path.basename(diskPath);
+        var dotIdx = baseName.lastIndexOf('.');
+        var stem = dotIdx > 0 ? baseName.slice(0, dotIdx) : baseName;
+        var dirPath = path.dirname(diskPath);
+        if (fs.existsSync(dirPath)) {
+          var siblings = fs.readdirSync(dirPath);
+          for (var j = 0; j < siblings.length; j++) {
+            var nm = siblings[j];
+            if (nm.indexOf(stem + '-orig.') === 0) {
+              try { fs.unlinkSync(path.join(dirPath, nm)); } catch (_) {}
+            }
+          }
+        }
       } catch (_) { /* best effort */ }
     }
     return res.json({ ok: true });
