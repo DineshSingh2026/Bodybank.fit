@@ -4310,10 +4310,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 @media(max-width:560px){.mr-body-svg{width:72%;max-width:310px}}
 @media(max-width:380px){.mr-body-svg{width:68%;max-width:280px}}
 .mr-figure-layer image{pointer-events:none}
-/* SVG anatomy fills are now pre-darkened in the source files (#2f343b /
-   #3e444c) so they read as a faint silhouette on the dark page directly —
-   no CSS blend trick needed. Pointer-events disabled so heatmap regions
-   above the image still receive taps. */
+/* The SVG fills (#BDBDBD / #E0E0E0) render as a clean medium-grey silhouette
+   on the dark page directly. We deliberately DON'T apply mix-blend-mode here
+   because it's unreliable on iOS Safari for SVG <image> elements (the live
+   mobile bug). Pointer-events off so heatmap regions above receive taps. */
 .mr-body-svg image{pointer-events:none}
 .mr-body-svg .mr-svg-region{stroke-width:inherit}
 
@@ -4525,9 +4525,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 
 .mr-md-body{padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch;flex:1;min-height:0}
 .mr-md-hero{position:relative;width:100%;background:linear-gradient(180deg,#181d23 0%,#0d1015 100%);border-radius:12px;border:1px solid rgba(255,255,255,0.05);padding:18px;margin-bottom:18px;overflow:hidden;display:flex;align-items:center;justify-content:center}
-/* SVGs are pre-darkened in source so they sit on the dark card as a faint
-   silhouette directly — no invert/blend tricks (those fail on iOS Safari
-   for SVG <image> elements and produce a bright grey blob on mobile). */
+/* SVG renders as medium-grey silhouette directly on dark card.
+   No invert/blend tricks (they fail on iOS Safari for SVG <image>). */
 .mr-md-hero-img{width:100%;max-width:280px;height:auto;max-height:340px;display:block;filter:drop-shadow(0 4px 16px rgba(0,0,0,0.5))}
 .mr-md-hero-overlay{position:relative;flex:1;padding:0 12px;align-self:center}
 .mr-md-overview{font-size:13px;line-height:1.55;color:rgba(244,240,232,0.78);margin:0}
