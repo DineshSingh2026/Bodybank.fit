@@ -699,13 +699,18 @@ footer{border-top:1px solid var(--bdr);padding:44px 48px 28px;display:flex;flex-
 }
 .admin-filter-bar input[type="text"]::placeholder{color:var(--muted);opacity:.8;font-size:13px}
 .admin-filter-actions{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px;flex-shrink:0}
-.admin-filter-bar .admin-apply-btn,.admin-filter-bar .admin-filter-clear-btn{
+.admin-filter-bar .admin-apply-btn,.admin-filter-bar .admin-filter-clear-btn,.admin-filter-bar .admin-export-btn{
   height:34px!important;min-height:34px!important;padding:0 14px!important;margin:0!important;
   font-size:12px!important;font-weight:700!important;letter-spacing:.04em!important;border-radius:6px!important;
   cursor:pointer;white-space:nowrap;box-sizing:border-box;line-height:1!important
 }
 .admin-filter-bar .admin-apply-btn{background:var(--gold)!important;color:#0d0d0d!important;border:none!important}
 .admin-filter-bar .admin-apply-btn:hover{opacity:.92}
+.admin-filter-bar .admin-export-btn{
+  background:rgba(255,255,255,0.06)!important;color:var(--cream)!important;
+  border:1px solid rgba(200,164,78,0.45)!important
+}
+.admin-filter-bar .admin-export-btn:hover{background:rgba(200,164,78,0.1)!important;border-color:rgba(200,164,78,0.65)!important}
 .admin-filter-bar .admin-filter-clear-btn{
   background:transparent!important;color:var(--gold)!important;
   border:1.5px solid rgba(200,164,78,0.55)!important
@@ -4213,60 +4218,82 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .mr-audit-delta.down{color:var(--mr-weak)}
 
 /* ── Main 2-col grid ── */
-.mr-main-grid{display:grid;grid-template-columns:260px 1fr;gap:16px;margin-bottom:16px}
+.mr-main-grid{display:grid;grid-template-columns:minmax(300px,1.1fr) minmax(240px,1fr);gap:16px;margin-bottom:16px}
+@media(max-width:991px){.mr-main-grid{grid-template-columns:1fr}}
 @media(max-width:767px){.mr-main-grid{grid-template-columns:1fr}}
 
 /* ── Body panel ── */
-.mr-body-panel{background:var(--mr-card);border:1px solid var(--mr-border);border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:10px}
-.mr-body-wrap{position:relative;width:100%;max-width:220px;margin:0 auto}
-.mr-body-svg{width:100%;height:auto;display:block}
+.mr-body-panel{background:var(--mr-card);border:1px solid var(--mr-border);border-radius:12px;padding:16px;display:flex;flex-direction:column;align-items:stretch;gap:10px;width:100%;min-width:0}
+.mr-body-wrap{position:relative;width:100%;max-width:min(500px,96vw);margin:0 auto}
+.mr-body-svg-col{position:relative;min-width:0;width:100%}
+/* Overlay: front = callouts on left with connectors; back = mirrored to the right */
+.mr-annotations{position:absolute;z-index:2;top:3%;left:0;right:0;bottom:3%;pointer-events:none}
 
-/* SVG region fills */
-.mr-svg-region{fill:rgba(30,30,30,0.6);stroke:rgba(200,164,78,0.10);stroke-width:0.8;transition:fill 0.4s,filter 0.4s;cursor:pointer}
-.mr-svg-region:hover{stroke:rgba(200,164,78,0.35);stroke-width:1.2}
-.mr-svg-region[data-tier="Strong"]{fill:rgba(46,204,113,0.30)}
-.mr-svg-region[data-tier="Average"]{fill:rgba(200,164,78,0.28)}
-.mr-svg-region[data-tier="Weak"]{fill:rgba(231,76,60,0.32)}
-.mr-svg-region[data-glow="Strong"]{filter:url(#mr-glow-green)}
-.mr-svg-region[data-glow="Average"]{filter:url(#mr-glow-gold)}
-.mr-svg-region[data-glow="Weak"]{filter:url(#mr-glow-red)}
+.mr-anno{position:absolute;display:flex;align-items:center;pointer-events:none;--mr-link:var(--mr-avg)}
+.mr-anno--Strong{--mr-link:var(--mr-strong)}
+.mr-anno--Weak{--mr-link:var(--mr-weak)}
+/* Left / right columns keep chest vs back on opposite sides — chips live in the side gutters, not over the figure */
+.mr-anno--side-left{left:0;width:min(38%,180px);flex-direction:row;transform:translateY(-50%)}
+.mr-anno--side-right{right:0;left:auto;width:min(38%,180px);flex-direction:row;transform:translateY(-50%)}
+.mr-anno--center{left:50%;width:min(220px,72%);flex-direction:row;justify-content:center;transform:translate(-50%,-50%)}
+.mr-anno--center .mr-anno-caliper-svg{transform:rotate(-90deg)}
+/* Compact chips (not large boxed rails): light glass + tier accent stroke only */
+.mr-anno-inner{flex-shrink:0;padding:5px 9px 6px;border-radius:8px;background:rgba(5,7,10,0.55);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid rgba(255,255,255,0.11);box-shadow:0 2px 14px rgba(0,0,0,0.4);max-width:96px}
+.mr-anno--Strong .mr-anno-inner{border-color:rgba(46,204,113,0.42);box-shadow:0 0 0 1px rgba(46,204,113,0.08),0 2px 14px rgba(0,0,0,0.4)}
+.mr-anno--Average .mr-anno-inner{border-color:rgba(200,164,78,0.38);box-shadow:0 0 0 1px rgba(200,164,78,0.06),0 2px 14px rgba(0,0,0,0.4)}
+.mr-anno--Weak .mr-anno-inner{border-color:rgba(231,76,60,0.42);box-shadow:0 0 0 1px rgba(231,76,60,0.08),0 2px 14px rgba(0,0,0,0.4)}
+.mr-anno-label{font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:1.05px;line-height:1;color:rgba(244,240,232,0.92)}
+.mr-anno--Strong .mr-anno-label{color:var(--mr-strong)}
+.mr-anno--Average .mr-anno-label{color:var(--mr-avg)}
+.mr-anno--Weak .mr-anno-label{color:var(--mr-weak)}
+.mr-anno-row{display:flex;align-items:baseline;gap:2px;margin-top:3px;line-height:1}
+.mr-anno-val{font-family:'Bebas Neue',sans-serif;font-size:17px;color:#f4f0e8;font-weight:400;letter-spacing:0.2px}
+.mr-anno-den{font-size:8px;font-weight:600;color:rgba(244,240,232,0.38)}
+.mr-anno-foot{display:flex;align-items:center;gap:4px;margin-top:3px;font-size:8px;font-weight:700;letter-spacing:0.04em;color:rgba(244,240,232,0.88)}
+.mr-anno-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;box-shadow:0 0 4px var(--mr-link)}
+.mr-anno--Strong .mr-anno-dot{background:var(--mr-strong)}
+.mr-anno--Average .mr-anno-dot{background:var(--mr-avg)}
+.mr-anno--Weak .mr-anno-dot{background:var(--mr-weak)}
+.mr-anno--Strong .mr-anno-foot{color:var(--mr-strong)}
+.mr-anno--Average .mr-anno-foot{color:var(--mr-avg)}
+.mr-anno--Weak .mr-anno-foot{color:var(--mr-weak)}
+.mr-anno-bridge{flex:1;min-width:4px;height:1px;margin:0 1px;align-self:center;border-radius:1px;background:var(--mr-link);opacity:0.92}
+.mr-anno--Strong .mr-anno-bridge{box-shadow:0 0 8px rgba(46,204,113,0.45)}
+.mr-anno--Average .mr-anno-bridge{box-shadow:0 0 7px rgba(200,164,78,0.35)}
+.mr-anno--Weak .mr-anno-bridge{box-shadow:0 0 8px rgba(231,76,60,0.4)}
+.mr-anno-caliper{display:flex;align-items:center;flex-shrink:0;color:var(--mr-link)}
+.mr-anno-caliper-svg{display:block;width:12px;height:22px}
+.mr-anno--Strong .mr-anno-caliper-svg{filter:drop-shadow(0 0 4px rgba(46,204,113,0.5))}
+.mr-anno--Average .mr-anno-caliper-svg{filter:drop-shadow(0 0 3px rgba(200,164,78,0.4))}
+.mr-anno--Weak .mr-anno-caliper-svg{filter:drop-shadow(0 0 4px rgba(231,76,60,0.45))}
+@media(max-width:560px){
+  .mr-anno-inner{max-width:78px;padding:4px 7px 5px}
+  .mr-anno-val{font-size:14px}
+  .mr-anno-label{font-size:8px}
+  .mr-anno--side-left,.mr-anno--side-right{width:min(40%,150px)}
+  .mr-anno--center{width:min(180px,68%)}
+}
+@media(max-width:380px){
+  .mr-anno-inner{max-width:64px;padding:3px 5px 4px}
+  .mr-anno-val{font-size:12px}
+}
+.mr-body-panel-head{width:100%;margin-bottom:12px}
+.mr-body-toggle{display:flex;gap:4px;background:rgba(0,0,0,0.35);border:1px solid var(--mr-border);border-radius:12px;padding:4px}
+.mr-body-toggle-btn{flex:1;border:none;background:transparent;color:rgba(244,240,232,0.75);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:10px 12px;border-radius:10px;cursor:pointer;font-family:'Outfit',sans-serif;transition:background .2s,color .2s,box-shadow .2s}
+.mr-body-toggle-btn:hover{color:#f4f0e8}
+.mr-body-toggle-btn.active{background:rgba(200,164,78,0.18);color:var(--mr-gold);box-shadow:inset 0 0 0 1px rgba(200,164,78,0.28)}
+.mr-body-svg{width:60%;max-width:300px;height:auto;display:block;margin:0 auto}
+@media(max-width:560px){.mr-body-svg{width:54%}}
+@media(max-width:380px){.mr-body-svg{width:50%}}
+.mr-figure-layer image{pointer-events:none}
+.mr-body-svg .mr-svg-region{stroke-width:inherit}
 
-/* Callouts — measurement cards + bridge + dimension bracket (see mrRenderCallouts) */
-.mr-callouts{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
-.mr-callout{position:absolute;inset:0;pointer-events:none}
-.mr-callout-bridge{position:absolute;height:2px;border-radius:1px;pointer-events:none}
-.mr-dim{position:absolute;display:flex;align-items:center;height:10px;transform:translateY(-50%);pointer-events:none;color:inherit}
-.mr-dim-track{flex:1;height:2px;border-radius:1px;opacity:0.95}
-.mr-dim-wedge{flex-shrink:0;width:0;height:0;border-style:solid}
-/* Inward arrows: outer wedges point toward centre of span */
-.mr-dim-wedge--L{border-width:5px 0 5px 7px;border-color:transparent transparent transparent currentColor;margin-right:-1px}
-.mr-dim-wedge--R{border-width:5px 7px 5px 0;border-color:transparent currentColor transparent transparent;margin-left:-1px}
-.mr-callout-card{position:absolute;box-sizing:border-box;width:104px;padding:8px 9px 7px;border-radius:10px;background:rgba(12,10,9,0.92);border:1px solid rgba(255,255,255,0.12);box-shadow:0 4px 14px rgba(0,0,0,0.45);pointer-events:none}
-.mr-callout--Strong .mr-callout-card{border-color:rgba(46,204,113,0.55);box-shadow:0 0 0 1px rgba(46,204,113,0.10),0 4px 14px rgba(0,0,0,0.45)}
-.mr-callout--Average .mr-callout-card{border-color:rgba(200,164,78,0.55);box-shadow:0 0 0 1px rgba(200,164,78,0.08),0 4px 14px rgba(0,0,0,0.45)}
-.mr-callout--Weak .mr-callout-card{border-color:rgba(231,76,60,0.55);box-shadow:0 0 0 1px rgba(231,76,60,0.10),0 4px 14px rgba(0,0,0,0.45)}
-.mr-callout-card-title{font-family:'Bebas Neue',sans-serif;font-size:11px;letter-spacing:1.2px;line-height:1.1;margin:0}
-.mr-callout-metric{display:flex;align-items:baseline;gap:2px;margin-top:4px;line-height:1}
-.mr-callout-num{font-family:'Bebas Neue',sans-serif;font-size:22px;color:#f4f0e8;font-weight:400;letter-spacing:0.5px}
-.mr-callout-sl{font-size:10px;font-weight:600;color:rgba(244,240,232,0.55)}
-.mr-callout-foot{display:flex;align-items:center;gap:5px;margin-top:6px;font-size:10px;font-weight:600;color:rgba(244,240,232,0.92);letter-spacing:0.2px}
-.mr-callout-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
-.mr-callout--Strong{color:var(--mr-strong)}
-.mr-callout--Strong .mr-callout-bridge,.mr-callout--Strong .mr-dim-track{background:var(--mr-strong)}
-.mr-callout--Strong .mr-callout-card-title{color:var(--mr-strong)}
-.mr-callout--Strong .mr-callout-dot{background:var(--mr-strong);box-shadow:0 0 6px rgba(46,204,113,0.5)}
-.mr-callout--Average{color:var(--mr-avg)}
-.mr-callout--Average .mr-callout-bridge,.mr-callout--Average .mr-dim-track{background:var(--mr-avg)}
-.mr-callout--Average .mr-callout-card-title{color:var(--mr-avg)}
-.mr-callout--Average .mr-callout-dot{background:var(--mr-avg);box-shadow:0 0 6px rgba(200,164,78,0.35)}
-.mr-callout--Weak{color:var(--mr-weak)}
-.mr-callout--Weak .mr-callout-bridge,.mr-callout--Weak .mr-dim-track{background:var(--mr-weak)}
-.mr-callout--Weak .mr-callout-card-title{color:var(--mr-weak)}
-.mr-callout--Weak .mr-callout-dot{background:var(--mr-weak);box-shadow:0 0 6px rgba(231,76,60,0.35)}
-.mr-callout-card--right{text-align:right}
-.mr-callout-card--right .mr-callout-metric{justify-content:flex-end}
-.mr-callout-card--right .mr-callout-foot{justify-content:flex-end}
-
+/* SVG region fills — strong tint + stroke so tiers read on detailed artwork (no heavy blur filter) */
+.mr-svg-region{fill:rgba(35,35,35,0.35);stroke:rgba(200,164,78,0.22);stroke-width:1.1px;transition:fill .35s,stroke .35s,filter .35s;cursor:pointer}
+.mr-svg-region:hover{stroke:rgba(200,164,78,0.55);stroke-width:1.5px}
+.mr-svg-region[data-tier="Strong"]{fill:rgba(46,204,113,0.58);stroke:rgba(25,140,80,0.95);filter:drop-shadow(0 0 12px rgba(46,204,113,0.45))}
+.mr-svg-region[data-tier="Average"]{fill:rgba(200,164,78,0.52);stroke:rgba(160,130,55,0.95);filter:drop-shadow(0 0 10px rgba(200,164,78,0.35))}
+.mr-svg-region[data-tier="Weak"]{fill:rgba(231,76,60,0.55);stroke:rgba(180,45,38,0.95);filter:drop-shadow(0 0 12px rgba(231,76,60,0.4))}
 /* Legend */
 .mr-legend{display:flex;align-items:center;gap:12px;font-size:11px;color:var(--creamd)}
 .mr-legend-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:4px;flex-shrink:0}
@@ -5150,90 +5177,70 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <!-- Main 2-column layout -->
         <div class="mr-main-grid">
 
-          <!-- Left — 3D body heatmap -->
+          <!-- Left — muscle heatmap (illustration + interactive overlay) -->
           <div class="mr-body-panel">
+            <div class="mr-body-panel-head">
+              <div class="mr-body-toggle" role="tablist" aria-label="Anatomy view">
+                <button type="button" class="mr-body-toggle-btn active" id="mr-btn-front" onclick="mrSetBodyView('front')" role="tab" aria-selected="true">Front</button>
+                <button type="button" class="mr-body-toggle-btn" id="mr-btn-back" onclick="mrSetBodyView('back')" role="tab" aria-selected="false">Back</button>
+              </div>
+            </div>
             <div class="mr-body-wrap">
-              <!-- SVG body figure with colour-coded muscle regions -->
-              <svg class="mr-body-svg" viewBox="0 0 220 500" aria-label="Body muscle heatmap" role="img">
-                <defs>
-                  <filter id="mr-glow-green" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="4" result="blur"/>
-                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                  </filter>
-                  <filter id="mr-glow-gold" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="3" result="blur"/>
-                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                  </filter>
-                  <filter id="mr-glow-red" x="-30%" y="-30%" width="160%" height="160%">
-                    <feGaussianBlur stdDeviation="4" result="blur"/>
-                    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-                  </filter>
-                  <linearGradient id="mr-grad-body" x1="0" y1="0" x2="1" y2="1">
-                    <stop offset="0%" stop-color="#1e1e1e"/>
-                    <stop offset="100%" stop-color="#141414"/>
-                  </linearGradient>
-                </defs>
+              <div class="mr-body-svg-col">
+              <svg class="mr-body-svg" id="mr-body-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 596 1133" preserveAspectRatio="xMidYMid meet" aria-label="Body muscle heatmap" role="img">
+                <!-- Front: artwork + scaled hit regions (coords match legacy 220×500 × scale → 596×1133) -->
+                <g id="mr-figure-front">
+                  <image href="/img/muscle-ranking-front.svg" xlink:href="/img/muscle-ranking-front.svg" width="596" height="1133" preserveAspectRatio="xMidYMid meet" pointer-events="none"/>
+                  <g transform="scale(2.70909 2.266)" pointer-events="visiblePainted">
+                    <path id="mr-svg-shoulders-l" class="mr-svg-region" data-region="shoulders"
+                      d="M 100,68 Q 72,74 52,94 L 56,112 Q 78,96 102,88 Z"/>
+                    <path id="mr-svg-shoulders-r" class="mr-svg-region" data-region="shoulders"
+                      d="M 120,68 Q 148,74 168,94 L 164,112 Q 142,96 118,88 Z"/>
+                    <path id="mr-svg-chest" class="mr-svg-region" data-region="chest"
+                      d="M 58,88 L 102,78 L 118,78 L 162,88 Q 165,118 160,155 Q 135,162 110,160 Q 85,162 60,155 Q 55,118 58,88 Z"/>
+                    <path id="mr-svg-core" class="mr-svg-region" data-region="core"
+                      d="M 62,155 Q 85,162 110,160 Q 135,162 158,155 L 155,250 Q 135,256 110,255 Q 85,256 65,250 Z"/>
+                    <path id="mr-svg-back-l" class="mr-svg-region" data-region="back"
+                      d="M 54,94 L 62,88 L 58,155 L 44,170 L 42,130 Z"/>
+                    <path id="mr-svg-back-r" class="mr-svg-region" data-region="back"
+                      d="M 166,94 L 158,88 L 162,155 L 176,170 L 178,130 Z"/>
+                    <path id="mr-svg-arms-l" class="mr-svg-region" data-region="arms"
+                      d="M 52,96 L 60,92 L 56,160 L 40,170 L 34,210 L 24,210 L 28,165 L 42,132 Z"/>
+                    <path id="mr-svg-arms-r" class="mr-svg-region" data-region="arms"
+                      d="M 168,96 L 160,92 L 164,160 L 180,170 L 186,210 L 196,210 L 192,165 L 178,132 Z"/>
+                    <path id="mr-svg-legs-l" class="mr-svg-region" data-region="legs"
+                      d="M 68,278 L 108,278 L 106,398 L 78,400 L 65,278 Z"/>
+                    <path id="mr-svg-legs-r" class="mr-svg-region" data-region="legs"
+                      d="M 152,278 L 112,278 L 114,398 L 142,400 L 155,278 Z"/>
+                  </g>
+                </g>
 
-                <!-- ── Base silhouette ── -->
-                <!-- Head -->
-                <ellipse cx="110" cy="38" rx="24" ry="30" fill="#1c1c1c" stroke="rgba(200,164,78,0.18)" stroke-width="1.2"/>
-                <!-- Neck -->
-                <rect x="101" y="66" width="18" height="20" rx="4" fill="#1c1c1c" stroke="rgba(200,164,78,0.10)" stroke-width="1"/>
-
-                <!-- SHOULDERS region — left & right deltoids -->
-                <path id="mr-svg-shoulders-l" class="mr-svg-region" data-region="shoulders"
-                  d="M 100,68 Q 72,74 52,94 L 56,112 Q 78,96 102,88 Z"/>
-                <path id="mr-svg-shoulders-r" class="mr-svg-region" data-region="shoulders"
-                  d="M 120,68 Q 148,74 168,94 L 164,112 Q 142,96 118,88 Z"/>
-
-                <!-- CHEST region -->
-                <path id="mr-svg-chest" class="mr-svg-region" data-region="chest"
-                  d="M 58,88 L 102,78 L 118,78 L 162,88 Q 165,118 160,155 Q 135,162 110,160 Q 85,162 60,155 Q 55,118 58,88 Z"/>
-
-                <!-- CORE region -->
-                <path id="mr-svg-core" class="mr-svg-region" data-region="core"
-                  d="M 62,155 Q 85,162 110,160 Q 135,162 158,155 L 155,250 Q 135,256 110,255 Q 85,256 65,250 Z"/>
-
-                <!-- Hips / pelvis (neutral) -->
-                <path d="M 68,250 Q 85,256 110,255 Q 135,256 152,250 L 155,278 Q 140,285 110,284 Q 80,285 65,278 Z"
-                  fill="#1a1a1a" stroke="rgba(200,164,78,0.08)" stroke-width="1"/>
-
-                <!-- BACK — shown as lat wings visible from front -->
-                <path id="mr-svg-back-l" class="mr-svg-region" data-region="back"
-                  d="M 54,94 L 62,88 L 58,155 L 44,170 L 42,130 Z"/>
-                <path id="mr-svg-back-r" class="mr-svg-region" data-region="back"
-                  d="M 166,94 L 158,88 L 162,155 L 176,170 L 178,130 Z"/>
-
-                <!-- ARMS region — left & right upper arm -->
-                <path id="mr-svg-arms-l" class="mr-svg-region" data-region="arms"
-                  d="M 52,96 L 60,92 L 56,160 L 40,170 L 34,210 L 24,210 L 28,165 L 42,132 Z"/>
-                <path id="mr-svg-arms-r" class="mr-svg-region" data-region="arms"
-                  d="M 168,96 L 160,92 L 164,160 L 180,170 L 186,210 L 196,210 L 192,165 L 178,132 Z"/>
-
-                <!-- Forearms (neutral) -->
-                <path d="M 25,210 L 35,210 L 30,330 L 18,328 Z" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
-                <path d="M 195,210 L 185,210 L 190,330 L 202,328 Z" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
-                <!-- Hands -->
-                <ellipse cx="24" cy="336" rx="9" ry="12" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
-                <ellipse cx="196" cy="336" rx="9" ry="12" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
-
-                <!-- LEGS region — left & right quads/thighs -->
-                <path id="mr-svg-legs-l" class="mr-svg-region" data-region="legs"
-                  d="M 68,278 L 108,278 L 106,398 L 78,400 L 65,278 Z"/>
-                <path id="mr-svg-legs-r" class="mr-svg-region" data-region="legs"
-                  d="M 152,278 L 112,278 L 114,398 L 142,400 L 155,278 Z"/>
-
-                <!-- Calves (neutral) -->
-                <path d="M 78,400 L 106,398 L 104,468 L 76,468 Z" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
-                <path d="M 142,400 L 114,398 L 116,468 L 144,468 Z" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
-                <!-- Feet -->
-                <ellipse cx="90" cy="474" rx="15" ry="8" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
-                <ellipse cx="130" cy="474" rx="15" ry="8" fill="#1a1a1a" stroke="rgba(200,164,78,0.07)" stroke-width="1"/>
+                <!-- Back: artwork + region overlays aligned to posterior view -->
+                <g id="mr-figure-back" visibility="hidden">
+                  <image href="/img/muscle-ranking-back.svg" xlink:href="/img/muscle-ranking-back.svg" width="596" height="1133" preserveAspectRatio="xMidYMid meet" pointer-events="none"/>
+                  <g pointer-events="visiblePainted">
+                    <path id="mr-svg-shoulders-bv-l" class="mr-svg-region" data-region="shoulders"
+                      d="M 178 138 L 252 152 L 242 248 L 168 228 Z"/>
+                    <path id="mr-svg-shoulders-bv-r" class="mr-svg-region" data-region="shoulders"
+                      d="M 418 138 L 344 152 L 354 248 L 428 228 Z"/>
+                    <path id="mr-svg-chest-bv" class="mr-svg-region" data-region="chest"
+                      d="M 248 168 L 298 158 L 348 168 L 356 292 L 298 308 L 240 292 Z"/>
+                    <path id="mr-svg-back-main-bv" class="mr-svg-region" data-region="back"
+                      d="M 218 268 L 378 268 L 362 528 L 298 558 L 234 528 Z"/>
+                    <path id="mr-svg-core-bv" class="mr-svg-region" data-region="core"
+                      d="M 232 498 L 364 498 L 352 638 L 298 668 L 244 638 Z"/>
+                    <path id="mr-svg-arms-bv-l" class="mr-svg-region" data-region="arms"
+                      d="M 112 195 L 176 178 L 192 392 L 148 408 L 98 335 Z"/>
+                    <path id="mr-svg-arms-bv-r" class="mr-svg-region" data-region="arms"
+                      d="M 484 195 L 420 178 L 404 392 L 448 408 L 498 335 Z"/>
+                    <path id="mr-svg-legs-bv-l" class="mr-svg-region" data-region="legs"
+                      d="M 236 612 L 296 598 L 288 928 L 246 942 L 218 775 Z"/>
+                    <path id="mr-svg-legs-bv-r" class="mr-svg-region" data-region="legs"
+                      d="M 360 612 L 300 598 L 308 928 L 350 942 L 378 775 Z"/>
+                  </g>
+                </g>
               </svg>
-
-              <!-- Callout labels (positioned over SVG) -->
-              <div class="mr-callouts" id="mr-callouts">
-                <!-- Populated by JS -->
+              <div id="mr-annotations" class="mr-annotations" aria-live="polite" aria-label="Muscle scores on figure"></div>
               </div>
             </div>
 
@@ -5243,7 +5250,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               <span class="mr-legend-dot mr-legend-dot--avg"></span>Average
               <span class="mr-legend-dot mr-legend-dot--weak"></span>Weak
             </div>
-            <p class="mr-legend-hint">Tap a region to see details</p>
+            <p class="mr-legend-hint">Tap a muscle to see details</p>
           </div>
 
           <!-- Right — Muscle scores list -->
@@ -5902,6 +5909,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           </div>
           <div class="admin-filter-actions">
             <button type="button" class="admin-apply-btn" onclick="loadRequests()">Apply</button>
+            <button type="button" class="admin-export-btn" onclick="exportAdminAuditFormsCsv()" title="Download CSV matching current filters">Export CSV</button>
             <button type="button" class="admin-filter-clear-btn" onclick="clearAdminFormFilters('requests')">Clear</button>
           </div>
         </div>
@@ -10156,10 +10164,7 @@ async function viewAdminMeeting(id) {
   openModal('adminMeetingViewModal');
 }
 
-async function loadRequests() {
-  const tbody = document.getElementById('requestsBody');
-  if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+function adminAuditFormsQueryString() {
   var af = document.getElementById('auditFilterFrom');
   var at = document.getElementById('auditFilterTo');
   var as = document.getElementById('auditFilterSearch');
@@ -10167,7 +10172,44 @@ async function loadRequests() {
   if (af && af.value) qs.push('from=' + encodeURIComponent(af.value));
   if (at && at.value) qs.push('to=' + encodeURIComponent(at.value));
   if (as && as.value.trim()) qs.push('search=' + encodeURIComponent(as.value.trim()));
-  const data = await apiCall('GET', '/api/admin/audit-requests' + (qs.length ? '?' + qs.join('&') : ''));
+  return qs.length ? '?' + qs.join('&') : '';
+}
+
+async function exportAdminAuditFormsCsv() {
+  var qs = adminAuditFormsQueryString();
+  var data = await apiCall('GET', '/api/admin/audit-requests' + qs);
+  if (data.error || !Array.isArray(data)) {
+    showPopup('Error', (data && data.error) || 'Could not load audit forms for export.', '', 'OK', null, 'error');
+    return;
+  }
+  if (!data.length) {
+    showPopup('No data', 'No audit forms match the current filters.', '', 'OK');
+    return;
+  }
+  var keys = Object.keys(data[0]).filter(function(k) { return k !== 'password'; });
+  var rows = data.map(function(row) {
+    return keys.map(function(k) {
+      var v = row[k];
+      if (v == null) return '';
+      var s = String(v);
+      if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }).join(',');
+  });
+  var csv = [keys.join(',')].concat(rows).join('\r\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'audit-forms-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+async function loadRequests() {
+  const tbody = document.getElementById('requestsBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  const data = await apiCall('GET', '/api/admin/audit-requests' + adminAuditFormsQueryString());
   if (data.error || !Array.isArray(data)) {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Could not load audit forms</td></tr>';
     return;
@@ -19819,23 +19861,36 @@ window.addEventListener('resize', applySafeAreaFix);
 // ── Constants ──────────────────────────────────────────────────────────────
 
 var MR_REGION_META = {
-  chest:     { label: 'Chest',     icon: '🫁', svgIds: ['mr-svg-chest'] },
-  back:      { label: 'Back',      icon: '🏋️', svgIds: ['mr-svg-back-l','mr-svg-back-r'] },
-  shoulders: { label: 'Shoulders', icon: '💪', svgIds: ['mr-svg-shoulders-l','mr-svg-shoulders-r'] },
-  arms:      { label: 'Arms',      icon: '💪', svgIds: ['mr-svg-arms-l','mr-svg-arms-r'] },
-  legs:      { label: 'Legs',      icon: '🦵', svgIds: ['mr-svg-legs-l','mr-svg-legs-r'] },
-  core:      { label: 'Core',      icon: '⚡',  svgIds: ['mr-svg-core'] }
+  chest:     { label: 'Chest',     icon: '🫁', svgIds: ['mr-svg-chest', 'mr-svg-chest-bv'] },
+  back:      { label: 'Back',      icon: '🏋️', svgIds: ['mr-svg-back-l','mr-svg-back-r', 'mr-svg-back-main-bv'] },
+  shoulders: { label: 'Shoulders', icon: '💪', svgIds: ['mr-svg-shoulders-l','mr-svg-shoulders-r', 'mr-svg-shoulders-bv-l','mr-svg-shoulders-bv-r'] },
+  arms:      { label: 'Arms',      icon: '💪', svgIds: ['mr-svg-arms-l','mr-svg-arms-r', 'mr-svg-arms-bv-l','mr-svg-arms-bv-r'] },
+  legs:      { label: 'Legs',      icon: '🦵', svgIds: ['mr-svg-legs-l','mr-svg-legs-r', 'mr-svg-legs-bv-l','mr-svg-legs-bv-r'] },
+  core:      { label: 'Core',      icon: '⚡',  svgIds: ['mr-svg-core', 'mr-svg-core-bv'] }
 };
 
-// Callout layout: side + dimension line on body (viewBox Y 0–500, X as fraction of overlay width)
-var MR_CALLOUT_LAYOUT = {
-  shoulders: { side: 'left',  dimY: 86,  dimX0: 0.40, dimX1: 0.82 },
-  chest:     { side: 'left',  dimY: 116, dimX0: 0.42, dimX1: 0.80 },
-  core:      { side: 'left',  dimY: 206, dimX0: 0.44, dimX1: 0.76 },
-  legs:      { side: 'left',  dimY: 322, dimX0: 0.38, dimX1: 0.76 },
-  back:      { side: 'right', dimY: 102, dimX0: 0.18, dimX1: 0.46 },
-  arms:      { side: 'right', dimY: 172, dimX0: 0.20, dimX1: 0.50 }
+// side: left | right | center — splits chest vs back onto opposite sides (fixes overlap)
+var MR_ANNOTATION_POS = {
+  shoulders: { top: '7%',  side: 'left' },
+  back:      { top: '24%', side: 'left' },
+  core:      { top: '45%', side: 'left' },
+  chest:     { top: '19%', side: 'right' },
+  arms:      { top: '35%', side: 'right' },
+  legs:      { top: '77%', side: 'center' }
 };
+var MR_ANNOTATION_POS_BACK = {
+  shoulders: { top: '7%',  side: 'left' },
+  back:      { top: '26%', side: 'left' },
+  core:      { top: '47%', side: 'left' },
+  chest:     { top: '18%', side: 'right' },
+  arms:      { top: '34%', side: 'right' },
+  legs:      { top: '77%', side: 'center' }
+};
+
+var MR_CALIPER_SVG = '<svg class="mr-anno-caliper-svg" viewBox="0 0 14 24" width="12" height="22" aria-hidden="true" focusable="false">'
+  + '<polygon points="0,2 12,8.5 0,8.5" fill="currentColor"/>'
+  + '<polygon points="0,15.5 12,22 0,22" fill="currentColor"/>'
+  + '</svg>';
 
 var mrData = null;
 var mrLoaded = false;
@@ -19964,11 +20019,9 @@ function mrRenderSvgRegions(d) {
       if (!el) return;
       if (svgTier) {
         el.setAttribute('data-tier', svgTier);
-        el.setAttribute('data-glow', svgTier);
         el.removeAttribute('data-unranked');
       } else {
         el.removeAttribute('data-tier');
-        el.removeAttribute('data-glow');
         // Give unranked regions a subtle pulsing glow to look alive
         el.setAttribute('data-unranked', 'true');
       }
@@ -19984,27 +20037,15 @@ function mrCalloutTierUi(tier) {
   return { css: 'Average', status: 'Avg' };
 }
 
-// Measurement-style callouts: tier card + horizontal bridge + dimension bracket on body
+// Compact chips + connector + caliper; left/right/center from map (chest vs back never same column)
 function mrRenderCallouts(d) {
-  var wrap = document.getElementById('mr-callouts');
-  if (!wrap) return;
-  wrap.innerHTML = '';
+  var box = document.getElementById('mr-annotations');
+  if (!box) return;
+  box.innerHTML = '';
 
-  var svgEl = wrap.previousElementSibling;
-  if (!svgEl) return;
-  var svgW = svgEl.clientWidth || 220;
-  var svgH = svgEl.clientHeight || 500;
-
-  var vbH = 500;
-  try {
-    var vb = svgEl.viewBox && svgEl.viewBox.baseVal;
-    if (vb && vb.height) vbH = vb.height;
-  } catch (e) { /* ignore */ }
-
-  var cardW = Math.min(112, Math.max(90, Math.round(svgW * 0.36)));
-  var inset = Math.max(4, Math.round(svgW * 0.022));
-  var cardH = 70;
-  var gap = 5;
+  var backG = document.getElementById('mr-figure-back');
+  var isBack = backG && backG.getAttribute('visibility') !== 'hidden';
+  var posMap = isBack ? MR_ANNOTATION_POS_BACK : MR_ANNOTATION_POS;
 
   var byKey = {};
   (d.regions || []).forEach(function(r) { byKey[r.key] = r; });
@@ -20013,71 +20054,45 @@ function mrRenderCallouts(d) {
   order.forEach(function(key) {
     var region = byKey[key];
     if (!region || region.score === null) return;
-    var cfg = MR_CALLOUT_LAYOUT[key];
+    var cfg = posMap[key];
     if (!cfg) return;
 
     var tUi = mrCalloutTierUi(region.tier);
-    var dimYpx = (cfg.dimY / vbH) * svgH;
-    var dimLeftPx = cfg.dimX0 * svgW;
-    var dimRightPx = cfg.dimX1 * svgW;
-    var dimW = Math.max(20, dimRightPx - dimLeftPx);
+    var tierWord = tUi.status === 'Avg' ? 'Average' : tUi.status;
+    var side = cfg.side || 'left';
+    var sideClass = side === 'right' ? 'mr-anno--side-right' : side === 'center' ? 'mr-anno--center' : 'mr-anno--side-left';
 
-    var root = document.createElement('div');
-    root.className = 'mr-callout mr-callout--' + tUi.css;
+    var wrap = document.createElement('div');
+    wrap.className = 'mr-anno mr-anno--' + tUi.css + ' ' + sideClass;
+    wrap.style.top = cfg.top;
 
-    var dim = document.createElement('div');
-    dim.className = 'mr-dim';
-    dim.style.left = Math.round(dimLeftPx) + 'px';
-    dim.style.width = Math.round(dimW) + 'px';
-    dim.style.top = Math.round(dimYpx) + 'px';
-    var wL = document.createElement('span');
-    wL.className = 'mr-dim-wedge mr-dim-wedge--L';
-    var tr = document.createElement('span');
-    tr.className = 'mr-dim-track';
-    var wR = document.createElement('span');
-    wR.className = 'mr-dim-wedge mr-dim-wedge--R';
-    dim.appendChild(wL);
-    dim.appendChild(tr);
-    dim.appendChild(wR);
+    var inner = document.createElement('div');
+    inner.className = 'mr-anno-inner';
+    inner.innerHTML = '<div class="mr-anno-label">' + escapeHtml(region.label.toUpperCase()) + '</div>'
+      + '<div class="mr-anno-row"><span class="mr-anno-val">' + escapeHtml(String(region.score)) + '</span><span class="mr-anno-den">/100</span></div>'
+      + '<div class="mr-anno-foot"><span class="mr-anno-dot" aria-hidden="true"></span><span>' + escapeHtml(tierWord) + '</span></div>';
 
     var bridge = document.createElement('div');
-    bridge.className = 'mr-callout-bridge';
-    bridge.style.top = Math.round(dimYpx - 1) + 'px';
+    bridge.className = 'mr-anno-bridge';
+    bridge.setAttribute('aria-hidden', 'true');
 
-    var card = document.createElement('div');
-    card.className = 'mr-callout-card' + (cfg.side === 'right' ? ' mr-callout-card--right' : '');
-    card.style.width = cardW + 'px';
-    var cardTop = Math.round(Math.min(svgH - cardH - 2, Math.max(2, dimYpx - cardH / 2)));
-    card.style.top = cardTop + 'px';
+    var cal = document.createElement('div');
+    cal.className = 'mr-anno-caliper';
+    cal.setAttribute('aria-hidden', 'true');
+    cal.innerHTML = MR_CALIPER_SVG;
 
-    if (cfg.side === 'left') {
-      card.style.left = inset + 'px';
-      var cardRight = inset + cardW;
-      var b0 = cardRight + gap;
-      var b1 = dimLeftPx - gap;
-      var bw = Math.round(b1 - b0);
-      if (bw < 10) { b0 = Math.max(inset + cardW * 0.5, dimLeftPx - 28); bw = Math.max(10, Math.round(dimLeftPx - gap - b0)); }
-      bridge.style.left = Math.round(b0) + 'px';
-      bridge.style.width = Math.max(8, bw) + 'px';
+    // Chip on the outer margin; caliper + bridge aim at the figure (center row = same as right: jaw toward midline)
+    if (side === 'right' || side === 'center') {
+      wrap.appendChild(cal);
+      wrap.appendChild(bridge);
+      wrap.appendChild(inner);
     } else {
-      card.style.left = Math.round(svgW - inset - cardW) + 'px';
-      var cardLeft = svgW - inset - cardW;
-      var b0 = dimRightPx + gap;
-      var b1 = cardLeft - gap;
-      var bw = Math.round(b1 - b0);
-      if (bw < 10) { b1 = Math.min(svgW - inset - cardW * 0.45, dimRightPx + 28); bw = Math.max(10, Math.round(b1 - (dimRightPx + gap))); b0 = b1 - bw; }
-      bridge.style.left = Math.round(b0) + 'px';
-      bridge.style.width = Math.max(8, bw) + 'px';
+      wrap.appendChild(inner);
+      wrap.appendChild(bridge);
+      wrap.appendChild(cal);
     }
 
-    card.innerHTML = '<div class="mr-callout-card-title">' + escapeHtml(region.label.toUpperCase()) + '</div>'
-      + '<div class="mr-callout-metric"><span class="mr-callout-num">' + escapeHtml(String(region.score)) + '</span><span class="mr-callout-sl">/100</span></div>'
-      + '<div class="mr-callout-foot"><span class="mr-callout-dot"></span><span>' + escapeHtml(tUi.status) + '</span></div>';
-
-    root.appendChild(dim);
-    root.appendChild(bridge);
-    root.appendChild(card);
-    wrap.appendChild(root);
+    box.appendChild(wrap);
   });
 }
 
@@ -20386,6 +20401,26 @@ function mrShowRegionTooltip(region) {
     }
   });
 }
+
+window.mrSetBodyView = function(side) {
+  var front = document.getElementById('mr-figure-front');
+  var back = document.getElementById('mr-figure-back');
+  var bf = document.getElementById('mr-btn-front');
+  var bb = document.getElementById('mr-btn-back');
+  if (!front || !back) return;
+  var isBack = side === 'back';
+  front.setAttribute('visibility', isBack ? 'hidden' : 'visible');
+  back.setAttribute('visibility', isBack ? 'visible' : 'hidden');
+  if (bf) {
+    bf.classList.toggle('active', !isBack);
+    bf.setAttribute('aria-selected', !isBack ? 'true' : 'false');
+  }
+  if (bb) {
+    bb.classList.toggle('active', isBack);
+    bb.setAttribute('aria-selected', isBack ? 'true' : 'false');
+  }
+  if (mrData) mrRenderCallouts(mrData);
+};
 
 })();
 </script>
