@@ -4558,6 +4558,48 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .mr-md-ex-freq{font-size:9.5px;font-weight:600;letter-spacing:.04em;padding:2px 6px;background:rgba(52,211,153,0.10);color:#34d399;border:1px solid rgba(52,211,153,0.25);border-radius:4px;white-space:nowrap}
 .mr-md-ex-blurb{font-size:10.5px;color:rgba(244,240,232,0.5);line-height:1.45}
 
+/* ── Coach card: YOUR NEXT WORKOUT (Phase 5) ─────────────────────────────── */
+.mr-coach-card{position:relative;background:linear-gradient(180deg,rgba(200,164,78,0.08) 0%,rgba(200,164,78,0.02) 50%,var(--mr-card) 100%);border:1px solid rgba(200,164,78,0.32);border-radius:14px;padding:18px;margin-bottom:16px;overflow:hidden}
+.mr-coach-card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent 0%,var(--mr-gold) 50%,transparent 100%);opacity:.7}
+.mr-coach-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.mr-coach-title-block{flex:1;min-width:0}
+.mr-coach-eyebrow{font-size:10px;letter-spacing:2.5px;color:var(--mr-gold);font-weight:700;text-transform:uppercase;margin-bottom:4px}
+.mr-coach-targets{font-size:14px;font-weight:600;color:rgba(244,240,232,0.9);letter-spacing:.02em}
+.mr-coach-targets .mr-coach-target{color:var(--mr-gold);font-weight:700}
+.mr-coach-targets .mr-coach-sep{color:rgba(244,240,232,0.3);margin:0 6px}
+.mr-coach-icon{flex-shrink:0;font-size:24px;line-height:1;width:42px;height:42px;display:flex;align-items:center;justify-content:center;background:rgba(200,164,78,0.12);border:1px solid rgba(200,164,78,0.25);border-radius:50%}
+
+.mr-coach-exercises{display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
+.mr-coach-ex{display:flex;align-items:center;gap:12px;padding:11px 12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;transition:background .2s,border-color .2s}
+.mr-coach-ex:hover{background:rgba(255,255,255,0.04);border-color:rgba(200,164,78,0.2)}
+.mr-coach-ex-num{flex-shrink:0;width:24px;height:24px;border-radius:50%;background:rgba(200,164,78,0.16);color:var(--mr-gold);font-family:'Bebas Neue',sans-serif;font-size:13px;display:flex;align-items:center;justify-content:center;letter-spacing:0;font-weight:700}
+.mr-coach-ex-info{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.mr-coach-ex-name{font-size:13.5px;font-weight:700;color:#f4f0e8;letter-spacing:.02em;line-height:1.2}
+.mr-coach-ex-context{font-size:11px;color:rgba(244,240,232,0.45);letter-spacing:.02em}
+.mr-coach-ex-context .mr-coach-ex-delta{color:#34d399;font-weight:600;margin-left:4px}
+.mr-coach-ex-target{flex-shrink:0;text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.mr-coach-ex-weight{font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--mr-gold);line-height:1;letter-spacing:.5px}
+.mr-coach-ex-reps{font-size:10px;color:rgba(244,240,232,0.5);letter-spacing:.04em;font-weight:600}
+
+.mr-coach-rationale{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.04);border-radius:8px;margin-bottom:14px;font-size:11.5px;color:rgba(244,240,232,0.7);line-height:1.5}
+.mr-coach-rationale-icon{flex-shrink:0;font-size:13px;line-height:1.2;color:var(--mr-gold);margin-top:1px}
+
+.mr-coach-cta{width:100%;display:flex;align-items:center;justify-content:center;gap:8px;background:linear-gradient(180deg,var(--mr-gold) 0%,#b69036 100%);color:#0a0d10;border:none;border-radius:10px;padding:14px 18px;font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;transition:transform .15s,box-shadow .2s,filter .2s;-webkit-tap-highlight-color:transparent;min-height:48px}
+.mr-coach-cta:hover{filter:brightness(1.08);box-shadow:0 4px 18px rgba(200,164,78,0.4)}
+.mr-coach-cta:active{transform:translateY(1px) scale(0.99)}
+.mr-coach-cta svg{flex-shrink:0;transition:transform .2s}
+.mr-coach-cta:hover svg{transform:translateX(3px)}
+
+@media(max-width:560px){
+  .mr-coach-card{padding:14px;margin-bottom:14px}
+  .mr-coach-icon{width:36px;height:36px;font-size:20px}
+  .mr-coach-targets{font-size:13px}
+  .mr-coach-ex{padding:10px}
+  .mr-coach-ex-name{font-size:13px}
+  .mr-coach-ex-weight{font-size:17px}
+  .mr-coach-cta{padding:13px 16px;font-size:13px}
+}
+
 /* ── Attention Needed card (Phase 3) ── */
 .mr-attention-card{border-left:3px solid rgba(217,119,6,0.6);margin-bottom:16px;gap:12px}
 .mr-attention-head{display:flex;flex-direction:column;gap:2px}
@@ -5356,6 +5398,23 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <button type="button" class="mr-share-btn" onclick="mrShareCard()" id="mr-share-btn" style="display:none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
             Share
+          </button>
+        </div>
+
+        <!-- ── YOUR NEXT WORKOUT — Coach card (Phase 5) ───────────────────── -->
+        <div class="mr-card mr-coach-card" id="mr-coach-card" style="display:none">
+          <div class="mr-coach-head">
+            <div class="mr-coach-title-block">
+              <div class="mr-coach-eyebrow">YOUR NEXT WORKOUT</div>
+              <div class="mr-coach-targets" id="mr-coach-targets"></div>
+            </div>
+            <div class="mr-coach-icon" aria-hidden="true">🎯</div>
+          </div>
+          <div class="mr-coach-exercises" id="mr-coach-exercises"></div>
+          <div class="mr-coach-rationale" id="mr-coach-rationale"></div>
+          <button type="button" class="mr-coach-cta" id="mr-coach-cta" onclick="mrCoachStartWorkout()">
+            <span>Log This Workout</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"/></svg>
           </button>
         </div>
 
@@ -20096,6 +20155,25 @@ var MR_EXERCISE_CATALOG = {
   calf_raise:        { label: 'Calf Raise',        blurb: 'Direct calf work. Ankle plantar flexion.' }
 };
 
+// ── Phase 5 (Coach): rep schemes, starter weights, weight increments per lift ──
+var MR_REP_SCHEME = {
+  bench_press:       { sets: 3, reps: 5,  type: 'compound',  inc: 2.5, starter: 40 },
+  incline_press:     { sets: 3, reps: 6,  type: 'compound',  inc: 2.5, starter: 30 },
+  overhead_press:    { sets: 3, reps: 5,  type: 'compound',  inc: 2.5, starter: 25 },
+  lateral_raise:     { sets: 3, reps: 12, type: 'isolation', inc: 1,   starter: 5  },
+  triceps_pushdown:  { sets: 3, reps: 12, type: 'isolation', inc: 2.5, starter: 15 },
+  bicep_curl:        { sets: 3, reps: 10, type: 'isolation', inc: 1,   starter: 8  },
+  deadlift:          { sets: 1, reps: 5,  type: 'compound',  inc: 5,   starter: 60 },
+  barbell_row:       { sets: 3, reps: 6,  type: 'compound',  inc: 2.5, starter: 30 },
+  lat_pulldown:      { sets: 3, reps: 8,  type: 'compound',  inc: 2.5, starter: 30 },
+  face_pull:         { sets: 3, reps: 15, type: 'isolation', inc: 1,   starter: 10 },
+  back_squat:        { sets: 3, reps: 5,  type: 'compound',  inc: 2.5, starter: 40 },
+  romanian_deadlift: { sets: 3, reps: 6,  type: 'compound',  inc: 2.5, starter: 40 },
+  leg_press:         { sets: 3, reps: 8,  type: 'compound',  inc: 5,   starter: 60 },
+  leg_curl:          { sets: 3, reps: 10, type: 'isolation', inc: 2.5, starter: 20 },
+  calf_raise:        { sets: 3, reps: 15, type: 'isolation', inc: 2.5, starter: 30 }
+};
+
 var MR_MUSCLE_ATLAS = {
   chest: {
     label: 'Chest',
@@ -20315,6 +20393,7 @@ function mrRender(d) {
   if (shareBtn) shareBtn.style.display = d.is_placeholder ? 'none' : '';
 
   mrRenderAuditIndex(d);
+  mrRenderCoachCard(d);
   mrRenderAttentionCard(d);
   mrRenderSvgRegions(d);
   mrRenderCallouts(d);
@@ -20352,6 +20431,224 @@ function mrRenderAuditIndex(d) {
     }
   }
 }
+
+// ── Coach card: YOUR NEXT WORKOUT (Phase 5) ────────────────────────────────
+// Picks 1-2 priority muscle groups based on weakness + recency, prescribes
+// 4 specific exercises with target weights derived from last_lifts +
+// progressive overload, generates a one-line "why" rationale, and renders
+// the action card. Tap the CTA → switches to the workout tab.
+//
+// Reads: d.regions (Phase 1), d.last_lifts (Phase 2)
+// Reads globals: MR_MUSCLE_ATLAS, MR_EXERCISE_CATALOG, MR_REP_SCHEME, MR_REGION_META
+function mrComputeCoachPlan(d) {
+  if (!d || d.is_placeholder) return null;
+  var atlas = (typeof MR_MUSCLE_ATLAS !== 'undefined') ? MR_MUSCLE_ATLAS : null;
+  if (!atlas) return null;
+  var lastLifts = (d.last_lifts && typeof d.last_lifts === 'object') ? d.last_lifts : {};
+  var regions = d.regions || [];
+  if (!regions.length) return null;
+
+  var now = Date.now();
+  var DAY_MS = 86400000;
+
+  // Score every group by combined "needs work" signal. Higher = more urgent.
+  // 50% weakness (inverse of score), 50% staleness (days since most-recent primary).
+  var scored = [];
+  regions.forEach(function(r) {
+    var key = r.key;
+    var group = atlas[key];
+    if (!group || !Array.isArray(group.exercises) || !group.exercises.length) return;
+
+    // Weakness component: 0..1 (1 = no score data; otherwise 1 - score/100)
+    var weakness;
+    if (r.score === null || r.tier === 'no_data' || r.tier === 'unranked') {
+      weakness = 0.55; // unknown → moderately worth testing
+    } else {
+      weakness = Math.max(0, Math.min(1, 1 - (r.score / 100)));
+    }
+
+    // Staleness: most-recent date across this group's primaries
+    var bestDays = Infinity;
+    group.exercises.forEach(function(eKey) {
+      var entry = lastLifts[eKey];
+      if (!entry || !entry.date) return;
+      var t = Date.parse(entry.date);
+      if (isNaN(t)) return;
+      var days = Math.max(0, Math.floor((now - t) / DAY_MS));
+      if (days < bestDays) bestDays = days;
+    });
+    var staleness = (bestDays === Infinity) ? 1 : Math.min(1, bestDays / 30);
+
+    var need = (weakness * 0.5) + (staleness * 0.5);
+    scored.push({
+      key: key,
+      label: r.label || (group.label) || key,
+      score: r.score,
+      tier: r.tier,
+      weakness: weakness,
+      staleness: staleness,
+      daysSince: bestDays,
+      need: need,
+      group: group
+    });
+  });
+
+  if (!scored.length) return null;
+
+  // Sort by need (highest first) then pick top 2 distinct groups.
+  scored.sort(function(a, b) { return b.need - a.need; });
+  var primary = scored[0];
+  var secondary = scored.length > 1 ? scored[1] : null;
+
+  // Pick 2 exercises per priority group. Prefer compounds first; among same
+  // category, prefer the one trained least recently.
+  function pickExercises(target, count) {
+    var keys = (target.group.exercises || []).slice(0);
+    var withMeta = keys.map(function(k) {
+      var meta = MR_REP_SCHEME[k] || {};
+      var entry = lastLifts[k];
+      var daysSince = (entry && entry.date) ? Math.max(0, Math.floor((now - Date.parse(entry.date)) / DAY_MS)) : Infinity;
+      return { key: k, type: meta.type || 'compound', daysSince: daysSince };
+    });
+    withMeta.sort(function(a, b) {
+      // Compounds first
+      if (a.type !== b.type) return a.type === 'compound' ? -1 : 1;
+      // Then most-stale
+      return b.daysSince - a.daysSince;
+    });
+    return withMeta.slice(0, count).map(function(x) { return x.key; });
+  }
+
+  var primaryEx = pickExercises(primary, 2);
+  var picks = primaryEx.slice(0);
+  if (secondary && secondary !== primary) {
+    var secondaryEx = pickExercises(secondary, 2);
+    secondaryEx.forEach(function(k) { if (picks.indexOf(k) === -1) picks.push(k); });
+  }
+  picks = picks.slice(0, 4);
+  if (!picks.length) return null;
+
+  // Compute target weight per exercise: progressive overload from last_lifts
+  // (or starter weight if never trained). Round to the lift's increment.
+  function roundTo(value, step) {
+    if (step <= 0) return Math.round(value);
+    return Math.round(value / step) * step;
+  }
+
+  var exercises = picks.map(function(eKey) {
+    var meta = MR_REP_SCHEME[eKey] || { sets: 3, reps: 8, type: 'compound', inc: 2.5, starter: 30 };
+    var catalog = (typeof MR_EXERCISE_CATALOG !== 'undefined') ? MR_EXERCISE_CATALOG : null;
+    var label = (catalog && catalog[eKey] && catalog[eKey].label) || eKey;
+    var entry = lastLifts[eKey];
+    var lastWeight = (entry && typeof entry.weight_kg === 'number') ? entry.weight_kg : null;
+    var targetWeight, contextLabel, deltaLabel = '';
+    if (lastWeight !== null && lastWeight > 0) {
+      // Progressive overload: nudge up by one increment for compounds,
+      // half-increment for isolations (smaller jumps for small muscles).
+      var bump = meta.type === 'isolation' ? Math.max(meta.inc * 0.5, 0.5) : meta.inc;
+      targetWeight = roundTo(lastWeight + bump, meta.inc);
+      if (targetWeight <= lastWeight) targetWeight = lastWeight + meta.inc;
+      contextLabel = 'Last: ' + lastWeight + ' kg';
+      deltaLabel = '+' + (Math.round((targetWeight - lastWeight) * 10) / 10) + 'kg';
+    } else {
+      targetWeight = meta.starter;
+      contextLabel = 'Starter weight';
+    }
+    return {
+      key: eKey,
+      label: label,
+      sets: meta.sets,
+      reps: meta.reps,
+      targetWeight: targetWeight,
+      contextLabel: contextLabel,
+      deltaLabel: deltaLabel
+    };
+  });
+
+  // Rationale string — one sentence
+  function rationaleFor(item) {
+    if (item.score !== null && item.tier !== 'no_data' && item.tier !== 'unranked' && item.score < 50) {
+      return item.label + ' is your weakest at ' + item.score + '/100';
+    }
+    if (item.daysSince === Infinity) {
+      return item.label + ' has never been trained';
+    }
+    if (item.daysSince > 14) {
+      return item.label + ' is ' + item.daysSince + ' days untrained';
+    }
+    if (item.tier === 'Weak') {
+      return item.label + ' tier is Weak';
+    }
+    return item.label + ' is up next';
+  }
+
+  var bits = [rationaleFor(primary)];
+  if (secondary && secondary.key !== primary.key) bits.push(rationaleFor(secondary));
+  var rationale = bits.join('. ') + '.';
+
+  return {
+    targets: secondary && secondary.key !== primary.key ? [primary.label, secondary.label] : [primary.label],
+    exercises: exercises,
+    rationale: rationale
+  };
+}
+
+function mrRenderCoachCard(d) {
+  var card = document.getElementById('mr-coach-card');
+  if (!card) return;
+
+  var plan = mrComputeCoachPlan(d);
+  if (!plan || !plan.exercises || !plan.exercises.length) {
+    card.style.display = 'none';
+    return;
+  }
+
+  // Targets
+  var targetsEl = document.getElementById('mr-coach-targets');
+  if (targetsEl) {
+    var html = 'Targets: ';
+    plan.targets.forEach(function(t, i) {
+      if (i > 0) html += '<span class="mr-coach-sep">·</span>';
+      html += '<span class="mr-coach-target">' + escapeHtml(t) + '</span>';
+    });
+    targetsEl.innerHTML = html;
+  }
+
+  // Exercises
+  var exWrap = document.getElementById('mr-coach-exercises');
+  if (exWrap) {
+    exWrap.innerHTML = plan.exercises.map(function(ex, i) {
+      var ctx = ex.contextLabel + (ex.deltaLabel ? ' <span class="mr-coach-ex-delta">' + escapeHtml(ex.deltaLabel) + '</span>' : '');
+      return '<div class="mr-coach-ex">'
+        + '<div class="mr-coach-ex-num">' + (i + 1) + '</div>'
+        + '<div class="mr-coach-ex-info">'
+        +   '<div class="mr-coach-ex-name">' + escapeHtml(ex.label) + '</div>'
+        +   '<div class="mr-coach-ex-context">' + ctx + '</div>'
+        + '</div>'
+        + '<div class="mr-coach-ex-target">'
+        +   '<div class="mr-coach-ex-weight">' + escapeHtml(String(ex.targetWeight)) + ' kg</div>'
+        +   '<div class="mr-coach-ex-reps">' + ex.sets + ' × ' + ex.reps + '</div>'
+        + '</div>'
+        + '</div>';
+    }).join('');
+  }
+
+  // Rationale
+  var rEl = document.getElementById('mr-coach-rationale');
+  if (rEl) {
+    rEl.innerHTML = '<span class="mr-coach-rationale-icon" aria-hidden="true">ⓘ</span>'
+      + '<span>' + escapeHtml(plan.rationale) + '</span>';
+  }
+
+  card.style.display = '';
+}
+
+window.mrCoachStartWorkout = function() {
+  // Take the user to the workout logger. The actual recommendation
+  // shape is recomputable by mrComputeCoachPlan(mrData) — keep it
+  // available on window for any future cross-section integration.
+  if (typeof switchUserTab === 'function') switchUserTab('workout');
+};
 
 // ── Attention Needed (Phase 3) ────────────────────────────────────────────
 // Flags muscle groups whose primary lifts haven't been trained in 14+ days
