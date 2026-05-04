@@ -3250,7 +3250,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .user-section-back{display:none}
 .user-panel .back-btn{display:none}
 .user-bottom-nav{display:none!important;position:fixed!important;top:auto!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;min-width:100%;max-width:100vw;min-height:70px;height:calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)));padding:0 0 max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)) 0;background:#0d0d0d;border-top:1px solid rgba(200,164,78,0.15);border-radius:0;z-index:9999;box-shadow:none;flex-shrink:0;margin:0;box-sizing:border-box}
-.user-bottom-nav-inner{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:stretch;width:100%;height:100%;min-width:0;padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px));column-gap:2px;box-sizing:border-box;overflow:hidden}
+.user-bottom-nav-inner{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;width:100%;height:100%;min-width:0;padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px));column-gap:2px;box-sizing:border-box;overflow:hidden}
 .user-bottom-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;width:100%;min-width:0;min-height:56px;padding:10px 4px;background:none;border:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.3px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;position:relative;box-sizing:border-box;overflow:hidden}
 .user-bottom-nav-item:hover,.user-bottom-nav-item:focus{color:var(--cream);outline:none}
 .user-bottom-nav-item.active{color:var(--gold)}
@@ -4783,6 +4783,12 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bbody-compare-dates{display:flex;align-items:center;justify-content:center;gap:14px;font-size:13px;color:rgba(244,240,232,0.85)}
 .bbody-compare-date{font-family:'Bebas Neue',sans-serif;letter-spacing:1.2px;font-size:18px;color:#f4f0e8}
 .bbody-compare-date-arrow{color:rgba(200,164,78,0.7)}
+.bbody-compare-views{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:0 0 4px}
+.bbody-compare-views:empty{display:none}
+.bbody-compare-view-btn{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);color:rgba(244,240,232,0.78);padding:7px 14px;border-radius:7px;cursor:pointer;font-size:11.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;transition:background .15s,border-color .15s,color .15s;-webkit-tap-highlight-color:transparent}
+.bbody-compare-view-btn:hover{background:rgba(200,164,78,0.10);border-color:rgba(200,164,78,0.35);color:#f4f0e8}
+.bbody-compare-view-btn.is-active{background:rgba(200,164,78,0.22);border-color:rgba(200,164,78,0.55);color:#f4f0e8}
+.bbody-compare-view-btn[disabled]{opacity:.35;cursor:not-allowed;background:rgba(255,255,255,0.02)}
 .bbody-compare-stage{position:relative;width:100%;aspect-ratio:3/4;max-height:62vh;background:#0a0907;border-radius:12px;overflow:hidden;user-select:none;touch-action:none;border:1px solid rgba(255,255,255,0.06)}
 /* Phase 5: bg-removed PNGs need a neutral dark backdrop, NOT the browser's
    default white, when they sit on the slider stage. */
@@ -5161,6 +5167,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 
         <div class="welcome-cards">
           <div class="welcome-card" onclick="switchUserTab('workout')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M2 12h4V8H2v4zM18 12h4V8h-4v4zM6 12h12"/></svg></div><div class="wc-copy"><div class="wc-title">My Workout</div><div class="wc-desc">Log sessions, lifts, and body metrics</div></div></div>
+          <div class="welcome-card" onclick="switchUserTab('body')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div><div class="wc-copy"><div class="wc-title">My Body</div><div class="wc-desc">Photos &amp; measurements over time</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('programs')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div><div class="wc-copy"><div class="wc-title">My Programs</div><div class="wc-desc">PDFs assigned by your manager</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-copy"><div class="wc-title sc-style">Check-in</div><div class="wc-desc">Daily &amp; Sunday check-ins</div></div></div>
           <div class="welcome-card" onclick="switchUserTab('messages')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-copy"><div class="wc-title">Messages</div><div class="wc-desc">Chat with your Lifestyle Manager</div></div></div>
@@ -5871,10 +5878,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <button type="button" class="user-bottom-nav-item" data-tab="messages" onclick="switchUserTab('messages')" aria-label="Messages">
         <span class="user-bottom-nav-icon" aria-hidden="true">&#128172;</span>
         <span class="user-bottom-nav-label">Messages</span>
-      </button>
-      <button type="button" class="user-bottom-nav-item" data-tab="body" onclick="switchUserTab('body')" aria-label="My Body">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#128248;</span>
-        <span class="user-bottom-nav-label">Body</span>
       </button>
     </div>
   </nav>
@@ -13935,6 +13938,7 @@ function openUserDashboard(user) {
   loadScorecard();
   bbLoadCoinSummary(true);
   if (typeof window.bbBodyHomeMaybePrompt === 'function') window.bbBodyHomeMaybePrompt();
+  if (typeof window.bbBodyMaybeShowOnboarding === 'function') window.bbBodyMaybeShowOnboarding();
   // Desktop home (≥768px) uses u-stat-*, charts, u-prog-*, u-activity-body — only filled by bbRefreshDesktopUserDashboard
   if (window.innerWidth >= 768) {
     setTimeout(function () {
@@ -20434,7 +20438,7 @@ window.addEventListener('resize', applySafeAreaFix);
   }
   html.android-mobile .user-bottom-nav-inner{
     display:grid !important;
-    grid-template-columns:repeat(6,minmax(0,1fr)) !important;
+    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
     justify-content:initial !important;
     padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px)) !important;
     column-gap:2px !important;
@@ -22142,10 +22146,10 @@ window.mrShareCard = function() {
       </div>
 
       <label class="bbody-bgr-toggle">
-        <input type="checkbox" name="remove_bg" id="bbBodyRemoveBg" value="1" checked>
+        <input type="checkbox" name="remove_bg" id="bbBodyRemoveBg" value="1">
         <span class="bbody-bgr-toggle-text">
-          <span class="bbody-bgr-toggle-title">Auto-remove background <span class="bbody-bgr-toggle-rec">recommended</span></span>
-          <span class="bbody-bgr-toggle-sub">Strips the room/lighting so you can focus on body shape changes. Uncheck to upload your photo as-is.</span>
+          <span class="bbody-bgr-toggle-title">Auto-remove background <span class="bbody-bgr-toggle-rec" style="background:rgba(255,255,255,0.06);color:rgba(244,240,232,0.7);border-color:rgba(255,255,255,0.12)">slow · optional</span></span>
+          <span class="bbody-bgr-toggle-sub">Off by default for fast saves. Tick this if you want a clean cutout — first run takes ~30 s while the model downloads.</span>
         </span>
       </label>
 
@@ -22156,6 +22160,28 @@ window.mrShareCard = function() {
         <button type="submit" class="bbody-btn bbody-btn-gold" id="bbBodyUploadSubmit">Save Snapshot</button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- My Body — once-per-day onboarding popup -->
+<div class="bbody-modal-overlay" id="bb-body-onboarding-modal" aria-hidden="true" onclick="bbBodyOnboardingOverlayClick(event)">
+  <div class="bbody-modal" role="dialog" aria-modal="true" aria-labelledby="bbBodyOnboardingTitle" onclick="event.stopPropagation()" style="max-width:480px">
+    <div class="bbody-modal-head">
+      <h3 class="bbody-modal-title" id="bbBodyOnboardingTitle">📸 Meet My Body</h3>
+      <button type="button" class="bbody-modal-close" onclick="bbBodyCloseOnboarding()" aria-label="Close">✕</button>
+    </div>
+    <div class="bbody-modal-body" style="padding:16px 20px 20px;font-size:13.5px;line-height:1.55;color:rgba(244,240,232,0.85)">
+      <p style="margin:0 0 12px">Track your transformation week by week.</p>
+      <ul style="margin:0 0 16px;padding-left:18px;color:rgba(244,240,232,0.78)">
+        <li style="margin-bottom:6px"><strong style="color:#f4f0e8">Snap front, side, and back</strong> — log bodyweight and waist alongside.</li>
+        <li style="margin-bottom:6px"><strong style="color:#f4f0e8">Compare any two snapshots</strong> with a slider — switch between Front/Side/Back instantly.</li>
+        <li><strong style="color:#f4f0e8">Optional: share with your coach</strong> — toggle per snapshot, off by default.</li>
+      </ul>
+      <div class="bbody-modal-actions" style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+        <button type="button" class="bbody-btn bbody-btn-ghost" onclick="bbBodyCloseOnboarding()">Maybe later</button>
+        <button type="button" class="bbody-btn bbody-btn-gold" onclick="bbBodyOnboardingGo()">Take My First Snapshot</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -22171,6 +22197,7 @@ window.mrShareCard = function() {
         <span class="bbody-compare-date-arrow">→</span>
         <div class="bbody-compare-date" id="bbBodyCompareDateB">—</div>
       </div>
+      <div class="bbody-compare-views" id="bbBodyCompareViews" role="tablist" aria-label="Switch view"></div>
       <div class="bbody-compare-stage" id="bbBodyCompareStage">
         <img class="bbody-compare-img bbody-compare-img--a" id="bbBodyCompareImgA" alt="Earlier snapshot">
         <img class="bbody-compare-img bbody-compare-img--b" id="bbBodyCompareImgB" alt="Later snapshot">
@@ -22472,9 +22499,9 @@ window.bbBodyOpenUpload = function() {
   var ymd = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
   var dateEl = document.getElementById('bbBodyUploadDate');
   if (dateEl) dateEl.value = ymd;
-  // Phase 5: bg-removal opt-in defaults to ON each time the modal opens.
+  // bg-removal defaults OFF each time the modal opens (slow optional feature).
   var rmBgEl = document.getElementById('bbBodyRemoveBg');
-  if (rmBgEl) rmBgEl.checked = true;
+  if (rmBgEl) rmBgEl.checked = false;
   var msg = document.getElementById('bbBodyUploadMsg');
   if (msg) { msg.style.display = 'none'; msg.textContent = ''; msg.classList.remove('is-ok'); }
   var btn = document.getElementById('bbBodyUploadSubmit');
@@ -22666,18 +22693,66 @@ window.bbBodyCompare = function(idA, idB) {
   var imgB = document.getElementById('bbBodyCompareImgB');
   var noPhoto = document.getElementById('bbBodyCompareNoPhoto');
   var handle = document.getElementById('bbBodyCompareHandle');
+  var viewsEl = document.getElementById('bbBodyCompareViews');
 
-  var aSrc = a.photo_front || a.photo_side || a.photo_back || '';
-  var bSrc = b.photo_front || b.photo_side || b.photo_back || '';
-  if (imgA) imgA.src = aSrc || '';
-  if (imgB) imgB.src = bSrc || '';
-  if (imgA) imgA.style.display = aSrc ? '' : 'none';
-  if (imgB) imgB.style.display = bSrc ? '' : 'none';
-  if (handle) handle.style.display = (aSrc && bSrc) ? '' : 'none';
-  if (noPhoto) noPhoto.style.display = (!aSrc && !bSrc) ? '' : 'none';
+  // Build view switcher (Front / Side / Back). A view button is enabled only
+  // when at least one of A or B has that photo. Default = first view that
+  // exists on BOTH snapshots; otherwise the first that exists on either.
+  var viewDefs = [
+    { key: 'front', lbl: 'Front' },
+    { key: 'side',  lbl: 'Side' },
+    { key: 'back',  lbl: 'Back' }
+  ];
+  var anyOnBoth = null, anyOnEither = null;
+  for (var vi = 0; vi < viewDefs.length; vi++) {
+    var vk = viewDefs[vi].key;
+    var hasA = !!a['photo_' + vk];
+    var hasB = !!b['photo_' + vk];
+    if (hasA && hasB && anyOnBoth === null) anyOnBoth = vk;
+    if ((hasA || hasB) && anyOnEither === null) anyOnEither = vk;
+  }
+  var defaultView = anyOnBoth || anyOnEither || 'front';
 
-  // Reset slider to 50%
-  bbBodyCompareSetSliderPct(50);
+  // Stash on the modal element so the buttons can re-call applyView without
+  // refetching from bbBodySnapshots.
+  ov.__bbCompareA = a;
+  ov.__bbCompareB = b;
+
+  function applyView(viewKey) {
+    var aSrc = a['photo_' + viewKey] || '';
+    var bSrc = b['photo_' + viewKey] || '';
+    if (imgA) { imgA.src = aSrc || ''; imgA.style.display = aSrc ? '' : 'none'; }
+    if (imgB) { imgB.src = bSrc || ''; imgB.style.display = bSrc ? '' : 'none'; }
+    if (handle) handle.style.display = (aSrc && bSrc) ? '' : 'none';
+    if (noPhoto) {
+      if (!aSrc && !bSrc) {
+        noPhoto.textContent = 'No ' + viewKey + ' photos for these snapshots.';
+        noPhoto.style.display = '';
+      } else {
+        noPhoto.style.display = 'none';
+      }
+    }
+    bbBodyCompareSetSliderPct(50);
+    // Sync button active state
+    if (viewsEl) {
+      var btns = viewsEl.querySelectorAll('.bbody-compare-view-btn');
+      for (var bi = 0; bi < btns.length; bi++) {
+        btns[bi].classList.toggle('is-active', btns[bi].getAttribute('data-view') === viewKey);
+      }
+    }
+  }
+  ov.__bbCompareApplyView = applyView;
+
+  if (viewsEl) {
+    var html = '';
+    for (var ji = 0; ji < viewDefs.length; ji++) {
+      var jk = viewDefs[ji].key;
+      var jHasAny = !!(a['photo_' + jk] || b['photo_' + jk]);
+      html += '<button type="button" class="bbody-compare-view-btn' + (jk === defaultView ? ' is-active' : '') + '" data-view="' + jk + '"' + (jHasAny ? '' : ' disabled') + ' onclick="bbBodyCompareSwitchView(\'' + jk + '\')">' + viewDefs[ji].lbl + '</button>';
+    }
+    viewsEl.innerHTML = html;
+  }
+  applyView(defaultView);
 
   // Stats
   var statsEl = document.getElementById('bbBodyCompareStats');
@@ -22769,6 +22844,12 @@ function bbBodyCompareWireDrag() {
   document.addEventListener('touchcancel', onUp);
 }
 
+window.bbBodyCompareSwitchView = function(viewKey) {
+  var ov = document.getElementById('bb-body-compare-modal');
+  if (!ov || typeof ov.__bbCompareApplyView !== 'function') return;
+  ov.__bbCompareApplyView(viewKey);
+};
+
 window.bbBodyCloseCompare = function() {
   var ov = document.getElementById('bb-body-compare-modal');
   if (!ov) return;
@@ -22786,6 +22867,57 @@ window.bbBodyCompareOverlayClick = function(ev) {
 
 function bbBodyCompareKeyHandler(ev) {
   if (ev && ev.key === 'Escape') window.bbBodyCloseCompare();
+}
+
+// ── Once-per-day onboarding popup ────────────────────────────────
+var BODY_ONBOARDING_KEY = 'bbBodyOnboardingShownDate';
+
+function bbBodyTodayLocalYmd() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+window.bbBodyMaybeShowOnboarding = function() {
+  if (!window.currentUser || !window.currentUser.token) return;
+  // Only for users (not admins / managers)
+  if (window.currentUser.role && window.currentUser.role !== 'user') return;
+  var today = bbBodyTodayLocalYmd();
+  try {
+    if (localStorage.getItem(BODY_ONBOARDING_KEY) === today) return;
+  } catch (_) {}
+  var ov = document.getElementById('bb-body-onboarding-modal');
+  if (!ov) return;
+  // Stamp immediately so re-entry within the same day won't re-trigger
+  try { localStorage.setItem(BODY_ONBOARDING_KEY, today); } catch (_) {}
+  ov.classList.add('is-open');
+  ov.setAttribute('aria-hidden', 'false');
+  document.addEventListener('keydown', bbBodyOnboardingKeyHandler);
+};
+
+window.bbBodyCloseOnboarding = function() {
+  var ov = document.getElementById('bb-body-onboarding-modal');
+  if (!ov) return;
+  ov.classList.remove('is-open');
+  ov.setAttribute('aria-hidden', 'true');
+  document.removeEventListener('keydown', bbBodyOnboardingKeyHandler);
+};
+
+window.bbBodyOnboardingOverlayClick = function(ev) {
+  if (ev && ev.target && ev.target.id === 'bb-body-onboarding-modal') {
+    window.bbBodyCloseOnboarding();
+  }
+};
+
+window.bbBodyOnboardingGo = function() {
+  window.bbBodyCloseOnboarding();
+  if (typeof switchUserTab === 'function') switchUserTab('body');
+  setTimeout(function() {
+    if (typeof window.bbBodyOpenUpload === 'function') window.bbBodyOpenUpload();
+  }, 280);
+};
+
+function bbBodyOnboardingKeyHandler(ev) {
+  if (ev && ev.key === 'Escape') window.bbBodyCloseOnboarding();
 }
 
 })();

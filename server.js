@@ -6277,11 +6277,12 @@ app.post('/api/me/body/snapshot', verifyToken, bodyUploadFields, async (req, res
     var ts = Date.now();
     var photoFront = null, photoSide = null, photoBack = null;
 
-    // Opt-in (default ON). Accept '0', 'false', 'off', '' as opt-out.
+    // Opt-in (default OFF). Bg-removal can take 5–60s depending on cold-start,
+    // so we default it off to keep saves fast. Users explicitly opt in via the
+    // upload modal checkbox, which sends remove_bg=1.
     var rmFlagRaw = body.remove_bg;
-    if (rmFlagRaw === undefined || rmFlagRaw === null) rmFlagRaw = '1';
-    var rmFlag = String(rmFlagRaw).toLowerCase().trim();
-    var wantBgRemoval = !(rmFlag === '0' || rmFlag === 'false' || rmFlag === 'off' || rmFlag === '');
+    var rmFlag = String(rmFlagRaw == null ? '' : rmFlagRaw).toLowerCase().trim();
+    var wantBgRemoval = (rmFlag === '1' || rmFlag === 'true' || rmFlag === 'on');
 
     async function saveOne(fileObj, viewName) {
       if (!fileObj || !fileObj.buffer) return null;
