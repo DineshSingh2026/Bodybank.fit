@@ -517,7 +517,9 @@ function createMuscleRankingService({ queryOne, queryAll }) {
     };
 
     // 8. Score history — compute monthly snapshots (last 6 months)
-    const history = buildScoreHistory(workoutRows, progressRows, bodyweightKg, isFemale);
+    const historyResult = buildScoreHistory(workoutRows, progressRows, bodyweightKg, isFemale);
+    const history = historyResult.history;
+    const regionHistory = historyResult.regionHistory;
 
     // 8b. Drill-down per-exercise data (Phase 2): last logged weight + 30d frequency
     const lastLifts = buildLastLifts(workoutRows);
@@ -569,6 +571,12 @@ function createMuscleRankingService({ queryOne, queryAll }) {
       below_avg_regions: []
     };
 
+    // When there's no data, return empty per-region history arrays
+    // so the frontend's `d.region_history[key]` access is always safe.
+    const finalRegionHistory = hasRealData ? regionHistory : {
+      chest: [], back: [], shoulders: [], arms: [], legs: [], core: []
+    };
+
     return {
       formula_version: 1,
       user_id: userId,
@@ -583,6 +591,7 @@ function createMuscleRankingService({ queryOne, queryAll }) {
       recommendation: finalRecommendation,
       self_ranking: finalSelfRanking,
       history,
+      region_history: finalRegionHistory,
       last_lifts: lastLifts,
       frequency_30d: frequency30d,
       has_data: hasRealData,
@@ -593,8 +602,23 @@ function createMuscleRankingService({ queryOne, queryAll }) {
   /**
    * Build a historical score series.
    * Groups sessions into monthly buckets, computes cumulative-best audit index up to each date.
+   *
+   * Returns:
+   *   {
+   *     history: [{ date, label, index }, ...],
+   *     regionHistory: { chest: [{date, score}, ...], back: [...], ... }
+   *   }
+   *
+   * The per-region series uses the same sample dates as the global history,
+   * so each muscle gets a sparkline aligned with the audit_index trend line.
+   * Points where a region has no data yet (null score) are omitted from
+   * that region's series so the frontend can render a clean polyline.
    */
   function buildScoreHistory(workoutRows, progressRows, bodyweightKg, isFemale) {
+    const emptyRegionHistory = {
+      chest: [], back: [], shoulders: [], arms: [], legs: [], core: []
+    };
+
     // Collect all unique session dates
     const allDates = new Set();
     workoutRows.forEach(r => {
@@ -606,7 +630,7 @@ function createMuscleRankingService({ queryOne, queryAll }) {
       if (d) allDates.add(d);
     });
 
-    if (allDates.size === 0) return [];
+    if (allDates.size === 0) return { history: [], regionHistory: emptyRegionHistory };
 
     const sortedDates = [...allDates].sort();
 
@@ -625,6 +649,9 @@ function createMuscleRankingService({ queryOne, queryAll }) {
     }
 
     const historyPoints = [];
+    const regionHistory = {
+      chest: [], back: [], shoulders: [], arms: [], legs: [], core: []
+    };
 
     // Cumulative best approach — running max lifts up to each sample date
     const cumulativeWorkout = [];
@@ -648,9 +675,13 @@ function createMuscleRankingService({ queryOne, queryAll }) {
 
       const scores = {};
       for (const region of REGIONS) {
-        scores[region.key] = computeRegionScore(
+        const s = computeRegionScore(
           region, cumulativeWorkout, cumulativeProgress, bodyweightKg, isFemale
         );
+        scores[region.key] = s;
+        if (s !== null && regionHistory[region.key]) {
+          regionHistory[region.key].push({ date, score: s });
+        }
       }
       const idx = computeBodyAuditIndex(scores);
 
@@ -664,11 +695,29 @@ function createMuscleRankingService({ queryOne, queryAll }) {
 
     // Deduplicate consecutive identical dates (can happen if same day logged twice)
     const seen = new Set();
-    return historyPoints.filter(p => {
+    const dedupedHistory = historyPoints.filter(p => {
       if (seen.has(p.date)) return false;
       seen.add(p.date);
       return true;
     });
+
+    // Same dedupe per region series
+    for (const k of Object.keys(regionHistory)) {
+      const rseen = new Set();
+      regionHistory[k] = regionHistory[k].filter(p => {
+        if (rseen.has(p.date)) return false;
+        rseen.add(p.date);
+        return true;
+      });
+      // Trim to last ~30 days worth of snapshots to match the API contract.
+      // We sample at most 12 points across 6 months, so the tail naturally covers
+      // recent activity; cap to 30 entries defensively in case sampling changes.
+      if (regionHistory[k].length > 30) {
+        regionHistory[k] = regionHistory[k].slice(-30);
+      }
+    }
+
+    return { history: dedupedHistory, regionHistory };
   }
 
   return { computeMuscleRanking };

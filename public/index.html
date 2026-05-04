@@ -20637,41 +20637,56 @@ function mrRenderScoresList(d) {
 
 // Mini sparklines per muscle (shows history of that region's score from snapshots)
 function mrDrawSparklines(d) {
-  var history = d.history || [];
-  if (history.length < 2) return;
-
-  // We only have audit_index in history, not per-region. Draw a line showing global trend.
-  // Colour it by current score tier of each region.
+  // Per-muscle sparklines (Phase 4) — uses d.region_history per region.
   var regionOrder = ['chest','back','shoulders','arms','legs','core'];
   var byKey = {};
   (d.regions || []).forEach(function(r) { byKey[r.key] = r; });
 
+  var regionHistory = d.region_history || {};
+
   regionOrder.forEach(function(key) {
     var el = document.getElementById('mr-spark-' + key);
     if (!el) return;
-    var r = byKey[key];
-    if (!r || r.score === null) { el.innerHTML = ''; return; }
 
-    var color = r.tier === 'Strong' ? '#34d399' : r.tier === 'Average' ? '#d97706' : '#ef4444';
+    var r = byKey[key] || {};
+    var tier = r.tier;
+    var color;
+    if (tier === 'Strong') color = '#34d399';
+    else if (tier === 'Average') color = '#d97706';
+    else if (tier === 'Weak') color = '#ef4444';
+    else color = 'rgba(244,240,232,0.25)'; // no_data / unranked
 
-    // Use overall audit index trend as the sparkline shape, normalize 0-100 to svg coords
-    var vals = history.map(function(p) { return p.index !== null ? p.index : null; }).filter(function(v) { return v !== null; });
-    if (vals.length < 2) { el.innerHTML = ''; return; }
+    var series = regionHistory[key] || [];
 
-    var minV = Math.min.apply(null, vals);
-    var maxV = Math.max.apply(null, vals);
-    var range = maxV - minV || 1;
-    var W = 54, H = 24, pad = 2;
-    var pts = vals.map(function(v, i) {
-      var x = pad + (i / (vals.length - 1)) * (W - pad * 2);
-      var y = H - pad - ((v - minV) / range) * (H - pad * 2);
+    // <2 points: render a single dot if exactly 1 point, else blank
+    if (series.length < 2) {
+      if (series.length === 1) {
+        el.innerHTML = '<circle cx="51" cy="12" r="2" fill="' + color + '"/>';
+      } else {
+        el.innerHTML = '';
+      }
+      return;
+    }
+
+    // Map score 0..100 -> y 22..2 (inverted: high score on top), x evenly spaced 0..54.
+    var W = 54;
+    var yTop = 2, yBot = 22;
+    var n = series.length;
+    var pts = series.map(function(p, i) {
+      var s = (typeof p.score === 'number') ? p.score : 0;
+      if (s < 0) s = 0; else if (s > 100) s = 100;
+      var x = (n === 1) ? W / 2 : (i / (n - 1)) * W;
+      var y = yBot - (s / 100) * (yBot - yTop);
       return [Math.round(x * 10) / 10, Math.round(y * 10) / 10];
     });
 
-    var d2 = pts.map(function(p, i) { return (i === 0 ? 'M' : 'L') + p[0] + ' ' + p[1]; }).join(' ');
-    el.innerHTML = '<polyline points="' + pts.map(function(p){ return p.join(','); }).join(' ') + '"'
-      + ' fill="none" stroke="' + color + '" stroke-width="1.6" stroke-linejoin="round" stroke-linecap="round"/>'
-      + '<circle cx="' + pts[pts.length-1][0] + '" cy="' + pts[pts.length-1][1] + '" r="2.5" fill="' + color + '"/>';
+    var ptsAttr = pts.map(function(p) { return p.join(','); }).join(' ');
+    var last = pts[pts.length - 1];
+
+    el.innerHTML = '<polyline points="' + ptsAttr + '"'
+      + ' fill="none" stroke="' + color + '" stroke-width="1.5"'
+      + ' stroke-linejoin="round" stroke-linecap="round"/>'
+      + '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="2" fill="' + color + '"/>';
   });
 }
 
