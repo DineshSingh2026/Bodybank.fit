@@ -2261,7 +2261,7 @@ body.admin-drawer-open{overflow:hidden;touch-action:none}
 .admin-drawer-section{margin-bottom:20px}
 .admin-drawer-section-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:0 24px 8px}
 .admin-bottom-nav{display:flex!important;position:fixed!important;top:auto!important;left:0!important;right:0!important;bottom:0!important;width:100%!important;min-width:100%;min-height:70px;height:calc(70px + max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)));padding:0 0 max(0px,calc(env(safe-area-inset-bottom,0px) - 8px)) 0;background:#0d0d0d;border-top:1px solid rgba(200,164,78,0.15);border-radius:0;z-index:9999;box-shadow:none;flex-shrink:0;margin:0;box-sizing:border-box}
-.admin-bottom-nav-inner{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));align-items:stretch;width:100%;height:100%;min-width:0;padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px));column-gap:2px;box-sizing:border-box;overflow:hidden}
+.admin-bottom-nav-inner{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:stretch;width:100%;height:100%;min-width:0;padding:0 max(6px,env(safe-area-inset-right,0px)) 0 max(6px,env(safe-area-inset-left,0px));column-gap:1px;box-sizing:border-box;overflow:hidden}
 .admin-bottom-nav-item{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:none;width:100%;min-width:0;min-height:56px;padding:10px 4px;background:none;border:none;color:var(--muted);font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:0.3px;cursor:pointer;transition:all .2s;-webkit-tap-highlight-color:transparent;position:relative;box-sizing:border-box;overflow:hidden}
 .admin-bottom-nav-item:hover,.admin-bottom-nav-item:focus{color:var(--cream);outline:none}
 .admin-bottom-nav-item.active{color:var(--gold)}
@@ -6045,7 +6045,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <a class="admin-sidebar-link" href="#" data-section="training" onclick="switchToSection('training');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127947;</span>Training</a>
         <a class="admin-sidebar-link" href="#" data-section="programs" onclick="switchToSection('programs');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127919;</span>Programs</a>
         <a class="admin-sidebar-link" href="#" data-section="forms" onclick="switchToSection('forms');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128203;</span>Forms</a>
-        <a class="admin-sidebar-link" href="#" onclick="switchTab('leads');return false"><span class="admin-sidebar-icon" aria-hidden="true">🎯</span>Leads</a>
+        <a class="admin-sidebar-link" href="#" data-section="leads" onclick="switchTab('leads');return false"><span class="admin-sidebar-icon" aria-hidden="true">🎯</span>Leads</a>
         <a class="admin-sidebar-link" href="#" data-section="analytics" onclick="switchToSection('analytics');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128200;</span>Analytics</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('leaderboards');return false"><span class="admin-sidebar-icon" aria-hidden="true">🏆</span>Leader Boards</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('nutrition');return false"><span class="admin-sidebar-icon" aria-hidden="true">🥗</span>Nutrition AI</a>
@@ -6094,7 +6094,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <a class="admin-nav-link" href="#" data-section="forms" onclick="switchToSection('forms');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128203;</span>Forms
         </a>
-        <a class="admin-nav-link" href="#" onclick="switchTab('leads');closeAdminNavDrawer();return false">
+        <a class="admin-nav-link" href="#" data-section="leads" onclick="switchTab('leads');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">🎯</span>Leads
         </a>
         <a class="admin-nav-link" href="#" data-section="analytics" onclick="switchToSection('analytics');closeAdminNavDrawer();return false">
@@ -6278,6 +6278,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         </div>
 
         <div class="bb-quick-actions">
+          <a class="bb-quick-btn" href="#" onclick="switchTab('leads');return false"><span class="btn-icon">🎯</span>Leads</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('signups');return false"><span class="btn-icon">👤</span>Approve Sign-ups</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('tribe');return false"><span class="btn-icon">👥</span>Client Board</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('requests');return false"><span class="btn-icon">📋</span>Audit Forms</a>
@@ -6304,6 +6305,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <div class="admin-quick-access">
           <h3 class="admin-qa-title">QUICK ACCESS</h3>
           <div class="admin-qa-grid">
+            <a class="admin-qa-btn" href="#" onclick="switchTab('leads');return false"><span class="admin-qa-icon">&#127919;</span>Leads</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('signups');return false"><span class="admin-qa-icon">&#128100;</span>Sign-ups</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('sundaycheckin');return false"><span class="admin-qa-icon">&#128197;</span>Check-Ins</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('dailycompliance');return false"><span class="admin-qa-icon">📊</span>Daily Compliance</a>
@@ -7360,6 +7362,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <button type="button" class="admin-bottom-nav-item" data-section="forms" onclick="switchToSection('forms');return false" aria-label="Forms">
         <span class="admin-bottom-nav-icon" aria-hidden="true">&#128203;</span>
         <span class="admin-bottom-nav-label">Forms</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-section="leads" onclick="switchTab('leads');return false" aria-label="Leads">
+        <span class="admin-bottom-nav-icon" aria-hidden="true">&#127919;</span>
+        <span class="admin-bottom-nav-label">Leads</span>
       </button>
       <button type="button" class="admin-bottom-nav-item" data-section="messages" onclick="switchToSection('messages');return false" aria-label="Messages">
         <span class="admin-bottom-nav-icon" aria-hidden="true">&#128172;</span>
@@ -13115,6 +13121,7 @@ function switchTab(tab) {
   var bottomNav = document.getElementById('adminBottomNav');
   if (bottomNav) {
     var navSection = (section === 'forms' || section === 'analytics') ? 'dashboard' : section;
+    if (tab === 'leads') navSection = 'leads';
     bottomNav.querySelectorAll('.admin-bottom-nav-item').forEach(function(btn) {
       var s = btn.getAttribute('data-section');
       btn.classList.toggle('active', s === navSection);
@@ -21253,10 +21260,10 @@ window.addEventListener('resize', applySafeAreaFix);
   }
   html.android-mobile .admin-bottom-nav-inner{
     display:grid !important;
-    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
+    grid-template-columns:repeat(6,minmax(0,1fr)) !important;
     justify-content:initial !important;
-    padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px)) !important;
-    column-gap:2px !important;
+    padding:0 max(6px,env(safe-area-inset-right,0px)) 0 max(6px,env(safe-area-inset-left,0px)) !important;
+    column-gap:1px !important;
   }
   html.android-mobile .user-bottom-nav-inner{
     display:grid !important;
