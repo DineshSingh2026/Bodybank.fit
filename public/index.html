@@ -4813,6 +4813,95 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bbody-compare-stat-delta.is-bad{color:#f4a890}
 .bbody-compare-stat-delta.is-flat{color:rgba(244,240,232,0.6)}
 
+/* ═══════════════ LEADS PIPELINE ═══════════════ */
+.bb-leads-header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:14px}
+.bb-leads-view-toggle{display:inline-flex;background:rgba(255,255,255,0.04);border:1px solid rgba(200,164,78,0.25);border-radius:8px;padding:3px;gap:0}
+.bb-leads-view-btn{background:transparent;border:none;color:var(--muted);padding:7px 16px;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-radius:6px;transition:all .15s}
+.bb-leads-view-btn.active{background:var(--gold);color:#0d0d0d}
+.bb-leads-summary{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.bb-leads-summary-pill{display:inline-flex;align-items:center;gap:8px;padding:7px 12px;border-radius:999px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);font-size:12px;color:#e5e5e5;cursor:pointer;transition:all .15s}
+.bb-leads-summary-pill:hover{background:rgba(200,164,78,0.12);border-color:rgba(200,164,78,0.3)}
+.bb-leads-summary-pill.active{background:rgba(200,164,78,0.18);border-color:var(--gold);color:var(--gold)}
+.bb-leads-summary-pill .pill-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.bb-leads-summary-pill .pill-count{font-weight:700}
+.bb-kanban-board{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 16px 2px;align-items:stretch;min-height:300px}
+.bb-kanban-col{flex:0 0 280px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;display:flex;flex-direction:column;max-height:78vh}
+.bb-kanban-col.is-drag-over{background:rgba(200,164,78,0.08);border-color:var(--gold)}
+.bb-kanban-col-head{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;gap:6px;position:sticky;top:0;background:rgba(13,13,13,0.92);backdrop-filter:blur(4px);border-radius:10px 10px 0 0;z-index:1}
+.bb-kanban-col-title{display:flex;align-items:center;gap:8px;font-size:11.5px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#e5e5e5}
+.bb-kanban-col-title .col-dot{width:8px;height:8px;border-radius:50%}
+.bb-kanban-col-count{background:rgba(255,255,255,0.07);color:#e5e5e5;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;min-width:22px;text-align:center}
+.bb-kanban-col-body{padding:8px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:8px}
+.bb-kanban-empty{padding:14px 8px;color:rgba(255,255,255,0.3);font-size:11.5px;text-align:center;font-style:italic}
+.bb-lead-card{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:8px;padding:10px;cursor:grab;transition:all .15s;user-select:none}
+.bb-lead-card:hover{background:rgba(200,164,78,0.06);border-color:rgba(200,164,78,0.25);transform:translateY(-1px)}
+.bb-lead-card:active{cursor:grabbing}
+.bb-lead-card.is-dragging{opacity:.4}
+.bb-lead-card-name{font-size:13.5px;font-weight:600;color:#fff;margin-bottom:4px}
+.bb-lead-card-meta{font-size:11px;color:var(--muted);display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.bb-lead-card-meta span{display:inline-flex;align-items:center;gap:3px}
+.bb-lead-card-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.bb-lead-tag{font-size:10px;padding:2px 7px;border-radius:999px;font-weight:600;letter-spacing:.3px}
+.bb-lead-tag.tag-part2{background:rgba(168,85,247,0.18);color:#c4b5fd}
+.bb-lead-tag.tag-no-part2{background:rgba(255,255,255,0.05);color:rgba(255,255,255,0.5)}
+.bb-lead-tag.tag-call{background:rgba(234,179,8,0.18);color:#fde68a}
+.bb-lead-tag.tag-stuck{background:rgba(239,68,68,0.18);color:#fca5a5}
+.bb-lead-tag.tag-notes{background:rgba(255,255,255,0.06);color:#e5e5e5}
+.bb-lead-card-stuck-bar{height:2px;border-radius:2px;background:rgba(239,68,68,0.5);margin-top:8px}
+
+/* Lead detail modal */
+.bb-lead-modal .modal{max-width:760px;width:96vw}
+.bb-lead-modal-body{display:flex;flex-direction:column;gap:14px}
+.bb-lead-section{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px}
+.bb-lead-section h4{margin:0 0 10px 0;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)}
+.bb-lead-stage-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bb-lead-stage-row select{flex:1;min-width:200px;padding:9px 12px;border-radius:8px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid rgba(200,164,78,0.3);font-size:13px}
+.bb-lead-quick-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.bb-lead-quick-btn{padding:8px 14px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:#e5e5e5;font-size:12px;font-weight:600;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
+.bb-lead-quick-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold);color:var(--gold)}
+.bb-lead-quick-btn.is-whatsapp{background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.4);color:#7ce39a}
+.bb-lead-quick-btn.is-whatsapp:hover{background:rgba(37,211,102,0.22)}
+.bb-lead-info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:8px}
+.bb-lead-info-cell{font-size:12px}
+.bb-lead-info-cell .lbl{color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-size:10px;display:block;margin-bottom:2px}
+.bb-lead-info-cell .val{color:#f1eee8;word-break:break-word}
+.bb-lead-call-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bb-lead-call-row input[type="datetime-local"]{flex:1;min-width:200px;padding:9px 12px;border-radius:8px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid rgba(200,164,78,0.3);font-size:13px}
+.bb-lead-notes{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;padding-right:4px}
+.bb-lead-note{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-left:3px solid rgba(200,164,78,0.5);border-radius:6px;padding:9px 12px}
+.bb-lead-note.is-stage-change{border-left-color:rgba(96,165,250,0.7);background:rgba(96,165,250,0.05)}
+.bb-lead-note.is-call{border-left-color:rgba(234,179,8,0.7);background:rgba(234,179,8,0.05)}
+.bb-lead-note-meta{font-size:11px;color:var(--muted);display:flex;justify-content:space-between;gap:8px;margin-bottom:4px}
+.bb-lead-note-body{font-size:13px;color:#f1eee8;white-space:pre-wrap;word-break:break-word}
+.bb-lead-note-add{display:flex;flex-direction:column;gap:8px}
+.bb-lead-note-add textarea{width:100%;padding:9px 12px;border-radius:8px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid rgba(200,164,78,0.3);font-size:13px;font-family:inherit;resize:vertical;min-height:64px}
+.bb-lead-stage-pill{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:600}
+.bb-lead-stage-pill .stage-dot{width:7px;height:7px;border-radius:50%}
+
+/* "Today" widget on dashboard */
+.bb-leads-today{margin:18px 0;padding:18px;background:rgba(255,255,255,0.025);border:1px solid rgba(200,164,78,0.18);border-radius:14px}
+.bb-leads-today-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+.bb-leads-today-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.bb-leads-today-card{background:rgba(0,0,0,0.25);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:12px;cursor:pointer;transition:all .15s}
+.bb-leads-today-card:hover{border-color:var(--gold);background:rgba(200,164,78,0.08)}
+.bb-leads-today-card .card-icon{font-size:20px;margin-bottom:4px}
+.bb-leads-today-card .card-num{font-size:24px;font-weight:700;color:#fff;line-height:1.1}
+.bb-leads-today-card .card-lbl{font-size:11.5px;color:var(--muted);margin-top:4px;text-transform:uppercase;letter-spacing:.5px}
+.bb-leads-today-card.is-urgent{border-color:rgba(239,68,68,0.4)}
+.bb-leads-today-card.is-urgent .card-num{color:#fca5a5}
+.bb-leads-today-card.is-good{border-color:rgba(34,197,94,0.4)}
+.bb-leads-today-card.is-good .card-num{color:#86efac}
+.bb-leads-today-list{max-height:160px;overflow-y:auto;margin-top:8px;display:flex;flex-direction:column;gap:4px}
+.bb-leads-today-list-item{font-size:11.5px;color:#e5e5e5;padding:4px 6px;border-radius:5px;cursor:pointer}
+.bb-leads-today-list-item:hover{background:rgba(200,164,78,0.1)}
+.bb-leads-today-list-item .time{color:var(--gold);font-weight:600;margin-right:6px}
+
+@media (max-width: 720px){
+  .bb-kanban-col{flex:0 0 84vw;max-height:none}
+  .bb-leads-header{flex-direction:column;align-items:stretch}
+  .bb-leads-view-toggle{align-self:flex-start}
+}
+
 </style>
 <!-- ══════════════════════════════════════════════════════ -->
 </head>
@@ -5956,6 +6045,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <a class="admin-sidebar-link" href="#" data-section="training" onclick="switchToSection('training');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127947;</span>Training</a>
         <a class="admin-sidebar-link" href="#" data-section="programs" onclick="switchToSection('programs');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127919;</span>Programs</a>
         <a class="admin-sidebar-link" href="#" data-section="forms" onclick="switchToSection('forms');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128203;</span>Forms</a>
+        <a class="admin-sidebar-link" href="#" onclick="switchTab('leads');return false"><span class="admin-sidebar-icon" aria-hidden="true">🎯</span>Leads</a>
         <a class="admin-sidebar-link" href="#" data-section="analytics" onclick="switchToSection('analytics');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128200;</span>Analytics</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('leaderboards');return false"><span class="admin-sidebar-icon" aria-hidden="true">🏆</span>Leader Boards</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('nutrition');return false"><span class="admin-sidebar-icon" aria-hidden="true">🥗</span>Nutrition AI</a>
@@ -6004,6 +6094,9 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <a class="admin-nav-link" href="#" data-section="forms" onclick="switchToSection('forms');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128203;</span>Forms
         </a>
+        <a class="admin-nav-link" href="#" onclick="switchTab('leads');closeAdminNavDrawer();return false">
+          <span class="admin-nav-link-icon" aria-hidden="true">🎯</span>Leads
+        </a>
         <a class="admin-nav-link" href="#" data-section="analytics" onclick="switchToSection('analytics');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128200;</span>Analytics
         </a>
@@ -6032,6 +6125,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     </div>
     <div class="admin-tabs" id="adminTabs">
       <div class="admin-tab" data-tab="requests" onclick="switchTab('requests')">Audit forms</div>
+      <div class="admin-tab" data-tab="leads" onclick="switchTab('leads')">Leads pipeline</div>
       <div class="admin-tab" data-tab="signups" onclick="switchTab('signups')">Pending Sign-ups</div>
       <div class="admin-tab" data-tab="tribe" onclick="switchTab('tribe')">Client Board</div>
       <div class="admin-tab" data-tab="workouts" onclick="switchTab('workouts')">Workouts</div>
@@ -6104,6 +6198,20 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <div class="stat-label">Unread Messages</div>
             <div class="stat-number" id="stat-messages">—</div>
             <div class="stat-sub" id="stat-messages-sub">Loading...</div>
+          </div>
+        </div>
+
+        <!-- Leads pipeline "Today" widget -->
+        <div class="bb-leads-today" id="bbLeadsToday">
+          <div class="bb-leads-today-head">
+            <div>
+              <h3 style="margin:0">Today &middot; Leads pipeline</h3>
+              <p class="form-hint" style="margin:4px 0 0 0">What's on your plate right now. Click a row to jump into the pipeline.</p>
+            </div>
+            <button type="button" class="action-btn btn-view" onclick="switchTab('leads')" style="white-space:nowrap">Open pipeline →</button>
+          </div>
+          <div class="bb-leads-today-grid" id="bbLeadsTodayGrid">
+            <p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px">Loading…</p>
           </div>
         </div>
 
@@ -6646,6 +6754,58 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
         <span class="admin-h-scroll-label">Scroll to see all columns</span>
         <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
+    </div>
+
+    <!-- TAB: Leads Pipeline -->
+    <div class="admin-tab-content" id="tab-leads">
+      <div class="bb-leads-header">
+        <div class="bb-leads-intro">
+          <h3 class="admin-subsection-title" style="margin:0 0 4px 0">Leads pipeline</h3>
+          <p class="form-hint" style="margin:0">Every audit form is a lead. Move people through the stages as you talk to them — your full record stays here, not on paper.</p>
+        </div>
+        <div class="bb-leads-view-toggle" role="tablist" aria-label="View mode">
+          <button type="button" class="bb-leads-view-btn active" data-leads-view="kanban" onclick="bbLeadsSetView('kanban')">Kanban</button>
+          <button type="button" class="bb-leads-view-btn" data-leads-view="table" onclick="bbLeadsSetView('table')">Table</button>
+        </div>
+      </div>
+
+      <div class="bb-leads-summary" id="bbLeadsSummary"></div>
+
+      <div class="admin-filter-bar admin-filter-bar-stacked">
+        <div class="admin-filter-row-dates">
+          <div class="admin-filter-row-date">
+            <label for="bbLeadsStageFilter">Stage</label>
+            <select id="bbLeadsStageFilter" class="admin-filter-date" style="min-width:170px">
+              <option value="">All stages</option>
+            </select>
+          </div>
+          <div class="admin-filter-row-date"><label for="bbLeadsFromFilter">From</label><input type="date" id="bbLeadsFromFilter" class="admin-filter-date" aria-label="From date"></div>
+          <div class="admin-filter-row-date"><label for="bbLeadsToFilter">To</label><input type="date" id="bbLeadsToFilter" class="admin-filter-date" aria-label="To date"></div>
+        </div>
+        <div class="admin-filter-row-search">
+          <div class="admin-filter-search-wrap">
+            <label for="bbLeadsSearch">Search</label>
+            <input type="text" id="bbLeadsSearch" placeholder="Name, email or phone" autocomplete="off">
+          </div>
+          <div class="admin-filter-actions">
+            <button type="button" class="admin-apply-btn" onclick="loadLeads()">Apply</button>
+            <button type="button" class="admin-filter-clear-btn" onclick="bbLeadsClearFilters()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Kanban view -->
+      <div class="bb-kanban-board" id="bbLeadsKanban" aria-live="polite">
+        <p class="form-hint" style="padding:24px;text-align:center">Loading leads…</p>
+      </div>
+
+      <!-- Table view (alternate) -->
+      <div class="bb-leads-table-wrap" id="bbLeadsTableWrap" style="display:none">
+        <div class="admin-table-wrap"><table class="admin-table admin-list-table">
+          <thead><tr><th>Name</th><th>Stage</th><th>Days in stage</th><th>Part-2</th><th>Call</th><th>Notes</th><th style="text-align:right;width:140px">Actions</th></tr></thead>
+          <tbody id="bbLeadsTableBody"><tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
+        </table></div>
       </div>
     </div>
 
@@ -7703,6 +7863,17 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <h2>Part-2 Submission</h2>
     <div class="view-detail-body" id="part2ViewBody"></div>
     <div class="view-detail-actions" id="part2ViewActions"></div>
+  </div>
+</div>
+
+<!-- ADMIN: Lead Detail Modal -->
+<div class="modal-overlay view-detail-modal bb-lead-modal" id="bbLeadModal" onclick="if(event.target===this)closeModal('bbLeadModal')">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('bbLeadModal')">&times;</button>
+    <h2 id="bbLeadModalTitle">Lead</h2>
+    <div class="bb-lead-modal-body" id="bbLeadModalBody">
+      <p class="form-hint" style="padding:24px;text-align:center">Loading…</p>
+    </div>
   </div>
 </div>
 
@@ -10250,6 +10421,9 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
   bbSetText('stat-pending-sub', 'Users awaiting approval');
   bbSetText('stat-messages-sub', 'Unread chat threads');
 
+  // Leads pipeline "Today" widget — fire and forget
+  try { if (typeof loadLeadsToday === 'function') loadLeadsToday(); } catch (_) {}
+
   // Donut chart: daily vs sunday check-ins (lifetime totals)
   if (typeof Chart !== 'undefined') {
     var daily = parseInt(statsData.daily_checkins ?? 0, 10) || 0;
@@ -11430,6 +11604,599 @@ async function loadPart2Submissions() {
     }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No Part-2 submissions match your filters.</td></tr>';
   } catch (e) { const tbody = document.getElementById('part2Body'); if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050">Failed to load.</td></tr>'; }
 }
+
+// ════════════════════════════════════════════════════════════
+// LEADS PIPELINE — kanban + table + detail modal + today widget
+// ════════════════════════════════════════════════════════════
+var BB_LEAD_STAGES = [
+  { id:'new_audit',       label:'New audit',        color:'#9ca3af', icon:'📥' },
+  { id:'whatsapp_sent',   label:'WhatsApp sent',    color:'#25d366', icon:'💬' },
+  { id:'in_conversation', label:'In conversation',  color:'#3b82f6', icon:'🗨️' },
+  { id:'part2_sent',      label:'Part-2 sent',      color:'#a855f7', icon:'📤' },
+  { id:'part2_received',  label:'Part-2 received',  color:'#8b5cf6', icon:'📋' },
+  { id:'call_proposed',   label:'Call proposed',    color:'#f59e0b', icon:'📞' },
+  { id:'call_scheduled',  label:'Call scheduled',   color:'#eab308', icon:'📅' },
+  { id:'call_done',       label:'Call done',        color:'#10b981', icon:'✓' },
+  { id:'payment_pending', label:'Payment pending',  color:'#f97316', icon:'💰' },
+  { id:'onboarded',       label:'Paid & onboarded', color:'#22c55e', icon:'🎉' },
+  { id:'lost',            label:'Lost / Cold',      color:'#ef4444', icon:'❌' }
+];
+var BB_LEAD_STAGE_MAP = (function(){ var m = {}; BB_LEAD_STAGES.forEach(function(s){ m[s.id] = s; }); return m; })();
+var bbLeadsState = { view: 'kanban', leads: [], byStage: {}, currentLeadId: null };
+
+function bbLeadStageMeta(id) { return BB_LEAD_STAGE_MAP[id] || BB_LEAD_STAGE_MAP.new_audit; }
+
+function bbLeadDaysSince(iso) {
+  if (!iso) return 0;
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return 0;
+  return Math.max(0, Math.floor((Date.now() - d.getTime()) / 86400000));
+}
+
+function bbLeadIsStuck(lead) {
+  if (!lead) return false;
+  var stage = lead.stage || 'new_audit';
+  var days = bbLeadDaysSince(lead.stage_changed_at || lead.created_at);
+  if (stage === 'part2_sent' && days > 7) return true;
+  if (stage === 'whatsapp_sent' && days > 3) return true;
+  if (stage === 'payment_pending' && days > 3) return true;
+  if (stage === 'new_audit' && days > 1) return true;
+  return false;
+}
+
+function bbLeadDisplayName(lead) {
+  if (!lead) return '—';
+  var n = ((lead.first_name||'') + ' ' + (lead.last_name||'')).trim();
+  return n || lead.email || '—';
+}
+
+function bbWhatsAppHref(phone) {
+  var digits = String(phone || '').replace(/\D+/g, '');
+  if (!digits) return '';
+  return 'https://wa.me/' + digits;
+}
+
+function bbLeadStagePillHtml(stage) {
+  var meta = bbLeadStageMeta(stage);
+  return '<span class="bb-lead-stage-pill" style="background:' + meta.color + '22;color:' + meta.color + '">' +
+    '<span class="stage-dot" style="background:' + meta.color + '"></span>' + escapeHtml(meta.label) + '</span>';
+}
+
+function bbLeadsSetView(view) {
+  bbLeadsState.view = (view === 'table') ? 'table' : 'kanban';
+  document.querySelectorAll('.bb-leads-view-btn').forEach(function(btn){
+    btn.classList.toggle('active', btn.getAttribute('data-leads-view') === bbLeadsState.view);
+  });
+  var k = document.getElementById('bbLeadsKanban');
+  var t = document.getElementById('bbLeadsTableWrap');
+  if (k) k.style.display = (bbLeadsState.view === 'kanban') ? '' : 'none';
+  if (t) t.style.display = (bbLeadsState.view === 'table') ? '' : 'none';
+  if (bbLeadsState.view === 'kanban') bbLeadsRenderKanban();
+  else bbLeadsRenderTable();
+}
+
+function bbLeadsClearFilters() {
+  ['bbLeadsStageFilter', 'bbLeadsFromFilter', 'bbLeadsToFilter', 'bbLeadsSearch'].forEach(function(id){
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  loadLeads();
+}
+
+function bbLeadsPopulateStageFilter() {
+  var sel = document.getElementById('bbLeadsStageFilter');
+  if (!sel || sel.options.length > 1) return;
+  BB_LEAD_STAGES.forEach(function(s){
+    var opt = document.createElement('option');
+    opt.value = s.id;
+    opt.textContent = s.icon + ' ' + s.label;
+    sel.appendChild(opt);
+  });
+}
+
+function bbLeadsBuildQuery() {
+  var qs = [];
+  var stage = (document.getElementById('bbLeadsStageFilter') || {}).value || '';
+  var from  = (document.getElementById('bbLeadsFromFilter')  || {}).value || '';
+  var to    = (document.getElementById('bbLeadsToFilter')    || {}).value || '';
+  var srch  = ((document.getElementById('bbLeadsSearch')     || {}).value || '').trim();
+  if (stage) qs.push('stage=' + encodeURIComponent(stage));
+  if (from)  qs.push('from='  + encodeURIComponent(from));
+  if (to)    qs.push('to='    + encodeURIComponent(to));
+  if (srch)  qs.push('search='+ encodeURIComponent(srch));
+  return qs.length ? '?' + qs.join('&') : '';
+}
+
+async function loadLeads() {
+  bbLeadsPopulateStageFilter();
+  var board = document.getElementById('bbLeadsKanban');
+  var tbody = document.getElementById('bbLeadsTableBody');
+  if (board) board.innerHTML = '<p class="form-hint" style="padding:24px;text-align:center;width:100%">Loading leads…</p>';
+  if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  var data = await apiCall('GET', '/api/admin/leads' + bbLeadsBuildQuery());
+  if (!data || data.error) {
+    var msg = (data && data.error) || 'Could not load leads';
+    if (board) board.innerHTML = '<p class="form-hint" style="padding:24px;text-align:center;color:#e05050;width:100%">' + escapeHtml(msg) + '</p>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(msg) + '</td></tr>';
+    return;
+  }
+  bbLeadsState.leads = Array.isArray(data.leads) ? data.leads : [];
+  bbLeadsState.byStage = {};
+  BB_LEAD_STAGES.forEach(function(s){ bbLeadsState.byStage[s.id] = []; });
+  bbLeadsState.leads.forEach(function(l){
+    var s = l.stage || 'new_audit';
+    if (!bbLeadsState.byStage[s]) bbLeadsState.byStage[s] = [];
+    bbLeadsState.byStage[s].push(l);
+  });
+  bbLeadsRenderSummary();
+  if (bbLeadsState.view === 'kanban') bbLeadsRenderKanban();
+  else bbLeadsRenderTable();
+}
+
+function bbLeadsRenderSummary() {
+  var host = document.getElementById('bbLeadsSummary');
+  if (!host) return;
+  var activeStage = (document.getElementById('bbLeadsStageFilter') || {}).value || '';
+  var html = '<span class="bb-leads-summary-pill ' + (activeStage === '' ? 'active' : '') + '" onclick="bbLeadsFilterByStage(\'\')">' +
+    '<span class="pill-count">' + bbLeadsState.leads.length + '</span><span>Total</span></span>';
+  BB_LEAD_STAGES.forEach(function(s){
+    var n = (bbLeadsState.byStage[s.id] || []).length;
+    if (n === 0 && activeStage !== s.id) return;
+    html += '<span class="bb-leads-summary-pill ' + (activeStage === s.id ? 'active' : '') + '" onclick="bbLeadsFilterByStage(\'' + s.id + '\')">' +
+      '<span class="pill-dot" style="background:' + s.color + '"></span>' +
+      '<span>' + escapeHtml(s.label) + '</span>' +
+      '<span class="pill-count">' + n + '</span></span>';
+  });
+  host.innerHTML = html;
+}
+
+function bbLeadsFilterByStage(stage) {
+  var sel = document.getElementById('bbLeadsStageFilter');
+  if (sel) sel.value = stage;
+  loadLeads();
+}
+
+function bbLeadCardHtml(lead) {
+  var name = bbLeadDisplayName(lead);
+  var days = bbLeadDaysSince(lead.stage_changed_at || lead.created_at);
+  var stuck = bbLeadIsStuck(lead);
+  var meta = [];
+  if (lead.phone) meta.push('<span title="WhatsApp">📱 ' + escapeHtml(lead.phone) + '</span>');
+  if (lead.city)  meta.push('<span title="City">📍 ' + escapeHtml(lead.city) + '</span>');
+  meta.push('<span title="Days in stage">⏱ ' + days + 'd</span>');
+  var tags = [];
+  if (lead.part2_id) tags.push('<span class="bb-lead-tag tag-part2">Part-2 ✓</span>');
+  else tags.push('<span class="bb-lead-tag tag-no-part2">No Part-2</span>');
+  if (lead.call_scheduled_at) {
+    var dt = new Date(lead.call_scheduled_at);
+    if (!isNaN(dt.getTime())) tags.push('<span class="bb-lead-tag tag-call">📅 ' + escapeHtml(dt.toLocaleString(undefined, { dateStyle:'short', timeStyle:'short' })) + '</span>');
+  }
+  if ((lead.notes_count|0) > 0) tags.push('<span class="bb-lead-tag tag-notes">📝 ' + lead.notes_count + '</span>');
+  if (stuck) tags.push('<span class="bb-lead-tag tag-stuck">Stuck ' + days + 'd</span>');
+  return '<div class="bb-lead-card" draggable="true" data-lead-id="' + escapeHtml(lead.id) + '" ' +
+    'ondragstart="bbLeadDragStart(event)" ondragend="bbLeadDragEnd(event)" ' +
+    'onclick="viewLead(\'' + String(lead.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'") + '\')">' +
+    '<div class="bb-lead-card-name">' + escapeHtml(name) + '</div>' +
+    '<div class="bb-lead-card-meta">' + meta.join('') + '</div>' +
+    '<div class="bb-lead-card-tags">' + tags.join('') + '</div>' +
+    (stuck ? '<div class="bb-lead-card-stuck-bar"></div>' : '') +
+    '</div>';
+}
+
+function bbLeadsRenderKanban() {
+  var board = document.getElementById('bbLeadsKanban');
+  if (!board) return;
+  var html = '';
+  BB_LEAD_STAGES.forEach(function(stage){
+    var rows = bbLeadsState.byStage[stage.id] || [];
+    html += '<div class="bb-kanban-col" data-stage="' + stage.id + '" ' +
+      'ondragover="bbLeadDragOver(event)" ondragleave="bbLeadDragLeave(event)" ondrop="bbLeadDrop(event)">' +
+      '<div class="bb-kanban-col-head">' +
+        '<div class="bb-kanban-col-title"><span class="col-dot" style="background:' + stage.color + '"></span>' +
+          stage.icon + ' ' + escapeHtml(stage.label) + '</div>' +
+        '<span class="bb-kanban-col-count">' + rows.length + '</span>' +
+      '</div>' +
+      '<div class="bb-kanban-col-body">' +
+        (rows.length ? rows.map(bbLeadCardHtml).join('') : '<div class="bb-kanban-empty">Drop leads here</div>') +
+      '</div></div>';
+  });
+  board.innerHTML = html;
+}
+
+function bbLeadsRenderTable() {
+  var tbody = document.getElementById('bbLeadsTableBody');
+  if (!tbody) return;
+  if (!bbLeadsState.leads.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--muted);padding:24px">No leads match your filters.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = bbLeadsState.leads.map(function(l){
+    var name = bbLeadDisplayName(l);
+    var days = bbLeadDaysSince(l.stage_changed_at || l.created_at);
+    var stuck = bbLeadIsStuck(l);
+    var part2 = l.part2_id ? '<span class="bb-lead-tag tag-part2">✓</span>' : '<span class="bb-lead-tag tag-no-part2">—</span>';
+    var call = '';
+    if (l.call_scheduled_at) {
+      var dt = new Date(l.call_scheduled_at);
+      if (!isNaN(dt.getTime())) call = dt.toLocaleString(undefined, { dateStyle:'short', timeStyle:'short' });
+    }
+    var sid = String(l.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    return '<tr class="admin-row-clickable" onclick="viewLead(\'' + sid + '\')">' +
+      '<td data-label="Name">' + escapeHtml(name) + (l.phone ? '<br><span style="color:var(--muted);font-size:11px">' + escapeHtml(l.phone) + '</span>' : '') + '</td>' +
+      '<td data-label="Stage">' + bbLeadStagePillHtml(l.stage || 'new_audit') + '</td>' +
+      '<td data-label="Days in stage">' + days + 'd' + (stuck ? ' <span style="color:#fca5a5">⚠</span>' : '') + '</td>' +
+      '<td data-label="Part-2">' + part2 + '</td>' +
+      '<td data-label="Call">' + (call ? escapeHtml(call) : '<span style="color:var(--muted)">—</span>') + '</td>' +
+      '<td data-label="Notes">' + (l.notes_count|0) + '</td>' +
+      '<td data-label="Actions" class="btn-view-cell" style="text-align:right">' +
+        '<button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewLead(\'' + sid + '\')">Open</button>' +
+      '</td></tr>';
+  }).join('');
+}
+
+// Drag-and-drop between kanban columns
+function bbLeadDragStart(ev) {
+  var card = ev.currentTarget;
+  var id = card.getAttribute('data-lead-id');
+  ev.dataTransfer.setData('text/plain', id);
+  ev.dataTransfer.effectAllowed = 'move';
+  card.classList.add('is-dragging');
+}
+function bbLeadDragEnd(ev) {
+  var card = ev.currentTarget;
+  card.classList.remove('is-dragging');
+}
+function bbLeadDragOver(ev) {
+  ev.preventDefault();
+  ev.dataTransfer.dropEffect = 'move';
+  ev.currentTarget.classList.add('is-drag-over');
+}
+function bbLeadDragLeave(ev) {
+  ev.currentTarget.classList.remove('is-drag-over');
+}
+async function bbLeadDrop(ev) {
+  ev.preventDefault();
+  var col = ev.currentTarget;
+  col.classList.remove('is-drag-over');
+  var leadId = ev.dataTransfer.getData('text/plain');
+  var newStage = col.getAttribute('data-stage');
+  if (!leadId || !newStage) return;
+  var lead = bbLeadsState.leads.find(function(l){ return String(l.id) === String(leadId); });
+  if (lead && lead.stage === newStage) return;
+  var lostReason = '';
+  if (newStage === 'lost') {
+    lostReason = window.prompt('Why is this lead lost? (optional — e.g. ghosted, price, not ready)') || '';
+  }
+  var resp = await apiCall('PATCH', '/api/admin/leads/' + encodeURIComponent(leadId) + '/stage', { stage: newStage, lost_reason: lostReason });
+  if (resp && resp.error) {
+    showPopup('Error', resp.error, '', 'OK', null, 'error');
+    return;
+  }
+  await loadLeads();
+}
+
+// Detail modal
+async function viewLead(id) {
+  bbLeadsState.currentLeadId = id;
+  var titleEl = document.getElementById('bbLeadModalTitle');
+  var bodyEl  = document.getElementById('bbLeadModalBody');
+  if (titleEl) titleEl.textContent = 'Lead';
+  if (bodyEl) bodyEl.innerHTML = '<p class="form-hint" style="padding:24px;text-align:center">Loading…</p>';
+  openModal('bbLeadModal');
+  var data = await apiCall('GET', '/api/admin/leads/' + encodeURIComponent(id));
+  if (!data || data.error) {
+    if (bodyEl) bodyEl.innerHTML = '<p class="form-hint" style="padding:24px;text-align:center;color:#e05050">' + escapeHtml((data && data.error) || 'Failed to load lead') + '</p>';
+    return;
+  }
+  bbLeadRenderDetail(data);
+}
+
+function bbLeadRenderDetail(data) {
+  var lead = data.lead || {};
+  var part2 = data.part2;
+  var linkedUser = data.linked_user;
+  var notes = data.notes || [];
+  var titleEl = document.getElementById('bbLeadModalTitle');
+  if (titleEl) titleEl.textContent = bbLeadDisplayName(lead);
+
+  var sid = String(lead.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  var stageOptions = BB_LEAD_STAGES.map(function(s){
+    return '<option value="' + s.id + '"' + ((lead.stage || 'new_audit') === s.id ? ' selected' : '') + '>' + s.icon + ' ' + escapeHtml(s.label) + '</option>';
+  }).join('');
+
+  var waHref = bbWhatsAppHref(lead.phone);
+  var info = [
+    { lbl: 'Email', val: lead.email || '—' },
+    { lbl: 'WhatsApp / Phone', val: lead.phone || '—' },
+    { lbl: 'City, country', val: [lead.city, lead.country].filter(Boolean).join(', ') || '—' },
+    { lbl: 'Age', val: lead.age || '—' },
+    { lbl: 'Sex', val: lead.sex || '—' },
+    { lbl: 'Occupation', val: lead.occupation || '—' },
+    { lbl: 'Work intensity', val: lead.work_intensity || '—' },
+    { lbl: 'Fitness experience', val: lead.fitness_experience || '—' },
+    { lbl: 'Submitted', val: lead.created_at ? new Date(lead.created_at).toLocaleString() : '—' },
+    { lbl: 'Stage entered', val: lead.stage_changed_at ? new Date(lead.stage_changed_at).toLocaleString() + ' (' + bbLeadDaysSince(lead.stage_changed_at) + 'd ago)' : '—' }
+  ];
+  if (lead.goals) info.push({ lbl: 'Goals', val: lead.goals });
+  if (lead.motivation) info.push({ lbl: 'Motivation', val: lead.motivation });
+  if (lead.lost_reason) info.push({ lbl: 'Lost reason', val: lead.lost_reason });
+
+  var infoHtml = info.map(function(i){
+    return '<div class="bb-lead-info-cell"><span class="lbl">' + escapeHtml(i.lbl) + '</span><span class="val">' + escapeHtml(String(i.val)) + '</span></div>';
+  }).join('');
+
+  // Call scheduling input value (datetime-local format YYYY-MM-DDTHH:MM)
+  var callVal = '';
+  if (lead.call_scheduled_at) {
+    var d = new Date(lead.call_scheduled_at);
+    if (!isNaN(d.getTime())) {
+      var pad = function(n){ return (n<10?'0':'') + n; };
+      callVal = d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+    }
+  }
+
+  // Part-2 section
+  var part2Html;
+  if (part2) {
+    var p2Fields = [
+      ['Activity level', part2.activity_level],
+      ['Sports history', part2.sports_history],
+      ['Injuries', part2.injuries],
+      ['Mental health', part2.mental_health],
+      ['Gym experience', part2.gym_experience],
+      ['Food choices', part2.food_choices],
+      ['Vices / addictions', part2.vices_addictions],
+      ['Goals (Part-2)', part2.goals],
+      ['What compelled them', part2.what_compelled]
+    ].filter(function(p){ return p[1] && String(p[1]).trim(); });
+    var p2Inner = p2Fields.map(function(p){
+      return '<div class="bb-lead-info-cell"><span class="lbl">' + escapeHtml(p[0]) + '</span><span class="val">' + escapeHtml(String(p[1])) + '</span></div>';
+    }).join('');
+    part2Html = '<div class="bb-lead-section">' +
+      '<h4>Part-2 form &middot; ' + escapeHtml(part2.created_at ? new Date(part2.created_at).toLocaleDateString() : '') + '</h4>' +
+      '<div class="bb-lead-info-grid">' + (p2Inner || '<p class="form-hint" style="margin:0">Submitted but all fields blank.</p>') + '</div>' +
+      '</div>';
+  } else {
+    part2Html = '<div class="bb-lead-section"><h4>Part-2 form</h4>' +
+      '<p class="form-hint" style="margin:0">No Part-2 submission yet for this email. Once they fill the form, it will appear here automatically.</p></div>';
+  }
+
+  // Linked user section
+  var linkedHtml;
+  if (linkedUser) {
+    var alreadyLinked = lead.linked_user_id && lead.linked_user_id === linkedUser.id;
+    linkedHtml = '<div class="bb-lead-section"><h4>BodyBank account</h4>' +
+      '<div class="bb-lead-info-grid">' +
+        '<div class="bb-lead-info-cell"><span class="lbl">Name</span><span class="val">' + escapeHtml((linkedUser.first_name||'') + ' ' + (linkedUser.last_name||'')) + '</span></div>' +
+        '<div class="bb-lead-info-cell"><span class="lbl">Email</span><span class="val">' + escapeHtml(linkedUser.email || '') + '</span></div>' +
+        '<div class="bb-lead-info-cell"><span class="lbl">Status</span><span class="val">' + escapeHtml(linkedUser.approval_status || '') + '</span></div>' +
+        '<div class="bb-lead-info-cell"><span class="lbl">Joined</span><span class="val">' + escapeHtml(linkedUser.created_at ? new Date(linkedUser.created_at).toLocaleDateString() : '') + '</span></div>' +
+      '</div>' +
+      (alreadyLinked
+        ? '<p class="form-hint" style="margin:8px 0 0 0;color:#86efac">✓ Already linked &amp; marked Paid &amp; onboarded.</p>'
+        : '<button type="button" class="bb-lead-quick-btn" style="margin-top:10px" onclick="bbLeadLinkUser(\'' + sid + '\')">Mark as paid &amp; link this account</button>') +
+      '</div>';
+  } else {
+    linkedHtml = '<div class="bb-lead-section"><h4>BodyBank account</h4>' +
+      '<p class="form-hint" style="margin:0">No BodyBank user with this email yet. Send them the sign-up link, then come back and click <strong>Mark as paid</strong> to link.</p>' +
+      '<button type="button" class="bb-lead-quick-btn" style="margin-top:10px" onclick="bbLeadLinkUser(\'' + sid + '\')">Try linking by email anyway</button>' +
+      '</div>';
+  }
+
+  // Notes timeline
+  var notesHtml = notes.map(function(n){
+    var cls = 'bb-lead-note';
+    if (n.kind === 'stage_change') cls += ' is-stage-change';
+    else if (n.kind === 'call') cls += ' is-call';
+    var when = n.created_at ? new Date(n.created_at).toLocaleString() : '';
+    return '<div class="' + cls + '">' +
+      '<div class="bb-lead-note-meta"><span>' + escapeHtml(n.author_name || 'Admin') + '</span><span>' + escapeHtml(when) + '</span></div>' +
+      '<div class="bb-lead-note-body">' + escapeHtml(n.body || '') + '</div>' +
+      '</div>';
+  }).join('') || '<p class="form-hint" style="margin:0">No notes yet. Add the first one below — every WhatsApp reply, every commitment they make.</p>';
+
+  var bodyEl = document.getElementById('bbLeadModalBody');
+  if (!bodyEl) return;
+  bodyEl.innerHTML =
+    '<div class="bb-lead-section">' +
+      '<h4>Stage</h4>' +
+      '<div class="bb-lead-stage-row">' +
+        '<select id="bbLeadStageSelect" onchange="bbLeadChangeStage(\'' + sid + '\', this.value)">' + stageOptions + '</select>' +
+        bbLeadStagePillHtml(lead.stage || 'new_audit') +
+      '</div>' +
+      '<div class="bb-lead-quick-actions">' +
+        (waHref ? '<a class="bb-lead-quick-btn is-whatsapp" target="_blank" rel="noopener" href="' + escapeHtml(waHref) + '">💬 Open WhatsApp</a>' : '') +
+        (lead.email ? '<a class="bb-lead-quick-btn" href="mailto:' + escapeHtml(lead.email) + '">✉ Email</a>' : '') +
+        '<button type="button" class="bb-lead-quick-btn" onclick="bbLeadCopyContact(\'' + sid + '\')">📋 Copy contact</button>' +
+      '</div>' +
+    '</div>' +
+
+    '<div class="bb-lead-section">' +
+      '<h4>Schedule call</h4>' +
+      '<div class="bb-lead-call-row">' +
+        '<input type="datetime-local" id="bbLeadCallInput" value="' + escapeHtml(callVal) + '">' +
+        '<button type="button" class="bb-lead-quick-btn" onclick="bbLeadSaveCall(\'' + sid + '\')">Save call time</button>' +
+        (callVal ? '<button type="button" class="bb-lead-quick-btn" onclick="bbLeadClearCall(\'' + sid + '\')">Clear</button>' : '') +
+      '</div>' +
+    '</div>' +
+
+    '<div class="bb-lead-section">' +
+      '<h4>Audit details</h4>' +
+      '<div class="bb-lead-info-grid">' + infoHtml + '</div>' +
+    '</div>' +
+
+    part2Html +
+    linkedHtml +
+
+    '<div class="bb-lead-section">' +
+      '<h4>Timeline · ' + notes.length + ' note' + (notes.length === 1 ? '' : 's') + '</h4>' +
+      '<div class="bb-lead-note-add">' +
+        '<textarea id="bbLeadNewNote" placeholder="Log what just happened — &quot;Replied yes on WhatsApp, asking for Part-2 link&quot;…" maxlength="4000"></textarea>' +
+        '<div><button type="button" class="bb-lead-quick-btn" onclick="bbLeadAddNote(\'' + sid + '\')">Add note</button></div>' +
+      '</div>' +
+      '<div class="bb-lead-notes" style="margin-top:12px">' + notesHtml + '</div>' +
+    '</div>';
+
+  // Stash for "copy contact"
+  window.__bbLeadLastDetail = data;
+}
+
+async function bbLeadChangeStage(id, stage) {
+  if (!stage) return;
+  var lostReason = '';
+  if (stage === 'lost') {
+    lostReason = window.prompt('Why is this lead lost? (optional — e.g. ghosted, price, not ready)') || '';
+  }
+  var resp = await apiCall('PATCH', '/api/admin/leads/' + encodeURIComponent(id) + '/stage', { stage: stage, lost_reason: lostReason });
+  if (resp && resp.error) { showPopup('Error', resp.error, '', 'OK', null, 'error'); return; }
+  await viewLead(id);
+  if (bbLeadsState.leads.length) loadLeads();
+}
+
+async function bbLeadAddNote(id) {
+  var ta = document.getElementById('bbLeadNewNote');
+  if (!ta) return;
+  var text = (ta.value || '').trim();
+  if (!text) { showPopup('Note', 'Type something first.', '', 'OK', null, 'error'); return; }
+  var resp = await apiCall('POST', '/api/admin/leads/' + encodeURIComponent(id) + '/notes', { body: text });
+  if (resp && resp.error) { showPopup('Error', resp.error, '', 'OK', null, 'error'); return; }
+  ta.value = '';
+  await viewLead(id);
+  loadLeads();
+}
+
+async function bbLeadSaveCall(id) {
+  var inp = document.getElementById('bbLeadCallInput');
+  if (!inp || !inp.value) { showPopup('Call', 'Pick a date and time first.', '', 'OK', null, 'error'); return; }
+  var iso = new Date(inp.value).toISOString();
+  var resp = await apiCall('PATCH', '/api/admin/leads/' + encodeURIComponent(id) + '/call', { call_scheduled_at: iso });
+  if (resp && resp.error) { showPopup('Error', resp.error, '', 'OK', null, 'error'); return; }
+  showPopup('Call scheduled', 'Saved. The lead is now in "Call scheduled".', '', 'OK', null, 'success');
+  await viewLead(id);
+  loadLeads();
+}
+
+async function bbLeadClearCall(id) {
+  var resp = await apiCall('PATCH', '/api/admin/leads/' + encodeURIComponent(id) + '/call', { call_scheduled_at: '' });
+  if (resp && resp.error) { showPopup('Error', resp.error, '', 'OK', null, 'error'); return; }
+  await viewLead(id);
+  loadLeads();
+}
+
+async function bbLeadLinkUser(id) {
+  var resp = await apiCall('POST', '/api/admin/leads/' + encodeURIComponent(id) + '/link-user', {});
+  if (resp && resp.error) {
+    showPopup('Cannot link', resp.error, '', 'OK', null, 'error');
+    return;
+  }
+  showPopup('Linked', 'Lead marked as Paid & onboarded and linked to the BodyBank account.', '', 'OK', null, 'success');
+  await viewLead(id);
+  loadLeads();
+}
+
+function bbLeadCopyContact(id) {
+  var data = window.__bbLeadLastDetail;
+  if (!data || !data.lead) { showPopup('Error', 'No lead loaded.', '', 'OK', null, 'error'); return; }
+  var l = data.lead;
+  var dash = function(v){ return (v != null && String(v).trim() !== '') ? String(v).trim() : '—'; };
+  var loc = [dash(l.city), dash(l.country)].filter(function(s){ return s !== '—'; }).join(', ') || '—';
+  var stageMeta = bbLeadStageMeta(l.stage || 'new_audit');
+  var lines = [
+    'BodyBank · Lead',
+    'Name: ' + bbLeadDisplayName(l),
+    'Stage: ' + stageMeta.label,
+    'WhatsApp: ' + dash(l.phone),
+    'Email: ' + dash(l.email),
+    'City, country: ' + loc,
+    'Age: ' + (l.age != null && l.age !== '' ? String(l.age) : '—'),
+    'Submitted: ' + (l.created_at ? new Date(l.created_at).toLocaleString() : '—')
+  ];
+  if (l.goals) lines.push('Goals: ' + l.goals);
+  if (l.call_scheduled_at) lines.push('Call: ' + new Date(l.call_scheduled_at).toLocaleString());
+  var text = lines.join('\n');
+  function fb(){ var ta=document.createElement('textarea');ta.value=text;ta.style.position='fixed';ta.style.opacity='0';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');showPopup('Copied','Contact copied. Paste into WhatsApp or your notes.','','OK');}catch(e){showPopup('Copy failed','','','OK',null,'error');}document.body.removeChild(ta); }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function(){ showPopup('Copied','Contact copied. Paste into WhatsApp or your notes.','','OK'); }).catch(fb);
+  } else { fb(); }
+}
+
+// "Today" widget on the admin dashboard
+async function loadLeadsToday() {
+  var grid = document.getElementById('bbLeadsTodayGrid');
+  if (!grid) return;
+  grid.innerHTML = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px">Loading…</p>';
+  var data = await apiCall('GET', '/api/admin/leads/today');
+  if (!data || data.error) {
+    grid.innerHTML = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px;color:#e05050">' + escapeHtml((data && data.error) || 'Could not load') + '</p>';
+    return;
+  }
+  var counts = data.counts || {};
+  var calls = data.calls_today || [];
+  var pending = data.pending_outreach || [];
+  var stuck = data.stuck_part2 || [];
+  var pay = data.payment_pending || [];
+  var lost = data.lost_this_week || 0;
+
+  function listItems(rows, fmtTime) {
+    if (!rows.length) return '<p class="form-hint" style="margin:0;padding:6px 4px">Nothing here right now.</p>';
+    return rows.slice(0, 5).map(function(r){
+      var sid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+      var nm = ((r.first_name||'') + ' ' + (r.last_name||'')).trim() || r.email || '—';
+      var t = '';
+      if (fmtTime && r.call_scheduled_at) {
+        var d = new Date(r.call_scheduled_at);
+        if (!isNaN(d.getTime())) t = '<span class="time">' + d.toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' }) + '</span>';
+      }
+      return '<div class="bb-leads-today-list-item" onclick="event.stopPropagation();viewLead(\'' + sid + '\')">' + t + escapeHtml(nm) + '</div>';
+    }).join('');
+  }
+
+  grid.innerHTML = '' +
+    '<div class="bb-leads-today-card" onclick="bbLeadsFilterAndOpen(\'new_audit\')">' +
+      '<div class="card-icon">📥</div>' +
+      '<div class="card-num">' + (pending.length || 0) + '</div>' +
+      '<div class="card-lbl">Waiting for outreach</div>' +
+      '<div class="bb-leads-today-list">' + listItems(pending, false) + '</div>' +
+    '</div>' +
+    '<div class="bb-leads-today-card is-good" onclick="bbLeadsFilterAndOpen(\'call_scheduled\')">' +
+      '<div class="card-icon">📅</div>' +
+      '<div class="card-num">' + calls.length + '</div>' +
+      '<div class="card-lbl">Calls scheduled today</div>' +
+      '<div class="bb-leads-today-list">' + listItems(calls, true) + '</div>' +
+    '</div>' +
+    '<div class="bb-leads-today-card ' + (stuck.length ? 'is-urgent' : '') + '" onclick="bbLeadsFilterAndOpen(\'part2_sent\')">' +
+      '<div class="card-icon">⚠</div>' +
+      '<div class="card-num">' + stuck.length + '</div>' +
+      '<div class="card-lbl">Stuck on Part-2 &gt; 7 days</div>' +
+      '<div class="bb-leads-today-list">' + listItems(stuck, false) + '</div>' +
+    '</div>' +
+    '<div class="bb-leads-today-card ' + (pay.length ? 'is-urgent' : '') + '" onclick="bbLeadsFilterAndOpen(\'payment_pending\')">' +
+      '<div class="card-icon">💰</div>' +
+      '<div class="card-num">' + pay.length + '</div>' +
+      '<div class="card-lbl">Payment pending</div>' +
+      '<div class="bb-leads-today-list">' + listItems(pay, false) + '</div>' +
+    '</div>' +
+    '<div class="bb-leads-today-card" onclick="bbLeadsFilterAndOpen(\'onboarded\')">' +
+      '<div class="card-icon">🎉</div>' +
+      '<div class="card-num">' + (counts.onboarded || 0) + '</div>' +
+      '<div class="card-lbl">Total onboarded</div>' +
+    '</div>' +
+    '<div class="bb-leads-today-card" onclick="bbLeadsFilterAndOpen(\'lost\')">' +
+      '<div class="card-icon">❌</div>' +
+      '<div class="card-num">' + lost + '</div>' +
+      '<div class="card-lbl">Lost this week</div>' +
+    '</div>';
+}
+
+function bbLeadsFilterAndOpen(stage) {
+  switchTab('leads');
+  setTimeout(function(){
+    var sel = document.getElementById('bbLeadsStageFilter');
+    if (sel) sel.value = stage || '';
+    loadLeads();
+  }, 0);
+}
+
 function escapeHtml(s) { if (s == null || s === '') return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function bbUserInitialsFromDisplayName(name) {
   var n = (name || '').trim();
@@ -12258,8 +13025,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports' };
-var TAB_TO_SECTION = { requests: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports' };
+var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -12387,6 +13154,7 @@ function switchTab(tab) {
   if (tab === 'dailycompliance') loadDailyCompliancePreview();
   if (tab === 'tribe') loadTribe();
   if (tab === 'part2') loadPart2Submissions();
+  if (tab === 'leads') loadLeads();
   if (tab === 'insights') loadPerformanceInsights();
   if (tab === 'clientprogress') loadClientProgressUsers();
   if (tab === 'programs') loadProgramsAdmin();

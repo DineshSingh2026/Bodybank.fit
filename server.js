@@ -391,6 +391,29 @@ async function initDB() {
     status TEXT DEFAULT 'pending',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
+  // Leads pipeline columns (CRM state for each audit submission)
+  try { await pool.query(`ALTER TABLE audit_requests ADD COLUMN IF NOT EXISTS stage TEXT DEFAULT 'new_audit'`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE audit_requests ADD COLUMN IF NOT EXISTS stage_changed_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE audit_requests ADD COLUMN IF NOT EXISTS call_scheduled_at TIMESTAMP`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE audit_requests ADD COLUMN IF NOT EXISTS lost_reason TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE audit_requests ADD COLUMN IF NOT EXISTS linked_user_id TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE audit_requests ADD COLUMN IF NOT EXISTS last_contact_at TIMESTAMP`); } catch (e) { /* ignore */ }
+  try { await pool.query(`UPDATE audit_requests SET stage = 'new_audit' WHERE stage IS NULL OR stage = ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_requests_stage ON audit_requests(stage)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_requests_email_lower ON audit_requests(LOWER(email))`); } catch (e) { /* ignore */ }
+
+  // Lead notes timeline — every comment + automatic stage-change entries
+  await pool.query(`CREATE TABLE IF NOT EXISTS lead_notes (
+    id TEXT PRIMARY KEY,
+    audit_id TEXT NOT NULL,
+    author_id TEXT DEFAULT '',
+    author_name TEXT DEFAULT '',
+    body TEXT NOT NULL,
+    kind TEXT DEFAULT 'note',
+    stage_at_time TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_lead_notes_audit_id ON lead_notes(audit_id)`); } catch (e) { /* ignore */ }
   await pool.query(`
     UPDATE users u
     SET country = src.country
@@ -2776,6 +2799,277 @@ app.get('/api/admin/part2-submissions/:id/pdf', verifyToken, requireAdminOrSuper
   } catch (e) {
     console.error('Admin part2 pdf error:', e.message);
     return res.status(500).json({ error: 'Failed to generate Part-2 PDF' });
+  }
+});
+
+// ============================================================
+// LEADS PIPELINE — CRM-style state on top of audit_requests
+// ============================================================
+const LEAD_STAGE_IDS = [
+  'new_audit', 'whatsapp_sent', 'in_conversation',
+  'part2_sent', 'part2_received',
+  'call_proposed', 'call_scheduled', 'call_done',
+  'payment_pending', 'onboarded', 'lost'
+];
+const LEAD_STAGE_LABELS = {
+  new_audit: 'New audit',
+  whatsapp_sent: 'WhatsApp sent',
+  in_conversation: 'In conversation',
+  part2_sent: 'Part-2 sent',
+  part2_received: 'Part-2 received',
+  call_proposed: 'Call proposed',
+  call_scheduled: 'Call scheduled',
+  call_done: 'Call done',
+  payment_pending: 'Payment pending',
+  onboarded: 'Paid & onboarded',
+  lost: 'Lost / Cold'
+};
+
+function leadAuthorFromReq(req) {
+  const u = req.user || {};
+  const name = [u.first_name, u.last_name].filter(Boolean).join(' ').trim() ||
+    u.email || (u.role === 'superadmin' ? 'Superadmin' : 'Admin');
+  return { id: u.id || '', name };
+}
+
+async function appendLeadNote(auditId, author, body, kind, stageAtTime) {
+  await run(
+    'INSERT INTO lead_notes (id, audit_id, author_id, author_name, body, kind, stage_at_time) VALUES (?, ?, ?, ?, ?, ?, ?)',
+    [uuidv4(), auditId, author.id || '', author.name || '', String(body || ''), kind || 'note', stageAtTime || '']
+  );
+}
+
+// Bring back enough fields for the leads list, plus joined Part-2 status and notes count
+async function loadLeadsList({ stage, search, from, to } = {}) {
+  let sql = `
+    SELECT a.*,
+      (SELECT p.id FROM part2_audit p WHERE LOWER(p.email) = LOWER(a.email) ORDER BY p.created_at DESC LIMIT 1) AS part2_id,
+      (SELECT p.created_at FROM part2_audit p WHERE LOWER(p.email) = LOWER(a.email) ORDER BY p.created_at DESC LIMIT 1) AS part2_at,
+      (SELECT COUNT(*)::int FROM lead_notes ln WHERE ln.audit_id = a.id) AS notes_count
+    FROM audit_requests a
+    WHERE 1=1`;
+  const params = [];
+  if (stage && LEAD_STAGE_IDS.indexOf(stage) >= 0) {
+    sql += ' AND COALESCE(a.stage, \'new_audit\') = ?';
+    params.push(stage);
+  }
+  if (from) { sql += ' AND a.created_at::date >= ?'; params.push(from); }
+  if (to) { sql += ' AND a.created_at::date <= ?'; params.push(to); }
+  if (search) {
+    const q = '%' + String(search).replace(/%/g, '\\%') + '%';
+    sql += ' AND (a.first_name ILIKE ? OR a.last_name ILIKE ? OR a.email ILIKE ? OR a.phone ILIKE ? OR (COALESCE(a.first_name,\'\') || \' \' || COALESCE(a.last_name,\'\')) ILIKE ?)';
+    params.push(q, q, q, q, q);
+  }
+  sql += ' ORDER BY COALESCE(a.stage_changed_at, a.created_at) DESC LIMIT 500';
+  return await queryAll(sql, params);
+}
+
+// LIST — for both kanban and table views
+app.get('/api/admin/leads', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await loadLeadsList({
+      stage: (req.query.stage || '').trim(),
+      search: (req.query.search || '').trim(),
+      from: (req.query.from || '').trim(),
+      to: (req.query.to || '').trim()
+    });
+    res.json({ stages: LEAD_STAGE_IDS.map(id => ({ id, label: LEAD_STAGE_LABELS[id] })), leads: rows });
+  } catch (e) {
+    console.error('Admin leads list error:', e.message);
+    res.status(500).json({ error: 'Failed to load leads' });
+  }
+});
+
+// "Today" widget — what's on my plate right now
+app.get('/api/admin/leads/today', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const summaryRows = await queryAll(
+      "SELECT COALESCE(stage, 'new_audit') AS stage, COUNT(*)::int AS count FROM audit_requests GROUP BY COALESCE(stage, 'new_audit')"
+    );
+    const counts = {};
+    LEAD_STAGE_IDS.forEach(s => { counts[s] = 0; });
+    summaryRows.forEach(r => { if (counts.hasOwnProperty(r.stage)) counts[r.stage] = r.count; });
+
+    const callsToday = await queryAll(
+      `SELECT id, first_name, last_name, email, phone, call_scheduled_at, COALESCE(stage,'new_audit') AS stage
+       FROM audit_requests
+       WHERE call_scheduled_at IS NOT NULL
+         AND call_scheduled_at::date = CURRENT_DATE
+       ORDER BY call_scheduled_at ASC LIMIT 20`
+    );
+    const pendingOutreach = await queryAll(
+      `SELECT id, first_name, last_name, email, phone, created_at
+       FROM audit_requests
+       WHERE COALESCE(stage,'new_audit') = 'new_audit'
+       ORDER BY created_at ASC LIMIT 20`
+    );
+    const stuckPart2 = await queryAll(
+      `SELECT id, first_name, last_name, email, phone, stage_changed_at
+       FROM audit_requests
+       WHERE COALESCE(stage,'new_audit') = 'part2_sent'
+         AND COALESCE(stage_changed_at, created_at) < NOW() - INTERVAL '7 days'
+       ORDER BY stage_changed_at ASC LIMIT 20`
+    );
+    const paymentPending = await queryAll(
+      `SELECT id, first_name, last_name, email, phone, stage_changed_at
+       FROM audit_requests
+       WHERE COALESCE(stage,'new_audit') = 'payment_pending'
+       ORDER BY stage_changed_at ASC LIMIT 20`
+    );
+    const lostThisWeekRow = await queryOne(
+      `SELECT COUNT(*)::int AS count FROM audit_requests
+       WHERE COALESCE(stage,'new_audit') = 'lost'
+         AND COALESCE(stage_changed_at, created_at) >= NOW() - INTERVAL '7 days'`
+    );
+
+    res.json({
+      counts,
+      stage_labels: LEAD_STAGE_LABELS,
+      calls_today: callsToday,
+      pending_outreach: pendingOutreach,
+      stuck_part2: stuckPart2,
+      payment_pending: paymentPending,
+      lost_this_week: lostThisWeekRow ? lostThisWeekRow.count : 0
+    });
+  } catch (e) {
+    console.error('Admin leads/today error:', e.message);
+    res.status(500).json({ error: 'Failed to load today widget' });
+  }
+});
+
+// DETAIL — audit + Part-2 + linked user + notes timeline
+app.get('/api/admin/leads/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const lead = await queryOne('SELECT * FROM audit_requests WHERE id = ?', [req.params.id]);
+    if (!lead) return res.status(404).json({ error: 'Lead not found' });
+    const part2 = await queryOne(
+      'SELECT * FROM part2_audit WHERE LOWER(email) = LOWER(?) ORDER BY created_at DESC LIMIT 1',
+      [lead.email || '']
+    );
+    const linkedUser = lead.linked_user_id
+      ? await queryOne('SELECT id, email, first_name, last_name, role, approval_status, created_at FROM users WHERE id = ?', [lead.linked_user_id])
+      : await queryOne('SELECT id, email, first_name, last_name, role, approval_status, created_at FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1', [lead.email || '']);
+    const notes = await queryAll(
+      'SELECT id, author_id, author_name, body, kind, stage_at_time, created_at FROM lead_notes WHERE audit_id = ? ORDER BY created_at DESC',
+      [req.params.id]
+    );
+    res.json({
+      lead,
+      part2: part2 || null,
+      linked_user: linkedUser || null,
+      notes,
+      stages: LEAD_STAGE_IDS.map(id => ({ id, label: LEAD_STAGE_LABELS[id] }))
+    });
+  } catch (e) {
+    console.error('Admin leads detail error:', e.message);
+    res.status(500).json({ error: 'Failed to load lead' });
+  }
+});
+
+// CHANGE STAGE — also writes an automatic timeline entry
+app.patch('/api/admin/leads/:id/stage', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const stage = String((req.body && req.body.stage) || '').trim();
+    if (LEAD_STAGE_IDS.indexOf(stage) < 0) return res.status(400).json({ error: 'Invalid stage' });
+    const lead = await queryOne('SELECT id, stage FROM audit_requests WHERE id = ?', [req.params.id]);
+    if (!lead) return res.status(404).json({ error: 'Lead not found' });
+    const lostReason = stage === 'lost' ? String((req.body && req.body.lost_reason) || '').trim() : '';
+    await run(
+      `UPDATE audit_requests
+       SET stage = ?, stage_changed_at = NOW(), last_contact_at = NOW(),
+           lost_reason = CASE WHEN ? = 'lost' THEN ? ELSE COALESCE(lost_reason, '') END
+       WHERE id = ?`,
+      [stage, stage, lostReason, req.params.id]
+    );
+    const author = leadAuthorFromReq(req);
+    const fromLabel = LEAD_STAGE_LABELS[lead.stage] || lead.stage || 'New audit';
+    const toLabel = LEAD_STAGE_LABELS[stage] || stage;
+    let entry = `Stage: ${fromLabel} → ${toLabel}`;
+    if (stage === 'lost' && lostReason) entry += ` (reason: ${lostReason})`;
+    await appendLeadNote(req.params.id, author, entry, 'stage_change', stage);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Admin leads stage update error:', e.message);
+    res.status(500).json({ error: 'Failed to update stage' });
+  }
+});
+
+// ADD NOTE — manual timeline entry
+app.post('/api/admin/leads/:id/notes', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const body = String((req.body && req.body.body) || '').trim();
+    if (!body) return res.status(400).json({ error: 'Note cannot be empty' });
+    if (body.length > 4000) return res.status(400).json({ error: 'Note too long (max 4000 chars)' });
+    const lead = await queryOne('SELECT id, stage FROM audit_requests WHERE id = ?', [req.params.id]);
+    if (!lead) return res.status(404).json({ error: 'Lead not found' });
+    const author = leadAuthorFromReq(req);
+    await appendLeadNote(req.params.id, author, body, 'note', lead.stage || 'new_audit');
+    await run('UPDATE audit_requests SET last_contact_at = NOW() WHERE id = ?', [req.params.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Admin leads add note error:', e.message);
+    res.status(500).json({ error: 'Failed to add note' });
+  }
+});
+
+// SCHEDULE CALL — datetime + auto-bump stage to call_scheduled if not past it
+app.patch('/api/admin/leads/:id/call', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const lead = await queryOne('SELECT id, stage FROM audit_requests WHERE id = ?', [req.params.id]);
+    if (!lead) return res.status(404).json({ error: 'Lead not found' });
+    const raw = (req.body && req.body.call_scheduled_at) || '';
+    if (!raw) {
+      await run('UPDATE audit_requests SET call_scheduled_at = NULL WHERE id = ?', [req.params.id]);
+      const author = leadAuthorFromReq(req);
+      await appendLeadNote(req.params.id, author, 'Call schedule cleared', 'call', lead.stage || 'new_audit');
+      return res.json({ ok: true });
+    }
+    const dt = new Date(raw);
+    if (isNaN(dt.getTime())) return res.status(400).json({ error: 'Invalid date/time' });
+    let newStage = lead.stage || 'new_audit';
+    const preCall = ['new_audit', 'whatsapp_sent', 'in_conversation', 'part2_sent', 'part2_received', 'call_proposed'];
+    if (preCall.indexOf(newStage) >= 0) newStage = 'call_scheduled';
+    await run(
+      `UPDATE audit_requests
+       SET call_scheduled_at = ?, stage = ?, stage_changed_at = NOW(), last_contact_at = NOW()
+       WHERE id = ?`,
+      [dt.toISOString(), newStage, req.params.id]
+    );
+    const author = leadAuthorFromReq(req);
+    await appendLeadNote(req.params.id, author, `Call scheduled for ${dt.toLocaleString()}`, 'call', newStage);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('Admin leads schedule call error:', e.message);
+    res.status(500).json({ error: 'Failed to schedule call' });
+  }
+});
+
+// LINK to existing BodyBank user — looks up by email; admin can also pass user_id
+app.post('/api/admin/leads/:id/link-user', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const lead = await queryOne('SELECT id, email, stage FROM audit_requests WHERE id = ?', [req.params.id]);
+    if (!lead) return res.status(404).json({ error: 'Lead not found' });
+    const explicitId = String((req.body && req.body.user_id) || '').trim();
+    let user = null;
+    if (explicitId) {
+      user = await queryOne('SELECT id, email, first_name, last_name FROM users WHERE id = ?', [explicitId]);
+    }
+    if (!user) {
+      user = await queryOne('SELECT id, email, first_name, last_name FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1', [lead.email || '']);
+    }
+    if (!user) return res.status(404).json({ error: 'No BodyBank user found with that email. Ask the user to sign up first.' });
+    await run(
+      `UPDATE audit_requests
+       SET linked_user_id = ?, stage = 'onboarded', stage_changed_at = NOW(), last_contact_at = NOW()
+       WHERE id = ?`,
+      [user.id, req.params.id]
+    );
+    const author = leadAuthorFromReq(req);
+    await appendLeadNote(req.params.id, author, `Linked to user ${user.email} — marked Paid & onboarded`, 'stage_change', 'onboarded');
+    res.json({ ok: true, user });
+  } catch (e) {
+    console.error('Admin leads link-user error:', e.message);
+    res.status(500).json({ error: 'Failed to link user' });
   }
 });
 
