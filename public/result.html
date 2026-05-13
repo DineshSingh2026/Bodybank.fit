@@ -114,12 +114,45 @@ body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;
 .mr-section{margin-top:48px;position:relative}
 .mr-heading{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--cream);text-transform:uppercase;margin-bottom:6px}
 .mr-subhead{color:var(--muted);font-size:13px;margin-bottom:22px;letter-spacing:0.3px}
-.mr-stage{position:relative;background:radial-gradient(ellipse 70% 60% at 50% 42%,rgba(60,60,68,0.55) 0%,rgba(20,20,24,0.85) 55%,rgba(8,8,10,0.98) 100%);border:1px solid var(--bdr);border-radius:18px;padding:24px 22px 24px;overflow:hidden}
-.mr-stage::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(200,164,78,0.55),transparent)}
+.mr-stage{position:relative;background:radial-gradient(ellipse 70% 60% at 50% 42%,rgba(60,60,68,0.55) 0%,rgba(20,20,24,0.85) 55%,rgba(8,8,10,0.98) 100%);border:1px solid var(--bdr);border-radius:18px;padding:24px 28px 24px;overflow:visible}
+.mr-stage::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(200,164,78,0.55),transparent);border-radius:18px 18px 0 0}
 .mr-sample-tag{position:absolute;top:14px;right:14px;z-index:3;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;border:1px solid rgba(200,164,78,0.45);background:rgba(6,6,6,0.78);color:var(--gold);font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
 .mr-sample-tag::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--gold);box-shadow:0 0 6px rgba(200,164,78,0.8)}
-.mr-body-wrap{position:relative;width:100%;max-width:300px;margin:8px auto 0;padding:4px 0}
+.mr-body-wrap{position:relative;width:100%;max-width:300px;margin:8px auto 0;padding:4px 0;overflow:visible}
 .mr-body-wrap::before{content:'';position:absolute;inset:8% 12% 8% 12%;background:radial-gradient(ellipse at center,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.04) 50%,transparent 75%);filter:blur(20px);pointer-events:none;z-index:0}
+
+/* Per-region annotation chips — mirrors the live dashboard's .mr-anno style */
+.mr-anno-preview{position:absolute;z-index:4;display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:6px 9px 7px;background:rgba(6,6,6,0.65);border:1px solid rgba(255,255,255,0.1);border-radius:9px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);min-width:62px;max-width:90px;box-shadow:0 6px 18px rgba(0,0,0,0.55);pointer-events:none}
+.mr-anno-preview[data-tier="Strong"]{border-color:rgba(52,211,153,0.55);box-shadow:0 0 0 1px rgba(52,211,153,0.18),0 6px 18px rgba(0,0,0,0.55)}
+.mr-anno-preview[data-tier="Average"]{border-color:rgba(217,180,9,0.6);box-shadow:0 0 0 1px rgba(217,180,9,0.18),0 6px 18px rgba(0,0,0,0.55)}
+.mr-anno-preview[data-tier="Weak"]{border-color:rgba(239,68,68,0.6);box-shadow:0 0 0 1px rgba(239,68,68,0.18),0 6px 18px rgba(0,0,0,0.55)}
+.mr-anno-preview-label{font-family:'Bebas Neue',sans-serif;font-size:9px;letter-spacing:1.2px;color:rgba(244,240,232,0.88);text-transform:uppercase;line-height:1}
+.mr-anno-preview-row{display:flex;align-items:baseline;gap:2px;margin-top:3px;line-height:1}
+.mr-anno-preview-val{font-family:'Bebas Neue',sans-serif;font-size:18px;color:#f4f0e8;letter-spacing:0.3px;line-height:1}
+.mr-anno-preview-out{font-size:7.5px;color:rgba(244,240,232,0.5);letter-spacing:0.4px;font-weight:600}
+.mr-anno-preview-foot{display:flex;align-items:center;gap:4px;margin-top:3px;font-size:8px;font-weight:700;letter-spacing:0.06em}
+.mr-anno-preview[data-tier="Strong"] .mr-anno-preview-foot{color:#28dc82}
+.mr-anno-preview[data-tier="Average"] .mr-anno-preview-foot{color:#ffcd28}
+.mr-anno-preview[data-tier="Weak"] .mr-anno-preview-foot{color:#ff6464}
+.mr-anno-preview-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.mr-anno-preview[data-tier="Strong"] .mr-anno-preview-dot{background:#28dc82;box-shadow:0 0 5px rgba(40,220,130,0.8)}
+.mr-anno-preview[data-tier="Average"] .mr-anno-preview-dot{background:#ffcd28;box-shadow:0 0 5px rgba(255,205,40,0.8)}
+.mr-anno-preview[data-tier="Weak"] .mr-anno-preview-dot{background:#ff6464;box-shadow:0 0 5px rgba(255,100,100,0.8)}
+.mr-anno-preview.pos-tl{top:4%;left:-10%}
+.mr-anno-preview.pos-tr{top:4%;right:-10%}
+.mr-anno-preview.pos-ml{top:35%;left:-12%}
+.mr-anno-preview.pos-mr{top:35%;right:-12%}
+.mr-anno-preview.pos-bl{top:75%;left:-8%}
+.mr-anno-preview.pos-br{top:75%;right:-8%}
+@media(max-width:520px){
+  .mr-anno-preview{padding:5px 7px 6px;min-width:54px;max-width:76px}
+  .mr-anno-preview-label{font-size:8px;letter-spacing:1px}
+  .mr-anno-preview-val{font-size:15px}
+  .mr-anno-preview-out{font-size:7px}
+  .mr-anno-preview-foot{font-size:7.5px}
+  .mr-anno-preview.pos-tl,.mr-anno-preview.pos-ml,.mr-anno-preview.pos-bl{left:-6%}
+  .mr-anno-preview.pos-tr,.mr-anno-preview.pos-mr,.mr-anno-preview.pos-br{right:-6%}
+}
 .mr-body-svg{position:relative;z-index:1;width:100%;height:auto;display:block}
 .mr-body-svg image{pointer-events:none;opacity:1}
 .mr-svg-region{stroke-width:1px;mix-blend-mode:multiply;pointer-events:none}
@@ -295,6 +328,36 @@ body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;
             </g>
           </g>
         </svg>
+        <div class="mr-anno-preview pos-tl" data-tier="Average" aria-hidden="true">
+          <span class="mr-anno-preview-label">Shoulders</span>
+          <span class="mr-anno-preview-row"><span class="mr-anno-preview-val">64</span><span class="mr-anno-preview-out">/100</span></span>
+          <span class="mr-anno-preview-foot"><span class="mr-anno-preview-dot"></span>AVERAGE</span>
+        </div>
+        <div class="mr-anno-preview pos-tr" data-tier="Strong" aria-hidden="true">
+          <span class="mr-anno-preview-label">Chest</span>
+          <span class="mr-anno-preview-row"><span class="mr-anno-preview-val">78</span><span class="mr-anno-preview-out">/100</span></span>
+          <span class="mr-anno-preview-foot"><span class="mr-anno-preview-dot"></span>STRONG</span>
+        </div>
+        <div class="mr-anno-preview pos-ml" data-tier="Average" aria-hidden="true">
+          <span class="mr-anno-preview-label">Back</span>
+          <span class="mr-anno-preview-row"><span class="mr-anno-preview-val">62</span><span class="mr-anno-preview-out">/100</span></span>
+          <span class="mr-anno-preview-foot"><span class="mr-anno-preview-dot"></span>AVERAGE</span>
+        </div>
+        <div class="mr-anno-preview pos-mr" data-tier="Average" aria-hidden="true">
+          <span class="mr-anno-preview-label">Arms</span>
+          <span class="mr-anno-preview-row"><span class="mr-anno-preview-val">60</span><span class="mr-anno-preview-out">/100</span></span>
+          <span class="mr-anno-preview-foot"><span class="mr-anno-preview-dot"></span>AVERAGE</span>
+        </div>
+        <div class="mr-anno-preview pos-bl" data-tier="Strong" aria-hidden="true">
+          <span class="mr-anno-preview-label">Legs</span>
+          <span class="mr-anno-preview-row"><span class="mr-anno-preview-val">82</span><span class="mr-anno-preview-out">/100</span></span>
+          <span class="mr-anno-preview-foot"><span class="mr-anno-preview-dot"></span>STRONG</span>
+        </div>
+        <div class="mr-anno-preview pos-br" data-tier="Weak" aria-hidden="true">
+          <span class="mr-anno-preview-label">Core</span>
+          <span class="mr-anno-preview-row"><span class="mr-anno-preview-val">42</span><span class="mr-anno-preview-out">/100</span></span>
+          <span class="mr-anno-preview-foot"><span class="mr-anno-preview-dot"></span>WEAK</span>
+        </div>
         <div class="mr-lock-bar">
           <div class="mr-padlock" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

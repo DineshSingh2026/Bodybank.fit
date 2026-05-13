@@ -265,6 +265,15 @@ function writePart2Pdf({ outputPath, record, logoPath }) {
     fieldCard(doc, 'Mobile', record.mobile);
     fieldCard(doc, 'Activity level', record.activity_level);
 
+    sectionTitle(doc, 'Quick details');
+    fieldCard(doc, 'Height', record.height_cm ? (record.height_cm + ' cm') : '-');
+    fieldCard(doc, 'Bodyweight', record.bodyweight_kg ? (record.bodyweight_kg + ' kg') : '-');
+    fieldCard(doc, 'Workouts / week', record.workouts_per_week);
+    fieldCard(doc, 'Sleep / night', record.sleep_hours ? (record.sleep_hours + ' hrs') : '-');
+    fieldCard(doc, 'Stress level', record.stress_level ? (record.stress_level + ' / 10') : '-');
+    fieldCard(doc, 'Smoking', record.smoking);
+    fieldCard(doc, 'Alcohol', record.alcohol);
+
     sectionTitle(doc, 'Performance background');
     fieldCard(doc, 'Sports history', record.sports_history);
     fieldCard(doc, 'Past / current injuries', record.injuries);

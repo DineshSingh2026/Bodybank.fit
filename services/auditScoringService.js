@@ -67,15 +67,62 @@ function mapByPrefix(value, table, fallback = FLOOR) {
   return fallback;
 }
 
+// Maps for the new structured fields
+const WORKOUTS_PER_WEEK_MAP = {
+  '0': 25,
+  '1-2': 55,
+  '3-4': 80,
+  '5-6': 92,
+  '7': 95
+};
+
+const SLEEP_HOURS_MAP = {
+  '<5': 25,
+  '5-6': 50,
+  '6-7': 72,
+  '7-8': 92,
+  '8+': 88
+};
+
+const SMOKING_MAP = {
+  'never': 95,
+  'occasional': 60,
+  'daily': 30
+};
+
+const ALCOHOL_MAP = {
+  'never': 95,
+  'social': 75,
+  'frequent': 48,
+  'daily': 30
+};
+
+function lookupExact(value, table, fallback) {
+  if (value == null) return fallback;
+  const v = String(value).toLowerCase().trim();
+  if (!v) return fallback;
+  return Object.prototype.hasOwnProperty.call(table, v) ? table[v] : fallback;
+}
+
 function scoreActivity(part1, part2) {
   const work = mapByPrefix(part1.work_intensity, WORK_INTENSITY_MAP, 40);
   const act = mapByPrefix(part2.activity_level, ACTIVITY_LEVEL_MAP, work);
-  const blended = part2.activity_level ? Math.round(work * 0.4 + act * 0.6) : work;
-  return clamp(blended, FLOOR, MAX);
+  const generalActivity = part2.activity_level ? Math.round(work * 0.4 + act * 0.6) : work;
+
+  // Primary signal: structured workouts-per-week
+  const wpw = lookupExact(part2.workouts_per_week, WORKOUTS_PER_WEEK_MAP, null);
+  if (wpw !== null) {
+    // 70% workouts/week + 30% general activity context
+    return clamp(Math.round(wpw * 0.7 + generalActivity * 0.3), FLOOR, MAX);
+  }
+  return clamp(generalActivity, FLOOR, MAX);
 }
 
 function scoreTraining(part1, part2) {
-  const base = mapByPrefix(part1.fitness_experience, FITNESS_EXPERIENCE_MAP, 40);
+  const baseFromExperience = mapByPrefix(part1.fitness_experience, FITNESS_EXPERIENCE_MAP, 40);
+  const wpw = lookupExact(part2.workouts_per_week, WORKOUTS_PER_WEEK_MAP, null);
+
+  // Free-text supplementary boost
   const gymText = part2.gym_experience || '';
   const sportText = part2.sports_history || '';
   const positiveHits = keywordHits(`${gymText} ${sportText}`, [
@@ -83,10 +130,18 @@ function scoreTraining(part1, part2) {
     'trainer', 'coach', 'lifting', 'sports', 'team', 'discipline'
   ]);
   const negativeHits = keywordHits(`${gymText} ${sportText}`, [
-    'never', 'none', 'no experience', 'haven\'t', 'dont', "don't"
+    'never', 'none', 'no experience', "haven't", 'dont', "don't"
   ]);
-  const boost = positiveHits * 3 - negativeHits * 4;
-  return clamp(base + boost, FLOOR, MAX);
+  const textBoost = positiveHits * 2 - negativeHits * 3;
+
+  let base;
+  if (wpw !== null) {
+    // 50% experience tier + 50% frequency — frequency is the honest current-state signal
+    base = baseFromExperience * 0.5 + wpw * 0.5;
+  } else {
+    base = baseFromExperience;
+  }
+  return clamp(Math.round(base + textBoost), FLOOR, MAX);
 }
 
 function scoreNutrition(part2) {
@@ -108,38 +163,65 @@ function scoreNutrition(part2) {
 }
 
 function scoreMindset(part2) {
+  // Text-based engagement signal (secondary now)
   const compelled = part2.what_compelled || '';
   const goals = part2.goals || '';
   const mental = part2.mental_health || '';
-  let base = 50;
-  base += textLengthBoost(compelled, 30, 250);
-  base += textLengthBoost(goals, 30, 250);
-  if (mental.trim().length > 20) base += 8;
+  let textScore = 50;
+  textScore += textLengthBoost(compelled, 30, 250);
+  textScore += textLengthBoost(goals, 30, 250);
+  if (mental.trim().length > 20) textScore += 8;
   const positives = keywordHits(`${compelled} ${goals}`, [
     'family', 'kids', 'health', 'energy', 'strength', 'discipline',
     'longevity', 'confidence', 'consistency', 'long term', 'sustainable',
     'transformation', 'lifestyle', 'commit', 'serious'
   ]);
-  base += positives * 2;
-  return clamp(base, FLOOR, MAX);
+  textScore += positives * 2;
+  textScore = clamp(textScore, FLOOR, MAX);
+
+  // Primary signal: stress level (1 = calm, 10 = overwhelmed → inverse)
+  const stress = Number(part2.stress_level);
+  if (Number.isFinite(stress) && stress >= 1 && stress <= 10) {
+    // 1 → 95, 5 → 65, 10 → 30
+    const stressScore = clamp(Math.round(95 - (stress - 1) * 7.2), FLOOR, MAX);
+    return clamp(Math.round(stressScore * 0.7 + textScore * 0.3), FLOOR, MAX);
+  }
+  return textScore;
 }
 
 function scoreLifestyle(part2) {
+  // Primary: structured sleep + smoking + alcohol fields
+  const sleep = lookupExact(part2.sleep_hours, SLEEP_HOURS_MAP, null);
+  const smoking = lookupExact(part2.smoking, SMOKING_MAP, null);
+  const alcohol = lookupExact(part2.alcohol, ALCOHOL_MAP, null);
+
+  const haveAnyStructured = sleep !== null || smoking !== null || alcohol !== null;
+
+  // Secondary: free-text vices fallback
   const vices = part2.vices_addictions || '';
-  const injuries = part2.injuries || '';
   const noVices = !vices.trim() || /none|nil|no\s|nothing/i.test(vices);
-  let base = noVices ? 85 : 60;
-  const heavyHits = keywordHits(vices, [
-    'smoke', 'smoking', 'cigarette', 'daily drink', 'alcohol daily',
-    'addiction', 'heavy', 'binge'
-  ]);
-  base -= heavyHits * 6;
-  const lightHits = keywordHits(vices, [
-    'occasional', 'rarely', 'social', 'sometimes', 'weekend'
-  ]);
-  base += lightHits * 2;
+  let viceTextScore = noVices ? 80 : 60;
+  const heavyHits = keywordHits(vices, ['smoke', 'smoking', 'cigarette', 'daily drink', 'alcohol daily', 'addiction', 'heavy', 'binge']);
+  viceTextScore -= heavyHits * 6;
+  const lightHits = keywordHits(vices, ['occasional', 'rarely', 'social', 'sometimes', 'weekend']);
+  viceTextScore += lightHits * 2;
+  viceTextScore = clamp(viceTextScore, FLOOR, MAX);
+
+  let base;
+  if (haveAnyStructured) {
+    // Weighted blend: sleep 0.5, smoking 0.25, alcohol 0.25. Missing parts fall back to viceTextScore.
+    const sleepPart = sleep !== null ? sleep : viceTextScore;
+    const smokingPart = smoking !== null ? smoking : viceTextScore;
+    const alcoholPart = alcohol !== null ? alcohol : viceTextScore;
+    base = sleepPart * 0.5 + smokingPart * 0.25 + alcoholPart * 0.25;
+  } else {
+    base = viceTextScore;
+  }
+
+  // Injury severity penalty (kept from prior version)
+  const injuries = part2.injuries || '';
   if (/ongoing|severe|chronic/i.test(injuries)) base -= 6;
-  return clamp(base, FLOOR, MAX);
+  return clamp(Math.round(base), FLOOR, MAX);
 }
 
 const WEIGHTS = {

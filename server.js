@@ -529,6 +529,14 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS sub_scores TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS weak_lever TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS result_generated_at TIMESTAMP`); } catch (e) { /* ignore */ }
+  // Structured quick-detail fields (added 2026-05-13 to improve scoring accuracy)
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS height_cm INTEGER`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS bodyweight_kg NUMERIC(5,1)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS workouts_per_week TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS sleep_hours TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS stress_level INTEGER`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS smoking TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS alcohol TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS scheduled_calls (
     id TEXT PRIMARY KEY,
@@ -1655,8 +1663,11 @@ app.post('/api/part2', rateLimiter(5, 60000), async (req, res) => {
     if (!b.name || !b.email) return res.status(400).json({ error: 'Name and email required' });
 
     const id = uuidv4();
-    await run(`INSERT INTO part2_audit (id, name, email, mobile, sports_history, injuries, mental_health, gym_experience, food_choices, vices_addictions, goals, what_compelled, activity_level) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [id, b.name || '', b.email || '', b.mobile || '', b.sports_history || '', b.injuries || '', b.mental_health || '', b.gym_experience || '', b.food_choices || '', b.vices_addictions || '', b.goals || '', b.what_compelled || '', b.activity_level || '']);
+    const heightCm = Number.isFinite(Number(b.height_cm)) ? Number(b.height_cm) : null;
+    const bodyweightKg = Number.isFinite(Number(b.bodyweight_kg)) ? Number(b.bodyweight_kg) : null;
+    const stressLevel = Number.isFinite(Number(b.stress_level)) ? Math.max(1, Math.min(10, Math.round(Number(b.stress_level)))) : null;
+    await run(`INSERT INTO part2_audit (id, name, email, mobile, sports_history, injuries, mental_health, gym_experience, food_choices, vices_addictions, goals, what_compelled, activity_level, height_cm, bodyweight_kg, workouts_per_week, sleep_hours, stress_level, smoking, alcohol) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      [id, b.name || '', b.email || '', b.mobile || '', b.sports_history || '', b.injuries || '', b.mental_health || '', b.gym_experience || '', b.food_choices || '', b.vices_addictions || '', b.goals || '', b.what_compelled || '', b.activity_level || '', heightCm, bodyweightKg, b.workouts_per_week || '', b.sleep_hours || '', stressLevel, b.smoking || '', b.alcohol || '']);
 
     let result = null;
     try {
@@ -1742,6 +1753,11 @@ app.get('/api/part2/:id', async (req, res) => {
   const row = await queryOne("SELECT * FROM part2_audit WHERE id = ?", [req.params.id]);
   if (!row) return res.status(404).json({ error: 'Not found' });
   res.json(row);
+});
+
+app.delete('/api/part2/:id', async (req, res) => {
+  await run("DELETE FROM part2_audit WHERE id = ?", [req.params.id]);
+  res.json({ message: 'Deleted' });
 });
 
 // ============ SCHEDULED CALLS (Public funnel — Step 3) ============

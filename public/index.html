@@ -11089,6 +11089,15 @@ async function removeAuditRequest(id) {
   loadDashboard();
 }
 
+async function removePart2Submission(id) {
+  if (!confirm('Remove this Part-2 form? This cannot be undone.')) return;
+  const res = await apiCall('DELETE', '/api/part2/' + id);
+  if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+  showPopup('Removed', 'Part-2 form has been removed.', '', 'OK');
+  loadPart2Submissions();
+  loadDashboard();
+}
+
 async function loadPendingSignups() {
   const tbody = document.getElementById('signupsBody');
   if (!tbody) return;
@@ -11617,7 +11626,7 @@ async function loadPart2Submissions() {
       const dt = r.created_at ? new Date(r.created_at).toLocaleDateString(undefined, { dateStyle: 'short' }) : '-';
       const pid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
       var oid = adminAttrId(r.id || '');
-      return `<tr class="admin-row-clickable" data-open-kind="part2" data-open-id="${oid}" data-id="${escapeHtml(r.id||'')}"><td data-label="Name">${escapeHtml(r.name || '-')}</td><td data-label="Email">${escapeHtml(r.email || '-')}</td><td data-label="Date">${dt}</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewPart2Submission('${pid}')">View</button></td></tr>`;
+      return `<tr class="admin-row-clickable" data-open-kind="part2" data-open-id="${oid}" data-id="${escapeHtml(r.id||'')}"><td data-label="Name">${escapeHtml(r.name || '-')}</td><td data-label="Email">${escapeHtml(r.email || '-')}</td><td data-label="Date">${dt}</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewPart2Submission('${pid}')">View</button> <button type="button" class="action-btn btn-reject" onclick="event.stopPropagation();removePart2Submission('${pid}')">Remove</button></td></tr>`;
     }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No Part-2 submissions match your filters.</td></tr>';
   } catch (e) { const tbody = document.getElementById('part2Body'); if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050">Failed to load.</td></tr>'; }
 }
@@ -12242,6 +12251,13 @@ async function viewPart2Submission(id) {
   const actions = document.getElementById('part2ViewActions');
   if (!body) return;
   body.innerHTML = _row('Name', r.name) + _row('Email', r.email) + _row('Mobile', r.mobile) +
+    _row('Height', r.height_cm ? (r.height_cm + ' cm') : '') +
+    _row('Bodyweight', r.bodyweight_kg ? (r.bodyweight_kg + ' kg') : '') +
+    _row('Workouts / week', r.workouts_per_week) +
+    _row('Sleep / night', r.sleep_hours ? (r.sleep_hours + ' hrs') : '') +
+    _row('Stress level', r.stress_level ? (r.stress_level + ' / 10') : '') +
+    _row('Smoking', r.smoking) +
+    _row('Alcohol', r.alcohol) +
     _row('Activity Level', r.activity_level) +
     _rowBlock('Sports History', r.sports_history) +
     _rowBlock('Past/Current Injuries', r.injuries) +
@@ -12255,7 +12271,8 @@ async function viewPart2Submission(id) {
   if (actions) {
     var pid = String(id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
     actions.innerHTML = '<button type="button" class="action-btn btn-view" onclick="downloadAdminFormPdf(\'part2\', \'' +
-      pid + '\')">Download PDF</button>';
+      pid + '\')">Download PDF</button>' +
+      ' <button type="button" class="action-btn btn-reject" onclick="closeModal(\'part2ViewModal\');removePart2Submission(\'' + pid + '\')">Remove</button>';
   }
   openModal('part2ViewModal');
 }

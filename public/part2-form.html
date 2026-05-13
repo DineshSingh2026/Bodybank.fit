@@ -73,6 +73,27 @@ textarea.form-input{resize:vertical;min-height:120px}
 .char-count{font-size:12px;color:var(--muted);margin-top:6px;text-align:right}
 .char-count.near-limit{color:var(--gold)}
 .char-count.at-limit{color:#e05050}
+/* Structured-input components for the quick-details section */
+.p2-section-divider{display:flex;align-items:center;gap:14px;margin:36px 0 18px;color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2.2px;text-transform:uppercase}
+.p2-section-divider::before,.p2-section-divider::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(200,164,78,0.45),transparent)}
+.p2-chip-group{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+.p2-chip{flex:1 1 calc(33% - 8px);min-width:90px;position:relative;cursor:pointer}
+.p2-chip input{position:absolute;opacity:0;width:0;height:0;pointer-events:none}
+.p2-chip span{display:flex;align-items:center;justify-content:center;padding:11px 12px;background:rgba(255,255,255,0.04);border:1.5px solid var(--bdr);border-radius:10px;color:var(--cream);font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;letter-spacing:0.3px;transition:all .2s;text-align:center;min-height:44px}
+.p2-chip:hover span{border-color:rgba(200,164,78,0.5);background:rgba(200,164,78,0.06)}
+.p2-chip input:checked + span{border-color:var(--gold);background:rgba(200,164,78,0.16);color:var(--gold);font-weight:600;box-shadow:0 4px 14px rgba(200,164,78,0.2)}
+.p2-chip input:focus-visible + span{outline:2px solid var(--gold);outline-offset:2px}
+.p2-slider-wrap{position:relative;padding:6px 4px 0}
+.p2-slider{appearance:none;-webkit-appearance:none;width:100%;height:6px;background:linear-gradient(90deg,#28dc82 0%,#ffcd28 50%,#ff6464 100%);border-radius:6px;outline:none;cursor:pointer;margin-bottom:8px}
+.p2-slider::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--gold);border:3px solid #0a0a0a;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.5),0 0 0 2px rgba(200,164,78,0.3);transition:transform .15s}
+.p2-slider::-webkit-slider-thumb:hover{transform:scale(1.1)}
+.p2-slider::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:var(--gold);border:3px solid #0a0a0a;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,0.5)}
+.p2-slider-scale{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);letter-spacing:0.4px;margin-top:2px}
+.p2-slider-scale span:first-child{color:#7cf0a8}
+.p2-slider-scale span:last-child{color:#ff8a8a}
+.p2-slider-value{display:inline-flex;align-items:baseline;gap:4px;margin-left:8px;color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:1px;vertical-align:middle}
+.p2-slider-value .out{font-family:'Outfit',sans-serif;font-size:11px;color:var(--muted);letter-spacing:0.5px;font-weight:600}
+.p2-help{display:block;font-size:12px;color:var(--muted);margin-top:6px;letter-spacing:0.2px;line-height:1.4}
 .step-bar{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 auto 32px;max-width:420px}
 .step-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:1.5px solid var(--bdr);color:var(--muted);background:rgba(255,255,255,0.03);flex-shrink:0;transition:all .3s}
 .step-dot.done{background:var(--gold);color:var(--black);border-color:var(--gold)}
@@ -150,6 +171,65 @@ textarea.form-input{resize:vertical;min-height:120px}
       <div class="form-group"><label>Name <span class="req">*</span></label><input type="text" class="form-input" placeholder="Enter your full name" name="name" maxlength="200" required><span class="char-count" data-for="name">0 / 200</span></div>
       <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" class="form-input" placeholder="Enter your email" name="email" maxlength="254" required><span class="char-count" data-for="email">0 / 254</span></div>
       <div class="form-group"><label>Mobile Number <span class="req">*</span></label><input type="tel" class="form-input" placeholder="Enter your mobile number" name="mobile" maxlength="20" required><span class="char-count" data-for="mobile">0 / 20</span></div>
+
+      <!-- ===== Quick details: structured fields that drive scoring accuracy ===== -->
+      <div class="p2-section-divider">Quick details</div>
+
+      <div class="form-row">
+        <div class="form-group"><label>Height (cm)</label><input type="number" class="form-input" name="height_cm" min="100" max="230" step="1" placeholder="e.g. 175" inputmode="numeric"></div>
+        <div class="form-group"><label>Bodyweight (kg)</label><input type="number" class="form-input" name="bodyweight_kg" min="30" max="220" step="0.1" placeholder="e.g. 78" inputmode="decimal"></div>
+      </div>
+
+      <div class="form-group">
+        <label>How many workouts per week, on average?</label>
+        <div class="p2-chip-group" role="radiogroup" aria-label="Workouts per week">
+          <label class="p2-chip"><input type="radio" name="workouts_per_week" value="0"><span>0</span></label>
+          <label class="p2-chip"><input type="radio" name="workouts_per_week" value="1-2"><span>1–2</span></label>
+          <label class="p2-chip"><input type="radio" name="workouts_per_week" value="3-4"><span>3–4</span></label>
+          <label class="p2-chip"><input type="radio" name="workouts_per_week" value="5-6"><span>5–6</span></label>
+          <label class="p2-chip"><input type="radio" name="workouts_per_week" value="7"><span>7</span></label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Average sleep per night</label>
+        <div class="p2-chip-group" role="radiogroup" aria-label="Average sleep per night">
+          <label class="p2-chip"><input type="radio" name="sleep_hours" value="<5"><span>Under 5h</span></label>
+          <label class="p2-chip"><input type="radio" name="sleep_hours" value="5-6"><span>5–6h</span></label>
+          <label class="p2-chip"><input type="radio" name="sleep_hours" value="6-7"><span>6–7h</span></label>
+          <label class="p2-chip"><input type="radio" name="sleep_hours" value="7-8"><span>7–8h</span></label>
+          <label class="p2-chip"><input type="radio" name="sleep_hours" value="8+"><span>8+ hours</span></label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Your current stress level <span class="p2-slider-value" id="stressValDisplay">5<span class="out"> / 10</span></span></label>
+        <div class="p2-slider-wrap">
+          <input type="range" class="p2-slider" id="stressSlider" name="stress_level" min="1" max="10" step="1" value="5">
+          <div class="p2-slider-scale"><span>1 — Calm</span><span>5 — Mixed</span><span>10 — Overwhelmed</span></div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>Do you smoke?</label>
+        <div class="p2-chip-group" role="radiogroup" aria-label="Smoking">
+          <label class="p2-chip"><input type="radio" name="smoking" value="Never"><span>Never</span></label>
+          <label class="p2-chip"><input type="radio" name="smoking" value="Occasional"><span>Occasional</span></label>
+          <label class="p2-chip"><input type="radio" name="smoking" value="Daily"><span>Daily</span></label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label>How often do you drink alcohol?</label>
+        <div class="p2-chip-group" role="radiogroup" aria-label="Alcohol">
+          <label class="p2-chip"><input type="radio" name="alcohol" value="Never"><span>Never</span></label>
+          <label class="p2-chip"><input type="radio" name="alcohol" value="Social"><span>Social (weekly or less)</span></label>
+          <label class="p2-chip"><input type="radio" name="alcohol" value="Frequent"><span>Several / week</span></label>
+          <label class="p2-chip"><input type="radio" name="alcohol" value="Daily"><span>Daily</span></label>
+        </div>
+      </div>
+
+      <div class="p2-section-divider">Your story</div>
 
       <div class="form-group"><label>Sports History</label><textarea class="form-input p2-textarea" placeholder="Describe your history with sports" name="sports_history" maxlength="2500"></textarea><span class="char-count" data-for="sports_history">0 / 2500</span></div>
       <div class="form-group"><label>Past/Current Injuries</label><textarea class="form-input p2-textarea" placeholder="Describe any past and/or current injuries" name="injuries" maxlength="2500"></textarea><span class="char-count" data-for="injuries">0 / 2500</span></div>
@@ -229,6 +309,21 @@ textarea.form-input{resize:vertical;min-height:120px}
     update();
   });
 })();
+(function initStressSlider(){
+  var slider = document.getElementById('stressSlider');
+  var display = document.getElementById('stressValDisplay');
+  if (!slider || !display) return;
+  function update(){
+    var v = Number(slider.value) || 5;
+    display.firstChild.textContent = String(v);
+    // Color hint: tint the number from green (low stress) → red (high)
+    var color = v <= 3 ? '#28dc82' : v <= 6 ? '#ffcd28' : '#ff6464';
+    display.style.color = color;
+  }
+  slider.addEventListener('input', update);
+  slider.addEventListener('change', update);
+  update();
+})();
 async function submitPart2(e) {
   e.preventDefault();
   const form = document.getElementById('part2Form');
@@ -241,6 +336,9 @@ async function submitPart2(e) {
   if (errEl) errEl.remove();
 
   const fd = new FormData(form);
+  const heightRaw = fd.get('height_cm');
+  const weightRaw = fd.get('bodyweight_kg');
+  const stressRaw = fd.get('stress_level');
   const body = {
     name: fd.get('name') || '',
     email: fd.get('email') || '',
@@ -253,7 +351,14 @@ async function submitPart2(e) {
     vices_addictions: fd.get('vices_addictions') || '',
     goals: fd.get('goals') || '',
     what_compelled: fd.get('what_compelled') || '',
-    activity_level: fd.get('activity_level') || ''
+    activity_level: fd.get('activity_level') || '',
+    height_cm: heightRaw ? Number(heightRaw) : null,
+    bodyweight_kg: weightRaw ? Number(weightRaw) : null,
+    workouts_per_week: fd.get('workouts_per_week') || '',
+    sleep_hours: fd.get('sleep_hours') || '',
+    stress_level: stressRaw ? Number(stressRaw) : null,
+    smoking: fd.get('smoking') || '',
+    alcohol: fd.get('alcohol') || ''
   };
 
   try {
