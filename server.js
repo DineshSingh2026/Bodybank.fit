@@ -523,6 +523,23 @@ async function initDB() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  await pool.query(`CREATE TABLE IF NOT EXISTS scheduled_calls (
+    id TEXT PRIMARY KEY,
+    audit_id TEXT DEFAULT '',
+    name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    mobile TEXT DEFAULT '',
+    call_date TEXT NOT NULL,
+    call_time TEXT NOT NULL,
+    timezone TEXT DEFAULT 'Asia/Kolkata',
+    channel TEXT DEFAULT 'call',
+    status TEXT DEFAULT 'scheduled',
+    notes TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_calls_email_lower ON scheduled_calls(LOWER(email))`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_scheduled_calls_date ON scheduled_calls(call_date)`); } catch (e) { /* ignore */ }
+
   await pool.query(`CREATE TABLE IF NOT EXISTS hydration_logs (
     id TEXT PRIMARY KEY,
     user_id TEXT NOT NULL,
@@ -1674,6 +1691,122 @@ app.get('/api/part2/:id', async (req, res) => {
   const row = await queryOne("SELECT * FROM part2_audit WHERE id = ?", [req.params.id]);
   if (!row) return res.status(404).json({ error: 'Not found' });
   res.json(row);
+});
+
+// ============ SCHEDULED CALLS (Public funnel — Step 3) ============
+// Working hours / slot config for the auto-scheduling flow. 30-min slots in IST.
+const SCHEDULE_CALL_TZ = 'Asia/Kolkata';
+const SCHEDULE_CALL_SLOTS = [
+  '10:00','10:30','11:00','11:30','12:00','12:30',
+  '14:00','14:30','15:00','15:30','16:00','16:30',
+  '17:00','17:30','18:00','18:30'
+];
+
+// GET /api/schedule-call/availability?date=YYYY-MM-DD
+// Returns { date, slots: [{ time, available }] }
+app.get('/api/schedule-call/availability', async (req, res) => {
+  try {
+    const date = String(req.query.date || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'Invalid date' });
+    const booked = await queryAll(
+      "SELECT call_time FROM scheduled_calls WHERE call_date = ? AND status = 'scheduled'",
+      [date]
+    );
+    const bookedSet = new Set(booked.map(r => String(r.call_time)));
+    const slots = SCHEDULE_CALL_SLOTS.map(t => ({ time: t, available: !bookedSet.has(t) }));
+    res.json({ date, timezone: SCHEDULE_CALL_TZ, slots });
+  } catch (e) {
+    console.error('[schedule-call] availability error:', e.message);
+    res.status(500).json({ error: 'Failed to load availability' });
+  }
+});
+
+// POST /api/schedule-call
+// Body: { name, email, mobile, call_date, call_time, channel, audit_id?, notes? }
+app.post('/api/schedule-call', rateLimiter(5, 60000), async (req, res) => {
+  try {
+    const b = req.body || {};
+    const name = String(b.name || '').trim();
+    const email = String(b.email || '').trim().toLowerCase();
+    const mobile = String(b.mobile || '').trim();
+    const date = String(b.call_date || '').trim();
+    const time = String(b.call_time || '').trim();
+    const channel = b.channel === 'whatsapp' ? 'whatsapp' : 'call';
+    if (!name || !email) return res.status(400).json({ error: 'Name and email are required' });
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'Invalid date' });
+    if (!/^\d{2}:\d{2}$/.test(time) || !SCHEDULE_CALL_SLOTS.includes(time)) {
+      return res.status(400).json({ error: 'Invalid time slot' });
+    }
+    // Reject past dates (use IST date)
+    const todayIst = new Date(new Date().toLocaleString('en-US', { timeZone: SCHEDULE_CALL_TZ }));
+    const todayStr = todayIst.toISOString().slice(0, 10);
+    if (date < todayStr) return res.status(400).json({ error: 'Date is in the past' });
+
+    // Check the slot isn't already taken
+    const existing = await queryOne(
+      "SELECT id FROM scheduled_calls WHERE call_date = ? AND call_time = ? AND status = 'scheduled'",
+      [date, time]
+    );
+    if (existing) return res.status(409).json({ error: 'That slot was just booked — please pick another time.' });
+
+    const id = uuidv4();
+    await run(
+      `INSERT INTO scheduled_calls (id, audit_id, name, email, mobile, call_date, call_time, timezone, channel, status, notes)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+      [id, String(b.audit_id || ''), name, email, mobile, date, time, SCHEDULE_CALL_TZ, channel, 'scheduled', String(b.notes || '')]
+    );
+
+    // Roll the matching audit_requests row forward to "call_proposed" so the admin pipeline reflects it.
+    try {
+      await run(
+        `UPDATE audit_requests
+         SET stage = 'call_proposed', stage_changed_at = NOW(), call_scheduled_at = NOW(), last_contact_at = NOW()
+         WHERE LOWER(email) = LOWER(?)`,
+        [email]
+      );
+    } catch (e) { /* ignore — pipeline columns are best-effort */ }
+
+    // Pretty date string for the email body
+    const friendlyDate = (function () {
+      try {
+        return new Date(date + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      } catch (_) { return date; }
+    })();
+
+    // Build ICS + send luxury confirmation email
+    try {
+      const ics = userEmail.buildCallIcs({
+        id, name, email, date, time, durationMin: 30, tz: SCHEDULE_CALL_TZ
+      });
+      userEmail.emailCallScheduledWithICS({
+        email,
+        name: (name.split(/\s+/)[0] || 'there'),
+        dateStr: friendlyDate,
+        timeStr: time,
+        channel,
+        icsContent: ics
+      });
+    } catch (e) { console.warn('[schedule-call] email error:', e.message); }
+
+    // Admin push + WhatsApp/email alert
+    sendPushToAdmins(JSON.stringify({
+      title: 'New call scheduled',
+      body: `${name} booked a ${channel === 'whatsapp' ? 'WhatsApp' : 'call'} on ${friendlyDate} at ${time} IST`,
+      id: 'sched-' + id
+    })).catch(() => {});
+    notifyAsync('MEETING_SCHEDULED', {
+      name: name || '—',
+      email: email || '—',
+      mobile: mobile || '—',
+      date: friendlyDate || '—',
+      slot: `${time} IST (${channel === 'whatsapp' ? 'WhatsApp' : 'Phone call'})`
+    });
+
+    res.json({ id, ok: true, message: 'Call scheduled successfully' });
+  } catch (e) {
+    console.error('[schedule-call] POST error:', e.message);
+    res.status(500).json({ error: 'Failed to schedule call' });
+  }
 });
 
 // ============ MEETINGS (Schedule a Call) ============

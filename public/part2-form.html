@@ -73,6 +73,24 @@ textarea.form-input{resize:vertical;min-height:120px}
 .char-count{font-size:12px;color:var(--muted);margin-top:6px;text-align:right}
 .char-count.near-limit{color:var(--gold)}
 .char-count.at-limit{color:#e05050}
+.step-bar{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 auto 32px;max-width:420px}
+.step-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:1.5px solid var(--bdr);color:var(--muted);background:rgba(255,255,255,0.03);flex-shrink:0;transition:all .3s}
+.step-dot.done{background:var(--gold);color:var(--black);border-color:var(--gold)}
+.step-dot.active{border-color:var(--gold);color:var(--gold);box-shadow:0 0 0 4px rgba(200,164,78,0.18)}
+.step-line{flex:1;height:1.5px;background:var(--bdr);max-width:50px}
+.step-line.done{background:var(--gold)}
+.motivate-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.82);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);display:none;align-items:center;justify-content:center;z-index:10000;padding:24px;opacity:0;transition:opacity .25s}
+.motivate-overlay.show{display:flex;opacity:1}
+.motivate-card{max-width:440px;width:100%;padding:36px 32px 32px;background:linear-gradient(180deg,#0d0d0d 0%,#070707 100%);border:1px solid rgba(200,164,78,0.35);border-radius:18px;text-align:center;transform:translateY(20px);transition:transform .35s ease;box-shadow:0 24px 60px rgba(0,0,0,0.6),0 0 0 1px rgba(200,164,78,0.1)}
+.motivate-overlay.show .motivate-card{transform:translateY(0)}
+.motivate-icon{width:72px;height:72px;margin:0 auto 18px;border-radius:50%;background:var(--goldg);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 28px rgba(200,164,78,0.4)}
+.motivate-icon svg{width:36px;height:36px;stroke:#0a0a0a;stroke-width:3;fill:none}
+.motivate-title{font-family:'Bebas Neue',sans-serif;font-size:30px;letter-spacing:2px;color:var(--gold);margin-bottom:10px}
+.motivate-msg{color:var(--cream);font-size:15px;line-height:1.6;margin-bottom:8px}
+.motivate-quote{font-family:'Cormorant Garamond',serif;font-style:italic;color:var(--gold);font-size:18px;line-height:1.5;margin:16px 0 4px;padding:0 8px}
+.motivate-attr{font-size:12px;color:var(--creamd);letter-spacing:0.5px;margin-bottom:22px}
+.motivate-btn{display:inline-block;padding:14px 32px;background:var(--goldg);border:none;border-radius:10px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.motivate-btn:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(200,164,78,0.45)}
 @media(max-width:900px){
   body{font-size:17px;line-height:1.65}
   .p2-title{font-size:48px}
@@ -120,6 +138,13 @@ textarea.form-input{resize:vertical;min-height:120px}
       <img src="img/logo-bb.png" alt="Body Bank" class="p2-logo" decoding="async">
       <h1 class="p2-title">Body Audit</h1>
     </div>
+    <div class="step-bar" aria-label="Progress">
+      <div class="step-dot done">&#10003;</div>
+      <div class="step-line done"></div>
+      <div class="step-dot active">2</div>
+      <div class="step-line"></div>
+      <div class="step-dot">3</div>
+    </div>
     <form id="part2Form" onsubmit="return submitPart2(event)">
       <!-- Personal info at top -->
       <div class="form-group"><label>Name <span class="req">*</span></label><input type="text" class="form-input" placeholder="Enter your full name" name="name" maxlength="200" required><span class="char-count" data-for="name">0 / 200</span></div>
@@ -154,7 +179,35 @@ textarea.form-input{resize:vertical;min-height:120px}
     <p>Your Body Audit (Part 2) has been submitted successfully. We'll be in touch soon.</p>
   </div>
 </div>
+
+<!-- Motivational popup -->
+<div class="motivate-overlay" id="motivateOverlay" role="dialog" aria-modal="true">
+  <div class="motivate-card">
+    <div class="motivate-icon">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="motivate-title" id="motivateTitle">Step 2 of 3 — Done</div>
+    <p class="motivate-msg" id="motivateMsg">Your story is now with us. One final step — lock in a time with your Lifestyle Manager.</p>
+    <p class="motivate-quote" id="motivateQuote">"Success is the sum of small efforts repeated day in and day out."</p>
+    <p class="motivate-attr" id="motivateAttr">— Robert Collier</p>
+    <button type="button" class="motivate-btn" id="motivateBtn">Schedule my call</button>
+  </div>
+</div>
+
 <script>
+(function prefillFromFunnel(){
+  try {
+    var saved = JSON.parse(sessionStorage.getItem('bb_funnel_user') || 'null');
+    if (saved && typeof saved === 'object') {
+      var form = document.getElementById('part2Form');
+      if (form) {
+        if (saved.name && !form.elements['name'].value) form.elements['name'].value = saved.name;
+        if (saved.email && !form.elements['email'].value) form.elements['email'].value = saved.email;
+        if (saved.mobile && !form.elements['mobile'].value) form.elements['mobile'].value = saved.mobile;
+      }
+    }
+  } catch (_) {}
+})();
 (function initCharCounters(){
   var form=document.getElementById('part2Form');
   if(!form)return;
@@ -217,8 +270,27 @@ async function submitPart2(e) {
     if (!res.ok) {
       throw new Error(data.error || 'Submission failed');
     }
-    document.getElementById('formSection').style.display = 'none';
-    document.getElementById('successSection').style.display = 'block';
+    // Carry name/email/mobile forward to the schedule-call page.
+    try {
+      sessionStorage.setItem('bb_funnel_user', JSON.stringify({
+        name: body.name || '',
+        email: body.email || '',
+        mobile: body.mobile || ''
+      }));
+    } catch (_) {}
+    // Show motivational popup, then redirect to schedule-call.html
+    var overlay = document.getElementById('motivateOverlay');
+    var mbtn = document.getElementById('motivateBtn');
+    if (overlay && mbtn) {
+      mbtn.onclick = function () {
+        overlay.classList.remove('show');
+        window.location.href = 'schedule-call.html?from=part2';
+      };
+      overlay.classList.add('show');
+      setTimeout(function () { if (overlay.classList.contains('show')) mbtn.click(); }, 9000);
+    } else {
+      window.location.href = 'schedule-call.html?from=part2';
+    }
   } catch (err) {
     const p = document.createElement('p');
     p.className = 'p2-err';

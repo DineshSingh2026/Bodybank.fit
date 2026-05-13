@@ -300,6 +300,97 @@ function emailMeetingScheduled(email, firstName, dateStr, timeStr) {
   });
 }
 
+/**
+ * Build a minimal RFC-5545 ICS calendar invite as a UTF-8 string.
+ * `date` is YYYY-MM-DD and `time` is HH:MM (24h), both interpreted in `tz` (default Asia/Kolkata, +05:30).
+ * Uses floating local time + X-WR-TIMEZONE so Google/Apple/Outlook all show the right wall-clock time.
+ */
+function buildCallIcs({ id, name, email, date, time, durationMin, tz, summary, description }) {
+  const uid = (id || 'call-' + Date.now()) + '@bodybank.fit';
+  const dur = parseInt(durationMin || 30, 10);
+  const [y, mo, d] = String(date).split('-').map(s => parseInt(s, 10));
+  const [hh, mm] = String(time).split(':').map(s => parseInt(s, 10));
+  if (!y || !mo || !d || isNaN(hh) || isNaN(mm)) return null;
+  const start = new Date(Date.UTC(y, mo - 1, d, hh, mm));
+  const end = new Date(start.getTime() + dur * 60000);
+  function fmtLocal(dt) {
+    const pad = n => String(n).padStart(2, '0');
+    return dt.getUTCFullYear() + pad(dt.getUTCMonth() + 1) + pad(dt.getUTCDate()) + 'T' + pad(dt.getUTCHours()) + pad(dt.getUTCMinutes()) + '00';
+  }
+  function fmtUtc(dt) {
+    const pad = n => String(n).padStart(2, '0');
+    return dt.getUTCFullYear() + pad(dt.getUTCMonth() + 1) + pad(dt.getUTCDate()) + 'T' + pad(dt.getUTCHours()) + pad(dt.getUTCMinutes()) + '00Z';
+  }
+  const tzid = tz || 'Asia/Kolkata';
+  const summaryLine = (summary || 'BodyBank — Lifestyle Manager Call').replace(/[\r\n]+/g, ' ');
+  const descriptionLine = (description || 'A 30-minute consultation with your BodyBank Lifestyle Manager.').replace(/[\r\n]+/g, '\\n');
+  const lines = [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//BodyBank//Lifestyle Manager Call//EN',
+    'CALSCALE:GREGORIAN',
+    'METHOD:PUBLISH',
+    'X-WR-TIMEZONE:' + tzid,
+    'BEGIN:VEVENT',
+    'UID:' + uid,
+    'DTSTAMP:' + fmtUtc(new Date()),
+    'DTSTART;TZID=' + tzid + ':' + fmtLocal(start),
+    'DTEND;TZID=' + tzid + ':' + fmtLocal(end),
+    'SUMMARY:' + summaryLine,
+    'DESCRIPTION:' + descriptionLine,
+    'LOCATION:WhatsApp / Phone Call',
+    'STATUS:CONFIRMED',
+    'ORGANIZER;CN=BodyBank:mailto:' + (SMTP_USER || 'noreply@bodybank.fit'),
+    'ATTENDEE;CN=' + (name || 'Member') + ';RSVP=TRUE:mailto:' + email,
+    'BEGIN:VALARM',
+    'TRIGGER:-PT1H',
+    'ACTION:DISPLAY',
+    'DESCRIPTION:Reminder — BodyBank call in 1 hour',
+    'END:VALARM',
+    'END:VEVENT',
+    'END:VCALENDAR'
+  ];
+  return lines.join('\r\n');
+}
+
+/**
+ * Luxury confirmation email after the user picks date/time on the schedule-call page.
+ * Includes ICS attachment so the appointment lands in Google/Apple/Outlook calendar in one tap.
+ * `channel` is "call" or "whatsapp".
+ */
+function emailCallScheduledWithICS({ email, name, dateStr, timeStr, channel, icsContent }) {
+  fire(async () => {
+    const safeName = name || 'there';
+    const channelLabel = channel === 'whatsapp' ? 'WhatsApp call' : 'Phone call';
+    const waLine = channel === 'whatsapp'
+      ? `<p style="margin:8px 0 0;color:#bfb9ab;font-size:14px">Your Lifestyle Manager will reach out on WhatsApp at the scheduled time.</p>`
+      : `<p style="margin:8px 0 0;color:#bfb9ab;font-size:14px">Your Lifestyle Manager will call you at the scheduled time.</p>`;
+    const html = luxuryWrap({
+      title: 'Your call is confirmed',
+      preheader: 'We can\'t wait to meet you.',
+      lead: `Dear ${safeName},`,
+      bodyHtml: `<p style="margin:0 0 16px">Beautiful — your Body Audit journey is complete and your call with your Lifestyle Manager is locked in.</p>
+<table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;margin:18px 0;background:rgba(200,164,78,0.08);border:1px solid rgba(200,164,78,0.25);border-radius:12px">
+<tr><td style="padding:18px 22px">
+<p style="margin:0 0 8px;color:#c8a44e;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600">${escapeHtml(channelLabel)}</p>
+<p style="margin:0 0 4px;color:#f5f0e8;font-size:18px;font-weight:600">${escapeHtml(dateStr || '—')}</p>
+<p style="margin:0;color:#f5f0e8;font-size:16px">${escapeHtml(timeStr || '—')} <span style="color:#bfb9ab;font-size:13px">IST</span></p>
+${waLine}
+</td></tr></table>
+<p style="margin:0;color:#bfb9ab;font-size:14px">A calendar invite is attached — tap it on your phone to add it to your calendar instantly.</p>
+<p style="margin:14px 0 0;color:#bfb9ab;font-size:13px;font-style:italic">"Discipline is the bridge between goals and accomplishment." — Jim Rohn</p>`,
+      ctaLabel: 'Open BodyBank',
+      ctaUrl: APP_BASE + '/'
+    });
+    const attachments = icsContent ? [{
+      filename: 'bodybank-call.ics',
+      content: icsContent,
+      contentType: 'text/calendar; charset=utf-8; method=PUBLISH'
+    }] : null;
+    await sendMail(email, 'Your BodyBank Call is Confirmed', html, null, attachments);
+  });
+}
+
 function emailContactReceived(email, name) {
   fire(async () => {
     const n = name || 'there';
@@ -639,6 +730,8 @@ module.exports = {
   emailProgressSaved,
   emailWorkoutLogged,
   emailMeetingScheduled,
+  emailCallScheduledWithICS,
+  buildCallIcs,
   emailContactReceived,
   emailCoachReply,
   emailSundayReminderTomorrow,

@@ -9882,8 +9882,23 @@ async function submitAudit(form) {
     if (data.error) { if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Submit';} alert(data.error); return; }
     if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Submit';}
     closeModal('auditModal');
-    showPopup('Registered Successfully!', 'CONSISTENCY has its fruits, so does PATIENCE.', 'We will get back to you after the review', 'Continue');
+    // Carry the user's info forward to Part-2 and the scheduling page (in-tab handoff).
+    try {
+      sessionStorage.setItem('bb_funnel_user', JSON.stringify({
+        name: ((body.first_name || '') + ' ' + (body.last_name || '')).trim(),
+        email: body.email || '',
+        mobile: body.phone || ''
+      }));
+      if (data && data.id) sessionStorage.setItem('bb_funnel_audit_id', data.id);
+    } catch (_) {}
     form.reset();
+    showPopup(
+      'Step 1 of 3 — Done',
+      'Beautifully started. Let\'s dig a little deeper so your Lifestyle Manager can serve you fully.',
+      '"Every journey begins with a single step." — Lao Tzu',
+      'Continue to Part 2',
+      function () { window.location.href = 'part2-form.html?from=audit'; }
+    );
   } catch (e) {
     if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Submit';}
     alert('Submission failed. Please try again.');
