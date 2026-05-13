@@ -4895,6 +4895,77 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bb-leads-today-list-item{font-size:11.5px;color:#e5e5e5;padding:4px 6px;border-radius:5px;cursor:pointer}
 .bb-leads-today-list-item:hover{background:rgba(200,164,78,0.1)}
 .bb-leads-today-list-item .time{color:var(--gold);font-weight:600;margin-right:6px}
+/* Mobile: 2-column grid, tighter cards, capped name list */
+@media(max-width:640px){
+  .bb-leads-today{margin:14px 0;padding:14px;border-radius:12px}
+  .bb-leads-today-head{margin-bottom:12px;gap:10px}
+  .bb-leads-today-head h3{font-size:16px;letter-spacing:0.3px}
+  .bb-leads-today-head .form-hint{font-size:11.5px;line-height:1.4}
+  .bb-leads-today-head .action-btn{padding:8px 12px;font-size:11px;letter-spacing:0.6px}
+  .bb-leads-today-grid{grid-template-columns:repeat(2,1fr);gap:9px}
+  .bb-leads-today-card{padding:10px 11px;border-radius:9px;min-width:0}
+  .bb-leads-today-card .card-icon{font-size:17px;margin-bottom:2px}
+  .bb-leads-today-card .card-num{font-size:22px}
+  .bb-leads-today-card .card-lbl{font-size:10px;letter-spacing:0.4px;line-height:1.3}
+  .bb-leads-today-list{max-height:88px;margin-top:6px;gap:2px}
+  .bb-leads-today-list-item{font-size:10.5px;padding:3px 4px}
+}
+
+/* ===== Today · Pipeline POPUP (auto every 4h, luxury glass) ===== */
+.bb-today-pop-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.85);backdrop-filter:blur(10px) saturate(1.05);-webkit-backdrop-filter:blur(10px) saturate(1.05);z-index:10050;display:none;align-items:flex-start;justify-content:center;padding:24px 16px;opacity:0;transition:opacity .25s ease;overflow-y:auto;overscroll-behavior:contain}
+.bb-today-pop-overlay.show{display:flex;opacity:1}
+.bb-today-pop-card{position:relative;width:100%;max-width:580px;background:linear-gradient(180deg,#0f0f10 0%,#070708 100%);border:1px solid rgba(200,164,78,0.32);border-radius:18px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,0.75),0 0 0 1px rgba(200,164,78,0.1),0 0 40px rgba(200,164,78,0.06);margin:auto;transform:translateY(18px) scale(0.985);transition:transform .35s cubic-bezier(.2,.8,.2,1)}
+.bb-today-pop-overlay.show .bb-today-pop-card{transform:translateY(0) scale(1)}
+.bb-today-pop-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent 0%,rgba(200,164,78,0.7) 50%,transparent 100%);pointer-events:none}
+.bb-today-pop-head{padding:22px 24px 14px;border-bottom:1px solid rgba(200,164,78,0.14);display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.bb-today-pop-eyebrow{font-size:10.5px;letter-spacing:2.2px;color:var(--gold);text-transform:uppercase;font-weight:600;margin-bottom:6px;opacity:0.9}
+.bb-today-pop-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:1.8px;color:var(--cream);text-transform:uppercase;line-height:1;margin:0}
+.bb-today-pop-time{font-size:11.5px;color:var(--creamd);letter-spacing:0.4px;margin-top:6px}
+.bb-today-pop-close{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:50%;width:34px;height:34px;color:var(--cream);cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s}
+.bb-today-pop-close:hover{background:rgba(200,164,78,0.18);color:var(--gold);border-color:var(--gold);transform:rotate(90deg)}
+.bb-today-pop-body{padding:18px 22px;max-height:62vh;overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(200,164,78,0.35) transparent}
+.bb-today-pop-body::-webkit-scrollbar{width:6px}
+.bb-today-pop-body::-webkit-scrollbar-thumb{background:rgba(200,164,78,0.35);border-radius:3px}
+.bb-today-pop-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+@media(min-width:560px){.bb-today-pop-grid{grid-template-columns:repeat(3,1fr)}}
+.bb-today-pop-tile{position:relative;padding:14px 13px 13px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.015));border:1px solid rgba(255,255,255,0.08);border-radius:12px;cursor:pointer;transition:transform .15s,border-color .2s,background .2s;text-align:left;min-width:0;overflow:hidden}
+.bb-today-pop-tile:hover{border-color:var(--gold);background:linear-gradient(180deg,rgba(200,164,78,0.08),rgba(200,164,78,0.02));transform:translateY(-1px)}
+.bb-today-pop-tile::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:transparent;transition:background .2s}
+.bb-today-pop-tile.is-urgent{border-color:rgba(239,68,68,0.42)}
+.bb-today-pop-tile.is-urgent::before{background:linear-gradient(90deg,transparent,#ef4444,transparent)}
+.bb-today-pop-tile.is-good{border-color:rgba(40,220,130,0.42)}
+.bb-today-pop-tile.is-good::before{background:linear-gradient(90deg,transparent,#28dc82,transparent)}
+.bb-today-pop-tile-icon{font-size:18px;line-height:1;margin-bottom:6px}
+.bb-today-pop-tile-num{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;color:var(--cream);letter-spacing:1px}
+.bb-today-pop-tile.is-urgent .bb-today-pop-tile-num{color:#fca5a5;text-shadow:0 0 14px rgba(239,68,68,0.4)}
+.bb-today-pop-tile.is-good .bb-today-pop-tile-num{color:#86efac;text-shadow:0 0 14px rgba(40,220,130,0.4)}
+.bb-today-pop-tile-lbl{font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:0.7px;font-weight:600;margin-top:3px;line-height:1.3}
+.bb-today-pop-tile-list{margin-top:9px;padding-top:9px;border-top:1px dashed rgba(255,255,255,0.06);display:flex;flex-direction:column;gap:4px}
+.bb-today-pop-tile-list-item{font-size:11px;color:var(--cream);padding:2px 0;display:flex;align-items:center;gap:6px;cursor:pointer;border-radius:4px;transition:color .15s}
+.bb-today-pop-tile-list-item:hover{color:var(--gold)}
+.bb-today-pop-tile-list-item .time{color:var(--gold);font-weight:600;flex-shrink:0;font-size:10px;font-family:'Outfit',sans-serif}
+.bb-today-pop-tile-list-more{font-size:10.5px;color:var(--gold);font-weight:600;margin-top:2px;letter-spacing:0.3px}
+.bb-today-pop-tile-empty{font-size:11px;color:var(--muted);padding:4px 0;font-style:italic}
+.bb-today-pop-foot{padding:14px 22px;border-top:1px solid rgba(200,164,78,0.14);display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:space-between;background:rgba(0,0,0,0.35)}
+.bb-today-pop-snooze{padding:10px 14px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:8px;color:var(--creamd);font-family:'Outfit',sans-serif;font-size:11.5px;letter-spacing:0.5px;cursor:pointer;transition:all .2s;font-weight:500}
+.bb-today-pop-snooze:hover{color:var(--gold);border-color:rgba(200,164,78,0.5);background:rgba(200,164,78,0.06)}
+.bb-today-pop-cta{padding:11px 22px;background:linear-gradient(135deg,#d0b058 0%,#c8a44e 50%,#a68c3e 100%);border:none;border-radius:8px;color:#000;font-family:'Outfit',sans-serif;font-weight:700;font-size:12.5px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:transform .2s,box-shadow .2s}
+.bb-today-pop-cta:hover{transform:translateY(-1px);box-shadow:0 8px 22px rgba(200,164,78,0.35)}
+@media(max-width:520px){
+  .bb-today-pop-overlay{padding:14px 10px}
+  .bb-today-pop-card{border-radius:16px}
+  .bb-today-pop-head{padding:18px 16px 12px}
+  .bb-today-pop-title{font-size:20px;letter-spacing:1.4px}
+  .bb-today-pop-body{padding:14px 14px;max-height:64vh}
+  .bb-today-pop-grid{gap:8px}
+  .bb-today-pop-tile{padding:11px 11px 10px}
+  .bb-today-pop-tile-icon{font-size:16px}
+  .bb-today-pop-tile-num{font-size:26px}
+  .bb-today-pop-tile-lbl{font-size:9.5px;letter-spacing:0.5px}
+  .bb-today-pop-tile-list-item{font-size:10.5px}
+  .bb-today-pop-foot{padding:12px 14px;flex-direction:column-reverse;align-items:stretch;gap:8px}
+  .bb-today-pop-snooze,.bb-today-pop-cta{width:100%;text-align:center}
+}
 
 @media (max-width: 720px){
   .bb-kanban-col{flex:0 0 84vw;max-height:none}
@@ -7868,6 +7939,31 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   </div>
 </div>
 
+<!-- ADMIN: Today · Pipeline Popup (auto-shown every 4 hours) -->
+<div class="bb-today-pop-overlay" id="bbTodayPopOverlay" role="dialog" aria-modal="true" aria-labelledby="bbTodayPopTitle" onclick="if(event.target===this)closeLeadsTodayPopup()">
+  <div class="bb-today-pop-card">
+    <div class="bb-today-pop-head">
+      <div style="min-width:0">
+        <div class="bb-today-pop-eyebrow">Pipeline pulse</div>
+        <h3 class="bb-today-pop-title" id="bbTodayPopTitle">Today &middot; Leads</h3>
+        <div class="bb-today-pop-time" id="bbTodayPopTime"></div>
+      </div>
+      <button type="button" class="bb-today-pop-close" onclick="closeLeadsTodayPopup()" aria-label="Close">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <div class="bb-today-pop-body">
+      <div class="bb-today-pop-grid" id="bbTodayPopGrid">
+        <p class="form-hint" style="grid-column:1/-1;text-align:center;padding:24px">Loading&hellip;</p>
+      </div>
+    </div>
+    <div class="bb-today-pop-foot">
+      <button type="button" class="bb-today-pop-snooze" onclick="snoozeLeadsTodayPopup()">Remind me in 4h</button>
+      <button type="button" class="bb-today-pop-cta" onclick="closeLeadsTodayPopup();switchTab('leads')">Open pipeline &rarr;</button>
+    </div>
+  </div>
+</div>
+
 <!-- ADMIN: Lead Detail Modal -->
 <div class="modal-overlay view-detail-modal bb-lead-modal" id="bbLeadModal" onclick="if(event.target===this)closeModal('bbLeadModal')">
   <div class="modal">
@@ -10441,6 +10537,12 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
   // Leads pipeline "Today" widget — fire and forget
   try { if (typeof loadLeadsToday === 'function') loadLeadsToday(); } catch (_) {}
 
+  // Today · Pipeline POPUP — auto-show every 4h for admins/superadmins
+  try {
+    if (typeof bbTodayPopAutoCheck === 'function') bbTodayPopAutoCheck();
+    if (typeof bbTodayPopStartTimer === 'function') bbTodayPopStartTimer();
+  } catch (_) {}
+
   // Donut chart: daily vs sunday check-ins (lifetime totals)
   if (typeof Chart !== 'undefined') {
     var daily = parseInt(statsData.daily_checkins ?? 0, 10) || 0;
@@ -12222,6 +12324,158 @@ function bbLeadsFilterAndOpen(stage) {
     loadLeads();
   }, 0);
 }
+
+// ============ Today · Pipeline POPUP (luxury, auto every 4h) ============
+var BB_TODAY_POP_KEY = 'bb_today_pop_last_shown';
+var BB_TODAY_POP_INTERVAL_MS = 4 * 60 * 60 * 1000; // 4 hours
+var bbTodayPopIntervalHandle = null;
+
+function bbTodayPopFmtTime(d) {
+  try {
+    return new Date(d).toLocaleTimeString(undefined, { hour:'2-digit', minute:'2-digit' });
+  } catch (_) { return ''; }
+}
+
+function bbTodayPopTileListHtml(rows, fmtTime, max) {
+  if (!rows || !rows.length) return '<div class="bb-today-pop-tile-empty">Nothing here.</div>';
+  max = max || 3;
+  var visible = rows.slice(0, max);
+  var more = rows.length > max ? rows.length - max : 0;
+  var items = visible.map(function(r){
+    var sid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    var nm = ((r.first_name||'') + ' ' + (r.last_name||'')).trim() || r.email || '—';
+    var t = '';
+    if (fmtTime && r.call_scheduled_at) {
+      var formatted = bbTodayPopFmtTime(r.call_scheduled_at);
+      if (formatted) t = '<span class="time">' + formatted + '</span>';
+    }
+    return '<div class="bb-today-pop-tile-list-item" onclick="event.stopPropagation();closeLeadsTodayPopup();viewLead(\'' + sid + '\')">' + t + escapeHtml(nm) + '</div>';
+  }).join('');
+  if (more) items += '<div class="bb-today-pop-tile-list-more">+' + more + ' more</div>';
+  return '<div class="bb-today-pop-tile-list">' + items + '</div>';
+}
+
+async function renderLeadsTodayPopup() {
+  var grid = document.getElementById('bbTodayPopGrid');
+  var timeEl = document.getElementById('bbTodayPopTime');
+  if (!grid) return;
+  grid.innerHTML = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:24px">Loading&hellip;</p>';
+  if (timeEl) {
+    try {
+      timeEl.textContent = new Date().toLocaleString(undefined, { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    } catch (_) { timeEl.textContent = ''; }
+  }
+  var data = null;
+  try { data = await apiCall('GET', '/api/admin/leads/today'); } catch (_) {}
+  if (!data || data.error) {
+    grid.innerHTML = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:24px;color:#e05050">Could not load pipeline.</p>';
+    return;
+  }
+  var counts = data.counts || {};
+  var calls = data.calls_today || [];
+  var pending = data.pending_outreach || [];
+  var stuck = data.stuck_part2 || [];
+  var pay = data.payment_pending || [];
+  var lost = data.lost_this_week || 0;
+
+  grid.innerHTML = '' +
+    '<div class="bb-today-pop-tile" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'new_audit\')">' +
+      '<div class="bb-today-pop-tile-icon">📥</div>' +
+      '<div class="bb-today-pop-tile-num">' + (pending.length || 0) + '</div>' +
+      '<div class="bb-today-pop-tile-lbl">Waiting for outreach</div>' +
+      bbTodayPopTileListHtml(pending, false, 3) +
+    '</div>' +
+    '<div class="bb-today-pop-tile is-good" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'call_scheduled\')">' +
+      '<div class="bb-today-pop-tile-icon">📅</div>' +
+      '<div class="bb-today-pop-tile-num">' + calls.length + '</div>' +
+      '<div class="bb-today-pop-tile-lbl">Calls today</div>' +
+      bbTodayPopTileListHtml(calls, true, 3) +
+    '</div>' +
+    '<div class="bb-today-pop-tile ' + (stuck.length ? 'is-urgent' : '') + '" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'part2_sent\')">' +
+      '<div class="bb-today-pop-tile-icon">⚠</div>' +
+      '<div class="bb-today-pop-tile-num">' + stuck.length + '</div>' +
+      '<div class="bb-today-pop-tile-lbl">Stuck on Part-2</div>' +
+      bbTodayPopTileListHtml(stuck, false, 3) +
+    '</div>' +
+    '<div class="bb-today-pop-tile ' + (pay.length ? 'is-urgent' : '') + '" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'payment_pending\')">' +
+      '<div class="bb-today-pop-tile-icon">💰</div>' +
+      '<div class="bb-today-pop-tile-num">' + pay.length + '</div>' +
+      '<div class="bb-today-pop-tile-lbl">Payment pending</div>' +
+      bbTodayPopTileListHtml(pay, false, 3) +
+    '</div>' +
+    '<div class="bb-today-pop-tile is-good" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'onboarded\')">' +
+      '<div class="bb-today-pop-tile-icon">🎉</div>' +
+      '<div class="bb-today-pop-tile-num">' + (counts.onboarded || 0) + '</div>' +
+      '<div class="bb-today-pop-tile-lbl">Total onboarded</div>' +
+    '</div>' +
+    '<div class="bb-today-pop-tile" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'lost\')">' +
+      '<div class="bb-today-pop-tile-icon">❌</div>' +
+      '<div class="bb-today-pop-tile-num">' + lost + '</div>' +
+      '<div class="bb-today-pop-tile-lbl">Lost this week</div>' +
+    '</div>';
+}
+
+function openLeadsTodayPopup() {
+  var overlay = document.getElementById('bbTodayPopOverlay');
+  if (!overlay) return;
+  renderLeadsTodayPopup();
+  overlay.classList.add('show');
+  document.body.style.overflow = 'hidden';
+  try { localStorage.setItem(BB_TODAY_POP_KEY, String(Date.now())); } catch (_) {}
+}
+
+function closeLeadsTodayPopup() {
+  var overlay = document.getElementById('bbTodayPopOverlay');
+  if (!overlay) return;
+  overlay.classList.remove('show');
+  document.body.style.overflow = '';
+}
+
+function snoozeLeadsTodayPopup() {
+  // Reset timestamp to "now" so it reappears in 4h from this snooze
+  try { localStorage.setItem(BB_TODAY_POP_KEY, String(Date.now())); } catch (_) {}
+  closeLeadsTodayPopup();
+}
+
+function bbTodayPopShouldAutoShow() {
+  try {
+    var last = parseInt(localStorage.getItem(BB_TODAY_POP_KEY) || '0', 10);
+    if (!last || isNaN(last)) return true; // first visit ever — show
+    return (Date.now() - last) >= BB_TODAY_POP_INTERVAL_MS;
+  } catch (_) { return false; }
+}
+
+function bbTodayPopIsAdmin() {
+  try {
+    if (!window.currentUser) return false;
+    var role = window.currentUser.role;
+    return role === 'admin' || role === 'superadmin';
+  } catch (_) { return false; }
+}
+
+function bbTodayPopAutoCheck() {
+  if (!bbTodayPopIsAdmin()) return;
+  // Don't open if already visible
+  var overlay = document.getElementById('bbTodayPopOverlay');
+  if (overlay && overlay.classList.contains('show')) return;
+  if (bbTodayPopShouldAutoShow()) {
+    setTimeout(openLeadsTodayPopup, 1200); // small delay so it doesn't fight initial dashboard paint
+  }
+}
+
+function bbTodayPopStartTimer() {
+  // Re-check every 15 minutes — covers admins who keep the dashboard open for 8+ hours
+  if (bbTodayPopIntervalHandle) return;
+  bbTodayPopIntervalHandle = setInterval(bbTodayPopAutoCheck, 15 * 60 * 1000);
+}
+
+// ESC to close
+document.addEventListener('keydown', function(e){
+  if (e.key === 'Escape') {
+    var overlay = document.getElementById('bbTodayPopOverlay');
+    if (overlay && overlay.classList.contains('show')) closeLeadsTodayPopup();
+  }
+});
 
 function escapeHtml(s) { if (s == null || s === '') return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 function bbUserInitialsFromDisplayName(name) {
