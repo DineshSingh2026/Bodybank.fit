@@ -6397,6 +6397,21 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <div class="admin-summary-card" onclick="switchTab('signups');return false" role="button" tabindex="0" aria-label="Open Pending Sign-ups"><span class="admin-summary-lbl">PENDING</span><span class="admin-summary-num num-orange" id="dashPending">3</span></div>
           <div class="admin-summary-card" onclick="switchTab('messages');return false" role="button" tabindex="0" aria-label="Open Messages"><span class="admin-summary-lbl">MESSAGES</span><span class="admin-summary-num num-pink" id="dashMessages">2</span></div>
         </div>
+
+        <!-- Leads pipeline "Today" widget — mobile copy (desktop has its own inside .bb-desktop-dashboard) -->
+        <div class="bb-leads-today" id="bbLeadsTodayMobile">
+          <div class="bb-leads-today-head">
+            <div style="min-width:0">
+              <h3 style="margin:0">Today &middot; Pipeline</h3>
+              <p class="form-hint" style="margin:4px 0 0 0">Your plate right now. Tap a row to open that lead.</p>
+            </div>
+            <button type="button" class="action-btn btn-view" onclick="openLeadsTodayPopup()" style="white-space:nowrap" aria-label="Open pulse view">Pulse view</button>
+          </div>
+          <div class="bb-leads-today-grid" id="bbLeadsTodayGridMobile">
+            <p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px">Loading&hellip;</p>
+          </div>
+        </div>
+
         <div class="admin-quick-access">
           <h3 class="admin-qa-title">QUICK ACCESS</h3>
           <div class="admin-qa-grid">
@@ -10476,6 +10491,15 @@ async function loadStats() {
   if (document.getElementById('adminMobileRiskList')) {
     try { await bbRefreshMobileAdminRiskList(); } catch (_) {}
   }
+
+  // Today · Leads pipeline — must run on BOTH mobile and desktop.
+  // The widget HTML exists in two places (.bb-desktop-dashboard + .admin-dash-page);
+  // loadLeadsToday() populates whichever grid is present.
+  try { if (typeof loadLeadsToday === 'function') loadLeadsToday(); } catch (_) {}
+  try {
+    if (typeof bbTodayPopAutoCheck === 'function') bbTodayPopAutoCheck();
+    if (typeof bbTodayPopStartTimer === 'function') bbTodayPopStartTimer();
+  } catch (_) {}
 }
 
 function bbAdminCoinName(row) {
@@ -10558,14 +10582,8 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
   bbSetText('stat-pending-sub', 'Users awaiting approval');
   bbSetText('stat-messages-sub', 'Unread chat threads');
 
-  // Leads pipeline "Today" widget — fire and forget
-  try { if (typeof loadLeadsToday === 'function') loadLeadsToday(); } catch (_) {}
-
-  // Today · Pipeline POPUP — auto-show every 4h for admins/superadmins
-  try {
-    if (typeof bbTodayPopAutoCheck === 'function') bbTodayPopAutoCheck();
-    if (typeof bbTodayPopStartTimer === 'function') bbTodayPopStartTimer();
-  } catch (_) {}
+  // Today widget + popup auto-check are now run from loadStats() so they fire
+  // on mobile too. (Previously they only ran here, which was desktop-only.)
 
   // Donut chart: daily vs sunday check-ins (lifetime totals)
   if (typeof Chart !== 'undefined') {
@@ -12272,14 +12290,17 @@ function bbLeadCopyContact(id) {
   } else { fb(); }
 }
 
-// "Today" widget on the admin dashboard
+// "Today" widget on the admin dashboard (renders to both desktop + mobile grids if present)
 async function loadLeadsToday() {
-  var grid = document.getElementById('bbLeadsTodayGrid');
-  if (!grid) return;
-  grid.innerHTML = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px">Loading…</p>';
+  var gridDesktop = document.getElementById('bbLeadsTodayGrid');
+  var gridMobile = document.getElementById('bbLeadsTodayGridMobile');
+  var grids = [gridDesktop, gridMobile].filter(Boolean);
+  if (!grids.length) return;
+  grids.forEach(function(g){ g.innerHTML = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px">Loading…</p>'; });
   var data = await apiCall('GET', '/api/admin/leads/today');
   if (!data || data.error) {
-    grid.innerHTML = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px;color:#e05050">' + escapeHtml((data && data.error) || 'Could not load') + '</p>';
+    var msg = '<p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px;color:#e05050">' + escapeHtml((data && data.error) || 'Could not load') + '</p>';
+    grids.forEach(function(g){ g.innerHTML = msg; });
     return;
   }
   var counts = data.counts || {};
@@ -12303,7 +12324,7 @@ async function loadLeadsToday() {
     }).join('');
   }
 
-  grid.innerHTML = '' +
+  var html = '' +
     '<div class="bb-leads-today-card" onclick="bbLeadsFilterAndOpen(\'new_audit\')">' +
       '<div class="card-icon">📥</div>' +
       '<div class="card-num">' + (pending.length || 0) + '</div>' +
@@ -12338,6 +12359,7 @@ async function loadLeadsToday() {
       '<div class="card-num">' + lost + '</div>' +
       '<div class="card-lbl">Lost this week</div>' +
     '</div>';
+  grids.forEach(function(g){ g.innerHTML = html; });
 }
 
 function bbLeadsFilterAndOpen(stage) {
