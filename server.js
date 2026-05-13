@@ -36,6 +36,7 @@ const {
 } = require('./services/monthlyReportService');
 const monthlyReportNarrative = require('./services/monthlyReportNarrative');
 const { writeSundayCheckinPdf, writePart2Pdf } = require('./services/formPdfService');
+const { computeAuditResult } = require('./services/auditScoringService');
 const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
 const coinService = require('./services/coinService');
@@ -522,6 +523,12 @@ async function initDB() {
     activity_level TEXT DEFAULT '',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS score INTEGER`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS tier_key TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS tier_label TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS sub_scores TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS weak_lever TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE part2_audit ADD COLUMN IF NOT EXISTS result_generated_at TIMESTAMP`); } catch (e) { /* ignore */ }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS scheduled_calls (
     id TEXT PRIMARY KEY,
@@ -1650,6 +1657,23 @@ app.post('/api/part2', rateLimiter(5, 60000), async (req, res) => {
     const id = uuidv4();
     await run(`INSERT INTO part2_audit (id, name, email, mobile, sports_history, injuries, mental_health, gym_experience, food_choices, vices_addictions, goals, what_compelled, activity_level) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [id, b.name || '', b.email || '', b.mobile || '', b.sports_history || '', b.injuries || '', b.mental_health || '', b.gym_experience || '', b.food_choices || '', b.vices_addictions || '', b.goals || '', b.what_compelled || '', b.activity_level || '']);
+
+    let result = null;
+    try {
+      const part1 = await queryOne(
+        `SELECT first_name, last_name, age, sex, occupation, work_intensity, fitness_experience
+         FROM audit_requests WHERE LOWER(email) = LOWER(?) ORDER BY created_at DESC LIMIT 1`,
+        [b.email]
+      );
+      result = computeAuditResult(part1 || {}, b);
+      await run(
+        `UPDATE part2_audit SET score = ?, tier_key = ?, tier_label = ?, sub_scores = ?, weak_lever = ?, result_generated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+        [result.total, result.tier_key, result.tier_label, JSON.stringify(result.sub_scores), result.weak_lever, id]
+      );
+    } catch (scoringErr) {
+      console.error('[audit-result] scoring failed:', scoringErr.message);
+    }
+
     sendPushToAdmins(JSON.stringify({ title: 'New Part-2 form', body: `${b.name || ''} (${b.email || ''}) submitted Part-2 audit`, id: 'part2-' + id })).catch(() => {});
     userEmail.emailPart2Received(String(b.email).trim(), b.name);
     if (b.user_id) {
@@ -1676,9 +1700,36 @@ app.post('/api/part2', rateLimiter(5, 60000), async (req, res) => {
       activity_level: b.activity_level || '—',
       user_id: b.user_id || '—'
     });
-    res.json({ id, message: 'Form submitted successfully' });
+    res.json({ id, message: 'Form submitted successfully', result: result || null });
   } catch (e) {
     res.status(500).json({ error: 'Submission failed' });
+  }
+});
+
+app.get('/api/audit-result/:part2_id', async (req, res) => {
+  try {
+    const row = await queryOne(
+      `SELECT id, name, email, score, tier_key, tier_label, sub_scores, weak_lever, result_generated_at
+       FROM part2_audit WHERE id = ?`,
+      [req.params.part2_id]
+    );
+    if (!row) return res.status(404).json({ error: 'Result not found' });
+    if (row.score == null) return res.status(404).json({ error: 'Result not yet generated' });
+    let subs = {};
+    try { subs = row.sub_scores ? JSON.parse(row.sub_scores) : {}; } catch (_) { subs = {}; }
+    res.json({
+      id: row.id,
+      name: row.name,
+      total: row.score,
+      tier_key: row.tier_key || '',
+      tier_label: row.tier_label || '',
+      sub_scores: subs,
+      weak_lever: row.weak_lever || '',
+      generated_at: row.result_generated_at
+    });
+  } catch (e) {
+    console.error('[audit-result] fetch failed:', e.message);
+    res.status(500).json({ error: 'Failed to load result' });
   }
 });
 

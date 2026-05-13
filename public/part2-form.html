@@ -187,10 +187,10 @@ textarea.form-input{resize:vertical;min-height:120px}
       <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
     <div class="motivate-title" id="motivateTitle">Step 2 of 3 — Done</div>
-    <p class="motivate-msg" id="motivateMsg">Your story is now with us. One final step — lock in a time with your Lifestyle Manager.</p>
+    <p class="motivate-msg" id="motivateMsg">Your story is now with us. Let's see your Body Audit result.</p>
     <p class="motivate-quote" id="motivateQuote">"Success is the sum of small efforts repeated day in and day out."</p>
     <p class="motivate-attr" id="motivateAttr">— Robert Collier</p>
-    <button type="button" class="motivate-btn" id="motivateBtn">Schedule my call</button>
+    <button type="button" class="motivate-btn" id="motivateBtn">See my result</button>
   </div>
 </div>
 
@@ -270,26 +270,29 @@ async function submitPart2(e) {
     if (!res.ok) {
       throw new Error(data.error || 'Submission failed');
     }
-    // Carry name/email/mobile forward to the schedule-call page.
+    // Carry name/email/mobile + part2 id forward to the result + schedule-call pages.
     try {
       sessionStorage.setItem('bb_funnel_user', JSON.stringify({
         name: body.name || '',
         email: body.email || '',
         mobile: body.mobile || ''
       }));
+      if (data && data.id) sessionStorage.setItem('bb_funnel_part2_id', data.id);
     } catch (_) {}
-    // Show motivational popup, then redirect to schedule-call.html
+    // Build next URL — pass part2 id so the result page can fetch the score
+    const nextUrl = 'result.html?from=part2' + (data && data.id ? '&id=' + encodeURIComponent(data.id) : '');
+    // Show motivational popup, then redirect to result.html
     var overlay = document.getElementById('motivateOverlay');
     var mbtn = document.getElementById('motivateBtn');
     if (overlay && mbtn) {
       mbtn.onclick = function () {
         overlay.classList.remove('show');
-        window.location.href = 'schedule-call.html?from=part2';
+        window.location.href = nextUrl;
       };
       overlay.classList.add('show');
       setTimeout(function () { if (overlay.classList.contains('show')) mbtn.click(); }, 9000);
     } else {
-      window.location.href = 'schedule-call.html?from=part2';
+      window.location.href = nextUrl;
     }
   } catch (err) {
     const p = document.createElement('p');

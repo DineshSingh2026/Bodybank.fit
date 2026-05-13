@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0a0a0a" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Body Bank" />
+<meta name="mobile-web-app-capable" content="yes" />
+<link rel="manifest" href="/manifest.json" />
+<link rel="stylesheet" href="/mobile-fix.css?v=20" />
+<link rel="stylesheet" href="/ios-pwa-fix.css?v=20" />
+<title>Your Body Audit Result | BodyBank</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--black:#060606;--dark2:#060606;--gold:#c8a44e;--goldg:linear-gradient(135deg,#d0b058 0%,#c8a44e 50%,#a68c3e 100%);--cream:#f2ece0;--creamd:#bfb9ab;--muted:#666;--bdr:rgba(200,164,78,0.2);--wa:#25D366}
+*{margin:0;padding:0;box-sizing:border-box}
+html{overflow-x:hidden}
+body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;font-weight:300;line-height:1.6;min-height:100dvh;-webkit-font-smoothing:antialiased}
+
+/* Nav */
+.p2-nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;padding:12px 24px;padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right));padding-top:max(12px,env(safe-area-inset-top));background:#060606;border-bottom:1px solid var(--bdr);gap:16px}
+.p2-nav-logo{height:40px;width:auto;object-fit:contain;mix-blend-mode:lighten}
+.p2-back{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;border:1.5px solid var(--gold);background:rgba(6,6,6,0.7);color:var(--gold);text-decoration:none;transition:all .3s;flex-shrink:0}
+
+/* Layout */
+.r-wrap{max-width:720px;margin:0 auto;padding:110px 20px 80px;overflow-x:hidden}
+.r-header{text-align:center;margin-bottom:24px}
+.r-eyebrow{font-size:12px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;font-weight:600;margin-bottom:8px;opacity:0.9}
+.r-title{font-family:'Bebas Neue',sans-serif;font-size:38px;letter-spacing:2px;color:var(--cream);text-transform:uppercase;line-height:1.1}
+.r-subtitle{color:var(--creamd);font-size:15px;margin-top:10px;letter-spacing:0.3px}
+
+/* Stepper */
+.step-bar{display:flex;align-items:center;justify-content:center;gap:8px;margin:24px auto 40px;max-width:420px}
+.step-dot{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;border:1.5px solid var(--bdr);color:var(--muted);background:rgba(255,255,255,0.03);flex-shrink:0;transition:all .3s}
+.step-dot.done{background:var(--gold);color:var(--black);border-color:var(--gold)}
+.step-dot.active{border-color:var(--gold);color:var(--gold);box-shadow:0 0 0 4px rgba(200,164,78,0.18)}
+.step-line{flex:1;height:1.5px;background:var(--bdr);max-width:50px}
+.step-line.done{background:var(--gold)}
+
+/* Score card */
+.score-card{background:linear-gradient(180deg,rgba(18,18,18,0.98),rgba(8,8,8,0.99));border:1px solid var(--bdr);border-radius:24px;padding:36px 24px 32px;text-align:center;box-shadow:0 24px 56px rgba(0,0,0,0.45);position:relative;overflow:hidden}
+.score-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(200,164,78,0.7),transparent)}
+.score-label{font-size:12px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;font-weight:600;margin-bottom:14px;opacity:0.85}
+.score-num{font-family:'Bebas Neue',sans-serif;font-size:120px;line-height:1;letter-spacing:2px;background:var(--goldg);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;display:inline-block;transition:opacity .6s}
+.score-out{display:inline-block;font-family:'Outfit',sans-serif;font-size:24px;letter-spacing:1px;color:var(--creamd);margin-left:6px;vertical-align:top;margin-top:18px}
+.score-loading{font-family:'Bebas Neue',sans-serif;font-size:80px;color:var(--muted);opacity:0.4}
+.tier-badge{display:inline-flex;align-items:center;gap:10px;margin-top:18px;padding:10px 22px;border-radius:999px;border:1.5px solid var(--gold);background:rgba(200,164,78,0.12);color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2.5px;text-transform:uppercase}
+.tier-badge .tier-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px rgba(200,164,78,0.7)}
+.tier-blurb{margin-top:18px;color:var(--creamd);font-size:15px;font-style:italic;letter-spacing:0.2px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.55}
+.weak-lever-line{margin-top:20px;padding-top:18px;border-top:1px solid var(--bdr);color:var(--cream);font-size:14px;letter-spacing:0.4px}
+.weak-lever-line strong{color:var(--gold);font-weight:600}
+
+/* Sub-scores — radar chart hero + tiered detail cards */
+.sub-section{margin-top:36px}
+.sub-heading{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--cream);text-transform:uppercase;margin-bottom:8px}
+.sub-help{color:var(--muted);font-size:13px;margin-bottom:22px;letter-spacing:0.3px}
+
+/* Radar chart panel */
+.radar-panel{position:relative;background:radial-gradient(ellipse 70% 60% at 50% 45%,rgba(200,164,78,0.06) 0%,rgba(20,20,24,0.7) 60%,rgba(8,8,10,0.95) 100%);border:1px solid var(--bdr);border-radius:18px;padding:18px 12px 14px;margin-bottom:18px;overflow:hidden}
+.radar-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(200,164,78,0.55),transparent)}
+.radar-wrap{position:relative;width:100%;max-width:380px;margin:0 auto;aspect-ratio:380/360}
+.radar-svg{width:100%;height:100%;display:block}
+.radar-grid{fill:none;stroke:rgba(200,164,78,0.16);stroke-width:1}
+.radar-spoke{stroke:rgba(200,164,78,0.14);stroke-width:1}
+.radar-poly{fill:rgba(200,164,78,0.18);stroke:var(--gold);stroke-width:1.8px;stroke-linejoin:round;filter:drop-shadow(0 0 12px rgba(200,164,78,0.45));transform-origin:center;transform-box:fill-box;animation:radar-grow 1.1s cubic-bezier(.2,.8,.2,1) both}
+@keyframes radar-grow{from{transform:scale(0.2);opacity:0}to{transform:scale(1);opacity:1}}
+.radar-point{fill:var(--cream);stroke:var(--gold);stroke-width:1.5px;filter:drop-shadow(0 0 5px rgba(200,164,78,0.7))}
+.radar-label{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:1.8px;fill:var(--creamd);text-transform:uppercase;dominant-baseline:middle}
+.radar-label--strong{fill:#28dc82}
+.radar-label--average{fill:#ffcd28}
+.radar-label--weak{fill:#ff6464}
+.radar-axis-val{font-family:'Outfit',sans-serif;font-size:9px;fill:rgba(200,164,78,0.45);letter-spacing:0.3px}
+
+/* Dimension detail cards — each dim has its own signature color; tier is a small accent badge */
+.dim-list{display:flex;flex-direction:column;gap:10px}
+.dim-card{position:relative;display:flex;align-items:center;gap:14px;padding:14px 16px;background:linear-gradient(180deg,rgba(255,255,255,0.04) 0%,rgba(255,255,255,0.015) 100%);border:1px solid var(--bdr);border-radius:14px;overflow:hidden;transition:transform .2s ease,border-color .2s ease}
+.dim-card::before{content:'';position:absolute;top:0;left:0;bottom:0;width:3px;background:var(--dim-color,var(--gold));box-shadow:0 0 14px var(--dim-glow,rgba(200,164,78,0.5))}
+.dim-card::after{content:'';position:absolute;bottom:0;left:0;height:3px;width:var(--score-width,0%);background:var(--dim-bar,var(--goldg));transition:width 1.2s cubic-bezier(.2,.8,.2,1);box-shadow:0 0 10px var(--dim-glow,rgba(200,164,78,0.4))}
+/* Dimension colours — each signature, distinct */
+.dim-card[data-dim="activity"]{--dim-color:#ff8a3d;--dim-glow:rgba(255,138,61,0.55);--dim-bar:linear-gradient(90deg,#ff8a3d,#ffc28a)}
+.dim-card[data-dim="training"]{--dim-color:#ff4d6d;--dim-glow:rgba(255,77,109,0.55);--dim-bar:linear-gradient(90deg,#ff4d6d,#ff97a8)}
+.dim-card[data-dim="nutrition"]{--dim-color:#34d399;--dim-glow:rgba(52,211,153,0.6);--dim-bar:linear-gradient(90deg,#34d399,#86e9c0)}
+.dim-card[data-dim="mindset"]{--dim-color:#a78bfa;--dim-glow:rgba(167,139,250,0.55);--dim-bar:linear-gradient(90deg,#a78bfa,#cfbaff)}
+.dim-card[data-dim="lifestyle"]{--dim-color:#22d3ee;--dim-glow:rgba(34,211,238,0.55);--dim-bar:linear-gradient(90deg,#22d3ee,#7fe6f4)}
+/* Tier accent — Weak/Average/Strong, applied only to the small tier pill */
+.dim-card[data-tier="strong"]{--tier-color:#28dc82;--tier-glow:rgba(40,220,130,0.6)}
+.dim-card[data-tier="average"]{--tier-color:#ffcd28;--tier-glow:rgba(255,205,40,0.6)}
+.dim-card[data-tier="weak"]{--tier-color:#ff6464;--tier-glow:rgba(255,100,100,0.55)}
+.dim-icon{width:44px;height:44px;border-radius:12px;background:rgba(6,6,6,0.6);border:1px solid var(--dim-color,var(--gold));display:flex;align-items:center;justify-content:center;color:var(--dim-color,var(--gold));flex-shrink:0;box-shadow:0 0 16px var(--dim-glow,rgba(200,164,78,0.25)) inset,0 2px 10px rgba(0,0,0,0.4)}
+.dim-icon svg{width:22px;height:22px}
+.dim-body{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.dim-name{font-family:'Outfit',sans-serif;font-weight:600;color:var(--cream);font-size:15px;letter-spacing:0.4px}
+.dim-tier-badge{display:inline-flex;align-items:center;gap:5px;align-self:flex-start;padding:2px 9px;border-radius:999px;background:rgba(6,6,6,0.6);border:1px solid var(--tier-color,var(--gold));color:var(--tier-color,var(--gold));font-family:'Outfit',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase}
+.dim-tier-badge::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--tier-color,var(--gold));box-shadow:0 0 6px var(--tier-color,var(--gold))}
+.dim-score-block{text-align:right;flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.dim-score-num{font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;letter-spacing:1px;color:var(--dim-color,var(--gold));text-shadow:0 0 16px var(--dim-glow,rgba(200,164,78,0.5))}
+.dim-score-out{font-family:'Outfit',sans-serif;font-size:10px;color:var(--muted);letter-spacing:1px;font-weight:600}
+@media(max-width:520px){
+  .radar-panel{padding:14px 6px 12px}
+  .radar-label{font-size:10.5px;letter-spacing:1.4px}
+  .dim-card{padding:12px 13px;gap:11px}
+  .dim-icon{width:38px;height:38px}
+  .dim-icon svg{width:19px;height:19px}
+  .dim-name{font-size:14px}
+  .dim-tier-badge{font-size:9px;padding:2px 7px}
+  .dim-score-num{font-size:26px}
+}
+
+/* Muscle Ranking preview (locked) — real body SVG with sample tier colors */
+.mr-section{margin-top:48px;position:relative}
+.mr-heading{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;color:var(--cream);text-transform:uppercase;margin-bottom:6px}
+.mr-subhead{color:var(--muted);font-size:13px;margin-bottom:22px;letter-spacing:0.3px}
+.mr-stage{position:relative;background:radial-gradient(ellipse 70% 60% at 50% 42%,rgba(60,60,68,0.55) 0%,rgba(20,20,24,0.85) 55%,rgba(8,8,10,0.98) 100%);border:1px solid var(--bdr);border-radius:18px;padding:24px 22px 24px;overflow:hidden}
+.mr-stage::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(200,164,78,0.55),transparent)}
+.mr-sample-tag{position:absolute;top:14px;right:14px;z-index:3;display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:999px;border:1px solid rgba(200,164,78,0.45);background:rgba(6,6,6,0.78);color:var(--gold);font-family:'Outfit',sans-serif;font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.mr-sample-tag::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--gold);box-shadow:0 0 6px rgba(200,164,78,0.8)}
+.mr-body-wrap{position:relative;width:100%;max-width:300px;margin:8px auto 0;padding:4px 0}
+.mr-body-wrap::before{content:'';position:absolute;inset:8% 12% 8% 12%;background:radial-gradient(ellipse at center,rgba(255,255,255,0.10) 0%,rgba(255,255,255,0.04) 50%,transparent 75%);filter:blur(20px);pointer-events:none;z-index:0}
+.mr-body-svg{position:relative;z-index:1;width:100%;height:auto;display:block}
+.mr-body-svg image{pointer-events:none;opacity:1}
+.mr-svg-region{stroke-width:1px;mix-blend-mode:multiply;pointer-events:none}
+.mr-svg-region[data-tier="Strong"]{fill:rgba(40,210,120,0.32);stroke:rgba(80,255,160,0.55);filter:drop-shadow(0 0 5px rgba(40,210,120,0.32))}
+.mr-svg-region[data-tier="Average"]{fill:rgba(255,200,40,0.32);stroke:rgba(255,225,90,0.55);filter:drop-shadow(0 0 5px rgba(255,200,40,0.32))}
+.mr-svg-region[data-tier="Weak"]{fill:rgba(240,70,70,0.32);stroke:rgba(255,110,110,0.55);filter:drop-shadow(0 0 5px rgba(240,70,70,0.32))}
+.mr-legend{display:flex;align-items:center;justify-content:center;gap:18px;margin:10px 0 0;font-size:11px;color:var(--creamd);letter-spacing:0.4px}
+.mr-legend-item{display:inline-flex;align-items:center;gap:6px}
+.mr-legend-dot{width:9px;height:9px;border-radius:50%;display:inline-block}
+.mr-legend-dot--strong{background:#28dc82;box-shadow:0 0 8px rgba(40,220,130,0.7)}
+.mr-legend-dot--avg{background:#ffcd28;box-shadow:0 0 8px rgba(255,200,40,0.7)}
+.mr-legend-dot--weak{background:#ff4646;box-shadow:0 0 8px rgba(255,70,70,0.7)}
+.mr-lock-bar{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);z-index:5;display:inline-flex;flex-direction:row;align-items:center;gap:10px;padding:8px 16px 8px 8px;background:rgba(6,6,6,0.82);border:1px solid rgba(200,164,78,0.55);border-radius:999px;white-space:nowrap;box-shadow:0 10px 30px rgba(0,0,0,0.55),0 0 22px rgba(200,164,78,0.18);backdrop-filter:blur(8px) saturate(1.1);-webkit-backdrop-filter:blur(8px) saturate(1.1)}
+.mr-padlock{width:30px;height:30px;border-radius:50%;border:1px solid var(--gold);background:rgba(200,164,78,0.12);display:flex;align-items:center;justify-content:center;color:var(--gold);flex-shrink:0;box-shadow:0 0 12px rgba(200,164,78,0.3) inset}
+.mr-padlock svg{width:14px;height:14px}
+.mr-lock-text{display:flex;align-items:center;min-width:0}
+.mr-lock-title{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;color:var(--gold);text-transform:uppercase;line-height:1}
+.mr-footnote{margin-top:16px;font-size:12px;color:var(--creamd);text-align:center;letter-spacing:0.3px;line-height:1.6;max-width:420px;margin-left:auto;margin-right:auto}
+.mr-footnote strong{color:var(--gold);font-weight:600}
+@media(max-width:520px){
+  .mr-stage{padding:20px 14px 18px}
+  .mr-body-wrap{max-width:260px}
+  .mr-padlock{width:26px;height:26px}
+  .mr-padlock svg{width:12px;height:12px}
+  .mr-lock-title{font-size:11.5px;letter-spacing:1.6px}
+  .mr-lock-bar{padding:6px 14px 6px 6px;gap:8px}
+  .mr-sample-tag{font-size:9px;padding:4px 9px}
+  .mr-legend{gap:12px;font-size:10px}
+  .mr-footnote{font-size:11.5px}
+}
+
+/* Transformations strip — reused pattern from index.html */
+.tf-sec{margin-top:48px}
+.tf-section-wrap{position:relative;max-width:520px;margin:0 auto}
+.tf-wrap{display:flex;gap:0;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scroll-behavior:smooth;padding:8px 0 24px;margin:0 -20px;scrollbar-width:thin;scrollbar-color:rgba(200,164,78,0.4) transparent}
+.tf-wrap::-webkit-scrollbar{height:8px}
+.tf-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,0.03);border-radius:4px}
+.tf-wrap::-webkit-scrollbar-thumb{background:rgba(200,164,78,0.4);border-radius:4px}
+.tf-wrap::-webkit-scrollbar-thumb:hover{background:rgba(200,164,78,0.6)}
+.tf-spotlight{flex:0 0 100%;min-width:100%;width:100%;scroll-snap-align:start;scroll-snap-stop:always;position:relative;border-radius:20px;overflow:hidden;background:linear-gradient(180deg,rgba(18,18,18,0.98),rgba(8,8,8,0.99));border:1px solid rgba(255,255,255,0.06);box-shadow:0 24px 56px rgba(0,0,0,0.4);box-sizing:border-box;padding:20px;padding-top:24px}
+@media(min-width:901px){.tf-wrap{max-width:520px;margin-left:auto;margin-right:auto;padding-left:0;padding-right:0}}
+.tf-spotlight::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(200,164,78,0.6),transparent);z-index:2}
+.tf-spotlight-img-wrap{position:relative;overflow:hidden;background:rgba(0,0,0,0.2);border-radius:12px;margin:0 auto;max-width:100%}
+.tf-spotlight-img-wrap img{width:100%;height:auto;display:block;vertical-align:middle;object-fit:contain}
+.tf-spotlight-story{text-align:center;padding:24px 28px 28px;font-size:15px;line-height:1.7;letter-spacing:0.3px}
+.tf-spotlight-story p{color:#fff;margin:0}
+.tf-spotlight-story .tf-story-intro{font-weight:600;margin-bottom:10px;color:var(--gold)}
+.tf-spotlight-story .tf-story-quote{font-style:italic;color:var(--gold);margin:10px 0}
+.tf-spotlight-story .tf-story-attribution{font-size:14px;color:var(--gold);margin-top:12px;letter-spacing:0.5px}
+.tf-arrow-btn{position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:1.5px solid var(--gold);background:rgba(6,6,6,0.85);color:var(--gold);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:20px;z-index:10;transition:all .25s;user-select:none;-webkit-tap-highlight-color:transparent}
+.tf-arrow-btn:hover{background:rgba(200,164,78,0.2);color:var(--cream);transform:translateY(-50%) scale(1.05)}
+.tf-arrow-btn:disabled{opacity:0.35;cursor:not-allowed;pointer-events:none}
+.tf-arrow-btn.tf-prev{left:-12px}
+.tf-arrow-btn.tf-next{right:-12px}
+.tf-dots{display:flex;justify-content:center;gap:8px;margin-top:18px;flex-wrap:wrap}
+.tf-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.2);cursor:pointer;transition:all .25s;padding:0}
+.tf-dot:hover{background:rgba(200,164,78,0.5)}
+.tf-dot.active{background:var(--gold);border-color:var(--gold);transform:scale(1.2)}
+.tf-scroll-hint{text-align:center;margin-top:14px;font-size:13px;color:rgba(255,255,255,0.55);letter-spacing:0.5px}
+.tf-scroll-hint strong{color:var(--gold);font-weight:600}
+.tf-heading{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;color:var(--cream);text-transform:uppercase;text-align:center;margin-bottom:8px}
+.tf-sub{text-align:center;color:var(--gold);font-size:14px;letter-spacing:0.5px;margin-bottom:28px;opacity:0.95}
+@media(max-width:700px){.tf-wrap{margin:0 -16px}.tf-spotlight{border-radius:16px;padding:16px;padding-top:20px}.tf-spotlight-img-wrap{border-radius:10px}.tf-spotlight-story{padding:18px 18px 22px;font-size:14px}.tf-arrow-btn{width:40px;height:40px;font-size:18px}.tf-arrow-btn.tf-prev{left:4px}.tf-arrow-btn.tf-next{right:4px}}
+
+/* CTA */
+.cta-section{margin-top:48px;text-align:center}
+.cta-quote{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--creamd);font-style:italic;margin-bottom:22px;letter-spacing:0.3px}
+.cta-quote .attr{display:block;font-style:normal;font-size:13px;color:var(--muted);margin-top:6px;letter-spacing:1px}
+.cta-btn{display:inline-block;padding:18px 40px;background:var(--goldg);border:none;border-radius:12px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:15px;letter-spacing:1.8px;text-transform:uppercase;cursor:pointer;transition:all .3s;text-decoration:none}
+.cta-btn:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(200,164,78,0.4)}
+.cta-secondary{display:block;margin-top:16px;color:var(--creamd);font-size:13px;letter-spacing:0.5px;text-decoration:none;opacity:0.75;transition:opacity .2s}
+.cta-secondary:hover{opacity:1;color:var(--gold)}
+
+/* Error state */
+.r-error{margin:40px auto;max-width:500px;padding:24px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:14px;text-align:center;color:var(--creamd)}
+.r-error a{color:var(--gold);text-decoration:underline}
+
+@media(max-width:520px){
+  .r-wrap{padding:100px 16px 60px}
+  .r-title{font-size:30px}
+  .score-card{padding:28px 16px 26px}
+  .score-num{font-size:96px}
+  .score-out{font-size:20px;margin-top:14px}
+  .tier-badge{font-size:15px;padding:9px 18px;letter-spacing:2px}
+  .sub-heading{font-size:22px}
+}
+</style>
+</head>
+<body>
+
+<!-- Nav -->
+<nav class="p2-nav">
+  <a href="index.html" class="p2-back" aria-label="Back to home">
+    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+  </a>
+  <img src="img/Bodybank logo.png" alt="BodyBank" class="p2-nav-logo">
+</nav>
+
+<div class="r-wrap">
+
+  <!-- Header -->
+  <div class="r-header">
+    <p class="r-eyebrow">Body Audit Complete</p>
+    <h1 class="r-title">Your Result <span style="color:var(--gold)" id="rName"></span></h1>
+    <p class="r-subtitle">Based on what you told us about your body, training, and lifestyle.</p>
+  </div>
+
+  <!-- Stepper: 1 done, 2 done, 3 done (result), then call -->
+  <div class="step-bar" aria-label="Progress">
+    <div class="step-dot done">1</div>
+    <div class="step-line done"></div>
+    <div class="step-dot done">2</div>
+    <div class="step-line done"></div>
+    <div class="step-dot active">3</div>
+    <div class="step-line"></div>
+    <div class="step-dot">4</div>
+  </div>
+
+  <!-- Score card -->
+  <div class="score-card" id="scoreCard">
+    <p class="score-label">Your Body Audit Score</p>
+    <div>
+      <span class="score-num" id="scoreNum">--</span>
+      <span class="score-out">/ 100</span>
+    </div>
+    <div class="tier-badge" id="tierBadge" style="display:none">
+      <span class="tier-dot"></span>
+      <span id="tierLabel">—</span>
+    </div>
+    <p class="tier-blurb" id="tierBlurb"></p>
+    <p class="weak-lever-line" id="weakLeverLine" style="display:none">
+      Biggest lever to fix first: <strong id="weakLever">—</strong>
+    </p>
+  </div>
+
+  <!-- Sub-scores: radar hero + tier cards -->
+  <div class="sub-section">
+    <h2 class="sub-heading">Where the score comes from</h2>
+    <p class="sub-help">Five dimensions, weighted into your total. The shape tells your story at a glance.</p>
+    <div class="radar-panel">
+      <div class="radar-wrap">
+        <svg class="radar-svg" id="radarSvg" viewBox="0 0 380 360" preserveAspectRatio="xMidYMid meet" aria-label="Five-dimension audit radar">
+          <!-- grid + spokes + polygon are drawn by JS -->
+        </svg>
+      </div>
+    </div>
+    <div class="dim-list" id="subList">
+      <!-- populated by JS -->
+    </div>
+  </div>
+
+  <!-- Muscle Ranking preview (locked until first week of logged workouts) -->
+  <div class="mr-section">
+    <h2 class="mr-heading">Your Muscle Ranking</h2>
+    <p class="mr-subhead">Per-region strength tier — calibrated from your real lifts as a member.</p>
+    <div class="mr-stage" aria-label="Muscle ranking preview, locked">
+      <span class="mr-sample-tag" aria-hidden="true">Sample Preview</span>
+      <div class="mr-body-wrap">
+        <svg class="mr-body-svg" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 596 1133" preserveAspectRatio="xMidYMid meet" aria-label="Muscle ranking preview, body figure with color-coded sample tiers" role="img">
+          <g>
+            <image href="/img/muscle-ranking-front.svg" xlink:href="/img/muscle-ranking-front.svg" width="587" height="1137" preserveAspectRatio="xMidYMid meet" pointer-events="none"/>
+            <g transform="scale(2.70909 2.266)" pointer-events="none">
+              <path class="mr-svg-region" data-tier="Average" d="M 100,68 Q 78,72 58,90 L 62,108 Q 80,94 104,86 Z"/>
+              <path class="mr-svg-region" data-tier="Average" d="M 120,68 Q 142,72 162,90 L 158,108 Q 140,94 116,86 Z"/>
+              <path class="mr-svg-region" data-tier="Strong" d="M 62,90 L 102,80 L 118,80 L 158,90 Q 160,112 156,132 Q 134,138 110,137 Q 86,138 64,132 Q 60,112 62,90 Z"/>
+              <path class="mr-svg-region" data-tier="Weak" d="M 66,138 Q 88,144 110,143 Q 132,144 154,138 L 150,210 Q 132,216 110,215 Q 88,216 70,210 Z"/>
+              <path class="mr-svg-region" data-tier="Average" d="M 56,96 L 63,90 L 60,148 L 46,160 L 44,126 Z"/>
+              <path class="mr-svg-region" data-tier="Average" d="M 164,96 L 157,90 L 160,148 L 174,160 L 176,126 Z"/>
+              <path class="mr-svg-region" data-tier="Average" d="M 54,98 L 61,93 L 57,152 L 42,164 L 36,180 L 28,174 L 34,152 L 44,128 Z"/>
+              <path class="mr-svg-region" data-tier="Average" d="M 166,98 L 159,93 L 163,152 L 178,164 L 184,180 L 192,174 L 186,152 L 176,128 Z"/>
+              <path class="mr-svg-region" data-tier="Strong" d="M 70,278 L 107,278 L 104,352 L 76,354 L 66,278 Z"/>
+              <path class="mr-svg-region" data-tier="Strong" d="M 150,278 L 113,278 L 116,352 L 144,354 L 153,278 Z"/>
+            </g>
+          </g>
+        </svg>
+        <div class="mr-lock-bar">
+          <div class="mr-padlock" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="4" y="11" width="16" height="10" rx="2" ry="2"></rect>
+              <path d="M8 11V8a4 4 0 0 1 8 0v3"></path>
+            </svg>
+          </div>
+          <div class="mr-lock-text">
+            <div class="mr-lock-title">Locked — Sample</div>
+          </div>
+        </div>
+      </div>
+      <div class="mr-legend" aria-hidden="true">
+        <span class="mr-legend-item"><span class="mr-legend-dot mr-legend-dot--strong"></span>Strong</span>
+        <span class="mr-legend-item"><span class="mr-legend-dot mr-legend-dot--avg"></span>Average</span>
+        <span class="mr-legend-item"><span class="mr-legend-dot mr-legend-dot--weak"></span>Weak</span>
+      </div>
+    </div>
+    <p class="mr-footnote">Your real <strong>6-region muscle ranking</strong> unlocks after your <strong>first week of logged workouts</strong>. Updated weekly from real lifts.</p>
+  </div>
+
+  <!-- Transformations -->
+  <div class="tf-sec">
+    <h2 class="tf-heading">People who started where you are</h2>
+    <p class="tf-sub">Real members. Real results from our Tribes.</p>
+    <div class="tf-section-wrap">
+      <button type="button" class="tf-arrow-btn tf-prev" id="tfPrev" aria-label="Previous transformation">&#8249;</button>
+      <button type="button" class="tf-arrow-btn tf-next" id="tfNext" aria-label="Next transformation">&#8250;</button>
+      <div class="tf-wrap" id="tfScroll">
+        <div class="tf-spotlight">
+          <div class="tf-spotlight-img-wrap">
+            <img src="img/transformations/6095797176152821202.jpg" alt="Transformation: Kanshika" loading="lazy">
+          </div>
+          <div class="tf-spotlight-story">
+            <p class="tf-story-intro">16 Weeks</p>
+            <p class="tf-story-quote">"If I'm putting effort, might as well go all in! Parents are so happy about this change."</p>
+            <p class="tf-story-attribution">— Kanshika</p>
+          </div>
+        </div>
+        <div class="tf-spotlight">
+          <div class="tf-spotlight-img-wrap">
+            <img src="img/transformations/IMG_5949.jpeg" alt="Transformation: Srunish" loading="lazy">
+          </div>
+          <div class="tf-spotlight-story">
+            <p class="tf-story-intro">20 Weeks</p>
+            <p class="tf-story-quote">"Lifestyle Management taught me how to sustain my results,"</p>
+            <p class="tf-story-attribution">— Srunish</p>
+          </div>
+        </div>
+        <div class="tf-spotlight">
+          <div class="tf-spotlight-img-wrap">
+            <img src="img/transformations/IMG_5952.jpeg" alt="Transformation: Kartik" loading="lazy">
+          </div>
+          <div class="tf-spotlight-story">
+            <p class="tf-story-intro">13 Weeks</p>
+            <p class="tf-story-quote">"What a ride this was, there's a big change in my mindset & I hope many people get to experience this!"</p>
+            <p class="tf-story-attribution">— Kartik</p>
+          </div>
+        </div>
+        <div class="tf-spotlight">
+          <div class="tf-spotlight-img-wrap">
+            <img src="img/transformations/IMG_5954.jpeg" alt="Transformation: Vikas" loading="lazy">
+          </div>
+          <div class="tf-spotlight-story">
+            <p class="tf-story-intro">14 Weeks</p>
+            <p class="tf-story-quote">"Through this approach, I'm confident I can do better. I'll get ripped, never revert to old ways!"</p>
+            <p class="tf-story-attribution">— Vikas</p>
+          </div>
+        </div>
+        <div class="tf-spotlight">
+          <div class="tf-spotlight-img-wrap">
+            <img src="img/transformations/IMG_5956.jpeg" alt="Transformation: Prem" loading="lazy">
+          </div>
+          <div class="tf-spotlight-story">
+            <p class="tf-story-intro">19 Weeks</p>
+            <p class="tf-story-quote">"I feel lighter, can breathe better, my fam & friends observed the changes which felt really amazing"</p>
+            <p class="tf-story-attribution">— Prem</p>
+          </div>
+        </div>
+        <div class="tf-spotlight">
+          <div class="tf-spotlight-img-wrap">
+            <img src="img/transformations/IMG_5959.jpeg" alt="Transformation: Rahul" loading="lazy">
+          </div>
+          <div class="tf-spotlight-story">
+            <p class="tf-story-intro">24 Weeks</p>
+            <p class="tf-story-quote">"Gains daily F***, never this happy. Didn't think I'd look this good Damn happy bro!"</p>
+            <p class="tf-story-attribution">— Rahul</p>
+          </div>
+        </div>
+        <div class="tf-spotlight">
+          <div class="tf-spotlight-img-wrap">
+            <img src="img/transformations/IMG_5958.jpeg" alt="Transformation: Rahul" loading="lazy">
+          </div>
+          <div class="tf-spotlight-story">
+            <p class="tf-story-intro">24 Weeks</p>
+            <p class="tf-story-quote">"Gains daily F***, never this happy. Didn't think I'd look this good Damn happy bro!"</p>
+            <p class="tf-story-attribution">— Rahul</p>
+          </div>
+        </div>
+        <div class="tf-spotlight">
+          <div class="tf-spotlight-img-wrap">
+            <img src="img/transformations/IMG_5961.webp" alt="Transformation: Nisheeth" loading="lazy">
+          </div>
+          <div class="tf-spotlight-story">
+            <p class="tf-story-intro">27 Weeks</p>
+            <p class="tf-story-quote">"Consistently being persistent, is what lifestyle management unlocked for me"</p>
+            <p class="tf-story-attribution">— Nisheeth</p>
+          </div>
+        </div>
+        <div class="tf-spotlight">
+          <div class="tf-spotlight-img-wrap">
+            <img src="img/transformations/IMG_5962.jpeg" alt="Transformation: Sandeep" loading="lazy">
+          </div>
+          <div class="tf-spotlight-story">
+            <p class="tf-story-intro">13 Weeks</p>
+            <p class="tf-story-quote">"One of the best takeaways is that I still try to keep at it! Once part of the tribe, always a part of the tribe"</p>
+            <p class="tf-story-attribution">— Sandeep</p>
+          </div>
+        </div>
+        <div class="tf-spotlight">
+          <div class="tf-spotlight-img-wrap">
+            <img src="img/transformations/IMG_5970.jpeg" alt="Transformation: Srunish" loading="lazy">
+          </div>
+          <div class="tf-spotlight-story">
+            <p class="tf-story-intro">20 Weeks</p>
+            <p class="tf-story-quote">"Lifestyle Management taught me how to sustain my results,"</p>
+            <p class="tf-story-attribution">— Srunish</p>
+          </div>
+        </div>
+        <div class="tf-spotlight">
+          <div class="tf-spotlight-img-wrap">
+            <img src="img/transformations/IMG_5940.jpeg" alt="Transformation: Kanshika" loading="lazy">
+          </div>
+          <div class="tf-spotlight-story">
+            <p class="tf-story-intro">16 Weeks</p>
+            <p class="tf-story-quote">"If I'm putting effort, might as well go all in! Parents are so happy about this change."</p>
+            <p class="tf-story-attribution">— Kanshika</p>
+          </div>
+        </div>
+      </div>
+      <div class="tf-dots" id="tfDots" aria-hidden="true"></div>
+      <p class="tf-scroll-hint">Swipe to see all <strong id="tfCount">11</strong> transformations</p>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-section">
+    <p class="cta-quote">
+      "Every athlete you admire started at a Foundation. The only difference is they kept showing up."
+      <span class="attr">— Your Lifestyle Manager</span>
+    </p>
+    <a href="schedule-call.html?from=result" class="cta-btn" id="ctaBtn">Schedule My Free Call</a>
+    <a href="index.html" class="cta-secondary">Maybe later, take me home</a>
+  </div>
+
+  <!-- Hidden error fallback -->
+  <div class="r-error" id="rError" style="display:none">
+    <p>We couldn't load your result. <a href="index.html">Return home</a> or contact us.</p>
+  </div>
+
+</div>
+
+<script>
+const SUB_LABELS = {
+  activity: 'Activity',
+  training: 'Training',
+  nutrition: 'Nutrition',
+  mindset: 'Mindset',
+  lifestyle: 'Lifestyle'
+};
+
+const SUB_ORDER = ['activity', 'training', 'nutrition', 'mindset', 'lifestyle'];
+
+const DIM_COLORS = {
+  activity: '#ff8a3d',
+  training: '#ff4d6d',
+  nutrition: '#34d399',
+  mindset: '#a78bfa',
+  lifestyle: '#22d3ee'
+};
+
+const SUB_ICONS = {
+  activity: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+  training: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6.5" y1="6.5" x2="6.5" y2="17.5"/><line x1="17.5" y1="6.5" x2="17.5" y2="17.5"/><line x1="3" y1="9" x2="3" y2="15"/><line x1="21" y1="9" x2="21" y2="15"/><line x1="6.5" y1="12" x2="17.5" y2="12"/></svg>',
+  nutrition: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19.2 2.96A1 1 0 0 1 21 3.97c0 5.04-1.16 9.13-4 11.32A9.9 9.9 0 0 1 11 17"/><path d="M2 21c0-3 1.85-5.36 5.08-6.5"/></svg>',
+  mindset: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 1 4 10.5c-.83 1-1.5 1.83-1.5 3v1.5h-5v-1.5c0-1.17-.67-2-1.5-3A6 6 0 0 1 12 3z"/></svg>',
+  lifestyle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>'
+};
+
+function tierFor(score) {
+  if (score >= 70) return 'strong';
+  if (score >= 50) return 'average';
+  return 'weak';
+}
+
+function tierLabel(tier) {
+  return tier === 'strong' ? 'Strong' : tier === 'average' ? 'Average' : 'Weak';
+}
+
+function qs(name) {
+  const p = new URLSearchParams(window.location.search);
+  return p.get(name);
+}
+
+function animateNumber(el, target) {
+  if (!el) return;
+  const start = 0;
+  const duration = 900;
+  const startTs = performance.now();
+  function tick(now) {
+    const t = Math.min(1, (now - startTs) / duration);
+    const eased = 1 - Math.pow(1 - t, 3);
+    const val = Math.round(start + (target - start) * eased);
+    el.textContent = val;
+    if (t < 1) requestAnimationFrame(tick);
+    else el.textContent = target;
+  }
+  requestAnimationFrame(tick);
+}
+
+function renderResult(data) {
+  // Name
+  const firstName = (data.name || '').split(' ')[0];
+  if (firstName) {
+    document.getElementById('rName').textContent = ', ' + firstName;
+  }
+  // Score
+  animateNumber(document.getElementById('scoreNum'), data.total);
+  // Tier
+  const badge = document.getElementById('tierBadge');
+  badge.style.display = 'inline-flex';
+  document.getElementById('tierLabel').textContent = data.tier_label || '—';
+  // Tier blurb (computed client-side from tier_key for resilience)
+  const blurbs = {
+    athlete: 'You already train with intent. Now we sharpen the edges.',
+    builder: 'A real base is here. The next 12 weeks are about momentum.',
+    foundation: 'Every athlete started here. We build it right, not fast.'
+  };
+  document.getElementById('tierBlurb').textContent = blurbs[data.tier_key] || '';
+  // Weak lever
+  if (data.weak_lever) {
+    document.getElementById('weakLever').textContent = data.weak_lever;
+    document.getElementById('weakLeverLine').style.display = 'block';
+  }
+  // Sub-scores: build radar + tier cards
+  buildRadar(data.sub_scores || {});
+  buildDimCards(data.sub_scores || {});
+}
+
+function buildRadar(scores) {
+  const svg = document.getElementById('radarSvg');
+  if (!svg) return;
+  const cx = 190, cy = 180, R = 110;
+  const n = SUB_ORDER.length;
+  const angleAt = (i) => -Math.PI / 2 + (i * 2 * Math.PI / n);
+
+  const parts = [];
+
+  // Background grid: concentric pentagons at 40, 70, 100
+  [40, 70, 100].forEach((pct) => {
+    const r = R * (pct / 100);
+    const pts = [];
+    for (let i = 0; i < n; i++) {
+      const a = angleAt(i);
+      pts.push((cx + Math.cos(a) * r).toFixed(1) + ',' + (cy + Math.sin(a) * r).toFixed(1));
+    }
+    parts.push(`<polygon class="radar-grid" points="${pts.join(' ')}" />`);
+  });
+
+  // Axis value labels on the top axis only (subtle scale reference)
+  [40, 70, 100].forEach((pct) => {
+    const r = R * (pct / 100);
+    parts.push(`<text class="radar-axis-val" x="${cx + 5}" y="${(cy - r + 4).toFixed(1)}">${pct}</text>`);
+  });
+
+  // Spokes from center to each vertex
+  for (let i = 0; i < n; i++) {
+    const a = angleAt(i);
+    const x = cx + Math.cos(a) * R;
+    const y = cy + Math.sin(a) * R;
+    parts.push(`<line class="radar-spoke" x1="${cx}" y1="${cy}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}" />`);
+  }
+
+  // Data polygon
+  const dataPts = [];
+  const pointCircles = [];
+  SUB_ORDER.forEach((key, i) => {
+    const value = Number(scores[key]) || 0;
+    const a = angleAt(i);
+    const r = R * (value / 100);
+    const x = cx + Math.cos(a) * r;
+    const y = cy + Math.sin(a) * r;
+    dataPts.push(x.toFixed(1) + ',' + y.toFixed(1));
+    pointCircles.push(`<circle class="radar-point" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4" />`);
+  });
+  parts.push(`<polygon class="radar-poly" points="${dataPts.join(' ')}" />`);
+  parts.push(pointCircles.join(''));
+
+  // Outer labels at each vertex — colored by dimension identity
+  SUB_ORDER.forEach((key, i) => {
+    const a = angleAt(i);
+    const labelR = R + 28;
+    const x = cx + Math.cos(a) * labelR;
+    const y = cy + Math.sin(a) * labelR;
+    const cosA = Math.cos(a);
+    const anchor = cosA > 0.3 ? 'start' : cosA < -0.3 ? 'end' : 'middle';
+    parts.push(`<text class="radar-label" x="${x.toFixed(1)}" y="${y.toFixed(1)}" text-anchor="${anchor}" fill="${DIM_COLORS[key]}">${SUB_LABELS[key]}</text>`);
+  });
+
+  svg.innerHTML = parts.join('');
+}
+
+function buildDimCards(scores) {
+  const list = document.getElementById('subList');
+  if (!list) return;
+  list.innerHTML = '';
+  SUB_ORDER.forEach((key) => {
+    const value = Number(scores[key]) || 0;
+    const tier = tierFor(value);
+    const card = document.createElement('div');
+    card.className = 'dim-card';
+    card.dataset.dim = key;
+    card.dataset.tier = tier;
+    card.innerHTML = `
+      <div class="dim-icon">${SUB_ICONS[key]}</div>
+      <div class="dim-body">
+        <div class="dim-name">${SUB_LABELS[key]}</div>
+        <span class="dim-tier-badge">${tierLabel(tier)}</span>
+      </div>
+      <div class="dim-score-block">
+        <span class="dim-score-num" data-target="${value}">0</span>
+        <span class="dim-score-out">OUT OF 100</span>
+      </div>
+    `;
+    list.appendChild(card);
+    // Animate the bottom progress bar after paint
+    requestAnimationFrame(() => { card.style.setProperty('--score-width', value + '%'); });
+  });
+  // Animate score count-up
+  document.querySelectorAll('.dim-score-num').forEach((el) => {
+    animateNumber(el, parseInt(el.dataset.target, 10));
+  });
+}
+
+function showError() {
+  document.getElementById('scoreCard').style.display = 'none';
+  document.querySelector('.sub-section').style.display = 'none';
+  document.getElementById('rError').style.display = 'block';
+}
+
+async function loadResult() {
+  // Strategy: prefer ?id=, fall back to sessionStorage
+  let id = qs('id');
+  if (!id) {
+    try { id = sessionStorage.getItem('bb_funnel_part2_id') || ''; } catch (_) {}
+  }
+  if (!id) {
+    // No id at all — show error
+    showError();
+    return;
+  }
+  try {
+    const res = await fetch('/api/audit-result/' + encodeURIComponent(id));
+    if (!res.ok) throw new Error('not ok');
+    const data = await res.json();
+    if (!data || data.total == null) throw new Error('no data');
+    renderResult(data);
+  } catch (_) {
+    showError();
+  }
+}
+
+// Transformations carousel — same pattern as homepage
+(function initTransformations() {
+  const wrap = document.getElementById('tfScroll');
+  const prev = document.getElementById('tfPrev');
+  const next = document.getElementById('tfNext');
+  const dotsEl = document.getElementById('tfDots');
+  if (!wrap) return;
+  const cards = wrap.querySelectorAll('.tf-spotlight');
+  const n = cards.length;
+  document.getElementById('tfCount').textContent = n;
+  // Build dots
+  for (let i = 0; i < n; i++) {
+    const dot = document.createElement('button');
+    dot.type = 'button';
+    dot.className = 'tf-dot' + (i === 0 ? ' active' : '');
+    dot.setAttribute('aria-label', 'Transformation ' + (i + 1) + ' of ' + n);
+    dot.dataset.index = i;
+    dot.addEventListener('click', () => {
+      wrap.scrollTo({ left: wrap.clientWidth * i, behavior: 'smooth' });
+    });
+    dotsEl.appendChild(dot);
+  }
+  function update() {
+    const idx = Math.round(wrap.scrollLeft / wrap.clientWidth);
+    Array.from(dotsEl.children).forEach((d, i) => d.classList.toggle('active', i === idx));
+    prev.disabled = idx <= 0;
+    next.disabled = idx >= n - 1;
+  }
+  prev.addEventListener('click', () => wrap.scrollBy({ left: -wrap.clientWidth, behavior: 'smooth' }));
+  next.addEventListener('click', () => wrap.scrollBy({ left: wrap.clientWidth, behavior: 'smooth' }));
+  wrap.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+})();
+
+loadResult();
+</script>
+</body>
+</html>
