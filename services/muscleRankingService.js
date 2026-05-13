@@ -31,6 +31,8 @@ const REGIONS = [
     lifts: [
       { src: 'session', key: 'bench_press' },
       { src: 'session', key: 'incline_press', factor: 0.9 },
+      { src: 'session', key: 'chest_dip', factor: 0.85 },
+      { src: 'session', key: 'dumbbell_fly', factor: 0.55 },
       { src: 'progress', key: 'strength_bench' },
       { src: 'canonical', key: 'bench_kg' }
     ],
@@ -45,7 +47,9 @@ const REGIONS = [
     lifts: [
       { src: 'session', key: 'barbell_row' },
       { src: 'session', key: 'lat_pulldown', factor: 0.85 },
+      { src: 'session', key: 'pull_up', factor: 0.85 },
       { src: 'session', key: 'deadlift', factor: 0.65 },
+      { src: 'session', key: 'shrug', factor: 0.40 },
       { src: 'progress', key: 'strength_deadlift', factor: 0.65 },
       { src: 'canonical', key: 'deadlift_kg', factor: 0.65 }
     ],
@@ -58,7 +62,10 @@ const REGIONS = [
     label: 'Shoulders',
     lifts: [
       { src: 'session', key: 'overhead_press' },
+      { src: 'session', key: 'arnold_press', factor: 0.85 },
       { src: 'session', key: 'lateral_raise', factor: 0.50 },
+      { src: 'session', key: 'front_raise', factor: 0.50 },
+      { src: 'session', key: 'reverse_fly', factor: 0.40 },
       { src: 'session', key: 'face_pull', factor: 0.35 }
     ],
     weakBw: 0.30,
@@ -70,7 +77,11 @@ const REGIONS = [
     label: 'Arms',
     lifts: [
       { src: 'session', key: 'bicep_curl' },
-      { src: 'session', key: 'triceps_pushdown', factor: 0.80 }
+      { src: 'session', key: 'preacher_curl', factor: 0.90 },
+      { src: 'session', key: 'hammer_curl', factor: 0.85 },
+      { src: 'session', key: 'triceps_pushdown', factor: 0.80 },
+      { src: 'session', key: 'skull_crusher', factor: 0.85 },
+      { src: 'session', key: 'wrist_curl', factor: 0.45 }   // forearms (rolled into arms region)
     ],
     weakBw: 0.15,
     strongBw: 0.50,
@@ -81,10 +92,15 @@ const REGIONS = [
     label: 'Legs',
     lifts: [
       { src: 'session', key: 'back_squat' },
+      { src: 'session', key: 'front_squat', factor: 0.85 },
       { src: 'session', key: 'squat' },
       { src: 'session', key: 'romanian_deadlift', factor: 0.85 },
+      { src: 'session', key: 'hip_thrust', factor: 0.65 },
       { src: 'session', key: 'leg_press', factor: 0.55 },
+      { src: 'session', key: 'bulgarian_split_squat', factor: 0.50 },
+      { src: 'session', key: 'lunge', factor: 0.45 },
       { src: 'session', key: 'leg_curl', factor: 0.30 },
+      { src: 'session', key: 'glute_bridge', factor: 0.30 },
       { src: 'progress', key: 'strength_squat' },
       { src: 'canonical', key: 'squat_kg' }
     ],
@@ -95,8 +111,11 @@ const REGIONS = [
   {
     key: 'core',
     label: 'Core',
-    // Core is proxied via compound lifts (no direct isolation movement tracked)
+    // Core scores from direct ab work first, falling back to compounds.
     lifts: [
+      { src: 'session', key: 'cable_crunch', factor: 0.80 },
+      { src: 'session', key: 'hanging_leg_raise', factor: 0.65 },
+      { src: 'session', key: 'ab_wheel', factor: 0.60 },
       { src: 'session', key: 'deadlift', factor: 0.45 },
       { src: 'session', key: 'back_squat', factor: 0.35 },
       { src: 'session', key: 'squat', factor: 0.35 },
@@ -126,42 +145,66 @@ const REGION_EXERCISES = {
   chest: [
     { name: 'Barbell Bench Press', sets: '3–4 sets × 6–10 reps', impact: 'High Impact' },
     { name: 'Incline Dumbbell Press', sets: '3–4 sets × 8–12 reps', impact: 'High Impact' },
-    { name: 'Cable Chest Fly', sets: '3–4 sets × 12–15 reps', impact: 'Medium Impact' }
+    { name: 'Chest Dip', sets: '3–4 sets × 8–12 reps', impact: 'High Impact' },
+    { name: 'Dumbbell Fly', sets: '3–4 sets × 12–15 reps', impact: 'Medium Impact' }
   ],
   back: [
     { name: 'Barbell Row', sets: '3–4 sets × 6–10 reps', impact: 'High Impact' },
     { name: 'Lat Pulldown', sets: '3–4 sets × 8–12 reps', impact: 'High Impact' },
-    { name: 'Seated Cable Row', sets: '3–4 sets × 10–15 reps', impact: 'Medium Impact' }
+    { name: 'Pull-Up', sets: '3–4 sets × 6–10 reps', impact: 'High Impact' },
+    { name: 'Shrug', sets: '3–4 sets × 10–15 reps', impact: 'Medium Impact' }
   ],
   shoulders: [
     { name: 'Overhead Barbell Press', sets: '3–4 sets × 6–10 reps', impact: 'High Impact' },
+    { name: 'Arnold Press', sets: '3–4 sets × 8–12 reps', impact: 'High Impact' },
     { name: 'Dumbbell Lateral Raise', sets: '3–4 sets × 12–15 reps', impact: 'High Impact' },
+    { name: 'Front Raise', sets: '3–4 sets × 12–15 reps', impact: 'Medium Impact' },
+    { name: 'Reverse Fly', sets: '3–4 sets × 12–15 reps', impact: 'Medium Impact' },
     { name: 'Face Pull', sets: '3–4 sets × 15–20 reps', impact: 'Medium Impact' }
   ],
   arms: [
     { name: 'Barbell Bicep Curl', sets: '3–4 sets × 8–12 reps', impact: 'High Impact' },
+    { name: 'Hammer Curl', sets: '3–4 sets × 12–15 reps', impact: 'Medium Impact' },
+    { name: 'Preacher Curl', sets: '3–4 sets × 8–12 reps', impact: 'High Impact' },
     { name: 'Tricep Pushdown', sets: '3–4 sets × 10–15 reps', impact: 'High Impact' },
-    { name: 'Hammer Curl', sets: '3–4 sets × 12–15 reps', impact: 'Medium Impact' }
+    { name: 'Skull Crusher', sets: '3–4 sets × 8–12 reps', impact: 'High Impact' },
+    { name: 'Wrist Curl (forearms)', sets: '3–4 sets × 12–20 reps', impact: 'Medium Impact' }
   ],
   legs: [
     { name: 'Barbell Squat', sets: '3–4 sets × 6–10 reps', impact: 'High Impact' },
+    { name: 'Front Squat', sets: '3–4 sets × 6–10 reps', impact: 'High Impact' },
     { name: 'Romanian Deadlift', sets: '3–4 sets × 8–12 reps', impact: 'High Impact' },
-    { name: 'Walking Lunges', sets: '3–4 sets × 12–16 reps', impact: 'Medium Impact' }
+    { name: 'Hip Thrust', sets: '3–4 sets × 8–12 reps', impact: 'High Impact' },
+    { name: 'Bulgarian Split Squat', sets: '3 sets × 8–12 reps / leg', impact: 'Medium Impact' },
+    { name: 'Walking Lunges', sets: '3–4 sets × 12–16 reps', impact: 'Medium Impact' },
+    { name: 'Calf Raise', sets: '3–4 sets × 12–20 reps', impact: 'Medium Impact' }
   ],
   core: [
-    { name: 'Deadlift (focus on bracing)', sets: '3–4 sets × 5–8 reps', impact: 'High Impact' },
+    { name: 'Cable Crunch', sets: '3–4 sets × 10–15 reps', impact: 'High Impact' },
     { name: 'Hanging Leg Raise', sets: '3–4 sets × 10–15 reps', impact: 'High Impact' },
-    { name: 'Ab Wheel Rollout', sets: '3–4 sets × 8–12 reps', impact: 'Medium Impact' }
+    { name: 'Ab Wheel Rollout', sets: '3–4 sets × 8–12 reps', impact: 'Medium Impact' },
+    { name: 'Deadlift (focus on bracing)', sets: '3–4 sets × 5–8 reps', impact: 'High Impact' }
   ]
 };
 
 // Canonical exercise keys we surface in the drill-down.
 // Used for the Phase 2 last_lifts + frequency_30d response fields.
 const TRACKED_LIFT_KEYS = [
-  'bench_press', 'incline_press', 'overhead_press', 'lateral_raise',
-  'triceps_pushdown', 'bicep_curl', 'deadlift', 'barbell_row',
-  'lat_pulldown', 'face_pull', 'back_squat', 'romanian_deadlift',
-  'leg_press', 'leg_curl', 'calf_raise'
+  // Chest
+  'bench_press', 'incline_press', 'dumbbell_fly', 'chest_dip',
+  // Back
+  'barbell_row', 'lat_pulldown', 'pull_up', 'shrug', 'face_pull', 'deadlift',
+  // Shoulders
+  'overhead_press', 'arnold_press', 'lateral_raise', 'front_raise', 'reverse_fly',
+  // Arms (incl. forearms)
+  'bicep_curl', 'hammer_curl', 'preacher_curl',
+  'triceps_pushdown', 'skull_crusher', 'wrist_curl',
+  // Legs
+  'back_squat', 'front_squat', 'romanian_deadlift', 'leg_press',
+  'hip_thrust', 'lunge', 'bulgarian_split_squat', 'glute_bridge',
+  'leg_curl', 'calf_raise',
+  // Core / Abs
+  'hanging_leg_raise', 'ab_wheel', 'cable_crunch'
 ];
 
 // Score-to-week improvement estimate
