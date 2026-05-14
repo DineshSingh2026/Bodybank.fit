@@ -41,18 +41,38 @@ body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;
 .step-line{flex:1;height:1.5px;background:var(--bdr);max-width:50px}
 .step-line.done{background:var(--gold)}
 
-/* Score card */
-.score-card{background:linear-gradient(180deg,rgba(18,18,18,0.98),rgba(8,8,8,0.99));border:1px solid var(--bdr);border-radius:24px;padding:36px 24px 32px;text-align:center;box-shadow:0 24px 56px rgba(0,0,0,0.45);position:relative;overflow:hidden}
+/* Score card — vertical stack: pentagon on top, then score, tier, blurb, weak-lever divider */
+.score-card{background:linear-gradient(180deg,rgba(20,20,22,0.98),rgba(8,8,10,0.99));border:1px solid var(--bdr);border-radius:24px;padding:30px 24px 24px;text-align:center;box-shadow:0 24px 56px rgba(0,0,0,0.45);position:relative;overflow:hidden}
 .score-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,transparent,rgba(200,164,78,0.7),transparent)}
-.score-label{font-size:12px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;font-weight:600;margin-bottom:14px;opacity:0.85}
-.score-num{font-family:'Bebas Neue',sans-serif;font-size:120px;line-height:1;letter-spacing:2px;background:var(--goldg);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;display:inline-block;transition:opacity .6s}
-.score-out{display:inline-block;font-family:'Outfit',sans-serif;font-size:24px;letter-spacing:1px;color:var(--creamd);margin-left:6px;vertical-align:top;margin-top:18px}
-.score-loading{font-family:'Bebas Neue',sans-serif;font-size:80px;color:var(--muted);opacity:0.4}
-.tier-badge{display:inline-flex;align-items:center;gap:10px;margin-top:18px;padding:10px 22px;border-radius:999px;border:1.5px solid var(--gold);background:rgba(200,164,78,0.12);color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2.5px;text-transform:uppercase}
-.tier-badge .tier-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px rgba(200,164,78,0.7)}
-.tier-blurb{margin-top:18px;color:var(--creamd);font-size:15px;font-style:italic;letter-spacing:0.2px;max-width:480px;margin-left:auto;margin-right:auto;line-height:1.55}
-.weak-lever-line{margin-top:20px;padding-top:18px;border-top:1px solid var(--bdr);color:var(--cream);font-size:14px;letter-spacing:0.4px}
+.score-label{font-size:11px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;font-weight:600;margin-bottom:14px;opacity:0.85}
+.score-pentagon-wrap{width:100%;max-width:360px;margin:0 auto 8px;aspect-ratio:380/360}
+.score-pentagon-wrap .radar-svg{width:100%;height:100%;display:block}
+/* Score headline row: "62 / 100" baseline-aligned, BUILDER pill centred vertically alongside. */
+.score-headline{display:inline-flex;align-items:center;justify-content:center;gap:14px;margin:6px 0 14px;line-height:1;flex-wrap:wrap}
+.score-mini{display:inline-flex;align-items:baseline;gap:6px;line-height:1}
+.score-num{font-family:'Bebas Neue',sans-serif;font-size:56px;letter-spacing:1px;background:var(--goldg);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;display:inline-block;line-height:1;transition:opacity .6s}
+.score-out{font-family:'Outfit',sans-serif;font-size:16px;color:var(--creamd);font-weight:500;letter-spacing:0.6px}
+.score-loading{font-family:'Bebas Neue',sans-serif;font-size:60px;color:var(--muted);opacity:0.4}
+.tier-badge{display:inline-flex;align-items:center;gap:7px;margin:0;padding:5px 13px;border-radius:999px;border:1.5px solid var(--gold);background:rgba(200,164,78,0.12);color:var(--gold);font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:2px;text-transform:uppercase;line-height:1}
+.tier-badge .tier-dot{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 10px rgba(200,164,78,0.7)}
+.tier-blurb{margin:0 auto;color:var(--creamd);font-size:13.5px;font-style:italic;letter-spacing:0.2px;line-height:1.55;max-width:340px}
+.weak-lever-line{margin-top:18px;padding-top:16px;border-top:1px solid var(--bdr);color:var(--cream);font-size:13.5px;letter-spacing:0.3px;line-height:1.5}
 .weak-lever-line strong{color:var(--gold);font-weight:600}
+
+/* Inline mid-page CTA — visible right after the score so users don't have to scroll to find the call action */
+.inline-cta{margin-top:18px;padding:16px 18px;border:1px solid var(--bdr);border-radius:16px;background:linear-gradient(180deg,rgba(200,164,78,0.08),rgba(8,8,8,0.6));display:flex;align-items:center;gap:14px;justify-content:space-between;flex-wrap:wrap;position:relative;overflow:hidden}
+.inline-cta::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(200,164,78,0.55),transparent)}
+.inline-cta-body{flex:1;min-width:200px;text-align:left}
+.inline-cta-heading{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:1.4px;color:var(--cream);margin:0 0 4px;text-transform:uppercase;line-height:1.15}
+.inline-cta-heading .accent{color:var(--gold)}
+.inline-cta-sub{font-size:12.5px;color:var(--creamd);margin:0;letter-spacing:0.3px;line-height:1.5}
+.cta-btn--inline{padding:13px 22px;font-size:12.5px;letter-spacing:1.4px;white-space:nowrap}
+
+/* Sticky bottom CTA — appears on mobile once user scrolls past the score card so the call action is always one tap away */
+.sticky-cta{position:fixed;left:0;right:0;bottom:0;z-index:60;display:none;padding:10px 14px;padding-bottom:max(10px,calc(env(safe-area-inset-bottom) + 6px));background:linear-gradient(180deg,rgba(6,6,6,0.6),rgba(6,6,6,0.97));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1px solid var(--bdr);transform:translateY(110%);transition:transform .35s cubic-bezier(.2,.8,.2,1);pointer-events:none}
+.sticky-cta.visible{transform:translateY(0);pointer-events:auto}
+.sticky-cta .sticky-cta-btn{display:flex;align-items:center;justify-content:center;width:100%;padding:13px 18px;background:var(--goldg);border:none;border-radius:10px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;cursor:pointer;text-decoration:none}
+.sticky-cta .sticky-cta-btn svg{width:14px;height:14px;margin-left:8px}
 
 /* Sub-scores — radar chart hero + tiered detail cards */
 .sub-section{margin-top:36px}
@@ -217,6 +237,16 @@ body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;
 .tf-sub{text-align:center;color:var(--gold);font-size:14px;letter-spacing:0.5px;margin-bottom:28px;opacity:0.95}
 @media(max-width:700px){.tf-wrap{margin:0 -16px}.tf-spotlight{border-radius:16px;padding:16px;padding-top:20px}.tf-spotlight-img-wrap{border-radius:10px}.tf-spotlight-story{padding:18px 18px 22px;font-size:14px}.tf-arrow-btn{width:40px;height:40px;font-size:18px}.tf-arrow-btn.tf-prev{left:4px}.tf-arrow-btn.tf-next{right:4px}}
 
+/* Save / share card — lets users export their result as a branded image */
+.share-section{margin-top:28px;display:flex;flex-direction:column;align-items:center;gap:10px}
+.share-btn{display:inline-flex;align-items:center;gap:10px;padding:14px 26px;border:1.5px solid var(--gold);background:rgba(200,164,78,0.08);color:var(--gold);border-radius:10px;font-family:'Outfit',sans-serif;font-weight:600;font-size:13px;letter-spacing:1.4px;text-transform:uppercase;cursor:pointer;transition:all .25s}
+.share-btn:hover{background:rgba(200,164,78,0.18);transform:translateY(-1px);box-shadow:0 8px 22px rgba(200,164,78,0.18)}
+.share-btn:disabled{opacity:0.6;cursor:wait;transform:none}
+.share-btn svg{width:16px;height:16px}
+.share-hint{color:var(--muted);font-size:12px;letter-spacing:0.3px;text-align:center;margin:0}
+.share-hint--ok{color:#28dc82}
+.share-hint--err{color:#ff6464}
+
 /* CTA */
 .cta-section{margin-top:48px;text-align:center}
 .cta-quote{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--creamd);font-style:italic;margin-bottom:22px;letter-spacing:0.3px}
@@ -231,13 +261,25 @@ body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;
 .r-error a{color:var(--gold);text-decoration:underline}
 
 @media(max-width:520px){
-  .r-wrap{padding:100px 16px 60px}
+  .r-wrap{padding:100px 16px 90px}
   .r-title{font-size:30px}
-  .score-card{padding:28px 16px 26px}
-  .score-num{font-size:96px}
-  .score-out{font-size:20px;margin-top:14px}
-  .tier-badge{font-size:15px;padding:9px 18px;letter-spacing:2px}
+  .score-card{padding:24px 18px 22px}
+  .score-pentagon-wrap{max-width:280px}
+  .score-num{font-size:48px}
+  .score-out{font-size:14px}
+  .score-headline{gap:10px;margin:6px 0 10px}
+  .tier-badge{font-size:12px;letter-spacing:1.6px;padding:4px 11px;gap:6px}
+  .tier-badge .tier-dot{width:5px;height:5px}
+  .tier-blurb{font-size:13px;line-height:1.5;max-width:300px}
+  .weak-lever-line{font-size:13px;margin-top:16px;padding-top:14px}
+  .inline-cta{padding:14px;gap:10px}
+  .inline-cta-heading{font-size:16px}
+  .inline-cta-sub{font-size:12px}
+  .cta-btn--inline{width:100%;text-align:center;padding:13px 16px}
   .sub-heading{font-size:22px}
+}
+@media(max-width:700px){
+  .sticky-cta{display:block}
 }
 </style>
 </head>
@@ -271,16 +313,23 @@ body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;
     <div class="step-dot">4</div>
   </div>
 
-  <!-- Score card -->
+  <!-- Score card — vertical stack: pentagon, score, tier, blurb, weak-lever -->
   <div class="score-card" id="scoreCard">
     <p class="score-label">Your Body Audit Score</p>
-    <div>
-      <span class="score-num" id="scoreNum">--</span>
-      <span class="score-out">/ 100</span>
+    <div class="score-pentagon-wrap">
+      <svg class="radar-svg" id="radarSvg" viewBox="0 0 380 360" preserveAspectRatio="xMidYMid meet" aria-label="Five-dimension audit radar">
+        <!-- grid + spokes + polygon are drawn by JS -->
+      </svg>
     </div>
-    <div class="tier-badge" id="tierBadge" style="display:none">
-      <span class="tier-dot"></span>
-      <span id="tierLabel">—</span>
+    <div class="score-headline">
+      <span class="score-mini">
+        <span class="score-num" id="scoreNum">--</span>
+        <span class="score-out">/ 100</span>
+      </span>
+      <div class="tier-badge" id="tierBadge" style="display:none">
+        <span class="tier-dot"></span>
+        <span id="tierLabel">—</span>
+      </div>
     </div>
     <p class="tier-blurb" id="tierBlurb"></p>
     <p class="weak-lever-line" id="weakLeverLine" style="display:none">
@@ -288,19 +337,29 @@ body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;
     </p>
   </div>
 
-  <!-- Sub-scores: radar hero + tier cards -->
+  <!-- Mid-page CTA — surfaces the schedule-a-call action right after the score so users don't have to scroll past transformations to find it -->
+  <div class="inline-cta" id="inlineCta">
+    <div class="inline-cta-body">
+      <p class="inline-cta-heading">Want a <span class="accent">1:1 read</span> of your score?</p>
+      <p class="inline-cta-sub">Talk to a Lifestyle Manager — 20 minutes, no pressure, just clarity on what to fix first.</p>
+    </div>
+    <a href="schedule-call.html?from=result_top" class="cta-btn cta-btn--inline">Book My 1:1 Read</a>
+  </div>
+
+  <!-- Sub-scores: tier cards (radar lives in the score card now) -->
   <div class="sub-section">
     <h2 class="sub-heading">Where the score comes from</h2>
-    <p class="sub-help">Five dimensions, weighted into your total. The shape tells your story at a glance.</p>
-    <div class="radar-panel">
-      <div class="radar-wrap">
-        <svg class="radar-svg" id="radarSvg" viewBox="0 0 380 360" preserveAspectRatio="xMidYMid meet" aria-label="Five-dimension audit radar">
-          <!-- grid + spokes + polygon are drawn by JS -->
-        </svg>
-      </div>
-    </div>
+    <p class="sub-help">Five dimensions, weighted into your total. The shape on your pentagon above tells your story at a glance.</p>
     <div class="dim-list" id="subList">
       <!-- populated by JS -->
+    </div>
+    <!-- Save card: exports the score card + sub-score rows as a branded sharable image -->
+    <div class="share-section">
+      <button type="button" class="share-btn" id="saveCardBtn" aria-label="Save your audit card as an image">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+        <span id="saveCardLabel">Save My Card</span>
+      </button>
+      <p class="share-hint" id="saveCardHint">Save your score, pentagon, and 5-dim breakdown as a shareable image.</p>
     </div>
   </div>
 
@@ -509,7 +568,7 @@ body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;
       "Every athlete you admire started at a Foundation. The only difference is they kept showing up."
       <span class="attr">— Your Lifestyle Manager</span>
     </p>
-    <a href="schedule-call.html?from=result" class="cta-btn" id="ctaBtn">Schedule My Free Call</a>
+    <a href="schedule-call.html?from=result" class="cta-btn" id="ctaBtn">Book My 1:1 Read</a>
     <a href="index.html" class="cta-secondary">Maybe later, take me home</a>
   </div>
 
@@ -518,6 +577,14 @@ body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;
     <p>We couldn't load your result. <a href="index.html">Return home</a> or contact us.</p>
   </div>
 
+</div>
+
+<!-- Sticky mobile CTA — reveals once user scrolls past the score card -->
+<div class="sticky-cta" id="stickyCta" aria-hidden="true">
+  <a href="schedule-call.html?from=result_sticky" class="sticky-cta-btn">
+    Book My 1:1 Read
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 6 15 12 9 18"></polyline></svg>
+  </a>
 </div>
 
 <script>
@@ -578,7 +645,18 @@ function animateNumber(el, target) {
   requestAnimationFrame(tick);
 }
 
+// Tier blurbs are referenced by both the live page and the share-card renderer.
+const TIER_BLURBS = {
+  athlete: 'You already train with intent. Now we sharpen the edges.',
+  builder: 'A real base is here. The next 12 weeks are about momentum.',
+  foundation: 'Every athlete started here. We build it right, not fast.'
+};
+
+// Cached so the share-card builder can use it without re-fetching.
+let __lastResult = null;
+
 function renderResult(data) {
+  __lastResult = data;
   // Name
   const firstName = (data.name || '').split(' ')[0];
   if (firstName) {
@@ -590,13 +668,7 @@ function renderResult(data) {
   const badge = document.getElementById('tierBadge');
   badge.style.display = 'inline-flex';
   document.getElementById('tierLabel').textContent = data.tier_label || '—';
-  // Tier blurb (computed client-side from tier_key for resilience)
-  const blurbs = {
-    athlete: 'You already train with intent. Now we sharpen the edges.',
-    builder: 'A real base is here. The next 12 weeks are about momentum.',
-    foundation: 'Every athlete started here. We build it right, not fast.'
-  };
-  document.getElementById('tierBlurb').textContent = blurbs[data.tier_key] || '';
+  document.getElementById('tierBlurb').textContent = TIER_BLURBS[data.tier_key] || '';
   // Weak lever
   if (data.weak_lever) {
     document.getElementById('weakLever').textContent = data.weak_lever;
@@ -709,6 +781,18 @@ function showError() {
 }
 
 async function loadResult() {
+  // Demo mode: render the page with sample data so the layout is reviewable without a DB record.
+  if (qs('demo') === '1') {
+    renderResult({
+      name: 'Demo',
+      total: 62,
+      tier_key: 'builder',
+      tier_label: 'Builder',
+      weak_lever: 'Training consistency',
+      sub_scores: { activity: 55, training: 42, nutrition: 68, mindset: 72, lifestyle: 64 }
+    });
+    return;
+  }
   // Strategy: prefer ?id=, fall back to sessionStorage
   let id = qs('id');
   if (!id) {
@@ -729,6 +813,591 @@ async function loadResult() {
     showError();
   }
 }
+
+// Sticky mobile CTA — show once the user has scrolled past the score card, hide near the bottom CTA so it doesn't overlap the primary button.
+(function initStickyCta(){
+  const sticky = document.getElementById('stickyCta');
+  const scoreCard = document.getElementById('scoreCard');
+  const ctaSection = document.querySelector('.cta-section');
+  if (!sticky || !scoreCard) return;
+  function update(){
+    const passedScore = (scoreCard.getBoundingClientRect().bottom) < 60;
+    const nearBottomCta = ctaSection && ctaSection.getBoundingClientRect().top < (window.innerHeight - 80);
+    const visible = passedScore && !nearBottomCta;
+    sticky.classList.toggle('visible', visible);
+    sticky.setAttribute('aria-hidden', visible ? 'false' : 'true');
+  }
+  window.addEventListener('scroll', update, { passive: true });
+  window.addEventListener('resize', update);
+  update();
+})();
+
+// Save card — generates a branded 1080x1350 share image from the audit result.
+// Drawn natively on canvas (no html2canvas) so typography, gold gradients, and the
+// pentagon stay crisp on social feeds and the file size stays small.
+(function initSaveCard(){
+  const btn = document.getElementById('saveCardBtn');
+  const label = document.getElementById('saveCardLabel');
+  const hint = document.getElementById('saveCardHint');
+  if (!btn || !label || !hint) return;
+
+  const W = 1080, H = 1920;  // Instagram Story / Reel — 9:16
+
+  // Single source of truth for every vertical position on the card. Centralised so
+  // the rhythm stays consistent and adjacent sections can never collide.
+  const L = {
+    // Header (compact — logo + eyebrow + name on three lines)
+    headerLogoY:    50,
+    headerLogoH:    100,
+    eyebrowY:       178,
+    eyebrowFontPx:  26,
+    nameY:          218,
+    nameFontPx:     52,
+
+    // Score panel
+    panelX:         40,
+    panelY:         295,
+    panelW:         W - 80,        // 1000
+    panelH:         1035,
+    panelR:         30,
+
+    labelY:         325,
+    labelFontPx:    20,
+
+    scoreBaseY:     545,
+    scoreFontPx:    180,
+    pillTopY:       585,
+    pillH:          60,
+    pillFontPx:     28,
+
+    blurbY:         715,
+    blurbLineGap:   42,
+    blurbFontPx:    28,
+
+    pentaCy:        1020,
+    pentaR:         210,
+    pentaLabelFontPx: 22,
+
+    weakRuleY:      1238,
+    weakLeverY:     1280,
+    weakPrefixFontPx: 24,
+    weakLeverFontPx:  26,
+
+    // Sub-scores section
+    subHeadingY:    1356,
+    subHeadingFontPx: 42,
+    subHelpY:       1408,
+    subHelpFontPx:  20,
+    rowsTopY:       1448,
+    rowH:           70,
+    rowGap:         10,
+
+    // Footer
+    footerY:        H - 64,
+    footerFontPx:   22
+  };
+
+  const TIER_BLURB_FOR_CARD = {
+    athlete: ['You already train with intent.', 'Now we sharpen the edges.'],
+    builder: ['A real base is here.', 'The next 12 weeks build momentum.'],
+    foundation: ['Every athlete started here.', 'We build it right, not fast.']
+  };
+
+  const DIM_LIST = [
+    { key: 'activity',  label: 'Activity',  color: '#ff8a3d' },
+    { key: 'training',  label: 'Training',  color: '#ff4d6d' },
+    { key: 'nutrition', label: 'Nutrition', color: '#34d399' },
+    { key: 'mindset',   label: 'Mindset',   color: '#a78bfa' },
+    { key: 'lifestyle', label: 'Lifestyle', color: '#22d3ee' }
+  ];
+
+  function tierForCard(score){
+    if (score >= 70) return { key:'strong', label:'STRONG', color:'#28dc82' };
+    if (score >= 50) return { key:'average', label:'AVERAGE', color:'#ffcd28' };
+    return { key:'weak', label:'WEAK', color:'#ff6464' };
+  }
+
+  function loadImage(src){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = src;
+    });
+  }
+
+  function roundRect(ctx, x, y, w, h, r){
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y, x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x, y+h, r);
+    ctx.arcTo(x, y+h, x, y, r);
+    ctx.arcTo(x, y, x+w, y, r);
+    ctx.closePath();
+  }
+
+  function drawPanel(ctx, x, y, w, h, r){
+    const g = ctx.createLinearGradient(x, y, x, y+h);
+    g.addColorStop(0, 'rgba(22,22,22,0.98)');
+    g.addColorStop(1, 'rgba(8,8,8,0.99)');
+    ctx.fillStyle = g;
+    roundRect(ctx, x, y, w, h, r);
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(200,164,78,0.28)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+    const sheen = ctx.createLinearGradient(x, y, x+w, y);
+    sheen.addColorStop(0, 'rgba(200,164,78,0)');
+    sheen.addColorStop(0.5, 'rgba(200,164,78,0.7)');
+    sheen.addColorStop(1, 'rgba(200,164,78,0)');
+    ctx.fillStyle = sheen;
+    ctx.fillRect(x+r, y, w-(r*2), 3);
+  }
+
+  function drawPentagon(ctx, cx, cy, R, scores){
+    const n = 5;
+    const angleAt = (i) => -Math.PI/2 + (i * 2 * Math.PI / n);
+    [40, 70, 100].forEach((pct) => {
+      const r = R * (pct/100);
+      ctx.beginPath();
+      for (let i = 0; i < n; i++){
+        const a = angleAt(i);
+        const x = cx + Math.cos(a) * r;
+        const y = cy + Math.sin(a) * r;
+        if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.strokeStyle = 'rgba(200,164,78,0.18)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    });
+    for (let i = 0; i < n; i++){
+      const a = angleAt(i);
+      ctx.beginPath();
+      ctx.moveTo(cx, cy);
+      ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+      ctx.strokeStyle = 'rgba(200,164,78,0.14)';
+      ctx.stroke();
+    }
+    const pts = [];
+    ctx.beginPath();
+    DIM_LIST.forEach((d, i) => {
+      const value = Math.max(0, Math.min(100, Number(scores[d.key]) || 0));
+      const a = angleAt(i);
+      const r = R * (value/100);
+      const x = cx + Math.cos(a) * r;
+      const y = cy + Math.sin(a) * r;
+      pts.push({x, y});
+      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+    });
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(200,164,78,0.22)';
+    ctx.fill();
+    ctx.strokeStyle = '#c8a44e';
+    ctx.lineWidth = 2.4;
+    ctx.shadowColor = 'rgba(200,164,78,0.55)';
+    ctx.shadowBlur = 16;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    pts.forEach(p => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 5, 0, Math.PI*2);
+      ctx.fillStyle = '#f2ece0';
+      ctx.fill();
+      ctx.strokeStyle = '#c8a44e';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+    DIM_LIST.forEach((d, i) => {
+      const a = angleAt(i);
+      const labelR = R + 30;
+      const x = cx + Math.cos(a) * labelR;
+      const y = cy + Math.sin(a) * labelR;
+      const cosA = Math.cos(a);
+      ctx.textAlign = cosA > 0.3 ? 'left' : cosA < -0.3 ? 'right' : 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = d.color;
+      ctx.font = '700 19px "Bebas Neue", Impact, sans-serif';
+      ctx.fillText(d.label.toUpperCase(), x, y);
+    });
+  }
+
+  // Big centred score number with " / 100" suffix. No tier pill or blurb here —
+  // those have their own y-anchors in the LAYOUT block so each section is independently positioned.
+  function drawScoreNumber(ctx, cx, baseY, fontPx, total){
+    ctx.textBaseline = 'alphabetic';
+    ctx.font = '700 ' + fontPx + 'px "Bebas Neue", Impact, sans-serif';
+    const scoreText = String(total);
+    const sw = ctx.measureText(scoreText).width;
+    const slashFontPx = Math.round(fontPx * 0.20);
+    ctx.font = '500 ' + slashFontPx + 'px Outfit, system-ui, sans-serif';
+    const slashText = ' / 100';
+    const slashW = ctx.measureText(slashText).width;
+    const groupW = sw + slashW;
+    const startX = cx - groupW / 2;
+
+    ctx.font = '700 ' + fontPx + 'px "Bebas Neue", Impact, sans-serif';
+    ctx.textAlign = 'left';
+    const grad = ctx.createLinearGradient(0, baseY - fontPx * 0.85, 0, baseY);
+    grad.addColorStop(0,   '#e0c068');
+    grad.addColorStop(0.5, '#c8a44e');
+    grad.addColorStop(1,   '#9a8038');
+    ctx.fillStyle = grad;
+    ctx.fillText(scoreText, startX, baseY);
+
+    ctx.font = '500 ' + slashFontPx + 'px Outfit, system-ui, sans-serif';
+    ctx.fillStyle = '#bfb9ab';
+    ctx.fillText(slashText, startX + sw, baseY - Math.round(fontPx * 0.06));
+  }
+
+  function drawTierPill(ctx, cx, pillY, pillH, fontPx, tierLabel){
+    const labelText = (tierLabel || '').toUpperCase();
+    if (!labelText) return;
+    ctx.font = '700 ' + fontPx + 'px "Bebas Neue", Impact, sans-serif';
+    const tw = ctx.measureText(labelText).width;
+    const pillW = tw + 80;
+    const pillX = cx - pillW / 2;
+    const dotR = Math.max(5, Math.round(pillH * 0.11));
+    const dotCx = pillX + 26;
+
+    ctx.fillStyle = 'rgba(200,164,78,0.15)';
+    roundRect(ctx, pillX, pillY, pillW, pillH, pillH/2);
+    ctx.fill();
+    ctx.strokeStyle = '#c8a44e';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(dotCx, pillY + pillH/2, dotR, 0, Math.PI*2);
+    ctx.shadowColor = 'rgba(200,164,78,0.85)';
+    ctx.shadowBlur = 12;
+    ctx.fillStyle = '#c8a44e';
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.fillStyle = '#c8a44e';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(labelText, dotCx + dotR + 14, pillY + pillH/2 + 2);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  function drawTierBlurb(ctx, cx, topY, lineGap, fontPx, tierKey){
+    const blurb = TIER_BLURB_FOR_CARD[tierKey];
+    if (!blurb) return;
+    ctx.fillStyle = '#d4ccba';
+    ctx.font = 'italic 400 ' + fontPx + 'px Outfit, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'alphabetic';
+    blurb.forEach((line, i) => {
+      ctx.fillText(line, cx, topY + i*lineGap);
+    });
+  }
+
+  // Centered weak-lever line: prefix and lever measured together so the group sits exactly mid-card.
+  function drawWeakLeverCentered(ctx, cx, y, lever){
+    const prefix = 'Biggest lever to fix first: ';
+    ctx.textBaseline = 'middle';
+    ctx.font = '500 20px Outfit, system-ui, sans-serif';
+    const prefixW = ctx.measureText(prefix).width;
+    ctx.font = '700 22px Outfit, system-ui, sans-serif';
+    const leverW = ctx.measureText(lever).width;
+    const groupW = prefixW + leverW;
+    const startX = cx - groupW / 2;
+
+    ctx.textAlign = 'left';
+    ctx.font = '500 20px Outfit, system-ui, sans-serif';
+    ctx.fillStyle = '#f2ece0';
+    ctx.fillText(prefix, startX, y);
+
+    ctx.font = '700 22px Outfit, system-ui, sans-serif';
+    ctx.fillStyle = '#c8a44e';
+    ctx.fillText(lever, startX + prefixW, y);
+    ctx.textBaseline = 'alphabetic';
+  }
+
+  function drawDimRow(ctx, x, y, w, h, dim, value){
+    const tier = tierForCard(value);
+
+    // Row card
+    roundRect(ctx, x, y, w, h, 14);
+    ctx.fillStyle = 'rgba(255,255,255,0.035)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(200,164,78,0.18)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Left accent (dim-coloured)
+    ctx.fillStyle = dim.color;
+    ctx.shadowColor = dim.color;
+    ctx.shadowBlur = 10;
+    ctx.fillRect(x, y + 1, 4, h - 2);
+    ctx.shadowBlur = 0;
+
+    // Bottom progress bar
+    const barMax = w - 8;
+    const barW = Math.max(0, Math.min(barMax, barMax * (value/100)));
+    ctx.fillStyle = dim.color;
+    ctx.fillRect(x + 4, y + h - 3, barW, 3);
+
+    // Right-side score block (drawn first so we know how much room remains for the label)
+    const rightPad = 22;
+    ctx.font = '700 38px "Bebas Neue", Impact, sans-serif';
+    const scoreText = String(value);
+    const scoreW = ctx.measureText(scoreText).width;
+    ctx.font = '700 11px Outfit, system-ui, sans-serif';
+    const slashW = ctx.measureText('/100').width;
+    const scoreBlockW = scoreW + 4 + slashW;
+    const scoreLeftX = x + w - rightPad - scoreBlockW;
+
+    ctx.fillStyle = dim.color;
+    ctx.shadowColor = dim.color;
+    ctx.shadowBlur = 12;
+    ctx.font = '700 38px "Bebas Neue", Impact, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(scoreText, scoreLeftX, y + h/2 + 2);
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = '#7f7a6d';
+    ctx.font = '700 11px Outfit, system-ui, sans-serif';
+    ctx.fillText('/100', scoreLeftX + scoreW + 4, y + h/2 + 4);
+
+    // Dim label (left side)
+    ctx.fillStyle = '#f2ece0';
+    ctx.font = '600 24px Outfit, system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(dim.label, x + 26, y + h/2);
+    const nameW = ctx.measureText(dim.label).width;
+
+    // Tier pill — placed right after the label, but clamped so it never reaches the score
+    ctx.font = '700 11px Outfit, system-ui, sans-serif';
+    const tierW = ctx.measureText(tier.label).width;
+    const pillW = tierW + 20, pillH = 22;
+    const pillX = x + 26 + nameW + 12;
+    const pillY = y + h/2 - pillH/2;
+    // Only draw if there's enough room before the score block
+    if (pillX + pillW + 16 < scoreLeftX){
+      roundRect(ctx, pillX, pillY, pillW, pillH, pillH/2);
+      ctx.fillStyle = 'rgba(6,6,6,0.7)';
+      ctx.fill();
+      ctx.strokeStyle = tier.color;
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      ctx.fillStyle = tier.color;
+      ctx.textAlign = 'center';
+      ctx.fillText(tier.label, pillX + pillW/2, pillY + pillH/2 + 1);
+    }
+  }
+
+  // Letter-spaced caps. Canvas has no letter-spacing CSS, so we draw glyph-by-glyph
+  // with explicit kerning. Required for clean tracking on the gold eyebrow / labels.
+  function drawTrackedText(ctx, text, cx, y, trackPx){
+    const chars = text.split('');
+    const widths = chars.map(c => ctx.measureText(c).width);
+    const total = widths.reduce((s, w) => s + w, 0) + trackPx * (chars.length - 1);
+    let x = cx - total / 2;
+    chars.forEach((c, i) => {
+      ctx.fillText(c, x, y);
+      x += widths[i] + trackPx;
+    });
+  }
+
+  // Vertical decorative gold hairline — used to break the long card into rhythmic bands.
+  function drawHairline(ctx, x1, y, x2, alpha){
+    const g = ctx.createLinearGradient(x1, y, x2, y);
+    g.addColorStop(0,   'rgba(200,164,78,0)');
+    g.addColorStop(0.5, 'rgba(200,164,78,' + alpha + ')');
+    g.addColorStop(1,   'rgba(200,164,78,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(x1, y, x2 - x1, 1);
+  }
+
+  async function renderShareCard(data){
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = 'high';
+
+    // ===== Background — black canvas with two stacked gold glows (top hero, bottom anchor)
+    ctx.fillStyle = '#060606';
+    ctx.fillRect(0, 0, W, H);
+    const topGlow = ctx.createRadialGradient(W/2, 460, 160, W/2, 460, 1100);
+    topGlow.addColorStop(0, 'rgba(200,164,78,0.14)');
+    topGlow.addColorStop(1, 'rgba(6,6,6,0)');
+    ctx.fillStyle = topGlow;
+    ctx.fillRect(0, 0, W, H);
+    const btmGlow = ctx.createRadialGradient(W/2, H - 140, 80, W/2, H - 140, 600);
+    btmGlow.addColorStop(0, 'rgba(200,164,78,0.06)');
+    btmGlow.addColorStop(1, 'rgba(6,6,6,0)');
+    ctx.fillStyle = btmGlow;
+    ctx.fillRect(0, H - 740, W, 740);
+
+    // Top + bottom gold accent rules
+    const topRule = ctx.createLinearGradient(0, 0, W, 0);
+    topRule.addColorStop(0, 'rgba(200,164,78,0)');
+    topRule.addColorStop(0.5, 'rgba(200,164,78,0.95)');
+    topRule.addColorStop(1, 'rgba(200,164,78,0)');
+    ctx.fillStyle = topRule;
+    ctx.fillRect(0, 0, W, 4);
+    ctx.fillRect(0, H - 4, W, 4);
+
+    // ===== HEADER — logo, eyebrow, name
+    ctx.textBaseline = 'top';
+    try {
+      const logo = await loadImage('/img/Bodybank logo.png');
+      const lh = L.headerLogoH;
+      const lw = lh * (logo.width / logo.height);
+      ctx.drawImage(logo, (W - lw) / 2, L.headerLogoY, lw, lh);
+    } catch (_) {
+      ctx.fillStyle = '#c8a44e';
+      ctx.font = '700 56px Outfit, system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('BODYBANK', W/2, L.headerLogoY + 30);
+    }
+
+    // Eyebrow — tracked caps
+    ctx.fillStyle = '#c8a44e';
+    ctx.font = '600 22px Outfit, system-ui, sans-serif';
+    drawTrackedText(ctx, 'BODY AUDIT RESULT', W/2, L.eyebrowY, 5);
+
+    // Name + SCORE — Bebas Neue, large
+    const firstName = (data.name || '').split(' ')[0];
+    const headerText = firstName ? (firstName + "'s SCORE").toUpperCase() : 'YOUR SCORE';
+    ctx.fillStyle = '#f2ece0';
+    ctx.font = '700 46px "Bebas Neue", Impact, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(headerText, W/2, L.nameY);
+
+    // ===== SCORE PANEL (y = panelY to panelY + panelH)
+    drawPanel(ctx, L.panelX, L.panelY, L.panelW, L.panelH, L.panelR);
+
+    // Inner section label
+    ctx.fillStyle = '#c8a44e';
+    ctx.font = '600 14px Outfit, system-ui, sans-serif';
+    ctx.textBaseline = 'top';
+    drawTrackedText(ctx, 'YOUR BODY AUDIT SCORE', W/2, L.labelY, 4);
+
+    // Big score number (baseline anchored)
+    drawScoreNumber(ctx, W/2, L.scoreBaseY, L.scoreFontPx, data.total);
+
+    // Tier pill (independent y, won't drift)
+    if (data.tier_label) {
+      drawTierPill(ctx, W/2, L.pillTopY, L.pillH, data.tier_label);
+    }
+
+    // Tier blurb — two lines, independent y
+    drawTierBlurb(ctx, W/2, L.blurbY, L.blurbLineGap, data.tier_key);
+
+    // Pentagon — large, independent y, plenty of breathing room
+    drawPentagon(ctx, W/2, L.pentaCy, L.pentaR, data.sub_scores || {});
+    // Bottom labels sit at L.pentaCy + sin(54°)*(R+30) = 1050 + 0.81*210 = ~1220.
+    // The weak-lever rule below sits at 1250 → 30px clearance. ✓
+
+    // Weak-lever divider + line
+    if (data.weak_lever) {
+      drawHairline(ctx, L.panelX + 140, L.weakRuleY, L.panelX + L.panelW - 140, 0.35);
+      drawWeakLeverCentered(ctx, W/2, L.weakLeverY, data.weak_lever);
+    }
+
+    // ===== SUB-SCORES SECTION
+    ctx.fillStyle = '#f2ece0';
+    ctx.font = '700 34px "Bebas Neue", Impact, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    ctx.fillText('WHERE THE SCORE COMES FROM', W/2, L.subHeadingY);
+
+    ctx.fillStyle = '#8a8478';
+    ctx.font = '400 17px Outfit, system-ui, sans-serif';
+    ctx.fillText('Five dimensions, weighted into your total.', W/2, L.subHelpY);
+
+    const scores = data.sub_scores || {};
+    DIM_LIST.forEach((d, i) => {
+      const value = Math.round(Number(scores[d.key]) || 0);
+      drawDimRow(ctx, 60, L.rowsTopY + i*(L.rowH + L.rowGap), W - 120, L.rowH, d, value);
+    });
+    // Rows end at: rowsTopY + 5*60 + 4*10 = 1462 + 340 = 1802. Footer at 1842 → 40px gap. ✓
+
+    // ===== FOOTER — hairline + bodybank.in caption
+    drawHairline(ctx, 260, L.footerY - 22, W - 260, 0.4);
+    ctx.fillStyle = '#c8a44e';
+    ctx.font = '600 18px Outfit, system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
+    drawTrackedText(ctx, 'BODYBANK.IN   ·   TAKE YOUR FREE BODY AUDIT', W/2, L.footerY, 2);
+
+    return canvas;
+  }
+
+  function setBusy(busy){
+    btn.disabled = busy;
+    label.textContent = busy ? 'Generating…' : 'Save My Card';
+  }
+
+  function setHint(msg, kind){
+    hint.textContent = msg;
+    hint.classList.toggle('share-hint--ok', kind === 'ok');
+    hint.classList.toggle('share-hint--err', kind === 'err');
+  }
+
+  async function handleSave(){
+    const data = __lastResult;
+    if (!data || data.total == null){
+      setHint('Score is still loading — try again in a moment.', 'err');
+      return;
+    }
+    setBusy(true);
+    setHint('Drawing your card…');
+    try {
+      if (document.fonts && document.fonts.ready) {
+        try { await document.fonts.ready; } catch (_) {}
+      }
+      const canvas = await renderShareCard(data);
+      const firstName = (data.name || 'audit').split(' ')[0].toLowerCase().replace(/[^a-z0-9]/g,'') || 'audit';
+      const filename = `bodybank-${firstName}-${data.total}.png`;
+      const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png', 0.95));
+      if (!blob) throw new Error('blob failed');
+
+      const file = new File([blob], filename, { type: 'image/png' });
+      if (navigator.canShare && navigator.canShare({ files: [file] })){
+        try {
+          await navigator.share({
+            files: [file],
+            title: 'My BodyBank Audit',
+            text: `My Body Audit score: ${data.total}/100. Take yours at bodybank.in`
+          });
+          setHint('Shared ✓', 'ok');
+          return;
+        } catch (e) {
+          if (!e || e.name !== 'AbortError') {
+            // unknown share error — fall through to download
+          } else {
+            setHint('Share cancelled.', '');
+            return;
+          }
+        }
+      }
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1500);
+      setHint('Saved to your downloads ✓', 'ok');
+    } catch (err) {
+      console.error('save card failed', err);
+      setHint('Could not generate card — please try again.', 'err');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  btn.addEventListener('click', handleSave);
+})();
 
 // Transformations carousel — same pattern as homepage
 (function initTransformations() {
