@@ -841,66 +841,63 @@ async function loadResult() {
   const hint = document.getElementById('saveCardHint');
   if (!btn || !label || !hint) return;
 
-  const W = 1080, H = 1920;  // Instagram Story / Reel — 9:16
+  const W = 1080, H = 1920;  // Instagram Story — 9:16
 
-  // Single source of truth for every vertical position on the card. Centralised so
-  // the rhythm stays consistent and adjacent sections can never collide.
+  // Hero score + pentagon split. The score (480px gold gradient) is the
+  // centerpiece; the pentagon is a stadium-sized backdrop centered on the
+  // same point. Tier badge reads as a class card up top, lever banner +
+  // chunky breakdown cards fill the lower half. Everything sized to feel
+  // heroic on a 1080-wide canvas.
   const L = {
-    // Header (compact — logo + eyebrow + name on three lines)
-    headerLogoY:    50,
-    headerLogoH:    100,
-    eyebrowY:       178,
-    eyebrowFontPx:  26,
-    nameY:          218,
-    nameFontPx:     52,
+    // HEADER
+    logoY:        56,
+    logoH:        104,
 
-    // Score panel
-    panelX:         40,
-    panelY:         295,
-    panelW:         W - 80,        // 1000
-    panelH:         1035,
-    panelR:         30,
+    eyebrowY:     190,
+    eyebrowFontPx: 44,
+    eyebrowTrack:  8,
 
-    labelY:         325,
-    labelFontPx:    20,
+    nameY:        248,
+    nameFontPx:   132,
 
-    scoreBaseY:     545,
-    scoreFontPx:    180,
-    pillTopY:       585,
-    pillH:          60,
-    pillFontPx:     28,
+    headerRuleY:  420,
 
-    blurbY:         715,
-    blurbLineGap:   42,
-    blurbFontPx:    28,
+    // TIER CLASS BADGE
+    tierY:        458,
+    tierH:        100,
 
-    pentaCy:        1020,
-    pentaR:         210,
-    pentaLabelFontPx: 22,
+    // HERO — pentagon backdrop + huge score overlaid on the same center.
+    // Pentagon vertex labels sit OUTSIDE the score box; bottom vertex dots
+    // intentionally peek through the digits as a layered backdrop effect.
+    pentaCx:      540,
+    pentaCy:      940,
+    pentaR:       320,
+    pentaLabelR:  370,
+    pentaLabelFontPx: 32,
+    pentaScoreFontPx: 52,
 
-    weakRuleY:      1238,
-    weakLeverY:     1280,
-    weakPrefixFontPx: 24,
-    weakLeverFontPx:  26,
+    scoreBaseY:   1040,
+    scoreFontPx:  480,
 
-    // Sub-scores section
-    subHeadingY:    1356,
-    subHeadingFontPx: 42,
-    subHelpY:       1408,
-    subHelpFontPx:  20,
-    rowsTopY:       1448,
-    rowH:           70,
-    rowGap:         10,
+    // LEVER BANNER — full-width emphatic call-out
+    leverY:       1300,
+    leverH:       100,
 
-    // Footer
-    footerY:        H - 64,
-    footerFontPx:   22
-  };
+    // BREAKDOWN — chunky 5-row band with colored cards
+    breakdownRuleY:     1410,
+    breakdownTitleY:    1430,
+    breakdownTitleFontPx: 32,
+    breakdownTitleTrack:  7,
 
-  const TIER_BLURB_FOR_CARD = {
-    athlete: ['You already train with intent.', 'Now we sharpen the edges.'],
-    builder: ['A real base is here.', 'The next 12 weeks build momentum.'],
-    foundation: ['Every athlete started here.', 'We build it right, not fast.']
+    breakdownRowsY:    1480,
+    breakdownRowH:     68,
+    breakdownRowGap:   5,
+    // 5*68 + 4*5 = 360, ends y=1840
+
+    // FOOTER
+    footerRuleY:  1856,
+    footerY:      1876,
+    footerFontPx: 26
   };
 
   const DIM_LIST = [
@@ -937,28 +934,13 @@ async function loadResult() {
     ctx.closePath();
   }
 
-  function drawPanel(ctx, x, y, w, h, r){
-    const g = ctx.createLinearGradient(x, y, x, y+h);
-    g.addColorStop(0, 'rgba(22,22,22,0.98)');
-    g.addColorStop(1, 'rgba(8,8,8,0.99)');
-    ctx.fillStyle = g;
-    roundRect(ctx, x, y, w, h, r);
-    ctx.fill();
-    ctx.strokeStyle = 'rgba(200,164,78,0.28)';
-    ctx.lineWidth = 1.5;
-    ctx.stroke();
-    const sheen = ctx.createLinearGradient(x, y, x+w, y);
-    sheen.addColorStop(0, 'rgba(200,164,78,0)');
-    sheen.addColorStop(0.5, 'rgba(200,164,78,0.7)');
-    sheen.addColorStop(1, 'rgba(200,164,78,0)');
-    ctx.fillStyle = sheen;
-    ctx.fillRect(x+r, y, w-(r*2), 3);
-  }
-
-  function drawPentagon(ctx, cx, cy, R, scores){
+  function drawPentagon(ctx, cx, cy, R, scores, labelPx, scorePx, labelR){
     const n = 5;
     const angleAt = (i) => -Math.PI/2 + (i * 2 * Math.PI / n);
-    [40, 70, 100].forEach((pct) => {
+    const lr = labelR || (R + 60);
+
+    // Grid rings — slightly muted so the data poly + the score on top pop
+    [25, 50, 75, 100].forEach((pct) => {
       const r = R * (pct/100);
       ctx.beginPath();
       for (let i = 0; i < n; i++){
@@ -968,18 +950,24 @@ async function loadResult() {
         if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
       }
       ctx.closePath();
-      ctx.strokeStyle = 'rgba(200,164,78,0.18)';
-      ctx.lineWidth = 1.2;
+      ctx.strokeStyle = pct === 100 ? 'rgba(200,164,78,0.38)' : 'rgba(200,164,78,0.14)';
+      ctx.lineWidth = pct === 100 ? 1.6 : 1.1;
       ctx.stroke();
     });
+
+    // Spokes
     for (let i = 0; i < n; i++){
       const a = angleAt(i);
       ctx.beginPath();
       ctx.moveTo(cx, cy);
       ctx.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
-      ctx.strokeStyle = 'rgba(200,164,78,0.14)';
+      ctx.strokeStyle = 'rgba(200,164,78,0.12)';
+      ctx.lineWidth = 1;
       ctx.stroke();
     }
+
+    // Data polygon — radial gold gradient fill, slightly muted so the huge
+    // score number layered on top stays the unambiguous focal point.
     const pts = [];
     ctx.beginPath();
     DIM_LIST.forEach((d, i) => {
@@ -988,211 +976,349 @@ async function loadResult() {
       const r = R * (value/100);
       const x = cx + Math.cos(a) * r;
       const y = cy + Math.sin(a) * r;
-      pts.push({x, y});
+      pts.push({x, y, value, label: d.label, color: d.color, angle: a});
       if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
     });
     ctx.closePath();
-    ctx.fillStyle = 'rgba(200,164,78,0.22)';
+    const fillGrad = ctx.createRadialGradient(cx, cy, R*0.1, cx, cy, R);
+    fillGrad.addColorStop(0,   'rgba(224,192,104,0.30)');
+    fillGrad.addColorStop(0.7, 'rgba(200,164,78,0.18)');
+    fillGrad.addColorStop(1,   'rgba(154,128,56,0.08)');
+    ctx.fillStyle = fillGrad;
     ctx.fill();
-    ctx.strokeStyle = '#c8a44e';
-    ctx.lineWidth = 2.4;
-    ctx.shadowColor = 'rgba(200,164,78,0.55)';
-    ctx.shadowBlur = 16;
+    ctx.strokeStyle = '#e0c068';
+    ctx.lineWidth = 3.6;
+    ctx.shadowColor = 'rgba(224,192,104,0.7)';
+    ctx.shadowBlur = 22;
     ctx.stroke();
     ctx.shadowBlur = 0;
+
+    // Anchor dots — colored, glowing
     pts.forEach(p => {
       ctx.beginPath();
-      ctx.arc(p.x, p.y, 5, 0, Math.PI*2);
-      ctx.fillStyle = '#f2ece0';
+      ctx.arc(p.x, p.y, 9, 0, Math.PI*2);
+      ctx.fillStyle = p.color;
+      ctx.shadowColor = p.color;
+      ctx.shadowBlur = 16;
       ctx.fill();
-      ctx.strokeStyle = '#c8a44e';
-      ctx.lineWidth = 1.5;
-      ctx.stroke();
+      ctx.shadowBlur = 0;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, Math.PI*2);
+      ctx.fillStyle = '#fff8e6';
+      ctx.fill();
     });
-    DIM_LIST.forEach((d, i) => {
-      const a = angleAt(i);
-      const labelR = R + 30;
-      const x = cx + Math.cos(a) * labelR;
-      const y = cy + Math.sin(a) * labelR;
-      const cosA = Math.cos(a);
-      ctx.textAlign = cosA > 0.3 ? 'left' : cosA < -0.3 ? 'right' : 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillStyle = d.color;
-      ctx.font = '700 19px "Bebas Neue", Impact, sans-serif';
-      ctx.fillText(d.label.toUpperCase(), x, y);
+
+    // Labels — two stacked lines per vertex: dim name (in colour) above,
+    // score (cream) below. labelR is configurable so callers can tune the
+    // outer-label ring to fit the canvas without overflow.
+    pts.forEach(p => {
+      const lx = cx + Math.cos(p.angle) * lr;
+      const ly = cy + Math.sin(p.angle) * lr;
+      const cosA = Math.cos(p.angle);
+      const align = cosA > 0.3 ? 'left' : cosA < -0.3 ? 'right' : 'center';
+      ctx.textAlign = align;
+
+      ctx.textBaseline = 'alphabetic';
+      ctx.fillStyle = p.color;
+      ctx.font = '700 ' + labelPx + 'px "Bebas Neue", Impact, sans-serif';
+      ctx.fillText(p.label.toUpperCase(), lx, ly - 4);
+
+      ctx.textBaseline = 'top';
+      ctx.fillStyle = '#f2ece0';
+      ctx.font = '700 ' + scorePx + 'px "Bebas Neue", Impact, sans-serif';
+      ctx.fillText(String(p.value), lx, ly + 2);
     });
   }
 
-  // Big centred score number with " / 100" suffix. No tier pill or blurb here —
-  // those have their own y-anchors in the LAYOUT block so each section is independently positioned.
+  // Huge centred score "62 / 100" overlaid on the pentagon. Multi-pass glow
+  // (wide halo + tight inner glow) lifts the digits off the polygon backdrop
+  // so the score is unambiguously the focal point.
   function drawScoreNumber(ctx, cx, baseY, fontPx, total){
     ctx.textBaseline = 'alphabetic';
     ctx.font = '700 ' + fontPx + 'px "Bebas Neue", Impact, sans-serif';
     const scoreText = String(total);
     const sw = ctx.measureText(scoreText).width;
-    const slashFontPx = Math.round(fontPx * 0.20);
+    const slashFontPx = Math.round(fontPx * 0.17);
     ctx.font = '500 ' + slashFontPx + 'px Outfit, system-ui, sans-serif';
     const slashText = ' / 100';
     const slashW = ctx.measureText(slashText).width;
     const groupW = sw + slashW;
     const startX = cx - groupW / 2;
 
+    ctx.save();
     ctx.font = '700 ' + fontPx + 'px "Bebas Neue", Impact, sans-serif';
     ctx.textAlign = 'left';
-    const grad = ctx.createLinearGradient(0, baseY - fontPx * 0.85, 0, baseY);
-    grad.addColorStop(0,   '#e0c068');
-    grad.addColorStop(0.5, '#c8a44e');
-    grad.addColorStop(1,   '#9a8038');
-    ctx.fillStyle = grad;
+
+    // Pass 1 — wide soft halo. Gives the digits a "lit from behind" presence
+    // and obscures the pentagon edges that pass underneath.
+    ctx.shadowColor = 'rgba(224,192,104,0.55)';
+    ctx.shadowBlur = 90;
+    ctx.fillStyle = 'rgba(224,192,104,0.18)';
     ctx.fillText(scoreText, startX, baseY);
 
+    // Pass 2 — tighter rim glow, then the gradient fill on top.
+    ctx.shadowColor = 'rgba(224,192,104,0.85)';
+    ctx.shadowBlur = 40;
+    const grad = ctx.createLinearGradient(0, baseY - fontPx * 0.85, 0, baseY);
+    grad.addColorStop(0,   '#fce5a0');
+    grad.addColorStop(0.45,'#e6c876');
+    grad.addColorStop(1,   '#9a7e36');
+    ctx.fillStyle = grad;
+    ctx.fillText(scoreText, startX, baseY);
+    ctx.restore();
+
+    // " / 100" baseline-aligned right of the score
     ctx.font = '500 ' + slashFontPx + 'px Outfit, system-ui, sans-serif';
     ctx.fillStyle = '#bfb9ab';
-    ctx.fillText(slashText, startX + sw, baseY - Math.round(fontPx * 0.06));
+    ctx.textAlign = 'left';
+    ctx.fillText(slashText, startX + sw, baseY - Math.round(fontPx * 0.04));
   }
 
-  function drawTierPill(ctx, cx, pillY, pillH, fontPx, tierLabel){
+  // Tier class badge — bigger, card-style. Sits between divider and hero;
+  // reads as a one-word "class" identifier (BUILDER / ATHLETE / FOUNDATION).
+  function drawTierPill(ctx, cx, pillY, pillH, tierLabel){
     const labelText = (tierLabel || '').toUpperCase();
     if (!labelText) return;
+    const fontPx = Math.round(pillH * 0.52);
     ctx.font = '700 ' + fontPx + 'px "Bebas Neue", Impact, sans-serif';
     const tw = ctx.measureText(labelText).width;
-    const pillW = tw + 80;
+    const pillW = tw + 150;  // wider, more class-card weight
     const pillX = cx - pillW / 2;
-    const dotR = Math.max(5, Math.round(pillH * 0.11));
-    const dotCx = pillX + 26;
+    const dotR = Math.max(10, Math.round(pillH * 0.15));
+    const dotCx = pillX + 46;
 
-    ctx.fillStyle = 'rgba(200,164,78,0.15)';
+    // Outer ambient glow — the badge feels lit
+    ctx.save();
+    ctx.shadowColor = 'rgba(200,164,78,0.45)';
+    ctx.shadowBlur = 28;
+    const pillGrad = ctx.createLinearGradient(0, pillY, 0, pillY + pillH);
+    pillGrad.addColorStop(0,   'rgba(224,192,104,0.32)');
+    pillGrad.addColorStop(0.5, 'rgba(200,164,78,0.18)');
+    pillGrad.addColorStop(1,   'rgba(154,128,56,0.10)');
+    ctx.fillStyle = pillGrad;
     roundRect(ctx, pillX, pillY, pillW, pillH, pillH/2);
     ctx.fill();
-    ctx.strokeStyle = '#c8a44e';
-    ctx.lineWidth = 2;
+    ctx.restore();
+
+    // Crisp gold border — drawn after fill so the glow doesn't bleed into it
+    ctx.strokeStyle = '#d4ad58';
+    ctx.lineWidth = 2.8;
+    roundRect(ctx, pillX, pillY, pillW, pillH, pillH/2);
     ctx.stroke();
 
+    // Glowing dot
     ctx.beginPath();
     ctx.arc(dotCx, pillY + pillH/2, dotR, 0, Math.PI*2);
-    ctx.shadowColor = 'rgba(200,164,78,0.85)';
-    ctx.shadowBlur = 12;
-    ctx.fillStyle = '#c8a44e';
+    ctx.shadowColor = 'rgba(224,192,104,0.95)';
+    ctx.shadowBlur = 24;
+    ctx.fillStyle = '#e8c878';
     ctx.fill();
     ctx.shadowBlur = 0;
 
-    ctx.fillStyle = '#c8a44e';
+    // Label — brighter cream-gold
+    ctx.fillStyle = '#f4d484';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(labelText, dotCx + dotR + 14, pillY + pillH/2 + 2);
+    ctx.fillText(labelText, dotCx + dotR + 22, pillY + pillH/2 + 2);
     ctx.textBaseline = 'alphabetic';
   }
 
-  function drawTierBlurb(ctx, cx, topY, lineGap, fontPx, tierKey){
-    const blurb = TIER_BLURB_FOR_CARD[tierKey];
-    if (!blurb) return;
-    ctx.fillStyle = '#d4ccba';
-    ctx.font = 'italic 400 ' + fontPx + 'px Outfit, system-ui, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    blurb.forEach((line, i) => {
-      ctx.fillText(line, cx, topY + i*lineGap);
+  // Full-width "biggest lever" banner — gold-bordered card with the tracked
+  // eyebrow on the left, an arrow, and the value on the right. Reads as a
+  // hero call-out, not a footnote.
+  function drawLeverBanner(ctx, cx, y, h, lever){
+    if (!lever) return;
+    const eyebrowText = 'BIGGEST LEVER';
+    const valueText   = lever.toUpperCase();
+    const eyebrowPx   = 30;
+    const eyebrowTrack = 5;
+    const valuePx     = 50;
+    const arrowPx     = 36;
+
+    // Measurements
+    ctx.font = '700 ' + eyebrowPx + 'px "Bebas Neue", Impact, sans-serif';
+    const eChars = eyebrowText.split('');
+    const eGlyph = eChars.reduce((s,c)=>s+ctx.measureText(c).width, 0);
+    const eW = eGlyph + eyebrowTrack * (eChars.length - 1);
+
+    ctx.font = '500 ' + arrowPx + 'px Outfit, system-ui, sans-serif';
+    const aW = ctx.measureText('→').width;
+
+    ctx.font = '700 ' + valuePx + 'px "Bebas Neue", Impact, sans-serif';
+    let vW = ctx.measureText(valueText).width;
+
+    const gap = 18;
+    const padX = 40;
+    let contentW = eW + gap + aW + gap + vW;
+    let bannerW = Math.min(W - 80, contentW + padX * 2);
+
+    // If the value overflows the card width, shrink the value font until it fits.
+    let activeValuePx = valuePx;
+    while (bannerW >= W - 80 && contentW + padX * 2 > W - 80 && activeValuePx > 32) {
+      activeValuePx -= 2;
+      ctx.font = '700 ' + activeValuePx + 'px "Bebas Neue", Impact, sans-serif';
+      vW = ctx.measureText(valueText).width;
+      contentW = eW + gap + aW + gap + vW;
+      bannerW = Math.min(W - 80, contentW + padX * 2);
+    }
+
+    const bannerX = cx - bannerW / 2;
+    const midY = y + h / 2;
+
+    // Card background with gold sheen
+    const bgGrad = ctx.createLinearGradient(bannerX, y, bannerX, y + h);
+    bgGrad.addColorStop(0, 'rgba(200,164,78,0.16)');
+    bgGrad.addColorStop(1, 'rgba(200,164,78,0.04)');
+    ctx.fillStyle = bgGrad;
+    roundRect(ctx, bannerX, y, bannerW, h, 18);
+    ctx.fill();
+
+    // Outer glow + gold border
+    ctx.save();
+    ctx.shadowColor = 'rgba(200,164,78,0.40)';
+    ctx.shadowBlur = 22;
+    ctx.strokeStyle = '#c8a44e';
+    ctx.lineWidth = 2.2;
+    roundRect(ctx, bannerX, y, bannerW, h, 18);
+    ctx.stroke();
+    ctx.restore();
+
+    // Content laid out left-to-right, vertically centered on the banner.
+    let cursor = cx - contentW / 2;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+
+    // Eyebrow — tracked gold
+    ctx.fillStyle = '#c8a44e';
+    ctx.font = '700 ' + eyebrowPx + 'px "Bebas Neue", Impact, sans-serif';
+    eChars.forEach((c) => {
+      ctx.fillText(c, cursor, midY + 2);
+      cursor += ctx.measureText(c).width + eyebrowTrack;
     });
-  }
+    cursor = cursor - eyebrowTrack + gap;
 
-  // Centered weak-lever line: prefix and lever measured together so the group sits exactly mid-card.
-  function drawWeakLeverCentered(ctx, cx, y, lever){
-    const prefix = 'Biggest lever to fix first: ';
-    ctx.textBaseline = 'middle';
-    ctx.font = '500 20px Outfit, system-ui, sans-serif';
-    const prefixW = ctx.measureText(prefix).width;
-    ctx.font = '700 22px Outfit, system-ui, sans-serif';
-    const leverW = ctx.measureText(lever).width;
-    const groupW = prefixW + leverW;
-    const startX = cx - groupW / 2;
+    // Arrow — gold
+    ctx.font = '500 ' + arrowPx + 'px Outfit, system-ui, sans-serif';
+    ctx.fillText('→', cursor, midY);
+    cursor += aW + gap;
 
-    ctx.textAlign = 'left';
-    ctx.font = '500 20px Outfit, system-ui, sans-serif';
+    // Value — cream, bigger, soft gold glow
+    ctx.font = '700 ' + activeValuePx + 'px "Bebas Neue", Impact, sans-serif';
+    ctx.save();
+    ctx.shadowColor = 'rgba(224,192,104,0.45)';
+    ctx.shadowBlur = 16;
     ctx.fillStyle = '#f2ece0';
-    ctx.fillText(prefix, startX, y);
+    ctx.fillText(valueText, cursor, midY + 2);
+    ctx.restore();
 
-    ctx.font = '700 22px Outfit, system-ui, sans-serif';
-    ctx.fillStyle = '#c8a44e';
-    ctx.fillText(lever, startX + prefixW, y);
     ctx.textBaseline = 'alphabetic';
   }
 
-  function drawDimRow(ctx, x, y, w, h, dim, value){
+  // Convert hex (#rrggbb) to an rgba() string. Used to tint breakdown row
+  // backgrounds with each dimension's signature color at low alpha.
+  function hexToRgba(hex, alpha){
+    const h = hex.replace('#', '');
+    const r = parseInt(h.substr(0,2), 16);
+    const g = parseInt(h.substr(2,2), 16);
+    const b = parseInt(h.substr(4,2), 16);
+    return 'rgba(' + r + ',' + g + ',' + b + ',' + alpha + ')';
+  }
+
+  // Chunky breakdown row — 68px tall, dim-tinted card background, thick
+  // glowing left accent, big Bebas label, tier pill, large dim-colored
+  // score on the right, and a progress sliver along the bottom edge.
+  function drawBreakdownRow(ctx, x, y, w, h, dim, value){
     const tier = tierForCard(value);
 
-    // Row card
+    // Card body — colored tint at 10% alpha so each dim has its own warm hue
     roundRect(ctx, x, y, w, h, 14);
-    ctx.fillStyle = 'rgba(255,255,255,0.035)';
+    const cardGrad = ctx.createLinearGradient(x, y, x, y+h);
+    cardGrad.addColorStop(0, hexToRgba(dim.color, 0.12));
+    cardGrad.addColorStop(1, hexToRgba(dim.color, 0.04));
+    ctx.fillStyle = cardGrad;
     ctx.fill();
-    ctx.strokeStyle = 'rgba(200,164,78,0.18)';
+    ctx.strokeStyle = 'rgba(200,164,78,0.22)';
     ctx.lineWidth = 1;
     ctx.stroke();
 
-    // Left accent (dim-coloured)
+    // Left color accent — taller, more prominent, strong glow
     ctx.fillStyle = dim.color;
     ctx.shadowColor = dim.color;
-    ctx.shadowBlur = 10;
-    ctx.fillRect(x, y + 1, 4, h - 2);
+    ctx.shadowBlur = 20;
+    ctx.fillRect(x, y + 2, 7, h - 4);
     ctx.shadowBlur = 0;
 
-    // Bottom progress bar
-    const barMax = w - 8;
-    const barW = Math.max(0, Math.min(barMax, barMax * (value/100)));
+    // Bottom progress sliver — thicker, dim color with glow
+    const innerL = x + 28;
+    const innerR = x + w - 28;
+    const trackY = y + h - 6;
+    const innerW = innerR - innerL;
+    ctx.fillStyle = 'rgba(255,255,255,0.06)';
+    ctx.fillRect(innerL, trackY, innerW, 3);
+    const fillW = Math.max(0, Math.min(innerW, innerW * (value/100)));
     ctx.fillStyle = dim.color;
-    ctx.fillRect(x + 4, y + h - 3, barW, 3);
+    ctx.shadowColor = dim.color;
+    ctx.shadowBlur = 16;
+    ctx.fillRect(innerL, trackY, fillW, 3);
+    ctx.shadowBlur = 0;
 
-    // Right-side score block (drawn first so we know how much room remains for the label)
-    const rightPad = 22;
-    ctx.font = '700 38px "Bebas Neue", Impact, sans-serif';
+    // Right-side score block — chunky number in dim color + tiny /100
+    const rightPad = 30;
+    ctx.font = '700 50px "Bebas Neue", Impact, sans-serif';
     const scoreText = String(value);
     const scoreW = ctx.measureText(scoreText).width;
-    ctx.font = '700 11px Outfit, system-ui, sans-serif';
-    const slashW = ctx.measureText('/100').width;
-    const scoreBlockW = scoreW + 4 + slashW;
+    ctx.font = '600 16px Outfit, system-ui, sans-serif';
+    const outOfText = '/100';
+    const outOfW = ctx.measureText(outOfText).width;
+    const scoreBlockW = scoreW + 8 + outOfW;
     const scoreLeftX = x + w - rightPad - scoreBlockW;
 
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
     ctx.fillStyle = dim.color;
     ctx.shadowColor = dim.color;
-    ctx.shadowBlur = 12;
-    ctx.font = '700 38px "Bebas Neue", Impact, sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'middle';
-    ctx.fillText(scoreText, scoreLeftX, y + h/2 + 2);
+    ctx.shadowBlur = 20;
+    ctx.font = '700 50px "Bebas Neue", Impact, sans-serif';
+    ctx.fillText(scoreText, scoreLeftX, y + h/2 - 5);
     ctx.shadowBlur = 0;
-    ctx.fillStyle = '#7f7a6d';
-    ctx.font = '700 11px Outfit, system-ui, sans-serif';
-    ctx.fillText('/100', scoreLeftX + scoreW + 4, y + h/2 + 4);
 
-    // Dim label (left side)
+    ctx.fillStyle = '#7d7669';
+    ctx.font = '600 16px Outfit, system-ui, sans-serif';
+    ctx.fillText(outOfText, scoreLeftX + scoreW + 8, y + h/2 + 7);
+
+    // Dim label — Bebas cream, bigger
     ctx.fillStyle = '#f2ece0';
-    ctx.font = '600 24px Outfit, system-ui, sans-serif';
+    ctx.font = '700 34px "Bebas Neue", Impact, sans-serif';
     ctx.textAlign = 'left';
     ctx.textBaseline = 'middle';
-    ctx.fillText(dim.label, x + 26, y + h/2);
-    const nameW = ctx.measureText(dim.label).width;
+    ctx.fillText(dim.label.toUpperCase(), x + 32, y + h/2 - 3);
+    const labelW = ctx.measureText(dim.label.toUpperCase()).width;
 
-    // Tier pill — placed right after the label, but clamped so it never reaches the score
-    ctx.font = '700 11px Outfit, system-ui, sans-serif';
-    const tierW = ctx.measureText(tier.label).width;
-    const pillW = tierW + 20, pillH = 22;
-    const pillX = x + 26 + nameW + 12;
-    const pillY = y + h/2 - pillH/2;
-    // Only draw if there's enough room before the score block
-    if (pillX + pillW + 16 < scoreLeftX){
+    // Tier pill — bigger, color-tinted, sits after the label, clamped
+    // before the score block so it never overlaps.
+    ctx.font = '700 15px "Bebas Neue", Impact, sans-serif';
+    const tierLabel = tier.label;
+    const tierW = ctx.measureText(tierLabel).width;
+    const pillW = tierW + 22, pillH = 26;
+    const pillX = x + 32 + labelW + 16;
+    const pillY = y + h/2 - pillH/2 - 3;
+    if (pillX + pillW + 20 < scoreLeftX){
       roundRect(ctx, pillX, pillY, pillW, pillH, pillH/2);
-      ctx.fillStyle = 'rgba(6,6,6,0.7)';
+      ctx.fillStyle = 'rgba(6,6,6,0.65)';
       ctx.fill();
       ctx.strokeStyle = tier.color;
-      ctx.lineWidth = 1.2;
+      ctx.lineWidth = 1.4;
       ctx.stroke();
       ctx.fillStyle = tier.color;
       ctx.textAlign = 'center';
-      ctx.fillText(tier.label, pillX + pillW/2, pillY + pillH/2 + 1);
+      ctx.fillText(tierLabel, pillX + pillW/2, pillY + pillH/2 + 1);
     }
+    ctx.textBaseline = 'alphabetic';
   }
 
-  // Letter-spaced caps. Canvas has no letter-spacing CSS, so we draw glyph-by-glyph
-  // with explicit kerning. Required for clean tracking on the gold eyebrow / labels.
+  // Letter-spaced caps. Canvas letterSpacing is patchy across versions, so we draw glyph-by-glyph.
+  // Bebas Neue is used everywhere we call this — its uniform glyph widths keep the tracking even
+  // (previous Outfit-tracked text rendered "AUDIT" as "AUD IT" because of D/I width mismatch).
   function drawTrackedText(ctx, text, cx, y, trackPx){
     const chars = text.split('');
     const widths = chars.map(c => ctx.measureText(c).width);
@@ -1206,6 +1332,7 @@ async function loadResult() {
 
   // Vertical decorative gold hairline — used to break the long card into rhythmic bands.
   function drawHairline(ctx, x1, y, x2, alpha){
+    if (![x1, y, x2, alpha].every((v) => typeof v === 'number' && Number.isFinite(v))) return;
     const g = ctx.createLinearGradient(x1, y, x2, y);
     g.addColorStop(0,   'rgba(200,164,78,0)');
     g.addColorStop(0.5, 'rgba(200,164,78,' + alpha + ')');
@@ -1221,114 +1348,129 @@ async function loadResult() {
     ctx.imageSmoothingEnabled = true;
     ctx.imageSmoothingQuality = 'high';
 
-    // ===== Background — black canvas with two stacked gold glows (top hero, bottom anchor)
-    ctx.fillStyle = '#060606';
+    // ===== Background — deep black with stacked gold glows behind the score and pentagon
+    ctx.fillStyle = '#050505';
     ctx.fillRect(0, 0, W, H);
-    const topGlow = ctx.createRadialGradient(W/2, 460, 160, W/2, 460, 1100);
-    topGlow.addColorStop(0, 'rgba(200,164,78,0.14)');
-    topGlow.addColorStop(1, 'rgba(6,6,6,0)');
-    ctx.fillStyle = topGlow;
+    const heroGlow = ctx.createRadialGradient(W/2, L.scoreBaseY - 140, 120, W/2, L.scoreBaseY - 140, 980);
+    heroGlow.addColorStop(0,   'rgba(224,192,104,0.22)');
+    heroGlow.addColorStop(0.5, 'rgba(200,164,78,0.09)');
+    heroGlow.addColorStop(1,   'rgba(5,5,5,0)');
+    ctx.fillStyle = heroGlow;
     ctx.fillRect(0, 0, W, H);
-    const btmGlow = ctx.createRadialGradient(W/2, H - 140, 80, W/2, H - 140, 600);
-    btmGlow.addColorStop(0, 'rgba(200,164,78,0.06)');
-    btmGlow.addColorStop(1, 'rgba(6,6,6,0)');
-    ctx.fillStyle = btmGlow;
-    ctx.fillRect(0, H - 740, W, 740);
+    const pentaGlow = ctx.createRadialGradient(W/2, L.pentaCy, 90, W/2, L.pentaCy, 620);
+    pentaGlow.addColorStop(0, 'rgba(200,164,78,0.12)');
+    pentaGlow.addColorStop(1, 'rgba(5,5,5,0)');
+    ctx.fillStyle = pentaGlow;
+    ctx.fillRect(0, 0, W, H);
 
-    // Top + bottom gold accent rules
-    const topRule = ctx.createLinearGradient(0, 0, W, 0);
-    topRule.addColorStop(0, 'rgba(200,164,78,0)');
-    topRule.addColorStop(0.5, 'rgba(200,164,78,0.95)');
-    topRule.addColorStop(1, 'rgba(200,164,78,0)');
-    ctx.fillStyle = topRule;
-    ctx.fillRect(0, 0, W, 4);
-    ctx.fillRect(0, H - 4, W, 4);
+    // Top + bottom gold accent rules — full bleed
+    const goldRule = ctx.createLinearGradient(0, 0, W, 0);
+    goldRule.addColorStop(0,   'rgba(200,164,78,0)');
+    goldRule.addColorStop(0.5, 'rgba(224,192,104,1)');
+    goldRule.addColorStop(1,   'rgba(200,164,78,0)');
+    ctx.fillStyle = goldRule;
+    ctx.fillRect(0, 0, W, 5);
+    ctx.fillRect(0, H - 5, W, 5);
+
+    // Decorative corner anchors — small gold L-brackets at each corner
+    drawCornerBrackets(ctx, 30, 30, W - 60, H - 60);
 
     // ===== HEADER — logo, eyebrow, name
     ctx.textBaseline = 'top';
     try {
       const logo = await loadImage('/img/Bodybank logo.png');
-      const lh = L.headerLogoH;
+      const lh = L.logoH;
       const lw = lh * (logo.width / logo.height);
-      ctx.drawImage(logo, (W - lw) / 2, L.headerLogoY, lw, lh);
+      ctx.drawImage(logo, (W - lw) / 2, L.logoY, lw, lh);
     } catch (_) {
       ctx.fillStyle = '#c8a44e';
-      ctx.font = '700 56px Outfit, system-ui, sans-serif';
+      ctx.font = '700 96px "Bebas Neue", Impact, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('BODYBANK', W/2, L.headerLogoY + 30);
+      ctx.fillText('BODYBANK', W/2, L.logoY + 28);
     }
 
-    // Eyebrow — tracked caps
+    // Eyebrow — Bebas tracked gold (uniform glyph widths keep the tracking even)
     ctx.fillStyle = '#c8a44e';
-    ctx.font = '600 22px Outfit, system-ui, sans-serif';
-    drawTrackedText(ctx, 'BODY AUDIT RESULT', W/2, L.eyebrowY, 5);
+    ctx.font = '700 ' + L.eyebrowFontPx + 'px "Bebas Neue", Impact, sans-serif';
+    ctx.textBaseline = 'top';
+    drawTrackedText(ctx, 'BODY AUDIT RESULT', W/2, L.eyebrowY, L.eyebrowTrack);
 
-    // Name + SCORE — Bebas Neue, large
+    // Name "{FIRST}'S SCORE" — huge Bebas, cream
     const firstName = (data.name || '').split(' ')[0];
     const headerText = firstName ? (firstName + "'s SCORE").toUpperCase() : 'YOUR SCORE';
     ctx.fillStyle = '#f2ece0';
-    ctx.font = '700 46px "Bebas Neue", Impact, sans-serif';
+    ctx.font = '700 ' + L.nameFontPx + 'px "Bebas Neue", Impact, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(headerText, W/2, L.nameY);
 
-    // ===== SCORE PANEL (y = panelY to panelY + panelH)
-    drawPanel(ctx, L.panelX, L.panelY, L.panelW, L.panelH, L.panelR);
+    // Header divider — gold hairline across most of the width
+    drawHairline(ctx, 120, L.headerRuleY, W - 120, 0.6);
 
-    // Inner section label
-    ctx.fillStyle = '#c8a44e';
-    ctx.font = '600 14px Outfit, system-ui, sans-serif';
-    ctx.textBaseline = 'top';
-    drawTrackedText(ctx, 'YOUR BODY AUDIT SCORE', W/2, L.labelY, 4);
+    // ===== TIER PILL — sits between divider and big score
+    if (data.tier_label) {
+      drawTierPill(ctx, W/2, L.tierY, L.tierH, data.tier_label);
+    }
 
-    // Big score number (baseline anchored)
+    // ===== BIG SCORE — the hero, gold-gradient with glow
     drawScoreNumber(ctx, W/2, L.scoreBaseY, L.scoreFontPx, data.total);
 
-    // Tier pill (independent y, won't drift)
-    if (data.tier_label) {
-      drawTierPill(ctx, W/2, L.pillTopY, L.pillH, data.tier_label);
-    }
+    // ===== PENTAGON — hero visualization with embedded vertex scores
+    drawPentagon(ctx, W/2, L.pentaCy, L.pentaR, data.sub_scores || {}, L.pentaLabelFontPx, L.pentaScoreFontPx, L.pentaLabelR);
 
-    // Tier blurb — two lines, independent y
-    drawTierBlurb(ctx, W/2, L.blurbY, L.blurbLineGap, data.tier_key);
-
-    // Pentagon — large, independent y, plenty of breathing room
-    drawPentagon(ctx, W/2, L.pentaCy, L.pentaR, data.sub_scores || {});
-    // Bottom labels sit at L.pentaCy + sin(54°)*(R+30) = 1050 + 0.81*210 = ~1220.
-    // The weak-lever rule below sits at 1250 → 30px clearance. ✓
-
-    // Weak-lever divider + line
-    if (data.weak_lever) {
-      drawHairline(ctx, L.panelX + 140, L.weakRuleY, L.panelX + L.panelW - 140, 0.35);
-      drawWeakLeverCentered(ctx, W/2, L.weakLeverY, data.weak_lever);
-    }
-
-    // ===== SUB-SCORES SECTION
-    ctx.fillStyle = '#f2ece0';
-    ctx.font = '700 34px "Bebas Neue", Impact, sans-serif';
+    // ===== BREAKDOWN BAND — "WHERE THE SCORE COMES FROM" + 5 dim rows
+    drawHairline(ctx, 120, L.breakdownRuleY, W - 120, 0.5);
+    ctx.fillStyle = '#c8a44e';
+    ctx.font = '700 ' + L.breakdownTitleFontPx + 'px "Bebas Neue", Impact, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    ctx.fillText('WHERE THE SCORE COMES FROM', W/2, L.subHeadingY);
+    drawTrackedText(ctx, 'WHERE THE SCORE COMES FROM', W/2, L.breakdownTitleY, L.breakdownTitleTrack);
 
-    ctx.fillStyle = '#8a8478';
-    ctx.font = '400 17px Outfit, system-ui, sans-serif';
-    ctx.fillText('Five dimensions, weighted into your total.', W/2, L.subHelpY);
-
+    const rowX = 60;
+    const rowW = W - 120;
     const scores = data.sub_scores || {};
     DIM_LIST.forEach((d, i) => {
       const value = Math.round(Number(scores[d.key]) || 0);
-      drawDimRow(ctx, 60, L.rowsTopY + i*(L.rowH + L.rowGap), W - 120, L.rowH, d, value);
+      const ry = L.breakdownRowsY + i * (L.breakdownRowH + L.breakdownRowGap);
+      drawBreakdownRow(ctx, rowX, ry, rowW, L.breakdownRowH, d, value);
     });
-    // Rows end at: rowsTopY + 5*60 + 4*10 = 1462 + 340 = 1802. Footer at 1842 → 40px gap. ✓
 
-    // ===== FOOTER — hairline + bodybank.in caption
-    drawHairline(ctx, 260, L.footerY - 22, W - 260, 0.4);
+    if (data.weak_lever) {
+      drawLeverBanner(ctx, W/2, L.leverY, L.leverH, data.weak_lever);
+    }
+
+    // ===== FOOTER
+    drawHairline(ctx, 260, L.footerRuleY, W - 260, 0.5);
     ctx.fillStyle = '#c8a44e';
-    ctx.font = '600 18px Outfit, system-ui, sans-serif';
+    ctx.font = '700 ' + L.footerFontPx + 'px "Bebas Neue", Impact, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'top';
-    drawTrackedText(ctx, 'BODYBANK.IN   ·   TAKE YOUR FREE BODY AUDIT', W/2, L.footerY, 2);
+    drawTrackedText(ctx, 'BODYBANK.IN    ·    TAKE YOUR FREE BODY AUDIT', W/2, L.footerY, 5);
 
     return canvas;
+  }
+
+  // Decorative gold L-brackets in each corner — gives the card a "framed" feel
+  function drawCornerBrackets(ctx, x, y, w, h){
+    const len = 50;
+    const armLen = len;
+    ctx.strokeStyle = 'rgba(200,164,78,0.55)';
+    ctx.lineWidth = 2;
+    // Top-left
+    ctx.beginPath();
+    ctx.moveTo(x, y + armLen); ctx.lineTo(x, y); ctx.lineTo(x + armLen, y);
+    ctx.stroke();
+    // Top-right
+    ctx.beginPath();
+    ctx.moveTo(x + w - armLen, y); ctx.lineTo(x + w, y); ctx.lineTo(x + w, y + armLen);
+    ctx.stroke();
+    // Bottom-left
+    ctx.beginPath();
+    ctx.moveTo(x, y + h - armLen); ctx.lineTo(x, y + h); ctx.lineTo(x + armLen, y + h);
+    ctx.stroke();
+    // Bottom-right
+    ctx.beginPath();
+    ctx.moveTo(x + w - armLen, y + h); ctx.lineTo(x + w, y + h); ctx.lineTo(x + w, y + h - armLen);
+    ctx.stroke();
   }
 
   function setBusy(busy){

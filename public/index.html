@@ -169,13 +169,13 @@ body.site-nav-hidden nav#nv{display:none !important}
 @keyframes sb{0%,100%{transform:translateX(-50%) translateY(0);opacity:1}50%{transform:translateX(-50%) translateY(12px);opacity:.3}}
 
 /* COMMON */
-.sec{padding:100px 48px;position:relative}
+.sec{padding:44px 48px;position:relative}
 .si{max-width:1100px;margin:0 auto}
-.sec-label{font-size:11px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:16px;text-align:center}
-.sec-heading{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5vw,64px);letter-spacing:2px;text-align:center;margin-bottom:16px;text-transform:uppercase;line-height:1}
+.sec-label{font-size:11px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--gold);margin-bottom:10px;text-align:center}
+.sec-heading{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5vw,64px);letter-spacing:2px;text-align:center;margin-bottom:10px;text-transform:uppercase;line-height:1}
 .sec-heading .g{color:var(--gold)}
-.sec-sub{text-align:center;color:var(--creamd);font-size:16px;max-width:640px;margin:0 auto 48px;line-height:1.7}
-.gold-line{width:48px;height:2px;background:var(--gold);margin:0 auto 20px}
+.sec-sub{text-align:center;color:var(--creamd);font-size:16px;max-width:640px;margin:0 auto 24px;line-height:1.7}
+.gold-line{width:48px;height:2px;background:var(--gold);margin:0 auto 12px}
 
 /* Sunday Check-in – stylish title (user & admin) */
 .sunday-checkin-title{font-family:'Bebas Neue',sans-serif;letter-spacing:4px;text-transform:uppercase;color:var(--gold);line-height:1.1;position:relative;display:inline-block}
@@ -245,7 +245,7 @@ body.site-nav-hidden nav#nv{display:none !important}
 .origin-inner .origin-quote p{color:inherit;margin-bottom:0}
 .iq{margin:36px 0;font-family:'Cormorant Garamond',serif;font-size:clamp(24px,3vw,40px);font-weight:500;color:var(--cream);line-height:1.25;font-style:italic}
 .iq em{font-style:normal;color:var(--gold)}
-.origin-quote{margin:32px auto 40px;padding:16px 24px 16px;max-width:720px;text-align:center;position:relative}
+.origin-quote{margin:12px auto 16px;padding:12px 24px;max-width:720px;text-align:center;position:relative}
 .origin-quote::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0.8}
 .origin-quote::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:60px;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:0.8}
 .origin-quote .origin-quote-line{margin:0;line-height:1.25}
@@ -262,28 +262,59 @@ body.site-nav-hidden nav#nv{display:none !important}
 }
 
 /* 3-PHASE */
-.phase-sec{background:var(--black)}
-.phases{display:flex;flex-direction:column;gap:24px}
-.phase{display:grid;grid-template-columns:200px 1fr;border:1px solid var(--bdr);border-radius:14px;overflow:hidden;background:var(--dark2);transition:border-color .4s}
-.phase:hover{border-color:rgba(200,164,78,0.4)}
-.ph-side{padding:32px 28px;background:linear-gradient(180deg,rgba(200,164,78,0.08),rgba(200,164,78,0.02));border-right:1px solid var(--bdr);display:flex;flex-direction:column}
-.ph-num{font-family:'Bebas Neue',sans-serif;font-size:52px;line-height:1;color:var(--gold);opacity:.2;margin-bottom:6px}
-.ph-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--cream);margin-bottom:4px}
-.ph-time{font-size:12px;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
-.ph-body{padding:32px}
-.ph-tag{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:14px}
-.ph-items{list-style:none;display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-bottom:20px}
-.ph-items li{font-size:14px;color:var(--creamd);padding-left:16px;position:relative;line-height:1.5}
-.ph-items li::before{content:'';position:absolute;left:0;top:9px;width:6px;height:6px;border-radius:50%;background:var(--goldd)}
-.ph-out{padding:16px 20px;background:rgba(200,164,78,0.05);border-left:2px solid var(--goldd);border-radius:0 8px 8px 0}
-.ph-out-l{font-size:11px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
-.ph-out p{font-size:14px;color:var(--creamd);line-height:1.55}
+.phase-sec{background:var(--black);padding:32px 0 44px}
+.phase-heading-wrap{text-align:center;margin-bottom:20px}
+.phase-heading-wrap .gold-line{margin:0 auto 20px}
+.phase-heading-top{display:block;font-family:'Bebas Neue',sans-serif;font-size:clamp(17px,4vw,26px);letter-spacing:5px;color:var(--creamd);opacity:.7;margin-bottom:8px}
+.phase-heading-bot{display:block;font-family:'Bebas Neue',sans-serif;font-size:clamp(44px,7vw,80px);letter-spacing:2px;color:var(--gold);line-height:1;white-space:nowrap}
+.phases-lux-wrap{max-width:620px;margin:0 auto;padding:0 24px}
+.phases-lux{display:flex;flex-direction:column;gap:10px}
+.plx{position:relative;border:1px solid rgba(200,164,78,0.14);border-radius:6px;background:#0a0a0a;overflow:hidden;transition:border-color .4s,box-shadow .4s;cursor:pointer}
+.plx::after{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:linear-gradient(180deg,var(--gold),rgba(200,164,78,0.2));opacity:0;transition:opacity .4s}
+.plx:hover{border-color:rgba(200,164,78,0.3)}
+.plx.open{border-color:rgba(200,164,78,0.45);box-shadow:0 4px 48px rgba(200,164,78,0.08),0 12px 40px rgba(0,0,0,0.6)}
+.plx.open::after{opacity:1}
+.plx-top-line{height:1px;background:linear-gradient(90deg,rgba(200,164,78,0.6),rgba(200,164,78,0.15) 60%,transparent);opacity:0;transition:opacity .4s}
+.plx.open .plx-top-line{opacity:1}
+.plx-trigger{display:flex;align-items:center;gap:20px;padding:22px 24px;user-select:none}
+@keyframes plxNumIn{0%{opacity:0;transform:scale(.7) translateY(10px);filter:blur(6px)}65%{opacity:1;transform:scale(1.14) translateY(-3px);filter:blur(0)}100%{opacity:1;transform:scale(1)}}
+@keyframes plxNumGlow{0%,100%{text-shadow:0 0 0 transparent}50%{text-shadow:0 0 18px rgba(200,164,78,.55),0 0 40px rgba(200,164,78,.2)}}
+@keyframes plxNumShimmer{0%{color:var(--gold)}40%{color:#fff3c0}55%{color:var(--gold)}100%{color:var(--gold)}}
+.plx-num{font-family:'Bebas Neue',sans-serif;font-size:36px;line-height:1;color:var(--gold);opacity:1;width:40px;text-align:center;flex-shrink:0;transition:opacity .35s,transform .35s}
+.plx.open .plx-num{opacity:1;transform:scale(1.05);animation:plxNumGlow 2.5s ease-in-out infinite!important}
+.phases-lux-wrap.plx-nums-on .plx:nth-child(1) .plx-num{animation:plxNumIn .85s cubic-bezier(.4,0,.2,1) .05s both}
+.phases-lux-wrap.plx-nums-on .plx:nth-child(2) .plx-num{animation:plxNumIn .85s cubic-bezier(.4,0,.2,1) .22s both}
+.phases-lux-wrap.plx-nums-on .plx:nth-child(3) .plx-num{animation:plxNumIn .85s cubic-bezier(.4,0,.2,1) .39s both}
+.plx-info{flex:1;min-width:0}
+.plx-title{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:700;color:var(--cream);line-height:1.15;margin-bottom:4px;transition:color .35s}
+.plx.open .plx-title{color:var(--gold)}
+.plx-weeks{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
+.plx-chevron{width:30px;height:30px;border:1px solid rgba(200,164,78,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .35s,border-color .35s}
+.plx-chevron svg{width:10px;height:10px;stroke:var(--gold);stroke-width:2;fill:none;transition:transform .4s cubic-bezier(.4,0,.2,1)}
+.plx.open .plx-chevron{background:rgba(200,164,78,0.1);border-color:rgba(200,164,78,0.5)}
+.plx.open .plx-chevron svg{transform:rotate(180deg)}
+.plx-drawer{max-height:0;overflow:hidden;transition:max-height .55s cubic-bezier(.4,0,.2,1)}
+.plx.open .plx-drawer{max-height:640px}
+.plx-body{padding:4px 24px 24px 84px;opacity:0;transform:translateY(10px);transition:opacity .4s .12s,transform .4s .12s}
+.plx.open .plx-body{opacity:1;transform:translateY(0)}
+.plx-tag{font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:14px;opacity:.55}
+.plx-list{list-style:none;display:flex;flex-direction:column}
+.plx-list li{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.plx-list li:last-child{border-bottom:none}
+.plx-list-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);opacity:.45;flex-shrink:0;margin-top:5px}
+.plx-list-text{display:flex;flex-direction:column;gap:2px}
+.plx-list-name{font-size:13px;color:var(--cream);font-weight:500;line-height:1.3}
+.plx-list-sub{font-size:11px;color:var(--muted);line-height:1.5}
+.plx-out{margin:16px 0 4px;padding:14px 16px;border-left:1px solid rgba(200,164,78,0.5);background:linear-gradient(90deg,rgba(200,164,78,0.05),transparent)}
+.plx-out-label{font-size:9px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:var(--gold);display:block;margin-bottom:5px;opacity:.6}
+.plx-out-text{font-size:12px;color:var(--creamd);line-height:1.8;font-style:italic}
+.plx-fail-p{font-size:14px;color:var(--creamd);line-height:1.7;margin:0}
 
 /* STAT */
-.stat-sec{padding:100px 48px;position:relative;overflow:hidden}
+.stat-sec{padding:44px 48px;position:relative;overflow:hidden}
 .stat-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 30% 50%,rgba(200,164,78,0.06),transparent 60%)}
 .stat-sec::after{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.2}
-.arsenal-sec{position:relative;padding:96px 48px;background:linear-gradient(180deg,#060606 0%,#050505 100%);overflow:hidden}
+.arsenal-sec{position:relative;padding:44px 48px;background:linear-gradient(180deg,#060606 0%,#050505 100%);overflow:hidden}
 .arsenal-sec::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at 18% 20%,rgba(200,164,78,0.1),transparent 40%),radial-gradient(circle at 82% 78%,rgba(200,164,78,0.08),transparent 42%);pointer-events:none}
 .arsenal-inner{position:relative;z-index:2;max-width:1220px;margin:0 auto}
 .arsenal-head{text-align:center;margin-bottom:42px}
@@ -398,7 +429,7 @@ body.site-nav-hidden nav#nv{display:none !important}
 .winback-cta:hover{background:rgba(200,164,78,0.16);color:#f0ddae}
 
 /* FINAL CTA */
-.fcta{padding:120px 48px;text-align:center;position:relative;overflow:hidden}
+.fcta{padding:52px 48px;text-align:center;position:relative;overflow:hidden}
 .fcta-bg{position:absolute;inset:0;background:var(--black)}
 .fcta-glow{position:absolute;top:10%;left:50%;transform:translateX(-50%);width:400px;height:400px;border-radius:50%;background:radial-gradient(circle,rgba(200,164,78,0.12),transparent 70%);z-index:1}
 .fcta-inner{position:relative;z-index:2;max-width:700px;margin:0 auto}
@@ -578,21 +609,19 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
   .nav-logo-img{height:46px}
   .hero{padding:calc(100px + env(safe-area-inset-top,0px)) 24px calc(60px + env(safe-area-inset-bottom,0px));min-height:min(var(--app-height),720px)}
   .hero-sub{font-size:18px}
-  .sec{padding:64px 24px}
+  .sec{padding:32px 20px}
   .sec-label{font-size:13px}
   .sec-sub{font-size:17px}
   .fail-item{padding:18px 0}
   .fail-item h4{font-size:16px}
   .fail-item p{font-size:16px}
-  .phase{grid-template-columns:1fr}
-  .ph-side{border-right:none;border-bottom:1px solid var(--bdr);padding:24px;flex-direction:row;align-items:center;gap:16px}
-  .ph-num{margin-bottom:0;font-size:38px}
-  .ph-title{font-size:26px}
-  .ph-items li,.ph-out p{font-size:16px}
+  .phases-lux-wrap{padding:0 16px}
+  .plx-body{padding:4px 20px 22px 72px}
+  .phase-heading-top{font-size:16px;letter-spacing:4px}
+  .phase-heading-bot{font-size:clamp(36px,9vw,56px)}
   .origin-inner p{font-size:18px}
-  .ph-body{padding:24px}.ph-items{grid-template-columns:1fr}
   .fq{font-size:17px}.fa{font-size:15px}
-  .stat-sec,.fcta{padding:64px 24px}
+  .stat-sec,.fcta{padding:32px 20px}
   .winback{padding:0 24px 18px}
   .winback-inner{padding:18px 16px}
   .winback-copy p{font-size:14px}
@@ -621,12 +650,12 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
   .btn-p,.btn-s{padding:16px 28px;font-size:14px;min-height:48px;letter-spacing:0.8px}
   .hero-scroll{bottom:16px}
   .scroll-ind{width:20px;height:32px}
-  .sec{padding:48px 18px}.sec-heading{font-size:36px}.sec-sub{font-size:17px}.sec-label{font-size:13px}
+  .sec{padding:26px 16px}.sec-heading{font-size:36px}.sec-sub{font-size:16px;margin-bottom:18px}.sec-label{font-size:12px}
   .nav-logo-img{height:44px}
   .mm a{font-size:28px}
-  .ph-side{flex-direction:column;align-items:flex-start}
-  .ph-title{font-size:24px}
-  .ph-items li,.ph-out p{font-size:16px}
+  .plx-body{padding:4px 16px 18px 64px}
+  .phase-heading-top{font-size:15px;letter-spacing:3px}
+  .phase-heading-bot{font-size:clamp(32px,10vw,48px)}
   .fail-item h4{font-size:16px}.fail-item p{font-size:16px}
   .origin-inner p{font-size:18px}
   .fq{font-size:17px}.fa{font-size:16px}
@@ -8168,16 +8197,68 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 
 <!-- WHY PROGRAMS FAIL -->
 <section class="sec">
-  <div class="si rv">
-    <div class="gold-line"></div>
-    <p class="sec-label">The Problem</p>
-    <h2 class="sec-heading"><span class="w">Why 30-Day Programs </span><span class="g">Always Fail</span></h2>
-    <p class="sec-sub">You've tried this before. Here's why it didn't work, and why it's not your fault.</p>
-    <div class="fail-grid">
-      <div class="fail-item"><span class="fail-num">01</span><div class="fail-content"><h4>Too Restrictive to Maintain</h4><p>Extreme diets crash your metabolism and leave you worse off than before.</p></div></div>
-      <div class="fail-item"><span class="fail-num">02</span><div class="fail-content"><h4>Starved Out With Zero Energy</h4><p>Slashing calories destroys your energy, focus, and performance.</p></div></div>
-      <div class="fail-item"><span class="fail-num">03</span><div class="fail-content"><h4>No Actual Skill, Gave Up</h4><p>Quick fixes don't teach you the language of food or sustainable habits.</p></div></div>
-      <div class="fail-item"><span class="fail-num">04</span><div class="fail-content"><h4>The Promise Was Wrong, Not You</h4><p>Your body needs a systematic approach, not a sprint with an expiry date.</p></div></div>
+  <div class="si">
+    <div class="phase-heading-wrap rv">
+      <div class="gold-line"></div>
+      <p class="sec-label">The Problem</p>
+      <span class="phase-heading-top">You've tried this before</span>
+      <span class="phase-heading-bot" style="font-size:clamp(36px,6vw,64px);color:var(--cream)">Why Programs <span style="color:var(--gold)">Always Fail</span></span>
+    </div>
+  </div>
+  <div class="phases-lux-wrap">
+    <div class="phases-lux fail-lux">
+      <div class="plx rv" style="transition-delay:.05s" onclick="plxOpen(this)">
+        <div class="plx-top-line"></div>
+        <div class="plx-trigger">
+          <span class="plx-num">01</span>
+          <div class="plx-info"><div class="plx-title">Too Restrictive to Maintain</div></div>
+          <div class="plx-chevron"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></div>
+        </div>
+        <div class="plx-drawer">
+          <div class="plx-body" style="padding-top:0;padding-bottom:20px">
+            <p class="plx-fail-p">Extreme diets crash your metabolism and leave you worse off than before.</p>
+          </div>
+        </div>
+      </div>
+      <div class="plx rv" style="transition-delay:.18s" onclick="plxOpen(this)">
+        <div class="plx-top-line"></div>
+        <div class="plx-trigger">
+          <span class="plx-num">02</span>
+          <div class="plx-info"><div class="plx-title">Starved Out With Zero Energy</div></div>
+          <div class="plx-chevron"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></div>
+        </div>
+        <div class="plx-drawer">
+          <div class="plx-body" style="padding-top:0;padding-bottom:20px">
+            <p class="plx-fail-p">Slashing calories destroys your energy, focus, and performance.</p>
+          </div>
+        </div>
+      </div>
+      <div class="plx rv" style="transition-delay:.31s" onclick="plxOpen(this)">
+        <div class="plx-top-line"></div>
+        <div class="plx-trigger">
+          <span class="plx-num">03</span>
+          <div class="plx-info"><div class="plx-title">No Actual Skill, Gave Up</div></div>
+          <div class="plx-chevron"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></div>
+        </div>
+        <div class="plx-drawer">
+          <div class="plx-body" style="padding-top:0;padding-bottom:20px">
+            <p class="plx-fail-p">Quick fixes don't teach you the language of food or sustainable habits.</p>
+          </div>
+        </div>
+      </div>
+      <div class="plx rv" style="transition-delay:.44s" onclick="plxOpen(this)">
+        <div class="plx-top-line"></div>
+        <div class="plx-trigger">
+          <span class="plx-num">04</span>
+          <div class="plx-info"><div class="plx-title">The Promise Was Wrong, Not You</div></div>
+          <div class="plx-chevron"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></div>
+        </div>
+        <div class="plx-drawer">
+          <div class="plx-body" style="padding-top:0;padding-bottom:20px">
+            <p class="plx-fail-p">Your body needs a systematic approach, not a sprint with an expiry date.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -8199,13 +8280,102 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 </section>
 
 <!-- 3-PHASE -->
-<section class="sec phase-sec" id="program">
+<section class="phase-sec" id="program">
   <div class="si">
-    <div class="rv" style="text-align:center;margin-bottom:48px"><div class="gold-line"></div><p class="sec-label">The System</p><h2 class="sec-heading"><span class="w">The Lifestyle Management </span><span class="g">3-Phase Mechanism</span></h2></div>
-    <div class="phases">
-      <div class="phase rv"><div class="ph-side"><div class="ph-num">01</div><div><div class="ph-title">Foundation</div><div class="ph-time">Weeks 1 – 4</div></div></div><div class="ph-body"><p class="ph-tag">What you get</p><ul class="ph-items"><li>Body Audit (fitness, nutrition, lifestyle assessment)</li><li>Personal Food Blueprint (plate structure for your goal)</li><li>Customized Training Protocol (workouts tailored to you)</li><li>Daily Targets (sleep, hydration, steps, nutrition)</li><li>Mindset Coaching (mental frameworks, damage control)</li></ul><div class="ph-out"><p class="ph-out-l">Outcome</p><p>Mental clarity, better sleep, energy. You understand your baseline. You have a REAL plan.</p></div></div></div>
-      <div class="phase rv"><div class="ph-side"><div class="ph-num">02</div><div><div class="ph-title">Acceleration</div><div class="ph-time">Weeks 5 – 12</div></div></div><div class="ph-body"><p class="ph-tag">What you get</p><ul class="ph-items"><li>Progressive training (workouts upgrade as you get stronger)</li><li>Nutrition Optimization (refined meal plans from Phase 1)</li><li>Bi-Weekly Progress Analysis (actual measurements)</li><li>Bio-Hacking Protocols (sleep optimization, recovery)</li><li>24/7 Support (text, call, audio note whenever you need)</li></ul><div class="ph-out"><p class="ph-out-l">Outcome</p><p>Visible fat loss. Measurable strength gains. Real momentum.</p></div></div></div>
-      <div class="phase rv"><div class="ph-side"><div class="ph-num">03</div><div><div class="ph-title">Lock-In</div><div class="ph-time">Weeks 13 – 16</div></div></div><div class="ph-body"><p class="ph-tag">What you get</p><ul class="ph-items"><li>Consistency Protocols (damage control for travel, stress, chaos)</li><li>Real-Life Application (restaurant eating, travel strategies)</li><li>Identity Shift (from "on a program" to "this is my lifestyle")</li><li>Maintenance Protocol (sustain results forever)</li><li>Bonus: Damage Control Playbook + Proprietary Tracking Journal</li></ul><div class="ph-out"><p class="ph-out-l">Outcome</p><p>Transformation feels normal. You're living differently. Results stick because you stop breaking.</p></div></div></div>
+    <div class="phase-heading-wrap rv">
+      <div class="gold-line"></div>
+      <p class="sec-label">The System</p>
+      <span class="phase-heading-top">The Lifestyle Management</span>
+      <span class="phase-heading-bot">3-Phase Mechanism</span>
+    </div>
+  </div>
+  <div class="phases-lux-wrap">
+    <div class="phases-lux">
+
+      <div class="plx rv" style="transition-delay:.05s" onclick="plxOpen(this)">
+        <div class="plx-top-line"></div>
+        <div class="plx-trigger">
+          <span class="plx-num">01</span>
+          <div class="plx-info">
+            <div class="plx-title">Foundation</div>
+            <div class="plx-weeks">Weeks 1 – 4</div>
+          </div>
+          <div class="plx-chevron"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></div>
+        </div>
+        <div class="plx-drawer">
+          <div class="plx-body">
+            <p class="plx-tag">What you get</p>
+            <ul class="plx-list">
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Body Audit</span><span class="plx-list-sub">fitness, nutrition, lifestyle assessment</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Personal Food Blueprint</span><span class="plx-list-sub">plate structure for your goal</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Customized Training Protocol</span><span class="plx-list-sub">workouts tailored to you</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Daily Targets</span><span class="plx-list-sub">sleep, hydration, steps, nutrition</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Mindset Coaching</span><span class="plx-list-sub">mental frameworks, damage control</span></span></li>
+            </ul>
+            <div class="plx-out">
+              <span class="plx-out-label">Outcome</span>
+              <p class="plx-out-text">Mental clarity, better sleep, energy. You understand your baseline. You have a REAL plan.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="plx rv" style="transition-delay:.2s" onclick="plxOpen(this)">
+        <div class="plx-top-line"></div>
+        <div class="plx-trigger">
+          <span class="plx-num">02</span>
+          <div class="plx-info">
+            <div class="plx-title">Acceleration</div>
+            <div class="plx-weeks">Weeks 5 – 12</div>
+          </div>
+          <div class="plx-chevron"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></div>
+        </div>
+        <div class="plx-drawer">
+          <div class="plx-body">
+            <p class="plx-tag">What you get</p>
+            <ul class="plx-list">
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Progressive Training</span><span class="plx-list-sub">workouts upgrade as you get stronger</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Nutrition Optimization</span><span class="plx-list-sub">refined meal plans from Phase 1</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Bi-Weekly Progress Analysis</span><span class="plx-list-sub">actual measurements, not guesswork</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Bio-Hacking Protocols</span><span class="plx-list-sub">sleep optimization, recovery</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">24/7 Support</span><span class="plx-list-sub">text, call, audio note whenever you need</span></span></li>
+            </ul>
+            <div class="plx-out">
+              <span class="plx-out-label">Outcome</span>
+              <p class="plx-out-text">Visible fat loss. Measurable strength gains. Real momentum.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="plx rv" style="transition-delay:.35s" onclick="plxOpen(this)">
+        <div class="plx-top-line"></div>
+        <div class="plx-trigger">
+          <span class="plx-num">03</span>
+          <div class="plx-info">
+            <div class="plx-title">Lock-In</div>
+            <div class="plx-weeks">Weeks 13 – 16</div>
+          </div>
+          <div class="plx-chevron"><svg viewBox="0 0 10 6"><polyline points="1,1 5,5 9,1"/></svg></div>
+        </div>
+        <div class="plx-drawer">
+          <div class="plx-body">
+            <p class="plx-tag">What you get</p>
+            <ul class="plx-list">
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Consistency Protocols</span><span class="plx-list-sub">damage control for travel, stress, chaos</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Real-Life Application</span><span class="plx-list-sub">restaurant eating, travel strategies</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Identity Shift</span><span class="plx-list-sub">from "on a program" to "this is my lifestyle"</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Maintenance Protocol</span><span class="plx-list-sub">sustain results forever</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Bonus</span><span class="plx-list-sub">Damage Control Playbook + Proprietary Tracking Journal</span></span></li>
+            </ul>
+            <div class="plx-out">
+              <span class="plx-out-label">Outcome</span>
+              <p class="plx-out-text">Transformation feels normal. You're living differently. Results stick because you stop breaking.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </section>
@@ -8458,7 +8628,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   <div class="winback-inner rv">
     <div class="winback-copy">
       <h3>Win Your Membership Back</h3>
-      <p>Your consistency earns BB Coins. Redeem them at renewal and reduce what you pay - the more verified activity you complete, the more you can win back.</p>
+      <p>Your consistency earns BB Coins. Redeem them at renewal and reduce what you pay. The more verified activity you complete, the more you can win back.</p>
       <span class="winback-meta">Workouts + meal logs + body submissions + streaks -> renewal value. Terms apply.</span>
     </div>
     <a href="#" class="winback-cta" onclick="openModal('signupModal');return false;">See Eligibility</a>
@@ -8558,7 +8728,7 @@ function initBodyBankArsenal(){
       theme: 'trainer',
       number: '01',
       title: 'Real-time form coach',
-      desc: 'Your phone camera becomes a personal trainer. Live joint-angle tracking, rep counting, and instant depth feedback - every single rep, every session. No equipment needed.',
+      desc: 'Your phone camera becomes a personal trainer. Live joint-angle tracking, rep counting, and instant depth feedback. Every single rep, every session. No equipment needed.',
       pills: ['Live rep count', 'Joint angles', 'Depth detection'],
       ctaHref: '#',
       ctaAction: 'openSignup',
@@ -8579,7 +8749,7 @@ function initBodyBankArsenal(){
       number: '02',
       title: 'Snap a meal, get your macros',
       poweredBy: 'Powered by FitChef',
-      desc: 'Photograph any dish and AI instantly breaks down calories, protein, carbs and fat - with high-confidence portion analysis. From ragi dosa to biryani, it knows.',
+      desc: 'Photograph any dish and AI instantly breaks down calories, protein, carbs and fat with high-confidence portion analysis. From ragi dosa to biryani, it knows.',
       pills: ['1-tap logging', '4 macros tracked', 'AI portion sizing'],
       ctaHref: '#',
       ctaAction: 'openSignup',
@@ -8598,7 +8768,7 @@ function initBodyBankArsenal(){
       theme: 'muscle',
       number: '03',
       title: 'Know your body\'s weak spots',
-      desc: 'AI maps every muscle group, measures each zone and ranks them Strong, Average or Weak. Your Body Audit Index tells you exactly where to focus - updated every week.',
+      desc: 'AI maps every muscle group, measures each zone and ranks them Strong, Average or Weak. Your Body Audit Index tells you exactly where to focus, updated every week.',
       pills: ['Score 64/100', '3 muscle zones', 'Weekly update'],
       ctaHref: '#',
       ctaAction: 'openSignup',
@@ -8614,7 +8784,7 @@ function initBodyBankArsenal(){
       theme: 'coin',
       number: '04',
       title: 'Train more, pay less',
-      desc: 'Every workout, meal log and body submission earns you BB Coins. Stack them up and redeem against your next renewal - the more you show up, the less you pay.',
+      desc: 'Every workout, meal log and body submission earns you BB Coins. Stack them up and redeem against your next renewal. The more you show up, the less you pay.',
       pills: ['Earn on every activity', 'Redeemable on renewal', '170 coins earned'],
       ctaHref: '#',
       ctaAction: 'openSignup',
@@ -9385,6 +9555,11 @@ if(window.location.hash==='#workout'){history.replaceState(null,'',location.path
     }).catch(function(){ showPopup('Error','Could not verify reset link.','','OK'); });
   }
 })();
+
+// Accordion — one open at a time within its own container
+function plxOpen(el){const isOpen=el.classList.contains('open');el.closest('.phases-lux,.fail-lux').querySelectorAll('.plx').forEach(p=>p.classList.remove('open'));if(!isOpen)el.classList.add('open');}
+// Gold number animation on scroll into view
+(function(){const w=document.querySelector('.phases-lux-wrap');if(!w)return;const o=new IntersectionObserver(function(e){if(e[0].isIntersecting){w.classList.add('plx-nums-on');o.disconnect();}},{threshold:.25});o.observe(w);})();
 
 // Animated counter for 92%
 let counted=false;
@@ -17544,7 +17719,27 @@ async function drawNutritionShareCard(mt, opts) {
   var meta = bbNutritionMealMeta[mealType] || { label: String(mealType || 'Meal'), hint: '' };
 
   var W = 1080;
-  var H = adminPayload ? 1860 : 1700;
+  var imgX = 52;
+  var imgW = W - 104;
+  var imgTop = adminPayload ? 392 : 230;
+
+  // Pre-load meal image to calculate natural aspect ratio before sizing the canvas
+  var sharePhotoData = adminPayload && adminPayload.photoData ? String(adminPayload.photoData) : (bbNutritionState.photos && bbNutritionState.photos[mealType] ? String(bbNutritionState.photos[mealType]) : '');
+  var sharePhotoMime = adminPayload && adminPayload.photoMime ? String(adminPayload.photoMime) : (bbNutritionState.mimes && bbNutritionState.mimes[mealType] ? bbNutritionState.mimes[mealType] : 'image/jpeg');
+  var mealImgPreloaded = null;
+  if (sharePhotoData) {
+    try { mealImgPreloaded = await nutritionShareLoadImage('data:' + (sharePhotoMime || 'image/jpeg') + ';base64,' + sharePhotoData); } catch(e) {}
+  }
+
+  // Dynamic image height — scale to full width, preserve aspect ratio, clamp to sane range
+  var imgH = 560;
+  if (mealImgPreloaded && mealImgPreloaded.naturalWidth && mealImgPreloaded.naturalHeight) {
+    var naturalScaledH = Math.round(imgW * mealImgPreloaded.naturalHeight / mealImgPreloaded.naturalWidth);
+    imgH = Math.max(380, Math.min(820, naturalScaledH));
+  }
+
+  // Canvas height: fixed header + dynamic image + fixed content block + footer
+  var H = imgTop + imgH + 920;
   canvas.width = W;
   canvas.height = H;
   var ctx = canvas.getContext('2d');
@@ -17591,37 +17786,19 @@ async function drawNutritionShareCard(mt, opts) {
     ctx.textAlign = 'left';
   }
 
-  // Meal image region
-  var imgTop = adminPayload ? 392 : 230;
-  var imgX = 52;
-  var imgW = W - 104;
-  var imgH = 560;
-  nutritionShareRoundRectPath(ctx, imgX, imgTop, imgW, imgH, 32);
+  // Meal image region — full image, no cropping
   ctx.save();
+  nutritionShareRoundRectPath(ctx, imgX, imgTop, imgW, imgH, 32);
+  ctx.fillStyle = '#1a1e24';
+  ctx.fill();
   ctx.clip();
-  var sharePhotoData = adminPayload && adminPayload.photoData ? String(adminPayload.photoData) : (bbNutritionState.photos && bbNutritionState.photos[mealType] ? String(bbNutritionState.photos[mealType]) : '');
-  var sharePhotoMime = adminPayload && adminPayload.photoMime ? String(adminPayload.photoMime) : (bbNutritionState.mimes[mealType] || 'image/jpeg');
-  if (sharePhotoData) {
-    try {
-      var mealImg = await nutritionShareLoadImage('data:' + (sharePhotoMime || 'image/jpeg') + ';base64,' + sharePhotoData);
-      if (mealImg.naturalWidth && mealImg.naturalHeight) {
-        var ratio = Math.max(imgW / mealImg.naturalWidth, imgH / mealImg.naturalHeight);
-        var dw = mealImg.naturalWidth * ratio;
-        var dh = mealImg.naturalHeight * ratio;
-        var dx = imgX + (imgW - dw) / 2;
-        var dy = imgTop + (imgH - dh) / 2;
-        ctx.drawImage(mealImg, dx, dy, dw, dh);
-      } else {
-        ctx.fillStyle = '#1f2429';
-        ctx.fillRect(imgX, imgTop, imgW, imgH);
-      }
-    } catch (e) {
-      ctx.fillStyle = '#1f2429';
-      ctx.fillRect(imgX, imgTop, imgW, imgH);
-    }
-  } else {
-    ctx.fillStyle = '#1f2429';
-    ctx.fillRect(imgX, imgTop, imgW, imgH);
+  if (mealImgPreloaded && mealImgPreloaded.naturalWidth && mealImgPreloaded.naturalHeight) {
+    var ratio = Math.min(imgW / mealImgPreloaded.naturalWidth, imgH / mealImgPreloaded.naturalHeight);
+    var dw = mealImgPreloaded.naturalWidth * ratio;
+    var dh = mealImgPreloaded.naturalHeight * ratio;
+    var dx = imgX + (imgW - dw) / 2;
+    var dy = imgTop + (imgH - dh) / 2;
+    ctx.drawImage(mealImgPreloaded, dx, dy, dw, dh);
   }
   ctx.restore();
 
