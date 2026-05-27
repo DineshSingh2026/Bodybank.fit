@@ -14,7 +14,7 @@ try {
   multer = null;
 }
 const webPush = require('web-push');
-const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken } = require('./middleware/auth');
+const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken } = require('./middleware/auth');
 const { safeExtraHttpHeaders, optionalApiAccessLog } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
@@ -372,6 +372,7 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS diet_type TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS injury_limitations TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stress_level_baseline INTEGER`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS apple_id TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   await pool.query("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL").catch(() => {});
 
   await pool.query(`CREATE TABLE IF NOT EXISTS audit_requests (
@@ -1170,7 +1171,13 @@ app.get('/api/debug-reset-setup', (req, res) => {
 app.get('/api/config', (req, res) => {
   const cid = process.env.GOOGLE_CLIENT_ID || process.env['GOOGLE-CLIENT-ID'] || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
   res.set('Cache-Control', 'no-store');
-  res.json({ google_client_id: cid });
+  res.json({
+    google_client_id: cid,
+    // Sign in with Apple: web Services ID (browser flow) + native bundle id (iOS app flow).
+    apple_client_id: process.env.APPLE_SERVICE_ID || '',
+    apple_bundle_id: process.env.APPLE_BUNDLE_ID || 'com.bodybank.app',
+    apple_redirect_uri: process.env.APPLE_REDIRECT_URI || ''
+  });
 });
 
 // Health check: API + DB connection test
@@ -1387,6 +1394,106 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
     });
   } catch (e) {
     console.error('Google complete error:', e);
+    res.status(500).json({ error: 'Failed to complete sign-up. Please try again.' });
+  }
+});
+
+// Sign in with Apple (auto sign-up/login) — mirrors the Google flow (same approval gate).
+// Accepts identity tokens from both the web (Services ID audience) and the native iOS
+// app (bundle id audience). Apple sends the user's name only on the FIRST authorization,
+// in a separate `user` object — never inside the token.
+app.post('/api/auth/apple', async (req, res) => {
+  try {
+    const { id_token, user } = req.body || {};
+    if (!id_token) return res.status(400).json({ error: 'Identity token required' });
+
+    let claims;
+    try { claims = await verifyAppleIdentityToken(id_token); }
+    catch (e) { console.error('Apple token verify failed:', e.message); return res.status(401).json({ error: 'Invalid Apple token' }); }
+
+    const appleSub = String(claims.sub || '');
+    const appleName = (user && user.name) || {};
+    const givenName = String(appleName.firstName || '').trim();
+    const familyName = String(appleName.lastName || '').trim();
+    // Email comes from the token claim; may be a private @privaterelay.appleid.com address.
+    const email = claims.email || (user && user.email) || '';
+    const emailNorm = String(email).trim().toLowerCase();
+
+    let userRow = null;
+    if (emailNorm) userRow = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    if (!userRow && appleSub) userRow = await queryOne("SELECT * FROM users WHERE apple_id = ?", [appleSub]);
+
+    if (!userRow) {
+      if (!emailNorm) return res.status(400).json({ error: 'Email required. Please retry and choose “Share My Email” when Apple asks.' });
+      // New user: require profile completion (phone, password) before creating.
+      return res.json({ needs_profile: true, provider: 'apple', email: emailNorm, given_name: givenName, family_name: familyName });
+    }
+
+    const status = userRow.approval_status || 'approved';
+    if (status === 'rejected') return res.status(403).json({ error: 'rejected', message: 'Your request was rejected. Please sign up again to submit a new request.' });
+    if (status !== 'approved') return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
+
+    // Link the Apple identity to an existing (email / Google / password) account on first use.
+    if (appleSub && !userRow.apple_id) { await run("UPDATE users SET apple_id = ? WHERE id = ?", [appleSub, userRow.id]); }
+    await syncUserCountryAndTimezone(userRow.id, userRow.email);
+    userRow = await queryOne("SELECT * FROM users WHERE id = ?", [userRow.id]);
+    const token = signToken({ id: userRow.id, email: userRow.email, role: userRow.role });
+    res.json({ id: userRow.id, email: userRow.email, first_name: userRow.first_name || '', last_name: userRow.last_name || '', profile_picture: userRow.profile_picture || '', role: userRow.role, country: userRow.country || '', timezone: userRow.timezone || '', height_cm: userRow.height_cm != null && userRow.height_cm !== '' ? Number(userRow.height_cm) : null, token });
+  } catch (e) {
+    console.error('Apple auth error:', e);
+    res.status(500).json({ error: 'Apple auth failed' });
+  }
+});
+
+// Apple Sign-up: complete profile (phone, password + new fields) for new Apple users.
+app.post('/api/auth/apple-complete', rateLimiter(5, 60000), async (req, res) => {
+  try {
+    const { id_token, user, phone, password, dob, gender, country, timezone, state_province, city, height_cm } = req.body || {};
+    if (!id_token) return res.status(400).json({ error: 'Identity token required' });
+    if (!phone || typeof phone !== 'string' || !phone.trim()) return res.status(400).json({ error: 'Mobile (WhatsApp) number is required' });
+    if (!password || typeof password !== 'string') return res.status(400).json({ error: 'Password is required' });
+    if (password.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
+    const heightParsed = parseInt(height_cm, 10);
+    if (!Number.isFinite(heightParsed) || heightParsed < 100 || heightParsed > 230) {
+      return res.status(400).json({ error: 'Height must be a whole number between 100 and 230 cm' });
+    }
+
+    let claims;
+    try { claims = await verifyAppleIdentityToken(id_token); }
+    catch (e) { console.error('Apple complete verify failed:', e.message); return res.status(401).json({ error: 'Invalid Apple token' }); }
+
+    const appleSub = String(claims.sub || '');
+    const appleName = (user && user.name) || {};
+    const givenName = String(appleName.firstName || '').trim();
+    const familyName = String(appleName.lastName || '').trim();
+    const email = claims.email || (user && user.email) || '';
+    if (!email) return res.status(400).json({ error: 'Email required' });
+
+    const emailNorm = String(email).trim().toLowerCase();
+    const phoneTrimmed = String(phone || '').trim();
+    const geo = normalizeGeoFields(country, timezone);
+    const cleanDob = dob && String(dob).trim() ? String(dob).trim().slice(0, 10) : null;
+    const cleanGender = String(gender || '').trim().slice(0, 20);
+    const cleanState = String(state_province || '').trim().slice(0, 100);
+    const cleanCity = String(city || '').trim().slice(0, 100);
+
+    const existing = await queryOne("SELECT id FROM users WHERE LOWER(email) = ?", [emailNorm]);
+    if (existing) return res.status(409).json({ error: 'Email already registered. Please log in instead.' });
+
+    const id = uuidv4();
+    const hash = bcrypt.hashSync(password, 10);
+    await run("INSERT INTO users (id, email, password, first_name, last_name, phone, apple_id, country, timezone, state_province, city, dob, gender, height_cm, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+      [id, emailNorm, hash, givenName, familyName, phoneTrimmed, appleSub, geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'pending']);
+    sendPushToAdmins(JSON.stringify({ title: 'New sign-up (Apple)', body: `${givenName} ${familyName} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
+    try { userEmail.emailSignupPending(emailNorm, givenName); } catch (_) {}
+    notifyAsync('USER_SIGNUP', { name: `${givenName} ${familyName}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—' });
+    res.json({
+      id, email: emailNorm, first_name: givenName, last_name: familyName, role: 'user',
+      country: geo.country, timezone: geo.timezone, pending_approval: true,
+      message: 'Your account has been created and is pending admin approval.'
+    });
+  } catch (e) {
+    console.error('Apple complete error:', e);
     res.status(500).json({ error: 'Failed to complete sign-up. Please try again.' });
   }
 });

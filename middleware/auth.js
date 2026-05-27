@@ -1,7 +1,61 @@
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'bodybank-progress-secret-change-in-production';
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
+
+// ============ SIGN IN WITH APPLE ============
+// Apple publishes its identity-token signing keys (JWKS) at this URL. We cache them
+// and verify the token's RS256 signature, issuer, and audience locally — no Apple
+// client secret / .p8 is needed because we consume the identity token directly.
+const APPLE_KEYS_URL = 'https://appleid.apple.com/auth/keys';
+const APPLE_ISSUER = 'https://appleid.apple.com';
+let _appleKeysCache = { keys: null, fetchedAt: 0 };
+
+// Allowed audiences = the web Services ID and/or the native app bundle id.
+// A web token's `aud` is the Services ID; a native (iOS) token's `aud` is the bundle id.
+function appleAllowedAudiences() {
+  return [
+    process.env.APPLE_SERVICE_ID,        // e.g. com.bodybank.web (Sign in with Apple "Services ID")
+    process.env.APPLE_BUNDLE_ID || 'com.bodybank.app' // native iOS app id
+  ].filter(Boolean);
+}
+
+async function fetchAppleKeys(force) {
+  const now = Date.now();
+  if (!force && _appleKeysCache.keys && (now - _appleKeysCache.fetchedAt) < 12 * 60 * 60 * 1000) {
+    return _appleKeysCache.keys;
+  }
+  const resp = await fetch(APPLE_KEYS_URL);
+  if (!resp.ok) throw new Error('Failed to fetch Apple public keys (' + resp.status + ')');
+  const data = await resp.json();
+  _appleKeysCache = { keys: data.keys || [], fetchedAt: now };
+  return _appleKeysCache.keys;
+}
+
+async function applePublicKeyPem(kid) {
+  let keys = await fetchAppleKeys(false);
+  let jwk = keys.find(k => k.kid === kid);
+  if (!jwk) { keys = await fetchAppleKeys(true); jwk = keys.find(k => k.kid === kid); } // refresh once on miss
+  if (!jwk) throw new Error('Apple signing key not found for kid ' + kid);
+  return crypto.createPublicKey({ key: jwk, format: 'jwk' }).export({ type: 'spki', format: 'pem' });
+}
+
+// Verifies an Apple identity token and returns its payload ({ sub, email, email_verified,
+// is_private_email, ... }). Throws if the signature/issuer/audience/expiry are invalid.
+async function verifyAppleIdentityToken(idToken) {
+  if (!idToken || typeof idToken !== 'string' || idToken.split('.').length !== 3) {
+    throw new Error('Malformed Apple identity token');
+  }
+  const header = JSON.parse(Buffer.from(idToken.split('.')[0], 'base64').toString());
+  const pem = await applePublicKeyPem(header.kid);
+  const audiences = appleAllowedAudiences();
+  return jwt.verify(idToken, pem, {
+    algorithms: ['RS256'],
+    issuer: APPLE_ISSUER,
+    ...(audiences.length ? { audience: audiences } : {})
+  });
+}
 
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
@@ -100,4 +154,4 @@ function verifyPdfAccessToken(token) {
   }
 }
 
-module.exports = { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, JWT_SECRET };
+module.exports = { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken, JWT_SECRET };

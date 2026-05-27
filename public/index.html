@@ -7921,6 +7921,10 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     </details>
     <button class="form-submit" onclick="handleSignup()">Sign-up Now</button>
     <div id="googleBtnSignup" class="google-btn-wrap" style="margin-top:12px;min-height:48px"></div>
+    <button type="button" id="appleBtnSignup" onclick="bbAppleSignIn()" aria-label="Sign up with Apple" style="display:none;width:100%;margin-top:10px;min-height:44px;align-items:center;justify-content:center;gap:8px;background:#000;color:#fff;border:1px solid #000;border-radius:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:500;cursor:pointer;line-height:1;padding:0 16px">
+      <svg width="15" height="18" viewBox="0 0 16 20" fill="#fff" aria-hidden="true" style="display:block;margin-bottom:2px"><path d="M13.476 10.62c-.02-2.06 1.68-3.05 1.757-3.097-.957-1.4-2.446-1.59-2.974-1.612-1.266-.128-2.47.745-3.113.745-.64 0-1.633-.726-2.685-.706-1.383.02-2.656.803-3.366 2.04-1.435 2.49-.367 6.176 1.03 8.197.683.99 1.498 2.1 2.567 2.06 1.03-.04 1.42-.666 2.666-.666 1.247 0 1.597.666 2.69.646 1.11-.02 1.814-1.01 2.493-2.003.785-1.15 1.108-2.26 1.127-2.317-.025-.012-2.163-.83-2.185-3.29zM11.43 4.62c.567-.69.95-1.65.846-2.605-.817.033-1.806.545-2.392 1.234-.525.61-.985 1.586-.86 2.522.91.07 1.84-.462 2.406-1.15z"/></svg>
+      <span>Sign up with Apple</span>
+    </button>
     <p class="login-footer">Already have an account? <a href="#" onclick="openModal('loginModal');closeModal('signupModal');return false;">Login</a></p>
     </div>
   </div>
@@ -7953,7 +7957,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     </div>
     <div class="form-group"><label>Password <span class="req">*</span></label><div class="pw-wrap"><input type="password" class="form-input" id="gcPw" placeholder="Create a password"><button class="pw-toggle" onclick="var i=document.getElementById('gcPw');i.type=i.type==='password'?'text':'password'">&#128065;</button></div></div>
     <div class="form-group"><label>Confirm Password <span class="req">*</span></label><input type="password" class="form-input" id="gcPwConfirm" placeholder="Confirm your password"></div>
-    <button class="form-submit" onclick="handleGoogleCompleteSubmit()">Complete Sign-up</button>
+    <button class="form-submit" onclick="bbCompleteSocialSignup()">Complete Sign-up</button>
     </div>
   </div>
 </div>
@@ -9457,7 +9461,7 @@ function openModal(id){
     _focusTrapHandler=function(e){if(e.key==='Escape'){closeModal(id);return;}trapFocus(e,el.querySelector('.modal'));};
     el.addEventListener('keydown',_focusTrapHandler);
   }
-  if (id==='loginModal'||id==='signupModal') updateGoogleButtonVisibility();
+  if (id==='loginModal'||id==='signupModal') { updateGoogleButtonVisibility(); updateAppleButtonVisibility(); }
   if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab();
 }
 var _googleButtonRendered=false;
@@ -21149,17 +21153,58 @@ function ensureGoogleButtonRendered(config) {
 }
 
 var _pendingGoogleToken = null;
+var _pendingAppleAuth = null;   // { id_token, user } for an in-progress Apple sign-up
+var _pendingProvider = null;    // 'google' | 'apple' — which provider the complete-profile modal is for
+
+// Shared: route a logged-in social user (Google or Apple) into the app.
+function bbApplySocialAuthSuccess(data) {
+  window.currentUser = data;
+  try { localStorage.setItem(SESSION_KEY, JSON.stringify(data)); } catch (e) {}
+  closeModal('loginModal');
+  closeModal('signupModal');
+  closeModal('googleCompleteModal');
+  _pendingGoogleToken = null;
+  _pendingAppleAuth = null;
+  _pendingProvider = null;
+  if (data.role === 'admin') {
+    if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(true);
+    document.getElementById('adminPanel').classList.add('open');
+    document.body.classList.add('site-nav-hidden');
+    document.body.classList.add('admin-dashboard-open');
+    lockBodyScroll();
+    loadDashboard().finally(function() {
+      if (typeof loadAdminAiAssistHistory === 'function') loadAdminAiAssistHistory();
+    });
+  } else if (data.role === 'superadmin') {
+    if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(true);
+    document.getElementById('superadminPanel').classList.add('open');
+    document.body.classList.add('site-nav-hidden');
+    document.body.classList.add('admin-dashboard-open');
+    lockBodyScroll();
+    loadSuperadminDashboard();
+  } else {
+    if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(false);
+    openUserDashboard(data);
+  }
+}
+
+// Shared: show a pending/rejected popup for Google or Apple.
+function bbHandleSocialAuthError(data) {
+  var msg = (data.error === 'pending_approval' || data.error === 'rejected') && data.message ? data.message : data.error;
+  showPopup(data.error === 'rejected' ? 'Request Rejected' : 'Account Pending', msg, data.error === 'rejected' ? '' : 'For instant approval, reach out to Admin on WhatsApp.', 'OK', null, 'error');
+}
 
 function handleGoogleResponse(response) {
   var idToken = response.credential;
   apiCall('POST', '/api/auth/google', { id_token: idToken }).then(function(data) {
     if (data.needs_profile) {
       _pendingGoogleToken = idToken;
+      _pendingProvider = 'google';
       var fn = document.getElementById('gcFirst'), ln = document.getElementById('gcLast'), em = document.getElementById('gcEmail');
       var ph = document.getElementById('gcPhone'), pw = document.getElementById('gcPw'), cf = document.getElementById('gcPwConfirm');
-      if (fn) fn.value = data.given_name || '';
-      if (ln) ln.value = data.family_name || '';
-      if (em) em.value = data.email || '';
+      if (fn) { fn.value = data.given_name || ''; fn.setAttribute('readonly', 'readonly'); }
+      if (ln) { ln.value = data.family_name || ''; ln.setAttribute('readonly', 'readonly'); }
+      if (em) { em.value = data.email || ''; em.setAttribute('readonly', 'readonly'); }
       if (ph) ph.value = '';
       if (pw) pw.value = '';
       if (cf) cf.value = '';
@@ -21167,40 +21212,158 @@ function handleGoogleResponse(response) {
       openModal('googleCompleteModal');
       return;
     }
-    if (data.error) {
-      var msg = (data.error === 'pending_approval' || data.error === 'rejected') && data.message ? data.message : data.error;
-      showPopup(data.error === 'rejected' ? 'Request Rejected' : 'Account Pending', msg, data.error === 'rejected' ? '' : 'For instant approval, reach out to Admin on WhatsApp.', 'OK', null, 'error');
-      return;
-    }
-    window.currentUser = data;
-    try { localStorage.setItem(SESSION_KEY, JSON.stringify(data)); } catch (e) {}
-    closeModal('loginModal');
-    closeModal('signupModal');
-    closeModal('googleCompleteModal');
-    _pendingGoogleToken = null;
-    if (data.role === 'admin') {
-      if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(true);
-      document.getElementById('adminPanel').classList.add('open');
-      document.body.classList.add('site-nav-hidden');
-      document.body.classList.add('admin-dashboard-open');
-      lockBodyScroll();
-      loadDashboard().finally(function() {
-        if (typeof loadAdminAiAssistHistory === 'function') loadAdminAiAssistHistory();
-      });
-    } else if (data.role === 'superadmin') {
-      if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(true);
-      document.getElementById('superadminPanel').classList.add('open');
-      document.body.classList.add('site-nav-hidden');
-      document.body.classList.add('admin-dashboard-open');
-      lockBodyScroll();
-      loadSuperadminDashboard();
-    } else {
-      if (typeof bbNotifyPlayLoginChime === 'function') bbNotifyPlayLoginChime(false);
-      openUserDashboard(data);
-    }
+    if (data.error) { bbHandleSocialAuthError(data); return; }
+    bbApplySocialAuthSuccess(data);
   }).catch(function(e) {
     showPopup('Error', 'Google authentication failed. Please try again.', '', 'OK');
   });
+}
+
+// ========== SIGN IN WITH APPLE ==========
+function bbIsNativeIOS() { try { return !!(window.Capacitor && Capacitor.getPlatform && Capacitor.getPlatform() === 'ios'); } catch (e) { return false; } }
+function bbIsAndroidNative() { try { return !!(window.Capacitor && Capacitor.getPlatform && Capacitor.getPlatform() === 'android'); } catch (e) { return false; } }
+function bbAppleNativePlugin() { try { return (window.Capacitor && Capacitor.Plugins && Capacitor.Plugins.SignInWithApple) || null; } catch (e) { return null; } }
+
+var _appleConfig = null;
+var _appleWebSdkReady = false;
+
+// Decide whether to show the Apple button and load the web SDK if needed.
+// Hidden inside the Android app so Android/Play stays visually unchanged.
+function updateAppleButtonVisibility() {
+  var btn = document.getElementById('appleBtnSignup');
+  if (!btn) return;
+  if (bbIsAndroidNative()) { btn.style.display = 'none'; return; }
+  var nativeIOS = bbIsNativeIOS();
+  if (nativeIOS) btn.style.display = 'flex'; // native iOS uses the Capacitor plugin (bundle-id audience)
+  apiCall('GET', '/api/config').then(function(config) {
+    _appleConfig = config;
+    var sid = (config && config.apple_client_id) || '';
+    if (!nativeIOS) btn.style.display = sid ? 'flex' : 'none'; // browser needs a Services ID
+    if (!nativeIOS && sid) ensureAppleWebSdk(config);
+  }).catch(function() { if (!nativeIOS) btn.style.display = 'none'; });
+}
+
+function ensureAppleWebSdk(config) {
+  function doInit() {
+    if (_appleWebSdkReady || !window.AppleID || !window.AppleID.auth) return;
+    try {
+      AppleID.auth.init({
+        clientId: config.apple_client_id,
+        scope: 'name email',
+        redirectURI: config.apple_redirect_uri || (window.location.origin + '/'),
+        usePopup: true
+      });
+      _appleWebSdkReady = true;
+    } catch (e) { console.warn('AppleID init:', e); }
+  }
+  if (window.AppleID && window.AppleID.auth) { doInit(); return; }
+  var existing = document.querySelector('script[src*="appleid.cdn-apple.com"]');
+  if (existing) { existing.addEventListener('load', doInit); return; }
+  var s = document.createElement('script');
+  s.src = 'https://appleid.cdn-apple.com/appleauth/static/jsapi/appleid/1/en_US/appleid.auth.js';
+  s.async = true;
+  s.onload = doInit;
+  s.onerror = function() { console.warn('Apple JS SDK failed to load'); };
+  document.head.appendChild(s);
+}
+
+async function bbAppleSignIn() {
+  try {
+    if (bbIsNativeIOS()) {
+      var plugin = bbAppleNativePlugin();
+      if (!plugin) { showPopup('Error', 'Sign in with Apple is unavailable on this device.', '', 'OK', null, 'error'); return; }
+      var bundleId = (_appleConfig && _appleConfig.apple_bundle_id) || 'com.bodybank.app';
+      var result = await plugin.authorize({ clientId: bundleId, scopes: 'name email', redirectURI: (_appleConfig && _appleConfig.apple_redirect_uri) || (window.location.origin + '/') });
+      var r = (result && result.response) || {};
+      if (!r.identityToken) { showPopup('Sign-in Cancelled', 'Apple sign-in was not completed.', '', 'OK'); return; }
+      bbHandleAppleAuth(r.identityToken, { name: { firstName: r.givenName || '', lastName: r.familyName || '' }, email: r.email || '' });
+      return;
+    }
+    // Browser flow via Apple JS SDK.
+    if (!_appleWebSdkReady && _appleConfig) ensureAppleWebSdk(_appleConfig);
+    if (!window.AppleID || !window.AppleID.auth) { showPopup('Error', 'Could not load Sign in with Apple. Check your connection and try again.', '', 'OK', null, 'error'); return; }
+    var data = await AppleID.auth.signIn();
+    var idToken = data && data.authorization && data.authorization.id_token;
+    if (!idToken) { showPopup('Error', 'Apple sign-in failed. Please try again.', '', 'OK', null, 'error'); return; }
+    bbHandleAppleAuth(idToken, data.user || null);
+  } catch (e) {
+    // User-cancelled popups reject — stay silent for those.
+    if (e && (e.error === 'popup_closed_by_user' || e.error === 'user_cancelled_authorize' || e.error === 'user_trigger_new_signin_flow')) return;
+    console.warn('Apple sign-in error:', e);
+    showPopup('Error', 'Apple authentication failed. Please try again.', '', 'OK', null, 'error');
+  }
+}
+
+function bbHandleAppleAuth(idToken, user) {
+  apiCall('POST', '/api/auth/apple', { id_token: idToken, user: user }).then(function(data) {
+    if (data.needs_profile) {
+      _pendingAppleAuth = { id_token: idToken, user: user };
+      _pendingProvider = 'apple';
+      var fn = document.getElementById('gcFirst'), ln = document.getElementById('gcLast'), em = document.getElementById('gcEmail');
+      var ph = document.getElementById('gcPhone'), pw = document.getElementById('gcPw'), cf = document.getElementById('gcPwConfirm');
+      // Apple returns the name only on first consent — let the user type it if it's blank.
+      if (fn) { fn.value = data.given_name || ''; if (data.given_name) { fn.setAttribute('readonly', 'readonly'); } else { fn.removeAttribute('readonly'); } }
+      if (ln) { ln.value = data.family_name || ''; if (data.family_name) { ln.setAttribute('readonly', 'readonly'); } else { ln.removeAttribute('readonly'); } }
+      if (em) { em.value = data.email || ''; em.setAttribute('readonly', 'readonly'); }
+      if (ph) ph.value = '';
+      if (pw) pw.value = '';
+      if (cf) cf.value = '';
+      closeModal('signupModal');
+      openModal('googleCompleteModal');
+      return;
+    }
+    if (data.error) { bbHandleSocialAuthError(data); return; }
+    bbApplySocialAuthSuccess(data);
+  }).catch(function(e) {
+    showPopup('Error', 'Apple authentication failed. Please try again.', '', 'OK', null, 'error');
+  });
+}
+
+// The complete-profile modal is shared by both providers; route to the right submitter.
+function bbCompleteSocialSignup() {
+  if (_pendingProvider === 'apple') return handleAppleCompleteSubmit();
+  return handleGoogleCompleteSubmit();
+}
+
+async function handleAppleCompleteSubmit() {
+  if (!_pendingAppleAuth) { showPopup('Error', 'Session expired. Please sign in with Apple again.', '', 'OK', null, 'error'); return; }
+  var first  = ((document.getElementById('gcFirst')||{}).value||'').trim();
+  var last   = ((document.getElementById('gcLast')||{}).value||'').trim();
+  var phone    = ((document.getElementById('gcPhone')||{}).value||'').trim();
+  var dob      = ((document.getElementById('gcDob')||{}).value||'').trim();
+  var gender   = ((document.getElementById('gcGender')||{}).value||'').trim();
+  var country  = ((document.getElementById('gcCountry')||{}).value||'').trim();
+  var timezone = ((document.getElementById('gcTimezone')||{}).value||'').trim();
+  var state_province = ((document.getElementById('gcState')||{}).value||'').trim();
+  var city     = ((document.getElementById('gcCity')||{}).value||'').trim();
+  var height_cm = parseInt(String((document.getElementById('gcHeightCm')||{}).value||'').trim(), 10);
+  var password = (document.getElementById('gcPw')||{}).value||'';
+  var confirmVal = (document.getElementById('gcPwConfirm')||{}).value||'';
+  if (!phone) { showPopup('Missing Field', 'Mobile (WhatsApp) number is required.', '', 'OK'); return; }
+  if (!dob) { showPopup('Missing Field', 'Date of birth is required.', '', 'OK'); return; }
+  if (!gender) { showPopup('Missing Field', 'Please select your gender.', '', 'OK'); return; }
+  if (!country) { showPopup('Missing Field', 'Country is required.', '', 'OK'); return; }
+  if (!timezone) { showPopup('Missing Field', 'Please select your timezone.', '', 'OK'); return; }
+  if (!Number.isFinite(height_cm) || height_cm < 100 || height_cm > 230) { showPopup('Height', 'Please enter your height in centimeters (whole number between 100 and 230).', '', 'OK'); return; }
+  if (!password) { showPopup('Missing Field', 'Password is required.', '', 'OK'); return; }
+  if (password.length < 6) { showPopup('Invalid Password', 'Password must be at least 6 characters.', '', 'OK'); return; }
+  if (password !== confirmVal) { showPopup('Password Mismatch', 'Passwords do not match.', '', 'OK'); return; }
+  var modal = document.getElementById('googleCompleteModal');
+  var sBtn = modal ? modal.querySelector('.form-submit') : null;
+  if (sBtn) { sBtn.disabled = true; sBtn.classList.add('loading'); sBtn._orig = sBtn.innerHTML; sBtn.innerHTML = '<span class="btn-spinner"></span> Creating account...'; }
+  try {
+    var existingName = (_pendingAppleAuth.user && _pendingAppleAuth.user.name) || {};
+    var userPayload = { name: { firstName: existingName.firstName || first, lastName: existingName.lastName || last }, email: (_pendingAppleAuth.user && _pendingAppleAuth.user.email) || '' };
+    var data = await apiCall('POST', '/api/auth/apple-complete', { id_token: _pendingAppleAuth.id_token, user: userPayload, phone: phone, password: password, dob: dob, gender: gender, country: country, timezone: timezone, state_province: state_province, city: city, height_cm: height_cm });
+    if (data.error) { if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; } showPopup('Error', data.error, '', 'OK', null, 'error'); return; }
+    _pendingAppleAuth = null; _pendingProvider = null;
+    closeModal('googleCompleteModal');
+    if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; }
+    showPopup('Sign-up Successful!', 'Your account is pending admin approval. You will be able to log in once approved. For instant approval, reach out to Admin on WhatsApp.', '', 'OK', function() { openModal('loginModal'); });
+  } catch (e) {
+    if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; }
+    showPopup('Error', 'Sign-up failed. Please try again.', '', 'OK', null, 'error');
+  }
 }
 
 // ========== SESSION RESTORE (persist login across refresh) ==========
