@@ -11927,7 +11927,7 @@ async function viewAdminWorkout(id) {
 
 async function loadPart2Submissions() {
   const el = document.getElementById('part2LinkInput');
-  if (el) el.value = window.location.origin + '/part2-form.html';
+  if (el) el.value = (window.BB_PUBLIC_ORIGIN || window.location.origin) + '/part2-form.html';
   try {
     const tbody = document.getElementById('part2Body');
     if (!tbody) return;
