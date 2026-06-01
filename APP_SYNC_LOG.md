@@ -53,6 +53,7 @@ _(empty — all up to date as of last entry in History)_
 | `8fb1012` | feat: per-user AI access control + Success Stories video section | Admin: new Quick Access entry "🔐 Access Control" on dashboard. Backend endpoints already live via Render — no app rebuild needed for backend, only the UI bundle. |
 | `28f500c` | feat(home): autoplay-on-scroll for Success Stories videos | IntersectionObserver-based, scoped to `#success-stories`. |
 | _(this commit)_ | chore(app): videos served from web, not bundled in app | `bb-app-config.js` rewrites `/videos/*` to `https://www.bodybank.fit/videos/*`; `scripts/build-www.js` skips `public/videos/` during mirror. Saves ~24 MB in the IPA/APK. |
+| _(this commit)_ | feat(home): replace FitChef Arsenal demo cards with 3 real client meal cards | Removed 5 mock images (`breakfast.png`, `lunch.png`, `meal-snack.png`, `Dinner.png`, `bodybank nutrition kanshika1.png`). Added 3 real client cards in `public/img/fitchef meals/` (Akshaya Ragi Malt, Abhinav Overnight Oats, Abhinav Omelette). |
 
 ---
 
