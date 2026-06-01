@@ -378,6 +378,16 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS injury_limitations TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS stress_level_baseline INTEGER`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS apple_id TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  // Per-user access control for Nutrition AI and AI Trainer.
+  // Existing users default to unlimited so this rollout does not block anyone; admin opts trial users in.
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nutrition_ai_unlimited BOOLEAN DEFAULT TRUE`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nutrition_ai_meal_limit INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nutrition_ai_meal_used INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_trainer_unlimited BOOLEAN DEFAULT TRUE`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_trainer_trial_limit INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_trainer_trial_used INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nutrition_ai_last_used_at TIMESTAMP`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_trainer_last_used_at TIMESTAMP`); } catch (e) { /* ignore */ }
   await pool.query("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL").catch(() => {});
 
   await pool.query(`CREATE TABLE IF NOT EXISTS audit_requests (
@@ -2301,9 +2311,31 @@ app.post('/api/workouts', async (req, res) => {
   try {
     const { user_id, workout_name, duration_seconds, feedback } = req.body || {};
     if (!user_id || !workout_name) return res.status(400).json({ error: 'User and workout name required' });
+    // Mirror the AI Trainer trial cap from /api/workouts/session — this endpoint is the legacy fallback for the same UI.
+    const legacyTrainerAccess = await queryOne(
+      `SELECT COALESCE(ai_trainer_unlimited, TRUE) AS unlimited,
+              COALESCE(ai_trainer_trial_limit, 0)::int AS lim,
+              COALESCE(ai_trainer_trial_used, 0)::int AS used
+         FROM users WHERE id = ?`,
+      [user_id]
+    );
+    if (legacyTrainerAccess && !legacyTrainerAccess.unlimited && legacyTrainerAccess.used >= legacyTrainerAccess.lim) {
+      return res.status(403).json({
+        error: 'limit_reached',
+        feature: 'ai_trainer',
+        used: legacyTrainerAccess.used,
+        limit: legacyTrainerAccess.lim,
+        message: "You've reached your AI Trainer trial limit. Please contact admin to continue."
+      });
+    }
     const id = uuidv4();
     await run("INSERT INTO workout_logs (id,user_id,workout_name,duration_seconds,feedback) VALUES (?,?,?,?,?)",
       [id, user_id, workout_name, duration_seconds || 0, feedback || '']);
+    if (legacyTrainerAccess && !legacyTrainerAccess.unlimited) {
+      await run('UPDATE users SET ai_trainer_trial_used = COALESCE(ai_trainer_trial_used, 0) + 1, ai_trainer_last_used_at = CURRENT_TIMESTAMP WHERE id = ?', [user_id]);
+    } else {
+      await run('UPDATE users SET ai_trainer_last_used_at = CURRENT_TIMESTAMP WHERE id = ?', [user_id]);
+    }
     await safeRecomputeNutritionForDate(String(user_id), new Date().toISOString().slice(0, 10));
     const wu = await queryOne('SELECT email, first_name, phone FROM users WHERE id = ?', [user_id]);
     if (wu && wu.email) {
@@ -2335,6 +2367,23 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
     const date = String(b.date || '').trim().slice(0, 10);
     const workoutType = String(b.workout_type || '').trim();
     if (!date || !workoutType) return res.status(400).json({ error: 'Date and workout type are required' });
+    // Admin-controlled AI Trainer trial cap. Unlimited users skip; trial users are blocked once `used >= limit`.
+    const aiTrainerAccess = await queryOne(
+      `SELECT COALESCE(ai_trainer_unlimited, TRUE) AS unlimited,
+              COALESCE(ai_trainer_trial_limit, 0)::int AS lim,
+              COALESCE(ai_trainer_trial_used, 0)::int AS used
+         FROM users WHERE id = ?`,
+      [userId]
+    );
+    if (aiTrainerAccess && !aiTrainerAccess.unlimited && aiTrainerAccess.used >= aiTrainerAccess.lim) {
+      return res.status(403).json({
+        error: 'limit_reached',
+        feature: 'ai_trainer',
+        used: aiTrainerAccess.used,
+        limit: aiTrainerAccess.lim,
+        message: "You've reached your AI Trainer trial limit. Please contact admin to continue."
+      });
+    }
     const id = uuidv4();
     const dur = parseInt(b.duration_seconds, 10);
     const notes = String(b.notes || '').trim().slice(0, 5000);
@@ -2380,6 +2429,11 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
         b.energy_level ? String(b.energy_level).slice(0, 40) : null
       ]
     );
+    if (aiTrainerAccess && !aiTrainerAccess.unlimited) {
+      await run('UPDATE users SET ai_trainer_trial_used = COALESCE(ai_trainer_trial_used, 0) + 1, ai_trainer_last_used_at = CURRENT_TIMESTAMP WHERE id = ?', [userId]);
+    } else {
+      await run('UPDATE users SET ai_trainer_last_used_at = CURRENT_TIMESTAMP WHERE id = ?', [userId]);
+    }
     await safeRecomputeNutritionForDate(userId, date);
     // Workout session: structured lifts + session completion sync to progress_logs (canonical bench/squat/dead map from session_lifts when present).
     const hasProgress =
@@ -5274,6 +5328,117 @@ app.post('/api/admin/users/:id/reactivate', verifyToken, requireAdminOrSuperadmi
   } catch (e) {
     console.error('Reactivate user error:', e.message);
     res.status(500).json({ error: 'Failed to reactivate user' });
+  }
+});
+
+// ============ ACCESS CONTROL: Nutrition AI + AI Trainer per-user gating ============
+app.get('/api/admin/users-access', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT id, email, first_name, last_name, suspended,
+              COALESCE(nutrition_ai_unlimited, TRUE)  AS nutrition_ai_unlimited,
+              COALESCE(nutrition_ai_meal_limit, 0)::int  AS nutrition_ai_meal_limit,
+              COALESCE(nutrition_ai_meal_used, 0)::int   AS nutrition_ai_meal_used,
+              COALESCE(ai_trainer_unlimited, TRUE)    AS ai_trainer_unlimited,
+              COALESCE(ai_trainer_trial_limit, 0)::int   AS ai_trainer_trial_limit,
+              COALESCE(ai_trainer_trial_used, 0)::int    AS ai_trainer_trial_used,
+              nutrition_ai_last_used_at,
+              ai_trainer_last_used_at
+         FROM users
+        WHERE role = 'user'
+        ORDER BY COALESCE(first_name, '') ASC, COALESCE(last_name, '') ASC, email ASC`
+    );
+    res.json({ users: rows || [] });
+  } catch (e) {
+    console.error('[users-access list]', e.message);
+    res.status(500).json({ error: 'Failed to load users access' });
+  }
+});
+
+app.get('/api/admin/users/:id/access', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const row = await queryOne(
+      `SELECT id, email, first_name, last_name,
+              COALESCE(nutrition_ai_unlimited, TRUE)  AS nutrition_ai_unlimited,
+              COALESCE(nutrition_ai_meal_limit, 0)::int  AS nutrition_ai_meal_limit,
+              COALESCE(nutrition_ai_meal_used, 0)::int   AS nutrition_ai_meal_used,
+              COALESCE(ai_trainer_unlimited, TRUE)    AS ai_trainer_unlimited,
+              COALESCE(ai_trainer_trial_limit, 0)::int   AS ai_trainer_trial_limit,
+              COALESCE(ai_trainer_trial_used, 0)::int    AS ai_trainer_trial_used,
+              nutrition_ai_last_used_at,
+              ai_trainer_last_used_at
+         FROM users WHERE id = ?`,
+      [id]
+    );
+    if (!row) return res.status(404).json({ error: 'User not found' });
+    res.json(row);
+  } catch (e) {
+    console.error('[users-access get]', e.message);
+    res.status(500).json({ error: 'Failed to load user access' });
+  }
+});
+
+app.put('/api/admin/users/:id/access', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const b = req.body || {};
+    const user = await queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'user') return res.status(400).json({ error: 'Can only configure client users' });
+    const truthy = (v) => v === true || v === 'true' || v === 1 || v === '1';
+    const nutUnlim = truthy(b.nutrition_ai_unlimited);
+    const trnUnlim = truthy(b.ai_trainer_unlimited);
+    const nutLimit = Math.max(0, parseInt(b.nutrition_ai_meal_limit, 10) || 0);
+    const trnLimit = Math.max(0, parseInt(b.ai_trainer_trial_limit, 10) || 0);
+    await run(
+      `UPDATE users SET
+         nutrition_ai_unlimited  = ?,
+         nutrition_ai_meal_limit = ?,
+         ai_trainer_unlimited    = ?,
+         ai_trainer_trial_limit  = ?
+       WHERE id = ?`,
+      [nutUnlim, nutLimit, trnUnlim, trnLimit, id]
+    );
+    const fresh = await queryOne(
+      `SELECT id,
+              COALESCE(nutrition_ai_unlimited, TRUE)  AS nutrition_ai_unlimited,
+              COALESCE(nutrition_ai_meal_limit, 0)::int  AS nutrition_ai_meal_limit,
+              COALESCE(nutrition_ai_meal_used, 0)::int   AS nutrition_ai_meal_used,
+              COALESCE(ai_trainer_unlimited, TRUE)    AS ai_trainer_unlimited,
+              COALESCE(ai_trainer_trial_limit, 0)::int   AS ai_trainer_trial_limit,
+              COALESCE(ai_trainer_trial_used, 0)::int    AS ai_trainer_trial_used,
+              nutrition_ai_last_used_at,
+              ai_trainer_last_used_at
+         FROM users WHERE id = ?`,
+      [id]
+    );
+    res.json({ message: 'Access updated', user: fresh });
+  } catch (e) {
+    console.error('[users-access update]', e.message);
+    res.status(500).json({ error: 'Failed to update access' });
+  }
+});
+
+app.post('/api/admin/users/:id/access/reset', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const feature = String((req.body || {}).feature || '').toLowerCase();
+    if (!['nutrition', 'trainer', 'both'].includes(feature)) {
+      return res.status(400).json({ error: 'feature must be "nutrition", "trainer", or "both"' });
+    }
+    const user = await queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (feature === 'nutrition' || feature === 'both') {
+      await run("UPDATE users SET nutrition_ai_meal_used = 0 WHERE id = ?", [id]);
+    }
+    if (feature === 'trainer' || feature === 'both') {
+      await run("UPDATE users SET ai_trainer_trial_used = 0 WHERE id = ?", [id]);
+    }
+    res.json({ message: 'Counter reset', feature });
+  } catch (e) {
+    console.error('[users-access reset]', e.message);
+    res.status(500).json({ error: 'Failed to reset counter' });
   }
 });
 

@@ -289,6 +289,46 @@ function createNutritionRouter(deps) {
   });
   const adminOnly = requireAdminOrSuperadmin;
 
+  /**
+   * Returns the per-user Nutrition AI access state. Default = unlimited
+   * (so existing accounts and any read failure fall open, never lock a paying user out).
+   */
+  async function getNutritionAccess(userId) {
+    try {
+      const r = await queryOne(
+        `SELECT COALESCE(nutrition_ai_unlimited, TRUE)  AS unlimited,
+                COALESCE(nutrition_ai_meal_limit, 0)::int  AS lim,
+                COALESCE(nutrition_ai_meal_used, 0)::int   AS used
+           FROM users WHERE id = ?`,
+        [userId]
+      );
+      if (!r) return { unlimited: true, lim: 0, used: 0 };
+      return { unlimited: !!r.unlimited, lim: Number(r.lim) || 0, used: Number(r.used) || 0 };
+    } catch (_) { return { unlimited: true, lim: 0, used: 0 }; }
+  }
+
+  function buildNutritionLimitResponse(access) {
+    return {
+      error: 'limit_reached',
+      feature: 'nutrition_ai',
+      used: access.used,
+      limit: access.lim,
+      message: "You've reached your Nutrition AI trial limit. Please contact admin to continue."
+    };
+  }
+
+  async function mealSlotExists(userId, ymd, mealType) {
+    try {
+      const r = await queryOne(
+        `SELECT 1 AS x FROM nutrition_meal_logs
+          WHERE user_id = ? AND log_date = ?::date AND meal_type = ?
+          LIMIT 1`,
+        [userId, ymd, mealType]
+      );
+      return !!r;
+    } catch (_) { return false; }
+  }
+
   router.post('/analyze', rateLimiter(20, 60000), async (req, res) => {
     try {
       const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
@@ -344,6 +384,13 @@ function createNutritionRouter(deps) {
 
       const _userTz = await getUserTz(db, userId);
       const ymd = ymdOrToday(req.body, req.query, _userTz);
+      // Trial-mode gate: only block when this would create a NEW meal slot. Re-analyses of an existing
+      // slot don't consume quota, so trial users can still correct their already-logged meals.
+      const isNewMealSlot = !(await mealSlotExists(userId, ymd, mt));
+      const nutritionAccess = await getNutritionAccess(userId);
+      if (isNewMealSlot && !nutritionAccess.unlimited && nutritionAccess.used >= nutritionAccess.lim) {
+        return res.status(403).json(buildNutritionLimitResponse(nutritionAccess));
+      }
       if (img) {
         // Enforce slot-based quota (max 4 meal slots/day), not retry-attempt quota.
         // Re-analyzing the same meal slot should not consume another daily slot.
@@ -425,6 +472,11 @@ function createNutritionRouter(deps) {
           mealScore
         ]
       );
+      if (isNewMealSlot && !nutritionAccess.unlimited) {
+        await run('UPDATE users SET nutrition_ai_meal_used = COALESCE(nutrition_ai_meal_used, 0) + 1, nutrition_ai_last_used_at = CURRENT_TIMESTAMP WHERE id = ?', [userId]);
+      } else {
+        await run('UPDATE users SET nutrition_ai_last_used_at = CURRENT_TIMESTAMP WHERE id = ?', [userId]);
+      }
       const latestMealWithPhoto = await queryOne(
         `SELECT id, photo_data
          FROM nutrition_meal_logs
@@ -510,6 +562,13 @@ function createNutritionRouter(deps) {
       const { mealType, portionSize = 'medium', manualNote = '', macros, date: dateBody } = req.body || {};
       const mt = String(mealType || '').toLowerCase();
       if (!MEAL_TYPES.has(mt)) return res.status(400).json({ error: 'Invalid mealType' });
+      const _logTzForGate = await getUserTz(db, userId);
+      const _ymdForGate = ymdOrToday({ date: dateBody }, req.query, _logTzForGate);
+      const isNewMealSlot = !(await mealSlotExists(userId, _ymdForGate, mt));
+      const nutritionAccess = await getNutritionAccess(userId);
+      if (isNewMealSlot && !nutritionAccess.unlimited && nutritionAccess.used >= nutritionAccess.lim) {
+        return res.status(403).json(buildNutritionLimitResponse(nutritionAccess));
+      }
       const m = macros && typeof macros === 'object' ? macros : {};
       const aiResult = normalizeAiResult({
         dish: m.dish || 'Manual entry',
@@ -529,8 +588,8 @@ function createNutritionRouter(deps) {
 
       const mealScore = computeMealScore(aiResult);
       const aiStored = buildAiResultForStorage(aiResult, { analyzedWithPhoto: false, entrySource: 'manual' });
-      const _logUserTz = await getUserTz(db, userId);
-      const ymd = ymdOrToday({ date: dateBody }, req.query, _logUserTz);
+      const _logUserTz = _logTzForGate;
+      const ymd = _ymdForGate;
       const id = uuidv4();
       const ps = String(portionSize || 'medium').toLowerCase();
       const portion = ['small', 'medium', 'large'].includes(ps) ? ps : 'medium';
@@ -555,6 +614,11 @@ function createNutritionRouter(deps) {
           notified_at = NULL`,
         [id, userId, ymd, mt, note, portion, JSON.stringify(aiStored), mealScore]
       );
+      if (isNewMealSlot && !nutritionAccess.unlimited) {
+        await run('UPDATE users SET nutrition_ai_meal_used = COALESCE(nutrition_ai_meal_used, 0) + 1, nutrition_ai_last_used_at = CURRENT_TIMESTAMP WHERE id = ?', [userId]);
+      } else {
+        await run('UPDATE users SET nutrition_ai_last_used_at = CURRENT_TIMESTAMP WHERE id = ?', [userId]);
+      }
       const latestManualMeal = await queryOne(
         `SELECT id, photo_data
          FROM nutrition_meal_logs

@@ -3090,6 +3090,30 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .admin-nutrition-stat .val{font-family:var(--bb-font-heading);font-size:1.35rem;font-weight:700;color:var(--cream)}
 .admin-nutrition-stat .sub{font-size:11px;color:var(--muted);margin-top:4px}
 .admin-nutrition-client-card{background:linear-gradient(165deg,rgba(200,164,78,0.06) 0%,var(--bb-surface) 38%,#141416 100%);border:1px solid rgba(200,164,78,0.18);border-radius:18px;padding:18px;margin-bottom:14px;box-shadow:0 12px 40px rgba(0,0,0,0.35),inset 0 1px 0 rgba(255,255,255,0.04)}
+.bb-access-card{background:linear-gradient(165deg,rgba(200,164,78,0.05) 0%,var(--bb-surface) 38%,#141416 100%);border:1px solid rgba(200,164,78,0.18);border-radius:16px;padding:18px 20px;margin-bottom:14px;box-shadow:0 8px 30px rgba(0,0,0,0.32)}
+.bb-access-card-head{display:flex;flex-direction:column;gap:2px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px dashed rgba(255,255,255,0.07)}
+.bb-access-card-name{font-weight:700;color:var(--cream);font-size:15px}
+.bb-access-card-email{font-size:12px;color:var(--muted)}
+.bb-access-row{padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.bb-access-row:last-of-type{border-bottom:none}
+.bb-access-row-title{font-weight:600;color:var(--cream);font-size:13px;margin-bottom:10px;letter-spacing:.02em;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bb-access-row-controls{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.bb-access-toggle{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--cream);cursor:pointer;user-select:none}
+.bb-access-toggle input{margin:0;accent-color:var(--gold)}
+.bb-access-limit{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)}
+.bb-access-limit input{width:80px;padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.12);background:var(--bb-surface);color:var(--cream);font-size:13px;font-family:inherit}
+.bb-access-limit input:disabled{opacity:.45;cursor:not-allowed}
+.bb-access-used{font-size:12px;color:var(--muted)}
+.bb-access-used strong{color:var(--cream);font-weight:600}
+.bb-access-lastused{font-size:12px;color:var(--muted);cursor:default}
+.bb-access-lastused strong{color:var(--cream);font-weight:600}
+.bb-access-reset{background:transparent;border:1px solid rgba(255,255,255,0.16);color:var(--muted);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .15s}
+.bb-access-reset:hover{color:var(--gold);border-color:rgba(200,164,78,0.4)}
+.bb-access-card-actions{display:flex;justify-content:flex-end;margin-top:14px}
+.bb-access-badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+.bb-access-badge-ok{background:rgba(46,170,90,0.15);color:#5bd089;border:1px solid rgba(46,170,90,0.3)}
+.bb-access-badge-trial{background:rgba(200,164,78,0.12);color:var(--gold);border:1px solid rgba(200,164,78,0.3)}
+.bb-access-badge-blocked{background:rgba(224,80,80,0.15);color:#ff8585;border:1px solid rgba(224,80,80,0.35)}
 .admin-nutrition-client-head{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-bottom:12px}
 .admin-nutrition-avatar{width:40px;height:40px;border-radius:50%;overflow:hidden;background:var(--bb-surface-hover);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .admin-nutrition-avatar .bb-admin-avatar{width:100%;height:100%}
@@ -6414,6 +6438,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <a class="bb-quick-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="btn-icon">🏆</span>Leader Boards</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('nutrition');return false"><span class="btn-icon">🥗</span>Nutrition AI</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('blood');return false"><span class="btn-icon">🩺</span>Blood Reports</a>
+          <a class="bb-quick-btn" href="#" onclick="switchTab('accesscontrol');return false"><span class="btn-icon">🔐</span>Access Control</a>
           <a class="bb-quick-btn" href="#" onclick="switchToSection('analytics');return false"><span class="btn-icon">📈</span>Analytics</a>
           <a class="bb-quick-btn" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="btn-icon">💡</span>AI Assist</a>
         </div>
@@ -6459,6 +6484,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <a class="admin-qa-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="admin-qa-icon">🏆</span>Leader boards</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('nutrition');return false"><span class="admin-qa-icon">🥗</span>Nutrition report</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('blood');return false"><span class="admin-qa-icon">🩺</span>Blood reports</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('accesscontrol');return false"><span class="admin-qa-icon">🔐</span>Access Control</a>
             <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#128202;</span>Analytics</a>
           </div>
         </div>
@@ -7372,6 +7398,28 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div id="adminBloodReportsList" class="admin-blood-reports-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
     </div>
 
+    <div class="admin-tab-content admin-access-control-page" id="tab-accesscontrol">
+      <div class="admin-nutrition-header">
+        <div>
+          <h3>Access Control</h3>
+          <p class="form-hint" style="margin:4px 0 0">Control per-user access to <strong style="color:var(--gold)">Nutrition AI</strong> and <strong style="color:var(--gold)">AI Trainer</strong>. Toggle <strong>Unlimited</strong> for paid clients, or set a trial limit for users who are evaluating. When a trial limit is reached, the user is blocked and asked to contact you.</p>
+        </div>
+        <div class="admin-nutrition-controls">
+          <input type="search" id="adminAccessSearch" placeholder="Search by name or email" oninput="renderAdminAccessControl()" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.1);color:var(--text,#f0ede8);padding:8px 12px;border-radius:8px;font-size:13px;min-width:220px" aria-label="Search users">
+          <select id="adminAccessFilter" onchange="renderAdminAccessControl()" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.1);color:var(--text,#f0ede8);padding:8px 12px;border-radius:8px;font-size:13px" aria-label="Filter">
+            <option value="all">All users</option>
+            <option value="unlimited">Unlimited (both)</option>
+            <option value="trial">On a trial limit</option>
+            <option value="blocked">Trial exhausted</option>
+          </select>
+          <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminAccessControl()">Refresh</button>
+        </div>
+      </div>
+      <div id="adminAccessControlList" style="margin-top:18px">
+        <p class="form-hint" style="padding:24px;margin:0">Loading…</p>
+      </div>
+    </div>
+
     </div><!-- .admin-tab-content-wrap -->
 
     <div class="admin-ai-assist-panel" id="adminAiAssistPanel" role="dialog" aria-label="AI Assist chat" aria-hidden="true">
@@ -7811,6 +7859,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   <a href="index.html" class="nb"><img src="img/logo.png" alt="BodyBank" class="nav-logo-img" decoding="async"></a>
   <ul class="nm">
     <li><a href="#hero">Home</a></li>
+    <li><a href="#success-stories">Stories</a></li>
     <li><a href="#results">Transformations</a></li>
     <li><a href="tribe-stories.html">Tribe Stories</a></li>
     <li><a href="our-story.html">Our Story</a></li>
@@ -7827,6 +7876,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 <div class="mm" id="mo">
   <button class="mm-c" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">&times;</button>
   <a href="#hero" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Home</a>
+  <a href="#success-stories" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Stories</a>
   <a href="#results" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Transformations</a>
   <a href="tribe-stories.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Tribe Stories</a>
   <a href="our-story.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Our Story</a>
@@ -8440,6 +8490,130 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         </div>
       </div>
       <div class="arsenal-copy" id="arsenalCopy"></div>
+    </div>
+  </div>
+</section>
+
+<!-- SUCCESS STORIES & EXPERT INSIGHTS -->
+<style>
+.ss-section{background:var(--black);padding:88px 0 96px;position:relative}
+.ss-section .si{max-width:1180px;margin:0 auto;padding:0 24px}
+.ss-section .sec-heading{text-align:center;margin-bottom:14px}
+.ss-section .sec-sub{text-align:center;max-width:680px;margin:0 auto 56px;color:var(--cream);opacity:.78;font-size:15px;line-height:1.6}
+.ss-featured{max-width:520px;margin:0 auto 72px;text-align:center}
+.ss-featured-label{display:inline-block;font-family:'Bebas Neue',sans-serif;letter-spacing:3px;color:var(--gold);font-size:13px;padding:6px 16px;border:1px solid rgba(200,164,78,0.35);border-radius:999px;margin-bottom:18px;background:rgba(200,164,78,0.06)}
+.ss-featured-caption{color:var(--cream);font-style:italic;margin:18px auto 0;max-width:540px;opacity:.78;font-size:14px;line-height:1.55}
+.ss-row-head{text-align:center;margin:0 0 26px;display:flex;flex-direction:column;align-items:center;gap:6px}
+.ss-row-head .gold-line{margin-bottom:10px}
+.ss-row-title{font-family:'Bebas Neue',sans-serif;letter-spacing:3px;color:var(--cream);font-size:26px;margin:0;font-weight:400}
+.ss-row-sub{font-size:13px;color:var(--cream);opacity:.7;margin:0;max-width:520px}
+.ss-video-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:26px;max-width:1100px;margin:0 auto}
+.ss-video-card{display:flex;flex-direction:column;gap:14px}
+.ss-video-wrap{position:relative;background:#0a0a0a;border-radius:14px;overflow:hidden;border:1px solid rgba(200,164,78,0.18);box-shadow:0 14px 44px rgba(0,0,0,0.5);aspect-ratio:9/16}
+.ss-video-wrap video{display:block;width:100%;height:100%;object-fit:contain;background:#000}
+.ss-video-featured{aspect-ratio:9/16;max-width:380px;margin:0 auto;border-color:rgba(200,164,78,0.4);box-shadow:0 18px 60px rgba(0,0,0,0.6),0 0 0 1px rgba(200,164,78,0.1)}
+.ss-video-meta{text-align:center;padding:0 6px}
+.ss-video-title{font-weight:600;color:var(--cream);margin:0;font-size:14px;line-height:1.4;letter-spacing:.2px}
+.ss-video-tag{font-size:10.5px;color:var(--gold);text-transform:uppercase;letter-spacing:1.8px;margin:6px 0 0;font-family:'Bebas Neue',sans-serif;font-weight:400}
+.ss-row-spacer{height:64px}
+@media (max-width:900px){
+  .ss-video-grid{grid-template-columns:repeat(2,1fr);gap:18px}
+}
+@media (max-width:600px){
+  .ss-section{padding:56px 0 64px}
+  .ss-section .sec-sub{margin-bottom:36px;font-size:14px}
+  .ss-video-grid{grid-template-columns:1fr;max-width:360px;gap:24px}
+  .ss-featured{margin-bottom:48px}
+  .ss-video-featured{max-width:320px}
+  .ss-row-spacer{height:40px}
+  .ss-row-title{font-size:22px}
+}
+</style>
+<section class="sec ss-section" id="success-stories">
+  <div class="si rv">
+    <div class="gold-line"></div>
+    <p class="sec-label">Real Stories. Real Method. Real Trust.</p>
+    <h2 class="sec-heading"><span class="w">Success Stories</span> <span class="g">&amp;</span> <span class="w">Expert Insights</span></h2>
+    <p class="sec-sub">Real transformations from our Tribe, the method in action, and an honest verdict from a doctor who never endorses anything.</p>
+
+    <div class="ss-featured rv">
+      <div class="ss-featured-label">★ Trusted by Medical Professionals</div>
+      <div class="ss-video-wrap ss-video-featured">
+        <video controls preload="metadata" playsinline src="videos/featured-doctor-verdict.mp4"></video>
+      </div>
+      <p class="ss-featured-caption">"When a doctor who never promotes anything until thoroughly verified drops an honest, unfiltered verdict…"</p>
+    </div>
+
+    <div class="ss-row-head rv">
+      <div class="gold-line"></div>
+      <h3 class="ss-row-title">Success Stories</h3>
+      <p class="ss-row-sub">What 16&ndash;19 weeks of the Lifestyle Management Program actually looks like.</p>
+    </div>
+    <div class="ss-video-grid">
+      <div class="ss-video-card rv">
+        <div class="ss-video-wrap">
+          <video controls preload="metadata" playsinline src="videos/success-kartik.mp4"></video>
+        </div>
+        <div class="ss-video-meta">
+          <p class="ss-video-title">Total Body Recomp &mdash; @kartik20088</p>
+          <p class="ss-video-tag">Consistency Wins</p>
+        </div>
+      </div>
+      <div class="ss-video-card rv">
+        <div class="ss-video-wrap">
+          <video controls preload="metadata" playsinline src="videos/success-kanshika.mp4"></video>
+        </div>
+        <div class="ss-video-meta">
+          <p class="ss-video-title">Total Body Recomp &mdash; @kanshika_</p>
+          <p class="ss-video-tag">Patience Pays</p>
+        </div>
+      </div>
+      <div class="ss-video-card rv">
+        <div class="ss-video-wrap">
+          <video controls preload="metadata" playsinline src="videos/success-fat-loss-21kg.mp4"></video>
+        </div>
+        <div class="ss-video-meta">
+          <p class="ss-video-title">21.7 kg Lost in 19 Weeks</p>
+          <p class="ss-video-tag">Fat as Fuel</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="ss-row-spacer"></div>
+
+    <div class="ss-row-head rv">
+      <div class="gold-line"></div>
+      <h3 class="ss-row-title">Expert Insights &amp; The Method</h3>
+      <p class="ss-row-sub">The coaching, the technique, and the systems behind every transformation.</p>
+    </div>
+    <div class="ss-video-grid">
+      <div class="ss-video-card rv">
+        <div class="ss-video-wrap">
+          <video controls preload="metadata" playsinline src="videos/insight-rdl-technique.mp4"></video>
+        </div>
+        <div class="ss-video-meta">
+          <p class="ss-video-title">Single-leg RDLs &mdash; Stability Coaching</p>
+          <p class="ss-video-tag">Technique</p>
+        </div>
+      </div>
+      <div class="ss-video-card rv">
+        <div class="ss-video-wrap">
+          <video controls preload="metadata" playsinline src="videos/insight-mindset.mp4"></video>
+        </div>
+        <div class="ss-video-meta">
+          <p class="ss-video-title">Why You Start Doesn't Matter</p>
+          <p class="ss-video-tag">Mindset</p>
+        </div>
+      </div>
+      <div class="ss-video-card rv">
+        <div class="ss-video-wrap">
+          <video controls preload="metadata" playsinline src="videos/insight-behind-the-scenes.mp4"></video>
+        </div>
+        <div class="ss-video-meta">
+          <p class="ss-video-title">Behind the Scenes &mdash; Fitchef &times; BodyBank</p>
+          <p class="ss-video-tag">The System</p>
+        </div>
+      </div>
     </div>
   </div>
 </section>
@@ -13561,8 +13735,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports' };
-var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', accesscontrol: 'Access Control' };
+var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', accesscontrol: 'clients' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -13700,6 +13874,7 @@ function switchTab(tab) {
   if (tab === 'campaigns') loadCampaigns();
   if (tab === 'nutrition') loadAdminNutritionReport();
   if (tab === 'blood') loadAdminBloodReports();
+  if (tab === 'accesscontrol') loadAdminAccessControl();
 }
 var adminProgressChartInstances = {};
 function destroyAdminProgressCharts() {
@@ -18327,9 +18502,10 @@ async function nutritionAnalyzeSingle(mt, opts) {
   };
   var data = await apiCall('POST', '/api/nutrition/analyze', body);
   if (data && data.error) {
-    nutritionSetBadge(mt, 'Error', 'error');
-    nutritionShowToast(data.error, 'error');
-    if (btn) btn.disabled = false;
+    var isLimit = data.error === 'limit_reached';
+    nutritionSetBadge(mt, isLimit ? 'Locked' : 'Error', 'error');
+    nutritionShowToast(isLimit ? (data.message || "You've reached your Nutrition AI trial limit. Please contact admin to continue.") : data.error, 'error');
+    if (btn) btn.disabled = isLimit ? true : false;
     if (spin) spin.style.display = 'none';
     if (slot) slot.classList.remove('uploading');
     return;
@@ -19012,6 +19188,179 @@ function renderAdminUsageBlock(title, linesHtml) {
   return '<div style="margin:8px 0 10px;padding:9px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:11px;line-height:1.45">' +
     '<div style="font-weight:700;color:#c8bca2;margin-bottom:4px">' + escapeHtml(title) + '</div>' + linesHtml + '</div>';
 }
+// ============ ACCESS CONTROL (Nutrition AI + AI Trainer per-user gating) ============
+window._bbAccessControlUsers = [];
+
+function bbFormatLastUsed(ts) {
+  if (!ts) return 'Never';
+  var d = new Date(ts);
+  if (isNaN(d.getTime())) return 'Never';
+  var diffMs = Date.now() - d.getTime();
+  if (diffMs < 0) diffMs = 0;
+  var min = Math.floor(diffMs / 60000);
+  if (min < 1)  return 'Just now';
+  if (min < 60) return min + ' min ago';
+  var h = Math.floor(min / 60);
+  if (h < 24)   return h + 'h ago';
+  var days = Math.floor(h / 24);
+  if (days < 30) return days + 'd ago';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function loadAdminAccessControl() {
+  if (!window.currentUser || (window.currentUser.role !== 'admin' && window.currentUser.role !== 'superadmin')) return;
+  var listEl = document.getElementById('adminAccessControlList');
+  if (!listEl) return;
+  listEl.innerHTML = '<p class="form-hint" style="padding:24px;margin:0">Loading…</p>';
+  apiCall('GET', '/api/admin/users-access')
+    .then(function (data) {
+      if (!data || data.error) {
+        listEl.innerHTML = '<p class="form-hint" style="padding:24px;color:#e05050;margin:0">' + escapeHtml(data && data.error ? data.error : 'Failed to load users') + '</p>';
+        return;
+      }
+      window._bbAccessControlUsers = Array.isArray(data.users) ? data.users : [];
+      renderAdminAccessControl();
+    });
+}
+
+function renderAdminAccessControl() {
+  var listEl = document.getElementById('adminAccessControlList');
+  if (!listEl) return;
+  var users = window._bbAccessControlUsers || [];
+  var qEl = document.getElementById('adminAccessSearch');
+  var fEl = document.getElementById('adminAccessFilter');
+  var q = (qEl && qEl.value ? qEl.value : '').trim().toLowerCase();
+  var f = fEl && fEl.value ? fEl.value : 'all';
+  function isBlocked(u) {
+    var nutBlocked = !u.nutrition_ai_unlimited && (u.nutrition_ai_meal_used >= u.nutrition_ai_meal_limit) && u.nutrition_ai_meal_limit > 0;
+    var trnBlocked = !u.ai_trainer_unlimited && (u.ai_trainer_trial_used >= u.ai_trainer_trial_limit) && u.ai_trainer_trial_limit > 0;
+    return nutBlocked || trnBlocked;
+  }
+  var filtered = users.filter(function (u) {
+    if (q) {
+      var hay = ((u.first_name || '') + ' ' + (u.last_name || '') + ' ' + (u.email || '')).toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    if (f === 'unlimited') return u.nutrition_ai_unlimited && u.ai_trainer_unlimited;
+    if (f === 'trial')     return !u.nutrition_ai_unlimited || !u.ai_trainer_unlimited;
+    if (f === 'blocked')   return isBlocked(u);
+    return true;
+  });
+  if (!filtered.length) {
+    listEl.innerHTML = '<p class="form-hint" style="padding:24px;margin:0;text-align:center">No users match.</p>';
+    return;
+  }
+  listEl.innerHTML = filtered.map(function (u) {
+    var name = ((u.first_name || '') + ' ' + (u.last_name || '')).trim() || u.email || u.id;
+    var nutBlocked = !u.nutrition_ai_unlimited && u.nutrition_ai_meal_limit > 0 && u.nutrition_ai_meal_used >= u.nutrition_ai_meal_limit;
+    var trnBlocked = !u.ai_trainer_unlimited && u.ai_trainer_trial_limit > 0 && u.ai_trainer_trial_used >= u.ai_trainer_trial_limit;
+    var nutBadge = u.nutrition_ai_unlimited ? '<span class="bb-access-badge bb-access-badge-ok">Unlimited</span>' :
+                   (nutBlocked ? '<span class="bb-access-badge bb-access-badge-blocked">Blocked</span>' :
+                                 '<span class="bb-access-badge bb-access-badge-trial">' + (u.nutrition_ai_meal_used) + ' / ' + (u.nutrition_ai_meal_limit) + '</span>');
+    var trnBadge = u.ai_trainer_unlimited ? '<span class="bb-access-badge bb-access-badge-ok">Unlimited</span>' :
+                   (trnBlocked ? '<span class="bb-access-badge bb-access-badge-blocked">Blocked</span>' :
+                                 '<span class="bb-access-badge bb-access-badge-trial">' + (u.ai_trainer_trial_used) + ' / ' + (u.ai_trainer_trial_limit) + '</span>');
+    var idAttr = encodeURIComponent(u.id);
+    return (
+      '<div class="bb-access-card" data-user-id="' + escapeHtml(u.id) + '">' +
+        '<div class="bb-access-card-head">' +
+          '<div class="bb-access-card-name">' + escapeHtml(name) + '</div>' +
+          '<div class="bb-access-card-email">' + escapeHtml(u.email || '') + '</div>' +
+        '</div>' +
+        '<div class="bb-access-row">' +
+          '<div class="bb-access-row-title">🥗 Nutrition AI ' + nutBadge + '</div>' +
+          '<div class="bb-access-row-controls">' +
+            '<label class="bb-access-toggle"><input type="checkbox" id="bb-acc-nut-unl-' + idAttr + '" ' + (u.nutrition_ai_unlimited ? 'checked' : '') + ' onchange="bbAccessToggleChanged(\'' + idAttr + '\', \'nut\')"> Unlimited</label>' +
+            '<label class="bb-access-limit">Meal limit <input type="number" min="0" step="1" id="bb-acc-nut-lim-' + idAttr + '" value="' + (parseInt(u.nutrition_ai_meal_limit, 10) || 0) + '" ' + (u.nutrition_ai_unlimited ? 'disabled' : '') + '></label>' +
+            '<span class="bb-access-used">Used <strong>' + (u.nutrition_ai_meal_used) + '</strong></span>' +
+            '<span class="bb-access-lastused" title="' + escapeHtml(u.nutrition_ai_last_used_at || '') + '">Last used <strong>' + escapeHtml(bbFormatLastUsed(u.nutrition_ai_last_used_at)) + '</strong></span>' +
+            '<button type="button" class="bb-access-reset" onclick="resetAdminAccess(\'' + idAttr + '\', \'nutrition\')">Reset</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="bb-access-row">' +
+          '<div class="bb-access-row-title">🏋️ AI Trainer ' + trnBadge + '</div>' +
+          '<div class="bb-access-row-controls">' +
+            '<label class="bb-access-toggle"><input type="checkbox" id="bb-acc-trn-unl-' + idAttr + '" ' + (u.ai_trainer_unlimited ? 'checked' : '') + ' onchange="bbAccessToggleChanged(\'' + idAttr + '\', \'trn\')"> Unlimited</label>' +
+            '<label class="bb-access-limit">Trial limit <input type="number" min="0" step="1" id="bb-acc-trn-lim-' + idAttr + '" value="' + (parseInt(u.ai_trainer_trial_limit, 10) || 0) + '" ' + (u.ai_trainer_unlimited ? 'disabled' : '') + '></label>' +
+            '<span class="bb-access-used">Used <strong>' + (u.ai_trainer_trial_used) + '</strong></span>' +
+            '<span class="bb-access-lastused" title="' + escapeHtml(u.ai_trainer_last_used_at || '') + '">Last used <strong>' + escapeHtml(bbFormatLastUsed(u.ai_trainer_last_used_at)) + '</strong></span>' +
+            '<button type="button" class="bb-access-reset" onclick="resetAdminAccess(\'' + idAttr + '\', \'trainer\')">Reset</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="bb-access-card-actions">' +
+          '<button type="button" class="form-submit" style="width:auto;padding:9px 22px;margin:0" onclick="saveAdminAccess(\'' + idAttr + '\')">Save changes</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+}
+
+function bbAccessToggleChanged(encodedId, which) {
+  var limEl = document.getElementById('bb-acc-' + which + '-lim-' + encodedId);
+  var unlEl = document.getElementById('bb-acc-' + which + '-unl-' + encodedId);
+  if (limEl && unlEl) limEl.disabled = !!unlEl.checked;
+}
+
+function saveAdminAccess(encodedId) {
+  var id = decodeURIComponent(encodedId);
+  var nutUnl = document.getElementById('bb-acc-nut-unl-' + encodedId);
+  var nutLim = document.getElementById('bb-acc-nut-lim-' + encodedId);
+  var trnUnl = document.getElementById('bb-acc-trn-unl-' + encodedId);
+  var trnLim = document.getElementById('bb-acc-trn-lim-' + encodedId);
+  var body = {
+    nutrition_ai_unlimited:  !!(nutUnl && nutUnl.checked),
+    nutrition_ai_meal_limit: parseInt(nutLim && nutLim.value, 10) || 0,
+    ai_trainer_unlimited:    !!(trnUnl && trnUnl.checked),
+    ai_trainer_trial_limit:  parseInt(trnLim && trnLim.value, 10) || 0
+  };
+  apiCall('PUT', '/api/admin/users/' + encodeURIComponent(id) + '/access', body)
+    .then(function (data) {
+      if (!data || data.error) {
+        alert('Save failed: ' + (data && data.error ? data.error : 'Unknown error'));
+        return;
+      }
+      if (data.user) {
+        var users = window._bbAccessControlUsers || [];
+        for (var i = 0; i < users.length; i++) {
+          if (String(users[i].id) === String(id)) {
+            users[i].nutrition_ai_unlimited    = data.user.nutrition_ai_unlimited;
+            users[i].nutrition_ai_meal_limit   = data.user.nutrition_ai_meal_limit;
+            users[i].nutrition_ai_meal_used    = data.user.nutrition_ai_meal_used;
+            users[i].nutrition_ai_last_used_at = data.user.nutrition_ai_last_used_at;
+            users[i].ai_trainer_unlimited      = data.user.ai_trainer_unlimited;
+            users[i].ai_trainer_trial_limit    = data.user.ai_trainer_trial_limit;
+            users[i].ai_trainer_trial_used     = data.user.ai_trainer_trial_used;
+            users[i].ai_trainer_last_used_at   = data.user.ai_trainer_last_used_at;
+            break;
+          }
+        }
+      }
+      renderAdminAccessControl();
+    });
+}
+
+function resetAdminAccess(encodedId, feature) {
+  var id = decodeURIComponent(encodedId);
+  var label = feature === 'nutrition' ? 'Nutrition AI meal counter' : (feature === 'trainer' ? 'AI Trainer trial counter' : 'both counters');
+  if (!confirm('Reset ' + label + ' to 0 for this user?')) return;
+  apiCall('POST', '/api/admin/users/' + encodeURIComponent(id) + '/access/reset', { feature: feature })
+    .then(function (data) {
+      if (!data || data.error) {
+        alert('Reset failed: ' + (data && data.error ? data.error : 'Unknown error'));
+        return;
+      }
+      var users = window._bbAccessControlUsers || [];
+      for (var i = 0; i < users.length; i++) {
+        if (String(users[i].id) === String(id)) {
+          if (feature === 'nutrition' || feature === 'both') users[i].nutrition_ai_meal_used = 0;
+          if (feature === 'trainer'   || feature === 'both') users[i].ai_trainer_trial_used  = 0;
+          break;
+        }
+      }
+      renderAdminAccessControl();
+    });
+}
+
 function loadAdminBloodReports() {
   var el = document.getElementById('adminBloodReportsList');
   var sel = document.getElementById('adminBloodStatusFilter');

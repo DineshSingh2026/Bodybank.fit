@@ -2693,6 +2693,12 @@ async function saveAiTrainerSession(data) {
       body: JSON.stringify(modernPayload)
     });
     if (modernRes.ok) return modernRes;
+    // 403 limit_reached must not fall through to the legacy endpoint — surface the cap to the user.
+    if (modernRes.status === 403) {
+      let parsed = null;
+      try { parsed = await modernRes.clone().json(); } catch (_) {}
+      if (parsed && parsed.error === 'limit_reached') return modernRes;
+    }
   }
 
   // Fallback path: legacy endpoint.
@@ -2906,6 +2912,17 @@ if (sumSaveBtn) {
     try {
       const res = await saveAiTrainerSession(_savedSessionData);
       if (res.ok) { st.textContent = '✓ Saved to workout log!'; st.className = 'sum-status ok'; }
+      else if (res.status === 403) {
+        let body = null;
+        try { body = await res.json(); } catch (_) {}
+        if (body && body.error === 'limit_reached') {
+          st.textContent = body.message || "You've reached your AI Trainer trial limit. Please contact admin to continue.";
+        } else {
+          st.textContent = (body && body.error) ? body.error : 'Save failed — try again.';
+        }
+        st.className = 'sum-status err';
+        sumSaveBtn.disabled = true;
+      }
       else        { st.textContent = 'Save failed — try again.'; st.className = 'sum-status err'; sumSaveBtn.disabled = false; }
     } catch(_) { st.textContent = 'Network error — check connection.'; st.className = 'sum-status err'; sumSaveBtn.disabled = false; }
   });
