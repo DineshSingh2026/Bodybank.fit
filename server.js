@@ -6752,6 +6752,18 @@ document.getElementById('f').onsubmit=async function(e){
 };
 </script></body></html>`;
 }
+// Sign in with Apple — domain ownership verification.
+// Apple fetches this file when a domain is added to the Services ID. Express's
+// static middleware ignores dotfiles by default, so serve the .well-known path
+// explicitly. The file lives at public/.well-known/apple-developer-domain-association.txt;
+// replace its contents with the string Apple gives you in the Services ID setup.
+app.get('/.well-known/apple-developer-domain-association.txt', (req, res) => {
+  const file = path.join(__dirname, 'public', '.well-known', 'apple-developer-domain-association.txt');
+  res.type('text/plain').sendFile(file, { dotfiles: 'allow' }, err => {
+    if (err) res.status(404).end();
+  });
+});
+
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: NODE_ENV === 'production' ? '7d' : 0,
   setHeaders: (res, filePath) => {
