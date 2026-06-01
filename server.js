@@ -57,6 +57,11 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@bodybank.fit';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
 const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
 const SUPERADMIN_PASS = process.env.SUPERADMIN_PASS || 'superadmin123';
+// Apple App Store reviewer demo account. Auto-seeded as approved on startup so the
+// reviewer can sign in past the admin-approval gate. Provide the same credentials in
+// App Store Connect → App Review Information.
+const APPLE_REVIEW_EMAIL = process.env.APPLE_REVIEW_EMAIL || '';
+const APPLE_REVIEW_PASS = process.env.APPLE_REVIEW_PASS || '';
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursite.com (production)
@@ -1069,6 +1074,30 @@ async function initDB() {
     } else if (!existingSa && (!process.env.SUPERADMIN_EMAIL || !superadminEmailNorm)) {
       console.warn('⚠️ Superadmin not created: set SUPERADMIN_EMAIL and SUPERADMIN_PASS in env.');
     }
+  }
+
+  // Apple App Store reviewer demo account — pre-approved so the reviewer can sign in
+  // past the admin-approval gate. Provide the same creds in App Store Connect → App
+  // Review Information. No-op if APPLE_REVIEW_EMAIL / APPLE_REVIEW_PASS are unset.
+  try {
+    const revEmail = String(APPLE_REVIEW_EMAIL || '').trim().toLowerCase();
+    const revPass  = String(APPLE_REVIEW_PASS  || '').trim();
+    if (revEmail && revPass) {
+      const hash = bcrypt.hashSync(revPass, 10);
+      const existing = await queryOne("SELECT id FROM users WHERE LOWER(email) = ?", [revEmail]);
+      if (existing) {
+        await run("UPDATE users SET password = ?, approval_status = 'approved', suspended = FALSE, role = 'user' WHERE id = ?", [hash, existing.id]);
+        console.log(`✅ Apple reviewer account synced (existing): ${APPLE_REVIEW_EMAIL}`);
+      } else {
+        await run(
+          "INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, height_cm, dob, gender, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
+          [uuidv4(), revEmail, hash, 'Apple', 'Reviewer', '+10000000000', 'United States', 'America/Los_Angeles', 175, '1990-01-01', 'Prefer not to say', 'user', 'approved']
+        );
+        console.log(`✅ Apple reviewer account created: ${APPLE_REVIEW_EMAIL}`);
+      }
+    }
+  } catch (e) {
+    console.error('Apple reviewer sync error:', e.message);
   }
 
   // Seed sample data if empty
@@ -5280,6 +5309,41 @@ app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async 
   } catch (e) {
     console.error('Delete user error:', e.message);
     res.status(500).json({ error: 'Failed to remove user' });
+  }
+});
+
+// User self-delete (required by Apple Guideline 5.1.1(v) for any app with sign-in).
+// Requires the user's password to confirm. Mirrors the admin cascade above.
+app.post('/api/me/account/delete', verifyToken, rateLimiter(3, 60000), async (req, res) => {
+  try {
+    const { password } = req.body || {};
+    if (!password) return res.status(400).json({ error: 'Password is required to delete your account.' });
+    const id = req.user.id;
+    const user = await queryOne("SELECT id, role, email, phone, password FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'Account not found.' });
+    if (user.role !== 'user') return res.status(403).json({ error: 'This account type cannot be deleted in-app. Please contact support.' });
+    if (!user.password || !bcrypt.compareSync(String(password), user.password)) {
+      return res.status(401).json({ error: 'Incorrect password.' });
+    }
+    const threads = await queryAll('SELECT id FROM message_threads WHERE user_id = ?', [id]);
+    const threadIds = (threads || []).map(t => t.id).filter(Boolean);
+    for (const tid of threadIds) { await run('DELETE FROM thread_messages WHERE thread_id = ?', [tid]); }
+    await run('DELETE FROM message_threads WHERE user_id = ?', [id]);
+    await run('DELETE FROM workout_logs WHERE user_id = ?', [id]);
+    await run('DELETE FROM contact_messages WHERE user_id = ?', [id]);
+    await run('DELETE FROM meetings WHERE user_id = ?', [id]);
+    await run('DELETE FROM sunday_checkins WHERE user_id = ?', [id]);
+    await run('DELETE FROM hydration_logs WHERE user_id = ?', [id]);
+    await run('DELETE FROM weight_logs WHERE user_id = ?', [id]);
+    await run('DELETE FROM daily_checkins WHERE user_id = ?', [id]);
+    await run('DELETE FROM push_subscriptions WHERE user_id = ?', [id]);
+    if (user.email) await run('DELETE FROM tribe_members WHERE LOWER(email) = LOWER(?)', [user.email]);
+    await run('DELETE FROM users WHERE id = ?', [id]);
+    notifyAsync('USER_DELETED', { name: 'self-deleted', email: user.email, mobile: user.phone || '—' });
+    res.json({ message: 'Your account has been deleted.' });
+  } catch (e) {
+    console.error('Self-delete error:', e.message);
+    res.status(500).json({ error: 'Failed to delete account. Please try again.' });
   }
 });
 

@@ -129,6 +129,8 @@ body.site-nav-hidden nav#nv{display:none !important}
 .pwa-ios-modal ol{color:var(--creamd);font-size:15px;line-height:1.8;margin:0 0 24px;padding-left:24px;max-width:320px;text-align:left}
 .pwa-ios-modal ol li{margin-bottom:8px}
 .pwa-ios-modal .pwa-ios-close{padding:12px 28px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer}
+/* Hide all "Add to Home Screen" UI everywhere — direct users to the real app on Play Store / App Store */
+.pwa-add-homescreen,.pwa-ios-modal{display:none !important}
 
 /* HERO */
 .hero{
@@ -286,7 +288,7 @@ body.site-nav-hidden nav#nv{display:none !important}
 .phases-lux-wrap.plx-nums-on .plx:nth-child(2) .plx-num{animation:plxNumIn .85s cubic-bezier(.4,0,.2,1) .22s both}
 .phases-lux-wrap.plx-nums-on .plx:nth-child(3) .plx-num{animation:plxNumIn .85s cubic-bezier(.4,0,.2,1) .39s both}
 .plx-info{flex:1;min-width:0}
-.plx-title{font-family:'Cormorant Garamond',serif;font-size:21px;font-weight:700;color:var(--cream);line-height:1.15;margin-bottom:4px;transition:color .35s}
+.plx-title{font-family:'Outfit',sans-serif;font-size:21px;font-weight:700;color:var(--cream);line-height:1.15;margin-bottom:4px;transition:color .35s}
 .plx.open .plx-title{color:var(--gold)}
 .plx-weeks{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--muted)}
 .plx-chevron{width:30px;height:30px;border:1px solid rgba(200,164,78,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background .35s,border-color .35s}
@@ -5065,6 +5067,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         </svg>
       </button>
       <button class="user-logout" id="userLogoutBtn" onclick="logoutUser()">Logout</button>
+      <button type="button" id="userDeleteAccountBtn" onclick="openModal('deleteAccountModal')" title="Delete my account" style="margin-left:8px;background:none;border:none;color:#9a9a9a;font-size:11px;cursor:pointer;text-decoration:underline;padding:6px 4px">Delete account</button>
     </div>
   </div>
   <div class="user-layout">
@@ -7959,6 +7962,26 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <div class="form-group"><label>Confirm Password <span class="req">*</span></label><input type="password" class="form-input" id="gcPwConfirm" placeholder="Confirm your password"></div>
     <button class="form-submit" onclick="bbCompleteSocialSignup()">Complete Sign-up</button>
     </div>
+  </div>
+</div>
+
+<!-- DELETE ACCOUNT MODAL (Apple Guideline 5.1.1(v)) -->
+<div class="modal-overlay" id="deleteAccountModal" onclick="if(event.target===this)closeModal('deleteAccountModal')">
+  <div class="modal" style="max-width:440px">
+    <button class="modal-close" onclick="closeModal('deleteAccountModal')">&times;</button>
+    <h2 style="color:#ff6b6b">Delete your account</h2>
+    <p style="color:#bbb;font-size:14px;line-height:1.5;margin:8px 0 12px">
+      This permanently deletes your BodyBank account and all your data — body photos, blood reports, meals, workouts, and chats. <strong style="color:#fff">This cannot be undone.</strong>
+    </p>
+    <p style="color:#bbb;font-size:13px;margin:0 0 10px">Enter your password to confirm:</p>
+    <div class="form-group">
+      <div class="pw-wrap">
+        <input type="password" class="form-input" id="delAcctPw" placeholder="Your password" autocomplete="current-password">
+        <button class="pw-toggle" onclick="var i=document.getElementById('delAcctPw');i.type=i.type==='password'?'text':'password'">&#128065;</button>
+      </div>
+    </div>
+    <button class="form-submit" id="delAcctSubmit" onclick="submitDeleteAccount()" style="background:#ff4d4d;border-color:#ff4d4d">Delete my account permanently</button>
+    <button type="button" onclick="closeModal('deleteAccountModal')" style="width:100%;margin-top:10px;background:none;border:1px solid #444;color:#bbb;border-radius:8px;padding:10px;cursor:pointer">Cancel</button>
   </div>
 </div>
 
@@ -15705,6 +15728,29 @@ function backToWebsiteFromAdminPanel() {
   var hero = document.getElementById('hero');
   if (hero && typeof hero.scrollIntoView === 'function') {
     try { hero.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { hero.scrollIntoView(true); }
+  }
+}
+
+// Apple Guideline 5.1.1(v): in-app account deletion.
+async function submitDeleteAccount() {
+  var pw = (document.getElementById('delAcctPw') || {}).value || '';
+  if (!pw) { showPopup('Password Required', 'Please enter your password to confirm.', '', 'OK'); return; }
+  var btn = document.getElementById('delAcctSubmit');
+  if (btn) { btn.disabled = true; btn._orig = btn.innerHTML; btn.innerHTML = '<span class="btn-spinner"></span> Deleting...'; }
+  try {
+    var data = await apiCall('POST', '/api/me/account/delete', { password: pw });
+    if (data && data.error) {
+      if (btn) { btn.disabled = false; btn.innerHTML = btn._orig || 'Delete my account permanently'; }
+      showPopup('Could not delete', data.error, '', 'OK', null, 'error');
+      return;
+    }
+    try { localStorage.removeItem(SESSION_KEY); } catch (e) {}
+    window.currentUser = null;
+    closeModal('deleteAccountModal');
+    showPopup('Account Deleted', 'Your BodyBank account and all data have been permanently removed.', '', 'OK', function () { window.location.reload(); });
+  } catch (e) {
+    if (btn) { btn.disabled = false; btn.innerHTML = btn._orig || 'Delete my account permanently'; }
+    showPopup('Error', 'Failed to delete account. Please try again.', '', 'OK', null, 'error');
   }
 }
 
