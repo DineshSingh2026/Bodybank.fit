@@ -5052,6 +5052,50 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   .bb-leads-view-toggle{align-self:flex-start}
 }
 
+/* ╔══════════════════════════════════════════════════════════╗
+   ║  FLOATING PILL BOTTOM NAV  (WhatsApp-style) — PROTOTYPE   ║
+   ║  Pure restyle of existing user + admin bottom navs.      ║
+   ║  Delete this whole block to revert to the flat bars.     ║
+   ╚══════════════════════════════════════════════════════════╝ */
+.user-bottom-nav,
+.admin-bottom-nav{
+  left:0!important;right:0!important;
+  width:calc(100% - 24px)!important;min-width:0!important;max-width:460px!important;
+  margin-left:auto!important;margin-right:auto!important;
+  bottom:calc(12px + max(0px,env(safe-area-inset-bottom,0px)))!important;
+  min-height:64px;height:64px;padding:0!important;
+  background:rgba(18,18,18,0.82)!important;
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+  backdrop-filter:blur(18px) saturate(140%);
+  border:1px solid rgba(200,164,78,0.18)!important;border-top:1px solid rgba(200,164,78,0.18)!important;
+  border-radius:34px!important;
+  box-shadow:0 10px 30px rgba(0,0,0,0.45),0 2px 8px rgba(0,0,0,0.35)!important;
+}
+.user-bottom-nav-inner,
+.admin-bottom-nav-inner{padding:6px 8px!important;column-gap:2px;height:100%}
+.user-bottom-nav-item,
+.admin-bottom-nav-item{min-height:0!important;padding:6px 2px!important;border-radius:22px!important;z-index:0}
+/* kill the old gold underline indicator */
+.user-bottom-nav-item.active::before,
+.admin-bottom-nav-item.active::before{display:none!important}
+/* rounded highlight bubble behind the active tab */
+.user-bottom-nav-item.active::after,
+.admin-bottom-nav-item.active::after{
+  content:'';position:absolute;top:5px;bottom:5px;left:5px;right:5px;
+  background:linear-gradient(180deg,rgba(200,164,78,0.22),rgba(200,164,78,0.12));
+  border:1px solid rgba(200,164,78,0.34);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,0.06),0 2px 8px rgba(200,164,78,0.12);
+  border-radius:20px;z-index:-1;
+}
+.user-bottom-nav-icon,.user-bottom-nav-label,
+.admin-bottom-nav-icon,.admin-bottom-nav-label{position:relative;z-index:1}
+.user-bottom-nav-icon,.admin-bottom-nav-icon{margin-bottom:2px}
+/* crisp SVG icons — sharp + identical on every device */
+.user-bottom-nav-icon svg,.admin-bottom-nav-icon svg{width:24px;height:24px;display:block}
+.user-bottom-nav-item.active .user-bottom-nav-icon svg,
+.admin-bottom-nav-item.active .admin-bottom-nav-icon svg{stroke-width:2.1}
+/* ── end floating pill nav prototype ── */
+
 </style>
 <!-- ══════════════════════════════════════════════════════ -->
 </head>
@@ -6116,23 +6160,23 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   <nav class="user-bottom-nav" id="userBottomNav" aria-label="User sections">
     <div class="user-bottom-nav-inner">
       <button type="button" class="user-bottom-nav-item active" data-tab="home" onclick="switchUserTab('home')" aria-label="Home">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#9733;</span>
+        <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V9.5"/></svg></span>
         <span class="user-bottom-nav-label">Home</span>
       </button>
       <button type="button" class="user-bottom-nav-item" data-tab="workout" onclick="switchUserTab('workout')" aria-label="Workout">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#128170;</span>
+        <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12h2M20.5 12h2"/><rect x="3.5" y="8" width="3.2" height="8" rx="1.1"/><rect x="17.3" y="8" width="3.2" height="8" rx="1.1"/><path d="M6.7 12h10.6"/></svg></span>
         <span class="user-bottom-nav-label">Workout</span>
       </button>
       <button type="button" class="user-bottom-nav-item" data-tab="programs" onclick="switchUserTab('programs')" aria-label="Programs">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#127919;</span>
+        <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3.2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V4"/><path d="M9 10h6M9 13.5h6M9 17h3.5"/></svg></span>
         <span class="user-bottom-nav-label">Programs</span>
       </button>
       <button type="button" class="user-bottom-nav-item" data-tab="checkin" onclick="switchUserTab('checkin')" aria-label="Check-in">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#9989;</span>
+        <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M8.8 15.2l2.1 2.1 4.3-4.3"/></svg></span>
         <span class="user-bottom-nav-label">Check-in</span>
       </button>
       <button type="button" class="user-bottom-nav-item" data-tab="messages" onclick="switchUserTab('messages')" aria-label="Messages">
-        <span class="user-bottom-nav-icon" aria-hidden="true">&#128172;</span>
+        <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.85-5.05A7.5 7.5 0 1 1 21 11.5Z"/></svg></span>
         <span class="user-bottom-nav-label">Messages</span>
       </button>
     </div>
@@ -7542,23 +7586,23 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   <nav class="admin-bottom-nav" id="adminBottomNav" aria-label="Bottom navigation">
     <div class="admin-bottom-nav-inner">
       <button type="button" class="admin-bottom-nav-item active" data-section="dashboard" onclick="switchToSection('dashboard');return false" aria-label="Home">
-        <span class="admin-bottom-nav-icon" aria-hidden="true">&#9733;</span>
+        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V9.5"/></svg></span>
         <span class="admin-bottom-nav-label">Home</span>
       </button>
       <button type="button" class="admin-bottom-nav-item" data-section="clients" onclick="switchToSection('clients');return false" aria-label="Clients">
-        <span class="admin-bottom-nav-icon" aria-hidden="true">&#128106;</span>
+        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.6 19a5.4 5.4 0 0 1 10.8 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M17.6 19a5.4 5.4 0 0 0-3-4.85"/></svg></span>
         <span class="admin-bottom-nav-label">Clients</span>
       </button>
       <button type="button" class="admin-bottom-nav-item" data-section="forms" onclick="switchToSection('forms');return false" aria-label="Forms">
-        <span class="admin-bottom-nav-icon" aria-hidden="true">&#128203;</span>
+        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h7.5L18 7.5V20a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z"/><path d="M13.3 3v4.2H18"/><path d="M8.5 12h7M8.5 15.5h7M8.5 19h4"/></svg></span>
         <span class="admin-bottom-nav-label">Forms</span>
       </button>
       <button type="button" class="admin-bottom-nav-item" data-section="messages" onclick="switchToSection('messages');return false" aria-label="Messages">
-        <span class="admin-bottom-nav-icon" aria-hidden="true">&#128172;</span>
+        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.85-5.05A7.5 7.5 0 1 1 21 11.5Z"/></svg></span>
         <span class="admin-bottom-nav-label">Messages</span>
       </button>
       <button type="button" class="admin-bottom-nav-item" data-section="ai" onclick="toggleAdminAiAssistPanel();return false" aria-label="AI">
-        <span class="admin-bottom-nav-icon" aria-hidden="true">&#128161;</span>
+        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.7 4.6L18.3 9l-4.6 1.7L12 15l-1.7-4.3L5.7 9l4.6-1.4L12 3Z"/><path d="M18.6 14l.75 2 2 .75-2 .75-.75 2-.75-2-2-.75 2-.75.75-2Z"/></svg></span>
         <span class="admin-bottom-nav-label">AI</span>
       </button>
     </div>
