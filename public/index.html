@@ -3444,6 +3444,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   .user-top-left img{height:44px}
   .user-top-right{flex-wrap:nowrap;gap:10px}
   .user-logout{padding:8px 14px;font-size:11px}
+  /* Delete account moves into Profile tab's "Danger zone" on mobile so the top bar stays uncluttered. */
+  #userDeleteAccountBtn{display:none!important}
   .user-section h2{font-size:24px}
   .user-welcome{padding:40px 20px 48px}
   .user-welcome h1{font-size:clamp(30px,6vw,42px)}
@@ -5666,6 +5668,13 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <input type="file" id="bloodUploadInputHome" accept=".pdf,image/*" style="display:none" onchange="uploadUserBloodReport(event)" />
         </div>
         <div id="myReportsList"></div>
+      </section>
+
+      <!-- Account deletion (Apple Guideline 5.1.1(v)) — primary location on mobile, secondary on desktop -->
+      <section aria-label="Danger zone" style="margin-top:28px;padding:20px;background:rgba(255,80,80,0.04);border:1px solid rgba(255,80,80,0.2);border-radius:10px">
+        <div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:#ff6b6b;margin-bottom:8px">Danger zone</div>
+        <p style="font-size:13px;color:#9a9a9a;margin:0 0 14px;line-height:1.55">Permanently delete your account and all associated data (workouts, check-ins, photos, messages). This action cannot be undone.</p>
+        <button type="button" onclick="openModal('deleteAccountModal')" style="background:transparent;border:1px solid rgba(255,80,80,0.5);color:#ff6b6b;border-radius:6px;padding:10px 22px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer">Delete account</button>
       </section>
       </div>
     </div>
