@@ -1,5 +1,5 @@
 /* BodyBank PWA Service Worker — bump CACHE_NAME on each deploy */
-const CACHE_NAME = 'bodybank-v44';
+const CACHE_NAME = 'bodybank-v51';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
