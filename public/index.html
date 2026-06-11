@@ -9747,6 +9747,8 @@ function openModal(id){
   if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab();
 }
 var _googleButtonRendered=false;
+var _gsiLoadAttempts=0;
+var _gsiMaxAttempts=3;
 async function updateGoogleButtonVisibility(){
   var btnSignup=document.getElementById('googleBtnSignup');
   if(!btnSignup)return;
@@ -21618,18 +21620,37 @@ function ensureGoogleButtonRendered(config) {
   }
   if (window.google && window.google.accounts && window.google.accounts.id) {
     doRender();
-  } else {
-    var script = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
-    if (!script) {
-      script = document.createElement('script');
-      script.src = 'https://accounts.google.com/gsi/client';
-      script.onload = function() { window._gsiLoaded = true; doRender(); };
-      script.onerror = function() { showPopup('Error', 'Could not load Google Sign-In. Check your connection.', '', 'OK'); };
-      document.head.appendChild(script);
-    } else if (window.google && window.google.accounts) {
-      doRender();
-    }
+    return;
   }
+  // GSI script not loaded yet. Load it resiliently: retry a couple of times on
+  // transient network failures (slow mobile, blockers, DNS hiccups). Google
+  // Sign-In is OPTIONAL — email/password and Apple sign-in still work — so we
+  // never block the user with an error popup; we just quietly hide the button
+  // if it ultimately can't load.
+  function loadGsiScript() {
+    if (window.google && window.google.accounts && window.google.accounts.id) { doRender(); return; }
+    var existing = document.querySelector('script[src*="accounts.google.com/gsi/client"]');
+    // A load already succeeded or is in flight (and not previously marked failed) — let its onload handle render.
+    if (existing && existing.getAttribute('data-bb-failed') !== '1') return;
+    if (existing && existing.parentNode) existing.parentNode.removeChild(existing);
+    var script = document.createElement('script');
+    script.src = 'https://accounts.google.com/gsi/client';
+    script.async = true;
+    script.onload = function() { window._gsiLoaded = true; doRender(); };
+    script.onerror = function() {
+      script.setAttribute('data-bb-failed', '1');
+      _gsiLoadAttempts++;
+      if (_gsiLoadAttempts < _gsiMaxAttempts) {
+        setTimeout(loadGsiScript, 1500 * _gsiLoadAttempts);
+      } else {
+        console.warn('Google Sign-In failed to load after ' + _gsiLoadAttempts + ' attempt(s); hiding the button. Other login methods still work.');
+        var el = document.getElementById('googleBtnSignup');
+        if (el) el.style.display = 'none';
+      }
+    };
+    document.head.appendChild(script);
+  }
+  loadGsiScript();
 }
 
 var _pendingGoogleToken = null;
