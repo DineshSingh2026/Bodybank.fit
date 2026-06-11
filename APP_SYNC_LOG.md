@@ -46,6 +46,14 @@ _(empty — synced 2026-06-11; see History below)_
 
 ## History — synced
 
+### 2026-06-11 — synced to mobile repo (Android nav fix release v1.3.1)
+
+Ran `npm run sync` in `../bodybank-app/` (build:www + cap sync android); bumped Android `versionCode 9→10`, `versionName 1.3.0→1.3.1`. Built signed `app-release.aab` for closed-testing upload.
+
+| Web commit | Change | Notes |
+| ---------- | ------ | ----- |
+| `c7d1cd1` | fix(nav): native Android app shows same floating pill bottom nav as PWA | `public/index.html` only — removed stale `html.android-mobile` bottom-nav overrides that fought the floating pill (stretched to 78px + safe-area, cramped icons/labels on the installed app). Pure CSS; required app re-sync + rebuild because `www/` bundles a frozen snapshot. |
+
 ### 2026-06-11 — synced to mobile repo (Android push release v1.3.0)
 
 Ran `npm run sync` in `../bodybank-app/` (build:www + cap sync android); bumped Android `versionCode 8→9`, `versionName 1.2.1→1.3.0`.
