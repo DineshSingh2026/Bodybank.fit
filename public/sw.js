@@ -1,5 +1,5 @@
 /* BodyBank PWA Service Worker — bump CACHE_NAME on each deploy */
-const CACHE_NAME = 'bodybank-v51';
+const CACHE_NAME = 'bodybank-v52';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -8,7 +8,7 @@ self.addEventListener('install', () => {
 /* Push notifications — show banner even when app/website is closed */
 self.addEventListener('push', (e) => {
   if (!e.data) return;
-  let title = 'Body Bank';
+  let title = 'BodyBank';
   let body = '';
   let data = {};
   try {

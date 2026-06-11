@@ -2649,7 +2649,7 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
     await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
     const msg = await queryOne('SELECT id, thread_id, sender_id, sender_role, body, created_at FROM thread_messages WHERE id = ?', [msgId]);
     if (isAdmin && thread.user_id) {
-      sendPushToUser(thread.user_id, JSON.stringify({ type: 'coach_reply', title: 'Lifestyle Manager replied', body: String(body).trim().slice(0, 100), id: 'chat-' + msgId })).catch(() => {});
+      sendPushToUser(thread.user_id, JSON.stringify({ type: 'coach_reply', title: '💬 Your Lifestyle Manager replied', body: String(body).trim().slice(0, 100), id: 'chat-' + msgId })).catch(() => {});
       const coachUser = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [thread.user_id]);
       if (coachUser && coachUser.email) {
         userEmail.emailCoachReply(coachUser.email, coachUser.first_name, String(body).trim());
@@ -4350,7 +4350,7 @@ app.post('/api/programs/assign', verifyToken, requireAdminOrSuperadmin, async (r
         user_id,
         JSON.stringify({
           type: 'program_assigned',
-          title: 'Program assigned',
+          title: '🎯 New program assigned',
           body: 'Your lifestyle manager assigned a new program — open the app to view it.',
           id: 'program-' + id,
           assignmentId: id

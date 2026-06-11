@@ -167,7 +167,7 @@ async function broadcastMessage(message) {
     if (inboxInsertOk) {
       try {
         const pushPayload = JSON.stringify({
-          title: 'BodyBank',
+          title: '🔔 BodyBank',
           body: trimmed.slice(0, 200),
           icon: '/icons/icon-192.png',
           id: 'inbox-' + inboxRowId
