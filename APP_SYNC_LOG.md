@@ -37,10 +37,10 @@ Before every mobile release:
 
 ## Pending sync — next mobile release
 
-_(empty — all up to date as of last entry in History)_
-
 | Date | Web commit | Change | Notes |
 | ---- | ---------- | ------ | ----- |
+| 2026-06-11 | _(this commit)_ | fix(auth): resilient Google Sign-In load (retry, no blocking popup) | `public/index.html` only. Web/PWA gets it on deploy; native app needs this `www/` sync to pick it up. |
+| 2026-06-11 | _(this commit)_ | chore(push): brand + emoji notification titles; `sw.js` default `Body Bank`→`BodyBank`, cache `v51`→`v52` | `public/sw.js` only. **Cosmetic fallback** — the actual title text for messages/reminders/program is set **backend-side** (`server.js`, `campaignScheduler.js`) and reaches the app instantly via Render with no rebuild. This `sw.js` row only affects the rarely-hit no-title fallback on web/PWA. |
 
 ---
 
