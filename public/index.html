@@ -22469,61 +22469,14 @@ window.addEventListener('resize', applySafeAreaFix);
   html.android-mobile .welcome-card{
     padding:16px 16px !important;
   }
-  html.android-mobile .admin-bottom-nav,
-  html.android-mobile .user-bottom-nav{
-    min-height:78px !important;
-    height:calc(78px + env(safe-area-inset-bottom,0px)) !important;
-    padding-bottom:env(safe-area-inset-bottom,0px) !important;
-  }
-  html.android-mobile .admin-bottom-nav-inner{
-    display:grid !important;
-    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
-    justify-content:initial !important;
-    padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px)) !important;
-    column-gap:2px !important;
-  }
-  html.android-mobile .user-bottom-nav-inner{
-    display:grid !important;
-    grid-template-columns:repeat(5,minmax(0,1fr)) !important;
-    justify-content:initial !important;
-    padding:0 max(8px,env(safe-area-inset-right,0px)) 0 max(8px,env(safe-area-inset-left,0px)) !important;
-    column-gap:2px !important;
-  }
-  html.android-mobile .admin-bottom-nav-item,
-  html.android-mobile .user-bottom-nav-item{
-    flex:none !important;
-    width:100% !important;
-    min-width:0 !important;
-    min-height:62px !important;
-    padding:8px 4px 10px !important;
-    justify-content:center !important;
-    align-items:center !important;
-  }
-  html.android-mobile .admin-bottom-nav-icon,
-  html.android-mobile .user-bottom-nav-icon{
-    display:flex !important;
-    align-items:center !important;
-    justify-content:center !important;
-    width:24px !important;
-    height:24px !important;
-    font-size:18px !important;
-    line-height:1 !important;
-    margin-bottom:3px !important;
-    flex-shrink:0 !important;
-  }
-  html.android-mobile .admin-bottom-nav-label,
-  html.android-mobile .user-bottom-nav-label{
-    display:block !important;
-    visibility:visible !important;
-    opacity:1 !important;
-    font-size:10px !important;
-    line-height:1.15 !important;
-    min-height:13px !important;
-    white-space:nowrap !important;
-    overflow:hidden !important;
-    text-overflow:ellipsis !important;
-    text-align:center !important;
-  }
+  /* NOTE: Android-specific bottom-nav overrides were removed here.
+     They were written for the old flat edge-to-edge bar and fought the
+     global "floating pill" nav (see ~line 5057), stretching it to 78px +
+     safe-area on the installed app and making icons/labels look cramped.
+     The floating pill already handles the safe-area inset via its own
+     `bottom: calc(12px + env(safe-area-inset-bottom))`, so the native app
+     now renders the SAME clean pill as PWA/browser. Do not re-add nav
+     size/grid overrides here. */
 }
 @media(max-width:420px){
   html.android-mobile .admin-top,
