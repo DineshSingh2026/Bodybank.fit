@@ -10736,6 +10736,43 @@ function updateNotifyPermissionUI(granted) {
   el.style.display = granted ? 'none' : 'block';
 }
 
+// Native (installed Android/iOS app) push via Firebase Cloud Messaging.
+// No-op on the web — there the service worker + Web Push handle notifications.
+// Called right after login so the device token attaches to the signed-in user.
+var _nativePushRegistered = false;
+var _lastFcmToken = null;
+async function registerNativePush() {
+  if (!window.IS_BODYBANK_APP || _nativePushRegistered) return;
+  try {
+    var Cap = window.Capacitor;
+    var FM = Cap && Cap.Plugins && Cap.Plugins.FirebaseMessaging;
+    if (!FM) return; // plugin not present in this build yet
+    _nativePushRegistered = true;
+    var platform = (Cap.getPlatform && Cap.getPlatform()) || 'android';
+    async function sendToken(token) {
+      if (!token) return;
+      _lastFcmToken = token;
+      try { await apiCall('POST', '/api/push/register-token', { token: token, platform: platform }); } catch (e) {}
+    }
+    // Re-register automatically when FCM rotates the token.
+    try { FM.addListener('tokenReceived', function(ev) { sendToken(ev && ev.token); }); } catch (e) {}
+    var perm = await FM.requestPermissions();
+    if (!perm || perm.receive !== 'granted') { _nativePushRegistered = false; return; }
+    var res = await FM.getToken();
+    await sendToken(res && res.token);
+  } catch (e) { _nativePushRegistered = false; }
+}
+
+// Detach this device's token on logout so the signed-out user stops receiving
+// push here (other devices keep theirs). Must run BEFORE the session is cleared
+// so the API call is still authenticated.
+function unregisterNativePush() {
+  _nativePushRegistered = false;
+  if (!window.IS_BODYBANK_APP || !_lastFcmToken) return;
+  try { apiCall('DELETE', '/api/push/register-token', { token: _lastFcmToken }); } catch (e) {}
+  _lastFcmToken = null;
+}
+
 function showBrowserNotification(n) {
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted' || !n || !n.title) return;
   try {
@@ -13282,6 +13319,7 @@ function downloadInsightsCSV() {
 }
 
 function logoutAdmin() {
+  if (typeof unregisterNativePush === 'function') unregisterNativePush();
   window.currentUser = null;
   if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
   if (typeof stopAdminNotificationPolling === 'function') stopAdminNotificationPolling();
@@ -15538,6 +15576,7 @@ document.addEventListener('click', function(e) {
 // ========== USER DASHBOARD ==========
 function openUserDashboard(user) {
   window.currentUser = user;
+  if (typeof registerNativePush === 'function') registerNativePush();
   var adminPanel = document.getElementById('adminPanel');
   var superadminPanel = document.getElementById('superadminPanel');
   var waFloat = document.getElementById('userWaFloat');
@@ -16017,6 +16056,7 @@ async function submitDeleteAccount() {
 }
 
 function logoutUser() {
+  if (typeof unregisterNativePush === 'function') unregisterNativePush();
   if (typeof wkLogoutTimerCleanup === 'function') wkLogoutTimerCleanup();
   // Reset muscle ranking cache so next login fetches fresh data
   if (typeof mrData !== 'undefined') { mrData = null; mrLoaded = false; }
@@ -21875,6 +21915,7 @@ function restoreSession() {
     var data = JSON.parse(s);
     if (!data || !data.id || !data.role) return;
     window.currentUser = data;
+    if (typeof registerNativePush === 'function') registerNativePush();
     if (data.role === 'admin') {
       document.getElementById('adminPanel').classList.add('open');
       document.body.classList.add('site-nav-hidden');
@@ -22140,6 +22181,7 @@ function renderSuperadminData(data, readOnly) {
 }
 
 function logoutSuperadmin() {
+  if (typeof unregisterNativePush === 'function') unregisterNativePush();
   if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
   document.getElementById('superadminPanel').classList.remove('open');
