@@ -37,14 +37,24 @@ Before every mobile release:
 
 ## Pending sync — next mobile release
 
+_(empty — synced 2026-06-11; see History below)_
+
 | Date | Web commit | Change | Notes |
 | ---- | ---------- | ------ | ----- |
-| 2026-06-11 | _(this commit)_ | fix(auth): resilient Google Sign-In load (retry, no blocking popup) | `public/index.html` only. Web/PWA gets it on deploy; native app needs this `www/` sync to pick it up. |
-| 2026-06-11 | _(this commit)_ | chore(push): brand + emoji notification titles; `sw.js` default `Body Bank`→`BodyBank`, cache `v51`→`v52` | `public/sw.js` only. **Cosmetic fallback** — the actual title text for messages/reminders/program is set **backend-side** (`server.js`, `campaignScheduler.js`) and reaches the app instantly via Render with no rebuild. This `sw.js` row only affects the rarely-hit no-title fallback on web/PWA. |
 
 ---
 
 ## History — synced
+
+### 2026-06-11 — synced to mobile repo (Android push release v1.3.0)
+
+Ran `npm run sync` in `../bodybank-app/` (build:www + cap sync android); bumped Android `versionCode 8→9`, `versionName 1.2.1→1.3.0`.
+
+| Web commit | Change | Notes |
+| ---------- | ------ | ----- |
+| _(native-push commit)_ | feat(push): native Android push via FCM | `public/index.html` adds `registerNativePush()`/`unregisterNativePush()` (guarded by `window.IS_BODYBANK_APP`), called after login (`openUserDashboard`, `restoreSession`) and on logout. Mobile repo gains `@capacitor-firebase/messaging@7.5.0`. **Needs `google-services.json` in `android/app/` to build, and `FIREBASE_SERVICE_ACCOUNT` env on Render to send.** Backend (`server.js`) FCM send path deploys via Render — no app dependency. |
+| _(prior commit)_ | fix(auth): resilient Google Sign-In load (retry, no blocking popup) | `public/index.html`. Now in this `www/` snapshot. |
+| _(prior commit)_ | chore(push): brand + emoji notification titles; `sw.js` `Body Bank`→`BodyBank`, cache `v51`→`v52` | `public/sw.js` fallback only; actual titles are backend-driven. Now in this `www/` snapshot. |
 
 ### 2026-06-01 — synced to mobile repo
 

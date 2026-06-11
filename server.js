@@ -14,6 +14,8 @@ try {
   multer = null;
 }
 const webPush = require('web-push');
+let firebaseAdmin = null;
+try { firebaseAdmin = require('firebase-admin'); } catch (_) { firebaseAdmin = null; }
 const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken } = require('./middleware/auth');
 const { safeExtraHttpHeaders, optionalApiAccessLog } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
@@ -67,6 +69,7 @@ const NODE_ENV = process.env.NODE_ENV || 'development';
 const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN || ''; // e.g. https://yoursite.com (production)
 const VAPID_PUBLIC = (process.env.VAPID_PUBLIC_KEY || '').trim();
 const VAPID_PRIVATE = (process.env.VAPID_PRIVATE_KEY || '').trim();
+const FIREBASE_SERVICE_ACCOUNT = (process.env.FIREBASE_SERVICE_ACCOUNT || '').trim();
 const RESET_BASE_URL = (process.env.RESET_BASE_URL || process.env.APP_BASE_URL || process.env.SITE_URL || process.env.RENDER_EXTERNAL_URL || '').trim().replace(/\/$/, '') || (NODE_ENV === 'production' ? '' : `http://localhost:${PORT}`);
 const SMTP_HOST = (process.env.SMTP_HOST || '').trim();
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10);
@@ -97,9 +100,69 @@ if (VAPID_PUBLIC && VAPID_PRIVATE) {
   }
 }
 
+// Firebase Cloud Messaging (native Android/iOS push). Guarded exactly like VAPID:
+// if FIREBASE_SERVICE_ACCOUNT is not set, native push is simply disabled (no crash).
+let _fcmReady = false;
+if (firebaseAdmin && FIREBASE_SERVICE_ACCOUNT) {
+  try {
+    const svc = JSON.parse(FIREBASE_SERVICE_ACCOUNT);
+    if (!firebaseAdmin.apps.length) {
+      firebaseAdmin.initializeApp({ credential: firebaseAdmin.credential.cert(svc) });
+    }
+    _fcmReady = true;
+    console.log('[FCM] firebase-admin initialized - native push enabled.');
+  } catch (e) {
+    console.warn('[FCM] FIREBASE_SERVICE_ACCOUNT invalid or init failed - native push disabled. Error:', e.message);
+  }
+} else {
+  console.warn('[FCM] Skipped init: set FIREBASE_SERVICE_ACCOUNT to enable native (Android/iOS) push.');
+}
+
+// Native push via Firebase Cloud Messaging — for installed Android/iOS apps.
+// Accepts the SAME payload shape as web-push (a JSON string or object with
+// { title, body, icon, id, type, url }) so every existing call site works unchanged.
+async function sendFcmToUser(userId, payload) {
+  if (!_fcmReady) return;
+  let data = {};
+  try { data = typeof payload === 'string' ? JSON.parse(payload) : (payload || {}); } catch (_) { data = {}; }
+  const title = String(data.title || 'BodyBank').slice(0, 120);
+  const body = String(data.body || data.desc || 'You have a new notification').slice(0, 240);
+  try {
+    const rows = await queryAll('SELECT token FROM device_push_tokens WHERE user_id = ?', [userId]);
+    if (!rows || rows.length === 0) return;
+    const sent = new Set();
+    for (const r of rows) {
+      if (!r.token || sent.has(r.token)) continue;
+      sent.add(r.token);
+      try {
+        await firebaseAdmin.messaging().send({
+          token: r.token,
+          notification: { title, body },
+          data: { id: String(data.id || ''), type: String(data.type || ''), url: String(data.url || '/') },
+          android: { priority: 'high', notification: { sound: 'default' } }
+        });
+      } catch (e) {
+        const code = (e && (e.code || (e.errorInfo && e.errorInfo.code))) || '';
+        if (code === 'messaging/registration-token-not-registered' ||
+            code === 'messaging/invalid-registration-token' ||
+            code === 'messaging/invalid-argument') {
+          await run('DELETE FROM device_push_tokens WHERE token = ?', [r.token]);
+          console.warn('[FCM] Removed invalid token for user', userId);
+        } else {
+          console.warn('[FCM] Send failed for user', userId, ':', e.message);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[FCM] Error:', e.message);
+  }
+}
+
 async function sendPushToUser(userId, payload) {
+  // Native (FCM) push for installed apps — runs independently of web-push/VAPID config.
+  await sendFcmToUser(userId, payload);
+  // Web Push (VAPID) for browsers + installed PWAs.
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) {
-    console.warn('[Push] Skipped: VAPID keys not configured. Set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY in env.');
     return;
   }
   try {
@@ -798,6 +861,17 @@ async function initDB() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON push_subscriptions(user_id)`); } catch (e) { /* ignore */ }
+
+  // Native (FCM) device push tokens — installed Android/iOS apps
+  await pool.query(`CREATE TABLE IF NOT EXISTS device_push_tokens (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    token TEXT NOT NULL UNIQUE,
+    platform TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_device_push_tokens_user_id ON device_push_tokens(user_id)`); } catch (e) { /* ignore */ }
 
   // Password reset tokens (users only, not admin/superadmin)
   await pool.query(`CREATE TABLE IF NOT EXISTS password_resets (
@@ -3579,6 +3653,42 @@ app.delete('/api/push/subscribe', verifyToken, async (req, res) => {
 
 app.get('/api/push/vapid-public', (req, res) => {
   res.json({ publicKey: VAPID_PUBLIC || null });
+});
+
+// Native (FCM) device tokens — installed Android/iOS apps register here after login.
+app.post('/api/push/register-token', verifyToken, rateLimiter(10, 60000), async (req, res) => {
+  try {
+    const { token, platform } = req.body || {};
+    if (!token) return res.status(400).json({ error: 'Token required' });
+    const plat = (platform === 'ios' || platform === 'android') ? platform : null;
+    const existing = await queryOne('SELECT id FROM device_push_tokens WHERE token = ?', [token]);
+    if (existing) {
+      // Token already known — (re)assign to this user (handles shared/reused devices) and refresh platform.
+      await run('UPDATE device_push_tokens SET user_id = ?, platform = ?, updated_at = CURRENT_TIMESTAMP WHERE token = ?',
+        [req.user.id, plat, token]);
+    } else {
+      const id = uuidv4();
+      await run('INSERT INTO device_push_tokens (id, user_id, token, platform) VALUES (?, ?, ?, ?)',
+        [id, req.user.id, token, plat]);
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to register token' });
+  }
+});
+
+app.delete('/api/push/register-token', verifyToken, async (req, res) => {
+  try {
+    const { token } = req.body || {};
+    if (token) {
+      await run('DELETE FROM device_push_tokens WHERE user_id = ? AND token = ?', [req.user.id, token]);
+    } else {
+      await run('DELETE FROM device_push_tokens WHERE user_id = ?', [req.user.id]);
+    }
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to unregister token' });
+  }
 });
 
 // ============ ADMIN: PENDING SIGNUPS & APPROVE ============
