@@ -3078,6 +3078,76 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .nutrition-checkin .spinner-sm{width:14px;height:14px;border:2px solid rgba(0,0,0,.2);border-top-color:#0d0f11;border-radius:50%;animation:bbNutriSpin .7s linear infinite}
 @keyframes bbNutriSpin{to{transform:rotate(360deg)}}
 .nutrition-checkin .meal-grid,.nutrition-checkin .macro-totals-grid{overflow-x:hidden}
+/* ===== Daily check-in pane segmented selector ===== */
+.daily-segmented{display:flex;gap:6px;background:var(--bb-surface);border:1px solid var(--bb-border);border-radius:99px;padding:5px;margin-bottom:18px}
+.daily-seg-btn{flex:1;min-height:40px;padding:8px 6px;border:none;background:transparent;color:var(--muted);border-radius:99px;font-family:var(--bb-font-heading,'Rajdhani',sans-serif);font-size:13px;font-weight:700;letter-spacing:.04em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s,color .2s}
+.daily-seg-btn .seg-emoji{font-size:15px}
+.daily-seg-btn.active{background:var(--goldg,var(--gold));color:var(--black,#0d0f11)}
+.daily-pane{animation:bbDailyPaneFade .25s ease}
+@keyframes bbDailyPaneFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
+/* ===== Mind (mental-fitness) — exact Beyond The Body "Brain Tips" replica, SCOPED ===== */
+.mind-checkin{position:relative;overflow:hidden;border-radius:18px;padding:38px 20px 32px;background:linear-gradient(135deg,#0e1814 0%,#0a1210 50%,#070c0a 100%)}
+.mind-checkin .bt-orb{position:absolute;border-radius:50%;opacity:.09;pointer-events:none;filter:blur(110px)}
+.mind-checkin .bt-orb-1{width:300px;height:300px;background:#5bb89a;top:-150px;right:-40px}
+.mind-checkin .bt-orb-2{width:240px;height:240px;background:#1abfa0;bottom:-120px;left:-60px}
+/* Beyond The Body branding lockup */
+.mind-checkin .mind-brand{position:relative;z-index:1;display:flex;flex-direction:column;align-items:center;gap:7px;margin:0 auto 24px;text-decoration:none}
+.mind-checkin .mind-brand img{height:30px;width:auto;display:block;opacity:.96}
+.mind-checkin .mind-brand-tag{font-family:'Cormorant Garamond',serif;font-style:italic;font-size:13px;font-weight:400;letter-spacing:.04em;color:rgba(232,221,184,.72)}
+/* Section header */
+.mind-checkin .mind-section-head{position:relative;z-index:1;text-align:center;max-width:560px;margin:0 auto 28px;background:none;border:none;padding:0}
+.mind-checkin .mind-section-tag{display:inline-block;font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:500;letter-spacing:.32em;text-transform:uppercase;color:#e8ddb8;padding:0 0 12px;border-bottom:1px solid hsla(0,0%,100%,.2);margin:0 0 18px}
+.mind-checkin .mind-section-title{font-family:'Cormorant Garamond',serif;font-size:clamp(2rem,7vw,2.6rem);font-weight:300;letter-spacing:-.03em;line-height:1.15;color:#fff;margin:0 0 12px}
+.mind-checkin .mind-section-sub{font-family:'Outfit',sans-serif;font-size:14.5px;font-weight:300;color:hsla(0,0%,100%,.6);line-height:1.7;margin:0 auto;max-width:460px}
+/* Grid */
+.mind-checkin .mind-grid{position:relative;z-index:1;display:grid;grid-template-columns:1fr;gap:16px}
+@media (min-width:680px){.mind-checkin .mind-grid{grid-template-columns:repeat(3,1fr)}}
+/* Cards — dark gradient with per-variant radial tint */
+.mind-checkin .mind-card{position:relative;overflow:hidden;width:100%;text-align:left;cursor:pointer;border-radius:10px;padding:22px 20px;display:flex;flex-direction:column;background:linear-gradient(155deg,rgba(13,22,19,.9),rgba(10,18,15,.82));border:1px solid rgba(91,184,154,.18);box-shadow:0 14px 32px rgba(0,0,0,.28),inset 0 0 0 1px hsla(0,0%,100%,.02);transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease,background .25s ease}
+.mind-checkin .mind-card--breathing{background:radial-gradient(120% 90% at 8% 10%,rgba(236,145,190,.24),transparent 62%),linear-gradient(155deg,rgba(33,16,27,.95),rgba(20,11,18,.9));border-color:rgba(236,145,190,.34)}
+.mind-checkin .mind-card--grounding{background:radial-gradient(120% 90% at 10% 14%,hsla(79,50%,61%,.18),transparent 64%),linear-gradient(155deg,rgba(16,28,18,.95),rgba(10,19,13,.9));border-color:rgba(161,196,89,.28)}
+.mind-checkin .mind-card--scan{background:radial-gradient(120% 90% at 8% 10%,rgba(131,177,248,.18),transparent 62%),linear-gradient(155deg,rgba(12,21,28,.95),rgba(9,16,22,.9));border-color:rgba(117,168,248,.26)}
+.mind-checkin .mind-card:hover{transform:translateY(-4px);background:linear-gradient(155deg,rgba(16,29,24,.95),rgba(10,19,16,.86));border-color:rgba(201,169,98,.38);box-shadow:0 18px 42px rgba(0,0,0,.34),inset 0 0 0 1px rgba(201,169,98,.12)}
+.mind-checkin .mind-card:focus-visible{outline:none;border-color:rgba(201,169,98,.6);box-shadow:0 0 0 3px rgba(201,169,98,.2),0 16px 36px rgba(0,0,0,.32)}
+.mind-checkin .mind-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px}
+.mind-checkin .mind-card-icon{font-size:30px;line-height:1;background:none;width:auto;height:auto;border-radius:0}
+.mind-checkin .mind-card-cat{font-family:'Outfit',sans-serif;font-size:10.5px;font-weight:600;color:#5bb89a;background:rgba(76,175,138,.1);padding:4px 10px;border-radius:999px;border:1px solid rgba(91,184,154,.26);letter-spacing:.08em;text-transform:uppercase}
+.mind-checkin .mind-card-title{font-family:'Cormorant Garamond',serif;font-size:1.25rem;font-weight:700;color:#fff;margin:0 0 9px}
+.mind-checkin .mind-card-instr{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:300;color:hsla(0,0%,100%,.5);line-height:1.6;margin:0 0 18px;flex:1}
+.mind-checkin .mind-card-cta{font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;color:#e8ddb8;display:inline-flex;align-items:center;gap:7px;letter-spacing:.02em}
+.mind-checkin .mind-card-cta .mind-cta-arrow{transition:transform .25s ease}
+.mind-checkin .mind-card:hover .mind-card-cta .mind-cta-arrow{transform:translateX(3px)}
+/* Done state */
+.mind-checkin .mind-card.done{border-color:rgba(91,184,154,.5)}
+.mind-checkin .mind-card.done .mind-card-cat{display:none}
+.mind-checkin .mind-card.done .mind-card-cta{color:#8dd4b8}
+.mind-checkin .mind-card-done-badge{position:absolute;top:14px;right:14px;background:rgba(76,175,138,.16);color:#8dd4b8;border:1px solid rgba(91,184,154,.4);font-family:'Outfit',sans-serif;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;display:none;align-items:center;gap:4px;z-index:2}
+.mind-checkin .mind-card.done .mind-card-done-badge{display:inline-flex}
+.mind-checkin .mind-card.done .mind-card-cta-text{display:none}
+/* Inline exercise player — dark BTB theme */
+.mind-checkin .mind-player{position:relative;z-index:1;margin-top:18px;background:linear-gradient(155deg,rgba(16,28,22,.96),rgba(9,16,13,.94));border:1px solid var(--mc-accent,rgba(201,169,98,.4));border-radius:14px;padding:22px 18px;text-align:center;box-shadow:0 18px 40px rgba(0,0,0,.4)}
+.mind-checkin .mind-player-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.mind-checkin .mind-player-title{font-family:'Cormorant Garamond',serif;font-size:1.2rem;font-weight:700;color:#fff;margin:0;text-align:left}
+.mind-checkin .mind-player-close{background:rgba(255,255,255,.06);border:1px solid hsla(0,0%,100%,.14);color:#c5d0c8;border-radius:999px;min-height:34px;padding:6px 14px;font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .2s}
+.mind-checkin .mind-player-close:hover{background:rgba(255,255,255,.12)}
+/* Box breathing animation */
+.mind-checkin .mind-breath-stage{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:18px 0 8px;min-height:210px}
+.mind-checkin .mind-breath-box{width:120px;height:120px;border-radius:22px;background:var(--mc-soft,rgba(91,184,154,.14));border:2px solid var(--mc-accent,#5bb89a);display:flex;align-items:center;justify-content:center;transition:transform 4s ease-in-out;transform:scale(.72);box-shadow:0 0 44px var(--mc-soft,rgba(91,184,154,.25))}
+.mind-checkin .mind-breath-box.grow{transform:scale(1.12)}
+.mind-checkin .mind-breath-count{font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:600;color:#fff}
+.mind-checkin .mind-breath-phase{font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:#e8ddb8;margin-top:18px;letter-spacing:.14em;text-transform:uppercase}
+.mind-checkin .mind-breath-cycle{font-family:'Outfit',sans-serif;font-size:12px;color:hsla(0,0%,100%,.5);margin-top:6px}
+/* Stepped prompt (grounding / body scan) */
+.mind-checkin .mind-step-stage{padding:14px 0 6px;min-height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.mind-checkin .mind-step-emoji{font-size:40px;line-height:1;margin-bottom:10px}
+.mind-checkin .mind-step-prompt{font-family:'Cormorant Garamond',serif;font-size:1.4rem;font-weight:700;color:#fff;margin:0 0 6px;line-height:1.3}
+.mind-checkin .mind-step-sub{font-family:'Outfit',sans-serif;font-size:13px;color:hsla(0,0%,100%,.55);margin:0;line-height:1.5;max-width:360px}
+.mind-checkin .mind-step-dots{display:flex;gap:6px;justify-content:center;margin:16px 0 4px}
+.mind-checkin .mind-step-dot{width:8px;height:8px;border-radius:99px;background:hsla(0,0%,100%,.15)}
+.mind-checkin .mind-step-dot.active{background:var(--mc-accent,#5bb89a)}
+.mind-checkin .mind-player-next{margin-top:14px;background:var(--mc-accent,#5bb89a);color:#06120c;border:none;border-radius:10px;min-height:46px;width:100%;font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:700;letter-spacing:.04em;cursor:pointer;transition:filter .15s}
+.mind-checkin .mind-player-next:hover{filter:brightness(1.08)}
+.mind-checkin .mind-player-next:disabled{opacity:.5;cursor:default}
 .bb-nutrition-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);z-index:99999;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:600;max-width:90%;box-shadow:0 8px 32px rgba(0,0,0,.4)}
 .admin-nutrition-page .admin-nutrition-header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:16px}
 .admin-nutrition-page .admin-nutrition-header h3{margin:0;font-family:var(--bb-font-heading);font-size:1.25rem;color:var(--cream)}
@@ -5528,6 +5598,12 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       </div>
       <div id="checkin-daily" class="checkin-sub" style="display:none">
         <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
+        <div class="daily-segmented" role="tablist" aria-label="Daily check-in section">
+          <button type="button" class="daily-seg-btn active" id="dailySegBody" role="tab" aria-selected="true" onclick="switchDailyPane('body')"><span class="seg-emoji" aria-hidden="true">💪</span>Body</button>
+          <button type="button" class="daily-seg-btn" id="dailySegFood" role="tab" aria-selected="false" onclick="switchDailyPane('food')"><span class="seg-emoji" aria-hidden="true">🍽️</span>Food</button>
+          <button type="button" class="daily-seg-btn" id="dailySegMind" role="tab" aria-selected="false" onclick="switchDailyPane('mind')"><span class="seg-emoji" aria-hidden="true">🧠</span>Mind</button>
+        </div>
+        <div id="daily-pane-body" class="daily-pane">
         <div class="micro-goals-wrap">
           <h3>Daily check-in <span class="streak-badge" id="dailyStreakBadge">0 day streak</span></h3>
           <form id="dailyCheckinForm" onsubmit="submitDailyCheckinForm();return false">
@@ -5552,6 +5628,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <button type="submit" class="micro-goals-submit">Save today</button>
           </form>
         </div>
+        </div>
+        <div id="daily-pane-food" class="daily-pane" style="display:none">
         <section class="nutrition-checkin" id="nutritionCheckin" aria-label="Fitchef Nutrition check-in">
           <div class="nutri-section-header">
             <h3 class="nutri-section-title"><a href="https://www.fitchef.fit" target="_blank" rel="noopener" style="color:inherit;text-decoration:none">Fitchef Nutrition</a> <span class="nutri-badge-new">Fitchef</span></h3>
@@ -5605,6 +5683,55 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             </div>
           </div>
         </section>
+        </div>
+        <div id="daily-pane-mind" class="daily-pane" style="display:none">
+          <section class="mind-checkin" aria-label="Brain Tips mental-fitness check-in">
+            <span class="bt-orb bt-orb-1" aria-hidden="true"></span>
+            <span class="bt-orb bt-orb-2" aria-hidden="true"></span>
+            <a class="mind-brand" href="https://beyondthebody.fit" target="_blank" rel="noopener">
+              <img src="/img/BeyondthebodyNBG.png" alt="Beyond The Body" />
+              <span class="mind-brand-tag">Healing begins within</span>
+            </a>
+            <div class="mind-section-head">
+              <span class="mind-section-tag">Evidence-Based</span>
+              <h3 class="mind-section-title">Brain Tips</h3>
+              <p class="mind-section-sub">When you're overwhelmed, we've got you. 60-second techniques, expert-backed strategies.</p>
+            </div>
+            <div class="mind-grid">
+              <button type="button" class="mind-card mind-card--breathing" id="mindCard-box_breathing" aria-label="Tap to start Box Breathing" onclick="mindStartExercise('box_breathing')">
+                <span class="mind-card-done-badge" aria-hidden="true">✓ Done today</span>
+                <div class="mind-card-top">
+                  <span class="mind-card-icon" aria-hidden="true">🫁</span>
+                  <span class="mind-card-cat">Breathing</span>
+                </div>
+                <h4 class="mind-card-title">Box Breathing</h4>
+                <p class="mind-card-instr">Inhale 4s, hold 4s, exhale 4s.</p>
+                <span class="mind-card-cta"><span class="mind-card-cta-text">Tap to start</span><span class="mind-cta-arrow" aria-hidden="true">→</span></span>
+              </button>
+              <button type="button" class="mind-card mind-card--grounding" id="mindCard-grounding_54321" aria-label="Tap to start 5-4-3-2-1 Grounding" onclick="mindStartExercise('grounding_54321')">
+                <span class="mind-card-done-badge" aria-hidden="true">✓ Done today</span>
+                <div class="mind-card-top">
+                  <span class="mind-card-icon" aria-hidden="true">🌿</span>
+                  <span class="mind-card-cat">Grounding</span>
+                </div>
+                <h4 class="mind-card-title">5-4-3-2-1 Grounding</h4>
+                <p class="mind-card-instr">Name 5 things you see, 4 you touch, 3 you hear, 2 you smell, 1 you taste.</p>
+                <span class="mind-card-cta"><span class="mind-card-cta-text">Tap to start</span><span class="mind-cta-arrow" aria-hidden="true">→</span></span>
+              </button>
+              <button type="button" class="mind-card mind-card--scan" id="mindCard-body_scan" aria-label="Tap to start Body Scan" onclick="mindStartExercise('body_scan')">
+                <span class="mind-card-done-badge" aria-hidden="true">✓ Done today</span>
+                <div class="mind-card-top">
+                  <span class="mind-card-icon" aria-hidden="true">🔎</span>
+                  <span class="mind-card-cat">Mindfulness</span>
+                </div>
+                <h4 class="mind-card-title">Body Scan</h4>
+                <p class="mind-card-instr">Notice sensations from head to toe.</p>
+                <span class="mind-card-cta"><span class="mind-card-cta-text">Tap to start</span><span class="mind-cta-arrow" aria-hidden="true">→</span></span>
+              </button>
+            </div>
+            <div id="mindPlayerHost"></div>
+          </section>
+        </div>
       </div>
     </div>
 
@@ -16124,6 +16251,7 @@ function showCheckinSubView(view) {
   if (view === 'daily') {
     loadDailyCheckinForm();
     loadNutritionCheckinPanel();
+    if (typeof loadMindCheckinPanel === 'function') { try { loadMindCheckinPanel(); } catch (_) {} }
   }
   var wrap = document.getElementById('userTabContentWrap');
   if (wrap) wrap.scrollTop = 0;
@@ -17143,6 +17271,249 @@ async function submitDailyCheckinForm() {
     showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
     if (btn) { btn.disabled = false; btn.textContent = 'Save today'; }
   }
+}
+
+// ===== Daily check-in pane switcher (Body / Food / Mind) =====
+function switchDailyPane(which) {
+  var panes = { body: 'daily-pane-body', food: 'daily-pane-food', mind: 'daily-pane-mind' };
+  var segs = { body: 'dailySegBody', food: 'dailySegFood', mind: 'dailySegMind' };
+  Object.keys(panes).forEach(function(key) {
+    var pane = document.getElementById(panes[key]);
+    if (pane) pane.style.display = (key === which) ? '' : 'none';
+    var seg = document.getElementById(segs[key]);
+    if (seg) {
+      var active = key === which;
+      seg.classList.toggle('active', active);
+      seg.setAttribute('aria-selected', active ? 'true' : 'false');
+    }
+  });
+  var wrap = document.getElementById('userTabContentWrap');
+  if (wrap) wrap.scrollTop = 0;
+}
+
+// ===== Mind (mental-fitness) module =====
+var MIND_EXERCISE_KEYS = ['box_breathing', 'grounding_54321', 'body_scan'];
+var _mindBreathTimer = null;
+var _mindCompletedToday = [];
+
+function mindMarkCardDone(key) {
+  var card = document.getElementById('mindCard-' + key);
+  if (card) card.classList.add('done');
+}
+
+function mindApplyCompleted(list) {
+  _mindCompletedToday = Array.isArray(list) ? list.slice() : [];
+  MIND_EXERCISE_KEYS.forEach(function(key) {
+    var card = document.getElementById('mindCard-' + key);
+    if (card) card.classList.toggle('done', _mindCompletedToday.indexOf(key) !== -1);
+  });
+}
+
+// Called when the daily check-in view opens (alongside daily/nutrition loaders)
+async function loadMindCheckinPanel() {
+  if (!window.currentUser) return;
+  try {
+    var res = await apiCall('GET', '/api/mind-checkin/today');
+    if (res && res.error) return; // guard: never break the rest of the daily load
+    mindApplyCompleted(res && res.completed ? res.completed : []);
+  } catch (e) { /* swallow — mind panel is non-critical */ }
+}
+
+function mindClosePlayer() {
+  if (_mindBreathTimer) { clearTimeout(_mindBreathTimer); _mindBreathTimer = null; }
+  var host = document.getElementById('mindPlayerHost');
+  if (host) host.innerHTML = '';
+}
+
+async function mindCompleteExercise(key) {
+  // Optimistically mark done, then sync with server's authoritative completed list
+  mindMarkCardDone(key);
+  try {
+    var res = await apiCall('POST', '/api/mind-checkin', { exercise_key: key });
+    if (res && !res.error && res.completed) mindApplyCompleted(res.completed);
+  } catch (e) { /* keep optimistic done state */ }
+}
+
+var MIND_META = {
+  box_breathing: { title: 'Box Breathing', accent: '#ec91be', soft: 'rgba(236,145,190,.16)' },
+  grounding_54321: { title: '5-4-3-2-1 Grounding', accent: '#a1c459', soft: 'rgba(161,196,89,.16)' },
+  body_scan: { title: 'Body Scan', accent: '#83b1f8', soft: 'rgba(131,177,248,.16)' }
+};
+
+function mindStartExercise(key) {
+  var host = document.getElementById('mindPlayerHost');
+  if (!host) return;
+  mindClosePlayer();
+  if (key === 'box_breathing') mindRenderBreathing(host);
+  else if (key === 'grounding_54321') mindRenderGrounding(host);
+  else if (key === 'body_scan') mindRenderBodyScan(host);
+  // Scroll player into view
+  setTimeout(function() {
+    var p = host.querySelector('.mind-player');
+    if (p && typeof p.scrollIntoView === 'function') p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }, 50);
+}
+
+// --- Box Breathing: animated 4-4-4-4 cycles ---
+function mindRenderBreathing(host) {
+  var meta = MIND_META.box_breathing;
+  host.innerHTML =
+    '<div class="mind-player" style="--mc-accent:' + meta.accent + ';--mc-soft:' + meta.soft + '">' +
+      '<div class="mind-player-head">' +
+        '<h4 class="mind-player-title">🫁 Box Breathing</h4>' +
+        '<button type="button" class="mind-player-close" onclick="mindClosePlayer()">Close</button>' +
+      '</div>' +
+      '<div class="mind-breath-stage">' +
+        '<div class="mind-breath-box" id="mindBreathBox"><span class="mind-breath-count" id="mindBreathCount">4</span></div>' +
+        '<div class="mind-breath-phase" id="mindBreathPhase">Get ready</div>' +
+        '<div class="mind-breath-cycle" id="mindBreathCycle">Cycle 1 of 3</div>' +
+      '</div>' +
+    '</div>';
+
+  var TOTAL_CYCLES = 3;
+  var phases = [
+    { label: 'Inhale', grow: true },
+    { label: 'Hold', grow: null },
+    { label: 'Exhale', grow: false },
+    { label: 'Hold', grow: null }
+  ];
+  var cycle = 0, pi = 0;
+
+  function runPhase() {
+    var boxEl = document.getElementById('mindBreathBox');
+    var countEl = document.getElementById('mindBreathCount');
+    var phaseEl = document.getElementById('mindBreathPhase');
+    var cycleEl = document.getElementById('mindBreathCycle');
+    if (!boxEl || !countEl || !phaseEl) return; // player closed
+    var ph = phases[pi];
+    phaseEl.textContent = ph.label;
+    if (cycleEl) cycleEl.textContent = 'Cycle ' + (cycle + 1) + ' of ' + TOTAL_CYCLES;
+    if (ph.grow === true) boxEl.classList.add('grow');
+    else if (ph.grow === false) boxEl.classList.remove('grow');
+    var remaining = 4;
+    countEl.textContent = remaining;
+    var tick = function() {
+      remaining -= 1;
+      if (!document.getElementById('mindBreathCount')) return; // closed mid-phase
+      if (remaining > 0) {
+        countEl.textContent = remaining;
+        _mindBreathTimer = setTimeout(tick, 1000);
+      } else {
+        // advance
+        pi += 1;
+        if (pi >= phases.length) { pi = 0; cycle += 1; }
+        if (cycle >= TOTAL_CYCLES) { mindBreathFinish(); return; }
+        _mindBreathTimer = setTimeout(runPhase, 1000);
+      }
+    };
+    _mindBreathTimer = setTimeout(tick, 1000);
+  }
+
+  function mindBreathFinish() {
+    var stage = host.querySelector('.mind-breath-stage');
+    if (stage) {
+      stage.innerHTML =
+        '<div class="mind-step-emoji">🫁</div>' +
+        '<p class="mind-step-prompt">Nice work — you completed 3 cycles.</p>' +
+        '<p class="mind-step-sub">Notice how your body feels now.</p>';
+    }
+    var head = host.querySelector('.mind-player');
+    if (head) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'mind-player-next';
+      btn.textContent = 'Done ✓';
+      btn.onclick = function() { mindCompleteExercise('box_breathing'); mindClosePlayer(); };
+      head.appendChild(btn);
+    }
+  }
+
+  // Brief lead-in then start
+  _mindBreathTimer = setTimeout(runPhase, 900);
+}
+
+// --- Generic stepped prompt player (grounding + body scan) ---
+function mindRenderStepped(host, opts) {
+  var meta = MIND_META[opts.key];
+  var steps = opts.steps;
+  var idx = 0;
+  host.innerHTML =
+    '<div class="mind-player" style="--mc-accent:' + meta.accent + ';--mc-soft:' + meta.soft + '">' +
+      '<div class="mind-player-head">' +
+        '<h4 class="mind-player-title">' + opts.headerEmoji + ' ' + meta.title + '</h4>' +
+        '<button type="button" class="mind-player-close" onclick="mindClosePlayer()">Close</button>' +
+      '</div>' +
+      '<div class="mind-step-stage">' +
+        '<div class="mind-step-emoji" id="mindStepEmoji"></div>' +
+        '<p class="mind-step-prompt" id="mindStepPrompt"></p>' +
+        '<p class="mind-step-sub" id="mindStepSub"></p>' +
+      '</div>' +
+      '<div class="mind-step-dots" id="mindStepDots"></div>' +
+      '<button type="button" class="mind-player-next" id="mindStepNext"></button>' +
+    '</div>';
+
+  var nextBtn = document.getElementById('mindStepNext');
+
+  function render() {
+    var s = steps[idx];
+    var emojiEl = document.getElementById('mindStepEmoji');
+    var promptEl = document.getElementById('mindStepPrompt');
+    var subEl = document.getElementById('mindStepSub');
+    var dotsEl = document.getElementById('mindStepDots');
+    if (!promptEl) return;
+    if (emojiEl) emojiEl.textContent = s.emoji || '';
+    promptEl.textContent = s.prompt || '';
+    if (subEl) subEl.textContent = s.sub || '';
+    if (dotsEl) {
+      dotsEl.innerHTML = '';
+      for (var i = 0; i < steps.length; i++) {
+        var dot = document.createElement('span');
+        dot.className = 'mind-step-dot' + (i === idx ? ' active' : '');
+        dotsEl.appendChild(dot);
+      }
+    }
+    if (nextBtn) nextBtn.textContent = (idx >= steps.length - 1) ? 'Finish ✓' : 'Next →';
+  }
+
+  nextBtn.onclick = function() {
+    if (idx >= steps.length - 1) {
+      mindCompleteExercise(opts.key);
+      mindClosePlayer();
+      return;
+    }
+    idx += 1;
+    render();
+  };
+  render();
+}
+
+function mindRenderGrounding(host) {
+  mindRenderStepped(host, {
+    key: 'grounding_54321',
+    headerEmoji: '🌿',
+    steps: [
+      { emoji: '👀', prompt: 'Name 5 things you can SEE', sub: 'Look around and quietly name five things in view.' },
+      { emoji: '✋', prompt: 'Name 4 things you can TOUCH', sub: 'Notice four textures or surfaces near you.' },
+      { emoji: '👂', prompt: 'Name 3 things you can HEAR', sub: 'Listen for three distinct sounds.' },
+      { emoji: '👃', prompt: 'Name 2 things you can SMELL', sub: 'Find two scents — or two you like.' },
+      { emoji: '👅', prompt: 'Name 1 thing you can TASTE', sub: 'Notice one taste in your mouth right now.' }
+    ]
+  });
+}
+
+function mindRenderBodyScan(host) {
+  mindRenderStepped(host, {
+    key: 'body_scan',
+    headerEmoji: '🔎',
+    steps: [
+      { emoji: '🧠', prompt: 'Your head', sub: 'Soften your forehead, jaw, and the space behind your eyes.' },
+      { emoji: '🙆', prompt: 'Your shoulders', sub: 'Let them drop away from your ears. Release the tension.' },
+      { emoji: '🫁', prompt: 'Your chest', sub: 'Feel your breath rise and fall, slow and easy.' },
+      { emoji: '🤰', prompt: 'Your belly', sub: 'Let it be soft. Breathe into it gently.' },
+      { emoji: '🦵', prompt: 'Your legs', sub: 'Notice any heaviness or tingling. Let them relax.' },
+      { emoji: '🦶', prompt: 'Your feet', sub: 'Feel them grounded and supported. You are here.' }
+    ]
+  });
 }
 
 // ----- Nutrition AI (daily check-in + admin report) -----

@@ -717,6 +717,16 @@ async function initDB() {
   )`);
   try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_user_date ON daily_checkins(user_id, checkin_date)`); } catch (e) { /* ignore */ }
 
+  // Mind check-ins (mental-fitness exercises: box_breathing, grounding_54321, body_scan)
+  await pool.query(`CREATE TABLE IF NOT EXISTS mind_checkins (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    exercise_key TEXT NOT NULL,
+    checkin_date DATE NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_mind_checkins_user_ex_date ON mind_checkins(user_id, exercise_key, checkin_date)`); } catch (e) { /* ignore */ }
+
   await pool.query(`CREATE TABLE IF NOT EXISTS coin_wallet (
     user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
     balance INTEGER NOT NULL DEFAULT 0,
@@ -3055,6 +3065,53 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: 'Failed to load streak' });
+  }
+});
+
+// ============ MIND CHECK-IN (mental-fitness exercises) ============
+const MIND_EXERCISE_KEYS = ['box_breathing', 'grounding_54321', 'body_scan'];
+
+app.post('/api/mind-checkin', verifyToken, rateLimiter(30, 60000), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const exercise_key = (req.body || {}).exercise_key;
+    if (!MIND_EXERCISE_KEYS.includes(exercise_key)) {
+      return res.status(400).json({ error: 'Invalid exercise' });
+    }
+    const _userTzRow = await queryOne('SELECT timezone FROM users WHERE id = ?', [userId]).catch(() => null);
+    const _userTz = (_userTzRow && _userTzRow.timezone) ? _userTzRow.timezone : STREAK_TIMEZONE;
+    const today = streakTodayYmdInTz(_userTz) || streakDateToYmd(new Date());
+    await run(
+      `INSERT INTO mind_checkins (id, user_id, exercise_key, checkin_date)
+       VALUES (?, ?, ?, ?::date)
+       ON CONFLICT (user_id, exercise_key, checkin_date) DO NOTHING`,
+      [uuidv4(), userId, exercise_key, today]
+    );
+    await safeAwardCoins(
+      userId,
+      'mind_checkin',
+      `coins:mind_checkin:${userId}:${today}`,
+      coinService.COIN_RULES.MIND_CHECKIN,
+      { exerciseKey: exercise_key },
+      today
+    );
+    const rows = await queryAll('SELECT exercise_key FROM mind_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
+    res.json({ completed: (rows || []).map(r => r.exercise_key) });
+  } catch (e) {
+    console.error('Mind check-in error:', e.message);
+    res.status(500).json({ error: 'Failed to save mind check-in' });
+  }
+});
+
+app.get('/api/mind-checkin/today', verifyToken, async (req, res) => {
+  try {
+    const _utzRow = await queryOne('SELECT timezone FROM users WHERE id = ?', [req.user.id]).catch(() => null);
+    const _utz = (_utzRow && _utzRow.timezone) ? _utzRow.timezone : STREAK_TIMEZONE;
+    const today = streakTodayYmdInTz(_utz) || streakDateToYmd(new Date());
+    const rows = await queryAll('SELECT exercise_key FROM mind_checkins WHERE user_id = ? AND checkin_date = ?::date', [req.user.id, today]);
+    res.json({ completed: (rows || []).map(r => r.exercise_key) });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load mind check-in' });
   }
 });
 
