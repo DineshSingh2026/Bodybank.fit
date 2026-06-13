@@ -37,7 +37,7 @@ Before every mobile release:
 
 ## Pending sync — next mobile release
 
-_(empty — synced 2026-06-11; see History below)_
+_(empty — synced 2026-06-13; see History below)_
 
 | Date | Web commit | Change | Notes |
 | ---- | ---------- | ------ | ----- |
@@ -45,6 +45,14 @@ _(empty — synced 2026-06-11; see History below)_
 ---
 
 ## History — synced
+
+### 2026-06-13 — synced to mobile repo (Brain Tips mental-fitness release v1.3.3)
+
+Ran `npm run sync` in `../bodybank-app/` (build:www + cap sync android); bumped Android `versionName 1.3.2→1.3.3` (versionCode is CI-derived: `PROJECT_BUILD_NUMBER + 100`). Codemagic `android-closed-testing` auto-builds the signed AAB and publishes to the Play **internal** closed-testing track on push to the mobile repo's `main`.
+
+| Web commit | Change | Notes |
+| ---------- | ------ | ----- |
+| _(this commit)_ | feat(mind): Daily Check-in "Brain Tips" mental-fitness module (exact Beyond The Body replica) + branding | `public/index.html`: Body·Food·Mind segmented selector + dark BTB Brain Tips section (Box Breathing / 5-4-3-2-1 Grounding / Body Scan with guided players), Beyond The Body branding lockup + optimized logos in `public/img/`. `public/sw.js` cache `v52`→`v53`. Backend (`server.js` + `services/coinService.js`: `mind_checkins` table, `POST/GET /api/mind-checkin`, `MIND_CHECKIN` coins) deploys via Render — no app dependency. |
 
 ### 2026-06-11 — synced to mobile repo (Android nav fix release v1.3.1)
 
