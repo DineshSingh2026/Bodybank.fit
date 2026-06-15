@@ -37,7 +37,17 @@ Before every mobile release:
 
 ## Pending sync — next mobile release
 
-_(empty — synced 2026-06-13; see History below)_
+_(empty — synced 2026-06-15; see History below)_
+
+---
+
+## 2026-06-15 — synced to mobile repo (v1.3.4, versionCode 13)
+
+Ran `npm run build:release` in `../bodybank-app/` (build:www + cap sync android + signed `bundleRelease`); bumped Android `versionCode 12→13`, `versionName 1.3.3→1.3.4`. Mobile commit `aafa40d`. Signed AAB at `android/app/build/outputs/bundle/release/app-release.aab` — **pending upload to Play Console closed-testing track.**
+
+| Web commit | Change | Notes |
+| ---------- | ------ | ----- |
+| `cf751c0` | feat(nutrition): premium BodyBank × Fitchef redesign of Daily Check-in Food pane | `public/index.html` (co-branded hero w/ logo lockup + green/gold glow + live CoPowered chip + meals/streak stats; glass meal cards w/ per-meal icons + animated status bar + modern upload CTAs; inline meal thumbnails + macro pills + score). `public/sw.js` cache `v53→v54`. Frontend-only — no backend change. |
 
 | Date | Web commit | Change | Notes |
 | ---- | ---------- | ------ | ----- |
