@@ -6,3 +6,13 @@ data/*.txt
 .env
 *.log
 .vscode/
+
+# Claude Code — local/machine-specific only.
+# Shared policy IS committed: CLAUDE.md, .claude/CLAUDE.md, .claude/settings.json
+.claude/worktrees/
+.claude/settings.local.json
+.claude/*.png
+
+# Marketing docs (binary, not versioned in the code repo)
+*.doc
+BodyBank_OnePager_files/

@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "deny": [
+      "TodoWrite"
+    ],
+    "allow": [
+      "Bash(git stash *)",
+      "Bash(curl -s -m 8 -X POST http://127.0.0.1:3088/api/auth/login -H \"Content-Type: application/json\" -d '{\"email\":\"superadmin@gmail.com\",\"password\":\"Bodybank@2026\"}' -w \"\\\\n[HTTP %{http_code} | %{time_total}s]\\\\n\" -o /dev/null)",
+      "Bash(git -C \".claude/worktrees/agent-a1baa3d5dcace3d67\" diff)",
+      "Bash(git apply *)"
+    ]
+  }
+}
