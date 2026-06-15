@@ -41,9 +41,9 @@ _(empty — synced 2026-06-15; see History below)_
 
 ---
 
-## 2026-06-15 — synced to mobile repo (v1.3.4, versionCode 13)
+## 2026-06-15 — synced to mobile repo (v1.3.4, versionCode 14)
 
-Ran `npm run build:release` in `../bodybank-app/` (build:www + cap sync android + signed `bundleRelease`); bumped Android `versionCode 12→13`, `versionName 1.3.3→1.3.4`. Mobile commit `aafa40d`. Signed AAB at `android/app/build/outputs/bundle/release/app-release.aab` — **pending upload to Play Console closed-testing track.**
+Ran `npm run build:release` in `../bodybank-app/` (build:www + cap sync android + signed `bundleRelease`); bumped Android `versionName 1.3.3→1.3.4`. **versionCode 12→13 was rejected by Play ("13 already used", likely a prior CI build) → bumped to 14** (mobile commit `f90dfc5`). Signed AAB at `android/app/build/outputs/bundle/release/app-release.aab` — **pending upload to Play Console closed-testing track.**
 
 | Web commit | Change | Notes |
 | ---------- | ------ | ----- |
