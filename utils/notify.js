@@ -6,6 +6,7 @@ const PRIORITY = { CRITICAL: 'CRITICAL', IMPORTANT: 'IMPORTANT', INFO: 'INFO' };
 const EVENT_META = {
   USER_SIGNUP: { priority: PRIORITY.IMPORTANT, dedup: 0 },
   USER_SIGNUP_GOOGLE: { priority: PRIORITY.IMPORTANT, dedup: 0 },
+  TRIAL_STARTED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
   USER_LOGIN: { priority: PRIORITY.INFO, dedup: 10 * 60 * 1000 },
   PASSWORD_RESET_REQUEST: { priority: PRIORITY.IMPORTANT, dedup: 5 * 60 * 1000 },
   PASSWORD_RESET_DONE: { priority: PRIORITY.IMPORTANT, dedup: 0 },
@@ -127,6 +128,7 @@ function chunkMessage(message, maxChars = 1500) {
 const FORMATTERS = {
   USER_SIGNUP: (p) => ['🆕 New Signup', ...userLines(p), `🌍 ${s(p.country)}`, `⏰ ${ts()}`],
   USER_SIGNUP_GOOGLE: (p) => ['🆕 New Signup (Google)', ...userLines(p), `⏰ ${ts()}`],
+  TRIAL_STARTED: (p) => ['🎁 Trial Started — New Signup', ...userLines(p), `⏳ ${s(p.trial_days)}-day free trial`, `📲 Via: ${s(p.via)}`, `🌍 ${s(p.country)}`, `📞 Call to convert`, `⏰ ${ts()}`],
   USER_LOGIN: (p) => ['🔐 User Login', ...userLines(p), `⏰ ${ts()}`],
   PASSWORD_RESET_REQUEST: (p) => ['🔑 Password Reset Requested', `📧 ${s(p.email)}`, `⏰ ${ts()}`],
   PASSWORD_RESET_DONE: (p) => ['✅ Password Reset Complete', `📧 ${s(p.email)}`, `⏰ ${ts()}`],

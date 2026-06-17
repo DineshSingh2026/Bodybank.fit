@@ -209,6 +209,14 @@ async function sendPushToAdmins(payload) {
 // The coach calls the client and collects payment offline, then "Activates" them in the
 // admin panel which sets a paid term. New sign-ups get instant access for TRIAL_DAYS days.
 const TRIAL_DAYS = (parseInt(process.env.TRIAL_DAYS, 10) > 0) ? parseInt(process.env.TRIAL_DAYS, 10) : 7;
+// Native app sign-ups can get a different trial length than the website (e.g. a longer
+// trial during closed testing so testers aren't auto-locked). The client sends
+// `client:'app'` in the sign-up body; web omits it / sends 'web'. Falls back to TRIAL_DAYS.
+const TRIAL_DAYS_APP = (parseInt(process.env.TRIAL_DAYS_APP, 10) > 0) ? parseInt(process.env.TRIAL_DAYS_APP, 10) : TRIAL_DAYS;
+function trialDaysForReq(req) {
+  const c = String((req && req.body && req.body.client) || '').toLowerCase();
+  return c === 'app' ? TRIAL_DAYS_APP : TRIAL_DAYS;
+}
 
 // An ISO timestamp `days` from now (days may be fractional). Pass as a parameter so it
 // works on both Postgres (TIMESTAMP) and the legacy SQLite store (ISO text compares fine).
@@ -1575,14 +1583,15 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
     const hash = bcrypt.hashSync(password, 10);
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, state_province, city, dob, gender, height_cm, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
       [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'approved']);
-    await startTrialForUser(id, TRIAL_DAYS).catch(() => {});
-    sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) started a ${TRIAL_DAYS}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
+    const trialDays = trialDaysForReq(req);
+    await startTrialForUser(id, trialDays).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, given_name); } catch (_) {}
-    notifyAsync('USER_SIGNUP_GOOGLE', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—' });
+    notifyAsync('TRIAL_STARTED', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Google' });
     res.json({
       id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', role: 'user',
-      country: geo.country, timezone: geo.timezone, trial: true, trial_days: TRIAL_DAYS,
-      message: `Your account is ready — enjoy ${TRIAL_DAYS} days of full access.`
+      country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays,
+      message: `Your account is ready — enjoy ${trialDays} days of full access.`
     });
   } catch (e) {
     console.error('Google complete error:', e);
@@ -1678,14 +1687,15 @@ app.post('/api/auth/apple-complete', rateLimiter(5, 60000), async (req, res) => 
     const hash = bcrypt.hashSync(password, 10);
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, apple_id, country, timezone, state_province, city, dob, gender, height_cm, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
       [id, emailNorm, hash, givenName, familyName, phoneTrimmed, appleSub, geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'approved']);
-    await startTrialForUser(id, TRIAL_DAYS).catch(() => {});
-    sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Apple)', body: `${givenName} ${familyName} (${emailNorm}) started a ${TRIAL_DAYS}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
+    const trialDays = trialDaysForReq(req);
+    await startTrialForUser(id, trialDays).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Apple)', body: `${givenName} ${familyName} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, givenName); } catch (_) {}
-    notifyAsync('USER_SIGNUP', { name: `${givenName} ${familyName}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—' });
+    notifyAsync('TRIAL_STARTED', { name: `${givenName} ${familyName}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Apple' });
     res.json({
       id, email: emailNorm, first_name: givenName, last_name: familyName, role: 'user',
-      country: geo.country, timezone: geo.timezone, trial: true, trial_days: TRIAL_DAYS,
-      message: `Your account is ready — enjoy ${TRIAL_DAYS} days of full access.`
+      country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays,
+      message: `Your account is ready — enjoy ${trialDays} days of full access.`
     });
   } catch (e) {
     console.error('Apple complete error:', e);
@@ -1714,9 +1724,11 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
       const hash = bcrypt.hashSync(password, 10);
       await run("UPDATE users SET password=?, first_name=?, last_name=?, phone=?, country=?, timezone=?, state_province=?, city=?, dob=?, gender=?, height_cm=?, approval_status='approved' WHERE id=?",
         [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, existing.id]);
-      await startTrialForUser(existing.id, TRIAL_DAYS).catch(() => {});
+      const trialDaysR = trialDaysForReq(req);
+      await startTrialForUser(existing.id, trialDaysR).catch(() => {});
       try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
-      return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: TRIAL_DAYS });
+      notifyAsync('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDaysR, via: 'Email' });
+      return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDaysR });
     }
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
@@ -1725,11 +1737,12 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, state_province, city, dob, gender, height_cm, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
       [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'approved']);
     // Instant access: start a free trial right away (no manual approval gate).
-    await startTrialForUser(id, TRIAL_DAYS).catch(() => {});
-    sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) started a ${TRIAL_DAYS}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
+    const trialDays = trialDaysForReq(req);
+    await startTrialForUser(id, trialDays).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
-    notifyAsync('USER_SIGNUP', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—' });
-    res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: TRIAL_DAYS });
+    notifyAsync('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDays, via: 'Email' });
+    res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
   }
