@@ -41,14 +41,18 @@ _(empty — synced 2026-06-17; see History below)_
 
 ---
 
-## 2026-06-17 — synced to mobile repo (membership/trial onboarding, v1.3.5, versionCode 15)
+## 2026-06-17 — synced to mobile repo (membership/trial onboarding, v1.3.5, versionCode 16)
 
 Ran `node scripts/build-www.js` in `../bodybank-app/` (mirror `public/` → `www/`); bumped Android
-`versionCode 14→15`, `versionName 1.3.4→1.3.5`. **Committed + pushed on branch
-`feat/membership-trial-onboarding` in BOTH repos. Signed AAB built (versionCode 15, ~46 MB) at
+`versionCode 14→16`, `versionName 1.3.4→1.3.5`. **Committed + pushed on branch
+`feat/membership-trial-onboarding` in BOTH repos. Signed AAB built (versionCode 16, ~46 MB) at
 `android/app/build/outputs/bundle/release/app-release.aab` — ready to upload to Play closed testing.**
-Remaining manual steps: set `TRIAL_DAYS=30` on Render, merge web PR (→ Render deploy), upload AAB
-(or merge mobile PR → Codemagic). Create PRs via the GitHub compare links (gh CLI not installed).
+Remaining manual steps: set `TRIAL_DAYS=7` and `TRIAL_DAYS_APP=30` on Render (web = 7-day trial,
+app = 30-day trial for closed testing), merge web PR (→ Render deploy), upload AAB (or merge mobile
+PR → Codemagic). Create PRs via the GitHub compare links (gh CLI not installed).
+
+> Per-client trial length: sign-up requests now send `client:'app'|'web'`; the server picks
+> `TRIAL_DAYS_APP` for the app and `TRIAL_DAYS` for the web. vc15→16 because the bundle changed.
 
 Backend (gate + admin endpoints + nightly cron in `server.js`) deploys via Render and reaches web + app
 with no rebuild — only the **frontend** bundle (`public/index.html`) needed the www sync.

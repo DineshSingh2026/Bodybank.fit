@@ -10593,7 +10593,7 @@ async function handleSignup() {
   var sBtn = modal ? modal.querySelector('.form-submit') : null;
   if(sBtn){sBtn.disabled=true;sBtn.classList.add('loading');sBtn._orig=sBtn.innerHTML;sBtn.innerHTML='<span class="btn-spinner"></span> Creating account...';}
   try {
-    const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone, dob, gender, country, timezone, state_province, city, height_cm });
+    const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone, dob, gender, country, timezone, state_province, city, height_cm, client: window.IS_BODYBANK_APP ? 'app' : 'web' });
     if (data.error) {
       window.__bbSignupBloodQueued = null;
       if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
@@ -10643,7 +10643,7 @@ async function handleGoogleCompleteSubmit() {
   var sBtn = modal ? modal.querySelector('.form-submit') : null;
   if (sBtn) { sBtn.disabled = true; sBtn.classList.add('loading'); sBtn._orig = sBtn.innerHTML; sBtn.innerHTML = '<span class="btn-spinner"></span> Creating account...'; }
   try {
-    var data = await apiCall('POST', '/api/auth/google-complete', { id_token: _pendingGoogleToken, phone, password, dob, gender, country, timezone, state_province, city, height_cm });
+    var data = await apiCall('POST', '/api/auth/google-complete', { id_token: _pendingGoogleToken, phone, password, dob, gender, country, timezone, state_province, city, height_cm, client: window.IS_BODYBANK_APP ? 'app' : 'web' });
     if (data.error) { if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; } showPopup('Error', data.error, '', 'OK', null, 'error'); return; }
     _pendingGoogleToken = null;
     closeModal('googleCompleteModal');
@@ -22510,7 +22510,7 @@ async function handleAppleCompleteSubmit() {
   try {
     var existingName = (_pendingAppleAuth.user && _pendingAppleAuth.user.name) || {};
     var userPayload = { name: { firstName: existingName.firstName || first, lastName: existingName.lastName || last }, email: (_pendingAppleAuth.user && _pendingAppleAuth.user.email) || '' };
-    var data = await apiCall('POST', '/api/auth/apple-complete', { id_token: _pendingAppleAuth.id_token, user: userPayload, phone: phone, password: password, dob: dob, gender: gender, country: country, timezone: timezone, state_province: state_province, city: city, height_cm: height_cm });
+    var data = await apiCall('POST', '/api/auth/apple-complete', { id_token: _pendingAppleAuth.id_token, user: userPayload, phone: phone, password: password, dob: dob, gender: gender, country: country, timezone: timezone, state_province: state_province, city: city, height_cm: height_cm, client: window.IS_BODYBANK_APP ? 'app' : 'web' });
     if (data.error) { if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; } showPopup('Error', data.error, '', 'OK', null, 'error'); return; }
     _pendingAppleAuth = null; _pendingProvider = null;
     closeModal('googleCompleteModal');
