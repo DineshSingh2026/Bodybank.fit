@@ -1587,7 +1587,7 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
     await startTrialForUser(id, trialDays).catch(() => {});
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, given_name); } catch (_) {}
-    notifyAsync('USER_SIGNUP_GOOGLE', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—' });
+    notifyAsync('TRIAL_STARTED', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Google' });
     res.json({
       id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', role: 'user',
       country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays,
@@ -1691,7 +1691,7 @@ app.post('/api/auth/apple-complete', rateLimiter(5, 60000), async (req, res) => 
     await startTrialForUser(id, trialDays).catch(() => {});
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Apple)', body: `${givenName} ${familyName} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, givenName); } catch (_) {}
-    notifyAsync('USER_SIGNUP', { name: `${givenName} ${familyName}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—' });
+    notifyAsync('TRIAL_STARTED', { name: `${givenName} ${familyName}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Apple' });
     res.json({
       id, email: emailNorm, first_name: givenName, last_name: familyName, role: 'user',
       country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays,
@@ -1727,6 +1727,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
       const trialDaysR = trialDaysForReq(req);
       await startTrialForUser(existing.id, trialDaysR).catch(() => {});
       try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
+      notifyAsync('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDaysR, via: 'Email' });
       return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDaysR });
     }
     if (existing) return res.status(409).json({ error: 'Email already registered' });
@@ -1740,7 +1741,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     await startTrialForUser(id, trialDays).catch(() => {});
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
-    notifyAsync('USER_SIGNUP', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—' });
+    notifyAsync('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDays, via: 'Email' });
     res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
