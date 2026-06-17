@@ -37,7 +37,29 @@ Before every mobile release:
 
 ## Pending sync — next mobile release
 
-_(empty — synced 2026-06-15; see History below)_
+_(empty — synced 2026-06-17; see History below)_
+
+---
+
+## 2026-06-17 — synced to mobile repo (membership/trial onboarding, v1.3.5, versionCode 15)
+
+Ran `node scripts/build-www.js` in `../bodybank-app/` (mirror `public/` → `www/`); bumped Android
+`versionCode 14→15`, `versionName 1.3.4→1.3.5`. **Committed + pushed on branch
+`feat/membership-trial-onboarding` in BOTH repos. Signed AAB built (versionCode 15, ~46 MB) at
+`android/app/build/outputs/bundle/release/app-release.aab` — ready to upload to Play closed testing.**
+Remaining manual steps: set `TRIAL_DAYS=30` on Render, merge web PR (→ Render deploy), upload AAB
+(or merge mobile PR → Codemagic). Create PRs via the GitHub compare links (gh CLI not installed).
+
+Backend (gate + admin endpoints + nightly cron in `server.js`) deploys via Render and reaches web + app
+with no rebuild — only the **frontend** bundle (`public/index.html`) needed the www sync.
+
+| Web change | What it is | Notes |
+| ---------- | ---------- | ----- |
+| _(this commit)_ | feat(membership): instant trial onboarding + manual-billing access control | `public/index.html`: new **Memberships** admin tab (Quick Access 💳) — trial/active/expiring/expired stats, call queue, one-click Activate (1/3/12mo/Lifetime), Trial +7d, WhatsApp, Lock. Sign-up success now shows "You're in! 🎉 7-day full access" instead of "pending approval". |
+| _(this commit)_ | feat(membership) backend | `server.js`: `subscription_status`/`access_expires_at`/`plan_label`/`activated_*`/`trial_reminder_sent` columns; login access gate on email+Google+Apple; instant trial on all 3 sign-up paths; `/api/admin/memberships`, `/activate`, `/trial`, `/membership-lock`, `/memberships/run-lifecycle`; nightly lifecycle cron (00:30 IST). **Deploys via Render — no app dependency.** Existing users defaulted to `active`/no-expiry so nobody is locked out. |
+
+**Closed-testing note:** set `TRIAL_DAYS` env on Render to a long value (e.g. 30–60) during testing so
+testers are not auto-locked after 7 days; lower it to 7 for production pricing.
 
 ---
 

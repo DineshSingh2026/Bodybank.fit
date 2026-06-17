@@ -205,6 +205,60 @@ async function sendPushToAdmins(payload) {
   } catch (e) { /* ignore */ }
 }
 
+// ============ MEMBERSHIP / TRIAL ACCESS (manual billing — no payment gateway) ============
+// The coach calls the client and collects payment offline, then "Activates" them in the
+// admin panel which sets a paid term. New sign-ups get instant access for TRIAL_DAYS days.
+const TRIAL_DAYS = (parseInt(process.env.TRIAL_DAYS, 10) > 0) ? parseInt(process.env.TRIAL_DAYS, 10) : 7;
+
+// An ISO timestamp `days` from now (days may be fractional). Pass as a parameter so it
+// works on both Postgres (TIMESTAMP) and the legacy SQLite store (ISO text compares fine).
+function isoFromNow(days) {
+  return new Date(Date.now() + Math.round((Number(days) || 0) * 86400000)).toISOString();
+}
+
+// Calendar-accurate ISO timestamp `months` from now (so "1 Month" lands on the same day next month).
+function isoMonthsFromNow(months) {
+  const d = new Date();
+  d.setMonth(d.getMonth() + (Number(months) || 0));
+  return d.toISOString();
+}
+
+// Whole days left until `expiresAt` (negative if already expired, null if no expiry).
+function daysLeftUntil(expiresAt) {
+  if (!expiresAt) return null;
+  const exp = new Date(expiresAt).getTime();
+  if (!Number.isFinite(exp)) return null;
+  return Math.ceil((exp - Date.now()) / 86400000);
+}
+
+// Returns { code, message } if a client is locked out, else null.
+// Admins/superadmins are never gated. NULL expiry == lifetime/unlimited access.
+function subscriptionGate(user) {
+  if (!user || user.role !== 'user') return null;
+  const sub = String(user.subscription_status || 'active').toLowerCase();
+  if (sub === 'canceled') {
+    return { code: 'subscription_inactive', message: 'Your membership is paused. Message your coach on WhatsApp to reactivate your access.' };
+  }
+  const expRaw = user.access_expires_at;
+  if (expRaw) {
+    const exp = new Date(expRaw).getTime();
+    if (Number.isFinite(exp) && exp < Date.now()) {
+      return { code: 'subscription_expired', message: 'Your access has ended. Message your coach on WhatsApp to renew and unlock your plan again.' };
+    }
+  }
+  return null;
+}
+
+// Start (or restart) a free trial — instant full access for N days.
+async function startTrialForUser(userId, days) {
+  const d = (Number(days) > 0) ? Number(days) : TRIAL_DAYS;
+  await run(
+    "UPDATE users SET approval_status='approved', subscription_status='trialing', plan_label='Trial', access_expires_at=?, activated_at=NULL, activated_by='', trial_reminder_sent='', suspended=FALSE WHERE id=?",
+    [isoFromNow(d), userId]
+  );
+  return d;
+}
+
 const app = express();
 
 // Trust proxy (Render, Nginx, etc.) so req.protocol and req.get('host') are correct for share links
@@ -451,6 +505,16 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_trainer_trial_used INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS nutrition_ai_last_used_at TIMESTAMP`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS ai_trainer_last_used_at TIMESTAMP`); } catch (e) { /* ignore */ }
+  // ── Membership / trial access (manual billing — coach collects payment offline, then activates) ──
+  // Existing users default to 'active' with NULL expiry, so this rollout never locks anyone out.
+  // New sign-ups start as 'trialing' with a 7-day access_expires_at (set at sign-up time).
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS subscription_status TEXT DEFAULT 'active'`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS access_expires_at TIMESTAMP`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_label TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS activated_at TIMESTAMP`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS activated_by TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_reminder_sent TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  await pool.query("UPDATE users SET subscription_status = 'active' WHERE subscription_status IS NULL").catch(() => {});
   await pool.query("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL").catch(() => {});
 
   await pool.query(`CREATE TABLE IF NOT EXISTS audit_requests (
@@ -1414,6 +1478,8 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
 
     await syncUserCountryAndTimezone(user.id, user.email);
     user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
+    const subGate = subscriptionGate(user);
+    if (subGate) return res.status(403).json({ error: subGate.code, message: subGate.message });
     const token = signToken({ id: user.id, email: user.email, role: user.role });
     if (user.role === 'user') {
       notifyAsync('USER_LOGIN', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, role: user.role, mobile: user.phone || '—' });
@@ -1465,6 +1531,8 @@ app.post('/api/auth/google', async (req, res) => {
     }
     await syncUserCountryAndTimezone(user.id, user.email);
     user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
+    const subGateG = subscriptionGate(user);
+    if (subGateG) return res.status(403).json({ error: subGateG.code, message: subGateG.message });
     const token = signToken({ id: user.id, email: user.email, role: user.role });
     res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', height_cm: user.height_cm != null && user.height_cm !== '' ? Number(user.height_cm) : null, token });
   } catch (e) {
@@ -1506,14 +1574,15 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
     const id = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, state_province, city, dob, gender, height_cm, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'pending']);
-    sendPushToAdmins(JSON.stringify({ title: 'New sign-up (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
-    userEmail.emailGoogleSignupPending(emailNorm, given_name);
+      [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'approved']);
+    await startTrialForUser(id, TRIAL_DAYS).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) started a ${TRIAL_DAYS}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
+    try { userEmail.emailAccountApproved(emailNorm, given_name); } catch (_) {}
     notifyAsync('USER_SIGNUP_GOOGLE', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—' });
     res.json({
       id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', role: 'user',
-      country: geo.country, timezone: geo.timezone, pending_approval: true,
-      message: 'Your account has been created and is pending admin approval.'
+      country: geo.country, timezone: geo.timezone, trial: true, trial_days: TRIAL_DAYS,
+      message: `Your account is ready — enjoy ${TRIAL_DAYS} days of full access.`
     });
   } catch (e) {
     console.error('Google complete error:', e);
@@ -1560,6 +1629,8 @@ app.post('/api/auth/apple', async (req, res) => {
     if (appleSub && !userRow.apple_id) { await run("UPDATE users SET apple_id = ? WHERE id = ?", [appleSub, userRow.id]); }
     await syncUserCountryAndTimezone(userRow.id, userRow.email);
     userRow = await queryOne("SELECT * FROM users WHERE id = ?", [userRow.id]);
+    const subGateA = subscriptionGate(userRow);
+    if (subGateA) return res.status(403).json({ error: subGateA.code, message: subGateA.message });
     const token = signToken({ id: userRow.id, email: userRow.email, role: userRow.role });
     res.json({ id: userRow.id, email: userRow.email, first_name: userRow.first_name || '', last_name: userRow.last_name || '', profile_picture: userRow.profile_picture || '', role: userRow.role, country: userRow.country || '', timezone: userRow.timezone || '', height_cm: userRow.height_cm != null && userRow.height_cm !== '' ? Number(userRow.height_cm) : null, token });
   } catch (e) {
@@ -1606,14 +1677,15 @@ app.post('/api/auth/apple-complete', rateLimiter(5, 60000), async (req, res) => 
     const id = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, apple_id, country, timezone, state_province, city, dob, gender, height_cm, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      [id, emailNorm, hash, givenName, familyName, phoneTrimmed, appleSub, geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'pending']);
-    sendPushToAdmins(JSON.stringify({ title: 'New sign-up (Apple)', body: `${givenName} ${familyName} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
-    try { userEmail.emailSignupPending(emailNorm, givenName); } catch (_) {}
+      [id, emailNorm, hash, givenName, familyName, phoneTrimmed, appleSub, geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'approved']);
+    await startTrialForUser(id, TRIAL_DAYS).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Apple)', body: `${givenName} ${familyName} (${emailNorm}) started a ${TRIAL_DAYS}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
+    try { userEmail.emailAccountApproved(emailNorm, givenName); } catch (_) {}
     notifyAsync('USER_SIGNUP', { name: `${givenName} ${familyName}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—' });
     res.json({
       id, email: emailNorm, first_name: givenName, last_name: familyName, role: 'user',
-      country: geo.country, timezone: geo.timezone, pending_approval: true,
-      message: 'Your account has been created and is pending admin approval.'
+      country: geo.country, timezone: geo.timezone, trial: true, trial_days: TRIAL_DAYS,
+      message: `Your account is ready — enjoy ${TRIAL_DAYS} days of full access.`
     });
   } catch (e) {
     console.error('Apple complete error:', e);
@@ -1640,21 +1712,24 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     const existing = await queryOne("SELECT id, approval_status FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (existing && existing.approval_status === 'rejected') {
       const hash = bcrypt.hashSync(password, 10);
-      await run("UPDATE users SET password=?, first_name=?, last_name=?, phone=?, country=?, timezone=?, state_province=?, city=?, dob=?, gender=?, height_cm=?, approval_status='pending' WHERE id=?",
+      await run("UPDATE users SET password=?, first_name=?, last_name=?, phone=?, country=?, timezone=?, state_province=?, city=?, dob=?, gender=?, height_cm=?, approval_status='approved' WHERE id=?",
         [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, existing.id]);
-      userEmail.emailSignupPending(emailNorm, first_name);
-      return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
+      await startTrialForUser(existing.id, TRIAL_DAYS).catch(() => {});
+      try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
+      return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: TRIAL_DAYS });
     }
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
     const id = uuidv4();
     const hash = bcrypt.hashSync(password, 10);
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, state_province, city, dob, gender, height_cm, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
-      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'pending']);
-    sendPushToAdmins(JSON.stringify({ title: 'New sign-up', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) requested access`, id: 'signup-' + id })).catch(() => {});
-    userEmail.emailSignupPending(emailNorm, first_name);
+      [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'approved']);
+    // Instant access: start a free trial right away (no manual approval gate).
+    await startTrialForUser(id, TRIAL_DAYS).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) started a ${TRIAL_DAYS}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
+    try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
     notifyAsync('USER_SIGNUP', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—' });
-    res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, pending_approval: true });
+    res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: TRIAL_DAYS });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -5609,6 +5684,191 @@ app.post('/api/admin/users/:id/access/reset', verifyToken, requireAdminOrSuperad
   }
 });
 
+// ============ MEMBERSHIPS — trials, activations & renewals (manual billing) ============
+// Quick-access hub: who's on trial, who's expiring, who to call, one-click activate.
+function computeMembershipState(u) {
+  const now = Date.now();
+  const exp = u.access_expires_at ? new Date(u.access_expires_at).getTime() : null;
+  const hasExp = exp != null && Number.isFinite(exp);
+  const daysLeft = hasExp ? Math.ceil((exp - now) / 86400000) : null;
+  let state = String(u.subscription_status || 'active').toLowerCase();
+  if (state === 'canceled') { /* keep */ }
+  else if (hasExp && exp < now) state = 'expired';
+  return { days_left: daysLeft, state };
+}
+
+app.get('/api/admin/memberships', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT id, email, first_name, last_name, phone, country,
+              COALESCE(subscription_status, 'active') AS subscription_status,
+              access_expires_at, plan_label, activated_at, activated_by, created_at, suspended
+         FROM users
+        WHERE role = 'user'
+        ORDER BY created_at DESC`
+    );
+    const users = (rows || []).map((u) => Object.assign({}, u, computeMembershipState(u)));
+    // Sort: most urgent first — expiring trials/active, then expired, then healthy, then lifetime.
+    const rank = (u) => {
+      if ((u.state === 'trialing' || u.state === 'active') && u.days_left != null && u.days_left <= 2) return 0;
+      if (u.state === 'expired') return 1;
+      if (u.state === 'canceled') return 2;
+      if (u.state === 'trialing') return 3;
+      if (u.state === 'active') return 4;
+      return 5;
+    };
+    users.sort((a, b) => {
+      const ra = rank(a), rb = rank(b);
+      if (ra !== rb) return ra - rb;
+      const da = a.days_left == null ? 1e9 : a.days_left;
+      const db = b.days_left == null ? 1e9 : b.days_left;
+      return da - db;
+    });
+    const summary = {
+      trialing: users.filter((u) => u.state === 'trialing').length,
+      active:   users.filter((u) => u.state === 'active').length,
+      expiring: users.filter((u) => (u.state === 'trialing' || u.state === 'active') && u.days_left != null && u.days_left <= 2).length,
+      expired:  users.filter((u) => u.state === 'expired').length,
+      canceled: users.filter((u) => u.state === 'canceled').length,
+      total:    users.length
+    };
+    res.json({ users, summary, trial_days: TRIAL_DAYS });
+  } catch (e) {
+    console.error('[memberships list]', e.message);
+    res.status(500).json({ error: 'Failed to load memberships' });
+  }
+});
+
+// Activate a paid membership after collecting payment offline.
+// body: { months } (1/3/12...) or { days } or { term:'lifetime' }; optional { plan_label }.
+app.post('/api/admin/users/:id/activate', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const b = req.body || {};
+    const user = await queryOne("SELECT id, role, email, first_name, last_name, phone FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'user') return res.status(400).json({ error: 'Can only activate client users' });
+
+    const months = parseInt(b.months, 10);
+    const rawDays = parseInt(b.days, 10);
+    const term = String(b.term || '').toLowerCase();
+    let expires, label;
+    if (term === 'lifetime' || b.lifetime === true) {
+      expires = null; label = 'Lifetime';
+    } else if (Number.isFinite(months) && months > 0) {
+      expires = isoMonthsFromNow(months); label = months + (months === 1 ? ' Month' : ' Months');
+    } else if (Number.isFinite(rawDays) && rawDays > 0) {
+      expires = isoFromNow(rawDays); label = rawDays + ' Days';
+    } else {
+      expires = isoMonthsFromNow(1); label = '1 Month';
+    }
+    if (b.plan_label) label = String(b.plan_label).slice(0, 40);
+    const actor = (req.user && (req.user.email || req.user.id)) || 'admin';
+
+    await run(
+      "UPDATE users SET subscription_status='active', approval_status='approved', suspended=FALSE, plan_label=?, access_expires_at=?, activated_at=?, activated_by=?, trial_reminder_sent='' WHERE id=?",
+      [label, expires, isoFromNow(0), actor, id]
+    );
+    sendPushToUser(id, JSON.stringify({ title: '✅ Membership active', body: `Your ${label} plan is live — let's get to work!`, id: 'membership-' + id })).catch(() => {});
+    try { if (user.email) userEmail.emailAccountApproved(user.email, user.first_name); } catch (_) {}
+    notifyAsync('USER_MEMBERSHIP_ACTIVATED', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, mobile: user.phone || '—', plan: label });
+    const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
+    res.json({ message: 'Membership activated', plan_label: label, expires_at: expires, user: Object.assign({}, fresh, computeMembershipState(fresh)) });
+  } catch (e) {
+    console.error('[membership activate]', e.message);
+    res.status(500).json({ error: 'Failed to activate membership' });
+  }
+});
+
+// Start or extend a free trial. body: { days } (defaults to TRIAL_DAYS).
+app.post('/api/admin/users/:id/trial', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const days = parseInt((req.body || {}).days, 10);
+    const user = await queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'user') return res.status(400).json({ error: 'Can only configure client users' });
+    const d = await startTrialForUser(id, (Number.isFinite(days) && days > 0) ? days : TRIAL_DAYS);
+    const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
+    res.json({ message: `Trial set to ${d} days`, user: Object.assign({}, fresh, computeMembershipState(fresh)) });
+  } catch (e) {
+    console.error('[membership trial]', e.message);
+    res.status(500).json({ error: 'Failed to set trial' });
+  }
+});
+
+// Lock access immediately (membership paused / lapsed).
+app.post('/api/admin/users/:id/membership-lock', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const user = await queryOne("SELECT id, role FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'user') return res.status(400).json({ error: 'Can only configure client users' });
+    await run("UPDATE users SET subscription_status='canceled', access_expires_at=? WHERE id=?", [isoFromNow(0), id]);
+    const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
+    res.json({ message: 'Access locked', user: Object.assign({}, fresh, computeMembershipState(fresh)) });
+  } catch (e) {
+    console.error('[membership lock]', e.message);
+    res.status(500).json({ error: 'Failed to lock access' });
+  }
+});
+
+// Phase 2 — nightly lifecycle: expire lapsed members, remind those expiring soon,
+// and push a "call queue" digest to admins. Also runnable on demand (endpoint below).
+async function runMembershipLifecycleJob() {
+  const nowIso = new Date().toISOString();
+  const expiredRows = await queryAll(
+    "SELECT id, email, first_name, last_name, phone FROM users WHERE role='user' AND subscription_status IN ('trialing','active') AND access_expires_at IS NOT NULL AND access_expires_at < ?",
+    [nowIso]
+  ).catch(() => []);
+  for (const u of (expiredRows || [])) {
+    await run("UPDATE users SET subscription_status='expired' WHERE id=?", [u.id]).catch(() => {});
+    sendPushToUser(u.id, JSON.stringify({ title: '⏳ Access ended', body: 'Your access has ended. Message your coach to renew and pick up where you left off.', id: 'exp-' + u.id })).catch(() => {});
+  }
+  const soon = await queryAll(
+    "SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, COALESCE(trial_reminder_sent,'') AS trial_reminder_sent FROM users WHERE role='user' AND subscription_status IN ('trialing','active') AND access_expires_at IS NOT NULL AND access_expires_at >= ?",
+    [nowIso]
+  ).catch(() => []);
+  for (const u of (soon || [])) {
+    const dl = daysLeftUntil(u.access_expires_at);
+    if (dl == null) continue;
+    let stage = '';
+    if (dl <= 0) stage = 'd0';
+    else if (dl <= 2) stage = 'd2';
+    if (!stage || u.trial_reminder_sent === stage) continue;
+    const word = dl <= 0 ? 'today' : (dl === 1 ? 'in 1 day' : 'in ' + dl + ' days');
+    const kind = u.subscription_status === 'trialing' ? 'Trial' : 'Plan';
+    sendPushToUser(u.id, JSON.stringify({ title: `⏳ ${kind} ends ${word}`, body: 'Secure your spot — message your coach to continue without losing your streak.', id: 'rem-' + u.id })).catch(() => {});
+    await run("UPDATE users SET trial_reminder_sent=? WHERE id=?", [stage, u.id]).catch(() => {});
+  }
+  const callList = (soon || []).filter((u) => { const dl = daysLeftUntil(u.access_expires_at); return dl != null && dl <= 2; });
+  const justExpired = expiredRows || [];
+  if (callList.length || justExpired.length) {
+    const lines = [];
+    callList.slice(0, 20).forEach((u) => { const dl = daysLeftUntil(u.access_expires_at); lines.push(`• ${(u.first_name || '')} ${(u.last_name || '')} (${u.phone || 'no phone'}) — ${dl <= 0 ? 'expires today' : dl + 'd left'}`); });
+    justExpired.slice(0, 20).forEach((u) => { lines.push(`• ${(u.first_name || '')} ${(u.last_name || '')} (${u.phone || 'no phone'}) — just expired`); });
+    sendPushToAdmins(JSON.stringify({ title: '☎️ Memberships: call queue', body: `${callList.length} expiring soon · ${justExpired.length} expired`, id: 'mem-digest' })).catch(() => {});
+    try {
+      const wa = require('./services/whatsapp');
+      if (wa && wa.isConfigured && wa.isConfigured()) {
+        wa.sendWhatsApp('BodyBank — Membership call queue\n' + lines.join('\n')).catch(() => {});
+      }
+    } catch (_) {}
+  }
+  return { expired: (expiredRows || []).length, expiring_soon: callList.length, scanned: (soon || []).length };
+}
+
+// Manual trigger (useful for local testing / "run now" button).
+app.post('/api/admin/memberships/run-lifecycle', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const result = await runMembershipLifecycleJob();
+    res.json(Object.assign({ message: 'Lifecycle job ran' }, result));
+  } catch (e) {
+    console.error('[membership lifecycle manual]', e.message);
+    res.status(500).json({ error: 'Failed to run lifecycle job' });
+  }
+});
+
 app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const { id } = req.params;
@@ -7829,6 +8089,22 @@ app.listen(PORT, '0.0.0.0', () => {
       console.log('✅ Coin penalty cron scheduled (Daily 00:10 Asia/Kolkata)');
     } catch (e) {
       console.warn('Coin penalty cron schedule skipped:', e.message);
+    }
+
+    // ── Membership lifecycle — expire lapsed members, remind expiring, push admin call queue ──
+    try {
+      cron.schedule(
+        '30 0 * * *',
+        () => {
+          runMembershipLifecycleJob()
+            .then((r) => console.log(`[memberships] Lifecycle ran — expired ${r.expired}, expiring soon ${r.expiring_soon}`))
+            .catch((e) => console.warn('[memberships] Lifecycle cron error:', e.message));
+        },
+        { timezone: 'Asia/Kolkata' }
+      );
+      console.log('✅ Membership lifecycle cron scheduled (Daily 00:30 Asia/Kolkata)');
+    } catch (e) {
+      console.warn('Membership lifecycle cron schedule skipped:', e.message);
     }
 
     // ── Daily executive WhatsApp digest — 09:00 IST ──────────────────
