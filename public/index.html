@@ -6513,6 +6513,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="admin-tab" data-tab="leaderboards" onclick="switchTab('leaderboards')">Leader Boards</div>
       <div class="admin-tab" data-tab="nutrition" onclick="switchTab('nutrition')">Nutrition AI</div>
       <div class="admin-tab" data-tab="blood" onclick="switchTab('blood')">Blood Reports</div>
+      <div class="admin-tab" data-tab="memberships" onclick="switchTab('memberships')">Memberships</div>
     </div>
 
     <div class="admin-tab-content-wrap">
@@ -6658,6 +6659,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <a class="bb-quick-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="btn-icon">🏆</span>Leader Boards</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('nutrition');return false"><span class="btn-icon">🥗</span>Nutrition AI</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('blood');return false"><span class="btn-icon">🩺</span>Blood Reports</a>
+          <a class="bb-quick-btn" href="#" onclick="switchTab('memberships');return false"><span class="btn-icon">💳</span>Memberships</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('accesscontrol');return false"><span class="btn-icon">🔐</span>Access Control</a>
           <a class="bb-quick-btn" href="#" onclick="switchToSection('analytics');return false"><span class="btn-icon">📈</span>Analytics</a>
           <a class="bb-quick-btn" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="btn-icon">💡</span>AI Assist</a>
@@ -6704,6 +6706,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <a class="admin-qa-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="admin-qa-icon">🏆</span>Leader boards</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('nutrition');return false"><span class="admin-qa-icon">🥗</span>Nutrition report</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('blood');return false"><span class="admin-qa-icon">🩺</span>Blood reports</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('memberships');return false"><span class="admin-qa-icon">💳</span>Memberships</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('accesscontrol');return false"><span class="admin-qa-icon">🔐</span>Access Control</a>
             <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#128202;</span>Analytics</a>
           </div>
@@ -7636,6 +7639,32 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         </div>
       </div>
       <div id="adminAccessControlList" style="margin-top:18px">
+        <p class="form-hint" style="padding:24px;margin:0">Loading…</p>
+      </div>
+    </div>
+
+    <div class="admin-tab-content admin-memberships-page" id="tab-memberships">
+      <div class="admin-nutrition-header">
+        <div>
+          <h3>Memberships <span style="font-size:12px;color:var(--muted);font-weight:600">trials · activations · renewals</span></h3>
+          <p class="form-hint" style="margin:4px 0 0">New sign-ups get <strong style="color:var(--gold)">instant access on a free trial</strong>. Call them, collect payment your way, then hit <strong style="color:var(--gold)">Activate</strong> and pick a plan length. Anyone whose trial or plan lapses is locked out automatically until you renew them.</p>
+        </div>
+        <div class="admin-nutrition-controls">
+          <input type="search" id="adminMembershipSearch" placeholder="Search by name, email or phone" oninput="renderAdminMemberships()" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.1);color:var(--text,#f0ede8);padding:8px 12px;border-radius:8px;font-size:13px;min-width:220px" aria-label="Search members">
+          <select id="adminMembershipFilter" onchange="renderAdminMemberships()" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.1);color:var(--text,#f0ede8);padding:8px 12px;border-radius:8px;font-size:13px" aria-label="Filter">
+            <option value="callqueue">☎️ Call queue (expiring / expired)</option>
+            <option value="all">All members</option>
+            <option value="trialing">On trial</option>
+            <option value="active">Active (paid)</option>
+            <option value="expired">Expired</option>
+            <option value="canceled">Locked</option>
+          </select>
+          <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminMemberships()">Refresh</button>
+          <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0;background:transparent;border:1px solid rgba(255,255,255,0.18)" onclick="runMembershipLifecycleNow()" title="Expire lapsed members, send reminders, refresh the call queue">Run checks now</button>
+        </div>
+      </div>
+      <div class="bb-membership-stats" id="bbMembershipStats" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:14px"></div>
+      <div id="adminMembershipsList" style="margin-top:18px">
         <p class="form-hint" style="padding:24px;margin:0">Loading…</p>
       </div>
     </div>
@@ -10574,7 +10603,10 @@ async function handleSignup() {
     if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
     closeModal('signupModal');
     if (bloodIn) bloodIn.value = '';
-    if (data.pending_approval) {
+    if (data.trial) {
+      var td = data.trial_days || 7;
+      showPopup("You're in! 🎉", 'Your account is ready with ' + td + ' days of full access. Log in now and complete your body audit to see your scorecard.', '', 'Login Now', () => { openModal('loginModal'); });
+    } else if (data.pending_approval) {
       showPopup('Sign-up Successful!', 'Waiting for Admin approval. You will be able to log in once approved. For instant approval, reach out to Admin on WhatsApp.', '', 'OK', () => {});
     } else {
       showPopup('Registered Successfully!', 'CONSISTENCY has its fruits, so does PATIENCE.', 'We will get back to you after the review', 'Login Now', () => { openModal('loginModal'); });
@@ -10616,7 +10648,7 @@ async function handleGoogleCompleteSubmit() {
     _pendingGoogleToken = null;
     closeModal('googleCompleteModal');
     if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; }
-    showPopup('Sign-up Successful!', 'Your account is pending admin approval. You will be able to log in once approved. For instant approval, reach out to Admin on WhatsApp.', '', 'OK', function() { openModal('loginModal'); });
+    showPopup("You're in! 🎉", (data.message || 'Your account is ready with full access.') + ' Log in now and complete your body audit to see your scorecard.', '', 'Login Now', function() { openModal('loginModal'); });
   } catch (e) {
     if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; }
     showPopup('Error', 'Sign-up failed. Please try again.', '', 'OK', null, 'error');
@@ -14027,8 +14059,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', accesscontrol: 'Access Control' };
-var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', accesscontrol: 'clients' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', accesscontrol: 'Access Control', memberships: 'Memberships' };
+var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', accesscontrol: 'clients', memberships: 'clients' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -14167,6 +14199,7 @@ function switchTab(tab) {
   if (tab === 'nutrition') loadAdminNutritionReport();
   if (tab === 'blood') loadAdminBloodReports();
   if (tab === 'accesscontrol') loadAdminAccessControl();
+  if (tab === 'memberships') loadAdminMemberships();
 }
 var adminProgressChartInstances = {};
 function destroyAdminProgressCharts() {
@@ -19744,6 +19777,159 @@ function renderAdminUsageBlock(title, linesHtml) {
   return '<div style="margin:8px 0 10px;padding:9px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:11px;line-height:1.45">' +
     '<div style="font-weight:700;color:#c8bca2;margin-bottom:4px">' + escapeHtml(title) + '</div>' + linesHtml + '</div>';
 }
+// ============ MEMBERSHIPS (trials, activations, renewals — manual billing) ============
+window._bbMemberships = [];
+window._bbMembershipMeta = { trial_days: 7, summary: {} };
+
+function bbMembershipStateLabel(u) {
+  var dl = u.days_left;
+  if (u.state === 'trialing') return 'Trial' + (dl != null ? ' · ' + (dl <= 0 ? 'ends today' : dl + 'd left') : '');
+  if (u.state === 'active')   return (u.plan_label || 'Active') + (dl != null ? ' · ' + (dl <= 0 ? 'ends today' : dl + 'd left') : ' · Lifetime');
+  if (u.state === 'expired')  return 'Expired';
+  if (u.state === 'canceled') return 'Locked';
+  return u.state || '';
+}
+function bbMembershipBadge(u) {
+  var cls = 'bb-access-badge-trial';
+  if (u.state === 'active')   cls = 'bb-access-badge-ok';
+  if (u.state === 'expired' || u.state === 'canceled') cls = 'bb-access-badge-blocked';
+  if (u.state === 'trialing' && u.days_left != null && u.days_left <= 2) cls = 'bb-access-badge-blocked';
+  return '<span class="bb-access-badge ' + cls + '">' + escapeHtml(bbMembershipStateLabel(u)) + '</span>';
+}
+function bbFmtMemberDate(ts) {
+  if (!ts) return '—';
+  var d = new Date(ts);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+function bbWaLink(phone, text) {
+  var digits = String(phone || '').replace(/[^0-9]/g, '');
+  if (!digits) return '';
+  return 'https://wa.me/' + digits + (text ? ('?text=' + encodeURIComponent(text)) : '');
+}
+
+function loadAdminMemberships() {
+  if (!window.currentUser || (window.currentUser.role !== 'admin' && window.currentUser.role !== 'superadmin')) return;
+  var listEl = document.getElementById('adminMembershipsList');
+  if (!listEl) return;
+  listEl.innerHTML = '<p class="form-hint" style="padding:24px;margin:0">Loading…</p>';
+  apiCall('GET', '/api/admin/memberships').then(function (data) {
+    if (!data || data.error) {
+      listEl.innerHTML = '<p class="form-hint" style="padding:24px;color:#e05050;margin:0">' + escapeHtml(data && data.error ? data.error : 'Failed to load') + '</p>';
+      return;
+    }
+    window._bbMemberships = Array.isArray(data.users) ? data.users : [];
+    window._bbMembershipMeta = { trial_days: data.trial_days || 7, summary: data.summary || {} };
+    renderAdminMemberships();
+  });
+}
+
+function renderAdminMemberships() {
+  var listEl = document.getElementById('adminMembershipsList');
+  var statsEl = document.getElementById('bbMembershipStats');
+  if (!listEl) return;
+  var users = window._bbMemberships || [];
+  var s = (window._bbMembershipMeta && window._bbMembershipMeta.summary) || {};
+  if (statsEl) {
+    var chip = function (label, val, color) {
+      return '<div style="flex:1;min-width:104px;background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:12px 14px">' +
+        '<div style="font-size:22px;font-weight:800;color:' + color + '">' + (val || 0) + '</div>' +
+        '<div style="font-size:11px;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;margin-top:2px">' + label + '</div></div>';
+    };
+    statsEl.innerHTML =
+      chip('On trial', s.trialing, '#e0a23c') +
+      chip('Expiring ≤2d', s.expiring, '#e05050') +
+      chip('Active paid', s.active, '#46c46a') +
+      chip('Expired', s.expired, '#e05050') +
+      chip('Locked', s.canceled, '#9aa3ad');
+  }
+  var qEl = document.getElementById('adminMembershipSearch');
+  var fEl = document.getElementById('adminMembershipFilter');
+  var q = (qEl && qEl.value ? qEl.value : '').trim().toLowerCase();
+  var f = fEl && fEl.value ? fEl.value : 'callqueue';
+  var filtered = users.filter(function (u) {
+    if (q) {
+      var hay = ((u.first_name || '') + ' ' + (u.last_name || '') + ' ' + (u.email || '') + ' ' + (u.phone || '')).toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    if (f === 'callqueue') return (u.state === 'expired') || (u.state === 'canceled') || ((u.state === 'trialing' || u.state === 'active') && u.days_left != null && u.days_left <= 2);
+    if (f === 'all') return true;
+    return u.state === f;
+  });
+  if (!filtered.length) {
+    listEl.innerHTML = '<p class="form-hint" style="padding:24px;margin:0;text-align:center">No members match this view.</p>';
+    return;
+  }
+  var trialDays = window._bbMembershipMeta.trial_days || 7;
+  listEl.innerHTML = filtered.map(function (u) {
+    var name = ((u.first_name || '') + ' ' + (u.last_name || '')).trim() || u.email || u.id;
+    var idAttr = encodeURIComponent(u.id);
+    var wa = bbWaLink(u.phone, 'Hi ' + (u.first_name || '') + ', this is your BodyBank coach. Here is your secure payment link to continue your plan: ');
+    var waBtn = wa ? '<a class="bb-access-reset" href="' + wa + '" target="_blank" rel="noopener" style="text-decoration:none">💬 WhatsApp</a>' : '';
+    return (
+      '<div class="bb-access-card" data-user-id="' + escapeHtml(u.id) + '">' +
+        '<div class="bb-access-card-head">' +
+          '<div><div class="bb-access-card-name">' + escapeHtml(name) + ' ' + bbMembershipBadge(u) + '</div>' +
+          '<div class="bb-access-card-email">' + escapeHtml(u.email || '') + (u.phone ? ' · ' + escapeHtml(u.phone) : '') + '</div></div>' +
+        '</div>' +
+        '<div class="bb-access-row"><div class="bb-access-row-controls" style="flex-wrap:wrap;gap:10px;align-items:center">' +
+          '<span class="bb-access-used">Plan <strong>' + escapeHtml(u.plan_label || '—') + '</strong></span>' +
+          '<span class="bb-access-used">Renews/ends <strong>' + bbFmtMemberDate(u.access_expires_at) + '</strong></span>' +
+          (u.activated_by ? '<span class="bb-access-lastused">By <strong>' + escapeHtml(u.activated_by) + '</strong></span>' : '') +
+        '</div></div>' +
+        '<div class="bb-access-card-actions" style="flex-wrap:wrap;gap:8px;align-items:center">' +
+          '<select id="bb-mem-term-' + idAttr + '" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.14);color:var(--text,#f0ede8);padding:8px 10px;border-radius:8px;font-size:13px">' +
+            '<option value="1">1 Month</option><option value="3">3 Months</option><option value="12">12 Months</option><option value="lifetime">Lifetime</option>' +
+          '</select>' +
+          '<button type="button" class="form-submit" style="width:auto;padding:9px 18px;margin:0" onclick="activateMembership(\'' + idAttr + '\')">✅ Activate</button>' +
+          '<button type="button" class="bb-access-reset" onclick="setMembershipTrial(\'' + idAttr + '\')">↻ Trial +' + trialDays + 'd</button>' +
+          waBtn +
+          '<button type="button" class="bb-access-reset" style="color:#e05050;border-color:rgba(224,80,80,.4)" onclick="lockMembership(\'' + idAttr + '\')">⛔ Lock</button>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+}
+
+function activateMembership(encodedId) {
+  var id = decodeURIComponent(encodedId);
+  var sel = document.getElementById('bb-mem-term-' + encodedId);
+  var term = sel ? sel.value : '1';
+  var body = (term === 'lifetime') ? { term: 'lifetime' } : { months: parseInt(term, 10) || 1 };
+  apiCall('POST', '/api/admin/users/' + encodeURIComponent(id) + '/activate', body).then(function (data) {
+    if (!data || data.error) { alert('Activate failed: ' + (data && data.error ? data.error : 'Unknown error')); return; }
+    loadAdminMemberships();
+    showPopup('Membership activated', (data.plan_label || 'Plan') + ' is now live for this client.', '', 'OK');
+  });
+}
+
+function setMembershipTrial(encodedId) {
+  var id = decodeURIComponent(encodedId);
+  var days = window._bbMembershipMeta.trial_days || 7;
+  if (!confirm('Start / extend a ' + days + '-day trial for this client?')) return;
+  apiCall('POST', '/api/admin/users/' + encodeURIComponent(id) + '/trial', { days: days }).then(function (data) {
+    if (!data || data.error) { alert('Failed: ' + (data && data.error ? data.error : 'Unknown error')); return; }
+    loadAdminMemberships();
+  });
+}
+
+function lockMembership(encodedId) {
+  var id = decodeURIComponent(encodedId);
+  if (!confirm('Lock this client out now? They will see a renew message until you activate them again.')) return;
+  apiCall('POST', '/api/admin/users/' + encodeURIComponent(id) + '/membership-lock', {}).then(function (data) {
+    if (!data || data.error) { alert('Failed: ' + (data && data.error ? data.error : 'Unknown error')); return; }
+    loadAdminMemberships();
+  });
+}
+
+function runMembershipLifecycleNow() {
+  apiCall('POST', '/api/admin/memberships/run-lifecycle', {}).then(function (data) {
+    if (!data || data.error) { alert('Failed: ' + (data && data.error ? data.error : 'Unknown error')); return; }
+    showPopup('Checks complete', 'Expired ' + (data.expired || 0) + ' · expiring soon ' + (data.expiring_soon || 0) + '. Reminders sent and call queue refreshed.', '', 'OK');
+    loadAdminMemberships();
+  });
+}
+
 // ============ ACCESS CONTROL (Nutrition AI + AI Trainer per-user gating) ============
 window._bbAccessControlUsers = [];
 
@@ -22329,7 +22515,7 @@ async function handleAppleCompleteSubmit() {
     _pendingAppleAuth = null; _pendingProvider = null;
     closeModal('googleCompleteModal');
     if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; }
-    showPopup('Sign-up Successful!', 'Your account is pending admin approval. You will be able to log in once approved. For instant approval, reach out to Admin on WhatsApp.', '', 'OK', function() { openModal('loginModal'); });
+    showPopup("You're in! 🎉", (data.message || 'Your account is ready with full access.') + ' Log in now and complete your body audit to see your scorecard.', '', 'Login Now', function() { openModal('loginModal'); });
   } catch (e) {
     if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; }
     showPopup('Error', 'Sign-up failed. Please try again.', '', 'OK', null, 'error');
