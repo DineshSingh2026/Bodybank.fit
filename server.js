@@ -5861,12 +5861,8 @@ async function runMembershipLifecycleJob() {
     callList.slice(0, 20).forEach((u) => { const dl = daysLeftUntil(u.access_expires_at); lines.push(`• ${(u.first_name || '')} ${(u.last_name || '')} (${u.phone || 'no phone'}) — ${dl <= 0 ? 'expires today' : dl + 'd left'}`); });
     justExpired.slice(0, 20).forEach((u) => { lines.push(`• ${(u.first_name || '')} ${(u.last_name || '')} (${u.phone || 'no phone'}) — just expired`); });
     sendPushToAdmins(JSON.stringify({ title: '☎️ Memberships: call queue', body: `${callList.length} expiring soon · ${justExpired.length} expired`, id: 'mem-digest' })).catch(() => {});
-    try {
-      const wa = require('./services/whatsapp');
-      if (wa && wa.isConfigured && wa.isConfigured()) {
-        wa.sendWhatsApp('BodyBank — Membership call queue\n' + lines.join('\n')).catch(() => {});
-      }
-    } catch (_) {}
+    // Twilio WhatsApp to admin via the reliable notify path (template fallback for the 24h window).
+    notifyAsync('MEMBERSHIP_DIGEST', { expiring_count: callList.length, expired_count: justExpired.length, lines });
   }
   return { expired: (expiredRows || []).length, expiring_soon: callList.length, scanned: (soon || []).length };
 }
@@ -8107,7 +8103,7 @@ app.listen(PORT, '0.0.0.0', () => {
     // ── Membership lifecycle — expire lapsed members, remind expiring, push admin call queue ──
     try {
       cron.schedule(
-        '30 0 * * *',
+        '30 8 * * *',
         () => {
           runMembershipLifecycleJob()
             .then((r) => console.log(`[memberships] Lifecycle ran — expired ${r.expired}, expiring soon ${r.expiring_soon}`))
@@ -8115,7 +8111,7 @@ app.listen(PORT, '0.0.0.0', () => {
         },
         { timezone: 'Asia/Kolkata' }
       );
-      console.log('✅ Membership lifecycle cron scheduled (Daily 00:30 Asia/Kolkata)');
+      console.log('✅ Membership lifecycle cron scheduled (Daily 08:30 Asia/Kolkata)');
     } catch (e) {
       console.warn('Membership lifecycle cron schedule skipped:', e.message);
     }
