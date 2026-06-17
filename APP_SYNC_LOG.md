@@ -44,8 +44,11 @@ _(empty — synced 2026-06-17; see History below)_
 ## 2026-06-17 — synced to mobile repo (membership/trial onboarding, v1.3.5, versionCode 15)
 
 Ran `node scripts/build-www.js` in `../bodybank-app/` (mirror `public/` → `www/`); bumped Android
-`versionCode 14→15`, `versionName 1.3.4→1.3.5`. **Local sync done; mobile repo NOT yet committed/pushed
-and AAB NOT yet built — awaiting go-ahead** (push triggers Codemagic iOS + Play closed-testing publish).
+`versionCode 14→15`, `versionName 1.3.4→1.3.5`. **Committed + pushed on branch
+`feat/membership-trial-onboarding` in BOTH repos. Signed AAB built (versionCode 15, ~46 MB) at
+`android/app/build/outputs/bundle/release/app-release.aab` — ready to upload to Play closed testing.**
+Remaining manual steps: set `TRIAL_DAYS=30` on Render, merge web PR (→ Render deploy), upload AAB
+(or merge mobile PR → Codemagic). Create PRs via the GitHub compare links (gh CLI not installed).
 
 Backend (gate + admin endpoints + nightly cron in `server.js`) deploys via Render and reaches web + app
 with no rebuild — only the **frontend** bundle (`public/index.html`) needed the www sync.
