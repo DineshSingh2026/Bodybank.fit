@@ -5609,14 +5609,6 @@ button.bb-today-pill{cursor:pointer}
           <div class="bb-pulse-sec-label">Today's habits</div>
           <div class="bb-pulse-habits" id="bbPulseHabits"></div>
           <div class="bb-pulse-actions" id="bbPulseActions"></div>
-          <button type="button" class="bb-today-coach" id="bbTodayCoach" onclick="switchUserTab('messages')" hidden>
-            <span class="bb-today-coach-ico" aria-hidden="true">💬</span>
-            <span class="bb-today-coach-copy">
-              <span class="bb-today-coach-from" id="bbTodayCoachFrom">Your Lifestyle Manager</span>
-              <span class="bb-today-coach-msg" id="bbTodayCoachMsg">Tap to message your coach</span>
-            </span>
-            <span class="bb-today-coach-cta" id="bbTodayCoachCta">Open</span>
-          </button>
           <button type="button" class="bb-today-meta" id="bbTodayNextCall" onclick="switchUserTab('contact')" hidden></button>
           <p class="bb-today-week" id="bbTodayWeek" hidden></p>
         </section>
@@ -16660,27 +16652,18 @@ function renderTodayHero(data){
     else { var up = td >= 0; trendEl.textContent = (up ? '↑ +' + td : '↓ ' + td) + ' vs last week'; trendEl.className = 'bb-pulse-trend ' + (up ? 'up' : 'down'); }
   }
   var wkEl = document.getElementById('bbPulseWeek'); if (wkEl) wkEl.textContent = sc.week_label || '';
-  // coach row
-  var coachBtn = document.getElementById('bbTodayCoach');
-  if (coachBtn) {
-    var lm = today.lastMessage;
-    if (lm && lm.body) {
-      var fromCoach = lm.sender_role && lm.sender_role !== 'user';
-      var fromEl = document.getElementById('bbTodayCoachFrom');
-      var msgEl = document.getElementById('bbTodayCoachMsg');
-      var ctaEl = document.getElementById('bbTodayCoachCta');
-      if (fromEl) fromEl.textContent = fromCoach ? 'Your Lifestyle Manager' : 'You said';
-      if (msgEl) msgEl.textContent = String(lm.body).slice(0, 90);
-      if (ctaEl) ctaEl.textContent = fromCoach ? 'Reply' : 'Open';
-      // coach unread indicator (#5): coach message newer than the last time the user opened Messages
+  // Coach unread indicator (#5) — drives the bottom-nav Coach dot.
+  // (The in-card coach row was removed; Coach lives in the bottom nav now.)
+  var lm = today.lastMessage;
+  var navBadge = document.getElementById('userCoachNavBadge');
+  if (navBadge) {
+    var unread = false;
+    if (lm && lm.body && lm.sender_role && lm.sender_role !== 'user') {
       var seen = parseInt(localStorage.getItem('bb_seen_coach_at') || '0', 10) || 0;
       var msgAt = lm.created_at ? new Date(lm.created_at).getTime() : 0;
-      var unread = fromCoach && msgAt > seen;
-      coachBtn.classList.toggle('has-unread', !!unread);
-      var navBadge = document.getElementById('userCoachNavBadge');
-      if (navBadge) navBadge.hidden = !unread;
+      unread = msgAt > seen;
     }
-    coachBtn.hidden = false;
+    navBadge.hidden = !unread;
   }
   // Next call (folded in from the removed mini-cards)
   var ncEl = document.getElementById('bbTodayNextCall');
