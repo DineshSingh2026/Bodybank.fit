@@ -2950,13 +2950,14 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bb-today{position:relative;margin:0 auto 16px;width:min(560px,100%);text-align:left;border-radius:24px;padding:20px 18px 16px;border:1px solid rgba(200,164,78,0.22);background:linear-gradient(170deg,rgba(36,29,16,0.55) 0%,rgba(15,15,17,0.92) 44%,rgba(10,10,12,0.97) 100%);-webkit-backdrop-filter:blur(16px) saturate(1.1);backdrop-filter:blur(16px) saturate(1.1);box-shadow:0 22px 50px -14px rgba(0,0,0,0.62),inset 0 1px 0 rgba(255,255,255,0.06);overflow:hidden}
 .bb-today::before{content:'';position:absolute;top:-45%;left:50%;transform:translateX(-50%);width:130%;height:65%;background:radial-gradient(ellipse at center,rgba(200,164,78,0.20),transparent 70%);pointer-events:none}
 .bb-today > *{position:relative;z-index:1}
-.bb-today-top{display:flex;align-items:center;gap:13px;margin-bottom:18px}
-.bb-today-avatar{width:50px;height:50px;border-radius:50%;flex-shrink:0;background-color:rgba(200,164,78,0.12);background-size:cover;background-position:center;border:2px solid rgba(200,164,78,0.65);display:grid;place-items:center;font-weight:800;font-size:18px;color:var(--gold);box-shadow:0 6px 18px rgba(0,0,0,0.45),0 0 16px rgba(200,164,78,0.18)}
+.bb-today-top{display:flex;align-items:center;gap:14px;margin-bottom:15px}
+.bb-today-avatar{width:60px;height:60px;border-radius:50%;flex-shrink:0;background-color:rgba(200,164,78,0.12);background-size:cover;background-position:center;border:2px solid rgba(200,164,78,0.65);display:grid;place-items:center;font-weight:800;font-size:22px;color:var(--gold);box-shadow:0 6px 18px rgba(0,0,0,0.45),0 0 18px rgba(200,164,78,0.2)}
 .bb-today-greet{flex:1;min-width:0}
-.bb-today-hi{margin:0;font-size:18px;font-weight:700;color:#fbf6ec;letter-spacing:-.01em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.bb-today-hi b{color:var(--gold);font-weight:800}
-.bb-today-date{margin:3px 0 0;font-size:10px;color:rgba(200,164,78,0.85);text-transform:uppercase;letter-spacing:.14em;font-weight:600}
-.bb-today-pills{display:flex;gap:6px;flex-shrink:0;flex-wrap:wrap;justify-content:flex-end;align-items:center;max-width:46%}
+.bb-today-eyebrow{margin:0;font-size:10px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:rgba(200,164,78,0.85)}
+.bb-today-name{margin:3px 0 0;font-size:23px;font-weight:800;color:#fbf6ec;letter-spacing:-.015em;line-height:1.08;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bb-today-sub{margin:4px 0 0;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bb-today-stats{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+.bb-today-pill i{font-style:normal;font-weight:600;color:var(--muted);font-size:11px;margin-left:1px}
 .bb-today-pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:7px 11px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.02));color:var(--cream);font-family:inherit;line-height:1}
 button.bb-today-pill{cursor:pointer}
 .bb-today-pill--streak b{color:#ffb454}
@@ -5570,14 +5571,15 @@ button.bb-today-pill{cursor:pointer}
           <div class="bb-today-top">
             <div class="bb-today-avatar" id="bbPulseAvatar" role="img" aria-label="Your profile photo"></div>
             <div class="bb-today-greet">
-              <p class="bb-today-hi" id="bbTodayGreeting">Today</p>
-              <p class="bb-today-date" id="bbTodayDate"></p>
+              <p class="bb-today-eyebrow" id="bbTodayGreeting">Welcome</p>
+              <p class="bb-today-name" id="bbTodayName">—</p>
+              <p class="bb-today-sub" id="bbTodayDate"></p>
             </div>
-            <div class="bb-today-pills">
-              <button type="button" class="bb-today-pill bb-today-pill--freeze" id="bbTodayFreezeBtn" onclick="bbUseStreakFreeze()" title="Protect your streak across a missed day (1/month)" hidden>🧊 Freeze</button>
-              <span class="bb-today-pill bb-today-pill--streak" id="bbTodayStreakPill" title="Daily check-in streak">🔥 <b id="bbTodayStreakNum">0</b></span>
-              <button type="button" class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" onclick="bbOpenCoinHistory()" title="Gold coins — tap for activity">◉ <b id="bbTodayCoinNum">0</b></button>
-            </div>
+          </div>
+          <div class="bb-today-stats">
+            <span class="bb-today-pill bb-today-pill--streak" id="bbTodayStreakPill" title="Daily check-in streak">🔥 <b id="bbTodayStreakNum">0</b> <i>streak</i></span>
+            <button type="button" class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" onclick="bbOpenCoinHistory()" title="Gold coins — tap for activity">◉ <b id="bbTodayCoinNum">0</b> <i>coins</i></button>
+            <button type="button" class="bb-today-pill bb-today-pill--freeze" id="bbTodayFreezeBtn" onclick="bbUseStreakFreeze()" title="Protect your streak across a missed day (1/month)" hidden>🧊 Freeze</button>
           </div>
           <div class="bb-pulse-score">
             <button type="button" class="bb-today-ring bb-pulse-ring" id="bbTodayRingBtn" onclick="bbTodayFocusChecklist()" aria-label="Your weekly score and today's progress">
@@ -16549,10 +16551,11 @@ function bbPulseShowSkeleton(){
   if (!hero) return;
   var name = ((window.currentUser && window.currentUser.first_name) || '').trim();
   var g = document.getElementById('bbTodayGreeting');
-  if (g && typeof bbTodayGreetingText === 'function') g.innerHTML = bbTodayGreetingText() + (name ? ', <b>' + escapeHtml(name) + '</b>' : '');
+  if (g && typeof bbTodayGreetingText === 'function') g.textContent = bbTodayGreetingText();
+  var nmEl = document.getElementById('bbTodayName'); if (nmEl) nmEl.textContent = name || 'there';
   bbSetPulseAvatar(window.currentUser && window.currentUser.profile_picture, name);
   var d = document.getElementById('bbTodayDate');
-  if (d) d.textContent = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+  if (d) d.textContent = 'Tribe Elite Member · ' + new Date().toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
   if (!window._bbHomeData) {
     var pe = document.getElementById('bbPulsePillars'); if (pe && !pe.children.length) pe.innerHTML = bbSkelRows(4, 'pillar');
     var he = document.getElementById('bbPulseHabits'); if (he && !he.children.length) he.innerHTML = bbSkelRows(4, 'habit');
@@ -16575,10 +16578,11 @@ function renderTodayHero(data){
   // header
   var name = (profile.first_name || (window.currentUser && window.currentUser.first_name) || '').trim();
   var g = document.getElementById('bbTodayGreeting');
-  if (g) g.innerHTML = bbTodayGreetingText() + (name ? ', <b>' + escapeHtml(name) + '</b>' : '');
+  if (g) g.textContent = bbTodayGreetingText();
+  var nmEl = document.getElementById('bbTodayName'); if (nmEl) nmEl.textContent = name || 'there';
   bbSetPulseAvatar(profile.profile_picture || (window.currentUser && window.currentUser.profile_picture), name);
   var d = document.getElementById('bbTodayDate');
-  if (d) d.textContent = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+  if (d) d.textContent = 'Tribe Elite Member · ' + new Date().toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
   var sNum = document.getElementById('bbTodayStreakNum'); if (sNum) sNum.textContent = streak.streak || 0;
   var sPill = document.getElementById('bbTodayStreakPill');
   if (sPill) { sPill.firstChild && (sPill.firstChild.nodeValue = bbStreakFlair(streak.streak) + ' '); }
