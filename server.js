@@ -3882,7 +3882,7 @@ app.get('/api/today', verifyToken, async (req, res) => {
 // instead of failing the whole payload. This replaces ~8 separate round-trips on home load.
 app.get('/api/me/home', verifyToken, async (req, res) => {
   const userId = req.user.id;
-  const out = { profile: null, today: null, streak: null, mind: null, coins: null, scorecard: null };
+  const out = { profile: null, today: null, streak: null, series: null, mind: null, coins: null, scorecard: null };
   // Profile + goals (also tells the client whether to show first-run onboarding)
   let _utz = STREAK_TIMEZONE;
   try {
@@ -3959,8 +3959,23 @@ app.get('/api/me/home', verifyToken, async (req, res) => {
           avgSleep: wk.length ? (wk.reduce((s, r) => s + (r.sleep_hours || 0), 0) / wk.length).toFixed(1) : null
         }
       };
+      // 7-day series per metric (for the Pulse card sparklines) — real check-ins only
+      const byDay = {};
+      rows.forEach((r) => { const d = streakDateToYmd(r.checkin_date); if (d && !r.is_freeze) byDay[d] = r; });
+      const days = [], sSteps = [], sWater = [], sProt = [], sSleep = [];
+      for (let i = 6; i >= 0; i--) {
+        const d = streakAddDays(today, -i);
+        days.push(d);
+        const r = byDay[d];
+        sSteps.push(r && r.steps != null ? r.steps : 0);
+        sWater.push(r && r.water_ml != null ? r.water_ml : 0);
+        sProt.push(r && r.protein_g != null ? r.protein_g : 0);
+        sSleep.push(r && r.sleep_hours != null ? r.sleep_hours : 0);
+      }
+      out.series = { days, steps: sSteps, water_ml: sWater, protein_g: sProt, sleep_hours: sSleep };
     } else {
       out.streak = { streak: 0, todaySaved: false, atRisk: false, secondsUntilMidnight: null, weekly: {} };
+      out.series = null;
     }
   } catch (e) { console.warn('[home] streak:', e.message); }
   // Mind exercises completed today
@@ -3972,11 +3987,31 @@ app.get('/api/me/home', verifyToken, async (req, res) => {
   // Coins
   try { out.coins = await coinService.getCoinSummary({ run, queryOne, queryAll }, userId); }
   catch (e) { console.warn('[home] coins:', e.message); }
-  // Scorecard (lightweight: this week's total + label + trend)
+  // Scorecard — this week's total, trend vs last week, and the 4 pillars (score + weight%)
   try {
     const ws = scorecardSvc.normalizeWeekStart('');
     const cur = await scorecardSvc.computeWeeklyScore(userId, ws);
-    out.scorecard = cur ? { total: cur.total, week_label: cur.week_label } : null;
+    if (cur) {
+      let trend = null;
+      try {
+        const pw = scorecardSvc.previousWeekStart(ws);
+        const prev = pw ? await scorecardSvc.computeWeeklyScore(userId, pw) : null;
+        if (prev) trend = cur.total - prev.total;
+      } catch (_) {}
+      const w = cur.weights || {};
+      const pct = (x) => Math.round((x || 0) * 100);
+      out.scorecard = {
+        total: cur.total,
+        week_label: cur.week_label,
+        trend_delta: trend,
+        pillars: [
+          { key: 'daily', label: 'Daily', score: cur.daily, weight: pct(w.daily) },
+          { key: 'workouts', label: 'Workouts', score: cur.workouts, weight: pct(w.workouts) },
+          { key: 'sunday', label: 'Sunday', score: cur.sunday, weight: pct(w.sunday) },
+          { key: 'progress', label: 'Progress', score: cur.progress, weight: pct(w.progress) }
+        ]
+      };
+    } else { out.scorecard = null; }
   } catch (e) { console.warn('[home] scorecard:', e.message); }
   res.json(out);
 });

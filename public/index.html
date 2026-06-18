@@ -2996,6 +2996,49 @@ button.bb-today-pill{cursor:pointer}
 .bb-today-meta b{color:var(--gold);font-weight:700}
 .bb-today-week{margin:14px 4px 2px;font-size:11px;color:var(--muted);text-align:center;letter-spacing:.04em;font-weight:600}
 @media(max-width:380px){.bb-today-body{gap:13px}.bb-today-ring,.bb-today-ring-svg{width:96px;height:96px}.bb-today-ring-center b{font-size:25px}}
+/* ===== Pulse — one card captures day + week + pillars ===== */
+.bb-pulse-score{display:flex;align-items:center;gap:18px;margin-bottom:2px}
+.bb-pulse-ring-track2{fill:none;stroke:rgba(255,255,255,0.06);stroke-width:7}
+.bb-pulse-ring-fill2{fill:none;stroke:url(#bbPulseDayGrad);stroke-width:7;stroke-linecap:round;stroke-dasharray:239;stroke-dashoffset:239;transition:stroke-dashoffset .7s cubic-bezier(.34,1.2,.4,1)}
+.bb-today-ring-center i{font-size:11px;font-style:normal;color:var(--muted);margin-top:3px}
+.bb-pulse-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.bb-pulse-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:rgba(200,164,78,0.85);font-weight:700}
+.bb-pulse-trend{font-size:13.5px;font-weight:700;color:var(--cream)}
+.bb-pulse-trend.up{color:#7fe3a6}.bb-pulse-trend.down{color:#ff9090}
+.bb-pulse-week{font-size:11px;color:var(--muted)}
+.bb-pulse-scbtns{display:flex;flex-wrap:wrap;gap:6px;margin-top:9px}
+.bb-pulse-scbtns button{font-size:10.5px;font-weight:700;color:var(--cream);background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:999px;padding:6px 11px;cursor:pointer;font-family:inherit}
+.bb-pulse-scbtns .bb-share{color:var(--gold);border-color:rgba(200,164,78,0.4)}
+.bb-pulse-sec-label{font-size:10px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:18px 2px 9px}
+.bb-pulse-pillars{display:flex;flex-direction:column;gap:9px}
+.bb-pulse-pillar{display:flex;align-items:center;gap:10px}
+.bb-pulse-pillar-lbl{flex:0 0 62px;font-size:12px;font-weight:600;color:#e9e2d4}
+.bb-pulse-pillar-track{flex:1;height:7px;border-radius:999px;background:rgba(255,255,255,0.07);overflow:hidden}
+.bb-pulse-pillar-track > span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#c8a44e,#f5d889);width:0;transition:width .6s ease}
+.bb-pulse-pillar-score{flex:0 0 22px;text-align:right;font-size:12.5px;font-weight:800;color:#fbf6ec;font-variant-numeric:tabular-nums}
+.bb-pulse-pillar-wt{flex:0 0 32px;text-align:right;font-size:10px;color:var(--muted)}
+.bb-pulse-habits{display:flex;flex-direction:column;gap:3px}
+.bb-pulse-habit{display:flex;align-items:center;gap:11px;width:100%;border:none;background:none;padding:8px 6px;margin:0;border-radius:12px;cursor:pointer;text-align:left;transition:background .15s}
+.bb-pulse-habit:active{background:rgba(255,255,255,0.05)}
+.bb-pulse-habit-ico{width:22px;text-align:center;font-size:15px;flex-shrink:0;opacity:.95}
+.bb-pulse-habit-body{flex:1;min-width:0}
+.bb-pulse-habit-r1{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.bb-pulse-habit-r1 .lbl{font-size:12.5px;font-weight:600;color:#e9e2d4}
+.bb-pulse-habit-r1 .val{font-size:11px;color:var(--muted);white-space:nowrap;font-variant-numeric:tabular-nums}
+.bb-pulse-habit.is-done .lbl{color:#9fe6b3}
+.bb-pulse-habit-bar{height:6px;border-radius:999px;background:rgba(255,255,255,0.07);margin-top:6px;overflow:hidden}
+.bb-pulse-habit-bar > span{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,#c8a44e,#f5d889);width:0;transition:width .6s ease}
+.bb-pulse-habit.is-done .bb-pulse-habit-bar > span{background:linear-gradient(90deg,#3fa45f,#6fe09a)}
+.bb-pulse-habit-spark{flex:0 0 50px;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.bb-spark-svg{width:50px;height:16px;display:block}
+.bb-pulse-habit-spark em{font-size:9.5px;font-style:normal;color:var(--muted);white-space:nowrap;letter-spacing:.02em}
+.bb-pulse-actions{display:flex;gap:8px;margin-top:14px}
+.bb-pulse-act{flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:3px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);border-radius:13px;padding:10px 12px;cursor:pointer;font-family:inherit;text-align:left}
+.bb-pulse-act > span{font-size:11px;color:var(--muted);font-weight:600}
+.bb-pulse-act b{font-size:13px;color:var(--gold);font-weight:800}
+.bb-pulse-act.is-done b{color:#9fe6b3}
+/* Old scorecard + weekly recap are now folded into the Pulse card above */
+#bbScorecardMobileWrap,#weeklyRecap{display:none !important}
 /* Onboarding goal chips */
 .bb-onb-goal{font-size:13px;font-weight:600;padding:9px 13px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.04);color:var(--cream);cursor:pointer;transition:all .18s}
 .bb-onb-goal:hover{border-color:rgba(200,164,78,0.5)}
@@ -5521,17 +5564,36 @@ button.bb-today-pill{cursor:pointer}
               <button type="button" class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" onclick="bbOpenCoinHistory()" title="Gold coins — tap for activity">◉ <b id="bbTodayCoinNum">0</b></button>
             </div>
           </div>
-          <div class="bb-today-body">
-            <button type="button" class="bb-today-ring" id="bbTodayRingBtn" onclick="bbTodayFocusChecklist()" aria-label="Today's progress">
+          <div class="bb-pulse-score">
+            <button type="button" class="bb-today-ring bb-pulse-ring" id="bbTodayRingBtn" onclick="bbTodayFocusChecklist()" aria-label="Your weekly score and today's progress">
               <svg viewBox="0 0 120 120" class="bb-today-ring-svg" aria-hidden="true">
-                <defs><linearGradient id="bbTodayGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c8a44e"></stop><stop offset="1" stop-color="#f7dd93"></stop></linearGradient></defs>
+                <defs>
+                  <linearGradient id="bbTodayGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#c8a44e"></stop><stop offset="1" stop-color="#f7dd93"></stop></linearGradient>
+                  <linearGradient id="bbPulseDayGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3fa45f"></stop><stop offset="1" stop-color="#6fe09a"></stop></linearGradient>
+                </defs>
                 <circle class="bb-today-ring-track" cx="60" cy="60" r="52"></circle>
                 <circle class="bb-today-ring-fill" id="bbTodayRingFill" cx="60" cy="60" r="52"></circle>
+                <circle class="bb-pulse-ring-track2" cx="60" cy="60" r="38"></circle>
+                <circle class="bb-pulse-ring-fill2" id="bbPulseDayFill" cx="60" cy="60" r="38"></circle>
               </svg>
-              <span class="bb-today-ring-center"><b id="bbTodayRingDone">0</b><i>/<span id="bbTodayRingTotal">6</span></i><em>wins</em></span>
+              <span class="bb-today-ring-center"><b id="bbTodayRingScore">0</b><em>score</em><i id="bbPulseTodayMini">0/6 today</i></span>
             </button>
-            <div class="bb-today-list" id="bbTodayList"><!-- rendered by JS --></div>
+            <div class="bb-pulse-meta">
+              <span class="bb-pulse-kicker">BodyBank Score</span>
+              <span class="bb-pulse-trend" id="bbPulseTrend">—</span>
+              <span class="bb-pulse-week" id="bbPulseWeek"></span>
+              <div class="bb-pulse-scbtns">
+                <button type="button" onclick="openScorecardBreakdownModal()">Breakdown</button>
+                <button type="button" onclick="handleScorecardLeaderboardCta()">Leaderboard</button>
+                <button type="button" class="bb-share" onclick="shareScorecardImage()">Share</button>
+              </div>
+            </div>
           </div>
+          <div class="bb-pulse-sec-label">This week · pillars</div>
+          <div class="bb-pulse-pillars" id="bbPulsePillars"></div>
+          <div class="bb-pulse-sec-label">Today's habits</div>
+          <div class="bb-pulse-habits" id="bbPulseHabits"></div>
+          <div class="bb-pulse-actions" id="bbPulseActions"></div>
           <button type="button" class="bb-today-coach" id="bbTodayCoach" onclick="switchUserTab('messages')" hidden>
             <span class="bb-today-coach-ico" aria-hidden="true">💬</span>
             <span class="bb-today-coach-copy">
@@ -16454,6 +16516,17 @@ async function loadHomeAggregate(){
     return data;
   } catch (e) { console.warn('home aggregate', e); return null; }
 }
+// Tiny inline sparkline from a numeric series (7-day trend).
+function bbSparkline(vals, color){
+  vals = (vals || []).map(function(n){ return Number(n) || 0; });
+  if (vals.length < 2) return '';
+  var max = Math.max.apply(null, vals), min = Math.min.apply(null, vals);
+  var range = (max - min) || 1, w = 50, h = 16, n = vals.length;
+  var pts = vals.map(function(v, i){ var x = (i/(n-1))*w; var y = h - ((v-min)/range)*(h-4) - 2; return x.toFixed(1)+','+y.toFixed(1); }).join(' ');
+  return '<svg class="bb-spark-svg" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="'+(color||'#c8a44e')+'" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+}
+function bbPulseKfmt(n){ n = Number(n) || 0; return n >= 1000 ? (n/1000).toFixed(n >= 10000 ? 0 : 1)+'k' : String(Math.round(n)); }
+
 function renderTodayHero(data){
   var hero = document.getElementById('bbTodayHero');
   if (!hero || !data) return;
@@ -16462,7 +16535,10 @@ function renderTodayHero(data){
   var today = data.today || {};
   var ci = today.checkin || {};
   var streak = data.streak || {};
+  var weekly = streak.weekly || {};
+  var series = data.series || {};
   var coins = data.coins || {};
+  var sc = data.scorecard || {};
   // header
   var name = (profile.first_name || (window.currentUser && window.currentUser.first_name) || '').trim();
   var g = document.getElementById('bbTodayGreeting');
@@ -16477,53 +16553,71 @@ function renderTodayHero(data){
   if (cPill) { var tier = bbCoinTier(coins.lifetimeEarned != null ? coins.lifetimeEarned : coins.balance); cPill.title = 'Gold coins — ' + tier.label + ' tier'; }
   var freezeBtn = document.getElementById('bbTodayFreezeBtn');
   if (freezeBtn) freezeBtn.hidden = !streak.freezeAvailable;
-  // checklist metrics
+  // ---- metrics (today value/goal + 7-day series + weekly avg) ----
   var waterMl = (ci.water_ml != null) ? ci.water_ml : (ci.water_liters != null ? Math.round(ci.water_liters * 1000) : 0);
   function pct(v, goal){ if (!goal || goal <= 0) return v > 0 ? 1 : 0; return Math.max(0, Math.min(1, (v || 0) / goal)); }
   var workoutToday = false;
   if (today.lastWorkout && today.lastWorkout.created_at) {
-    var wd = new Date(today.lastWorkout.created_at);
-    var now = new Date();
+    var wd = new Date(today.lastWorkout.created_at), now = new Date();
     workoutToday = wd.getFullYear() === now.getFullYear() && wd.getMonth() === now.getMonth() && wd.getDate() === now.getDate();
   }
   var metrics = [
-    { ico:'👟', lbl:'Steps',   field:'microSteps',   v:(ci.steps||0),  goal:goals.steps,      disp:(ci.steps||0) + ' / ' + goals.steps },
-    { ico:'💧', lbl:'Water',   field:'microWater',   v:waterMl,        goal:goals.water_ml,   disp:((waterMl/1000).toFixed(1)) + ' / ' + (goals.water_ml/1000).toFixed(1) + ' L' },
-    { ico:'🥩', lbl:'Protein', field:'microProtein', v:(ci.protein_g||0), goal:goals.protein_g, disp:(ci.protein_g||0) + ' / ' + goals.protein_g + ' g' },
-    { ico:'😴', lbl:'Sleep',   field:'microSleep',   v:(ci.sleep_hours||0), goal:goals.sleep_hours, disp:(ci.sleep_hours||0) + ' / ' + goals.sleep_hours + ' h' }
+    { ico:'👟', lbl:'Steps',   field:'microSteps',   v:(ci.steps||0),     goal:goals.steps,      disp:(ci.steps||0).toLocaleString() + ' / ' + Number(goals.steps).toLocaleString(), series:series.steps,     avg:(weekly.avgSteps!=null?bbPulseKfmt(weekly.avgSteps):'—') },
+    { ico:'💧', lbl:'Water',   field:'microWater',   v:waterMl,           goal:goals.water_ml,   disp:(waterMl/1000).toFixed(1) + ' / ' + (goals.water_ml/1000).toFixed(1) + ' L', series:series.water_ml,  avg:(weekly.avgWater!=null?(weekly.avgWater+'L'):'—') },
+    { ico:'🥩', lbl:'Protein', field:'microProtein', v:(ci.protein_g||0), goal:goals.protein_g,  disp:(ci.protein_g||0) + ' / ' + goals.protein_g + ' g', series:series.protein_g, avg:(weekly.avgProtein!=null?(weekly.avgProtein+'g'):'—') },
+    { ico:'😴', lbl:'Sleep',   field:'microSleep',   v:(ci.sleep_hours||0), goal:goals.sleep_hours, disp:(ci.sleep_hours||0) + ' / ' + goals.sleep_hours + ' h', series:series.sleep_hours, avg:(weekly.avgSleep!=null?(weekly.avgSleep+'h'):'—') }
   ];
   var doneCount = 0;
-  var rows = metrics.map(function(m){
-    var p = pct(m.v, m.goal);
-    var done = p >= 1;
+  var habitsHtml = metrics.map(function(m){
+    var p = pct(m.v, m.goal), done = p >= 1;
     if (done) doneCount++;
-    return '<button type="button" class="bb-today-item' + (done?' is-done':'') + '" onclick="bbTodayFocusField(\'' + m.field + '\')">' +
-      '<span class="bb-today-item-ico">' + m.ico + '</span>' +
-      '<span class="bb-today-item-main">' +
-        '<span class="bb-today-item-top"><span class="bb-today-item-lbl">' + m.lbl + (done?' ✓':'') + '</span><span class="bb-today-item-val">' + m.disp + '</span></span>' +
-        '<span class="bb-today-item-bar"><span style="width:' + Math.round(p*100) + '%"></span></span>' +
-      '</span></button>';
+    return '<button type="button" class="bb-pulse-habit' + (done?' is-done':'') + '" onclick="bbTodayFocusField(\'' + m.field + '\')">' +
+      '<span class="bb-pulse-habit-ico">' + m.ico + '</span>' +
+      '<span class="bb-pulse-habit-body">' +
+        '<span class="bb-pulse-habit-r1"><span class="lbl">' + m.lbl + '</span><span class="val">' + m.disp + '</span></span>' +
+        '<span class="bb-pulse-habit-bar"><span style="width:' + Math.round(p*100) + '%"></span></span>' +
+      '</span>' +
+      '<span class="bb-pulse-habit-spark">' + bbSparkline(m.series, done ? '#6fe09a' : '#c8a44e') + '<em>' + m.avg + '</em></span>' +
+    '</button>';
   }).join('');
-  // workout chip row
+  var habitsEl = document.getElementById('bbPulseHabits'); if (habitsEl) habitsEl.innerHTML = habitsHtml;
+  // ---- actions: workout + sunday (also count toward today's 6 wins) ----
   if (workoutToday) doneCount++;
-  rows += '<button type="button" class="bb-today-item" onclick="switchUserTab(\'workout\')">' +
-    '<span class="bb-today-item-ico">🏋️</span>' +
-    '<span class="bb-today-item-main"><span class="bb-today-item-top"><span class="bb-today-item-lbl">Workout</span>' +
-    '<span class="bb-today-chip ' + (workoutToday?'is-done':'is-todo') + '">' + (workoutToday?'Logged':'Log now') + '</span></span></span></button>';
-  // sunday check-in (only counts as a win when not pending)
   var sundayDone = !today.pendingSundayCheckin;
   if (sundayDone) doneCount++;
-  rows += '<button type="button" class="bb-today-item" onclick="switchUserTab(\'checkin\')">' +
-    '<span class="bb-today-item-ico">📋</span>' +
-    '<span class="bb-today-item-main"><span class="bb-today-item-top"><span class="bb-today-item-lbl">Sunday check-in</span>' +
-    '<span class="bb-today-chip ' + (sundayDone?'is-done':'is-todo') + '">' + (sundayDone?'Done':'Due') + '</span></span></span></button>';
-  var list = document.getElementById('bbTodayList');
-  if (list) list.innerHTML = rows;
-  var total = 6;
-  var ringDone = document.getElementById('bbTodayRingDone'); if (ringDone) ringDone.textContent = doneCount;
-  var ringTotal = document.getElementById('bbTodayRingTotal'); if (ringTotal) ringTotal.textContent = total;
-  var fill = document.getElementById('bbTodayRingFill');
-  if (fill) { var circ = 327; fill.style.strokeDashoffset = String(Math.round(circ * (1 - doneCount/total))); }
+  var actEl = document.getElementById('bbPulseActions');
+  if (actEl) actEl.innerHTML =
+    '<button type="button" class="bb-pulse-act' + (workoutToday?' is-done':'') + '" onclick="switchUserTab(\'workout\')"><span>🏋️ Workout</span><b>' + (workoutToday?'Logged ✓':'Log now') + '</b></button>' +
+    '<button type="button" class="bb-pulse-act' + (sundayDone?' is-done':'') + '" onclick="switchUserTab(\'checkin\')"><span>📋 Sunday</span><b>' + (sundayDone?'Done ✓':'Due') + '</b></button>';
+  // ---- pillars (this week's score components) ----
+  var pillars = (sc.pillars || []);
+  var pillEl = document.getElementById('bbPulsePillars');
+  if (pillEl) {
+    pillEl.innerHTML = pillars.map(function(p){
+      return '<div class="bb-pulse-pillar">' +
+        '<span class="bb-pulse-pillar-lbl">' + escapeHtml(p.label) + '</span>' +
+        '<span class="bb-pulse-pillar-track"><span style="width:' + Math.max(0, Math.min(100, p.score||0)) + '%"></span></span>' +
+        '<span class="bb-pulse-pillar-score">' + (p.score||0) + '</span>' +
+        '<span class="bb-pulse-pillar-wt">' + (p.weight||0) + '%</span>' +
+      '</div>';
+    }).join('');
+  }
+  // ---- dual ring: outer = weekly score, inner = today's 6 wins ----
+  var score = sc.total || 0;
+  var scoreEl = document.getElementById('bbTodayRingScore'); if (scoreEl) scoreEl.textContent = score;
+  var miniEl = document.getElementById('bbPulseTodayMini'); if (miniEl) miniEl.textContent = doneCount + '/6 today';
+  var outer = document.getElementById('bbTodayRingFill');
+  if (outer) outer.style.strokeDashoffset = String(Math.round(327 * (1 - Math.max(0, Math.min(1, score/100)))));
+  var inner = document.getElementById('bbPulseDayFill');
+  if (inner) inner.style.strokeDashoffset = String(Math.round(239 * (1 - doneCount/6)));
+  // ---- score meta: trend + week ----
+  var trendEl = document.getElementById('bbPulseTrend');
+  if (trendEl) {
+    var td = sc.trend_delta;
+    if (td == null) { trendEl.textContent = 'New week'; trendEl.className = 'bb-pulse-trend'; }
+    else { var up = td >= 0; trendEl.textContent = (up ? '↑ +' + td : '↓ ' + td) + ' vs last week'; trendEl.className = 'bb-pulse-trend ' + (up ? 'up' : 'down'); }
+  }
+  var wkEl = document.getElementById('bbPulseWeek'); if (wkEl) wkEl.textContent = sc.week_label || '';
   // coach row
   var coachBtn = document.getElementById('bbTodayCoach');
   if (coachBtn) {
