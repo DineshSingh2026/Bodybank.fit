@@ -132,7 +132,8 @@ function createScorecardService({ queryOne, queryAll }) {
     const [dailyRows, sundayRows, workoutRows, progressRows] = await Promise.all([
       queryAll(
         `SELECT checkin_date FROM daily_checkins
-         WHERE user_id = ? AND checkin_date >= ?::date AND checkin_date < ?::date`,
+         WHERE user_id = ? AND checkin_date >= ?::date AND checkin_date < ?::date
+           AND COALESCE(is_freeze, FALSE) = FALSE`,
         [userId, weekStartISO, weekEndExclusive]
       ),
       queryAll(

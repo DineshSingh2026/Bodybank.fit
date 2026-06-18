@@ -2954,6 +2954,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bb-today-pill{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:var(--cream)}
 .bb-today-pill--streak b{color:#ffb454}
 .bb-today-pill--coin b{color:var(--gold)}
+.bb-today-pill--freeze{cursor:pointer;color:#9fd8ff;border-color:rgba(120,190,255,0.45);background:rgba(120,190,255,0.12)}
+.bb-today-pill--freeze:active{background:rgba(120,190,255,0.25)}
 .bb-today-body{display:flex;align-items:center;gap:16px}
 .bb-today-ring{position:relative;flex-shrink:0;width:96px;height:96px;border:none;background:none;padding:0;cursor:pointer}
 .bb-today-ring-svg{width:96px;height:96px;transform:rotate(-90deg)}
@@ -2983,6 +2985,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bb-today-coach-from{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);font-weight:700}
 .bb-today-coach-msg{display:block;font-size:13px;color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .bb-today-coach-cta{flex-shrink:0;font-size:12px;font-weight:700;color:var(--gold);border:1px solid rgba(200,164,78,0.4);border-radius:999px;padding:5px 12px}
+.bb-today-week{margin:11px 2px 0;font-size:11.5px;color:var(--muted);text-align:center;letter-spacing:.02em}
 @media(max-width:380px){.bb-today-body{gap:12px}.bb-today-ring,.bb-today-ring-svg{width:84px;height:84px}.bb-today-ring-center b{font-size:22px}}
 /* Onboarding goal chips */
 .bb-onb-goal{font-size:13px;font-weight:600;padding:9px 13px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.04);color:var(--cream);cursor:pointer;transition:all .18s}
@@ -3470,6 +3473,13 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .micro-goal-field label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
 .micro-goal-field input{width:100%;padding:10px 14px;border:1px solid var(--bdr);border-radius:8px;background:rgba(0,0,0,0.3);color:var(--cream);font-size:14px}
 .micro-goal-field input::placeholder{color:var(--muted)}
+/* +/- steppers for frictionless daily logging */
+.bb-stepper{display:flex;align-items:stretch;gap:0;border:1px solid var(--bdr);border-radius:8px;background:rgba(0,0,0,0.3);overflow:hidden}
+.bb-stepper input{flex:1;min-width:0;border:none!important;border-radius:0!important;background:transparent!important;text-align:center;padding:10px 4px!important;-moz-appearance:textfield}
+.bb-stepper input::-webkit-outer-spin-button,.bb-stepper input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.bb-step-btn{flex:0 0 auto;width:38px;border:none;background:rgba(200,164,78,0.1);color:var(--gold);font-size:20px;font-weight:700;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;touch-action:manipulation;transition:background .15s}
+.bb-step-btn:active{background:rgba(200,164,78,0.28)}
+.bb-step-btn:disabled{opacity:.4;cursor:not-allowed}
 .micro-goals-submit{width:100%;padding:12px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;transition:opacity .2s,transform .1s}
 .micro-goals-submit:hover{opacity:.92}
 .micro-goals-submit:active{transform:scale(0.97);opacity:.85;transition:transform .08s,opacity .08s}
@@ -5507,6 +5517,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               <p class="bb-today-date" id="bbTodayDate"></p>
             </div>
             <div class="bb-today-pills">
+              <button type="button" class="bb-today-pill bb-today-pill--freeze" id="bbTodayFreezeBtn" onclick="bbUseStreakFreeze()" title="Protect your streak across a missed day (1/month)" hidden>🧊 Freeze</button>
               <span class="bb-today-pill bb-today-pill--streak" id="bbTodayStreakPill" title="Daily check-in streak">🔥 <b id="bbTodayStreakNum">0</b></span>
               <span class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" title="Gold coins">◉ <b id="bbTodayCoinNum">0</b></span>
             </div>
@@ -5529,6 +5540,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             </span>
             <span class="bb-today-coach-cta" id="bbTodayCoachCta">Open</span>
           </button>
+          <p class="bb-today-week" id="bbTodayWeek" hidden></p>
         </section>
 
         <div class="push-enable-wrap" id="pushEnableWrap">
@@ -5604,19 +5616,35 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               <div class="micro-goals-grid">
                 <div class="micro-goal-field">
                   <label>Steps</label>
-                  <input type="number" id="microSteps" placeholder="e.g. 8000" min="0">
+                  <div class="bb-stepper">
+                    <button type="button" class="bb-step-btn" onclick="bbStep('microSteps',-500,0,100000)" aria-label="Decrease steps">−</button>
+                    <input type="number" id="microSteps" placeholder="e.g. 8000" min="0">
+                    <button type="button" class="bb-step-btn" onclick="bbStep('microSteps',500,0,100000)" aria-label="Increase steps">+</button>
+                  </div>
                 </div>
                 <div class="micro-goal-field">
                   <label>Water (L)</label>
-                  <input type="number" id="microWater" placeholder="e.g. 2.5" min="0" max="15" step="0.1" inputmode="decimal">
+                  <div class="bb-stepper">
+                    <button type="button" class="bb-step-btn" onclick="bbStep('microWater',-0.25,0,15)" aria-label="Decrease water">−</button>
+                    <input type="number" id="microWater" placeholder="e.g. 2.5" min="0" max="15" step="0.1" inputmode="decimal">
+                    <button type="button" class="bb-step-btn" onclick="bbStep('microWater',0.25,0,15)" aria-label="Increase water">+</button>
+                  </div>
                 </div>
                 <div class="micro-goal-field">
                   <label>Protein (g)</label>
-                  <input type="number" id="microProtein" placeholder="e.g. 120" min="0">
+                  <div class="bb-stepper">
+                    <button type="button" class="bb-step-btn" onclick="bbStep('microProtein',-10,0,500)" aria-label="Decrease protein">−</button>
+                    <input type="number" id="microProtein" placeholder="e.g. 120" min="0">
+                    <button type="button" class="bb-step-btn" onclick="bbStep('microProtein',10,0,500)" aria-label="Increase protein">+</button>
+                  </div>
                 </div>
                 <div class="micro-goal-field">
                   <label>Sleep (hrs)</label>
-                  <input type="number" id="microSleep" placeholder="e.g. 7.5" min="0" step="0.5">
+                  <div class="bb-stepper">
+                    <button type="button" class="bb-step-btn" onclick="bbStep('microSleep',-0.5,0,24)" aria-label="Decrease sleep">−</button>
+                    <input type="number" id="microSleep" placeholder="e.g. 7.5" min="0" step="0.5">
+                    <button type="button" class="bb-step-btn" onclick="bbStep('microSleep',0.5,0,24)" aria-label="Increase sleep">+</button>
+                  </div>
                 </div>
               </div>
               <button type="submit" class="micro-goals-submit">Save today</button>
@@ -16380,6 +16408,38 @@ function switchUserTab(tab) {
 window._bbHomeData = null;
 window._bbHomeDataAt = 0;
 function bbHaptic(ms){ try { if (navigator.vibrate) navigator.vibrate(ms || 8); } catch(_){} }
+// +/- stepper for the daily check-in inputs (frictionless logging)
+function bbStep(id, delta, min, max){
+  var el = document.getElementById(id);
+  if (!el || el.disabled) return;
+  var cur = parseFloat(String(el.value || '').replace(/,/g, ''));
+  if (!Number.isFinite(cur)) cur = 0;
+  var next = cur + delta;
+  if (typeof min === 'number') next = Math.max(min, next);
+  if (typeof max === 'number') next = Math.min(max, next);
+  // keep decimals tidy for fractional fields (water/sleep), integers for the rest
+  next = (Math.abs(delta) < 1) ? Math.round(next * 100) / 100 : Math.round(next);
+  el.value = next;
+  bbHaptic(5);
+  try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch(_){}
+}
+// Coins-as-badges (#13): tier from lifetime coins; escalating streak flair. Purely cosmetic.
+function bbCoinTier(coins){
+  var c = Number(coins) || 0;
+  if (c >= 10000) return { label: 'Elite',    icon: '👑', color: '#e9d8a6' };
+  if (c >= 5000)  return { label: 'Platinum', icon: '💎', color: '#cfd8dc' };
+  if (c >= 2000)  return { label: 'Gold',     icon: '🥇', color: '#e0a23c' };
+  if (c >= 500)   return { label: 'Silver',   icon: '🥈', color: '#c3c9cf' };
+  return { label: 'Bronze', icon: '🥉', color: '#cd9b6a' };
+}
+function bbStreakFlair(streak){
+  var n = Number(streak) || 0;
+  if (n >= 100) return '👑';
+  if (n >= 30)  return '💎';
+  if (n >= 14)  return '🌟';
+  if (n >= 7)   return '⚡';
+  return '🔥';
+}
 function bbTodayGreetingText(){
   var h = new Date().getHours();
   if (h < 12) return 'Good morning';
@@ -16425,7 +16485,13 @@ function renderTodayHero(data){
   var d = document.getElementById('bbTodayDate');
   if (d) d.textContent = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
   var sNum = document.getElementById('bbTodayStreakNum'); if (sNum) sNum.textContent = streak.streak || 0;
+  var sPill = document.getElementById('bbTodayStreakPill');
+  if (sPill) { sPill.firstChild && (sPill.firstChild.nodeValue = bbStreakFlair(streak.streak) + ' '); }
   var cNum = document.getElementById('bbTodayCoinNum'); if (cNum) cNum.textContent = (coins.balance != null ? coins.balance : 0);
+  var cPill = document.getElementById('bbTodayCoinPill');
+  if (cPill) { var tier = bbCoinTier(coins.lifetimeEarned != null ? coins.lifetimeEarned : coins.balance); cPill.title = 'Gold coins — ' + tier.label + ' tier'; }
+  var freezeBtn = document.getElementById('bbTodayFreezeBtn');
+  if (freezeBtn) freezeBtn.hidden = !streak.freezeAvailable;
   // checklist metrics
   var waterMl = (ci.water_ml != null) ? ci.water_ml : (ci.water_liters != null ? Math.round(ci.water_liters * 1000) : 0);
   function pct(v, goal){ if (!goal || goal <= 0) return v > 0 ? 1 : 0; return Math.max(0, Math.min(1, (v || 0) / goal)); }
@@ -16488,6 +16554,19 @@ function renderTodayHero(data){
     }
     coachBtn.hidden = false;
   }
+  // week-in-review footer (#11): consistency + weekly score
+  var weekEl = document.getElementById('bbTodayWeek');
+  if (weekEl) {
+    var cw = streak.checkinsThisWeek;
+    var sc = data.scorecard && data.scorecard.total;
+    if (cw != null || sc != null) {
+      var parts = [];
+      if (cw != null) parts.push('✅ ' + cw + '/7 check-ins this week');
+      if (sc != null) parts.push('weekly score ' + sc);
+      weekEl.textContent = parts.join('  ·  ');
+      weekEl.hidden = false;
+    }
+  }
   hero.hidden = false;
 }
 
@@ -16541,6 +16620,18 @@ async function bbFinishOnboarding(){
 }
 async function bbSkipOnboarding(){
   await bbSaveOnboarding(true);
+}
+
+// Streak freeze (#12)
+async function bbUseStreakFreeze(){
+  if (!confirm('Use your monthly streak freeze to protect your streak for the missed day?')) return;
+  try {
+    var r = await apiCall('POST', '/api/me/streak-freeze', {});
+    if (r && r.error) { showPopup('Heads up', r.error, '', 'OK'); return; }
+    bbHaptic(16);
+    showPopup('Streak protected 🧊', 'Your streak is safe — but log today to keep it going!', '', 'OK', null, 'success');
+    loadHomeAggregate();
+  } catch (e) { showPopup('Error', e.message || 'Could not apply freeze.', '', 'OK', null, 'error'); }
 }
 
 function bbIsTypingInputContext() {
@@ -16684,7 +16775,9 @@ function bbRenderCoinSummary() {
   if (el = document.getElementById('bbCoinBalanceDesktop')) el.textContent = balanceText;
   if (el = document.getElementById('bbCoinSubMobile')) {
     var earned = Number(bbCoinState.lifetimeEarned);
-    el.textContent = Number.isFinite(earned) ? ('Lifetime earned: ' + earned.toLocaleString('en-US')) : 'Tracking your consistency';
+    var tier = bbCoinTier(Number.isFinite(earned) ? earned : bbCoinState.balance);
+    var earnedTxt = Number.isFinite(earned) ? ('Lifetime earned: ' + earned.toLocaleString('en-US')) : 'Tracking your consistency';
+    el.innerHTML = '<span style="color:' + tier.color + ';font-weight:700">' + tier.icon + ' ' + tier.label + '</span> · ' + earnedTxt;
   }
 }
 async function bbLoadCoinSummary(force) {

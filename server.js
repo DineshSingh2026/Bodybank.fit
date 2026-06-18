@@ -1,7 +1,13 @@
 require('dotenv').config();
 const express = require('express');
 const compression = require('compression');
-const { Pool } = require('pg');
+const pg = require('pg');
+const { Pool } = pg;
+// Parse Postgres DATE (OID 1082) as the raw 'YYYY-MM-DD' string instead of a JS Date.
+// node-pg otherwise builds a Date at LOCAL midnight, so toISOString()/UTC math shifts
+// the calendar day on any server ahead of UTC (e.g. IST locally). Returning the literal
+// date string keeps streaks/check-in dates correct regardless of the server timezone.
+try { pg.types.setTypeParser(1082, (v) => v); } catch (_) { /* ignore */ }
 const bcrypt = require('bcryptjs');
 const cors = require('cors');
 const { v4: uuidv4 } = require('uuid');
@@ -50,6 +56,7 @@ const {
   toDateStr: streakDateToYmd,
   computeStreakState,
   todayYmdInTz: streakTodayYmdInTz,
+  addCalendarDaysYmd: streakAddDays,
   STREAK_TZ: STREAK_TIMEZONE
 } = require('./services/streakService');
 
@@ -827,6 +834,9 @@ async function initDB() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_daily_checkins_user_date ON daily_checkins(user_id, checkin_date)`); } catch (e) { /* ignore */ }
+  // Streak-freeze marker: an empty row inserted to preserve a streak across a missed day.
+  // Counts toward the streak (presence) but is excluded from averages, weekly counts and admin views.
+  try { await pool.query(`ALTER TABLE daily_checkins ADD COLUMN IF NOT EXISTS is_freeze BOOLEAN DEFAULT FALSE`); } catch (e) { /* ignore */ }
 
   // Mind check-ins (mental-fitness exercises: box_breathing, grounding_54321, body_scan)
   await pool.query(`CREATE TABLE IF NOT EXISTS mind_checkins (
@@ -2322,6 +2332,7 @@ app.get('/api/tribe', async (req, res) => {
         (SELECT MAX(dc.checkin_date)::text
            FROM daily_checkins dc
           WHERE dc.user_id = u.id
+            AND COALESCE(dc.is_freeze, FALSE) = FALSE
         ) AS last_checkin_date
       FROM tribe_members tm
       INNER JOIN users u
@@ -3138,7 +3149,7 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
     const _uRow = await queryOne('SELECT created_at, timezone FROM users WHERE id = ?', [req.user.id]);
     const _uTz = (_uRow && _uRow.timezone) ? _uRow.timezone : STREAK_TIMEZONE;
     const rows = await queryAll(
-      `SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365`,
+      `SELECT checkin_date, steps, water_ml, protein_g, sleep_hours, COALESCE(is_freeze, FALSE) AS is_freeze FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365`,
       [req.user.id]
     );
     if (!rows || rows.length === 0) {
@@ -3177,7 +3188,7 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
     const weekStart = new Date();
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     weekStart.setHours(0, 0, 0, 0);
-    const weekData = rows.filter(r => new Date(r.checkin_date) >= weekStart);
+    const weekData = rows.filter(r => new Date(r.checkin_date) >= weekStart && !r.is_freeze);
     const avgSteps = weekData.length ? Math.round(weekData.reduce((s, r) => s + (r.steps || 0), 0) / weekData.length) : null;
     const avgWater = weekData.length
       ? Math.round((weekData.reduce((s, r) => s + (r.water_ml || 0), 0) / weekData.length / 1000) * 100) / 100
@@ -3196,6 +3207,51 @@ app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ error: 'Failed to load streak' });
+  }
+});
+
+// Streak freeze (#12): preserve a streak across one missed day. 1 per calendar month.
+// Inserts a marked empty check-in for yesterday so the streak chain stays intact;
+// freeze rows are excluded from averages, weekly counts and admin views.
+app.post('/api/me/streak-freeze', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const uRow = await queryOne('SELECT timezone FROM users WHERE id = ?', [userId]).catch(() => null);
+    const tz = (uRow && uRow.timezone) ? uRow.timezone : STREAK_TIMEZONE;
+    const today = streakTodayYmdInTz(tz) || streakDateToYmd(new Date());
+    const yesterday = streakAddDays(today, -1);
+    if (!yesterday) return res.status(400).json({ error: 'Could not determine the day to protect' });
+    const ym = String(today).slice(0, 7);
+    // Enforce one freeze per calendar month.
+    const usedRows = await queryAll(
+      "SELECT checkin_date FROM daily_checkins WHERE user_id = ? AND COALESCE(is_freeze, FALSE) = TRUE AND to_char(checkin_date, 'YYYY-MM') = ?",
+      [userId, ym]
+    );
+    if (usedRows && usedRows.length >= 1) {
+      return res.status(409).json({ error: 'You have already used your streak freeze this month.' });
+    }
+    // Only allow if yesterday is actually missing (otherwise nothing to protect).
+    const existing = await queryOne('SELECT id FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, yesterday]);
+    if (existing) {
+      return res.status(409).json({ error: 'Yesterday is already logged — no freeze needed.' });
+    }
+    // Only worth it if there was a chain to reconnect (day before yesterday was a check-in).
+    const dayBefore = streakAddDays(today, -2);
+    const prior = dayBefore ? await queryOne('SELECT id FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, dayBefore]) : null;
+    if (!prior) {
+      return res.status(409).json({ error: 'No active streak to recover right now.' });
+    }
+    await run(
+      `INSERT INTO daily_checkins (id, user_id, checkin_date, is_freeze) VALUES (?, ?, ?::date, TRUE)
+       ON CONFLICT (user_id, checkin_date) DO NOTHING`,
+      [uuidv4(), userId, yesterday]
+    );
+    const rows = await queryAll('SELECT checkin_date FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365', [userId]);
+    const { streak } = computeStreakState(rows, null, tz);
+    res.json({ ok: true, frozen_date: yesterday, streak, freezeAvailable: false });
+  } catch (e) {
+    console.error('[streak-freeze]', e.message);
+    res.status(500).json({ error: 'Failed to apply streak freeze' });
   }
 });
 
@@ -3280,7 +3336,7 @@ app.get('/api/admin/daily-checkins', verifyToken, requireAdminOrSuperadmin, asyn
               u.first_name, u.last_name, u.email
        FROM daily_checkins dc
        LEFT JOIN users u ON u.id = dc.user_id
-       WHERE 1=1`;
+       WHERE COALESCE(dc.is_freeze, FALSE) = FALSE`;
     const params = [];
     if (from) { sql += ` AND dc.checkin_date >= ?`; params.push(from); }
     if (to) { sql += ` AND dc.checkin_date <= ?`; params.push(to); }
@@ -3876,17 +3932,26 @@ app.get('/api/me/home', verifyToken, async (req, res) => {
   } catch (e) { console.warn('[home] today:', e.message); }
   // Streak (lightweight mirror of /api/daily-checkin/streak)
   try {
-    const rows = await queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365', [userId]);
+    const rows = await queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours, COALESCE(is_freeze, FALSE) AS is_freeze FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365', [userId]);
     if (rows && rows.length) {
-      const { today, todaySaved, streak } = computeStreakState(rows, null, _utz);
+      const { today, todaySaved, streak, dates } = computeStreakState(rows, null, _utz);
       const atRisk = !todaySaved && streak > 0;
       const now = new Date();
       const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
       const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); weekStart.setHours(0, 0, 0, 0);
-      const wk = rows.filter(r => new Date(r.checkin_date) >= weekStart);
+      const wk = rows.filter(r => new Date(r.checkin_date) >= weekStart && !r.is_freeze);
+      const ym = String(today).slice(0, 7);
+      const freezeUsedThisMonth = rows.filter(r => r.is_freeze && streakDateToYmd(r.checkin_date) && String(streakDateToYmd(r.checkin_date)).slice(0, 7) === ym).length;
+      // Freeze recovers a streak broken by a single missed day: offer it only when
+      // yesterday is missing but the day before was a check-in (a chain worth saving).
+      const yDay = streakAddDays(today, -1);
+      const d2Day = streakAddDays(today, -2);
+      const freezeAvailable = freezeUsedThisMonth < 1 && !!d2Day && dates.has(d2Day) && !dates.has(yDay);
       out.streak = {
         streak, todaySaved: !!todaySaved, atRisk: !!atRisk,
         secondsUntilMidnight: atRisk ? Math.max(0, Math.floor((midnight - now) / 1000)) : null,
+        checkinsThisWeek: Math.min(7, wk.length),
+        freezeAvailable,
         weekly: {
           avgSteps: wk.length ? Math.round(wk.reduce((s, r) => s + (r.steps || 0), 0) / wk.length) : null,
           avgWater: wk.length ? Math.round((wk.reduce((s, r) => s + (r.water_ml || 0), 0) / wk.length / 1000) * 100) / 100 : null,
@@ -5437,6 +5502,7 @@ app.get('/api/admin/attention-clients', verifyToken, requireAdminOrSuperadmin, a
         FROM daily_checkins dc
         WHERE dc.user_id = u.id
           AND dc.checkin_date >= (CURRENT_DATE - INTERVAL '6 days')::date
+          AND COALESCE(dc.is_freeze, FALSE) = FALSE
       ) dc7 ON TRUE
 
       LEFT JOIN LATERAL (
@@ -6314,7 +6380,7 @@ async function getAdminAIContext() {
       });
     } else lines.push('  (None.)');
 
-    const recentDailyCheckins = await queryAll("SELECT dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 15");
+    const recentDailyCheckins = await queryAll("SELECT dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id WHERE COALESCE(dc.is_freeze, FALSE) = FALSE ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 15");
     lines.push('\n--- DAILY CHECK-INS (steps, water, protein, sleep) ---');
     if (recentDailyCheckins && recentDailyCheckins.length > 0) {
       recentDailyCheckins.forEach(r => {
@@ -7111,7 +7177,7 @@ async function getSuperadminDashboardData(filters = {}) {
   let meetings = await queryAll("SELECT id, user_id, user_name, user_email, meeting_date, time_slot, status, created_at FROM meetings ORDER BY created_at DESC LIMIT 200");
   let messages = await queryAll("SELECT id, user_id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 200");
   let daily_checkins = await queryAll(
-    "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 200"
+    "SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at, u.first_name, u.last_name, u.email FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id WHERE COALESCE(dc.is_freeze, FALSE) = FALSE ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 200"
   );
   let program_assignments = await queryAll(
     "SELECT a.id, a.user_id, a.program_id, a.assigned_at, p.name as program_name, u.first_name, u.last_name, u.email FROM user_program_assignments a JOIN programs p ON p.id = a.program_id LEFT JOIN users u ON u.id = a.user_id WHERE a.removed_at IS NULL ORDER BY a.assigned_at DESC LIMIT 200"
