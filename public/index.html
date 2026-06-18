@@ -3039,6 +3039,17 @@ button.bb-today-pill{cursor:pointer}
 .bb-pulse-act.is-done b{color:#9fe6b3}
 /* Old scorecard + weekly recap are now folded into the Pulse card above */
 #bbScorecardMobileWrap,#weeklyRecap{display:none !important}
+/* The Pulse card greets you by name, so the old welcome block is redundant — hide it
+   (kept in the DOM because its name/avatar setters are referenced unguarded). */
+.user-welcome > .user-welcome-avatar,
+.user-welcome > .user-welcome-avatar-placeholder,
+.user-welcome > h1,
+.user-welcome > .user-welcome-tag{display:none !important}
+/* Skeleton shimmer so the Pulse occupies its space instantly (no pop-in / layout shift) */
+.bb-skel-row{border-radius:8px;margin:7px 0;background:linear-gradient(90deg,rgba(255,255,255,0.04) 25%,rgba(255,255,255,0.10) 37%,rgba(255,255,255,0.04) 63%);background-size:400% 100%;animation:bbSkel 1.3s ease infinite}
+.bb-skel-pillar{height:16px}
+.bb-skel-habit{height:38px}
+@keyframes bbSkel{0%{background-position:100% 0}100%{background-position:-100% 0}}
 /* Onboarding goal chips */
 .bb-onb-goal{font-size:13px;font-weight:600;padding:9px 13px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.04);color:var(--cream);cursor:pointer;transition:all .18s}
 .bb-onb-goal:hover{border-color:rgba(200,164,78,0.5)}
@@ -15845,8 +15856,9 @@ function openUserDashboard(user) {
   var logoutBtn = document.getElementById('userLogoutBtn');
   if (logoutBtn) logoutBtn.style.display = '';
   lockBodyScroll();
+  bbPulseShowSkeleton();
+  loadHomeAggregate();
   loadUserStats();
-  loadTodayDashboard();
   loadMicroGoals();
   loadScorecard();
   bbLoadCoinSummary(true);
@@ -16405,6 +16417,7 @@ function switchUserTab(tab) {
   if (contentWrap) contentWrap.scrollTop = 0;
   window.scrollTo(0, 0);
   if (tab === 'home') {
+    bbPulseShowSkeleton();
     loadHomeAggregate();
     loadUserStats();
     loadMicroGoals();
@@ -16526,6 +16539,23 @@ function bbSparkline(vals, color){
   return '<svg class="bb-spark-svg" viewBox="0 0 '+w+' '+h+'" preserveAspectRatio="none" aria-hidden="true"><polyline points="'+pts+'" fill="none" stroke="'+(color||'#c8a44e')+'" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 }
 function bbPulseKfmt(n){ n = Number(n) || 0; return n >= 1000 ? (n/1000).toFixed(n >= 10000 ? 0 : 1)+'k' : String(Math.round(n)); }
+function bbSkelRows(n, kind){ var s = ''; for (var i = 0; i < n; i++) s += '<div class="bb-skel-row bb-skel-' + kind + '"></div>'; return s; }
+// Show the Pulse card instantly with the greeting (from the session) + shimmer placeholders,
+// so it never pops in late. Real numbers fill in when /api/me/home returns.
+function bbPulseShowSkeleton(){
+  var hero = document.getElementById('bbTodayHero');
+  if (!hero) return;
+  var name = ((window.currentUser && window.currentUser.first_name) || '').trim();
+  var g = document.getElementById('bbTodayGreeting');
+  if (g && typeof bbTodayGreetingText === 'function') g.textContent = bbTodayGreetingText() + (name ? ', ' + name : '');
+  var d = document.getElementById('bbTodayDate');
+  if (d) d.textContent = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+  if (!window._bbHomeData) {
+    var pe = document.getElementById('bbPulsePillars'); if (pe && !pe.children.length) pe.innerHTML = bbSkelRows(4, 'pillar');
+    var he = document.getElementById('bbPulseHabits'); if (he && !he.children.length) he.innerHTML = bbSkelRows(4, 'habit');
+  }
+  hero.hidden = false;
+}
 
 function renderTodayHero(data){
   var hero = document.getElementById('bbTodayHero');
