@@ -2868,6 +2868,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .user-welcome h1 .welcome-label{display:block;font-size:11px;font-weight:600;letter-spacing:4px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;opacity:.9}
 .user-welcome h1 .welcome-name{background:linear-gradient(135deg,#f5f0e8 0%,var(--goldb) 45%,var(--gold) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .user-welcome .user-welcome-tag{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;letter-spacing:2.5px;color:var(--gold);margin-bottom:32px;opacity:1}
+.welcome-explore-title{max-width:860px;margin:22px auto 12px;font-size:12px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);text-align:left}
 .welcome-cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:860px;margin:0 auto}
 .welcome-card{position:relative;display:flex;align-items:center;gap:14px;padding:18px 20px;background:linear-gradient(180deg,rgba(18,18,18,0.95) 0%,rgba(8,8,8,0.98) 100%);border:1px solid rgba(255,255,255,0.06);border-radius:16px;text-align:left;cursor:pointer;transition:all .3s ease;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.22)}
 .welcome-card::before{content:'';position:absolute;left:0;top:14px;bottom:14px;width:3px;background:linear-gradient(180deg,rgba(200,164,78,0.95),rgba(200,164,78,0.18));border-radius:999px;opacity:.75;transition:opacity .3s}
@@ -2951,7 +2952,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bb-today-hi{margin:0;font-size:18px;font-weight:800;color:var(--cream);letter-spacing:.2px}
 .bb-today-date{margin:2px 0 0;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
 .bb-today-pills{display:flex;gap:8px;flex-shrink:0}
-.bb-today-pill{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:var(--cream)}
+.bb-today-pill{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:var(--cream);font-family:inherit;line-height:1}
+button.bb-today-pill{cursor:pointer}
 .bb-today-pill--streak b{color:#ffb454}
 .bb-today-pill--coin b{color:var(--gold)}
 .bb-today-pill--freeze{cursor:pointer;color:#9fd8ff;border-color:rgba(120,190,255,0.45);background:rgba(120,190,255,0.12)}
@@ -2987,6 +2989,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bb-today-coach-from{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);font-weight:700}
 .bb-today-coach-msg{display:block;font-size:13px;color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
 .bb-today-coach-cta{flex-shrink:0;font-size:12px;font-weight:700;color:var(--gold);border:1px solid rgba(200,164,78,0.4);border-radius:999px;padding:5px 12px}
+.bb-today-meta{display:block;width:100%;margin-top:9px;padding:9px 12px;border-radius:11px;border:1px dashed rgba(255,255,255,0.12);background:none;color:var(--cream);font-size:12.5px;text-align:left;cursor:pointer}
+.bb-today-meta b{color:var(--gold);font-weight:700}
 .bb-today-week{margin:11px 2px 0;font-size:11.5px;color:var(--muted);text-align:center;letter-spacing:.02em}
 @media(max-width:380px){.bb-today-body{gap:12px}.bb-today-ring,.bb-today-ring-svg{width:84px;height:84px}.bb-today-ring-center b{font-size:22px}}
 /* Onboarding goal chips */
@@ -5500,17 +5504,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <div id="welcomeAvatarPlaceholder" class="user-welcome-avatar-placeholder"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <h1><span class="welcome-label">Welcome</span><span class="welcome-name" id="userWelcomeName">User</span></h1>
         <p class="user-welcome-tag">Tribe Elite Member</p>
-        <div class="bb-coin-card" id="bbCoinCardMobile">
-          <div class="coin-left">
-            <span class="coin-ico" aria-hidden="true">◉</span>
-            <div class="coin-copy">
-              <div class="coin-title">Gold Coins</div>
-              <div class="coin-balance" id="bbCoinBalanceMobile">—</div>
-              <div class="coin-sub" id="bbCoinSubMobile">Tracking your consistency</div>
-            </div>
-          </div>
-          <button type="button" class="coin-btn" onclick="bbOpenCoinHistory()">Activity</button>
-        </div>
 
         <!-- ===== Unified TODAY hero (the daily loop at a glance) ===== -->
         <section class="bb-today" id="bbTodayHero" aria-label="Today" hidden>
@@ -5522,7 +5515,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <div class="bb-today-pills">
               <button type="button" class="bb-today-pill bb-today-pill--freeze" id="bbTodayFreezeBtn" onclick="bbUseStreakFreeze()" title="Protect your streak across a missed day (1/month)" hidden>🧊 Freeze</button>
               <span class="bb-today-pill bb-today-pill--streak" id="bbTodayStreakPill" title="Daily check-in streak">🔥 <b id="bbTodayStreakNum">0</b></span>
-              <span class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" title="Gold coins">◉ <b id="bbTodayCoinNum">0</b></span>
+              <button type="button" class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" onclick="bbOpenCoinHistory()" title="Gold coins — tap for activity">◉ <b id="bbTodayCoinNum">0</b></button>
             </div>
           </div>
           <div class="bb-today-body">
@@ -5543,6 +5536,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             </span>
             <span class="bb-today-coach-cta" id="bbTodayCoachCta">Open</span>
           </button>
+          <button type="button" class="bb-today-meta" id="bbTodayNextCall" onclick="switchUserTab('contact')" hidden></button>
           <p class="bb-today-week" id="bbTodayWeek" hidden></p>
         </section>
 
@@ -5577,23 +5571,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           </div>
         </div>
 
-        <!-- Today dashboard -->
+        <!-- Today dashboard (the 3 status cards are now folded into the Today hero above) -->
         <div class="today-dash" id="todayDash">
-          <div class="today-row">
-            <div class="today-card" onclick="switchUserTab('messages');return false">
-              <h3>Last message</h3>
-              <p id="todayLastMsg" class="val empty">—</p>
-            </div>
-            <div class="today-card" onclick="switchUserTab('contact');return false">
-              <h3>Next call</h3>
-              <p id="todayNextCall" class="val empty">—</p>
-            </div>
-            <div class="today-card action" id="todayCheckinCard" onclick="switchUserTab('checkin');return false" style="display:none">
-              <h3>Pending</h3>
-              <p class="val" style="color:var(--gold)">Sunday check-in due</p>
-            </div>
-          </div>
-
           <!-- Micro-goals: daily check-in + streaks -->
           <div class="micro-goals-wrap">
             <div class="streak-at-risk-banner" id="streakAtRiskBanner" style="display:none">
@@ -5613,7 +5592,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
                 <button type="button" class="bb-inactivity-risk__btn" id="inactivityAtRiskBtn" onclick="switchUserTab('checkin')">Open check-in</button>
               </div>
             </div>
-            <h3>Daily check-in <span class="streak-badge" id="microStreakBadge">0 day streak</span></h3>
+            <h3>Daily check-in</h3>
             <div class="streak-timer" id="microStreakTimer" style="display:none"><span class="streak-timer-icon">⏱</span><span id="microStreakTimerText"></span></div>
             <form id="microGoalsForm" onsubmit="submitMicroGoals();return false">
               <div class="micro-goals-grid">
@@ -5678,15 +5657,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           </div>
         </div>
 
+        <h3 class="welcome-explore-title">Explore</h3>
         <div class="welcome-cards">
-          <div class="welcome-card" onclick="switchUserTab('workout')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M2 12h4V8H2v4zM18 12h4V8h-4v4zM6 12h12"/></svg></div><div class="wc-copy"><div class="wc-title">My Workout</div><div class="wc-desc">Log sessions, lifts, and body metrics</div></div></div>
-          <div class="welcome-card" onclick="switchUserTab('body')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div><div class="wc-copy"><div class="wc-title">My Body</div><div class="wc-desc">Photos &amp; measurements over time</div></div></div>
-          <div class="welcome-card" onclick="switchUserTab('programs')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></div><div class="wc-copy"><div class="wc-title">My Programs</div><div class="wc-desc">PDFs assigned by your manager</div></div></div>
-          <div class="welcome-card" onclick="switchUserTab('checkin')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div><div class="wc-copy"><div class="wc-title sc-style">Check-in</div><div class="wc-desc">Daily &amp; Sunday check-ins</div></div></div>
-          <div class="welcome-card" onclick="switchUserTab('messages')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div><div class="wc-copy"><div class="wc-title">Messages</div><div class="wc-desc">Chat with your Lifestyle Manager</div></div></div>
-          <div class="welcome-card" onclick="switchUserTab('profile')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div><div class="wc-copy"><div class="wc-title">My Profile</div><div class="wc-desc">View and update your information</div></div></div>
-          <div class="welcome-card" onclick="window.location.href='/ai-trainer.html?v=2'"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M12 3a2 2 0 0 1 2 2v2h1.8A3.2 3.2 0 0 1 19 10.2V16a3 3 0 0 1-3 3h-1v2h-2v-2h-2v2H9v-2H8a3 3 0 0 1-3-3v-5.8A3.2 3.2 0 0 1 8.2 7H10V5a2 2 0 0 1 2-2z"/><circle cx="9" cy="13" r="1"/><circle cx="15" cy="13" r="1"/></svg></div><div class="wc-copy"><div class="wc-title">AI Trainer</div><div class="wc-desc">Train live with AI pose feedback</div></div></div>
-          <div class="welcome-card" onclick="switchUserTab('contact')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h10v2H7V7zm0 4h10v2H7v-2zm0 4h6v2H7v-2z"/></svg></div><div class="wc-copy"><div class="wc-title">Contact Us</div><div class="wc-desc">Send a one-off message</div></div></div>
           <div class="welcome-card wc-muscle" onclick="switchUserTab('muscle')">
             <div class="wc-icon-wrap wc-muscle-icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -5701,6 +5673,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
               <div class="wc-muscle-tag">NEW</div>
             </div>
           </div>
+          <div class="welcome-card" onclick="switchUserTab('body')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div><div class="wc-copy"><div class="wc-title">My Body</div><div class="wc-desc">Photos &amp; measurements over time</div></div></div>
+          <div class="welcome-card" onclick="switchUserTab('elitefeed')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><circle cx="12" cy="13" r="3.2"/><path d="M8 5l1.5-2h5L16 5"/></svg></div><div class="wc-copy"><div class="wc-title">Elite Feed</div><div class="wc-desc">Wins &amp; transformations from the tribe</div></div></div>
         </div>
 
       </div>
@@ -16367,7 +16341,6 @@ function switchUserTab(tab) {
   if (tab === 'home') {
     loadHomeAggregate();
     loadUserStats();
-    loadTodayDashboard();
     loadMicroGoals();
     loadScorecard();
     bbLoadCoinSummary(true);
@@ -16569,18 +16542,22 @@ function renderTodayHero(data){
     }
     coachBtn.hidden = false;
   }
-  // week-in-review footer (#11): consistency + weekly score
+  // Next call (folded in from the removed mini-cards)
+  var ncEl = document.getElementById('bbTodayNextCall');
+  if (ncEl) {
+    var nm = today.nextMeeting;
+    if (nm && nm.meeting_date) {
+      var nd = new Date(nm.meeting_date + 'T12:00:00');
+      var dlabel = isNaN(nd.getTime()) ? nm.meeting_date : nd.toLocaleDateString(undefined, { weekday:'short', month:'short', day:'numeric' });
+      ncEl.innerHTML = '<span aria-hidden="true">📞</span> Next call · <b>' + escapeHtml(dlabel + (nm.time_slot ? ' · ' + nm.time_slot : '')) + '</b>';
+      ncEl.hidden = false;
+    } else { ncEl.hidden = true; }
+  }
+  // week-in-review footer (#11): consistency only (the weekly score lives in the scorecard below)
   var weekEl = document.getElementById('bbTodayWeek');
   if (weekEl) {
     var cw = streak.checkinsThisWeek;
-    var sc = data.scorecard && data.scorecard.total;
-    if (cw != null || sc != null) {
-      var parts = [];
-      if (cw != null) parts.push('✅ ' + cw + '/7 check-ins this week');
-      if (sc != null) parts.push('weekly score ' + sc);
-      weekEl.textContent = parts.join('  ·  ');
-      weekEl.hidden = false;
-    }
+    if (cw != null) { weekEl.textContent = '✅ ' + cw + '/7 check-ins this week'; weekEl.hidden = false; }
   }
   hero.hidden = false;
 }
