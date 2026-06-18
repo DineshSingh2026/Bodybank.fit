@@ -2945,6 +2945,49 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   box-shadow:0 10px 28px rgba(0,0,0,0.3),inset 0 0 0 1px rgba(255,255,255,0.04);
   display:flex;align-items:center;justify-content:space-between;gap:12px;
 }
+/* ===== Unified TODAY hero ===== */
+.bb-today{margin:0 auto 18px;width:min(560px,100%);text-align:left;border-radius:18px;padding:16px 16px 14px;border:1px solid rgba(200,164,78,0.28);background:linear-gradient(168deg,rgba(200,164,78,0.10),rgba(16,16,18,0.98));box-shadow:0 12px 34px rgba(0,0,0,0.34),inset 0 0 0 1px rgba(255,255,255,0.04)}
+.bb-today-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:14px}
+.bb-today-hi{margin:0;font-size:18px;font-weight:800;color:var(--cream);letter-spacing:.2px}
+.bb-today-date{margin:2px 0 0;font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.bb-today-pills{display:flex;gap:8px;flex-shrink:0}
+.bb-today-pill{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;font-weight:700;padding:6px 10px;border-radius:999px;border:1px solid rgba(255,255,255,0.12);background:rgba(255,255,255,0.04);color:var(--cream)}
+.bb-today-pill--streak b{color:#ffb454}
+.bb-today-pill--coin b{color:var(--gold)}
+.bb-today-body{display:flex;align-items:center;gap:16px}
+.bb-today-ring{position:relative;flex-shrink:0;width:96px;height:96px;border:none;background:none;padding:0;cursor:pointer}
+.bb-today-ring-svg{width:96px;height:96px;transform:rotate(-90deg)}
+.bb-today-ring-track{fill:none;stroke:rgba(255,255,255,0.08);stroke-width:9}
+.bb-today-ring-fill{fill:none;stroke:url(#bbTodayGrad);stroke:var(--gold);stroke-width:9;stroke-linecap:round;stroke-dasharray:327;stroke-dashoffset:327;transition:stroke-dashoffset .6s cubic-bezier(.4,0,.2,1)}
+.bb-today-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
+.bb-today-ring-center b{font-size:26px;font-weight:800;color:var(--cream)}
+.bb-today-ring-center i{font-size:13px;font-style:normal;color:var(--muted);margin-top:1px}
+.bb-today-ring-center em{font-size:9.5px;font-style:normal;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-top:3px}
+.bb-today-list{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.bb-today-item{display:flex;align-items:center;gap:10px;width:100%;border:none;background:none;padding:2px 0;cursor:pointer;text-align:left}
+.bb-today-item-ico{width:22px;text-align:center;font-size:14px;flex-shrink:0}
+.bb-today-item-main{flex:1;min-width:0}
+.bb-today-item-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
+.bb-today-item-lbl{font-size:12.5px;font-weight:600;color:var(--cream)}
+.bb-today-item-val{font-size:11px;color:var(--muted);white-space:nowrap}
+.bb-today-item-bar{height:5px;border-radius:3px;background:rgba(255,255,255,0.08);margin-top:4px;overflow:hidden}
+.bb-today-item-bar > span{display:block;height:100%;border-radius:3px;background:var(--gold);width:0;transition:width .5s ease}
+.bb-today-item.is-done .bb-today-item-bar > span{background:#46c46a}
+.bb-today-item.is-done .bb-today-item-lbl{color:#8fe0a6}
+.bb-today-chip{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);color:var(--muted);white-space:nowrap}
+.bb-today-chip.is-done{color:#8fe0a6;border-color:rgba(70,196,106,0.4);background:rgba(70,196,106,0.1)}
+.bb-today-chip.is-todo{color:var(--gold);border-color:rgba(200,164,78,0.4);background:rgba(200,164,78,0.08)}
+.bb-today-coach{display:flex;align-items:center;gap:11px;width:100%;margin-top:13px;padding:11px 12px;border-radius:13px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);cursor:pointer;text-align:left}
+.bb-today-coach-ico{font-size:18px;flex-shrink:0}
+.bb-today-coach-copy{flex:1;min-width:0}
+.bb-today-coach-from{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);font-weight:700}
+.bb-today-coach-msg{display:block;font-size:13px;color:var(--cream);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:1px}
+.bb-today-coach-cta{flex-shrink:0;font-size:12px;font-weight:700;color:var(--gold);border:1px solid rgba(200,164,78,0.4);border-radius:999px;padding:5px 12px}
+@media(max-width:380px){.bb-today-body{gap:12px}.bb-today-ring,.bb-today-ring-svg{width:84px;height:84px}.bb-today-ring-center b{font-size:22px}}
+/* Onboarding goal chips */
+.bb-onb-goal{font-size:13px;font-weight:600;padding:9px 13px;border-radius:999px;border:1px solid rgba(255,255,255,0.16);background:rgba(255,255,255,0.04);color:var(--cream);cursor:pointer;transition:all .18s}
+.bb-onb-goal:hover{border-color:rgba(200,164,78,0.5)}
+.bb-onb-goal.is-sel{background:rgba(200,164,78,0.16);border-color:var(--gold);color:var(--gold)}
 .bb-coin-card .coin-left{display:flex;align-items:center;gap:10px;min-width:0}
 .bb-coin-card .coin-ico{
   width:32px;height:32px;border-radius:50%;
@@ -5455,6 +5498,38 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           </div>
           <button type="button" class="coin-btn" onclick="bbOpenCoinHistory()">Activity</button>
         </div>
+
+        <!-- ===== Unified TODAY hero (the daily loop at a glance) ===== -->
+        <section class="bb-today" id="bbTodayHero" aria-label="Today" hidden>
+          <div class="bb-today-top">
+            <div class="bb-today-greet">
+              <p class="bb-today-hi" id="bbTodayGreeting">Today</p>
+              <p class="bb-today-date" id="bbTodayDate"></p>
+            </div>
+            <div class="bb-today-pills">
+              <span class="bb-today-pill bb-today-pill--streak" id="bbTodayStreakPill" title="Daily check-in streak">🔥 <b id="bbTodayStreakNum">0</b></span>
+              <span class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" title="Gold coins">◉ <b id="bbTodayCoinNum">0</b></span>
+            </div>
+          </div>
+          <div class="bb-today-body">
+            <button type="button" class="bb-today-ring" id="bbTodayRingBtn" onclick="bbTodayFocusChecklist()" aria-label="Today's progress">
+              <svg viewBox="0 0 120 120" class="bb-today-ring-svg" aria-hidden="true">
+                <circle class="bb-today-ring-track" cx="60" cy="60" r="52"></circle>
+                <circle class="bb-today-ring-fill" id="bbTodayRingFill" cx="60" cy="60" r="52"></circle>
+              </svg>
+              <span class="bb-today-ring-center"><b id="bbTodayRingDone">0</b><i>/<span id="bbTodayRingTotal">6</span></i><em>wins</em></span>
+            </button>
+            <div class="bb-today-list" id="bbTodayList"><!-- rendered by JS --></div>
+          </div>
+          <button type="button" class="bb-today-coach" id="bbTodayCoach" onclick="switchUserTab('messages')" hidden>
+            <span class="bb-today-coach-ico" aria-hidden="true">💬</span>
+            <span class="bb-today-coach-copy">
+              <span class="bb-today-coach-from" id="bbTodayCoachFrom">Your Lifestyle Manager</span>
+              <span class="bb-today-coach-msg" id="bbTodayCoachMsg">Tap to message your coach</span>
+            </span>
+            <span class="bb-today-coach-cta" id="bbTodayCoachCta">Open</span>
+          </button>
+        </section>
 
         <div class="push-enable-wrap" id="pushEnableWrap">
           <p>Get workout &amp; check-in reminders, and know when your Lifestyle Manager replies.</p>
@@ -16258,6 +16333,7 @@ function switchUserTab(tab) {
   if (contentWrap) contentWrap.scrollTop = 0;
   window.scrollTo(0, 0);
   if (tab === 'home') {
+    loadHomeAggregate();
     loadUserStats();
     loadTodayDashboard();
     loadMicroGoals();
@@ -16298,6 +16374,173 @@ function switchUserTab(tab) {
   if (wasOnWorkout && tab !== 'workout' && typeof timerRunning !== 'undefined' && timerRunning) {
     if (typeof wkEnsureWorkoutBackgroundBanner === 'function') wkEnsureWorkoutBackgroundBanner();
   }
+}
+
+// ===== Unified TODAY hero — one aggregate call powers the daily-loop summary =====
+window._bbHomeData = null;
+window._bbHomeDataAt = 0;
+function bbHaptic(ms){ try { if (navigator.vibrate) navigator.vibrate(ms || 8); } catch(_){} }
+function bbTodayGreetingText(){
+  var h = new Date().getHours();
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+function bbTodayFocusChecklist(){
+  var f = document.getElementById('microGoalsForm');
+  if (f && f.scrollIntoView) f.scrollIntoView({ behavior:'smooth', block:'center' });
+  var s = document.getElementById('microSteps');
+  if (s) { try { s.focus(); } catch(_){} }
+}
+function bbTodayFocusField(id){
+  var f = document.getElementById('microGoalsForm');
+  if (f && f.scrollIntoView) f.scrollIntoView({ behavior:'smooth', block:'center' });
+  var el = document.getElementById(id);
+  if (el) { try { el.focus(); el.select && el.select(); } catch(_){} }
+}
+async function loadHomeAggregate(){
+  try {
+    var data = await apiCall('GET', '/api/me/home');
+    if (!data || data.error) return null;
+    window._bbHomeData = data;
+    window._bbHomeDataAt = Date.now();
+    try { renderTodayHero(data); } catch(e){ console.warn('today hero render', e); }
+    try { if (typeof bbMaybeOnboard === 'function') bbMaybeOnboard(data.profile); } catch(e){ console.warn('onboard', e); }
+    return data;
+  } catch (e) { console.warn('home aggregate', e); return null; }
+}
+function renderTodayHero(data){
+  var hero = document.getElementById('bbTodayHero');
+  if (!hero || !data) return;
+  var profile = data.profile || {};
+  var goals = profile.goals || { steps:8000, water_ml:3000, protein_g:120, sleep_hours:7.5 };
+  var today = data.today || {};
+  var ci = today.checkin || {};
+  var streak = data.streak || {};
+  var coins = data.coins || {};
+  // header
+  var name = (profile.first_name || (window.currentUser && window.currentUser.first_name) || '').trim();
+  var g = document.getElementById('bbTodayGreeting');
+  if (g) g.textContent = bbTodayGreetingText() + (name ? ', ' + name : '');
+  var d = document.getElementById('bbTodayDate');
+  if (d) d.textContent = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
+  var sNum = document.getElementById('bbTodayStreakNum'); if (sNum) sNum.textContent = streak.streak || 0;
+  var cNum = document.getElementById('bbTodayCoinNum'); if (cNum) cNum.textContent = (coins.balance != null ? coins.balance : 0);
+  // checklist metrics
+  var waterMl = (ci.water_ml != null) ? ci.water_ml : (ci.water_liters != null ? Math.round(ci.water_liters * 1000) : 0);
+  function pct(v, goal){ if (!goal || goal <= 0) return v > 0 ? 1 : 0; return Math.max(0, Math.min(1, (v || 0) / goal)); }
+  var workoutToday = false;
+  if (today.lastWorkout && today.lastWorkout.created_at) {
+    var wd = new Date(today.lastWorkout.created_at);
+    var now = new Date();
+    workoutToday = wd.getFullYear() === now.getFullYear() && wd.getMonth() === now.getMonth() && wd.getDate() === now.getDate();
+  }
+  var metrics = [
+    { ico:'👟', lbl:'Steps',   field:'microSteps',   v:(ci.steps||0),  goal:goals.steps,      disp:(ci.steps||0) + ' / ' + goals.steps },
+    { ico:'💧', lbl:'Water',   field:'microWater',   v:waterMl,        goal:goals.water_ml,   disp:((waterMl/1000).toFixed(1)) + ' / ' + (goals.water_ml/1000).toFixed(1) + ' L' },
+    { ico:'🥩', lbl:'Protein', field:'microProtein', v:(ci.protein_g||0), goal:goals.protein_g, disp:(ci.protein_g||0) + ' / ' + goals.protein_g + ' g' },
+    { ico:'😴', lbl:'Sleep',   field:'microSleep',   v:(ci.sleep_hours||0), goal:goals.sleep_hours, disp:(ci.sleep_hours||0) + ' / ' + goals.sleep_hours + ' h' }
+  ];
+  var doneCount = 0;
+  var rows = metrics.map(function(m){
+    var p = pct(m.v, m.goal);
+    var done = p >= 1;
+    if (done) doneCount++;
+    return '<button type="button" class="bb-today-item' + (done?' is-done':'') + '" onclick="bbTodayFocusField(\'' + m.field + '\')">' +
+      '<span class="bb-today-item-ico">' + m.ico + '</span>' +
+      '<span class="bb-today-item-main">' +
+        '<span class="bb-today-item-top"><span class="bb-today-item-lbl">' + m.lbl + (done?' ✓':'') + '</span><span class="bb-today-item-val">' + m.disp + '</span></span>' +
+        '<span class="bb-today-item-bar"><span style="width:' + Math.round(p*100) + '%"></span></span>' +
+      '</span></button>';
+  }).join('');
+  // workout chip row
+  if (workoutToday) doneCount++;
+  rows += '<button type="button" class="bb-today-item" onclick="switchUserTab(\'workout\')">' +
+    '<span class="bb-today-item-ico">🏋️</span>' +
+    '<span class="bb-today-item-main"><span class="bb-today-item-top"><span class="bb-today-item-lbl">Workout</span>' +
+    '<span class="bb-today-chip ' + (workoutToday?'is-done':'is-todo') + '">' + (workoutToday?'Logged':'Log now') + '</span></span></span></button>';
+  // sunday check-in (only counts as a win when not pending)
+  var sundayDone = !today.pendingSundayCheckin;
+  if (sundayDone) doneCount++;
+  rows += '<button type="button" class="bb-today-item" onclick="switchUserTab(\'checkin\')">' +
+    '<span class="bb-today-item-ico">📋</span>' +
+    '<span class="bb-today-item-main"><span class="bb-today-item-top"><span class="bb-today-item-lbl">Sunday check-in</span>' +
+    '<span class="bb-today-chip ' + (sundayDone?'is-done':'is-todo') + '">' + (sundayDone?'Done':'Due') + '</span></span></span></button>';
+  var list = document.getElementById('bbTodayList');
+  if (list) list.innerHTML = rows;
+  var total = 6;
+  var ringDone = document.getElementById('bbTodayRingDone'); if (ringDone) ringDone.textContent = doneCount;
+  var ringTotal = document.getElementById('bbTodayRingTotal'); if (ringTotal) ringTotal.textContent = total;
+  var fill = document.getElementById('bbTodayRingFill');
+  if (fill) { var circ = 327; fill.style.strokeDashoffset = String(Math.round(circ * (1 - doneCount/total))); }
+  // coach row
+  var coachBtn = document.getElementById('bbTodayCoach');
+  if (coachBtn) {
+    var lm = today.lastMessage;
+    if (lm && lm.body) {
+      var fromCoach = lm.sender_role && lm.sender_role !== 'user';
+      var fromEl = document.getElementById('bbTodayCoachFrom');
+      var msgEl = document.getElementById('bbTodayCoachMsg');
+      var ctaEl = document.getElementById('bbTodayCoachCta');
+      if (fromEl) fromEl.textContent = fromCoach ? 'Your Lifestyle Manager' : 'You said';
+      if (msgEl) msgEl.textContent = String(lm.body).slice(0, 90);
+      if (ctaEl) ctaEl.textContent = fromCoach ? 'Reply' : 'Open';
+    }
+    coachBtn.hidden = false;
+  }
+  hero.hidden = false;
+}
+
+// ===== First-run onboarding =====
+window._bbOnboardShown = false;
+window._bbOnboardGoal = '';
+function bbMaybeOnboard(profile){
+  if (!profile || profile.onboarded) return;
+  if (window._bbOnboardShown) return;
+  if (window.currentUser && window.currentUser.role && window.currentUser.role !== 'user') return; // clients only
+  window._bbOnboardShown = true;
+  // prefill targets from any existing goals
+  var g = profile.goals || {};
+  var set = function(id,v){ var el=document.getElementById(id); if(el && v!=null) el.value = v; };
+  set('onbSteps', g.steps); set('onbWater', g.water_ml!=null ? (g.water_ml/1000) : null);
+  set('onbProtein', g.protein_g); set('onbSleep', g.sleep_hours);
+  // wire goal chips once
+  var chips = document.querySelectorAll('#bbOnbGoals .bb-onb-goal');
+  chips.forEach(function(c){
+    c.onclick = function(){
+      chips.forEach(function(x){ x.classList.remove('is-sel'); });
+      c.classList.add('is-sel');
+      window._bbOnboardGoal = c.getAttribute('data-goal') || '';
+      bbHaptic(6);
+    };
+  });
+  if (profile.goal_type) {
+    chips.forEach(function(c){ if (c.getAttribute('data-goal') === profile.goal_type){ c.classList.add('is-sel'); window._bbOnboardGoal = profile.goal_type; } });
+  }
+  if (typeof openModal === 'function') openModal('bbOnboardModal');
+}
+async function bbSaveOnboarding(useDefaults){
+  var num = function(id, dflt){ var el=document.getElementById(id); var n=parseFloat(el && el.value); return Number.isFinite(n) ? n : dflt; };
+  var body = useDefaults ? {} : {
+    goal_type: window._bbOnboardGoal || '',
+    goal_steps: Math.round(num('onbSteps', 8000)),
+    goal_water_ml: Math.round(num('onbWater', 3) * 1000),
+    goal_protein_g: Math.round(num('onbProtein', 120)),
+    goal_sleep_hours: num('onbSleep', 7.5)
+  };
+  try { await apiCall('POST', '/api/me/onboarding', body); } catch(_){}
+  if (window._bbHomeData && window._bbHomeData.profile) window._bbHomeData.profile.onboarded = true;
+  if (typeof closeModal === 'function') closeModal('bbOnboardModal');
+}
+async function bbFinishOnboarding(){
+  bbHaptic(12);
+  await bbSaveOnboarding(false);
+  // refresh hero so the new targets reflect immediately
+  loadHomeAggregate();
+  if (typeof showPopup === 'function') showPopup('You’re all set', 'Your daily targets are saved. Log your first check-in to start a streak!', '', 'Let’s go');
+}
+async function bbSkipOnboarding(){
+  await bbSaveOnboarding(true);
 }
 
 function bbIsTypingInputContext() {
@@ -17181,9 +17424,10 @@ async function submitMicroGoals() {
       return;
     }
     loadMicroGoals();
-    loadMicroGoals();
     loadScorecard();
     bbLoadCoinSummary(true);
+    if (typeof loadHomeAggregate === 'function') loadHomeAggregate();
+    bbHaptic(14);
     showPopup('Saved', 'Daily check-in saved. Streak updated!', '', 'OK', null, 'success');
   } catch (e) {
     showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
@@ -22986,6 +23230,30 @@ window.addEventListener('resize', applySafeAreaFix);
 </style>
 
 <!-- Meal image lightbox -->
+<!-- ===== First-run onboarding (new users) ===== -->
+<div class="modal-overlay" id="bbOnboardModal" aria-hidden="true">
+  <div class="modal" onclick="event.stopPropagation()" style="max-width:min(460px,calc(100vw - 32px))">
+    <h2 style="margin:0 0 4px">Welcome to BodyBank 👋</h2>
+    <p class="form-hint" style="margin:0 0 16px">Two quick taps to personalise your daily targets. You can change these anytime in your profile.</p>
+    <label class="form-label" style="display:block;margin-bottom:6px">What's your main goal?</label>
+    <div id="bbOnbGoals" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:18px">
+      <button type="button" class="bb-onb-goal" data-goal="Fat loss">🔥 Fat loss</button>
+      <button type="button" class="bb-onb-goal" data-goal="Muscle gain">💪 Muscle gain</button>
+      <button type="button" class="bb-onb-goal" data-goal="Recomp">⚖️ Recomp</button>
+      <button type="button" class="bb-onb-goal" data-goal="General fitness">✨ General</button>
+    </div>
+    <label class="form-label" style="display:block;margin-bottom:8px">Your daily targets</label>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px">
+      <div class="micro-goal-field"><label>Steps</label><input type="number" id="onbSteps" min="0" value="8000"></div>
+      <div class="micro-goal-field"><label>Water (L)</label><input type="number" id="onbWater" min="0" max="15" step="0.1" value="3"></div>
+      <div class="micro-goal-field"><label>Protein (g)</label><input type="number" id="onbProtein" min="0" value="120"></div>
+      <div class="micro-goal-field"><label>Sleep (hrs)</label><input type="number" id="onbSleep" min="0" step="0.5" value="7.5"></div>
+    </div>
+    <button type="button" class="form-submit" style="margin:0 0 10px" onclick="bbFinishOnboarding()">Start my journey</button>
+    <button type="button" onclick="bbSkipOnboarding()" style="display:block;width:100%;background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:6px">Skip for now</button>
+  </div>
+</div>
+
 <div id="bbCoinHistoryModal" role="dialog" aria-modal="true" onclick="bbCoinHistoryModalBgClose(event)">
   <div class="chm-box" onclick="event.stopPropagation()">
     <div class="chm-head">

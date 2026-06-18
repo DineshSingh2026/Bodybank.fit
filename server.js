@@ -545,6 +545,15 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS activated_at TIMESTAMP`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS activated_by TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_reminder_sent TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  // ── Daily-goal targets + onboarding (powers the unified Today screen progress rings & first-run) ──
+  // Defaults chosen as sensible starting targets; onboarded_at NULL means "show first-run".
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_steps INTEGER DEFAULT 8000`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_water_ml INTEGER DEFAULT 3000`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_protein_g INTEGER DEFAULT 120`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_sleep_hours REAL DEFAULT 7.5`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarded_at TIMESTAMP`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_freezes_used INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_freeze_month TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   await pool.query("UPDATE users SET subscription_status = 'active' WHERE subscription_status IS NULL").catch(() => {});
   await pool.query("UPDATE users SET approval_status = 'approved' WHERE approval_status IS NULL").catch(() => {});
 
@@ -3809,6 +3818,123 @@ app.get('/api/today', verifyToken, async (req, res) => {
   } catch (e) {
     console.error('Today API error:', e.message);
     res.status(500).json({ error: 'Failed to load today data' });
+  }
+});
+
+// ============ HOME AGGREGATE — one call powers the unified "Today" screen ============
+// Each section is independently try/caught so a single slow/failing piece degrades to null
+// instead of failing the whole payload. This replaces ~8 separate round-trips on home load.
+app.get('/api/me/home', verifyToken, async (req, res) => {
+  const userId = req.user.id;
+  const out = { profile: null, today: null, streak: null, mind: null, coins: null, scorecard: null };
+  // Profile + goals (also tells the client whether to show first-run onboarding)
+  let _utz = STREAK_TIMEZONE;
+  try {
+    const u = await queryOne(
+      `SELECT id, first_name, last_name, profile_picture, height_cm, timezone, created_at,
+              onboarded_at, goal_type,
+              COALESCE(goal_steps, 8000) AS goal_steps,
+              COALESCE(goal_water_ml, 3000) AS goal_water_ml,
+              COALESCE(goal_protein_g, 120) AS goal_protein_g,
+              COALESCE(goal_sleep_hours, 7.5) AS goal_sleep_hours
+         FROM users WHERE id = ?`,
+      [userId]
+    );
+    if (u) {
+      _utz = (u.timezone) ? u.timezone : STREAK_TIMEZONE;
+      out.profile = {
+        id: u.id, first_name: u.first_name || '', last_name: u.last_name || '',
+        profile_picture: u.profile_picture || '', height_cm: u.height_cm || null,
+        goal_type: u.goal_type || '',
+        onboarded: !!u.onboarded_at,
+        goals: {
+          steps: u.goal_steps, water_ml: u.goal_water_ml,
+          protein_g: u.goal_protein_g, sleep_hours: u.goal_sleep_hours
+        }
+      };
+    }
+  } catch (e) { console.warn('[home] profile:', e.message); }
+  // Today (mirror of /api/today)
+  try {
+    const today = streakTodayYmdInTz(_utz) || streakDateToYmd(new Date());
+    const [checkin, meetings, workouts, lastMessageRow] = await Promise.all([
+      queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]),
+      queryAll("SELECT * FROM meetings WHERE user_id = ? AND status != 'cancelled' ORDER BY meeting_date ASC, time_slot ASC", [userId]),
+      queryAll('SELECT * FROM workout_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 1', [userId]),
+      queryOne('SELECT tm.body, tm.created_at, tm.sender_role, mt.id as thread_id FROM thread_messages tm JOIN message_threads mt ON mt.id = tm.thread_id WHERE mt.user_id = ? ORDER BY tm.created_at DESC LIMIT 1', [userId])
+    ]);
+    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); weekStart.setHours(0, 0, 0, 0);
+    const sundayRows = await queryAll("SELECT id FROM sunday_checkins WHERE user_id = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1", [userId, weekStart.toISOString()]);
+    const upcoming = (meetings || []).filter(m => new Date(m.meeting_date + 'T12:00:00') >= new Date()).slice(0, 1);
+    out.today = {
+      checkin: checkin ? attachWaterLitersToDailyRow(checkin) : null,
+      nextMeeting: upcoming[0] || null,
+      lastWorkout: (workouts && workouts[0]) || null,
+      lastMessage: lastMessageRow ? { body: lastMessageRow.body, created_at: lastMessageRow.created_at, sender_role: lastMessageRow.sender_role, thread_id: lastMessageRow.thread_id } : null,
+      pendingSundayCheckin: sundayRows.length === 0
+    };
+  } catch (e) { console.warn('[home] today:', e.message); }
+  // Streak (lightweight mirror of /api/daily-checkin/streak)
+  try {
+    const rows = await queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365', [userId]);
+    if (rows && rows.length) {
+      const { today, todaySaved, streak } = computeStreakState(rows, null, _utz);
+      const atRisk = !todaySaved && streak > 0;
+      const now = new Date();
+      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+      const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); weekStart.setHours(0, 0, 0, 0);
+      const wk = rows.filter(r => new Date(r.checkin_date) >= weekStart);
+      out.streak = {
+        streak, todaySaved: !!todaySaved, atRisk: !!atRisk,
+        secondsUntilMidnight: atRisk ? Math.max(0, Math.floor((midnight - now) / 1000)) : null,
+        weekly: {
+          avgSteps: wk.length ? Math.round(wk.reduce((s, r) => s + (r.steps || 0), 0) / wk.length) : null,
+          avgWater: wk.length ? Math.round((wk.reduce((s, r) => s + (r.water_ml || 0), 0) / wk.length / 1000) * 100) / 100 : null,
+          avgProtein: wk.length ? Math.round(wk.reduce((s, r) => s + (r.protein_g || 0), 0) / wk.length) : null,
+          avgSleep: wk.length ? (wk.reduce((s, r) => s + (r.sleep_hours || 0), 0) / wk.length).toFixed(1) : null
+        }
+      };
+    } else {
+      out.streak = { streak: 0, todaySaved: false, atRisk: false, secondsUntilMidnight: null, weekly: {} };
+    }
+  } catch (e) { console.warn('[home] streak:', e.message); }
+  // Mind exercises completed today
+  try {
+    const today = streakTodayYmdInTz(_utz) || streakDateToYmd(new Date());
+    const rows = await queryAll('SELECT exercise_key FROM mind_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
+    out.mind = { completed: (rows || []).map(r => r.exercise_key) };
+  } catch (e) { console.warn('[home] mind:', e.message); }
+  // Coins
+  try { out.coins = await coinService.getCoinSummary({ run, queryOne, queryAll }, userId); }
+  catch (e) { console.warn('[home] coins:', e.message); }
+  // Scorecard (lightweight: this week's total + label + trend)
+  try {
+    const ws = scorecardSvc.normalizeWeekStart('');
+    const cur = await scorecardSvc.computeWeeklyScore(userId, ws);
+    out.scorecard = cur ? { total: cur.total, week_label: cur.week_label } : null;
+  } catch (e) { console.warn('[home] scorecard:', e.message); }
+  res.json(out);
+});
+
+// Save first-run onboarding (goal + daily targets) and mark the user onboarded.
+app.post('/api/me/onboarding', verifyToken, async (req, res) => {
+  try {
+    const b = req.body || {};
+    const clampInt = (v, min, max, dflt) => { const n = parseInt(v, 10); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : dflt; };
+    const clampFloat = (v, min, max, dflt) => { const n = parseFloat(v); return Number.isFinite(n) ? Math.min(max, Math.max(min, n)) : dflt; };
+    const goalType = String(b.goal_type || '').slice(0, 40);
+    const steps = clampInt(b.goal_steps, 0, 100000, 8000);
+    const waterMl = clampInt(b.goal_water_ml, 0, 15000, 3000);
+    const proteinG = clampInt(b.goal_protein_g, 0, 500, 120);
+    const sleepH = clampFloat(b.goal_sleep_hours, 0, 24, 7.5);
+    await run(
+      `UPDATE users SET goal_type = COALESCE(NULLIF(?, ''), goal_type), goal_steps = ?, goal_water_ml = ?, goal_protein_g = ?, goal_sleep_hours = ?, onboarded_at = COALESCE(onboarded_at, NOW()) WHERE id = ?`,
+      [goalType, steps, waterMl, proteinG, sleepH, req.user.id]
+    );
+    res.json({ ok: true, goals: { steps, water_ml: waterMl, protein_g: proteinG, sleep_hours: sleepH }, goal_type: goalType });
+  } catch (e) {
+    console.error('[onboarding]', e.message);
+    res.status(500).json({ error: 'Failed to save onboarding' });
   }
 });
 
