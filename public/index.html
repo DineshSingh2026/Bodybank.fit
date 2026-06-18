@@ -2980,6 +2980,8 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bb-today-chip.is-done{color:#8fe0a6;border-color:rgba(70,196,106,0.4);background:rgba(70,196,106,0.1)}
 .bb-today-chip.is-todo{color:var(--gold);border-color:rgba(200,164,78,0.4);background:rgba(200,164,78,0.08)}
 .bb-today-coach{display:flex;align-items:center;gap:11px;width:100%;margin-top:13px;padding:11px 12px;border-radius:13px;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.03);cursor:pointer;text-align:left}
+.bb-today-coach.has-unread{border-color:rgba(200,164,78,0.5);background:rgba(200,164,78,0.08)}
+.bb-today-coach.has-unread .bb-today-coach-cta{background:var(--gold);color:#1a1408}
 .bb-today-coach-ico{font-size:18px;flex-shrink:0}
 .bb-today-coach-copy{flex:1;min-width:0}
 .bb-today-coach-from{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--gold);font-weight:700}
@@ -3503,6 +3505,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .user-bottom-nav-item:hover,.user-bottom-nav-item:focus{color:var(--cream);outline:none}
 .user-bottom-nav-item.active{color:var(--gold)}
 .user-bottom-nav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:3px;background:var(--gold);border-radius:2px}
+.user-bottom-nav-badge{position:absolute;top:8px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:#ff5c5c;border:2px solid var(--black,#0a0a0a);box-shadow:0 0 0 1px rgba(255,92,92,0.4)}
 .user-bottom-nav-icon{display:flex;align-items:center;justify-content:center;width:24px;height:24px;font-size:20px;line-height:1;margin-bottom:4px;flex-shrink:0}
 .user-bottom-nav-label{display:block;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;min-height:14px}
 /* Breadcrumbs */
@@ -6456,25 +6459,26 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   </div>
   <nav class="user-bottom-nav" id="userBottomNav" aria-label="User sections">
     <div class="user-bottom-nav-inner">
-      <button type="button" class="user-bottom-nav-item active" data-tab="home" onclick="switchUserTab('home')" aria-label="Home">
+      <button type="button" class="user-bottom-nav-item active" data-tab="home" onclick="switchUserTab('home')" aria-label="Today">
         <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V9.5"/></svg></span>
-        <span class="user-bottom-nav-label">Home</span>
+        <span class="user-bottom-nav-label">Today</span>
       </button>
-      <button type="button" class="user-bottom-nav-item" data-tab="workout" onclick="switchUserTab('workout')" aria-label="Workout">
+      <button type="button" class="user-bottom-nav-item" data-tab="workout" onclick="switchUserTab('workout')" aria-label="Train">
         <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12h2M20.5 12h2"/><rect x="3.5" y="8" width="3.2" height="8" rx="1.1"/><rect x="17.3" y="8" width="3.2" height="8" rx="1.1"/><path d="M6.7 12h10.6"/></svg></span>
-        <span class="user-bottom-nav-label">Workout</span>
-      </button>
-      <button type="button" class="user-bottom-nav-item" data-tab="programs" onclick="switchUserTab('programs')" aria-label="Programs">
-        <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V3.2a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1V4"/><path d="M9 10h6M9 13.5h6M9 17h3.5"/></svg></span>
-        <span class="user-bottom-nav-label">Programs</span>
+        <span class="user-bottom-nav-label">Train</span>
       </button>
       <button type="button" class="user-bottom-nav-item" data-tab="checkin" onclick="switchUserTab('checkin')" aria-label="Check-in">
         <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M8.8 15.2l2.1 2.1 4.3-4.3"/></svg></span>
         <span class="user-bottom-nav-label">Check-in</span>
       </button>
-      <button type="button" class="user-bottom-nav-item" data-tab="messages" onclick="switchUserTab('messages')" aria-label="Messages">
+      <button type="button" class="user-bottom-nav-item" data-tab="messages" onclick="switchUserTab('messages')" aria-label="Coach">
         <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a7.5 7.5 0 0 1-10.9 6.7L4 20l1.85-5.05A7.5 7.5 0 1 1 21 11.5Z"/></svg></span>
-        <span class="user-bottom-nav-label">Messages</span>
+        <span class="user-bottom-nav-badge" id="userCoachNavBadge" hidden></span>
+        <span class="user-bottom-nav-label">Coach</span>
+      </button>
+      <button type="button" class="user-bottom-nav-item" data-tab="profile" onclick="switchUserTab('profile')" aria-label="Profile">
+        <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1"/></svg></span>
+        <span class="user-bottom-nav-label">Profile</span>
       </button>
     </div>
   </nav>
@@ -16373,7 +16377,11 @@ function switchUserTab(tab) {
       setTimeout(function() { bbRefreshDesktopUserDashboard(); }, 150);
     }
   }
-  if (tab === 'messages') loadUserMessagesSection();
+  if (tab === 'messages') {
+    loadUserMessagesSection();
+    try { localStorage.setItem('bb_seen_coach_at', String(Date.now())); } catch(_){}
+    var _nb = document.getElementById('userCoachNavBadge'); if (_nb) _nb.hidden = true;
+  }
   if (tab === 'elitefeed' && typeof loadUserEliteFeedGrid === 'function') loadUserEliteFeedGrid();
   if (tab === 'contact') {
     var today = new Date().toISOString().split('T')[0];
@@ -16551,6 +16559,13 @@ function renderTodayHero(data){
       if (fromEl) fromEl.textContent = fromCoach ? 'Your Lifestyle Manager' : 'You said';
       if (msgEl) msgEl.textContent = String(lm.body).slice(0, 90);
       if (ctaEl) ctaEl.textContent = fromCoach ? 'Reply' : 'Open';
+      // coach unread indicator (#5): coach message newer than the last time the user opened Messages
+      var seen = parseInt(localStorage.getItem('bb_seen_coach_at') || '0', 10) || 0;
+      var msgAt = lm.created_at ? new Date(lm.created_at).getTime() : 0;
+      var unread = fromCoach && msgAt > seen;
+      coachBtn.classList.toggle('has-unread', !!unread);
+      var navBadge = document.getElementById('userCoachNavBadge');
+      if (navBadge) navBadge.hidden = !unread;
     }
     coachBtn.hidden = false;
   }
