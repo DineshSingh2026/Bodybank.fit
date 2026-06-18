@@ -3208,6 +3208,24 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bb-access-reset{background:transparent;border:1px solid rgba(255,255,255,0.16);color:var(--muted);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:12px;font-family:inherit;transition:all .15s}
 .bb-access-reset:hover{color:var(--gold);border-color:rgba(200,164,78,0.4)}
 .bb-access-card-actions{display:flex;justify-content:flex-end;margin-top:14px}
+.bb-member-ai{margin-top:12px;border-top:1px dashed rgba(255,255,255,0.08);padding-top:6px}
+.bb-member-ai-summary{cursor:pointer;list-style:none;font-weight:600;color:var(--gold);font-size:12.5px;letter-spacing:.02em;padding:8px 2px;display:flex;align-items:center;gap:6px;user-select:none}
+.bb-member-ai-summary::-webkit-details-marker{display:none}
+.bb-member-ai-summary::before{content:'▸';display:inline-block;transition:transform .15s ease;font-size:11px;opacity:.8}
+.bb-member-ai[open] .bb-member-ai-summary::before{transform:rotate(90deg)}
+.bb-member-ai-body{padding-top:4px}
+/* Members tab (merged memberships + AI access) — phone polish */
+@media(max-width:600px){
+  .bb-access-card{padding:16px 14px;border-radius:14px}
+  .bb-access-card-actions{justify-content:stretch}
+  .bb-access-card-actions>*{flex:1 1 auto;text-align:center;justify-content:center}
+  .bb-access-card-actions #bb-mem-term-,.bb-access-card-actions select{flex:1 1 100%}
+  .bb-access-card-actions select[id^="bb-mem-term-"]{flex:1 1 100%}
+  .bb-access-row-controls{gap:10px}
+  .bb-access-limit input{width:64px}
+  .bb-member-ai-summary{padding:10px 2px;font-size:13px}
+  .bb-membership-stats>div{flex:1 1 calc(50% - 10px);min-width:0!important}
+}
 .bb-access-badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:10.5px;font-weight:600;letter-spacing:.04em;text-transform:uppercase}
 .bb-access-badge-ok{background:rgba(46,170,90,0.15);color:#5bd089;border:1px solid rgba(46,170,90,0.3)}
 .bb-access-badge-trial{background:rgba(200,164,78,0.12);color:var(--gold);border:1px solid rgba(200,164,78,0.3)}
@@ -6497,7 +6515,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <div class="admin-tabs" id="adminTabs">
       <div class="admin-tab" data-tab="requests" onclick="switchTab('requests')">Audit forms</div>
       <div class="admin-tab" data-tab="leads" onclick="switchTab('leads')">Leads pipeline</div>
-      <div class="admin-tab" data-tab="signups" onclick="switchTab('signups')">Pending Sign-ups</div>
       <div class="admin-tab" data-tab="tribe" onclick="switchTab('tribe')">Client Board</div>
       <div class="admin-tab" data-tab="workouts" onclick="switchTab('workouts')">Workouts</div>
       <div class="admin-tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
@@ -6513,7 +6530,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="admin-tab" data-tab="leaderboards" onclick="switchTab('leaderboards')">Leader Boards</div>
       <div class="admin-tab" data-tab="nutrition" onclick="switchTab('nutrition')">Nutrition AI</div>
       <div class="admin-tab" data-tab="blood" onclick="switchTab('blood')">Blood Reports</div>
-      <div class="admin-tab" data-tab="memberships" onclick="switchTab('memberships')">Memberships</div>
+      <div class="admin-tab" data-tab="memberships" onclick="switchTab('memberships')">Members</div>
     </div>
 
     <div class="admin-tab-content-wrap">
@@ -6562,7 +6579,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <div class="stat-sub up" id="stat-checkins-sub">Loading...</div>
           </div>
           <div class="bb-stat-card">
-            <div class="stat-label">Pending Approvals</div>
+            <div class="stat-label">Trials</div>
             <div class="stat-number" id="stat-pending">—</div>
             <div class="stat-sub down" id="stat-pending-sub">Loading...</div>
           </div>
@@ -6651,7 +6668,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 
         <div class="bb-quick-actions">
           <a class="bb-quick-btn" href="#" onclick="switchTab('leads');return false"><span class="btn-icon">🎯</span>Leads</a>
-          <a class="bb-quick-btn" href="#" onclick="switchTab('signups');return false"><span class="btn-icon">👤</span>Approve Sign-ups</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('tribe');return false"><span class="btn-icon">👥</span>Client Board</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('requests');return false"><span class="btn-icon">📋</span>Audit Forms</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('dailycheckin');return false"><span class="btn-icon">📅</span>Daily Check-ins</a>
@@ -6659,8 +6675,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <a class="bb-quick-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="btn-icon">🏆</span>Leader Boards</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('nutrition');return false"><span class="btn-icon">🥗</span>Nutrition AI</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('blood');return false"><span class="btn-icon">🩺</span>Blood Reports</a>
-          <a class="bb-quick-btn" href="#" onclick="switchTab('memberships');return false"><span class="btn-icon">💳</span>Memberships</a>
-          <a class="bb-quick-btn" href="#" onclick="switchTab('accesscontrol');return false"><span class="btn-icon">🔐</span>Access Control</a>
+          <a class="bb-quick-btn" href="#" onclick="switchTab('memberships');return false"><span class="btn-icon">💳</span>Members</a>
           <a class="bb-quick-btn" href="#" onclick="switchToSection('analytics');return false"><span class="btn-icon">📈</span>Analytics</a>
           <a class="bb-quick-btn" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="btn-icon">💡</span>AI Assist</a>
         </div>
@@ -6673,7 +6688,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <div class="admin-summary-cards">
           <div class="admin-summary-card" onclick="switchTab('clientprogress');return false" role="button" tabindex="0" aria-label="Open Client Progress"><span class="admin-summary-lbl">MEMBERS</span><span class="admin-summary-num num-gold" id="dashMembers">24</span></div>
           <div class="admin-summary-card" onclick="switchTab('dailycheckin');return false" role="button" tabindex="0" aria-label="Open Daily Check-In"><span class="admin-summary-lbl">DAILY CHECK-IN</span><span class="admin-summary-num num-green" id="dashCheckins">18</span></div>
-          <div class="admin-summary-card" onclick="switchTab('signups');return false" role="button" tabindex="0" aria-label="Open Pending Sign-ups"><span class="admin-summary-lbl">PENDING</span><span class="admin-summary-num num-orange" id="dashPending">3</span></div>
+          <div class="admin-summary-card" onclick="switchTab('memberships');return false" role="button" tabindex="0" aria-label="Open Memberships call queue"><span class="admin-summary-lbl">TRIALS</span><span class="admin-summary-num num-orange" id="dashTrials">0</span></div>
           <div class="admin-summary-card" onclick="switchTab('messages');return false" role="button" tabindex="0" aria-label="Open Messages"><span class="admin-summary-lbl">MESSAGES</span><span class="admin-summary-num num-pink" id="dashMessages">2</span></div>
         </div>
 
@@ -6695,7 +6710,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <h3 class="admin-qa-title">QUICK ACCESS</h3>
           <div class="admin-qa-grid">
             <a class="admin-qa-btn" href="#" onclick="switchTab('leads');return false"><span class="admin-qa-icon">&#127919;</span>Leads</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('signups');return false"><span class="admin-qa-icon">&#128100;</span>Sign-ups</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('sundaycheckin');return false"><span class="admin-qa-icon">&#128197;</span>Check-Ins</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('dailycompliance');return false"><span class="admin-qa-icon">📊</span>Daily Compliance</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('workouts');return false"><span class="admin-qa-icon">&#127939;</span>Workouts</a>
@@ -6706,8 +6720,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <a class="admin-qa-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="admin-qa-icon">🏆</span>Leader boards</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('nutrition');return false"><span class="admin-qa-icon">🥗</span>Nutrition report</a>
             <a class="admin-qa-btn" href="#" onclick="switchTab('blood');return false"><span class="admin-qa-icon">🩺</span>Blood reports</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('memberships');return false"><span class="admin-qa-icon">💳</span>Memberships</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('accesscontrol');return false"><span class="admin-qa-icon">🔐</span>Access Control</a>
+            <a class="admin-qa-btn" href="#" onclick="switchTab('memberships');return false"><span class="admin-qa-icon">💳</span>Members</a>
             <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#128202;</span>Analytics</a>
           </div>
         </div>
@@ -6758,11 +6771,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div class="admin-section-page">
         <div class="admin-section-back"><button type="button" class="admin-back-btn" onclick="switchToSection('dashboard');return false">← Back</button></div>
         <div class="admin-section-cards">
-          <a class="admin-section-card" href="#" onclick="switchTab('signups');return false">
-            <span class="admin-section-card-icon" aria-hidden="true">&#128231;</span>
-            <span class="admin-section-card-title">Pending Sign-ups</span>
-            <span class="admin-section-card-desc">Review and approve new client registrations</span>
-          </a>
           <a class="admin-section-card" href="#" onclick="switchTab('tribe');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128101;</span>
             <span class="admin-section-card-title">Tribe</span>
@@ -6907,19 +6915,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
         <tbody id="requestsBody">
           <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
         </tbody>
-      </table></div>
-      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
-        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
-        <span class="admin-h-scroll-label">Scroll to see all columns</span>
-        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
-      </div>
-    </div>
-
-    <!-- TAB: Pending Sign-ups -->
-    <div class="admin-tab-content" id="tab-signups">
-      <div class="admin-table-wrap"><table class="admin-table">
-        <thead><tr><th>Name</th><th>Email</th><th>Signed up</th><th>Actions</th></tr></thead>
-        <tbody id="signupsBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
         <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
@@ -7621,33 +7616,11 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
       <div id="adminBloodReportsList" class="admin-blood-reports-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
     </div>
 
-    <div class="admin-tab-content admin-access-control-page" id="tab-accesscontrol">
-      <div class="admin-nutrition-header">
-        <div>
-          <h3>Access Control</h3>
-          <p class="form-hint" style="margin:4px 0 0">Control per-user access to <strong style="color:var(--gold)">Nutrition AI</strong> and <strong style="color:var(--gold)">AI Trainer</strong>. Toggle <strong>Unlimited</strong> for paid clients, or set a trial limit for users who are evaluating. When a trial limit is reached, the user is blocked and asked to contact you.</p>
-        </div>
-        <div class="admin-nutrition-controls">
-          <input type="search" id="adminAccessSearch" placeholder="Search by name or email" oninput="renderAdminAccessControl()" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.1);color:var(--text,#f0ede8);padding:8px 12px;border-radius:8px;font-size:13px;min-width:220px" aria-label="Search users">
-          <select id="adminAccessFilter" onchange="renderAdminAccessControl()" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.1);color:var(--text,#f0ede8);padding:8px 12px;border-radius:8px;font-size:13px" aria-label="Filter">
-            <option value="all">All users</option>
-            <option value="unlimited">Unlimited (both)</option>
-            <option value="trial">On a trial limit</option>
-            <option value="blocked">Trial exhausted</option>
-          </select>
-          <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminAccessControl()">Refresh</button>
-        </div>
-      </div>
-      <div id="adminAccessControlList" style="margin-top:18px">
-        <p class="form-hint" style="padding:24px;margin:0">Loading…</p>
-      </div>
-    </div>
-
     <div class="admin-tab-content admin-memberships-page" id="tab-memberships">
       <div class="admin-nutrition-header">
         <div>
-          <h3>Memberships <span style="font-size:12px;color:var(--muted);font-weight:600">trials · activations · renewals</span></h3>
-          <p class="form-hint" style="margin:4px 0 0">New sign-ups get <strong style="color:var(--gold)">instant access on a free trial</strong>. Call them, collect payment your way, then hit <strong style="color:var(--gold)">Activate</strong> and pick a plan length. Anyone whose trial or plan lapses is locked out automatically until you renew them.</p>
+          <h3>Members <span style="font-size:12px;color:var(--muted);font-weight:600">trials · activations · renewals · AI access</span></h3>
+          <p class="form-hint" style="margin:4px 0 0">New sign-ups get <strong style="color:var(--gold)">instant access on a free trial</strong>. Call them, collect payment your way, then hit <strong style="color:var(--gold)">Activate</strong> and pick a plan length. Lapsed members are locked out automatically. Expand <strong>AI access</strong> on any card to set Nutrition AI / AI Trainer limits.</p>
         </div>
         <div class="admin-nutrition-controls">
           <input type="search" id="adminMembershipSearch" placeholder="Search by name, email or phone" oninput="renderAdminMemberships()" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.1);color:var(--text,#f0ede8);padding:8px 12px;border-radius:8px;font-size:13px;min-width:220px" aria-label="Search members">
@@ -7658,6 +7631,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
             <option value="active">Active (paid)</option>
             <option value="expired">Expired</option>
             <option value="canceled">Locked</option>
+            <option value="ai_limited">AI: limited</option>
           </select>
           <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminMemberships()">Refresh</button>
           <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0;background:transparent;border:1px solid rgba(255,255,255,0.18)" onclick="runMembershipLifecycleNow()" title="Expire lapsed members, send reminders, refresh the call queue">Run checks now</button>
@@ -7762,7 +7736,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
           <button class="ai-prompt-chip" data-send="Give me a full business overview">🏢 Business Overview</button>
           <button class="ai-prompt-chip" data-send="How many active clients do I have?">👥 Active Clients</button>
           <button class="ai-prompt-chip" data-send="How many pending audit forms are there?">📋 Pending Audits</button>
-          <button class="ai-prompt-chip" data-send="How many pending sign-ups are waiting for approval?">🔔 Pending Sign-ups</button>
+          <button class="ai-prompt-chip" data-send="How many members are on a trial right now?">🔔 Trials</button>
           <button class="ai-prompt-chip" data-send="What is the overall compliance rate across all clients this month?">📊 Overall Compliance</button>
           <button class="ai-prompt-chip" data-send="How many meetings are scheduled?">📅 Meetings</button>
         </div>
@@ -8366,16 +8340,6 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
     <div class="bb-lead-modal-body" id="bbLeadModalBody">
       <p class="form-hint" style="padding:24px;text-align:center">Loading…</p>
     </div>
-  </div>
-</div>
-
-<!-- ADMIN: Sign-up Request View Modal -->
-<div class="modal-overlay view-detail-modal" id="signupViewModal" onclick="if(event.target===this)closeModal('signupViewModal')">
-  <div class="modal">
-    <button class="modal-close" onclick="closeModal('signupViewModal')">&times;</button>
-    <h2>Sign-up Request</h2>
-    <div class="view-detail-body" id="signupViewBody"></div>
-    <div class="view-detail-actions" id="signupViewActions"></div>
   </div>
 </div>
 
@@ -11164,11 +11128,11 @@ async function loadStats() {
   if (activeEl) activeEl.textContent = data.active_members ?? 0;
   const dashMembers = document.getElementById('dashMembers');
   const dashCheckins = document.getElementById('dashCheckins');
-  const dashPending = document.getElementById('dashPending');
+  const dashTrials = document.getElementById('dashTrials');
   const dashMessages = document.getElementById('dashMessages');
   if (dashMembers) dashMembers.textContent = data.active_members ?? 0;
   if (dashCheckins) dashCheckins.textContent = data.daily_checkins ?? 0;
-  if (dashPending) dashPending.textContent = data.pending_signups ?? 0;
+  if (dashTrials) dashTrials.textContent = data.trials ?? 0;
   if (dashMessages) dashMessages.textContent = data.messages ?? 0;
   const dateEl = document.getElementById('adminWelcomeDate');
   if (dateEl) {
@@ -11274,11 +11238,11 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
   // Stats row
   bbSetText('stat-members', statsData.active_members ?? 0);
   bbSetText('stat-checkins', statsData.daily_checkins ?? 0);
-  bbSetText('stat-pending', statsData.pending_signups ?? 0);
+  bbSetText('stat-pending', statsData.trials ?? 0);
   bbSetText('stat-messages', statsData.messages ?? 0);
   bbSetText('stat-members-sub', 'Active tribe members');
   bbSetText('stat-checkins-sub', 'Total daily check-ins');
-  bbSetText('stat-pending-sub', 'Users awaiting approval');
+  bbSetText('stat-pending-sub', 'Members on a free trial');
   bbSetText('stat-messages-sub', 'Unread chat threads');
 
   // Today widget + popup auto-check are now run from loadStats() so they fire
@@ -11712,7 +11676,6 @@ function ensureAdminPanelRowOpenDelegation() {
     var oid = tr.getAttribute('data-open-id') || '';
     if (!kind || !oid) return;
     if (kind === 'audit') viewRequest(oid);
-    else if (kind === 'signup') viewSignupRequest(oid);
     else if (kind === 'sunday') viewSundayCheckin(oid);
     else if (kind === 'daily') viewDailyCheckin(oid);
     else if (kind === 'workout') viewAdminWorkout(oid);
@@ -11939,69 +11902,6 @@ async function removePart2Submission(id) {
   showPopup('Removed', 'Part-2 form has been removed.', '', 'OK');
   loadPart2Submissions();
   loadDashboard();
-}
-
-async function loadPendingSignups() {
-  const tbody = document.getElementById('signupsBody');
-  if (!tbody) return;
-  const data = await apiCall('GET', '/api/admin/pending-signups');
-  const list = data && !data.error && Array.isArray(data) ? data : [];
-  if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No pending sign-ups.</td></tr>';
-    return;
-  }
-  tbody.innerHTML = list.map(u => {
-    const name = (u.first_name || '') + ' ' + (u.last_name || '').trim() || '-';
-    const date = u.created_at ? new Date(u.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-';
-    const id = String(u.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    var oid = adminAttrId(u.id || '');
-    return '<tr class="admin-row-clickable" data-open-kind="signup" data-open-id="' + oid + '"><td data-label="Name">' + escapeHtml(name) + '</td><td data-label="Email">' + escapeHtml(u.email || '-') + '</td><td data-label="Signed up">' + date + '</td><td data-label="Actions"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewSignupRequest(\'' + id + '\')">View</button> <button type="button" class="action-btn btn-approve" onclick="event.stopPropagation();approveUser(\'' + id + '\')">Approve</button> <button type="button" class="action-btn btn-reject" onclick="event.stopPropagation();rejectUser(\'' + id + '\')">Reject</button></td></tr>';
-  }).join('');
-}
-
-async function viewSignupRequest(id) {
-  const r = await apiCall('GET', '/api/admin/pending-signup/' + id);
-  if (r && r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
-  const body = document.getElementById('signupViewBody');
-  const actions = document.getElementById('signupViewActions');
-  if (!body) return;
-  var _age = '';
-  if (r.dob) { try { var _bd = new Date(r.dob); var _ag = Math.floor((Date.now() - _bd.getTime()) / (365.25*24*3600*1000)); _age = ' (' + _ag + ' yrs)'; } catch(_){} }
-  body.innerHTML = _row('Name', (r.first_name || '') + ' ' + (r.last_name || '').trim()) +
-    _row('Email', r.email) + _row('Mobile', r.phone || '—') +
-    _row('DOB', r.dob ? (new Date(r.dob).toLocaleDateString(undefined,{year:'numeric',month:'short',day:'numeric'})) + _age : '—') +
-    _row('Gender', r.gender || '—') +
-    _row('Country', r.country || '—') +
-    _row('State / Province', r.state_province || '—') +
-    _row('City', r.city || '—') +
-    _row('Timezone', r.timezone || '—') +
-    _row('Requested', r.created_at ? new Date(r.created_at).toLocaleString() : '');
-  if (actions) {
-    const sid = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    actions.innerHTML = '<button class="action-btn btn-approve" onclick="closeModal(\'signupViewModal\');approveUser(\'' + sid + '\')">Approve</button><button class="action-btn btn-reject" onclick="closeModal(\'signupViewModal\');rejectUser(\'' + sid + '\')">Reject</button>';
-  }
-  openModal('signupViewModal');
-}
-
-async function approveUser(id) {
-  const res = await apiCall('POST', '/api/admin/approve-user/' + id);
-  if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
-  showPopup('Approved', 'User can now log in and has been added to Clients.', '', 'OK');
-  closeModal('signupViewModal');
-  loadPendingSignups();
-  loadTribe();
-  loadNotifications();
-  if (typeof loadDashboard === 'function') loadDashboard();
-}
-
-async function rejectUser(id) {
-  if (!confirm('Reject this sign-up request? The user will need to sign up again.')) return;
-  const res = await apiCall('POST', '/api/admin/reject-user/' + id);
-  if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
-  showPopup('Rejected', 'User has been rejected. They will need to sign up again to submit a new request.', '', 'OK');
-  closeModal('signupViewModal');
-  loadPendingSignups();
-  loadNotifications();
 }
 
 async function loadSundayCheckins() {
@@ -12478,22 +12378,30 @@ async function loadPart2Submissions() {
 // LEADS PIPELINE — kanban + table + detail modal + today widget
 // ════════════════════════════════════════════════════════════
 var BB_LEAD_STAGES = [
-  { id:'new_audit',       label:'New audit',        color:'#9ca3af', icon:'📥' },
-  { id:'whatsapp_sent',   label:'WhatsApp sent',    color:'#25d366', icon:'💬' },
-  { id:'in_conversation', label:'In conversation',  color:'#3b82f6', icon:'🗨️' },
-  { id:'part2_sent',      label:'Part-2 sent',      color:'#a855f7', icon:'📤' },
-  { id:'part2_received',  label:'Part-2 received',  color:'#8b5cf6', icon:'📋' },
-  { id:'call_proposed',   label:'Call proposed',    color:'#f59e0b', icon:'📞' },
-  { id:'call_scheduled',  label:'Call scheduled',   color:'#eab308', icon:'📅' },
-  { id:'call_done',       label:'Call done',        color:'#10b981', icon:'✓' },
-  { id:'payment_pending', label:'Payment pending',  color:'#f97316', icon:'💰' },
-  { id:'onboarded',       label:'Paid & onboarded', color:'#22c55e', icon:'🎉' },
-  { id:'lost',            label:'Lost / Cold',      color:'#ef4444', icon:'❌' }
+  { id:'new_audit', label:'New audit',       color:'#9ca3af', icon:'📥' },
+  { id:'contacted', label:'In conversation', color:'#3b82f6', icon:'💬' },
+  { id:'part2',     label:'Part-2',          color:'#a855f7', icon:'📋' },
+  { id:'call',      label:'Call',            color:'#eab308', icon:'📞' },
+  { id:'converted', label:'Converted',       color:'#22c55e', icon:'🎉' },
+  { id:'lost',      label:'Lost / Cold',     color:'#ef4444', icon:'❌' }
 ];
+// Legacy stage ids → streamlined ids, so any lead still carrying an old stage
+// (before the server migration runs) renders in the right column.
+var BB_LEAD_STAGE_ALIASES = {
+  whatsapp_sent:'contacted', in_conversation:'contacted',
+  part2_sent:'part2', part2_received:'part2',
+  call_proposed:'call', call_scheduled:'call', call_done:'call',
+  payment_pending:'converted', onboarded:'converted'
+};
+function bbNormalizeStage(id) {
+  var s = String(id || '').trim() || 'new_audit';
+  if (BB_LEAD_STAGE_MAP[s]) return s;
+  return BB_LEAD_STAGE_ALIASES[s] || 'new_audit';
+}
 var BB_LEAD_STAGE_MAP = (function(){ var m = {}; BB_LEAD_STAGES.forEach(function(s){ m[s.id] = s; }); return m; })();
 var bbLeadsState = { view: 'kanban', leads: [], byStage: {}, currentLeadId: null };
 
-function bbLeadStageMeta(id) { return BB_LEAD_STAGE_MAP[id] || BB_LEAD_STAGE_MAP.new_audit; }
+function bbLeadStageMeta(id) { return BB_LEAD_STAGE_MAP[bbNormalizeStage(id)] || BB_LEAD_STAGE_MAP.new_audit; }
 
 function bbLeadDaysSince(iso) {
   if (!iso) return 0;
@@ -12504,11 +12412,11 @@ function bbLeadDaysSince(iso) {
 
 function bbLeadIsStuck(lead) {
   if (!lead) return false;
-  var stage = lead.stage || 'new_audit';
+  var stage = bbNormalizeStage(lead.stage);
   var days = bbLeadDaysSince(lead.stage_changed_at || lead.created_at);
-  if (stage === 'part2_sent' && days > 7) return true;
-  if (stage === 'whatsapp_sent' && days > 3) return true;
-  if (stage === 'payment_pending' && days > 3) return true;
+  if (stage === 'part2' && days > 7) return true;
+  if (stage === 'contacted' && days > 3) return true;
+  if (stage === 'call' && days > 3) return true;
   if (stage === 'new_audit' && days > 1) return true;
   return false;
 }
@@ -12593,7 +12501,7 @@ async function loadLeads() {
   bbLeadsState.byStage = {};
   BB_LEAD_STAGES.forEach(function(s){ bbLeadsState.byStage[s.id] = []; });
   bbLeadsState.leads.forEach(function(l){
-    var s = l.stage || 'new_audit';
+    var s = bbNormalizeStage(l.stage);
     if (!bbLeadsState.byStage[s]) bbLeadsState.byStage[s] = [];
     bbLeadsState.byStage[s].push(l);
   });
@@ -12770,7 +12678,7 @@ function bbLeadRenderDetail(data) {
 
   var sid = String(lead.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
   var stageOptions = BB_LEAD_STAGES.map(function(s){
-    return '<option value="' + s.id + '"' + ((lead.stage || 'new_audit') === s.id ? ' selected' : '') + '>' + s.icon + ' ' + escapeHtml(s.label) + '</option>';
+    return '<option value="' + s.id + '"' + (bbNormalizeStage(lead.stage) === s.id ? ' selected' : '') + '>' + s.icon + ' ' + escapeHtml(s.label) + '</option>';
   }).join('');
 
   var waHref = bbWhatsAppHref(lead.phone);
@@ -12838,12 +12746,12 @@ function bbLeadRenderDetail(data) {
       '<div class="bb-lead-info-grid">' +
         '<div class="bb-lead-info-cell"><span class="lbl">Name</span><span class="val">' + escapeHtml((linkedUser.first_name||'') + ' ' + (linkedUser.last_name||'')) + '</span></div>' +
         '<div class="bb-lead-info-cell"><span class="lbl">Email</span><span class="val">' + escapeHtml(linkedUser.email || '') + '</span></div>' +
-        '<div class="bb-lead-info-cell"><span class="lbl">Status</span><span class="val">' + escapeHtml(linkedUser.approval_status || '') + '</span></div>' +
+        '<div class="bb-lead-info-cell"><span class="lbl">Membership</span><span class="val">' + escapeHtml((linkedUser.plan_label || linkedUser.subscription_status || 'trial')) + '</span></div>' +
         '<div class="bb-lead-info-cell"><span class="lbl">Joined</span><span class="val">' + escapeHtml(linkedUser.created_at ? new Date(linkedUser.created_at).toLocaleDateString() : '') + '</span></div>' +
       '</div>' +
       (alreadyLinked
-        ? '<p class="form-hint" style="margin:8px 0 0 0;color:#86efac">✓ Already linked &amp; marked Paid &amp; onboarded.</p>'
-        : '<button type="button" class="bb-lead-quick-btn" style="margin-top:10px" onclick="bbLeadLinkUser(\'' + sid + '\')">Mark as paid &amp; link this account</button>') +
+        ? '<p class="form-hint" style="margin:8px 0 0 0;color:#86efac">✓ Already linked &amp; marked Converted. Manage billing in the Memberships tab.</p>'
+        : '<button type="button" class="bb-lead-quick-btn" style="margin-top:10px" onclick="bbLeadLinkUser(\'' + sid + '\')">Mark converted &amp; link this account</button>') +
       '</div>';
   } else {
     linkedHtml = '<div class="bb-lead-section"><h4>BodyBank account</h4>' +
@@ -12958,7 +12866,7 @@ async function bbLeadLinkUser(id) {
     showPopup('Cannot link', resp.error, '', 'OK', null, 'error');
     return;
   }
-  showPopup('Linked', 'Lead marked as Paid & onboarded and linked to the BodyBank account.', '', 'OK', null, 'success');
+  showPopup('Linked', 'Lead marked Converted and linked to the BodyBank account. Manage billing in the Memberships tab.', '', 'OK', null, 'success');
   await viewLead(id);
   loadLeads();
 }
@@ -13006,7 +12914,7 @@ async function loadLeadsToday() {
   var calls = data.calls_today || [];
   var pending = data.pending_outreach || [];
   var stuck = data.stuck_part2 || [];
-  var pay = data.payment_pending || [];
+  var pay = data.after_call || [];
   var lost = data.lost_this_week || 0;
 
   function listItems(rows, fmtTime) {
@@ -13030,28 +12938,28 @@ async function loadLeadsToday() {
       '<div class="card-lbl">Waiting for outreach</div>' +
       '<div class="bb-leads-today-list">' + listItems(pending, false) + '</div>' +
     '</div>' +
-    '<div class="bb-leads-today-card is-good" onclick="bbLeadsFilterAndOpen(\'call_scheduled\')">' +
+    '<div class="bb-leads-today-card is-good" onclick="bbLeadsFilterAndOpen(\'call\')">' +
       '<div class="card-icon">📅</div>' +
       '<div class="card-num">' + calls.length + '</div>' +
       '<div class="card-lbl">Calls scheduled today</div>' +
       '<div class="bb-leads-today-list">' + listItems(calls, true) + '</div>' +
     '</div>' +
-    '<div class="bb-leads-today-card ' + (stuck.length ? 'is-urgent' : '') + '" onclick="bbLeadsFilterAndOpen(\'part2_sent\')">' +
+    '<div class="bb-leads-today-card ' + (stuck.length ? 'is-urgent' : '') + '" onclick="bbLeadsFilterAndOpen(\'part2\')">' +
       '<div class="card-icon">⚠</div>' +
       '<div class="card-num">' + stuck.length + '</div>' +
       '<div class="card-lbl">Stuck on Part-2 &gt; 7 days</div>' +
       '<div class="bb-leads-today-list">' + listItems(stuck, false) + '</div>' +
     '</div>' +
-    '<div class="bb-leads-today-card ' + (pay.length ? 'is-urgent' : '') + '" onclick="bbLeadsFilterAndOpen(\'payment_pending\')">' +
-      '<div class="card-icon">💰</div>' +
+    '<div class="bb-leads-today-card ' + (pay.length ? 'is-urgent' : '') + '" onclick="bbLeadsFilterAndOpen(\'call\')">' +
+      '<div class="card-icon">📞</div>' +
       '<div class="card-num">' + pay.length + '</div>' +
-      '<div class="card-lbl">Payment pending</div>' +
+      '<div class="card-lbl">After call — decide</div>' +
       '<div class="bb-leads-today-list">' + listItems(pay, false) + '</div>' +
     '</div>' +
-    '<div class="bb-leads-today-card" onclick="bbLeadsFilterAndOpen(\'onboarded\')">' +
+    '<div class="bb-leads-today-card" onclick="bbLeadsFilterAndOpen(\'converted\')">' +
       '<div class="card-icon">🎉</div>' +
-      '<div class="card-num">' + (counts.onboarded || 0) + '</div>' +
-      '<div class="card-lbl">Total onboarded</div>' +
+      '<div class="card-num">' + (counts.converted || 0) + '</div>' +
+      '<div class="card-lbl">Total converted</div>' +
     '</div>' +
     '<div class="bb-leads-today-card" onclick="bbLeadsFilterAndOpen(\'lost\')">' +
       '<div class="card-icon">❌</div>' +
@@ -13120,7 +13028,7 @@ async function renderLeadsTodayPopup() {
   var calls = data.calls_today || [];
   var pending = data.pending_outreach || [];
   var stuck = data.stuck_part2 || [];
-  var pay = data.payment_pending || [];
+  var pay = data.after_call || [];
   var lost = data.lost_this_week || 0;
 
   grid.innerHTML = '' +
@@ -13130,28 +13038,28 @@ async function renderLeadsTodayPopup() {
       '<div class="bb-today-pop-tile-lbl">Waiting for outreach</div>' +
       bbTodayPopTileListHtml(pending, false, 3) +
     '</div>' +
-    '<div class="bb-today-pop-tile is-good" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'call_scheduled\')">' +
+    '<div class="bb-today-pop-tile is-good" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'call\')">' +
       '<div class="bb-today-pop-tile-icon">📅</div>' +
       '<div class="bb-today-pop-tile-num">' + calls.length + '</div>' +
       '<div class="bb-today-pop-tile-lbl">Calls today</div>' +
       bbTodayPopTileListHtml(calls, true, 3) +
     '</div>' +
-    '<div class="bb-today-pop-tile ' + (stuck.length ? 'is-urgent' : '') + '" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'part2_sent\')">' +
+    '<div class="bb-today-pop-tile ' + (stuck.length ? 'is-urgent' : '') + '" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'part2\')">' +
       '<div class="bb-today-pop-tile-icon">⚠</div>' +
       '<div class="bb-today-pop-tile-num">' + stuck.length + '</div>' +
       '<div class="bb-today-pop-tile-lbl">Stuck on Part-2</div>' +
       bbTodayPopTileListHtml(stuck, false, 3) +
     '</div>' +
-    '<div class="bb-today-pop-tile ' + (pay.length ? 'is-urgent' : '') + '" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'payment_pending\')">' +
-      '<div class="bb-today-pop-tile-icon">💰</div>' +
+    '<div class="bb-today-pop-tile ' + (pay.length ? 'is-urgent' : '') + '" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'call\')">' +
+      '<div class="bb-today-pop-tile-icon">📞</div>' +
       '<div class="bb-today-pop-tile-num">' + pay.length + '</div>' +
-      '<div class="bb-today-pop-tile-lbl">Payment pending</div>' +
+      '<div class="bb-today-pop-tile-lbl">After call — decide</div>' +
       bbTodayPopTileListHtml(pay, false, 3) +
     '</div>' +
-    '<div class="bb-today-pop-tile is-good" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'onboarded\')">' +
+    '<div class="bb-today-pop-tile is-good" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'converted\')">' +
       '<div class="bb-today-pop-tile-icon">🎉</div>' +
-      '<div class="bb-today-pop-tile-num">' + (counts.onboarded || 0) + '</div>' +
-      '<div class="bb-today-pop-tile-lbl">Total onboarded</div>' +
+      '<div class="bb-today-pop-tile-num">' + (counts.converted || 0) + '</div>' +
+      '<div class="bb-today-pop-tile-lbl">Total converted</div>' +
     '</div>' +
     '<div class="bb-today-pop-tile" onclick="closeLeadsTodayPopup();bbLeadsFilterAndOpen(\'lost\')">' +
       '<div class="bb-today-pop-tile-icon">❌</div>' +
@@ -13533,7 +13441,6 @@ function logoutAdmin() {
   closeModal('auditModal');
   closeModal('auditViewModal');
   closeModal('part2ViewModal');
-  closeModal('signupViewModal');
   closeModal('sundayCheckinViewModal');
   closeModal('eliteCardModal');
   closePopup('popupSuccess');
@@ -14059,8 +13966,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', signups: 'Pending Sign-ups', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', accesscontrol: 'Access Control', memberships: 'Memberships' };
-var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', signups: 'clients', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', accesscontrol: 'clients', memberships: 'clients' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members' };
+var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -14141,6 +14048,8 @@ function switchToSection(section) {
 function switchTab(tab) {
   // Backward compatibility: older links used the combined tab name.
   if (tab === 'messages-meetings') tab = 'messages';
+  // Access Control was merged into the Members (memberships) tab.
+  if (tab === 'accesscontrol') tab = 'memberships';
   var section = TAB_TO_SECTION[tab] || 'dashboard';
   document.querySelectorAll('.admin-tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.admin-nav-link').forEach(a => a.classList.remove('active'));
@@ -14182,7 +14091,6 @@ function switchTab(tab) {
   if (tab === 'meetings') { loadAdminMeetings(); loadMeetingUserDropdown(); }
   if (tab === 'workouts') loadAdminWorkouts();
   if (tab === 'requests') loadRequests();
-  if (tab === 'signups') loadPendingSignups();
   if (tab === 'sundaycheckin') loadSundayCheckins();
   if (tab === 'dailycheckin') loadDailyCheckins();
   if (tab === 'dailycompliance') loadDailyCompliancePreview();
@@ -14198,7 +14106,6 @@ function switchTab(tab) {
   if (tab === 'campaigns') loadCampaigns();
   if (tab === 'nutrition') loadAdminNutritionReport();
   if (tab === 'blood') loadAdminBloodReports();
-  if (tab === 'accesscontrol') loadAdminAccessControl();
   if (tab === 'memberships') loadAdminMemberships();
 }
 var adminProgressChartInstances = {};
@@ -19854,6 +19761,7 @@ function renderAdminMemberships() {
     }
     if (f === 'callqueue') return (u.state === 'expired') || (u.state === 'canceled') || ((u.state === 'trialing' || u.state === 'active') && u.days_left != null && u.days_left <= 2);
     if (f === 'all') return true;
+    if (f === 'ai_limited') return !u.nutrition_ai_unlimited || !u.ai_trainer_unlimited;
     return u.state === f;
   });
   if (!filtered.length) {
@@ -19886,9 +19794,50 @@ function renderAdminMemberships() {
           waBtn +
           '<button type="button" class="bb-access-reset" style="color:#e05050;border-color:rgba(224,80,80,.4)" onclick="lockMembership(\'' + idAttr + '\')">⛔ Lock</button>' +
         '</div>' +
+        bbMemberAiSection(u, idAttr) +
       '</div>'
     );
   }).join('');
+}
+
+// Expandable per-member AI-access controls (merged in from the old Access Control tab).
+function bbMemberAiSection(u, idAttr) {
+  var nutBlocked = !u.nutrition_ai_unlimited && u.nutrition_ai_meal_limit > 0 && u.nutrition_ai_meal_used >= u.nutrition_ai_meal_limit;
+  var trnBlocked = !u.ai_trainer_unlimited && u.ai_trainer_trial_limit > 0 && u.ai_trainer_trial_used >= u.ai_trainer_trial_limit;
+  var nutBadge = u.nutrition_ai_unlimited ? '<span class="bb-access-badge bb-access-badge-ok">Unlimited</span>' :
+                 (nutBlocked ? '<span class="bb-access-badge bb-access-badge-blocked">Blocked</span>' :
+                               '<span class="bb-access-badge bb-access-badge-trial">' + u.nutrition_ai_meal_used + ' / ' + u.nutrition_ai_meal_limit + '</span>');
+  var trnBadge = u.ai_trainer_unlimited ? '<span class="bb-access-badge bb-access-badge-ok">Unlimited</span>' :
+                 (trnBlocked ? '<span class="bb-access-badge bb-access-badge-blocked">Blocked</span>' :
+                               '<span class="bb-access-badge bb-access-badge-trial">' + u.ai_trainer_trial_used + ' / ' + u.ai_trainer_trial_limit + '</span>');
+  return (
+    '<details class="bb-member-ai">' +
+      '<summary class="bb-member-ai-summary">AI access &nbsp;<span style="font-size:11px;color:var(--muted)">🥗 ' + (u.nutrition_ai_unlimited ? '∞' : (u.nutrition_ai_meal_used + '/' + u.nutrition_ai_meal_limit)) + ' &nbsp; 🏋️ ' + (u.ai_trainer_unlimited ? '∞' : (u.ai_trainer_trial_used + '/' + u.ai_trainer_trial_limit)) + '</span></summary>' +
+      '<div class="bb-member-ai-body">' +
+        '<div class="bb-access-row">' +
+          '<div class="bb-access-row-title">🥗 Nutrition AI ' + nutBadge + '</div>' +
+          '<div class="bb-access-row-controls">' +
+            '<label class="bb-access-toggle"><input type="checkbox" id="bb-acc-nut-unl-' + idAttr + '" ' + (u.nutrition_ai_unlimited ? 'checked' : '') + ' onchange="bbAccessToggleChanged(\'' + idAttr + '\', \'nut\')"> Unlimited</label>' +
+            '<label class="bb-access-limit">Meal limit <input type="number" min="0" step="1" id="bb-acc-nut-lim-' + idAttr + '" value="' + (parseInt(u.nutrition_ai_meal_limit, 10) || 0) + '" ' + (u.nutrition_ai_unlimited ? 'disabled' : '') + '></label>' +
+            '<span class="bb-access-used">Used <strong>' + u.nutrition_ai_meal_used + '</strong></span>' +
+            '<span class="bb-access-lastused" title="' + escapeHtml(u.nutrition_ai_last_used_at || '') + '">Last used <strong>' + escapeHtml(bbFormatLastUsed(u.nutrition_ai_last_used_at)) + '</strong></span>' +
+            '<button type="button" class="bb-access-reset" onclick="resetAdminAccess(\'' + idAttr + '\', \'nutrition\')">Reset</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="bb-access-row">' +
+          '<div class="bb-access-row-title">🏋️ AI Trainer ' + trnBadge + '</div>' +
+          '<div class="bb-access-row-controls">' +
+            '<label class="bb-access-toggle"><input type="checkbox" id="bb-acc-trn-unl-' + idAttr + '" ' + (u.ai_trainer_unlimited ? 'checked' : '') + ' onchange="bbAccessToggleChanged(\'' + idAttr + '\', \'trn\')"> Unlimited</label>' +
+            '<label class="bb-access-limit">Trial limit <input type="number" min="0" step="1" id="bb-acc-trn-lim-' + idAttr + '" value="' + (parseInt(u.ai_trainer_trial_limit, 10) || 0) + '" ' + (u.ai_trainer_unlimited ? 'disabled' : '') + '></label>' +
+            '<span class="bb-access-used">Used <strong>' + u.ai_trainer_trial_used + '</strong></span>' +
+            '<span class="bb-access-lastused" title="' + escapeHtml(u.ai_trainer_last_used_at || '') + '">Last used <strong>' + escapeHtml(bbFormatLastUsed(u.ai_trainer_last_used_at)) + '</strong></span>' +
+            '<button type="button" class="bb-access-reset" onclick="resetAdminAccess(\'' + idAttr + '\', \'trainer\')">Reset</button>' +
+          '</div>' +
+        '</div>' +
+        '<div class="bb-access-card-actions"><button type="button" class="form-submit" style="width:auto;padding:9px 22px;margin:0" onclick="saveAdminAccess(\'' + idAttr + '\')">Save AI access</button></div>' +
+      '</div>' +
+    '</details>'
+  );
 }
 
 function activateMembership(encodedId) {
@@ -19930,8 +19879,9 @@ function runMembershipLifecycleNow() {
   });
 }
 
-// ============ ACCESS CONTROL (Nutrition AI + AI Trainer per-user gating) ============
-window._bbAccessControlUsers = [];
+// ============ AI ACCESS (Nutrition AI + AI Trainer per-user gating) ============
+// Merged into the Members (memberships) tab — controls render inside each member
+// card's expandable "AI access" section. bbFormatLastUsed is shared by that section.
 
 function bbFormatLastUsed(ts) {
   if (!ts) return 'Never';
@@ -19949,93 +19899,9 @@ function bbFormatLastUsed(ts) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-function loadAdminAccessControl() {
-  if (!window.currentUser || (window.currentUser.role !== 'admin' && window.currentUser.role !== 'superadmin')) return;
-  var listEl = document.getElementById('adminAccessControlList');
-  if (!listEl) return;
-  listEl.innerHTML = '<p class="form-hint" style="padding:24px;margin:0">Loading…</p>';
-  apiCall('GET', '/api/admin/users-access')
-    .then(function (data) {
-      if (!data || data.error) {
-        listEl.innerHTML = '<p class="form-hint" style="padding:24px;color:#e05050;margin:0">' + escapeHtml(data && data.error ? data.error : 'Failed to load users') + '</p>';
-        return;
-      }
-      window._bbAccessControlUsers = Array.isArray(data.users) ? data.users : [];
-      renderAdminAccessControl();
-    });
-}
-
-function renderAdminAccessControl() {
-  var listEl = document.getElementById('adminAccessControlList');
-  if (!listEl) return;
-  var users = window._bbAccessControlUsers || [];
-  var qEl = document.getElementById('adminAccessSearch');
-  var fEl = document.getElementById('adminAccessFilter');
-  var q = (qEl && qEl.value ? qEl.value : '').trim().toLowerCase();
-  var f = fEl && fEl.value ? fEl.value : 'all';
-  function isBlocked(u) {
-    var nutBlocked = !u.nutrition_ai_unlimited && (u.nutrition_ai_meal_used >= u.nutrition_ai_meal_limit) && u.nutrition_ai_meal_limit > 0;
-    var trnBlocked = !u.ai_trainer_unlimited && (u.ai_trainer_trial_used >= u.ai_trainer_trial_limit) && u.ai_trainer_trial_limit > 0;
-    return nutBlocked || trnBlocked;
-  }
-  var filtered = users.filter(function (u) {
-    if (q) {
-      var hay = ((u.first_name || '') + ' ' + (u.last_name || '') + ' ' + (u.email || '')).toLowerCase();
-      if (hay.indexOf(q) === -1) return false;
-    }
-    if (f === 'unlimited') return u.nutrition_ai_unlimited && u.ai_trainer_unlimited;
-    if (f === 'trial')     return !u.nutrition_ai_unlimited || !u.ai_trainer_unlimited;
-    if (f === 'blocked')   return isBlocked(u);
-    return true;
-  });
-  if (!filtered.length) {
-    listEl.innerHTML = '<p class="form-hint" style="padding:24px;margin:0;text-align:center">No users match.</p>';
-    return;
-  }
-  listEl.innerHTML = filtered.map(function (u) {
-    var name = ((u.first_name || '') + ' ' + (u.last_name || '')).trim() || u.email || u.id;
-    var nutBlocked = !u.nutrition_ai_unlimited && u.nutrition_ai_meal_limit > 0 && u.nutrition_ai_meal_used >= u.nutrition_ai_meal_limit;
-    var trnBlocked = !u.ai_trainer_unlimited && u.ai_trainer_trial_limit > 0 && u.ai_trainer_trial_used >= u.ai_trainer_trial_limit;
-    var nutBadge = u.nutrition_ai_unlimited ? '<span class="bb-access-badge bb-access-badge-ok">Unlimited</span>' :
-                   (nutBlocked ? '<span class="bb-access-badge bb-access-badge-blocked">Blocked</span>' :
-                                 '<span class="bb-access-badge bb-access-badge-trial">' + (u.nutrition_ai_meal_used) + ' / ' + (u.nutrition_ai_meal_limit) + '</span>');
-    var trnBadge = u.ai_trainer_unlimited ? '<span class="bb-access-badge bb-access-badge-ok">Unlimited</span>' :
-                   (trnBlocked ? '<span class="bb-access-badge bb-access-badge-blocked">Blocked</span>' :
-                                 '<span class="bb-access-badge bb-access-badge-trial">' + (u.ai_trainer_trial_used) + ' / ' + (u.ai_trainer_trial_limit) + '</span>');
-    var idAttr = encodeURIComponent(u.id);
-    return (
-      '<div class="bb-access-card" data-user-id="' + escapeHtml(u.id) + '">' +
-        '<div class="bb-access-card-head">' +
-          '<div class="bb-access-card-name">' + escapeHtml(name) + '</div>' +
-          '<div class="bb-access-card-email">' + escapeHtml(u.email || '') + '</div>' +
-        '</div>' +
-        '<div class="bb-access-row">' +
-          '<div class="bb-access-row-title">🥗 Nutrition AI ' + nutBadge + '</div>' +
-          '<div class="bb-access-row-controls">' +
-            '<label class="bb-access-toggle"><input type="checkbox" id="bb-acc-nut-unl-' + idAttr + '" ' + (u.nutrition_ai_unlimited ? 'checked' : '') + ' onchange="bbAccessToggleChanged(\'' + idAttr + '\', \'nut\')"> Unlimited</label>' +
-            '<label class="bb-access-limit">Meal limit <input type="number" min="0" step="1" id="bb-acc-nut-lim-' + idAttr + '" value="' + (parseInt(u.nutrition_ai_meal_limit, 10) || 0) + '" ' + (u.nutrition_ai_unlimited ? 'disabled' : '') + '></label>' +
-            '<span class="bb-access-used">Used <strong>' + (u.nutrition_ai_meal_used) + '</strong></span>' +
-            '<span class="bb-access-lastused" title="' + escapeHtml(u.nutrition_ai_last_used_at || '') + '">Last used <strong>' + escapeHtml(bbFormatLastUsed(u.nutrition_ai_last_used_at)) + '</strong></span>' +
-            '<button type="button" class="bb-access-reset" onclick="resetAdminAccess(\'' + idAttr + '\', \'nutrition\')">Reset</button>' +
-          '</div>' +
-        '</div>' +
-        '<div class="bb-access-row">' +
-          '<div class="bb-access-row-title">🏋️ AI Trainer ' + trnBadge + '</div>' +
-          '<div class="bb-access-row-controls">' +
-            '<label class="bb-access-toggle"><input type="checkbox" id="bb-acc-trn-unl-' + idAttr + '" ' + (u.ai_trainer_unlimited ? 'checked' : '') + ' onchange="bbAccessToggleChanged(\'' + idAttr + '\', \'trn\')"> Unlimited</label>' +
-            '<label class="bb-access-limit">Trial limit <input type="number" min="0" step="1" id="bb-acc-trn-lim-' + idAttr + '" value="' + (parseInt(u.ai_trainer_trial_limit, 10) || 0) + '" ' + (u.ai_trainer_unlimited ? 'disabled' : '') + '></label>' +
-            '<span class="bb-access-used">Used <strong>' + (u.ai_trainer_trial_used) + '</strong></span>' +
-            '<span class="bb-access-lastused" title="' + escapeHtml(u.ai_trainer_last_used_at || '') + '">Last used <strong>' + escapeHtml(bbFormatLastUsed(u.ai_trainer_last_used_at)) + '</strong></span>' +
-            '<button type="button" class="bb-access-reset" onclick="resetAdminAccess(\'' + idAttr + '\', \'trainer\')">Reset</button>' +
-          '</div>' +
-        '</div>' +
-        '<div class="bb-access-card-actions">' +
-          '<button type="button" class="form-submit" style="width:auto;padding:9px 22px;margin:0" onclick="saveAdminAccess(\'' + idAttr + '\')">Save changes</button>' +
-        '</div>' +
-      '</div>'
-    );
-  }).join('');
-}
+// loadAdminAccessControl / renderAdminAccessControl were removed — AI-access controls
+// now render inline in each Members card via bbMemberAiSection(). The save/reset/toggle
+// handlers below are still used by that section.
 
 function bbAccessToggleChanged(encodedId, which) {
   var limEl = document.getElementById('bb-acc-' + which + '-lim-' + encodedId);
@@ -20062,7 +19928,7 @@ function saveAdminAccess(encodedId) {
         return;
       }
       if (data.user) {
-        var users = window._bbAccessControlUsers || [];
+        var users = window._bbMemberships || [];
         for (var i = 0; i < users.length; i++) {
           if (String(users[i].id) === String(id)) {
             users[i].nutrition_ai_unlimited    = data.user.nutrition_ai_unlimited;
@@ -20077,7 +19943,8 @@ function saveAdminAccess(encodedId) {
           }
         }
       }
-      renderAdminAccessControl();
+      renderAdminMemberships();
+      showPopup('AI access saved', 'AI limits updated for this member.', '', 'OK');
     });
 }
 
@@ -20091,7 +19958,7 @@ function resetAdminAccess(encodedId, feature) {
         alert('Reset failed: ' + (data && data.error ? data.error : 'Unknown error'));
         return;
       }
-      var users = window._bbAccessControlUsers || [];
+      var users = window._bbMemberships || [];
       for (var i = 0; i < users.length; i++) {
         if (String(users[i].id) === String(id)) {
           if (feature === 'nutrition' || feature === 'both') users[i].nutrition_ai_meal_used = 0;
@@ -20099,7 +19966,7 @@ function resetAdminAccess(encodedId, feature) {
           break;
         }
       }
-      renderAdminAccessControl();
+      renderAdminMemberships();
     });
 }
 
@@ -22767,7 +22634,7 @@ function renderSuperadminData(data, readOnly) {
       { lbl: 'Daily check-ins', num: s.daily_checkins },
       { lbl: 'Program assignments', num: s.program_assignments },
       { lbl: 'Approved users', num: s.approved_users },
-      { lbl: 'Pending sign-ups', num: s.pending_signups },
+      { lbl: 'Trials', num: s.trials },
       { lbl: 'Meetings', num: s.meetings },
       { lbl: 'Messages', num: s.messages }
     ].map(function(x) { return '<div class="superadmin-stat"><span class="num">' + (x.num ?? 0) + '</span><span class="lbl">' + (x.lbl || '') + '</span></div>'; }).join('');

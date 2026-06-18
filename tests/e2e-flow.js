@@ -1,13 +1,14 @@
 /**
- * End-to-end test: Sign up → Admin approve → Login → User actions → Admin dashboard & DB check.
- * Run: node tests/e2e-flow.js (server must be running on port 3000)
+ * End-to-end test: Sign up → instant trial → Login → User actions → Admin dashboard & DB check.
+ * Run: node tests/e2e-flow.js
+ * Targets http://localhost:3000 by default; override with E2E_BASE_URL (e.g. http://localhost:3088).
  */
 require('dotenv').config();
 const http = require('http');
 const { Pool } = require('pg');
 
-const BASE = 'http://localhost:3000';
-const PORT = 3000;
+const BASE = process.env.E2E_BASE_URL || 'http://localhost:3000';
+const PORT = new URL(BASE).port || 3000;
 
 const testUser = {
   email: `e2e.${Date.now()}@test.bodybank.fit`,
@@ -97,30 +98,14 @@ async function runTests() {
     state_province: 'MH'
   });
   assert(signup.status === 200, `Signup status ${signup.status}: ${JSON.stringify(signup.body)}`);
-  assert(signup.body && signup.body.pending_approval === true, 'Signup should return pending_approval');
+  // New flow: sign-ups get instant trial access — no manual approval queue.
+  assert(signup.body && signup.body.trial === true, 'Signup should return trial: true');
   createdIds.userId = signup.body?.id || null;
   console.log(signup.status === 200 ? '  OK' : '  FAIL', signup.body);
 
-  console.log('=== E2E: Login before approve (should be pending) ===');
-  const loginPending = await request('POST', '/api/auth/login', { email: testUser.email, password: testUser.password });
-  assert(loginPending.status === 403 && loginPending.body?.error === 'pending_approval', 'Login before approve should be 403 pending_approval');
-  console.log(loginPending.status === 403 ? '  OK' : '  FAIL');
-
-  console.log('=== E2E: Admin – pending signups ===');
-  const pending = await request('GET', '/api/admin/pending-signups');
-  assert(pending.status === 200 && Array.isArray(pending.body), 'Pending signups should be array');
-  const found = pending.body?.find(u => u.email === testUser.email);
-  assert(!!found, 'New user should appear in pending signups');
-  console.log(found ? '  OK' : '  FAIL');
-
-  console.log('=== E2E: Admin – approve user ===');
-  const approve = await request('POST', `/api/admin/approve-user/${createdIds.userId}`);
-  assert(approve.status === 200, `Approve status ${approve.status}`);
-  console.log(approve.status === 200 ? '  OK' : '  FAIL');
-
-  console.log('=== E2E: Login after approve ===');
+  console.log('=== E2E: Login right after signup (instant trial access) ===');
   const login = await request('POST', '/api/auth/login', { email: testUser.email, password: testUser.password });
-  assert(login.status === 200 && login.body?.id, 'Login should return user');
+  assert(login.status === 200 && login.body?.id, 'Login should succeed immediately on trial');
   const userId = login.body?.id || createdIds.userId;
   const userToken = login.body?.token;
   console.log(login.status === 200 ? '  OK' : '  FAIL', login.body?.email);
@@ -447,14 +432,12 @@ async function runTests() {
   assert(saSharedBad.status === 401 && saSharedBad.body?.error, 'Shared view rejects invalid token');
   console.log(saSharedBad.status === 401 ? '  OK' : '  FAIL');
 
-  console.log('=== E2E: Rejected user can re-signup ===');
-  const reject = await request('POST', `/api/admin/reject-user/${userId}`);
-  assert(reject.status === 200, 'Admin reject user');
+  console.log('=== E2E: Duplicate signup is rejected (email already registered) ===');
   const signupAgain = await request('POST', '/api/auth/signup', {
     email: testUser.email,
     password: 'NewPass456!',
     first_name: 'E2E',
-    last_name: 'ReSignup',
+    last_name: 'Duplicate',
     phone: testUser.phone,
     height_cm: 175,
     country: 'IN',
@@ -464,12 +447,8 @@ async function runTests() {
     gender: 'other',
     state_province: 'MH'
   });
-  assert(signupAgain.status === 200 && signupAgain.body?.pending_approval === true, 'Re-signup after reject');
-  const reApprove = await request('POST', `/api/admin/approve-user/${userId}`);
-  assert(reApprove.status === 200, 'Re-approve');
-  const loginAgain = await request('POST', '/api/auth/login', { email: testUser.email, password: 'NewPass456!' });
-  assert(loginAgain.status === 200, 'Login after re-signup');
-  console.log('  OK');
+  assert(signupAgain.status === 409, `Duplicate signup should be 409, got ${signupAgain.status}`);
+  console.log(signupAgain.status === 409 ? '  OK' : '  FAIL');
 
   if (failures.length > 0) {
     console.log('\n--- FAILURES ---');

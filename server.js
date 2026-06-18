@@ -458,6 +458,29 @@ async function ensureApprovedUsersInActiveTribe() {
   }
 }
 
+// Add a single approved/trial user to the active Client Board if not already present.
+// Used at signup time so new trial members appear on the board immediately
+// (previously this happened inside the now-removed approve-user route).
+async function addApprovedUserToTribe(user) {
+  try {
+    const emailNorm = String(user.email || '').trim().toLowerCase();
+    if (!emailNorm) return;
+    const existing = await queryOne("SELECT id FROM tribe_members WHERE LOWER(email) = ?", [emailNorm]);
+    if (existing) return;
+    const tribeId = uuidv4();
+    const startDate = new Date().toISOString().slice(0, 10);
+    const city = String(user.city || user.country || '').trim();
+    await run(
+      `INSERT INTO tribe_members
+       (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes, status)
+       VALUES (?,?,?,?,?,?,1,?,0,?,?,?,?,?,'active')`,
+      [tribeId, user.first_name || '', user.last_name || '', user.email || '', user.phone || '', city, startDate, null, null, null, '', 'New trial member']
+    );
+  } catch (e) {
+    console.warn('Tribe add warning:', e.message);
+  }
+}
+
 // ============ DATABASE ============
 async function initDB() {
   pool = new Pool({ connectionString: DATABASE_URL });
@@ -551,6 +574,13 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE audit_requests ADD COLUMN IF NOT EXISTS linked_user_id TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE audit_requests ADD COLUMN IF NOT EXISTS last_contact_at TIMESTAMP`); } catch (e) { /* ignore */ }
   try { await pool.query(`UPDATE audit_requests SET stage = 'new_audit' WHERE stage IS NULL OR stage = ''`); } catch (e) { /* ignore */ }
+  // Collapse legacy 11-stage pipeline into the streamlined 6-stage set (idempotent).
+  try {
+    await pool.query(`UPDATE audit_requests SET stage = 'contacted' WHERE stage IN ('whatsapp_sent','in_conversation')`);
+    await pool.query(`UPDATE audit_requests SET stage = 'part2' WHERE stage IN ('part2_sent','part2_received')`);
+    await pool.query(`UPDATE audit_requests SET stage = 'call' WHERE stage IN ('call_proposed','call_scheduled','call_done')`);
+    await pool.query(`UPDATE audit_requests SET stage = 'converted' WHERE stage IN ('payment_pending','onboarded')`);
+  } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_requests_stage ON audit_requests(stage)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_requests_email_lower ON audit_requests(LOWER(email))`); } catch (e) { /* ignore */ }
 
@@ -1585,6 +1615,7 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
       [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'approved']);
     const trialDays = trialDaysForReq(req);
     await startTrialForUser(id, trialDays).catch(() => {});
+    await addApprovedUserToTribe({ email: emailNorm, first_name: given_name, last_name: family_name, phone: phoneTrimmed, country: geo.country, city: cleanCity });
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, given_name); } catch (_) {}
     notifyAsync('TRIAL_STARTED', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Google' });
@@ -1689,6 +1720,7 @@ app.post('/api/auth/apple-complete', rateLimiter(5, 60000), async (req, res) => 
       [id, emailNorm, hash, givenName, familyName, phoneTrimmed, appleSub, geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'approved']);
     const trialDays = trialDaysForReq(req);
     await startTrialForUser(id, trialDays).catch(() => {});
+    await addApprovedUserToTribe({ email: emailNorm, first_name: givenName, last_name: familyName, phone: phoneTrimmed, country: geo.country, city: cleanCity });
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Apple)', body: `${givenName} ${familyName} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, givenName); } catch (_) {}
     notifyAsync('TRIAL_STARTED', { name: `${givenName} ${familyName}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Apple' });
@@ -1726,6 +1758,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
         [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, existing.id]);
       const trialDaysR = trialDaysForReq(req);
       await startTrialForUser(existing.id, trialDaysR).catch(() => {});
+      await addApprovedUserToTribe({ email: emailNorm, first_name, last_name, phone, country: geo.country, city: cleanCity });
       try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
       notifyAsync('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDaysR, via: 'Email' });
       return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDaysR });
@@ -1739,6 +1772,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     // Instant access: start a free trial right away (no manual approval gate).
     const trialDays = trialDaysForReq(req);
     await startTrialForUser(id, trialDays).catch(() => {});
+    await addApprovedUserToTribe({ email: emailNorm, first_name, last_name, phone, country: geo.country, city: cleanCity });
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
     notifyAsync('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDays, via: 'Email' });
@@ -2141,11 +2175,11 @@ app.post('/api/schedule-call', rateLimiter(5, 60000), async (req, res) => {
       [id, String(b.audit_id || ''), name, email, mobile, date, time, SCHEDULE_CALL_TZ, channel, 'scheduled', String(b.notes || '')]
     );
 
-    // Roll the matching audit_requests row forward to "call_proposed" so the admin pipeline reflects it.
+    // Roll the matching audit_requests row forward to the "call" stage so the admin pipeline reflects it.
     try {
       await run(
         `UPDATE audit_requests
-         SET stage = 'call_proposed', stage_changed_at = NOW(), call_scheduled_at = NOW(), last_contact_at = NOW()
+         SET stage = 'call', stage_changed_at = NOW(), call_scheduled_at = NOW(), last_contact_at = NOW()
          WHERE LOWER(email) = LOWER(?)`,
         [email]
       );
@@ -3414,25 +3448,37 @@ app.get('/api/admin/part2-submissions/:id/pdf', verifyToken, requireAdminOrSuper
 // ============================================================
 // LEADS PIPELINE — CRM-style state on top of audit_requests
 // ============================================================
+// Streamlined pipeline: pre-conversion stages only. Once a lead converts they
+// become a trial member and are managed in the Memberships tab (billing lives there).
 const LEAD_STAGE_IDS = [
-  'new_audit', 'whatsapp_sent', 'in_conversation',
-  'part2_sent', 'part2_received',
-  'call_proposed', 'call_scheduled', 'call_done',
-  'payment_pending', 'onboarded', 'lost'
+  'new_audit', 'contacted', 'part2', 'call', 'converted', 'lost'
 ];
 const LEAD_STAGE_LABELS = {
   new_audit: 'New audit',
-  whatsapp_sent: 'WhatsApp sent',
-  in_conversation: 'In conversation',
-  part2_sent: 'Part-2 sent',
-  part2_received: 'Part-2 received',
-  call_proposed: 'Call proposed',
-  call_scheduled: 'Call scheduled',
-  call_done: 'Call done',
-  payment_pending: 'Payment pending',
-  onboarded: 'Paid & onboarded',
+  contacted: 'In conversation',
+  part2: 'Part-2',
+  call: 'Call',
+  converted: 'Converted',
   lost: 'Lost / Cold'
 };
+// Maps legacy stage ids (pre-collapse) to the streamlined set above, so old leads
+// and any cached references still resolve to a valid stage.
+const LEAD_STAGE_ALIASES = {
+  whatsapp_sent: 'contacted',
+  in_conversation: 'contacted',
+  part2_sent: 'part2',
+  part2_received: 'part2',
+  call_proposed: 'call',
+  call_scheduled: 'call',
+  call_done: 'call',
+  payment_pending: 'converted',
+  onboarded: 'converted'
+};
+function normalizeStage(stage) {
+  const s = String(stage || '').trim() || 'new_audit';
+  if (LEAD_STAGE_IDS.indexOf(s) >= 0) return s;
+  return LEAD_STAGE_ALIASES[s] || 'new_audit';
+}
 
 function leadAuthorFromReq(req) {
   const u = req.user || {};
@@ -3515,15 +3561,19 @@ app.get('/api/admin/leads/today', verifyToken, requireAdminOrSuperadmin, async (
     const stuckPart2 = await queryAll(
       `SELECT id, first_name, last_name, email, phone, stage_changed_at
        FROM audit_requests
-       WHERE COALESCE(stage,'new_audit') = 'part2_sent'
+       WHERE COALESCE(stage,'new_audit') = 'part2'
          AND COALESCE(stage_changed_at, created_at) < NOW() - INTERVAL '7 days'
        ORDER BY stage_changed_at ASC LIMIT 20`
     );
-    const paymentPending = await queryAll(
-      `SELECT id, first_name, last_name, email, phone, stage_changed_at
+    // Calls that have already happened (scheduled time in the past) but the lead is
+    // still parked in the 'call' stage — they need a convert/lost decision.
+    const afterCall = await queryAll(
+      `SELECT id, first_name, last_name, email, phone, call_scheduled_at AS stage_changed_at
        FROM audit_requests
-       WHERE COALESCE(stage,'new_audit') = 'payment_pending'
-       ORDER BY stage_changed_at ASC LIMIT 20`
+       WHERE COALESCE(stage,'new_audit') = 'call'
+         AND call_scheduled_at IS NOT NULL
+         AND call_scheduled_at < NOW()
+       ORDER BY call_scheduled_at ASC LIMIT 20`
     );
     const lostThisWeekRow = await queryOne(
       `SELECT COUNT(*)::int AS count FROM audit_requests
@@ -3537,7 +3587,7 @@ app.get('/api/admin/leads/today', verifyToken, requireAdminOrSuperadmin, async (
       calls_today: callsToday,
       pending_outreach: pendingOutreach,
       stuck_part2: stuckPart2,
-      payment_pending: paymentPending,
+      after_call: afterCall,
       lost_this_week: lostThisWeekRow ? lostThisWeekRow.count : 0
     });
   } catch (e) {
@@ -3556,8 +3606,8 @@ app.get('/api/admin/leads/:id', verifyToken, requireAdminOrSuperadmin, async (re
       [lead.email || '']
     );
     const linkedUser = lead.linked_user_id
-      ? await queryOne('SELECT id, email, first_name, last_name, role, approval_status, created_at FROM users WHERE id = ?', [lead.linked_user_id])
-      : await queryOne('SELECT id, email, first_name, last_name, role, approval_status, created_at FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1', [lead.email || '']);
+      ? await queryOne('SELECT id, email, first_name, last_name, role, approval_status, subscription_status, access_expires_at, plan_label, created_at FROM users WHERE id = ?', [lead.linked_user_id])
+      : await queryOne('SELECT id, email, first_name, last_name, role, approval_status, subscription_status, access_expires_at, plan_label, created_at FROM users WHERE LOWER(email) = LOWER(?) LIMIT 1', [lead.email || '']);
     const notes = await queryAll(
       'SELECT id, author_id, author_name, body, kind, stage_at_time, created_at FROM lead_notes WHERE audit_id = ? ORDER BY created_at DESC',
       [req.params.id]
@@ -3591,7 +3641,7 @@ app.patch('/api/admin/leads/:id/stage', verifyToken, requireAdminOrSuperadmin, a
       [stage, stage, lostReason, req.params.id]
     );
     const author = leadAuthorFromReq(req);
-    const fromLabel = LEAD_STAGE_LABELS[lead.stage] || lead.stage || 'New audit';
+    const fromLabel = LEAD_STAGE_LABELS[normalizeStage(lead.stage)] || 'New audit';
     const toLabel = LEAD_STAGE_LABELS[stage] || stage;
     let entry = `Stage: ${fromLabel} → ${toLabel}`;
     if (stage === 'lost' && lostReason) entry += ` (reason: ${lostReason})`;
@@ -3635,9 +3685,9 @@ app.patch('/api/admin/leads/:id/call', verifyToken, requireAdminOrSuperadmin, as
     }
     const dt = new Date(raw);
     if (isNaN(dt.getTime())) return res.status(400).json({ error: 'Invalid date/time' });
-    let newStage = lead.stage || 'new_audit';
-    const preCall = ['new_audit', 'whatsapp_sent', 'in_conversation', 'part2_sent', 'part2_received', 'call_proposed'];
-    if (preCall.indexOf(newStage) >= 0) newStage = 'call_scheduled';
+    let newStage = normalizeStage(lead.stage);
+    const preCall = ['new_audit', 'contacted', 'part2'];
+    if (preCall.indexOf(newStage) >= 0) newStage = 'call';
     await run(
       `UPDATE audit_requests
        SET call_scheduled_at = ?, stage = ?, stage_changed_at = NOW(), last_contact_at = NOW()
@@ -3669,12 +3719,12 @@ app.post('/api/admin/leads/:id/link-user', verifyToken, requireAdminOrSuperadmin
     if (!user) return res.status(404).json({ error: 'No BodyBank user found with that email. Ask the user to sign up first.' });
     await run(
       `UPDATE audit_requests
-       SET linked_user_id = ?, stage = 'onboarded', stage_changed_at = NOW(), last_contact_at = NOW()
+       SET linked_user_id = ?, stage = 'converted', stage_changed_at = NOW(), last_contact_at = NOW()
        WHERE id = ?`,
       [user.id, req.params.id]
     );
     const author = leadAuthorFromReq(req);
-    await appendLeadNote(req.params.id, author, `Linked to user ${user.email} — marked Paid & onboarded`, 'stage_change', 'onboarded');
+    await appendLeadNote(req.params.id, author, `Linked to user ${user.email} — marked Converted (manage billing in Memberships)`, 'stage_change', 'converted');
     res.json({ ok: true, user });
   } catch (e) {
     console.error('Admin leads link-user error:', e.message);
@@ -3836,66 +3886,10 @@ app.delete('/api/push/register-token', verifyToken, async (req, res) => {
   }
 });
 
-// ============ ADMIN: PENDING SIGNUPS & APPROVE ============
-app.get('/api/admin/pending-signups', async (req, res) => {
-  try {
-    const list = await queryAll("SELECT id, email, first_name, last_name, created_at FROM users WHERE role = 'user' AND (approval_status IS NULL OR approval_status = 'pending') ORDER BY created_at DESC");
-    res.json(list);
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to fetch pending sign-ups' });
-  }
-});
-
-app.post('/api/admin/approve-user/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const user = await queryOne("SELECT id, role, email, first_name, last_name, phone, country FROM users WHERE id = ?", [id]);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
-    await run("UPDATE users SET approval_status = 'approved' WHERE id = ?", [id]);
-    await syncUserCountryAndTimezone(user.id, user.email);
-    // Add to tribe_members so new member appears in Clients section
-    const existing = await queryOne("SELECT id FROM tribe_members WHERE LOWER(email) = ?", [(user.email || '').toLowerCase()]);
-    if (!existing) {
-      const tribeId = uuidv4();
-      const today = new Date().toISOString().split('T')[0];
-      const city = (user.country || '').trim() || '';
-      await run(`INSERT INTO tribe_members (id, first_name, last_name, email, phone, city, phase, start_date, activity_per_week, starting_weight, current_weight, target_weight, next_checkin, notes) VALUES (?,?,?,?,?,?,1,?,0,?,?,?,?,?)`,
-        [tribeId, user.first_name || '', user.last_name || '', user.email || '', user.phone || '', city, today, null, null, null, '', 'Newly approved']);
-    }
-    await ensureApprovedUsersInActiveTribe();
-    if (user.email) userEmail.emailAccountApproved(user.email, user.first_name);
-    notifyAsync('USER_APPROVED', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, mobile: user.phone || '—' });
-    res.json({ message: 'User approved' });
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to approve user' });
-  }
-});
-
-app.post('/api/admin/reject-user/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    const user = await queryOne("SELECT id, role, email, first_name, phone FROM users WHERE id = ?", [id]);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-    if (user.role === 'admin') return res.status(400).json({ error: 'Cannot change admin approval' });
-    await run("UPDATE users SET approval_status = 'rejected' WHERE id = ?", [id]);
-    if (user.email) userEmail.emailAccountRejected(user.email, user.first_name);
-    notifyAsync('USER_REJECTED', { name: user.first_name || '', email: user.email, mobile: user.phone || '—' });
-    res.json({ message: 'User rejected' });
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to reject user' });
-  }
-});
-
-app.get('/api/admin/pending-signup/:id', async (req, res) => {
-  try {
-    const user = await queryOne("SELECT id, email, first_name, last_name, phone, country, state_province, city, dob, gender, timezone, created_at FROM users WHERE id = ? AND role = 'user' AND (approval_status IS NULL OR approval_status = 'pending')", [req.params.id]);
-    if (!user) return res.status(404).json({ error: 'Not found' });
-    res.json(user);
-  } catch (e) {
-    res.status(500).json({ error: 'Failed to fetch sign-up request' });
-  }
-});
+// NOTE: Pending-signup approval routes were removed. New sign-ups now get instant
+// trial access (approval_status='approved' + trialing) via the signup routes above,
+// and members are managed in the unified Memberships tab. The approval_status column
+// is retained only to keep blocking previously-rejected accounts at login.
 
 // ============ NOTIFICATIONS (Admin + User; role-based) ============
 app.get('/api/notifications', verifyToken, async (req, res) => {
@@ -3968,17 +3962,6 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           desc: `${w.first_name || ''} ${w.last_name || ''} - ${w.workout_name} (${m} min)`,
           time: w.created_at,
           link: 'workouts'
-        });
-      });
-      const pendingSignups = await queryAll("SELECT id, email, first_name, last_name, created_at FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending') ORDER BY created_at DESC LIMIT 20");
-      pendingSignups.forEach(u => {
-        notifications.push({
-          id: 'signup-' + u.id,
-          type: 'user',
-          title: 'New User Sign-up (Pending Approval)',
-          desc: `${u.first_name || ''} ${u.last_name || ''} (${u.email})`,
-          time: u.created_at,
-          link: 'signups'
         });
       });
       const part2Subs = await queryAll("SELECT id, name, email, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 15");
@@ -5231,7 +5214,7 @@ app.get('/api/stats', async (req, res) => {
   const [formsTotal] = await queryAll("SELECT COUNT(*) as c FROM audit_requests");
   const [sundayCheckins] = await queryAll("SELECT COUNT(*) as c FROM sunday_checkins");
   const [dailyCheckins] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
-  const [pendingSignups] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status='pending')");
+  const [trials] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND subscription_status='trialing' AND COALESCE(suspended, FALSE) = FALSE");
   const [contactMsgs] = await queryAll("SELECT COUNT(*) as c FROM contact_messages");
   const [unreadThreads] = await queryAll(
     "SELECT COUNT(*) as c FROM message_threads t WHERE (SELECT sender_role FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.created_at DESC LIMIT 1) = 'user'"
@@ -5248,7 +5231,7 @@ app.get('/api/stats', async (req, res) => {
     forms: num(formsTotal?.c),
     check_ins: num(sundayCheckins[0]?.c),
     daily_checkins: num(dailyCheckins?.c),
-    pending_signups: num(pendingSignups[0]?.c),
+    trials: num(trials?.c),
     messages: num(unreadThreads?.c)
   });
 });
@@ -5268,10 +5251,10 @@ app.get('/api/admin/recent-activity', verifyToken, requireAdminOrSuperadmin, asy
     const cm = await queryAll('SELECT name, created_at FROM contact_messages ORDER BY created_at DESC LIMIT ?', [limit]);
     (cm || []).forEach(r => activities.push({ name: r.name || 'Unknown', type: 'Message', status: 'UNREAD', created_at: r.created_at }));
     const ps = await queryAll(
-      "SELECT first_name, last_name, created_at FROM users WHERE role='user' AND approval_status='pending' ORDER BY created_at DESC LIMIT ?",
+      "SELECT first_name, last_name, created_at FROM users WHERE role='user' AND subscription_status='trialing' ORDER BY created_at DESC LIMIT ?",
       [limit]
     );
-    (ps || []).forEach(r => activities.push({ name: ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || 'New user', type: 'Sign-up', status: 'PENDING', created_at: r.created_at }));
+    (ps || []).forEach(r => activities.push({ name: ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || 'New user', type: 'Trial started', status: 'TRIAL', created_at: r.created_at }));
     activities.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
     res.json(activities.slice(0, limit));
   } catch (e) {
@@ -5715,7 +5698,15 @@ app.get('/api/admin/memberships', verifyToken, requireAdminOrSuperadmin, async (
     const rows = await queryAll(
       `SELECT id, email, first_name, last_name, phone, country,
               COALESCE(subscription_status, 'active') AS subscription_status,
-              access_expires_at, plan_label, activated_at, activated_by, created_at, suspended
+              access_expires_at, plan_label, activated_at, activated_by, created_at, suspended,
+              COALESCE(nutrition_ai_unlimited, TRUE) AS nutrition_ai_unlimited,
+              COALESCE(nutrition_ai_meal_limit, 0) AS nutrition_ai_meal_limit,
+              COALESCE(nutrition_ai_meal_used, 0) AS nutrition_ai_meal_used,
+              nutrition_ai_last_used_at,
+              COALESCE(ai_trainer_unlimited, TRUE) AS ai_trainer_unlimited,
+              COALESCE(ai_trainer_trial_limit, 0) AS ai_trainer_trial_limit,
+              COALESCE(ai_trainer_trial_used, 0) AS ai_trainer_trial_used,
+              ai_trainer_last_used_at
          FROM users
         WHERE role = 'user'
         ORDER BY created_at DESC`
@@ -6106,7 +6097,7 @@ async function getAdminAIContext() {
     const [meetingsScheduled] = await queryAll("SELECT COUNT(*) as c FROM meetings WHERE status='scheduled'");
     const [part2] = await queryAll("SELECT COUNT(*) as c FROM part2_audit");
     const [sundayCheck] = await queryAll("SELECT COUNT(*) as c FROM sunday_checkins");
-    const [signups] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending')");
+    const [signups] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND subscription_status='trialing' AND COALESCE(suspended, FALSE) = FALSE");
     const [approvedUsers] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status = 'approved' OR approval_status IS NULL)");
 
     const p = num(pendingReq?.c), a = num(approvedReq?.c), r = num(rejectedReq?.c), totAudit = num(auditTotal?.c);
@@ -6129,7 +6120,7 @@ async function getAdminAIContext() {
     if (p2 === 0) lines.push('(No Part-2 submissions yet.)');
     lines.push('Sunday check-ins: ' + sc + '.');
     if (sc === 0) lines.push('(No Sunday check-ins yet.)');
-    lines.push('Pending sign-ups (awaiting approval): ' + pendSign + '.');
+    lines.push('Members on a trial: ' + pendSign + '.');
     lines.push('Approved users (can log in): ' + appUsers + '.');
     const [dailyCheckCount] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
     const dcCount = num(dailyCheckCount?.c);
@@ -6205,10 +6196,10 @@ async function getAdminAIContext() {
       });
     } else lines.push('  (None.)');
 
-    const pendingSignupList = await queryAll("SELECT first_name, last_name, email, created_at FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending') ORDER BY created_at DESC LIMIT 10");
-    lines.push('\n--- PENDING SIGN-UPS (awaiting approval) ---');
-    if (pendingSignupList && pendingSignupList.length > 0) {
-      pendingSignupList.forEach(r => {
+    const trialMemberList = await queryAll("SELECT first_name, last_name, email, created_at FROM users WHERE role='user' AND subscription_status='trialing' ORDER BY created_at DESC LIMIT 10");
+    lines.push('\n--- TRIAL MEMBERS (call to convert) ---');
+    if (trialMemberList && trialMemberList.length > 0) {
+      trialMemberList.forEach(r => {
         lines.push(`  ${(r.first_name || '')} ${(r.last_name || '')} | ${r.email || ''} | ${r.created_at || ''}`);
       });
     } else lines.push('  (None.)');
@@ -6216,7 +6207,7 @@ async function getAdminAIContext() {
     lines.push('\n(Data fetch issue: ' + e.message + '. Still answer politely from the counts above if any.)');
   }
   lines.push('\n--- ADMIN ACTIONS (suggest these when relevant) ---');
-  lines.push('The admin can: Approve or reject audit forms (Audit forms tab); Approve pending sign-ups (Pending Sign-ups tab); View and manage Tribe, Workouts, Messages & Meetings, Part-2 Form, Sunday Check-in; View Client Progress and share a progress report link with a client; Use Performance Insights for filters and CSV export. When data suggests follow-up (e.g. pending items, new messages, inactive users), suggest 1–3 concrete actions the admin can take in the dashboard.');
+  lines.push('The admin can: Approve or reject audit forms (Audit forms tab); Track and convert leads (Leads pipeline tab); Manage trials, activations, renewals and AI access in one place (Members tab); View and manage Tribe, Workouts, Messages & Meetings, Part-2 Form, Sunday Check-in; View Client Progress and share a progress report link with a client; Use Performance Insights for filters and CSV export. New sign-ups get instant trial access automatically — there is no approval queue. When data suggests follow-up (e.g. trial members to call, new messages, inactive users), suggest 1–3 concrete actions the admin can take in the dashboard.');
 
   return lines.join('\n');
 }
@@ -6609,7 +6600,7 @@ function buildPoliteFallbackReply(context, question) {
   let answer = '';
   const getCount = (regex) => { const m = context.match(regex); return m ? parseInt(m[1], 10) : 0; };
   const pendingAudit = getCount(/Pending:\s*(\d+)/);
-  const pendingSignups = getCount(/Pending sign-ups[^:]*:\s*(\d+)/);
+  const pendingSignups = getCount(/Members on a trial:\s*(\d+)/);
   const contactMsg = getCount(/Contact messages:\s*(\d+)/);
   const tribeTotal = getCount(/Tribe members:\s*(\d+)\s+total/);
   const workouts = getCount(/Workout logs:\s*(\d+)/);
@@ -6618,7 +6609,7 @@ function buildPoliteFallbackReply(context, question) {
   const suggestActions = () => {
     const actions = [];
     if (pendingAudit > 0) actions.push('• Go to **Audit forms** and approve or reject the ' + pendingAudit + ' pending request(s).');
-    if (pendingSignups > 0) actions.push('• Go to **Pending Sign-ups** and approve the ' + pendingSignups + ' user(s) so they can log in.');
+    if (pendingSignups > 0) actions.push('• Open the **Memberships** tab to call new trial members and convert them.');
     if (contactMsg > 0) actions.push('• Check **Messages & Meetings** for contact messages and follow up if needed.');
     if (actions.length === 0) actions.push('• Use the dashboard tabs to explore Tribe, Workouts, Client Progress, and Performance Insights.');
     return '\n\n**Suggested actions:**\n' + actions.join('\n');
@@ -6639,7 +6630,7 @@ function buildPoliteFallbackReply(context, question) {
     answer = sundayCheck === 0 ? 'There are no Sunday check-ins yet.' : 'There are ' + sundayCheck + ' Sunday check-in' + (sundayCheck === 1 ? '' : 's') + '.';
     answer += suggestActions();
   } else if (/\bhow many\b.*(sign-up|signup|pending.*approval)/.test(q)) {
-    answer = pendingSignups === 0 ? 'There are no pending sign-ups awaiting approval.' : 'There are ' + pendingSignups + ' pending sign-up' + (pendingSignups === 1 ? '' : 's') + ' awaiting approval.';
+    answer = 'New sign-ups now get instant trial access automatically — there is no approval queue. Track and convert trial members in the **Memberships** tab.';
     answer += suggestActions();
   } else if (/\b(what should i do|what can i do|suggest|recommend|what to do)\b/.test(q) && !/\b(list|summarize|how many|who|recent|latest)\b/.test(q)) {
     answer = 'Based on your current data:' + suggestActions();
@@ -6664,7 +6655,7 @@ function buildPoliteFallbackReply(context, question) {
     answer = contactMsg === 0 ? 'There are no contact messages yet.' : 'You have ' + contactMsg + ' contact message' + (contactMsg === 1 ? '' : 's') + '. See Messages & Meetings tab to read them.';
     answer += suggestActions();
   } else if (/\bwho\b.*\b(pending|sign-up|signup)\b|\b(pending|sign-up)\b.*\bwho\b/.test(q)) {
-    answer = pendingSignups === 0 ? 'No one is pending approval right now.' : 'There are ' + pendingSignups + ' pending sign-up' + (pendingSignups === 1 ? '' : 's') + ' awaiting approval. Open the Pending Sign-ups tab to see names and approve them.';
+    answer = 'There is no approval queue anymore — new sign-ups get instant trial access. Open the **Memberships** tab to see new trial members and convert them.';
     answer += suggestActions();
   } else {
     answer = 'Here’s a snapshot of your current data:\n\n' + context.split('---').slice(0, 3).join('---').trim() + '\n\nIf you’d like answers to specific questions (e.g. “How many pending forms?”). For AI answers to any question, set ANTHROPIC_API_KEY in .env and restart.';
@@ -6964,7 +6955,7 @@ async function getSuperadminDashboardData(filters = {}) {
   const [sundayCount] = await queryAll("SELECT COUNT(*) as c FROM sunday_checkins");
   const [messagesCount] = await queryAll("SELECT COUNT(*) as c FROM contact_messages");
   const [meetingsCount] = await queryAll("SELECT COUNT(*) as c FROM meetings");
-  const [signupsPending] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status IS NULL OR approval_status = 'pending')");
+  const [trialsCount] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND subscription_status='trialing' AND COALESCE(suspended, FALSE) = FALSE");
   const [usersApproved] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND (approval_status = 'approved' OR approval_status IS NULL)");
   const [dailyCheckinsCount] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
   const [programAssignCount] = await queryAll("SELECT COUNT(*) as c FROM user_program_assignments WHERE removed_at IS NULL");
@@ -6981,7 +6972,7 @@ async function getSuperadminDashboardData(filters = {}) {
     program_assignments: num(programAssignCount?.c),
     messages: num(messagesCount?.c),
     meetings: num(meetingsCount?.c),
-    pending_signups: num(signupsPending?.c),
+    trials: num(trialsCount?.c),
     approved_users: num(usersApproved?.c)
   };
 
