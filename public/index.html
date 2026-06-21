@@ -5334,6 +5334,23 @@ button.bb-today-pill{cursor:pointer}
 .user-bottom-nav-icon svg,.admin-bottom-nav-icon svg{width:24px;height:24px;display:block}
 .user-bottom-nav-item.active .user-bottom-nav-icon svg,
 .admin-bottom-nav-item.active .admin-bottom-nav-icon svg{stroke-width:2.1}
+/* Check-in shortcut — popped-out emphasis so it reads as a standing reminder of its importance */
+.user-bottom-nav-item--cta{overflow:visible;color:var(--gold)}
+.user-bottom-nav-item--cta .user-bottom-nav-icon{
+  width:42px;height:42px;border-radius:50%;margin-bottom:3px;
+  background:linear-gradient(180deg,#f7dd93 0%,#c8a44e 100%);
+  border:2px solid #0d0d0d;
+  box-shadow:0 4px 14px rgba(200,164,78,0.5),inset 0 1px 0 rgba(255,255,255,0.55);
+  animation:bbCheckinNavPulse 2.4s ease-in-out infinite;
+}
+.user-bottom-nav-item--cta .user-bottom-nav-icon svg{width:22px;height:22px;stroke:#1a1206;stroke-width:2.1}
+.user-bottom-nav-item--cta .user-bottom-nav-label{color:var(--gold);font-weight:700}
+.user-bottom-nav-item--cta.active .user-bottom-nav-icon{box-shadow:0 4px 16px rgba(200,164,78,0.72),inset 0 1px 0 rgba(255,255,255,0.6)}
+@keyframes bbCheckinNavPulse{
+  0%,100%{box-shadow:0 4px 12px rgba(200,164,78,0.42),inset 0 1px 0 rgba(255,255,255,0.55)}
+  50%{box-shadow:0 5px 20px rgba(200,164,78,0.85),inset 0 1px 0 rgba(255,255,255,0.55)}
+}
+@media (prefers-reduced-motion: reduce){.user-bottom-nav-item--cta .user-bottom-nav-icon{animation:none}}
 /* ── end floating pill nav prototype ── */
 
 </style>
@@ -5648,74 +5665,8 @@ button.bb-today-pill{cursor:pointer}
           </div>
         </div>
 
-        <!-- Today dashboard (the 3 status cards are now folded into the Today hero above) -->
-        <div class="today-dash" id="todayDash">
-          <!-- Micro-goals: daily check-in + streaks -->
-          <div class="micro-goals-wrap">
-            <div class="streak-at-risk-banner" id="streakAtRiskBanner" style="display:none">
-              <span class="icon" aria-hidden="true">⏱</span>
-              <span class="text">Save today&apos;s check-in to keep your streak!</span>
-              <span class="streak-timer" id="streakTimerCountdown"></span>
-            </div>
-            <div class="bb-inactivity-risk" id="inactivityAtRiskBanner" style="display:none" role="alert">
-              <div class="bb-inactivity-risk__inner">
-                <div class="bb-inactivity-risk__row">
-                  <span class="bb-inactivity-risk__icon-wrap" aria-hidden="true">⏳</span>
-                  <div class="bb-inactivity-risk__copy">
-                    <span class="bb-inactivity-risk__eyebrow">Daily check-in</span>
-                    <p class="bb-inactivity-risk__message" id="inactivityAtRiskText">We haven&apos;t seen your daily check-in yet.</p>
-                  </div>
-                </div>
-                <button type="button" class="bb-inactivity-risk__btn" id="inactivityAtRiskBtn" onclick="switchUserTab('checkin')">Open check-in</button>
-              </div>
-            </div>
-            <h3>Daily check-in</h3>
-            <div class="streak-timer" id="microStreakTimer" style="display:none"><span class="streak-timer-icon">⏱</span><span id="microStreakTimerText"></span></div>
-            <form id="microGoalsForm" onsubmit="submitMicroGoals();return false">
-              <div class="micro-goals-grid">
-                <div class="micro-goal-field">
-                  <label>Steps</label>
-                  <div class="bb-stepper">
-                    <button type="button" class="bb-step-btn" onclick="bbStep('microSteps',-500,0,100000)" aria-label="Decrease steps">−</button>
-                    <input type="number" id="microSteps" placeholder="e.g. 8000" min="0">
-                    <button type="button" class="bb-step-btn" onclick="bbStep('microSteps',500,0,100000)" aria-label="Increase steps">+</button>
-                  </div>
-                </div>
-                <div class="micro-goal-field">
-                  <label>Water (L)</label>
-                  <div class="bb-stepper">
-                    <button type="button" class="bb-step-btn" onclick="bbStep('microWater',-0.25,0,15)" aria-label="Decrease water">−</button>
-                    <input type="number" id="microWater" placeholder="e.g. 2.5" min="0" max="15" step="0.1" inputmode="decimal">
-                    <button type="button" class="bb-step-btn" onclick="bbStep('microWater',0.25,0,15)" aria-label="Increase water">+</button>
-                  </div>
-                </div>
-                <div class="micro-goal-field">
-                  <label>Protein (g)</label>
-                  <div class="bb-stepper">
-                    <button type="button" class="bb-step-btn" onclick="bbStep('microProtein',-10,0,500)" aria-label="Decrease protein">−</button>
-                    <input type="number" id="microProtein" placeholder="e.g. 120" min="0">
-                    <button type="button" class="bb-step-btn" onclick="bbStep('microProtein',10,0,500)" aria-label="Increase protein">+</button>
-                  </div>
-                </div>
-                <div class="micro-goal-field">
-                  <label>Sleep (hrs)</label>
-                  <div class="bb-stepper">
-                    <button type="button" class="bb-step-btn" onclick="bbStep('microSleep',-0.5,0,24)" aria-label="Decrease sleep">−</button>
-                    <input type="number" id="microSleep" placeholder="e.g. 7.5" min="0" step="0.5">
-                    <button type="button" class="bb-step-btn" onclick="bbStep('microSleep',0.5,0,24)" aria-label="Increase sleep">+</button>
-                  </div>
-                </div>
-              </div>
-              <button type="submit" class="micro-goals-submit">Save today</button>
-            </form>
-            <div class="weekly-recap" id="weeklyRecap">
-              <div class="weekly-recap-item"><span class="lbl">Avg steps</span><span class="num" id="recapSteps">—</span></div>
-              <div class="weekly-recap-item"><span class="lbl">Avg water</span><span class="num" id="recapWater">—</span></div>
-              <div class="weekly-recap-item"><span class="lbl">Avg protein</span><span class="num" id="recapProtein">—</span></div>
-              <div class="weekly-recap-item"><span class="lbl">Avg sleep</span><span class="num" id="recapSleep">—</span></div>
-            </div>
-          </div>
-        </div>
+        <!-- Daily check-in widget removed from the home page. Check-in lives in the Check-in tab,
+             surfaced via the popped-out bottom-nav icon (.user-bottom-nav-item--cta). -->
 
         <div id="bbBodyHomePromptCard" class="bb-body-home-prompt" style="display:none" role="region" aria-label="Body snapshot reminder">
           <div class="bb-body-home-prompt__inner">
@@ -6518,7 +6469,7 @@ button.bb-today-pill{cursor:pointer}
         <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12h2M20.5 12h2"/><rect x="3.5" y="8" width="3.2" height="8" rx="1.1"/><rect x="17.3" y="8" width="3.2" height="8" rx="1.1"/><path d="M6.7 12h10.6"/></svg></span>
         <span class="user-bottom-nav-label">Train</span>
       </button>
-      <button type="button" class="user-bottom-nav-item" data-tab="checkin" onclick="switchUserTab('checkin')" aria-label="Check-in">
+      <button type="button" class="user-bottom-nav-item user-bottom-nav-item--cta" data-tab="checkin" onclick="switchUserTab('checkin')" aria-label="Check-in">
         <span class="user-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3.5" y="5" width="17" height="16" rx="2.2"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><path d="M8.8 15.2l2.1 2.1 4.3-4.3"/></svg></span>
         <span class="user-bottom-nav-label">Check-in</span>
       </button>
@@ -16508,15 +16459,25 @@ function bbTodayGreetingText(){
 }
 function bbTodayFocusChecklist(){
   var f = document.getElementById('microGoalsForm');
-  if (f && f.scrollIntoView) f.scrollIntoView({ behavior:'smooth', block:'center' });
-  var s = document.getElementById('microSteps');
-  if (s) { try { s.focus(); } catch(_){} }
+  if (f && f.scrollIntoView) {
+    f.scrollIntoView({ behavior:'smooth', block:'center' });
+    var s = document.getElementById('microSteps');
+    if (s) { try { s.focus(); } catch(_){} }
+    return;
+  }
+  // Home check-in widget removed — route to the Check-in tab instead.
+  if (typeof switchUserTab === 'function') switchUserTab('checkin');
 }
 function bbTodayFocusField(id){
   var f = document.getElementById('microGoalsForm');
-  if (f && f.scrollIntoView) f.scrollIntoView({ behavior:'smooth', block:'center' });
-  var el = document.getElementById(id);
-  if (el) { try { el.focus(); el.select && el.select(); } catch(_){} }
+  if (f && f.scrollIntoView) {
+    f.scrollIntoView({ behavior:'smooth', block:'center' });
+    var el = document.getElementById(id);
+    if (el) { try { el.focus(); el.select && el.select(); } catch(_){} }
+    return;
+  }
+  // Home check-in widget removed — route to the Check-in tab instead.
+  if (typeof switchUserTab === 'function') switchUserTab('checkin');
 }
 async function loadHomeAggregate(){
   try {
@@ -18896,8 +18857,8 @@ async function drawNutritionShareCard(mt, opts) {
   var meta = bbNutritionMealMeta[mealType] || { label: String(mealType || 'Meal'), hint: '' };
 
   var W = 1080;
-  var imgX = 0;        // full bleed — no side padding
-  var imgW = W;
+  var imgX = 36;       // inset within the gold frame
+  var imgW = W - 72;
   var imgTop = adminPayload ? 392 : 230;
 
   // Pre-load meal image to calculate natural aspect ratio before sizing the canvas
@@ -18914,8 +18875,8 @@ async function drawNutritionShareCard(mt, opts) {
     imgH = Math.max(320, Math.round(imgW * mealImgPreloaded.naturalHeight / mealImgPreloaded.naturalWidth));
   }
 
-  // Canvas height: header + full image + content (bars + score/trust) + footer
-  var H = imgTop + imgH + 1120;
+  // Canvas height: header + image + content (dish + macro tiles + score meter) + footer
+  var H = imgTop + imgH + 1240;
   canvas.width = W;
   canvas.height = H;
   var ctx = canvas.getContext('2d');
@@ -18932,18 +18893,41 @@ async function drawNutritionShareCard(mt, opts) {
   nutritionShareRoundRectPath(ctx, 20, 20, W - 40, H - 40, 44);
   ctx.stroke();
 
-  // Header
-  ctx.fillStyle = '#f1e6c8';
-  ctx.font = "700 68px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText(meta.label || 'Meal', 74, 125);
-  ctx.fillStyle = confMeta.level === 'high' ? '#3dd68c' : confMeta.level === 'medium' ? '#f5a623' : '#ff6868';
-  ctx.font = "600 38px 'Outfit','Segoe UI',sans-serif";
-  ctx.textAlign = 'right';
-  ctx.fillText(confMeta.level === 'high' ? 'High confidence' : confMeta.level === 'medium' ? 'Medium confidence' : 'Low confidence', W - 74, 125);
+  // Header — kicker, meal name, time hint (left) + confidence pill (right)
+  var headLeft = 74;
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#c9a84c';
+  ctx.font = "700 26px 'Outfit','Segoe UI',sans-serif";
+  ctx.letterSpacing = '0.22em';
   ctx.textAlign = 'left';
-  ctx.fillStyle = '#a99a7f';
-  ctx.font = "500 40px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText(meta.hint || '', 74, 190);
+  ctx.fillText('BODYBANK AI', headLeft, 80);
+  ctx.letterSpacing = '0';
+  ctx.fillStyle = '#f1e6c8';
+  ctx.font = "700 66px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillText(meta.label || 'Meal', headLeft, 152);
+  if (meta.hint) {
+    ctx.fillStyle = '#a99a7f';
+    ctx.font = "500 36px 'Outfit','Segoe UI',sans-serif";
+    ctx.fillText(meta.hint, headLeft, 202);
+  }
+  // Confidence pill (top-right)
+  var cLevel = confMeta.level || 'medium';
+  var cColor = cLevel === 'high' ? '#3dd68c' : cLevel === 'medium' ? '#f5a623' : '#ff6868';
+  var cText = (cLevel === 'high' ? 'High' : cLevel === 'medium' ? 'Medium' : 'Low') + ' confidence';
+  ctx.font = "600 32px 'Outfit','Segoe UI',sans-serif";
+  var cTextW = ctx.measureText(cText).width;
+  var cDotR = 10, cPad = 28, cGap = 16;
+  var cPillW = cPad + cDotR * 2 + cGap + cTextW + cPad;
+  var cPillH = 64, cPillX = (W - 74) - cPillW, cPillY = 70;
+  ctx.fillStyle = 'rgba(255,255,255,0.05)';
+  nutritionShareRoundRectPath(ctx, cPillX, cPillY, cPillW, cPillH, cPillH / 2); ctx.fill();
+  ctx.strokeStyle = cColor + '66'; ctx.lineWidth = 2;
+  nutritionShareRoundRectPath(ctx, cPillX, cPillY, cPillW, cPillH, cPillH / 2); ctx.stroke();
+  var cCy = cPillY + cPillH / 2;
+  ctx.beginPath(); ctx.arc(cPillX + cPad + cDotR, cCy, cDotR, 0, Math.PI * 2); ctx.fillStyle = cColor; ctx.fill();
+  ctx.fillStyle = cColor; ctx.textAlign = 'left'; ctx.textBaseline = 'middle';
+  ctx.fillText(cText, cPillX + cPad + cDotR * 2 + cGap, cCy + 1);
+  ctx.textBaseline = 'alphabetic';
 
   if (adminPayload && adminPayload.userName) {
     var nameText = String(adminPayload.userName || '').trim();
@@ -18962,97 +18946,130 @@ async function drawNutritionShareCard(mt, opts) {
     ctx.textAlign = 'left';
   }
 
-  // Meal image — full bleed, no borders, no letterboxing
+  // Meal image — inset, rounded corners, with a soft bottom scrim that blends into the card
+  var imgRadius = 28;
+  ctx.save();
+  nutritionShareRoundRectPath(ctx, imgX, imgTop, imgW, imgH, imgRadius);
+  ctx.clip();
   if (mealImgPreloaded && mealImgPreloaded.naturalWidth && mealImgPreloaded.naturalHeight) {
     ctx.drawImage(mealImgPreloaded, imgX, imgTop, imgW, imgH);
   } else {
     ctx.fillStyle = '#1a1e24';
     ctx.fillRect(imgX, imgTop, imgW, imgH);
   }
+  var scrimH = Math.round(imgH * 0.34);
+  var scrim = ctx.createLinearGradient(0, imgTop + imgH - scrimH, 0, imgTop + imgH);
+  scrim.addColorStop(0, 'rgba(13,15,18,0)');
+  scrim.addColorStop(1, 'rgba(13,15,18,0.7)');
+  ctx.fillStyle = scrim;
+  ctx.fillRect(imgX, imgTop + imgH - scrimH, imgW, scrimH);
+  ctx.restore();
+  ctx.strokeStyle = 'rgba(200,164,78,0.28)';
+  ctx.lineWidth = 2;
+  nutritionShareRoundRectPath(ctx, imgX, imgTop, imgW, imgH, imgRadius);
+  ctx.stroke();
 
-  // Dish and macro chips
-  var yText = imgTop + imgH + 82;
+  // Dish name
+  var yText = imgTop + imgH + 84;
+  ctx.textBaseline = 'alphabetic';
   ctx.fillStyle = '#efe4c7';
   ctx.font = "700 58px 'Outfit','Segoe UI',sans-serif";
+  ctx.textAlign = 'left';
   var dish = String(result.dish || 'Meal');
   var dishEndY = nutritionShareDrawWrappedText(ctx, dish, 74, yText, W - 148, 66, 2);
 
-  function chip(x, y, w, txt, bgc, tc) {
-    ctx.fillStyle = bgc;
-    nutritionShareRoundRectPath(ctx, x, y, w, 88, 44);
-    ctx.fill();
-    ctx.fillStyle = tc;
-    ctx.font = "700 40px 'Outfit','Segoe UI',sans-serif";
-    ctx.textAlign = 'center';
-    ctx.fillText(txt, x + (w / 2), y + 56);
-    ctx.textAlign = 'left';
-  }
-  // Macro bars
-  function macroBar(y, label, value, unit, maxVal, fillColor) {
-    var bX = 74; var bRight = W - 74; var bTotalW = bRight - bX;
-    var labelW = 180; var valW = 160; var trackX = bX + labelW + 16; var trackW = bTotalW - labelW - valW - 32;
-    var trackH = 28; var trackY = y - 20;
-    ctx.fillStyle = '#a99a7f'; ctx.font = "600 36px 'Outfit','Segoe UI',sans-serif"; ctx.textAlign = 'left';
-    ctx.fillText(label, bX, y);
-    ctx.fillStyle = 'rgba(255,255,255,0.07)';
-    nutritionShareRoundRectPath(ctx, trackX, trackY, trackW, trackH, 14); ctx.fill();
+  // ---- Macro tiles (2×2 grid): Calories · Protein · Carbs · Fat ----
+  function macroTile(tx, ty, tw, th, label, value, unit, maxVal, color) {
+    ctx.fillStyle = 'rgba(255,255,255,0.04)';
+    nutritionShareRoundRectPath(ctx, tx, ty, tw, th, 24); ctx.fill();
+    ctx.strokeStyle = 'rgba(200,164,78,0.14)'; ctx.lineWidth = 2;
+    nutritionShareRoundRectPath(ctx, tx, ty, tw, th, 24); ctx.stroke();
+    var pad = 30;
+    // colored dot + label
+    ctx.beginPath(); ctx.arc(tx + pad + 9, ty + pad + 13, 10, 0, Math.PI * 2); ctx.fillStyle = color; ctx.fill();
+    ctx.fillStyle = '#9b8f78'; ctx.font = "700 28px 'Outfit','Segoe UI',sans-serif";
+    ctx.letterSpacing = '0.12em'; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+    ctx.fillText(label, tx + pad + 30, ty + pad + 24); ctx.letterSpacing = '0';
+    // value + unit
+    var valStr = (value != null ? String(value) : '—');
+    ctx.fillStyle = '#f3e8c8'; ctx.font = "800 62px 'Outfit','Segoe UI',sans-serif";
+    var valY = ty + th - 56;
+    ctx.fillText(valStr, tx + pad, valY);
+    var valW2 = ctx.measureText(valStr).width;
+    if (value != null && unit) {
+      ctx.fillStyle = '#9b8f78'; ctx.font = "600 34px 'Outfit','Segoe UI',sans-serif";
+      ctx.fillText(unit, tx + pad + valW2 + 12, valY);
+    }
+    // mini progress bar
+    var barX = tx + pad, barW = tw - pad * 2, barY = ty + th - 32, barH = 12;
+    ctx.fillStyle = 'rgba(255,255,255,0.08)';
+    nutritionShareRoundRectPath(ctx, barX, barY, barW, barH, 6); ctx.fill();
     var pct = Math.min(1, Math.max(0, (Number(value) || 0) / maxVal));
     if (pct > 0) {
-      var grad = ctx.createLinearGradient(trackX, 0, trackX + trackW, 0);
-      grad.addColorStop(0, fillColor); grad.addColorStop(1, fillColor + 'aa');
-      ctx.fillStyle = grad;
-      nutritionShareRoundRectPath(ctx, trackX, trackY, Math.round(pct * trackW), trackH, 14); ctx.fill();
+      ctx.fillStyle = color;
+      nutritionShareRoundRectPath(ctx, barX, barY, Math.max(barH, Math.round(pct * barW)), barH, 6); ctx.fill();
     }
-    ctx.fillStyle = '#f0e4c5'; ctx.font = "700 38px 'Outfit','Segoe UI',sans-serif"; ctx.textAlign = 'right';
-    ctx.fillText((value != null ? value : '—') + unit, bRight, y); ctx.textAlign = 'left';
   }
-  var barStartY = dishEndY + 52;
-  macroBar(barStartY,        'KCAL',    result.calories, ' kcal', 900,  '#f6b46d');
-  macroBar(barStartY + 80,   'PROTEIN', result.protein,  'g',     60,   '#85e8ae');
-  macroBar(barStartY + 160,  'CARBS',   result.carbs,    'g',     120,  '#90cbf0');
-  macroBar(barStartY + 240,  'FAT',     result.fat,      'g',     50,   '#f2a39a');
-  var macroSectionEndY = barStartY + 300;
+  var gridLeft = 74, gridRight = W - 74, gridGap = 24;
+  var colW = Math.round((gridRight - gridLeft - gridGap) / 2);
+  var col0 = gridLeft, col1 = gridLeft + colW + gridGap;
+  var tileH = 172;
+  var gridTop = dishEndY + 30;
+  var gridRow1 = gridTop + tileH + gridGap;
+  macroTile(col0, gridTop,  colW, tileH, 'CALORIES', result.calories, 'kcal', 900, '#f6b46d');
+  macroTile(col1, gridTop,  colW, tileH, 'PROTEIN',  result.protein,  'g',    60,  '#85e8ae');
+  macroTile(col0, gridRow1, colW, tileH, 'CARBS',    result.carbs,    'g',    120, '#90cbf0');
+  macroTile(col1, gridRow1, colW, tileH, 'FAT',      result.fat,      'g',    50,  '#f2a39a');
+  var macroSectionEndY = gridRow1 + tileH + 64;
 
-  // Score and trust
-  var trustColor = confMeta.level === 'high' ? '#3dd68c' : confMeta.level === 'medium' ? '#f5a623' : '#ff6868';
-  var scoreY = macroSectionEndY;
+  // ---- Meal score meter — full-width, snapped to the card margins (74 / W-74) ----
+  // Confidence is shown once, in the header; here we show the score cleanly with no repetition.
   var leftX = 74;
-  var gap = 18;
-  var scoreLabel = 'Score:';
-  var scoreValue = String(score) + '/10';
-  var scoreTrustWord = (confMeta.level || 'medium').charAt(0).toUpperCase() + (confMeta.level || 'medium').slice(1);
+  var rightX = W - 74;
+  var scoreIsNum = (typeof score === 'number' && !isNaN(score));
+  var scoreNum = scoreIsNum ? Math.max(0, Math.min(10, score)) : 0;
+  var band = scoreIsNum ? (scoreNum >= 8 ? 'Excellent' : scoreNum >= 6 ? 'Great' : scoreNum >= 4 ? 'Good' : 'Needs work') : '';
+  var bandColor = scoreIsNum ? (scoreNum >= 8 ? '#3dd68c' : scoreNum >= 6 ? '#7fd6a0' : scoreNum >= 4 ? '#f5a623' : '#ff6868') : '#9b8f78';
 
-  ctx.fillStyle = '#c7bcaa';
-  ctx.font = "600 50px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText(scoreLabel, leftX, scoreY);
-  var scoreLabelW = ctx.measureText(scoreLabel).width;
+  var sTop = macroSectionEndY;
+  ctx.textBaseline = 'alphabetic';
 
-  var scoreValueX = leftX + scoreLabelW + gap;
-  ctx.fillStyle = '#f0e4c5';
-  ctx.font = "800 56px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText(scoreValue, scoreValueX, scoreY + 1);
-  var scoreValueW = ctx.measureText(scoreValue).width;
-
-  var scoreTrustX = scoreValueX + scoreValueW + gap;
-  var scoreTrustMaxX = W - 74;
-  ctx.fillStyle = trustColor;
-  ctx.font = "700 56px 'Outfit','Segoe UI',sans-serif";
-  if (scoreTrustX + ctx.measureText(scoreTrustWord).width > scoreTrustMaxX) {
-    scoreTrustX = leftX;
-    scoreY += 62;
+  // Eyebrow label (left) + band word (right) on one row, both on the same baseline
+  ctx.font = "700 32px 'Outfit','Segoe UI',sans-serif";
+  ctx.fillStyle = '#9b8f78';
+  ctx.letterSpacing = '0.18em';
+  ctx.textAlign = 'left';
+  ctx.fillText('MEAL SCORE', leftX, sTop);
+  ctx.letterSpacing = '0';
+  if (band) {
+    ctx.font = "700 40px 'Outfit','Segoe UI',sans-serif";
+    ctx.fillStyle = bandColor;
+    ctx.textAlign = 'right';
+    ctx.fillText(band, rightX, sTop);
   }
-  ctx.fillText(scoreTrustWord, scoreTrustX, scoreY + 1);
 
-  var trustY = scoreY + 76;
-  var trustLabel = 'Trust:';
-  ctx.fillStyle = '#c7bcaa';
-  ctx.font = "600 50px 'Outfit','Segoe UI',sans-serif";
-  ctx.fillText(trustLabel, leftX, trustY);
-  var trustLabelW = ctx.measureText(trustLabel).width;
-  var trustTextX = leftX + trustLabelW + gap;
-  ctx.fillStyle = trustColor;
-  ctx.font = "700 50px 'Outfit','Segoe UI',sans-serif";
-  nutritionShareDrawWrappedText(ctx, confMeta.label || 'Moderate confidence', trustTextX, trustY, W - trustTextX - 74, 56, 1);
+  // Big score value, left-aligned to the margin
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#f3e8c8';
+  ctx.font = "800 78px 'Outfit','Segoe UI',sans-serif";
+  var scoreStr = scoreIsNum ? (String(score) + ' / 10') : String(score);
+  var scoreValY = sTop + 92;
+  ctx.fillText(scoreStr, leftX, scoreValY);
+
+  // Full-width score track + gradient fill (0–10), aligned exactly to both margins
+  var trackY = scoreValY + 42;
+  var trackH = 26;
+  var trackW = rightX - leftX;
+  ctx.fillStyle = 'rgba(255,255,255,0.08)';
+  nutritionShareRoundRectPath(ctx, leftX, trackY, trackW, trackH, 13); ctx.fill();
+  if (scoreNum > 0) {
+    var fillW = Math.max(trackH, Math.round((scoreNum / 10) * trackW));
+    var sg = ctx.createLinearGradient(leftX, 0, leftX + trackW, 0);
+    sg.addColorStop(0, bandColor); sg.addColorStop(1, bandColor + 'bb');
+    ctx.fillStyle = sg;
+    nutritionShareRoundRectPath(ctx, leftX, trackY, fillW, trackH, 13); ctx.fill();
+  }
+  ctx.textAlign = 'left';
 
   // Footer
   var footerY = H - 292;
@@ -19086,6 +19103,15 @@ async function drawNutritionShareCard(mt, opts) {
     ctx.textAlign = 'left';
     ctx.textBaseline = 'alphabetic';
   }
+
+  // Footer tagline
+  ctx.fillStyle = '#7c715c';
+  ctx.font = "600 26px 'Outfit','Segoe UI',sans-serif";
+  ctx.textAlign = 'center';
+  ctx.letterSpacing = '0.16em';
+  ctx.fillText('AI NUTRITION ANALYSIS · BODYBANK.FIT', W / 2, footerY + 210);
+  ctx.letterSpacing = '0';
+  ctx.textAlign = 'left';
 
   _nutritionShareCardBlob = null;
   _nutritionShareCardMealType = String(mealType || mt || '');
