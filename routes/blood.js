@@ -86,7 +86,7 @@ function createBloodRouter(deps) {
       const mime = String(bloodReportMimeType || 'image/jpeg').slice(0, 80);
       const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
       const model =
-        (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514').trim();
+        (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6').trim();
       const reportValidation = await validateBloodReportInput({
         apiKey,
         model,

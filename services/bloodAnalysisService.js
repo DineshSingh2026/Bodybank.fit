@@ -181,7 +181,7 @@ function bloodMediaBlock(imageBase64, mimeType) {
 
 async function validateBloodReportInput({ apiKey, model, imageBase64, mimeType }) {
   const validationModel =
-    (process.env.ANTHROPIC_MODEL_BLOOD_VALIDATOR || model || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514').trim();
+    (process.env.ANTHROPIC_MODEL_BLOOD_VALIDATOR || model || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6').trim();
   try {
     const resp = await callAnthropicMessages({
       apiKey,
@@ -321,7 +321,7 @@ async function triggerBloodAnalysis(db, reportId, imageBase64, mimeType, userId)
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
   const model =
-    (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514').trim();
+    (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6').trim();
   const extractionMaxTokens = Math.max(700, parseInt(process.env.ANTHROPIC_BLOOD_EXTRACT_MAX_TOKENS || '1800', 10) || 1800);
   const analysisMaxTokens = Math.max(2500, parseInt(process.env.ANTHROPIC_BLOOD_ANALYSIS_MAX_TOKENS || '5500', 10) || 5500);
 

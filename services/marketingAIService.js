@@ -225,7 +225,7 @@ async function callSonetApi({ keywords, postType, tone }) {
   }
 
   const endpoint = String(process.env.SONET_API_URL || 'https://api.anthropic.com/v1/messages').trim();
-  const model = String(process.env.SONET_MODEL || 'claude-sonnet-4-20250514').trim();
+  const model = String(process.env.SONET_MODEL || 'claude-sonnet-4-6').trim();
   const { systemPrompt, userPrompt } = buildMarketingPrompt({ keywords, postType, tone });
 
   const response = await fetch(endpoint, {

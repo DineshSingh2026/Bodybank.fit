@@ -6469,7 +6469,7 @@ async function callAnthropicChat(systemContentFull, userMessage, maxTokensOverri
   if (!apiKey || !apiKey.trim()) return null;
   const modelCandidates = Array.from(new Set([
     process.env.ANTHROPIC_MODEL,
-    'claude-sonnet-4-20250514'
+    'claude-sonnet-4-6'
   ].map((m) => String(m || '').trim()).filter(Boolean)));
   let lastErr = null;
   const defaultMax = Math.max(1024, parseInt(process.env.ADMIN_AI_MAX_OUTPUT_TOKENS || '8192', 10));

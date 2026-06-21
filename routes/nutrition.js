@@ -335,7 +335,7 @@ function createNutritionRouter(deps) {
       if (!apiKey) return res.status(503).json({ error: 'Nutrition AI is not configured (ANTHROPIC_API_KEY).' });
 
       const model =
-        (process.env.ANTHROPIC_MODEL_NUTRITION || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514').trim();
+        (process.env.ANTHROPIC_MODEL_NUTRITION || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6').trim();
 
       const userId = req.user.id;
       const {
@@ -743,7 +743,7 @@ function createNutritionRouter(deps) {
       if (!apiKey) return res.status(503).json({ error: 'Nutrition AI is not configured (ANTHROPIC_API_KEY).' });
 
       const model =
-        (process.env.ANTHROPIC_MODEL_NUTRITION || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514').trim();
+        (process.env.ANTHROPIC_MODEL_NUTRITION || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6').trim();
 
       const targetUserId = String(req.params.userId || '').trim();
       if (!targetUserId) return res.status(400).json({ error: 'Invalid userId' });
