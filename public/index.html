@@ -2971,9 +2971,9 @@ button.bb-today-pill{cursor:pointer}
 .bb-today-ring-track{fill:none;stroke:rgba(255,255,255,0.07);stroke-width:8}
 .bb-today-ring-fill{fill:none;stroke:url(#bbTodayGrad);stroke-width:8;stroke-linecap:round;stroke-dasharray:327;stroke-dashoffset:327;transition:stroke-dashoffset .7s cubic-bezier(.34,1.2,.4,1)}
 .bb-today-ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1}
-.bb-today-ring-center b{font-size:30px;font-weight:800;color:#fbf6ec;letter-spacing:-.02em}
-.bb-today-ring-center i{font-size:13px;font-style:normal;color:var(--muted);margin-top:2px}
-.bb-today-ring-center em{font-size:9px;font-style:normal;text-transform:uppercase;letter-spacing:.18em;color:rgba(200,164,78,0.8);margin-top:4px;font-weight:700}
+.bb-today-ring-center b{font-size:28px;font-weight:800;color:#fbf6ec;letter-spacing:-.02em;line-height:1}
+.bb-today-ring-center i{font-size:10px;font-style:normal;color:var(--muted);margin-top:3px;line-height:1;white-space:nowrap}
+.bb-today-ring-center em{font-size:8px;font-style:normal;text-transform:uppercase;letter-spacing:.14em;color:rgba(200,164,78,0.85);margin-top:3px;line-height:1;font-weight:700}
 .bb-today-list{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .bb-today-item{display:flex;align-items:center;gap:11px;width:100%;border:none;background:none;padding:7px 6px;margin:0;border-radius:10px;cursor:pointer;text-align:left;transition:background .15s}
 .bb-today-item:active{background:rgba(255,255,255,0.05)}
@@ -3000,12 +3000,12 @@ button.bb-today-pill{cursor:pointer}
 .bb-today-meta{display:flex;align-items:center;gap:7px;width:100%;margin-top:9px;padding:11px 13px;border-radius:13px;border:1px solid rgba(255,255,255,0.06);background:rgba(255,255,255,0.02);color:var(--cream);font-size:12.5px;text-align:left;cursor:pointer}
 .bb-today-meta b{color:var(--gold);font-weight:700}
 .bb-today-week{margin:14px 4px 2px;font-size:11px;color:var(--muted);text-align:center;letter-spacing:.04em;font-weight:600}
-@media(max-width:380px){.bb-today-body{gap:13px}.bb-today-ring,.bb-today-ring-svg{width:96px;height:96px}.bb-today-ring-center b{font-size:25px}}
+@media(max-width:380px){.bb-today-body{gap:13px}.bb-today-ring,.bb-today-ring-svg{width:96px;height:96px}.bb-today-ring-center b{font-size:23px}.bb-today-ring-center em{font-size:7.5px;letter-spacing:.1em}.bb-today-ring-center i{font-size:9px}}
 /* ===== Pulse — one card captures day + week + pillars ===== */
 .bb-pulse-score{display:flex;align-items:center;gap:18px;margin-bottom:2px}
 .bb-pulse-ring-track2{fill:none;stroke:rgba(255,255,255,0.06);stroke-width:7}
 .bb-pulse-ring-fill2{fill:none;stroke:url(#bbPulseDayGrad);stroke-width:7;stroke-linecap:round;stroke-dasharray:239;stroke-dashoffset:239;transition:stroke-dashoffset .7s cubic-bezier(.34,1.2,.4,1)}
-.bb-today-ring-center i{font-size:11px;font-style:normal;color:var(--muted);margin-top:3px}
+.bb-today-ring-center i{font-size:10px;font-style:normal;color:var(--muted);margin-top:3px;line-height:1;white-space:nowrap}
 .bb-pulse-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
 .bb-pulse-kicker{font-size:10px;text-transform:uppercase;letter-spacing:.14em;color:rgba(200,164,78,0.85);font-weight:700}
 .bb-pulse-trend{font-size:13.5px;font-weight:700;color:var(--cream)}
@@ -5337,18 +5337,20 @@ button.bb-today-pill{cursor:pointer}
 /* Check-in shortcut — popped-out emphasis so it reads as a standing reminder of its importance */
 .user-bottom-nav-item--cta{overflow:visible;color:var(--gold)}
 .user-bottom-nav-item--cta .user-bottom-nav-icon{
-  width:42px;height:42px;border-radius:50%;margin-bottom:3px;
+  width:38px;height:38px;border-radius:50%;margin-bottom:3px;
   background:linear-gradient(180deg,#f7dd93 0%,#c8a44e 100%);
   border:2px solid #0d0d0d;
-  box-shadow:0 4px 14px rgba(200,164,78,0.5),inset 0 1px 0 rgba(255,255,255,0.55);
-  animation:bbCheckinNavPulse 2.4s ease-in-out infinite;
+  box-shadow:0 3px 9px rgba(200,164,78,0.45),inset 0 1px 0 rgba(255,255,255,0.55);
+  animation:bbCheckinNavPulse 2.6s ease-in-out infinite;
 }
-.user-bottom-nav-item--cta .user-bottom-nav-icon svg{width:22px;height:22px;stroke:#1a1206;stroke-width:2.1}
+.user-bottom-nav-item--cta .user-bottom-nav-icon svg{width:20px;height:20px;stroke:#1a1206;stroke-width:2.1}
 .user-bottom-nav-item--cta .user-bottom-nav-label{color:var(--gold);font-weight:700}
-.user-bottom-nav-item--cta.active .user-bottom-nav-icon{box-shadow:0 4px 16px rgba(200,164,78,0.72),inset 0 1px 0 rgba(255,255,255,0.6)}
+/* The gold disc is the emphasis — don't also draw the rounded active pill behind it (it crowded the neighbour) */
+.user-bottom-nav-item--cta.active::after{display:none!important}
+.user-bottom-nav-item--cta.active .user-bottom-nav-icon{box-shadow:0 3px 11px rgba(200,164,78,0.6),inset 0 1px 0 rgba(255,255,255,0.6)}
 @keyframes bbCheckinNavPulse{
-  0%,100%{box-shadow:0 4px 12px rgba(200,164,78,0.42),inset 0 1px 0 rgba(255,255,255,0.55)}
-  50%{box-shadow:0 5px 20px rgba(200,164,78,0.85),inset 0 1px 0 rgba(255,255,255,0.55)}
+  0%,100%{box-shadow:0 3px 8px rgba(200,164,78,0.4),inset 0 1px 0 rgba(255,255,255,0.55)}
+  50%{box-shadow:0 4px 13px rgba(200,164,78,0.7),inset 0 1px 0 rgba(255,255,255,0.55)}
 }
 @media (prefers-reduced-motion: reduce){.user-bottom-nav-item--cta .user-bottom-nav-icon{animation:none}}
 /* ── end floating pill nav prototype ── */
