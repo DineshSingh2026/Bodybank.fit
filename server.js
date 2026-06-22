@@ -1190,6 +1190,7 @@ async function initDB() {
     ['session_date', 'DATE'],
     ['workout_type', 'TEXT'],
     ['session_lifts', 'JSONB'],
+    ['session_reps', 'JSONB'],
     ['bench_kg', 'REAL'],
     ['squat_kg', 'REAL'],
     ['deadlift_kg', 'REAL'],
@@ -2625,13 +2626,15 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
     const squatKg = canon.squat_kg != null ? canon.squat_kg : legacySquat;
     const deadliftKg = canon.deadlift_kg != null ? canon.deadlift_kg : legacyDl;
     const sessionLiftsForDb = workoutSessionLifts.hasAnySessionLift(sl) ? sl : null;
+    const srp = workoutSessionLifts.parseSessionReps(b);
+    const sessionRepsForDb = (srp && Object.keys(srp).length) ? srp : null;
     await run(
       `INSERT INTO workout_logs (
         id, user_id, workout_name, duration_seconds, feedback,
-        session_date, workout_type, session_lifts, bench_kg, squat_kg, deadlift_kg,
+        session_date, workout_type, session_lifts, session_reps, bench_kg, squat_kg, deadlift_kg,
         weight_kg, body_fat_percent, calories, protein_g, water_liters, sleep_hrs,
         workout_completed, intensity, energy_level
-      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         id,
         userId,
@@ -2641,6 +2644,7 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
         date,
         workoutType,
         sessionLiftsForDb,
+        sessionRepsForDb,
         benchKg,
         squatKg,
         deadliftKg,

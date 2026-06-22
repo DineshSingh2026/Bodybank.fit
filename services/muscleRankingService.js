@@ -254,22 +254,85 @@ function tier(score) {
   return 'Weak';
 }
 
+// ── Calibrated strength standards (formula_version 2) ────────────────────────
+// Per region, the estimated-1RM ÷ bodyweight ratios at 5 training tiers, for the
+// region's PRIMARY lift (secondary lifts are normalised to it via per-lift factors).
+// Values approximate widely-used population standards (Strength Level / ExRx-style).
+// m = male, f = female.
+const STD = {
+  chest:     { m: [0.50, 0.75, 1.00, 1.50, 2.00], f: [0.30, 0.50, 0.65, 0.90, 1.20] }, // bench press
+  back:      { m: [0.50, 0.75, 1.00, 1.30, 1.60], f: [0.30, 0.50, 0.65, 0.85, 1.10] }, // barbell row
+  shoulders: { m: [0.35, 0.50, 0.70, 0.95, 1.25], f: [0.20, 0.32, 0.45, 0.62, 0.85] }, // overhead press
+  arms:      { m: [0.20, 0.32, 0.45, 0.60, 0.80], f: [0.12, 0.20, 0.28, 0.38, 0.52] }, // barbell curl
+  legs:      { m: [0.75, 1.25, 1.50, 2.00, 2.50], f: [0.55, 0.90, 1.15, 1.50, 1.90] }, // back squat
+  core:      { m: [0.50, 0.85, 1.10, 1.50, 1.90], f: [0.35, 0.60, 0.78, 1.05, 1.35] }  // brace proxy
+};
+// Score anchors for [Untrained, Novice, Intermediate, Advanced, Elite].
+const TIER_SCORES = [10, 35, 55, 78, 95];
+
 /**
- * Convert relative strength (lift / bodyweight) to 0-100 score for a region.
- * weakBw → ≈ 20, strongBw → ≈ 80, higher → up to 100
+ * Estimate a 1-rep max from a logged weight × reps using the Epley formula.
+ * Reps are clamped to 1..12 (Epley loses accuracy past ~12). When reps are
+ * missing (old weight-only logs, progress/canonical sources) we treat the
+ * logged weight as ~1RM (reps = 1) — conservative, never inflates.
  */
-function relStrToScore(relStr, weakBw, strongBw) {
-  if (!Number.isFinite(relStr) || relStr <= 0) return null;
-  const range = strongBw - weakBw;
-  const raw = 20 + ((relStr - weakBw) / range) * 60;
-  return Math.round(clamp(raw, 0, 100));
+function epley1RM(weight, reps) {
+  const w = num(weight);
+  if (w === null || w <= 0) return null;
+  let r = parseInt(reps, 10);
+  if (!Number.isFinite(r) || r < 1) r = 1;
+  if (r > 12) r = 12;
+  return w * (1 + r / 30);
 }
 
 /**
- * Extract the best (max) effective lift value from a bag of workout/progress rows.
- * Returns kg or null.
+ * Age-grade relative strength so older lifters are scored fairly for their age
+ * (Masters-coefficient style). Neutral up to ~31, then a gentle boost (~0.6%/yr),
+ * capped at +30%. Returns a multiplier applied to the relative-strength ratio.
  */
-function extractBestLift(region, workoutRows, progressRows) {
+function ageCoefFromDob(dob) {
+  if (!dob) return 1;
+  const d = (dob instanceof Date) ? dob : new Date(dob);
+  if (Number.isNaN(d.getTime())) return 1;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  const mo = now.getMonth() - d.getMonth();
+  if (mo < 0 || (mo === 0 && now.getDate() < d.getDate())) age -= 1;
+  if (!Number.isFinite(age) || age < 12 || age > 100) return 1;
+  if (age <= 31) return 1;
+  return Math.min(1.30, 1 + 0.006 * (age - 31));
+}
+
+/**
+ * Map an (age-graded) relative-strength ratio to a 0-100 score by interpolating
+ * across the 5 calibrated tier ratios → TIER_SCORES.
+ */
+function relStrToScore(relStr, stdArr) {
+  if (!Number.isFinite(relStr) || relStr <= 0 || !Array.isArray(stdArr) || stdArr.length < 2) return null;
+  if (relStr <= stdArr[0]) {
+    return Math.round(clamp((relStr / stdArr[0]) * TIER_SCORES[0], 0, TIER_SCORES[0]));
+  }
+  const last = stdArr.length - 1;
+  if (relStr >= stdArr[last]) {
+    const over = (relStr - stdArr[last]) / (stdArr[last] * 0.25); // +25% over elite → 100
+    return Math.round(clamp(TIER_SCORES[last] + over * (100 - TIER_SCORES[last]), TIER_SCORES[last], 100));
+  }
+  for (let i = 0; i < last; i++) {
+    if (relStr >= stdArr[i] && relStr <= stdArr[i + 1]) {
+      const t = (relStr - stdArr[i]) / (stdArr[i + 1] - stdArr[i]);
+      return Math.round(clamp(TIER_SCORES[i] + t * (TIER_SCORES[i + 1] - TIER_SCORES[i]), 0, 100));
+    }
+  }
+  return null;
+}
+
+/**
+ * Best effective estimated-1RM (kg) for a region across workout/progress rows.
+ * Session lifts use weight × reps → Epley 1RM (reps from the parallel session_reps
+ * map); progress/canonical sources have no reps so the stored weight is treated as
+ * ~1RM. Each candidate is normalised to the region's primary lift via its factor.
+ */
+function extractBest1RM(region, workoutRows, progressRows) {
   let best = null;
 
   for (const liftDef of region.lifts) {
@@ -280,25 +343,26 @@ function extractBestLift(region, workoutRows, progressRows) {
         const sl = row.session_lifts;
         if (!sl || typeof sl !== 'object') continue;
         const raw = num(sl[liftDef.key]);
-        if (raw !== null && raw > 0) {
-          const eff = raw * factor;
-          if (best === null || eff > best) best = eff;
-        }
+        if (raw === null || raw <= 0) continue;
+        const sr = (row.session_reps && typeof row.session_reps === 'object') ? row.session_reps : null;
+        const orm = epley1RM(raw, sr ? sr[liftDef.key] : null);
+        if (orm === null) continue;
+        const eff = orm * factor;
+        if (best === null || eff > best) best = eff;
       }
     } else if (liftDef.src === 'progress') {
       for (const row of progressRows) {
         const raw = num(row[liftDef.key]);
         if (raw !== null && raw > 0) {
-          const eff = raw * factor;
+          const eff = raw * factor; // no reps on progress logs → treat as 1RM
           if (best === null || eff > best) best = eff;
         }
       }
     } else if (liftDef.src === 'canonical') {
-      // canonical bench_kg / squat_kg / deadlift_kg on workout_logs
       for (const row of workoutRows) {
         const raw = num(row[liftDef.key]);
         if (raw !== null && raw > 0) {
-          const eff = raw * factor;
+          const eff = raw * factor; // canonical mirrors session weight (no reps key)
           if (best === null || eff > best) best = eff;
         }
       }
@@ -366,16 +430,16 @@ function buildFrequency30d(workoutRows) {
  * Compute a score for a given snapshot of data (used for history).
  * workoutRows and progressRows are already filtered up to a specific date.
  */
-function computeRegionScore(region, workoutRows, progressRows, bodyweightKg, isFemale) {
-  const bestKg = extractBestLift(region, workoutRows, progressRows);
-  if (bestKg === null || bodyweightKg <= 0) return null;
+function computeRegionScore(region, workoutRows, progressRows, bodyweightKg, isFemale, ageCoef) {
+  const best1RM = extractBest1RM(region, workoutRows, progressRows);
+  if (best1RM === null || bodyweightKg <= 0) return null;
 
-  const gf = isFemale ? region.femaleFactor : 1.0;
-  const weakBw = region.weakBw * gf;
-  const strongBw = region.strongBw * gf;
-  const relStr = bestKg / bodyweightKg;
+  const std = STD[region.key];
+  const stdArr = std ? (isFemale ? std.f : std.m) : null;
+  if (!stdArr) return null;
 
-  return relStrToScore(relStr, weakBw, strongBw);
+  const relStr = (best1RM / bodyweightKg) * (ageCoef || 1);
+  return relStrToScore(relStr, stdArr);
 }
 
 /**
@@ -404,12 +468,13 @@ function createMuscleRankingService({ queryOne, queryAll }) {
 
     // 1. User basics (gender, weight)
     const user = await queryOne(
-      `SELECT id, email, gender, height_cm FROM users WHERE id = ?`,
+      `SELECT id, email, gender, height_cm, dob FROM users WHERE id = ?`,
       [userId]
     );
     if (!user) return null;
 
     const email = user.email ? String(user.email).trim().toLowerCase() : '';
+    const ageCoef = ageCoefFromDob(user.dob);
 
     // Determine gender
     const genderRaw = String(user.gender || '').toLowerCase();
@@ -455,7 +520,7 @@ function createMuscleRankingService({ queryOne, queryAll }) {
       .toISOString().slice(0, 10);
 
     const workoutRows = await queryAll(
-      `SELECT session_lifts, bench_kg, squat_kg, deadlift_kg, session_date, created_at
+      `SELECT session_lifts, session_reps, bench_kg, squat_kg, deadlift_kg, session_date, created_at
        FROM workout_logs
        WHERE user_id = ? AND created_at >= ?::date
        ORDER BY created_at ASC`,
@@ -475,16 +540,16 @@ function createMuscleRankingService({ queryOne, queryAll }) {
     const regionDetails = [];
 
     for (const region of REGIONS) {
-      const score = computeRegionScore(region, workoutRows, progressRows, bodyweightKg, isFemale);
+      const score = computeRegionScore(region, workoutRows, progressRows, bodyweightKg, isFemale, ageCoef);
       regionScores[region.key] = score;
 
-      const bestKg = extractBestLift(region, workoutRows, progressRows);
+      const best1RM = extractBest1RM(region, workoutRows, progressRows);
       regionDetails.push({
         key: region.key,
         label: region.label,
         score,
         tier: tier(score),
-        best_lift_kg: bestKg !== null ? Math.round(bestKg * 10) / 10 : null
+        best_lift_kg: best1RM !== null ? Math.round(best1RM * 10) / 10 : null   // estimated 1RM (kg)
       });
     }
 
@@ -560,7 +625,7 @@ function createMuscleRankingService({ queryOne, queryAll }) {
     };
 
     // 8. Score history — compute monthly snapshots (last 6 months)
-    const historyResult = buildScoreHistory(workoutRows, progressRows, bodyweightKg, isFemale);
+    const historyResult = buildScoreHistory(workoutRows, progressRows, bodyweightKg, isFemale, ageCoef);
     const history = historyResult.history;
     const regionHistory = historyResult.regionHistory;
 
@@ -579,6 +644,20 @@ function createMuscleRankingService({ queryOne, queryAll }) {
     }
 
     const hasRealData = regionDetails.some(r => r.score !== null);
+
+    // Data confidence: share of logged session-lift values that carry reps (→ true 1RM est.)
+    let liftVals = 0, repVals = 0;
+    for (const row of workoutRows) {
+      const sl = row.session_lifts;
+      if (!sl || typeof sl !== 'object') continue;
+      const sr = (row.session_reps && typeof row.session_reps === 'object') ? row.session_reps : null;
+      for (const k of Object.keys(sl)) {
+        if (num(sl[k]) > 0) { liftVals++; if (sr && parseInt(sr[k], 10) >= 1) repVals++; }
+      }
+    }
+    const repsCoverage = liftVals > 0 ? repVals / liftVals : 0;
+    const dataConfidence = !hasRealData ? 'none'
+      : (repsCoverage >= 0.6 ? 'high' : (repsCoverage > 0 ? 'partial' : 'basic'));
 
     // When the user hasn't logged any lifts yet, build motivational placeholder scores
     // so the full UI always renders. Every region shows "Unranked" at score 0
@@ -621,10 +700,13 @@ function createMuscleRankingService({ queryOne, queryAll }) {
     };
 
     return {
-      formula_version: 1,
+      formula_version: 2,
       user_id: userId,
       bodyweight_kg: Math.round(bodyweightKg * 10) / 10,
       is_female: isFemale,
+      age_graded: ageCoef > 1,
+      data_confidence: dataConfidence,
+      reps_coverage_pct: Math.round(repsCoverage * 100),
       audit_index: finalAuditIndex,
       audit_index_delta: indexDelta,
       regions: finalRegions,
@@ -657,7 +739,7 @@ function createMuscleRankingService({ queryOne, queryAll }) {
    * Points where a region has no data yet (null score) are omitted from
    * that region's series so the frontend can render a clean polyline.
    */
-  function buildScoreHistory(workoutRows, progressRows, bodyweightKg, isFemale) {
+  function buildScoreHistory(workoutRows, progressRows, bodyweightKg, isFemale, ageCoef) {
     const emptyRegionHistory = {
       chest: [], back: [], shoulders: [], arms: [], legs: [], core: []
     };
@@ -719,7 +801,7 @@ function createMuscleRankingService({ queryOne, queryAll }) {
       const scores = {};
       for (const region of REGIONS) {
         const s = computeRegionScore(
-          region, cumulativeWorkout, cumulativeProgress, bodyweightKg, isFemale
+          region, cumulativeWorkout, cumulativeProgress, bodyweightKg, isFemale, ageCoef
         );
         scores[region.key] = s;
         if (s !== null && regionHistory[region.key]) {

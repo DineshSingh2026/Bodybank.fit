@@ -41,6 +41,26 @@ function parseSessionLifts(body) {
   return out;
 }
 
+/**
+ * Parse the parallel reps map { liftKey: reps }. Additive to session_lifts —
+ * never required, so old weight-only logs keep working. Reps clamped to 1..30.
+ */
+function parseSessionReps(body) {
+  let raw = body && body.session_reps;
+  if (raw == null) return {};
+  if (typeof raw === 'string') {
+    try { raw = JSON.parse(raw); } catch { return {}; }
+  }
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return {};
+  const out = {};
+  for (const [k, v] of Object.entries(raw)) {
+    if (typeof k !== 'string' || !ALLOWED_LIFT_KEYS.has(k)) continue;
+    const n = parseInt(v, 10);
+    if (Number.isFinite(n) && n >= 1 && n <= 30) out[k] = n;
+  }
+  return out;
+}
+
 function val(sl, key) {
   if (!sl || sl[key] == null || sl[key] === '') return null;
   const n = parseFloat(sl[key]);
@@ -70,6 +90,7 @@ function hasAnySessionLift(sl) {
 module.exports = {
   ALLOWED_LIFT_KEYS,
   parseSessionLifts,
+  parseSessionReps,
   canonicalLiftsFromSessionLifts,
   hasAnySessionLift
 };

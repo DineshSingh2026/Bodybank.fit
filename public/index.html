@@ -4478,6 +4478,14 @@ button.bb-today-pill{cursor:pointer}
 #usec-workout .wk-step-val{flex:1;border:none;background:transparent;color:var(--bb-text);text-align:center;font-size:16px;font-weight:600;min-width:0}
 #usec-workout .wk-lift-input{-moz-appearance:textfield}
 #usec-workout .wk-lift-input::-webkit-outer-spin-button,#usec-workout .wk-lift-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#usec-workout .wk-lift-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+#usec-workout .wk-lift-row:last-child{border-bottom:none}
+#usec-workout .wk-lift-name{font-size:13.5px;color:var(--bb-text);font-weight:600;flex:1;min-width:0}
+#usec-workout .wk-lift-entry{display:flex;align-items:center;gap:7px;flex:0 0 auto}
+#usec-workout .wk-lift-entry .wk-input{width:66px;padding:9px 8px;text-align:center;font-size:14px}
+#usec-workout .wk-lift-x{color:var(--bb-muted);font-size:13px;font-weight:600}
+#usec-workout .wk-rep-input{-moz-appearance:textfield}
+#usec-workout .wk-rep-input::-webkit-outer-spin-button,#usec-workout .wk-rep-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 #usec-workout .wk-muted-note{font-size:12px;color:var(--bb-muted);margin-bottom:12px}
 #usec-workout .wk-feel-layout{display:grid;grid-template-columns:1fr 1fr;gap:16px 20px;align-items:start;width:100%;min-width:0;margin-bottom:4px}
 #usec-workout .wk-feel-left{min-width:0;display:flex;flex-direction:column;gap:8px}
@@ -6144,7 +6152,7 @@ button.bb-today-pill{cursor:pointer}
 
         <div class="wk-sec wk-strength-sec" id="wkStrengthSection" style="display:none">
           <div class="wk-sec-title">Strength — session loads</div>
-          <p class="wk-muted-note" id="wkStrengthHint">Fields match your workout type. Enter your top working weight (kg) for each.</p>
+          <p class="wk-muted-note" id="wkStrengthHint">Enter your top working set — weight (kg) × reps. Reps power an accurate 1-rep-max estimate for your Muscle Ranking.</p>
           <div id="wkStrengthFields" class="wk-strength-fields"></div>
         </div>
 
@@ -6281,6 +6289,7 @@ button.bb-today-pill{cursor:pointer}
               <span class="mr-audit-den">/100</span>
             </div>
             <div class="mr-audit-delta" id="mr-audit-delta"></div>
+            <div class="mr-audit-conf" id="mr-audit-conf" style="display:none;font-size:10.5px;font-weight:600;letter-spacing:.02em;margin-top:5px"></div>
           </div>
           <button type="button" class="mr-share-btn" onclick="mrShareCard()" id="mr-share-btn" style="display:none">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
@@ -10422,6 +10431,15 @@ function wkCollectSessionLifts() {
   });
   return out;
 }
+function wkCollectSessionReps() {
+  var out = {};
+  document.querySelectorAll('#wkStrengthFields input[data-rep-key]').forEach(function (inp) {
+    var k = inp.getAttribute('data-rep-key');
+    var v = parseInt(String(inp.value || ''), 10);
+    if (k && Number.isFinite(v) && v >= 1 && v <= 30) out[k] = v;
+  });
+  return out;
+}
 function wkRenderStrengthFields() {
   var sel = document.getElementById('wkType');
   var container = document.getElementById('wkStrengthFields');
@@ -10440,17 +10458,15 @@ function wkRenderStrengthFields() {
   }
   if (hint) hint.style.display = 'block';
   var html = '';
-  for (var i = 0; i < profile.length; i += 2) {
-    html += '<div class="wk-row2">';
-    html += '<div class="wk-lift-field"><label for="wk-lift-' + profile[i].key + '">' + profile[i].label + ' (kg)</label>' +
-      '<input type="number" class="wk-input wk-lift-input" id="wk-lift-' + profile[i].key + '" data-lift-key="' + profile[i].key + '" inputmode="decimal" step="0.5" min="0" placeholder="0"></div>';
-    if (profile[i + 1]) {
-      html += '<div class="wk-lift-field"><label for="wk-lift-' + profile[i + 1].key + '">' + profile[i + 1].label + ' (kg)</label>' +
-        '<input type="number" class="wk-input wk-lift-input" id="wk-lift-' + profile[i + 1].key + '" data-lift-key="' + profile[i + 1].key + '" inputmode="decimal" step="0.5" min="0" placeholder="0"></div>';
-    } else {
-      html += '<div class="wk-lift-field wk-lift-spacer" aria-hidden="true"></div>';
-    }
-    html += '</div>';
+  for (var i = 0; i < profile.length; i++) {
+    var k = profile[i].key, lbl = profile[i].label;
+    html += '<div class="wk-lift-row">'
+      + '<span class="wk-lift-name">' + lbl + '</span>'
+      + '<div class="wk-lift-entry">'
+      + '<input type="number" class="wk-input wk-lift-input" id="wk-lift-' + k + '" data-lift-key="' + k + '" inputmode="decimal" step="0.5" min="0" placeholder="kg" aria-label="' + lbl + ' weight in kg">'
+      + '<span class="wk-lift-x" aria-hidden="true">×</span>'
+      + '<input type="number" class="wk-input wk-rep-input" id="wk-rep-' + k + '" data-rep-key="' + k + '" inputmode="numeric" step="1" min="1" max="30" placeholder="reps" aria-label="' + lbl + ' reps">'
+      + '</div></div>';
   }
   container.innerHTML = html;
 }
@@ -10459,6 +10475,13 @@ function wkApplySessionLiftsToInputs(lifts) {
   Object.keys(lifts).forEach(function (k) {
     var el = document.querySelector('#wkStrengthFields input[data-lift-key="' + k + '"]');
     if (el) el.value = lifts[k] != null ? String(lifts[k]) : '';
+  });
+}
+function wkApplySessionRepsToInputs(reps) {
+  if (!reps || typeof reps !== 'object') return;
+  Object.keys(reps).forEach(function (k) {
+    var el = document.querySelector('#wkStrengthFields input[data-rep-key="' + k + '"]');
+    if (el) el.value = reps[k] != null ? String(reps[k]) : '';
   });
 }
 function wkSyncStrengthSection() {
@@ -10509,6 +10532,7 @@ function saveWorkoutStateToStorage() {
       notes: (document.getElementById('wkNotes') || {}).value || '',
       otherDetails: (document.getElementById('wkOtherDetails') || {}).value || '',
       lifts: wkCollectSessionLifts(),
+      reps: wkCollectSessionReps(),
       completed: document.getElementById('wkCompleted') && document.getElementById('wkCompleted').checked,
       intensity: (document.getElementById('wkIntensity') || {}).value || '',
       energy: (document.getElementById('wkEnergy') || {}).value || ''
@@ -10549,6 +10573,7 @@ function restoreWorkoutStateFromStorage() {
       if (c && snap.completed) c.checked = true;
       wkSyncStrengthSection();
       if (snap.lifts && typeof snap.lifts === 'object') wkApplySessionLiftsToInputs(snap.lifts);
+      if (snap.reps && typeof snap.reps === 'object') wkApplySessionRepsToInputs(snap.reps);
     }
     sessionStorage.removeItem('bbWorkoutTimerSeconds');
     sessionStorage.removeItem('bbWorkoutFormSnap');
@@ -22232,6 +22257,7 @@ async function submitWorkoutSession() {
   if (!date || !workoutType) { alert('Please choose date and workout type.'); return; }
   var showStr = wkShouldShowStrength(workoutType);
   var lifts = showStr ? wkCollectSessionLifts() : {};
+  var reps = showStr ? wkCollectSessionReps() : {};
   var notesEl = document.getElementById('wkNotes');
   var otherDetailsEl = document.getElementById('wkOtherDetails');
   var otherDetails = otherDetailsEl && otherDetailsEl.value ? otherDetailsEl.value.trim() : '';
@@ -22247,6 +22273,7 @@ async function submitWorkoutSession() {
     duration_seconds: typeof wkGetTimerElapsedSeconds === 'function' ? wkGetTimerElapsedSeconds() : Math.max(0, Math.floor(timerBaselineSeconds || 0)),
     notes: finalNotes.slice(0, 5000),
     session_lifts: Object.keys(lifts).length ? lifts : null,
+    session_reps: Object.keys(reps).length ? reps : null,
     workout_completed: !!(document.getElementById('wkCompleted') && document.getElementById('wkCompleted').checked),
     intensity: (document.getElementById('wkIntensity') && document.getElementById('wkIntensity').value) ? document.getElementById('wkIntensity').value : null,
     energy_level: (document.getElementById('wkEnergy') && document.getElementById('wkEnergy').value) ? document.getElementById('wkEnergy').value : null
@@ -24180,6 +24207,22 @@ function mrRenderAuditIndex(d) {
     } else {
       deltaEl.textContent = '';
       deltaEl.className = 'mr-audit-delta';
+    }
+  }
+  // Methodology confidence: scores use estimated 1-rep-max from your logged weight × reps.
+  var confEl = document.getElementById('mr-audit-conf');
+  if (confEl) {
+    var conf = d.data_confidence;
+    if (d.is_placeholder || !conf || conf === 'none') {
+      confEl.style.display = 'none';
+    } else if (conf === 'high') {
+      confEl.style.display = '';
+      confEl.style.color = '#7fe3ab';
+      confEl.textContent = '✓ Precise — 1RM from your weight × reps';
+    } else {
+      confEl.style.display = '';
+      confEl.style.color = '#d6b85a';
+      confEl.textContent = '≈ Estimated — add reps when logging for precise scores';
     }
   }
 }
