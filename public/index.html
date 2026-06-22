@@ -17751,6 +17751,7 @@ async function submitDailyCheckinForm() {
     loadDailyCheckinForm();
     loadMicroGoals();
     bbLoadCoinSummary(true);
+    try { renderWeeklyInsights(); } catch (_) {}   // refresh the weekly graphs/data with the just-saved values
     showPopup('Saved', 'Daily check-in saved. Streak updated!', '', 'OK', null, 'success');
   } catch (e) {
     showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
