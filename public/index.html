@@ -5432,6 +5432,32 @@ button.bb-today-pill{cursor:pointer}
 .bb-wi-gauge-val b{color:var(--cream);font-weight:800}
 .bb-wi-gauge-pace{font-size:11px;font-weight:700;margin-top:5px}
 .bb-wi-chart-card{position:relative;height:200px;background:linear-gradient(180deg,rgba(22,22,22,0.94),rgba(10,10,10,0.97));border:1px solid rgba(200,164,78,0.14);border-radius:18px;padding:16px 14px 12px;box-shadow:0 6px 22px rgba(0,0,0,0.28)}
+/* Health Debt + Recovery cards */
+.bb-wi-dcard,.bb-wi-rcard{position:relative;background:linear-gradient(180deg,rgba(24,24,24,0.96),rgba(10,10,10,0.98));border:1px solid rgba(200,164,78,0.12);border-radius:18px;padding:16px;overflow:hidden;box-shadow:0 6px 22px rgba(0,0,0,0.28)}
+.bb-wi-dc-top{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+.bb-wi-chip{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;font-size:17px;line-height:1}
+.bb-wi-chip.sm{width:32px;height:32px;flex-basis:32px;font-size:16px}
+.bb-wi-dc-label{font-size:11px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;color:#bdb3a0}
+.bb-wi-sevpill{margin-left:auto;font-size:9.5px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;padding:4px 9px;border-radius:999px}
+.bb-wi-dc-val{font-size:27px;font-weight:800;line-height:1;color:var(--cream)}
+.bb-wi-dc-unit{font-size:13px;font-weight:600;color:#9b8f78;margin-left:3px}
+.bb-wi-dc-bar{height:8px;border-radius:5px;background:rgba(255,255,255,0.07);overflow:hidden;margin-top:13px}
+.bb-wi-dc-fill{height:100%;border-radius:5px;transition:width .8s ease}
+.bb-wi-dc-foot{font-size:10.5px;color:#9b8f78;margin-top:8px}
+.bb-wi-rc-val{font-size:27px;font-weight:800;line-height:1}
+.bb-wi-stack{display:flex;height:9px;border-radius:5px;overflow:hidden;background:rgba(255,255,255,0.06);margin-top:13px}
+.bb-wi-stack-base,.bb-wi-stack-carry{height:100%;transition:width .8s ease}
+.bb-wi-rc-legend{display:flex;justify-content:space-between;gap:8px;margin-top:9px;font-size:10.5px;color:#9b8f78}
+.bb-wi-rc-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+/* Goal Status rows */
+.bb-wi-srow{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,rgba(22,22,22,0.92),rgba(10,10,10,0.96));border:1px solid rgba(200,164,78,0.1);border-radius:14px;padding:12px 14px}
+.bb-wi-sr-body{flex:1;min-width:0}
+.bb-wi-sr-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:7px}
+.bb-wi-sr-name{font-size:13px;font-weight:700;color:var(--cream)}
+.bb-wi-sr-tag{font-size:10px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;padding:3px 9px;border-radius:999px}
+.bb-wi-sr-bar{height:7px;border-radius:4px;background:rgba(255,255,255,0.07);overflow:hidden}
+.bb-wi-sr-fill{height:100%;border-radius:4px;transition:width .8s ease}
+.bb-wi-sr-meta{font-size:11px;color:#9b8f78;margin-top:6px}
 @media (max-width:380px){.bb-wi-hero{flex-direction:column;text-align:center}.bb-wi-hero-meta{align-items:center}.bb-wi-score{flex-direction:column;text-align:center}.bb-wi-gauge-center b{font-size:22px}}
 
 </style>
@@ -17771,10 +17797,10 @@ function bbWiMd(ymd){
 }
 // per-metric display config (water is stored in ml; everything else in its own unit)
 var BB_WI_FMT = {
-  steps:   { ico: '🚶', label: 'Steps',   disp: function (v) { return bbWiInt(v); }, unit: '' },
-  water:   { ico: '💧', label: 'Water',   disp: function (v) { return bbWiL(v); },   unit: 'L' },
-  protein: { ico: '🥩', label: 'Protein', disp: function (v) { return bbWiInt(v); }, unit: 'g' },
-  sleep:   { ico: '😴', label: 'Sleep',   disp: function (v) { return bbWiH(v); },   unit: 'h' }
+  steps:   { ico: '🚶', label: 'Steps',   disp: function (v) { return bbWiInt(v); }, unit: '',  color: '#f6a740' }, // movement — amber
+  water:   { ico: '💧', label: 'Water',   disp: function (v) { return bbWiL(v); },   unit: 'L', color: '#4aa8e0' }, // hydration — blue
+  protein: { ico: '🥩', label: 'Protein', disp: function (v) { return bbWiInt(v); }, unit: 'g', color: '#5fc88a' }, // nutrition — green
+  sleep:   { ico: '😴', label: 'Sleep',   disp: function (v) { return bbWiH(v); },   unit: 'h', color: '#9b8cf0' }  // recovery — indigo
 };
 function bbWiVal(key, v){ var c = BB_WI_FMT[key]; return c.disp(v) + c.unit; }
 
@@ -17801,23 +17827,29 @@ async function renderWeeklyInsights(){
     + '<button type="button" class="bb-wi-edit" onclick="bbOpenGoalEditor()">Adjust targets</button></div>'
     + '<p class="bb-wi-sub">' + weekLabel + ' · Day ' + daysElapsed + ' of 7 · ' + daysLeftTxt + '</p></div>';
 
-  // ----- consistency hero ring (on-pace this week) -----
-  var c = Math.max(0, Math.min(100, Number(data.consistency) || 0));
-  var rank = c >= 90 ? 'Elite' : c >= 75 ? 'On Track' : c >= 60 ? 'Building' : 'Needs Push';
-  var rankColor = c >= 90 ? '#3dd68c' : c >= 75 ? '#c8a44e' : c >= 60 ? '#f5a623' : '#ff6868';
-  var rankSub = c >= 90 ? 'Outstanding pace — ahead of every target.'
-    : c >= 75 ? 'Strong week. Hold this pace to hit your goals.'
-    : c >= 60 ? 'Momentum building — nudge a couple of metrics up.'
-    : 'Behind pace — small wins today move the needle.';
+  // ----- hero: overall weekly progress (the average of the gauges, same denominator) + on-pace badge -----
+  var wp = Math.round((
+    (Number(M.steps && M.steps.progressPct) || 0) +
+    (Number(M.water && M.water.progressPct) || 0) +
+    (Number(M.protein && M.protein.progressPct) || 0) +
+    (Number(M.sleep && M.sleep.progressPct) || 0)
+  ) / 4);
+  var pace = Math.max(0, Math.min(100, Number(data.consistency) || 0)); // are you ahead/behind the expected-by-today line
+  var badge = pace >= 90 ? 'Ahead of pace' : pace >= 70 ? 'On track' : pace >= 50 ? 'Building' : 'Behind pace';
+  var badgeColor = pace >= 70 ? '#3dd68c' : pace >= 50 ? '#f5a623' : '#ff6868';
+  var badgeSub = pace >= 90 ? 'You’re ahead of where you should be by today.'
+    : pace >= 70 ? 'Right on pace for this point in the week.'
+    : pace >= 50 ? 'A little behind today’s pace — keep going.'
+    : 'Behind pace — a check-in today moves the needle.';
   var circ = 2 * Math.PI * 52;
-  var off = circ * (1 - c / 100);
+  var off = circ * (1 - Math.max(0, Math.min(100, wp)) / 100);
   var hero = '<div class="bb-wi-hero"><div class="bb-wi-ring"><svg viewBox="0 0 120 120">'
     + '<circle class="bb-wi-ring-track" cx="60" cy="60" r="52"></circle>'
-    + '<circle class="bb-wi-ring-fill" cx="60" cy="60" r="52" style="stroke:' + rankColor + ';stroke-dasharray:' + circ.toFixed(1) + ';stroke-dashoffset:' + off.toFixed(1) + '"></circle>'
-    + '</svg><div class="bb-wi-ring-center"><b>' + c + '%</b><i>on pace</i></div></div>'
-    + '<div class="bb-wi-hero-meta"><span class="bb-wi-hero-kicker">Consistency</span>'
-    + '<span class="bb-wi-rank" style="color:' + rankColor + '">🔥 ' + rank + '</span>'
-    + '<span class="bb-wi-rank-sub">' + rankSub + '</span></div></div>';
+    + '<circle class="bb-wi-ring-fill" cx="60" cy="60" r="52" style="stroke:#c8a44e;stroke-dasharray:' + circ.toFixed(1) + ';stroke-dashoffset:' + off.toFixed(1) + '"></circle>'
+    + '</svg><div class="bb-wi-ring-center"><b>' + wp + '%</b><i>of target</i></div></div>'
+    + '<div class="bb-wi-hero-meta"><span class="bb-wi-hero-kicker">Weekly Progress · Day ' + daysElapsed + ' of 7</span>'
+    + '<span class="bb-wi-rank" style="color:' + badgeColor + '">' + (pace >= 70 ? '🔥 ' : '') + badge + '</span>'
+    + '<span class="bb-wi-rank-sub">' + badgeSub + '</span></div></div>';
 
   // ----- this-week gauges (doughnut per metric) + daily completion chart -----
   function paceColor(m){ return m.onPace ? '#3dd68c' : (m.pacePct >= 70 ? '#f5a623' : '#ff6868'); }
@@ -17825,13 +17857,13 @@ async function renderWeeklyInsights(){
   var gauges = keys.map(function (k) {
     var m = M[k] || {}; var f = BB_WI_FMT[k];
     var pctNum = Math.max(0, Math.min(100, Math.round(Number(m.progressPct) || 0)));
-    var col = paceColor(m);
+    var statusCol = paceColor(m);
     return '<div class="bb-wi-gauge">'
       + '<div class="bb-wi-gauge-c"><canvas id="bbWiG_' + k + '"></canvas>'
-      + '<div class="bb-wi-gauge-center"><b style="color:' + col + '">' + pctNum + '%</b><i>' + f.ico + '</i></div></div>'
+      + '<div class="bb-wi-gauge-center"><b style="color:' + f.color + '">' + pctNum + '%</b><i>' + f.ico + '</i></div></div>'
       + '<div class="bb-wi-gauge-lbl">' + f.label + '</div>'
       + '<div class="bb-wi-gauge-val"><b>' + bbWiVal(k, m.actual) + '</b> / ' + bbWiVal(k, m.target) + '</div>'
-      + '<div class="bb-wi-gauge-pace" style="color:' + col + '">' + paceWord(m) + '</div></div>';
+      + '<div class="bb-wi-gauge-pace" style="color:' + statusCol + '">' + paceWord(m) + '</div></div>';
   }).join('');
   var gaugeSec = '<div class="bb-wi-sec"><div class="bb-wi-sec-title">This Week vs Target</div>'
     + '<div class="bb-wi-gauges">' + gauges + '</div></div>';
@@ -17839,14 +17871,27 @@ async function renderWeeklyInsights(){
     + '<div class="bb-wi-chart-card"><canvas id="bbWiDaily"></canvas></div></div>';
 
   // ----- health debt (last COMPLETED week) -----
+  function sevStyle(sv){
+    return sv === 'green' ? 'background:rgba(61,214,140,0.16);color:#7fe3ab'
+      : sv === 'amber' ? 'background:rgba(245,166,35,0.16);color:#f6c267'
+      : 'background:rgba(255,104,104,0.16);color:#ff8f8f';
+  }
+  function chipStyle(f){ return 'background:' + f.color + '1f;border:1px solid ' + f.color + '40'; }
   function debtSev(m){ var pct = m.target > 0 ? (m.lastWeekActual / m.target * 100) : 0; return m.lastWeekDebt <= 0 ? 'green' : (pct >= 70 ? 'amber' : 'red'); }
   var anyDebt = keys.some(function (k) { return (M[k] && M[k].lastWeekDebt) > 0; });
   var debt = keys.map(function (k) {
     var m = M[k] || {}; var f = BB_WI_FMT[k]; var sv = debtSev(m);
-    var big = m.lastWeekDebt <= 0 ? 'Cleared' : bbWiVal(k, m.lastWeekDebt);
-    var pill = m.lastWeekDebt <= 0 ? 'No debt' : (sv === 'amber' ? 'Moderate' : 'High');
-    return '<div class="bb-wi-card is-' + sv + '"><div class="bb-wi-kv-label">' + f.ico + ' ' + f.label + '</div>'
-      + '<div class="bb-wi-kv-val">' + big + '</div><span class="bb-wi-pill">' + pill + '</span></div>';
+    var achieved = m.target > 0 ? Math.max(0, Math.min(100, Math.round(m.lastWeekActual / m.target * 100))) : 0;
+    var cleared = m.lastWeekDebt <= 0;
+    var pill = cleared ? 'Cleared' : (sv === 'amber' ? 'Moderate' : 'High');
+    var valHtml = cleared ? '<span style="color:#7fe3ab">Cleared ✓</span>' : (bbWiVal(k, m.lastWeekDebt) + '<span class="bb-wi-dc-unit">short</span>');
+    return '<div class="bb-wi-dcard">'
+      + '<div class="bb-wi-dc-top"><span class="bb-wi-chip" style="' + chipStyle(f) + '">' + f.ico + '</span>'
+      + '<span class="bb-wi-dc-label">' + f.label + '</span>'
+      + '<span class="bb-wi-sevpill" style="' + sevStyle(sv) + '">' + pill + '</span></div>'
+      + '<div class="bb-wi-dc-val">' + valHtml + '</div>'
+      + '<div class="bb-wi-dc-bar"><div class="bb-wi-dc-fill" style="width:' + achieved + '%;background:' + f.color + '"></div></div>'
+      + '<div class="bb-wi-dc-foot">Hit ' + achieved + '% of last week’s target</div></div>';
   }).join('');
   var debtSec = '<div class="bb-wi-sec"><div class="bb-wi-sec-title">Health Debt · last week (' + bbWiMd(data.lastWeekStart) + '–' + bbWiMd(data.lastWeekEnd) + ')</div>'
     + '<div class="bb-wi-grid">' + debt + '</div></div>';
@@ -17854,10 +17899,20 @@ async function renderWeeklyInsights(){
   // ----- recovery targets (this week = standard target + last week's debt) -----
   var rec = keys.map(function (k) {
     var m = M[k] || {}; var f = BB_WI_FMT[k];
-    var sub = m.lastWeekDebt <= 0 ? ('Standard · ' + bbWiVal(k, m.target)) : (bbWiVal(k, m.target) + ' + ' + bbWiVal(k, m.lastWeekDebt) + ' carried');
-    return '<div class="bb-wi-card"><div class="bb-wi-kv-label">' + f.ico + ' ' + f.label + '</div>'
-      + '<div class="bb-wi-kv-val" style="color:var(--gold)">' + bbWiVal(k, m.recoveryTarget) + '</div>'
-      + '<div class="bb-wi-kv-sub">' + sub + '</div></div>';
+    var rt = m.recoveryTarget || m.target || 0;
+    var basePct = rt > 0 ? (m.target / rt * 100) : 100;
+    var carryPct = Math.max(0, 100 - basePct);
+    var hasCarry = (m.lastWeekDebt || 0) > 0;
+    var legend = hasCarry
+      ? ('<span><i style="background:' + f.color + '"></i>Base ' + bbWiVal(k, m.target) + '</span><span><i style="background:#f5a623"></i>+' + bbWiVal(k, m.lastWeekDebt) + ' carried</span>')
+      : ('<span><i style="background:' + f.color + '"></i>Standard target</span>');
+    return '<div class="bb-wi-rcard">'
+      + '<div class="bb-wi-dc-top"><span class="bb-wi-chip" style="' + chipStyle(f) + '">' + f.ico + '</span>'
+      + '<span class="bb-wi-dc-label">' + f.label + '</span></div>'
+      + '<div class="bb-wi-rc-val" style="color:' + f.color + '">' + bbWiVal(k, rt) + '</div>'
+      + '<div class="bb-wi-stack"><div class="bb-wi-stack-base" style="width:' + basePct + '%;background:' + f.color + '"></div>'
+      + (hasCarry ? '<div class="bb-wi-stack-carry" style="width:' + carryPct + '%;background:#f5a623"></div>' : '')
+      + '</div><div class="bb-wi-rc-legend">' + legend + '</div></div>';
   }).join('');
   var recNote = anyDebt ? 'Hit these adjusted targets this week to clear last week’s Health Debt.' : 'No debt carried — your standard weekly targets stand. Keep it up!';
   var recSec = '<div class="bb-wi-sec"><div class="bb-wi-sec-title">Recovery Targets · this week</div>'
@@ -17867,15 +17922,16 @@ async function renderWeeklyInsights(){
   var status = keys.map(function (k) {
     var m = M[k] || {}; var f = BB_WI_FMT[k];
     var sv = m.onPace ? 'green' : (m.pacePct >= 70 ? 'amber' : 'red');
-    var ico = sv === 'green' ? '✅' : sv === 'amber' ? '🟡' : '🔴';
-    var st = sv === 'green' ? 'On Track' : sv === 'amber' ? 'Slightly Behind' : 'Behind';
-    var col = sv === 'green' ? '#7fe3ab' : sv === 'amber' ? '#f6c267' : '#ff8f8f';
-    var detail = sv === 'green' ? ('Ahead of pace · ' + Math.round(m.progressPct) + '% of target')
+    var st = sv === 'green' ? 'On Track' : sv === 'amber' ? 'Nearly' : 'Behind';
+    var prog = Math.max(0, Math.min(100, Math.round(Number(m.progressPct) || 0)));
+    var detail = sv === 'green'
+      ? ('Ahead of pace · ' + prog + '% of target')
       : (bbWiVal(k, m.remaining) + ' to go · ' + (daysRemaining > 0 ? (daysRemaining + 'd left') : 'final day'));
-    return '<div class="bb-wi-status-row"><span class="bb-wi-sr-ico">' + ico + '</span>'
-      + '<div class="bb-wi-sr-main"><span class="bb-wi-sr-label">' + f.label + '</span>'
-      + '<span class="bb-wi-sr-detail">' + detail + '</span></div>'
-      + '<span class="bb-wi-sr-status" style="color:' + col + '">' + st + '</span></div>';
+    return '<div class="bb-wi-srow"><span class="bb-wi-chip sm" style="' + chipStyle(f) + '">' + f.ico + '</span>'
+      + '<div class="bb-wi-sr-body"><div class="bb-wi-sr-head"><span class="bb-wi-sr-name">' + f.label + '</span>'
+      + '<span class="bb-wi-sr-tag" style="' + sevStyle(sv) + '">' + st + '</span></div>'
+      + '<div class="bb-wi-sr-bar"><div class="bb-wi-sr-fill" style="width:' + prog + '%;background:' + f.color + '"></div></div>'
+      + '<div class="bb-wi-sr-meta">' + detail + '</div></div></div>';
   }).join('');
   var statusSec = '<div class="bb-wi-sec"><div class="bb-wi-sec-title">Goal Status</div><div class="bb-wi-status">' + status + '</div></div>';
 
@@ -17903,7 +17959,7 @@ function bbWiBuildCharts(data, M, keys){
     var cv = document.getElementById('bbWiG_' + k); if (!cv) return;
     var m = M[k] || {};
     var pct = Math.max(0, Math.min(100, Number(m.progressPct) || 0));
-    var col = paceColor(m);
+    var col = (BB_WI_FMT[k] && BB_WI_FMT[k].color) || '#c8a44e';   // ring uses the metric's identity color
     window._bbWiCharts['g_' + k] = new Chart(cv.getContext('2d'), {
       type: 'doughnut',
       data: { datasets: [{ data: [pct, 100 - pct], backgroundColor: [col, 'rgba(255,255,255,0.07)'], borderWidth: 0, borderRadius: [6, 0] }] },
