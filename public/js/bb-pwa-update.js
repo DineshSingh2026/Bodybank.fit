@@ -6,7 +6,7 @@
 (function () {
   'use strict';
 
-  var BUILD = '43';
+  var BUILD = '64';
   var SW_URL = '/sw.js';
 
   function injectStyles() {
@@ -122,5 +122,34 @@
     document.addEventListener('DOMContentLoaded', registerSW);
   } else {
     registerSW();
+  }
+
+  // ---- Auto-update on resume ----
+  // Installed PWAs / the Android app keep the WebView alive, so testers often see a
+  // stale page on warm resume. On every resume we check for a new service worker, and
+  // when one takes over we reload automatically — but only at a safe break point
+  // (app backgrounded or just resumed), never mid-session on the website (the modal
+  // handles that case so an active form isn't wiped out).
+  if ('serviceWorker' in navigator) {
+    var bbRefreshing = false;
+    var bbHadController = !!navigator.serviceWorker.controller;
+    var bbLastResume = Date.now();
+
+    navigator.serviceWorker.addEventListener('controllerchange', function () {
+      if (!bbHadController) { bbHadController = true; return; } // ignore the first install's claim
+      if (bbRefreshing) return;
+      if (document.visibilityState !== 'visible' || (Date.now() - bbLastResume) < 10000) {
+        bbRefreshing = true;
+        window.location.reload();
+      }
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState !== 'visible') return;
+      bbLastResume = Date.now();
+      navigator.serviceWorker.getRegistration()
+        .then(function (reg) { if (reg) reg.update(); })
+        .catch(function () {});
+    });
   }
 })();
