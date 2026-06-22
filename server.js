@@ -4038,6 +4038,136 @@ app.post('/api/me/onboarding', verifyToken, async (req, res) => {
   }
 });
 
+// Weekly Insights & Health Debt — accurate, timezone-aware, real calendar week (Sun→today).
+// Daily goals live on the users table; weekly target = daily × 7. Debt is computed on the
+// last COMPLETED week (so it isn't misleading mid-week); recovery target = this week's target + last week's debt.
+app.get('/api/me/weekly-insights', verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const u = await queryOne(
+      `SELECT timezone,
+              COALESCE(goal_steps, 8000)      AS goal_steps,
+              COALESCE(goal_water_ml, 3000)   AS goal_water_ml,
+              COALESCE(goal_protein_g, 120)   AS goal_protein_g,
+              COALESCE(goal_sleep_hours, 7.5) AS goal_sleep_hours
+         FROM users WHERE id = ?`,
+      [userId]
+    );
+    const tz = (u && u.timezone) ? u.timezone : STREAK_TIMEZONE;
+    const goals = {
+      steps: Number(u && u.goal_steps) || 8000,
+      water_ml: Number(u && u.goal_water_ml) || 3000,
+      protein_g: Number(u && u.goal_protein_g) || 120,
+      sleep_hours: Number(u && u.goal_sleep_hours) || 7.5
+    };
+
+    const today = streakTodayYmdInTz(tz) || streakDateToYmd(new Date());
+    const parts = String(today).split('-').map((n) => parseInt(n, 10));
+    const dow = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2])).getUTCDay(); // 0=Sun..6=Sat
+    const weekStart = streakAddDays(today, -dow);            // Sunday of this week
+    const weekEnd = streakAddDays(weekStart, 6);             // Saturday
+    const lastWeekStart = streakAddDays(weekStart, -7);
+    const lastWeekEnd = streakAddDays(weekStart, -1);
+    const daysElapsed = dow + 1;                             // Sun=1 .. Sat=7
+    const daysRemaining = 7 - daysElapsed;
+
+    const rows = await queryAll(
+      `SELECT checkin_date,
+              COALESCE(steps, 0)        AS steps,
+              COALESCE(water_ml, 0)     AS water_ml,
+              COALESCE(protein_g, 0)    AS protein_g,
+              COALESCE(sleep_hours, 0)  AS sleep_hours,
+              COALESCE(is_freeze, FALSE) AS is_freeze
+         FROM daily_checkins
+        WHERE user_id = ? AND checkin_date >= ?::date AND checkin_date <= ?::date`,
+      [userId, lastWeekStart, today]
+    );
+
+    const sumWeek = (start, end) => {
+      const acc = { steps: 0, water_ml: 0, protein_g: 0, sleep_hours: 0, days: 0 };
+      (rows || []).forEach((r) => {
+        if (r.is_freeze) return;
+        const ymd = streakDateToYmd(r.checkin_date);
+        if (!ymd || ymd < start || ymd > end) return;
+        acc.steps += Number(r.steps) || 0;
+        acc.water_ml += Number(r.water_ml) || 0;
+        acc.protein_g += Number(r.protein_g) || 0;
+        acc.sleep_hours += Number(r.sleep_hours) || 0;
+        acc.days += 1;
+      });
+      return acc;
+    };
+    const thisWeek = sumWeek(weekStart, today);
+    const lastWeek = sumWeek(lastWeekStart, lastWeekEnd);
+
+    const cap = (x) => Math.max(0, Math.min(100, x));
+    const r1 = (x) => Math.round(x * 10) / 10;
+    const buildMetric = (key) => {
+      const daily = goals[key];
+      const target = daily * 7;                       // full-week target
+      const actual = thisWeek[key];                   // achieved so far this week
+      const expectedByNow = daily * daysElapsed;      // on-pace expectation by today
+      const lwActual = lastWeek[key];
+      const lwDebt = Math.max(0, target - lwActual);  // debt from the COMPLETED last week
+      return {
+        daily,
+        target,
+        actual,
+        progressPct: r1(target > 0 ? (actual / target) * 100 : 0),
+        expectedByNow,
+        pacePct: r1(expectedByNow > 0 ? (actual / expectedByNow) * 100 : 0),
+        onPace: actual >= expectedByNow,
+        remaining: Math.max(0, target - actual),
+        lastWeekActual: lwActual,
+        lastWeekDebt: lwDebt,
+        recoveryTarget: target + lwDebt
+      };
+    };
+    const metrics = {
+      steps: buildMetric('steps'),
+      water: buildMetric('water_ml'),
+      protein: buildMetric('protein_g'),
+      sleep: buildMetric('sleep_hours')
+    };
+    const consistency = Math.round(
+      (cap(metrics.steps.pacePct) + cap(metrics.water.pacePct) + cap(metrics.protein.pacePct) + cap(metrics.sleep.pacePct)) / 4
+    );
+
+    // Per-day completion for this week (Sun..Sat) — overall % of that day's 4 goals met. Future days = null.
+    const dayLetters = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+    const byYmd = {};
+    (rows || []).forEach((r) => { if (r.is_freeze) return; const y = streakDateToYmd(r.checkin_date); if (y) byYmd[y] = r; });
+    const weekDays = [];
+    for (let i = 0; i < 7; i++) {
+      const dymd = streakAddDays(weekStart, i);
+      const future = dymd > today;
+      const r = byYmd[dymd];
+      let completion = null;
+      if (!future) {
+        const frac = (
+          Math.min(1, (Number(r && r.steps) || 0) / (goals.steps || 1)) +
+          Math.min(1, (Number(r && r.water_ml) || 0) / (goals.water_ml || 1)) +
+          Math.min(1, (Number(r && r.protein_g) || 0) / (goals.protein_g || 1)) +
+          Math.min(1, (Number(r && r.sleep_hours) || 0) / (goals.sleep_hours || 1))
+        ) / 4;
+        completion = Math.round(frac * 100);
+      }
+      weekDays.push({ ymd: dymd, label: dayLetters[i], completion, logged: !!r, future, isToday: dymd === today });
+    }
+
+    res.json({
+      tz, today, weekStart, weekEnd, lastWeekStart, lastWeekEnd,
+      daysElapsed, daysRemaining,
+      goals,
+      weeklyTarget: { steps: goals.steps * 7, water_ml: goals.water_ml * 7, protein_g: goals.protein_g * 7, sleep_hours: goals.sleep_hours * 7 },
+      thisWeek, lastWeek, metrics, consistency, weekDays
+    });
+  } catch (e) {
+    console.error('[weekly-insights]', e.message);
+    res.status(500).json({ error: 'Failed to load weekly insights' });
+  }
+});
+
 // ============ PUSH NOTIFICATIONS (opt-in) ============
 app.post('/api/push/subscribe', verifyToken, rateLimiter(5, 60000), async (req, res) => {
   try {
