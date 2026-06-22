@@ -47,6 +47,7 @@ const { writeSundayCheckinPdf, writePart2Pdf } = require('./services/formPdfServ
 const { computeAuditResult } = require('./services/auditScoringService');
 const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
+const weeklyReportPdf = require('./services/weeklyReportPdf');
 const coinService = require('./services/coinService');
 const { notify, notifyAsync, formatEventMessage } = require('./utils/notify');
 const { sendWhatsApp, sendWhatsAppTemplate } = require('./services/whatsapp');
@@ -4169,6 +4170,158 @@ app.get('/api/me/weekly-insights', verifyToken, async (req, res) => {
   } catch (e) {
     console.error('[weekly-insights]', e.message);
     res.status(500).json({ error: 'Failed to load weekly insights' });
+  }
+});
+
+// Weekly Report — rich last-COMPLETED-week breakdown (per-day bars, prior-week deltas,
+// overall score, goals hit, best days, streak, cumulative steps). Reusable for the
+// dashboard AND the admin PDF (callable for any userId).
+async function buildWeeklyReport(userId) {
+  const u = await queryOne(
+    `SELECT timezone, first_name, last_name, email, dob,
+            COALESCE(goal_steps, 8000) gs, COALESCE(goal_water_ml, 3000) gw,
+            COALESCE(goal_protein_g, 120) gp, COALESCE(goal_sleep_hours, 7.5) gsl
+       FROM users WHERE id = ?`, [userId]);
+  if (!u) return null;
+  const tz = u.timezone || STREAK_TIMEZONE;
+  const goals = { steps: Number(u.gs) || 8000, water_ml: Number(u.gw) || 3000, protein_g: Number(u.gp) || 120, sleep_hours: Number(u.gsl) || 7.5 };
+
+  const today = streakTodayYmdInTz(tz) || streakDateToYmd(new Date());
+  const p = String(today).split('-').map((n) => parseInt(n, 10));
+  const dow = new Date(Date.UTC(p[0], p[1] - 1, p[2])).getUTCDay();
+  const thisWeekStart = streakAddDays(today, -dow);
+  const lastWeekStart = streakAddDays(thisWeekStart, -7);
+  const lastWeekEnd = streakAddDays(thisWeekStart, -1);
+  const prevWeekStart = streakAddDays(thisWeekStart, -14);
+  const prevWeekEnd = streakAddDays(thisWeekStart, -8);
+
+  const rows = await queryAll(
+    `SELECT checkin_date, COALESCE(steps,0) steps, COALESCE(water_ml,0) water_ml,
+            COALESCE(protein_g,0) protein_g, COALESCE(sleep_hours,0) sleep_hours, COALESCE(is_freeze,false) is_freeze
+       FROM daily_checkins WHERE user_id = ? AND checkin_date >= ?::date AND checkin_date <= ?::date`,
+    [userId, prevWeekStart, lastWeekEnd]);
+  const byYmd = {};
+  (rows || []).forEach((r) => { if (r.is_freeze) return; const y = streakDateToYmd(r.checkin_date); if (y) byYmd[y] = r; });
+
+  const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  function dayName(start, i) {
+    const d = streakAddDays(start, i);
+    const dp = String(d).split('-').map((n) => parseInt(n, 10));
+    return DOW[new Date(Date.UTC(dp[0], dp[1] - 1, dp[2])).getUTCDay()];
+  }
+  function sumWeek(start) {
+    const s = { steps: 0, water_ml: 0, protein_g: 0, sleep_hours: 0, days: 0 };
+    for (let i = 0; i < 7; i++) { const r = byYmd[streakAddDays(start, i)]; if (!r) continue; s.steps += Number(r.steps) || 0; s.water_ml += Number(r.water_ml) || 0; s.protein_g += Number(r.protein_g) || 0; s.sleep_hours += Number(r.sleep_hours) || 0; s.days++; }
+    return s;
+  }
+  const lastSum = sumWeek(lastWeekStart);
+  const prevSum = sumWeek(prevWeekStart);
+  const mk = (m) => (m === 'steps' ? 'steps' : m === 'water_ml' ? 'water' : m === 'protein_g' ? 'protein' : 'sleep');
+
+  function buildMetric(m) {
+    const dailyGoal = goals[m];
+    const target = dailyGoal * 7;
+    const actual = lastSum[m];
+    const prevActual = prevSum[m];
+    const achievementPct = target > 0 ? Math.round((actual / target) * 1000) / 10 : 0;
+    const days = [];
+    let bestVal = -1, bestLabel = '', daysLogged = 0;
+    for (let i = 0; i < 7; i++) {
+      const r = byYmd[streakAddDays(lastWeekStart, i)];
+      const val = r ? (Number(r[m]) || 0) : 0;
+      const lbl = dayName(lastWeekStart, i);
+      days.push({ label: lbl, value: val, hitGoal: val >= dailyGoal });
+      if (r) daysLogged++;
+      if (val > bestVal) { bestVal = val; bestLabel = lbl; }
+    }
+    const dailyAvg = daysLogged > 0 ? actual / daysLogged : 0;
+    const vsPrevPct = prevActual > 0 ? Math.round(((actual - prevActual) / prevActual) * 100) : null;
+    return {
+      key: mk(m), dailyGoal, target, actual,
+      achievementPct, status: achievementPct >= 90 ? 'on_track' : 'behind',
+      days, dailyAvg: Math.round(dailyAvg * 10) / 10,
+      bestDay: { label: bestLabel, value: bestVal < 0 ? 0 : bestVal }, vsPrevPct
+    };
+  }
+  const metrics = { steps: buildMetric('steps'), water: buildMetric('water_ml'), protein: buildMetric('protein_g'), sleep: buildMetric('sleep_hours') };
+
+  const cap = (x) => Math.max(0, Math.min(100, x));
+  const overallScore = Math.round((cap(metrics.steps.achievementPct) + cap(metrics.water.achievementPct) + cap(metrics.protein.achievementPct) + cap(metrics.sleep.achievementPct)) / 4);
+  const goalsHit = ['steps', 'water', 'protein', 'sleep'].filter((k) => metrics[k].achievementPct >= 90).length;
+
+  let cum = 0; const stepSeries = [];
+  for (let i = 0; i < 7; i++) { const r = byYmd[streakAddDays(lastWeekStart, i)]; cum += r ? (Number(r.steps) || 0) : 0; stepSeries.push({ label: dayName(lastWeekStart, i), cumulative: cum }); }
+  const totalProgress = { value: cum, vsPrevPct: prevSum.steps > 0 ? Math.round(((lastSum.steps - prevSum.steps) / prevSum.steps) * 100) : null, series: stepSeries };
+
+  const dayHits = [];
+  for (let i = 0; i < 7; i++) {
+    const r = byYmd[streakAddDays(lastWeekStart, i)]; let hits = 0;
+    if (r) { if ((Number(r.steps) || 0) >= goals.steps) hits++; if ((Number(r.water_ml) || 0) >= goals.water_ml) hits++; if ((Number(r.protein_g) || 0) >= goals.protein_g) hits++; if ((Number(r.sleep_hours) || 0) >= goals.sleep_hours) hits++; }
+    dayHits.push({ label: dayName(lastWeekStart, i), hits });
+  }
+  const maxHits = dayHits.reduce((mx, x) => Math.max(mx, x.hits), 0);
+  const mostConsistentDays = maxHits > 0 ? dayHits.filter((x) => x.hits === maxHits).map((x) => x.label) : [];
+
+  let streak = 0;
+  try { const sr = await queryAll('SELECT checkin_date, COALESCE(is_freeze,false) is_freeze FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365', [userId]); streak = (computeStreakState(sr, null, tz) || {}).streak || 0; } catch (_) {}
+
+  return {
+    user: { first_name: u.first_name || '', last_name: u.last_name || '', email: u.email || '' },
+    tz, weekStart: lastWeekStart, weekEnd: lastWeekEnd, prevWeekStart, prevWeekEnd,
+    goals, overallScore, goalsHit, goalsTotal: 4, streak,
+    metrics, totalProgress,
+    highlights: { mostConsistentDays, goalsHit, goalsTotal: 4, streak, vsPrevPct: totalProgress.vsPrevPct }
+  };
+}
+
+app.get('/api/me/weekly-report', verifyToken, async (req, res) => {
+  try {
+    const report = await buildWeeklyReport(req.user.id);
+    if (!report) return res.status(404).json({ error: 'User not found' });
+    res.json(report);
+  } catch (e) {
+    console.error('[weekly-report]', e.message);
+    res.status(500).json({ error: 'Failed to build weekly report' });
+  }
+});
+
+// Admin: generate the last-week PDF report for a user and email it to them (or just produce the link).
+// Body { send:false } produces the PDF + download link without emailing.
+app.post('/api/admin/users/:userId/weekly-report', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const userId = String(req.params.userId || '').trim();
+    if (!userId) return res.status(400).json({ error: 'userId required' });
+    const report = await buildWeeklyReport(userId);
+    if (!report) return res.status(404).json({ error: 'User not found' });
+
+    const fs = require('fs');
+    const reportsDir = path.join(__dirname, 'public', 'reports');
+    if (!fs.existsSync(reportsDir)) fs.mkdirSync(reportsDir, { recursive: true });
+    const fileName = `weekly-report-${userId}-${report.weekStart}-${Date.now()}.pdf`;
+    const outputPath = path.join(reportsDir, fileName);
+    const logoPath = path.join(__dirname, 'public', 'img', 'bodybank X fitchef logo.png');
+
+    await weeklyReportPdf.generateWeeklyReportPdf({ outputPath, report, logoPath });
+
+    const wantEmail = !(req.body && req.body.send === false);
+    let emailed = false;
+    if (wantEmail) {
+      if (!report.user.email) return res.status(400).json({ error: 'User has no email on file — PDF generated but not sent.', reportUrl: `/reports/${encodeURIComponent(fileName)}` });
+      emailed = await userEmail.emailWeeklyReport({
+        toEmail: report.user.email,
+        firstName: report.user.first_name,
+        pdfPath: outputPath,
+        weekLabel: `${report.weekStart} – ${report.weekEnd}`,
+        overallScore: report.overallScore,
+        goalsHit: report.goalsHit,
+        goalsTotal: report.goalsTotal
+      });
+    }
+    const baseUrl = (process.env.PUBLIC_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
+    res.json({ ok: true, emailed: !!emailed, email: report.user.email || null, reportUrl: `${baseUrl}/reports/${encodeURIComponent(fileName)}` });
+  } catch (e) {
+    console.error('[admin weekly-report]', e.message);
+    res.status(500).json({ error: 'Failed to generate weekly report' });
   }
 });
 

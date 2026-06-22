@@ -712,9 +712,38 @@ async function emailHealthReportWithPdf({ toEmail, firstName, pdfPath, adminNote
   );
 }
 
+async function emailWeeklyReport({ toEmail, firstName, pdfPath, weekLabel, overallScore, goalsHit, goalsTotal }) {
+  if (!isConfigured() || !toEmail || !pdfPath) return false;
+  const fs = require('fs');
+  const pathMod = require('path');
+  if (!fs.existsSync(pdfPath)) return false;
+  const name = firstName || 'there';
+  const scoreLine = (overallScore != null)
+    ? `<p style="margin:0 0 12px"><strong>Overall week score:</strong> ${escapeHtml(String(overallScore))}% &nbsp;·&nbsp; <strong>Goals hit:</strong> ${escapeHtml(String(goalsHit))}/${escapeHtml(String(goalsTotal))}</p>`
+    : '';
+  const bodyHtml = `<p style="margin:0 0 12px">Here&rsquo;s your BodyBank weekly performance report for <strong>${escapeHtml(String(weekLabel || 'last week'))}</strong> &mdash; steps, water, protein and sleep, with your daily breakdown. It&rsquo;s attached as a PDF.</p>${scoreLine}<p style="margin:0 0 12px;line-height:1.6">Keep the momentum going &mdash; small wins compound. &#128170;</p>`;
+  const html = luxuryWrap({
+    title: 'Your weekly report is ready',
+    preheader: 'Last week’s performance — PDF attached.',
+    lead: `Hi ${escapeHtml(name)},`,
+    bodyHtml,
+    ctaLabel: 'Open BodyBank',
+    ctaUrl: APP_BASE + '/'
+  });
+  const attachments = [{ filename: pathMod.basename(pdfPath), path: pdfPath }];
+  return sendMail(
+    String(toEmail).trim().toLowerCase(),
+    'Your Weekly Performance Report',
+    html,
+    'Your BodyBank weekly performance report is attached as a PDF.',
+    attachments
+  );
+}
+
 module.exports = {
   isConfigured,
   sendMail,
+  emailWeeklyReport,
   luxuryWrap,
   escapeHtml,
   emailSignupPending,

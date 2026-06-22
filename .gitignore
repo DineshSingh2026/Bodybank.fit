@@ -16,3 +16,7 @@ data/*.txt
 # Marketing docs (binary, not versioned in the code repo)
 *.doc
 BodyBank_OnePager_files/
+
+# Generated client report PDFs (keep the tracked sample; ignore per-user generated ones)
+public/reports/weekly-report-*.pdf
+public/reports/monthly-report-*.pdf

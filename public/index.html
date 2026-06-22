@@ -5364,7 +5364,7 @@ button.bb-today-pill{cursor:pointer}
 /* ── end floating pill nav prototype ── */
 
 /* ===== Weekly Insights — Health Debt dashboard ===== */
-.bb-wi{display:block;margin:26px auto 6px;max-width:640px;padding:0 2px}
+.bb-wi{display:block;margin:26px auto 6px;max-width:1120px;padding:0 2px}
 .bb-wi-head{margin:0 0 18px}
 .bb-wi-eyebrow{display:inline-block;font-size:12px;font-weight:700;letter-spacing:0.22em;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
 .bb-wi-title{font-family:'Syne','Outfit',sans-serif;font-size:22px;font-weight:700;color:var(--cream);margin:0 0 5px;line-height:1.2}
@@ -5459,6 +5459,53 @@ button.bb-today-pill{cursor:pointer}
 .bb-wi-stack-base,.bb-wi-stack-carry{height:100%;transition:width .8s ease}
 .bb-wi-rc-legend{display:flex;justify-content:space-between;gap:8px;margin-top:9px;font-size:10.5px;color:#9b8f78}
 .bb-wi-rc-legend i{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:5px;vertical-align:middle}
+/* Catch-up plan card */
+.bb-cu{background:linear-gradient(180deg,rgba(20,20,22,0.96),rgba(10,10,12,0.99));border:1px solid rgba(200,164,78,0.16);border-radius:22px;padding:22px;box-shadow:0 10px 30px rgba(0,0,0,0.35);max-width:660px;margin:0 auto}
+.bb-cu-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.bb-cu-head-l{display:flex;align-items:center;gap:14px}
+.bb-cu-ico{width:48px;height:48px;flex:0 0 48px;display:grid;place-items:center;border-radius:14px;font-size:22px;border:1px solid}
+.bb-cu-ico-gold{background:rgba(200,164,78,0.14);border-color:rgba(200,164,78,0.32)}
+.bb-cu-ico-blue{background:rgba(74,168,224,0.14);border-color:rgba(74,168,224,0.32)}
+.bb-cu-ico-purple{background:rgba(155,140,240,0.16);border-color:rgba(155,140,240,0.34)}
+.bb-cu-title{font-size:20px;font-weight:800;letter-spacing:0.06em;text-transform:uppercase;color:var(--cream)}
+.bb-cu-badge{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:700;color:#3dd68c;background:rgba(61,214,140,0.1);border:1px solid rgba(61,214,140,0.3);border-radius:999px;padding:8px 16px;white-space:nowrap}
+.bb-cu-lead{display:flex;align-items:flex-start;gap:14px;margin-bottom:18px}
+.bb-cu-check{width:40px;height:40px;flex:0 0 40px;display:grid;place-items:center;border-radius:50%;border:1.5px solid rgba(61,214,140,0.5);color:#3dd68c;font-size:18px;font-weight:800}
+.bb-cu-lead-main{font-size:16px;color:var(--cream);margin:0 0 4px;line-height:1.4}
+.bb-cu-lead-main b{color:#f6a740;font-weight:800}
+.bb-cu-lead-sub{font-size:13.5px;color:#9b8f78;margin:0;line-height:1.45}
+.bb-cu-panel{background:rgba(255,255,255,0.018);border:1px solid rgba(255,255,255,0.06);border-radius:18px;padding:6px 20px;margin-bottom:16px}
+.bb-cu-row{display:flex;align-items:center;gap:16px;padding:16px 0}
+.bb-cu-row-label{flex:1;min-width:0;font-size:16px;color:#d8d0c2}
+.bb-cu-row-label.strong{color:var(--cream);font-weight:800}
+.bb-cu-row-val{text-align:right;display:flex;flex-direction:column;align-items:flex-end;line-height:1.05}
+.bb-cu-row-val b{font-size:24px;font-weight:800;color:var(--cream)}
+.bb-cu-row-val b.amber{color:#f6a740}
+.bb-cu-row-val b.big{font-size:32px}
+.bb-cu-row-val i{font-style:normal;font-size:12px;color:#7c715c;margin-top:3px}
+.bb-cu-divider{height:1px;background:rgba(255,255,255,0.06)}
+.bb-cu-prog-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.bb-cu-perday{font-size:22px;font-weight:800;color:#3dd68c}
+.bb-cu-prog-top span{font-size:13px;color:#9b8f78}
+.bb-cu-prog-main{display:flex;align-items:center;gap:20px}
+.bb-cu-prog-left{flex:1;min-width:0}
+.bb-cu-bar{height:12px;border-radius:7px;background:rgba(255,255,255,0.08);overflow:hidden}
+.bb-cu-fill{height:100%;border-radius:7px;background:linear-gradient(90deg,#c8a44e,#f6a740);box-shadow:0 0 10px rgba(246,167,64,0.6);transition:width .8s ease}
+.bb-cu-prog-stats{display:flex;justify-content:space-between;gap:12px;margin-top:12px}
+.bb-cu-prog-stats b{display:block;font-size:18px;font-weight:800;color:var(--cream)}
+.bb-cu-prog-stats span{font-size:12px;color:#9b8f78}
+.bb-cu-prog-stats .r{text-align:right}
+.bb-cu-ring{position:relative;width:84px;height:84px;flex:0 0 84px}
+.bb-cu-ring svg{width:84px;height:84px}
+.bb-cu-ring-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+.bb-cu-ring-c b{font-size:22px;font-weight:800;color:var(--cream);line-height:1}
+.bb-cu-ring-c b i{font-size:11px;font-style:normal;color:#9b8f78}
+.bb-cu-ring-c span{font-size:9px;color:#9b8f78;letter-spacing:0.04em;margin-top:1px}
+.bb-cu-note{display:flex;align-items:flex-start;gap:12px;background:rgba(200,164,78,0.05);border:1px solid rgba(200,164,78,0.14);border-radius:14px;padding:14px 16px}
+.bb-cu-note-ico{width:26px;height:26px;flex:0 0 26px;display:grid;place-items:center;border-radius:50%;border:1.5px solid rgba(200,164,78,0.5);color:#c8a44e;font-size:13px;font-weight:700;font-style:italic}
+.bb-cu-note p{font-size:13px;color:#bdb3a0;margin:0;line-height:1.45}
+.bb-cu-note p b{color:#f6a740;font-weight:800;font-style:italic}
+@media(max-width:480px){.bb-cu-prog-main{flex-direction:column-reverse;align-items:stretch}.bb-cu-ring{align-self:center}}
 /* Goal Status rows */
 .bb-wi-srow{display:flex;align-items:center;gap:12px;background:linear-gradient(180deg,rgba(22,22,22,0.92),rgba(10,10,10,0.96));border:1px solid rgba(200,164,78,0.1);border-radius:14px;padding:12px 14px}
 .bb-wi-sr-body{flex:1;min-width:0}
@@ -5468,6 +5515,110 @@ button.bb-today-pill{cursor:pointer}
 .bb-wi-sr-bar{height:7px;border-radius:4px;background:rgba(255,255,255,0.07);overflow:hidden}
 .bb-wi-sr-fill{height:100%;border-radius:4px;transition:width .8s ease}
 .bb-wi-sr-meta{font-size:11px;color:#9b8f78;margin-top:6px}
+/* This Week vs Target — compact unified card */
+.bb-wi-mcard{background:linear-gradient(180deg,rgba(22,22,22,0.96),rgba(10,10,10,0.98));border:1px solid rgba(200,164,78,0.14);border-radius:18px;padding:4px 16px;box-shadow:0 6px 22px rgba(0,0,0,0.28)}
+.bb-wi-mrow{display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,0.05)}
+.bb-wi-mrow:last-child{border-bottom:none}
+.bb-wi-mchip{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;font-size:17px;line-height:1}
+.bb-wi-mbody{flex:1;min-width:0}
+.bb-wi-mtop{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:7px}
+.bb-wi-mname{font-size:13px;font-weight:700;color:var(--cream);letter-spacing:0.02em}
+.bb-wi-mval{font-size:12px;color:#9b8f78;white-space:nowrap}
+.bb-wi-mval b{color:var(--cream);font-weight:800}
+.bb-wi-mval i{font-style:normal}
+.bb-wi-mtrackwrap{position:relative;padding:2px 0}
+.bb-wi-mtrack{position:relative;height:9px;border-radius:5px;background:rgba(255,255,255,0.07);overflow:hidden}
+.bb-wi-mfill{position:absolute;top:0;left:0;bottom:0;border-radius:5px;transition:width .8s ease}
+.bb-wi-mpace{position:absolute;top:0;bottom:0;width:2px;background:rgba(242,236,224,0.55);box-shadow:0 0 5px rgba(242,236,224,0.45);border-radius:2px}
+.bb-wi-mright{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;min-width:48px}
+.bb-wi-mright b{font-size:17px;font-weight:800;line-height:1}
+.bb-wi-mright i{font-style:normal;font-size:9.5px;font-weight:600;margin-top:3px;white-space:nowrap}
+/* This Week vs Target — radial dashboard */
+.bb-wi-rg-title{text-align:center}
+.bb-wi-radial{display:grid;gap:14px 12px;align-items:center;grid-template-columns:1fr 1fr;grid-template-areas:"ring ring" "tl tr" "bl br";max-width:640px;margin:0 auto}
+@media(min-width:600px){.bb-wi-radial{grid-template-columns:1fr auto 1fr;grid-template-areas:"tl ring tr" "bl ring br"}}
+.bb-wi-rg-ringbox{grid-area:ring;position:relative;width:min(300px,80vw);aspect-ratio:1;margin:0 auto;justify-self:center}
+.bb-wi-rg-svg{width:100%;height:100%;display:block}
+.bb-wi-rg-ico{position:absolute;transform:translate(-50%,-50%);width:13.5%;height:13.5%;min-width:34px;min-height:34px;border-radius:50%;border:2px solid;background:#141414;display:grid;place-items:center;font-size:17px;box-shadow:0 2px 8px rgba(0,0,0,0.45)}
+.bb-wi-rg-pct{position:absolute;transform:translate(-50%,-50%);text-align:center;line-height:1.05;pointer-events:none}
+.bb-wi-rg-pct b{display:block;font-size:17px;font-weight:800}
+.bb-wi-rg-pct i{font-style:normal;font-size:7.5px;letter-spacing:0.1em;text-transform:uppercase;color:#9b8f78}
+.bb-wi-rg-hub{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:34%;aspect-ratio:1;border-radius:50%;background:radial-gradient(circle,rgba(22,22,22,0.97),rgba(9,9,9,0.99));border:1px solid rgba(255,255,255,0.06);display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;box-shadow:inset 0 0 18px rgba(0,0,0,0.55)}
+.bb-wi-rg-hub-k{font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:#9b8f78}
+.bb-wi-rg-hub-n{font-size:26px;font-weight:800;color:var(--cream);line-height:1;margin:1px 0}
+.bb-wi-rg-hub-s{font-size:7.5px;letter-spacing:0.14em;text-transform:uppercase;color:#9b8f78}
+.bb-wi-rg-hub-badge{margin-top:5px;font-size:8px;font-weight:800;letter-spacing:0.06em;padding:3px 9px;border-radius:999px}
+.bb-wi-rg-tl{grid-area:tl}.bb-wi-rg-tr{grid-area:tr}.bb-wi-rg-bl{grid-area:bl}.bb-wi-rg-br{grid-area:br}
+.bb-wi-rg-stat{min-width:0}
+.bb-wi-rg-st-name{font-size:11px;font-weight:800;letter-spacing:0.08em}
+.bb-wi-rg-st-val{font-size:12.5px;color:#9b8f78;margin-top:3px}
+.bb-wi-rg-st-val b{color:var(--cream);font-weight:800}
+.bb-wi-rg-st-bar{height:6px;border-radius:4px;background:rgba(255,255,255,0.08);overflow:hidden;margin:7px 0 6px}
+.bb-wi-rg-st-bar>div{height:100%;border-radius:4px;transition:width .8s ease}
+.bb-wi-rg-st-status{font-size:11px;font-weight:700}
+.bb-wi-rg-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:14px;padding-top:12px;margin-top:12px;border-top:1px solid rgba(255,255,255,0.05)}
+.bb-wi-rg-legend span{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;color:#9b8f78}
+.bb-wi-rg-legend i{width:9px;height:9px;border-radius:50%;display:inline-block}
+/* ===== Last Week Performance — rich report dashboard ===== */
+.bb-lwr-wrap{margin-top:10px}
+.bb-lwr-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.bb-lwr-title{font-size:20px;font-weight:800;letter-spacing:0.04em;color:var(--cream);margin:0 0 4px}
+.bb-lwr-dates{font-size:12px;color:#9b8f78}
+.bb-lwr-quote{font-size:12.5px;color:#9b8f78;font-style:italic;max-width:300px;text-align:right}
+.bb-lwr-hero,.bb-lwr-card,.bb-lwr-hl{background:linear-gradient(180deg,rgba(20,20,20,0.96),rgba(10,10,10,0.98));border:1px solid rgba(200,164,78,0.12);border-radius:18px;box-shadow:0 8px 26px rgba(0,0,0,0.3)}
+.bb-lwr-hero{display:grid;grid-template-columns:auto minmax(0,1.2fr) minmax(0,1.6fr);gap:22px;align-items:center;padding:22px;margin-bottom:14px}
+.bb-lwr-hero-score{justify-self:center}
+.bb-lwr-ring{position:relative;width:150px;height:150px}
+.bb-lwr-ring svg{width:150px;height:150px}
+.bb-lwr-ring-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.bb-lwr-ring-c b{font-size:38px;font-weight:800;color:var(--cream);line-height:1}
+.bb-lwr-ring-c b i{font-size:17px;font-style:normal;color:#9b8f78}
+.bb-lwr-ring-c span{font-size:8.5px;letter-spacing:0.12em;color:#9b8f78;margin-top:5px;line-height:1.35}
+.bb-lwr-hero-recap h4{font-size:20px;font-weight:800;color:var(--cream);margin:0 0 6px}
+.bb-lwr-hero-recap p{font-size:13px;color:#bdb3a0;line-height:1.5;margin:0 0 14px}
+.bb-lwr-minis{display:flex;gap:14px}
+.bb-lwr-mini{position:relative;display:flex;flex-direction:column;align-items:center;gap:5px;width:54px}
+.bb-lwr-mini svg{width:48px;height:48px}
+.bb-lwr-mini-ico{position:absolute;top:14px;font-size:17px}
+.bb-lwr-mini-st{font-size:9px;font-weight:700;white-space:nowrap}
+.bb-lwr-hero-prog{min-width:0}
+.bb-lwr-prog-k{font-size:11px;letter-spacing:0.08em;color:#4aa8e0;font-weight:700}
+.bb-lwr-prog-v{font-size:30px;font-weight:800;color:var(--cream);line-height:1.1;margin:3px 0;display:flex;align-items:baseline;gap:10px}
+.bb-lwr-prog-v .up{color:#3dd68c;font-size:14px;font-weight:700}
+.bb-lwr-prog-v .down{color:#ff8f8f;font-size:14px;font-weight:700}
+.bb-lwr-prog-sub{font-size:11px;color:#9b8f78}
+.bb-lwr-prog-chart{height:120px;margin-top:10px}
+.bb-lwr-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
+.bb-lwr-card{padding:18px}
+.bb-lwr-c-head{display:flex;align-items:center;gap:9px;margin-bottom:13px}
+.bb-lwr-c-ico{width:34px;height:34px;flex:0 0 34px;display:grid;place-items:center;border-radius:10px;border:1px solid;font-size:17px}
+.bb-lwr-c-name{font-size:13px;font-weight:800;letter-spacing:0.06em}
+.bb-lwr-badge{margin-left:auto;font-size:9px;font-weight:800;letter-spacing:0.05em;padding:4px 9px;border-radius:999px}
+.bb-lwr-badge.ok{background:rgba(61,214,140,0.16);color:#7fe3ab}
+.bb-lwr-badge.bad{background:rgba(255,104,104,0.16);color:#ff8f8f}
+.bb-lwr-c-val{font-size:23px;font-weight:800;color:var(--cream);line-height:1}
+.bb-lwr-c-bar{display:flex;align-items:center;gap:10px;margin:12px 0 4px}
+.bb-lwr-c-track{flex:1;height:8px;border-radius:5px;background:rgba(255,255,255,0.08);overflow:hidden}
+.bb-lwr-c-fill{height:100%;border-radius:5px;transition:width .8s ease}
+.bb-lwr-c-bar>span{font-size:13px;font-weight:800;flex:0 0 auto}
+.bb-lwr-c-chart{height:122px;margin:10px 0 12px}
+.bb-lwr-c-stats{display:flex;align-items:flex-start;gap:14px;flex-wrap:wrap;padding-top:12px;border-top:1px solid rgba(255,255,255,0.06)}
+.bb-lwr-c-stats>div{display:flex;flex-direction:column;gap:2px}
+.bb-lwr-c-stats span{font-size:9px;letter-spacing:0.06em;color:#7c715c}
+.bb-lwr-c-stats b{font-size:13px;color:var(--cream);font-weight:800}
+.bb-lwr-c-delta{margin-left:auto;text-align:right;align-items:flex-end}
+.bb-lwr-d{font-size:13px;font-weight:800}
+.bb-lwr-d.up{color:#3dd68c}.bb-lwr-d.down{color:#ff8f8f}.bb-lwr-d.flat{color:#7c715c}
+.bb-lwr-c-tip{margin-top:12px;font-size:11.5px;color:#bdb3a0;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:10px 12px;line-height:1.45}
+.bb-lwr-hl{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;padding:16px 22px}
+.bb-lwr-hl-item{display:flex;align-items:center;gap:11px;min-width:0}
+.bb-lwr-hl-ic{width:42px;height:42px;flex:0 0 42px;display:grid;place-items:center;border-radius:50%;background:rgba(200,164,78,0.1);border:1px solid rgba(200,164,78,0.25);font-size:18px}
+.bb-lwr-hl-item>div{display:flex;flex-direction:column;min-width:0}
+.bb-lwr-hl-item b{font-size:15px;font-weight:800;color:var(--cream)}
+.bb-lwr-hl-item span{font-size:11px;color:#9b8f78}
+.bb-lwr-hl-item em{font-style:normal;color:var(--gold);font-weight:700}
+@media(max-width:900px){.bb-lwr-hero{grid-template-columns:1fr;text-align:center}.bb-lwr-minis{justify-content:center}.bb-lwr-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:560px){.bb-lwr-cards{grid-template-columns:minmax(0,1fr)}.bb-lwr-quote{text-align:left;max-width:none}.bb-lwr-hl{flex-direction:column;align-items:flex-start}.bb-lwr-c-stats{gap:10px}}
 @media (max-width:380px){.bb-wi-hero{flex-direction:column;text-align:center}.bb-wi-hero-meta{align-items:center}.bb-wi-score{flex-direction:column;text-align:center}.bb-wi-gauge-center b{font-size:22px}}
 
 </style>
@@ -17849,128 +18000,197 @@ async function renderWeeklyInsights(){
   var weekLabel = bbWiMd(data.weekStart) + ' – ' + bbWiMd(data.weekEnd);
   var daysLeftTxt = daysRemaining > 0 ? (daysRemaining + (daysRemaining === 1 ? ' day left' : ' days left')) : 'Final day';
   var head = '<div class="bb-wi-head"><div class="bb-wi-head-row">'
-    + '<div><span class="bb-wi-eyebrow">Weekly Insights</span>'
-    + '<h3 class="bb-wi-title">This Week’s Progress</h3></div>'
-    + '<button type="button" class="bb-wi-edit" onclick="bbOpenGoalEditor()">Adjust targets</button></div>'
-    + '<p class="bb-wi-sub">' + weekLabel + ' · Day ' + daysElapsed + ' of 7 · ' + daysLeftTxt + '</p></div>';
+    + '<div><span class="bb-wi-eyebrow">Weekly Insights</span></div>'
+    + '<button type="button" class="bb-wi-edit" onclick="bbOpenGoalEditor()">Adjust targets</button></div></div>';
 
-  // ----- hero: overall weekly progress (the average of the gauges, same denominator) + on-pace badge -----
-  var wp = Math.round((
-    (Number(M.steps && M.steps.progressPct) || 0) +
-    (Number(M.water && M.water.progressPct) || 0) +
-    (Number(M.protein && M.protein.progressPct) || 0) +
-    (Number(M.sleep && M.sleep.progressPct) || 0)
-  ) / 4);
-  var pace = Math.max(0, Math.min(100, Number(data.consistency) || 0)); // are you ahead/behind the expected-by-today line
-  var badge = pace >= 90 ? 'Ahead of pace' : pace >= 70 ? 'On track' : pace >= 50 ? 'Building' : 'Behind pace';
-  var badgeColor = pace >= 70 ? '#3dd68c' : pace >= 50 ? '#f5a623' : '#ff6868';
-  var badgeSub = pace >= 90 ? 'You’re ahead of where you should be by today.'
-    : pace >= 70 ? 'Right on pace for this point in the week.'
-    : pace >= 50 ? 'A little behind today’s pace — keep going.'
-    : 'Behind pace — a check-in today moves the needle.';
-  var circ = 2 * Math.PI * 52;
-  var off = circ * (1 - Math.max(0, Math.min(100, wp)) / 100);
-  var hero = '<div class="bb-wi-hero"><div class="bb-wi-ring"><svg viewBox="0 0 120 120">'
-    + '<circle class="bb-wi-ring-track" cx="60" cy="60" r="52"></circle>'
-    + '<circle class="bb-wi-ring-fill" cx="60" cy="60" r="52" style="stroke:#c8a44e;stroke-dasharray:' + circ.toFixed(1) + ';stroke-dashoffset:' + off.toFixed(1) + '"></circle>'
-    + '</svg><div class="bb-wi-ring-center"><b>' + wp + '%</b><i>of target</i></div></div>'
-    + '<div class="bb-wi-hero-meta"><span class="bb-wi-hero-kicker">Weekly Progress · Day ' + daysElapsed + ' of 7</span>'
-    + '<span class="bb-wi-rank" style="color:' + badgeColor + '">' + (pace >= 70 ? '🔥 ' : '') + badge + '</span>'
-    + '<span class="bb-wi-rank-sub">' + badgeSub + '</span></div></div>';
+  // (This-week "vs target" radial removed — that data lives on the home page.)
 
-  // ----- this-week gauges (doughnut per metric) + daily completion chart -----
-  function paceColor(m){ return m.onPace ? '#3dd68c' : (m.pacePct >= 70 ? '#f5a623' : '#ff6868'); }
-  function paceWord(m){ return m.onPace ? 'On track' : (m.pacePct >= 70 ? 'Slightly behind' : 'Behind'); }
-  var gauges = keys.map(function (k) {
-    var m = M[k] || {}; var f = BB_WI_FMT[k];
-    var pctNum = Math.max(0, Math.min(100, Math.round(Number(m.progressPct) || 0)));
-    var statusCol = paceColor(m);
-    return '<div class="bb-wi-gauge">'
-      + '<div class="bb-wi-gauge-c"><canvas id="bbWiG_' + k + '"></canvas>'
-      + '<div class="bb-wi-gauge-center"><b style="color:' + f.color + '">' + pctNum + '%</b><i>' + f.ico + '</i></div></div>'
-      + '<div class="bb-wi-gauge-lbl">' + f.label + '</div>'
-      + '<div class="bb-wi-gauge-val"><b>' + bbWiVal(k, m.actual) + '</b> / ' + bbWiVal(k, m.target) + '</div>'
-      + '<div class="bb-wi-gauge-pace" style="color:' + statusCol + '">' + paceWord(m) + '</div></div>';
-  }).join('');
-  var gaugeSec = '<div class="bb-wi-sec"><div class="bb-wi-sec-title">This Week vs Target</div>'
-    + '<div class="bb-wi-gauges">' + gauges + '</div></div>';
-  var dailySec = '<div class="bb-wi-sec"><div class="bb-wi-sec-title">Daily Completion · this week</div>'
-    + '<div class="bb-wi-chart-card"><canvas id="bbWiDaily"></canvas></div></div>';
-
-  // ----- health debt (last COMPLETED week) -----
+  // ----- last week report helpers -----
   function sevStyle(sv){
     return sv === 'green' ? 'background:rgba(61,214,140,0.16);color:#7fe3ab'
       : sv === 'amber' ? 'background:rgba(245,166,35,0.16);color:#f6c267'
       : 'background:rgba(255,104,104,0.16);color:#ff8f8f';
   }
   function chipStyle(f){ return 'background:' + f.color + '1f;border:1px solid ' + f.color + '40'; }
-  function debtSev(m){ var pct = m.target > 0 ? (m.lastWeekActual / m.target * 100) : 0; return m.lastWeekDebt <= 0 ? 'green' : (pct >= 70 ? 'amber' : 'red'); }
-  var anyDebt = keys.some(function (k) { return (M[k] && M[k].lastWeekDebt) > 0; });
-  var debt = keys.map(function (k) {
-    var m = M[k] || {}; var f = BB_WI_FMT[k]; var sv = debtSev(m);
-    var achieved = m.target > 0 ? Math.max(0, Math.min(100, Math.round(m.lastWeekActual / m.target * 100))) : 0;
-    var cleared = m.lastWeekDebt <= 0;
-    var pill = cleared ? 'Cleared' : (sv === 'amber' ? 'Moderate' : 'High');
-    var valHtml = cleared ? '<span style="color:#7fe3ab">Cleared ✓</span>' : (bbWiVal(k, m.lastWeekDebt) + '<span class="bb-wi-dc-unit">short</span>');
-    return '<div class="bb-wi-dcard">'
-      + '<div class="bb-wi-dc-top"><span class="bb-wi-chip" style="' + chipStyle(f) + '">' + f.ico + '</span>'
-      + '<span class="bb-wi-dc-label">' + f.label + '</span>'
-      + '<span class="bb-wi-sevpill" style="' + sevStyle(sv) + '">' + pill + '</span></div>'
-      + '<div class="bb-wi-dc-val">' + valHtml + '</div>'
-      + '<div class="bb-wi-dc-bar"><div class="bb-wi-dc-fill" style="width:' + achieved + '%;background:' + f.color + '"></div></div>'
-      + '<div class="bb-wi-dc-foot">Hit ' + achieved + '% of last week’s target</div></div>';
+  // ----- last week performance — rich report, rendered separately from /api/me/weekly-report -----
+  var perfSec = '<div id="bbLastWeekReport" class="bb-lwr-wrap"></div>';
+
+  // ----- step recovery (steps is the ONLY carry-forward metric; shown only when behind) -----
+  var sm = M.steps || {};
+  var sf = BB_WI_FMT.steps;
+  var stepDebt = sm.lastWeekDebt || 0;
+  var recSec = '';
+  if (stepDebt > 0) {
+    var baseGoal = sm.target || 0;
+    var rt = sm.recoveryTarget || baseGoal || 0;
+    var actualSteps = Math.max(0, Number(sm.actual) || 0);
+    var doneThisWeek = Math.min(actualSteps, rt);
+    var toGo = Math.max(0, rt - actualSteps);
+    var progPct = rt > 0 ? Math.max(0, Math.min(100, Math.round((actualSteps / rt) * 100))) : 0;
+    var perDay = Math.round(rt / 7);
+    var badgeWord = progPct >= 100 ? 'Caught up! 🎉' : progPct >= 50 ? 'More than halfway!' : progPct > 0 ? 'You’re making progress!' : 'Fresh start — let’s go';
+    var rCirc = 2 * Math.PI * 26;
+    var rOff = rCirc * (1 - progPct / 100);
+    recSec = '<div class="bb-wi-sec"><div class="bb-cu">'
+      + '<div class="bb-cu-head"><div class="bb-cu-head-l"><span class="bb-cu-ico bb-cu-ico-gold">' + sf.ico + '</span>'
+      +   '<span class="bb-cu-title">Catch-up Plan</span></div>'
+      +   '<span class="bb-cu-badge">↗ ' + badgeWord + '</span></div>'
+      + '<div class="bb-cu-lead"><span class="bb-cu-check">✓</span>'
+      +   '<div><p class="bb-cu-lead-main">You came up <b>' + bbWiInt(stepDebt) + ' steps</b> short last week.</p>'
+      +   '<p class="bb-cu-lead-sub">Steps carry over — so add a little extra this week to catch up.</p></div></div>'
+      + '<div class="bb-cu-panel">'
+      +   '<div class="bb-cu-row"><span class="bb-cu-ico bb-cu-ico-blue">🎯</span><span class="bb-cu-row-label">This week’s goal</span>'
+      +     '<span class="bb-cu-row-val"><b>' + bbWiInt(baseGoal) + '</b><i>steps</i></span></div>'
+      +   '<div class="bb-cu-divider"></div>'
+      +   '<div class="bb-cu-row"><span class="bb-cu-ico bb-cu-ico-purple">📋</span><span class="bb-cu-row-label">Catch-up from last week</span>'
+      +     '<span class="bb-cu-row-val"><b class="amber">+ ' + bbWiInt(stepDebt) + '</b><i>steps</i></span></div>'
+      +   '<div class="bb-cu-divider"></div>'
+      +   '<div class="bb-cu-row bb-cu-row-total"><span class="bb-cu-ico bb-cu-ico-gold">🏆</span><span class="bb-cu-row-label strong">Aim for this week</span>'
+      +     '<span class="bb-cu-row-val"><b class="amber big">' + bbWiInt(rt) + '</b><i>steps</i></span></div>'
+      + '</div>'
+      + '<div class="bb-cu-panel">'
+      +   '<div class="bb-cu-prog-top"><b class="bb-cu-perday">≈ ' + bbWiInt(perDay) + '</b><span>steps/day to fully catch up</span></div>'
+      +   '<div class="bb-cu-prog-main"><div class="bb-cu-prog-left">'
+      +     '<div class="bb-cu-bar"><div class="bb-cu-fill" style="width:' + progPct + '%"></div></div>'
+      +     '<div class="bb-cu-prog-stats"><div><b>' + bbWiInt(doneThisWeek) + '</b><span>done this week</span></div>'
+      +     '<div class="r"><b>' + bbWiInt(toGo) + '</b><span>steps to go</span></div></div></div>'
+      +     '<div class="bb-cu-ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="5"/>'
+      +       '<circle cx="32" cy="32" r="26" fill="none" stroke="' + sf.color + '" stroke-width="5" stroke-linecap="round" stroke-dasharray="' + rCirc.toFixed(1) + '" stroke-dashoffset="' + rOff.toFixed(1) + '" transform="rotate(-90 32 32)"/></svg>'
+      +       '<div class="bb-cu-ring-c"><b>' + progPct + '<i>%</i></b><span>complete</span></div></div>'
+      +   '</div></div>'
+      + '</div></div>';
+  }
+
+  el.innerHTML = head + perfSec + recSec;
+
+  // rich last-week report (own fetch + charts)
+  try { renderLastWeekReport(); } catch (e) { console.warn('last week report', e); }
+}
+
+// ===== Last Week Performance — rich report dashboard (from /api/me/weekly-report) =====
+async function renderLastWeekReport(){
+  var el = document.getElementById('bbLastWeekReport');
+  if (!el) return;
+  var d = null;
+  try { d = await apiCall('GET', '/api/me/weekly-report'); } catch (_) {}
+  if (!d || d.error) { el.innerHTML = ''; return; }
+  window._bbLwr = d;
+
+  var order = ['steps', 'water', 'protein', 'sleep'];
+  function statusPill(p){ var ok = p >= 90; return '<span class="bb-lwr-badge ' + (ok ? 'ok' : 'bad') + '">' + (ok ? 'ON TRACK' : 'BEHIND') + '</span>'; }
+  function deltaHtml(v){
+    if (v == null) return '<b class="bb-lwr-d flat">—</b><span>vs last week</span>';
+    var up = v >= 0; return '<b class="bb-lwr-d ' + (up ? 'up' : 'down') + '">' + (up ? '▲ +' : '▼ ') + Math.abs(v) + '%</b><span>vs last week</span>';
+  }
+
+  // header
+  var head = '<div class="bb-lwr-head"><div><h3 class="bb-lwr-title">LAST WEEK PERFORMANCE <span>📈</span></h3>'
+    + '<span class="bb-lwr-dates">📅 ' + bbWiMd(d.weekStart) + ' – ' + bbWiMd(d.weekEnd) + '</span></div>'
+    + '<div class="bb-lwr-quote">“Progress is progress, no matter how small.”</div></div>';
+
+  // hero — score ring + recap + mini rings + area chart
+  var score = Math.max(0, Math.min(100, d.overallScore || 0));
+  var sCirc = 2 * Math.PI * 52, sOff = sCirc * (1 - score / 100);
+  var recapTitle = score >= 80 ? 'Great week! 🎉' : score >= 60 ? 'Solid week 💪' : 'Fresh start 🌱';
+  var recapMsg = 'You hit ' + d.goalsHit + ' out of ' + d.goalsTotal + ' goals' + (score >= 60 ? ' and stayed consistent. Keep building this momentum!' : '. Small steps add up — keep going!');
+  var miniRings = order.map(function (k) {
+    var m = d.metrics[k]; var f = BB_WI_FMT[k];
+    var pct = Math.max(0, Math.min(100, Math.round(m.achievementPct)));
+    var c2 = 2 * Math.PI * 20, o2 = c2 * (1 - pct / 100); var ok = m.achievementPct >= 90;
+    return '<div class="bb-lwr-mini"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>'
+      + '<circle cx="24" cy="24" r="20" fill="none" stroke="' + f.color + '" stroke-width="4" stroke-linecap="round" stroke-dasharray="' + c2.toFixed(1) + '" stroke-dashoffset="' + o2.toFixed(1) + '" transform="rotate(-90 24 24)"/></svg>'
+      + '<span class="bb-lwr-mini-ico">' + f.ico + '</span><span class="bb-lwr-mini-st" style="color:' + (ok ? '#3dd68c' : '#ff8f8f') + '">' + (ok ? 'On Track' : 'Behind') + '</span></div>';
   }).join('');
-  var debtSec = '<div class="bb-wi-sec"><div class="bb-wi-sec-title">Health Debt · last week (' + bbWiMd(data.lastWeekStart) + '–' + bbWiMd(data.lastWeekEnd) + ')</div>'
-    + '<div class="bb-wi-grid">' + debt + '</div></div>';
+  var tp = d.totalProgress || {};
+  var tpDelta = tp.vsPrevPct != null ? '<span class="' + (tp.vsPrevPct >= 0 ? 'up' : 'down') + '">' + (tp.vsPrevPct >= 0 ? '▲ ' : '▼ ') + Math.abs(tp.vsPrevPct) + '%</span>' : '';
+  var hero = '<div class="bb-lwr-hero"><div class="bb-lwr-hero-score"><div class="bb-lwr-ring"><svg viewBox="0 0 120 120">'
+    + '<defs><linearGradient id="bbLwrGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3dd68c"/><stop offset="0.5" stop-color="#f6c544"/><stop offset="1" stop-color="#f6884a"/></linearGradient></defs>'
+    + '<circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="9"/>'
+    + '<circle cx="60" cy="60" r="52" fill="none" stroke="url(#bbLwrGrad)" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + sCirc.toFixed(1) + '" stroke-dashoffset="' + sOff.toFixed(1) + '" transform="rotate(-90 60 60)"/></svg>'
+    + '<div class="bb-lwr-ring-c"><b>' + score + '<i>%</i></b><span>OVERALL<br>WEEK SCORE</span></div></div></div>'
+    + '<div class="bb-lwr-hero-recap"><h4>' + recapTitle + '</h4><p>' + recapMsg + '</p><div class="bb-lwr-minis">' + miniRings + '</div></div>'
+    + '<div class="bb-lwr-hero-prog"><div class="bb-lwr-prog-k">TOTAL PROGRESS MADE</div>'
+    + '<div class="bb-lwr-prog-v"><b>' + bbWiInt(tp.value) + '</b> ' + tpDelta + '</div>'
+    + '<div class="bb-lwr-prog-sub">vs ' + bbWiMd(d.prevWeekStart) + ' – ' + bbWiMd(d.prevWeekEnd) + '</div>'
+    + '<div class="bb-lwr-prog-chart"><canvas id="bbLwrArea"></canvas></div></div></div>';
 
-  // ----- recovery targets (this week = standard target + last week's debt) -----
-  var rec = keys.map(function (k) {
-    var m = M[k] || {}; var f = BB_WI_FMT[k];
-    var rt = m.recoveryTarget || m.target || 0;
-    var basePct = rt > 0 ? (m.target / rt * 100) : 100;
-    var carryPct = Math.max(0, 100 - basePct);
-    var hasCarry = (m.lastWeekDebt || 0) > 0;
-    var legend = hasCarry
-      ? ('<span><i style="background:' + f.color + '"></i>Base ' + bbWiVal(k, m.target) + '</span><span><i style="background:#f5a623"></i>+' + bbWiVal(k, m.lastWeekDebt) + ' carried</span>')
-      : ('<span><i style="background:' + f.color + '"></i>Standard target</span>');
-    return '<div class="bb-wi-rcard">'
-      + '<div class="bb-wi-dc-top"><span class="bb-wi-chip" style="' + chipStyle(f) + '">' + f.ico + '</span>'
-      + '<span class="bb-wi-dc-label">' + f.label + '</span></div>'
-      + '<div class="bb-wi-rc-val" style="color:' + f.color + '">' + bbWiVal(k, rt) + '</div>'
-      + '<div class="bb-wi-stack"><div class="bb-wi-stack-base" style="width:' + basePct + '%;background:' + f.color + '"></div>'
-      + (hasCarry ? '<div class="bb-wi-stack-carry" style="width:' + carryPct + '%;background:#f5a623"></div>' : '')
-      + '</div><div class="bb-wi-rc-legend">' + legend + '</div></div>';
+  // metric cards
+  var tips = {
+    steps: 'Try adding a 10-min walk after meals to hit your goal consistently.',
+    water: 'Keep a bottle on your desk — sip through the day to top up.',
+    protein: 'Anchor each meal with a protein source to stay on target.',
+    sleep: 'Aim for 7–8h nightly. A consistent routine makes a big difference.'
+  };
+  var cards = order.map(function (k) {
+    var m = d.metrics[k]; var f = BB_WI_FMT[k];
+    var pct = Math.max(0, Math.min(100, Math.round(m.achievementPct)));
+    var bestLbl = (k === 'sleep') ? 'BEST NIGHT' : 'BEST DAY';
+    return '<div class="bb-lwr-card">'
+      + '<div class="bb-lwr-c-head"><span class="bb-lwr-c-ico" style="background:' + f.color + '1f;border-color:' + f.color + '">' + f.ico + '</span>'
+      + '<span class="bb-lwr-c-name" style="color:' + f.color + '">' + f.label.toUpperCase() + '</span>' + statusPill(m.achievementPct) + '</div>'
+      + '<div class="bb-lwr-c-val"><b>' + bbWiVal(k, m.actual) + '</b> / ' + bbWiVal(k, m.target) + '</div>'
+      + '<div class="bb-lwr-c-bar"><div class="bb-lwr-c-track"><div class="bb-lwr-c-fill" style="width:' + pct + '%;background:' + f.color + '"></div></div><span style="color:' + f.color + '">' + pct + '%</span></div>'
+      + '<div class="bb-lwr-c-chart"><canvas id="bbLwrBar_' + k + '"></canvas></div>'
+      + '<div class="bb-lwr-c-stats"><div><span>DAILY AVG</span><b>' + bbWiVal(k, m.dailyAvg) + '</b></div>'
+      + '<div><span>' + bestLbl + '</span><b>' + bbWiVal(k, m.bestDay.value) + '</b></div>'
+      + '<div class="bb-lwr-c-delta">' + deltaHtml(m.vsPrevPct) + '</div></div>'
+      + '<div class="bb-lwr-c-tip">💡 ' + tips[k] + '</div></div>';
   }).join('');
-  var recNote = anyDebt ? 'Hit these adjusted targets this week to clear last week’s Health Debt.' : 'No debt carried — your standard weekly targets stand. Keep it up!';
-  var recSec = '<div class="bb-wi-sec"><div class="bb-wi-sec-title">Recovery Targets · this week</div>'
-    + '<div class="bb-wi-grid">' + rec + '</div><p class="bb-wi-note">' + recNote + '</p></div>';
+  var cardsSec = '<div class="bb-lwr-cards">' + cards + '</div>';
 
-  // ----- goal status (this-week pace) -----
-  var status = keys.map(function (k) {
-    var m = M[k] || {}; var f = BB_WI_FMT[k];
-    var sv = m.onPace ? 'green' : (m.pacePct >= 70 ? 'amber' : 'red');
-    var st = sv === 'green' ? 'On Track' : sv === 'amber' ? 'Nearly' : 'Behind';
-    var prog = Math.max(0, Math.min(100, Math.round(Number(m.progressPct) || 0)));
-    var detail = sv === 'green'
-      ? ('Ahead of pace · ' + prog + '% of target')
-      : (bbWiVal(k, m.remaining) + ' to go · ' + (daysRemaining > 0 ? (daysRemaining + 'd left') : 'final day'));
-    return '<div class="bb-wi-srow"><span class="bb-wi-chip sm" style="' + chipStyle(f) + '">' + f.ico + '</span>'
-      + '<div class="bb-wi-sr-body"><div class="bb-wi-sr-head"><span class="bb-wi-sr-name">' + f.label + '</span>'
-      + '<span class="bb-wi-sr-tag" style="' + sevStyle(sv) + '">' + st + '</span></div>'
-      + '<div class="bb-wi-sr-bar"><div class="bb-wi-sr-fill" style="width:' + prog + '%;background:' + f.color + '"></div></div>'
-      + '<div class="bb-wi-sr-meta">' + detail + '</div></div></div>';
-  }).join('');
-  var statusSec = '<div class="bb-wi-sec"><div class="bb-wi-sec-title">Goal Status</div><div class="bb-wi-status">' + status + '</div></div>';
+  // highlights
+  var mc = d.highlights.mostConsistentDays || [];
+  var mcText = mc.length ? mc.join(' & ') : '—';
+  var hlVs = (tp.vsPrevPct != null) ? ((tp.vsPrevPct >= 0 ? '+' : '') + tp.vsPrevPct + '%') : '—';
+  var hl = '<div class="bb-lwr-hl">'
+    + '<div class="bb-lwr-hl-item"><span class="bb-lwr-hl-ic">🏆</span><div><b>WEEK HIGHLIGHTS</b><span>Most consistent on <em>' + mcText + '</em></span></div></div>'
+    + '<div class="bb-lwr-hl-item"><span class="bb-lwr-hl-ic">🎯</span><div><b>' + d.goalsHit + ' / ' + d.goalsTotal + '</b><span>Goals hit</span></div></div>'
+    + '<div class="bb-lwr-hl-item"><span class="bb-lwr-hl-ic">🔥</span><div><b>' + (d.streak || 0) + '</b><span>Day streak</span></div></div>'
+    + '<div class="bb-lwr-hl-item"><span class="bb-lwr-hl-ic">📈</span><div><b>' + hlVs + '</b><span>vs last week</span></div></div>'
+    + '<div class="bb-lwr-hl-item"><span class="bb-lwr-hl-ic">👑</span><div><b>Keep it up!</b><span>You’re building a stronger you.</span></div></div></div>';
 
-  var nothing = (loggedThis === 0) && (!data.lastWeek || data.lastWeek.days === 0);
+  el.innerHTML = '<div class="bb-lwr">' + head + hero + cardsSec + hl + '</div>';
+  try { bbLwrBuildCharts(d); } catch (e) { console.warn('lwr charts', e); }
+}
 
-  el.innerHTML = head + hero
-    + gaugeSec + dailySec
-    + debtSec + recSec + statusSec
-    + (nothing ? '<p class="bb-wi-note" style="margin-top:14px">Log your daily check-ins above to watch this dashboard fill in.</p>' : '');
+function bbLwrBuildCharts(d){
+  if (typeof Chart === 'undefined') return;
+  if (window._bbLwrCharts) { Object.keys(window._bbLwrCharts).forEach(function (id) { try { window._bbLwrCharts[id].destroy(); } catch (_) {} }); }
+  window._bbLwrCharts = {};
 
-  // charts are drawn after the canvases land in the DOM
-  try { bbWiBuildCharts(data, M, keys); } catch (e) { console.warn('wi charts', e); }
+  var ac = document.getElementById('bbLwrArea');
+  if (ac && d.totalProgress && d.totalProgress.series) {
+    var labels = d.totalProgress.series.map(function (p) { return p.label; });
+    var vals = d.totalProgress.series.map(function (p) { return p.cumulative; });
+    var ctx = ac.getContext('2d');
+    var grad = ctx.createLinearGradient(0, 0, 0, 130);
+    grad.addColorStop(0, 'rgba(246,197,68,0.32)'); grad.addColorStop(1, 'rgba(61,214,140,0.03)');
+    window._bbLwrCharts.area = new Chart(ctx, {
+      type: 'line',
+      data: { labels: labels, datasets: [{ data: vals, borderColor: '#6fe09a', borderWidth: 2.5, fill: true, backgroundColor: grad, tension: 0.4, pointRadius: 0, pointHoverRadius: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#7c715c', font: { size: 9 } } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7c715c', font: { size: 9 }, maxTicksLimit: 5, callback: function (v) { return v >= 1000 ? (Math.round(v / 1000) + 'K') : v; } } } } }
+    });
+  }
+
+  ['steps', 'water', 'protein', 'sleep'].forEach(function (k) {
+    var cv = document.getElementById('bbLwrBar_' + k); if (!cv) return;
+    var m = d.metrics[k]; var f = BB_WI_FMT[k]; var isWater = k === 'water';
+    var dayVals = m.days.map(function (x) { return isWater ? (x.value / 1000) : x.value; });
+    var goal = isWater ? (m.dailyGoal / 1000) : m.dailyGoal;
+    var labels = m.days.map(function (x) { return x.label; });
+    var fmtY = function (v) {
+      if (k === 'steps') return v >= 1000 ? (Math.round(v / 1000) + 'K') : v;
+      if (k === 'water') return v + 'L'; if (k === 'protein') return v + 'g'; return v + 'h';
+    };
+    window._bbLwrCharts['b_' + k] = new Chart(cv.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: [
+        { type: 'bar', data: dayVals, backgroundColor: f.color, borderRadius: 4, barPercentage: 0.62, categoryPercentage: 0.82 },
+        { type: 'line', data: labels.map(function () { return goal; }), borderColor: 'rgba(255,255,255,0.32)', borderWidth: 1.4, borderDash: [5, 4], pointRadius: 0, fill: false }
+      ] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#7c715c', font: { size: 9 } } }, y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7c715c', font: { size: 9 }, maxTicksLimit: 4, callback: fmtY } } } }
+    });
+  });
 }
 
 function bbWiBuildCharts(data, M, keys){
@@ -20635,6 +20855,7 @@ function renderAdminMemberships() {
           '<button type="button" class="form-submit" style="width:auto;padding:9px 18px;margin:0" onclick="activateMembership(\'' + idAttr + '\')">✅ Activate</button>' +
           '<button type="button" class="bb-access-reset" onclick="setMembershipTrial(\'' + idAttr + '\')">↻ Trial +' + trialDays + 'd</button>' +
           waBtn +
+          '<button type="button" class="bb-access-reset" onclick="sendAdminWeeklyReport(\'' + idAttr + '\', this)">📊 Weekly report</button>' +
           '<button type="button" class="bb-access-reset" style="color:#e05050;border-color:rgba(224,80,80,.4)" onclick="lockMembership(\'' + idAttr + '\')">⛔ Lock</button>' +
         '</div>' +
         bbMemberAiSection(u, idAttr) +
@@ -20681,6 +20902,26 @@ function bbMemberAiSection(u, idAttr) {
       '</div>' +
     '</details>'
   );
+}
+
+async function sendAdminWeeklyReport(encodedId, btn) {
+  var id = decodeURIComponent(encodedId);
+  var orig = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  try {
+    var res = await apiCall('POST', '/api/admin/users/' + encodeURIComponent(id) + '/weekly-report', { send: true });
+    if (res && res.error) {
+      showPopup('Weekly report', res.error + (res.reportUrl ? ('\n\nPDF: ' + res.reportUrl) : ''), '', 'OK', null, 'error');
+    } else if (res && res.emailed) {
+      showPopup('Weekly report sent', 'Emailed last week’s PDF report to ' + (res.email || 'the member') + '.', '', 'OK', null, 'success');
+    } else {
+      showPopup('Weekly report', 'PDF generated' + (res && res.email ? ' (email not sent — check mail config).' : '.') + (res && res.reportUrl ? ('\n\nDownload: ' + res.reportUrl) : ''), '', 'OK', null, 'info');
+    }
+  } catch (e) {
+    showPopup('Weekly report', e.message || 'Failed to send the weekly report.', '', 'OK', null, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = orig || '📊 Weekly report'; }
+  }
 }
 
 function activateMembership(encodedId) {
