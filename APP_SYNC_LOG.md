@@ -37,7 +37,23 @@ Before every mobile release:
 
 ## Pending sync — next mobile release
 
-_(empty — synced 2026-06-17; see History below)_
+_(empty — synced 2026-06-24; see below)_
+
+---
+
+## 2026-06-24 — synced to mobile repo (Weekly Report mobile redesign + Catch-up Plan reframe, v1.3.7, versionCode 18)
+
+Ran `npm run build:www` + `npx cap sync android` in `../bodybank-app/` (mirror `public/` → `www/`);
+bumped Android `versionCode 17→18`, `versionName 1.3.6→1.3.7`. Signed AAB built (versionCode 18,
+~46 MB) at `android/app/build/outputs/bundle/release/app-release.aab` — ready to upload to Play
+closed testing. (versionCode 17 was already used on Play, hence 18.)
+
+| Web change | What it is | Notes |
+| ---------- | ---------- | ----- |
+| _(uncommitted)_ | feat(weekly report): mobile-faithful redesign of "Last Week Performance" | `public/index.html`: ≤560px layout rebuilt — calendar button, hero (ring + recap + chart) w/ green trend arrow + glow, status-icon divider row, compact metric cards (chart beside %/badge), 4-tile footer; premium polish (glows, gradient bars, chart value bubble) also lifts desktop. |
+| _(uncommitted)_ | feat(catch-up): reframe step-debt to reduce panic | `public/index.html`: "Catch-up from last week" → "Steps debt"; removed "Aim for this week" total; debt now spread over ~4 weeks (gentle +extra/day) instead of one week. Client-side only. |
+
+> ⚠️ These web changes are **not yet committed/pushed** in the web repo — only mirrored into the AAB's `www/`. Commit + push `public/index.html` so Render serves them to web/PWA testers too (and for record).
 
 ---
 

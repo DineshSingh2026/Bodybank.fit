@@ -5587,7 +5587,7 @@ button.bb-today-pill{cursor:pointer}
 .bb-lwr-prog-v .up{color:#3dd68c;font-size:14px;font-weight:700}
 .bb-lwr-prog-v .down{color:#ff8f8f;font-size:14px;font-weight:700}
 .bb-lwr-prog-sub{font-size:11px;color:#9b8f78}
-.bb-lwr-prog-chart{height:120px;margin-top:10px}
+.bb-lwr-prog-chart{height:120px;margin-top:10px;position:relative}
 .bb-lwr-cards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:14px}
 .bb-lwr-card{padding:18px}
 .bb-lwr-c-head{display:flex;align-items:center;gap:9px;margin-bottom:13px}
@@ -5617,8 +5617,100 @@ button.bb-today-pill{cursor:pointer}
 .bb-lwr-hl-item b{font-size:15px;font-weight:800;color:var(--cream)}
 .bb-lwr-hl-item span{font-size:11px;color:#9b8f78}
 .bb-lwr-hl-item em{font-style:normal;color:var(--gold);font-weight:700}
+/* helpers used only by the mobile layout below — inert on desktop */
+.bb-lwr-cal{display:none}
+.bb-lwr-mini-ring{position:relative;display:grid;place-items:center}
+.bb-lwr-mini-tx{display:contents}
+.bb-lwr-mini-nm{display:none}
+.bb-lwr-c-goal{display:none}
+.bb-lwr-c-side-meta{display:none}
+.lwr-hl-mob{display:none}
+/* premium polish — glow + trend arrow + chart value bubble (desktop + mobile) */
+.bb-lwr-arc{filter:drop-shadow(0 0 5px rgba(246,180,90,0.55))}
+.bb-lwr-ring-arrow{display:flex;align-items:center;justify-content:center;color:#3dd68c;filter:drop-shadow(0 0 5px rgba(61,214,140,0.6));margin-bottom:3px}
+.bb-lwr-prog-bubble{position:absolute;top:0;right:4px;background:linear-gradient(180deg,#123524,#0d2418);border:1px solid rgba(61,214,140,0.55);color:#9af0c0;font-size:11px;font-weight:800;padding:3px 9px;border-radius:9px;box-shadow:0 0 16px rgba(61,214,140,0.28);z-index:2}
 @media(max-width:900px){.bb-lwr-hero{grid-template-columns:1fr;text-align:center}.bb-lwr-minis{justify-content:center}.bb-lwr-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){.bb-lwr-cards{grid-template-columns:minmax(0,1fr)}.bb-lwr-quote{text-align:left;max-width:none}.bb-lwr-hl{flex-direction:column;align-items:flex-start}.bb-lwr-c-stats{gap:10px}}
+/* ===== Last Week Performance — mobile, match the design (<=560px) ===== */
+@media(max-width:560px){
+  /* header: compact, hide quote + title emoji, show calendar button */
+  .bb-lwr-head{align-items:center;flex-wrap:nowrap;gap:10px;margin-bottom:14px}
+  .bb-lwr-title{font-size:18px;letter-spacing:0.02em;margin:0 0 3px}
+  .bb-lwr-title span{display:none}
+  .bb-lwr-dates{font-size:12px}
+  .bb-lwr-quote{display:none}
+  .bb-lwr-cal{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border-radius:13px;border:1px solid rgba(200,164,78,0.22);background:rgba(255,255,255,0.03);font-size:20px}
+
+  /* hero: ring + recap + progress + chart, minis as a divider row */
+  .bb-lwr-hero{
+    grid-template-columns:auto minmax(0,1fr) 108px;
+    grid-template-areas:"score recap chart" "score prog chart" "minis minis minis";
+    gap:7px 9px;padding:15px;margin-bottom:12px;text-align:left;align-items:start;overflow:hidden
+  }
+  .bb-lwr-hero-score{grid-area:score;align-self:center;justify-self:center}
+  .bb-lwr-hero-recap{display:contents}
+  .bb-lwr-recap-txt{grid-area:recap;align-self:center;min-width:0;overflow:hidden}
+  .bb-lwr-hero-prog{display:contents}
+  .bb-lwr-prog-txt{grid-area:prog;align-self:end;min-width:0;overflow:hidden}
+  .bb-lwr-prog-chart{grid-area:chart;align-self:center;height:124px;margin-top:0;min-width:0}
+  .bb-lwr-minis{grid-area:minis;display:flex;justify-content:space-between;gap:6px;min-width:0;margin-top:13px;padding-top:13px;border-top:1px solid rgba(255,255,255,0.07)}
+
+  .bb-lwr-ring,.bb-lwr-ring svg{width:96px;height:96px}
+  .bb-lwr-ring-c b{font-size:27px}
+  .bb-lwr-ring-c b i{font-size:13px}
+  .bb-lwr-ring-c span{font-size:6.5px;margin-top:2px;letter-spacing:0.09em}
+  .bb-lwr-ring-arrow svg{width:15px;height:15px}
+  .bb-lwr-prog-bubble{font-size:9.5px;padding:2px 6px;right:2px}
+  .bb-lwr-hero-recap h4{font-size:16px;margin:0 0 4px;white-space:nowrap}
+  .bb-lwr-hero-recap p{font-size:11.5px;line-height:1.35;margin:0;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+  .bb-lwr-prog-k{font-size:8.5px;letter-spacing:0.03em;white-space:nowrap}
+  .bb-lwr-prog-v{font-size:20px;margin:2px 0;gap:6px;white-space:nowrap}
+  .bb-lwr-prog-v .up,.bb-lwr-prog-v .down{font-size:11px}
+  .bb-lwr-prog-sub{font-size:8.5px;white-space:nowrap}
+
+  /* minis: icon ring + name/status (horizontal) */
+  .bb-lwr-mini{width:auto;flex:1 1 0;min-width:0;overflow:hidden;flex-direction:row;align-items:center;justify-content:center;gap:6px}
+  .bb-lwr-mini-ring{flex:0 0 auto}
+  .bb-lwr-mini svg{width:32px;height:32px}
+  .bb-lwr-mini-ico{position:absolute;top:auto;font-size:13px}
+  .bb-lwr-mini-tx{display:flex;flex-direction:column;min-width:0;overflow:hidden}
+  .bb-lwr-mini-nm{display:block;font-size:10px;font-weight:700;color:var(--cream);line-height:1.1}
+  .bb-lwr-mini-st{font-size:9px;margin-top:1px}
+
+  /* metric cards: left info + right (chart | pct/badge) */
+  .bb-lwr-cards{min-width:0;gap:12px}
+  .bb-lwr-card{display:flex;gap:11px;padding:14px;align-items:center;overflow:hidden}
+  .bb-lwr-c-main{flex:1 1 auto;min-width:0;overflow:hidden;display:flex;flex-direction:column}
+  .bb-lwr-c-head{margin-bottom:9px;gap:10px}
+  .bb-lwr-c-head .bb-lwr-badge{display:none}
+  .bb-lwr-c-ico{width:46px;height:46px;flex:0 0 46px;border-radius:50%;border-width:2px;font-size:22px}
+  .bb-lwr-c-name{font-size:15px;color:var(--cream)!important;letter-spacing:0.04em}
+  .bb-lwr-c-val{font-size:19px;white-space:nowrap;color:#8d836d}
+  .bb-lwr-c-val b{font-weight:800;color:var(--cream)}
+  .bb-lwr-c-bar{margin:10px 0 5px}
+  .bb-lwr-c-bar>span{display:none}
+  .bb-lwr-c-goal{display:block;font-size:10.5px;color:#8d836d;margin-top:2px}
+  .bb-lwr-c-side{flex:0 0 auto;display:flex;flex-direction:row;align-items:center;gap:9px}
+  .bb-lwr-c-chart{flex:0 0 72px;width:72px;height:58px;margin:0;overflow:hidden}
+  .bb-lwr-c-side-meta{flex:0 0 auto;display:flex;flex-direction:column;align-items:flex-end;gap:5px}
+  .bb-lwr-c-pctm{font-size:20px;font-weight:800;line-height:1}
+  .bb-lwr-c-stats,.bb-lwr-c-tip{display:none}
+
+  /* footer: 4 tiles, icon-on-top, centered */
+  .bb-lwr-hl{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:16px 8px;align-items:start}
+  .lwr-hl-desk{display:none}
+  .lwr-hl-mob{display:flex}
+  .bb-lwr-hl-item{flex-direction:column;align-items:center;text-align:center;gap:7px;min-width:0}
+  .bb-lwr-hl-item>div{align-items:center;text-align:center}
+  .bb-lwr-hl-ic{width:40px;height:40px;flex:0 0 40px;font-size:18px}
+  .bb-lwr-hl-g .bb-lwr-hl-ic{background:rgba(61,214,140,0.12);border-color:rgba(61,214,140,0.3)}
+  .bb-lwr-hl-o .bb-lwr-hl-ic{background:rgba(246,136,74,0.12);border-color:rgba(246,136,74,0.3)}
+  .bb-lwr-hl-p .bb-lwr-hl-ic{background:rgba(155,140,240,0.12);border-color:rgba(155,140,240,0.3)}
+  .bb-lwr-hl-item b{font-size:16px;line-height:1}
+  .bb-lwr-hl-item span{font-size:9px;line-height:1.2}
+  .bb-lwr-hl-mc b{font-size:11px;font-weight:700;color:#cfc7b5}
+  .bb-lwr-hl-mc span{color:var(--gold);font-weight:800;font-size:11.5px}
+}
 @media (max-width:380px){.bb-wi-hero{flex-direction:column;text-align:center}.bb-wi-hero-meta{align-items:center}.bb-wi-score{flex-direction:column;text-align:center}.bb-wi-gauge-center b{font-size:22px}}
 
 </style>
@@ -18022,13 +18114,18 @@ async function renderWeeklyInsights(){
   var recSec = '';
   if (stepDebt > 0) {
     var baseGoal = sm.target || 0;
-    var rt = sm.recoveryTarget || baseGoal || 0;
+    // Spread the debt over ~4 weeks so the weekly ask stays gentle and achievable
+    // (a one-week catch-up target reads as impossible and causes panic).
+    var RECOVERY_WEEKS = 4;
+    var debtThisWeek = Math.ceil(stepDebt / RECOVERY_WEEKS);
+    var rt = baseGoal + debtThisWeek;                 // realistic target for THIS week
+    var extraPerDay = Math.round(debtThisWeek / 7);   // gentle "extra steps/day"
     var actualSteps = Math.max(0, Number(sm.actual) || 0);
     var doneThisWeek = Math.min(actualSteps, rt);
     var toGo = Math.max(0, rt - actualSteps);
     var progPct = rt > 0 ? Math.max(0, Math.min(100, Math.round((actualSteps / rt) * 100))) : 0;
-    var perDay = Math.round(rt / 7);
-    var badgeWord = progPct >= 100 ? 'Caught up! 🎉' : progPct >= 50 ? 'More than halfway!' : progPct > 0 ? 'You’re making progress!' : 'Fresh start — let’s go';
+    var perDay = extraPerDay;
+    var badgeWord = progPct >= 100 ? 'On track! 🎉' : progPct >= 50 ? 'More than halfway!' : progPct > 0 ? 'You’re making progress!' : 'Fresh start — let’s go';
     var rCirc = 2 * Math.PI * 26;
     var rOff = rCirc * (1 - progPct / 100);
     recSec = '<div class="bb-wi-sec"><div class="bb-cu">'
@@ -18037,19 +18134,16 @@ async function renderWeeklyInsights(){
       +   '<span class="bb-cu-badge">↗ ' + badgeWord + '</span></div>'
       + '<div class="bb-cu-lead"><span class="bb-cu-check">✓</span>'
       +   '<div><p class="bb-cu-lead-main">You came up <b>' + bbWiInt(stepDebt) + ' steps</b> short last week.</p>'
-      +   '<p class="bb-cu-lead-sub">Steps carry over — so add a little extra this week to catch up.</p></div></div>'
+      +   '<p class="bb-cu-lead-sub">No stress — we’ll spread it over about 4 weeks, so it’s just a little extra each day.</p></div></div>'
       + '<div class="bb-cu-panel">'
       +   '<div class="bb-cu-row"><span class="bb-cu-ico bb-cu-ico-blue">🎯</span><span class="bb-cu-row-label">This week’s goal</span>'
       +     '<span class="bb-cu-row-val"><b>' + bbWiInt(baseGoal) + '</b><i>steps</i></span></div>'
       +   '<div class="bb-cu-divider"></div>'
-      +   '<div class="bb-cu-row"><span class="bb-cu-ico bb-cu-ico-purple">📋</span><span class="bb-cu-row-label">Catch-up from last week</span>'
+      +   '<div class="bb-cu-row"><span class="bb-cu-ico bb-cu-ico-purple">📋</span><span class="bb-cu-row-label">Steps debt</span>'
       +     '<span class="bb-cu-row-val"><b class="amber">+ ' + bbWiInt(stepDebt) + '</b><i>steps</i></span></div>'
-      +   '<div class="bb-cu-divider"></div>'
-      +   '<div class="bb-cu-row bb-cu-row-total"><span class="bb-cu-ico bb-cu-ico-gold">🏆</span><span class="bb-cu-row-label strong">Aim for this week</span>'
-      +     '<span class="bb-cu-row-val"><b class="amber big">' + bbWiInt(rt) + '</b><i>steps</i></span></div>'
       + '</div>'
       + '<div class="bb-cu-panel">'
-      +   '<div class="bb-cu-prog-top"><b class="bb-cu-perday">≈ ' + bbWiInt(perDay) + '</b><span>steps/day to fully catch up</span></div>'
+      +   '<div class="bb-cu-prog-top"><b class="bb-cu-perday">+ ' + bbWiInt(perDay) + '</b><span>extra steps/day over ~4 weeks — no rush, at your own pace</span></div>'
       +   '<div class="bb-cu-prog-main"><div class="bb-cu-prog-left">'
       +     '<div class="bb-cu-bar"><div class="bb-cu-fill" style="width:' + progPct + '%"></div></div>'
       +     '<div class="bb-cu-prog-stats"><div><b>' + bbWiInt(doneThisWeek) + '</b><span>done this week</span></div>'
@@ -18086,7 +18180,8 @@ async function renderLastWeekReport(){
   // header
   var head = '<div class="bb-lwr-head"><div><h3 class="bb-lwr-title">LAST WEEK PERFORMANCE <span>📈</span></h3>'
     + '<span class="bb-lwr-dates">📅 ' + bbWiMd(d.weekStart) + ' – ' + bbWiMd(d.weekEnd) + '</span></div>'
-    + '<div class="bb-lwr-quote">“Progress is progress, no matter how small.”</div></div>';
+    + '<div class="bb-lwr-quote">“Progress is progress, no matter how small.”</div>'
+    + '<div class="bb-lwr-cal" aria-hidden="true">📅</div></div>';
 
   // hero — score ring + recap + mini rings + area chart
   var score = Math.max(0, Math.min(100, d.overallScore || 0));
@@ -18097,22 +18192,24 @@ async function renderLastWeekReport(){
     var m = d.metrics[k]; var f = BB_WI_FMT[k];
     var pct = Math.max(0, Math.min(100, Math.round(m.achievementPct)));
     var c2 = 2 * Math.PI * 20, o2 = c2 * (1 - pct / 100); var ok = m.achievementPct >= 90;
-    return '<div class="bb-lwr-mini"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>'
+    return '<div class="bb-lwr-mini"><div class="bb-lwr-mini-ring"><svg viewBox="0 0 48 48"><circle cx="24" cy="24" r="20" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>'
       + '<circle cx="24" cy="24" r="20" fill="none" stroke="' + f.color + '" stroke-width="4" stroke-linecap="round" stroke-dasharray="' + c2.toFixed(1) + '" stroke-dashoffset="' + o2.toFixed(1) + '" transform="rotate(-90 24 24)"/></svg>'
-      + '<span class="bb-lwr-mini-ico">' + f.ico + '</span><span class="bb-lwr-mini-st" style="color:' + (ok ? '#3dd68c' : '#ff8f8f') + '">' + (ok ? 'On Track' : 'Behind') + '</span></div>';
+      + '<span class="bb-lwr-mini-ico">' + f.ico + '</span></div>'
+      + '<div class="bb-lwr-mini-tx"><span class="bb-lwr-mini-nm">' + f.label + '</span>'
+      + '<span class="bb-lwr-mini-st" style="color:' + (ok ? '#3dd68c' : '#ff8f8f') + '">' + (ok ? 'On Track' : 'Behind') + '</span></div></div>';
   }).join('');
   var tp = d.totalProgress || {};
   var tpDelta = tp.vsPrevPct != null ? '<span class="' + (tp.vsPrevPct >= 0 ? 'up' : 'down') + '">' + (tp.vsPrevPct >= 0 ? '▲ ' : '▼ ') + Math.abs(tp.vsPrevPct) + '%</span>' : '';
   var hero = '<div class="bb-lwr-hero"><div class="bb-lwr-hero-score"><div class="bb-lwr-ring"><svg viewBox="0 0 120 120">'
     + '<defs><linearGradient id="bbLwrGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#3dd68c"/><stop offset="0.5" stop-color="#f6c544"/><stop offset="1" stop-color="#f6884a"/></linearGradient></defs>'
     + '<circle cx="60" cy="60" r="52" fill="none" stroke="rgba(255,255,255,0.07)" stroke-width="9"/>'
-    + '<circle cx="60" cy="60" r="52" fill="none" stroke="url(#bbLwrGrad)" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + sCirc.toFixed(1) + '" stroke-dashoffset="' + sOff.toFixed(1) + '" transform="rotate(-90 60 60)"/></svg>'
-    + '<div class="bb-lwr-ring-c"><b>' + score + '<i>%</i></b><span>OVERALL<br>WEEK SCORE</span></div></div></div>'
-    + '<div class="bb-lwr-hero-recap"><h4>' + recapTitle + '</h4><p>' + recapMsg + '</p><div class="bb-lwr-minis">' + miniRings + '</div></div>'
-    + '<div class="bb-lwr-hero-prog"><div class="bb-lwr-prog-k">TOTAL PROGRESS MADE</div>'
+    + '<circle class="bb-lwr-arc" cx="60" cy="60" r="52" fill="none" stroke="url(#bbLwrGrad)" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + sCirc.toFixed(1) + '" stroke-dashoffset="' + sOff.toFixed(1) + '" transform="rotate(-90 60 60)"/></svg>'
+    + '<div class="bb-lwr-ring-c"><span class="bb-lwr-ring-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="width:17px;height:17px"><polyline points="3,16 9,11 13,14 21,5"/><polyline points="15,5 21,5 21,11"/></svg></span><b>' + score + '<i>%</i></b><span>OVERALL<br>WEEK SCORE</span></div></div></div>'
+    + '<div class="bb-lwr-hero-recap"><div class="bb-lwr-recap-txt"><h4>' + recapTitle + '</h4><p>' + recapMsg + '</p></div><div class="bb-lwr-minis">' + miniRings + '</div></div>'
+    + '<div class="bb-lwr-hero-prog"><div class="bb-lwr-prog-txt"><div class="bb-lwr-prog-k">TOTAL PROGRESS MADE</div>'
     + '<div class="bb-lwr-prog-v"><b>' + bbWiInt(tp.value) + '</b> ' + tpDelta + '</div>'
-    + '<div class="bb-lwr-prog-sub">vs ' + bbWiMd(d.prevWeekStart) + ' – ' + bbWiMd(d.prevWeekEnd) + '</div>'
-    + '<div class="bb-lwr-prog-chart"><canvas id="bbLwrArea"></canvas></div></div></div>';
+    + '<div class="bb-lwr-prog-sub">vs ' + bbWiMd(d.prevWeekStart) + ' – ' + bbWiMd(d.prevWeekEnd) + '</div></div>'
+    + '<div class="bb-lwr-prog-chart"><div class="bb-lwr-prog-bubble">' + bbWiInt(tp.value) + '</div><canvas id="bbLwrArea"></canvas></div></div></div>';
 
   // metric cards
   var tips = {
@@ -18125,16 +18222,24 @@ async function renderLastWeekReport(){
     var m = d.metrics[k]; var f = BB_WI_FMT[k];
     var pct = Math.max(0, Math.min(100, Math.round(m.achievementPct)));
     var bestLbl = (k === 'sleep') ? 'BEST NIGHT' : 'BEST DAY';
+    var pill = statusPill(m.achievementPct);
+    var goalTxt = 'Goal: ' + bbWiVal(k, m.target) + (k === 'steps' ? ' steps' : '');
     return '<div class="bb-lwr-card">'
-      + '<div class="bb-lwr-c-head"><span class="bb-lwr-c-ico" style="background:' + f.color + '1f;border-color:' + f.color + '">' + f.ico + '</span>'
-      + '<span class="bb-lwr-c-name" style="color:' + f.color + '">' + f.label.toUpperCase() + '</span>' + statusPill(m.achievementPct) + '</div>'
+      + '<div class="bb-lwr-c-main">'
+      + '<div class="bb-lwr-c-head"><span class="bb-lwr-c-ico" style="background:' + f.color + '1f;border-color:' + f.color + ';box-shadow:0 0 16px ' + f.color + '55">' + f.ico + '</span>'
+      + '<span class="bb-lwr-c-name" style="color:' + f.color + '">' + f.label.toUpperCase() + '</span>' + pill + '</div>'
       + '<div class="bb-lwr-c-val"><b>' + bbWiVal(k, m.actual) + '</b> / ' + bbWiVal(k, m.target) + '</div>'
-      + '<div class="bb-lwr-c-bar"><div class="bb-lwr-c-track"><div class="bb-lwr-c-fill" style="width:' + pct + '%;background:' + f.color + '"></div></div><span style="color:' + f.color + '">' + pct + '%</span></div>'
+      + '<div class="bb-lwr-c-bar"><div class="bb-lwr-c-track"><div class="bb-lwr-c-fill" style="width:' + pct + '%;background:' + f.color + ';box-shadow:0 0 10px ' + f.color + 'aa"></div></div><span style="color:' + f.color + '">' + pct + '%</span></div>'
+      + '<div class="bb-lwr-c-goal">' + goalTxt + '</div>'
+      + '</div>'
+      + '<div class="bb-lwr-c-side">'
       + '<div class="bb-lwr-c-chart"><canvas id="bbLwrBar_' + k + '"></canvas></div>'
+      + '<div class="bb-lwr-c-side-meta"><span class="bb-lwr-c-pctm" style="color:' + f.color + '">' + pct + '%</span>' + pill + '</div>'
       + '<div class="bb-lwr-c-stats"><div><span>DAILY AVG</span><b>' + bbWiVal(k, m.dailyAvg) + '</b></div>'
       + '<div><span>' + bestLbl + '</span><b>' + bbWiVal(k, m.bestDay.value) + '</b></div>'
       + '<div class="bb-lwr-c-delta">' + deltaHtml(m.vsPrevPct) + '</div></div>'
-      + '<div class="bb-lwr-c-tip">💡 ' + tips[k] + '</div></div>';
+      + '<div class="bb-lwr-c-tip">💡 ' + tips[k] + '</div>'
+      + '</div></div>';
   }).join('');
   var cardsSec = '<div class="bb-lwr-cards">' + cards + '</div>';
 
@@ -18143,11 +18248,12 @@ async function renderLastWeekReport(){
   var mcText = mc.length ? mc.join(' & ') : '—';
   var hlVs = (tp.vsPrevPct != null) ? ((tp.vsPrevPct >= 0 ? '+' : '') + tp.vsPrevPct + '%') : '—';
   var hl = '<div class="bb-lwr-hl">'
-    + '<div class="bb-lwr-hl-item"><span class="bb-lwr-hl-ic">🏆</span><div><b>WEEK HIGHLIGHTS</b><span>Most consistent on <em>' + mcText + '</em></span></div></div>'
-    + '<div class="bb-lwr-hl-item"><span class="bb-lwr-hl-ic">🎯</span><div><b>' + d.goalsHit + ' / ' + d.goalsTotal + '</b><span>Goals hit</span></div></div>'
-    + '<div class="bb-lwr-hl-item"><span class="bb-lwr-hl-ic">🔥</span><div><b>' + (d.streak || 0) + '</b><span>Day streak</span></div></div>'
-    + '<div class="bb-lwr-hl-item"><span class="bb-lwr-hl-ic">📈</span><div><b>' + hlVs + '</b><span>vs last week</span></div></div>'
-    + '<div class="bb-lwr-hl-item"><span class="bb-lwr-hl-ic">👑</span><div><b>Keep it up!</b><span>You’re building a stronger you.</span></div></div></div>';
+    + '<div class="bb-lwr-hl-item lwr-hl-desk"><span class="bb-lwr-hl-ic">🏆</span><div><b>WEEK HIGHLIGHTS</b><span>Most consistent on <em>' + mcText + '</em></span></div></div>'
+    + '<div class="bb-lwr-hl-item bb-lwr-hl-g"><span class="bb-lwr-hl-ic">🎯</span><div><b>' + d.goalsHit + ' / ' + d.goalsTotal + '</b><span>Goals hit</span></div></div>'
+    + '<div class="bb-lwr-hl-item bb-lwr-hl-o"><span class="bb-lwr-hl-ic">🔥</span><div><b>' + (d.streak || 0) + '</b><span>Day streak</span></div></div>'
+    + '<div class="bb-lwr-hl-item bb-lwr-hl-p"><span class="bb-lwr-hl-ic">📈</span><div><b>' + hlVs + '</b><span>vs last week</span></div></div>'
+    + '<div class="bb-lwr-hl-item lwr-hl-mob bb-lwr-hl-mc"><span class="bb-lwr-hl-ic">⭐</span><div><b>Most consistent</b><span>' + mcText + '</span></div></div>'
+    + '<div class="bb-lwr-hl-item lwr-hl-desk"><span class="bb-lwr-hl-ic">👑</span><div><b>Keep it up!</b><span>You’re building a stronger you.</span></div></div></div>';
 
   el.innerHTML = '<div class="bb-lwr">' + head + hero + cardsSec + hl + '</div>';
   try { bbLwrBuildCharts(d); } catch (e) { console.warn('lwr charts', e); }
@@ -18167,7 +18273,7 @@ function bbLwrBuildCharts(d){
     grad.addColorStop(0, 'rgba(246,197,68,0.32)'); grad.addColorStop(1, 'rgba(61,214,140,0.03)');
     window._bbLwrCharts.area = new Chart(ctx, {
       type: 'line',
-      data: { labels: labels, datasets: [{ data: vals, borderColor: '#6fe09a', borderWidth: 2.5, fill: true, backgroundColor: grad, tension: 0.4, pointRadius: 0, pointHoverRadius: 4 }] },
+      data: { labels: labels, datasets: [{ data: vals, borderColor: '#6fe09a', borderWidth: 2.5, fill: true, backgroundColor: grad, tension: 0.4, pointRadius: vals.map(function (_, i) { return i === vals.length - 1 ? 4 : 0; }), pointBackgroundColor: '#9af0c0', pointBorderColor: '#0d2418', pointBorderWidth: 2, pointHoverRadius: 4 }] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#7c715c', font: { size: 9 } } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7c715c', font: { size: 9 }, maxTicksLimit: 5, callback: function (v) { return v >= 1000 ? (Math.round(v / 1000) + 'K') : v; } } } } }
     });
   }
@@ -18185,7 +18291,7 @@ function bbLwrBuildCharts(d){
     window._bbLwrCharts['b_' + k] = new Chart(cv.getContext('2d'), {
       type: 'bar',
       data: { labels: labels, datasets: [
-        { type: 'bar', data: dayVals, backgroundColor: f.color, borderRadius: 4, barPercentage: 0.62, categoryPercentage: 0.82 },
+        { type: 'bar', data: dayVals, backgroundColor: function (cx) { var ch = cx.chart; if (!ch.chartArea) return f.color; var g = cx.chart.ctx.createLinearGradient(0, ch.chartArea.top, 0, ch.chartArea.bottom); g.addColorStop(0, f.color); g.addColorStop(1, f.color + '33'); return g; }, borderRadius: 4, barPercentage: 0.62, categoryPercentage: 0.82 },
         { type: 'line', data: labels.map(function () { return goal; }), borderColor: 'rgba(255,255,255,0.32)', borderWidth: 1.4, borderDash: [5, 4], pointRadius: 0, fill: false }
       ] },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#7c715c', font: { size: 9 } } }, y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7c715c', font: { size: 9 }, maxTicksLimit: 4, callback: fmtY } } } }
