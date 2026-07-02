@@ -8638,7 +8638,7 @@ html.android-mobile #operatorPanel .op-cm-box{margin-top:calc(var(--safe-top, 20
         </div>
       </div>
     </div>
-    <button type="button" class="app-refresh-btn" onclick="loadOperatorDashboard(true)" title="Refresh" aria-label="Refresh">
+    <button type="button" class="app-refresh-btn" onclick="refreshOperator(this)" title="Refresh" aria-label="Refresh">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
     </button>
     <button class="op-logout" onclick="logoutOperator()">Logout</button>
@@ -24378,6 +24378,24 @@ function loadOperatorDashboard() {
   loadOperatorClients();
   loadOperatorActivity();
   loadOperatorNotifications();
+}
+
+// Refresh button: spin for feedback, then reload the CURRENT tab's data + notifications.
+function refreshOperator(btn) {
+  if (btn && btn.classList) btn.classList.add('is-spinning');
+  try {
+    var active = document.querySelector('#operatorPanel .op-tab-content.active');
+    var tab = active ? String(active.id || '').replace('opTab-', '') : 'overview';
+    if (tab === 'clients') {
+      var comp = document.getElementById('opClientsCompliance');
+      if (comp && comp.style.display !== 'none') loadOperatorCompliance(); else loadOperatorClients();
+    } else if (tab === 'leads') loadOperatorLeads();
+    else if (tab === 'activity') loadOperatorActivity();
+    else if (tab === 'admin') loadOperatorEscalations();
+    else loadOperatorOverview();
+    loadOperatorNotifications();
+  } catch (e) { }
+  setTimeout(function () { if (btn && btn.classList) btn.classList.remove('is-spinning'); }, 750);
 }
 
 function switchOperatorTab(tab) {
