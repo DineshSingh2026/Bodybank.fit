@@ -8609,6 +8609,11 @@ button.bb-today-pill{cursor:pointer}
 .op-chip3.ok .c3l,.op-chip3.ok .c3v{color:#5bbf7a}
 .op-chip3.miss .c3l,.op-chip3.miss .c3v{color:#e0785a}
 .op-chip3 .c3v{font-size:13px;font-weight:800;line-height:1;margin-top:2px}
+/* Android status bar fix: env(safe-area-inset-top) is 0 on Android, so use the
+   app's JS-managed --safe-top (20px fallback) — same mechanism as the site nav. */
+html.android-mobile #operatorPanel .op-top{padding-top:calc(var(--safe-top, 20px) + 10px)}
+html.android-mobile .op-modal-overlay{padding-top:calc(var(--safe-top, 20px) + 14px)}
+html.android-mobile #operatorPanel .op-cm-box{margin-top:calc(var(--safe-top, 20px))}
 /* Admin escalation inbox modal (reuses op modal styling under a scoped id) */
 #adminEscModal .op-cm-box{max-width:640px;max-height:86vh;overflow-y:auto}
 </style>
