@@ -8379,7 +8379,7 @@ button.bb-today-pill{cursor:pointer}
 <style>
 .operator-panel{display:none;position:fixed;inset:0;z-index:1000;flex-direction:column;background:var(--dark,#0d0d0d);color:var(--cream,#efe9dc);font-family:'Outfit',sans-serif}
 .operator-panel.open{display:flex}
-.op-top{display:flex;align-items:center;gap:14px;padding:14px 20px;border-bottom:1px solid rgba(200,164,78,0.18);background:linear-gradient(180deg,rgba(200,164,78,0.06),rgba(0,0,0,0));flex:none}
+.op-top{display:flex;align-items:center;gap:14px;padding:14px 20px;padding-top:max(14px,env(safe-area-inset-top,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));border-bottom:1px solid rgba(200,164,78,0.18);background:linear-gradient(180deg,rgba(200,164,78,0.08),rgba(13,13,13,0.9));flex:none}
 .op-brand{display:flex;flex-direction:column;line-height:1.15}
 .op-brand-title{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--gold,#c8a44e);letter-spacing:.4px}
 .op-brand-sub{font-size:11px;color:var(--muted,#8f887a);letter-spacing:.3px}
@@ -8449,7 +8449,7 @@ button.bb-today-pill{cursor:pointer}
 .op-pill.warn{background:rgba(224,178,78,0.15);color:#e0b24e}
 .op-pill.bad{background:rgba(224,120,90,0.16);color:#e0785a}
 .op-empty{text-align:center;color:var(--muted,#8f887a);padding:34px 10px;font-size:13px}
-.op-modal-overlay{display:none;position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,0.72);backdrop-filter:blur(3px);align-items:flex-start;justify-content:center;padding:24px 12px;overflow-y:auto}
+.op-modal-overlay{display:none;position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,0.72);backdrop-filter:blur(3px);align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));overflow-y:auto}
 .op-modal-overlay.open{display:flex}
 .op-modal{background:#141310;border:1px solid rgba(200,164,78,0.25);border-radius:18px;width:100%;max-width:720px;padding:0;overflow:hidden}
 .op-modal-head{display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.07);position:sticky;top:0;background:#141310}
@@ -8508,7 +8508,7 @@ button.bb-today-pill{cursor:pointer}
 .op-wk-c-sub{font-size:11px;color:var(--muted,#8f887a);margin-bottom:8px}
 .op-wk-c-chart{position:relative;height:70px}
 /* Compose modal + escalation modal */
-.op-cm-overlay{display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.72);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:20px}
+.op-cm-overlay{display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.72);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
 .op-cm-overlay.open{display:flex}
 .op-cm-box{background:#141310;border:1px solid rgba(200,164,78,0.25);border-radius:16px;width:100%;max-width:480px;padding:20px}
 .op-cm-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:600;color:var(--cream,#efe9dc);margin-bottom:6px}
@@ -8539,7 +8539,7 @@ button.bb-today-pill{cursor:pointer}
   #operatorPanel .op-tabs{display:none}
   #operatorPanel .op-scroll{padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))}
   #operatorPanel .op-stat-grid{grid-template-columns:repeat(2,1fr)}
-  #operatorPanel .op-top{padding:11px 12px;gap:8px}
+  #operatorPanel .op-top{padding:11px 12px;padding-top:max(11px,env(safe-area-inset-top,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));gap:8px}
   #operatorPanel .op-brand-title{font-size:16px}
   #operatorPanel .op-brand-sub{display:none}
   #operatorPanel .op-badge{display:none}
