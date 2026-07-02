@@ -22,7 +22,7 @@ try {
 const webPush = require('web-push');
 let firebaseAdmin = null;
 try { firebaseAdmin = require('firebase-admin'); } catch (_) { firebaseAdmin = null; }
-const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken } = require('./middleware/auth');
+const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken } = require('./middleware/auth');
 const { safeExtraHttpHeaders, optionalApiAccessLog } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
@@ -206,7 +206,8 @@ async function sendPushToUser(userId, payload) {
 async function sendPushToAdmins(payload) {
   if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
   try {
-    const admins = await queryAll("SELECT id FROM users WHERE role IN ('admin', 'superadmin')");
+    // Operators are read-only monitoring staff and receive the SAME activity alerts as admins.
+    const admins = await queryAll("SELECT id FROM users WHERE role IN ('admin', 'superadmin', 'operator')");
     for (const a of admins) {
       await sendPushToUser(a.id, payload);
     }
@@ -691,6 +692,33 @@ async function initDB() {
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_thread_messages_thread_id ON thread_messages(thread_id)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_message_threads_user_id ON message_threads(user_id)`); } catch (e) { /* ignore */ }
+
+  // Operator → Admin escalations: an operator shares a client with admin for review,
+  // and the two hold a threaded conversation about that client. Kept separate from the
+  // client-facing message_threads so internal notes can NEVER leak to the client.
+  await pool.query(`CREATE TABLE IF NOT EXISTS operator_escalations (
+    id TEXT PRIMARY KEY,
+    operator_id TEXT NOT NULL,
+    operator_name TEXT DEFAULT '',
+    client_id TEXT NOT NULL,
+    client_name TEXT DEFAULT '',
+    client_email TEXT DEFAULT '',
+    summary TEXT DEFAULT '',
+    status TEXT DEFAULT 'open',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  await pool.query(`CREATE TABLE IF NOT EXISTS operator_escalation_messages (
+    id TEXT PRIMARY KEY,
+    escalation_id TEXT NOT NULL,
+    sender_id TEXT NOT NULL,
+    sender_role TEXT NOT NULL,
+    sender_name TEXT DEFAULT '',
+    body TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_op_esc_msgs_esc_id ON operator_escalation_messages(escalation_id)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_op_esc_operator ON operator_escalations(operator_id)`); } catch (e) { /* ignore */ }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS meetings (
     id TEXT PRIMARY KEY,
@@ -4408,9 +4436,22 @@ app.delete('/api/push/register-token', verifyToken, async (req, res) => {
 app.get('/api/notifications', verifyToken, async (req, res) => {
   try {
     const notifications = [];
-    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+    // Operators share the admin in-app notification feed (read-only monitoring).
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin' || req.user.role === 'operator';
 
     if (isAdmin) {
+      // Operator escalations (a monitoring operator flagged a client for admin review).
+      const escs = await queryAll("SELECT e.id, e.client_name, e.operator_name, e.updated_at, (SELECT body FROM operator_escalation_messages m WHERE m.escalation_id = e.id ORDER BY created_at DESC LIMIT 1) AS last_body FROM operator_escalations e WHERE e.status = 'open' ORDER BY e.updated_at DESC LIMIT 20");
+      escs.forEach(r => {
+        notifications.push({
+          id: 'esc-' + r.id,
+          type: 'escalation',
+          title: '🔔 Operator flagged: ' + (r.client_name || 'a client'),
+          desc: (r.last_body || '').slice(0, 90),
+          time: r.updated_at,
+          link: 'escalations'
+        });
+      });
       const pending = await queryAll("SELECT id, first_name, last_name, email, created_at FROM audit_requests WHERE status='pending' ORDER BY created_at DESC LIMIT 20");
       pending.forEach(r => {
         notifications.push({
@@ -5863,6 +5904,495 @@ app.get('/api/admin/attention-clients', verifyToken, requireAdminOrSuperadmin, a
   } catch (e) {
     console.error('[attention-clients]', e.message);
     res.status(500).json([]);
+  }
+});
+
+// ==================================================================================
+// ============ OPERATOR: READ-ONLY USER-ACTIVITY MONITORING DASHBOARD ==============
+// ==================================================================================
+// The Operator role is monitoring-only: it can SEE everything a client does but can
+// change nothing. Every route below is a pure GET gated by `requireOperator`
+// (admin/superadmin also pass, so they can QA the view). There are deliberately NO
+// write endpoints here — all client management stays with Admin/Superadmin.
+
+// Shared WHERE fragment for "a real, active client account".
+const OPERATOR_CLIENT_WHERE = `u.role = 'user'
+  AND (u.approval_status IS NULL OR u.approval_status = 'approved')
+  AND (u.email NOT LIKE '%@test.bodybank.fit')
+  AND (LOWER(COALESCE(u.first_name, '')) NOT LIKE '%e2e%')`;
+
+// --- Overview / Pulse: headline stats + live activity feed + at-risk clients ---
+app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res) => {
+  try {
+    const one = async (sql, params = []) => {
+      const r = await queryOne(sql, params);
+      return r ? Number(r.c || 0) : 0;
+    };
+
+    const [
+      totalClients, activeToday, checkedInToday, workoutsToday, mealsToday,
+      newTrials7d, expiringTrials3d
+    ] = await Promise.all([
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE`),
+      one(`SELECT COUNT(DISTINCT uid)::int c FROM (
+             SELECT user_id AS uid FROM daily_checkins WHERE checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE
+             UNION SELECT user_id FROM workout_logs WHERE created_at::date = CURRENT_DATE
+             UNION SELECT user_id FROM nutrition_meal_logs WHERE log_date = CURRENT_DATE
+             UNION SELECT user_id FROM weight_logs WHERE created_at::date = CURRENT_DATE
+             UNION SELECT user_id FROM hydration_logs WHERE created_at::date = CURRENT_DATE
+           ) act`),
+      one(`SELECT COUNT(DISTINCT user_id)::int c FROM daily_checkins WHERE checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE`),
+      one(`SELECT COUNT(*)::int c FROM workout_logs WHERE created_at::date = CURRENT_DATE`),
+      one(`SELECT COUNT(*)::int c FROM nutrition_meal_logs WHERE log_date = CURRENT_DATE`),
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND u.subscription_status = 'trialing' AND u.created_at >= NOW() - INTERVAL '7 days'`),
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND u.subscription_status = 'trialing' AND u.access_expires_at IS NOT NULL AND u.access_expires_at BETWEEN NOW() AND NOW() + INTERVAL '3 days'`)
+    ]);
+
+    // At-risk counts (inactivity by last daily check-in; falls back to signup date).
+    const riskRow = await queryOne(`
+      WITH last_checkin AS (
+        SELECT user_id, MAX(checkin_date)::date AS lc FROM daily_checkins WHERE COALESCE(is_freeze, FALSE) = FALSE GROUP BY user_id
+      )
+      SELECT
+        COUNT(*) FILTER (WHERE inactive >= 5)::int AS p0,
+        COUNT(*) FILTER (WHERE inactive >= 2 AND inactive < 5)::int AS p1
+      FROM (
+        SELECT (CURRENT_DATE - COALESCE(lc.lc, u.created_at::date))::int AS inactive
+        FROM users u LEFT JOIN last_checkin lc ON lc.user_id = u.id
+        WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE
+      ) t`);
+
+    // Live activity feed (most recent user actions across the platform).
+    const feed = [];
+    const push = (rows, mapper) => (rows || []).forEach(r => feed.push(mapper(r)));
+    const nm = r => (String(r.first_name || '') + ' ' + String(r.last_name || '')).trim() || 'Client';
+    push(await queryAll(`SELECT u.first_name, u.last_name, dc.checkin_date, dc.created_at FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id WHERE COALESCE(dc.is_freeze, FALSE) = FALSE ORDER BY dc.created_at DESC LIMIT 12`),
+      r => ({ name: nm(r), type: 'checkin', label: 'Daily check-in', created_at: r.created_at }));
+    push(await queryAll(`SELECT u.first_name, u.last_name, w.workout_name, w.created_at FROM workout_logs w LEFT JOIN users u ON u.id = w.user_id ORDER BY w.created_at DESC LIMIT 12`),
+      r => ({ name: nm(r), type: 'workout', label: 'Logged: ' + (r.workout_name || 'Workout'), created_at: r.created_at }));
+    push(await queryAll(`SELECT u.first_name, u.last_name, m.meal_type, m.submitted_at AS created_at FROM nutrition_meal_logs m LEFT JOIN users u ON u.id = m.user_id ORDER BY m.submitted_at DESC LIMIT 12`),
+      r => ({ name: nm(r), type: 'nutrition', label: 'Meal logged (' + (r.meal_type || 'meal') + ')', created_at: r.created_at }));
+    push(await queryAll(`SELECT u.first_name, u.last_name, wt.weight_kg, wt.created_at FROM weight_logs wt LEFT JOIN users u ON u.id = wt.user_id ORDER BY wt.created_at DESC LIMIT 8`),
+      r => ({ name: nm(r), type: 'weight', label: 'Weight logged: ' + (r.weight_kg != null ? r.weight_kg + ' kg' : ''), created_at: r.created_at }));
+    push(await queryAll(`SELECT full_name, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT 6`),
+      r => ({ name: r.full_name || 'Client', type: 'weekly', label: 'Weekly (Sunday) check-in', created_at: r.created_at }));
+    push(await queryAll(`SELECT first_name, last_name, created_at FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND u.subscription_status = 'trialing' ORDER BY created_at DESC LIMIT 6`),
+      r => ({ name: nm(r), type: 'signup', label: 'Started 7-day trial', created_at: r.created_at }));
+    feed.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+    // 14-day activity trend (for charts).
+    const trendRows = await queryAll(`
+      WITH days AS (
+        SELECT generate_series((CURRENT_DATE - INTERVAL '13 days')::date, CURRENT_DATE, INTERVAL '1 day')::date AS d
+      )
+      SELECT days.d::text AS day,
+        (SELECT COUNT(*)::int FROM daily_checkins dc WHERE dc.checkin_date = days.d AND COALESCE(dc.is_freeze, FALSE) = FALSE) AS checkins,
+        (SELECT COUNT(*)::int FROM workout_logs w WHERE w.created_at::date = days.d) AS workouts,
+        (SELECT COUNT(*)::int FROM nutrition_meal_logs m WHERE m.log_date = days.d) AS meals
+      FROM days ORDER BY days.d`);
+
+    // Average 7-day check-in consistency across all active clients (0..7).
+    const avgRow = await queryOne(`
+      SELECT COALESCE(AVG(c7), 0)::float AS avg_checkins_7d FROM (
+        SELECT (SELECT COUNT(*) FROM daily_checkins dc WHERE dc.user_id = u.id
+                  AND dc.checkin_date >= (CURRENT_DATE - INTERVAL '6 days')::date
+                  AND COALESCE(dc.is_freeze, FALSE) = FALSE) AS c7
+        FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE
+      ) t`);
+
+    const pct = (n, d) => (d > 0 ? Math.round((Number(n) / Number(d)) * 100) : 0);
+
+    res.json({
+      stats: {
+        total_clients: totalClients,
+        active_today: activeToday,
+        checked_in_today: checkedInToday,
+        workouts_today: workoutsToday,
+        meals_today: mealsToday,
+        new_trials_7d: newTrials7d,
+        expiring_trials_3d: expiringTrials3d,
+        at_risk_p0: riskRow ? Number(riskRow.p0 || 0) : 0,
+        at_risk_p1: riskRow ? Number(riskRow.p1 || 0) : 0
+      },
+      engagement: {
+        active_rate: pct(activeToday, totalClients),
+        checkin_rate: pct(checkedInToday, totalClients),
+        avg_consistency_pct: avgRow ? Math.round((Number(avgRow.avg_checkins_7d || 0) / 7) * 100) : 0,
+        at_risk_rate: pct((riskRow ? Number(riskRow.p0 || 0) + Number(riskRow.p1 || 0) : 0), totalClients)
+      },
+      trends: {
+        labels: (trendRows || []).map(r => r.day),
+        checkins: (trendRows || []).map(r => Number(r.checkins || 0)),
+        workouts: (trendRows || []).map(r => Number(r.workouts || 0)),
+        meals: (trendRows || []).map(r => Number(r.meals || 0))
+      },
+      feed: feed.slice(0, 25)
+    });
+  } catch (e) {
+    console.error('[operator overview]', e.message);
+    res.status(500).json({ error: 'Failed to load overview' });
+  }
+});
+
+// --- Client Monitor: every client with an at-a-glance engagement row ---
+app.get('/api/operator/clients', verifyToken, requireOperator, async (req, res) => {
+  try {
+    const rows = await queryAll(`
+      WITH last_checkin AS (
+        SELECT user_id, MAX(checkin_date)::date AS lc FROM daily_checkins WHERE COALESCE(is_freeze, FALSE) = FALSE GROUP BY user_id
+      ),
+      last_workout AS (
+        SELECT user_id, MAX(created_at) AS lw FROM workout_logs GROUP BY user_id
+      ),
+      dc7 AS (
+        SELECT user_id, COUNT(*)::int AS c FROM daily_checkins
+        WHERE checkin_date >= (CURRENT_DATE - INTERVAL '6 days')::date AND COALESCE(is_freeze, FALSE) = FALSE GROUP BY user_id
+      ),
+      wo7 AS (
+        SELECT user_id, COUNT(*)::int AS c FROM workout_logs WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY user_id
+      )
+      SELECT
+        u.id, u.first_name, u.last_name, u.email, u.profile_picture,
+        u.subscription_status, u.access_expires_at, u.created_at,
+        u.nutrition_ai_last_used_at, u.ai_trainer_last_used_at,
+        lc.lc::text AS last_checkin_date,
+        (CURRENT_DATE - COALESCE(lc.lc, u.created_at::date))::int AS inactive_days,
+        lw.lw AS last_workout_at,
+        COALESCE(dc7.c, 0)::int AS checkins_7d,
+        COALESCE(wo7.c, 0)::int AS workouts_7d
+      FROM users u
+      LEFT JOIN last_checkin lc ON lc.user_id = u.id
+      LEFT JOIN last_workout lw ON lw.user_id = u.id
+      LEFT JOIN dc7 ON dc7.user_id = u.id
+      LEFT JOIN wo7 ON wo7.user_id = u.id
+      WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE
+      ORDER BY inactive_days DESC, LOWER(COALESCE(u.first_name, '')), LOWER(COALESCE(u.last_name, ''))
+    `);
+    res.json({ rows: rows || [] });
+  } catch (e) {
+    console.error('[operator clients]', e.message);
+    res.status(500).json({ error: 'Failed to load clients' });
+  }
+});
+
+// --- Client drilldown: full read-only activity profile for one client ---
+app.get('/api/operator/clients/:id', verifyToken, requireOperator, async (req, res) => {
+  try {
+    const id = String(req.params.id || '');
+    const user = await queryOne(
+      `SELECT id, first_name, last_name, email, phone, country, city, gender, dob, profile_picture,
+              subscription_status, plan_label, access_expires_at, created_at, timezone,
+              goal_steps, goal_water_ml, goal_protein_g, goal_sleep_hours, height_cm, goal_type, diet_type,
+              nutrition_ai_last_used_at, ai_trainer_last_used_at
+       FROM users WHERE id = ? AND role = 'user'`, [id]);
+    if (!user) return res.status(404).json({ error: 'Client not found' });
+
+    const [daily, workouts, weights, nutritionDaily, meals, strength, hydration, sunday, bodyRows] = await Promise.all([
+      queryAll(`SELECT checkin_date, steps, water_ml, protein_g, sleep_hours, COALESCE(is_freeze,FALSE) AS is_freeze, created_at FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 21`, [id]),
+      // Full workout detail incl. per-exercise weight (session_lifts) & reps (session_reps).
+      queryAll(`SELECT workout_name, workout_type, duration_seconds, feedback, session_lifts, session_reps, bench_kg, squat_kg, deadlift_kg, intensity, energy_level, workout_completed, session_date, created_at FROM workout_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 24`, [id]),
+      queryAll(`SELECT weight_kg, created_at FROM weight_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 40`, [id]),
+      queryAll(`SELECT stat_date, total_calories, total_protein, total_carbs, total_fat, total_fiber, meals_logged, meal_quality_score, calorie_goal, protein_goal FROM nutrition_daily_stats WHERE user_id = ? ORDER BY stat_date DESC LIMIT 21`, [id]),
+      // Per-meal detail with full macros from ai_result.
+      queryAll(`SELECT log_date, meal_type, portion_size, manual_note, meal_score, ai_result, submitted_at FROM nutrition_meal_logs WHERE user_id = ? ORDER BY submitted_at DESC LIMIT 24`, [id]),
+      // Canonical strength time series (bench/squat/deadlift) for a lifts-over-time chart.
+      queryAll(`SELECT weight, body_fat, strength_bench, strength_squat, strength_deadlift, created_at FROM progress_logs WHERE user_id = ? ORDER BY created_at ASC LIMIT 120`, [id]),
+      queryAll(`SELECT amount_ml, glasses, created_at FROM hydration_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 14`, [id]),
+      queryAll(`SELECT full_name, plan, total_weight_loss, training_go, nutrition_go, sleep, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at DESC LIMIT 6`, [id]),
+      queryAll(`SELECT snapshot_date, photo_front, photo_side, photo_back, bodyweight_kg, waist_cm, measurements, notes, created_at FROM body_snapshots WHERE user_id = ? AND shared_with_manager = TRUE ORDER BY snapshot_date DESC, id DESC LIMIT 12`, [id])
+    ]);
+
+    res.json({
+      user,
+      daily_checkins: daily || [],
+      workouts: workouts || [],
+      weights: weights || [],
+      nutrition: nutritionDaily || [],
+      meals: meals || [],
+      strength: strength || [],
+      hydration: hydration || [],
+      sunday_checkins: sunday || [],
+      body_snapshots: bodyRows || []
+    });
+  } catch (e) {
+    console.error('[operator client detail]', e.message);
+    res.status(500).json({ error: 'Failed to load client' });
+  }
+});
+
+// --- Activity timeline: filterable stream across all clients ---
+app.get('/api/operator/activity', verifyToken, requireOperator, async (req, res) => {
+  try {
+    const type = String((req.query && req.query.type) || 'all').toLowerCase();
+    const rawDays = parseInt(String((req.query && req.query.days) || '7'), 10);
+    const days = Number.isFinite(rawDays) ? Math.min(Math.max(rawDays, 1), 90) : 7;
+    const rawLimit = parseInt(String((req.query && req.query.limit) || '150'), 10);
+    const limit = Number.isFinite(rawLimit) ? Math.min(Math.max(rawLimit, 10), 400) : 150;
+    const nm = r => (String(r.first_name || '') + ' ' + String(r.last_name || '')).trim() || 'Client';
+    const want = k => type === 'all' || type === k;
+    const items = [];
+
+    if (want('checkin')) (await queryAll(`SELECT u.first_name, u.last_name, dc.steps, dc.water_ml, dc.protein_g, dc.created_at FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id WHERE dc.created_at >= NOW() - ($1 || ' days')::interval AND COALESCE(dc.is_freeze,FALSE)=FALSE ORDER BY dc.created_at DESC LIMIT $2`, [String(days), limit]))
+      .forEach(r => items.push({ name: nm(r), type: 'checkin', label: 'Daily check-in', detail: [r.steps ? r.steps + ' steps' : '', r.water_ml ? r.water_ml + 'ml water' : '', r.protein_g ? r.protein_g + 'g protein' : ''].filter(Boolean).join(' · '), created_at: r.created_at }));
+    if (want('workout')) (await queryAll(`SELECT u.first_name, u.last_name, w.workout_name, w.duration_seconds, w.created_at FROM workout_logs w LEFT JOIN users u ON u.id = w.user_id WHERE w.created_at >= NOW() - ($1 || ' days')::interval ORDER BY w.created_at DESC LIMIT $2`, [String(days), limit]))
+      .forEach(r => items.push({ name: nm(r), type: 'workout', label: r.workout_name || 'Workout', detail: r.duration_seconds ? Math.round(r.duration_seconds / 60) + ' min' : '', created_at: r.created_at }));
+    if (want('nutrition')) (await queryAll(`SELECT u.first_name, u.last_name, m.meal_type, m.meal_score, m.submitted_at AS created_at FROM nutrition_meal_logs m LEFT JOIN users u ON u.id = m.user_id WHERE m.submitted_at >= NOW() - ($1 || ' days')::interval ORDER BY m.submitted_at DESC LIMIT $2`, [String(days), limit]))
+      .forEach(r => items.push({ name: nm(r), type: 'nutrition', label: 'Meal: ' + (r.meal_type || 'meal'), detail: r.meal_score != null ? 'score ' + r.meal_score : '', created_at: r.created_at }));
+    if (want('weight')) (await queryAll(`SELECT u.first_name, u.last_name, wt.weight_kg, wt.created_at FROM weight_logs wt LEFT JOIN users u ON u.id = wt.user_id WHERE wt.created_at >= NOW() - ($1 || ' days')::interval ORDER BY wt.created_at DESC LIMIT $2`, [String(days), limit]))
+      .forEach(r => items.push({ name: nm(r), type: 'weight', label: 'Weight logged', detail: r.weight_kg != null ? r.weight_kg + ' kg' : '', created_at: r.created_at }));
+    if (want('weekly')) (await queryAll(`SELECT full_name AS first_name, '' AS last_name, created_at FROM sunday_checkins WHERE created_at >= NOW() - ($1 || ' days')::interval ORDER BY created_at DESC LIMIT $2`, [String(days), limit]))
+      .forEach(r => items.push({ name: r.first_name || 'Client', type: 'weekly', label: 'Weekly (Sunday) check-in', detail: '', created_at: r.created_at }));
+    if (want('signup')) (await queryAll(`SELECT first_name, last_name, created_at FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND u.subscription_status = 'trialing' AND u.created_at >= NOW() - ($1 || ' days')::interval ORDER BY u.created_at DESC LIMIT $2`, [String(days), limit]))
+      .forEach(r => items.push({ name: nm(r), type: 'signup', label: 'Started 7-day trial', detail: '', created_at: r.created_at }));
+
+    items.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+    res.json({ items: items.slice(0, limit) });
+  } catch (e) {
+    console.error('[operator activity]', e.message);
+    res.status(500).json({ error: 'Failed to load activity' });
+  }
+});
+
+// --- Leads: body-audit + Part-2 prospects (to reach out & onboard) ---
+app.get('/api/operator/leads', verifyToken, requireOperator, async (req, res) => {
+  try {
+    const rawDays = parseInt(String((req.query && req.query.days) || '30'), 10);
+    const days = Number.isFinite(rawDays) ? Math.min(Math.max(rawDays, 1), 365) : 30;
+    const audits = await queryAll(`
+      SELECT a.id, a.first_name, a.last_name, a.email, a.phone, a.country, a.city, a.age, a.sex,
+             a.occupation, a.fitness_experience, a.goals, a.motivation, a.status, a.stage, a.created_at,
+             (u.id IS NOT NULL) AS has_account,
+             (p.email IS NOT NULL) AS has_part2
+        FROM audit_requests a
+        LEFT JOIN users u ON LOWER(u.email) = LOWER(a.email) AND u.role = 'user'
+        LEFT JOIN (SELECT DISTINCT LOWER(email) AS email FROM part2_audit) p ON p.email = LOWER(a.email)
+       WHERE a.created_at >= NOW() - (? || ' days')::interval
+         AND a.email NOT LIKE '%@test.bodybank.fit' AND LOWER(a.email) NOT LIKE '%e2e%'
+       ORDER BY a.created_at DESC LIMIT 300`, [String(days)]);
+    const part2 = await queryAll(`
+      SELECT p.id, p.name, p.email, p.mobile, p.goals, p.activity_level, p.gym_experience, p.injuries,
+             p.score, p.tier_label, p.created_at,
+             (u.id IS NOT NULL) AS has_account
+        FROM part2_audit p
+        LEFT JOIN users u ON LOWER(u.email) = LOWER(p.email) AND u.role = 'user'
+       WHERE p.created_at >= NOW() - (? || ' days')::interval
+         AND p.email NOT LIKE '%@test.bodybank.fit' AND LOWER(p.email) NOT LIKE '%e2e%'
+       ORDER BY p.created_at DESC LIMIT 300`, [String(days)]);
+    const c = async (sql) => { const r = await queryOne(sql); return r ? Number(r.c || 0) : 0; };
+    const counts = {
+      audits_today: await c(`SELECT COUNT(*)::int c FROM audit_requests WHERE created_at::date = CURRENT_DATE`),
+      audits_7d: await c(`SELECT COUNT(*)::int c FROM audit_requests WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      part2_today: await c(`SELECT COUNT(*)::int c FROM part2_audit WHERE created_at::date = CURRENT_DATE`),
+      part2_7d: await c(`SELECT COUNT(*)::int c FROM part2_audit WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      audits_no_account: await c(`SELECT COUNT(*)::int c FROM audit_requests a WHERE a.created_at >= NOW() - INTERVAL '30 days' AND LOWER(a.email) NOT LIKE '%e2e%' AND a.email NOT LIKE '%@test.bodybank.fit' AND NOT EXISTS (SELECT 1 FROM users u WHERE LOWER(u.email) = LOWER(a.email) AND u.role = 'user')`)
+    };
+    res.json({ audits: audits || [], part2: part2 || [], counts });
+  } catch (e) {
+    console.error('[operator leads]', e.message);
+    res.status(500).json({ error: 'Failed to load leads' });
+  }
+});
+
+// --- Compliance: is every client keeping up Daily check-in / Workout / Sunday check-in? ---
+app.get('/api/operator/compliance', verifyToken, requireOperator, async (req, res) => {
+  try {
+    const rows = await queryAll(`
+      SELECT u.id, u.first_name, u.last_name, u.email, u.profile_picture, u.created_at,
+        (SELECT COUNT(*)::int FROM daily_checkins dc WHERE dc.user_id = u.id AND dc.checkin_date = CURRENT_DATE AND COALESCE(dc.is_freeze,FALSE)=FALSE) AS daily_today,
+        (SELECT COUNT(*)::int FROM daily_checkins dc WHERE dc.user_id = u.id AND dc.checkin_date >= (CURRENT_DATE - INTERVAL '6 days')::date AND COALESCE(dc.is_freeze,FALSE)=FALSE) AS daily_7d,
+        (SELECT MAX(checkin_date)::text FROM daily_checkins dc WHERE dc.user_id = u.id AND COALESCE(dc.is_freeze,FALSE)=FALSE) AS last_daily,
+        (SELECT COUNT(*)::int FROM workout_logs w WHERE w.user_id = u.id AND w.created_at >= NOW() - INTERVAL '7 days') AS workouts_7d,
+        (SELECT MAX(created_at)::text FROM workout_logs w WHERE w.user_id = u.id) AS last_workout,
+        (SELECT COUNT(*)::int FROM sunday_checkins s WHERE s.user_id = u.id AND s.created_at >= NOW() - INTERVAL '7 days') AS sunday_week,
+        (SELECT MAX(created_at)::text FROM sunday_checkins s WHERE s.user_id = u.id) AS last_sunday
+      FROM users u
+      WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE
+      ORDER BY LOWER(u.first_name), LOWER(u.last_name)`);
+    const summary = { total: (rows || []).length, missed_daily_today: 0, no_workout_week: 0, missed_sunday: 0 };
+    (rows || []).forEach(r => {
+      if (!(r.daily_today > 0)) summary.missed_daily_today++;
+      if (!(r.workouts_7d > 0)) summary.no_workout_week++;
+      if (!(r.sunday_week > 0)) summary.missed_sunday++;
+    });
+    res.json({ clients: rows || [], summary });
+  } catch (e) {
+    console.error('[operator compliance]', e.message);
+    res.status(500).json({ error: 'Failed to load compliance' });
+  }
+});
+
+// --- Muscle ranking for one client (read-only; reuses the muscle-ranking service) ---
+app.get('/api/operator/clients/:id/muscle-ranking', verifyToken, requireOperator, async (req, res) => {
+  try {
+    const data = await muscleRankingSvc.computeMuscleRanking(String(req.params.id));
+    res.json(data || {});
+  } catch (e) {
+    console.error('[operator muscle-ranking]', e.message);
+    res.status(500).json({ error: 'Failed to load muscle ranking' });
+  }
+});
+
+// --- Last-week performance for one client (read-only; reuses buildWeeklyReport) ---
+app.get('/api/operator/clients/:id/weekly-report', verifyToken, requireOperator, async (req, res) => {
+  try {
+    const rep = await buildWeeklyReport(String(req.params.id));
+    if (!rep) return res.status(404).json({ error: 'No weekly report available' });
+    res.json(rep);
+  } catch (e) {
+    console.error('[operator weekly-report]', e.message);
+    res.status(500).json({ error: 'Failed to load weekly report' });
+  }
+});
+
+// Get-or-create the single message thread for a client (mirrors POST /api/threads logic).
+async function getOrCreateThreadForUser(userId) {
+  const existing = await queryOne('SELECT id, user_id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1', [userId]);
+  if (existing) return existing;
+  const threadId = uuidv4();
+  await run('INSERT INTO message_threads (id, user_id, subject) VALUES (?, ?, ?)', [threadId, userId, '']);
+  return { id: threadId, user_id: userId };
+}
+
+// --- Operator sends a reminder message straight into the client's chat ---
+// Inserted with sender_role='admin' so it appears as a normal "Lifestyle Manager"
+// message in the client's existing Messages view (sender_id records the operator for audit).
+app.post('/api/operator/clients/:id/reminder', verifyToken, requireOperator, rateLimiter(30, 60000), async (req, res) => {
+  try {
+    const clientId = String(req.params.id);
+    const body = req.body && req.body.body;
+    if (!body || !String(body).trim()) return res.status(400).json({ error: 'Message body required' });
+    const client = await queryOne("SELECT id, email, first_name FROM users WHERE id = ? AND role = 'user'", [clientId]);
+    if (!client) return res.status(404).json({ error: 'Client not found' });
+    const thread = await getOrCreateThreadForUser(clientId);
+    const msgId = uuidv4();
+    await run('INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body) VALUES (?, ?, ?, ?, ?)',
+      [msgId, thread.id, req.user.id, 'admin', String(body).trim().slice(0, 5000)]);
+    await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [thread.id]);
+    sendPushToUser(clientId, JSON.stringify({ type: 'coach_reply', title: '💬 Your Lifestyle Manager', body: String(body).trim().slice(0, 100), id: 'chat-' + msgId })).catch(() => {});
+    try { if (client.email) userEmail.emailCoachReply(client.email, client.first_name, String(body).trim()); } catch (_) {}
+    res.status(201).json({ ok: true });
+  } catch (e) {
+    console.error('[operator reminder]', e.message);
+    res.status(500).json({ error: 'Failed to send reminder' });
+  }
+});
+
+// --- Operator shares a client with Admin for review (starts an escalation thread) ---
+app.post('/api/operator/clients/:id/share-to-admin', verifyToken, requireOperator, rateLimiter(20, 60000), async (req, res) => {
+  try {
+    const clientId = String(req.params.id);
+    const note = (req.body && req.body.note) ? String(req.body.note).trim() : '';
+    if (!note) return res.status(400).json({ error: 'A note for the admin is required' });
+    const client = await queryOne("SELECT id, first_name, last_name, email FROM users WHERE id = ? AND role = 'user'", [clientId]);
+    if (!client) return res.status(404).json({ error: 'Client not found' });
+    const clientName = [(client.first_name || '').trim(), (client.last_name || '').trim()].filter(Boolean).join(' ') || client.email;
+    const snap = await queryOne(`
+      SELECT
+        (CURRENT_DATE - COALESCE((SELECT MAX(checkin_date)::date FROM daily_checkins WHERE user_id = ? AND COALESCE(is_freeze,FALSE)=FALSE), CURRENT_DATE))::int AS inactive_days,
+        (SELECT COUNT(*)::int FROM daily_checkins WHERE user_id = ? AND checkin_date >= (CURRENT_DATE - INTERVAL '6 days')::date AND COALESCE(is_freeze,FALSE)=FALSE) AS checkins_7d,
+        (SELECT COUNT(*)::int FROM workout_logs WHERE user_id = ? AND created_at >= NOW() - INTERVAL '7 days') AS workouts_7d
+    `, [clientId, clientId, clientId]);
+    const summary = 'Inactive ' + ((snap && snap.inactive_days) || 0) + 'd · ' + ((snap && snap.checkins_7d) || 0) + ' check-ins/7d · ' + ((snap && snap.workouts_7d) || 0) + ' workouts/7d';
+    const operatorName = req.user.email || 'Operator';
+    const eid = uuidv4();
+    await run('INSERT INTO operator_escalations (id, operator_id, operator_name, client_id, client_name, client_email, summary, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [eid, req.user.id, operatorName, clientId, clientName, client.email || '', summary, 'open']);
+    const mid = uuidv4();
+    await run('INSERT INTO operator_escalation_messages (id, escalation_id, sender_id, sender_role, sender_name, body) VALUES (?, ?, ?, ?, ?, ?)',
+      [mid, eid, req.user.id, 'operator', operatorName, note.slice(0, 5000)]);
+    sendPushToAdmins(JSON.stringify({ title: '🔔 Operator escalation: ' + clientName, body: note.slice(0, 80), id: 'esc-' + eid })).catch(() => {});
+    res.status(201).json({ ok: true, id: eid });
+  } catch (e) {
+    console.error('[operator share-to-admin]', e.message);
+    res.status(500).json({ error: 'Failed to share with admin' });
+  }
+});
+
+// --- Operator: list own escalations + read/reply within one ---
+app.get('/api/operator/escalations', verifyToken, requireOperator, async (req, res) => {
+  try {
+    const rows = await queryAll(`
+      SELECT e.*,
+        (SELECT body FROM operator_escalation_messages m WHERE m.escalation_id = e.id ORDER BY created_at DESC LIMIT 1) AS last_body,
+        (SELECT sender_role FROM operator_escalation_messages m WHERE m.escalation_id = e.id ORDER BY created_at DESC LIMIT 1) AS last_role,
+        (SELECT COUNT(*)::int FROM operator_escalation_messages m WHERE m.escalation_id = e.id AND m.sender_role = 'admin') AS admin_replies
+      FROM operator_escalations e WHERE e.operator_id = ? ORDER BY e.updated_at DESC LIMIT 100`, [req.user.id]);
+    res.json({ rows: rows || [] });
+  } catch (e) {
+    console.error('[operator escalations]', e.message);
+    res.status(500).json({ error: 'Failed to load escalations' });
+  }
+});
+app.get('/api/operator/escalations/:eid/messages', verifyToken, requireOperator, async (req, res) => {
+  try {
+    const esc = await queryOne('SELECT * FROM operator_escalations WHERE id = ?', [req.params.eid]);
+    if (!esc) return res.status(404).json({ error: 'Not found' });
+    const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+    if (esc.operator_id !== req.user.id && !isAdmin) return res.status(403).json({ error: 'Access denied' });
+    const msgs = await queryAll('SELECT id, sender_role, sender_name, body, created_at FROM operator_escalation_messages WHERE escalation_id = ? ORDER BY created_at ASC', [req.params.eid]);
+    res.json({ escalation: esc, messages: msgs || [] });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load escalation' });
+  }
+});
+app.post('/api/operator/escalations/:eid/reply', verifyToken, requireOperator, rateLimiter(30, 60000), async (req, res) => {
+  try {
+    const body = (req.body && req.body.body) ? String(req.body.body).trim() : '';
+    if (!body) return res.status(400).json({ error: 'Message body required' });
+    const esc = await queryOne('SELECT * FROM operator_escalations WHERE id = ?', [req.params.eid]);
+    if (!esc) return res.status(404).json({ error: 'Not found' });
+    if (esc.operator_id !== req.user.id) return res.status(403).json({ error: 'Access denied' });
+    const mid = uuidv4();
+    await run('INSERT INTO operator_escalation_messages (id, escalation_id, sender_id, sender_role, sender_name, body) VALUES (?, ?, ?, ?, ?, ?)',
+      [mid, req.params.eid, req.user.id, 'operator', esc.operator_name || req.user.email || 'Operator', body.slice(0, 5000)]);
+    await run("UPDATE operator_escalations SET updated_at = CURRENT_TIMESTAMP, status = 'open' WHERE id = ?", [req.params.eid]);
+    sendPushToAdmins(JSON.stringify({ title: 'Operator re: ' + (esc.client_name || 'client'), body: body.slice(0, 80), id: 'esc-' + req.params.eid + '-' + mid })).catch(() => {});
+    res.status(201).json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to reply' });
+  }
+});
+
+// --- Admin: review escalations from operators and reply ---
+app.get('/api/admin/escalations', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll(`
+      SELECT e.*,
+        (SELECT body FROM operator_escalation_messages m WHERE m.escalation_id = e.id ORDER BY created_at DESC LIMIT 1) AS last_body,
+        (SELECT sender_role FROM operator_escalation_messages m WHERE m.escalation_id = e.id ORDER BY created_at DESC LIMIT 1) AS last_role,
+        (SELECT COUNT(*)::int FROM operator_escalation_messages m WHERE m.escalation_id = e.id) AS msg_count
+      FROM operator_escalations e ORDER BY e.updated_at DESC LIMIT 200`);
+    res.json({ rows: rows || [] });
+  } catch (e) {
+    console.error('[admin escalations]', e.message);
+    res.status(500).json({ error: 'Failed to load escalations' });
+  }
+});
+app.get('/api/admin/escalations/:eid/messages', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const esc = await queryOne('SELECT * FROM operator_escalations WHERE id = ?', [req.params.eid]);
+    if (!esc) return res.status(404).json({ error: 'Not found' });
+    const msgs = await queryAll('SELECT id, sender_role, sender_name, body, created_at FROM operator_escalation_messages WHERE escalation_id = ? ORDER BY created_at ASC', [req.params.eid]);
+    res.json({ escalation: esc, messages: msgs || [] });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to load escalation' });
+  }
+});
+app.post('/api/admin/escalations/:eid/reply', verifyToken, requireAdminOrSuperadmin, rateLimiter(30, 60000), async (req, res) => {
+  try {
+    const body = (req.body && req.body.body) ? String(req.body.body).trim() : '';
+    if (!body) return res.status(400).json({ error: 'Message body required' });
+    const esc = await queryOne('SELECT * FROM operator_escalations WHERE id = ?', [req.params.eid]);
+    if (!esc) return res.status(404).json({ error: 'Not found' });
+    const mid = uuidv4();
+    await run('INSERT INTO operator_escalation_messages (id, escalation_id, sender_id, sender_role, sender_name, body) VALUES (?, ?, ?, ?, ?, ?)',
+      [mid, req.params.eid, req.user.id, 'admin', 'Admin', body.slice(0, 5000)]);
+    await run("UPDATE operator_escalations SET updated_at = CURRENT_TIMESTAMP, status = 'replied' WHERE id = ?", [req.params.eid]);
+    sendPushToUser(esc.operator_id, JSON.stringify({ type: 'admin_reply', title: '↩︎ Admin replied re: ' + (esc.client_name || 'client'), body: body.slice(0, 100), id: 'esc-' + req.params.eid + '-' + mid })).catch(() => {});
+    res.status(201).json({ ok: true });
+  } catch (e) {
+    console.error('[admin escalation reply]', e.message);
+    res.status(500).json({ error: 'Failed to reply' });
   }
 });
 

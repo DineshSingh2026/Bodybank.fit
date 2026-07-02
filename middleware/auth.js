@@ -91,6 +91,14 @@ function requireAdminOrSuperadmin(req, res, next) {
   return res.status(403).json({ error: 'Admin or Superadmin access required' });
 }
 
+// Read-only monitoring gate. Admits the Operator role plus admin/superadmin
+// (so admins can QA the operator view). NEVER attach this to a mutating route —
+// operators are strictly read-only by design.
+function requireOperator(req, res, next) {
+  if (req.user && (req.user.role === 'operator' || req.user.role === 'admin' || req.user.role === 'superadmin')) return next();
+  return res.status(403).json({ error: 'Operator access required' });
+}
+
 const REPORT_LINK_EXPIRY = process.env.PROGRESS_REPORT_LINK_EXPIRY || '30d';
 
 function signProgressReportToken(userId) {
@@ -154,4 +162,4 @@ function verifyPdfAccessToken(token) {
   }
 }
 
-module.exports = { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken, JWT_SECRET };
+module.exports = { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken, JWT_SECRET };
