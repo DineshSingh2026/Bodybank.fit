@@ -1321,6 +1321,30 @@ async function initDB() {
     }
   }
 
+  // Operator (read-only monitoring role) — auto-provision from env on boot so no
+  // manual script is needed on Render. Only acts when BOTH OPERATOR_EMAIL and
+  // OPERATOR_PASS are set; never creates a default operator and never demotes an admin.
+  const operatorEmailNorm = String(process.env.OPERATOR_EMAIL || '').trim().toLowerCase();
+  const operatorPassTrimmed = String(process.env.OPERATOR_PASS || '').trim();
+  if (operatorEmailNorm && operatorPassTrimmed) {
+    try {
+      const opHash = bcrypt.hashSync(operatorPassTrimmed, 10);
+      const opByEmail = await queryOne("SELECT id, role FROM users WHERE LOWER(email) = ?", [operatorEmailNorm]);
+      if (opByEmail) {
+        if (opByEmail.role === 'admin' || opByEmail.role === 'superadmin') {
+          console.warn(`⚠️ OPERATOR_EMAIL ${operatorEmailNorm} is already an ${opByEmail.role}; skipping operator sync.`);
+        } else {
+          await run("UPDATE users SET role = 'operator', password = ?, approval_status = 'approved' WHERE id = ?", [opHash, opByEmail.id]);
+          console.log(`✅ Operator synced (existing email): ${operatorEmailNorm}`);
+        }
+      } else {
+        await run("INSERT INTO users (id, email, password, first_name, last_name, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+          [uuidv4(), operatorEmailNorm, opHash, 'Operator', '', 'operator', 'approved']);
+        console.log(`✅ Operator created: ${operatorEmailNorm}`);
+      }
+    } catch (e) { console.warn('[operator bootstrap]', e.message); }
+  }
+
   // Apple App Store reviewer demo account — pre-approved so the reviewer can sign in
   // past the admin-approval gate. Provide the same creds in App Store Connect → App
   // Review Information. No-op if APPLE_REVIEW_EMAIL / APPLE_REVIEW_PASS are unset.
