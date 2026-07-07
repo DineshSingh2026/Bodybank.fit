@@ -29,7 +29,7 @@ const { getPersonality } = require('./prompts/personalities');
 const { getTemplate } = require('./prompts/templates');
 const { gatherFacts, buildStatsString } = require('./facts');
 const { getDossier } = require('./dossierService');
-const { tzNow, DEFAULT_TZ } = require('./util');
+const { tzNow, DEFAULT_TZ, safeJsonParse } = require('./util');
 
 let ctx = null;              // dependency-injected DB + push handle
 let _workersStarted = false;
@@ -150,6 +150,7 @@ async function ensureSchema(run) {
   // Idempotent column adds for forward-compat.
   try { await run(`ALTER TABLE coach_user_profile ADD COLUMN IF NOT EXISTS engagement TEXT DEFAULT 'medium'`); } catch (_) {}
   try { await run(`ALTER TABLE coach_settings ADD COLUMN IF NOT EXISTS paused_until TIMESTAMP`); } catch (_) {}
+  try { await run(`ALTER TABLE coach_settings ADD COLUMN IF NOT EXISTS instant_feedback BOOLEAN DEFAULT TRUE`); } catch (_) {}
 }
 
 // ─── Init ────────────────────────────────────────────────────────────────────
@@ -403,6 +404,139 @@ async function conversationHistory(userId, limit) {
   return msgs;
 }
 
+// ─── Instant per-activity feedback (bypasses the daily budget) ───────────────
+// Fires immediately when a user logs a workout or a meal — specific, data-grounded
+// feedback (e.g. "chest 2×15 @10kg — solid; add a 3rd set or try 12.5kg next time").
+// Delivered to in-app + push + (opt-in) the client's WhatsApp. Respects coach_enabled,
+// the per-user instant_feedback toggle, quiet is NOT applied (it's a direct response to
+// their own action, like a reply).
+
+async function _instantFeedback(userId, spec) {
+  if (!ctx) return { ok: false, reason: 'not_ready' };
+  try {
+    if (!(await isEligible(userId))) return { ok: false, reason: 'ineligible' };
+    const settings = await memory.getSettings(ctx, userId);
+    if (!settings.coach_enabled) return { ok: false, reason: 'coach_off' };
+    if (settings.instant_feedback === false) return { ok: false, reason: 'instant_off' };
+    if (settings.paused_until && new Date(settings.paused_until).getTime() > Date.now()) return { ok: false, reason: 'paused' };
+
+    // Rapid-duplicate guard (e.g. a re-logged meal within the hour).
+    if (spec.guardMinutes) {
+      const recent = await ctx.queryOne(
+        `SELECT 1 FROM coach_messages WHERE user_id = ? AND type = ? AND sent_at >= NOW() - (? || ' minutes')::interval LIMIT 1`,
+        [userId, spec.type, String(spec.guardMinutes)]
+      ).catch(() => null);
+      if (recent) return { ok: false, reason: 'guarded' };
+    }
+
+    const personality = getPersonality(settings.personality);
+    const template = getTemplate(spec.templateId);
+    const [facts, dossier, recentBodies] = await Promise.all([
+      gatherFacts(ctx, userId, settings.timezone),
+      getDossier(ctx, userId),
+      memory.recentMessageBodies(ctx, userId, 5)
+    ]);
+    const statsString = buildStatsString(facts);
+    const dossierText = dossier && dossier.summary ? dossier.summary : `(${facts.name}: no dossier yet.)`;
+    const maxWords = (personality.maxWords || 90) + 10;
+
+    const prefix = `${BASE_VOICE}
+
+ACTIVE PERSONALITY: ${personality.label}
+${personality.voice}
+Hard limit: at most ${maxWords} words and at most ${personality.emojiBudget} emoji.`;
+
+    const userText = `DOSSIER (long-term memory):
+${dossierText}
+
+${spec.triggerLabel}:
+${spec.triggerBlock}
+
+STATS (real data — use these exact numbers, invent nothing):
+${statsString}
+
+RECENT COACH MESSAGES (do NOT repeat any):
+${recentBodies.length ? recentBodies.map((b) => `- "${String(b).slice(0, 140)}"`).join('\n') : '(none)'}
+
+CONSTRAINTS: max_words=${maxWords}, channel=in_app, language=${settings.language || 'en'}
+
+${template.build({ event: { type: spec.type }, stats: statsString, personality })}`;
+
+    const plan = {
+      system: [{ text: prefix, cache: true }],
+      userText,
+      maxWords,
+      recentBodies,
+      personality,
+      factsName: facts.name
+    };
+    const gen = await messageGenerator.generateMessage(ctx, plan, {
+      tier: 'generate', maxTokens: 300, fallbackText: spec.fallbackText
+    });
+
+    let whatsappTo = null;
+    if (settings.whatsapp_opt_in) {
+      const u = await ctx.queryOne('SELECT phone FROM users WHERE id = ?', [userId]).catch(() => null);
+      if (u && u.phone && String(u.phone).trim()) whatsappTo = String(u.phone).trim();
+    }
+
+    const del = await deliveryRouter.deliver(ctx, {
+      userId, type: spec.type, templateId: spec.templateId,
+      body: gen.text, personality: settings.personality,
+      promptVersion: `${spec.templateId}:1`, model: gen.model, usage: gen.usage,
+      settings, countsBudget: false, whatsappTo
+    });
+    return { ok: true, reply: gen.text, source: gen.source, messageId: del.messageId, whatsapp: !!whatsappTo };
+  } catch (e) {
+    console.warn('[coach] instant feedback error:', spec.type, e.message);
+    return { ok: false, error: e.message };
+  }
+}
+
+function formatWorkout(w) {
+  if (!w) return 'a workout';
+  const parts = [];
+  if (w.workout_name) parts.push('Workout: ' + w.workout_name);
+  else if (w.workout_type) parts.push('Type: ' + w.workout_type);
+  const lifts = safeJsonParse(w.session_lifts, null);
+  const reps = safeJsonParse(w.session_reps, null);
+  if (lifts && (Array.isArray(lifts) ? lifts.length : Object.keys(lifts).length)) parts.push('Per-exercise sets/weights: ' + JSON.stringify(lifts));
+  if (reps && (Array.isArray(reps) ? reps.length : Object.keys(reps).length)) parts.push('Reps: ' + JSON.stringify(reps));
+  ['bench_kg', 'squat_kg', 'deadlift_kg', 'weight_kg'].forEach((k) => {
+    if (w[k] != null && Number(w[k]) > 0) parts.push(k.replace('_kg', '') + ': ' + w[k] + 'kg');
+  });
+  if (w.duration_seconds != null && Number(w.duration_seconds) > 0) parts.push('Duration: ' + Math.round(Number(w.duration_seconds) / 60) + 'min');
+  if (w.intensity) parts.push('Intensity: ' + w.intensity);
+  if (w.energy_level != null) parts.push('Energy: ' + w.energy_level);
+  return parts.join(', ') || 'a workout';
+}
+
+/** Instant feedback on the workout the user just logged. Fire-and-forget from the handler. */
+async function instantWorkoutFeedback(userId) {
+  if (!ctx) return { ok: false };
+  const w = await ctx.queryOne('SELECT * FROM workout_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 1', [userId]).catch(() => null);
+  if (!w) return { ok: false, reason: 'no_workout' };
+  const prior = await ctx.queryOne('SELECT * FROM workout_logs WHERE user_id = ? AND id <> ? ORDER BY created_at DESC LIMIT 1', [userId, w.id]).catch(() => null);
+  const block = formatWorkout(w) + (prior ? ('\nPrevious session: ' + formatWorkout(prior)) : '\n(no previous session on record)');
+  return _instantFeedback(userId, {
+    type: 'WORKOUT_COMPLETED', templateId: 'workoutFeedback',
+    triggerLabel: 'WORKOUT JUST LOGGED', triggerBlock: block,
+    fallbackText: 'Solid session logged. Next time, aim for one more quality set or a small weight bump — progressive overload is what moves the needle.'
+  });
+}
+
+/** Instant feedback on a meal the user just logged. */
+async function instantMealFeedback(userId, meal) {
+  if (!ctx) return { ok: false };
+  const ar = (meal && meal.aiResult) || {};
+  const block = `Meal: ${(meal && meal.mealType) || 'meal'}${ar.dish ? ' — ' + ar.dish : ''} | ${ar.calories != null ? ar.calories + ' kcal' : 'cal ?'}, protein ${ar.protein != null ? ar.protein + 'g' : '?'}, carbs ${ar.carbs != null ? ar.carbs + 'g' : '?'}, fat ${ar.fat != null ? ar.fat + 'g' : '?'}`;
+  return _instantFeedback(userId, {
+    type: 'MEAL_LOGGED', templateId: 'mealFeedback',
+    triggerLabel: 'MEAL JUST LOGGED', triggerBlock: block, guardMinutes: 90,
+    fallbackText: 'Logged. Keep an eye on your protein for the day — a lean source at your next meal keeps you on target.'
+  });
+}
+
 // ─── Batch maintenance jobs ──────────────────────────────────────────────────
 async function activeUserIds(days = 3, limit = 500) {
   const rows = await ctx.queryAll(
@@ -623,6 +757,8 @@ module.exports = {
   ensureSchema,
   emitCoachEvent,
   handleUserReply,
+  instantWorkoutFeedback,
+  instantMealFeedback,
   processEvent,
   drainOnce,
   dlqRetry,

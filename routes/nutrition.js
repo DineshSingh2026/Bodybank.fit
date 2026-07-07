@@ -7,8 +7,8 @@ const coinService = require('../services/coinService');
 const { notifyAsync } = require('../utils/notify');
 const { buildSignedPhotoUrl } = require('../utils/nutritionPhotoLink');
 const coach = require('../services/coach');
-/** Fire-and-forget coach event emit — never throws. */
-function emitCoach(userId, type, payload) { try { coach.emitCoachEvent(userId, type, payload); } catch (_) {} }
+/** Instant, specific meal feedback (bypasses the daily budget). Fire-and-forget. */
+function coachInstantMeal(userId, meal) { try { Promise.resolve(coach.instantMealFeedback(String(userId), meal)).catch(() => {}); } catch (_) {} }
 
 const {
   MEAL_TYPES,
@@ -538,7 +538,7 @@ function createNutritionRouter(deps) {
         const nuUser = await queryOne('SELECT email, first_name, last_name, phone FROM users WHERE id = ?', [userId]).catch(() => null);
         notifyAsync('NUTRITION_MEAL_LOGGED', { name: nuUser ? `${nuUser.first_name || ''} ${nuUser.last_name || ''}`.trim() : userId, email: nuUser ? nuUser.email : userId, mobile: nuUser ? (nuUser.phone || '—') : '—', mealType, date: ymd, score: mealScore || '—', calories: aiResult && aiResult.calories ? aiResult.calories : '—', protein: aiResult && aiResult.protein ? aiResult.protein + ' g' : '—', carbs: aiResult && aiResult.carbs ? aiResult.carbs + ' g' : '—', fat: aiResult && aiResult.fat ? aiResult.fat + ' g' : '—', mediaUrl: mealPhotoUrl });
       }
-      emitCoach(String(userId), 'MEAL_LOGGED', { mealType, score: mealScore, ymd, protein: aiResult && aiResult.protein != null ? aiResult.protein : null });
+      coachInstantMeal(userId, { mealType, aiResult });
 
       res.json({
         aiResult,
@@ -670,7 +670,7 @@ function createNutritionRouter(deps) {
         const nlUser = await queryOne('SELECT email, first_name, last_name, phone FROM users WHERE id = ?', [userId]).catch(() => null);
         notifyAsync('NUTRITION_MEAL_LOGGED', { name: nlUser ? `${nlUser.first_name || ''} ${nlUser.last_name || ''}`.trim() : userId, email: nlUser ? nlUser.email : userId, mobile: nlUser ? (nlUser.phone || '—') : '—', mealType: mt, date: ymd, score: mealScore || '—', calories: aiStored && aiStored.calories ? aiStored.calories : '—', protein: aiStored && aiStored.protein ? aiStored.protein + ' g' : '—', carbs: aiStored && aiStored.carbs ? aiStored.carbs + ' g' : '—', fat: aiStored && aiStored.fat ? aiStored.fat + ' g' : '—', mediaUrl: manualMealPhotoUrl });
       }
-      emitCoach(String(userId), 'MEAL_LOGGED', { mealType: mt, score: mealScore, ymd, protein: aiStored && aiStored.protein != null ? aiStored.protein : null });
+      coachInstantMeal(userId, { mealType: mt, aiResult: aiStored });
       res.json({
         aiResult: aiStored,
         mealScore,

@@ -6308,6 +6308,15 @@ button.bb-today-pill{cursor:pointer}
           </div>
         </div>
         <div class="form-row">
+          <div class="form-group"><label>Instant workout/meal feedback</label>
+            <select class="form-input" id="bbCoachInstant"><option value="1">On</option><option value="0">Off</option></select>
+          </div>
+          <div class="form-group"><label>WhatsApp coaching</label>
+            <select class="form-input" id="bbCoachWhatsapp"><option value="0">Off</option><option value="1">On</option></select>
+            <span class="form-hint">Requires WhatsApp Business setup by BodyBank.</span>
+          </div>
+        </div>
+        <div class="form-row">
           <div class="form-group"><label>Quiet from</label><input type="time" class="form-input" id="bbCoachQuietStart" value="21:30"></div>
           <div class="form-group"><label>Quiet until</label><input type="time" class="form-input" id="bbCoachQuietEnd" value="07:30"></div>
         </div>
@@ -6334,6 +6343,8 @@ button.bb-today-pill{cursor:pointer}
               if(el('bbCoachPersonality')) el('bbCoachPersonality').value = st.personality||'friendly';
               if(el('bbCoachBudget')) el('bbCoachBudget').value = String(st.daily_budget!=null?st.daily_budget:2);
               if(el('bbCoachEnabled')) el('bbCoachEnabled').value = st.coach_enabled? '1':'0';
+              if(el('bbCoachInstant')) el('bbCoachInstant').value = (st.instant_feedback===false)?'0':'1';
+              if(el('bbCoachWhatsapp')) el('bbCoachWhatsapp').value = st.whatsapp_opt_in? '1':'0';
               if(el('bbCoachQuietStart')) el('bbCoachQuietStart').value = st.quiet_start||'21:30';
               if(el('bbCoachQuietEnd')) el('bbCoachQuietEnd').value = st.quiet_end||'07:30';
             }
@@ -6349,7 +6360,9 @@ button.bb-today-pill{cursor:pointer}
         window.bbCoachSaveSettings = async function(){
           var m = el('bbCoachSettingsMsg'); if(m) m.textContent='Saving…';
           var body = { personality: el('bbCoachPersonality').value, daily_budget: parseInt(el('bbCoachBudget').value,10)||0,
-            coach_enabled: el('bbCoachEnabled').value==='1', quiet_start: el('bbCoachQuietStart').value||'21:30', quiet_end: el('bbCoachQuietEnd').value||'07:30' };
+            coach_enabled: el('bbCoachEnabled').value==='1',
+            instant_feedback: el('bbCoachInstant').value==='1', whatsapp_opt_in: el('bbCoachWhatsapp').value==='1',
+            quiet_start: el('bbCoachQuietStart').value||'21:30', quiet_end: el('bbCoachQuietEnd').value||'07:30' };
           try { var r = await fetch('/api/coach/settings',{ method:'PUT', headers: hdr(), body: JSON.stringify(body) }).then(function(x){return x.json();});
             if(m) m.textContent = r && r.ok ? 'Saved ✓' : 'Could not save'; } catch(_){ if(m) m.textContent='Could not save'; }
         };

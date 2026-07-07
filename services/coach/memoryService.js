@@ -19,6 +19,7 @@ const DEFAULT_SETTINGS = {
   quiet_end: '07:30',
   timezone: 'Asia/Kolkata',
   whatsapp_opt_in: false,
+  instant_feedback: true,
   muted_categories: [],
   language: 'en'
 };
@@ -46,7 +47,7 @@ async function updateSettings(ctx, userId, patch) {
   const allowed = {
     coach_enabled: 'bool', personality: 'text', daily_budget: 'int',
     min_send_threshold: 'int', quiet_start: 'text', quiet_end: 'text',
-    timezone: 'text', whatsapp_opt_in: 'bool', muted_categories: 'json', language: 'text'
+    timezone: 'text', whatsapp_opt_in: 'bool', instant_feedback: 'bool', muted_categories: 'json', language: 'text'
   };
   const sets = [];
   const params = [];

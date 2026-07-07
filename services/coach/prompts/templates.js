@@ -64,6 +64,18 @@ Output: the message only.`),
 - Sound like a coach who watched their whole week, warm and specific.
 Output: the message only.`),
 
+  workoutFeedback: tmpl('workoutFeedback', '1', () => `TASK: The user JUST finished a workout (see WORKOUT JUST LOGGED). Write ONE short, specific message that:
+- References the ACTUAL exercise(s), sets, reps and weight they logged, using the real numbers shown — not generic praise.
+- Gives ONE concrete progression cue for next time, grounded in what they just did and their previous session (e.g. "add a 3rd set", "try +2.5kg", "one more rep at that weight").
+- Sounds like a coach who watched the set. Encouraging, never a lecture.
+Output: the message only.`),
+
+  mealFeedback: tmpl('mealFeedback', '1', () => `TASK: The user JUST logged a meal (see MEAL JUST LOGGED). Write ONE short, specific message that:
+- Names the meal and its real macros from the data (protein/calories), no invented numbers.
+- Gives ONE concrete cue for the rest of their day tied to their targets in STATS (e.g. protein still to go, hydrate, a smart swap).
+- No generic praise, no guilt.
+Output: the message only.`),
+
   reply: tmpl('reply', '1', () => `TASK: The user sent you a message (see the conversation). Reply as their coach:
 - Answer their actual question directly, grounded in their real data from STATS/DOSSIER.
 - If you don't have the data to answer precisely, say what you'd need rather than inventing numbers.

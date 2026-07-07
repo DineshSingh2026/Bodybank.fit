@@ -39,6 +39,8 @@ const coach = require('./services/coach');
 const { createCoachRouter } = require('./routes/coach');
 /** Fire-and-forget coach event emit — never throws, safe to call from any handler. */
 function emitCoach(userId, type, payload) { try { coach.emitCoachEvent(userId, type, payload); } catch (_) {} }
+/** Instant, specific workout feedback (bypasses the daily budget). Fire-and-forget. */
+function coachInstantWorkout(userId) { try { Promise.resolve(coach.instantWorkoutFeedback(String(userId))).catch(() => {}); } catch (_) {} }
 const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalizeCampaignDay, normalizeTime: normalizeCampaignTime } = require('./controllers/campaignController');
 const {
   generateMonthlyClientReport,
@@ -2636,7 +2638,7 @@ app.post('/api/workouts', async (req, res) => {
       ymd
     );
     notifyAsync('WORKOUT_LOGGED', { name: wu ? `${wu.first_name || ''}`.trim() : user_id, email: wu ? wu.email : user_id, mobile: wu ? wu.phone : '—', type: workout_name, duration: duration_seconds != null ? Math.round(duration_seconds / 60) + ' min' : '—' });
-    emitCoach(String(user_id), 'WORKOUT_COMPLETED', { workout: workout_name, ymd });
+    coachInstantWorkout(user_id); // instant specific feedback on the set/reps/weight just logged
     res.json({ id, message: 'Workout logged' });
   } catch (e) {
     console.error('Workout error:', e.message);
@@ -2763,7 +2765,7 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
       date
     );
     if (wu) notifyAsync('WORKOUT_LOGGED', { name: `${wu.first_name || ''}`.trim(), email: wu.email, mobile: wu.phone || '—', type: workoutType, duration: Number.isFinite(dur) ? Math.round(dur / 60) + ' min' : '—' });
-    emitCoach(String(userId), 'WORKOUT_COMPLETED', { workout: workoutType, ymd: date });
+    coachInstantWorkout(userId); // instant specific feedback on the session just logged
     res.json({ id, message: 'Session saved' });
   } catch (e) {
     console.error('Workout session error:', e.message);

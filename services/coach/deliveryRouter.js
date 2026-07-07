@@ -13,6 +13,7 @@
  */
 
 const { tzNow } = require('./util');
+const { sendWhatsAppWithFallback } = require('../whatsapp');
 
 const PUSH_TITLES = {
   weeklySummary: '🎯 Your weekly recap',
@@ -77,6 +78,20 @@ async function deliver(ctx, m) {
       type: 'coach_reply', title, body: body.slice(0, 140), id: 'chat-' + msgId
     }));
   } catch (_) { /* users without a push subscription */ }
+
+  // WhatsApp (opt-in, best-effort). Freeform reaches the client only within the 24h
+  // window; outside it, Twilio returns 63016 and we fall back to the approved coach
+  // template (TWILIO_COACH_TEMPLATE_SID) carrying the message as variable {{1}}.
+  if (m.whatsappTo) {
+    try {
+      const tplSid = process.env.TWILIO_COACH_TEMPLATE_SID || '';
+      await sendWhatsAppWithFallback(body, {
+        to: m.whatsappTo,
+        templateSid: tplSid,
+        preferTemplate: !!tplSid // template-first when configured → works out-of-window
+      });
+    } catch (_) { /* WhatsApp is best-effort; in-app + push already delivered */ }
+  }
 
   // Provenance row.
   const usage = m.usage || {};
