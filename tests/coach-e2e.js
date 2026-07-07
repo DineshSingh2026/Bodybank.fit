@@ -145,6 +145,30 @@ async function main() {
     assert.ok(userMsg && /protein/i.test(userMsg.body), 'user message not persisted');
   });
 
+  console.log('instant feedback');
+  await test('instant workout feedback: specific message, delivered, budget-exempt', async () => {
+    await run(
+      `INSERT INTO workout_logs (id, user_id, workout_name, workout_type, session_lifts, intensity, created_at)
+       VALUES (?, ?, ?, ?, ?::jsonb, ?, NOW())`,
+      [uuidv4(), TEST_ID, 'Chest Day', 'push',
+       JSON.stringify([{ exercise: 'Bench Press', sets: 2, reps: 15, weight_kg: 10 }]), 'moderate']
+    ).catch(() => {});
+    const before = await queryOne('SELECT spent FROM coach_budget_ledger WHERE user_id = ? ORDER BY ymd DESC LIMIT 1', [TEST_ID]);
+    const out = await coach.instantWorkoutFeedback(TEST_ID);
+    assert.ok(out.ok && out.reply && out.reply.length > 0, JSON.stringify(out));
+    const msg = await queryOne(
+      `SELECT body FROM coach_messages WHERE user_id = ? AND type = 'WORKOUT_COMPLETED' ORDER BY sent_at DESC LIMIT 1`,
+      [TEST_ID]
+    );
+    assert.ok(msg && msg.body, 'no workout feedback message recorded');
+    const after = await queryOne('SELECT spent FROM coach_budget_ledger WHERE user_id = ? ORDER BY ymd DESC LIMIT 1', [TEST_ID]);
+    assert.strictEqual(after ? Number(after.spent) : 0, before ? Number(before.spent) : 0, 'instant feedback must not spend budget');
+  });
+  await test('instant meal feedback: specific message from macros', async () => {
+    const out = await coach.instantMealFeedback(TEST_ID, { mealType: 'lunch', aiResult: { dish: 'Chicken & rice', calories: 620, protein: 48, carbs: 70, fat: 14 } });
+    assert.ok(out.ok && out.reply && out.reply.length > 0, JSON.stringify(out));
+  });
+
   console.log('admin surface');
   await test('adminMetrics + adminInspect return data', async () => {
     const m = await coach.api.adminMetrics();
@@ -185,6 +209,7 @@ async function cleanup() {
   await run(`DELETE FROM message_threads WHERE user_id = ?`, [TEST_ID]).catch(() => {});
   await run(`DELETE FROM user_inbox WHERE user_id = ?`, [TEST_ID]).catch(() => {});
   await run(`DELETE FROM daily_checkins WHERE user_id = ?`, [TEST_ID]).catch(() => {});
+  await run(`DELETE FROM workout_logs WHERE user_id = ?`, [TEST_ID]).catch(() => {});
   await run(`DELETE FROM users WHERE id = ?`, [TEST_ID]).catch(() => {});
 }
 

@@ -123,6 +123,7 @@ function publicSettings(s) {
     quiet_end: s.quiet_end,
     timezone: s.timezone,
     whatsapp_opt_in: !!s.whatsapp_opt_in,
+    instant_feedback: s.instant_feedback !== false,
     muted_categories: s.muted_categories || [],
     language: s.language,
     paused_until: s.paused_until || null
