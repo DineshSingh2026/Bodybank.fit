@@ -79,14 +79,25 @@ async function deliver(ctx, m) {
     }));
   } catch (_) { /* users without a push subscription */ }
 
-  // WhatsApp (opt-in, best-effort). Freeform reaches the client only within the 24h
-  // window; outside it, Twilio returns 63016 and we fall back to the approved coach
-  // template (TWILIO_COACH_TEMPLATE_SID) carrying the message as variable {{1}}.
-  if (m.whatsappTo) {
+  // WhatsApp mirror (best-effort) — send the SAME message to the user's WhatsApp when
+  // enabled. Enabled if the user opted in (settings.whatsapp_opt_in) OR WhatsApp is forced
+  // on for everyone via COACH_WHATSAPP_ALL=true. Resolved centrally here so EVERY coach
+  // message (instant feedback, proactive nudges, chat replies) mirrors to WhatsApp.
+  // Freeform reaches the client only within the 24h window; outside it, Twilio returns
+  // 63016 → falls back to the approved coach template (TWILIO_COACH_TEMPLATE_SID, {{1}}).
+  let whatsappTo = m.whatsappTo || null;
+  if (!whatsappTo && m.settings) {
+    const forceAll = String(process.env.COACH_WHATSAPP_ALL || '').toLowerCase() === 'true';
+    if (m.settings.whatsapp_opt_in || forceAll) {
+      const u = await ctx.queryOne('SELECT phone FROM users WHERE id = ?', [userId]).catch(() => null);
+      if (u && u.phone && String(u.phone).trim()) whatsappTo = String(u.phone).trim();
+    }
+  }
+  if (whatsappTo) {
     try {
       const tplSid = process.env.TWILIO_COACH_TEMPLATE_SID || '';
       await sendWhatsAppWithFallback(body, {
-        to: m.whatsappTo,
+        to: whatsappTo,
         templateSid: tplSid,
         preferTemplate: !!tplSid // template-first when configured → works out-of-window
       });

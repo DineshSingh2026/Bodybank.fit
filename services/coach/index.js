@@ -474,19 +474,15 @@ ${template.build({ event: { type: spec.type }, stats: statsString, personality }
       tier: 'generate', maxTokens: 300, fallbackText: spec.fallbackText
     });
 
-    let whatsappTo = null;
-    if (settings.whatsapp_opt_in) {
-      const u = await ctx.queryOne('SELECT phone FROM users WHERE id = ?', [userId]).catch(() => null);
-      if (u && u.phone && String(u.phone).trim()) whatsappTo = String(u.phone).trim();
-    }
-
+    // WhatsApp mirroring is resolved centrally in deliveryRouter.deliver (from settings
+    // + COACH_WHATSAPP_ALL), so instant / proactive / reply all behave the same.
     const del = await deliveryRouter.deliver(ctx, {
       userId, type: spec.type, templateId: spec.templateId,
       body: gen.text, personality: settings.personality,
       promptVersion: `${spec.templateId}:1`, model: gen.model, usage: gen.usage,
-      settings, countsBudget: false, whatsappTo
+      settings, countsBudget: false
     });
-    return { ok: true, reply: gen.text, source: gen.source, messageId: del.messageId, whatsapp: !!whatsappTo };
+    return { ok: true, reply: gen.text, source: gen.source, messageId: del.messageId };
   } catch (e) {
     console.warn('[coach] instant feedback error:', spec.type, e.message);
     return { ok: false, error: e.message };

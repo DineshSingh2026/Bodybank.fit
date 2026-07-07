@@ -168,6 +168,20 @@ async function main() {
     const out = await coach.instantMealFeedback(TEST_ID, { mealType: 'lunch', aiResult: { dish: 'Chicken & rice', calories: 620, protein: 48, carbs: 70, fat: 14 } });
     assert.ok(out.ok && out.reply && out.reply.length > 0, JSON.stringify(out));
   });
+  await test('WhatsApp opt-in resolves phone centrally and still delivers in-app', async () => {
+    // Twilio isn't configured in the test env → the WhatsApp send is a no-op that must be
+    // swallowed; the message must still deliver to the in-app thread.
+    await run('UPDATE users SET phone = ? WHERE id = ?', ['+919999999999', TEST_ID]);
+    await coach.api.updateSettings(TEST_ID, { whatsapp_opt_in: true });
+    const out = await coach.handleUserReply(TEST_ID, 'Quick WhatsApp mirror test');
+    assert.ok(out.ok && out.reply, JSON.stringify(out));
+    const tm = await queryOne(
+      `SELECT tm.body FROM thread_messages tm JOIN message_threads mt ON mt.id = tm.thread_id
+       WHERE mt.user_id = ? AND tm.sender_role = 'admin' ORDER BY tm.created_at DESC LIMIT 1`,
+      [TEST_ID]
+    );
+    assert.ok(tm && tm.body, 'in-app delivery must still succeed with WhatsApp enabled');
+  });
 
   console.log('admin surface');
   await test('adminMetrics + adminInspect return data', async () => {
