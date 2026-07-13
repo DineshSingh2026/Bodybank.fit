@@ -105,7 +105,7 @@ function unwrapExtractionRoot(extracted) {
 }
 
 async function callAnthropicMessages({ apiKey, model, maxTokens, system, userContent }) {
-  const timeoutMs = Math.max(30000, parseInt(process.env.ANTHROPIC_BLOOD_REQUEST_TIMEOUT_MS || '240000', 10) || 240000);
+  const timeoutMs = Math.max(30000, parseInt(process.env.ANTHROPIC_BLOOD_REQUEST_TIMEOUT_MS || '300000', 10) || 300000);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new Error(`Anthropic request timed out after ${timeoutMs}ms`)), timeoutMs);
   const messages = [{ role: 'user', content: userContent }];
@@ -133,60 +133,35 @@ async function callAnthropicMessages({ apiKey, model, maxTokens, system, userCon
 }
 
 /**
- * Runs the big clinical-analysis pass and returns robustly-parsed JSON.
- * Parses defensively (handles ```json fences, prose preambles, trailing text),
- * retries once with a larger token budget if the first attempt is truncated /
- * unparseable, and sums token usage across attempts so cost accounting stays
- * honest. No assistant prefill — some models reject it ("conversation must end
- * with a user message"); robust parsing covers the same cases model-agnostically.
+ * Runs a JSON-producing pass (extraction OR clinical analysis) robustly:
+ * parses defensively (```json fences, prose preambles, trailing text), and if the
+ * first attempt is truncated (stop_reason: max_tokens) or unparseable, retries once
+ * with a much larger token budget so big reports never fail on truncation. Sums
+ * token usage across attempts. `coerce(parsed)` returns the accepted result or null
+ * (used to require valid panels for extraction / an object for analysis).
+ * No assistant prefill — some models 400 on it; robust parsing covers the cases.
  */
-async function runAnalysisPassWithJson({ apiKey, model, maxTokens, system, userContent }) {
+async function runJsonPass({ apiKey, model, maxTokens, system, userContent, coerce, maxRetryTokens }) {
   let inputTokens = 0;
   let outputTokens = 0;
   let lastData = null;
-  const attempts = [maxTokens, Math.min(16000, Math.max(maxTokens + 3000, Math.floor(maxTokens * 1.6)))];
+  const bumped = Math.min(maxRetryTokens || 32000, Math.max(maxTokens + 4000, Math.floor(maxTokens * 1.8)));
+  const attempts = maxTokens >= bumped ? [maxTokens] : [maxTokens, bumped];
   for (let i = 0; i < attempts.length; i += 1) {
-    const data = await callAnthropicMessages({
-      apiKey,
-      model,
-      maxTokens: attempts[i],
-      system,
-      userContent
-    });
+    const data = await callAnthropicMessages({ apiKey, model, maxTokens: attempts[i], system, userContent });
     lastData = data;
     inputTokens += toNumber(data && data.usage && data.usage.input_tokens, 0);
     outputTokens += toNumber(data && data.usage && data.usage.output_tokens, 0);
-
     const text = anthropicTextFromMessage(data);
     const parsed = parseAnyJsonBlock(text) || parseAnthropicJson(text);
-    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-      return {
-        aiReport: parsed,
-        usage: {
-          provider: 'anthropic',
-          model: String(model || ''),
-          input_tokens: inputTokens,
-          output_tokens: outputTokens,
-          total_tokens: inputTokens + outputTokens,
-          ...estimateAnthropicUsageCost(inputTokens, outputTokens)
-        }
-      };
+    const result = coerce ? coerce(parsed) : parsed;
+    if (result) {
+      return { result, usage: buildUsage(model, inputTokens, outputTokens), stopReason: data && data.stop_reason };
     }
     // Only worth retrying when we ran out of room; other stop reasons won't improve.
     if (data && data.stop_reason && data.stop_reason !== 'max_tokens') break;
   }
-  return {
-    aiReport: null,
-    stopReason: (lastData && lastData.stop_reason) || 'unknown',
-    usage: {
-      provider: 'anthropic',
-      model: String(model || ''),
-      input_tokens: inputTokens,
-      output_tokens: outputTokens,
-      total_tokens: inputTokens + outputTokens,
-      ...estimateAnthropicUsageCost(inputTokens, outputTokens)
-    }
-  };
+  return { result: null, usage: buildUsage(model, inputTokens, outputTokens), stopReason: (lastData && lastData.stop_reason) || 'unknown' };
 }
 
 function toNumber(value, fallback = 0) {
@@ -194,11 +169,25 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(num) ? num : fallback;
 }
 
-function estimateAnthropicUsageCost(inputTokens, outputTokens) {
+// Per-model list price ($ per 1M tokens) so the admin cost card is accurate even
+// when extraction and analysis run on different models. Explicit env overrides win.
+function modelPricing(model) {
+  const m = String(model || '').toLowerCase();
+  let inPerM;
+  let outPerM;
+  if (m.includes('haiku')) { inPerM = 1; outPerM = 5; }
+  else if (m.includes('sonnet')) { inPerM = 3; outPerM = 15; }
+  else if (m.includes('opus')) { inPerM = 5; outPerM = 25; }
+  else if (m.includes('fable') || m.includes('mythos')) { inPerM = 10; outPerM = 50; }
+  else { inPerM = 1; outPerM = 5; }
+  if (process.env.ANTHROPIC_INPUT_PER_MILLION_USD) inPerM = toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, inPerM);
+  if (process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD) outPerM = toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, outPerM);
+  return [inPerM, outPerM];
+}
+
+function estimateAnthropicUsageCost(inputTokens, outputTokens, model) {
   const usdToInr = toNumber(process.env.AI_COST_USD_TO_INR, 83);
-  // Defaults are Haiku 4.5 rates ($1 in / $5 out per 1M) — the blood pipeline's model.
-  const inputPerMillionUsd = toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, 1);
-  const outputPerMillionUsd = toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, 5);
+  const [inputPerMillionUsd, outputPerMillionUsd] = modelPricing(model);
   const inUsd =
     (toNumber(inputTokens, 0) / 1000000) * inputPerMillionUsd +
     (toNumber(outputTokens, 0) / 1000000) * outputPerMillionUsd;
@@ -209,17 +198,19 @@ function estimateAnthropicUsageCost(inputTokens, outputTokens) {
   };
 }
 
-function usageFromAnthropicResponse(data, model) {
-  const inputTokens = toNumber(data && data.usage && data.usage.input_tokens, 0);
-  const outputTokens = toNumber(data && data.usage && data.usage.output_tokens, 0);
+function buildUsage(model, inputTokens, outputTokens) {
   return {
     provider: 'anthropic',
     model: String(model || ''),
-    input_tokens: inputTokens,
-    output_tokens: outputTokens,
-    total_tokens: inputTokens + outputTokens,
-    ...estimateAnthropicUsageCost(inputTokens, outputTokens)
+    input_tokens: toNumber(inputTokens, 0),
+    output_tokens: toNumber(outputTokens, 0),
+    total_tokens: toNumber(inputTokens, 0) + toNumber(outputTokens, 0),
+    ...estimateAnthropicUsageCost(inputTokens, outputTokens, model)
   };
+}
+
+function usageFromAnthropicResponse(data, model) {
+  return buildUsage(model, toNumber(data && data.usage && data.usage.input_tokens, 0), toNumber(data && data.usage && data.usage.output_tokens, 0));
 }
 
 function bloodMediaBlock(imageBase64, mimeType) {
@@ -379,15 +370,18 @@ async function triggerBloodAnalysis(db, reportId, imageBase64, mimeType, userId)
   const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
-  const model =
+  // Extraction = mechanically reading values off every page → cheap Haiku, which
+  // also ingests the large document input economically.
+  const extractionModel =
     (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5').trim();
-  // Large (e.g. 30+ page) lab reports have many markers — 1800 output tokens
-  // truncated the extraction JSON and dropped panels. 8000 gives ample room
-  // (Haiku 4.5 supports up to 64K output).
-  const extractionMaxTokens = Math.max(2000, parseInt(process.env.ANTHROPIC_BLOOD_EXTRACT_MAX_TOKENS || '8000', 10) || 8000);
-  // The full 13-section report (incl. 7-day meal plan) needs headroom or it
-  // truncates mid-JSON and fails to parse. 8000 default; retry bumps higher.
-  const analysisMaxTokens = Math.max(4000, parseInt(process.env.ANTHROPIC_BLOOD_ANALYSIS_MAX_TOKENS || '8000', 10) || 8000);
+  // Clinical analysis = the medical-officer evaluation → default to Opus 4.8 for the
+  // deepest, most accurate reasoning (override with ANTHROPIC_MODEL_BLOOD_ANALYSIS,
+  // e.g. claude-sonnet-5 or claude-haiku-4-5 for lower cost).
+  const analysisModel = (process.env.ANTHROPIC_MODEL_BLOOD_ANALYSIS || 'claude-opus-4-8').trim();
+  // Generous budgets so long, many-marker reports never truncate; runJsonPass
+  // retries at a much larger budget if the first pass hits max_tokens.
+  const extractionMaxTokens = Math.max(2000, parseInt(process.env.ANTHROPIC_BLOOD_EXTRACT_MAX_TOKENS || '12000', 10) || 12000);
+  const analysisMaxTokens = Math.max(4000, parseInt(process.env.ANTHROPIC_BLOOD_ANALYSIS_MAX_TOKENS || '12000', 10) || 12000);
 
   const { run, queryOne, queryAll } = db;
 
@@ -404,28 +398,31 @@ async function triggerBloodAnalysis(db, reportId, imageBase64, mimeType, userId)
 
     if (extractedBloodData && Array.isArray(extractedBloodData.panels) && extractedBloodData.panels.length > 0) {
       extractionUsage =
-        parseDbJsonColumn(prior && prior.extraction_ai_usage) || usageFromAnthropicResponse({}, model);
+        parseDbJsonColumn(prior && prior.extraction_ai_usage) || buildUsage(extractionModel, 0, 0);
       await run(`UPDATE blood_analysis_reports SET status = 'analysing' WHERE id = ?`, [reportId]);
     } else {
       await run(`UPDATE blood_analysis_reports SET status = 'extracting' WHERE id = ?`, [reportId]);
 
-      const extractRes = await callAnthropicMessages({
+      const extractPass = await runJsonPass({
         apiKey,
-        model,
+        model: extractionModel,
         maxTokens: extractionMaxTokens,
-        system: `You are a medical data extraction specialist. Extract ALL blood test markers from the lab report.
+        maxRetryTokens: 40000,
+        system: `You are a meticulous medical laboratory data-extraction specialist. The uploaded report may be 1 to 100+ pages. Read EVERY page and extract EVERY test result — never skip a panel, section, or marker, even in long reports or where headers repeat across pages.
 
 Return ONLY valid JSON, no markdown:
 {
   "lab_name": "name if visible",
-  "report_date": "date if visible",
+  "report_date": "collection/report date if visible",
+  "patient_age": "age if visible",
+  "patient_sex": "sex if visible",
   "panels": [
     {
       "name": "Panel name e.g. Complete Blood Count",
       "markers": [
         {
           "name": "Full marker name",
-          "value": "numeric value as string",
+          "value": "value exactly as printed",
           "unit": "unit",
           "reference_range": "range as shown e.g. 13.5-17.5",
           "status": "Normal|Low|High|Critical|Deficient|Elevated|Borderline|Optimal",
@@ -436,23 +433,29 @@ Return ONLY valid JSON, no markdown:
   ],
   "confidence": "high|medium|low"
 }
-Extract EVERY visible marker. Use standard clinical ranges if reference range is not printed.`,
+
+Rules:
+- Include ALL panels present: CBC + differential, metabolic / liver / kidney panels, lipid profile, glucose & HbA1c, thyroid, hormones, vitamins, minerals, iron studies, inflammatory markers, urinalysis, and anything else on the report.
+- Decide "status" by comparing each value to its reference range. If a range isn't printed, use standard adult clinical ranges.
+- Preserve exact values and units. NEVER invent markers that are not in the report.`,
         userContent: [
           bloodMediaBlock(imageBase64, mimeType),
-          { type: 'text', text: 'Extract all blood test markers from this lab report. Return complete JSON.' }
-        ]
+          { type: 'text', text: 'Extract every blood test marker from every page of this lab report. Return complete JSON with all panels.' }
+        ],
+        coerce: (parsed) => {
+          const e = coerceExtractedForPdf(parsed);
+          return (e && Array.isArray(e.panels) && e.panels.length > 0) ? e : null;
+        }
       });
-      extractionUsage = usageFromAnthropicResponse(extractRes, model);
+      extractionUsage = extractPass.usage;
       await run(`UPDATE blood_analysis_reports SET extraction_ai_usage = ?::jsonb WHERE id = ?`, [
         JSON.stringify(extractionUsage),
         reportId
       ]).catch(() => {});
 
-      const extractText = anthropicTextFromMessage(extractRes);
-      const extractedBloodDataRaw = parseAnyJsonBlock(extractText) || parseAnthropicJson(extractText);
-      extractedBloodData = coerceExtractedForPdf(extractedBloodDataRaw);
-      if (!extractedBloodData || !Array.isArray(extractedBloodData.panels) || extractedBloodData.panels.length === 0) {
-        throw new Error('Extraction did not return valid panels JSON');
+      extractedBloodData = extractPass.result;
+      if (!extractedBloodData) {
+        throw new Error(`Extraction did not return valid panels JSON (stop_reason: ${extractPass.stopReason || 'unknown'})`);
       }
 
       await run(
@@ -499,32 +502,33 @@ Extract EVERY visible marker. Use standard clinical ranges if reference range is
     const userName =
       [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.email || 'Member';
 
-    const { aiReport, usage: analysisUsage, stopReason: analysisStopReason } = await runAnalysisPassWithJson({
+    const { result: aiReport, usage: analysisUsage, stopReason: analysisStopReason } = await runJsonPass({
       apiKey,
-      model,
+      model: analysisModel,
       maxTokens: analysisMaxTokens,
-      system: `You are a Senior Consultant Physician and Sports Nutritionist with 20 years of clinical experience specialising in metabolic health, micronutrient deficiencies, and performance nutrition.
-
-Analyse the blood report data and nutrition tracking data. Produce a comprehensive, clinically accurate report.
+      maxRetryTokens: 24000,
+      coerce: (parsed) => (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) ? parsed : null,
+      system: `You are the Reviewing Medical Officer — a Senior Consultant Physician and Sports Nutritionist with 20 years' experience in metabolic health, micronutrient deficiencies, and performance nutrition. You have the patient's COMPLETE extracted blood panel plus their recent nutrition data. Evaluate it exactly as a doctor reviewing results WITH the patient: assess every value, identify what is abnormal and why, connect the findings into one clear clinical picture, and inform the patient plainly of their situation and what to do about it.
 
 RULES:
-1. Treat every out-of-range marker as clinically significant
-2. Look for PATTERNS across markers (e.g. low Hb + low MCV + low ferritin = iron deficiency anaemia — state this explicitly)
-3. Cross-reference blood markers with nutrition data to identify dietary causes
-4. Consider patient-reported symptoms in context of blood findings
-5. Food recommendations MUST include Indian cuisine options where relevant
-6. Supplement doses must be THERAPEUTIC (not maintenance) given deficiency levels
-7. Meal plan MUST achieve the protein/calorie targets for the stated fitness goal
-8. Risk grades: Low / Medium / High based on clinical evidence
-9. Retest timelines must be evidence-based
+1. Evaluate EVERY marker. Address EVERY out-of-range value — do not omit any abnormal finding. Emit a key finding for each clinically significant abnormality (there may be many on a large, multi-panel report).
+2. For each abnormality explain, in plain and honest but reassuring language: what the marker is, what this value indicates, the likely cause, and its clinical significance for this patient.
+3. Look for PATTERNS across markers (e.g. low Hb + low MCV + low ferritin = iron-deficiency anaemia) and state them explicitly.
+4. Cross-reference blood markers with the nutrition data to pinpoint dietary causes and fixes.
+5. Consider patient-reported symptoms in the context of the findings.
+6. Food recommendations MUST include Indian cuisine options where relevant.
+7. Supplement doses must be THERAPEUTIC (not maintenance) for the deficiency levels seen.
+8. The weekly meal plan MUST hit the protein/calorie targets for the stated fitness goal.
+9. Risk grades Low/Medium/High from clinical evidence; retest timelines evidence-based.
+10. clinical_interpretation must be THOROUGH and scale with the report — for a comprehensive panel write 6+ paragraphs covering the overall picture, each key abnormality and what it means for this patient, the connections between findings, nutrition's role, consequences if untreated, and the expected outcome with intervention. Never gloss over abnormal values.
 
 Return ONLY valid JSON:
 {
   "overall_status": "Excellent|Good|Fair|Poor|Critical",
-  "overall_summary_short": "2-3 sentence executive summary",
-  "clinical_interpretation": "4-6 paragraph detailed clinical narrative covering: primary findings, connection to symptoms, how nutrition explains findings, consequences if untreated, expected outcome with intervention",
+  "overall_summary_short": "2-3 sentence executive summary of the patient's situation",
+  "clinical_interpretation": "Thorough clinical narrative (6+ paragraphs for a comprehensive panel) evaluating every significant finding, the connections between them, how nutrition explains them, consequences if untreated, and expected outcome with intervention",
   "key_findings": [
-    { "severity": "critical|info|good", "icon": "! or ✓", "title": "Short title", "detail": "1-2 sentence clinical detail" }
+    { "severity": "critical|info|good", "icon": "! or ✓", "title": "Short title", "detail": "1-2 sentence clinical detail — include one finding per significant abnormality" }
   ],
   "risks": [
     { "area": "Condition", "level": "High|Medium|Low", "factors": "Specific markers and dietary factors" }
@@ -587,7 +591,7 @@ Provide complete clinical analysis as JSON.`
     }
     const totalUsage = {
       provider: 'anthropic',
-      model: String(model || ''),
+      model: `${extractionModel} + ${analysisModel}`,
       input_tokens: toNumber(extractionUsage.input_tokens) + toNumber(analysisUsage.input_tokens),
       output_tokens: toNumber(extractionUsage.output_tokens) + toNumber(analysisUsage.output_tokens),
       total_tokens: toNumber(extractionUsage.total_tokens) + toNumber(analysisUsage.total_tokens),
