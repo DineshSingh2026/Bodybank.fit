@@ -293,7 +293,9 @@ app.use(cors({
   origin: NODE_ENV === 'production' && ALLOWED_ORIGIN ? ALLOWED_ORIGIN.split(',').map(s => s.trim()) : true,
   credentials: true
 }));
-app.use(express.json({ limit: '20mb' }));
+// 40mb accommodates large blood-report uploads (base64 in JSON). The blood route
+// caps the decoded payload lower, aligned to Claude's ~32MB PDF request limit.
+app.use(express.json({ limit: '40mb' }));
 
 // Security headers
 app.use((req, res, next) => {
@@ -9104,6 +9106,17 @@ app.use((req, res) => {
 // ============ ERROR HANDLER ============
 app.use((err, req, res, next) => {
   console.error(`[ERROR] ${err.message}`);
+  // Oversized body (large blood-report upload) or aborted request — user/client
+  // caused, not a server fault. Return a clear message; do NOT fire the noisy alert.
+  if (err && (err.type === 'entity.too.large' || err.status === 413 || err.statusCode === 413)) {
+    return res.status(413).json({
+      success: false,
+      error: 'File is too large. Please upload a report under ~22 MB (compress or split scanned PDFs).'
+    });
+  }
+  if (err && (err.type === 'request.aborted' || err.code === 'ECONNABORTED')) {
+    return res.status(400).json({ success: false, error: 'Upload was interrupted. Please try again on a stable connection.' });
+  }
   notifyAsync('SERVER_ERROR', { action: `${req.method} ${req.originalUrl}`, error: err.message }, { noDedup: false });
   if (err instanceof SyntaxError) {
     return res.status(400).json({ error: 'Invalid JSON in request body' });

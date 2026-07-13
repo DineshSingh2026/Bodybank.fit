@@ -381,7 +381,10 @@ async function triggerBloodAnalysis(db, reportId, imageBase64, mimeType, userId)
 
   const model =
     (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5').trim();
-  const extractionMaxTokens = Math.max(700, parseInt(process.env.ANTHROPIC_BLOOD_EXTRACT_MAX_TOKENS || '1800', 10) || 1800);
+  // Large (e.g. 30+ page) lab reports have many markers — 1800 output tokens
+  // truncated the extraction JSON and dropped panels. 8000 gives ample room
+  // (Haiku 4.5 supports up to 64K output).
+  const extractionMaxTokens = Math.max(2000, parseInt(process.env.ANTHROPIC_BLOOD_EXTRACT_MAX_TOKENS || '8000', 10) || 8000);
   // The full 13-section report (incl. 7-day meal plan) needs headroom or it
   // truncates mid-JSON and fails to parse. 8000 default; retry bumps higher.
   const analysisMaxTokens = Math.max(4000, parseInt(process.env.ANTHROPIC_BLOOD_ANALYSIS_MAX_TOKENS || '8000', 10) || 8000);

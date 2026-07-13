@@ -12,7 +12,8 @@ const {
   resolveStoredUploadPath
 } = require('../services/bloodAnalysisService');
 
-const MAX_B64_CHARS = 22 * 1024 * 1024;
+// Keep decoded+base64 payload under Claude's ~32MB PDF request limit.
+const MAX_B64_CHARS = 30 * 1024 * 1024;
 const MAX_BLOOD_FILE_BYTES = Math.floor(MAX_B64_CHARS * 3 / 4);
 const BLOOD_AUTO_PROCESS_ON_UPLOAD = String(process.env.BLOOD_AUTO_PROCESS_ON_UPLOAD || 'false').toLowerCase() === 'true';
 const MAX_REPORTS_PER_USER = 3;
