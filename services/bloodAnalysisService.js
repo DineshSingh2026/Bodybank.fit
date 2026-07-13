@@ -104,14 +104,11 @@ function unwrapExtractionRoot(extracted) {
   return extracted;
 }
 
-async function callAnthropicMessages({ apiKey, model, maxTokens, system, userContent, assistantPrefill }) {
+async function callAnthropicMessages({ apiKey, model, maxTokens, system, userContent }) {
   const timeoutMs = Math.max(30000, parseInt(process.env.ANTHROPIC_BLOOD_REQUEST_TIMEOUT_MS || '240000', 10) || 240000);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new Error(`Anthropic request timed out after ${timeoutMs}ms`)), timeoutMs);
   const messages = [{ role: 'user', content: userContent }];
-  // Prefilling the assistant turn forces Claude to continue from that exact text,
-  // eliminating markdown fences / prose preambles that break JSON parsing.
-  if (assistantPrefill) messages.push({ role: 'assistant', content: assistantPrefill });
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     signal: controller.signal,
@@ -137,12 +134,13 @@ async function callAnthropicMessages({ apiKey, model, maxTokens, system, userCon
 
 /**
  * Runs the big clinical-analysis pass and returns robustly-parsed JSON.
- * Uses an assistant `{` prefill so the model returns pure JSON, retries once with
- * a larger token budget if the first attempt is truncated / unparseable, and sums
- * token usage across attempts so cost accounting stays honest.
+ * Parses defensively (handles ```json fences, prose preambles, trailing text),
+ * retries once with a larger token budget if the first attempt is truncated /
+ * unparseable, and sums token usage across attempts so cost accounting stays
+ * honest. No assistant prefill — some models reject it ("conversation must end
+ * with a user message"); robust parsing covers the same cases model-agnostically.
  */
 async function runAnalysisPassWithJson({ apiKey, model, maxTokens, system, userContent }) {
-  const prefill = '{';
   let inputTokens = 0;
   let outputTokens = 0;
   let lastData = null;
@@ -153,19 +151,14 @@ async function runAnalysisPassWithJson({ apiKey, model, maxTokens, system, userC
       model,
       maxTokens: attempts[i],
       system,
-      userContent,
-      assistantPrefill: prefill
+      userContent
     });
     lastData = data;
     inputTokens += toNumber(data && data.usage && data.usage.input_tokens, 0);
     outputTokens += toNumber(data && data.usage && data.usage.output_tokens, 0);
 
     const text = anthropicTextFromMessage(data);
-    // The API omits the prefilled `{` from the echoed turn — reattach it.
-    const parsed =
-      parseAnyJsonBlock(prefill + text) ||
-      parseAnyJsonBlock(text) ||
-      parseAnthropicJson(text);
+    const parsed = parseAnyJsonBlock(text) || parseAnthropicJson(text);
     if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
       return {
         aiReport: parsed,
