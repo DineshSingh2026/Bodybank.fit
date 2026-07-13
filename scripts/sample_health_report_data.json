@@ -1,0 +1,168 @@
+{
+  "reportId": "sample",
+  "user": {
+    "name": "Rahul Sharma",
+    "age": "29",
+    "gender": "Male",
+    "goal": "Muscle Gain & Improved Energy"
+  },
+  "blood_analysis": {
+    "panels": [
+      {
+        "name": "Complete Blood Count (CBC)",
+        "markers": [
+          { "name": "Haemoglobin", "value": "11.2", "unit": "g/dL", "reference": "13.5–17.5 g/dL", "status": "Low" },
+          { "name": "RBC Count", "value": "4.1", "unit": "million/mcL", "reference": "4.5–5.5", "status": "Low" },
+          { "name": "WBC Count", "value": "7,200", "unit": "/mcL", "reference": "4,500–11,000", "status": "Normal" },
+          { "name": "Platelets", "value": "245,000", "unit": "/mcL", "reference": "150,000–400,000", "status": "Normal" },
+          { "name": "MCV", "value": "72", "unit": "fL", "reference": "80–100 fL", "status": "Low" }
+        ]
+      },
+      {
+        "name": "Metabolic Panel",
+        "markers": [
+          { "name": "Fasting Blood Glucose", "value": "105", "unit": "mg/dL", "reference": "70–99 mg/dL", "status": "Elevated" },
+          { "name": "HbA1c", "value": "5.9", "unit": "%", "reference": "< 5.7%", "status": "Elevated" },
+          { "name": "LDL Cholesterol", "value": "128", "unit": "mg/dL", "reference": "< 100 mg/dL", "status": "Elevated" },
+          { "name": "HDL Cholesterol", "value": "42", "unit": "mg/dL", "reference": "> 40 mg/dL", "status": "Normal" },
+          { "name": "Triglycerides", "value": "165", "unit": "mg/dL", "reference": "< 150 mg/dL", "status": "Elevated" },
+          { "name": "Creatinine", "value": "0.9", "unit": "mg/dL", "reference": "0.7–1.2 mg/dL", "status": "Normal" }
+        ]
+      },
+      {
+        "name": "Vitamins & Minerals",
+        "markers": [
+          { "name": "Vitamin D (25-OH)", "value": "14", "unit": "ng/mL", "reference": "30–100 ng/mL", "status": "Deficient" },
+          { "name": "Vitamin B12", "value": "210", "unit": "pg/mL", "reference": "200–900 pg/mL", "status": "Low" },
+          { "name": "Ferritin", "value": "8", "unit": "ng/mL", "reference": "12–300 ng/mL", "status": "Low" },
+          { "name": "Zinc", "value": "68", "unit": "mcg/dL", "reference": "70–120 mcg/dL", "status": "Low" }
+        ]
+      },
+      {
+        "name": "Thyroid & Hormones",
+        "markers": [
+          { "name": "TSH", "value": "2.1", "unit": "mIU/L", "reference": "0.4–4.0 mIU/L", "status": "Normal" },
+          { "name": "Testosterone (Total)", "value": "380", "unit": "ng/dL", "reference": "300–1000 ng/dL", "status": "Normal" },
+          { "name": "Cortisol (AM)", "value": "22", "unit": "mcg/dL", "reference": "6–23 mcg/dL", "status": "Normal" }
+        ]
+      }
+    ]
+  },
+  "nutrition_analysis": {
+    "averages": { "calories": 1820, "protein": 68, "carbs": 245, "fat": 58 },
+    "meal_quality_score": 5.8,
+    "quality_interpretation": "Moderate — protein below target, high refined carbs observed",
+    "top_meals": [
+      { "name": "White Rice + Dal", "frequency": 6, "avg_calories": 480, "assessment": "Fair" },
+      { "name": "Chicken Biryani", "frequency": 3, "avg_calories": 620, "assessment": "Good" },
+      { "name": "Bread + Butter", "frequency": 5, "avg_calories": 280, "assessment": "Poor" },
+      { "name": "Banana Milkshake", "frequency": 4, "avg_calories": 340, "assessment": "Fair" }
+    ]
+  },
+  "ai_report": {
+    "overall_status": "Fair",
+    "overall_summary_short": "Multiple micronutrient deficiencies detected. Pre-diabetic indicators present. Immediate dietary intervention recommended.",
+    "clinical_interpretation": "Rahul presents with iron-deficiency anaemia (Hb 11.2, Ferritin 8, MCV 72). Fasting glucose 105 + HbA1c 5.9% confirms pre-diabetic range. Vitamin D is severely deficient at 14 ng/mL, directly impacting muscle synthesis, testosterone, and immunity. Zinc deficiency compounds hormonal concerns. Cross-referencing nutrition data: protein at 68g/day is severely below the 140–160g required for muscle gain. The diet is dominated by high-glycaemic refined carbohydrates explaining borderline glucose and triglycerides.",
+    "key_findings": [
+      { "icon": "!", "title": "Iron Deficiency Anaemia", "detail": "Hb 11.2, Ferritin 8, MCV 72 — confirmed anaemia. Fatigue, reduced VO2max, poor recovery.", "severity": "critical" },
+      { "icon": "!", "title": "Severe Vitamin D Deficiency", "detail": "14 ng/mL vs target 50–80. Impacts testosterone, muscle synthesis, immunity.", "severity": "critical" },
+      { "icon": "!", "title": "Pre-Diabetic Indicators", "detail": "Fasting glucose 105 + HbA1c 5.9% — immediate carbohydrate quality intervention required.", "severity": "critical" },
+      { "icon": "!", "title": "LDL & Triglycerides Elevated", "detail": "LDL 128, TG 165 — early cardiovascular risk. Manageable with dietary changes.", "severity": "warning" },
+      { "icon": "✓", "title": "Kidney & Thyroid Normal", "detail": "Creatinine, eGFR, TSH and Free T4 all within healthy range.", "severity": "good" }
+    ],
+    "risks": [
+      { "area": "Type 2 Diabetes", "level": "Medium", "factors": "Fasting glucose 105, HbA1c 5.9%, high refined carbs, low fibre" },
+      { "area": "Cardiovascular Disease", "level": "Medium", "factors": "LDL 128, Triglycerides 165, low HDL relative to LDL" },
+      { "area": "Muscle Gain / Performance", "level": "High", "factors": "Protein 68g/day, iron anaemia, Vitamin D & Zinc deficiency" },
+      { "area": "Chronic Fatigue", "level": "High", "factors": "Iron deficiency, Vitamin D deficiency, B12 borderline low" }
+    ],
+    "foods_include_intro": "These foods directly address your confirmed deficiencies: iron anaemia, Vitamin D, pre-diabetic glucose control, and low protein. Consume these daily.",
+    "foods_include": [
+      { "name": "Chicken Liver", "reason": "Highest bioavailable iron + B12 + Zinc — 100g provides ~14mg iron" },
+      { "name": "Whole Eggs", "reason": "Complete protein, Vitamin D (yolk), B12, and zinc in one food" },
+      { "name": "Spinach + Citrus", "reason": "Non-haem iron absorption increases 3x when paired with Vitamin C" },
+      { "name": "Salmon / Mackerel", "reason": "Vitamin D3, Omega-3 reduces triglycerides, high protein" },
+      { "name": "Masoor / Moong Dal", "reason": "Iron, protein, fibre — slows glucose absorption" },
+      { "name": "Sweet Potato", "reason": "Low GI carb with fibre — better glucose response than white rice" },
+      { "name": "Pumpkin Seeds", "reason": "Best plant zinc source — 30g provides 30% daily zinc" },
+      { "name": "Greek Yoghurt", "reason": "High protein, probiotics improve iron absorption" }
+    ],
+    "foods_avoid_intro": "The following foods directly worsen your current blood markers and should be minimised during the correction phase.",
+    "foods_avoid": [
+      { "name": "White Rice (large portions)", "reason": "High GI — spikes glucose. Switch to small portions + brown rice or millets." },
+      { "name": "White Bread / Maida products", "reason": "Refined carbs elevate triglycerides and worsen pre-diabetic pattern." },
+      { "name": "Tea / Coffee with meals", "reason": "Tannins reduce iron absorption by up to 70%. Avoid 1 hour around iron-rich meals." },
+      { "name": "Sweetened beverages", "reason": "Fructose directly raises triglycerides. Replace with water + lime." },
+      { "name": "Fried snacks", "reason": "Trans fats raise LDL and increase cardiovascular risk." }
+    ],
+    "meal_plan_intro": "Calibrated to correct iron deficiency, normalise blood glucose, and achieve protein intake for muscle gain. Target: 2,200–2,400 kcal/day with 140–160g protein.",
+    "weekly_meal_plan": [
+      { "day": "Monday", "total_calories": 2240, "total_protein": 148, "meals": [
+        { "type": "Breakfast", "meal": "3 whole eggs scrambled + 2 multigrain toast + 1 orange", "calories": 420 },
+        { "type": "Mid-Morning", "meal": "30g pumpkin seeds + Greek yoghurt 150g", "calories": 220 },
+        { "type": "Lunch", "meal": "Brown rice 1 cup + chicken curry 200g + spinach sabzi", "calories": 680 },
+        { "type": "Snack", "meal": "Handful almonds + 1 banana", "calories": 240 },
+        { "type": "Dinner", "meal": "Grilled salmon 150g + sweet potato + salad", "calories": 520 }
+      ]},
+      { "day": "Tuesday", "total_calories": 2180, "total_protein": 142, "meals": [
+        { "type": "Breakfast", "meal": "Moong dal chilla 3 pieces + mint chutney + lime water", "calories": 380 },
+        { "type": "Lunch", "meal": "Rajma 1 cup + 2 whole wheat rotis + curd", "calories": 620 },
+        { "type": "Snack", "meal": "Boiled eggs x2 + walnuts 4 halves", "calories": 230 },
+        { "type": "Dinner", "meal": "Chicken liver stir-fry 100g + broccoli + 1 roti", "calories": 520 }
+      ]},
+      { "day": "Wednesday", "total_calories": 2260, "total_protein": 151, "meals": [
+        { "type": "Breakfast", "meal": "Oats porridge 80g + whey protein 1 scoop + berries", "calories": 430 },
+        { "type": "Lunch", "meal": "Grilled chicken breast 200g + millet khichdi + salad", "calories": 650 },
+        { "type": "Snack", "meal": "Sweet potato chaat + lime juice", "calories": 220 },
+        { "type": "Dinner", "meal": "Egg bhurji 3 eggs + 2 whole wheat rotis + dal", "calories": 610 }
+      ]},
+      { "day": "Thursday", "total_calories": 2200, "total_protein": 145, "meals": [
+        { "type": "Breakfast", "meal": "Idli 3 pieces + sambar + coconut chutney", "calories": 360 },
+        { "type": "Lunch", "meal": "Fish curry mackerel 150g + brown rice 1 cup + raita", "calories": 660 },
+        { "type": "Snack", "meal": "Pumpkin seed trail mix 40g", "calories": 220 },
+        { "type": "Dinner", "meal": "Tofu stir-fry 200g + quinoa 80g + steamed greens", "calories": 560 }
+      ]},
+      { "day": "Friday", "total_calories": 2300, "total_protein": 158, "meals": [
+        { "type": "Breakfast", "meal": "4 egg omelette + whole wheat toast + avocado", "calories": 480 },
+        { "type": "Lunch", "meal": "Chicken biryani brown rice 300g + mixed salad + curd", "calories": 680 },
+        { "type": "Snack", "meal": "Roasted chickpeas 50g + green tea", "calories": 190 },
+        { "type": "Dinner", "meal": "Lamb keema 150g + 2 rotis + dahi", "calories": 580 }
+      ]},
+      { "day": "Saturday", "total_calories": 2150, "total_protein": 138, "meals": [
+        { "type": "Breakfast", "meal": "Smoothie: spinach + banana + protein powder + almond milk", "calories": 380 },
+        { "type": "Lunch", "meal": "Dal makhani + 2 rotis + grilled chicken 100g + salad", "calories": 640 },
+        { "type": "Dinner", "meal": "Prawn masala 200g + vegetable pulao + salad", "calories": 540 }
+      ]},
+      { "day": "Sunday", "total_calories": 2100, "total_protein": 135, "meals": [
+        { "type": "Breakfast", "meal": "Poha with peanuts + boiled eggs x2 + lime water", "calories": 420 },
+        { "type": "Lunch", "meal": "Multigrain paratha 2 + curd + boiled eggs 2", "calories": 550 },
+        { "type": "Dinner", "meal": "Chicken soup homemade + 1 roti + salad", "calories": 480 }
+      ]}
+    ],
+    "supplement_intro": "Based on confirmed deficiencies, the following supplements are clinically indicated. Begin under medical supervision.",
+    "supplements": [
+      { "name": "Iron (Ferrous Sulphate)", "dose": "60mg elemental", "timing": "Morning, empty stomach + Vit C", "reason": "Iron deficiency anaemia. Ferritin 8 ng/mL" },
+      { "name": "Vitamin D3", "dose": "60,000 IU/wk x 8wks, then 2,000 IU/day", "timing": "With fatty meal", "reason": "Severe deficiency 14 ng/mL" },
+      { "name": "Vitamin B12 (Methylcobalamin)", "dose": "500–1000 mcg", "timing": "Morning with food", "reason": "Borderline B12, support energy and RBC" },
+      { "name": "Zinc (Zinc Picolinate)", "dose": "25–30mg", "timing": "With evening meal", "reason": "Zinc deficiency — testosterone, protein synthesis" },
+      { "name": "Omega-3 (Fish Oil)", "dose": "2–3g EPA+DHA", "timing": "With lunch or dinner", "reason": "Reduce triglycerides 165, cardiac protection" },
+      { "name": "Whey Protein", "dose": "25–30g", "timing": "Post-workout or morning", "reason": "Bridge protein gap 68g actual vs 145g target" }
+    ],
+    "lifestyle": {
+      "sleep": "Target 7.5–8.5 hours. Iron deficiency impairs sleep quality. Avoid screens 1 hour before bed. Magnesium glycinate 200mg before sleep improves muscle recovery.",
+      "stress": "Cortisol near upper limit. Chronic stress worsens glucose and impairs iron absorption. 10–15 min daily breathwork or meditation recommended.",
+      "exercise": "Moderate resistance training 4x/week. Avoid high-intensity until Hb reaches 12.5 g/dL — anaemia limits oxygen delivery. Prioritise compound lifts: squats, rows, deadlifts.",
+      "hydration": "Minimum 3–3.5 litres/day. Supports blood viscosity, kidney filtration, and reduces false glucose elevation.",
+      "recovery": "Post-workout: consume iron + protein meal within 60 minutes. Vitamin C must accompany iron meals. Avoid tea/coffee within 1 hour of meals."
+    },
+    "progress_intro": "A structured retest schedule confirms response to supplementation and dietary changes. Do not delay these — early correction prevents chronic disease.",
+    "retest_schedule": [
+      { "test": "CBC — Haemoglobin & Ferritin", "when": "8 weeks", "reason": "Monitor iron supplementation. Target Hb > 13 g/dL" },
+      { "test": "Vitamin D (25-OH)", "when": "3 months", "reason": "After high-dose weekly supplementation x8 weeks" },
+      { "test": "Fasting Glucose + HbA1c", "when": "3 months", "reason": "Confirm dietary changes reducing pre-diabetic markers" },
+      { "test": "Lipid Panel", "when": "3 months", "reason": "Omega-3 + diet should reduce TG below 150" },
+      { "test": "Zinc + B12", "when": "3 months", "reason": "Confirm therapeutic supplementation levels" },
+      { "test": "Full Blood Panel", "when": "6 months", "reason": "Comprehensive reassessment of all markers" }
+    ]
+  }
+}

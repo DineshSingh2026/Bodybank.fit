@@ -1,0 +1,6 @@
+# Python dependency for the branded blood/health report PDF generator
+# (scripts/generate_health_report.py). No AI runs in Python — ReportLab only.
+# Install in production so the styled template renders; otherwise the app
+# falls back to a plain unbranded PDF (or fails loudly if
+# STRICT_TEMPLATE_PDF_ONLY=true).
+reportlab>=4.2,<6

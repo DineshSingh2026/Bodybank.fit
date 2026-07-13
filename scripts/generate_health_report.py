@@ -457,10 +457,12 @@ def build_report(data, output_path):
     ]
     for cat_name, cat_text, cat_color in cats:
         if cat_text:
+            # Label column must fit "Stress Management" on word boundaries — a
+            # narrow width breaks it mid-word (Stres/s Man/agem/ent).
             lt = Table([[
                 p(cat_name, fontName='Helvetica-Bold', fontSize=10, textColor=cat_color, leading=14),
                 p(cat_text, fontSize=10, textColor=TEXT, leading=14, alignment=TA_JUSTIFY),
-            ]], colWidths=[50, CW-50])
+            ]], colWidths=[30*mm, CW - 30*mm])
             lt.setStyle(TableStyle([
                 ('BACKGROUND',(0,0),(-1,-1),DARK), ('BOX',(0,0),(-1,-1),0.3,BORDER),
                 ('LINEBEFORE',(0,0),(0,-1),3,cat_color),
@@ -509,13 +511,24 @@ def build_report(data, output_path):
 
 if __name__ == '__main__':
     import argparse
+    import sys
+    # Force UTF-8 on stdio so dashes/symbols in status output never corrupt,
+    # regardless of the host's default locale (Windows defaults to cp1252).
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding='utf-8')
+        except Exception:
+            pass
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', help='Path to JSON data file')
     parser.add_argument('--output', help='Output PDF path')
     args = parser.parse_args()
 
     if args.data and args.output:
-        with open(args.data, 'r') as f:
+        # Explicit UTF-8: Node writes the payload as UTF-8, but Python's open()
+        # defaults to the platform locale (cp1252 on Windows), which mangles
+        # en/em-dashes (–—) and check/cross marks (✓✗) into mojibake.
+        with open(args.data, 'r', encoding='utf-8') as f:
             data = json.load(f)
         build_report(data, args.output)
         print(f'PDF generated: {args.output}')

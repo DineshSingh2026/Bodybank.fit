@@ -6133,7 +6133,7 @@ app.get('/api/operator/clients/:id', verifyToken, requireOperator, async (req, r
        FROM users WHERE id = ? AND role = 'user'`, [id]);
     if (!user) return res.status(404).json({ error: 'Client not found' });
 
-    const [daily, workouts, weights, nutritionDaily, meals, strength, hydration, sunday, bodyRows] = await Promise.all([
+    const [daily, workouts, weights, nutritionDaily, meals, strength, hydration, sunday, bodyRows, bloodReports] = await Promise.all([
       queryAll(`SELECT checkin_date, steps, water_ml, protein_g, sleep_hours, COALESCE(is_freeze,FALSE) AS is_freeze, created_at FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 21`, [id]),
       // Full workout detail incl. per-exercise weight (session_lifts) & reps (session_reps).
       queryAll(`SELECT workout_name, workout_type, duration_seconds, feedback, session_lifts, session_reps, bench_kg, squat_kg, deadlift_kg, intensity, energy_level, workout_completed, session_date, created_at FROM workout_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 24`, [id]),
@@ -6145,7 +6145,9 @@ app.get('/api/operator/clients/:id', verifyToken, requireOperator, async (req, r
       queryAll(`SELECT weight, body_fat, strength_bench, strength_squat, strength_deadlift, created_at FROM progress_logs WHERE user_id = ? ORDER BY created_at ASC LIMIT 120`, [id]),
       queryAll(`SELECT amount_ml, glasses, created_at FROM hydration_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 14`, [id]),
       queryAll(`SELECT full_name, plan, total_weight_loss, training_go, nutrition_go, sleep, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at DESC LIMIT 6`, [id]),
-      queryAll(`SELECT snapshot_date, photo_front, photo_side, photo_back, bodyweight_kg, waist_cm, measurements, notes, created_at FROM body_snapshots WHERE user_id = ? AND shared_with_manager = TRUE ORDER BY snapshot_date DESC, id DESC LIMIT 12`, [id])
+      queryAll(`SELECT snapshot_date, photo_front, photo_side, photo_back, bodyweight_kg, waist_cm, measurements, notes, created_at FROM body_snapshots WHERE user_id = ? AND shared_with_manager = TRUE ORDER BY snapshot_date DESC, id DESC LIMIT 12`, [id]),
+      // Blood reports (up to 3 slots) for the client-profile snapshot + download.
+      queryAll(`SELECT id, created_at, status, sent_to_user, pdf_path, ai_report->>'overall_status' AS overall_status, extracted_blood_data FROM blood_analysis_reports WHERE user_id = ? ORDER BY created_at ASC LIMIT 3`, [id])
     ]);
 
     res.json({
@@ -6158,7 +6160,8 @@ app.get('/api/operator/clients/:id', verifyToken, requireOperator, async (req, r
       strength: strength || [],
       hydration: hydration || [],
       sunday_checkins: sunday || [],
-      body_snapshots: bodyRows || []
+      body_snapshots: bodyRows || [],
+      blood: bloodReports || []
     });
   } catch (e) {
     console.error('[operator client detail]', e.message);

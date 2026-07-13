@@ -15,6 +15,7 @@ const {
 const MAX_B64_CHARS = 22 * 1024 * 1024;
 const MAX_BLOOD_FILE_BYTES = Math.floor(MAX_B64_CHARS * 3 / 4);
 const BLOOD_AUTO_PROCESS_ON_UPLOAD = String(process.env.BLOOD_AUTO_PROCESS_ON_UPLOAD || 'false').toLowerCase() === 'true';
+const MAX_REPORTS_PER_USER = 3;
 
 function mapReportRow(r) {
   if (!r) return null;
@@ -82,6 +83,16 @@ function createBloodRouter(deps) {
       const b64 = bloodReportBase64 ? String(bloodReportBase64).replace(/\s/g, '') : '';
       if (!b64) return res.status(400).json({ error: 'No file provided' });
       if (b64.length > MAX_B64_CHARS) return res.status(400).json({ error: 'File payload too large' });
+
+      // Users get up to MAX_REPORTS_PER_USER upload slots (Blood Report 1/2/3).
+      // Check before spending AI validation tokens.
+      const existingRows = await queryAll(`SELECT id FROM blood_analysis_reports WHERE user_id = ?`, [userId]);
+      if ((existingRows || []).length >= MAX_REPORTS_PER_USER) {
+        return res.status(400).json({
+          success: false,
+          error: `You can upload up to ${MAX_REPORTS_PER_USER} blood reports. Please remove one before uploading another.`
+        });
+      }
 
       const mime = String(bloodReportMimeType || 'image/jpeg').slice(0, 80);
       const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
@@ -156,8 +167,9 @@ function createBloodRouter(deps) {
     try {
       const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [req.params.reportId]);
       if (!report) return res.status(404).json({ error: 'Not found' });
-      const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
-      if (report.user_id !== req.user.id && !isAdmin) return res.status(403).json({ error: 'Forbidden' });
+      // Owner, admins, and read-only operators may download the branded report.
+      const privileged = ['admin', 'superadmin', 'operator'].includes(req.user.role);
+      if (report.user_id !== req.user.id && !privileged) return res.status(403).json({ error: 'Forbidden' });
       const pdfPath = await ensureHealthReportPdf(db, req.params.reportId);
       if (!pdfPath || !fs.existsSync(pdfPath)) {
         const st = String(report.status || '').toLowerCase();
@@ -182,6 +194,30 @@ function createBloodRouter(deps) {
       res.json({ reports });
     } catch (e) {
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Owner (or admin) removes a report — frees an upload slot so the user can
+  // upload a fresh one. Best-effort cleanup of the stored lab file + PDF.
+  router.delete('/:reportId', async (req, res) => {
+    try {
+      const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [req.params.reportId]);
+      if (!report) return res.status(404).json({ success: false, error: 'Report not found' });
+      const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
+      if (report.user_id !== req.user.id && !isAdmin) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
+      [report.blood_report_file_path, report.pdf_path].forEach((fp) => {
+        try {
+          const resolved = fp ? resolveStoredUploadPath(String(fp).trim()) : null;
+          if (resolved && fs.existsSync(resolved)) fs.unlinkSync(resolved);
+        } catch (_) {}
+      });
+      await run(`DELETE FROM blood_analysis_reports WHERE id = ?`, [req.params.reportId]);
+      res.json({ success: true });
+    } catch (e) {
+      console.error('[blood delete]', e.message);
+      res.status(500).json({ success: false, error: e.message || 'Delete failed' });
     }
   });
 

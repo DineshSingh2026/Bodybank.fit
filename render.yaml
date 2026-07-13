@@ -5,6 +5,18 @@ services:
   - type: web
     name: bodybank-fit
     env: node
-    buildCommand: npm ci --omit=dev
+    # Render's native Node image ships Python 3 + pip. Install ReportLab so the
+    # branded blood/health report PDF (scripts/generate_health_report.py) renders
+    # exactly like the sample; --user keeps it on the persistent home dir that is
+    # also present at runtime.
+    buildCommand: python3 -m pip install --user --upgrade -r requirements.txt && npm ci --omit=dev
     startCommand: npm start
     healthCheckPath: /health
+    envVars:
+      # Executable the Node PDF service spawns (services/pdfService.js).
+      - key: PYTHON_PATH
+        value: python3
+      # Fail loudly if the ReportLab template can't render, instead of silently
+      # emitting the plain unbranded PDFKit fallback. Keeps output "same-as-is".
+      - key: STRICT_TEMPLATE_PDF_ONLY
+        value: "true"

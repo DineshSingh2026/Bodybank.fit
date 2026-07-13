@@ -5932,7 +5932,7 @@ button.bb-today-pill{cursor:pointer}
         <section class="my-health-reports" id="myHealthReportsSectionDesktop" aria-label="My health reports (desktop)" style="margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
             <h3 style="font-family:Syne,system-ui,sans-serif;font-size:1.05rem;font-weight:700;margin:0">My health reports</h3>
-            <button type="button" onclick="openBloodUploadPicker()" class="nav-login" style="padding:8px 14px;font-size:12px">+ Upload report</button>
+            <button type="button" id="bloodUploadHeaderBtnDesktop" onclick="openBloodUploadPicker()" class="nav-login" style="padding:8px 14px;font-size:12px">+ Upload report</button>
             <input type="file" id="bloodUploadInputHomeDesktop" accept=".pdf,image/*" style="display:none" onchange="uploadUserBloodReport(event)" />
           </div>
           <div id="myReportsListDesktop"></div>
@@ -6418,7 +6418,7 @@ button.bb-today-pill{cursor:pointer}
       <section class="my-health-reports" id="myHealthReportsSection" aria-label="My health reports" style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
           <h3 style="font-family:Syne,system-ui,sans-serif;font-size:1.05rem;font-weight:700;margin:0">My health reports</h3>
-          <button type="button" onclick="openBloodUploadPicker()" class="nav-login" style="padding:8px 14px;font-size:12px">+ Upload report</button>
+          <button type="button" id="bloodUploadHeaderBtn" onclick="openBloodUploadPicker()" class="nav-login" style="padding:8px 14px;font-size:12px">+ Upload report</button>
           <input type="file" id="bloodUploadInputHome" accept=".pdf,image/*" style="display:none" onchange="uploadUserBloodReport(event)" />
         </div>
         <div id="myReportsList"></div>
@@ -8593,6 +8593,15 @@ button.bb-today-pill{cursor:pointer}
 .op-act-btn{flex:1;min-width:130px;padding:11px 14px;border-radius:10px;border:none;background:linear-gradient(90deg,#c8a44e,#e0c074);color:#1a1206;font-weight:700;font-size:13px;cursor:pointer;transition:filter .15s}
 .op-act-btn:hover{filter:brightness(1.08)}
 .op-act-btn.ghost{background:transparent;border:1px solid rgba(200,164,78,0.5);color:var(--gold,#c8a44e)}
+/* Unified action bar (client modal) — aligned rows of equal-height buttons */
+.op-actbar{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
+.op-actrow{display:flex;gap:8px}
+.op-btn{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 10px;border-radius:10px;font-size:13px;font-weight:700;line-height:1;white-space:nowrap;text-decoration:none;cursor:pointer;border:1px solid transparent;transition:filter .15s}
+.op-btn:hover{filter:brightness(1.1)}
+.op-btn.wa{background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.4);color:#25d366}
+.op-btn.line{background:rgba(200,164,78,0.08);border-color:rgba(200,164,78,0.4);color:var(--gold,#c8a44e)}
+.op-btn.primary{background:linear-gradient(90deg,#c8a44e,#e0c074);color:#1a1206}
+.op-btn.ghost{background:transparent;border-color:rgba(200,164,78,0.5);color:var(--gold,#c8a44e)}
 /* Weekly report block */
 .op-wk-head{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px 16px;margin-bottom:12px}
 .op-wk-score{font-family:'Syne',sans-serif;font-size:30px;font-weight:700;color:var(--gold,#c8a44e);line-height:1}
@@ -21930,6 +21939,8 @@ async function bbProcessQueuedSignupBloodUpload() {
   }
 }
 
+var BLOOD_REPORT_SLOTS = 3;
+
 function loadMyHealthReports() {
   var targets = [
     document.getElementById('myReportsList'),
@@ -21947,60 +21958,75 @@ function loadMyHealthReports() {
         });
         return;
       }
-      var reports = (data && data.reports) || [];
-      if (!reports.length) {
-        var emptyHtml =
-          '<div style="text-align:center;padding:1.5rem;background:var(--surface,#161a1e);border-radius:12px;border:1px solid rgba(255,255,255,0.06)">' +
-          '<div style="font-size:1.75rem;margin-bottom:6px">🩺</div><p style="margin:0 0 10px;font-weight:600">No health reports yet</p>' +
-          '<p class="form-hint" style="margin:0 0 12px">Upload a lab report for AI analysis (coach review before email).</p>' +
-          '<button type="button" class="form-submit" style="width:auto;padding:10px 18px" onclick="openBloodUploadPicker()">Upload blood report</button></div>';
-        targets.forEach(function (el) {
-          el.innerHTML = emptyHtml;
-        });
-        return;
-      }
+      var reports = ((data && data.reports) || []).slice();
+      // Stable slot order — oldest upload is always Blood Report 1.
+      reports.sort(function (a, b) { return new Date(a.createdAt || 0) - new Date(b.createdAt || 0); });
       var statusColor = { Good: '#3dd68c', Excellent: '#3dd68c', Fair: '#f5a623', Poor: '#ff5c5c', Critical: '#ff5c5c' };
-      var reportsHtml = reports
-        .map(function (r) {
-          var ar = r.aiReport || {};
-          var rid = String(r._id || r.id || '');
-          var dt = r.createdAt ? new Date(r.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : '';
-          var titleCol = r.status === 'complete' ? statusColor[ar.overall_status] || 'var(--text,#f0ede8)' : '#f5a623';
-          var titleText = r.status === 'complete' ? ar.overall_status || 'Complete' : 'Processing…';
-          var sum = r.status === 'complete' && ar.overall_summary_short ? escapeHtml(String(ar.overall_summary_short).slice(0, 120)) + '…' : '';
-          var btn =
-            r.status === 'complete' && r.sentToUser
-              ? '<button type="button" class="form-submit" style="padding:8px 14px;font-size:12px" onclick="userBloodDownloadPdf(\'' +
-                rid.replace(/'/g, "\\'") +
-                '\')">Download PDF</button>'
-              : r.status === 'complete'
-                ? '<span class="form-hint" style="background:rgba(245,166,35,0.12);padding:5px 10px;border-radius:6px;font-size:11px">Pending coach review</span>'
-                : '<span class="form-hint" style="font-size:11px">Analysing…</span>';
-          return (
-            '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;padding:12px;margin-bottom:8px;background:var(--surface,#161a1e);border-radius:10px;border:1px solid rgba(255,255,255,0.06)">' +
-            '<div style="flex:1;min-width:140px"><div class="form-hint" style="margin:0 0 4px">' +
-            escapeHtml(dt) +
-            '</div><div style="font-weight:700;color:' +
-            titleCol +
-            '">' +
-            escapeHtml(titleText) +
-            '</div>' +
-            (sum ? '<div class="form-hint" style="margin-top:4px;line-height:1.4">' + sum + '</div>' : '') +
-            '</div><div>' +
-            btn +
-            '</div></div>'
-          );
-        })
-        .join('');
-      targets.forEach(function (el) {
-        el.innerHTML = reportsHtml;
-      });
+      var html = '<div style="display:grid;gap:10px">';
+      for (var i = 0; i < BLOOD_REPORT_SLOTS; i += 1) {
+        html += bbBloodSlotCard(i + 1, reports[i], statusColor);
+      }
+      html += '</div>';
+      targets.forEach(function (el) { el.innerHTML = html; });
+      bbToggleBloodUploadBtns(reports.length < BLOOD_REPORT_SLOTS);
     })
     .catch(function () {
       targets.forEach(function (el) {
         el.innerHTML = '<p class="form-hint" style="color:#e05050">Could not load reports.</p>';
       });
     });
+}
+
+function bbBloodSlotCard(n, r, statusColor) {
+  var head = '<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted,#8a8880);margin-bottom:8px">Blood Report ' + n + '</div>';
+  if (!r) {
+    return '<div style="padding:16px;background:var(--surface,#161a1e);border:1px dashed rgba(255,255,255,0.14);border-radius:12px;text-align:center">' +
+      head +
+      '<div style="font-size:1.5rem;margin-bottom:6px;opacity:.7">🩸</div>' +
+      '<p class="form-hint" style="margin:0 0 10px">No report uploaded</p>' +
+      '<button type="button" class="form-submit" style="width:auto;padding:9px 16px;font-size:12px" onclick="openBloodUploadPicker()">Upload report ' + n + '</button></div>';
+  }
+  var ar = r.aiReport || {};
+  var rid = String(r._id || r.id || '').replace(/'/g, "\\'");
+  var dt = r.createdAt ? new Date(r.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  var complete = r.status === 'complete';
+  var titleCol = complete ? (statusColor[ar.overall_status] || 'var(--text,#f0ede8)') : '#f5a623';
+  var titleText = complete ? (ar.overall_status || 'Complete') : 'Processing…';
+  var sum = complete && ar.overall_summary_short ? escapeHtml(String(ar.overall_summary_short).slice(0, 120)) + '…' : '';
+  var action =
+    complete && r.sentToUser
+      ? '<button type="button" class="form-submit" style="padding:8px 14px;font-size:12px" onclick="userBloodDownloadPdf(\'' + rid + '\')">Download PDF</button>'
+      : complete
+        ? '<span class="form-hint" style="background:rgba(245,166,35,0.12);padding:5px 10px;border-radius:6px;font-size:11px">Pending coach review</span>'
+        : '<span class="form-hint" style="font-size:11px">Analysing…</span>';
+  var del = '<button type="button" title="Remove report" aria-label="Remove report" onclick="userBloodDeleteReport(\'' + rid + '\')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:11px;padding:4px 2px">✕ Remove</button>';
+  return '<div style="padding:14px;background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.08);border-radius:12px">' +
+    head +
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">' +
+    '<div style="flex:1;min-width:140px"><div class="form-hint" style="margin:0 0 4px">' + escapeHtml(dt) + '</div>' +
+    '<div style="font-weight:700;color:' + titleCol + '">' + escapeHtml(titleText) + '</div>' +
+    (sum ? '<div class="form-hint" style="margin-top:4px;line-height:1.4">' + sum + '</div>' : '') +
+    '</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">' + action + del + '</div>' +
+    '</div></div>';
+}
+
+function userBloodDeleteReport(reportId) {
+  if (!reportId) return;
+  if (!confirm('Remove this blood report? This frees the slot so you can upload another.')) return;
+  apiCall('DELETE', '/api/blood/' + encodeURIComponent(reportId))
+    .then(function (d) {
+      if (d && d.error) { showPopup('Remove', d.error, '', 'OK', null, 'error'); return; }
+      if (typeof nutritionShowToast === 'function') nutritionShowToast('Report removed.', 'success');
+      loadMyHealthReports();
+    })
+    .catch(function () { showPopup('Remove', 'Could not remove report.', '', 'OK', null, 'error'); });
+}
+
+function bbToggleBloodUploadBtns(show) {
+  ['bloodUploadHeaderBtn', 'bloodUploadHeaderBtnDesktop'].forEach(function (idv) {
+    var b = document.getElementById(idv);
+    if (b) b.style.display = show ? '' : 'none';
+  });
 }
 
 function uploadUserBloodReport(ev) {
@@ -24754,13 +24780,18 @@ async function openOperatorClient(id) {
     window._opCurrentClient = { id: id, name: name };
     var nEl = document.getElementById('opModalName'); if (nEl) nEl.textContent = name;
     var eEl = document.getElementById('opModalEmail'); if (eEl) eEl.textContent = u.email || '';
-    var actions = '<div class="op-modal-actions"><button type="button" class="op-act-btn" onclick="opComposeReminder()">💬 Send reminder</button><button type="button" class="op-act-btn ghost" onclick="opComposeShare()">📤 Share to Admin</button></div>';
+    var actions = '<div class="op-actbar">'
+      + opClientContactBtns(u)
+      + '<div class="op-actrow"><button type="button" class="op-btn primary" onclick="opComposeReminder()">💬 Send reminder</button><button type="button" class="op-btn ghost" onclick="opComposeShare()">📤 Share to Admin</button></div>'
+      + '</div>';
     var tabs = '<div class="op-dtabs" id="opDetailTabs">'
-      + '<button type="button" class="op-dtab active" data-dtab="overview" onclick="opDetailTab(\'overview\')">Overview</button>'
+      + '<button type="button" class="op-dtab active" data-dtab="profile" onclick="opDetailTab(\'profile\')">Profile</button>'
+      + '<button type="button" class="op-dtab" data-dtab="overview" onclick="opDetailTab(\'overview\')">Overview</button>'
       + '<button type="button" class="op-dtab" data-dtab="nutrition" onclick="opDetailTab(\'nutrition\')">Nutrition</button>'
       + '<button type="button" class="op-dtab" data-dtab="workouts" onclick="opDetailTab(\'workouts\')">Workouts</button>'
       + '<button type="button" class="op-dtab" data-dtab="body" onclick="opDetailTab(\'body\')">Body</button></div>';
-    var content = '<div id="opDetail-overview">' + opBuildOverview(d) + '</div>'
+    var content = '<div id="opDetail-profile">' + opBuildProfile(d) + '</div>'
+      + '<div id="opDetail-overview" style="display:none">' + opBuildOverview(d) + '</div>'
       + '<div id="opDetail-nutrition" style="display:none">' + opBuildNutrition(d) + '</div>'
       + '<div id="opDetail-workouts" style="display:none">' + opBuildWorkouts(d) + '</div>'
       + '<div id="opDetail-body" style="display:none">' + opBuildBody(d) + '</div>';
@@ -24768,13 +24799,13 @@ async function openOperatorClient(id) {
       body.innerHTML = actions + tabs + content;
       body.scrollTop = 0;
       window._opDetailDrawn = {};
-      opDetailTab('overview');
+      opDetailTab('profile');
     }
   } catch (e) { if (body) body.innerHTML = '<div class="op-empty">Could not load client.</div>'; }
 }
 function opDetailTab(tab) {
   document.querySelectorAll('#opDetailTabs .op-dtab').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-dtab') === tab); });
-  ['overview', 'nutrition', 'workouts', 'body'].forEach(function (t) { var el = document.getElementById('opDetail-' + t); if (el) el.style.display = (t === tab) ? 'block' : 'none'; });
+  ['profile', 'overview', 'nutrition', 'workouts', 'body'].forEach(function (t) { var el = document.getElementById('opDetail-' + t); if (el) el.style.display = (t === tab) ? 'block' : 'none'; });
   var mb = document.getElementById('opModalBody'); if (mb) mb.scrollTop = 0;
   window._opDetailDrawn = window._opDetailDrawn || {};
   if (window._opDetailDrawn[tab]) return;
@@ -24785,6 +24816,126 @@ function opDetailTab(tab) {
   } else if (tab === 'nutrition') opDrawNutritionChart();
   else if (tab === 'workouts') opDrawStrengthChart();
   else if (tab === 'body') { opDrawBodyWeightChart(); opLoadMuscleRanking(); }
+}
+// ---- Client Profile: one compact snapshot + direct contact (operator only) ----
+function opClientContactBtns(u) {
+  u = u || {};
+  var phone = u.phone || '';
+  var wa = opWa(phone);
+  var first = String(u.first_name || '').trim();
+  var msg = encodeURIComponent('Hi ' + (first || 'there') + ', quick follow-up on your training — ');
+  var a = '';
+  if (wa) a += '<a class="op-btn wa" href="' + wa + '?text=' + msg + '" target="_blank" rel="noopener">💬 WhatsApp</a>';
+  if (phone) a += '<a class="op-btn line" href="tel:' + escapeHtml(String(phone).replace(/[^0-9+]/g, '')) + '">📞 Call</a>';
+  if (u.email) a += '<a class="op-btn line" href="mailto:' + escapeHtml(u.email) + '">✉️ Email</a>';
+  return a ? '<div class="op-actrow">' + a + '</div>' : '';
+}
+function opAge(dob) {
+  if (!dob) return null;
+  var t = new Date(dob).getTime();
+  if (isNaN(t)) return null;
+  var a = Math.floor((Date.now() - t) / (365.25 * 86400000));
+  return (a > 0 && a < 130) ? a : null;
+}
+function opKV(l, r) {
+  return r ? '<div class="op-line"><span class="op-line-l">' + escapeHtml(l) + '</span><span class="op-line-r">' + r + '</span></div>' : '';
+}
+function opBloodFlags(ex) {
+  ex = opParse(ex);
+  var out = [];
+  if (ex && Array.isArray(ex.panels)) {
+    ex.panels.forEach(function (p) {
+      (Array.isArray(p.markers) ? p.markers : []).forEach(function (m) {
+        var st = String(m.status || '').toLowerCase();
+        var fl = String(m.flag || '').trim().toUpperCase();
+        if ((st && st !== 'normal' && st !== 'optimal') || fl === 'H' || fl === 'L') out.push(m);
+      });
+    });
+  }
+  return out;
+}
+function opBuildProfile(d) {
+  var u = d.user || {}, wts = d.weights || [], str = d.strength || [], wo = d.workouts || [], now = Date.now();
+  var lw = (wts.length && wts[0].weight_kg != null) ? wts[0].weight_kg
+    : ((d.body_snapshots && d.body_snapshots[0] && d.body_snapshots[0].bodyweight_kg != null) ? d.body_snapshots[0].bodyweight_kg : null);
+  var trend = '';
+  if (wts.length >= 2 && wts[0].weight_kg != null && wts[1].weight_kg != null) {
+    var diff = Math.round((wts[0].weight_kg - wts[1].weight_kg) * 10) / 10;
+    if (diff !== 0) trend = (diff > 0 ? '▲ +' : '▼ ') + diff + 'kg';
+  }
+  var bf = null;
+  for (var i = str.length - 1; i >= 0; i--) { if (str[i].body_fat != null) { bf = str[i].body_fat; break; } }
+  var wo7 = wo.filter(function (w) { var t = new Date(w.session_date || w.created_at).getTime(); return !isNaN(t) && t >= now - 7 * 86400000; }).length;
+  var age = opAge(u.dob);
+
+  var h = '<div class="op-mstat-grid">';
+  h += opMstat(lw != null ? lw + 'kg' : '–', trend ? ('Weight ' + trend) : 'Latest weight');
+  h += opMstat(u.height_cm ? u.height_cm + 'cm' : '–', 'Height');
+  h += opMstat(bf != null ? bf + '%' : '–', 'Body-fat');
+  h += opMstat(wo7, 'Workouts · 7d');
+  h += '</div>';
+
+  h += '<div class="op-msub">Snapshot</div>';
+  h += opKV('Age / Gender', escapeHtml([age ? age + 'y' : '', u.gender || ''].filter(Boolean).join(' · ')));
+  h += opKV('Location', escapeHtml([u.city, u.country].filter(Boolean).join(', ')));
+  h += opKV('Goal', escapeHtml([u.goal_type, u.diet_type].filter(Boolean).join(' · ')));
+  var exp = u.access_expires_at ? new Date(u.access_expires_at).toLocaleDateString() : '';
+  h += opKV('Membership', escapeHtml((u.subscription_status || 'active') + (u.plan_label ? ' · ' + u.plan_label : '') + (exp ? ' · until ' + exp : '')));
+
+  var lastWo = wo[0], big3 = null;
+  wo.some(function (w) { if (w.bench_kg || w.squat_kg || w.deadlift_kg) { big3 = { b: w.bench_kg, s: w.squat_kg, dl: w.deadlift_kg }; return true; } return false; });
+  if (!big3) { for (var j = str.length - 1; j >= 0; j--) { var r = str[j]; if (r.strength_bench || r.strength_squat || r.strength_deadlift) { big3 = { b: r.strength_bench, s: r.strength_squat, dl: r.strength_deadlift }; break; } } }
+  if (lastWo || big3) {
+    h += '<div class="op-msub">Training</div>';
+    if (lastWo) h += opKV('Last workout', escapeHtml((lastWo.workout_name || 'Workout') + ' · ' + opDate(lastWo.session_date || lastWo.created_at)));
+    if (big3) { var b3 = [big3.b ? 'Bench ' + big3.b : '', big3.s ? 'Squat ' + big3.s : '', big3.dl ? 'DL ' + big3.dl : ''].filter(Boolean).join(' · '); h += opKV('Big 3 (kg)', escapeHtml(b3)); }
+  }
+
+  var sc = (d.sunday_checkins || [])[0];
+  if (sc) {
+    h += '<div class="op-msub">Latest Sunday check-in · ' + escapeHtml(opDate(sc.created_at)) + '</div>';
+    h += opKV('Total weight loss', escapeHtml(sc.total_weight_loss || '—'));
+    h += opKV('Training / Nutrition', escapeHtml([sc.training_go, sc.nutrition_go].filter(Boolean).join(' · ') || '—'));
+    if (sc.sleep) h += opKV('Sleep', escapeHtml(sc.sleep));
+  }
+
+  var dc = (d.daily_checkins || [])[0];
+  if (dc) {
+    var dline = [dc.steps ? dc.steps + ' steps' : '', dc.water_ml ? dc.water_ml + 'ml' : '', dc.protein_g ? dc.protein_g + 'g P' : '', dc.sleep_hours ? dc.sleep_hours + 'h sleep' : ''].filter(Boolean).join(' · ');
+    h += '<div class="op-msub">Latest daily · ' + escapeHtml(opDate(dc.checkin_date)) + '</div>';
+    h += opKV('Logged', escapeHtml(dline || '—'));
+  }
+
+  var bloods = Array.isArray(d.blood) ? d.blood : (d.blood ? [d.blood] : []);
+  if (bloods.length) {
+    h += '<div class="op-msub">Blood reports (' + bloods.length + ')</div>';
+    bloods.forEach(function (b, i) { h += opBloodReportCard(b, i + 1); });
+  }
+  return h;
+}
+// One blood-report card for the operator profile — status + flagged markers + download.
+function opBloodReportCard(b, n) {
+  b = b || {};
+  var flags = opBloodFlags(b.extracted_blood_data);
+  var complete = String(b.status || '').toLowerCase() === 'complete';
+  var canDl = complete && b.id;
+  var rid = String(b.id || '').replace(/'/g, "\\'");
+  var action = canDl
+    ? '<button type="button" class="op-btn line" style="flex:0 0 auto;padding:8px 12px" onclick="adminBloodDownloadPdf(\'' + rid + '\')">⬇ Download</button>'
+    : '<span class="op-line-r" style="text-transform:capitalize">' + escapeHtml(String(b.status || 'pending')) + '</span>';
+  var meta = [b.overall_status ? 'Overall: ' + b.overall_status : '', b.sent_to_user ? 'Sent to user' : '', flags.length ? (flags.length + ' flagged') : 'All in range'].filter(Boolean).join(' · ');
+  var h = '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px;margin-bottom:10px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:13px">Blood Report ' + n + ' · ' + escapeHtml(opDate(b.created_at)) + '</span>' + action + '</div>';
+  h += '<div class="op-line-l" style="margin-top:6px">' + escapeHtml(meta) + '</div>';
+  if (flags.length) {
+    h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
+    flags.slice(0, 5).forEach(function (m) {
+      h += '<span style="font-size:11px;background:rgba(255,92,92,0.12);border:1px solid rgba(255,92,92,0.3);color:#ff8a8a;border-radius:6px;padding:3px 8px">' + escapeHtml(String(m.name || 'Marker') + ' ' + [m.value, m.unit].filter(Boolean).join(' ') + (m.status ? ' (' + m.status + ')' : '')) + '</span>';
+    });
+    h += '</div>';
+  }
+  h += '</div>';
+  return h;
 }
 function opBuildOverview(d) {
   var u = d.user || {};
