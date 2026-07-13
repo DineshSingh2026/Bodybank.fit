@@ -344,40 +344,55 @@ function createBloodRouter(deps) {
         });
       }
 
-      const rawPath = report.blood_report_file_path;
-      const resolved = rawPath ? resolveStoredUploadPath(String(rawPath).trim()) : null;
-      if (!resolved || !fs.existsSync(resolved)) {
-        return res.status(400).json({
-          success: false,
-          error:
-            'Original lab file is missing from server storage (common after redeploy without persistent disk). Ask the client to upload the report again.'
-        });
-      }
-
-      let buf;
+      // If a valid extraction already exists, analysis can be re-run WITHOUT the
+      // original lab file (which may be gone after a redeploy on ephemeral disk).
+      let hasExtraction = false;
       try {
-        buf = fs.readFileSync(resolved);
-      } catch (readErr) {
-        return res.status(400).json({
-          success: false,
-          error: `Could not read lab file: ${readErr && readErr.message ? readErr.message : 'read error'}`
-        });
-      }
-      if (!buf || buf.length === 0) {
-        return res.status(400).json({ success: false, error: 'Lab file is empty.' });
-      }
-      if (buf.length > MAX_BLOOD_FILE_BYTES) {
-        return res.status(400).json({ success: false, error: 'Lab file is too large to reprocess.' });
-      }
+        let ex = report.extracted_blood_data;
+        if (typeof ex === 'string') ex = JSON.parse(ex);
+        hasExtraction = !!(ex && Array.isArray(ex.panels) && ex.panels.length > 0);
+      } catch (_) {}
 
-      const b64 = buf.toString('base64');
-      const mime = mimeFromBloodFilePath(resolved);
+      let b64 = '';
+      let mime = '';
+      if (!hasExtraction) {
+        const rawPath = report.blood_report_file_path;
+        const resolved = rawPath ? resolveStoredUploadPath(String(rawPath).trim()) : null;
+        if (!resolved || !fs.existsSync(resolved)) {
+          return res.status(400).json({
+            success: false,
+            error:
+              'Original lab file is missing from server storage (common after redeploy without persistent disk). Ask the client to upload the report again.'
+          });
+        }
+
+        let buf;
+        try {
+          buf = fs.readFileSync(resolved);
+        } catch (readErr) {
+          return res.status(400).json({
+            success: false,
+            error: `Could not read lab file: ${readErr && readErr.message ? readErr.message : 'read error'}`
+          });
+        }
+        if (!buf || buf.length === 0) {
+          return res.status(400).json({ success: false, error: 'Lab file is empty.' });
+        }
+        if (buf.length > MAX_BLOOD_FILE_BYTES) {
+          return res.status(400).json({ success: false, error: 'Lab file is too large to reprocess.' });
+        }
+
+        b64 = buf.toString('base64');
+        mime = mimeFromBloodFilePath(resolved);
+      }
       const userId = report.user_id;
 
+      // Keep extracted_blood_data + extraction_ai_usage so the pipeline reuses the
+      // (expensive) extraction and only re-runs analysis — no double-charging on retry.
       await run(
         `UPDATE blood_analysis_reports
-         SET status = 'pending', pdf_path = NULL, extracted_blood_data = NULL, nutrition_snapshot = NULL, ai_report = NULL,
-             extraction_ai_usage = NULL, analysis_ai_usage = NULL, total_ai_usage = NULL, analysis_last_error = NULL
+         SET status = 'pending', pdf_path = NULL, nutrition_snapshot = NULL, ai_report = NULL,
+             analysis_ai_usage = NULL, total_ai_usage = NULL, analysis_last_error = NULL
          WHERE id = ?`,
         [reportId]
       );

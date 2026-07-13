@@ -104,10 +104,14 @@ function unwrapExtractionRoot(extracted) {
   return extracted;
 }
 
-async function callAnthropicMessages({ apiKey, model, maxTokens, system, userContent }) {
+async function callAnthropicMessages({ apiKey, model, maxTokens, system, userContent, assistantPrefill }) {
   const timeoutMs = Math.max(30000, parseInt(process.env.ANTHROPIC_BLOOD_REQUEST_TIMEOUT_MS || '240000', 10) || 240000);
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new Error(`Anthropic request timed out after ${timeoutMs}ms`)), timeoutMs);
+  const messages = [{ role: 'user', content: userContent }];
+  // Prefilling the assistant turn forces Claude to continue from that exact text,
+  // eliminating markdown fences / prose preambles that break JSON parsing.
+  if (assistantPrefill) messages.push({ role: 'assistant', content: assistantPrefill });
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     signal: controller.signal,
@@ -120,7 +124,7 @@ async function callAnthropicMessages({ apiKey, model, maxTokens, system, userCon
       model,
       max_tokens: maxTokens,
       system,
-      messages: [{ role: 'user', content: userContent }]
+      messages
     })
   }).finally(() => clearTimeout(timer));
   const data = await res.json().catch(() => ({}));
@@ -129,6 +133,67 @@ async function callAnthropicMessages({ apiKey, model, maxTokens, system, userCon
     throw new Error(msg);
   }
   return data;
+}
+
+/**
+ * Runs the big clinical-analysis pass and returns robustly-parsed JSON.
+ * Uses an assistant `{` prefill so the model returns pure JSON, retries once with
+ * a larger token budget if the first attempt is truncated / unparseable, and sums
+ * token usage across attempts so cost accounting stays honest.
+ */
+async function runAnalysisPassWithJson({ apiKey, model, maxTokens, system, userContent }) {
+  const prefill = '{';
+  let inputTokens = 0;
+  let outputTokens = 0;
+  let lastData = null;
+  const attempts = [maxTokens, Math.min(16000, Math.max(maxTokens + 3000, Math.floor(maxTokens * 1.6)))];
+  for (let i = 0; i < attempts.length; i += 1) {
+    const data = await callAnthropicMessages({
+      apiKey,
+      model,
+      maxTokens: attempts[i],
+      system,
+      userContent,
+      assistantPrefill: prefill
+    });
+    lastData = data;
+    inputTokens += toNumber(data && data.usage && data.usage.input_tokens, 0);
+    outputTokens += toNumber(data && data.usage && data.usage.output_tokens, 0);
+
+    const text = anthropicTextFromMessage(data);
+    // The API omits the prefilled `{` from the echoed turn — reattach it.
+    const parsed =
+      parseAnyJsonBlock(prefill + text) ||
+      parseAnyJsonBlock(text) ||
+      parseAnthropicJson(text);
+    if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+      return {
+        aiReport: parsed,
+        usage: {
+          provider: 'anthropic',
+          model: String(model || ''),
+          input_tokens: inputTokens,
+          output_tokens: outputTokens,
+          total_tokens: inputTokens + outputTokens,
+          ...estimateAnthropicUsageCost(inputTokens, outputTokens)
+        }
+      };
+    }
+    // Only worth retrying when we ran out of room; other stop reasons won't improve.
+    if (data && data.stop_reason && data.stop_reason !== 'max_tokens') break;
+  }
+  return {
+    aiReport: null,
+    stopReason: (lastData && lastData.stop_reason) || 'unknown',
+    usage: {
+      provider: 'anthropic',
+      model: String(model || ''),
+      input_tokens: inputTokens,
+      output_tokens: outputTokens,
+      total_tokens: inputTokens + outputTokens,
+      ...estimateAnthropicUsageCost(inputTokens, outputTokens)
+    }
+  };
 }
 
 function toNumber(value, fallback = 0) {
@@ -323,18 +388,35 @@ async function triggerBloodAnalysis(db, reportId, imageBase64, mimeType, userId)
   const model =
     (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6').trim();
   const extractionMaxTokens = Math.max(700, parseInt(process.env.ANTHROPIC_BLOOD_EXTRACT_MAX_TOKENS || '1800', 10) || 1800);
-  const analysisMaxTokens = Math.max(2500, parseInt(process.env.ANTHROPIC_BLOOD_ANALYSIS_MAX_TOKENS || '5500', 10) || 5500);
+  // The full 13-section report (incl. 7-day meal plan) needs headroom or it
+  // truncates mid-JSON and fails to parse. 8000 default; retry bumps higher.
+  const analysisMaxTokens = Math.max(4000, parseInt(process.env.ANTHROPIC_BLOOD_ANALYSIS_MAX_TOKENS || '8000', 10) || 8000);
 
   const { run, queryOne, queryAll } = db;
 
   try {
-    await run(`UPDATE blood_analysis_reports SET status = 'extracting' WHERE id = ?`, [reportId]);
+    // Reuse a prior successful extraction (e.g. a retry after an analysis-only
+    // failure) so we never re-burn the large extraction cost. Extraction is only
+    // ever persisted once its panels are valid, so a saved value is safe to trust.
+    const prior = await queryOne(
+      `SELECT extracted_blood_data, extraction_ai_usage FROM blood_analysis_reports WHERE id = ?`,
+      [reportId]
+    );
+    let extractedBloodData = coerceExtractedForPdf(parseDbJsonColumn(prior && prior.extracted_blood_data));
+    let extractionUsage;
 
-    const extractRes = await callAnthropicMessages({
-      apiKey,
-      model,
-      maxTokens: extractionMaxTokens,
-      system: `You are a medical data extraction specialist. Extract ALL blood test markers from the lab report.
+    if (extractedBloodData && Array.isArray(extractedBloodData.panels) && extractedBloodData.panels.length > 0) {
+      extractionUsage =
+        parseDbJsonColumn(prior && prior.extraction_ai_usage) || usageFromAnthropicResponse({}, model);
+      await run(`UPDATE blood_analysis_reports SET status = 'analysing' WHERE id = ?`, [reportId]);
+    } else {
+      await run(`UPDATE blood_analysis_reports SET status = 'extracting' WHERE id = ?`, [reportId]);
+
+      const extractRes = await callAnthropicMessages({
+        apiKey,
+        model,
+        maxTokens: extractionMaxTokens,
+        system: `You are a medical data extraction specialist. Extract ALL blood test markers from the lab report.
 
 Return ONLY valid JSON, no markdown:
 {
@@ -358,28 +440,29 @@ Return ONLY valid JSON, no markdown:
   "confidence": "high|medium|low"
 }
 Extract EVERY visible marker. Use standard clinical ranges if reference range is not printed.`,
-      userContent: [
-        bloodMediaBlock(imageBase64, mimeType),
-        { type: 'text', text: 'Extract all blood test markers from this lab report. Return complete JSON.' }
-      ]
-    });
-    const extractionUsage = usageFromAnthropicResponse(extractRes, model);
-    await run(`UPDATE blood_analysis_reports SET extraction_ai_usage = ?::jsonb WHERE id = ?`, [
-      JSON.stringify(extractionUsage),
-      reportId
-    ]).catch(() => {});
+        userContent: [
+          bloodMediaBlock(imageBase64, mimeType),
+          { type: 'text', text: 'Extract all blood test markers from this lab report. Return complete JSON.' }
+        ]
+      });
+      extractionUsage = usageFromAnthropicResponse(extractRes, model);
+      await run(`UPDATE blood_analysis_reports SET extraction_ai_usage = ?::jsonb WHERE id = ?`, [
+        JSON.stringify(extractionUsage),
+        reportId
+      ]).catch(() => {});
 
-    const extractText = anthropicTextFromMessage(extractRes);
-    const extractedBloodDataRaw = parseAnyJsonBlock(extractText) || parseAnthropicJson(extractText);
-    const extractedBloodData = coerceExtractedForPdf(extractedBloodDataRaw);
-    if (!extractedBloodData || !Array.isArray(extractedBloodData.panels) || extractedBloodData.panels.length === 0) {
-      throw new Error('Extraction did not return valid panels JSON');
+      const extractText = anthropicTextFromMessage(extractRes);
+      const extractedBloodDataRaw = parseAnyJsonBlock(extractText) || parseAnthropicJson(extractText);
+      extractedBloodData = coerceExtractedForPdf(extractedBloodDataRaw);
+      if (!extractedBloodData || !Array.isArray(extractedBloodData.panels) || extractedBloodData.panels.length === 0) {
+        throw new Error('Extraction did not return valid panels JSON');
+      }
+
+      await run(
+        `UPDATE blood_analysis_reports SET extracted_blood_data = ?::jsonb, status = 'analysing' WHERE id = ?`,
+        [JSON.stringify(extractedBloodData), reportId]
+      );
     }
-
-    await run(
-      `UPDATE blood_analysis_reports SET extracted_blood_data = ?::jsonb, status = 'analysing' WHERE id = ?`,
-      [JSON.stringify(extractedBloodData), reportId]
-    );
 
     const today = new Date().toISOString().split('T')[0];
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
@@ -419,7 +502,7 @@ Extract EVERY visible marker. Use standard clinical ranges if reference range is
     const userName =
       [user.first_name, user.last_name].filter(Boolean).join(' ').trim() || user.email || 'Member';
 
-    const analysisRes = await callAnthropicMessages({
+    const { aiReport, usage: analysisUsage, stopReason: analysisStopReason } = await runAnalysisPassWithJson({
       apiKey,
       model,
       maxTokens: analysisMaxTokens,
@@ -494,7 +577,17 @@ Provide complete clinical analysis as JSON.`
         }
       ]
     });
-    const analysisUsage = usageFromAnthropicResponse(analysisRes, model);
+    if (!aiReport || typeof aiReport !== 'object') {
+      // Persist the analysis-pass usage even on failure so the cost is auditable,
+      // then fail with the stop reason (truncation shows as 'max_tokens').
+      await run(`UPDATE blood_analysis_reports SET analysis_ai_usage = ?::jsonb WHERE id = ?`, [
+        JSON.stringify(analysisUsage),
+        reportId
+      ]).catch(() => {});
+      throw new Error(
+        `Analysis pass did not return valid JSON (stop_reason: ${analysisStopReason || 'unknown'})`
+      );
+    }
     const totalUsage = {
       provider: 'anthropic',
       model: String(model || ''),
@@ -506,12 +599,6 @@ Provide complete clinical analysis as JSON.`
       estimated_cost_inr:
         Number((toNumber(extractionUsage.estimated_cost_inr) + toNumber(analysisUsage.estimated_cost_inr)).toFixed(4))
     };
-
-    const analysisText = anthropicTextFromMessage(analysisRes);
-    const aiReport = parseAnthropicJson(analysisText);
-    if (!aiReport || typeof aiReport !== 'object') {
-      throw new Error('Analysis pass did not return valid JSON');
-    }
 
     await run(
       `UPDATE blood_analysis_reports
