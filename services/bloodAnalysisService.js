@@ -196,8 +196,9 @@ function toNumber(value, fallback = 0) {
 
 function estimateAnthropicUsageCost(inputTokens, outputTokens) {
   const usdToInr = toNumber(process.env.AI_COST_USD_TO_INR, 83);
-  const inputPerMillionUsd = toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, 3);
-  const outputPerMillionUsd = toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, 15);
+  // Defaults are Haiku 4.5 rates ($1 in / $5 out per 1M) — the blood pipeline's model.
+  const inputPerMillionUsd = toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, 1);
+  const outputPerMillionUsd = toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, 5);
   const inUsd =
     (toNumber(inputTokens, 0) / 1000000) * inputPerMillionUsd +
     (toNumber(outputTokens, 0) / 1000000) * outputPerMillionUsd;
@@ -239,7 +240,7 @@ function bloodMediaBlock(imageBase64, mimeType) {
 
 async function validateBloodReportInput({ apiKey, model, imageBase64, mimeType }) {
   const validationModel =
-    (process.env.ANTHROPIC_MODEL_BLOOD_VALIDATOR || model || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6').trim();
+    (process.env.ANTHROPIC_MODEL_BLOOD_VALIDATOR || model || process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5').trim();
   try {
     const resp = await callAnthropicMessages({
       apiKey,
@@ -379,7 +380,7 @@ async function triggerBloodAnalysis(db, reportId, imageBase64, mimeType, userId)
   if (!apiKey) throw new Error('ANTHROPIC_API_KEY is not configured');
 
   const model =
-    (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6').trim();
+    (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5').trim();
   const extractionMaxTokens = Math.max(700, parseInt(process.env.ANTHROPIC_BLOOD_EXTRACT_MAX_TOKENS || '1800', 10) || 1800);
   // The full 13-section report (incl. 7-day meal plan) needs headroom or it
   // truncates mid-JSON and fails to parse. 8000 default; retry bumps higher.
