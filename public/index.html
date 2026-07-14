@@ -6284,106 +6284,6 @@ button.bb-today-pill{cursor:pointer}
         <div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div>
       </div>
       <div id="profileFormContent">
-      <!-- ── AI Coach settings + chat (self-contained; talks to /api/coach/*) ── -->
-      <div id="bbCoachCard" style="border:1px solid var(--bdr);border-radius:12px;padding:18px;margin:0 0 24px;background:rgba(200,164,78,0.05)">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px">
-          <div class="form-section-title" style="margin:0">🤖 AI Coach</div>
-          <span id="bbCoachScore" style="font-size:12px;color:var(--muted)">Health —</span>
-        </div>
-        <p style="font-size:12px;color:var(--muted);margin:0 0 14px">Your 24/7 coach messages you in the Coach tab. Tune how it talks and how often.</p>
-        <div class="form-group"><label>Coach personality</label>
-          <select class="form-input" id="bbCoachPersonality">
-            <option value="friendly">Friendly Coach</option>
-            <option value="science">Science Coach</option>
-            <option value="athletic">Athletic Coach</option>
-            <option value="strict">Strict Accountability</option>
-            <option value="minimal">Minimalist</option>
-            <option value="concierge">Premium Concierge</option>
-          </select>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Messages / day</label>
-            <select class="form-input" id="bbCoachBudget"><option value="0">Off</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
-          </div>
-          <div class="form-group"><label>Coach on</label>
-            <select class="form-input" id="bbCoachEnabled"><option value="1">Yes</option><option value="0">No</option></select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Instant workout/meal feedback</label>
-            <select class="form-input" id="bbCoachInstant"><option value="1">On</option><option value="0">Off</option></select>
-          </div>
-          <div class="form-group"><label>WhatsApp coaching</label>
-            <select class="form-input" id="bbCoachWhatsapp"><option value="0">Off</option><option value="1">On</option></select>
-            <span class="form-hint">Requires WhatsApp Business setup by BodyBank.</span>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group"><label>Quiet from</label><input type="time" class="form-input" id="bbCoachQuietStart" value="21:30"></div>
-          <div class="form-group"><label>Quiet until</label><input type="time" class="form-input" id="bbCoachQuietEnd" value="07:30"></div>
-        </div>
-        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
-          <button type="button" onclick="bbCoachSaveSettings()" style="flex:1;min-width:130px;padding:10px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-weight:700;font-size:12px;cursor:pointer;letter-spacing:1px">Save coach settings</button>
-          <button type="button" onclick="bbCoachPause(3)" style="padding:10px 14px;background:transparent;border:1px solid var(--bdr);border-radius:6px;color:var(--cream);font-size:12px;cursor:pointer">Snooze 3 days</button>
-          <button type="button" onclick="bbCoachPause(0)" style="padding:10px 14px;background:transparent;border:1px solid var(--bdr);border-radius:6px;color:var(--cream);font-size:12px;cursor:pointer">Resume</button>
-        </div>
-        <div id="bbCoachSettingsMsg" style="font-size:12px;color:var(--gold);margin-top:8px;min-height:14px"></div>
-        <div class="form-divider"></div>
-        <div class="form-section-title" style="margin-bottom:8px">Ask your coach</div>
-        <div class="form-group"><textarea class="form-input" id="bbCoachAsk" rows="2" placeholder="e.g. What should I focus on today?"></textarea></div>
-        <button type="button" onclick="bbCoachAskSend()" id="bbCoachAskBtn" style="padding:9px 16px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-weight:700;font-size:12px;cursor:pointer;letter-spacing:1px">Ask</button>
-        <div id="bbCoachReply" style="font-size:13px;color:var(--cream);margin-top:12px;white-space:pre-wrap"></div>
-      </div>
-      <script>
-      (function(){
-        function hdr(){ return { 'Content-Type':'application/json', Authorization: 'Bearer ' + (window.currentUser && window.currentUser.token ? window.currentUser.token : '') }; }
-        function el(id){ return document.getElementById(id); }
-        window.loadBBCoach = async function(){
-          try {
-            const s = await fetch('/api/coach/settings',{ headers: hdr() }).then(function(r){return r.json();});
-            if (s && s.settings){ var st=s.settings;
-              if(el('bbCoachPersonality')) el('bbCoachPersonality').value = st.personality||'friendly';
-              if(el('bbCoachBudget')) el('bbCoachBudget').value = String(st.daily_budget!=null?st.daily_budget:2);
-              if(el('bbCoachEnabled')) el('bbCoachEnabled').value = st.coach_enabled? '1':'0';
-              if(el('bbCoachInstant')) el('bbCoachInstant').value = (st.instant_feedback===false)?'0':'1';
-              if(el('bbCoachWhatsapp')) el('bbCoachWhatsapp').value = st.whatsapp_opt_in? '1':'0';
-              if(el('bbCoachQuietStart')) el('bbCoachQuietStart').value = st.quiet_start||'21:30';
-              if(el('bbCoachQuietEnd')) el('bbCoachQuietEnd').value = st.quiet_end||'07:30';
-            }
-          } catch(_){}
-          try {
-            const sc = await fetch('/api/coach/score',{ headers: hdr() }).then(function(r){return r.json();});
-            if (sc && sc.score && el('bbCoachScore')){
-              var v = sc.score.score; var weak = sc.score.weak_dimension;
-              el('bbCoachScore').textContent = (v!=null? ('Health '+v+'/100') : 'Health —') + (weak? (' · focus: '+weak):'');
-            }
-          } catch(_){}
-        };
-        window.bbCoachSaveSettings = async function(){
-          var m = el('bbCoachSettingsMsg'); if(m) m.textContent='Saving…';
-          var body = { personality: el('bbCoachPersonality').value, daily_budget: parseInt(el('bbCoachBudget').value,10)||0,
-            coach_enabled: el('bbCoachEnabled').value==='1',
-            instant_feedback: el('bbCoachInstant').value==='1', whatsapp_opt_in: el('bbCoachWhatsapp').value==='1',
-            quiet_start: el('bbCoachQuietStart').value||'21:30', quiet_end: el('bbCoachQuietEnd').value||'07:30' };
-          try { var r = await fetch('/api/coach/settings',{ method:'PUT', headers: hdr(), body: JSON.stringify(body) }).then(function(x){return x.json();});
-            if(m) m.textContent = r && r.ok ? 'Saved ✓' : 'Could not save'; } catch(_){ if(m) m.textContent='Could not save'; }
-        };
-        window.bbCoachPause = async function(days){
-          var m = el('bbCoachSettingsMsg'); if(m) m.textContent = days>0?'Snoozing…':'Resuming…';
-          try { var r = await fetch('/api/coach/pause',{ method:'POST', headers: hdr(), body: JSON.stringify({days:days}) }).then(function(x){return x.json();});
-            if(m) m.textContent = r && r.ok ? (days>0? ('Snoozed for '+days+' days'):'Coach resumed ✓') : 'Failed'; } catch(_){ if(m) m.textContent='Failed'; }
-        };
-        window.bbCoachAskSend = async function(){
-          var inp = el('bbCoachAsk'); var out = el('bbCoachReply'); var btn = el('bbCoachAskBtn');
-          var q = (inp && inp.value || '').trim(); if(!q){ return; }
-          if(btn){ btn.disabled=true; btn.textContent='Thinking…'; } if(out) out.textContent='';
-          try { var r = await fetch('/api/coach/chat',{ method:'POST', headers: hdr(), body: JSON.stringify({message:q}) }).then(function(x){return x.json();});
-            if(out) out.textContent = r && r.reply ? r.reply : 'Coach is unavailable right now.'; if(inp) inp.value=''; }
-          catch(_){ if(out) out.textContent='Coach is unavailable right now.'; }
-          finally { if(btn){ btn.disabled=false; btn.textContent='Ask'; } }
-        };
-      })();
-      </script>
       <div class="form-section-title">Personal information</div>
       <div class="form-group"><label>First Name</label><input type="text" class="form-input" id="profFirstName" placeholder="e.g. John" readonly><span class="form-hint" id="profFirstNameHint">Your first name as we should address you</span></div>
       <div class="form-group"><label>Last Name</label><input type="text" class="form-input" id="profLastName" placeholder="e.g. Smith" readonly><span class="form-hint" id="profLastNameHint">Your family or surname</span></div>
@@ -17360,7 +17260,6 @@ function switchUserTab(tab) {
   if (tab === 'programs') loadUserPrograms();
   if (tab === 'body' && typeof loadBodySnapshots === 'function') loadBodySnapshots();
   if (tab === 'muscle') loadMuscleRanking();
-  if (tab === 'profile' && typeof loadBBCoach === 'function') loadBBCoach();
   if (tab === 'checkin') { showCheckinSubView('hub'); loadSundayCheckinDefaults(); }
   if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(tab);
   if (tab === 'workout') {

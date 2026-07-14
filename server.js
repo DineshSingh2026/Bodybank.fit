@@ -35,12 +35,6 @@ const workoutSessionLifts = require('./services/workoutSessionLifts');
 const { recomputeDailyStats: recomputeNutritionDailyStats } = require('./services/nutritionService');
 const { inferTimezoneFromCountry, getUserTimezone } = require('./utils/timezone');
 const { startCampaignScheduler, restartScheduler: restartCampaignScheduler, broadcastMessage: broadcastCampaignMessage } = require('./services/campaignScheduler');
-const coach = require('./services/coach');
-const { createCoachRouter } = require('./routes/coach');
-/** Fire-and-forget coach event emit — never throws, safe to call from any handler. */
-function emitCoach(userId, type, payload) { try { coach.emitCoachEvent(userId, type, payload); } catch (_) {} }
-/** Instant, specific workout feedback (bypasses the daily budget). Fire-and-forget. */
-function coachInstantWorkout(userId) { try { Promise.resolve(coach.instantWorkoutFeedback(String(userId))).catch(() => {}); } catch (_) {} }
 const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalizeCampaignDay, normalizeTime: normalizeCampaignTime } = require('./controllers/campaignController');
 const {
   generateMonthlyClientReport,
@@ -1248,6 +1242,15 @@ async function initDB() {
       await pool.query(`ALTER TABLE workout_logs ADD COLUMN IF NOT EXISTS ${col} ${typ}`);
     } catch (e) { /* ignore */ }
   }
+
+  // ── AI Coach removed: drop its tables + orphaned inbox rows (idempotent). ──
+  try {
+    await pool.query(
+      `DROP TABLE IF EXISTS coach_events, coach_settings, coach_dossier, coach_user_profile,
+         coach_messages, coach_budget_ledger, coach_cost_ledger, coach_experiments CASCADE`
+    );
+    await pool.query(`DELETE FROM user_inbox WHERE type = 'coach'`);
+  } catch (e) { /* ignore */ }
 
   // Sync programs table with PDF files on disk
   try {
@@ -2642,7 +2645,6 @@ app.post('/api/workouts', async (req, res) => {
       ymd
     );
     notifyAsync('WORKOUT_LOGGED', { name: wu ? `${wu.first_name || ''}`.trim() : user_id, email: wu ? wu.email : user_id, mobile: wu ? wu.phone : '—', type: workout_name, duration: duration_seconds != null ? Math.round(duration_seconds / 60) + ' min' : '—' });
-    coachInstantWorkout(user_id); // instant specific feedback on the set/reps/weight just logged
     res.json({ id, message: 'Workout logged' });
   } catch (e) {
     console.error('Workout error:', e.message);
@@ -2769,7 +2771,6 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
       date
     );
     if (wu) notifyAsync('WORKOUT_LOGGED', { name: `${wu.first_name || ''}`.trim(), email: wu.email, mobile: wu.phone || '—', type: workoutType, duration: Number.isFinite(dur) ? Math.round(dur / 60) + ' min' : '—' });
-    coachInstantWorkout(userId); // instant specific feedback on the session just logged
     res.json({ id, message: 'Session saved' });
   } catch (e) {
     console.error('Workout session error:', e.message);
@@ -3194,20 +3195,6 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
       protein : protein_g != null ? protein_g + ' g' : '—',
       sleep   : sleep_hours != null ? sleep_hours + ' hrs' : '—'
     });
-    // ── AI Coach: a completed check-in is a fresh signal; derive nudge candidates.
-    // The Decision Engine gates these hard, so most days produce no message.
-    try {
-      const proteinTarget = Number(process.env.COACH_PROTEIN_TARGET || 150);
-      if (protein_g != null && Number(protein_g) < proteinTarget * 0.7) {
-        emitCoach(String(userId), 'PROTEIN_DEFICIT', { protein: Number(protein_g), target: proteinTarget, ymd: today });
-      }
-      if (sleep_hours != null && Number(sleep_hours) < 6) {
-        emitCoach(String(userId), 'SLEEP_LOW', { sleep: Number(sleep_hours), ymd: today });
-      }
-      if (waterMl != null && Number(waterMl) < 2000) {
-        emitCoach(String(userId), 'HYDRATION_LOW', { water_ml: Number(waterMl), ymd: today });
-      }
-    } catch (_) {}
     res.json(attachWaterLitersToDailyRow(row) || attachWaterLitersToDailyRow({ id, user_id: userId, checkin_date: today, steps, water_ml: waterMl, protein_g, sleep_hours }));
   } catch (e) {
     console.error('Daily check-in error:', e.message);
@@ -7972,7 +7959,6 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
 
 // ============ CLIENT PROGRESS ANALYTICS (JWT-protected) ============
 app.use('/api/progress', progressRoutes);
-app.use('/api/coach', createCoachRouter({ verifyToken, requireAdminOrSuperadmin, rateLimiter }));
 app.use(
   '/api/nutrition',
   createNutritionRouter({
@@ -9163,14 +9149,6 @@ app.listen(PORT, '0.0.0.0', () => {
         .catch(e => console.error('❌ Campaign scheduler failed to start:', e.message));
     } else {
       console.log('⏸ Campaign scheduler is ON HOLD (CAMPAIGNS_ENABLED=false)');
-    }
-
-    // ── AI Coach: init durable event engine + memory, then (optionally) start workers ──
-    try {
-      await coach.initCoach({ queryAll, queryOne, run, uuidv4, sendPushToUser });
-      coach.startCoachWorkers(); // no-op unless COACH_WORKERS_ENABLED=true
-    } catch (e) {
-      console.error('❌ AI Coach failed to initialise:', e.message);
     }
 
     startEmailScheduler({ queryAll });
