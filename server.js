@@ -569,6 +569,8 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_protein_g INTEGER DEFAULT 120`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_sleep_hours REAL DEFAULT 7.5`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS onboarded_at TIMESTAMP`); } catch (e) { /* ignore */ }
+  // guide_seen_at NULL means "show the first-run app guide" (the walkthrough of each section).
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS guide_seen_at TIMESTAMP`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_freezes_used INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS streak_freeze_month TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   await pool.query("UPDATE users SET subscription_status = 'active' WHERE subscription_status IS NULL").catch(() => {});
@@ -3969,7 +3971,7 @@ app.get('/api/me/home', verifyToken, async (req, res) => {
   try {
     const u = await queryOne(
       `SELECT id, first_name, last_name, profile_picture, height_cm, timezone, created_at,
-              onboarded_at, goal_type,
+              onboarded_at, guide_seen_at, goal_type,
               COALESCE(goal_steps, 8000) AS goal_steps,
               COALESCE(goal_water_ml, 3000) AS goal_water_ml,
               COALESCE(goal_protein_g, 120) AS goal_protein_g,
@@ -3984,6 +3986,7 @@ app.get('/api/me/home', verifyToken, async (req, res) => {
         profile_picture: u.profile_picture || '', height_cm: u.height_cm || null,
         goal_type: u.goal_type || '',
         onboarded: !!u.onboarded_at,
+        guideSeen: !!u.guide_seen_at,
         goals: {
           steps: u.goal_steps, water_ml: u.goal_water_ml,
           protein_g: u.goal_protein_g, sleep_hours: u.goal_sleep_hours
@@ -4116,6 +4119,17 @@ app.post('/api/me/onboarding', verifyToken, async (req, res) => {
   } catch (e) {
     console.error('[onboarding]', e.message);
     res.status(500).json({ error: 'Failed to save onboarding' });
+  }
+});
+
+// Mark the first-run app guide as seen (idempotent — only stamps the first time, so it never re-shows).
+app.post('/api/me/guide-seen', verifyToken, async (req, res) => {
+  try {
+    await run(`UPDATE users SET guide_seen_at = COALESCE(guide_seen_at, NOW()) WHERE id = ?`, [req.user.id]);
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[guide-seen]', e.message);
+    res.status(500).json({ error: 'Failed to save guide state' });
   }
 });
 

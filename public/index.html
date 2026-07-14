@@ -5772,6 +5772,7 @@ button.bb-today-pill{cursor:pointer}
         <a class="user-sidebar-link" href="#" data-tab="body" onclick="switchUserTab('body');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128248;</span>My Body</a>
         <a class="user-sidebar-link" href="#" data-tab="muscle" onclick="switchUserTab('muscle');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128170;</span>Muscle Ranking</a>
         <a class="user-sidebar-link" href="#" data-tab="contact" onclick="switchUserTab('contact');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9993;</span>Contact Us</a>
+        <a class="user-sidebar-link" href="#" onclick="bbOpenGuide();return false"><span class="user-sidebar-icon" aria-hidden="true">&#10067;</span>App Guide</a>
       </nav>
     </aside>
     <div class="user-body">
@@ -5780,6 +5781,7 @@ button.bb-today-pill{cursor:pointer}
           <span class="user-current-section" id="userCurrentSection">Home</span>
           <span class="user-current-subtitle" id="userCurrentSubtitle">Your dashboard and daily actions in one place.</span>
         </div>
+        <button type="button" class="user-guide-btn" onclick="bbOpenGuide()" aria-label="Open app guide" title="App guide">?</button>
       </div>
       <div class="user-home-pwa-row" id="userHomePwaRow">
         <button type="button" class="user-pwa-shortcut pwa-add-homescreen" onclick="handlePwaAddToHomescreen()">Add to Home Screen</button>
@@ -17446,6 +17448,9 @@ async function loadHomeAggregate(){
     window._bbHomeDataAt = Date.now();
     try { renderTodayHero(data); } catch(e){ console.warn('today hero render', e); }
     try { if (typeof bbMaybeOnboard === 'function') bbMaybeOnboard(data.profile); } catch(e){ console.warn('onboard', e); }
+    // Already-onboarded users skip the goal-setup popup, so surface the guide directly.
+    // (New users get it after they finish/skip goal-setup — see bbSaveOnboarding.)
+    try { if (data.profile && data.profile.onboarded) bbMaybeShowGuide(data.profile); } catch(e){ console.warn('guide', e); }
     return data;
   } catch (e) { console.warn('home aggregate', e); return null; }
 }
@@ -17651,6 +17656,8 @@ async function bbSaveOnboarding(useDefaults){
   try { await apiCall('POST', '/api/me/onboarding', body); } catch(_){}
   if (window._bbHomeData && window._bbHomeData.profile) window._bbHomeData.profile.onboarded = true;
   if (typeof closeModal === 'function') closeModal('bbOnboardModal');
+  // Goal-setup done → now show the app guide (once).
+  bbMaybeShowGuide(window._bbHomeData && window._bbHomeData.profile);
   // If the goal editor was used (or onboarding just set targets), refresh the weekly dashboard.
   window._bbGoalEditMode = false;
   try { renderWeeklyInsights(); } catch(_){}
@@ -17664,6 +17671,29 @@ async function bbFinishOnboarding(){
 }
 async function bbSkipOnboarding(){
   await bbSaveOnboarding(true);
+}
+
+// ===== First-run app guide (walkthrough of each section) =====
+window._bbGuideShown = false;
+// Show once, only after the goal-setup step is out of the way. Existing (already-onboarded)
+// users who have never seen the guide get it on their next home load.
+function bbMaybeShowGuide(profile){
+  if (window._bbGuideShown) return;
+  if (window.currentUser && window.currentUser.role && window.currentUser.role !== 'user') return; // clients only
+  if (profile && profile.guideSeen) return;
+  window._bbGuideShown = true;
+  setTimeout(function(){ bbOpenGuide(); }, 350); // let any prior modal finish closing
+}
+function bbOpenGuide(){
+  window._bbGuideShown = true; // manual reopen shouldn't retrigger the auto-show this session
+  if (typeof bbHaptic === 'function') bbHaptic(6);
+  if (typeof openModal === 'function') openModal('bbGuideModal');
+}
+async function bbCloseGuide(){
+  if (typeof bbHaptic === 'function') bbHaptic(10);
+  if (typeof closeModal === 'function') closeModal('bbGuideModal');
+  if (window._bbHomeData && window._bbHomeData.profile) window._bbHomeData.profile.guideSeen = true;
+  try { await apiCall('POST', '/api/me/guide-seen', {}); } catch(_){}
 }
 
 // Streak freeze (#12)
@@ -25689,6 +25719,49 @@ window.addEventListener('resize', applySafeAreaFix);
     </div>
     <button type="button" class="form-submit" style="margin:0 0 10px" onclick="bbFinishOnboarding()">Start my journey</button>
     <button type="button" onclick="bbSkipOnboarding()" style="display:block;width:100%;background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;padding:6px">Skip for now</button>
+  </div>
+</div>
+
+<!-- ===== First-run app guide (what each section is for) ===== -->
+<style>
+  #bbGuideModal .modal{max-width:min(480px,calc(100vw - 24px));max-height:88vh;display:flex;flex-direction:column;padding-top:22px}
+  .bb-guide-head{flex-shrink:0}
+  .bb-guide-list{overflow-y:auto;-webkit-overflow-scrolling:touch;margin:4px -4px 4px 0;padding-right:6px}
+  .bb-guide-item{display:flex;gap:12px;align-items:flex-start;padding:11px 0;border-bottom:1px solid rgba(200,164,78,0.12)}
+  .bb-guide-item:last-child{border-bottom:none}
+  .bb-guide-ico{flex-shrink:0;width:34px;height:34px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;background:rgba(200,164,78,0.10);line-height:1}
+  .bb-guide-txt{min-width:0}
+  .bb-guide-name{font-weight:700;font-size:14px;color:var(--cream);margin:0 0 2px;letter-spacing:.2px}
+  .bb-guide-desc{font-size:12.5px;line-height:1.45;color:var(--muted);margin:0}
+  .bb-guide-desc b{color:var(--creamd,var(--cream));font-weight:600}
+  .bb-guide-foot{flex-shrink:0;padding-top:12px}
+  .bb-guide-tip{font-size:11.5px;color:var(--muted);text-align:center;margin:10px 0 0}
+  /* Re-openable "?" guide button (mobile header) */
+  .user-guide-btn{flex-shrink:0;width:34px;height:34px;border-radius:50%;border:1px solid rgba(200,164,78,0.35);background:rgba(200,164,78,0.08);color:var(--gold);font-size:16px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;padding:0}
+  .user-guide-btn:hover,.user-guide-btn:focus{background:rgba(200,164,78,0.16)}
+</style>
+<div class="modal-overlay" id="bbGuideModal" aria-hidden="true">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="bb-guide-head">
+      <h2 style="margin:0 0 4px">Your BodyBank tour 🧭</h2>
+      <p class="form-hint" style="margin:0 0 12px">A quick map of where everything lives &mdash; and what to fill in each section.</p>
+    </div>
+    <div class="bb-guide-list">
+      <div class="bb-guide-item"><span class="bb-guide-ico">🏠</span><div class="bb-guide-txt"><p class="bb-guide-name">Home</p><p class="bb-guide-desc">Your daily snapshot &mdash; streak, score &amp; today's rings. Start here every day.</p></div></div>
+      <div class="bb-guide-item"><span class="bb-guide-ico">👤</span><div class="bb-guide-txt"><p class="bb-guide-name">My Profile</p><p class="bb-guide-desc"><b>Start here:</b> add your <b>photo, height &amp; goal</b>. This personalises everything else.</p></div></div>
+      <div class="bb-guide-item"><span class="bb-guide-ico">✅</span><div class="bb-guide-txt"><p class="bb-guide-name">Check-in</p><p class="bb-guide-desc">Log your daily <b>steps, water, protein &amp; sleep</b>, plus the Sunday weekly check-in. This builds your streak &amp; score.</p></div></div>
+      <div class="bb-guide-item"><span class="bb-guide-ico">🏋️</span><div class="bb-guide-txt"><p class="bb-guide-name">My Workout &amp; Programs</p><p class="bb-guide-desc">Follow and log today's training with the built-in timer, and open the programs your coach assigns you.</p></div></div>
+      <div class="bb-guide-item"><span class="bb-guide-ico">🧍</span><div class="bb-guide-txt"><p class="bb-guide-name">My Body</p><p class="bb-guide-desc">Add <b>progress photos &amp; body measurements</b> to see your change over time.</p></div></div>
+      <div class="bb-guide-item"><span class="bb-guide-ico">🩸</span><div class="bb-guide-txt"><p class="bb-guide-name">Health Reports</p><p class="bb-guide-desc"><b>Upload your blood report</b> on Home to get a medical-grade analysis PDF back.</p></div></div>
+      <div class="bb-guide-item"><span class="bb-guide-ico">💪</span><div class="bb-guide-txt"><p class="bb-guide-name">Muscle Ranking</p><p class="bb-guide-desc">See how each muscle group ranks so you know where to focus next.</p></div></div>
+      <div class="bb-guide-item"><span class="bb-guide-ico">🤖</span><div class="bb-guide-txt"><p class="bb-guide-name">AI Trainer</p><p class="bb-guide-desc">Ask the AI for instant workout &amp; nutrition help, anytime.</p></div></div>
+      <div class="bb-guide-item"><span class="bb-guide-ico">💬</span><div class="bb-guide-txt"><p class="bb-guide-name">Messages</p><p class="bb-guide-desc">Chat with your human coach &mdash; their replies land here.</p></div></div>
+      <div class="bb-guide-item"><span class="bb-guide-ico">📸</span><div class="bb-guide-txt"><p class="bb-guide-name">Elite Feed</p><p class="bb-guide-desc">Share your wins and see what the community is posting.</p></div></div>
+    </div>
+    <div class="bb-guide-foot">
+      <button type="button" class="form-submit" style="margin:0" onclick="bbCloseGuide()">Got it &mdash; let's go</button>
+      <p class="bb-guide-tip">You can reopen this anytime from the <b>?</b> button.</p>
+    </div>
   </div>
 </div>
 
