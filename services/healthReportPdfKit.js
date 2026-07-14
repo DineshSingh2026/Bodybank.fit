@@ -288,14 +288,20 @@ function buildCover(ctx, user, ai, dateStr) {
   doc.font('Helvetica').fontSize(9).fillColor(C.MUTED).text('BodyBank AI + Medical Review', M + 14 + 2 * col, y + 78, { width: col - 20 });
   y += cardH + 10;
 
-  // overall status banner
+  // overall status banner — height grows to fit the AI summary (never overflow)
   const overall = ai.overall_status || 'Fair';
   const oc = (overall === 'Good' || overall === 'Excellent') ? C.GREEN : (overall === 'Fair' ? C.AMBER : C.RED);
-  const bH = 74;
+  const summaryText = String(ai.overall_summary_short || 'Full analysis of your blood markers and nutrition follows on the next pages.');
+  const sumX = M + CW * 0.45;
+  const sumW = CW * 0.52;
+  doc.font('Helvetica').fontSize(10);
+  const sumH = doc.heightOfString(summaryText, { width: sumW, lineGap: 2 });
+  const bH = Math.max(74, sumH + 30);
   box(doc, M, y, CW, bH, C.SURFACE, oc, 1);
-  doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text('OVERALL HEALTH STATUS', M + 14, y + 24, { width: CW * 0.23 - 14 });
-  doc.font('Helvetica-Bold').fontSize(22).fillColor(oc).text(overall, M + CW * 0.23, y + 22, { width: CW * 0.22, lineBreak: false });
-  doc.font('Helvetica').fontSize(10).fillColor(C.TEXT).text(String(ai.overall_summary_short || 'Full analysis of your blood markers and nutrition follows on the next pages.'), M + CW * 0.45, y + 16, { width: CW * 0.53, lineGap: 2 });
+  const leftCy = y + bH / 2;
+  doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text('OVERALL HEALTH STATUS', M + 14, leftCy - 11, { width: CW * 0.23 - 18 });
+  doc.font('Helvetica-Bold').fontSize(22).fillColor(oc).text(overall, M + CW * 0.23, leftCy - 13, { width: CW * 0.22, lineBreak: false });
+  doc.font('Helvetica').fontSize(10).fillColor(C.TEXT).text(summaryText, sumX, y + 15, { width: sumW, lineGap: 2 });
   y += bH + 14;
 
   doc.save().rect(M, y, CW, 0.5).fill(C.BORDER).restore();
@@ -362,11 +368,16 @@ function buildNutrition(ctx, n) {
   if (n.meal_quality_score != null) {
     const mqs = n.meal_quality_score;
     const mqsC = mqs >= 7 ? C.GREEN : (mqs >= 5 ? C.AMBER : C.RED);
-    const qH = 54;
+    const qText = String(n.quality_interpretation || '');
+    const qX = M + CW * 0.46, qW = CW * 0.52;
+    doc.font('Helvetica').fontSize(9);
+    const qTextH = doc.heightOfString(qText, { width: qW, lineGap: 2 });
+    const qH = Math.max(54, qTextH + 26);
     box(doc, M, ctx.y, CW, qH, C.SURFACE, mqsC, 0.5);
-    doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text('MEAL QUALITY SCORE', M + 12, ctx.y + 22, { width: CW * 0.28 - 12 });
-    doc.font('Helvetica-Bold').fontSize(16).fillColor(mqsC).text(`${mqs}/10`, M + CW * 0.28, ctx.y + 18, { width: CW * 0.18, lineBreak: false });
-    doc.font('Helvetica').fontSize(9).fillColor(C.MUTED).text(String(n.quality_interpretation || ''), M + CW * 0.46, ctx.y + 14, { width: CW * 0.52, lineGap: 2 });
+    const cy = ctx.y + qH / 2;
+    doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text('MEAL QUALITY SCORE', M + 12, cy - 5, { width: CW * 0.28 - 12 });
+    doc.font('Helvetica-Bold').fontSize(16).fillColor(mqsC).text(`${mqs}/10`, M + CW * 0.28, cy - 9, { width: CW * 0.18, lineBreak: false });
+    doc.font('Helvetica').fontSize(9).fillColor(C.MUTED).text(qText, qX, ctx.y + 13, { width: qW, lineGap: 2 });
     ctx.y += qH + 12;
   }
 
