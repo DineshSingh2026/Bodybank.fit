@@ -7694,10 +7694,13 @@ button.bb-today-pill{cursor:pointer}
             <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
               <button type="button" class="form-submit" id="adminCpShareBtn" onclick="getProgressReportLink()">Share link with user</button>
               <button type="button" class="action-btn btn-view" id="adminCpEliteCardBtn" onclick="openAdminEliteCardModal()" style="padding:10px 16px" title="Preview or save client Elite card">Elite card</button>
+              <button type="button" class="action-btn btn-view" id="adminCpUploadBloodBtn" onclick="adminCpUploadBlood()" style="padding:10px 16px" title="Upload a blood report for this client and analyse it">🩸 Upload blood report</button>
+              <input type="file" id="adminCpBloodFileInput" accept=".pdf,image/*" style="display:none" onchange="adminCpBloodFilePicked(event)">
               <button type="button" class="action-btn btn-reject" id="adminCpSuspendBtn" onclick="adminSuspendUser()" style="padding:12px 20px;display:none">Suspend user</button>
               <button type="button" class="action-btn btn-approve" id="adminCpReactivateBtn" onclick="adminReactivateUser()" style="padding:12px 20px;display:none">Re-activate</button>
               <button type="button" class="action-btn btn-reject" id="adminCpRemoveBtn" onclick="adminRemoveUser()" style="padding:12px 20px;display:none">Remove user</button>
             </div>
+            <div id="adminCpBloodMsg" class="form-hint" style="display:none;margin-top:8px"></div>
             <div id="adminCpShareUrlWrap" style="display:none;margin-top:12px">
               <label class="admin-cp-heading" style="margin-bottom:6px">Link to send to client (they can view their progress &amp; graphs)</label>
               <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
@@ -15668,6 +15671,7 @@ async function loadAdminUserProgressDetail(userId, userName) {
   chartsEl.style.display = 'none';
   if (shareWrap) shareWrap.style.display = 'block';
   if (shareUrlWrap) shareUrlWrap.style.display = 'none';
+  var _bloodMsg = document.getElementById('adminCpBloodMsg'); if (_bloodMsg) { _bloodMsg.style.display = 'none'; _bloodMsg.innerHTML = ''; }
   (function hideCpAdminBtnsUntilLoaded() {
     var sb = document.getElementById('adminCpSuspendBtn');
     var rb = document.getElementById('adminCpReactivateBtn');
@@ -16046,6 +16050,38 @@ async function loadClientProgressUsers() {
   window._adminCpSelectedUserId = null;
   window._adminCpSelectedClientName = '';
   destroyAdminProgressCharts();
+}
+
+// Admin uploads a blood report for the selected client, then it auto-processes.
+function adminCpUploadBlood() {
+  var id = window._adminCpSelectedUserId;
+  if (!id) { showPopup('Upload', 'Select a client first.', '', 'OK', null, 'error'); return; }
+  var inp = document.getElementById('adminCpBloodFileInput');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+function adminCpBloodFilePicked(ev) {
+  var f = ev.target && ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if (!f) return;
+  var id = window._adminCpSelectedUserId;
+  var name = window._adminCpSelectedClientName || 'client';
+  var msg = document.getElementById('adminCpBloodMsg');
+  var show = function (color, html) { if (msg) { msg.style.display = 'block'; msg.style.color = color; msg.innerHTML = html; } };
+  if (!id) { show('#e05050', 'No client selected.'); return; }
+  show('var(--muted)', 'Reading file…');
+  var reader = new FileReader();
+  reader.onload = function () {
+    var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
+    show('var(--muted)', 'Uploading & analysing for ' + escapeHtml(name) + '… this can take a minute.');
+    apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [] })
+      .then(function (res) {
+        if (res && res.error) { show('#e05050', escapeHtml(res.error)); return; }
+        show('var(--gold)', 'Uploaded & analysis started for ' + escapeHtml(name) + '. <a href="#" onclick="switchTab(\'blood\');return false;" style="color:var(--gold);text-decoration:underline">Open Blood Reports tab</a> to track, download &amp; send.');
+        if (typeof nutritionShowToast === 'function') nutritionShowToast('Blood report uploaded — analysis started.', 'success');
+      })
+      .catch(function () { show('#e05050', 'Upload failed. Please try again.'); });
+  };
+  reader.readAsDataURL(f);
 }
 
 async function adminSuspendUser() {

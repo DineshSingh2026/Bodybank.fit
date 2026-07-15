@@ -164,6 +164,83 @@ function createBloodRouter(deps) {
     }
   });
 
+  // Admin uploads a blood report ON BEHALF of a client (e.g. quarterly retest) and
+  // auto-starts analysis — so the client doesn't have to upload it themselves.
+  // Mirrors /upload but targets req.params.userId, pulls the client's profile for
+  // the medical context, and is NOT subject to the per-user 3-slot cap.
+  router.post('/admin/upload/:userId', adminOnly, rateLimiter(20, 120000), async (req, res) => {
+    try {
+      const targetUserId = String(req.params.userId || '').trim();
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'Missing client id' });
+      const u = await queryOne(
+        `SELECT id, first_name, last_name, email, phone, gender, dob, goal_type FROM users WHERE id = ?`,
+        [targetUserId]
+      );
+      if (!u) return res.status(404).json({ success: false, error: 'Client not found' });
+
+      const { bloodReportBase64, bloodReportMimeType, symptoms } = req.body || {};
+      const b64 = bloodReportBase64 ? String(bloodReportBase64).replace(/\s/g, '') : '';
+      if (!b64) return res.status(400).json({ success: false, error: 'No file provided' });
+      if (b64.length > MAX_B64_CHARS) return res.status(400).json({ success: false, error: 'File payload too large' });
+
+      const mime = String(bloodReportMimeType || 'image/jpeg').slice(0, 80);
+      const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+      const model = (process.env.ANTHROPIC_MODEL_BLOOD || process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5').trim();
+      const reportValidation = await validateBloodReportInput({ apiKey, model, imageBase64: b64, mimeType: mime });
+      if (!reportValidation.isBloodReport) {
+        return res.status(400).json({
+          success: false,
+          error: 'This file does not look like a blood lab report. Please upload a valid blood test report (PDF/image).'
+        });
+      }
+
+      const ext = mime.toLowerCase().includes('pdf') ? 'pdf' : mime.includes('png') ? 'png' : 'jpg';
+      const uploadsRoot = path.resolve(process.cwd(), (process.env.UPLOADS_DIR || './uploads').replace(/^\.\//, ''));
+      const fileDir = path.join(uploadsRoot, 'blood-reports');
+      fs.mkdirSync(fileDir, { recursive: true });
+      const filePath = path.join(fileDir, `blood_${targetUserId}_${Date.now()}.${ext}`);
+      fs.writeFileSync(filePath, Buffer.from(b64, 'base64'));
+
+      const displayName = [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email || '';
+      let ageStr = '';
+      if (u.dob) {
+        const a = Math.floor((Date.now() - new Date(u.dob).getTime()) / (365.25 * 86400000));
+        if (a > 0 && a < 130) ageStr = String(a);
+      }
+      const symList = Array.isArray(symptoms) ? symptoms.map((s) => String(s).slice(0, 80)) : [];
+      const reportId = uuidv4();
+
+      await run(
+        `INSERT INTO blood_analysis_reports (
+          id, user_id, blood_report_file_path, symptoms, status,
+          user_name, user_email, user_age, user_gender, user_goal
+        ) VALUES (?, ?, ?, ?::jsonb, 'pending', ?, ?, ?, ?, ?)`,
+        [
+          reportId,
+          targetUserId,
+          filePath,
+          JSON.stringify(symList),
+          displayName,
+          u.email ? String(u.email) : '',
+          ageStr,
+          u.gender != null ? String(u.gender).slice(0, 32) : '',
+          u.goal_type != null ? String(u.goal_type).slice(0, 200) : ''
+        ]
+      );
+
+      // Admin-initiated → start analysis immediately (fire-and-forget).
+      triggerBloodAnalysis(db, reportId, b64, mime, targetUserId).catch((err) =>
+        console.error('[blood admin upload] Analysis pipeline failed:', err && err.message)
+      );
+
+      notifyAsync('BLOOD_REPORT_UPLOADED', { name: displayName, email: u.email || '—', mobile: u.phone || '—', goal: u.goal_type || '—' });
+      res.json({ success: true, reportId, status: 'pending', message: `Uploaded for ${displayName || 'client'} — analysis started.` });
+    } catch (e) {
+      console.error('[blood admin upload]', e.message);
+      res.status(500).json({ success: false, error: e.message || 'Upload failed' });
+    }
+  });
+
   router.get('/pdf/:reportId', async (req, res) => {
     try {
       const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [req.params.reportId]);
