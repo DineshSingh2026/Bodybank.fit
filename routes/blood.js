@@ -164,12 +164,15 @@ function createBloodRouter(deps) {
     }
   });
 
-  // Admin uploads a blood report ON BEHALF of a client (e.g. quarterly retest) and
-  // auto-starts analysis — so the client doesn't have to upload it themselves.
+  // Admin OR operator uploads a blood report ON BEHALF of a client (e.g. quarterly
+  // retest) and auto-starts analysis — so the client doesn't have to upload it.
   // Mirrors /upload but targets req.params.userId, pulls the client's profile for
   // the medical context, and is NOT subject to the per-user 3-slot cap.
-  router.post('/admin/upload/:userId', adminOnly, rateLimiter(20, 120000), async (req, res) => {
+  router.post('/admin/upload/:userId', rateLimiter(20, 120000), async (req, res) => {
     try {
+      if (!['admin', 'superadmin', 'operator'].includes(req.user && req.user.role)) {
+        return res.status(403).json({ success: false, error: 'Forbidden' });
+      }
       const targetUserId = String(req.params.userId || '').trim();
       if (!targetUserId) return res.status(400).json({ success: false, error: 'Missing client id' });
       const u = await queryOne(

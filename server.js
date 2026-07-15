@@ -6150,7 +6150,7 @@ app.get('/api/operator/clients/:id', verifyToken, requireOperator, async (req, r
       queryAll(`SELECT full_name, plan, total_weight_loss, training_go, nutrition_go, sleep, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at DESC LIMIT 6`, [id]),
       queryAll(`SELECT snapshot_date, photo_front, photo_side, photo_back, bodyweight_kg, waist_cm, measurements, notes, created_at FROM body_snapshots WHERE user_id = ? AND shared_with_manager = TRUE ORDER BY snapshot_date DESC, id DESC LIMIT 12`, [id]),
       // Blood reports (up to 3 slots) for the client-profile snapshot + download.
-      queryAll(`SELECT id, created_at, status, sent_to_user, pdf_path, ai_report->>'overall_status' AS overall_status, extracted_blood_data FROM blood_analysis_reports WHERE user_id = ? ORDER BY created_at ASC LIMIT 3`, [id])
+      queryAll(`SELECT id, created_at, status, sent_to_user, pdf_path, ai_report->>'overall_status' AS overall_status, extracted_blood_data FROM blood_analysis_reports WHERE user_id = ? ORDER BY created_at DESC LIMIT 6`, [id])
     ]);
 
     res.json({

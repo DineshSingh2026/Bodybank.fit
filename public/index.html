@@ -24747,7 +24747,13 @@ async function openOperatorClient(id) {
     var eEl = document.getElementById('opModalEmail'); if (eEl) eEl.textContent = u.email || '';
     var actions = '<div class="op-actbar">'
       + opClientContactBtns(u)
-      + '<div class="op-actrow"><button type="button" class="op-btn primary" onclick="opComposeReminder()">💬 Send reminder</button><button type="button" class="op-btn ghost" onclick="opComposeShare()">📤 Share to Admin</button></div>'
+      + '<div class="op-actrow">'
+      +   '<button type="button" class="op-btn primary" onclick="opComposeReminder()">💬 Send reminder</button>'
+      +   '<button type="button" class="op-btn ghost" onclick="opComposeShare()">📤 Share to Admin</button>'
+      +   '<button type="button" class="op-btn line" onclick="opUploadBlood()">🩸 Upload blood report</button>'
+      + '</div>'
+      + '<input type="file" id="opBloodFileInput" accept=".pdf,image/*" style="display:none" onchange="opBloodFilePicked(event)">'
+      + '<div id="opBloodMsg" style="display:none;font-size:12px;margin-top:2px"></div>'
       + '</div>';
     var tabs = '<div class="op-dtabs" id="opDetailTabs">'
       + '<button type="button" class="op-dtab active" data-dtab="profile" onclick="opDetailTab(\'profile\')">Profile</button>'
@@ -24794,6 +24800,36 @@ function opClientContactBtns(u) {
   if (phone) a += '<a class="op-btn line" href="tel:' + escapeHtml(String(phone).replace(/[^0-9+]/g, '')) + '">📞 Call</a>';
   if (u.email) a += '<a class="op-btn line" href="mailto:' + escapeHtml(u.email) + '">✉️ Email</a>';
   return a ? '<div class="op-actrow">' + a + '</div>' : '';
+}
+// Operator uploads a blood report for the open client, then it auto-processes.
+function opUploadBlood() {
+  var c = window._opCurrentClient;
+  if (!c || !c.id) return;
+  var inp = document.getElementById('opBloodFileInput');
+  if (inp) { inp.value = ''; inp.click(); }
+}
+function opBloodFilePicked(ev) {
+  var f = ev.target && ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  if (!f) return;
+  var c = window._opCurrentClient;
+  var msg = document.getElementById('opBloodMsg');
+  var show = function (color, html) { if (msg) { msg.style.display = 'block'; msg.style.color = color; msg.innerHTML = html; } };
+  if (!c || !c.id) { show('#ff8a8a', 'No client selected.'); return; }
+  var name = c.name || 'client';
+  show('#8a8880', 'Reading file…');
+  var reader = new FileReader();
+  reader.onload = function () {
+    var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
+    show('#8a8880', 'Uploading & analysing for ' + escapeHtml(name) + '… this can take a minute.');
+    apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(c.id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [] })
+      .then(function (res) {
+        if (res && res.error) { show('#ff8a8a', escapeHtml(res.error)); return; }
+        show('#3dd68c', 'Uploaded & analysis started for ' + escapeHtml(name) + '. It will appear (and be downloadable) in the Profile tab once complete — reopen this client in a minute.');
+      })
+      .catch(function () { show('#ff8a8a', 'Upload failed. Please try again.'); });
+  };
+  reader.readAsDataURL(f);
 }
 function opAge(dob) {
   if (!dob) return null;
