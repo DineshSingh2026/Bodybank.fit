@@ -7603,6 +7603,7 @@ button.bb-today-pill{cursor:pointer}
           </div>
           <div class="admin-filter-actions">
             <button type="button" class="admin-apply-btn" onclick="loadPart2Submissions()">Apply</button>
+            <button type="button" class="admin-export-btn" onclick="exportAdminPart2Csv()" title="Download CSV matching current filters">Export CSV</button>
             <button type="button" class="admin-filter-clear-btn" onclick="clearAdminFormFilters('part2')">Clear</button>
           </div>
         </div>
@@ -12716,6 +12717,47 @@ async function exportAdminAuditFormsCsv() {
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'audit-forms-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function adminPart2FormsQueryString() {
+  var pf = document.getElementById('p2FilterFrom');
+  var pt = document.getElementById('p2FilterTo');
+  var ps = document.getElementById('p2FilterSearch');
+  var qs = [];
+  if (pf && pf.value) qs.push('from=' + encodeURIComponent(pf.value));
+  if (pt && pt.value) qs.push('to=' + encodeURIComponent(pt.value));
+  if (ps && ps.value.trim()) qs.push('search=' + encodeURIComponent(ps.value.trim()));
+  return qs.length ? '?' + qs.join('&') : '';
+}
+
+async function exportAdminPart2Csv() {
+  var qs = adminPart2FormsQueryString();
+  var data = await apiCall('GET', '/api/admin/part2-submissions' + qs);
+  if (data.error || !Array.isArray(data)) {
+    showPopup('Error', (data && data.error) || 'Could not load Part-2 submissions for export.', '', 'OK', null, 'error');
+    return;
+  }
+  if (!data.length) {
+    showPopup('No data', 'No Part-2 submissions match the current filters.', '', 'OK');
+    return;
+  }
+  var keys = Object.keys(data[0]).filter(function(k) { return k !== 'password'; });
+  var rows = data.map(function(row) {
+    return keys.map(function(k) {
+      var v = row[k];
+      if (v == null) return '';
+      var s = String(v);
+      if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
+      return s;
+    }).join(',');
+  });
+  var csv = [keys.join(',')].concat(rows).join('\r\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'part2-forms-' + new Date().toISOString().slice(0, 10) + '.csv';
   a.click();
   URL.revokeObjectURL(a.href);
 }
