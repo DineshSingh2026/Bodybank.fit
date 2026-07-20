@@ -5178,7 +5178,8 @@ button.bb-today-pill{cursor:pointer}
 
 /* Lead detail modal */
 .bb-lead-modal .modal{max-width:760px;width:96vw}
-.bb-lead-modal-body{display:flex;flex-direction:column;gap:14px}
+.bb-lead-modal-body{display:flex;flex-direction:column;gap:14px;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
+.bb-lead-modal-body>*{flex-shrink:0}
 .bb-lead-section{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;padding:14px}
 .bb-lead-section h4{margin:0 0 10px 0;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--gold)}
 .bb-lead-stage-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
@@ -21198,24 +21199,41 @@ function adminNutritionDownloadPhotos(userId) {
         return;
       }
       var meals = Array.isArray(x.log.meals) ? x.log.meals : [];
-      var rowsWithPhoto = meals.filter(function (m) { return !!(m && m.photo_data); });
+      var rowsWithPhoto = meals.filter(function (m) { return !!(m && (m.download_url || m.photo_data)); });
       if (!rowsWithPhoto.length) {
         if (typeof showPopup === 'function') showPopup('Download image', 'No meal photos available for selected date.', '', 'OK', null, 'error');
         return;
       }
       var safeDate = String(date || '').replace(/[^\d-]/g, '') || 'nutrition';
+      // Prefer the server-signed download URL: navigating to an attachment response
+      // downloads reliably everywhere (incl. iOS Safari). data: URIs do not.
+      // Stagger successive downloads so the browser doesn't drop the batch; keep the
+      // first one inside the click gesture.
       rowsWithPhoto.forEach(function (m, idx) {
-        var mt = String(m.meal_type || ('meal' + (idx + 1))).toLowerCase().replace(/[^a-z0-9_-]/g, '');
-        var mime = String(m.photo_mime || '');
-        var ext = mime.indexOf('png') > -1 ? 'png' : mime.indexOf('webp') > -1 ? 'webp' : 'jpg';
-        var raw = String(m.photo_data || '').trim();
-        var href = raw.indexOf('data:') === 0 ? raw : ('data:' + (mime || 'image/jpeg') + ';base64,' + raw);
-        var a = document.createElement('a');
-        a.href = href;
-        a.download = 'nutrition-' + safeDate + '-' + mt + '.' + ext;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
+        var trigger = function () {
+          var a = document.createElement('a');
+          if (m.download_url) {
+            a.href = m.download_url;
+          } else {
+            var mt = String(m.meal_type || ('meal' + (idx + 1))).toLowerCase().replace(/[^a-z0-9_-]/g, '');
+            var mime = String(m.photo_mime || 'image/jpeg');
+            var ext = mime.indexOf('png') > -1 ? 'png' : mime.indexOf('webp') > -1 ? 'webp' : 'jpg';
+            var raw = String(m.photo_data || '').trim();
+            var b64 = raw.indexOf(',') > -1 ? raw.slice(raw.indexOf(',') + 1) : raw;
+            try {
+              var bin = atob(b64.replace(/\s/g, ''));
+              var bytes = new Uint8Array(bin.length);
+              for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+              a.href = URL.createObjectURL(new Blob([bytes], { type: mime }));
+              a.download = 'nutrition-' + safeDate + '-' + mt + '.' + ext;
+              setTimeout(function () { try { URL.revokeObjectURL(a.href); } catch (_) {} }, 60000);
+            } catch (_) { return; }
+          }
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+        };
+        if (idx === 0) trigger(); else setTimeout(trigger, idx * 800);
       });
     })
     .catch(function () {

@@ -703,10 +703,20 @@ function createNutritionRouter(deps) {
         [uid, d]
       );
       const streak = uid === req.user.id ? await nutritionLoggingStreak(db, uid) : null;
-      const mealsWithConfidence = (meals || []).map((m) => ({
-        ...m,
-        meal_confidence: confidenceFromLogRow(m)
-      }));
+      // Signed, short-lived download URL per photographed meal. Navigating to this
+      // triggers a real file download (server sets Content-Disposition) — reliable
+      // on iOS Safari, unlike a client-side data: URI anchor.
+      const baseUrl = appBaseUrlFromReq(req);
+      const safeDate = d.replace(/[^\d-]/g, '');
+      const mealsWithConfidence = (meals || []).map((m) => {
+        let download_url = null;
+        if (baseUrl && m.id && m.photo_data && String(m.photo_data).trim()) {
+          const fnBase = ('nutrition-' + safeDate + '-' + String(m.meal_type || 'meal')).replace(/[^a-z0-9_-]/gi, '');
+          const signed = buildSignedPhotoUrl(baseUrl, m.id, 60 * 60 * 1000);
+          if (signed) download_url = signed + '&dl=1&fn=' + encodeURIComponent(fnBase);
+        }
+        return { ...m, meal_confidence: confidenceFromLogRow(m), download_url };
+      });
       const dailyConfidence = summarizeDailyConfidence(mealsWithConfidence.map((m) => m.meal_confidence));
       res.json({ date: d, userId: uid, meals: mealsWithConfidence, dailyConfidence, dailyStats: stats || null, streak });
     } catch (e) {

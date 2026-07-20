@@ -3415,7 +3415,10 @@ app.get('/api/admin/daily-checkins', verifyToken, requireAdminOrSuperadmin, asyn
       sql += ` AND (u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.email ILIKE ?)`;
       params.push(q, q, q);
     }
-    sql += ` ORDER BY dc.checkin_date DESC, dc.created_at DESC LIMIT 250`;
+    // Group each client's daily check-ins together; clients ordered by their
+    // most recent check-in, newest-first within a client.
+    const clientKey = "COALESCE(CAST(dc.user_id AS TEXT), CAST(dc.id AS TEXT))";
+    sql += ` ORDER BY MAX(dc.checkin_date) OVER (PARTITION BY ${clientKey}) DESC, ${clientKey} ASC, dc.checkin_date DESC, dc.created_at DESC LIMIT 250`;
     const rows = await queryAll(sql, params);
     res.json(rows.map((r) => attachWaterLitersToDailyRow(r)));
   } catch (e) {
@@ -3462,7 +3465,10 @@ app.get('/api/admin/audit-requests', verifyToken, requireAdminOrSuperadmin, asyn
         ' AND (first_name ILIKE ? OR last_name ILIKE ? OR email ILIKE ? OR (COALESCE(first_name,\'\') || \' \' || COALESCE(last_name,\'\')) ILIKE ?)';
       params.push(q, q, q, q);
     }
-    sql += ' ORDER BY created_at DESC LIMIT 250';
+    // Group each client's submissions together; clients ordered by their most
+    // recent submission, newest-first within a client.
+    const clientKey = "COALESCE(NULLIF(LOWER(TRIM(email)), ''), CAST(id AS TEXT))";
+    sql += ` ORDER BY MAX(created_at) OVER (PARTITION BY ${clientKey}) DESC, ${clientKey} ASC, created_at DESC LIMIT 250`;
     const rows = await queryAll(sql, params);
     res.json(rows);
   } catch (e) {
@@ -3496,7 +3502,11 @@ app.get('/api/admin/sunday-checkins', verifyToken, requireAdminOrSuperadmin, asy
         ' AND (s.full_name ILIKE ? OR s.reply_email ILIKE ? OR u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.email ILIKE ?)';
       params.push(q, q, q, q, q);
     }
-    sql += ' ORDER BY s.created_at DESC LIMIT 250';
+    // Group each client's check-ins together; clients ordered by their most
+    // recent check-in, newest-first within a client. Key on user_id when linked,
+    // else the reply email.
+    const clientKey = "COALESCE(CAST(s.user_id AS TEXT), NULLIF(LOWER(TRIM(s.reply_email)), ''), CAST(s.id AS TEXT))";
+    sql += ` ORDER BY MAX(s.created_at) OVER (PARTITION BY ${clientKey}) DESC, ${clientKey} ASC, s.created_at DESC LIMIT 250`;
     const rows = await queryAll(sql, params);
     res.json(rows);
   } catch (e) {
@@ -3525,7 +3535,10 @@ app.get('/api/admin/part2-submissions', verifyToken, requireAdminOrSuperadmin, a
       sql += ' AND (name ILIKE ? OR email ILIKE ? OR mobile ILIKE ?)';
       params.push(q, q, q);
     }
-    sql += ' ORDER BY created_at DESC LIMIT 250';
+    // Group each client's submissions together; clients ordered by their most
+    // recent submission, newest-first within a client.
+    const clientKey = "COALESCE(NULLIF(LOWER(TRIM(email)), ''), CAST(id AS TEXT))";
+    sql += ` ORDER BY MAX(created_at) OVER (PARTITION BY ${clientKey}) DESC, ${clientKey} ASC, created_at DESC LIMIT 250`;
     const rows = await queryAll(sql, params);
     res.json(rows);
   } catch (e) {
@@ -8973,15 +8986,28 @@ app.get('/api/public/nutrition-photo/:mealId', async (req, res) => {
     const mime = String(row.photo_mime || 'image/jpeg');
     const b64 = data.includes(',') ? data.split(',')[1] : data;
     const buf = Buffer.from(b64, 'base64');
-    // WhatsApp / Twilio hard limit is 5 MB for images
-    if (buf.length > 5 * 1024 * 1024) {
+    // dl=1 → force a real file download (used by the admin "Download image" button).
+    // Top-level navigation to an attachment response is the only reliable way to
+    // save an image on iOS Safari, which ignores the download attr on data: URIs.
+    const wantsDownload = /^(1|true|yes)$/i.test(String(req.query.dl || req.query.download || ''));
+    // WhatsApp / Twilio hard limit is 5 MB for images — inline (Twilio) fetch only.
+    // Admin downloads are exempt so large meal photos still save correctly.
+    if (!wantsDownload && buf.length > 5 * 1024 * 1024) {
       console.warn('[photo-serve] Photo too large for Twilio: %d bytes for mealId=%s', buf.length, mealId);
       return res.status(413).send('Photo too large');
     }
-    console.log('[photo-serve] Serving photo mealId=%s size=%d mime=%s', mealId, buf.length, mime);
+    const ext = mime.indexOf('png') > -1 ? 'png' : mime.indexOf('webp') > -1 ? 'webp' : 'jpg';
+    console.log('[photo-serve] Serving photo mealId=%s size=%d mime=%s dl=%s', mealId, buf.length, mime, wantsDownload);
     res.setHeader('Content-Type', mime);
     res.setHeader('Content-Length', buf.length);
-    res.setHeader('Cache-Control', 'public, max-age=300');
+    if (wantsDownload) {
+      const fnRaw = String(req.query.fn || '').replace(/[^a-z0-9_-]/gi, '').slice(0, 60);
+      const filename = (fnRaw || `meal-${mealId}`) + '.' + ext;
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+      res.setHeader('Cache-Control', 'private, no-store');
+    } else {
+      res.setHeader('Cache-Control', 'public, max-age=300');
+    }
     return res.send(buf);
   } catch (err) {
     console.error('[photo-serve] Error for mealId=%s:', req.params.mealId, err.message);
