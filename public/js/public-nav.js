@@ -29,9 +29,10 @@
     { key: 'blog',    label: 'Blog',    icon: ICONS.blog,    href: 'blog.html',           match: ['blog.html'] },
     { key: 'about',   label: 'About',   icon: ICONS.about,   href: 'our-story.html',      match: ['our-story.html'] },
     {
-      key: 'join', label: 'Join', icon: ICONS.join, href: 'index.html#login', match: [],
+      key: 'join', label: 'Join', icon: ICONS.join, href: '/signin', match: ['signin.html', 'signup.html'],
       action: function () {
-        // Prefer the in-page login modal when it exists (index.html); else navigate.
+        // Prefer the in-page login modal when it exists (index.html); on every
+        // other page fall through to the standalone /signin page.
         if (typeof window.openModal === 'function' && document.getElementById('loginModal')) {
           window.openModal('loginModal');
           return false;

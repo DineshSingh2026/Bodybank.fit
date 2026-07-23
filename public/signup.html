@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060606">
+<title>Create Your Account · BodyBank</title>
+<meta name="description" content="Create your BodyBank account and start your transformation with instant full access.">
+<link rel="icon" href="/img/Bodybank logo.png">
+<link rel="apple-touch-icon" href="/img/Bodybank logo.png">
+<meta property="og:title" content="Join BodyBank">
+<meta property="og:description" content="Create your BodyBank account and start your transformation.">
+<meta property="og:image" content="/img/Bodybank logo.png">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/auth-pages.css">
+</head>
+<body>
+
+<main class="auth-wrap">
+  <div class="auth-card wide">
+
+    <div class="auth-brand">
+      <a href="/" aria-label="BodyBank home"><img src="/img/Bodybank logo.png" alt="BodyBank"></a>
+      <span class="auth-eyebrow">BodyBank</span>
+      <h1 class="auth-title" id="pageTitle">Create your account</h1>
+      <p class="auth-sub" id="pageSub">A few details and your transformation starts today.</p>
+    </div>
+
+    <div class="session-banner" id="sessionBanner"></div>
+    <div class="msg" id="msg" role="alert" aria-live="polite"></div>
+
+    <!-- =========================== SIGN UP ============================= -->
+    <section class="pane active" id="paneSignup">
+      <form class="auth-form" id="signupForm" novalidate>
+        <div class="field-row">
+          <div class="field">
+            <label for="suFirst">First name <span class="req">*</span></label>
+            <input class="input" type="text" id="suFirst" placeholder="First name" autocomplete="given-name" required>
+          </div>
+          <div class="field">
+            <label for="suLast">Last name</label>
+            <input class="input" type="text" id="suLast" placeholder="Last name" autocomplete="family-name">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="suEmail">Email <span class="req">*</span></label>
+          <input class="input" type="email" id="suEmail" placeholder="you@example.com" autocomplete="email" inputmode="email" required>
+        </div>
+
+        <div class="field">
+          <label for="suPhone">Mobile / WhatsApp <span class="req">*</span></label>
+          <input class="input" type="tel" id="suPhone" placeholder="+91XXXXXXXXXX" autocomplete="tel" required>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="suDob">Date of birth <span class="req">*</span></label>
+            <input class="input" type="date" id="suDob" autocomplete="bday" required>
+          </div>
+          <div class="field">
+            <label for="suGender">Gender <span class="req">*</span></label>
+            <select class="input" id="suGender" required>
+              <option value="">Select</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="suHeightCm">Height (cm) <span class="req">*</span></label>
+          <input class="input" type="number" id="suHeightCm" min="100" max="230" step="1" inputmode="numeric" placeholder="e.g. 175" required>
+          <span class="hint">Whole centimeters (100–230). Used for your nutrition energy estimate (RMR).</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="suCountry">Country <span class="req">*</span></label>
+            <input class="input" type="text" id="suCountry" placeholder="Your country" autocomplete="country-name" required>
+          </div>
+          <div class="field">
+            <label for="suTimezone">Timezone <span class="req">*</span></label>
+            <select class="input" id="suTimezone" required></select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="suState">State / Province</label>
+            <input class="input" type="text" id="suState" placeholder="State or province" autocomplete="address-level1">
+          </div>
+          <div class="field">
+            <label for="suCity">City</label>
+            <input class="input" type="text" id="suCity" placeholder="Your city" autocomplete="address-level2">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="suPassword">Password <span class="req">*</span></label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="suPassword" placeholder="Create a password (min 6 characters)" autocomplete="new-password" required>
+            <button class="pw-toggle" type="button" aria-label="Show password" onclick="BBAuth.togglePw('suPassword', this)">&#128065;</button>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="suConfirmPw">Confirm password <span class="req">*</span></label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="suConfirmPw" placeholder="Re-enter your password" autocomplete="new-password" required>
+            <button class="pw-toggle" type="button" aria-label="Show password" onclick="BBAuth.togglePw('suConfirmPw', this)">&#128065;</button>
+          </div>
+        </div>
+
+        <details class="opt-block">
+          <summary>Optional: add your blood lab report now</summary>
+          <p class="hint" style="margin-top:8px">PDF or photo — max 8 MB. We'll upload it for you the moment your account is ready. You can also skip and add it anytime from Home.</p>
+          <input type="file" id="signupBloodFile" accept=".pdf,image/*">
+          <div class="hint" style="margin-top:10px;text-transform:uppercase;letter-spacing:0.05em">Symptoms (optional)</div>
+          <div class="sym-grid">
+            <label><input type="checkbox" name="signupSym" value="fatigue"> Fatigue</label>
+            <label><input type="checkbox" name="signupSym" value="poor_sleep"> Poor sleep</label>
+            <label><input type="checkbox" name="signupSym" value="brain_fog"> Brain fog</label>
+            <label><input type="checkbox" name="signupSym" value="bloating"> Bloating</label>
+          </div>
+        </details>
+
+        <button class="btn-primary" type="submit" id="signupBtn">Create my account</button>
+      </form>
+
+      <div class="divider" id="socialDivider">or sign up with</div>
+      <div class="social-slot" id="socialSlot">
+        <div class="google-slot" id="googleSlot"></div>
+        <button type="button" class="apple-btn" id="appleBtn" aria-label="Sign up with Apple">
+          <svg width="15" height="18" viewBox="0 0 16 20" fill="#fff" aria-hidden="true" style="display:block;margin-bottom:2px"><path d="M13.476 10.62c-.02-2.06 1.68-3.05 1.757-3.097-.957-1.4-2.446-1.59-2.974-1.612-1.266-.128-2.47.745-3.113.745-.64 0-1.633-.726-2.685-.706-1.383.02-2.656.803-3.366 2.04-1.435 2.49-.367 6.176 1.03 8.197.683.99 1.498 2.1 2.567 2.06 1.03-.04 1.42-.666 2.666-.666 1.247 0 1.597.666 2.69.646 1.11-.02 1.814-1.01 2.493-2.003.785-1.15 1.108-2.26 1.127-2.317-.025-.012-2.163-.83-2.185-3.29zM11.43 4.62c.567-.69.95-1.65.846-2.605-.817.033-1.806.545-2.392 1.234-.525.61-.985 1.586-.86 2.522.91.07 1.84-.462 2.406-1.15z"/></svg>
+          <span>Sign up with Apple</span>
+        </button>
+      </div>
+
+      <p class="auth-alt">Already have an account? <a href="/signin" id="toSignin">Sign in</a></p>
+    </section>
+
+    <!-- ================= COMPLETE PROFILE (Google / Apple) ============== -->
+    <section class="pane" id="paneComplete">
+      <form class="auth-form" id="completeForm" novalidate>
+        <div class="field-row">
+          <div class="field">
+            <label for="gcFirst">First name</label>
+            <input class="input" type="text" id="gcFirst" placeholder="First name">
+          </div>
+          <div class="field">
+            <label for="gcLast">Last name</label>
+            <input class="input" type="text" id="gcLast" placeholder="Last name">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="gcEmail">Email</label>
+          <input class="input" type="email" id="gcEmail" readonly>
+        </div>
+
+        <div class="field">
+          <label for="gcPhone">Mobile / WhatsApp <span class="req">*</span></label>
+          <input class="input" type="tel" id="gcPhone" placeholder="+91XXXXXXXXXX" autocomplete="tel" required>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="gcDob">Date of birth <span class="req">*</span></label>
+            <input class="input" type="date" id="gcDob" required>
+          </div>
+          <div class="field">
+            <label for="gcGender">Gender <span class="req">*</span></label>
+            <select class="input" id="gcGender" required>
+              <option value="">Select</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+              <option value="Prefer not to say">Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="gcHeightCm">Height (cm) <span class="req">*</span></label>
+          <input class="input" type="number" id="gcHeightCm" min="100" max="230" step="1" inputmode="numeric" placeholder="e.g. 175" required>
+          <span class="hint">Whole centimeters (100–230). Used for your nutrition energy estimate (RMR).</span>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="gcCountry">Country <span class="req">*</span></label>
+            <input class="input" type="text" id="gcCountry" placeholder="Your country" required>
+          </div>
+          <div class="field">
+            <label for="gcTimezone">Timezone <span class="req">*</span></label>
+            <select class="input" id="gcTimezone" required></select>
+          </div>
+        </div>
+
+        <div class="field-row">
+          <div class="field">
+            <label for="gcState">State / Province</label>
+            <input class="input" type="text" id="gcState" placeholder="State or province">
+          </div>
+          <div class="field">
+            <label for="gcCity">City</label>
+            <input class="input" type="text" id="gcCity" placeholder="Your city">
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="gcPw">Password <span class="req">*</span></label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="gcPw" placeholder="Create a password (min 6 characters)" autocomplete="new-password" required>
+            <button class="pw-toggle" type="button" aria-label="Show password" onclick="BBAuth.togglePw('gcPw', this)">&#128065;</button>
+          </div>
+          <span class="hint">You'll use this if you ever sign in with email instead.</span>
+        </div>
+
+        <div class="field">
+          <label for="gcPwConfirm">Confirm password <span class="req">*</span></label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="gcPwConfirm" placeholder="Re-enter your password" autocomplete="new-password" required>
+            <button class="pw-toggle" type="button" aria-label="Show password" onclick="BBAuth.togglePw('gcPwConfirm', this)">&#128065;</button>
+          </div>
+        </div>
+
+        <button class="btn-primary" type="submit" id="completeBtn">Complete sign-up</button>
+        <button class="btn-ghost" type="button" id="cancelComplete" style="margin-top:10px">← Use a different method</button>
+      </form>
+    </section>
+
+  </div>
+</main>
+
+<footer class="auth-foot">
+  <a href="/">Home</a><span class="sep">·</span>
+  <a href="/privacy.html">Privacy</a><span class="sep">·</span>
+  <a href="/our-story.html">Our story</a>
+</footer>
+
+<script src="/js/auth-pages.js"></script>
+<script>
+(function () {
+  'use strict';
+  var BB = window.BBAuth;
+
+  var msgId = 'msg';
+  var paneSignup = document.getElementById('paneSignup');
+  var paneComplete = document.getElementById('paneComplete');
+  var pageTitle = document.getElementById('pageTitle');
+  var pageSub = document.getElementById('pageSub');
+
+  var pendingSocial = null;       // { provider, id_token, user, email, given_name, family_name }
+  var queuedBlood = null;         // { b64, mime, symptoms } — uploaded right after the first login
+
+  BB.fillTimezoneSelect('suTimezone');
+  BB.fillTimezoneSelect('gcTimezone');
+  (function prefillCountry() {
+    var guess = BB.guessCountry();
+    if (!guess) return;
+    var a = document.getElementById('suCountry');
+    var b = document.getElementById('gcCountry');
+    if (a && !a.value) a.value = guess;
+    if (b && !b.value) b.value = guess;
+  })();
+
+  function showPane(which) {
+    paneSignup.classList.toggle('active', which === 'signup');
+    paneComplete.classList.toggle('active', which === 'complete');
+    if (which === 'complete') {
+      pageTitle.textContent = 'Complete your profile';
+      pageSub.textContent = 'Just a few more details and you are in.';
+    } else {
+      pageTitle.textContent = 'Create your account';
+      pageSub.textContent = 'A few details and your transformation starts today.';
+    }
+    BB.msg(msgId, '');
+    try { window.scrollTo({ top: 0, behavior: 'smooth' }); } catch (_) { window.scrollTo(0, 0); }
+  }
+
+  function val(id) { return String((document.getElementById(id) || {}).value || '').trim(); }
+  function mark(id, bad) {
+    var el = document.getElementById(id);
+    if (el) el.classList.toggle('bad', !!bad);
+  }
+  function fail(id, text) {
+    mark(id, true);
+    var el = document.getElementById(id);
+    if (el) el.focus();
+    BB.msg(msgId, text);
+    return false;
+  }
+  function clearMarks(ids) { ids.forEach(function (id) { mark(id, false); }); }
+
+  /* ------------------------------------------ post-signup: log in + land */
+
+  // Sign-up does not return a token, so we exchange the credentials the user
+  // just chose for a real session, flush any queued blood report, then hand
+  // off to the SPA which opens the dashboard from localStorage.
+  function loginAndLand(email, password, btn, successText) {
+    return BB.api('POST', '/api/auth/login', { email: email, password: password }).then(function (data) {
+      if (data.error || !data.id) {
+        BB.busy(btn, false);
+        BB.msgHtml(msgId,
+          'Your account was created, but automatic sign-in did not go through: ' +
+          BB.escapeHtml(BB.authErrorText(data)) +
+          ' <a href="/signin">Sign in here</a>.', 'info');
+        return;
+      }
+      BB.saveSession(data);
+      BB.msg(msgId, successText || 'Account ready. Taking you to your dashboard…', 'ok');
+      return uploadQueuedBlood(data.token).then(function () { BB.go(); });
+    });
+  }
+
+  function uploadQueuedBlood(token) {
+    if (!queuedBlood || !token) return Promise.resolve();
+    var payload = queuedBlood;
+    queuedBlood = null;
+    BB.msg(msgId, 'Account ready. Uploading your blood report…', 'ok');
+    return BB.api('POST', '/api/blood/upload', {
+      bloodReportBase64: payload.b64,
+      bloodReportMimeType: payload.mime,
+      symptoms: payload.symptoms || []
+    }, token).then(function (res) {
+      // A failed report upload must never block sign-in — it can be retried from Home.
+      if (res && res.error) console.warn('[signup] blood upload deferred:', res.error);
+    });
+  }
+
+  /* ------------------------------------------------------- email sign-up */
+
+  var signupForm = document.getElementById('signupForm');
+  var signupBtn = document.getElementById('signupBtn');
+  var FIELD_IDS = ['suFirst', 'suEmail', 'suPhone', 'suDob', 'suGender', 'suHeightCm', 'suCountry', 'suTimezone', 'suPassword', 'suConfirmPw'];
+
+  signupForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearMarks(FIELD_IDS);
+    BB.msg(msgId, '');
+
+    var first_name = val('suFirst');
+    var last_name = val('suLast');
+    var email = val('suEmail').toLowerCase();
+    var phone = val('suPhone');
+    var dob = val('suDob');
+    var gender = val('suGender');
+    var country = val('suCountry');
+    var timezone = val('suTimezone');
+    var state_province = val('suState');
+    var city = val('suCity');
+    var height_cm = parseInt(val('suHeightCm'), 10);
+    var password = String(document.getElementById('suPassword').value || '');
+    var confirm = String(document.getElementById('suConfirmPw').value || '');
+
+    if (!first_name) return fail('suFirst', 'First name is required.');
+    if (!email) return fail('suEmail', 'Email is required.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return fail('suEmail', 'Please enter a valid email address.');
+    if (!phone) return fail('suPhone', 'Mobile number is required.');
+    if (!dob) return fail('suDob', 'Date of birth is required.');
+    if (!gender) return fail('suGender', 'Please select your gender.');
+    if (!Number.isFinite(height_cm) || height_cm < 100 || height_cm > 230) {
+      return fail('suHeightCm', 'Please enter your height in centimeters (a whole number between 100 and 230).');
+    }
+    if (!country) return fail('suCountry', 'Country is required.');
+    if (!timezone) return fail('suTimezone', 'Please select your timezone.');
+    if (!password) return fail('suPassword', 'Password is required.');
+    if (password.length < 6) return fail('suPassword', 'Password must be at least 6 characters.');
+    if (password !== confirm) return fail('suConfirmPw', 'Passwords do not match.');
+
+    BB.busy(signupBtn, true, 'Creating your account…');
+
+    readBloodFile().then(function (ok) {
+      if (!ok) { BB.busy(signupBtn, false); return; }
+      return BB.api('POST', '/api/auth/signup', {
+        email: email, password: password, first_name: first_name, last_name: last_name,
+        phone: phone, dob: dob, gender: gender, country: country, timezone: timezone,
+        state_province: state_province, city: city, height_cm: height_cm,
+        client: BB.clientKind()
+      }).then(function (data) {
+        if (data.error) {
+          queuedBlood = null;
+          BB.busy(signupBtn, false);
+          if (/already registered/i.test(String(data.error))) {
+            BB.msgHtml(msgId, 'That email is already registered. <a href="/signin">Sign in instead</a>.');
+            mark('suEmail', true);
+          } else {
+            BB.msg(msgId, BB.authErrorText(data));
+          }
+          return;
+        }
+        if (data.pending_approval) {
+          queuedBlood = null;
+          BB.busy(signupBtn, false);
+          BB.msgHtml(msgId,
+            'Sign-up successful. Your account is waiting for admin approval — you will be able to sign in once it is approved. ' +
+            '<a href="/signin">Go to sign in</a>.', 'info');
+          return;
+        }
+        var days = data.trial_days || 7;
+        return loginAndLand(email, password, signupBtn,
+          "You're in! " + days + ' days of full access unlocked. Taking you to your dashboard…');
+      });
+    });
+  });
+
+  // Reads the optional blood report into memory. Resolves false when the file
+  // is unusable, in which case the sign-up is not submitted.
+  function readBloodFile() {
+    queuedBlood = null;
+    var input = document.getElementById('signupBloodFile');
+    var file = input && input.files && input.files[0];
+    if (!file) return Promise.resolve(true);
+    if (file.size > 8 * 1024 * 1024) {
+      BB.msg(msgId, 'The blood report must be 8 MB or smaller here. Remove it to continue — you can upload a larger file from Home after signing in.');
+      return Promise.resolve(false);
+    }
+    return new Promise(function (resolve) {
+      var fr = new FileReader();
+      fr.onload = function () {
+        var dataUrl = String(fr.result || '');
+        var comma = dataUrl.indexOf(',');
+        var symptoms = Array.prototype.slice.call(document.querySelectorAll('input[name="signupSym"]:checked'))
+          .map(function (c) { return c.value; });
+        queuedBlood = {
+          b64: comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl,
+          mime: file.type || 'application/pdf',
+          symptoms: symptoms
+        };
+        resolve(true);
+      };
+      fr.onerror = function () {
+        BB.msg(msgId, 'Could not read the blood report file. Remove it and try again, or upload it later from Home.');
+        resolve(false);
+      };
+      fr.readAsDataURL(file);
+    });
+  }
+
+  /* ------------------------------------------------- social sign-up flow */
+
+  function startProfileCompletion(provider, idToken, appleUser, data) {
+    pendingSocial = {
+      provider: provider,
+      id_token: idToken,
+      user: appleUser || null,
+      email: data.email || '',
+      given_name: data.given_name || '',
+      family_name: data.family_name || ''
+    };
+    fillCompletionForm();
+    showPane('complete');
+  }
+
+  function fillCompletionForm() {
+    if (!pendingSocial) return;
+    var fn = document.getElementById('gcFirst');
+    var ln = document.getElementById('gcLast');
+    var em = document.getElementById('gcEmail');
+    // Apple sends the name only on the very first consent — leave those fields
+    // editable when it is missing so the user can type it.
+    fn.value = pendingSocial.given_name || '';
+    ln.value = pendingSocial.family_name || '';
+    if (pendingSocial.given_name) fn.setAttribute('readonly', 'readonly'); else fn.removeAttribute('readonly');
+    if (pendingSocial.family_name) ln.setAttribute('readonly', 'readonly'); else ln.removeAttribute('readonly');
+    em.value = pendingSocial.email || '';
+    document.getElementById('gcPhone').value = '';
+    document.getElementById('gcPw').value = '';
+    document.getElementById('gcPwConfirm').value = '';
+  }
+
+  function applySocialSuccess(data) {
+    BB.saveSession(data);
+    BB.msg(msgId, 'Signed in. Taking you to your dashboard…', 'ok');
+    BB.go();
+  }
+
+  BB.initGoogle('googleSlot', 'signup_with', function (credential) {
+    BB.msg(msgId, '');
+    BB.api('POST', '/api/auth/google', { id_token: credential }).then(function (data) {
+      if (data.needs_profile) { startProfileCompletion('google', credential, null, data); return; }
+      if (data.error || !data.id) { BB.msg(msgId, BB.authErrorText(data)); return; }
+      applySocialSuccess(data); // already had an account — treat as a sign-in
+    });
+  });
+
+  BB.initApple('appleBtn');
+  document.getElementById('appleBtn').addEventListener('click', function () {
+    BB.msg(msgId, '');
+    BB.appleSignIn(function (idToken, appleUser) {
+      BB.api('POST', '/api/auth/apple', { id_token: idToken, user: appleUser }).then(function (data) {
+        if (data.needs_profile) { startProfileCompletion('apple', idToken, appleUser, data); return; }
+        if (data.error || !data.id) { BB.msg(msgId, BB.authErrorText(data)); return; }
+        applySocialSuccess(data);
+      });
+    }, function (text) { BB.msg(msgId, text); });
+  });
+
+  /* ----------------------------------------- complete-profile submission */
+
+  var completeForm = document.getElementById('completeForm');
+  var completeBtn = document.getElementById('completeBtn');
+  var GC_IDS = ['gcFirst', 'gcLast', 'gcPhone', 'gcDob', 'gcGender', 'gcHeightCm', 'gcCountry', 'gcTimezone', 'gcPw', 'gcPwConfirm'];
+
+  document.getElementById('cancelComplete').addEventListener('click', function () {
+    pendingSocial = null;
+    showPane('signup');
+  });
+
+  completeForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    clearMarks(GC_IDS);
+    BB.msg(msgId, '');
+
+    if (!pendingSocial || !pendingSocial.id_token) {
+      BB.msg(msgId, 'That sign-in session expired. Please start again.');
+      showPane('signup');
+      return;
+    }
+
+    var phone = val('gcPhone');
+    var dob = val('gcDob');
+    var gender = val('gcGender');
+    var country = val('gcCountry');
+    var timezone = val('gcTimezone');
+    var state_province = val('gcState');
+    var city = val('gcCity');
+    var height_cm = parseInt(val('gcHeightCm'), 10);
+    var password = String(document.getElementById('gcPw').value || '');
+    var confirm = String(document.getElementById('gcPwConfirm').value || '');
+
+    if (!phone) return fail('gcPhone', 'Mobile (WhatsApp) number is required.');
+    if (!dob) return fail('gcDob', 'Date of birth is required.');
+    if (!gender) return fail('gcGender', 'Please select your gender.');
+    if (!Number.isFinite(height_cm) || height_cm < 100 || height_cm > 230) {
+      return fail('gcHeightCm', 'Please enter your height in centimeters (a whole number between 100 and 230).');
+    }
+    if (!country) return fail('gcCountry', 'Country is required.');
+    if (!timezone) return fail('gcTimezone', 'Please select your timezone.');
+    if (!password) return fail('gcPw', 'Password is required.');
+    if (password.length < 6) return fail('gcPw', 'Password must be at least 6 characters.');
+    if (password !== confirm) return fail('gcPwConfirm', 'Passwords do not match.');
+
+    var isApple = pendingSocial.provider === 'apple';
+    var endpoint = isApple ? '/api/auth/apple-complete' : '/api/auth/google-complete';
+    var body = {
+      id_token: pendingSocial.id_token,
+      phone: phone, password: password, dob: dob, gender: gender,
+      country: country, timezone: timezone,
+      state_province: state_province, city: city, height_cm: height_cm,
+      client: BB.clientKind()
+    };
+    if (isApple) {
+      body.user = {
+        name: { firstName: val('gcFirst'), lastName: val('gcLast') },
+        email: pendingSocial.email || ''
+      };
+    }
+
+    BB.busy(completeBtn, true, 'Creating your account…');
+    BB.api('POST', endpoint, body).then(function (data) {
+      if (data.error) {
+        BB.busy(completeBtn, false);
+        BB.msg(msgId, BB.authErrorText(data));
+        return;
+      }
+      var email = data.email || pendingSocial.email || '';
+      pendingSocial = null;
+      if (!email) {
+        BB.busy(completeBtn, false);
+        BB.msgHtml(msgId, 'Your account is ready. <a href="/signin">Sign in to continue</a>.', 'ok');
+        return;
+      }
+      return loginAndLand(email, password, completeBtn,
+        (data.message || 'Your account is ready.') + ' Taking you to your dashboard…');
+    });
+  });
+
+  /* -------------------------------------------------------------- boot */
+
+  // Arriving from /signin with a verified Google/Apple token that still needs
+  // a full profile.
+  (function resumePendingSocial() {
+    var handoff = BB.takePendingSocial();
+    if (!handoff || !handoff.id_token) return;
+    pendingSocial = handoff;
+    fillCompletionForm();
+    showPane('complete');
+  })();
+
+  // Carry ?next= across to the sign-in link.
+  (function () {
+    try {
+      var next = new URLSearchParams(window.location.search).get('next');
+      if (next) document.getElementById('toSignin').href = '/signin?next=' + encodeURIComponent(next);
+    } catch (_) {}
+  })();
+
+  BB.showExistingSession('sessionBanner');
+  BB.refreshSocialVisibility();
+})();
+</script>
+</body>
+</html>

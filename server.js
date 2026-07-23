@@ -8363,6 +8363,19 @@ app.get(['/', '/index.html'], (req, res) => {
   res.setHeader('Pragma', 'no-cache');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+// Standalone auth pages — shareable direct links (/signin, /signup) that do not
+// depend on the landing-page SPA. They write the same `bodybank_session` key and
+// hand off to /index.html, which opens the right dashboard for the role.
+app.get(['/signin', '/sign-in', '/login', '/signin.html'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(path.join(__dirname, 'public', 'signin.html'));
+});
+app.get(['/signup', '/sign-up', '/register', '/join', '/signup.html'], (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Pragma', 'no-cache');
+  res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+});
 app.get('/ai-trainer.html', (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#060606">
+<title>Sign In · BodyBank</title>
+<meta name="description" content="Sign in to your BodyBank account to access your dashboard, programs, nutrition and progress.">
+<meta name="robots" content="noindex, follow">
+<link rel="icon" href="/img/Bodybank logo.png">
+<link rel="apple-touch-icon" href="/img/Bodybank logo.png">
+<meta property="og:title" content="Sign In · BodyBank">
+<meta property="og:description" content="Sign in to your BodyBank account.">
+<meta property="og:image" content="/img/Bodybank logo.png">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/auth-pages.css">
+</head>
+<body>
+
+<main class="auth-wrap">
+  <div class="auth-card">
+
+    <div class="auth-brand">
+      <a href="/" aria-label="BodyBank home"><img src="/img/Bodybank logo.png" alt="BodyBank"></a>
+      <span class="auth-eyebrow">BodyBank</span>
+      <h1 class="auth-title">Welcome back</h1>
+      <p class="auth-sub">Sign in to continue your transformation.</p>
+    </div>
+
+    <div class="session-banner" id="sessionBanner"></div>
+    <div class="msg" id="msg" role="alert" aria-live="polite"></div>
+
+    <!-- ============================ SIGN IN ============================ -->
+    <section class="pane active" id="paneSignin">
+      <form class="auth-form" id="signinForm" novalidate>
+        <div class="field">
+          <label for="siEmail">Email</label>
+          <input class="input" type="email" id="siEmail" name="email" placeholder="you@example.com"
+                 autocomplete="username" inputmode="email" required>
+        </div>
+        <div class="field">
+          <label for="siPassword">Password</label>
+          <div class="pw-wrap">
+            <input class="input" type="password" id="siPassword" name="password" placeholder="Your password"
+                   autocomplete="current-password" required>
+            <button class="pw-toggle" type="button" aria-label="Show password"
+                    onclick="BBAuth.togglePw('siPassword', this)">&#128065;</button>
+          </div>
+        </div>
+        <div class="link-row">
+          <button type="button" class="text-link" id="forgotLink">Forgot password?</button>
+        </div>
+        <button class="btn-primary" type="submit" id="signinBtn">Sign In</button>
+      </form>
+
+      <div class="divider" id="socialDivider">or continue with</div>
+      <div class="social-slot" id="socialSlot">
+        <div class="google-slot" id="googleSlot"></div>
+        <button type="button" class="apple-btn" id="appleBtn" aria-label="Sign in with Apple">
+          <svg width="15" height="18" viewBox="0 0 16 20" fill="#fff" aria-hidden="true" style="display:block;margin-bottom:2px"><path d="M13.476 10.62c-.02-2.06 1.68-3.05 1.757-3.097-.957-1.4-2.446-1.59-2.974-1.612-1.266-.128-2.47.745-3.113.745-.64 0-1.633-.726-2.685-.706-1.383.02-2.656.803-3.366 2.04-1.435 2.49-.367 6.176 1.03 8.197.683.99 1.498 2.1 2.567 2.06 1.03-.04 1.42-.666 2.666-.666 1.247 0 1.597.666 2.69.646 1.11-.02 1.814-1.01 2.493-2.003.785-1.15 1.108-2.26 1.127-2.317-.025-.012-2.163-.83-2.185-3.29zM11.43 4.62c.567-.69.95-1.65.846-2.605-.817.033-1.806.545-2.392 1.234-.525.61-.985 1.586-.86 2.522.91.07 1.84-.462 2.406-1.15z"/></svg>
+          <span>Sign in with Apple</span>
+        </button>
+      </div>
+
+      <p class="auth-alt">Don't have an account? <a href="/signup" id="toSignup">Create one</a></p>
+    </section>
+
+    <!-- ========================= FORGOT PASSWORD ======================== -->
+    <section class="pane" id="paneForgot">
+      <form class="auth-form" id="forgotForm" novalidate>
+        <p style="font-size:13.5px;color:var(--bb-muted);margin-bottom:16px">
+          Enter your email and we'll send you a link to reset your password.
+        </p>
+        <div class="field">
+          <label for="fpEmail">Email</label>
+          <input class="input" type="email" id="fpEmail" placeholder="you@example.com"
+                 autocomplete="username" inputmode="email" required>
+        </div>
+        <button class="btn-primary" type="submit" id="forgotBtn">Send reset link</button>
+        <button class="btn-ghost" type="button" id="backToSignin" style="margin-top:10px">← Back to sign in</button>
+      </form>
+    </section>
+
+  </div>
+</main>
+
+<footer class="auth-foot">
+  <a href="/">Home</a><span class="sep">·</span>
+  <a href="/privacy.html">Privacy</a><span class="sep">·</span>
+  <a href="/our-story.html">Our story</a>
+</footer>
+
+<script src="/js/auth-pages.js"></script>
+<script>
+(function () {
+  'use strict';
+  var BB = window.BBAuth;
+
+  var msgId = 'msg';
+  var paneSignin = document.getElementById('paneSignin');
+  var paneForgot = document.getElementById('paneForgot');
+
+  function showPane(which) {
+    paneSignin.classList.toggle('active', which === 'signin');
+    paneForgot.classList.toggle('active', which === 'forgot');
+    BB.msg(msgId, '');
+  }
+
+  /* ---------------------------------------------------------- sign in --- */
+  var form = document.getElementById('signinForm');
+  var signinBtn = document.getElementById('signinBtn');
+
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var emailEl = document.getElementById('siEmail');
+    var pwEl = document.getElementById('siPassword');
+    var email = String(emailEl.value || '').trim().toLowerCase();
+    var password = String(pwEl.value || '');
+
+    emailEl.classList.remove('bad');
+    pwEl.classList.remove('bad');
+
+    if (!email) { emailEl.classList.add('bad'); emailEl.focus(); BB.msg(msgId, 'Please enter your email.'); return; }
+    if (!password) { pwEl.classList.add('bad'); pwEl.focus(); BB.msg(msgId, 'Please enter your password.'); return; }
+
+    BB.msg(msgId, '');
+    BB.busy(signinBtn, true, 'Signing in…');
+    BB.api('POST', '/api/auth/login', { email: email, password: password }).then(function (data) {
+      if (data.error || !data.id) {
+        BB.busy(signinBtn, false);
+        BB.msg(msgId, BB.authErrorText(data));
+        return;
+      }
+      BB.saveSession(data);
+      BB.msg(msgId, 'Signed in. Taking you to your dashboard…', 'ok');
+      BB.go();
+    });
+  });
+
+  /* -------------------------------------------------- forgot password --- */
+  document.getElementById('forgotLink').addEventListener('click', function () {
+    var typed = String(document.getElementById('siEmail').value || '').trim();
+    if (typed) document.getElementById('fpEmail').value = typed;
+    showPane('forgot');
+    document.getElementById('fpEmail').focus();
+  });
+  document.getElementById('backToSignin').addEventListener('click', function () { showPane('signin'); });
+
+  var forgotForm = document.getElementById('forgotForm');
+  var forgotBtn = document.getElementById('forgotBtn');
+  forgotForm.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var el = document.getElementById('fpEmail');
+    var email = String(el.value || '').trim().toLowerCase();
+    el.classList.remove('bad');
+    if (!email) { el.classList.add('bad'); el.focus(); BB.msg(msgId, 'Please enter your email.'); return; }
+
+    BB.msg(msgId, '');
+    BB.busy(forgotBtn, true, 'Sending…');
+    BB.api('POST', '/api/auth/forgot-password', { email: email }).then(function (data) {
+      BB.busy(forgotBtn, false);
+      if (data.error) { BB.msg(msgId, BB.authErrorText(data)); return; }
+      BB.msg(msgId, data.message || 'If an account exists for that email, a reset link is on its way. Check your inbox and spam folder.', 'ok');
+    });
+  });
+
+  /* ------------------------------------------------------------ social --- */
+  function applySocialSuccess(data) {
+    BB.saveSession(data);
+    BB.msg(msgId, 'Signed in. Taking you to your dashboard…', 'ok');
+    BB.go();
+  }
+
+  // A social account with no BodyBank profile yet needs the extra details the
+  // sign-up page collects — hand the verified token over to /signup.
+  function sendToProfileCompletion(provider, idToken, appleUser, data) {
+    BB.setPendingSocial({
+      provider: provider,
+      id_token: idToken,
+      user: appleUser || null,
+      email: data.email || '',
+      given_name: data.given_name || '',
+      family_name: data.family_name || ''
+    });
+    var next = '/signup?complete=' + provider;
+    try {
+      var q = new URLSearchParams(window.location.search).get('next');
+      if (q) next += '&next=' + encodeURIComponent(q);
+    } catch (_) {}
+    window.location.href = next;
+  }
+
+  BB.initGoogle('googleSlot', 'signin_with', function (credential) {
+    BB.msg(msgId, '');
+    BB.api('POST', '/api/auth/google', { id_token: credential }).then(function (data) {
+      if (data.needs_profile) { sendToProfileCompletion('google', credential, null, data); return; }
+      if (data.error || !data.id) { BB.msg(msgId, BB.authErrorText(data)); return; }
+      applySocialSuccess(data);
+    });
+  });
+
+  BB.initApple('appleBtn');
+  document.getElementById('appleBtn').addEventListener('click', function () {
+    BB.msg(msgId, '');
+    BB.appleSignIn(function (idToken, appleUser) {
+      BB.api('POST', '/api/auth/apple', { id_token: idToken, user: appleUser }).then(function (data) {
+        if (data.needs_profile) { sendToProfileCompletion('apple', idToken, appleUser, data); return; }
+        if (data.error || !data.id) { BB.msg(msgId, BB.authErrorText(data)); return; }
+        applySocialSuccess(data);
+      });
+    }, function (text) { BB.msg(msgId, text); });
+  });
+
+  /* ------------------------------------------------------------- misc --- */
+  // Carry ?next= across to the sign-up link so the round trip keeps its target.
+  (function () {
+    try {
+      var next = new URLSearchParams(window.location.search).get('next');
+      if (next) document.getElementById('toSignup').href = '/signup?next=' + encodeURIComponent(next);
+    } catch (_) {}
+  })();
+
+  BB.showExistingSession('sessionBanner');
+  BB.refreshSocialVisibility();
+
+  var first = document.getElementById('siEmail');
+  if (first && !('ontouchstart' in window)) first.focus();
+})();
+</script>
+</body>
+</html>
