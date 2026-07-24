@@ -1005,6 +1005,36 @@ async function initDB() {
   } catch (e) {
     /* ignore */
   }
+
+  // Longitudinal blood-report COMPARISONS (admin-built progress reviews across a
+  // client's uploaded reports). Deterministic aligned matrix + Claude verdict.
+  await pool.query(`CREATE TABLE IF NOT EXISTS blood_comparison_reports (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    report_ids JSONB DEFAULT '[]'::jsonb,
+    comparison_data JSONB,
+    ai_verdict JSONB,
+    ai_usage JSONB,
+    admin_notes TEXT,
+    pdf_path TEXT,
+    sent_to_user BOOLEAN DEFAULT FALSE,
+    sent_at TIMESTAMPTZ,
+    status TEXT DEFAULT 'draft',
+    user_name TEXT,
+    user_email TEXT,
+    user_age TEXT,
+    user_gender TEXT,
+    user_goal TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try {
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_blood_comparisons_user_created ON blood_comparison_reports(user_id, created_at DESC)`
+    );
+  } catch (e) {
+    /* ignore */
+  }
+
   try {
     await pool.query(`ALTER TABLE nutrition_meal_logs ADD COLUMN IF NOT EXISTS ai_usage JSONB`);
   } catch (e) {

@@ -5938,6 +5938,7 @@ button.bb-today-pill{cursor:pointer}
             <button type="button" id="bloodUploadHeaderBtnDesktop" onclick="openBloodUploadPicker()" class="nav-login" style="padding:8px 14px;font-size:12px">+ Upload report</button>
             <input type="file" id="bloodUploadInputHomeDesktop" accept=".pdf,image/*" style="display:none" onchange="uploadUserBloodReport(event)" />
           </div>
+          <div id="myBloodProgressDesktop"></div>
           <div id="myReportsListDesktop"></div>
         </section>
       </div>
@@ -6324,6 +6325,7 @@ button.bb-today-pill{cursor:pointer}
           <button type="button" id="bloodUploadHeaderBtn" onclick="openBloodUploadPicker()" class="nav-login" style="padding:8px 14px;font-size:12px">+ Upload report</button>
           <input type="file" id="bloodUploadInputHome" accept=".pdf,image/*" style="display:none" onchange="uploadUserBloodReport(event)" />
         </div>
+        <div id="myBloodProgress"></div>
         <div id="myReportsList"></div>
       </section>
 
@@ -8092,6 +8094,29 @@ button.bb-today-pill{cursor:pointer}
           <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminBloodReports()">Refresh</button>
         </div>
       </div>
+
+      <div class="bb-compare-launch" style="margin:6px 0 14px">
+        <button type="button" id="bbCompareToggleBtn" class="form-submit" style="width:auto;padding:10px 18px;margin:0;background:linear-gradient(135deg,#2b6b4a,#1e4d38);border:1px solid rgba(61,214,140,0.4)" onclick="bbToggleComparePanel()">
+          <span aria-hidden="true">📈</span>&nbsp; Compare reports &amp; build progress review
+        </button>
+        <p class="form-hint" style="margin:6px 0 0">Pick a client with 2+ processed reports, select the tests, and generate a side-by-side trend + AI progress verdict you can send as a branded PDF.</p>
+      </div>
+
+      <div id="bbComparePanel" class="bb-compare-panel" style="display:none;background:var(--surface,#161a1e);border:1px solid rgba(61,214,140,0.25);border-radius:16px;padding:1.1rem;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+          <div style="flex:1;min-width:200px">
+            <label class="form-hint" for="bbCompareClient" style="display:block;margin-bottom:4px">Client</label>
+            <select id="bbCompareClient" onchange="bbCompareClientChanged()" style="width:100%;box-sizing:border-box;background:#111;border:1px solid rgba(255,255,255,0.12);color:var(--text,#f0ede8);padding:9px 12px;border-radius:8px;font-size:13px">
+              <option value="">Loading clients…</option>
+            </select>
+          </div>
+          <button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.12);background:transparent;color:inherit;padding:9px 14px;border-radius:8px;cursor:pointer;align-self:flex-end" onclick="bbLoadComparableClients()">↻ Reload</button>
+        </div>
+        <div id="bbCompareReportPick"></div>
+        <div id="bbCompareSaved" style="margin-top:14px"></div>
+        <div id="bbCompareResult" style="margin-top:14px"></div>
+      </div>
+
       <div id="adminBloodReportsList" class="admin-blood-reports-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
     </div>
 
@@ -21930,6 +21955,322 @@ function userBloodDownloadPdf(reportId) {
   adminBloodDownloadPdf(reportId);
 }
 
+// ============================================================================
+// Blood report COMPARISON — admin progress-review workspace
+// ============================================================================
+var bbCompareClients = [];
+
+function bbToggleComparePanel() {
+  var p = document.getElementById('bbComparePanel');
+  if (!p) return;
+  var open = p.style.display === 'none';
+  p.style.display = open ? 'block' : 'none';
+  if (open && !bbCompareClients.length) bbLoadComparableClients();
+}
+
+function bbLoadComparableClients() {
+  var sel = document.getElementById('bbCompareClient');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Loading clients…</option>';
+  apiCall('GET', '/api/blood/admin/comparable').then(function (d) {
+    if (d && d.error) { sel.innerHTML = '<option value="">' + escapeHtml(d.error) + '</option>'; return; }
+    bbCompareClients = (d && d.clients) || [];
+    if (!bbCompareClients.length) {
+      sel.innerHTML = '<option value="">No clients with 2+ processed reports yet</option>';
+      var pk = document.getElementById('bbCompareReportPick'); if (pk) pk.innerHTML = '';
+      return;
+    }
+    sel.innerHTML = '<option value="">Select a client…</option>' + bbCompareClients.map(function (c) {
+      return '<option value="' + escapeHtml(c.userId) + '">' + escapeHtml(c.userName) + ' (' + c.reports.length + ' reports)</option>';
+    }).join('');
+  }).catch(function () { sel.innerHTML = '<option value="">Network error</option>'; });
+}
+
+function bbCompareClientChanged() {
+  var sel = document.getElementById('bbCompareClient');
+  var pick = document.getElementById('bbCompareReportPick');
+  var res = document.getElementById('bbCompareResult');
+  var saved = document.getElementById('bbCompareSaved');
+  if (res) res.innerHTML = '';
+  var uid = sel ? sel.value : '';
+  var client = bbCompareClients.filter(function (c) { return c.userId === uid; })[0];
+  if (!client) { if (pick) pick.innerHTML = ''; if (saved) saved.innerHTML = ''; return; }
+  var chips = client.reports.slice().sort(function (a, b) { return new Date(a.createdAt) - new Date(b.createdAt); }).map(function (r, i) {
+    var d = r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—';
+    return '<label class="bb-cmp-chip" style="display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:8px 12px;margin:0 8px 8px 0;cursor:pointer;font-size:12px">' +
+      '<input type="checkbox" class="bb-cmp-report" value="' + escapeHtml(r.id) + '" onchange="bbCompareSelectionChanged()" style="accent-color:#3dd68c"> ' +
+      '<span><strong>Test ' + (i + 1) + '</strong> · ' + escapeHtml(d) + (r.overallStatus ? ' · ' + escapeHtml(r.overallStatus) : '') + '</span></label>';
+  }).join('');
+  pick.innerHTML = '<div class="form-hint" style="margin-bottom:6px">Select 2–6 reports to compare (oldest → newest)</div>' + chips +
+    '<div style="margin-top:6px"><button type="button" id="bbCompareRunBtn" class="form-submit" style="width:auto;padding:10px 20px;margin:0;opacity:0.5" disabled onclick="bbRunComparison()">Generate comparison</button></div>';
+  bbLoadClientComparisons(uid);
+}
+
+function bbCompareSelectionChanged() {
+  var n = document.querySelectorAll('.bb-cmp-report:checked').length;
+  var btn = document.getElementById('bbCompareRunBtn');
+  if (btn) {
+    var ok = n >= 2 && n <= 6;
+    btn.disabled = !ok;
+    btn.style.opacity = ok ? '1' : '0.5';
+    btn.textContent = 'Generate comparison' + (n ? ' (' + n + ' selected)' : '');
+  }
+}
+
+function bbSelectedReportIds() {
+  return Array.prototype.map.call(document.querySelectorAll('.bb-cmp-report:checked'), function (el) { return el.value; });
+}
+
+function bbRunComparison() {
+  var sel = document.getElementById('bbCompareClient');
+  var uid = sel ? sel.value : '';
+  var ids = bbSelectedReportIds();
+  if (!uid || ids.length < 2) return;
+  var res = document.getElementById('bbCompareResult');
+  var btn = document.getElementById('bbCompareRunBtn');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Analysing trajectory… (Claude)'; }
+  if (res) res.innerHTML = '<div class="form-hint" style="padding:18px;text-align:center">Aligning markers and running the AI progress verdict… this can take up to a minute.</div>';
+  apiCall('POST', '/api/blood/admin/compare', { userId: uid, reportIds: ids }).then(function (d) {
+    if (!d || d.success === false || d.error) {
+      if (res) res.innerHTML = '<div class="form-hint" style="color:#ff8a8a;padding:14px">' + escapeHtml((d && (d.error || d.message)) || 'Comparison failed') + '</div>';
+      return;
+    }
+    bbRenderComparison(d.comparison, res);
+    bbLoadClientComparisons(uid);
+  }).catch(function () {
+    if (res) res.innerHTML = '<div class="form-hint" style="color:#ff8a8a;padding:14px">Network error</div>';
+  }).then(function () { bbCompareSelectionChanged(); });
+}
+
+function bbCmpTrendColor(dir) {
+  return dir === 'improving' ? '#3dd68c' : dir === 'worsening' ? '#ff5c5c' : dir === 'changed' ? '#4da6ff' : '#8a8880';
+}
+function bbCmpStatusColor(st) {
+  st = String(st || '').toLowerCase();
+  if (st === 'normal' || st === 'optimal') return '#3dd68c';
+  if (st === 'high' || st === 'critical' || st === 'deficient' || st === 'elevated') return '#ff5c5c';
+  if (!st) return '#f0ede8';
+  return '#f5a623';
+}
+function bbCmpDate(v) {
+  var d = new Date(v);
+  return isNaN(d.getTime()) ? String(v || '—') : d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: '2-digit' });
+}
+
+function bbCmpListCards(title, items, color) {
+  if (!items || !items.length) return '';
+  var h = '<div style="font-weight:700;margin:14px 0 6px;color:' + color + '">' + escapeHtml(title) + '</div>';
+  items.forEach(function (it) {
+    var from = it.from != null ? String(it.from) : '';
+    var to = it.to != null ? String(it.to) : (it.value != null ? String(it.value) : '');
+    var arrow = (from && to) ? (escapeHtml(from) + ' → ' + escapeHtml(to)) : escapeHtml(to || from || '');
+    var meaning = escapeHtml(it.meaning || it.note || '');
+    var lvl = it.level ? '<span style="font-size:10px;font-weight:700;color:' + (it.level === 'High' ? '#ff5c5c' : it.level === 'Medium' ? '#f5a623' : '#3dd68c') + ';margin-left:8px">' + escapeHtml(String(it.level).toUpperCase()) + '</span>' : '';
+    h += '<div style="border-left:3px solid ' + color + ';background:rgba(255,255,255,0.03);border-radius:0 8px 8px 0;padding:8px 12px;margin-bottom:6px">';
+    h += '<div style="font-weight:700">' + escapeHtml(it.marker || '') + lvl + '</div>';
+    if (arrow) h += '<div style="color:' + color + ';font-weight:700;font-size:12px;margin-top:2px">' + arrow + '</div>';
+    if (meaning) h += '<div class="form-hint" style="margin-top:2px">' + meaning + '</div>';
+    h += '</div>';
+  });
+  return h;
+}
+
+function bbCmpTableHtml(title, cols, rows) {
+  if (!rows || !rows.length) return '';
+  var h = '<div style="font-weight:700;margin:14px 0 6px">' + escapeHtml(title) + '</div>';
+  h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px"><thead><tr style="background:#1e2328;color:#8a8880">';
+  cols.forEach(function (c) { h += '<th style="text-align:left;padding:7px 10px">' + escapeHtml(c.h) + '</th>'; });
+  h += '</tr></thead><tbody>';
+  rows.forEach(function (r, ri) {
+    h += '<tr style="background:' + (ri % 2 ? '#161a1e' : '#1a1f24') + '">';
+    cols.forEach(function (c) { h += '<td style="padding:7px 10px;' + (c.style || '') + '">' + escapeHtml(String(c.get(r) || '')) + '</td>'; });
+    h += '</tr>';
+  });
+  h += '</tbody></table></div>';
+  return h;
+}
+
+function bbCmpVerdictHtml(v) {
+  if (!v || !Object.keys(v).length) {
+    return '<div class="form-hint" style="margin-top:12px;padding:12px;border:1px dashed rgba(255,255,255,0.15);border-radius:8px">No AI verdict yet — use “Regenerate AI”.</div>';
+  }
+  var h = '';
+  if (v.trajectory_narrative) h += '<div style="font-weight:700;margin:14px 0 6px">Clinical Trajectory</div><p style="line-height:1.55;margin:0">' + escapeHtml(v.trajectory_narrative).replace(/\n/g, '<br>') + '</p>';
+  h += bbCmpListCards('Improvements', v.improvements, '#3dd68c');
+  h += bbCmpListCards('Concerns', v.concerns, '#ff5c5c');
+  h += bbCmpListCards('Still to watch', v.unchanged_watch, '#f5a623');
+  if (v.interventions_assessment) h += '<div style="font-weight:700;margin:14px 0 6px">Did the plan work?</div><p style="line-height:1.5;margin:0">' + escapeHtml(v.interventions_assessment) + '</p>';
+  h += bbCmpTableHtml('Updated recommendations', [
+    { h: 'Area', get: function (r) { return r.area; }, style: 'color:#4da6ff;font-weight:600' },
+    { h: 'Action', get: function (r) { return r.action; } },
+    { h: 'Why', get: function (r) { return r.reason; }, style: 'color:#8a8880' }
+  ], v.updated_recommendations);
+  h += bbCmpTableHtml('Supplement plan', [
+    { h: 'Supplement', get: function (r) { return r.name; }, style: 'color:#4da6ff;font-weight:600' },
+    { h: 'Action', get: function (r) { return r.action; }, style: 'font-weight:700' },
+    { h: 'Dose', get: function (r) { return r.dose; }, style: 'color:#8a8880' },
+    { h: 'Reason', get: function (r) { return r.reason; }, style: 'color:#8a8880' }
+  ], v.updated_supplements);
+  h += bbCmpTableHtml('Recommended retesting', [
+    { h: 'Test', get: function (r) { return r.test; }, style: 'font-weight:600' },
+    { h: 'When', get: function (r) { return r.when; }, style: 'color:#f5a623;font-weight:700' },
+    { h: 'Reason', get: function (r) { return r.reason; }, style: 'color:#8a8880' }
+  ], v.next_retest);
+  if (v.final_verdict) h += '<div style="margin-top:14px;border:1px solid #3dd68c;border-radius:10px;padding:12px;background:rgba(61,214,140,0.06)"><span style="font-size:10px;font-weight:700;color:#8a8880">BOTTOM LINE</span><div style="font-weight:700;margin-top:4px">' + escapeHtml(v.final_verdict) + '</div></div>';
+  return h;
+}
+
+function bbRenderComparison(cmp, container) {
+  if (!container) container = document.getElementById('bbCompareResult');
+  if (!cmp || !container) { if (container) container.innerHTML = ''; return; }
+  var comp = cmp.comparison || {};
+  var v = cmp.verdict || {};
+  var reports = comp.reports || [];
+  var panels = comp.panels || [];
+  var traj = v.overall_trajectory || cmp.status || '—';
+  var tc = /improv/i.test(traj) ? '#3dd68c' : /worsen/i.test(traj) ? '#ff5c5c' : /stable/i.test(traj) ? '#4da6ff' : '#f5a623';
+
+  var h = '<div style="border:1px solid ' + tc + ';border-radius:14px;padding:14px;background:rgba(0,0,0,0.2);margin-bottom:14px">';
+  h += '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><span style="font-size:11px;color:#8a8880;font-weight:700">OVERALL TRAJECTORY</span>';
+  h += '<span style="font-size:20px;font-weight:800;color:' + tc + '">' + escapeHtml(traj) + '</span>';
+  h += '<span class="form-hint">' + (comp.improvedCount || 0) + ' improving · ' + (comp.worsenedCount || 0) + ' worsening · ' + (comp.markerCount || 0) + ' markers</span></div>';
+  if (v.executive_summary) h += '<p style="margin:8px 0 0;line-height:1.5">' + escapeHtml(v.executive_summary) + '</p>';
+  h += '</div>';
+
+  panels.forEach(function (p) {
+    var markers = (p.markers || []).filter(function (m) { return m.changed || m.anyAbnormal; });
+    if (!markers.length) return;
+    h += '<div style="font-weight:700;margin:12px 0 6px">' + escapeHtml(p.name) + '</div>';
+    h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;min-width:' + (360 + reports.length * 90) + 'px">';
+    h += '<thead><tr style="background:#1e2328;color:#8a8880">';
+    h += '<th style="text-align:left;padding:8px 10px">Marker</th><th style="text-align:left;padding:8px 10px">Reference</th>';
+    reports.forEach(function (r) { h += '<th style="text-align:left;padding:8px 10px;color:#3dd68c">' + escapeHtml(bbCmpDate(r.date)) + '</th>'; });
+    h += '<th style="text-align:left;padding:8px 10px">Trend</th></tr></thead><tbody>';
+    markers.forEach(function (m, ri) {
+      h += '<tr style="background:' + (ri % 2 ? '#161a1e' : '#1a1f24') + '">';
+      h += '<td style="padding:8px 10px;font-weight:600">' + escapeHtml(m.display) + '</td>';
+      h += '<td style="padding:8px 10px;color:#8a8880">' + escapeHtml(m.referenceRange || '—') + '</td>';
+      (m.cells || []).forEach(function (c) {
+        if (c && c.present) {
+          h += '<td style="padding:8px 10px;font-weight:700;color:' + bbCmpStatusColor(c.status) + '">' + escapeHtml(c.value || '—') + (c.unit ? ' <span style="color:#8a8880;font-weight:400;font-size:10px">' + escapeHtml(c.unit) + '</span>' : '') + '</td>';
+        } else {
+          h += '<td style="padding:8px 10px;color:#8a8880">—</td>';
+        }
+      });
+      var col = bbCmpTrendColor(m.direction);
+      var arrow = (m.delta != null && Math.abs(m.delta) > 1e-9) ? (m.delta > 0 ? '▲' : '▼') : '–';
+      var lbl = m.deltaPct != null ? ((m.delta > 0 ? '+' : '') + m.deltaPct + '%') : (m.delta != null ? ((m.delta > 0 ? '+' : '') + m.delta) : '');
+      h += '<td style="padding:8px 10px;color:' + col + ';font-weight:700;white-space:nowrap">' + arrow + ' ' + escapeHtml(lbl) + '</td></tr>';
+    });
+    h += '</tbody></table></div>';
+  });
+
+  h += bbCmpVerdictHtml(v);
+
+  var id = String(cmp.id || '').replace(/'/g, "\\'");
+  h += '<div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px">';
+  h += '<textarea id="bbCmpNotes-' + id + '" rows="2" placeholder="Optional note to the client (appears in the PDF)…" style="width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#111;color:inherit;font-size:12px">' + escapeHtml(cmp.adminNotes || '') + '</textarea>';
+  h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">';
+  h += '<button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:8px 12px;border-radius:8px;cursor:pointer" onclick="bbComparisonSaveNotes(\'' + id + '\')">Save note</button>';
+  h += '<button type="button" class="form-hint" style="border:1px solid rgba(230,192,95,0.45);background:rgba(230,192,95,0.1);color:var(--gold);padding:8px 12px;border-radius:8px;cursor:pointer" onclick="bbComparisonRegenerate(\'' + id + '\')">↻ Regenerate AI</button>';
+  h += '<button type="button" class="nav-login" style="padding:8px 12px;font-size:12px" onclick="bbComparisonDownloadPdf(\'' + id + '\')">⬇ Download progress PDF</button>';
+  h += '<button type="button" class="form-submit" style="width:auto;padding:8px 14px;margin:0" onclick="bbComparisonSend(\'' + id + '\')">' + (cmp.sentToUser ? 'Re-send to client' : 'Send to client') + '</button>';
+  h += '</div></div>';
+
+  container.innerHTML = h;
+}
+
+function bbLoadClientComparisons(uid) {
+  var el = document.getElementById('bbCompareSaved');
+  if (!el) return;
+  apiCall('GET', '/api/blood/admin/comparisons/' + encodeURIComponent(uid)).then(function (d) {
+    var list = (d && d.comparisons) || [];
+    if (!list.length) { el.innerHTML = ''; return; }
+    el.innerHTML = '<div class="form-hint" style="margin-bottom:6px">Saved comparisons</div>' + list.map(function (c) {
+      var dt = c.createdAt ? new Date(c.createdAt).toLocaleString() : '';
+      var traj = (c.verdict && c.verdict.overall_trajectory) || c.status || '—';
+      var cid = String(c.id || '').replace(/'/g, "\\'");
+      return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 12px;margin-bottom:6px">' +
+        '<span style="flex:1;min-width:160px"><strong>' + escapeHtml(traj) + '</strong> · ' + (c.reportIds ? c.reportIds.length : 0) + ' tests · ' + escapeHtml(dt) + (c.sentToUser ? ' · <span style="color:#3dd68c">sent</span>' : '') + '</span>' +
+        '<button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:6px 10px;border-radius:7px;cursor:pointer" onclick="bbComparisonOpen(\'' + cid + '\')">Open</button>' +
+        '<button type="button" class="form-hint" style="border:1px solid rgba(255,92,92,0.35);background:transparent;color:#ff8a8a;padding:6px 10px;border-radius:7px;cursor:pointer" onclick="bbComparisonDelete(\'' + cid + '\')">Delete</button>' +
+        '</div>';
+    }).join('');
+  }).catch(function () {});
+}
+
+function bbComparisonOpen(id) {
+  var res = document.getElementById('bbCompareResult');
+  if (res) res.innerHTML = '<div class="form-hint" style="padding:14px">Loading…</div>';
+  apiCall('GET', '/api/blood/admin/comparison/' + encodeURIComponent(id)).then(function (d) {
+    if (!d || d.error || !d.comparison) {
+      if (res) res.innerHTML = '<div class="form-hint" style="color:#ff8a8a;padding:12px">' + escapeHtml((d && d.error) || 'Not found') + '</div>';
+      return;
+    }
+    bbRenderComparison(d.comparison, res);
+    if (res && res.scrollIntoView) res.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  });
+}
+
+function bbComparisonSaveNotes(id) {
+  var ta = document.getElementById('bbCmpNotes-' + id);
+  apiCall('PUT', '/api/blood/admin/comparison/' + encodeURIComponent(id), { adminNotes: ta ? ta.value : '' }).then(function (d) {
+    if (d && d.success === false) { showPopup('Note', d.error || 'Failed', '', 'OK', null, 'error'); return; }
+    if (typeof nutritionShowToast === 'function') nutritionShowToast('Note saved', 'success');
+  });
+}
+
+function bbComparisonRegenerate(id) {
+  if (!confirm('Re-run the AI progress verdict? This uses Claude API credits.')) return;
+  var res = document.getElementById('bbCompareResult');
+  if (res) res.innerHTML = '<div class="form-hint" style="padding:16px;text-align:center">Regenerating AI verdict…</div>';
+  apiCall('POST', '/api/blood/admin/comparison/' + encodeURIComponent(id) + '/regenerate', {}).then(function (d) {
+    if (!d || d.success === false) {
+      if (res) res.innerHTML = '<div class="form-hint" style="color:#ff8a8a;padding:12px">' + escapeHtml((d && (d.error || d.message)) || 'Failed') + '</div>';
+      return;
+    }
+    bbRenderComparison(d.comparison, res);
+    if (typeof nutritionShowToast === 'function') nutritionShowToast('AI verdict updated', 'success');
+  }).catch(function () { if (res) res.innerHTML = '<div class="form-hint" style="color:#ff8a8a;padding:12px">Network error</div>'; });
+}
+
+function bbComparisonDownloadPdf(id) {
+  if (!window.currentUser || !window.currentUser.token) return;
+  var url = (typeof API !== 'undefined' ? API : '') + '/api/blood/admin/comparison/' + encodeURIComponent(id) + '/pdf';
+  fetch(url, { headers: { Authorization: 'Bearer ' + window.currentUser.token } }).then(function (r) {
+    if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) { throw new Error((j && j.error) || ('Download failed (' + r.status + ')')); });
+    return r.blob();
+  }).then(function (blob) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'BodyBank_Progress_Report.pdf';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }).catch(function (err) { showPopup('Download', (err && err.message) || 'PDF not ready.', '', 'OK', null, 'error'); });
+}
+
+function bbComparisonSend(id) {
+  if (!confirm('Send this progress report to the client by email and inbox?')) return;
+  apiCall('POST', '/api/blood/admin/comparison/' + encodeURIComponent(id) + '/send', {}).then(function (d) {
+    if (!d || d.success === false) { showPopup('Send failed', (d && (d.error || d.message)) || 'Unknown', '', 'OK', null, 'error'); return; }
+    if (typeof nutritionShowToast === 'function') nutritionShowToast('Progress report sent', 'success');
+    var sel = document.getElementById('bbCompareClient');
+    if (sel && sel.value) bbLoadClientComparisons(sel.value);
+  });
+}
+
+function bbComparisonDelete(id) {
+  if (!confirm('Delete this saved comparison?')) return;
+  apiCall('DELETE', '/api/blood/admin/comparison/' + encodeURIComponent(id), {}).then(function (d) {
+    if (d && d.success === false) { showPopup('Delete', d.error || 'Failed', '', 'OK', null, 'error'); return; }
+    if (typeof nutritionShowToast === 'function') nutritionShowToast('Deleted', 'success');
+    var sel = document.getElementById('bbCompareClient');
+    if (sel && sel.value) bbLoadClientComparisons(sel.value);
+    var res = document.getElementById('bbCompareResult');
+    if (res) res.innerHTML = '';
+  });
+}
+
 function openBloodUploadPicker() {
   var inputs = [
     document.getElementById('bloodUploadInputHomeDesktop'),
@@ -21994,12 +22335,174 @@ function loadMyHealthReports() {
       html += '</div>';
       targets.forEach(function (el) { el.innerHTML = html; });
       bbToggleBloodUploadBtns(reports.length < BLOOD_REPORT_SLOTS);
+      bbLoadMyProgress();
     })
     .catch(function () {
       targets.forEach(function (el) {
         el.innerHTML = '<p class="form-hint" style="color:#e05050">Could not load reports.</p>';
       });
     });
+}
+
+// ---- Member-facing blood PROGRESS trend (live, deterministic) ----------------
+function bbProgTargets() {
+  return [
+    document.getElementById('myBloodProgress'),
+    document.getElementById('myBloodProgressDesktop')
+  ].filter(function (n) { return !!n; });
+}
+
+// Tiny inline SVG sparkline for one marker's values across reports. Single series,
+// so no legend; colour carries clinical direction and is always paired with an
+// arrow + % label elsewhere in the row (never colour-alone).
+function bbSparkline(values, color, w, h) {
+  var nums = values.filter(function (v) { return typeof v === 'number' && isFinite(v); });
+  if (nums.length < 2) return '';
+  var min = Math.min.apply(null, nums);
+  var max = Math.max.apply(null, nums);
+  var span = (max - min) || 1;
+  var pad = 3;
+  var innerW = w - pad * 2;
+  var innerH = h - pad * 2;
+  var pts = [];
+  for (var i = 0; i < nums.length; i += 1) {
+    var x = pad + (nums.length === 1 ? innerW / 2 : (i / (nums.length - 1)) * innerW);
+    var y = pad + innerH - ((nums[i] - min) / span) * innerH;
+    pts.push([x, y]);
+  }
+  var poly = pts.map(function (p) { return p[0].toFixed(1) + ',' + p[1].toFixed(1); }).join(' ');
+  var last = pts[pts.length - 1];
+  var svg = '<svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '" style="display:block" aria-hidden="true">';
+  svg += '<polyline points="' + poly + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" opacity="0.9"/>';
+  svg += '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.6" fill="' + color + '"/>';
+  svg += '</svg>';
+  return svg;
+}
+
+function bbLoadMyProgress() {
+  var targets = bbProgTargets();
+  if (!targets.length || !window.currentUser || !window.currentUser.token) return;
+  apiCall('GET', '/api/blood/my-progress').then(function (d) {
+    if (!d || d.error || !d.available || !d.comparison) {
+      targets.forEach(function (el) { el.innerHTML = ''; });
+      bbLoadMySentProgressReports();
+      return;
+    }
+    var comp = d.comparison;
+    var reports = comp.reports || [];
+    var panels = comp.panels || [];
+    // Flatten to markers that actually moved or were flagged; sort abnormal first.
+    var markers = [];
+    panels.forEach(function (p) {
+      (p.markers || []).forEach(function (m) {
+        if (m.changed || m.anyAbnormal) markers.push(m);
+      });
+    });
+    if (!markers.length) { targets.forEach(function (el) { el.innerHTML = ''; }); bbLoadMySentProgressReports(); return; }
+    markers.sort(function (a, b) {
+      var rank = { worsening: 0, improving: 1, changed: 2, stable: 3, na: 4 };
+      return (rank[a.direction] == null ? 5 : rank[a.direction]) - (rank[b.direction] == null ? 5 : rank[b.direction]);
+    });
+
+    var improved = comp.improvedCount || 0;
+    var worsened = comp.worsenedCount || 0;
+    var headline = worsened === 0 ? '#3dd68c' : (improved > worsened ? '#3dd68c' : (worsened > improved ? '#ff5c5c' : '#f5a623'));
+    var spanText = reports.length >= 2
+      ? (new Date(reports[0].date).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }) + ' → ' + new Date(reports[reports.length - 1].date).toLocaleDateString(undefined, { month: 'short', year: '2-digit' }))
+      : '';
+
+    var showN = 6;
+    var rowsHtml = markers.slice(0, showN).map(function (m) { return bbProgRow(m); }).join('');
+    var moreHtml = markers.length > showN
+      ? '<div id="bbProgMore" style="display:none">' + markers.slice(showN).map(function (m) { return bbProgRow(m); }).join('') + '</div>' +
+        '<button type="button" class="form-hint" style="margin-top:8px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:6px 12px;border-radius:8px;cursor:pointer" onclick="bbProgToggleMore(this)">Show ' + (markers.length - showN) + ' more markers</button>'
+      : '';
+
+    var h = '<section style="padding:16px;background:var(--surface,#161a1e);border:1px solid rgba(61,214,140,0.22);border-radius:14px;margin-bottom:12px">';
+    h += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:4px">';
+    h += '<span style="font-size:1.05rem;font-weight:800">Your progress</span>';
+    h += '<span style="font-size:11px;font-weight:700;color:' + headline + ';background:rgba(255,255,255,0.05);padding:3px 9px;border-radius:99px">' + improved + ' improving · ' + worsened + ' worsening</span>';
+    if (spanText) h += '<span class="form-hint" style="margin-left:auto">' + escapeHtml(spanText) + ' · ' + reports.length + ' tests</span>';
+    h += '</div>';
+    h += '<p class="form-hint" style="margin:0 0 12px">How your key markers have moved across your uploaded reports.</p>';
+    h += rowsHtml + moreHtml;
+    h += '<div id="bbMySentProgress" style="margin-top:12px"></div>';
+    h += '</section>';
+
+    targets.forEach(function (el) { el.innerHTML = h; });
+    bbLoadMySentProgressReports();
+  }).catch(function () {
+    bbProgTargets().forEach(function (el) { el.innerHTML = ''; });
+  });
+}
+
+function bbProgRow(m) {
+  var dir = m.direction;
+  var col = dir === 'improving' ? '#3dd68c' : dir === 'worsening' ? '#ff5c5c' : dir === 'changed' ? '#4da6ff' : '#8a8880';
+  var vals = (m.cells || []).map(function (c) { return c && c.present ? c.numeric : null; });
+  var spark = bbSparkline(vals, col, 72, 26);
+  var arrow = (m.delta != null && Math.abs(m.delta) > 1e-9) ? (m.delta > 0 ? '▲' : '▼') : '–';
+  var pct = m.deltaPct != null ? ((m.delta > 0 ? '+' : '') + m.deltaPct + '%') : '';
+  var word = dir === 'improving' ? 'Improving' : dir === 'worsening' ? 'Worsening' : dir === 'changed' ? 'Changed' : 'Stable';
+  var fromV = m.first ? escapeHtml(String(m.first.value)) : '';
+  var toV = m.last ? escapeHtml(String(m.last.value)) : '';
+  var unit = m.unit ? ' ' + escapeHtml(m.unit) : '';
+  return '<div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-top:1px solid rgba(255,255,255,0.06)">' +
+    '<div style="flex:1;min-width:0">' +
+    '<div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(m.display) + '</div>' +
+    '<div class="form-hint" style="margin-top:1px">' + fromV + ' → ' + toV + unit + '</div>' +
+    '</div>' +
+    '<div style="flex:0 0 auto">' + spark + '</div>' +
+    '<div style="flex:0 0 auto;text-align:right;min-width:74px">' +
+    '<div style="color:' + col + ';font-weight:800;font-size:12px;white-space:nowrap">' + arrow + ' ' + escapeHtml(pct) + '</div>' +
+    '<div style="color:' + col + ';font-size:10px;font-weight:600">' + word + '</div>' +
+    '</div></div>';
+}
+
+function bbProgToggleMore(btn) {
+  var more = document.getElementById('bbProgMore');
+  if (!more) return;
+  var open = more.style.display === 'none';
+  more.style.display = open ? 'block' : 'none';
+  btn.textContent = open ? 'Show fewer' : ('Show more markers');
+}
+
+function bbLoadMySentProgressReports() {
+  var el = document.getElementById('bbMySentProgress');
+  apiCall('GET', '/api/blood/my-comparisons').then(function (d) {
+    if (!el) el = document.getElementById('bbMySentProgress');
+    if (!el) return;
+    var list = (d && d.comparisons) || [];
+    if (!list.length) { el.innerHTML = ''; return; }
+    el.innerHTML = list.map(function (c) {
+      var tc = /improv/i.test(c.trajectory || '') ? '#3dd68c' : /worsen/i.test(c.trajectory || '') ? '#ff5c5c' : '#4da6ff';
+      var cid = String(c.id || '').replace(/'/g, "\\'");
+      var dt = c.sentAt || c.createdAt ? new Date(c.sentAt || c.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+      return '<div style="border:1px solid ' + tc + ';background:rgba(255,255,255,0.03);border-radius:12px;padding:12px;margin-top:8px">' +
+        '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap"><span style="font-size:1.1rem">📈</span>' +
+        '<span style="font-weight:700">Coach progress review</span>' +
+        (c.trajectory ? '<span style="font-size:11px;font-weight:700;color:' + tc + '">' + escapeHtml(c.trajectory) + '</span>' : '') +
+        '<span class="form-hint" style="margin-left:auto">' + escapeHtml(dt) + '</span></div>' +
+        (c.summary ? '<p class="form-hint" style="margin:6px 0 8px;line-height:1.45">' + escapeHtml(String(c.summary).slice(0, 220)) + '</p>' : '<div style="height:6px"></div>') +
+        '<button type="button" class="form-submit" style="width:auto;padding:8px 14px;font-size:12px;margin:0" onclick="bbDownloadMyProgressPdf(\'' + cid + '\')">Download progress report</button>' +
+        '</div>';
+    }).join('');
+  }).catch(function () {});
+}
+
+function bbDownloadMyProgressPdf(id) {
+  if (!window.currentUser || !window.currentUser.token) return;
+  var url = (typeof API !== 'undefined' ? API : '') + '/api/blood/my-comparison/' + encodeURIComponent(id) + '/pdf';
+  fetch(url, { headers: { Authorization: 'Bearer ' + window.currentUser.token } }).then(function (r) {
+    if (!r.ok) return r.json().catch(function () { return {}; }).then(function (j) { throw new Error((j && j.error) || ('Download failed (' + r.status + ')')); });
+    return r.blob();
+  }).then(function (blob) {
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'BodyBank_Progress_Report.pdf';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }).catch(function (err) { showPopup('Download', (err && err.message) || 'Report not ready.', '', 'OK', null, 'error'); });
 }
 
 function bbBloodSlotCard(n, r, statusColor) {

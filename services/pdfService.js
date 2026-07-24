@@ -3,12 +3,28 @@
 const path = require('path');
 const fs = require('fs');
 const { buildHealthReportPdf } = require('./healthReportPdfKit');
+const { buildComparisonReportPdf } = require('./comparisonReportPdfKit');
 
 function outputPathFor(payload) {
   const uploadsRoot = path.resolve(process.cwd(), (process.env.UPLOADS_DIR || './uploads').replace(/^\.\//, ''));
   const outDir = path.join(uploadsRoot, 'health-reports');
   fs.mkdirSync(outDir, { recursive: true });
   return path.join(outDir, `BodyBank_Report_${(payload && payload.reportId) || 'r'}_${Date.now()}.pdf`);
+}
+
+function comparisonOutputPathFor(payload) {
+  const uploadsRoot = path.resolve(process.cwd(), (process.env.UPLOADS_DIR || './uploads').replace(/^\.\//, ''));
+  const outDir = path.join(uploadsRoot, 'health-reports');
+  fs.mkdirSync(outDir, { recursive: true });
+  return path.join(outDir, `BodyBank_Progress_${(payload && payload.comparisonId) || 'c'}_${Date.now()}.pdf`);
+}
+
+/**
+ * Generate the branded longitudinal PROGRESS report (blood-report comparison).
+ * @returns {Promise<string>} absolute path to generated PDF
+ */
+function generateComparisonReportPdf(payload) {
+  return buildComparisonReportPdf(payload, comparisonOutputPathFor(payload));
 }
 
 /**
@@ -28,5 +44,6 @@ function generateHealthReportPdfWithFallback(payload) {
 
 module.exports = {
   generateHealthReportPdf,
-  generateHealthReportPdfWithFallback
+  generateHealthReportPdfWithFallback,
+  generateComparisonReportPdf
 };

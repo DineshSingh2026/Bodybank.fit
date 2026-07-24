@@ -11,12 +11,53 @@ const {
   validateBloodReportInput,
   resolveStoredUploadPath
 } = require('../services/bloodAnalysisService');
+const { alignReports, generateComparisonVerdict } = require('../services/bloodComparisonService');
+const { generateComparisonReportPdf } = require('../services/pdfService');
+const { computeNutritionSummaryForUserWindow } = require('../services/nutritionService');
 
 // Keep decoded+base64 payload under Claude's ~32MB PDF request limit.
 const MAX_B64_CHARS = 30 * 1024 * 1024;
 const MAX_BLOOD_FILE_BYTES = Math.floor(MAX_B64_CHARS * 3 / 4);
 const BLOOD_AUTO_PROCESS_ON_UPLOAD = String(process.env.BLOOD_AUTO_PROCESS_ON_UPLOAD || 'false').toLowerCase() === 'true';
 const MAX_REPORTS_PER_USER = 3;
+// A comparison must span at least 2 reports; cap the fan-out so the trend table
+// and AI prompt stay readable.
+const CMP_MIN_REPORTS = 2;
+const CMP_MAX_REPORTS = 6;
+
+function parseJsonCol(val) {
+  if (!val) return null;
+  if (typeof val === 'object') return val;
+  try {
+    return JSON.parse(val);
+  } catch (_) {
+    return null;
+  }
+}
+
+function mapComparisonRow(r) {
+  if (!r) return null;
+  return {
+    id: r.id,
+    userId: r.user_id,
+    userName: r.user_name,
+    userEmail: r.user_email,
+    userAge: r.user_age,
+    userGender: r.user_gender,
+    userGoal: r.user_goal,
+    reportIds: parseJsonCol(r.report_ids) || [],
+    comparison: parseJsonCol(r.comparison_data),
+    verdict: parseJsonCol(r.ai_verdict),
+    aiUsage: parseJsonCol(r.ai_usage),
+    adminNotes: r.admin_notes || '',
+    status: r.status,
+    sentToUser: !!r.sent_to_user,
+    sentAt: r.sent_at,
+    pdfUrl: r.pdf_path,
+    createdAt: r.created_at,
+    profile_picture: String(r.client_profile_picture || '').trim()
+  };
+}
 
 function mapReportRow(r) {
   if (!r) return null;
@@ -278,6 +319,72 @@ function createBloodRouter(deps) {
     }
   });
 
+  // Member's OWN live progress trend across their processed reports — deterministic
+  // alignment only (no AI, so it's free + instant). Powers the in-app trend card.
+  router.get('/my-progress', async (req, res) => {
+    try {
+      const rows = await queryAll(
+        `SELECT id, created_at, extracted_blood_data, ai_report, status
+         FROM blood_analysis_reports WHERE user_id = ? ORDER BY created_at ASC`,
+        [req.user.id]
+      );
+      const processed = (rows || []).filter((r) => {
+        const ex = parseJsonCol(r.extracted_blood_data);
+        return ex && Array.isArray(ex.panels) && ex.panels.length > 0;
+      });
+      if (processed.length < 2) {
+        return res.json({ available: false, reportCount: processed.length, comparison: null });
+      }
+      const comparison = alignReports(processed);
+      res.json({ available: comparison.markerCount > 0, reportCount: processed.length, comparison });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Coach-authored progress reviews that were SENT to this member (in-app access).
+  router.get('/my-comparisons', async (req, res) => {
+    try {
+      const rows = await queryAll(
+        `SELECT id, created_at, sent_at,
+                ai_verdict->>'overall_trajectory' AS trajectory,
+                ai_verdict->>'executive_summary' AS summary
+         FROM blood_comparison_reports
+         WHERE user_id = ? AND sent_to_user = true
+         ORDER BY created_at DESC`,
+        [req.user.id]
+      );
+      res.json({
+        comparisons: (rows || []).map((r) => ({
+          id: r.id,
+          createdAt: r.created_at,
+          sentAt: r.sent_at,
+          trajectory: r.trajectory || null,
+          summary: r.summary || null
+        }))
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Member downloads their own sent progress-report PDF.
+  router.get('/my-comparison/:id/pdf', async (req, res) => {
+    try {
+      const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      if (!row) return res.status(404).json({ error: 'Not found' });
+      if (row.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+      if (!row.sent_to_user) return res.status(403).json({ error: 'This report has not been shared yet.' });
+      const pdfPath = await ensureComparisonPdf(row);
+      if (!pdfPath || !fs.existsSync(pdfPath)) {
+        return res.status(400).json({ error: 'Progress report is not ready.' });
+      }
+      res.download(pdfPath, 'BodyBank_Progress_Report.pdf');
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Owner (or admin) removes a report — frees an upload slot so the user can
   // upload a fresh one. Best-effort cleanup of the stored lab file + PDF.
   router.delete('/:reportId', async (req, res) => {
@@ -490,6 +597,399 @@ function createBloodRouter(deps) {
     } catch (e) {
       console.error('[blood admin retry]', e.message);
       res.status(500).json({ success: false, error: e.message || 'Retry failed' });
+    }
+  });
+
+  // ==========================================================================
+  // BLOOD REPORT COMPARISON (longitudinal progress reviews) — admin only
+  // ==========================================================================
+
+  // Shared: load the compared report rows, ensure they all belong to the client
+  // and carry extracted panel data (only processed reports can be compared).
+  async function loadComparableReports(userId, reportIds) {
+    const rows = await queryAll(
+      `SELECT * FROM blood_analysis_reports WHERE user_id = ? ORDER BY created_at ASC`,
+      [userId]
+    );
+    const byId = {};
+    (rows || []).forEach((r) => { byId[r.id] = r; });
+    const chosen = [];
+    for (const id of reportIds) {
+      const r = byId[id];
+      if (!r) return { error: `Report ${id} not found for this client.` };
+      const extracted = parseJsonCol(r.extracted_blood_data);
+      if (!extracted || !Array.isArray(extracted.panels) || !extracted.panels.length) {
+        return { error: 'One of the selected reports has no processed blood data yet. Process it first, then compare.' };
+      }
+      chosen.push(r);
+    }
+    return { rows: chosen };
+  }
+
+  // Clients that have 2+ processed reports — the pick list for the compare tool.
+  router.get('/admin/comparable', adminOnly, async (req, res) => {
+    try {
+      const rows = await queryAll(
+        `SELECT r.id, r.user_id, r.user_name, r.user_email, r.created_at, r.status,
+                r.ai_report->>'overall_status' AS overall_status,
+                (r.extracted_blood_data IS NOT NULL) AS has_data,
+                u.profile_picture AS client_profile_picture
+         FROM blood_analysis_reports r
+         LEFT JOIN users u ON u.id = r.user_id
+         WHERE r.extracted_blood_data IS NOT NULL
+         ORDER BY r.user_id, r.created_at DESC`
+      );
+      const byUser = new Map();
+      (rows || []).forEach((r) => {
+        if (!byUser.has(r.user_id)) {
+          byUser.set(r.user_id, {
+            userId: r.user_id,
+            userName: r.user_name || r.user_email || '—',
+            userEmail: r.user_email || '',
+            profile_picture: String(r.client_profile_picture || '').trim(),
+            reports: []
+          });
+        }
+        byUser.get(r.user_id).reports.push({
+          id: r.id,
+          createdAt: r.created_at,
+          status: r.status,
+          overallStatus: r.overall_status || null
+        });
+      });
+      const clients = Array.from(byUser.values())
+        .filter((c) => c.reports.length >= CMP_MIN_REPORTS)
+        .sort((a, b) => String(a.userName).localeCompare(String(b.userName)));
+      res.json({ clients });
+    } catch (e) {
+      console.error('[blood comparable]', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // List saved comparisons for a client.
+  router.get('/admin/comparisons/:userId', adminOnly, async (req, res) => {
+    try {
+      const rows = await queryAll(
+        `SELECT c.*, u.profile_picture AS client_profile_picture
+         FROM blood_comparison_reports c
+         LEFT JOIN users u ON u.id = c.user_id
+         WHERE c.user_id = ? ORDER BY c.created_at DESC`,
+        [req.params.userId]
+      );
+      res.json({ comparisons: (rows || []).map(mapComparisonRow) });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Fetch one comparison.
+  router.get('/admin/comparison/:id', adminOnly, async (req, res) => {
+    try {
+      const row = await queryOne(
+        `SELECT c.*, u.profile_picture AS client_profile_picture
+         FROM blood_comparison_reports c LEFT JOIN users u ON u.id = c.user_id
+         WHERE c.id = ?`,
+        [req.params.id]
+      );
+      if (!row) return res.status(404).json({ error: 'Comparison not found' });
+      res.json({ comparison: mapComparisonRow(row) });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Build a new comparison: deterministic alignment + (optional) Claude verdict.
+  router.post('/admin/compare', adminOnly, rateLimiter(6, 120000), async (req, res) => {
+    try {
+      const userId = String((req.body && req.body.userId) || '').trim();
+      let reportIds = (req.body && req.body.reportIds) || [];
+      const runAi = !(req.body && req.body.runAi === false);
+      if (!userId) return res.status(400).json({ success: false, error: 'Missing client id' });
+      if (!Array.isArray(reportIds)) reportIds = [];
+      reportIds = reportIds.map((x) => String(x)).filter(Boolean);
+      // de-dup, preserve order
+      reportIds = reportIds.filter((v, i) => reportIds.indexOf(v) === i);
+      if (reportIds.length < CMP_MIN_REPORTS) {
+        return res.status(400).json({ success: false, error: `Select at least ${CMP_MIN_REPORTS} reports to compare.` });
+      }
+      if (reportIds.length > CMP_MAX_REPORTS) {
+        return res.status(400).json({ success: false, error: `Compare up to ${CMP_MAX_REPORTS} reports at a time.` });
+      }
+
+      const loaded = await loadComparableReports(userId, reportIds);
+      if (loaded.error) return res.status(400).json({ success: false, error: loaded.error });
+      const rows = loaded.rows;
+
+      const comparison = alignReports(rows);
+      if (!comparison.markerCount) {
+        return res.status(400).json({ success: false, error: 'No comparable markers were found across the selected reports.' });
+      }
+
+      // Patient context from the newest compared report.
+      const newest = rows.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      const u = await queryOne(
+        `SELECT id, first_name, last_name, email FROM users WHERE id = ?`,
+        [userId]
+      );
+      const displayName =
+        [u && u.first_name, u && u.last_name].filter(Boolean).join(' ').trim() ||
+        newest.user_name || (u && u.email) || 'Member';
+
+      // Union of reported symptoms across compared reports.
+      const symSet = new Set();
+      rows.forEach((r) => {
+        const s = parseJsonCol(r.symptoms);
+        if (Array.isArray(s)) s.forEach((x) => symSet.add(String(x)));
+      });
+      const symptomsText = symSet.size ? Array.from(symSet).join(', ') : 'None reported';
+
+      let verdict = null;
+      let aiUsage = null;
+      if (runAi) {
+        const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+        if (!apiKey) {
+          return res.status(503).json({ success: false, error: 'ANTHROPIC_API_KEY is not set on the server.' });
+        }
+        // Fresh 7-day nutrition context for cause/effect reasoning.
+        let nutritionNote = 'No nutrition summary available.';
+        try {
+          const today = new Date().toISOString().split('T')[0];
+          const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          const nut = await computeNutritionSummaryForUserWindow(db, userId, weekAgo, today);
+          if (nut) nutritionNote = JSON.stringify(nut).slice(0, 4000);
+        } catch (_) {}
+
+        const out = await generateComparisonVerdict({
+          apiKey,
+          patient: {
+            name: displayName,
+            age: newest.user_age || '',
+            gender: newest.user_gender || '',
+            goal: newest.user_goal || ''
+          },
+          comparison,
+          symptomsText,
+          nutritionNote
+        });
+        verdict = out.verdict;
+        aiUsage = out.usage;
+        if (!verdict) {
+          return res.status(502).json({
+            success: false,
+            error: `The AI verdict did not return valid JSON (stop reason: ${out.stopReason || 'unknown'}). Try again.`
+          });
+        }
+      }
+
+      const id = uuidv4();
+      await run(
+        `INSERT INTO blood_comparison_reports (
+           id, user_id, report_ids, comparison_data, ai_verdict, ai_usage,
+           status, user_name, user_email, user_age, user_gender, user_goal
+         ) VALUES (?, ?, ?::jsonb, ?::jsonb, ?::jsonb, ?::jsonb, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          userId,
+          JSON.stringify(reportIds),
+          JSON.stringify(comparison),
+          verdict ? JSON.stringify(verdict) : null,
+          aiUsage ? JSON.stringify(aiUsage) : null,
+          verdict ? 'complete' : 'draft',
+          displayName,
+          (u && u.email) || newest.user_email || '',
+          newest.user_age || '',
+          newest.user_gender || '',
+          newest.user_goal || ''
+        ]
+      );
+
+      const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [id]);
+      res.json({ success: true, comparison: mapComparisonRow(row) });
+    } catch (e) {
+      console.error('[blood compare]', e.message);
+      res.status(500).json({ success: false, error: e.message || 'Comparison failed' });
+    }
+  });
+
+  // Edit admin notes and/or the AI verdict (coach can refine before sending).
+  router.put('/admin/comparison/:id', adminOnly, async (req, res) => {
+    try {
+      const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+      const sets = [];
+      const args = [];
+      if (req.body && typeof req.body.adminNotes === 'string') {
+        sets.push('admin_notes = ?');
+        args.push(String(req.body.adminNotes).slice(0, 8000));
+      }
+      if (req.body && req.body.verdict && typeof req.body.verdict === 'object') {
+        sets.push('ai_verdict = ?::jsonb');
+        args.push(JSON.stringify(req.body.verdict));
+      }
+      if (!sets.length) return res.status(400).json({ success: false, error: 'Nothing to update' });
+      // Any edit invalidates a cached PDF so the next download reflects the change.
+      sets.push('pdf_path = NULL');
+      args.push(req.params.id);
+      await run(`UPDATE blood_comparison_reports SET ${sets.join(', ')} WHERE id = ?`, args);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Regenerate the AI verdict for an existing comparison (reuses stored alignment).
+  router.post('/admin/comparison/:id/regenerate', adminOnly, rateLimiter(6, 120000), async (req, res) => {
+    try {
+      const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+      const reportIds = parseJsonCol(row.report_ids) || [];
+      const loaded = await loadComparableReports(row.user_id, reportIds.map(String));
+      if (loaded.error) return res.status(400).json({ success: false, error: loaded.error });
+      const comparison = alignReports(loaded.rows);
+
+      const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
+      if (!apiKey) return res.status(503).json({ success: false, error: 'ANTHROPIC_API_KEY is not set on the server.' });
+
+      const symSet = new Set();
+      loaded.rows.forEach((r) => {
+        const s = parseJsonCol(r.symptoms);
+        if (Array.isArray(s)) s.forEach((x) => symSet.add(String(x)));
+      });
+      let nutritionNote = 'No nutrition summary available.';
+      try {
+        const today = new Date().toISOString().split('T')[0];
+        const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        const nut = await computeNutritionSummaryForUserWindow(db, row.user_id, weekAgo, today);
+        if (nut) nutritionNote = JSON.stringify(nut).slice(0, 4000);
+      } catch (_) {}
+
+      const out = await generateComparisonVerdict({
+        apiKey,
+        patient: { name: row.user_name || 'Member', age: row.user_age || '', gender: row.user_gender || '', goal: row.user_goal || '' },
+        comparison,
+        symptomsText: symSet.size ? Array.from(symSet).join(', ') : 'None reported',
+        nutritionNote
+      });
+      if (!out.verdict) {
+        return res.status(502).json({ success: false, error: `AI verdict failed (stop reason: ${out.stopReason || 'unknown'}).` });
+      }
+      await run(
+        `UPDATE blood_comparison_reports
+         SET comparison_data = ?::jsonb, ai_verdict = ?::jsonb, ai_usage = ?::jsonb, status = 'complete', pdf_path = NULL
+         WHERE id = ?`,
+        [JSON.stringify(comparison), JSON.stringify(out.verdict), JSON.stringify(out.usage), req.params.id]
+      );
+      const updated = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      res.json({ success: true, comparison: mapComparisonRow(updated) });
+    } catch (e) {
+      console.error('[blood compare regen]', e.message);
+      res.status(500).json({ success: false, error: e.message || 'Regenerate failed' });
+    }
+  });
+
+  // Ensure a progress PDF exists for a comparison row; returns absolute path.
+  async function ensureComparisonPdf(row) {
+    const existing = row.pdf_path ? resolveStoredUploadPath(String(row.pdf_path).trim()) : null;
+    if (existing && fs.existsSync(existing)) return existing;
+    const comparison = parseJsonCol(row.comparison_data);
+    const verdict = parseJsonCol(row.ai_verdict) || {};
+    if (!comparison || !Array.isArray(comparison.panels)) return null;
+    const verdictForPdf = {
+      ...verdict,
+      __improved: comparison.improvedCount,
+      __worsened: comparison.worsenedCount,
+      __markerCount: comparison.markerCount
+    };
+    const pdfPath = await generateComparisonReportPdf({
+      comparisonId: row.id,
+      user: {
+        name: row.user_name || 'Member',
+        age: row.user_age || '—',
+        gender: row.user_gender || '—',
+        goal: row.user_goal || '—'
+      },
+      comparison,
+      verdict: verdictForPdf,
+      adminNotes: row.admin_notes || ''
+    });
+    await run(`UPDATE blood_comparison_reports SET pdf_path = ? WHERE id = ?`, [pdfPath, row.id]).catch(() => {});
+    return pdfPath;
+  }
+
+  // Download the branded progress PDF (generated on demand).
+  router.get('/admin/comparison/:id/pdf', adminOnly, async (req, res) => {
+    try {
+      const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      if (!row) return res.status(404).json({ error: 'Comparison not found' });
+      const pdfPath = await ensureComparisonPdf(row);
+      if (!pdfPath || !fs.existsSync(pdfPath)) {
+        return res.status(400).json({ error: 'Comparison PDF could not be generated (run the AI verdict first).' });
+      }
+      res.download(pdfPath, 'BodyBank_Progress_Report.pdf');
+    } catch (e) {
+      console.error('[blood compare pdf]', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Send the progress report to the client by email + inbox.
+  router.post('/admin/comparison/:id/send', adminOnly, async (req, res) => {
+    try {
+      const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+      const verdict = parseJsonCol(row.ai_verdict);
+      if (!verdict) return res.status(400).json({ success: false, error: 'Run the AI verdict before sending.' });
+      const pdfPath = await ensureComparisonPdf(row);
+      if (!pdfPath || !fs.existsSync(pdfPath)) {
+        return res.status(400).json({ success: false, error: 'Progress report is not ready.' });
+      }
+      const emailed = await userEmail.emailHealthReportWithPdf({
+        toEmail: row.user_email,
+        firstName: (row.user_name || '').split(/\s+/)[0] || 'there',
+        pdfPath,
+        adminNotes: row.admin_notes || '',
+        overallStatus: verdict.overall_trajectory,
+        summary: verdict.executive_summary
+      });
+      if (!emailed) {
+        if (!userEmail.isConfigured()) {
+          return res.status(503).json({ success: false, error: 'Email is not configured (SMTP).' });
+        }
+        return res.status(500).json({ success: false, error: 'Failed to send email with PDF attachment.' });
+      }
+      const inboxId = uuidv4();
+      await run(
+        `INSERT INTO user_inbox (id, user_id, title, body, type, is_read) VALUES (?, ?, ?, ?, ?, FALSE)`,
+        [
+          inboxId,
+          row.user_id,
+          'Your BodyBank Blood Progress Report is Ready',
+          `Your blood-report progress review is ready. ${String(verdict.executive_summary || '')}`.slice(0, 4000),
+          'health_report'
+        ]
+      );
+      await run(`UPDATE blood_comparison_reports SET sent_to_user = true, sent_at = CURRENT_TIMESTAMP WHERE id = ?`, [req.params.id]);
+      notifyAsync('BLOOD_REPORT_SENT', { name: row.user_name || '—', email: row.user_email || '—' });
+      res.json({ success: true });
+    } catch (e) {
+      console.error('[blood compare send]', e.message);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  router.delete('/admin/comparison/:id', adminOnly, async (req, res) => {
+    try {
+      const row = await queryOne(`SELECT pdf_path FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+      try {
+        const resolved = row.pdf_path ? resolveStoredUploadPath(String(row.pdf_path).trim()) : null;
+        if (resolved && fs.existsSync(resolved)) fs.unlinkSync(resolved);
+      } catch (_) {}
+      await run(`DELETE FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      res.json({ success: true });
+    } catch (e) {
+      res.status(500).json({ success: false, error: e.message });
     }
   });
 
