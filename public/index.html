@@ -218,6 +218,8 @@ h3.sc-dash-title{font-size:clamp(20px,3vw,28px);margin:0 0 10px}
 .sc-badge--pending{color:#e05050;background:rgba(224,80,80,.1);border-color:rgba(224,80,80,.3)}
 .sc-badge--late{color:#f59e0b;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3)}
 .sc-badge--never{color:var(--muted);background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
+.sc-badge--freeze{color:#5aa9e6;background:rgba(90,169,230,.1);border-color:rgba(90,169,230,.3)}
+.sc-stat--freeze{border-color:rgba(90,169,230,.32)} .sc-stat--freeze .sc-stat-val{color:#5aa9e6}
 .sc-row-pending{background:rgba(224,80,80,.045)}
 .sc-cell-sub{display:block;font-size:11px;color:var(--muted);margin-top:2px}
 .sc-tag-unlinked{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:4px;font-size:9px;
@@ -2733,25 +2735,28 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   /* Empty / loading rows */
   #bbLeadsTableWrap .admin-list-table tbody tr td[colspan]{display:block!important;text-align:center!important;padding:20px!important}
   #bbLeadsTableWrap .admin-list-table tbody tr td[colspan]::before{display:none!important}
-  /* Sunday status table — 5 columns will not fit 390px in table-mode (headers collide and
-     names wrap one letter per line), so use the same card layout as Leads. */
-  #tab-sundaycheckin .admin-table-wrap{overflow:visible!important;padding:0!important;border:0!important}
-  #tab-sundaycheckin .admin-list-table{display:block!important;width:100%!important;min-width:0!important;border:0!important;table-layout:auto!important}
-  #tab-sundaycheckin .admin-list-table thead{display:none!important}
-  #tab-sundaycheckin .admin-list-table tbody{display:block!important}
-  #tab-sundaycheckin .admin-list-table tbody tr{display:block!important;width:100%!important;margin:0 0 12px!important;padding:14px 14px 10px!important;background:linear-gradient(180deg,rgba(255,255,255,0.035) 0%,rgba(255,255,255,0.01) 100%)!important;border:1px solid rgba(200,164,78,0.2)!important;border-radius:12px!important;box-sizing:border-box;box-shadow:0 4px 14px rgba(0,0,0,0.25)}
-  #tab-sundaycheckin .admin-list-table tbody tr.sc-row-pending{border-color:rgba(224,80,80,0.32)!important;background:linear-gradient(180deg,rgba(224,80,80,0.07) 0%,rgba(224,80,80,0.01) 100%)!important}
-  #tab-sundaycheckin .admin-list-table tbody td{display:flex!important;align-items:center;justify-content:space-between;gap:14px;padding:7px 0!important;border:0!important;font-size:13.5px;color:var(--cream);word-break:normal!important;overflow-wrap:anywhere;text-align:right;line-height:1.4;min-height:24px}
-  #tab-sundaycheckin .admin-list-table tbody td::before{display:inline-block!important;content:attr(data-label);flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);margin:0!important;min-width:86px;text-align:left;line-height:1.3}
-  #tab-sundaycheckin .admin-list-table tbody td[data-label="Name"]{display:block!important;padding:0 0 10px!important;margin-bottom:8px!important;border-bottom:1px dashed rgba(200,164,78,0.2)!important;font-size:16px!important;font-weight:600!important;text-align:left!important;word-break:break-word!important}
-  #tab-sundaycheckin .admin-list-table tbody td[data-label="Name"]::before{display:none!important}
-  #tab-sundaycheckin .admin-list-table tbody td[data-label="Email"]{font-size:12.5px;color:var(--muted)}
-  #tab-sundaycheckin .admin-list-table tbody td .sc-cell-sub{display:inline;margin:0 0 0 6px;font-size:11px}
-  #tab-sundaycheckin .admin-list-table tbody td[data-label="Actions"]{display:block!important;text-align:right!important;padding:10px 0 0!important;margin-top:8px!important;border-top:1px dashed rgba(200,164,78,0.2)!important}
-  #tab-sundaycheckin .admin-list-table tbody td[data-label="Actions"]::before{display:none!important}
-  #tab-sundaycheckin .admin-list-table tbody td[data-label="Actions"] .action-btn{width:100%;margin:0;padding:11px 14px;font-size:12.5px;letter-spacing:1.2px}
-  #tab-sundaycheckin .admin-list-table tbody tr td[colspan]{display:block!important;text-align:center!important;padding:20px!important}
-  #tab-sundaycheckin .admin-list-table tbody tr td[colspan]::before{display:none!important}
+  /* Status dashboards (Sunday, Daily, Audit, Part-2) — 5-6 columns will not fit 390px in
+     table-mode (headers collide and names wrap one letter per line), so these tables get
+     the same card layout as Leads. Tagged with .sc-status-table rather than by tab id so
+     the four stay in sync. */
+  #tab-sundaycheckin .admin-table-wrap,#tab-dailycheckin .admin-table-wrap,
+  #tab-requests .admin-table-wrap,#tab-part2 .admin-table-wrap{overflow:visible!important;padding:0!important;border:0!important}
+  .sc-status-table{display:block!important;width:100%!important;min-width:0!important;border:0!important;table-layout:auto!important}
+  .sc-status-table thead{display:none!important}
+  .sc-status-table tbody{display:block!important}
+  .sc-status-table tbody tr{display:block!important;width:100%!important;margin:0 0 12px!important;padding:14px 14px 10px!important;background:linear-gradient(180deg,rgba(255,255,255,0.035) 0%,rgba(255,255,255,0.01) 100%)!important;border:1px solid rgba(200,164,78,0.2)!important;border-radius:12px!important;box-sizing:border-box;box-shadow:0 4px 14px rgba(0,0,0,0.25)}
+  .sc-status-table tbody tr.sc-row-pending{border-color:rgba(224,80,80,0.32)!important;background:linear-gradient(180deg,rgba(224,80,80,0.07) 0%,rgba(224,80,80,0.01) 100%)!important}
+  .sc-status-table tbody td{display:flex!important;align-items:center;justify-content:space-between;gap:14px;padding:7px 0!important;border:0!important;font-size:13.5px;color:var(--cream);word-break:normal!important;overflow-wrap:anywhere;text-align:right;line-height:1.4;min-height:24px}
+  .sc-status-table tbody td::before{display:inline-block!important;content:attr(data-label);flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);margin:0!important;min-width:86px;text-align:left;line-height:1.3}
+  .sc-status-table tbody td[data-label="Name"]{display:block!important;padding:0 0 10px!important;margin-bottom:8px!important;border-bottom:1px dashed rgba(200,164,78,0.2)!important;font-size:16px!important;font-weight:600!important;text-align:left!important;word-break:break-word!important}
+  .sc-status-table tbody td[data-label="Name"]::before{display:none!important}
+  .sc-status-table tbody td[data-label="Email"]{font-size:12.5px;color:var(--muted)}
+  .sc-status-table tbody td .sc-cell-sub{display:inline;margin:0 0 0 6px;font-size:11px}
+  .sc-status-table tbody td[data-label="Actions"]{display:block!important;text-align:right!important;padding:10px 0 0!important;margin-top:8px!important;border-top:1px dashed rgba(200,164,78,0.2)!important}
+  .sc-status-table tbody td[data-label="Actions"]::before{display:none!important}
+  .sc-status-table tbody td[data-label="Actions"] .action-btn{width:100%;margin:0;padding:11px 14px;font-size:12.5px;letter-spacing:1.2px}
+  .sc-status-table tbody tr td[colspan]{display:block!important;text-align:center!important;padding:20px!important}
+  .sc-status-table tbody tr td[colspan]::before{display:none!important}
   #tab-dailycheckin .admin-table-wrap,#tab-sundaycheckin .admin-table-wrap,#tab-part2 .admin-table-wrap,#tab-requests .admin-table-wrap,#tab-workouts .admin-table-wrap{overflow-x:auto;min-width:0}
   .insights-table-wrap .admin-table thead{display:none}
   .insights-table-wrap .admin-table tbody tr{display:block;width:100%;margin-bottom:12px;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
@@ -7455,15 +7460,41 @@ button.bb-today-pill{cursor:pointer}
     </div>
     <!-- TAB: Audit forms -->
     <div class="admin-tab-content" id="tab-requests">
+      <!-- The old "Audit forms" counter is dropped here: the People / Submissions cards
+           below state the same thing precisely, and the two numbers disagreed because one
+           counted rows and the other counted people. loadStats() null-guards #statPending,
+           so removing the element is safe. -->
       <div class="admin-stats admin-stats-tight">
-        <div class="admin-stat-item"><span class="num" id="statPending">0</span><span class="lbl">Audit forms</span></div>
-        <span class="admin-stats-sep" aria-hidden="true"></span>
         <div class="admin-stat-item"><span class="num" id="statActive">0</span><span class="lbl">Active Members</span></div>
+      </div>
+      <div class="sc-dash-head">
+        <h3 class="sunday-checkin-title sc-dash-title" id="arDashTitle">Audit Form</h3>
+        <p class="form-hint sc-dash-sub" id="arDashSub">Loading…</p>
+      </div>
+      <div class="sc-stat-row" id="arStatRow" role="group" aria-label="Audit form summary">
+        <div class="sc-stat"><span class="sc-stat-lbl">People</span><span class="sc-stat-val" id="arStatPeople">—</span></div>
+        <div class="sc-stat"><span class="sc-stat-lbl">Submissions</span><span class="sc-stat-val" id="arStatSubs">—</span></div>
+        <div class="sc-stat sc-stat--ok"><span class="sc-stat-lbl">New (7 days)</span><span class="sc-stat-val" id="arStatNew">—</span></div>
+        <div class="sc-stat sc-stat--ok"><span class="sc-stat-lbl">Part-2 Done</span><span class="sc-stat-val" id="arStatP2Done">—</span></div>
+        <div class="sc-stat sc-stat--pending"><span class="sc-stat-lbl">Part-2 Pending</span><span class="sc-stat-val" id="arStatP2Pending">—</span></div>
+        <div class="sc-stat sc-stat--pct"><span class="sc-stat-lbl">Part-2 Rate</span><span class="sc-stat-val" id="arStatPct">—</span>
+          <div class="sc-stat-bar"><div class="sc-stat-bar-fill" id="arStatBar" style="width:0%"></div></div>
+        </div>
       </div>
       <div class="admin-filter-bar admin-filter-bar-stacked" data-admin-form-filters="requests">
         <div class="admin-filter-row-dates">
-          <div class="admin-filter-row-date"><label for="auditFilterFrom">From</label><input type="date" id="auditFilterFrom" class="admin-filter-date" aria-label="From date"></div>
-          <div class="admin-filter-row-date"><label for="auditFilterTo">To</label><input type="date" id="auditFilterTo" class="admin-filter-date" aria-label="To date"></div>
+          <div class="admin-filter-row-date"><label for="auditFilterFrom">From</label><input type="date" id="auditFilterFrom" class="admin-filter-date" aria-label="From date" onchange="loadRequests()"></div>
+          <div class="admin-filter-row-date"><label for="auditFilterTo">To</label><input type="date" id="auditFilterTo" class="admin-filter-date" aria-label="To date" onchange="loadRequests()"></div>
+          <div class="admin-filter-row-date">
+            <label for="auditFilterSort">Sort</label>
+            <select id="auditFilterSort" class="admin-filter-select" onchange="loadRequests()">
+              <option value="latest">Latest submission</option>
+              <option value="oldest">Oldest submission</option>
+              <option value="name">Name (A–Z)</option>
+              <option value="part2">Part-2 pending first</option>
+              <option value="submissions">Most submissions</option>
+            </select>
+          </div>
         </div>
         <div class="admin-filter-row-search">
           <div class="admin-filter-search-wrap">
@@ -7477,12 +7508,12 @@ button.bb-today-pill{cursor:pointer}
           </div>
         </div>
       </div>
-      <div class="admin-table-wrap"><table class="admin-table admin-list-table">
+      <div class="admin-table-wrap"><table class="admin-table admin-list-table sc-status-table">
         <thead>
-          <tr><th>Name</th><th>Email</th><th>Age</th><th>City</th><th style="text-align:right;width:100px">Actions</th></tr>
+          <tr><th>Name</th><th>Email</th><th>Last Submitted</th><th>Submissions</th><th>Part-2</th><th style="text-align:right;width:150px">Actions</th></tr>
         </thead>
         <tbody id="requestsBody">
-          <tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
+          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
         </tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
@@ -7626,7 +7657,7 @@ button.bb-today-pill{cursor:pointer}
           </div>
         </div>
       </div>
-      <div class="admin-table-wrap"><table class="admin-table admin-list-table">
+      <div class="admin-table-wrap"><table class="admin-table admin-list-table sc-status-table">
         <thead><tr><th>Name</th><th>Email</th><th>Last Submitted</th><th>Status</th><th style="text-align:right;width:150px">Actions</th></tr></thead>
         <tbody id="sundayCheckinBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
       </table></div>
@@ -7639,10 +7670,44 @@ button.bb-today-pill{cursor:pointer}
 
     <!-- TAB: Daily Check-In -->
     <div class="admin-tab-content" id="tab-dailycheckin">
+      <div class="sc-dash-head">
+        <h3 class="sunday-checkin-title sc-dash-title" id="dcDashTitle">Daily Check-in</h3>
+        <p class="form-hint sc-dash-sub" id="dcDashSub">Loading…</p>
+      </div>
+      <div class="sc-stat-row" id="dcStatRow" role="group" aria-label="Daily check-in summary">
+        <div class="sc-stat"><span class="sc-stat-lbl">Total Users</span><span class="sc-stat-val" id="dcStatTotal">—</span></div>
+        <div class="sc-stat sc-stat--ok"><span class="sc-stat-lbl">Submitted</span><span class="sc-stat-val" id="dcStatSubmitted">—</span></div>
+        <div class="sc-stat sc-stat--pending"><span class="sc-stat-lbl">Pending</span><span class="sc-stat-val" id="dcStatPending">—</span></div>
+        <div class="sc-stat sc-stat--late"><span class="sc-stat-lbl">Late</span><span class="sc-stat-val" id="dcStatLate">—</span></div>
+        <div class="sc-stat sc-stat--freeze"><span class="sc-stat-lbl">Freeze</span><span class="sc-stat-val" id="dcStatFreeze">—</span></div>
+        <div class="sc-stat sc-stat--pct"><span class="sc-stat-lbl">Completion</span><span class="sc-stat-val" id="dcStatPct">—</span>
+          <div class="sc-stat-bar"><div class="sc-stat-bar-fill" id="dcStatBar" style="width:0%"></div></div>
+        </div>
+      </div>
       <div class="admin-filter-bar admin-filter-bar-stacked" data-admin-form-filters="dailycheckin">
         <div class="admin-filter-row-dates">
-          <div class="admin-filter-row-date"><label for="dcFilterFrom">From</label><input type="date" id="dcFilterFrom" class="admin-filter-date" aria-label="From date"></div>
-          <div class="admin-filter-row-date"><label for="dcFilterTo">To</label><input type="date" id="dcFilterTo" class="admin-filter-date" aria-label="To date"></div>
+          <div class="admin-filter-row-date">
+            <label for="dcFilterDay">Day</label>
+            <select id="dcFilterDay" class="admin-filter-select" onchange="dcOnDayFilterChange()">
+              <option value="today">Today</option>
+              <option value="yesterday">Yesterday</option>
+              <option value="custom">Custom date</option>
+              <option value="all">All time</option>
+            </select>
+          </div>
+          <div class="admin-filter-row-date" id="dcCustomDateWrap" style="display:none">
+            <label for="dcFilterDate">Date</label>
+            <input type="date" id="dcFilterDate" class="admin-filter-date" aria-label="Custom date" onchange="loadDailyCheckins()">
+          </div>
+          <div class="admin-filter-row-date">
+            <label for="dcFilterSort">Sort</label>
+            <select id="dcFilterSort" class="admin-filter-select" onchange="loadDailyCheckins()">
+              <option value="latest">Latest check-in</option>
+              <option value="oldest">Oldest check-in</option>
+              <option value="name">Name (A–Z)</option>
+              <option value="status">Status (pending first)</option>
+            </select>
+          </div>
         </div>
         <div class="admin-filter-row-search">
           <div class="admin-filter-search-wrap">
@@ -7650,15 +7715,22 @@ button.bb-today-pill{cursor:pointer}
             <input type="text" id="dcFilterSearch" placeholder="Name, email or phone" autocomplete="off">
           </div>
           <div class="admin-filter-actions">
+            <label class="sc-roster-toggle" title="Also show paused, suspended and expired clients"><input type="checkbox" id="dcFilterRoster" onchange="loadDailyCheckins()"> Include inactive</label>
             <button type="button" class="admin-apply-btn" onclick="loadDailyCheckins()">Apply</button>
+            <button type="button" class="admin-export-btn" onclick="exportDailyCheckinsCsv()" title="Download CSV matching current filters">Export CSV</button>
             <button type="button" class="admin-filter-clear-btn" onclick="clearAdminFormFilters('dailycheckin')">Clear</button>
           </div>
         </div>
       </div>
-      <div class="admin-table-wrap"><table class="admin-table admin-list-table">
-        <thead><tr><th>Name</th><th>Email</th><th>Date</th><th style="text-align:right;width:100px">Actions</th></tr></thead>
-        <tbody id="dailyCheckinBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
+      <div class="admin-table-wrap"><table class="admin-table admin-list-table sc-status-table">
+        <thead><tr><th>Name</th><th>Email</th><th>Last Check-in</th><th>Status</th><th style="text-align:right;width:150px">Actions</th></tr></thead>
+        <tbody id="dailyCheckinBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
       </table></div>
+      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
+        <span class="admin-h-scroll-label">Scroll to see all columns</span>
+        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
     </div>
 
     <!-- TAB: Daily Compliance -->
@@ -7720,10 +7792,31 @@ button.bb-today-pill{cursor:pointer}
           <button type="button" class="part2-copy-btn" onclick="copyPart2Link()">Copy Link</button>
         </div>
       </div>
-      <div class="admin-filter-bar admin-filter-bar-stacked" style="margin-top:20px" data-admin-form-filters="part2">
+      <div class="sc-dash-head" style="margin-top:20px">
+        <h3 class="sunday-checkin-title sc-dash-title" id="p2DashTitle">Part-2 Form</h3>
+        <p class="form-hint sc-dash-sub" id="p2DashSub">Loading…</p>
+      </div>
+      <div class="sc-stat-row" id="p2StatRow" role="group" aria-label="Part-2 summary">
+        <div class="sc-stat"><span class="sc-stat-lbl">Total People</span><span class="sc-stat-val" id="p2StatTotal">—</span></div>
+        <div class="sc-stat sc-stat--ok"><span class="sc-stat-lbl">Completed</span><span class="sc-stat-val" id="p2StatDone">—</span></div>
+        <div class="sc-stat sc-stat--pending"><span class="sc-stat-lbl">Pending</span><span class="sc-stat-val" id="p2StatPending">—</span></div>
+        <div class="sc-stat sc-stat--pct"><span class="sc-stat-lbl">Completion</span><span class="sc-stat-val" id="p2StatPct">—</span>
+          <div class="sc-stat-bar"><div class="sc-stat-bar-fill" id="p2StatBar" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="admin-filter-bar admin-filter-bar-stacked" data-admin-form-filters="part2">
         <div class="admin-filter-row-dates">
-          <div class="admin-filter-row-date"><label for="p2FilterFrom">From</label><input type="date" id="p2FilterFrom" class="admin-filter-date" aria-label="From date"></div>
-          <div class="admin-filter-row-date"><label for="p2FilterTo">To</label><input type="date" id="p2FilterTo" class="admin-filter-date" aria-label="To date"></div>
+          <div class="admin-filter-row-date"><label for="p2FilterFrom">Audit from</label><input type="date" id="p2FilterFrom" class="admin-filter-date" aria-label="Audit submitted from" onchange="loadPart2Submissions()"></div>
+          <div class="admin-filter-row-date"><label for="p2FilterTo">Audit to</label><input type="date" id="p2FilterTo" class="admin-filter-date" aria-label="Audit submitted to" onchange="loadPart2Submissions()"></div>
+          <div class="admin-filter-row-date">
+            <label for="p2FilterSort">Sort</label>
+            <select id="p2FilterSort" class="admin-filter-select" onchange="loadPart2Submissions()">
+              <option value="status">Status (pending first)</option>
+              <option value="latest">Latest Part-2</option>
+              <option value="oldest">Oldest Part-2</option>
+              <option value="name">Name (A–Z)</option>
+            </select>
+          </div>
         </div>
         <div class="admin-filter-row-search">
           <div class="admin-filter-search-wrap">
@@ -7738,9 +7831,9 @@ button.bb-today-pill{cursor:pointer}
         </div>
       </div>
       <div class="admin-table-wrap" style="margin-top:16px">
-        <table class="admin-table admin-list-table">
-          <thead><tr><th>Name</th><th>Email</th><th>Date</th><th style="text-align:right;width:100px">Actions</th></tr></thead>
-          <tbody id="part2Body"></tbody>
+        <table class="admin-table admin-list-table sc-status-table">
+          <thead><tr><th>Name</th><th>Email</th><th>Audit Submitted</th><th>Part-2 Submitted</th><th>Status</th><th style="text-align:right;width:150px">Actions</th></tr></thead>
+          <tbody id="part2Body"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
         </table>
       </div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
@@ -9398,6 +9491,15 @@ html.android-mobile #operatorPanel .op-cm-box{margin-top:calc(var(--safe-top, 20
     <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('sundayHistoryModal')" aria-label="Close">&times;</button>
     <h2 class="sunday-checkin-title" id="sundayHistoryTitle">Check-in History</h2>
     <div class="view-detail-body" id="sundayHistoryBody"></div>
+  </div>
+</div>
+
+<!-- ADMIN: Generic form-history modal (Daily check-in + Audit/Part-2 intake trail) -->
+<div class="modal-overlay view-detail-modal" id="formHistoryModal" onclick="if(event.target===this)closeModal('formHistoryModal')">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('formHistoryModal')" aria-label="Close">&times;</button>
+    <h2 class="sunday-checkin-title" id="formHistoryTitle">History</h2>
+    <div class="view-detail-body" id="formHistoryBody"></div>
   </div>
 </div>
 
@@ -12712,11 +12814,13 @@ function adminOpenDailyCheckinsForClient(userId) {
   if (!d) return;
   var search = d.email || d.name || '';
   var se = document.getElementById('dcFilterSearch');
-  var fromEl = document.getElementById('dcFilterFrom');
-  var toEl = document.getElementById('dcFilterTo');
+  var dayEl = document.getElementById('dcFilterDay');
+  var wrap = document.getElementById('dcCustomDateWrap');
   if (se) se.value = search;
-  if (fromEl) fromEl.value = '';
-  if (toEl) toEl.value = '';
+  // Coming from an at-risk client card, the useful view is this person's most recent
+  // check-in whenever it was — not just whether they logged one today.
+  if (dayEl) dayEl.value = 'all';
+  if (wrap) wrap.style.display = 'none';
   closeModal('adminAttentionClientViewModal');
   switchTab('dailycheckin');
 }
@@ -12773,10 +12877,27 @@ function clearAdminFormFilters(which) {
     loadSundayCheckins();
     return;
   }
+  // Daily check-in filters on a day dropdown, so blanking every control by value would
+  // leave it empty rather than back on "Today".
+  if (which === 'dailycheckin') {
+    var dd = document.getElementById('dcFilterDay');
+    var dso = document.getElementById('dcFilterSort');
+    var dro = document.getElementById('dcFilterRoster');
+    var ddt = document.getElementById('dcFilterDate');
+    var dse = document.getElementById('dcFilterSearch');
+    var dwrap = document.getElementById('dcCustomDateWrap');
+    if (dd) dd.value = 'today';
+    if (dso) dso.value = 'latest';
+    if (dro) dro.checked = false;
+    if (ddt) ddt.value = '';
+    if (dse) dse.value = '';
+    if (dwrap) dwrap.style.display = 'none';
+    loadDailyCheckins();
+    return;
+  }
   var map = {
-    requests: { ids: ['auditFilterFrom', 'auditFilterTo', 'auditFilterSearch'], load: loadRequests },
-    dailycheckin: { ids: ['dcFilterFrom', 'dcFilterTo', 'dcFilterSearch'], load: loadDailyCheckins },
-    part2: { ids: ['p2FilterFrom', 'p2FilterTo', 'p2FilterSearch'], load: loadPart2Submissions },
+    requests: { ids: ['auditFilterFrom', 'auditFilterTo', 'auditFilterSearch'], selects: { auditFilterSort: 'latest' }, load: loadRequests },
+    part2: { ids: ['p2FilterFrom', 'p2FilterTo', 'p2FilterSearch'], selects: { p2FilterSort: 'status' }, load: loadPart2Submissions },
     workouts: { ids: ['woFilterFrom', 'woFilterTo', 'woFilterSearch'], load: loadAdminWorkouts }
   };
   var m = map[which];
@@ -12784,6 +12905,10 @@ function clearAdminFormFilters(which) {
   m.ids.forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = '';
+  });
+  Object.keys(m.selects || {}).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.value = m.selects[id];
   });
   if (typeof m.load === 'function') m.load();
 }
@@ -12829,6 +12954,8 @@ function ensureAdminPanelRowOpenDelegation() {
     if (!kind || !oid) return;
     if (kind === 'audit') viewRequest(oid);
     else if (kind === 'sundayuser') viewSundayHistory(tr.getAttribute('data-sc-user') || '', tr.getAttribute('data-sc-email') || '');
+    else if (kind === 'dailyuser') viewDailyHistory(tr.getAttribute('data-sc-user') || '');
+    else if (kind === 'intake') viewIntakeHistory(tr.getAttribute('data-sc-email') || '', tr.getAttribute('data-sc-audit') || '');
     else if (kind === 'sunday') viewSundayCheckin(oid);
     else if (kind === 'daily') viewDailyCheckin(oid);
     else if (kind === 'workout') viewAdminWorkout(oid);
@@ -12862,111 +12989,215 @@ async function viewAdminMeeting(id) {
   openModal('adminMeetingViewModal');
 }
 
-function adminAuditFormsQueryString() {
-  var af = document.getElementById('auditFilterFrom');
-  var at = document.getElementById('auditFilterTo');
-  var as = document.getElementById('auditFilterSearch');
-  var qs = [];
-  if (af && af.value) qs.push('from=' + encodeURIComponent(af.value));
-  if (at && at.value) qs.push('to=' + encodeURIComponent(at.value));
-  if (as && as.value.trim()) qs.push('search=' + encodeURIComponent(as.value.trim()));
-  return qs.length ? '?' + qs.join('&') : '';
-}
-
+// Exports the rolled-up view that is on screen (one row per person), not the raw
+// submission dump — the raw rows are still reachable per person via View History.
 async function exportAdminAuditFormsCsv() {
-  var qs = adminAuditFormsQueryString();
-  var data = await apiCall('GET', '/api/admin/audit-requests' + qs);
-  if (data.error || !Array.isArray(data)) {
+  var data = await apiCall('GET', '/api/admin/audit-requests/summary' + adminAuditFormsSummaryQuery());
+  if (!data || data.error || !Array.isArray(data.rows)) {
     showPopup('Error', (data && data.error) || 'Could not load audit forms for export.', '', 'OK', null, 'error');
     return;
   }
-  if (!data.length) {
+  if (!data.rows.length) {
     showPopup('No data', 'No audit forms match the current filters.', '', 'OK');
     return;
   }
-  var keys = Object.keys(data[0]).filter(function(k) { return k !== 'password'; });
-  var rows = data.map(function(row) {
-    return keys.map(function(k) {
-      var v = row[k];
-      if (v == null) return '';
-      var s = String(v);
-      if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-      return s;
-    }).join(',');
+  _scTz = data.timezone || _scTz;
+  var cell = function(v) { var s = (v == null) ? '' : String(v); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  var head = ['Name', 'Email', 'Phone', 'Stage', 'First Submitted', 'Last Submitted', 'Submissions', 'Part-2', 'Part-2 Submitted', 'Part-2 Tier', 'Part-2 Score'];
+  var rows = data.rows.map(function(r) {
+    return [r.name, r.email, r.phone, r.stage,
+      scFmtDateTime(r.first_submitted_at), scFmtDateTime(r.last_submitted_at), r.total_checkins,
+      r.part2_status === 'submitted' ? 'Done' : 'Pending',
+      r.part2_at ? scFmtDateTime(r.part2_at) : '', r.part2_tier, r.part2_score].map(cell).join(',');
   });
-  var csv = [keys.join(',')].concat(rows).join('\r\n');
+  var csv = [head.map(cell).join(',')].concat(rows).join('\r\n');
   var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'audit-forms-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.download = 'audit-forms-status-' + new Date().toISOString().slice(0, 10) + '.csv';
   a.click();
   URL.revokeObjectURL(a.href);
-}
-
-function adminPart2FormsQueryString() {
-  var pf = document.getElementById('p2FilterFrom');
-  var pt = document.getElementById('p2FilterTo');
-  var ps = document.getElementById('p2FilterSearch');
-  var qs = [];
-  if (pf && pf.value) qs.push('from=' + encodeURIComponent(pf.value));
-  if (pt && pt.value) qs.push('to=' + encodeURIComponent(pt.value));
-  if (ps && ps.value.trim()) qs.push('search=' + encodeURIComponent(ps.value.trim()));
-  return qs.length ? '?' + qs.join('&') : '';
 }
 
 async function exportAdminPart2Csv() {
-  var qs = adminPart2FormsQueryString();
-  var data = await apiCall('GET', '/api/admin/part2-submissions' + qs);
-  if (data.error || !Array.isArray(data)) {
-    showPopup('Error', (data && data.error) || 'Could not load Part-2 submissions for export.', '', 'OK', null, 'error');
+  var data = await apiCall('GET', '/api/admin/part2-submissions/summary' + part2SummaryQuery());
+  if (!data || data.error || !Array.isArray(data.rows)) {
+    showPopup('Error', (data && data.error) || 'Could not load Part-2 status for export.', '', 'OK', null, 'error');
     return;
   }
-  if (!data.length) {
-    showPopup('No data', 'No Part-2 submissions match the current filters.', '', 'OK');
+  if (!data.rows.length) {
+    showPopup('No data', 'No people match the current filters.', '', 'OK');
     return;
   }
-  var keys = Object.keys(data[0]).filter(function(k) { return k !== 'password'; });
-  var rows = data.map(function(row) {
-    return keys.map(function(k) {
-      var v = row[k];
-      if (v == null) return '';
-      var s = String(v);
-      if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g, '""') + '"';
-      return s;
-    }).join(',');
+  _scTz = data.timezone || _scTz;
+  var cell = function(v) { var s = (v == null) ? '' : String(v); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  var head = ['Name', 'Email', 'Phone', 'Status', 'Audit Submitted', 'Part-2 Submitted', 'Part-2 Tier', 'Part-2 Score', 'Has Audit Form'];
+  var rows = data.rows.map(function(r) {
+    return [r.name, r.email, r.phone, SC_STATUS_LABEL[r.status] || r.status,
+      r.audit_at ? scFmtDateTime(r.audit_at) : '',
+      r.last_submitted_at ? scFmtDateTime(r.last_submitted_at) : '',
+      r.part2_tier, r.part2_score, r.unlinked ? 'no' : 'yes'].map(cell).join(',');
   });
-  var csv = [keys.join(',')].concat(rows).join('\r\n');
+  var csv = [head.map(cell).join(',')].concat(rows).join('\r\n');
   var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'part2-forms-' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.download = 'part2-status-' + new Date().toISOString().slice(0, 10) + '.csv';
   a.click();
   URL.revokeObjectURL(a.href);
 }
 
+// ============ AUDIT FORM — ONE ROW PER PERSON ============
+// The Audit form is the lead intake form, so the cohort is the submitters themselves —
+// duplicate submissions roll up into a single row and the Part-2 column carries the
+// funnel step that is still open. Full history stays behind "View History".
+var _arPayload = null;
+
+function adminAuditFormsSummaryQuery() {
+  var qs = [];
+  var f = document.getElementById('auditFilterFrom');
+  var t = document.getElementById('auditFilterTo');
+  var s = document.getElementById('auditFilterSearch');
+  var so = document.getElementById('auditFilterSort');
+  if (f && f.value) qs.push('from=' + encodeURIComponent(f.value));
+  if (t && t.value) qs.push('to=' + encodeURIComponent(t.value));
+  if (s && s.value.trim()) qs.push('search=' + encodeURIComponent(s.value.trim()));
+  if (so && so.value) qs.push('sort=' + encodeURIComponent(so.value));
+  return qs.length ? '?' + qs.join('&') : '';
+}
+
 async function loadRequests() {
-  const tbody = document.getElementById('requestsBody');
+  var tbody = document.getElementById('requestsBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
-  const data = await apiCall('GET', '/api/admin/audit-requests' + adminAuditFormsQueryString());
-  if (data.error || !Array.isArray(data)) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted)">Could not load audit forms</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  var data = await apiCall('GET', '/api/admin/audit-requests/summary' + adminAuditFormsSummaryQuery());
+  if (!data || data.error || !Array.isArray(data.rows)) {
+    _arPayload = null;
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050;padding:24px">' +
+      escapeHtml(String((data && data.error) || 'Could not load audit forms.')) + '</td></tr>';
     return;
   }
-  tbody.innerHTML = data.map(r => {
-    const sid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-    const aid = adminAttrId(r.id || '');
-    return `<tr class="admin-row-clickable" data-open-kind="audit" data-open-id="${aid}" data-id="${escapeHtml(r.id||'')}">
-      <td data-label="Name">${escapeHtml((r.first_name||'') + ' ' + (r.last_name||''))}</td>
-      <td data-label="Email">${escapeHtml(r.email||'')}</td>
-      <td data-label="Age">${r.age || '-'}</td>
-      <td data-label="City">${escapeHtml(r.city||'')}</td>
-      <td data-label="Actions" class="btn-view-cell">
-        <button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewRequest('${sid}')">View</button>
-        <button type="button" class="action-btn btn-reject" onclick="event.stopPropagation();removeAuditRequest('${sid}')">Remove</button>
-      </td>
-    </tr>`;
+  _arPayload = data;
+  _scTz = data.timezone || _scTz;
+  var s = data.summary || {};
+  var setStat = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = (v == null ? '—' : String(v)); };
+  setStat('arStatPeople', s.total);
+  setStat('arStatSubs', s.submissions);
+  setStat('arStatNew', s.new_this_week);
+  setStat('arStatP2Done', s.part2_done);
+  setStat('arStatP2Pending', s.part2_pending);
+  setStat('arStatPct', (s.completion_pct != null ? s.completion_pct : 0) + '%');
+  var bar = document.getElementById('arStatBar');
+  if (bar) bar.style.width = Math.max(0, Math.min(100, s.completion_pct || 0)) + '%';
+  var sub = document.getElementById('arDashSub');
+  if (sub) {
+    sub.innerHTML = 'One row per person — repeat submissions are rolled up, full history kept.' +
+      (s.submissions > s.total ? ' <strong style="color:var(--gold)">' + (s.submissions - s.total) + '</strong> repeat submission' + ((s.submissions - s.total) === 1 ? '' : 's') + ' collapsed.' : '') +
+      (data.timezone ? ' &middot; times in ' + escapeHtml(data.timezone) : '');
+  }
+
+  var rows = data.rows;
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No audit forms match your filters.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = rows.map(function(r) {
+    var p2Pending = r.part2_status === 'pending';
+    var p2 = p2Pending
+      ? '<span class="sc-badge sc-badge--pending">Pending</span>'
+      : '<span class="sc-badge sc-badge--submitted">Done</span>' +
+        (r.part2_tier ? '<span class="sc-cell-sub">' + escapeHtml(r.part2_tier) + (r.part2_score != null ? ' · ' + r.part2_score : '') + '</span>' : '');
+    var repeat = r.total_checkins > 1
+      ? '<span class="sc-cell-sub">first ' + escapeHtml(scFmtDate(r.first_submitted_at) || '—') + '</span>' : '';
+    return '<tr class="admin-row-clickable' + (p2Pending ? ' sc-row-pending' : '') + '"' +
+        ' data-open-kind="intake" data-open-id="' + adminAttrId(r.key || '') + '"' +
+        ' data-sc-email="' + adminAttrId(r.email || '') + '"' +
+        ' data-sc-audit="' + adminAttrId(r.last_checkin_id || '') + '">' +
+      '<td data-label="Name">' + escapeHtml(r.name || '—') +
+        (r.stage ? '<span class="sc-cell-sub">' + escapeHtml(bbStageLabel(r.stage)) + '</span>' : '') + '</td>' +
+      '<td data-label="Email">' + escapeHtml(r.email || '—') + '</td>' +
+      '<td data-label="Last Submitted">' + escapeHtml(scFmtDateTime(r.last_submitted_at)) + repeat + '</td>' +
+      '<td data-label="Submissions">' + (r.total_checkins || 0) + '</td>' +
+      '<td data-label="Part-2">' + p2 + '</td>' +
+      '<td data-label="Actions" class="btn-view-cell">' +
+        '<button type="button" class="action-btn btn-view sc-hist-btn" onclick="event.stopPropagation();viewIntakeHistoryEl(this)">View History</button>' +
+      '</td></tr>';
   }).join('');
+}
+
+// Reuse the leads pipeline's own stage labels so "new_audit" never leaks to the screen.
+// Falls back to a de-slugged version if the pipeline map has not loaded yet.
+function bbStageLabel(stage) {
+  var s = String(stage || '').trim();
+  if (!s) return '';
+  try {
+    if (typeof bbLeadStageMeta === 'function') {
+      var meta = bbLeadStageMeta(s);
+      if (meta && meta.label) return meta.label;
+    }
+  } catch (e) { /* fall through */ }
+  return s.replace(/_/g, ' ').replace(/\b\w/g, function(c) { return c.toUpperCase(); });
+}
+
+// Shared by the Audit and Part-2 tabs — both show the same person's full intake trail.
+function viewIntakeHistoryEl(el) {
+  var tr = el && el.closest ? el.closest('tr[data-sc-email],tr[data-sc-audit]') : null;
+  if (tr) viewIntakeHistory(tr.getAttribute('data-sc-email') || '', tr.getAttribute('data-sc-audit') || '');
+}
+
+async function viewIntakeHistory(email, auditId) {
+  if (!email && !auditId) return;
+  var body = document.getElementById('formHistoryBody');
+  var title = document.getElementById('formHistoryTitle');
+  if (!body) return;
+  body.innerHTML = '<p class="form-hint">Loading history…</p>';
+  if (title) title.textContent = 'Intake History';
+  openModal('formHistoryModal');
+  var qs = email ? ('email=' + encodeURIComponent(email)) : ('audit_id=' + encodeURIComponent(auditId));
+  var d = await apiCall('GET', '/api/admin/intake-history?' + qs);
+  if (!d || d.error) {
+    body.innerHTML = '<p class="form-hint" style="color:#e05050">' + escapeHtml(String((d && d.error) || 'Could not load history.')) + '</p>';
+    return;
+  }
+  _scTz = d.timezone || _scTz;
+  var p = d.person || {};
+  if (title) title.textContent = p.name || 'Intake History';
+
+  var head =
+    '<p class="form-hint" style="margin:0 0 18px">' + escapeHtml(p.email || '') +
+      (p.phone ? ' &middot; ' + escapeHtml(p.phone) : '') +
+      (p.stage ? ' &middot; stage: ' + escapeHtml(p.stage) : '') +
+      (d.timezone ? ' &middot; times in ' + escapeHtml(d.timezone) : '') + '</p>' +
+    '<div class="sc-hist-meta">' +
+      '<div class="sc-stat"><span class="sc-stat-lbl">Audit forms</span><span class="sc-stat-val">' + (d.audit_total || 0) + '</span></div>' +
+      '<div class="sc-stat ' + (d.part2_total ? 'sc-stat--ok' : 'sc-stat--pending') + '"><span class="sc-stat-lbl">Part-2 forms</span><span class="sc-stat-val">' + (d.part2_total || 0) + '</span></div>' +
+      '<div class="sc-stat sc-stat--pct"><span class="sc-stat-lbl">Funnel</span><span class="sc-stat-val" style="font-size:15px;font-family:inherit">' +
+        (d.part2_total ? 'Complete' : 'Stuck on Part-2') + '</span></div>' +
+    '</div>';
+
+  var auditRows = (d.audits || []).map(function(a) {
+    return '<tr>' +
+      '<td>' + escapeHtml(scFmtDate(a.created_at) || '—') + '</td>' +
+      '<td>' + escapeHtml(scFmtTime(a.created_at) || '—') + '</td>' +
+      '<td>' + escapeHtml(a.stage || a.status || '—') + '</td>' +
+      '<td style="text-align:right"><button type="button" class="sc-hist-open" onclick="closeModal(\'formHistoryModal\');viewRequest(this.getAttribute(\'data-cid\'))" data-cid="' + adminAttrId(a.id) + '">Open</button></td>' +
+    '</tr>';
+  }).join('') || '<tr><td colspan="4" style="color:var(--muted)">No audit form on record.</td></tr>';
+
+  var part2Rows = (d.part2 || []).map(function(x) {
+    return '<tr>' +
+      '<td>' + escapeHtml(scFmtDate(x.created_at) || '—') + '</td>' +
+      '<td>' + escapeHtml(scFmtTime(x.created_at) || '—') + '</td>' +
+      '<td>' + escapeHtml(x.tier_label || '—') + (x.score != null ? ' · ' + x.score : '') + '</td>' +
+      '<td style="text-align:right"><button type="button" class="sc-hist-open" onclick="closeModal(\'formHistoryModal\');viewPart2Submission(this.getAttribute(\'data-cid\'))" data-cid="' + adminAttrId(x.id) + '">Open</button></td>' +
+    '</tr>';
+  }).join('') || '<tr><td colspan="4" style="color:var(--muted)">Part-2 not submitted yet.</td></tr>';
+
+  body.innerHTML = head +
+    '<div class="sc-hist-sec">Audit form submissions (' + (d.audit_total || 0) + ')</div>' +
+    '<div class="admin-table-wrap"><table class="sc-hist-table"><thead><tr><th>Date</th><th>Time</th><th>Stage</th><th></th></tr></thead><tbody>' + auditRows + '</tbody></table></div>' +
+    '<div class="sc-hist-sec">Part-2 submissions (' + (d.part2_total || 0) + ')</div>' +
+    '<div class="admin-table-wrap"><table class="sc-hist-table"><thead><tr><th>Date</th><th>Time</th><th>Tier / score</th><th></th></tr></thead><tbody>' + part2Rows + '</tbody></table></div>';
 }
 
 function _row(label, val) { return '<div class="view-detail-row"><span class="view-detail-label">' + escapeHtml(label) + '</span><span class="view-detail-val">' + escapeHtml(val || '—') + '</span></div>'; }
@@ -13137,7 +13368,7 @@ function scDaysAgo(iso) {
   var wk = Math.floor(days / 7);
   return wk === 1 ? '1 week ago' : wk + ' weeks ago';
 }
-var SC_STATUS_LABEL = { submitted: 'Submitted', pending: 'Pending', late: 'Late', never: 'Never submitted' };
+var SC_STATUS_LABEL = { submitted: 'Submitted', pending: 'Pending', late: 'Late', never: 'Never submitted', freeze: 'Freeze' };
 function scBadge(status) {
   var s = SC_STATUS_LABEL[status] ? status : 'pending';
   return '<span class="sc-badge sc-badge--' + s + '">' + escapeHtml(SC_STATUS_LABEL[s]) + '</span>';
@@ -13422,35 +13653,222 @@ async function viewSundayCheckin(id) {
   openModal('sundayCheckinViewModal');
 }
 
+// ============ DAILY CHECK-IN — ADMIN STATUS DASHBOARD ============
+// One row per client with their status for the selected DAY. Same projection as the
+// Sunday dashboard; the unit is a calendar day instead of a check-in week.
+var _dcPayload = null;
+
+function dcDayParam() {
+  var sel = document.getElementById('dcFilterDay');
+  var mode = sel ? sel.value : 'today';
+  if (mode === 'custom') {
+    var d = document.getElementById('dcFilterDate');
+    return (d && d.value) ? d.value : 'today';
+  }
+  return mode || 'today';
+}
+
+function dcOnDayFilterChange() {
+  var sel = document.getElementById('dcFilterDay');
+  var wrap = document.getElementById('dcCustomDateWrap');
+  var isCustom = !!sel && sel.value === 'custom';
+  if (wrap) wrap.style.display = isCustom ? '' : 'none';
+  var d = document.getElementById('dcFilterDate');
+  if (isCustom && d && !d.value) {
+    d.value = (_dcPayload && _dcPayload.window && _dcPayload.window.today_ymd) || '';
+    if (!d.value) return;
+  }
+  loadDailyCheckins();
+}
+
+function dailyCheckinQueryString() {
+  var qs = ['day=' + encodeURIComponent(dcDayParam())];
+  var s = document.getElementById('dcFilterSearch');
+  var so = document.getElementById('dcFilterSort');
+  var ro = document.getElementById('dcFilterRoster');
+  if (s && s.value.trim()) qs.push('search=' + encodeURIComponent(s.value.trim()));
+  if (so && so.value) qs.push('sort=' + encodeURIComponent(so.value));
+  if (ro && ro.checked) qs.push('roster=all');
+  return '?' + qs.join('&');
+}
+
 async function loadDailyCheckins() {
-  const tbody = document.getElementById('dailyCheckinBody');
+  var tbody = document.getElementById('dailyCheckinBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
-  var fromEl = document.getElementById('dcFilterFrom');
-  var toEl = document.getElementById('dcFilterTo');
-  var searchEl = document.getElementById('dcFilterSearch');
-  var qs = [];
-  if (fromEl && fromEl.value) qs.push('from=' + encodeURIComponent(fromEl.value));
-  if (toEl && toEl.value) qs.push('to=' + encodeURIComponent(toEl.value));
-  if (searchEl && searchEl.value.trim()) qs.push('search=' + encodeURIComponent(searchEl.value.trim()));
-  var url = '/api/admin/daily-checkins' + (qs.length ? '?' + qs.join('&') : '');
-  const data = await apiCall('GET', url);
-  if (data && data.error) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(data.error) + '</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  var data = await apiCall('GET', '/api/admin/daily-checkins/summary' + dailyCheckinQueryString());
+  if (!data || data.error) {
+    _dcPayload = null;
+    ['dcStatTotal', 'dcStatSubmitted', 'dcStatPending', 'dcStatLate', 'dcStatFreeze', 'dcStatPct']
+      .forEach(function(i) { var e = document.getElementById(i); if (e) e.textContent = '—'; });
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050;padding:24px">' +
+      escapeHtml(String((data && data.error) || 'Could not load daily check-in status.')) + '</td></tr>';
     return;
   }
-  const list = data && Array.isArray(data) ? data : [];
-  if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No daily check-ins found.</td></tr>';
+  _dcPayload = data;
+  _scTz = (data.window && data.window.timezone) || '';
+  var w = data.window || {}, s = data.summary || {};
+  var allMode = w.mode === 'all';
+
+  var title = document.getElementById('dcDashTitle');
+  if (title) {
+    title.textContent = allMode ? 'Daily Check-in — All time'
+      : 'Daily Check-in — ' + (scFmtDate(w.ymd + 'T12:00:00Z') || w.ymd || '');
+  }
+  var sub = document.getElementById('dcDashSub');
+  if (sub) {
+    var bits = [];
+    if (allMode) bits.push('Every client with their most recent daily check-in ever.');
+    else {
+      bits.push(w.is_today ? 'Today' : 'Day of ' + escapeHtml(String(w.ymd || '')));
+      if (w.deadline_hours < 24 && w.deadline_utc) {
+        bits.push('on-time deadline <strong style="color:var(--gold)">' + escapeHtml(scFmtTime(w.deadline_utc)) + '</strong>');
+      } else {
+        bits.push('any time that day counts as on time');
+      }
+    }
+    if (w.timezone) bits.push('times in ' + escapeHtml(String(w.timezone)));
+    var notes = [];
+    if (data.hidden_inactive > 0) {
+      notes.push(data.hidden_inactive + ' inactive/expired ' + (data.hidden_inactive === 1 ? 'client is' : 'clients are') +
+        ' excluded from these totals — tick “Include inactive” to count them.');
+    }
+    if (s.freeze > 0) notes.push(s.freeze + ' streak-freeze ' + (s.freeze === 1 ? 'day counts' : 'days count') + ' as excused, not missed.');
+    sub.innerHTML = bits.join(' &middot; ') + (notes.length ? '<br>' + notes.join(' ') : '');
+  }
+
+  var setStat = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = (v == null ? '—' : String(v)); };
+  setStat('dcStatTotal', s.total);
+  setStat('dcStatSubmitted', s.submitted);
+  setStat('dcStatPending', s.pending);
+  setStat('dcStatLate', allMode ? '—' : s.late);
+  setStat('dcStatFreeze', allMode ? '—' : s.freeze);
+  setStat('dcStatPct', (s.completion_pct != null ? s.completion_pct : 0) + '%');
+  var bar = document.getElementById('dcStatBar');
+  if (bar) bar.style.width = Math.max(0, Math.min(100, s.completion_pct || 0)) + '%';
+
+  var rows = Array.isArray(data.rows) ? data.rows : [];
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No clients match your filters.</td></tr>';
     return;
   }
-  tbody.innerHTML = list.map(function(r) {
-    var date = r.checkin_date ? new Date(r.checkin_date).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '—';
-    var id = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    var name = ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || '—';
-    var oid = adminAttrId(r.id || '');
-    return '<tr class="admin-row-clickable" data-open-kind="daily" data-open-id="' + oid + '"><td data-label="Name">' + escapeHtml(name) + '</td><td data-label="Email">' + escapeHtml(r.email || '—') + '</td><td data-label="Date">' + escapeHtml(date) + '</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewDailyCheckin(\'' + id + '\')">View</button></td></tr>';
+  tbody.innerHTML = rows.map(function(r) {
+    var missing = (r.status === 'pending' || r.status === 'never');
+    var main = r.last_submitted_at ? scFmtDateTime(r.last_submitted_at) : 'Never';
+    var subLine = '';
+    // Freeze rows get no sub-line at all: the Freeze badge already explains the day, and
+    // their day timestamp is the freeze marker, not a check-in worth labelling.
+    if (r.last_submitted_at && missing) subLine = scDaysAgo(r.last_submitted_at);
+    else if (r.status !== 'freeze' && r.day_submitted_at && r.day_submitted_at !== r.last_submitted_at) {
+      subLine = 'That day: ' + scFmtDateTime(r.day_submitted_at);
+    }
+    // The numbers the coach actually chases, shown inline on the status cell.
+    var metrics = [];
+    if (r.steps != null) metrics.push(r.steps.toLocaleString() + ' steps');
+    if (r.protein_g != null) metrics.push(r.protein_g + 'g protein');
+    if (r.sleep_hours != null) metrics.push(r.sleep_hours + 'h sleep');
+    return '<tr class="admin-row-clickable' + (missing ? ' sc-row-pending' : '') + '"' +
+        ' data-open-kind="dailyuser" data-open-id="' + adminAttrId(r.key || '') + '"' +
+        ' data-sc-user="' + adminAttrId(r.user_id || '') + '">' +
+      '<td data-label="Name">' + escapeHtml(r.name || '—') + '</td>' +
+      '<td data-label="Email">' + escapeHtml(r.email || '—') + '</td>' +
+      '<td data-label="Last Check-in">' + escapeHtml(main) +
+        (subLine ? '<span class="sc-cell-sub">' + escapeHtml(subLine) + '</span>' : '') + '</td>' +
+      '<td data-label="Status">' + scBadge(r.status) +
+        (metrics.length ? '<span class="sc-cell-sub">' + escapeHtml(metrics.join(' · ')) + '</span>'
+          : (r.total_checkins ? '<span class="sc-cell-sub">' + r.total_checkins + ' total</span>' : '')) + '</td>' +
+      '<td data-label="Actions" class="btn-view-cell">' +
+        '<button type="button" class="action-btn btn-view sc-hist-btn" onclick="event.stopPropagation();viewDailyHistoryEl(this)">View History</button>' +
+      '</td></tr>';
   }).join('');
+}
+
+function viewDailyHistoryEl(el) {
+  var tr = el && el.closest ? el.closest('tr[data-sc-user]') : null;
+  if (tr) viewDailyHistory(tr.getAttribute('data-sc-user') || '');
+}
+
+async function viewDailyHistory(userId) {
+  if (!userId) return;
+  var body = document.getElementById('formHistoryBody');
+  var title = document.getElementById('formHistoryTitle');
+  if (!body) return;
+  body.innerHTML = '<p class="form-hint">Loading history…</p>';
+  if (title) title.textContent = 'Daily Check-in History';
+  openModal('formHistoryModal');
+  var d = await apiCall('GET', '/api/admin/daily-checkins/history?user_id=' + encodeURIComponent(userId));
+  if (!d || d.error) {
+    body.innerHTML = '<p class="form-hint" style="color:#e05050">' + escapeHtml(String((d && d.error) || 'Could not load history.')) + '</p>';
+    return;
+  }
+  _scTz = d.timezone || _scTz;
+  var u = d.user || {};
+  if (title) title.textContent = u.name || 'Daily Check-in History';
+  var days = Array.isArray(d.days) ? d.days : [];
+  var hit = days.filter(function(x) { return x.status === 'submitted' || x.status === 'late'; }).length;
+  var expected = days.filter(function(x) { return x.status !== 'not_expected'; }).length;
+
+  var head =
+    '<p class="form-hint" style="margin:0 0 18px">' + escapeHtml(u.email || '') +
+      (u.phone ? ' &middot; ' + escapeHtml(u.phone) : '') +
+      (d.timezone ? ' &middot; times in ' + escapeHtml(d.timezone) : '') + '</p>' +
+    '<div class="sc-hist-meta">' +
+      '<div class="sc-stat"><span class="sc-stat-lbl">Total check-ins</span><span class="sc-stat-val">' + (d.total_checkins || 0) + '</span></div>' +
+      '<div class="sc-stat sc-stat--pct"><span class="sc-stat-lbl">Last 30 days</span><span class="sc-stat-val">' + hit + '/' + expected + '</span></div>' +
+      '<div class="sc-stat sc-stat--freeze"><span class="sc-stat-lbl">Freeze days</span><span class="sc-stat-val">' + (d.freeze_days || 0) + '</span></div>' +
+      '<div class="sc-stat"><span class="sc-stat-lbl">Member since</span><span class="sc-stat-val" style="font-size:15px;font-family:inherit">' + escapeHtml(scFmtDate(u.joined_at) || '—') + '</span></div>' +
+    '</div>';
+
+  var dayRows = days.map(function(x) {
+    var miss = (x.status === 'not_submitted' || x.status === 'not_expected');
+    var label = x.status === 'not_expected' ? 'Before joining'
+      : x.status === 'not_submitted' ? 'Not submitted'
+      : (SC_STATUS_LABEL[x.status] || x.status);
+    var badge = miss
+      ? '<span class="sc-badge sc-badge--' + (x.status === 'not_expected' ? 'never' : 'pending') + '">' + escapeHtml(label) + '</span>'
+      : scBadge(x.status);
+    var m = [];
+    if (x.steps != null) m.push(x.steps.toLocaleString() + ' steps');
+    if (x.water_ml != null) m.push((x.water_ml / 1000) + 'L water');
+    if (x.protein_g != null) m.push(x.protein_g + 'g protein');
+    if (x.sleep_hours != null) m.push(x.sleep_hours + 'h sleep');
+    return '<tr' + (miss ? ' class="sc-hist-miss"' : '') + '>' +
+      '<td>' + escapeHtml(scFmtDate(x.ymd + 'T12:00:00Z') || x.ymd) + '</td>' +
+      '<td>' + escapeHtml(x.submitted_at ? scFmtTime(x.submitted_at) : '—') + '</td>' +
+      '<td>' + badge + '</td>' +
+      '<td style="text-align:right;font-size:11px;color:var(--muted)">' + escapeHtml(m.join(' · ')) + '</td></tr>';
+  }).join('');
+
+  body.innerHTML = head +
+    '<div class="sc-hist-sec">Last ' + days.length + ' days</div>' +
+    '<div class="admin-table-wrap"><table class="sc-hist-table"><thead><tr><th>Date</th><th>Time</th><th>Status</th><th style="text-align:right">Logged</th></tr></thead><tbody>' +
+      (dayRows || '<tr><td colspan="4" style="color:var(--muted)">No days to show.</td></tr>') +
+    '</tbody></table></div>';
+}
+
+async function exportDailyCheckinsCsv() {
+  var data = await apiCall('GET', '/api/admin/daily-checkins/summary' + dailyCheckinQueryString());
+  if (!data || data.error || !Array.isArray(data.rows)) {
+    showPopup('Error', (data && data.error) || 'Could not load daily check-in status for export.', '', 'OK', null, 'error');
+    return;
+  }
+  if (!data.rows.length) { showPopup('No data', 'No clients match the current filters.', '', 'OK'); return; }
+  var tz = (data.window && data.window.timezone) || '';
+  _scTz = tz || _scTz;
+  var head = ['Name', 'Email', 'Phone', 'Status', 'Last Check-in (' + (tz || 'local') + ')', 'Steps', 'Water (ml)', 'Protein (g)', 'Sleep (h)', 'Total Check-ins'];
+  var cell = function(v) { var s = (v == null) ? '' : String(v); return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  var lines = data.rows.map(function(r) {
+    return [r.name, r.email, r.phone, SC_STATUS_LABEL[r.status] || r.status,
+      r.last_submitted_at ? scFmtDateTime(r.last_submitted_at) : '',
+      r.steps, r.water_ml, r.protein_g, r.sleep_hours, r.total_checkins].map(cell).join(',');
+  });
+  var label = (data.window && data.window.mode === 'all') ? 'all-time' : (data.window && data.window.ymd) || 'day';
+  var blob = new Blob([[head.map(cell).join(',')].concat(lines).join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'daily-checkin-status-' + label + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 async function viewDailyCheckin(id) {
@@ -13804,33 +14222,85 @@ async function viewAdminWorkout(id) {
   openModal('adminWorkoutViewModal');
 }
 
+// ============ PART-2 — INTAKE FUNNEL STATUS ============
+// The cohort is everyone who submitted the Audit form, so "Pending" means a real,
+// chaseable gap: they started the intake but never completed Part-2.
+var _p2Payload = null;
+
+function part2SummaryQuery() {
+  var qs = [];
+  var f = document.getElementById('p2FilterFrom');
+  var t = document.getElementById('p2FilterTo');
+  var s = document.getElementById('p2FilterSearch');
+  var so = document.getElementById('p2FilterSort');
+  if (f && f.value) qs.push('from=' + encodeURIComponent(f.value));
+  if (t && t.value) qs.push('to=' + encodeURIComponent(t.value));
+  if (s && s.value.trim()) qs.push('search=' + encodeURIComponent(s.value.trim()));
+  if (so && so.value) qs.push('sort=' + encodeURIComponent(so.value));
+  return qs.length ? '?' + qs.join('&') : '';
+}
+
 async function loadPart2Submissions() {
-  const el = document.getElementById('part2LinkInput');
+  var el = document.getElementById('part2LinkInput');
   if (el) el.value = (window.BB_PUBLIC_ORIGIN || window.location.origin) + '/part2-form.html';
+  var tbody = document.getElementById('part2Body');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
   try {
-    const tbody = document.getElementById('part2Body');
-    if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
-    var pf = document.getElementById('p2FilterFrom');
-    var pt = document.getElementById('p2FilterTo');
-    var ps = document.getElementById('p2FilterSearch');
-    var qs = [];
-    if (pf && pf.value) qs.push('from=' + encodeURIComponent(pf.value));
-    if (pt && pt.value) qs.push('to=' + encodeURIComponent(pt.value));
-    if (ps && ps.value.trim()) qs.push('search=' + encodeURIComponent(ps.value.trim()));
-    const data = await apiCall('GET', '/api/admin/part2-submissions' + (qs.length ? '?' + qs.join('&') : ''));
-    if (data && data.error) {
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
+    var data = await apiCall('GET', '/api/admin/part2-submissions/summary' + part2SummaryQuery());
+    if (!data || data.error || !Array.isArray(data.rows)) {
+      _p2Payload = null;
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050;padding:24px">' +
+        escapeHtml(String((data && data.error) || 'Could not load Part-2 status.')) + '</td></tr>';
       return;
     }
-    const p2list = Array.isArray(data) ? data : [];
-    tbody.innerHTML = p2list.map(r => {
-      const dt = r.created_at ? new Date(r.created_at).toLocaleDateString(undefined, { dateStyle: 'short' }) : '-';
-      const pid = String(r.id||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      var oid = adminAttrId(r.id || '');
-      return `<tr class="admin-row-clickable" data-open-kind="part2" data-open-id="${oid}" data-id="${escapeHtml(r.id||'')}"><td data-label="Name">${escapeHtml(r.name || '-')}</td><td data-label="Email">${escapeHtml(r.email || '-')}</td><td data-label="Date">${dt}</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewPart2Submission('${pid}')">View</button> <button type="button" class="action-btn btn-reject" onclick="event.stopPropagation();removePart2Submission('${pid}')">Remove</button></td></tr>`;
-    }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No Part-2 submissions match your filters.</td></tr>';
-  } catch (e) { const tbody = document.getElementById('part2Body'); if (tbody) tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050">Failed to load.</td></tr>'; }
+    _p2Payload = data;
+    _scTz = data.timezone || _scTz;
+    var s = data.summary || {};
+    var setStat = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = (v == null ? '—' : String(v)); };
+    setStat('p2StatTotal', s.total);
+    setStat('p2StatDone', s.submitted);
+    setStat('p2StatPending', s.pending);
+    setStat('p2StatPct', (s.completion_pct != null ? s.completion_pct : 0) + '%');
+    var bar = document.getElementById('p2StatBar');
+    if (bar) bar.style.width = Math.max(0, Math.min(100, s.completion_pct || 0)) + '%';
+    var sub = document.getElementById('p2DashSub');
+    if (sub) {
+      var notes = ['Everyone who submitted the Audit form — <strong style="color:#e05050">Pending</strong> means they never completed Part-2.'];
+      if (s.unlinked > 0) {
+        notes.push(s.unlinked + ' Part-2 submission' + (s.unlinked === 1 ? '' : 's') +
+          ' had no matching Audit form (marked <span class="sc-tag-unlinked">unlinked</span>).');
+      }
+      if (data.timezone) notes.push('Times in ' + escapeHtml(data.timezone) + '.');
+      sub.innerHTML = notes.join(' ');
+    }
+
+    var rows = data.rows;
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No people match your filters.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = rows.map(function(r) {
+      var pending = r.status === 'pending';
+      var waiting = (pending && r.audit_at) ? scDaysAgo(r.audit_at) : '';
+      return '<tr class="admin-row-clickable' + (pending ? ' sc-row-pending' : '') + '"' +
+          ' data-open-kind="intake" data-open-id="' + adminAttrId(r.key || '') + '"' +
+          ' data-sc-email="' + adminAttrId(r.email || '') + '">' +
+        '<td data-label="Name">' + escapeHtml(r.name || '—') +
+          (r.unlinked ? '<span class="sc-tag-unlinked" title="No matching Audit form">unlinked</span>' : '') + '</td>' +
+        '<td data-label="Email">' + escapeHtml(r.email || '—') + '</td>' +
+        '<td data-label="Audit Submitted">' + escapeHtml(r.audit_at ? scFmtDateTime(r.audit_at) : '—') +
+          (waiting ? '<span class="sc-cell-sub">' + escapeHtml(waiting) + '</span>' : '') + '</td>' +
+        '<td data-label="Part-2 Submitted">' + escapeHtml(r.last_submitted_at ? scFmtDateTime(r.last_submitted_at) : '—') + '</td>' +
+        '<td data-label="Status">' + scBadge(r.status) +
+          (r.part2_tier ? '<span class="sc-cell-sub">' + escapeHtml(r.part2_tier) + (r.part2_score != null ? ' · ' + r.part2_score : '') + '</span>' : '') + '</td>' +
+        '<td data-label="Actions" class="btn-view-cell">' +
+          '<button type="button" class="action-btn btn-view sc-hist-btn" onclick="event.stopPropagation();viewIntakeHistoryEl(this)">View History</button>' +
+        '</td></tr>';
+    }).join('');
+  } catch (e) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050">Failed to load.</td></tr>';
+  }
 }
 
 // ════════════════════════════════════════════════════════════

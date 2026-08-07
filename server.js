@@ -3489,6 +3489,253 @@ app.get('/api/admin/daily-checkins', verifyToken, requireAdminOrSuperadmin, asyn
   }
 });
 
+// ============ DAILY CHECK-IN — ADMIN STATUS DASHBOARD ============
+// Same projection as the Sunday dashboard, but the unit is a calendar day instead of a
+// check-in week. NOTE: these two routes must stay ABOVE /api/admin/daily-checkins/:id —
+// Express matches in registration order and ":id" would otherwise swallow "summary".
+//
+// Hours after midnight (report tz) that a daily check-in still counts as on time.
+// 24 (default) = anytime that day, so nothing is Late until a coach tightens it.
+const DAILY_DEADLINE_HOURS = (() => {
+  const raw = parseFloat(process.env.DAILY_CHECKIN_DEADLINE_HOURS);
+  return (Number.isFinite(raw) && raw > 0 && raw <= 48) ? raw : 24;
+})();
+
+function resolveDayWindow(dayParam) {
+  const raw = String(dayParam == null ? 'today' : dayParam).trim().toLowerCase();
+  const todayYmd = streakTodayYmdInTz(FORM_REPORT_TZ) || streakDateToYmd(new Date());
+  const base = { timezone: FORM_REPORT_TZ, deadline_hours: DAILY_DEADLINE_HOURS, today_ymd: todayYmd };
+  if (raw === 'all') return { ...base, mode: 'all', ymd: null, deadline_utc: null };
+  let ymd = todayYmd;
+  if (raw === 'yesterday') ymd = streakAddDays(todayYmd, -1);
+  else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) ymd = raw;
+  else if (raw !== 'today' && raw !== '') return null;
+  if (!ymd) return null;
+  const dDays = Math.floor(DAILY_DEADLINE_HOURS / 24);
+  const rem = DAILY_DEADLINE_HOURS - dDays * 24;
+  const hh = String(Math.floor(rem)).padStart(2, '0');
+  const mm = String(Math.round((rem - Math.floor(rem)) * 60)).padStart(2, '0');
+  return {
+    ...base,
+    mode: 'day',
+    ymd,
+    deadline_utc: localDateTimeToUtcIso(streakAddDays(ymd, dDays), `${hh}:${mm}`, FORM_REPORT_TZ),
+    is_today: ymd === todayYmd
+  };
+}
+
+app.get('/api/admin/daily-checkins/summary', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const win = resolveDayWindow(req.query.day);
+    if (!win) return res.status(400).json({ error: 'Invalid day filter. Use today, yesterday, all or YYYY-MM-DD.' });
+    const search = String(req.query.search || '').trim();
+    const sort = String(req.query.sort || 'latest').trim().toLowerCase();
+    const includeInactive = String(req.query.roster || 'active').trim().toLowerCase() === 'all';
+    const activeClause = includeInactive ? '' : `
+      AND COALESCE(u.suspended, FALSE) = FALSE
+      AND LOWER(COALESCE(u.subscription_status, 'active')) <> 'canceled'
+      AND (u.access_expires_at IS NULL OR u.access_expires_at > NOW())`;
+    const rosterSearch = buildContactSearchClause(
+      search, ['u.first_name', 'u.last_name', 'u.email'], ['u.phone']
+    );
+
+    // checkin_date is a DATE column, so the day filter needs no timezone arithmetic;
+    // only the on-time verdict compares the created_at timestamp to the deadline.
+    const dayLateral = win.mode === 'day' ? `
+      LEFT JOIN LATERAL (
+        SELECT d.id, d.created_at, COALESCE(d.is_freeze, FALSE) AS is_freeze,
+               (d.created_at > ?::timestamp) AS is_late,
+               d.steps, d.water_ml, d.protein_g, d.sleep_hours
+        FROM daily_checkins d
+        WHERE d.user_id = r.id AND d.checkin_date = ?::date
+        ORDER BY d.created_at DESC NULLS LAST
+        LIMIT 1
+      ) c ON TRUE` : `
+      LEFT JOIN LATERAL (
+        SELECT NULL::text AS id, NULL::timestamp AS created_at, FALSE AS is_freeze,
+               NULL::boolean AS is_late, NULL::int AS steps, NULL::int AS water_ml,
+               NULL::int AS protein_g, NULL::real AS sleep_hours
+      ) c ON TRUE`;
+
+    const sql = `
+      WITH roster AS (
+        SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.profile_picture,
+               u.subscription_status, u.access_expires_at, COALESCE(u.suspended, FALSE) AS suspended,
+               u.created_at AS joined_at
+        FROM users u
+        WHERE ${OPERATOR_CLIENT_WHERE}${activeClause}${rosterSearch.sql}
+      )
+      SELECT r.id AS user_id, r.first_name, r.last_name, r.email, r.phone, r.profile_picture,
+             r.suspended, r.subscription_status, ${formTsIso('r.joined_at')} AS joined_at,
+             c.id AS day_checkin_id, ${formTsIso('c.created_at')} AS day_submitted_at,
+             c.is_freeze, c.is_late, c.steps, c.water_ml, c.protein_g, c.sleep_hours,
+             l.id AS last_checkin_id, ${formTsIso('l.created_at')} AS last_submitted_at,
+             l.checkin_date::text AS last_checkin_date,
+             COALESCE(t.n, 0) AS total_checkins, COALESCE(t.streak7, 0) AS last7
+      FROM roster r
+      ${dayLateral}
+      LEFT JOIN LATERAL (
+        SELECT d.id, d.created_at, d.checkin_date
+        FROM daily_checkins d
+        WHERE d.user_id = r.id AND COALESCE(d.is_freeze, FALSE) = FALSE
+        ORDER BY d.checkin_date DESC NULLS LAST, d.created_at DESC NULLS LAST
+        LIMIT 1
+      ) l ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS n,
+               COUNT(*) FILTER (WHERE d.checkin_date > CURRENT_DATE - 7)::int AS streak7
+        FROM daily_checkins d
+        WHERE d.user_id = r.id AND COALESCE(d.is_freeze, FALSE) = FALSE
+      ) t ON TRUE
+      LIMIT 5000`;
+    const params = [...rosterSearch.params];
+    if (win.mode === 'day') params.push(win.deadline_utc, win.ymd);
+    const rosterRows = await queryAll(sql, params);
+
+    const rows = rosterRows.map(r => {
+      let status;
+      if (win.mode === 'all') status = r.last_submitted_at ? 'submitted' : 'never';
+      else if (!r.day_checkin_id) status = 'pending';
+      else if (r.is_freeze === true) status = 'freeze';   // streak freeze = excused, not missed
+      else if (typeof r.is_late === 'boolean') status = r.is_late ? 'late' : 'submitted';
+      else status = 'submitted';
+      return {
+        key: 'user:' + String(r.user_id || ''),
+        user_id: String(r.user_id || ''),
+        name: formDisplayName(r),
+        email: String(r.email || '').trim(),
+        phone: String(r.phone || '').trim(),
+        status,
+        unlinked: false,
+        suspended: !!r.suspended,
+        joined_at: formIso(r.joined_at),
+        last_submitted_at: formIso(r.last_submitted_at),
+        last_checkin_date: r.last_checkin_date || null,
+        last_checkin_id: r.last_checkin_id ? String(r.last_checkin_id) : null,
+        day_submitted_at: formIso(r.day_submitted_at),
+        day_checkin_id: r.day_checkin_id ? String(r.day_checkin_id) : null,
+        is_freeze: r.is_freeze === true,
+        steps: r.steps != null ? Number(r.steps) : null,
+        water_ml: r.water_ml != null ? Number(r.water_ml) : null,
+        protein_g: r.protein_g != null ? Number(r.protein_g) : null,
+        sleep_hours: r.sleep_hours != null ? Number(r.sleep_hours) : null,
+        total_checkins: Number(r.total_checkins) || 0,
+        last7: Number(r.last7) || 0
+      };
+    });
+
+    const appliedSort = formSortRows(rows, sort);
+    const summary = formSummarize(rows);
+    if (win.mode === 'all') summary.pending = summary.never;
+
+    let hiddenInactive = 0;
+    if (!includeInactive) {
+      try {
+        const h = await queryOne(`
+          SELECT COUNT(*)::int AS n FROM users u
+          WHERE ${OPERATOR_CLIENT_WHERE} AND NOT (
+            COALESCE(u.suspended, FALSE) = FALSE
+            AND LOWER(COALESCE(u.subscription_status, 'active')) <> 'canceled'
+            AND (u.access_expires_at IS NULL OR u.access_expires_at > NOW())
+          )`);
+        hiddenInactive = Number(h && h.n) || 0;
+      } catch (he) { hiddenInactive = 0; }
+    }
+
+    res.json({
+      window: {
+        mode: win.mode, ymd: win.ymd, deadline_utc: win.deadline_utc,
+        deadline_hours: win.deadline_hours, timezone: win.timezone,
+        today_ymd: win.today_ymd, is_today: !!win.is_today
+      },
+      roster: includeInactive ? 'all' : 'active',
+      hidden_inactive: hiddenInactive,
+      sort: appliedSort,
+      summary,
+      rows
+    });
+  } catch (e) {
+    console.error('Admin daily-checkins summary error:', e.message);
+    res.status(500).json({ error: 'Failed to load daily check-in status' });
+  }
+});
+
+app.get('/api/admin/daily-checkins/history', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const userId = String(req.query.user_id || '').trim();
+    if (!userId) return res.status(400).json({ error: 'user_id is required' });
+    const days = Math.min(Math.max(parseInt(req.query.days, 10) || 30, 1), 120);
+
+    const user = await queryOne(
+      `SELECT id, first_name, last_name, email, phone, ${formTsIso('created_at')} AS created_at
+       FROM users WHERE id = ?`, [userId]
+    );
+    const subs = await queryAll(`
+      SELECT id, checkin_date::text AS checkin_date, ${formTsIso('created_at')} AS created_at,
+             steps, water_ml, protein_g, sleep_hours, COALESCE(is_freeze, FALSE) AS is_freeze
+      FROM daily_checkins WHERE user_id = ?
+      ORDER BY checkin_date DESC NULLS LAST, created_at DESC NULLS LAST
+      LIMIT 400`, [userId]);
+
+    const byDate = new Map();
+    subs.forEach(s => { if (s.checkin_date && !byDate.has(s.checkin_date)) byDate.set(s.checkin_date, s); });
+
+    const todayYmd = streakTodayYmdInTz(FORM_REPORT_TZ) || streakDateToYmd(new Date());
+    const joinedMs = formMs(user && user.created_at);
+    const ledger = [];
+    for (let i = 0; i < days; i++) {
+      const ymd = streakAddDays(todayYmd, -i);
+      if (!ymd) break;
+      const hit = byDate.get(ymd) || null;
+      let status;
+      if (hit && hit.is_freeze) status = 'freeze';
+      else if (hit) {
+        const deadlineMs = formMs(localDateTimeToUtcIso(ymd, '00:00', FORM_REPORT_TZ)) + DAILY_DEADLINE_HOURS * 3600000;
+        const gotMs = formMs(hit.created_at);
+        status = (Number.isFinite(gotMs) && gotMs > deadlineMs) ? 'late' : 'submitted';
+      } else if (Number.isFinite(joinedMs) &&
+                 formMs(localDateTimeToUtcIso(streakAddDays(ymd, 1), '00:00', FORM_REPORT_TZ)) <= joinedMs) {
+        status = 'not_expected';
+      } else status = 'not_submitted';
+      ledger.push({
+        ymd, status,
+        submitted_at: hit ? hit.created_at : null,
+        checkin_id: hit ? String(hit.id) : null,
+        steps: hit && hit.steps != null ? Number(hit.steps) : null,
+        water_ml: hit && hit.water_ml != null ? Number(hit.water_ml) : null,
+        protein_g: hit && hit.protein_g != null ? Number(hit.protein_g) : null,
+        sleep_hours: hit && hit.sleep_hours != null ? Number(hit.sleep_hours) : null
+      });
+    }
+
+    const real = subs.filter(s => !s.is_freeze);
+    res.json({
+      user: {
+        user_id: user ? String(user.id) : userId,
+        name: user ? ([user.first_name, user.last_name].filter(Boolean).join(' ').trim() || '—') : '—',
+        email: (user && user.email) || '',
+        phone: (user && user.phone) || '',
+        joined_at: formIso(user && user.created_at),
+        linked: !!user
+      },
+      timezone: FORM_REPORT_TZ,
+      deadline_hours: DAILY_DEADLINE_HOURS,
+      total_checkins: real.length,
+      freeze_days: subs.length - real.length,
+      latest: real[0] || null,
+      submissions: subs.map(s => ({
+        id: String(s.id), checkin_date: s.checkin_date, created_at: s.created_at,
+        steps: s.steps, water_ml: s.water_ml, protein_g: s.protein_g,
+        sleep_hours: s.sleep_hours, is_freeze: !!s.is_freeze
+      })),
+      days: ledger
+    });
+  } catch (e) {
+    console.error('Admin daily-checkin history error:', e.message);
+    res.status(500).json({ error: 'Failed to load daily check-in history' });
+  }
+});
+
 app.get('/api/admin/daily-checkins/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const row = await queryOne(
@@ -3589,7 +3836,7 @@ app.get('/api/admin/sunday-checkins', verifyToken, requireAdminOrSuperadmin, asy
 // report timezone. That matches the client-facing "pending check-in" badge, which
 // anchors on the Sunday of the current week. It deliberately differs from
 // coinService.isoWeekKey() (ISO, Monday-start), which only de-duplicates coin awards.
-const SUNDAY_REPORT_TZ = (process.env.APP_TIMEZONE || '').trim() || STREAK_TIMEZONE;
+const FORM_REPORT_TZ = (process.env.APP_TIMEZONE || '').trim() || STREAK_TIMEZONE;
 // Hours after Sunday 00:00 (report tz) that a check-in still counts as on time.
 // 24 = anytime on Sunday, 12 = Sunday noon, 36 = Monday noon.
 const SUNDAY_DEADLINE_HOURS = (() => {
@@ -3610,9 +3857,9 @@ function sundayWeekStartYmd(ymd) {
 // falls back to an all-time view. Returns null only for an unparseable custom date.
 function resolveSundayWindow(weekParam) {
   const raw = String(weekParam == null ? 'this' : weekParam).trim().toLowerCase();
-  const todayYmd = streakTodayYmdInTz(SUNDAY_REPORT_TZ) || streakDateToYmd(new Date());
+  const todayYmd = streakTodayYmdInTz(FORM_REPORT_TZ) || streakDateToYmd(new Date());
   const base = {
-    timezone: SUNDAY_REPORT_TZ,
+    timezone: FORM_REPORT_TZ,
     deadline_hours: SUNDAY_DEADLINE_HOURS,
     today_ymd: todayYmd,
     current_sunday_ymd: sundayWeekStartYmd(todayYmd)
@@ -3641,9 +3888,9 @@ function resolveSundayWindow(weekParam) {
     ...base,
     mode: 'week',
     sunday_ymd: sunday,
-    start_utc: localDateTimeToUtcIso(sunday, '00:00', SUNDAY_REPORT_TZ),
-    end_utc: localDateTimeToUtcIso(streakAddDays(sunday, 7), '00:00', SUNDAY_REPORT_TZ),
-    deadline_utc: localDateTimeToUtcIso(streakAddDays(sunday, deadlineDays), `${hh}:${mm}`, SUNDAY_REPORT_TZ),
+    start_utc: localDateTimeToUtcIso(sunday, '00:00', FORM_REPORT_TZ),
+    end_utc: localDateTimeToUtcIso(streakAddDays(sunday, 7), '00:00', FORM_REPORT_TZ),
+    deadline_utc: localDateTimeToUtcIso(streakAddDays(sunday, deadlineDays), `${hh}:${mm}`, FORM_REPORT_TZ),
     is_current_week: sunday === base.current_sunday_ymd
   };
 }
@@ -3662,34 +3909,80 @@ const SC_LINK_TO_ROSTER = `(
 // Node process's local offset, so the same row would come back shifted on a machine that
 // is not on UTC. Formatting in the database keeps this dashboard's instants — and the
 // late/on-time verdicts derived from them — identical wherever the app is deployed.
-const sundayTsIso = (expr) => `to_char(${expr}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
+const formTsIso = (expr) => `to_char(${expr}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
 
-function sundayDisplayName(row) {
+function formDisplayName(row) {
   const fromAccount = [row.first_name, row.last_name].filter(Boolean).join(' ').trim();
   return fromAccount || String(row.last_full_name || row.full_name || '').trim() || '—';
 }
 
 // pg hands `timestamp` columns back as Date objects; the legacy store hands back ISO
 // text. Normalise both, and never throw on a corrupt value.
-function sundayMs(v) {
+function formMs(v) {
   if (v == null || v === '') return NaN;
   if (v instanceof Date) return v.getTime();
   const t = Date.parse(String(v));
   return Number.isFinite(t) ? t : NaN;
 }
 
-function sundayIso(v) {
-  const ms = sundayMs(v);
+function formIso(v) {
+  const ms = formMs(v);
   return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+}
+
+// ---- Shared ranking / rollup for every "one row per person" dashboard ----
+// Sunday, Daily, Audit and Part-2 all present the same shape (name, email, status,
+// last submission) so they sort and summarise identically.
+const FORM_STATUS_RANK = { pending: 0, never: 0, late: 1, freeze: 2, submitted: 3 };
+
+// Sorts in place and returns the sort key that was actually applied.
+function formSortRows(rows, sort) {
+  const nameKey = r => (r.name || '').toLowerCase();
+  const lastMs = r => { const m = formMs(r.last_submitted_at); return Number.isFinite(m) ? m : null; };
+  // Rows that have never submitted sort last under "latest" and first under "oldest" —
+  // either way the people needing attention are never buried in the middle.
+  const byRecency = dir => (a, b) => {
+    const am = lastMs(a); const bm = lastMs(b);
+    if (am === null && bm === null) return nameKey(a).localeCompare(nameKey(b));
+    if (am === null) return dir;
+    if (bm === null) return -dir;
+    return (dir > 0 ? bm - am : am - bm) || nameKey(a).localeCompare(nameKey(b));
+  };
+  const comparators = {
+    latest: byRecency(1),
+    oldest: byRecency(-1),
+    name: (a, b) => nameKey(a).localeCompare(nameKey(b)),
+    status: (a, b) => (FORM_STATUS_RANK[a.status] - FORM_STATUS_RANK[b.status]) || nameKey(a).localeCompare(nameKey(b))
+  };
+  const key = comparators[sort] ? sort : 'latest';
+  rows.sort(comparators[key]);
+  return key;
+}
+
+function formSummarize(rows) {
+  const s = { total: rows.length, submitted: 0, pending: 0, late: 0, never: 0, freeze: 0, unlinked: 0 };
+  rows.forEach(r => {
+    if (r.status === 'submitted') s.submitted++;
+    else if (r.status === 'late') { s.late++; s.submitted++; }   // Late is a subset of Submitted
+    else if (r.status === 'freeze') s.freeze++;
+    else if (r.status === 'never') s.never++;
+    else s.pending++;
+    if (r.unlinked) s.unlinked++;
+  });
+  // A streak-freeze day is an excused absence, so it counts as covered rather than
+  // being punished as Pending — but it is reported separately, never as "Submitted".
+  const covered = s.submitted + s.freeze;
+  s.completion_pct = s.total > 0 ? Math.round((covered / s.total) * 1000) / 10 : 0;
+  return s;
 }
 
 // Calendar date of an instant in the report timezone (so a Sunday 11pm IST submission
 // is not filed under Monday just because it is past midnight UTC).
-function sundayLocalYmd(v) {
-  const ms = sundayMs(v);
+function formLocalYmd(v) {
+  const ms = formMs(v);
   if (!Number.isFinite(ms)) return null;
   try {
-    return getLocalDateParts(new Date(ms), SUNDAY_REPORT_TZ).date;
+    return getLocalDateParts(new Date(ms), FORM_REPORT_TZ).date;
   } catch (e) {
     return new Date(ms).toISOString().slice(0, 10);
   }
@@ -3735,9 +4028,9 @@ app.get('/api/admin/sunday-checkins/summary', verifyToken, requireAdminOrSuperad
       )
       SELECT r.id AS user_id, r.first_name, r.last_name, r.email, r.phone, r.profile_picture,
              r.subscription_status, r.access_expires_at, r.suspended,
-             ${sundayTsIso('r.joined_at')} AS joined_at,
-             w.id AS week_checkin_id, ${sundayTsIso('w.created_at')} AS week_submitted_at, w.is_late,
-             l.id AS last_checkin_id, ${sundayTsIso('l.created_at')} AS last_submitted_at,
+             ${formTsIso('r.joined_at')} AS joined_at,
+             w.id AS week_checkin_id, ${formTsIso('w.created_at')} AS week_submitted_at, w.is_late,
+             l.id AS last_checkin_id, ${formTsIso('l.created_at')} AS last_submitted_at,
              l.full_name AS last_full_name,
              COALESCE(t.n, 0) AS total_checkins
       FROM roster r
@@ -3784,9 +4077,9 @@ app.get('/api/admin/sunday-checkins/summary', verifyToken, requireAdminOrSuperad
              (ARRAY_AGG(o.full_name  ORDER BY o.created_at DESC NULLS LAST))[1] AS last_full_name,
              (ARRAY_AGG(o.reply_email ORDER BY o.created_at DESC NULLS LAST))[1] AS email,
              (ARRAY_AGG(o.id          ORDER BY o.created_at DESC NULLS LAST))[1] AS last_checkin_id,
-             ${sundayTsIso('MAX(o.created_at)')} AS last_submitted_at,
+             ${formTsIso('MAX(o.created_at)')} AS last_submitted_at,
              COUNT(*)::int AS total_checkins,
-             ${sundayTsIso(`MAX(o.created_at) FILTER (WHERE ${orphanWeekFilter})`)} AS week_submitted_at,
+             ${formTsIso(`MAX(o.created_at) FILTER (WHERE ${orphanWeekFilter})`)} AS week_submitted_at,
              (ARRAY_AGG(o.id ORDER BY o.created_at DESC NULLS LAST)
                 FILTER (WHERE ${orphanWeekFilter}))[1] AS week_checkin_id,
              ${win.mode === 'week'
@@ -3814,12 +4107,12 @@ app.get('/api/admin/sunday-checkins/summary', verifyToken, requireAdminOrSuperad
       console.warn('[sunday summary] orphan sweep failed:', oe.message);
     }
 
-    const deadlineMs = win.mode === 'week' ? sundayMs(win.deadline_utc) : NaN;
+    const deadlineMs = win.mode === 'week' ? formMs(win.deadline_utc) : NaN;
     const toRow = (r, unlinked) => {
-      const weekMs = sundayMs(r.week_submitted_at);
+      const weekMs = formMs(r.week_submitted_at);
       const submittedThisWeek = Number.isFinite(weekMs);
       let status;
-      if (win.mode === 'all') status = Number.isFinite(sundayMs(r.last_submitted_at)) ? 'submitted' : 'never';
+      if (win.mode === 'all') status = Number.isFinite(formMs(r.last_submitted_at)) ? 'submitted' : 'never';
       else if (!submittedThisWeek) status = 'pending';
       // Trust the database's on-time verdict whenever it produced one. It compares the
       // stored timestamp against the deadline inside a single reference frame, whereas
@@ -3831,7 +4124,7 @@ app.get('/api/admin/sunday-checkins/summary', verifyToken, requireAdminOrSuperad
       return {
         key: unlinked ? 'email:' + String(r.gkey || '') : 'user:' + String(r.user_id || ''),
         user_id: unlinked ? null : String(r.user_id || ''),
-        name: sundayDisplayName(r),
+        name: formDisplayName(r),
         email: String(r.email || '').trim(),
         phone: unlinked ? '' : String(r.phone || '').trim(),
         profile_picture: r.profile_picture || '',
@@ -3839,52 +4132,19 @@ app.get('/api/admin/sunday-checkins/summary', verifyToken, requireAdminOrSuperad
         unlinked: !!unlinked,
         suspended: !!r.suspended,
         subscription_status: r.subscription_status || '',
-        joined_at: sundayIso(r.joined_at),
-        last_submitted_at: sundayIso(r.last_submitted_at),
+        joined_at: formIso(r.joined_at),
+        last_submitted_at: formIso(r.last_submitted_at),
         last_checkin_id: r.last_checkin_id ? String(r.last_checkin_id) : null,
-        week_submitted_at: sundayIso(r.week_submitted_at),
+        week_submitted_at: formIso(r.week_submitted_at),
         week_checkin_id: r.week_checkin_id ? String(r.week_checkin_id) : null,
         total_checkins: Number(r.total_checkins) || 0
       };
     };
     const rows = rosterRows.map(r => toRow(r, false)).concat(orphanRows.map(r => toRow(r, true)));
 
-    // --- Sorting (default: newest submission first, never-submitted last). ---
-    const nameKey = r => (r.name || '').toLowerCase();
-    const lastMs = r => { const m = sundayMs(r.last_submitted_at); return Number.isFinite(m) ? m : null; };
-    const statusRank = { pending: 0, never: 0, late: 1, submitted: 2 };
-    const comparators = {
-      latest: (a, b) => {
-        const am = lastMs(a); const bm = lastMs(b);
-        if (am === null && bm === null) return nameKey(a).localeCompare(nameKey(b));
-        if (am === null) return 1;
-        if (bm === null) return -1;
-        return bm - am || nameKey(a).localeCompare(nameKey(b));
-      },
-      oldest: (a, b) => {
-        const am = lastMs(a); const bm = lastMs(b);
-        if (am === null && bm === null) return nameKey(a).localeCompare(nameKey(b));
-        if (am === null) return -1;
-        if (bm === null) return 1;
-        return am - bm || nameKey(a).localeCompare(nameKey(b));
-      },
-      name: (a, b) => nameKey(a).localeCompare(nameKey(b)),
-      status: (a, b) => (statusRank[a.status] - statusRank[b.status]) || nameKey(a).localeCompare(nameKey(b))
-    };
-    rows.sort(comparators[sort] || comparators.latest);
-
-    const summary = { total: rows.length, submitted: 0, pending: 0, late: 0, never: 0, unlinked: 0 };
-    rows.forEach(r => {
-      if (r.status === 'submitted') summary.submitted++;
-      else if (r.status === 'late') { summary.late++; summary.submitted++; }
-      else if (r.status === 'never') summary.never++;
-      else summary.pending++;
-      if (r.unlinked) summary.unlinked++;
-    });
+    const appliedSort = formSortRows(rows, sort);
+    const summary = formSummarize(rows);
     if (win.mode === 'all') summary.pending = summary.never;
-    summary.completion_pct = summary.total > 0
-      ? Math.round((summary.submitted / summary.total) * 1000) / 10
-      : 0;
 
     // How many approved clients the active-roster filter is holding back, so the
     // denominator is never silently smaller than the admin expects.
@@ -3916,7 +4176,7 @@ app.get('/api/admin/sunday-checkins/summary', verifyToken, requireAdminOrSuperad
       },
       roster: includeInactive ? 'all' : 'active',
       hidden_inactive: hiddenInactive,
-      sort: comparators[sort] ? sort : 'latest',
+      sort: appliedSort,
       summary,
       rows
     });
@@ -3939,13 +4199,13 @@ app.get('/api/admin/sunday-checkins/history', verifyToken, requireAdminOrSuperad
     let user = null;
     if (userId) {
       user = await queryOne(
-        `SELECT id, first_name, last_name, email, phone, ${sundayTsIso('created_at')} AS created_at FROM users WHERE id = ?`,
+        `SELECT id, first_name, last_name, email, phone, ${formTsIso('created_at')} AS created_at FROM users WHERE id = ?`,
         [userId]
       );
     }
     if (!user && email) {
       user = await queryOne(
-        `SELECT id, first_name, last_name, email, phone, ${sundayTsIso('created_at')} AS created_at FROM users WHERE LOWER(TRIM(email)) = ?`,
+        `SELECT id, first_name, last_name, email, phone, ${formTsIso('created_at')} AS created_at FROM users WHERE LOWER(TRIM(email)) = ?`,
         [email]
       );
     }
@@ -3953,7 +4213,7 @@ app.get('/api/admin/sunday-checkins/history', verifyToken, requireAdminOrSuperad
     const matchId = user ? String(user.id) : userId;
     const matchEmail = (user && user.email ? String(user.email) : email).trim().toLowerCase();
     const subs = await queryAll(`
-      SELECT id, full_name, reply_email, ${sundayTsIso('created_at')} AS created_at,
+      SELECT id, full_name, reply_email, ${formTsIso('created_at')} AS created_at,
              plan, current_weight_waist_week, body_fat_percent
       FROM sunday_checkins
       WHERE (? <> '' AND user_id = ?)
@@ -3965,8 +4225,8 @@ app.get('/api/admin/sunday-checkins/history', verifyToken, requireAdminOrSuperad
 
     const deadlineHours = SUNDAY_DEADLINE_HOURS;
     const submissions = subs.map(s => {
-      const iso = sundayIso(s.created_at);
-      const localYmd = iso ? sundayLocalYmd(iso) : null;
+      const iso = formIso(s.created_at);
+      const localYmd = iso ? formLocalYmd(iso) : null;
       return {
         id: String(s.id),
         created_at: iso,
@@ -3978,11 +4238,11 @@ app.get('/api/admin/sunday-checkins/history', verifyToken, requireAdminOrSuperad
     });
 
     // Week ledger: newest `weeksBack` Sundays, with the gaps made explicit.
-    const todayYmd = streakTodayYmdInTz(SUNDAY_REPORT_TZ) || streakDateToYmd(new Date());
+    const todayYmd = streakTodayYmdInTz(FORM_REPORT_TZ) || streakDateToYmd(new Date());
     const currentSunday = sundayWeekStartYmd(todayYmd);
-    const joinedMs = sundayMs(user && user.created_at);
+    const joinedMs = formMs(user && user.created_at);
     const firstSubMs = submissions.reduce((min, s) => {
-      const m = sundayMs(s.created_at);
+      const m = formMs(s.created_at);
       return Number.isFinite(m) && (min === null || m < min) ? m : min;
     }, null);
     const expectedFromMs = Number.isFinite(joinedMs)
@@ -3992,15 +4252,15 @@ app.get('/api/admin/sunday-checkins/history', verifyToken, requireAdminOrSuperad
     for (let i = 0; i < weeksBack; i++) {
       const sunday = streakAddDays(currentSunday, -7 * i);
       if (!sunday) break;
-      const startMs = sundayMs(localDateTimeToUtcIso(sunday, '00:00', SUNDAY_REPORT_TZ));
-      const endMs = sundayMs(localDateTimeToUtcIso(streakAddDays(sunday, 7), '00:00', SUNDAY_REPORT_TZ));
+      const startMs = formMs(localDateTimeToUtcIso(sunday, '00:00', FORM_REPORT_TZ));
+      const endMs = formMs(localDateTimeToUtcIso(streakAddDays(sunday, 7), '00:00', FORM_REPORT_TZ));
       const deadlineMs = startMs + deadlineHours * 3600000;
       const inWeek = submissions
-        .filter(s => { const m = sundayMs(s.created_at); return Number.isFinite(m) && m >= startMs && m < endMs; })
-        .sort((a, b) => sundayMs(b.created_at) - sundayMs(a.created_at));
+        .filter(s => { const m = formMs(s.created_at); return Number.isFinite(m) && m >= startMs && m < endMs; })
+        .sort((a, b) => formMs(b.created_at) - formMs(a.created_at));
       const latest = inWeek[0] || null;
       let status;
-      if (latest) status = sundayMs(latest.created_at) > deadlineMs ? 'late' : 'submitted';
+      if (latest) status = formMs(latest.created_at) > deadlineMs ? 'late' : 'submitted';
       else if (expectedFromMs !== null && Number.isFinite(expectedFromMs) && endMs <= expectedFromMs) status = 'not_expected';
       else status = 'not_submitted';
       weeks.push({
@@ -4020,10 +4280,10 @@ app.get('/api/admin/sunday-checkins/history', verifyToken, requireAdminOrSuperad
           : ((subs[0] && subs[0].full_name) || matchEmail || '—'),
         email: (user && user.email) || (subs[0] && subs[0].reply_email) || matchEmail || '',
         phone: (user && user.phone) || '',
-        joined_at: sundayIso(user && user.created_at),
+        joined_at: formIso(user && user.created_at),
         linked: !!user
       },
-      timezone: SUNDAY_REPORT_TZ,
+      timezone: FORM_REPORT_TZ,
       deadline_hours: deadlineHours,
       total_checkins: submissions.length,
       latest: submissions[0] || null,
@@ -4033,6 +4293,327 @@ app.get('/api/admin/sunday-checkins/history', verifyToken, requireAdminOrSuperad
   } catch (e) {
     console.error('Admin sunday-checkin history error:', e.message);
     res.status(500).json({ error: 'Failed to load check-in history' });
+  }
+});
+
+// ============ INTAKE FUNNEL — AUDIT FORM & PART-2 DASHBOARDS ============
+// These two forms are not recurring client check-ins: they are the one-time lead
+// intake pair. Most people who submit them are prospects, not registered clients, so
+// measuring them against the client roster would hide the real submissions and mark
+// every client "pending" for a form they were never asked to fill.
+//
+// Instead the cohort is the Audit form itself:
+//   Audit tab  — one row per person (duplicate submissions rolled up, full history kept)
+//   Part-2 tab — same people, showing who has and has not completed the follow-up
+// Both are keyed on the lowercased email, which is the only identifier the two tables
+// share (part2_audit has no user_id at all).
+const INTAKE_PERSON_KEY = "COALESCE(NULLIF(LOWER(TRIM(a.email)), ''), 'id:' || a.id)";
+
+// The grouped-by-person Audit cohort, reused by both dashboards.
+function buildIntakeCohortSql(fromDate, toDate, searchClause) {
+  return `
+    WITH scoped AS (
+      SELECT a.* , ${INTAKE_PERSON_KEY} AS gkey, NULLIF(LOWER(TRIM(a.email)), '') AS email_key
+      FROM audit_requests a
+      WHERE 1=1${fromDate ? ' AND a.created_at::date >= ?' : ''}${toDate ? ' AND a.created_at::date <= ?' : ''}${searchClause}
+    ),
+    people AS (
+      SELECT gkey,
+             MIN(email_key) AS email_key,
+             (ARRAY_AGG(first_name ORDER BY created_at DESC NULLS LAST))[1] AS first_name,
+             (ARRAY_AGG(last_name  ORDER BY created_at DESC NULLS LAST))[1] AS last_name,
+             (ARRAY_AGG(email      ORDER BY created_at DESC NULLS LAST))[1] AS email,
+             (ARRAY_AGG(phone      ORDER BY created_at DESC NULLS LAST))[1] AS phone,
+             (ARRAY_AGG(stage      ORDER BY created_at DESC NULLS LAST))[1] AS stage,
+             (ARRAY_AGG(status     ORDER BY created_at DESC NULLS LAST))[1] AS status,
+             (ARRAY_AGG(linked_user_id ORDER BY created_at DESC NULLS LAST))[1] AS linked_user_id,
+             (ARRAY_AGG(id         ORDER BY created_at DESC NULLS LAST))[1] AS last_audit_id,
+             ${formTsIso('MAX(created_at)')} AS last_audit_at,
+             ${formTsIso('MIN(created_at)')} AS first_audit_at,
+             COUNT(*)::int AS audit_submissions
+      FROM scoped GROUP BY gkey
+    )`;
+}
+
+// Latest Part-2 submission for a cohort row, matched on the shared email.
+const INTAKE_PART2_LATERAL = `
+  LEFT JOIN LATERAL (
+    SELECT x.id, x.created_at, x.score, x.tier_label
+    FROM part2_audit x
+    WHERE p.email_key IS NOT NULL AND NULLIF(LOWER(TRIM(x.email)), '') = p.email_key
+    ORDER BY x.created_at DESC NULLS LAST
+    LIMIT 1
+  ) p2 ON TRUE
+  LEFT JOIN LATERAL (
+    SELECT COUNT(*)::int AS n FROM part2_audit x
+    WHERE p.email_key IS NOT NULL AND NULLIF(LOWER(TRIM(x.email)), '') = p.email_key
+  ) p2c ON TRUE`;
+
+function intakeDisplayName(r) {
+  const n = [r.first_name, r.last_name].filter(Boolean).join(' ').trim();
+  return n || String(r.name || '').trim() || String(r.email || '').trim() || '—';
+}
+
+// --- Audit Form: one row per person, duplicates rolled up, history preserved ---
+app.get('/api/admin/audit-requests/summary', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const from = String(req.query.from || '').trim();
+    const to = String(req.query.to || '').trim();
+    const search = String(req.query.search || '').trim();
+    const sort = String(req.query.sort || 'latest').trim().toLowerCase();
+    const sc = buildContactSearchClause(
+      search,
+      ['a.first_name', 'a.last_name', 'a.email', "(COALESCE(a.first_name,'') || ' ' || COALESCE(a.last_name,''))"],
+      ['a.phone']
+    );
+    const sql = buildIntakeCohortSql(from, to, sc.sql) + `
+      SELECT p.*, p2.id AS part2_id, ${formTsIso('p2.created_at')} AS part2_at,
+             p2.score AS part2_score, p2.tier_label AS part2_tier,
+             COALESCE(p2c.n, 0) AS part2_submissions
+      FROM people p
+      ${INTAKE_PART2_LATERAL}
+      LIMIT 5000`;
+    const params = [];
+    if (from) params.push(from);
+    if (to) params.push(to);
+    params.push(...sc.params);
+    const raw = await queryAll(sql, params);
+
+    const rows = raw.map(r => ({
+      key: 'intake:' + String(r.gkey || ''),
+      email_key: r.email_key || null,
+      name: intakeDisplayName(r),
+      email: String(r.email || '').trim(),
+      phone: String(r.phone || '').trim(),
+      // Everyone in this cohort submitted the Audit form by definition, so the status
+      // column carries the funnel step that is actually still open: Part-2.
+      status: 'submitted',
+      part2_status: r.part2_id ? 'submitted' : 'pending',
+      part2_at: formIso(r.part2_at),
+      part2_id: r.part2_id ? String(r.part2_id) : null,
+      part2_score: r.part2_score != null ? Number(r.part2_score) : null,
+      part2_tier: r.part2_tier || '',
+      part2_submissions: Number(r.part2_submissions) || 0,
+      stage: r.stage || '',
+      lead_status: r.status || '',
+      linked_user_id: r.linked_user_id || null,
+      unlinked: false,
+      last_submitted_at: formIso(r.last_audit_at),
+      first_submitted_at: formIso(r.first_audit_at),
+      last_checkin_id: r.last_audit_id ? String(r.last_audit_id) : null,
+      total_checkins: Number(r.audit_submissions) || 0
+    }));
+
+    let appliedSort;
+    if (sort === 'part2') {
+      // Not-yet-completed first — that is the actionable half of this list.
+      rows.sort((a, b) =>
+        (a.part2_status === b.part2_status ? 0 : (a.part2_status === 'pending' ? -1 : 1)) ||
+        (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+      appliedSort = 'part2';
+    } else if (sort === 'submissions') {
+      rows.sort((a, b) => (b.total_checkins - a.total_checkins) ||
+        (a.name || '').toLowerCase().localeCompare((b.name || '').toLowerCase()));
+      appliedSort = 'submissions';
+    } else {
+      appliedSort = formSortRows(rows, sort);
+    }
+
+    const totalSubmissions = rows.reduce((n, r) => n + r.total_checkins, 0);
+    const part2Done = rows.filter(r => r.part2_status === 'submitted').length;
+    const weekAgo = Date.now() - 7 * 86400000;
+    const newThisWeek = rows.filter(r => {
+      const m = formMs(r.first_submitted_at);
+      return Number.isFinite(m) && m >= weekAgo;
+    }).length;
+
+    res.json({
+      timezone: FORM_REPORT_TZ,
+      sort: appliedSort,
+      summary: {
+        total: rows.length,
+        submissions: totalSubmissions,
+        new_this_week: newThisWeek,
+        part2_done: part2Done,
+        part2_pending: rows.length - part2Done,
+        completion_pct: rows.length > 0 ? Math.round((part2Done / rows.length) * 1000) / 10 : 0
+      },
+      rows
+    });
+  } catch (e) {
+    console.error('Admin audit-requests summary error:', e.message);
+    res.status(500).json({ error: 'Failed to load audit form status' });
+  }
+});
+
+// --- Part-2: who has completed the follow-up, who is still stuck ---
+app.get('/api/admin/part2-submissions/summary', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const from = String(req.query.from || '').trim();
+    const to = String(req.query.to || '').trim();
+    const search = String(req.query.search || '').trim();
+    const sort = String(req.query.sort || 'status').trim().toLowerCase();
+    const sc = buildContactSearchClause(
+      search,
+      ['a.first_name', 'a.last_name', 'a.email', "(COALESCE(a.first_name,'') || ' ' || COALESCE(a.last_name,''))"],
+      ['a.phone']
+    );
+    const sql = buildIntakeCohortSql(from, to, sc.sql) + `
+      SELECT p.*, p2.id AS part2_id, ${formTsIso('p2.created_at')} AS part2_at,
+             p2.score AS part2_score, p2.tier_label AS part2_tier,
+             COALESCE(p2c.n, 0) AS part2_submissions
+      FROM people p
+      ${INTAKE_PART2_LATERAL}
+      LIMIT 5000`;
+    const params = [];
+    if (from) params.push(from);
+    if (to) params.push(to);
+    params.push(...sc.params);
+    const raw = await queryAll(sql, params);
+
+    const rows = raw.map(r => ({
+      key: 'intake:' + String(r.gkey || ''),
+      email_key: r.email_key || null,
+      name: intakeDisplayName(r),
+      email: String(r.email || '').trim(),
+      phone: String(r.phone || '').trim(),
+      status: r.part2_id ? 'submitted' : 'pending',
+      unlinked: false,
+      stage: r.stage || '',
+      linked_user_id: r.linked_user_id || null,
+      last_submitted_at: formIso(r.part2_at),
+      last_checkin_id: r.part2_id ? String(r.part2_id) : null,
+      part2_score: r.part2_score != null ? Number(r.part2_score) : null,
+      part2_tier: r.part2_tier || '',
+      audit_at: formIso(r.last_audit_at),
+      first_audit_at: formIso(r.first_audit_at),
+      audit_submissions: Number(r.audit_submissions) || 0,
+      total_checkins: Number(r.part2_submissions) || 0
+    }));
+
+    // Part-2 submissions whose email matches no Audit record would otherwise be
+    // invisible on their own tab, so surface them as unlinked cohort members.
+    const orphanSearch = buildContactSearchClause(search, ['o.name', 'o.email'], ['o.mobile']);
+    let orphans = [];
+    try {
+      orphans = await queryAll(`
+        WITH orphan AS (
+          SELECT x.id, x.name, x.email, x.mobile, x.created_at, x.score, x.tier_label,
+                 COALESCE(NULLIF(LOWER(TRIM(x.email)), ''), 'id:' || x.id) AS gkey
+          FROM part2_audit x
+          WHERE NOT EXISTS (
+            SELECT 1 FROM audit_requests a
+            WHERE NULLIF(LOWER(TRIM(a.email)), '') = NULLIF(LOWER(TRIM(x.email)), '')
+          )
+        )
+        SELECT o.gkey,
+               (ARRAY_AGG(o.name   ORDER BY o.created_at DESC NULLS LAST))[1] AS name,
+               (ARRAY_AGG(o.email  ORDER BY o.created_at DESC NULLS LAST))[1] AS email,
+               (ARRAY_AGG(o.mobile ORDER BY o.created_at DESC NULLS LAST))[1] AS phone,
+               (ARRAY_AGG(o.id     ORDER BY o.created_at DESC NULLS LAST))[1] AS part2_id,
+               (ARRAY_AGG(o.score  ORDER BY o.created_at DESC NULLS LAST))[1] AS part2_score,
+               (ARRAY_AGG(o.tier_label ORDER BY o.created_at DESC NULLS LAST))[1] AS part2_tier,
+               ${formTsIso('MAX(o.created_at)')} AS part2_at,
+               COUNT(*)::int AS n
+        FROM orphan o
+        WHERE 1=1${orphanSearch.sql}
+        GROUP BY o.gkey
+        LIMIT 2000`, orphanSearch.params);
+    } catch (oe) {
+      console.warn('[part2 summary] orphan sweep failed:', oe.message);
+    }
+    orphans.forEach(o => rows.push({
+      key: 'intake:' + String(o.gkey || ''),
+      email_key: String(o.email || '').trim().toLowerCase() || null,
+      name: String(o.name || '').trim() || String(o.email || '').trim() || '—',
+      email: String(o.email || '').trim(),
+      phone: String(o.phone || '').trim(),
+      status: 'submitted',
+      unlinked: true,
+      stage: '',
+      linked_user_id: null,
+      last_submitted_at: formIso(o.part2_at),
+      last_checkin_id: o.part2_id ? String(o.part2_id) : null,
+      part2_score: o.part2_score != null ? Number(o.part2_score) : null,
+      part2_tier: o.part2_tier || '',
+      audit_at: null,
+      first_audit_at: null,
+      audit_submissions: 0,
+      total_checkins: Number(o.n) || 0
+    }));
+
+    const appliedSort = formSortRows(rows, sort);
+    const summary = formSummarize(rows);
+
+    res.json({
+      timezone: FORM_REPORT_TZ,
+      sort: appliedSort,
+      summary,
+      rows
+    });
+  } catch (e) {
+    console.error('Admin part2 summary error:', e.message);
+    res.status(500).json({ error: 'Failed to load Part-2 status' });
+  }
+});
+
+// --- Shared history for both intake tabs: one person's full Audit + Part-2 trail ---
+app.get('/api/admin/intake-history', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const email = String(req.query.email || '').trim().toLowerCase();
+    const auditId = String(req.query.audit_id || '').trim();
+    if (!email && !auditId) return res.status(400).json({ error: 'email or audit_id is required' });
+
+    const audits = await queryAll(`
+      SELECT id, first_name, last_name, email, phone, stage, status, goals, linked_user_id,
+             ${formTsIso('created_at')} AS created_at
+      FROM audit_requests
+      WHERE (? <> '' AND NULLIF(LOWER(TRIM(email)), '') = ?)
+         OR (? <> '' AND id = ?)
+      ORDER BY created_at DESC NULLS LAST
+      LIMIT 200`, [email || '', email || '', auditId || '', auditId || '']);
+
+    // An audit_id lookup may resolve an email we were not given.
+    const resolvedEmail = email || String((audits[0] && audits[0].email) || '').trim().toLowerCase();
+    const part2 = resolvedEmail ? await queryAll(`
+      SELECT id, name, email, mobile, score, tier_label, weak_lever,
+             ${formTsIso('created_at')} AS created_at
+      FROM part2_audit
+      WHERE NULLIF(LOWER(TRIM(email)), '') = ?
+      ORDER BY created_at DESC NULLS LAST
+      LIMIT 200`, [resolvedEmail]) : [];
+
+    const head = audits[0] || null;
+    const p2head = part2[0] || null;
+    res.json({
+      person: {
+        name: head
+          ? ([head.first_name, head.last_name].filter(Boolean).join(' ').trim() || head.email || '—')
+          : ((p2head && p2head.name) || resolvedEmail || '—'),
+        email: (head && head.email) || (p2head && p2head.email) || resolvedEmail || '',
+        phone: (head && head.phone) || (p2head && p2head.mobile) || '',
+        stage: (head && head.stage) || '',
+        lead_status: (head && head.status) || '',
+        linked_user_id: (head && head.linked_user_id) || null,
+        has_audit: audits.length > 0,
+        has_part2: part2.length > 0
+      },
+      timezone: FORM_REPORT_TZ,
+      audit_total: audits.length,
+      part2_total: part2.length,
+      audits: audits.map(a => ({
+        id: String(a.id), created_at: a.created_at, stage: a.stage || '',
+        status: a.status || '', goals: a.goals || ''
+      })),
+      part2: part2.map(p => ({
+        id: String(p.id), created_at: p.created_at,
+        score: p.score != null ? Number(p.score) : null,
+        tier_label: p.tier_label || '', weak_lever: p.weak_lever || ''
+      }))
+    });
+  } catch (e) {
+    console.error('Admin intake history error:', e.message);
+    res.status(500).json({ error: 'Failed to load intake history' });
   }
 });
 
