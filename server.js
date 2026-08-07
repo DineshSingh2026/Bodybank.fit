@@ -33,7 +33,7 @@ const { getUserProgress: getAdminUserProgress } = require('./controllers/adminPr
 const progressService = require('./services/progressService');
 const workoutSessionLifts = require('./services/workoutSessionLifts');
 const { recomputeDailyStats: recomputeNutritionDailyStats } = require('./services/nutritionService');
-const { inferTimezoneFromCountry, getUserTimezone } = require('./utils/timezone');
+const { inferTimezoneFromCountry, getUserTimezone, localDateTimeToUtcIso, getLocalDateParts } = require('./utils/timezone');
 const { startCampaignScheduler, restartScheduler: restartCampaignScheduler, broadcastMessage: broadcastCampaignMessage } = require('./services/campaignScheduler');
 const { parseAICampaignCommand, formatCampaignListReply, normalizeDay: normalizeCampaignDay, normalizeTime: normalizeCampaignTime } = require('./controllers/campaignController');
 const {
@@ -3427,24 +3427,56 @@ app.get('/api/coins/ledger', verifyToken, async (req, res) => {
   }
 });
 
+// Shared search builder for the admin/coach list screens.
+// `textCols` are matched with a plain ILIKE substring. `phoneCols` are matched
+// the same way AND digit-to-digit — the stored number is stripped to digits and
+// compared against the digits the user typed — so "9876543210", "98765 43210"
+// and "+91-98765-43210" all find the same client no matter how it was saved.
+function buildContactSearchClause(search, textCols, phoneCols) {
+  const raw = String(search || '').trim();
+  if (!raw) return { sql: '', params: [] };
+  const like = '%' + raw.replace(/%/g, '\\%') + '%';
+  const phones = phoneCols || [];
+  const parts = [];
+  const params = [];
+  (textCols || []).concat(phones).forEach((col) => {
+    parts.push(`${col} ILIKE ?`);
+    params.push(like);
+  });
+  // 4+ digits is enough to be a deliberate number lookup (a partial phone),
+  // while short numeric strings still fall back to plain text matching only.
+  // Longer inputs also match on the last 10 digits, so a number typed with a
+  // country code still finds the same client saved without one.
+  const digits = raw.replace(/\D/g, '');
+  if (digits.length >= 4) {
+    const needles = digits.length > 10 ? [digits, digits.slice(-10)] : [digits];
+    phones.forEach((col) => {
+      needles.forEach((needle) => {
+        parts.push(`regexp_replace(COALESCE(${col}, ''), '[^0-9]', '', 'g') LIKE ?`);
+        params.push('%' + needle + '%');
+      });
+    });
+  }
+  if (!parts.length) return { sql: '', params: [] };
+  return { sql: ' AND (' + parts.join(' OR ') + ')', params };
+}
+
 app.get('/api/admin/daily-checkins', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const from = (req.query.from || '').trim();
     const to = (req.query.to || '').trim();
     const search = (req.query.search || '').trim();
     let sql = `SELECT dc.id, dc.user_id, dc.checkin_date, dc.steps, dc.water_ml, dc.protein_g, dc.sleep_hours, dc.created_at,
-              u.first_name, u.last_name, u.email
+              u.first_name, u.last_name, u.email, u.phone
        FROM daily_checkins dc
        LEFT JOIN users u ON u.id = dc.user_id
        WHERE COALESCE(dc.is_freeze, FALSE) = FALSE`;
     const params = [];
     if (from) { sql += ` AND dc.checkin_date >= ?`; params.push(from); }
     if (to) { sql += ` AND dc.checkin_date <= ?`; params.push(to); }
-    if (search) {
-      const q = '%' + search.replace(/%/g, '\\%') + '%';
-      sql += ` AND (u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.email ILIKE ?)`;
-      params.push(q, q, q);
-    }
+    const dcSearch = buildContactSearchClause(search, ['u.first_name', 'u.last_name', 'u.email'], ['u.phone']);
+    sql += dcSearch.sql;
+    params.push(...dcSearch.params);
     // Group each client's daily check-ins together; clients ordered by their
     // most recent check-in, newest-first within a client.
     const clientKey = "COALESCE(CAST(dc.user_id AS TEXT), CAST(dc.id AS TEXT))";
@@ -3489,12 +3521,13 @@ app.get('/api/admin/audit-requests', verifyToken, requireAdminOrSuperadmin, asyn
       sql += ' AND created_at::date <= ?';
       params.push(to);
     }
-    if (search) {
-      const q = '%' + search.replace(/%/g, '\\%') + '%';
-      sql +=
-        ' AND (first_name ILIKE ? OR last_name ILIKE ? OR email ILIKE ? OR (COALESCE(first_name,\'\') || \' \' || COALESCE(last_name,\'\')) ILIKE ?)';
-      params.push(q, q, q, q);
-    }
+    const arSearch = buildContactSearchClause(
+      search,
+      ['first_name', 'last_name', 'email', '(COALESCE(first_name,\'\') || \' \' || COALESCE(last_name,\'\'))'],
+      ['phone']
+    );
+    sql += arSearch.sql;
+    params.push(...arSearch.params);
     // Group each client's submissions together; clients ordered by their most
     // recent submission, newest-first within a client.
     const clientKey = "COALESCE(NULLIF(LOWER(TRIM(email)), ''), CAST(id AS TEXT))";
@@ -3513,7 +3546,7 @@ app.get('/api/admin/sunday-checkins', verifyToken, requireAdminOrSuperadmin, asy
     const to = (req.query.to || '').trim();
     const search = (req.query.search || '').trim();
     let sql = `SELECT s.id, s.full_name, s.reply_email, s.created_at, s.user_id,
-         u.first_name, u.last_name, u.email
+         u.first_name, u.last_name, u.email, u.phone
        FROM sunday_checkins s
        LEFT JOIN users u ON u.id = s.user_id
        WHERE 1=1`;
@@ -3526,12 +3559,13 @@ app.get('/api/admin/sunday-checkins', verifyToken, requireAdminOrSuperadmin, asy
       sql += ' AND s.created_at::date <= ?';
       params.push(to);
     }
-    if (search) {
-      const q = '%' + search.replace(/%/g, '\\%') + '%';
-      sql +=
-        ' AND (s.full_name ILIKE ? OR s.reply_email ILIKE ? OR u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.email ILIKE ?)';
-      params.push(q, q, q, q, q);
-    }
+    const scSearch = buildContactSearchClause(
+      search,
+      ['s.full_name', 's.reply_email', 'u.first_name', 'u.last_name', 'u.email'],
+      ['u.phone']
+    );
+    sql += scSearch.sql;
+    params.push(...scSearch.params);
     // Group each client's check-ins together; clients ordered by their most
     // recent check-in, newest-first within a client. Key on user_id when linked,
     // else the reply email.
@@ -3542,6 +3576,463 @@ app.get('/api/admin/sunday-checkins', verifyToken, requireAdminOrSuperadmin, asy
   } catch (e) {
     console.error('Admin sunday-checkins list error:', e.message);
     res.status(500).json({ error: 'Failed to load Sunday check-ins' });
+  }
+});
+
+// ============ SUNDAY CHECK-IN — ADMIN STATUS DASHBOARD ============
+// The list endpoint above returns one row per historical submission, which makes it
+// impossible to see who is still missing this week. Everything below is a read-only
+// "latest status" projection over the same append-only table — no submission is ever
+// mutated, merged or deleted.
+//
+// Week model: a check-in week runs Sunday 00:00 → the following Sunday 00:00 in the
+// report timezone. That matches the client-facing "pending check-in" badge, which
+// anchors on the Sunday of the current week. It deliberately differs from
+// coinService.isoWeekKey() (ISO, Monday-start), which only de-duplicates coin awards.
+const SUNDAY_REPORT_TZ = (process.env.APP_TIMEZONE || '').trim() || STREAK_TIMEZONE;
+// Hours after Sunday 00:00 (report tz) that a check-in still counts as on time.
+// 24 = anytime on Sunday, 12 = Sunday noon, 36 = Monday noon.
+const SUNDAY_DEADLINE_HOURS = (() => {
+  const raw = parseFloat(process.env.SUNDAY_CHECKIN_DEADLINE_HOURS);
+  return (Number.isFinite(raw) && raw > 0 && raw <= 168) ? raw : 24;
+})();
+
+// The Sunday that starts the check-in week containing `ymd`.
+function sundayWeekStartYmd(ymd) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || '').trim());
+  if (!m) return null;
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  if (Number.isNaN(d.getTime())) return null;
+  return streakAddDays(m[0], -d.getUTCDay());
+}
+
+// Turn the ?week= filter into concrete UTC instants. `all` disables the window and
+// falls back to an all-time view. Returns null only for an unparseable custom date.
+function resolveSundayWindow(weekParam) {
+  const raw = String(weekParam == null ? 'this' : weekParam).trim().toLowerCase();
+  const todayYmd = streakTodayYmdInTz(SUNDAY_REPORT_TZ) || streakDateToYmd(new Date());
+  const base = {
+    timezone: SUNDAY_REPORT_TZ,
+    deadline_hours: SUNDAY_DEADLINE_HOURS,
+    today_ymd: todayYmd,
+    current_sunday_ymd: sundayWeekStartYmd(todayYmd)
+  };
+  if (raw === 'all') {
+    return { ...base, mode: 'all', sunday_ymd: null, start_utc: null, end_utc: null, deadline_utc: null };
+  }
+  let anchor = todayYmd;
+  if (raw === 'last') {
+    // Saturday of the previous week → its week start is last Sunday.
+    anchor = streakAddDays(sundayWeekStartYmd(todayYmd), -1);
+  } else if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    anchor = raw;
+  } else if (raw !== 'this' && raw !== '') {
+    return null;
+  }
+  const sunday = sundayWeekStartYmd(anchor);
+  if (!sunday) return null;
+  // Day/time arithmetic (not +N ms) so a DST shift inside the week cannot skew the
+  // boundaries in timezones that observe it.
+  const deadlineDays = Math.floor(SUNDAY_DEADLINE_HOURS / 24);
+  const remHours = SUNDAY_DEADLINE_HOURS - deadlineDays * 24;
+  const hh = String(Math.floor(remHours)).padStart(2, '0');
+  const mm = String(Math.round((remHours - Math.floor(remHours)) * 60)).padStart(2, '0');
+  return {
+    ...base,
+    mode: 'week',
+    sunday_ymd: sunday,
+    start_utc: localDateTimeToUtcIso(sunday, '00:00', SUNDAY_REPORT_TZ),
+    end_utc: localDateTimeToUtcIso(streakAddDays(sunday, 7), '00:00', SUNDAY_REPORT_TZ),
+    deadline_utc: localDateTimeToUtcIso(streakAddDays(sunday, deadlineDays), `${hh}:${mm}`, SUNDAY_REPORT_TZ),
+    is_current_week: sunday === base.current_sunday_ymd
+  };
+}
+
+// A submission belongs to a client when it carries their id, or — for the legacy rows
+// that were saved before check-ins were linked to accounts — when the reply email
+// matches. Kept in one place so the roster join, the orphan sweep and the history
+// endpoint can never drift apart.
+const SC_LINK_TO_ROSTER = `(
+     (s.user_id IS NOT NULL AND s.user_id = r.id)
+  OR (s.user_id IS NULL AND NULLIF(LOWER(TRIM(s.reply_email)), '') = LOWER(TRIM(r.email)))
+)`;
+
+// Render a timestamp column as a canonical UTC ISO string in SQL instead of letting the
+// driver build a Date. node-postgres materialises `timestamp without time zone` using the
+// Node process's local offset, so the same row would come back shifted on a machine that
+// is not on UTC. Formatting in the database keeps this dashboard's instants — and the
+// late/on-time verdicts derived from them — identical wherever the app is deployed.
+const sundayTsIso = (expr) => `to_char(${expr}, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"')`;
+
+function sundayDisplayName(row) {
+  const fromAccount = [row.first_name, row.last_name].filter(Boolean).join(' ').trim();
+  return fromAccount || String(row.last_full_name || row.full_name || '').trim() || '—';
+}
+
+// pg hands `timestamp` columns back as Date objects; the legacy store hands back ISO
+// text. Normalise both, and never throw on a corrupt value.
+function sundayMs(v) {
+  if (v == null || v === '') return NaN;
+  if (v instanceof Date) return v.getTime();
+  const t = Date.parse(String(v));
+  return Number.isFinite(t) ? t : NaN;
+}
+
+function sundayIso(v) {
+  const ms = sundayMs(v);
+  return Number.isFinite(ms) ? new Date(ms).toISOString() : null;
+}
+
+// Calendar date of an instant in the report timezone (so a Sunday 11pm IST submission
+// is not filed under Monday just because it is past midnight UTC).
+function sundayLocalYmd(v) {
+  const ms = sundayMs(v);
+  if (!Number.isFinite(ms)) return null;
+  try {
+    return getLocalDateParts(new Date(ms), SUNDAY_REPORT_TZ).date;
+  } catch (e) {
+    return new Date(ms).toISOString().slice(0, 10);
+  }
+}
+
+app.get('/api/admin/sunday-checkins/summary', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const win = resolveSundayWindow(req.query.week);
+    if (!win) return res.status(400).json({ error: 'Invalid week filter. Use this, last, all or YYYY-MM-DD.' });
+    const search = String(req.query.search || '').trim();
+    const sort = String(req.query.sort || 'latest').trim().toLowerCase();
+    // Default roster = clients who can actually submit right now, so Completion % is
+    // not diluted by expired/paused accounts. `roster=all` shows every approved client.
+    const includeInactive = String(req.query.roster || 'active').trim().toLowerCase() === 'all';
+    const activeClause = includeInactive ? '' : `
+      AND COALESCE(u.suspended, FALSE) = FALSE
+      AND LOWER(COALESCE(u.subscription_status, 'active')) <> 'canceled'
+      AND (u.access_expires_at IS NULL OR u.access_expires_at > NOW())`;
+
+    // --- Roster-first pass: every expected client, with or without a submission. ---
+    const rosterSearch = buildContactSearchClause(
+      search,
+      ['u.first_name', 'u.last_name', 'u.email'],
+      ['u.phone']
+    );
+    const weekLateral = win.mode === 'week' ? `
+      LEFT JOIN LATERAL (
+        SELECT s.id, s.created_at, (s.created_at > ?::timestamp) AS is_late
+        FROM sunday_checkins s
+        WHERE ${SC_LINK_TO_ROSTER} AND s.created_at >= ?::timestamp AND s.created_at < ?::timestamp
+        ORDER BY s.created_at DESC NULLS LAST
+        LIMIT 1
+      ) w ON TRUE` : `
+      LEFT JOIN LATERAL (SELECT NULL::text AS id, NULL::timestamp AS created_at, NULL::boolean AS is_late) w ON TRUE`;
+
+    const rosterSql = `
+      WITH roster AS (
+        SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.profile_picture,
+               u.subscription_status, u.access_expires_at, COALESCE(u.suspended, FALSE) AS suspended,
+               u.created_at AS joined_at
+        FROM users u
+        WHERE ${OPERATOR_CLIENT_WHERE}${activeClause}${rosterSearch.sql}
+      )
+      SELECT r.id AS user_id, r.first_name, r.last_name, r.email, r.phone, r.profile_picture,
+             r.subscription_status, r.access_expires_at, r.suspended,
+             ${sundayTsIso('r.joined_at')} AS joined_at,
+             w.id AS week_checkin_id, ${sundayTsIso('w.created_at')} AS week_submitted_at, w.is_late,
+             l.id AS last_checkin_id, ${sundayTsIso('l.created_at')} AS last_submitted_at,
+             l.full_name AS last_full_name,
+             COALESCE(t.n, 0) AS total_checkins
+      FROM roster r
+      ${weekLateral}
+      LEFT JOIN LATERAL (
+        SELECT s.id, s.created_at, s.full_name
+        FROM sunday_checkins s
+        WHERE ${SC_LINK_TO_ROSTER}
+        ORDER BY s.created_at DESC NULLS LAST
+        LIMIT 1
+      ) l ON TRUE
+      LEFT JOIN LATERAL (
+        SELECT COUNT(*)::int AS n FROM sunday_checkins s WHERE ${SC_LINK_TO_ROSTER}
+      ) t ON TRUE
+      LIMIT 5000`;
+    // Params are pushed in the same order the placeholders appear in the SQL above.
+    const rosterParams = [...rosterSearch.params];
+    if (win.mode === 'week') rosterParams.push(win.deadline_utc, win.start_utc, win.end_utc);
+    const rosterRows = await queryAll(rosterSql, rosterParams);
+
+    // --- Orphan sweep: submissions that belong to no account at all (unlinked user_id
+    // and an email nobody signed up with). Without this they would silently vanish from
+    // a dashboard whose entire job is "who is missing".
+    //
+    // "No account at all" is deliberate: matching against EVERY user — not the filtered
+    // roster — means a submission from a test account, an unapproved account or an
+    // expired client stays intentionally out of scope instead of reappearing here as an
+    // untraceable row. The noise filters are re-applied to the orphan's own fields so
+    // seeded e2e submissions cannot sneak back in through the email column either.
+    const orphanSearch = buildContactSearchClause(search, ['o.full_name', 'o.reply_email'], []);
+    const orphanWeekFilter = win.mode === 'week'
+      ? 'o.created_at >= ?::timestamp AND o.created_at < ?::timestamp'
+      : 'FALSE';
+    const orphanSql = `
+      WITH orphan AS (
+        SELECT s.id, s.full_name, s.reply_email, s.created_at,
+               COALESCE(NULLIF(LOWER(TRIM(s.reply_email)), ''), 'id:' || s.id) AS gkey
+        FROM sunday_checkins s
+        WHERE NOT EXISTS (SELECT 1 FROM users r WHERE ${SC_LINK_TO_ROSTER})
+          AND COALESCE(s.reply_email, '') NOT LIKE '%@test.bodybank.fit'
+          AND LOWER(COALESCE(s.full_name, '')) NOT LIKE '%e2e%'
+      )
+      SELECT o.gkey,
+             (ARRAY_AGG(o.full_name  ORDER BY o.created_at DESC NULLS LAST))[1] AS last_full_name,
+             (ARRAY_AGG(o.reply_email ORDER BY o.created_at DESC NULLS LAST))[1] AS email,
+             (ARRAY_AGG(o.id          ORDER BY o.created_at DESC NULLS LAST))[1] AS last_checkin_id,
+             ${sundayTsIso('MAX(o.created_at)')} AS last_submitted_at,
+             COUNT(*)::int AS total_checkins,
+             ${sundayTsIso(`MAX(o.created_at) FILTER (WHERE ${orphanWeekFilter})`)} AS week_submitted_at,
+             (ARRAY_AGG(o.id ORDER BY o.created_at DESC NULLS LAST)
+                FILTER (WHERE ${orphanWeekFilter}))[1] AS week_checkin_id,
+             ${win.mode === 'week'
+               ? `(ARRAY_AGG(o.created_at > ?::timestamp ORDER BY o.created_at DESC NULLS LAST)
+                    FILTER (WHERE ${orphanWeekFilter}))[1]`
+               : 'NULL::boolean'} AS is_late
+      FROM orphan o
+      WHERE 1=1${orphanSearch.sql}
+      GROUP BY o.gkey
+      LIMIT 2000`;
+    const orphanParams = [];
+    if (win.mode === 'week') {
+      orphanParams.push(
+        win.start_utc, win.end_utc,                     // week_submitted_at filter
+        win.start_utc, win.end_utc,                     // week_checkin_id filter
+        win.deadline_utc, win.start_utc, win.end_utc    // is_late expression + its filter
+      );
+    }
+    orphanParams.push(...orphanSearch.params);
+    let orphanRows = [];
+    try {
+      orphanRows = await queryAll(orphanSql, orphanParams);
+    } catch (oe) {
+      // An orphan-sweep failure must not take the whole dashboard down.
+      console.warn('[sunday summary] orphan sweep failed:', oe.message);
+    }
+
+    const deadlineMs = win.mode === 'week' ? sundayMs(win.deadline_utc) : NaN;
+    const toRow = (r, unlinked) => {
+      const weekMs = sundayMs(r.week_submitted_at);
+      const submittedThisWeek = Number.isFinite(weekMs);
+      let status;
+      if (win.mode === 'all') status = Number.isFinite(sundayMs(r.last_submitted_at)) ? 'submitted' : 'never';
+      else if (!submittedThisWeek) status = 'pending';
+      // Trust the database's on-time verdict whenever it produced one. It compares the
+      // stored timestamp against the deadline inside a single reference frame, whereas
+      // the JS fallback depends on how the driver localises `timestamp` columns — those
+      // two disagree by the process's UTC offset unless the app runs on UTC. The JS
+      // branch only serves the orphan rows, which carry no SQL verdict.
+      else if (typeof r.is_late === 'boolean') status = r.is_late ? 'late' : 'submitted';
+      else status = (Number.isFinite(deadlineMs) && weekMs > deadlineMs) ? 'late' : 'submitted';
+      return {
+        key: unlinked ? 'email:' + String(r.gkey || '') : 'user:' + String(r.user_id || ''),
+        user_id: unlinked ? null : String(r.user_id || ''),
+        name: sundayDisplayName(r),
+        email: String(r.email || '').trim(),
+        phone: unlinked ? '' : String(r.phone || '').trim(),
+        profile_picture: r.profile_picture || '',
+        status,
+        unlinked: !!unlinked,
+        suspended: !!r.suspended,
+        subscription_status: r.subscription_status || '',
+        joined_at: sundayIso(r.joined_at),
+        last_submitted_at: sundayIso(r.last_submitted_at),
+        last_checkin_id: r.last_checkin_id ? String(r.last_checkin_id) : null,
+        week_submitted_at: sundayIso(r.week_submitted_at),
+        week_checkin_id: r.week_checkin_id ? String(r.week_checkin_id) : null,
+        total_checkins: Number(r.total_checkins) || 0
+      };
+    };
+    const rows = rosterRows.map(r => toRow(r, false)).concat(orphanRows.map(r => toRow(r, true)));
+
+    // --- Sorting (default: newest submission first, never-submitted last). ---
+    const nameKey = r => (r.name || '').toLowerCase();
+    const lastMs = r => { const m = sundayMs(r.last_submitted_at); return Number.isFinite(m) ? m : null; };
+    const statusRank = { pending: 0, never: 0, late: 1, submitted: 2 };
+    const comparators = {
+      latest: (a, b) => {
+        const am = lastMs(a); const bm = lastMs(b);
+        if (am === null && bm === null) return nameKey(a).localeCompare(nameKey(b));
+        if (am === null) return 1;
+        if (bm === null) return -1;
+        return bm - am || nameKey(a).localeCompare(nameKey(b));
+      },
+      oldest: (a, b) => {
+        const am = lastMs(a); const bm = lastMs(b);
+        if (am === null && bm === null) return nameKey(a).localeCompare(nameKey(b));
+        if (am === null) return -1;
+        if (bm === null) return 1;
+        return am - bm || nameKey(a).localeCompare(nameKey(b));
+      },
+      name: (a, b) => nameKey(a).localeCompare(nameKey(b)),
+      status: (a, b) => (statusRank[a.status] - statusRank[b.status]) || nameKey(a).localeCompare(nameKey(b))
+    };
+    rows.sort(comparators[sort] || comparators.latest);
+
+    const summary = { total: rows.length, submitted: 0, pending: 0, late: 0, never: 0, unlinked: 0 };
+    rows.forEach(r => {
+      if (r.status === 'submitted') summary.submitted++;
+      else if (r.status === 'late') { summary.late++; summary.submitted++; }
+      else if (r.status === 'never') summary.never++;
+      else summary.pending++;
+      if (r.unlinked) summary.unlinked++;
+    });
+    if (win.mode === 'all') summary.pending = summary.never;
+    summary.completion_pct = summary.total > 0
+      ? Math.round((summary.submitted / summary.total) * 1000) / 10
+      : 0;
+
+    // How many approved clients the active-roster filter is holding back, so the
+    // denominator is never silently smaller than the admin expects.
+    let hiddenInactive = 0;
+    if (!includeInactive) {
+      try {
+        const h = await queryOne(`
+          SELECT COUNT(*)::int AS n FROM users u
+          WHERE ${OPERATOR_CLIENT_WHERE} AND NOT (
+            COALESCE(u.suspended, FALSE) = FALSE
+            AND LOWER(COALESCE(u.subscription_status, 'active')) <> 'canceled'
+            AND (u.access_expires_at IS NULL OR u.access_expires_at > NOW())
+          )`);
+        hiddenInactive = Number(h && h.n) || 0;
+      } catch (he) { hiddenInactive = 0; }
+    }
+
+    res.json({
+      window: {
+        mode: win.mode,
+        sunday_ymd: win.sunday_ymd,
+        start_utc: win.start_utc,
+        end_utc: win.end_utc,
+        deadline_utc: win.deadline_utc,
+        deadline_hours: win.deadline_hours,
+        timezone: win.timezone,
+        is_current_week: !!win.is_current_week,
+        current_sunday_ymd: win.current_sunday_ymd
+      },
+      roster: includeInactive ? 'all' : 'active',
+      hidden_inactive: hiddenInactive,
+      sort: comparators[sort] ? sort : 'latest',
+      summary,
+      rows
+    });
+  } catch (e) {
+    console.error('Admin sunday-checkins summary error:', e.message);
+    res.status(500).json({ error: 'Failed to load Sunday check-in status' });
+  }
+});
+
+// Full submission history for one client — every historical row is preserved and
+// returned here, plus the weeks they missed. Identify by ?user_id= (linked accounts)
+// or ?email= (unlinked legacy submissions).
+app.get('/api/admin/sunday-checkins/history', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const userId = String(req.query.user_id || '').trim();
+    const email = String(req.query.email || '').trim().toLowerCase();
+    if (!userId && !email) return res.status(400).json({ error: 'user_id or email is required' });
+    const weeksBack = Math.min(Math.max(parseInt(req.query.weeks, 10) || 12, 1), 52);
+
+    let user = null;
+    if (userId) {
+      user = await queryOne(
+        `SELECT id, first_name, last_name, email, phone, ${sundayTsIso('created_at')} AS created_at FROM users WHERE id = ?`,
+        [userId]
+      );
+    }
+    if (!user && email) {
+      user = await queryOne(
+        `SELECT id, first_name, last_name, email, phone, ${sundayTsIso('created_at')} AS created_at FROM users WHERE LOWER(TRIM(email)) = ?`,
+        [email]
+      );
+    }
+
+    const matchId = user ? String(user.id) : userId;
+    const matchEmail = (user && user.email ? String(user.email) : email).trim().toLowerCase();
+    const subs = await queryAll(`
+      SELECT id, full_name, reply_email, ${sundayTsIso('created_at')} AS created_at,
+             plan, current_weight_waist_week, body_fat_percent
+      FROM sunday_checkins
+      WHERE (? <> '' AND user_id = ?)
+         OR (? <> '' AND NULLIF(LOWER(TRIM(reply_email)), '') = ?)
+      ORDER BY created_at DESC NULLS LAST
+      LIMIT 300`,
+      [matchId || '', matchId || '', matchEmail || '', matchEmail || '']
+    );
+
+    const deadlineHours = SUNDAY_DEADLINE_HOURS;
+    const submissions = subs.map(s => {
+      const iso = sundayIso(s.created_at);
+      const localYmd = iso ? sundayLocalYmd(iso) : null;
+      return {
+        id: String(s.id),
+        created_at: iso,
+        sunday_ymd: localYmd ? sundayWeekStartYmd(localYmd) : null,
+        plan: s.plan || '',
+        weight_note: s.current_weight_waist_week || '',
+        body_fat_percent: s.body_fat_percent != null ? s.body_fat_percent : null
+      };
+    });
+
+    // Week ledger: newest `weeksBack` Sundays, with the gaps made explicit.
+    const todayYmd = streakTodayYmdInTz(SUNDAY_REPORT_TZ) || streakDateToYmd(new Date());
+    const currentSunday = sundayWeekStartYmd(todayYmd);
+    const joinedMs = sundayMs(user && user.created_at);
+    const firstSubMs = submissions.reduce((min, s) => {
+      const m = sundayMs(s.created_at);
+      return Number.isFinite(m) && (min === null || m < min) ? m : min;
+    }, null);
+    const expectedFromMs = Number.isFinite(joinedMs)
+      ? (firstSubMs !== null ? Math.min(joinedMs, firstSubMs) : joinedMs)
+      : firstSubMs;
+    const weeks = [];
+    for (let i = 0; i < weeksBack; i++) {
+      const sunday = streakAddDays(currentSunday, -7 * i);
+      if (!sunday) break;
+      const startMs = sundayMs(localDateTimeToUtcIso(sunday, '00:00', SUNDAY_REPORT_TZ));
+      const endMs = sundayMs(localDateTimeToUtcIso(streakAddDays(sunday, 7), '00:00', SUNDAY_REPORT_TZ));
+      const deadlineMs = startMs + deadlineHours * 3600000;
+      const inWeek = submissions
+        .filter(s => { const m = sundayMs(s.created_at); return Number.isFinite(m) && m >= startMs && m < endMs; })
+        .sort((a, b) => sundayMs(b.created_at) - sundayMs(a.created_at));
+      const latest = inWeek[0] || null;
+      let status;
+      if (latest) status = sundayMs(latest.created_at) > deadlineMs ? 'late' : 'submitted';
+      else if (expectedFromMs !== null && Number.isFinite(expectedFromMs) && endMs <= expectedFromMs) status = 'not_expected';
+      else status = 'not_submitted';
+      weeks.push({
+        sunday_ymd: sunday,
+        status,
+        submitted_at: latest ? latest.created_at : null,
+        checkin_id: latest ? latest.id : null,
+        submissions_in_week: inWeek.length
+      });
+    }
+
+    res.json({
+      user: {
+        user_id: user ? String(user.id) : null,
+        name: user
+          ? ([user.first_name, user.last_name].filter(Boolean).join(' ').trim() || (submissions[0] && submissions[0].full_name) || '—')
+          : ((subs[0] && subs[0].full_name) || matchEmail || '—'),
+        email: (user && user.email) || (subs[0] && subs[0].reply_email) || matchEmail || '',
+        phone: (user && user.phone) || '',
+        joined_at: sundayIso(user && user.created_at),
+        linked: !!user
+      },
+      timezone: SUNDAY_REPORT_TZ,
+      deadline_hours: deadlineHours,
+      total_checkins: submissions.length,
+      latest: submissions[0] || null,
+      submissions,
+      weeks
+    });
+  } catch (e) {
+    console.error('Admin sunday-checkin history error:', e.message);
+    res.status(500).json({ error: 'Failed to load check-in history' });
   }
 });
 
@@ -3560,11 +4051,9 @@ app.get('/api/admin/part2-submissions', verifyToken, requireAdminOrSuperadmin, a
       sql += ' AND created_at::date <= ?';
       params.push(to);
     }
-    if (search) {
-      const q = '%' + search.replace(/%/g, '\\%') + '%';
-      sql += ' AND (name ILIKE ? OR email ILIKE ? OR mobile ILIKE ?)';
-      params.push(q, q, q);
-    }
+    const p2Search = buildContactSearchClause(search, ['name', 'email'], ['mobile']);
+    sql += p2Search.sql;
+    params.push(...p2Search.params);
     // Group each client's submissions together; clients ordered by their most
     // recent submission, newest-first within a client.
     const clientKey = "COALESCE(NULLIF(LOWER(TRIM(email)), ''), CAST(id AS TEXT))";
@@ -3688,11 +4177,13 @@ async function loadLeadsList({ stage, search, from, to } = {}) {
   }
   if (from) { sql += ' AND a.created_at::date >= ?'; params.push(from); }
   if (to) { sql += ' AND a.created_at::date <= ?'; params.push(to); }
-  if (search) {
-    const q = '%' + String(search).replace(/%/g, '\\%') + '%';
-    sql += ' AND (a.first_name ILIKE ? OR a.last_name ILIKE ? OR a.email ILIKE ? OR a.phone ILIKE ? OR (COALESCE(a.first_name,\'\') || \' \' || COALESCE(a.last_name,\'\')) ILIKE ?)';
-    params.push(q, q, q, q, q);
-  }
+  const leadSearch = buildContactSearchClause(
+    search,
+    ['a.first_name', 'a.last_name', 'a.email', '(COALESCE(a.first_name,\'\') || \' \' || COALESCE(a.last_name,\'\'))'],
+    ['a.phone']
+  );
+  sql += leadSearch.sql;
+  params.push(...leadSearch.params);
   sql += ' ORDER BY COALESCE(a.stage_changed_at, a.created_at) DESC LIMIT 500';
   return await queryAll(sql, params);
 }
@@ -3915,7 +4406,7 @@ app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req
     const from = (req.query.from || '').trim();
     const to = (req.query.to || '').trim();
     const search = (req.query.search || '').trim();
-    let sql = `SELECT w.*, u.first_name, u.last_name, u.email
+    let sql = `SELECT w.*, u.first_name, u.last_name, u.email, u.phone
        FROM workout_logs w
        JOIN users u ON w.user_id = u.id
        WHERE 1=1`;
@@ -3928,12 +4419,13 @@ app.get('/api/admin/workouts', verifyToken, requireAdminOrSuperadmin, async (req
       sql += ' AND w.created_at::date <= ?';
       params.push(to);
     }
-    if (search) {
-      const q = '%' + search.replace(/%/g, '\\%') + '%';
-      sql +=
-        ' AND (u.first_name ILIKE ? OR u.last_name ILIKE ? OR u.email ILIKE ? OR w.workout_name ILIKE ? OR COALESCE(w.workout_type,\'\') ILIKE ? OR COALESCE(w.feedback,\'\') ILIKE ?)';
-      params.push(q, q, q, q, q, q);
-    }
+    const woSearch = buildContactSearchClause(
+      search,
+      ['u.first_name', 'u.last_name', 'u.email', 'w.workout_name', 'COALESCE(w.workout_type,\'\')', 'COALESCE(w.feedback,\'\')'],
+      ['u.phone']
+    );
+    sql += woSearch.sql;
+    params.push(...woSearch.params);
     sql += ' ORDER BY w.created_at DESC LIMIT 250';
     const rows = await queryAll(sql, params);
     res.json(rows);
@@ -6144,7 +6636,7 @@ app.get('/api/operator/clients', verifyToken, requireOperator, async (req, res) 
         SELECT user_id, COUNT(*)::int AS c FROM workout_logs WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY user_id
       )
       SELECT
-        u.id, u.first_name, u.last_name, u.email, u.profile_picture,
+        u.id, u.first_name, u.last_name, u.email, u.phone, u.profile_picture,
         u.subscription_status, u.access_expires_at, u.created_at,
         u.nutrition_ai_last_used_at, u.ai_trainer_last_used_at,
         lc.lc::text AS last_checkin_date,

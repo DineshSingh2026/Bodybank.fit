@@ -184,6 +184,66 @@ body.site-nav-hidden nav#nv{display:none !important}
 .sunday-checkin-title::after{content:'';position:absolute;left:0;bottom:-6px;width:100%;height:2px;background:linear-gradient(90deg,var(--gold),transparent);border-radius:1px;opacity:.8}
 #usec-checkin h2.sunday-checkin-title{font-size:clamp(26px,4vw,36px);margin-bottom:8px}
 .view-detail-modal h2.sunday-checkin-title{font-size:28px;margin-bottom:24px}
+
+/* Sunday Check-in – admin status dashboard (one row per client) */
+.sc-dash-head{margin:0 0 14px}
+h3.sc-dash-title{font-size:clamp(20px,3vw,28px);margin:0 0 10px}
+.sc-dash-sub{margin:0;font-size:12px;line-height:1.5}
+.sc-stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(132px,1fr));gap:10px;margin:0 0 14px}
+.sc-stat{position:relative;display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:12px;
+  background:linear-gradient(180deg,rgba(20,20,20,.95),rgba(9,9,9,.98));
+  border:1px solid rgba(255,255,255,.07);box-shadow:0 4px 16px rgba(0,0,0,.22)}
+.sc-stat-lbl{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.sc-stat-val{font-family:'Bebas Neue',sans-serif;font-size:28px;line-height:1;letter-spacing:1px;color:var(--cream)}
+.sc-stat--ok{border-color:rgba(52,199,123,.32)}      .sc-stat--ok .sc-stat-val{color:#34c77b}
+.sc-stat--pending{border-color:rgba(224,80,80,.32)}  .sc-stat--pending .sc-stat-val{color:#e05050}
+.sc-stat--late{border-color:rgba(245,158,11,.32)}    .sc-stat--late .sc-stat-val{color:#f59e0b}
+.sc-stat--pct{border-color:rgba(200,164,78,.32)}     .sc-stat--pct .sc-stat-val{color:var(--gold)}
+.sc-stat-bar{height:4px;border-radius:2px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:2px}
+.sc-stat-bar-fill{height:100%;background:linear-gradient(90deg,var(--gold),#e6c877);border-radius:2px;transition:width .45s ease}
+.admin-filter-bar .admin-filter-select{
+  padding:5px 8px!important;font-size:14px!important;line-height:1.2!important;
+  height:34px!important;min-height:34px!important;max-height:34px!important;box-sizing:border-box!important;
+  width:min(100%,168px)!important;min-width:132px;
+  border:1px solid rgba(200,164,78,0.5)!important;border-radius:6px!important;
+  background:rgba(255,255,255,0.06)!important;color:var(--cream)!important;cursor:pointer}
+.admin-filter-bar .admin-filter-select option{background:#111;color:var(--cream)}
+.sc-roster-toggle{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;
+  letter-spacing:.03em;color:var(--muted);cursor:pointer;white-space:nowrap;margin:0}
+.sc-roster-toggle input{accent-color:var(--gold);width:14px;height:14px;cursor:pointer;margin:0}
+.sc-badge{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;
+  font-size:11px;font-weight:700;letter-spacing:.04em;white-space:nowrap;border:1px solid transparent}
+.sc-badge::before{content:'';width:7px;height:7px;border-radius:50%;background:currentColor;flex:0 0 auto}
+.sc-badge--submitted{color:#34c77b;background:rgba(52,199,123,.1);border-color:rgba(52,199,123,.3)}
+.sc-badge--pending{color:#e05050;background:rgba(224,80,80,.1);border-color:rgba(224,80,80,.3)}
+.sc-badge--late{color:#f59e0b;background:rgba(245,158,11,.1);border-color:rgba(245,158,11,.3)}
+.sc-badge--never{color:var(--muted);background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12)}
+.sc-row-pending{background:rgba(224,80,80,.045)}
+.sc-cell-sub{display:block;font-size:11px;color:var(--muted);margin-top:2px}
+.sc-tag-unlinked{display:inline-block;margin-left:6px;padding:1px 6px;border-radius:4px;font-size:9px;
+  font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#f59e0b;
+  background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.28);vertical-align:middle}
+.sc-hist-btn{white-space:nowrap}
+/* History modal */
+.sc-hist-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 18px}
+.sc-hist-meta .sc-stat{padding:10px 12px}
+.sc-hist-meta .sc-stat-val{font-size:22px}
+.sc-hist-table{width:100%;border-collapse:collapse;font-size:13px}
+.sc-hist-table th{text-align:left;padding:8px 10px;font-size:10px;font-weight:700;letter-spacing:.07em;
+  text-transform:uppercase;color:var(--muted);border-bottom:1px solid rgba(255,255,255,.09)}
+.sc-hist-table td{padding:9px 10px;border-bottom:1px solid rgba(255,255,255,.05);color:var(--cream);vertical-align:middle}
+.sc-hist-table tr:last-child td{border-bottom:none}
+.sc-hist-table .sc-hist-miss td{color:var(--muted)}
+.sc-hist-sec{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;
+  color:var(--gold);margin:20px 0 8px}
+.sc-hist-open{background:none;border:none;color:var(--gold);font-size:12px;font-weight:600;
+  cursor:pointer;padding:2px 4px;text-decoration:underline}
+@media (max-width:640px){
+  .sc-stat-row{grid-template-columns:repeat(auto-fit,minmax(104px,1fr));gap:8px}
+  .sc-stat{padding:10px 11px}
+  .sc-stat-val{font-size:22px}
+  .sc-roster-toggle{order:-1;width:100%}
+}
 .admin-tab.sc-style,.admin-nav-link.sc-style,.admin-sidebar-link.sc-style{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;color:var(--gold)}
 .admin-tab.sc-style.active,.admin-nav-link.sc-style.active{color:var(--gold)}
 .wc-title.sc-style{font-family:'Bebas Neue',sans-serif;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
@@ -2521,14 +2581,23 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .btn-reject{background:rgba(255,80,80,0.1);color:#ff6b6b;margin-left:4px}
 .btn-reject:hover{background:rgba(255,80,80,0.2)}
 .view-detail-modal{z-index:400}
-.view-detail-modal .modal{max-width:560px;max-height:90vh;overflow:hidden;display:flex;flex-direction:column}
-.view-detail-modal .view-detail-body{font-size:14px;line-height:1.7;overflow-y:auto;overflow-x:auto;max-height:60vh;scroll-behavior:smooth;-webkit-overflow-scrolling:touch}
+/* Size detail modals to the viewport you can actually SEE. On phones `vh` is the
+   idealised viewport (URL bar hidden, no in-call banner), so a 90vh modal hangs
+   below the visible area and its scrollable body ends up off-screen — the modal
+   then feels frozen. `dvh` tracks the live visible height; `max-height:100%`
+   then fits the modal inside the overlay's padding box (safe areas included).
+   Browsers without `dvh` just drop that line and keep the old inset:0 sizing. */
+.view-detail-modal.modal-overlay{height:100dvh}
+.view-detail-modal .modal{max-width:560px;max-height:min(90vh,100%);overflow:hidden;display:flex;flex-direction:column}
+.view-detail-modal .view-detail-body{font-size:14px;line-height:1.7;overflow-y:auto;overflow-x:auto;flex:1 1 auto;min-height:0;scroll-behavior:smooth;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
 .view-detail-modal .view-detail-row{display:flex;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.06);gap:12px}
 .view-detail-modal .view-detail-row:last-child{border-bottom:none}
 .view-detail-modal .view-detail-label{min-width:140px;flex-shrink:0;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:1px}
 .view-detail-modal .view-detail-val{color:var(--cream);flex:1;min-width:0;overflow-wrap:break-word;word-break:normal}
 .view-detail-modal .view-detail-val.block{display:block;white-space:pre-wrap}
 .view-detail-modal .view-detail-actions{margin-top:24px;display:flex;gap:12px;flex-wrap:wrap}
+/* Title and action row keep their natural size; only the body scrolls. */
+.view-detail-modal .modal>h2,.view-detail-modal .view-detail-actions{flex-shrink:0}
 .view-detail-modal .modal-close{z-index:10;background:rgba(0,0,0,0.4);min-width:36px;min-height:36px;font-size:20px;padding:6px;border:1px solid rgba(200,164,78,0.25);border-radius:8px}
 .view-detail-modal .modal-close:hover,.view-detail-modal .modal-close:focus{background:rgba(200,164,78,0.15)}
 .view-detail-modal .modal{padding-top:52px;padding-right:16px}
@@ -2664,6 +2733,25 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
   /* Empty / loading rows */
   #bbLeadsTableWrap .admin-list-table tbody tr td[colspan]{display:block!important;text-align:center!important;padding:20px!important}
   #bbLeadsTableWrap .admin-list-table tbody tr td[colspan]::before{display:none!important}
+  /* Sunday status table — 5 columns will not fit 390px in table-mode (headers collide and
+     names wrap one letter per line), so use the same card layout as Leads. */
+  #tab-sundaycheckin .admin-table-wrap{overflow:visible!important;padding:0!important;border:0!important}
+  #tab-sundaycheckin .admin-list-table{display:block!important;width:100%!important;min-width:0!important;border:0!important;table-layout:auto!important}
+  #tab-sundaycheckin .admin-list-table thead{display:none!important}
+  #tab-sundaycheckin .admin-list-table tbody{display:block!important}
+  #tab-sundaycheckin .admin-list-table tbody tr{display:block!important;width:100%!important;margin:0 0 12px!important;padding:14px 14px 10px!important;background:linear-gradient(180deg,rgba(255,255,255,0.035) 0%,rgba(255,255,255,0.01) 100%)!important;border:1px solid rgba(200,164,78,0.2)!important;border-radius:12px!important;box-sizing:border-box;box-shadow:0 4px 14px rgba(0,0,0,0.25)}
+  #tab-sundaycheckin .admin-list-table tbody tr.sc-row-pending{border-color:rgba(224,80,80,0.32)!important;background:linear-gradient(180deg,rgba(224,80,80,0.07) 0%,rgba(224,80,80,0.01) 100%)!important}
+  #tab-sundaycheckin .admin-list-table tbody td{display:flex!important;align-items:center;justify-content:space-between;gap:14px;padding:7px 0!important;border:0!important;font-size:13.5px;color:var(--cream);word-break:normal!important;overflow-wrap:anywhere;text-align:right;line-height:1.4;min-height:24px}
+  #tab-sundaycheckin .admin-list-table tbody td::before{display:inline-block!important;content:attr(data-label);flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);margin:0!important;min-width:86px;text-align:left;line-height:1.3}
+  #tab-sundaycheckin .admin-list-table tbody td[data-label="Name"]{display:block!important;padding:0 0 10px!important;margin-bottom:8px!important;border-bottom:1px dashed rgba(200,164,78,0.2)!important;font-size:16px!important;font-weight:600!important;text-align:left!important;word-break:break-word!important}
+  #tab-sundaycheckin .admin-list-table tbody td[data-label="Name"]::before{display:none!important}
+  #tab-sundaycheckin .admin-list-table tbody td[data-label="Email"]{font-size:12.5px;color:var(--muted)}
+  #tab-sundaycheckin .admin-list-table tbody td .sc-cell-sub{display:inline;margin:0 0 0 6px;font-size:11px}
+  #tab-sundaycheckin .admin-list-table tbody td[data-label="Actions"]{display:block!important;text-align:right!important;padding:10px 0 0!important;margin-top:8px!important;border-top:1px dashed rgba(200,164,78,0.2)!important}
+  #tab-sundaycheckin .admin-list-table tbody td[data-label="Actions"]::before{display:none!important}
+  #tab-sundaycheckin .admin-list-table tbody td[data-label="Actions"] .action-btn{width:100%;margin:0;padding:11px 14px;font-size:12.5px;letter-spacing:1.2px}
+  #tab-sundaycheckin .admin-list-table tbody tr td[colspan]{display:block!important;text-align:center!important;padding:20px!important}
+  #tab-sundaycheckin .admin-list-table tbody tr td[colspan]::before{display:none!important}
   #tab-dailycheckin .admin-table-wrap,#tab-sundaycheckin .admin-table-wrap,#tab-part2 .admin-table-wrap,#tab-requests .admin-table-wrap,#tab-workouts .admin-table-wrap{overflow-x:auto;min-width:0}
   .insights-table-wrap .admin-table thead{display:none}
   .insights-table-wrap .admin-table tbody tr{display:block;width:100%;margin-bottom:12px;padding:16px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:8px}
@@ -5196,6 +5284,10 @@ button.bb-today-pill{cursor:pointer}
 .bb-lead-call-row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .bb-lead-call-row input[type="datetime-local"]{flex:1;min-width:200px;padding:9px 12px;border-radius:8px;background:rgba(0,0,0,0.4);color:#fff;border:1px solid rgba(200,164,78,0.3);font-size:13px}
 .bb-lead-notes{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;padding-right:4px}
+/* On touch, a scroller nested inside the modal's scroller traps the swipe —
+   the timeline eats the gesture and the modal itself won't move. Let the whole
+   modal body be the single scroll surface on phones. */
+@media(max-width:767px){.bb-lead-notes{max-height:none;overflow-y:visible;padding-right:0}}
 .bb-lead-note{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.05);border-left:3px solid rgba(200,164,78,0.5);border-radius:6px;padding:9px 12px}
 .bb-lead-note.is-stage-change{border-left-color:rgba(96,165,250,0.7);background:rgba(96,165,250,0.05)}
 .bb-lead-note.is-call{border-left-color:rgba(234,179,8,0.7);background:rgba(234,179,8,0.05)}
@@ -7376,7 +7468,7 @@ button.bb-today-pill{cursor:pointer}
         <div class="admin-filter-row-search">
           <div class="admin-filter-search-wrap">
             <label for="auditFilterSearch">Search</label>
-            <input type="text" id="auditFilterSearch" placeholder="Name or email" autocomplete="off">
+            <input type="text" id="auditFilterSearch" placeholder="Name, email or phone" autocomplete="off">
           </div>
           <div class="admin-filter-actions">
             <button type="button" class="admin-apply-btn" onclick="loadRequests()">Apply</button>
@@ -7421,7 +7513,7 @@ button.bb-today-pill{cursor:pointer}
         <div class="admin-filter-row-search">
           <div class="admin-filter-search-wrap">
             <label for="woFilterSearch">Search</label>
-            <input type="text" id="woFilterSearch" placeholder="Name, email, or workout" autocomplete="off">
+            <input type="text" id="woFilterSearch" placeholder="Name, email, phone or workout" autocomplete="off">
           </div>
           <div class="admin-filter-actions">
             <button type="button" class="admin-apply-btn" onclick="loadAdminWorkouts()">Apply</button>
@@ -7483,25 +7575,60 @@ button.bb-today-pill{cursor:pointer}
 
     <!-- TAB: Sunday Check-in -->
     <div class="admin-tab-content" id="tab-sundaycheckin">
+      <div class="sc-dash-head">
+        <h3 class="sunday-checkin-title sc-dash-title" id="scDashTitle">Sunday Check-in</h3>
+        <p class="form-hint sc-dash-sub" id="scDashSub">Loading…</p>
+      </div>
+      <div class="sc-stat-row" id="scStatRow" role="group" aria-label="Check-in summary">
+        <div class="sc-stat"><span class="sc-stat-lbl">Total Users</span><span class="sc-stat-val" id="scStatTotal">—</span></div>
+        <div class="sc-stat sc-stat--ok"><span class="sc-stat-lbl">Submitted</span><span class="sc-stat-val" id="scStatSubmitted">—</span></div>
+        <div class="sc-stat sc-stat--pending"><span class="sc-stat-lbl">Pending</span><span class="sc-stat-val" id="scStatPending">—</span></div>
+        <div class="sc-stat sc-stat--late"><span class="sc-stat-lbl">Late</span><span class="sc-stat-val" id="scStatLate">—</span></div>
+        <div class="sc-stat sc-stat--pct"><span class="sc-stat-lbl">Completion</span><span class="sc-stat-val" id="scStatPct">—</span>
+          <div class="sc-stat-bar"><div class="sc-stat-bar-fill" id="scStatBar" style="width:0%"></div></div>
+        </div>
+      </div>
       <div class="admin-filter-bar admin-filter-bar-stacked" data-admin-form-filters="sundaycheckin">
         <div class="admin-filter-row-dates">
-          <div class="admin-filter-row-date"><label for="scFilterFrom">From</label><input type="date" id="scFilterFrom" class="admin-filter-date" aria-label="From date"></div>
-          <div class="admin-filter-row-date"><label for="scFilterTo">To</label><input type="date" id="scFilterTo" class="admin-filter-date" aria-label="To date"></div>
+          <div class="admin-filter-row-date">
+            <label for="scFilterWeek">Week</label>
+            <select id="scFilterWeek" class="admin-filter-select" onchange="scOnWeekFilterChange()">
+              <option value="this">This Sunday</option>
+              <option value="last">Last Sunday</option>
+              <option value="custom">Custom date</option>
+              <option value="all">All time</option>
+            </select>
+          </div>
+          <div class="admin-filter-row-date" id="scCustomDateWrap" style="display:none">
+            <label for="scFilterDate">Date</label>
+            <input type="date" id="scFilterDate" class="admin-filter-date" aria-label="Custom Sunday" onchange="loadSundayCheckins()">
+          </div>
+          <div class="admin-filter-row-date">
+            <label for="scFilterSort">Sort</label>
+            <select id="scFilterSort" class="admin-filter-select" onchange="loadSundayCheckins()">
+              <option value="latest">Latest submission</option>
+              <option value="oldest">Oldest submission</option>
+              <option value="name">Name (A–Z)</option>
+              <option value="status">Status (pending first)</option>
+            </select>
+          </div>
         </div>
         <div class="admin-filter-row-search">
           <div class="admin-filter-search-wrap">
             <label for="scFilterSearch">Search</label>
-            <input type="text" id="scFilterSearch" placeholder="Name or email" autocomplete="off">
+            <input type="text" id="scFilterSearch" placeholder="Name, email or phone" autocomplete="off">
           </div>
           <div class="admin-filter-actions">
+            <label class="sc-roster-toggle" title="Also show paused, suspended and expired clients"><input type="checkbox" id="scFilterRoster" onchange="loadSundayCheckins()"> Include inactive</label>
             <button type="button" class="admin-apply-btn" onclick="loadSundayCheckins()">Apply</button>
+            <button type="button" class="admin-export-btn" onclick="exportSundayCheckinsCsv()" title="Download CSV matching current filters">Export CSV</button>
             <button type="button" class="admin-filter-clear-btn" onclick="clearAdminFormFilters('sundaycheckin')">Clear</button>
           </div>
         </div>
       </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table">
-        <thead><tr><th>Name</th><th>Reply Email</th><th>Submitted</th><th style="text-align:right;width:100px">Actions</th></tr></thead>
-        <tbody id="sundayCheckinBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
+        <thead><tr><th>Name</th><th>Email</th><th>Last Submitted</th><th>Status</th><th style="text-align:right;width:150px">Actions</th></tr></thead>
+        <tbody id="sundayCheckinBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
         <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
@@ -7520,7 +7647,7 @@ button.bb-today-pill{cursor:pointer}
         <div class="admin-filter-row-search">
           <div class="admin-filter-search-wrap">
             <label for="dcFilterSearch">Search</label>
-            <input type="text" id="dcFilterSearch" placeholder="Name or email" autocomplete="off">
+            <input type="text" id="dcFilterSearch" placeholder="Name, email or phone" autocomplete="off">
           </div>
           <div class="admin-filter-actions">
             <button type="button" class="admin-apply-btn" onclick="loadDailyCheckins()">Apply</button>
@@ -7601,7 +7728,7 @@ button.bb-today-pill{cursor:pointer}
         <div class="admin-filter-row-search">
           <div class="admin-filter-search-wrap">
             <label for="p2FilterSearch">Search</label>
-            <input type="text" id="p2FilterSearch" placeholder="Name or email" autocomplete="off">
+            <input type="text" id="p2FilterSearch" placeholder="Name, email or phone" autocomplete="off">
           </div>
           <div class="admin-filter-actions">
             <button type="button" class="admin-apply-btn" onclick="loadPart2Submissions()">Apply</button>
@@ -8726,7 +8853,7 @@ html.android-mobile #operatorPanel .op-cm-box{margin-top:calc(var(--safe-top, 20
       </div>
       <div id="opClientsRoster">
         <div class="op-controls">
-          <input type="text" class="op-input" id="opClientSearch" placeholder="Search by name or email…" oninput="renderOperatorClients()">
+          <input type="text" class="op-input" id="opClientSearch" placeholder="Search by name, email or phone…" oninput="renderOperatorClients()">
           <select class="op-select" id="opClientFilter" onchange="renderOperatorClients()">
             <option value="all">All clients</option>
             <option value="risk">At-risk (2+ days inactive)</option>
@@ -8759,6 +8886,9 @@ html.android-mobile #operatorPanel .op-cm-box{margin-top:calc(var(--safe-top, 20
           <option value="30" selected>Last 30 days</option>
           <option value="90">Last 90 days</option>
         </select>
+      </div>
+      <div class="op-controls">
+        <input type="text" class="op-input" id="opLeadsSearch" placeholder="Search by name, email or phone…" oninput="renderOperatorLeads()" aria-label="Search prospects">
       </div>
       <div class="op-mstat-grid" id="opLeadsStats" style="margin-bottom:16px"></div>
       <div class="op-seg" id="opLeadsSeg">
@@ -9259,6 +9389,15 @@ html.android-mobile #operatorPanel .op-cm-box{margin-top:calc(var(--safe-top, 20
       <button type="submit" class="form-submit">Submit</button>
       <p class="form-quote"><span class="q">"As you THINK, so shall you BECOME."</span><span class="attr">— Bruce Lee</span></p>
     </form>
+  </div>
+</div>
+
+<!-- ADMIN: Sunday Check-in History Modal (all historical submissions for one client) -->
+<div class="modal-overlay view-detail-modal" id="sundayHistoryModal" onclick="if(event.target===this)closeModal('sundayHistoryModal')">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('sundayHistoryModal')" aria-label="Close">&times;</button>
+    <h2 class="sunday-checkin-title" id="sundayHistoryTitle">Check-in History</h2>
+    <div class="view-detail-body" id="sundayHistoryBody"></div>
   </div>
 </div>
 
@@ -12616,9 +12755,26 @@ async function loadLiveActivity() {
 }
 
 function clearAdminFormFilters(which) {
+  // The Sunday tab filters on selects/a checkbox rather than a date range, so blanking
+  // every control by value would leave the week dropdown empty instead of defaulted.
+  if (which === 'sundaycheckin') {
+    var wk = document.getElementById('scFilterWeek');
+    var so = document.getElementById('scFilterSort');
+    var ro = document.getElementById('scFilterRoster');
+    var dt = document.getElementById('scFilterDate');
+    var se = document.getElementById('scFilterSearch');
+    var wrap = document.getElementById('scCustomDateWrap');
+    if (wk) wk.value = 'this';
+    if (so) so.value = 'latest';
+    if (ro) ro.checked = false;
+    if (dt) dt.value = '';
+    if (se) se.value = '';
+    if (wrap) wrap.style.display = 'none';
+    loadSundayCheckins();
+    return;
+  }
   var map = {
     requests: { ids: ['auditFilterFrom', 'auditFilterTo', 'auditFilterSearch'], load: loadRequests },
-    sundaycheckin: { ids: ['scFilterFrom', 'scFilterTo', 'scFilterSearch'], load: loadSundayCheckins },
     dailycheckin: { ids: ['dcFilterFrom', 'dcFilterTo', 'dcFilterSearch'], load: loadDailyCheckins },
     part2: { ids: ['p2FilterFrom', 'p2FilterTo', 'p2FilterSearch'], load: loadPart2Submissions },
     workouts: { ids: ['woFilterFrom', 'woFilterTo', 'woFilterSearch'], load: loadAdminWorkouts }
@@ -12672,6 +12828,7 @@ function ensureAdminPanelRowOpenDelegation() {
     var oid = tr.getAttribute('data-open-id') || '';
     if (!kind || !oid) return;
     if (kind === 'audit') viewRequest(oid);
+    else if (kind === 'sundayuser') viewSundayHistory(tr.getAttribute('data-sc-user') || '', tr.getAttribute('data-sc-email') || '');
     else if (kind === 'sunday') viewSundayCheckin(oid);
     else if (kind === 'daily') viewDailyCheckin(oid);
     else if (kind === 'workout') viewAdminWorkout(oid);
@@ -12941,34 +13098,299 @@ async function removePart2Submission(id) {
   loadDashboard();
 }
 
+// ============ SUNDAY CHECK-IN — ADMIN STATUS DASHBOARD ============
+// The table shows ONE row per client with their status for the selected check-in week.
+// Every historical submission is still in the database and reachable through
+// "View History" — this view only rolls them up, it never replaces them.
+var _scPayload = null;
+// Render every timestamp in the same timezone the server used to decide the statuses,
+// otherwise an admin abroad would read a time that contradicts the badge next to it.
+var _scTz = '';
+
+function scFmtDate(iso) {
+  if (!iso) return '';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  var o = { day: '2-digit', month: 'short', year: 'numeric' };
+  if (_scTz) o.timeZone = _scTz;
+  try { return d.toLocaleDateString('en-GB', o); } catch (e) { return d.toLocaleDateString('en-GB'); }
+}
+function scFmtTime(iso) {
+  if (!iso) return '';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  var o = { hour: 'numeric', minute: '2-digit' };
+  if (_scTz) o.timeZone = _scTz;
+  try { return d.toLocaleTimeString('en-US', o); } catch (e) { return d.toLocaleTimeString('en-US'); }
+}
+function scFmtDateTime(iso) {
+  var dt = scFmtDate(iso);
+  return dt ? (dt + ', ' + scFmtTime(iso)) : '—';
+}
+function scDaysAgo(iso) {
+  var d = new Date(iso);
+  if (!iso || isNaN(d.getTime())) return '';
+  var days = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return days + ' days ago';
+  var wk = Math.floor(days / 7);
+  return wk === 1 ? '1 week ago' : wk + ' weeks ago';
+}
+var SC_STATUS_LABEL = { submitted: 'Submitted', pending: 'Pending', late: 'Late', never: 'Never submitted' };
+function scBadge(status) {
+  var s = SC_STATUS_LABEL[status] ? status : 'pending';
+  return '<span class="sc-badge sc-badge--' + s + '">' + escapeHtml(SC_STATUS_LABEL[s]) + '</span>';
+}
+
+function scWeekParam() {
+  var sel = document.getElementById('scFilterWeek');
+  var mode = sel ? sel.value : 'this';
+  if (mode === 'custom') {
+    var d = document.getElementById('scFilterDate');
+    return (d && d.value) ? d.value : 'this';
+  }
+  return mode || 'this';
+}
+
+function scOnWeekFilterChange() {
+  var sel = document.getElementById('scFilterWeek');
+  var wrap = document.getElementById('scCustomDateWrap');
+  var isCustom = !!sel && sel.value === 'custom';
+  if (wrap) wrap.style.display = isCustom ? '' : 'none';
+  var d = document.getElementById('scFilterDate');
+  if (isCustom && d && !d.value) {
+    // Seed the picker with the Sunday already on screen so the first open is useful,
+    // and wait for a real pick instead of firing a pointless request.
+    d.value = (_scPayload && _scPayload.window && _scPayload.window.current_sunday_ymd) || '';
+    if (!d.value) return;
+  }
+  loadSundayCheckins();
+}
+
+function sundayCheckinQueryString() {
+  var qs = ['week=' + encodeURIComponent(scWeekParam())];
+  var s = document.getElementById('scFilterSearch');
+  var so = document.getElementById('scFilterSort');
+  var ro = document.getElementById('scFilterRoster');
+  if (s && s.value.trim()) qs.push('search=' + encodeURIComponent(s.value.trim()));
+  if (so && so.value) qs.push('sort=' + encodeURIComponent(so.value));
+  if (ro && ro.checked) qs.push('roster=all');
+  return '?' + qs.join('&');
+}
+
+function scSetStat(id, val) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = (val == null ? '—' : String(val));
+}
+
+function scRenderHeader(data) {
+  var title = document.getElementById('scDashTitle');
+  var sub = document.getElementById('scDashSub');
+  var w = (data && data.window) || {};
+  if (title) {
+    title.textContent = w.mode === 'all'
+      ? 'Sunday Check-in — All time'
+      : 'Sunday Check-in — ' + (scFmtDate(w.sunday_ymd + 'T12:00:00Z') || w.sunday_ymd || '');
+  }
+  if (!sub) return;
+  var bits = [];
+  if (w.mode === 'all') {
+    bits.push('Every client with their most recent check-in ever.');
+  } else {
+    bits.push('Week of ' + escapeHtml(String(w.sunday_ymd || '')) + ' (Sunday → Saturday)');
+    if (w.deadline_utc) bits.push('on-time deadline <strong style="color:var(--gold)">' + escapeHtml(scFmtDateTime(w.deadline_utc)) + '</strong>');
+    if (w.is_current_week === false) bits.push('<strong style="color:#f59e0b">past week</strong>');
+  }
+  if (w.timezone) bits.push('times in ' + escapeHtml(String(w.timezone)));
+  var line = bits.join(' &middot; ');
+  var notes = [];
+  if (data && data.hidden_inactive > 0) {
+    notes.push(data.hidden_inactive + ' inactive/expired ' + (data.hidden_inactive === 1 ? 'client is' : 'clients are') +
+      ' excluded from these totals — tick “Include inactive” to count them.');
+  }
+  if (data && data.summary && data.summary.unlinked > 0) {
+    notes.push(data.summary.unlinked + ' submission ' + (data.summary.unlinked === 1 ? 'group is' : 'groups are') +
+      ' not linked to any account (marked <span class="sc-tag-unlinked">unlinked</span>).');
+  }
+  sub.innerHTML = line + (notes.length ? '<br>' + notes.join(' ') : '');
+}
+
+function scRenderSummary(data) {
+  var s = (data && data.summary) || null;
+  var allMode = data && data.window && data.window.mode === 'all';
+  scSetStat('scStatTotal', s ? s.total : null);
+  scSetStat('scStatSubmitted', s ? s.submitted : null);
+  scSetStat('scStatPending', s ? s.pending : null);
+  scSetStat('scStatLate', s ? (allMode ? '—' : s.late) : null);
+  scSetStat('scStatPct', s ? (s.completion_pct + '%') : null);
+  var bar = document.getElementById('scStatBar');
+  if (bar) bar.style.width = (s ? Math.max(0, Math.min(100, s.completion_pct)) : 0) + '%';
+  var lateCard = document.querySelector('.sc-stat--late');
+  if (lateCard) lateCard.style.opacity = allMode ? '.45' : '';
+}
+
 async function loadSundayCheckins() {
-  const tbody = document.getElementById('sundayCheckinBody');
+  var tbody = document.getElementById('sundayCheckinBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
-  var sf = document.getElementById('scFilterFrom');
-  var st = document.getElementById('scFilterTo');
-  var ss = document.getElementById('scFilterSearch');
-  var qs = [];
-  if (sf && sf.value) qs.push('from=' + encodeURIComponent(sf.value));
-  if (st && st.value) qs.push('to=' + encodeURIComponent(st.value));
-  if (ss && ss.value.trim()) qs.push('search=' + encodeURIComponent(ss.value.trim()));
-  const data = await apiCall('GET', '/api/admin/sunday-checkins' + (qs.length ? '?' + qs.join('&') : ''));
-  if (data && data.error) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(String(data.error)) + '</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  var data = await apiCall('GET', '/api/admin/sunday-checkins/summary' + sundayCheckinQueryString());
+  if (!data || data.error) {
+    _scPayload = null;
+    scRenderSummary(null);
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#e05050;padding:24px">' +
+      escapeHtml(String((data && data.error) || 'Could not load Sunday check-in status.')) + '</td></tr>';
     return;
   }
-  const list = Array.isArray(data) ? data : [];
-  if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:24px">No Sunday check-ins match your filters.</td></tr>';
+  _scPayload = data;
+  _scTz = (data.window && data.window.timezone) || '';
+  scRenderHeader(data);
+  scRenderSummary(data);
+
+  var rows = Array.isArray(data.rows) ? data.rows : [];
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No clients match your filters.</td></tr>';
     return;
   }
-  tbody.innerHTML = list.map(function(r) {
-    var date = r.created_at ? new Date(r.created_at).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' }) : '-';
-    var id = String(r.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-    var dispName = (r.full_name || '').trim() || [r.first_name, r.last_name].filter(Boolean).join(' ') || '—';
-    var oid = adminAttrId(r.id || '');
-    return '<tr class="admin-row-clickable" data-open-kind="sunday" data-open-id="' + oid + '"><td data-label="Name">' + escapeHtml(dispName) + '</td><td data-label="Reply Email">' + escapeHtml(r.reply_email || '-') + '</td><td data-label="Submitted">' + date + '</td><td data-label="Actions" class="btn-view-cell"><button type="button" class="action-btn btn-view" onclick="event.stopPropagation();viewSundayCheckin(\'' + id + '\')">View</button></td></tr>';
+  tbody.innerHTML = rows.map(function(r) {
+    var isMissing = (r.status === 'pending' || r.status === 'never');
+    // "Last Submitted" is always the client's most recent check-in ever, so a pending
+    // row still tells you how long they have been quiet.
+    var main = r.last_submitted_at ? scFmtDateTime(r.last_submitted_at) : 'Never';
+    var subLine = '';
+    if (r.last_submitted_at && isMissing) {
+      subLine = scDaysAgo(r.last_submitted_at);
+    } else if (r.week_submitted_at && r.week_submitted_at !== r.last_submitted_at) {
+      // Viewing a past week: show which submission actually decided this status.
+      subLine = 'This week: ' + scFmtDateTime(r.week_submitted_at);
+    }
+    var name = escapeHtml(r.name || '—') + (r.unlinked ? '<span class="sc-tag-unlinked" title="No matching account — matched by email only">unlinked</span>' : '');
+    return '<tr class="admin-row-clickable' + (isMissing ? ' sc-row-pending' : '') + '"' +
+        ' data-open-kind="sundayuser"' +
+        ' data-open-id="' + adminAttrId(r.key || '') + '"' +
+        ' data-sc-user="' + adminAttrId(r.user_id || '') + '"' +
+        ' data-sc-email="' + adminAttrId(r.email || '') + '">' +
+      '<td data-label="Name">' + name + '</td>' +
+      '<td data-label="Email">' + escapeHtml(r.email || '—') + '</td>' +
+      '<td data-label="Last Submitted">' + escapeHtml(main) +
+        (subLine ? '<span class="sc-cell-sub">' + escapeHtml(subLine) + '</span>' : '') + '</td>' +
+      '<td data-label="Status">' + scBadge(r.status) +
+        (r.total_checkins ? '<span class="sc-cell-sub">' + r.total_checkins + ' total</span>' : '') + '</td>' +
+      '<td data-label="Actions" class="btn-view-cell">' +
+        '<button type="button" class="action-btn btn-view sc-hist-btn" onclick="event.stopPropagation();viewSundayHistoryEl(this)">View History</button>' +
+      '</td></tr>';
   }).join('');
+}
+
+// Read the identifiers off the row/button instead of interpolating them into an inline
+// onclick string — emails and ids never need escaping for a JS string context this way.
+function viewSundayHistoryEl(el) {
+  var tr = el && el.closest ? el.closest('tr[data-sc-email],tr[data-sc-user]') : null;
+  if (!tr) return;
+  viewSundayHistory(tr.getAttribute('data-sc-user') || '', tr.getAttribute('data-sc-email') || '');
+}
+
+async function viewSundayHistory(userId, email) {
+  if (!userId && !email) return;
+  var body = document.getElementById('sundayHistoryBody');
+  var title = document.getElementById('sundayHistoryTitle');
+  if (!body) return;
+  body.innerHTML = '<p class="form-hint">Loading history…</p>';
+  if (title) title.textContent = 'Check-in History';
+  openModal('sundayHistoryModal');
+  var qs = userId ? ('user_id=' + encodeURIComponent(userId)) : ('email=' + encodeURIComponent(email));
+  var d = await apiCall('GET', '/api/admin/sunday-checkins/history?' + qs);
+  if (!d || d.error) {
+    body.innerHTML = '<p class="form-hint" style="color:#e05050">' + escapeHtml(String((d && d.error) || 'Could not load history.')) + '</p>';
+    return;
+  }
+  _scTz = d.timezone || _scTz;
+  var u = d.user || {};
+  if (title) title.textContent = u.name || 'Check-in History';
+
+  var latest = d.latest ? scFmtDateTime(d.latest.created_at) : '—';
+  var head =
+    '<p class="form-hint" style="margin:0 0 18px">' + escapeHtml(u.email || '') +
+      (u.phone ? ' &middot; ' + escapeHtml(u.phone) : '') +
+      (u.linked ? '' : ' &middot; <span class="sc-tag-unlinked">unlinked</span>') +
+      (d.timezone ? ' &middot; times in ' + escapeHtml(d.timezone) : '') + '</p>' +
+    '<div class="sc-hist-meta">' +
+      '<div class="sc-stat"><span class="sc-stat-lbl">Total check-ins</span><span class="sc-stat-val">' + (d.total_checkins || 0) + '</span></div>' +
+      '<div class="sc-stat sc-stat--pct"><span class="sc-stat-lbl">Latest check-in</span><span class="sc-stat-val" style="font-size:15px;font-family:inherit">' + escapeHtml(latest) + '</span></div>' +
+      '<div class="sc-stat"><span class="sc-stat-lbl">Member since</span><span class="sc-stat-val" style="font-size:15px;font-family:inherit">' + escapeHtml(scFmtDate(u.joined_at) || '—') + '</span></div>' +
+    '</div>';
+
+  // Week ledger — the gaps matter as much as the submissions, so missed weeks get a row.
+  var weeks = Array.isArray(d.weeks) ? d.weeks : [];
+  var weekRows = weeks.map(function(w) {
+    var miss = (w.status === 'not_submitted' || w.status === 'not_expected');
+    var label = w.status === 'not_expected' ? 'Before joining'
+      : w.status === 'not_submitted' ? 'Not submitted'
+      : (SC_STATUS_LABEL[w.status] || w.status);
+    var badge = miss
+      ? '<span class="sc-badge sc-badge--' + (w.status === 'not_expected' ? 'never' : 'pending') + '">' + escapeHtml(label) + '</span>'
+      : scBadge(w.status);
+    return '<tr' + (miss ? ' class="sc-hist-miss"' : '') + '>' +
+      '<td>' + escapeHtml(scFmtDate(w.sunday_ymd + 'T12:00:00Z') || w.sunday_ymd) + '</td>' +
+      '<td>' + escapeHtml(w.submitted_at ? scFmtTime(w.submitted_at) : '—') + '</td>' +
+      '<td>' + badge + (w.submissions_in_week > 1 ? '<span class="sc-cell-sub">' + w.submissions_in_week + ' submissions</span>' : '') + '</td>' +
+      '<td style="text-align:right">' + (w.checkin_id
+        ? '<button type="button" class="sc-hist-open" onclick="closeModal(\'sundayHistoryModal\');viewSundayCheckin(this.getAttribute(\'data-cid\'))" data-cid="' + adminAttrId(w.checkin_id) + '">Open</button>'
+        : '') + '</td></tr>';
+  }).join('');
+
+  var subs = Array.isArray(d.submissions) ? d.submissions : [];
+  var subRows = subs.length ? subs.map(function(s) {
+    return '<tr>' +
+      '<td>' + escapeHtml(scFmtDate(s.created_at) || '—') + '</td>' +
+      '<td>' + escapeHtml(scFmtTime(s.created_at) || '—') + '</td>' +
+      '<td>' + escapeHtml(s.plan || '—') + '</td>' +
+      '<td style="text-align:right"><button type="button" class="sc-hist-open" onclick="closeModal(\'sundayHistoryModal\');viewSundayCheckin(this.getAttribute(\'data-cid\'))" data-cid="' + adminAttrId(s.id) + '">Open</button></td>' +
+    '</tr>';
+  }).join('') : '<tr><td colspan="4" style="color:var(--muted)">No submissions yet.</td></tr>';
+
+  body.innerHTML = head +
+    '<div class="sc-hist-sec">Last ' + weeks.length + ' weeks</div>' +
+    '<div class="admin-table-wrap"><table class="sc-hist-table"><thead><tr><th>Sunday</th><th>Time</th><th>Status</th><th></th></tr></thead><tbody>' +
+      (weekRows || '<tr><td colspan="4" style="color:var(--muted)">No weeks to show.</td></tr>') +
+    '</tbody></table></div>' +
+    '<div class="sc-hist-sec">All submissions (' + subs.length + ')</div>' +
+    '<div class="admin-table-wrap"><table class="sc-hist-table"><thead><tr><th>Date</th><th>Time</th><th>Plan</th><th></th></tr></thead><tbody>' +
+      subRows +
+    '</tbody></table></div>';
+}
+
+async function exportSundayCheckinsCsv() {
+  var data = await apiCall('GET', '/api/admin/sunday-checkins/summary' + sundayCheckinQueryString());
+  if (!data || data.error || !Array.isArray(data.rows)) {
+    showPopup('Error', (data && data.error) || 'Could not load Sunday check-in status for export.', '', 'OK', null, 'error');
+    return;
+  }
+  if (!data.rows.length) {
+    showPopup('No data', 'No clients match the current filters.', '', 'OK');
+    return;
+  }
+  var tz = (data.window && data.window.timezone) || '';
+  _scTz = tz || _scTz;
+  var head = ['Name', 'Email', 'Phone', 'Status', 'Last Submitted (' + (tz || 'local') + ')', 'Submitted This Week', 'Total Check-ins', 'Linked Account'];
+  var cell = function(v) {
+    var s = (v == null) ? '' : String(v);
+    return /[",\n\r]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  var lines = data.rows.map(function(r) {
+    return [r.name, r.email, r.phone, SC_STATUS_LABEL[r.status] || r.status,
+      r.last_submitted_at ? scFmtDateTime(r.last_submitted_at) : '',
+      r.week_submitted_at ? scFmtDateTime(r.week_submitted_at) : '',
+      r.total_checkins, r.unlinked ? 'no' : 'yes'].map(cell).join(',');
+  });
+  var label = (data.window && data.window.mode === 'all') ? 'all-time' : (data.window && data.window.sunday_ymd) || 'week';
+  var csv = [head.map(cell).join(',')].concat(lines).join('\r\n');
+  var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'sunday-checkin-status-' + label + '.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 
 async function viewSundayCheckin(id) {
@@ -14168,6 +14590,25 @@ document.addEventListener('keydown', function(e){
 });
 
 function escapeHtml(s) { if (s == null || s === '') return ''; const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+// Client-side twin of the server's contact search: plain substring match across
+// the text fields, plus a digits-only comparison on the phone fields so
+// "9876543210" still matches a number stored as "+91 98765 43210".
+function bbContactMatches(query, textParts, phoneParts) {
+  var q = String(query || '').trim().toLowerCase();
+  if (!q) return true;
+  var phones = (phoneParts || []).filter(Boolean);
+  var hay = (textParts || []).concat(phones).filter(Boolean).join(' ').toLowerCase();
+  if (hay.indexOf(q) !== -1) return true;
+  var digits = q.replace(/\D/g, '');
+  if (digits.length < 4) return false;
+  // Longer inputs also match on the last 10 digits, so a number typed with a
+  // country code still finds the same client saved without one.
+  var needles = digits.length > 10 ? [digits, digits.slice(-10)] : [digits];
+  return phones.some(function (p) {
+    var stored = String(p).replace(/\D/g, '');
+    return needles.some(function (n) { return stored.indexOf(n) !== -1; });
+  });
+}
 function bbUserInitialsFromDisplayName(name) {
   var n = (name || '').trim();
   if (!n) return '?';
@@ -21554,10 +21995,7 @@ function renderAdminMemberships() {
   var q = (qEl && qEl.value ? qEl.value : '').trim().toLowerCase();
   var f = fEl && fEl.value ? fEl.value : 'callqueue';
   var filtered = users.filter(function (u) {
-    if (q) {
-      var hay = ((u.first_name || '') + ' ' + (u.last_name || '') + ' ' + (u.email || '') + ' ' + (u.phone || '')).toLowerCase();
-      if (hay.indexOf(q) === -1) return false;
-    }
+    if (q && !bbContactMatches(q, [u.first_name, u.last_name, u.email], [u.phone])) return false;
     if (f === 'callqueue') return (u.state === 'expired') || (u.state === 'canceled') || ((u.state === 'trialing' || u.state === 'active') && u.days_left != null && u.days_left <= 2);
     if (f === 'all') return true;
     if (f === 'ai_limited') return !u.nutrition_ai_unlimited || !u.ai_trainer_unlimited;
@@ -25183,7 +25621,7 @@ function renderOperatorClients() {
   var filter = (document.getElementById('opClientFilter') || {}).value || 'all';
   var sort = (document.getElementById('opClientSort') || {}).value || 'inactive';
   var rows = list.filter(function (c) {
-    if (q) { var hay = ((c.first_name || '') + ' ' + (c.last_name || '') + ' ' + (c.email || '')).toLowerCase(); if (hay.indexOf(q) === -1) return false; }
+    if (q && !bbContactMatches(q, [c.first_name, c.last_name, c.email], [c.phone])) return false;
     if (filter === 'risk') return (c.inactive_days || 0) >= 2;
     if (filter === 'active') return (c.inactive_days || 0) < 2;
     if (filter === 'trialing') return (c.subscription_status || '') === 'trialing';
@@ -25281,9 +25719,20 @@ async function loadOperatorLeads() {
     var c = d.counts || {};
     var st = document.getElementById('opLeadsStats');
     if (st) st.innerHTML = opLeadStat(c.audits_today || 0, 'Audits today', '#c8a44e') + opLeadStat(c.audits_7d || 0, 'Audits · 7d', '#f6a740') + opLeadStat(c.part2_today || 0, 'Part-2 today', '#5fc88a') + opLeadStat(c.audits_no_account || 0, 'Not signed up', '#e0785a');
-    if (aEl) aEl.innerHTML = (d.audits || []).length ? d.audits.map(opAuditCard).join('') : '<div class="op-empty">No body audits in this period.</div>';
-    if (pEl) pEl.innerHTML = (d.part2 || []).length ? d.part2.map(opPart2Card).join('') : '<div class="op-empty">No Part-2 forms in this period.</div>';
+    window._opLeads = d;
+    renderOperatorLeads();
   } catch (e) { if (aEl) aEl.innerHTML = '<div class="op-empty">Could not load leads.</div>'; }
+}
+
+// Filters the already-loaded prospects by name / email / phone without refetching.
+function renderOperatorLeads() {
+  var d = window._opLeads || {};
+  var aEl = document.getElementById('opLeadsAudits'), pEl = document.getElementById('opLeadsPart2');
+  var q = ((document.getElementById('opLeadsSearch') || {}).value || '').trim();
+  var audits = (d.audits || []).filter(function (a) { return bbContactMatches(q, [a.first_name, a.last_name, a.email], [a.phone]); });
+  var part2 = (d.part2 || []).filter(function (p) { return bbContactMatches(q, [p.name, p.email], [p.mobile]); });
+  if (aEl) aEl.innerHTML = audits.length ? audits.map(opAuditCard).join('') : '<div class="op-empty">' + (q ? 'No body audits match this search.' : 'No body audits in this period.') + '</div>';
+  if (pEl) pEl.innerHTML = part2.length ? part2.map(opPart2Card).join('') : '<div class="op-empty">' + (q ? 'No Part-2 forms match this search.' : 'No Part-2 forms in this period.') + '</div>';
 }
 
 function opMstat(v, l) { return '<div class="op-mstat"><div class="op-mstat-v">' + v + '</div><div class="op-mstat-l">' + escapeHtml(l) + '</div></div>'; }
