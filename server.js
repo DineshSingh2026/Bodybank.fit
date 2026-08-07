@@ -3005,6 +3005,13 @@ function parseSundayBodyFatPercent(raw) {
 app.post('/api/sunday-checkin', rateLimiter(10, 60000), async (req, res) => {
   try {
     const b = req.body || {};
+    // The form no longer asks for a name — fill it from the signed-in profile.
+    if (!b.full_name && b.user_id) {
+      const nu = await queryOne('SELECT first_name, last_name, email FROM users WHERE id = ?', [b.user_id]).catch(() => null);
+      if (nu) {
+        b.full_name = `${nu.first_name || ''} ${nu.last_name || ''}`.trim() || String(nu.email || '').split('@')[0];
+      }
+    }
     if (!b.full_name) return res.status(400).json({ error: 'Full name is required' });
     const bodyFatPct = parseSundayBodyFatPercent(b.body_fat_percent);
     const id = uuidv4();
