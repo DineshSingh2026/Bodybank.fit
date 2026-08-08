@@ -6079,6 +6079,8 @@ button.bb-today-pill{cursor:pointer}
             <span class="bb-today-pill bb-today-pill--streak" id="bbTodayStreakPill" title="Daily check-in streak">🔥 <b id="bbTodayStreakNum">0</b> <i>streak</i></span>
             <button type="button" class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" onclick="bbOpenCoinHistory()" title="Gold coins — tap for activity">◉ <b id="bbTodayCoinNum">0</b> <i>coins</i></button>
             <button type="button" class="bb-today-pill bb-today-pill--freeze" id="bbTodayFreezeBtn" onclick="bbUseStreakFreeze()" title="Protect your streak across a missed day (1/month)" hidden>🧊 Freeze</button>
+            <button type="button" class="bb-today-pill bb-today-pill--refer" onclick="bbOpenRewards()" title="Refer a friend and win your membership back">🎁 <b>Refer</b></button>
+            <button type="button" class="bb-today-pill bb-today-pill--whoop" onclick="bbOpenWhoop()" title="Connect your Whoop data">⌚ <b>Whoop</b></button>
           </div>
           <div class="bb-pulse-score">
             <button type="button" class="bb-today-ring bb-pulse-ring" id="bbTodayRingBtn" onclick="bbTodayFocusChecklist()" aria-label="Your weekly score and today's progress">
@@ -7124,6 +7126,7 @@ button.bb-today-pill{cursor:pointer}
       <div class="admin-tab" data-tab="nutrition" onclick="switchTab('nutrition')">Nutrition AI</div>
       <div class="admin-tab" data-tab="blood" onclick="switchTab('blood')">Blood Reports</div>
       <div class="admin-tab" data-tab="memberships" onclick="switchTab('memberships')">Members</div>
+      <div class="admin-tab" data-tab="referrals" onclick="switchTab('referrals')">Referrals</div>
     </div>
 
     <div class="admin-tab-content-wrap">
@@ -8357,6 +8360,20 @@ button.bb-today-pill{cursor:pointer}
       </div>
 
       <div id="adminBloodReportsList" class="admin-blood-reports-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
+    </div>
+
+    <!-- ===== REFERRALS (read-only awareness; the only action is releasing a held referral) ===== -->
+    <div class="admin-tab-content" id="tab-referrals">
+      <h2 class="section-title">🎁 Referrals</h2>
+      <div class="bb-ref-admin-stats" id="bbRefAdminStats"></div>
+      <div class="bb-ref-admin-filters">
+        <button type="button" class="bb-ref-fbtn active" data-status="" onclick="bbAdminRefFilter(this,'')">All</button>
+        <button type="button" class="bb-ref-fbtn" data-status="signed_up" onclick="bbAdminRefFilter(this,'signed_up')">In progress</button>
+        <button type="button" class="bb-ref-fbtn" data-status="credited" onclick="bbAdminRefFilter(this,'credited')">Credited</button>
+        <button type="button" class="bb-ref-fbtn" data-status="held" onclick="bbAdminRefFilter(this,'held')">⚠ Held</button>
+        <button type="button" class="bb-ref-fbtn" data-status="voided" onclick="bbAdminRefFilter(this,'voided')">Voided</button>
+      </div>
+      <div id="bbRefAdminList" class="bb-ref-admin-list"><div class="bb-ref-muted">Loading…</div></div>
     </div>
 
     <div class="admin-tab-content admin-memberships-page" id="tab-memberships">
@@ -11812,7 +11829,7 @@ async function handleSignup() {
   var sBtn = modal ? modal.querySelector('.form-submit') : null;
   if(sBtn){sBtn.disabled=true;sBtn.classList.add('loading');sBtn._orig=sBtn.innerHTML;sBtn.innerHTML='<span class="btn-spinner"></span> Creating account...';}
   try {
-    const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone, dob, gender, country, timezone, state_province, city, height_cm, client: window.IS_BODYBANK_APP ? 'app' : 'web' });
+    const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone, dob, gender, country, timezone, state_province, city, height_cm, client: window.IS_BODYBANK_APP ? 'app' : 'web', ref: (window.bbRefCode ? window.bbRefCode() : '') });
     if (data.error) {
       window.__bbSignupBloodQueued = null;
       if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
@@ -11862,7 +11879,7 @@ async function handleGoogleCompleteSubmit() {
   var sBtn = modal ? modal.querySelector('.form-submit') : null;
   if (sBtn) { sBtn.disabled = true; sBtn.classList.add('loading'); sBtn._orig = sBtn.innerHTML; sBtn.innerHTML = '<span class="btn-spinner"></span> Creating account...'; }
   try {
-    var data = await apiCall('POST', '/api/auth/google-complete', { id_token: _pendingGoogleToken, phone, password, dob, gender, country, timezone, state_province, city, height_cm, client: window.IS_BODYBANK_APP ? 'app' : 'web' });
+    var data = await apiCall('POST', '/api/auth/google-complete', { id_token: _pendingGoogleToken, phone, password, dob, gender, country, timezone, state_province, city, height_cm, client: window.IS_BODYBANK_APP ? 'app' : 'web', ref: (window.bbRefCode ? window.bbRefCode() : '') });
     if (data.error) { if (sBtn) { sBtn.disabled = false; sBtn.classList.remove('loading'); sBtn.innerHTML = sBtn._orig || 'Complete Sign-up'; } showPopup('Error', data.error, '', 'OK', null, 'error'); return; }
     _pendingGoogleToken = null;
     closeModal('googleCompleteModal');
@@ -15934,7 +15951,7 @@ async function sendAdminAiMessage() {
   });
 })();
 var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members' };
-var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients' };
+var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -16074,6 +16091,7 @@ function switchTab(tab) {
   if (tab === 'nutrition') loadAdminNutritionReport();
   if (tab === 'blood') loadAdminBloodReports();
   if (tab === 'memberships') loadAdminMemberships();
+  if (tab === 'referrals') loadAdminReferrals();
 }
 var adminProgressChartInstances = {};
 function destroyAdminProgressCharts() {
@@ -29845,6 +29863,481 @@ function bbBodyOnboardingKeyHandler(ev) {
   };
 })();
 </script>
+
+<!-- ===================== REFERRALS + WHOOP (self-contained) ===================== -->
+<style>
+.bb-rw-modal{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:9600;display:none;align-items:flex-start;justify-content:center;padding:16px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+.bb-rw-modal.open{display:flex}
+.bb-rw-box{background:#12100c;border:1px solid rgba(200,164,78,.34);border-radius:16px;width:100%;max-width:560px;margin:auto;color:#f2ede2;box-shadow:0 24px 60px rgba(0,0,0,.6)}
+.bb-rw-head{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:16px 18px;border-bottom:1px solid rgba(200,164,78,.2)}
+.bb-rw-title{font-weight:700;font-size:16px;color:#f7dd93;letter-spacing:.2px}
+.bb-rw-close{background:transparent;border:1px solid rgba(255,255,255,.22);color:#e8e2d5;border-radius:8px;padding:6px 10px;font-size:12px;cursor:pointer}
+.bb-rw-close:hover{background:rgba(255,255,255,.08)}
+.bb-rw-body{padding:16px 18px 20px}
+.bb-rw-sec{margin-bottom:20px}
+.bb-rw-sec:last-child{margin-bottom:0}
+.bb-rw-lbl{font-size:11px;letter-spacing:.9px;text-transform:uppercase;color:#a9975f;margin-bottom:8px;font-weight:700}
+.bb-rw-code{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.bb-rw-code input{flex:1 1 190px;min-width:0;background:#0b0a07;border:1px dashed rgba(200,164,78,.5);border-radius:10px;color:#f7dd93;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:15px;font-weight:700;padding:11px 12px;letter-spacing:1px}
+.bb-rw-btn{background:linear-gradient(135deg,#c8a44e,#f7dd93);color:#1a1508;border:0;border-radius:10px;padding:11px 15px;font-weight:700;font-size:13px;cursor:pointer;white-space:nowrap}
+.bb-rw-btn:disabled{opacity:.5;cursor:not-allowed}
+.bb-rw-btn--ghost{background:transparent;border:1px solid rgba(200,164,78,.45);color:#f7dd93}
+.bb-rw-btn--wa{background:linear-gradient(135deg,#1faa55,#25d366);color:#06240f}
+.bb-rw-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.bb-rw-stat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:10px;text-align:center}
+.bb-rw-stat b{display:block;font-size:19px;color:#f7dd93;line-height:1.2}
+.bb-rw-stat span{font-size:10px;text-transform:uppercase;letter-spacing:.6px;color:#9d947f}
+.bb-rw-row{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:11px 12px;margin-bottom:8px}
+.bb-rw-row-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:7px}
+.bb-rw-name{font-weight:600;font-size:13px}
+.bb-rw-chip{font-size:10px;padding:3px 8px;border-radius:999px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap}
+.bb-rw-chip.s-signed_up{background:rgba(200,164,78,.18);color:#f7dd93}
+.bb-rw-chip.s-credited{background:rgba(37,211,102,.16);color:#4ade80}
+.bb-rw-chip.s-qualified{background:rgba(37,211,102,.16);color:#4ade80}
+.bb-rw-chip.s-held{background:rgba(245,158,11,.18);color:#fbbf24}
+.bb-rw-chip.s-voided{background:rgba(255,255,255,.08);color:#9d947f}
+.bb-rw-bar{height:7px;border-radius:999px;background:rgba(255,255,255,.09);overflow:hidden}
+.bb-rw-bar i{display:block;height:100%;background:linear-gradient(90deg,#c8a44e,#f7dd93);border-radius:999px;transition:width .35s ease}
+.bb-rw-bar-lbl{font-size:11px;color:#9d947f;margin-top:5px}
+.bb-rw-muted,.bb-ref-muted{color:#9d947f;font-size:13px}
+.bb-rw-note{font-size:11px;color:#8d856f;margin-top:8px;line-height:1.5}
+.bb-rw-redeem{background:linear-gradient(160deg,rgba(200,164,78,.12),rgba(200,164,78,.03));border:1px solid rgba(200,164,78,.28);border-radius:12px;padding:14px}
+.bb-rw-redeem h4{margin:0 0 4px;font-size:14px;color:#f7dd93}
+.bb-rw-err{background:rgba(220,38,38,.14);border:1px solid rgba(220,38,38,.4);color:#fca5a5;border-radius:9px;padding:9px 11px;font-size:12px;margin-top:10px}
+.bb-rw-ok{background:rgba(37,211,102,.13);border:1px solid rgba(37,211,102,.35);color:#86efac;border-radius:9px;padding:9px 11px;font-size:12px;margin-top:10px}
+.bb-rw-warn{background:rgba(245,158,11,.13);border:1px solid rgba(245,158,11,.38);color:#fcd34d;border-radius:9px;padding:9px 11px;font-size:12px;margin-top:10px;line-height:1.5}
+.bb-rw-file{display:block;width:100%;background:#0b0a07;border:1px dashed rgba(200,164,78,.45);border-radius:10px;padding:16px;color:#c9c1ad;font-size:13px;text-align:center;cursor:pointer}
+.bb-rw-prev{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:12px}
+.bb-rw-prev div{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:9px;text-align:center}
+.bb-rw-prev b{display:block;font-size:17px;color:#f7dd93}
+.bb-rw-prev span{font-size:10px;text-transform:uppercase;letter-spacing:.5px;color:#9d947f}
+.bb-today-pill--refer{cursor:pointer}
+.bb-today-pill--whoop{cursor:pointer}
+.bb-ref-admin-stats{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.bb-ref-admin-filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.bb-ref-fbtn{background:transparent;border:1px solid rgba(200,164,78,.35);color:#b9ad8d;border-radius:999px;padding:6px 13px;font-size:12px;cursor:pointer}
+.bb-ref-fbtn.active{background:rgba(200,164,78,.18);color:#f7dd93;font-weight:700}
+.bb-ref-admin-list{display:flex;flex-direction:column;gap:8px}
+@media (max-width:520px){.bb-rw-stats{grid-template-columns:repeat(3,1fr)}.bb-rw-box{max-width:100%}}
+</style>
+
+<div id="bbRewardsModal" class="bb-rw-modal" role="dialog" aria-modal="true" aria-label="Referrals and rewards" onclick="bbRewardsBg(event)">
+  <div class="bb-rw-box" onclick="event.stopPropagation()">
+    <div class="bb-rw-head">
+      <span class="bb-rw-title">🎁 Refer &amp; Win Your Membership Back</span>
+      <button type="button" class="bb-rw-close" onclick="bbCloseRewards()">✕ Close</button>
+    </div>
+    <div class="bb-rw-body" id="bbRewardsBody"><div class="bb-rw-muted">Loading…</div></div>
+  </div>
+</div>
+
+<div id="bbWhoopModal" class="bb-rw-modal" role="dialog" aria-modal="true" aria-label="Whoop data" onclick="bbWhoopBg(event)">
+  <div class="bb-rw-box" onclick="event.stopPropagation()">
+    <div class="bb-rw-head">
+      <span class="bb-rw-title">⌚ Whoop Data</span>
+      <button type="button" class="bb-rw-close" onclick="bbCloseWhoop()">✕ Close</button>
+    </div>
+    <div class="bb-rw-body" id="bbWhoopBody"><div class="bb-rw-muted">Loading…</div></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+  var num = function (n) { return Number(n || 0).toLocaleString('en-US'); };
+
+  /* ---------------------------- REFERRALS (member) --------------------------- */
+  var refState = { summary: null, busy: false };
+
+  window.bbRewardsBg = function (e) { if (e && e.target && e.target.id === 'bbRewardsModal') window.bbCloseRewards(); };
+  window.bbCloseRewards = function () {
+    var m = document.getElementById('bbRewardsModal');
+    if (m) m.classList.remove('open');
+  };
+
+  window.bbOpenRewards = async function () {
+    if (!window.currentUser || !window.currentUser.token) { alert('Please log in first.'); return; }
+    var m = document.getElementById('bbRewardsModal');
+    var body = document.getElementById('bbRewardsBody');
+    if (!m || !body) return;
+    body.innerHTML = '<div class="bb-rw-muted">Loading…</div>';
+    m.classList.add('open');
+    try {
+      var s = await apiCall('GET', '/api/referrals/summary');
+      if (!s || s.error) { body.innerHTML = '<div class="bb-rw-err">' + esc((s && s.error) || 'Could not load your referral details.') + '</div>'; return; }
+      refState.summary = s;
+      renderRewards();
+    } catch (e) {
+      body.innerHTML = '<div class="bb-rw-err">Could not load your referral details.</div>';
+    }
+  };
+
+  function renderRewards() {
+    var s = refState.summary || {};
+    var cfg = s.config || {};
+    var body = document.getElementById('bbRewardsBody');
+    if (!body) return;
+
+    var rows = Array.isArray(s.referrals) ? s.referrals : [];
+    var listHtml = rows.length ? rows.map(function (r) {
+      var need = Number(r.checkinsNeeded || cfg.qualifyCheckins || 5);
+      var done = Math.min(Number(r.checkinsDone || 0), need);
+      var pct = need > 0 ? Math.round((done / need) * 100) : 0;
+      var st = String(r.status || 'signed_up');
+      var label = { signed_up: 'In progress', qualified: 'Qualified', credited: 'Credited', held: 'On hold', voided: 'Expired' }[st] || st;
+      var barLbl = st === 'credited' ? '✓ ' + num(cfg.coinsPerReferral) + ' coins credited to you'
+        : st === 'voided' ? 'Did not complete check-ins in time'
+        : st === 'held' ? 'Under review — your coach will confirm this one'
+        : done + ' of ' + need + ' check-ins done';
+      return '<div class="bb-rw-row">' +
+        '<div class="bb-rw-row-top"><span class="bb-rw-name">' + esc(r.name || 'Your friend') + '</span>' +
+        '<span class="bb-rw-chip s-' + esc(st) + '">' + esc(label) + '</span></div>' +
+        '<div class="bb-rw-bar"><i style="width:' + (st === 'credited' ? 100 : pct) + '%"></i></div>' +
+        '<div class="bb-rw-bar-lbl">' + esc(barLbl) + '</div></div>';
+    }).join('') : '<div class="bb-rw-muted">No invites yet. Share your link below — you both get ' + num(cfg.refereeBonusDays || 7) + ' days.</div>';
+
+    var wallet = s.wallet || {};
+    var blocks = Number(wallet.redeemableBlocks || 0);
+    var block = Number(cfg.redeemBlock || 1000);
+    var days = Number(cfg.redeemDays || 7);
+    var bal = Number(wallet.balance || 0);
+    var toNext = blocks > 0 ? 0 : Math.max(0, block - (bal % block || 0));
+
+    var redeemHtml = '<div class="bb-rw-redeem"><h4>Win your membership back</h4>' +
+      '<div class="bb-rw-muted" style="margin-bottom:10px">' + num(block) + ' coins = ' + days + ' free days &middot; up to ' +
+      (Number(cfg.redeemMaxBlocks || 3) * days) + ' days per renewal</div>' +
+      '<div class="bb-rw-stats" style="margin-top:0">' +
+      '<div class="bb-rw-stat"><b>' + num(bal) + '</b><span>Coins</span></div>' +
+      '<div class="bb-rw-stat"><b>' + blocks + '</b><span>Redeemable</span></div>' +
+      '<div class="bb-rw-stat"><b>' + (blocks * days) + '</b><span>Free days</span></div>' +
+      '</div>';
+    if (blocks > 0) {
+      redeemHtml += '<div class="bb-rw-code" style="margin-top:12px">' +
+        '<select id="bbRedeemBlocks" class="bb-rw-code" style="flex:1 1 130px;background:#0b0a07;border:1px solid rgba(200,164,78,.4);border-radius:10px;color:#f7dd93;padding:11px;font-weight:700">' +
+        Array.from({ length: blocks }, function (_, i) {
+          return '<option value="' + (i + 1) + '">' + (i + 1) + ' × ' + days + ' days (' + num((i + 1) * block) + ' coins)</option>';
+        }).join('') +
+        '</select>' +
+        '<button type="button" class="bb-rw-btn" id="bbRedeemBtn" onclick="bbRedeemCoins()">Redeem</button></div>';
+    } else {
+      redeemHtml += '<div class="bb-rw-note">' + num(toNext) + ' more coins until your next ' + days + ' free days.</div>';
+    }
+    redeemHtml += '<div id="bbRedeemMsg"></div></div>';
+
+    body.innerHTML =
+      '<div class="bb-rw-sec">' +
+        '<div class="bb-rw-lbl">Your invite link</div>' +
+        '<div class="bb-rw-code">' +
+          '<input id="bbRefLink" type="text" readonly value="' + esc(s.shareUrl || '') + '" onclick="this.select()">' +
+          '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbCopyRefLink(this)">Copy</button>' +
+          '<button type="button" class="bb-rw-btn bb-rw-btn--wa" onclick="bbShareRefWhatsApp()">WhatsApp</button>' +
+        '</div>' +
+        '<div class="bb-rw-note">Your code: <b style="color:#f7dd93">' + esc(s.code || '') + '</b> &middot; They get ' +
+          num(cfg.refereeBonusDays || 7) + ' bonus days. You get ' + num(cfg.coinsPerReferral || 1000) +
+          ' coins once they complete ' + num(cfg.qualifyCheckins || 5) + ' daily check-ins within ' +
+          num(cfg.qualifyWindowDays || 14) + ' days.</div>' +
+      '</div>' +
+      '<div class="bb-rw-sec">' +
+        '<div class="bb-rw-lbl">Your invites</div>' +
+        '<div class="bb-rw-stats" style="margin-top:0;margin-bottom:12px">' +
+          '<div class="bb-rw-stat"><b>' + num((s.stats || {}).invited) + '</b><span>Invited</span></div>' +
+          '<div class="bb-rw-stat"><b>' + num((s.stats || {}).credited) + '</b><span>Credited</span></div>' +
+          '<div class="bb-rw-stat"><b>' + num((s.stats || {}).coinsEarned) + '</b><span>Coins earned</span></div>' +
+        '</div>' + listHtml +
+      '</div>' +
+      '<div class="bb-rw-sec">' + redeemHtml + '</div>';
+  }
+
+  window.bbCopyRefLink = function (btn) {
+    var el = document.getElementById('bbRefLink');
+    if (!el) return;
+    el.select();
+    // btn is passed explicitly — the implicit global `event` is not reliable.
+    var done = function () {
+      if (!btn) return;
+      var t = btn.textContent;
+      btn.textContent = '✓ Copied';
+      setTimeout(function () { btn.textContent = t; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(el.value).then(done, function () { try { document.execCommand('copy'); done(); } catch (_) {} });
+    } else { try { document.execCommand('copy'); done(); } catch (_) {} }
+  };
+
+  window.bbShareRefWhatsApp = function () {
+    var s = refState.summary || {};
+    var cfg = s.config || {};
+    var msg = 'I train with BodyBank and it has genuinely changed how I eat, train and recover.\n\n' +
+      'Use my link and you get ' + num(cfg.refereeBonusDays || 7) + ' bonus days free:\n' + (s.shareUrl || '');
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank', 'noopener');
+  };
+
+  window.bbRedeemCoins = async function () {
+    if (refState.busy) return;
+    var sel = document.getElementById('bbRedeemBlocks');
+    var btn = document.getElementById('bbRedeemBtn');
+    var msg = document.getElementById('bbRedeemMsg');
+    var blocks = sel ? parseInt(sel.value, 10) : 1;
+    if (!blocks) return;
+    refState.busy = true;
+    if (btn) { btn.disabled = true; btn.textContent = 'Redeeming…'; }
+    try {
+      var r = await apiCall('POST', '/api/referrals/redeem', { blocks: blocks });
+      if (!r || r.error) {
+        if (msg) msg.innerHTML = '<div class="bb-rw-err">' + esc((r && r.error) || 'Could not redeem right now.') + '</div>';
+      } else {
+        if (msg) msg.innerHTML = '<div class="bb-rw-ok">' + esc(r.message || 'Days added.') + '</div>';
+        try { if (typeof bbLoadCoinSummary === 'function') bbLoadCoinSummary(true); } catch (_) {}
+        var s2 = await apiCall('GET', '/api/referrals/summary');
+        if (s2 && !s2.error) { refState.summary = s2; renderRewards(); }
+      }
+    } catch (e) {
+      if (msg) msg.innerHTML = '<div class="bb-rw-err">Could not redeem right now.</div>';
+    } finally {
+      refState.busy = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Redeem'; }
+    }
+  };
+
+  /* ------------------------------- WHOOP (member) ---------------------------- */
+  var whoop = { file: null, b64: null, name: '', preview: null, busy: false };
+
+  window.bbWhoopBg = function (e) { if (e && e.target && e.target.id === 'bbWhoopModal') window.bbCloseWhoop(); };
+  window.bbCloseWhoop = function () {
+    var m = document.getElementById('bbWhoopModal');
+    if (m) m.classList.remove('open');
+    whoop.file = null; whoop.b64 = null; whoop.preview = null; whoop.name = '';
+  };
+
+  window.bbOpenWhoop = async function () {
+    if (!window.currentUser || !window.currentUser.token) { alert('Please log in first.'); return; }
+    var m = document.getElementById('bbWhoopModal');
+    if (!m) return;
+    whoop.file = null; whoop.b64 = null; whoop.preview = null; whoop.name = '';
+    m.classList.add('open');
+    renderWhoopIntro();
+    try {
+      var c = await apiCall('GET', '/api/wearables/connection');
+      renderWhoopIntro(c && c.connection);
+    } catch (_) { renderWhoopIntro(null); }
+  };
+
+  function renderWhoopIntro(conn) {
+    var body = document.getElementById('bbWhoopBody');
+    if (!body) return;
+    var connected = conn && String(conn.status || '') === 'connected';
+    var last = conn && conn.last_sync_at ? String(conn.last_sync_at).slice(0, 10) : null;
+    body.innerHTML =
+      '<div class="bb-rw-sec">' +
+        (connected
+          ? '<div class="bb-rw-ok" style="margin-top:0">Whoop connected' + (last ? ' &middot; last upload ' + esc(last) : '') + '</div>'
+          : '<div class="bb-rw-muted">Upload your Whoop export and your recovery, HRV and sleep fill in automatically. No Whoop? Your readiness is still tracked from your daily check-ins.</div>') +
+      '</div>' +
+      '<div class="bb-rw-sec">' +
+        '<div class="bb-rw-lbl">Upload your export</div>' +
+        '<label class="bb-rw-file" for="bbWhoopFile">📦 Choose your Whoop .zip (or a .csv)<br><span class="bb-rw-note" style="display:block;margin-top:6px">Whoop app → Settings → Download my data</span></label>' +
+        '<input id="bbWhoopFile" type="file" accept=".zip,.csv,application/zip,text/csv" style="display:none" onchange="bbWhoopPick(this)">' +
+        '<div id="bbWhoopMsg"></div>' +
+      '</div>' +
+      (connected ? '<div class="bb-rw-sec"><button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbWhoopDisconnect()">Disconnect Whoop</button>' +
+        '<div class="bb-rw-note">Disconnecting stops new uploads. Your existing history is kept.</div></div>' : '');
+  }
+
+  window.bbWhoopPick = function (input) {
+    var f = input && input.files && input.files[0];
+    if (!f) return;
+    var msg = document.getElementById('bbWhoopMsg');
+    if (f.size > 25 * 1024 * 1024) {
+      if (msg) msg.innerHTML = '<div class="bb-rw-err">That file is larger than 25 MB.</div>';
+      return;
+    }
+    whoop.name = f.name;
+    if (msg) msg.innerHTML = '<div class="bb-rw-muted" style="margin-top:10px">Reading ' + esc(f.name) + '…</div>';
+    var fr = new FileReader();
+    fr.onload = function () {
+      var s = String(fr.result || '');
+      var i = s.indexOf('base64,');
+      whoop.b64 = i >= 0 ? s.slice(i + 7) : '';
+      bbWhoopPreview();
+    };
+    fr.onerror = function () { if (msg) msg.innerHTML = '<div class="bb-rw-err">Could not read that file.</div>'; };
+    fr.readAsDataURL(f);
+  };
+
+  async function bbWhoopPreview() {
+    var msg = document.getElementById('bbWhoopMsg');
+    if (!whoop.b64) return;
+    if (msg) msg.innerHTML = '<div class="bb-rw-muted" style="margin-top:10px">Checking your export…</div>';
+    try {
+      var p = await apiCall('POST', '/api/wearables/whoop/preview', { file_base64: whoop.b64, file_name: whoop.name });
+      if (!p || p.error) {
+        if (msg) msg.innerHTML = '<div class="bb-rw-err">' + esc((p && p.error) || 'Could not read that export.') + '</div>';
+        return;
+      }
+      whoop.preview = p;
+      var warn = '';
+      if (Number(p.rowsRejected) > 0) {
+        warn += '<div class="bb-rw-warn">' + num(p.rowsRejected) + ' row(s) could not be read and will be skipped. Nothing is guessed or filled in.</div>';
+      }
+      if (Array.isArray(p.unknownColumns) && p.unknownColumns.length) {
+        warn += '<div class="bb-rw-warn">' + p.unknownColumns.length + ' column(s) were not recognised and will be ignored: ' +
+          esc(p.unknownColumns.slice(0, 4).join(', ')) + (p.unknownColumns.length > 4 ? '…' : '') + '</div>';
+      }
+      if (p.duplicate) {
+        if (msg) msg.innerHTML = '<div class="bb-rw-ok">You have already uploaded this exact export — nothing to do.</div>';
+        return;
+      }
+      if (msg) {
+        msg.innerHTML =
+          '<div class="bb-rw-prev">' +
+            '<div><b>' + num(p.totalDays) + '</b><span>Days found</span></div>' +
+            '<div><b>' + num(p.newDays) + '</b><span>New</span></div>' +
+            '<div><b>' + num(p.existingDays) + '</b><span>Already have</span></div>' +
+            '<div><b>' + num(p.workouts) + '</b><span>Workouts</span></div>' +
+          '</div>' +
+          (p.dateRange && p.dateRange.from ? '<div class="bb-rw-note">' + esc(p.dateRange.from) + ' → ' + esc(p.dateRange.to) + '</div>' : '') +
+          warn +
+          '<div class="bb-rw-code" style="margin-top:12px">' +
+            '<button type="button" class="bb-rw-btn" id="bbWhoopConfirm" onclick="bbWhoopCommit()">Import ' + num(p.newDays) + ' days</button>' +
+            '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbOpenWhoop()">Cancel</button>' +
+          '</div>';
+      }
+    } catch (e) {
+      if (msg) msg.innerHTML = '<div class="bb-rw-err">Could not read that export.</div>';
+    }
+  }
+
+  window.bbWhoopCommit = async function () {
+    if (whoop.busy || !whoop.b64) return;
+    var msg = document.getElementById('bbWhoopMsg');
+    var btn = document.getElementById('bbWhoopConfirm');
+    whoop.busy = true;
+    if (btn) { btn.disabled = true; btn.textContent = 'Importing…'; }
+    try {
+      var r = await apiCall('POST', '/api/wearables/whoop/commit', { file_base64: whoop.b64, file_name: whoop.name });
+      if (!r || r.error) {
+        if (msg) msg.innerHTML = '<div class="bb-rw-err">' + esc((r && r.error) || 'Could not save that export.') + '</div>';
+      } else if (r.duplicate) {
+        if (msg) msg.innerHTML = '<div class="bb-rw-ok">Already imported — nothing changed.</div>';
+      } else {
+        if (msg) msg.innerHTML = '<div class="bb-rw-ok">Imported ' + num(r.daysWritten) + ' days' +
+          (Number(r.checkinsAutoFilled) > 0 ? ' &middot; ' + num(r.checkinsAutoFilled) + ' check-in(s) auto-filled' : '') +
+          (Number(r.rowsRejected) > 0 ? ' &middot; ' + num(r.rowsRejected) + ' row(s) skipped' : '') + '.</div>';
+      }
+    } catch (e) {
+      if (msg) msg.innerHTML = '<div class="bb-rw-err">Could not save that export.</div>';
+    } finally {
+      whoop.busy = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Import'; }
+    }
+  };
+
+  window.bbWhoopDisconnect = async function () {
+    if (!confirm('Disconnect Whoop? Your existing data is kept.')) return;
+    try {
+      await apiCall('POST', '/api/wearables/opt-out', {});
+      window.bbOpenWhoop();
+    } catch (_) {}
+  };
+
+  /* ------------------------------ ADMIN: REFERRALS --------------------------- */
+  var adminRef = { status: '' };
+
+  window.bbAdminRefFilter = function (btn, status) {
+    adminRef.status = status || '';
+    var wrap = btn && btn.parentNode;
+    if (wrap) Array.prototype.forEach.call(wrap.querySelectorAll('.bb-ref-fbtn'), function (b) { b.classList.remove('active'); });
+    if (btn) btn.classList.add('active');
+    window.loadAdminReferrals();
+  };
+
+  window.loadAdminReferrals = async function () {
+    var list = document.getElementById('bbRefAdminList');
+    var statsEl = document.getElementById('bbRefAdminStats');
+    if (!list) return;
+    list.innerHTML = '<div class="bb-ref-muted">Loading…</div>';
+    try {
+      var q = adminRef.status ? ('?status=' + encodeURIComponent(adminRef.status)) : '';
+      var r = await apiCall('GET', '/api/referrals/admin' + q);
+      var rows = (r && r.referrals) || [];
+      if (statsEl) {
+        var credited = rows.filter(function (x) { return x.status === 'credited'; }).length;
+        var held = rows.filter(function (x) { return x.status === 'held'; }).length;
+        var pending = rows.filter(function (x) { return x.status === 'signed_up'; }).length;
+        statsEl.innerHTML =
+          '<div class="bb-rw-stat" style="min-width:96px"><b>' + rows.length + '</b><span>Shown</span></div>' +
+          '<div class="bb-rw-stat" style="min-width:96px"><b>' + pending + '</b><span>In progress</span></div>' +
+          '<div class="bb-rw-stat" style="min-width:96px"><b>' + credited + '</b><span>Credited</span></div>' +
+          '<div class="bb-rw-stat" style="min-width:96px"><b>' + held + '</b><span>Held</span></div>';
+      }
+      if (!rows.length) { list.innerHTML = '<div class="bb-ref-muted">No referrals yet.</div>'; return; }
+      list.innerHTML = rows.map(function (x) {
+        var rer = x.referrer || {}, ree = x.referee || {};
+        var st = String(x.status || '');
+        var when = x.created_at ? String(x.created_at).slice(0, 10) : '';
+        return '<div class="bb-rw-row">' +
+          '<div class="bb-rw-row-top">' +
+            '<span class="bb-rw-name">' + esc(rer.name || rer.email || '—') + ' <span style="color:#8d856f;font-weight:400">referred</span> ' + esc(ree.name || ree.email || '—') + '</span>' +
+            '<span class="bb-rw-chip s-' + esc(st) + '">' + esc(st.replace('_', ' ')) + '</span>' +
+          '</div>' +
+          '<div class="bb-rw-bar-lbl">' + esc(when) + ' &middot; code <b style="color:#f7dd93">' + esc(x.code || '') + '</b>' +
+            (Number(x.coinsAwarded) > 0 ? ' &middot; ' + num(x.coinsAwarded) + ' coins awarded' : '') +
+            (x.held_reason ? ' &middot; held: ' + esc(x.held_reason) : '') + '</div>' +
+          (st === 'held' ? '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" style="margin-top:9px" onclick="bbAdminRefRelease(\'' + esc(x.id) + '\')">Release</button>' : '') +
+          '</div>';
+      }).join('');
+    } catch (e) {
+      list.innerHTML = '<div class="bb-rw-err">Could not load referrals.</div>';
+    }
+  };
+
+  window.bbAdminRefRelease = async function (id) {
+    if (!id || !confirm('Release this held referral? It becomes eligible to be credited.')) return;
+    try {
+      var r = await apiCall('POST', '/api/referrals/admin/' + encodeURIComponent(id) + '/release', {});
+      if (!r || r.error) { alert((r && r.error) || 'Could not release that referral.'); return; }
+      window.loadAdminReferrals();
+    } catch (_) { alert('Could not release that referral.'); }
+  };
+
+  /* The referral code captured from ?ref=CODE, read by both signup paths.
+     Returns '' when there is none — server.js treats that as no referral. */
+  window.bbRefCode = function () {
+    if (window.bbReferralCode) return String(window.bbReferralCode);
+    try { return String(sessionStorage.getItem('bb_ref_code') || ''); } catch (_) { return ''; }
+  };
+
+  /* Prefill the signup form when arriving via /signup?ref=CODE */
+  (function captureRef() {
+    try {
+      var m = String(window.location.search || '').match(/[?&]ref=([^&#]+)/);
+      if (!m) return;
+      var code = decodeURIComponent(m[1]).trim().slice(0, 32);
+      if (!code) return;
+      try { sessionStorage.setItem('bb_ref_code', code); } catch (_) {}
+      window.bbReferralCode = code;
+      fetch(API + '/api/referrals/resolve/' + encodeURIComponent(code))
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d || !d.valid) return;
+          var host = document.querySelector('.signup-form') || document.body;
+          var el = document.createElement('div');
+          el.className = 'bb-rw-ok';
+          el.style.margin = '12px 0';
+          el.innerHTML = '🎁 ' + esc(d.referrerName) + ' invited you — you get <b>' + num(d.bonusDays) + ' bonus days</b> free.';
+          host.insertBefore(el, host.firstChild);
+        })
+        .catch(function () {});
+    } catch (_) {}
+  })();
+})();
+</script>
+<!-- =================== END REFERRALS + WHOOP =================== -->
 
 <!-- WhatsApp FAB – public website -->
 <a class="wa-public-fab" href="https://wa.me/919502575669" target="_blank" rel="noopener noreferrer" aria-label="Chat with us on WhatsApp" title="Chat on WhatsApp">

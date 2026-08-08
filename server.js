@@ -27,6 +27,8 @@ const { safeExtraHttpHeaders, optionalApiAccessLog } = require('./middleware/saf
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
 const { createBloodRouter } = require('./routes/blood');
+const { createReferralRouter } = require('./routes/referrals');
+const { createWearablesRouter } = require('./routes/wearables');
 const { createMarketingAIRouter } = require('./routes/marketingAI');
 const cron = require('node-cron');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
@@ -49,6 +51,9 @@ const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
 const weeklyReportPdf = require('./services/weeklyReportPdf');
 const coinService = require('./services/coinService');
+const referralService = require('./services/referralService');
+const readinessService = require('./services/wearables/readinessService');
+const crypto = require('crypto');
 const { notify, notifyAsync, formatEventMessage } = require('./utils/notify');
 const { sendWhatsApp, sendWhatsAppTemplate } = require('./services/whatsapp');
 const { verifyToken: verifyNutritionPhotoLink } = require('./utils/nutritionPhotoLink');
@@ -274,6 +279,53 @@ async function startTrialForUser(userId, days) {
     [isoFromNow(d), userId]
   );
   return d;
+}
+
+/**
+ * Attach a referral at signup and grant the referee their bonus access days.
+ *
+ * Returns the number of bonus days actually granted (0 if there was no code, the
+ * code was invalid, or the referral was auto-held by the duplicate-device guard).
+ * Never throws — a broken referral must never cost us a new member.
+ */
+async function safeAttachReferral(req, userId) {
+  try {
+    const b = (req && req.body) || {};
+    const code = String(b.ref || b.referral_code || b.referralCode || '').trim();
+    if (!code || !userId) return 0;
+
+    const sha = (v) => crypto.createHash('sha256').update(String(v || '')).digest('hex');
+    const fwd = String((req.headers && req.headers['x-forwarded-for']) || '').split(',')[0].trim();
+    const ip = fwd || req.ip || '';
+    const device = b.device_id || b.deviceId || (req.headers && req.headers['user-agent']) || '';
+
+    const r = await referralService.attachReferralOnSignup(
+      { run, queryOne, queryAll },
+      {
+        refereeUserId: String(userId),
+        code,
+        ipHash: ip ? sha(ip) : null,
+        deviceHash: device ? sha(device) : null
+      }
+    );
+
+    const bonus = (r && r.ok && Number(r.bonusDays) > 0) ? Number(r.bonusDays) : 0;
+    if (!bonus) return 0;
+
+    // Same SQL expression as the coin-redemption path so the two can never drift,
+    // and so unexpired time is extended rather than overwritten.
+    await run(
+      `UPDATE users
+         SET access_expires_at = GREATEST(COALESCE(access_expires_at, NOW()::timestamp), NOW()::timestamp)
+                                 + (?::int * INTERVAL '1 day')
+       WHERE id = ?`,
+      [bonus, String(userId)]
+    );
+    return bonus;
+  } catch (e) {
+    console.warn('[referral attach]', e.message);
+    return 0;
+  }
 }
 
 const app = express();
@@ -1424,6 +1476,20 @@ async function initDB() {
   } catch (e) {
     console.error('Seed check error:', e.message);
   }
+
+  // ---- Referral system tables (idempotent; must run after `users` exists) ----
+  try {
+    await referralService.ensureReferralTables({ run, queryOne, queryAll });
+  } catch (e) {
+    console.error('Referral table init error:', e.message);
+  }
+
+  // ---- Wearable / readiness tables (idempotent; needs `daily_checkins` + its unique index) ----
+  try {
+    await readinessService.ensureReadinessTables({ run, queryOne, queryAll });
+  } catch (e) {
+    console.error('Readiness table init error:', e.message);
+  }
 }
 
 // ============ DEFAULT CAMPAIGN SEED ============
@@ -1731,14 +1797,18 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
       [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'approved']);
     const trialDays = trialDaysForReq(req);
     await startTrialForUser(id, trialDays).catch(() => {});
+    const referralBonusDays = await safeAttachReferral(req, id);
     await addApprovedUserToTribe({ email: emailNorm, first_name: given_name, last_name: family_name, phone: phoneTrimmed, country: geo.country, city: cleanCity });
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, given_name); } catch (_) {}
     notifyAsync('TRIAL_STARTED', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Google' });
     res.json({
       id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', role: 'user',
-      country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays,
-      message: `Your account is ready — enjoy ${trialDays} days of full access.`
+      country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays + referralBonusDays,
+      referral_bonus_days: referralBonusDays,
+      message: referralBonusDays > 0
+        ? `Your account is ready — enjoy ${trialDays + referralBonusDays} days of full access (${trialDays} + ${referralBonusDays} referral bonus).`
+        : `Your account is ready — enjoy ${trialDays} days of full access.`
     });
   } catch (e) {
     console.error('Google complete error:', e);
@@ -1836,14 +1906,18 @@ app.post('/api/auth/apple-complete', rateLimiter(5, 60000), async (req, res) => 
       [id, emailNorm, hash, givenName, familyName, phoneTrimmed, appleSub, geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'approved']);
     const trialDays = trialDaysForReq(req);
     await startTrialForUser(id, trialDays).catch(() => {});
+    const referralBonusDays = await safeAttachReferral(req, id);
     await addApprovedUserToTribe({ email: emailNorm, first_name: givenName, last_name: familyName, phone: phoneTrimmed, country: geo.country, city: cleanCity });
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Apple)', body: `${givenName} ${familyName} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, givenName); } catch (_) {}
     notifyAsync('TRIAL_STARTED', { name: `${givenName} ${familyName}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Apple' });
     res.json({
       id, email: emailNorm, first_name: givenName, last_name: familyName, role: 'user',
-      country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays,
-      message: `Your account is ready — enjoy ${trialDays} days of full access.`
+      country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays + referralBonusDays,
+      referral_bonus_days: referralBonusDays,
+      message: referralBonusDays > 0
+        ? `Your account is ready — enjoy ${trialDays + referralBonusDays} days of full access (${trialDays} + ${referralBonusDays} referral bonus).`
+        : `Your account is ready — enjoy ${trialDays} days of full access.`
     });
   } catch (e) {
     console.error('Apple complete error:', e);
@@ -1874,10 +1948,11 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
         [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, existing.id]);
       const trialDaysR = trialDaysForReq(req);
       await startTrialForUser(existing.id, trialDaysR).catch(() => {});
+      const referralBonusDaysR = await safeAttachReferral(req, existing.id);
       await addApprovedUserToTribe({ email: emailNorm, first_name, last_name, phone, country: geo.country, city: cleanCity });
       try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
       notifyAsync('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDaysR, via: 'Email' });
-      return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDaysR });
+      return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDaysR + referralBonusDaysR, referral_bonus_days: referralBonusDaysR });
     }
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
@@ -1888,11 +1963,12 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     // Instant access: start a free trial right away (no manual approval gate).
     const trialDays = trialDaysForReq(req);
     await startTrialForUser(id, trialDays).catch(() => {});
+    const referralBonusDays = await safeAttachReferral(req, id);
     await addApprovedUserToTribe({ email: emailNorm, first_name, last_name, phone, country: geo.country, city: cleanCity });
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
     notifyAsync('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDays, via: 'Email' });
-    res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays });
+    res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays + referralBonusDays, referral_bonus_days: referralBonusDays });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -3142,6 +3218,20 @@ async function safeAwardCoins(userId, eventType, eventKey, coinsDelta, meta, cre
   }
 }
 
+/**
+ * Advance any referral this member is the *referee* of. Idempotent and never
+ * throws, so it is safe to fire on every check-in; the coin ledger's unique
+ * event_key is what actually guarantees the referrer is paid exactly once.
+ */
+async function safeCheckReferralQualification(userId) {
+  try {
+    if (!userId) return;
+    await referralService.checkQualification({ run, queryOne, queryAll }, String(userId));
+  } catch (e) {
+    console.warn('[referral qualification]', e.message);
+  }
+}
+
 async function safeApplyCoinPenaltiesForUser(userId) {
   try {
     if (!userId) return;
@@ -3192,6 +3282,8 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
       { checkinDate: today },
       today
     );
+    // A daily check-in is the qualifying event for whoever referred this member.
+    await safeCheckReferralQualification(userId);
     if (waterMl != null && waterMl >= 2000) {
       await safeAwardCoins(
         userId,
@@ -8040,6 +8132,17 @@ app.post('/api/admin/users/:id/membership-lock', verifyToken, requireAdminOrSupe
 // and push a "call queue" digest to admins. Also runnable on demand (endpoint below).
 async function runMembershipLifecycleJob() {
   const nowIso = new Date().toISOString();
+
+  // Void referrals whose qualification window lapsed without the referee hitting
+  // the check-in bar. Deliberately runs first so the call-queue digest below
+  // reflects an already-settled referral state.
+  try {
+    const voided = await referralService.voidExpiredReferrals({ run, queryOne, queryAll });
+    if (voided && voided.voided) console.log(`[referrals] voided ${voided.voided} expired referral(s)`);
+  } catch (e) {
+    console.warn('[referrals void sweep]', e.message);
+  }
+
   const expiredRows = await queryAll(
     "SELECT id, email, first_name, last_name, phone FROM users WHERE role='user' AND subscription_status IN ('trialing','active') AND access_expires_at IS NOT NULL AND access_expires_at < ?",
     [nowIso]
@@ -9105,6 +9208,29 @@ app.use(
   })
 );
 app.use('/api/marketing-ai', createMarketingAIRouter({ run, queryAll }));
+app.use(
+  '/api/referrals',
+  createReferralRouter({
+    run,
+    queryOne,
+    queryAll,
+    verifyToken,
+    requireAdminOrSuperadmin,
+    rateLimiter,
+    publicOrigin: process.env.PUBLIC_URL || process.env.APP_ORIGIN || ''
+  })
+);
+app.use(
+  '/api/wearables',
+  createWearablesRouter({
+    run,
+    queryOne,
+    queryAll,
+    verifyToken,
+    requireAdminOrSuperadmin,
+    rateLimiter
+  })
+);
 app.get('/api/admin/user-progress/:userId', (req, res, next) => {
   if (NODE_ENV === 'development' && (!req.headers.authorization || !String(req.headers.authorization).startsWith('Bearer '))) {
     return progressService.getAdminUserProgress(req.params.userId)

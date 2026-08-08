@@ -1,0 +1,11 @@
+Cycle start time,Question text,Answered yes/no,Notes
+2025-03-09T22:10:00.000+05:30,Have you consumed any alcohol?,false,
+2025-03-09T22:10:00.000+05:30,Did you have any caffeine?,true,"Two coffees, one before noon"
+2025-03-10T22:00:00.000+05:30,Did you read (non-work) while in bed?,true,
+2025-03-11T21:55:00.000+05:30,Did you have any caffeine?,true,"Espresso, ~4pm - later than usual"
+2025-03-13T22:20:00.000+05:30,Did you share your bed with a partner or pet?,false,
+2025-03-14T09:00:00.000-07:00,Did you travel by plane?,true,"SFO to BLR, long haul"
+2025-03-15T22:05:00.000+05:30,Have you consumed any alcohol?,true,Two glasses of wine
+2025-03-18T22:30:00.000+05:30,Did you meditate?,true,
+2025-99-99T00:00:00.000+05:30,Did you stretch?,false,
+2025-03-16T22:15:00.000+05:30,Did you use any sleep aids?,false,"Melatonin 3mg, ""just in case"""
