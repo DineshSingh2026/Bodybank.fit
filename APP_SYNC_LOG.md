@@ -37,7 +37,59 @@ Before every mobile release:
 
 ## Pending sync — next mobile release
 
-_(empty — synced 2026-06-24; see below)_
+_(empty — synced 2026-08-10; see below)_
+
+---
+
+## 2026-08-10 — synced to mobile repo (six-week catch-up release, v1.4.0, versionCode 19)
+
+Ran `npm run build:www` + `npx cap sync android` + `npx cap copy ios` in `../bodybank-app/`;
+bumped Android `versionCode 18→19`, `versionName 1.3.7→1.4.0`. This closes the gap from web
+commit `bcf00c4` (last synced) up to `23685c7` — everything in the **user**, **admin** and
+**operator** surfaces is now in the app bundle.
+
+### Native change in this release — download bridge
+
+Every "download" in the web app builds a `Blob`, wraps it in `URL.createObjectURL()` and clicks
+a hidden `<a download>`. Android's WebView has no download manager wired up by Capacitor, and a
+`blob:` URL cannot be handed to the native `DownloadManager` anyway — so **inside the app those
+clicks silently did nothing.** That broke the blood-report PDF, the progress-report PDF, all four
+admin status-dashboard CSV exports, the nutrition/leaderboard CSVs, and the meal/share card saves.
+
+`src-web/bb-app-config.js` now intercepts `a[download]` clicks (both `a.click()` from code and
+real taps), resolves the Blob, writes it to the app cache via `@capacitor/filesystem`, and opens
+the native share sheet via `@capacitor/share` so the user can save it to Files/Drive or open it
+in a PDF viewer. `URL.createObjectURL`/`revokeObjectURL` are wrapped so the Blob survives the
+call sites that revoke on the very next line. Web/PWA behaviour is untouched — the whole block is
+inside the `isNativeApp()` guard.
+
+New deps: `@capacitor/filesystem@7.1.8`, `@capacitor/share@7.0.4`. Neither adds a manifest
+permission; Share reuses the FileProvider + `res/xml/file_paths.xml` (`cache-path`) already
+declared for the app. Codemagic's iOS lane runs `npx cap sync ios`, so the pods install there
+automatically.
+
+| Web commit | What it is | Notes |
+| ---------- | ---------- | ----- |
+| `23685c7` | feat(referrals+whoop): referral programme and Whoop readiness integration | Member Rewards modal (invite link, copy/WhatsApp share, coin redemption), Whoop `.zip`/`.csv` import, admin **Referrals** tab. Share URL is server-built from the public origin, so it stays `bodybank.fit` inside the app. Whoop is a file import — no OAuth, no deep link needed. |
+| `858238c` | feat(checkin): drop Full Name from Sunday form, compact status dashboard rows | Frontend only. |
+| `f0aa310` | feat(admin): status dashboards for Daily check-in, Audit form and Part-2 | Adds three CSV exports — **these needed the download bridge above.** |
+| `e33edd6` | feat(admin): Sunday check-in status dashboard + contact phone search | Adds a CSV export. |
+| `121de5d` | feat(blood): longitudinal report comparison + member progress view | Admin progress-review workspace + branded Progress PDF download. |
+| `cd05b7a` | feat(auth): standalone /signin and /signup pages | New `public/signin.html`, `public/signup.html`, `css/auth-pages.css`, `js/auth-pages.js` — bundled into `www/` and given the app-config injection. Not reachable in-app (the app boots `index.html`), but shipped so the tree stays a faithful mirror. |
+| `8c657a1` | feat(admin): Export CSV on Part-2 forms tab | Download bridge. |
+| `fa9961b` | fix(operator): stop action-button label overlap in client-detail modal | |
+| `478cc44` | fix(admin): scrollable lead modal, client-grouped form lists, reliable meal-image download | |
+| `3d84445` / `85b29bc` | feat(blood): admin **and** operator can upload + process a client's blood report | `<input accept=".pdf,image/*">` — Capacitor maps the `.pdf` extension to `application/pdf` for the SAF picker, so PDF selection works in-app. |
+| `f6f89e7` | feat: remove AI Coach entirely | Reverses `6a91446` + `a242d2d`; net effect on the bundle is removal. |
+| `d01fb65` | feat(onboarding): first-sign-in app guide + re-openable "?" button | |
+| `7af6bfb` / `6b5faf2` | feat(blood): branded PDF + 3 upload slots + operator report access | The PDF download is the headline reason for the download bridge. |
+| `fbe5a01` `badf400` `d08852b` `14a320c` `c107343` | feat/fix(operator): read-only monitoring dashboard (4th role) | Already carries the Android safe-area fix (`html.android-mobile` + JS-managed `--safe-top`) and the per-tab refresh fix. |
+
+Backend work in the same window (blood-report PDF generation, referral/Whoop services, operator
+endpoints, membership lifecycle) deploys via Render and reaches web + app with no rebuild.
+
+`public/sw.js` cache `v64→v66` — mirrored, but inert in the app (service-worker registration is
+stubbed out by `bb-app-config.js`).
 
 ---
 
