@@ -37,7 +37,39 @@ Before every mobile release:
 
 ## Pending sync — next mobile release
 
-_(empty — synced 2026-08-10; see below)_
+_(empty — synced 2026-08-11; see below)_
+
+---
+
+## 2026-08-11 — synced to mobile repo (Whoop readiness product, v1.5.0, versionCode 20)
+
+Ran `npm run build:www` + `npx cap sync android` + `npx cap copy ios`; bumped Android
+`versionCode 19→20`, `versionName 1.4.0→1.5.0`. Signed AAB at
+`android/app/build/outputs/bundle/release/app-release.aab`.
+
+Frontend-only sync — the backend (new tables, endpoints, PDF ingestion) deploys via Render and
+reaches web + app with no rebuild. `public/sw.js` cache `v66→v67` (inert in the app, which stubs
+out service-worker registration).
+
+| Web commit | What it is | Notes |
+| ---------- | ---------- | ----- |
+| `955a77e` | feat(whoop): surface the readiness product | The Whoop engine was complete and unreachable — a member could import their whole history and nothing appeared. Adds the Today-screen readiness card, a 7/30/90-day detail view, the AI report and branded PDF (both endpoints already existed and had never been called), derived readiness for members *without* Whoop, and per-client readiness/workouts/journal for admin **and** operator. New `wearable_workouts` + `wearable_journal` tables stop the import silently discarding every workout and journal entry. Prefill batched (was ~2,200 sequential round-trips per import — a Render timeout). PDF import via `whoopPdfExtract.js`. |
+
+**App-specific notes**
+
+- The readiness PDF download uses the same detached-anchor `blob:` + `<a download>` pattern as
+  the blood-report download, so the native download bridge added in v1.4.0 intercepts it. Any
+  other approach (`window.open`, a direct href to an API URL) silently does nothing in the app —
+  this was checked explicitly during review.
+- No new Capacitor plugins; the v1.4.0 plugin set is unchanged.
+- The Whoop upload input now accepts `.pdf` alongside `.zip`/`.csv`. Capacitor maps the extension
+  to `application/pdf` for the SAF picker, so PDF selection works in-app.
+
+**Verified before release:** 578 unit checks, the full e2e suite, and a live import over HTTP
+against a real Postgres (preview writes nothing; commit persists 11 days / 7 workouts / 9 journal
+entries; re-upload is a no-op; cross-member reads refused; stats-only PDF renders real bytes).
+**Not verified:** PDF ingestion against a genuine Whoop PDF — the extractor is unit-tested with a
+stubbed model and no live Claude call has been made through it.
 
 ---
 
