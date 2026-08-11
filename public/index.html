@@ -6080,7 +6080,7 @@ button.bb-today-pill{cursor:pointer}
             <button type="button" class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" onclick="bbOpenCoinHistory()" title="Gold coins — tap for activity">◉ <b id="bbTodayCoinNum">0</b> <i>coins</i></button>
             <button type="button" class="bb-today-pill bb-today-pill--freeze" id="bbTodayFreezeBtn" onclick="bbUseStreakFreeze()" title="Protect your streak across a missed day (1/month)" hidden>🧊 Freeze</button>
             <button type="button" class="bb-today-pill bb-today-pill--refer" onclick="bbOpenRewards()" title="Refer a friend and win your membership back">🎁 <b>Refer</b></button>
-            <button type="button" class="bb-today-pill bb-today-pill--whoop" onclick="bbOpenWhoop()" title="Connect your Whoop data">⌚ <b>Whoop</b></button>
+            <button type="button" class="bb-today-pill bb-today-pill--whoop" onclick="bbOpenReadiness()" title="Your readiness, recovery and Whoop data">⌚ <b>Readiness</b></button>
           </div>
           <div class="bb-pulse-score">
             <button type="button" class="bb-today-ring bb-pulse-ring" id="bbTodayRingBtn" onclick="bbTodayFocusChecklist()" aria-label="Your weekly score and today's progress">
@@ -6107,6 +6107,8 @@ button.bb-today-pill{cursor:pointer}
               </div>
             </div>
           </div>
+          <div class="bb-pulse-sec-label" id="bbRdHomeLabel" hidden>Readiness</div>
+          <button type="button" class="bb-rd-card" id="bbRdHome" onclick="bbOpenReadiness()" aria-label="Open your readiness detail" hidden></button>
           <div class="bb-pulse-sec-label">This week · pillars</div>
           <div class="bb-pulse-pillars" id="bbPulsePillars"></div>
           <div class="bb-pulse-sec-label">Today's habits</div>
@@ -7959,6 +7961,7 @@ button.bb-today-pill{cursor:pointer}
           <div id="adminCpSubTabs" class="admin-cp-subtabs" style="display:none;margin:0 0 14px 0;border-bottom:1px solid rgba(255,255,255,0.08);gap:0;flex-wrap:nowrap;overflow-x:auto">
             <button type="button" class="admin-cp-subtab active" data-cp-subtab="progress" onclick="bbAdminCpSwitchSubtab('progress')" style="padding:10px 16px;background:none;border:none;border-bottom:2px solid var(--gold);color:var(--gold);font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:12px;cursor:pointer">Progress</button>
             <button type="button" class="admin-cp-subtab" data-cp-subtab="body" onclick="bbAdminCpSwitchSubtab('body')" style="padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:12px;cursor:pointer">Body</button>
+            <button type="button" class="admin-cp-subtab" data-cp-subtab="readiness" onclick="bbAdminCpSwitchSubtab('readiness')" style="padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:12px;cursor:pointer">Readiness</button>
           </div>
           <div id="adminCpDetail"><p class="admin-cp-placeholder">Select a user to view progress.</p></div>
           <div id="adminCpKpis" class="admin-cp-kpis" style="display:none"></div>
@@ -7997,6 +8000,11 @@ button.bb-today-pill{cursor:pointer}
           <div id="adminCpBodyPanel" class="admin-cp-body-panel" style="display:none;margin-top:20px">
             <div id="adminCpBodyStatus" class="admin-cp-placeholder">Loading shared snapshots…</div>
             <div id="adminCpBodyGrid" class="admin-cp-body-grid" style="display:none;gap:14px;flex-wrap:wrap"></div>
+          </div>
+          <!-- Readiness sub-tab — the member's own readiness view, mounted on the coach's
+               read-only client endpoints. Filled by bbRdMountClient, not by markup. -->
+          <div id="adminCpReadinessPanel" style="display:none;margin-top:20px;max-width:860px">
+            <div id="adminCpReadinessBody"><p class="admin-cp-placeholder">Loading readiness…</p></div>
           </div>
         </div>
       </div>
@@ -16671,6 +16679,14 @@ async function loadAdminUserProgressDetail(userId, userName) {
     window._adminCpBodyLoadedFor = null;
     window._adminCpBodySnapshots = [];
   }
+  // Same for the readiness view — a mount left over from the previous client would
+  // show that client's recovery under this client's name.
+  if (window._adminCpRdLoadedFor !== userId) {
+    window._adminCpRdLoadedFor = null;
+    if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('admincp');
+    var rdHost = document.getElementById('adminCpReadinessBody');
+    if (rdHost) rdHost.innerHTML = '<p class="admin-cp-placeholder">Loading readiness…</p>';
+  }
   var detailEl = document.getElementById('adminCpDetail');
   var kpisEl = document.getElementById('adminCpKpis');
   var chartsEl = document.getElementById('adminCpCharts');
@@ -16780,6 +16796,7 @@ async function loadAdminUserProgressDetail(userId, userName) {
 // We don't tear down the Progress DOM; we just hide/show it so revisiting is instant.
 window._adminCpBodySnapshots = [];
 window._adminCpBodyLoadedFor = null;
+window._adminCpRdLoadedFor = null;
 function bbAdminCpSwitchSubtab(which) {
   var tabs = document.querySelectorAll('.admin-cp-subtab');
   for (var i = 0; i < tabs.length; i++) {
@@ -16793,18 +16810,46 @@ function bbAdminCpSwitchSubtab(which) {
   var kpisEl = document.getElementById('adminCpKpis');
   var chartsEl = document.getElementById('adminCpCharts');
   var bodyPanel = document.getElementById('adminCpBodyPanel');
-  if (which === 'body') {
-    if (detailEl) detailEl.style.display = 'none';
-    if (kpisEl) kpisEl.style.display = 'none';
-    if (chartsEl) chartsEl.style.display = 'none';
-    if (bodyPanel) bodyPanel.style.display = '';
-    bbAdminCpLoadBody();
-  } else {
-    if (detailEl) detailEl.style.display = '';
-    if (kpisEl && kpisEl.innerHTML.trim()) kpisEl.style.display = 'grid';
-    if (chartsEl && chartsEl.children && chartsEl.children.length) chartsEl.style.display = 'grid';
-    if (bodyPanel) bodyPanel.style.display = 'none';
+  var rdPanel = document.getElementById('adminCpReadinessPanel');
+  var isBody = (which === 'body');
+  var isReadiness = (which === 'readiness');
+  var isProgress = !isBody && !isReadiness;
+  if (detailEl) detailEl.style.display = isProgress ? '' : 'none';
+  if (kpisEl) kpisEl.style.display = (isProgress && kpisEl.innerHTML.trim()) ? 'grid' : 'none';
+  if (chartsEl) chartsEl.style.display = (isProgress && chartsEl.children && chartsEl.children.length) ? 'grid' : 'none';
+  if (bodyPanel) bodyPanel.style.display = isBody ? '' : 'none';
+  if (rdPanel) rdPanel.style.display = isReadiness ? '' : 'none';
+  if (isBody) bbAdminCpLoadBody();
+  if (isReadiness) bbAdminCpLoadReadiness();
+}
+
+// Readiness sub-tab: Whoop recovery/HRV/sleep/strain, workouts and journal for the
+// selected client, plus the branded PDF. Nothing is rendered here — this mounts the
+// same view the member sees onto /api/wearables/admin/:id/*, so the "a missing figure
+// is a dash, never a zero" rule is the member's rule, not a second copy of it.
+function bbAdminCpLoadReadiness() {
+  var userId = window._adminCpSelectedUserId || '';
+  var host = document.getElementById('adminCpReadinessBody');
+  if (!host) return;
+  if (!userId) {
+    host.innerHTML = '<p class="admin-cp-placeholder">Select a user from the list first.</p>';
+    return;
   }
+  if (typeof window.bbRdMountClient !== 'function') {
+    host.innerHTML = '<div class="admin-cp-error-msg">Readiness view is unavailable on this build.</div>';
+    return;
+  }
+  // Already mounted for this client — re-mounting would throw away the coach's
+  // chosen window and any report they just generated.
+  if (window._adminCpRdLoadedFor === userId) return;
+  window._adminCpRdLoadedFor = userId;
+  window.bbRdMountClient({
+    key: 'admincp',
+    scope: 'admin',
+    el: 'adminCpReadinessBody',
+    userId: userId,
+    name: window._adminCpSelectedClientName || ''
+  });
 }
 
 async function bbAdminCpLoadBody() {
@@ -17063,6 +17108,10 @@ async function loadClientProgressUsers() {
   var cpBodyPanel = document.getElementById('adminCpBodyPanel');
   if (cpSubtabs) cpSubtabs.style.display = 'none';
   if (cpBodyPanel) cpBodyPanel.style.display = 'none';
+  var cpRdPanel = document.getElementById('adminCpReadinessPanel');
+  if (cpRdPanel) cpRdPanel.style.display = 'none';
+  window._adminCpRdLoadedFor = null;
+  if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('admincp');
   window._adminCpSelectedUserId = null;
   window._adminCpSelectedClientName = '';
   destroyAdminProgressCharts();
@@ -18437,6 +18486,7 @@ function bbPulseShowSkeleton(){
   if (!window._bbHomeData) {
     var pe = document.getElementById('bbPulsePillars'); if (pe && !pe.children.length) pe.innerHTML = bbSkelRows(4, 'pillar');
     var he = document.getElementById('bbPulseHabits'); if (he && !he.children.length) he.innerHTML = bbSkelRows(4, 'habit');
+    var re = document.getElementById('bbRdHome'); if (re && !re.innerHTML) re.innerHTML = bbSkelRows(2, 'habit');
   }
   hero.hidden = false;
 }
@@ -18564,6 +18614,8 @@ function renderTodayHero(data){
     var cw = streak.checkinsThisWeek;
     if (cw != null) { weekEl.textContent = '✅ ' + cw + '/7 check-ins this week'; weekEl.hidden = false; }
   }
+  // Readiness card — its own endpoint, so it loads alongside rather than inside /api/me/home.
+  try { if (typeof bbRdHomeLoad === 'function') bbRdHomeLoad(); } catch(e){ console.warn('readiness card', e); }
   hero.hidden = false;
 }
 
@@ -23300,8 +23352,14 @@ function bbProgTargets() {
 // Tiny inline SVG sparkline for one marker's values across reports. Single series,
 // so no legend; colour carries clinical direction and is always paired with an
 // arrow + % label elsewhere in the row (never colour-alone).
+// NOTE: a second, older 2-arg bbSparkline(vals, color) is declared earlier in this same
+// script block. Hoisting makes THIS declaration win for the whole block, so the older
+// call sites arrive with w/h undefined. Defaulting them to that version's 50x16 keeps
+// those sparklines rendering instead of emitting a NaN viewBox the browser drops.
 function bbSparkline(values, color, w, h) {
-  var nums = values.filter(function (v) { return typeof v === 'number' && isFinite(v); });
+  w = (typeof w === 'number' && isFinite(w)) ? w : 50;
+  h = (typeof h === 'number' && isFinite(h)) ? h : 16;
+  var nums = (values || []).filter(function (v) { return typeof v === 'number' && isFinite(v); });
   if (nums.length < 2) return '';
   var min = Math.min.apply(null, nums);
   var max = Math.max.apply(null, nums);
@@ -26288,23 +26346,29 @@ async function openOperatorClient(id) {
       + '<button type="button" class="op-dtab" data-dtab="overview" onclick="opDetailTab(\'overview\')">Overview</button>'
       + '<button type="button" class="op-dtab" data-dtab="nutrition" onclick="opDetailTab(\'nutrition\')">Nutrition</button>'
       + '<button type="button" class="op-dtab" data-dtab="workouts" onclick="opDetailTab(\'workouts\')">Workouts</button>'
-      + '<button type="button" class="op-dtab" data-dtab="body" onclick="opDetailTab(\'body\')">Body</button></div>';
+      + '<button type="button" class="op-dtab" data-dtab="body" onclick="opDetailTab(\'body\')">Body</button>'
+      + '<button type="button" class="op-dtab" data-dtab="readiness" onclick="opDetailTab(\'readiness\')">Readiness</button></div>';
     var content = '<div id="opDetail-profile">' + opBuildProfile(d) + '</div>'
       + '<div id="opDetail-overview" style="display:none">' + opBuildOverview(d) + '</div>'
       + '<div id="opDetail-nutrition" style="display:none">' + opBuildNutrition(d) + '</div>'
       + '<div id="opDetail-workouts" style="display:none">' + opBuildWorkouts(d) + '</div>'
-      + '<div id="opDetail-body" style="display:none">' + opBuildBody(d) + '</div>';
+      + '<div id="opDetail-body" style="display:none">' + opBuildBody(d) + '</div>'
+      + '<div id="opDetail-readiness" style="display:none">' + opBuildReadiness() + '</div>';
     if (body) {
+      // The previous client's readiness charts point at canvases that are about to be
+      // replaced — tear them down before the DOM under them disappears.
+      if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('oprd');
       body.innerHTML = actions + tabs + content;
       body.scrollTop = 0;
       window._opDetailDrawn = {};
       opDetailTab('profile');
+      opLoadReadinessCard(id);
     }
   } catch (e) { if (body) body.innerHTML = '<div class="op-empty">Could not load client.</div>'; }
 }
 function opDetailTab(tab) {
   document.querySelectorAll('#opDetailTabs .op-dtab').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-dtab') === tab); });
-  ['profile', 'overview', 'nutrition', 'workouts', 'body'].forEach(function (t) { var el = document.getElementById('opDetail-' + t); if (el) el.style.display = (t === tab) ? 'block' : 'none'; });
+  ['profile', 'overview', 'nutrition', 'workouts', 'body', 'readiness'].forEach(function (t) { var el = document.getElementById('opDetail-' + t); if (el) el.style.display = (t === tab) ? 'block' : 'none'; });
   var mb = document.getElementById('opModalBody'); if (mb) mb.scrollTop = 0;
   window._opDetailDrawn = window._opDetailDrawn || {};
   if (window._opDetailDrawn[tab]) return;
@@ -26315,6 +26379,63 @@ function opDetailTab(tab) {
   } else if (tab === 'nutrition') opDrawNutritionChart();
   else if (tab === 'workouts') opDrawStrengthChart();
   else if (tab === 'body') { opDrawBodyWeightChart(); opLoadMuscleRanking(); }
+  else if (tab === 'readiness') opMountReadiness();
+}
+// Readiness tab. The shell is operator chrome; the view inside it is the member's own
+// readiness renderer mounted on /api/wearables/operator/:id/* — read-only, and the
+// single implementation of "a figure nobody measured is a dash, never a zero".
+function opBuildReadiness() {
+  return '<div class="op-msub">Readiness &amp; recovery</div>'
+    + '<div id="opDetailReadinessBody"><div class="op-empty">Loading…</div></div>';
+}
+function opMountReadiness() {
+  var c = window._opCurrentClient;
+  var host = document.getElementById('opDetailReadinessBody');
+  if (!host) return;
+  if (!c || !c.id) { host.innerHTML = '<div class="op-empty">No client selected.</div>'; return; }
+  if (typeof window.bbRdMountClient !== 'function') { host.innerHTML = '<div class="op-empty">Readiness view is unavailable on this build.</div>'; return; }
+  window.bbRdMountClient({ key: 'oprd', scope: 'operator', el: 'opDetailReadinessBody', userId: c.id, name: c.name || '' });
+}
+// One compact readiness card for the operator profile — the latest day that actually
+// carries a score, its four headline numbers and the change since the previous scored
+// day. The facts come from bbRdSummarise, so nothing is computed twice.
+function opReadinessCard(s) {
+  if (!s) return '<div class="op-empty">No readiness data in the last 14 days.</div>';
+  var when = s.isToday ? 'Today' : escapeHtml(s.dayLabel);
+  var h = '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px;margin-bottom:10px">';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
+    + '<span style="font-weight:700;font-size:13px">' + (s.isDerived ? 'Readiness' : 'Recovery') + ' ' + escapeHtml(s.scoreText) + ' · ' + when + '</span>'
+    + '<button type="button" class="op-btn line" style="flex:0 0 auto;padding:8px 12px" onclick="opDetailTab(\'readiness\')">📈 Open</button>'
+    + '</div>';
+  h += '<div class="op-mstat-grid" style="margin-top:10px">'
+    + s.metrics.map(function (m) { return opMstat(escapeHtml(m.text), m.label); }).join('')
+    + '</div>';
+  h += opKV('Source', s.isDerived ? 'Derived from check-ins' : escapeHtml(s.source));
+  h += opKV('Change', s.delta == null
+    ? '— no earlier scored day'
+    : escapeHtml((s.delta >= 0 ? '+' : '') + s.delta + ' vs ' + s.prevLabel));
+  if (s.isDerived && s.confidence != null) h += opKV('Confidence', escapeHtml(String(s.confidence)) + ' · not measured');
+  h += '</div>';
+  return h;
+}
+async function opLoadReadinessCard(id) {
+  var host = document.getElementById('opRdProfileCard');
+  if (!host) return;
+  if (typeof window.bbRdSummarise !== 'function') { host.innerHTML = '<div class="op-empty">Readiness view is unavailable on this build.</div>'; return; }
+  var ymd = function (d) {
+    var m = d.getMonth() + 1, day = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+  };
+  var to = new Date(), from = new Date();
+  from.setDate(from.getDate() - 13);
+  try {
+    var r = await apiCall('GET', '/api/wearables/operator/' + encodeURIComponent(id) +
+      '/readiness?from=' + ymd(from) + '&to=' + ymd(to));
+    if (!r || r.error) { host.innerHTML = '<div class="op-empty">' + escapeHtml((r && r.error) || 'Could not load readiness.') + '</div>'; return; }
+    host.innerHTML = opReadinessCard(window.bbRdSummarise(r.readiness || []));
+  } catch (e) {
+    host.innerHTML = '<div class="op-empty">Could not load readiness.</div>';
+  }
 }
 // ---- Client Profile: one compact snapshot + direct contact (operator only) ----
 function opClientContactBtns(u) {
@@ -26434,6 +26555,10 @@ function opBuildProfile(d) {
     h += '<div class="op-msub">Latest daily · ' + escapeHtml(opDate(dc.checkin_date)) + '</div>';
     h += opKV('Logged', escapeHtml(dline || '—'));
   }
+
+  // Filled by opLoadReadinessCard once the modal is built — the client detail payload
+  // carries no wearable data, so this is its own read.
+  h += '<div class="op-msub">Readiness</div><div id="opRdProfileCard"><div class="op-empty">Loading readiness…</div></div>';
 
   var bloods = Array.isArray(d.blood) ? d.blood : (d.blood ? [d.blood] : []);
   if (bloods.length) {
@@ -26623,6 +26748,7 @@ function opDrawBodyWeightChart() {
 }
 function closeOperatorClientModal() {
   var o = document.getElementById('opClientModal'); if (o) o.classList.remove('open');
+  if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('oprd');
   // Destroy every chart except the overview trend chart.
   if (window._opCharts) { Object.keys(window._opCharts).forEach(function (k) { if (k === 'trend') return; if (window._opCharts[k]) { try { window._opCharts[k].destroy(); } catch (e) { } window._opCharts[k] = null; } }); }
 }
@@ -30140,10 +30266,12 @@ function bbBodyOnboardingKeyHandler(ev) {
       '</div>' +
       '<div class="bb-rw-sec">' +
         '<div class="bb-rw-lbl">Upload your export</div>' +
-        '<label class="bb-rw-file" for="bbWhoopFile">📦 Choose your Whoop .zip (or a .csv)<br><span class="bb-rw-note" style="display:block;margin-top:6px">Whoop app → Settings → Download my data</span></label>' +
-        '<input id="bbWhoopFile" type="file" accept=".zip,.csv,application/zip,text/csv" style="display:none" onchange="bbWhoopPick(this)">' +
+        '<label class="bb-rw-file" for="bbWhoopFile">📦 Choose your Whoop .zip (or a .csv, or a Whoop .pdf report)<br><span class="bb-rw-note" style="display:block;margin-top:6px">Whoop app → Settings → Download my data</span></label>' +
+        '<input id="bbWhoopFile" type="file" accept=".zip,.csv,.pdf,application/zip,text/csv,application/pdf" style="display:none" onchange="bbWhoopPick(this)">' +
+        '<div class="bb-rw-note">The ZIP is the only export with your full day-by-day history. A PDF report is read by AI and usually contains summaries rather than every day.</div>' +
         '<div id="bbWhoopMsg"></div>' +
       '</div>' +
+      '<div class="bb-rw-sec"><button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbOpenReadiness()">📈 View my readiness</button></div>' +
       (connected ? '<div class="bb-rw-sec"><button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbWhoopDisconnect()">Disconnect Whoop</button>' +
         '<div class="bb-rw-note">Disconnecting stops new uploads. Your existing history is kept.</div></div>' : '');
   }
@@ -30188,6 +30316,23 @@ function bbBodyOnboardingKeyHandler(ev) {
         warn += '<div class="bb-rw-warn">' + p.unknownColumns.length + ' column(s) were not recognised and will be ignored: ' +
           esc(p.unknownColumns.slice(0, 4).join(', ')) + (p.unknownColumns.length > 4 ? '…' : '') + '</div>';
       }
+      // A PDF often carries weekly/monthly averages rather than one row per day. The
+      // extractor says so; repeat it verbatim rather than letting an average look daily.
+      var cov = p.coverage || (p.extraction && p.extraction.coverage) || null;
+      if (p.aggregatesOnly || (cov && cov.aggregatesOnly)) {
+        warn += '<div class="bb-rw-warn">' + esc(p.message ||
+          'That file gave us period summaries, not daily data. Upload your Whoop ZIP export for your full day-by-day history.') + '</div>';
+      }
+      if (Array.isArray(p.notes) && p.notes.length) {
+        warn += '<div class="bb-rw-warn">' + p.notes.slice(0, 4).map(function (n) {
+          return esc(typeof n === 'string' ? n : (n && (n.message || n.note)) || JSON.stringify(n));
+        }).join('<br>') + '</div>';
+      }
+      if (p.extraction && p.extraction.source === 'pdf') {
+        warn += '<div class="bb-rw-note">Read from a PDF by ' + esc(p.extraction.model || 'AI') +
+          (p.extraction.pages != null ? ' across ' + num(p.extraction.pages) + ' page(s)' : '') +
+          '. Only figures the model could quote from the document were kept.</div>';
+      }
       if (p.duplicate) {
         if (msg) msg.innerHTML = '<div class="bb-rw-ok">You have already uploaded this exact export — nothing to do.</div>';
         return;
@@ -30225,9 +30370,22 @@ function bbBodyOnboardingKeyHandler(ev) {
       } else if (r.duplicate) {
         if (msg) msg.innerHTML = '<div class="bb-rw-ok">Already imported — nothing changed.</div>';
       } else {
-        if (msg) msg.innerHTML = '<div class="bb-rw-ok">Imported ' + num(r.daysWritten) + ' days' +
+        var line = num(r.daysWritten) + ' days' +
+          (Number(r.workoutsWritten) > 0 ? ' &middot; ' + num(r.workoutsWritten) + ' workouts' : '') +
+          (Number(r.journalWritten) > 0 ? ' &middot; ' + num(r.journalWritten) + ' journal answers' : '') +
           (Number(r.checkinsAutoFilled) > 0 ? ' &middot; ' + num(r.checkinsAutoFilled) + ' check-in(s) auto-filled' : '') +
-          (Number(r.rowsRejected) > 0 ? ' &middot; ' + num(r.rowsRejected) + ' row(s) skipped' : '') + '.</div>';
+          (Number(r.rowsRejected) > 0 ? ' &middot; ' + num(r.rowsRejected) + ' row(s) skipped' : '');
+        // partial === true means rows did not land. Re-uploading the same file resumes
+        // the import, so this is recoverable — but it is not "import complete".
+        if (msg) msg.innerHTML = r.partial
+          ? '<div class="bb-rw-warn">Saved ' + line + ', but part of that export could not be written. ' +
+            esc(r.message || 'Upload the same file again to finish the import.') + '</div>'
+          : '<div class="bb-rw-ok">Imported ' + line + '.</div>';
+        if (!r.partial && msg) {
+          msg.innerHTML += '<div class="bb-rw-code" style="margin-top:12px">' +
+            '<button type="button" class="bb-rw-btn" onclick="bbCloseWhoop();bbOpenReadiness()">📈 See your readiness</button></div>';
+        }
+        if (typeof window.bbRdHomeLoad === 'function') window.bbRdHomeLoad(true);
       }
     } catch (e) {
       if (msg) msg.innerHTML = '<div class="bb-rw-err">Could not save that export.</div>';
@@ -30338,6 +30496,828 @@ function bbBodyOnboardingKeyHandler(ev) {
 })();
 </script>
 <!-- =================== END REFERRALS + WHOOP =================== -->
+
+<!-- ===================== READINESS (self-contained) ===================== -->
+<style>
+#bbReadinessModal{padding-top:calc(var(--safe-top, 20px) + 8px);padding-bottom:calc(var(--safe-bottom, 0px) + 24px)}
+.bb-rd-box{max-width:820px}
+.bb-rd-card{display:block;width:100%;border:1px solid var(--bdr);background:linear-gradient(180deg,rgba(200,164,78,0.09),rgba(255,255,255,0.02));border-radius:15px;padding:13px;margin:0;text-align:left;cursor:pointer;font-family:inherit;color:var(--cream)}
+/* An author-origin `display` beats the UA sheet's [hidden]{display:none}, so without
+   this the card ignores its own hidden attribute and leaves a shimmering skeleton
+   wedged into the Today screen whenever /api/me/home fails. */
+.bb-rd-card[hidden]{display:none}
+.bb-rd-card:active{background:rgba(200,164,78,0.15)}
+.bb-rd-head{display:flex;align-items:center;gap:13px}
+.bb-rd-score{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:0 0 74px;width:74px;height:74px;border-radius:50%;border:2px solid rgba(200,164,78,0.55);background:rgba(0,0,0,0.25)}
+.bb-rd-score b{font-size:24px;font-weight:800;color:#fbf6ec;line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.bb-rd-score em{font-size:8.5px;font-style:normal;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(200,164,78,0.9);margin-top:4px}
+.bb-rd-meta{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.bb-rd-chip{align-self:flex-start;font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--gold);border:1px solid var(--bdr);border-radius:999px;padding:3px 9px}
+.bb-rd-delta{font-size:12.5px;font-weight:700;color:var(--cream)}
+.bb-rd-delta.up{color:#7fe3a6}
+.bb-rd-delta.down{color:#ff9090}
+.bb-rd-sub{font-size:10.5px;color:var(--muted);line-height:1.45}
+.bb-rd-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:11px}
+.bb-rd-metric{display:flex;flex-direction:column;align-items:center;gap:3px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);border-radius:11px;padding:8px 4px}
+.bb-rd-mv{font-size:15px;font-weight:800;color:#fbf6ec;line-height:1;font-variant-numeric:tabular-nums}
+.bb-rd-mv i{font-style:normal;font-size:9px;font-weight:600;color:var(--muted);margin-left:1px}
+.bb-rd-ml{font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:700}
+.bb-rd-msp{height:16px;display:block;opacity:.85}
+.bb-rd-cta{display:block;margin-top:10px;font-size:11px;color:var(--gold);font-weight:700}
+.bb-rd-range{display:flex;gap:6px;flex-wrap:wrap}
+.bb-rd-rbtn{background:transparent;border:1px solid rgba(200,164,78,.35);color:#b9ad8d;border-radius:999px;padding:6px 14px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.bb-rd-rbtn.active{background:rgba(200,164,78,.18);color:#f7dd93}
+.bb-rd-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.bb-rd-tile{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;padding:9px 8px;text-align:center}
+.bb-rd-tile b{display:block;font-size:17px;color:#f7dd93;line-height:1.2;font-variant-numeric:tabular-nums}
+.bb-rd-tile span{display:block;font-size:9.5px;text-transform:uppercase;letter-spacing:.5px;color:#9d947f;margin-top:3px}
+.bb-rd-tile i{display:block;font-style:normal;font-size:10px;color:#8d856f;margin-top:3px}
+.bb-rd-chart{background:rgba(255,255,255,.03);border:1px solid rgba(255,255,255,.07);border-radius:12px;padding:10px;margin-top:10px}
+.bb-rd-chart h5{margin:0 0 8px;font-size:11px;letter-spacing:.9px;text-transform:uppercase;color:#a9975f;font-weight:700}
+.bb-rd-cwrap{position:relative;height:190px}
+.bb-rd-list{display:flex;flex-direction:column;gap:6px}
+.bb-rd-li{display:flex;justify-content:space-between;align-items:baseline;gap:10px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:8px 10px;font-size:12px;color:#d9d2c2}
+.bb-rd-li span{color:#9d947f;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bb-rd-acts{display:flex;gap:8px;flex-wrap:wrap}
+.bb-rd-rep h4{margin:14px 0 5px;font-size:13px;color:#f7dd93}
+.bb-rd-rep p{margin:0 0 8px;font-size:13px;line-height:1.6;color:#d9d2c2}
+.bb-rd-rep ol{margin:0 0 8px;padding-left:20px;font-size:13px;line-height:1.6;color:#d9d2c2}
+.bb-rd-rep li{margin-bottom:5px}
+.bb-rd-flag{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;border-radius:999px;padding:3px 9px;margin:0 6px 6px 0;background:rgba(255,255,255,.07);color:#c9c1ad}
+.bb-rd-flag.warn{background:rgba(245,158,11,.18);color:#fcd34d}
+.bb-rd-flag.critical{background:rgba(220,38,38,.18);color:#fca5a5}
+@media (max-width:520px){.bb-rd-grid{grid-template-columns:repeat(2,1fr)}.bb-rd-metrics{gap:5px}.bb-rd-metric{padding:8px 2px}.bb-rd-cwrap{height:170px}.bb-rd-box{max-width:100%}}
+</style>
+
+<div id="bbReadinessModal" class="bb-rw-modal" role="dialog" aria-modal="true" aria-label="Readiness" onclick="bbRdBg(event)">
+  <div class="bb-rw-box bb-rd-box" onclick="event.stopPropagation()">
+    <div class="bb-rw-head">
+      <span class="bb-rw-title">📈 Readiness</span>
+      <button type="button" class="bb-rw-close" onclick="bbCloseReadiness()">✕ Close</button>
+    </div>
+    <div class="bb-rw-body" id="bbReadinessBody"><div class="bb-rw-muted">Loading…</div></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+  var esc = function (s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  };
+  /* A missing measurement is an em dash. It is NEVER a zero — a zero here would read
+     as "your HRV was 0 ms", which is a number nobody measured. Same rule as the
+     wearables backend: nothing is ever invented. */
+  var EM = '—';
+  function fmt(v, dp, unit) {
+    if (v == null || v === '' || !isFinite(Number(v))) return EM;
+    var n = Number(v);
+    var s = dp ? n.toFixed(dp) : String(Math.round(n));
+    return s + (unit ? '<i>' + unit + '</i>' : '');
+  }
+  function plain(v, dp) {
+    if (v == null || v === '' || !isFinite(Number(v))) return EM;
+    var n = Number(v);
+    return dp ? n.toFixed(dp) : String(Math.round(n));
+  }
+  function ymd(d) {
+    var m = d.getMonth() + 1, day = d.getDate();
+    return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+  }
+  function shift(days) { var d = new Date(); d.setDate(d.getDate() + days); return ymd(d); }
+  function dayLabel(date) {
+    var dt = new Date(String(date) + 'T12:00:00');
+    return isNaN(dt.getTime()) ? String(date) : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  }
+  function nums(list) {
+    return (list || []).filter(function (v) { return typeof v === 'number' && isFinite(v); });
+  }
+  function meanOf(list) {
+    var v = nums(list);
+    if (!v.length) return null;
+    var t = 0;
+    for (var i = 0; i < v.length; i += 1) t += v[i];
+    return t / v.length;
+  }
+
+  /* One readiness view per surface. The member's own view, a coach's view of a
+     client and the operator's read-only view differ ONLY in what follows — which
+     endpoints they read, which element they paint, which canvases they own and which
+     actions they may take. Everything after this point is shared by all three, so the
+     honesty rules (a null is a dash, a gap in a line is a gap) hold identically on
+     every surface instead of being re-implemented three times. */
+  function urlsFor(scope, userId) {
+    var uid = encodeURIComponent(String(userId || ''));
+    if (scope === 'admin') {
+      return {
+        readiness: '/api/wearables/admin/' + uid + '/readiness',
+        workouts: '/api/wearables/admin/' + uid + '/workouts',
+        journal: '/api/wearables/admin/' + uid + '/journal',
+        report: '/api/wearables/admin/' + uid + '/report',
+        pdf: '/api/wearables/admin/' + uid + '/report/pdf',
+        pdfMethod: 'POST'
+      };
+    }
+    if (scope === 'operator') {
+      // Monitoring only: three GETs and the deterministic PDF. No AI report — the
+      // operator surface never spends a model call, and never writes anything.
+      return {
+        readiness: '/api/wearables/operator/' + uid + '/readiness',
+        workouts: '/api/wearables/operator/' + uid + '/workouts',
+        journal: '/api/wearables/operator/' + uid + '/journal',
+        report: null,
+        pdf: '/api/wearables/operator/' + uid + '/report/pdf',
+        pdfMethod: 'GET'
+      };
+    }
+    return {
+      readiness: '/api/wearables/readiness',
+      workouts: '/api/wearables/workouts',
+      journal: '/api/wearables/journal',
+      report: '/api/wearables/report',
+      pdf: '/api/wearables/report/pdf',
+      pdfMethod: 'POST'
+    };
+  }
+
+  var VIEWS = {};
+  function makeView(key, scope, cfg) {
+    cfg = cfg || {};
+    var v = VIEWS[key] || (VIEWS[key] = { key: key, days: 30, charts: {} });
+    v.scope = scope;
+    v.el = cfg.el || v.el;
+    v.who = String(cfg.name || '');
+    v.urls = urlsFor(scope, cfg.userId);
+    v.rows = []; v.workouts = []; v.journal = []; v.report = null; v.busy = false;
+    if (cfg.days) v.days = Number(cfg.days) || 30;
+    return v;
+  }
+  function viewOf(key) { return VIEWS[String(key == null ? 'me' : key)] || null; }
+  /* Per-view element ids. Two views can be alive at once — a coach can have their own
+     readiness modal open over the client panel — and two canvases sharing an id would
+     silently draw one person's data into the other's chart. */
+  function eid(v, name) { return 'bbRd' + name + '_' + v.key; }
+
+  var rd = makeView('me', 'me', { el: 'bbReadinessBody' });
+  rd.homeAt = 0;
+  rd.derived = null;
+
+  /* -------------------------- READINESS (today card) ------------------------- */
+
+  /* Every metric the card and the detail view read, in one place so a null stays a
+     null the whole way through. `score` is readinessScore ?? recoveryScore — the
+     server already resolved which one this day actually has. */
+  var CARD_METRICS = [
+    { key: 'recoveryScore', label: 'Recovery', unit: '%', dp: 0 },
+    { key: 'hrvMs', label: 'HRV', unit: 'ms', dp: 0 },
+    { key: 'sleepHours', label: 'Sleep', unit: 'h', dp: 1 },
+    { key: 'strain', label: 'Strain', unit: '', dp: 1 }
+  ];
+
+  function pickSeries(rows, key) {
+    return (rows || []).map(function (r) {
+      var v = r ? r[key] : null;
+      return (v == null || !isFinite(Number(v))) ? null : Number(v);
+    });
+  }
+  function latestScored(rows) {
+    for (var i = (rows || []).length - 1; i >= 0; i -= 1) {
+      if (rows[i] && rows[i].score != null) return rows[i];
+    }
+    return null;
+  }
+
+  /**
+   * Load the member's last 14 days and paint the Today card.
+   * The derive call is the whole point of the non-Whoop path: a member with no
+   * wearable still has a readiness score computed from their own check-ins, and
+   * until now nothing in the product ever asked for it.
+   */
+  window.bbRdHomeLoad = async function (force) {
+    var card = document.getElementById('bbRdHome');
+    if (!card) return;
+    if (!window.currentUser || !window.currentUser.token) return;
+    if (!force && rd.homeAt && (Date.now() - rd.homeAt) < 300000) return;
+    rd.homeAt = Date.now();
+    if (!card.innerHTML) card.innerHTML = bbSkelRows(2, 'habit');
+    var to = ymd(new Date()), from = shift(-13);
+    var rows = [];
+    try {
+      var r = await apiCall('GET', '/api/wearables/readiness?from=' + from + '&to=' + to);
+      if (r && !r.error && Array.isArray(r.readiness)) rows = r.readiness;
+    } catch (_) {}
+    var todayRow = null;
+    for (var i = 0; i < rows.length; i += 1) {
+      if (rows[i] && String(rows[i].date).slice(0, 10) === to) todayRow = rows[i];
+    }
+    if (!todayRow || todayRow.score == null) {
+      try {
+        var d = await apiCall('POST', '/api/wearables/readiness/derive', { date: to });
+        var dv = d && !d.error ? d.derived : null;
+        // computeDerivedReadiness returns null rather than a fabricated score when
+        // the check-in evidence is too thin — respect that and show nothing.
+        if (dv && dv.readinessScore != null) {
+          rd.derived = dv;
+          rows = rows.filter(function (x) { return String(x.date).slice(0, 10) !== to; });
+          rows.push({
+            date: to, source: 'derived', score: dv.readinessScore, readinessScore: dv.readinessScore,
+            confidence: dv.confidence, recoveryScore: null, hrvMs: null, restingHr: null,
+            sleepHours: null, strain: null
+          });
+        }
+      } catch (_) {}
+    }
+    renderHomeCard(rows);
+  };
+
+  /**
+   * The facts a compact readiness card needs, with nothing invented: the latest day
+   * that actually carries a score, that day's metrics (a null stays a null) and the
+   * change against the previous scored day — which exists only when BOTH days were
+   * measured. Callers render this in their own chrome: the member card in bb-rd-*,
+   * the operator card in op-*. No HTML is decided here.
+   */
+  window.bbRdSummarise = function (rows) {
+    var t = latestScored(rows);
+    if (!t) return null;
+    var when = String(t.date).slice(0, 10);
+    // Precedence picks a whole ROW, but the score can come from a different one: a
+    // whoop day with the band off at wake has no recovery score, so the server falls
+    // through to the derived score and records that in `scoreSource`. Read the
+    // number's own provenance — labelling a check-in estimate "Recovery · whoop"
+    // would be presenting an estimate as a measurement.
+    var src = String(t.scoreSource || t.source || '');
+    var prev = null;
+    for (var i = 0; i < (rows || []).length; i += 1) {
+      var r = rows[i];
+      // A delta compares like with like: a derived estimate against a measured
+      // recovery score is not a change in recovery.
+      if (r && r.score != null && String(r.date).slice(0, 10) < when &&
+        String(r.scoreSource || r.source || '') === src) prev = r;
+    }
+    return {
+      date: when,
+      dayLabel: dayLabel(when),
+      isToday: when === ymd(new Date()),
+      source: src || 'wearable',
+      isDerived: src === 'derived',
+      score: t.score == null ? null : Number(t.score),
+      scoreText: plain(t.score, 0),
+      confidence: t.confidence == null ? null : Number(t.confidence),
+      delta: (prev && t.score != null) ? Math.round((t.score - prev.score) * 10) / 10 : null,
+      prevLabel: prev ? dayLabel(prev.date) : null,
+      metrics: CARD_METRICS.map(function (m) {
+        var raw = t[m.key];
+        var val = (raw == null || !isFinite(Number(raw))) ? null : Number(raw);
+        return {
+          key: m.key, label: m.label, unit: m.unit, dp: m.dp, value: val,
+          text: plain(val, m.dp) + (val != null && m.unit ? ' ' + m.unit : ''),
+          series: pickSeries(rows, m.key)
+        };
+      })
+    };
+  };
+
+  function renderHomeCard(rows) {
+    var card = document.getElementById('bbRdHome');
+    var label = document.getElementById('bbRdHomeLabel');
+    if (!card) return;
+    var s = window.bbRdSummarise(rows);
+    if (!s) {
+      card.innerHTML =
+        '<div class="bb-rd-head">' +
+          '<span class="bb-rd-score"><b>' + EM + '</b><em>Readiness</em></span>' +
+          '<span class="bb-rd-meta">' +
+            '<span class="bb-rd-chip">No data yet</span>' +
+            '<span class="bb-rd-sub">Import your Whoop export, or keep checking in — your readiness is scored from your check-ins too.</span>' +
+          '</span>' +
+        '</div>' +
+        '<span class="bb-rd-cta">Open readiness →</span>';
+      card.hidden = false;
+      if (label) label.hidden = false;
+      return;
+    }
+    // A delta only exists when BOTH days were measured. One missing day means no delta.
+    var deltaHtml = s.delta == null
+      ? '<span class="bb-rd-delta">' + EM + ' no earlier day to compare</span>'
+      : '<span class="bb-rd-delta ' + (s.delta >= 0 ? 'up' : 'down') + '">' + (s.delta >= 0 ? '↑ +' + s.delta : '↓ ' + s.delta) +
+        ' vs ' + esc(s.prevLabel) + '</span>';
+    var tiles = s.metrics.map(function (m) {
+      var spark = bbSparkline(m.series, '#c8a44e', 44, 16);
+      return '<span class="bb-rd-metric">' +
+        '<span class="bb-rd-mv">' + fmt(m.value, m.dp, m.unit) + '</span>' +
+        '<span class="bb-rd-ml">' + m.label + '</span>' +
+        '<span class="bb-rd-msp">' + spark + '</span>' +
+      '</span>';
+    }).join('');
+    card.innerHTML =
+      '<div class="bb-rd-head">' +
+        '<span class="bb-rd-score"><b>' + s.scoreText + '</b><em>' + (s.isDerived ? 'Readiness' : 'Recovery') + '</em></span>' +
+        '<span class="bb-rd-meta">' +
+          '<span class="bb-rd-chip">' + (s.isDerived ? 'From your check-ins' : esc(s.source)) + ' &middot; ' +
+            (s.isToday ? 'Today' : esc(s.dayLabel)) + '</span>' +
+          deltaHtml +
+          (s.isDerived && s.confidence != null
+            ? '<span class="bb-rd-sub">Confidence ' + plain(s.confidence, 2) + ' — derived from check-ins, not measured.</span>'
+            : '') +
+        '</span>' +
+      '</div>' +
+      '<span class="bb-rd-metrics">' + tiles + '</span>' +
+      '<span class="bb-rd-cta">Open readiness →</span>';
+    card.hidden = false;
+    if (label) label.hidden = false;
+  }
+
+  /* -------------------------- READINESS (detail view) ------------------------ */
+
+  window.bbRdBg = function (e) { if (e && e.target && e.target.id === 'bbReadinessModal') window.bbCloseReadiness(); };
+
+  window.bbCloseReadiness = function () {
+    var m = document.getElementById('bbReadinessModal');
+    if (m) m.classList.remove('open');
+    destroyCharts(rd);
+  };
+
+  window.bbOpenReadiness = async function () {
+    if (!window.currentUser || !window.currentUser.token) { alert('Please log in first.'); return; }
+    var m = document.getElementById('bbReadinessModal');
+    if (!m) return;
+    rd.report = null;
+    m.classList.add('open');
+    loadDetail(rd);
+  };
+
+  window.bbRdSetRange = function (n, key) {
+    var v = viewOf(key);
+    if (!v) return;
+    v.days = Number(n) || 30;
+    v.report = null;
+    loadDetail(v);
+  };
+
+  /**
+   * Mount the member's readiness view onto a coach or operator container. Coaches
+   * could not see a single Whoop figure for a client before this — the endpoints
+   * existed, nothing rendered them.
+   */
+  window.bbRdMountClient = function (cfg) {
+    cfg = cfg || {};
+    if (!cfg.key || !cfg.el || !cfg.userId) return;
+    var v = makeView(String(cfg.key), cfg.scope === 'operator' ? 'operator' : 'admin', cfg);
+    loadDetail(v);
+  };
+
+  window.bbRdUnmount = function (key) {
+    var v = viewOf(key);
+    if (v) destroyCharts(v);
+  };
+
+  function destroyCharts(v) {
+    if (!v || !v.charts) return;
+    Object.keys(v.charts).forEach(function (k) {
+      try { v.charts[k].destroy(); } catch (_) {}
+      delete v.charts[k];
+    });
+  }
+
+  /**
+   * One entry per calendar day in the window, so a day with no data stays a hole.
+   * Chart.js draws null as a break in the line — which is the honest picture. A
+   * zero-height point would claim a measurement of zero.
+   */
+  function alignWindow(rows, from, days) {
+    var byDate = {};
+    (rows || []).forEach(function (r) { if (r && r.date) byDate[String(r.date).slice(0, 10)] = r; });
+    var out = [], d = new Date(from + 'T12:00:00');
+    for (var i = 0; i < days; i += 1) {
+      var key = ymd(d);
+      out.push({ date: key, row: byDate[key] || null });
+      d.setDate(d.getDate() + 1);
+    }
+    return out;
+  }
+
+  async function loadDetail(v) {
+    if (!v) return;
+    var body = document.getElementById(v.el);
+    if (!body) return;
+    var whose = v.scope === 'me' ? 'your' : 'this client’s';
+    destroyCharts(v);
+    body.innerHTML = '<div class="bb-rw-muted">Loading…</div>';
+    var to = ymd(new Date()), from = shift(-(v.days - 1));
+    var q = '?from=' + from + '&to=' + to;
+    var res;
+    try {
+      res = await Promise.all([
+        apiCall('GET', v.urls.readiness + q),
+        apiCall('GET', v.urls.workouts + q + '&limit=500'),
+        apiCall('GET', v.urls.journal + q + '&limit=1000')
+      ]);
+    } catch (_) {
+      body.innerHTML = '<div class="bb-rw-err">Could not load ' + whose + ' readiness.</div>';
+      return;
+    }
+    v.rows = (res[0] && !res[0].error && res[0].readiness) || [];
+    v.workouts = (res[1] && !res[1].error && res[1].workouts) || [];
+    v.journal = (res[2] && !res[2].error && res[2].journal) || [];
+    var aligned = alignWindow(v.rows, from, v.days);
+    body.innerHTML = detailHtml(v, aligned, from, to, res[0] && res[0].error);
+    drawCharts(v, aligned);
+  }
+
+  var DETAIL_METRICS = [
+    { key: 'score', label: 'Readiness', unit: '', dp: 0 },
+    { key: 'hrvMs', label: 'HRV', unit: 'ms', dp: 0 },
+    { key: 'restingHr', label: 'Resting HR', unit: 'bpm', dp: 0 },
+    { key: 'sleepHours', label: 'Sleep', unit: 'h', dp: 1 },
+    { key: 'sleepEfficiencyPct', label: 'Sleep eff.', unit: '%', dp: 0 },
+    { key: 'strain', label: 'Strain', unit: '', dp: 1 },
+    { key: 'respiratoryRate', label: 'Resp. rate', unit: 'rpm', dp: 1 },
+    { key: 'spo2', label: 'SpO₂', unit: '%', dp: 0 }
+  ];
+
+  function detailHtml(v, aligned, from, to, loadError) {
+    var mine = v.scope === 'me';
+    var rows = aligned.map(function (a) { return a.row; }).filter(Boolean);
+    var withScore = rows.filter(function (r) { return r.score != null; }).length;
+    var sources = {};
+    // Same rule as the card: count where each day's SCORE came from, not which row
+    // won precedence — `scoreSource` is the server's record of that.
+    rows.forEach(function (r) { var s = String(r.scoreSource || r.source || 'unknown'); sources[s] = (sources[s] || 0) + 1; });
+    var srcLine = Object.keys(sources).map(function (s) {
+      return esc(s === 'derived' ? 'check-ins' : s) + ' ' + sources[s] + 'd';
+    }).join(' &middot; ');
+    var tiles = DETAIL_METRICS.map(function (m) {
+      var series = pickSeries(rows, m.key);
+      var have = nums(series);
+      var latest = have.length ? have[have.length - 1] : null;
+      return '<div class="bb-rd-tile">' +
+        '<b>' + plain(latest, m.dp) + (latest != null && m.unit ? ' ' + m.unit : '') + '</b>' +
+        '<span>' + m.label + '</span>' +
+        '<i>avg ' + plain(meanOf(series), m.dp) + ' &middot; ' + have.length + 'd</i>' +
+      '</div>';
+    }).join('');
+
+    var emptyNote = mine
+      ? 'No readiness data in this window. Import a Whoop export, or check in daily so your readiness can be derived.'
+      : 'This client has no readiness data in this window. They have either not imported a Whoop export or not checked in.';
+    var q = esc(v.key);
+
+    return '' +
+      '<div class="bb-rw-sec">' +
+        '<div class="bb-rw-lbl">Window' + (mine || !v.who ? '' : ' &middot; ' + esc(v.who)) + '</div>' +
+        '<div class="bb-rd-range">' +
+          [7, 30, 90].map(function (n) {
+            return '<button type="button" class="bb-rd-rbtn' + (v.days === n ? ' active' : '') +
+              '" onclick="bbRdSetRange(' + n + ',\'' + q + '\')">' + n + ' days</button>';
+          }).join('') +
+        '</div>' +
+        '<div class="bb-rw-note">' + esc(from) + ' → ' + esc(to) + ' &middot; ' +
+          withScore + ' of ' + v.days + ' days have a readiness score' +
+          (srcLine ? ' &middot; ' + srcLine : '') + '</div>' +
+        (loadError ? '<div class="bb-rw-err">' + esc(loadError) + '</div>' : '') +
+        (!rows.length ? '<div class="bb-rw-warn">' + emptyNote + '</div>' : '') +
+      '</div>' +
+      (rows.length
+        ? '<div class="bb-rw-sec">' +
+            '<div class="bb-rw-lbl">Latest &amp; average</div>' +
+            '<div class="bb-rd-grid">' + tiles + '</div>' +
+            '<div class="bb-rw-note">A dash means that day was never measured. Nothing is filled in.</div>' +
+          '</div>' +
+          '<div class="bb-rw-sec">' +
+            '<div class="bb-rd-chart"><h5>Readiness / recovery</h5><div class="bb-rd-cwrap"><canvas id="' + eid(v, 'ChartScore') + '"></canvas></div></div>' +
+            '<div class="bb-rd-chart"><h5>HRV &amp; resting heart rate</h5><div class="bb-rd-cwrap"><canvas id="' + eid(v, 'ChartHrv') + '"></canvas></div></div>' +
+            '<div class="bb-rd-chart"><h5>Sleep &amp; strain</h5><div class="bb-rd-cwrap"><canvas id="' + eid(v, 'ChartSleep') + '"></canvas></div></div>' +
+            '<div class="bb-rw-note">Gaps in a line are days with no data — they are not zeros.</div>' +
+          '</div>'
+        : '') +
+      workoutsHtml(v.workouts) +
+      journalHtml(v.journal) +
+      '<div class="bb-rw-sec">' +
+        '<div class="bb-rw-lbl">' + (mine ? 'Your report' : 'Report') + '</div>' +
+        '<div class="bb-rd-acts">' +
+          (v.urls.report
+            ? '<button type="button" class="bb-rw-btn" id="' + eid(v, 'ReportBtn') + '" onclick="bbRdReport(\'' + q + '\')">✦ AI readiness report</button>'
+            : '') +
+          '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" id="' + eid(v, 'PdfBtn') + '" onclick="bbRdPdf(\'' + q + '\')">⬇ Branded PDF</button>' +
+        '</div>' +
+        (mine
+          ? '<div class="bb-rd-acts" style="margin-top:8px">' +
+              '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbOpenWhoop()">Import Whoop export</button>' +
+              '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" id="' + eid(v, 'DeriveBtn') + '" onclick="bbRdDerive()">Score today from check-ins</button>' +
+            '</div>'
+          : '') +
+        '<div class="bb-rw-note">' +
+          (v.urls.report
+            ? 'Both need at least 7 days of data in this window. The report is written by Claude from figures BodyBank computed — it never does the arithmetic itself.'
+            : 'Needs at least 7 days of data in this window. This is the stats-only document: every figure in it is computed by BodyBank, with no model involved.') +
+        '</div>' +
+        '<div id="' + eid(v, 'ActMsg') + '"></div>' +
+        '<div id="' + eid(v, 'ReportOut') + '"></div>' +
+      '</div>';
+  }
+
+  function workoutsHtml(list) {
+    if (!list || !list.length) return '';
+    var sorted = list.slice().sort(function (a, b) {
+      return String(b.date || '').localeCompare(String(a.date || ''));
+    }).slice(0, 12);
+    return '<div class="bb-rw-sec">' +
+      '<div class="bb-rw-lbl">Training in this window (' + list.length + ')</div>' +
+      '<div class="bb-rd-list">' + sorted.map(function (w) {
+        return '<div class="bb-rd-li">' +
+          '<b style="font-weight:600">' + esc(dayLabel(w.date)) + ' &middot; ' + esc(w.activity || 'Workout') + '</b>' +
+          '<span>' + plain(w.durationMin, 0) + ' min &middot; strain ' + plain(w.strain, 1) + '</span>' +
+        '</div>';
+      }).join('') + '</div>' +
+      (list.length > 12 ? '<div class="bb-rw-note">Showing the 12 most recent.</div>' : '') +
+    '</div>';
+  }
+
+  function journalHtml(list) {
+    if (!list || !list.length) return '';
+    var by = {}, order = [];
+    list.forEach(function (j) {
+      var q = String((j && j.question) || '').trim();
+      if (!q) return;
+      if (!by[q]) { by[q] = { answered: 0, bools: 0, yes: 0, last: null }; order.push(q); }
+      var b = by[q];
+      b.answered += 1;
+      if (j.answerBool === true) { b.bools += 1; b.yes += 1; }
+      else if (j.answerBool === false) { b.bools += 1; }
+      if (j.answer != null && j.answer !== '') b.last = j.answer;
+    });
+    if (!order.length) return '';
+    return '<div class="bb-rw-sec">' +
+      '<div class="bb-rw-lbl">Whoop journal</div>' +
+      '<div class="bb-rd-list">' + order.slice(0, 12).map(function (q) {
+        var b = by[q];
+        // Only yes/no answers can be counted. Anything else shows its own last value.
+        var right = b.bools
+          ? (b.yes + ' of ' + b.bools + ' days yes')
+          : (b.last != null ? esc(String(b.last).slice(0, 28)) : EM);
+        return '<div class="bb-rd-li"><b style="font-weight:600">' + esc(q) + '</b><span>' + right + '</span></div>';
+      }).join('') + '</div>' +
+    '</div>';
+  }
+
+  /* ---------------------------- READINESS (charts) --------------------------- */
+
+  function drawCharts(v, aligned) {
+    if (typeof Chart === 'undefined') return;
+    var charts = v.charts;
+    var cream = '#bfb9ab', grid = 'rgba(255,255,255,0.06)', gold = '#c8a44e';
+    var labels = aligned.map(function (a) { return dayLabel(a.date); });
+    var rows = aligned.map(function (a) { return a.row; });
+    var xAxis = { ticks: { color: cream, font: { size: 10 }, maxTicksLimit: 6, maxRotation: 0 }, grid: { color: grid } };
+    var legend = { labels: { color: cream, font: { size: 11 }, boxWidth: 12, padding: 10 } };
+
+    var el = document.getElementById(eid(v, 'ChartScore'));
+    if (el) {
+      charts.score = new Chart(el.getContext('2d'), {
+        type: 'line',
+        data: { labels: labels, datasets: [{ label: 'Readiness', data: pickSeries(rows, 'score'), borderColor: gold, backgroundColor: 'rgba(200,164,78,0.15)', fill: true, tension: 0.3, pointRadius: 2, pointBackgroundColor: gold, spanGaps: false }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
+          scales: { x: xAxis, y: { min: 0, max: 100, ticks: { color: cream, font: { size: 10 } }, grid: { color: grid } } }
+        }
+      });
+    }
+
+    var el2 = document.getElementById(eid(v, 'ChartHrv'));
+    if (el2) {
+      charts.hrv = new Chart(el2.getContext('2d'), {
+        type: 'line',
+        data: {
+          labels: labels, datasets: [
+            { label: 'HRV (ms)', data: pickSeries(rows, 'hrvMs'), borderColor: gold, backgroundColor: 'rgba(200,164,78,0.12)', fill: false, tension: 0.3, pointRadius: 2, spanGaps: false, yAxisID: 'y' },
+            { label: 'Resting HR (bpm)', data: pickSeries(rows, 'restingHr'), borderColor: '#6ac1d6', backgroundColor: 'rgba(106,193,214,0.12)', fill: false, tension: 0.3, pointRadius: 2, spanGaps: false, yAxisID: 'y1' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, plugins: { legend: legend },
+          scales: {
+            x: xAxis,
+            y: { position: 'left', ticks: { color: cream, font: { size: 10 } }, grid: { color: grid } },
+            y1: { position: 'right', ticks: { color: cream, font: { size: 10 } }, grid: { display: false } }
+          }
+        }
+      });
+    }
+
+    var el3 = document.getElementById(eid(v, 'ChartSleep'));
+    if (el3) {
+      charts.sleep = new Chart(el3.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: labels, datasets: [
+            { label: 'Sleep (h)', data: pickSeries(rows, 'sleepHours'), backgroundColor: 'rgba(140,120,220,0.55)', borderRadius: 4, maxBarThickness: 14, yAxisID: 'y' },
+            { label: 'Strain', type: 'line', data: pickSeries(rows, 'strain'), borderColor: '#e67e22', backgroundColor: 'rgba(230,126,34,0.12)', fill: false, tension: 0.3, pointRadius: 2, spanGaps: false, yAxisID: 'y1' }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false, plugins: { legend: legend },
+          scales: {
+            x: xAxis,
+            y: { beginAtZero: true, position: 'left', ticks: { color: cream, font: { size: 10 } }, grid: { color: grid } },
+            y1: { beginAtZero: true, position: 'right', ticks: { color: cream, font: { size: 10 } }, grid: { display: false } }
+          }
+        }
+      });
+    }
+  }
+
+  /* -------------------------- READINESS (AI report) -------------------------- */
+
+  window.bbRdDerive = async function () {
+    var btn = document.getElementById(eid(rd, 'DeriveBtn'));
+    var msg = document.getElementById(eid(rd, 'ActMsg'));
+    if (btn) { btn.disabled = true; btn.textContent = 'Scoring…'; }
+    try {
+      var r = await apiCall('POST', '/api/wearables/readiness/derive', {});
+      var dv = r && !r.error ? r.derived : null;
+      if (!dv || dv.readinessScore == null) {
+        // The service refuses to invent a score. Say why instead of showing a 0.
+        if (msg) msg.innerHTML = '<div class="bb-rw-warn">Not enough check-in data to score today yet. Log sleep, water, protein or a workout and try again.</div>';
+      } else {
+        if (msg) msg.innerHTML = '<div class="bb-rw-ok">Today scored ' + plain(dv.readinessScore, 0) +
+          ' from ' + dv.componentsWithData + ' of ' + (dv.components ? dv.components.length : 4) +
+          ' check-in signals (confidence ' + plain(dv.confidence, 2) + ').</div>';
+        window.bbRdHomeLoad(true);
+        loadDetail(rd);
+      }
+    } catch (_) {
+      if (msg) msg.innerHTML = '<div class="bb-rw-err">Could not compute readiness.</div>';
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Score today from check-ins'; }
+    }
+  };
+
+  window.bbRdReport = async function (key) {
+    var v = viewOf(key);
+    if (!v || v.busy || !v.urls.report) return;
+    var btn = document.getElementById(eid(v, 'ReportBtn'));
+    var out = document.getElementById(eid(v, 'ReportOut'));
+    var msg = document.getElementById(eid(v, 'ActMsg'));
+    v.busy = true;
+    if (btn) { btn.disabled = true; btn.textContent = 'Writing…'; }
+    if (msg) msg.innerHTML = '';
+    if (out) out.innerHTML = '<div class="bb-rw-muted" style="margin-top:10px">Reading ' + (v.scope === 'me' ? 'your' : 'their') + ' numbers and writing the report — this takes up to a minute.</div>';
+    var to = ymd(new Date()), from = shift(-(v.days - 1));
+    try {
+      var r = await apiCall('POST', v.urls.report, { from: from, to: to });
+      if (!r || r.error) {
+        if (out) out.innerHTML = '<div class="bb-rw-err">' + esc((r && r.error) || 'Could not generate that report.') + '</div>';
+      } else {
+        v.report = r;
+        if (out) out.innerHTML = reportHtml(r);
+      }
+    } catch (_) {
+      if (out) out.innerHTML = '<div class="bb-rw-err">Could not generate that report.</div>';
+    } finally {
+      v.busy = false;
+      if (btn) { btn.disabled = false; btn.textContent = '✦ AI readiness report'; }
+    }
+  };
+
+  /**
+   * One semantic-validator finding as readable text. The server emits
+   * { quote, why } (see whoopReportService's validator prompt); anything else is
+   * shown as-is rather than dumped as raw JSON, which reads like a rendering bug.
+   */
+  function bbRdFinding(c) {
+    if (typeof c === 'string') return c;
+    if (!c || typeof c !== 'object') return '';
+    var quote = c.quote || c.claim || c.text || '';
+    var why = c.why || c.reason || '';
+    if (quote && why) return '"' + quote + '" — ' + why;
+    return quote || why || '';
+  }
+
+  /**
+   * The validation block is rendered FIRST and in full. A report whose numbers failed
+   * the numeric check is returned flagged by the server; hiding that flag would be
+   * presenting unverified figures as verified.
+   */
+  function validationHtml(v) {
+    if (!v) return '<div class="bb-rw-warn">This report came back without a validation result — treat its numbers as unchecked.</div>';
+    var html = '';
+    if (v.passed) {
+      html += '<div class="bb-rw-ok">All ' + (v.numbersChecked || 0) + ' number(s) in this report were traced back to your own data.</div>';
+    } else {
+      html += '<div class="bb-rw-err">' + (v.orphanNumbers || []).length + ' number(s) in this report could NOT be traced back to your data' +
+        ((v.orphanNumbers || []).length ? ': ' + esc((v.orphanNumbers || []).slice(0, 8).join(', ')) : '') +
+        '. Treat them as unverified.</div>';
+    }
+    var s = v.semantic || null;
+    if (s && s.contradictions && s.contradictions.length) {
+      html += '<div class="bb-rw-warn">The checker found ' + s.contradictions.length + ' statement(s) that contradict your figures:<br>' +
+        s.contradictions.slice(0, 5).map(function (c) { return '&bull; ' + esc(bbRdFinding(c)); }).join('<br>') + '</div>';
+    }
+    if (s && s.unsupportedClaims && s.unsupportedClaims.length) {
+      html += '<div class="bb-rw-warn">' + s.unsupportedClaims.length + ' claim(s) are not supported by your data:<br>' +
+        s.unsupportedClaims.slice(0, 5).map(function (c) { return '&bull; ' + esc(bbRdFinding(c)); }).join('<br>') + '</div>';
+    }
+    if (s && s.ran === false) {
+      html += '<div class="bb-rw-warn">The second-pass checker did not run' + (s.error ? ': ' + esc(s.error) : '') + '.</div>';
+    }
+    return html;
+  }
+
+  function reportHtml(r) {
+    var rep = r.report || {};
+    var st = r.stats || {};
+    var cov = st.coverage || {};
+    var flags = Array.isArray(st.flags) ? st.flags : [];
+    var para = function (title, text) {
+      return text ? '<h4>' + title + '</h4><p>' + esc(text) + '</p>' : '';
+    };
+    var html = '<div class="bb-rd-rep">' + validationHtml(r.validation);
+    html += '<div class="bb-rw-note">Coverage: ' + (cov.daysWithData != null ? cov.daysWithData : EM) + ' of ' +
+      (cov.daysTotal != null ? cov.daysTotal : EM) + ' days have data' +
+      (cov.completenessPct != null ? ' (' + cov.completenessPct + '%)' : '') + '.</div>';
+    if (flags.length) {
+      html += '<div style="margin-top:9px">' + flags.map(function (f) {
+        var sev = String(f.severity || 'info');
+        return '<span class="bb-rd-flag ' + esc(sev) + '">' + esc(String(f.key || '').replace(/_/g, ' ')) + '</span>';
+      }).join('') + '</div>';
+    }
+    if (rep.headline) html += '<h4 style="font-size:15px">' + esc(rep.headline) + '</h4>';
+    html += para('Summary', rep.summary);
+    (Array.isArray(rep.sections) ? rep.sections : []).forEach(function (s) {
+      html += para(esc(s.title || 'Section'), s.body);
+    });
+    html += para('Sleep', rep.sleepAnalysis);
+    html += para('Recovery', rep.recoveryAnalysis);
+    html += para('Training load', rep.trainingLoadAnalysis);
+    html += para('What relates to what', rep.correlationInsights);
+    var actions = Array.isArray(rep.actions) ? rep.actions : [];
+    if (actions.length) {
+      html += '<h4>Do next</h4><ol>' + actions.map(function (a) {
+        return '<li><b>' + esc(a.action || '') + '</b>' + (a.rationale ? ' — ' + esc(a.rationale) : '') + '</li>';
+      }).join('') + '</ol>';
+    }
+    html += para('Coach notes', rep.coachNotes);
+    var mdl = r.model || {};
+    var usage = r.usage || {};
+    html += '<div class="bb-rw-note">Written by ' + esc(mdl.narrative || 'Claude') +
+      (mdl.validator ? ', checked by ' + esc(mdl.validator) : '') +
+      (usage.total_tokens ? ' &middot; ' + usage.total_tokens + ' tokens' : '') + '.</div>';
+    return html + '</div>';
+  }
+
+  /**
+   * The branded PDF. This MUST stay a fetch → blob → <a download> click, exactly as
+   * adminBloodDownloadPdf does it: the native Android app installs a download bridge
+   * that intercepts this shape and nothing else, so any other approach silently
+   * downloads nothing in the app.
+   */
+  window.bbRdPdf = function (key) {
+    var v = viewOf(key);
+    if (!v || !window.currentUser || !window.currentUser.token) return;
+    var btn = document.getElementById(eid(v, 'PdfBtn'));
+    var msg = document.getElementById(eid(v, 'ActMsg'));
+    var to = ymd(new Date()), from = shift(-(v.days - 1));
+    if (btn) { btn.disabled = true; btn.textContent = 'Building…'; }
+    if (msg) msg.innerHTML = '<div class="bb-rw-muted" style="margin-top:10px">Building the PDF…</div>';
+    var isGet = v.urls.pdfMethod === 'GET';
+    var url = (typeof API !== 'undefined' ? API : '') + v.urls.pdf +
+      (isGet ? '?from=' + encodeURIComponent(from) + '&to=' + encodeURIComponent(to) : '');
+    var init = { method: v.urls.pdfMethod, headers: { Authorization: 'Bearer ' + window.currentUser.token } };
+    if (!isGet) {
+      init.headers['Content-Type'] = 'application/json';
+      init.body = JSON.stringify({ from: from, to: to });
+    }
+    fetch(url, init)
+      .then(function (r) {
+        if (!r.ok) {
+          return r.json().catch(function () { return {}; }).then(function (j) {
+            throw new Error((j && j.error) || ('Download failed (' + r.status + ')'));
+          });
+        }
+        return r.blob();
+      })
+      .then(function (blob) {
+        var who = String(v.who || '').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'BodyBank_Readiness_' + (who ? who + '_' : '') + from + '_to_' + to + '.pdf';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        if (msg) msg.innerHTML = '<div class="bb-rw-ok">PDF downloaded.</div>';
+      })
+      .catch(function (err) {
+        if (msg) msg.innerHTML = '<div class="bb-rw-err">' + esc((err && err.message) || 'PDF not ready.') + '</div>';
+      })
+      .then(function () {
+        if (btn) { btn.disabled = false; btn.textContent = '⬇ Branded PDF'; }
+      });
+  };
+})();
+</script>
+<!-- =================== END READINESS =================== -->
 
 <!-- WhatsApp FAB – public website -->
 <a class="wa-public-fab" href="https://wa.me/919502575669" target="_blank" rel="noopener noreferrer" aria-label="Chat with us on WhatsApp" title="Chat on WhatsApp">

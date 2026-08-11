@@ -75,6 +75,20 @@ const METRIC_COLUMNS = [
  */
 const TEXT_COLUMNS = ['skin_temp_unit'];
 
+/** Numeric columns of wearable_workouts, in insert order. */
+const WORKOUT_METRIC_COLUMNS = [
+  'duration_min',
+  'strain',
+  'energy_kcal',
+  'max_hr',
+  'avg_hr',
+  'zone1_min',
+  'zone2_min',
+  'zone3_min',
+  'zone4_min',
+  'zone5_min'
+];
+
 /** camelCase names returned to callers, keyed by column. */
 const COLUMN_TO_CAMEL = {
   confidence: 'confidence',
@@ -147,9 +161,20 @@ const RAW_EXTRA_ALIASES = {
     'cycle end time', 'cycle_end_time', 'cycle timezone', 'timezone', 'tz',
     'sleep onset', 'wake onset', 'sleep_onset', 'wake_onset',
     'user_id', 'userId', 'id', 'row', 'row_number', 'source', 'provider',
-    'workout count', 'activity name', 'nap flag', 'is nap', 'raw', 'raw_json'
+    'workout count', 'activity name', 'nap flag', 'is nap', 'raw', 'raw_json',
+    // whoopParser emits sleepMinutes alongside sleepHours. Without this entry it is
+    // reported as an unrecognised column on EVERY import, which is noise on top of
+    // the signal that actually matters (Whoop changing their export format).
+    'sleepMinutes'
   ]
 };
+
+/**
+ * Anything above this is a unit error, not a night's sleep. Whoop's export units
+ * drift with account settings; a seconds-as-minutes column yields 450 "hours",
+ * which would then be averaged into the member's PDF as fact.
+ */
+const MAX_SLEEP_HOURS = 24;
 
 /** Weights of the derived (non-Whoop) readiness formula. Sum = 100. */
 const DERIVED_WEIGHTS = {
@@ -221,11 +246,16 @@ function isYmd(s) {
   return typeof s === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
 
+/**
+ * Unknown providers are rejected (null), not passed through. An unrecognised value
+ * in `source` lands in the ELSE 9 bucket of SOURCE_PRECEDENCE_SQL where ties break on
+ * updated_at alone, so one typo would quietly reorder every resolved read.
+ */
 function normalizeProvider(p) {
   const s = cleanStr(p, 40);
   if (!s) return DEFAULT_PROVIDER;
   const low = s.toLowerCase().replace(/[^a-z0-9_]/g, '_');
-  return VALID_PROVIDERS.includes(low) ? low : low.slice(0, 40);
+  return VALID_PROVIDERS.includes(low) ? low : null;
 }
 
 function hasDb(db) {
@@ -238,6 +268,45 @@ function safeJson(v) {
   } catch (_) {
     return '{}';
   }
+}
+
+/** Split rows into fixed-size batches so one statement never nears pg's 65535-param cap. */
+function chunkRows(arr, size) {
+  const out = [];
+  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
+  return out;
+}
+
+/**
+ * Run a multi-row statement in batches. A failed batch is retried row-by-row so one
+ * malformed record can never cost the other 99 in its chunk. `buildSql(n)` returns the
+ * statement for n VALUES tuples, `buildParams(row)` the params for one tuple.
+ * @returns {Promise<{written:number, failed:number, failedRows:Array}>}
+ */
+async function runChunked(db, { rows, size, buildSql, buildParams, label }) {
+  const list = Array.isArray(rows) ? rows : [];
+  let written = 0;
+  const failedRows = [];
+  for (const part of chunkRows(list, size)) {
+    try {
+      const params = [];
+      part.forEach((r) => buildParams(r).forEach((p) => params.push(p)));
+      await db.run(buildSql(part.length), params);
+      written += part.length;
+    } catch (e) {
+      console.warn(`[readiness] ${label} batch failed, retrying row-by-row:`, e && e.message);
+      for (const r of part) {
+        try {
+          await db.run(buildSql(1), buildParams(r));
+          written += 1;
+        } catch (e2) {
+          failedRows.push(r);
+          console.warn(`[readiness] ${label} row failed:`, e2 && e2.message);
+        }
+      }
+    }
+  }
+  return { written, failed: failedRows.length, failedRows };
 }
 
 function daysBetween(fromYmd, toYmd) {
@@ -331,6 +400,55 @@ async function ensureReadinessTables(db) {
       created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     )`);
 
+    // Workouts and journal answers are parsed on every import and were previously
+    // counted and thrown away. `started_at` / `ended_at` are TEXT, not TIMESTAMPTZ:
+    // whoopParser emits an ISO instant when the row declared a zone and a bare
+    // YYYY-MM-DD when it did not, and casting the latter would invent a wall-clock
+    // time. `workout_key` is the natural key (started_at + activity) computed on the
+    // JS side because a NULL activity would defeat a plain UNIQUE constraint.
+    await db.run(`CREATE TABLE IF NOT EXISTS wearable_workouts (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      provider TEXT NOT NULL DEFAULT 'whoop',
+      date DATE NOT NULL,
+      workout_key TEXT NOT NULL,
+      started_at TEXT,
+      ended_at TEXT,
+      duration_min REAL,
+      activity TEXT,
+      strain REAL,
+      energy_kcal REAL,
+      max_hr REAL,
+      avg_hr REAL,
+      zone1_min REAL,
+      zone2_min REAL,
+      zone3_min REAL,
+      zone4_min REAL,
+      zone5_min REAL,
+      source_upload_id TEXT,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, provider, workout_key)
+    )`);
+
+    // `answer` keeps the verbatim text; `answer_bool` is set only when the parser
+    // recognised a yes/no. A free-text answer therefore stays readable instead of
+    // being coerced into a boolean it never was.
+    await db.run(`CREATE TABLE IF NOT EXISTS wearable_journal (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      provider TEXT NOT NULL DEFAULT 'whoop',
+      date DATE NOT NULL,
+      question TEXT NOT NULL,
+      answer TEXT,
+      answer_bool BOOLEAN,
+      notes TEXT,
+      source_upload_id TEXT,
+      created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE (user_id, provider, date, question)
+    )`);
+
     await db.run(`CREATE TABLE IF NOT EXISTS wearable_connections (
       user_id TEXT NOT NULL,
       provider TEXT NOT NULL,
@@ -348,7 +466,9 @@ async function ensureReadinessTables(db) {
       ['wearable_uploads', 'fk_wearable_uploads_user', 'user_id'],
       ['readiness_daily', 'fk_readiness_daily_user', 'user_id'],
       ['wearable_rows_rejected', 'fk_wearable_rejected_user', 'user_id'],
-      ['wearable_connections', 'fk_wearable_connections_user', 'user_id']
+      ['wearable_connections', 'fk_wearable_connections_user', 'user_id'],
+      ['wearable_workouts', 'fk_wearable_workouts_user', 'user_id'],
+      ['wearable_journal', 'fk_wearable_journal_user', 'user_id']
     ];
     for (const [table, name, col] of cascades) {
       try {
@@ -384,8 +504,14 @@ async function ensureReadinessTables(db) {
       `ALTER TABLE readiness_daily ADD COLUMN IF NOT EXISTS raw_json JSONB DEFAULT '{}'::jsonb`,
       `ALTER TABLE readiness_daily ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`,
       `ALTER TABLE wearable_connections ADD COLUMN IF NOT EXISTS last_sync_at TIMESTAMPTZ`,
-      `ALTER TABLE wearable_connections ADD COLUMN IF NOT EXISTS opted_in_at TIMESTAMPTZ`
+      `ALTER TABLE wearable_connections ADD COLUMN IF NOT EXISTS opted_in_at TIMESTAMPTZ`,
+      `ALTER TABLE wearable_workouts ADD COLUMN IF NOT EXISTS source_upload_id TEXT`,
+      `ALTER TABLE wearable_workouts ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`,
+      `ALTER TABLE wearable_journal ADD COLUMN IF NOT EXISTS answer_bool BOOLEAN`,
+      `ALTER TABLE wearable_journal ADD COLUMN IF NOT EXISTS source_upload_id TEXT`,
+      `ALTER TABLE wearable_journal ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP`
     ];
+    WORKOUT_METRIC_COLUMNS.forEach((c) => adds.push(`ALTER TABLE wearable_workouts ADD COLUMN IF NOT EXISTS ${c} REAL`));
     METRIC_COLUMNS.forEach((c) => adds.push(`ALTER TABLE readiness_daily ADD COLUMN IF NOT EXISTS ${c} REAL`));
     TEXT_COLUMNS.forEach((c) => adds.push(`ALTER TABLE readiness_daily ADD COLUMN IF NOT EXISTS ${c} TEXT`));
     for (const sql of adds) {
@@ -396,7 +522,11 @@ async function ensureReadinessTables(db) {
       `CREATE INDEX IF NOT EXISTS idx_readiness_daily_user_date ON readiness_daily(user_id, date DESC)`,
       `CREATE INDEX IF NOT EXISTS idx_readiness_daily_user_source ON readiness_daily(user_id, source)`,
       `CREATE INDEX IF NOT EXISTS idx_wearable_uploads_user ON wearable_uploads(user_id, created_at DESC)`,
-      `CREATE INDEX IF NOT EXISTS idx_wearable_rows_rejected_upload ON wearable_rows_rejected(upload_id)`
+      `CREATE INDEX IF NOT EXISTS idx_wearable_rows_rejected_upload ON wearable_rows_rejected(upload_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_wearable_workouts_user_date ON wearable_workouts(user_id, date DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_wearable_workouts_upload ON wearable_workouts(source_upload_id)`,
+      `CREATE INDEX IF NOT EXISTS idx_wearable_journal_user_date ON wearable_journal(user_id, date DESC)`,
+      `CREATE INDEX IF NOT EXISTS idx_wearable_journal_upload ON wearable_journal(source_upload_id)`
     ];
     for (const sql of idx) {
       try { await db.run(sql); } catch (e) { /* ignore */ }
@@ -408,6 +538,14 @@ async function ensureReadinessTables(db) {
     } catch (e) { /* constraint already provides it */ }
     try {
       await db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_wearable_uploads_user_sha ON wearable_uploads(user_id, file_sha256)`);
+    } catch (e) { /* constraint already provides it */ }
+    // These two are load-bearing, not tidiness: they are the ON CONFLICT targets that
+    // make a re-uploaded overlapping export update rather than duplicate.
+    try {
+      await db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_wearable_workouts_upk ON wearable_workouts(user_id, provider, workout_key)`);
+    } catch (e) { /* constraint already provides it */ }
+    try {
+      await db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_wearable_journal_updq ON wearable_journal(user_id, provider, date, question)`);
     } catch (e) { /* constraint already provides it */ }
 
     return { ok: true };
@@ -434,7 +572,7 @@ function mapConnection(row) {
 async function getConnection(db, opts) {
   const userId = cleanStr(opts && opts.userId, 100);
   const provider = normalizeProvider(opts && opts.provider);
-  if (!hasDb(db) || !userId) return { ok: false, reason: 'invalid_input', connection: null };
+  if (!hasDb(db) || !userId || !provider) return { ok: false, reason: 'invalid_input', connection: null };
   try {
     const row = await db.queryOne(
       `SELECT user_id, provider, status, opted_in_at, last_sync_at
@@ -452,7 +590,7 @@ async function getConnection(db, opts) {
 async function optIn(db, opts) {
   const userId = cleanStr(opts && opts.userId, 100);
   const provider = normalizeProvider(opts && opts.provider);
-  if (!hasDb(db) || !userId) return { ok: false, reason: 'invalid_input' };
+  if (!hasDb(db) || !userId || !provider) return { ok: false, reason: 'invalid_input' };
   try {
     await db.run(
       `INSERT INTO wearable_connections (user_id, provider, status, opted_in_at)
@@ -477,7 +615,7 @@ async function optIn(db, opts) {
 async function optOut(db, opts) {
   const userId = cleanStr(opts && opts.userId, 100);
   const provider = normalizeProvider(opts && opts.provider);
-  if (!hasDb(db) || !userId) return { ok: false, reason: 'invalid_input' };
+  if (!hasDb(db) || !userId || !provider) return { ok: false, reason: 'invalid_input' };
   try {
     await db.run(
       `INSERT INTO wearable_connections (user_id, provider, status, opted_in_at)
@@ -497,7 +635,7 @@ async function optOut(db, opts) {
 async function purgeProviderData(db, opts) {
   const userId = cleanStr(opts && opts.userId, 100);
   const provider = normalizeProvider(opts && opts.provider);
-  if (!hasDb(db) || !userId) return { ok: false, reason: 'invalid_input' };
+  if (!hasDb(db) || !userId || !provider) return { ok: false, reason: 'invalid_input' };
   try {
     const rejected = await db.run(
       `DELETE FROM wearable_rows_rejected
@@ -507,6 +645,14 @@ async function purgeProviderData(db, opts) {
     );
     const daily = await db.run(
       `DELETE FROM readiness_daily WHERE user_id = ? AND source = ?`,
+      [userId, provider]
+    );
+    const workouts = await db.run(
+      `DELETE FROM wearable_workouts WHERE user_id = ? AND provider = ?`,
+      [userId, provider]
+    );
+    const journal = await db.run(
+      `DELETE FROM wearable_journal WHERE user_id = ? AND provider = ?`,
       [userId, provider]
     );
     const uploads = await db.run(
@@ -523,6 +669,8 @@ async function purgeProviderData(db, opts) {
       ok: true,
       provider,
       readinessRowsDeleted: (daily && daily.rowCount) || 0,
+      workoutsDeleted: (workouts && workouts.rowCount) || 0,
+      journalRowsDeleted: (journal && journal.rowCount) || 0,
       uploadsDeleted: (uploads && uploads.rowCount) || 0,
       rejectedRowsDeleted: (rejected && rejected.rowCount) || 0
     };
@@ -537,10 +685,10 @@ async function purgeProviderData(db, opts) {
 /**
  * Map one parser day object onto readiness_daily columns.
  * Tolerates snake_case, camelCase and raw Whoop CSV headers.
- * @returns {{date:string|null, values:Object, unknown:string[]}}
+ * @returns {{date:string|null, values:Object, unknown:string[], implausible:Object[]}}
  */
 function normalizeParsedDay(day) {
-  const out = { date: null, values: {}, unknown: [] };
+  const out = { date: null, values: {}, unknown: [], implausible: [] };
   if (!day || typeof day !== 'object') return out;
 
   let asleepMin = null;
@@ -582,6 +730,13 @@ function normalizeParsedDay(day) {
       if (total > 0) out.values.sleep_hours = round1(total / 60);
     }
   }
+  // A duration that cannot be a night's sleep is a unit error. Drop it rather than
+  // store it: the value is used by the stats engine and printed in the member's PDF,
+  // and "we don't know" is honest where "450 hours" is not.
+  if (out.values.sleep_hours != null && (out.values.sleep_hours <= 0 || out.values.sleep_hours > MAX_SLEEP_HOURS)) {
+    out.implausible.push({ field: 'sleep_hours', value: out.values.sleep_hours });
+    delete out.values.sleep_hours;
+  }
   // A day with no usable date is unusable downstream.
   if (out.date && !isYmd(out.date)) out.date = null;
   return out;
@@ -593,10 +748,21 @@ function normalizeParsed(parsed) {
   const byDate = new Map();
   const unknown = new Set();
   let undated = 0;
+  const implausible = [];
+
+  // whoopParser seeds napMinutes at 0 rather than null, so a cycles-only export
+  // reports "0 naps" for every day. Because the upsert only COALESCEs over NULL,
+  // that 0 would overwrite a real nap stored by an earlier full import. When no
+  // sleeps file contributed to this payload we cannot know the nap total, so the
+  // 0 is dropped as the placeholder it is.
+  const filesSeen = (parsed && parsed.summary && Array.isArray(parsed.summary.filesSeen)) ? parsed.summary.filesSeen : [];
+  const hasSleepFile = filesSeen.some((f) => f && f.kind === 'sleeps' && (f.rowsParsed || 0) > 0);
 
   days.forEach((d) => {
     const n = normalizeParsedDay(d);
     n.unknown.forEach((u) => unknown.add(u));
+    n.implausible.forEach((x) => implausible.push(Object.assign({ date: n.date }, x)));
+    if (!hasSleepFile && n.values.nap_min === 0) delete n.values.nap_min;
     if (!n.date) { undated += 1; return; }
     const prev = byDate.get(n.date);
     if (prev) {
@@ -612,7 +778,14 @@ function normalizeParsed(parsed) {
   const fromParser = []
     .concat((parsed && parsed.unknownColumns) || [])
     .concat((parsed && parsed.summary && parsed.summary.unknownColumns) || []);
-  fromParser.forEach((u) => { const s = cleanStr(u, 120); if (s) unknown.add(s); });
+  // whoopParser reports these as { file, kind, column } objects; older/looser callers
+  // pass bare strings. Running cleanStr over an object yields the literal
+  // "[object Object]", which is then persisted into wearable_uploads.summary_json and
+  // destroys the only early warning we get that Whoop changed their export format.
+  fromParser.forEach((u) => {
+    const s = cleanStr((u && typeof u === 'object') ? u.column : u, 120);
+    if (s) unknown.add(s);
+  });
 
   const rows = Array.from(byDate.values()).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
   const dateRange = rows.length ? { from: rows[0].date, to: rows[rows.length - 1].date } : { from: null, to: null };
@@ -623,6 +796,7 @@ function normalizeParsed(parsed) {
     dateRange,
     unknownColumns: Array.from(unknown).slice(0, 200),
     undated,
+    implausible: implausible.slice(0, 200),
     rejected: rejectedIn
   };
 }
@@ -643,23 +817,211 @@ const UPSERT_SET = METRIC_COLUMNS.concat(TEXT_COLUMNS)
     'updated_at = CURRENT_TIMESTAMP'
   ])
   .join(',\n         ');
-const UPSERT_SQL = `INSERT INTO readiness_daily (${UPSERT_COLS.join(', ')})
-     VALUES (${UPSERT_PLACEHOLDERS})
+/** The same statement for n VALUES tuples — one round-trip per batch instead of per day. */
+function buildUpsertSql(n) {
+  const tuples = new Array(n).fill(`(${UPSERT_PLACEHOLDERS})`).join(', ');
+  return `INSERT INTO readiness_daily (${UPSERT_COLS.join(', ')})
+     VALUES ${tuples}
      ON CONFLICT (user_id, date, source) DO UPDATE SET
          ${UPSERT_SET}`;
+}
+const UPSERT_SQL = buildUpsertSql(1);
 
-/**
- * Upsert one resolved day. Existing non-null values survive a null in the incoming row
- * (a partial re-export must never erase history); non-null incoming values always win.
- */
-async function upsertReadinessDay(db, { userId, date, source, values, sourceUploadId, raw }) {
+/** Days per INSERT. 31 params each, so 100 stays far below pg's 65535 cap. */
+const DAY_BATCH_SIZE = 100;
+
+function upsertDayParams({ userId, date, source, values, sourceUploadId, raw }) {
   const params = [uuidv4(), userId, date, source];
   METRIC_COLUMNS.forEach((c) => params.push(values && values[c] != null ? Number(values[c]) : null));
   // Text columns are pushed verbatim — Number() here would null them out.
   TEXT_COLUMNS.forEach((c) => params.push(values && values[c] != null ? String(values[c]) : null));
   params.push(sourceUploadId || null);
   params.push(safeJson(raw || {}));
-  return db.run(UPSERT_SQL, params);
+  return params;
+}
+
+/**
+ * Upsert one resolved day. Existing non-null values survive a null in the incoming row
+ * (a partial re-export must never erase history); non-null incoming values always win.
+ */
+async function upsertReadinessDay(db, opts) {
+  return db.run(UPSERT_SQL, upsertDayParams(opts));
+}
+
+/* ────────────────────────────── workouts / journal ────────────────────────────── */
+
+const WORKOUT_COLS = ['id', 'user_id', 'provider', 'date', 'workout_key', 'started_at', 'ended_at', 'activity']
+  .concat(WORKOUT_METRIC_COLUMNS, ['source_upload_id']);
+const WORKOUT_PLACEHOLDERS = WORKOUT_COLS.map((c) => (c === 'date' ? '?::date' : '?')).join(', ');
+const WORKOUT_SET = ['started_at', 'ended_at', 'activity']
+  .concat(WORKOUT_METRIC_COLUMNS, ['source_upload_id'])
+  .map((c) => `${c} = COALESCE(EXCLUDED.${c}, wearable_workouts.${c})`)
+  .concat(['updated_at = CURRENT_TIMESTAMP'])
+  .join(',\n         ');
+
+function buildWorkoutSql(n) {
+  const tuples = new Array(n).fill(`(${WORKOUT_PLACEHOLDERS})`).join(', ');
+  return `INSERT INTO wearable_workouts (${WORKOUT_COLS.join(', ')})
+     VALUES ${tuples}
+     ON CONFLICT (user_id, provider, workout_key) DO UPDATE SET
+         ${WORKOUT_SET}`;
+}
+
+const JOURNAL_COLS = ['id', 'user_id', 'provider', 'date', 'question', 'answer', 'answer_bool', 'notes', 'source_upload_id'];
+const JOURNAL_PLACEHOLDERS = JOURNAL_COLS.map((c) => (c === 'date' ? '?::date' : '?')).join(', ');
+const JOURNAL_SET = ['answer', 'answer_bool', 'notes', 'source_upload_id']
+  .map((c) => `${c} = COALESCE(EXCLUDED.${c}, wearable_journal.${c})`)
+  .concat(['updated_at = CURRENT_TIMESTAMP'])
+  .join(',\n         ');
+
+function buildJournalSql(n) {
+  const tuples = new Array(n).fill(`(${JOURNAL_PLACEHOLDERS})`).join(', ');
+  return `INSERT INTO wearable_journal (${JOURNAL_COLS.join(', ')})
+     VALUES ${tuples}
+     ON CONFLICT (user_id, provider, date, question) DO UPDATE SET
+         ${JOURNAL_SET}`;
+}
+
+/** 19 / 9 params per row — 100 and 200 both stay far below pg's 65535 cap. */
+const WORKOUT_BATCH_SIZE = 100;
+const JOURNAL_BATCH_SIZE = 200;
+
+/** Does this start stamp carry a time of day, or only a calendar date? */
+const HAS_CLOCK_TIME = /\d{1,2}:\d{2}/;
+
+/**
+ * The natural key written to workout_key.
+ *
+ * A start stamp with a time of day identifies the session on its own. Without one it
+ * does not: the parser falls back to a bare YYYY-MM-DD whenever the export carries no
+ * timezone (whoopParser drops the wall clock it cannot place), and every PDF row is
+ * dated but untimed. Two runs on the same day then shared `date|Running`, the second
+ * overwrote the first, and the member was never told. So an untimed key also carries
+ * the row's own figures: two different sessions stay two rows, while the SAME session
+ * re-uploaded still lands on the same key and updates in place.
+ */
+function workoutKey(date, startedAt, activity, values) {
+  const stamp = startedAt || date;
+  const base = `${stamp}|${activity || ''}`;
+  if (HAS_CLOCK_TIME.test(stamp)) return base;
+  const figures = WORKOUT_METRIC_COLUMNS
+    .map((c) => (values[c] == null ? '' : String(values[c])))
+    .join(',');
+  return `${base}|${figures}`;
+}
+
+/**
+ * One parsed workout -> a persistable row, or null when it carries no usable date.
+ * `key` is the natural key written to workout_key: `activity` is often null and a NULL
+ * inside a UNIQUE constraint never conflicts, so the key is materialised as text and
+ * a re-uploaded overlapping export updates its rows instead of duplicating them.
+ */
+function normalizeWorkout(w) {
+  if (!w || typeof w !== 'object') return null;
+  const date = toDateStr(w.date);
+  if (!isYmd(date)) return null;
+  const startedAt = cleanStr(w.startedAt, 40);
+  const activity = cleanStr(w.activity, 120);
+  const zones = (w.zones && typeof w.zones === 'object') ? w.zones : {};
+  const values = {
+    duration_min: num(w.durationMin),
+    strain: num(w.strain),
+    energy_kcal: num(w.energyKcal),
+    max_hr: num(w.maxHr),
+    avg_hr: num(w.avgHr),
+    zone1_min: num(zones.z1),
+    zone2_min: num(zones.z2),
+    zone3_min: num(zones.z3),
+    zone4_min: num(zones.z4),
+    zone5_min: num(zones.z5)
+  };
+  return {
+    date,
+    key: workoutKey(date, startedAt, activity, values),
+    startedAt,
+    endedAt: cleanStr(w.endedAt, 40),
+    activity,
+    values
+  };
+}
+
+/**
+ * One parsed journal row -> a persistable row, or null when it has no date or no
+ * question (without both there is no natural key, so it could only ever duplicate).
+ * The parser hands back a boolean when it recognised a yes/no and the raw string
+ * otherwise; both are kept — the text verbatim, the boolean separately.
+ */
+function normalizeJournalEntry(j) {
+  if (!j || typeof j !== 'object') return null;
+  const date = toDateStr(j.date);
+  const question = cleanStr(j.question, 300);
+  if (!isYmd(date) || !question) return null;
+  return {
+    date,
+    question,
+    answer: cleanStr(j.answer, 500),
+    answerBool: typeof j.answer === 'boolean' ? j.answer : null,
+    notes: cleanStr(j.notes, 2000)
+  };
+}
+
+/** Persist parsed workouts for one upload. De-duplicated by natural key before writing. */
+async function persistWorkouts(db, { userId, provider, uploadId, workouts }) {
+  const list = Array.isArray(workouts) ? workouts : [];
+  const byKey = new Map();
+  let skipped = 0;
+  let collapsed = 0;
+  list.forEach((w) => {
+    const n = normalizeWorkout(w);
+    if (!n) { skipped += 1; return; }
+    // Two tuples with the same conflict key in ONE statement is a pg error, not a
+    // merge — collapse them here, last occurrence wins. Counted, because a row that
+    // silently stops existing between the preview count and the database is the one
+    // loss the member can never see.
+    if (byKey.has(n.key)) collapsed += 1;
+    byKey.set(n.key, n);
+  });
+  const rows = Array.from(byKey.values());
+  if (!rows.length) return { written: 0, failed: 0, skipped: skipped + collapsed, collapsed };
+
+  const res = await runChunked(db, {
+    rows,
+    size: WORKOUT_BATCH_SIZE,
+    label: 'workouts',
+    buildSql: buildWorkoutSql,
+    buildParams: (r) => {
+      const params = [uuidv4(), userId, provider, r.date, r.key, r.startedAt, r.endedAt, r.activity];
+      WORKOUT_METRIC_COLUMNS.forEach((c) => params.push(r.values[c] != null ? Number(r.values[c]) : null));
+      params.push(uploadId || null);
+      return params;
+    }
+  });
+  return { written: res.written, failed: res.failed, skipped: skipped + collapsed, collapsed };
+}
+
+/** Persist parsed journal answers for one upload. De-duplicated by (date, question). */
+async function persistJournal(db, { userId, provider, uploadId, journal }) {
+  const list = Array.isArray(journal) ? journal : [];
+  const byKey = new Map();
+  let skipped = 0;
+  list.forEach((j) => {
+    const n = normalizeJournalEntry(j);
+    if (!n) { skipped += 1; return; }
+    byKey.set(`${n.date}|${n.question}`, n);
+  });
+  const rows = Array.from(byKey.values());
+  if (!rows.length) return { written: 0, failed: 0, skipped };
+
+  const res = await runChunked(db, {
+    rows,
+    size: JOURNAL_BATCH_SIZE,
+    label: 'journal',
+    buildSql: buildJournalSql,
+    buildParams: (r) => [
+      uuidv4(), userId, provider, r.date, r.question, r.answer, r.answerBool, r.notes, uploadId || null
+    ]
+  });
+  return { written: res.written, failed: res.failed, skipped };
 }
 
 /* ────────────────────────────── upload preview / commit ────────────────────────────── */
@@ -691,8 +1053,10 @@ async function previewUpload(db, opts) {
 
     let duplicate = null;
     if (sha256) {
+      // Only a fully committed upload counts as a duplicate — an interrupted one is
+      // resumable, and telling the member "nothing changed" would strand their data.
       const dup = await db.queryOne(
-        `SELECT id FROM wearable_uploads WHERE user_id = ? AND file_sha256 = ?`,
+        `SELECT id FROM wearable_uploads WHERE user_id = ? AND file_sha256 = ? AND status = 'committed'`,
         [userId, sha256]
       );
       duplicate = !!dup;
@@ -707,6 +1071,9 @@ async function previewUpload(db, opts) {
       dateRange: n.dateRange,
       unknownColumns: n.unknownColumns,
       undatedRows: n.undated,
+      implausibleValues: n.implausible.length,
+      workouts: Array.isArray(parsed.workouts) ? parsed.workouts.length : 0,
+      journal: Array.isArray(parsed.journal) ? parsed.journal.length : 0,
       duplicate
     };
   } catch (err) {
@@ -715,9 +1082,27 @@ async function previewUpload(db, opts) {
   }
 }
 
+const REJECTED_COLS = ['id', 'upload_id', 'user_id', 'file_name', 'row_number', 'reason', 'raw_json'];
+const REJECTED_PLACEHOLDERS = REJECTED_COLS.map((c) => (c === 'raw_json' ? '?::jsonb' : '?')).join(', ');
+const REJECTED_BATCH_SIZE = 100;
+
+function buildRejectedSql(n) {
+  const tuples = new Array(n).fill(`(${REJECTED_PLACEHOLDERS}, CURRENT_TIMESTAMP)`).join(', ');
+  return `INSERT INTO wearable_rows_rejected (${REJECTED_COLS.join(', ')}, created_at)
+     VALUES ${tuples}`;
+}
+
 /**
  * Commit a parsed wearable export.
  * Re-uploading a byte-identical file is a no-op: `{ duplicate:true, uploadId }`.
+ *
+ * The upload row is written as `status:'pending'` and only promoted to `'committed'`
+ * once every day, workout and journal row has landed. That ordering matters: the row
+ * used to be inserted as committed BEFORE the writes, so an export that died halfway
+ * (proxy timeout, deploy, OOM) left the file recorded as imported — and the member's
+ * re-upload was then answered "you have already uploaded this export", stranding the
+ * missing days for good. A pending row is instead resumed by the next upload of the
+ * same file; every write below is an idempotent upsert, so resuming is safe.
  */
 async function commitUpload(db, opts) {
   const userId = cleanStr(opts && opts.userId, 100);
@@ -732,15 +1117,14 @@ async function commitUpload(db, opts) {
 
   try {
     const existing = await db.queryOne(
-      `SELECT id FROM wearable_uploads WHERE user_id = ? AND file_sha256 = ?`,
+      `SELECT id, status FROM wearable_uploads WHERE user_id = ? AND file_sha256 = ?`,
       [userId, sha256]
     );
-    if (existing) {
+    if (existing && String(existing.status || '') === 'committed') {
       return { ok: true, duplicate: true, uploadId: existing.id };
     }
 
     const n = normalizeParsed(parsed);
-    const uploadId = uuidv4();
     const rejected = n.rejected || [];
     const rowsRejected = rejected.length + n.undated;
 
@@ -751,27 +1135,36 @@ async function commitUpload(db, opts) {
         days: n.rows.length,
         undatedRows: n.undated,
         unknownColumns: n.unknownColumns,
+        implausibleValues: n.implausible,
         workouts: Array.isArray(parsed.workouts) ? parsed.workouts.length : 0,
         journal: Array.isArray(parsed.journal) ? parsed.journal.length : 0
       }
     );
 
-    const ins = await db.run(
-      `INSERT INTO wearable_uploads
-         (id, user_id, provider, file_name, file_sha256, rows_parsed, rows_rejected,
-          date_from, date_to, summary_json, status, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?::date, ?::date, ?::jsonb, 'committed', CURRENT_TIMESTAMP)
-       ON CONFLICT (user_id, file_sha256) DO NOTHING`,
-      [uploadId, userId, provider, fileName, sha256, n.rows.length, rowsRejected,
-        n.dateRange.from, n.dateRange.to, safeJson(summary)]
-    );
-    if (!ins || !ins.rowCount) {
-      // Lost a race with a concurrent identical upload — treat as duplicate, write nothing.
-      const raced = await db.queryOne(
-        `SELECT id FROM wearable_uploads WHERE user_id = ? AND file_sha256 = ?`,
-        [userId, sha256]
+    // Resuming an interrupted upload keeps its id so the rows it already wrote stay
+    // attributed to it; a fresh one claims a new id.
+    const uploadId = existing ? existing.id : uuidv4();
+    const resumed = !!existing;
+    if (!existing) {
+      const ins = await db.run(
+        `INSERT INTO wearable_uploads
+           (id, user_id, provider, file_name, file_sha256, rows_parsed, rows_rejected,
+            date_from, date_to, summary_json, status, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?::date, ?::date, ?::jsonb, 'pending', CURRENT_TIMESTAMP)
+         ON CONFLICT (user_id, file_sha256) DO NOTHING`,
+        [uploadId, userId, provider, fileName, sha256, n.rows.length, rowsRejected,
+          n.dateRange.from, n.dateRange.to, safeJson(summary)]
       );
-      return { ok: true, duplicate: true, uploadId: raced ? raced.id : null };
+      if (!ins || !ins.rowCount) {
+        // Lost a race with a concurrent identical upload.
+        const raced = await db.queryOne(
+          `SELECT id, status FROM wearable_uploads WHERE user_id = ? AND file_sha256 = ?`,
+          [userId, sha256]
+        );
+        // A committed winner means the work is done; a still-pending one is a
+        // concurrent import we must not double-write into.
+        return { ok: true, duplicate: true, uploadId: raced ? raced.id : null };
+      }
     }
 
     // Which dates already existed for this source (so we can report new vs updated)?
@@ -785,50 +1178,67 @@ async function commitUpload(db, opts) {
       existingSet = new Set((have || []).map((r) => toDateStr(r.date)).filter(Boolean));
     }
 
+    // Batched: a 2-year export used to be one round-trip per day (~730 sequential
+    // queries) and could outlive the proxy timeout. 100 days per statement.
+    const dayRes = await runChunked(db, {
+      rows: n.rows,
+      size: DAY_BATCH_SIZE,
+      label: 'readiness day',
+      buildSql: buildUpsertSql,
+      buildParams: (row) => upsertDayParams({
+        userId,
+        date: row.date,
+        source: provider,
+        values: row.values,
+        sourceUploadId: uploadId,
+        raw: row.raw
+      })
+    });
+    const failedDates = new Set(dayRes.failedRows.map((r) => r.date));
     let daysWritten = 0;
     let daysUpdated = 0;
-    let daysFailed = 0;
-    for (const row of n.rows) {
-      try {
-        await upsertReadinessDay(db, {
-          userId,
-          date: row.date,
-          source: provider,
-          values: row.values,
-          sourceUploadId: uploadId,
-          raw: row.raw
-        });
-        if (existingSet.has(row.date)) daysUpdated += 1; else daysWritten += 1;
-      } catch (e) {
-        daysFailed += 1;
-        console.warn('[readiness] upsert day failed', row.date, e && e.message);
-      }
-    }
+    n.rows.forEach((row) => {
+      if (failedDates.has(row.date)) return;
+      if (existingSet.has(row.date)) daysUpdated += 1; else daysWritten += 1;
+    });
+    const daysFailed = dayRes.failed;
+
+    // Workouts and journal answers used to be parsed, counted in the preview and
+    // then discarded. Both are upserts on a natural key, so a re-uploaded
+    // overlapping export updates rather than duplicates.
+    const workoutRes = await persistWorkouts(db, { userId, provider, uploadId, workouts: parsed.workouts });
+    const journalRes = await persistJournal(db, { userId, provider, uploadId, journal: parsed.journal });
 
     // Persist rejected rows for operator triage.
-    let rejectedStored = 0;
-    for (let i = 0; i < rejected.length; i++) {
-      const r = rejected[i] || {};
-      const rowNumber = num(r.rowNumber != null ? r.rowNumber : (r.row_number != null ? r.row_number : r.line));
-      try {
-        await db.run(
-          `INSERT INTO wearable_rows_rejected
-             (id, upload_id, user_id, file_name, row_number, reason, raw_json, created_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?::jsonb, CURRENT_TIMESTAMP)`,
-          [
-            uuidv4(),
-            uploadId,
-            userId,
-            cleanStr(r.fileName || r.file_name || fileName, 300),
-            rowNumber != null ? Math.trunc(rowNumber) : null,
-            cleanStr(r.reason || r.error || r.message, 500) || 'unspecified',
-            safeJson(r.raw || r.row || r.data || r)
-          ]
-        );
-        rejectedStored += 1;
-      } catch (e) {
-        console.warn('[readiness] rejected-row insert failed:', e && e.message);
+    const rejectedRes = await runChunked(db, {
+      rows: rejected,
+      size: REJECTED_BATCH_SIZE,
+      label: 'rejected row',
+      buildSql: buildRejectedSql,
+      buildParams: (raw) => {
+        const r = raw || {};
+        const rowNumber = num(r.rowNumber != null ? r.rowNumber : (r.row_number != null ? r.row_number : r.line));
+        return [
+          uuidv4(),
+          uploadId,
+          userId,
+          cleanStr(r.fileName || r.file_name || fileName, 300),
+          rowNumber != null ? Math.trunc(rowNumber) : null,
+          cleanStr(r.reason || r.error || r.message, 500) || 'unspecified',
+          safeJson(r.raw || r.row || r.data || r)
+        ];
       }
+    });
+
+    // Only now is the file honestly "imported". A partial import stays pending so the
+    // member's retry resumes it instead of being told nothing changed. Rejected rows
+    // are triage data, not member data — they do not hold the commit back.
+    const complete = daysFailed === 0 && workoutRes.failed === 0 && journalRes.failed === 0;
+    if (complete) {
+      await db.run(
+        `UPDATE wearable_uploads SET status = 'committed' WHERE id = ?`,
+        [uploadId]
+      ).catch((e) => console.warn('[readiness] commit status update failed:', e && e.message));
     }
 
     // Best-effort sync stamp; never auto-creates an opt-in record.
@@ -843,14 +1253,26 @@ async function commitUpload(db, opts) {
     return {
       ok: true,
       duplicate: false,
+      resumed,
+      status: complete ? 'committed' : 'pending',
       uploadId,
       daysWritten,
       daysUpdated,
       daysFailed,
+      workoutsWritten: workoutRes.written,
+      workoutsFailed: workoutRes.failed,
+      workoutsSkipped: workoutRes.skipped,
+      // Of the skipped, how many were an exact duplicate of another row in the same
+      // file rather than an unusable one — reported apart so the reason is visible.
+      workoutsCollapsed: workoutRes.collapsed,
+      journalWritten: journalRes.written,
+      journalFailed: journalRes.failed,
+      journalSkipped: journalRes.skipped,
       rowsRejected,
-      rejectedStored,
+      rejectedStored: rejectedRes.written,
       dateRange: n.dateRange,
-      unknownColumns: n.unknownColumns
+      unknownColumns: n.unknownColumns,
+      implausibleValues: n.implausible
     };
   } catch (err) {
     console.warn('[readiness] commitUpload failed:', err && err.message);
@@ -1115,11 +1537,70 @@ function mapReadinessRow(row) {
   // A whoop export gives recovery_score, the derived path gives readiness_score.
   // Downstream code should read `score` and stop caring which one it was.
   out.score = out.readinessScore != null ? out.readinessScore : out.recoveryScore;
+  out.scoreSource = out.score != null ? out.source : null;
   out.raw = row.raw_json || null;
   return out;
 }
 
 const SELECT_COLS = `user_id, date, source, source_upload_id, updated_at, raw_json, ${METRIC_COLUMNS.concat(TEXT_COLUMNS).join(', ')}`;
+
+/** The precedence-resolved score per date, ignoring rows that carry no score at all. */
+const SCORE_FALLBACK_SQL = `SELECT DISTINCT ON (date)
+       date, source, COALESCE(readiness_score, recovery_score) AS score
+     FROM readiness_daily
+     WHERE user_id = ? AND date BETWEEN ?::date AND ?::date
+       AND COALESCE(readiness_score, recovery_score) IS NOT NULL
+     ORDER BY date ASC, ${SOURCE_PRECEDENCE_SQL} ASC, updated_at DESC`;
+
+/**
+ * Precedence picks a whole row, so a whoop row with a blank recovery score (the band
+ * was off at wake) would mask a derived row that does have one — the member's Today
+ * card shows "—" on exactly the days the derived engine did its job. The winning row
+ * still wins for every metric; only `score` falls through to the next source that has
+ * one, and `scoreSource` records where the number actually came from.
+ */
+async function applyScoreFallback(db, userId, rows, from, to) {
+  const needy = rows.filter((r) => r && r.score == null && r.date);
+  if (!needy.length) return rows;
+  const alts = await db.queryAll(SCORE_FALLBACK_SQL, [userId, from, to]);
+  const byDate = new Map();
+  (alts || []).forEach((a) => {
+    const d = toDateStr(a.date);
+    if (d) byDate.set(d, a);
+  });
+  needy.forEach((r) => {
+    const a = byDate.get(r.date);
+    const v = a ? num(a.score) : null;
+    if (v == null) return;
+    r.score = v;
+    r.scoreSource = a.source || null;
+  });
+  return rows;
+}
+
+/** Hard caps shared by every range reader. */
+const MAX_RANGE_DAYS = 730;
+const MAX_RANGE_ROWS = 5000;
+
+/**
+ * Validate + normalise a date window: either bound alone means a single day, reversed
+ * bounds are swapped, and a window longer than MAX_RANGE_DAYS is truncated from the
+ * start (reported back as `truncated` so a caller can say so rather than pretend).
+ * @returns {{from:string, to:string, truncated:boolean}|null}
+ */
+function resolveRange(opts) {
+  let from = isYmd(cleanStr(opts && opts.from, 10)) ? cleanStr(opts.from, 10) : toDateStr(opts && opts.from);
+  let to = isYmd(cleanStr(opts && opts.to, 10)) ? cleanStr(opts.to, 10) : toDateStr(opts && opts.to);
+  if (!from && !to) return null;
+  if (!from) from = to;
+  if (!to) to = from;
+  if (!isYmd(from) || !isYmd(to)) return null;
+  if (from > to) { const t = from; from = to; to = t; }
+  const span = daysBetween(from, to);
+  const truncated = span != null && span > MAX_RANGE_DAYS;
+  if (truncated) from = addCalendarDaysYmd(to, -MAX_RANGE_DAYS) || from;
+  return { from, to, truncated };
+}
 
 /**
  * The ONE function every downstream feature calls.
@@ -1142,7 +1623,11 @@ async function getReadiness(db, opts) {
        LIMIT 1`,
       [userId, date]
     );
-    return mapReadinessRow(row);
+    const mapped = mapReadinessRow(row);
+    if (!mapped) return null;
+    // Second query only when the winning row has no score of its own.
+    const resolved = await applyScoreFallback(db, userId, [mapped], date, date);
+    return resolved[0];
   } catch (err) {
     console.warn('[readiness] getReadiness failed:', err && err.message);
     return null;
@@ -1157,15 +1642,10 @@ async function getReadinessRange(db, opts) {
   const userId = cleanStr(opts && opts.userId, 100);
   if (!hasDb(db) || !userId) return [];
   try {
-    let from = isYmd(cleanStr(opts && opts.from, 10)) ? cleanStr(opts.from, 10) : toDateStr(opts && opts.from);
-    let to = isYmd(cleanStr(opts && opts.to, 10)) ? cleanStr(opts.to, 10) : toDateStr(opts && opts.to);
-    if (!from && !to) return [];
-    if (!from) from = to;
-    if (!to) to = from;
-    if (!isYmd(from) || !isYmd(to)) return [];
-    if (from > to) { const t = from; from = to; to = t; }
-    const span = daysBetween(from, to);
-    if (span != null && span > 730) from = addCalendarDaysYmd(to, -730) || from; // hard cap
+    const range = resolveRange(opts);
+    if (!range) return [];
+    const from = range.from;
+    const to = range.to;
 
     const rows = await db.queryAll(
       `SELECT DISTINCT ON (date) ${SELECT_COLS}
@@ -1174,26 +1654,249 @@ async function getReadinessRange(db, opts) {
        ORDER BY date ASC, ${SOURCE_PRECEDENCE_SQL} ASC, updated_at DESC`,
       [userId, from, to]
     );
-    return (rows || []).map(mapReadinessRow).filter(Boolean);
+    const mapped = (rows || []).map(mapReadinessRow).filter(Boolean);
+    return applyScoreFallback(db, userId, mapped, from, to);
   } catch (err) {
     console.warn('[readiness] getReadinessRange failed:', err && err.message);
     return [];
   }
 }
 
-/* ────────────────────────────── auto-populate check-in ────────────────────────────── */
+function mapWorkoutRow(row) {
+  if (!row) return null;
+  return {
+    userId: row.user_id,
+    source: row.provider || null,
+    date: toDateStr(row.date),
+    startedAt: row.started_at || null,
+    endedAt: row.ended_at || null,
+    activity: row.activity || null,
+    durationMin: num(row.duration_min),
+    strain: num(row.strain),
+    energyKcal: num(row.energy_kcal),
+    maxHr: num(row.max_hr),
+    avgHr: num(row.avg_hr),
+    zones: {
+      z1: num(row.zone1_min),
+      z2: num(row.zone2_min),
+      z3: num(row.zone3_min),
+      z4: num(row.zone4_min),
+      z5: num(row.zone5_min)
+    },
+    sourceUploadId: row.source_upload_id || null
+  };
+}
+
+function mapJournalRow(row) {
+  if (!row) return null;
+  return {
+    userId: row.user_id,
+    source: row.provider || null,
+    date: toDateStr(row.date),
+    question: row.question || null,
+    // The verbatim answer, plus the boolean when Whoop's answer was a yes/no.
+    answer: row.answer == null || row.answer === '' ? null : String(row.answer),
+    answerBool: typeof row.answer_bool === 'boolean' ? row.answer_bool : null,
+    notes: row.notes || null,
+    sourceUploadId: row.source_upload_id || null
+  };
+}
+
+const WORKOUT_SELECT_COLS = `user_id, provider, date, started_at, ended_at, activity, source_upload_id, ${WORKOUT_METRIC_COLUMNS.join(', ')}`;
 
 /**
- * Fill daily_checkins.sleep_hours from the member's Whoop row.
+ * Workouts for a date window, ascending. Same shape the parser produced (zones nested),
+ * so a consumer can treat a stored workout and a freshly parsed one identically.
+ * @returns {Promise<Array>} always an array (empty on error).
+ */
+async function getWorkoutsRange(db, opts) {
+  const userId = cleanStr(opts && opts.userId, 100);
+  const provider = normalizeProvider((opts && opts.provider) || DEFAULT_PROVIDER);
+  if (!hasDb(db) || !userId || !provider) return [];
+  try {
+    const range = resolveRange(opts);
+    if (!range) return [];
+    const max = clamp(num(opts && opts.limit) || MAX_RANGE_ROWS, 1, MAX_RANGE_ROWS);
+    const rows = await db.queryAll(
+      `SELECT ${WORKOUT_SELECT_COLS}
+       FROM wearable_workouts
+       WHERE user_id = ? AND provider = ? AND date BETWEEN ?::date AND ?::date
+       ORDER BY date ASC, started_at ASC
+       LIMIT ?`,
+      [userId, provider, range.from, range.to, Math.trunc(max)]
+    );
+    return (rows || []).map(mapWorkoutRow).filter(Boolean);
+  } catch (err) {
+    console.warn('[readiness] getWorkoutsRange failed:', err && err.message);
+    return [];
+  }
+}
+
+/**
+ * Journal answers for a date window, ascending. One row per (date, question).
+ * @returns {Promise<Array>} always an array (empty on error).
+ */
+async function getJournalRange(db, opts) {
+  const userId = cleanStr(opts && opts.userId, 100);
+  const provider = normalizeProvider((opts && opts.provider) || DEFAULT_PROVIDER);
+  if (!hasDb(db) || !userId || !provider) return [];
+  try {
+    const range = resolveRange(opts);
+    if (!range) return [];
+    const max = clamp(num(opts && opts.limit) || MAX_RANGE_ROWS, 1, MAX_RANGE_ROWS);
+    const rows = await db.queryAll(
+      `SELECT user_id, provider, date, question, answer, answer_bool, notes, source_upload_id
+       FROM wearable_journal
+       WHERE user_id = ? AND provider = ? AND date BETWEEN ?::date AND ?::date
+       ORDER BY date ASC, question ASC
+       LIMIT ?`,
+      [userId, provider, range.from, range.to, Math.trunc(max)]
+    );
+    return (rows || []).map(mapJournalRow).filter(Boolean);
+  } catch (err) {
+    console.warn('[readiness] getJournalRange failed:', err && err.message);
+    return [];
+  }
+}
+
+/* ────────────────────────────── auto-populate check-in ────────────────────────────── */
+
+/** The one check-in field a wearable can honestly supply. See autoPopulateCheckinRange. */
+const AUTOFILL_FIELD = 'sleep_hours';
+const CHECKIN_BATCH_SIZE = 200;
+
+/**
+ * Fill daily_checkins.sleep_hours from the member's wearable rows for MANY dates at once.
  *
- * HARD RULE: never overwrite a value the member typed. The UPDATE is guarded by
- * `AND sleep_hours IS NULL`, so a member-entered value (or a previously auto-filled one)
- * always wins. Idempotent and non-throwing.
+ * HARD RULE (unchanged): never overwrite a value the member typed. Every write is an
+ * INSERT ... ON CONFLICT DO NOTHING (creates the day's row, sets nothing) followed by an
+ * UPDATE guarded by `AND sleep_hours IS NULL`, so a member-entered value — or a previously
+ * auto-filled one — always wins.
+ *
+ * Why batched: this used to be called once per day of the export, three queries each, so a
+ * two-year import issued ~2,200 sequential round-trips inside one HTTP request and could
+ * outlive the proxy timeout. Now the whole export costs one SELECT plus a handful of
+ * 200-row statements, bounded by MAX_RANGE_DAYS / CHECKIN_BATCH_SIZE.
+ *
+ * ONLY sleep_hours is filled. daily_checkins also has steps, water_ml and protein_g;
+ * a Whoop export contains no step count and nothing that could stand in for water or
+ * protein, so those stay empty rather than be invented.
+ *
+ * @param {{userId:string, dates?:string[], from?:string, to?:string, provider?:string}} opts
+ *        Pass `dates` (the export's days) or a `from`/`to` window; `dates` wins.
+ * @returns {Promise<{ok:boolean, field:string, candidates:number, rowsCreated:number,
+ *                    filled:number, filledDates:string[], values:Object, reason?:string}>}
+ */
+async function autoPopulateCheckinRange(db, opts) {
+  const field = AUTOFILL_FIELD;
+  const empty = { ok: false, field, candidates: 0, rowsCreated: 0, filled: 0, filledDates: [], values: {} };
+  const userId = cleanStr(opts && opts.userId, 100);
+  const provider = normalizeProvider((opts && opts.provider) || DEFAULT_PROVIDER);
+  if (!hasDb(db) || !userId || !provider) return Object.assign({}, empty, { reason: 'invalid_input' });
+
+  try {
+    const wanted = Array.isArray(opts && opts.dates)
+      ? Array.from(new Set(opts.dates.map((d) => (isYmd(cleanStr(d, 10)) ? cleanStr(d, 10) : toDateStr(d))).filter(isYmd)))
+      : null;
+    if (wanted && !wanted.length) return Object.assign({}, empty, { ok: true, reason: 'no_dates' });
+
+    // One window covers the whole set; the exact dates are filtered back in JS. An
+    // explicit date list is NOT put through resolveRange's 730-day cap — the list is
+    // already bounded by the export, and truncating it would silently skip the
+    // earliest days of a long backfill.
+    const sorted = wanted ? wanted.slice().sort() : null;
+    const range = sorted
+      ? { from: sorted[0], to: sorted[sorted.length - 1], truncated: false }
+      : resolveRange(opts);
+    if (!range) return Object.assign({}, empty, { reason: 'invalid_range' });
+    const wantedSet = sorted ? new Set(sorted) : null;
+
+    const rows = await db.queryAll(
+      `SELECT date, sleep_hours FROM readiness_daily
+       WHERE user_id = ? AND source = ? AND date BETWEEN ?::date AND ?::date
+         AND sleep_hours IS NOT NULL`,
+      [userId, provider, range.from, range.to]
+    );
+
+    const candidates = [];
+    (rows || []).forEach((r) => {
+      const date = toDateStr(r.date);
+      if (!isYmd(date)) return;
+      if (wantedSet && !wantedSet.has(date)) return;
+      const value = num(r.sleep_hours);
+      // Same plausibility gate the single-date path always applied.
+      if (value == null || value <= 0 || value > MAX_SLEEP_HOURS) return;
+      candidates.push({ date, value: round1(value) });
+    });
+    if (!candidates.length) {
+      return Object.assign({}, empty, { ok: true, reason: 'no_wearable_value' });
+    }
+
+    // Create the day's row only where we actually have something to put in it.
+    let rowsCreated = 0;
+    for (const part of chunkRows(candidates, CHECKIN_BATCH_SIZE)) {
+      const tuples = new Array(part.length).fill('(?, ?, ?::date, FALSE)').join(', ');
+      const params = [];
+      part.forEach((c) => { params.push(uuidv4(), userId, c.date); });
+      try {
+        const res = await db.run(
+          `INSERT INTO daily_checkins (id, user_id, checkin_date, is_freeze)
+           VALUES ${tuples}
+           ON CONFLICT (user_id, checkin_date) DO NOTHING`,
+          params
+        );
+        rowsCreated += (res && res.rowCount) || 0;
+      } catch (e) {
+        // Unique index missing or a race — the guarded UPDATE below still behaves correctly.
+        console.warn('[readiness] autoPopulateCheckinRange insert skipped:', e && e.message);
+      }
+    }
+
+    // The IS NULL guard is what protects the member's own value; it is applied per row
+    // by the join, so one member-entered day never blocks the rest of the batch.
+    let filled = 0;
+    const filledDates = [];
+    const values = {};
+    for (const part of chunkRows(candidates, CHECKIN_BATCH_SIZE)) {
+      const tuples = new Array(part.length).fill('(?, ?::date, ?::real)').join(', ');
+      const params = [];
+      part.forEach((c) => { params.push(userId, c.date, c.value); });
+      try {
+        const res = await db.run(
+          `UPDATE daily_checkins d
+              SET ${field} = v.val
+             FROM (VALUES ${tuples}) AS v(uid, d_date, val)
+            WHERE d.user_id = v.uid AND d.checkin_date = v.d_date AND d.${field} IS NULL`,
+          params
+        );
+        const n = (res && res.rowCount) || 0;
+        filled += n;
+        // rowCount tells us how many landed, not which — only claim the dates when the
+        // whole batch landed, so `filledDates` is never a guess.
+        if (n === part.length) {
+          part.forEach((c) => { filledDates.push(c.date); values[c.date] = c.value; });
+        }
+      } catch (e) {
+        console.warn('[readiness] autoPopulateCheckinRange update failed:', e && e.message);
+      }
+    }
+
+    return { ok: true, field, candidates: candidates.length, rowsCreated, filled, filledDates, values };
+  } catch (err) {
+    console.warn('[readiness] autoPopulateCheckinRange failed:', err && err.message);
+    return Object.assign({}, empty, { reason: 'error' });
+  }
+}
+
+/**
+ * Single-date wrapper, kept for existing callers. Same guarantees as the range form —
+ * it IS the range form, over one date, so there is only ever one implementation of the
+ * "never overwrite the member" rule.
  *
  * @returns {Promise<{filled:boolean, field:string, value:number|null, reason?:string}>}
  */
 async function autoPopulateCheckin(db, opts) {
-  const field = 'sleep_hours';
+  const field = AUTOFILL_FIELD;
   const userId = cleanStr(opts && opts.userId, 100);
   if (!hasDb(db) || !userId) return { filled: false, field, value: null, reason: 'invalid_input' };
 
@@ -1202,42 +1905,19 @@ async function autoPopulateCheckin(db, opts) {
     if (!date) date = todayYmdInTz(await resolveUserTz(db, userId)) || toDateStr(new Date());
     if (!isYmd(date)) return { filled: false, field, value: null, reason: 'invalid_date' };
 
-    const src = await db.queryOne(
-      `SELECT sleep_hours FROM readiness_daily
-       WHERE user_id = ? AND date = ?::date AND source = 'whoop'
-       LIMIT 1`,
-      [userId, date]
-    );
-    const value = src ? num(src.sleep_hours) : null;
-    if (value == null || value <= 0 || value > 24) {
-      return { filled: false, field, value: null, reason: 'no_wearable_value' };
-    }
-    const rounded = round1(value);
+    const res = await autoPopulateCheckinRange(db, {
+      userId,
+      dates: [date],
+      provider: (opts && opts.provider) || DEFAULT_PROVIDER
+    });
+    if (!res.ok) return { filled: false, field, value: null, date, reason: res.reason || 'error' };
+    if (!res.candidates) return { filled: false, field, value: null, date, reason: 'no_wearable_value' };
 
-    // Create the day's row only when we actually have something to put in it.
-    try {
-      await db.run(
-        `INSERT INTO daily_checkins (id, user_id, checkin_date, is_freeze)
-         VALUES (?, ?, ?::date, FALSE)
-         ON CONFLICT (user_id, checkin_date) DO NOTHING`,
-        [uuidv4(), userId, date]
-      );
-    } catch (e) {
-      // Unique index missing or a race — the guarded UPDATE below still behaves correctly.
-      console.warn('[readiness] autoPopulateCheckin insert skipped:', e && e.message);
-    }
-
-    const upd = await db.run(
-      `UPDATE daily_checkins
-       SET ${field} = ?
-       WHERE user_id = ? AND checkin_date = ?::date AND ${field} IS NULL`,
-      [rounded, userId, date]
-    );
-    const filled = !!(upd && upd.rowCount);
+    const filled = res.filled > 0;
     return {
       filled,
       field,
-      value: filled ? rounded : null,
+      value: filled ? (res.values[date] != null ? res.values[date] : null) : null,
       date,
       reason: filled ? undefined : 'member_value_present'
     };
@@ -1265,16 +1945,26 @@ module.exports = {
   // resolved reads — the only functions downstream features should need
   getReadiness,
   getReadinessRange,
+  // workouts / journal (persisted by commitUpload)
+  getWorkoutsRange,
+  getJournalRange,
   // check-in bridge
   autoPopulateCheckin,
+  autoPopulateCheckinRange,
   // constants (exported for tests / UI copy)
   DEFAULT_PROVIDER,
   SOURCE_PRECEDENCE,
   DERIVED_WEIGHTS,
   DERIVED_FORMULA_VERSION,
   METRIC_COLUMNS,
+  WORKOUT_METRIC_COLUMNS,
+  MAX_SLEEP_HOURS,
+  MAX_RANGE_DAYS,
   // internals worth unit-testing
   normalizeParsedDay,
   normalizeParsed,
+  normalizeWorkout,
+  persistWorkouts,
+  normalizeJournalEntry,
   sleepComponentScore
 };
