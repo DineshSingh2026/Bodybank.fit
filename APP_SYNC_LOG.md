@@ -37,7 +37,27 @@ Before every mobile release:
 
 ## Pending sync — next mobile release
 
-_(empty — synced 2026-08-11; see below)_
+_(empty — synced 2026-08-12; see below)_
+
+---
+
+## 2026-08-12 — synced to mobile repo (readiness on desktop web, v1.5.1, versionCode 21)
+
+Ran `npm run build:www` + `npx cap sync android` + `npx cap copy ios`; bumped Android
+`versionCode 20→21`, `versionName 1.5.0→1.5.1`. `public/sw.js` cache `v67→v68`.
+
+| Web commit | What it is | Notes |
+| ---------- | ---------- | ----- |
+| `8913844` | fix(whoop): show readiness on desktop web, not just mobile | The v1.5.0 readiness card only ever appeared on mobile. It sits in the Today hero inside `.user-welcome`, which the desktop home swap hides wholesale at ≥768px in favour of `.bb-user-desktop-dashboard` — a separate pane that never got a card. On desktop a member saw nothing, and had no entry point either (the ⌚ Readiness pill is in the same hidden hero), so importing a Whoop export from a desktop browser was impossible. Adds a desktop card and makes `bbRdHomeLoad`/`renderHomeCard` fill **every** `.bb-rd-card` instead of a single `#bbRdHome`, so the two surfaces cannot drift. |
+
+> **Why this was missed in v1.5.0:** the frontend recon explicitly reported "the Today hero is
+> **not** duplicated — one instance only, so one insertion suffices". True as stated, but it
+> missed that the hero is mobile-only. Any future home-screen work must land in **both**
+> `.user-welcome` (mobile) and `.bb-user-desktop-dashboard` (desktop ≥768px).
+
+Admin and operator needed no change — they were already correct at every width. Both are
+sub-tabs, which is why they read as missing: **Admin → Client Progress → select a client →
+Readiness**, and **Operator → client detail → Readiness**.
 
 ---
 
