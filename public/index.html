@@ -5946,6 +5946,15 @@ button.bb-today-pill{cursor:pointer}
           </div>
         </div>
 
+        <!-- Readiness (desktop). The mobile card lives in the Today hero, which the
+             desktop home swap hides at >=768px (#usec-home .user-welcome{display:none}).
+             Without this copy the whole readiness feature is invisible on the web.
+             Same class, same renderer — bbRdHomeLoad fills every .bb-rd-card. -->
+        <section class="bb-rd-home-desktop" id="bbRdHomeSectionDesktop" aria-label="Readiness" hidden style="margin:0 0 24px;max-width:860px">
+          <div class="bb-pulse-sec-label" style="margin-top:0">Readiness</div>
+          <button type="button" class="bb-rd-card" id="bbRdHomeDesktop" onclick="bbOpenReadiness()" aria-label="Open your readiness detail" hidden></button>
+        </section>
+
         <div class="push-enable-wrap bb-user-push-desktop" id="pushEnableWrapDesktop">
           <p>Get workout &amp; check-in reminders, and know when your Lifestyle Manager replies.</p>
           <button type="button" class="push-enable-btn" id="pushEnableBtnDesktop" onclick="enablePushNotifications()">Enable notifications</button>
@@ -30695,13 +30704,32 @@ function bbBodyOnboardingKeyHandler(ev) {
    * wearable still has a readiness score computed from their own check-ins, and
    * until now nothing in the product ever asked for it.
    */
+  /**
+   * Every readiness home card on the page. There are two: one in the mobile Today
+   * hero and one in the desktop dashboard, because the desktop home swap hides
+   * .user-welcome wholesale at >=768px. Both carry .bb-rd-card and are driven from
+   * here, so the two surfaces can never drift apart.
+   */
+  function homeCards() {
+    return Array.prototype.slice.call(document.querySelectorAll('.bb-rd-card'));
+  }
+
+  /** Reveal a card and whatever chrome wraps it (label on mobile, section on desktop). */
+  function revealHomeCard(card) {
+    card.hidden = false;
+    var sec = card.closest ? card.closest('.bb-rd-home-desktop') : null;
+    if (sec) sec.hidden = false;
+    var label = document.getElementById('bbRdHomeLabel');
+    if (label && card.id === 'bbRdHome') label.hidden = false;
+  }
+
   window.bbRdHomeLoad = async function (force) {
-    var card = document.getElementById('bbRdHome');
-    if (!card) return;
+    var cards = homeCards();
+    if (!cards.length) return;
     if (!window.currentUser || !window.currentUser.token) return;
     if (!force && rd.homeAt && (Date.now() - rd.homeAt) < 300000) return;
     rd.homeAt = Date.now();
-    if (!card.innerHTML) card.innerHTML = bbSkelRows(2, 'habit');
+    cards.forEach(function (c) { if (!c.innerHTML) c.innerHTML = bbSkelRows(2, 'habit'); });
     var to = ymd(new Date()), from = shift(-13);
     var rows = [];
     try {
@@ -30781,12 +30809,11 @@ function bbBodyOnboardingKeyHandler(ev) {
   };
 
   function renderHomeCard(rows) {
-    var card = document.getElementById('bbRdHome');
-    var label = document.getElementById('bbRdHomeLabel');
-    if (!card) return;
+    var cards = homeCards();
+    if (!cards.length) return;
     var s = window.bbRdSummarise(rows);
     if (!s) {
-      card.innerHTML =
+      var emptyHtml =
         '<div class="bb-rd-head">' +
           '<span class="bb-rd-score"><b>' + EM + '</b><em>Readiness</em></span>' +
           '<span class="bb-rd-meta">' +
@@ -30795,8 +30822,7 @@ function bbBodyOnboardingKeyHandler(ev) {
           '</span>' +
         '</div>' +
         '<span class="bb-rd-cta">Open readiness →</span>';
-      card.hidden = false;
-      if (label) label.hidden = false;
+      cards.forEach(function (c) { c.innerHTML = emptyHtml; revealHomeCard(c); });
       return;
     }
     // A delta only exists when BOTH days were measured. One missing day means no delta.
@@ -30812,7 +30838,7 @@ function bbBodyOnboardingKeyHandler(ev) {
         '<span class="bb-rd-msp">' + spark + '</span>' +
       '</span>';
     }).join('');
-    card.innerHTML =
+    var filledHtml =
       '<div class="bb-rd-head">' +
         '<span class="bb-rd-score"><b>' + s.scoreText + '</b><em>' + (s.isDerived ? 'Readiness' : 'Recovery') + '</em></span>' +
         '<span class="bb-rd-meta">' +
@@ -30826,8 +30852,7 @@ function bbBodyOnboardingKeyHandler(ev) {
       '</div>' +
       '<span class="bb-rd-metrics">' + tiles + '</span>' +
       '<span class="bb-rd-cta">Open readiness →</span>';
-    card.hidden = false;
-    if (label) label.hidden = false;
+    cards.forEach(function (c) { c.innerHTML = filledHtml; revealHomeCard(c); });
   }
 
   /* -------------------------- READINESS (detail view) ------------------------ */
