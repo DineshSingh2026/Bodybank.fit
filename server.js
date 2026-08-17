@@ -1057,6 +1057,23 @@ async function initDB() {
   } catch (e) {
     /* ignore */
   }
+  // The DATE the blood was actually drawn, as printed on the lab report — distinct
+  // from created_at (when the file was uploaded). Re-uploading an old report today
+  // must not make it the "newest" point on the trend, so every timeline ordering
+  // and label uses COALESCE(report_date, created_at::date).
+  try {
+    await pool.query(`ALTER TABLE blood_analysis_reports ADD COLUMN IF NOT EXISTS report_date DATE`);
+  } catch (e) {
+    /* ignore */
+  }
+  try {
+    await pool.query(
+      `CREATE INDEX IF NOT EXISTS idx_blood_reports_user_labdate
+       ON blood_analysis_reports(user_id, (COALESCE(report_date, created_at::date)) DESC)`
+    );
+  } catch (e) {
+    /* ignore */
+  }
 
   // Longitudinal blood-report COMPARISONS (admin-built progress reviews across a
   // client's uploaded reports). Deterministic aligned matrix + Claude verdict.
@@ -7032,6 +7049,12 @@ app.get('/api/stats', async (req, res) => {
   const [formsTotal] = await queryAll("SELECT COUNT(*) as c FROM audit_requests");
   const [sundayCheckins] = await queryAll("SELECT COUNT(*) as c FROM sunday_checkins");
   const [dailyCheckins] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
+  // Today-scoped, de-duplicated by user, freeze markers excluded. The all-time
+  // `daily_checkins` count above is not a meaningful dashboard headline — it read
+  // 566 against a 36-member roster. Kept for back-compat; new clients use this.
+  const [dailyCheckinsToday] = await queryAll(
+    "SELECT COUNT(DISTINCT user_id) as c FROM daily_checkins WHERE checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE"
+  );
   const [trials] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND subscription_status='trialing' AND COALESCE(suspended, FALSE) = FALSE");
   const [contactMsgs] = await queryAll("SELECT COUNT(*) as c FROM contact_messages");
   const [unreadThreads] = await queryAll(
@@ -7049,6 +7072,7 @@ app.get('/api/stats', async (req, res) => {
     forms: num(formsTotal?.c),
     check_ins: num(sundayCheckins[0]?.c),
     daily_checkins: num(dailyCheckins?.c),
+    daily_checkins_today: num(dailyCheckinsToday?.c),
     trials: num(trials?.c),
     messages: num(unreadThreads?.c)
   });
@@ -7364,8 +7388,13 @@ app.get('/api/operator/clients/:id', verifyToken, requireOperator, async (req, r
       queryAll(`SELECT amount_ml, glasses, created_at FROM hydration_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 14`, [id]),
       queryAll(`SELECT full_name, plan, total_weight_loss, training_go, nutrition_go, sleep, created_at FROM sunday_checkins WHERE user_id = ? ORDER BY created_at DESC LIMIT 6`, [id]),
       queryAll(`SELECT snapshot_date, photo_front, photo_side, photo_back, bodyweight_kg, waist_cm, measurements, notes, created_at FROM body_snapshots WHERE user_id = ? AND shared_with_manager = TRUE ORDER BY snapshot_date DESC, id DESC LIMIT 12`, [id]),
-      // Blood reports (up to 3 slots) for the client-profile snapshot + download.
-      queryAll(`SELECT id, created_at, status, sent_to_user, pdf_path, ai_report->>'overall_status' AS overall_status, extracted_blood_data FROM blood_analysis_reports WHERE user_id = ? ORDER BY created_at DESC LIMIT 6`, [id])
+      // Blood reports for the client-profile snapshot + download. Ordered newest-first
+      // by LAB date (not upload date) so a back-filled old report sorts where it belongs.
+      queryAll(`SELECT id, created_at, report_date, status, sent_to_user, pdf_path,
+                       ai_report->>'overall_status' AS overall_status, extracted_blood_data,
+                       (blood_report_file_path IS NOT NULL AND blood_report_file_path <> '') AS has_source_file
+                FROM blood_analysis_reports WHERE user_id = ?
+                ORDER BY COALESCE(report_date, created_at::date) DESC, created_at DESC LIMIT 12`, [id])
     ]);
 
     res.json({
@@ -9228,6 +9257,9 @@ app.use(
     queryAll,
     verifyToken,
     requireAdminOrSuperadmin,
+    // The router has an inline fallback gate, but passing the real middleware keeps the
+    // operator read-only routes on the same auth path as every other /api/operator/*.
+    requireOperator,
     rateLimiter
   })
 );

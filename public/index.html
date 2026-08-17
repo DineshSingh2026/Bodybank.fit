@@ -5830,6 +5830,321 @@ button.bb-today-pill{cursor:pointer}
 }
 @media (max-width:380px){.bb-wi-hero{flex-direction:column;text-align:center}.bb-wi-hero-meta{align-items:center}.bb-wi-score{flex-direction:column;text-align:center}.bb-wi-gauge-center b{font-size:22px}}
 
+/* ═══════════════════════════════════════════════════════════════════════
+   ADMIN · MOBILE DASHBOARD  ("bbmd")
+   Every rule below is scoped to .admin-dash-page. The >=768px media query
+   already hides that container with `display:none !important`, so nothing
+   here can reach the desktop admin dashboard, the bottom nav, or any other
+   admin screen. Old .admin-welcome-card / .admin-summary-* / .admin-qa-*
+   rules are left in place untouched (other screens still lean on some of
+   the shared .admin-la-* and .admin-attention-* pieces).
+   ═══════════════════════════════════════════════════════════════════════ */
+.admin-dash-page{
+  --bbmd-r:20px;
+  --bbmd-bdr:rgba(255,255,255,.085);
+  --bbmd-surface:linear-gradient(158deg,rgba(255,255,255,.062) 0%,rgba(255,255,255,.016) 62%,rgba(200,164,78,.042) 100%);
+  --bbmd-ok:#3dd68c;--bbmd-warn:#f5b544;--bbmd-bad:#f2686b;--bbmd-info:#8ab4f8;
+  padding:0 0 10px;max-width:100%;
+}
+.admin-dash-page .bbmd-card{
+  position:relative;background:var(--bbmd-surface);
+  border:1px solid var(--bbmd-bdr);border-radius:var(--bbmd-r);
+  box-shadow:0 14px 34px -22px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.07);
+  -webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);
+  overflow:hidden;box-sizing:border-box;
+}
+.admin-dash-page .bbmd-sec-head{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:11px;
+}
+.admin-dash-page .bbmd-sec-title{
+  margin:0;font-size:10px;font-weight:800;letter-spacing:1.7px;text-transform:uppercase;
+  color:var(--creamd);display:flex;align-items:center;gap:7px;
+}
+.admin-dash-page .bbmd-sec-title::before{
+  content:'';width:3px;height:12px;border-radius:2px;
+  background:linear-gradient(180deg,var(--goldb),rgba(200,164,78,.25));
+}
+.admin-dash-page .bbmd-sec-link{
+  background:none;border:0;padding:4px 2px;color:var(--gold);font-size:11px;font-weight:700;
+  letter-spacing:.4px;cursor:pointer;white-space:nowrap;
+}
+.admin-dash-page .bbmd-sec-link:active{opacity:.6}
+
+/* ── Hero ───────────────────────────────────────────────────────────── */
+.admin-dash-page .bbmd-hero{padding:15px 16px 14px;margin-bottom:11px}
+.admin-dash-page .bbmd-hero::before{
+  content:'';position:absolute;top:-70%;left:-30%;width:88%;height:170%;pointer-events:none;
+  background:radial-gradient(circle,rgba(200,164,78,.26) 0%,rgba(200,164,78,0) 68%);filter:blur(14px);
+}
+.admin-dash-page .bbmd-hero>*{position:relative;z-index:1}
+.admin-dash-page .bbmd-hero-top{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.admin-dash-page .bbmd-live{
+  display:inline-flex;align-items:center;gap:6px;font-size:9px;font-weight:800;letter-spacing:1.5px;
+  text-transform:uppercase;color:#8fe7b6;background:rgba(61,214,140,.1);
+  border:1px solid rgba(61,214,140,.28);padding:4px 9px;border-radius:999px;
+}
+.admin-dash-page .bbmd-live i{
+  width:6px;height:6px;border-radius:50%;background:var(--bbmd-ok);
+  animation:bbmdPing 2.4s cubic-bezier(.4,0,.6,1) infinite;
+}
+@keyframes bbmdPing{0%{box-shadow:0 0 0 0 rgba(61,214,140,.55)}70%{box-shadow:0 0 0 7px rgba(61,214,140,0)}100%{box-shadow:0 0 0 0 rgba(61,214,140,0)}}
+.admin-dash-page .bbmd-refresh{
+  width:32px;height:32px;flex:0 0 32px;border-radius:50%;display:grid;place-items:center;
+  background:rgba(255,255,255,.05);border:1px solid var(--bbmd-bdr);color:var(--gold);
+  font-size:15px;line-height:1;cursor:pointer;padding:0;
+}
+.admin-dash-page .bbmd-refresh.is-busy{animation:bbmdSpin .9s linear infinite}
+@keyframes bbmdSpin{to{transform:rotate(360deg)}}
+.admin-dash-page .bbmd-hero-title{
+  margin:11px 0 2px;font-size:clamp(17px,4.6vw,21px);font-weight:800;line-height:1.28;
+  color:var(--cream);letter-spacing:.01em;
+}
+.admin-dash-page .bbmd-hero-title span{color:var(--gold)}
+.admin-dash-page .bbmd-hero-date{margin:0;font-size:11.5px;color:var(--creamd);letter-spacing:.2px}
+.admin-dash-page .bbmd-hero-body{display:flex;align-items:center;gap:14px;margin-top:14px}
+.admin-dash-page .bbmd-ring{
+  --pct:0;position:relative;width:92px;height:92px;flex:0 0 92px;border-radius:50%;
+  background:conic-gradient(from -90deg,var(--goldb) 0,var(--gold) calc(var(--pct)*1%),rgba(255,255,255,.075) calc(var(--pct)*1%) 100%);
+  display:grid;place-items:center;transition:background .7s cubic-bezier(.4,0,.2,1);
+}
+.admin-dash-page .bbmd-ring::after{
+  content:'';position:absolute;inset:7px;border-radius:50%;
+  background:radial-gradient(circle at 50% 24%,#191512 0%,#0a0908 100%);
+  border:1px solid rgba(255,255,255,.05);
+}
+.admin-dash-page .bbmd-ring-in{position:relative;z-index:1;text-align:center;line-height:1}
+.admin-dash-page .bbmd-ring-val{
+  display:block;font-family:'Bebas Neue',sans-serif;font-size:29px;font-weight:700;
+  color:var(--cream);line-height:1;letter-spacing:.5px;
+}
+.admin-dash-page .bbmd-ring-lbl{
+  display:block;margin-top:3px;font-size:8.5px;font-weight:700;letter-spacing:1.3px;
+  text-transform:uppercase;color:var(--creamd);
+}
+.admin-dash-page .bbmd-hero-facts{flex:1;min-width:0;display:flex;flex-direction:column;gap:7px}
+.admin-dash-page .bbmd-fact{
+  display:flex;align-items:baseline;gap:8px;padding:6px 10px;border-radius:11px;
+  background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.055);min-width:0;
+}
+.admin-dash-page .bbmd-fact-num{
+  font-family:'Bebas Neue',sans-serif;font-size:19px;line-height:1;color:var(--gold);
+  min-width:30px;flex:0 0 auto;
+}
+.admin-dash-page .bbmd-fact-lbl{
+  font-size:10.5px;color:var(--creamd);letter-spacing:.3px;white-space:nowrap;
+  overflow:hidden;text-overflow:ellipsis;
+}
+.admin-dash-page .bbmd-chips{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+.admin-dash-page .bbmd-chip{
+  display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border-radius:999px;
+  font-size:10.5px;font-weight:700;letter-spacing:.3px;cursor:pointer;
+  background:rgba(255,255,255,.05);border:1px solid var(--bbmd-bdr);color:var(--cream);
+}
+.admin-dash-page .bbmd-chip b{font-family:'Bebas Neue',sans-serif;font-size:14px;line-height:1}
+.admin-dash-page .bbmd-chip:active{transform:scale(.96)}
+.admin-dash-page .bbmd-chip--bad{background:rgba(242,104,107,.11);border-color:rgba(242,104,107,.32);color:#ffb3b4}
+.admin-dash-page .bbmd-chip--warn{background:rgba(245,181,68,.11);border-color:rgba(245,181,68,.32);color:#ffd694}
+.admin-dash-page .bbmd-chip--ok{background:rgba(61,214,140,.1);border-color:rgba(61,214,140,.28);color:#8fe7b6}
+
+/* ── KPI tiles ──────────────────────────────────────────────────────── */
+.admin-dash-page .bbmd-kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:9px;margin-bottom:12px}
+.admin-dash-page .bbmd-kpi{
+  position:relative;text-align:left;padding:12px 12px 11px;min-width:0;cursor:pointer;
+  font:inherit;color:inherit;display:block;appearance:none;-webkit-appearance:none;
+}
+.admin-dash-page .bbmd-kpi:active{transform:scale(.985)}
+.admin-dash-page .bbmd-kpi-lbl{
+  display:block;font-size:8.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--creamd);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.admin-dash-page .bbmd-kpi-val{
+  display:block;margin-top:6px;font-family:'Bebas Neue',sans-serif;font-size:34px;line-height:.92;
+  font-weight:700;letter-spacing:.5px;color:var(--gold);
+}
+.admin-dash-page .bbmd-kpi-val.is-bad{color:#f2686b}
+.admin-dash-page .bbmd-kpi-val.is-warn{color:#f5b544}
+.admin-dash-page .bbmd-kpi-val.is-ok{color:#3dd68c}
+.admin-dash-page .bbmd-kpi-sub{
+  position:relative;z-index:1;
+  display:block;margin-top:5px;font-size:10px;color:var(--creamd);opacity:.86;line-height:1.35;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+/* Sparkline sits behind the tile as a watermark; the sub-label is lifted above it. */
+.admin-dash-page .bbmd-kpi-spark{position:absolute;left:0;right:0;bottom:0;height:30px;opacity:.5;pointer-events:none;z-index:0}
+.admin-dash-page .bbmd-spark{display:block;width:100%;height:100%}
+
+/* ── Segmented control ──────────────────────────────────────────────── */
+.admin-dash-page .bbmd-seg{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding:4px;margin-bottom:11px;
+  background:rgba(255,255,255,.045);border:1px solid var(--bbmd-bdr);border-radius:14px;
+}
+.admin-dash-page .bbmd-seg-btn{
+  appearance:none;border:0;background:transparent;color:var(--creamd);cursor:pointer;
+  padding:9px 4px;border-radius:11px;font-size:11px;font-weight:700;letter-spacing:.7px;
+  text-transform:uppercase;display:flex;align-items:center;justify-content:center;gap:5px;
+  transition:background .22s ease,color .22s ease;min-width:0;
+}
+.admin-dash-page .bbmd-seg-btn .bbmd-seg-dot{
+  min-width:16px;height:16px;padding:0 4px;border-radius:8px;font-size:9px;font-weight:800;
+  display:none;align-items:center;justify-content:center;background:rgba(242,104,107,.9);color:#180a0a;
+}
+.admin-dash-page .bbmd-seg-btn .bbmd-seg-dot.on{display:inline-flex}
+.admin-dash-page .bbmd-seg-btn[aria-selected="true"]{
+  background:linear-gradient(160deg,rgba(200,164,78,.9),rgba(166,140,62,.82));
+  color:#1a1408;box-shadow:0 6px 16px -10px rgba(200,164,78,.9);
+}
+.admin-dash-page .bbmd-panel{display:none;animation:bbmdFade .28s ease both}
+.admin-dash-page .bbmd-panel.is-active{display:block}
+@keyframes bbmdFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── Meters (engagement) ────────────────────────────────────────────── */
+.admin-dash-page .bbmd-block{padding:14px 14px 13px;margin-bottom:11px}
+.admin-dash-page .bbmd-meters{display:flex;flex-direction:column;gap:11px}
+.admin-dash-page .bbmd-meter-top{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:5px}
+.admin-dash-page .bbmd-meter-lbl{font-size:11.5px;color:var(--cream);font-weight:600}
+.admin-dash-page .bbmd-meter-val{font-family:'Bebas Neue',sans-serif;font-size:16px;color:var(--gold);letter-spacing:.4px}
+.admin-dash-page .bbmd-meter-track{height:6px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden}
+.admin-dash-page .bbmd-meter-fill{
+  height:100%;border-radius:4px;width:0;transition:width .8s cubic-bezier(.4,0,.2,1);
+  background:linear-gradient(90deg,var(--goldd),var(--goldb));
+}
+.admin-dash-page .bbmd-meter-fill.is-ok{background:linear-gradient(90deg,#2aa96b,#3dd68c)}
+.admin-dash-page .bbmd-meter-fill.is-warn{background:linear-gradient(90deg,#c98d22,#f5b544)}
+.admin-dash-page .bbmd-meter-fill.is-bad{background:linear-gradient(90deg,#c0454a,#f2686b)}
+.admin-dash-page .bbmd-trend{margin-top:14px;padding-top:13px;border-top:1px solid rgba(255,255,255,.06)}
+.admin-dash-page .bbmd-trend-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:8px}
+.admin-dash-page .bbmd-trend-lbl{font-size:9.5px;font-weight:800;letter-spacing:1.4px;text-transform:uppercase;color:var(--creamd)}
+.admin-dash-page .bbmd-trend-sub{font-size:10.5px;color:var(--muted)}
+.admin-dash-page .bbmd-trend-chart{height:56px}
+.admin-dash-page .bbmd-empty{color:var(--muted);font-size:12.5px;padding:16px 2px;margin:0;text-align:center}
+
+/* ── Attention list (reuses the .admin-attention-card markup verbatim) ──
+   The shared card lays its three metrics out as one grid row each, with
+   justify-self / text-align pushing the value centre and the sub right.
+   Re-stacking them into 3 compact columns means explicitly undoing those. */
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attention-card{
+  background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.06);border-left:3px solid rgba(255,255,255,.14);
+  border-radius:13px;padding:11px 12px 10px;margin:0 0 8px;box-shadow:none;
+}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attention-card:last-child{margin-bottom:0}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attention-card--p0{border-left-color:#f2686b}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attention-card--p1{border-left-color:#f5b544}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attention-name{font-size:14px;font-weight:700;color:var(--cream);line-height:1.25}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attention-sub{font-size:10.5px;color:var(--muted);margin-top:3px;line-height:1.35}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attn-sev-badge{font-size:8.5px;padding:3px 7px;letter-spacing:.6px;flex-shrink:0}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attn-compact-metrics{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:9px;padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.055);
+}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attn-metric-row{
+  display:flex;flex-direction:column;align-items:flex-start;gap:1px;
+  padding:0;border:0;background:none;min-width:0;
+}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attn-metric-lbl,
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attn-metric-val,
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attn-metric-sub{
+  width:auto;justify-self:start;text-align:left;
+}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attn-metric-lbl{
+  font-size:8.5px;letter-spacing:1px;text-transform:uppercase;color:var(--creamd);opacity:.85;
+}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attn-metric-val{
+  font-family:'Bebas Neue',sans-serif;font-size:18px;color:var(--cream);line-height:1.05;
+}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attn-metric-sub{font-size:9px;color:var(--muted);letter-spacing:.4px}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attention-footer-hint{
+  margin-top:9px;font-size:9.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;
+  color:var(--gold);opacity:.9;
+}
+.admin-dash-page .bbmd-block #adminMobileRiskList .admin-attention-footer-hint::after{content:' \203A'}
+
+/* ── Pipeline rail (reuses the existing .bb-leads-today markup) ─────── */
+.admin-dash-page .bbmd-panel .bb-leads-today{
+  margin:0 0 11px;padding:14px 0 13px;background:var(--bbmd-surface);
+  border:1px solid var(--bbmd-bdr);border-radius:var(--bbmd-r);
+  box-shadow:0 14px 34px -22px rgba(0,0,0,.95),inset 0 1px 0 rgba(255,255,255,.07);
+}
+.admin-dash-page .bbmd-panel .bb-leads-today-head{padding:0 14px;margin-bottom:12px;align-items:center}
+.admin-dash-page .bbmd-panel .bb-leads-today-head h3{font-size:14px;font-weight:700;color:var(--cream)}
+.admin-dash-page .bbmd-panel .bb-leads-today-head .form-hint{font-size:11px;color:var(--creamd);opacity:.85}
+.admin-dash-page .bbmd-panel .bb-leads-today-grid{
+  display:flex;gap:10px;overflow-x:auto;overflow-y:hidden;padding:2px 14px 6px;
+  scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+}
+.admin-dash-page .bbmd-panel .bb-leads-today-grid::-webkit-scrollbar{display:none}
+.admin-dash-page .bbmd-panel .bb-leads-today-card{
+  flex:0 0 min(72vw,214px);scroll-snap-align:start;padding:12px;border-radius:15px;
+  background:rgba(0,0,0,.32);border:1px solid rgba(255,255,255,.07);
+  display:flex;flex-direction:column;
+}
+.admin-dash-page .bbmd-panel .bb-leads-today-card .card-icon{font-size:16px;margin-bottom:6px;opacity:.95}
+.admin-dash-page .bbmd-panel .bb-leads-today-card .card-num{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:.95;color:var(--gold)}
+.admin-dash-page .bbmd-panel .bb-leads-today-card .card-lbl{
+  font-size:9.5px;letter-spacing:.9px;color:var(--creamd);margin-top:5px;line-height:1.35;text-transform:uppercase;
+}
+.admin-dash-page .bbmd-panel .bb-leads-today-card.is-urgent{border-color:rgba(242,104,107,.4)}
+.admin-dash-page .bbmd-panel .bb-leads-today-card.is-urgent .card-num{color:#f2686b}
+.admin-dash-page .bbmd-panel .bb-leads-today-card.is-good{border-color:rgba(61,214,140,.34)}
+.admin-dash-page .bbmd-panel .bb-leads-today-card.is-good .card-num{color:#3dd68c}
+.admin-dash-page .bbmd-panel .bb-leads-today-list{
+  max-height:84px;overflow-y:auto;margin-top:9px;padding-top:8px;
+  border-top:1px solid rgba(255,255,255,.06);gap:2px;
+}
+.admin-dash-page .bbmd-panel .bb-leads-today-list-item{font-size:10.5px;padding:3px 4px;color:#ded8cb}
+.admin-dash-page .bbmd-rail-hint{
+  display:flex;align-items:center;gap:6px;padding:0 14px;margin:0;
+  font-size:10px;letter-spacing:.8px;text-transform:uppercase;color:var(--muted);
+}
+
+/* ── Live activity (reuses .admin-la-* markup) ──────────────────────── */
+.admin-dash-page .bbmd-block #adminLiveActivityList .admin-la-item{
+  gap:10px;padding:11px 0;border-bottom:1px solid rgba(255,255,255,.055);
+}
+.admin-dash-page .bbmd-block #adminLiveActivityList .admin-la-text{font-size:12.5px;line-height:1.35}
+.admin-dash-page .bbmd-block #adminLiveActivityList .admin-la-tag{
+  font-size:9px;font-weight:800;letter-spacing:.7px;padding:3px 8px;border-radius:999px;flex-shrink:0;
+  color:var(--creamd);background:rgba(255,255,255,.06);
+}
+.admin-dash-page .bbmd-block #adminLiveActivityList .admin-la-tag.trial{color:#f0d38f;background:rgba(200,164,78,.15)}
+.admin-dash-page .bbmd-block #adminLiveActivityList .admin-la-dot.gold{background:var(--gold)}
+.admin-dash-page .bbmd-block #adminLiveActivityList .admin-la-loading{font-size:12.5px;padding:16px 0;text-align:center}
+
+/* ── Quick access ───────────────────────────────────────────────────── */
+.admin-dash-page .bbmd-qa{padding:14px 12px 12px}
+.admin-dash-page .bbmd-qa-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.admin-dash-page .bbmd-qa-btn{
+  display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;
+  padding:11px 4px 10px;border-radius:14px;text-decoration:none;min-width:0;
+  background:rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.06);
+  color:var(--cream);font-size:9.5px;font-weight:600;line-height:1.2;text-align:center;
+}
+.admin-dash-page .bbmd-qa-btn:active{background:rgba(200,164,78,.12);border-color:rgba(200,164,78,.35)}
+.admin-dash-page .bbmd-qa-ic{font-size:19px;line-height:1;display:block}
+.admin-dash-page .bbmd-qa-txt{
+  display:block;width:100%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.admin-dash-page .bbmd-qa-grid.is-collapsed .bbmd-qa-btn:nth-child(n+9){display:none}
+.admin-dash-page .bbmd-qa-more{
+  display:block;width:100%;margin-top:10px;padding:9px;border-radius:12px;cursor:pointer;
+  background:rgba(255,255,255,.04);border:1px solid var(--bbmd-bdr);color:var(--gold);
+  font-size:10.5px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;
+}
+
+@media (max-width:380px){
+  .admin-dash-page .bbmd-hero-body{gap:11px}
+  .admin-dash-page .bbmd-ring{width:80px;height:80px;flex-basis:80px}
+  .admin-dash-page .bbmd-ring-val{font-size:25px}
+  .admin-dash-page .bbmd-kpi-val{font-size:30px}
+  .admin-dash-page .bbmd-qa-grid{grid-template-columns:repeat(3,1fr)}
+  .admin-dash-page .bbmd-qa-grid.is-collapsed .bbmd-qa-btn:nth-child(n+7){display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .admin-dash-page .bbmd-live i,
+  .admin-dash-page .bbmd-refresh.is-busy{animation:none}
+  .admin-dash-page .bbmd-panel{animation:none}
+  .admin-dash-page .bbmd-ring,
+  .admin-dash-page .bbmd-meter-fill{transition:none}
+}
 </style>
 <!-- ══════════════════════════════════════════════════════ -->
 </head>
@@ -5950,6 +6265,13 @@ button.bb-today-pill{cursor:pointer}
              desktop home swap hides at >=768px (#usec-home .user-welcome{display:none}).
              Without this copy the whole readiness feature is invisible on the web.
              Same class, same renderer — bbRdHomeLoad fills every .bb-rd-card. -->
+        <!-- Signal (desktop). Mirror of the card in the mobile Today hero — same class,
+             same renderer, so the two surfaces cannot drift apart. -->
+        <section class="bb-sig-home-desktop" id="bbSigHomeSectionDesktop" aria-label="Your signal" hidden style="margin:0 0 24px;max-width:860px">
+          <div class="bb-pulse-sec-label" style="margin-top:0">Your signal</div>
+          <button type="button" class="bb-sig-card" id="bbSigHomeDesktop" onclick="bbOpenSignal()" aria-label="Open your signal — today's directive and what your own data has taught us" hidden></button>
+        </section>
+
         <section class="bb-rd-home-desktop" id="bbRdHomeSectionDesktop" aria-label="Readiness" hidden style="margin:0 0 24px;max-width:860px">
           <div class="bb-pulse-sec-label" style="margin-top:0">Readiness</div>
           <button type="button" class="bb-rd-card" id="bbRdHomeDesktop" onclick="bbOpenReadiness()" aria-label="Open your readiness detail" hidden></button>
@@ -6089,6 +6411,7 @@ button.bb-today-pill{cursor:pointer}
             <button type="button" class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" onclick="bbOpenCoinHistory()" title="Gold coins — tap for activity">◉ <b id="bbTodayCoinNum">0</b> <i>coins</i></button>
             <button type="button" class="bb-today-pill bb-today-pill--freeze" id="bbTodayFreezeBtn" onclick="bbUseStreakFreeze()" title="Protect your streak across a missed day (1/month)" hidden>🧊 Freeze</button>
             <button type="button" class="bb-today-pill bb-today-pill--refer" onclick="bbOpenRewards()" title="Refer a friend and win your membership back">🎁 <b>Refer</b></button>
+            <button type="button" class="bb-today-pill bb-today-pill--signal" onclick="bbOpenSignal()" title="Your signal — today's directive, your body's laws and your bloodwork connection">✦ <b>Signal</b></button>
             <button type="button" class="bb-today-pill bb-today-pill--whoop" onclick="bbOpenReadiness()" title="Your readiness, recovery and Whoop data">⌚ <b>Readiness</b></button>
           </div>
           <div class="bb-pulse-score">
@@ -6116,6 +6439,12 @@ button.bb-today-pill{cursor:pointer}
               </div>
             </div>
           </div>
+          <!-- Signal (mobile). The desktop copy lives in .bb-user-desktop-dashboard —
+               the desktop home swap hides .user-welcome wholesale at >=768px, so a card
+               that exists only here is invisible on the web. Both carry .bb-sig-card and
+               are filled by the same renderer. -->
+          <div class="bb-pulse-sec-label" id="bbSigHomeLabel" hidden>Your signal</div>
+          <button type="button" class="bb-sig-card" id="bbSigHome" onclick="bbOpenSignal()" aria-label="Open your signal — today's directive and what your own data has taught us" hidden></button>
           <div class="bb-pulse-sec-label" id="bbRdHomeLabel" hidden>Readiness</div>
           <button type="button" class="bb-rd-card" id="bbRdHome" onclick="bbOpenReadiness()" aria-label="Open your readiness detail" hidden></button>
           <div class="bb-pulse-sec-label">This week · pillars</div>
@@ -7287,63 +7616,165 @@ button.bb-today-pill{cursor:pointer}
           <a class="bb-quick-btn" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="btn-icon">💡</span>AI Assist</a>
         </div>
       </div>
+      <!-- ══ MOBILE ADMIN DASHBOARD (<768px). Desktop hides this container. ══ -->
       <div class="admin-dash-page">
-        <div class="admin-welcome-card">
-          <h2 class="admin-welcome-title">Welcome back <span class="admin-welcome-role">&ldquo;Lifestyle Manager&rdquo;</span></h2>
-          <p class="admin-welcome-date" id="adminWelcomeDate">Monday · 9 March 2026</p>
-        </div>
-        <div class="admin-summary-cards">
-          <div class="admin-summary-card" onclick="switchTab('clientprogress');return false" role="button" tabindex="0" aria-label="Open Client Progress"><span class="admin-summary-lbl">MEMBERS</span><span class="admin-summary-num num-gold" id="dashMembers">24</span></div>
-          <div class="admin-summary-card" onclick="switchTab('dailycheckin');return false" role="button" tabindex="0" aria-label="Open Daily Check-In"><span class="admin-summary-lbl">DAILY CHECK-IN</span><span class="admin-summary-num num-green" id="dashCheckins">18</span></div>
-          <div class="admin-summary-card" onclick="switchTab('memberships');return false" role="button" tabindex="0" aria-label="Open Memberships call queue"><span class="admin-summary-lbl">TRIALS</span><span class="admin-summary-num num-orange" id="dashTrials">0</span></div>
-          <div class="admin-summary-card" onclick="switchTab('messages');return false" role="button" tabindex="0" aria-label="Open Messages"><span class="admin-summary-lbl">MESSAGES</span><span class="admin-summary-num num-pink" id="dashMessages">2</span></div>
-        </div>
 
-        <!-- Leads pipeline "Today" widget — mobile copy (desktop has its own inside .bb-desktop-dashboard) -->
-        <div class="bb-leads-today" id="bbLeadsTodayMobile">
-          <div class="bb-leads-today-head">
-            <div style="min-width:0">
-              <h3 style="margin:0">Today &middot; Pipeline</h3>
-              <p class="form-hint" style="margin:4px 0 0 0">Your plate right now. Tap a row to open that lead.</p>
+        <!-- Hero: who / when / how the business is doing right now -->
+        <section class="bbmd-card bbmd-hero" aria-labelledby="bbmdHeroTitle">
+          <div class="bbmd-hero-top">
+            <span class="bbmd-live"><i aria-hidden="true"></i>Live</span>
+            <button type="button" class="bbmd-refresh" id="bbmdRefreshBtn" onclick="bbmdRefresh()" aria-label="Refresh dashboard" title="Refresh">&#8635;</button>
+          </div>
+          <h2 class="bbmd-hero-title" id="bbmdHeroTitle">Welcome back, <span>Lifestyle Manager</span></h2>
+          <p class="bbmd-hero-date admin-welcome-date" id="adminWelcomeDate">Monday &middot; 9 March 2026</p>
+
+          <div class="bbmd-hero-body">
+            <div class="bbmd-ring" id="bbmdRing" style="--pct:0" role="img" aria-label="Share of members active today">
+              <div class="bbmd-ring-in">
+                <span class="bbmd-ring-val" id="bbmdRingVal">&mdash;</span>
+                <span class="bbmd-ring-lbl">Active</span>
+              </div>
             </div>
-            <button type="button" class="action-btn btn-view" onclick="openLeadsTodayPopup()" style="white-space:nowrap" aria-label="Open pulse view">Pulse view</button>
+            <div class="bbmd-hero-facts">
+              <div class="bbmd-fact"><span class="bbmd-fact-num" id="bbmdActiveToday">&mdash;</span><span class="bbmd-fact-lbl">Active today</span></div>
+              <div class="bbmd-fact"><span class="bbmd-fact-num" id="bbmdWorkoutsToday">&mdash;</span><span class="bbmd-fact-lbl">Workouts logged</span></div>
+              <div class="bbmd-fact"><span class="bbmd-fact-num" id="bbmdMealsToday">&mdash;</span><span class="bbmd-fact-lbl">Meals logged</span></div>
+            </div>
           </div>
-          <div class="bb-leads-today-grid" id="bbLeadsTodayGridMobile">
-            <p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px">Loading&hellip;</p>
+
+          <div class="bbmd-chips" id="bbmdAlerts"></div>
+        </section>
+
+        <!-- Four headline numbers -->
+        <div class="bbmd-kpis">
+          <button type="button" class="bbmd-card bbmd-kpi" onclick="switchTab('clientprogress');return false" aria-label="Open Client Progress">
+            <span class="bbmd-kpi-lbl">Members</span>
+            <span class="bbmd-kpi-val" id="dashMembers">&mdash;</span>
+            <span class="bbmd-kpi-sub" id="bbmdMembersSub">Active roster</span>
+          </button>
+          <button type="button" class="bbmd-card bbmd-kpi" onclick="switchTab('dailycheckin');return false" aria-label="Open Daily Check-In">
+            <span class="bbmd-kpi-lbl">Checked in today</span>
+            <span class="bbmd-kpi-val" id="dashCheckins">&mdash;</span>
+            <span class="bbmd-kpi-sub" id="bbmdCheckinsSub">Today's check-ins</span>
+            <span class="bbmd-kpi-spark" id="bbmdCheckinSpark"></span>
+          </button>
+          <button type="button" class="bbmd-card bbmd-kpi" onclick="switchTab('memberships');return false" aria-label="Open Memberships">
+            <span class="bbmd-kpi-lbl">Trials</span>
+            <span class="bbmd-kpi-val" id="dashTrials">&mdash;</span>
+            <span class="bbmd-kpi-sub" id="bbmdTrialsSub">On free trial</span>
+          </button>
+          <button type="button" class="bbmd-card bbmd-kpi" onclick="switchTab('messages');return false" aria-label="Open Messages">
+            <span class="bbmd-kpi-lbl">Unread</span>
+            <span class="bbmd-kpi-val" id="dashMessages">&mdash;</span>
+            <span class="bbmd-kpi-sub" id="bbmdMessagesSub">Threads awaiting reply</span>
+          </button>
+        </div>
+
+        <!-- Segmented control: keeps the page one screen deep instead of five -->
+        <div class="bbmd-seg" role="tablist" aria-label="Dashboard views">
+          <button type="button" class="bbmd-seg-btn" id="bbmdSegBtn-pulse" role="tab" aria-selected="true" aria-controls="bbmdPanel-pulse" onclick="bbmdSeg('pulse')">Pulse<span class="bbmd-seg-dot" id="bbmdSegDot-pulse">0</span></button>
+          <button type="button" class="bbmd-seg-btn" id="bbmdSegBtn-pipeline" role="tab" aria-selected="false" aria-controls="bbmdPanel-pipeline" onclick="bbmdSeg('pipeline')">Pipeline<span class="bbmd-seg-dot" id="bbmdSegDot-pipeline">0</span></button>
+          <button type="button" class="bbmd-seg-btn" id="bbmdSegBtn-activity" role="tab" aria-selected="false" aria-controls="bbmdPanel-activity" onclick="bbmdSeg('activity')">Activity</button>
+        </div>
+
+        <!-- PULSE -->
+        <div class="bbmd-panel is-active" id="bbmdPanel-pulse" role="tabpanel" aria-labelledby="bbmdSegBtn-pulse">
+          <section class="bbmd-card bbmd-block">
+            <div class="bbmd-sec-head">
+              <h3 class="bbmd-sec-title">Engagement</h3>
+              <button type="button" class="bbmd-sec-link" onclick="switchTab('dailycompliance');return false">Compliance &rsaquo;</button>
+            </div>
+            <div class="bbmd-meters" id="bbmdMeters">
+              <div>
+                <div class="bbmd-meter-top"><span class="bbmd-meter-lbl">Checked in today</span><span class="bbmd-meter-val" id="bbmdMeterCheckinVal">&mdash;</span></div>
+                <div class="bbmd-meter-track"><div class="bbmd-meter-fill" id="bbmdMeterCheckin"></div></div>
+              </div>
+              <div>
+                <div class="bbmd-meter-top"><span class="bbmd-meter-lbl">7-day consistency</span><span class="bbmd-meter-val" id="bbmdMeterConsistVal">&mdash;</span></div>
+                <div class="bbmd-meter-track"><div class="bbmd-meter-fill" id="bbmdMeterConsist"></div></div>
+              </div>
+              <div>
+                <div class="bbmd-meter-top"><span class="bbmd-meter-lbl">At risk</span><span class="bbmd-meter-val" id="bbmdMeterRiskVal">&mdash;</span></div>
+                <div class="bbmd-meter-track"><div class="bbmd-meter-fill" id="bbmdMeterRisk"></div></div>
+              </div>
+            </div>
+            <div class="bbmd-trend">
+              <div class="bbmd-trend-head">
+                <span class="bbmd-trend-lbl">14-day momentum</span>
+                <span class="bbmd-trend-sub" id="bbmdTrendSub">&mdash;</span>
+              </div>
+              <div class="bbmd-trend-chart" id="bbmdTrendChart"></div>
+            </div>
+          </section>
+
+          <section class="bbmd-card bbmd-block">
+            <div class="bbmd-sec-head">
+              <h3 class="bbmd-sec-title">Needs attention</h3>
+              <button type="button" class="bbmd-sec-link" onclick="switchTab('tribe');return false">Client board &rsaquo;</button>
+            </div>
+            <div class="admin-la-list" id="adminMobileRiskList">
+              <p class="admin-la-loading">Loading&hellip;</p>
+            </div>
+            <p class="bbmd-trend-sub" style="margin:11px 0 0">Flagged on 2-day (P1) and 5-day (P0) daily check-in inactivity.</p>
+          </section>
+        </div>
+
+        <!-- PIPELINE -->
+        <div class="bbmd-panel" id="bbmdPanel-pipeline" role="tabpanel" aria-labelledby="bbmdSegBtn-pipeline">
+          <!-- Leads pipeline "Today" widget — mobile copy (desktop has its own inside .bb-desktop-dashboard) -->
+          <div class="bb-leads-today" id="bbLeadsTodayMobile">
+            <div class="bb-leads-today-head">
+              <div style="min-width:0">
+                <h3 style="margin:0">Today &middot; Pipeline</h3>
+                <p class="form-hint" style="margin:4px 0 0 0">Swipe the cards. Tap a name to open that lead.</p>
+              </div>
+              <button type="button" class="action-btn btn-view" onclick="openLeadsTodayPopup()" style="white-space:nowrap" aria-label="Open pulse view">Pulse view</button>
+            </div>
+            <div class="bb-leads-today-grid" id="bbLeadsTodayGridMobile">
+              <p class="form-hint" style="grid-column:1/-1;text-align:center;padding:20px">Loading&hellip;</p>
+            </div>
+            <p class="bbmd-rail-hint">&#8594;&nbsp; Swipe for more</p>
           </div>
         </div>
 
-        <div class="admin-quick-access">
-          <h3 class="admin-qa-title">QUICK ACCESS</h3>
-          <div class="admin-qa-grid">
-            <a class="admin-qa-btn" href="#" onclick="switchTab('leads');return false"><span class="admin-qa-icon">&#127919;</span>Leads</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('sundaycheckin');return false"><span class="admin-qa-icon">&#128197;</span>Check-Ins</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('dailycompliance');return false"><span class="admin-qa-icon">📊</span>Daily Compliance</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('workouts');return false"><span class="admin-qa-icon">&#127939;</span>Workouts</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('tribe');return false"><span class="admin-qa-icon">&#128101;</span>Client Board</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="admin-qa-icon">&#128209;</span>Audits</a>
-            <a class="admin-qa-btn" href="#" onclick="switchToSection('elitefeed');return false"><span class="admin-qa-icon">&#128248;</span>Elite Feed</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('programs');return false"><span class="admin-qa-icon">&#127919;</span>Programs</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="admin-qa-icon">🏆</span>Leader boards</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('nutrition');return false"><span class="admin-qa-icon">🥗</span>Nutrition report</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('blood');return false"><span class="admin-qa-icon">🩺</span>Blood reports</a>
-            <a class="admin-qa-btn" href="#" onclick="switchTab('memberships');return false"><span class="admin-qa-icon">💳</span>Members</a>
-            <a class="admin-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="admin-qa-icon">&#128202;</span>Analytics</a>
-          </div>
+        <!-- ACTIVITY -->
+        <div class="bbmd-panel" id="bbmdPanel-activity" role="tabpanel" aria-labelledby="bbmdSegBtn-activity">
+          <section class="bbmd-card bbmd-block">
+            <div class="bbmd-sec-head">
+              <h3 class="bbmd-sec-title">Live activity</h3>
+              <button type="button" class="bbmd-sec-link" onclick="switchTab('dailycheckin');return false">Check-ins &rsaquo;</button>
+            </div>
+            <div class="admin-la-list" id="adminLiveActivityList">
+              <p class="admin-la-loading">Loading&hellip;</p>
+            </div>
+          </section>
         </div>
-        <div class="admin-live-activity">
-          <h3 class="admin-la-title">HIGH RISK / ATTENTION</h3>
-          <div class="admin-la-list" id="adminMobileRiskList">
-            <p class="admin-la-loading">Loading…</p>
+
+        <!-- Quick access -->
+        <section class="bbmd-card bbmd-qa">
+          <div class="bbmd-sec-head">
+            <h3 class="bbmd-sec-title">Quick access</h3>
           </div>
-          <div class="form-hint" style="margin-top:10px;opacity:.9">Based on 2d / 5d daily check-in inactivity</div>
-        </div>
-        <div class="admin-live-activity">
-          <h3 class="admin-la-title">LIVE ACTIVITY</h3>
-          <div class="admin-la-list" id="adminLiveActivityList">
-            <p class="admin-la-loading">Loading…</p>
+          <div class="bbmd-qa-grid is-collapsed" id="bbmdQaGrid">
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('leads');return false"><span class="bbmd-qa-ic">&#127919;</span><span class="bbmd-qa-txt">Leads</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('sundaycheckin');return false"><span class="bbmd-qa-ic">&#128197;</span><span class="bbmd-qa-txt">Check-ins</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('dailycompliance');return false"><span class="bbmd-qa-ic">&#128202;</span><span class="bbmd-qa-txt">Compliance</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('workouts');return false"><span class="bbmd-qa-ic">&#127939;</span><span class="bbmd-qa-txt">Workouts</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('tribe');return false"><span class="bbmd-qa-ic">&#128101;</span><span class="bbmd-qa-txt">Clients</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="bbmd-qa-ic">&#128209;</span><span class="bbmd-qa-txt">Audits</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('memberships');return false"><span class="bbmd-qa-ic">&#128179;</span><span class="bbmd-qa-txt">Members</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('blood');return false"><span class="bbmd-qa-ic">&#129656;</span><span class="bbmd-qa-txt">Blood</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchToSection('elitefeed');return false"><span class="bbmd-qa-ic">&#128248;</span><span class="bbmd-qa-txt">Elite feed</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('programs');return false"><span class="bbmd-qa-ic">&#128220;</span><span class="bbmd-qa-txt">Programs</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="bbmd-qa-ic">&#127942;</span><span class="bbmd-qa-txt">Boards</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('nutrition');return false"><span class="bbmd-qa-ic">&#129367;</span><span class="bbmd-qa-txt">Nutrition</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchToSection('analytics');return false"><span class="bbmd-qa-ic">&#128200;</span><span class="bbmd-qa-txt">Analytics</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('messages');return false"><span class="bbmd-qa-ic">&#128172;</span><span class="bbmd-qa-txt">Messages</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('meetings');return false"><span class="bbmd-qa-ic">&#9200;</span><span class="bbmd-qa-txt">Meetings</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="bbmd-qa-ic">&#128161;</span><span class="bbmd-qa-txt">AI assist</span></a>
           </div>
-        </div>
+          <button type="button" class="bbmd-qa-more" id="bbmdQaMore" onclick="bbmdToggleQa()" aria-expanded="false">Show all</button>
+        </section>
       </div>
     </div>
     <div class="admin-tab-content" id="tab-elitefeed-section">
@@ -8013,6 +8444,12 @@ button.bb-today-pill{cursor:pointer}
           <!-- Readiness sub-tab — the member's own readiness view, mounted on the coach's
                read-only client endpoints. Filled by bbRdMountClient, not by markup. -->
           <div id="adminCpReadinessPanel" style="display:none;margin-top:20px;max-width:860px">
+            <!-- Signal intelligence first: the directive, the risk flags the client is
+                 never shown, every hypothesis the engine tested, and the bloodwork
+                 bridge. The raw Whoop mirror below it is the supporting evidence. -->
+            <h4 class="admin-subsection-title" style="margin:0 0 10px">✦ Signal intelligence</h4>
+            <div id="adminCpSignalBody"><p class="admin-cp-placeholder">Loading signal…</p></div>
+            <h4 class="admin-subsection-title" style="margin:24px 0 10px">⌚ Raw readiness &amp; recovery</h4>
             <div id="adminCpReadinessBody"><p class="admin-cp-placeholder">Loading readiness…</p></div>
           </div>
         </div>
@@ -11957,6 +12394,9 @@ async function submitAudit(form) {
 
 // ========== ADMIN DASHBOARD ==========
 async function loadDashboard() {
+  // Restore the mobile dashboard's last segment before the fetches land, so the
+  // admin doesn't watch it snap from Pulse to their pick a second later.
+  try { if (typeof bbmdRestoreSeg === 'function') bbmdRestoreSeg(); } catch (_) {}
   await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadAdminMessages(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
@@ -12421,7 +12861,9 @@ async function loadStats() {
   const dashTrials = document.getElementById('dashTrials');
   const dashMessages = document.getElementById('dashMessages');
   if (dashMembers) dashMembers.textContent = data.active_members ?? 0;
-  if (dashCheckins) dashCheckins.textContent = data.daily_checkins ?? 0;
+  // `daily_checkins` is the all-time row count — useless as a "today" headline
+  // (it read 566 against a 36-member roster). Prefer the today-scoped count.
+  if (dashCheckins) dashCheckins.textContent = data.daily_checkins_today ?? data.daily_checkins ?? 0;
   if (dashTrials) dashTrials.textContent = data.trials ?? 0;
   if (dashMessages) dashMessages.textContent = data.messages ?? 0;
   const dateEl = document.getElementById('adminWelcomeDate');
@@ -12443,6 +12885,11 @@ async function loadStats() {
   // This is needed because the desktop dashboard (bb-desktop-dashboard) is hidden on mobile via inline style.
   if (document.getElementById('adminMobileRiskList')) {
     try { await bbRefreshMobileAdminRiskList(); } catch (_) {}
+  }
+
+  // Mobile: hero ring, KPI subtitles, engagement meters and the 14-day trend.
+  if (document.getElementById('bbmdRing')) {
+    try { await bbmdRender(data); } catch (_) {}
   }
 
   // Today · Leads pipeline — must run on BOTH mobile and desktop.
@@ -12901,13 +13348,219 @@ async function loadLiveActivity() {
       listEl.innerHTML = '<p class="admin-la-loading">No recent activity.</p>';
       return;
     }
-    const dotClass = { 'NEW': 'green', 'DONE': 'green', 'UNREAD': 'red', 'PENDING': 'orange' };
+    // /api/admin/recent-activity also emits TRIAL, which had no dot or tag colour.
+    const dotClass = { 'NEW': 'green', 'DONE': 'green', 'UNREAD': 'red', 'PENDING': 'orange', 'TRIAL': 'gold' };
     listEl.innerHTML = data.slice(0, 8).map(function(a) {
       const dc = dotClass[a.status] || 'green';
       return '<div class="admin-la-item"><span class="admin-la-dot ' + dc + '" aria-hidden="true"></span><span class="admin-la-text">' + escapeHtml(a.name) + ' — ' + escapeHtml(a.type || '') + '</span><span class="admin-la-tag ' + (a.status || '').toLowerCase() + '">' + escapeHtml(a.status || '') + '</span></div>';
     }).join('');
   } catch (e) {
     listEl.innerHTML = '<p class="admin-la-loading">Could not load activity.</p>';
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ADMIN · MOBILE DASHBOARD ("bbmd")
+   Only ever touches nodes that live inside .admin-dash-page, which the
+   >=768px breakpoint hides — so none of this runs against desktop admin.
+   Headline counts come from /api/stats; everything today-scoped comes from
+   /api/operator/overview (requireOperator also admits admin/superadmin),
+   which is the only endpoint that computes per-day rather than all-time.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+var BBMD_SEG_KEY = 'bb_admin_dash_seg';
+
+// Inline SVG sparkline. Returns '' for series too short to mean anything.
+function bbmdSpark(values, opts) {
+  var o = opts || {};
+  var w = o.w || 160, h = o.h || 40, pad = 2.5;
+  var a = (values || []).map(function (v) { return Number(v) || 0; });
+  if (a.length < 2) return '';
+  var min = Math.min.apply(null, a), max = Math.max.apply(null, a);
+  if (max === min) { max = min + 1; }
+  var stepX = (w - pad * 2) / (a.length - 1);
+  var pts = a.map(function (v, i) {
+    return [pad + i * stepX, pad + (h - pad * 2) * (1 - (v - min) / (max - min))];
+  });
+  var line = pts.map(function (p, i) { return (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1); }).join(' ');
+  var last = pts[pts.length - 1];
+  var area = line + ' L' + last[0].toFixed(1) + ' ' + h + ' L' + pts[0][0].toFixed(1) + ' ' + h + ' Z';
+  var color = o.color || '#c8a44e';
+  bbmdSpark._n = (bbmdSpark._n || 0) + 1;
+  var gid = 'bbmdGrad' + bbmdSpark._n;
+  return '<svg class="bbmd-spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" aria-hidden="true" focusable="false">' +
+    '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.42"/>' +
+      '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
+    '</linearGradient></defs>' +
+    '<path d="' + area + '" fill="url(#' + gid + ')"/>' +
+    '<path d="' + line + '" fill="none" stroke="' + color + '" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>' +
+    '<circle cx="' + last[0].toFixed(1) + '" cy="' + last[1].toFixed(1) + '" r="2.4" fill="' + color + '"/>' +
+  '</svg>';
+}
+
+function bbmdSeg(key) {
+  var keys = ['pulse', 'pipeline', 'activity'];
+  if (keys.indexOf(key) === -1) key = 'pulse';
+  keys.forEach(function (k) {
+    var btn = document.getElementById('bbmdSegBtn-' + k);
+    var panel = document.getElementById('bbmdPanel-' + k);
+    if (btn) btn.setAttribute('aria-selected', k === key ? 'true' : 'false');
+    if (panel) panel.classList.toggle('is-active', k === key);
+  });
+  try { localStorage.setItem(BBMD_SEG_KEY, key); } catch (_) {}
+}
+
+function bbmdRestoreSeg() {
+  var saved = null;
+  try { saved = localStorage.getItem(BBMD_SEG_KEY); } catch (_) {}
+  if (saved) bbmdSeg(saved);
+}
+
+function bbmdSegBadge(key, n) {
+  var el = document.getElementById('bbmdSegDot-' + key);
+  if (!el) return;
+  var v = Number(n) || 0;
+  el.textContent = v > 99 ? '99+' : String(v);
+  el.classList.toggle('on', v > 0);
+}
+
+function bbmdToggleQa() {
+  var grid = document.getElementById('bbmdQaGrid');
+  var btn = document.getElementById('bbmdQaMore');
+  if (!grid || !btn) return;
+  var collapsed = grid.classList.toggle('is-collapsed');
+  btn.textContent = collapsed ? 'Show all' : 'Show less';
+  btn.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+}
+
+function bbmdRefresh() {
+  var btn = document.getElementById('bbmdRefreshBtn');
+  if (btn) btn.classList.add('is-busy');
+  Promise.all([
+    Promise.resolve().then(function () { return loadStats(); }).catch(function () {}),
+    Promise.resolve().then(function () { return loadLiveActivity(); }).catch(function () {})
+  ]).then(function () {
+    if (btn) btn.classList.remove('is-busy');
+  });
+}
+
+function bbmdSetMeter(fillId, valId, pct, label, tone) {
+  var fill = document.getElementById(fillId);
+  var val = document.getElementById(valId);
+  var p = Math.max(0, Math.min(100, Math.round(Number(pct) || 0)));
+  if (fill) {
+    fill.style.width = p + '%';
+    fill.className = 'bbmd-meter-fill' + (tone ? ' is-' + tone : '');
+  }
+  if (val) val.textContent = label;
+}
+
+function bbmdText(id, value) {
+  var el = document.getElementById(id);
+  if (el) el.textContent = value;
+}
+
+async function bbmdRender(stats) {
+  if (!document.getElementById('bbmdRing')) return;
+  var s = stats || {};
+
+  // KPI subtitles that need nothing but /api/stats
+  bbmdText('bbmdMessagesSub', (Number(s.messages) || 0) > 0 ? 'Waiting on your reply' : 'Inbox clear');
+  var msgEl = document.getElementById('dashMessages');
+  if (msgEl) msgEl.className = 'bbmd-kpi-val' + ((Number(s.messages) || 0) > 0 ? ' is-warn' : '');
+
+  var ov = await apiCall('GET', '/api/operator/overview');
+  if (!ov || ov.error) {
+    // Degrade quietly: headline KPIs from /api/stats already rendered.
+    bbmdText('bbmdTrendSub', 'Live detail unavailable');
+    return;
+  }
+
+  var st = ov.stats || {};
+  var eng = ov.engagement || {};
+  var tr = ov.trends || {};
+
+  var roster = Number(st.total_clients) || 0;
+  var activeToday = Number(st.active_today) || 0;
+  var checkedIn = Number(st.checked_in_today) || 0;
+  var p0 = Number(st.at_risk_p0) || 0;
+  var p1 = Number(st.at_risk_p1) || 0;
+
+  // Hero ring — share of the roster that did anything at all today.
+  var ringPct = roster > 0 ? Math.round((activeToday / roster) * 100) : 0;
+  var ring = document.getElementById('bbmdRing');
+  if (ring) {
+    ring.style.setProperty('--pct', String(ringPct));
+    ring.setAttribute('aria-label', activeToday + ' of ' + roster + ' members active today (' + ringPct + '%)');
+  }
+  bbmdText('bbmdRingVal', ringPct + '%');
+  bbmdText('bbmdActiveToday', activeToday);
+  bbmdText('bbmdWorkoutsToday', Number(st.workouts_today) || 0);
+  bbmdText('bbmdMealsToday', Number(st.meals_today) || 0);
+
+  // Alert chips — only what actually needs a decision today.
+  var chips = [];
+  if (p0 > 0) chips.push('<button type="button" class="bbmd-chip bbmd-chip--bad" onclick="bbmdSeg(\'pulse\')"><b>' + p0 + '</b> P0 · 5d+ silent</button>');
+  if (p1 > 0) chips.push('<button type="button" class="bbmd-chip bbmd-chip--warn" onclick="bbmdSeg(\'pulse\')"><b>' + p1 + '</b> P1 · 2d+ silent</button>');
+  if ((Number(st.expiring_trials_3d) || 0) > 0) chips.push('<button type="button" class="bbmd-chip bbmd-chip--warn" onclick="switchTab(\'memberships\')"><b>' + Number(st.expiring_trials_3d) + '</b> trials end &le;3d</button>');
+  if ((Number(st.new_trials_7d) || 0) > 0) chips.push('<button type="button" class="bbmd-chip bbmd-chip--ok" onclick="switchTab(\'memberships\')"><b>' + Number(st.new_trials_7d) + '</b> new this week</button>');
+  if (!chips.length) chips.push('<span class="bbmd-chip bbmd-chip--ok" style="cursor:default">All clear &mdash; nothing urgent</span>');
+  var alertsEl = document.getElementById('bbmdAlerts');
+  if (alertsEl) alertsEl.innerHTML = chips.join('');
+
+  // KPI subtitles + accurate "checked in today"
+  bbmdText('bbmdMembersSub', activeToday + ' active today');
+  var ciEl = document.getElementById('dashCheckins');
+  if (ciEl) {
+    ciEl.textContent = checkedIn;
+    ciEl.className = 'bbmd-kpi-val' + (roster > 0 && checkedIn / roster < 0.4 ? ' is-warn' : ' is-ok');
+  }
+  // "Members" above counts the active tribe roster; the rate below is measured against
+  // the tracked client accounts the check-in numerator comes from. Different populations,
+  // so label the denominator rather than implying the two should match.
+  bbmdText('bbmdCheckinsSub', (Number(eng.checkin_rate) || 0) + '% of ' + roster + ' tracked clients');
+  var expiring = Number(st.expiring_trials_3d) || 0;
+  bbmdText('bbmdTrialsSub', expiring > 0 ? expiring + ' ending within 3 days' : 'None ending soon');
+
+  // Engagement meters
+  var checkinRate = Number(eng.checkin_rate) || 0;
+  bbmdSetMeter('bbmdMeterCheckin', 'bbmdMeterCheckinVal', checkinRate,
+    checkedIn + ' / ' + roster, checkinRate >= 60 ? 'ok' : (checkinRate >= 30 ? 'warn' : 'bad'));
+
+  var consist = Number(eng.avg_consistency_pct) || 0;
+  bbmdSetMeter('bbmdMeterConsist', 'bbmdMeterConsistVal', consist, consist + '%',
+    consist >= 60 ? 'ok' : (consist >= 35 ? 'warn' : 'bad'));
+
+  var riskRate = Number(eng.at_risk_rate) || 0;
+  bbmdSetMeter('bbmdMeterRisk', 'bbmdMeterRiskVal', riskRate, (p0 + p1) + ' · ' + riskRate + '%',
+    riskRate <= 15 ? 'ok' : (riskRate <= 35 ? 'warn' : 'bad'));
+
+  bbmdSegBadge('pulse', p0 + p1);
+
+  // 14-day momentum
+  var series = Array.isArray(tr.checkins) ? tr.checkins : [];
+  var chartEl = document.getElementById('bbmdTrendChart');
+  var sparkEl = document.getElementById('bbmdCheckinSpark');
+  if (series.length >= 2) {
+    var total = series.reduce(function (a, b) { return a + (Number(b) || 0); }, 0);
+    var firstHalf = series.slice(0, Math.floor(series.length / 2)).reduce(function (a, b) { return a + (Number(b) || 0); }, 0);
+    var lastHalf = series.slice(Math.floor(series.length / 2)).reduce(function (a, b) { return a + (Number(b) || 0); }, 0);
+    var arrow = lastHalf > firstHalf ? '▲' : (lastHalf < firstHalf ? '▼' : '▬');
+    bbmdText('bbmdTrendSub', arrow + ' ' + total + ' check-ins · 14d');
+    if (chartEl) chartEl.innerHTML = bbmdSpark(series, { w: 300, h: 56 });
+    // The KPI watermark reads as a stray diagonal when the week is empty or flat,
+    // so only draw it once there is real movement to show.
+    var week = series.slice(-7);
+    var distinct = week.filter(function (v, i, a) { return a.indexOf(v) === i; }).length;
+    if (sparkEl) {
+      sparkEl.innerHTML = (week.some(function (v) { return Number(v) > 0; }) && distinct > 2)
+        ? bbmdSpark(week, { w: 160, h: 30, color: '#3dd68c' })
+        : '';
+    }
+  } else {
+    bbmdText('bbmdTrendSub', 'Not enough history yet');
+    if (chartEl) chartEl.innerHTML = '<p class="bbmd-empty">No check-in history yet.</p>';
   }
 }
 
@@ -14949,6 +15602,11 @@ async function loadLeadsToday() {
       '<div class="card-lbl">Lost this week</div>' +
     '</div>';
   grids.forEach(function(g){ g.innerHTML = html; });
+
+  // Mobile dashboard: badge the Pipeline segment with everything awaiting a decision.
+  if (typeof bbmdSegBadge === 'function') {
+    bbmdSegBadge('pipeline', pending.length + stuck.length + pay.length);
+  }
 }
 
 function bbLeadsFilterAndOpen(stage) {
@@ -16693,8 +17351,11 @@ async function loadAdminUserProgressDetail(userId, userName) {
   if (window._adminCpRdLoadedFor !== userId) {
     window._adminCpRdLoadedFor = null;
     if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('admincp');
+    if (typeof window.bbSigUnmount === 'function') window.bbSigUnmount('admincp');
     var rdHost = document.getElementById('adminCpReadinessBody');
     if (rdHost) rdHost.innerHTML = '<p class="admin-cp-placeholder">Loading readiness…</p>';
+    var sgHost = document.getElementById('adminCpSignalBody');
+    if (sgHost) sgHost.innerHTML = '<p class="admin-cp-placeholder">Loading signal…</p>';
   }
   var detailEl = document.getElementById('adminCpDetail');
   var kpisEl = document.getElementById('adminCpKpis');
@@ -16844,6 +17505,8 @@ function bbAdminCpLoadReadiness() {
     host.innerHTML = '<p class="admin-cp-placeholder">Select a user from the list first.</p>';
     return;
   }
+  var sigHost = document.getElementById('adminCpSignalBody');
+  if (sigHost && !userId) sigHost.innerHTML = '<p class="admin-cp-placeholder">Select a user from the list first.</p>';
   if (typeof window.bbRdMountClient !== 'function') {
     host.innerHTML = '<div class="admin-cp-error-msg">Readiness view is unavailable on this build.</div>';
     return;
@@ -16852,6 +17515,18 @@ function bbAdminCpLoadReadiness() {
   // chosen window and any report they just generated.
   if (window._adminCpRdLoadedFor === userId) return;
   window._adminCpRdLoadedFor = userId;
+  // Signal panel is additive: an older build without it still renders readiness below.
+  if (sigHost && typeof window.bbSigMountStaff === 'function') {
+    window.bbSigMountStaff({
+      key: 'admincp',
+      scope: 'admin',
+      el: 'adminCpSignalBody',
+      userId: userId,
+      name: window._adminCpSelectedClientName || ''
+    });
+  } else if (sigHost) {
+    sigHost.innerHTML = '<div class="admin-cp-error-msg">Signal view is unavailable on this build.</div>';
+  }
   window.bbRdMountClient({
     key: 'admincp',
     scope: 'admin',
@@ -17121,6 +17796,7 @@ async function loadClientProgressUsers() {
   if (cpRdPanel) cpRdPanel.style.display = 'none';
   window._adminCpRdLoadedFor = null;
   if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('admincp');
+  if (typeof window.bbSigUnmount === 'function') window.bbSigUnmount('admincp');
   window._adminCpSelectedUserId = null;
   window._adminCpSelectedClientName = '';
   destroyAdminProgressCharts();
@@ -17142,20 +17818,24 @@ function adminCpBloodFilePicked(ev) {
   var msg = document.getElementById('adminCpBloodMsg');
   var show = function (color, html) { if (msg) { msg.style.display = 'block'; msg.style.color = color; msg.innerHTML = html; } };
   if (!id) { show('#e05050', 'No client selected.'); return; }
-  show('var(--muted)', 'Reading file…');
-  var reader = new FileReader();
-  reader.onload = function () {
-    var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
-    show('var(--muted)', 'Uploading & analysing for ' + escapeHtml(name) + '… this can take a minute.');
-    apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [] })
-      .then(function (res) {
-        if (res && res.error) { show('#e05050', escapeHtml(res.error)); return; }
-        show('var(--gold)', 'Uploaded & analysis started for ' + escapeHtml(name) + '. <a href="#" onclick="switchTab(\'blood\');return false;" style="color:var(--gold);text-decoration:underline">Open Blood Reports tab</a> to track, download &amp; send.');
-        if (typeof nutritionShowToast === 'function') nutritionShowToast('Blood report uploaded — analysis started.', 'success');
-      })
-      .catch(function () { show('#e05050', 'Upload failed. Please try again.'); });
-  };
-  reader.readAsDataURL(f);
+  // Capture the lab date first — it decides where this report sits on the trend.
+  bbAskLabDate({ clientName: name, fileName: f.name }, function (labDate) {
+    if (!labDate) { show('var(--muted)', 'Upload cancelled.'); return; }
+    show('var(--muted)', 'Reading file…');
+    var reader = new FileReader();
+    reader.onload = function () {
+      var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
+      show('var(--muted)', 'Uploading & analysing for ' + escapeHtml(name) + ' (lab date ' + escapeHtml(bbFmtDay(labDate)) + ')… this can take a minute.');
+      apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [], reportDate: labDate })
+        .then(function (res) {
+          if (res && res.error) { show('#e05050', escapeHtml(res.error)); return; }
+          show('var(--gold)', 'Uploaded & analysis started for ' + escapeHtml(name) + '. <a href="#" onclick="switchTab(\'blood\');return false;" style="color:var(--gold);text-decoration:underline">Open Blood Reports tab</a> to track, download &amp; send.');
+          if (typeof nutritionShowToast === 'function') nutritionShowToast('Blood report uploaded — analysis started.', 'success');
+        })
+        .catch(function () { show('#e05050', 'Upload failed. Please try again.'); });
+    };
+    reader.readAsDataURL(f);
+  });
 }
 
 async function adminSuspendUser() {
@@ -18625,6 +19305,8 @@ function renderTodayHero(data){
   }
   // Readiness card — its own endpoint, so it loads alongside rather than inside /api/me/home.
   try { if (typeof bbRdHomeLoad === 'function') bbRdHomeLoad(); } catch(e){ console.warn('readiness card', e); }
+  // Signal card — same pattern. Deterministic server-side, so this is a cheap read.
+  try { if (typeof bbSigHomeLoad === 'function') bbSigHomeLoad(); } catch(e){ console.warn('signal card', e); }
   hero.hidden = false;
 }
 
@@ -22796,6 +23478,230 @@ function resetAdminAccess(encodedId, feature) {
     });
 }
 
+// ============================================================================
+// Blood report FILE management — shared by the admin Blood Reports tab and the
+// operator client profile. Operators have full parity with admins here, so both
+// surfaces render the exact same controls from these helpers.
+// ============================================================================
+
+// 'YYYY-MM-DD' (a lab DATE) or an ISO timestamp -> "4 Mar 2026". The date-only form
+// is parsed by hand so a timezone shift can never drag it to the previous day.
+function bbFmtDay(v) {
+  if (!v) return '';
+  var s = String(v);
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
+  var d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(s);
+  if (isNaN(d.getTime())) return s;
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+
+// The <input type="date"> value for a report: its lab date, else blank.
+function bbLabDateValue(r) {
+  var v = r && r.reportDate ? String(r.reportDate) : '';
+  var m = /^(\d{4}-\d{2}-\d{2})/.exec(v);
+  return m ? m[1] : '';
+}
+
+// The date line on a card. A report with a real lab date leads with it; one without
+// says so explicitly, because an undated report sits on the timeline by upload date
+// and that is exactly the thing a coach needs to notice and fix.
+function bbLabDateLabel(r) {
+  var uploaded = r && r.createdAt ? bbFmtDay(r.createdAt) : '';
+  if (r && r.reportDate) {
+    return '<strong style="color:#3dd68c">Lab ' + escapeHtml(bbFmtDay(r.reportDate)) + '</strong>' +
+      (uploaded ? ' <span style="opacity:0.7">· uploaded ' + escapeHtml(uploaded) + '</span>' : '');
+  }
+  return '<span style="color:#f5a623">No lab date</span>' +
+    (uploaded ? ' <span style="opacity:0.7">· uploaded ' + escapeHtml(uploaded) + '</span>' : '');
+}
+
+// Inline date picker to set/correct the lab draw date on an existing report.
+function bbLabDateEditor(id, r, refreshFn) {
+  var v = bbLabDateValue(r);
+  refreshFn = refreshFn || 'loadAdminBloodReports';
+  return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid ' +
+    (v ? 'rgba(255,255,255,0.08)' : 'rgba(245,166,35,0.35)') + '">' +
+    '<label class="form-hint" for="blood-date-' + id + '" style="margin:0;font-size:11px">Lab test date</label>' +
+    '<input type="date" id="blood-date-' + id + '" value="' + escapeHtml(v) + '" max="' + bbTodayYmd() + '" ' +
+    'style="background:#111;border:1px solid rgba(255,255,255,0.12);color:inherit;padding:5px 8px;border-radius:6px;font-size:12px;color-scheme:dark">' +
+    '<button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px" ' +
+    'onclick="bbSaveLabDate(\'' + id + '\', \'' + refreshFn + '\')">Save date</button>' +
+    (v ? '' : '<span class="form-hint" style="margin:0;font-size:10px;color:#f5a623">Set this so the report lands correctly on the trend</span>') +
+    '</div>';
+}
+
+function bbTodayYmd() {
+  var d = new Date();
+  var m = d.getMonth() + 1, day = d.getDate();
+  return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
+}
+
+function bbSaveLabDate(reportId, refreshFn) {
+  var inp = document.getElementById('blood-date-' + reportId);
+  var val = inp ? String(inp.value || '').trim() : '';
+  if (!val) {
+    showPopup('Lab date', 'Pick the date printed on the lab report first.', '', 'OK', null, 'error');
+    return;
+  }
+  apiCall('PUT', '/api/blood/admin/report-date/' + encodeURIComponent(reportId), { reportDate: val }).then(function (d) {
+    if (d && (d.error || d.success === false)) {
+      showPopup('Lab date', String(d.error || 'Could not save the date.'), '', 'OK', null, 'error');
+      return;
+    }
+    if (typeof nutritionShowToast === 'function') nutritionShowToast('Lab date saved — timeline reordered', 'success');
+    if (refreshFn && typeof window[refreshFn] === 'function') window[refreshFn]();
+  });
+}
+
+// Download button for the ORIGINAL uploaded lab file (what the client actually got
+// from the lab), as opposed to the generated BodyBank report.
+function bbLabFileBtn(id, hasFile, style) {
+  if (!hasFile) {
+    return '<button type="button" class="form-hint" disabled title="No original file stored for this report" ' +
+      'style="' + style + ';border:1px solid rgba(255,255,255,0.1);background:transparent;color:inherit;border-radius:8px;opacity:0.4;cursor:not-allowed">⬇ Lab file</button>';
+  }
+  return '<button type="button" class="form-hint" title="Download the original lab report the client uploaded" ' +
+    'style="' + style + ';border:1px solid rgba(255,255,255,0.18);background:transparent;color:inherit;border-radius:8px;cursor:pointer" ' +
+    'onclick="bbDownloadLabFile(\'' + id + '\')">⬇ Lab file</button>';
+}
+
+function bbDownloadLabFile(reportId) {
+  bbAuthedDownload('/api/blood/file/' + encodeURIComponent(reportId), 'Lab_Report');
+}
+
+// One authed blob download that honours the filename the server sends, so two lab
+// files land as Lab_Report_Name_2024-01-15.pdf / _2026-06-02.pdf and never collide.
+function bbAuthedDownload(pathUrl, fallbackName) {
+  if (!window.currentUser || !window.currentUser.token) return;
+  var url = (typeof API !== 'undefined' ? API : '') + pathUrl;
+  fetch(url, { headers: { Authorization: 'Bearer ' + window.currentUser.token } })
+    .then(function (r) {
+      if (!r.ok) {
+        return r.json().catch(function () { return {}; }).then(function (j) {
+          throw new Error((j && j.error) || ('Download failed (' + r.status + ')'));
+        });
+      }
+      var name = fallbackName;
+      var cd = r.headers.get('Content-Disposition') || '';
+      var m = /filename\*?=(?:UTF-8'')?"?([^";]+)"?/i.exec(cd);
+      if (m && m[1]) { try { name = decodeURIComponent(m[1]); } catch (_) { name = m[1]; } }
+      return r.blob().then(function (b) { return { blob: b, name: name }; });
+    })
+    .then(function (out) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(out.blob);
+      a.download = out.name;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    })
+    .catch(function (err) {
+      showPopup('Download', (err && err.message) || 'File not available.', '', 'OK', null, 'error');
+    });
+}
+
+// Ask for the lab draw date before a staff upload. Uploading a retest is the moment
+// the timeline is decided, so the date is captured there rather than patched later.
+// onPick receives 'YYYY-MM-DD', or null if the coach backed out.
+function bbAskLabDate(opts, onPick) {
+  opts = opts || {};
+  var prev = document.getElementById('bbLabDateModal');
+  if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
+
+  var ov = document.createElement('div');
+  ov.id = 'bbLabDateModal';
+  ov.setAttribute('role', 'dialog');
+  ov.setAttribute('aria-modal', 'true');
+  ov.setAttribute('aria-label', 'Lab test date');
+  ov.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(0,0,0,0.72);display:flex;align-items:center;justify-content:center;padding:18px';
+  ov.innerHTML =
+    '<div style="background:#161a1e;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:20px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5)">' +
+    '<div style="font-weight:700;font-size:15px;margin-bottom:6px">Lab test date</div>' +
+    '<div class="form-hint" style="margin:0 0 14px;font-size:12px;line-height:1.5">Enter the date the blood was drawn, as printed on ' +
+    (opts.fileName ? '<strong>' + escapeHtml(String(opts.fileName).slice(0, 60)) + '</strong>' : 'the report') +
+    (opts.clientName ? ' for <strong>' + escapeHtml(opts.clientName) + '</strong>' : '') +
+    '. This places the report on the trend — not the upload date.</div>' +
+    '<input type="date" id="bbLabDateModalInput" max="' + bbTodayYmd() + '" ' +
+    'style="width:100%;box-sizing:border-box;background:#111;border:1px solid rgba(255,255,255,0.14);color:#f0ede8;padding:10px 12px;border-radius:8px;font-size:14px;color-scheme:dark">' +
+    '<div id="bbLabDateModalErr" class="form-hint" style="display:none;color:#ff8a8a;font-size:11px;margin:6px 0 0"></div>' +
+    '<div style="display:flex;gap:8px;margin-top:16px">' +
+    '<button type="button" id="bbLabDateCancel" class="form-hint" style="flex:1;border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:10px;border-radius:8px;cursor:pointer">Cancel</button>' +
+    '<button type="button" id="bbLabDateOk" class="form-submit" style="flex:1;width:auto;margin:0;padding:10px">Continue</button>' +
+    '</div></div>';
+  document.body.appendChild(ov);
+
+  var input = ov.querySelector('#bbLabDateModalInput');
+  var err = ov.querySelector('#bbLabDateModalErr');
+  var done = false;
+  var finish = function (val) {
+    if (done) return;
+    done = true;
+    document.removeEventListener('keydown', onKey);
+    if (ov.parentNode) ov.parentNode.removeChild(ov);
+    onPick(val);
+  };
+  var submit = function () {
+    var v = String(input.value || '').trim();
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+      err.style.display = 'block';
+      err.textContent = 'Pick the lab test date to continue.';
+      input.focus();
+      return;
+    }
+    if (v > bbTodayYmd()) {
+      err.style.display = 'block';
+      err.textContent = 'The lab date cannot be in the future.';
+      return;
+    }
+    finish(v);
+  };
+  var onKey = function (e) {
+    if (e.key === 'Escape') finish(null);
+    else if (e.key === 'Enter' && document.getElementById('bbLabDateModal')) submit();
+  };
+  ov.querySelector('#bbLabDateOk').onclick = submit;
+  ov.querySelector('#bbLabDateCancel').onclick = function () { finish(null); };
+  ov.onclick = function (e) { if (e.target === ov) finish(null); };
+  document.addEventListener('keydown', onKey);
+  setTimeout(function () { try { input.focus(); } catch (_) {} }, 30);
+}
+
+function bbDeleteReportBtn(id, style, refreshFn) {
+  refreshFn = refreshFn || 'loadAdminBloodReports';
+  return '<button type="button" title="Delete this report, its lab file and its generated PDF" ' +
+    'style="' + style + ';border:1px solid rgba(255,92,92,0.4);background:rgba(255,92,92,0.08);color:#ff8a8a;border-radius:8px;cursor:pointer" ' +
+    'onclick="bbDeleteBloodReport(\'' + id + '\', \'' + refreshFn + '\')">🗑 Delete</button>';
+}
+
+// Delete removes the row, the original lab file and the generated PDF — and frees an
+// upload slot. The confirm states how many saved comparisons depend on it first.
+function bbDeleteBloodReport(reportId, refreshFn) {
+  apiCall('GET', '/api/blood/impact/' + encodeURIComponent(reportId))
+    .catch(function () { return null; })
+    .then(function (info) {
+      var who = (info && info.userName) ? info.userName : 'this client';
+      var when = (info && info.effectiveDate) ? bbFmtDay(info.effectiveDate) : '';
+      var n = (info && info.comparisonsAffected) || 0;
+      var msg = 'Delete the ' + (when ? when + ' ' : '') + 'blood report for ' + who + '?\n\n' +
+        'This removes the original lab file, the extracted results and the generated PDF, and frees an upload slot.';
+      if (n) {
+        msg += '\n\n⚠ ' + n + ' saved comparison' + (n === 1 ? '' : 's') +
+          ' use' + (n === 1 ? 's' : '') + ' this report and will no longer be able to regenerate.';
+      }
+      msg += '\n\nThis cannot be undone.';
+      if (!confirm(msg)) return;
+      apiCall('DELETE', '/api/blood/' + encodeURIComponent(reportId)).then(function (d) {
+        if (d && (d.error || d.success === false)) {
+          showPopup('Delete failed', String(d.error || 'Could not delete the report.'), '', 'OK', null, 'error');
+          return;
+        }
+        if (typeof nutritionShowToast === 'function') {
+          nutritionShowToast((d && d.message) || 'Report deleted', 'success');
+        }
+        if (refreshFn && typeof window[refreshFn] === 'function') window[refreshFn]();
+      });
+    });
+}
+
 function loadAdminBloodReports() {
   var el = document.getElementById('adminBloodReportsList');
   var sel = document.getElementById('adminBloodStatusFilter');
@@ -22853,7 +23759,7 @@ function loadAdminBloodReports() {
           '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">' +
           '<div class="admin-blood-card-av" aria-hidden="true">' + bbAdminAvatarHtml(r.profile_picture || '', r.userName || '') + '</div>' +
           '<div style="flex:1;min-width:120px"><div style="font-weight:700">' + escapeHtml(r.userName || '—') + '</div>' +
-          '<div class="form-hint" style="margin:2px 0 0">' + escapeHtml(r.userGoal || '—') + ' · ' + (r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '') + '</div></div>' +
+          '<div class="form-hint" style="margin:2px 0 0">' + escapeHtml(r.userGoal || '—') + ' · ' + bbLabDateLabel(r) + '</div></div>' +
           (isReady ? '<div style="font-size:20px;font-weight:700;color:' + sc + '">' + escapeHtml(ar.overall_status || '—') + '</div>' : '<div class="form-hint">' + escapeHtml(String(r.status || '').replace(/_/g, ' ')) + '</div>') +
           (isPendingOnly
             ? '<span class="form-hint" style="background:rgba(200,164,78,0.14);color:var(--gold);padding:3px 8px;border-radius:99px;font-size:10px;border:1px solid rgba(200,164,78,0.35)">Waiting for admin action</span>'
@@ -22873,18 +23779,21 @@ function loadAdminBloodReports() {
             ? '<div class="form-hint" style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-size:11px">No error details were saved for this run. Use Retry after fixing API credits, or check server logs.</div>'
             : '') +
           usageHtml +
+          bbLabDateEditor(id, r) +
           '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
           (canRetry
             ? '<button type="button" class="form-hint" style="flex:1;min-width:100px;padding:8px;font-size:12px;border:1px solid rgba(230,192,95,0.45);background:rgba(230,192,95,0.1);color:var(--gold);border-radius:8px;cursor:pointer" onclick="adminBloodRetry(\'' +
               id +
               '\', ' + (isRunning ? 'true' : 'false') + ', ' + (isPendingOnly ? 'true' : 'false') + ')">' + (isRunning ? 'Force retry' : (isPendingOnly ? 'Process now' : 'Retry analysis')) + '</button>'
             : '') +
+          bbLabFileBtn(id, r.hasSourceFile, 'flex:1;min-width:110px;padding:8px;font-size:12px') +
           '<button type="button" class="nav-login" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isProcessing || isFailed ? '0.45' : '1') + '" ' +
           (isProcessing ? 'disabled title="Report is still processing"' : '') +
           (isFailed ? 'disabled title="Analysis failed — ask the client to upload a new report"' : '') +
           (!isProcessing && !isFailed ? 'onclick="adminBloodDownloadPdf(\'' + id + '\')"' : '') +
           '>Download PDF</button>' +
           '<button type="button" class="form-submit" style="flex:1;min-width:120px;padding:8px;font-size:12px;opacity:' + (isSent || isProcessing || isFailed ? '0.45' : '1') + '" ' + (isSent || isProcessing || isFailed ? 'disabled' : '') + ' ' + (isProcessing ? 'title="Report is still processing"' : isFailed ? 'title="Cannot send a failed report"' : '') + ' onclick="adminBloodSend(\'' + id + '\')">' + (isSent ? 'Sent' : 'Send to client') + '</button>' +
+          bbDeleteReportBtn(id, 'flex:1;min-width:100px;padding:8px;font-size:12px', 'loadAdminBloodReports') +
           '</div></div>'
         );
       }).join('');
@@ -22966,6 +23875,21 @@ function userBloodDownloadPdf(reportId) {
 // ============================================================================
 var bbCompareClients = [];
 
+// The comparison workspace renders in two places — the admin Blood Reports tab and the
+// operator client modal — so its action buttons resolve their containers through this
+// indirection instead of hard-coding the admin element ids.
+var bbCmpHost = { result: 'bbCompareResult', saved: 'bbCompareSaved', clientId: '' };
+function bbCmpUseHost(resultId, savedId, clientId) {
+  bbCmpHost = { result: resultId, saved: savedId, clientId: clientId || '' };
+}
+function bbCmpResultEl() { return document.getElementById(bbCmpHost.result); }
+function bbCmpSavedEl() { return document.getElementById(bbCmpHost.saved); }
+function bbCmpClientId() {
+  if (bbCmpHost.clientId) return bbCmpHost.clientId;
+  var sel = document.getElementById('bbCompareClient');
+  return sel ? sel.value : '';
+}
+
 function bbToggleComparePanel() {
   var p = document.getElementById('bbComparePanel');
   if (!p) return;
@@ -22999,15 +23923,30 @@ function bbCompareClientChanged() {
   var saved = document.getElementById('bbCompareSaved');
   if (res) res.innerHTML = '';
   var uid = sel ? sel.value : '';
+  // Anything rendered from here belongs to the admin panel.
+  bbCmpUseHost('bbCompareResult', 'bbCompareSaved', uid);
   var client = bbCompareClients.filter(function (c) { return c.userId === uid; })[0];
   if (!client) { if (pick) pick.innerHTML = ''; if (saved) saved.innerHTML = ''; return; }
-  var chips = client.reports.slice().sort(function (a, b) { return new Date(a.createdAt) - new Date(b.createdAt); }).map(function (r, i) {
-    var d = r.createdAt ? new Date(r.createdAt).toLocaleDateString() : '—';
-    return '<label class="bb-cmp-chip" style="display:inline-flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,0.14);border-radius:10px;padding:8px 12px;margin:0 8px 8px 0;cursor:pointer;font-size:12px">' +
+  // Oldest -> newest BY LAB DATE, matching how the comparison engine orders them.
+  var undated = 0;
+  var chips = client.reports.slice().sort(function (a, b) {
+    return new Date(a.effectiveDate || a.createdAt) - new Date(b.effectiveDate || b.createdAt);
+  }).map(function (r, i) {
+    if (!r.reportDate) undated++;
+    var d = r.reportDate
+      ? bbFmtDay(r.reportDate)
+      : (r.createdAt ? bbFmtDay(r.createdAt) + ' (upload date)' : '—');
+    return '<label class="bb-cmp-chip" style="display:inline-flex;align-items:center;gap:8px;border:1px solid ' +
+      (r.reportDate ? 'rgba(255,255,255,0.14)' : 'rgba(245,166,35,0.4)') +
+      ';border-radius:10px;padding:8px 12px;margin:0 8px 8px 0;cursor:pointer;font-size:12px">' +
       '<input type="checkbox" class="bb-cmp-report" value="' + escapeHtml(r.id) + '" onchange="bbCompareSelectionChanged()" style="accent-color:#3dd68c"> ' +
       '<span><strong>Test ' + (i + 1) + '</strong> · ' + escapeHtml(d) + (r.overallStatus ? ' · ' + escapeHtml(r.overallStatus) : '') + '</span></label>';
   }).join('');
-  pick.innerHTML = '<div class="form-hint" style="margin-bottom:6px">Select 2–6 reports to compare (oldest → newest)</div>' + chips +
+  pick.innerHTML = '<div class="form-hint" style="margin-bottom:6px">Select 2–6 reports to compare (oldest → newest by lab date)</div>' +
+    (undated
+      ? '<div class="form-hint" style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.35);color:#f5c26b;font-size:11px">' +
+        undated + ' report' + (undated === 1 ? ' has' : 's have') + ' no lab date and are placed by upload date. Set the lab date on the report card for an accurate trend.</div>'
+      : '') + chips +
     '<div style="margin-top:6px"><button type="button" id="bbCompareRunBtn" class="form-submit" style="width:auto;padding:10px 20px;margin:0;opacity:0.5" disabled onclick="bbRunComparison()">Generate comparison</button></div>';
   bbLoadClientComparisons(uid);
 }
@@ -23030,6 +23969,7 @@ function bbSelectedReportIds() {
 function bbRunComparison() {
   var sel = document.getElementById('bbCompareClient');
   var uid = sel ? sel.value : '';
+  bbCmpUseHost('bbCompareResult', 'bbCompareSaved', uid);
   var ids = bbSelectedReportIds();
   if (!uid || ids.length < 2) return;
   var res = document.getElementById('bbCompareResult');
@@ -23059,7 +23999,11 @@ function bbCmpStatusColor(st) {
   return '#f5a623';
 }
 function bbCmpDate(v) {
-  var d = new Date(v);
+  if (!v) return '—';
+  // A lab DATE arrives as 'YYYY-MM-DD' — parse it as a local calendar day so the
+  // trend column header can't slip to the previous date in a +hours timezone.
+  var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(v));
+  var d = m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : new Date(v);
   return isNaN(d.getTime()) ? String(v || '—') : d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: '2-digit' });
 }
 
@@ -23127,7 +24071,7 @@ function bbCmpVerdictHtml(v) {
 }
 
 function bbRenderComparison(cmp, container) {
-  if (!container) container = document.getElementById('bbCompareResult');
+  if (!container) container = bbCmpResultEl();
   if (!cmp || !container) { if (container) container.innerHTML = ''; return; }
   var comp = cmp.comparison || {};
   var v = cmp.verdict || {};
@@ -23187,7 +24131,7 @@ function bbRenderComparison(cmp, container) {
 }
 
 function bbLoadClientComparisons(uid) {
-  var el = document.getElementById('bbCompareSaved');
+  var el = bbCmpSavedEl();
   if (!el) return;
   apiCall('GET', '/api/blood/admin/comparisons/' + encodeURIComponent(uid)).then(function (d) {
     var list = (d && d.comparisons) || [];
@@ -23206,7 +24150,7 @@ function bbLoadClientComparisons(uid) {
 }
 
 function bbComparisonOpen(id) {
-  var res = document.getElementById('bbCompareResult');
+  var res = bbCmpResultEl();
   if (res) res.innerHTML = '<div class="form-hint" style="padding:14px">Loading…</div>';
   apiCall('GET', '/api/blood/admin/comparison/' + encodeURIComponent(id)).then(function (d) {
     if (!d || d.error || !d.comparison) {
@@ -23228,7 +24172,7 @@ function bbComparisonSaveNotes(id) {
 
 function bbComparisonRegenerate(id) {
   if (!confirm('Re-run the AI progress verdict? This uses Claude API credits.')) return;
-  var res = document.getElementById('bbCompareResult');
+  var res = bbCmpResultEl();
   if (res) res.innerHTML = '<div class="form-hint" style="padding:16px;text-align:center">Regenerating AI verdict…</div>';
   apiCall('POST', '/api/blood/admin/comparison/' + encodeURIComponent(id) + '/regenerate', {}).then(function (d) {
     if (!d || d.success === false) {
@@ -23260,8 +24204,8 @@ function bbComparisonSend(id) {
   apiCall('POST', '/api/blood/admin/comparison/' + encodeURIComponent(id) + '/send', {}).then(function (d) {
     if (!d || d.success === false) { showPopup('Send failed', (d && (d.error || d.message)) || 'Unknown', '', 'OK', null, 'error'); return; }
     if (typeof nutritionShowToast === 'function') nutritionShowToast('Progress report sent', 'success');
-    var sel = document.getElementById('bbCompareClient');
-    if (sel && sel.value) bbLoadClientComparisons(sel.value);
+    var uid = bbCmpClientId();
+    if (uid) bbLoadClientComparisons(uid);
   });
 }
 
@@ -23270,9 +24214,9 @@ function bbComparisonDelete(id) {
   apiCall('DELETE', '/api/blood/admin/comparison/' + encodeURIComponent(id), {}).then(function (d) {
     if (d && d.success === false) { showPopup('Delete', d.error || 'Failed', '', 'OK', null, 'error'); return; }
     if (typeof nutritionShowToast === 'function') nutritionShowToast('Deleted', 'success');
-    var sel = document.getElementById('bbCompareClient');
-    if (sel && sel.value) bbLoadClientComparisons(sel.value);
-    var res = document.getElementById('bbCompareResult');
+    var uid = bbCmpClientId();
+    if (uid) bbLoadClientComparisons(uid);
+    var res = bbCmpResultEl();
     if (res) res.innerHTML = '';
   });
 }
@@ -24155,6 +25099,15 @@ async function loadProfile() {
 }
 
 var _eliteCardBlob = null;
+// Set by the staff openers so a coach saving cards for several clients in a row gets
+// distinct files instead of card.png / card (1).png. Null = the member's own card,
+// which keeps its original generic filename.
+var _eliteCardFilename = null;
+
+function eliteCardFileNameFor(name) {
+  var slug = String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return slug ? 'bodybank-elite-card-' + slug + '.png' : 'bodybank-elite-card.png';
+}
 
 function getEliteCardFullName() {
   var f = document.getElementById('profFirstName');
@@ -24240,6 +25193,7 @@ async function openEliteCardModal() {
   }
   var h2 = document.querySelector('#eliteCardModal .sunday-checkin-title');
   if (h2) h2.textContent = 'Your Elite Member Card';
+  _eliteCardFilename = null;
   try {
     await renderEliteCardToCanvas(fullName);
     openModal('eliteCardModal');
@@ -24260,6 +25214,32 @@ async function openAdminEliteCardModal() {
   }
   var h2 = document.querySelector('#eliteCardModal .sunday-checkin-title');
   if (h2) h2.textContent = 'Client Elite card';
+  _eliteCardFilename = eliteCardFileNameFor(fullName);
+  try {
+    await renderEliteCardToCanvas(fullName);
+    openModal('eliteCardModal');
+  } catch (e) {
+    showPopup('Error', (e && e.message) || 'Could not generate Elite card.', '', 'OK', null, 'error');
+  }
+}
+
+// Operator equivalent of openAdminEliteCardModal — same card, sourced from the client
+// open in the operator modal. The Elite card overlay (z-index 10030) stacks above the
+// operator client modal (10000), so it opens on top rather than behind it.
+async function opOpenEliteCard() {
+  var c = window._opCurrentClient;
+  if (!c || !c.id) {
+    showPopup('Client required', 'Open a client first.', '', 'OK', null, 'error');
+    return;
+  }
+  var fullName = String(c.name || '').trim();
+  if (!fullName) {
+    showPopup('Name required', 'This client has no display name on file.', '', 'OK', null, 'error');
+    return;
+  }
+  var h2 = document.querySelector('#eliteCardModal .sunday-checkin-title');
+  if (h2) h2.textContent = 'Client Elite card';
+  _eliteCardFilename = eliteCardFileNameFor(fullName);
   try {
     await renderEliteCardToCanvas(fullName);
     openModal('eliteCardModal');
@@ -24277,7 +25257,7 @@ async function saveEliteCard(downloadFilename) {
   if (!blob) return;
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = downloadFilename || 'bodybank-elite-card.png';
+  a.download = downloadFilename || _eliteCardFilename || 'bodybank-elite-card.png';
   a.click();
   URL.revokeObjectURL(a.href);
 }
@@ -24289,7 +25269,7 @@ async function shareEliteCard() {
     if (canvas && canvas.width) blob = await new Promise(function(r) { canvas.toBlob(r, 'image/png', 1); });
   }
   if (!blob) return;
-  var file = new File([blob], 'bodybank-elite-card.png', { type: 'image/png' });
+  var file = new File([blob], _eliteCardFilename || 'bodybank-elite-card.png', { type: 'image/png' });
   if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
     try {
       await navigator.share({ title: 'My BodyBank Elite Card', files: [file] });
@@ -26346,6 +27326,7 @@ async function openOperatorClient(id) {
       +   '<button type="button" class="op-btn primary" onclick="opComposeReminder()">💬 Send reminder</button>'
       +   '<button type="button" class="op-btn ghost" onclick="opComposeShare()">📤 Share to Admin</button>'
       +   '<button type="button" class="op-btn line" onclick="opUploadBlood()">🩸 Upload blood report</button>'
+      +   '<button type="button" class="op-btn line" onclick="opOpenEliteCard()" title="Preview or download this client\'s Elite card">🪪 Elite card</button>'
       + '</div>'
       + '<input type="file" id="opBloodFileInput" accept=".pdf,image/*" style="display:none" onchange="opBloodFilePicked(event)">'
       + '<div id="opBloodMsg" style="display:none;font-size:12px;margin-top:2px"></div>'
@@ -26356,17 +27337,20 @@ async function openOperatorClient(id) {
       + '<button type="button" class="op-dtab" data-dtab="nutrition" onclick="opDetailTab(\'nutrition\')">Nutrition</button>'
       + '<button type="button" class="op-dtab" data-dtab="workouts" onclick="opDetailTab(\'workouts\')">Workouts</button>'
       + '<button type="button" class="op-dtab" data-dtab="body" onclick="opDetailTab(\'body\')">Body</button>'
+      + '<button type="button" class="op-dtab" data-dtab="blood" onclick="opDetailTab(\'blood\')">Blood</button>'
       + '<button type="button" class="op-dtab" data-dtab="readiness" onclick="opDetailTab(\'readiness\')">Readiness</button></div>';
     var content = '<div id="opDetail-profile">' + opBuildProfile(d) + '</div>'
       + '<div id="opDetail-overview" style="display:none">' + opBuildOverview(d) + '</div>'
       + '<div id="opDetail-nutrition" style="display:none">' + opBuildNutrition(d) + '</div>'
       + '<div id="opDetail-workouts" style="display:none">' + opBuildWorkouts(d) + '</div>'
       + '<div id="opDetail-body" style="display:none">' + opBuildBody(d) + '</div>'
+      + '<div id="opDetail-blood" style="display:none">' + opBuildBlood(d) + '</div>'
       + '<div id="opDetail-readiness" style="display:none">' + opBuildReadiness() + '</div>';
     if (body) {
       // The previous client's readiness charts point at canvases that are about to be
       // replaced — tear them down before the DOM under them disappears.
       if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('oprd');
+      if (typeof window.bbSigUnmount === 'function') window.bbSigUnmount('opsig');
       body.innerHTML = actions + tabs + content;
       body.scrollTop = 0;
       window._opDetailDrawn = {};
@@ -26377,7 +27361,7 @@ async function openOperatorClient(id) {
 }
 function opDetailTab(tab) {
   document.querySelectorAll('#opDetailTabs .op-dtab').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-dtab') === tab); });
-  ['profile', 'overview', 'nutrition', 'workouts', 'body', 'readiness'].forEach(function (t) { var el = document.getElementById('opDetail-' + t); if (el) el.style.display = (t === tab) ? 'block' : 'none'; });
+  ['profile', 'overview', 'nutrition', 'workouts', 'body', 'blood', 'readiness'].forEach(function (t) { var el = document.getElementById('opDetail-' + t); if (el) el.style.display = (t === tab) ? 'block' : 'none'; });
   var mb = document.getElementById('opModalBody'); if (mb) mb.scrollTop = 0;
   window._opDetailDrawn = window._opDetailDrawn || {};
   if (window._opDetailDrawn[tab]) return;
@@ -26388,20 +27372,38 @@ function opDetailTab(tab) {
   } else if (tab === 'nutrition') opDrawNutritionChart();
   else if (tab === 'workouts') opDrawStrengthChart();
   else if (tab === 'body') { opDrawBodyWeightChart(); opLoadMuscleRanking(); }
+  else if (tab === 'blood') opMountBlood();
   else if (tab === 'readiness') opMountReadiness();
 }
 // Readiness tab. The shell is operator chrome; the view inside it is the member's own
 // readiness renderer mounted on /api/wearables/operator/:id/* — read-only, and the
 // single implementation of "a figure nobody measured is a dash, never a zero".
 function opBuildReadiness() {
-  return '<div class="op-msub">Readiness &amp; recovery</div>'
+  // Signal intelligence sits above the raw mirror: the risk flags, the rejected
+  // hypotheses and the bloodwork bridge are what monitoring is actually for. Both
+  // panels are pure reads on /api/wearables/operator/* — nothing here writes.
+  return '<div class="op-msub">✦ Signal intelligence</div>'
+    + '<div id="opDetailSignalBody"><div class="op-empty">Loading…</div></div>'
+    + '<div class="op-msub" style="margin-top:18px">⌚ Raw readiness &amp; recovery</div>'
     + '<div id="opDetailReadinessBody"><div class="op-empty">Loading…</div></div>';
 }
 function opMountReadiness() {
   var c = window._opCurrentClient;
   var host = document.getElementById('opDetailReadinessBody');
+  var sigHost = document.getElementById('opDetailSignalBody');
   if (!host) return;
-  if (!c || !c.id) { host.innerHTML = '<div class="op-empty">No client selected.</div>'; return; }
+  if (!c || !c.id) {
+    host.innerHTML = '<div class="op-empty">No client selected.</div>';
+    if (sigHost) sigHost.innerHTML = '<div class="op-empty">No client selected.</div>';
+    return;
+  }
+  if (sigHost) {
+    if (typeof window.bbSigMountStaff === 'function') {
+      window.bbSigMountStaff({ key: 'opsig', scope: 'operator', el: 'opDetailSignalBody', userId: c.id, name: c.name || '' });
+    } else {
+      sigHost.innerHTML = '<div class="op-empty">Signal view is unavailable on this build.</div>';
+    }
+  }
   if (typeof window.bbRdMountClient !== 'function') { host.innerHTML = '<div class="op-empty">Readiness view is unavailable on this build.</div>'; return; }
   window.bbRdMountClient({ key: 'oprd', scope: 'operator', el: 'opDetailReadinessBody', userId: c.id, name: c.name || '' });
 }
@@ -26475,19 +27477,25 @@ function opBloodFilePicked(ev) {
   var show = function (color, html) { if (msg) { msg.style.display = 'block'; msg.style.color = color; msg.innerHTML = html; } };
   if (!c || !c.id) { show('#ff8a8a', 'No client selected.'); return; }
   var name = c.name || 'client';
-  show('#8a8880', 'Reading file…');
-  var reader = new FileReader();
-  reader.onload = function () {
-    var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
-    show('#8a8880', 'Uploading & analysing for ' + escapeHtml(name) + '… this can take a minute.');
-    apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(c.id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [] })
-      .then(function (res) {
-        if (res && res.error) { show('#ff8a8a', escapeHtml(res.error)); return; }
-        show('#3dd68c', 'Uploaded & analysis started for ' + escapeHtml(name) + '. It will appear (and be downloadable) in the Profile tab once complete — reopen this client in a minute.');
-      })
-      .catch(function () { show('#ff8a8a', 'Upload failed. Please try again.'); });
-  };
-  reader.readAsDataURL(f);
+  // Capture the lab date first — it decides where this report sits on the trend.
+  bbAskLabDate({ clientName: name, fileName: f.name }, function (labDate) {
+    if (!labDate) { show('#8a8880', 'Upload cancelled.'); return; }
+    show('#8a8880', 'Reading file…');
+    var reader = new FileReader();
+    reader.onload = function () {
+      var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
+      show('#8a8880', 'Uploading & analysing for ' + escapeHtml(name) + ' (lab date ' + escapeHtml(bbFmtDay(labDate)) + ')… this can take a minute.');
+      apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(c.id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [], reportDate: labDate })
+        .then(function (res) {
+          if (res && res.error) { show('#ff8a8a', escapeHtml(res.error)); return; }
+          show('#3dd68c', 'Uploaded & analysis started for ' + escapeHtml(name) + ' (lab date ' + escapeHtml(bbFmtDay(labDate)) + '). Refreshing…');
+          // Pull the profile back so the new report card appears without a manual reopen.
+          setTimeout(function () { if (typeof opRefreshClient === 'function') opRefreshClient(); }, 1200);
+        })
+        .catch(function () { show('#ff8a8a', 'Upload failed. Please try again.'); });
+    };
+    reader.readAsDataURL(f);
+  });
 }
 function opAge(dob) {
   if (!dob) return null;
@@ -26569,27 +27577,53 @@ function opBuildProfile(d) {
   // carries no wearable data, so this is its own read.
   h += '<div class="op-msub">Readiness</div><div id="opRdProfileCard"><div class="op-empty">Loading readiness…</div></div>';
 
-  var bloods = Array.isArray(d.blood) ? d.blood : (d.blood ? [d.blood] : []);
+  // Blood lives in its own tab (cards + downloads + comparison); Profile just points there.
+  var bloods = opBloodList(d);
+  h += '<div class="op-msub">Blood reports</div>';
   if (bloods.length) {
-    h += '<div class="op-msub">Blood reports (' + bloods.length + ')</div>';
-    bloods.forEach(function (b, i) { h += opBloodReportCard(b, i + 1); });
+    var latest = bloods[0];
+    h += opKV('On file', escapeHtml(String(bloods.length)) + ' · latest ' + bbLabDateLabel({
+      reportDate: latest.report_date || null, createdAt: latest.created_at
+    }));
+  } else {
+    h += '<div class="op-empty">No blood reports uploaded yet.</div>';
   }
+  h += '<div style="margin-top:8px"><button type="button" class="op-btn line" onclick="opDetailTab(\'blood\')">🩸 Open blood reports' +
+    (bloods.length >= 2 ? ' &amp; comparison' : '') + '</button></div>';
   return h;
 }
-// One blood-report card for the operator profile — status + flagged markers + download.
+
+// The client's blood reports, newest lab date first (the API already sorts, but a
+// single source of truth here keeps every operator surface consistent).
+function opBloodList(d) {
+  var b = d && d.blood;
+  return Array.isArray(b) ? b : (b ? [b] : []);
+}
+// One blood-report card for the operator profile. Operators have full parity with
+// admins on blood reports, so this carries the same controls as the admin card:
+// the original lab file, the generated PDF, an editable lab date, and delete.
 function opBloodReportCard(b, n) {
   b = b || {};
   var flags = opBloodFlags(b.extracted_blood_data);
   var complete = String(b.status || '').toLowerCase() === 'complete';
-  var canDl = complete && b.id;
   var rid = String(b.id || '').replace(/'/g, "\\'");
-  var action = canDl
-    ? '<button type="button" class="op-btn line" style="flex:0 0 auto;padding:8px 12px" onclick="adminBloodDownloadPdf(\'' + rid + '\')">⬇ Download</button>'
-    : '<span class="op-line-r" style="text-transform:capitalize">' + escapeHtml(String(b.status || 'pending')) + '</span>';
+  // The card speaks the same shape as the admin list so the shared helpers apply.
+  var asReport = { id: b.id, reportDate: b.report_date || null, createdAt: b.created_at };
+  var btnStyle = 'flex:1 1 auto;min-width:104px;padding:8px 10px;font-size:12px';
+  var actions = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">' +
+    bbLabFileBtn(rid, !!b.has_source_file, btnStyle) +
+    (complete
+      ? '<button type="button" class="op-btn line" style="' + btnStyle + '" onclick="adminBloodDownloadPdf(\'' + rid + '\')">⬇ Report PDF</button>'
+      : '<button type="button" class="op-btn line" disabled title="Analysis is not complete yet" style="' + btnStyle + ';opacity:0.4;cursor:not-allowed">⬇ Report PDF</button>') +
+    bbDeleteReportBtn(rid, btnStyle, 'opRefreshClient') +
+    '</div>';
+  var status = complete ? '' : '<span class="op-line-r" style="text-transform:capitalize">' + escapeHtml(String(b.status || 'pending')) + '</span>';
   var meta = [b.overall_status ? 'Overall: ' + b.overall_status : '', b.sent_to_user ? 'Sent to user' : '', flags.length ? (flags.length + ' flagged') : 'All in range'].filter(Boolean).join(' · ');
   var h = '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px;margin-bottom:10px">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:13px">Blood Report ' + n + ' · ' + escapeHtml(opDate(b.created_at)) + '</span>' + action + '</div>';
+  h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:13px">Blood Report ' + n + '</span>' + status + '</div>';
+  h += '<div class="op-line-l" style="margin-top:4px;font-size:12px">' + bbLabDateLabel(asReport) + '</div>';
   h += '<div class="op-line-l" style="margin-top:6px">' + escapeHtml(meta) + '</div>';
+  h += bbLabDateEditor(rid, asReport, 'opRefreshClient');
   if (flags.length) {
     h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
     flags.slice(0, 5).forEach(function (m) {
@@ -26597,8 +27631,114 @@ function opBloodReportCard(b, n) {
     });
     h += '</div>';
   }
+  h += actions;
   h += '</div>';
   return h;
+}
+
+// Re-open the current operator client so a date edit, delete or upload is reflected
+// without the coach having to close and re-pick the client.
+function opRefreshClient() {
+  var c = window._opCurrentClient;
+  if (!c || !c.id || typeof openOperatorClient !== 'function') return;
+  // Come back to the Blood tab if that's where the action was taken.
+  var onBlood = !!(document.querySelector('#opDetailTabs .op-dtab.active[data-dtab="blood"]'));
+  openOperatorClient(c.id).then(function () {
+    if (onBlood) opDetailTab('blood');
+  });
+}
+
+// ---- Operator Blood tab: reports + the longitudinal comparison workspace ----
+// Same capabilities as the admin Blood Reports tab, scoped to the open client.
+function opBuildBlood(d) {
+  var bloods = opBloodList(d);
+  var h = '<div class="op-msub">Blood reports (' + bloods.length + ')</div>';
+  h += '<div style="margin-bottom:10px"><button type="button" class="op-btn line" onclick="opUploadBlood()">🩸 Upload a report</button></div>';
+  if (!bloods.length) {
+    h += '<div class="op-empty">No blood reports yet. Upload one above — you\'ll be asked for the lab test date so it lands correctly on the trend.</div>';
+    return h;
+  }
+  bloods.forEach(function (b, i) { h += opBloodReportCard(b, i + 1); });
+
+  // Only reports with extracted panel data can be compared.
+  var comparable = bloods.filter(function (b) {
+    var ex = opParse(b.extracted_blood_data);
+    return ex && ex.panels && ex.panels.length;
+  });
+  h += '<div class="op-msub">Progress comparison</div>';
+  if (comparable.length < 2) {
+    h += '<div class="op-empty">Two or more processed reports are needed to compare. ' +
+      comparable.length + ' of ' + bloods.length + ' ' + (comparable.length === 1 ? 'is' : 'are') + ' processed so far.</div>';
+    return h;
+  }
+  // Oldest -> newest by lab date, matching the comparison engine's ordering.
+  var undated = 0;
+  var chips = comparable.slice().sort(function (a, b) {
+    return new Date(a.report_date || a.created_at) - new Date(b.report_date || b.created_at);
+  }).map(function (r, i) {
+    if (!r.report_date) undated++;
+    var label = r.report_date ? bbFmtDay(r.report_date) : (bbFmtDay(r.created_at) + ' (upload date)');
+    return '<label style="display:inline-flex;align-items:center;gap:8px;border:1px solid ' +
+      (r.report_date ? 'rgba(255,255,255,0.14)' : 'rgba(245,166,35,0.4)') +
+      ';border-radius:10px;padding:8px 12px;margin:0 8px 8px 0;cursor:pointer;font-size:12px">' +
+      '<input type="checkbox" class="op-cmp-report" value="' + escapeHtml(String(r.id)) + '" onchange="opCompareSelectionChanged()" style="accent-color:#3dd68c"> ' +
+      '<span><strong>Test ' + (i + 1) + '</strong> · ' + escapeHtml(label) +
+      (r.overall_status ? ' · ' + escapeHtml(r.overall_status) : '') + '</span></label>';
+  }).join('');
+  h += '<div class="op-line-l" style="margin-bottom:6px">Select 2–6 reports to compare (oldest → newest by lab date)</div>';
+  if (undated) {
+    h += '<div class="op-line-l" style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.35);color:#f5c26b;font-size:11px">' +
+      undated + ' report' + (undated === 1 ? ' has' : 's have') + ' no lab date and sit by upload date. Set the lab date above for an accurate trend.</div>';
+  }
+  h += chips;
+  h += '<div style="margin-top:6px"><button type="button" id="opCompareRunBtn" class="op-btn primary" disabled style="opacity:0.5" onclick="opRunComparison()">Generate comparison</button></div>';
+  h += '<div id="opCmpSaved" style="margin-top:14px"></div>';
+  h += '<div id="opCmpResult" style="margin-top:14px"></div>';
+  return h;
+}
+
+// Point the shared comparison workspace at the operator containers, then load the
+// client's saved comparisons.
+function opMountBlood() {
+  var c = window._opCurrentClient;
+  if (!c || !c.id) return;
+  if (!document.getElementById('opCmpSaved')) return; // fewer than 2 comparable reports
+  bbCmpUseHost('opCmpResult', 'opCmpSaved', c.id);
+  bbLoadClientComparisons(c.id);
+}
+
+function opCompareSelectionChanged() {
+  var n = document.querySelectorAll('.op-cmp-report:checked').length;
+  var btn = document.getElementById('opCompareRunBtn');
+  if (!btn) return;
+  var ok = n >= 2 && n <= 6;
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '0.5';
+  btn.textContent = 'Generate comparison' + (n ? ' (' + n + ' selected)' : '');
+}
+
+function opRunComparison() {
+  var c = window._opCurrentClient;
+  var ids = Array.prototype.map.call(document.querySelectorAll('.op-cmp-report:checked'), function (el) { return el.value; });
+  if (!c || !c.id || ids.length < 2) return;
+  bbCmpUseHost('opCmpResult', 'opCmpSaved', c.id);
+  var res = document.getElementById('opCmpResult');
+  var btn = document.getElementById('opCompareRunBtn');
+  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Analysing trajectory… (Claude)'; }
+  if (res) res.innerHTML = '<div class="op-empty">Aligning markers and running the AI progress verdict… this can take up to a minute.</div>';
+  apiCall('POST', '/api/blood/admin/compare', { userId: c.id, reportIds: ids })
+    .then(function (d) {
+      if (!d || d.success === false || d.error) {
+        if (res) res.innerHTML = '<div class="op-empty" style="color:#ff8a8a">' + escapeHtml((d && (d.error || d.message)) || 'Comparison failed') + '</div>';
+        return;
+      }
+      bbRenderComparison(d.comparison, res);
+      bbLoadClientComparisons(c.id);
+    })
+    .catch(function () {
+      if (res) res.innerHTML = '<div class="op-empty" style="color:#ff8a8a">Network error</div>';
+    })
+    .then(function () { opCompareSelectionChanged(); });
 }
 function opBuildOverview(d) {
   var u = d.user || {};
@@ -26758,6 +27898,7 @@ function opDrawBodyWeightChart() {
 function closeOperatorClientModal() {
   var o = document.getElementById('opClientModal'); if (o) o.classList.remove('open');
   if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('oprd');
+  if (typeof window.bbSigUnmount === 'function') window.bbSigUnmount('opsig');
   // Destroy every chart except the overview trend chart.
   if (window._opCharts) { Object.keys(window._opCharts).forEach(function (k) { if (k === 'trend') return; if (window._opCharts[k]) { try { window._opCharts[k].destroy(); } catch (e) { } window._opCharts[k] = null; } }); }
 }
@@ -30392,9 +31533,13 @@ function bbBodyOnboardingKeyHandler(ev) {
           : '<div class="bb-rw-ok">Imported ' + line + '.</div>';
         if (!r.partial && msg) {
           msg.innerHTML += '<div class="bb-rw-code" style="margin-top:12px">' +
-            '<button type="button" class="bb-rw-btn" onclick="bbCloseWhoop();bbOpenReadiness()">📈 See your readiness</button></div>';
+            '<button type="button" class="bb-rw-btn" onclick="bbCloseWhoop();bbOpenSignal()">✦ See your signal</button>' +
+            '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" style="margin-left:8px" onclick="bbCloseWhoop();bbOpenReadiness()">📈 Readiness</button></div>';
         }
         if (typeof window.bbRdHomeLoad === 'function') window.bbRdHomeLoad(true);
+        // A fresh import can change today's directive and unlock new laws — the cached
+        // signal would otherwise sit stale behind a 5-minute window.
+        if (typeof window.bbSigHomeLoad === 'function') window.bbSigHomeLoad(true);
       }
     } catch (e) {
       if (msg) msg.innerHTML = '<div class="bb-rw-err">Could not save that export.</div>';
@@ -31343,6 +32488,633 @@ function bbBodyOnboardingKeyHandler(ev) {
 })();
 </script>
 <!-- =================== END READINESS =================== -->
+
+<!-- ===================== SIGNAL — the Why engine (self-contained) =====================
+     Whoop already shows the member recovery, HRV, sleep and strain. Everything in this
+     block is the OTHER half: what their own food, water, training, mind sessions,
+     journal answers and bloodwork did to that physiology.
+
+     Three audiences, ONE renderer family, and the split is enforced on the SERVER:
+       member   GET /api/wearables/signal                  — verdict, reason, one move,
+                                                             laws, bloodwork connection
+       admin    GET /api/wearables/admin/:userId/signal     — all of the above plus every
+       operator GET /api/wearables/operator/:userId/signal    tested hypothesis, the risk
+                                                             flags, coverage and the
+                                                             audit table
+     The member payload physically does not contain HRV in ms, resting bpm, strain, p
+     values or risk flags, so nothing here can leak them by rendering the wrong field.
+=================================================================================== -->
+<style>
+/* ---- the home card (mobile hero + desktop dashboard) ---- */
+.bb-sig-card{display:block;width:100%;border:1px solid rgba(200,164,78,.28);background:linear-gradient(158deg,rgba(200,164,78,.13),rgba(255,255,255,.02) 62%);border-radius:16px;padding:14px;margin:0;text-align:left;cursor:pointer;font-family:inherit;color:var(--cream)}
+/* An author-origin `display` beats the UA sheet's [hidden]{display:none}: without this
+   the card ignores its own hidden attribute and a skeleton stays wedged on the Today
+   screen whenever the request fails. Same fix as .bb-rd-card. */
+.bb-sig-card[hidden]{display:none}
+.bb-sig-card:active{background:rgba(200,164,78,.17)}
+.bb-sig-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.bb-sig-verdict{display:inline-flex;align-items:center;gap:6px;font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2.2px;line-height:1;padding:7px 13px 5px;border-radius:8px;border:1px solid;text-transform:uppercase}
+.bb-sig-verdict--restore{color:#fca5a5;border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.13)}
+.bb-sig-verdict--hold{color:#fcd34d;border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.13)}
+.bb-sig-verdict--build{color:#f7dd93;border-color:rgba(200,164,78,.5);background:rgba(200,164,78,.13)}
+.bb-sig-verdict--push{color:#86efac;border-color:rgba(37,211,102,.5);background:rgba(37,211,102,.13)}
+.bb-sig-when{font-size:11px;color:#8d856f;letter-spacing:.5px}
+.bb-sig-stale{font-size:11px;color:#fcd34d;letter-spacing:.3px}
+.bb-sig-headline{font-size:14px;font-weight:650;color:#fbf6ec;line-height:1.35;margin:10px 0 0}
+.bb-sig-reason{font-size:12.5px;color:#a9a08c;line-height:1.5;margin:5px 0 0}
+.bb-sig-lever{display:flex;flex-direction:column;gap:3px;margin-top:11px;padding:10px 12px;border-radius:11px;background:rgba(0,0,0,.26);border:1px solid rgba(200,164,78,.2)}
+.bb-sig-lever__k{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:#a9975f;font-weight:700}
+.bb-sig-lever__t{font-size:13px;font-weight:650;color:#f7dd93;line-height:1.35}
+.bb-sig-lever__d{font-size:11.5px;color:#9d947f;line-height:1.45}
+.bb-sig-cta{display:block;margin-top:11px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#c8a44e;font-weight:700}
+.bb-sig-empty{font-size:12.5px;color:#9d947f;line-height:1.5}
+.bb-today-pill--signal{cursor:pointer}
+
+/* ---- the member modal ---- */
+#bbSignalModal{padding-top:calc(var(--safe-top, 20px) + 8px);padding-bottom:calc(var(--safe-bottom, 0px) + 24px)}
+.bb-sig-box{max-width:760px}
+.bb-sig-hero{border:1px solid rgba(200,164,78,.28);border-radius:15px;padding:16px;background:linear-gradient(158deg,rgba(200,164,78,.11),rgba(255,255,255,.015) 62%)}
+.bb-sig-guide{font-size:12.5px;color:#c9c0aa;line-height:1.55;margin:11px 0 0;padding-top:11px;border-top:1px solid rgba(200,164,78,.16)}
+.bb-sig-list{display:flex;flex-direction:column;gap:9px}
+.bb-sig-item{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.028);border-radius:12px;padding:12px 13px}
+.bb-sig-item__t{font-size:13.5px;font-weight:650;color:#f7dd93;line-height:1.4;margin:0}
+.bb-sig-item__d{font-size:12.5px;color:#b9b09a;line-height:1.55;margin:5px 0 0}
+.bb-sig-item__e{display:inline-block;font-size:10.5px;color:#8d856f;letter-spacing:.4px;margin-top:7px;padding:3px 8px;border-radius:20px;border:1px solid rgba(255,255,255,.11)}
+.bb-sig-law{border-left:2px solid rgba(200,164,78,.6)}
+.bb-sig-blood{border-left:2px solid rgba(220,80,80,.55)}
+.bb-sig-blood__m{font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:#e0857a;font-weight:700;margin:0 0 5px}
+.bb-sig-prog{display:flex;align-items:center;gap:10px;margin-top:9px}
+.bb-sig-prog__bar{flex:1;height:6px;border-radius:4px;background:rgba(255,255,255,.09);overflow:hidden}
+.bb-sig-prog__fill{display:block;height:100%;background:linear-gradient(90deg,#c8a44e,#f7dd93);border-radius:4px}
+.bb-sig-prog__n{font-size:11px;color:#8d856f;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+/* ---- the staff panel (admin + operator share every rule below) ---- */
+.bb-sg-wrap{display:flex;flex-direction:column;gap:16px}
+.bb-sg-sec{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:13px 14px;background:rgba(255,255,255,.022)}
+.bb-sg-lbl{font-size:11px;letter-spacing:.9px;text-transform:uppercase;color:#a9975f;font-weight:700;margin:0 0 9px}
+.bb-sg-note{font-size:11px;color:#8d856f;line-height:1.5;margin-top:8px}
+.bb-sg-range{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
+.bb-sg-rbtn{background:transparent;border:1px solid rgba(200,164,78,.35);color:#c8a44e;border-radius:8px;padding:6px 11px;font-size:11.5px;cursor:pointer;font-family:inherit}
+.bb-sg-rbtn.active{background:rgba(200,164,78,.18);color:#f7dd93}
+.bb-sg-flag{display:flex;gap:10px;align-items:flex-start;border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid}
+.bb-sg-flag:last-child{margin-bottom:0}
+.bb-sg-flag--high{border-color:rgba(239,68,68,.42);background:rgba(239,68,68,.1)}
+.bb-sg-flag--medium{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.09)}
+.bb-sg-flag--low{border-color:rgba(255,255,255,.13);background:rgba(255,255,255,.03)}
+.bb-sg-flag__b{flex:0 0 auto;font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:3px 7px;border-radius:5px;background:rgba(0,0,0,.32)}
+.bb-sg-flag--high .bb-sg-flag__b{color:#fca5a5}
+.bb-sg-flag--medium .bb-sg-flag__b{color:#fcd34d}
+.bb-sg-flag--low .bb-sg-flag__b{color:#b9b09a}
+.bb-sg-flag__t{font-size:13px;font-weight:650;color:#f0e9da;margin:0;line-height:1.35}
+.bb-sg-flag__d{font-size:12px;color:#a9a08c;margin:4px 0 0;line-height:1.5}
+.bb-sg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
+.bb-sg-stat{border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:9px 10px;background:rgba(0,0,0,.2)}
+.bb-sg-stat b{display:block;font-size:16px;font-weight:700;color:#f0e9da;font-variant-numeric:tabular-nums;line-height:1.2}
+.bb-sg-stat span{display:block;font-size:10.5px;color:#8d856f;margin-top:3px;letter-spacing:.3px}
+.bb-sg-find{border-top:1px solid rgba(255,255,255,.07);padding:9px 0}
+.bb-sg-find:first-of-type{border-top:0}
+.bb-sg-find__h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.bb-sg-tier{font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:2px 7px;border-radius:5px;border:1px solid}
+.bb-sg-tier--high{color:#86efac;border-color:rgba(37,211,102,.45);background:rgba(37,211,102,.11)}
+.bb-sg-tier--moderate{color:#f7dd93;border-color:rgba(200,164,78,.45);background:rgba(200,164,78,.11)}
+.bb-sg-tier--emerging{color:#fcd34d;border-color:rgba(245,158,11,.38);background:rgba(245,158,11,.09)}
+.bb-sg-tier--none{color:#8d856f;border-color:rgba(255,255,255,.13)}
+.bb-sg-find__s{font-size:12.5px;color:#c9c0aa;line-height:1.5;margin:5px 0 0}
+.bb-sg-find__m{font-size:10.5px;color:#7d7666;margin-top:4px;font-variant-numeric:tabular-nums}
+.bb-sg-verdict{font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:2px 7px;border-radius:5px;border:1px solid}
+.bb-sg-verdict--concordant{color:#86efac;border-color:rgba(37,211,102,.45)}
+.bb-sg-verdict--mixed{color:#fcd34d;border-color:rgba(245,158,11,.4)}
+.bb-sg-verdict--discordant{color:#fca5a5;border-color:rgba(239,68,68,.42)}
+.bb-sg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.bb-sg-preview{border:1px dashed rgba(200,164,78,.35);border-radius:11px;padding:12px 13px;background:rgba(200,164,78,.05)}
+@media (max-width:560px){
+  .bb-sig-verdict{font-size:17px;letter-spacing:1.8px}
+  .bb-sig-headline{font-size:13.5px}
+}
+</style>
+
+<div id="bbSignalModal" class="bb-rw-modal" role="dialog" aria-modal="true" aria-label="Your signal" onclick="bbSigBg(event)">
+  <div class="bb-rw-box bb-sig-box" onclick="event.stopPropagation()">
+    <div class="bb-rw-head">
+      <span class="bb-rw-title">✦ Your Signal</span>
+      <button type="button" class="bb-rw-close" onclick="bbCloseSignal()">✕ Close</button>
+    </div>
+    <div class="bb-rw-body" id="bbSignalBody"><div class="bb-rw-muted">Loading…</div></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ─────────────────────────── shared helpers ─────────────────────────── */
+
+  function esc(s) {
+    return String(s == null ? '' : s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  var EM = '—';
+  function nn(v, dp) {
+    if (v == null || !isFinite(Number(v))) return EM;
+    var f = Math.pow(10, dp || 0);
+    return String(Math.round(Number(v) * f) / f);
+  }
+  function api() {
+    return (typeof apiCall === 'function') ? apiCall : null;
+  }
+  function loggedIn() {
+    return !!(window.currentUser && window.currentUser.token);
+  }
+  /* The verdict codes are a closed set from the server; anything else falls back to a
+     neutral class rather than interpolating an unknown value into a selector. */
+  var VERDICTS = { restore: 1, hold: 1, build: 1, push: 1 };
+  function verdictClass(code) { return VERDICTS[code] ? code : 'build'; }
+
+  /* ──────────────────────── MEMBER: the home card ──────────────────────── */
+
+  var sig = { data: null, at: 0, busy: false, mountedStaff: {} };
+
+  /** Every Signal home card on the page — the mobile hero one and the desktop one. */
+  function homeCards() {
+    return Array.prototype.slice.call(document.querySelectorAll('.bb-sig-card'));
+  }
+
+  /** Reveal a card and whatever chrome wraps it (a label on mobile, a section on desktop). */
+  function revealCard(card) {
+    card.hidden = false;
+    var sec = card.closest ? card.closest('.bb-sig-home-desktop') : null;
+    if (sec) sec.hidden = false;
+    var label = document.getElementById('bbSigHomeLabel');
+    if (label && card.id === 'bbSigHome') label.hidden = false;
+  }
+
+  function cardHtml(d) {
+    if (!d || !d.directive) {
+      // No directive is an honest state, not an error: the engine returns null rather
+      // than inventing a verdict out of thin evidence.
+      var p = (d && d.progress) || {};
+      return '<div class="bb-sig-top"><span class="bb-sig-verdict bb-sig-verdict--build">Signal</span>' +
+        '<span class="bb-sig-when">Not enough data yet</span></div>' +
+        '<p class="bb-sig-empty" style="margin:10px 0 0">Keep checking in and import your Whoop export. Once your days line up, this becomes a daily directive built from your own body — not a copy of your watch.</p>' +
+        ((p.pairsNeed) ? progressHtml(p) : '') +
+        '<span class="bb-sig-cta">Open your signal →</span>';
+    }
+    var dir = d.directive;
+    var when = dir.isToday ? 'Today' : ('As of ' + esc(dir.asOf || ''));
+    var stale = (!dir.isToday && dir.stalenessDays > 2)
+      ? '<span class="bb-sig-stale">· ' + nn(dir.stalenessDays, 0) + ' days behind</span>' : '';
+    var lever = d.lever
+      ? '<div class="bb-sig-lever"><span class="bb-sig-lever__k">Your one move</span>' +
+        '<span class="bb-sig-lever__t">' + esc(d.lever.title) + '</span>' +
+        (d.lever.detail ? '<span class="bb-sig-lever__d">' + esc(d.lever.detail) + '</span>' : '') +
+        '</div>'
+      : '';
+    return '<div class="bb-sig-top">' +
+        '<span class="bb-sig-verdict bb-sig-verdict--' + verdictClass(dir.code) + '">' + esc(dir.label) + '</span>' +
+        '<span class="bb-sig-when">' + when + '</span>' + stale +
+      '</div>' +
+      '<p class="bb-sig-headline">' + esc(dir.headline) + '</p>' +
+      (dir.reason ? '<p class="bb-sig-reason">Because ' + esc(dir.reason) + '</p>' : '') +
+      lever +
+      '<span class="bb-sig-cta">Open your signal →</span>';
+  }
+
+  function progressHtml(p) {
+    var have = Number(p.pairsHave) || 0;
+    var need = Number(p.pairsNeed) || 14;
+    var pct = Math.max(0, Math.min(100, Math.round((have / need) * 100)));
+    return '<div class="bb-sig-prog">' +
+      '<span class="bb-sig-prog__bar"><span class="bb-sig-prog__fill" style="width:' + pct + '%"></span></span>' +
+      '<span class="bb-sig-prog__n">' + have + ' / ' + need + ' days</span>' +
+    '</div>';
+  }
+
+  /**
+   * Load the member's signal and paint every card. Cached for 5 minutes, because this is
+   * a pure read over a deterministic engine — nothing about it changes between two taps.
+   */
+  window.bbSigHomeLoad = async function (force) {
+    var cards = homeCards();
+    if (!cards.length || !loggedIn() || !api()) return;
+    if (!force && sig.at && (Date.now() - sig.at) < 300000 && sig.data) { paintCards(); return; }
+    if (sig.busy) return;
+    sig.busy = true;
+    cards.forEach(function (c) {
+      if (!c.innerHTML) c.innerHTML = '<div class="bb-sig-empty">Reading your signal…</div>';
+    });
+    try {
+      var r = await apiCall('GET', '/api/wearables/signal?days=90');
+      sig.data = (r && !r.error) ? r : null;
+      sig.at = Date.now();
+    } catch (_) {
+      sig.data = null;
+    } finally {
+      sig.busy = false;
+    }
+    paintCards();
+  };
+
+  function paintCards() {
+    var cards = homeCards();
+    if (!cards.length) return;
+    // A failed request must not leave a live-looking card behind. Hide instead.
+    if (!sig.data) {
+      cards.forEach(function (c) { c.innerHTML = ''; c.hidden = true;
+        var s = c.closest ? c.closest('.bb-sig-home-desktop') : null; if (s) s.hidden = true;
+        var l = document.getElementById('bbSigHomeLabel'); if (l && c.id === 'bbSigHome') l.hidden = true;
+      });
+      return;
+    }
+    var html = cardHtml(sig.data);
+    cards.forEach(function (c) { c.innerHTML = html; revealCard(c); });
+  }
+
+  /* ──────────────────────── MEMBER: the detail modal ──────────────────────── */
+
+  window.bbSigBg = function (e) {
+    if (e && e.target && e.target.id === 'bbSignalModal') window.bbCloseSignal();
+  };
+  window.bbCloseSignal = function () {
+    var m = document.getElementById('bbSignalModal');
+    if (m) m.classList.remove('open');
+  };
+
+  window.bbOpenSignal = async function () {
+    if (!loggedIn()) { alert('Please log in first.'); return; }
+    var m = document.getElementById('bbSignalModal');
+    var body = document.getElementById('bbSignalBody');
+    if (!m || !body) return;
+    m.classList.add('open');
+    body.innerHTML = '<div class="bb-rw-muted">Reading your signal…</div>';
+    if (!sig.data || (Date.now() - sig.at) > 300000) await window.bbSigHomeLoad(true);
+    if (!sig.data) {
+      body.innerHTML = '<div class="bb-rw-err">Could not build your signal right now. Please try again in a moment.</div>';
+      return;
+    }
+    body.innerHTML = memberDetailHtml(sig.data);
+  };
+
+  function memberDetailHtml(d) {
+    var out = '';
+    var dir = d.directive;
+
+    /* 1 — the directive */
+    if (dir) {
+      out += '<div class="bb-rw-sec"><div class="bb-sig-hero">' +
+        '<div class="bb-sig-top">' +
+          '<span class="bb-sig-verdict bb-sig-verdict--' + verdictClass(dir.code) + '">' + esc(dir.label) + '</span>' +
+          '<span class="bb-sig-when">' + (dir.isToday ? 'Today' : 'As of ' + esc(dir.asOf || '')) + '</span>' +
+        '</div>' +
+        '<p class="bb-sig-headline">' + esc(dir.headline) + '</p>' +
+        (dir.reason ? '<p class="bb-sig-reason">Because ' + esc(dir.reason) + '</p>' : '') +
+        (dir.guidance ? '<p class="bb-sig-guide">' + esc(dir.guidance) + '</p>' : '') +
+      '</div>' +
+      (dir.confidence === 'low'
+        ? '<div class="bb-rw-warn">This is provisional — we are still building your baseline, so treat it as a nudge rather than a verdict.</div>'
+        : '') +
+      ((!dir.isToday && dir.stalenessDays > 2)
+        ? '<div class="bb-rw-warn">Your most recent measured day is ' + esc(dir.asOf) + '. Import a fresh Whoop export to bring this up to date.</div>'
+        : '') +
+      '</div>';
+    } else {
+      out += '<div class="bb-rw-sec"><div class="bb-sig-hero">' +
+        '<p class="bb-sig-headline">Your signal is still forming.</p>' +
+        '<p class="bb-sig-reason">We build your directive from your own baseline, so it appears once there are enough measured days to compare against. Nothing here is ever guessed.</p>' +
+      '</div></div>';
+    }
+
+    /* 2 — today's moves */
+    if (d.levers && d.levers.length) {
+      out += '<div class="bb-rw-sec"><div class="bb-rw-lbl">What to do today</div><div class="bb-sig-list">' +
+        d.levers.map(function (l) {
+          return '<div class="bb-sig-item">' +
+            '<p class="bb-sig-item__t">' + esc(l.title) + '</p>' +
+            (l.detail ? '<p class="bb-sig-item__d">' + esc(l.detail) + '</p>' : '') +
+            (l.evidence ? '<span class="bb-sig-item__e">' + esc(l.evidence) + '</span>' : '') +
+          '</div>';
+        }).join('') +
+      '</div></div>';
+    }
+
+    /* 3 — the laws: the part no other app can show, because no other app has the inputs */
+    out += '<div class="bb-rw-sec"><div class="bb-rw-lbl">Your body’s laws</div>';
+    if (d.laws && d.laws.length) {
+      out += '<div class="bb-sig-list">' + d.laws.map(function (l) {
+        return '<div class="bb-sig-item bb-sig-law">' +
+          '<p class="bb-sig-item__d" style="margin:0;color:#e8e0cd;font-size:13px">' + esc(l.statement) + '</p>' +
+          '<span class="bb-sig-item__e">Found across ' + nn(l.days, 0) + ' of your own days</span>' +
+        '</div>';
+      }).join('') + '</div>' +
+      '<div class="bb-rw-note">These come from your own history — what you ate, drank and did on one day, measured against how your body responded the next morning. We only show one once it clears a statistical test, so a coincidence never becomes a rule.</div>';
+    } else {
+      var p = d.progress || {};
+      out += '<p class="bb-sig-empty">Nothing has cleared the evidence bar yet. That is deliberate — we would rather show you nothing than a coincidence dressed up as a rule.</p>' +
+        (p.pairsNeed ? progressHtml(p) : '') +
+        '<div class="bb-rw-note">Log your food and check in daily. Each day you log is another day of evidence, and your first law unlocks at ' + nn(p.pairsNeed || 14, 0) + ' matched days.</div>';
+    }
+    out += '</div>';
+
+    /* 4 — the bloodwork bridge */
+    out += '<div class="bb-rw-sec"><div class="bb-rw-lbl">Your bloodwork connection</div>';
+    if (d.blood && d.blood.length) {
+      out += '<div class="bb-sig-list">' + d.blood.map(function (b) {
+        return '<div class="bb-sig-item bb-sig-blood">' +
+          '<p class="bb-sig-blood__m">' + esc(b.marker) + '</p>' +
+          '<p class="bb-sig-item__d" style="margin:0;color:#e8e0cd;font-size:13px">' + esc(b.statement) + '</p>' +
+          (b.why ? '<p class="bb-sig-item__d">' + esc(b.why) + '</p>' : '') +
+        '</div>';
+      }).join('') + '</div>' +
+      '<div class="bb-rw-note">Your lab results and your overnight physiology, put side by side over the same weeks. This is an association in your own data, not a diagnosis — your Lifestyle Manager will take it from here.</div>';
+    } else if (d.bloodPending) {
+      out += '<p class="bb-sig-empty">You have one blood report on file. A second one unlocks the before-and-after: what changed in your blood, and what changed in your body over the same weeks.</p>';
+    } else {
+      out += '<p class="bb-sig-empty">Upload a blood report and we will connect it to what your body has actually been doing — the part a lab report on its own can never tell you.</p>';
+    }
+    out += '</div>';
+
+    /* 5 — how it is built. Trust is the product; say plainly how the sausage is made. */
+    out += '<div class="bb-rw-sec"><div class="bb-rw-lbl">How this is built</div>' +
+      '<div class="bb-rw-note" style="margin-top:0">Every line above is arithmetic on your own data — no AI wrote any of it, and nothing is averaged in from anybody else. ' +
+      'We compare each day against your own 30-day baseline, never a population norm. ' +
+      'A figure nobody measured stays blank rather than being filled in. ' +
+      'Your detailed physiology stays available to your Lifestyle Manager, who reviews it with the full picture.</div>' +
+      '<div class="bb-rw-note">Window: ' + esc((d.window && d.window.from) || EM) + ' → ' + esc((d.window && d.window.to) || EM) +
+      ' · ' + nn(d.progress && d.progress.daysWithData, 0) + ' days with measured data</div>' +
+    '</div>';
+
+    return out;
+  }
+
+  /* ──────────────────── STAFF: admin + operator intelligence ──────────────────── */
+
+  /**
+   * Coaches and operators get the whole engine: every hypothesis it tested, what it
+   * rejected, the risk flags a member is deliberately never shown, and a preview of the
+   * exact sentences their client is reading right now.
+   */
+  window.bbSigMountStaff = function (cfg) {
+    cfg = cfg || {};
+    if (!cfg.key || !cfg.el || !cfg.userId) return;
+    var scope = cfg.scope === 'operator' ? 'operator' : 'admin';
+    sig.mountedStaff[cfg.key] = {
+      key: String(cfg.key),
+      scope: scope,
+      el: cfg.el,
+      userId: String(cfg.userId),
+      name: cfg.name || '',
+      days: Number(cfg.days) || 90,
+      showAll: false,
+      data: null
+    };
+    loadStaff(cfg.key);
+  };
+
+  window.bbSigUnmount = function (key) { delete sig.mountedStaff[key]; };
+
+  window.bbSigStaffRange = function (key, days) {
+    var v = sig.mountedStaff[key];
+    if (!v) return;
+    v.days = Number(days) || 90;
+    loadStaff(key);
+  };
+
+  window.bbSigStaffToggleAll = function (key) {
+    var v = sig.mountedStaff[key];
+    if (!v || !v.data) return;
+    v.showAll = !v.showAll;
+    render(v);
+  };
+
+  async function loadStaff(key) {
+    var v = sig.mountedStaff[key];
+    if (!v) return;
+    var host = document.getElementById(v.el);
+    if (!host || !api()) return;
+    host.innerHTML = '<div class="bb-rw-muted">Building the signal…</div>';
+    var base = v.scope === 'operator'
+      ? '/api/wearables/operator/' + encodeURIComponent(v.userId) + '/signal'
+      : '/api/wearables/admin/' + encodeURIComponent(v.userId) + '/signal';
+    try {
+      var r = await apiCall('GET', base + '?days=' + v.days);
+      if (!r || r.error) {
+        host.innerHTML = '<div class="bb-rw-err">' + esc((r && r.error) || 'Could not build that signal.') + '</div>';
+        return;
+      }
+      v.data = r;
+      render(v);
+    } catch (_) {
+      host.innerHTML = '<div class="bb-rw-err">Could not build that signal.</div>';
+    }
+  }
+
+  function render(v) {
+    var host = document.getElementById(v.el);
+    if (!host) return;
+    host.innerHTML = staffHtml(v);
+  }
+
+  function staffHtml(v) {
+    var d = v.data || {};
+    var q = esc(v.key);
+    var cov = d.coverage || {};
+    var diag = d.diagnostics || {};
+    var dir = d.directive || null;
+    var findings = Array.isArray(d.findings) ? d.findings : [];
+    var flags = Array.isArray(d.flags) ? d.flags : [];
+    var mv = d.memberView || {};
+
+    var out = '<div class="bb-sg-wrap">';
+
+    /* window picker + coverage */
+    out += '<div class="bb-sg-sec">' +
+      '<p class="bb-sg-lbl">Window</p>' +
+      '<div class="bb-sg-range">' +
+        [30, 90, 180, 365].map(function (n) {
+          return '<button type="button" class="bb-sg-rbtn' + (v.days === n ? ' active' : '') +
+            '" onclick="bbSigStaffRange(\'' + q + '\',' + n + ')">' + n + ' days</button>';
+        }).join('') +
+      '</div>' +
+      '<div class="bb-sg-grid">' +
+        stat(cov.wearableDays, 'Wearable days') +
+        stat(cov.nutritionDays, 'Nutrition days') +
+        stat(cov.checkinDays, 'Check-in days') +
+        stat(cov.usablePairs, 'Usable pairs') +
+        stat(cov.pct == null ? null : cov.pct + '%', 'Coverage') +
+      '</div>' +
+      '<div class="bb-sg-note">A usable pair is a day carrying an input next to the following morning’s measurement — that is the unit the correlation engine actually consumes, and ' +
+        nn(diag.minPairs, 0) + ' of them are required before anything is tested.</div>' +
+    '</div>';
+
+    /* risk flags — the whole reason this panel is staff-only */
+    out += '<div class="bb-sg-sec"><p class="bb-sg-lbl">Risk flags · never shown to the member</p>';
+    if (flags.length) {
+      out += flags.map(function (f) {
+        return '<div class="bb-sg-flag bb-sg-flag--' + esc(f.severity) + '">' +
+          '<span class="bb-sg-flag__b">' + esc(f.severity) + '</span>' +
+          '<span><p class="bb-sg-flag__t">' + esc(f.title) + '</p>' +
+          '<p class="bb-sg-flag__d">' + esc(f.detail) + '</p></span>' +
+        '</div>';
+      }).join('');
+    } else {
+      out += '<div class="bb-rw-muted">No risk pattern detected in this window.</div>';
+    }
+    out += '<div class="bb-sg-note">These are patterns in this client’s own data, not diagnoses. The member feels them only through their directive.</div></div>';
+
+    /* directive + exactly what the member is being shown */
+    out += '<div class="bb-sg-sec"><p class="bb-sg-lbl">Directive</p>';
+    if (dir) {
+      var dt = dir.detail || {};
+      var dv = dt.deviations || {};
+      out += '<div class="bb-sig-top">' +
+          '<span class="bb-sig-verdict bb-sig-verdict--' + verdictClass(dir.code) + '">' + esc(dir.label) + '</span>' +
+          '<span class="bb-sig-when">as of ' + esc(dir.asOf || '') + (dir.isToday ? ' · today' : '') +
+          ' · confidence ' + esc(dir.confidence) + ' (' + nn(dir.baselineDays, 0) + 'd baseline)</span>' +
+        '</div>' +
+        (dir.reason ? '<p class="bb-sig-reason">Because ' + esc(dir.reason) + '</p>' : '') +
+        '<div class="bb-sg-grid" style="margin-top:10px">' +
+          devStat('Recovery', dv.score) + devStat('HRV', dv.hrvMs) + devStat('Resting HR', dv.restingHr) +
+          devStat('Resp. rate', dv.respiratoryRate) + devStat('Sleep', dv.sleepHours) +
+          stat(dt.sleepDebt ? Math.round(dt.sleepDebt.minutes) + 'm' : null, 'Sleep debt (3d)') +
+          stat(dt.acwr ? dt.acwr.ratio + '×' : null, 'Acute:chronic') +
+        '</div>' +
+        '<div class="bb-sg-note">Each figure is this client against their own 30-day median, never a population norm. Rules fired: ' +
+          esc((dir.basis || []).join(', ') || 'none') + '.</div>';
+    } else {
+      out += '<div class="bb-rw-muted">Not enough measured data to issue a directive.</div>';
+    }
+    out += '</div>';
+
+    /* the member's actual screen */
+    out += '<div class="bb-sg-sec"><p class="bb-sg-lbl">What the member sees right now</p>' +
+      '<div class="bb-sg-preview">' +
+        (mv.directive
+          ? '<p class="bb-sig-item__t">' + esc(mv.directive.label) + ' — ' + esc(mv.directive.headline) + '</p>' +
+            (mv.directive.reason ? '<p class="bb-sig-item__d">Because ' + esc(mv.directive.reason) + '</p>' : '')
+          : '<p class="bb-sig-item__d">No directive on their screen.</p>') +
+        (mv.lever ? '<p class="bb-sig-item__d"><b>One move:</b> ' + esc(mv.lever.title) + '</p>' : '') +
+        ((mv.laws && mv.laws.length)
+          ? '<p class="bb-sig-item__d"><b>Laws:</b></p><ul style="margin:4px 0 0 16px;padding:0">' +
+            mv.laws.map(function (l) { return '<li class="bb-sig-item__d" style="margin:2px 0">' + esc(l.statement) + '</li>'; }).join('') + '</ul>'
+          : '<p class="bb-sig-item__d">No laws have cleared the evidence bar for them yet.</p>') +
+        ((mv.blood && mv.blood.length)
+          ? '<p class="bb-sig-item__d"><b>Bloodwork:</b> ' + mv.blood.map(function (b) { return esc(b.statement); }).join(' ') + '</p>'
+          : '') +
+      '</div>' +
+      '<div class="bb-sg-note">Physiological readings, statistics and every flag above are stripped server-side before this reaches them.</div>' +
+    '</div>';
+
+    /* findings */
+    var shown = v.showAll ? findings : findings.filter(function (f) { return f.tier !== 'none'; });
+    out += '<div class="bb-sg-sec">' +
+      '<p class="bb-sg-lbl">Findings · ' + nn(diag.hypothesesTested, 0) + ' hypotheses tested of ' + nn(diag.hypothesesConsidered, 0) + ' considered</p>' +
+      '<div class="bb-sg-grid" style="margin-bottom:10px">' +
+        stat(diag.tiers && diag.tiers.high, 'High') +
+        stat(diag.tiers && diag.tiers.moderate, 'Moderate') +
+        stat(diag.tiers && diag.tiers.emerging, 'Emerging') +
+        stat(diag.tiers && diag.tiers.none, 'Rejected') +
+      '</div>';
+    if (shown.length) {
+      out += '<div class="bb-sg-scroll">' + shown.slice(0, 60).map(function (f) {
+        return '<div class="bb-sg-find">' +
+          '<div class="bb-sg-find__h">' +
+            '<span class="bb-sg-tier bb-sg-tier--' + esc(f.tier) + '">' + esc(f.tier) + '</span>' +
+            '<span style="font-size:11.5px;color:#a9a08c">' + esc(f.inputLabel) + ' → ' + esc(f.outputLabel) + '</span>' +
+            (f.memberSafe ? '<span class="bb-sg-tier bb-sg-tier--high">shown to member</span>' : '') +
+          '</div>' +
+          (f.staffStatement ? '<p class="bb-sg-find__s">' + esc(f.staffStatement) + '</p>' : '') +
+          '<p class="bb-sg-find__m">n=' + nn(f.n, 0) + ' · split ' + nn(f.nHigh, 0) + '/' + nn(f.nLow, 0) +
+            ' · ' + esc(f.effectKind === 'cohens_d' ? 'd' : 'rho') + '=' + nn(f.effect, 2) +
+            ' · ' + pq('p', f.p) + ' · ' + pq('q', f.q) + '</p>' +
+        '</div>';
+      }).join('') + '</div>' +
+      (shown.length > 60 ? '<div class="bb-sg-note">Showing the 60 strongest of ' + shown.length + '.</div>' : '');
+    } else {
+      out += '<div class="bb-rw-muted">Nothing cleared the evidence bar in this window.</div>';
+    }
+    out += '<div class="bb-sg-range" style="margin:10px 0 0">' +
+        '<button type="button" class="bb-sg-rbtn" onclick="bbSigStaffToggleAll(\'' + q + '\')">' +
+        (v.showAll ? 'Hide rejected hypotheses' : 'Show all ' + findings.length + ' incl. rejected') + '</button>' +
+      '</div>' +
+      '<div class="bb-sg-note">Input on day D against the following morning’s measurement (lag ' + nn(diag.lagDays, 0) + 'd). ' +
+        'p-values are corrected across every hypothesis for this client (' + esc(diag.correction || 'none') + '); ' +
+        'q ≤ ' + nn(diag.qHigh, 2) + ' with n ≥ 21 is required before a member ever sees a finding. ' +
+        'Association only — no causal claim is made anywhere in this engine.</div>' +
+    '</div>';
+
+    out += bloodHtml(d.blood);
+
+    if (d.loadNotes && d.loadNotes.length) {
+      out += '<div class="bb-sg-sec"><p class="bb-sg-lbl">Data sources that failed to load</p>' +
+        '<div class="bb-rw-warn" style="margin-top:0">' + esc(d.loadNotes.join(', ')) + '</div>' +
+        '<div class="bb-sg-note">These inputs were skipped, so any finding that depended on them is missing rather than wrong.</div></div>';
+    }
+
+    out += '</div>';
+    return out;
+  }
+
+  function bloodHtml(b) {
+    var out = '<div class="bb-sg-sec"><p class="bb-sg-lbl">Bloodwork bridge</p>';
+    if (!b || !b.ok) {
+      return out + '<div class="bb-rw-muted">The bloodwork bridge is unavailable.</div></div>';
+    }
+    var items = Array.isArray(b.items) ? b.items : [];
+    out += '<div class="bb-sg-grid" style="margin-bottom:10px">' +
+      stat(b.reportsSeen, 'Reports') + stat(b.markersSeen, 'Markers read') +
+      stat(items.length, 'Bridged') +
+      stat(b.config && b.config.linksKnown, 'Known links') +
+    '</div>';
+    if (items.length) {
+      out += items.map(function (it) {
+        var obs = (it.observations || []).map(function (o) {
+          return '<li class="bb-sig-item__d" style="margin:2px 0">' + esc(o.short) + ': expected ' + esc(o.expected) +
+            ', observed ' + esc(o.observed) + (o.pct != null ? ' (' + nn(o.pct, 1) + '%)' : '') +
+            (o.agrees ? ' ✓' : '') + '</li>';
+        }).join('');
+        var head = it.kind === 'change'
+          ? esc(it.marker) + ': ' + esc(String(it.from.value)) + ' → ' + esc(String(it.to.value)) + (it.unit ? ' ' + esc(it.unit) : '') +
+            ' (' + esc(it.from.date) + ' → ' + esc(it.to.date) + ')'
+          : esc(it.marker) + ': ' + esc(String(it.value)) + (it.unit ? ' ' + esc(it.unit) : '') + ' on ' + esc(it.reportDate) +
+            (it.position ? ' · ' + esc(it.position) + ' vs range' : '');
+        return '<div class="bb-sg-find">' +
+          '<div class="bb-sg-find__h">' +
+            '<span class="bb-sg-verdict bb-sg-verdict--' + esc(it.verdict) + '">' + esc(it.verdict) + '</span>' +
+            '<span class="bb-sg-tier bb-sg-tier--' + (it.strength === 'established' ? 'high' : 'emerging') + '">' + esc(it.strength) + '</span>' +
+            (it.memberSafe ? '<span class="bb-sg-tier bb-sg-tier--high">shown to member</span>' : '') +
+          '</div>' +
+          '<p class="bb-sg-find__s" style="color:#e8e0cd">' + head + '</p>' +
+          (it.mechanism ? '<p class="bb-sg-find__s">' + esc(it.mechanism) + '</p>' : '') +
+          (obs ? '<ul style="margin:6px 0 0 16px;padding:0">' + obs + '</ul>' : '') +
+        '</div>';
+      }).join('');
+    } else {
+      out += '<div class="bb-rw-muted">' + esc((b.notes && b.notes[0]) || 'Nothing to bridge yet.') + '</div>';
+    }
+    out += '<div class="bb-sg-note">Each marker is compared against the 30 days of wearable data ENDING at its draw date, ' +
+      'measured against this client’s baseline outside that window. Discordant items are shown deliberately — the member only ever sees concordant ones.</div></div>';
+    return out;
+  }
+
+  function stat(v, label) {
+    return '<div class="bb-sg-stat"><b>' + (v == null || v === '' ? EM : esc(String(v))) + '</b><span>' + esc(label) + '</span></div>';
+  }
+
+  /** "p<0.0001" / "q=0.0231" — never "p=<0.0001", which reads as a formatting bug. */
+  function pq(name, v) {
+    if (v == null || !isFinite(Number(v))) return name + '=n/a';
+    return Number(v) < 0.0001 ? name + '&lt;0.0001' : name + '=' + nn(v, 4);
+  }
+
+  /** A baseline deviation tile: the change against this client's own normal. */
+  function devStat(label, dv) {
+    if (!dv || dv.pct == null) return stat(null, label);
+    var s = (dv.pct > 0 ? '+' : '') + nn(dv.pct, 1) + '%';
+    return '<div class="bb-sg-stat"><b>' + esc(s) + '</b><span>' + esc(label) + ' vs base</span></div>';
+  }
+})();
+</script>
+<!-- =================== END SIGNAL =================== -->
 
 <!-- WhatsApp FAB – public website -->
 <a class="wa-public-fab" href="https://wa.me/919502575669" target="_blank" rel="noopener noreferrer" aria-label="Chat with us on WhatsApp" title="Chat on WhatsApp">
