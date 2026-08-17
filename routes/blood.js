@@ -11,7 +11,7 @@ const {
   validateBloodReportInput,
   resolveStoredUploadPath
 } = require('../services/bloodAnalysisService');
-const { alignReports, generateComparisonVerdict } = require('../services/bloodComparisonService');
+const { alignReports, generateComparisonVerdict, reportTimelineMs } = require('../services/bloodComparisonService');
 const { generateComparisonReportPdf } = require('../services/pdfService');
 const { computeNutritionSummaryForUserWindow } = require('../services/nutritionService');
 
@@ -25,6 +25,39 @@ const MAX_REPORTS_PER_USER = 3;
 const CMP_MIN_REPORTS = 2;
 const CMP_MAX_REPORTS = 6;
 
+// Roles allowed to manage a client's blood reports. Operators have full parity with
+// admins here (download originals, re-date, re-upload, delete, compare) — the coach
+// running the retest is often the operator, not the admin.
+const STAFF_ROLES = ['admin', 'superadmin', 'operator'];
+const isStaff = (req) => STAFF_ROLES.includes(req && req.user && req.user.role);
+
+/**
+ * Normalise a user-supplied lab date to 'YYYY-MM-DD', or null when absent/invalid.
+ * Rejects nonsense dates and anything in the future — a blood draw cannot be
+ * scheduled, and a future date would corrupt the trend ordering.
+ * @param {*} v raw input
+ * @returns {{date: string|null, error: string|null}}
+ */
+function normalizeReportDate(v) {
+  const s = String(v == null ? '' : v).trim();
+  if (!s) return { date: null, error: null };
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s);
+  if (!m) return { date: null, error: 'Lab date must be in YYYY-MM-DD format.' };
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const dt = new Date(Date.UTC(y, mo - 1, d));
+  // Round-trip check rejects 2025-02-30 and friends, which Date would roll over.
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== d) {
+    return { date: null, error: 'That is not a real calendar date.' };
+  }
+  if (y < 1900) return { date: null, error: 'Lab date looks too far in the past.' };
+  // Allow "today" in any timezone ahead of UTC — compare against tomorrow UTC.
+  const tomorrowUtc = Date.now() + 24 * 60 * 60 * 1000;
+  if (dt.getTime() > tomorrowUtc) return { date: null, error: 'Lab date cannot be in the future.' };
+  return { date: s, error: null };
+}
+
 function parseJsonCol(val) {
   if (!val) return null;
   if (typeof val === 'object') return val;
@@ -33,6 +66,12 @@ function parseJsonCol(val) {
   } catch (_) {
     return null;
   }
+}
+
+// The date a report sits at on the client's timeline: the printed lab draw date when
+// known, else the upload timestamp. Every ordering + label uses this.
+function effectiveReportDate(r) {
+  return (r && (r.report_date || r.created_at)) || null;
 }
 
 function mapComparisonRow(r) {
@@ -88,6 +127,10 @@ function mapReportRow(r) {
     userGoal: r.user_goal,
     status: r.status,
     createdAt: r.created_at,
+    // Lab draw date (nullable) vs upload time — the UI shows both.
+    reportDate: r.report_date || null,
+    effectiveDate: effectiveReportDate(r),
+    hasSourceFile: !!(r.blood_report_file_path && String(r.blood_report_file_path).trim()),
     sentToUser: !!r.sent_to_user,
     sentAt: r.sent_at,
     adminNotes: r.admin_notes,
@@ -110,13 +153,27 @@ function mimeFromBloodFilePath(fp) {
   return 'image/jpeg';
 }
 
+// "Rahul Sharma" + 2026-03-04 -> Rahul_Sharma_2026-03-04 — so a coach downloading an
+// old and a new report gets two files they can tell apart without opening them.
+function labFileDownloadName(report) {
+  const ext = (path.extname(String(report.blood_report_file_path || '')) || '.pdf').toLowerCase();
+  const who = String(report.user_name || 'client').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'client';
+  const when = String(effectiveReportDate(report) || '').slice(0, 10) || 'undated';
+  return `Lab_Report_${who}_${when}${ext}`;
+}
+
 function createBloodRouter(deps) {
-  const { run, queryOne, queryAll, verifyToken, requireAdminOrSuperadmin, rateLimiter } = deps;
+  const { run, queryOne, queryAll, verifyToken, rateLimiter } = deps;
   const db = { run, queryOne, queryAll };
 
   const router = require('express').Router();
   router.use(verifyToken);
-  const adminOnly = requireAdminOrSuperadmin;
+  // Every /admin/* blood route below is staff-gated rather than admin-gated: operators
+  // have full parity on blood-report management (see STAFF_ROLES).
+  const staffOnly = (req, res, next) => {
+    if (!isStaff(req)) return res.status(403).json({ success: false, error: 'Forbidden' });
+    next();
+  };
 
   router.post('/upload', rateLimiter(5, 120000), async (req, res) => {
     try {
@@ -125,6 +182,10 @@ function createBloodRouter(deps) {
       const b64 = bloodReportBase64 ? String(bloodReportBase64).replace(/\s/g, '') : '';
       if (!b64) return res.status(400).json({ error: 'No file provided' });
       if (b64.length > MAX_B64_CHARS) return res.status(400).json({ error: 'File payload too large' });
+      // Optional for members (older mobile builds don't send it) — falls back to
+      // the upload time. Staff uploads below require it.
+      const memberDate = normalizeReportDate(req.body && req.body.reportDate);
+      if (memberDate.error) return res.status(400).json({ success: false, error: memberDate.error });
 
       // Users get up to MAX_REPORTS_PER_USER upload slots (Blood Report 1/2/3).
       // Check before spending AI validation tokens.
@@ -169,8 +230,8 @@ function createBloodRouter(deps) {
       await run(
         `INSERT INTO blood_analysis_reports (
           id, user_id, blood_report_file_path, symptoms, status,
-          user_name, user_email, user_age, user_gender, user_goal
-        ) VALUES (?, ?, ?, ?::jsonb, 'pending', ?, ?, ?, ?, ?)`,
+          user_name, user_email, user_age, user_gender, user_goal, report_date
+        ) VALUES (?, ?, ?, ?::jsonb, 'pending', ?, ?, ?, ?, ?, ?::date)`,
         [
           reportId,
           userId,
@@ -180,7 +241,8 @@ function createBloodRouter(deps) {
           u && u.email ? String(u.email) : '',
           userAge != null ? String(userAge).slice(0, 32) : '',
           userGender != null ? String(userGender).slice(0, 32) : '',
-          userGoal != null ? String(userGoal).slice(0, 200) : ''
+          userGoal != null ? String(userGoal).slice(0, 200) : '',
+          memberDate.date
         ]
       );
 
@@ -209,11 +271,8 @@ function createBloodRouter(deps) {
   // retest) and auto-starts analysis — so the client doesn't have to upload it.
   // Mirrors /upload but targets req.params.userId, pulls the client's profile for
   // the medical context, and is NOT subject to the per-user 3-slot cap.
-  router.post('/admin/upload/:userId', rateLimiter(20, 120000), async (req, res) => {
+  router.post('/admin/upload/:userId', staffOnly, rateLimiter(20, 120000), async (req, res) => {
     try {
-      if (!['admin', 'superadmin', 'operator'].includes(req.user && req.user.role)) {
-        return res.status(403).json({ success: false, error: 'Forbidden' });
-      }
       const targetUserId = String(req.params.userId || '').trim();
       if (!targetUserId) return res.status(400).json({ success: false, error: 'Missing client id' });
       const u = await queryOne(
@@ -226,6 +285,17 @@ function createBloodRouter(deps) {
       const b64 = bloodReportBase64 ? String(bloodReportBase64).replace(/\s/g, '') : '';
       if (!b64) return res.status(400).json({ success: false, error: 'No file provided' });
       if (b64.length > MAX_B64_CHARS) return res.status(400).json({ success: false, error: 'File payload too large' });
+
+      // Required on staff uploads: this is the back-fill path (a coach uploading an
+      // older retest), and the whole comparison timeline hangs off this date.
+      const labDate = normalizeReportDate(req.body && req.body.reportDate);
+      if (labDate.error) return res.status(400).json({ success: false, error: labDate.error });
+      if (!labDate.date) {
+        return res.status(400).json({
+          success: false,
+          error: 'Pick the lab test date printed on the report so it lands correctly on the client timeline.'
+        });
+      }
 
       const mime = String(bloodReportMimeType || 'image/jpeg').slice(0, 80);
       const apiKey = (process.env.ANTHROPIC_API_KEY || '').trim();
@@ -257,8 +327,8 @@ function createBloodRouter(deps) {
       await run(
         `INSERT INTO blood_analysis_reports (
           id, user_id, blood_report_file_path, symptoms, status,
-          user_name, user_email, user_age, user_gender, user_goal
-        ) VALUES (?, ?, ?, ?::jsonb, 'pending', ?, ?, ?, ?, ?)`,
+          user_name, user_email, user_age, user_gender, user_goal, report_date
+        ) VALUES (?, ?, ?, ?::jsonb, 'pending', ?, ?, ?, ?, ?, ?::date)`,
         [
           reportId,
           targetUserId,
@@ -268,7 +338,8 @@ function createBloodRouter(deps) {
           u.email ? String(u.email) : '',
           ageStr,
           u.gender != null ? String(u.gender).slice(0, 32) : '',
-          u.goal_type != null ? String(u.goal_type).slice(0, 200) : ''
+          u.goal_type != null ? String(u.goal_type).slice(0, 200) : '',
+          labDate.date
         ]
       );
 
@@ -278,7 +349,13 @@ function createBloodRouter(deps) {
       );
 
       notifyAsync('BLOOD_REPORT_UPLOADED', { name: displayName, email: u.email || '—', mobile: u.phone || '—', goal: u.goal_type || '—' });
-      res.json({ success: true, reportId, status: 'pending', message: `Uploaded for ${displayName || 'client'} — analysis started.` });
+      res.json({
+        success: true,
+        reportId,
+        status: 'pending',
+        reportDate: labDate.date,
+        message: `Uploaded for ${displayName || 'client'} (lab date ${labDate.date}) — analysis started.`
+      });
     } catch (e) {
       console.error('[blood admin upload]', e.message);
       res.status(500).json({ success: false, error: e.message || 'Upload failed' });
@@ -306,10 +383,36 @@ function createBloodRouter(deps) {
     }
   });
 
+  // Download the ORIGINAL lab file the client uploaded (not the generated BodyBank
+  // report). This is what a coach needs to open an old and a new report side by side
+  // and read the printed values/dates for themselves.
+  router.get('/file/:reportId', async (req, res) => {
+    try {
+      const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [req.params.reportId]);
+      if (!report) return res.status(404).json({ error: 'Not found' });
+      if (report.user_id !== req.user.id && !isStaff(req)) return res.status(403).json({ error: 'Forbidden' });
+
+      const raw = report.blood_report_file_path ? String(report.blood_report_file_path).trim() : '';
+      const resolved = raw ? resolveStoredUploadPath(raw) : null;
+      if (!resolved || !fs.existsSync(resolved)) {
+        return res.status(404).json({
+          error:
+            'The original lab file is no longer on the server (common after a redeploy without a persistent disk). The extracted results and the generated report are still available.'
+        });
+      }
+      res.setHeader('Content-Type', mimeFromBloodFilePath(resolved));
+      res.download(resolved, labFileDownloadName(report));
+    } catch (e) {
+      console.error('[blood file]', e.message);
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   router.get('/my-reports', async (req, res) => {
     try {
       const rows = await queryAll(
-        `SELECT * FROM blood_analysis_reports WHERE user_id = ? ORDER BY created_at DESC`,
+        `SELECT * FROM blood_analysis_reports WHERE user_id = ?
+         ORDER BY COALESCE(report_date, created_at::date) DESC, created_at DESC`,
         [req.user.id]
       );
       const reports = (rows || []).map((r) => mapReportRow(r));
@@ -324,8 +427,9 @@ function createBloodRouter(deps) {
   router.get('/my-progress', async (req, res) => {
     try {
       const rows = await queryAll(
-        `SELECT id, created_at, extracted_blood_data, ai_report, status
-         FROM blood_analysis_reports WHERE user_id = ? ORDER BY created_at ASC`,
+        `SELECT id, created_at, report_date, extracted_blood_data, ai_report, status
+         FROM blood_analysis_reports WHERE user_id = ?
+         ORDER BY COALESCE(report_date, created_at::date) ASC, created_at ASC`,
         [req.user.id]
       );
       const processed = (rows || []).filter((r) => {
@@ -385,16 +489,50 @@ function createBloodRouter(deps) {
     }
   });
 
-  // Owner (or admin) removes a report — frees an upload slot so the user can
-  // upload a fresh one. Best-effort cleanup of the stored lab file + PDF.
+  // How many saved comparisons reference this report — the UI warns before deleting,
+  // since removing a report leaves those progress reviews unable to regenerate.
+  async function comparisonsUsingReport(reportId) {
+    try {
+      const row = await queryOne(
+        `SELECT COUNT(*)::int AS n FROM blood_comparison_reports WHERE report_ids @> ?::jsonb`,
+        [JSON.stringify([String(reportId)])]
+      );
+      return (row && Number(row.n)) || 0;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  // Staff-facing pre-flight so the confirm dialog can state the real consequence.
+  router.get('/impact/:reportId', staffOnly, async (req, res) => {
+    try {
+      const report = await queryOne(
+        `SELECT id, user_name, report_date, created_at, status FROM blood_analysis_reports WHERE id = ?`,
+        [req.params.reportId]
+      );
+      if (!report) return res.status(404).json({ error: 'Report not found' });
+      res.json({
+        reportId: report.id,
+        userName: report.user_name || '',
+        effectiveDate: effectiveReportDate(report),
+        status: report.status,
+        comparisonsAffected: await comparisonsUsingReport(req.params.reportId)
+      });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Owner or staff removes a report entirely — DB row, original lab file and the
+  // generated PDF — which frees an upload slot so a corrected file can be re-uploaded.
   router.delete('/:reportId', async (req, res) => {
     try {
       const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [req.params.reportId]);
       if (!report) return res.status(404).json({ success: false, error: 'Report not found' });
-      const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
-      if (report.user_id !== req.user.id && !isAdmin) {
+      if (report.user_id !== req.user.id && !isStaff(req)) {
         return res.status(403).json({ success: false, error: 'Forbidden' });
       }
+      const affected = await comparisonsUsingReport(req.params.reportId);
       [report.blood_report_file_path, report.pdf_path].forEach((fp) => {
         try {
           const resolved = fp ? resolveStoredUploadPath(String(fp).trim()) : null;
@@ -402,14 +540,47 @@ function createBloodRouter(deps) {
         } catch (_) {}
       });
       await run(`DELETE FROM blood_analysis_reports WHERE id = ?`, [req.params.reportId]);
-      res.json({ success: true });
+      res.json({
+        success: true,
+        comparisonsAffected: affected,
+        message: affected
+          ? `Report deleted. ${affected} saved comparison${affected === 1 ? '' : 's'} referenced it and can no longer be regenerated.`
+          : 'Report deleted.'
+      });
     } catch (e) {
       console.error('[blood delete]', e.message);
       res.status(500).json({ success: false, error: e.message || 'Delete failed' });
     }
   });
 
-  router.get('/admin/all', adminOnly, async (req, res) => {
+  // Correct the lab date on an existing report (fixes legacy rows that predate the
+  // field, and member uploads where nobody picked a date).
+  router.put('/admin/report-date/:reportId', staffOnly, async (req, res) => {
+    try {
+      const report = await queryOne(`SELECT id FROM blood_analysis_reports WHERE id = ?`, [req.params.reportId]);
+      if (!report) return res.status(404).json({ success: false, error: 'Report not found' });
+      const parsed = normalizeReportDate(req.body && req.body.reportDate);
+      if (parsed.error) return res.status(400).json({ success: false, error: parsed.error });
+      await run(`UPDATE blood_analysis_reports SET report_date = ?::date WHERE id = ?`, [
+        parsed.date,
+        req.params.reportId
+      ]);
+      // Stored comparisons embed the old ordering/labels; drop their cached PDFs so a
+      // re-download reflects the corrected timeline.
+      try {
+        await run(
+          `UPDATE blood_comparison_reports SET pdf_path = NULL WHERE report_ids @> ?::jsonb`,
+          [JSON.stringify([String(req.params.reportId)])]
+        );
+      } catch (_) {}
+      res.json({ success: true, reportDate: parsed.date });
+    } catch (e) {
+      console.error('[blood report-date]', e.message);
+      res.status(500).json({ success: false, error: e.message || 'Could not update the lab date' });
+    }
+  });
+
+  router.get('/admin/all', staffOnly, async (req, res) => {
     try {
       const st = String(req.query.status || 'all').toLowerCase();
       let extra = '';
@@ -424,7 +595,8 @@ function createBloodRouter(deps) {
         `SELECT r.*, u.profile_picture AS client_profile_picture
          FROM blood_analysis_reports r
          LEFT JOIN users u ON u.id = r.user_id
-         WHERE 1=1 ${extra} ORDER BY r.created_at DESC`
+         WHERE 1=1 ${extra}
+         ORDER BY COALESCE(r.report_date, r.created_at::date) DESC, r.created_at DESC`
       );
       res.json({ reports: (rows || []).map((r) => mapReportRow(r)) });
     } catch (e) {
@@ -432,7 +604,7 @@ function createBloodRouter(deps) {
     }
   });
 
-  router.post('/admin/send/:reportId', adminOnly, async (req, res) => {
+  router.post('/admin/send/:reportId', staffOnly, async (req, res) => {
     try {
       const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [req.params.reportId]);
       if (!report) {
@@ -492,7 +664,7 @@ function createBloodRouter(deps) {
     }
   });
 
-  router.put('/admin/notes/:reportId', adminOnly, async (req, res) => {
+  router.put('/admin/notes/:reportId', staffOnly, async (req, res) => {
     try {
       const notes = String((req.body && req.body.adminNotes) || '').slice(0, 8000);
       await run(`UPDATE blood_analysis_reports SET admin_notes = ? WHERE id = ?`, [notes, req.params.reportId]);
@@ -502,7 +674,7 @@ function createBloodRouter(deps) {
     }
   });
 
-  router.post('/admin/retry/:reportId', adminOnly, rateLimiter(3, 120000), async (req, res) => {
+  router.post('/admin/retry/:reportId', staffOnly, rateLimiter(3, 120000), async (req, res) => {
     try {
       const { reportId } = req.params;
       const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [reportId]);
@@ -608,7 +780,8 @@ function createBloodRouter(deps) {
   // and carry extracted panel data (only processed reports can be compared).
   async function loadComparableReports(userId, reportIds) {
     const rows = await queryAll(
-      `SELECT * FROM blood_analysis_reports WHERE user_id = ? ORDER BY created_at ASC`,
+      `SELECT * FROM blood_analysis_reports WHERE user_id = ?
+       ORDER BY COALESCE(report_date, created_at::date) ASC, created_at ASC`,
       [userId]
     );
     const byId = {};
@@ -627,17 +800,18 @@ function createBloodRouter(deps) {
   }
 
   // Clients that have 2+ processed reports — the pick list for the compare tool.
-  router.get('/admin/comparable', adminOnly, async (req, res) => {
+  router.get('/admin/comparable', staffOnly, async (req, res) => {
     try {
       const rows = await queryAll(
-        `SELECT r.id, r.user_id, r.user_name, r.user_email, r.created_at, r.status,
+        `SELECT r.id, r.user_id, r.user_name, r.user_email, r.created_at, r.report_date, r.status,
                 r.ai_report->>'overall_status' AS overall_status,
                 (r.extracted_blood_data IS NOT NULL) AS has_data,
+                (r.blood_report_file_path IS NOT NULL AND r.blood_report_file_path <> '') AS has_source_file,
                 u.profile_picture AS client_profile_picture
          FROM blood_analysis_reports r
          LEFT JOIN users u ON u.id = r.user_id
          WHERE r.extracted_blood_data IS NOT NULL
-         ORDER BY r.user_id, r.created_at DESC`
+         ORDER BY r.user_id, COALESCE(r.report_date, r.created_at::date) DESC, r.created_at DESC`
       );
       const byUser = new Map();
       (rows || []).forEach((r) => {
@@ -653,6 +827,9 @@ function createBloodRouter(deps) {
         byUser.get(r.user_id).reports.push({
           id: r.id,
           createdAt: r.created_at,
+          reportDate: r.report_date || null,
+          effectiveDate: effectiveReportDate(r),
+          hasSourceFile: !!r.has_source_file,
           status: r.status,
           overallStatus: r.overall_status || null
         });
@@ -668,7 +845,7 @@ function createBloodRouter(deps) {
   });
 
   // List saved comparisons for a client.
-  router.get('/admin/comparisons/:userId', adminOnly, async (req, res) => {
+  router.get('/admin/comparisons/:userId', staffOnly, async (req, res) => {
     try {
       const rows = await queryAll(
         `SELECT c.*, u.profile_picture AS client_profile_picture
@@ -684,7 +861,7 @@ function createBloodRouter(deps) {
   });
 
   // Fetch one comparison.
-  router.get('/admin/comparison/:id', adminOnly, async (req, res) => {
+  router.get('/admin/comparison/:id', staffOnly, async (req, res) => {
     try {
       const row = await queryOne(
         `SELECT c.*, u.profile_picture AS client_profile_picture
@@ -700,7 +877,7 @@ function createBloodRouter(deps) {
   });
 
   // Build a new comparison: deterministic alignment + (optional) Claude verdict.
-  router.post('/admin/compare', adminOnly, rateLimiter(6, 120000), async (req, res) => {
+  router.post('/admin/compare', staffOnly, rateLimiter(6, 120000), async (req, res) => {
     try {
       const userId = String((req.body && req.body.userId) || '').trim();
       let reportIds = (req.body && req.body.reportIds) || [];
@@ -726,8 +903,8 @@ function createBloodRouter(deps) {
         return res.status(400).json({ success: false, error: 'No comparable markers were found across the selected reports.' });
       }
 
-      // Patient context from the newest compared report.
-      const newest = rows.slice().sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+      // Patient context from the newest compared report, by LAB date.
+      const newest = rows.slice().sort((a, b) => reportTimelineMs(b) - reportTimelineMs(a))[0];
       const u = await queryOne(
         `SELECT id, first_name, last_name, email FROM users WHERE id = ?`,
         [userId]
@@ -813,7 +990,7 @@ function createBloodRouter(deps) {
   });
 
   // Edit admin notes and/or the AI verdict (coach can refine before sending).
-  router.put('/admin/comparison/:id', adminOnly, async (req, res) => {
+  router.put('/admin/comparison/:id', staffOnly, async (req, res) => {
     try {
       const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
       if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
@@ -839,7 +1016,7 @@ function createBloodRouter(deps) {
   });
 
   // Regenerate the AI verdict for an existing comparison (reuses stored alignment).
-  router.post('/admin/comparison/:id/regenerate', adminOnly, rateLimiter(6, 120000), async (req, res) => {
+  router.post('/admin/comparison/:id/regenerate', staffOnly, rateLimiter(6, 120000), async (req, res) => {
     try {
       const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
       if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
@@ -918,7 +1095,7 @@ function createBloodRouter(deps) {
   }
 
   // Download the branded progress PDF (generated on demand).
-  router.get('/admin/comparison/:id/pdf', adminOnly, async (req, res) => {
+  router.get('/admin/comparison/:id/pdf', staffOnly, async (req, res) => {
     try {
       const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
       if (!row) return res.status(404).json({ error: 'Comparison not found' });
@@ -934,7 +1111,7 @@ function createBloodRouter(deps) {
   });
 
   // Send the progress report to the client by email + inbox.
-  router.post('/admin/comparison/:id/send', adminOnly, async (req, res) => {
+  router.post('/admin/comparison/:id/send', staffOnly, async (req, res) => {
     try {
       const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
       if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
@@ -978,7 +1155,7 @@ function createBloodRouter(deps) {
     }
   });
 
-  router.delete('/admin/comparison/:id', adminOnly, async (req, res) => {
+  router.delete('/admin/comparison/:id', staffOnly, async (req, res) => {
     try {
       const row = await queryOne(`SELECT pdf_path FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
       if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });

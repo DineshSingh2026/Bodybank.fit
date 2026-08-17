@@ -198,20 +198,39 @@ function parseMaybeJson(v) {
 }
 
 /**
+ * The date a report belongs at on the timeline: the lab draw date printed on the
+ * report when we have it, else the upload time. Uploading a 2024 report today must
+ * place it in 2024, otherwise every trend arrow points the wrong way.
+ * @param {object} row a blood_analysis_reports row
+ * @returns {number} epoch ms (0 when neither date parses)
+ */
+function reportTimelineMs(row) {
+  const raw = (row && (row.report_date || row.created_at)) || null;
+  if (!raw) return 0;
+  // A DATE column arrives as 'YYYY-MM-DD' (or a Date at UTC midnight); anchoring it
+  // to midday avoids a timezone shift dragging it onto the previous day.
+  const s = typeof raw === 'string' ? raw : null;
+  const t = s && /^\d{4}-\d{2}-\d{2}$/.test(s) ? new Date(s + 'T12:00:00').getTime() : new Date(raw).getTime();
+  return Number.isNaN(t) ? 0 : t;
+}
+
+/**
  * Build the aligned comparison matrix from an ordered list of report rows.
- * @param {Array} reportRows DB rows (need id, created_at, extracted_blood_data, ai_report, status)
+ * @param {Array} reportRows DB rows (need id, created_at, report_date, extracted_blood_data, ai_report, status)
  * @returns {object} comparison structure (see file header)
  */
 function alignReports(reportRows) {
-  // oldest -> newest so trend reads left to right
+  // oldest -> newest BY LAB DATE so trend reads left to right in real time order
   const reports = (reportRows || [])
     .slice()
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .sort((a, b) => reportTimelineMs(a) - reportTimelineMs(b))
     .map((r, idx) => {
       const ai = parseMaybeJson(r.ai_report) || {};
       return {
         id: r.id,
-        date: r.created_at,
+        date: r.report_date || r.created_at,
+        uploadedAt: r.created_at,
+        isLabDate: !!r.report_date,
         index: idx,
         overallStatus: ai.overall_status || null
       };
@@ -347,6 +366,9 @@ function reportDisPresentSafe(c) { return !!(c && c.present); }
 
 function comparisonForPrompt(comparison) {
   const dateLabels = comparison.reports.map((r) => {
+    // A lab DATE already arrives as 'YYYY-MM-DD' (pg type parser 1082) — pass it
+    // through rather than round-tripping it through UTC and losing a day.
+    if (typeof r.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(r.date)) return r.date;
     const d = new Date(r.date);
     return Number.isNaN(d.getTime()) ? String(r.date) : d.toISOString().slice(0, 10);
   });
@@ -539,6 +561,7 @@ module.exports = {
   deviationFromRange,
   canonicalizeMarker,
   normalizeMarkerName,
+  reportTimelineMs,
   // engine
   alignReports,
   comparisonForPrompt,
