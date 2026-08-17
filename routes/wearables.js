@@ -21,6 +21,7 @@ const express = require('express');
 const crypto = require('crypto');
 
 const readinessService = require('../services/wearables/readinessService');
+const signalService = require('../services/wearables/signalService');
 const { parseWhoopExport } = require('../services/wearables/whoopParser');
 const { readZipTextFiles, isZip } = require('../services/wearables/zipReader');
 const { computeWhoopStats } = require('../services/wearables/whoopStatsService');
@@ -546,6 +547,70 @@ function createWearablesRouter(deps = {}) {
     } catch (e) {
       console.error('[wearables journal]', e.message);
       res.status(500).json({ error: 'Could not load your journal answers.' });
+    }
+  });
+
+  // ---- Signal (the Why engine) ---------------------------------------------
+  //
+  // Whoop already shows a member their recovery, HRV and sleep. These routes serve the
+  // thing only BodyBank can compute: what that member's OWN inputs — food, water,
+  // training, mind sessions, journal answers, bloodwork — did to that physiology.
+  //
+  // The audience is decided HERE, from the route, and is passed to the service, which
+  // builds the payload from a whitelist. A member request can never be talked into
+  // returning staff fields by any query parameter.
+  //
+  // Deterministic end to end: no model is called, so these are cheap enough to sit on a
+  // home screen and cannot invent a sentence.
+
+  /** ?days= window for the correlation engine (14–365, default 90). */
+  function signalDays(q) {
+    return (q && q.days) != null ? q.days : signalService.DEFAULT_DAYS;
+  }
+
+  router.get('/signal', verifyToken, limit(30, 60000), async (req, res) => {
+    try {
+      const out = await signalService.getSignal(db, {
+        userId: String(req.user.id),
+        days: signalDays(req.query),
+        audience: 'member'
+      });
+      res.json(out);
+    } catch (e) {
+      console.error('[wearables signal]', e.message);
+      res.status(500).json({ error: 'Could not build your signal.' });
+    }
+  });
+
+  router.get('/admin/:userId/signal', verifyToken, requireAdminOrSuperadmin, limit(60, 60000), async (req, res) => {
+    try {
+      const out = await signalService.getSignal(db, {
+        userId: String(req.params.userId),
+        days: signalDays(req.query),
+        // ?includeDaily=1 adds the per-day audit table (~250KB over a year).
+        includeDaily: String((req.query || {}).includeDaily || '') === '1',
+        audience: 'admin'
+      });
+      res.json(out);
+    } catch (e) {
+      console.error('[wearables admin signal]', e.message);
+      res.status(500).json({ error: 'Could not build that signal.' });
+    }
+  });
+
+  router.get('/operator/:userId/signal', verifyToken, operatorOnly, limit(60, 60000), async (req, res) => {
+    try {
+      const out = await signalService.getSignal(db, {
+        userId: String(req.params.userId),
+        days: signalDays(req.query),
+        // ?includeDaily=1 adds the per-day audit table (~250KB over a year).
+        includeDaily: String((req.query || {}).includeDaily || '') === '1',
+        audience: 'operator'
+      });
+      res.json(out);
+    } catch (e) {
+      console.error('[wearables operator signal]', e.message);
+      res.status(500).json({ error: 'Could not build that signal.' });
     }
   });
 
