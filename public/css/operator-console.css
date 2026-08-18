@@ -1,582 +1,463 @@
 /* ============================================================================
-   BodyBank — Operator Console
-   A fixed-height command console, not a scrolling page. The shell owns the
-   viewport; every list, feed and profile scrolls inside its own pane, so the
-   page itself never scrolls and nothing important ever falls below the fold.
+   BodyBank — Operator Console (client-first workspace)
+   The shell owns the viewport; every list and story scrolls inside its own
+   pane, so the page itself never scrolls. Warm charcoal + gold, generous type:
+   this is a premium product surface, not a monitoring NOC.
    ========================================================================== */
 
 #operatorPanel {
-  --op-bg: #0a0a0b;
-  --op-surface: #121215;
-  --op-surface-2: #17171c;
-  --op-surface-3: #1e1e25;
-  --op-line: rgba(255, 255, 255, 0.075);
-  --op-line-strong: rgba(255, 255, 255, 0.14);
+  --op-bg: #0b0a0a;
+  --op-surface: #151316;
+  --op-surface-2: #1c1a1e;
+  --op-surface-3: #232027;
+  --op-line: rgba(200, 164, 78, 0.10);
+  --op-line-2: rgba(255, 255, 255, 0.08);
+  --op-line-strong: rgba(200, 164, 78, 0.28);
   --op-gold: #c8a44e;
-  --op-gold-soft: rgba(200, 164, 78, 0.13);
+  --op-gold-lt: #e0c074;
+  --op-gold-soft: rgba(200, 164, 78, 0.12);
   --op-cream: #efe9dc;
-  --op-muted: #8d877a;
-  --op-dim: #6b665c;
+  --op-muted: #9a9284;
+  --op-dim: #746d61;
   --op-ok: #5bbf7a;
   --op-warn: #e0b24e;
   --op-bad: #e0785a;
   --op-info: #6ac1d6;
-  --op-violet: #9b8cf0;
-  --op-blue: #4aa8e0;
-  --op-r: 14px;
-  --op-top-h: 58px;
+  --op-r: 18px;
+  --op-top-h: 62px;
 }
 
-/* ------------------------------------------------------------------ shell */
+/* -------------------------------------------------------------- shell */
 .operator-panel {
-  display: none;
-  position: fixed;
-  inset: 0;
-  z-index: 1000;
-  background: var(--op-bg);
-  color: var(--op-cream);
-  font-family: 'Outfit', sans-serif;
-  overscroll-behavior: none;
+  display: none; position: fixed; inset: 0; z-index: 1000;
+  background:
+    radial-gradient(120% 70% at 50% -10%, rgba(200, 164, 78, 0.07), transparent 60%),
+    var(--op-bg);
+  color: var(--op-cream); font-family: 'Outfit', sans-serif; overscroll-behavior: none;
 }
-
 .operator-panel.open {
-  display: grid;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-  grid-template-columns: 82px minmax(0, 1fr);
+  display: grid; height: 100vh; height: 100dvh; overflow: hidden;
+  grid-template-columns: 92px minmax(0, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
-  grid-template-areas:
-    "top  top"
-    "rail main";
+  grid-template-areas: "top top" "rail main";
 }
 
-/* ------------------------------------------------------------------- top */
+/* ---------------------------------------------------------------- top */
 .op-top {
-  grid-area: top;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+  grid-area: top; display: flex; align-items: center; gap: 12px;
   height: calc(var(--op-top-h) + env(safe-area-inset-top, 0px));
-  padding: 0 16px 0 14px;
-  padding-top: env(safe-area-inset-top, 0px);
-  padding-left: max(14px, env(safe-area-inset-left, 0px));
-  padding-right: max(16px, env(safe-area-inset-right, 0px));
-  background: linear-gradient(180deg, rgba(200, 164, 78, 0.07), rgba(10, 10, 11, 0.98));
-  border-bottom: 1px solid var(--op-line);
-  position: relative;
-  z-index: 40;
+  padding: 0 18px 0 16px; padding-top: env(safe-area-inset-top, 0px);
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(18px, env(safe-area-inset-right, 0px));
+  border-bottom: 1px solid var(--op-line); position: relative; z-index: 40;
+  background: linear-gradient(180deg, rgba(200, 164, 78, 0.06), rgba(11, 10, 10, 0.92));
 }
+.op-logo-img { height: 34px; width: auto; object-fit: contain; flex: none; display: block }
+.op-brand { display: flex; flex-direction: column; line-height: 1.15; flex: none }
+.op-brand-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 15px; color: var(--op-cream); letter-spacing: .4px }
+.op-brand-sub { font-size: 10px; color: var(--op-gold); letter-spacing: 1.3px; text-transform: uppercase; margin-top: 2px }
 
-.op-logo-img { height: 30px; width: auto; object-fit: contain; flex: none; display: block }
-
-.op-brand { display: flex; flex-direction: column; line-height: 1.1; flex: none }
-.op-brand-title {
-  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px;
-  color: var(--op-cream); letter-spacing: .5px;
-}
-.op-brand-sub { font-size: 10px; color: var(--op-gold); letter-spacing: 1.1px; text-transform: uppercase; margin-top: 1px }
-
-/* Omnibox — one search for every client and prospect in the console. */
-.op-omni { position: relative; flex: 1; min-width: 0; max-width: 460px; margin: 0 auto }
+.op-omni { position: relative; flex: 1; min-width: 0; max-width: 480px; margin: 0 auto }
 .op-omni-field {
-  display: flex; align-items: center; gap: 8px;
-  background: var(--op-surface-2); border: 1px solid var(--op-line);
-  border-radius: 11px; padding: 0 10px; height: 38px;
+  display: flex; align-items: center; gap: 9px; height: 42px; padding: 0 12px;
+  background: var(--op-surface-2); border: 1px solid var(--op-line-2); border-radius: 12px;
   transition: border-color .15s, background .15s;
 }
-.op-omni-field:focus-within { border-color: rgba(200, 164, 78, 0.5); background: var(--op-surface-3) }
-.op-omni-field svg { width: 15px; height: 15px; stroke: var(--op-muted); fill: none; stroke-width: 2; flex: none }
+.op-omni-field:focus-within { border-color: var(--op-line-strong); background: var(--op-surface-3) }
+.op-omni-field svg { width: 16px; height: 16px; stroke: var(--op-muted); fill: none; stroke-width: 2; flex: none }
 .op-omni-field input {
-  flex: 1; min-width: 0; background: transparent; border: none; outline: none;
-  color: var(--op-cream); font-family: 'Outfit', sans-serif; font-size: 13.5px;
+  flex: 1; min-width: 0; background: transparent; border: 0; outline: 0;
+  color: var(--op-cream); font-family: 'Outfit', sans-serif; font-size: 14px;
 }
 .op-omni-field input::placeholder { color: var(--op-dim) }
-.op-omni-kbd {
-  flex: none; font-size: 10px; color: var(--op-dim); border: 1px solid var(--op-line);
-  border-radius: 5px; padding: 1px 5px; font-family: ui-monospace, monospace;
-}
+.op-omni-kbd { flex: none; font-size: 10px; color: var(--op-dim); border: 1px solid var(--op-line-2); border-radius: 5px; padding: 1px 6px; font-family: ui-monospace, monospace }
 .op-omni-results {
-  display: none; position: absolute; top: calc(100% + 6px); left: 0; right: 0;
-  background: var(--op-surface-2); border: 1px solid var(--op-line-strong);
-  border-radius: 12px; box-shadow: 0 22px 50px rgba(0, 0, 0, 0.6);
-  max-height: 60vh; overflow-y: auto; padding: 6px; z-index: 60;
+  display: none; position: absolute; top: calc(100% + 8px); left: 0; right: 0; z-index: 60;
+  background: var(--op-surface-2); border: 1px solid var(--op-line-strong); border-radius: 14px;
+  box-shadow: 0 26px 60px rgba(0, 0, 0, .65); max-height: 62vh; overflow-y: auto; padding: 7px;
 }
 .op-omni-results.open { display: block }
-.op-omni-item {
-  display: flex; align-items: center; gap: 10px; padding: 8px 9px;
-  border-radius: 9px; cursor: pointer;
-}
+.op-omni-item { display: flex; align-items: center; gap: 11px; padding: 9px 10px; border-radius: 10px; cursor: pointer }
 .op-omni-item:hover, .op-omni-item.sel { background: var(--op-gold-soft) }
 .op-omni-main { min-width: 0; flex: 1 }
-.op-omni-name { font-size: 13px; font-weight: 600; color: var(--op-cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.op-omni-sub { font-size: 11px; color: var(--op-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.op-omni-tag {
-  flex: none; font-size: 9px; font-weight: 700; letter-spacing: .4px; text-transform: uppercase;
-  color: var(--op-gold); background: var(--op-gold-soft); border-radius: 999px; padding: 3px 8px;
-}
-.op-omni-empty { padding: 14px; text-align: center; font-size: 12px; color: var(--op-muted) }
+.op-omni-name { font-size: 13.5px; font-weight: 600; color: var(--op-cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.op-omni-sub { font-size: 11.5px; color: var(--op-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.op-omni-tag { flex: none; font-size: 9px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--op-gold); background: var(--op-gold-soft); border-radius: 999px; padding: 3px 9px }
+.op-omni-empty { padding: 16px; text-align: center; font-size: 12.5px; color: var(--op-muted) }
 
-.op-top-right { display: flex; align-items: center; gap: 8px; flex: none; margin-left: auto }
-.op-sync {
-  font-size: 10.5px; color: var(--op-dim); white-space: nowrap;
-  border: 1px solid var(--op-line); border-radius: 999px; padding: 4px 10px;
-}
-.op-sync b { color: var(--op-ok); font-weight: 600 }
+.op-top-right { display: flex; align-items: center; gap: 9px; flex: none; margin-left: auto }
 .op-logout {
-  padding: 8px 13px; background: transparent; border: 1px solid rgba(200, 164, 78, 0.35);
-  color: var(--op-cream); border-radius: 9px; font-weight: 600; font-size: 12.5px;
-  cursor: pointer; transition: all .15s; flex: none;
+  padding: 9px 15px; background: transparent; border: 1px solid var(--op-line-strong);
+  color: var(--op-cream); border-radius: 10px; font-weight: 600; font-size: 13px; cursor: pointer; transition: all .15s; flex: none;
 }
 .op-logout:hover { background: var(--op-gold-soft); color: var(--op-gold) }
 
-/* ------------------------------------------------------------------ rail */
+/* --------------------------------------------------------------- rail */
+/* index.html carries a bare `nav{position:fixed;top:0;z-index:10010}` rule that
+   hijacks EVERY <nav>. The rail is a div[role=navigation]; this guard covers
+   anything else the console might add. The bottom nav is exempt — it is a real
+   <nav> whose own !important rules win. */
+#operatorPanel nav:not(.admin-bottom-nav) {
+  position: static; top: auto; left: auto; right: auto; z-index: auto;
+  padding: 0; background: none; border-bottom: 0;
+}
 .op-rail {
-  grid-area: rail;
-  display: flex; flex-direction: column; align-items: stretch;
-  gap: 4px; padding: 12px 8px;
-  border-right: 1px solid var(--op-line);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent);
-  overflow: hidden;
+  grid-area: rail; display: flex; flex-direction: column; gap: 5px; padding: 14px 9px;
+  border-right: 1px solid var(--op-line); overflow: hidden;
+  background: linear-gradient(180deg, rgba(255, 255, 255, .02), transparent);
 }
 .op-rail-btn {
-  position: relative; display: flex; flex-direction: column; align-items: center; gap: 5px;
-  padding: 10px 4px 9px; border: 1px solid transparent; border-radius: 12px;
+  position: relative; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  padding: 11px 4px 10px; border: 1px solid transparent; border-radius: 14px;
   background: transparent; color: var(--op-dim); cursor: pointer;
-  font-family: 'Syne', sans-serif; font-size: 10.5px; font-weight: 600; letter-spacing: .3px;
+  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 600; letter-spacing: .3px;
   transition: color .15s, background .15s, border-color .15s;
 }
-.op-rail-btn svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round }
-.op-rail-btn:hover { color: var(--op-cream); background: rgba(255, 255, 255, 0.035) }
-.op-rail-btn.active { color: var(--op-gold); background: var(--op-gold-soft); border-color: rgba(200, 164, 78, 0.28) }
+.op-rail-btn svg { width: 21px; height: 21px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round }
+.op-rail-btn:hover { color: var(--op-cream); background: rgba(255, 255, 255, .04) }
+.op-rail-btn.active { color: var(--op-gold); background: var(--op-gold-soft); border-color: var(--op-line-strong) }
 .op-rail-badge {
-  position: absolute; top: 3px; right: 5px; min-width: 15px; height: 15px; padding: 0 3px;
-  border-radius: 999px; background: var(--op-bad); color: #17110c;
-  font-size: 9px; font-weight: 800; line-height: 15px; text-align: center; display: none;
+  position: absolute; top: 4px; right: 6px; min-width: 16px; height: 16px; padding: 0 4px;
+  border-radius: 999px; background: var(--op-bad); color: #17110c; display: none;
+  font-size: 9.5px; font-weight: 800; line-height: 16px; text-align: center;
 }
 .op-rail-badge.on { display: block }
 .op-rail-spacer { flex: 1 }
-.op-rail-hint { font-size: 9px; color: var(--op-dim); text-align: center; line-height: 1.4; padding: 0 2px 4px }
+.op-rail-hint { font-size: 9px; color: var(--op-dim); text-align: center; line-height: 1.5; padding: 0 2px 4px }
 
-/* ------------------------------------------------------------------ main */
+/* --------------------------------------------------------------- main */
 .op-main { grid-area: main; position: relative; min-width: 0; min-height: 0; overflow: hidden }
 .op-screen { display: none; flex-direction: column; height: 100%; min-height: 0; overflow: hidden }
 .op-screen.active { display: flex }
 
-/* Shared toolbar that sits above a working surface. One row, never wraps on desktop. */
-.op-bar {
-  display: flex; align-items: center; gap: 8px; flex: none;
-  padding: 11px 16px; border-bottom: 1px solid var(--op-line);
-  background: rgba(255, 255, 255, 0.012);
+/* one sentence of truth, then the tools */
+.op-standfirst {
+  display: flex; align-items: flex-end; gap: 16px; flex: none;
+  padding: 20px 26px 14px; border-bottom: 1px solid var(--op-line);
 }
-.op-bar-title {
-  font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700;
-  color: var(--op-cream); letter-spacing: .3px; white-space: nowrap; flex: none;
-}
-.op-bar-sub { font-size: 11px; color: var(--op-muted); white-space: nowrap; flex: none }
-.op-bar-grow { flex: 1; min-width: 0 }
+.op-sf-main { min-width: 0; flex: 1 }
+.op-sf-line { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--op-cream); letter-spacing: .2px; line-height: 1.2 }
+.op-sf-line b { color: var(--op-gold) }
+.op-sf-sub { font-size: 13px; color: var(--op-muted); margin-top: 5px }
+.op-sf-tools { display: flex; align-items: center; gap: 8px; flex: none }
 
 .op-input, .op-select {
-  background: var(--op-surface-2); border: 1px solid var(--op-line); color: var(--op-cream);
-  border-radius: 9px; padding: 8px 10px; font-size: 12.5px; font-family: 'Outfit', sans-serif;
-  outline: none; max-width: 100%;
+  background: var(--op-surface-2); border: 1px solid var(--op-line-2); color: var(--op-cream);
+  border-radius: 10px; padding: 9px 12px; font-size: 13px; font-family: 'Outfit', sans-serif; outline: 0; max-width: 100%;
 }
-.op-input:focus, .op-select:focus { border-color: rgba(200, 164, 78, 0.45) }
+.op-input:focus, .op-select:focus { border-color: var(--op-line-strong) }
 .op-input::placeholder { color: var(--op-dim) }
 .op-select { cursor: pointer }
-.op-input.grow { flex: 1; min-width: 120px }
 
-.op-seg { display: inline-flex; background: var(--op-surface-2); border: 1px solid var(--op-line); border-radius: 10px; padding: 3px; gap: 2px; flex: none }
-.op-seg-btn {
-  padding: 6px 14px; border: none; background: transparent; color: var(--op-muted);
-  font-family: 'Syne', sans-serif; font-size: 11.5px; font-weight: 600; border-radius: 8px;
-  cursor: pointer; transition: all .15s; white-space: nowrap;
-}
-.op-seg-btn:hover { color: var(--op-cream) }
-.op-seg-btn.active { background: linear-gradient(90deg, #c8a44e, #e0c074); color: #17110c }
-
+.op-chips { display: flex; gap: 8px; flex: none; padding: 12px 26px 0; overflow-x: auto; scrollbar-width: none }
+.op-chips::-webkit-scrollbar { display: none }
 .op-chip {
-  padding: 5px 11px; border-radius: 999px; border: 1px solid var(--op-line);
-  background: transparent; color: var(--op-muted); font-size: 11.5px; font-weight: 600;
-  cursor: pointer; transition: all .15s; white-space: nowrap; flex: none;
+  padding: 7px 14px; border-radius: 999px; border: 1px solid var(--op-line-2); background: transparent;
+  color: var(--op-muted); font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; flex: none; transition: all .15s;
 }
 .op-chip:hover { color: var(--op-cream); border-color: var(--op-line-strong) }
 .op-chip.active { background: var(--op-gold-soft); border-color: var(--op-gold); color: var(--op-gold) }
 
 .op-icon-btn {
-  display: grid; place-items: center; width: 34px; height: 34px; flex: none;
-  border-radius: 9px; border: 1px solid var(--op-line); background: var(--op-surface-2);
-  color: var(--op-muted); cursor: pointer; transition: all .15s;
+  display: grid; place-items: center; width: 38px; height: 38px; flex: none; border-radius: 11px;
+  border: 1px solid var(--op-line-2); background: var(--op-surface-2); color: var(--op-muted); cursor: pointer; transition: all .15s;
 }
-.op-icon-btn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round }
-.op-icon-btn:hover { color: var(--op-gold); border-color: rgba(200, 164, 78, 0.4) }
+.op-icon-btn svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round }
+.op-icon-btn:hover { color: var(--op-gold); border-color: var(--op-line-strong) }
 
-/* ------------------------------------------------------------- KPI strip */
-.op-kpis {
-  display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px;
-  padding: 12px 16px 0; flex: none;
+/* every scroll surface gets the same quiet scrollbar */
+.op-scroll, .op-story-body, .op-panel-body, .op-omni-results, .op-cm-box {
+  overflow-y: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: rgba(200, 164, 78, .22) transparent;
 }
-.op-kpi {
-  position: relative; background: var(--op-surface); border: 1px solid var(--op-line);
-  border-radius: 12px; padding: 9px 11px 10px; overflow: hidden; min-width: 0;
-  transition: border-color .15s, transform .15s;
-}
-.op-kpi::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 2.5px; background: var(--acc, #c8a44e) }
-.op-kpi.clickable { cursor: pointer }
-.op-kpi.clickable:hover { border-color: rgba(200, 164, 78, 0.35); transform: translateY(-1px) }
-.op-kpi-n { font-family: 'Syne', sans-serif; font-size: 22px; font-weight: 700; color: var(--acc, #c8a44e); line-height: 1.05 }
-.op-kpi-l {
-  font-size: 9.5px; color: var(--op-muted); margin-top: 5px; letter-spacing: .35px;
-  text-transform: uppercase; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
+.op-scroll::-webkit-scrollbar, .op-story-body::-webkit-scrollbar, .op-panel-body::-webkit-scrollbar,
+.op-omni-results::-webkit-scrollbar, .op-cm-box::-webkit-scrollbar { width: 9px; height: 9px }
+.op-scroll::-webkit-scrollbar-track, .op-story-body::-webkit-scrollbar-track, .op-panel-body::-webkit-scrollbar-track,
+.op-omni-results::-webkit-scrollbar-track, .op-cm-box::-webkit-scrollbar-track { background: transparent }
+.op-scroll::-webkit-scrollbar-thumb, .op-story-body::-webkit-scrollbar-thumb, .op-panel-body::-webkit-scrollbar-thumb,
+.op-omni-results::-webkit-scrollbar-thumb, .op-cm-box::-webkit-scrollbar-thumb { background: rgba(200, 164, 78, .2); border-radius: 5px }
+.op-scroll { flex: 1; padding: 18px 26px 28px }
 
-/* -------------------------------------------------------- panel primitive */
-.op-panel {
-  background: var(--op-surface); border: 1px solid var(--op-line); border-radius: var(--op-r);
-  display: flex; flex-direction: column; min-height: 0; min-width: 0; overflow: hidden;
-}
-.op-panel-head {
-  display: flex; align-items: center; gap: 8px; flex: none;
-  padding: 10px 13px; border-bottom: 1px solid var(--op-line);
-  background: rgba(255, 255, 255, 0.015);
-}
-.op-panel-title {
-  font-family: 'Syne', sans-serif; font-size: 11.5px; font-weight: 700;
-  letter-spacing: .8px; text-transform: uppercase; color: var(--op-cream); white-space: nowrap;
-}
-.op-panel-count {
-  font-size: 10px; font-weight: 700; color: var(--op-gold); background: var(--op-gold-soft);
-  border-radius: 999px; padding: 2px 8px; flex: none;
-}
-.op-panel-tools { margin-left: auto; display: flex; align-items: center; gap: 6px; min-width: 0 }
-.op-panel-body { flex: 1; min-height: 0; overflow-y: auto; padding: 10px 12px 14px }
-.op-panel-body.flush { padding: 8px }
+/* ------------------------------------------------------------- cards */
+.op-cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; align-content: start }
+.op-cards.narrow { grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)) }
 
-/* Every scroll surface in the console gets the same quiet scrollbar. */
-.op-panel-body, .op-omni-results, .op-detail-scroll, .op-list-scroll, .op-cm-box, .op-sheet-body {
-  scrollbar-width: thin; scrollbar-color: rgba(200, 164, 78, 0.22) transparent;
+.op-card {
+  position: relative; display: flex; flex-direction: column; gap: 12px; padding: 18px;
+  background: linear-gradient(158deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, .012));
+  border: 1px solid var(--op-line-2); border-radius: var(--op-r); cursor: pointer; overflow: hidden;
+  transition: transform .16s ease, border-color .16s ease, box-shadow .16s ease;
 }
-.op-panel-body::-webkit-scrollbar, .op-omni-results::-webkit-scrollbar, .op-detail-scroll::-webkit-scrollbar,
-.op-list-scroll::-webkit-scrollbar, .op-cm-box::-webkit-scrollbar, .op-sheet-body::-webkit-scrollbar { width: 8px; height: 8px }
-.op-panel-body::-webkit-scrollbar-track, .op-omni-results::-webkit-scrollbar-track, .op-detail-scroll::-webkit-scrollbar-track,
-.op-list-scroll::-webkit-scrollbar-track, .op-cm-box::-webkit-scrollbar-track, .op-sheet-body::-webkit-scrollbar-track { background: transparent }
-.op-panel-body::-webkit-scrollbar-thumb, .op-omni-results::-webkit-scrollbar-thumb, .op-detail-scroll::-webkit-scrollbar-thumb,
-.op-list-scroll::-webkit-scrollbar-thumb, .op-cm-box::-webkit-scrollbar-thumb, .op-sheet-body::-webkit-scrollbar-thumb {
-  background: rgba(200, 164, 78, 0.18); border-radius: 4px;
-}
-.op-panel-body::-webkit-scrollbar-thumb:hover, .op-detail-scroll::-webkit-scrollbar-thumb:hover,
-.op-list-scroll::-webkit-scrollbar-thumb:hover { background: rgba(200, 164, 78, 0.32) }
+.op-card::before { content: ''; position: absolute; inset: 0 auto 0 0; width: 3px; background: transparent }
+.op-card.flag::before { background: linear-gradient(180deg, var(--op-gold), rgba(200, 164, 78, .25)) }
+.op-card:hover { transform: translateY(-2px); border-color: var(--op-line-strong); box-shadow: 0 16px 40px rgba(0, 0, 0, .38) }
 
-/* ---------------------------------------------------------- TODAY screen */
-.op-today-seg { display: none }
-.op-today-grid {
-  display: grid; gap: 12px; flex: 1; min-height: 0; padding: 12px 16px 16px;
-  grid-template-columns: minmax(0, 1.35fr) minmax(280px, 340px) minmax(280px, 340px);
-  grid-template-areas: "att pulse live";
-}
-@media (max-width: 1439px) {
-  .op-today-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(280px, 350px);
-    grid-template-rows: auto minmax(0, 1fr);
-    grid-template-areas: "att pulse" "att live";
-  }
-}
-#opPaneAttention { grid-area: att }
-#opPanePulse { grid-area: pulse }
-#opPaneLive { grid-area: live }
+.op-card-top { display: flex; align-items: flex-start; gap: 13px }
+.op-card-id { min-width: 0; flex: 1 }
+.op-card-name { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: var(--op-cream); line-height: 1.25; overflow-wrap: anywhere }
+.op-card-mail { font-size: 12.5px; color: var(--op-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.op-card-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px }
 
-/* Attention queue — the ranked "who needs you now" list. */
-.op-att {
-  display: flex; align-items: center; gap: 10px; padding: 9px 11px; margin-bottom: 7px;
-  background: var(--op-surface-2); border: 1px solid var(--op-line);
-  border-left: 3px solid var(--pc, #c8a44e); border-radius: 11px;
-  cursor: pointer; transition: background .15s, border-color .15s;
-}
-.op-att:hover { background: var(--op-surface-3); border-color: var(--op-line-strong); border-left-color: var(--pc, #c8a44e) }
-.op-att-main { flex: 1; min-width: 0 }
-.op-att-name { font-size: 13px; font-weight: 600; color: var(--op-cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.op-att-why { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px }
-.op-att-num { font-size: 10.5px; color: var(--op-dim); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.op-att-acts { display: flex; gap: 4px; flex: none }
-.op-mini-btn {
-  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 8px;
-  border: 1px solid var(--op-line); background: rgba(255, 255, 255, 0.03);
-  color: var(--op-muted); cursor: pointer; font-size: 13px; text-decoration: none;
-  transition: all .15s; line-height: 1; flex: none;
-}
-.op-mini-btn:hover { border-color: rgba(200, 164, 78, 0.45); color: var(--op-gold); background: var(--op-gold-soft) }
-.op-mini-btn.wa:hover { border-color: rgba(37, 211, 102, 0.45); color: #25d366; background: rgba(37, 211, 102, 0.1) }
-
-.op-flag {
-  font-size: 9.5px; font-weight: 700; letter-spacing: .3px; padding: 2px 7px; border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06); color: var(--op-muted); white-space: nowrap;
-}
-.op-flag.p0 { background: rgba(224, 120, 90, 0.16); color: var(--op-bad) }
-.op-flag.p1 { background: rgba(224, 178, 78, 0.15); color: var(--op-warn) }
-.op-flag.p2 { background: rgba(106, 193, 214, 0.13); color: var(--op-info) }
-.op-flag.ok { background: rgba(91, 191, 122, 0.14); color: var(--op-ok) }
-
-/* Pulse meters */
-.op-meters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px }
-.op-meter { background: var(--op-surface-2); border: 1px solid var(--op-line); border-radius: 11px; padding: 10px }
-.op-meter-top { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; margin-bottom: 7px }
-.op-meter-l { font-size: 10px; color: var(--op-muted); text-transform: uppercase; letter-spacing: .3px; line-height: 1.2 }
-.op-meter-v { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--op-cream); white-space: nowrap }
-.op-track { height: 6px; background: rgba(255, 255, 255, 0.07); border-radius: 99px; overflow: hidden }
-.op-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #c8a44e, #e0c074); transition: width .8s cubic-bezier(.2, .8, .2, 1) }
-.op-fill.ok { background: linear-gradient(90deg, #4fae6e, #5bbf7a) }
-.op-fill.warn { background: linear-gradient(90deg, #e0b24e, #e6c063) }
-.op-fill.bad { background: linear-gradient(90deg, #e0785a, #e05a5a) }
-
-.op-chart-card { background: var(--op-surface-2); border: 1px solid var(--op-line); border-radius: 12px; padding: 11px }
-#opPanePulse .op-panel-body { display: flex; flex-direction: column }
-#opPanePulse .op-chart-card { flex: 1; display: flex; flex-direction: column; min-height: 190px }
-#opPanePulse .op-chart-wrap { flex: 1; height: auto; min-height: 150px }
-.op-chart-wrap { position: relative; height: 168px }
-.op-chart-wrap.sm { height: 140px }
-.op-chart-wrap.xs { height: 74px }
-.op-sub {
-  font-family: 'Syne', sans-serif; font-size: 11px; font-weight: 700; letter-spacing: .6px;
-  text-transform: uppercase; color: var(--op-muted); margin: 16px 0 8px;
-}
-.op-sub:first-child { margin-top: 0 }
-
-/* Live feed */
-.op-feed-item {
-  display: flex; align-items: center; gap: 9px; padding: 8px 10px; margin-bottom: 5px;
-  background: var(--op-surface-2); border: 1px solid var(--op-line); border-radius: 10px;
-}
-.op-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--op-gold) }
-.op-dot.checkin { background: var(--op-ok) }
-.op-dot.workout { background: var(--op-gold) }
-.op-dot.nutrition { background: var(--op-info) }
-.op-dot.weight { background: var(--op-violet) }
-.op-dot.weekly { background: var(--op-warn) }
-.op-dot.signup { background: var(--op-bad) }
-.op-feed-main { flex: 1; min-width: 0 }
-.op-feed-name { font-size: 12.5px; font-weight: 600; color: var(--op-cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.op-feed-label { font-size: 11px; color: var(--op-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.op-feed-time { font-size: 10.5px; color: var(--op-dim); flex: none; white-space: nowrap }
-.op-day-sep {
-  font-size: 10px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase;
-  color: var(--op-dim); margin: 12px 0 6px; padding-left: 2px;
-}
-.op-day-sep:first-child { margin-top: 0 }
-
-/* ------------------------------------------------- master / detail layout */
-.op-md {
-  display: grid; gap: 12px; flex: 1; min-height: 0; padding: 12px 16px 16px;
-  grid-template-columns: minmax(300px, 380px) minmax(0, 1fr);
-}
-.op-md.wide-list { grid-template-columns: minmax(320px, 430px) minmax(0, 1fr) }
-.op-list-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 8px 10px 12px }
-.op-detail { background: var(--op-surface); border: 1px solid var(--op-line); border-radius: var(--op-r); display: flex; flex-direction: column; min-height: 0; overflow: hidden }
-.op-detail-scroll { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 16px 20px }
-
-.op-detail-head { display: flex; align-items: center; gap: 11px; flex: none; padding: 12px 14px; border-bottom: 1px solid var(--op-line) }
-.op-detail-back { display: none }
-.op-detail-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; color: var(--op-cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.op-detail-sub { font-size: 11.5px; color: var(--op-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px }
-
-/* Placeholder shown until the operator picks somebody. */
-.op-blank { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; height: 100%; padding: 30px; text-align: center }
-.op-blank svg { width: 42px; height: 42px; stroke: rgba(200, 164, 78, 0.4); fill: none; stroke-width: 1.3 }
-.op-blank-t { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 600; color: var(--op-cream) }
-.op-blank-s { font-size: 12.5px; color: var(--op-muted); max-width: 320px; line-height: 1.55 }
-
-/* Client / lead list rows */
-.op-row {
-  display: flex; align-items: center; gap: 10px; padding: 9px 10px; margin-bottom: 6px;
-  background: transparent; border: 1px solid transparent; border-radius: 11px;
-  cursor: pointer; transition: background .13s, border-color .13s;
-}
-.op-row:hover { background: rgba(255, 255, 255, 0.035); border-color: var(--op-line) }
-.op-row.sel { background: var(--op-gold-soft); border-color: rgba(200, 164, 78, 0.35) }
 .op-avatar {
-  width: 36px; height: 36px; border-radius: 50%; object-fit: cover; flex: none;
-  background: var(--op-gold-soft); display: flex; align-items: center; justify-content: center;
-  font-weight: 700; color: var(--op-gold); font-size: 13px;
+  width: 40px; height: 40px; border-radius: 50%; object-fit: cover; flex: none;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--op-gold-soft); border: 1px solid var(--op-line);
+  font-family: 'Syne', sans-serif; font-weight: 700; color: var(--op-gold); font-size: 14px;
 }
-.op-avatar.lg { width: 44px; height: 44px; font-size: 15px }
-.op-row-main { flex: 1; min-width: 0 }
-.op-row-name { font-size: 13px; font-weight: 600; color: var(--op-cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.op-row-sub { font-size: 11px; color: var(--op-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.op-row-right { display: flex; align-items: center; gap: 6px; flex: none }
-.op-row-stat { text-align: right; line-height: 1.2 }
-.op-row-stat-v { font-size: 12.5px; font-weight: 700; color: var(--op-cream) }
-.op-row-stat-l { font-size: 8.5px; color: var(--op-dim); text-transform: uppercase; letter-spacing: .3px }
-.op-spark { height: 4px; background: rgba(255, 255, 255, 0.07); border-radius: 99px; margin-top: 6px; overflow: hidden; max-width: 200px }
-.op-spark i { display: block; height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #c8a44e, #e0c074); transition: width .6s ease }
+.op-avatar.lg { width: 52px; height: 52px; font-size: 17px }
+.op-avatar.xl { width: 58px; height: 58px; font-size: 19px }
 
-.op-pill { font-size: 9.5px; font-weight: 700; padding: 3px 8px; border-radius: 999px; letter-spacing: .3px; white-space: nowrap }
-.op-pill.ok { background: rgba(91, 191, 122, 0.14); color: var(--op-ok) }
-.op-pill.warn { background: rgba(224, 178, 78, 0.15); color: var(--op-warn) }
-.op-pill.bad { background: rgba(224, 120, 90, 0.16); color: var(--op-bad) }
-.op-pill.info { background: rgba(106, 193, 214, 0.13); color: var(--op-info) }
-.op-pill.gold { background: var(--op-gold-soft); color: var(--op-gold) }
-
-/* Compliance chips (Daily / Workout / Sunday) */
-.op-c3 { display: flex; gap: 4px; flex: none }
-.op-c3 span {
-  width: 34px; padding: 4px 0; border-radius: 7px; text-align: center;
-  font-size: 8px; font-weight: 700; letter-spacing: .3px; line-height: 1.35;
+.op-status, .op-tag {
+  font-size: 11px; font-weight: 700; letter-spacing: .2px; padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+  background: rgba(255, 255, 255, .06); color: var(--op-muted);
 }
-.op-c3 span.ok { background: rgba(91, 191, 122, 0.13); color: var(--op-ok) }
-.op-c3 span.miss { background: rgba(224, 120, 90, 0.15); color: var(--op-bad) }
-.op-c3 b { display: block; font-size: 12px; font-weight: 800 }
+.op-status.ok, .op-tag.ok { background: rgba(91, 191, 122, .14); color: var(--op-ok) }
+.op-status.warn, .op-tag.warn { background: rgba(224, 178, 78, .15); color: var(--op-warn) }
+.op-status.bad, .op-tag.bad { background: rgba(224, 120, 90, .16); color: var(--op-bad) }
+.op-tag.info { background: rgba(106, 193, 214, .14); color: var(--op-info) }
 
-/* ------------------------------------------------------ detail internals */
-.op-actbar { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px }
+/* seven days at a glance */
+.op-week { display: flex; gap: 5px }
+.op-week-d { flex: 1; height: 7px; border-radius: 99px; background: rgba(255, 255, 255, .07) }
+.op-week-d.on { background: linear-gradient(90deg, var(--op-gold), var(--op-gold-lt)) }
+
+.op-card-facts { display: flex; gap: 16px; font-size: 12.5px; color: var(--op-muted) }
+.op-card-facts b { color: var(--op-cream); font-weight: 700; font-size: 14px }
+.op-card-blood { font-size: 12.5px; color: var(--op-dim) }
+
+.op-next {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px; width: 100%;
+  padding: 12px 15px; border-radius: 12px; border: 1px solid var(--op-line-strong);
+  background: var(--op-gold-soft); color: var(--op-gold);
+  font-family: 'Syne', sans-serif; font-size: 13.5px; font-weight: 700; text-align: left; cursor: pointer; transition: filter .15s;
+}
+.op-next svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none }
+.op-next:hover { filter: brightness(1.16) }
+.op-next.bad { background: rgba(224, 120, 90, .13); border-color: rgba(224, 120, 90, .4); color: var(--op-bad) }
+.op-next.warn { background: rgba(224, 178, 78, .12); border-color: rgba(224, 178, 78, .38); color: var(--op-warn) }
+.op-next.info { background: rgba(106, 193, 214, .11); border-color: rgba(106, 193, 214, .35); color: var(--op-info) }
+.op-next.ok { background: rgba(91, 191, 122, .1); border-color: rgba(91, 191, 122, .3); color: var(--op-ok) }
+
+.op-card-actions { display: flex; gap: 8px }
+.op-qa {
+  display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 11px; cursor: pointer;
+  border: 1px solid var(--op-line-2); background: rgba(255, 255, 255, .03); color: var(--op-muted); text-decoration: none; transition: all .15s;
+}
+.op-qa svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round }
+.op-qa:hover { color: var(--op-gold); border-color: var(--op-line-strong); background: var(--op-gold-soft) }
+.op-qa.wa:hover { color: #25d366; border-color: rgba(37, 211, 102, .45); background: rgba(37, 211, 102, .1) }
+
+/* ------------------------------------------------------- story overlay */
+.op-story {
+  position: absolute; inset: 0; z-index: 200; display: none; flex-direction: column;
+  background: var(--op-bg); animation: opStoryIn .18s ease;
+}
+.op-story.open { display: flex }
+@keyframes opStoryIn { from { opacity: 0; transform: translateY(8px) } to { opacity: 1; transform: none } }
+.op-story-head {
+  display: flex; align-items: center; gap: 14px; flex: none;
+  padding: 16px 26px; border-bottom: 1px solid var(--op-line);
+  background: linear-gradient(180deg, rgba(200, 164, 78, .05), transparent);
+}
+.op-story-id { min-width: 0; flex: 1 }
+.op-story-title { font-family: 'Syne', sans-serif; font-size: 21px; font-weight: 700; color: var(--op-cream); line-height: 1.2; overflow-wrap: anywhere }
+.op-story-sub { font-size: 13px; color: var(--op-muted); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.op-story-pills { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; flex: none }
+.op-story-body { flex: 1; padding: 22px 26px 34px }
+
+/* ------------------------------------------------------ story internals */
+.op-actbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px }
 .op-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  padding: 9px 13px; border-radius: 9px; font-size: 12.5px; font-weight: 700; line-height: 1.2;
-  text-decoration: none; cursor: pointer; border: 1px solid transparent; transition: filter .15s, background .15s;
-  white-space: nowrap; flex: 0 1 auto;
+  display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 10px 16px; border-radius: 11px; font-size: 13.5px; font-weight: 700; line-height: 1.2;
+  text-decoration: none; cursor: pointer; border: 1px solid transparent; white-space: nowrap; transition: filter .15s;
 }
 .op-btn:hover { filter: brightness(1.12) }
-.op-btn.primary { background: linear-gradient(90deg, #c8a44e, #e0c074); color: #17110c }
-.op-btn.ghost { background: transparent; border-color: rgba(200, 164, 78, 0.42); color: var(--op-gold) }
-.op-btn.line { background: rgba(200, 164, 78, 0.07); border-color: rgba(200, 164, 78, 0.32); color: var(--op-gold) }
-.op-btn.wa { background: rgba(37, 211, 102, 0.1); border-color: rgba(37, 211, 102, 0.35); color: #25d366 }
-.op-btn.quiet { background: rgba(255, 255, 255, 0.04); border-color: var(--op-line); color: var(--op-cream) }
+.op-btn.primary { background: linear-gradient(90deg, var(--op-gold), var(--op-gold-lt)); color: #17110c }
+.op-btn.ghost { background: transparent; border-color: var(--op-line-strong); color: var(--op-gold) }
+.op-btn.line { background: var(--op-gold-soft); border-color: var(--op-line-strong); color: var(--op-gold) }
+.op-btn.wa { background: rgba(37, 211, 102, .1); border-color: rgba(37, 211, 102, .35); color: #25d366 }
+.op-btn.quiet { background: rgba(255, 255, 255, .045); border-color: var(--op-line-2); color: var(--op-cream) }
 .op-btn[disabled] { opacity: .4; cursor: not-allowed; filter: none }
 
-.op-dtabs {
-  display: flex; gap: 3px; margin-bottom: 14px; padding-bottom: 2px;
-  border-bottom: 1px solid var(--op-line); overflow-x: auto;
-  scrollbar-width: none; -ms-overflow-style: none;
-}
-.op-dtabs::-webkit-scrollbar { display: none; height: 0 }
+.op-dtabs { display: flex; gap: 4px; margin-bottom: 20px; border-bottom: 1px solid var(--op-line); overflow-x: auto; scrollbar-width: none }
+.op-dtabs::-webkit-scrollbar { display: none }
 .op-dtab {
-  flex: 1 1 0; min-width: 68px; text-align: center; padding: 9px 6px;
-  background: transparent; border: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
-  color: var(--op-muted); font-family: 'Syne', sans-serif; font-size: 11.5px; font-weight: 600;
-  cursor: pointer; white-space: nowrap; transition: color .15s, border-color .15s;
+  flex: 1 1 0; min-width: 82px; padding: 11px 8px; margin-bottom: -1px; text-align: center;
+  background: transparent; border: 0; border-bottom: 2px solid transparent; color: var(--op-muted);
+  font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; transition: all .15s;
 }
 .op-dtab:hover { color: var(--op-cream) }
 .op-dtab.active { color: var(--op-gold); border-bottom-color: var(--op-gold) }
 
-.op-mstat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; margin-bottom: 14px }
-.op-mstat { background: var(--op-surface-2); border: 1px solid var(--op-line); border-radius: 11px; padding: 10px 11px }
-.op-mstat-v { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: var(--op-gold); line-height: 1.1 }
-.op-mstat-l { font-size: 9.5px; color: var(--op-muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 5px; line-height: 1.3 }
-
-.op-lines { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 6px }
-.op-line {
-  display: flex; justify-content: space-between; gap: 10px; padding: 8px 11px;
-  background: var(--op-surface-2); border: 1px solid var(--op-line); border-radius: 9px; font-size: 12px;
+.op-sub {
+  font-family: 'Syne', sans-serif; font-size: 12px; font-weight: 700; letter-spacing: .8px;
+  text-transform: uppercase; color: var(--op-gold); margin: 24px 0 10px;
 }
+.op-mstat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 10px; margin-bottom: 6px }
+.op-mstat { background: var(--op-surface-2); border: 1px solid var(--op-line-2); border-radius: 13px; padding: 13px 14px }
+.op-mstat-v { font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 700; color: var(--op-gold); line-height: 1.1 }
+.op-mstat-l { font-size: 10.5px; color: var(--op-muted); text-transform: uppercase; letter-spacing: .3px; margin-top: 6px; line-height: 1.3 }
+
+.op-lines { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 7px }
+.op-line { display: flex; justify-content: space-between; gap: 12px; padding: 10px 13px; background: var(--op-surface-2); border: 1px solid var(--op-line-2); border-radius: 11px; font-size: 13px }
 .op-line-l { color: var(--op-cream) }
 .op-line-r { color: var(--op-muted); text-align: right }
 
-.op-card { background: var(--op-surface-2); border: 1px solid var(--op-line); border-radius: 12px; padding: 11px 13px; margin-bottom: 8px }
-.op-card-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 5px }
-.op-card-kind { font-size: 10.5px; color: var(--op-muted); text-transform: uppercase; letter-spacing: .3px; font-weight: 600 }
-.op-card-title { font-size: 13.5px; font-weight: 600; color: var(--op-cream); margin-bottom: 3px }
-.op-card-macros { font-size: 12px; color: var(--op-gold) }
-.op-card-note { font-size: 11.5px; color: var(--op-muted); margin-top: 6px; font-style: italic }
-.op-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 8px }
-
-.op-ex-list { margin-top: 8px; border-top: 1px solid var(--op-line); padding-top: 7px; display: flex; flex-direction: column; gap: 3px }
-.op-ex-row { display: flex; justify-content: space-between; gap: 10px; font-size: 11.5px }
+.op-card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 10px }
+.op-mini-card { background: var(--op-surface-2); border: 1px solid var(--op-line-2); border-radius: 13px; padding: 13px 15px }
+.op-mini-top { display: flex; justify-content: space-between; align-items: center; gap: 9px; margin-bottom: 6px }
+.op-mini-kind { font-size: 11px; color: var(--op-muted); text-transform: uppercase; letter-spacing: .3px; font-weight: 600 }
+.op-mini-title { font-size: 14px; font-weight: 600; color: var(--op-cream); margin-bottom: 4px }
+.op-mini-macros { font-size: 12.5px; color: var(--op-gold) }
+.op-card-note { font-size: 12.5px; color: var(--op-muted); margin-top: 7px; font-style: italic }
+.op-ex-list { margin-top: 9px; border-top: 1px solid var(--op-line-2); padding-top: 8px; display: flex; flex-direction: column; gap: 4px }
+.op-ex-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px }
 .op-ex-name { color: var(--op-muted); text-transform: capitalize }
 .op-ex-val { color: var(--op-cream); font-weight: 600; white-space: nowrap }
 
-.op-bar-row { background: var(--op-surface-2); border: 1px solid var(--op-line); border-radius: 11px; padding: 10px 12px; margin-bottom: 6px }
-.op-bar-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 7px }
-.op-bar-label { font-size: 11.5px; color: var(--op-cream); font-weight: 600 }
-.op-bar-val { font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: var(--op-gold); white-space: nowrap }
-.op-bar-track { height: 6px; background: rgba(255, 255, 255, 0.07); border-radius: 99px; overflow: hidden }
-.op-bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, #c8a44e, #e0c074); transition: width .8s cubic-bezier(.2, .8, .2, 1) }
+.op-bar-row { background: var(--op-surface-2); border: 1px solid var(--op-line-2); border-radius: 12px; padding: 12px 14px; margin-bottom: 7px }
+.op-bar-top { display: flex; justify-content: space-between; align-items: baseline; gap: 9px; margin-bottom: 8px }
+.op-bar-label { font-size: 12.5px; color: var(--op-cream); font-weight: 600 }
+.op-bar-val { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700; color: var(--op-gold); white-space: nowrap }
+.op-bar-track { height: 7px; background: rgba(255, 255, 255, .07); border-radius: 99px; overflow: hidden }
+.op-bar-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--op-gold), var(--op-gold-lt)); transition: width .8s cubic-bezier(.2, .8, .2, 1) }
 .op-bar-fill.warn { background: linear-gradient(90deg, #e0b24e, #e0785a) }
 .op-bar-fill.bad { background: linear-gradient(90deg, #e0785a, #e05a5a) }
 
-.op-photos { display: flex; gap: 6px; margin-top: 8px }
-.op-photo { width: 33%; aspect-ratio: 3/4; object-fit: cover; border-radius: 8px; background: rgba(255, 255, 255, 0.05) }
+.op-chart-card { background: var(--op-surface-2); border: 1px solid var(--op-line-2); border-radius: 14px; padding: 14px; margin-bottom: 14px }
+.op-chart-wrap { position: relative; height: 210px }
+.op-chart-wrap.sm { height: 170px }
+.op-photos { display: flex; gap: 7px; margin-top: 9px }
+.op-photo { width: 33%; aspect-ratio: 3/4; object-fit: cover; border-radius: 9px; background: rgba(255, 255, 255, .05) }
 
-.op-wk-head { display: flex; align-items: center; gap: 13px; background: var(--op-surface-2); border: 1px solid var(--op-line); border-radius: 12px; padding: 12px 14px; margin-bottom: 10px }
-.op-wk-score { font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700; color: var(--op-gold); line-height: 1 }
-.op-wk-score small { display: block; font-size: 9px; color: var(--op-muted); letter-spacing: .3px; text-transform: uppercase; margin-top: 3px }
-.op-wk-meta { flex: 1; font-size: 11.5px; color: var(--op-muted); line-height: 1.5 }
+.op-wk-head { display: flex; align-items: center; gap: 15px; background: var(--op-surface-2); border: 1px solid var(--op-line-2); border-radius: 14px; padding: 14px 16px; margin-bottom: 11px }
+.op-wk-score { font-family: 'Syne', sans-serif; font-size: 30px; font-weight: 700; color: var(--op-gold); line-height: 1 }
+.op-wk-score small { display: block; font-size: 9.5px; color: var(--op-muted); letter-spacing: .4px; text-transform: uppercase; margin-top: 4px }
+.op-wk-meta { flex: 1; font-size: 12.5px; color: var(--op-muted); line-height: 1.55 }
 .op-wk-meta b { color: var(--op-cream) }
-.op-wk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px }
-.op-wk-card { background: var(--op-surface-2); border: 1px solid var(--op-line); border-radius: 11px; padding: 10px; min-width: 0 }
-.op-wk-c-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 3px }
-.op-wk-c-label { font-size: 10px; color: var(--op-cream); font-weight: 600; text-transform: uppercase; letter-spacing: .3px }
-.op-wk-c-pct { font-family: 'Syne', sans-serif; font-size: 14px; font-weight: 700 }
-.op-wk-c-sub { font-size: 10.5px; color: var(--op-muted); margin-bottom: 7px }
-.op-wk-c-chart { position: relative; height: 62px }
+.op-wk-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(165px, 1fr)); gap: 10px }
+.op-wk-card { background: var(--op-surface-2); border: 1px solid var(--op-line-2); border-radius: 13px; padding: 12px; min-width: 0 }
+.op-wk-c-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px }
+.op-wk-c-label { font-size: 10.5px; color: var(--op-cream); font-weight: 600; text-transform: uppercase; letter-spacing: .3px }
+.op-wk-c-pct { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700 }
+.op-wk-c-sub { font-size: 11px; color: var(--op-muted); margin-bottom: 8px }
+.op-wk-c-chart { position: relative; height: 66px }
 .op-wk-c-chart canvas { max-width: 100% }
 
-/* Blood console list extras */
-.op-blood-meta { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 5px }
+.op-cmp-chip {
+  display: inline-flex; align-items: center; gap: 9px; margin: 0 9px 9px 0; padding: 10px 14px;
+  border: 1px solid var(--op-line-2); border-radius: 11px; cursor: pointer; font-size: 12.5px; color: var(--op-cream);
+}
+.op-cmp-chip.undated { border-color: rgba(245, 166, 35, .4) }
+.op-cmp-chip input { accent-color: var(--op-gold) }
+.op-warn-note { margin-bottom: 10px; padding: 10px 12px; border-radius: 10px; background: rgba(245, 166, 35, .1); border: 1px solid rgba(245, 166, 35, .35); color: #f5c26b; font-size: 12px }
+.op-flagmark { font-size: 11.5px; background: rgba(255, 92, 92, .12); border: 1px solid rgba(255, 92, 92, .3); color: #ff8a8a; border-radius: 7px; padding: 4px 9px }
+.op-quote { background: var(--op-surface-2); border-left: 3px solid var(--op-gold); border-radius: 0 12px 12px 0; padding: 13px 16px; font-size: 13.5px; color: var(--op-cream); line-height: 1.65 }
+.op-quote.sm { font-size: 12.5px; color: var(--op-muted); padding: 10px 13px; border-left-width: 2px }
 
-/* Lead detail */
-.op-lead-info { font-size: 12.5px; color: var(--op-muted); line-height: 1.7 }
-.op-lead-info b { color: var(--op-cream); font-weight: 600 }
-.op-badges { display: flex; gap: 5px; flex-wrap: wrap; margin: 8px 0 }
+/* --------------------------------------------------------------- pulse */
+.op-pulse { display: flex; flex-direction: column; gap: 16px }
+.op-kpis { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 10px }
+.op-kpi { position: relative; background: var(--op-surface); border: 1px solid var(--op-line-2); border-radius: 14px; padding: 13px 14px; overflow: hidden; min-width: 0 }
+.op-kpi::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: var(--acc, #c8a44e) }
+.op-kpi-n { font-family: 'Syne', sans-serif; font-size: 25px; font-weight: 700; color: var(--acc, #c8a44e); line-height: 1.05 }
+.op-kpi-l { font-size: 10.5px; color: var(--op-muted); margin-top: 6px; letter-spacing: .3px; text-transform: uppercase; line-height: 1.25 }
 
-/* ------------------------------------------------ shared / global pieces */
-/* These stay unscoped: the admin escalation inbox lives outside #operatorPanel
-   and reuses the same modal, chat-bubble and empty-state vocabulary. */
-.op-empty { text-align: center; color: var(--op-muted); padding: 26px 12px; font-size: 12.5px; line-height: 1.6 }
-.op-empty.pad { padding: 40px 16px }
+.op-pulse-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr); gap: 16px }
+.op-panel { background: var(--op-surface); border: 1px solid var(--op-line-2); border-radius: var(--op-r); display: flex; flex-direction: column; min-height: 0; overflow: hidden }
+.op-panel-head { display: flex; align-items: center; gap: 10px; flex: none; padding: 13px 16px; border-bottom: 1px solid var(--op-line-2) }
+.op-panel-title { font-family: 'Syne', sans-serif; font-size: 12.5px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; color: var(--op-cream) }
+.op-panel-count { font-size: 10.5px; font-weight: 700; color: var(--op-gold); background: var(--op-gold-soft); border-radius: 999px; padding: 3px 9px }
+.op-panel-sub-inline { font-size: 11.5px; color: var(--op-muted); margin-left: auto }
+.op-panel-body { padding: 14px 16px 18px; max-height: 520px }
+
+.op-meters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin-bottom: 8px }
+.op-meter { background: var(--op-surface-2); border: 1px solid var(--op-line-2); border-radius: 12px; padding: 12px }
+.op-meter-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 9px }
+.op-meter-l { font-size: 11px; color: var(--op-muted); text-transform: uppercase; letter-spacing: .3px; line-height: 1.5 }
+.op-meter-l i { font-style: normal; color: var(--op-dim); text-transform: none; letter-spacing: 0 }
+.op-meter-v { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: var(--op-cream); white-space: nowrap }
+.op-track { height: 7px; background: rgba(255, 255, 255, .07); border-radius: 99px; overflow: hidden }
+.op-fill { height: 100%; width: 0; border-radius: 99px; background: linear-gradient(90deg, var(--op-gold), var(--op-gold-lt)); transition: width .8s cubic-bezier(.2, .8, .2, 1) }
+.op-fill.ok { background: linear-gradient(90deg, #4fae6e, #5bbf7a) }
+.op-fill.warn { background: linear-gradient(90deg, #e0b24e, #e6c063) }
+.op-fill.bad { background: linear-gradient(90deg, #e0785a, #e05a5a) }
+
+.op-feed-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; margin-bottom: 6px; background: var(--op-surface-2); border: 1px solid var(--op-line-2); border-radius: 11px }
+.op-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--op-gold) }
+.op-dot.checkin { background: var(--op-ok) }
+.op-dot.workout { background: var(--op-gold) }
+.op-dot.nutrition { background: var(--op-info) }
+.op-dot.weight { background: #9b8cf0 }
+.op-dot.weekly { background: var(--op-warn) }
+.op-dot.signup { background: var(--op-bad) }
+.op-feed-main { flex: 1; min-width: 0 }
+.op-feed-name { font-size: 13px; font-weight: 600; color: var(--op-cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.op-feed-label { font-size: 11.5px; color: var(--op-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.op-feed-time { font-size: 11px; color: var(--op-dim); flex: none; white-space: nowrap }
+.op-day-sep { font-size: 10.5px; font-weight: 700; letter-spacing: .6px; text-transform: uppercase; color: var(--op-dim); margin: 14px 0 7px }
+.op-day-sep:first-child { margin-top: 0 }
+
+.op-comp { display: flex; align-items: center; gap: 11px; padding: 11px 13px; margin-bottom: 7px; background: var(--op-surface-2); border: 1px solid var(--op-line-2); border-radius: 12px; cursor: pointer; transition: background .15s }
+.op-comp:hover { background: var(--op-surface-3) }
+.op-comp-main { flex: 1; min-width: 0 }
+.op-comp-name { font-size: 13.5px; font-weight: 600; color: var(--op-cream); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.op-comp-sub { font-size: 11.5px; color: var(--op-muted); margin-top: 3px }
+.op-c3 { display: flex; gap: 5px; flex: none }
+.op-c3 span { width: 38px; padding: 5px 0; border-radius: 8px; text-align: center; font-size: 8.5px; font-weight: 700; letter-spacing: .3px; line-height: 1.4 }
+.op-c3 span.ok { background: rgba(91, 191, 122, .13); color: var(--op-ok) }
+.op-c3 span.miss { background: rgba(224, 120, 90, .15); color: var(--op-bad) }
+.op-c3 b { display: block; font-size: 13px; font-weight: 800 }
+
+/* ------------------------------------------- shared / global fragments */
+/* Unscoped: the admin escalation modal lives outside #operatorPanel and reuses
+   this modal, chat-bubble and empty-state vocabulary. */
+.op-empty { text-align: center; color: var(--op-muted, #9a9284); padding: 28px 14px; font-size: 13px; line-height: 1.65 }
+.op-empty.pad { padding: 56px 18px }
 
 .op-cm-overlay {
-  display: none; position: fixed; inset: 0; z-index: 10001; background: rgba(0, 0, 0, 0.74);
-  backdrop-filter: blur(4px); align-items: center; justify-content: center;
+  display: none; position: fixed; inset: 0; z-index: 10001; background: rgba(0, 0, 0, .75); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
   padding: max(20px, env(safe-area-inset-top, 0px)) max(18px, env(safe-area-inset-right, 0px)) max(20px, env(safe-area-inset-bottom, 0px)) max(18px, env(safe-area-inset-left, 0px));
 }
 .op-cm-overlay.open { display: flex }
-.op-cm-box {
-  background: #141317; border: 1px solid rgba(200, 164, 78, 0.24); border-radius: 16px;
-  width: 100%; max-width: 480px; padding: 20px; max-height: 86vh; overflow-y: auto;
-}
-.op-cm-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 600; color: #efe9dc; margin-bottom: 6px }
-.op-cm-hint { font-size: 12px; color: #8d877a; margin-bottom: 12px; line-height: 1.55 }
+.op-cm-box { background: #17151a; border: 1px solid rgba(200, 164, 78, .26); border-radius: 18px; width: 100%; max-width: 500px; padding: 22px; max-height: 86vh; overflow-y: auto }
+.op-cm-title { font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700; color: #efe9dc; margin-bottom: 7px }
+.op-cm-hint { font-size: 12.5px; color: #9a9284; margin-bottom: 14px; line-height: 1.6 }
 .op-cm-textarea {
-  width: 100%; min-height: 110px; background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.13); color: #efe9dc; border-radius: 10px; padding: 12px;
-  font-family: 'Outfit', sans-serif; font-size: 14px; resize: vertical; box-sizing: border-box; outline: none;
+  width: 100%; min-height: 120px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .13);
+  color: #efe9dc; border-radius: 12px; padding: 13px; font-family: 'Outfit', sans-serif; font-size: 14px; resize: vertical; box-sizing: border-box; outline: 0;
 }
-.op-cm-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px }
-.op-cm-btn { padding: 10px 18px; border-radius: 9px; border: none; font-weight: 700; font-size: 13px; cursor: pointer }
+.op-cm-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px }
+.op-cm-btn { padding: 11px 20px; border-radius: 11px; border: 0; font-weight: 700; font-size: 13.5px; cursor: pointer }
 .op-cm-btn.send { background: linear-gradient(90deg, #c8a44e, #e0c074); color: #17110c }
-.op-cm-btn.cancel { background: transparent; border: 1px solid rgba(255, 255, 255, 0.18); color: #efe9dc }
-
-.op-esc-row {
-  background: rgba(255, 255, 255, 0.025); border: 1px solid rgba(255, 255, 255, 0.06);
-  border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; cursor: pointer; transition: background .15s;
-}
-.op-esc-row:hover { background: rgba(200, 164, 78, 0.07) }
-.op-esc-row.sel { background: rgba(200, 164, 78, 0.11); border-color: rgba(200, 164, 78, 0.32) }
-.op-esc-top { display: flex; justify-content: space-between; gap: 10px; align-items: center }
-.op-esc-name { font-size: 13.5px; font-weight: 600; color: #efe9dc }
-.op-esc-sum { font-size: 11px; color: #c8a44e; margin-top: 3px }
-.op-esc-last { font-size: 11.5px; color: #8d877a; margin-top: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.op-esc-badge { font-size: 9px; font-weight: 700; padding: 3px 8px; border-radius: 999px; background: rgba(91, 191, 122, 0.15); color: #5bbf7a; letter-spacing: .3px; white-space: nowrap }
+.op-cm-btn.cancel { background: transparent; border: 1px solid rgba(255, 255, 255, .18); color: #efe9dc }
 
 .op-thread { display: flex; flex-direction: column; min-height: 100% }
 .op-thread .op-chat-wrap { flex: 1; min-height: 0 }
-.op-chat { display: flex; flex-direction: column; gap: 8px; margin: 12px 0 }
-.op-bubble { max-width: 82%; padding: 9px 13px; border-radius: 13px; font-size: 13px; line-height: 1.45 }
-.op-bubble.me { align-self: flex-end; background: linear-gradient(90deg, #c8a44e, #e0c074); color: #17110c; border-bottom-right-radius: 4px }
-.op-bubble.them { align-self: flex-start; background: rgba(255, 255, 255, 0.06); color: #efe9dc; border-bottom-left-radius: 4px }
-.op-bubble-who { font-size: 10px; font-weight: 700; opacity: .7; margin-bottom: 2px }
-.op-reply-row { display: flex; gap: 8px; margin-top: 10px }
+.op-chat { display: flex; flex-direction: column; gap: 9px; margin: 12px 0 }
+.op-bubble { max-width: 78%; padding: 10px 14px; border-radius: 15px; font-size: 13.5px; line-height: 1.5 }
+.op-bubble.me { align-self: flex-end; background: linear-gradient(90deg, #c8a44e, #e0c074); color: #17110c; border-bottom-right-radius: 5px }
+.op-bubble.them { align-self: flex-start; background: rgba(255, 255, 255, .06); color: #efe9dc; border-bottom-left-radius: 5px }
+.op-bubble-who { font-size: 10px; font-weight: 700; opacity: .7; margin-bottom: 3px }
+.op-reply-row { display: flex; gap: 9px; margin-top: 12px }
 .op-reply-row textarea {
-  flex: 1; min-height: 44px; max-height: 120px; background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.13); color: #efe9dc; border-radius: 10px; padding: 10px;
-  font-family: 'Outfit', sans-serif; font-size: 13px; resize: vertical; box-sizing: border-box; outline: none;
+  flex: 1; min-height: 48px; max-height: 130px; background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .13);
+  color: #efe9dc; border-radius: 12px; padding: 11px; font-family: 'Outfit', sans-serif; font-size: 13.5px; resize: vertical; box-sizing: border-box; outline: 0;
 }
-.op-reply-row button { flex: none; padding: 0 18px; border-radius: 10px; border: none; background: linear-gradient(90deg, #c8a44e, #e0c074); color: #17110c; font-weight: 700; cursor: pointer }
+.op-reply-row button { flex: none; padding: 0 20px; border-radius: 12px; border: 0; background: linear-gradient(90deg, #c8a44e, #e0c074); color: #17110c; font-weight: 700; cursor: pointer }
 
-#adminEscModal .op-cm-box { max-width: 640px }
+/* the admin-side escalation inbox still uses these */
+.op-esc-row { background: rgba(255, 255, 255, .025); border: 1px solid rgba(255, 255, 255, .06); border-radius: 13px; padding: 13px 15px; margin-bottom: 9px; cursor: pointer }
+.op-esc-row:hover { background: rgba(200, 164, 78, .07) }
+.op-esc-top { display: flex; justify-content: space-between; gap: 10px; align-items: center }
+.op-esc-name { font-size: 14px; font-weight: 600; color: #efe9dc }
+.op-esc-sum { font-size: 11.5px; color: #c8a44e; margin-top: 4px }
+.op-esc-last { font-size: 12px; color: #9a9284; margin-top: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.op-esc-badge { font-size: 9.5px; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: rgba(91, 191, 122, .15); color: #5bbf7a; white-space: nowrap }
+#adminEscModal .op-cm-box { max-width: 660px }
 
-/* ------------------------------------------------------ mobile & tablet */
-/* The app's floating pill bottom-nav is `position:fixed !important` and is shown
-   below 768px by the global stylesheet, so the console does not reserve a row for
-   it — it simply keeps the main surface clear of where the pill floats. */
+/* --------------------------------------------------- responsive tiers */
 #opBottomNav { display: none }
 #opBottomNav .admin-bottom-nav-inner { grid-template-columns: repeat(5, minmax(0, 1fr)) }
 #opBottomNav .admin-bottom-nav-label { font-size: 9.5px }
@@ -584,30 +465,23 @@
 @media (max-width: 1279px) {
   .op-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)) }
 }
-
-@media (max-width: 1180px) {
-  .op-omni { max-width: 300px }
-  .op-sync { display: none }
-  .op-md { grid-template-columns: minmax(250px, 310px) minmax(0, 1fr) }
-  .op-md.wide-list { grid-template-columns: minmax(260px, 340px) minmax(0, 1fr) }
+@media (max-width: 1100px) {
+  .op-pulse-grid { grid-template-columns: minmax(0, 1fr) }
+  .op-omni { max-width: 320px }
+}
+@media (max-width: 900px) {
+  .op-standfirst { flex-direction: column; align-items: stretch; gap: 12px; padding: 16px 18px 12px }
+  .op-sf-tools { flex-wrap: wrap }
+  .op-sf-tools .op-input { flex: 1; min-width: 140px }
+  .op-scroll { padding: 14px 18px 24px }
+  .op-chips { padding: 10px 18px 0 }
+  .op-story-head, .op-story-body { padding-left: 18px; padding-right: 18px }
 }
 
-/* Below this width three simultaneous Today panels stop being readable, so the
-   screen shows one pane at a time behind a segmented control. */
-@media (max-width: 1023px) {
-  .op-today-seg { display: flex; gap: 6px; padding: 10px 14px 0; flex: none }
-  .op-today-seg .op-seg { flex: 1; display: flex }
-  .op-today-seg .op-seg-btn { flex: 1; padding: 7px 6px }
-  .op-today-grid {
-    grid-template-columns: minmax(0, 1fr); grid-template-rows: minmax(0, 1fr);
-    grid-template-areas: "att"; padding: 10px 14px 14px;
-  }
-  .op-today-grid > .op-panel { display: none; grid-area: att }
-  .op-today-grid > .op-panel.pane-active { display: flex }
-}
-
+/* The app's floating pill nav is position:fixed !important and appears below
+   768px, so the console does not reserve a row — it keeps clear of it. */
 @media (max-width: 767px) {
-  #operatorPanel { --op-top-h: 54px }
+  #operatorPanel { --op-top-h: 56px; --op-r: 16px }
   .operator-panel.open {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
@@ -615,53 +489,37 @@
   }
   .op-rail { display: none }
   #opBottomNav { display: flex }
-  /* Keep the working surface clear of the floating pill nav. */
-  .op-main { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) }
-  .op-brand, .op-omni-kbd { display: none }
+  .op-brand, .op-omni-kbd, .op-logout { display: none }
   .op-omni { max-width: none; margin: 0 }
-  .op-logout { display: none }
 
-  .op-kpis { gap: 6px; padding: 10px 12px 0 }
-  .op-kpi { padding: 7px 8px 8px; border-radius: 10px }
-  .op-kpi-n { font-size: 17px }
-  .op-kpi-l { font-size: 8.5px; margin-top: 3px }
-  .op-today-seg { padding: 10px 12px 0 }
-  .op-today-grid { padding: 10px 12px 12px }
+  .op-scroll { padding: 14px 14px calc(96px + env(safe-area-inset-bottom, 0px)) }
+  .op-story-body { padding: 18px 14px calc(96px + env(safe-area-inset-bottom, 0px)) }
+  .op-standfirst { padding: 14px 14px 12px }
+  .op-sf-line { font-size: 19px }
+  .op-chips { padding: 10px 14px 0 }
 
-  /* Master/detail becomes list-then-sheet: no side-by-side squeeze on a phone. */
-  .op-md { grid-template-columns: minmax(0, 1fr); padding: 10px 12px 12px }
-  .op-md .op-detail {
-    position: fixed; inset: 0; z-index: 9500; border-radius: 0; border: none;
-    transform: translateX(100%); transition: transform .22s ease; display: flex;
-    padding-top: env(safe-area-inset-top, 0px); background: var(--op-bg);
-  }
-  .op-md .op-detail.open { transform: translateX(0) }
-  .op-detail-back { display: grid }
-  .op-bar { flex-wrap: wrap; padding: 9px 12px; gap: 6px }
-  .op-bar-title { font-size: 13px }
-  .op-bar-sub { display: none }
-  .op-detail-scroll { padding: 12px 13px calc(96px + env(safe-area-inset-bottom, 0px)) }
-  /* A drill-down owns the screen: the floating pill nav would only sit on top of it. */
-  #operatorPanel:has(.op-detail.open) #opBottomNav { display: none }
-  /* KPI captions wrap rather than clip — every tile in the row grows together. */
-  .op-kpi-l { white-space: normal; line-height: 1.2 }
+  .op-cards, .op-cards.narrow { grid-template-columns: minmax(0, 1fr); gap: 13px }
+  .op-card { padding: 16px }
+  .op-card-name { font-size: 16px }
+
+  /* a story owns the phone screen; the pill nav would only sit on top of it */
+  .op-story { position: fixed; z-index: 9500; padding-top: env(safe-area-inset-top, 0px) }
+  .op-story-head { padding: 13px 14px }
+  .op-story-title { font-size: 18px }
+  .op-story-pills { display: none }
+  #operatorPanel:has(.op-story.open) #opBottomNav { display: none }
+
+  .op-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px }
   .op-mstat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) }
-  .op-lines, .op-card-grid { grid-template-columns: minmax(0, 1fr) }
-  .op-dtab { flex: 0 0 auto; min-width: 0; padding: 9px 12px }
+  .op-lines, .op-card-grid, .op-wk-grid { grid-template-columns: minmax(0, 1fr) }
+  .op-dtab { flex: 0 0 auto; min-width: 0; padding: 11px 14px }
   .op-btn { flex: 1 1 auto }
-  .op-meters { grid-template-columns: repeat(2, minmax(0, 1fr)) }
+  .op-panel-body { max-height: none }
 }
 
-@media (max-width: 420px) {
-  .op-kpi-n { font-size: 15.5px }
-  .op-row-right .op-row-stat { display: none }
-  .op-top { gap: 7px }
-}
-
-/* Android has no env(safe-area-inset-top); the app maintains --safe-top in JS. */
+/* Android reports no env(safe-area-inset-top); the app maintains --safe-top. */
 html.android-mobile #operatorPanel .op-top { padding-top: var(--safe-top, 20px); height: calc(var(--op-top-h) + var(--safe-top, 20px)) }
-html.android-mobile .op-md .op-detail { padding-top: var(--safe-top, 20px) }
+html.android-mobile .op-story { padding-top: var(--safe-top, 20px) }
 html.android-mobile .op-cm-box { margin-top: var(--safe-top, 20px) }
 
-/* The console owns the viewport. */
 body.operator-console-open { overflow: hidden }

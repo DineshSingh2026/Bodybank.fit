@@ -7506,6 +7506,29 @@ app.get('/api/operator/clients', verifyToken, requireOperator, async (req, res) 
       ),
       wo7 AS (
         SELECT user_id, COUNT(*)::int AS c FROM workout_logs WHERE created_at >= NOW() - INTERVAL '7 days' GROUP BY user_id
+      ),
+      -- One character per day, oldest -> newest, for the 7-dot week strip on a
+      -- client card. A count alone cannot say WHICH days were missed.
+      week AS (
+        SELECT u.id AS user_id, string_agg(
+                 CASE WHEN EXISTS (
+                   SELECT 1 FROM daily_checkins dc
+                    WHERE dc.user_id = u.id AND dc.checkin_date = d.day
+                      AND COALESCE(dc.is_freeze, FALSE) = FALSE
+                 ) THEN '1' ELSE '0' END, '' ORDER BY d.day) AS days
+          FROM users u
+          CROSS JOIN generate_series((CURRENT_DATE - INTERVAL '6 days')::date, CURRENT_DATE, INTERVAL '1 day') AS d(day)
+         WHERE u.role = 'user'
+         GROUP BY u.id
+      ),
+      blood AS (
+        SELECT user_id, COUNT(*)::int AS n,
+               COUNT(*) FILTER (WHERE COALESCE(status,'') <> 'complete')::int AS pending,
+               MAX(COALESCE(report_date, created_at::date))::text AS latest
+          FROM blood_analysis_reports GROUP BY user_id
+      ),
+      cmp AS (
+        SELECT user_id, COUNT(*)::int AS n FROM blood_comparison_reports GROUP BY user_id
       )
       SELECT
         u.id, u.first_name, u.last_name, u.email, u.phone, u.profile_picture,
@@ -7515,12 +7538,20 @@ app.get('/api/operator/clients', verifyToken, requireOperator, async (req, res) 
         (CURRENT_DATE - COALESCE(lc.lc, u.created_at::date))::int AS inactive_days,
         lw.lw AS last_workout_at,
         COALESCE(dc7.c, 0)::int AS checkins_7d,
-        COALESCE(wo7.c, 0)::int AS workouts_7d
+        COALESCE(wo7.c, 0)::int AS workouts_7d,
+        COALESCE(week.days, '0000000') AS checkin_week,
+        COALESCE(blood.n, 0)::int AS blood_reports,
+        COALESCE(blood.pending, 0)::int AS blood_pending,
+        blood.latest AS blood_latest,
+        COALESCE(cmp.n, 0)::int AS blood_comparisons
       FROM users u
       LEFT JOIN last_checkin lc ON lc.user_id = u.id
       LEFT JOIN last_workout lw ON lw.user_id = u.id
       LEFT JOIN dc7 ON dc7.user_id = u.id
       LEFT JOIN wo7 ON wo7.user_id = u.id
+      LEFT JOIN week ON week.user_id = u.id
+      LEFT JOIN blood ON blood.user_id = u.id
+      LEFT JOIN cmp ON cmp.user_id = u.id
       WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE
       ORDER BY inactive_days DESC, LOWER(COALESCE(u.first_name, '')), LOWER(COALESCE(u.last_name, ''))
     `);

@@ -4695,6 +4695,7 @@ button.bb-today-pill{cursor:pointer}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
+<script src="js/operator-console.js?v=2"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -9293,28 +9294,27 @@ button.bb-today-pill{cursor:pointer}
   </div>
 </div>
 
-<!-- ============ OPERATOR CONSOLE (monitoring + blood handling) ============ -->
-<link rel="stylesheet" href="css/operator-console.css?v=1">
+<!-- ============ OPERATOR CONSOLE (client-first workspace) ============ -->
+<link rel="stylesheet" href="css/operator-console.css?v=2">
 <div class="operator-panel" id="operatorPanel">
 
   <!-- TOP BAR -->
   <header class="op-top">
     <img src="img/logo.png" alt="BodyBank" class="op-logo-img" decoding="async">
     <div class="op-brand">
-      <span class="op-brand-title">Console</span>
-      <span class="op-brand-sub">Operator</span>
+      <span class="op-brand-title">Operator</span>
+      <span class="op-brand-sub">Client workspace</span>
     </div>
     <div class="op-omni">
       <div class="op-omni-field">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
-        <input type="text" id="opOmniInput" placeholder="Search any client or prospect…" autocomplete="off"
-               oninput="opOmniInput()" onfocus="opOmniInput()" aria-label="Search clients and prospects">
+        <input type="text" id="opOmniInput" placeholder="Find a client or prospect…" autocomplete="off"
+               oninput="opOmniInput()" onfocus="opOmniInput()" aria-label="Find a client or prospect">
         <span class="op-omni-kbd">/</span>
       </div>
       <div class="op-omni-results" id="opOmniResults"></div>
     </div>
     <div class="op-top-right">
-      <span class="op-sync" id="opSyncLabel">&nbsp;</span>
       <div class="admin-notify-wrap">
         <button class="admin-notify-btn" onclick="toggleNotifyPanel(event)" title="Notifications" aria-label="Notifications"><span class="notify-bell-icon" aria-hidden="true">🔔</span><span class="count" id="opNotifyCount">0</span></button>
         <div class="admin-notify-panel" id="opNotifyPanel">
@@ -9334,282 +9334,198 @@ button.bb-today-pill{cursor:pointer}
     </div>
   </header>
 
-  <!-- DESKTOP RAIL -->
-  <nav class="op-rail" aria-label="Operator navigation">
-    <button type="button" class="op-rail-btn active" data-opnav="today" onclick="opNav('today')" title="Today (1)">
-      <span class="op-rail-badge" id="opRailBadgeToday">0</span>
-      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg>
-      <span>Today</span>
-    </button>
-    <button type="button" class="op-rail-btn" data-opnav="clients" onclick="opNav('clients')" title="Clients (2)">
+  <!-- DESKTOP RAIL — a div, never a nav element: index.html has a global bare nav{} rule that hijacks them -->
+  <div class="op-rail" role="navigation" aria-label="Operator navigation">
+    <button type="button" class="op-rail-btn active" data-opnav="clients" onclick="opNav('clients')" title="Clients (1)">
+      <span class="op-rail-badge" id="opRailBadgeClients">0</span>
       <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.6 19a5.4 5.4 0 0 1 10.8 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M17.6 19a5.4 5.4 0 0 0-3-4.85"/></svg>
       <span>Clients</span>
     </button>
-    <button type="button" class="op-rail-btn" data-opnav="blood" onclick="opNav('blood')" title="Blood (3)">
+    <button type="button" class="op-rail-btn" data-opnav="blood" onclick="opNav('blood')" title="Blood reports (2)">
       <svg viewBox="0 0 24 24"><path d="M12 3s6 6.3 6 10.2A6 6 0 0 1 6 13.2C6 9.3 12 3 12 3Z"/><path d="M9.4 13.6a2.7 2.7 0 0 0 2.6 2.6"/></svg>
       <span>Blood</span>
     </button>
-    <button type="button" class="op-rail-btn" data-opnav="leads" onclick="opNav('leads')" title="Leads (4)">
+    <button type="button" class="op-rail-btn" data-opnav="prospects" onclick="opNav('prospects')" title="Prospects (3)">
       <svg viewBox="0 0 24 24"><path d="M3 5h18l-6.5 8v5l-5 2v-7L3 5Z"/></svg>
-      <span>Leads</span>
+      <span>Prospects</span>
     </button>
-    <button type="button" class="op-rail-btn" data-opnav="inbox" onclick="opNav('inbox')" title="Admin inbox (5)">
+    <button type="button" class="op-rail-btn" data-opnav="inbox" onclick="opNav('inbox')" title="Admin inbox (4)">
       <span class="op-rail-badge" id="opRailBadgeInbox">0</span>
       <svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
       <span>Inbox</span>
     </button>
+    <button type="button" class="op-rail-btn" data-opnav="pulse" onclick="opNav('pulse')" title="Pulse (5)">
+      <svg viewBox="0 0 24 24"><path d="M3 12h4l2.5-7 5 14L17 12h4"/></svg>
+      <span>Pulse</span>
+    </button>
     <div class="op-rail-spacer"></div>
     <div class="op-rail-hint">1–5 to switch<br>/ to search</div>
-  </nav>
+  </div>
 
   <!-- MAIN -->
   <main class="op-main">
 
-    <!-- ================= TODAY ================= -->
-    <section class="op-screen active" id="opScreen-today">
-      <div class="op-kpis">
-        <div class="op-kpi clickable" style="--acc:#c8a44e" onclick="opNav('clients')"><div class="op-kpi-n" id="opKpiClients">–</div><div class="op-kpi-l">Clients</div></div>
-        <div class="op-kpi" style="--acc:#5bbf7a"><div class="op-kpi-n" id="opKpiActive">–</div><div class="op-kpi-l">Active today</div></div>
-        <div class="op-kpi" style="--acc:#6ac1d6"><div class="op-kpi-n" id="opKpiCheckin">–</div><div class="op-kpi-l">Checked in</div></div>
-        <div class="op-kpi" style="--acc:#f6a740"><div class="op-kpi-n" id="opKpiWorkouts">–</div><div class="op-kpi-l">Workouts</div></div>
-        <div class="op-kpi" style="--acc:#4aa8e0"><div class="op-kpi-n" id="opKpiMeals">–</div><div class="op-kpi-l">Meals</div></div>
-        <div class="op-kpi" style="--acc:#9b8cf0"><div class="op-kpi-n" id="opKpiTrials">–</div><div class="op-kpi-l">New trials 7d</div></div>
-        <div class="op-kpi clickable" style="--acc:#e0b24e" onclick="opAttentionFilter('trial')"><div class="op-kpi-n" id="opKpiExpiring">–</div><div class="op-kpi-l">Trials expiring</div></div>
-        <div class="op-kpi clickable" style="--acc:#e0785a" onclick="opAttentionFilter('p0')"><div class="op-kpi-n" id="opKpiRisk">–</div><div class="op-kpi-l">At risk</div></div>
-      </div>
-
-      <div class="op-today-seg" id="opTodaySeg">
-        <div class="op-seg">
-          <button type="button" class="op-seg-btn active" data-pane="attention" onclick="opTodayPane('attention')">Attention</button>
-          <button type="button" class="op-seg-btn" data-pane="pulse" onclick="opTodayPane('pulse')">Pulse</button>
-          <button type="button" class="op-seg-btn" data-pane="live" onclick="opTodayPane('live')">Live</button>
+    <!-- ================= CLIENTS — the home screen ================= -->
+    <section class="op-screen active" id="opScreen-clients">
+      <div class="op-standfirst">
+        <div class="op-sf-main">
+          <div class="op-sf-line" id="opSfLine">Loading your clients…</div>
+          <div class="op-sf-sub" id="opSfSub">&nbsp;</div>
+        </div>
+        <div class="op-sf-tools">
+          <input type="text" class="op-input" id="opClientSearch" placeholder="Search…" oninput="renderOperatorClients()" aria-label="Search clients">
+          <select class="op-select" id="opClientSort" onchange="renderOperatorClients()" aria-label="Order clients">
+            <option value="action">Needs me first</option>
+            <option value="name">Name</option>
+            <option value="recent">Most recently active</option>
+            <option value="blood">Blood reports</option>
+          </select>
         </div>
       </div>
-
-      <div class="op-today-grid">
-        <!-- Needs attention -->
-        <div class="op-panel pane-active" id="opPaneAttention">
-          <div class="op-panel-head">
-            <span class="op-panel-title">Needs attention</span>
-            <span class="op-panel-count" id="opAttentionCount">0</span>
-            <div class="op-panel-tools">
-              <select class="op-select" onchange="opAttentionFilter(this.value)" aria-label="Filter attention queue">
-                <option value="all">All reasons</option>
-                <option value="p0">Urgent only</option>
-                <option value="silent">Gone silent</option>
-                <option value="trial">Trial risk</option>
-                <option value="compliance">Missed logging</option>
-              </select>
-            </div>
-          </div>
-          <div class="op-panel-body" id="opAttentionList"><div class="op-empty">Loading roster…</div></div>
-        </div>
-
-        <!-- Pulse -->
-        <div class="op-panel" id="opPanePulse">
-          <div class="op-panel-head"><span class="op-panel-title">Pulse</span></div>
-          <div class="op-panel-body">
-            <div class="op-meters" id="opMeters"><div class="op-empty">Loading…</div></div>
-            <div class="op-chart-card">
-              <div class="op-sub" style="margin:0 0 8px">14-day activity</div>
-              <div class="op-chart-wrap"><canvas id="opTrendChart"></canvas></div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Live activity -->
-        <div class="op-panel" id="opPaneLive">
-          <div class="op-panel-head">
-            <span class="op-panel-title">Live</span>
-            <span class="op-panel-count" id="opLiveCount">0</span>
-            <div class="op-panel-tools">
-              <select class="op-select" id="opActivityType" onchange="loadOperatorActivity()" aria-label="Activity type">
-                <option value="all">All</option>
-                <option value="checkin">Check-ins</option>
-                <option value="workout">Workouts</option>
-                <option value="nutrition">Nutrition</option>
-                <option value="weight">Weight</option>
-                <option value="weekly">Weekly</option>
-                <option value="signup">Trials</option>
-              </select>
-              <select class="op-select" id="opActivityDays" onchange="loadOperatorActivity()" aria-label="Activity range">
-                <option value="1">1d</option>
-                <option value="7" selected>7d</option>
-                <option value="30">30d</option>
-                <option value="90">90d</option>
-              </select>
-            </div>
-          </div>
-          <div class="op-panel-body" id="opLiveList"><div class="op-empty">Loading…</div></div>
-        </div>
+      <div class="op-chips" id="opClientChips">
+        <button type="button" class="op-chip active" data-cf="all" onclick="opClientFilter('all')">Everyone</button>
+        <button type="button" class="op-chip" data-cf="attention" onclick="opClientFilter('attention')">Needs me</button>
+        <button type="button" class="op-chip" data-cf="ok" onclick="opClientFilter('ok')">On track</button>
+        <button type="button" class="op-chip" data-cf="trial" onclick="opClientFilter('trial')">On trial</button>
+        <button type="button" class="op-chip" data-cf="noblood" onclick="opClientFilter('noblood')">No bloods</button>
       </div>
-    </section>
-
-    <!-- ================= CLIENTS ================= -->
-    <section class="op-screen" id="opScreen-clients">
-      <div class="op-bar">
-        <span class="op-bar-title">Clients</span>
-        <div class="op-seg" id="opClientsSeg">
-          <button type="button" class="op-seg-btn active" data-cv="roster" onclick="opClientsMode('roster')">Roster</button>
-          <button type="button" class="op-seg-btn" data-cv="compliance" onclick="opClientsMode('compliance')">Compliance</button>
-        </div>
-        <input type="text" class="op-input grow" id="opClientSearch" placeholder="Search name, email or phone…" oninput="renderOperatorClients()" aria-label="Search clients">
-        <select class="op-select" id="opClientFilter" onchange="renderOperatorClients()" aria-label="Filter clients">
-          <option value="all">All clients</option>
-          <option value="risk">At risk (2+ days idle)</option>
-          <option value="active">Active (last 2 days)</option>
-          <option value="trialing">On trial</option>
-          <option value="nocheckin">No check-in today</option>
-          <option value="noworkout">No workout · 7d</option>
-          <option value="nosunday">Missed Sunday</option>
-        </select>
-        <select class="op-select" id="opClientSort" onchange="renderOperatorClients()" aria-label="Sort clients">
-          <option value="inactive">Most idle first</option>
-          <option value="name">Name</option>
-          <option value="checkins">Check-ins 7d</option>
-          <option value="workouts">Workouts 7d</option>
-        </select>
-      </div>
-      <div class="op-md">
-        <div class="op-panel">
-          <div class="op-panel-head"><span class="op-panel-title">Roster</span><span class="op-panel-count" id="opClientCount">0</span></div>
-          <div class="op-list-scroll">
-            <div id="opComplianceSummary" style="display:none"></div>
-            <div id="opClientList"><div class="op-empty">Loading…</div></div>
-          </div>
-        </div>
-        <div class="op-detail" id="opClientDetail">
-          <div class="op-detail-head" id="opClientDetailHead">
-            <div style="min-width:0"><div class="op-detail-name">Client profile</div><div class="op-detail-sub">Nothing selected</div></div>
-          </div>
-          <div class="op-detail-scroll" id="opClientDetailBody">
-            <div class="op-blank">
-              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
-              <div class="op-blank-t">Pick a client</div>
-              <div class="op-blank-s">Select someone on the left to see their profile, training, nutrition, body, bloods and readiness — and to reach them in one tap.</div>
-            </div>
-          </div>
-        </div>
+      <div class="op-scroll">
+        <div class="op-cards" id="opClientCards"><div class="op-empty pad">Loading…</div></div>
       </div>
     </section>
 
     <!-- ================= BLOOD ================= -->
     <section class="op-screen" id="opScreen-blood">
-      <div class="op-bar">
-        <span class="op-bar-title">Blood reports</span>
-        <span class="op-bar-sub">Upload · lab date · PDF · delete · comparison</span>
-        <input type="text" class="op-input grow" id="opBloodSearch" placeholder="Search client…" oninput="renderOperatorBlood()" aria-label="Search clients with blood reports">
-        <select class="op-select" id="opBloodFilter" onchange="renderOperatorBlood()" aria-label="Filter blood reports">
-          <option value="all">Everyone</option>
-          <option value="has">Has a report</option>
-          <option value="pending">Still processing</option>
-          <option value="comparable">2+ reports (comparable)</option>
-          <option value="none">No report yet</option>
-        </select>
-      </div>
-      <div class="op-kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))">
-        <div class="op-kpi" style="--acc:#e0785a"><div class="op-kpi-n" id="opBloodKpiReports">–</div><div class="op-kpi-l">Reports on file</div></div>
-        <div class="op-kpi" style="--acc:#e0b24e"><div class="op-kpi-n" id="opBloodKpiPending">–</div><div class="op-kpi-l">Processing</div></div>
-        <div class="op-kpi" style="--acc:#6ac1d6"><div class="op-kpi-n" id="opBloodKpiCompare">–</div><div class="op-kpi-l">Comparisons run</div></div>
-        <div class="op-kpi" style="--acc:#8d877a"><div class="op-kpi-n" id="opBloodKpiNone">–</div><div class="op-kpi-l">No report yet</div></div>
-      </div>
-      <div class="op-md">
-        <div class="op-panel">
-          <div class="op-panel-head"><span class="op-panel-title">Clients</span><span class="op-panel-count" id="opBloodCount">0</span></div>
-          <div class="op-list-scroll" id="opBloodList"><div class="op-empty">Loading…</div></div>
+      <div class="op-standfirst">
+        <div class="op-sf-main">
+          <div class="op-sf-line" id="opBloodLine">Blood reports</div>
+          <div class="op-sf-sub" id="opBloodSub">Upload · lab date · PDF · delete · progress comparison</div>
         </div>
-        <div class="op-detail" id="opBloodDetail">
-          <div class="op-detail-head" id="opBloodDetailHead">
-            <div style="min-width:0"><div class="op-detail-name">Blood workspace</div><div class="op-detail-sub">Nothing selected</div></div>
-          </div>
-          <div class="op-detail-scroll" id="opBloodDetailBody">
-            <div class="op-blank">
-              <svg viewBox="0 0 24 24"><path d="M12 3s6 6.3 6 10.2A6 6 0 0 1 6 13.2C6 9.3 12 3 12 3Z"/></svg>
-              <div class="op-blank-t">Pick a client</div>
-              <div class="op-blank-s">Select someone on the left to upload a lab report, download the generated PDF, correct a lab date or run a longitudinal comparison.</div>
-            </div>
-          </div>
+        <div class="op-sf-tools">
+          <input type="text" class="op-input" id="opBloodSearch" placeholder="Search…" oninput="renderOperatorBlood()" aria-label="Search clients">
+          <select class="op-select" id="opBloodFilter" onchange="renderOperatorBlood()" aria-label="Filter">
+            <option value="all">Everyone</option>
+            <option value="none">No report yet</option>
+            <option value="has">Has a report</option>
+            <option value="pending">Still processing</option>
+            <option value="comparable">2+ reports</option>
+          </select>
         </div>
+      </div>
+      <div class="op-scroll">
+        <div class="op-cards" id="opBloodCards"><div class="op-empty pad">Loading…</div></div>
       </div>
     </section>
 
-    <!-- ================= LEADS ================= -->
-    <section class="op-screen" id="opScreen-leads">
-      <div class="op-bar">
-        <span class="op-bar-title">Prospects</span>
-        <div class="op-seg" id="opLeadsSeg">
-          <button type="button" class="op-seg-btn active" data-lv="audits" onclick="opLeadsView('audits')">Body audits</button>
-          <button type="button" class="op-seg-btn" data-lv="part2" onclick="opLeadsView('part2')">Part-2 forms</button>
+    <!-- ================= PROSPECTS ================= -->
+    <section class="op-screen" id="opScreen-prospects">
+      <div class="op-standfirst">
+        <div class="op-sf-main">
+          <div class="op-sf-line" id="opLeadLine">Prospects</div>
+          <div class="op-sf-sub" id="opLeadSub">People who asked for an audit but are not clients yet</div>
         </div>
-        <input type="text" class="op-input grow" id="opLeadsSearch" placeholder="Search name, email or phone…" oninput="renderOperatorLeads()" aria-label="Search prospects">
-        <select class="op-select" id="opLeadsDays" onchange="loadOperatorLeads()" aria-label="Prospect range">
-          <option value="1">Today</option>
-          <option value="7">Last 7 days</option>
-          <option value="30" selected>Last 30 days</option>
-          <option value="90">Last 90 days</option>
-        </select>
+        <div class="op-sf-tools">
+          <input type="text" class="op-input" id="opLeadsSearch" placeholder="Search…" oninput="renderOperatorLeads()" aria-label="Search prospects">
+          <select class="op-select" id="opLeadsDays" onchange="loadOperatorLeads()" aria-label="Range">
+            <option value="7">Last 7 days</option>
+            <option value="30" selected>Last 30 days</option>
+            <option value="90">Last 90 days</option>
+            <option value="365">Last year</option>
+          </select>
+        </div>
       </div>
-      <div class="op-kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))">
-        <div class="op-kpi" style="--acc:#c8a44e"><div class="op-kpi-n" id="opLeadKpiToday">–</div><div class="op-kpi-l">Audits today</div></div>
-        <div class="op-kpi" style="--acc:#f6a740"><div class="op-kpi-n" id="opLeadKpi7d">–</div><div class="op-kpi-l">Audits · 7d</div></div>
-        <div class="op-kpi" style="--acc:#5bbf7a"><div class="op-kpi-n" id="opLeadKpiPart2">–</div><div class="op-kpi-l">Part-2 today</div></div>
-        <div class="op-kpi" style="--acc:#e0785a"><div class="op-kpi-n" id="opLeadKpiNoAcct">–</div><div class="op-kpi-l">Not signed up</div></div>
+      <div class="op-chips" id="opLeadsSeg">
+        <button type="button" class="op-chip active" data-lv="audits" onclick="opLeadsView('audits')">Body audits</button>
+        <button type="button" class="op-chip" data-lv="part2" onclick="opLeadsView('part2')">Part-2 forms</button>
       </div>
-      <div class="op-md">
-        <div class="op-panel">
-          <div class="op-panel-head"><span class="op-panel-title">Submissions</span><span class="op-panel-count" id="opLeadCount">0</span></div>
-          <div class="op-list-scroll" id="opLeadList"><div class="op-empty">Loading…</div></div>
-        </div>
-        <div class="op-detail" id="opLeadDetail">
-          <div class="op-detail-head" id="opLeadDetailHead">
-            <div style="min-width:0"><div class="op-detail-name">Prospect</div><div class="op-detail-sub">Nothing selected</div></div>
-          </div>
-          <div class="op-detail-scroll" id="opLeadDetailBody">
-            <div class="op-blank">
-              <svg viewBox="0 0 24 24"><path d="M3 5h18l-6.5 8v5l-5 2v-7L3 5Z"/></svg>
-              <div class="op-blank-t">Pick a prospect</div>
-              <div class="op-blank-s">Select a submission to read what they told us and reach them on WhatsApp, phone or email.</div>
-            </div>
-          </div>
-        </div>
+      <div class="op-scroll">
+        <div class="op-cards" id="opLeadCards"><div class="op-empty pad">Loading…</div></div>
       </div>
     </section>
 
-    <!-- ================= INBOX (to admin) ================= -->
+    <!-- ================= INBOX ================= -->
     <section class="op-screen" id="opScreen-inbox">
-      <div class="op-bar">
-        <span class="op-bar-title">Admin inbox</span>
-        <span class="op-bar-sub">Clients you escalated, and what Admin said back</span>
-      </div>
-      <div class="op-md">
-        <div class="op-panel">
-          <div class="op-panel-head"><span class="op-panel-title">Shared with Admin</span><span class="op-panel-count" id="opEscCount">0</span></div>
-          <div class="op-list-scroll" id="opEscList"><div class="op-empty">Loading…</div></div>
+      <div class="op-standfirst">
+        <div class="op-sf-main">
+          <div class="op-sf-line" id="opInboxLine">Admin inbox</div>
+          <div class="op-sf-sub">Clients you escalated, and what Admin said back</div>
         </div>
-        <div class="op-detail" id="opEscDetail">
-          <div class="op-detail-head" id="opEscDetailHead">
-            <div style="min-width:0"><div class="op-detail-name">Conversation</div><div class="op-detail-sub">Nothing selected</div></div>
+      </div>
+      <div class="op-scroll">
+        <div class="op-cards narrow" id="opEscCards"><div class="op-empty pad">Loading…</div></div>
+      </div>
+    </section>
+
+    <!-- ================= PULSE ================= -->
+    <section class="op-screen" id="opScreen-pulse">
+      <div class="op-standfirst">
+        <div class="op-sf-main">
+          <div class="op-sf-line">Pulse</div>
+          <div class="op-sf-sub">How the whole roster is moving</div>
+        </div>
+        <div class="op-sf-tools">
+          <select class="op-select" id="opActivityType" onchange="loadOperatorActivity()" aria-label="Activity type">
+            <option value="all">All activity</option>
+            <option value="checkin">Check-ins</option>
+            <option value="workout">Workouts</option>
+            <option value="nutrition">Nutrition</option>
+            <option value="weight">Weight</option>
+            <option value="weekly">Weekly</option>
+            <option value="signup">Trials</option>
+          </select>
+          <select class="op-select" id="opActivityDays" onchange="loadOperatorActivity()" aria-label="Range">
+            <option value="1">Today</option>
+            <option value="7" selected>7 days</option>
+            <option value="30">30 days</option>
+            <option value="90">90 days</option>
+          </select>
+        </div>
+      </div>
+      <div class="op-scroll">
+        <div class="op-pulse">
+          <div class="op-kpis" id="opKpis">
+            <div class="op-kpi" style="--acc:#c8a44e"><div class="op-kpi-n" id="opKpiClients">–</div><div class="op-kpi-l">Clients</div></div>
+            <div class="op-kpi" style="--acc:#5bbf7a"><div class="op-kpi-n" id="opKpiActive">–</div><div class="op-kpi-l">Active today</div></div>
+            <div class="op-kpi" style="--acc:#6ac1d6"><div class="op-kpi-n" id="opKpiCheckin">–</div><div class="op-kpi-l">Checked in</div></div>
+            <div class="op-kpi" style="--acc:#f6a740"><div class="op-kpi-n" id="opKpiWorkouts">–</div><div class="op-kpi-l">Workouts today</div></div>
+            <div class="op-kpi" style="--acc:#4aa8e0"><div class="op-kpi-n" id="opKpiMeals">–</div><div class="op-kpi-l">Meals today</div></div>
+            <div class="op-kpi" style="--acc:#9b8cf0"><div class="op-kpi-n" id="opKpiTrials">–</div><div class="op-kpi-l">New trials 7d</div></div>
+            <div class="op-kpi" style="--acc:#e0b24e"><div class="op-kpi-n" id="opKpiExpiring">–</div><div class="op-kpi-l">Trials expiring</div></div>
+            <div class="op-kpi" style="--acc:#e0785a"><div class="op-kpi-n" id="opKpiRisk">–</div><div class="op-kpi-l">Need chasing</div></div>
           </div>
-          <div class="op-detail-scroll" id="opEscDetailBody">
-            <div class="op-blank">
-              <svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
-              <div class="op-blank-t">No thread open</div>
-              <div class="op-blank-s">Open a client from Clients and tap “Share to Admin” to start a review thread. Replies land here.</div>
+          <div class="op-pulse-grid">
+            <div class="op-panel">
+              <div class="op-panel-head"><span class="op-panel-title">Engagement</span></div>
+              <div class="op-panel-body">
+                <div class="op-meters" id="opMeters"><div class="op-empty">Loading…</div></div>
+                <div class="op-sub">14-day activity</div>
+                <div class="op-chart-wrap"><canvas id="opTrendChart"></canvas></div>
+              </div>
             </div>
+            <div class="op-panel">
+              <div class="op-panel-head"><span class="op-panel-title">Activity</span><span class="op-panel-count" id="opLiveCount">0</span></div>
+              <div class="op-panel-body" id="opLiveList"><div class="op-empty">Loading…</div></div>
+            </div>
+          </div>
+          <div class="op-panel" id="opCompliancePanel">
+            <div class="op-panel-head"><span class="op-panel-title">Never-miss tracker</span><span class="op-panel-sub-inline">Daily check-in · Workout · Sunday check-in</span></div>
+            <div class="op-panel-body" id="opComplianceList"><div class="op-empty">Loading…</div></div>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- ===== full-width story overlay: client / prospect / thread ===== -->
+    <div class="op-story" id="opStory">
+      <div class="op-story-head" id="opStoryHead"></div>
+      <div class="op-story-body" id="opStoryBody"></div>
+    </div>
   </main>
 
   <!-- MOBILE BOTTOM NAV -->
   <nav class="admin-bottom-nav" id="opBottomNav" aria-label="Operator bottom navigation">
     <div class="admin-bottom-nav-inner">
-      <button type="button" class="admin-bottom-nav-item active" data-opnav="today" onclick="opNav('today')" aria-label="Today">
-        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></span>
-        <span class="admin-bottom-nav-label">Today</span>
-      </button>
-      <button type="button" class="admin-bottom-nav-item" data-opnav="clients" onclick="opNav('clients')" aria-label="Clients">
+      <button type="button" class="admin-bottom-nav-item active" data-opnav="clients" onclick="opNav('clients')" aria-label="Clients">
         <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.6 19a5.4 5.4 0 0 1 10.8 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M17.6 19a5.4 5.4 0 0 0-3-4.85"/></svg></span>
         <span class="admin-bottom-nav-label">Clients</span>
       </button>
@@ -9617,13 +9533,17 @@ button.bb-today-pill{cursor:pointer}
         <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.3 6 10.2A6 6 0 0 1 6 13.2C6 9.3 12 3 12 3Z"/></svg></span>
         <span class="admin-bottom-nav-label">Blood</span>
       </button>
-      <button type="button" class="admin-bottom-nav-item" data-opnav="leads" onclick="opNav('leads')" aria-label="Leads">
+      <button type="button" class="admin-bottom-nav-item" data-opnav="prospects" onclick="opNav('prospects')" aria-label="Prospects">
         <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-6.5 8v5l-5 2v-7L3 5Z"/></svg></span>
-        <span class="admin-bottom-nav-label">Leads</span>
+        <span class="admin-bottom-nav-label">Prospects</span>
       </button>
       <button type="button" class="admin-bottom-nav-item" data-opnav="inbox" onclick="opNav('inbox')" aria-label="Admin inbox">
         <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg></span>
         <span class="admin-bottom-nav-label">Inbox</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-opnav="pulse" onclick="opNav('pulse')" aria-label="Pulse">
+        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7 5 14L17 12h4"/></svg></span>
+        <span class="admin-bottom-nav-label">Pulse</span>
       </button>
     </div>
   </nav>
@@ -27717,7 +27637,6 @@ window.addEventListener('resize', applySafeAreaFix);
 </script>
 <script src="js/scorecard-share.js?v=17"></script>
 <script src="js/blood-report-editor.js?v=2"></script>
-<script src="js/operator-console.js?v=1"></script>
 <script>
 (function() {
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function(eventName) {
