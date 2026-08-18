@@ -1861,6 +1861,59 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
 .admin-blood-card-av .bb-admin-avatar{width:100%;height:100%}
 .admin-blood-card-av .bb-admin-avatar--initials{color:var(--gold);font-size:12px;font-weight:700}
 
+/* ═══════════════════════════════════════════════════════════════════════
+   BLOOD REPORT SLOTS  ("bb-slot" / "bb-bg")
+   A client has exactly three upload slots. These pieces name and count them
+   the same way on the admin list and in the operator client modal, so
+   "Blood Report 2" means one thing to everyone who says it.
+   ═══════════════════════════════════════════════════════════════════════ */
+.bb-slot-pips{display:inline-flex;gap:4px;align-items:center;flex-shrink:0}
+.bb-slot-pip{width:9px;height:9px;border-radius:50%;border:1px solid rgba(255,255,255,0.26);background:transparent}
+.bb-slot-pip.is-full{background:var(--gold,#c8a44e);border-color:var(--gold,#c8a44e)}
+.bb-slot-badge{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:700;letter-spacing:.02em;padding:4px 10px;border-radius:99px;background:rgba(200,164,78,0.14);color:var(--gold,#c8a44e);border:1px solid rgba(200,164,78,0.34);white-space:nowrap;line-height:1.35}
+.bb-slot-badge-n{font-family:var(--bb-font-heading,inherit);font-size:12.5px}
+.bb-slot-flag{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:99px;white-space:nowrap;line-height:1.35}
+.bb-slot-flag--dup{background:rgba(245,166,35,0.13);color:#f5a623;border:1px solid rgba(245,166,35,0.42)}
+.bb-slot-flag--sent{background:rgba(61,214,140,0.12);color:#3dd68c;border:1px solid rgba(61,214,140,0.3)}
+.bb-slot-flag--wait{background:rgba(200,164,78,0.14);color:var(--gold,#c8a44e);border:1px solid rgba(200,164,78,0.35)}
+.bb-slot-free{color:#3dd68c;font-weight:700}
+.bb-slot-fullw{color:#f5a623;font-weight:700}
+
+/* Per-client group in the admin Blood Reports list. */
+.bb-bg-group{border:1px solid rgba(255,255,255,0.08);border-radius:16px;background:rgba(255,255,255,0.015);margin-bottom:14px;overflow:hidden}
+.bb-bg-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;background:rgba(255,255,255,0.035);border-bottom:1px solid rgba(255,255,255,0.07)}
+.bb-bg-who{flex:1;min-width:150px}
+.bb-bg-name{font-weight:700;font-size:14px;color:var(--cream,#f0ede8)}
+.bb-bg-sub{font-size:11px;color:var(--muted,#8a8880);margin-top:2px}
+.bb-bg-slots{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted,#8a8880);white-space:nowrap}
+.bb-bg-body{padding:12px 14px}
+
+/* Summary strip + search above the admin list. */
+.bb-blood-summary{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 12px}
+.bb-blood-sumcell{flex:1 1 118px;min-width:104px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:10px 12px}
+.bb-blood-sumcell-v{font-family:var(--bb-font-heading,inherit);font-size:20px;font-weight:700;color:var(--gold,#c8a44e);line-height:1.1}
+.bb-blood-sumcell-l{font-size:10px;color:var(--muted,#8a8880);margin-top:4px;text-transform:uppercase;letter-spacing:.05em}
+.bb-blood-sumcell.is-warn{border-color:rgba(245,166,35,0.35)}
+.bb-blood-sumcell.is-warn .bb-blood-sumcell-v{color:#f5a623}
+.bb-blood-search{width:100%;max-width:320px;box-sizing:border-box;background:#111;border:1px solid rgba(255,255,255,0.12);color:var(--text,#f0ede8);padding:9px 12px;border-radius:8px;font-size:13px}
+
+/* One report card inside a client group. */
+.bb-blood-card{background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:1rem;margin-bottom:10px;min-width:260px}
+.bb-blood-card:last-child{margin-bottom:0}
+.bb-blood-card-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.bb-blood-card-date{font-size:11.5px;color:var(--muted,#8a8880);margin:0 0 10px}
+@media (max-width:600px){
+  .bb-bg-head{padding:10px 11px;gap:9px}
+  .bb-bg-body{padding:10px 11px}
+  .bb-blood-sumcell{flex:1 1 46%}
+  /* On a phone the slot counter takes its own row instead of fighting the name for
+     width — a nowrap counter beside a 150px name is what pushed the list sideways. */
+  .bb-bg-who{min-width:0;flex:1 1 auto}
+  .bb-bg-name{overflow-wrap:anywhere}
+  .bb-bg-slots{flex:1 0 100%;white-space:normal}
+  .bb-blood-card{min-width:0;padding:12px}
+}
+
 /* Mobile Admin Attention Cards (luxury layout) */
 .admin-attention-card{
   background:rgba(255,255,255,0.03);
@@ -4638,6 +4691,7 @@ button.bb-today-pill{cursor:pointer}
 </style>
 <link rel="stylesheet" href="/mobile-fix.css?v=20">
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
+<link rel="stylesheet" href="/css/blood-report-editor.css?v=2">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
@@ -5829,6 +5883,82 @@ button.bb-today-pill{cursor:pointer}
   .bb-lwr-hl-mc span{color:var(--gold);font-weight:800;font-size:11.5px}
 }
 @media (max-width:380px){.bb-wi-hero{flex-direction:column;text-align:center}.bb-wi-hero-meta{align-items:center}.bb-wi-score{flex-direction:column;text-align:center}.bb-wi-gauge-center b{font-size:22px}}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ADMIN · TOKENS  ("bbtok")  — AI spend ledger
+   Every rule is scoped to #tab-tokens so nothing here can reach another
+   admin screen. Deliberately built from the same surface/border tokens as
+   the rest of admin rather than a new visual language: this is a reporting
+   screen, not a feature that wants attention.
+   ═══════════════════════════════════════════════════════════════════════ */
+#tab-tokens .bbtok-head{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;margin-bottom:16px;
+}
+#tab-tokens .bbtok-range{display:flex;gap:6px;flex-shrink:0}
+#tab-tokens .bbtok-range-btn{
+  padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);
+  color:var(--creamd);transition:background .15s,color .15s,border-color .15s;
+}
+#tab-tokens .bbtok-range-btn:hover{background:rgba(255,255,255,.09)}
+#tab-tokens .bbtok-range-btn.is-active{
+  background:rgba(200,164,78,.15);border-color:rgba(200,164,78,.45);color:var(--gold);
+}
+#tab-tokens .bbtok-kpis{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:26px;
+}
+#tab-tokens .bbtok-kpi{
+  background:linear-gradient(158deg,rgba(255,255,255,.055) 0%,rgba(255,255,255,.014) 62%,rgba(200,164,78,.04) 100%);
+  border:1px solid rgba(255,255,255,.085);border-radius:14px;padding:15px 16px;min-width:0;
+}
+#tab-tokens .bbtok-kpi-lbl{
+  font-size:10px;font-weight:600;letter-spacing:1.4px;text-transform:uppercase;
+  color:var(--creamd);margin-bottom:9px;
+}
+#tab-tokens .bbtok-kpi-val{
+  font-family:'Bebas Neue',sans-serif;font-size:30px;line-height:1;color:var(--gold);
+  letter-spacing:.5px;word-break:break-all;
+}
+#tab-tokens .bbtok-kpi-sub{font-size:11.5px;color:var(--creamd);margin-top:7px;line-height:1.5}
+#tab-tokens .bbtok-kpi-sub b{color:var(--cream);font-weight:700}
+#tab-tokens .bbtok-sub{
+  font-size:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;
+  color:var(--creamd);margin:0 0 12px;
+}
+#tab-tokens .bbtok-scopes{display:flex;flex-direction:column;gap:9px;margin-bottom:26px}
+#tab-tokens .bbtok-scope{
+  display:grid;grid-template-columns:1fr auto;gap:4px 14px;align-items:baseline;
+  padding:11px 13px;border-radius:10px;background:rgba(255,255,255,.035);
+  border:1px solid rgba(255,255,255,.06);position:relative;overflow:hidden;
+}
+/* The share bar sits behind the text rather than beside it, so a long feature
+   name never has to compete with a fixed-width chart column on mobile. */
+#tab-tokens .bbtok-scope-bar{
+  position:absolute;left:0;top:0;bottom:0;background:rgba(200,164,78,.11);
+  border-right:1px solid rgba(200,164,78,.3);pointer-events:none;
+}
+#tab-tokens .bbtok-scope>*:not(.bbtok-scope-bar){position:relative;z-index:1}
+#tab-tokens .bbtok-scope-name{font-size:13.5px;font-weight:600;color:var(--cream)}
+#tab-tokens .bbtok-scope-cost{font-size:14px;font-weight:700;color:var(--gold);white-space:nowrap}
+#tab-tokens .bbtok-scope-meta{font-size:11px;color:var(--muted)}
+#tab-tokens .bbtok-scope-usd{font-size:11px;color:var(--muted);text-align:right;white-space:nowrap}
+/* Let these two tables scroll inside .admin-table-wrap (which is already
+   overflow-x:auto) instead of squeezing "18 Aug 2026" onto three lines at
+   390px. The page itself still never scrolls sideways. */
+#tab-tokens .admin-table th,#tab-tokens .admin-table td{white-space:nowrap}
+#tab-tokens .bbtok-empty{
+  padding:26px 16px;text-align:center;color:var(--muted);font-size:13.5px;
+  border:1px dashed rgba(255,255,255,.12);border-radius:12px;
+}
+#tab-tokens .bbtok-foot{font-size:11.5px;color:var(--muted);margin-top:18px;line-height:1.6}
+@media (max-width:720px){
+  #tab-tokens .bbtok-kpis{grid-template-columns:1fr;gap:10px}
+  #tab-tokens .bbtok-kpi-val{font-size:27px}
+  #tab-tokens .bbtok-head{flex-direction:column;align-items:stretch}
+  #tab-tokens .bbtok-range{width:100%}
+  #tab-tokens .bbtok-range-btn{flex:1}
+}
 
 /* ═══════════════════════════════════════════════════════════════════════
    ADMIN · MOBILE DASHBOARD  ("bbmd")
@@ -7613,6 +7743,7 @@ button.bb-today-pill{cursor:pointer}
           <a class="bb-quick-btn" href="#" onclick="switchTab('blood');return false"><span class="btn-icon">🩺</span>Blood Reports</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('memberships');return false"><span class="btn-icon">💳</span>Members</a>
           <a class="bb-quick-btn" href="#" onclick="switchToSection('analytics');return false"><span class="btn-icon">📈</span>Analytics</a>
+          <a class="bb-quick-btn" href="#" onclick="switchTab('tokens');return false"><span class="btn-icon">🪙</span>Tokens</a>
           <a class="bb-quick-btn" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="btn-icon">💡</span>AI Assist</a>
         </div>
       </div>
@@ -7759,6 +7890,7 @@ button.bb-today-pill{cursor:pointer}
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('leads');return false"><span class="bbmd-qa-ic">&#127919;</span><span class="bbmd-qa-txt">Leads</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('sundaycheckin');return false"><span class="bbmd-qa-ic">&#128197;</span><span class="bbmd-qa-txt">Check-ins</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('dailycompliance');return false"><span class="bbmd-qa-ic">&#128202;</span><span class="bbmd-qa-txt">Compliance</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('tokens');return false"><span class="bbmd-qa-ic">&#129689;</span><span class="bbmd-qa-txt">Tokens</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('workouts');return false"><span class="bbmd-qa-ic">&#127939;</span><span class="bbmd-qa-txt">Workouts</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('tribe');return false"><span class="bbmd-qa-ic">&#128101;</span><span class="bbmd-qa-txt">Clients</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="bbmd-qa-ic">&#128209;</span><span class="bbmd-qa-txt">Audits</span></a>
@@ -7901,6 +8033,11 @@ button.bb-today-pill{cursor:pointer}
             <span class="admin-section-card-icon" aria-hidden="true">&#129302;</span>
             <span class="admin-section-card-title">Marketing AI</span>
             <span class="admin-section-card-desc">Generate social posts, reels, and captions</span>
+          </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('tokens');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">&#129689;</span>
+            <span class="admin-section-card-title">Tokens</span>
+            <span class="admin-section-card-desc">Daily AI token spend in $ and &#8377;, by feature</span>
           </a>
         </div>
       </div>
@@ -8520,6 +8657,43 @@ button.bb-today-pill{cursor:pointer}
       </div>
     </div>
 
+    <!-- TAB: Tokens — every Anthropic call the product makes, priced.
+         Fed by /api/admin/ai-usage, which reads the ai_usage_events ledger. -->
+    <div class="admin-tab-content" id="tab-tokens">
+      <div class="admin-subsection-wrap">
+        <div class="bbtok-head">
+          <div style="min-width:0">
+            <h3 class="admin-subsection-title" style="margin:0">AI token usage</h3>
+            <p class="form-hint" id="bbTokMeta" style="margin:5px 0 0">Loading&hellip;</p>
+          </div>
+          <div class="bbtok-range" id="bbTokRange">
+            <button type="button" class="bbtok-range-btn" data-days="7" onclick="setAdminTokenRange(7)">7 days</button>
+            <button type="button" class="bbtok-range-btn is-active" data-days="30" onclick="setAdminTokenRange(30)">30 days</button>
+            <button type="button" class="bbtok-range-btn" data-days="90" onclick="setAdminTokenRange(90)">90 days</button>
+          </div>
+        </div>
+
+        <div class="bbtok-kpis" id="bbTokKpis"></div>
+
+        <h4 class="bbtok-sub">Where it goes</h4>
+        <div class="bbtok-scopes" id="bbTokScopes"></div>
+
+        <h4 class="bbtok-sub">Day by day</h4>
+        <div class="admin-table-wrap"><table class="admin-table">
+          <thead><tr><th>Date</th><th>Calls</th><th>Tokens</th><th>USD</th><th>INR</th></tr></thead>
+          <tbody id="bbTokDaily"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading&hellip;</td></tr></tbody>
+        </table></div>
+
+        <h4 class="bbtok-sub" style="margin-top:26px">By model</h4>
+        <div class="admin-table-wrap"><table class="admin-table">
+          <thead><tr><th>Model</th><th>Calls</th><th>Tokens</th><th>USD</th><th>INR</th></tr></thead>
+          <tbody id="bbTokModels"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading&hellip;</td></tr></tbody>
+        </table></div>
+
+        <p class="bbtok-foot" id="bbTokFoot"></p>
+      </div>
+    </div>
+
     <!-- TAB: Leader Boards -->
     <div class="admin-tab-content" id="tab-leaderboards">
       <div class="admin-subsection-wrap">
@@ -8777,9 +8951,11 @@ button.bb-today-pill{cursor:pointer}
       <div class="admin-nutrition-header">
         <div>
           <h3>Blood reports</h3>
-          <p class="form-hint" style="margin:4px 0 0">AI extraction and clinical report — review PDF, add a note, then send to the member by email and inbox.</p>
+          <p class="form-hint" style="margin:4px 0 0">Grouped by client. Every client has <strong style="color:var(--gold)">3 upload slots</strong> — Blood Report 1 is their oldest lab draw, 3 the newest. Review the PDF, add a note, then send to the member by email and inbox.</p>
         </div>
         <div class="admin-nutrition-controls">
+          <input type="search" id="adminBloodSearch" class="bb-blood-search" placeholder="Search client name or email…"
+                 aria-label="Search clients" oninput="renderAdminBloodReports()" style="margin:0 8px 0 0;max-width:220px">
           <label class="form-hint" for="adminBloodStatusFilter" style="margin:0 8px 0 0">Filter</label>
           <select id="adminBloodStatusFilter" aria-label="Report status" onchange="loadAdminBloodReports()" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.1);color:var(--text,#f0ede8);padding:8px 12px;border-radius:8px;font-size:13px;">
             <option value="all">All</option>
@@ -9117,432 +9293,342 @@ button.bb-today-pill{cursor:pointer}
   </div>
 </div>
 
-<!-- ============ OPERATOR (read-only monitoring) DASHBOARD ============ -->
-<style>
-.operator-panel{display:none;position:fixed;inset:0;z-index:1000;flex-direction:column;background:var(--dark,#0d0d0d);color:var(--cream,#efe9dc);font-family:'Outfit',sans-serif}
-.operator-panel.open{display:flex}
-.op-top{display:flex;align-items:center;gap:14px;padding:14px 20px;padding-top:max(14px,env(safe-area-inset-top,0px));padding-left:max(20px,env(safe-area-inset-left,0px));padding-right:max(20px,env(safe-area-inset-right,0px));border-bottom:1px solid rgba(200,164,78,0.18);background:linear-gradient(180deg,rgba(200,164,78,0.08),rgba(13,13,13,0.9));flex:none}
-.op-brand{display:flex;flex-direction:column;line-height:1.15}
-.op-brand-title{font-family:'Syne',sans-serif;font-weight:700;font-size:18px;color:var(--gold,#c8a44e);letter-spacing:.4px}
-.op-brand-sub{font-size:11px;color:var(--muted,#8f887a);letter-spacing:.3px}
-.op-top-spacer{flex:1}
-.op-badge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid rgba(200,164,78,0.35);border-radius:999px;font-size:11px;font-weight:600;color:var(--gold,#c8a44e);letter-spacing:.4px;text-transform:uppercase}
-.op-logout{padding:9px 16px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--cream,#efe9dc);border-radius:8px;font-weight:600;font-size:13px;cursor:pointer;transition:all .2s}
-.op-logout:hover{background:rgba(200,164,78,0.12);color:var(--gold,#c8a44e)}
-.op-tabs{display:flex;gap:4px;padding:10px 16px 0;border-bottom:1px solid rgba(255,255,255,0.06);flex:none;overflow-x:auto;-webkit-overflow-scrolling:touch}
-.op-tab-btn{padding:10px 18px;background:transparent;border:none;border-bottom:2px solid transparent;color:var(--muted,#8f887a);font-family:'Syne',sans-serif;font-size:13px;font-weight:600;letter-spacing:.4px;cursor:pointer;white-space:nowrap;transition:color .2s,border-color .2s}
-.op-tab-btn:hover{color:var(--cream,#efe9dc)}
-.op-tab-btn.active{color:var(--gold,#c8a44e);border-bottom-color:var(--gold,#c8a44e)}
-.op-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 16px 60px}
-.op-tab-content{display:none;max-width:1100px;margin:0 auto}
-.op-tab-content.active{display:block}
-.op-note{font-size:12px;color:var(--muted,#8f887a);background:rgba(200,164,78,0.06);border:1px solid rgba(200,164,78,0.15);border-radius:10px;padding:10px 14px;margin-bottom:18px;line-height:1.5}
-/* Overview welcome hero */
-.op-hero{position:relative;text-align:center;padding:28px 20px 22px;margin-bottom:22px;border-radius:20px;overflow:hidden;border:1px solid rgba(200,164,78,0.18);background:radial-gradient(130% 110% at 50% 0%, rgba(200,164,78,0.16), rgba(200,164,78,0.02) 52%, rgba(255,255,255,0.015));box-shadow:0 12px 44px rgba(0,0,0,0.30)}
-.op-hero-logo{height:56px;width:auto;object-fit:contain;margin:0 auto 14px;display:block;position:relative;z-index:1;filter:drop-shadow(0 6px 16px rgba(0,0,0,0.45))}
-.op-hero-welcome{position:relative;z-index:1;font-family:'Syne',sans-serif;font-size:22px;font-weight:700;color:var(--cream,#efe9dc);letter-spacing:.3px;line-height:1.25}
-.op-hero-welcome b{color:var(--gold,#c8a44e)}
-.op-hero-date{position:relative;z-index:1;font-size:11px;color:var(--gold,#c8a44e);margin-top:9px;letter-spacing:1.6px;text-transform:uppercase}
-.op-hero-tag{position:relative;z-index:1;font-size:13px;color:var(--muted,#8f887a);margin-top:12px;line-height:1.55;max-width:440px;margin-left:auto;margin-right:auto}
-.op-hero-badge{position:relative;z-index:1;display:inline-flex;align-items:center;gap:6px;margin-top:15px;padding:6px 14px;border-radius:999px;border:1px solid rgba(200,164,78,0.32);background:rgba(200,164,78,0.09);font-size:10px;font-weight:700;color:var(--gold,#c8a44e);letter-spacing:.7px;text-transform:uppercase}
-/* Premium stat tiles */
-.op-stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:24px}
-.op-stat{display:flex;align-items:center;gap:12px;background:linear-gradient(158deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018));border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:15px 14px;position:relative;overflow:hidden;transition:transform .15s ease,border-color .15s ease,box-shadow .15s ease}
-.op-stat::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--acc,#c8a44e);opacity:.9}
-.op-stat.clickable{cursor:pointer}
-.op-stat.clickable:hover{transform:translateY(-2px);border-color:rgba(200,164,78,0.32);box-shadow:0 10px 24px rgba(0,0,0,0.28)}
-.op-stat-ico{width:40px;height:40px;border-radius:12px;flex:none;display:grid;place-items:center;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08)}
-.op-stat-ico svg{width:20px;height:20px;stroke:var(--acc,#c8a44e);fill:none;stroke-width:1.8}
-.op-stat-body{min-width:0;flex:1}
-.op-stat-num{font-family:'Syne',sans-serif;font-size:25px;font-weight:700;color:var(--acc,#c8a44e);line-height:1}
-.op-stat-label{font-size:10.5px;color:var(--muted,#8f887a);margin-top:6px;letter-spacing:.3px;text-transform:uppercase;line-height:1.3}
-/* Subtle scrollbars inside the operator panel (override the global bright-gold 5px one) */
-.op-scroll::-webkit-scrollbar,.op-modal-overlay::-webkit-scrollbar,#operatorPanel .op-cm-box::-webkit-scrollbar{width:8px;height:8px}
-.op-scroll::-webkit-scrollbar-track,.op-modal-overlay::-webkit-scrollbar-track,#operatorPanel .op-cm-box::-webkit-scrollbar-track{background:transparent}
-.op-scroll::-webkit-scrollbar-thumb,.op-modal-overlay::-webkit-scrollbar-thumb,#operatorPanel .op-cm-box::-webkit-scrollbar-thumb{background:rgba(200,164,78,0.20);border-radius:4px}
-.op-scroll::-webkit-scrollbar-thumb:hover,.op-modal-overlay::-webkit-scrollbar-thumb:hover{background:rgba(200,164,78,0.34)}
-.op-scroll{scrollbar-width:thin;scrollbar-color:rgba(200,164,78,0.22) transparent}
-.op-section-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:600;color:var(--cream,#efe9dc);margin:24px 0 12px;letter-spacing:.3px}
-.op-feed-item,.op-tl-item{display:flex;align-items:center;gap:12px;padding:11px 14px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:12px;margin-bottom:8px}
-.op-dot{width:9px;height:9px;border-radius:50%;flex:none;background:var(--gold,#c8a44e)}
-.op-dot.checkin{background:#5bbf7a}.op-dot.workout{background:#c8a44e}.op-dot.nutrition{background:#6ac1d6}.op-dot.weight{background:#b48ce0}.op-dot.weekly{background:#e0b24e}.op-dot.signup{background:#e0785a}
-.op-feed-main{flex:1;min-width:0}
-.op-feed-name{font-size:13px;font-weight:600;color:var(--cream,#efe9dc)}
-.op-feed-label{font-size:12px;color:var(--muted,#8f887a);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.op-feed-time{font-size:11px;color:var(--muted,#8f887a);flex:none;white-space:nowrap}
-.op-controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:14px}
-.op-input,.op-select{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.12);color:var(--cream,#efe9dc);border-radius:9px;padding:9px 12px;font-size:13px;font-family:'Outfit',sans-serif}
-.op-input{flex:1;min-width:180px}
-.op-input::placeholder{color:var(--muted,#8f887a)}
-.op-chip{padding:7px 13px;border-radius:999px;border:1px solid rgba(255,255,255,0.14);background:transparent;color:var(--muted,#8f887a);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s}
-.op-chip.active{background:rgba(200,164,78,0.15);border-color:var(--gold,#c8a44e);color:var(--gold,#c8a44e)}
-.op-client-row{display:flex;align-items:center;gap:12px;padding:12px 14px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:12px;margin-bottom:8px;cursor:pointer;transition:background .15s,border-color .15s}
-.op-client-row:hover{background:rgba(200,164,78,0.07);border-color:rgba(200,164,78,0.3)}
-.op-avatar{width:40px;height:40px;border-radius:50%;object-fit:cover;flex:none;background:rgba(200,164,78,0.15);display:flex;align-items:center;justify-content:center;font-weight:700;color:var(--gold,#c8a44e);font-size:15px}
-.op-client-main{flex:1;min-width:0}
-.op-client-name{font-size:14px;font-weight:600;color:var(--cream,#efe9dc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.op-client-sub{font-size:11px;color:var(--muted,#8f887a);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.op-client-meta{display:flex;gap:14px;flex:none;text-align:right}
-.op-metric{display:flex;flex-direction:column}
-.op-metric-v{font-size:14px;font-weight:700;color:var(--cream,#efe9dc)}
-.op-metric-l{font-size:9px;color:var(--muted,#8f887a);text-transform:uppercase;letter-spacing:.3px;margin-top:1px}
-.op-pill{font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;letter-spacing:.3px}
-.op-pill.ok{background:rgba(91,191,122,0.15);color:#5bbf7a}
-.op-pill.warn{background:rgba(224,178,78,0.15);color:#e0b24e}
-.op-pill.bad{background:rgba(224,120,90,0.16);color:#e0785a}
-.op-empty{text-align:center;color:var(--muted,#8f887a);padding:34px 10px;font-size:13px}
-.op-modal-overlay{display:none;position:fixed;inset:0;z-index:1100;background:rgba(0,0,0,0.72);backdrop-filter:blur(3px);align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top,0px)) max(12px,env(safe-area-inset-right,0px)) max(24px,env(safe-area-inset-bottom,0px)) max(12px,env(safe-area-inset-left,0px));overflow-y:auto}
-.op-modal-overlay.open{display:flex}
-.op-modal{background:#141310;border:1px solid rgba(200,164,78,0.25);border-radius:18px;width:100%;max-width:720px;padding:0;overflow:hidden}
-.op-modal-head{display:flex;align-items:center;gap:12px;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.07);position:sticky;top:0;background:#141310}
-.op-modal-head .op-client-name{font-size:16px}
-.op-modal-close{margin-left:auto;background:transparent;border:1px solid rgba(255,255,255,0.18);color:var(--cream,#efe9dc);border-radius:8px;width:34px;height:34px;font-size:18px;cursor:pointer;flex:none}
-.op-modal-body{padding:18px 20px 26px}
-.op-mstat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px;margin-bottom:20px}
-.op-mstat{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:11px;padding:12px}
-.op-mstat-v{font-family:'Syne',sans-serif;font-size:19px;font-weight:700;color:var(--gold,#c8a44e)}
-.op-mstat-l{font-size:10px;color:var(--muted,#8f887a);text-transform:uppercase;letter-spacing:.3px;margin-top:5px}
-.op-msub{font-family:'Syne',sans-serif;font-size:13px;color:var(--cream,#efe9dc);margin:18px 0 9px;letter-spacing:.3px}
-.op-line{display:flex;justify-content:space-between;gap:10px;padding:8px 12px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.05);border-radius:9px;margin-bottom:6px;font-size:12px}
-.op-line-l{color:var(--cream,#efe9dc)}.op-line-r{color:var(--muted,#8f887a);white-space:nowrap}
-/* Progress bars */
-.op-bars{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:8px}
-.op-bar-row{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:13px 15px}
-.op-bar-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:9px;gap:8px}
-.op-bar-label{font-size:12px;color:var(--cream,#efe9dc);font-weight:600}
-.op-bar-val{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;color:var(--gold,#c8a44e);white-space:nowrap}
-.op-bar-track{height:8px;background:rgba(255,255,255,0.08);border-radius:99px;overflow:hidden}
-.op-bar-fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#c8a44e,#e0c074);transition:width .9s cubic-bezier(.2,.8,.2,1)}
-.op-bar-fill.warn{background:linear-gradient(90deg,#e0b24e,#e0785a)}
-.op-bar-fill.bad{background:linear-gradient(90deg,#e0785a,#e05a5a)}
-/* Chart card */
-.op-chart-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px;margin-bottom:10px}
-.op-chart-wrap{position:relative;height:220px}
-.op-chart-wrap.sm{height:170px}
-/* Client-row consistency mini-bar */
-.op-mini-track{height:5px;background:rgba(255,255,255,0.08);border-radius:99px;margin-top:8px;overflow:hidden;max-width:280px}
-.op-mini-fill{height:100%;width:0;border-radius:99px;background:linear-gradient(90deg,#c8a44e,#e0c074);transition:width .7s ease}
-/* Operator bottom nav: reuse admin chrome, 4 columns */
-#opBottomNav .admin-bottom-nav-inner{grid-template-columns:repeat(5,minmax(0,1fr))}
-#opBottomNav .admin-bottom-nav-label{font-size:10px}
-/* Modal above the fixed bottom nav */
-.op-modal-overlay{z-index:10000}
-@media(max-width:600px){.op-client-meta{gap:10px}.op-metric-v{font-size:13px}.op-stat-num{font-size:26px}}
-/* Branding logo */
-.op-logo-img{height:clamp(38px,9vw,46px);width:auto;object-fit:contain;flex:none;display:block}
-/* Modal action buttons */
-.op-modal-actions{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.op-act-btn{flex:1;min-width:130px;padding:11px 14px;border-radius:10px;border:none;background:linear-gradient(90deg,#c8a44e,#e0c074);color:#1a1206;font-weight:700;font-size:13px;cursor:pointer;transition:filter .15s}
-.op-act-btn:hover{filter:brightness(1.08)}
-.op-act-btn.ghost{background:transparent;border:1px solid rgba(200,164,78,0.5);color:var(--gold,#c8a44e)}
-/* Unified action bar (client modal) — aligned rows of equal-height buttons */
-.op-actbar{display:flex;flex-direction:column;gap:8px;margin-bottom:16px}
-.op-actrow{display:flex;gap:8px}
-.op-btn{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;padding:11px 8px;border-radius:10px;font-size:13px;font-weight:700;line-height:1.2;white-space:normal;text-align:center;overflow-wrap:break-word;word-break:break-word;text-decoration:none;cursor:pointer;border:1px solid transparent;transition:filter .15s}
-.op-btn:hover{filter:brightness(1.1)}
-.op-btn.wa{background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.4);color:#25d366}
-.op-btn.line{background:rgba(200,164,78,0.08);border-color:rgba(200,164,78,0.4);color:var(--gold,#c8a44e)}
-.op-btn.primary{background:linear-gradient(90deg,#c8a44e,#e0c074);color:#1a1206}
-.op-btn.ghost{background:transparent;border-color:rgba(200,164,78,0.5);color:var(--gold,#c8a44e)}
-/* Weekly report block */
-.op-wk-head{display:flex;align-items:center;gap:14px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px 16px;margin-bottom:12px}
-.op-wk-score{font-family:'Syne',sans-serif;font-size:30px;font-weight:700;color:var(--gold,#c8a44e);line-height:1}
-.op-wk-score small{display:block;font-size:10px;color:var(--muted,#8f887a);letter-spacing:.3px;text-transform:uppercase;margin-top:3px}
-.op-wk-meta{flex:1;font-size:12px;color:var(--muted,#8f887a);line-height:1.5}
-.op-wk-meta b{color:var(--cream,#efe9dc)}
-.op-wk-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-bottom:6px}
-.op-wk-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px;min-width:0}
-.op-wk-c-chart canvas{max-width:100%}
-.op-wk-c-top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px}
-.op-wk-c-label{font-size:11px;color:var(--cream,#efe9dc);font-weight:600;text-transform:uppercase;letter-spacing:.3px}
-.op-wk-c-pct{font-family:'Syne',sans-serif;font-size:15px;font-weight:700}
-.op-wk-c-sub{font-size:11px;color:var(--muted,#8f887a);margin-bottom:8px}
-.op-wk-c-chart{position:relative;height:70px}
-/* Compose modal + escalation modal */
-.op-cm-overlay{display:none;position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,0.72);backdrop-filter:blur(3px);align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) max(20px,env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
-.op-cm-overlay.open{display:flex}
-.op-cm-box{background:#141310;border:1px solid rgba(200,164,78,0.25);border-radius:16px;width:100%;max-width:480px;padding:20px}
-.op-cm-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:600;color:var(--cream,#efe9dc);margin-bottom:6px}
-.op-cm-hint{font-size:12px;color:var(--muted,#8f887a);margin-bottom:12px;line-height:1.5}
-.op-cm-textarea{width:100%;min-height:110px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:var(--cream,#efe9dc);border-radius:10px;padding:12px;font-family:'Outfit',sans-serif;font-size:14px;resize:vertical;box-sizing:border-box}
-.op-cm-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
-.op-cm-btn{padding:10px 18px;border-radius:9px;border:none;font-weight:700;font-size:13px;cursor:pointer}
-.op-cm-btn.send{background:linear-gradient(90deg,#c8a44e,#e0c074);color:#1a1206}
-.op-cm-btn.cancel{background:transparent;border:1px solid rgba(255,255,255,0.18);color:var(--cream,#efe9dc)}
-/* Escalation list + thread */
-.op-esc-row{background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:13px 15px;margin-bottom:9px;cursor:pointer;transition:background .15s}
-.op-esc-row:hover{background:rgba(200,164,78,0.07)}
-.op-esc-top{display:flex;justify-content:space-between;gap:10px;align-items:center}
-.op-esc-name{font-size:14px;font-weight:600;color:var(--cream,#efe9dc)}
-.op-esc-time{font-size:11px;color:var(--muted,#8f887a);white-space:nowrap}
-.op-esc-sum{font-size:11px;color:var(--gold,#c8a44e);margin-top:3px}
-.op-esc-last{font-size:12px;color:var(--muted,#8f887a);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.op-esc-badge{font-size:9px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(91,191,122,0.15);color:#5bbf7a;letter-spacing:.3px}
-.op-chat{display:flex;flex-direction:column;gap:8px;margin:14px 0}
-.op-bubble{max-width:82%;padding:9px 13px;border-radius:13px;font-size:13px;line-height:1.4}
-.op-bubble.me{align-self:flex-end;background:linear-gradient(90deg,#c8a44e,#e0c074);color:#1a1206;border-bottom-right-radius:4px}
-.op-bubble.them{align-self:flex-start;background:rgba(255,255,255,0.06);color:var(--cream,#efe9dc);border-bottom-left-radius:4px}
-.op-bubble-who{font-size:10px;font-weight:700;opacity:.7;margin-bottom:2px}
-.op-reply-row{display:flex;gap:8px;margin-top:10px}
-.op-reply-row textarea{flex:1;min-height:44px;max-height:120px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:var(--cream,#efe9dc);border-radius:10px;padding:10px;font-family:'Outfit',sans-serif;font-size:13px;resize:vertical;box-sizing:border-box}
-.op-reply-row button{flex:none;padding:0 18px;border-radius:10px;border:none;background:linear-gradient(90deg,#c8a44e,#e0c074);color:#1a1206;font-weight:700;cursor:pointer}
-@media(max-width:767px){
-  #operatorPanel .op-tabs{display:none}
-  #operatorPanel .op-scroll{padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))}
-  #operatorPanel .op-stat-grid{grid-template-columns:repeat(2,1fr)}
-  #operatorPanel .op-top{padding:11px 12px;padding-top:max(11px,env(safe-area-inset-top,0px));padding-left:max(12px,env(safe-area-inset-left,0px));padding-right:max(12px,env(safe-area-inset-right,0px));gap:8px}
-  #operatorPanel .op-brand-title{font-size:16px}
-  #operatorPanel .op-brand-sub{display:none}
-  #operatorPanel .op-badge{display:none}
-  #operatorPanel .op-logout{padding:8px 11px;font-size:12px}
-  #operatorPanel .op-client-meta .op-metric:nth-child(2){display:none}
-}
-/* Client drilldown sub-tabs — equal-width, no overflow (kills the gold scrollbar band) */
-.op-dtabs{display:flex;gap:2px;margin-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.08);scrollbar-width:none;-ms-overflow-style:none}
-.op-dtabs::-webkit-scrollbar{display:none;height:0;width:0}
-.op-dtab{flex:1 1 0;min-width:0;text-align:center;padding:10px 4px;background:transparent;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;color:var(--muted,#8f887a);font-family:'Syne',sans-serif;font-size:12px;font-weight:600;letter-spacing:.2px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:color .15s,border-color .15s}
-.op-dtab:hover{color:var(--cream,#efe9dc)}
-.op-dtab.active{color:var(--gold,#c8a44e);border-bottom-color:var(--gold,#c8a44e)}
-/* Also hide the themed scrollbar on the top operator tab strip */
-.op-tabs{scrollbar-width:none;-ms-overflow-style:none}
-.op-tabs::-webkit-scrollbar{display:none;height:0}
-/* Meal + workout + body cards */
-.op-meal-card,.op-wo-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px;margin-bottom:8px}
-.op-meal-top{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:5px}
-.op-meal-type{font-size:11px;color:var(--muted,#8f887a);text-transform:uppercase;letter-spacing:.3px;font-weight:600}
-.op-meal-score{font-size:10px;font-weight:700;padding:3px 8px;border-radius:999px;background:rgba(200,164,78,0.15);color:var(--gold,#c8a44e);white-space:nowrap}
-.op-meal-dish{font-size:14px;font-weight:600;color:var(--cream,#efe9dc);margin-bottom:3px}
-.op-meal-macros{font-size:12px;color:var(--gold,#c8a44e)}
-.op-meal-note{font-size:12px;color:var(--muted,#8f887a);margin-top:6px;font-style:italic}
-.op-wo-big{font-size:12px;color:var(--cream,#efe9dc);margin-top:4px;font-weight:600}
-.op-ex-list{margin-top:8px;border-top:1px solid rgba(255,255,255,0.05);padding-top:8px;display:flex;flex-direction:column;gap:4px}
-.op-ex-row{display:flex;justify-content:space-between;gap:10px;font-size:12px}
-.op-ex-name{color:var(--muted,#8f887a);text-transform:capitalize}
-.op-ex-val{color:var(--cream,#efe9dc);font-weight:600;white-space:nowrap}
-.op-body-photos{display:flex;gap:6px;margin-top:8px}
-.op-body-photo{width:33%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;background:rgba(255,255,255,0.05)}
-/* Segmented control (Roster/Compliance, Audits/Part-2) */
-.op-seg{display:inline-flex;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:3px;margin-bottom:16px;gap:2px}
-.op-seg-btn{padding:8px 18px;border:none;background:transparent;color:var(--muted,#8f887a);font-family:'Syne',sans-serif;font-size:12px;font-weight:600;border-radius:9px;cursor:pointer;transition:all .15s;white-space:nowrap}
-.op-seg-btn.active{background:linear-gradient(90deg,#c8a44e,#e0c074);color:#1a1206}
-/* Lead (prospect) cards */
-.op-lead-card{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:14px;margin-bottom:10px}
-.op-lead-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.op-lead-name{font-size:15px;font-weight:700;color:var(--cream,#efe9dc)}
-.op-lead-meta{font-size:11.5px;color:var(--muted,#8f887a);margin-top:2px;line-height:1.5}
-.op-lead-badges{display:flex;gap:6px;flex-wrap:wrap;margin:9px 0 4px}
-.op-lb{font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px;letter-spacing:.3px;text-transform:capitalize}
-.op-lb.warn{background:rgba(224,120,90,0.16);color:#e0785a}
-.op-lb.ok{background:rgba(91,191,122,0.15);color:#5bbf7a}
-.op-lb.info{background:rgba(200,164,78,0.14);color:#c8a44e}
-.op-lead-info{font-size:12px;color:var(--muted,#8f887a);line-height:1.65;margin-top:6px}
-.op-lead-info b{color:var(--cream,#efe9dc);font-weight:600}
-.op-lead-actions{display:flex;gap:8px;margin-top:11px;flex-wrap:wrap}
-.op-lead-btn{flex:1;min-width:84px;text-align:center;padding:9px 12px;border-radius:9px;font-size:12px;font-weight:700;text-decoration:none;border:1px solid rgba(200,164,78,0.4);color:var(--gold,#c8a44e);background:rgba(200,164,78,0.08);transition:filter .15s}
-.op-lead-btn.wa{background:rgba(37,211,102,0.12);border-color:rgba(37,211,102,0.4);color:#25d366}
-.op-lead-btn:hover{filter:brightness(1.18)}
-/* Compliance tracker */
-.op-comp-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
-.op-comp-sum{background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 8px;text-align:center}
-.op-comp-sum-n{font-family:'Syne',sans-serif;font-size:22px;font-weight:700;line-height:1}
-.op-comp-sum-l{font-size:9.5px;color:var(--muted,#8f887a);text-transform:uppercase;letter-spacing:.3px;margin-top:5px;line-height:1.3}
-.op-comp-card{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:12px;padding:11px 13px;margin-bottom:8px;cursor:pointer;transition:background .15s}
-.op-comp-card:hover{background:rgba(200,164,78,0.06)}
-.op-comp-card.flag{border-color:rgba(224,120,90,0.28)}
-.op-comp-main{flex:1;min-width:0}
-.op-comp-name{font-size:13px;font-weight:600;color:var(--cream,#efe9dc);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.op-comp-sub{font-size:10.5px;color:var(--muted,#8f887a);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.op-comp-chips{display:flex;gap:5px;flex:none}
-.op-chip3{width:38px;padding:5px 0;border-radius:8px;text-align:center}
-.op-chip3.ok{background:rgba(91,191,122,0.14)}
-.op-chip3.miss{background:rgba(224,120,90,0.16)}
-.op-chip3 .c3l{font-size:8px;font-weight:700;letter-spacing:.3px;opacity:.85}
-.op-chip3.ok .c3l,.op-chip3.ok .c3v{color:#5bbf7a}
-.op-chip3.miss .c3l,.op-chip3.miss .c3v{color:#e0785a}
-.op-chip3 .c3v{font-size:13px;font-weight:800;line-height:1;margin-top:2px}
-/* Android status bar fix: env(safe-area-inset-top) is 0 on Android, so use the
-   app's JS-managed --safe-top (20px fallback) — same mechanism as the site nav. */
-html.android-mobile #operatorPanel .op-top{padding-top:calc(var(--safe-top, 20px) + 10px)}
-html.android-mobile .op-modal-overlay{padding-top:calc(var(--safe-top, 20px) + 14px)}
-html.android-mobile #operatorPanel .op-cm-box{margin-top:calc(var(--safe-top, 20px))}
-/* Admin escalation inbox modal (reuses op modal styling under a scoped id) */
-#adminEscModal .op-cm-box{max-width:640px;max-height:86vh;overflow-y:auto}
-</style>
+<!-- ============ OPERATOR CONSOLE (monitoring + blood handling) ============ -->
+<link rel="stylesheet" href="css/operator-console.css?v=1">
 <div class="operator-panel" id="operatorPanel">
-  <div class="op-top">
+
+  <!-- TOP BAR -->
+  <header class="op-top">
     <img src="img/logo.png" alt="BodyBank" class="op-logo-img" decoding="async">
     <div class="op-brand">
-      <span class="op-brand-title">Operator</span>
-      <span class="op-brand-sub">Monitoring · read-only</span>
+      <span class="op-brand-title">Console</span>
+      <span class="op-brand-sub">Operator</span>
     </div>
-    <div class="op-top-spacer"></div>
-    <span class="op-badge">👁 Monitor</span>
-    <div class="admin-notify-wrap">
-      <button class="admin-notify-btn" onclick="toggleNotifyPanel(event)" title="Notifications" aria-label="Notifications"><span class="notify-bell-icon" aria-hidden="true">🔔</span><span class="count" id="opNotifyCount">0</span></button>
-      <div class="admin-notify-panel" id="opNotifyPanel">
-        <div class="admin-notify-header"><span>Notifications</span>
-          <button type="button" class="bb-notify-sound-btn" onclick="toggleNotifySoundsUI(event)" aria-pressed="true" title="Notification sounds" aria-label="Toggle notification sounds">🔊</button>
-        </div>
-        <div class="admin-notify-list" id="opNotifyList"></div>
-        <div class="admin-notify-footer">
-          <button type="button" class="admin-notify-clear admin-notify-clear-all" id="opNotifyClearAllBtn" onclick="clearAllOperatorNotifications()">Clear all</button>
+    <div class="op-omni">
+      <div class="op-omni-field">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+        <input type="text" id="opOmniInput" placeholder="Search any client or prospect…" autocomplete="off"
+               oninput="opOmniInput()" onfocus="opOmniInput()" aria-label="Search clients and prospects">
+        <span class="op-omni-kbd">/</span>
+      </div>
+      <div class="op-omni-results" id="opOmniResults"></div>
+    </div>
+    <div class="op-top-right">
+      <span class="op-sync" id="opSyncLabel">&nbsp;</span>
+      <div class="admin-notify-wrap">
+        <button class="admin-notify-btn" onclick="toggleNotifyPanel(event)" title="Notifications" aria-label="Notifications"><span class="notify-bell-icon" aria-hidden="true">🔔</span><span class="count" id="opNotifyCount">0</span></button>
+        <div class="admin-notify-panel" id="opNotifyPanel">
+          <div class="admin-notify-header"><span>Notifications</span>
+            <button type="button" class="bb-notify-sound-btn" onclick="toggleNotifySoundsUI(event)" aria-pressed="true" title="Notification sounds" aria-label="Toggle notification sounds">🔊</button>
+          </div>
+          <div class="admin-notify-list" id="opNotifyList"></div>
+          <div class="admin-notify-footer">
+            <button type="button" class="admin-notify-clear admin-notify-clear-all" id="opNotifyClearAllBtn" onclick="clearAllOperatorNotifications()">Clear all</button>
+          </div>
         </div>
       </div>
+      <button type="button" class="app-refresh-btn" onclick="refreshOperator(this)" title="Refresh" aria-label="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+      </button>
+      <button class="op-logout" onclick="logoutOperator()">Logout</button>
     </div>
-    <button type="button" class="app-refresh-btn" onclick="refreshOperator(this)" title="Refresh" aria-label="Refresh">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg>
+  </header>
+
+  <!-- DESKTOP RAIL -->
+  <nav class="op-rail" aria-label="Operator navigation">
+    <button type="button" class="op-rail-btn active" data-opnav="today" onclick="opNav('today')" title="Today (1)">
+      <span class="op-rail-badge" id="opRailBadgeToday">0</span>
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg>
+      <span>Today</span>
     </button>
-    <button class="op-logout" onclick="logoutOperator()">Logout</button>
-  </div>
-  <div class="op-tabs">
-    <button type="button" class="op-tab-btn active" data-optab="overview" onclick="switchOperatorTab('overview')">Overview</button>
-    <button type="button" class="op-tab-btn" data-optab="clients" onclick="switchOperatorTab('clients')">Clients</button>
-    <button type="button" class="op-tab-btn" data-optab="leads" onclick="switchOperatorTab('leads')">Leads</button>
-    <button type="button" class="op-tab-btn" data-optab="activity" onclick="switchOperatorTab('activity')">Activity</button>
-    <button type="button" class="op-tab-btn" data-optab="admin" onclick="switchOperatorTab('admin')">To Admin</button>
-  </div>
-  <div class="op-scroll">
-    <!-- OVERVIEW -->
-    <section class="op-tab-content active" id="opTab-overview">
-      <div class="op-hero">
-        <img src="img/logo.png" alt="BodyBank" class="op-hero-logo" decoding="async">
-        <div class="op-hero-welcome">Welcome back, <b>Operator</b></div>
-        <div class="op-hero-date" id="opHeroDate">&nbsp;</div>
-        <div class="op-hero-tag">Here's how your clients are doing today. Monitor activity, spot who needs attention, and loop in Admin when it matters.</div>
-        <div class="op-hero-badge">👁 Read-only monitoring · all controls stay with Admin</div>
+    <button type="button" class="op-rail-btn" data-opnav="clients" onclick="opNav('clients')" title="Clients (2)">
+      <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.6 19a5.4 5.4 0 0 1 10.8 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M17.6 19a5.4 5.4 0 0 0-3-4.85"/></svg>
+      <span>Clients</span>
+    </button>
+    <button type="button" class="op-rail-btn" data-opnav="blood" onclick="opNav('blood')" title="Blood (3)">
+      <svg viewBox="0 0 24 24"><path d="M12 3s6 6.3 6 10.2A6 6 0 0 1 6 13.2C6 9.3 12 3 12 3Z"/><path d="M9.4 13.6a2.7 2.7 0 0 0 2.6 2.6"/></svg>
+      <span>Blood</span>
+    </button>
+    <button type="button" class="op-rail-btn" data-opnav="leads" onclick="opNav('leads')" title="Leads (4)">
+      <svg viewBox="0 0 24 24"><path d="M3 5h18l-6.5 8v5l-5 2v-7L3 5Z"/></svg>
+      <span>Leads</span>
+    </button>
+    <button type="button" class="op-rail-btn" data-opnav="inbox" onclick="opNav('inbox')" title="Admin inbox (5)">
+      <span class="op-rail-badge" id="opRailBadgeInbox">0</span>
+      <svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
+      <span>Inbox</span>
+    </button>
+    <div class="op-rail-spacer"></div>
+    <div class="op-rail-hint">1–5 to switch<br>/ to search</div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="op-main">
+
+    <!-- ================= TODAY ================= -->
+    <section class="op-screen active" id="opScreen-today">
+      <div class="op-kpis">
+        <div class="op-kpi clickable" style="--acc:#c8a44e" onclick="opNav('clients')"><div class="op-kpi-n" id="opKpiClients">–</div><div class="op-kpi-l">Clients</div></div>
+        <div class="op-kpi" style="--acc:#5bbf7a"><div class="op-kpi-n" id="opKpiActive">–</div><div class="op-kpi-l">Active today</div></div>
+        <div class="op-kpi" style="--acc:#6ac1d6"><div class="op-kpi-n" id="opKpiCheckin">–</div><div class="op-kpi-l">Checked in</div></div>
+        <div class="op-kpi" style="--acc:#f6a740"><div class="op-kpi-n" id="opKpiWorkouts">–</div><div class="op-kpi-l">Workouts</div></div>
+        <div class="op-kpi" style="--acc:#4aa8e0"><div class="op-kpi-n" id="opKpiMeals">–</div><div class="op-kpi-l">Meals</div></div>
+        <div class="op-kpi" style="--acc:#9b8cf0"><div class="op-kpi-n" id="opKpiTrials">–</div><div class="op-kpi-l">New trials 7d</div></div>
+        <div class="op-kpi clickable" style="--acc:#e0b24e" onclick="opAttentionFilter('trial')"><div class="op-kpi-n" id="opKpiExpiring">–</div><div class="op-kpi-l">Trials expiring</div></div>
+        <div class="op-kpi clickable" style="--acc:#e0785a" onclick="opAttentionFilter('p0')"><div class="op-kpi-n" id="opKpiRisk">–</div><div class="op-kpi-l">At risk</div></div>
       </div>
-      <div class="op-stat-grid" id="opStatGrid">
-        <div class="op-stat clickable" style="--acc:#c8a44e" onclick="switchOperatorTab('clients')"><div class="op-stat-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.6 19a5.4 5.4 0 0 1 10.8 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M17.6 19a5.4 5.4 0 0 0-3-4.85"/></svg></div><div class="op-stat-body"><div class="op-stat-num" id="opStatClients">–</div><div class="op-stat-label">Total clients</div></div></div>
-        <div class="op-stat" style="--acc:#5bbf7a"><div class="op-stat-ico"><svg viewBox="0 0 24 24"><path d="M3 12h4l2.5-7 5 14L17 12h4"/></svg></div><div class="op-stat-body"><div class="op-stat-num" id="opStatActive">–</div><div class="op-stat-label">Active today</div></div></div>
-        <div class="op-stat" style="--acc:#6ac1d6"><div class="op-stat-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8.5 12.5l2.5 2.5 4.5-5"/></svg></div><div class="op-stat-body"><div class="op-stat-num" id="opStatCheckin">–</div><div class="op-stat-label">Checked in today</div></div></div>
-        <div class="op-stat" style="--acc:#f6a740"><div class="op-stat-ico"><svg viewBox="0 0 24 24"><path d="M6.5 8v8M4 9.5v5M17.5 8v8M20 9.5v5M6.5 12h11"/></svg></div><div class="op-stat-body"><div class="op-stat-num" id="opStatWorkouts">–</div><div class="op-stat-label">Workouts today</div></div></div>
-        <div class="op-stat" style="--acc:#4aa8e0"><div class="op-stat-ico"><svg viewBox="0 0 24 24"><path d="M3 11h18"/><path d="M5 11a7 7 0 0 0 14 0"/></svg></div><div class="op-stat-body"><div class="op-stat-num" id="opStatMeals">–</div><div class="op-stat-label">Meals today</div></div></div>
-        <div class="op-stat" style="--acc:#9b8cf0"><div class="op-stat-ico"><svg viewBox="0 0 24 24"><path d="M12 3l1.6 4.6L18 9l-4.4 1.4L12 15l-1.6-4.6L6 9l4.4-1.4L12 3Z"/></svg></div><div class="op-stat-body"><div class="op-stat-num" id="opStatTrials">–</div><div class="op-stat-label">New trials (7d)</div></div></div>
-        <div class="op-stat" style="--acc:#e0b24e"><div class="op-stat-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div><div class="op-stat-body"><div class="op-stat-num" id="opStatExpiring">–</div><div class="op-stat-label">Trials expiring</div></div></div>
-        <div class="op-stat clickable" style="--acc:#e0785a" onclick="opGotoRisk()"><div class="op-stat-ico"><svg viewBox="0 0 24 24"><path d="M12 4 3 19h18L12 4Z"/><path d="M12 10v4M12 17h.01"/></svg></div><div class="op-stat-body"><div class="op-stat-num" id="opStatRisk">–</div><div class="op-stat-label">At-risk clients</div></div></div>
-      </div>
-      <div class="op-section-title">Engagement</div>
-      <div class="op-bars" id="opBars"><div class="op-empty">Loading…</div></div>
-      <div class="op-section-title">14-day activity trend</div>
-      <div class="op-chart-card"><div class="op-chart-wrap"><canvas id="opTrendChart"></canvas></div></div>
-      <div class="op-section-title">Live activity</div>
-      <div id="opFeed"><div class="op-empty">Loading…</div></div>
-    </section>
-    <!-- CLIENTS (Roster + Compliance) -->
-    <section class="op-tab-content" id="opTab-clients">
-      <div class="op-seg" id="opClientsSeg">
-        <button type="button" class="op-seg-btn active" data-cv="roster" onclick="opClientsView('roster')">Roster</button>
-        <button type="button" class="op-seg-btn" data-cv="compliance" onclick="opClientsView('compliance')">Compliance</button>
-      </div>
-      <div id="opClientsRoster">
-        <div class="op-controls">
-          <input type="text" class="op-input" id="opClientSearch" placeholder="Search by name, email or phone…" oninput="renderOperatorClients()">
-          <select class="op-select" id="opClientFilter" onchange="renderOperatorClients()">
-            <option value="all">All clients</option>
-            <option value="risk">At-risk (2+ days inactive)</option>
-            <option value="active">Active (last 2 days)</option>
-            <option value="trialing">On trial</option>
-          </select>
-          <select class="op-select" id="opClientSort" onchange="renderOperatorClients()">
-            <option value="inactive">Sort: Most inactive</option>
-            <option value="name">Sort: Name</option>
-            <option value="checkins">Sort: Check-ins (7d)</option>
-            <option value="workouts">Sort: Workouts (7d)</option>
-          </select>
+
+      <div class="op-today-seg" id="opTodaySeg">
+        <div class="op-seg">
+          <button type="button" class="op-seg-btn active" data-pane="attention" onclick="opTodayPane('attention')">Attention</button>
+          <button type="button" class="op-seg-btn" data-pane="pulse" onclick="opTodayPane('pulse')">Pulse</button>
+          <button type="button" class="op-seg-btn" data-pane="live" onclick="opTodayPane('live')">Live</button>
         </div>
-        <div class="op-feed-time" id="opClientCount" style="margin-bottom:10px"></div>
-        <div id="opClientList"><div class="op-empty">Loading…</div></div>
       </div>
-      <div id="opClientsCompliance" style="display:none">
-        <p class="op-lead-meta" style="margin:-4px 0 12px">Never-miss tracker — Daily check-in, Workout &amp; Sunday check-in. Tap anyone to open their profile.</p>
-        <div id="opComplianceSummary"></div>
-        <div id="opComplianceList"><div class="op-empty">Loading…</div></div>
+
+      <div class="op-today-grid">
+        <!-- Needs attention -->
+        <div class="op-panel pane-active" id="opPaneAttention">
+          <div class="op-panel-head">
+            <span class="op-panel-title">Needs attention</span>
+            <span class="op-panel-count" id="opAttentionCount">0</span>
+            <div class="op-panel-tools">
+              <select class="op-select" onchange="opAttentionFilter(this.value)" aria-label="Filter attention queue">
+                <option value="all">All reasons</option>
+                <option value="p0">Urgent only</option>
+                <option value="silent">Gone silent</option>
+                <option value="trial">Trial risk</option>
+                <option value="compliance">Missed logging</option>
+              </select>
+            </div>
+          </div>
+          <div class="op-panel-body" id="opAttentionList"><div class="op-empty">Loading roster…</div></div>
+        </div>
+
+        <!-- Pulse -->
+        <div class="op-panel" id="opPanePulse">
+          <div class="op-panel-head"><span class="op-panel-title">Pulse</span></div>
+          <div class="op-panel-body">
+            <div class="op-meters" id="opMeters"><div class="op-empty">Loading…</div></div>
+            <div class="op-chart-card">
+              <div class="op-sub" style="margin:0 0 8px">14-day activity</div>
+              <div class="op-chart-wrap"><canvas id="opTrendChart"></canvas></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live activity -->
+        <div class="op-panel" id="opPaneLive">
+          <div class="op-panel-head">
+            <span class="op-panel-title">Live</span>
+            <span class="op-panel-count" id="opLiveCount">0</span>
+            <div class="op-panel-tools">
+              <select class="op-select" id="opActivityType" onchange="loadOperatorActivity()" aria-label="Activity type">
+                <option value="all">All</option>
+                <option value="checkin">Check-ins</option>
+                <option value="workout">Workouts</option>
+                <option value="nutrition">Nutrition</option>
+                <option value="weight">Weight</option>
+                <option value="weekly">Weekly</option>
+                <option value="signup">Trials</option>
+              </select>
+              <select class="op-select" id="opActivityDays" onchange="loadOperatorActivity()" aria-label="Activity range">
+                <option value="1">1d</option>
+                <option value="7" selected>7d</option>
+                <option value="30">30d</option>
+                <option value="90">90d</option>
+              </select>
+            </div>
+          </div>
+          <div class="op-panel-body" id="opLiveList"><div class="op-empty">Loading…</div></div>
+        </div>
       </div>
     </section>
-    <!-- LEADS (prospects to onboard) -->
-    <section class="op-tab-content" id="opTab-leads">
-      <div class="op-controls">
-        <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:600;color:var(--cream);flex:1">Prospects &amp; onboarding</div>
-        <select class="op-select" id="opLeadsDays" onchange="loadOperatorLeads()">
+
+    <!-- ================= CLIENTS ================= -->
+    <section class="op-screen" id="opScreen-clients">
+      <div class="op-bar">
+        <span class="op-bar-title">Clients</span>
+        <div class="op-seg" id="opClientsSeg">
+          <button type="button" class="op-seg-btn active" data-cv="roster" onclick="opClientsMode('roster')">Roster</button>
+          <button type="button" class="op-seg-btn" data-cv="compliance" onclick="opClientsMode('compliance')">Compliance</button>
+        </div>
+        <input type="text" class="op-input grow" id="opClientSearch" placeholder="Search name, email or phone…" oninput="renderOperatorClients()" aria-label="Search clients">
+        <select class="op-select" id="opClientFilter" onchange="renderOperatorClients()" aria-label="Filter clients">
+          <option value="all">All clients</option>
+          <option value="risk">At risk (2+ days idle)</option>
+          <option value="active">Active (last 2 days)</option>
+          <option value="trialing">On trial</option>
+          <option value="nocheckin">No check-in today</option>
+          <option value="noworkout">No workout · 7d</option>
+          <option value="nosunday">Missed Sunday</option>
+        </select>
+        <select class="op-select" id="opClientSort" onchange="renderOperatorClients()" aria-label="Sort clients">
+          <option value="inactive">Most idle first</option>
+          <option value="name">Name</option>
+          <option value="checkins">Check-ins 7d</option>
+          <option value="workouts">Workouts 7d</option>
+        </select>
+      </div>
+      <div class="op-md">
+        <div class="op-panel">
+          <div class="op-panel-head"><span class="op-panel-title">Roster</span><span class="op-panel-count" id="opClientCount">0</span></div>
+          <div class="op-list-scroll">
+            <div id="opComplianceSummary" style="display:none"></div>
+            <div id="opClientList"><div class="op-empty">Loading…</div></div>
+          </div>
+        </div>
+        <div class="op-detail" id="opClientDetail">
+          <div class="op-detail-head" id="opClientDetailHead">
+            <div style="min-width:0"><div class="op-detail-name">Client profile</div><div class="op-detail-sub">Nothing selected</div></div>
+          </div>
+          <div class="op-detail-scroll" id="opClientDetailBody">
+            <div class="op-blank">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.6-3.6"/></svg>
+              <div class="op-blank-t">Pick a client</div>
+              <div class="op-blank-s">Select someone on the left to see their profile, training, nutrition, body, bloods and readiness — and to reach them in one tap.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= BLOOD ================= -->
+    <section class="op-screen" id="opScreen-blood">
+      <div class="op-bar">
+        <span class="op-bar-title">Blood reports</span>
+        <span class="op-bar-sub">Upload · lab date · PDF · delete · comparison</span>
+        <input type="text" class="op-input grow" id="opBloodSearch" placeholder="Search client…" oninput="renderOperatorBlood()" aria-label="Search clients with blood reports">
+        <select class="op-select" id="opBloodFilter" onchange="renderOperatorBlood()" aria-label="Filter blood reports">
+          <option value="all">Everyone</option>
+          <option value="has">Has a report</option>
+          <option value="pending">Still processing</option>
+          <option value="comparable">2+ reports (comparable)</option>
+          <option value="none">No report yet</option>
+        </select>
+      </div>
+      <div class="op-kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+        <div class="op-kpi" style="--acc:#e0785a"><div class="op-kpi-n" id="opBloodKpiReports">–</div><div class="op-kpi-l">Reports on file</div></div>
+        <div class="op-kpi" style="--acc:#e0b24e"><div class="op-kpi-n" id="opBloodKpiPending">–</div><div class="op-kpi-l">Processing</div></div>
+        <div class="op-kpi" style="--acc:#6ac1d6"><div class="op-kpi-n" id="opBloodKpiCompare">–</div><div class="op-kpi-l">Comparisons run</div></div>
+        <div class="op-kpi" style="--acc:#8d877a"><div class="op-kpi-n" id="opBloodKpiNone">–</div><div class="op-kpi-l">No report yet</div></div>
+      </div>
+      <div class="op-md">
+        <div class="op-panel">
+          <div class="op-panel-head"><span class="op-panel-title">Clients</span><span class="op-panel-count" id="opBloodCount">0</span></div>
+          <div class="op-list-scroll" id="opBloodList"><div class="op-empty">Loading…</div></div>
+        </div>
+        <div class="op-detail" id="opBloodDetail">
+          <div class="op-detail-head" id="opBloodDetailHead">
+            <div style="min-width:0"><div class="op-detail-name">Blood workspace</div><div class="op-detail-sub">Nothing selected</div></div>
+          </div>
+          <div class="op-detail-scroll" id="opBloodDetailBody">
+            <div class="op-blank">
+              <svg viewBox="0 0 24 24"><path d="M12 3s6 6.3 6 10.2A6 6 0 0 1 6 13.2C6 9.3 12 3 12 3Z"/></svg>
+              <div class="op-blank-t">Pick a client</div>
+              <div class="op-blank-s">Select someone on the left to upload a lab report, download the generated PDF, correct a lab date or run a longitudinal comparison.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= LEADS ================= -->
+    <section class="op-screen" id="opScreen-leads">
+      <div class="op-bar">
+        <span class="op-bar-title">Prospects</span>
+        <div class="op-seg" id="opLeadsSeg">
+          <button type="button" class="op-seg-btn active" data-lv="audits" onclick="opLeadsView('audits')">Body audits</button>
+          <button type="button" class="op-seg-btn" data-lv="part2" onclick="opLeadsView('part2')">Part-2 forms</button>
+        </div>
+        <input type="text" class="op-input grow" id="opLeadsSearch" placeholder="Search name, email or phone…" oninput="renderOperatorLeads()" aria-label="Search prospects">
+        <select class="op-select" id="opLeadsDays" onchange="loadOperatorLeads()" aria-label="Prospect range">
           <option value="1">Today</option>
           <option value="7">Last 7 days</option>
           <option value="30" selected>Last 30 days</option>
           <option value="90">Last 90 days</option>
         </select>
       </div>
-      <div class="op-controls">
-        <input type="text" class="op-input" id="opLeadsSearch" placeholder="Search by name, email or phone…" oninput="renderOperatorLeads()" aria-label="Search prospects">
+      <div class="op-kpis" style="grid-template-columns:repeat(4,minmax(0,1fr))">
+        <div class="op-kpi" style="--acc:#c8a44e"><div class="op-kpi-n" id="opLeadKpiToday">–</div><div class="op-kpi-l">Audits today</div></div>
+        <div class="op-kpi" style="--acc:#f6a740"><div class="op-kpi-n" id="opLeadKpi7d">–</div><div class="op-kpi-l">Audits · 7d</div></div>
+        <div class="op-kpi" style="--acc:#5bbf7a"><div class="op-kpi-n" id="opLeadKpiPart2">–</div><div class="op-kpi-l">Part-2 today</div></div>
+        <div class="op-kpi" style="--acc:#e0785a"><div class="op-kpi-n" id="opLeadKpiNoAcct">–</div><div class="op-kpi-l">Not signed up</div></div>
       </div>
-      <div class="op-mstat-grid" id="opLeadsStats" style="margin-bottom:16px"></div>
-      <div class="op-seg" id="opLeadsSeg">
-        <button type="button" class="op-seg-btn active" data-lv="audits" onclick="opLeadsView('audits')">Body Audits</button>
-        <button type="button" class="op-seg-btn" data-lv="part2" onclick="opLeadsView('part2')">Part-2 Forms</button>
+      <div class="op-md">
+        <div class="op-panel">
+          <div class="op-panel-head"><span class="op-panel-title">Submissions</span><span class="op-panel-count" id="opLeadCount">0</span></div>
+          <div class="op-list-scroll" id="opLeadList"><div class="op-empty">Loading…</div></div>
+        </div>
+        <div class="op-detail" id="opLeadDetail">
+          <div class="op-detail-head" id="opLeadDetailHead">
+            <div style="min-width:0"><div class="op-detail-name">Prospect</div><div class="op-detail-sub">Nothing selected</div></div>
+          </div>
+          <div class="op-detail-scroll" id="opLeadDetailBody">
+            <div class="op-blank">
+              <svg viewBox="0 0 24 24"><path d="M3 5h18l-6.5 8v5l-5 2v-7L3 5Z"/></svg>
+              <div class="op-blank-t">Pick a prospect</div>
+              <div class="op-blank-s">Select a submission to read what they told us and reach them on WhatsApp, phone or email.</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div id="opLeadsAudits"><div class="op-empty">Loading…</div></div>
-      <div id="opLeadsPart2" style="display:none"><div class="op-empty">Loading…</div></div>
     </section>
-    <!-- ACTIVITY -->
-    <section class="op-tab-content" id="opTab-activity">
-      <div class="op-controls" id="opActivityChips">
-        <button type="button" class="op-chip active" data-actype="all" onclick="setOperatorActivityType('all')">All</button>
-        <button type="button" class="op-chip" data-actype="checkin" onclick="setOperatorActivityType('checkin')">Check-ins</button>
-        <button type="button" class="op-chip" data-actype="workout" onclick="setOperatorActivityType('workout')">Workouts</button>
-        <button type="button" class="op-chip" data-actype="nutrition" onclick="setOperatorActivityType('nutrition')">Nutrition</button>
-        <button type="button" class="op-chip" data-actype="weight" onclick="setOperatorActivityType('weight')">Weight</button>
-        <button type="button" class="op-chip" data-actype="weekly" onclick="setOperatorActivityType('weekly')">Weekly</button>
-        <button type="button" class="op-chip" data-actype="signup" onclick="setOperatorActivityType('signup')">Trials</button>
-        <select class="op-select" id="opActivityDays" onchange="loadOperatorActivity()">
-          <option value="1">Today</option>
-          <option value="7" selected>Last 7 days</option>
-          <option value="30">Last 30 days</option>
-          <option value="90">Last 90 days</option>
-        </select>
+
+    <!-- ================= INBOX (to admin) ================= -->
+    <section class="op-screen" id="opScreen-inbox">
+      <div class="op-bar">
+        <span class="op-bar-title">Admin inbox</span>
+        <span class="op-bar-sub">Clients you escalated, and what Admin said back</span>
       </div>
-      <div id="opActivityList"><div class="op-empty">Loading…</div></div>
-    </section>
-    <!-- TO ADMIN (escalations the operator raised) -->
-    <section class="op-tab-content" id="opTab-admin">
-      <div class="op-note">Share a client with Admin for review from the <strong>Clients</strong> tab (open a client → “Share to Admin”). Your conversations with Admin appear here.</div>
-      <div class="op-section-title">Shared with Admin</div>
-      <div id="opEscList"><div class="op-empty">Loading…</div></div>
-    </section>
-  </div>
-  <!-- CLIENT DRILLDOWN MODAL -->
-  <div class="op-modal-overlay" id="opClientModal" onclick="if(event.target===this)closeOperatorClientModal()">
-    <div class="op-modal">
-      <div class="op-modal-head">
-        <div><div class="op-client-name" id="opModalName">Client</div><div class="op-client-sub" id="opModalEmail"></div></div>
-        <button type="button" class="op-modal-close" onclick="closeOperatorClientModal()" aria-label="Close">×</button>
+      <div class="op-md">
+        <div class="op-panel">
+          <div class="op-panel-head"><span class="op-panel-title">Shared with Admin</span><span class="op-panel-count" id="opEscCount">0</span></div>
+          <div class="op-list-scroll" id="opEscList"><div class="op-empty">Loading…</div></div>
+        </div>
+        <div class="op-detail" id="opEscDetail">
+          <div class="op-detail-head" id="opEscDetailHead">
+            <div style="min-width:0"><div class="op-detail-name">Conversation</div><div class="op-detail-sub">Nothing selected</div></div>
+          </div>
+          <div class="op-detail-scroll" id="opEscDetailBody">
+            <div class="op-blank">
+              <svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
+              <div class="op-blank-t">No thread open</div>
+              <div class="op-blank-s">Open a client from Clients and tap “Share to Admin” to start a review thread. Replies land here.</div>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="op-modal-body" id="opModalBody"><div class="op-empty">Loading…</div></div>
-    </div>
-  </div>
-  <!-- MOBILE BOTTOM NAV (same design as admin) -->
+    </section>
+  </main>
+
+  <!-- MOBILE BOTTOM NAV -->
   <nav class="admin-bottom-nav" id="opBottomNav" aria-label="Operator bottom navigation">
     <div class="admin-bottom-nav-inner">
-      <button type="button" class="admin-bottom-nav-item active" data-optab="overview" onclick="switchOperatorTab('overview')" aria-label="Overview">
-        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h3v-6h6v6h3a1 1 0 0 0 1-1V9.5"/></svg></span>
-        <span class="admin-bottom-nav-label">Overview</span>
+      <button type="button" class="admin-bottom-nav-item active" data-opnav="today" onclick="opNav('today')" aria-label="Today">
+        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></span>
+        <span class="admin-bottom-nav-label">Today</span>
       </button>
-      <button type="button" class="admin-bottom-nav-item" data-optab="clients" onclick="switchOperatorTab('clients')" aria-label="Clients">
+      <button type="button" class="admin-bottom-nav-item" data-opnav="clients" onclick="opNav('clients')" aria-label="Clients">
         <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.6 19a5.4 5.4 0 0 1 10.8 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M17.6 19a5.4 5.4 0 0 0-3-4.85"/></svg></span>
         <span class="admin-bottom-nav-label">Clients</span>
       </button>
-      <button type="button" class="admin-bottom-nav-item" data-optab="leads" onclick="switchOperatorTab('leads')" aria-label="Leads">
+      <button type="button" class="admin-bottom-nav-item" data-opnav="blood" onclick="opNav('blood')" aria-label="Blood">
+        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3s6 6.3 6 10.2A6 6 0 0 1 6 13.2C6 9.3 12 3 12 3Z"/></svg></span>
+        <span class="admin-bottom-nav-label">Blood</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-opnav="leads" onclick="opNav('leads')" aria-label="Leads">
         <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5h18l-6.5 8v5l-5 2v-7L3 5Z"/></svg></span>
         <span class="admin-bottom-nav-label">Leads</span>
       </button>
-      <button type="button" class="admin-bottom-nav-item" data-optab="activity" onclick="switchOperatorTab('activity')" aria-label="Activity">
-        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7 5 14L17 12h4"/></svg></span>
-        <span class="admin-bottom-nav-label">Activity</span>
-      </button>
-      <button type="button" class="admin-bottom-nav-item" data-optab="admin" onclick="switchOperatorTab('admin')" aria-label="To Admin">
+      <button type="button" class="admin-bottom-nav-item" data-opnav="inbox" onclick="opNav('inbox')" aria-label="Admin inbox">
         <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg></span>
-        <span class="admin-bottom-nav-label">To Admin</span>
+        <span class="admin-bottom-nav-label">Inbox</span>
       </button>
     </div>
   </nav>
-  <!-- OPERATOR COMPOSE MODAL (reminder to client / share to admin) -->
+
+  <!-- COMPOSE MODAL (reminder to client / share to admin) -->
   <div class="op-cm-overlay" id="opComposeModal" onclick="if(event.target===this)closeOpCompose()">
     <div class="op-cm-box">
       <div class="op-cm-title" id="opCmTitle">Send message</div>
@@ -9554,21 +9640,7 @@ html.android-mobile #operatorPanel .op-cm-box{margin-top:calc(var(--safe-top, 20
       </div>
     </div>
   </div>
-  <!-- OPERATOR ESCALATION THREAD MODAL -->
-  <div class="op-cm-overlay" id="opEscModal" onclick="if(event.target===this)closeOpEsc()">
-    <div class="op-cm-box" style="max-width:560px;max-height:86vh;overflow-y:auto">
-      <div class="op-cm-title" id="opEscTitle">Conversation with Admin</div>
-      <div class="op-cm-hint" id="opEscSummary"></div>
-      <div id="opEscMessages"><div class="op-empty">Loading…</div></div>
-      <div class="op-reply-row">
-        <textarea id="opEscReplyText" placeholder="Reply to admin…"></textarea>
-        <button type="button" onclick="opEscReply()">Send</button>
-      </div>
-      <div class="op-cm-actions"><button type="button" class="op-cm-btn cancel" onclick="closeOpEsc()">Close</button></div>
-    </div>
-  </div>
 </div>
-
 <!-- ADMIN: OPERATOR ESCALATIONS INBOX -->
 <div class="op-cm-overlay" id="adminEscModal" onclick="if(event.target===this)closeAdminEsc()">
   <div class="op-cm-box">
@@ -16625,8 +16697,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members' };
-var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens' };
+var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -16767,7 +16839,148 @@ function switchTab(tab) {
   if (tab === 'blood') loadAdminBloodReports();
   if (tab === 'memberships') loadAdminMemberships();
   if (tab === 'referrals') loadAdminReferrals();
+  if (tab === 'tokens') loadAdminTokenUsage();
 }
+/* ======================================================================
+   ADMIN . TOKENS -- AI spend ledger
+   Reads /api/admin/ai-usage (admin/superadmin only). Every figure on this
+   screen arrives already summed and rounded, so the UI never does cost
+   arithmetic -- that is what keeps this view and the ledger from drifting.
+   ====================================================================== */
+var ADMIN_TOKENS_DAYS = 30;
+
+function bbTokInt(n) {
+  return Number(n || 0).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+}
+function bbTokInr(n) {
+  return '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+function bbTokUsd(n) {
+  var v = Number(n || 0);
+  // Sub-dollar days would otherwise all render as "$0.00" and read as a bug.
+  return '$' + v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: (v > 0 && v < 1) ? 4 : 2 });
+}
+/** "2026-08-18" -> "18 Aug 2026", built in UTC so the label never shifts a day. */
+function bbTokDate(ymd) {
+  var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(ymd || ''));
+  if (!m) return String(ymd || '');
+  var d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  return d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+}
+
+function setAdminTokenRange(days) {
+  ADMIN_TOKENS_DAYS = days;
+  var wrap = document.getElementById('bbTokRange');
+  if (wrap) {
+    wrap.querySelectorAll('.bbtok-range-btn').forEach(function (b) {
+      b.classList.toggle('is-active', String(b.getAttribute('data-days')) === String(days));
+    });
+  }
+  loadAdminTokenUsage();
+}
+
+function loadAdminTokenUsage() {
+  if (!window.currentUser || (window.currentUser.role !== 'admin' && window.currentUser.role !== 'superadmin')) return;
+  var kpis = document.getElementById('bbTokKpis');
+  if (!kpis) return;
+  kpis.innerHTML = '<p class="form-hint" style="grid-column:1/-1;margin:0;padding:14px">Loading…</p>';
+
+  apiCall('GET', '/api/admin/ai-usage?days=' + ADMIN_TOKENS_DAYS).then(function (data) {
+    if (!data || !data.success) {
+      var msg = escapeHtml((data && data.error) || 'Failed to load AI usage');
+      kpis.innerHTML = '<p class="form-hint" style="grid-column:1/-1;margin:0;padding:14px;color:#e05050">' + msg + '</p>';
+      return;
+    }
+    renderAdminTokenUsage(data);
+  });
+}
+
+function renderAdminTokenUsage(d) {
+  var t = d.totals || {};
+  var meta = document.getElementById('bbTokMeta');
+  if (meta) {
+    meta.textContent = 'Every AI call BodyBank makes — admin assist, meal scans, blood reports, Whoop and marketing — priced per day.';
+  }
+
+  // INR leads because that is the currency the business pays in; USD is what
+  // Anthropic actually bills, so both are always on screen together.
+  var kpiDefs = [
+    { lbl: 'Today', v: t.today || {} },
+    { lbl: 'Last ' + d.days + ' days', v: t.range || {} },
+    { lbl: 'All time', v: t.allTime || {} }
+  ];
+  var kpis = document.getElementById('bbTokKpis');
+  if (kpis) {
+    kpis.innerHTML = kpiDefs.map(function (k) {
+      return '<div class="bbtok-kpi">' +
+        '<div class="bbtok-kpi-lbl">' + escapeHtml(k.lbl) + '</div>' +
+        '<div class="bbtok-kpi-val">' + bbTokInr(k.v.inr) + '</div>' +
+        '<div class="bbtok-kpi-sub">' + bbTokUsd(k.v.usd) + ' &middot; <b>' + bbTokInt(k.v.tokens) + '</b> tokens' +
+        '<br>' + bbTokInt(k.v.calls) + ' call' + (Number(k.v.calls) === 1 ? '' : 's') + '</div>' +
+        '</div>';
+    }).join('');
+  }
+
+  // Feature breakdown: widest bar is the biggest spender in the window.
+  var scopes = Array.isArray(d.scopes) ? d.scopes : [];
+  var maxInr = scopes.reduce(function (m, x) { return Math.max(m, Number(x.inr) || 0); }, 0);
+  var scopeEl = document.getElementById('bbTokScopes');
+  if (scopeEl) {
+    scopeEl.innerHTML = scopes.length
+      ? scopes.map(function (x) {
+          var label = (d.scopeLabels && d.scopeLabels[x.scope]) || x.scope;
+          var pct = maxInr > 0 ? Math.max(2, Math.round((Number(x.inr) || 0) / maxInr * 100)) : 0;
+          return '<div class="bbtok-scope">' +
+            '<div class="bbtok-scope-bar" style="width:' + pct + '%"></div>' +
+            '<div class="bbtok-scope-name">' + escapeHtml(label) + '</div>' +
+            '<div class="bbtok-scope-cost">' + bbTokInr(x.inr) + '</div>' +
+            '<div class="bbtok-scope-meta">' + bbTokInt(x.tokens) + ' tokens &middot; ' + bbTokInt(x.calls) + ' call' + (Number(x.calls) === 1 ? '' : 's') + '</div>' +
+            '<div class="bbtok-scope-usd">' + bbTokUsd(x.usd) + '</div>' +
+            '</div>';
+        }).join('')
+      : '<div class="bbtok-empty">No AI usage recorded in this window.</div>';
+  }
+
+  var emptyRow = '<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">No AI usage recorded in this window.</td></tr>';
+
+  var daily = Array.isArray(d.daily) ? d.daily : [];
+  var dailyEl = document.getElementById('bbTokDaily');
+  if (dailyEl) {
+    dailyEl.innerHTML = daily.length
+      ? daily.map(function (r) {
+          return '<tr><td>' + escapeHtml(bbTokDate(r.date)) + '</td>' +
+            '<td>' + bbTokInt(r.calls) + '</td>' +
+            '<td>' + bbTokInt(r.tokens) + '</td>' +
+            '<td>' + bbTokUsd(r.usd) + '</td>' +
+            '<td>' + bbTokInr(r.inr) + '</td></tr>';
+        }).join('')
+      : emptyRow;
+  }
+
+  var models = Array.isArray(d.models) ? d.models : [];
+  var modelEl = document.getElementById('bbTokModels');
+  if (modelEl) {
+    modelEl.innerHTML = models.length
+      ? models.map(function (r) {
+          return '<tr><td>' + escapeHtml(r.model) + '</td>' +
+            '<td>' + bbTokInt(r.calls) + '</td>' +
+            '<td>' + bbTokInt(r.tokens) + '</td>' +
+            '<td>' + bbTokUsd(r.usd) + '</td>' +
+            '<td>' + bbTokInr(r.inr) + '</td></tr>';
+        }).join('')
+      : emptyRow;
+  }
+
+  // The conversion rate is stated rather than hidden: the INR column is only
+  // as right as this number, and it is an env var someone has to keep current.
+  var foot = document.getElementById('bbTokFoot');
+  if (foot) {
+    foot.innerHTML = 'Days are bucketed in ' + escapeHtml(d.timezone || 'Asia/Kolkata') +
+      '. Costs are Anthropic list prices converted at <b>₹' + escapeHtml(String(d.usdToInr)) +
+      ' per USD</b> (set by AI_COST_USD_TO_INR).';
+  }
+}
+
 var adminProgressChartInstances = {};
 function destroyAdminProgressCharts() {
   Object.keys(adminProgressChartInstances).forEach(function(k) {
@@ -17806,8 +18019,13 @@ async function loadClientProgressUsers() {
 function adminCpUploadBlood() {
   var id = window._adminCpSelectedUserId;
   if (!id) { showPopup('Upload', 'Select a client first.', '', 'OK', null, 'error'); return; }
-  var inp = document.getElementById('adminCpBloodFileInput');
-  if (inp) { inp.value = ''; inp.click(); }
+  var msg = document.getElementById('adminCpBloodMsg');
+  bbBloodPickForUpload({
+    userId: id,
+    clientName: window._adminCpSelectedClientName || '',
+    inputId: 'adminCpBloodFileInput',
+    onError: function (m) { if (msg) { msg.style.display = 'block'; msg.style.color = '#f5a623'; msg.innerHTML = m; } }
+  });
 }
 function adminCpBloodFilePicked(ev) {
   var f = ev.target && ev.target.files && ev.target.files[0];
@@ -17818,8 +18036,9 @@ function adminCpBloodFilePicked(ev) {
   var msg = document.getElementById('adminCpBloodMsg');
   var show = function (color, html) { if (msg) { msg.style.display = 'block'; msg.style.color = color; msg.innerHTML = html; } };
   if (!id) { show('#e05050', 'No client selected.'); return; }
-  // Capture the lab date first — it decides where this report sits on the trend.
-  bbAskLabDate({ clientName: name, fileName: f.name }, function (labDate) {
+  // Capture the lab date first — it decides where this report sits on the trend,
+  // and the prompt names the slot being filled so a duplicate draw is obvious.
+  bbBloodConfirmLabDate(id, name, f.name, function (labDate) {
     if (!labDate) { show('var(--muted)', 'Upload cancelled.'); return; }
     show('var(--muted)', 'Reading file…');
     var reader = new FileReader();
@@ -23515,6 +23734,111 @@ function bbLabDateLabel(r) {
     (uploaded ? ' <span style="opacity:0.7">· uploaded ' + escapeHtml(uploaded) + '</span>' : '');
 }
 
+// ---- Blood report SLOTS ------------------------------------------------------
+// Every client has exactly three upload slots. A report's number is its position on
+// the LAB timeline, oldest first: "Blood Report 1" is always their earliest draw and
+// it never renumbers when a newer report lands. The admin list and the operator
+// client modal both read from here, so a coach and an operator on the phone are
+// always talking about the same report.
+var BB_BLOOD_MAX_SLOTS = 3;
+
+// The name badge — the one place the words "Blood Report N of 3" are written.
+function bbSlotBadge(n, extraStyle) {
+  var num = (n == null || isNaN(Number(n))) ? '?' : Number(n);
+  return '<span class="bb-slot-badge"' + (extraStyle ? ' style="' + extraStyle + '"' : '') + '>' +
+    '&#129656; Blood Report <span class="bb-slot-badge-n">' + escapeHtml(String(num)) + '</span>' +
+    '<span style="opacity:0.62;font-weight:600"> of ' + BB_BLOOD_MAX_SLOTS + '</span></span>';
+}
+
+// One pip per slot, filled left to right — how much room is left, without counting.
+function bbSlotPips(used, max) {
+  max = max || BB_BLOOD_MAX_SLOTS;
+  used = Math.max(0, Math.min(max, Number(used) || 0));
+  var h = '<span class="bb-slot-pips" role="img" aria-label="' + used + ' of ' + max + ' slots used">';
+  for (var i = 0; i < max; i++) h += '<span class="bb-slot-pip' + (i < used ? ' is-full' : '') + '"></span>';
+  return h + '</span>';
+}
+
+function bbSlotSummary(used, max) {
+  max = max || BB_BLOOD_MAX_SLOTS;
+  used = Number(used) || 0;
+  var free = Math.max(0, max - used);
+  return used + ' of ' + max + ' used &middot; ' +
+    (free ? '<span class="bb-slot-free">' + free + ' free</span>'
+          : '<span class="bb-slot-fullw">no slots left</span>');
+}
+
+// The date a report sits on: its lab draw date, falling back to the upload date.
+// Accepts the admin shape (reportDate/createdAt) and the operator/API row shape.
+function bbEffYmd(r) {
+  if (!r) return '';
+  var v = r.reportDate || r.report_date || r.effectiveDate || r.createdAt || r.created_at || '';
+  var m = /^(\d{4}-\d{2}-\d{2})/.exec(String(v));
+  return m ? m[1] : '';
+}
+
+// Which effective dates appear more than once in a set. Two reports on one draw date
+// is exactly the thing a coach needs flagged before they analyse or compare them.
+function bbDupDateSet(list) {
+  var seen = {}, dup = {};
+  (list || []).forEach(function (r) {
+    var k = bbEffYmd(r);
+    if (!k) return;
+    if (seen[k]) dup[k] = true; else seen[k] = true;
+  });
+  return dup;
+}
+
+function bbDupFlag(isDup) {
+  return isDup ? '<span class="bb-slot-flag bb-slot-flag--dup" title="Another report on file has this same lab date">&#9888; Same lab date</span>' : '';
+}
+
+// ---- Staff upload gate (admin + operator share it) ---------------------------
+// Step 1 runs on the BUTTON, before a file picker opens, so a client whose three
+// slots are used is stopped before the coach goes hunting for a PDF. Step 2 runs
+// after the file is chosen and asks for the lab date with the slot number and the
+// dates already on file in view — which is what stops the same draw going up twice.
+function bbBloodPickForUpload(ctx) {
+  ctx = ctx || {};
+  var fail = typeof ctx.onError === 'function' ? ctx.onError : function () {};
+  if (!ctx.userId) { fail('No client selected.'); return; }
+  window._bbBloodSlotCtx = null;
+  apiCall('GET', '/api/blood/admin/slots/' + encodeURIComponent(ctx.userId))
+    .catch(function () { return null; })
+    .then(function (info) {
+      if (!info || info.success === false) {
+        fail('Could not read this client&rsquo;s report slots. Try again.');
+        return;
+      }
+      var max = info.max || BB_BLOOD_MAX_SLOTS;
+      if ((info.used || 0) >= max) {
+        showPopup('All ' + max + ' slots are used',
+          (ctx.clientName ? escapeHtml(ctx.clientName) : 'This client') + ' already has ' + max +
+          ' blood reports on file &mdash; Blood Report 1 to ' + max +
+          '. Delete one to free a slot, then upload again.',
+          '', 'OK', null, 'error');
+        fail('All ' + max + ' slots are used &mdash; delete a report to free one.');
+        return;
+      }
+      window._bbBloodSlotCtx = { userId: String(ctx.userId), clientName: ctx.clientName || '', info: info };
+      var inp = document.getElementById(ctx.inputId);
+      if (inp) { inp.value = ''; inp.click(); }
+    });
+}
+
+// Step 2: the lab-date prompt, carrying the slot context captured in step 1.
+function bbBloodConfirmLabDate(userId, clientName, fileName, onGo) {
+  var ctx = window._bbBloodSlotCtx;
+  var info = (ctx && String(ctx.userId) === String(userId)) ? ctx.info : null;
+  bbAskLabDate({
+    clientName: clientName || '',
+    fileName: fileName || '',
+    slotNo: info ? info.nextSlotNo : null,
+    slotMax: info ? (info.max || BB_BLOOD_MAX_SLOTS) : BB_BLOOD_MAX_SLOTS,
+    existing: info ? (info.reports || []) : []
+  }, onGo);
+}
+
 // Inline date picker to set/correct the lab draw date on an existing report.
 function bbLabDateEditor(id, r, refreshFn) {
   var v = bbLabDateValue(r);
@@ -23604,6 +23928,26 @@ function bbAuthedDownload(pathUrl, fallbackName) {
 // onPick receives 'YYYY-MM-DD', or null if the coach backed out.
 function bbAskLabDate(opts, onPick) {
   opts = opts || {};
+  // Slot context (supplied by bbBloodConfirmLabDate). Naming the report the coach is
+  // about to create — and listing the draws already on file — turns this from "pick a
+  // date" into "this is Blood Report 3, and 12 Jun is already taken".
+  var bbSlotNo = opts.slotNo;
+  var bbSlotMax = opts.slotMax || BB_BLOOD_MAX_SLOTS;
+  var bbExisting = Array.isArray(opts.existing) ? opts.existing : [];
+  var bbSlotHead = bbSlotNo
+    ? '<div style="display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:0 0 10px;padding:9px 11px;border-radius:10px;background:rgba(200,164,78,0.08);border:1px solid rgba(200,164,78,0.28)">' +
+        bbSlotBadge(bbSlotNo) +
+        '<span class="form-hint" style="margin:0;font-size:11px">' +
+        (bbSlotNo >= bbSlotMax ? 'This fills their <strong>last free slot</strong>.' : 'This fills slot ' + bbSlotNo + '.') +
+        '</span></div>' +
+      (bbExisting.length
+        ? '<div class="form-hint" style="margin:0 0 12px;font-size:11px;line-height:1.9">Already on file: ' +
+            bbExisting.map(function (r) {
+              return '<span style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:3px 8px;margin-right:5px;white-space:nowrap">Report ' +
+                escapeHtml(String(r.slotNo)) + ' &middot; ' + escapeHtml(bbFmtDay(r.reportDate || r.effectiveDate)) + '</span>';
+            }).join('') + '</div>'
+        : '')
+    : '';
   var prev = document.getElementById('bbLabDateModal');
   if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
 
@@ -23616,6 +23960,7 @@ function bbAskLabDate(opts, onPick) {
   ov.innerHTML =
     '<div style="background:#161a1e;border:1px solid rgba(255,255,255,0.12);border-radius:16px;padding:20px;max-width:380px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5)">' +
     '<div style="font-weight:700;font-size:15px;margin-bottom:6px">Lab test date</div>' +
+    bbSlotHead +
     '<div class="form-hint" style="margin:0 0 14px;font-size:12px;line-height:1.5">Enter the date the blood was drawn, as printed on ' +
     (opts.fileName ? '<strong>' + escapeHtml(String(opts.fileName).slice(0, 60)) + '</strong>' : 'the report') +
     (opts.clientName ? ' for <strong>' + escapeHtml(opts.clientName) + '</strong>' : '') +
@@ -23623,6 +23968,7 @@ function bbAskLabDate(opts, onPick) {
     '<input type="date" id="bbLabDateModalInput" max="' + bbTodayYmd() + '" ' +
     'style="width:100%;box-sizing:border-box;background:#111;border:1px solid rgba(255,255,255,0.14);color:#f0ede8;padding:10px 12px;border-radius:8px;font-size:14px;color-scheme:dark">' +
     '<div id="bbLabDateModalErr" class="form-hint" style="display:none;color:#ff8a8a;font-size:11px;margin:6px 0 0"></div>' +
+    '<div id="bbLabDateDup" class="form-hint" style="display:none;margin:8px 0 0;padding:8px 10px;border-radius:8px;font-size:11px;line-height:1.5;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.4);color:#f5c37a"></div>' +
     '<div style="display:flex;gap:8px;margin-top:16px">' +
     '<button type="button" id="bbLabDateCancel" class="form-hint" style="flex:1;border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:10px;border-radius:8px;cursor:pointer">Cancel</button>' +
     '<button type="button" id="bbLabDateOk" class="form-submit" style="flex:1;width:auto;margin:0;padding:10px">Continue</button>' +
@@ -23658,6 +24004,34 @@ function bbAskLabDate(opts, onPick) {
     if (e.key === 'Escape') finish(null);
     else if (e.key === 'Enter' && document.getElementById('bbLabDateModal')) submit();
   };
+  // Live duplicate check: the moment the typed date matches a draw already on file,
+  // say which report it collides with and rename the button, so uploading a second
+  // copy of the same draw is a deliberate act rather than an accident.
+  var dupEl = ov.querySelector('#bbLabDateDup');
+  var okBtn = ov.querySelector('#bbLabDateOk');
+  var checkDup = function () {
+    var v = String(input.value || '').trim();
+    var hit = null;
+    for (var i = 0; i < bbExisting.length; i++) {
+      var k = String(bbExisting[i].reportDate || bbExisting[i].effectiveDate || '').slice(0, 10);
+      if (k && k === v) { hit = bbExisting[i]; break; }
+    }
+    if (!dupEl || !okBtn) return;
+    if (hit) {
+      dupEl.style.display = 'block';
+      dupEl.innerHTML = '&#9888; <strong>Blood Report ' + escapeHtml(String(hit.slotNo)) +
+        '</strong> is already dated ' + escapeHtml(bbFmtDay(v)) +
+        '. Uploading this spends a slot on a duplicate of the same draw.';
+      okBtn.textContent = 'Upload anyway';
+    } else {
+      dupEl.style.display = 'none';
+      dupEl.innerHTML = '';
+      okBtn.textContent = 'Continue';
+    }
+  };
+  input.addEventListener('input', checkDup);
+  input.addEventListener('change', checkDup);
+
   ov.querySelector('#bbLabDateOk').onclick = submit;
   ov.querySelector('#bbLabDateCancel').onclick = function () { finish(null); };
   ov.onclick = function (e) { if (e.target === ov) finish(null); };
@@ -23714,12 +24088,103 @@ function loadAdminBloodReports() {
         el.innerHTML = '<p class="form-hint" style="color:#e05050;padding:20px">' + escapeHtml(data.error) + '</p>';
         return;
       }
-      var reports = (data && data.reports) || [];
-      if (!reports.length) {
-        el.innerHTML = '<p class="form-hint" style="text-align:center;padding:2rem">No reports found.</p>';
-        return;
-      }
-      el.innerHTML = reports.map(function (r) {
+      // Held so the client search can re-filter without another round trip. Slot
+      // numbers come from the server, computed over each client's WHOLE set, so a
+      // status filter never renumbers the reports it happens to show.
+      window._bbAdminBloodReports = (data && data.reports) || [];
+      window._bbAdminBloodSlotMax = (data && data.slotMax) || BB_BLOOD_MAX_SLOTS;
+      renderAdminBloodReports();
+    })
+    .catch(function () {
+      el.innerHTML = '<p class="form-hint" style="color:#e05050;padding:20px">Network error</p>';
+    });
+}
+
+// Draws the loaded reports grouped by client. One group = one member, their slot
+// counter, and their reports newest lab date first — so "three entries for the same
+// person" reads as "Rahul, 3 of 3 slots used" instead of three anonymous cards.
+function renderAdminBloodReports() {
+  var el = document.getElementById('adminBloodReportsList');
+  if (!el) return;
+  var all = window._bbAdminBloodReports || [];
+  var max = window._bbAdminBloodSlotMax || BB_BLOOD_MAX_SLOTS;
+  var q = String((document.getElementById('adminBloodSearch') || {}).value || '').trim().toLowerCase();
+  var reports = q
+    ? all.filter(function (r) {
+        return ((r.userName || '') + ' ' + (r.userEmail || '')).toLowerCase().indexOf(q) >= 0;
+      })
+    : all;
+
+  if (!reports.length) {
+    el.innerHTML = '<p class="form-hint" style="text-align:center;padding:2rem">' +
+      (q ? 'No clients match &ldquo;' + escapeHtml(q) + '&rdquo;.'
+         : 'No reports found for this filter.') + '</p>';
+    return;
+  }
+
+  var order = [], byUser = {};
+  reports.forEach(function (r) {
+    var k = String(r.userId || r.userEmail || r.userName || r._id);
+    if (!byUser[k]) {
+      byUser[k] = { name: r.userName || '—', goal: r.userGoal || '', pic: r.profile_picture || '', rows: [], total: 0 };
+      order.push(k);
+    }
+    var g = byUser[k];
+    g.rows.push(r);
+    // slotTotal is the client's real count; fall back to what is visible.
+    g.total = Math.max(g.total, Number(r.slotTotal) || 0);
+  });
+
+  var reportCount = 0, fullClients = 0, undated = 0, dupClients = 0;
+  order.forEach(function (k) {
+    var g = byUser[k];
+    g.total = Math.max(g.total, g.rows.length);
+    g.dup = bbDupDateSet(g.rows);
+    g.hidden = Math.max(0, g.total - g.rows.length);
+    reportCount += g.rows.length;
+    if (g.total >= max) fullClients++;
+    g.rows.forEach(function (r) { if (!r.reportDate) undated++; });
+    for (var d in g.dup) { if (g.dup[d]) { dupClients++; break; } }
+  });
+
+  var cell = function (v, label, warn) {
+    return '<div class="bb-blood-sumcell' + (warn && v ? ' is-warn' : '') + '">' +
+      '<div class="bb-blood-sumcell-v">' + v + '</div>' +
+      '<div class="bb-blood-sumcell-l">' + label + '</div></div>';
+  };
+  var html = '<div class="bb-blood-summary">' +
+    cell(order.length, 'Clients') +
+    cell(reportCount, 'Reports shown') +
+    cell(fullClients, 'At 3 of 3', true) +
+    cell(undated, 'No lab date', true) +
+    cell(dupClients, 'Same-date clash', true) +
+    '</div>';
+
+  order.forEach(function (k) {
+    var g = byUser[k];
+    html += '<div class="bb-bg-group">' +
+      '<div class="bb-bg-head">' +
+        '<div class="admin-blood-card-av" aria-hidden="true">' + bbAdminAvatarHtml(g.pic, g.name) + '</div>' +
+        '<div class="bb-bg-who">' +
+          '<div class="bb-bg-name">' + escapeHtml(g.name) + '</div>' +
+          '<div class="bb-bg-sub">' + escapeHtml(g.goal || '—') +
+            (g.hidden ? ' &middot; ' + g.hidden + ' hidden by this filter' : '') + '</div>' +
+        '</div>' +
+        '<div class="bb-bg-slots">' + bbSlotPips(g.total, max) +
+          '<span>' + bbSlotSummary(g.total, max) + '</span></div>' +
+      '</div>' +
+      '<div class="bb-bg-body">' +
+        g.rows.map(function (r) { return adminBloodCardHtml(r, g.dup); }).join('') +
+      '</div></div>';
+  });
+
+  el.innerHTML = html;
+}
+
+// One report card. Everything below the title row is unchanged from the flat list —
+// same notes box, same usage block, same five actions.
+function adminBloodCardHtml(r, dupSet) {
+  return (function (r) {
         var id = String(r._id || r.id || '').replace(/'/g, "\\'");
         var isReady = r.status === 'complete';
         var stLower = String(r.status || '').toLowerCase();
@@ -23755,17 +24220,20 @@ function loadAdminBloodReports() {
         }).join(' ');
         var notesEsc = escapeHtml(r.adminNotes || '');
         return (
-          '<div style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.07);border-radius:14px;padding:1.1rem;margin-bottom:10px;min-width:280px">' +
-          '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">' +
-          '<div class="admin-blood-card-av" aria-hidden="true">' + bbAdminAvatarHtml(r.profile_picture || '', r.userName || '') + '</div>' +
-          '<div style="flex:1;min-width:120px"><div style="font-weight:700">' + escapeHtml(r.userName || '—') + '</div>' +
-          '<div class="form-hint" style="margin:2px 0 0">' + escapeHtml(r.userGoal || '—') + ' · ' + bbLabDateLabel(r) + '</div></div>' +
-          (isReady ? '<div style="font-size:20px;font-weight:700;color:' + sc + '">' + escapeHtml(ar.overall_status || '—') + '</div>' : '<div class="form-hint">' + escapeHtml(String(r.status || '').replace(/_/g, ' ')) + '</div>') +
-          (isPendingOnly
-            ? '<span class="form-hint" style="background:rgba(200,164,78,0.14);color:var(--gold);padding:3px 8px;border-radius:99px;font-size:10px;border:1px solid rgba(200,164,78,0.35)">Waiting for admin action</span>'
-            : '') +
-          (isSent ? '<span class="form-hint" style="background:rgba(61,214,140,0.12);color:#3dd68c;padding:3px 8px;border-radius:99px;font-size:10px">Sent</span>' : '') +
+          '<div class="bb-blood-card">' +
+          // Title row: the report's permanent name first, then its state. The client's
+          // name and avatar live on the group header, so they are not repeated here.
+          '<div class="bb-blood-card-top">' +
+          bbSlotBadge(r.slotNo) +
+          bbDupFlag(!!(dupSet && dupSet[bbEffYmd(r)])) +
+          (isPendingOnly ? '<span class="bb-slot-flag bb-slot-flag--wait">Waiting for admin action</span>' : '') +
+          (isSent ? '<span class="bb-slot-flag bb-slot-flag--sent">Sent to client</span>' : '') +
+          '<span style="flex:1"></span>' +
+          (isReady
+            ? '<div style="font-size:19px;font-weight:700;color:' + sc + '">' + escapeHtml(ar.overall_status || '—') + '</div>'
+            : '<div class="form-hint" style="margin:0;text-transform:capitalize">' + escapeHtml(String(r.status || '').replace(/_/g, ' ')) + '</div>') +
           '</div>' +
+          '<div class="bb-blood-card-date">' + bbLabDateLabel(r) + '</div>' +
           (isReady && findings ? '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">' + findings + '</div>' : '') +
           '<div style="margin-bottom:8px"><textarea id="blood-notes-' + id + '" rows="2" placeholder="Optional note for the client…" style="width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#111;color:inherit;font-size:12px">' +
           notesEsc + '</textarea>' +
@@ -23796,11 +24264,7 @@ function loadAdminBloodReports() {
           bbDeleteReportBtn(id, 'flex:1;min-width:100px;padding:8px;font-size:12px', 'loadAdminBloodReports') +
           '</div></div>'
         );
-      }).join('');
-    })
-    .catch(function () {
-      el.innerHTML = '<p class="form-hint" style="color:#e05050;padding:20px">Network error</p>';
-    });
+  })(r);
 }
 
 function adminBloodSaveNotes(reportId) {
@@ -23940,7 +24404,7 @@ function bbCompareClientChanged() {
       (r.reportDate ? 'rgba(255,255,255,0.14)' : 'rgba(245,166,35,0.4)') +
       ';border-radius:10px;padding:8px 12px;margin:0 8px 8px 0;cursor:pointer;font-size:12px">' +
       '<input type="checkbox" class="bb-cmp-report" value="' + escapeHtml(r.id) + '" onchange="bbCompareSelectionChanged()" style="accent-color:#3dd68c"> ' +
-      '<span><strong>Test ' + (i + 1) + '</strong> · ' + escapeHtml(d) + (r.overallStatus ? ' · ' + escapeHtml(r.overallStatus) : '') + '</span></label>';
+      '<span><strong>Blood Report ' + escapeHtml(String(r.slotNo || (i + 1))) + '</strong> · ' + escapeHtml(d) + (r.overallStatus ? ' · ' + escapeHtml(r.overallStatus) : '') + '</span></label>';
   }).join('');
   pick.innerHTML = '<div class="form-hint" style="margin-bottom:6px">Select 2–6 reports to compare (oldest → newest by lab date)</div>' +
     (undated
@@ -24119,15 +24583,64 @@ function bbRenderComparison(cmp, container) {
 
   var id = String(cmp.id || '').replace(/'/g, "\\'");
   h += '<div style="margin-top:16px;border-top:1px solid rgba(255,255,255,0.08);padding-top:12px">';
+  if (cmp.docEdited) {
+    h += '<div class="form-hint" style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(61,214,140,0.08);border:1px solid rgba(61,214,140,0.3);color:#8fe3b8;font-size:11px">' +
+      '✎ This report has been edited for print' + (cmp.docUpdatedAt ? ' on ' + escapeHtml(new Date(cmp.docUpdatedAt).toLocaleString()) : '') +
+      '. The PDF and the copy sent to the client use the edited version.</div>';
+  }
   h += '<textarea id="bbCmpNotes-' + id + '" rows="2" placeholder="Optional note to the client (appears in the PDF)…" style="width:100%;box-sizing:border-box;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:#111;color:inherit;font-size:12px">' + escapeHtml(cmp.adminNotes || '') + '</textarea>';
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">';
   h += '<button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:8px 12px;border-radius:8px;cursor:pointer" onclick="bbComparisonSaveNotes(\'' + id + '\')">Save note</button>';
   h += '<button type="button" class="form-hint" style="border:1px solid rgba(230,192,95,0.45);background:rgba(230,192,95,0.1);color:var(--gold);padding:8px 12px;border-radius:8px;cursor:pointer" onclick="bbComparisonRegenerate(\'' + id + '\')">↻ Regenerate AI</button>';
+  // The editor is the doctor's review step: hide sections, correct wording, then print.
+  h += '<button type="button" class="form-submit" style="width:auto;padding:8px 14px;margin:0;background:linear-gradient(135deg,#3dd68c,#2fae72)" onclick="bbComparisonEdit(\'' + id + '\')">✎ Edit &amp; print report</button>';
+  // Preview the real PDF, then share it — the WhatsApp options live inside the preview.
+  h += '<button type="button" style="border:1px solid #25d366;background:#25d366;color:#06210f;font-weight:700;padding:8px 14px;border-radius:8px;cursor:pointer;font-size:12px" onclick="bbComparisonShare(\'' + id + '\')">💬 Preview &amp; share on WhatsApp</button>';
   h += '<button type="button" class="nav-login" style="padding:8px 12px;font-size:12px" onclick="bbComparisonDownloadPdf(\'' + id + '\')">⬇ Download progress PDF</button>';
   h += '<button type="button" class="form-submit" style="width:auto;padding:8px 14px;margin:0" onclick="bbComparisonSend(\'' + id + '\')">' + (cmp.sentToUser ? 'Re-send to client' : 'Send to client') + '</button>';
-  h += '</div></div>';
+  h += '</div>';
+  if (cmp.shareActive) {
+    h += '<div class="form-hint" style="margin-top:8px;font-size:11px;color:#8fe3b8">🔗 A WhatsApp share link is live for this report' +
+      (cmp.shareExpiresAt ? ' until ' + escapeHtml(new Date(cmp.shareExpiresAt).toLocaleDateString()) : '') +
+      '. Open “Preview &amp; share” to copy or revoke it.</div>';
+  }
+  h += '</div>';
 
   container.innerHTML = h;
+}
+
+// Preview the finished PDF and hand it to WhatsApp. Shared by the admin Blood
+// Reports tab and the operator client modal.
+function bbComparisonShare(id) {
+  if (typeof bbPreviewReportPdf !== 'function') {
+    showPopup('Preview unavailable', 'Reload the page and try again.', '', 'OK', null, 'error');
+    return;
+  }
+  // bbRenderComparison stashes the row it drew so the share sheet can greet the
+  // client by name and pre-fill their number without another round trip.
+  var cmp = window.__bbCmpShown && window.__bbCmpShown.id === id ? window.__bbCmpShown : null;
+  bbPreviewReportPdf(id, {
+    clientName: (cmp && cmp.userName) || '',
+    clientPhone: (cmp && cmp.clientPhone) || ''
+  });
+}
+
+// Open the full report editor. Shared by the admin Blood Reports tab and the
+// operator client modal — both render through bbRenderComparison.
+function bbComparisonEdit(id) {
+  if (typeof bbOpenReportEditor !== 'function') {
+    showPopup('Editor unavailable', 'Reload the page and try again.', '', 'OK', null, 'error');
+    return;
+  }
+  var res = bbCmpResultEl();
+  bbOpenReportEditor(id, {
+    onSaved: function (savedId) {
+      // Refresh the open comparison so the "edited" badge and notes stay accurate.
+      if (res && typeof bbComparisonOpen === 'function') bbComparisonOpen(savedId);
+      var uid = bbCmpClientId();
+      if (uid && typeof bbLoadClientComparisons === 'function') bbLoadClientComparisons(uid);
+    }
+  });
 }
 
 function bbLoadClientComparisons(uid) {
@@ -24141,8 +24654,12 @@ function bbLoadClientComparisons(uid) {
       var traj = (c.verdict && c.verdict.overall_trajectory) || c.status || '—';
       var cid = String(c.id || '').replace(/'/g, "\\'");
       return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:8px 12px;margin-bottom:6px">' +
-        '<span style="flex:1;min-width:160px"><strong>' + escapeHtml(traj) + '</strong> · ' + (c.reportIds ? c.reportIds.length : 0) + ' tests · ' + escapeHtml(dt) + (c.sentToUser ? ' · <span style="color:#3dd68c">sent</span>' : '') + '</span>' +
+        '<span style="flex:1;min-width:160px"><strong>' + escapeHtml(traj) + '</strong> · ' + (c.reportIds ? c.reportIds.length : 0) + ' tests · ' + escapeHtml(dt) +
+        (c.docEdited ? ' · <span style="color:#3dd68c">✎ edited</span>' : '') +
+        (c.sentToUser ? ' · <span style="color:#3dd68c">sent</span>' : '') + '</span>' +
         '<button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:6px 10px;border-radius:7px;cursor:pointer" onclick="bbComparisonOpen(\'' + cid + '\')">Open</button>' +
+        '<button type="button" class="form-hint" style="border:1px solid rgba(61,214,140,0.4);background:rgba(61,214,140,0.08);color:#8fe3b8;padding:6px 10px;border-radius:7px;cursor:pointer" onclick="bbComparisonEdit(\'' + cid + '\')">✎ Edit</button>' +
+        '<button type="button" class="form-hint" style="border:1px solid rgba(37,211,102,0.45);background:rgba(37,211,102,0.1);color:#25d366;padding:6px 10px;border-radius:7px;cursor:pointer" onclick="bbComparisonShare(\'' + cid + '\')">💬 Share</button>' +
         '<button type="button" class="form-hint" style="border:1px solid rgba(255,92,92,0.35);background:transparent;color:#ff8a8a;padding:6px 10px;border-radius:7px;cursor:pointer" onclick="bbComparisonDelete(\'' + cid + '\')">Delete</button>' +
         '</div>';
     }).join('');
@@ -24171,7 +24688,9 @@ function bbComparisonSaveNotes(id) {
 }
 
 function bbComparisonRegenerate(id) {
-  if (!confirm('Re-run the AI progress verdict? This uses Claude API credits.')) return;
+  // A new verdict replaces the text any hand-edits were made against, so the server
+  // drops the edited document — say so before spending the credits.
+  if (!confirm('Re-run the AI progress verdict? This uses Claude API credits.\n\nAny edits made in "Edit & print report" will be discarded and the report rebuilt from the new AI output.')) return;
   var res = bbCmpResultEl();
   if (res) res.innerHTML = '<div class="form-hint" style="padding:16px;text-align:center">Regenerating AI verdict…</div>';
   apiCall('POST', '/api/blood/admin/comparison/' + encodeURIComponent(id) + '/regenerate', {}).then(function (d) {
@@ -26997,1126 +27516,7 @@ function logoutSuperadmin() {
   window.currentUser = null;
 }
 
-// ============ OPERATOR (read-only monitoring) DASHBOARD ============
-// Self-contained module. Every call is a GET; the operator never mutates data.
-window._opClients = window._opClients || [];
-window._opActivityType = window._opActivityType || 'all';
-
-function opSetTxt(id, v) { var e = document.getElementById(id); if (e) e.textContent = (v == null ? '–' : v); }
-function opInitials(name) { var p = String(name || '').trim().split(/\s+/); var s = (((p[0] || '')[0] || '') + ((p[1] || '')[0] || '')).toUpperCase(); return s || 'C'; }
-function opTimeAgo(ts) {
-  if (!ts) return '';
-  var d = new Date(ts); if (isNaN(d.getTime())) return '';
-  var sec = Math.floor((Date.now() - d.getTime()) / 1000);
-  if (sec < 0) sec = 0;
-  if (sec < 60) return 'just now';
-  var m = Math.floor(sec / 60); if (m < 60) return m + 'm ago';
-  var h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
-  var dd = Math.floor(h / 24); if (dd < 7) return dd + 'd ago';
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-function opDate(ts) { if (!ts) return ''; var d = new Date(ts); if (isNaN(d.getTime())) return String(ts); return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); }
-
-function bbEnterOperatorShell() {
-  var panel = document.getElementById('operatorPanel');
-  if (panel) panel.classList.add('open');
-  document.body.classList.add('site-nav-hidden');
-  document.body.classList.add('admin-dashboard-open');
-  if (typeof lockBodyScroll === 'function') lockBodyScroll();
-  if (typeof registerNativePush === 'function') registerNativePush();
-  loadOperatorDashboard();
-  if (window._opNotifyInterval) clearInterval(window._opNotifyInterval);
-  window._opNotifyInterval = setInterval(loadOperatorNotifications, 60000);
-}
-
-function loadOperatorDashboard() {
-  loadOperatorOverview();
-  loadOperatorClients();
-  loadOperatorActivity();
-  loadOperatorNotifications();
-}
-
-// Refresh button: spin for feedback, then reload the CURRENT tab's data + notifications.
-function refreshOperator(btn) {
-  if (btn && btn.classList) btn.classList.add('is-spinning');
-  try {
-    var active = document.querySelector('#operatorPanel .op-tab-content.active');
-    var tab = active ? String(active.id || '').replace('opTab-', '') : 'overview';
-    if (tab === 'clients') {
-      var comp = document.getElementById('opClientsCompliance');
-      if (comp && comp.style.display !== 'none') loadOperatorCompliance(); else loadOperatorClients();
-    } else if (tab === 'leads') loadOperatorLeads();
-    else if (tab === 'activity') loadOperatorActivity();
-    else if (tab === 'admin') loadOperatorEscalations();
-    else loadOperatorOverview();
-    loadOperatorNotifications();
-  } catch (e) { }
-  setTimeout(function () { if (btn && btn.classList) btn.classList.remove('is-spinning'); }, 750);
-}
-
-function switchOperatorTab(tab) {
-  document.querySelectorAll('.op-tab-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-optab') === tab); });
-  document.querySelectorAll('#opBottomNav .admin-bottom-nav-item[data-optab]').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-optab') === tab); });
-  document.querySelectorAll('.op-tab-content').forEach(function (s) { s.classList.remove('active'); });
-  var el = document.getElementById('opTab-' + tab); if (el) el.classList.add('active');
-  if (tab === 'clients') opClientsView('roster');
-  else if (tab === 'leads') loadOperatorLeads();
-  else if (tab === 'activity') loadOperatorActivity();
-  else if (tab === 'admin') loadOperatorEscalations();
-  else loadOperatorOverview();
-}
-
-function opFeedItem(f) {
-  return '<div class="op-feed-item"><span class="op-dot ' + escapeHtml(f.type || '') + '"></span><div class="op-feed-main"><div class="op-feed-name">' + escapeHtml(f.name || '') + '</div><div class="op-feed-label">' + escapeHtml(f.label || '') + '</div></div><span class="op-feed-time">' + escapeHtml(opTimeAgo(f.created_at)) + '</span></div>';
-}
-
-window._opCharts = window._opCharts || {};
-function openOperatorAlerts() { var b = document.querySelector('#operatorPanel .admin-notify-btn'); if (b) b.click(); }
-function opSetHeroDate() { var el = document.getElementById('opHeroDate'); if (!el) return; try { el.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); } catch (e) { } }
-function opGotoRisk() { switchOperatorTab('clients'); var f = document.getElementById('opClientFilter'); if (f) { f.value = 'risk'; renderOperatorClients(); } }
-
-function opDrawTrendChart(trends) {
-  if (typeof Chart === 'undefined' || !trends) return;
-  var el = document.getElementById('opTrendChart'); if (!el) return;
-  if (window._opCharts.trend) { try { window._opCharts.trend.destroy(); } catch (e) { } }
-  var cream = '#bfb9ab', grid = 'rgba(255,255,255,0.06)';
-  var labels = (trends.labels || []).map(function (d) { var dt = new Date(d); return isNaN(dt.getTime()) ? d : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); });
-  window._opCharts.trend = new Chart(el.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: labels, datasets: [
-        { label: 'Check-ins', data: trends.checkins || [], backgroundColor: 'rgba(91,191,122,0.7)', borderRadius: 4, maxBarThickness: 15 },
-        { label: 'Workouts', data: trends.workouts || [], backgroundColor: 'rgba(200,164,78,0.75)', borderRadius: 4, maxBarThickness: 15 },
-        { label: 'Meals', data: trends.meals || [], backgroundColor: 'rgba(106,193,214,0.65)', borderRadius: 4, maxBarThickness: 15 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: cream, font: { size: 11 }, boxWidth: 12, padding: 12 } } },
-      scales: {
-        x: { ticks: { color: cream, font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 7 }, grid: { color: grid } },
-        y: { beginAtZero: true, ticks: { color: cream, font: { size: 10 }, precision: 0 }, grid: { color: grid } }
-      }
-    }
-  });
-}
-
-function opDrawWeightChart(weights) {
-  if (typeof Chart === 'undefined') return;
-  var el = document.getElementById('opModalWeightChart'); if (!el) return;
-  if (window._opCharts.weight) { try { window._opCharts.weight.destroy(); } catch (e) { } }
-  var cream = '#bfb9ab', grid = 'rgba(255,255,255,0.06)', gold = '#c8a44e';
-  var labels = weights.map(function (r) { var dt = new Date(r.created_at); return isNaN(dt.getTime()) ? '' : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); });
-  window._opCharts.weight = new Chart(el.getContext('2d'), {
-    type: 'line',
-    data: { labels: labels, datasets: [{ label: 'Weight (kg)', data: weights.map(function (r) { return r.weight_kg; }), borderColor: gold, backgroundColor: 'rgba(200,164,78,0.15)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: gold }] },
-    options: {
-      responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
-      scales: { x: { ticks: { color: cream, font: { size: 10 }, maxTicksLimit: 6 }, grid: { color: grid } }, y: { ticks: { color: cream, font: { size: 10 } }, grid: { color: grid } } }
-    }
-  });
-}
-
-async function loadOperatorOverview() {
-  opSetHeroDate();
-  try {
-    var data = await apiCall('GET', '/api/operator/overview');
-    var feedEl = document.getElementById('opFeed');
-    if (!data || data.error) { if (feedEl) feedEl.innerHTML = '<div class="op-empty">' + escapeHtml((data && data.error) || 'Could not load overview.') + '</div>'; return; }
-    var s = data.stats || {};
-    opSetTxt('opStatClients', s.total_clients); opSetTxt('opStatActive', s.active_today); opSetTxt('opStatCheckin', s.checked_in_today);
-    opSetTxt('opStatWorkouts', s.workouts_today); opSetTxt('opStatMeals', s.meals_today); opSetTxt('opStatTrials', s.new_trials_7d);
-    opSetTxt('opStatExpiring', s.expiring_trials_3d); opSetTxt('opStatRisk', (s.at_risk_p0 || 0) + (s.at_risk_p1 || 0));
-    // Engagement progress bars
-    var eng = data.engagement || {};
-    var bars = [
-      { label: 'Active today', val: eng.active_rate || 0, invert: false },
-      { label: 'Checked in today', val: eng.checkin_rate || 0, invert: false },
-      { label: 'Avg weekly consistency', val: eng.avg_consistency_pct || 0, invert: false },
-      { label: 'At-risk clients', val: eng.at_risk_rate || 0, invert: true }
-    ];
-    var barsEl = document.getElementById('opBars');
-    if (barsEl) {
-      barsEl.innerHTML = bars.map(function (b) {
-        var cls = b.invert ? (b.val >= 40 ? 'bad' : (b.val >= 20 ? 'warn' : '')) : (b.val < 30 ? 'bad' : (b.val < 60 ? 'warn' : ''));
-        return '<div class="op-bar-row"><div class="op-bar-top"><span class="op-bar-label">' + escapeHtml(b.label) + '</span><span class="op-bar-val">' + b.val + '%</span></div><div class="op-bar-track"><div class="op-bar-fill ' + cls + '" data-w="' + b.val + '"></div></div></div>';
-      }).join('');
-      requestAnimationFrame(function () { document.querySelectorAll('#opBars .op-bar-fill').forEach(function (f) { f.style.width = (f.getAttribute('data-w') || 0) + '%'; }); });
-    }
-    // Trend chart
-    opDrawTrendChart(data.trends);
-    // Live feed
-    var feed = data.feed || [];
-    if (feedEl) feedEl.innerHTML = feed.length ? feed.map(opFeedItem).join('') : '<div class="op-empty">No recent activity.</div>';
-  } catch (e) { }
-}
-
-async function loadOperatorClients() {
-  var el = document.getElementById('opClientList');
-  try {
-    var d = await apiCall('GET', '/api/operator/clients');
-    if (!d || d.error) { if (el) el.innerHTML = '<div class="op-empty">' + escapeHtml((d && d.error) || 'Could not load clients.') + '</div>'; return; }
-    window._opClients = d.rows || [];
-    renderOperatorClients();
-  } catch (e) { if (el) el.innerHTML = '<div class="op-empty">Could not load clients.</div>'; }
-}
-
-function opClientRow(c) {
-  var name = ((c.first_name || '') + ' ' + (c.last_name || '')).trim() || (c.email || 'Client');
-  var inactive = c.inactive_days || 0;
-  var pill = inactive >= 5 ? '<span class="op-pill bad">' + inactive + 'd idle</span>'
-    : (inactive >= 2 ? '<span class="op-pill warn">' + inactive + 'd idle</span>' : '<span class="op-pill ok">Active</span>');
-  var trial = (c.subscription_status === 'trialing') ? ' <span class="op-pill warn">Trial</span>' : '';
-  var av = c.profile_picture ? '<img class="op-avatar" src="' + escapeHtml(c.profile_picture) + '" alt="">' : '<div class="op-avatar">' + escapeHtml(opInitials(name)) + '</div>';
-  var lastActive = opTimeAgo(c.last_checkin_date || c.last_workout_at || c.created_at);
-  var consist = Math.max(0, Math.min(100, Math.round(((c.checkins_7d || 0) / 7) * 100)));
-  return '<div class="op-client-row" onclick="openOperatorClient(\'' + escapeHtml(String(c.id)) + '\')">' + av +
-    '<div class="op-client-main"><div class="op-client-name">' + escapeHtml(name) + trial + '</div><div class="op-client-sub">' + escapeHtml(c.email || '') + (lastActive ? ' · active ' + escapeHtml(lastActive) : '') + '</div>' +
-    '<div class="op-mini-track" title="' + (c.checkins_7d || 0) + '/7 check-ins this week"><div class="op-mini-fill" data-w="' + consist + '"></div></div></div>' +
-    '<div class="op-client-meta"><div class="op-metric"><span class="op-metric-v">' + (c.checkins_7d || 0) + '</span><span class="op-metric-l">chk 7d</span></div>' +
-    '<div class="op-metric"><span class="op-metric-v">' + (c.workouts_7d || 0) + '</span><span class="op-metric-l">wkt 7d</span></div>' +
-    '<div class="op-metric">' + pill + '</div></div></div>';
-}
-
-function renderOperatorClients() {
-  var list = window._opClients || [];
-  var q = ((document.getElementById('opClientSearch') || {}).value || '').trim().toLowerCase();
-  var filter = (document.getElementById('opClientFilter') || {}).value || 'all';
-  var sort = (document.getElementById('opClientSort') || {}).value || 'inactive';
-  var rows = list.filter(function (c) {
-    if (q && !bbContactMatches(q, [c.first_name, c.last_name, c.email], [c.phone])) return false;
-    if (filter === 'risk') return (c.inactive_days || 0) >= 2;
-    if (filter === 'active') return (c.inactive_days || 0) < 2;
-    if (filter === 'trialing') return (c.subscription_status || '') === 'trialing';
-    return true;
-  });
-  rows.sort(function (a, b) {
-    if (sort === 'name') return (((a.first_name || '') + (a.last_name || '')).toLowerCase()).localeCompare(((b.first_name || '') + (b.last_name || '')).toLowerCase());
-    if (sort === 'checkins') return (b.checkins_7d || 0) - (a.checkins_7d || 0);
-    if (sort === 'workouts') return (b.workouts_7d || 0) - (a.workouts_7d || 0);
-    return (b.inactive_days || 0) - (a.inactive_days || 0);
-  });
-  var cnt = document.getElementById('opClientCount'); if (cnt) cnt.textContent = rows.length + ' of ' + list.length + ' clients';
-  var el = document.getElementById('opClientList'); if (!el) return;
-  el.innerHTML = rows.length ? rows.map(opClientRow).join('') : '<div class="op-empty">No matching clients.</div>';
-  requestAnimationFrame(function () { document.querySelectorAll('#opClientList .op-mini-fill').forEach(function (f) { f.style.width = (f.getAttribute('data-w') || 0) + '%'; }); });
-}
-
-// ---- Clients tab: Roster / Compliance toggle ----
-function opClientsView(view) {
-  document.querySelectorAll('#opClientsSeg .op-seg-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-cv') === view); });
-  var r = document.getElementById('opClientsRoster'), c = document.getElementById('opClientsCompliance');
-  if (r) r.style.display = view === 'compliance' ? 'none' : 'block';
-  if (c) c.style.display = view === 'compliance' ? 'block' : 'none';
-  if (view === 'compliance') loadOperatorCompliance(); else loadOperatorClients();
-}
-function opComplianceChip(lbl, ok) { return '<div class="op-chip3 ' + (ok ? 'ok' : 'miss') + '"><div class="c3l">' + lbl + '</div><div class="c3v">' + (ok ? '✓' : '✗') + '</div></div>'; }
-function opComplianceRow(c) {
-  var name = ((c.first_name || '') + ' ' + (c.last_name || '')).trim() || c.email || 'Client';
-  var dOk = (c.daily_today || 0) > 0, wOk = (c.workouts_7d || 0) > 0, sOk = (c.sunday_week || 0) > 0;
-  var flag = (!dOk || !wOk || !sOk);
-  var sub = 'Daily ' + (c.daily_7d || 0) + '/7 · Wkt ' + (c.workouts_7d || 0) + ' · last ' + (opTimeAgo(c.last_daily || c.last_workout || c.created_at) || '—');
-  return '<div class="op-comp-card' + (flag ? ' flag' : '') + '" onclick="openOperatorClient(\'' + escapeHtml(String(c.id)) + '\')"><div class="op-comp-main"><div class="op-comp-name">' + escapeHtml(name) + '</div><div class="op-comp-sub">' + escapeHtml(sub) + '</div></div><div class="op-comp-chips">' + opComplianceChip('DAY', dOk) + opComplianceChip('WKT', wOk) + opComplianceChip('SUN', sOk) + '</div></div>';
-}
-async function loadOperatorCompliance() {
-  var el = document.getElementById('opComplianceList'); if (!el) return;
-  el.innerHTML = '<div class="op-empty">Loading…</div>';
-  try {
-    var d = await apiCall('GET', '/api/operator/compliance');
-    if (!d || d.error) { el.innerHTML = '<div class="op-empty">' + escapeHtml((d && d.error) || 'Could not load.') + '</div>'; return; }
-    var s = d.summary || {};
-    var sumEl = document.getElementById('opComplianceSummary');
-    if (sumEl) sumEl.innerHTML = '<div class="op-comp-summary">'
-      + '<div class="op-comp-sum"><div class="op-comp-sum-n" style="color:#e0785a">' + (s.missed_daily_today || 0) + '</div><div class="op-comp-sum-l">Missed daily today</div></div>'
-      + '<div class="op-comp-sum"><div class="op-comp-sum-n" style="color:#e0785a">' + (s.no_workout_week || 0) + '</div><div class="op-comp-sum-l">No workout · 7d</div></div>'
-      + '<div class="op-comp-sum"><div class="op-comp-sum-n" style="color:#e0785a">' + (s.missed_sunday || 0) + '</div><div class="op-comp-sum-l">Missed Sunday</div></div></div>';
-    var rows = (d.clients || []).slice().sort(function (a, b) {
-      var am = (a.daily_today > 0 ? 0 : 1) + (a.workouts_7d > 0 ? 0 : 1) + (a.sunday_week > 0 ? 0 : 1);
-      var bm = (b.daily_today > 0 ? 0 : 1) + (b.workouts_7d > 0 ? 0 : 1) + (b.sunday_week > 0 ? 0 : 1);
-      return bm - am;
-    });
-    el.innerHTML = rows.length ? rows.map(opComplianceRow).join('') : '<div class="op-empty">No clients.</div>';
-  } catch (e) { el.innerHTML = '<div class="op-empty">Could not load.</div>'; }
-}
-
-// ---- Leads: prospects who submitted a Body Audit / Part-2 form ----
-function opWa(phone) { if (!phone) return ''; var d = String(phone).replace(/[^0-9]/g, ''); if (d.length < 7) return ''; return 'https://wa.me/' + d; }
-function opLeadStat(n, l, color) { return '<div class="op-mstat"><div class="op-mstat-v" style="color:' + color + '">' + n + '</div><div class="op-mstat-l">' + escapeHtml(l) + '</div></div>'; }
-function opLeadContactActions(phone, email) {
-  var a = '';
-  var wa = opWa(phone);
-  if (wa) a += '<a class="op-lead-btn wa" href="' + wa + '" target="_blank" rel="noopener">WhatsApp</a>';
-  if (phone) a += '<a class="op-lead-btn" href="tel:' + escapeHtml(String(phone).replace(/[^0-9+]/g, '')) + '">Call</a>';
-  if (email) a += '<a class="op-lead-btn" href="mailto:' + escapeHtml(email) + '">Email</a>';
-  return a ? '<div class="op-lead-actions">' + a + '</div>' : '';
-}
-function opAuditCard(a) {
-  var name = ((a.first_name || '') + ' ' + (a.last_name || '')).trim() || a.email || 'Prospect';
-  var badges = (a.has_account ? '<span class="op-lb ok">Signed up</span>' : '<span class="op-lb warn">No account</span>')
-    + (a.has_part2 ? '<span class="op-lb ok">Part-2 done</span>' : '<span class="op-lb warn">No Part-2</span>')
-    + (a.stage ? '<span class="op-lb info">' + escapeHtml(opLiftLabel(a.stage)) + '</span>' : '');
-  var info = [a.age ? a.age + 'y' : '', a.sex ? escapeHtml(a.sex) : '', (a.city || a.country) ? escapeHtml([a.city, a.country].filter(Boolean).join(', ')) : ''].filter(Boolean).join(' · ');
-  var extra = [a.occupation ? 'Work: <b>' + escapeHtml(a.occupation) + '</b>' : '', a.fitness_experience ? 'Experience: <b>' + escapeHtml(a.fitness_experience) + '</b>' : '', a.goals ? 'Goal: <b>' + escapeHtml(a.goals) + '</b>' : '', a.motivation ? 'Why: ' + escapeHtml(a.motivation) : ''].filter(Boolean).join('<br>');
-  return '<div class="op-lead-card"><div class="op-lead-top"><div style="min-width:0"><div class="op-lead-name">' + escapeHtml(name) + '</div><div class="op-lead-meta">' + escapeHtml([a.email, a.phone].filter(Boolean).join(' · ')) + (info ? '<br>' + info : '') + '</div></div><div class="op-lead-meta" style="white-space:nowrap">' + escapeHtml(opDate(a.created_at)) + '</div></div><div class="op-lead-badges">' + badges + '</div>' + (extra ? '<div class="op-lead-info">' + extra + '</div>' : '') + opLeadContactActions(a.phone, a.email) + '</div>';
-}
-function opPart2Card(p) {
-  var name = p.name || p.email || 'Prospect';
-  var badges = (p.has_account ? '<span class="op-lb ok">Signed up</span>' : '<span class="op-lb warn">No account</span>')
-    + (p.tier_label ? '<span class="op-lb info">' + escapeHtml(p.tier_label) + (p.score != null ? ' · ' + p.score : '') + '</span>' : '');
-  var extra = [p.goals ? 'Goal: <b>' + escapeHtml(p.goals) + '</b>' : '', p.gym_experience ? 'Gym: <b>' + escapeHtml(p.gym_experience) + '</b>' : '', p.activity_level ? 'Activity: <b>' + escapeHtml(p.activity_level) + '</b>' : '', p.injuries ? 'Injuries: ' + escapeHtml(p.injuries) : ''].filter(Boolean).join('<br>');
-  return '<div class="op-lead-card"><div class="op-lead-top"><div style="min-width:0"><div class="op-lead-name">' + escapeHtml(name) + '</div><div class="op-lead-meta">' + escapeHtml([p.email, p.mobile].filter(Boolean).join(' · ')) + '</div></div><div class="op-lead-meta" style="white-space:nowrap">' + escapeHtml(opDate(p.created_at)) + '</div></div><div class="op-lead-badges">' + badges + '</div>' + (extra ? '<div class="op-lead-info">' + extra + '</div>' : '') + opLeadContactActions(p.mobile, p.email) + '</div>';
-}
-function opLeadsView(view) {
-  document.querySelectorAll('#opLeadsSeg .op-seg-btn').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-lv') === view); });
-  var a = document.getElementById('opLeadsAudits'), p = document.getElementById('opLeadsPart2');
-  if (a) a.style.display = view === 'audits' ? 'block' : 'none';
-  if (p) p.style.display = view === 'part2' ? 'block' : 'none';
-}
-async function loadOperatorLeads() {
-  var aEl = document.getElementById('opLeadsAudits'), pEl = document.getElementById('opLeadsPart2');
-  var days = (document.getElementById('opLeadsDays') || {}).value || '30';
-  if (aEl) aEl.innerHTML = '<div class="op-empty">Loading…</div>';
-  try {
-    var d = await apiCall('GET', '/api/operator/leads?days=' + encodeURIComponent(days));
-    if (!d || d.error) { if (aEl) aEl.innerHTML = '<div class="op-empty">' + escapeHtml((d && d.error) || 'Could not load.') + '</div>'; return; }
-    var c = d.counts || {};
-    var st = document.getElementById('opLeadsStats');
-    if (st) st.innerHTML = opLeadStat(c.audits_today || 0, 'Audits today', '#c8a44e') + opLeadStat(c.audits_7d || 0, 'Audits · 7d', '#f6a740') + opLeadStat(c.part2_today || 0, 'Part-2 today', '#5fc88a') + opLeadStat(c.audits_no_account || 0, 'Not signed up', '#e0785a');
-    window._opLeads = d;
-    renderOperatorLeads();
-  } catch (e) { if (aEl) aEl.innerHTML = '<div class="op-empty">Could not load leads.</div>'; }
-}
-
-// Filters the already-loaded prospects by name / email / phone without refetching.
-function renderOperatorLeads() {
-  var d = window._opLeads || {};
-  var aEl = document.getElementById('opLeadsAudits'), pEl = document.getElementById('opLeadsPart2');
-  var q = ((document.getElementById('opLeadsSearch') || {}).value || '').trim();
-  var audits = (d.audits || []).filter(function (a) { return bbContactMatches(q, [a.first_name, a.last_name, a.email], [a.phone]); });
-  var part2 = (d.part2 || []).filter(function (p) { return bbContactMatches(q, [p.name, p.email], [p.mobile]); });
-  if (aEl) aEl.innerHTML = audits.length ? audits.map(opAuditCard).join('') : '<div class="op-empty">' + (q ? 'No body audits match this search.' : 'No body audits in this period.') + '</div>';
-  if (pEl) pEl.innerHTML = part2.length ? part2.map(opPart2Card).join('') : '<div class="op-empty">' + (q ? 'No Part-2 forms match this search.' : 'No Part-2 forms in this period.') + '</div>';
-}
-
-function opMstat(v, l) { return '<div class="op-mstat"><div class="op-mstat-v">' + v + '</div><div class="op-mstat-l">' + escapeHtml(l) + '</div></div>'; }
-function opSection(title, arr, mapFn) {
-  arr = arr || [];
-  if (!arr.length) return '';
-  var rows = arr.map(function (r) { var p = mapFn(r); return '<div class="op-line"><span class="op-line-l">' + p[0] + '</span><span class="op-line-r">' + p[1] + '</span></div>'; }).join('');
-  return '<div class="op-msub">' + escapeHtml(title) + '</div>' + rows;
-}
-
-async function openOperatorClient(id) {
-  var overlay = document.getElementById('opClientModal');
-  var body = document.getElementById('opModalBody');
-  if (overlay) overlay.classList.add('open');
-  if (body) body.innerHTML = '<div class="op-empty">Loading…</div>';
-  try {
-    var d = await apiCall('GET', '/api/operator/clients/' + encodeURIComponent(id));
-    if (!d || d.error) { if (body) body.innerHTML = '<div class="op-empty">' + escapeHtml((d && d.error) || 'Could not load client.') + '</div>'; return; }
-    window._opClientData = d;
-    var u = d.user || {};
-    var name = ((u.first_name || '') + ' ' + (u.last_name || '')).trim() || u.email || 'Client';
-    window._opCurrentClient = { id: id, name: name };
-    var nEl = document.getElementById('opModalName'); if (nEl) nEl.textContent = name;
-    var eEl = document.getElementById('opModalEmail'); if (eEl) eEl.textContent = u.email || '';
-    var actions = '<div class="op-actbar">'
-      + opClientContactBtns(u)
-      + '<div class="op-actrow">'
-      +   '<button type="button" class="op-btn primary" onclick="opComposeReminder()">💬 Send reminder</button>'
-      +   '<button type="button" class="op-btn ghost" onclick="opComposeShare()">📤 Share to Admin</button>'
-      +   '<button type="button" class="op-btn line" onclick="opUploadBlood()">🩸 Upload blood report</button>'
-      +   '<button type="button" class="op-btn line" onclick="opOpenEliteCard()" title="Preview or download this client\'s Elite card">🪪 Elite card</button>'
-      + '</div>'
-      + '<input type="file" id="opBloodFileInput" accept=".pdf,image/*" style="display:none" onchange="opBloodFilePicked(event)">'
-      + '<div id="opBloodMsg" style="display:none;font-size:12px;margin-top:2px"></div>'
-      + '</div>';
-    var tabs = '<div class="op-dtabs" id="opDetailTabs">'
-      + '<button type="button" class="op-dtab active" data-dtab="profile" onclick="opDetailTab(\'profile\')">Profile</button>'
-      + '<button type="button" class="op-dtab" data-dtab="overview" onclick="opDetailTab(\'overview\')">Overview</button>'
-      + '<button type="button" class="op-dtab" data-dtab="nutrition" onclick="opDetailTab(\'nutrition\')">Nutrition</button>'
-      + '<button type="button" class="op-dtab" data-dtab="workouts" onclick="opDetailTab(\'workouts\')">Workouts</button>'
-      + '<button type="button" class="op-dtab" data-dtab="body" onclick="opDetailTab(\'body\')">Body</button>'
-      + '<button type="button" class="op-dtab" data-dtab="blood" onclick="opDetailTab(\'blood\')">Blood</button>'
-      + '<button type="button" class="op-dtab" data-dtab="readiness" onclick="opDetailTab(\'readiness\')">Readiness</button></div>';
-    var content = '<div id="opDetail-profile">' + opBuildProfile(d) + '</div>'
-      + '<div id="opDetail-overview" style="display:none">' + opBuildOverview(d) + '</div>'
-      + '<div id="opDetail-nutrition" style="display:none">' + opBuildNutrition(d) + '</div>'
-      + '<div id="opDetail-workouts" style="display:none">' + opBuildWorkouts(d) + '</div>'
-      + '<div id="opDetail-body" style="display:none">' + opBuildBody(d) + '</div>'
-      + '<div id="opDetail-blood" style="display:none">' + opBuildBlood(d) + '</div>'
-      + '<div id="opDetail-readiness" style="display:none">' + opBuildReadiness() + '</div>';
-    if (body) {
-      // The previous client's readiness charts point at canvases that are about to be
-      // replaced — tear them down before the DOM under them disappears.
-      if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('oprd');
-      if (typeof window.bbSigUnmount === 'function') window.bbSigUnmount('opsig');
-      body.innerHTML = actions + tabs + content;
-      body.scrollTop = 0;
-      window._opDetailDrawn = {};
-      opDetailTab('profile');
-      opLoadReadinessCard(id);
-    }
-  } catch (e) { if (body) body.innerHTML = '<div class="op-empty">Could not load client.</div>'; }
-}
-function opDetailTab(tab) {
-  document.querySelectorAll('#opDetailTabs .op-dtab').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-dtab') === tab); });
-  ['profile', 'overview', 'nutrition', 'workouts', 'body', 'blood', 'readiness'].forEach(function (t) { var el = document.getElementById('opDetail-' + t); if (el) el.style.display = (t === tab) ? 'block' : 'none'; });
-  var mb = document.getElementById('opModalBody'); if (mb) mb.scrollTop = 0;
-  window._opDetailDrawn = window._opDetailDrawn || {};
-  if (window._opDetailDrawn[tab]) return;
-  window._opDetailDrawn[tab] = true;
-  if (tab === 'overview') {
-    requestAnimationFrame(function () { document.querySelectorAll('#opDetail-overview .op-bar-fill').forEach(function (f) { f.style.width = (f.getAttribute('data-w') || 0) + '%'; }); });
-    if (window._opCurrentClient) opLoadWeekly(window._opCurrentClient.id);
-  } else if (tab === 'nutrition') opDrawNutritionChart();
-  else if (tab === 'workouts') opDrawStrengthChart();
-  else if (tab === 'body') { opDrawBodyWeightChart(); opLoadMuscleRanking(); }
-  else if (tab === 'blood') opMountBlood();
-  else if (tab === 'readiness') opMountReadiness();
-}
-// Readiness tab. The shell is operator chrome; the view inside it is the member's own
-// readiness renderer mounted on /api/wearables/operator/:id/* — read-only, and the
-// single implementation of "a figure nobody measured is a dash, never a zero".
-function opBuildReadiness() {
-  // Signal intelligence sits above the raw mirror: the risk flags, the rejected
-  // hypotheses and the bloodwork bridge are what monitoring is actually for. Both
-  // panels are pure reads on /api/wearables/operator/* — nothing here writes.
-  return '<div class="op-msub">✦ Signal intelligence</div>'
-    + '<div id="opDetailSignalBody"><div class="op-empty">Loading…</div></div>'
-    + '<div class="op-msub" style="margin-top:18px">⌚ Raw readiness &amp; recovery</div>'
-    + '<div id="opDetailReadinessBody"><div class="op-empty">Loading…</div></div>';
-}
-function opMountReadiness() {
-  var c = window._opCurrentClient;
-  var host = document.getElementById('opDetailReadinessBody');
-  var sigHost = document.getElementById('opDetailSignalBody');
-  if (!host) return;
-  if (!c || !c.id) {
-    host.innerHTML = '<div class="op-empty">No client selected.</div>';
-    if (sigHost) sigHost.innerHTML = '<div class="op-empty">No client selected.</div>';
-    return;
-  }
-  if (sigHost) {
-    if (typeof window.bbSigMountStaff === 'function') {
-      window.bbSigMountStaff({ key: 'opsig', scope: 'operator', el: 'opDetailSignalBody', userId: c.id, name: c.name || '' });
-    } else {
-      sigHost.innerHTML = '<div class="op-empty">Signal view is unavailable on this build.</div>';
-    }
-  }
-  if (typeof window.bbRdMountClient !== 'function') { host.innerHTML = '<div class="op-empty">Readiness view is unavailable on this build.</div>'; return; }
-  window.bbRdMountClient({ key: 'oprd', scope: 'operator', el: 'opDetailReadinessBody', userId: c.id, name: c.name || '' });
-}
-// One compact readiness card for the operator profile — the latest day that actually
-// carries a score, its four headline numbers and the change since the previous scored
-// day. The facts come from bbRdSummarise, so nothing is computed twice.
-function opReadinessCard(s) {
-  if (!s) return '<div class="op-empty">No readiness data in the last 14 days.</div>';
-  var when = s.isToday ? 'Today' : escapeHtml(s.dayLabel);
-  var h = '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px;margin-bottom:10px">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">'
-    + '<span style="font-weight:700;font-size:13px">' + (s.isDerived ? 'Readiness' : 'Recovery') + ' ' + escapeHtml(s.scoreText) + ' · ' + when + '</span>'
-    + '<button type="button" class="op-btn line" style="flex:0 0 auto;padding:8px 12px" onclick="opDetailTab(\'readiness\')">📈 Open</button>'
-    + '</div>';
-  h += '<div class="op-mstat-grid" style="margin-top:10px">'
-    + s.metrics.map(function (m) { return opMstat(escapeHtml(m.text), m.label); }).join('')
-    + '</div>';
-  h += opKV('Source', s.isDerived ? 'Derived from check-ins' : escapeHtml(s.source));
-  h += opKV('Change', s.delta == null
-    ? '— no earlier scored day'
-    : escapeHtml((s.delta >= 0 ? '+' : '') + s.delta + ' vs ' + s.prevLabel));
-  if (s.isDerived && s.confidence != null) h += opKV('Confidence', escapeHtml(String(s.confidence)) + ' · not measured');
-  h += '</div>';
-  return h;
-}
-async function opLoadReadinessCard(id) {
-  var host = document.getElementById('opRdProfileCard');
-  if (!host) return;
-  if (typeof window.bbRdSummarise !== 'function') { host.innerHTML = '<div class="op-empty">Readiness view is unavailable on this build.</div>'; return; }
-  var ymd = function (d) {
-    var m = d.getMonth() + 1, day = d.getDate();
-    return d.getFullYear() + '-' + (m < 10 ? '0' : '') + m + '-' + (day < 10 ? '0' : '') + day;
-  };
-  var to = new Date(), from = new Date();
-  from.setDate(from.getDate() - 13);
-  try {
-    var r = await apiCall('GET', '/api/wearables/operator/' + encodeURIComponent(id) +
-      '/readiness?from=' + ymd(from) + '&to=' + ymd(to));
-    if (!r || r.error) { host.innerHTML = '<div class="op-empty">' + escapeHtml((r && r.error) || 'Could not load readiness.') + '</div>'; return; }
-    host.innerHTML = opReadinessCard(window.bbRdSummarise(r.readiness || []));
-  } catch (e) {
-    host.innerHTML = '<div class="op-empty">Could not load readiness.</div>';
-  }
-}
-// ---- Client Profile: one compact snapshot + direct contact (operator only) ----
-function opClientContactBtns(u) {
-  u = u || {};
-  var phone = u.phone || '';
-  var wa = opWa(phone);
-  var first = String(u.first_name || '').trim();
-  var msg = encodeURIComponent('Hi ' + (first || 'there') + ', quick follow-up on your training — ');
-  var a = '';
-  if (wa) a += '<a class="op-btn wa" href="' + wa + '?text=' + msg + '" target="_blank" rel="noopener">💬 WhatsApp</a>';
-  if (phone) a += '<a class="op-btn line" href="tel:' + escapeHtml(String(phone).replace(/[^0-9+]/g, '')) + '">📞 Call</a>';
-  if (u.email) a += '<a class="op-btn line" href="mailto:' + escapeHtml(u.email) + '">✉️ Email</a>';
-  return a ? '<div class="op-actrow">' + a + '</div>' : '';
-}
-// Operator uploads a blood report for the open client, then it auto-processes.
-function opUploadBlood() {
-  var c = window._opCurrentClient;
-  if (!c || !c.id) return;
-  var inp = document.getElementById('opBloodFileInput');
-  if (inp) { inp.value = ''; inp.click(); }
-}
-function opBloodFilePicked(ev) {
-  var f = ev.target && ev.target.files && ev.target.files[0];
-  ev.target.value = '';
-  if (!f) return;
-  var c = window._opCurrentClient;
-  var msg = document.getElementById('opBloodMsg');
-  var show = function (color, html) { if (msg) { msg.style.display = 'block'; msg.style.color = color; msg.innerHTML = html; } };
-  if (!c || !c.id) { show('#ff8a8a', 'No client selected.'); return; }
-  var name = c.name || 'client';
-  // Capture the lab date first — it decides where this report sits on the trend.
-  bbAskLabDate({ clientName: name, fileName: f.name }, function (labDate) {
-    if (!labDate) { show('#8a8880', 'Upload cancelled.'); return; }
-    show('#8a8880', 'Reading file…');
-    var reader = new FileReader();
-    reader.onload = function () {
-      var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
-      show('#8a8880', 'Uploading & analysing for ' + escapeHtml(name) + ' (lab date ' + escapeHtml(bbFmtDay(labDate)) + ')… this can take a minute.');
-      apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(c.id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [], reportDate: labDate })
-        .then(function (res) {
-          if (res && res.error) { show('#ff8a8a', escapeHtml(res.error)); return; }
-          show('#3dd68c', 'Uploaded & analysis started for ' + escapeHtml(name) + ' (lab date ' + escapeHtml(bbFmtDay(labDate)) + '). Refreshing…');
-          // Pull the profile back so the new report card appears without a manual reopen.
-          setTimeout(function () { if (typeof opRefreshClient === 'function') opRefreshClient(); }, 1200);
-        })
-        .catch(function () { show('#ff8a8a', 'Upload failed. Please try again.'); });
-    };
-    reader.readAsDataURL(f);
-  });
-}
-function opAge(dob) {
-  if (!dob) return null;
-  var t = new Date(dob).getTime();
-  if (isNaN(t)) return null;
-  var a = Math.floor((Date.now() - t) / (365.25 * 86400000));
-  return (a > 0 && a < 130) ? a : null;
-}
-function opKV(l, r) {
-  return r ? '<div class="op-line"><span class="op-line-l">' + escapeHtml(l) + '</span><span class="op-line-r">' + r + '</span></div>' : '';
-}
-function opBloodFlags(ex) {
-  ex = opParse(ex);
-  var out = [];
-  if (ex && Array.isArray(ex.panels)) {
-    ex.panels.forEach(function (p) {
-      (Array.isArray(p.markers) ? p.markers : []).forEach(function (m) {
-        var st = String(m.status || '').toLowerCase();
-        var fl = String(m.flag || '').trim().toUpperCase();
-        if ((st && st !== 'normal' && st !== 'optimal') || fl === 'H' || fl === 'L') out.push(m);
-      });
-    });
-  }
-  return out;
-}
-function opBuildProfile(d) {
-  var u = d.user || {}, wts = d.weights || [], str = d.strength || [], wo = d.workouts || [], now = Date.now();
-  var lw = (wts.length && wts[0].weight_kg != null) ? wts[0].weight_kg
-    : ((d.body_snapshots && d.body_snapshots[0] && d.body_snapshots[0].bodyweight_kg != null) ? d.body_snapshots[0].bodyweight_kg : null);
-  var trend = '';
-  if (wts.length >= 2 && wts[0].weight_kg != null && wts[1].weight_kg != null) {
-    var diff = Math.round((wts[0].weight_kg - wts[1].weight_kg) * 10) / 10;
-    if (diff !== 0) trend = (diff > 0 ? '▲ +' : '▼ ') + diff + 'kg';
-  }
-  var bf = null;
-  for (var i = str.length - 1; i >= 0; i--) { if (str[i].body_fat != null) { bf = str[i].body_fat; break; } }
-  var wo7 = wo.filter(function (w) { var t = new Date(w.session_date || w.created_at).getTime(); return !isNaN(t) && t >= now - 7 * 86400000; }).length;
-  var age = opAge(u.dob);
-
-  var h = '<div class="op-mstat-grid">';
-  h += opMstat(lw != null ? lw + 'kg' : '–', trend ? ('Weight ' + trend) : 'Latest weight');
-  h += opMstat(u.height_cm ? u.height_cm + 'cm' : '–', 'Height');
-  h += opMstat(bf != null ? bf + '%' : '–', 'Body-fat');
-  h += opMstat(wo7, 'Workouts · 7d');
-  h += '</div>';
-
-  h += '<div class="op-msub">Snapshot</div>';
-  h += opKV('Age / Gender', escapeHtml([age ? age + 'y' : '', u.gender || ''].filter(Boolean).join(' · ')));
-  h += opKV('Location', escapeHtml([u.city, u.country].filter(Boolean).join(', ')));
-  h += opKV('Goal', escapeHtml([u.goal_type, u.diet_type].filter(Boolean).join(' · ')));
-  var exp = u.access_expires_at ? new Date(u.access_expires_at).toLocaleDateString() : '';
-  h += opKV('Membership', escapeHtml((u.subscription_status || 'active') + (u.plan_label ? ' · ' + u.plan_label : '') + (exp ? ' · until ' + exp : '')));
-
-  var lastWo = wo[0], big3 = null;
-  wo.some(function (w) { if (w.bench_kg || w.squat_kg || w.deadlift_kg) { big3 = { b: w.bench_kg, s: w.squat_kg, dl: w.deadlift_kg }; return true; } return false; });
-  if (!big3) { for (var j = str.length - 1; j >= 0; j--) { var r = str[j]; if (r.strength_bench || r.strength_squat || r.strength_deadlift) { big3 = { b: r.strength_bench, s: r.strength_squat, dl: r.strength_deadlift }; break; } } }
-  if (lastWo || big3) {
-    h += '<div class="op-msub">Training</div>';
-    if (lastWo) h += opKV('Last workout', escapeHtml((lastWo.workout_name || 'Workout') + ' · ' + opDate(lastWo.session_date || lastWo.created_at)));
-    if (big3) { var b3 = [big3.b ? 'Bench ' + big3.b : '', big3.s ? 'Squat ' + big3.s : '', big3.dl ? 'DL ' + big3.dl : ''].filter(Boolean).join(' · '); h += opKV('Big 3 (kg)', escapeHtml(b3)); }
-  }
-
-  var sc = (d.sunday_checkins || [])[0];
-  if (sc) {
-    h += '<div class="op-msub">Latest Sunday check-in · ' + escapeHtml(opDate(sc.created_at)) + '</div>';
-    h += opKV('Total weight loss', escapeHtml(sc.total_weight_loss || '—'));
-    h += opKV('Training / Nutrition', escapeHtml([sc.training_go, sc.nutrition_go].filter(Boolean).join(' · ') || '—'));
-    if (sc.sleep) h += opKV('Sleep', escapeHtml(sc.sleep));
-  }
-
-  var dc = (d.daily_checkins || [])[0];
-  if (dc) {
-    var dline = [dc.steps ? dc.steps + ' steps' : '', dc.water_ml ? dc.water_ml + 'ml' : '', dc.protein_g ? dc.protein_g + 'g P' : '', dc.sleep_hours ? dc.sleep_hours + 'h sleep' : ''].filter(Boolean).join(' · ');
-    h += '<div class="op-msub">Latest daily · ' + escapeHtml(opDate(dc.checkin_date)) + '</div>';
-    h += opKV('Logged', escapeHtml(dline || '—'));
-  }
-
-  // Filled by opLoadReadinessCard once the modal is built — the client detail payload
-  // carries no wearable data, so this is its own read.
-  h += '<div class="op-msub">Readiness</div><div id="opRdProfileCard"><div class="op-empty">Loading readiness…</div></div>';
-
-  // Blood lives in its own tab (cards + downloads + comparison); Profile just points there.
-  var bloods = opBloodList(d);
-  h += '<div class="op-msub">Blood reports</div>';
-  if (bloods.length) {
-    var latest = bloods[0];
-    h += opKV('On file', escapeHtml(String(bloods.length)) + ' · latest ' + bbLabDateLabel({
-      reportDate: latest.report_date || null, createdAt: latest.created_at
-    }));
-  } else {
-    h += '<div class="op-empty">No blood reports uploaded yet.</div>';
-  }
-  h += '<div style="margin-top:8px"><button type="button" class="op-btn line" onclick="opDetailTab(\'blood\')">🩸 Open blood reports' +
-    (bloods.length >= 2 ? ' &amp; comparison' : '') + '</button></div>';
-  return h;
-}
-
-// The client's blood reports, newest lab date first (the API already sorts, but a
-// single source of truth here keeps every operator surface consistent).
-function opBloodList(d) {
-  var b = d && d.blood;
-  return Array.isArray(b) ? b : (b ? [b] : []);
-}
-// One blood-report card for the operator profile. Operators have full parity with
-// admins on blood reports, so this carries the same controls as the admin card:
-// the original lab file, the generated PDF, an editable lab date, and delete.
-function opBloodReportCard(b, n) {
-  b = b || {};
-  var flags = opBloodFlags(b.extracted_blood_data);
-  var complete = String(b.status || '').toLowerCase() === 'complete';
-  var rid = String(b.id || '').replace(/'/g, "\\'");
-  // The card speaks the same shape as the admin list so the shared helpers apply.
-  var asReport = { id: b.id, reportDate: b.report_date || null, createdAt: b.created_at };
-  var btnStyle = 'flex:1 1 auto;min-width:104px;padding:8px 10px;font-size:12px';
-  var actions = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">' +
-    bbLabFileBtn(rid, !!b.has_source_file, btnStyle) +
-    (complete
-      ? '<button type="button" class="op-btn line" style="' + btnStyle + '" onclick="adminBloodDownloadPdf(\'' + rid + '\')">⬇ Report PDF</button>'
-      : '<button type="button" class="op-btn line" disabled title="Analysis is not complete yet" style="' + btnStyle + ';opacity:0.4;cursor:not-allowed">⬇ Report PDF</button>') +
-    bbDeleteReportBtn(rid, btnStyle, 'opRefreshClient') +
-    '</div>';
-  var status = complete ? '' : '<span class="op-line-r" style="text-transform:capitalize">' + escapeHtml(String(b.status || 'pending')) + '</span>';
-  var meta = [b.overall_status ? 'Overall: ' + b.overall_status : '', b.sent_to_user ? 'Sent to user' : '', flags.length ? (flags.length + ' flagged') : 'All in range'].filter(Boolean).join(' · ');
-  var h = '<div style="background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.07);border-radius:12px;padding:12px 14px;margin-bottom:10px">';
-  h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-weight:700;font-size:13px">Blood Report ' + n + '</span>' + status + '</div>';
-  h += '<div class="op-line-l" style="margin-top:4px;font-size:12px">' + bbLabDateLabel(asReport) + '</div>';
-  h += '<div class="op-line-l" style="margin-top:6px">' + escapeHtml(meta) + '</div>';
-  h += bbLabDateEditor(rid, asReport, 'opRefreshClient');
-  if (flags.length) {
-    h += '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
-    flags.slice(0, 5).forEach(function (m) {
-      h += '<span style="font-size:11px;background:rgba(255,92,92,0.12);border:1px solid rgba(255,92,92,0.3);color:#ff8a8a;border-radius:6px;padding:3px 8px">' + escapeHtml(String(m.name || 'Marker') + ' ' + [m.value, m.unit].filter(Boolean).join(' ') + (m.status ? ' (' + m.status + ')' : '')) + '</span>';
-    });
-    h += '</div>';
-  }
-  h += actions;
-  h += '</div>';
-  return h;
-}
-
-// Re-open the current operator client so a date edit, delete or upload is reflected
-// without the coach having to close and re-pick the client.
-function opRefreshClient() {
-  var c = window._opCurrentClient;
-  if (!c || !c.id || typeof openOperatorClient !== 'function') return;
-  // Come back to the Blood tab if that's where the action was taken.
-  var onBlood = !!(document.querySelector('#opDetailTabs .op-dtab.active[data-dtab="blood"]'));
-  openOperatorClient(c.id).then(function () {
-    if (onBlood) opDetailTab('blood');
-  });
-}
-
-// ---- Operator Blood tab: reports + the longitudinal comparison workspace ----
-// Same capabilities as the admin Blood Reports tab, scoped to the open client.
-function opBuildBlood(d) {
-  var bloods = opBloodList(d);
-  var h = '<div class="op-msub">Blood reports (' + bloods.length + ')</div>';
-  h += '<div style="margin-bottom:10px"><button type="button" class="op-btn line" onclick="opUploadBlood()">🩸 Upload a report</button></div>';
-  if (!bloods.length) {
-    h += '<div class="op-empty">No blood reports yet. Upload one above — you\'ll be asked for the lab test date so it lands correctly on the trend.</div>';
-    return h;
-  }
-  bloods.forEach(function (b, i) { h += opBloodReportCard(b, i + 1); });
-
-  // Only reports with extracted panel data can be compared.
-  var comparable = bloods.filter(function (b) {
-    var ex = opParse(b.extracted_blood_data);
-    return ex && ex.panels && ex.panels.length;
-  });
-  h += '<div class="op-msub">Progress comparison</div>';
-  if (comparable.length < 2) {
-    h += '<div class="op-empty">Two or more processed reports are needed to compare. ' +
-      comparable.length + ' of ' + bloods.length + ' ' + (comparable.length === 1 ? 'is' : 'are') + ' processed so far.</div>';
-    return h;
-  }
-  // Oldest -> newest by lab date, matching the comparison engine's ordering.
-  var undated = 0;
-  var chips = comparable.slice().sort(function (a, b) {
-    return new Date(a.report_date || a.created_at) - new Date(b.report_date || b.created_at);
-  }).map(function (r, i) {
-    if (!r.report_date) undated++;
-    var label = r.report_date ? bbFmtDay(r.report_date) : (bbFmtDay(r.created_at) + ' (upload date)');
-    return '<label style="display:inline-flex;align-items:center;gap:8px;border:1px solid ' +
-      (r.report_date ? 'rgba(255,255,255,0.14)' : 'rgba(245,166,35,0.4)') +
-      ';border-radius:10px;padding:8px 12px;margin:0 8px 8px 0;cursor:pointer;font-size:12px">' +
-      '<input type="checkbox" class="op-cmp-report" value="' + escapeHtml(String(r.id)) + '" onchange="opCompareSelectionChanged()" style="accent-color:#3dd68c"> ' +
-      '<span><strong>Test ' + (i + 1) + '</strong> · ' + escapeHtml(label) +
-      (r.overall_status ? ' · ' + escapeHtml(r.overall_status) : '') + '</span></label>';
-  }).join('');
-  h += '<div class="op-line-l" style="margin-bottom:6px">Select 2–6 reports to compare (oldest → newest by lab date)</div>';
-  if (undated) {
-    h += '<div class="op-line-l" style="margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.35);color:#f5c26b;font-size:11px">' +
-      undated + ' report' + (undated === 1 ? ' has' : 's have') + ' no lab date and sit by upload date. Set the lab date above for an accurate trend.</div>';
-  }
-  h += chips;
-  h += '<div style="margin-top:6px"><button type="button" id="opCompareRunBtn" class="op-btn primary" disabled style="opacity:0.5" onclick="opRunComparison()">Generate comparison</button></div>';
-  h += '<div id="opCmpSaved" style="margin-top:14px"></div>';
-  h += '<div id="opCmpResult" style="margin-top:14px"></div>';
-  return h;
-}
-
-// Point the shared comparison workspace at the operator containers, then load the
-// client's saved comparisons.
-function opMountBlood() {
-  var c = window._opCurrentClient;
-  if (!c || !c.id) return;
-  if (!document.getElementById('opCmpSaved')) return; // fewer than 2 comparable reports
-  bbCmpUseHost('opCmpResult', 'opCmpSaved', c.id);
-  bbLoadClientComparisons(c.id);
-}
-
-function opCompareSelectionChanged() {
-  var n = document.querySelectorAll('.op-cmp-report:checked').length;
-  var btn = document.getElementById('opCompareRunBtn');
-  if (!btn) return;
-  var ok = n >= 2 && n <= 6;
-  btn.disabled = !ok;
-  btn.style.opacity = ok ? '1' : '0.5';
-  btn.textContent = 'Generate comparison' + (n ? ' (' + n + ' selected)' : '');
-}
-
-function opRunComparison() {
-  var c = window._opCurrentClient;
-  var ids = Array.prototype.map.call(document.querySelectorAll('.op-cmp-report:checked'), function (el) { return el.value; });
-  if (!c || !c.id || ids.length < 2) return;
-  bbCmpUseHost('opCmpResult', 'opCmpSaved', c.id);
-  var res = document.getElementById('opCmpResult');
-  var btn = document.getElementById('opCompareRunBtn');
-  if (btn) { btn.disabled = true; btn.style.opacity = '0.6'; btn.textContent = 'Analysing trajectory… (Claude)'; }
-  if (res) res.innerHTML = '<div class="op-empty">Aligning markers and running the AI progress verdict… this can take up to a minute.</div>';
-  apiCall('POST', '/api/blood/admin/compare', { userId: c.id, reportIds: ids })
-    .then(function (d) {
-      if (!d || d.success === false || d.error) {
-        if (res) res.innerHTML = '<div class="op-empty" style="color:#ff8a8a">' + escapeHtml((d && (d.error || d.message)) || 'Comparison failed') + '</div>';
-        return;
-      }
-      bbRenderComparison(d.comparison, res);
-      bbLoadClientComparisons(c.id);
-    })
-    .catch(function () {
-      if (res) res.innerHTML = '<div class="op-empty" style="color:#ff8a8a">Network error</div>';
-    })
-    .then(function () { opCompareSelectionChanged(); });
-}
-function opBuildOverview(d) {
-  var u = d.user || {};
-  var latestWeight = (d.weights && d.weights[0]) ? d.weights[0].weight_kg : null;
-  var h = '<div class="op-mstat-grid">';
-  h += opMstat(latestWeight != null ? latestWeight + 'kg' : '–', 'Latest weight');
-  h += opMstat((d.daily_checkins || []).length, 'Check-ins');
-  h += opMstat((d.workouts || []).length, 'Workouts');
-  h += opMstat((d.meals || []).length, 'Meals');
-  h += '</div>';
-  var now = Date.now();
-  var last7 = (d.daily_checkins || []).filter(function (r) { var t = new Date(r.checkin_date).getTime(); return !isNaN(t) && t >= now - 7 * 86400000 && !r.is_freeze; }).length;
-  var cpct = Math.round((Math.min(last7, 7) / 7) * 100);
-  h += '<div class="op-bar-row" style="margin-bottom:14px"><div class="op-bar-top"><span class="op-bar-label">7-day check-in consistency</span><span class="op-bar-val">' + last7 + '/7</span></div><div class="op-bar-track"><div class="op-bar-fill' + (cpct < 30 ? ' bad' : (cpct < 60 ? ' warn' : '')) + '" data-w="' + cpct + '"></div></div></div>';
-  var exp = u.access_expires_at ? new Date(u.access_expires_at).toLocaleDateString() : '–';
-  h += '<div class="op-line"><span class="op-line-l">Membership</span><span class="op-line-r">' + escapeHtml(u.subscription_status || 'active') + (u.plan_label ? ' · ' + escapeHtml(u.plan_label) : '') + '</span></div>';
-  h += '<div class="op-line"><span class="op-line-l">Access expires</span><span class="op-line-r">' + escapeHtml(exp) + '</span></div>';
-  if (u.height_cm || u.goal_type) h += '<div class="op-line"><span class="op-line-l">Height / Goal</span><span class="op-line-r">' + escapeHtml((u.height_cm ? u.height_cm + 'cm' : '') + (u.goal_type ? (u.height_cm ? ' · ' : '') + u.goal_type : '')) + '</span></div>';
-  if (u.nutrition_ai_last_used_at || u.ai_trainer_last_used_at) h += '<div class="op-line"><span class="op-line-l">AI last used</span><span class="op-line-r">' + escapeHtml('Nutrition ' + (opTimeAgo(u.nutrition_ai_last_used_at) || 'never') + ' · Trainer ' + (opTimeAgo(u.ai_trainer_last_used_at) || 'never')) + '</span></div>';
-  h += '<div id="opWeeklyWrap" style="margin-top:16px"></div>';
-  h += opSection('Recent daily check-ins', d.daily_checkins, function (r) { return [escapeHtml(opDate(r.checkin_date)), escapeHtml([r.steps ? r.steps + ' steps' : '', r.water_ml ? r.water_ml + 'ml' : '', r.protein_g ? r.protein_g + 'g P' : '', r.sleep_hours ? r.sleep_hours + 'h sleep' : ''].filter(Boolean).join(' · ') || '—')]; });
-  h += opSection('Weekly (Sunday) check-ins', d.sunday_checkins, function (r) { return [escapeHtml(r.plan || 'Check-in'), escapeHtml(opDate(r.created_at))]; });
-  return h;
-}
-function opParse(v) { if (v && typeof v === 'string') { try { return JSON.parse(v); } catch (e) { return {}; } } return v || {}; }
-function opBuildNutrition(d) {
-  var meals = d.meals || [], daily = d.nutrition || [];
-  var h = '';
-  if (daily.length) h += '<div class="op-chart-card"><div class="op-msub" style="margin-top:0">Calories & protein (daily)</div><div class="op-chart-wrap sm"><canvas id="opNutChart"></canvas></div></div>';
-  var latest = daily[0];
-  if (latest) {
-    h += '<div class="op-mstat-grid" style="margin-bottom:12px">';
-    h += opMstat((latest.total_calories || 0), 'kcal · ' + opDate(latest.stat_date));
-    h += opMstat((latest.total_protein || 0) + 'g', 'Protein');
-    h += opMstat((latest.total_carbs || 0) + 'g', 'Carbs');
-    h += opMstat((latest.total_fat || 0) + 'g', 'Fat');
-    h += '</div>';
-  }
-  h += '<div class="op-msub">Recent meals (' + meals.length + ')</div>';
-  h += meals.length ? meals.map(opMealCard).join('') : '<div class="op-empty">No meals logged.</div>';
-  return h;
-}
-function opMealCard(m) {
-  var ar = opParse(m.ai_result);
-  var dish = ar.dish || m.manual_note || (m.meal_type || 'Meal');
-  var macros = [ar.calories != null ? ar.calories + ' kcal' : '', ar.protein != null ? ar.protein + 'g P' : '', ar.carbs != null ? ar.carbs + 'g C' : '', ar.fat != null ? ar.fat + 'g F' : '', ar.fiber != null ? ar.fiber + 'g fiber' : ''].filter(Boolean).join(' · ');
-  var score = m.meal_score != null ? '<span class="op-meal-score">' + m.meal_score + '/10</span>' : '';
-  var note = (m.manual_note && m.manual_note !== dish) ? '<div class="op-meal-note">📝 ' + escapeHtml(m.manual_note) + '</div>' : '';
-  return '<div class="op-meal-card"><div class="op-meal-top"><span class="op-meal-type">' + escapeHtml(m.meal_type || 'meal') + ' · ' + escapeHtml(opDate(m.log_date)) + (m.portion_size ? ' · ' + escapeHtml(m.portion_size) : '') + '</span>' + score + '</div><div class="op-meal-dish">' + escapeHtml(dish) + '</div><div class="op-meal-macros">' + escapeHtml(macros || '—') + '</div>' + note + '</div>';
-}
-function opLiftLabel(k) { return String(k || '').replace(/_/g, ' ').replace(/\b\w/g, function (c) { return c.toUpperCase(); }); }
-function opBuildWorkouts(d) {
-  var wk = d.workouts || [], str = d.strength || [];
-  var hasStrength = str.some(function (r) { return r.strength_bench || r.strength_squat || r.strength_deadlift; });
-  var h = '';
-  if (hasStrength) h += '<div class="op-chart-card"><div class="op-msub" style="margin-top:0">Strength over time (kg)</div><div class="op-chart-wrap sm"><canvas id="opStrChart"></canvas></div></div>';
-  h += '<div class="op-msub">Recent sessions (' + wk.length + ')</div>';
-  h += wk.length ? wk.map(opWorkoutCard).join('') : '<div class="op-empty">No workouts logged.</div>';
-  return h;
-}
-function opWorkoutCard(w) {
-  var lifts = opParse(w.session_lifts), reps = opParse(w.session_reps);
-  var exRows = '';
-  Object.keys(lifts).forEach(function (k) {
-    var wt = lifts[k], rp = reps[k];
-    exRows += '<div class="op-ex-row"><span class="op-ex-name">' + escapeHtml(opLiftLabel(k)) + '</span><span class="op-ex-val">' + (wt != null ? wt + 'kg' : '') + (rp != null ? ' × ' + rp : '') + '</span></div>';
-  });
-  var meta = [w.workout_type ? escapeHtml(w.workout_type) : '', w.duration_seconds ? Math.round(w.duration_seconds / 60) + ' min' : '', w.intensity ? escapeHtml(w.intensity) + ' intensity' : '', w.energy_level ? 'energy ' + escapeHtml(w.energy_level) : ''].filter(Boolean).join(' · ');
-  var big = [w.bench_kg ? 'Bench ' + w.bench_kg + 'kg' : '', w.squat_kg ? 'Squat ' + w.squat_kg + 'kg' : '', w.deadlift_kg ? 'DL ' + w.deadlift_kg + 'kg' : ''].filter(Boolean).join(' · ');
-  var done = w.workout_completed ? '<span class="op-meal-score" style="background:rgba(91,191,122,0.15);color:#5bbf7a">done</span>' : '';
-  return '<div class="op-wo-card"><div class="op-meal-top"><span class="op-meal-type">' + escapeHtml(w.workout_name || 'Workout') + ' · ' + escapeHtml(opDate(w.session_date || w.created_at)) + '</span>' + done + '</div>'
-    + (meta ? '<div class="op-meal-macros" style="color:var(--muted,#8f887a)">' + meta + '</div>' : '')
-    + (big ? '<div class="op-wo-big">' + big + '</div>' : '')
-    + (exRows ? '<div class="op-ex-list">' + exRows + '</div>' : '')
-    + (w.feedback ? '<div class="op-meal-note">💬 ' + escapeHtml(w.feedback) + '</div>' : '') + '</div>';
-}
-function opBuildBody(d) {
-  var wts = d.weights || [], snaps = d.body_snapshots || [];
-  var h = '';
-  if (wts.length >= 2) h += '<div class="op-chart-card"><div class="op-msub" style="margin-top:0">Weight trend</div><div class="op-chart-wrap sm"><canvas id="opBodyWtChart"></canvas></div></div>';
-  else h += opSection('Weight log', wts, function (r) { return [escapeHtml(r.weight_kg != null ? r.weight_kg + ' kg' : '–'), escapeHtml(opDate(r.created_at))]; });
-  h += '<div id="opMuscleWrap"><div class="op-msub">Muscle ranking</div><div class="op-empty" style="padding:12px">Loading…</div></div>';
-  h += '<div class="op-msub">Progress photos & measurements (' + snaps.length + ')</div>';
-  h += snaps.length ? snaps.map(opBodySnapCard).join('') : '<div class="op-empty">No shared body snapshots.</div>';
-  return h;
-}
-function opBodySnapCard(s) {
-  var date = opDate(s.snapshot_date || s.created_at);
-  var photos = [s.photo_front, s.photo_side, s.photo_back].filter(Boolean);
-  var imgs = photos.map(function (p) { return '<img class="op-body-photo" src="' + escapeHtml(p) + '" alt="" loading="lazy">'; }).join('');
-  var meta = [s.bodyweight_kg ? s.bodyweight_kg + 'kg' : '', s.waist_cm ? 'waist ' + s.waist_cm + 'cm' : ''].filter(Boolean).join(' · ');
-  return '<div class="op-wo-card"><div class="op-meal-top"><span class="op-meal-type">' + escapeHtml(date) + '</span><span class="op-meal-macros">' + escapeHtml(meta) + '</span></div>' + (imgs ? '<div class="op-body-photos">' + imgs + '</div>' : '') + (s.notes ? '<div class="op-meal-note">' + escapeHtml(s.notes) + '</div>' : '') + '</div>';
-}
-async function opLoadMuscleRanking() {
-  var wrap = document.getElementById('opMuscleWrap'); if (!wrap || wrap._loaded) return; wrap._loaded = true;
-  var id = window._opCurrentClient && window._opCurrentClient.id; if (!id) return;
-  try {
-    var d = await apiCall('GET', '/api/operator/clients/' + encodeURIComponent(id) + '/muscle-ranking');
-    if (!d || d.error || !d.regions || !d.regions.length) { wrap.innerHTML = '<div class="op-msub">Muscle ranking</div><div class="op-empty">Not enough workout data yet.</div>'; return; }
-    var h = '<div class="op-msub">Muscle ranking</div>';
-    h += '<div class="op-line"><span class="op-line-l">Overall audit index</span><span class="op-line-r">' + escapeHtml(String(d.audit_index != null ? d.audit_index : '—')) + (d.audit_index_delta ? ' (' + (d.audit_index_delta > 0 ? '+' : '') + d.audit_index_delta + ')' : '') + '</span></div>';
-    (d.regions || []).forEach(function (r) {
-      var pct = Math.max(0, Math.min(100, Math.round(r.score || 0)));
-      h += '<div class="op-bar-row" style="padding:9px 12px;margin-bottom:6px"><div class="op-bar-top"><span class="op-bar-label">' + escapeHtml(r.label || r.key) + (r.tier ? ' · ' + escapeHtml(r.tier) : '') + '</span><span class="op-bar-val" style="font-size:12px">' + (r.best_lift_kg ? r.best_lift_kg + 'kg' : '') + '</span></div><div class="op-bar-track"><div class="op-bar-fill" data-w="' + pct + '"></div></div></div>';
-    });
-    wrap.innerHTML = h;
-    requestAnimationFrame(function () { wrap.querySelectorAll('.op-bar-fill').forEach(function (f) { f.style.width = (f.getAttribute('data-w') || 0) + '%'; }); });
-  } catch (e) { wrap.innerHTML = '<div class="op-msub">Muscle ranking</div><div class="op-empty">Could not load.</div>'; }
-}
-function opDrawNutritionChart() {
-  var d = window._opClientData; if (!d || typeof Chart === 'undefined') return;
-  var el = document.getElementById('opNutChart'); if (!el) return;
-  window._opCharts = window._opCharts || {};
-  if (window._opCharts.nut) { try { window._opCharts.nut.destroy(); } catch (e) { } }
-  var rows = (d.nutrition || []).slice().reverse();
-  window._opCharts.nut = new Chart(el.getContext('2d'), {
-    data: {
-      labels: rows.map(function (r) { return opDate(r.stat_date); }), datasets: [
-        { type: 'bar', label: 'Calories', data: rows.map(function (r) { return r.total_calories || 0; }), backgroundColor: 'rgba(246,167,64,0.55)', yAxisID: 'y', borderRadius: 3, maxBarThickness: 16 },
-        { type: 'line', label: 'Protein (g)', data: rows.map(function (r) { return r.total_protein || 0; }), borderColor: '#5fc88a', backgroundColor: 'rgba(95,200,138,0.15)', yAxisID: 'y1', tension: 0.3, pointRadius: 2 }
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#8f887a', font: { size: 10 }, boxWidth: 10 } } }, scales: { x: { ticks: { color: '#8f887a', font: { size: 9 }, maxTicksLimit: 7 }, grid: { display: false } }, y: { position: 'left', ticks: { color: '#8f887a', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.06)' } }, y1: { position: 'right', ticks: { color: '#5fc88a', font: { size: 9 } }, grid: { display: false } } } }
-  });
-}
-function opDrawStrengthChart() {
-  var d = window._opClientData; if (!d || typeof Chart === 'undefined') return;
-  var el = document.getElementById('opStrChart'); if (!el) return;
-  window._opCharts = window._opCharts || {};
-  if (window._opCharts.str) { try { window._opCharts.str.destroy(); } catch (e) { } }
-  var rows = d.strength || [];
-  window._opCharts.str = new Chart(el.getContext('2d'), {
-    type: 'line',
-    data: {
-      labels: rows.map(function (r) { return opDate(r.created_at); }), datasets: [
-        { label: 'Bench', data: rows.map(function (r) { return r.strength_bench; }), borderColor: '#f6a740', tension: 0.3, pointRadius: 2, spanGaps: true },
-        { label: 'Squat', data: rows.map(function (r) { return r.strength_squat; }), borderColor: '#4aa8e0', tension: 0.3, pointRadius: 2, spanGaps: true },
-        { label: 'Deadlift', data: rows.map(function (r) { return r.strength_deadlift; }), borderColor: '#9b8cf0', tension: 0.3, pointRadius: 2, spanGaps: true }
-      ]
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#8f887a', font: { size: 10 }, boxWidth: 10 } } }, scales: { x: { ticks: { color: '#8f887a', font: { size: 9 }, maxTicksLimit: 6 }, grid: { display: false } }, y: { ticks: { color: '#8f887a', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.06)' } } } }
-  });
-}
-function opDrawBodyWeightChart() {
-  var d = window._opClientData; if (!d || typeof Chart === 'undefined') return;
-  var el = document.getElementById('opBodyWtChart'); if (!el) return;
-  var weights = (d.weights || []).slice().reverse();
-  if (weights.length < 2) return;
-  window._opCharts = window._opCharts || {};
-  if (window._opCharts.bodywt) { try { window._opCharts.bodywt.destroy(); } catch (e) { } }
-  window._opCharts.bodywt = new Chart(el.getContext('2d'), {
-    type: 'line',
-    data: { labels: weights.map(function (r) { return opDate(r.created_at); }), datasets: [{ label: 'Weight', data: weights.map(function (r) { return r.weight_kg; }), borderColor: '#c8a44e', backgroundColor: 'rgba(200,164,78,0.15)', fill: true, tension: 0.3, pointRadius: 2 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8f887a', font: { size: 9 }, maxTicksLimit: 6 }, grid: { display: false } }, y: { ticks: { color: '#8f887a', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,0.06)' } } } }
-  });
-}
-function closeOperatorClientModal() {
-  var o = document.getElementById('opClientModal'); if (o) o.classList.remove('open');
-  if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('oprd');
-  if (typeof window.bbSigUnmount === 'function') window.bbSigUnmount('opsig');
-  // Destroy every chart except the overview trend chart.
-  if (window._opCharts) { Object.keys(window._opCharts).forEach(function (k) { if (k === 'trend') return; if (window._opCharts[k]) { try { window._opCharts[k].destroy(); } catch (e) { } window._opCharts[k] = null; } }); }
-}
-
-function setOperatorActivityType(t) {
-  window._opActivityType = t;
-  document.querySelectorAll('#opActivityChips .op-chip').forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-actype') === t); });
-  loadOperatorActivity();
-}
-async function loadOperatorActivity() {
-  var el = document.getElementById('opActivityList'); if (!el) return;
-  var type = window._opActivityType || 'all';
-  var days = (document.getElementById('opActivityDays') || {}).value || '7';
-  el.innerHTML = '<div class="op-empty">Loading…</div>';
-  try {
-    var d = await apiCall('GET', '/api/operator/activity?type=' + encodeURIComponent(type) + '&days=' + encodeURIComponent(days));
-    if (!d || d.error) { el.innerHTML = '<div class="op-empty">' + escapeHtml((d && d.error) || 'Could not load activity.') + '</div>'; return; }
-    var items = d.items || [];
-    el.innerHTML = items.length ? items.map(function (f) {
-      return '<div class="op-tl-item"><span class="op-dot ' + escapeHtml(f.type || '') + '"></span><div class="op-feed-main"><div class="op-feed-name">' + escapeHtml(f.name || '') + '</div><div class="op-feed-label">' + escapeHtml(f.label || '') + (f.detail ? ' — ' + escapeHtml(f.detail) : '') + '</div></div><span class="op-feed-time">' + escapeHtml(opTimeAgo(f.created_at)) + '</span></div>';
-    }).join('') : '<div class="op-empty">No activity in this period.</div>';
-  } catch (e) { el.innerHTML = '<div class="op-empty">Could not load activity.</div>'; }
-}
-
-async function loadOperatorNotifications() {
-  try {
-    var list = await apiCall('GET', '/api/notifications');
-    var el = document.getElementById('opNotifyList');
-    var countEl = document.getElementById('opNotifyCount');
-    if (!el) return;
-    var cleared = (typeof getClearedNotifyIds === 'function') ? getClearedNotifyIds() : [];
-    var filtered = Array.isArray(list) ? list.filter(function (n) { return n.id && cleared.indexOf(n.id) === -1; }) : [];
-    window._opNotifyIds = filtered.map(function (n) { return n.id; });
-    try {
-      var skip = false;
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && 'serviceWorker' in navigator) {
-        var reg = await navigator.serviceWorker.ready; var sub = await reg.pushManager.getSubscription(); skip = !!sub;
-      }
-      if (typeof Notification !== 'undefined' && Notification.permission === 'granted' && !skip && typeof showBrowserNotification === 'function') {
-        var sent = (typeof getBrowserNotifiedIds === 'function') ? getBrowserNotifiedIds() : []; var fresh = [];
-        filtered.forEach(function (n) { if (n.id && sent.indexOf(n.id) === -1) { showBrowserNotification(n); fresh.push(n.id); } });
-        if (fresh.length && typeof setBrowserNotifiedIds === 'function') setBrowserNotifiedIds(sent.concat(fresh));
-      }
-    } catch (e) { }
-    el.innerHTML = filtered.length ? filtered.map(function (n) {
-      var time = n.time ? new Date(n.time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-      return '<div class="admin-notify-item ' + escapeHtml(n.type || '') + '"><div class="n-body"><div class="n-title">' + escapeHtml(n.title || '') + '</div><div class="n-desc">' + escapeHtml(n.desc || '') + '</div><div class="n-time">' + escapeHtml(time) + '</div></div></div>';
-    }).join('') : '<div class="admin-notify-empty">No notifications yet.</div>';
-    if (countEl) { if (filtered.length) { countEl.textContent = filtered.length > 99 ? '99+' : filtered.length; countEl.classList.add('has-count'); } else { countEl.classList.remove('has-count'); } }
-    if (navigator.setAppBadge) { if (filtered.length) navigator.setAppBadge(Math.min(filtered.length, 99)).catch(function () { }); else if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function () { }); }
-    if (typeof bbNotifyProcessNewSounds === 'function') bbNotifyProcessNewSounds(filtered, true);
-    if (typeof bbNotifyRefreshSoundButtons === 'function') bbNotifyRefreshSoundButtons();
-  } catch (e) {
-    var elc = document.getElementById('opNotifyList');
-    if (elc) elc.innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>';
-  }
-}
-function clearAllOperatorNotifications() {
-  var ids = window._opNotifyIds || [];
-  if (!ids.length) return;
-  var cleared = (typeof getClearedNotifyIds === 'function') ? getClearedNotifyIds() : [];
-  ids.forEach(function (id) { if (id && cleared.indexOf(id) === -1) cleared.push(id); });
-  if (typeof setClearedNotifyIds === 'function') setClearedNotifyIds(cleared);
-  var hasInbox = ids.some(function (id) { return id && String(id).indexOf('inbox-') === 0; });
-  if (hasInbox && typeof apiCall === 'function') apiCall('DELETE', '/api/inbox').catch(function () { });
-  loadOperatorNotifications();
-}
-
-function logoutOperator() {
-  if (window._opNotifyInterval) { clearInterval(window._opNotifyInterval); window._opNotifyInterval = null; }
-  if (window._opCharts) { Object.keys(window._opCharts).forEach(function (k) { if (window._opCharts[k]) { try { window._opCharts[k].destroy(); } catch (e) { } window._opCharts[k] = null; } }); }
-  if (typeof unregisterNativePush === 'function') unregisterNativePush();
-  if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
-  if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function () { });
-  var p = document.getElementById('operatorPanel'); if (p) p.classList.remove('open');
-  document.body.classList.remove('site-nav-hidden');
-  document.body.classList.remove('admin-dashboard-open');
-  if (typeof unlockBodyScroll === 'function') unlockBodyScroll();
-  try { localStorage.removeItem(SESSION_KEY); } catch (e) { }
-  window.currentUser = null;
-}
-
-// ---- Operator: last-week performance (charts + data) in the client drilldown ----
-var OP_WK_FMT = {
-  steps: { label: 'Steps', color: '#f6a740', unit: '', div: 1 },
-  water: { label: 'Water', color: '#4aa8e0', unit: 'L', div: 1000 },
-  protein: { label: 'Protein', color: '#5fc88a', unit: 'g', div: 1 },
-  sleep: { label: 'Sleep', color: '#9b8cf0', unit: 'h', div: 1 }
-};
-function opNum(n) { n = Number(n) || 0; if (n >= 1000) return Math.round(n).toLocaleString(); return Math.round(n * 10) / 10; }
-async function opLoadWeekly(id) {
-  var wrap = document.getElementById('opWeeklyWrap'); if (!wrap) return;
-  wrap.innerHTML = '<div class="op-msub" style="margin-top:0">Last week performance</div><div class="op-empty" style="padding:12px">Loading…</div>';
-  try {
-    var d = await apiCall('GET', '/api/operator/clients/' + encodeURIComponent(id) + '/weekly-report');
-    if (!d || d.error) { wrap.innerHTML = ''; return; }
-    opRenderWeekly(wrap, d);
-  } catch (e) { wrap.innerHTML = ''; }
-}
-function opRenderWeekly(wrap, d) {
-  var range = opDate(d.weekStart) + ' – ' + opDate(d.weekEnd);
-  var html = '<div class="op-msub" style="margin-top:0">Last week performance</div>';
-  html += '<div class="op-wk-head"><div class="op-wk-score">' + (d.overallScore || 0) + '<small>score</small></div><div class="op-wk-meta"><b>' + escapeHtml(range) + '</b><br>' + (d.goalsHit || 0) + '/' + (d.goalsTotal || 4) + ' goals hit · ' + (d.streak || 0) + '-day streak</div></div>';
-  html += '<div class="op-wk-grid">';
-  ['steps', 'water', 'protein', 'sleep'].forEach(function (k) {
-    var m = (d.metrics || {})[k]; if (!m) return;
-    var cfg = OP_WK_FMT[k];
-    var actual = (m.actual || 0) / cfg.div, target = (m.target || 0) / cfg.div;
-    var pct = Math.round(m.achievementPct || 0);
-    var pcolor = pct >= 90 ? '#5bbf7a' : (pct >= 60 ? '#e0b24e' : '#e0785a');
-    html += '<div class="op-wk-card"><div class="op-wk-c-top"><span class="op-wk-c-label">' + cfg.label + '</span><span class="op-wk-c-pct" style="color:' + pcolor + '">' + pct + '%</span></div>';
-    html += '<div class="op-wk-c-sub">' + opNum(actual) + cfg.unit + ' / ' + opNum(target) + cfg.unit + '</div>';
-    html += '<div class="op-wk-c-chart"><canvas id="opWk_' + k + '"></canvas></div></div>';
-  });
-  html += '</div>';
-  wrap.innerHTML = html;
-  ['steps', 'water', 'protein', 'sleep'].forEach(function (k) { var m = (d.metrics || {})[k]; if (m) opDrawWeekBar('opWk_' + k, m, OP_WK_FMT[k]); });
-}
-function opDrawWeekBar(id, m, cfg) {
-  if (typeof Chart === 'undefined') return;
-  var el = document.getElementById(id); if (!el) return;
-  window._opCharts = window._opCharts || {};
-  if (window._opCharts[id]) { try { window._opCharts[id].destroy(); } catch (e) { } }
-  var days = m.days || [];
-  var vals = days.map(function (x) { return (x.value || 0) / cfg.div; });
-  var goal = (m.dailyGoal || 0) / cfg.div;
-  window._opCharts[id] = new Chart(el.getContext('2d'), {
-    type: 'bar',
-    data: { labels: days.map(function (x) { return (x.label || '').slice(0, 1); }), datasets: [{ data: vals, backgroundColor: days.map(function (x) { return x.hitGoal ? cfg.color : 'rgba(255,255,255,0.18)'; }), borderRadius: 3, maxBarThickness: 14 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#8f887a', font: { size: 9 } }, grid: { display: false } }, y: { display: false, beginAtZero: true, suggestedMax: Math.max(goal, Math.max.apply(null, vals.concat([1]))) } } }
-  });
-}
-
-// ---- Operator: compose (reminder to client / share to admin) ----
-function opComposeReminder() {
-  if (!window._opCurrentClient) return;
-  window._opComposeMode = 'reminder';
-  document.getElementById('opCmTitle').textContent = 'Send reminder to ' + window._opCurrentClient.name;
-  document.getElementById('opCmHint').textContent = 'This appears in the client’s Messages as a coach message and sends them a push notification.';
-  document.getElementById('opCmText').value = '';
-  document.getElementById('opComposeModal').classList.add('open');
-  setTimeout(function () { var t = document.getElementById('opCmText'); if (t) t.focus(); }, 60);
-}
-function opComposeShare() {
-  if (!window._opCurrentClient) return;
-  window._opComposeMode = 'share';
-  document.getElementById('opCmTitle').textContent = 'Share ' + window._opCurrentClient.name + ' with Admin';
-  document.getElementById('opCmHint').textContent = 'Admin gets notified, can review this client, and reply to you. A snapshot of recent activity is attached automatically.';
-  document.getElementById('opCmText').value = '';
-  document.getElementById('opComposeModal').classList.add('open');
-  setTimeout(function () { var t = document.getElementById('opCmText'); if (t) t.focus(); }, 60);
-}
-function closeOpCompose() { var o = document.getElementById('opComposeModal'); if (o) o.classList.remove('open'); }
-async function opComposeSend() {
-  var c = window._opCurrentClient; if (!c) return;
-  var txt = (document.getElementById('opCmText').value || '').trim();
-  if (!txt) return;
-  var btn = document.getElementById('opCmSend'); if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-  try {
-    var share = window._opComposeMode === 'share';
-    var url = share ? '/api/operator/clients/' + encodeURIComponent(c.id) + '/share-to-admin' : '/api/operator/clients/' + encodeURIComponent(c.id) + '/reminder';
-    var r = await apiCall('POST', url, share ? { note: txt } : { body: txt });
-    if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
-    if (r && r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
-    closeOpCompose();
-    if (share) { showPopup('Shared with Admin', 'Admin has been notified and can reply to you in the “To Admin” tab.', '', 'OK'); loadOperatorEscalations(); }
-    else { showPopup('Reminder sent', 'The client received your message in their chat.', '', 'OK'); }
-  } catch (e) { if (btn) { btn.disabled = false; btn.textContent = 'Send'; } showPopup('Error', 'Could not send. Please try again.', '', 'OK', null, 'error'); }
-}
-
-// ---- Operator: escalations ("To Admin" tab) ----
-async function loadOperatorEscalations() {
-  var el = document.getElementById('opEscList'); if (!el) return;
-  el.innerHTML = '<div class="op-empty">Loading…</div>';
-  try {
-    var d = await apiCall('GET', '/api/operator/escalations');
-    if (!d || d.error) { el.innerHTML = '<div class="op-empty">' + escapeHtml((d && d.error) || 'Could not load.') + '</div>'; return; }
-    var rows = d.rows || [];
-    el.innerHTML = rows.length ? rows.map(opEscRow).join('') : '<div class="op-empty">Nothing shared with Admin yet. Open a client and tap “Share to Admin”.</div>';
-  } catch (e) { el.innerHTML = '<div class="op-empty">Could not load.</div>'; }
-}
-function opEscRow(e) {
-  var replied = (e.admin_replies || 0) > 0;
-  var badge = replied ? '<span class="op-esc-badge">Admin replied</span>' : '<span class="op-esc-badge" style="background:rgba(224,178,78,0.15);color:#e0b24e">Awaiting admin</span>';
-  return '<div class="op-esc-row" onclick="opEscOpen(\'' + escapeHtml(String(e.id)) + '\')"><div class="op-esc-top"><span class="op-esc-name">' + escapeHtml(e.client_name || 'Client') + '</span>' + badge + '</div><div class="op-esc-sum">' + escapeHtml(e.summary || '') + '</div><div class="op-esc-last">' + escapeHtml((e.last_role === 'admin' ? 'Admin: ' : 'You: ') + (e.last_body || '')) + '</div></div>';
-}
-function opRenderEscMessages(el, msgs, myRole) {
-  el.innerHTML = '<div class="op-chat">' + (msgs.length ? msgs.map(function (m) {
-    var mine = m.sender_role === myRole;
-    var who = m.sender_role === 'admin' ? 'Admin' : (m.sender_name || 'Operator');
-    return '<div class="op-bubble ' + (mine ? 'me' : 'them') + '"><div class="op-bubble-who">' + escapeHtml(who) + ' · ' + escapeHtml(opTimeAgo(m.created_at)) + '</div>' + escapeHtml(m.body || '') + '</div>';
-  }).join('') : '<div class="op-empty">No messages.</div>') + '</div>';
-}
-async function opEscOpen(eid) {
-  window._opCurrentEsc = eid;
-  var overlay = document.getElementById('opEscModal'); var msgsEl = document.getElementById('opEscMessages');
-  if (overlay) overlay.classList.add('open');
-  if (msgsEl) msgsEl.innerHTML = '<div class="op-empty">Loading…</div>';
-  try {
-    var d = await apiCall('GET', '/api/operator/escalations/' + encodeURIComponent(eid) + '/messages');
-    if (!d || d.error) { if (msgsEl) msgsEl.innerHTML = '<div class="op-empty">Could not load.</div>'; return; }
-    var e = d.escalation || {};
-    document.getElementById('opEscTitle').textContent = 'Re: ' + (e.client_name || 'Client');
-    document.getElementById('opEscSummary').textContent = e.summary || '';
-    opRenderEscMessages(msgsEl, d.messages || [], 'operator');
-  } catch (e) { if (msgsEl) msgsEl.innerHTML = '<div class="op-empty">Could not load.</div>'; }
-}
-function closeOpEsc() { var o = document.getElementById('opEscModal'); if (o) o.classList.remove('open'); }
-async function opEscReply() {
-  var eid = window._opCurrentEsc; if (!eid) return;
-  var ta = document.getElementById('opEscReplyText'); var txt = (ta.value || '').trim(); if (!txt) return;
-  try {
-    var r = await apiCall('POST', '/api/operator/escalations/' + encodeURIComponent(eid) + '/reply', { body: txt });
-    if (r && r.error) { showPopup('Error', r.error, '', 'OK', null, 'error'); return; }
-    ta.value = '';
-    opEscOpen(eid);
-  } catch (e) { }
-}
+// The operator console lives in js/operator-console.js (loaded further down).
 
 // ---- Admin: operator escalations inbox ----
 function openAdminEscalations() { var m = document.getElementById('adminEscModal'); if (m) m.classList.add('open'); adminEscBack(); loadAdminEscalations(); }
@@ -28316,6 +27716,8 @@ window.addEventListener('load', applySafeAreaFix);
 window.addEventListener('resize', applySafeAreaFix);
 </script>
 <script src="js/scorecard-share.js?v=17"></script>
+<script src="js/blood-report-editor.js?v=2"></script>
+<script src="js/operator-console.js?v=1"></script>
 <script>
 (function() {
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function(eventName) {

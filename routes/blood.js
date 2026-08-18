@@ -2,6 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const userEmail = require('../services/userEmailService');
 const { notifyAsync } = require('../utils/notify');
@@ -12,8 +13,16 @@ const {
   resolveStoredUploadPath
 } = require('../services/bloodAnalysisService');
 const { alignReports, generateComparisonVerdict, reportTimelineMs } = require('../services/bloodComparisonService');
+const {
+  buildComparisonDoc,
+  sanitizeComparisonDoc,
+  docHasVisibleContent,
+  docCoachNote,
+  setDocCoachNote
+} = require('../services/comparisonDocument');
 const { generateComparisonReportPdf } = require('../services/pdfService');
 const { computeNutritionSummaryForUserWindow } = require('../services/nutritionService');
+const { recordAiUsage } = require('../services/aiUsageLedger');
 
 // Keep decoded+base64 payload under Claude's ~32MB PDF request limit.
 const MAX_B64_CHARS = 30 * 1024 * 1024;
@@ -94,8 +103,100 @@ function mapComparisonRow(r) {
     sentAt: r.sent_at,
     pdfUrl: r.pdf_path,
     createdAt: r.created_at,
+    // Has a reviewer edited the printable document, and when?
+    docEdited: !!r.report_doc,
+    docUpdatedAt: r.doc_updated_at || null,
+    docUpdatedBy: r.doc_updated_by || '',
+    clientPhone: String(r.client_phone || '').trim(),
+    // A live, unexpired WhatsApp share link on this report?
+    shareActive: !!(r.share_token && r.share_expires_at && new Date(r.share_expires_at).getTime() > Date.now()),
+    shareExpiresAt: r.share_expires_at || null,
     profile_picture: String(r.client_profile_picture || '').trim()
   };
+}
+
+/**
+ * The document that WILL print for this comparison: the reviewer's edited version
+ * when one exists, otherwise a default built from the aligned data + AI verdict.
+ * @param {object} row a blood_comparison_reports row
+ * @returns {{ doc: object|null, edited: boolean }}
+ */
+function comparisonDocFor(row) {
+  const stored = parseJsonCol(row && row.report_doc);
+  if (stored && typeof stored === 'object' && Array.isArray(stored.sections)) {
+    return { doc: sanitizeComparisonDoc(stored), edited: true };
+  }
+  const comparison = parseJsonCol(row && row.comparison_data);
+  if (!comparison || !Array.isArray(comparison.panels)) return { doc: null, edited: false };
+  const doc = buildComparisonDoc({
+    comparison,
+    verdict: parseJsonCol(row.ai_verdict) || {},
+    adminNotes: row.admin_notes || '',
+    user: {
+      name: row.user_name || 'Member',
+      age: row.user_age || '—',
+      gender: row.user_gender || '—',
+      goal: row.user_goal || '—'
+    }
+  });
+  return { doc, edited: false };
+}
+
+/**
+ * Ensure the progress PDF for a comparison row exists on disk, rendering the
+ * EFFECTIVE document (the reviewer's edits when present) if it does not.
+ * Module-scoped because both the staff router and the public share route need it.
+ * @param {Function} run db runner
+ * @param {object} row blood_comparison_reports row
+ * @returns {Promise<string|null>} absolute path, or null when there is nothing to render
+ */
+async function ensureComparisonPdfForRow(run, row) {
+  const existing = row.pdf_path ? resolveStoredUploadPath(String(row.pdf_path).trim()) : null;
+  if (existing && fs.existsSync(existing)) return existing;
+  const { doc } = comparisonDocFor(row);
+  if (!doc) return null;
+  const pdfPath = await generateComparisonReportPdf({ comparisonId: row.id, doc });
+  await run(`UPDATE blood_comparison_reports SET pdf_path = ? WHERE id = ?`, [pdfPath, row.id]).catch(() => {});
+  return pdfPath;
+}
+
+// ---- WhatsApp share links --------------------------------------------------
+// WhatsApp deep links cannot carry an attachment, so sharing a report into a chat
+// means sending a URL. That URL points at a patient's blood work, so it is a random
+// 32-char token with an expiry that staff can revoke — never a guessable id and
+// never a path under the public /uploads mount.
+
+const SHARE_LINK_DAYS = Math.max(1, parseInt(process.env.BLOOD_SHARE_LINK_DAYS || '30', 10) || 30);
+
+function newShareToken() {
+  return crypto.randomBytes(24).toString('base64url');
+}
+
+/** Absolute origin for links we hand to a client, honouring the proxy in front of us. */
+function publicOrigin(req) {
+  const configured = String(process.env.PUBLIC_URL || process.env.APP_BASE_URL || process.env.SITE_URL || '').trim();
+  if (configured) return configured.replace(/\/$/, '');
+  const host = req.get('x-forwarded-host') || req.get('host') || '';
+  return `${req.protocol}://${host}`.replace(/\/$/, '');
+}
+
+function shareUrlFor(req, token) {
+  return `${publicOrigin(req)}/r/blood/${encodeURIComponent(token)}`;
+}
+
+/** Digits-only phone for a wa.me deep link, or '' when we have nothing usable. */
+function waDigits(phone) {
+  const d = String(phone == null ? '' : phone).replace(/[^0-9]/g, '');
+  return d.length >= 7 ? d : '';
+}
+
+function shareMessage(firstName, url, expiresAt) {
+  const who = String(firstName || '').trim();
+  const when = expiresAt ? new Date(expiresAt) : null;
+  const until = when && !Number.isNaN(when.getTime())
+    ? ` The link works until ${when.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}.`
+    : '';
+  return `Hi ${who || 'there'}, your BodyBank blood progress report is ready.\n\n${url}\n\nOpen it on your phone to see what changed and the updated plan.${until}`;
 }
 
 function mapReportRow(r) {
@@ -140,7 +241,11 @@ function mapReportRow(r) {
     extractionAiUsage: parseJson(r.extraction_ai_usage),
     analysisAiUsage: parseJson(r.analysis_ai_usage),
     totalAiUsage: parseJson(r.total_ai_usage),
-    profile_picture: String(r.client_profile_picture || '').trim()
+    profile_picture: String(r.client_profile_picture || '').trim(),
+    // Present only where the query computes them (see /admin/all): which of the
+    // client's 3 upload slots this report is, and how many they have on file.
+    slotNo: r.slot_no != null ? Number(r.slot_no) : null,
+    slotTotal: r.slot_total != null ? Number(r.slot_total) : null
   };
 }
 
@@ -449,10 +554,13 @@ function createBloodRouter(deps) {
   // Coach-authored progress reviews that were SENT to this member (in-app access).
   router.get('/my-comparisons', async (req, res) => {
     try {
+      // Prefer the reviewer's edited cover text — that is what the member's PDF says.
       const rows = await queryAll(
         `SELECT id, created_at, sent_at,
-                ai_verdict->>'overall_trajectory' AS trajectory,
-                ai_verdict->>'executive_summary' AS summary
+                COALESCE(report_doc->'cover'->'trajectory'->>'label',
+                         ai_verdict->>'overall_trajectory') AS trajectory,
+                COALESCE(report_doc->'cover'->'trajectory'->>'summary',
+                         ai_verdict->>'executive_summary') AS summary
          FROM blood_comparison_reports
          WHERE user_id = ? AND sent_to_user = true
          ORDER BY created_at DESC`,
@@ -580,6 +688,41 @@ function createBloodRouter(deps) {
     }
   });
 
+  // What a staff upload UI needs BEFORE it opens a file picker: how many of the
+  // client's 3 slots are used, which number the next upload becomes, and the lab
+  // dates already on file — so the same draw can't be uploaded twice by accident.
+  router.get('/admin/slots/:userId', staffOnly, async (req, res) => {
+    try {
+      const targetUserId = String(req.params.userId || '').trim();
+      if (!targetUserId) return res.status(400).json({ success: false, error: 'Missing client id' });
+      const rows = await queryAll(
+        `SELECT id, status, report_date, created_at FROM blood_analysis_reports
+         WHERE user_id = ?
+         ORDER BY COALESCE(report_date, created_at::date) ASC, created_at ASC`,
+        [targetUserId]
+      );
+      // Oldest lab date first, so slot 1 is always the client's earliest report.
+      const reports = (rows || []).map((r, i) => ({
+        id: r.id,
+        slotNo: i + 1,
+        status: r.status,
+        reportDate: r.report_date || null,
+        effectiveDate: effectiveReportDate(r)
+      }));
+      res.json({
+        success: true,
+        max: MAX_REPORTS_PER_USER,
+        used: reports.length,
+        free: Math.max(0, MAX_REPORTS_PER_USER - reports.length),
+        nextSlotNo: reports.length + 1,
+        reports
+      });
+    } catch (e) {
+      console.error('[blood slots]', e.message);
+      res.status(500).json({ success: false, error: e.message || 'Could not read upload slots' });
+    }
+  });
+
   router.get('/admin/all', staffOnly, async (req, res) => {
     try {
       const st = String(req.query.status || 'all').toLowerCase();
@@ -591,14 +734,27 @@ function createBloodRouter(deps) {
       } else if (st === 'sent') {
         extra = ' AND r.sent_to_user = true';
       }
+      // Slot numbering ("Blood Report 1/2/3") is computed inside the subquery, over the
+      // client's WHOLE set, so a status filter can hide report 2 without renumbering
+      // report 3. Oldest lab date is always slot 1 — a report's number never moves.
       const rows = await queryAll(
-        `SELECT r.*, u.profile_picture AS client_profile_picture
-         FROM blood_analysis_reports r
-         LEFT JOIN users u ON u.id = r.user_id
+        `SELECT * FROM (
+           SELECT r.*, u.profile_picture AS client_profile_picture,
+                  ROW_NUMBER() OVER (
+                    PARTITION BY r.user_id
+                    ORDER BY COALESCE(r.report_date, r.created_at::date) ASC, r.created_at ASC
+                  ) AS slot_no,
+                  COUNT(*) OVER (PARTITION BY r.user_id) AS slot_total
+           FROM blood_analysis_reports r
+           LEFT JOIN users u ON u.id = r.user_id
+         ) r
          WHERE 1=1 ${extra}
          ORDER BY COALESCE(r.report_date, r.created_at::date) DESC, r.created_at DESC`
       );
-      res.json({ reports: (rows || []).map((r) => mapReportRow(r)) });
+      res.json({
+        reports: (rows || []).map((r) => mapReportRow(r)),
+        slotMax: MAX_REPORTS_PER_USER
+      });
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
@@ -802,15 +958,24 @@ function createBloodRouter(deps) {
   // Clients that have 2+ processed reports — the pick list for the compare tool.
   router.get('/admin/comparable', staffOnly, async (req, res) => {
     try {
+      // slot_no is numbered inside the subquery, over the client's WHOLE set, and only
+      // then filtered to the processed ones — so an unprocessed report still holds its
+      // number and the picker agrees with the report card above it.
       const rows = await queryAll(
-        `SELECT r.id, r.user_id, r.user_name, r.user_email, r.created_at, r.report_date, r.status,
-                r.ai_report->>'overall_status' AS overall_status,
-                (r.extracted_blood_data IS NOT NULL) AS has_data,
-                (r.blood_report_file_path IS NOT NULL AND r.blood_report_file_path <> '') AS has_source_file,
-                u.profile_picture AS client_profile_picture
-         FROM blood_analysis_reports r
-         LEFT JOIN users u ON u.id = r.user_id
-         WHERE r.extracted_blood_data IS NOT NULL
+        `SELECT * FROM (
+           SELECT r.id, r.user_id, r.user_name, r.user_email, r.created_at, r.report_date, r.status,
+                  r.ai_report->>'overall_status' AS overall_status,
+                  (r.extracted_blood_data IS NOT NULL) AS has_data,
+                  (r.blood_report_file_path IS NOT NULL AND r.blood_report_file_path <> '') AS has_source_file,
+                  u.profile_picture AS client_profile_picture,
+                  ROW_NUMBER() OVER (
+                    PARTITION BY r.user_id
+                    ORDER BY COALESCE(r.report_date, r.created_at::date) ASC, r.created_at ASC
+                  ) AS slot_no
+           FROM blood_analysis_reports r
+           LEFT JOIN users u ON u.id = r.user_id
+         ) r
+         WHERE r.has_data
          ORDER BY r.user_id, COALESCE(r.report_date, r.created_at::date) DESC, r.created_at DESC`
       );
       const byUser = new Map();
@@ -831,7 +996,8 @@ function createBloodRouter(deps) {
           effectiveDate: effectiveReportDate(r),
           hasSourceFile: !!r.has_source_file,
           status: r.status,
-          overallStatus: r.overall_status || null
+          overallStatus: r.overall_status || null,
+          slotNo: r.slot_no != null ? Number(r.slot_no) : null
         });
       });
       const clients = Array.from(byUser.values())
@@ -848,7 +1014,7 @@ function createBloodRouter(deps) {
   router.get('/admin/comparisons/:userId', staffOnly, async (req, res) => {
     try {
       const rows = await queryAll(
-        `SELECT c.*, u.profile_picture AS client_profile_picture
+        `SELECT c.*, u.profile_picture AS client_profile_picture, u.phone AS client_phone
          FROM blood_comparison_reports c
          LEFT JOIN users u ON u.id = c.user_id
          WHERE c.user_id = ? ORDER BY c.created_at DESC`,
@@ -864,7 +1030,7 @@ function createBloodRouter(deps) {
   router.get('/admin/comparison/:id', staffOnly, async (req, res) => {
     try {
       const row = await queryOne(
-        `SELECT c.*, u.profile_picture AS client_profile_picture
+        `SELECT c.*, u.profile_picture AS client_profile_picture, u.phone AS client_phone
          FROM blood_comparison_reports c LEFT JOIN users u ON u.id = c.user_id
          WHERE c.id = ?`,
         [req.params.id]
@@ -951,6 +1117,7 @@ function createBloodRouter(deps) {
         });
         verdict = out.verdict;
         aiUsage = out.usage;
+        recordAiUsage({ scope: 'blood_comparison', usage: aiUsage, userId, refType: 'blood_comparison' });
         if (!verdict) {
           return res.status(502).json({
             success: false,
@@ -997,10 +1164,21 @@ function createBloodRouter(deps) {
       const sets = [];
       const args = [];
       if (req.body && typeof req.body.adminNotes === 'string') {
+        const note = String(req.body.adminNotes).slice(0, 8000);
         sets.push('admin_notes = ?');
-        args.push(String(req.body.adminNotes).slice(0, 8000));
+        args.push(note);
+        // The coach note also lives inside the editable document. Patch it there too
+        // so saving a note from the summary view doesn't get overwritten at print time
+        // by the copy the reviewer last saw in the editor.
+        const stored = parseJsonCol(row.report_doc);
+        if (stored && Array.isArray(stored.sections)) {
+          sets.push('report_doc = ?::jsonb');
+          args.push(JSON.stringify(sanitizeComparisonDoc(setDocCoachNote(stored, note))));
+        }
       }
       if (req.body && req.body.verdict && typeof req.body.verdict === 'object') {
+        // Note: when an edited document exists it is what prints — the document is
+        // the editing surface for the report itself, not this raw verdict column.
         sets.push('ai_verdict = ?::jsonb');
         args.push(JSON.stringify(req.body.verdict));
       }
@@ -1048,12 +1226,22 @@ function createBloodRouter(deps) {
         symptomsText: symSet.size ? Array.from(symSet).join(', ') : 'None reported',
         nutritionNote
       });
+      recordAiUsage({
+        scope: 'blood_comparison',
+        usage: out.usage,
+        userId: row.user_id,
+        refType: 'blood_comparison',
+        refId: req.params.id
+      });
       if (!out.verdict) {
         return res.status(502).json({ success: false, error: `AI verdict failed (stop reason: ${out.stopReason || 'unknown'}).` });
       }
+      // A fresh verdict replaces every word the old document was built from, so any
+      // prior hand-editing no longer maps onto it — drop the document and start clean.
       await run(
         `UPDATE blood_comparison_reports
-         SET comparison_data = ?::jsonb, ai_verdict = ?::jsonb, ai_usage = ?::jsonb, status = 'complete', pdf_path = NULL
+         SET comparison_data = ?::jsonb, ai_verdict = ?::jsonb, ai_usage = ?::jsonb, status = 'complete',
+             pdf_path = NULL, report_doc = NULL, doc_updated_at = NULL, doc_updated_by = ''
          WHERE id = ?`,
         [JSON.stringify(comparison), JSON.stringify(out.verdict), JSON.stringify(out.usage), req.params.id]
       );
@@ -1066,35 +1254,95 @@ function createBloodRouter(deps) {
   });
 
   // Ensure a progress PDF exists for a comparison row; returns absolute path.
-  async function ensureComparisonPdf(row) {
-    const existing = row.pdf_path ? resolveStoredUploadPath(String(row.pdf_path).trim()) : null;
-    if (existing && fs.existsSync(existing)) return existing;
-    const comparison = parseJsonCol(row.comparison_data);
-    const verdict = parseJsonCol(row.ai_verdict) || {};
-    if (!comparison || !Array.isArray(comparison.panels)) return null;
-    const verdictForPdf = {
-      ...verdict,
-      __improved: comparison.improvedCount,
-      __worsened: comparison.worsenedCount,
-      __markerCount: comparison.markerCount
-    };
-    const pdfPath = await generateComparisonReportPdf({
-      comparisonId: row.id,
-      user: {
-        name: row.user_name || 'Member',
-        age: row.user_age || '—',
-        gender: row.user_gender || '—',
-        goal: row.user_goal || '—'
-      },
-      comparison,
-      verdict: verdictForPdf,
-      adminNotes: row.admin_notes || ''
-    });
-    await run(`UPDATE blood_comparison_reports SET pdf_path = ? WHERE id = ?`, [pdfPath, row.id]).catch(() => {});
-    return pdfPath;
-  }
+  // Always renders the EFFECTIVE document, so a reviewer's edits are what print.
+  const ensureComparisonPdf = (row) => ensureComparisonPdfForRow(run, row);
+
+  // ---- editable progress-report document -----------------------------------
+  // The document is what the in-app editor renders and what the PDF is drawn from.
+  // Loading it never mutates anything: an un-edited comparison just gets its default
+  // document built on the fly, so opening the editor is free.
+
+  router.get('/admin/comparison/:id/doc', staffOnly, async (req, res) => {
+    try {
+      const row = await queryOne(
+        `SELECT c.*, u.phone AS client_phone
+         FROM blood_comparison_reports c LEFT JOIN users u ON u.id = c.user_id
+         WHERE c.id = ?`,
+        [req.params.id]
+      );
+      if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+      const { doc, edited } = comparisonDocFor(row);
+      if (!doc) {
+        return res.status(400).json({ success: false, error: 'This comparison has no aligned marker data to edit.' });
+      }
+      res.json({
+        success: true,
+        doc,
+        edited,
+        docUpdatedAt: row.doc_updated_at || null,
+        docUpdatedBy: row.doc_updated_by || '',
+        hasVerdict: !!parseJsonCol(row.ai_verdict),
+        clientName: row.user_name || 'Member',
+        clientPhone: row.client_phone || '',
+        sentToUser: !!row.sent_to_user
+      });
+    } catch (e) {
+      console.error('[blood compare doc]', e.message);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  router.put('/admin/comparison/:id/doc', staffOnly, async (req, res) => {
+    try {
+      const row = await queryOne(`SELECT id FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+      const incoming = req.body && req.body.doc;
+      if (!incoming || typeof incoming !== 'object' || !Array.isArray(incoming.sections)) {
+        return res.status(400).json({ success: false, error: 'Malformed report document.' });
+      }
+      const doc = sanitizeComparisonDoc(incoming);
+      if (!docHasVisibleContent(doc)) {
+        return res.status(400).json({ success: false, error: 'The report would be empty — keep at least one visible section.' });
+      }
+      // The coach note lives in the document now, but admin_notes still drives the
+      // email body and the member-facing summary, so keep the two in step.
+      const editor = String((req.user && (req.user.email || req.user.id)) || '').slice(0, 200);
+      await run(
+        `UPDATE blood_comparison_reports
+         SET report_doc = ?::jsonb, admin_notes = ?, doc_updated_at = CURRENT_TIMESTAMP, doc_updated_by = ?, pdf_path = NULL
+         WHERE id = ?`,
+        [JSON.stringify(doc), docCoachNote(doc).slice(0, 8000), editor, req.params.id]
+      );
+      res.json({ success: true, doc });
+    } catch (e) {
+      console.error('[blood compare doc save]', e.message);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Throw away the reviewer's edits and go back to the AI-generated layout.
+  router.post('/admin/comparison/:id/doc/reset', staffOnly, async (req, res) => {
+    try {
+      const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+      await run(
+        `UPDATE blood_comparison_reports
+         SET report_doc = NULL, doc_updated_at = NULL, doc_updated_by = '', pdf_path = NULL
+         WHERE id = ?`,
+        [req.params.id]
+      );
+      const fresh = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      const { doc } = comparisonDocFor(fresh);
+      if (!doc) return res.status(400).json({ success: false, error: 'This comparison has no aligned marker data to edit.' });
+      res.json({ success: true, doc, edited: false });
+    } catch (e) {
+      console.error('[blood compare doc reset]', e.message);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
 
   // Download the branded progress PDF (generated on demand).
+  // `?inline=1` serves it for in-browser preview instead of forcing a download.
   router.get('/admin/comparison/:id/pdf', staffOnly, async (req, res) => {
     try {
       const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
@@ -1102,6 +1350,11 @@ function createBloodRouter(deps) {
       const pdfPath = await ensureComparisonPdf(row);
       if (!pdfPath || !fs.existsSync(pdfPath)) {
         return res.status(400).json({ error: 'Comparison PDF could not be generated (run the AI verdict first).' });
+      }
+      if (String(req.query.inline || '') === '1') {
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', 'inline; filename="BodyBank_Progress_Report.pdf"');
+        return fs.createReadStream(pdfPath).pipe(res);
       }
       res.download(pdfPath, 'BodyBank_Progress_Report.pdf');
     } catch (e) {
@@ -1121,13 +1374,20 @@ function createBloodRouter(deps) {
       if (!pdfPath || !fs.existsSync(pdfPath)) {
         return res.status(400).json({ success: false, error: 'Progress report is not ready.' });
       }
+      // The email blurb must quote the report the client is about to open, so read it
+      // off the effective document rather than the raw AI verdict.
+      const effective = comparisonDocFor(row).doc;
+      const cover = (effective && effective.cover) || {};
+      const coverTraj = cover.trajectory || {};
+      const overallStatus = coverTraj.label || verdict.overall_trajectory;
+      const summary = coverTraj.summary || verdict.executive_summary;
       const emailed = await userEmail.emailHealthReportWithPdf({
         toEmail: row.user_email,
         firstName: (row.user_name || '').split(/\s+/)[0] || 'there',
         pdfPath,
         adminNotes: row.admin_notes || '',
-        overallStatus: verdict.overall_trajectory,
-        summary: verdict.executive_summary
+        overallStatus,
+        summary
       });
       if (!emailed) {
         if (!userEmail.isConfigured()) {
@@ -1142,7 +1402,7 @@ function createBloodRouter(deps) {
           inboxId,
           row.user_id,
           'Your BodyBank Blood Progress Report is Ready',
-          `Your blood-report progress review is ready. ${String(verdict.executive_summary || '')}`.slice(0, 4000),
+          `Your blood-report progress review is ready. ${String(summary || '')}`.slice(0, 4000),
           'health_report'
         ]
       );
@@ -1151,6 +1411,74 @@ function createBloodRouter(deps) {
       res.json({ success: true });
     } catch (e) {
       console.error('[blood compare send]', e.message);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // ---- WhatsApp / link sharing ---------------------------------------------
+  // Mint (or reuse) a public link to the finished report so staff can drop it into
+  // the client's WhatsApp chat. An unexpired token is reused rather than rotated —
+  // rotating would silently break a link already sitting in someone's chat history.
+  router.post('/admin/comparison/:id/share-link', staffOnly, rateLimiter(30, 120000), async (req, res) => {
+    try {
+      const row = await queryOne(
+        `SELECT c.*, u.phone AS client_phone, u.first_name AS client_first_name
+         FROM blood_comparison_reports c LEFT JOIN users u ON u.id = c.user_id
+         WHERE c.id = ?`,
+        [req.params.id]
+      );
+      if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+
+      const pdfPath = await ensureComparisonPdf(row);
+      if (!pdfPath || !fs.existsSync(pdfPath)) {
+        return res.status(400).json({ success: false, error: 'The report PDF could not be generated yet.' });
+      }
+
+      const rotate = String((req.body && req.body.rotate) || req.query.rotate || '') === '1';
+      const stillValid = row.share_token && row.share_expires_at && new Date(row.share_expires_at).getTime() > Date.now();
+      let token = stillValid && !rotate ? String(row.share_token) : newShareToken();
+      let expiresAt = stillValid && !rotate ? row.share_expires_at : new Date(Date.now() + SHARE_LINK_DAYS * 86400000);
+
+      if (!stillValid || rotate) {
+        await run(
+          `UPDATE blood_comparison_reports
+           SET share_token = ?, share_expires_at = ?, share_created_at = CURRENT_TIMESTAMP, share_created_by = ?
+           WHERE id = ?`,
+          [token, expiresAt, String((req.user && (req.user.email || req.user.id)) || '').slice(0, 200), req.params.id]
+        );
+      }
+
+      const url = shareUrlFor(req, token);
+      const firstName = String(row.client_first_name || row.user_name || '').split(/\s+/)[0];
+      const message = shareMessage(firstName, url, expiresAt);
+      const digits = waDigits(row.client_phone);
+      res.json({
+        success: true,
+        url,
+        expiresAt,
+        message,
+        clientName: row.user_name || firstName || 'Member',
+        clientPhone: row.client_phone || '',
+        // Empty when we have no usable number — the UI then offers copy/share instead.
+        waUrl: digits ? `https://wa.me/${digits}?text=${encodeURIComponent(message)}` : ''
+      });
+    } catch (e) {
+      console.error('[blood compare share-link]', e.message);
+      res.status(500).json({ success: false, error: e.message });
+    }
+  });
+
+  // Kill an outstanding link (client asked, wrong person, report withdrawn).
+  router.delete('/admin/comparison/:id/share-link', staffOnly, async (req, res) => {
+    try {
+      const row = await queryOne(`SELECT id FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
+      if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+      await run(
+        `UPDATE blood_comparison_reports SET share_token = NULL, share_expires_at = NULL WHERE id = ?`,
+        [req.params.id]
+      );
+      res.json({ success: true });
+    } catch (e) {
       res.status(500).json({ success: false, error: e.message });
     }
   });
@@ -1173,4 +1501,60 @@ function createBloodRouter(deps) {
   return router;
 }
 
-module.exports = { createBloodRouter };
+/**
+ * PUBLIC router for shared progress reports — mounted at /r/blood, deliberately
+ * outside the authenticated router above. The token IS the credential, so it is
+ * long and random, scoped to one comparison, expiring, and revocable. Responses
+ * are marked private and no-index so the PDF never lands in a cache or a crawler.
+ */
+function createBloodPublicRouter(deps) {
+  const { run, queryOne, rateLimiter } = deps;
+  const router = require('express').Router();
+
+  const deny = (res, code, msg) => res
+    .status(code)
+    .type('html')
+    .send(`<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>BodyBank</title>
+<body style="margin:0;background:#0d0f11;color:#f0ede8;font:16px/1.6 system-ui,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px">
+<div style="max-width:420px;text-align:center">
+<div style="font-size:20px;font-weight:700;color:#3dd68c;margin-bottom:10px">BodyBank.fit</div>
+<p style="color:#8a8880">${msg}</p>
+<p style="color:#8a8880;font-size:13px">Please ask your coach to send a fresh link.</p>
+</div></body>`);
+
+  router.get('/:token', rateLimiter(60, 60000), async (req, res) => {
+    try {
+      const token = String(req.params.token || '');
+      // Length check first so a junk request never reaches the database.
+      if (token.length < 20 || token.length > 128) return deny(res, 404, 'This report link is not valid.');
+
+      const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE share_token = ?`, [token]);
+      if (!row) return deny(res, 404, 'This report link is not valid.');
+      if (!row.share_expires_at || new Date(row.share_expires_at).getTime() < Date.now()) {
+        return deny(res, 410, 'This report link has expired.');
+      }
+
+      const pdfPath = await ensureComparisonPdfForRow(run, row);
+      if (!pdfPath || !fs.existsSync(pdfPath)) return deny(res, 404, 'This report is not available.');
+
+      const who = String(row.user_name || 'Client').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '') || 'Client';
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename="BodyBank_Progress_${who}.pdf"`);
+      res.setHeader('Cache-Control', 'private, no-store, max-age=0');
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow, noarchive');
+      res.setHeader('Referrer-Policy', 'no-referrer');
+      fs.createReadStream(pdfPath).pipe(res);
+
+      run(`UPDATE blood_comparison_reports SET share_last_viewed_at = CURRENT_TIMESTAMP WHERE id = ?`, [row.id])
+        .catch(() => {});
+    } catch (e) {
+      console.error('[blood share view]', e.message);
+      deny(res, 500, 'Something went wrong opening this report.');
+    }
+  });
+
+  return router;
+}
+
+module.exports = { createBloodRouter, createBloodPublicRouter };

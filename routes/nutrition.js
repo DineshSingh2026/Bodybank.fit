@@ -6,6 +6,7 @@ const nutritionService = require('../services/nutritionService');
 const coinService = require('../services/coinService');
 const { notifyAsync } = require('../utils/notify');
 const { buildSignedPhotoUrl } = require('../utils/nutritionPhotoLink');
+const { recordAiUsage } = require('../services/aiUsageLedger');
 
 const {
   MEAL_TYPES,
@@ -426,6 +427,7 @@ function createNutritionRouter(deps) {
         manualNote: note
       });
 
+      recordAiUsage({ scope: 'nutrition_meal', usage, userId, refType: 'meal_log' });
       const mealScore = computeMealScore(aiRaw);
       const aiResult = buildAiResultForStorage(aiRaw, { analyzedWithPhoto: !!img, entrySource: 'ai' });
       const mealConfidence = classifyMealConfidence({
@@ -819,6 +821,7 @@ function createNutritionRouter(deps) {
             portionSize: portion,
             manualNote: note
           });
+          recordAiUsage({ scope: 'nutrition_meal', usage, userId: targetUserId, refType: 'meal_log' });
           const mealScore = computeMealScore(aiRaw);
           const aiResult = buildAiResultForStorage(aiRaw, { analyzedWithPhoto: !!img, entrySource: entrySrc });
 

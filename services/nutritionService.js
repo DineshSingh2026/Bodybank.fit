@@ -212,19 +212,10 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(num) ? num : fallback;
 }
 
-function estimateAnthropicUsageCost(inputTokens, outputTokens) {
-  const usdToInr = toNumber(process.env.AI_COST_USD_TO_INR, 83);
-  const inputPerMillionUsd = toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, 3);
-  const outputPerMillionUsd = toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, 15);
-  const inUsd =
-    (toNumber(inputTokens, 0) / 1000000) * inputPerMillionUsd +
-    (toNumber(outputTokens, 0) / 1000000) * outputPerMillionUsd;
-  const inInr = inUsd * usdToInr;
-  return {
-    estimated_cost_usd: Number(inUsd.toFixed(6)),
-    estimated_cost_inr: Number(inInr.toFixed(4))
-  };
-}
+// Pricing is owned by services/aiUsageLedger.js. This previously hardcoded
+// Sonnet rates for every model, which mispriced meal scans whenever they ran on
+// Haiku — the ledger version prices by the model actually used.
+const { estimateAnthropicUsageCost } = require('./aiUsageLedger');
 
 function macroDerivedCalories(aiResult) {
   const protein = toNumber(aiResult && aiResult.protein, 0);
@@ -301,7 +292,7 @@ async function callClaudeNutrition({
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       total_tokens: inputTokens + outputTokens,
-      ...estimateAnthropicUsageCost(inputTokens, outputTokens)
+      ...estimateAnthropicUsageCost(inputTokens, outputTokens, model)
     };
     return { aiResult, rawText: text, usage };
   }

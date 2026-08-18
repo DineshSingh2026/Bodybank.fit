@@ -169,34 +169,11 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(num) ? num : fallback;
 }
 
-// Per-model list price ($ per 1M tokens) so the admin cost card is accurate even
-// when extraction and analysis run on different models. Explicit env overrides win.
-function modelPricing(model) {
-  const m = String(model || '').toLowerCase();
-  let inPerM;
-  let outPerM;
-  if (m.includes('haiku')) { inPerM = 1; outPerM = 5; }
-  else if (m.includes('sonnet')) { inPerM = 3; outPerM = 15; }
-  else if (m.includes('opus')) { inPerM = 5; outPerM = 25; }
-  else if (m.includes('fable') || m.includes('mythos')) { inPerM = 10; outPerM = 50; }
-  else { inPerM = 1; outPerM = 5; }
-  if (process.env.ANTHROPIC_INPUT_PER_MILLION_USD) inPerM = toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, inPerM);
-  if (process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD) outPerM = toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, outPerM);
-  return [inPerM, outPerM];
-}
+// Pricing is owned by services/aiUsageLedger.js so every feature's cost figure
+// and the admin Tokens ledger can never disagree. Re-exported locally to keep
+// the existing call sites in this file unchanged.
+const { modelPricing, estimateAnthropicUsageCost, recordAiUsage } = require('./aiUsageLedger');
 
-function estimateAnthropicUsageCost(inputTokens, outputTokens, model) {
-  const usdToInr = toNumber(process.env.AI_COST_USD_TO_INR, 83);
-  const [inputPerMillionUsd, outputPerMillionUsd] = modelPricing(model);
-  const inUsd =
-    (toNumber(inputTokens, 0) / 1000000) * inputPerMillionUsd +
-    (toNumber(outputTokens, 0) / 1000000) * outputPerMillionUsd;
-  const inInr = inUsd * usdToInr;
-  return {
-    estimated_cost_usd: Number(inUsd.toFixed(6)),
-    estimated_cost_inr: Number(inInr.toFixed(4))
-  };
-}
 
 function buildUsage(model, inputTokens, outputTokens) {
   return {
@@ -252,6 +229,12 @@ Set is_blood_report=false when the file is not a blood lab report (e.g. nutritio
           text: 'Decide if this is a blood test laboratory report that can be clinically analyzed into blood markers.'
         }
       ]
+    });
+    // Cheap, but not free — a rejected upload still costs a Haiku call, so it
+    // belongs in the ledger like every other spend.
+    recordAiUsage({
+      scope: 'blood_validation',
+      usage: usageFromAnthropicResponse(resp, validationModel)
     });
     const text = anthropicTextFromMessage(resp);
     const parsed = parseAnyJsonBlock(text) || parseAnthropicJson(text);
@@ -448,6 +431,13 @@ Rules:
         }
       });
       extractionUsage = extractPass.usage;
+      recordAiUsage({
+        scope: 'blood_extraction',
+        usage: extractionUsage,
+        userId,
+        refType: 'blood_report',
+        refId: reportId
+      });
       await run(`UPDATE blood_analysis_reports SET extraction_ai_usage = ?::jsonb WHERE id = ?`, [
         JSON.stringify(extractionUsage),
         reportId
@@ -581,6 +571,13 @@ Provide complete clinical analysis as JSON.`
     if (!aiReport || typeof aiReport !== 'object') {
       // Persist the analysis-pass usage even on failure so the cost is auditable,
       // then fail with the stop reason (truncation shows as 'max_tokens').
+      recordAiUsage({
+        scope: 'blood_analysis',
+        usage: analysisUsage,
+        userId,
+        refType: 'blood_report',
+        refId: reportId
+      });
       await run(`UPDATE blood_analysis_reports SET analysis_ai_usage = ?::jsonb WHERE id = ?`, [
         JSON.stringify(analysisUsage),
         reportId
@@ -589,6 +586,13 @@ Provide complete clinical analysis as JSON.`
         `Analysis pass did not return valid JSON (stop_reason: ${analysisStopReason || 'unknown'})`
       );
     }
+    recordAiUsage({
+      scope: 'blood_analysis',
+      usage: analysisUsage,
+      userId,
+      refType: 'blood_report',
+      refId: reportId
+    });
     const totalUsage = {
       provider: 'anthropic',
       model: `${extractionModel} + ${analysisModel}`,

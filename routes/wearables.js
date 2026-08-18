@@ -27,6 +27,7 @@ const { readZipTextFiles, isZip } = require('../services/wearables/zipReader');
 const { computeWhoopStats } = require('../services/wearables/whoopStatsService');
 const { generateWhoopReport } = require('../services/wearables/whoopReportService');
 const { buildWhoopReportPdf } = require('../services/wearables/whoopReportPdfKit');
+const { recordAiUsage } = require('../services/aiUsageLedger');
 
 // PDF ingestion is an optional add-on: a deployment without the module still serves
 // every ZIP/CSV route, and a PDF upload gets an honest "we can't read this here"
@@ -221,6 +222,7 @@ function createWearablesRouter(deps = {}) {
       }
       // Surfaced so the member (and the cost audit) can see a PDF import cost money.
       // coverage/message ride along so preview can repeat what the document held.
+      recordAiUsage({ scope: 'whoop_extract', usage: out.usage, model: out.model });
       extraction = {
         source: 'pdf',
         model: out.model || null,
@@ -644,6 +646,7 @@ function createWearablesRouter(deps = {}) {
     if (!apiKey) return res.status(503).json({ error: 'Report generation is not configured.' });
 
     const out = await generateWhoopReport({ stats, member: { name: memberLabel }, apiKey });
+    recordAiUsage({ scope: 'whoop_report', usage: out.usage, model: out.model });
 
     return res.json({
       ok: true,

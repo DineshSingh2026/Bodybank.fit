@@ -26,7 +26,7 @@ const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrS
 const { safeExtraHttpHeaders, optionalApiAccessLog } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
-const { createBloodRouter } = require('./routes/blood');
+const { createBloodRouter, createBloodPublicRouter } = require('./routes/blood');
 const { createReferralRouter } = require('./routes/referrals');
 const { createWearablesRouter } = require('./routes/wearables');
 const { createMarketingAIRouter } = require('./routes/marketingAI');
@@ -51,6 +51,8 @@ const bodybankAiCoach = require('./services/bodybankAiCoachContext');
 const userEmail = require('./services/userEmailService');
 const weeklyReportPdf = require('./services/weeklyReportPdf');
 const coinService = require('./services/coinService');
+// Single source of truth for AI token cost — see services/aiUsageLedger.js
+const { recordAiUsage, SCOPE_LABELS: AI_SCOPE_LABELS, modelPricing: aiModelPricing, usdToInrRate, LEDGER_TZ: AI_LEDGER_TZ } = require('./services/aiUsageLedger');
 const referralService = require('./services/referralService');
 const readinessService = require('./services/wearables/readinessService');
 const crypto = require('crypto');
@@ -1103,6 +1105,47 @@ async function initDB() {
   } catch (e) {
     /* ignore */
   }
+  // The doctor-edited PROGRESS REPORT DOCUMENT. Null means "never edited" — the PDF
+  // is then rendered from a document built on the fly out of comparison_data +
+  // ai_verdict. Once a reviewer edits the report in-app, this column is what prints.
+  try {
+    await pool.query(`ALTER TABLE blood_comparison_reports ADD COLUMN IF NOT EXISTS report_doc JSONB`);
+  } catch (e) {
+    /* ignore */
+  }
+  try {
+    await pool.query(`ALTER TABLE blood_comparison_reports ADD COLUMN IF NOT EXISTS doc_updated_at TIMESTAMPTZ`);
+  } catch (e) {
+    /* ignore */
+  }
+  try {
+    await pool.query(`ALTER TABLE blood_comparison_reports ADD COLUMN IF NOT EXISTS doc_updated_by TEXT DEFAULT ''`);
+  } catch (e) {
+    /* ignore */
+  }
+  // Public share link for WhatsApp: a random token is the only credential, so it
+  // carries an expiry, an audit trail, and can be revoked by clearing the column.
+  for (const col of [
+    `share_token TEXT`,
+    `share_expires_at TIMESTAMPTZ`,
+    `share_created_at TIMESTAMPTZ`,
+    `share_created_by TEXT DEFAULT ''`,
+    `share_last_viewed_at TIMESTAMPTZ`
+  ]) {
+    try {
+      await pool.query(`ALTER TABLE blood_comparison_reports ADD COLUMN IF NOT EXISTS ${col}`);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  try {
+    await pool.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_blood_comparisons_share_token
+       ON blood_comparison_reports(share_token) WHERE share_token IS NOT NULL`
+    );
+  } catch (e) {
+    /* ignore */
+  }
 
   try {
     await pool.query(`ALTER TABLE nutrition_meal_logs ADD COLUMN IF NOT EXISTS ai_usage JSONB`);
@@ -1114,6 +1157,131 @@ async function initDB() {
   } catch (e) {
     /* ignore */
   }
+  // ── AI TOKEN LEDGER ──────────────────────────────────────────────────────
+  // One row per Anthropic call, across every feature. Before this table, usage
+  // lived in per-feature JSONB columns and three features recorded nothing, so
+  // there was no way to answer "what did AI cost today". services/aiUsageLedger.js
+  // owns the writes and the pricing; nothing else should compute AI cost.
+  await pool.query(`CREATE TABLE IF NOT EXISTS ai_usage_events (
+    id BIGSERIAL PRIMARY KEY,
+    occurred_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    usage_date DATE NOT NULL,
+    scope TEXT NOT NULL,
+    provider TEXT DEFAULT 'anthropic',
+    model TEXT,
+    input_tokens INTEGER NOT NULL DEFAULT 0,
+    output_tokens INTEGER NOT NULL DEFAULT 0,
+    total_tokens INTEGER NOT NULL DEFAULT 0,
+    cost_usd NUMERIC(14,6) NOT NULL DEFAULT 0,
+    cost_inr NUMERIC(14,4) NOT NULL DEFAULT 0,
+    usd_to_inr NUMERIC(10,3),
+    user_id TEXT,
+    ref_type TEXT,
+    ref_id TEXT,
+    backfilled BOOLEAN NOT NULL DEFAULT FALSE
+  )`);
+  try { await pool.query(`ALTER TABLE ai_usage_events ADD COLUMN IF NOT EXISTS backfilled BOOLEAN NOT NULL DEFAULT FALSE`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_ai_usage_date ON ai_usage_events(usage_date DESC)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_ai_usage_scope_date ON ai_usage_events(scope, usage_date DESC)`); } catch (e) { /* ignore */ }
+  // Guards ONLY the backfill below, so re-running the migration cannot double-count
+  // history. Scoped to backfilled rows on purpose: live inserts must stay
+  // unconstrained, because a genuine retry of the same blood report is a second
+  // real cost that has to be recorded, not deduplicated away.
+  try {
+    await pool.query(
+      `CREATE UNIQUE INDEX IF NOT EXISTS idx_ai_usage_backfill_once
+       ON ai_usage_events(scope, ref_type, ref_id)
+       WHERE backfilled AND ref_type IS NOT NULL AND ref_id IS NOT NULL`
+    );
+  } catch (e) { /* ignore */ }
+
+  // One-time backfill so the Tokens screen opens with history rather than an
+  // empty table. Only the three features that already persisted usage can be
+  // recovered; admin AI Assist, Marketing AI, and Whoop start from today.
+  // ON CONFLICT DO NOTHING makes this safe to re-run on every boot.
+  const AI_BACKFILLS = [
+    {
+      scope: 'blood_extraction',
+      sql: `INSERT INTO ai_usage_events
+              (occurred_at, usage_date, scope, model, input_tokens, output_tokens, total_tokens,
+               cost_usd, cost_inr, user_id, ref_type, ref_id, backfilled)
+            SELECT created_at, (created_at AT TIME ZONE 'Asia/Kolkata')::date, 'blood_extraction',
+                   extraction_ai_usage->>'model',
+                   COALESCE((extraction_ai_usage->>'input_tokens')::int, 0),
+                   COALESCE((extraction_ai_usage->>'output_tokens')::int, 0),
+                   COALESCE((extraction_ai_usage->>'total_tokens')::int, 0),
+                   COALESCE((extraction_ai_usage->>'estimated_cost_usd')::numeric, 0),
+                   COALESCE((extraction_ai_usage->>'estimated_cost_inr')::numeric, 0),
+                   user_id, 'blood_report', id, TRUE
+            FROM blood_analysis_reports
+            WHERE extraction_ai_usage IS NOT NULL
+              AND COALESCE((extraction_ai_usage->>'total_tokens')::int, 0) > 0
+            ON CONFLICT DO NOTHING`
+    },
+    {
+      scope: 'blood_analysis',
+      sql: `INSERT INTO ai_usage_events
+              (occurred_at, usage_date, scope, model, input_tokens, output_tokens, total_tokens,
+               cost_usd, cost_inr, user_id, ref_type, ref_id, backfilled)
+            SELECT created_at, (created_at AT TIME ZONE 'Asia/Kolkata')::date, 'blood_analysis',
+                   analysis_ai_usage->>'model',
+                   COALESCE((analysis_ai_usage->>'input_tokens')::int, 0),
+                   COALESCE((analysis_ai_usage->>'output_tokens')::int, 0),
+                   COALESCE((analysis_ai_usage->>'total_tokens')::int, 0),
+                   COALESCE((analysis_ai_usage->>'estimated_cost_usd')::numeric, 0),
+                   COALESCE((analysis_ai_usage->>'estimated_cost_inr')::numeric, 0),
+                   user_id, 'blood_report', id, TRUE
+            FROM blood_analysis_reports
+            WHERE analysis_ai_usage IS NOT NULL
+              AND COALESCE((analysis_ai_usage->>'total_tokens')::int, 0) > 0
+            ON CONFLICT DO NOTHING`
+    },
+    {
+      scope: 'blood_comparison',
+      sql: `INSERT INTO ai_usage_events
+              (occurred_at, usage_date, scope, model, input_tokens, output_tokens, total_tokens,
+               cost_usd, cost_inr, user_id, ref_type, ref_id, backfilled)
+            SELECT created_at, (created_at AT TIME ZONE 'Asia/Kolkata')::date, 'blood_comparison',
+                   ai_usage->>'model',
+                   COALESCE((ai_usage->>'input_tokens')::int, 0),
+                   COALESCE((ai_usage->>'output_tokens')::int, 0),
+                   COALESCE((ai_usage->>'total_tokens')::int, 0),
+                   COALESCE((ai_usage->>'estimated_cost_usd')::numeric, 0),
+                   COALESCE((ai_usage->>'estimated_cost_inr')::numeric, 0),
+                   user_id, 'blood_comparison', id, TRUE
+            FROM blood_comparison_reports
+            WHERE ai_usage IS NOT NULL
+              AND COALESCE((ai_usage->>'total_tokens')::int, 0) > 0
+            ON CONFLICT DO NOTHING`
+    },
+    {
+      scope: 'nutrition_meal',
+      sql: `INSERT INTO ai_usage_events
+              (occurred_at, usage_date, scope, model, input_tokens, output_tokens, total_tokens,
+               cost_usd, cost_inr, user_id, ref_type, ref_id, backfilled)
+            SELECT COALESCE(submitted_at, CURRENT_TIMESTAMP), log_date, 'nutrition_meal',
+                   ai_usage->>'model',
+                   COALESCE((ai_usage->>'input_tokens')::int, 0),
+                   COALESCE((ai_usage->>'output_tokens')::int, 0),
+                   COALESCE((ai_usage->>'total_tokens')::int, 0),
+                   COALESCE((ai_usage->>'estimated_cost_usd')::numeric, 0),
+                   COALESCE((ai_usage->>'estimated_cost_inr')::numeric, 0),
+                   user_id, 'meal_log', id, TRUE
+            FROM nutrition_meal_logs
+            WHERE ai_usage IS NOT NULL
+              AND COALESCE((ai_usage->>'total_tokens')::int, 0) > 0
+            ON CONFLICT DO NOTHING`
+    }
+  ];
+  for (const b of AI_BACKFILLS) {
+    try {
+      const r = await pool.query(b.sql);
+      if (r && r.rowCount > 0) console.log(`[ai-usage] backfilled ${r.rowCount} ${b.scope} rows`);
+    } catch (e) {
+      console.error(`[ai-usage backfill ${b.scope}]`, e.message);
+    }
+  }
+
   // Push notification subscriptions
   await pool.query(`CREATE TABLE IF NOT EXISTS push_subscriptions (
     id TEXT PRIMARY KEY,
@@ -7517,6 +7685,56 @@ app.get('/api/operator/compliance', verifyToken, requireOperator, async (req, re
   }
 });
 
+// --- Blood console: one row per client with their blood-report position ---
+// Powers the operator's Blood workspace: who has reports, when the newest lab test
+// was drawn, what is still processing and who has never sent one in. Read-only.
+app.get('/api/operator/blood', verifyToken, requireOperator, async (req, res) => {
+  try {
+    const rows = await queryAll(`
+      SELECT u.id, u.first_name, u.last_name, u.email, u.profile_picture, u.created_at,
+        COALESCE(b.reports, 0)::int   AS reports,
+        COALESCE(b.pending, 0)::int   AS pending,
+        b.latest_lab_date::text       AS latest_lab_date,
+        b.latest_upload               AS latest_upload,
+        latest.status                 AS latest_status,
+        latest.overall_status         AS latest_overall,
+        COALESCE(c.comparisons, 0)::int AS comparisons
+      FROM users u
+      LEFT JOIN (
+        SELECT user_id,
+               COUNT(*)                                             AS reports,
+               COUNT(*) FILTER (WHERE COALESCE(status,'') <> 'complete') AS pending,
+               MAX(COALESCE(report_date, created_at::date))         AS latest_lab_date,
+               MAX(created_at)                                      AS latest_upload
+          FROM blood_analysis_reports GROUP BY user_id
+      ) b ON b.user_id = u.id
+      LEFT JOIN LATERAL (
+        SELECT r.status, r.ai_report->>'overall_status' AS overall_status
+          FROM blood_analysis_reports r
+         WHERE r.user_id = u.id
+         ORDER BY COALESCE(r.report_date, r.created_at::date) DESC, r.created_at DESC
+         LIMIT 1
+      ) latest ON TRUE
+      LEFT JOIN (
+        SELECT user_id, COUNT(*) AS comparisons FROM blood_comparison_reports GROUP BY user_id
+      ) c ON c.user_id = u.id
+      WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE
+      ORDER BY b.latest_upload DESC NULLS LAST, LOWER(COALESCE(u.first_name, '')), LOWER(COALESCE(u.last_name, ''))`);
+
+    const summary = { clients: (rows || []).length, reports: 0, pending: 0, none: 0, comparisons: 0 };
+    (rows || []).forEach(r => {
+      summary.reports += Number(r.reports || 0);
+      summary.pending += Number(r.pending || 0);
+      summary.comparisons += Number(r.comparisons || 0);
+      if (!Number(r.reports || 0)) summary.none++;
+    });
+    res.json({ rows: rows || [], summary });
+  } catch (e) {
+    console.error('[operator blood]', e.message);
+    res.status(500).json({ error: 'Failed to load blood reports' });
+  }
+});
+
 // --- Muscle ranking for one client (read-only; reuses the muscle-ranking service) ---
 app.get('/api/operator/clients/:id/muscle-ranking', verifyToken, requireOperator, async (req, res) => {
   try {
@@ -8032,6 +8250,72 @@ function computeMembershipState(u) {
   else if (hasExp && exp < now) state = 'expired';
   return { days_left: daysLeft, state };
 }
+
+// ── AI TOKEN LEDGER (admin Tokens screen) ────────────────────────────────
+// Admin-only by design: this exposes company spend, so requireAdminOrSuperadmin
+// rather than the operator role that shares most other read-only dashboards.
+app.get('/api/admin/ai-usage', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    // Clamped so a hand-edited query string can't ask for an unbounded scan.
+    const days = Math.min(365, Math.max(1, parseInt(req.query.days, 10) || 30));
+    const today = streakTodayYmdInTz(AI_LEDGER_TZ) || new Date().toISOString().slice(0, 10);
+    const since = streakAddDays(today, -(days - 1)) || today;
+
+    // Rounded once, here, so the four views can never disagree by a paisa.
+    const TOTALS = `COUNT(*)::int AS calls,
+                    COALESCE(SUM(total_tokens), 0)::float8 AS tokens,
+                    COALESCE(SUM(input_tokens), 0)::float8 AS input_tokens,
+                    COALESCE(SUM(output_tokens), 0)::float8 AS output_tokens,
+                    ROUND(COALESCE(SUM(cost_usd), 0), 4)::float8 AS usd,
+                    ROUND(COALESCE(SUM(cost_inr), 0), 2)::float8 AS inr`;
+
+    const [daily, scopes, models, rangeRow, todayRow, allTimeRow] = await Promise.all([
+      queryAll(
+        `SELECT usage_date::text AS date, ${TOTALS}
+           FROM ai_usage_events WHERE usage_date >= ?::date
+          GROUP BY usage_date ORDER BY usage_date DESC`,
+        [since]
+      ),
+      queryAll(
+        `SELECT scope, ${TOTALS}
+           FROM ai_usage_events WHERE usage_date >= ?::date
+          GROUP BY scope ORDER BY SUM(cost_usd) DESC`,
+        [since]
+      ),
+      queryAll(
+        `SELECT COALESCE(NULLIF(model, ''), 'unknown') AS model, ${TOTALS}
+           FROM ai_usage_events WHERE usage_date >= ?::date
+          GROUP BY 1 ORDER BY SUM(cost_usd) DESC`,
+        [since]
+      ),
+      queryOne(`SELECT ${TOTALS} FROM ai_usage_events WHERE usage_date >= ?::date`, [since]),
+      queryOne(`SELECT ${TOTALS} FROM ai_usage_events WHERE usage_date = ?::date`, [today]),
+      queryOne(`SELECT ${TOTALS} FROM ai_usage_events`)
+    ]);
+
+    const zero = { calls: 0, tokens: 0, input_tokens: 0, output_tokens: 0, usd: 0, inr: 0 };
+    res.json({
+      success: true,
+      days,
+      since,
+      today,
+      timezone: AI_LEDGER_TZ,
+      usdToInr: usdToInrRate(),
+      scopeLabels: AI_SCOPE_LABELS,
+      totals: {
+        today: todayRow || zero,
+        range: rangeRow || zero,
+        allTime: allTimeRow || zero
+      },
+      daily: daily || [],
+      scopes: scopes || [],
+      models: models || []
+    });
+  } catch (e) {
+    console.error('[admin ai-usage]', e.message);
+    res.status(500).json({ success: false, error: 'Failed to load AI usage' });
+  }
+});
 
 app.get('/api/admin/memberships', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
@@ -8570,20 +8854,22 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(num) ? num : fallback;
 }
 
-function estimateAICost({ provider, inputTokens, outputTokens }) {
-  const usdToInr = toNumber(process.env.AI_COST_USD_TO_INR, 83);
-  const pricing = {
-    anthropic: {
-      inputPerMillionUsd: toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, 3),
-      outputPerMillionUsd: toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, 15)
-    }
-  };
-  const p = pricing[provider] || { inputPerMillionUsd: 0, outputPerMillionUsd: 0 };
-  const inUsd = ((toNumber(inputTokens) / 1000000) * p.inputPerMillionUsd) + ((toNumber(outputTokens) / 1000000) * p.outputPerMillionUsd);
-  const inInr = inUsd * usdToInr;
+/**
+ * Cost for one AI call. Rates come from services/aiUsageLedger.js so the figure
+ * shown next to an AI Assist reply always matches the Tokens ledger — this used
+ * to hardcode Sonnet's rate for every model, which quietly mispriced any run on
+ * a non-Sonnet ANTHROPIC_MODEL.
+ */
+function estimateAICost({ provider, inputTokens, outputTokens, model }) {
+  const usdToInr = usdToInrRate();
+  if (provider && provider !== 'anthropic') {
+    return { estimated_cost_usd: 0, estimated_cost_inr: 0, usd_to_inr: usdToInr };
+  }
+  const [inputPerMillionUsd, outputPerMillionUsd] = aiModelPricing(model);
+  const inUsd = ((toNumber(inputTokens) / 1000000) * inputPerMillionUsd) + ((toNumber(outputTokens) / 1000000) * outputPerMillionUsd);
   return {
     estimated_cost_usd: Number(inUsd.toFixed(6)),
-    estimated_cost_inr: Number(inInr.toFixed(4)),
+    estimated_cost_inr: Number((inUsd * usdToInr).toFixed(4)),
     usd_to_inr: usdToInr
   };
 }
@@ -8640,8 +8926,11 @@ async function callAnthropicChat(systemContentFull, userMessage, maxTokensOverri
       input_tokens: inputTokens,
       output_tokens: outputTokens,
       total_tokens: inputTokens + outputTokens,
-      ...estimateAICost({ provider: 'anthropic', inputTokens, outputTokens })
+      ...estimateAICost({ provider: 'anthropic', inputTokens, outputTokens, model })
     };
+    // Recorded here rather than at the route because both AI Assist entry points
+    // funnel through this function — one hook covers them all.
+    recordAiUsage({ scope: 'admin_ai_assist', usage });
     return {
       reply: text ? text.trim() : null,
       usage
@@ -9236,6 +9525,9 @@ app.use(
     rateLimiter
   })
 );
+// Unauthenticated by design: a client opening a WhatsApp link is not logged in.
+// The token in the path is the credential — see createBloodPublicRouter.
+app.use('/r/blood', createBloodPublicRouter({ run, queryOne, rateLimiter }));
 app.use('/api/marketing-ai', createMarketingAIRouter({ run, queryAll }));
 app.use(
   '/api/referrals',
@@ -10218,6 +10510,11 @@ const feedUpload = multer
   : null;
 
 // Serve legacy uploaded images (existing posts that were saved as files before migration)
+// Generated health/progress report PDFs are written under uploads/health-reports.
+// The static mount below would otherwise hand any of them to anyone who has the
+// filename, with no login and no expiry. Patient reports are only ever served by an
+// authenticated route (/api/blood/...) or a revocable share token (/r/blood/...).
+app.use('/uploads/health-reports', (req, res) => res.status(404).send('Not found'));
 app.use('/uploads', express.static(FEED_UPLOADS_DIR, {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
 }));

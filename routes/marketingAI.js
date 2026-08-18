@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { verifyToken, requireAdminOrSuperadmin } = require('../middleware/auth');
 const { callSonetApi } = require('../services/marketingAIService');
+const { recordAiUsage } = require('../services/aiUsageLedger');
 
 function escapeXml(value) {
   return String(value || '')
@@ -145,6 +146,7 @@ function createMarketingAIRouter({ run, queryAll }) {
       const aiResult = await callSonetApi({ keywords, postType, tone });
       const aiResponse = aiResult && aiResult.data ? aiResult.data : aiResult;
       const usage = aiResult && aiResult.usage ? aiResult.usage : null;
+      recordAiUsage({ scope: 'marketing_ai', usage, userId: req.user && req.user.id });
       await run(
         'INSERT INTO marketing_contents (keywords, post_type, tone, response_json) VALUES (?, ?, ?, ?::jsonb)',
         [keywords, postType, tone, JSON.stringify(aiResponse)]

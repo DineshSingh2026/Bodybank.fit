@@ -424,34 +424,9 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(num) ? num : fallback;
 }
 
-function modelPricing(model) {
-  const m = String(model || '').toLowerCase();
-  let inPerM;
-  let outPerM;
-  if (m.includes('haiku')) { inPerM = 1; outPerM = 5; }
-  else if (m.includes('sonnet')) { inPerM = 3; outPerM = 15; }
-  else if (m.includes('opus')) { inPerM = 5; outPerM = 25; }
-  else if (m.includes('fable') || m.includes('mythos')) { inPerM = 10; outPerM = 50; }
-  else { inPerM = 1; outPerM = 5; }
-  if (process.env.ANTHROPIC_INPUT_PER_MILLION_USD) inPerM = toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, inPerM);
-  if (process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD) outPerM = toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, outPerM);
-  return [inPerM, outPerM];
-}
-
-function buildUsage(model, inputTokens, outputTokens) {
-  const usdToInr = toNumber(process.env.AI_COST_USD_TO_INR, 83);
-  const [inPerM, outPerM] = modelPricing(model);
-  const inUsd = (toNumber(inputTokens) / 1e6) * inPerM + (toNumber(outputTokens) / 1e6) * outPerM;
-  return {
-    provider: 'anthropic',
-    model: String(model || ''),
-    input_tokens: toNumber(inputTokens),
-    output_tokens: toNumber(outputTokens),
-    total_tokens: toNumber(inputTokens) + toNumber(outputTokens),
-    estimated_cost_usd: Number(inUsd.toFixed(6)),
-    estimated_cost_inr: Number((inUsd * usdToInr).toFixed(4))
-  };
-}
+// Pricing is owned by services/aiUsageLedger.js so every feature's cost figure
+// and the admin Tokens ledger can never disagree.
+const { buildUsage } = require('./aiUsageLedger');
 
 async function callAnthropic({ apiKey, model, maxTokens, system, userText }) {
   const timeoutMs = Math.max(30000, parseInt(process.env.ANTHROPIC_BLOOD_REQUEST_TIMEOUT_MS || '300000', 10) || 300000);

@@ -163,47 +163,11 @@ async function runJsonPass({ apiKey, model, maxTokens, system, userContent, coer
   };
 }
 
-function modelPricing(model) {
-  const m = String(model || '').toLowerCase();
-  let inPerM;
-  let outPerM;
-  if (m.includes('haiku')) {
-    inPerM = 1;
-    outPerM = 5;
-  } else if (m.includes('sonnet')) {
-    inPerM = 3;
-    outPerM = 15;
-  } else if (m.includes('opus')) {
-    inPerM = 5;
-    outPerM = 25;
-  } else if (m.includes('fable') || m.includes('mythos')) {
-    inPerM = 10;
-    outPerM = 50;
-  } else {
-    inPerM = 1;
-    outPerM = 5;
-  }
-  if (process.env.ANTHROPIC_INPUT_PER_MILLION_USD) {
-    inPerM = toNumber(process.env.ANTHROPIC_INPUT_PER_MILLION_USD, inPerM);
-  }
-  if (process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD) {
-    outPerM = toNumber(process.env.ANTHROPIC_OUTPUT_PER_MILLION_USD, outPerM);
-  }
-  return [inPerM, outPerM];
-}
+// Pricing is owned by services/aiUsageLedger.js so every feature's cost figure
+// and the admin Tokens ledger can never disagree. Re-exported locally to keep
+// the existing call sites in this file unchanged.
+const { modelPricing, estimateAnthropicUsageCost } = require('../aiUsageLedger');
 
-function estimateAnthropicUsageCost(inputTokens, outputTokens, model) {
-  const usdToInr = toNumber(process.env.AI_COST_USD_TO_INR, 83);
-  const [inputPerMillionUsd, outputPerMillionUsd] = modelPricing(model);
-  const inUsd =
-    (toNumber(inputTokens, 0) / 1000000) * inputPerMillionUsd +
-    (toNumber(outputTokens, 0) / 1000000) * outputPerMillionUsd;
-  const inInr = inUsd * usdToInr;
-  return {
-    estimated_cost_usd: Number(inUsd.toFixed(6)),
-    estimated_cost_inr: Number(inInr.toFixed(4))
-  };
-}
 
 function buildUsage(model, inputTokens, outputTokens) {
   return {
