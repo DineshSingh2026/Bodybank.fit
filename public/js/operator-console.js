@@ -25,7 +25,7 @@
    ========================================================================== */
 
 var opState = window.opState || (window.opState = {
-  screen: 'clients',
+  screen: 'home',
   clients: [],
   complianceMap: {},
   complianceSummary: null,
@@ -123,7 +123,7 @@ function bbEnterOperatorShell() {
   if (typeof registerNativePush === 'function') registerNativePush();
 
   opBindShortcuts();
-  opNav('clients');
+  opNav('home');
   loadOperatorDashboard();
   if (window._opNotifyInterval) clearInterval(window._opNotifyInterval);
   window._opNotifyInterval = setInterval(loadOperatorNotifications, 60000);
@@ -133,13 +133,15 @@ function loadOperatorDashboard() {
   loadOperatorClients();
   loadOperatorCompliance();
   loadOperatorEscalations(true);
+  loadOperatorOverview();
+  loadOperatorActivity();
   loadOperatorNotifications();
 }
 
-var OP_SCREENS = ['clients', 'blood', 'prospects', 'inbox', 'pulse'];
+var OP_SCREENS = ['home', 'clients', 'blood', 'prospects', 'inbox', 'pulse'];
 
 function opNav(screen) {
-  if (OP_SCREENS.indexOf(screen) === -1) screen = 'clients';
+  if (OP_SCREENS.indexOf(screen) === -1) screen = 'home';
   opState.screen = screen;
   opStoryClose(true);
   document.querySelectorAll('#operatorPanel [data-opnav]').forEach(function (b) {
@@ -150,7 +152,8 @@ function opNav(screen) {
   if (el) el.classList.add('active');
   opCloseOmni();
 
-  if (screen === 'clients') { if (opState.clients.length) renderOperatorClients(); else loadOperatorClients(); }
+  if (screen === 'home') { renderOperatorHome(); loadOperatorOverview(); loadOperatorActivity(); }
+  else if (screen === 'clients') { if (opState.clients.length) renderOperatorClients(); else loadOperatorClients(); }
   else if (screen === 'blood') { if (opState.clients.length) renderOperatorBlood(); else loadOperatorClients(); }
   else if (screen === 'prospects') { if (!opState.leads) loadOperatorLeads(); else renderOperatorLeads(); }
   else if (screen === 'inbox') loadOperatorEscalations();
@@ -158,8 +161,8 @@ function opNav(screen) {
 }
 // Old tab vocabulary, kept for any caller that still speaks it.
 function switchOperatorTab(tab) {
-  var map = { overview: 'pulse', clients: 'clients', leads: 'prospects', activity: 'pulse', admin: 'inbox', today: 'clients' };
-  opNav(map[tab] || 'clients');
+  var map = { overview: 'home', clients: 'clients', leads: 'prospects', activity: 'pulse', admin: 'inbox', today: 'home' };
+  opNav(map[tab] || 'home');
 }
 
 function refreshOperator(btn) {
@@ -167,7 +170,8 @@ function refreshOperator(btn) {
   try {
     loadOperatorClients();
     loadOperatorCompliance();
-    if (opState.screen === 'prospects') loadOperatorLeads();
+    if (opState.screen === 'home') { loadOperatorOverview(); loadOperatorActivity(); }
+    else if (opState.screen === 'prospects') loadOperatorLeads();
     else if (opState.screen === 'inbox') loadOperatorEscalations();
     else if (opState.screen === 'pulse') { loadOperatorOverview(); loadOperatorActivity(); }
     loadOperatorNotifications();
@@ -218,7 +222,7 @@ function opBindShortcuts() {
       return;
     }
     if (e.key === '/') { e.preventDefault(); var i = opEl('opOmniInput'); if (i) i.focus(); return; }
-    var idx = ['1', '2', '3', '4', '5'].indexOf(e.key);
+    var idx = ['1', '2', '3', '4', '5', '6'].indexOf(e.key);
     if (idx > -1) { e.preventDefault(); opNav(OP_SCREENS[idx]); }
   });
 }
@@ -324,6 +328,7 @@ async function loadOperatorClients() {
     opState.clients = d.rows || [];
     renderOperatorClients();
     renderOperatorBlood();
+    renderOperatorHome();
   } catch (e) {
     var el2 = opEl('opClientCards');
     if (el2) el2.innerHTML = '<div class="op-empty pad">Could not load clients.</div>';
@@ -340,6 +345,7 @@ async function loadOperatorCompliance() {
     opState.complianceSummary = d.summary || null;
     renderOperatorClients();
     renderOperatorCompliance();
+    renderOperatorHome();
   } catch (e) { }
 }
 
@@ -1433,6 +1439,7 @@ async function loadOperatorEscalations(quiet) {
     var unread = rows.filter(function (e) { return (e.admin_replies || 0) > 0 && e.last_role === 'admin'; }).length;
     var badge = opEl('opRailBadgeInbox');
     if (badge) { badge.textContent = unread > 99 ? '99+' : unread; badge.classList.toggle('on', unread > 0); }
+    renderOperatorHome();
     var line = opEl('opInboxLine');
     if (line) line.innerHTML = rows.length
       ? '<b>' + rows.length + '</b> ' + (rows.length === 1 ? 'thread' : 'threads') + (unread ? ' · ' + unread + ' with a new reply' : '')
@@ -1536,6 +1543,7 @@ async function loadOperatorOverview() {
       opAnimateBars(mEl);
     }
     opDrawTrendChart(data.trends);
+    opRenderHomeMomentum();
   } catch (e) { }
 }
 
@@ -1579,6 +1587,8 @@ async function loadOperatorActivity() {
     var d = await apiCall('GET', '/api/operator/activity?type=' + encodeURIComponent(type) + '&days=' + encodeURIComponent(days));
     if (!d || d.error) { el.innerHTML = '<div class="op-empty">' + opEsc((d && d.error) || 'Could not load activity.') + '</div>'; return; }
     var items = d.items || [];
+    opState.activityItems = items;
+    opRenderHomeFeed();
     var c = opEl('opLiveCount'); if (c) c.textContent = items.length;
     if (!items.length) { el.innerHTML = '<div class="op-empty">Nothing logged in this period.</div>'; return; }
     var out = '', lastDay = null;
@@ -1592,6 +1602,217 @@ async function loadOperatorActivity() {
     });
     el.innerHTML = out;
   } catch (e) { el.innerHTML = '<div class="op-empty">Could not load activity.</div>'; }
+}
+
+/* ====================================================== OVERVIEW (landing) */
+/* The briefing an operator sees the second they log in. Not a grid of metrics
+   — a sentence about today, one ring for roster health, and the three things
+   that actually need doing. Everything here is derived from reads the console
+   already makes, so the landing costs no extra request. */
+
+function opGreeting() {
+  var h = new Date().getHours();
+  if (h < 5) return 'Still up';
+  if (h < 12) return 'Good morning';
+  if (h < 17) return 'Good afternoon';
+  return 'Good evening';
+}
+function opOperatorName() {
+  var u = window.currentUser || {};
+  var n = String(u.first_name || '').trim();
+  if (n) return n;
+  var e = String(u.email || '').split('@')[0];
+  return e ? e.charAt(0).toUpperCase() + e.slice(1) : '';
+}
+
+/* One ranked list of work across the whole business, not just clients. */
+function opBriefPriorities() {
+  var out = [];
+  var TONE = { bad: 0, warn: 1, info: 2, ok: 3 };
+  (opState.clients || []).forEach(function (c) {
+    var a = opNextAction(c);
+    if (a.key === 'ok') return;
+    out.push({
+      rank: TONE[a.tone], tone: a.tone, kind: 'client', id: c.id,
+      name: opFullName(c), pic: c.profile_picture, label: a.label, actKey: a.key,
+      meta: (c.checkins_7d || 0) + '/7 check-ins · ' + opPlural(c.workouts_7d || 0, 'workout')
+    });
+  });
+  (opState.escalations || []).forEach(function (e) {
+    if (!((e.admin_replies || 0) > 0 && e.last_role === 'admin')) return;
+    out.push({
+      rank: 0.5, tone: 'info', kind: 'thread', id: e.id, pic: null,
+      name: 'Admin replied about ' + (e.client_name || 'a client'),
+      label: 'Read what Admin said', meta: String(e.last_body || '').slice(0, 70)
+    });
+  });
+  out.sort(function (a, b) { return a.rank - b.rank; });
+  return out;
+}
+
+function opPriorityRow(p) {
+  var act = p.kind === 'thread'
+    ? "opEscOpen('" + opAttr(p.id) + "')"
+    : "opDoAction('" + opAttr(p.id) + "','" + p.actKey + "')";
+  var open = p.kind === 'thread'
+    ? "opEscOpen('" + opAttr(p.id) + "')"
+    : "openOperatorClient('" + opAttr(p.id) + "')";
+  return '<div class="op-prio ' + p.tone + '" onclick="' + open + '">'
+    + opAvatar(p.pic, p.name, 'lg')
+    + '<div class="op-prio-main">'
+    + '<div class="op-prio-name">' + opEsc(p.name) + '</div>'
+    + '<div class="op-prio-meta">' + opEsc(p.meta || '') + '</div>'
+    + '</div>'
+    + '<button type="button" class="op-prio-cta" onclick="event.stopPropagation();' + act + '">'
+    + '<span>' + opEsc(p.label) + '</span>'
+    + '<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button>'
+    + '</div>';
+}
+
+function opShortcut(screen, icon, label, count, tone) {
+  return '<button type="button" class="op-shortcut" onclick="opNav(&quot;' + screen + '&quot;)">'
+    + '<span class="op-shortcut-ico">' + icon + '</span>'
+    + '<span class="op-shortcut-main"><b>' + opEsc(label) + '</b><i>' + opEsc(count) + '</i></span>'
+    + (tone ? '<span class="op-dotmark ' + tone + '"></span>' : '')
+    + '</button>';
+}
+
+function renderOperatorHome() {
+  if (!opEl('opScreen-home')) return;
+  var list = opState.clients || [];
+  var need = list.filter(opNeedsAttention).length;
+  var onTrack = list.length - need;
+  var pct = list.length ? Math.round((onTrack / list.length) * 100) : 0;
+
+  var dEl = opEl('opHeroDate');
+  if (dEl) { try { dEl.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }); } catch (e) { } }
+  var gEl = opEl('opHeroGreet');
+  if (gEl) { var nm = opOperatorName(); gEl.textContent = opGreeting() + (nm ? ', ' + nm : ''); }
+
+  var trialsEnded = list.filter(function (c) {
+    if ((c.subscription_status || '') !== 'trialing') return false;
+    var left = opDaysUntil(c.access_expires_at);
+    return left != null && left <= 0;
+  }).length;
+  var noBlood = list.filter(function (c) { return !(c.blood_reports || 0); }).length;
+  var replies = (opState.escalations || []).filter(function (e) { return (e.admin_replies || 0) > 0 && e.last_role === 'admin'; }).length;
+
+  var lEl = opEl('opHeroLine');
+  if (lEl) {
+    if (!list.length) {
+      lEl.textContent = 'No clients on the roster yet. New sign-ups will appear here.';
+    } else {
+      var bits = [];
+      bits.push(need ? '<b>' + opPlural(need, 'client') + '</b> ' + (need === 1 ? 'needs' : 'need') + ' you' : 'every client is on track');
+      if (trialsEnded) bits.push('<b>' + opPlural(trialsEnded, 'trial') + '</b> ended');
+      if (noBlood) bits.push('<b>' + noBlood + '</b> without a blood report');
+      if (replies) bits.push('<b>' + opPlural(replies, 'admin reply', 'admin replies') + '</b> waiting');
+      var last = bits.pop();
+      lEl.innerHTML = (bits.length ? bits.join(', ') + ' and ' : '') + last + '.';
+    }
+  }
+
+  // the ring — r=52, so the circumference is 2*pi*52
+  var ring = opEl('opRingFill');
+  if (ring) {
+    var C = 2 * Math.PI * 52;
+    ring.style.strokeDasharray = C.toFixed(1);
+    ring.style.strokeDashoffset = (C * (1 - pct / 100)).toFixed(1);
+    ring.setAttribute('class', 'op-ring-fill ' + (pct >= 70 ? 'ok' : (pct >= 35 ? 'warn' : 'bad')));
+  }
+  opSetTxt('opRingPct', list.length ? pct + '%' : '–');
+  var hb = opEl('opRailBadgeHome');
+  if (hb) { hb.textContent = need > 99 ? '99+' : need; hb.classList.toggle('on', need > 0); }
+
+  // three is a plan; thirty is a wall
+  var pEl = opEl('opPriorities');
+  if (pEl) {
+    var pri = opBriefPriorities();
+    if (pri.length) {
+      var more = pri.length > 3
+        ? '<button type="button" class="op-more" onclick="opNav(&quot;clients&quot;);opClientFilter(&quot;attention&quot;)">' + (pri.length - 3) + ' more waiting →</button>'
+        : '';
+      pEl.innerHTML = pri.slice(0, 3).map(opPriorityRow).join('') + more;
+    } else {
+      pEl.innerHTML = '<div class="op-allclear"><span>✓</span><div><b>Nothing needs chasing.</b>'
+        + '<i>Every client is inside their check-in, training and trial windows.</i></div></div>';
+    }
+  }
+
+  var sEl = opEl('opShortcuts');
+  if (sEl) {
+    var leads = opState.leads || {};
+    var leadCount = (leads.audits || []).length;
+    var bloodPending = list.reduce(function (n, c) { return n + (c.blood_pending || 0); }, 0);
+    sEl.innerHTML =
+      opShortcut('clients', '👥', 'Clients', list.length ? opPlural(list.length, 'person', 'people') : 'none yet', need ? 'warn' : '')
+      + opShortcut('blood', '🩸', 'Blood reports', noBlood ? noBlood + ' without one' : 'all covered', bloodPending ? 'info' : (noBlood ? 'warn' : ''))
+      + opShortcut('prospects', '🎯', 'Prospects', leadCount ? opPlural(leadCount, 'audit') : 'open to load', '')
+      + opShortcut('inbox', '📨', 'Admin inbox', replies ? opPlural(replies, 'new reply', 'new replies') : 'nothing new', replies ? 'info' : '');
+  }
+
+  opRenderHomeMomentum();
+  opRenderHomeFeed();
+}
+
+/* Momentum and the feed reuse the Pulse reads; they just render smaller here. */
+function opRenderHomeMomentum() {
+  var data = opState.overview;
+  var mEl = opEl('opHomeMeters');
+  if (!mEl) return;
+  if (!data) { mEl.innerHTML = '<div class="op-empty">Loading…</div>'; return; }
+  var s = data.stats || {}, eng = data.engagement || {};
+  var meters = [
+    { l: 'Active today', v: eng.active_rate || 0, sub: (s.active_today || 0) + ' of ' + (s.total_clients || 0) },
+    { l: 'Checked in', v: eng.checkin_rate || 0, sub: (s.checked_in_today || 0) + ' of ' + (s.total_clients || 0) },
+    { l: 'Avg consistency', v: eng.avg_consistency_pct || 0, sub: 'over 7 days' },
+    { l: 'Need chasing', v: eng.at_risk_rate || 0, sub: opPlural((s.at_risk_p0 || 0) + (s.at_risk_p1 || 0), 'client'), invert: true }
+  ];
+  mEl.innerHTML = meters.map(function (m) {
+    var cls = m.invert ? (m.v >= 40 ? 'bad' : (m.v >= 20 ? 'warn' : 'ok')) : (m.v < 30 ? 'bad' : (m.v < 60 ? 'warn' : 'ok'));
+    return '<div class="op-meter"><div class="op-meter-top"><span class="op-meter-l">' + opEsc(m.l) + '<br><i>' + opEsc(m.sub) + '</i></span>'
+      + '<span class="op-meter-v">' + m.v + '%</span></div>'
+      + '<div class="op-track"><div class="op-fill ' + cls + '" data-w="' + m.v + '"></div></div></div>';
+  }).join('');
+  opAnimateBars(mEl);
+
+  if (typeof Chart === 'undefined' || !data.trends) return;
+  var el = opEl('opHomeTrendChart'); if (!el) return;
+  opKillChart('homeTrend');
+  var t = data.trends;
+  window._opCharts.homeTrend = new Chart(el.getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: (t.labels || []).map(function (d) {
+        var dt = new Date(d); return isNaN(dt.getTime()) ? d : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+      }),
+      datasets: [
+        { label: 'Check-ins', data: t.checkins || [], backgroundColor: 'rgba(91,191,122,0.8)', borderRadius: 3, maxBarThickness: 12 },
+        { label: 'Workouts', data: t.workouts || [], backgroundColor: 'rgba(200,164,78,0.85)', borderRadius: 3, maxBarThickness: 12 },
+        { label: 'Meals', data: t.meals || [], backgroundColor: 'rgba(106,193,214,0.75)', borderRadius: 3, maxBarThickness: 12 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: OP_TICK, font: { size: 10 }, boxWidth: 9, padding: 8 } } },
+      scales: {
+        x: { stacked: true, ticks: { color: OP_TICK, font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 5 }, grid: { display: false } },
+        y: { stacked: true, beginAtZero: true, ticks: { color: OP_TICK, font: { size: 9 }, precision: 0 }, grid: { color: OP_GRID } }
+      }
+    }
+  });
+}
+
+function opRenderHomeFeed() {
+  var el = opEl('opHomeFeed'); if (!el) return;
+  var items = opState.activityItems || [];
+  if (!items.length) { el.innerHTML = '<div class="op-empty">Nothing logged in the last few days.</div>'; return; }
+  el.innerHTML = items.slice(0, 7).map(function (f) {
+    return '<div class="op-feed-item"><span class="op-dot ' + opEsc(f.type || '') + '"></span>'
+      + '<div class="op-feed-main"><div class="op-feed-name">' + opEsc(f.name || '') + '</div>'
+      + '<div class="op-feed-label">' + opEsc(f.label || '') + (f.detail ? ' — ' + opEsc(f.detail) : '') + '</div></div>'
+      + '<span class="op-feed-time">' + opEsc(opTimeAgo(f.created_at)) + '</span></div>';
+  }).join('');
 }
 
 /* =============================================================== COMPOSE */

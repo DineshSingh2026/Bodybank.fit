@@ -9336,37 +9336,104 @@ button.bb-today-pill{cursor:pointer}
 
   <!-- DESKTOP RAIL — a div, never a nav element: index.html has a global bare nav{} rule that hijacks them -->
   <div class="op-rail" role="navigation" aria-label="Operator navigation">
-    <button type="button" class="op-rail-btn active" data-opnav="clients" onclick="opNav('clients')" title="Clients (1)">
+    <button type="button" class="op-rail-btn active" data-opnav="home" onclick="opNav('home')" title="Overview (1)">
+      <span class="op-rail-badge" id="opRailBadgeHome">0</span>
+      <svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg>
+      <span>Overview</span>
+    </button>
+    <button type="button" class="op-rail-btn" data-opnav="clients" onclick="opNav('clients')" title="Clients (2)">
       <span class="op-rail-badge" id="opRailBadgeClients">0</span>
       <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3.6 19a5.4 5.4 0 0 1 10.8 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M17.6 19a5.4 5.4 0 0 0-3-4.85"/></svg>
       <span>Clients</span>
     </button>
-    <button type="button" class="op-rail-btn" data-opnav="blood" onclick="opNav('blood')" title="Blood reports (2)">
+    <button type="button" class="op-rail-btn" data-opnav="blood" onclick="opNav('blood')" title="Blood reports (3)">
       <svg viewBox="0 0 24 24"><path d="M12 3s6 6.3 6 10.2A6 6 0 0 1 6 13.2C6 9.3 12 3 12 3Z"/><path d="M9.4 13.6a2.7 2.7 0 0 0 2.6 2.6"/></svg>
       <span>Blood</span>
     </button>
-    <button type="button" class="op-rail-btn" data-opnav="prospects" onclick="opNav('prospects')" title="Prospects (3)">
+    <button type="button" class="op-rail-btn" data-opnav="prospects" onclick="opNav('prospects')" title="Prospects (4)">
       <svg viewBox="0 0 24 24"><path d="M3 5h18l-6.5 8v5l-5 2v-7L3 5Z"/></svg>
       <span>Prospects</span>
     </button>
-    <button type="button" class="op-rail-btn" data-opnav="inbox" onclick="opNav('inbox')" title="Admin inbox (4)">
+    <button type="button" class="op-rail-btn" data-opnav="inbox" onclick="opNav('inbox')" title="Admin inbox (5)">
       <span class="op-rail-badge" id="opRailBadgeInbox">0</span>
       <svg viewBox="0 0 24 24"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
       <span>Inbox</span>
     </button>
-    <button type="button" class="op-rail-btn" data-opnav="pulse" onclick="opNav('pulse')" title="Pulse (5)">
+    <button type="button" class="op-rail-btn" data-opnav="pulse" onclick="opNav('pulse')" title="Pulse (6)">
       <svg viewBox="0 0 24 24"><path d="M3 12h4l2.5-7 5 14L17 12h4"/></svg>
       <span>Pulse</span>
     </button>
     <div class="op-rail-spacer"></div>
-    <div class="op-rail-hint">1–5 to switch<br>/ to search</div>
+    <div class="op-rail-hint">1–6 to switch<br>/ to search</div>
   </div>
 
   <!-- MAIN -->
   <main class="op-main">
 
+    <!-- ================= OVERVIEW — the landing briefing ================= -->
+    <section class="op-screen active" id="opScreen-home">
+      <div class="op-scroll">
+        <div class="op-brief">
+
+          <!-- Hero: who you are, what today is, and one ring for roster health -->
+          <header class="op-hero">
+            <div class="op-hero-text">
+              <div class="op-hero-eyebrow" id="opHeroDate">&nbsp;</div>
+              <h1 class="op-hero-greet" id="opHeroGreet">Good day</h1>
+              <p class="op-hero-line" id="opHeroLine">Pulling your roster together…</p>
+            </div>
+            <div class="op-ring-wrap">
+              <svg class="op-ring" viewBox="0 0 120 120" aria-hidden="true">
+                <circle class="op-ring-track" cx="60" cy="60" r="52"></circle>
+                <circle class="op-ring-fill" id="opRingFill" cx="60" cy="60" r="52"></circle>
+              </svg>
+              <div class="op-ring-mid">
+                <div class="op-ring-n" id="opRingPct">–</div>
+                <div class="op-ring-l">on track</div>
+              </div>
+            </div>
+          </header>
+
+          <!-- The three things that actually need doing -->
+          <section class="op-brief-block">
+            <div class="op-brief-head">
+              <h2 class="op-brief-title">Do these first</h2>
+              <button type="button" class="op-link" onclick="opNav('clients')">All clients →</button>
+            </div>
+            <div class="op-priorities" id="opPriorities"><div class="op-empty">Loading…</div></div>
+          </section>
+
+          <!-- Where everything else lives, with live counts -->
+          <section class="op-brief-block">
+            <div class="op-shortcuts" id="opShortcuts"></div>
+          </section>
+
+          <!-- Momentum + what just happened, side by side on a wide screen -->
+          <div class="op-brief-cols">
+            <section class="op-brief-block">
+              <div class="op-brief-head">
+                <h2 class="op-brief-title">Momentum</h2>
+                <button type="button" class="op-link" onclick="opNav('pulse')">Full pulse →</button>
+              </div>
+              <div class="op-meters" id="opHomeMeters"><div class="op-empty">Loading…</div></div>
+              <div class="op-chart-card" style="margin:12px 0 0">
+                <div class="op-chart-wrap sm"><canvas id="opHomeTrendChart"></canvas></div>
+              </div>
+            </section>
+            <section class="op-brief-block">
+              <div class="op-brief-head">
+                <h2 class="op-brief-title">Just happened</h2>
+                <button type="button" class="op-link" onclick="opNav('pulse')">All activity →</button>
+              </div>
+              <div id="opHomeFeed"><div class="op-empty">Loading…</div></div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ================= CLIENTS — the home screen ================= -->
-    <section class="op-screen active" id="opScreen-clients">
+    <section class="op-screen" id="opScreen-clients">
       <div class="op-standfirst">
         <div class="op-sf-main">
           <div class="op-sf-line" id="opSfLine">Loading your clients…</div>
@@ -9525,7 +9592,11 @@ button.bb-today-pill{cursor:pointer}
   <!-- MOBILE BOTTOM NAV -->
   <nav class="admin-bottom-nav" id="opBottomNav" aria-label="Operator bottom navigation">
     <div class="admin-bottom-nav-inner">
-      <button type="button" class="admin-bottom-nav-item active" data-opnav="clients" onclick="opNav('clients')" aria-label="Clients">
+      <button type="button" class="admin-bottom-nav-item active" data-opnav="home" onclick="opNav('home')" aria-label="Overview">
+        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V9.5"/></svg></span>
+        <span class="admin-bottom-nav-label">Overview</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-opnav="clients" onclick="opNav('clients')" aria-label="Clients">
         <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.6 19a5.4 5.4 0 0 1 10.8 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 6.1M17.6 19a5.4 5.4 0 0 0-3-4.85"/></svg></span>
         <span class="admin-bottom-nav-label">Clients</span>
       </button>
@@ -9540,10 +9611,6 @@ button.bb-today-pill{cursor:pointer}
       <button type="button" class="admin-bottom-nav-item" data-opnav="inbox" onclick="opNav('inbox')" aria-label="Admin inbox">
         <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg></span>
         <span class="admin-bottom-nav-label">Inbox</span>
-      </button>
-      <button type="button" class="admin-bottom-nav-item" data-opnav="pulse" onclick="opNav('pulse')" aria-label="Pulse">
-        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h4l2.5-7 5 14L17 12h4"/></svg></span>
-        <span class="admin-bottom-nav-label">Pulse</span>
       </button>
     </div>
   </nav>
