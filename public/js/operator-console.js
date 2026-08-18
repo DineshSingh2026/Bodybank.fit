@@ -1738,45 +1738,74 @@ function opMonTile(filter, label, sub, tone) {
 function renderOperatorHome() {
   if (!opEl('opScreen-home')) return;
   var list = opState.clients || [];
+  var total = list.length;
   var need = list.filter(opNeedsAttention).length;
-  var onTrack = list.length - need;
-  var pct = list.length ? Math.round((onTrack / list.length) * 100) : 0;
 
   var dEl = opEl('opHeroDate');
   if (dEl) { try { dEl.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }); } catch (e) { } }
   var gEl = opEl('opHeroGreet');
   if (gEl) { var nm = opOperatorName(); gEl.textContent = opGreeting() + (nm ? ', ' + nm : ''); }
 
-  var trialsEnded = list.filter(function (c) {
-    if ((c.subscription_status || '') !== 'trialing') return false;
-    var left = opDaysUntil(c.access_expires_at);
-    return left != null && left <= 0;
-  }).length;
-  var noBlood = list.filter(function (c) { return !(c.blood_reports || 0); }).length;
-  var replies = (opState.escalations || []).filter(function (e) { return (e.admin_replies || 0) > 0 && e.last_role === 'admin'; }).length;
+  // ---- the hero: is engagement climbing or sliding? -----------------------
+  var trends = (opState.overview || {}).trends || {};
+  var series = (trends.active || []).slice(-14);
+  var activeNow = opCount('active');
+  var pct = total ? Math.round((activeNow / total) * 100) : 0;
 
-  var lEl = opEl('opHeroLine');
-  if (lEl) {
-    if (!list.length) {
-      lEl.textContent = 'No clients on the roster yet. New sign-ups will appear here.';
+  opSetTxt('opActiveN', total ? activeNow : '–');
+  var ofEl = opEl('opActiveOf');
+  if (ofEl) ofEl.textContent = total ? ' of ' + total + ' active in the last 7 days' : ' no clients yet';
+  var fill = opEl('opActiveFill');
+  if (fill) {
+    fill.style.width = pct + '%';
+    fill.className = 'op-pb-fill ' + (pct >= 60 ? 'ok' : (pct >= 25 ? 'warn' : 'bad'));
+  }
+
+  // this week against the one before it — the comparison that means "progress"
+  var dEl = opEl('opActiveDelta');
+  if (dEl) {
+    if (series.length >= 14) {
+      var avg = function (arr) { return arr.reduce(function (x, y) { return x + y; }, 0) / arr.length; };
+      var thisWk = avg(series.slice(7)), lastWk = avg(series.slice(0, 7));
+      var diff = Math.round((thisWk - lastWk) * 10) / 10;
+      if (!lastWk && !thisWk) { dEl.textContent = 'no activity either week'; dEl.className = 'op-pb-delta flat'; }
+      else if (diff > 0) { dEl.textContent = '▲ ' + diff + '/day vs last week'; dEl.className = 'op-pb-delta up'; }
+      else if (diff < 0) { dEl.textContent = '▼ ' + Math.abs(diff) + '/day vs last week'; dEl.className = 'op-pb-delta down'; }
+      else { dEl.textContent = 'level with last week'; dEl.className = 'op-pb-delta flat'; }
+    } else { dEl.textContent = ''; dEl.className = 'op-pb-delta'; }
+  }
+
+  // 14 bars of daily active clients — the actual progress view
+  var spark = opEl('opActiveSpark');
+  if (spark) {
+    if (!series.length) {
+      spark.innerHTML = '<div class="op-spark-empty">Daily activity appears here once clients start logging.</div>';
+      opSetTxt('opSparkPeak', '');
     } else {
-      var bits = [];
-      bits.push(need ? '<b>' + opPlural(need, 'client') + '</b> ' + (need === 1 ? 'needs' : 'need') + ' you' : 'every client is on track');
-      if (trialsEnded) bits.push('<b>' + opPlural(trialsEnded, 'trial') + '</b> ended');
-      if (noBlood) bits.push('<b>' + noBlood + '</b> without a blood report');
-      if (replies) bits.push('<b>' + opPlural(replies, 'admin reply', 'admin replies') + '</b> waiting');
-      var last = bits.pop();
-      lEl.innerHTML = (bits.length ? bits.join(', ') + ' and ' : '') + last + '.';
+      var peak = Math.max.apply(null, series.concat([1]));
+      var labels = trends.labels || [];
+      spark.innerHTML = series.map(function (v, i) {
+        var h = Math.max(3, Math.round((v / peak) * 100));
+        var when = labels[labels.length - series.length + i] || '';
+        var day = when ? new Date(when).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '';
+        return '<span class="op-spark-b' + (i === series.length - 1 ? ' now' : '') + (v ? '' : ' nil') + '"'
+          + ' style="height:' + h + '%" title="' + opEsc(day) + ': ' + opPlural(v, 'active client') + '"></span>';
+      }).join('');
+      opSetTxt('opSparkPeak', 'peak ' + peak);
     }
   }
 
-  // the orb: a conic arc driven by --p, so the fill IS the percentage
-  var orb = opEl('opOrb');
-  if (orb) {
-    orb.style.setProperty('--p', String(pct));
-    orb.className = 'op-orb' + (pct >= 70 ? ' ok' : (pct >= 35 ? ' warn' : ''));
+  // today's logging, stated as a share of the roster and clickable
+  var hs = opEl('opHeroStats');
+  if (hs) {
+    var mini = function (key, label) {
+      var n = opCount(key);
+      return '<button type="button" class="op-hstat' + (n ? '' : ' nil') + '" onclick="opMonitor(&quot;' + key + '&quot;)">'
+        + '<b>' + n + '</b><i>/' + total + '</i><span>' + opEsc(label) + '</span></button>';
+    };
+    hs.innerHTML = total ? mini('checkin', 'checked in today') + mini('workout', 'trained today') + mini('meal', 'logged a meal') : '';
   }
-  opSetTxt('opRingPct', list.length ? pct + '%' : '–');
+
   var hb = opEl('opRailBadgeHome');
   if (hb) { hb.textContent = need > 99 ? '99+' : need; hb.classList.toggle('on', need > 0); }
 
@@ -1795,7 +1824,6 @@ function renderOperatorHome() {
     }
   }
 
-  var total = list.length;
   var of = function (n) { return total ? n + ' of ' + total : 'no clients yet'; };
 
   var todayEl = opEl('opMonToday');

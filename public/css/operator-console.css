@@ -247,37 +247,7 @@
   -webkit-backdrop-filter: blur(28px) saturate(150%); backdrop-filter: blur(28px) saturate(150%);
   box-shadow: var(--op-lift-hi), var(--op-inner);
 }
-.op-hero-text { flex: 1; min-width: 0 }
-.op-hero-eyebrow { font-size: 12px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--op-amber) }
-.op-hero-greet {
-  font-size: clamp(29px, 3.6vw, 44px); font-weight: 600; letter-spacing: -.032em; line-height: 1.06;
-  margin: 13px 0 0; color: var(--op-ivory);
-}
-.op-hero-line { font-size: clamp(15px, 1.3vw, 17.5px); color: var(--op-soft); line-height: 1.62; margin: 14px 0 0; max-width: 56ch }
-.op-hero-line b { color: var(--op-amber); font-weight: 600 }
 
-/* The orb: a conic arc driven by --p, so the fill is the honest percentage. */
-.op-orb {
-  --p: 0; --arc-a: var(--op-coral); --arc-b: var(--op-amber);
-  position: relative; width: 158px; height: 158px; border-radius: 50%; flex: none; display: grid; place-items: center;
-  background: conic-gradient(from -90deg,
-    var(--arc-a) 0deg,
-    var(--arc-b) calc(var(--p) * 3.6deg),
-    rgba(255, 255, 255, .075) calc(var(--p) * 3.6deg));
-  box-shadow: 0 0 46px rgba(255, 138, 114, .28);
-  transition: background .9s cubic-bezier(.2, .8, .2, 1);
-}
-.op-orb.ok { --arc-a: var(--op-jade); --arc-b: #7BE0C0; box-shadow: 0 0 46px rgba(70, 196, 166, .3) }
-.op-orb.warn { --arc-a: var(--op-amber); --arc-b: var(--op-amber-lt); box-shadow: 0 0 46px rgba(240, 178, 94, .3) }
-.op-orb::after {
-  content: ''; position: absolute; inset: 14px; border-radius: 50%;
-  background: #0C0F15; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .08);
-}
-/* the ::after inner disc is painted after in-flow content, so the label needs
-   an explicit layer to sit on top of it */
-.op-orb-mid { position: relative; z-index: 1; text-align: center; line-height: 1 }
-.op-ring-n { font-size: 36px; font-weight: 700; letter-spacing: -.035em; color: var(--op-ivory); font-variant-numeric: tabular-nums }
-.op-ring-l { font-size: 10px; letter-spacing: .18em; text-transform: uppercase; color: var(--op-soft); margin-top: 7px }
 
 .op-brief-block { display: flex; flex-direction: column; min-width: 0 }
 .op-brief-head { display: flex; align-items: center; gap: 12px; margin: 0 4px 13px }
@@ -656,7 +626,7 @@
 @media (prefers-reduced-motion: reduce) {
   .op-screen.active .op-hero, .op-screen.active .op-brief-block,
   .op-screen.active .op-card, .op-screen.active .op-prio { animation: none }
-  .op-orb, .op-fill, .op-bar-fill { transition: none }
+  .op-pb-fill, .op-spark-b, .op-fill, .op-bar-fill { transition: none }
 }
 
 /* --------------------------------------------------------- responsive */
@@ -698,11 +668,7 @@
   .op-chips { padding: 11px 15px 0 }
 
   .op-hero { flex-direction: column; align-items: flex-start; gap: 20px; padding: 24px 22px }
-  .op-hero-greet { font-size: 32px }
-  .op-hero-line { font-size: 15px }
-  .op-orb { width: 132px; height: 132px }
-  .op-ring-n { font-size: 31px }
-
+        
   .op-cards, .op-cards.narrow { grid-template-columns: minmax(0, 1fr); gap: 13px }
   .op-card { padding: 18px }
   .op-card-name, .op-prio-name { font-size: 17.5px }
@@ -772,4 +738,74 @@ body.operator-console-open { overflow: hidden }
   .op-mon-n { font-size: 28px }
   .op-mon-l { font-size: 13.5px; margin-top: 6px }
   .op-mon-s { font-size: 11.5px }
+}
+
+/* ------------------------------------------------ hero: engagement ----- */
+/* A greeting and a lone percentage said nothing an operator could act on.
+   This block answers one question: are clients showing up, and is that
+   getting better or worse than last week. */
+.op-hero { flex-direction: column; align-items: stretch; gap: 20px }
+.op-hero-bar { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap }
+.op-hero-eyebrow { font-size: 11.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--op-amber) }
+.op-hero-greet { font-size: 17px; font-weight: 600; letter-spacing: -.015em; color: var(--op-soft); margin-left: auto }
+
+.op-pb { display: flex; flex-direction: column; gap: 13px }
+.op-pb-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap }
+.op-pb-id { min-width: 0 }
+.op-pb-k { display: block; font-size: 12.5px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--op-soft) }
+.op-pb-n { display: flex; align-items: baseline; gap: 10px; margin-top: 7px; flex-wrap: wrap }
+.op-pb-n b { font-size: clamp(38px, 5vw, 56px); font-weight: 700; letter-spacing: -.045em; line-height: .95; color: var(--op-ivory); font-variant-numeric: tabular-nums }
+.op-pb-n i { font-style: normal; font-size: 14.5px; color: var(--op-soft) }
+.op-pb-delta {
+  margin-left: auto; font-size: 13.5px; font-weight: 600; white-space: nowrap; padding: 7px 14px; border-radius: 999px;
+  background: rgba(255, 255, 255, .06); border: 1px solid var(--op-edge); color: var(--op-soft);
+}
+.op-pb-delta.up { background: rgba(70, 196, 166, .16); border-color: rgba(70, 196, 166, .3); color: #9BE4D4 }
+.op-pb-delta.down { background: rgba(255, 138, 114, .16); border-color: rgba(255, 138, 114, .32); color: var(--op-coral-lt) }
+
+.op-pb-track { height: 10px; border-radius: 99px; background: rgba(255, 255, 255, .08); overflow: hidden }
+.op-pb-fill {
+  display: block; height: 100%; width: 0; border-radius: 99px;
+  background: linear-gradient(90deg, var(--op-amber), var(--op-amber-lt));
+  box-shadow: 0 0 16px rgba(240, 178, 94, .45); transition: width .9s cubic-bezier(.2, .8, .2, 1);
+}
+.op-pb-fill.ok { background: linear-gradient(90deg, var(--op-jade), #7BE0C0); box-shadow: 0 0 16px rgba(70, 196, 166, .45) }
+.op-pb-fill.bad { background: linear-gradient(90deg, var(--op-coral), #FFB19C); box-shadow: 0 0 16px rgba(255, 138, 114, .45) }
+
+/* fourteen days of daily active clients */
+.op-spark { display: flex; align-items: flex-end; gap: 5px; height: 78px; padding-top: 4px }
+.op-spark-b {
+  flex: 1; min-width: 0; border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(180deg, var(--op-amber-lt), rgba(240, 178, 94, .32));
+  transition: height .7s cubic-bezier(.2, .8, .2, 1);
+}
+.op-spark-b.nil { background: rgba(255, 255, 255, .08) }
+.op-spark-b.now { background: linear-gradient(180deg, #FFFFFF, var(--op-amber)); box-shadow: 0 0 16px rgba(240, 178, 94, .6) }
+.op-spark-b.now.nil { background: rgba(255, 255, 255, .17); box-shadow: none }
+.op-spark-empty { flex: 1; display: grid; place-items: center; height: 100%; font-size: 13px; color: var(--op-soft);
+  border: 1px dashed var(--op-edge); border-radius: 14px }
+.op-spark-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--op-dim); letter-spacing: .04em }
+
+.op-hero-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px }
+.op-hstat {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px; cursor: pointer; text-align: left;
+  padding: 13px 15px; border-radius: 16px; font-family: inherit;
+  background: rgba(255, 255, 255, .05); border: 1px solid var(--op-edge); color: var(--op-ivory); transition: all .18s;
+}
+.op-hstat:hover { background: rgba(255, 255, 255, .09); border-color: var(--op-edge-hi) }
+.op-hstat b { font-size: 22px; font-weight: 700; letter-spacing: -.03em; color: var(--op-amber-lt); font-variant-numeric: tabular-nums }
+.op-hstat i { font-style: normal; font-size: 13px; color: var(--op-dim) }
+.op-hstat span { flex-basis: 100%; font-size: 12.5px; color: var(--op-soft); margin-top: 3px }
+.op-hstat.nil b { color: var(--op-dim) }
+
+@media (max-width: 767px) {
+  .op-hero { gap: 17px; padding: 20px 18px }
+  .op-hero-bar { gap: 6px }
+  .op-hero-greet { font-size: 15px; margin-left: 0 }
+  .op-pb-n b { font-size: 42px }
+  .op-pb-delta { margin-left: 0 }
+  .op-spark { height: 62px; gap: 4px }
+  .op-hstat { padding: 11px 12px }
+  .op-hstat b { font-size: 19px }
+  .op-hstat span { font-size: 11.5px }
 }

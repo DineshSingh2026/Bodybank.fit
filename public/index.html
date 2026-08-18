@@ -4695,7 +4695,7 @@ button.bb-today-pill{cursor:pointer}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
-<script src="js/operator-console.js?v=5"></script>
+<script src="js/operator-console.js?v=6"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -9295,7 +9295,7 @@ button.bb-today-pill{cursor:pointer}
 </div>
 
 <!-- ============ OPERATOR CONSOLE (client-first workspace) ============ -->
-<link rel="stylesheet" href="css/operator-console.css?v=5">
+<link rel="stylesheet" href="css/operator-console.css?v=6">
 <div class="operator-panel" id="operatorPanel">
 
   <!-- TOP BAR -->
@@ -9375,19 +9375,28 @@ button.bb-today-pill{cursor:pointer}
       <div class="op-scroll">
         <div class="op-brief">
 
-          <!-- Hero: who you are, what today is, and one ring for roster health -->
+          <!-- Hero: engagement over the last fortnight, because a greeting and a
+               single percentage told the operator nothing they could act on. -->
           <header class="op-hero">
-            <div class="op-hero-text">
-              <div class="op-hero-eyebrow" id="opHeroDate">&nbsp;</div>
-              <h1 class="op-hero-greet" id="opHeroGreet">Good day</h1>
-              <p class="op-hero-line" id="opHeroLine">Pulling your roster together…</p>
+            <div class="op-hero-bar">
+              <span class="op-hero-eyebrow" id="opHeroDate">&nbsp;</span>
+              <span class="op-hero-greet" id="opHeroGreet">Good day</span>
             </div>
-            <div class="op-orb" id="opOrb">
-              <div class="op-orb-mid">
-                <div class="op-ring-n" id="opRingPct">–</div>
-                <div class="op-ring-l">on track</div>
+
+            <div class="op-pb">
+              <div class="op-pb-head">
+                <div class="op-pb-id">
+                  <span class="op-pb-k">Active clients</span>
+                  <span class="op-pb-n"><b id="opActiveN">–</b><i id="opActiveOf"></i></span>
+                </div>
+                <span class="op-pb-delta" id="opActiveDelta"></span>
               </div>
+              <div class="op-pb-track"><span class="op-pb-fill" id="opActiveFill"></span></div>
+              <div class="op-spark" id="opActiveSpark"></div>
+              <div class="op-spark-axis"><span>14 days ago</span><span id="opSparkPeak"></span><span>today</span></div>
             </div>
+
+            <div class="op-hero-stats" id="opHeroStats"></div>
           </header>
 
           <!-- Today, in numbers. Every tile is a filter into the roster. -->

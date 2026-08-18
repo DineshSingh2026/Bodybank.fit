@@ -7442,6 +7442,14 @@ app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res)
         SELECT generate_series((CURRENT_DATE - INTERVAL '13 days')::date, CURRENT_DATE, INTERVAL '1 day')::date AS d
       )
       SELECT days.d::text AS day,
+        -- how many DISTINCT clients did anything at all that day: the only
+        -- honest way to show whether engagement is climbing or sliding
+        (SELECT COUNT(DISTINCT uid)::int FROM (
+           SELECT user_id AS uid FROM daily_checkins WHERE checkin_date = days.d AND COALESCE(is_freeze, FALSE) = FALSE
+           UNION SELECT user_id FROM workout_logs WHERE created_at::date = days.d
+           UNION SELECT user_id FROM nutrition_meal_logs WHERE log_date = days.d
+           UNION SELECT user_id FROM weight_logs WHERE created_at::date = days.d
+         ) a) AS active,
         (SELECT COUNT(*)::int FROM daily_checkins dc WHERE dc.checkin_date = days.d AND COALESCE(dc.is_freeze, FALSE) = FALSE) AS checkins,
         (SELECT COUNT(*)::int FROM workout_logs w WHERE w.created_at::date = days.d) AS workouts,
         (SELECT COUNT(*)::int FROM nutrition_meal_logs m WHERE m.log_date = days.d) AS meals
@@ -7478,6 +7486,7 @@ app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res)
       },
       trends: {
         labels: (trendRows || []).map(r => r.day),
+        active: (trendRows || []).map(r => Number(r.active || 0)),
         checkins: (trendRows || []).map(r => Number(r.checkins || 0)),
         workouts: (trendRows || []).map(r => Number(r.workouts || 0)),
         meals: (trendRows || []).map(r => Number(r.meals || 0))
