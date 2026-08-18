@@ -948,7 +948,7 @@ async function opLoadMuscleRanking() {
 }
 
 /* ------------------------------------------------------- story: charts */
-var OP_TICK = '#8d877a', OP_GRID = 'rgba(255,255,255,0.05)';
+var OP_TICK = '#A9B2C4', OP_GRID = 'rgba(255,255,255,0.07)';
 function opDrawNutritionChart() {
   var d = window._opClientData; if (!d || typeof Chart === 'undefined') return;
   var el = opEl('opNutChart'); if (!el) return;
@@ -958,8 +958,8 @@ function opDrawNutritionChart() {
     data: {
       labels: rows.map(function (r) { return opDate(r.stat_date); }),
       datasets: [
-        { type: 'bar', label: 'Calories', data: rows.map(function (r) { return r.total_calories || 0; }), backgroundColor: 'rgba(246,167,64,0.55)', yAxisID: 'y', borderRadius: 3, maxBarThickness: 15 },
-        { type: 'line', label: 'Protein (g)', data: rows.map(function (r) { return r.total_protein || 0; }), borderColor: '#5fc88a', backgroundColor: 'rgba(95,200,138,0.15)', yAxisID: 'y1', tension: 0.3, pointRadius: 2 }
+        { type: 'bar', label: 'Calories', data: rows.map(function (r) { return r.total_calories || 0; }), backgroundColor: 'rgba(240,178,94,0.6)', yAxisID: 'y', borderRadius: 3, maxBarThickness: 15 },
+        { type: 'line', label: 'Protein (g)', data: rows.map(function (r) { return r.total_protein || 0; }), borderColor: '#46C4A6', backgroundColor: 'rgba(70,196,166,0.16)', yAxisID: 'y1', tension: 0.3, pointRadius: 2 }
       ]
     },
     options: {
@@ -968,7 +968,7 @@ function opDrawNutritionChart() {
       scales: {
         x: { ticks: { color: OP_TICK, font: { size: 10 }, maxTicksLimit: 7 }, grid: { display: false } },
         y: { position: 'left', ticks: { color: OP_TICK, font: { size: 10 } }, grid: { color: OP_GRID } },
-        y1: { position: 'right', ticks: { color: '#5fc88a', font: { size: 10 } }, grid: { display: false } }
+        y1: { position: 'right', ticks: { color: '#46C4A6', font: { size: 10 } }, grid: { display: false } }
       }
     }
   });
@@ -983,9 +983,9 @@ function opDrawStrengthChart() {
     data: {
       labels: rows.map(function (r) { return opDate(r.created_at); }),
       datasets: [
-        { label: 'Bench', data: rows.map(function (r) { return r.strength_bench; }), borderColor: '#f6a740', tension: 0.3, pointRadius: 2, spanGaps: true },
-        { label: 'Squat', data: rows.map(function (r) { return r.strength_squat; }), borderColor: '#4aa8e0', tension: 0.3, pointRadius: 2, spanGaps: true },
-        { label: 'Deadlift', data: rows.map(function (r) { return r.strength_deadlift; }), borderColor: '#9b8cf0', tension: 0.3, pointRadius: 2, spanGaps: true }
+        { label: 'Bench', data: rows.map(function (r) { return r.strength_bench; }), borderColor: '#F0B25E', tension: 0.3, pointRadius: 2, spanGaps: true },
+        { label: 'Squat', data: rows.map(function (r) { return r.strength_squat; }), borderColor: '#74D0E6', tension: 0.3, pointRadius: 2, spanGaps: true },
+        { label: 'Deadlift', data: rows.map(function (r) { return r.strength_deadlift; }), borderColor: '#A79BF5', tension: 0.3, pointRadius: 2, spanGaps: true }
       ]
     },
     options: {
@@ -1008,7 +1008,7 @@ function opDrawBodyWeightChart() {
     type: 'line',
     data: {
       labels: weights.map(function (r) { return opDate(r.created_at); }),
-      datasets: [{ label: 'Weight', data: weights.map(function (r) { return r.weight_kg; }), borderColor: '#c8a44e', backgroundColor: 'rgba(200,164,78,0.15)', fill: true, tension: 0.3, pointRadius: 2 }]
+      datasets: [{ label: 'Weight', data: weights.map(function (r) { return r.weight_kg; }), borderColor: '#F0B25E', backgroundColor: 'rgba(240,178,94,0.16)', fill: true, tension: 0.3, pointRadius: 2 }]
     },
     options: {
       responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
@@ -1022,10 +1022,10 @@ function opDrawBodyWeightChart() {
 
 /* ------------------------------------------------------ story: weekly */
 var OP_WK_FMT = {
-  steps: { label: 'Steps', color: '#f6a740', unit: '', div: 1 },
-  water: { label: 'Water', color: '#4aa8e0', unit: 'L', div: 1000 },
-  protein: { label: 'Protein', color: '#5fc88a', unit: 'g', div: 1 },
-  sleep: { label: 'Sleep', color: '#9b8cf0', unit: 'h', div: 1 }
+  steps: { label: 'Steps', color: '#F0B25E', unit: '', div: 1 },
+  water: { label: 'Water', color: '#74D0E6', unit: 'L', div: 1000 },
+  protein: { label: 'Protein', color: '#46C4A6', unit: 'g', div: 1 },
+  sleep: { label: 'Sleep', color: '#A79BF5', unit: 'h', div: 1 }
 };
 async function opLoadWeekly(id) {
   var wrap = opEl('opWeeklyWrap'); if (!wrap) return;
@@ -1047,7 +1047,7 @@ function opRenderWeekly(wrap, d) {
     var cfg = OP_WK_FMT[k];
     var actual = (m.actual || 0) / cfg.div, target = (m.target || 0) / cfg.div;
     var pct = Math.round(m.achievementPct || 0);
-    var pcolor = pct >= 90 ? '#5bbf7a' : (pct >= 60 ? '#e0b24e' : '#e0785a');
+    var pcolor = pct >= 90 ? '#46C4A6' : (pct >= 60 ? '#F0B25E' : '#FF8A72');
     html += '<div class="op-wk-card"><div class="op-wk-c-top"><span class="op-wk-c-label">' + cfg.label + '</span>'
       + '<span class="op-wk-c-pct" style="color:' + pcolor + '">' + pct + '%</span></div>'
       + '<div class="op-wk-c-sub">' + opNum(actual) + cfg.unit + ' / ' + opNum(target) + cfg.unit + '</div>'
@@ -1559,9 +1559,9 @@ function opDrawTrendChart(trends) {
     data: {
       labels: labels,
       datasets: [
-        { label: 'Check-ins', data: trends.checkins || [], backgroundColor: 'rgba(91,191,122,0.8)', borderRadius: 3, maxBarThickness: 14 },
-        { label: 'Workouts', data: trends.workouts || [], backgroundColor: 'rgba(200,164,78,0.85)', borderRadius: 3, maxBarThickness: 14 },
-        { label: 'Meals', data: trends.meals || [], backgroundColor: 'rgba(106,193,214,0.75)', borderRadius: 3, maxBarThickness: 14 }
+        { label: 'Check-ins', data: trends.checkins || [], backgroundColor: 'rgba(70,196,166,0.85)', borderRadius: 3, maxBarThickness: 14 },
+        { label: 'Workouts', data: trends.workouts || [], backgroundColor: 'rgba(240,178,94,0.9)', borderRadius: 3, maxBarThickness: 14 },
+        { label: 'Meals', data: trends.meals || [], backgroundColor: 'rgba(116,208,230,0.8)', borderRadius: 3, maxBarThickness: 14 }
       ]
     },
     options: {
@@ -1712,13 +1712,11 @@ function renderOperatorHome() {
     }
   }
 
-  // the ring — r=52, so the circumference is 2*pi*52
-  var ring = opEl('opRingFill');
-  if (ring) {
-    var C = 2 * Math.PI * 52;
-    ring.style.strokeDasharray = C.toFixed(1);
-    ring.style.strokeDashoffset = (C * (1 - pct / 100)).toFixed(1);
-    ring.setAttribute('class', 'op-ring-fill ' + (pct >= 70 ? 'ok' : (pct >= 35 ? 'warn' : 'bad')));
+  // the orb: a conic arc driven by --p, so the fill IS the percentage
+  var orb = opEl('opOrb');
+  if (orb) {
+    orb.style.setProperty('--p', String(pct));
+    orb.className = 'op-orb' + (pct >= 70 ? ' ok' : (pct >= 35 ? ' warn' : ''));
   }
   opSetTxt('opRingPct', list.length ? pct + '%' : '–');
   var hb = opEl('opRailBadgeHome');
@@ -1787,9 +1785,9 @@ function opRenderHomeMomentum() {
         var dt = new Date(d); return isNaN(dt.getTime()) ? d : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
       }),
       datasets: [
-        { label: 'Check-ins', data: t.checkins || [], backgroundColor: 'rgba(91,191,122,0.8)', borderRadius: 3, maxBarThickness: 12 },
-        { label: 'Workouts', data: t.workouts || [], backgroundColor: 'rgba(200,164,78,0.85)', borderRadius: 3, maxBarThickness: 12 },
-        { label: 'Meals', data: t.meals || [], backgroundColor: 'rgba(106,193,214,0.75)', borderRadius: 3, maxBarThickness: 12 }
+        { label: 'Check-ins', data: t.checkins || [], backgroundColor: 'rgba(70,196,166,0.85)', borderRadius: 3, maxBarThickness: 12 },
+        { label: 'Workouts', data: t.workouts || [], backgroundColor: 'rgba(240,178,94,0.9)', borderRadius: 3, maxBarThickness: 12 },
+        { label: 'Meals', data: t.meals || [], backgroundColor: 'rgba(116,208,230,0.8)', borderRadius: 3, maxBarThickness: 12 }
       ]
     },
     options: {
