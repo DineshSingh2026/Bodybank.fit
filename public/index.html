@@ -4695,7 +4695,7 @@ button.bb-today-pill{cursor:pointer}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
-<script src="js/operator-console.js?v=4"></script>
+<script src="js/operator-console.js?v=5"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -9295,7 +9295,7 @@ button.bb-today-pill{cursor:pointer}
 </div>
 
 <!-- ============ OPERATOR CONSOLE (client-first workspace) ============ -->
-<link rel="stylesheet" href="css/operator-console.css?v=4">
+<link rel="stylesheet" href="css/operator-console.css?v=5">
 <div class="operator-panel" id="operatorPanel">
 
   <!-- TOP BAR -->
@@ -9390,6 +9390,17 @@ button.bb-today-pill{cursor:pointer}
             </div>
           </header>
 
+          <!-- Today, in numbers. Every tile is a filter into the roster. -->
+          <section class="op-brief-block">
+            <div class="op-brief-head"><h2 class="op-brief-title">Today</h2></div>
+            <div class="op-mon" id="opMonToday"></div>
+          </section>
+
+          <section class="op-brief-block">
+            <div class="op-brief-head"><h2 class="op-brief-title">Also worth watching</h2></div>
+            <div class="op-mon" id="opMonWatch"></div>
+          </section>
+
           <!-- The three things that actually need doing -->
           <section class="op-brief-block">
             <div class="op-brief-head">
@@ -9399,31 +9410,13 @@ button.bb-today-pill{cursor:pointer}
             <div class="op-priorities" id="opPriorities"><div class="op-empty">Loading…</div></div>
           </section>
 
-          <!-- Where everything else lives, with live counts -->
           <section class="op-brief-block">
-            <div class="op-shortcuts" id="opShortcuts"></div>
+            <div class="op-brief-head">
+              <h2 class="op-brief-title">Just happened</h2>
+              <button type="button" class="op-link" onclick="opNav('pulse')">All activity →</button>
+            </div>
+            <div id="opHomeFeed"><div class="op-empty">Loading…</div></div>
           </section>
-
-          <!-- Momentum + what just happened, side by side on a wide screen -->
-          <div class="op-brief-cols">
-            <section class="op-brief-block">
-              <div class="op-brief-head">
-                <h2 class="op-brief-title">Momentum</h2>
-                <button type="button" class="op-link" onclick="opNav('pulse')">Full pulse →</button>
-              </div>
-              <div class="op-meters" id="opHomeMeters"><div class="op-empty">Loading…</div></div>
-              <div class="op-chart-card" style="margin:12px 0 0">
-                <div class="op-chart-wrap sm"><canvas id="opHomeTrendChart"></canvas></div>
-              </div>
-            </section>
-            <section class="op-brief-block">
-              <div class="op-brief-head">
-                <h2 class="op-brief-title">Just happened</h2>
-                <button type="button" class="op-link" onclick="opNav('pulse')">All activity →</button>
-              </div>
-              <div id="opHomeFeed"><div class="op-empty">Loading…</div></div>
-            </section>
-          </div>
         </div>
       </div>
     </section>
@@ -9447,8 +9440,12 @@ button.bb-today-pill{cursor:pointer}
       </div>
       <div class="op-chips" id="opClientChips">
         <button type="button" class="op-chip active" data-cf="all" onclick="opClientFilter('all')">Everyone</button>
+        <button type="button" class="op-chip" data-cf="active" onclick="opClientFilter('active')">Active</button>
+        <button type="button" class="op-chip" data-cf="inactive" onclick="opClientFilter('inactive')">Inactive</button>
+        <button type="button" class="op-chip" data-cf="checkin" onclick="opClientFilter('checkin')">Checked in today</button>
+        <button type="button" class="op-chip" data-cf="workout" onclick="opClientFilter('workout')">Trained today</button>
+        <button type="button" class="op-chip" data-cf="meal" onclick="opClientFilter('meal')">Ate today</button>
         <button type="button" class="op-chip" data-cf="attention" onclick="opClientFilter('attention')">Needs me</button>
-        <button type="button" class="op-chip" data-cf="ok" onclick="opClientFilter('ok')">On track</button>
         <button type="button" class="op-chip" data-cf="trial" onclick="opClientFilter('trial')">On trial</button>
         <button type="button" class="op-chip" data-cf="noblood" onclick="opClientFilter('noblood')">No bloods</button>
       </div>

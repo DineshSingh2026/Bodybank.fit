@@ -381,6 +381,43 @@ function opNextAction(c) {
 }
 function opNeedsAttention(c) { return opNextAction(c).key !== 'ok'; }
 
+/* Active = they did SOMETHING in the last 7 days — a check-in, a workout, a
+   meal or a weigh-in. The server computes it across all four; this is the one
+   place the front end asks the question, so every tile, chip and card agrees. */
+function opIsActive(c) {
+  if (c.active_7d != null) return !!c.active_7d;
+  return (c.inactive_days || 0) < 7;               // older payloads
+}
+var OP_FILTERS = {
+  all: function () { return true; },
+  active: opIsActive,
+  inactive: function (c) { return !opIsActive(c); },
+  checkin: function (c) { return !!c.checkin_today; },
+  workout: function (c) { return !!c.workout_today; },
+  meal: function (c) { return !!c.meal_today; },
+  attention: opNeedsAttention,
+  ok: function (c) { return !opNeedsAttention(c); },
+  trial: function (c) { return (c.subscription_status || '') === 'trialing'; },
+  expiring: function (c) {
+    if ((c.subscription_status || '') !== 'trialing') return false;
+    var l = opDaysUntil(c.access_expires_at);
+    return l != null && l <= 3;
+  },
+  noblood: function (c) { return !(c.blood_reports || 0); },
+  nosunday: function (c) { return ((opState.complianceMap || {})[c.id] || {}).sunday_week === 0; },
+  newthisweek: function (c) {
+    var t = new Date(c.created_at).getTime();
+    return !isNaN(t) && t >= Date.now() - 7 * 86400000;
+  }
+};
+var OP_FILTER_LABEL = {
+  all: 'Everyone', active: 'Active', inactive: 'Inactive', checkin: 'Checked in today',
+  workout: 'Trained today', meal: 'Logged a meal today', attention: 'Needs me', ok: 'On track',
+  trial: 'On trial', expiring: 'Trial ending', noblood: 'No blood report',
+  nosunday: 'Missed Sunday check-in', newthisweek: 'New this week'
+};
+function opCount(key) { return (opState.clients || []).filter(OP_FILTERS[key] || OP_FILTERS.all).length; }
+
 // Seven dots, oldest -> newest. A count cannot say WHICH days were missed.
 function opWeekStrip(week) {
   var s = String(week || '0000000');
@@ -457,12 +494,34 @@ function opDoAction(id, key) {
 }
 
 function opClientFilter(f) {
+  if (!OP_FILTERS[f]) f = 'all';
   opState.clientFilter = f;
-  document.querySelectorAll('#opClientChips .op-chip').forEach(function (b) {
-    b.classList.toggle('active', b.getAttribute('data-cf') === f);
+  var matched = false;
+  document.querySelectorAll('#opClientChips .op-chip[data-cf]').forEach(function (b) {
+    var on = b.getAttribute('data-cf') === f;
+    if (on) matched = true;
+    b.classList.toggle('active', on);
   });
+  // Tiles can select a lens that has no permanent chip (trial ending, missed
+  // Sunday, new this week). Show it as a removable chip so the roster never
+  // looks filtered for no visible reason.
+  var extra = opEl('opChipExtra');
+  if (extra) extra.remove();
+  if (!matched && f !== 'all') {
+    var host = opEl('opClientChips');
+    if (host) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.id = 'opChipExtra'; b.className = 'op-chip active';
+      b.innerHTML = opEsc(OP_FILTER_LABEL[f] || f) + ' <span aria-hidden="true">×</span>';
+      b.setAttribute('aria-label', 'Clear filter: ' + (OP_FILTER_LABEL[f] || f));
+      b.onclick = function () { opClientFilter('all'); };
+      host.appendChild(b);
+    }
+  }
   renderOperatorClients();
 }
+// Jump straight from a landing tile into the matching roster view.
+function opMonitor(f) { opNav('clients'); opClientFilter(f); }
 
 function renderOperatorClients() {
   var el = opEl('opClientCards');
@@ -472,13 +531,10 @@ function renderOperatorClients() {
   var sort = (opEl('opClientSort') || {}).value || 'action';
   var f = opState.clientFilter || 'all';
 
+  var test = OP_FILTERS[f] || OP_FILTERS.all;
   var rows = list.filter(function (c) {
     if (q && !bbContactMatches(q, [c.first_name, c.last_name, c.email], [c.phone])) return false;
-    if (f === 'attention') return opNeedsAttention(c);
-    if (f === 'ok') return !opNeedsAttention(c);
-    if (f === 'trial') return (c.subscription_status || '') === 'trialing';
-    if (f === 'noblood') return !(c.blood_reports || 0);
-    return true;
+    return test(c);
   });
 
   var TONE = { bad: 0, warn: 1, info: 2, ok: 3 };
@@ -1543,7 +1599,6 @@ async function loadOperatorOverview() {
       opAnimateBars(mEl);
     }
     opDrawTrendChart(data.trends);
-    opRenderHomeMomentum();
   } catch (e) { }
 }
 
@@ -1669,11 +1724,14 @@ function opPriorityRow(p) {
     + '</div>';
 }
 
-function opShortcut(screen, icon, label, count, tone) {
-  return '<button type="button" class="op-shortcut" onclick="opNav(&quot;' + screen + '&quot;)">'
-    + '<span class="op-shortcut-ico">' + icon + '</span>'
-    + '<span class="op-shortcut-main"><b>' + opEsc(label) + '</b><i>' + opEsc(count) + '</i></span>'
-    + (tone ? '<span class="op-dotmark ' + tone + '"></span>' : '')
+/* One monitor tile: a number, what it counts, and the roster view it opens. */
+function opMonTile(filter, label, sub, tone) {
+  var n = opCount(filter);
+  return '<button type="button" class="op-mon-tile' + (tone ? ' ' + tone : '') + (n ? '' : ' zero') + '"'
+    + ' onclick="opMonitor(&quot;' + filter + '&quot;)">'
+    + '<span class="op-mon-n">' + n + '</span>'
+    + '<span class="op-mon-l">' + opEsc(label) + '</span>'
+    + '<span class="op-mon-s">' + opEsc(sub) + '</span>'
     + '</button>';
 }
 
@@ -1737,68 +1795,29 @@ function renderOperatorHome() {
     }
   }
 
-  var sEl = opEl('opShortcuts');
-  if (sEl) {
-    var leads = opState.leads || {};
-    var leadCount = (leads.audits || []).length;
-    var bloodPending = list.reduce(function (n, c) { return n + (c.blood_pending || 0); }, 0);
-    sEl.innerHTML =
-      opShortcut('clients', '👥', 'Clients', list.length ? opPlural(list.length, 'person', 'people') : 'none yet', need ? 'warn' : '')
-      + opShortcut('blood', '🩸', 'Blood reports', noBlood ? noBlood + ' without one' : 'all covered', bloodPending ? 'info' : (noBlood ? 'warn' : ''))
-      + opShortcut('prospects', '🎯', 'Prospects', leadCount ? opPlural(leadCount, 'audit') : 'open to load', '')
-      + opShortcut('inbox', '📨', 'Admin inbox', replies ? opPlural(replies, 'new reply', 'new replies') : 'nothing new', replies ? 'info' : '');
+  var total = list.length;
+  var of = function (n) { return total ? n + ' of ' + total : 'no clients yet'; };
+
+  var todayEl = opEl('opMonToday');
+  if (todayEl) {
+    todayEl.innerHTML =
+      opMonTile('active', 'Active clients', of(opCount('active')) + ' · last 7 days', 'ok')
+      + opMonTile('inactive', 'Inactive clients', of(opCount('inactive')) + ' · nothing logged', 'bad')
+      + opMonTile('checkin', 'Daily check-ins', 'logged today', 'amber')
+      + opMonTile('workout', 'Workouts', 'logged today', 'amber')
+      + opMonTile('meal', 'Meals', 'logged today', 'amber');
   }
 
-  opRenderHomeMomentum();
+  var watchEl = opEl('opMonWatch');
+  if (watchEl) {
+    watchEl.innerHTML =
+      opMonTile('noblood', 'No blood report', 'never uploaded one', 'bad')
+      + opMonTile('expiring', 'Trials ending', 'within 3 days', 'bad')
+      + opMonTile('nosunday', 'Missed Sunday', 'no weekly check-in', 'amber')
+      + opMonTile('newthisweek', 'New this week', 'joined in 7 days', 'info');
+  }
+
   opRenderHomeFeed();
-}
-
-/* Momentum and the feed reuse the Pulse reads; they just render smaller here. */
-function opRenderHomeMomentum() {
-  var data = opState.overview;
-  var mEl = opEl('opHomeMeters');
-  if (!mEl) return;
-  if (!data) { mEl.innerHTML = '<div class="op-empty">Loading…</div>'; return; }
-  var s = data.stats || {}, eng = data.engagement || {};
-  var meters = [
-    { l: 'Active today', v: eng.active_rate || 0, sub: (s.active_today || 0) + ' of ' + (s.total_clients || 0) },
-    { l: 'Checked in', v: eng.checkin_rate || 0, sub: (s.checked_in_today || 0) + ' of ' + (s.total_clients || 0) },
-    { l: 'Avg consistency', v: eng.avg_consistency_pct || 0, sub: 'over 7 days' },
-    { l: 'Need chasing', v: eng.at_risk_rate || 0, sub: opPlural((s.at_risk_p0 || 0) + (s.at_risk_p1 || 0), 'client'), invert: true }
-  ];
-  mEl.innerHTML = meters.map(function (m) {
-    var cls = m.invert ? (m.v >= 40 ? 'bad' : (m.v >= 20 ? 'warn' : 'ok')) : (m.v < 30 ? 'bad' : (m.v < 60 ? 'warn' : 'ok'));
-    return '<div class="op-meter"><div class="op-meter-top"><span class="op-meter-l">' + opEsc(m.l) + '<br><i>' + opEsc(m.sub) + '</i></span>'
-      + '<span class="op-meter-v">' + m.v + '%</span></div>'
-      + '<div class="op-track"><div class="op-fill ' + cls + '" data-w="' + m.v + '"></div></div></div>';
-  }).join('');
-  opAnimateBars(mEl);
-
-  if (typeof Chart === 'undefined' || !data.trends) return;
-  var el = opEl('opHomeTrendChart'); if (!el) return;
-  opKillChart('homeTrend');
-  var t = data.trends;
-  window._opCharts.homeTrend = new Chart(el.getContext('2d'), {
-    type: 'bar',
-    data: {
-      labels: (t.labels || []).map(function (d) {
-        var dt = new Date(d); return isNaN(dt.getTime()) ? d : dt.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-      }),
-      datasets: [
-        { label: 'Check-ins', data: t.checkins || [], backgroundColor: 'rgba(70,196,166,0.85)', borderRadius: 3, maxBarThickness: 12 },
-        { label: 'Workouts', data: t.workouts || [], backgroundColor: 'rgba(240,178,94,0.9)', borderRadius: 3, maxBarThickness: 12 },
-        { label: 'Meals', data: t.meals || [], backgroundColor: 'rgba(116,208,230,0.8)', borderRadius: 3, maxBarThickness: 12 }
-      ]
-    },
-    options: {
-      responsive: true, maintainAspectRatio: false,
-      plugins: { legend: { labels: { color: OP_TICK, font: { size: 10 }, boxWidth: 9, padding: 8 } } },
-      scales: {
-        x: { stacked: true, ticks: { color: OP_TICK, font: { size: 9 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 5 }, grid: { display: false } },
-        y: { stacked: true, beginAtZero: true, ticks: { color: OP_TICK, font: { size: 9 }, precision: 0 }, grid: { color: OP_GRID } }
-      }
-    }
-  });
 }
 
 function opRenderHomeFeed() {

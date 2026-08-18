@@ -7529,13 +7529,38 @@ app.get('/api/operator/clients', verifyToken, requireOperator, async (req, res) 
       ),
       cmp AS (
         SELECT user_id, COUNT(*)::int AS n FROM blood_comparison_reports GROUP BY user_id
+      ),
+      -- "Active" means the client did SOMETHING, not just that they filed a
+      -- daily check-in: a logged workout or meal counts every bit as much.
+      act AS (
+        SELECT user_id, MAX(ts) AS last_at FROM (
+          SELECT user_id, checkin_date::timestamp AS ts FROM daily_checkins WHERE COALESCE(is_freeze, FALSE) = FALSE
+          UNION ALL SELECT user_id, created_at::timestamp FROM workout_logs
+          UNION ALL SELECT user_id, log_date::timestamp FROM nutrition_meal_logs
+          UNION ALL SELECT user_id, created_at::timestamp FROM weight_logs
+        ) x GROUP BY user_id
+      ),
+      today AS (
+        SELECT u.id AS user_id,
+          EXISTS (SELECT 1 FROM daily_checkins d WHERE d.user_id = u.id AND d.checkin_date = CURRENT_DATE
+                    AND COALESCE(d.is_freeze, FALSE) = FALSE) AS checkin_today,
+          EXISTS (SELECT 1 FROM workout_logs w WHERE w.user_id = u.id AND w.created_at::date = CURRENT_DATE) AS workout_today,
+          EXISTS (SELECT 1 FROM nutrition_meal_logs m WHERE m.user_id = u.id AND m.log_date = CURRENT_DATE) AS meal_today
+        FROM users u WHERE u.role = 'user'
       )
       SELECT
         u.id, u.first_name, u.last_name, u.email, u.phone, u.profile_picture,
         u.subscription_status, u.access_expires_at, u.created_at,
         u.nutrition_ai_last_used_at, u.ai_trainer_last_used_at,
         lc.lc::text AS last_checkin_date,
-        (CURRENT_DATE - COALESCE(lc.lc, u.created_at::date))::int AS inactive_days,
+        act.last_at AS last_activity_at,
+        -- days since ANY activity; falls back to signup so a brand-new account
+        -- reads as new rather than as silent forever
+        (CURRENT_DATE - COALESCE(act.last_at::date, u.created_at::date))::int AS inactive_days,
+        (act.last_at IS NOT NULL AND act.last_at >= (CURRENT_DATE - INTERVAL '6 days')) AS active_7d,
+        COALESCE(today.checkin_today, FALSE) AS checkin_today,
+        COALESCE(today.workout_today, FALSE) AS workout_today,
+        COALESCE(today.meal_today, FALSE) AS meal_today,
         lw.lw AS last_workout_at,
         COALESCE(dc7.c, 0)::int AS checkins_7d,
         COALESCE(wo7.c, 0)::int AS workouts_7d,
@@ -7552,6 +7577,8 @@ app.get('/api/operator/clients', verifyToken, requireOperator, async (req, res) 
       LEFT JOIN week ON week.user_id = u.id
       LEFT JOIN blood ON blood.user_id = u.id
       LEFT JOIN cmp ON cmp.user_id = u.id
+      LEFT JOIN act ON act.user_id = u.id
+      LEFT JOIN today ON today.user_id = u.id
       WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE
       ORDER BY inactive_days DESC, LOWER(COALESCE(u.first_name, '')), LOWER(COALESCE(u.last_name, ''))
     `);

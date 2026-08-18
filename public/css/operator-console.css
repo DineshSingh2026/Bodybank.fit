@@ -319,22 +319,6 @@
 .op-allclear b { display: block; font-size: 16.5px; font-weight: 600; color: var(--op-ivory) }
 .op-allclear i { display: block; font-style: normal; font-size: 13.5px; color: var(--op-soft); margin-top: 5px }
 
-.op-shortcuts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 13px }
-.op-shortcut {
-  position: relative; display: flex; align-items: center; gap: 14px; padding: 17px 19px; cursor: pointer; text-align: left;
-  border-radius: var(--op-r); background: var(--op-glass); border: 1px solid var(--op-edge); color: var(--op-ivory);
-  font-family: inherit; box-shadow: var(--op-inner); transition: all .18s;
-  -webkit-backdrop-filter: var(--op-blur); backdrop-filter: var(--op-blur);
-}
-.op-shortcut:hover { transform: translateY(-2px); background: var(--op-glass-hi); box-shadow: var(--op-lift), var(--op-inner) }
-.op-shortcut-ico { font-size: 23px; flex: none; line-height: 1 }
-.op-shortcut-main { min-width: 0 }
-.op-shortcut-main b { display: block; font-size: 15px; font-weight: 600; letter-spacing: -.01em }
-.op-shortcut-main i { display: block; font-style: normal; font-size: 12.5px; color: var(--op-soft); margin-top: 3px }
-.op-dotmark { position: absolute; top: 14px; right: 14px; width: 9px; height: 9px; border-radius: 50%; background: var(--op-soft) }
-.op-dotmark.warn { background: var(--op-amber); box-shadow: 0 0 12px rgba(240, 178, 94, .8) }
-.op-dotmark.info { background: var(--op-jade); box-shadow: 0 0 12px rgba(70, 196, 166, .8) }
-
 .op-brief-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px }
 
 /* ==================================================== cards (lists) ===== */
@@ -746,3 +730,46 @@ html.android-mobile .op-story { padding-top: var(--safe-top, 20px) }
 html.android-mobile .op-cm-box { margin-top: var(--safe-top, 20px) }
 
 body.operator-console-open { overflow: hidden }
+
+/* ---------------------------------------------------- monitor tiles ---- */
+/* The landing's counting layer. Every tile is a lens into the roster, so it
+   has to look pressable and say plainly what it counts. */
+.op-mon { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 13px }
+#opMonWatch { grid-template-columns: repeat(4, minmax(0, 1fr)) }
+.op-mon-tile {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  padding: 18px 20px 17px; border-radius: var(--op-r); cursor: pointer; text-align: left; overflow: hidden;
+  background: var(--op-glass); border: 1px solid var(--op-edge); color: var(--op-ivory);
+  font-family: inherit; box-shadow: var(--op-inner); transition: all .18s;
+  -webkit-backdrop-filter: var(--op-blur); backdrop-filter: var(--op-blur);
+}
+.op-mon-tile::before {
+  content: ''; position: absolute; inset: auto 0 0 0; height: 3px;
+  background: var(--tone, rgba(255, 255, 255, .18)); opacity: .85;
+}
+.op-mon-tile:hover { transform: translateY(-3px); background: var(--op-glass-hi); box-shadow: var(--op-lift), var(--op-inner) }
+.op-mon-tile:focus-visible { outline: 2px solid var(--op-amber); outline-offset: 2px }
+.op-mon-n {
+  font-size: 34px; font-weight: 700; letter-spacing: -.04em; line-height: 1;
+  color: var(--tone, var(--op-ivory)); font-variant-numeric: tabular-nums;
+}
+.op-mon-l { font-size: 14px; font-weight: 600; letter-spacing: -.01em; margin-top: 8px }
+.op-mon-s { font-size: 12px; color: var(--op-soft) }
+.op-mon-tile.ok { --tone: var(--op-jade) }
+.op-mon-tile.bad { --tone: var(--op-coral) }
+.op-mon-tile.amber { --tone: var(--op-amber) }
+.op-mon-tile.info { --tone: #74D0E6 }
+/* nothing to see is not an alarm — drain the colour when the count is zero */
+.op-mon-tile.zero { --tone: rgba(255, 255, 255, .16) }
+.op-mon-tile.zero .op-mon-n { color: var(--op-dim) }
+
+@media (max-width: 1100px) {
+  .op-mon, #opMonWatch { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+}
+@media (max-width: 767px) {
+  .op-mon, #opMonWatch { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px }
+  .op-mon-tile { padding: 15px 16px 14px }
+  .op-mon-n { font-size: 28px }
+  .op-mon-l { font-size: 13.5px; margin-top: 6px }
+  .op-mon-s { font-size: 11.5px }
+}
