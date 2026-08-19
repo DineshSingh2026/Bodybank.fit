@@ -7436,19 +7436,23 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
       trials, expiring, trialsEnded, newMembers7d
     ] = await Promise.all([
       one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT}`),
-      one(`SELECT COUNT(DISTINCT uid)::int c FROM (
-             SELECT user_id AS uid FROM daily_checkins WHERE checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE
-             UNION SELECT user_id FROM workout_logs WHERE created_at::date = CURRENT_DATE
-             UNION SELECT user_id FROM nutrition_meal_logs WHERE log_date = CURRENT_DATE
-             UNION SELECT user_id FROM weight_logs WHERE created_at::date = CURRENT_DATE) a`),
-      one(`SELECT COUNT(DISTINCT uid)::int c FROM (
-             SELECT user_id AS uid FROM daily_checkins WHERE checkin_date >= CURRENT_DATE - 6 AND COALESCE(is_freeze, FALSE) = FALSE
-             UNION SELECT user_id FROM workout_logs WHERE created_at >= NOW() - INTERVAL '7 days'
-             UNION SELECT user_id FROM nutrition_meal_logs WHERE log_date >= CURRENT_DATE - 6
-             UNION SELECT user_id FROM weight_logs WHERE created_at >= NOW() - INTERVAL '7 days') a`),
-      one(`SELECT COUNT(DISTINCT user_id)::int c FROM daily_checkins WHERE checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE`),
-      one(`SELECT COUNT(*)::int c FROM workout_logs WHERE created_at::date = CURRENT_DATE`),
-      one(`SELECT COUNT(*)::int c FROM nutrition_meal_logs WHERE log_date = CURRENT_DATE`),
+      // Every activity count is scoped to the same client set as `members`.
+      // Unscoped, a test or suspended account logging anything inflated
+      // "Active" above the roster it is measured against.
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT} AND (
+             EXISTS (SELECT 1 FROM daily_checkins d WHERE d.user_id = u.id AND d.checkin_date = CURRENT_DATE AND COALESCE(d.is_freeze, FALSE) = FALSE)
+          OR EXISTS (SELECT 1 FROM workout_logs w WHERE w.user_id = u.id AND w.created_at::date = CURRENT_DATE)
+          OR EXISTS (SELECT 1 FROM nutrition_meal_logs m WHERE m.user_id = u.id AND m.log_date = CURRENT_DATE)
+          OR EXISTS (SELECT 1 FROM weight_logs g WHERE g.user_id = u.id AND g.created_at::date = CURRENT_DATE))`),
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT} AND (
+             EXISTS (SELECT 1 FROM daily_checkins d WHERE d.user_id = u.id AND d.checkin_date >= CURRENT_DATE - 6 AND COALESCE(d.is_freeze, FALSE) = FALSE)
+          OR EXISTS (SELECT 1 FROM workout_logs w WHERE w.user_id = u.id AND w.created_at >= NOW() - INTERVAL '7 days')
+          OR EXISTS (SELECT 1 FROM nutrition_meal_logs m WHERE m.user_id = u.id AND m.log_date >= CURRENT_DATE - 6)
+          OR EXISTS (SELECT 1 FROM weight_logs g WHERE g.user_id = u.id AND g.created_at >= NOW() - INTERVAL '7 days'))`),
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT}
+             AND EXISTS (SELECT 1 FROM daily_checkins d WHERE d.user_id = u.id AND d.checkin_date = CURRENT_DATE AND COALESCE(d.is_freeze, FALSE) = FALSE)`),
+      one(`SELECT COUNT(*)::int c FROM workout_logs w JOIN users u ON u.id = w.user_id WHERE ${CLIENT} AND w.created_at::date = CURRENT_DATE`),
+      one(`SELECT COUNT(*)::int c FROM nutrition_meal_logs m JOIN users u ON u.id = m.user_id WHERE ${CLIENT} AND m.log_date = CURRENT_DATE`),
       one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT} AND u.subscription_status = 'trialing'`),
       one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT} AND u.subscription_status = 'trialing'
              AND u.access_expires_at IS NOT NULL AND u.access_expires_at BETWEEN NOW() AND NOW() + INTERVAL '3 days'`),
@@ -7462,7 +7466,10 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
       pendingAudits, auditsToday, audits7d, auditsNoAccount, part2Today, part2_7d,
       unreadThreads, escalations, bloodPending, bloodUnsent, contactMsgs
     ] = await Promise.all([
-      one(`SELECT COUNT(*)::int c FROM audit_requests WHERE status = 'pending'`),
+      // The stage workflow never writes audit_requests.status, so counting
+      // status='pending' returned every audit ever submitted. The column that
+      // actually means "not looked at yet" is the pipeline's New audit stage.
+      one(`SELECT COUNT(*)::int c FROM audit_requests WHERE COALESCE(NULLIF(stage, ''), 'new_audit') = 'new_audit'`),
       one(`SELECT COUNT(*)::int c FROM audit_requests WHERE created_at::date = CURRENT_DATE`),
       one(`SELECT COUNT(*)::int c FROM audit_requests WHERE created_at >= NOW() - INTERVAL '7 days'`),
       one(`SELECT COUNT(*)::int c FROM audit_requests a WHERE a.created_at >= NOW() - INTERVAL '30 days'
@@ -7484,11 +7491,11 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
         SELECT generate_series((CURRENT_DATE - INTERVAL '13 days')::date, CURRENT_DATE, INTERVAL '1 day')::date AS d
       )
       SELECT days.d::text AS day,
-        (SELECT COUNT(DISTINCT uid)::int FROM (
-           SELECT user_id AS uid FROM daily_checkins WHERE checkin_date = days.d AND COALESCE(is_freeze, FALSE) = FALSE
-           UNION SELECT user_id FROM workout_logs WHERE created_at::date = days.d
-           UNION SELECT user_id FROM nutrition_meal_logs WHERE log_date = days.d
-           UNION SELECT user_id FROM weight_logs WHERE created_at::date = days.d) a) AS active,
+        (SELECT COUNT(*)::int FROM users u WHERE ${CLIENT} AND (
+             EXISTS (SELECT 1 FROM daily_checkins d WHERE d.user_id = u.id AND d.checkin_date = days.d AND COALESCE(d.is_freeze, FALSE) = FALSE)
+          OR EXISTS (SELECT 1 FROM workout_logs w WHERE w.user_id = u.id AND w.created_at::date = days.d)
+          OR EXISTS (SELECT 1 FROM nutrition_meal_logs m WHERE m.user_id = u.id AND m.log_date = days.d)
+          OR EXISTS (SELECT 1 FROM weight_logs g WHERE g.user_id = u.id AND g.created_at::date = days.d))) AS active,
         (SELECT COUNT(*)::int FROM audit_requests r WHERE r.created_at::date = days.d) AS audits
       FROM days ORDER BY days.d`);
 
@@ -7557,16 +7564,17 @@ app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res)
       newTrials7d, expiringTrials3d
     ] = await Promise.all([
       one(`SELECT COUNT(*)::int c FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE`),
-      one(`SELECT COUNT(DISTINCT uid)::int c FROM (
-             SELECT user_id AS uid FROM daily_checkins WHERE checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE
-             UNION SELECT user_id FROM workout_logs WHERE created_at::date = CURRENT_DATE
-             UNION SELECT user_id FROM nutrition_meal_logs WHERE log_date = CURRENT_DATE
-             UNION SELECT user_id FROM weight_logs WHERE created_at::date = CURRENT_DATE
-             UNION SELECT user_id FROM hydration_logs WHERE created_at::date = CURRENT_DATE
-           ) act`),
-      one(`SELECT COUNT(DISTINCT user_id)::int c FROM daily_checkins WHERE checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE`),
-      one(`SELECT COUNT(*)::int c FROM workout_logs WHERE created_at::date = CURRENT_DATE`),
-      one(`SELECT COUNT(*)::int c FROM nutrition_meal_logs WHERE log_date = CURRENT_DATE`),
+      // scoped to the same roster the percentages are measured against
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE AND (
+             EXISTS (SELECT 1 FROM daily_checkins d WHERE d.user_id = u.id AND d.checkin_date = CURRENT_DATE AND COALESCE(d.is_freeze, FALSE) = FALSE)
+          OR EXISTS (SELECT 1 FROM workout_logs w WHERE w.user_id = u.id AND w.created_at::date = CURRENT_DATE)
+          OR EXISTS (SELECT 1 FROM nutrition_meal_logs m WHERE m.user_id = u.id AND m.log_date = CURRENT_DATE)
+          OR EXISTS (SELECT 1 FROM weight_logs g WHERE g.user_id = u.id AND g.created_at::date = CURRENT_DATE)
+          OR EXISTS (SELECT 1 FROM hydration_logs h WHERE h.user_id = u.id AND h.created_at::date = CURRENT_DATE))`),
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE
+             AND EXISTS (SELECT 1 FROM daily_checkins d WHERE d.user_id = u.id AND d.checkin_date = CURRENT_DATE AND COALESCE(d.is_freeze, FALSE) = FALSE)`),
+      one(`SELECT COUNT(*)::int c FROM workout_logs w JOIN users u ON u.id = w.user_id WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE AND w.created_at::date = CURRENT_DATE`),
+      one(`SELECT COUNT(*)::int c FROM nutrition_meal_logs m JOIN users u ON u.id = m.user_id WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE AND m.log_date = CURRENT_DATE`),
       one(`SELECT COUNT(*)::int c FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND u.subscription_status = 'trialing' AND u.created_at >= NOW() - INTERVAL '7 days'`),
       one(`SELECT COUNT(*)::int c FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND u.subscription_status = 'trialing' AND u.access_expires_at IS NOT NULL AND u.access_expires_at BETWEEN NOW() AND NOW() + INTERVAL '3 days'`)
     ]);
@@ -7611,15 +7619,17 @@ app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res)
       SELECT days.d::text AS day,
         -- how many DISTINCT clients did anything at all that day: the only
         -- honest way to show whether engagement is climbing or sliding
-        (SELECT COUNT(DISTINCT uid)::int FROM (
-           SELECT user_id AS uid FROM daily_checkins WHERE checkin_date = days.d AND COALESCE(is_freeze, FALSE) = FALSE
-           UNION SELECT user_id FROM workout_logs WHERE created_at::date = days.d
-           UNION SELECT user_id FROM nutrition_meal_logs WHERE log_date = days.d
-           UNION SELECT user_id FROM weight_logs WHERE created_at::date = days.d
-         ) a) AS active,
-        (SELECT COUNT(*)::int FROM daily_checkins dc WHERE dc.checkin_date = days.d AND COALESCE(dc.is_freeze, FALSE) = FALSE) AS checkins,
-        (SELECT COUNT(*)::int FROM workout_logs w WHERE w.created_at::date = days.d) AS workouts,
-        (SELECT COUNT(*)::int FROM nutrition_meal_logs m WHERE m.log_date = days.d) AS meals
+        (SELECT COUNT(*)::int FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE AND (
+             EXISTS (SELECT 1 FROM daily_checkins d WHERE d.user_id = u.id AND d.checkin_date = days.d AND COALESCE(d.is_freeze, FALSE) = FALSE)
+          OR EXISTS (SELECT 1 FROM workout_logs w WHERE w.user_id = u.id AND w.created_at::date = days.d)
+          OR EXISTS (SELECT 1 FROM nutrition_meal_logs m WHERE m.user_id = u.id AND m.log_date = days.d)
+          OR EXISTS (SELECT 1 FROM weight_logs g WHERE g.user_id = u.id AND g.created_at::date = days.d))) AS active,
+        (SELECT COUNT(*)::int FROM daily_checkins dc JOIN users u ON u.id = dc.user_id
+           WHERE ${OPERATOR_CLIENT_WHERE} AND dc.checkin_date = days.d AND COALESCE(dc.is_freeze, FALSE) = FALSE) AS checkins,
+        (SELECT COUNT(*)::int FROM workout_logs w JOIN users u ON u.id = w.user_id
+           WHERE ${OPERATOR_CLIENT_WHERE} AND w.created_at::date = days.d) AS workouts,
+        (SELECT COUNT(*)::int FROM nutrition_meal_logs m JOIN users u ON u.id = m.user_id
+           WHERE ${OPERATOR_CLIENT_WHERE} AND m.log_date = days.d) AS meals
       FROM days ORDER BY days.d`);
 
     // Average 7-day check-in consistency across all active clients (0..7).
