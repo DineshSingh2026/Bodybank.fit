@@ -7504,7 +7504,12 @@ app.get('/api/member/home', verifyToken, async (req, res) => {
         checked_in: checkedIn > 0,
         workout_logged: workoutToday > 0,
         meals_logged: mealsToday,
-        water_ml: waterToday,
+        // Water lands in two places: the hydration widget appends to hydration_logs,
+        // the daily check-in writes daily_checkins.water_ml and never touches that
+        // table. Reading only hydration_logs meant a member who filled the check-in
+        // saw 0 ml here. Take the larger of the two — both are a stated day total,
+        // so summing them would double-count a member who used both.
+        water_ml: Math.max(waterToday, Number((today && today.water_ml) || 0)) || 0,
         sunday_done: sundayThisWeek > 0,
         is_sunday: new Date().getDay() === 0,
         steps: today ? today.steps : null,

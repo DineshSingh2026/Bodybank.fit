@@ -1879,6 +1879,56 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
 .bb-slot-free{color:#3dd68c;font-weight:700}
 .bb-slot-fullw{color:#f5a623;font-weight:700}
 
+/* ═══════════════════════════════════════════════════════════════════════
+   MY HEALTH REPORTS — the member's own panel ("bb-hr")
+   This was three tall cards, each with its own blood-drop, its own
+   "No report uploaded" and its own full-width gold button — four shouts of
+   the same action on one screen, and most of a phone screen spent saying
+   nothing had happened yet. It is now ONE panel: a slot counter, and three
+   quiet rows that grow into real entries as reports arrive.
+   ═══════════════════════════════════════════════════════════════════════ */
+.bb-hr-meta{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-size:12px;color:var(--muted,#8a8880)}
+.bb-hr-panel{border:1px solid rgba(255,255,255,0.09);border-radius:14px;background:rgba(255,255,255,0.02);overflow:hidden}
+.bb-hr-row{display:flex;align-items:center;gap:12px;min-height:58px;padding:13px 14px;border-top:1px solid rgba(255,255,255,0.07);box-sizing:border-box}
+.bb-hr-row:first-child{border-top:0}
+/* the slot number, so no row has to shout "BLOOD REPORT 1" at it */
+.bb-hr-n{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:11.5px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--muted,#8a8880);border:1px dashed rgba(255,255,255,0.22)}
+.bb-hr-row.is-full .bb-hr-n{color:var(--gold,#c8a44e);border:1px solid rgba(200,164,78,0.5);background:rgba(200,164,78,0.1)}
+.bb-hr-main{flex:1;min-width:0}
+.bb-hr-t{font-size:13.5px;font-weight:650;color:var(--cream,#f0ede8);line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bb-hr-s{font-size:11.5px;color:var(--muted,#8a8880);line-height:1.4;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bb-hr-dot{display:inline-block;width:6px;height:6px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.bb-hr-act{flex:none;display:flex;align-items:center;gap:6px}
+/* one button vocabulary: quiet ghost everywhere, because the panel header
+   already carries the single gold call to action */
+.bb-hr-btn{font:inherit;font-size:11.5px;font-weight:650;padding:6px 12px;border-radius:8px;cursor:pointer;white-space:nowrap;border:1px solid rgba(200,164,78,0.4);background:rgba(200,164,78,0.1);color:var(--gold,#c8a44e)}
+.bb-hr-btn:hover{background:rgba(200,164,78,0.18)}
+.bb-hr-note{font-size:11px;color:var(--muted,#8a8880);white-space:nowrap}
+/* Nothing uploaded yet. Three empty rows and a grey ghost button made the
+   one thing a member can do here the quietest thing on the screen, so the
+   empty state is now a single drop target that says what to send and what
+   happens next. Click anywhere on it, or drag a file onto it. */
+.bb-hr-empty{display:block;width:100%;box-sizing:border-box;text-align:center;padding:30px 20px;border:1.5px dashed rgba(200,164,78,0.45);border-radius:16px;cursor:pointer;font:inherit;color:inherit;background:radial-gradient(120% 100% at 50% 0%,rgba(200,164,78,0.1),rgba(255,255,255,0.015) 70%);transition:border-color .15s,background .15s}
+.bb-hr-empty:hover,.bb-hr-empty.is-over{border-color:var(--gold,#c8a44e);background:rgba(200,164,78,0.14)}
+.bb-hr-empty.is-over{border-style:solid}
+.bb-hr-empty-ico{width:48px;height:48px;margin:0 auto 14px;border-radius:50%;display:grid;place-items:center;color:var(--gold,#c8a44e);background:rgba(200,164,78,0.14);border:1px solid rgba(200,164,78,0.32)}
+.bb-hr-empty-t{font-size:15.5px;font-weight:700;color:var(--cream,#f0ede8);margin:0 0 7px;line-height:1.3}
+.bb-hr-empty-d{font-size:12.5px;line-height:1.55;color:var(--muted,#8a8880);margin:0 auto 17px;max-width:330px}
+/* the one loud control on the panel */
+.bb-hr-cta{display:inline-flex;align-items:center;gap:8px;font:inherit;font-size:13px;font-weight:700;padding:11px 22px;border-radius:10px;border:0;cursor:pointer;background:linear-gradient(180deg,#e2c071,#c8a44e);color:#1a1408;box-shadow:0 8px 20px -10px rgba(200,164,78,0.85)}
+.bb-hr-cta:hover{filter:brightness(1.07)}
+.bb-hr-foot{font-size:11px;color:var(--muted,#8a8880);margin:14px 0 0;line-height:1.5}
+/* once a slot is filled the list carries the action instead, as its last row */
+.bb-hr-add{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;box-sizing:border-box;padding:15px 14px;border:0;border-top:1px dashed rgba(200,164,78,0.34);background:rgba(200,164,78,0.06);color:var(--gold,#c8a44e);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;transition:background .15s}
+.bb-hr-add:hover,.bb-hr-add.is-over{background:rgba(200,164,78,0.14)}
+.bb-hr-full{padding:13px 14px;border-top:1px solid rgba(255,255,255,0.07);font-size:11.5px;color:var(--muted,#8a8880);text-align:center}
+.bb-hr-x{border:0;background:none;cursor:pointer;color:var(--muted,#8a8880);font-size:13px;line-height:1;padding:6px;border-radius:6px}
+.bb-hr-x:hover{color:#ff6b6b;background:rgba(255,107,107,0.1)}
+@media (max-width:420px){
+  .bb-hr-row{gap:10px;padding:12px 11px}
+  .bb-hr-btn{padding:6px 10px}
+}
+
 /* Per-client group in the admin Blood Reports list. */
 .bb-bg-group{border:1px solid rgba(255,255,255,0.08);border-radius:16px;background:rgba(255,255,255,0.015);margin-bottom:14px;overflow:hidden}
 .bb-bg-head{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 14px;background:rgba(255,255,255,0.035);border-bottom:1px solid rgba(255,255,255,0.07)}
@@ -2383,6 +2433,16 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
 .admin-hamburger-btn:hover{border-color:var(--gold);background:rgba(200,164,78,0.06)}
 .admin-mobile-nav-label{font-size:15px;font-weight:600;letter-spacing:0.5px;color:var(--cream)}
 body.admin-drawer-open{overflow:hidden;touch-action:none}
+/* Signing in does not remove the public landing page — it covers it with a
+   fixed panel, leaving ~15,000px of hero/arsenal/stories/footer still scrollable
+   underneath. Any swipe the app did not capture scrolled the document behind
+   the panel and surfaced that near-black markup as a dead band at the bottom.
+   Locking the document while a panel is open is the whole fix.
+   Deliberately NOT touch-action:none, unlike the drawer above: the app's own
+   scrolling lives inside these panels and that would freeze it. overflow alone
+   stops the document scrolling while inner scrollers keep working, and
+   overscroll-behavior stops the rubber-band chaining out to it. */
+html.panel-open,body.panel-open{overflow:hidden;overscroll-behavior:none}
 .admin-nav-drawer-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:310;opacity:0;transition:opacity .3s;pointer-events:none}
 .admin-nav-drawer-overlay.open{display:block;opacity:1;pointer-events:auto}
 .admin-nav-drawer{position:fixed;top:0;left:0;height:var(--app-height);width:min(320px,85vw);background:var(--dark2);border-right:1px solid var(--bdr);z-index:320;transform:translateX(-100%);transition:transform .3s;display:flex;flex-direction:column;overflow:hidden;padding-left:env(safe-area-inset-left);padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
@@ -3126,10 +3186,7 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 .bb-today-pill i{font-style:normal;font-weight:600;color:var(--muted);font-size:11px;margin-left:1px}
 .bb-today-pill{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;padding:7px 11px;border-radius:999px;border:1px solid rgba(255,255,255,0.1);background:linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.02));color:var(--cream);font-family:inherit;line-height:1}
 button.bb-today-pill{cursor:pointer}
-.bb-today-pill--streak b{color:#ffb454}
 .bb-today-pill--coin b{color:var(--gold)}
-.bb-today-pill--freeze{cursor:pointer;color:#9fd8ff;border-color:rgba(120,190,255,0.45);background:rgba(120,190,255,0.12)}
-.bb-today-pill--freeze:active{background:rgba(120,190,255,0.25)}
 .bb-today-body{display:flex;align-items:center;gap:18px}
 .bb-today-ring{position:relative;flex-shrink:0;width:112px;height:112px;border:none;background:none;padding:0;cursor:pointer}
 .bb-today-ring-svg{width:112px;height:112px;transform:rotate(-90deg);filter:drop-shadow(0 0 9px rgba(200,164,78,0.4))}
@@ -3406,6 +3463,162 @@ button.bb-today-pill{cursor:pointer}
 .daily-seg-btn{flex:1;min-height:40px;padding:8px 6px;border:none;background:transparent;color:var(--muted);border-radius:99px;font-family:var(--bb-font-heading,'Rajdhani',sans-serif);font-size:13px;font-weight:700;letter-spacing:.04em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s,color .2s}
 .daily-seg-btn .seg-emoji{font-size:15px}
 .daily-seg-btn.active{background:var(--goldg,var(--gold));color:var(--black,#0d0f11)}
+/* ═══ Body pane — gold, black, white ══════════════════════════════════════════
+   The pane was already gold, but its neutrals were warm browns (#9b8f78,
+   #bdb3a0, #8d836d), so it read gold-on-mud rather than gold-on-black. Every
+   neutral here is a true grey, the grounds lose their brown tint, and gold is
+   spent only where it earns attention — the heading, the primary action, the
+   hairline edges. Text is white; gold is the accent, not the body copy.
+   Scoped to the pane, so nothing else on the app moves. */
+
+#daily-pane-body{
+  --bg-gold:#E2C071;        /* bright — headings, accents */
+  --bg-gold-dp:#C8A44E;     /* deep — edges, gradients */
+  --bg-white:#FFFFFF;       /* the numbers themselves */
+  --bg-ink:#F2F2F4;
+  --bg-soft:#B4B4BA;        /* neutral grey, never beige */
+  --bg-dim:#8A8A90;
+  --bg-card:linear-gradient(180deg,#101012,#0A0A0C);
+  --bg-edge:rgba(226,192,113,0.26);
+  --bg-edge-soft:rgba(255,255,255,0.09);
+}
+
+/* the card */
+#daily-pane-body .micro-goals-wrap{
+  background:
+    radial-gradient(120% 90% at 0% 0%, rgba(226,192,113,0.09), transparent 58%),
+    linear-gradient(180deg,#111113,#08080A);
+  border:1px solid var(--bg-edge);
+  box-shadow:0 20px 46px -22px rgba(0,0,0,0.9), inset 0 1px 0 rgba(226,192,113,0.12);
+}
+#daily-pane-body .micro-goals-wrap h3{color:var(--bg-gold)}
+#daily-pane-body .micro-goals-wrap .streak-badge{
+  background:rgba(226,192,113,0.08);border:1px solid rgba(226,192,113,0.3);
+  color:var(--bg-gold);font-size:12px;padding:3px 11px;
+}
+
+/* labels white, wells black, gold only on focus */
+#daily-pane-body .micro-goal-field label{color:var(--bg-soft);letter-spacing:1.3px}
+#daily-pane-body .micro-goal-field input{
+  background:#050506;
+  border:1px solid rgba(255,255,255,0.11);
+  color:var(--bg-white);font-weight:600;
+  transition:border-color .18s, box-shadow .18s, background .18s;
+}
+#daily-pane-body .micro-goal-field input::placeholder{color:#7C7C82;font-weight:400}
+#daily-pane-body .micro-goal-field input:hover{border-color:rgba(255,255,255,0.2)}
+#daily-pane-body .micro-goal-field input:focus{
+  outline:none;background:#08080A;
+  border-color:var(--bg-gold);
+  box-shadow:0 0 0 3px rgba(226,192,113,0.16);
+}
+
+#daily-pane-body .micro-goals-submit{
+  background:linear-gradient(105deg,#F0D89A,#C8A44E);
+  color:#100C02;
+  box-shadow:0 12px 28px -10px rgba(200,164,78,0.6);
+}
+
+/* ── weekly insights ─────────────────────────────────────────────────────────
+   The bb-wi / bb-lwr / bb-cu families all carry the same warm-brown neutrals.
+   They are listed as a set rather than one component at a time, so a future
+   card cannot quietly reintroduce beige. */
+#daily-pane-body .bb-wi-eyebrow{color:var(--bg-gold)}
+#daily-pane-body .bb-wi-title,
+#daily-pane-body .bb-wi-stat-val,
+#daily-pane-body .bb-wi-sr-label,
+#daily-pane-body .bb-wi-ring-center b,
+#daily-pane-body .bb-lwr-ring-c b{color:var(--bg-white)}
+#daily-pane-body .bb-wi-sec-title{color:var(--bg-soft)}
+#daily-pane-body .bb-wi-edit{color:var(--bg-gold);background:rgba(226,192,113,0.09);border-color:rgba(226,192,113,0.36)}
+
+#daily-pane-body .bb-wi-sub,
+#daily-pane-body .bb-wi-ring-center i,
+#daily-pane-body .bb-wi-rank-sub,
+#daily-pane-body .bb-wi-sr-detail,
+#daily-pane-body .bb-wi-row-val,
+#daily-pane-body .bb-wi-row-pct,
+#daily-pane-body .bb-wi-gauge-val,
+#daily-pane-body .bb-wi-hero-kicker,
+#daily-pane-body .bb-wi-empty,
+#daily-pane-body .bb-lwr-dates,
+#daily-pane-body .bb-lwr-quote,
+#daily-pane-body .bb-lwr-prog-sub,
+#daily-pane-body .bb-lwr-ring-c b i,
+#daily-pane-body .bb-lwr-ring-c span,
+#daily-pane-body .bb-lwr-c-stats span,
+#daily-pane-body .bb-lwr-c-val,
+#daily-pane-body .bb-lwr-c-goal,
+#daily-pane-body .bb-lwr-d.flat,
+#daily-pane-body .bb-lwr-hl-item span,
+#daily-pane-body .bb-cu-lead-sub,
+#daily-pane-body .bb-cu-row-val i,
+#daily-pane-body .bb-cu-prog-top span,
+#daily-pane-body .bb-cu-prog-stats span,
+#daily-pane-body .bb-cu-ring-c b i,
+#daily-pane-body .bb-cu-ring-c span{color:var(--bg-dim)}
+
+#daily-pane-body .bb-lwr-hero-recap p,
+#daily-pane-body .bb-lwr-c-tip,
+#daily-pane-body .bb-cu-note p{color:var(--bg-soft)}
+
+/* grounds lose the brown tint */
+#daily-pane-body .bb-wi-card,
+#daily-pane-body .bb-wi-score,
+#daily-pane-body .bb-wi-hero,
+#daily-pane-body .bb-wi-row,
+#daily-pane-body .bb-wi-gauge,
+#daily-pane-body .bb-wi-chart-card,
+#daily-pane-body .bb-wi-dcard,
+#daily-pane-body .bb-wi-rcard,
+#daily-pane-body .bb-lwr-hero,
+#daily-pane-body .bb-lwr-card,
+#daily-pane-body .bb-lwr-hl,
+#daily-pane-body .bb-cu{
+  background:linear-gradient(180deg,#101012,#0A0A0C);
+  border-color:rgba(226,192,113,0.15);
+}
+#daily-pane-body .bb-wi-card::before{background:radial-gradient(120% 80% at 0% 0%, rgba(226,192,113,0.06), transparent 60%)}
+#daily-pane-body .bb-wi-ico,
+#daily-pane-body .bb-lwr-cal,
+#daily-pane-body .bb-lwr-hl-ic{background:rgba(226,192,113,0.08);border-color:rgba(226,192,113,0.24)}
+#daily-pane-body .bb-wi-status-row{background:rgba(255,255,255,0.03);border-color:var(--bg-edge-soft)}
+#daily-pane-body .bb-wi-ring-track{stroke:rgba(255,255,255,0.09)}
+#daily-pane-body .bb-lwr-hl-item em{color:var(--bg-gold)}
+#daily-pane-body .bb-cu-note{background:rgba(226,192,113,0.045);border-color:rgba(226,192,113,0.16)}
+#daily-pane-body .bb-cu-note-ico{border-color:rgba(226,192,113,0.5);color:var(--bg-gold)}
+#daily-pane-body .bb-cu-fill{background:linear-gradient(90deg,#C8A44E,#F0D89A);box-shadow:0 0 10px rgba(226,192,113,0.5)}
+#daily-pane-body .bb-lwr-prog-bubble{background:linear-gradient(180deg,#231B08,#120E04);border-color:rgba(226,192,113,0.55);color:var(--bg-gold)}
+#daily-pane-body .bb-lwr-ring-arrow{color:var(--bg-gold);filter:drop-shadow(0 0 5px rgba(226,192,113,0.5))}
+
+/* Inherited body text in this app is --cream, a warm off-white. In a pane meant
+   to be gold, black and WHITE, cream reads as a third, muddier gold. Redefining
+   the token alone does nothing here: inheritance carries the already-resolved
+   colour down from the section above, so the var is never re-evaluated. The
+   colour has to be set on the pane itself. */
+#daily-pane-body{--cream:#F4F4F6;color:#F4F4F6}
+
+/* Three strays the original design carried that are neither gold, black nor
+   white: a blue progress label and a blue and a purple icon ring in the
+   catch-up plan. Re-cast as gold tiers so the pane holds one palette. */
+#daily-pane-body .bb-lwr-prog-k{color:var(--bg-gold)}
+#daily-pane-body .bb-cu-ico-blue{background:rgba(240,216,154,0.13);border-color:rgba(240,216,154,0.32)}
+#daily-pane-body .bb-cu-ico-purple{background:rgba(169,139,62,0.18);border-color:rgba(169,139,62,0.38)}
+
+/* two last beiges hiding in the highlights and the catch-up rows */
+#daily-pane-body .bb-lwr-hl-mc b,
+#daily-pane-body .bb-cu-row-label{color:var(--bg-ink)}
+
+/* The catch-up plan marks a good state in green — Food's colour, and the only
+   green left in the pane. In a gold/black/white system gold IS the positive, so
+   the badge and the tick take it. Red stays on genuinely negative status
+   ("BEHIND"): losing that would make the card prettier and less honest. */
+#daily-pane-body .bb-cu-badge{color:var(--bg-gold);background:rgba(226,192,113,0.1);border-color:rgba(226,192,113,0.34)}
+#daily-pane-body .bb-cu-check{border-color:rgba(226,192,113,0.5);color:var(--bg-gold)}
+
+@media (prefers-reduced-motion: reduce){
+  #daily-pane-body .micro-goal-field input{transition:none}
+}
 .daily-pane{animation:bbDailyPaneFade .25s ease}
 @keyframes bbDailyPaneFade{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}
 /* ===== Mind (mental-fitness) — exact Beyond The Body "Brain Tips" replica, SCOPED ===== */
@@ -3849,6 +4062,12 @@ button.bb-today-pill{cursor:pointer}
 }
 @media(max-width:767px){
   .user-body{margin-left:0;padding-bottom:calc(70px + env(safe-area-inset-bottom,0px))}
+  /* The bottom nav is a 64px pill floating 12px off the edge, so it occupies
+     76px — but .user-body only reserves 70px and the last card slid under it.
+     The clearance goes on .user-section, which is the element that actually
+     scrolls: the .user-body value is contested by four rules including an
+     Android-only !important override, so adding to it is not reliable. */
+  .user-panel .user-section{padding-bottom:32px}
   .user-bottom-nav{display:flex!important;width:100%!important;left:0!important;right:0!important}
 }
 @media(max-width:768px){
@@ -4709,13 +4928,13 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <link rel="stylesheet" href="/css/blood-report-editor.css?v=2">
 <link rel="stylesheet" href="css/admin-home.css?v=3">
-<link rel="stylesheet" href="css/member-home.css?v=11">
+<link rel="stylesheet" href="css/member-home.css?v=12">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
-<script src="js/operator-console.js?v=9"></script>
+<script src="js/operator-console.js?v=10"></script>
 <script src="js/admin-home.js?v=3"></script>
-<script src="js/member-home.js?v=4"></script>
+<script src="js/member-home.js?v=5"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -6475,7 +6694,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <p class="mh-line" id="mhLine">Loading your day…</p>
           <div class="mh-hero-row">
             <div class="mh-streak"><b id="mhStreak">0</b><span id="mhStreakL">day streak</span></div>
-            <div class="mh-week" id="mhWeek" aria-label="Your last seven days"></div>
+            <div class="mh-week" id="mhWeek" aria-label="This week, Sunday to Saturday"></div>
           </div>
           <div class="mh-pills" id="mhSlotPills"></div>
         </section>
@@ -6505,8 +6724,8 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         </section>
 
         <section class="mh-block mh-slot" id="mhSecBody" hidden>
-          <div class="mh-head"><h3 class="mh-title">Readiness &amp; Signal</h3></div>
-          <div class="mh-two" id="mhSlotBody"></div>
+          <div class="mh-head"><h3 class="mh-title">Readiness</h3></div>
+          <div id="mhSlotBody"></div>
         </section>
         <section class="mh-block">
           <div class="mh-head"><h3 class="mh-title">Send us your reports</h3></div>
@@ -6592,13 +6811,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
              desktop home swap hides at >=768px (#usec-home .user-welcome{display:none}).
              Without this copy the whole readiness feature is invisible on the web.
              Same class, same renderer — bbRdHomeLoad fills every .bb-rd-card. -->
-        <!-- Signal (desktop). Mirror of the card in the mobile Today hero — same class,
-             same renderer, so the two surfaces cannot drift apart. -->
-        <section class="bb-sig-home-desktop" id="bbSigHomeSectionDesktop" aria-label="Your signal" hidden style="margin:0 0 24px;max-width:860px">
-          <div class="bb-pulse-sec-label" style="margin-top:0">Your signal</div>
-          <button type="button" class="bb-sig-card" id="bbSigHomeDesktop" onclick="bbOpenSignal()" aria-label="Open your signal — today's directive and what your own data has taught us" hidden></button>
-        </section>
-
         <section class="bb-rd-home-desktop" id="bbRdHomeSectionDesktop" aria-label="Readiness" hidden style="margin:0 0 24px;max-width:860px">
           <div class="bb-pulse-sec-label" style="margin-top:0">Readiness</div>
           <button type="button" class="bb-rd-card" id="bbRdHomeDesktop" onclick="bbOpenReadiness()" aria-label="Open your readiness detail" hidden></button>
@@ -6734,11 +6946,8 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             </div>
           </div>
           <div class="bb-today-stats">
-            <span class="bb-today-pill bb-today-pill--streak" id="bbTodayStreakPill" title="Daily check-in streak">🔥 <b id="bbTodayStreakNum">0</b> <i>streak</i></span>
             <button type="button" class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" onclick="bbOpenCoinHistory()" title="Gold coins — tap for activity">◉ <b id="bbTodayCoinNum">0</b> <i>coins</i></button>
-            <button type="button" class="bb-today-pill bb-today-pill--freeze" id="bbTodayFreezeBtn" onclick="bbUseStreakFreeze()" title="Protect your streak across a missed day (1/month)" hidden>🧊 Freeze</button>
             <button type="button" class="bb-today-pill bb-today-pill--refer" onclick="bbOpenRewards()" title="Refer a friend and win your membership back">🎁 <b>Refer</b></button>
-            <button type="button" class="bb-today-pill bb-today-pill--signal" onclick="bbOpenSignal()" title="Your signal — today's directive, your body's laws and your bloodwork connection">✦ <b>Signal</b></button>
             <button type="button" class="bb-today-pill bb-today-pill--whoop" onclick="bbOpenReadiness()" title="Your readiness, recovery and Whoop data">⌚ <b>Readiness</b></button>
           </div>
           <div class="bb-pulse-score">
@@ -6766,12 +6975,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
               </div>
             </div>
           </div>
-          <!-- Signal (mobile). The desktop copy lives in .bb-user-desktop-dashboard —
-               the desktop home swap hides .user-welcome wholesale at >=768px, so a card
-               that exists only here is invisible on the web. Both carry .bb-sig-card and
-               are filled by the same renderer. -->
-          <div class="bb-pulse-sec-label" id="bbSigHomeLabel" hidden>Your signal</div>
-          <button type="button" class="bb-sig-card" id="bbSigHome" onclick="bbOpenSignal()" aria-label="Open your signal — today's directive and what your own data has taught us" hidden></button>
           <div class="bb-pulse-sec-label" id="bbRdHomeLabel" hidden>Readiness</div>
           <button type="button" class="bb-rd-card" id="bbRdHome" onclick="bbOpenReadiness()" aria-label="Open your readiness detail" hidden></button>
           <div class="bb-pulse-sec-label">This week · pillars</div>
@@ -8846,12 +9049,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <!-- Readiness sub-tab — the member's own readiness view, mounted on the coach's
                read-only client endpoints. Filled by bbRdMountClient, not by markup. -->
           <div id="adminCpReadinessPanel" style="display:none;margin-top:20px;max-width:860px">
-            <!-- Signal intelligence first: the directive, the risk flags the client is
-                 never shown, every hypothesis the engine tested, and the bloodwork
-                 bridge. The raw Whoop mirror below it is the supporting evidence. -->
-            <h4 class="admin-subsection-title" style="margin:0 0 10px">✦ Signal intelligence</h4>
-            <div id="adminCpSignalBody"><p class="admin-cp-placeholder">Loading signal…</p></div>
-            <h4 class="admin-subsection-title" style="margin:24px 0 10px">⌚ Raw readiness &amp; recovery</h4>
+            <h4 class="admin-subsection-title" style="margin:0 0 10px">⌚ Raw readiness &amp; recovery</h4>
             <div id="adminCpReadinessBody"><p class="admin-cp-placeholder">Loading readiness…</p></div>
           </div>
         </div>
@@ -17960,11 +18158,8 @@ async function loadAdminUserProgressDetail(userId, userName) {
   if (window._adminCpRdLoadedFor !== userId) {
     window._adminCpRdLoadedFor = null;
     if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('admincp');
-    if (typeof window.bbSigUnmount === 'function') window.bbSigUnmount('admincp');
     var rdHost = document.getElementById('adminCpReadinessBody');
     if (rdHost) rdHost.innerHTML = '<p class="admin-cp-placeholder">Loading readiness…</p>';
-    var sgHost = document.getElementById('adminCpSignalBody');
-    if (sgHost) sgHost.innerHTML = '<p class="admin-cp-placeholder">Loading signal…</p>';
   }
   var detailEl = document.getElementById('adminCpDetail');
   var kpisEl = document.getElementById('adminCpKpis');
@@ -18114,8 +18309,6 @@ function bbAdminCpLoadReadiness() {
     host.innerHTML = '<p class="admin-cp-placeholder">Select a user from the list first.</p>';
     return;
   }
-  var sigHost = document.getElementById('adminCpSignalBody');
-  if (sigHost && !userId) sigHost.innerHTML = '<p class="admin-cp-placeholder">Select a user from the list first.</p>';
   if (typeof window.bbRdMountClient !== 'function') {
     host.innerHTML = '<div class="admin-cp-error-msg">Readiness view is unavailable on this build.</div>';
     return;
@@ -18124,18 +18317,6 @@ function bbAdminCpLoadReadiness() {
   // chosen window and any report they just generated.
   if (window._adminCpRdLoadedFor === userId) return;
   window._adminCpRdLoadedFor = userId;
-  // Signal panel is additive: an older build without it still renders readiness below.
-  if (sigHost && typeof window.bbSigMountStaff === 'function') {
-    window.bbSigMountStaff({
-      key: 'admincp',
-      scope: 'admin',
-      el: 'adminCpSignalBody',
-      userId: userId,
-      name: window._adminCpSelectedClientName || ''
-    });
-  } else if (sigHost) {
-    sigHost.innerHTML = '<div class="admin-cp-error-msg">Signal view is unavailable on this build.</div>';
-  }
   window.bbRdMountClient({
     key: 'admincp',
     scope: 'admin',
@@ -18405,7 +18586,6 @@ async function loadClientProgressUsers() {
   if (cpRdPanel) cpRdPanel.style.display = 'none';
   window._adminCpRdLoadedFor = null;
   if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('admincp');
-  if (typeof window.bbSigUnmount === 'function') window.bbSigUnmount('admincp');
   window._adminCpSelectedUserId = null;
   window._adminCpSelectedClientName = '';
   destroyAdminProgressCharts();
@@ -19833,14 +20013,9 @@ function renderTodayHero(data){
   bbSetPulseAvatar(profile.profile_picture || (window.currentUser && window.currentUser.profile_picture), name);
   var d = document.getElementById('bbTodayDate');
   if (d) d.textContent = new Date().toLocaleDateString(undefined, { weekday:'long', month:'long', day:'numeric' });
-  var sNum = document.getElementById('bbTodayStreakNum'); if (sNum) sNum.textContent = streak.streak || 0;
-  var sPill = document.getElementById('bbTodayStreakPill');
-  if (sPill) { sPill.firstChild && (sPill.firstChild.nodeValue = bbStreakFlair(streak.streak) + ' '); }
   var cNum = document.getElementById('bbTodayCoinNum'); if (cNum) cNum.textContent = (coins.balance != null ? coins.balance : 0);
   var cPill = document.getElementById('bbTodayCoinPill');
   if (cPill) { var tier = bbCoinTier(coins.lifetimeEarned != null ? coins.lifetimeEarned : coins.balance); cPill.title = 'Gold coins — ' + tier.label + ' tier'; }
-  var freezeBtn = document.getElementById('bbTodayFreezeBtn');
-  if (freezeBtn) freezeBtn.hidden = !streak.freezeAvailable;
   // ---- metrics (today value/goal + 7-day series + weekly avg) ----
   var waterMl = (ci.water_ml != null) ? ci.water_ml : (ci.water_liters != null ? Math.round(ci.water_liters * 1000) : 0);
   function pct(v, goal){ if (!goal || goal <= 0) return v > 0 ? 1 : 0; return Math.max(0, Math.min(1, (v || 0) / goal)); }
@@ -19938,8 +20113,6 @@ function renderTodayHero(data){
   }
   // Readiness card — its own endpoint, so it loads alongside rather than inside /api/me/home.
   try { if (typeof bbRdHomeLoad === 'function') bbRdHomeLoad(); } catch(e){ console.warn('readiness card', e); }
-  // Signal card — same pattern. Deterministic server-side, so this is a cheap read.
-  try { if (typeof bbSigHomeLoad === 'function') bbSigHomeLoad(); } catch(e){ console.warn('signal card', e); }
   hero.hidden = false;
 }
 
@@ -20021,18 +20194,6 @@ async function bbCloseGuide(){
   if (typeof closeModal === 'function') closeModal('bbGuideModal');
   if (window._bbHomeData && window._bbHomeData.profile) window._bbHomeData.profile.guideSeen = true;
   try { await apiCall('POST', '/api/me/guide-seen', {}); } catch(_){}
-}
-
-// Streak freeze (#12)
-async function bbUseStreakFreeze(){
-  if (!confirm('Use your monthly streak freeze to protect your streak for the missed day?')) return;
-  try {
-    var r = await apiCall('POST', '/api/me/streak-freeze', {});
-    if (r && r.error) { showPopup('Heads up', r.error, '', 'OK'); return; }
-    bbHaptic(16);
-    showPopup('Streak protected 🧊', 'Your streak is safe — but log today to keep it going!', '', 'OK', null, 'success');
-    loadHomeAggregate();
-  } catch (e) { showPopup('Error', e.message || 'Could not apply freeze.', '', 'OK', null, 'error'); }
 }
 
 function bbIsTypingInputContext() {
@@ -21003,11 +21164,15 @@ function bbWiMd(ymd){
   return mo + ' ' + parseInt(p[2], 10);
 }
 // per-metric display config (water is stored in ml; everything else in its own unit)
+// Metric identity colours. These live only in the Body pane, which is gold,
+// black and white — so the four metrics are told apart by their icon and their
+// card, not by four competing hues. Gold is tiered instead: bright for the two
+// you act on during the day, deep for the two you accumulate.
 var BB_WI_FMT = {
-  steps:   { ico: '🚶', label: 'Steps',   disp: function (v) { return bbWiInt(v); }, unit: '',  color: '#f6a740' }, // movement — amber
-  water:   { ico: '💧', label: 'Water',   disp: function (v) { return bbWiL(v); },   unit: 'L', color: '#4aa8e0' }, // hydration — blue
-  protein: { ico: '🥩', label: 'Protein', disp: function (v) { return bbWiInt(v); }, unit: 'g', color: '#5fc88a' }, // nutrition — green
-  sleep:   { ico: '😴', label: 'Sleep',   disp: function (v) { return bbWiH(v); },   unit: 'h', color: '#9b8cf0' }  // recovery — indigo
+  steps:   { ico: '🚶', label: 'Steps',   disp: function (v) { return bbWiInt(v); }, unit: '',  color: '#E2C071' },
+  water:   { ico: '💧', label: 'Water',   disp: function (v) { return bbWiL(v); },   unit: 'L', color: '#F0D89A' },
+  protein: { ico: '🥩', label: 'Protein', disp: function (v) { return bbWiInt(v); }, unit: 'g', color: '#C8A44E' },
+  sleep:   { ico: '😴', label: 'Sleep',   disp: function (v) { return bbWiH(v); },   unit: 'h', color: '#A98B3E' }
 };
 function bbWiVal(key, v){ var c = BB_WI_FMT[key]; return c.disp(v) + c.unit; }
 
@@ -21207,11 +21372,11 @@ function bbLwrBuildCharts(d){
     var vals = d.totalProgress.series.map(function (p) { return p.cumulative; });
     var ctx = ac.getContext('2d');
     var grad = ctx.createLinearGradient(0, 0, 0, 130);
-    grad.addColorStop(0, 'rgba(246,197,68,0.32)'); grad.addColorStop(1, 'rgba(61,214,140,0.03)');
+    grad.addColorStop(0, 'rgba(226,192,113,0.34)'); grad.addColorStop(1, 'rgba(226,192,113,0.02)');
     window._bbLwrCharts.area = new Chart(ctx, {
       type: 'line',
-      data: { labels: labels, datasets: [{ data: vals, borderColor: '#6fe09a', borderWidth: 2.5, fill: true, backgroundColor: grad, tension: 0.4, pointRadius: vals.map(function (_, i) { return i === vals.length - 1 ? 4 : 0; }), pointBackgroundColor: '#9af0c0', pointBorderColor: '#0d2418', pointBorderWidth: 2, pointHoverRadius: 4 }] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#7c715c', font: { size: 9 } } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7c715c', font: { size: 9 }, maxTicksLimit: 5, callback: function (v) { return v >= 1000 ? (Math.round(v / 1000) + 'K') : v; } } } } }
+      data: { labels: labels, datasets: [{ data: vals, borderColor: '#E2C071', borderWidth: 2.5, fill: true, backgroundColor: grad, tension: 0.4, pointRadius: vals.map(function (_, i) { return i === vals.length - 1 ? 4 : 0; }), pointBackgroundColor: '#F0D89A', pointBorderColor: '#171106', pointBorderWidth: 2, pointHoverRadius: 4 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#8A8A90', font: { size: 9 } } }, y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8A8A90', font: { size: 9 }, maxTicksLimit: 5, callback: function (v) { return v >= 1000 ? (Math.round(v / 1000) + 'K') : v; } } } } }
     });
   }
 
@@ -21231,7 +21396,7 @@ function bbLwrBuildCharts(d){
         { type: 'bar', data: dayVals, backgroundColor: function (cx) { var ch = cx.chart; if (!ch.chartArea) return f.color; var g = cx.chart.ctx.createLinearGradient(0, ch.chartArea.top, 0, ch.chartArea.bottom); g.addColorStop(0, f.color); g.addColorStop(1, f.color + '33'); return g; }, borderRadius: 4, barPercentage: 0.62, categoryPercentage: 0.82 },
         { type: 'line', data: labels.map(function () { return goal; }), borderColor: 'rgba(255,255,255,0.32)', borderWidth: 1.4, borderDash: [5, 4], pointRadius: 0, fill: false }
       ] },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#7c715c', font: { size: 9 } } }, y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#7c715c', font: { size: 9 }, maxTicksLimit: 4, callback: fmtY } } } }
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { grid: { display: false }, ticks: { color: '#8A8A90', font: { size: 9 } } }, y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8A8A90', font: { size: 9 }, maxTicksLimit: 4, callback: fmtY } } } }
     });
   });
 }
@@ -25211,13 +25376,35 @@ function loadMyHealthReports() {
       // Stable slot order — oldest upload is always Blood Report 1.
       reports.sort(function (a, b) { return new Date(a.createdAt || 0) - new Date(b.createdAt || 0); });
       var statusColor = { Good: '#3dd68c', Excellent: '#3dd68c', Fair: '#f5a623', Poor: '#ff5c5c', Critical: '#ff5c5c' };
-      var html = '<div class="bb-blood-slots" style="display:grid;gap:10px">';
-      for (var i = 0; i < BLOOD_REPORT_SLOTS; i += 1) {
-        html += bbBloodSlotCard(i + 1, reports[i], statusColor);
+      // With nothing uploaded there is no list to draw — only an invitation.
+      var html;
+      if (!reports.length) {
+        html = bbBloodEmptyState();
+      } else {
+        var pips = '';
+        for (var p = 0; p < BLOOD_REPORT_SLOTS; p += 1) {
+          pips += '<span class="bb-slot-pip' + (reports[p] ? ' is-full' : '') + '"></span>';
+        }
+        var left = BLOOD_REPORT_SLOTS - reports.length;
+        html = '<div class="bb-hr-meta"><span class="bb-slot-pips">' + pips + '</span>'
+          + '<span>' + reports.length + ' of ' + BLOOD_REPORT_SLOTS + ' used'
+          + (left ? ' · ' + left + ' left' : '') + '</span></div>'
+          + '<div class="bb-hr-panel">';
+        // Only real reports get a row. Empty slots were three lines of nothing.
+        for (var i = 0; i < reports.length; i += 1) {
+          html += bbBloodSlotRow(i + 1, reports[i], statusColor);
+        }
+        html += left
+          ? '<button type="button" class="bb-hr-add" onclick="openBloodUploadPicker()"'
+            + ' ondragover="bbHrDragOver(event)" ondragleave="bbHrDragLeave(event)" ondrop="bbHrDrop(event)">'
+            + bbHrUploadIcon(15) + 'Upload another report</button>'
+          : '<div class="bb-hr-full">All ' + BLOOD_REPORT_SLOTS + ' slots used — remove one to upload another.</div>';
+        html += '</div>';
       }
-      html += '</div>';
       targets.forEach(function (el) { el.innerHTML = html; });
-      bbToggleBloodUploadBtns(reports.length < BLOOD_REPORT_SLOTS);
+      // The panel always carries its own upload control now, in exactly one place,
+      // so the header button would only ever be a second way to say the same thing.
+      bbToggleBloodUploadBtns(false);
       bbLoadMyProgress();
     })
     .catch(function () {
@@ -25394,36 +25581,61 @@ function bbDownloadMyProgressPdf(id) {
   }).catch(function (err) { showPopup('Download', (err && err.message) || 'Report not ready.', '', 'OK', null, 'error'); });
 }
 
-function bbBloodSlotCard(n, r, statusColor) {
-  var head = '<div style="font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted,#8a8880);margin-bottom:8px">Blood Report ' + n + '</div>';
-  if (!r) {
-    return '<div style="padding:16px;background:var(--surface,#161a1e);border:1px dashed rgba(255,255,255,0.14);border-radius:12px;text-align:center">' +
-      head +
-      '<div style="font-size:1.5rem;margin-bottom:6px;opacity:.7">🩸</div>' +
-      '<p class="form-hint" style="margin:0 0 10px">No report uploaded</p>' +
-      '<button type="button" class="form-submit" style="width:auto;padding:9px 16px;font-size:12px" onclick="openBloodUploadPicker()">Upload report ' + n + '</button></div>';
-  }
+/** The upload glyph, shared by the empty state and the add row. */
+function bbHrUploadIcon(size) {
+  return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor"'
+    + ' stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="flex:none">'
+    + '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/>'
+    + '<line x1="12" y1="3" x2="12" y2="15"/></svg>';
+}
+
+/** Nothing uploaded: one target, one sentence of what to send, one button. */
+function bbBloodEmptyState() {
+  return '<div class="bb-hr-empty" role="button" tabindex="0" onclick="openBloodUploadPicker()"'
+    + ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openBloodUploadPicker();}"'
+    + ' ondragover="bbHrDragOver(event)" ondragleave="bbHrDragLeave(event)" ondrop="bbHrDrop(event)"'
+    + ' aria-label="Upload your blood report">'
+    + '<div class="bb-hr-empty-ico">' + bbHrUploadIcon(21) + '</div>'
+    + '<p class="bb-hr-empty-t">Upload your blood report</p>'
+    + '<p class="bb-hr-empty-d">Send a PDF or a photo of your lab results. We read every marker, flag what matters, and your coach reviews it before it comes back to you.</p>'
+    + '<span class="bb-hr-cta">' + bbHrUploadIcon(15) + 'Upload report</span>'
+    + '<p class="bb-hr-foot">Drag a file here, or tap to browse · PDF, JPG or PNG<br>'
+    + BLOOD_REPORT_SLOTS + ' reports included with your membership</p>'
+    + '</div>';
+}
+
+/* Drag and drop lands on the same upload path as the file picker. */
+function bbHrDragOver(ev) { ev.preventDefault(); ev.currentTarget.classList.add('is-over'); }
+function bbHrDragLeave(ev) { ev.currentTarget.classList.remove('is-over'); }
+function bbHrDrop(ev) {
+  ev.preventDefault();
+  ev.stopPropagation();
+  ev.currentTarget.classList.remove('is-over');
+  var f = ev.dataTransfer && ev.dataTransfer.files && ev.dataTransfer.files[0];
+  if (f) bbUploadBloodFile(f);
+}
+
+// One filled slot, one row.
+function bbBloodSlotRow(n, r, statusColor) {
+  var num = '<span class="bb-hr-n" aria-hidden="true">' + n + '</span>';
   var ar = r.aiReport || {};
   var rid = String(r._id || r.id || '').replace(/'/g, "\\'");
-  var dt = r.createdAt ? new Date(r.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  var dt = r.createdAt ? new Date(r.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   var complete = r.status === 'complete';
-  var titleCol = complete ? (statusColor[ar.overall_status] || 'var(--text,#f0ede8)') : '#f5a623';
-  var titleText = complete ? (ar.overall_status || 'Complete') : 'Processing…';
-  var sum = complete && ar.overall_summary_short ? escapeHtml(String(ar.overall_summary_short).slice(0, 120)) + '…' : '';
-  var action =
-    complete && r.sentToUser
-      ? '<button type="button" class="form-submit" style="padding:8px 14px;font-size:12px" onclick="userBloodDownloadPdf(\'' + rid + '\')">Download PDF</button>'
-      : complete
-        ? '<span class="form-hint" style="background:rgba(245,166,35,0.12);padding:5px 10px;border-radius:6px;font-size:11px">Pending coach review</span>'
-        : '<span class="form-hint" style="font-size:11px">Analysing…</span>';
-  var del = '<button type="button" title="Remove report" aria-label="Remove report" onclick="userBloodDeleteReport(\'' + rid + '\')" style="background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:11px;padding:4px 2px">✕ Remove</button>';
-  return '<div style="padding:14px;background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.08);border-radius:12px">' +
-    head +
-    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">' +
-    '<div style="flex:1;min-width:140px"><div class="form-hint" style="margin:0 0 4px">' + escapeHtml(dt) + '</div>' +
-    '<div style="font-weight:700;color:' + titleCol + '">' + escapeHtml(titleText) + '</div>' +
-    (sum ? '<div class="form-hint" style="margin-top:4px;line-height:1.4">' + sum + '</div>' : '') +
-    '</div><div style="display:flex;flex-direction:column;align-items:flex-end;gap:6px">' + action + del + '</div>' +
+  var col = complete ? (statusColor[ar.overall_status] || 'var(--muted,#8a8880)') : '#f5a623';
+  var state = complete ? (ar.overall_status || 'Complete') : 'Analysing';
+  // The date is the identity of the report; the verdict is its state.
+  var sub = '<span class="bb-hr-dot" style="background:' + col + '"></span>'
+    + '<span style="color:' + col + ';font-weight:650">' + escapeHtml(state) + '</span>'
+    + (complete && !r.sentToUser ? '<span style="opacity:.75"> · awaiting coach review</span>' : '');
+  var action = complete && r.sentToUser
+    ? '<button type="button" class="bb-hr-btn" onclick="userBloodDownloadPdf(\'' + rid + '\')">Download PDF</button>'
+    : '<span class="bb-hr-note">' + (complete ? 'With your coach' : 'In progress') + '</span>';
+  return '<div class="bb-hr-row is-full">' + num +
+    '<div class="bb-hr-main"><div class="bb-hr-t">' + escapeHtml(dt || 'Blood report ' + n) + '</div>' +
+    '<div class="bb-hr-s">' + sub + '</div></div>' +
+    '<div class="bb-hr-act">' + action +
+    '<button type="button" class="bb-hr-x" title="Remove report" aria-label="Remove blood report ' + n + '" onclick="userBloodDeleteReport(\'' + rid + '\')">✕</button>' +
     '</div></div>';
 }
 
@@ -25448,6 +25660,11 @@ function bbToggleBloodUploadBtns(show) {
 
 function uploadUserBloodReport(ev) {
   var f = ev.target && ev.target.files && ev.target.files[0];
+  ev.target.value = '';
+  bbUploadBloodFile(f);
+}
+
+function bbUploadBloodFile(f) {
   if (!f || !window.currentUser || !window.currentUser.token) return;
   var reader = new FileReader();
   reader.onload = function () {
@@ -25463,7 +25680,6 @@ function uploadUserBloodReport(ev) {
     });
   };
   reader.readAsDataURL(f);
-  ev.target.value = '';
 }
 
 // Push notifications (opt-in) — mobile + desktop copies; always refresh status even if micro-goals fail
@@ -28168,6 +28384,42 @@ window.addEventListener('resize', applySafeAreaFix);
     window.addEventListener('load', setAppHeight);
     setAppHeight();
   }
+})();
+
+/* Keeps body.panel-open in step with whichever role panel is showing.
+   The `open` class is added and removed in ~19 places across sign-in, sign-out,
+   role switching and session restore; observing the panels is one hook that
+   cannot fall out of sync with them, and it keeps working if another one is
+   added later. */
+(function () {
+  var PANELS = ['userPanel', 'adminPanel', 'superadminPanel', 'operatorPanel'];
+  function sync() {
+    var open = PANELS.some(function (id) {
+      var el = document.getElementById(id);
+      return !!el && el.classList.contains('open');
+    });
+    document.documentElement.classList.toggle('panel-open', open);
+    document.body.classList.toggle('panel-open', open);
+    // If the document had already been scrolled before the panel opened, the
+    // landing page would sit offset behind it and show through any gap.
+    if (open && (document.body.scrollTop || document.documentElement.scrollTop)) {
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+    }
+  }
+  function boot() {
+    if (!document.body) return;
+    if (typeof MutationObserver === 'function') {
+      var obs = new MutationObserver(sync);
+      PANELS.forEach(function (id) {
+        var el = document.getElementById(id);
+        if (el) obs.observe(el, { attributes: true, attributeFilter: ['class'] });
+      });
+    }
+    sync();
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();
 </script>
 <style id="desktop-sidebar-force">
@@ -31348,13 +31600,9 @@ function bbBodyOnboardingKeyHandler(ev) {
           : '<div class="bb-rw-ok">Imported ' + line + '.</div>';
         if (!r.partial && msg) {
           msg.innerHTML += '<div class="bb-rw-code" style="margin-top:12px">' +
-            '<button type="button" class="bb-rw-btn" onclick="bbCloseWhoop();bbOpenSignal()">✦ See your signal</button>' +
-            '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" style="margin-left:8px" onclick="bbCloseWhoop();bbOpenReadiness()">📈 Readiness</button></div>';
+            '<button type="button" class="bb-rw-btn" onclick="bbCloseWhoop();bbOpenReadiness()">📈 Readiness</button></div>';
         }
         if (typeof window.bbRdHomeLoad === 'function') window.bbRdHomeLoad(true);
-        // A fresh import can change today's directive and unlock new laws — the cached
-        // signal would otherwise sit stale behind a 5-minute window.
-        if (typeof window.bbSigHomeLoad === 'function') window.bbSigHomeLoad(true);
       }
     } catch (e) {
       if (msg) msg.innerHTML = '<div class="bb-rw-err">Could not save that export.</div>';
@@ -32303,633 +32551,6 @@ function bbBodyOnboardingKeyHandler(ev) {
 })();
 </script>
 <!-- =================== END READINESS =================== -->
-
-<!-- ===================== SIGNAL — the Why engine (self-contained) =====================
-     Whoop already shows the member recovery, HRV, sleep and strain. Everything in this
-     block is the OTHER half: what their own food, water, training, mind sessions,
-     journal answers and bloodwork did to that physiology.
-
-     Three audiences, ONE renderer family, and the split is enforced on the SERVER:
-       member   GET /api/wearables/signal                  — verdict, reason, one move,
-                                                             laws, bloodwork connection
-       admin    GET /api/wearables/admin/:userId/signal     — all of the above plus every
-       operator GET /api/wearables/operator/:userId/signal    tested hypothesis, the risk
-                                                             flags, coverage and the
-                                                             audit table
-     The member payload physically does not contain HRV in ms, resting bpm, strain, p
-     values or risk flags, so nothing here can leak them by rendering the wrong field.
-=================================================================================== -->
-<style>
-/* ---- the home card (mobile hero + desktop dashboard) ---- */
-.bb-sig-card{display:block;width:100%;border:1px solid rgba(200,164,78,.28);background:linear-gradient(158deg,rgba(200,164,78,.13),rgba(255,255,255,.02) 62%);border-radius:16px;padding:14px;margin:0;text-align:left;cursor:pointer;font-family:inherit;color:var(--cream)}
-/* An author-origin `display` beats the UA sheet's [hidden]{display:none}: without this
-   the card ignores its own hidden attribute and a skeleton stays wedged on the Today
-   screen whenever the request fails. Same fix as .bb-rd-card. */
-.bb-sig-card[hidden]{display:none}
-.bb-sig-card:active{background:rgba(200,164,78,.17)}
-.bb-sig-top{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-.bb-sig-verdict{display:inline-flex;align-items:center;gap:6px;font-family:'Bebas Neue',sans-serif;font-size:19px;letter-spacing:2.2px;line-height:1;padding:7px 13px 5px;border-radius:8px;border:1px solid;text-transform:uppercase}
-.bb-sig-verdict--restore{color:#fca5a5;border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.13)}
-.bb-sig-verdict--hold{color:#fcd34d;border-color:rgba(245,158,11,.5);background:rgba(245,158,11,.13)}
-.bb-sig-verdict--build{color:#f7dd93;border-color:rgba(200,164,78,.5);background:rgba(200,164,78,.13)}
-.bb-sig-verdict--push{color:#86efac;border-color:rgba(37,211,102,.5);background:rgba(37,211,102,.13)}
-.bb-sig-when{font-size:11px;color:#8d856f;letter-spacing:.5px}
-.bb-sig-stale{font-size:11px;color:#fcd34d;letter-spacing:.3px}
-.bb-sig-headline{font-size:14px;font-weight:650;color:#fbf6ec;line-height:1.35;margin:10px 0 0}
-.bb-sig-reason{font-size:12.5px;color:#a9a08c;line-height:1.5;margin:5px 0 0}
-.bb-sig-lever{display:flex;flex-direction:column;gap:3px;margin-top:11px;padding:10px 12px;border-radius:11px;background:rgba(0,0,0,.26);border:1px solid rgba(200,164,78,.2)}
-.bb-sig-lever__k{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:#a9975f;font-weight:700}
-.bb-sig-lever__t{font-size:13px;font-weight:650;color:#f7dd93;line-height:1.35}
-.bb-sig-lever__d{font-size:11.5px;color:#9d947f;line-height:1.45}
-.bb-sig-cta{display:block;margin-top:11px;font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#c8a44e;font-weight:700}
-.bb-sig-empty{font-size:12.5px;color:#9d947f;line-height:1.5}
-.bb-today-pill--signal{cursor:pointer}
-
-/* ---- the member modal ---- */
-#bbSignalModal{padding-top:calc(var(--safe-top, 20px) + 8px);padding-bottom:calc(var(--safe-bottom, 0px) + 24px)}
-.bb-sig-box{max-width:760px}
-.bb-sig-hero{border:1px solid rgba(200,164,78,.28);border-radius:15px;padding:16px;background:linear-gradient(158deg,rgba(200,164,78,.11),rgba(255,255,255,.015) 62%)}
-.bb-sig-guide{font-size:12.5px;color:#c9c0aa;line-height:1.55;margin:11px 0 0;padding-top:11px;border-top:1px solid rgba(200,164,78,.16)}
-.bb-sig-list{display:flex;flex-direction:column;gap:9px}
-.bb-sig-item{border:1px solid rgba(255,255,255,.09);background:rgba(255,255,255,.028);border-radius:12px;padding:12px 13px}
-.bb-sig-item__t{font-size:13.5px;font-weight:650;color:#f7dd93;line-height:1.4;margin:0}
-.bb-sig-item__d{font-size:12.5px;color:#b9b09a;line-height:1.55;margin:5px 0 0}
-.bb-sig-item__e{display:inline-block;font-size:10.5px;color:#8d856f;letter-spacing:.4px;margin-top:7px;padding:3px 8px;border-radius:20px;border:1px solid rgba(255,255,255,.11)}
-.bb-sig-law{border-left:2px solid rgba(200,164,78,.6)}
-.bb-sig-blood{border-left:2px solid rgba(220,80,80,.55)}
-.bb-sig-blood__m{font-size:10.5px;letter-spacing:1.2px;text-transform:uppercase;color:#e0857a;font-weight:700;margin:0 0 5px}
-.bb-sig-prog{display:flex;align-items:center;gap:10px;margin-top:9px}
-.bb-sig-prog__bar{flex:1;height:6px;border-radius:4px;background:rgba(255,255,255,.09);overflow:hidden}
-.bb-sig-prog__fill{display:block;height:100%;background:linear-gradient(90deg,#c8a44e,#f7dd93);border-radius:4px}
-.bb-sig-prog__n{font-size:11px;color:#8d856f;font-variant-numeric:tabular-nums;white-space:nowrap}
-
-/* ---- the staff panel (admin + operator share every rule below) ---- */
-.bb-sg-wrap{display:flex;flex-direction:column;gap:16px}
-.bb-sg-sec{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:13px 14px;background:rgba(255,255,255,.022)}
-.bb-sg-lbl{font-size:11px;letter-spacing:.9px;text-transform:uppercase;color:#a9975f;font-weight:700;margin:0 0 9px}
-.bb-sg-note{font-size:11px;color:#8d856f;line-height:1.5;margin-top:8px}
-.bb-sg-range{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px}
-.bb-sg-rbtn{background:transparent;border:1px solid rgba(200,164,78,.35);color:#c8a44e;border-radius:8px;padding:6px 11px;font-size:11.5px;cursor:pointer;font-family:inherit}
-.bb-sg-rbtn.active{background:rgba(200,164,78,.18);color:#f7dd93}
-.bb-sg-flag{display:flex;gap:10px;align-items:flex-start;border-radius:10px;padding:10px 12px;margin-bottom:8px;border:1px solid}
-.bb-sg-flag:last-child{margin-bottom:0}
-.bb-sg-flag--high{border-color:rgba(239,68,68,.42);background:rgba(239,68,68,.1)}
-.bb-sg-flag--medium{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.09)}
-.bb-sg-flag--low{border-color:rgba(255,255,255,.13);background:rgba(255,255,255,.03)}
-.bb-sg-flag__b{flex:0 0 auto;font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:3px 7px;border-radius:5px;background:rgba(0,0,0,.32)}
-.bb-sg-flag--high .bb-sg-flag__b{color:#fca5a5}
-.bb-sg-flag--medium .bb-sg-flag__b{color:#fcd34d}
-.bb-sg-flag--low .bb-sg-flag__b{color:#b9b09a}
-.bb-sg-flag__t{font-size:13px;font-weight:650;color:#f0e9da;margin:0;line-height:1.35}
-.bb-sg-flag__d{font-size:12px;color:#a9a08c;margin:4px 0 0;line-height:1.5}
-.bb-sg-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px}
-.bb-sg-stat{border:1px solid rgba(255,255,255,.08);border-radius:9px;padding:9px 10px;background:rgba(0,0,0,.2)}
-.bb-sg-stat b{display:block;font-size:16px;font-weight:700;color:#f0e9da;font-variant-numeric:tabular-nums;line-height:1.2}
-.bb-sg-stat span{display:block;font-size:10.5px;color:#8d856f;margin-top:3px;letter-spacing:.3px}
-.bb-sg-find{border-top:1px solid rgba(255,255,255,.07);padding:9px 0}
-.bb-sg-find:first-of-type{border-top:0}
-.bb-sg-find__h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-.bb-sg-tier{font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:2px 7px;border-radius:5px;border:1px solid}
-.bb-sg-tier--high{color:#86efac;border-color:rgba(37,211,102,.45);background:rgba(37,211,102,.11)}
-.bb-sg-tier--moderate{color:#f7dd93;border-color:rgba(200,164,78,.45);background:rgba(200,164,78,.11)}
-.bb-sg-tier--emerging{color:#fcd34d;border-color:rgba(245,158,11,.38);background:rgba(245,158,11,.09)}
-.bb-sg-tier--none{color:#8d856f;border-color:rgba(255,255,255,.13)}
-.bb-sg-find__s{font-size:12.5px;color:#c9c0aa;line-height:1.5;margin:5px 0 0}
-.bb-sg-find__m{font-size:10.5px;color:#7d7666;margin-top:4px;font-variant-numeric:tabular-nums}
-.bb-sg-verdict{font-size:9.5px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;padding:2px 7px;border-radius:5px;border:1px solid}
-.bb-sg-verdict--concordant{color:#86efac;border-color:rgba(37,211,102,.45)}
-.bb-sg-verdict--mixed{color:#fcd34d;border-color:rgba(245,158,11,.4)}
-.bb-sg-verdict--discordant{color:#fca5a5;border-color:rgba(239,68,68,.42)}
-.bb-sg-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
-.bb-sg-preview{border:1px dashed rgba(200,164,78,.35);border-radius:11px;padding:12px 13px;background:rgba(200,164,78,.05)}
-@media (max-width:560px){
-  .bb-sig-verdict{font-size:17px;letter-spacing:1.8px}
-  .bb-sig-headline{font-size:13.5px}
-}
-</style>
-
-<div id="bbSignalModal" class="bb-rw-modal" role="dialog" aria-modal="true" aria-label="Your signal" onclick="bbSigBg(event)">
-  <div class="bb-rw-box bb-sig-box" onclick="event.stopPropagation()">
-    <div class="bb-rw-head">
-      <span class="bb-rw-title">✦ Your Signal</span>
-      <button type="button" class="bb-rw-close" onclick="bbCloseSignal()">✕ Close</button>
-    </div>
-    <div class="bb-rw-body" id="bbSignalBody"><div class="bb-rw-muted">Loading…</div></div>
-  </div>
-</div>
-
-<script>
-(function () {
-  'use strict';
-
-  /* ─────────────────────────── shared helpers ─────────────────────────── */
-
-  function esc(s) {
-    return String(s == null ? '' : s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-  var EM = '—';
-  function nn(v, dp) {
-    if (v == null || !isFinite(Number(v))) return EM;
-    var f = Math.pow(10, dp || 0);
-    return String(Math.round(Number(v) * f) / f);
-  }
-  function api() {
-    return (typeof apiCall === 'function') ? apiCall : null;
-  }
-  function loggedIn() {
-    return !!(window.currentUser && window.currentUser.token);
-  }
-  /* The verdict codes are a closed set from the server; anything else falls back to a
-     neutral class rather than interpolating an unknown value into a selector. */
-  var VERDICTS = { restore: 1, hold: 1, build: 1, push: 1 };
-  function verdictClass(code) { return VERDICTS[code] ? code : 'build'; }
-
-  /* ──────────────────────── MEMBER: the home card ──────────────────────── */
-
-  var sig = { data: null, at: 0, busy: false, mountedStaff: {} };
-
-  /** Every Signal home card on the page — the mobile hero one and the desktop one. */
-  function homeCards() {
-    return Array.prototype.slice.call(document.querySelectorAll('.bb-sig-card'));
-  }
-
-  /** Reveal a card and whatever chrome wraps it (a label on mobile, a section on desktop). */
-  function revealCard(card) {
-    card.hidden = false;
-    var sec = card.closest ? card.closest('.bb-sig-home-desktop') : null;
-    if (sec) sec.hidden = false;
-    var label = document.getElementById('bbSigHomeLabel');
-    if (label && card.id === 'bbSigHome') label.hidden = false;
-  }
-
-  function cardHtml(d) {
-    if (!d || !d.directive) {
-      // No directive is an honest state, not an error: the engine returns null rather
-      // than inventing a verdict out of thin evidence.
-      var p = (d && d.progress) || {};
-      return '<div class="bb-sig-top"><span class="bb-sig-verdict bb-sig-verdict--build">Signal</span>' +
-        '<span class="bb-sig-when">Not enough data yet</span></div>' +
-        '<p class="bb-sig-empty" style="margin:10px 0 0">Keep checking in and import your Whoop export. Once your days line up, this becomes a daily directive built from your own body — not a copy of your watch.</p>' +
-        ((p.pairsNeed) ? progressHtml(p) : '') +
-        '<span class="bb-sig-cta">Open your signal →</span>';
-    }
-    var dir = d.directive;
-    var when = dir.isToday ? 'Today' : ('As of ' + esc(dir.asOf || ''));
-    var stale = (!dir.isToday && dir.stalenessDays > 2)
-      ? '<span class="bb-sig-stale">· ' + nn(dir.stalenessDays, 0) + ' days behind</span>' : '';
-    var lever = d.lever
-      ? '<div class="bb-sig-lever"><span class="bb-sig-lever__k">Your one move</span>' +
-        '<span class="bb-sig-lever__t">' + esc(d.lever.title) + '</span>' +
-        (d.lever.detail ? '<span class="bb-sig-lever__d">' + esc(d.lever.detail) + '</span>' : '') +
-        '</div>'
-      : '';
-    return '<div class="bb-sig-top">' +
-        '<span class="bb-sig-verdict bb-sig-verdict--' + verdictClass(dir.code) + '">' + esc(dir.label) + '</span>' +
-        '<span class="bb-sig-when">' + when + '</span>' + stale +
-      '</div>' +
-      '<p class="bb-sig-headline">' + esc(dir.headline) + '</p>' +
-      (dir.reason ? '<p class="bb-sig-reason">Because ' + esc(dir.reason) + '</p>' : '') +
-      lever +
-      '<span class="bb-sig-cta">Open your signal →</span>';
-  }
-
-  function progressHtml(p) {
-    var have = Number(p.pairsHave) || 0;
-    var need = Number(p.pairsNeed) || 14;
-    var pct = Math.max(0, Math.min(100, Math.round((have / need) * 100)));
-    return '<div class="bb-sig-prog">' +
-      '<span class="bb-sig-prog__bar"><span class="bb-sig-prog__fill" style="width:' + pct + '%"></span></span>' +
-      '<span class="bb-sig-prog__n">' + have + ' / ' + need + ' days</span>' +
-    '</div>';
-  }
-
-  /**
-   * Load the member's signal and paint every card. Cached for 5 minutes, because this is
-   * a pure read over a deterministic engine — nothing about it changes between two taps.
-   */
-  window.bbSigHomeLoad = async function (force) {
-    var cards = homeCards();
-    if (!cards.length || !loggedIn() || !api()) return;
-    if (!force && sig.at && (Date.now() - sig.at) < 300000 && sig.data) { paintCards(); return; }
-    if (sig.busy) return;
-    sig.busy = true;
-    cards.forEach(function (c) {
-      if (!c.innerHTML) c.innerHTML = '<div class="bb-sig-empty">Reading your signal…</div>';
-    });
-    try {
-      var r = await apiCall('GET', '/api/wearables/signal?days=90');
-      sig.data = (r && !r.error) ? r : null;
-      sig.at = Date.now();
-    } catch (_) {
-      sig.data = null;
-    } finally {
-      sig.busy = false;
-    }
-    paintCards();
-  };
-
-  function paintCards() {
-    var cards = homeCards();
-    if (!cards.length) return;
-    // A failed request must not leave a live-looking card behind. Hide instead.
-    if (!sig.data) {
-      cards.forEach(function (c) { c.innerHTML = ''; c.hidden = true;
-        var s = c.closest ? c.closest('.bb-sig-home-desktop') : null; if (s) s.hidden = true;
-        var l = document.getElementById('bbSigHomeLabel'); if (l && c.id === 'bbSigHome') l.hidden = true;
-      });
-      return;
-    }
-    var html = cardHtml(sig.data);
-    cards.forEach(function (c) { c.innerHTML = html; revealCard(c); });
-  }
-
-  /* ──────────────────────── MEMBER: the detail modal ──────────────────────── */
-
-  window.bbSigBg = function (e) {
-    if (e && e.target && e.target.id === 'bbSignalModal') window.bbCloseSignal();
-  };
-  window.bbCloseSignal = function () {
-    var m = document.getElementById('bbSignalModal');
-    if (m) m.classList.remove('open');
-  };
-
-  window.bbOpenSignal = async function () {
-    if (!loggedIn()) { alert('Please log in first.'); return; }
-    var m = document.getElementById('bbSignalModal');
-    var body = document.getElementById('bbSignalBody');
-    if (!m || !body) return;
-    m.classList.add('open');
-    body.innerHTML = '<div class="bb-rw-muted">Reading your signal…</div>';
-    if (!sig.data || (Date.now() - sig.at) > 300000) await window.bbSigHomeLoad(true);
-    if (!sig.data) {
-      body.innerHTML = '<div class="bb-rw-err">Could not build your signal right now. Please try again in a moment.</div>';
-      return;
-    }
-    body.innerHTML = memberDetailHtml(sig.data);
-  };
-
-  function memberDetailHtml(d) {
-    var out = '';
-    var dir = d.directive;
-
-    /* 1 — the directive */
-    if (dir) {
-      out += '<div class="bb-rw-sec"><div class="bb-sig-hero">' +
-        '<div class="bb-sig-top">' +
-          '<span class="bb-sig-verdict bb-sig-verdict--' + verdictClass(dir.code) + '">' + esc(dir.label) + '</span>' +
-          '<span class="bb-sig-when">' + (dir.isToday ? 'Today' : 'As of ' + esc(dir.asOf || '')) + '</span>' +
-        '</div>' +
-        '<p class="bb-sig-headline">' + esc(dir.headline) + '</p>' +
-        (dir.reason ? '<p class="bb-sig-reason">Because ' + esc(dir.reason) + '</p>' : '') +
-        (dir.guidance ? '<p class="bb-sig-guide">' + esc(dir.guidance) + '</p>' : '') +
-      '</div>' +
-      (dir.confidence === 'low'
-        ? '<div class="bb-rw-warn">This is provisional — we are still building your baseline, so treat it as a nudge rather than a verdict.</div>'
-        : '') +
-      ((!dir.isToday && dir.stalenessDays > 2)
-        ? '<div class="bb-rw-warn">Your most recent measured day is ' + esc(dir.asOf) + '. Import a fresh Whoop export to bring this up to date.</div>'
-        : '') +
-      '</div>';
-    } else {
-      out += '<div class="bb-rw-sec"><div class="bb-sig-hero">' +
-        '<p class="bb-sig-headline">Your signal is still forming.</p>' +
-        '<p class="bb-sig-reason">We build your directive from your own baseline, so it appears once there are enough measured days to compare against. Nothing here is ever guessed.</p>' +
-      '</div></div>';
-    }
-
-    /* 2 — today's moves */
-    if (d.levers && d.levers.length) {
-      out += '<div class="bb-rw-sec"><div class="bb-rw-lbl">What to do today</div><div class="bb-sig-list">' +
-        d.levers.map(function (l) {
-          return '<div class="bb-sig-item">' +
-            '<p class="bb-sig-item__t">' + esc(l.title) + '</p>' +
-            (l.detail ? '<p class="bb-sig-item__d">' + esc(l.detail) + '</p>' : '') +
-            (l.evidence ? '<span class="bb-sig-item__e">' + esc(l.evidence) + '</span>' : '') +
-          '</div>';
-        }).join('') +
-      '</div></div>';
-    }
-
-    /* 3 — the laws: the part no other app can show, because no other app has the inputs */
-    out += '<div class="bb-rw-sec"><div class="bb-rw-lbl">Your body’s laws</div>';
-    if (d.laws && d.laws.length) {
-      out += '<div class="bb-sig-list">' + d.laws.map(function (l) {
-        return '<div class="bb-sig-item bb-sig-law">' +
-          '<p class="bb-sig-item__d" style="margin:0;color:#e8e0cd;font-size:13px">' + esc(l.statement) + '</p>' +
-          '<span class="bb-sig-item__e">Found across ' + nn(l.days, 0) + ' of your own days</span>' +
-        '</div>';
-      }).join('') + '</div>' +
-      '<div class="bb-rw-note">These come from your own history — what you ate, drank and did on one day, measured against how your body responded the next morning. We only show one once it clears a statistical test, so a coincidence never becomes a rule.</div>';
-    } else {
-      var p = d.progress || {};
-      out += '<p class="bb-sig-empty">Nothing has cleared the evidence bar yet. That is deliberate — we would rather show you nothing than a coincidence dressed up as a rule.</p>' +
-        (p.pairsNeed ? progressHtml(p) : '') +
-        '<div class="bb-rw-note">Log your food and check in daily. Each day you log is another day of evidence, and your first law unlocks at ' + nn(p.pairsNeed || 14, 0) + ' matched days.</div>';
-    }
-    out += '</div>';
-
-    /* 4 — the bloodwork bridge */
-    out += '<div class="bb-rw-sec"><div class="bb-rw-lbl">Your bloodwork connection</div>';
-    if (d.blood && d.blood.length) {
-      out += '<div class="bb-sig-list">' + d.blood.map(function (b) {
-        return '<div class="bb-sig-item bb-sig-blood">' +
-          '<p class="bb-sig-blood__m">' + esc(b.marker) + '</p>' +
-          '<p class="bb-sig-item__d" style="margin:0;color:#e8e0cd;font-size:13px">' + esc(b.statement) + '</p>' +
-          (b.why ? '<p class="bb-sig-item__d">' + esc(b.why) + '</p>' : '') +
-        '</div>';
-      }).join('') + '</div>' +
-      '<div class="bb-rw-note">Your lab results and your overnight physiology, put side by side over the same weeks. This is an association in your own data, not a diagnosis — your Lifestyle Manager will take it from here.</div>';
-    } else if (d.bloodPending) {
-      out += '<p class="bb-sig-empty">You have one blood report on file. A second one unlocks the before-and-after: what changed in your blood, and what changed in your body over the same weeks.</p>';
-    } else {
-      out += '<p class="bb-sig-empty">Upload a blood report and we will connect it to what your body has actually been doing — the part a lab report on its own can never tell you.</p>';
-    }
-    out += '</div>';
-
-    /* 5 — how it is built. Trust is the product; say plainly how the sausage is made. */
-    out += '<div class="bb-rw-sec"><div class="bb-rw-lbl">How this is built</div>' +
-      '<div class="bb-rw-note" style="margin-top:0">Every line above is arithmetic on your own data — no AI wrote any of it, and nothing is averaged in from anybody else. ' +
-      'We compare each day against your own 30-day baseline, never a population norm. ' +
-      'A figure nobody measured stays blank rather than being filled in. ' +
-      'Your detailed physiology stays available to your Lifestyle Manager, who reviews it with the full picture.</div>' +
-      '<div class="bb-rw-note">Window: ' + esc((d.window && d.window.from) || EM) + ' → ' + esc((d.window && d.window.to) || EM) +
-      ' · ' + nn(d.progress && d.progress.daysWithData, 0) + ' days with measured data</div>' +
-    '</div>';
-
-    return out;
-  }
-
-  /* ──────────────────── STAFF: admin + operator intelligence ──────────────────── */
-
-  /**
-   * Coaches and operators get the whole engine: every hypothesis it tested, what it
-   * rejected, the risk flags a member is deliberately never shown, and a preview of the
-   * exact sentences their client is reading right now.
-   */
-  window.bbSigMountStaff = function (cfg) {
-    cfg = cfg || {};
-    if (!cfg.key || !cfg.el || !cfg.userId) return;
-    var scope = cfg.scope === 'operator' ? 'operator' : 'admin';
-    sig.mountedStaff[cfg.key] = {
-      key: String(cfg.key),
-      scope: scope,
-      el: cfg.el,
-      userId: String(cfg.userId),
-      name: cfg.name || '',
-      days: Number(cfg.days) || 90,
-      showAll: false,
-      data: null
-    };
-    loadStaff(cfg.key);
-  };
-
-  window.bbSigUnmount = function (key) { delete sig.mountedStaff[key]; };
-
-  window.bbSigStaffRange = function (key, days) {
-    var v = sig.mountedStaff[key];
-    if (!v) return;
-    v.days = Number(days) || 90;
-    loadStaff(key);
-  };
-
-  window.bbSigStaffToggleAll = function (key) {
-    var v = sig.mountedStaff[key];
-    if (!v || !v.data) return;
-    v.showAll = !v.showAll;
-    render(v);
-  };
-
-  async function loadStaff(key) {
-    var v = sig.mountedStaff[key];
-    if (!v) return;
-    var host = document.getElementById(v.el);
-    if (!host || !api()) return;
-    host.innerHTML = '<div class="bb-rw-muted">Building the signal…</div>';
-    var base = v.scope === 'operator'
-      ? '/api/wearables/operator/' + encodeURIComponent(v.userId) + '/signal'
-      : '/api/wearables/admin/' + encodeURIComponent(v.userId) + '/signal';
-    try {
-      var r = await apiCall('GET', base + '?days=' + v.days);
-      if (!r || r.error) {
-        host.innerHTML = '<div class="bb-rw-err">' + esc((r && r.error) || 'Could not build that signal.') + '</div>';
-        return;
-      }
-      v.data = r;
-      render(v);
-    } catch (_) {
-      host.innerHTML = '<div class="bb-rw-err">Could not build that signal.</div>';
-    }
-  }
-
-  function render(v) {
-    var host = document.getElementById(v.el);
-    if (!host) return;
-    host.innerHTML = staffHtml(v);
-  }
-
-  function staffHtml(v) {
-    var d = v.data || {};
-    var q = esc(v.key);
-    var cov = d.coverage || {};
-    var diag = d.diagnostics || {};
-    var dir = d.directive || null;
-    var findings = Array.isArray(d.findings) ? d.findings : [];
-    var flags = Array.isArray(d.flags) ? d.flags : [];
-    var mv = d.memberView || {};
-
-    var out = '<div class="bb-sg-wrap">';
-
-    /* window picker + coverage */
-    out += '<div class="bb-sg-sec">' +
-      '<p class="bb-sg-lbl">Window</p>' +
-      '<div class="bb-sg-range">' +
-        [30, 90, 180, 365].map(function (n) {
-          return '<button type="button" class="bb-sg-rbtn' + (v.days === n ? ' active' : '') +
-            '" onclick="bbSigStaffRange(\'' + q + '\',' + n + ')">' + n + ' days</button>';
-        }).join('') +
-      '</div>' +
-      '<div class="bb-sg-grid">' +
-        stat(cov.wearableDays, 'Wearable days') +
-        stat(cov.nutritionDays, 'Nutrition days') +
-        stat(cov.checkinDays, 'Check-in days') +
-        stat(cov.usablePairs, 'Usable pairs') +
-        stat(cov.pct == null ? null : cov.pct + '%', 'Coverage') +
-      '</div>' +
-      '<div class="bb-sg-note">A usable pair is a day carrying an input next to the following morning’s measurement — that is the unit the correlation engine actually consumes, and ' +
-        nn(diag.minPairs, 0) + ' of them are required before anything is tested.</div>' +
-    '</div>';
-
-    /* risk flags — the whole reason this panel is staff-only */
-    out += '<div class="bb-sg-sec"><p class="bb-sg-lbl">Risk flags · never shown to the member</p>';
-    if (flags.length) {
-      out += flags.map(function (f) {
-        return '<div class="bb-sg-flag bb-sg-flag--' + esc(f.severity) + '">' +
-          '<span class="bb-sg-flag__b">' + esc(f.severity) + '</span>' +
-          '<span><p class="bb-sg-flag__t">' + esc(f.title) + '</p>' +
-          '<p class="bb-sg-flag__d">' + esc(f.detail) + '</p></span>' +
-        '</div>';
-      }).join('');
-    } else {
-      out += '<div class="bb-rw-muted">No risk pattern detected in this window.</div>';
-    }
-    out += '<div class="bb-sg-note">These are patterns in this client’s own data, not diagnoses. The member feels them only through their directive.</div></div>';
-
-    /* directive + exactly what the member is being shown */
-    out += '<div class="bb-sg-sec"><p class="bb-sg-lbl">Directive</p>';
-    if (dir) {
-      var dt = dir.detail || {};
-      var dv = dt.deviations || {};
-      out += '<div class="bb-sig-top">' +
-          '<span class="bb-sig-verdict bb-sig-verdict--' + verdictClass(dir.code) + '">' + esc(dir.label) + '</span>' +
-          '<span class="bb-sig-when">as of ' + esc(dir.asOf || '') + (dir.isToday ? ' · today' : '') +
-          ' · confidence ' + esc(dir.confidence) + ' (' + nn(dir.baselineDays, 0) + 'd baseline)</span>' +
-        '</div>' +
-        (dir.reason ? '<p class="bb-sig-reason">Because ' + esc(dir.reason) + '</p>' : '') +
-        '<div class="bb-sg-grid" style="margin-top:10px">' +
-          devStat('Recovery', dv.score) + devStat('HRV', dv.hrvMs) + devStat('Resting HR', dv.restingHr) +
-          devStat('Resp. rate', dv.respiratoryRate) + devStat('Sleep', dv.sleepHours) +
-          stat(dt.sleepDebt ? Math.round(dt.sleepDebt.minutes) + 'm' : null, 'Sleep debt (3d)') +
-          stat(dt.acwr ? dt.acwr.ratio + '×' : null, 'Acute:chronic') +
-        '</div>' +
-        '<div class="bb-sg-note">Each figure is this client against their own 30-day median, never a population norm. Rules fired: ' +
-          esc((dir.basis || []).join(', ') || 'none') + '.</div>';
-    } else {
-      out += '<div class="bb-rw-muted">Not enough measured data to issue a directive.</div>';
-    }
-    out += '</div>';
-
-    /* the member's actual screen */
-    out += '<div class="bb-sg-sec"><p class="bb-sg-lbl">What the member sees right now</p>' +
-      '<div class="bb-sg-preview">' +
-        (mv.directive
-          ? '<p class="bb-sig-item__t">' + esc(mv.directive.label) + ' — ' + esc(mv.directive.headline) + '</p>' +
-            (mv.directive.reason ? '<p class="bb-sig-item__d">Because ' + esc(mv.directive.reason) + '</p>' : '')
-          : '<p class="bb-sig-item__d">No directive on their screen.</p>') +
-        (mv.lever ? '<p class="bb-sig-item__d"><b>One move:</b> ' + esc(mv.lever.title) + '</p>' : '') +
-        ((mv.laws && mv.laws.length)
-          ? '<p class="bb-sig-item__d"><b>Laws:</b></p><ul style="margin:4px 0 0 16px;padding:0">' +
-            mv.laws.map(function (l) { return '<li class="bb-sig-item__d" style="margin:2px 0">' + esc(l.statement) + '</li>'; }).join('') + '</ul>'
-          : '<p class="bb-sig-item__d">No laws have cleared the evidence bar for them yet.</p>') +
-        ((mv.blood && mv.blood.length)
-          ? '<p class="bb-sig-item__d"><b>Bloodwork:</b> ' + mv.blood.map(function (b) { return esc(b.statement); }).join(' ') + '</p>'
-          : '') +
-      '</div>' +
-      '<div class="bb-sg-note">Physiological readings, statistics and every flag above are stripped server-side before this reaches them.</div>' +
-    '</div>';
-
-    /* findings */
-    var shown = v.showAll ? findings : findings.filter(function (f) { return f.tier !== 'none'; });
-    out += '<div class="bb-sg-sec">' +
-      '<p class="bb-sg-lbl">Findings · ' + nn(diag.hypothesesTested, 0) + ' hypotheses tested of ' + nn(diag.hypothesesConsidered, 0) + ' considered</p>' +
-      '<div class="bb-sg-grid" style="margin-bottom:10px">' +
-        stat(diag.tiers && diag.tiers.high, 'High') +
-        stat(diag.tiers && diag.tiers.moderate, 'Moderate') +
-        stat(diag.tiers && diag.tiers.emerging, 'Emerging') +
-        stat(diag.tiers && diag.tiers.none, 'Rejected') +
-      '</div>';
-    if (shown.length) {
-      out += '<div class="bb-sg-scroll">' + shown.slice(0, 60).map(function (f) {
-        return '<div class="bb-sg-find">' +
-          '<div class="bb-sg-find__h">' +
-            '<span class="bb-sg-tier bb-sg-tier--' + esc(f.tier) + '">' + esc(f.tier) + '</span>' +
-            '<span style="font-size:11.5px;color:#a9a08c">' + esc(f.inputLabel) + ' → ' + esc(f.outputLabel) + '</span>' +
-            (f.memberSafe ? '<span class="bb-sg-tier bb-sg-tier--high">shown to member</span>' : '') +
-          '</div>' +
-          (f.staffStatement ? '<p class="bb-sg-find__s">' + esc(f.staffStatement) + '</p>' : '') +
-          '<p class="bb-sg-find__m">n=' + nn(f.n, 0) + ' · split ' + nn(f.nHigh, 0) + '/' + nn(f.nLow, 0) +
-            ' · ' + esc(f.effectKind === 'cohens_d' ? 'd' : 'rho') + '=' + nn(f.effect, 2) +
-            ' · ' + pq('p', f.p) + ' · ' + pq('q', f.q) + '</p>' +
-        '</div>';
-      }).join('') + '</div>' +
-      (shown.length > 60 ? '<div class="bb-sg-note">Showing the 60 strongest of ' + shown.length + '.</div>' : '');
-    } else {
-      out += '<div class="bb-rw-muted">Nothing cleared the evidence bar in this window.</div>';
-    }
-    out += '<div class="bb-sg-range" style="margin:10px 0 0">' +
-        '<button type="button" class="bb-sg-rbtn" onclick="bbSigStaffToggleAll(\'' + q + '\')">' +
-        (v.showAll ? 'Hide rejected hypotheses' : 'Show all ' + findings.length + ' incl. rejected') + '</button>' +
-      '</div>' +
-      '<div class="bb-sg-note">Input on day D against the following morning’s measurement (lag ' + nn(diag.lagDays, 0) + 'd). ' +
-        'p-values are corrected across every hypothesis for this client (' + esc(diag.correction || 'none') + '); ' +
-        'q ≤ ' + nn(diag.qHigh, 2) + ' with n ≥ 21 is required before a member ever sees a finding. ' +
-        'Association only — no causal claim is made anywhere in this engine.</div>' +
-    '</div>';
-
-    out += bloodHtml(d.blood);
-
-    if (d.loadNotes && d.loadNotes.length) {
-      out += '<div class="bb-sg-sec"><p class="bb-sg-lbl">Data sources that failed to load</p>' +
-        '<div class="bb-rw-warn" style="margin-top:0">' + esc(d.loadNotes.join(', ')) + '</div>' +
-        '<div class="bb-sg-note">These inputs were skipped, so any finding that depended on them is missing rather than wrong.</div></div>';
-    }
-
-    out += '</div>';
-    return out;
-  }
-
-  function bloodHtml(b) {
-    var out = '<div class="bb-sg-sec"><p class="bb-sg-lbl">Bloodwork bridge</p>';
-    if (!b || !b.ok) {
-      return out + '<div class="bb-rw-muted">The bloodwork bridge is unavailable.</div></div>';
-    }
-    var items = Array.isArray(b.items) ? b.items : [];
-    out += '<div class="bb-sg-grid" style="margin-bottom:10px">' +
-      stat(b.reportsSeen, 'Reports') + stat(b.markersSeen, 'Markers read') +
-      stat(items.length, 'Bridged') +
-      stat(b.config && b.config.linksKnown, 'Known links') +
-    '</div>';
-    if (items.length) {
-      out += items.map(function (it) {
-        var obs = (it.observations || []).map(function (o) {
-          return '<li class="bb-sig-item__d" style="margin:2px 0">' + esc(o.short) + ': expected ' + esc(o.expected) +
-            ', observed ' + esc(o.observed) + (o.pct != null ? ' (' + nn(o.pct, 1) + '%)' : '') +
-            (o.agrees ? ' ✓' : '') + '</li>';
-        }).join('');
-        var head = it.kind === 'change'
-          ? esc(it.marker) + ': ' + esc(String(it.from.value)) + ' → ' + esc(String(it.to.value)) + (it.unit ? ' ' + esc(it.unit) : '') +
-            ' (' + esc(it.from.date) + ' → ' + esc(it.to.date) + ')'
-          : esc(it.marker) + ': ' + esc(String(it.value)) + (it.unit ? ' ' + esc(it.unit) : '') + ' on ' + esc(it.reportDate) +
-            (it.position ? ' · ' + esc(it.position) + ' vs range' : '');
-        return '<div class="bb-sg-find">' +
-          '<div class="bb-sg-find__h">' +
-            '<span class="bb-sg-verdict bb-sg-verdict--' + esc(it.verdict) + '">' + esc(it.verdict) + '</span>' +
-            '<span class="bb-sg-tier bb-sg-tier--' + (it.strength === 'established' ? 'high' : 'emerging') + '">' + esc(it.strength) + '</span>' +
-            (it.memberSafe ? '<span class="bb-sg-tier bb-sg-tier--high">shown to member</span>' : '') +
-          '</div>' +
-          '<p class="bb-sg-find__s" style="color:#e8e0cd">' + head + '</p>' +
-          (it.mechanism ? '<p class="bb-sg-find__s">' + esc(it.mechanism) + '</p>' : '') +
-          (obs ? '<ul style="margin:6px 0 0 16px;padding:0">' + obs + '</ul>' : '') +
-        '</div>';
-      }).join('');
-    } else {
-      out += '<div class="bb-rw-muted">' + esc((b.notes && b.notes[0]) || 'Nothing to bridge yet.') + '</div>';
-    }
-    out += '<div class="bb-sg-note">Each marker is compared against the 30 days of wearable data ENDING at its draw date, ' +
-      'measured against this client’s baseline outside that window. Discordant items are shown deliberately — the member only ever sees concordant ones.</div></div>';
-    return out;
-  }
-
-  function stat(v, label) {
-    return '<div class="bb-sg-stat"><b>' + (v == null || v === '' ? EM : esc(String(v))) + '</b><span>' + esc(label) + '</span></div>';
-  }
-
-  /** "p<0.0001" / "q=0.0231" — never "p=<0.0001", which reads as a formatting bug. */
-  function pq(name, v) {
-    if (v == null || !isFinite(Number(v))) return name + '=n/a';
-    return Number(v) < 0.0001 ? name + '&lt;0.0001' : name + '=' + nn(v, 4);
-  }
-
-  /** A baseline deviation tile: the change against this client's own normal. */
-  function devStat(label, dv) {
-    if (!dv || dv.pct == null) return stat(null, label);
-    var s = (dv.pct > 0 ? '+' : '') + nn(dv.pct, 1) + '%';
-    return '<div class="bb-sg-stat"><b>' + esc(s) + '</b><span>' + esc(label) + ' vs base</span></div>';
-  }
-})();
-</script>
-<!-- =================== END SIGNAL =================== -->
 
 <!-- WhatsApp FAB – public website -->
 <a class="wa-public-fab" href="https://wa.me/919502575669" target="_blank" rel="noopener noreferrer" aria-label="Chat with us on WhatsApp" title="Chat on WhatsApp">

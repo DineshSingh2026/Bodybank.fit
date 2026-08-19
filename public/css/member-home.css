@@ -335,7 +335,6 @@
    the same card both showed up at once. Re-state the intent explicitly. */
 @media (max-width: 767px) {
   #mhSlotBody > #bbRdHomeSectionDesktop,
-  #mhSlotBody > #bbSigHomeSectionDesktop,
   #mhSlotScore > #bbScorecardDesktopWrap,
   /* .bb-stat-grid, the charts and the activity table are filled only by
      bbRefreshDesktopUserDashboard, which the shell runs at >=768px — on a phone
@@ -345,7 +344,6 @@
 }
 @media (min-width: 768px) {
   #mhSlotBody > #bbRdHome,
-  #mhSlotBody > #bbSigHome,
   #mhSlotScore > .bb-pulse-score,
   #mhSlotWeek > #bbPulsePillars { display: none !important }
 }
@@ -357,10 +355,6 @@
 @media (min-width: 768px) { #mhSlotReports > #myHealthReportsSection { display: none !important } }
 @media (max-width: 767px) { #mhSlotPush > #pushEnableWrapDesktop { display: none !important } }
 @media (min-width: 768px) { #mhSlotPush > #pushEnableWrap { display: none !important } }
-/* three empty slots stacked full width ate a whole screen on a wide monitor */
-@media (min-width: 900px) {
-  #mhSlotReports .bb-blood-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start }
-}
 
 /* ------------------------------------------------- arriving from the loop --- */
 /* "Log a meal" drops you inside the daily form, so flag where you landed. Lives
@@ -373,3 +367,7 @@
   100% { box-shadow: 0 0 0 0 rgba(226, 192, 113, 0) }
 }
 @media (prefers-reduced-motion: reduce) { .bb-focus-flash { animation: none } }
+
+/* Days later in the week are not misses yet — dim them so an empty Friday on a
+   Wednesday does not read as a broken week. */
+.mh-day.ahead { opacity: .4; background: transparent; border-style: dashed }

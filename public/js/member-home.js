@@ -10,7 +10,7 @@
                                    Whoop export, both wired to the real endpoints
 
    Everything the old home carried still sits below this, untouched: scorecard,
-   readiness, Signal, programs, charts and the explore cards. This is the layer
+   readiness, programs, charts and the explore cards. This is the layer
    that tells you where to go, not a replacement for what is there.
 
    Depends on globals from index.html: apiCall, escapeHtml, switchUserTab,
@@ -212,17 +212,27 @@ function renderMemberHome() {
   var streak = d.streak || 0;
   mhEl('mhStreak') && (mhEl('mhStreak').textContent = streak);
   mhEl('mhStreakL') && (mhEl('mhStreakL').textContent = streak === 1 ? 'day streak' : 'day streak');
+  // The strip reads Sunday -> Saturday, the way a calendar does. It used to be a
+  // rolling seven days ending today, which meant the row started on a different
+  // letter every morning and no one could read it at a glance. The server still
+  // sends `week` as seven flags oldest -> newest ending today, so each calendar
+  // day is looked up by how many days back it is.
   var strip = mhEl('mhWeek');
   if (strip) {
     var wk = String(d.week || '0000000');
+    var noon = new Date(); noon.setHours(12, 0, 0, 0);   // noon anchor survives DST
+    var sunday = new Date(noon.getTime() - noon.getDay() * 86400000);
     var out = '';
     for (var i = 0; i < 7; i++) {
-      var dt = new Date(Date.now() - (6 - i) * 86400000);
+      var dt = new Date(sunday.getTime() + i * 86400000);
+      var back = Math.round((noon - dt) / 86400000);     // 0 = today, 6 = six days ago
+      var ahead = back < 0;                              // rest of the week, not yet due
+      var on = !ahead && wk.charAt(6 - back) === '1';
       var lbl = dt.toLocaleDateString(undefined, { weekday: 'narrow' });
-      var on = wk.charAt(i) === '1';
-      out += '<span class="mh-day' + (on ? ' on' : '') + (i === 6 ? ' today' : '') + '"'
+      out += '<span class="mh-day' + (on ? ' on' : '') + (back === 0 ? ' today' : '')
+        + (ahead ? ' ahead' : '') + '"'
         + ' title="' + mhEsc(dt.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })
-          + (on ? ' — checked in' : ' — no check-in')) + '">'
+          + (ahead ? '' : (on ? ' — checked in' : ' — no check-in'))) + '">'
         + '<i>' + mhEsc(lbl) + '</i></span>';
     }
     strip.innerHTML = out;
@@ -402,7 +412,7 @@ var MH_MOVE = [
   { into: 'mhSlotPills',    take: ['.bb-today-stats'] },
   { into: 'mhSlotScore',    take: ['#bbScorecardDesktopWrap', '.bb-pulse-score'], sec: 'mhSecScore' },
   { into: 'mhSlotWeek',     take: ['#bbPulsePillars', '.bb-stat-grid'], sec: 'mhSecWeek' },
-  { into: 'mhSlotBody',     take: ['#bbRdHomeSectionDesktop', '#bbSigHomeSectionDesktop', '#bbRdHome', '#bbSigHome'], sec: 'mhSecBody' },
+  { into: 'mhSlotBody',     take: ['#bbRdHomeSectionDesktop', '#bbRdHome'], sec: 'mhSecBody' },
   { into: 'mhSlotReports',  take: ['#myHealthReportsSectionDesktop', '#myHealthReportsSection'], sec: 'mhSlotReports' },
   { into: 'mhSlotTrends',   take: ['.bb-chart-grid'], sec: 'mhSecTrends' },
   { into: 'mhSlotActivity', take: ['.bb-table-card'], sec: 'mhSecActivity' },

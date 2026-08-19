@@ -20,8 +20,8 @@
    bbContactMatches, Chart, the shared blood helpers (bbAskLabDate, bbFmtDay,
    bbLabDateLabel, bbLabDateEditor, bbLabFileBtn, bbDeleteReportBtn,
    adminBloodDownloadPdf, bbCmpUseHost, bbLoadClientComparisons,
-   bbRenderComparison) and the readiness/signal mounts (bbRdMountClient,
-   bbRdSummarise, bbSigMountStaff).
+   bbRenderComparison) and the readiness mount (bbRdMountClient,
+   bbRdSummarise).
    ========================================================================== */
 
 var opState = window.opState || (window.opState = {
@@ -183,7 +183,6 @@ function logoutOperator() {
   if (window._opNotifyInterval) { clearInterval(window._opNotifyInterval); window._opNotifyInterval = null; }
   Object.keys(window._opCharts).forEach(opKillChart);
   if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('oprd');
-  if (typeof window.bbSigUnmount === 'function') window.bbSigUnmount('opsig');
   if (typeof unregisterNativePush === 'function') unregisterNativePush();
   if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function () { });
@@ -244,7 +243,6 @@ function opStoryClose() {
   if (story) story.classList.remove('open');
   document.body.classList.remove('op-story-open');
   if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('oprd');
-  if (typeof window.bbSigUnmount === 'function') window.bbSigUnmount('opsig');
   Object.keys(window._opCharts).forEach(function (k) { if (k !== 'trend') opKillChart(k); });
   opState.story = null;
 }
@@ -674,7 +672,6 @@ async function openOperatorClient(id, tab) {
     window._opCurrentClient = { id: id, name: name, phone: u.phone || '', email: u.email || '' };
 
     if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('oprd');
-    if (typeof window.bbSigUnmount === 'function') window.bbSigUnmount('opsig');
     Object.keys(window._opCharts).forEach(function (k) { if (k !== 'trend') opKillChart(k); });
 
     opStoryOpen(opClientStoryHead(u), opDetailActions(u) + opDetailTabsHtml() + opDetailPanes(d));
@@ -1140,26 +1137,16 @@ function opDrawWeekBar(id, m, cfg) {
 
 /* --------------------------------------------------- story: readiness */
 function opBuildReadiness() {
-  return '<div class="op-sub" style="margin-top:0">✦ Signal intelligence</div>'
-    + '<div id="opDetailSignalBody"><div class="op-empty">Loading…</div></div>'
-    + '<div class="op-sub">⌚ Raw readiness &amp; recovery</div>'
+  return '<div class="op-sub" style="margin-top:0">⌚ Raw readiness &amp; recovery</div>'
     + '<div id="opDetailReadinessBody"><div class="op-empty">Loading…</div></div>';
 }
 function opMountReadiness() {
   var c = window._opCurrentClient;
-  var host = opEl('opDetailReadinessBody'), sigHost = opEl('opDetailSignalBody');
+  var host = opEl('opDetailReadinessBody');
   if (!host) return;
   if (!c || !c.id) {
     host.innerHTML = '<div class="op-empty">No client selected.</div>';
-    if (sigHost) sigHost.innerHTML = '<div class="op-empty">No client selected.</div>';
     return;
-  }
-  if (sigHost) {
-    if (typeof window.bbSigMountStaff === 'function') {
-      window.bbSigMountStaff({ key: 'opsig', scope: 'operator', el: 'opDetailSignalBody', userId: c.id, name: c.name || '' });
-    } else {
-      sigHost.innerHTML = '<div class="op-empty">Signal view is unavailable on this build.</div>';
-    }
   }
   if (typeof window.bbRdMountClient !== 'function') { host.innerHTML = '<div class="op-empty">Readiness view is unavailable on this build.</div>'; return; }
   window.bbRdMountClient({ key: 'oprd', scope: 'operator', el: 'opDetailReadinessBody', userId: c.id, name: c.name || '' });
