@@ -3292,6 +3292,22 @@ button.bb-today-pill{cursor:pointer}
 .nutrition-checkin .meal-status-badge.analyzed{background:rgba(46,204,113,0.14);color:var(--bb-green);border:1px solid rgba(46,204,113,0.28)}
 .nutrition-checkin .meal-status-badge.analyzing{background:rgba(230,126,34,0.16);color:var(--bb-orange)}
 .nutrition-checkin .meal-status-badge.error{background:rgba(192,57,43,0.16);color:var(--bb-red)}
+/* Two cards per row on a phone leaves ~170px: icon + "Breakfast" + "Not logged"
+   does not fit, and with no min-width:0 on the text block the label was clipped
+   behind the badge. Let the badge drop to its own line rather than collide. */
+.nutrition-checkin .meal-slot-header{flex-wrap:wrap}
+.nutrition-checkin .meal-slot-id{flex:1 1 auto}
+.nutrition-checkin .meal-slot-id>div{min-width:0}
+.nutrition-checkin .meal-type-label{overflow-wrap:anywhere}
+.nutrition-checkin .meal-status-badge{flex:0 0 auto;margin-left:auto}
+/* Wrapping only when a name happens to be long left the four cards at uneven
+   heights, so below 520px the badge takes its own row on every card. */
+@media (max-width:520px){
+  /* the id block claims the whole first line, so the chip wraps below it and
+     still sizes to its own text instead of stretching like an input */
+  .nutrition-checkin .meal-slot-id{flex:0 0 100%}
+  .nutrition-checkin .meal-status-badge{margin:7px 0 0}
+}
 .nutrition-checkin .meal-upload-area{display:flex;flex-direction:column;gap:8px;align-items:stretch}
 .nutrition-checkin .meal-upload-btns{display:flex;flex-direction:column;gap:8px;width:100%}
 .nutrition-checkin .upload-trigger-btn{min-height:46px;width:100%;padding:10px;border:1.5px solid rgba(46,204,113,0.40);background:rgba(46,204,113,0.08);color:var(--bb-green);border-radius:11px;font-family:var(--bb-font-heading);font-weight:700;font-size:12px;letter-spacing:.02em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
@@ -4693,7 +4709,7 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <link rel="stylesheet" href="/css/blood-report-editor.css?v=2">
 <link rel="stylesheet" href="css/admin-home.css?v=3">
-<link rel="stylesheet" href="css/member-home.css?v=10">
+<link rel="stylesheet" href="css/member-home.css?v=11">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
@@ -19580,6 +19596,11 @@ var USER_TAB_SUBTITLES = {
   contact: 'Schedule calls or send support requests quickly.'
 };
 function showCheckinSubView(view) {
+  // "Log a meal" asks for the nutrition panel, which is not a sub-view of its
+  // own — it lives inside the daily form. Open daily and bring the meal grid
+  // into view, otherwise an unknown name hides all three and leaves a blank tab.
+  var focusMeals = view === 'nutrition' || view === 'meals';
+  if (focusMeals) view = 'daily';
   var hub = document.getElementById('checkin-hub');
   var sunday = document.getElementById('checkin-sunday');
   var daily = document.getElementById('checkin-daily');
@@ -19595,6 +19616,18 @@ function showCheckinSubView(view) {
   }
   var wrap = document.getElementById('userTabContentWrap');
   if (wrap) wrap.scrollTop = 0;
+  if (focusMeals) setTimeout(function () {
+    // the daily form has its own panes and opens on Body; the meal grid is in Food
+    if (typeof switchDailyPane === 'function') switchDailyPane('food');
+    var panel = document.getElementById('nutritionCheckin');
+    if (!panel) return;
+    // last, because both the sub-view switch and switchDailyPane reset scrollTop
+    setTimeout(function () {
+      try { panel.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (_) { panel.scrollIntoView(); }
+      panel.classList.add('bb-focus-flash');
+      setTimeout(function () { panel.classList.remove('bb-focus-flash'); }, 1600);
+    }, 60);
+  }, 260);
 }
 function switchUserTab(tab) {
   if (tab === 'progress') tab = 'workout';

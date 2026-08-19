@@ -361,3 +361,15 @@
 @media (min-width: 900px) {
   #mhSlotReports .bb-blood-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start }
 }
+
+/* ------------------------------------------------- arriving from the loop --- */
+/* "Log a meal" drops you inside the daily form, so flag where you landed. Lives
+   here rather than in the check-in styles because the member home is what sends
+   people there; the selector is unscoped because the target sits outside it. */
+.bb-focus-flash { animation: bbFocusFlash 1.6s ease-out 1 }
+@keyframes bbFocusFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(226, 192, 113, 0) }
+  18%  { box-shadow: 0 0 0 3px rgba(226, 192, 113, .55), 0 12px 34px rgba(226, 192, 113, .18) }
+  100% { box-shadow: 0 0 0 0 rgba(226, 192, 113, 0) }
+}
+@media (prefers-reduced-motion: reduce) { .bb-focus-flash { animation: none } }
