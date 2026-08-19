@@ -37,7 +37,43 @@ Before every mobile release:
 
 ## Pending sync — next mobile release
 
-_(empty — synced 2026-08-12; see below)_
+_(empty — synced 2026-08-19; see below)_
+
+---
+
+## 2026-08-19 — synced to mobile repo (staff + member landings rebuilt, v1.6.0, versionCode 22)
+
+Ran `npm run build:www` + `npx cap sync android`; bumped Android `versionCode 21→22`,
+`versionName 1.5.1→1.6.0`. `public/sw.js` cache `v68→v69`.
+
+The largest sync since v1.4.0 — every role's landing screen was rebuilt, and three
+backend subsystems landed behind them.
+
+| Web commit | What it is |
+| ---------- | ---------- |
+| `a6ea5ac` | Whoop **Signal engine** — deterministic laws/directive/bloodwork bridge over Whoop + BodyBank data. Member/staff split is a server-side whitelist. |
+| `da5786a` | Blood reports ordered by lab **draw date**, full operator parity |
+| `d7f9558` | Admin mobile dashboard rebuild; Signal + blood-report UI wired |
+| `f77b96f` | Operator console rebuild, editable progress report, **AI token ledger** |
+| `b718339`…`13d0fbf` | Operator console rebuilt in the Aurora direction, around clients |
+| `819cb1e`…`8cb64da` | Operator **Overview landing**; hero shows active-client engagement |
+| `98c80c0` | Operator monitoring numbers, each one a filter into the client list |
+| `621d35e`…`ee3991b` | Operator fixes: Elite card z-order, reel avatars, sign-out on a phone |
+| `24dc3f7`, `e2ce8fc` | Admin **Dashboard landing** rebuilt around one read, quick access restored |
+| `e538d3a`, `c78279a` | Pipeline: **No reply** stage, members made visible, tick-and-move, usable on a phone |
+| `7fa2bf7`, `7d3e6d1` | Landing numbers made exact, and the same label made to mean the same number on both landings |
+| `e456559`…`d3c115d` | **Member home** rebuilt around the daily loop + blood/Whoop uploads, then sequenced into one page |
+
+> **Backend note:** this release leans on endpoints that ship with the web repo, not the
+> bundle — `/api/member/home`, `/api/admin/overview`, `/api/operator/overview`,
+> `/api/operator/clients`, `/api/operator/blood` and the blood-editor routes. They reach the
+> app only once Render has deployed web `main`. **Confirm the Render deploy is green before
+> promoting this build**, or the new landings will load empty against the old server.
+
+> **Rule applied from v1.5.1:** home-screen work must land in both `.user-welcome` (mobile)
+> and `.bb-user-desktop-dashboard` (desktop ≥768px). The member home goes further and
+> *retires* both panes, moving their widgets into one sequenced page — so the two surfaces
+> can no longer drift.
 
 ---
 
