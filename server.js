@@ -4983,14 +4983,18 @@ app.get('/api/admin/part2-submissions/:id/pdf', verifyToken, requireAdminOrSuper
 // Streamlined pipeline: pre-conversion stages only. Once a lead converts they
 // become a trial member and are managed in the Memberships tab (billing lives there).
 const LEAD_STAGE_IDS = [
-  'new_audit', 'contacted', 'part2', 'call', 'converted', 'lost'
+  'new_audit', 'contacted', 'part2', 'call', 'converted', 'no_reply', 'lost'
 ];
 const LEAD_STAGE_LABELS = {
   new_audit: 'New audit',
-  contacted: 'In conversation',
+  contacted: 'Contacted',
   part2: 'Part-2',
   call: 'Call',
   converted: 'Converted',
+  // Reached out and heard nothing back. Distinct from Lost, which is somebody
+  // who actually said no — the two need different follow-up, and lumping them
+  // together made the board read as failure when most of it is just silence.
+  no_reply: 'No reply',
   lost: 'Lost / Cold'
 };
 // Maps legacy stage ids (pre-collapse) to the streamlined set above, so old leads
@@ -4998,6 +5002,8 @@ const LEAD_STAGE_LABELS = {
 const LEAD_STAGE_ALIASES = {
   whatsapp_sent: 'contacted',
   in_conversation: 'contacted',
+  no_response: 'no_reply',
+  cold: 'no_reply',
   part2_sent: 'part2',
   part2_received: 'part2',
   call_proposed: 'call',
@@ -5032,8 +5038,17 @@ async function loadLeadsList({ stage, search, from, to } = {}) {
     SELECT a.*,
       (SELECT p.id FROM part2_audit p WHERE LOWER(p.email) = LOWER(a.email) ORDER BY p.created_at DESC LIMIT 1) AS part2_id,
       (SELECT p.created_at FROM part2_audit p WHERE LOWER(p.email) = LOWER(a.email) ORDER BY p.created_at DESC LIMIT 1) AS part2_at,
-      (SELECT COUNT(*)::int FROM lead_notes ln WHERE ln.audit_id = a.id) AS notes_count
+      (SELECT COUNT(*)::int FROM lead_notes ln WHERE ln.audit_id = a.id) AS notes_count,
+      u.id AS account_id, u.subscription_status, u.created_at AS joined_at,
+      (u.id IS NOT NULL) AS has_account,
+      (u.id IS NOT NULL AND EXISTS (
+         SELECT 1 FROM daily_checkins d WHERE d.user_id = u.id AND d.checkin_date >= CURRENT_DATE - 6 AND COALESCE(d.is_freeze, FALSE) = FALSE
+         UNION ALL SELECT 1 FROM workout_logs w WHERE w.user_id = u.id AND w.created_at >= NOW() - INTERVAL '7 days'
+         UNION ALL SELECT 1 FROM nutrition_meal_logs m WHERE m.user_id = u.id AND m.log_date >= CURRENT_DATE - 6
+      )) AS account_active
     FROM audit_requests a
+    LEFT JOIN users u ON LOWER(u.email) = LOWER(a.email) AND u.role = 'user'
+      AND COALESCE(u.suspended, FALSE) = FALSE
     WHERE 1=1`;
   const params = [];
   if (stage && LEAD_STAGE_IDS.indexOf(stage) >= 0) {
@@ -5062,7 +5077,37 @@ app.get('/api/admin/leads', verifyToken, requireAdminOrSuperadmin, async (req, r
       from: (req.query.from || '').trim(),
       to: (req.query.to || '').trim()
     });
-    res.json({ stages: LEAD_STAGE_IDS.map(id => ({ id, label: LEAD_STAGE_LABELS[id] })), leads: rows });
+    // Clients who joined without ever submitting an audit had no row here at
+    // all, so the board silently under-reported the business. Surface them as
+    // read-only entries in Converted rather than leaving them out.
+    const orphans = await queryAll(`
+      SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.created_at,
+             u.subscription_status, u.profile_picture,
+             EXISTS (
+               SELECT 1 FROM daily_checkins d WHERE d.user_id = u.id AND d.checkin_date >= CURRENT_DATE - 6 AND COALESCE(d.is_freeze, FALSE) = FALSE
+               UNION ALL SELECT 1 FROM workout_logs w WHERE w.user_id = u.id AND w.created_at >= NOW() - INTERVAL '7 days'
+               UNION ALL SELECT 1 FROM nutrition_meal_logs m WHERE m.user_id = u.id AND m.log_date >= CURRENT_DATE - 6
+             ) AS account_active
+        FROM users u
+       WHERE u.role = 'user'
+         AND (u.approval_status IS NULL OR u.approval_status = 'approved')
+         AND COALESCE(u.suspended, FALSE) = FALSE
+         AND u.email NOT LIKE '%@test.bodybank.fit'
+         AND LOWER(COALESCE(u.first_name, '')) NOT LIKE '%e2e%'
+         AND NOT EXISTS (SELECT 1 FROM audit_requests a WHERE LOWER(a.email) = LOWER(u.email))
+       ORDER BY u.created_at DESC LIMIT 300`);
+
+    res.json({
+      stages: LEAD_STAGE_IDS.map(id => ({ id, label: LEAD_STAGE_LABELS[id] })),
+      leads: rows,
+      members: (orphans || []).map(m => ({
+        id: 'member:' + m.id, account_id: m.id, virtual: true,
+        first_name: m.first_name, last_name: m.last_name, email: m.email, phone: m.phone,
+        created_at: m.created_at, stage: 'converted', has_account: true,
+        subscription_status: m.subscription_status, account_active: m.account_active,
+        profile_picture: m.profile_picture, notes_count: 0
+      }))
+    });
   } catch (e) {
     console.error('Admin leads list error:', e.message);
     res.status(500).json({ error: 'Failed to load leads' });

@@ -5321,6 +5321,44 @@ button.bb-today-pill{cursor:pointer}
 .bb-leads-summary-pill .pill-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
 .bb-leads-summary-pill .pill-count{font-weight:700}
 .bb-kanban-board{display:flex;gap:12px;overflow-x:auto;padding:6px 2px 16px 2px;align-items:stretch;min-height:300px}
+/* .admin-filter-date had no rule at all, so every date input and stage select
+   in the admin filter bars rendered as a white browser default on a dark page. */
+.admin-filter-date,.admin-filter-search-wrap input{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.12);
+  color:var(--cream);border-radius:9px;padding:9px 11px;font-family:'Outfit',sans-serif;font-size:13px;outline:none;
+  min-height:40px;box-sizing:border-box}
+.admin-filter-date:focus,.admin-filter-search-wrap input:focus{border-color:rgba(200,164,78,.5)}
+select.admin-filter-date{cursor:pointer;-webkit-appearance:none;appearance:none;
+  background-image:linear-gradient(45deg,transparent 50%,var(--gold) 50%),linear-gradient(135deg,var(--gold) 50%,transparent 50%);
+  background-position:calc(100% - 16px) 17px,calc(100% - 11px) 17px;background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+  padding-right:32px}
+select.admin-filter-date option{background:#141317;color:var(--cream)}
+.admin-filter-date::-webkit-calendar-picker-indicator{filter:invert(70%) sepia(30%) saturate(500%) hue-rotate(5deg)}
+
+/* --- pipeline on a phone: a stage picker plus one list, never 7 columns --- */
+.bb-stagebar{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:none;-ms-overflow-style:none}
+.bb-stagebar::-webkit-scrollbar{display:none}
+.bb-stagechip{display:inline-flex;align-items:center;gap:7px;flex:none;padding:9px 14px;border-radius:999px;cursor:pointer;
+  background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.10);color:var(--creamd);
+  font-family:'Outfit',sans-serif;font-size:13px;font-weight:600;white-space:nowrap;transition:all .15s}
+.bb-stagechip:hover{border-color:rgba(200,164,78,.4);color:var(--cream)}
+.bb-stagechip.active{background:rgba(200,164,78,.15);border-color:var(--gold);color:var(--gold)}
+.bb-stagechip.empty{opacity:.55}
+.bb-stagechip .chip-dot{width:8px;height:8px;border-radius:50%;flex:none}
+.bb-stagechip .chip-n{font-size:12px;font-weight:800;min-width:18px;text-align:center;
+  background:rgba(255,255,255,.08);border-radius:999px;padding:1px 6px}
+.bb-stagechip.active .chip-n{background:rgba(200,164,78,.22)}
+.bb-stagehint{font-size:12.5px;color:var(--muted);margin:0 2px 12px}
+.bb-stagelist{display:flex;flex-direction:column;gap:10px}
+.bb-stagelist .bb-lead-card{width:100%;margin:0}
+@media(max-width:899px){
+  .bb-kanban-board{display:block;overflow-x:visible;min-height:0;padding:6px 0 16px}
+  /* the stage chips carry the same counts, so the pill row is pure duplication */
+  #tab-leads .bb-leads-summary{display:none}
+  #tab-leads .admin-filter-row-dates{flex-wrap:wrap;gap:10px}
+  #tab-leads .admin-filter-row-date{flex:1 1 140px;min-width:0}
+  #tab-leads .admin-filter-date{width:100%}
+}
+
 .bb-kanban-col{flex:0 0 280px;background:rgba(255,255,255,0.025);border:1px solid rgba(255,255,255,0.06);border-radius:10px;display:flex;flex-direction:column;max-height:78vh}
 .bb-kanban-col.is-drag-over{background:rgba(200,164,78,0.08);border-color:var(--gold)}
 .bb-kanban-col-head{padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.06);display:flex;justify-content:space-between;align-items:center;gap:6px;position:sticky;top:0;background:rgba(13,13,13,0.92);backdrop-filter:blur(4px);border-radius:10px 10px 0 0;z-index:1}
@@ -15153,17 +15191,21 @@ async function loadPart2Submissions() {
 // LEADS PIPELINE — kanban + table + detail modal + today widget
 // ════════════════════════════════════════════════════════════
 var BB_LEAD_STAGES = [
-  { id:'new_audit', label:'New audit',       color:'#9ca3af', icon:'📥' },
-  { id:'contacted', label:'In conversation', color:'#3b82f6', icon:'💬' },
-  { id:'part2',     label:'Part-2',          color:'#a855f7', icon:'📋' },
-  { id:'call',      label:'Call',            color:'#eab308', icon:'📞' },
-  { id:'converted', label:'Converted',       color:'#22c55e', icon:'🎉' },
-  { id:'lost',      label:'Lost / Cold',     color:'#ef4444', icon:'❌' }
+  { id:'new_audit', label:'New audit',   color:'#9ca3af', icon:'📥', hint:'Just submitted, not contacted yet' },
+  { id:'contacted', label:'Contacted',   color:'#3b82f6', icon:'💬', hint:'You have reached out' },
+  { id:'part2',     label:'Part-2',      color:'#a855f7', icon:'📋', hint:'Second form received' },
+  { id:'call',      label:'Call',        color:'#eab308', icon:'📞', hint:'Call booked or done' },
+  { id:'converted', label:'Converted',   color:'#22c55e', icon:'🎉', hint:'Became a client' },
+  // Silence is not rejection. These people need a different follow-up from the
+  // ones who actually said no, so they get their own column.
+  { id:'no_reply',  label:'No reply',    color:'#f59e0b', icon:'🕓', hint:'Contacted, never replied' },
+  { id:'lost',      label:'Lost / Cold', color:'#ef4444', icon:'❌', hint:'Said no, or gone cold' }
 ];
 // Legacy stage ids → streamlined ids, so any lead still carrying an old stage
 // (before the server migration runs) renders in the right column.
 var BB_LEAD_STAGE_ALIASES = {
   whatsapp_sent:'contacted', in_conversation:'contacted',
+  no_response:'no_reply', cold:'no_reply',
   part2_sent:'part2', part2_received:'part2',
   call_proposed:'call', call_scheduled:'call', call_done:'call',
   payment_pending:'converted', onboarded:'converted'
@@ -15272,7 +15314,12 @@ async function loadLeads() {
     if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#e05050;padding:24px">' + escapeHtml(msg) + '</td></tr>';
     return;
   }
-  bbLeadsState.leads = Array.isArray(data.leads) ? data.leads : [];
+  // Clients who joined without an audit are real pipeline entries too. The
+  // board hid them entirely before, which is why active clients went missing.
+  var leadRows = Array.isArray(data.leads) ? data.leads : [];
+  var memberRows = Array.isArray(data.members) ? data.members : [];
+  bbLeadsState.memberCount = memberRows.length;
+  bbLeadsState.leads = leadRows.concat(memberRows);
   bbLeadsState.byStage = {};
   BB_LEAD_STAGES.forEach(function(s){ bbLeadsState.byStage[s.id] = []; });
   bbLeadsState.leads.forEach(function(l){
@@ -15335,11 +15382,18 @@ function bbLeadCardHtml(lead) {
     '</div>';
 }
 
+/* A seven-column board is unusable on a phone: you see one column and swipe
+   blind through the rest. Below 900px the same data becomes a stage picker
+   plus a single list, so every stage is one tap away. */
+function bbLeadsIsNarrow() { return window.innerWidth < 900; }
+
 function bbLeadsRenderKanban() {
   var board = document.getElementById('bbLeadsKanban');
   if (!board) return;
+  if (bbLeadsIsNarrow()) { bbLeadsRenderStacked(board); return; }
+
   var html = '';
-  BB_LEAD_STAGES.forEach(function(stage){
+  BB_LEAD_STAGES.forEach(function (stage) {
     var rows = bbLeadsState.byStage[stage.id] || [];
     html += '<div class="bb-kanban-col" data-stage="' + stage.id + '" ' +
       'ondragover="bbLeadDragOver(event)" ondragleave="bbLeadDragLeave(event)" ondrop="bbLeadDrop(event)">' +
@@ -15349,11 +15403,52 @@ function bbLeadsRenderKanban() {
         '<span class="bb-kanban-col-count">' + rows.length + '</span>' +
       '</div>' +
       '<div class="bb-kanban-col-body">' +
-        (rows.length ? rows.map(bbLeadCardHtml).join('') : '<div class="bb-kanban-empty">Drop leads here</div>') +
+        (rows.length ? rows.map(bbLeadCardHtml).join('')
+          : '<div class="bb-kanban-empty">' + escapeHtml(stage.hint || 'Nothing here') + '</div>') +
       '</div></div>';
   });
   board.innerHTML = html;
 }
+
+function bbLeadsRenderStacked(board) {
+  var active = bbLeadsState.mobileStage;
+  var known = BB_LEAD_STAGES.some(function (s) { return s.id === active; });
+  if (!known) {
+    var first = BB_LEAD_STAGES.filter(function (s) { return (bbLeadsState.byStage[s.id] || []).length; })[0];
+    active = bbLeadsState.mobileStage = (first ? first.id : 'new_audit');
+  }
+  var chips = BB_LEAD_STAGES.map(function (s) {
+    var n = (bbLeadsState.byStage[s.id] || []).length;
+    return '<button type="button" class="bb-stagechip' + (s.id === active ? ' active' : '') + (n ? '' : ' empty') + '"' +
+      ' onclick="bbLeadsSetMobileStage(&quot;' + s.id + '&quot;)">' +
+      '<span class="chip-dot" style="background:' + s.color + '"></span>' +
+      '<span class="chip-l">' + escapeHtml(s.label) + '</span>' +
+      '<span class="chip-n">' + n + '</span></button>';
+  }).join('');
+  var stage = BB_LEAD_STAGES.filter(function (s) { return s.id === active; })[0] || BB_LEAD_STAGES[0];
+  var rows = bbLeadsState.byStage[active] || [];
+  board.innerHTML =
+    '<div class="bb-stagebar">' + chips + '</div>' +
+    '<div class="bb-stagehint">' + escapeHtml(stage.hint || '') + '</div>' +
+    '<div class="bb-stagelist">' +
+      (rows.length ? rows.map(bbLeadCardHtml).join('')
+        : '<div class="bb-kanban-empty">Nobody in ' + escapeHtml(stage.label) + ' right now.</div>') +
+    '</div>';
+}
+
+function bbLeadsSetMobileStage(id) {
+  bbLeadsState.mobileStage = id;
+  bbLeadsRenderKanban();
+}
+
+// Re-lay the board when the viewport crosses the breakpoint.
+window.addEventListener('resize', function () {
+  if (!document.getElementById('bbLeadsKanban')) return;
+  var narrow = bbLeadsIsNarrow();
+  if (bbLeadsState._wasNarrow === narrow) return;
+  bbLeadsState._wasNarrow = narrow;
+  if (bbLeadsState.view === 'kanban') bbLeadsRenderKanban();
+});
 
 function bbLeadsRenderTable() {
   var tbody = document.getElementById('bbLeadsTableBody');
