@@ -7416,6 +7416,114 @@ app.get('/api/admin/attention-clients', verifyToken, requireAdminOrSuperadmin, a
 // (admin/superadmin also pass, so they can QA the view). There are deliberately NO
 // write endpoints here — all client management stays with Admin/Superadmin.
 
+// --- Member home: what have I done today, and what is left ---
+// The home screen used to answer this from half a dozen scattered reads, which
+// is why it could tell you to check in after you already had. One read, one
+// truth, and every figure is about TODAY unless it says otherwise.
+app.get('/api/member/home', verifyToken, async (req, res) => {
+  try {
+    const uid = req.user.id;
+    const one = async (sql, params = [uid]) => {
+      const r = await queryOne(sql, params);
+      return r ? Number(r.c || 0) : 0;
+    };
+
+    const [checkedIn, workoutToday, mealsToday, waterToday, sundayThisWeek] = await Promise.all([
+      one(`SELECT COUNT(*)::int c FROM daily_checkins WHERE user_id = ? AND checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE`),
+      one(`SELECT COUNT(*)::int c FROM workout_logs WHERE user_id = ? AND created_at::date = CURRENT_DATE`),
+      one(`SELECT COUNT(*)::int c FROM nutrition_meal_logs WHERE user_id = ? AND log_date = CURRENT_DATE`),
+      one(`SELECT COALESCE(SUM(amount_ml), 0)::int c FROM hydration_logs WHERE user_id = ? AND created_at::date = CURRENT_DATE`),
+      one(`SELECT COUNT(*)::int c FROM sunday_checkins WHERE user_id = ? AND created_at >= date_trunc('week', CURRENT_DATE)`)
+    ]);
+
+    // A 7-day strip of which days were checked in, oldest -> newest.
+    const weekRow = await queryOne(`
+      SELECT string_agg(CASE WHEN EXISTS (
+               SELECT 1 FROM daily_checkins d WHERE d.user_id = ? AND d.checkin_date = g.day
+                 AND COALESCE(d.is_freeze, FALSE) = FALSE) THEN '1' ELSE '0' END, '' ORDER BY g.day) AS days
+        FROM generate_series((CURRENT_DATE - INTERVAL '6 days')::date, CURRENT_DATE, INTERVAL '1 day') AS g(day)`, [uid]);
+
+    // Current streak of consecutive days ending today or yesterday.
+    const streakRow = await queryOne(`
+      WITH d AS (
+        SELECT DISTINCT checkin_date FROM daily_checkins
+         WHERE user_id = ? AND COALESCE(is_freeze, FALSE) = FALSE AND checkin_date <= CURRENT_DATE
+      ), g AS (
+        SELECT checkin_date, checkin_date - (ROW_NUMBER() OVER (ORDER BY checkin_date))::int AS grp FROM d
+      )
+      SELECT COUNT(*)::int AS c FROM g
+       WHERE grp = (SELECT grp FROM g ORDER BY checkin_date DESC LIMIT 1)
+         AND (SELECT MAX(checkin_date) FROM d) >= CURRENT_DATE - 1`, [uid]);
+
+    const user = await queryOne(`
+      SELECT first_name, last_name, email, profile_picture, goal_type, diet_type,
+             goal_steps, goal_water_ml, goal_protein_g, goal_sleep_hours,
+             subscription_status, plan_label, access_expires_at, created_at
+        FROM users WHERE id = ?`, [uid]);
+
+    const today = await queryOne(
+      `SELECT steps, water_ml, protein_g, sleep_hours FROM daily_checkins
+        WHERE user_id = ? AND checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE
+        ORDER BY created_at DESC LIMIT 1`, [uid]);
+
+    // What the upload panel needs to know.
+    const bloodRows = await queryAll(
+      `SELECT id, status, report_date, created_at, sent_to_user,
+              ai_report->>'overall_status' AS overall_status
+         FROM blood_analysis_reports WHERE user_id = ?
+        ORDER BY COALESCE(report_date, created_at::date) DESC, created_at DESC LIMIT 5`, [uid]);
+
+    let whoop = { connected: false, last_sync: null, days: 0, uploads: 0 };
+    try {
+      const w = await queryOne(
+        `SELECT COUNT(*)::int AS c, MAX(date)::text AS last_day FROM readiness_daily WHERE user_id = ?`, [uid]);
+      const up = await queryOne(
+        `SELECT COUNT(*)::int AS c, MAX(created_at) AS last_at FROM wearable_uploads WHERE user_id = ? AND status = 'committed'`, [uid]);
+      const days = w ? Number(w.c || 0) : 0;
+      whoop = {
+        connected: days > 0,
+        last_sync: (w && w.last_day) || null,
+        days: days,
+        uploads: up ? Number(up.c || 0) : 0,
+        last_upload_at: (up && up.last_at) || null
+      };
+    } catch (e) { /* wearables tables are optional on older installs */ }
+
+    const unread = await one(
+      `SELECT COUNT(*)::int c FROM thread_messages m
+         JOIN message_threads t ON t.id = m.thread_id
+        WHERE t.user_id = ? AND m.sender_role <> 'user'
+          AND m.created_at > COALESCE((SELECT MAX(created_at) FROM thread_messages me
+                WHERE me.thread_id = t.id AND me.sender_role = 'user'), '1970-01-01')`);
+
+    const programs = await one(`SELECT COUNT(*)::int c FROM programs`, []);
+
+    res.json({
+      user: user || {},
+      today: {
+        checked_in: checkedIn > 0,
+        workout_logged: workoutToday > 0,
+        meals_logged: mealsToday,
+        water_ml: waterToday,
+        sunday_done: sundayThisWeek > 0,
+        is_sunday: new Date().getDay() === 0,
+        steps: today ? today.steps : null,
+        protein_g: today ? today.protein_g : null,
+        sleep_hours: today ? today.sleep_hours : null
+      },
+      week: (weekRow && weekRow.days) || '0000000',
+      streak: streakRow ? Number(streakRow.c || 0) : 0,
+      blood: { reports: bloodRows || [], slots_used: (bloodRows || []).length, slots_total: 3 },
+      whoop,
+      unread_messages: unread,
+      programs
+    });
+  } catch (e) {
+    console.error('[member home]', e.message);
+    res.status(500).json({ error: 'Failed to load your home' });
+  }
+});
+
 // --- Admin landing: every figure the Dashboard shows, in one read ---
 // The landing used to assemble itself from ten separate calls, which is why its
 // numbers could disagree with each other. One endpoint, one snapshot.
