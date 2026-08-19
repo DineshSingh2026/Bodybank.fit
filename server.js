@@ -7432,7 +7432,7 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
       AND COALESCE(u.suspended, FALSE) = FALSE`;
 
     const [
-      members, activeToday, active7d, checkedIn, workouts, meals,
+      members, activeToday, active7d, checkedIn, workouts, meals, trainedToday, ateToday,
       trials, expiring, trialsEnded, newMembers7d
     ] = await Promise.all([
       one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT}`),
@@ -7451,8 +7451,15 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
           OR EXISTS (SELECT 1 FROM weight_logs g WHERE g.user_id = u.id AND g.created_at >= NOW() - INTERVAL '7 days'))`),
       one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT}
              AND EXISTS (SELECT 1 FROM daily_checkins d WHERE d.user_id = u.id AND d.checkin_date = CURRENT_DATE AND COALESCE(d.is_freeze, FALSE) = FALSE)`),
+      // Two different questions, so two different numbers: how many SESSIONS
+      // were logged (volume), and how many PEOPLE logged one (coverage). The
+      // landing shows coverage, because every tile opens a list of people.
       one(`SELECT COUNT(*)::int c FROM workout_logs w JOIN users u ON u.id = w.user_id WHERE ${CLIENT} AND w.created_at::date = CURRENT_DATE`),
       one(`SELECT COUNT(*)::int c FROM nutrition_meal_logs m JOIN users u ON u.id = m.user_id WHERE ${CLIENT} AND m.log_date = CURRENT_DATE`),
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT}
+             AND EXISTS (SELECT 1 FROM workout_logs w WHERE w.user_id = u.id AND w.created_at::date = CURRENT_DATE)`),
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT}
+             AND EXISTS (SELECT 1 FROM nutrition_meal_logs m WHERE m.user_id = u.id AND m.log_date = CURRENT_DATE)`),
       one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT} AND u.subscription_status = 'trialing'`),
       one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT} AND u.subscription_status = 'trialing'
              AND u.access_expires_at IS NOT NULL AND u.access_expires_at BETWEEN NOW() AND NOW() + INTERVAL '3 days'`),
@@ -7521,7 +7528,11 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
     res.json({
       roster: {
         members, active_today: activeToday, active_7d: active7d, inactive_7d: Math.max(0, members - active7d),
-        checked_in_today: checkedIn, workouts_today: workouts, meals_today: meals,
+        checked_in_today: checkedIn,
+        // volume
+        workouts_today: workouts, meals_today: meals,
+        // coverage — how many people, which is what the tiles link to
+        trained_today: trainedToday, ate_today: ateToday,
         trials, trials_expiring: expiring, trials_ended: trialsEnded, new_members_7d: newMembers7d
       },
       pipeline: {

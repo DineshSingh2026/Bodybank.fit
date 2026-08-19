@@ -152,10 +152,13 @@ function renderAdminHome() {
       return '<button type="button" class="ah-hstat' + (n ? '' : ' nil') + '" onclick="ahGo(\'tab\',\'' + tab + '\')">'
         + '<b>' + ahNum(n) + '</b><i>/' + members + '</i><span>' + ahEsc(label) + '</span></button>';
     };
+    // these read "N /members", so they have to be counts of PEOPLE. They were
+    // showing session volume against a member denominator, which could exceed
+    // the roster and meant nothing as a fraction.
     hs.innerHTML = members
       ? mini(r.checked_in_today, 'checked in today', 'dailycheckin')
-        + mini(r.workouts_today, 'workouts logged', 'workouts')
-        + mini(r.meals_today, 'meals logged', 'nutrition')
+        + mini(r.trained_today, 'trained today', 'workouts')
+        + mini(r.ate_today, 'logged a meal', 'nutrition')
       : '';
   }
 
@@ -204,15 +207,17 @@ function renderAdminHome() {
       + '<span class="ah-tile-s">' + ahEsc(sub) + '</span></button>';
   };
 
+  // every roster tile counts people, so say so on the tile itself
+  var ofMembers = function (n) { return (members ? n + ' of ' + members + ' members' : 'no members yet') + ' today'; };
   var rosterEl = ahEl('ahTilesRoster');
   if (rosterEl) {
     rosterEl.innerHTML =
       tile(r.members, 'Members', 'on the roster', 'gold', 'tab', 'tribe')
       + tile(r.active_7d, 'Active', 'last 7 days', 'ok', 'tab', 'dailycompliance')
       + tile(r.inactive_7d, 'Inactive', 'nothing logged in 7 days', 'bad', 'tab', 'dailycompliance')
-      + tile(r.checked_in_today, 'Daily check-ins', 'today', 'amber', 'tab', 'dailycheckin')
-      + tile(r.workouts_today, 'Workouts', 'logged today', 'amber', 'tab', 'workouts')
-      + tile(r.meals_today, 'Meals', 'logged today', 'amber', 'tab', 'nutrition');
+      + tile(r.checked_in_today, 'Checked in', ofMembers(r.checked_in_today), 'amber', 'tab', 'dailycheckin')
+      + tile(r.trained_today, 'Trained', ofMembers(r.trained_today), 'amber', 'tab', 'workouts')
+      + tile(r.ate_today, 'Logged a meal', ofMembers(r.ate_today), 'amber', 'tab', 'nutrition');
   }
 
   var pipeEl = ahEl('ahTilesPipeline');

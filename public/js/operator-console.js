@@ -1833,9 +1833,9 @@ function renderOperatorHome() {
     todayEl.innerHTML =
       opMonTile('active', 'Active clients', of(opCount('active')) + ' · last 7 days', 'ok')
       + opMonTile('inactive', 'Inactive clients', of(opCount('inactive')) + ' · nothing logged', 'bad')
-      + opMonTile('checkin', 'Daily check-ins', 'logged today', 'amber')
-      + opMonTile('workout', 'Workouts', 'logged today', 'amber')
-      + opMonTile('meal', 'Meals', 'logged today', 'amber');
+      + opMonTile('checkin', 'Checked in', of(opCount('checkin')) + ' today', 'amber')
+      + opMonTile('workout', 'Trained', of(opCount('workout')) + ' today', 'amber')
+      + opMonTile('meal', 'Logged a meal', of(opCount('meal')) + ' today', 'amber');
   }
 
   var watchEl = opEl('opMonWatch');
