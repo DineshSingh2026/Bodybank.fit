@@ -134,10 +134,12 @@
 
 .op-top-right { display: flex; align-items: center; gap: 10px; flex: none; margin-left: auto }
 .op-logout {
+  display: inline-flex; align-items: center; gap: 8px;
   padding: 10px 17px; border-radius: 14px; cursor: pointer; flex: none; font-weight: 600; font-size: 13.5px;
   background: var(--op-glass); border: 1px solid var(--op-edge); color: var(--op-ivory);
-  box-shadow: var(--op-inner); transition: all .18s;
+  box-shadow: var(--op-inner); transition: all .18s; font-family: inherit;
 }
+.op-logout svg { width: 17px; height: 17px; stroke: currentColor; fill: none; stroke-width: 1.9; stroke-linecap: round; stroke-linejoin: round }
 .op-logout:hover { background: var(--op-glass-hi); border-color: var(--op-edge-hi) }
 
 /* ------------------------------------------------------------------ rail */
@@ -626,7 +628,12 @@
   }
   .op-rail { display: none }
   #opBottomNav { display: flex }
-  .op-brand, .op-omni-kbd, .op-logout { display: none }
+  .op-brand, .op-omni-kbd { display: none }
+  /* icon only on a phone — the label costs room the search field needs, but
+     hiding the control entirely left no way to sign out */
+  .op-logout { width: 42px; height: 42px; padding: 0; justify-content: center; border-radius: 14px }
+  .op-logout span { display: none }
+  .op-logout svg { width: 19px; height: 19px }
   .op-omni { max-width: none; margin: 0 }
 
   .op-scroll { padding: 16px 15px calc(100px + env(safe-area-inset-bottom, 0px)) }
