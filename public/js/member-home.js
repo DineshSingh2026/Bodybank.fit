@@ -36,6 +36,73 @@ function mhDay(ts) {
   return isNaN(d.getTime()) ? '' : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
 }
 // Home has to reach tabs and, for check-in, a sub-view inside one.
+/* ---- the day, as one instrument ------------------------------------------
+   This used to be one full-height card per task, each with its own gold
+   button. Four equal shouts, no sense of progress, and half a screen of
+   scroll. Now: a rail that shows how far through the day you are, the ONE
+   thing to do next given real weight, the remaining steps as one-line rows,
+   and finished ones collapsed to a ledger that keeps the numbers you logged.
+   Priority is visible, and the whole loop fits on a phone screen. */
+
+function mhGoAttr(s) {
+  return 'mhGo(&quot;' + s.tab + '&quot;' + (s.sub2 ? ',&quot;' + s.sub2 + '&quot;' : '') + ')';
+}
+
+function mhLoopCard(steps) {
+  var done = steps.filter(function (s) { return s.done; });
+  var open = steps.filter(function (s) { return !s.done; });
+  // Never lead with something that is not actually due yet (the Sunday review
+  // on a Tuesday) — it would send the member to a screen with nothing to do.
+  var next = open.filter(function (s) { return !s.soft; })[0] || null;
+  var rest = open.filter(function (s) { return s !== next; });
+  var all = !open.length;
+
+  var rail = '<div class="mh-rail" role="img" aria-label="' + done.length + ' of ' + steps.length
+    + ' done today">' + steps.map(function (s) {
+      return '<i class="' + (s.done ? 'on' : '') + '"></i>';
+    }).join('') + '</div>';
+
+  var head = all
+    ? '<div class="mh-alldone">'
+      + '<span class="mh-alldone-ring" aria-hidden="true">✓</span>'
+      + '<div class="mh-alldone-t"><b>Today is complete.</b>'
+      + '<span>Every box ticked. Rest up — the streak does the rest.</span></div></div>'
+    : '<div class="mh-next">'
+      + '<span class="mh-next-ico" aria-hidden="true">' + next.icon + '</span>'
+      + '<div class="mh-next-main">'
+      + '<span class="mh-kicker">Do this next</span>'
+      + '<div class="mh-next-title">' + mhEsc(next.title) + '</div>'
+      + '<div class="mh-next-sub">' + mhEsc(next.sub) + '</div>'
+      + '</div>'
+      + '<button type="button" class="mh-next-cta" onclick="' + mhGoAttr(next) + '">'
+      + mhEsc(next.cta) + '<em aria-hidden="true">\u2192</em></button>'
+      + '</div>';
+
+  var rows = rest.length
+    ? '<div class="mh-rows">' + rest.map(function (s) {
+        return '<button type="button" class="mh-row' + (s.soft ? ' soft' : '') + '" onclick="'
+          + mhGoAttr(s) + '">'
+          + '<span class="mh-row-ico" aria-hidden="true">' + s.icon + '</span>'
+          + '<span class="mh-row-t">' + mhEsc(s.title) + '</span>'
+          + '<span class="mh-row-note">' + mhEsc(s.sub) + '</span>'
+          + '<span class="mh-row-go" aria-hidden="true">›</span>'
+          + '</button>';
+      }).join('') + '</div>'
+    : '';
+
+  var ledger = done.length
+    ? '<div class="mh-ledger">' + done.map(function (s) {
+        return '<button type="button" class="mh-led" onclick="' + mhGoAttr(s) + '">'
+          + '<span class="mh-led-tick" aria-hidden="true">✓</span>'
+          + '<span class="mh-led-t">' + mhEsc(s.doneTitle) + '</span>'
+          + '<span class="mh-led-v">' + mhEsc(s.doneSub) + '</span>'
+          + '</button>';
+      }).join('') + '</div>'
+    : '';
+
+  return '<div class="mh-day-card' + (all ? ' is-done' : '') + '">' + rail + head + rows + ledger + '</div>';
+}
+
 function mhGo(tab, sub) {
   try {
     if (typeof switchUserTab === 'function') switchUserTab(tab);
@@ -131,23 +198,9 @@ function renderMemberHome() {
 
   var open = steps.filter(function (s) { return !s.done; });
   var loopEl = mhEl('mhLoop');
-  if (loopEl) {
-    loopEl.innerHTML = steps.map(function (s) {
-      var sub2 = s.sub2 ? ",'" + s.sub2 + "'" : '';
-      return '<div class="mh-step' + (s.done ? ' done' : '') + (s.soft ? ' soft' : '') + '">'
-        + '<span class="mh-step-ico" aria-hidden="true">' + (s.done ? '✓' : s.icon) + '</span>'
-        + '<div class="mh-step-main">'
-        + '<div class="mh-step-title">' + mhEsc(s.done ? s.doneTitle : s.title) + '</div>'
-        + '<div class="mh-step-sub">' + mhEsc(s.done ? s.doneSub : s.sub) + '</div>'
-        + '</div>'
-        + (s.done
-          ? '<button type="button" class="mh-step-cta ghost" onclick="mhGo(\'' + s.tab + '\'' + sub2 + ')">View</button>'
-          : '<button type="button" class="mh-step-cta" onclick="mhGo(\'' + s.tab + '\'' + sub2 + ')">' + mhEsc(s.cta) + '</button>')
-        + '</div>';
-    }).join('');
-  }
+  if (loopEl) loopEl.innerHTML = mhLoopCard(steps);
   var lc = mhEl('mhLoopCount');
-  if (lc) lc.textContent = open.length ? mhPlural(open.length, 'thing') + ' left' : 'all done today';
+  if (lc) lc.textContent = steps.length - open.length + ' of ' + steps.length + ' done';
   var lineEl = mhEl('mhLine');
   if (lineEl) {
     lineEl.innerHTML = open.length

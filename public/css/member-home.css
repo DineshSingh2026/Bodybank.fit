@@ -81,39 +81,110 @@
 .mh-day.today { box-shadow: 0 0 0 2px rgba(226, 192, 113, .45) }
 
 /* ------------------------------------------------------------ daily loop */
-.mh-loop { display: flex; flex-direction: column; gap: 11px }
-.mh-step {
-  display: flex; align-items: center; gap: 15px; padding: 17px 19px; border-radius: 20px;
-  background: var(--mh-glass); border: 1px solid var(--mh-edge);
-  border-left: 4px solid var(--mh-gold); box-shadow: var(--mh-inner);
-  transition: background .18s, transform .18s;
+/* One card, not one per task. The rail carries progress, the next action
+   carries the only gold button on the page, the rest are one-line rows, and
+   finished work collapses to a ledger that keeps the numbers logged. */
+.mh-day-card {
+  padding: 0; border-radius: 22px; overflow: hidden;
+  background: var(--mh-glass); border: 1px solid var(--mh-edge); box-shadow: var(--mh-inner), var(--mh-lift);
 }
-.mh-step:hover { background: var(--mh-glass-hi) }
-.mh-step.done { border-left-color: var(--mh-ok); opacity: .82 }
-.mh-step.soft { border-left-color: rgba(255, 255, 255, .18); opacity: .72 }
-.mh-step-ico {
-  width: 42px; height: 42px; border-radius: 14px; flex: none; display: grid; place-items: center; font-size: 19px;
-  background: rgba(226, 192, 113, .14); border: 1px solid var(--mh-edge-gold);
+
+/* progress rail — one segment per task, so "how far through today" is pre-attentive */
+.mh-rail { display: flex; gap: 5px; padding: 11px 11px 9px }
+.mh-rail i {
+  flex: 1; height: 5px; border-radius: 999px; background: rgba(255, 255, 255, .14);
+  transition: background .4s ease, box-shadow .4s ease;
 }
-.mh-step.done .mh-step-ico {
-  background: rgba(95, 211, 154, .16); border-color: rgba(95, 211, 154, .38);
-  color: var(--mh-ok); font-size: 20px; font-weight: 800;
+.mh-rail i.on {
+  background: linear-gradient(90deg, var(--mh-gold), var(--mh-gold-lt));
+  box-shadow: 0 0 12px rgba(226, 192, 113, .5);
 }
-.mh-step-main { flex: 1; min-width: 0 }
-.mh-step-title { font-size: 16.5px; font-weight: 600; letter-spacing: -.015em }
-.mh-step.done .mh-step-title { text-decoration: none; color: var(--mh-soft) }
-.mh-step-sub { font-size: 13px; color: var(--mh-soft); margin-top: 3px }
-.mh-step-cta {
-  flex: none; padding: 12px 18px; border-radius: 14px; border: 0; cursor: pointer; white-space: nowrap;
-  font-size: 13.5px; font-weight: 700; color: #211803;
+
+/* the one thing to do now */
+.mh-next {
+  display: flex; align-items: center; gap: 16px; padding: 18px 20px 20px;
+  background:
+    radial-gradient(120% 160% at 0% 0%, rgba(226, 192, 113, .13), transparent 62%),
+    linear-gradient(180deg, rgba(226, 192, 113, .05), transparent);
+}
+.mh-next-ico {
+  width: 46px; height: 46px; flex: none; border-radius: 15px; display: grid; place-items: center; font-size: 21px;
+  background: rgba(226, 192, 113, .15); border: 1px solid var(--mh-edge-gold);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .16);
+}
+.mh-next-main { flex: 1; min-width: 0 }
+.mh-kicker {
+  display: block; font-size: 10px; font-weight: 800; letter-spacing: .17em; text-transform: uppercase;
+  color: var(--mh-gold); margin-bottom: 5px;
+}
+.mh-next-title { font-size: 19px; font-weight: 600; letter-spacing: -.02em; line-height: 1.2 }
+.mh-next-sub { font-size: 13px; color: var(--mh-soft); margin-top: 4px; line-height: 1.45 }
+.mh-next-cta {
+  flex: none; padding: 13px 20px; border-radius: 14px; border: 0; cursor: pointer; white-space: nowrap;
+  display: inline-flex; align-items: center; gap: 9px;
+  font-size: 14px; font-weight: 700; color: #211803;
   background: linear-gradient(105deg, var(--mh-gold-lt), var(--mh-gold));
-  box-shadow: 0 8px 22px rgba(226, 192, 113, .28); transition: filter .18s, transform .18s;
+  box-shadow: 0 10px 26px rgba(226, 192, 113, .3); transition: filter .18s, transform .18s;
 }
-.mh-step-cta:hover { filter: brightness(1.07); transform: translateX(2px) }
-.mh-step-cta.ghost {
-  background: rgba(255, 255, 255, .06); color: var(--mh-soft);
-  border: 1px solid var(--mh-edge); box-shadow: none;
+.mh-next-cta em { font-style: normal; transition: transform .18s }
+.mh-next-cta:hover { filter: brightness(1.06) }
+.mh-next-cta:hover em { transform: translateX(3px) }
+
+/* everything else still to do — the row itself is the target, no button chrome */
+.mh-rows { display: flex; flex-direction: column; border-top: 1px solid var(--mh-edge) }
+.mh-row {
+  display: flex; align-items: center; gap: 13px; width: 100%; text-align: left; cursor: pointer;
+  padding: 14px 20px; background: transparent; border: 0; border-bottom: 1px solid rgba(255, 255, 255, .05);
+  color: var(--mh-ink); transition: background .16s;
 }
+.mh-row:last-child { border-bottom: 0 }
+.mh-row:hover { background: rgba(255, 255, 255, .045) }
+.mh-row.soft { opacity: .62 }
+.mh-row-ico {
+  width: 30px; height: 30px; flex: none; border-radius: 10px; display: grid; place-items: center; font-size: 15px;
+  background: rgba(255, 255, 255, .055); border: 1px solid var(--mh-edge);
+}
+.mh-row-t { font-size: 14.5px; font-weight: 600; letter-spacing: -.01em; flex: none; margin-right: 2px }
+.mh-row-note {
+  flex: 1; min-width: 0; font-size: 12.5px; color: var(--mh-dim);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mh-row-go { flex: none; font-size: 19px; color: var(--mh-dim); transition: transform .16s, color .16s }
+.mh-row:hover .mh-row-go { color: var(--mh-gold); transform: translateX(3px) }
+
+/* finished work — the reward without the bulk */
+.mh-ledger { display: flex; flex-direction: column; background: rgba(0, 0, 0, .22); border-top: 1px solid var(--mh-edge) }
+.mh-led {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left; cursor: pointer;
+  padding: 11px 20px; background: transparent; border: 0; color: var(--mh-soft); transition: color .16s;
+}
+.mh-led:hover { color: var(--mh-ink) }
+.mh-led-tick {
+  width: 19px; height: 19px; flex: none; border-radius: 999px; display: grid; place-items: center;
+  font-size: 11px; font-weight: 800; color: #06301F; background: var(--mh-ok);
+}
+.mh-led-t { font-size: 13px; font-weight: 600; flex: none }
+.mh-led-v {
+  flex: 1; min-width: 0; font-size: 12px; color: var(--mh-dim); text-align: right;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* nothing left — make it a moment, not an empty list */
+.mh-day-card.is-done { border-color: rgba(95, 211, 154, .3) }
+.mh-day-card.is-done .mh-rail i.on {
+  background: linear-gradient(90deg, var(--mh-ok), #A7EFCE); box-shadow: 0 0 12px rgba(95, 211, 154, .45);
+}
+.mh-alldone {
+  display: flex; align-items: center; gap: 15px; padding: 20px;
+  background: radial-gradient(120% 160% at 0% 0%, rgba(95, 211, 154, .14), transparent 62%);
+}
+.mh-alldone-ring {
+  width: 44px; height: 44px; flex: none; border-radius: 999px; display: grid; place-items: center;
+  font-size: 21px; font-weight: 800; color: var(--mh-ok);
+  background: rgba(95, 211, 154, .14); border: 2px solid rgba(95, 211, 154, .5);
+}
+.mh-alldone-t b { display: block; font-size: 18px; font-weight: 600; letter-spacing: -.02em }
+.mh-alldone-t span { display: block; font-size: 13px; color: var(--mh-soft); margin-top: 3px }
 
 /* --------------------------------------------------------- today's goals */
 .mh-goals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px }
@@ -200,10 +271,20 @@
   .mh-streak b { font-size: 33px }
   .mh-week { gap: 5px; min-width: 0 }
   .mh-day { height: 34px; border-radius: 10px }
-  .mh-step { padding: 15px; gap: 12px; flex-wrap: wrap }
-  .mh-step-title { font-size: 15.5px }
-  .mh-step-cta { width: 100%; text-align: center }
-  .mh-step-ico { width: 38px; height: 38px; border-radius: 12px; font-size: 17px }
+  /* the next action stacks so its button spans the thumb, the rows stay single-line */
+  .mh-next { flex-wrap: wrap; padding: 16px 16px 18px; gap: 13px }
+  .mh-next-ico { width: 40px; height: 40px; border-radius: 13px; font-size: 19px }
+  .mh-next-title { font-size: 17.5px }
+  .mh-next-main { flex: 1 1 60% }
+  .mh-next-cta { width: 100%; justify-content: center }
+  .mh-row { padding: 13px 16px; gap: 11px }
+  .mh-row-note { display: none }
+  .mh-row-t { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .mh-led { padding: 10px 16px }
+  /* the numbers logged are the reward, so keep them — just let them truncate */
+  .mh-led-t { max-width: 45%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap }
+  .mh-led-v { font-size: 11.5px }
+  .mh-alldone { padding: 17px 16px }
   .mh-up { padding: 17px }
   .mh-navtile { padding: 14px 15px; border-radius: 17px }
   .mh-navmain b { font-size: 13.5px }
@@ -212,7 +293,8 @@
 @media (prefers-reduced-motion: reduce) {
   .mh-goal-fill { transition: none }
   .mh-refresh.is-busy { animation: none }
-  .mh-step:hover, .mh-navtile:hover, .mh-step-cta:hover { transform: none }
+  .mh-navtile:hover, .mh-next-cta:hover em, .mh-row:hover .mh-row-go { transform: none }
+  .mh-rail i { transition: none }
 }
 
 /* ------------------------------------------------- sequencing the page --- */
