@@ -223,3 +223,30 @@
   .ah-bar-fill, .ah-spark-b { transition: none }
   .ah-refresh.is-busy { animation: none }
 }
+
+/* ------------------------------------------------------- quick access --- */
+/* Twelve destinations, same as the old dashboard carried. A grid rather than
+   a strip, so nothing runs off the side and every target is one tap. */
+.ah-quick-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px }
+.ah-quick {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px;
+  padding: 18px 10px; border-radius: 18px; cursor: pointer; text-align: center;
+  background: var(--ah-glass); border: 1px solid var(--ah-edge); color: var(--ah-ink);
+  box-shadow: var(--ah-inner); transition: all .18s;
+}
+.ah-quick:hover {
+  transform: translateY(-3px); background: var(--ah-glass-hi);
+  border-color: var(--ah-edge-hi); box-shadow: var(--ah-lift), var(--ah-inner);
+}
+.ah-quick:focus-visible { outline: 2px solid var(--ah-gold); outline-offset: 2px }
+.ah-quick-ico { font-size: 24px; line-height: 1 }
+.ah-quick-l { font-size: 12.5px; font-weight: 600; line-height: 1.3; color: var(--ah-soft) }
+.ah-quick:hover .ah-quick-l { color: var(--ah-ink) }
+
+@media (max-width: 1200px) { .ah-quick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) } }
+@media (max-width: 767px) {
+  .ah-quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px }
+  .ah-quick { padding: 15px 8px; gap: 7px; border-radius: 16px }
+  .ah-quick-ico { font-size: 21px }
+  .ah-quick-l { font-size: 11.5px }
+}

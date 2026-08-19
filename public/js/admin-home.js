@@ -51,6 +51,7 @@ function ahGo(kind, name) {
   try {
     if (kind === 'section' && typeof switchToSection === 'function') switchToSection(name);
     else if (kind === 'modal' && name === 'escalations' && typeof openAdminEscalations === 'function') openAdminEscalations();
+    else if (kind === 'fn' && typeof window[name] === 'function') window[name]();
     else if (typeof switchTab === 'function') switchTab(name);
   } catch (e) { }
   return false;
@@ -244,9 +245,38 @@ function renderAdminHome() {
   }
 }
 
+
+/* Quick access — the twelve shortcuts the old dashboard carried, unchanged in
+   destination and order, laid out as one scannable grid instead of a strip
+   that ran off the side of the screen. */
+var AH_QUICK = [
+  { icon: '🎯', label: 'Leads', kind: 'tab', to: 'leads' },
+  { icon: '👥', label: 'Client Board', kind: 'tab', to: 'tribe' },
+  { icon: '📋', label: 'Audit Forms', kind: 'tab', to: 'requests' },
+  { icon: '📅', label: 'Daily Check-ins', kind: 'tab', to: 'dailycheckin' },
+  { icon: '📸', label: 'Elite Feed', kind: 'section', to: 'elitefeed' },
+  { icon: '🏆', label: 'Leader Boards', kind: 'tab', to: 'leaderboards' },
+  { icon: '🥗', label: 'Nutrition AI', kind: 'tab', to: 'nutrition' },
+  { icon: '🩺', label: 'Blood Reports', kind: 'tab', to: 'blood' },
+  { icon: '💳', label: 'Members', kind: 'tab', to: 'memberships' },
+  { icon: '📈', label: 'Analytics', kind: 'section', to: 'analytics' },
+  { icon: '🪙', label: 'Tokens', kind: 'tab', to: 'tokens' },
+  { icon: '💡', label: 'AI Assist', kind: 'fn', to: 'toggleAdminAiAssistPanel' }
+];
+function renderAdminQuick() {
+  var el = ahEl('ahQuick');
+  if (!el) return;
+  el.innerHTML = AH_QUICK.map(function (q) {
+    return '<button type="button" class="ah-quick" onclick="ahGo(&quot;' + q.kind + '&quot;,&quot;' + q.to + '&quot;)">'
+      + '<span class="ah-quick-ico" aria-hidden="true">' + q.icon + '</span>'
+      + '<span class="ah-quick-l">' + ahEsc(q.label) + '</span></button>';
+  }).join('');
+}
+
 // The admin shell calls this after its own loaders finish.
 function ahBoot() {
   if (!ahEl('adminHome')) return;
+  renderAdminQuick();
   loadAdminHome();
   if (window._ahPoll) clearInterval(window._ahPoll);
   window._ahPoll = setInterval(function () {
