@@ -214,3 +214,68 @@
   .mh-refresh.is-busy { animation: none }
   .mh-step:hover, .mh-navtile:hover, .mh-step-cta:hover { transform: none }
 }
+
+/* ------------------------------------------------- sequencing the page --- */
+/* Retired duplicates. !important because several of these are switched on by
+   viewport rules elsewhere (#usec-home .bb-user-desktop-dashboard{display:block
+   !important} among them). */
+.mh-gone { display: none !important }
+
+/* Widgets moved in from the old panes keep their own internals; these rules
+   only make them sit correctly inside the new sequence. */
+.mh-slot > * { margin-bottom: 0 !important }
+.mh-two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start }
+.mh-two > * { min-width: 0 }
+#mhSlotScore > *, #mhSlotWeek > *, #mhSlotTrends > *, #mhSlotActivity > *, #mhSlotReports > * { width: 100% }
+#mhSlotWeek { display: grid; gap: 12px }
+#mhSlotTrends > * { margin: 0 }
+#mhSlotPush { margin-top: 4px }
+
+/* the pills row lifted out of the old hero (freeze, refer, signal, readiness) */
+.mh-pills { display: flex; flex-wrap: wrap; gap: 8px }
+.mh-pills > * { margin: 0 !important }
+
+@media (max-width: 900px) {
+  .mh-two { grid-template-columns: minmax(0, 1fr) }
+}
+
+/* The desktop top bar carries coins, notifications and logout, so it is hoisted
+   to the very top of the page. Two corrections that follow from moving it:
+   its greeting repeats the hero right beneath it, and on a phone the shell
+   already has its own header, so the bar has no business being there. */
+#usec-home > .user-topbar > :first-child { display: none }
+@media (max-width: 767px) {
+  #usec-home > .user-topbar { display: none !important }
+}
+
+/* Moving these widgets out of the two legacy panes also took them out of the
+   viewport gating those panes provided, so the mobile and desktop variants of
+   the same card both showed up at once. Re-state the intent explicitly. */
+@media (max-width: 767px) {
+  #mhSlotBody > #bbRdHomeSectionDesktop,
+  #mhSlotBody > #bbSigHomeSectionDesktop,
+  #mhSlotScore > #bbScorecardDesktopWrap,
+  /* .bb-stat-grid, the charts and the activity table are filled only by
+     bbRefreshDesktopUserDashboard, which the shell runs at >=768px — on a phone
+     they would sit on "Loading…" for ever. */
+  #mhSlotWeek > .bb-stat-grid,
+  #mhSecTrends, #mhSecActivity { display: none !important }
+}
+@media (min-width: 768px) {
+  #mhSlotBody > #bbRdHome,
+  #mhSlotBody > #bbSigHome,
+  #mhSlotScore > .bb-pulse-score,
+  #mhSlotWeek > #bbPulsePillars { display: none !important }
+}
+/* the health-reports panel owns blood entirely now, so it sits full width */
+#mhSlotReports { margin-top: 14px }
+#mhSlotReports > * { width: 100% }
+.mh-uploads:has(> .mh-up:only-child) { grid-template-columns: minmax(0, 1fr) }
+@media (max-width: 767px) { #mhSlotReports > #myHealthReportsSectionDesktop { display: none !important } }
+@media (min-width: 768px) { #mhSlotReports > #myHealthReportsSection { display: none !important } }
+@media (max-width: 767px) { #mhSlotPush > #pushEnableWrapDesktop { display: none !important } }
+@media (min-width: 768px) { #mhSlotPush > #pushEnableWrap { display: none !important } }
+/* three empty slots stacked full width ate a whole screen on a wide monitor */
+@media (min-width: 900px) {
+  #mhSlotReports .bb-blood-slots { grid-template-columns: repeat(3, minmax(0, 1fr)); align-items: start }
+}

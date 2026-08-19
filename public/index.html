@@ -4693,13 +4693,13 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <link rel="stylesheet" href="/css/blood-report-editor.css?v=2">
 <link rel="stylesheet" href="css/admin-home.css?v=3">
-<link rel="stylesheet" href="css/member-home.css?v=1">
+<link rel="stylesheet" href="css/member-home.css?v=7">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
 <script src="js/operator-console.js?v=9"></script>
 <script src="js/admin-home.js?v=3"></script>
-<script src="js/member-home.js?v=1"></script>
+<script src="js/member-home.js?v=3"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -6461,6 +6461,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <div class="mh-streak"><b id="mhStreak">0</b><span id="mhStreakL">day streak</span></div>
             <div class="mh-week" id="mhWeek" aria-label="Your last seven days"></div>
           </div>
+          <div class="mh-pills" id="mhSlotPills"></div>
         </section>
 
         <section class="mh-block">
@@ -6476,24 +6477,24 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <div class="mh-goals" id="mhGoals"></div>
         </section>
 
+
+        <section class="mh-block mh-slot" id="mhSecScore" hidden>
+          <div class="mh-head"><h3 class="mh-title">Your score this week</h3></div>
+          <div id="mhSlotScore"></div>
+        </section>
+
+        <section class="mh-block mh-slot" id="mhSecWeek" hidden>
+          <div class="mh-head"><h3 class="mh-title">How the week is going</h3></div>
+          <div id="mhSlotWeek"></div>
+        </section>
+
+        <section class="mh-block mh-slot" id="mhSecBody" hidden>
+          <div class="mh-head"><h3 class="mh-title">Readiness &amp; Signal</h3></div>
+          <div class="mh-two" id="mhSlotBody"></div>
+        </section>
         <section class="mh-block">
           <div class="mh-head"><h3 class="mh-title">Send us your reports</h3></div>
           <div class="mh-uploads">
-
-            <div class="mh-up">
-              <div class="mh-up-top">
-                <span class="mh-up-ico" aria-hidden="true">&#129656;</span>
-                <div class="mh-up-id">
-                  <div class="mh-up-title">Blood report</div>
-                  <div class="mh-up-sub">Upload the PDF or a photo from your lab. We read every marker and send you a written report.</div>
-                </div>
-              </div>
-              <div class="mh-up-state" id="mhBloodState"></div>
-              <button type="button" class="mh-up-btn" id="mhBloodBtn" onclick="mhPickBlood()">Upload blood report</button>
-              <div class="mh-up-hint">PDF or image · up to 3 reports so we can track your progress over time</div>
-              <div class="mh-say" id="mhBloodSay"></div>
-              <input type="file" id="mhBloodFile" accept=".pdf,image/*" style="display:none" onchange="mhBloodPicked(event)">
-            </div>
 
             <div class="mh-up">
               <div class="mh-up-top">
@@ -6511,6 +6512,17 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             </div>
 
           </div>
+          <div class="mh-slot" id="mhSlotReports" hidden></div>
+        </section>
+
+        <section class="mh-block mh-slot" id="mhSecTrends" hidden>
+          <div class="mh-head"><h3 class="mh-title">Your trends</h3></div>
+          <div id="mhSlotTrends"></div>
+        </section>
+
+        <section class="mh-block mh-slot" id="mhSecActivity" hidden>
+          <div class="mh-head"><h3 class="mh-title">Recent activity</h3></div>
+          <div id="mhSlotActivity"></div>
         </section>
 
         <section class="mh-block">
@@ -6518,7 +6530,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <div class="mh-nav" id="mhNav"></div>
         </section>
 
-        <div class="mh-more"><span>Your progress</span></div>
+        <div class="mh-slot" id="mhSlotPush" hidden></div>
       </div>
 
       <!-- DESKTOP USER DASHBOARD (hidden on mobile via inline style; enabled by desktop CSS) -->
@@ -25166,7 +25178,7 @@ function loadMyHealthReports() {
       // Stable slot order — oldest upload is always Blood Report 1.
       reports.sort(function (a, b) { return new Date(a.createdAt || 0) - new Date(b.createdAt || 0); });
       var statusColor = { Good: '#3dd68c', Excellent: '#3dd68c', Fair: '#f5a623', Poor: '#ff5c5c', Critical: '#ff5c5c' };
-      var html = '<div style="display:grid;gap:10px">';
+      var html = '<div class="bb-blood-slots" style="display:grid;gap:10px">';
       for (var i = 0; i < BLOOD_REPORT_SLOTS; i += 1) {
         html += bbBloodSlotCard(i + 1, reports[i], statusColor);
       }

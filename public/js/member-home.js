@@ -337,10 +337,82 @@ async function mhWhoopPicked(ev) {
   }
 }
 
+
+/* ---- one page, one sequence ---------------------------------------------
+   The home used to be this block followed by the two legacy panes, which
+   repeated the greeting, the streak, the habits and the navigation further
+   down the page. Rather than rebuild widgets that already work, the real ones
+   are MOVED into labelled slots here and the duplicates are hidden. Moving
+   preserves each node and its id, so every existing loader and chart mount
+   keeps writing to the same element it always did. */
+var MH_MOVE = [
+  { into: 'mhSlotPills',    take: ['.bb-today-stats'] },
+  { into: 'mhSlotScore',    take: ['#bbScorecardDesktopWrap', '.bb-pulse-score'], sec: 'mhSecScore' },
+  { into: 'mhSlotWeek',     take: ['#bbPulsePillars', '.bb-stat-grid'], sec: 'mhSecWeek' },
+  { into: 'mhSlotBody',     take: ['#bbRdHomeSectionDesktop', '#bbSigHomeSectionDesktop', '#bbRdHome', '#bbSigHome'], sec: 'mhSecBody' },
+  { into: 'mhSlotReports',  take: ['#myHealthReportsSectionDesktop', '#myHealthReportsSection'], sec: 'mhSlotReports' },
+  { into: 'mhSlotTrends',   take: ['.bb-chart-grid'], sec: 'mhSecTrends' },
+  { into: 'mhSlotActivity', take: ['.bb-table-card'], sec: 'mhSecActivity' },
+  { into: 'mhSlotPush',     take: ['#pushEnableWrapDesktop', '#pushEnableWrap'], sec: 'mhSlotPush' }
+];
+// Duplicates of something the new page already says, better.
+var MH_HIDE = [
+  '.bb-today-top',          // greeting + avatar, twice
+  '#bbTodayWeek',
+  '#bbPulseHabits', '#bbPulseActions',
+  '.bb-program-grid',       // today's steps/water/protein — the goals row covers it
+  '.bb-quick-actions',      // the "Everything else" tiles cover every destination
+  '.welcome-cards', '.welcome-explore-title',
+  '.bb-body-home-prompt'    // re-added below the body tile instead
+];
+
+function mhSequence() {
+  var home = mhEl('memberHome');
+  if (!home) return;
+
+  MH_MOVE.forEach(function (m) {
+    var host = mhEl(m.into);
+    if (!host) return;
+    var got = 0;
+    m.take.forEach(function (sel) {
+      var el = document.querySelector(sel);
+      // never re-move something already sitting in the sequence
+      if (!el || home.contains(el)) return;
+      host.appendChild(el);
+      got++;
+    });
+    if (m.sec && (got || host.children.length)) {
+      var sec = mhEl(m.sec);
+      if (sec) sec.hidden = false;
+    }
+  });
+
+  MH_HIDE.forEach(function (sel) {
+    document.querySelectorAll(sel).forEach(function (el) { el.classList.add('mh-gone'); });
+  });
+
+  // The desktop top bar carries coins, notifications and logout, so it stays —
+  // but it belongs above the page, not halfway down it.
+  var top = document.querySelector('.user-topbar');
+  var homeSec = document.getElementById('usec-home');
+  if (top && homeSec && top.parentNode !== homeSec) homeSec.insertBefore(top, homeSec.firstChild);
+
+  // Whatever is left in the legacy panes is duplication; retire the shells.
+  ['.user-welcome', '.bb-user-desktop-dashboard'].forEach(function (sel) {
+    var el = document.querySelector(sel);
+    if (el) el.classList.add('mh-gone');
+  });
+}
+
 // The member shell calls this once its own loaders have run.
 function mhBoot() {
   if (!mhEl('memberHome')) return;
   loadMemberHome();
+  // The legacy widgets are built by the shell's own loaders, so sequence once
+  // they exist, then once more in case a slow one arrives late.
+  setTimeout(mhSequence, 400);
+  setTimeout(mhSequence, 1800);
+  setTimeout(mhSequence, 4000);
   if (window._mhPoll) clearInterval(window._mhPoll);
   window._mhPoll = setInterval(function () {
     var p = document.getElementById('userPanel');
