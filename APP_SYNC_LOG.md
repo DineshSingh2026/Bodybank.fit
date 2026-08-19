@@ -70,6 +70,15 @@ backend subsystems landed behind them.
 > app only once Render has deployed web `main`. **Confirm the Render deploy is green before
 > promoting this build**, or the new landings will load empty against the old server.
 
+> **How this actually ships:** the signed AAB is built **locally** and uploaded to Play by
+> hand — `cd android && gradlew.bat bundleRelease`, signed from `android/keystore.properties`
+> (gitignored). That is why Play's versionCode tracks the literal in `android/app/build.gradle`
+> (20 → 21 → 22) rather than Codemagic's `PROJECT_BUILD_NUMBER + 100`. The
+> `android-closed-testing` workflow in `codemagic.yaml` is configured but is not the live
+> path; pushing `main` alone does **not** put a build in Play. Built for this release on
+> 2026-08-19: `android/app/build/outputs/bundle/release/app-release.aab` (45.4 MB,
+> versionCode 22 / versionName 1.6.0, sw cache v69).
+
 > **Rule applied from v1.5.1:** home-screen work must land in both `.user-welcome` (mobile)
 > and `.bb-user-desktop-dashboard` (desktop ≥768px). The member home goes further and
 > *retires* both panes, moving their widgets into one sequenced page — so the two surfaces
