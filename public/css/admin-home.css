@@ -1,0 +1,225 @@
+/* ============================================================================
+   BodyBank — Admin landing
+   The same clarity as the operator console, in the admin shell's own gold.
+   Order of the page is the order of the questions: is the business moving,
+   what is waiting on me, what do the numbers say, what just happened.
+   ========================================================================== */
+
+#adminHome {
+  --ah-ink: #F4F0E6;
+  --ah-soft: #A9A294;
+  --ah-dim: #7C7466;
+  --ah-gold: #E0BE6E;
+  --ah-gold-lt: #F5DFA8;
+  --ah-ok: #58CE92;
+  --ah-warn: #F0BD58;
+  --ah-bad: #F0836B;
+  --ah-info: #74C3E6;
+  --ah-glass: linear-gradient(150deg, rgba(255, 255, 255, .075), rgba(255, 255, 255, .02));
+  --ah-glass-hi: linear-gradient(150deg, rgba(255, 255, 255, .11), rgba(255, 255, 255, .035));
+  --ah-edge: rgba(255, 255, 255, .10);
+  --ah-edge-hi: rgba(224, 190, 110, .38);
+  --ah-inner: inset 0 1px 0 rgba(255, 255, 255, .13);
+  --ah-lift: 0 16px 40px rgba(0, 0, 0, .38);
+
+  display: flex; flex-direction: column; gap: 22px;
+  color: var(--ah-ink); font-family: 'Outfit', system-ui, sans-serif;
+  max-width: 1500px;
+}
+#adminHome * { box-sizing: border-box }
+#adminHome button { font-family: inherit }
+
+.ah-block { display: flex; flex-direction: column; min-width: 0 }
+.ah-head { display: flex; align-items: center; gap: 12px; margin: 0 2px 12px }
+.ah-title {
+  margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--ah-soft);
+}
+.ah-count {
+  font-size: 11.5px; font-weight: 700; color: var(--ah-gold);
+  background: rgba(224, 190, 110, .14); border-radius: 999px; padding: 3px 10px;
+}
+.ah-link {
+  margin-left: auto; background: none; border: 0; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--ah-gold);
+}
+.ah-link:hover { text-decoration: underline }
+
+/* ------------------------------------------------------------------ hero */
+.ah-hero {
+  position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 20px;
+  padding: 30px 32px; border-radius: 26px;
+  background:
+    radial-gradient(80% 150% at 100% 0%, rgba(224, 190, 110, .18), transparent 62%),
+    var(--ah-glass-hi);
+  border: 1px solid var(--ah-edge); box-shadow: var(--ah-lift), var(--ah-inner);
+}
+.ah-hero-bar { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap }
+.ah-eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--ah-gold) }
+.ah-greet { font-size: 17px; font-weight: 600; color: var(--ah-soft); margin-left: auto }
+.ah-refresh {
+  width: 36px; height: 36px; border-radius: 12px; cursor: pointer; flex: none; margin-left: auto;
+  background: rgba(255, 255, 255, .06); border: 1px solid var(--ah-edge); color: var(--ah-gold); font-size: 16px;
+}
+.ah-refresh:hover { background: rgba(224, 190, 110, .14) }
+.ah-refresh.is-busy { animation: ahSpin .9s linear infinite }
+@keyframes ahSpin { to { transform: rotate(360deg) } }
+
+.ah-bar-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap }
+.ah-bar-k { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ah-soft) }
+.ah-bar-n { display: flex; align-items: baseline; gap: 10px; margin-top: 7px; flex-wrap: wrap }
+.ah-bar-n b {
+  font-size: clamp(38px, 5vw, 56px); font-weight: 700; letter-spacing: -.045em; line-height: .95;
+  color: var(--ah-ink); font-variant-numeric: tabular-nums;
+}
+.ah-bar-n i { font-style: normal; font-size: 14.5px; color: var(--ah-soft) }
+.ah-delta {
+  margin-left: auto; font-size: 13.5px; font-weight: 600; white-space: nowrap; padding: 7px 14px;
+  border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid var(--ah-edge); color: var(--ah-soft);
+}
+.ah-delta.up { background: rgba(88, 206, 146, .16); border-color: rgba(88, 206, 146, .3); color: #9AE8C0 }
+.ah-delta.down { background: rgba(240, 131, 107, .16); border-color: rgba(240, 131, 107, .32); color: #FFBEA9 }
+
+.ah-track { height: 10px; border-radius: 99px; background: rgba(255, 255, 255, .08); overflow: hidden }
+.ah-bar-fill {
+  display: block; height: 100%; width: 0; border-radius: 99px;
+  background: linear-gradient(90deg, var(--ah-gold), var(--ah-gold-lt));
+  box-shadow: 0 0 16px rgba(224, 190, 110, .45); transition: width .9s cubic-bezier(.2, .8, .2, 1);
+}
+.ah-bar-fill.ok { background: linear-gradient(90deg, var(--ah-ok), #8FE3B8); box-shadow: 0 0 16px rgba(88, 206, 146, .42) }
+.ah-bar-fill.bad { background: linear-gradient(90deg, var(--ah-bad), #FFB49B); box-shadow: 0 0 16px rgba(240, 131, 107, .42) }
+
+.ah-spark { display: flex; align-items: flex-end; gap: 5px; height: 78px; padding-top: 4px }
+.ah-spark-b {
+  flex: 1; min-width: 0; border-radius: 5px 5px 2px 2px;
+  background: linear-gradient(180deg, var(--ah-gold-lt), rgba(224, 190, 110, .3));
+  transition: height .7s cubic-bezier(.2, .8, .2, 1);
+}
+.ah-spark-b.nil { background: rgba(255, 255, 255, .08) }
+.ah-spark-b.now { background: linear-gradient(180deg, #FFFFFF, var(--ah-gold)); box-shadow: 0 0 16px rgba(224, 190, 110, .55) }
+.ah-spark-b.now.nil { background: rgba(255, 255, 255, .17); box-shadow: none }
+.ah-spark-empty {
+  flex: 1; display: grid; place-items: center; height: 100%; font-size: 13px; color: var(--ah-soft);
+  border: 1px dashed var(--ah-edge); border-radius: 14px;
+}
+.ah-spark-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--ah-dim) }
+
+.ah-hero-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px }
+.ah-hstat {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px; cursor: pointer; text-align: left;
+  padding: 13px 15px; border-radius: 16px; color: var(--ah-ink);
+  background: rgba(255, 255, 255, .05); border: 1px solid var(--ah-edge); transition: all .18s;
+}
+.ah-hstat:hover { background: rgba(255, 255, 255, .09); border-color: var(--ah-edge-hi) }
+.ah-hstat b { font-size: 22px; font-weight: 700; letter-spacing: -.03em; color: var(--ah-gold-lt); font-variant-numeric: tabular-nums }
+.ah-hstat i { font-style: normal; font-size: 13px; color: var(--ah-dim) }
+.ah-hstat span { flex-basis: 100%; font-size: 12.5px; color: var(--ah-soft); margin-top: 3px }
+.ah-hstat.nil b { color: var(--ah-dim) }
+
+/* -------------------------------------------------------------- the queue */
+.ah-queue { display: flex; flex-direction: column; gap: 10px }
+.ah-task {
+  display: flex; align-items: center; gap: 15px; width: 100%; cursor: pointer; text-align: left;
+  padding: 16px 19px; border-radius: 18px; color: var(--ah-ink);
+  background: var(--ah-glass); border: 1px solid var(--ah-edge); border-left: 4px solid var(--ah-gold);
+  box-shadow: var(--ah-inner); transition: transform .16s, background .16s, box-shadow .16s;
+}
+.ah-task:hover { transform: translateX(3px); background: var(--ah-glass-hi); box-shadow: var(--ah-lift), var(--ah-inner) }
+.ah-task.bad { border-left-color: var(--ah-bad) }
+.ah-task.warn { border-left-color: var(--ah-warn) }
+.ah-task.info { border-left-color: var(--ah-info) }
+.ah-task-ico { font-size: 21px; flex: none; line-height: 1 }
+.ah-task-main { flex: 1; min-width: 0; font-size: 15.5px; color: var(--ah-soft) }
+.ah-task-main b { font-size: 20px; font-weight: 700; color: var(--ah-ink); letter-spacing: -.02em; font-variant-numeric: tabular-nums }
+.ah-task-cta { flex: none; font-size: 13.5px; font-weight: 700; color: var(--ah-gold); white-space: nowrap }
+.ah-task.bad .ah-task-cta { color: #FFBEA9 }
+.ah-task.info .ah-task-cta { color: #A6DEF2 }
+
+.ah-clear {
+  display: flex; align-items: center; gap: 16px; padding: 24px 26px; border-radius: 18px;
+  background: linear-gradient(140deg, rgba(88, 206, 146, .16), rgba(88, 206, 146, .04));
+  border: 1px solid rgba(88, 206, 146, .3);
+}
+.ah-clear > span { font-size: 26px; color: var(--ah-ok); flex: none }
+.ah-clear b { display: block; font-size: 16.5px; font-weight: 600 }
+.ah-clear i { display: block; font-style: normal; font-size: 13.5px; color: var(--ah-soft); margin-top: 5px }
+
+/* ------------------------------------------------------------- the tiles */
+.ah-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px }
+.ah-tile {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+  padding: 17px 19px 16px; border-radius: 18px; cursor: pointer; text-align: left; overflow: hidden;
+  background: var(--ah-glass); border: 1px solid var(--ah-edge); color: var(--ah-ink);
+  box-shadow: var(--ah-inner); transition: all .18s;
+}
+.ah-tile::before {
+  content: ''; position: absolute; inset: auto 0 0 0; height: 3px;
+  background: var(--tone, rgba(255, 255, 255, .18)); opacity: .9;
+}
+.ah-tile:hover { transform: translateY(-3px); background: var(--ah-glass-hi); box-shadow: var(--ah-lift), var(--ah-inner) }
+.ah-tile-n {
+  font-size: 32px; font-weight: 700; letter-spacing: -.04em; line-height: 1;
+  color: var(--tone, var(--ah-ink)); font-variant-numeric: tabular-nums;
+}
+.ah-tile-l { font-size: 14px; font-weight: 600; margin-top: 8px }
+.ah-tile-s { font-size: 12px; color: var(--ah-soft) }
+.ah-tile.gold { --tone: var(--ah-gold) }
+.ah-tile.ok { --tone: var(--ah-ok) }
+.ah-tile.bad { --tone: var(--ah-bad) }
+.ah-tile.amber { --tone: var(--ah-warn) }
+.ah-tile.info { --tone: var(--ah-info) }
+/* a zero is not an alarm */
+.ah-tile.zero { --tone: rgba(255, 255, 255, .16) }
+.ah-tile.zero .ah-tile-n { color: var(--ah-dim) }
+
+/* --------------------------------------------------------------- the feed */
+.ah-feed { display: flex; flex-direction: column }
+.ah-day { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ah-dim); margin: 14px 0 8px }
+.ah-day:first-child { margin-top: 0 }
+.ah-feed-row {
+  display: flex; align-items: center; gap: 12px; padding: 11px 14px; margin-bottom: 7px; border-radius: 14px;
+  background: rgba(255, 255, 255, .04); border: 1px solid var(--ah-edge);
+}
+.ah-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--ah-gold); box-shadow: 0 0 9px currentColor }
+.ah-dot.checkin { background: var(--ah-ok) }
+.ah-dot.workout { background: var(--ah-gold) }
+.ah-dot.nutrition { background: var(--ah-info) }
+.ah-dot.weekly { background: var(--ah-warn) }
+.ah-dot.signup { background: var(--ah-bad) }
+.ah-feed-main { flex: 1; min-width: 0; display: flex; flex-direction: column }
+.ah-feed-main b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ah-feed-main i { font-style: normal; font-size: 12px; color: var(--ah-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ah-feed-time { font-size: 11.5px; color: var(--ah-dim); flex: none; white-space: nowrap }
+
+.ah-empty { text-align: center; color: var(--ah-soft); padding: 26px 14px; font-size: 13.5px }
+
+.ah-cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 22px; align-items: start }
+
+/* ---------------------------------------------------------- responsive */
+@media (max-width: 1200px) {
+  .ah-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)) }
+  .ah-cols { grid-template-columns: minmax(0, 1fr) }
+}
+@media (max-width: 767px) {
+  #adminHome { gap: 18px }
+  .ah-hero { padding: 20px 18px; border-radius: 22px; gap: 17px }
+  .ah-hero-bar { gap: 6px }
+  .ah-greet { font-size: 15px; margin-left: 0; order: 3; flex-basis: 100% }
+  .ah-bar-n b { font-size: 42px }
+  .ah-delta { margin-left: 0 }
+  .ah-spark { height: 62px; gap: 4px }
+  .ah-hstat { padding: 11px 12px }
+  .ah-hstat b { font-size: 19px }
+  .ah-hstat span { font-size: 11.5px }
+  .ah-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px }
+  .ah-tile { padding: 14px 15px 13px }
+  .ah-tile-n { font-size: 27px }
+  .ah-tile-l { font-size: 13.5px; margin-top: 6px }
+  .ah-task { flex-wrap: wrap; padding: 15px 16px; gap: 11px }
+  .ah-task-main { font-size: 14.5px }
+  .ah-task-cta { width: 100%; text-align: right }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ah-bar-fill, .ah-spark-b { transition: none }
+  .ah-refresh.is-busy { animation: none }
+}

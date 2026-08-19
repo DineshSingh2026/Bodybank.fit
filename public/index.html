@@ -4692,10 +4692,12 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="/mobile-fix.css?v=20">
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <link rel="stylesheet" href="/css/blood-report-editor.css?v=2">
+<link rel="stylesheet" href="css/admin-home.css?v=1">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
 <script src="js/operator-console.js?v=6"></script>
+<script src="js/admin-home.js?v=1"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -6278,6 +6280,13 @@ button.bb-today-pill{cursor:pointer}
 }
 </style>
 <!-- ══════════════════════════════════════════════════════ -->
+<style>
+/* #adminHome supersedes both legacy dashboard bodies. The desktop top bar is
+   chrome (search, AI Assist, notifications) and stays. */
+.admin-dash-page { display: none !important }
+.bb-desktop-dashboard > *:not(.admin-topbar) { display: none !important }
+#adminHome { margin-top: 18px }
+</style>
 </head>
 <body>
 
@@ -7748,6 +7757,65 @@ button.bb-today-pill{cursor:pointer}
           <a class="bb-quick-btn" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="btn-icon">💡</span>AI Assist</a>
         </div>
       </div>
+
+      <!-- ══ ADMIN LANDING — one read, one screen, every tile a way in ══ -->
+      <div id="adminHome">
+        <section class="ah-hero">
+          <div class="ah-hero-bar">
+            <span class="ah-eyebrow" id="ahDate">&nbsp;</span>
+            <span class="ah-greet" id="ahGreet">Good day</span>
+            <button type="button" class="ah-refresh" id="ahRefresh" onclick="loadAdminHome()" title="Refresh" aria-label="Refresh dashboard">&#8635;</button>
+          </div>
+
+          <div>
+            <div class="ah-bar-head">
+              <div>
+                <span class="ah-bar-k">Active members</span>
+                <span class="ah-bar-n"><b id="ahActiveN">–</b><i id="ahActiveOf"></i></span>
+              </div>
+              <span class="ah-delta" id="ahDelta"></span>
+            </div>
+            <div class="ah-track" style="margin-top:13px"><span class="ah-bar-fill" id="ahActiveFill"></span></div>
+            <div class="ah-spark" id="ahSpark"></div>
+            <div class="ah-spark-axis"><span>14 days ago</span><span id="ahSparkPeak"></span><span>today</span></div>
+          </div>
+
+          <div class="ah-hero-stats" id="ahHeroStats"></div>
+        </section>
+
+        <section class="ah-block">
+          <div class="ah-head">
+            <h2 class="ah-title">Waiting on you</h2>
+            <span class="ah-count" id="ahQueueCount">–</span>
+          </div>
+          <div class="ah-queue" id="ahQueue"><div class="ah-empty">Loading…</div></div>
+        </section>
+
+        <section class="ah-block">
+          <div class="ah-head">
+            <h2 class="ah-title">Your roster</h2>
+            <button type="button" class="ah-link" onclick="ahGo('tab','tribe')">All members →</button>
+          </div>
+          <div class="ah-tiles" id="ahTilesRoster"></div>
+        </section>
+
+        <section class="ah-block">
+          <div class="ah-head">
+            <h2 class="ah-title">Growth &amp; pipeline</h2>
+            <button type="button" class="ah-link" onclick="ahGo('tab','leads')">Open leads →</button>
+          </div>
+          <div class="ah-tiles" id="ahTilesPipeline"></div>
+        </section>
+
+        <section class="ah-block">
+          <div class="ah-head">
+            <h2 class="ah-title">Just happened</h2>
+            <button type="button" class="ah-link" onclick="ahGo('section','analytics')">Analytics →</button>
+          </div>
+          <div class="ah-feed" id="ahFeed"><div class="ah-empty">Loading…</div></div>
+        </section>
+      </div>
+
       <!-- ══ MOBILE ADMIN DASHBOARD (<768px). Desktop hides this container. ══ -->
       <div class="admin-dash-page">
 
@@ -12459,6 +12527,7 @@ async function loadDashboard() {
   // admin doesn't watch it snap from Pulse to their pick a second later.
   try { if (typeof bbmdRestoreSeg === 'function') bbmdRestoreSeg(); } catch (_) {}
   await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadAdminMessages(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
+  if (typeof ahBoot === 'function') ahBoot();
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
   if (typeof bbMaybeOpenAdminNutritionAfterLoad === 'function') bbMaybeOpenAdminNutritionAfterLoad();

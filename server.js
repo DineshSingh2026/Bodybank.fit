@@ -7371,6 +7371,128 @@ app.get('/api/admin/attention-clients', verifyToken, requireAdminOrSuperadmin, a
 // (admin/superadmin also pass, so they can QA the view). There are deliberately NO
 // write endpoints here — all client management stays with Admin/Superadmin.
 
+// --- Admin landing: every figure the Dashboard shows, in one read ---
+// The landing used to assemble itself from ten separate calls, which is why its
+// numbers could disagree with each other. One endpoint, one snapshot.
+app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const one = async (sql, params = []) => {
+      const r = await queryOne(sql, params);
+      return r ? Number(r.c || 0) : 0;
+    };
+    const CLIENT = `u.role = 'user'
+      AND (u.approval_status IS NULL OR u.approval_status = 'approved')
+      AND (u.email NOT LIKE '%@test.bodybank.fit')
+      AND (LOWER(COALESCE(u.first_name, '')) NOT LIKE '%e2e%')
+      AND COALESCE(u.suspended, FALSE) = FALSE`;
+
+    const [
+      members, activeToday, active7d, checkedIn, workouts, meals,
+      trials, expiring, trialsEnded, newMembers7d
+    ] = await Promise.all([
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT}`),
+      one(`SELECT COUNT(DISTINCT uid)::int c FROM (
+             SELECT user_id AS uid FROM daily_checkins WHERE checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE
+             UNION SELECT user_id FROM workout_logs WHERE created_at::date = CURRENT_DATE
+             UNION SELECT user_id FROM nutrition_meal_logs WHERE log_date = CURRENT_DATE
+             UNION SELECT user_id FROM weight_logs WHERE created_at::date = CURRENT_DATE) a`),
+      one(`SELECT COUNT(DISTINCT uid)::int c FROM (
+             SELECT user_id AS uid FROM daily_checkins WHERE checkin_date >= CURRENT_DATE - 6 AND COALESCE(is_freeze, FALSE) = FALSE
+             UNION SELECT user_id FROM workout_logs WHERE created_at >= NOW() - INTERVAL '7 days'
+             UNION SELECT user_id FROM nutrition_meal_logs WHERE log_date >= CURRENT_DATE - 6
+             UNION SELECT user_id FROM weight_logs WHERE created_at >= NOW() - INTERVAL '7 days') a`),
+      one(`SELECT COUNT(DISTINCT user_id)::int c FROM daily_checkins WHERE checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE`),
+      one(`SELECT COUNT(*)::int c FROM workout_logs WHERE created_at::date = CURRENT_DATE`),
+      one(`SELECT COUNT(*)::int c FROM nutrition_meal_logs WHERE log_date = CURRENT_DATE`),
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT} AND u.subscription_status = 'trialing'`),
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT} AND u.subscription_status = 'trialing'
+             AND u.access_expires_at IS NOT NULL AND u.access_expires_at BETWEEN NOW() AND NOW() + INTERVAL '3 days'`),
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT} AND u.subscription_status = 'trialing'
+             AND u.access_expires_at IS NOT NULL AND u.access_expires_at < NOW()`),
+      one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT} AND u.created_at >= NOW() - INTERVAL '7 days'`)
+    ]);
+
+    // Work that is genuinely waiting on the admin.
+    const [
+      pendingAudits, auditsToday, audits7d, auditsNoAccount, part2Today, part2_7d,
+      unreadThreads, escalations, bloodPending, bloodUnsent, contactMsgs
+    ] = await Promise.all([
+      one(`SELECT COUNT(*)::int c FROM audit_requests WHERE status = 'pending'`),
+      one(`SELECT COUNT(*)::int c FROM audit_requests WHERE created_at::date = CURRENT_DATE`),
+      one(`SELECT COUNT(*)::int c FROM audit_requests WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      one(`SELECT COUNT(*)::int c FROM audit_requests a WHERE a.created_at >= NOW() - INTERVAL '30 days'
+             AND NOT EXISTS (SELECT 1 FROM users u2 WHERE LOWER(u2.email) = LOWER(a.email) AND u2.role = 'user')`),
+      one(`SELECT COUNT(*)::int c FROM part2_audit WHERE created_at::date = CURRENT_DATE`),
+      one(`SELECT COUNT(*)::int c FROM part2_audit WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      one(`SELECT COUNT(*)::int c FROM message_threads t WHERE (
+             SELECT sender_role FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.created_at DESC LIMIT 1) = 'user'`),
+      one(`SELECT COUNT(*)::int c FROM operator_escalations WHERE status = 'open'`),
+      one(`SELECT COUNT(*)::int c FROM blood_analysis_reports WHERE COALESCE(status, '') <> 'complete'`),
+      one(`SELECT COUNT(*)::int c FROM blood_analysis_reports WHERE status = 'complete' AND COALESCE(sent_to_user, FALSE) = FALSE`),
+      one(`SELECT COUNT(*)::int c FROM contact_messages`)
+    ]);
+
+    // 14 days of distinct active clients — the same definition used everywhere
+    // else, so the landing can never disagree with the Clients list.
+    const trendRows = await queryAll(`
+      WITH days AS (
+        SELECT generate_series((CURRENT_DATE - INTERVAL '13 days')::date, CURRENT_DATE, INTERVAL '1 day')::date AS d
+      )
+      SELECT days.d::text AS day,
+        (SELECT COUNT(DISTINCT uid)::int FROM (
+           SELECT user_id AS uid FROM daily_checkins WHERE checkin_date = days.d AND COALESCE(is_freeze, FALSE) = FALSE
+           UNION SELECT user_id FROM workout_logs WHERE created_at::date = days.d
+           UNION SELECT user_id FROM nutrition_meal_logs WHERE log_date = days.d
+           UNION SELECT user_id FROM weight_logs WHERE created_at::date = days.d) a) AS active,
+        (SELECT COUNT(*)::int FROM audit_requests r WHERE r.created_at::date = days.d) AS audits
+      FROM days ORDER BY days.d`);
+
+    // Live feed, newest first.
+    const feed = [];
+    const nm = r => (String(r.first_name || '') + ' ' + String(r.last_name || '')).trim() || 'Client';
+    const push = (rows, map) => (rows || []).forEach(r => feed.push(map(r)));
+    push(await queryAll(`SELECT u.first_name, u.last_name, dc.created_at FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id
+                          WHERE COALESCE(dc.is_freeze, FALSE) = FALSE ORDER BY dc.created_at DESC LIMIT 10`),
+      r => ({ name: nm(r), type: 'checkin', label: 'Daily check-in', created_at: r.created_at }));
+    push(await queryAll(`SELECT u.first_name, u.last_name, w.workout_name, w.created_at FROM workout_logs w LEFT JOIN users u ON u.id = w.user_id
+                          ORDER BY w.created_at DESC LIMIT 10`),
+      r => ({ name: nm(r), type: 'workout', label: 'Logged: ' + (r.workout_name || 'Workout'), created_at: r.created_at }));
+    push(await queryAll(`SELECT u.first_name, u.last_name, m.meal_type, m.submitted_at AS created_at FROM nutrition_meal_logs m LEFT JOIN users u ON u.id = m.user_id
+                          ORDER BY m.submitted_at DESC LIMIT 10`),
+      r => ({ name: nm(r), type: 'nutrition', label: 'Meal logged (' + (r.meal_type || 'meal') + ')', created_at: r.created_at }));
+    push(await queryAll(`SELECT first_name, last_name, email, created_at FROM audit_requests ORDER BY created_at DESC LIMIT 8`),
+      r => ({ name: nm(r) !== 'Client' ? nm(r) : (r.email || 'Prospect'), type: 'signup', label: 'Body audit submitted', created_at: r.created_at }));
+    push(await queryAll(`SELECT full_name, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT 6`),
+      r => ({ name: r.full_name || 'Client', type: 'weekly', label: 'Weekly (Sunday) check-in', created_at: r.created_at }));
+    feed.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
+    res.json({
+      roster: {
+        members, active_today: activeToday, active_7d: active7d, inactive_7d: Math.max(0, members - active7d),
+        checked_in_today: checkedIn, workouts_today: workouts, meals_today: meals,
+        trials, trials_expiring: expiring, trials_ended: trialsEnded, new_members_7d: newMembers7d
+      },
+      pipeline: {
+        pending_audits: pendingAudits, audits_today: auditsToday, audits_7d: audits7d,
+        audits_no_account: auditsNoAccount, part2_today: part2Today, part2_7d: part2_7d
+      },
+      inbox: {
+        unread_threads: unreadThreads, escalations, blood_pending: bloodPending,
+        blood_unsent: bloodUnsent, contact_messages: contactMsgs
+      },
+      trends: {
+        labels: (trendRows || []).map(r => r.day),
+        active: (trendRows || []).map(r => Number(r.active || 0)),
+        audits: (trendRows || []).map(r => Number(r.audits || 0))
+      },
+      feed: feed.slice(0, 20)
+    });
+  } catch (e) {
+    console.error('[admin overview]', e.message);
+    res.status(500).json({ error: 'Failed to load overview' });
+  }
+});
+
 // Shared WHERE fragment for "a real, active client account".
 const OPERATOR_CLIENT_WHERE = `u.role = 'user'
   AND (u.approval_status IS NULL OR u.approval_status = 'approved')
