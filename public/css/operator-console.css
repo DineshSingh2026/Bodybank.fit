@@ -801,6 +801,7 @@ body.operator-console-open .popup-overlay { z-index: 10060 }
   display: grid; place-items: center; width: 70px; height: 70px; border-radius: 50%; padding: 3px;
   background: conic-gradient(from 200deg, var(--op-coral), var(--op-amber) 70%, var(--op-coral));
   transition: transform .18s, box-shadow .18s;
+  overflow: hidden; /* belt and braces: nothing escapes the circle */
 }
 .op-bub.warn .op-bub-ring { background: conic-gradient(from 200deg, var(--op-amber), var(--op-amber-lt) 70%, var(--op-amber)) }
 .op-bub.info .op-bub-ring { background: conic-gradient(from 200deg, var(--op-jade), #9BE4D4 70%, var(--op-jade)) }
@@ -809,11 +810,21 @@ body.operator-console-open .popup-overlay { z-index: 10060 }
 .op-bub.warn:hover .op-bub-ring { box-shadow: 0 0 22px rgba(240, 178, 94, .45) }
 .op-bub:focus-visible .op-bub-ring { outline: 2px solid var(--op-amber-lt); outline-offset: 3px }
 /* the inner disc separates the ring from the photo, exactly as a stories ring does */
+/* A percentage height does not hold on a replaced element here — the <img>
+   kept its natural ratio and grew to 56x96, spilling out of the ring and over
+   the day count. Pin the box in pixels and force the square with aspect-ratio;
+   object-position favours the upper body so a full-length photo still shows a
+   face. */
 .op-avatar.bub {
-  width: 100%; height: 100%; border-radius: 50%; font-size: 20px; border: 3px solid var(--op-deep);
+  display: block; width: 64px; height: 64px; min-width: 64px; min-height: 64px;
+  aspect-ratio: 1 / 1; border-radius: 50%; object-fit: cover; object-position: center 22%;
+  font-size: 20px; line-height: 64px; text-align: center;
+  border: 3px solid var(--op-deep); box-sizing: border-box;
   background: linear-gradient(150deg, rgba(255, 138, 114, .34), rgba(255, 138, 114, .12)), #1A1216;
   color: #FFD3C6;
 }
+/* the initials variant is a div, so keep it centring as a flex box */
+div.op-avatar.bub { display: flex; align-items: center; justify-content: center; line-height: 1 }
 .op-bub.warn .op-avatar.bub { background: linear-gradient(150deg, rgba(240, 178, 94, .34), rgba(240, 178, 94, .12)), #1A1610; color: #FFE6BC }
 .op-bub.info .op-avatar.bub { background: linear-gradient(150deg, rgba(70, 196, 166, .32), rgba(70, 196, 166, .11)), #101A18; color: #B6EDE0 }
 .op-bub-days {
@@ -833,7 +844,7 @@ body.operator-console-open .popup-overlay { z-index: 10060 }
   .op-reel { gap: 13px }
   .op-bub { width: 68px }
   .op-bub-ring { width: 62px; height: 62px }
-  .op-avatar.bub { font-size: 18px; border-width: 2.5px }
+  .op-avatar.bub { width: 56px; height: 56px; min-width: 56px; min-height: 56px; font-size: 18px; line-height: 56px; border-width: 2.5px }
   .op-bub-days { font-size: 12.5px }
   .op-bub-name { font-size: 11px }
 }
