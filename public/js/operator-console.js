@@ -1687,8 +1687,13 @@ function opBriefPriorities() {
   (opState.clients || []).forEach(function (c) {
     var a = opNextAction(c);
     if (a.key === 'ok') return;
+    var idle = c.inactive_days || 0;
+    var left = (c.subscription_status === 'trialing') ? opDaysUntil(c.access_expires_at) : null;
+    var days = (left != null && left <= 3)
+      ? (left <= 0 ? 'trial' : left + 'd left')
+      : (idle >= 1 ? idle + 'd' : 'today');
     out.push({
-      rank: TONE[a.tone], tone: a.tone, kind: 'client', id: c.id,
+      rank: TONE[a.tone], tone: a.tone, kind: 'client', id: c.id, days: days,
       name: opFullName(c), pic: c.profile_picture, label: a.label, actKey: a.key,
       meta: (c.checkins_7d || 0) + '/7 check-ins · ' + opPlural(c.workouts_7d || 0, 'workout')
     });
@@ -1696,7 +1701,7 @@ function opBriefPriorities() {
   (opState.escalations || []).forEach(function (e) {
     if (!((e.admin_replies || 0) > 0 && e.last_role === 'admin')) return;
     out.push({
-      rank: 0.5, tone: 'info', kind: 'thread', id: e.id, pic: null,
+      rank: 0.5, tone: 'info', kind: 'thread', id: e.id, pic: null, days: 'reply',
       name: 'Admin replied about ' + (e.client_name || 'a client'),
       label: 'Read what Admin said', meta: String(e.last_body || '').slice(0, 70)
     });
@@ -1705,26 +1710,22 @@ function opBriefPriorities() {
   return out;
 }
 
-function opPriorityRow(p) {
-  var act = p.kind === 'thread'
-    ? "opEscOpen('" + opAttr(p.id) + "')"
-    : "opDoAction('" + opAttr(p.id) + "','" + p.actKey + "')";
+/* One bubble in the attention reel: the face, and how long they have been
+   quiet. Everything else — the stats, the action — lives one tap away inside
+   the client, so the row itself stays scannable at a glance. */
+function opPriorityBubble(p) {
   var open = p.kind === 'thread'
     ? "opEscOpen('" + opAttr(p.id) + "')"
     : "openOperatorClient('" + opAttr(p.id) + "')";
-  return '<div class="op-prio ' + p.tone + '" onclick="' + open + '">'
-    + opAvatar(p.pic, p.name, 'lg')
-    + '<div class="op-prio-main">'
-    + '<div class="op-prio-name">' + opEsc(p.name) + '</div>'
-    + '<div class="op-prio-meta">' + opEsc(p.meta || '') + '</div>'
-    + '</div>'
-    + '<button type="button" class="op-prio-cta" onclick="event.stopPropagation();' + act + '">'
-    + '<span>' + opEsc(p.label) + '</span>'
-    + '<svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button>'
-    + '</div>';
+  var first = String(p.name || '').trim().split(/\s+/)[0] || '';
+  return '<button type="button" class="op-bub ' + p.tone + '" onclick="' + open + '"'
+    + ' title="' + opEsc(p.name + ' — ' + p.label) + '">'
+    + '<span class="op-bub-ring">' + opAvatar(p.pic, p.name, 'bub') + '</span>'
+    + '<span class="op-bub-days">' + opEsc(p.days) + '</span>'
+    + '<span class="op-bub-name">' + opEsc(first) + '</span>'
+    + '</button>';
 }
 
-/* One monitor tile: a number, what it counts, and the roster view it opens. */
 function opMonTile(filter, label, sub, tone) {
   var n = opCount(filter);
   return '<button type="button" class="op-mon-tile' + (tone ? ' ' + tone : '') + (n ? '' : ' zero') + '"'
@@ -1814,10 +1815,11 @@ function renderOperatorHome() {
   if (pEl) {
     var pri = opBriefPriorities();
     if (pri.length) {
-      var more = pri.length > 3
-        ? '<button type="button" class="op-more" onclick="opNav(&quot;clients&quot;);opClientFilter(&quot;attention&quot;)">' + (pri.length - 3) + ' more waiting →</button>'
-        : '';
-      pEl.innerHTML = pri.slice(0, 3).map(opPriorityRow).join('') + more;
+      pEl.innerHTML = '<div class="op-reel">' + pri.slice(0, 12).map(opPriorityBubble).join('')
+        + (pri.length > 12 ? '<button type="button" class="op-bub more" onclick="opNav(&quot;clients&quot;);opClientFilter(&quot;attention&quot;)">'
+          + '<span class="op-bub-ring"><span class="op-avatar bub">+' + (pri.length - 12) + '</span></span>'
+          + '<span class="op-bub-days">more</span><span class="op-bub-name">&nbsp;</span></button>' : '')
+        + '</div>';
     } else {
       pEl.innerHTML = '<div class="op-allclear"><span>✓</span><div><b>Nothing needs chasing.</b>'
         + '<i>Every client is inside their check-in, training and trial windows.</i></div></div>';

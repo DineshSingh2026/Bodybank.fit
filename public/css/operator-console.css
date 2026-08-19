@@ -255,29 +255,6 @@
 .op-link { margin-left: auto; background: none; border: 0; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--op-jade) }
 .op-link:hover { color: #7BE0C0 }
 
-.op-priorities { display: flex; flex-direction: column; gap: 12px }
-.op-prio {
-  display: flex; align-items: center; gap: 18px; padding: 19px 22px; cursor: pointer; border-radius: var(--op-r);
-  background: var(--op-glass); border: 1px solid var(--op-edge);
-  -webkit-backdrop-filter: var(--op-blur); backdrop-filter: var(--op-blur);
-  box-shadow: var(--op-inner); transition: transform .18s, box-shadow .18s, background .18s;
-}
-.op-prio:hover { transform: translateY(-2px); background: var(--op-glass-hi); box-shadow: var(--op-lift), var(--op-inner) }
-.op-prio-main { flex: 1; min-width: 0 }
-.op-prio-name { font-size: 18.5px; font-weight: 600; letter-spacing: -.018em; line-height: 1.25; overflow-wrap: anywhere }
-.op-prio-meta { font-size: 13px; color: var(--op-soft); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.op-prio-cta {
-  display: inline-flex; align-items: center; gap: 9px; flex: none; padding: 13px 20px; border-radius: 15px; cursor: pointer;
-  border: 0; font-family: inherit; font-size: 13.5px; font-weight: 700; color: #16110C; white-space: nowrap;
-  background: linear-gradient(105deg, var(--op-amber-lt), var(--op-amber));
-  box-shadow: 0 10px 24px rgba(240, 178, 94, .3); transition: filter .18s, transform .18s;
-}
-.op-prio-cta svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round }
-.op-prio-cta:hover { filter: brightness(1.07); transform: translateX(2px) }
-.op-prio.bad .op-prio-cta { background: linear-gradient(105deg, var(--op-coral-lt), var(--op-coral)); box-shadow: 0 10px 24px rgba(255, 138, 114, .32) }
-.op-prio.info .op-prio-cta { background: linear-gradient(105deg, #9BE4D4, var(--op-jade)); box-shadow: 0 10px 24px rgba(70, 196, 166, .3) }
-
-.op-more { align-self: flex-start; margin-top: 2px; padding: 8px 2px; background: none; border: 0; cursor: pointer; font-family: inherit; font-size: 13.5px; font-weight: 600; color: var(--op-soft) }
 .op-more:hover { color: var(--op-jade) }
 
 .op-allclear {
@@ -321,14 +298,6 @@
 }
 .op-avatar.lg { width: 54px; height: 54px; border-radius: 18px; font-size: 17px }
 .op-avatar.xl { width: 62px; height: 62px; border-radius: 20px; font-size: 20px }
-.op-prio.bad .op-avatar, .op-card.flag .op-avatar {
-  background: linear-gradient(150deg, rgba(255, 138, 114, .3), rgba(255, 138, 114, .08));
-  border-color: rgba(255, 138, 114, .34); color: var(--op-coral-lt);
-}
-.op-prio.info .op-avatar {
-  background: linear-gradient(150deg, rgba(70, 196, 166, .3), rgba(70, 196, 166, .08));
-  border-color: rgba(70, 196, 166, .34); color: #9BE4D4;
-}
 
 .op-status, .op-tag {
   font-size: 11.5px; font-weight: 600; letter-spacing: .01em; padding: 5px 12px; border-radius: 999px; white-space: nowrap;
@@ -613,10 +582,9 @@
 .op-screen.active .op-hero,
 .op-screen.active .op-brief-block,
 .op-screen.active .op-card,
-.op-screen.active .op-prio { animation: opRise .46s cubic-bezier(.2, .8, .2, 1) backwards }
-.op-screen.active .op-card:nth-child(1), .op-screen.active .op-prio:nth-child(1) { animation-delay: .03s }
-.op-screen.active .op-card:nth-child(2), .op-screen.active .op-prio:nth-child(2) { animation-delay: .08s }
-.op-screen.active .op-card:nth-child(3), .op-screen.active .op-prio:nth-child(3) { animation-delay: .13s }
+.op-screen.active .op-screen.active .op-card:nth-child(1) { animation-delay: .03s }
+.op-screen.active .op-card:nth-child(2) { animation-delay: .08s }
+.op-screen.active .op-card:nth-child(3) { animation-delay: .13s }
 .op-screen.active .op-card:nth-child(4) { animation-delay: .18s }
 .op-screen.active .op-card:nth-child(5) { animation-delay: .23s }
 .op-screen.active .op-card:nth-child(n+6) { animation-delay: .27s }
@@ -625,8 +593,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .op-screen.active .op-hero, .op-screen.active .op-brief-block,
-  .op-screen.active .op-card, .op-screen.active .op-prio { animation: none }
-  .op-pb-fill, .op-spark-b, .op-fill, .op-bar-fill { transition: none }
+  .op-screen.active .op-card, .op-screen.active   .op-pb-fill, .op-spark-b, .op-fill, .op-bar-fill { transition: none }
 }
 
 /* --------------------------------------------------------- responsive */
@@ -671,10 +638,7 @@
         
   .op-cards, .op-cards.narrow { grid-template-columns: minmax(0, 1fr); gap: 13px }
   .op-card { padding: 18px }
-  .op-card-name, .op-prio-name { font-size: 17.5px }
-  .op-prio { flex-wrap: wrap; padding: 17px }
-  .op-prio-cta { width: 100%; justify-content: center }
-  .op-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px }
+  .op-card-name,       .op-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 11px }
 
   .op-story { position: fixed; z-index: 9500; padding-top: env(safe-area-inset-top, 0px) }
   .op-story-head { padding: 14px 15px }
@@ -808,4 +772,68 @@ body.operator-console-open { overflow: hidden }
   .op-hstat { padding: 11px 12px }
   .op-hstat b { font-size: 19px }
   .op-hstat span { font-size: 11.5px }
+}
+
+/* ------------------------------------------------- modals over the console */
+/* `.view-detail-modal{z-index:400}` in index.html wins over `.modal-overlay`'s
+   10030 (same specificity, declared later). That is fine for the member panel
+   (z-index 300) and the admin shell, but the operator console sits at 1000, so
+   the Elite card opened BEHIND it and looked like a dead button. Raise these
+   only while the console is open, so nothing else in the app is affected. */
+body.operator-console-open .modal-overlay,
+body.operator-console-open .view-detail-modal { z-index: 10040 }
+body.operator-console-open .popup-overlay { z-index: 10060 }
+
+/* ------------------------------------------------- the attention reel --- */
+/* Who has gone quiet, read the way a stories row is read: a face and a number.
+   Everything else about them is one tap inside. Horizontal so the row costs a
+   fixed amount of height no matter how many clients are on it. */
+.op-reel {
+  display: flex; gap: 16px; overflow-x: auto; padding: 2px 2px 8px;
+  scrollbar-width: none; -ms-overflow-style: none; scroll-snap-type: x proximity;
+}
+.op-reel::-webkit-scrollbar { display: none }
+.op-bub {
+  flex: none; width: 78px; display: flex; flex-direction: column; align-items: center; gap: 8px;
+  background: none; border: 0; padding: 0; cursor: pointer; font-family: inherit; scroll-snap-align: start;
+}
+.op-bub-ring {
+  display: grid; place-items: center; width: 70px; height: 70px; border-radius: 50%; padding: 3px;
+  background: conic-gradient(from 200deg, var(--op-coral), var(--op-amber) 70%, var(--op-coral));
+  transition: transform .18s, box-shadow .18s;
+}
+.op-bub.warn .op-bub-ring { background: conic-gradient(from 200deg, var(--op-amber), var(--op-amber-lt) 70%, var(--op-amber)) }
+.op-bub.info .op-bub-ring { background: conic-gradient(from 200deg, var(--op-jade), #9BE4D4 70%, var(--op-jade)) }
+.op-bub.ok .op-bub-ring { background: conic-gradient(from 200deg, var(--op-jade), #7BE0C0 70%, var(--op-jade)) }
+.op-bub:hover .op-bub-ring { transform: scale(1.05); box-shadow: 0 0 22px rgba(255, 138, 114, .45) }
+.op-bub.warn:hover .op-bub-ring { box-shadow: 0 0 22px rgba(240, 178, 94, .45) }
+.op-bub:focus-visible .op-bub-ring { outline: 2px solid var(--op-amber-lt); outline-offset: 3px }
+/* the inner disc separates the ring from the photo, exactly as a stories ring does */
+.op-avatar.bub {
+  width: 100%; height: 100%; border-radius: 50%; font-size: 20px; border: 3px solid var(--op-deep);
+  background: linear-gradient(150deg, rgba(255, 138, 114, .34), rgba(255, 138, 114, .12)), #1A1216;
+  color: #FFD3C6;
+}
+.op-bub.warn .op-avatar.bub { background: linear-gradient(150deg, rgba(240, 178, 94, .34), rgba(240, 178, 94, .12)), #1A1610; color: #FFE6BC }
+.op-bub.info .op-avatar.bub { background: linear-gradient(150deg, rgba(70, 196, 166, .32), rgba(70, 196, 166, .11)), #101A18; color: #B6EDE0 }
+.op-bub-days {
+  font-size: 13px; font-weight: 700; letter-spacing: -.02em; color: var(--op-coral-lt);
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.op-bub.warn .op-bub-days { color: var(--op-amber-lt) }
+.op-bub.info .op-bub-days, .op-bub.ok .op-bub-days { color: #9BE4D4 }
+.op-bub-name {
+  font-size: 11.5px; color: var(--op-soft); line-height: 1.2; max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.op-bub.more .op-avatar.bub { background: linear-gradient(0deg, rgba(255,255,255,.07), rgba(255,255,255,.07)), #14141A; color: var(--op-ivory) }
+.op-bub.more .op-bub-ring { background: rgba(255, 255, 255, .14) }
+
+@media (max-width: 767px) {
+  .op-reel { gap: 13px }
+  .op-bub { width: 68px }
+  .op-bub-ring { width: 62px; height: 62px }
+  .op-avatar.bub { font-size: 18px; border-width: 2.5px }
+  .op-bub-days { font-size: 12.5px }
+  .op-bub-name { font-size: 11px }
 }
