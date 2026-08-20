@@ -10,6 +10,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <link rel="manifest" href="/manifest.json" />
 <script src="/js/bb-pwa-update.js?v=1" defer></script>
+<link rel="stylesheet" href="/css/mobile-menu.css?v=1" />
 <link rel="stylesheet" href="/mobile-fix.css?v=20" />
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20" />
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-8G93TR92QT"></script>
@@ -56,12 +57,12 @@ nav#nv .nav-cta{padding:9px 22px;background:var(--site-goldg);border:none;border
 nav#nv .nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,164,78,0.3)}
 nav#nv .nt{display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:10px;min-width:44px;min-height:44px;justify-content:center;align-items:center;color:var(--site-gold);flex-shrink:0}
 nav#nv .nt span{display:block;width:24px;height:1.5px;background:var(--site-gold)}
-.mm{display:none;position:fixed;inset:0;z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:24px;background:rgba(6,6,6,0.97);padding:max(80px,env(safe-area-inset-top)) env(safe-area-inset-right) max(32px,env(safe-area-inset-bottom)) env(safe-area-inset-left);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-.mm.open{display:flex}
-.mm a{color:var(--site-cream);text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:clamp(22px,5vw,28px);letter-spacing:3px;padding:10px 16px;text-align:center;min-height:48px;display:flex;align-items:center;justify-content:center}
-.mm a:hover,.mm a.active{color:var(--site-gold)}
-.mm .nav-cta{font-family:'Outfit',sans-serif!important;font-size:13px!important;letter-spacing:1.2px!important}
-.mm-c{position:fixed;top:max(18px,env(safe-area-inset-top));right:max(24px,env(safe-area-inset-right));background:none;border:none;color:var(--site-gold);font-size:30px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;z-index:1001}
+/* .mm now lives in /css/mobile-menu.css */
+
+
+
+
+
 
 /* Blog listing + post */
 #blog-listing{display:block}
@@ -184,7 +185,7 @@ nav#nv .nt span{display:block;width:24px;height:1.5px;background:var(--site-gold
   nav#nv{padding:10px 20px;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right))}
   nav#nv .nm,nav#nv .nav-right .nav-cta{display:none}
   nav#nv .nt{display:flex}
-  .mm .nav-cta{display:inline-flex}
+  
   .blog-card.featured{grid-column:auto;grid-template-columns:1fr}
   .feat-aside{display:none}
 }
@@ -192,6 +193,33 @@ nav#nv .nt span{display:block;width:24px;height:1.5px;background:var(--site-gold
   nav#nv{padding:10px 16px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right))}
   .blog-hero{padding-top:calc(var(--nav-h) + 40px)}
   .table-scroll .compare-table{min-width:480px}
+}
+
+/* Login and Join are a matched pair: same size, same shape, different weight,
+   so they read as two doors rather than one button and a stray link. Login was
+   desktop-only, which is why the phone felt like it had no way in at all. */
+.nav-quiet{
+  font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;text-decoration:none;white-space:nowrap;
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:40px;padding:0 18px;border-radius:6px;
+  color:var(--gold,#c8a44e);background:transparent;
+  border:1px solid rgba(200,164,78,0.55);
+  transition:background .25s,border-color .25s;
+}
+.nav-quiet:hover{background:rgba(200,164,78,0.12);border-color:var(--gold,#c8a44e)}
+/* the filled twin carries the same box so the pair lines up exactly */
+.nav-join{flex-shrink:0;white-space:nowrap;display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border:1px solid transparent}
+@media(max-width:900px){
+  /* both stay on screen — the pair is the point */
+  .nav-right .nav-quiet,.nav-right .nav-join{
+    display:inline-flex !important;align-items:center;
+    min-height:44px;padding:0 14px;font-size:11px;letter-spacing:1.1px;
+  }
+}
+@media(max-width:400px){
+  .nav-right .nav-quiet,.nav-right .nav-join{padding:0 11px;font-size:10.5px;letter-spacing:.8px}
+  .nav-right{gap:6px}
 }
 </style>
 </head>
@@ -209,20 +237,29 @@ nav#nv .nt span{display:block;width:24px;height:1.5px;background:var(--site-gold
     <li><a href="index.html#contact">Contact us</a></li>
   </ul>
   <div class="nav-right">
-    <a href="index.html#login" class="nav-cta">Login</a>
+    <a href="index.html#login" class="nav-quiet">Login</a>
+    <a href="/signup" class="nav-cta nav-join">Join</a>
   </div>
-  <button type="button" class="nt" id="navToggle" aria-label="Open menu"><span></span><span></span><span></span></button>
+  <button type="button" class="nt" id="navToggle" aria-label="Open menu" aria-expanded="false" aria-controls="mo"><span></span><span></span><span></span></button>
 </nav>
 
-<div class="mm" id="mo">
-  <button type="button" class="mm-c" id="mmClose" aria-label="Close menu">&times;</button>
-  <a href="index.html#hero">Home</a>
-  <a href="index.html#results">Transformations</a>
-  <a href="tribe-stories.html">Tribe Stories</a>
-  <a href="our-story.html">Our Story</a>
-  <a href="blog.html" class="active">Blog</a>
-  <a href="index.html#contact">Contact us</a>
-  <a href="index.html#login" class="nav-cta">Login</a>
+<div class="mm" id="mo" role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="mm-head">
+    <img src="img/logo.png" alt="BodyBank" decoding="async">
+    <button type="button" class="mm-c" id="mmClose" onclick="bbCloseNavMenu()" aria-label="Close menu">&times;</button>
+  </div>
+  <div class="mm-body">
+    <div class="mm-links" role="navigation" aria-label="Site">
+      <a class="mm-link" href="index.html#hero" onclick="bbCloseNavMenu()">Home<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="index.html#results" onclick="bbCloseNavMenu()">Transformations<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="tribe-stories.html" onclick="bbCloseNavMenu()">Tribe Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="our-story.html" onclick="bbCloseNavMenu()">Our Story<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link active" href="blog.html" aria-current="page" onclick="bbCloseNavMenu()">Blog<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="index.html#contact" onclick="bbCloseNavMenu()">Contact us<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="index.html#login" onclick="bbCloseNavMenu()">Login<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-cta" href="/signup" onclick="bbCloseNavMenu()">Join BodyBank</a>
+    </div>
+  </div>
 </div>
 
 <div id="blog-listing">
@@ -726,17 +763,8 @@ function closePost(skipHistory){
   document.title='Blog BodyBank';
 }
 
-function closeMobileMenu(){
-  var mo=document.getElementById('mo');
-  if(mo) mo.classList.remove('open');
-  document.body.style.overflow='';
-}
-function toggleMobileMenu(){
-  var mo=document.getElementById('mo');
-  if(!mo) return;
-  var o=mo.classList.toggle('open');
-  document.body.style.overflow=o?'hidden':'';
-}
+function closeMobileMenu(){ window.bbCloseNavMenu(); }
+function toggleMobileMenu(){ window.bbToggleNavMenu(); }
 
 window.addEventListener('popstate',function(e){
   if(e.state&&e.state.post!==undefined) openPost(+e.state.post,true);
@@ -773,5 +801,40 @@ window.addEventListener('DOMContentLoaded',function(){
 
 </script>
 <script src="js/public-nav.js" defer></script>
+<script>
+/* The mobile menu. Mirrors the pair in index.html so the two behave the same. */
+(function () {
+  function el() { return document.getElementById('mo'); }
+  window.bbOpenNavMenu = function () {
+    var m = el();
+    if (!m || m.classList.contains('open')) return;
+    m.classList.add('open');
+    document.body.classList.add('bb-nav-open');
+    document.documentElement.style.overflow = 'hidden';
+    var b = document.getElementById('navHamburger') || document.getElementById('navToggle');
+    if (b) b.setAttribute('aria-expanded', 'true');
+    var c = m.querySelector('.mm-c');
+    if (c) { try { c.focus({ preventScroll: true }); } catch (_) { c.focus(); } }
+    var body = m.querySelector('.mm-body');
+    if (body) body.scrollTop = 0;
+  };
+  window.bbCloseNavMenu = function () {
+    var m = el();
+    if (!m || !m.classList.contains('open')) return;
+    m.classList.remove('open');
+    document.body.classList.remove('bb-nav-open');
+    document.documentElement.style.overflow = '';
+    var b = document.getElementById('navHamburger') || document.getElementById('navToggle');
+    if (b) { b.setAttribute('aria-expanded', 'false'); try { b.focus({ preventScroll: true }); } catch (_) {} }
+  };
+  window.bbToggleNavMenu = function () {
+    var m = el();
+    if (m && m.classList.contains('open')) window.bbCloseNavMenu(); else window.bbOpenNavMenu();
+  };
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') window.bbCloseNavMenu();
+  });
+})();
+</script>
 </body>
 </html>

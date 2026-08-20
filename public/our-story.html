@@ -15,6 +15,7 @@
 
 <link rel="manifest" href="/manifest.json" />
 <script src="/js/bb-pwa-update.js?v=1" defer></script>
+<link rel="stylesheet" href="/css/mobile-menu.css?v=1" />
 <link rel="stylesheet" href="/mobile-fix.css?v=20" />
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20" />
 <!-- Google tag (gtag.js) - GA4 -->
@@ -41,13 +42,14 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .back-btn:hover{background:rgba(200,164,78,0.2);border-color:var(--gold);color:var(--gold)}
 .nb{display:flex;align-items:center;text-decoration:none;color:var(--gold)}
 .nav-logo-img{height:44px;width:auto;object-fit:contain;mix-blend-mode:lighten}
+.nav-right{display:flex;align-items:center;gap:10px;margin-left:auto}
 .nt{display:none;margin-left:auto;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:10px}
 .nt span{display:block;width:24px;height:1.5px;background:var(--gold)}
-.mm{display:none;position:fixed;inset:0;background:rgba(6,6,6,0.97);z-index:99;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-.mm.open{display:flex}
-.mm a{color:var(--cream);text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;padding:12px}
-.mm a:hover{color:var(--gold)}
-.mm-c{position:absolute;top:max(18px,env(safe-area-inset-top));right:max(24px,env(safe-area-inset-right));background:none;border:none;color:var(--gold);font-size:30px;cursor:pointer;padding:8px}
+/* .mm now lives in /css/mobile-menu.css */
+
+
+
+
 .sec{padding:120px 48px 100px;position:relative;max-width:800px;margin:0 auto}
 .gold-line{width:100%;height:1px;background:var(--bdr);margin-bottom:40px}
 .os-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5vw,56px);letter-spacing:2px;text-transform:uppercase;text-align:center;color:var(--gold);margin-bottom:40px;line-height:1.2}
@@ -59,7 +61,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   .os-title{font-size:clamp(38px,6vw,52px)}
   .os-body{font-size:18px}
   nav{padding:10px 16px;gap:12px}.nt{display:flex}
-  .mm a{font-size:26px}
+  
 }
 .nav-cta{padding:9px 22px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:all .3s}.nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,164,78,0.3)}
 @media(max-width:600px){
@@ -68,7 +70,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   .os-title{font-size:36px}
   .os-body{font-size:18px}
   .os-body p{margin-bottom:22px}
-  .mm a{font-size:28px}
+  
 }
 .site-footer{text-align:center;padding:32px 24px;margin-top:auto;border-top:1px solid var(--bdr)}
 .site-footer .fitchef-logo{height:52px;width:auto;display:block;margin:0 auto 12px;object-fit:contain}
@@ -76,6 +78,33 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .site-footer a{color:var(--gold);text-decoration:none;transition:opacity .2s}
 .site-footer a:hover{opacity:.85}
 .site-footer p + p{margin-top:6px}
+
+/* Login and Join are a matched pair: same size, same shape, different weight,
+   so they read as two doors rather than one button and a stray link. Login was
+   desktop-only, which is why the phone felt like it had no way in at all. */
+.nav-quiet{
+  font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;text-decoration:none;white-space:nowrap;
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:40px;padding:0 18px;border-radius:6px;
+  color:var(--gold,#c8a44e);background:transparent;
+  border:1px solid rgba(200,164,78,0.55);
+  transition:background .25s,border-color .25s;
+}
+.nav-quiet:hover{background:rgba(200,164,78,0.12);border-color:var(--gold,#c8a44e)}
+/* the filled twin carries the same box so the pair lines up exactly */
+.nav-join{flex-shrink:0;white-space:nowrap;display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border:1px solid transparent}
+@media(max-width:900px){
+  /* both stay on screen — the pair is the point */
+  .nav-right .nav-quiet,.nav-right .nav-join{
+    display:inline-flex !important;align-items:center;
+    min-height:44px;padding:0 14px;font-size:11px;letter-spacing:1.1px;
+  }
+}
+@media(max-width:400px){
+  .nav-right .nav-quiet,.nav-right .nav-join{padding:0 11px;font-size:10.5px;letter-spacing:.8px}
+  .nav-right{gap:6px}
+}
 </style>
 </head>
 <body>
@@ -83,18 +112,30 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 <nav id="nv">
   <a href="index.html" class="back-btn" title="Back to home" aria-label="Back to home">&#10094;</a>
   <a href="index.html" class="nb"><img src="img/logo.png" alt="BodyBank" class="nav-logo-img" decoding="async"></a>
-  <button class="nt" onclick="document.getElementById('mo').classList.add('open')"><span></span><span></span><span></span></button>
+  <div class="nav-right">
+    <a href="index.html#login" class="nav-quiet">Login</a>
+    <a href="/signup" class="nav-cta nav-join">Join</a>
+    <button class="nt" id="navHamburger" onclick="bbToggleNavMenu()" aria-expanded="false" aria-controls="mo"><span></span><span></span><span></span></button>
+  </div>
 </nav>
 
-<div class="mm" id="mo">
-  <button class="mm-c" onclick="document.getElementById('mo').classList.remove('open')">&times;</button>
-  <a href="index.html#hero" onclick="document.getElementById('mo').classList.remove('open')">Home</a>
-  <a href="index.html#results" onclick="document.getElementById('mo').classList.remove('open')">Transformations</a>
-  <a href="tribe-stories.html" onclick="document.getElementById('mo').classList.remove('open')">Tribe Stories</a>
-  <a href="our-story.html" class="active" onclick="document.getElementById('mo').classList.remove('open')">Our Story</a>
-  <a href="blog.html" onclick="document.getElementById('mo').classList.remove('open')">Blog</a>
-  <a href="index.html#contact" onclick="document.getElementById('mo').classList.remove('open')">Contact us</a>
-  <a href="index.html#login" class="nav-cta" onclick="document.getElementById('mo').classList.remove('open')">Login</a>
+<div class="mm" id="mo" role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="mm-head">
+    <img src="img/logo.png" alt="BodyBank" decoding="async">
+    <button type="button" class="mm-c" id="mmClose" onclick="bbCloseNavMenu()" aria-label="Close menu">&times;</button>
+  </div>
+  <div class="mm-body">
+    <div class="mm-links" role="navigation" aria-label="Site">
+      <a class="mm-link" href="index.html#hero" onclick="bbCloseNavMenu()">Home<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="index.html#results" onclick="bbCloseNavMenu()">Transformations<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="tribe-stories.html" onclick="bbCloseNavMenu()">Tribe Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link active" href="our-story.html" aria-current="page" onclick="bbCloseNavMenu()">Our Story<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="blog.html" onclick="bbCloseNavMenu()">Blog<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="index.html#contact" onclick="bbCloseNavMenu()">Contact us<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="index.html#login" onclick="bbCloseNavMenu()">Login<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-cta" href="/signup" onclick="bbCloseNavMenu()">Join BodyBank</a>
+    </div>
+  </div>
 </div>
 
 <main id="main" role="main">
@@ -114,5 +155,40 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   <p><a href="https://www.Fitchef.fit" target="_blank" rel="noopener">www.Fitchef.fit</a></p>
 </footer>
 <script src="js/public-nav.js" defer></script>
+<script>
+/* The mobile menu. Mirrors the pair in index.html so the two behave the same. */
+(function () {
+  function el() { return document.getElementById('mo'); }
+  window.bbOpenNavMenu = function () {
+    var m = el();
+    if (!m || m.classList.contains('open')) return;
+    m.classList.add('open');
+    document.body.classList.add('bb-nav-open');
+    document.documentElement.style.overflow = 'hidden';
+    var b = document.getElementById('navHamburger');
+    if (b) b.setAttribute('aria-expanded', 'true');
+    var c = m.querySelector('.mm-c');
+    if (c) { try { c.focus({ preventScroll: true }); } catch (_) { c.focus(); } }
+    var body = m.querySelector('.mm-body');
+    if (body) body.scrollTop = 0;
+  };
+  window.bbCloseNavMenu = function () {
+    var m = el();
+    if (!m || !m.classList.contains('open')) return;
+    m.classList.remove('open');
+    document.body.classList.remove('bb-nav-open');
+    document.documentElement.style.overflow = '';
+    var b = document.getElementById('navHamburger');
+    if (b) { b.setAttribute('aria-expanded', 'false'); try { b.focus({ preventScroll: true }); } catch (_) {} }
+  };
+  window.bbToggleNavMenu = function () {
+    var m = el();
+    if (m && m.classList.contains('open')) window.bbCloseNavMenu(); else window.bbOpenNavMenu();
+  };
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') window.bbCloseNavMenu();
+  });
+})();
+</script>
 </body>
 </html>

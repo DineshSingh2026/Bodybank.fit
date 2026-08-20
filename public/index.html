@@ -93,10 +93,26 @@ nav{position:fixed;top:0;left:0;right:0;z-index:10010;display:flex;align-items:c
 body.site-nav-hidden nav#nv{display:none !important}
 .nb{display:flex;align-items:center;text-decoration:none;flex-shrink:0}
 .nav-logo-img{height:54px;width:auto;object-fit:contain;mix-blend-mode:lighten}
-.nm{display:flex;gap:28px;list-style:none;align-items:center;flex-shrink:1;min-width:0}
+/* Never shrink: a shrunk .nm still renders full-width nowrap text, which is
+   what overlapped the tagline and the buttons. Let the breakpoint decide. */
+.nm{display:flex;gap:24px;list-style:none;align-items:center;flex-shrink:0}
+@media(max-width:1560px){
+  /* the tagline is brand garnish and the widest thing we can lose */
+  .nav-tagline{display:none}
+}
+@media(max-width:1400px){
+  .nm{gap:18px}
+  .nm a{letter-spacing:1.3px}
+}
 .nm a{color:var(--creamd);text-decoration:none;font-size:12px;font-weight:500;letter-spacing:2px;text-transform:uppercase;transition:color .3s;white-space:nowrap}
 .nm a:hover{color:var(--gold)}
 .nav-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+/* The second door in the hero: quiet, but named, so 'where do I sign up?'
+   has a visible answer without scrolling. */
+.hero-alt{margin-top:18px;font-family:'Outfit',sans-serif;font-size:13px;line-height:1.7;color:var(--creamd,#bfb9ab)}
+.hero-alt a{color:var(--gold);font-weight:700;text-decoration:none;border-bottom:1px solid rgba(200,164,78,0.4);padding-bottom:1px;transition:border-color .25s}
+.hero-alt a:hover{border-color:var(--gold)}
+@media(max-width:600px){.hero-alt{font-size:12.5px;margin-top:15px}}
 .nav-tagline{font-family:'Outfit',sans-serif;font-size:13px;font-weight:500;letter-spacing:2px;text-transform:uppercase;white-space:nowrap;color:var(--gold);padding-left:12px;border-left:1px solid rgba(200,164,78,0.4);opacity:.95}
 .nav-login{padding:9px 22px;border:1.5px solid var(--gold);border-radius:6px;background:transparent;color:var(--cream);font-family:'Outfit',sans-serif;font-weight:600;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .3s;text-decoration:none}
 .nav-login:hover{background:rgba(200,164,78,0.1)}
@@ -104,13 +120,43 @@ body.site-nav-hidden nav#nv{display:none !important}
 .nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,164,78,0.3)}
 .nav-login-btn{display:inline-flex;align-items:center;justify-content:center}
 .nav-login-btn.desktop-only{display:inline-flex}
+/* Login and Join are a matched pair: same size, same shape, different weight,
+   so they read as two doors rather than one button and a stray link. Login was
+   desktop-only, which is why the phone felt like it had no way in at all. */
+.nav-quiet{
+  font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;text-decoration:none;white-space:nowrap;
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:40px;padding:0 18px;border-radius:6px;
+  color:var(--gold,#c8a44e);background:transparent;
+  border:1px solid rgba(200,164,78,0.55);
+  transition:background .25s,border-color .25s;
+}
+.nav-quiet:hover{background:rgba(200,164,78,0.12);border-color:var(--gold,#c8a44e)}
+/* the filled twin carries the same box so the pair lines up exactly */
+.nav-join{flex-shrink:0;white-space:nowrap;display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border:1px solid transparent}
+@media(max-width:900px){
+  /* both stay on screen — the pair is the point */
+  .nav-right .nav-quiet,.nav-right .nav-join{
+    display:inline-flex !important;align-items:center;
+    min-height:44px;padding:0 14px;font-size:11px;letter-spacing:1.1px;
+  }
+}
+@media(max-width:360px){
+  .nb{max-width:min(120px,32vw)}
+  .nav-right .nav-quiet{padding:0 5px !important;font-size:10.5px;letter-spacing:.4px}
+  .nav-right .nav-join{padding:0 12px;font-size:11px;letter-spacing:.8px}
+  nav{padding-left:max(14px,env(safe-area-inset-left));padding-right:max(14px,env(safe-area-inset-right))}
+}
+@media(max-width:400px){
+  .nav-right .nav-quiet,.nav-right .nav-join{padding:0 11px;font-size:10.5px;letter-spacing:.8px}
+  .nav-right{gap:6px}
+}
 .nt{display:none;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:10px;min-width:44px;min-height:44px;justify-content:center;align-items:center}
 .nt span{display:block;width:24px;height:1.5px;background:var(--gold)}
-.mm{display:none;position:fixed;inset:0;background:rgba(6,6,6,0.97);z-index:99;flex-direction:column;align-items:center;justify-content:center;gap:28px;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain}
-.mm.open{display:flex}
-.mm a{color:var(--cream);text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;padding:12px;min-height:48px;display:flex;align-items:center}
-.mm a:hover{color:var(--gold)}
-.mm-c{position:absolute;top:max(18px,env(safe-area-inset-top));right:max(24px,env(safe-area-inset-right));background:none;border:none;color:var(--gold);font-size:30px;cursor:pointer;padding:8px;min-width:44px;min-height:44px}
+/* The mobile menu lives in /css/mobile-menu.css — one definition for every
+   public page, so the four copies can never drift apart again. */
+
 
 /* PWA Add to Home Screen */
 .pwa-add-homescreen.standalone-hidden{display:none !important}
@@ -121,7 +167,7 @@ body.site-nav-hidden nav#nv{display:none !important}
 .nav-refresh-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
 .nav-refresh-btn svg{width:16px;height:16px;display:block}
 .admin-nav-link.pwa-add-homescreen,.user-sidebar-link.pwa-add-homescreen,.mm .pwa-add-homescreen{cursor:pointer;flex-shrink:0}
-.mm .pwa-add-homescreen{color:var(--cream);text-decoration:none;font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:4px;padding:12px;min-height:48px;display:flex;align-items:center;background:none;border:none;width:100%;justify-content:center;font:inherit}
+.mm .pwa-add-homescreen{color:var(--muted,#8a8880);text-decoration:none;font-family:inherit;font-size:12.5px;letter-spacing:.06em;padding:12px;min-height:44px;display:flex;align-items:center;background:none;border:none;width:100%;justify-content:center}
 .mm .pwa-add-homescreen:hover{color:var(--gold)}
 .pwa-ios-modal{position:fixed;inset:0;z-index:100020;background:rgba(6,6,6,0.95);display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;padding-left:max(24px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right));padding-bottom:max(24px,env(safe-area-inset-bottom));padding-top:max(24px,env(safe-area-inset-top))}
 .pwa-ios-modal.hidden{display:none}
@@ -656,19 +702,42 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
 .rv{opacity:0;transform:translateY(32px);transition:opacity .8s ease,transform .8s ease}
 .rv.v{opacity:1;transform:translateY(0)}
 
+@media(max-width:1280px){
+  .nm{display:none}
+  .nt{display:flex}
+}
+
 @media(max-width:900px){
   body{font-size:17px;line-height:1.65}
-  nav{padding:10px 28px;padding-left:max(20px,env(safe-area-inset-left));padding-right:max(28px,env(safe-area-inset-right));padding-top:max(20px,env(safe-area-inset-top));gap:12px;min-width:0}
+  nav{padding:8px 28px;padding-left:max(18px,env(safe-area-inset-left));padding-right:max(18px,env(safe-area-inset-right));padding-top:max(10px,env(safe-area-inset-top));gap:12px;min-width:0}
   .nm{display:none}
   .nb{flex-shrink:1;min-width:0;max-width:min(240px,46vw)}
   .nav-logo-img{max-width:100%;width:auto;height:auto;object-fit:contain}
   .nav-right{display:flex;align-items:center;gap:10px;margin-left:auto;flex:1;min-width:0;justify-content:flex-end}
   .nav-tagline{flex:1 1 auto;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis}
-  .nt{display:flex;flex-shrink:0;margin-left:0;padding:10px 12px;min-width:48px;min-height:48px}
+  .nt{display:flex;flex-shrink:0;margin-left:0;padding:10px 10px;min-width:44px;min-height:44px}
+  /* a slimmer bar: the logo was eating a third of the width */
+  nav{gap:10px}
+  .nb{max-width:min(150px,38vw)}
+  .nav-logo-img{height:38px}
+  .nav-right{gap:4px}
+  /* Login: a word, not a box */
+  .nav-right .nav-quiet{
+    border:0 !important;background:transparent !important;
+    padding:0 8px !important;min-height:44px;
+    font-size:11px;letter-spacing:.9px;color:var(--creamd,#bfb9ab);
+  }
+  .nav-right .nav-quiet:active{color:var(--gold)}
+  /* Join: the only filled thing on the bar */
+  .nav-right .nav-join{
+    min-height:44px;padding:0 16px;border-radius:22px;
+    font-size:11.5px;letter-spacing:1.2px;
+    box-shadow:0 6px 16px -8px rgba(200,164,78,0.9);
+  }
   .pwa-standalone nav{padding-right:max(36px,env(safe-area-inset-right))}
   .pwa-standalone .nav-right{gap:16px}
   .pwa-standalone .nt{margin-left:14px;padding:10px 14px}
-  .nav-login-btn.desktop-only{display:none !important}
+  .nav-tagline{display:none}
   .nav-tagline{font-size:11px;font-weight:500;letter-spacing:1.5px;padding-left:8px;border-left-width:1px}
   .nav-logo-img{height:46px}
   .hero{padding:calc(100px + env(safe-area-inset-top,0px)) 24px calc(60px + env(safe-area-inset-bottom,0px));min-height:min(var(--app-height),720px)}
@@ -716,14 +785,14 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
   .scroll-ind{width:20px;height:32px}
   .sec{padding:26px 16px}.sec-heading{font-size:36px}.sec-sub{font-size:16px;margin-bottom:18px}.sec-label{font-size:12px}
   .nav-logo-img{height:44px}
-  .mm a{font-size:28px}
+  .mm a.mm-link{font-size:28px}
   .plx-body{padding:4px 16px 18px 64px}
   .phase-heading-top{font-size:15px;letter-spacing:3px}
   .phase-heading-bot{font-size:clamp(32px,10vw,48px)}
   .fail-item h4{font-size:16px}.fail-item p{font-size:16px}
   .origin-inner p{font-size:18px}
   .fq{font-size:17px}.fa{font-size:16px}
-  nav{padding:10px 24px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(24px,env(safe-area-inset-right));padding-top:max(20px,env(safe-area-inset-top))}
+  nav{padding:8px 24px;padding-left:max(16px,env(safe-area-inset-left));padding-right:max(16px,env(safe-area-inset-right));padding-top:max(10px,env(safe-area-inset-top))}
   .pwa-standalone nav{padding-right:max(32px,env(safe-area-inset-right))}
   .pwa-standalone .nav-right{gap:14px}
   .pwa-standalone .nt{margin-left:12px;padding:10px 12px}
@@ -3463,6 +3532,13 @@ button.bb-today-pill{cursor:pointer}
 .daily-seg-btn{flex:1;min-height:40px;padding:8px 6px;border:none;background:transparent;color:var(--muted);border-radius:99px;font-family:var(--bb-font-heading,'Rajdhani',sans-serif);font-size:13px;font-weight:700;letter-spacing:.04em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .2s,color .2s}
 .daily-seg-btn .seg-emoji{font-size:15px}
 .daily-seg-btn.active{background:var(--goldg,var(--gold));color:var(--black,#0d0f11)}
+/* A phone number is two controls: the dialling code the country chose, and the
+   number the member types. The code is narrow and quieter — it is a
+   consequence of the country field, not a question of its own. */
+.bb-phone-row{display:grid;grid-template-columns:118px minmax(0,1fr);gap:8px}
+.bb-phone-row .bb-phone-dial{padding-left:10px;padding-right:6px;font-variant-numeric:tabular-nums;color:var(--creamd,#bfb9ab)}
+@media (max-width:380px){.bb-phone-row{grid-template-columns:104px minmax(0,1fr)}}
+
 /* ═══ Body pane — gold, black, white ══════════════════════════════════════════
    The pane was already gold, but its neutrals were warm browns (#9b8f78,
    #bdb3a0, #8d836d), so it read gold-on-mud rather than gold-on-black. Every
@@ -3513,6 +3589,13 @@ button.bb-today-pill{cursor:pointer}
   box-shadow:0 0 0 3px rgba(226,192,113,0.16);
 }
 
+#daily-pane-body .dc-btn-edit{
+  background:rgba(226,192,113,0.09);border-color:rgba(226,192,113,0.4);color:var(--bg-gold);
+}
+#daily-pane-body .dc-btn-edit:hover{background:rgba(226,192,113,0.18)}
+#daily-pane-body .dc-btn-cancel{border-color:rgba(255,255,255,0.14);color:var(--bg-soft)}
+#daily-pane-body .dc-btn-cancel:hover{border-color:rgba(255,255,255,0.3);color:var(--bg-white)}
+#daily-pane-body .dc-note{color:var(--bg-dim)}
 #daily-pane-body .micro-goals-submit{
   background:linear-gradient(105deg,#F0D89A,#C8A44E);
   color:#100C02;
@@ -3943,6 +4026,20 @@ button.bb-today-pill{cursor:pointer}
 .bb-step-btn:active{background:rgba(200,164,78,0.28)}
 .bb-step-btn:disabled{opacity:.4;cursor:not-allowed}
 .micro-goals-submit{width:100%;padding:12px;background:var(--goldg);border:none;border-radius:8px;color:var(--black);font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;transition:opacity .2s,transform .1s}
+/* Editing today: the entry is saved, so the loud button steps aside for a
+   quiet one, and turns back into Save only while a correction is open. */
+.dc-actions{display:flex;gap:8px;align-items:center}
+.dc-actions > button{flex:1}
+.dc-btn-edit,.dc-btn-cancel{padding:12px;border-radius:8px;font-family:inherit;font-weight:700;font-size:13px;letter-spacing:1px;cursor:pointer;transition:background .18s,border-color .18s,color .18s}
+.dc-btn-edit{background:rgba(200,164,78,0.1);border:1px solid rgba(200,164,78,0.42);color:var(--gold,#c8a44e)}
+.dc-btn-edit:hover{background:rgba(200,164,78,0.2)}
+.dc-btn-cancel{background:transparent;border:1px solid rgba(255,255,255,0.16);color:var(--muted,#8a8880)}
+.dc-btn-cancel:hover{border-color:rgba(255,255,255,0.32);color:var(--cream,#f0ede8)}
+.dc-err{margin:10px 0 0;padding:9px 12px;border-radius:8px;font-size:12px;line-height:1.45;color:#ffb4b4;background:rgba(255,92,92,0.1);border:1px solid rgba(255,92,92,0.34)}
+.dc-err[hidden]{display:none}
+.dc-note{margin:9px 0 0;font-size:11.5px;line-height:1.45;color:var(--muted,#8a8880);text-align:center}
+.dc-note[hidden]{display:none}
+.micro-goal-field input.is-bad{border-color:rgba(255,92,92,0.65) !important;box-shadow:0 0 0 3px rgba(255,92,92,0.14) !important}
 .micro-goals-submit:hover{opacity:.92}
 .micro-goals-submit:active{transform:scale(0.97);opacity:.85;transition:transform .08s,opacity .08s}
 .weekly-recap{display:flex;flex-wrap:wrap;gap:12px;margin-top:16px;padding-top:16px;border-top:1px solid var(--bdr)}
@@ -3987,7 +4084,35 @@ button.bb-today-pill{cursor:pointer}
 .skeleton-line.short{width:60%}
 .schedule-call-block{padding:24px;background:rgba(200,164,78,0.06);border:1px solid var(--bdr);border-radius:14px;margin-bottom:24px;min-width:0;overflow:hidden}
 .schedule-call-block h3{font-size:16px;font-weight:600;color:var(--gold);margin-bottom:20px;letter-spacing:1px}
-.my-meetings{margin-top:24px}
+/* ---- Consultations ------------------------------------------------------
+   A slot grid rather than a dropdown, because the thing a member needs to see
+   is which times are GONE — a <select> can only hide that. Past and taken
+   slots stay on screen, struck through, so the day still reads as a day. */
+.mtg-slots{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.mtg-slot{padding:11px 6px;border-radius:9px;border:1.5px solid var(--bdr);background:rgba(255,255,255,0.04);color:var(--cream);font-family:inherit;font-size:13.5px;font-weight:600;cursor:pointer;transition:border-color .18s,background .18s,color .18s}
+.mtg-slot:hover:not(:disabled){border-color:rgba(200,164,78,0.55);background:rgba(200,164,78,0.07)}
+.mtg-slot.selected{border-color:var(--gold);background:rgba(200,164,78,0.16);color:var(--gold)}
+.mtg-slot:disabled{opacity:.32;cursor:not-allowed;text-decoration:line-through}
+.mtg-slot-why{display:block;font-size:9.5px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;opacity:.85;margin-top:3px;text-decoration:none}
+.mtg-err{margin:12px 0 0;padding:9px 12px;border-radius:8px;font-size:12.5px;line-height:1.45;color:#ffb4b4;background:rgba(255,92,92,0.1);border:1px solid rgba(255,92,92,0.34)}
+.mtg-err[hidden]{display:none}
+.mtg-editing{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;padding:10px 13px;border-radius:10px;font-size:12.5px;line-height:1.45;color:var(--gold);background:rgba(200,164,78,0.1);border:1px solid rgba(200,164,78,0.36)}
+.mtg-editing[hidden]{display:none}
+.mtg-editing span{flex:1;min-width:180px}
+.mtg-editing-x{border:1px solid rgba(255,255,255,0.2);background:transparent;color:var(--cream);font:inherit;font-size:11.5px;font-weight:600;padding:5px 11px;border-radius:7px;cursor:pointer}
+.mtg-editing-x:hover{border-color:rgba(255,255,255,0.4)}
+/* status is the whole point of the list — it reads before the date does */
+.m-status{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:99px;white-space:nowrap}
+.m-status--scheduled{color:#3dd68c;background:rgba(61,214,140,0.12);border:1px solid rgba(61,214,140,0.34)}
+.m-status--cancelled{color:#ff6b6b;background:rgba(255,80,80,0.1);border:1px solid rgba(255,80,80,0.3)}
+.m-status--completed{color:var(--gold);background:rgba(200,164,78,0.12);border:1px solid rgba(200,164,78,0.34)}
+.m-status--past{color:var(--muted);background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14)}
+.m-when{display:block;margin-top:5px;font-size:12px;color:var(--muted)}
+.my-meeting-item .m-info{flex:1;min-width:168px}
+.m-group-label{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:18px 0 9px}
+.m-group-label:first-child{margin-top:0}
+.m-btn-reschedule{background:rgba(200,164,78,0.15);color:var(--gold);border:1px solid rgba(200,164,78,0.4)}
+.my-meetings{margin-top:4px}
 .my-meeting-item{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:14px 18px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:10px;margin-bottom:10px}
 .my-meeting-item .m-info{font-size:14px;color:var(--cream)}
 .my-meeting-item .m-date{color:var(--gold);font-weight:600}
@@ -4924,6 +5049,7 @@ button.bb-today-pill{cursor:pointer}
 #adminChartWater,#adminChartSessionDuration,#adminChartBodyFat{margin-bottom:0}
 
 </style>
+<link rel="stylesheet" href="/css/mobile-menu.css?v=1">
 <link rel="stylesheet" href="/mobile-fix.css?v=20">
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <link rel="stylesheet" href="/css/blood-report-editor.css?v=2">
@@ -4934,6 +5060,7 @@ button.bb-today-pill{cursor:pointer}
 <script src="js/notification-sounds.js?v=4"></script>
 <script src="js/operator-console.js?v=10"></script>
 <script src="js/admin-home.js?v=3"></script>
+<script src="js/countries.js?v=1"></script>
 <script src="js/member-home.js?v=5"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
@@ -7116,7 +7243,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <div class="micro-goals-grid">
               <div class="micro-goal-field">
                 <label>Steps</label>
-                <input type="number" id="dailySteps" placeholder="e.g. 8000" min="0">
+                <input type="number" id="dailySteps" placeholder="e.g. 8000" min="0" max="100000" step="1" inputmode="numeric">
               </div>
               <div class="micro-goal-field">
                 <label>Water (L)</label>
@@ -7124,14 +7251,20 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
               </div>
               <div class="micro-goal-field">
                 <label>Protein (g)</label>
-                <input type="number" id="dailyProtein" placeholder="e.g. 120" min="0">
+                <input type="number" id="dailyProtein" placeholder="e.g. 120" min="0" max="500" step="1" inputmode="numeric">
               </div>
               <div class="micro-goal-field">
                 <label>Sleep (hrs)</label>
-                <input type="number" id="dailySleep" placeholder="e.g. 7.5" min="0" step="0.5">
+                <input type="number" id="dailySleep" placeholder="e.g. 7.5" min="0" max="24" step="0.5" inputmode="decimal">
               </div>
             </div>
-            <button type="submit" class="micro-goals-submit">Save today</button>
+            <p class="dc-err" id="dailyCheckinErr" role="alert" hidden></p>
+            <div class="dc-actions">
+              <button type="submit" class="micro-goals-submit" id="dailyCheckinSave">Save today</button>
+              <button type="button" class="dc-btn-edit" id="dailyCheckinEdit" onclick="bbDailyBeginEdit()" hidden>Edit today's entry</button>
+              <button type="button" class="dc-btn-cancel" id="dailyCheckinCancel" onclick="bbDailyCancelEdit()" hidden>Cancel</button>
+            </div>
+            <p class="dc-note" id="dailyCheckinNote" hidden></p>
           </form>
         </div>
         <section id="weeklyInsights" class="bb-wi" aria-label="Weekly insights"></section>
@@ -7783,32 +7916,31 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <!-- CONTACT US -->
     <div class="user-section" id="usec-contact">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <div class="form-section-title">Schedule a meeting</div>
+      <div class="form-section-title" id="mtgFormTitle">Book a consultation</div>
       <div class="schedule-call-block">
         <input type="hidden" id="mtgEditId" value="">
-        <div class="form-row">
-          <div class="form-group"><label>Date <span class="req">*</span></label><input type="date" class="form-input" id="mtgDate" min=""></div>
-          <div class="form-group"><label>Time Slot <span class="req">*</span></label>
-            <select class="form-input" id="mtgTime">
-              <option value="">Select time</option>
-              <option value="9:00 AM">9:00 AM</option>
-              <option value="10:00 AM">10:00 AM</option>
-              <option value="11:00 AM">11:00 AM</option>
-              <option value="12:00 PM">12:00 PM</option>
-              <option value="2:00 PM">2:00 PM</option>
-              <option value="3:00 PM">3:00 PM</option>
-              <option value="4:00 PM">4:00 PM</option>
-              <option value="5:00 PM">5:00 PM</option>
-              <option value="6:00 PM">6:00 PM</option>
-            </select>
-          </div>
+        <input type="hidden" id="mtgTime" value="">
+        <div class="mtg-editing" id="mtgEditingBanner" hidden>
+          <span>Moving your consultation from <b id="mtgEditingFrom">—</b>. Pick a new date and time.</span>
+          <button type="button" class="mtg-editing-x" onclick="cancelMeetingEdit()">Keep original</button>
         </div>
-        <button class="form-submit" onclick="submitMeetingRequest()" id="mtgSubmitBtn">Schedule Call</button>
-        <div id="meetingsListSkeleton" class="skeleton-wrapper" style="display:none">
-          <div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div>
+        <div class="form-group">
+          <label>Date <span class="req">*</span></label>
+          <input type="date" class="form-input" id="mtgDate" onchange="onMeetingDateChange()">
+          <span class="form-hint" id="mtgDateHint">Pick any day from today onwards.</span>
         </div>
-        <div class="my-meetings" id="myMeetingsList"></div>
+        <div class="form-group">
+          <label>Time slot <span class="req">*</span></label>
+          <div class="mtg-slots" id="mtgSlots"><p class="form-hint" style="margin:0">Pick a date to see the available times.</p></div>
+        </div>
+        <p class="mtg-err" id="mtgErr" role="alert" hidden></p>
+        <button class="form-submit" onclick="submitMeetingRequest()" id="mtgSubmitBtn">Book consultation</button>
       </div>
+      <div class="form-section-title" style="margin-top:28px">Your consultations</div>
+      <div id="meetingsListSkeleton" class="skeleton-wrapper" style="display:none">
+        <div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div>
+      </div>
+      <div class="my-meetings" id="myMeetingsList"></div>
     </div>
 
       </div>
@@ -10305,22 +10437,33 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
   </ul>
   <div class="nav-right">
     <span class="nav-tagline">Lifestyle Management</span>
-    <a href="#" class="nav-cta nav-login-btn desktop-only" onclick="openModal('loginModal');return false;">Login</a>
-    <button class="nt" id="navHamburger" onclick="var m=document.getElementById('mo');m.classList.toggle('open');m.classList.contains('open')?lockBodyScroll():unlockBodyScroll()" aria-label="Toggle menu"><span></span><span></span><span></span></button>
+    <a href="#" class="nav-quiet" onclick="openModal('loginModal');return false;">Login</a>
+    <a href="/signup" class="nav-cta nav-join">Join</a>
+    <button class="nt" id="navHamburger" onclick="bbToggleNavMenu()" aria-label="Open menu" aria-expanded="false" aria-controls="mo"><span></span><span></span><span></span></button>
   </div>
 </nav>
 
-<div class="mm" id="mo">
-  <button class="mm-c" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">&times;</button>
-  <a href="#hero" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Home</a>
-  <a href="#success-stories" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Stories</a>
-  <a href="#results" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Transformations</a>
-  <a href="tribe-stories.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Tribe Stories</a>
-  <a href="our-story.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Our Story</a>
-  <a href="blog.html" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Blog</a>
-  <a href="#contact" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll()">Contact us</a>
-  <a href="#" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll();openModal('loginModal');return false;">Login</a>
-  <a href="#" class="pwa-add-homescreen" onclick="document.getElementById('mo').classList.remove('open');unlockBodyScroll();handlePwaAddToHomescreen();return false;">Add to Home Screen</a>
+<div class="mm" id="mo" role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="mm-head">
+    <img src="img/logo.png" alt="BodyBank" decoding="async">
+    <button type="button" class="mm-c" onclick="bbCloseNavMenu()" aria-label="Close menu">&times;</button>
+  </div>
+  <div class="mm-body">
+    <div class="mm-links" role="navigation" aria-label="Site">
+      <a class="mm-link" href="#hero" onclick="bbCloseNavMenu()">Home<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="#success-stories" onclick="bbCloseNavMenu()">Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="#results" onclick="bbCloseNavMenu()">Transformations<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="tribe-stories.html" onclick="bbCloseNavMenu()">Tribe Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="our-story.html" onclick="bbCloseNavMenu()">Our Story<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="blog.html" onclick="bbCloseNavMenu()">Blog<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="#contact" onclick="bbCloseNavMenu()">Contact us<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="#" onclick="bbCloseNavMenu();openModal('loginModal');return false;">Login<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-cta" href="/signup">Join BodyBank</a>
+      <div class="mm-foot">
+        <a href="#" class="pwa-add-homescreen" onclick="bbCloseNavMenu();handlePwaAddToHomescreen();return false;">Add to Home Screen</a>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- PWA iOS Add to Home Screen Instructions -->
@@ -10352,7 +10495,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     </div>
     <button class="form-submit" onclick="event.preventDefault();adminLogin()">Login Now</button>
     <p class="login-footer" style="margin-top:8px"><a href="#" style="color:var(--gold);font-size:13px" onclick="closeModal('loginModal');openPopup('forgotModal');return false;">Forgot password?</a></p>
-    <p class="login-footer">Don't Have An Account? <a href="#" onclick="openModal('signupModal');closeModal('loginModal');return false;">Sign-up</a></p>
+    <p class="login-footer">Don't have an account? <a href="/signup">Join BodyBank</a></p>
   </div>
 </div>
 
@@ -10371,56 +10514,11 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
 
 
 <!-- SIGNUP MODAL -->
-<div class="modal-overlay" id="signupModal" onclick="if(event.target===this)closeModal('signupModal')">
-  <div class="modal login-modal modal-with-scroll">
-    <button class="modal-close" onclick="closeModal('signupModal')">&times;</button>
-    <h2>Create your account</h2>
-    <div class="modal-body-scroll">
-    <div class="form-row">
-      <div class="form-group"><label>First Name <span class="req">*</span></label><input type="text" class="form-input" id="suFirst" placeholder="First name" required></div>
-      <div class="form-group"><label>Last Name <span class="req">*</span></label><input type="text" class="form-input" id="suLast" placeholder="Last name" required></div>
-    </div>
-    <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" class="form-input" id="suEmail" placeholder="Enter your email" required></div>
-    <div class="form-group"><label>Mobile / WhatsApp <span class="req">*</span></label><input type="tel" class="form-input" id="suPhone" placeholder="+91XXXXXXXXXX" required></div>
-    <div class="form-row">
-      <div class="form-group"><label>Date of Birth <span class="req">*</span></label><input type="date" class="form-input" id="suDob" required></div>
-      <div class="form-group"><label>Gender <span class="req">*</span></label><select class="form-input" id="suGender" required><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option></select></div>
-    </div>
-    <div class="form-group"><label>Height (cm) <span class="req">*</span></label><input type="number" class="form-input" id="suHeightCm" min="100" max="230" step="1" inputmode="numeric" placeholder="e.g. 175" required><span class="form-hint">Whole centimeters (100–230). Used for your nutrition energy estimate (RMR).</span></div>
-    <div class="form-row">
-      <div class="form-group"><label>Country <span class="req">*</span></label><input type="text" class="form-input" id="suCountry" placeholder="Your country" required></div>
-      <div class="form-group"><label>Timezone <span class="req">*</span></label><select class="form-input" id="suTimezone" required><option value="">Detecting…</option><optgroup label="Asia"><option value="Asia/Kolkata">India (IST, UTC+5:30)</option><option value="Asia/Dubai">UAE / Dubai (GST, UTC+4)</option><option value="Asia/Riyadh">Saudi Arabia (AST, UTC+3)</option><option value="Asia/Kuwait">Kuwait (AST, UTC+3)</option><option value="Asia/Qatar">Qatar (AST, UTC+3)</option><option value="Asia/Bahrain">Bahrain (AST, UTC+3)</option><option value="Asia/Muscat">Oman / Muscat (GST, UTC+4)</option><option value="Asia/Karachi">Pakistan (PKT, UTC+5)</option><option value="Asia/Dhaka">Bangladesh (BST, UTC+6)</option><option value="Asia/Kathmandu">Nepal (NPT, UTC+5:45)</option><option value="Asia/Colombo">Sri Lanka (SLST, UTC+5:30)</option><option value="Asia/Singapore">Singapore (SGT, UTC+8)</option><option value="Asia/Kuala_Lumpur">Malaysia (MYT, UTC+8)</option><option value="Asia/Jakarta">Indonesia / Jakarta (WIB, UTC+7)</option><option value="Asia/Manila">Philippines (PHT, UTC+8)</option><option value="Asia/Tokyo">Japan (JST, UTC+9)</option><option value="Asia/Seoul">South Korea (KST, UTC+9)</option><option value="Asia/Shanghai">China (CST, UTC+8)</option></optgroup><optgroup label="Europe"><option value="Europe/London">UK / London (GMT/BST)</option><option value="Europe/Paris">France / Paris (CET, UTC+1)</option><option value="Europe/Berlin">Germany / Berlin (CET, UTC+1)</option><option value="Europe/Rome">Italy / Rome (CET, UTC+1)</option><option value="Europe/Amsterdam">Netherlands (CET, UTC+1)</option><option value="Europe/Oslo">Norway / Oslo (CET, UTC+1)</option><option value="Europe/Stockholm">Sweden / Stockholm (CET, UTC+1)</option><option value="Europe/Copenhagen">Denmark (CET, UTC+1)</option><option value="Europe/Helsinki">Finland (EET, UTC+2)</option><option value="Europe/Dublin">Ireland / Dublin (GMT/IST)</option></optgroup><optgroup label="Americas"><option value="America/New_York">US — New York (ET, UTC-5/-4)</option><option value="America/Chicago">US — Chicago (CT, UTC-6/-5)</option><option value="America/Denver">US — Denver (MT, UTC-7/-6)</option><option value="America/Los_Angeles">US — Los Angeles (PT, UTC-8/-7)</option><option value="America/Phoenix">US — Phoenix (MST, UTC-7)</option><option value="America/Anchorage">US — Anchorage (AKST, UTC-9)</option><option value="Pacific/Honolulu">US — Hawaii (HST, UTC-10)</option><option value="America/Toronto">Canada / Toronto (ET, UTC-5/-4)</option><option value="America/Vancouver">Canada / Vancouver (PT, UTC-8/-7)</option><option value="America/Sao_Paulo">Brazil / São Paulo (BRT, UTC-3)</option><option value="America/Mexico_City">Mexico (CST, UTC-6)</option></optgroup><optgroup label="Oceania"><option value="Australia/Sydney">Australia / Sydney (AEST, UTC+10/11)</option><option value="Australia/Brisbane">Australia / Brisbane (AEST, UTC+10)</option><option value="Australia/Perth">Australia / Perth (AWST, UTC+8)</option><option value="Pacific/Auckland">New Zealand (NZST, UTC+12/13)</option></optgroup><optgroup label="Africa"><option value="Africa/Johannesburg">South Africa (SAST, UTC+2)</option><option value="Africa/Lagos">Nigeria (WAT, UTC+1)</option><option value="Africa/Nairobi">Kenya (EAT, UTC+3)</option></optgroup><optgroup label="UTC"><option value="UTC">UTC (Coordinated Universal Time)</option></optgroup></select></div>
-    </div>
-    <div class="form-row">
-      <div class="form-group"><label>State / Province</label><input type="text" class="form-input" id="suState" placeholder="State or Province"></div>
-      <div class="form-group"><label>City</label><input type="text" class="form-input" id="suCity" placeholder="Your city"></div>
-    </div>
-    <div class="form-group"><label>Password <span class="req">*</span></label><div class="pw-wrap"><input type="password" class="form-input" placeholder="Create a password" id="pwSignup"><button class="pw-toggle" onclick="document.getElementById('pwSignup').type=document.getElementById('pwSignup').type==='password'?'text':'password'">&#128065;</button></div></div>
-    <div class="form-group"><label>Confirm Password <span class="req">*</span></label><input type="password" class="form-input" id="suConfirmPw" placeholder="Confirm your password"></div>
-    <details class="signup-blood-opt" style="margin:12px 0;border:1px solid rgba(200,164,78,0.25);border-radius:10px;padding:10px 12px;background:rgba(0,0,0,0.15)">
-      <summary style="cursor:pointer;font-size:13px;color:var(--gold);font-weight:600">Optional: blood lab report (after approval we&apos;ll upload it when you first log in)</summary>
-      <p class="form-hint" style="margin:8px 0 10px;font-size:12px">PDF or photo — max 8 MB. You can skip and upload anytime from Home.</p>
-      <input type="file" id="signupBloodFile" accept=".pdf,image/*" style="font-size:12px;width:100%" />
-      <div class="form-hint" style="margin:10px 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:0.04em">Symptoms (optional)</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
-        <label class="form-hint" style="display:flex;align-items:center;gap:6px;font-size:11px"><input type="checkbox" name="signupSym" value="fatigue" /> Fatigue</label>
-        <label class="form-hint" style="display:flex;align-items:center;gap:6px;font-size:11px"><input type="checkbox" name="signupSym" value="poor_sleep" /> Poor sleep</label>
-        <label class="form-hint" style="display:flex;align-items:center;gap:6px;font-size:11px"><input type="checkbox" name="signupSym" value="brain_fog" /> Brain fog</label>
-        <label class="form-hint" style="display:flex;align-items:center;gap:6px;font-size:11px"><input type="checkbox" name="signupSym" value="bloating" /> Bloating</label>
-      </div>
-    </details>
-    <button class="form-submit" onclick="handleSignup()">Sign-up Now</button>
-    <div id="googleBtnSignup" class="google-btn-wrap" style="margin-top:12px;min-height:48px"></div>
-    <button type="button" id="appleBtnSignup" onclick="bbAppleSignIn()" aria-label="Sign up with Apple" style="display:none;width:100%;margin-top:10px;min-height:44px;align-items:center;justify-content:center;gap:8px;background:#000;color:#fff;border:1px solid #000;border-radius:8px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;font-size:16px;font-weight:500;cursor:pointer;line-height:1;padding:0 16px">
-      <svg width="15" height="18" viewBox="0 0 16 20" fill="#fff" aria-hidden="true" style="display:block;margin-bottom:2px"><path d="M13.476 10.62c-.02-2.06 1.68-3.05 1.757-3.097-.957-1.4-2.446-1.59-2.974-1.612-1.266-.128-2.47.745-3.113.745-.64 0-1.633-.726-2.685-.706-1.383.02-2.656.803-3.366 2.04-1.435 2.49-.367 6.176 1.03 8.197.683.99 1.498 2.1 2.567 2.06 1.03-.04 1.42-.666 2.666-.666 1.247 0 1.597.666 2.69.646 1.11-.02 1.814-1.01 2.493-2.003.785-1.15 1.108-2.26 1.127-2.317-.025-.012-2.163-.83-2.185-3.29zM11.43 4.62c.567-.69.95-1.65.846-2.605-.817.033-1.806.545-2.392 1.234-.525.61-.985 1.586-.86 2.522.91.07 1.84-.462 2.406-1.15z"/></svg>
-      <span>Sign up with Apple</span>
-    </button>
-    <p class="login-footer">Already have an account? <a href="#" onclick="openModal('loginModal');closeModal('signupModal');return false;">Login</a></p>
-    </div>
-  </div>
-</div>
+<!-- Sign-up lives at /signup.html — one form, one URL. The modal that used
+     to sit here was a second copy of the same fields, reachable only from
+     inside the Login modal, and it drifted from the page every time one of
+     them changed. -->
 
-<!-- GOOGLE SIGNUP: Complete Profile Modal (shown after Google auth for new users) -->
 <div class="modal-overlay" id="googleCompleteModal" onclick="if(event.target===this)closeModal('googleCompleteModal')">
   <div class="modal login-modal modal-with-scroll">
     <button class="modal-close" onclick="closeModal('googleCompleteModal')">&times;</button>
@@ -10431,14 +10529,14 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="form-group"><label>Last Name</label><input type="text" class="form-input" id="gcLast" placeholder="Last name" readonly style="opacity:0.9"></div>
     </div>
     <div class="form-group"><label>Email</label><input type="email" class="form-input" id="gcEmail" placeholder="Your email" readonly style="opacity:0.9"></div>
-    <div class="form-group"><label>Mobile / WhatsApp <span class="req">*</span></label><input type="tel" class="form-input" id="gcPhone" placeholder="+91XXXXXXXXXX" required></div>
+    <div class="form-group"><label>Mobile / WhatsApp <span class="req">*</span></label><div class="bb-phone-row"><select class="form-input bb-phone-dial" id="gcDial" aria-label="Country dialling code"></select><input type="tel" class="form-input" id="gcPhone" placeholder="98765 43210" inputmode="tel" required></div><span class="form-hint">The code follows the country you pick below.</span></div>
     <div class="form-row">
       <div class="form-group"><label>Date of Birth <span class="req">*</span></label><input type="date" class="form-input" id="gcDob" required></div>
       <div class="form-group"><label>Gender <span class="req">*</span></label><select class="form-input" id="gcGender" required><option value="">Select</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option><option value="Prefer not to say">Prefer not to say</option></select></div>
     </div>
     <div class="form-group"><label>Height (cm) <span class="req">*</span></label><input type="number" class="form-input" id="gcHeightCm" min="100" max="230" step="1" inputmode="numeric" placeholder="e.g. 175" required><span class="form-hint">Whole centimeters (100–230). Used for your nutrition energy estimate (RMR).</span></div>
     <div class="form-row">
-      <div class="form-group"><label>Country <span class="req">*</span></label><input type="text" class="form-input" id="gcCountry" placeholder="Your country" required></div>
+      <div class="form-group"><label>Country <span class="req">*</span></label><select class="form-input" id="gcCountry" required></select></div>
       <div class="form-group"><label>Timezone <span class="req">*</span></label><select class="form-input" id="gcTimezone" required><option value="">Detecting…</option><optgroup label="Asia"><option value="Asia/Kolkata">India (IST, UTC+5:30)</option><option value="Asia/Dubai">UAE / Dubai (GST, UTC+4)</option><option value="Asia/Riyadh">Saudi Arabia (AST, UTC+3)</option><option value="Asia/Kuwait">Kuwait (AST, UTC+3)</option><option value="Asia/Qatar">Qatar (AST, UTC+3)</option><option value="Asia/Bahrain">Bahrain (AST, UTC+3)</option><option value="Asia/Muscat">Oman / Muscat (GST, UTC+4)</option><option value="Asia/Karachi">Pakistan (PKT, UTC+5)</option><option value="Asia/Dhaka">Bangladesh (BST, UTC+6)</option><option value="Asia/Kathmandu">Nepal (NPT, UTC+5:45)</option><option value="Asia/Colombo">Sri Lanka (SLST, UTC+5:30)</option><option value="Asia/Singapore">Singapore (SGT, UTC+8)</option><option value="Asia/Kuala_Lumpur">Malaysia (MYT, UTC+8)</option><option value="Asia/Jakarta">Indonesia / Jakarta (WIB, UTC+7)</option><option value="Asia/Manila">Philippines (PHT, UTC+8)</option><option value="Asia/Tokyo">Japan (JST, UTC+9)</option><option value="Asia/Seoul">South Korea (KST, UTC+9)</option><option value="Asia/Shanghai">China (CST, UTC+8)</option></optgroup><optgroup label="Europe"><option value="Europe/London">UK / London (GMT/BST)</option><option value="Europe/Paris">France / Paris (CET, UTC+1)</option><option value="Europe/Berlin">Germany / Berlin (CET, UTC+1)</option><option value="Europe/Rome">Italy / Rome (CET, UTC+1)</option><option value="Europe/Amsterdam">Netherlands (CET, UTC+1)</option><option value="Europe/Oslo">Norway / Oslo (CET, UTC+1)</option><option value="Europe/Stockholm">Sweden / Stockholm (CET, UTC+1)</option><option value="Europe/Copenhagen">Denmark (CET, UTC+1)</option><option value="Europe/Helsinki">Finland (EET, UTC+2)</option><option value="Europe/Dublin">Ireland / Dublin (GMT/IST)</option></optgroup><optgroup label="Americas"><option value="America/New_York">US — New York (ET, UTC-5/-4)</option><option value="America/Chicago">US — Chicago (CT, UTC-6/-5)</option><option value="America/Denver">US — Denver (MT, UTC-7/-6)</option><option value="America/Los_Angeles">US — Los Angeles (PT, UTC-8/-7)</option><option value="America/Phoenix">US — Phoenix (MST, UTC-7)</option><option value="America/Anchorage">US — Anchorage (AKST, UTC-9)</option><option value="Pacific/Honolulu">US — Hawaii (HST, UTC-10)</option><option value="America/Toronto">Canada / Toronto (ET, UTC-5/-4)</option><option value="America/Vancouver">Canada / Vancouver (PT, UTC-8/-7)</option><option value="America/Sao_Paulo">Brazil / São Paulo (BRT, UTC-3)</option><option value="America/Mexico_City">Mexico (CST, UTC-6)</option></optgroup><optgroup label="Oceania"><option value="Australia/Sydney">Australia / Sydney (AEST, UTC+10/11)</option><option value="Australia/Brisbane">Australia / Brisbane (AEST, UTC+10)</option><option value="Australia/Perth">Australia / Perth (AWST, UTC+8)</option><option value="Pacific/Auckland">New Zealand (NZST, UTC+12/13)</option></optgroup><optgroup label="Africa"><option value="Africa/Johannesburg">South Africa (SAST, UTC+2)</option><option value="Africa/Lagos">Nigeria (WAT, UTC+1)</option><option value="Africa/Nairobi">Kenya (EAT, UTC+3)</option></optgroup><optgroup label="UTC"><option value="UTC">UTC (Coordinated Universal Time)</option></optgroup></select></div>
     </div>
     <div class="form-row">
@@ -10487,9 +10585,9 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <div class="form-group"><label>Sex <span class="req">*</span></label><select class="form-input" name="sex" required><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
       </div>
       <div class="form-group"><label>Email <span class="req">*</span></label><input type="email" class="form-input" placeholder="Enter your email" name="email" required></div>
-      <div class="form-group"><label>Mobile (WhatsApp) <span class="req">*</span></label><input type="tel" class="form-input" placeholder="Enter your WhatsApp number" name="phone" required></div>
+      <div class="form-group"><label>Mobile (WhatsApp) <span class="req">*</span></label><div class="bb-phone-row"><select class="form-input bb-phone-dial" id="auditDial" aria-label="Country dialling code"></select><input type="tel" class="form-input" id="auditPhone" name="phone" placeholder="98765 43210" inputmode="tel" required></div><span class="form-hint">The code follows the country you pick below.</span></div>
       <div class="form-row">
-        <div class="form-group"><label>Country <span class="req">*</span></label><input type="text" class="form-input" placeholder="Your country" name="country" required></div>
+        <div class="form-group"><label>Country <span class="req">*</span></label><select class="form-input" id="auditCountry" name="country" required></select></div>
         <div class="form-group"><label>City <span class="req">*</span></label><input type="text" class="form-input" placeholder="Your city" name="city" required></div>
       </div>
       <div class="form-group"><label>Occupation <span class="req">*</span></label><input type="text" class="form-input" placeholder="What work do you do?" name="occupation" required></div>
@@ -10710,8 +10808,9 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <h1><span class="w">Stop Chasing Quick Fixes.</span><br><span class="g">Build Real, Sustainable</span><br><span class="w">Transformation.</span></h1>
     <p class="hero-sub">Our Lifestyle Management Program delivers real lasting transformation through 3 phases: upgrading your mind, nutrition, and building permanent results.</p>
     <div class="hero-btns">
-      <a href="#" class="btn-p btn-p-audit" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-pointer" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0a0a0a"><path d="M4 4l7.07 16.97 2.51-7.39 7.39-2.51L4 4z"/></svg></span></a>
-      
+      <a href="#" class="btn-p btn-p-audit" onclick="openModal('auditModal');return false;">Book Your Free Body Audit<span class="btn-p-pointer" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0a0a0a"><path d="M4 4l7.07 16.97 2.51-7.39 7.39-2.51L4 4z"/></svg></span></a>
+      <p class="hero-alt">A free call with a coach — no account needed.<br>
+        <a href="/signup">Ready to join? Create your account &rsaquo;</a></p>
     </div>
   </div>
   <div class="hero-scroll"><div class="scroll-ind"></div></div>
@@ -11311,7 +11410,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <p>Your consistency earns BB Coins. Redeem them at renewal and reduce what you pay. The more verified activity you complete, the more you can win back.</p>
       <span class="winback-meta">Workouts + meal logs + body submissions + streaks -> renewal value. Terms apply.</span>
     </div>
-    <a href="#" class="winback-cta" onclick="openModal('signupModal');return false;">See Eligibility</a>
+    <a href="/signup" class="winback-cta">See Eligibility</a>
   </div>
 </section>
 
@@ -11323,7 +11422,8 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <h2><span class="w">Your Best Body Isn't </span><span class="g">Weeks Away.</span><br><span class="w">It's One Decision Away.</span></h2>
     <p>You already know how the Lifestyle Management 3-Phase system works. Now see how it applies to YOUR body, YOUR goals, YOUR life.</p>
     <p class="bold">Start Your Transformation Today<span class="gold-exclaim">!</span></p>
-    <a href="#" class="btn-p btn-p-audit" onclick="openModal('auditModal');return false;">Start Your Body Audit<span class="btn-p-pointer" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0a0a0a"><path d="M4 4l7.07 16.97 2.51-7.39 7.39-2.51L4 4z"/></svg></span></a>
+    <a href="#" class="btn-p btn-p-audit" onclick="openModal('auditModal');return false;">Book Your Free Body Audit<span class="btn-p-pointer" aria-hidden="true"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="#0a0a0a"><path d="M4 4l7.07 16.97 2.51-7.39 7.39-2.51L4 4z"/></svg></span></a>
+    <p class="hero-alt">Or skip the call &mdash; <a href="/signup">create your account</a> and start today.</p>
   </div>
 </div>
 
@@ -11561,7 +11661,7 @@ function initBodyBankArsenal(){
     var action = cta.getAttribute('data-cta-action');
     if(action === 'openSignup'){
       e.preventDefault();
-      if (typeof openModal === 'function') openModal('signupModal');
+      window.location.href = '/signup';
       return;
     }
     if(action === 'clientOnlyAiTrainer'){
@@ -12104,6 +12204,53 @@ function unlockBodyScroll(){
   h.style.overflow='';
   window.scrollTo(0,_savedScrollY);
 }
+/* ---- Mobile menu ---------------------------------------------------------
+   One pair of functions instead of the same toggle inlined onto ten elements,
+   so the body-scroll lock, the aria state and the page furniture can never get
+   out of step with what is on screen. */
+function bbNavMenuEl(){ return document.getElementById('mo'); }
+
+function bbOpenNavMenu(){
+  var m = bbNavMenuEl();
+  if (!m || m.classList.contains('open')) return;
+  m.classList.add('open');
+  document.body.classList.add('bb-nav-open');
+  lockBodyScroll();
+  var b = document.getElementById('navHamburger');
+  if (b) b.setAttribute('aria-expanded', 'true');
+  // Land on the sheet, not wherever focus happened to be behind it.
+  var first = m.querySelector('.mm-c');
+  if (first) { try { first.focus({ preventScroll: true }); } catch (_) { first.focus(); } }
+  // A menu reopened after scrolling should start at the top of its own list.
+  var body = m.querySelector('.mm-body');
+  if (body) body.scrollTop = 0;
+}
+
+function bbCloseNavMenu(){
+  var m = bbNavMenuEl();
+  if (!m || !m.classList.contains('open')) return;
+  m.classList.remove('open');
+  document.body.classList.remove('bb-nav-open');
+  unlockBodyScroll();
+  var b = document.getElementById('navHamburger');
+  if (b) {
+    b.setAttribute('aria-expanded', 'false');
+    try { b.focus({ preventScroll: true }); } catch (_) {}
+  }
+}
+
+function bbToggleNavMenu(){
+  var m = bbNavMenuEl();
+  if (m && m.classList.contains('open')) bbCloseNavMenu(); else bbOpenNavMenu();
+}
+
+// Escape closes it, and the links stay reachable by keyboard while it is open.
+document.addEventListener('keydown', function (e) {
+  if (e.key !== 'Escape') return;
+  var m = bbNavMenuEl();
+  if (m && m.classList.contains('open')) { e.stopPropagation(); bbCloseNavMenu(); }
+}, true);
+
 function isOverlayOpen(){
   return document.querySelector('.modal-overlay.open, .popup-overlay.show, .mm.open');
 }
@@ -12744,99 +12891,10 @@ async function adminLogin() {
   else trySet();
 })();
 
-async function handleSignup() {
-  var first_name = (document.getElementById('suFirst') || {}).value || '';
-  var last_name  = (document.getElementById('suLast')  || {}).value || '';
-  var email      = (document.getElementById('suEmail') || {}).value || '';
-  var phone      = (document.getElementById('suPhone') || {}).value || '';
-  var dob        = (document.getElementById('suDob')    || {}).value || '';
-  var gender     = (document.getElementById('suGender') || {}).value || '';
-  var country    = (document.getElementById('suCountry')|| {}).value || '';
-  var timezone   = (document.getElementById('suTimezone')|| {}).value || '';
-  var state_province = (document.getElementById('suState') || {}).value || '';
-  var city       = (document.getElementById('suCity')   || {}).value || '';
-  var height_cm_raw = (document.getElementById('suHeightCm') || {}).value || '';
-  var password   = (document.getElementById('pwSignup') || {}).value || '';
-  var confirm    = (document.getElementById('suConfirmPw')|| {}).value || '';
-  first_name = String(first_name).trim();
-  last_name  = String(last_name).trim();
-  email      = String(email).trim();
-  phone      = String(phone).trim();
-  dob        = String(dob).trim();
-  gender     = String(gender).trim();
-  country    = String(country).trim();
-  timezone   = String(timezone).trim();
-  state_province = String(state_province).trim();
-  city       = String(city).trim();
-  var height_cm = parseInt(String(height_cm_raw).trim(), 10);
-  if (!first_name) { showPopup('Missing Fields', 'First name is required.', '', 'OK'); return; }
-  if (!email) { showPopup('Missing Fields', 'Email is required.', '', 'OK'); return; }
-  if (!phone) { showPopup('Missing Fields', 'Mobile number is required.', '', 'OK'); return; }
-  if (!dob) { showPopup('Missing Fields', 'Date of birth is required.', '', 'OK'); return; }
-  if (!gender) { showPopup('Missing Fields', 'Please select your gender.', '', 'OK'); return; }
-  if (!country) { showPopup('Missing Fields', 'Country is required.', '', 'OK'); return; }
-  if (!timezone) { showPopup('Missing Fields', 'Please select your timezone.', '', 'OK'); return; }
-  if (!Number.isFinite(height_cm) || height_cm < 100 || height_cm > 230) { showPopup('Height', 'Please enter your height in centimeters (whole number between 100 and 230).', '', 'OK'); return; }
-  if (!password) { showPopup('Missing Fields', 'Password is required.', '', 'OK'); return; }
-  if (password !== confirm) { showPopup('Password Mismatch', 'Passwords do not match. Please try again.', '', 'OK'); return; }
-
-  window.__bbSignupBloodQueued = null;
-  var bloodIn = document.getElementById('signupBloodFile');
-  if (bloodIn && bloodIn.files && bloodIn.files[0]) {
-    var file = bloodIn.files[0];
-    if (file.size > 8 * 1024 * 1024) {
-      showPopup('File too large', 'Blood report must be 8 MB or smaller for sign-up. You can upload a larger file after you log in.', '', 'OK');
-      return;
-    }
-    try {
-      var dataUrl = await new Promise(function (resolve, reject) {
-        var fr = new FileReader();
-        fr.onload = function () { resolve(fr.result); };
-        fr.onerror = function () { reject(new Error('read')); };
-        fr.readAsDataURL(file);
-      });
-      var comma = String(dataUrl).indexOf(',');
-      var b64 = comma >= 0 ? String(dataUrl).slice(comma + 1) : String(dataUrl);
-      var symptoms = Array.prototype.slice.call(document.querySelectorAll('input[name="signupSym"]:checked')).map(function (c) { return c.value; });
-      window.__bbSignupBloodQueued = { b64: b64, mime: file.type || 'application/pdf', symptoms: symptoms };
-    } catch (e) {
-      showPopup('Upload', 'Could not read the blood report file. Try again or skip for now.', '', 'OK');
-      return;
-    }
-  }
-  
-  var modal = document.getElementById('signupModal');
-  var sBtn = modal ? modal.querySelector('.form-submit') : null;
-  if(sBtn){sBtn.disabled=true;sBtn.classList.add('loading');sBtn._orig=sBtn.innerHTML;sBtn.innerHTML='<span class="btn-spinner"></span> Creating account...';}
-  try {
-    const data = await apiCall('POST', '/api/auth/signup', { email, password, first_name, last_name, phone, dob, gender, country, timezone, state_province, city, height_cm, client: window.IS_BODYBANK_APP ? 'app' : 'web', ref: (window.bbRefCode ? window.bbRefCode() : '') });
-    if (data.error) {
-      window.__bbSignupBloodQueued = null;
-      if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
-      showPopup('Sign-up Error', data.error, '', 'OK', null, 'error');
-      return;
-    }
-    if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
-    closeModal('signupModal');
-    if (bloodIn) bloodIn.value = '';
-    if (data.trial) {
-      var td = data.trial_days || 7;
-      showPopup("You're in! 🎉", 'Your account is ready with ' + td + ' days of full access. Log in now and complete your body audit to see your scorecard.', '', 'Login Now', () => { openModal('loginModal'); });
-    } else if (data.pending_approval) {
-      showPopup('Sign-up Successful!', 'Waiting for Admin approval. You will be able to log in once approved. For instant approval, reach out to Admin on WhatsApp.', '', 'OK', () => {});
-    } else {
-      showPopup('Registered Successfully!', 'CONSISTENCY has its fruits, so does PATIENCE.', 'We will get back to you after the review', 'Login Now', () => { openModal('loginModal'); });
-    }
-  } catch (e) {
-    window.__bbSignupBloodQueued = null;
-    if(sBtn){sBtn.disabled=false;sBtn.classList.remove('loading');sBtn.innerHTML=sBtn._orig||'Sign-up Now';}
-    showPopup('Error', 'Sign-up failed. Please try again.', '', 'OK', null, 'error');
-  }
-}
 
 async function handleGoogleCompleteSubmit() {
   if (!_pendingGoogleToken) { showPopup('Error', 'Session expired. Please sign up with Google again.', '', 'OK', null, 'error'); return; }
-  var phone    = ((document.getElementById('gcPhone')||{}).value||'').trim();
+  var phone    = bbPhoneValue('gc');
   var dob      = ((document.getElementById('gcDob')||{}).value||'').trim();
   var gender   = ((document.getElementById('gcGender')||{}).value||'').trim();
   var country  = ((document.getElementById('gcCountry')||{}).value||'').trim();
@@ -12871,6 +12929,41 @@ async function handleGoogleCompleteSubmit() {
   }
 }
 
+/* ===== Country + dialling code ============================================
+   Country used to be free text beside a phone box that accepted any prefix or
+   none, so the two could never agree. Every form that asks for both now draws
+   its country list from /js/countries.js and derives the code from it. */
+var BB_COUNTRY_FORMS = [['gc', 'gcCountry'], ['audit', 'auditCountry']];
+
+function bbInitCountryFields() {
+  if (typeof BBCountries === 'undefined') return;
+  BB_COUNTRY_FORMS.forEach(function (pair) {
+    var prefix = pair[0];
+    var countrySel = document.getElementById(pair[1]);
+    var dialSel = document.getElementById(prefix + 'Dial');
+    if (!countrySel || countrySel.options.length) return;   // already built
+    BBCountries.fillCountrySelect(countrySel);
+    if (dialSel) BBCountries.fillDialSelect(dialSel);
+    // The browser timezone is the best guess available before they type.
+    try {
+      var guess = (window.BB && typeof BB.guessCountry === 'function') ? BB.guessCountry() : '';
+      if (guess && !countrySel.value) countrySel.value = guess;
+    } catch (_) {}
+    if (dialSel) BBCountries.linkPhoneToCountry(countrySel, dialSel);
+  });
+}
+
+/** The dialling code and the typed number as one string. */
+function bbPhoneValue(prefix) {
+  var dial = document.getElementById(prefix + 'Dial');
+  var num = document.getElementById(prefix + 'Phone');
+  if (typeof BBCountries === 'undefined') return String((num && num.value) || '').trim();
+  return BBCountries.composePhone(dial ? dial.value : '', num ? num.value : '');
+}
+
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bbInitCountryFields);
+else bbInitCountryFields();
+
 // ========== BODY AUDIT FORM ==========
 async function submitAudit(form) {
   var btn=form.querySelector('button[type=submit]');
@@ -12882,7 +12975,7 @@ async function submitAudit(form) {
     age: parseInt(fd.get('age')) || null,
     sex: fd.get('sex'),
     email: fd.get('email'),
-    phone: fd.get('phone'),
+    phone: bbPhoneValue('audit'),
     country: fd.get('country'),
     city: fd.get('city'),
     occupation: fd.get('occupation'),
@@ -19850,15 +19943,10 @@ function switchUserTab(tab) {
   }
   if (tab === 'elitefeed' && typeof loadUserEliteFeedGrid === 'function') loadUserEliteFeedGrid();
   if (tab === 'contact') {
-    var today = new Date().toISOString().split('T')[0];
-    var mtgDateEl = document.getElementById('mtgDate');
-    if (mtgDateEl) mtgDateEl.min = today;
-    document.getElementById('mtgEditId').value = '';
-    document.getElementById('mtgDate').value = '';
-    document.getElementById('mtgTime').value = '';
-    var mtgBtn = document.getElementById('mtgSubmitBtn');
-    if (mtgBtn) mtgBtn.textContent = 'Schedule Call';
-    loadMyMeetings();
+    // The bookable window, the slot picture and the list all come from the
+    // server, so opening the tab is the only thing to do here.
+    cancelMeetingEdit();
+    initConsultations();
   }
   if (tab === 'programs') loadUserPrograms();
   if (tab === 'body' && typeof loadBodySnapshots === 'function') loadBodySnapshots();
@@ -21090,8 +21178,133 @@ async function submitMicroGoals() {
   }
 }
 
+/* ===== Daily check-in: bounds, and correcting today =========================
+   These mirror DAILY_CHECKIN_LIMITS on the server, which stays the authority —
+   this copy exists so a mistake is caught under the field that caused it
+   instead of coming back as a failed request. /api/daily-checkin/limits
+   refreshes them at load so the two cannot drift. */
+var BB_DAILY_LIMITS = {
+  steps:       { el: 'dailySteps',   label: 'Steps',   min: 0, max: 100000, unit: '',     integer: true },
+  water_l:     { el: 'dailyWater',   label: 'Water',   min: 0, max: 15,     unit: ' L' },
+  protein_g:   { el: 'dailyProtein', label: 'Protein', min: 0, max: 500,    unit: ' g',   integer: true },
+  sleep_hours: { el: 'dailySleep',   label: 'Sleep',   min: 0, max: 24,     unit: ' hrs' }
+};
+var bbDailyEditing = false;
+var bbDailySnapshot = null;   // what was on screen before an edit began
+
+async function bbDailyLoadLimits() {
+  try {
+    var lim = await apiCall('GET', '/api/daily-checkin/limits');
+    if (!lim || lim.error) return;
+    Object.keys(BB_DAILY_LIMITS).forEach(function (k) {
+      if (!lim[k]) return;
+      var mine = BB_DAILY_LIMITS[k];
+      mine.min = lim[k].min; mine.max = lim[k].max;
+      mine.label = lim[k].label; mine.unit = lim[k].unit;
+      var el = document.getElementById(mine.el);
+      if (el) { el.min = String(mine.min); el.max = String(mine.max); }
+    });
+  } catch (e) { /* the built-in copy is already correct */ }
+}
+
+function bbDailyShowErr(msg, badEl) {
+  var box = document.getElementById('dailyCheckinErr');
+  if (box) { box.textContent = msg || ''; box.hidden = !msg; }
+  Object.keys(BB_DAILY_LIMITS).forEach(function (k) {
+    var el = document.getElementById(BB_DAILY_LIMITS[k].el);
+    if (el) el.classList.remove('is-bad');
+  });
+  if (badEl) {
+    badEl.classList.add('is-bad');
+    try { badEl.focus(); } catch (_) {}
+  }
+}
+
+/**
+ * Reads the four fields, holding each to its bound. Returns the request body,
+ * or null after painting the first problem it found under that field.
+ */
+function bbDailyReadForm() {
+  var body = {};
+  var keys = Object.keys(BB_DAILY_LIMITS);
+  for (var i = 0; i < keys.length; i += 1) {
+    var k = keys[i], lim = BB_DAILY_LIMITS[k];
+    var el = document.getElementById(lim.el);
+    if (!el) continue;
+    var raw = String(el.value == null ? '' : el.value).replace(/,/g, '').trim();
+    if (raw === '') continue;
+    var n = Number(raw);
+    if (!isFinite(n)) { bbDailyShowErr(lim.label + ' must be a number.', el); return null; }
+    if (n < lim.min || n > lim.max) {
+      bbDailyShowErr(lim.label + ' must be between ' + lim.min + lim.unit + ' and ' + lim.max + lim.unit + '.', el);
+      return null;
+    }
+    body[k === 'water_l' ? 'water_liters' : k] = lim.integer ? Math.round(n) : n;
+  }
+  bbDailyShowErr(null);
+  return body;
+}
+
+function bbDailyFieldEls() {
+  return Object.keys(BB_DAILY_LIMITS).map(function (k) {
+    return document.getElementById(BB_DAILY_LIMITS[k].el);
+  }).filter(Boolean);
+}
+
+/** Open today's saved entry for correction. Today only — there is no other day
+    this form can reach, and the server refuses any date but its own today. */
+function bbDailyBeginEdit() {
+  bbDailyEditing = true;
+  bbDailySnapshot = {};
+  bbDailyFieldEls().forEach(function (el) {
+    bbDailySnapshot[el.id] = el.value;
+    el.disabled = false;
+  });
+  bbDailyShowErr(null);
+  bbDailyPaintControls(true);
+  var first = document.getElementById('dailySteps');
+  if (first) { try { first.focus(); first.select(); } catch (_) {} }
+}
+
+function bbDailyCancelEdit() {
+  bbDailyEditing = false;
+  bbDailyFieldEls().forEach(function (el) {
+    if (bbDailySnapshot && bbDailySnapshot[el.id] != null) el.value = bbDailySnapshot[el.id];
+    el.disabled = true;
+  });
+  bbDailySnapshot = null;
+  bbDailyShowErr(null);
+  bbDailyPaintControls(true);
+}
+
+/**
+ * Which controls the form shows. `saved` means today is already recorded, so the
+ * gold Save button only comes back while a correction is actually open.
+ */
+function bbDailyPaintControls(saved) {
+  var save = document.getElementById('dailyCheckinSave');
+  var edit = document.getElementById('dailyCheckinEdit');
+  var cancel = document.getElementById('dailyCheckinCancel');
+  var note = document.getElementById('dailyCheckinNote');
+  var editing = saved && bbDailyEditing;
+  if (save) {
+    save.hidden = saved && !editing;
+    save.disabled = false;
+    save.textContent = editing ? 'Save changes' : 'Save today';
+  }
+  if (edit) edit.hidden = !saved || editing;
+  if (cancel) cancel.hidden = !editing;
+  if (note) {
+    note.hidden = !saved;
+    note.textContent = editing
+      ? 'You can correct today until midnight. Past days are locked.'
+      : 'Checked in today. You can still correct today\'s numbers.';
+  }
+}
+
 async function loadDailyCheckinForm() {
   if (!window.currentUser) return;
+  bbDailyLoadLimits();            // keep the form bounds in step with the server
   try {
     var [today, streak] = await Promise.all([
       apiCall('GET', '/api/daily-checkin/today'),
@@ -21099,18 +21312,22 @@ async function loadDailyCheckinForm() {
     ]);
     var el;
     var alreadyFilled = today && (today.steps != null || today.water_ml != null || today.water_liters != null || today.protein_g != null || today.sleep_hours != null);
-    if (alreadyFilled) {
-      if (el = document.getElementById('dailySteps')) { el.value = today.steps != null ? today.steps : ''; el.disabled = true; }
-      if (el = document.getElementById('dailyWater')) { el.value = bbFmtWaterLitersForInput(bbDailyWaterLitersFromRow(today)); el.disabled = true; }
-      if (el = document.getElementById('dailyProtein')) { el.value = today.protein_g != null ? today.protein_g : ''; el.disabled = true; }
-      if (el = document.getElementById('dailySleep')) { el.value = today.sleep_hours != null ? today.sleep_hours : ''; el.disabled = true; }
-      if (el = document.querySelector('#dailyCheckinForm .micro-goals-submit')) { el.disabled = true; el.textContent = 'Already checked in today'; }
-    } else {
-      if (el = document.getElementById('dailySteps')) { el.disabled = false; el.value = today && today.steps != null ? today.steps : ''; }
-      if (el = document.getElementById('dailyWater')) { el.disabled = false; el.value = today ? bbFmtWaterLitersForInput(bbDailyWaterLitersFromRow(today)) : ''; }
-      if (el = document.getElementById('dailyProtein')) { el.disabled = false; el.value = today && today.protein_g != null ? today.protein_g : ''; }
-      if (el = document.getElementById('dailySleep')) { el.disabled = false; el.value = today && today.sleep_hours != null ? today.sleep_hours : ''; }
-      if (el = document.querySelector('#dailyCheckinForm .micro-goals-submit')) { el.disabled = false; el.textContent = 'Save today'; }
+    // A streak-freeze day is a marker, not data — there is nothing to correct.
+    var frozen = !!(today && (today.is_freeze === true || today.is_freeze === 't'));
+    // Never stamp over what the member is mid-way through typing.
+    if (!bbDailyEditing) {
+      if (el = document.getElementById('dailySteps')) { el.value = today && today.steps != null ? today.steps : ''; el.disabled = alreadyFilled; }
+      if (el = document.getElementById('dailyWater')) { el.value = today ? bbFmtWaterLitersForInput(bbDailyWaterLitersFromRow(today)) : ''; el.disabled = alreadyFilled; }
+      if (el = document.getElementById('dailyProtein')) { el.value = today && today.protein_g != null ? today.protein_g : ''; el.disabled = alreadyFilled; }
+      if (el = document.getElementById('dailySleep')) { el.value = today && today.sleep_hours != null ? today.sleep_hours : ''; el.disabled = alreadyFilled; }
+    }
+    bbDailyPaintControls(alreadyFilled && !frozen);
+    if (frozen) {
+      if (el = document.getElementById('dailyCheckinSave')) el.hidden = true;
+      if (el = document.getElementById('dailyCheckinNote')) {
+        el.hidden = false;
+        el.textContent = 'Today is covered by your streak freeze — no check-in needed.';
+      }
     }
     if (streak && (el = document.getElementById('dailyStreakBadge'))) {
       var n = streak.streak || 0;
@@ -21123,33 +21340,40 @@ async function loadDailyCheckinForm() {
 
 async function submitDailyCheckinForm() {
   if (!window.currentUser) return;
-  var steps = parseInt(document.getElementById('dailySteps').value, 10);
-  var water = parseFloat(String(document.getElementById('dailyWater').value || '').replace(/,/g, ''));
-  var protein = parseInt(document.getElementById('dailyProtein').value, 10);
-  var sleep = parseFloat(document.getElementById('dailySleep').value);
-  var body = {};
-  if (!isNaN(steps)) body.steps = steps;
-  if (!isNaN(water) && water >= 0) body.water_liters = water;
-  if (!isNaN(protein)) body.protein_g = protein;
-  if (!isNaN(sleep)) body.sleep_hours = sleep;
-  if (Object.keys(body).length === 0) return;
-  var btn = document.querySelector('#dailyCheckinForm .micro-goals-submit');
+  var editing = bbDailyEditing;
+  var body = bbDailyReadForm();
+  if (!body) return;                       // the bad field is already flagged
+  if (Object.keys(body).length === 0) {
+    bbDailyShowErr('Enter at least one value before saving.');
+    return;
+  }
+  var btn = document.getElementById('dailyCheckinSave');
   if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
   try {
-    var res = await apiCall('POST', '/api/daily-checkin', body);
+    // Today only: the edit route derives the date itself, so nothing here can
+    // name a past or future day.
+    var res = editing
+      ? await apiCall('PUT', '/api/daily-checkin/today', body)
+      : await apiCall('POST', '/api/daily-checkin', body);
     if (res && res.error) {
-      showPopup('Error', res.error, '', 'OK', null, 'error');
-      if (btn) { btn.disabled = false; btn.textContent = 'Save today'; }
+      bbDailyShowErr(res.error);
+      if (btn) { btn.disabled = false; btn.textContent = editing ? 'Save changes' : 'Save today'; }
       return;
     }
+    bbDailyEditing = false;
+    bbDailySnapshot = null;
+    bbDailyShowErr(null);
     loadDailyCheckinForm();
     loadMicroGoals();
     bbLoadCoinSummary(true);
+    if (typeof loadHomeAggregate === 'function') { try { loadHomeAggregate(); } catch (_) {} }
+    if (typeof loadMemberHome === 'function') { try { loadMemberHome(true); } catch (_) {} }
     try { renderWeeklyInsights(); } catch (_) {}   // refresh the weekly graphs/data with the just-saved values
-    showPopup('Saved', 'Daily check-in saved. Streak updated!', '', 'OK', null, 'success');
+    bbHaptic(14);
+    showPopup('Saved', editing ? 'Today\'s check-in updated.' : 'Daily check-in saved. Streak updated!', '', 'OK', null, 'success');
   } catch (e) {
-    showPopup('Error', e.message || 'Failed to save.', '', 'OK', null, 'error');
-    if (btn) { btn.disabled = false; btn.textContent = 'Save today'; }
+    bbDailyShowErr((e && e.message) || 'Failed to save.');
+    if (btn) { btn.disabled = false; btn.textContent = editing ? 'Save changes' : 'Save today'; }
   }
 }
 
@@ -26977,84 +27201,270 @@ async function loadWorkoutHistory() {
 }
 
 // Schedule a call with admin
-async function submitMeetingRequest() {
-  if (!window.currentUser) return;
-  var date = document.getElementById('mtgDate').value;
-  var time = document.getElementById('mtgTime').value;
-  var editId = document.getElementById('mtgEditId').value;
-  if (!date || !time) { alert('Please select date and time slot'); return; }
+/* ===== Consultations =====================================================
+   Booking, rescheduling and tracking one consultation. The rules about which
+   slots exist and which are still open are the SERVER's — this asks it rather
+   than assuming, so a slot taken thirty seconds ago is already gone here. */
+var bbMtg = { date: '', slot: '', meta: null, editing: null, loading: false };
 
-  var payload = {
-    user_id: window.currentUser.id,
-    user_name: (window.currentUser.first_name + ' ' + window.currentUser.last_name).trim(),
-    user_email: window.currentUser.email || '',
-    user_phone: window.currentUser.phone || '',
-    meeting_date: date,
-    time_slot: time
-  };
-
-  var method = editId ? 'PUT' : 'POST';
-  var url = editId ? '/api/meetings/' + editId : '/api/meetings';
-
-  if (editId) {
-    payload = { meeting_date: date, time_slot: time };
-  }
-
-  var mBtn=document.getElementById('mtgSubmitBtn');
-  if(mBtn){mBtn.disabled=true;mBtn.classList.add('loading');mBtn._orig=mBtn.textContent;mBtn.textContent='Scheduling...';}
-  try {
-  var data = method === 'POST' ? await apiCall('POST', url, payload) : await apiCall('PUT', url, payload);
-  if (data.error) { if(mBtn){mBtn.disabled=false;mBtn.classList.remove('loading');mBtn.textContent=mBtn._orig||'Schedule Call';} alert(data.error); return; }
-
-  if(mBtn){mBtn.disabled=false;mBtn.classList.remove('loading');mBtn.textContent=mBtn._orig||'Schedule Call';}
-  loadUserStats();
-  showPopup('Call Scheduled!', 'Your meeting request has been sent. Admin will be notified.', '"Success is not final, failure is not fatal."', 'OK', function() {
-    document.getElementById('mtgDate').value = '';
-    document.getElementById('mtgTime').value = '';
-    document.getElementById('mtgEditId').value = '';
-    document.getElementById('mtgSubmitBtn').textContent = 'Schedule Call';
-    loadMyMeetings();
-  });
-  } catch(e) { if(mBtn){mBtn.disabled=false;mBtn.classList.remove('loading');mBtn.textContent=mBtn._orig||'Schedule Call';} alert('Failed to schedule.'); }
+function bbMtgErr(msg) {
+  var el = document.getElementById('mtgErr');
+  if (el) { el.textContent = msg || ''; el.hidden = !msg; }
 }
 
+function bbMtgPretty(dateStr) {
+  if (!dateStr) return '';
+  try {
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  } catch (_) { return dateStr; }
+}
+
+/** Open the booking panel and load the slot picture for today. */
+async function initConsultations() {
+  if (!window.currentUser || !document.getElementById('mtgSlots')) return;
+  loadMyMeetings();
+  try {
+    var meta = await apiCall('GET', '/api/meetings/availability');
+    if (!meta || meta.error) return;
+    bbMtg.meta = meta;
+    var d = document.getElementById('mtgDate');
+    if (d) {
+      // Past days are not selectable in the native picker at all.
+      d.min = meta.today || '';
+      d.max = meta.maxDate || '';
+      if (!d.value) d.value = meta.today;
+    }
+    var hint = document.getElementById('mtgDateHint');
+    if (hint) hint.textContent = 'Today to ' + bbMtgPretty(meta.maxDate) + ' · times shown in ' + (meta.timezone || 'IST') + '.';
+    onMeetingDateChange();
+  } catch (e) { /* the list below still renders */ }
+}
+
+async function onMeetingDateChange() {
+  var d = document.getElementById('mtgDate');
+  var host = document.getElementById('mtgSlots');
+  if (!d || !host) return;
+  bbMtgErr(null);
+  bbMtg.date = d.value;
+  bbMtg.slot = '';
+  var hidden = document.getElementById('mtgTime');
+  if (hidden) hidden.value = '';
+  if (!bbMtg.date) {
+    host.innerHTML = '<p class="form-hint" style="margin:0">Pick a date to see the available times.</p>';
+    return;
+  }
+  host.innerHTML = '<p class="form-hint" style="margin:0">Loading available times…</p>';
+  try {
+    var r = await apiCall('GET', '/api/meetings/availability?date=' + encodeURIComponent(bbMtg.date));
+    if (!r || r.error) { host.innerHTML = '<p class="form-hint" style="margin:0">Could not load times.</p>'; return; }
+    renderMeetingSlots(r.slots || []);
+  } catch (e) {
+    host.innerHTML = '<p class="form-hint" style="margin:0">Could not load times.</p>';
+  }
+}
+
+/** Every slot stays visible; the gone ones say why. */
+function renderMeetingSlots(slots) {
+  var host = document.getElementById('mtgSlots');
+  if (!host) return;
+  if (!slots.length) { host.innerHTML = '<p class="form-hint" style="margin:0">No times on this day.</p>'; return; }
+  var open = 0;
+  host.innerHTML = slots.map(function (s) {
+    var why = s.taken ? 'Booked' : (s.past ? 'Passed' : '');
+    if (s.available) open++;
+    return '<button type="button" class="mtg-slot" data-slot="' + escapeHtml(s.label) + '"'
+      + (s.available ? '' : ' disabled')
+      + ' title="' + escapeHtml(s.available ? s.label : s.label + ' — ' + why) + '"'
+      + ' onclick="selectMeetingSlot(this)">' + escapeHtml(s.label)
+      + (why ? '<span class="mtg-slot-why">' + why + '</span>' : '')
+      + '</button>';
+  }).join('');
+  if (!open) {
+    host.innerHTML += '<p class="form-hint" style="grid-column:1/-1;margin:4px 0 0">Every slot on this day is gone. Try the next one.</p>';
+  }
+}
+
+function selectMeetingSlot(btn) {
+  if (!btn || btn.disabled) return;
+  bbMtg.slot = btn.getAttribute('data-slot') || '';
+  var hidden = document.getElementById('mtgTime');
+  if (hidden) hidden.value = bbMtg.slot;
+  var host = document.getElementById('mtgSlots');
+  if (host) {
+    host.querySelectorAll('.mtg-slot').forEach(function (b) { b.classList.remove('selected'); });
+  }
+  btn.classList.add('selected');
+  bbMtgErr(null);
+}
+
+/** Move an existing booking: same picker, different verb. */
+function rescheduleMeeting(id, date, slot) {
+  bbMtg.editing = { id: id, date: date, slot: slot };
+  var el = document.getElementById('mtgEditId');
+  if (el) el.value = id;
+  el = document.getElementById('mtgEditingBanner'); if (el) el.hidden = false;
+  el = document.getElementById('mtgEditingFrom');
+  if (el) el.textContent = bbMtgPretty(date) + ' at ' + (slot || '');
+  el = document.getElementById('mtgFormTitle'); if (el) el.textContent = 'Reschedule your consultation';
+  el = document.getElementById('mtgSubmitBtn'); if (el) el.textContent = 'Confirm new time';
+  var d = document.getElementById('mtgDate');
+  if (d) {
+    // Only offer the original day again if it has not already gone by.
+    d.value = (bbMtg.meta && date < bbMtg.meta.today) ? (bbMtg.meta.today || d.value) : date;
+  }
+  onMeetingDateChange();
+  bbMtgErr(null);
+  try {
+    document.getElementById('mtgFormTitle').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (_) {}
+}
+
+function cancelMeetingEdit() {
+  bbMtg.editing = null;
+  var el = document.getElementById('mtgEditId'); if (el) el.value = '';
+  el = document.getElementById('mtgEditingBanner'); if (el) el.hidden = true;
+  el = document.getElementById('mtgFormTitle'); if (el) el.textContent = 'Book a consultation';
+  el = document.getElementById('mtgSubmitBtn'); if (el) el.textContent = 'Book consultation';
+  bbMtgErr(null);
+}
+
+async function submitMeetingRequest() {
+  if (!window.currentUser || bbMtg.loading) return;
+  var date = (document.getElementById('mtgDate') || {}).value || '';
+  var slot = bbMtg.slot;
+  var editing = bbMtg.editing;
+  if (!date) { bbMtgErr('Please pick a date.'); return; }
+  if (!slot) { bbMtgErr('Please pick a time slot.'); return; }
+
+  var btn = document.getElementById('mtgSubmitBtn');
+  var label = btn ? btn.textContent : '';
+  bbMtg.loading = true;
+  if (btn) { btn.disabled = true; btn.classList.add('loading'); btn.textContent = editing ? 'Moving…' : 'Booking…'; }
+  try {
+    var data = editing
+      ? await apiCall('PUT', '/api/meetings/' + encodeURIComponent(editing.id), { meeting_date: date, time_slot: slot })
+      : await apiCall('POST', '/api/meetings', { meeting_date: date, time_slot: slot });
+    if (data && data.error) {
+      bbMtgErr(data.error);
+      // Somebody may have taken it while this form sat open — repaint the day.
+      onMeetingDateChange();
+      return;
+    }
+    cancelMeetingEdit();
+    bbMtg.slot = '';
+    bbHaptic(14);
+    if (typeof loadUserStats === 'function') { try { loadUserStats(); } catch (_) {} }
+    loadMyMeetings();
+    onMeetingDateChange();
+    showPopup(
+      editing ? 'Consultation moved' : 'Consultation booked',
+      (editing ? 'Your consultation is now on ' : 'You are booked for ') + bbMtgPretty(date) + ' at ' + slot + '.'
+        + ' You can see it under "Your consultations" below.',
+      '', 'OK', null, 'success');
+  } catch (e) {
+    bbMtgErr((e && e.message) || 'Could not save that booking.');
+  } finally {
+    bbMtg.loading = false;
+    if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = bbMtg.editing ? 'Confirm new time' : 'Book consultation'; }
+  }
+}
+
+/**
+ * Every consultation the member has, upcoming first, each one carrying its own
+ * status. Before this the list was a bare date and time with no indication of
+ * whether it was still on, already done, or cancelled — there was nothing to
+ * track a booking WITH.
+ */
 async function loadMyMeetings() {
   if (!window.currentUser) return;
   var sk = document.getElementById('meetingsListSkeleton');
   var el = document.getElementById('myMeetingsList');
   if (sk) sk.style.display = 'block';
   if (el) el.style.display = 'none';
-  var data = await apiCall('GET', '/api/meetings/user/' + window.currentUser.id);
+  var data;
+  try { data = await apiCall('GET', '/api/meetings/mine'); } catch (e) { data = { error: 'Could not load your consultations.' }; }
   if (sk) sk.style.display = 'none';
   if (!el) return;
   el.style.display = 'block';
-  if (data.error || !Array.isArray(data) || data.length === 0) {
-    el.innerHTML = '<p style="text-align:center;color:var(--muted);margin-top:12px">No scheduled calls yet.</p>';
+  if (!data || data.error) {
+    el.innerHTML = '<p class="form-hint" style="text-align:center;margin-top:12px">'
+      + escapeHtml((data && data.error) || 'Could not load your consultations.') + '</p>';
     return;
   }
-  el.innerHTML = '<h4 style="margin-bottom:12px;color:var(--cream);font-size:14px">Your Scheduled Calls</h4>' + data.map(function(m) {
-    var date = new Date(m.meeting_date + 'T12:00:00').toLocaleDateString();
-    var cancelled = m.status === 'cancelled';
-    var actions = '';
-    if (!cancelled) {
-      actions = '<div class="m-actions"><button class="m-btn m-btn-edit" onclick="editMeeting(\'' + m.id + '\',\'' + m.meeting_date + '\',\'' + (m.time_slot||'').replace(/'/g,"\\'") + '\')">Edit</button><button class="m-btn m-btn-cancel" onclick="cancelMeeting(\'' + m.id + '\')">Cancel</button></div>';
-    }
-    return '<div class="my-meeting-item' + (cancelled ? ' cancelled' : '') + '"><div class="m-info"><span class="m-date">' + date + '</span> at ' + (m.time_slot || '') + '</div>' + actions + '</div>';
-  }).join('');
+  var list = data.meetings || [];
+  if (!list.length) {
+    el.innerHTML = '<p class="form-hint" style="text-align:center;margin-top:12px">'
+      + 'No consultations yet. Pick a date and time above to book your first one.</p>';
+    return;
+  }
+
+  // Upcoming is what a member came here for; everything else is a record.
+  var upcoming = list.filter(function (m) { return m.status === 'scheduled' && !m.is_past; });
+  var history = list.filter(function (m) { return upcoming.indexOf(m) === -1; });
+  upcoming.sort(function (a, b) { return String(a.meeting_date).localeCompare(String(b.meeting_date)); });
+
+  var html = '';
+  if (upcoming.length) {
+    html += '<div class="m-group-label">Upcoming</div>' + upcoming.map(bbMeetingRow).join('');
+  }
+  if (history.length) {
+    html += '<div class="m-group-label">Past &amp; cancelled</div>' + history.map(bbMeetingRow).join('');
+  }
+  el.innerHTML = html;
 }
 
-function editMeeting(id, date, timeSlot) {
-  document.getElementById('mtgEditId').value = id;
-  document.getElementById('mtgDate').value = date;
-  document.getElementById('mtgTime').value = timeSlot || '';
-  document.getElementById('mtgSubmitBtn').textContent = 'Update Call';
+/** One consultation: when it is, where it stands, and what can still be done. */
+function bbMeetingRow(m) {
+  var cancelled = m.status === 'cancelled';
+  var completed = m.status === 'completed';
+  var when = bbMtgPretty(m.meeting_date);
+  var tone, label;
+  if (cancelled) { tone = 'cancelled'; label = 'Cancelled'; }
+  else if (completed) { tone = 'completed'; label = 'Completed'; }
+  else if (m.is_past) { tone = 'past'; label = 'Done'; }
+  else { tone = 'scheduled'; label = 'Confirmed'; }
+
+  var sub = [];
+  if (m.rescheduled_count > 0) sub.push('Rescheduled ' + m.rescheduled_count + (m.rescheduled_count === 1 ? ' time' : ' times'));
+  if (m.created_at) {
+    try {
+      sub.push('Booked ' + new Date(m.created_at).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }));
+    } catch (_) {}
+  }
+
+  var actions = '';
+  if (m.can_change) {
+    var esc = function (v) { return String(v || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"); };
+    actions = '<div class="m-actions">'
+      + '<button class="m-btn m-btn-reschedule" onclick="rescheduleMeeting(&quot;' + esc(m.id) + '&quot;,&quot;' + esc(m.meeting_date) + '&quot;,&quot;' + esc(m.time_slot) + '&quot;)">Reschedule</button>'
+      + '<button class="m-btn m-btn-cancel" onclick="cancelMeeting(&quot;' + esc(m.id) + '&quot;)">Cancel</button>'
+      + '</div>';
+  }
+
+  return '<div class="my-meeting-item' + (cancelled ? ' cancelled' : '') + '">'
+    + '<div class="m-info">'
+    + '<span class="m-status m-status--' + tone + '">' + label + '</span>'
+    + '<span class="m-when"><span class="m-date">' + escapeHtml(when) + '</span> at ' + escapeHtml(m.time_slot || '') + '</span>'
+    + (sub.length ? '<span class="m-when" style="font-size:11px;opacity:.8">' + escapeHtml(sub.join(' · ')) + '</span>' : '')
+    + '</div>' + actions + '</div>';
 }
+
+// Kept because older builds and deep links still call it; a reschedule is what
+// "edit" always meant here.
+function editMeeting(id, date, timeSlot) { rescheduleMeeting(id, date, timeSlot); }
 
 async function cancelMeeting(id) {
-  if (!confirm('Cancel this scheduled call?')) return;
-  var data = await apiCall('PUT', '/api/meetings/' + id, { status: 'cancelled' });
-  if (data.error) { alert(data.error); return; }
-  loadMyMeetings();
+  if (!confirm('Cancel this consultation? You can always book another one.')) return;
+  try {
+    var data = await apiCall('PUT', '/api/meetings/' + encodeURIComponent(id), { status: 'cancelled' });
+    if (data && data.error) { showPopup('Cancel', data.error, '', 'OK', null, 'error'); return; }
+    // If they were mid-way through moving the one they just cancelled, drop that.
+    if (bbMtg.editing && bbMtg.editing.id === id) cancelMeetingEdit();
+    loadMyMeetings();
+    onMeetingDateChange();
+  } catch (e) {
+    showPopup('Cancel', (e && e.message) || 'Could not cancel that consultation.', '', 'OK', null, 'error');
+  }
 }
 
 // Sunday Check-in – prefill "Last week" from user's previous check-in
@@ -27822,7 +28232,7 @@ async function handleAppleCompleteSubmit() {
   if (!_pendingAppleAuth) { showPopup('Error', 'Session expired. Please sign in with Apple again.', '', 'OK', null, 'error'); return; }
   var first  = ((document.getElementById('gcFirst')||{}).value||'').trim();
   var last   = ((document.getElementById('gcLast')||{}).value||'').trim();
-  var phone    = ((document.getElementById('gcPhone')||{}).value||'').trim();
+  var phone    = bbPhoneValue('gc');
   var dob      = ((document.getElementById('gcDob')||{}).value||'').trim();
   var gender   = ((document.getElementById('gcGender')||{}).value||'').trim();
   var country  = ((document.getElementById('gcCountry')||{}).value||'').trim();

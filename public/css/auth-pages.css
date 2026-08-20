@@ -398,3 +398,14 @@ input[type="date"].input::-webkit-calendar-picker-indicator {
   .auth-card { padding: 24px 18px 22px; border-radius: 16px; }
   .auth-title { font-size: 26px; }
 }
+
+/* Phone with its dialling code: a narrow fixed code select, then the number.
+   The code is chosen for the member by the country field, so it sits quieter
+   than the number they actually have to type. */
+.phone-row { display: grid; grid-template-columns: 116px minmax(0, 1fr); gap: 8px; }
+.phone-row .phone-dial {
+  padding-left: 10px; padding-right: 6px;
+  font-variant-numeric: tabular-nums;
+  color: rgba(232, 228, 220, 0.82);
+}
+@media (max-width: 380px) { .phone-row { grid-template-columns: 104px minmax(0, 1fr); } }

@@ -791,6 +791,11 @@ async function initDB() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
 
+  // A consultation can now be moved, so a row is no longer write-once.
+  try { await pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE meetings ADD COLUMN IF NOT EXISTS rescheduled_count INTEGER DEFAULT 0`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_meetings_date_slot ON meetings(meeting_date, time_slot)`); } catch (e) { /* ignore */ }
+
   await pool.query(`CREATE TABLE IF NOT EXISTS part2_audit (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -924,6 +929,8 @@ async function initDB() {
   // Streak-freeze marker: an empty row inserted to preserve a streak across a missed day.
   // Counts toward the streak (presence) but is excluded from averages, weekly counts and admin views.
   try { await pool.query(`ALTER TABLE daily_checkins ADD COLUMN IF NOT EXISTS is_freeze BOOLEAN DEFAULT FALSE`); } catch (e) { /* ignore */ }
+  // Today's entry can be corrected, so a row is no longer write-once.
+  try { await pool.query(`ALTER TABLE daily_checkins ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP`); } catch (e) { /* ignore */ }
 
   // Mind check-ins (mental-fitness exercises: box_breathing, grounding_54321, body_scan)
   await pool.query(`CREATE TABLE IF NOT EXISTS mind_checkins (
@@ -2606,16 +2613,168 @@ app.post('/api/schedule-call', rateLimiter(5, 60000), async (req, res) => {
 });
 
 // ============ MEETINGS (Schedule a Call) ============
-app.post('/api/meetings', rateLimiter(10, 60000), async (req, res) => {
+//
+// A consultation is a real hour of someone's day, so three things have to hold:
+// a member can only take a slot that is still ahead of them, only one member can
+// hold a given slot, and a booking belongs to whoever made it. None of that was
+// true before — the route had no auth at all and read user_id straight off the
+// body, and nothing stopped a booking being placed last Tuesday at 9am.
+
+// Labels are the display strings already stored in meetings.time_slot, so no
+// existing row has to be migrated; the 24h pair beside each one is what makes
+// "is this slot in the past?" answerable.
+const MEETING_TZ = SCHEDULE_CALL_TZ;
+const MEETING_SLOTS = [
+  { label: '9:00 AM',  h: 9  },
+  { label: '10:00 AM', h: 10 },
+  { label: '11:00 AM', h: 11 },
+  { label: '12:00 PM', h: 12 },
+  { label: '2:00 PM',  h: 14 },
+  { label: '3:00 PM',  h: 15 },
+  { label: '4:00 PM',  h: 16 },
+  { label: '5:00 PM',  h: 17 },
+  { label: '6:00 PM',  h: 18 }
+];
+const MEETING_SLOT_BY_LABEL = MEETING_SLOTS.reduce((m, s) => (m[s.label] = s, m), {});
+// How far ahead a member may book. Beyond this the coach's diary is not real yet.
+const MEETING_MAX_DAYS_AHEAD = 60;
+// A slot stops being bookable this many minutes before it starts, so nobody
+// books a call that begins in ninety seconds.
+const MEETING_LEAD_MINUTES = 30;
+
+/** Today, and the minutes elapsed today, in the coaching timezone. */
+function meetingNowInTz() {
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: MEETING_TZ }));
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  const d = String(now.getDate()).padStart(2, '0');
+  return { today: `${y}-${m}-${d}`, minutes: now.getHours() * 60 + now.getMinutes() };
+}
+
+/** The furthest date a member may book, as YYYY-MM-DD. */
+function meetingMaxDate() {
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: MEETING_TZ }));
+  now.setDate(now.getDate() + MEETING_MAX_DAYS_AHEAD);
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
+/** True when this date+slot has already started (or is inside the lead time). */
+function meetingSlotHasPassed(dateStr, label) {
+  const slot = MEETING_SLOT_BY_LABEL[label];
+  if (!slot) return true;
+  const { today, minutes } = meetingNowInTz();
+  if (dateStr < today) return true;
+  if (dateStr > today) return false;
+  return slot.h * 60 <= minutes + MEETING_LEAD_MINUTES;
+}
+
+/**
+ * Everything a booking has to satisfy, in one place so the book and the
+ * reschedule paths cannot drift apart.
+ * @returns {{error:string}|{date:string,slot:string}}
+ */
+function validateMeetingSlot(dateStr, label) {
+  const date = String(dateStr || '').trim();
+  const slot = String(label || '').trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return { error: 'Pick a valid date.' };
+  if (!MEETING_SLOT_BY_LABEL[slot]) return { error: 'Pick one of the available time slots.' };
+  const { today } = meetingNowInTz();
+  if (date < today) return { error: 'That date has already passed. Please pick a future date.' };
+  if (date > meetingMaxDate()) return { error: `Bookings open ${MEETING_MAX_DAYS_AHEAD} days ahead. Please pick an earlier date.` };
+  if (meetingSlotHasPassed(date, slot)) return { error: 'That time has already passed today. Please pick a later slot.' };
+  return { date, slot };
+}
+
+/** Is anyone else holding this slot? `exceptId` skips the booking being moved. */
+async function meetingSlotTaken(date, slot, exceptId) {
+  const row = await queryOne(
+    `SELECT id FROM meetings
+      WHERE meeting_date = ? AND time_slot = ? AND status = 'scheduled'
+        AND (?::text IS NULL OR id <> ?) LIMIT 1`,
+    [date, slot, exceptId || null, exceptId || '']);
+  return !!row;
+}
+
+function meetingIsStaff(user) {
+  return !!user && (user.role === 'admin' || user.role === 'superadmin');
+}
+
+// What the booking form draws itself from: the slot list, the bookable window,
+// and which slots are gone for the chosen day.
+app.get('/api/meetings/availability', verifyToken, async (req, res) => {
+  try {
+    const date = String(req.query.date || '').trim();
+    const { today } = meetingNowInTz();
+    if (date && !/^\d{4}-\d{2}-\d{2}$/.test(date)) return res.status(400).json({ error: 'Invalid date' });
+    let takenSet = new Set();
+    if (date) {
+      const booked = await queryAll(
+        "SELECT time_slot FROM meetings WHERE meeting_date = ? AND status = 'scheduled'", [date]);
+      takenSet = new Set(booked.map(r => String(r.time_slot)));
+    }
+    const slots = MEETING_SLOTS.map(s => {
+      const past = date ? meetingSlotHasPassed(date, s.label) : false;
+      const taken = takenSet.has(s.label);
+      return { label: s.label, past, taken, available: !!date && !past && !taken };
+    });
+    res.json({ date: date || null, timezone: MEETING_TZ, today, maxDate: meetingMaxDate(), slots });
+  } catch (e) {
+    console.error('[meetings] availability error:', e.message);
+    res.status(500).json({ error: 'Failed to load availability' });
+  }
+});
+
+// The signed-in member's own consultations, upcoming first — the list they
+// track a booking in.
+app.get('/api/meetings/mine', verifyToken, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      'SELECT * FROM meetings WHERE user_id = ? ORDER BY meeting_date DESC, created_at DESC LIMIT 100',
+      [req.user.id]);
+    const { today, minutes } = meetingNowInTz();
+    res.json({
+      today,
+      timezone: MEETING_TZ,
+      maxDate: meetingMaxDate(),
+      meetings: (rows || []).map(m => {
+        const slot = MEETING_SLOT_BY_LABEL[String(m.time_slot)];
+        const past = m.meeting_date < today ||
+          (m.meeting_date === today && slot && slot.h * 60 + 60 <= minutes);
+        return { ...m, is_past: !!past, can_change: m.status === 'scheduled' && !past };
+      })
+    });
+  } catch (e) {
+    console.error('[meetings] mine error:', e.message);
+    res.status(500).json({ error: 'Failed to load your consultations' });
+  }
+});
+app.post('/api/meetings', verifyToken, rateLimiter(10, 60000), async (req, res) => {
   try {
     const b = req.body || {};
-    if (!b.user_id || !b.meeting_date || !b.time_slot) {
-      return res.status(400).json({ error: 'User, date and time slot required' });
+    // A member books for themselves and nobody else. Only staff may name a
+    // different client — before this, user_id came straight off the body.
+    const staff = meetingIsStaff(req.user);
+    const ownerId = staff && b.user_id ? String(b.user_id) : String(req.user.id);
+    if (!ownerId) return res.status(400).json({ error: 'User, date and time slot required' });
+
+    const v = validateMeetingSlot(b.meeting_date, b.time_slot);
+    if (v.error) return res.status(400).json({ error: v.error });
+    if (await meetingSlotTaken(v.date, v.slot, null)) {
+      return res.status(409).json({ error: 'That slot has just been taken. Please pick another time.' });
     }
 
     const id = uuidv4();
+    // Name, email and phone are taken from the profile rather than the body, so
+    // an admin list can never show a client-supplied identity.
+    const who = await queryOne('SELECT first_name, last_name, email, phone FROM users WHERE id = ?', [ownerId]).catch(() => null);
+    const fullName = who ? `${who.first_name || ''} ${who.last_name || ''}`.trim() : '';
+    b.user_name = fullName || b.user_name || '';
+    b.user_email = (who && who.email) || b.user_email || '';
+    b.user_phone = (who && who.phone) || b.user_phone || '';
+    b.meeting_date = v.date;
+    b.time_slot = v.slot;
     await run(`INSERT INTO meetings (id, user_id, user_name, user_email, user_phone, meeting_date, time_slot, status, notes) VALUES (?,?,?,?,?,?,?,?,?)`,
-      [id, b.user_id, b.user_name||'', b.user_email||'', b.user_phone||'', b.meeting_date, b.time_slot, 'scheduled', b.notes||'']);
+      [id, ownerId, b.user_name, b.user_email, b.user_phone, v.date, v.slot, 'scheduled', b.notes||'']);
     if (b.user_email && String(b.user_email).trim()) {
       const dn = b.meeting_date ? new Date(b.meeting_date + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : String(b.meeting_date || '');
       userEmail.emailMeetingScheduled(String(b.user_email).trim(), (b.user_name || '').split(/\s+/)[0] || 'there', dn, b.time_slot || '');
@@ -2628,12 +2787,16 @@ app.post('/api/meetings', rateLimiter(10, 60000), async (req, res) => {
   }
 });
 
-app.get('/api/meetings', async (req, res) => {
+app.get('/api/meetings', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   const rows = await queryAll("SELECT * FROM meetings WHERE status='scheduled' ORDER BY meeting_date ASC, time_slot ASC");
   res.json(rows);
 });
 
-app.get('/api/meetings/user/:userId', async (req, res) => {
+// Anyone could read anyone's consultations from this by guessing an id.
+app.get('/api/meetings/user/:userId', verifyToken, async (req, res) => {
+  if (String(req.params.userId) !== String(req.user.id) && !meetingIsStaff(req.user)) {
+    return res.status(403).json({ error: 'Not your consultations' });
+  }
   const rows = await queryAll("SELECT * FROM meetings WHERE user_id = ? ORDER BY meeting_date DESC, created_at DESC", [req.params.userId]);
   res.json(rows);
 });
@@ -2658,21 +2821,75 @@ app.get('/api/admin/contact-messages/:id', verifyToken, requireAdminOrSuperadmin
   }
 });
 
-app.put('/api/meetings/:id', async (req, res) => {
-  const { meeting_date, time_slot, status } = req.body || {};
-  const row = await queryOne("SELECT * FROM meetings WHERE id = ?", [req.params.id]);
-  if (!row) return res.status(404).json({ error: 'Not found' });
+// Reschedule or cancel. A member may only touch their own booking, may only
+// move it to a slot that is free and still ahead, and may not resurrect one
+// that is finished. Staff keep the wider hand they always had.
+app.put('/api/meetings/:id', verifyToken, rateLimiter(20, 60000), async (req, res) => {
+  try {
+    const { meeting_date, time_slot, status } = req.body || {};
+    const row = await queryOne("SELECT * FROM meetings WHERE id = ?", [req.params.id]);
+    if (!row) return res.status(404).json({ error: 'Not found' });
 
-  const updates = [];
-  const values = [];
-  if (meeting_date !== undefined) { updates.push('meeting_date=?'); values.push(meeting_date); }
-  if (time_slot !== undefined) { updates.push('time_slot=?'); values.push(time_slot); }
-  if (status !== undefined) { updates.push('status=?'); values.push(status); }
-  if (updates.length === 0) return res.status(400).json({ error: 'No valid fields' });
+    const staff = meetingIsStaff(req.user);
+    if (!staff && String(row.user_id) !== String(req.user.id)) {
+      return res.status(403).json({ error: 'Not your consultation' });
+    }
 
-  values.push(req.params.id);
-  await run(`UPDATE meetings SET ${updates.join(',')} WHERE id=?`, values);
-  res.json({ message: 'Updated' });
+    const updates = [];
+    const values = [];
+    const movingDate = meeting_date !== undefined && meeting_date !== null;
+    const movingSlot = time_slot !== undefined && time_slot !== null;
+
+    if (movingDate || movingSlot) {
+      if (!staff && row.status !== 'scheduled') {
+        return res.status(400).json({ error: 'Only a scheduled consultation can be moved.' });
+      }
+      const nextDate = movingDate ? meeting_date : row.meeting_date;
+      const nextSlot = movingSlot ? time_slot : row.time_slot;
+      // Staff book on the phone with a client and sometimes need a past slot to
+      // record what actually happened; a member never does.
+      if (!staff) {
+        const v = validateMeetingSlot(nextDate, nextSlot);
+        if (v.error) return res.status(400).json({ error: v.error });
+        if (await meetingSlotTaken(v.date, v.slot, row.id)) {
+          return res.status(409).json({ error: 'That slot has just been taken. Please pick another time.' });
+        }
+      }
+      updates.push('meeting_date=?'); values.push(nextDate);
+      updates.push('time_slot=?'); values.push(nextSlot);
+      updates.push('rescheduled_count=COALESCE(rescheduled_count,0)+1');
+    }
+
+    if (status !== undefined) {
+      const allowed = staff ? ['scheduled', 'cancelled', 'completed'] : ['cancelled'];
+      if (allowed.indexOf(String(status)) === -1) {
+        return res.status(400).json({ error: 'You can cancel a consultation, or reschedule it.' });
+      }
+      updates.push('status=?'); values.push(status);
+    }
+    if (updates.length === 0) return res.status(400).json({ error: 'No valid fields' });
+    updates.push('updated_at=CURRENT_TIMESTAMP');
+
+    values.push(req.params.id);
+    await run(`UPDATE meetings SET ${updates.join(',')} WHERE id=?`, values);
+    const fresh = await queryOne("SELECT * FROM meetings WHERE id = ?", [req.params.id]);
+
+    // Tell them where it moved to, the same way the first booking told them.
+    if ((movingDate || movingSlot) && fresh && fresh.user_email) {
+      try {
+        const dn = new Date(fresh.meeting_date + 'T12:00:00').toLocaleDateString('en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        userEmail.emailMeetingScheduled(String(fresh.user_email).trim(), String(fresh.user_name || '').split(/\s+/)[0] || 'there', dn, fresh.time_slot || '');
+      } catch (_) { /* the booking still moved */ }
+      notifyAsync('MEETING_SCHEDULED', {
+        name: fresh.user_name || '—', email: fresh.user_email || '—', mobile: fresh.user_phone || '—',
+        date: fresh.meeting_date || '—', slot: fresh.time_slot || '—'
+      });
+    }
+    res.json({ message: 'Updated', meeting: fresh });
+  } catch (e) {
+    console.error('[meetings] PUT error:', e.message);
+    res.status(500).json({ error: 'Failed to update consultation' });
+  }
 });
 
 // ============ TRIBE MEMBERS ============
@@ -3357,19 +3574,68 @@ app.get('/api/sunday-checkin/:id', async (req, res) => {
 
 // ============ DAILY CHECK-IN (micro-goals: steps, water, protein, sleep) ============
 // DB stores water_ml; API accepts water_liters (preferred) or legacy water_ml; responses include water_liters.
-function waterMlFromDailyBody(body) {
+
+// ---- What a real day looks like --------------------------------------------
+// Every figure here is typed by hand on a phone, and until these bounds existed
+// a slipped digit was stored and then averaged, charted and scored like fact:
+// 6851 hours of sleep, a million steps, kilograms of protein. Each ceiling is
+// deliberately far past any real athlete, so the only values it turns away are
+// mistakes. Out-of-range input is REJECTED, never silently dropped — a member
+// who typed something has to be told it did not land.
+const DAILY_CHECKIN_LIMITS = {
+  steps:       { label: 'Steps',   min: 0, max: 100000, unit: '',     integer: true },
+  water_l:     { label: 'Water',   min: 0, max: 15,     unit: ' L' },
+  protein_g:   { label: 'Protein', min: 0, max: 500,    unit: ' g',   integer: true },
+  sleep_hours: { label: 'Sleep',   min: 0, max: 24,     unit: ' hrs' }   // there are 24 in a day
+};
+
+/**
+ * One field, held to its bound. Blank stays blank — these are all optional —
+ * but anything present must be a real number inside the range.
+ * @returns {{ok:true,value:(number|null)}|{ok:false,error:string}}
+ */
+function readDailyCheckinField(raw, key) {
+  const lim = DAILY_CHECKIN_LIMITS[key];
+  if (raw == null || raw === '') return { ok: true, value: null };
+  const n = Number(String(raw).replace(/,/g, '').trim());
+  if (!Number.isFinite(n)) return { ok: false, error: `${lim.label} must be a number.` };
+  if (n < lim.min || n > lim.max) {
+    return { ok: false, error: `${lim.label} must be between ${lim.min}${lim.unit} and ${lim.max}${lim.unit}.` };
+  }
+  return { ok: true, value: lim.integer ? Math.round(n) : n };
+}
+
+/**
+ * The whole check-in body, validated as one. Water is the only derived field:
+ * the API speaks litres (older clients send millilitres) and the column stores
+ * millilitres.
+ * @returns {{error:string}|{steps,water_ml,protein_g,sleep_hours,filled}}
+ */
+function validateDailyCheckinBody(body) {
   const b = body || {};
-  if (b.water_liters != null && b.water_liters !== '') {
-    const L = parseFloat(String(b.water_liters).replace(/,/g, ''));
-    if (!Number.isFinite(L) || L < 0 || L > 25) return null;
-    return Math.round(L * 1000);
+  let waterRaw = b.water_liters;
+  if ((waterRaw == null || waterRaw === '') && b.water_ml != null && b.water_ml !== '') {
+    const ml = Number(String(b.water_ml).replace(/,/g, '').trim());
+    if (!Number.isFinite(ml)) return { error: 'Water must be a number.' };
+    waterRaw = ml / 1000;
   }
-  if (b.water_ml != null && b.water_ml !== '') {
-    const ml = parseInt(String(b.water_ml).replace(/,/g, ''), 10);
-    if (!Number.isFinite(ml) || ml < 0) return null;
-    return ml;
-  }
-  return null;
+  const water   = readDailyCheckinField(waterRaw,     'water_l');
+  if (!water.ok) return { error: water.error };
+  const steps   = readDailyCheckinField(b.steps,       'steps');
+  if (!steps.ok) return { error: steps.error };
+  const protein = readDailyCheckinField(b.protein_g,   'protein_g');
+  if (!protein.ok) return { error: protein.error };
+  const sleep   = readDailyCheckinField(b.sleep_hours, 'sleep_hours');
+  if (!sleep.ok) return { error: sleep.error };
+
+  const out = {
+    steps: steps.value,
+    water_ml: water.value == null ? null : Math.round(water.value * 1000),
+    protein_g: protein.value,
+    sleep_hours: sleep.value
+  };
+  out.filled = [out.steps, out.water_ml, out.protein_g, out.sleep_hours].some(v => v != null);
+  return out;
 }
 function attachWaterLitersToDailyRow(row) {
   if (!row || typeof row !== 'object') return row;
@@ -3432,8 +3698,10 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
   try {
     const userId = req.user.id;
     const b = req.body || {};
-    const { steps, protein_g, sleep_hours } = b;
-    const waterMl = waterMlFromDailyBody(b);
+    const checkin = validateDailyCheckinBody(b);
+    if (checkin.error) return res.status(400).json({ error: checkin.error });
+    const { steps, protein_g, sleep_hours } = checkin;
+    const waterMl = checkin.water_ml;
     const _userTzRow = await queryOne('SELECT timezone FROM users WHERE id = ?', [userId]).catch(() => null);
     const _userTz = (_userTzRow && _userTzRow.timezone) ? _userTzRow.timezone : STREAK_TIMEZONE;
     const today = streakTodayYmdInTz(_userTz) || streakDateToYmd(new Date());
@@ -3516,6 +3784,60 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
   }
 });
 
+// Correcting today's entry. Deliberately today ONLY: the date is taken from the
+// server's idea of the member's today and never from the request, so there is no
+// past or future day a caller could reach. A check-in is filled in seconds on a
+// phone and used to be write-once, which made every typo permanent.
+app.put('/api/daily-checkin/today', verifyToken, rateLimiter(30, 60000), async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const checkin = validateDailyCheckinBody(req.body || {});
+    if (checkin.error) return res.status(400).json({ error: checkin.error });
+    if (!checkin.filled) return res.status(400).json({ error: 'Enter at least one value before saving.' });
+
+    const tzRow = await queryOne('SELECT timezone FROM users WHERE id = ?', [userId]).catch(() => null);
+    const tz = (tzRow && tzRow.timezone) ? tzRow.timezone : STREAK_TIMEZONE;
+    const today = streakTodayYmdInTz(tz) || streakDateToYmd(new Date());
+
+    const existing = await queryOne(
+      `SELECT id, COALESCE(is_freeze, FALSE) AS is_freeze FROM daily_checkins
+        WHERE user_id = ? AND checkin_date = ?::date`, [userId, today]);
+    if (!existing) return res.status(404).json({ error: 'No check-in saved today yet.' });
+    // A freeze row is a marker that the day was excused, not a day of data.
+    if (existing.is_freeze) return res.status(400).json({ error: 'Today is covered by a streak freeze, so there is nothing to edit.' });
+
+    await run(
+      `UPDATE daily_checkins
+          SET steps = ?, water_ml = ?, protein_g = ?, sleep_hours = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE user_id = ? AND checkin_date = ?::date`,
+      [checkin.steps, checkin.water_ml, checkin.protein_g, checkin.sleep_hours, userId, today]
+    );
+    await safeRecomputeNutritionForDate(userId, today);
+
+    // Goal coins are keyed per member per day, so replaying them lets a corrected
+    // figure earn what it should have earned the first time. An edit downwards
+    // cannot take a coin back: the ledger is append-only by design.
+    if (checkin.water_ml != null && checkin.water_ml >= 2000) {
+      await safeAwardCoins(userId, 'daily_goal_water', `coins:daily_goal_water:${userId}:${today}`, 3,
+        { waterMl: checkin.water_ml, targetMl: 2000 }, today);
+    }
+    if (checkin.protein_g != null && Number(checkin.protein_g) >= 100) {
+      await safeAwardCoins(userId, 'daily_goal_protein', `coins:daily_goal_protein:${userId}:${today}`, 3,
+        { proteinG: Number(checkin.protein_g), targetG: 100 }, today);
+    }
+    if (checkin.sleep_hours != null && Number(checkin.sleep_hours) >= 7) {
+      await safeAwardCoins(userId, 'daily_goal_sleep', `coins:daily_goal_sleep:${userId}:${today}`, 3,
+        { sleepHours: Number(checkin.sleep_hours), targetHours: 7 }, today);
+    }
+
+    const row = await queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
+    res.json(attachWaterLitersToDailyRow(row));
+  } catch (e) {
+    console.error('Daily check-in edit error:', e.message);
+    res.status(500).json({ error: 'Failed to update check-in' });
+  }
+});
+
 app.get('/api/daily-checkin/today', verifyToken, async (req, res) => {
   try {
     const _utzRow = await queryOne('SELECT timezone FROM users WHERE id = ?', [req.user.id]).catch(() => null);
@@ -3527,6 +3849,9 @@ app.get('/api/daily-checkin/today', verifyToken, async (req, res) => {
     res.status(500).json({ error: 'Failed to load check-in' });
   }
 });
+
+// The form draws its own min/max from this, so the two can never disagree.
+app.get('/api/daily-checkin/limits', verifyToken, (req, res) => res.json(DAILY_CHECKIN_LIMITS));
 
 app.get('/api/daily-checkin/streak', verifyToken, async (req, res) => {
   try {

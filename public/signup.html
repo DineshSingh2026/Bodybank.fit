@@ -53,7 +53,11 @@
 
         <div class="field">
           <label for="suPhone">Mobile / WhatsApp <span class="req">*</span></label>
-          <input class="input" type="tel" id="suPhone" placeholder="+91XXXXXXXXXX" autocomplete="tel" required>
+          <div class="phone-row">
+            <select class="input phone-dial" id="suDial" aria-label="Country dialling code"></select>
+            <input class="input" type="tel" id="suPhone" placeholder="98765 43210" autocomplete="tel" inputmode="tel" required>
+          </div>
+          <span class="hint">The code follows the country you pick below.</span>
         </div>
 
         <div class="field-row">
@@ -82,7 +86,7 @@
         <div class="field-row">
           <div class="field">
             <label for="suCountry">Country <span class="req">*</span></label>
-            <input class="input" type="text" id="suCountry" placeholder="Your country" autocomplete="country-name" required>
+            <select class="input" id="suCountry" autocomplete="country-name" required></select>
           </div>
           <div class="field">
             <label for="suTimezone">Timezone <span class="req">*</span></label>
@@ -166,7 +170,11 @@
 
         <div class="field">
           <label for="gcPhone">Mobile / WhatsApp <span class="req">*</span></label>
-          <input class="input" type="tel" id="gcPhone" placeholder="+91XXXXXXXXXX" autocomplete="tel" required>
+          <div class="phone-row">
+            <select class="input phone-dial" id="gcDial" aria-label="Country dialling code"></select>
+            <input class="input" type="tel" id="gcPhone" placeholder="98765 43210" autocomplete="tel" inputmode="tel" required>
+          </div>
+          <span class="hint">The code follows the country you pick below.</span>
         </div>
 
         <div class="field-row">
@@ -195,7 +203,7 @@
         <div class="field-row">
           <div class="field">
             <label for="gcCountry">Country <span class="req">*</span></label>
-            <input class="input" type="text" id="gcCountry" placeholder="Your country" required>
+            <select class="input" id="gcCountry" required></select>
           </div>
           <div class="field">
             <label for="gcTimezone">Timezone <span class="req">*</span></label>
@@ -245,6 +253,7 @@
   <a href="/our-story.html">Our story</a>
 </footer>
 
+<script src="/js/countries.js"></script>
 <script src="/js/auth-pages.js"></script>
 <script>
 (function () {
@@ -262,14 +271,31 @@
 
   BB.fillTimezoneSelect('suTimezone');
   BB.fillTimezoneSelect('gcTimezone');
+
+  // Country is now a list, and the dialling code beside the phone follows it.
+  ['su', 'gc'].forEach(function (p) {
+    BBCountries.fillCountrySelect(p + 'Country');
+    BBCountries.fillDialSelect(p + 'Dial');
+  });
   (function prefillCountry() {
+    // The browser timezone is the best guess we have before they type anything.
     var guess = BB.guessCountry();
     if (!guess) return;
-    var a = document.getElementById('suCountry');
-    var b = document.getElementById('gcCountry');
-    if (a && !a.value) a.value = guess;
-    if (b && !b.value) b.value = guess;
+    ['su', 'gc'].forEach(function (p) {
+      var sel = document.getElementById(p + 'Country');
+      if (sel && !sel.value) sel.value = guess;
+    });
   })();
+  ['su', 'gc'].forEach(function (p) {
+    BBCountries.linkPhoneToCountry(p + 'Country', p + 'Dial');
+  });
+
+  /** The number as one string, e.g. +91 then 9876543210 -> "+919876543210". */
+  function phoneValue(prefix) {
+    var dial = document.getElementById(prefix + 'Dial');
+    var num = document.getElementById(prefix + 'Phone');
+    return BBCountries.composePhone(dial ? dial.value : '', num ? num.value : '');
+  }
 
   function showPane(which) {
     paneSignup.classList.toggle('active', which === 'signup');
@@ -349,7 +375,7 @@
     var first_name = val('suFirst');
     var last_name = val('suLast');
     var email = val('suEmail').toLowerCase();
-    var phone = val('suPhone');
+    var phone = phoneValue('su');
     var dob = val('suDob');
     var gender = val('suGender');
     var country = val('suCountry');
@@ -525,7 +551,7 @@
       return;
     }
 
-    var phone = val('gcPhone');
+    var phone = phoneValue('gc');
     var dob = val('gcDob');
     var gender = val('gcGender');
     var country = val('gcCountry');

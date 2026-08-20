@@ -1,0 +1,171 @@
+/* ============================================================================
+   BodyBank — the mobile menu (".mm")
+   ----------------------------------------------------------------------------
+   Four public pages each carried their own copy of this menu, and each copy was
+   broken in its own way. This is the single definition; the pages now link it
+   instead of redeclaring it, so the next fix lands everywhere at once.
+
+   What was wrong, and why the shape below is the shape it is:
+
+   1. z-index. The sheet sat at 99 (999 on the blog) while the page header sits
+      at 10010, the member bottom bar at 9999 and the WhatsApp button at 9000.
+      The menu was never clipped — it was PAINTED OVER at both ends, which is
+      exactly why the first and last items "disappeared". Hence 100030, above
+      every piece of fixed furniture on the site.
+
+   2. justify-content:center on a scrolling column. Once the links are taller
+      than the screen, centring pushes the overflow past BOTH edges; the browser
+      then reports no overflow at all and there is no scroll position that
+      reveals the top. Auto margins on an inner wrapper do what centring was
+      meant to do — centre while there is room, collapse to zero when there is
+      not — so the first link is always reachable.
+
+   3. our-story.html and tribe-stories.html had no overflow-y whatsoever, so
+      they could not scroll even in principle.
+
+   4. Links were only as wide as their own text, so most of each row was dead
+      space rather than a tap target.
+
+   5. The background was rgba(6,6,6,0.97) — just translucent enough to let the
+      hero headline read through the menu.
+   ========================================================================== */
+
+.mm {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100030;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: #060606;                 /* opaque: nothing reads through */
+  overscroll-behavior: contain;
+}
+.mm.open { display: grid; animation: mmIn .22s ease both }
+@keyframes mmIn { from { opacity: 0 } to { opacity: 1 } }
+
+/* ---- the sheet's own header, so the close button has a home ------------- */
+.mm-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 14px max(20px, env(safe-area-inset-right)) 14px max(20px, env(safe-area-inset-left));
+  padding-top: calc(env(safe-area-inset-top, 0px) + 14px);
+  border-bottom: 1px solid rgba(200, 164, 78, 0.16);
+  background: #060606;
+}
+.mm-head img { height: 34px; width: auto; display: block }
+.mm-c {
+  background: none;
+  border: 1px solid rgba(200, 164, 78, 0.3);
+  border-radius: 10px;
+  color: var(--gold, #c8a44e);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px; height: 44px; min-width: 44px;      /* a real touch target */
+  flex: none;
+  transition: background .18s, border-color .18s;
+  /* the old rule pinned this over the first link; it lives in the header now */
+  position: static;
+}
+.mm-c:hover { background: rgba(200, 164, 78, 0.12); border-color: var(--gold, #c8a44e) }
+
+/* ---- the one scrolling surface ------------------------------------------ */
+.mm-body {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  display: flex;
+  flex-direction: column;
+  padding: 8px max(20px, env(safe-area-inset-right))
+           calc(env(safe-area-inset-bottom, 0px) + 30px) max(20px, env(safe-area-inset-left));
+}
+/* auto margins centre while the list fits and collapse the moment it does not */
+.mm-links { margin-block: auto; width: 100%; max-width: 520px; margin-inline: auto }
+
+/* ---- rows ---------------------------------------------------------------- */
+.mm a.mm-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  min-height: 58px;
+  padding: 15px 2px;
+  color: var(--cream, #f2ece0);
+  text-decoration: none;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  letter-spacing: 3.5px;
+  line-height: 1;
+  border-bottom: 1px solid rgba(200, 164, 78, 0.12);
+  transition: color .18s ease, padding-left .18s ease, border-color .18s ease;
+}
+.mm a.mm-link:hover,
+.mm a.mm-link:focus-visible {
+  color: var(--gold, #c8a44e);
+  padding-left: 10px;
+  border-color: rgba(200, 164, 78, 0.4);
+}
+.mm a.mm-link.active,
+.mm a.mm-link[aria-current="page"] { color: var(--gold, #c8a44e) }
+.mm-chev { font-size: 17px; opacity: .35; transition: opacity .18s ease, transform .18s ease }
+.mm a.mm-link:hover .mm-chev { opacity: .9; transform: translateX(3px) }
+
+/* ---- the one action worth a button rather than a row -------------------- */
+.mm a.mm-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 22px;
+  min-height: 54px;
+  padding: 15px 20px;
+  border-radius: 12px;
+  background: linear-gradient(105deg, #F0D89A, #C8A44E);
+  color: #100C02;
+  border: 0;
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 20px;
+  letter-spacing: 3px;
+  text-decoration: none;
+  box-shadow: 0 12px 28px -12px rgba(200, 164, 78, 0.7);
+}
+.mm a.mm-cta:hover { filter: brightness(1.06); color: #100C02; padding-left: 20px }
+.mm-foot { margin-top: 14px; text-align: center }
+
+/* ---- motion -------------------------------------------------------------- */
+/* Rows arrive in sequence rather than all at once — cheap, and it makes the
+   sheet feel like it opened rather than blinked. */
+.mm.open .mm-links > * { animation: mmRow .26s ease both }
+.mm.open .mm-links > *:nth-child(1) { animation-delay: .02s }
+.mm.open .mm-links > *:nth-child(2) { animation-delay: .045s }
+.mm.open .mm-links > *:nth-child(3) { animation-delay: .07s }
+.mm.open .mm-links > *:nth-child(4) { animation-delay: .095s }
+.mm.open .mm-links > *:nth-child(5) { animation-delay: .12s }
+.mm.open .mm-links > *:nth-child(6) { animation-delay: .145s }
+.mm.open .mm-links > *:nth-child(7) { animation-delay: .17s }
+.mm.open .mm-links > *:nth-child(8) { animation-delay: .195s }
+@keyframes mmRow { from { opacity: 0; transform: translateY(9px) } to { opacity: 1; transform: none } }
+@media (prefers-reduced-motion: reduce) {
+  .mm.open, .mm.open .mm-links > * { animation: none }
+  .mm a.mm-link:hover, .mm a.mm-link:focus-visible { padding-left: 2px }
+}
+
+/* While the sheet is open, nothing else may float over it. */
+body.bb-nav-open .wa-public-fab,
+body.bb-nav-open .bb-elite-feed-fab,
+body.bb-nav-open .pub-bottom-nav,
+body.bb-nav-open .user-bottom-nav,
+body.bb-nav-open .admin-bottom-nav { display: none !important }
+
+@media (min-width: 421px) { .mm a.mm-link { font-size: 28px } }
+/* A landscape phone has ~350px of height to give — shrink the rows, keep them all. */
+@media (max-height: 560px) {
+  .mm a.mm-link { min-height: 50px; padding: 11px 2px; font-size: 22px }
+  .mm a.mm-cta { margin-top: 16px; min-height: 48px }
+}

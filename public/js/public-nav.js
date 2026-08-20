@@ -28,18 +28,11 @@
     { key: 'stories', label: 'Stories', icon: ICONS.stories, href: 'tribe-stories.html',  match: ['tribe-stories.html'] },
     { key: 'blog',    label: 'Blog',    icon: ICONS.blog,    href: 'blog.html',           match: ['blog.html'] },
     { key: 'about',   label: 'About',   icon: ICONS.about,   href: 'our-story.html',      match: ['our-story.html'] },
-    {
-      key: 'join', label: 'Join', icon: ICONS.join, href: '/signin', match: ['signin.html', 'signup.html'],
-      action: function () {
-        // Prefer the in-page login modal when it exists (index.html); on every
-        // other page fall through to the standalone /signin page.
-        if (typeof window.openModal === 'function' && document.getElementById('loginModal')) {
-          window.openModal('loginModal');
-          return false;
-        }
-        return true;
-      }
-    }
+    // No Join tab. It used to be the 5th item — the far end of the bar, which
+    // is what made it hard to find — and it pointed at /signin, so the one
+    // control aimed at new visitors handed them a password field. Join and
+    // Login now sit together in the header at every width. This bar is for
+    // going places; account actions have one home and it is not here.
   ];
 
   // ── Styles ─────────────────────────────────────────────────────────────────
@@ -64,7 +57,7 @@
     /* breathing room so the footer never hides permanently behind the pill */
     '  body:not(.site-nav-hidden){padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))!important}',
     '}',
-    '.pub-bottom-nav-inner{display:grid;grid-template-columns:repeat(5,1fr);align-items:stretch;width:100%;height:100%;column-gap:0}',
+    '.pub-bottom-nav-inner{display:grid;grid-template-columns:repeat(' + ITEMS.length + ',1fr);align-items:stretch;width:100%;height:100%;column-gap:0}',
     '.pub-bottom-nav-item{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;',
     '  min-width:0;padding:0 2px;background:none;border:none;cursor:pointer;text-decoration:none;',
     "  color:#bfb9ab;font-family:'Outfit',-apple-system,sans-serif;font-size:11px;font-weight:600;letter-spacing:.2px;",

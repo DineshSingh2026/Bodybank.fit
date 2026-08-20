@@ -37,7 +37,18 @@ Before every mobile release:
 
 ## Pending sync — next mobile release
 
-_(empty — synced 2026-08-19; see below)_
+All of the below is frontend and therefore needs a mobile sync. The daily check-in
+and consultation work also has a server half, which reaches the app through Render
+as soon as it deploys — the app only needs the new screens.
+
+| Area | What changed |
+| ---- | ------------ |
+| Daily check-in | Bounds on steps / water / protein / sleep (a 6851-hour night used to save), and today-only editing of an entry that was previously write-once |
+| Consultations | Past dates and passed slots are refused, slots show as booked, rescheduling added, and the member has a list with real status. Booking is now authenticated and owner-scoped |
+| Sign-up | Country is a dropdown of 204 countries and the phone dialling code follows it; one sign-up form (/signup) instead of a page and a modal |
+| Mobile menu | Rebuilt: it could not scroll and was painted over at both ends by the header and the bottom bar. Now one shared stylesheet across all four public pages |
+| Join / Login | Both visible in the header at every width. The bottom bar's "Join" used to open the LOGIN modal — it now goes to /signup, and the duplicate tab is gone |
+| Header | Fixed nav links overlapping the tagline between ~900 and 1400px; slimmer mobile bar |
 
 ---
 
