@@ -34,12 +34,24 @@ Before every mobile release:
 6. Move the entries below into **History — synced** and clear Pending.
 
 ---
-
 ## Pending sync — next mobile release
 
-All of the below is frontend and therefore needs a mobile sync. The daily check-in
-and consultation work also has a server half, which reaches the app through Render
-as soon as it deploys — the app only needs the new screens.
+| Area | What changed |
+| ---- | ------------ |
+| Hero | Dropped the "no account needed / create your account" line under the audit button, and its twin above the repeat CTA. Join sits in the header now, so the hero says one thing |
+
+---
+
+## 2026-08-20 — synced to mobile repo (joining made findable, check-in + consultations hardened, v1.7.0, versionCode 23)
+
+Ran `npm run sync`; bumped Android `versionCode 22→23`, `versionName 1.6.0→1.7.0`.
+`public/sw.js` cache `v70→v71`. Web commit `11d0eeb`, mobile commit `94b7610`.
+Also carried the member-home and operator-console work from `364aea6`, which had
+not been synced.
+
+All of the below is frontend, so it needed the sync. The daily check-in and
+consultation work also has a server half, which reaches the app through Render on
+deploy — the app only needed the new screens.
 
 | Area | What changed |
 | ---- | ------------ |
