@@ -36,9 +36,41 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
+_Nothing pending — `www/` matches `public/` as of web commit `100b00c`._
+
+---
+
+## 2026-08-23 — synced to mobile repo (**first production release**, v1.7.1, versionCode 24)
+
+Ran `npm run build:www` + `npx cap sync android`; bumped Android `versionCode 23→24`,
+`versionName 1.7.0→1.7.1`. `public/sw.js` cache `v71→v72`. Web commit `100b00c`.
+
+This is the build promoted to the Play **production** track — every prior entry in this log
+shipped to closed testing only.
+
+**Bundle verified before building, not assumed.** Diffed `bodybank/public/` against
+`bodybank-app/www/` file by file: the only differences were the injected
+`bb-app-config.js` tag (19 HTML files), the deliberate `videos/` + `reports/` skips,
+`www/__smoke.html`, and `www/js/bb-app-config.js`. The single content difference was
+`index.html`, carrying exactly the hero change below. Everything from v1.7.0 and earlier
+was already in the tree.
+
 | Area | What changed |
 | ---- | ------------ |
 | Hero | Dropped the "no account needed / create your account" line under the audit button, and its twin above the repeat CTA. Join sits in the header now, so the hero says one thing |
+
+> **sw cache caught here, not in the app:** `100b00c` changed `public/index.html` without
+> bumping `CACHE_NAME`, so web/PWA visitors would have kept serving the stale hero from
+> cache. Bumped `v71→v72` as part of this release. The app is unaffected either way —
+> `bb-app-config.js` stubs out service-worker registration.
+
+> **Backend note:** no server half in this release. The endpoints the v1.7.0 landings depend
+> on (`/api/member/home`, `/api/admin/overview`, `/api/operator/overview`,
+> `/api/operator/clients`, `/api/operator/blood`) are already live on Render. Still
+> **confirm the Render deploy of web `main` is green before promoting**, since production
+> users have no earlier build to fall back to.
+
+> Capacitor plugin set unchanged from v1.4.0 — 6 plugins, no new native permissions.
 
 ---
 
