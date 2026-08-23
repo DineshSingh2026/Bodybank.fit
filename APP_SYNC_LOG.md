@@ -40,10 +40,17 @@ _Nothing pending — `www/` matches `public/` as of web commit `100b00c`._
 
 ---
 
-## 2026-08-23 — synced to mobile repo (**first production release**, v1.7.1, versionCode 24)
+## 2026-08-23 — synced to mobile repo (**first production release**, v1.7.1, versionCode 30)
 
-Ran `npm run build:www` + `npx cap sync android`; bumped Android `versionCode 23→24`,
+Ran `npm run build:www` + `npx cap sync android`; bumped Android `versionCode 23→30`,
 `versionName 1.7.0→1.7.1`. `public/sw.js` cache `v71→v72`. Web commit `100b00c`.
+
+> **versionCode 24 was rejected by Play as already used** — the third such collision
+> (13 → 14, 17 → 18, now 24 → 30). Something outside the local build consumes codes in
+> this range, so this release **jumps to 30** rather than creeping to 25 and risking
+> another round trip. Gaps are harmless: versionCode is opaque to users, only
+> versionName is shown. If the next release collides again, jump further, and treat any
+> number below ~100 as suspect.
 
 This is the build promoted to the Play **production** track — every prior entry in this log
 shipped to closed testing only.
