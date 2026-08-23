@@ -36,7 +36,59 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
-_Nothing pending — `www/` matches `public/` as of web commit `100b00c`._
+_Nothing pending — `www/` verified byte-identical to `public/` as of web commit `c727f4e` (2026-08-23, during the API 36 release)._
+
+---
+
+## 2026-08-23 — Android 16 (API 36) compliance release, v1.7.2, versionCode 100
+
+**No web content in this release.** `www/` was verified byte-identical to `public/` before
+building — every file difference was the injected `bb-app-config.js` tag (19 HTML files) plus
+the deliberate `videos/` + `reports/` skips. Nothing was re-synced; only `android/` changed.
+
+**Why:** Google Play blocks *updates* from **Aug 31, 2026** unless the app targets API 36.
+The live v1.7.1 build is not pulled — but no further update can ship until a 36-targeted
+build reaches production.
+
+| File | Change |
+| ---- | ------ |
+| `android/variables.gradle` | `compileSdkVersion` + `targetSdkVersion` 35 → 36 |
+| `android/build.gradle` | AGP 8.7.2 → 8.10.1 |
+| `android/app/build.gradle` | `versionCode` 30 → 100, `versionName` 1.7.1 → 1.7.2 |
+
+**AGP had to move too.** 8.7 was only tested to `compileSdk 35` and warns on 36. AGP 8.10
+requires Gradle 8.11.1 minimum, which the wrapper already pins — so no wrapper change.
+AGP 8.11+ would have forced Gradle 8.13; deliberately avoided.
+
+**Behaviour changes were checked, not assumed:**
+
+- **Edge-to-edge** — the usual hazard, already absorbed at API 35. Capacitor 7.6.5 defaults
+  `adjustMarginsForEdgeToEdge: "auto"`, which insets the WebView on every API 35+ device
+  today ([`CapacitorWebView.java:58`]). API 36 only stops honouring the opt-out flag, which
+  this app never set. No visual change expected.
+- **16 KB page size** — no `.so` files anywhere in the build. Pure WebView app, not applicable.
+- **Large-screen orientation/resize locks ignored** — manifest sets no `screenOrientation`
+  or `resizableActivity`, so there is nothing to lose. On tablets the app becomes freely
+  rotatable/resizable, which a responsive web app handles.
+- **Predictive back** — on by default at target 36, but there is no `@capacitor/app` plugin
+  and no `onBackPressed` override, so back already just finishes the activity. What changes
+  is the system close animation, not the behaviour.
+
+**Build verified, not assumed:** `BUILD SUCCESSFUL in 4m 38s`, 312 tasks, zero warnings.
+Merged manifest reads `targetSdkVersion="36" versionCode="100" versionName="1.7.2"`.
+AAB signed — `jar verified`, `CN=BodyBank, OU=Mobile`. All six Capacitor plugins read
+`rootProject.ext`, so they compiled against 36 as well.
+
+> **versionCode 100 was chosen against Codemagic's range, not arbitrarily.** `codemagic.yaml`
+> builds Android with `ANDROID_VERSION_CODE=$PROJECT_BUILD_NUMBER + 100`, i.e. **101 and up**.
+> Sitting at 100 keeps the sequence monotonic whichever way the next build is produced.
+> **Check Play Console for the highest existing versionCode before hand-uploading** — if CI
+> has already pushed builds at 101+, a manual 100 will be rejected as *lower*, which is the
+> most likely explanation for the 13/17/24 collisions in earlier releases.
+
+> **Pushing `main` on the mobile repo auto-publishes.** The `android-closed-testing` workflow
+> triggers on every push to `main` and submits straight to the Play `internal` track with
+> `submit_as_draft: false`. Pushing is therefore a release action, not just a code action.
 
 ---
 
