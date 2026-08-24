@@ -53,12 +53,21 @@ function mhLoopCard(steps) {
   var open = steps.filter(function (s) { return !s.done; });
   // Never lead with something that is not actually due yet (the Sunday review
   // on a Tuesday) — it would send the member to a screen with nothing to do.
-  var next = open.filter(function (s) { return !s.soft; })[0] || null;
+  // Which means "nothing due" is the finished state even while a soft step is
+  // still on the list. `all` has to be read off `next`, not off `open`: tick
+  // the last real task on a Tuesday and `open` still holds the weekly review,
+  // so the old test said "not done" and then dereferenced a null `next`.
+  var due = open.filter(function (s) { return !s.soft; });
+  var next = due[0] || null;
   var rest = open.filter(function (s) { return s !== next; });
-  var all = !open.length;
+  var all = !next;
 
-  var rail = '<div class="mh-rail" role="img" aria-label="' + done.length + ' of ' + steps.length
-    + ' done today">' + steps.map(function (s) {
+  // The rail measures the day, so it counts what the day actually asks for. A
+  // Sunday review pending on a Tuesday is not a missing pip.
+  var core = steps.filter(function (s) { return !s.soft; });
+  var coreDone = core.filter(function (s) { return s.done; });
+  var rail = '<div class="mh-rail" role="img" aria-label="' + coreDone.length + ' of ' + core.length
+    + ' done today">' + core.map(function (s) {
       return '<i class="' + (s.done ? 'on' : '') + '"></i>';
     }).join('') + '</div>';
 
@@ -66,7 +75,9 @@ function mhLoopCard(steps) {
     ? '<div class="mh-alldone">'
       + '<span class="mh-alldone-ring" aria-hidden="true">✓</span>'
       + '<div class="mh-alldone-t"><b>Today is complete.</b>'
-      + '<span>Every box ticked. Rest up — the streak does the rest.</span></div></div>'
+      + '<span>' + (rest.length
+        ? 'Nothing else is due today — what is left below can wait for its day.'
+        : 'Every box ticked. Rest up — the streak does the rest.') + '</span></div></div>'
     : '<div class="mh-next">'
       + '<span class="mh-next-ico" aria-hidden="true">' + next.icon + '</span>'
       + '<div class="mh-next-main">'
@@ -118,7 +129,17 @@ async function loadMemberHome(silent) {
   var btn = mhEl('mhRefresh');
   if (btn) btn.classList.add('is-busy');
   try {
-    var d = await apiCall('GET', '/api/member/home');
+    var d;
+    // The fetch and the draw get their own catch. They used to share one, so a
+    // TypeError in the render told the member "Could not reach the server" —
+    // pointing at the network while the real fault was three lines of markup.
+    try {
+      d = await apiCall('GET', '/api/member/home');
+    } catch (netErr) {
+      var h2 = mhEl('mhLoop');
+      if (h2 && !silent) h2.innerHTML = '<div class="mh-empty">Could not reach the server. Pull to refresh.</div>';
+      return;
+    }
     if (!d || d.error) {
       if (!silent) {
         var host = mhEl('mhLoop');
@@ -127,10 +148,13 @@ async function loadMemberHome(silent) {
       return;
     }
     mhState.data = d;
-    renderMemberHome();
-  } catch (e) {
-    var h2 = mhEl('mhLoop');
-    if (h2) h2.innerHTML = '<div class="mh-empty">Could not reach the server. Pull to refresh.</div>';
+    try {
+      renderMemberHome();
+    } catch (renderErr) {
+      console.error('[member home] render failed', renderErr);
+      var h3 = mhEl('mhLoop');
+      if (h3) h3.innerHTML = '<div class="mh-empty">Your day could not be drawn. Pull to refresh.</div>';
+    }
   } finally {
     mhState.loading = false;
     setTimeout(function () { if (btn) btn.classList.remove('is-busy'); }, 600);
@@ -196,15 +220,18 @@ function renderMemberHome() {
     });
   }
 
-  var open = steps.filter(function (s) { return !s.done; });
+  // Count only what is due TODAY, the same set the card's rail draws, or the
+  // header reads "3 of 4 done" while the card says the day is complete.
+  var core = steps.filter(function (s) { return !s.soft; });
+  var due = core.filter(function (s) { return !s.done; });
   var loopEl = mhEl('mhLoop');
   if (loopEl) loopEl.innerHTML = mhLoopCard(steps);
   var lc = mhEl('mhLoopCount');
-  if (lc) lc.textContent = steps.length - open.length + ' of ' + steps.length + ' done';
+  if (lc) lc.textContent = (core.length - due.length) + ' of ' + core.length + ' done';
   var lineEl = mhEl('mhLine');
   if (lineEl) {
-    lineEl.innerHTML = open.length
-      ? 'You have <b>' + open.length + '</b> ' + (open.length === 1 ? 'thing' : 'things') + ' left today.'
+    lineEl.innerHTML = due.length
+      ? 'You have <b>' + due.length + '</b> ' + (due.length === 1 ? 'thing' : 'things') + ' left today.'
       : '<b>Everything is done today.</b> Rest up — consistency is the whole game.';
   }
 
