@@ -36,7 +36,43 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
-_Nothing pending — `www/` verified byte-identical to `public/` as of web commit `c727f4e` (2026-08-23, during the API 36 release)._
+_Nothing pending — `www/` verified byte-identical to `public/` as of web commit `9f2c3b4` (2026-08-24, during the day-card release)._
+
+---
+
+## 2026-08-24 — Member home day card, v1.7.4, versionCode 102
+
+Syncs web commit `9f2c3b4`. The first release in a while that actually carries **web
+content**: `npm run build:www` moved three files and nothing else.
+
+**Why:** a member who had finished the daily check-in, the workout and a meal on any day
+that is not Sunday opened Home and read *"Could not reach the server. Pull to refresh."*
+The server was never involved — `/api/member/home` returned 200. The day card threw a
+`TypeError` while drawing, and `loadMemberHome` had a single `catch` around both the
+fetch and the render, so a rendering bug came out wearing a network error's clothes.
+
+**The bug.** The weekly (Sunday) review is a *soft* step: listed on the day card, but never
+allowed to be the "Do this next" headline before its day, because that would send the
+member to a screen with nothing to do. `mhLoopCard` decided the day was finished with
+`!open.length` — and `open` still held that soft step. So on a Tuesday, ticking off the
+last real task left `all === false` (draw the headline) with `next === null` (nothing to
+draw it from), and `next.icon` threw. Exactly one of the 32 reachable day-states.
+
+| File | Change |
+| ---- | ------ |
+| `www/js/member-home.js` | `all` reads off `next`, not `open`; rail and counter count only what is due today; fetch and render get separate `catch` blocks |
+| `www/index.html` | `member-home.js?v=5` → `?v=6` |
+| `www/sw.js` | cache `bodybank-v72` → `v73`, so the app serves the new file instead of the cached broken one |
+| `android/app/build.gradle` | `versionCode` 101 → 102, `versionName` 1.7.3 → 1.7.4 |
+| `ios/App/Podfile` | `cap sync ios` added `CapacitorFirebaseMessaging`, `CapacitorFilesystem`, `CapacitorShare` |
+
+**The Podfile was stale.** Those three plugins have been in `package.json` for some time,
+but `ios/` had not been re-synced since they were installed — an iOS build would have gone
+out missing push notifications, filesystem access and the share sheet. Caught here only
+because this release ran `npx cap sync ios` as well as `android`.
+
+**Guarded.** `tests/member-home-loop.js` in the web repo walks all 32 day-states and fails
+with the exact `TypeError` against the previous file. Wired into `npm run test:units`.
 
 ---
 
