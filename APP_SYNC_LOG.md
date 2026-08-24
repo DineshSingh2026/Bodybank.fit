@@ -40,6 +40,74 @@ _Nothing pending — `www/` verified byte-identical to `public/` as of web commi
 
 ---
 
+## 2026-08-24 — Photo and Video Permissions policy fix, v1.7.3, versionCode 101
+
+**No web content in this release.** `npm run sync` reported `www/` byte-identical to `public/`
+again — only three files under `android/` changed.
+
+**Why:** Play rejected versionCode 100 on two counts. The API 36 half was already fixed in
+that build; what killed it was the **Photo and Video Permissions policy** — the manifest
+declared `READ_MEDIA_IMAGES`, and the declaration form submitted alongside it said the app
+only needs *"one-time or infrequent"* media access. That answer is the policy's own
+definition of a case the Android photo picker must cover, so the broad permission could not
+be justified.
+
+**The permission was never doing any work.** Capacitor's `BridgeWebChromeClient` already
+routed `<input type="file">` through `ACTION_GET_CONTENT`, which grants a per-file URI and
+needs no permission at all. `READ_MEDIA_IMAGES` bought nothing and cost a release.
+
+| File | Change |
+| ---- | ------ |
+| `android/app/src/main/AndroidManifest.xml` | `READ_MEDIA_IMAGES` + `READ_EXTERNAL_STORAGE` removed; `READ_MEDIA_*` and `*_EXTERNAL_STORAGE` re-declared with `tools:node="remove"` |
+| `android/app/src/main/java/com/bodybank/app/MainActivity.java` | `onShowFileChooser` override → Android photo picker (`PickVisualMedia`) for media-only inputs |
+| `android/app/build.gradle` | `androidx.activity` added explicitly; `versionCode` 100 → 101, `versionName` 1.7.2 → 1.7.3 |
+
+**Three routes, all permission-free**, chosen from the input's `accept` list:
+
+- `image/*` (avatar, meal photos, progress shots) → **Android photo picker**. Backported by
+  androidx to API 30+ and falling back to `ACTION_OPEN_DOCUMENT` below that, so minSdk 23
+  is safe.
+- `.pdf,image/*` (blood-report upload) and `.zip,.csv,.pdf` (admin imports) → Capacitor's
+  **system document picker**, untouched. A photo picker cannot return a PDF, so mixed
+  inputs must not use it.
+- `capture="environment"` → **camera intent**, untouched. `CAMERA` is a different policy and
+  stays declared.
+
+`androidx.activity` had to be named explicitly: `capacitor-android` depends on it as
+`implementation`, so `PickVisualMedia` is not on the app's compile classpath transitively.
+
+**`tools:node="remove"` is insurance, not decoration.** No plugin declares these permissions
+today, but any future dependency that does would silently merge it back in and re-trigger the
+same rejection. The merger now strips them unconditionally.
+
+**Verified on an API 36 emulator, not assumed** (`BodyBank_API36`, debug build off a
+throwaway `src/debug` harness page, deleted before the release build):
+
+1. `image/*` → the Android photo picker opens, captioned *"BodyBank - Lifestyle will only
+   have access to the photos you select"*. **No permission dialog.**
+2. Selecting a photo returns real bytes to the web input — `image/png | 72997 bytes` — so the
+   `content://` URI is readable without any storage grant.
+3. `.pdf,image/*` → the Documents UI opens with Images / Documents / Large files.
+4. `capture` → asks only *"Allow BodyBank - Lifestyle to take pictures and record video?"*.
+
+**Build + artifact verified:** `BUILD SUCCESSFUL`, clean build from the committed tree.
+Merged manifest reads `versionCode="101" versionName="1.7.3" targetSdkVersion="36"`, and its
+permission list is `INTERNET, CAMERA, POST_NOTIFICATIONS, WAKE_LOCK, VIBRATE,
+ACCESS_NETWORK_STATE, c2dm.RECEIVE` — no media or storage entry. The AAB's own protobuf
+manifest was scanned for the five permission strings directly: none present. `jar verified`,
+`CN=BodyBank, OU=Mobile`. Photo-picker code confirmed in `base/dex`; test harness confirmed
+absent. `android/app/build/outputs/bundle/release/app-release.aab`, 45.4 MB.
+
+> **Play Console still needs three manual steps — the code fix alone will not clear the
+> flags.** (1) Upload 101 and roll it out to **production**; the API 36 flag clears only when
+> a 36-targeted build is live, since v1.7.1 (vc 30, target 35) is still the production
+> release. (2) **Deactivate every older artifact in the internal / closed / open testing
+> tracks** — the policy says remove `READ_MEDIA_IMAGES` from *all* version codes, and vc 30
+> and 100 both declare it. (3) **Withdraw the photo-picker declaration form** under App
+> content; it is what Google quoted back as the violation, and leaving it in place asserts a
+> need the app no longer has.
+
+
 ## 2026-08-23 — Android 16 (API 36) compliance release, v1.7.2, versionCode 100
 
 **No web content in this release.** `www/` was verified byte-identical to `public/` before
