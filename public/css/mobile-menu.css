@@ -114,6 +114,16 @@
 .mm a.mm-link.active,
 .mm a.mm-link[aria-current="page"] { color: var(--gold, #c8a44e) }
 .mm-chev { font-size: 17px; opacity: .35; transition: opacity .18s ease, transform .18s ease }
+/* label + tag pair, so a row can carry a badge without the chevron drifting */
+.mm-label { display: inline-flex; align-items: center; gap: 10px; min-width: 0 }
+.mm-new {
+  font-family: 'Outfit', sans-serif;
+  font-size: 9px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+  line-height: 1; white-space: nowrap; padding: 4px 8px; border-radius: 999px;
+  color: var(--gold, #c8a44e);
+  background: rgba(200, 164, 78, 0.14);
+  border: 1px solid rgba(200, 164, 78, 0.42);
+}
 .mm a.mm-link:hover .mm-chev { opacity: .9; transform: translateX(3px) }
 
 /* ---- the one action worth a button rather than a row -------------------- */
@@ -150,6 +160,10 @@
 .mm.open .mm-links > *:nth-child(6) { animation-delay: .145s }
 .mm.open .mm-links > *:nth-child(7) { animation-delay: .17s }
 .mm.open .mm-links > *:nth-child(8) { animation-delay: .195s }
+.mm.open .mm-links > *:nth-child(9) { animation-delay: .22s }
+.mm.open .mm-links > *:nth-child(10) { animation-delay: .245s }
+.mm.open .mm-links > *:nth-child(11) { animation-delay: .27s }
+.mm.open .mm-links > *:nth-child(12) { animation-delay: .295s }
 @keyframes mmRow { from { opacity: 0; transform: translateY(9px) } to { opacity: 1; transform: none } }
 @media (prefers-reduced-motion: reduce) {
   .mm.open, .mm.open .mm-links > * { animation: none }

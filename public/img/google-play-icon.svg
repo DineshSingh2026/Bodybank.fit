@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" role="img" aria-label="Google Play">
+  <defs>
+    <linearGradient id="gpBlue" gradientUnits="userSpaceOnUse" x1="3.2" y1="2.4" x2="11.7" y2="17.6">
+      <stop offset="0" stop-color="#00A0FF"/>
+      <stop offset=".26" stop-color="#00BEFF"/>
+      <stop offset=".51" stop-color="#00D2FF"/>
+      <stop offset="1" stop-color="#00E3FF"/>
+    </linearGradient>
+    <linearGradient id="gpYellow" gradientUnits="userSpaceOnUse" x1="21.2" y1="12" x2="11.7" y2="12">
+      <stop offset="0" stop-color="#FFE000"/>
+      <stop offset=".41" stop-color="#FFBD00"/>
+      <stop offset=".78" stop-color="#FFA500"/>
+      <stop offset="1" stop-color="#FF9C00"/>
+    </linearGradient>
+    <linearGradient id="gpGreen" gradientUnits="userSpaceOnUse" x1="3.2" y1="1.4" x2="17.6" y2="10.6">
+      <stop offset="0" stop-color="#32A071"/>
+      <stop offset=".07" stop-color="#2DA771"/>
+      <stop offset=".48" stop-color="#15CF74"/>
+      <stop offset=".8" stop-color="#06B070"/>
+      <stop offset="1" stop-color="#00A971"/>
+    </linearGradient>
+    <linearGradient id="gpRed" gradientUnits="userSpaceOnUse" x1="17.6" y1="14.12" x2="3.2" y2="22.6">
+      <stop offset="0" stop-color="#FF3A44"/>
+      <stop offset="1" stop-color="#C31162"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#gpBlue)"   d="M3.2 1.4 11.7 12 3.2 22.6Z"/>
+  <path fill="url(#gpGreen)"  d="M3.2 1.4 17.6 9.88 11.7 12Z"/>
+  <path fill="url(#gpYellow)" d="M17.6 9.88 21.2 12 17.6 14.12 11.7 12Z"/>
+  <path fill="url(#gpRed)"    d="M3.2 22.6 11.7 12 17.6 14.12Z"/>
+</svg>

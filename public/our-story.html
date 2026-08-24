@@ -15,7 +15,8 @@
 
 <link rel="manifest" href="/manifest.json" />
 <script src="/js/bb-pwa-update.js?v=1" defer></script>
-<link rel="stylesheet" href="/css/mobile-menu.css?v=1" />
+<link rel="stylesheet" href="/css/mobile-menu.css?v=2" />
+<link rel="stylesheet" href="/css/app-badges.css?v=1" />
 <link rel="stylesheet" href="/mobile-fix.css?v=20" />
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20" />
 <!-- Google tag (gtag.js) - GA4 -->
@@ -127,6 +128,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   <div class="mm-body">
     <div class="mm-links" role="navigation" aria-label="Site">
       <a class="mm-link" href="index.html#hero" onclick="bbCloseNavMenu()">Home<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="index.html#get-the-app" onclick="bbCloseNavMenu()"><span class="mm-label">Get the App<span class="mm-new">New</span></span><span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="index.html#results" onclick="bbCloseNavMenu()">Transformations<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="tribe-stories.html" onclick="bbCloseNavMenu()">Tribe Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link active" href="our-story.html" aria-current="page" onclick="bbCloseNavMenu()">Our Story<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
@@ -151,6 +153,20 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 </section>
 </main>
 <footer class="site-footer">
+  <div class="bb-store-footer">
+    <p class="bb-store-footer-label">Get the BodyBank app</p>
+    <div class="bb-store-row">
+      <a class="bb-store-btn" href="https://play.google.com/store/apps/details?id=com.bodybank.app" target="_blank" rel="noopener noreferrer" aria-label="Get BodyBank on Google Play">
+        <img class="bb-store-ico" src="/img/google-play-icon.svg" alt="" width="27" height="27" loading="lazy" decoding="async">
+        <span class="bb-store-txt"><span class="bb-store-top">Get it on</span><span class="bb-store-name">Google Play</span></span>
+      </a>
+      <span class="bb-store-btn bb-store-btn--soon">
+        <span class="bb-store-flag">Launching soon</span>
+        <img class="bb-store-ico" src="/img/apple-icon.svg" alt="" width="27" height="27" loading="lazy" decoding="async">
+        <span class="bb-store-txt"><span class="bb-store-top">Coming to the</span><span class="bb-store-name">App Store</span></span>
+      </span>
+    </div>
+  </div>
   <a href="https://www.Fitchef.fit" target="_blank" rel="noopener"><img src="img/bodybank%20X%20fitchef%20logo.png" alt="BodyBank × FitChef" class="fitchef-logo" loading="lazy" decoding="async"></a>
   <p><a href="https://www.Fitchef.fit" target="_blank" rel="noopener">www.Fitchef.fit</a></p>
 </footer>
