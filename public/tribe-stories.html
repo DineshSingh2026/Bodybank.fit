@@ -59,6 +59,17 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 
 .site-footer{text-align:center;padding:32px 24px;margin-top:auto;border-top:1px solid var(--bdr)}
 .site-footer .fitchef-logo{height:52px;width:auto;display:block;margin:0 auto 12px;object-fit:contain}
+/* Partner credits — FitChef and Beyond The Body, side by side; stacks on phones */
+.partner-credits{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:16px 48px;margin:0 auto}
+.partner-credit{display:inline-flex;flex-direction:column;align-items:center;gap:10px;text-decoration:none;transition:opacity .2s}
+.partner-credit:hover{opacity:.85}
+.partner-credit .partner-mark{height:56px;display:flex;align-items:center;justify-content:center}
+.partner-credit img{width:auto;max-width:100%;display:block;object-fit:contain;margin:0}
+.partner-credit .fitchef-logo{height:52px;margin:0}
+.partner-credit .btb-logo{height:34px;margin:0}
+.partner-credit .partner-url{font-size:14px;color:inherit;letter-spacing:.2px}
+@media(max-width:520px){.partner-credits{gap:20px}.partner-credit .partner-mark{height:46px}.partner-credit .fitchef-logo{height:42px}.partner-credit .btb-logo{height:28px}}
+
 .site-footer p{margin:0;font-size:14px;color:var(--gold)}
 .site-footer a{color:var(--gold);text-decoration:none;transition:opacity .2s}
 .site-footer a:hover{opacity:.85}
@@ -274,8 +285,16 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
       </span>
     </div>
   </div>
-    <a href="https://www.Fitchef.fit" target="_blank" rel="noopener"><img src="img/bodybank%20X%20fitchef%20logo.png" alt="BodyBank × FitChef" class="fitchef-logo" loading="lazy" decoding="async"></a>
-    <p><a href="https://www.Fitchef.fit" target="_blank" rel="noopener">www.Fitchef.fit</a></p>
+    <div class="partner-credits">
+      <a class="partner-credit" href="https://www.Fitchef.fit" target="_blank" rel="noopener">
+        <span class="partner-mark"><img src="img/bodybank%20X%20fitchef%20logo.png" alt="BodyBank × FitChef" class="fitchef-logo" loading="lazy" decoding="async"></span>
+        <span class="partner-url">www.Fitchef.fit</span>
+      </a>
+      <a class="partner-credit" href="https://beyondthebody.fit" target="_blank" rel="noopener">
+        <span class="partner-mark"><img src="img/btb-logo.png" alt="Beyond The Body" class="btb-logo" loading="lazy" decoding="async"></span>
+        <span class="partner-url">www.BeyondTheBody.fit</span>
+      </a>
+    </div>
 </footer>
 <script src="js/public-nav.js" defer></script>
 <script>

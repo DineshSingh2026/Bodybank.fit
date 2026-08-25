@@ -251,7 +251,7 @@ function renderAdminHome() {
 }
 
 
-/* Quick access — the twelve shortcuts the old dashboard carried, unchanged in
+/* Quick access — the shortcuts the old dashboard carried, unchanged in
    destination and order, laid out as one scannable grid instead of a strip
    that ran off the side of the screen. */
 var AH_QUICK = [
@@ -259,6 +259,8 @@ var AH_QUICK = [
   { icon: '👥', label: 'Client Board', kind: 'tab', to: 'tribe' },
   { icon: '📋', label: 'Audit Forms', kind: 'tab', to: 'requests' },
   { icon: '📅', label: 'Daily Check-ins', kind: 'tab', to: 'dailycheckin' },
+  { icon: '🏋️', label: 'Workouts', kind: 'tab', to: 'workouts' },
+  { icon: '🗂️', label: 'Programs', kind: 'tab', to: 'programs' },
   { icon: '📸', label: 'Elite Feed', kind: 'section', to: 'elitefeed' },
   { icon: '🏆', label: 'Leader Boards', kind: 'tab', to: 'leaderboards' },
   { icon: '🥗', label: 'Nutrition AI', kind: 'tab', to: 'nutrition' },
