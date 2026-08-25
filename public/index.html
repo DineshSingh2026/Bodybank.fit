@@ -13,6 +13,48 @@
 <!-- Chrome / Android / other browsers -->
 <meta name="mobile-web-app-capable" content="yes" />
 
+<script>
+/* The dashboard's first read used to start only once the parser reached the main
+   script block, near the end of a very large document — about a second after the
+   HTML arrived. Nothing about that wait was doing any work.
+
+   This starts the same GET the moment the tab opens, and parks it in the same
+   in-flight map apiCall() uses. When restoreSession() gets there, apiCall finds
+   the request already running and joins it instead of opening a second one. It
+   is the same request, the same response, and the same handling — only started
+   earlier. A response that is anything other than 200 is dropped so the real
+   apiCall re-requests it and its error / expired-session handling runs exactly
+   as before. */
+(function () {
+  try {
+    var raw = localStorage.getItem('bodybank_session');
+    if (!raw) return;
+    var s = JSON.parse(raw);
+    if (!s || !s.id || !s.role || !s.token) return;
+    // Only the reads these two roles are certain to make on the way in.
+    // Superadmin and operator land on different endpoints and are left alone.
+    var urls = s.role === 'user' ? ['/api/me/home', '/api/member/home']
+      : s.role === 'admin' ? ['/api/admin/overview'] : [];
+    if (!urls.length || typeof fetch !== 'function') return;
+    var map = window._bbInflightGets = window._bbInflightGets || Object.create(null);
+    var pre = window._bbPrefetchedGets = window._bbPrefetchedGets || Object.create(null);
+    urls.forEach(function (url) {
+      var key = url + '|' + s.token;
+      if (map[key]) return;
+      var p = fetch(url, { headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + s.token } })
+        .then(function (res) {
+          if (res.status !== 200) throw new Error('warm-up skipped: ' + res.status);
+          return res.text();
+        })
+        .then(function (text) { return text ? JSON.parse(text) : {}; });
+      p.catch(function () { if (map[key] === p) { delete map[key]; delete pre[key]; } });
+      map[key] = p;
+      pre[key] = true;
+      setTimeout(function () { if (map[key] === p) { delete map[key]; delete pre[key]; } }, 15000);
+    });
+  } catch (e) { /* warm-up is optional; the normal path still runs */ }
+})();
+</script>
 <link rel="manifest" href="/manifest.json" />
 <link rel="apple-touch-icon" href="/icons/icon-192.png" />
 <!-- Google tag (gtag.js) - GA4 -->
@@ -12550,7 +12592,35 @@ function bbHandleExpiredSession() {
   setTimeout(function() { _bbSessionExpiryHandled = false; }, 1500);
 }
 
+// Opening a dashboard fires a dozen loaders at once, and some of them ask for
+// the same thing (the admin landing wants /api/meetings twice; the member home
+// wants /api/workouts twice). When an identical GET is already in flight, the
+// second caller waits on it instead of opening a second request. The first
+// caller gets the response object exactly as before; a caller that joined a
+// shared request gets its own copy, so nothing downstream can be surprised by
+// an object it now shares with another panel.
+var _bbInflightGets = window._bbInflightGets || Object.create(null);
+window._bbInflightGets = _bbInflightGets;
 async function apiCall(method, url, body) {
+  var shareKey = (String(method).toUpperCase() === 'GET' && !body)
+    ? url + '|' + ((window.currentUser && window.currentUser.token) || '')
+    : null;
+  if (shareKey && _bbInflightGets[shareKey]) {
+    var shared = await _bbInflightGets[shareKey];
+    // A warmed-up response answers the one caller it was started for; after that
+    // the key is cleared so every later read is a fresh request, as it always was.
+    var warmed = window._bbPrefetchedGets;
+    if (warmed && warmed[shareKey]) { delete _bbInflightGets[shareKey]; delete warmed[shareKey]; }
+    try { return JSON.parse(JSON.stringify(shared)); } catch (e) { return shared; }
+  }
+  var req = bbApiRequest(method, url, body);
+  if (!shareKey) return req;
+  _bbInflightGets[shareKey] = req;
+  try { return await req; }
+  finally { delete _bbInflightGets[shareKey]; }
+}
+
+async function bbApiRequest(method, url, body) {
   const opts = { method, headers: {'Content-Type':'application/json'} };
   if (window.currentUser && window.currentUser.token) opts.headers['Authorization'] = 'Bearer ' + window.currentUser.token;
   if (body) opts.body = JSON.stringify(body);
@@ -13142,8 +13212,11 @@ async function loadDashboard() {
   // Restore the mobile dashboard's last segment before the fetches land, so the
   // admin doesn't watch it snap from Pulse to their pick a second later.
   try { if (typeof bbmdRestoreSeg === 'function') bbmdRestoreSeg(); } catch (_) {}
-  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadAdminMessages(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
+  // The landing (quick access + /api/admin/overview) is what the admin is looking
+  // at; the ten loaders below fill tabs that are still behind a click. Start the
+  // landing first instead of making it queue behind all ten.
   if (typeof ahBoot === 'function') ahBoot();
+  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadAdminMessages(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
   if (typeof bbMaybeOpenAdminNutritionAfterLoad === 'function') bbMaybeOpenAdminNutritionAfterLoad();
@@ -20817,14 +20890,17 @@ async function loadUserStats() {
   if (!window.currentUser) return;
   var workouts = [];
   var meetings = [];
+  // Neither read depends on the other, so they go out together.
+  var wData = null, mData = null;
   try {
-    var wData = await apiCall('GET', '/api/workouts/' + window.currentUser.id);
-    if (!wData.error && Array.isArray(wData)) workouts = wData;
+    var pair = await Promise.all([
+      apiCall('GET', '/api/workouts/' + window.currentUser.id).catch(function () { return null; }),
+      apiCall('GET', '/api/meetings/user/' + window.currentUser.id).catch(function () { return null; })
+    ]);
+    wData = pair[0]; mData = pair[1];
   } catch (e) {}
-  try {
-    var mData = await apiCall('GET', '/api/meetings/user/' + window.currentUser.id);
-    if (!mData.error && Array.isArray(mData)) meetings = mData;
-  } catch (e) {}
+  try { if (wData && !wData.error && Array.isArray(wData)) workouts = wData; } catch (e) {}
+  try { if (mData && !mData.error && Array.isArray(mData)) meetings = mData; } catch (e) {}
   var now = new Date();
   var weekStart = new Date(now);
   weekStart.setDate(weekStart.getDate() - weekStart.getDay());

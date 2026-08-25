@@ -1682,6 +1682,29 @@ async function initDB() {
   } catch (e) {
     console.error('Readiness table init error:', e.message);
   }
+
+  // ---- Read-path indexes (idempotent) ----------------------------------------
+  // Every table below is read with `WHERE user_id = ?` on the login path, or with
+  // `ORDER BY created_at DESC LIMIT n` by the admin landing's activity feed, and
+  // several carried nothing but a primary key on `id` — so Postgres scanned the
+  // whole table each time. Nothing here changes a result; it changes how the rows
+  // are found. `IF NOT EXISTS` keeps this safe to run on every boot.
+  const readPathIndexes = [
+    `CREATE INDEX IF NOT EXISTS idx_workout_logs_user_created ON workout_logs(user_id, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_workout_logs_created ON workout_logs(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_sunday_checkins_user_created ON sunday_checkins(user_id, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_sunday_checkins_created ON sunday_checkins(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_hydration_logs_user_created ON hydration_logs(user_id, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_weight_logs_user_created ON weight_logs(user_id, created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_meetings_user_date ON meetings(user_id, meeting_date)`,
+    `CREATE INDEX IF NOT EXISTS idx_daily_checkins_created ON daily_checkins(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_nutrition_meal_logs_submitted ON nutrition_meal_logs(submitted_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_audit_requests_created ON audit_requests(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_thread_messages_thread_created ON thread_messages(thread_id, created_at DESC)`
+  ];
+  for (const sql of readPathIndexes) {
+    try { await pool.query(sql); } catch (e) { /* table may not exist on older installs */ }
+  }
 }
 
 // ============ DEFAULT CAMPAIGN SEED ============
@@ -5751,109 +5774,125 @@ app.get('/api/me/home', verifyToken, async (req, res) => {
       };
     }
   } catch (e) { console.warn('[home] profile:', e.message); }
-  // Today (mirror of /api/today)
-  try {
-    const today = streakTodayYmdInTz(_utz) || streakDateToYmd(new Date());
-    const [checkin, meetings, workouts, lastMessageRow] = await Promise.all([
-      queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]),
-      queryAll("SELECT * FROM meetings WHERE user_id = ? AND status != 'cancelled' ORDER BY meeting_date ASC, time_slot ASC", [userId]),
-      queryAll('SELECT * FROM workout_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 1', [userId]),
-      queryOne('SELECT tm.body, tm.created_at, tm.sender_role, mt.id as thread_id FROM thread_messages tm JOIN message_threads mt ON mt.id = tm.thread_id WHERE mt.user_id = ? ORDER BY tm.created_at DESC LIMIT 1', [userId])
-    ]);
-    const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); weekStart.setHours(0, 0, 0, 0);
-    const sundayRows = await queryAll("SELECT id FROM sunday_checkins WHERE user_id = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1", [userId, weekStart.toISOString()]);
-    const upcoming = (meetings || []).filter(m => new Date(m.meeting_date + 'T12:00:00') >= new Date()).slice(0, 1);
-    out.today = {
-      checkin: checkin ? attachWaterLitersToDailyRow(checkin) : null,
-      nextMeeting: upcoming[0] || null,
-      lastWorkout: (workouts && workouts[0]) || null,
-      lastMessage: lastMessageRow ? { body: lastMessageRow.body, created_at: lastMessageRow.created_at, sender_role: lastMessageRow.sender_role, thread_id: lastMessageRow.thread_id } : null,
-      pendingSundayCheckin: sundayRows.length === 0
-    };
-  } catch (e) { console.warn('[home] today:', e.message); }
-  // Streak (lightweight mirror of /api/daily-checkin/streak)
-  try {
-    const rows = await queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours, COALESCE(is_freeze, FALSE) AS is_freeze FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365', [userId]);
-    if (rows && rows.length) {
-      const { today, todaySaved, streak, dates } = computeStreakState(rows, null, _utz);
-      const atRisk = !todaySaved && streak > 0;
-      const now = new Date();
-      const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
-      const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); weekStart.setHours(0, 0, 0, 0);
-      const wk = rows.filter(r => new Date(r.checkin_date) >= weekStart && !r.is_freeze);
-      const ym = String(today).slice(0, 7);
-      const freezeUsedThisMonth = rows.filter(r => r.is_freeze && streakDateToYmd(r.checkin_date) && String(streakDateToYmd(r.checkin_date)).slice(0, 7) === ym).length;
-      // Freeze recovers a streak broken by a single missed day: offer it only when
-      // yesterday is missing but the day before was a check-in (a chain worth saving).
-      const yDay = streakAddDays(today, -1);
-      const d2Day = streakAddDays(today, -2);
-      const freezeAvailable = freezeUsedThisMonth < 1 && !!d2Day && dates.has(d2Day) && !dates.has(yDay);
-      out.streak = {
-        streak, todaySaved: !!todaySaved, atRisk: !!atRisk,
-        secondsUntilMidnight: atRisk ? Math.max(0, Math.floor((midnight - now) / 1000)) : null,
-        checkinsThisWeek: Math.min(7, wk.length),
-        freezeAvailable,
-        weekly: {
-          avgSteps: wk.length ? Math.round(wk.reduce((s, r) => s + (r.steps || 0), 0) / wk.length) : null,
-          avgWater: wk.length ? Math.round((wk.reduce((s, r) => s + (r.water_ml || 0), 0) / wk.length / 1000) * 100) / 100 : null,
-          avgProtein: wk.length ? Math.round(wk.reduce((s, r) => s + (r.protein_g || 0), 0) / wk.length) : null,
-          avgSleep: wk.length ? (wk.reduce((s, r) => s + (r.sleep_hours || 0), 0) / wk.length).toFixed(1) : null
-        }
-      };
-      // 7-day series per metric (for the Pulse card sparklines) — real check-ins only
-      const byDay = {};
-      rows.forEach((r) => { const d = streakDateToYmd(r.checkin_date); if (d && !r.is_freeze) byDay[d] = r; });
-      const days = [], sSteps = [], sWater = [], sProt = [], sSleep = [];
-      for (let i = 6; i >= 0; i--) {
-        const d = streakAddDays(today, -i);
-        days.push(d);
-        const r = byDay[d];
-        sSteps.push(r && r.steps != null ? r.steps : 0);
-        sWater.push(r && r.water_ml != null ? r.water_ml : 0);
-        sProt.push(r && r.protein_g != null ? r.protein_g : 0);
-        sSleep.push(r && r.sleep_hours != null ? r.sleep_hours : 0);
-      }
-      out.series = { days, steps: sSteps, water_ml: sWater, protein_g: sProt, sleep_hours: sSleep };
-    } else {
-      out.streak = { streak: 0, todaySaved: false, atRisk: false, secondsUntilMidnight: null, weekly: {} };
-      out.series = null;
-    }
-  } catch (e) { console.warn('[home] streak:', e.message); }
-  // Mind exercises completed today
-  try {
-    const today = streakTodayYmdInTz(_utz) || streakDateToYmd(new Date());
-    const rows = await queryAll('SELECT exercise_key FROM mind_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
-    out.mind = { completed: (rows || []).map(r => r.exercise_key) };
-  } catch (e) { console.warn('[home] mind:', e.message); }
-  // Coins
-  try { out.coins = await coinService.getCoinSummary({ run, queryOne, queryAll }, userId); }
-  catch (e) { console.warn('[home] coins:', e.message); }
-  // Scorecard — this week's total, trend vs last week, and the 4 pillars (score + weight%)
-  try {
-    const ws = scorecardSvc.normalizeWeekStart('');
-    const cur = await scorecardSvc.computeWeeklyScore(userId, ws);
-    if (cur) {
-      let trend = null;
+  // Six independent reads. The profile has to land first (it carries the
+  // timezone the day boundaries are computed in); the rest no longer wait
+  // on each other. Each keeps its own catch, so one failing section still
+  // returns the others exactly as before.
+  await Promise.all([
+    (async () => {
+      // Today (mirror of /api/today)
       try {
-        const pw = scorecardSvc.previousWeekStart(ws);
-        const prev = pw ? await scorecardSvc.computeWeeklyScore(userId, pw) : null;
-        if (prev) trend = cur.total - prev.total;
-      } catch (_) {}
-      const w = cur.weights || {};
-      const pct = (x) => Math.round((x || 0) * 100);
-      out.scorecard = {
-        total: cur.total,
-        week_label: cur.week_label,
-        trend_delta: trend,
-        pillars: [
-          { key: 'daily', label: 'Daily', score: cur.daily, weight: pct(w.daily) },
-          { key: 'workouts', label: 'Workouts', score: cur.workouts, weight: pct(w.workouts) },
-          { key: 'sunday', label: 'Sunday', score: cur.sunday, weight: pct(w.sunday) },
-          { key: 'progress', label: 'Progress', score: cur.progress, weight: pct(w.progress) }
-        ]
-      };
-    } else { out.scorecard = null; }
-  } catch (e) { console.warn('[home] scorecard:', e.message); }
+        const today = streakTodayYmdInTz(_utz) || streakDateToYmd(new Date());
+        const [checkin, meetings, workouts, lastMessageRow] = await Promise.all([
+          queryOne('SELECT * FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]),
+          queryAll("SELECT * FROM meetings WHERE user_id = ? AND status != 'cancelled' ORDER BY meeting_date ASC, time_slot ASC", [userId]),
+          queryAll('SELECT * FROM workout_logs WHERE user_id = ? ORDER BY created_at DESC LIMIT 1', [userId]),
+          queryOne('SELECT tm.body, tm.created_at, tm.sender_role, mt.id as thread_id FROM thread_messages tm JOIN message_threads mt ON mt.id = tm.thread_id WHERE mt.user_id = ? ORDER BY tm.created_at DESC LIMIT 1', [userId])
+        ]);
+        const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); weekStart.setHours(0, 0, 0, 0);
+        const sundayRows = await queryAll("SELECT id FROM sunday_checkins WHERE user_id = ? AND created_at >= ? ORDER BY created_at DESC LIMIT 1", [userId, weekStart.toISOString()]);
+        const upcoming = (meetings || []).filter(m => new Date(m.meeting_date + 'T12:00:00') >= new Date()).slice(0, 1);
+        out.today = {
+          checkin: checkin ? attachWaterLitersToDailyRow(checkin) : null,
+          nextMeeting: upcoming[0] || null,
+          lastWorkout: (workouts && workouts[0]) || null,
+          lastMessage: lastMessageRow ? { body: lastMessageRow.body, created_at: lastMessageRow.created_at, sender_role: lastMessageRow.sender_role, thread_id: lastMessageRow.thread_id } : null,
+          pendingSundayCheckin: sundayRows.length === 0
+        };
+      } catch (e) { console.warn('[home] today:', e.message); }
+    })(),
+    (async () => {
+      // Streak (lightweight mirror of /api/daily-checkin/streak)
+      try {
+        const rows = await queryAll('SELECT checkin_date, steps, water_ml, protein_g, sleep_hours, COALESCE(is_freeze, FALSE) AS is_freeze FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 365', [userId]);
+        if (rows && rows.length) {
+          const { today, todaySaved, streak, dates } = computeStreakState(rows, null, _utz);
+          const atRisk = !todaySaved && streak > 0;
+          const now = new Date();
+          const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
+          const weekStart = new Date(); weekStart.setDate(weekStart.getDate() - weekStart.getDay()); weekStart.setHours(0, 0, 0, 0);
+          const wk = rows.filter(r => new Date(r.checkin_date) >= weekStart && !r.is_freeze);
+          const ym = String(today).slice(0, 7);
+          const freezeUsedThisMonth = rows.filter(r => r.is_freeze && streakDateToYmd(r.checkin_date) && String(streakDateToYmd(r.checkin_date)).slice(0, 7) === ym).length;
+          // Freeze recovers a streak broken by a single missed day: offer it only when
+          // yesterday is missing but the day before was a check-in (a chain worth saving).
+          const yDay = streakAddDays(today, -1);
+          const d2Day = streakAddDays(today, -2);
+          const freezeAvailable = freezeUsedThisMonth < 1 && !!d2Day && dates.has(d2Day) && !dates.has(yDay);
+          out.streak = {
+            streak, todaySaved: !!todaySaved, atRisk: !!atRisk,
+            secondsUntilMidnight: atRisk ? Math.max(0, Math.floor((midnight - now) / 1000)) : null,
+            checkinsThisWeek: Math.min(7, wk.length),
+            freezeAvailable,
+            weekly: {
+              avgSteps: wk.length ? Math.round(wk.reduce((s, r) => s + (r.steps || 0), 0) / wk.length) : null,
+              avgWater: wk.length ? Math.round((wk.reduce((s, r) => s + (r.water_ml || 0), 0) / wk.length / 1000) * 100) / 100 : null,
+              avgProtein: wk.length ? Math.round(wk.reduce((s, r) => s + (r.protein_g || 0), 0) / wk.length) : null,
+              avgSleep: wk.length ? (wk.reduce((s, r) => s + (r.sleep_hours || 0), 0) / wk.length).toFixed(1) : null
+            }
+          };
+          // 7-day series per metric (for the Pulse card sparklines) — real check-ins only
+          const byDay = {};
+          rows.forEach((r) => { const d = streakDateToYmd(r.checkin_date); if (d && !r.is_freeze) byDay[d] = r; });
+          const days = [], sSteps = [], sWater = [], sProt = [], sSleep = [];
+          for (let i = 6; i >= 0; i--) {
+            const d = streakAddDays(today, -i);
+            days.push(d);
+            const r = byDay[d];
+            sSteps.push(r && r.steps != null ? r.steps : 0);
+            sWater.push(r && r.water_ml != null ? r.water_ml : 0);
+            sProt.push(r && r.protein_g != null ? r.protein_g : 0);
+            sSleep.push(r && r.sleep_hours != null ? r.sleep_hours : 0);
+          }
+          out.series = { days, steps: sSteps, water_ml: sWater, protein_g: sProt, sleep_hours: sSleep };
+        } else {
+          out.streak = { streak: 0, todaySaved: false, atRisk: false, secondsUntilMidnight: null, weekly: {} };
+          out.series = null;
+        }
+      } catch (e) { console.warn('[home] streak:', e.message); }
+    })(),
+    (async () => {
+      // Mind exercises completed today
+      try {
+        const today = streakTodayYmdInTz(_utz) || streakDateToYmd(new Date());
+        const rows = await queryAll('SELECT exercise_key FROM mind_checkins WHERE user_id = ? AND checkin_date = ?::date', [userId, today]);
+        out.mind = { completed: (rows || []).map(r => r.exercise_key) };
+      } catch (e) { console.warn('[home] mind:', e.message); }
+    })(),
+    (async () => {
+      // Coins
+      try { out.coins = await coinService.getCoinSummary({ run, queryOne, queryAll }, userId); }
+      catch (e) { console.warn('[home] coins:', e.message); }
+    })(),
+    (async () => {
+      // Scorecard — this week's total, trend vs last week, and the 4 pillars (score + weight%)
+      try {
+        const ws = scorecardSvc.normalizeWeekStart('');
+        const cur = await scorecardSvc.computeWeeklyScore(userId, ws);
+        if (cur) {
+          let trend = null;
+          try {
+            const pw = scorecardSvc.previousWeekStart(ws);
+            const prev = pw ? await scorecardSvc.computeWeeklyScore(userId, pw) : null;
+            if (prev) trend = cur.total - prev.total;
+          } catch (_) {}
+          const w = cur.weights || {};
+          const pct = (x) => Math.round((x || 0) * 100);
+          out.scorecard = {
+            total: cur.total,
+            week_label: cur.week_label,
+            trend_delta: trend,
+            pillars: [
+              { key: 'daily', label: 'Daily', score: cur.daily, weight: pct(w.daily) },
+              { key: 'workouts', label: 'Workouts', score: cur.workouts, weight: pct(w.workouts) },
+              { key: 'sunday', label: 'Sunday', score: cur.sunday, weight: pct(w.sunday) },
+              { key: 'progress', label: 'Progress', score: cur.progress, weight: pct(w.progress) }
+            ]
+          };
+        } else { out.scorecard = null; }
+      } catch (e) { console.warn('[home] scorecard:', e.message); }
+    })()
+  ]);
   res.json(out);
 });
 
@@ -7753,23 +7792,28 @@ app.get('/api/member/home', verifyToken, async (req, res) => {
       return r ? Number(r.c || 0) : 0;
     };
 
-    const [checkedIn, workoutToday, mealsToday, waterToday, sundayThisWeek] = await Promise.all([
+    // Every read below is independent of every other, so they go out together
+    // rather than one-after-another. Same queries, same results, one round trip
+    // of latency instead of fourteen.
+    const [
+      checkedIn, workoutToday, mealsToday, waterToday, sundayThisWeek,
+      weekRow, streakRow, user, today, bloodRows, whoop, unread, programs
+    ] = await Promise.all([
       one(`SELECT COUNT(*)::int c FROM daily_checkins WHERE user_id = ? AND checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE`),
       one(`SELECT COUNT(*)::int c FROM workout_logs WHERE user_id = ? AND created_at::date = CURRENT_DATE`),
       one(`SELECT COUNT(*)::int c FROM nutrition_meal_logs WHERE user_id = ? AND log_date = CURRENT_DATE`),
       one(`SELECT COALESCE(SUM(amount_ml), 0)::int c FROM hydration_logs WHERE user_id = ? AND created_at::date = CURRENT_DATE`),
-      one(`SELECT COUNT(*)::int c FROM sunday_checkins WHERE user_id = ? AND created_at >= date_trunc('week', CURRENT_DATE)`)
-    ]);
+      one(`SELECT COUNT(*)::int c FROM sunday_checkins WHERE user_id = ? AND created_at >= date_trunc('week', CURRENT_DATE)`),
 
-    // A 7-day strip of which days were checked in, oldest -> newest.
-    const weekRow = await queryOne(`
+      // A 7-day strip of which days were checked in, oldest -> newest.
+      queryOne(`
       SELECT string_agg(CASE WHEN EXISTS (
                SELECT 1 FROM daily_checkins d WHERE d.user_id = ? AND d.checkin_date = g.day
                  AND COALESCE(d.is_freeze, FALSE) = FALSE) THEN '1' ELSE '0' END, '' ORDER BY g.day) AS days
-        FROM generate_series((CURRENT_DATE - INTERVAL '6 days')::date, CURRENT_DATE, INTERVAL '1 day') AS g(day)`, [uid]);
+        FROM generate_series((CURRENT_DATE - INTERVAL '6 days')::date, CURRENT_DATE, INTERVAL '1 day') AS g(day)`, [uid]),
 
-    // Current streak of consecutive days ending today or yesterday.
-    const streakRow = await queryOne(`
+      // Current streak of consecutive days ending today or yesterday.
+      queryOne(`
       WITH d AS (
         SELECT DISTINCT checkin_date FROM daily_checkins
          WHERE user_id = ? AND COALESCE(is_freeze, FALSE) = FALSE AND checkin_date <= CURRENT_DATE
@@ -7778,50 +7822,53 @@ app.get('/api/member/home', verifyToken, async (req, res) => {
       )
       SELECT COUNT(*)::int AS c FROM g
        WHERE grp = (SELECT grp FROM g ORDER BY checkin_date DESC LIMIT 1)
-         AND (SELECT MAX(checkin_date) FROM d) >= CURRENT_DATE - 1`, [uid]);
+         AND (SELECT MAX(checkin_date) FROM d) >= CURRENT_DATE - 1`, [uid]),
 
-    const user = await queryOne(`
+      queryOne(`
       SELECT first_name, last_name, email, profile_picture, goal_type, diet_type,
              goal_steps, goal_water_ml, goal_protein_g, goal_sleep_hours,
              subscription_status, plan_label, access_expires_at, created_at
-        FROM users WHERE id = ?`, [uid]);
+        FROM users WHERE id = ?`, [uid]),
 
-    const today = await queryOne(
+      queryOne(
       `SELECT steps, water_ml, protein_g, sleep_hours FROM daily_checkins
         WHERE user_id = ? AND checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE
-        ORDER BY created_at DESC LIMIT 1`, [uid]);
+        ORDER BY created_at DESC LIMIT 1`, [uid]),
 
-    // What the upload panel needs to know.
-    const bloodRows = await queryAll(
+      // What the upload panel needs to know.
+      queryAll(
       `SELECT id, status, report_date, created_at, sent_to_user,
               ai_report->>'overall_status' AS overall_status
          FROM blood_analysis_reports WHERE user_id = ?
-        ORDER BY COALESCE(report_date, created_at::date) DESC, created_at DESC LIMIT 5`, [uid]);
+        ORDER BY COALESCE(report_date, created_at::date) DESC, created_at DESC LIMIT 5`, [uid]),
 
-    let whoop = { connected: false, last_sync: null, days: 0, uploads: 0 };
-    try {
-      const w = await queryOne(
-        `SELECT COUNT(*)::int AS c, MAX(date)::text AS last_day FROM readiness_daily WHERE user_id = ?`, [uid]);
-      const up = await queryOne(
-        `SELECT COUNT(*)::int AS c, MAX(created_at) AS last_at FROM wearable_uploads WHERE user_id = ? AND status = 'committed'`, [uid]);
-      const days = w ? Number(w.c || 0) : 0;
-      whoop = {
-        connected: days > 0,
-        last_sync: (w && w.last_day) || null,
-        days: days,
-        uploads: up ? Number(up.c || 0) : 0,
-        last_upload_at: (up && up.last_at) || null
-      };
-    } catch (e) { /* wearables tables are optional on older installs */ }
+      (async () => {
+        try {
+          const [w, up] = await Promise.all([
+            queryOne(`SELECT COUNT(*)::int AS c, MAX(date)::text AS last_day FROM readiness_daily WHERE user_id = ?`, [uid]),
+            queryOne(`SELECT COUNT(*)::int AS c, MAX(created_at) AS last_at FROM wearable_uploads WHERE user_id = ? AND status = 'committed'`, [uid])
+          ]);
+          const days = w ? Number(w.c || 0) : 0;
+          return {
+            connected: days > 0,
+            last_sync: (w && w.last_day) || null,
+            days: days,
+            uploads: up ? Number(up.c || 0) : 0,
+            last_upload_at: (up && up.last_at) || null
+          };
+        } catch (e) { /* wearables tables are optional on older installs */ }
+        return { connected: false, last_sync: null, days: 0, uploads: 0 };
+      })(),
 
-    const unread = await one(
+      one(
       `SELECT COUNT(*)::int c FROM thread_messages m
          JOIN message_threads t ON t.id = m.thread_id
         WHERE t.user_id = ? AND m.sender_role <> 'user'
           AND m.created_at > COALESCE((SELECT MAX(created_at) FROM thread_messages me
-                WHERE me.thread_id = t.id AND me.sender_role = 'user'), '1970-01-01')`);
+                WHERE me.thread_id = t.id AND me.sender_role = 'user'), '1970-01-01')`),
 
-    const programs = await one(`SELECT COUNT(*)::int c FROM programs`, []);
+      one(`SELECT COUNT(*)::int c FROM programs`, [])
+    ]);
 
     res.json({
       user: user || {},
@@ -7869,10 +7916,10 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
       AND (LOWER(COALESCE(u.first_name, '')) NOT LIKE '%e2e%')
       AND COALESCE(u.suspended, FALSE) = FALSE`;
 
-    const [
-      members, activeToday, active7d, checkedIn, workouts, meals, trainedToday, ateToday,
-      trials, expiring, trialsEnded, newMembers7d
-    ] = await Promise.all([
+    // The four groups below do not depend on each other, so they are started
+    // together and awaited once. Same queries, same snapshot — the landing simply
+    // stops waiting for each group to finish before the next one begins.
+    const rosterP = Promise.all([
       one(`SELECT COUNT(*)::int c FROM users u WHERE ${CLIENT}`),
       // Every activity count is scoped to the same client set as `members`.
       // Unscoped, a test or suspended account logging anything inflated
@@ -7907,10 +7954,7 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
     ]);
 
     // Work that is genuinely waiting on the admin.
-    const [
-      pendingAudits, auditsToday, audits7d, auditsNoAccount, part2Today, part2_7d,
-      unreadThreads, escalations, bloodPending, bloodUnsent, contactMsgs
-    ] = await Promise.all([
+    const pipelineP = Promise.all([
       // The stage workflow never writes audit_requests.status, so counting
       // status='pending' returned every audit ever submitted. The column that
       // actually means "not looked at yet" is the pipeline's New audit stage.
@@ -7931,7 +7975,7 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
 
     // 14 days of distinct active clients — the same definition used everywhere
     // else, so the landing can never disagree with the Clients list.
-    const trendRows = await queryAll(`
+    const trendP = queryAll(`
       WITH days AS (
         SELECT generate_series((CURRENT_DATE - INTERVAL '13 days')::date, CURRENT_DATE, INTERVAL '1 day')::date AS d
       )
@@ -7945,21 +7989,42 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
       FROM days ORDER BY days.d`);
 
     // Live feed, newest first.
+    const feedP = Promise.all([
+      queryAll(`SELECT u.first_name, u.last_name, dc.created_at FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id
+                          WHERE COALESCE(dc.is_freeze, FALSE) = FALSE ORDER BY dc.created_at DESC LIMIT 10`),
+      queryAll(`SELECT u.first_name, u.last_name, w.workout_name, w.created_at FROM workout_logs w LEFT JOIN users u ON u.id = w.user_id
+                          ORDER BY w.created_at DESC LIMIT 10`),
+      queryAll(`SELECT u.first_name, u.last_name, m.meal_type, m.submitted_at AS created_at FROM nutrition_meal_logs m LEFT JOIN users u ON u.id = m.user_id
+                          ORDER BY m.submitted_at DESC LIMIT 10`),
+      queryAll(`SELECT first_name, last_name, email, created_at FROM audit_requests ORDER BY created_at DESC LIMIT 8`),
+      queryAll(`SELECT full_name, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT 6`)
+    ]);
+
+    const [
+      [
+        members, activeToday, active7d, checkedIn, workouts, meals, trainedToday, ateToday,
+        trials, expiring, trialsEnded, newMembers7d
+      ],
+      [
+        pendingAudits, auditsToday, audits7d, auditsNoAccount, part2Today, part2_7d,
+        unreadThreads, escalations, bloodPending, bloodUnsent, contactMsgs
+      ],
+      trendRows,
+      [feedCheckins, feedWorkouts, feedMeals, feedAudits, feedSundays]
+    ] = await Promise.all([rosterP, pipelineP, trendP, feedP]);
+
     const feed = [];
     const nm = r => (String(r.first_name || '') + ' ' + String(r.last_name || '')).trim() || 'Client';
     const push = (rows, map) => (rows || []).forEach(r => feed.push(map(r)));
-    push(await queryAll(`SELECT u.first_name, u.last_name, dc.created_at FROM daily_checkins dc LEFT JOIN users u ON u.id = dc.user_id
-                          WHERE COALESCE(dc.is_freeze, FALSE) = FALSE ORDER BY dc.created_at DESC LIMIT 10`),
+    push(feedCheckins,
       r => ({ name: nm(r), type: 'checkin', label: 'Daily check-in', created_at: r.created_at }));
-    push(await queryAll(`SELECT u.first_name, u.last_name, w.workout_name, w.created_at FROM workout_logs w LEFT JOIN users u ON u.id = w.user_id
-                          ORDER BY w.created_at DESC LIMIT 10`),
+    push(feedWorkouts,
       r => ({ name: nm(r), type: 'workout', label: 'Logged: ' + (r.workout_name || 'Workout'), created_at: r.created_at }));
-    push(await queryAll(`SELECT u.first_name, u.last_name, m.meal_type, m.submitted_at AS created_at FROM nutrition_meal_logs m LEFT JOIN users u ON u.id = m.user_id
-                          ORDER BY m.submitted_at DESC LIMIT 10`),
+    push(feedMeals,
       r => ({ name: nm(r), type: 'nutrition', label: 'Meal logged (' + (r.meal_type || 'meal') + ')', created_at: r.created_at }));
-    push(await queryAll(`SELECT first_name, last_name, email, created_at FROM audit_requests ORDER BY created_at DESC LIMIT 8`),
+    push(feedAudits,
       r => ({ name: nm(r) !== 'Client' ? nm(r) : (r.email || 'Prospect'), type: 'signup', label: 'Body audit submitted', created_at: r.created_at }));
-    push(await queryAll(`SELECT full_name, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT 6`),
+    push(feedSundays,
       r => ({ name: r.full_name || 'Client', type: 'weekly', label: 'Weekly (Sunday) check-in', created_at: r.created_at }));
     feed.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
