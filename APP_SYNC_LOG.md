@@ -40,6 +40,40 @@ _One item pending: web commit `6d4af43` ("announce the Android launch across the
 
 ---
 
+## 2026-08-25 — Login-path performance, v1.7.6, versionCode 104
+
+Syncs web commit `249a8e2`. Backend half of that commit (the parallelised aggregate
+endpoints and eleven new indexes) reaches the app through Render — no bundle needed for
+it. `www/` carries only the frontend half.
+
+**What was slow.** Three things, none of them the queries:
+
+1. The aggregates ran their reads in a chain. `/api/me/home` went profile → today →
+   streak → mind → coins → scorecard one after another; `/api/member/home` ran fourteen
+   queries in a line; `/api/admin/overview` was four stages ending in five back-to-back
+   feed queries. Independent reads now go out together; each block keeps its own catch.
+2. `loadDashboard` awaited all ten tab loaders before calling `ahBoot()` — the screen the
+   admin is looking at queued behind data for tabs still behind a click.
+3. `workout_logs`, `sunday_checkins`, `hydration_logs` and `weight_logs` carried nothing
+   but a primary key on `id`; `meetings` had only `(meeting_date, time_slot)`. Every
+   login-path read of those was a sequential scan.
+
+Simulating a remote Postgres at 5ms a query: `/api/me/home` 287ms → 128ms,
+`/api/member/home` 196ms → 44ms, `/api/admin/overview` 169ms → 34ms. Admin time to a
+number on screen 1525ms → 1011ms. All three payloads diffed byte-for-byte against the
+previous build.
+
+| File | Change |
+| ---- | ------ |
+| `www/index.html` | `apiCall` shares a GET already in flight (a joining caller gets its own copy); `ahBoot()` runs before the ten loaders; `loadUserStats` fetches its two reads together |
+| `www/index.html` | early `<head>` script starts the session's first read while the document is still parsing and parks it in that same in-flight map. It sits **after** `bb-app-config.js`, which is loaded first and has already pointed `fetch()` at the live backend — so the relative path is rewritten for the WebView like every other call. Anything other than a 200 is dropped so the real `apiCall` re-requests it and the expired-session path runs untouched |
+| `www/sw.js` | cache `bodybank-v74` → `v75` |
+| `android/app/build.gradle` | `versionCode` 103 → 104, `versionName` 1.7.5 → 1.7.6 |
+
+The index work cannot be measured on a dev database with zero workout logs — a scan and
+an index lookup cost the same over no rows. It is the change that matters most in
+production, and more each month.
+
 ## 2026-08-25 — Beyond The Body in the footer + two admin shortcuts, v1.7.5, versionCode 103
 
 Syncs web commit `be323d0`. Patched into `www/` file-by-file rather than by a full
