@@ -36,9 +36,45 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
-_Nothing pending — `www/` verified byte-identical to `public/` as of web commit `9f2c3b4` (2026-08-24, during the day-card release)._
+_One item pending: web commit `6d4af43` ("announce the Android launch across the public pages") adds the hero store pill and the **Get the App** section to the public pages. Those are deliberately **not** in `www/` — a "Download the app on Google Play" block inside the app itself is noise. Revisit only if the iOS launch changes the calculus._
 
 ---
+
+## 2026-08-25 — Beyond The Body in the footer + two admin shortcuts, v1.7.5, versionCode 103
+
+Syncs web commit `be323d0`. Patched into `www/` file-by-file rather than by a full
+`build:www` mirror, so the app bundle keeps its own deliberate omissions (see Pending sync).
+
+**The footer.** Every page ended on a single FitChef credit, while the site's own copy has
+been describing a three-platform ecosystem — BodyBank + FitChef + BeyondTheBody — for a
+while. The lone credit becomes a two-up partner row: logo, then the URL line beneath it,
+both fully linked, identical treatment for each brand.
+
+The two logo heights differ on purpose. The Beyond The Body lockup is 794×120 against the
+FitChef lockup's 3600×840 — a far wider aspect ratio, so equal heights would have let it
+dominate the row. At 52px and 34px both marks render ~225px wide. Each sits in a fixed
+56px box so the two URL lines align. Under 520px the row wraps to a centred stack.
+
+`beyondthebody.fit` is linked at the apex; `www.` 301s there, so this skips a hop.
+
+**Admin quick access.** The August dashboard rebuild (`d7f9558`) dropped four shortcuts when
+the strip became a grid: Sunday Check-Ins, Daily Compliance, Workouts, Programs. Workouts and
+Programs are back, placed after Daily Check-ins. Both tabs already existed — the existing
+`ahGo('tab', …)` path carries them with no new wiring. 12 tiles → 14, which the 6/4/3-column
+responsive grid wraps unchanged.
+
+| File | Change |
+| ---- | ------ |
+| `www/index.html`, `blog.html` (both footers), `our-story.html`, `part2-form.html`, `progress-report.html`, `schedule-call.html`, `tribe-stories.html` | `.partner-credits` row replaces the single FitChef credit; scoped CSS added beside the existing `.fitchef-logo` rule |
+| `www/js/admin-home.js` | `AH_QUICK` gains Workouts (`workouts`) and Programs (`programs`) |
+| `www/index.html` | `admin-home.js?v=3` → `?v=4` |
+| `www/sw.js` | cache `bodybank-v73` → `v74` (web repo runs its own numbering, now `v75`) |
+| `android/app/build.gradle` | `versionCode` 102 → 103, `versionName` 1.7.4 → 1.7.5 |
+
+`img/btb-logo.png` was already present in `www/img/` — no new asset shipped.
+
+Rendered in headless Chrome at 1280px and 390px against `our-story.html` and `index.html`
+to check the balance of the two marks and the mobile stack.
 
 ## 2026-08-24 — Member home day card, v1.7.4, versionCode 102
 
