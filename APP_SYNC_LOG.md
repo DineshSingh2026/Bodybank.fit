@@ -535,6 +535,25 @@ Ran `npm run build:release` in `../bodybank-app/` (build:www + cap sync android 
 
 ## History — synced
 
+### 2026-09-01 — security hardening release (app v1.7.7, versionCode 105)
+
+**No `www/` sync in this release.** `public/` is unchanged — every backend fix deploys via
+Render and is live for the app instantly. The mobile repo changes are *native config only*
+(AndroidManifest + three new `res/xml/` rule files), so `build:www` / `cap sync` were not run
+and the bundled web snapshot is untouched.
+
+Bumped Android `versionCode 104→105`, `versionName 1.7.6→1.7.7` in `android/app/build.gradle`
+(CI still overrides via `PROJECT_BUILD_NUMBER + 100`). Release APK and AAB both built and
+verified locally.
+
+| Change | Notes |
+| ------ | ----- |
+| Backend security remediation | 29 findings fixed across `server.js`, `middleware/`, `services/`. Removed a hardcoded superadmin backdoor and the JWT fallback secret; guarded 17 previously-unauthenticated `/api/` routes; fixed IDOR on `/api/profile/:id` (read **and** write); stopped `POST /api/sunday-checkin` accepting an arbitrary `user_id` and `reply_email`; real ownership on feed posts; magic-byte image validation; password-reset tokens now stored hashed; reset links no longer built from the `Host` header. **Requires `JWT_SECRET` in Render before deploying — see `DEPLOY_SECURITY_RELEASE.md`.** |
+| Android native hardening | `allowBackup="true"→"false"` (the session JWT lives in WebView `localStorage` and was being copied into Google backups), plus `data_extraction_rules.xml`, `backup_rules.xml` and an explicit `network_security_config.xml`. Permission set unchanged and still free of `READ_MEDIA_*`. |
+| Dependencies | `multer 2.1.1→2.3.0`, `nodemailer 8.0.2→9.1.0`, plus transitive fixes. 23 → 12 advisories, **0 critical**. |
+| Security test suite | New `tests/security/` — 108 checks over 6 suites, plus a load harness. `npm run sec:test`. |
+
+
 ### 2026-06-13 — synced to mobile repo (Brain Tips mental-fitness release v1.3.3)
 
 Ran `npm run sync` in `../bodybank-app/` (build:www + cap sync android); bumped Android `versionName 1.3.2→1.3.3` (versionCode is CI-derived: `PROJECT_BUILD_NUMBER + 100`). Codemagic `android-closed-testing` auto-builds the signed AAB and publishes to the Play **internal** closed-testing track on push to the mobile repo's `main`.
