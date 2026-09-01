@@ -2630,7 +2630,7 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
   }
 });
 
-app.get('/api/audit', async (req, res) => {
+app.get('/api/audit', verifyToken, requireOperator, async (req, res) => {
   const rows = await queryAll("SELECT * FROM audit_requests ORDER BY created_at DESC");
   res.json(rows);
 });
@@ -2752,7 +2752,7 @@ app.get('/api/audit-result/:part2_id', verifyToken, requireOperator, async (req,
   }
 });
 
-app.get('/api/part2', async (req, res) => {
+app.get('/api/part2', verifyToken, requireOperator, async (req, res) => {
   const rows = await queryAll("SELECT * FROM part2_audit ORDER BY created_at DESC");
   res.json(rows);
 });
@@ -3593,7 +3593,7 @@ app.post('/api/contact', rateLimiter(5, 60000), async (req, res) => {
   }
 });
 
-app.get('/api/contact', async (req, res) => {
+app.get('/api/contact', verifyToken, requireOperator, async (req, res) => {
   const rows = await queryAll("SELECT * FROM contact_messages ORDER BY created_at DESC");
   res.json(rows);
 });

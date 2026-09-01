@@ -39,43 +39,47 @@ const GUARDS = [
   'verifyPdfAccessToken'
 ];
 
-// Routes that carry no guard *middleware* but are nonetheless safe. Each entry was
-// verified by request against a running instance during the 2026-09-01 security
-// audit; the note says why it is acceptable. Anything /api/ that is unguarded and
-// NOT listed here is reported, and --check exits non-zero.
+// Routes that carry no guard *middleware* but are nonetheless safe.
 //
-// Adding an entry here is a security decision. Do not add one to silence the scan.
+// Entries are "METHOD /path" — matched on BOTH, deliberately. An earlier version of
+// this list matched on path alone, which meant listing "/api/audit" for the public
+// POST lead form silently exempted GET /api/audit as well — and that GET returned
+// every lead record, unauthenticated. Path-only matching hides exactly the kind of
+// bug this scanner exists to find, so a method is now required.
+//
+// Each entry was verified by request against a running instance. Adding one is a
+// security decision. Do not add one to silence the scan.
 const INTENTIONALLY_PUBLIC = [
   // --- genuinely anonymous surfaces (pre-login or marketing) ---
-  /^\/api\/health$/,                          // liveness probe, no data
-  /^\/api\/config$/,                          // public OAuth client ids, needed before login
-  /^\/api\/push\/vapid-public$/,              // the public half of the VAPID keypair
-  /^\/api\/auth\/login$/,
-  /^\/api\/auth\/signup$/,
-  /^\/api\/auth\/google/,
-  /^\/api\/auth\/apple/,
-  /^\/api\/auth\/forgot-password$/,
-  /^\/api\/auth\/reset-password$/,
-  /^\/api\/audit$/,                           // POST: lead capture form
-  /^\/api\/part2$/,                           // POST: lead capture form
-  /^\/api\/schedule-call$/,                   // POST: public booking request
-  /^\/api\/schedule-call\/availability$/,     // free/busy calendar for the booking form
-  /^\/api\/contact$/,                         // POST: contact form
-  /^\/api\/programs$/,                        // public program catalogue (titles + pdf links)
-  /^\/api\/feed\/posts$/,                     // public transformation wall
-  /^\/api\/feed\/image\/[^/]+$/,              // images for the same public wall
-  /^\/api\/feed\/user-posts$/,                // public wall filtered by display name; no PII
-  /^\/api\/public\//,                         // signed-URL namespace (HMAC checked in handler)
-  /^\/api\/vapid-public-key$/,
+  [/^GET \/api\/health$/, 'liveness probe, no data'],
+  [/^GET \/api\/config$/, 'public OAuth client ids, needed before login'],
+  [/^GET \/api\/push\/vapid-public$/, 'the public half of the VAPID keypair'],
+  [/^POST \/api\/auth\/login$/, ''],
+  [/^POST \/api\/auth\/signup$/, ''],
+  [/^POST \/api\/auth\/google/, ''],
+  [/^POST \/api\/auth\/apple/, ''],
+  [/^POST \/api\/auth\/forgot-password$/, ''],
+  [/^POST \/api\/auth\/reset-password$/, ''],
+  [/^POST \/api\/audit$/, 'lead capture form. GET on this path lists every lead — staff only'],
+  [/^POST \/api\/part2$/, 'lead capture form. GET lists every submission — staff only'],
+  [/^POST \/api\/contact$/, 'contact form. GET lists every message — staff only'],
+  [/^POST \/api\/schedule-call$/, 'public booking request'],
+  [/^GET \/api\/schedule-call\/availability$/, 'free/busy calendar for the booking form'],
+  [/^GET \/api\/programs$/, 'public programme catalogue (titles + pdf links)'],
+  [/^GET \/api\/feed\/posts$/, 'public transformation wall'],
+  [/^GET \/api\/feed\/image\/[^/]+$/, 'images for the same public wall'],
+  [/^GET \/api\/feed\/user-posts$/, 'public wall filtered by display name; no PII'],
+  [/^GET \/api\/public\//, 'signed-URL namespace (HMAC checked in handler)'],
+  [/^GET \/api\/vapid-public-key$/, ''],
 
   // --- guarded inside the handler rather than by middleware ---
-  // Verified to return 401/403 to an anonymous caller.
-  /^\/api\/auth\/verify-reset-token\/[^/]+$/, // the token in the path IS the credential
-  /^\/api\/me\/programs\/pdf$/,               // verifyPdfAccessToken -> 403 without a signed token
-  /^\/api\/progress-report$/,                 // verifyProgressReportToken -> 401 without a token
-  /^\/api\/superadmin\/bootstrap$/,           // SUPERADMIN_BOOTSTRAP_SECRET -> 404 when unset/wrong
-  /^\/api\/superadmin\/shared$/,              // verifyShareToken -> 401 without a share token
-  /^\/api\/admin\/user-progress\/[^/]+$/      // verifyToken + role check inline -> 403 for members
+  // Each verified to return 401/403/404 to an anonymous caller.
+  [/^GET \/api\/auth\/verify-reset-token\/[^/]+$/, 'the token in the path IS the credential'],
+  [/^GET \/api\/me\/programs\/pdf$/, 'verifyPdfAccessToken -> 403 without a signed token'],
+  [/^GET \/api\/progress-report$/, 'verifyProgressReportToken -> 401 without a token'],
+  [/^GET \/api\/superadmin\/bootstrap$/, 'env secret, constant-time -> 404 when unset/wrong'],
+  [/^GET \/api\/superadmin\/shared$/, 'verifyShareToken -> 401 without a share token'],
+  [/^GET \/api\/admin\/user-progress\/[^/]+$/, 'verifyToken + role check inline -> 403 for members']
 ];
 
 const ROUTE_RE =
@@ -125,8 +129,9 @@ function isApi(p) {
   return p.startsWith('/api/') || p === '/api';
 }
 
-function isIntentionallyPublic(p) {
-  return INTENTIONALLY_PUBLIC.some((re) => re.test(p));
+function isIntentionallyPublic(route) {
+  const key = `${route.method} ${route.path}`;
+  return INTENTIONALLY_PUBLIC.some(([re]) => re.test(key));
 }
 
 function main() {
@@ -134,9 +139,9 @@ function main() {
   const api = all.filter((r) => isApi(r.path));
 
   const unauthenticated = api.filter(
-    (r) => r.guards.length === 0 && !isIntentionallyPublic(r.path)
+    (r) => r.guards.length === 0 && !isIntentionallyPublic(r)
   );
-  const publicByDesign = api.filter((r) => isIntentionallyPublic(r.path));
+  const publicByDesign = api.filter((r) => isIntentionallyPublic(r));
   const guarded = api.filter((r) => r.guards.length > 0);
 
   const unratedPublic = publicByDesign.filter((r) => !r.rateLimited);
