@@ -259,10 +259,29 @@ function resolveStoredPdfPath(pdfPath) {
   if (pdfPath == null) return null;
   const s = String(pdfPath).trim();
   if (!s) return null;
-  if (fs.existsSync(s)) return s;
+
+  // Every path this resolves is server-generated at upload time
+  // (`blood_<userId>_<timestamp>.<ext>` under the uploads root), so nothing an
+  // attacker controls reaches here today. The containment check below is defence in
+  // depth: it means a tampered database row, a restored backup, or a future caller
+  // that forwards user input cannot turn this into an arbitrary-file read of patient
+  // data or server files.
+  const uploadsRoot = path.resolve(
+    process.cwd(),
+    String(process.env.UPLOADS_DIR || './uploads').replace(/^\.\//, '')
+  );
+  const withinUploads = (abs) => {
+    const rel = path.relative(uploadsRoot, abs);
+    return rel === '' || (!rel.startsWith('..') && !path.isAbsolute(rel));
+  };
+
+  const direct = path.resolve(s);
+  if (withinUploads(direct) && fs.existsSync(direct)) return direct;
+
   const normalized = s.replace(/\\/g, '/').replace(/^\.\/+/, '');
   const fromCwd = path.resolve(process.cwd(), normalized);
-  if (fs.existsSync(fromCwd)) return fromCwd;
+  if (withinUploads(fromCwd) && fs.existsSync(fromCwd)) return fromCwd;
+
   return null;
 }
 

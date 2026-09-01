@@ -1,7 +1,43 @@
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'bodybank-progress-secret-change-in-production';
+// JWT signing key.
+//
+// This file previously fell back to a hardcoded literal when JWT_SECRET was unset.
+// Because this repository is published, that literal was a public signing key: anyone
+// could forge a token for any user or admin. There is now no committed fallback.
+//
+//   production            -> JWT_SECRET is mandatory; the process refuses to start
+//                            without it rather than sign with a guessable key.
+//   development / test    -> a random per-process secret is generated. Tokens stop
+//                            working across restarts, which is correct for local work
+//                            and keeps a weak constant out of the source tree.
+const JWT_SECRET = (() => {
+  const configured = String(process.env.JWT_SECRET || '').trim();
+  if (configured) {
+    if (configured.length < 32) {
+      throw new Error(
+        'JWT_SECRET must be at least 32 characters. Generate one with:\n' +
+        "  node -e \"console.log(require('crypto').randomBytes(48).toString('base64url'))\""
+      );
+    }
+    return configured;
+  }
+  if (String(process.env.NODE_ENV || '').trim() === 'production') {
+    throw new Error(
+      'JWT_SECRET is not set. Refusing to start in production with an ephemeral or ' +
+      'default signing key — every session token would be forgeable. Set JWT_SECRET ' +
+      'in the service environment. Generate one with:\n' +
+      "  node -e \"console.log(require('crypto').randomBytes(48).toString('base64url'))\""
+    );
+  }
+  const ephemeral = crypto.randomBytes(48).toString('base64url');
+  console.warn(
+    '[auth] JWT_SECRET is not set — using a random per-process secret. ' +
+    'Tokens will not survive a restart. Set JWT_SECRET for anything but local work.'
+  );
+  return ephemeral;
+})();
 const JWT_EXPIRY = process.env.JWT_EXPIRY || '7d';
 
 // ============ SIGN IN WITH APPLE ============
@@ -91,9 +127,38 @@ function requireAdminOrSuperadmin(req, res, next) {
   return res.status(403).json({ error: 'Admin or Superadmin access required' });
 }
 
-// Read-only monitoring gate. Admits the Operator role plus admin/superadmin
-// (so admins can QA the operator view). NEVER attach this to a mutating route —
-// operators are strictly read-only by design.
+/**
+ * Ownership gate for routes addressed by a user id in the path, e.g.
+ * /api/profile/:id or /api/workouts/:userId.
+ *
+ * Admits the owner of the record, and staff. Without this, any such route is a
+ * straightforward IDOR: swapping the id in the URL reaches another member's data.
+ *
+ * @param {string} param  name of the route parameter holding the user id
+ * @param {object} opts   { staffRoles } — roles allowed to act on any user.
+ *                        Defaults to admin/superadmin/operator. Pass a narrower
+ *                        list on mutating routes so operators stay read-only.
+ */
+function requireSelfOrStaff(param = 'id', opts = {}) {
+  const staffRoles = opts.staffRoles || ['admin', 'superadmin', 'operator'];
+  return function (req, res, next) {
+    if (!req.user) return res.status(401).json({ error: 'Authentication required' });
+    const target = String(req.params?.[param] || '');
+    if (target && String(req.user.id) === target) return next();
+    if (staffRoles.includes(req.user.role)) return next();
+    return res.status(403).json({ error: 'Forbidden' });
+  };
+}
+
+// Monitoring gate. Admits the Operator role plus admin/superadmin (so admins can QA
+// the operator view).
+//
+// Do not attach this to a mutating route. Operators are read-only *through this
+// gate*; the one deliberate exception in the product is blood-report management,
+// where routes/blood.js grants operators full parity with admins (download, re-date,
+// delete, compare) because the coach running a retest is often the operator. That
+// exception is enforced by that router's own STAFF_ROLES list, not by this function —
+// so anything guarded here stays read-only.
 function requireOperator(req, res, next) {
   if (req.user && (req.user.role === 'operator' || req.user.role === 'admin' || req.user.role === 'superadmin')) return next();
   return res.status(403).json({ error: 'Operator access required' });
@@ -162,4 +227,4 @@ function verifyPdfAccessToken(token) {
   }
 }
 
-module.exports = { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken, JWT_SECRET };
+module.exports = { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken, JWT_SECRET };

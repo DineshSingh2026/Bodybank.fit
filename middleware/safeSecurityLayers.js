@@ -33,4 +33,41 @@ function optionalApiAccessLog(req, res, next) {
   next();
 }
 
-module.exports = { safeExtraHttpHeaders, optionalApiAccessLog };
+/**
+ * Redacts server-fault (5xx) error bodies.
+ *
+ * Around 80 handlers answer failures with `res.status(500).json({ error: e.message })`.
+ * On Postgres that message can carry SQL text, column and table names, constraint
+ * names, or connection details — a free schema map for anyone who can provoke an
+ * error. This wraps res.json so any 5xx body's `error`/`message` is replaced with a
+ * generic string plus a correlation id, while the real message goes to the log where
+ * it belongs.
+ *
+ * 4xx bodies are untouched: those messages are written for the user and the UI
+ * displays them ("Email already in use", "Height must be between 100 and 230 cm").
+ *
+ * Active in production only, so local debugging keeps full detail.
+ */
+function redactServerErrors(req, res, next) {
+  if (String(process.env.NODE_ENV || '').trim() !== 'production') return next();
+
+  const originalJson = res.json.bind(res);
+  res.json = function (body) {
+    if (res.statusCode >= 500 && body && typeof body === 'object') {
+      const ref = Math.random().toString(36).slice(2, 10);
+      const detail = body.error || body.message || '';
+      if (detail) {
+        console.error(`[5xx ${ref}] ${req.method} ${req.path} — ${String(detail).slice(0, 500)}`);
+      }
+      const safe = { ...body };
+      if ('error' in safe) safe.error = 'Server error. Please try again.';
+      if ('message' in safe) safe.message = 'Server error. Please try again.';
+      safe.ref = ref;
+      return originalJson(safe);
+    }
+    return originalJson(body);
+  };
+  next();
+}
+
+module.exports = { safeExtraHttpHeaders, optionalApiAccessLog, redactServerErrors };

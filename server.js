@@ -22,8 +22,8 @@ try {
 const webPush = require('web-push');
 let firebaseAdmin = null;
 try { firebaseAdmin = require('firebase-admin'); } catch (_) { firebaseAdmin = null; }
-const { signToken, verifyToken, requireAdmin, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken } = require('./middleware/auth');
-const { safeExtraHttpHeaders, optionalApiAccessLog } = require('./middleware/safeSecurityLayers');
+const { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken } = require('./middleware/auth');
+const { safeExtraHttpHeaders, optionalApiAccessLog, redactServerErrors } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
 const { createBloodRouter, createBloodPublicRouter } = require('./routes/blood');
@@ -71,9 +71,14 @@ const {
 // ============ CONFIG ============
 const PORT = process.argv[2] || process.env.PORT || 3000;
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@bodybank.fit';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123';
+// Staff passwords have NO default. They used to fall back to 'admin123' /
+// 'superadmin123', and the login handler compares the submitted password against
+// these values directly (bypassing bcrypt) — so an unset env var turned a published
+// constant into a working production staff login. Empty means "not configured",
+// and every consumer below already treats empty as disabled.
+const ADMIN_PASS = String(process.env.ADMIN_PASS || '').trim();
 const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || 'superadmin@bodybank.fit';
-const SUPERADMIN_PASS = process.env.SUPERADMIN_PASS || 'superadmin123';
+const SUPERADMIN_PASS = String(process.env.SUPERADMIN_PASS || '').trim();
 // Apple App Store reviewer demo account. Auto-seeded as approved on startup so the
 // reviewer can sign in past the admin-approval gate. Provide the same credentials in
 // App Store Connect → App Review Information.
@@ -94,7 +99,11 @@ const SMTP_PASS = (process.env.SMTP_PASS || '').trim();
 const SMTP_FROM = (process.env.SMTP_FROM || 'BodyBank <noreply@bodybank.fit>').trim();
 const NUTRITION_ADMIN_REPORT_EMAIL = (process.env.NUTRITION_ADMIN_REPORT_EMAIL || ADMIN_EMAIL || '').trim();
 const CAMPAIGNS_ENABLED = String(process.env.CAMPAIGNS_ENABLED || 'false').trim().toLowerCase() === 'true';
-const FEED_UPLOADS_DIR = path.join(__dirname, 'uploads');
+// Honour UPLOADS_DIR the same way routes/blood.js and services/pdfService.js do.
+// Unset (the production default) keeps the historical ./uploads path exactly.
+const FEED_UPLOADS_DIR = (process.env.UPLOADS_DIR || '').trim()
+  ? path.resolve(process.env.UPLOADS_DIR.trim())
+  : path.join(__dirname, 'uploads');
 
 async function safeRestartCampaignScheduler(logPrefix) {
   if (!CAMPAIGNS_ENABLED) return;
@@ -345,30 +354,203 @@ app.use(cors({
 // caps the decoded payload lower, aligned to Claude's ~32MB PDF request limit.
 app.use(express.json({ limit: '40mb' }));
 
+// Content Security Policy.
+//
+// Shipped in REPORT-ONLY mode deliberately. The member UI is one large HTML document
+// with inline <script> and inline style throughout, so an enforcing policy would have
+// to allow 'unsafe-inline' — which buys almost nothing — or the pages would break.
+// Report-Only costs nothing at runtime, breaks nothing, and surfaces every violation
+// in the browser console so the inline blocks can be migrated to nonces over time.
+//
+// To enforce later: move the inline scripts to files or nonces, then set
+// CSP_ENFORCE=true to switch this to the enforcing header.
+const CSP_DIRECTIVES = [
+  "default-src 'self'",
+  // 'unsafe-inline'/'unsafe-eval' are listed so the report reflects what a realistic
+  // first enforcing policy would allow; tighten as inline code is migrated.
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://accounts.google.com https://appleid.cdn-apple.com https://www.googletagmanager.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' data: https://fonts.gstatic.com",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' data: blob:",
+  "connect-src 'self' https://accounts.google.com https://appleid.cdn-apple.com https://www.googletagmanager.com",
+  "frame-src 'self' https://accounts.google.com https://appleid.cdn-apple.com https://play.google.com",
+  "worker-src 'self' blob:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'none'"
+].join('; ');
+const CSP_ENFORCE = String(process.env.CSP_ENFORCE || '').trim().toLowerCase() === 'true';
+
 // Security headers
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
   res.setHeader('X-Frame-Options', 'DENY');
   res.setHeader('X-XSS-Protection', '1; mode=block');
+  res.setHeader(
+    CSP_ENFORCE ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only',
+    CSP_DIRECTIVES
+  );
+  // Powerful features this product never uses. Camera stays enabled — the AI Trainer
+  // form-coaching flow calls getUserMedia — and so does fullscreen for video.
+  res.setHeader(
+    'Permissions-Policy',
+    'geolocation=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()'
+  );
   if (NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
   }
   next();
 });
 app.use(safeExtraHttpHeaders);
+app.use(redactServerErrors);
 
-// Simple rate limiter (in-memory)
-const rateLimit = {};
+// ---- In-process rate limiter -------------------------------------------------
+//
+// Counters live in this process only. With a single Render instance that is the
+// whole picture; if the service is ever scaled to multiple instances, the effective
+// limit multiplies by the instance count and this should move to a shared store.
+//
+// The previous version never removed keys, so the map grew by one entry per unique
+// (ip, path) pair for the lifetime of the process — unbounded memory an attacker
+// could drive by rotating source addresses. Entries are now swept once a minute and
+// the map is capped.
+const rateLimit = new Map();
+const RATE_LIMIT_MAX_KEYS = 50000;
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of rateLimit) {
+    if (now - entry.last > entry.windowMs) rateLimit.delete(key);
+  }
+  // Hard cap: if something still drives the map up, drop the oldest entries rather
+  // than letting the process run out of memory.
+  if (rateLimit.size > RATE_LIMIT_MAX_KEYS) {
+    const excess = rateLimit.size - RATE_LIMIT_MAX_KEYS;
+    let i = 0;
+    for (const key of rateLimit.keys()) {
+      if (i++ >= excess) break;
+      rateLimit.delete(key);
+    }
+  }
+}, 60000).unref();
+
+/**
+ * The canonical origin for links emailed to users (password reset).
+ *
+ * Configuration only — never the request. Falls back to the first entry of
+ * ALLOWED_ORIGIN, which is already the vetted public origin, and then to Render's
+ * own RENDER_EXTERNAL_URL. Returns '' in production when nothing is configured, and
+ * the caller then declines to send rather than emit a poisonable link.
+ *
+ * @returns {string} origin with no trailing slash, or '' if unconfigured
+ */
+function resolveResetBaseUrl() {
+  const configured = String(RESET_BASE_URL || '').trim();
+  const firstAllowed = String(ALLOWED_ORIGIN || '').split(',')[0].trim();
+  let base = configured || firstAllowed || String(process.env.RENDER_EXTERNAL_URL || '').trim();
+
+  if (!base) {
+    // Local development only: a loopback origin is not a phishing risk.
+    return NODE_ENV === 'production' ? '' : `http://localhost:${PORT}`;
+  }
+  base = base.replace(/\/+$/, '');
+  if (NODE_ENV === 'production' && base.startsWith('http://')) base = 'https://' + base.slice(7);
+  return base;
+}
+
+/**
+ * Length-safe constant-time string comparison for shared secrets.
+ *
+ * `crypto.timingSafeEqual` throws when the two buffers differ in length, and that
+ * throw is itself a timing signal. Hashing both sides first gives equal-length
+ * inputs, so the comparison leaks neither content nor length.
+ */
+function timingSafeEquals(a, b) {
+  const ha = crypto.createHash('sha256').update(String(a ?? ''), 'utf8').digest();
+  const hb = crypto.createHash('sha256').update(String(b ?? ''), 'utf8').digest();
+  return crypto.timingSafeEqual(ha, hb);
+}
+
+// ---- Password-reset token hashing -------------------------------------------
+//
+// Reset tokens are bearer credentials: whoever holds one can set a new password.
+// They are therefore stored as a SHA-256 digest, never in plaintext, so a leaked
+// database gives an attacker nothing usable.
+//
+// A plain digest (not bcrypt) is the right choice here: the token is already 122
+// bits of CSPRNG output, so there is nothing to brute-force, and lookup must stay a
+// single indexed query.
+function hashResetToken(token) {
+  return crypto.createHash('sha256').update(String(token || ''), 'utf8').digest('hex');
+}
+
+// ---- Per-account login throttle ----------------------------------------------
+//
+// The IP-based limiter alone lets one address try 20 passwords a minute against a
+// single account indefinitely. This adds a second, account-scoped counter so a
+// distributed guessing attack against one member is also slowed: after
+// LOGIN_MAX_FAILURES wrong passwords the account stops accepting attempts for
+// LOGIN_LOCKOUT_MS, regardless of where they come from.
+//
+// Successful logins clear the counter, so a legitimate user who mistypes a few
+// times and then succeeds is never affected.
+const LOGIN_MAX_FAILURES = parseInt(process.env.LOGIN_MAX_FAILURES || '10', 10);
+const LOGIN_LOCKOUT_MS = parseInt(process.env.LOGIN_LOCKOUT_MS || '900000', 10); // 15 min
+const loginFailures = new Map();
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [key, entry] of loginFailures) {
+    if (now - entry.last > LOGIN_LOCKOUT_MS) loginFailures.delete(key);
+  }
+}, 60000).unref();
+
+function loginLockoutRemainingMs(emailNorm) {
+  const entry = loginFailures.get(emailNorm);
+  if (!entry || entry.count < LOGIN_MAX_FAILURES) return 0;
+  const remaining = LOGIN_LOCKOUT_MS - (Date.now() - entry.last);
+  return remaining > 0 ? remaining : 0;
+}
+
+function recordLoginFailure(emailNorm) {
+  const entry = loginFailures.get(emailNorm) || { count: 0, last: 0 };
+  entry.count += 1;
+  entry.last = Date.now();
+  loginFailures.set(emailNorm, entry);
+}
+
+function clearLoginFailures(emailNorm) {
+  loginFailures.delete(emailNorm);
+}
+
 function rateLimiter(limit, windowMs) {
   return (req, res, next) => {
-    const key = req.ip + req.path;
+    // Key by authenticated user when there is one, and fall back to IP otherwise.
+    //
+    // Keying purely by IP punishes shared egress: mobile carriers (CGNAT), offices
+    // and university networks put many members behind one address, so a per-IP quota
+    // of 20 check-ins/minute is really 20 for everyone on that carrier combined. It
+    // is also the weaker control for an authenticated route, where the account is the
+    // thing worth limiting. Unauthenticated routes (login, signup, password reset)
+    // still key by IP, which is correct — there is no identity to key on yet.
+    const identity = req.user && req.user.id ? `u:${req.user.id}` : `ip:${req.ip}`;
+    const key = identity + req.path;
     const now = Date.now();
-    if (!rateLimit[key]) rateLimit[key] = [];
-    rateLimit[key] = rateLimit[key].filter(t => now - t < windowMs);
-    if (rateLimit[key].length >= limit) {
+    let entry = rateLimit.get(key);
+    if (!entry) {
+      entry = { hits: [], last: now, windowMs };
+      rateLimit.set(key, entry);
+    }
+    entry.windowMs = windowMs;
+    entry.last = now;
+    entry.hits = entry.hits.filter((t) => now - t < windowMs);
+    if (entry.hits.length >= limit) {
+      res.setHeader('Retry-After', Math.ceil(windowMs / 1000));
       return res.status(429).json({ error: 'Too many requests. Try again later.' });
     }
-    rateLimit[key].push(now);
+    entry.hits.push(now);
     next();
   };
 }
@@ -454,19 +636,48 @@ function feedRowToPost(row) {
   };
 }
 
+// Cap base64 feed images at roughly the same 8 MB the multipart path allows.
+// Base64 inflates by ~4/3, so 12 MB of text is about 8 MB of image.
+const FEED_IMAGE_B64_MAX = 12 * 1024 * 1024;
+
 function parseFeedImageInput(dataUrl) {
-  const match = String(dataUrl || '').match(/^data:image\/(png|jpe?g|webp);base64,(.+)$/i);
+  const raw = String(dataUrl || '');
+  if (raw.length > FEED_IMAGE_B64_MAX) throw new Error('Image is too large (max 8MB).');
+  const match = raw.match(/^data:image\/(png|jpe?g|webp);base64,(.+)$/i);
   if (!match) throw new Error('Provide a valid PNG/JPEG/WEBP base64 image.');
-  const mime = match[1].toLowerCase() === 'jpg' ? 'image/jpeg'
-             : match[1].toLowerCase() === 'jpeg' ? 'image/jpeg'
-             : match[1].toLowerCase() === 'png'  ? 'image/png'
-             : 'image/webp';
-  return { imageData: dataUrl, imageMime: mime };
+  // Trust the bytes, not the declared type: the data: prefix is attacker-controlled.
+  const buf = Buffer.from(match[2], 'base64');
+  const mime = sniffImageMime(buf);
+  if (!mime) throw new Error('Provide a valid PNG/JPEG/WEBP base64 image.');
+  return { imageData: `data:${mime};base64,${buf.toString('base64')}`, imageMime: mime };
+}
+
+/**
+ * Determines an image's type from its magic bytes.
+ *
+ * The filename extension used to decide the stored MIME, so any file renamed to
+ * .png was stored and later served as image/png regardless of its real content.
+ * Sniffing the header means only genuine JPEG/PNG/WEBP data is accepted.
+ *
+ * @returns {'image/jpeg'|'image/png'|'image/webp'|null} null if unrecognised
+ */
+function sniffImageMime(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 12) return null;
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
+  if (
+    buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47 &&
+    buffer[4] === 0x0d && buffer[5] === 0x0a && buffer[6] === 0x1a && buffer[7] === 0x0a
+  ) return 'image/png';
+  if (
+    buffer.slice(0, 4).toString('ascii') === 'RIFF' &&
+    buffer.slice(8, 12).toString('ascii') === 'WEBP'
+  ) return 'image/webp';
+  return null;
 }
 
 function bufferToFeedDataUrl(buffer, originalName) {
-  const ext = String(path.extname(originalName || '') || '.jpg').toLowerCase();
-  const mime = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
+  const mime = sniffImageMime(buffer);
+  if (!mime) throw new Error('Provide a valid PNG/JPEG/WEBP image.');
   return { imageData: `data:${mime};base64,${buffer.toString('base64')}`, imageMime: mime };
 }
 
@@ -1437,6 +1648,11 @@ async function initDB() {
     featured BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`);
+  // Real ownership for feed posts. Deletion used to trust a `username` string sent by
+  // the client, so anyone could delete anyone's post by echoing back the username the
+  // feed listing had just given them. Nullable so pre-existing rows keep working —
+  // those fall back to the legacy username comparison, staff-only.
+  try { await pool.query(`ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS user_id TEXT`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_feed_posts_created_at ON feed_posts(created_at DESC)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_feed_posts_username ON feed_posts(username)`); } catch (e) { /* ignore */ }
   // ── My Body section (Phase 1) ──
@@ -1557,16 +1773,18 @@ async function initDB() {
     console.error('Failed to sync programs from PDFs:', e.message);
   }
 
-  // Create admin (in production, require ADMIN_PASS to be set and not default)
-  if (NODE_ENV === 'production' && (!process.env.ADMIN_PASS || ADMIN_PASS === 'admin123')) {
-    console.warn('⚠️ Production: set ADMIN_PASS in .env to a strong password. Default admin password is not allowed.');
+  // Create admin. ADMIN_PASS has no default, so an unset value means "do not seed".
+  if (!ADMIN_PASS) {
+    console.warn('⚠️ ADMIN_PASS is not set — the admin account will not be seeded.');
   }
   const adminRow = await queryOne("SELECT id FROM users WHERE role='admin' LIMIT 1");
   if (!adminRow) {
-    if (NODE_ENV === 'production' && ADMIN_PASS === 'admin123') {
-      console.error('❌ Refusing to create admin with default password in production. Set ADMIN_PASS in .env and restart.');
+    if (!ADMIN_PASS) {
+      console.error('❌ Refusing to create an admin without ADMIN_PASS. Set it and restart.');
+    } else if (ADMIN_PASS.length < 12) {
+      console.error('❌ Refusing to create an admin with a password under 12 characters.');
     } else {
-      const hash = bcrypt.hashSync(ADMIN_PASS, 10);
+      const hash = await bcrypt.hash(ADMIN_PASS, 10);
       const adminEmailNorm = String(ADMIN_EMAIL).trim().toLowerCase();
       await run("INSERT INTO users (id, email, password, first_name, last_name, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [uuidv4(), adminEmailNorm, hash, 'Body', 'Bank', 'admin', 'approved']);
@@ -1574,15 +1792,16 @@ async function initDB() {
     }
   }
 
-  if (NODE_ENV === 'production' && (!process.env.SUPERADMIN_PASS || SUPERADMIN_PASS === 'superadmin123')) {
-    console.warn('⚠️ Production: set SUPERADMIN_PASS in .env to a strong password. Default superadmin password is not allowed.');
+  if (!SUPERADMIN_PASS) {
+    console.warn('⚠️ SUPERADMIN_PASS is not set — the superadmin account will not be synced.');
   }
   const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
   const superadminPassTrimmed = String(SUPERADMIN_PASS || '').trim();
-  const canSyncSuperadmin = superadminEmailNorm && superadminPassTrimmed && (NODE_ENV !== 'production' || superadminPassTrimmed !== 'superadmin123');
+  const canSyncSuperadmin =
+    superadminEmailNorm && superadminPassTrimmed && superadminPassTrimmed.length >= 12;
   // Sync uses trimmed password so Render env vars with accidental newlines/spaces still work
   if (canSyncSuperadmin) {
-    const hash = bcrypt.hashSync(superadminPassTrimmed, 10);
+    const hash = await bcrypt.hash(superadminPassTrimmed, 10);
     const byEmail = await queryOne("SELECT id, role FROM users WHERE LOWER(email) = ?", [superadminEmailNorm]);
     if (byEmail) {
       await run("UPDATE users SET role = 'superadmin', password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE id = ?", [hash, byEmail.id]);
@@ -1601,8 +1820,10 @@ async function initDB() {
     }
   } else {
     const existingSa = await queryOne("SELECT id FROM users WHERE role='superadmin' LIMIT 1");
-    if (!existingSa && NODE_ENV === 'production' && (!process.env.SUPERADMIN_PASS || SUPERADMIN_PASS === 'superadmin123')) {
-      console.error('❌ Refusing to create superadmin with default password in production. Set SUPERADMIN_EMAIL and SUPERADMIN_PASS in Render and redeploy.');
+    if (!existingSa && !superadminPassTrimmed) {
+      console.error('❌ Refusing to create a superadmin without SUPERADMIN_PASS. Set SUPERADMIN_EMAIL and SUPERADMIN_PASS and redeploy.');
+    } else if (!existingSa && superadminPassTrimmed.length < 12) {
+      console.error('❌ Refusing to create a superadmin with a password under 12 characters.');
     } else if (!existingSa && (!process.env.SUPERADMIN_EMAIL || !superadminEmailNorm)) {
       console.warn('⚠️ Superadmin not created: set SUPERADMIN_EMAIL and SUPERADMIN_PASS in env.');
     }
@@ -1615,7 +1836,7 @@ async function initDB() {
   const operatorPassTrimmed = String(process.env.OPERATOR_PASS || '').trim();
   if (operatorEmailNorm && operatorPassTrimmed) {
     try {
-      const opHash = bcrypt.hashSync(operatorPassTrimmed, 10);
+      const opHash = await bcrypt.hash(operatorPassTrimmed, 10);
       const opByEmail = await queryOne("SELECT id, role FROM users WHERE LOWER(email) = ?", [operatorEmailNorm]);
       if (opByEmail) {
         if (opByEmail.role === 'admin' || opByEmail.role === 'superadmin') {
@@ -1639,7 +1860,7 @@ async function initDB() {
     const revEmail = String(APPLE_REVIEW_EMAIL || '').trim().toLowerCase();
     const revPass  = String(APPLE_REVIEW_PASS  || '').trim();
     if (revEmail && revPass) {
-      const hash = bcrypt.hashSync(revPass, 10);
+      const hash = await bcrypt.hash(revPass, 10);
       const existing = await queryOne("SELECT id FROM users WHERE LOWER(email) = ?", [revEmail]);
       if (existing) {
         await run("UPDATE users SET password = ?, approval_status = 'approved', suspended = FALSE, role = 'user' WHERE id = ?", [hash, existing.id]);
@@ -1785,7 +2006,8 @@ async function seedData() {
 // Lightweight health check (no DB) — Render uses this for deploy success
 app.get('/health', (req, res) => res.json({ ok: true, status: 'live' }));
 
-app.get('/api/debug-reset-setup', (req, res) => {
+// Diagnostic endpoint — reveals deployment configuration, so it is superadmin-only.
+app.get('/api/debug-reset-setup', verifyToken, requireSuperadmin, (req, res) => {
   const base = RESET_BASE_URL || '(from request)';
   res.json({ reset_base_set: !!RESET_BASE_URL, reset_base_preview: base ? base.slice(0, 40) + (base.length > 40 ? '...' : '') : 'empty', node_env: NODE_ENV });
 });
@@ -1825,7 +2047,7 @@ async function runSuperadminSync() {
   const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
   const superadminPassTrimmed = String(SUPERADMIN_PASS || '').trim();
   if (!superadminEmailNorm || !superadminPassTrimmed) return;
-  const hash = bcrypt.hashSync(superadminPassTrimmed, 10);
+  const hash = await bcrypt.hash(superadminPassTrimmed, 10);
   const byEmail = await queryOne("SELECT id, role FROM users WHERE LOWER(email) = ?", [superadminEmailNorm]);
   if (byEmail) {
     await run("UPDATE users SET role = 'superadmin', password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE id = ?", [hash, byEmail.id]);
@@ -1850,24 +2072,24 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     const emailNorm = String(email).trim().toLowerCase();
     const pwTrimmed = String(password).trim();
 
-    // Fallback: if login is with Superadmin@gmail.com / Bodybank@2026, ensure superadmin exists and log in (works even if env vars are wrong or missing on Render)
-    const FALLBACK_SA_EMAIL = 'superadmin@gmail.com';
-    const FALLBACK_SA_PASS = 'Bodybank@2026';
-    const isFallbackCreds = emailNorm === FALLBACK_SA_EMAIL && pwTrimmed === FALLBACK_SA_PASS;
+    // Account-scoped brute-force throttle (see loginLockoutRemainingMs above).
+    const lockedMs = loginLockoutRemainingMs(emailNorm);
+    if (lockedMs > 0) {
+      res.setHeader('Retry-After', Math.ceil(lockedMs / 1000));
+      return res.status(429).json({
+        error: 'Too many failed attempts. Please try again in a few minutes.'
+      });
+    }
 
+    // NOTE: a hardcoded superadmin credential pair used to live here as a "works even
+    // if env vars are missing on Render" escape hatch. Because this repository is
+    // published, those credentials were a public, unauthenticated superadmin login —
+    // and the recovery path rewrote the existing superadmin row, locking out the real
+    // owner. It has been removed. Superadmin recovery is now an operator task run
+    // against the database directly: scripts/ensure-superadmin.js.
     let user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (!user) {
-      if (isFallbackCreds) {
-        const hash = bcrypt.hashSync(FALLBACK_SA_PASS, 10);
-        const existingSa = await queryOne("SELECT id FROM users WHERE role='superadmin' LIMIT 1");
-        if (existingSa) {
-          await run("UPDATE users SET email = ?, password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE role = 'superadmin'", [FALLBACK_SA_EMAIL, hash]);
-        } else {
-          await run("INSERT INTO users (id, email, password, first_name, last_name, role, approval_status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            [uuidv4(), FALLBACK_SA_EMAIL, hash, 'Super', 'Admin', 'superadmin', 'approved']);
-        }
-        user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
-      } else {
+      {
         const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
         const superadminPassTrimmed = String(SUPERADMIN_PASS || '').trim();
         if (superadminEmailNorm && superadminPassTrimmed && emailNorm === superadminEmailNorm && pwTrimmed === superadminPassTrimmed) {
@@ -1877,6 +2099,7 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
       }
       if (!user) {
         if (NODE_ENV !== 'production') console.log('[Login] User not found:', emailNorm);
+        recordLoginFailure(emailNorm);
         return res.status(401).json({ error: 'Invalid email or password' });
       }
     }
@@ -1891,13 +2114,10 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     if (status !== 'approved') {
       return res.status(403).json({ error: 'pending_approval', message: 'Your account is pending admin approval. You will be able to log in once approved.' });
     }
-    if (!user.password || !bcrypt.compareSync(pwTrimmed, user.password)) {
-      if (isFallbackCreds) {
-        const hash = bcrypt.hashSync(FALLBACK_SA_PASS, 10);
-        await run("UPDATE users SET role = 'superadmin', password = ?, first_name = 'Super', last_name = 'Admin', approval_status = 'approved' WHERE LOWER(email) = ?", [hash, emailNorm]);
-        await run("UPDATE users SET role = 'user' WHERE role = 'superadmin' AND LOWER(email) != ?", [emailNorm]);
-        user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
-      } else {
+    if (!user.password || !await bcrypt.compare(pwTrimmed, user.password)) {
+      {
+        // (The hardcoded-credential privilege-escalation branch that stood here has
+        // been removed — see the note at the top of this handler.)
         const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
         const superadminPassTrimmed = String(SUPERADMIN_PASS || '').trim();
         if (superadminEmailNorm && superadminPassTrimmed && emailNorm === superadminEmailNorm && pwTrimmed === superadminPassTrimmed) {
@@ -1905,8 +2125,9 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
           user = await queryOne("SELECT * FROM users WHERE LOWER(email) = ?", [emailNorm]);
         }
       }
-      if (!user || !bcrypt.compareSync(pwTrimmed, user.password)) {
+      if (!user || !await bcrypt.compare(pwTrimmed, user.password)) {
         if (NODE_ENV !== 'production') console.log('[Login] Password mismatch for:', emailNorm);
+        recordLoginFailure(emailNorm);
         return res.status(401).json({ error: 'Invalid email or password' });
       }
     }
@@ -1915,6 +2136,7 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
     const subGate = subscriptionGate(user);
     if (subGate) return res.status(403).json({ error: subGate.code, message: subGate.message });
+    clearLoginFailures(emailNorm);
     const token = signToken({ id: user.id, email: user.email, role: user.role });
     if (user.role === 'user') {
       notifyAsync('USER_LOGIN', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, role: user.role, mobile: user.phone || '—' });
@@ -1927,7 +2149,7 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
 });
 
 // Google Auth (auto sign-up/login)
-app.post('/api/auth/google', async (req, res) => {
+app.post('/api/auth/google', rateLimiter(20, 60000), async (req, res) => {
   try {
     const { id_token } = req.body || {};
     if (!id_token) return res.status(400).json({ error: 'ID token required' });
@@ -2007,7 +2229,7 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
     if (existing) return res.status(409).json({ error: 'Email already registered. Please log in instead.' });
 
     const id = uuidv4();
-    const hash = bcrypt.hashSync(password, 10);
+    const hash = await bcrypt.hash(password, 10);
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, profile_picture, country, timezone, state_province, city, dob, gender, height_cm, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
       [id, emailNorm, hash, given_name || '', family_name || '', phoneTrimmed, picture || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'approved']);
     const trialDays = trialDaysForReq(req);
@@ -2035,7 +2257,7 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
 // Accepts identity tokens from both the web (Services ID audience) and the native iOS
 // app (bundle id audience). Apple sends the user's name only on the FIRST authorization,
 // in a separate `user` object — never inside the token.
-app.post('/api/auth/apple', async (req, res) => {
+app.post('/api/auth/apple', rateLimiter(20, 60000), async (req, res) => {
   try {
     const { id_token, user } = req.body || {};
     if (!id_token) return res.status(400).json({ error: 'Identity token required' });
@@ -2116,7 +2338,7 @@ app.post('/api/auth/apple-complete', rateLimiter(5, 60000), async (req, res) => 
     if (existing) return res.status(409).json({ error: 'Email already registered. Please log in instead.' });
 
     const id = uuidv4();
-    const hash = bcrypt.hashSync(password, 10);
+    const hash = await bcrypt.hash(password, 10);
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, apple_id, country, timezone, state_province, city, dob, gender, height_cm, role, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
       [id, emailNorm, hash, givenName, familyName, phoneTrimmed, appleSub, geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'user', 'approved']);
     const trialDays = trialDaysForReq(req);
@@ -2158,7 +2380,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     const emailNorm = String(email).trim().toLowerCase();
     const existing = await queryOne("SELECT id, approval_status FROM users WHERE LOWER(email) = ?", [emailNorm]);
     if (existing && existing.approval_status === 'rejected') {
-      const hash = bcrypt.hashSync(password, 10);
+      const hash = await bcrypt.hash(password, 10);
       await run("UPDATE users SET password=?, first_name=?, last_name=?, phone=?, country=?, timezone=?, state_province=?, city=?, dob=?, gender=?, height_cm=?, approval_status='approved' WHERE id=?",
         [hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, existing.id]);
       const trialDaysR = trialDaysForReq(req);
@@ -2172,7 +2394,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     if (existing) return res.status(409).json({ error: 'Email already registered' });
 
     const id = uuidv4();
-    const hash = bcrypt.hashSync(password, 10);
+    const hash = await bcrypt.hash(password, 10);
     await run("INSERT INTO users (id, email, password, first_name, last_name, phone, country, timezone, state_province, city, dob, gender, height_cm, approval_status) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
       [id, emailNorm, hash, first_name || '', last_name || '', phone || '', geo.country, geo.timezone, cleanState, cleanCity, cleanDob, cleanGender, heightParsed, 'approved']);
     // Instant access: start a free trial right away (no manual approval gate).
@@ -2209,11 +2431,32 @@ app.post('/api/auth/forgot-password', rateLimiter(5, 60000), async (req, res) =>
     const token = uuidv4();
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(); // 24 hours
     const id = uuidv4();
-    await run("INSERT INTO password_resets (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)", [id, user.id, token, expiresAt]);
+    // Only the hash is stored. The plaintext token lives just long enough to build
+    // the email link below. Previously the token was stored verbatim, so anyone who
+    // obtained a copy of the table — a backup, a dump, the unauthenticated
+    // /api/admin/db-view that used to exist — held a working account-takeover link
+    // for every pending reset.
+    await run("INSERT INTO password_resets (id, user_id, token, expires_at) VALUES (?, ?, ?, ?)", [id, user.id, hashResetToken(token), expiresAt]);
 
-    let base = RESET_BASE_URL || (req.protocol + '//' + (req.get('host') || req.get('x-forwarded-host') || 'localhost:3000'));
-    base = String(base).trim().replace(/\/$/, '');
-    if (NODE_ENV === 'production' && base.startsWith('http://')) base = 'https://' + base.slice(7);
+    // The reset link must never be built from the request.
+    //
+    // This used to fall back to `req.get('host')`. Host is attacker-controlled, so a
+    // forged forgot-password request for someone else's address ("Host: evil.example")
+    // emailed the victim a genuine-looking BodyBank link pointing at the attacker —
+    // click it and the reset token is theirs. Classic password-reset poisoning.
+    //
+    // The base now comes only from configuration. In production, if nothing is
+    // configured we refuse to send rather than send a poisonable link.
+    const base = resolveResetBaseUrl();
+    if (!base) {
+      console.error(
+        '[ForgotPassword] No reset base URL configured. Set RESET_BASE_URL (or ' +
+        'APP_BASE_URL / SITE_URL) to the canonical site origin. Refusing to build a ' +
+        'reset link from the request Host header.'
+      );
+      // Same opaque answer as every other path, so this reveals nothing to a caller.
+      return res.json({ ok: true, message: "Please check your email if an account exists with this address." });
+    }
     const resetLink = `${base}/reset-password?token=${encodeURIComponent(token)}`;
 
     if (userEmail.isConfigured()) {
@@ -2246,8 +2489,11 @@ app.get('/api/auth/verify-reset-token/:token', async (req, res) => {
     }
 
     const row = await queryOne(
-      "SELECT pr.id, pr.used, pr.expires_at, u.role FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
-      [token]
+      "SELECT pr.id, pr.used, pr.expires_at, u.role FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token IN (?, ?)",
+      // Hash first; the raw token is the legacy form, accepted so links already in
+      // people's inboxes when this shipped keep working until they expire (24h).
+      // The plaintext arm can be deleted after that window.
+      [hashResetToken(token), token]
     );
     if (!row) {
       console.log('[VerifyResetToken] Token not found in DB (len=' + token.length + ')');
@@ -2282,18 +2528,21 @@ app.post('/api/auth/reset-password', rateLimiter(10, 60000), async (req, res) =>
     if (pw.length < 6) return res.status(400).json({ error: 'Password must be at least 6 characters' });
 
     const row = await queryOne(
-      "SELECT pr.id, pr.user_id, pr.used, pr.expires_at, u.role, u.password, u.email, u.first_name, u.last_name, u.profile_picture, u.country, u.timezone, u.height_cm FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
-      [token]
+      "SELECT pr.id, pr.user_id, pr.used, pr.expires_at, u.role, u.password, u.email, u.first_name, u.last_name, u.profile_picture, u.country, u.timezone, u.height_cm FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token IN (?, ?)",
+      // Hash first; the raw token is the legacy form, accepted so links already in
+      // people's inboxes when this shipped keep working until they expire (24h).
+      // The plaintext arm can be deleted after that window.
+      [hashResetToken(token), token]
     );
     if (!row || row.used) return res.status(400).json({ error: 'Invalid or expired reset token' });
     if (new Date(row.expires_at) < new Date()) return res.status(400).json({ error: 'Invalid or expired reset token' });
     if (row.role !== 'user') return res.status(400).json({ error: 'Invalid or expired reset token' });
 
-    if (row.password && bcrypt.compareSync(pw, row.password)) {
+    if (row.password && await bcrypt.compare(pw, row.password)) {
       return res.status(400).json({ error: 'You cannot use the same password as your previous one. Please choose a different password.' });
     }
 
-    const hash = bcrypt.hashSync(pw, 10);
+    const hash = await bcrypt.hash(pw, 10);
     await run("UPDATE users SET password = ? WHERE id = ?", [hash, row.user_id]);
     await run("UPDATE password_resets SET used = 1 WHERE id = ?", [row.id]);
 
@@ -2397,20 +2646,20 @@ app.get('/api/admin/test-whatsapp', verifyToken, requireAdminOrSuperadmin, async
   res.json(result);
 });
 
-app.get('/api/audit/:id', async (req, res) => {
+app.get('/api/audit/:id', verifyToken, requireOperator, async (req, res) => {
   const row = await queryOne("SELECT * FROM audit_requests WHERE id = ?", [req.params.id]);
   if (!row) return res.status(404).json({ error: 'Not found' });
   res.json(row);
 });
 
-app.put('/api/audit/:id', async (req, res) => {
+app.put('/api/audit/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   const { status } = req.body || {};
   if (!['pending', 'approved', 'rejected'].includes(status)) return res.status(400).json({ error: 'Invalid status' });
   await run("UPDATE audit_requests SET status = ? WHERE id = ?", [status, req.params.id]);
   res.json({ message: 'Updated' });
 });
 
-app.delete('/api/audit/:id', async (req, res) => {
+app.delete('/api/audit/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   await run("DELETE FROM audit_requests WHERE id = ?", [req.params.id]);
   res.json({ message: 'Deleted' });
 });
@@ -2476,7 +2725,7 @@ app.post('/api/part2', rateLimiter(5, 60000), async (req, res) => {
   }
 });
 
-app.get('/api/audit-result/:part2_id', async (req, res) => {
+app.get('/api/audit-result/:part2_id', verifyToken, requireOperator, async (req, res) => {
   try {
     const row = await queryOne(
       `SELECT id, name, email, score, tier_key, tier_label, sub_scores, weak_lever, result_generated_at
@@ -2508,13 +2757,13 @@ app.get('/api/part2', async (req, res) => {
   res.json(rows);
 });
 
-app.get('/api/part2/:id', async (req, res) => {
+app.get('/api/part2/:id', verifyToken, requireOperator, async (req, res) => {
   const row = await queryOne("SELECT * FROM part2_audit WHERE id = ?", [req.params.id]);
   if (!row) return res.status(404).json({ error: 'Not found' });
   res.json(row);
 });
 
-app.delete('/api/part2/:id', async (req, res) => {
+app.delete('/api/part2/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   await run("DELETE FROM part2_audit WHERE id = ?", [req.params.id]);
   res.json({ message: 'Deleted' });
 });
@@ -2916,7 +3165,7 @@ app.put('/api/meetings/:id', verifyToken, rateLimiter(20, 60000), async (req, re
 });
 
 // ============ TRIBE MEMBERS ============
-app.get('/api/tribe', async (req, res) => {
+app.get('/api/tribe', verifyToken, requireOperator, async (req, res) => {
   try {
     // Add recent daily-check-in context so admin can surface inactive/high-risk clients.
     // NOTE: tribe_members.email is joined to users.email for inactivity calculations.
@@ -2978,13 +3227,13 @@ app.get('/api/tribe', async (req, res) => {
   }
 });
 
-app.get('/api/tribe/:id', async (req, res) => {
+app.get('/api/tribe/:id', verifyToken, requireOperator, async (req, res) => {
   const row = await queryOne("SELECT * FROM tribe_members WHERE id = ?", [req.params.id]);
   if (!row) return res.status(404).json({ error: 'Not found' });
   res.json(row);
 });
 
-app.post('/api/tribe', async (req, res) => {
+app.post('/api/tribe', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
     const b = req.body || {};
     if (!b.first_name) return res.status(400).json({ error: 'Name required' });
@@ -2998,7 +3247,7 @@ app.post('/api/tribe', async (req, res) => {
   }
 });
 
-app.put('/api/tribe/:id', async (req, res) => {
+app.put('/api/tribe/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   const allowed = ['first_name','last_name','email','phone','city','phase','activity_per_week','starting_weight','current_weight','target_weight','next_checkin','notes','status'];
   const updates = [], values = [];
   for (const [k, v] of Object.entries(req.body || {})) {
@@ -3010,19 +3259,19 @@ app.put('/api/tribe/:id', async (req, res) => {
   res.json({ message: 'Updated' });
 });
 
-app.delete('/api/tribe/:id', async (req, res) => {
+app.delete('/api/tribe/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   await run("DELETE FROM tribe_members WHERE id = ?", [req.params.id]);
   res.json({ message: 'Deleted' });
 });
 
 // ============ USER PROFILE ============
-app.get('/api/profile/:id', async (req, res) => {
+app.get('/api/profile/:id', verifyToken, requireSelfOrStaff('id'), async (req, res) => {
   const user = await queryOne("SELECT id,email,first_name,last_name,phone,country,state_province,city,dob,gender,height_cm,goal_type,primary_training_days_per_week,diet_type,injury_limitations,stress_level_baseline,timezone,profile_picture,role,created_at FROM users WHERE id=?", [req.params.id]);
   if (!user) return res.status(404).json({ error: 'Not found' });
   res.json(user);
 });
 
-app.put('/api/profile/:id', async (req, res) => {
+app.put('/api/profile/:id', verifyToken, requireSelfOrStaff('id', { staffRoles: ['admin', 'superadmin'] }), async (req, res) => {
   const {
     first_name,
     last_name,
@@ -3131,10 +3380,14 @@ app.put('/api/profile/:id', async (req, res) => {
 });
 
 // ============ WORKOUT LOGS ============
-app.post('/api/workouts', async (req, res) => {
+app.post('/api/workouts', verifyToken, async (req, res) => {
   try {
-    const { user_id, workout_name, duration_seconds, feedback } = req.body || {};
-    if (!user_id || !workout_name) return res.status(400).json({ error: 'User and workout name required' });
+    const { workout_name, duration_seconds, feedback } = req.body || {};
+    // The workout is always attributed to the authenticated caller. A user_id in the
+    // body used to be trusted, which let anyone write workout rows into any account
+    // (and burn that account's AI-trainer trial quota).
+    const user_id = req.user.id;
+    if (!workout_name) return res.status(400).json({ error: 'Workout name required' });
     // Mirror the AI Trainer trial cap from /api/workouts/session — this endpoint is the legacy fallback for the same UI.
     const legacyTrainerAccess = await queryOne(
       `SELECT COALESCE(ai_trainer_unlimited, TRUE) AS unlimited,
@@ -3310,14 +3563,14 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
 });
 
 // Admin: get all workouts (must be before :userId to avoid conflict)
-app.get('/api/workouts', async (req, res) => {
+app.get('/api/workouts', verifyToken, requireOperator, async (req, res) => {
   const rows = await queryAll(`SELECT w.*, u.first_name, u.last_name, u.email 
     FROM workout_logs w JOIN users u ON w.user_id = u.id 
     ORDER BY w.created_at DESC LIMIT 100`);
   res.json(rows);
 });
 
-app.get('/api/workouts/:userId', async (req, res) => {
+app.get('/api/workouts/:userId', verifyToken, requireSelfOrStaff('userId'), async (req, res) => {
   const rows = await queryAll("SELECT * FROM workout_logs WHERE user_id=? ORDER BY created_at DESC", [req.params.userId]);
   res.json(rows);
 });
@@ -3503,16 +3756,28 @@ function parseSundayBodyFatPercent(raw) {
   return Math.round(n * 100) / 100;
 }
 
-app.post('/api/sunday-checkin', rateLimiter(10, 60000), async (req, res) => {
+app.post('/api/sunday-checkin', verifyToken, rateLimiter(10, 60000), async (req, res) => {
   try {
     const b = req.body || {};
-    // The form no longer asks for a name — fill it from the signed-in profile.
-    if (!b.full_name && b.user_id) {
-      const nu = await queryOne('SELECT first_name, last_name, email FROM users WHERE id = ?', [b.user_id]).catch(() => null);
-      if (nu) {
-        b.full_name = `${nu.first_name || ''} ${nu.last_name || ''}`.trim() || String(nu.email || '').split('@')[0];
-      }
+    // Identity comes from the session, never the body.
+    //
+    // This route used to be unauthenticated and take both `user_id` and
+    // `reply_email` from the request. That let anyone file a check-in against any
+    // member's account (awarding them coins and polluting their history), and — worse
+    // — send a "check-in received" email to any address they chose, turning the
+    // service's SMTP credentials into an open relay.
+    b.user_id = req.user.id;
+    const nu = await queryOne(
+      'SELECT first_name, last_name, email FROM users WHERE id = ?',
+      [req.user.id]
+    ).catch(() => null);
+    if (!nu) return res.status(401).json({ error: 'Authentication required' });
+    if (!b.full_name) {
+      b.full_name = `${nu.first_name || ''} ${nu.last_name || ''}`.trim()
+        || String(nu.email || '').split('@')[0];
     }
+    // The confirmation only ever goes to the account's own address.
+    b.reply_email = nu.email || '';
     if (!b.full_name) return res.status(400).json({ error: 'Full name is required' });
     const bodyFatPct = parseSundayBodyFatPercent(b.body_fat_percent);
     const id = uuidv4();
@@ -3563,12 +3828,12 @@ app.post('/api/sunday-checkin', rateLimiter(10, 60000), async (req, res) => {
   }
 });
 
-app.get('/api/sunday-checkin', async (req, res) => {
+app.get('/api/sunday-checkin', verifyToken, requireOperator, async (req, res) => {
   const rows = await queryAll("SELECT id, full_name, reply_email, created_at FROM sunday_checkins ORDER BY created_at DESC");
   res.json(rows);
 });
 
-app.get('/api/sunday-checkin/last-weight/:userId', async (req, res) => {
+app.get('/api/sunday-checkin/last-weight/:userId', verifyToken, requireSelfOrStaff('userId'), async (req, res) => {
   try {
     const userId = req.params.userId;
     if (!userId) return res.status(400).json({ error: 'Missing user id' });
@@ -3589,9 +3854,15 @@ app.get('/api/sunday-checkin/last-weight/:userId', async (req, res) => {
   }
 });
 
-app.get('/api/sunday-checkin/:id', async (req, res) => {
+app.get('/api/sunday-checkin/:id', verifyToken, async (req, res) => {
   const row = await queryOne("SELECT * FROM sunday_checkins WHERE id = ?", [req.params.id]);
   if (!row) return res.status(404).json({ error: 'Not found' });
+  // The check-in id is not the caller's id, so ownership is checked on the row.
+  // 404 rather than 403 so the endpoint does not confirm that an id exists.
+  const isStaff = ['admin', 'superadmin', 'operator'].includes(req.user.role);
+  if (!isStaff && String(row.user_id || '') !== String(req.user.id)) {
+    return res.status(404).json({ error: 'Not found' });
+  }
   res.json(row);
 });
 
@@ -7607,7 +7878,7 @@ app.get('/api/me/programs/pdf', async (req, res) => {
 });
 
 // ============ STATS ============
-app.get('/api/stats', async (req, res) => {
+app.get('/api/stats', verifyToken, requireOperator, async (req, res) => {
   await ensureApprovedUsersInActiveTribe();
   const pending = await queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='pending'");
   const active = await queryAll(
@@ -8669,7 +8940,7 @@ app.post('/api/admin/escalations/:eid/reply', verifyToken, requireAdminOrSuperad
 });
 
 // ============ ADMIN: USERS LIST (for insights filter; exclude E2E test users) ============
-app.get('/api/admin/users', async (req, res) => {
+app.get('/api/admin/users', verifyToken, requireOperator, async (req, res) => {
   try {
     await ensureApprovedUsersInActiveTribe();
     const list = await queryAll(
@@ -9307,7 +9578,7 @@ app.post('/api/me/account/delete', verifyToken, rateLimiter(3, 60000), async (re
     const user = await queryOne("SELECT id, role, email, phone, password FROM users WHERE id = ?", [id]);
     if (!user) return res.status(404).json({ error: 'Account not found.' });
     if (user.role !== 'user') return res.status(403).json({ error: 'This account type cannot be deleted in-app. Please contact support.' });
-    if (!user.password || !bcrypt.compareSync(String(password), user.password)) {
+    if (!user.password || !await bcrypt.compare(String(password), user.password)) {
       return res.status(401).json({ error: 'Incorrect password.' });
     }
     const threads = await queryAll('SELECT id FROM message_threads WHERE user_id = ?', [id]);
@@ -9333,7 +9604,7 @@ app.post('/api/me/account/delete', verifyToken, rateLimiter(3, 60000), async (re
 });
 
 // ============ ADMIN: PERFORMANCE INSIGHTS ============
-app.get('/api/admin/performance-insights', async (req, res) => {
+app.get('/api/admin/performance-insights', verifyToken, requireOperator, async (req, res) => {
   try {
     const { source = 'all', from: dateFrom, to: dateTo, user_id: filterUserId } = req.query || {};
     const hasDate = dateFrom || dateTo;
@@ -9439,24 +9710,37 @@ app.get('/api/admin/performance-insights', async (req, res) => {
 });
 
 // ============ ADMIN: VIEW DATABASE ============
-app.get('/api/admin/db-view', async (req, res) => {
+app.get('/api/admin/db-view', verifyToken, requireSuperadmin, async (req, res) => {
   try {
     if (!pool) {
       return res.status(500).json({ error: 'Database not initialized' });
     }
 
     const tables = ['users', 'audit_requests', 'tribe_members', 'workout_logs', 'contact_messages', 'meetings', 'part2_audit', 'hydration_logs', 'weight_logs', 'sunday_checkins'];
+    // Columns that must never leave the database, even for a superadmin. Password
+    // hashes are offline-crackable and reset tokens are bearer credentials; neither
+    // has any legitimate use in a data browser.
+    const REDACTED_COLUMNS = new Set(['password', 'password_hash', 'reset_token', 'token']);
+    const redactRow = (row) => {
+      if (!row || typeof row !== 'object') return row;
+      const out = {};
+      for (const [k, v] of Object.entries(row)) {
+        out[k] = REDACTED_COLUMNS.has(String(k).toLowerCase()) && v ? '[REDACTED]' : v;
+      }
+      return out;
+    };
+
     const result = {};
-    
+
     for (const table of tables) {
       try {
         const rows = await queryAll(`SELECT * FROM ${table}`);
-        result[table] = rows;
+        result[table] = Array.isArray(rows) ? rows.map(redactRow) : rows;
       } catch (e) {
         result[table] = { error: e.message };
       }
     }
-    
+
     res.json({
       db: 'postgresql',
       tables: result,
@@ -10493,7 +10777,10 @@ app.get('/api/superadmin/bootstrap', async (req, res) => {
   try {
     const secret = req.query.secret || req.headers['x-bootstrap-secret'] || '';
     const expected = process.env.SUPERADMIN_BOOTSTRAP_SECRET || '';
-    if (!expected || secret !== expected) {
+    // Constant-time comparison so response timing cannot be used to recover the
+    // secret byte by byte. Also refuse a weak secret outright: this endpoint syncs
+    // the superadmin account, so a short value here is a real risk.
+    if (!expected || expected.length < 24 || !timingSafeEquals(String(secret), expected)) {
       return res.status(404).json({ error: 'Not found' });
     }
     const superadminEmailNorm = String(SUPERADMIN_EMAIL || '').trim().toLowerCase();
@@ -10714,8 +11001,11 @@ app.get('/reset-password', async (req, res) => {
   }
   try {
     const row = await queryOne(
-      "SELECT pr.id, pr.used, pr.expires_at, u.role FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token = ?",
-      [token]
+      "SELECT pr.id, pr.used, pr.expires_at, u.role FROM password_resets pr JOIN users u ON u.id = pr.user_id WHERE pr.token IN (?, ?)",
+      // Hash first; the raw token is the legacy form, accepted so links already in
+      // people's inboxes when this shipped keep working until they expire (24h).
+      // The plaintext arm can be deleted after that window.
+      [hashResetToken(token), token]
     );
     if (!row || row.used || new Date(row.expires_at) < new Date() || row.role !== 'user') {
       return res.send(resetPasswordHtml(false, 'This reset link is invalid or has expired. Please use Forgot Password to request a new one.'));
@@ -11400,31 +11690,45 @@ app.get('/api/feed/user-posts', async (req, res) => {
 });
 
 // ── POST /api/feed/upload ───────────────────────────────────────────
-app.post('/api/feed/upload', feedUpload ? feedUpload.single('image') : (req, _res, next) => next(), async (req, res) => {
+app.post('/api/feed/upload', verifyToken, feedUpload ? feedUpload.single('image') : (req, _res, next) => next(), async (req, res) => {
   try {
     const caption  = String(req.body?.caption  || '').trim().slice(0, 240);
-    const username = String(req.body?.username || 'bodybank_member').trim().slice(0, 32) || 'bodybank_member';
-    const featured = String(req.body?.featured || '') === '1';
+    // The poster is the authenticated user. A client-supplied username used to be
+    // accepted verbatim, so an anonymous caller could post to the public feed under
+    // any member's name. `featured` is an editorial flag and is staff-only.
+    const isStaff = ['admin', 'superadmin'].includes(req.user.role);
+    const owner = await queryOne('SELECT id, first_name, email FROM users WHERE id = ?', [req.user.id]);
+    if (!owner) return res.status(401).json({ error: 'Authentication required' });
+    const username = String(owner.first_name || owner.email || 'bodybank_member')
+      .trim().slice(0, 32) || 'bodybank_member';
+    const featured = isStaff && String(req.body?.featured || '') === '1';
     let imageData = '', imageMime = 'image/jpeg';
 
-    if (req.file && req.file.buffer && req.file.buffer.length) {
-      const parsed = bufferToFeedDataUrl(req.file.buffer, req.file.originalname);
-      imageData = parsed.imageData;
-      imageMime = parsed.imageMime;
-    } else if (req.body && req.body.imageData) {
-      const parsed = parseFeedImageInput(req.body.imageData);
-      imageData = parsed.imageData;
-      imageMime = parsed.imageMime;
-    } else {
-      return res.status(400).json({ error: 'Image is required (multipart "image" or base64 imageData).' });
+    // Image validation failures are the caller's fault, not a server fault: report
+    // them as 400 rather than letting them fall through to the 500 handler (which
+    // also echoed the raw exception message back to the client).
+    try {
+      if (req.file && req.file.buffer && req.file.buffer.length) {
+        const parsed = bufferToFeedDataUrl(req.file.buffer, req.file.originalname);
+        imageData = parsed.imageData;
+        imageMime = parsed.imageMime;
+      } else if (req.body && req.body.imageData) {
+        const parsed = parseFeedImageInput(req.body.imageData);
+        imageData = parsed.imageData;
+        imageMime = parsed.imageMime;
+      } else {
+        return res.status(400).json({ error: 'Image is required (multipart "image" or base64 imageData).' });
+      }
+    } catch (validationError) {
+      return res.status(400).json({ error: validationError.message });
     }
 
     const id = uuidv4();
     const likes = Math.floor(Math.random() * 70) + 12;
     await pool.query(
-      `INSERT INTO feed_posts (id, username, caption, image_data, image_mime, likes, featured)
-       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-      [id, username, caption || 'BodyBank.fit transformation in progress.', imageData, imageMime, likes, featured]
+      `INSERT INTO feed_posts (id, user_id, username, caption, image_data, image_mime, likes, featured)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+      [id, req.user.id, username, caption || 'BodyBank.fit transformation in progress.', imageData, imageMime, likes, featured]
     );
     const post = feedRowToPost({ id, username, caption, image_mime: imageMime, likes, featured, created_at: new Date().toISOString() });
     notifyAsync('FEED_POST_UPLOADED', { username, caption });
@@ -11436,16 +11740,20 @@ app.post('/api/feed/upload', feedUpload ? feedUpload.single('image') : (req, _re
 });
 
 // ── POST /api/feed/delete ───────────────────────────────────────────
-app.post('/api/feed/delete', async (req, res) => {
+app.post('/api/feed/delete', verifyToken, async (req, res) => {
   try {
-    const postId  = String(req.body?.postId  || '').trim();
-    const username = String(req.body?.username || '').trim().toLowerCase();
-    if (!postId)   return res.status(400).json({ error: 'postId is required.' });
-    if (!username) return res.status(400).json({ error: 'username is required.' });
+    const postId = String(req.body?.postId || '').trim();
+    if (!postId) return res.status(400).json({ error: 'postId is required.' });
 
-    const row = await queryOne('SELECT id, username FROM feed_posts WHERE id = $1', [postId]);
+    const row = await queryOne('SELECT id, user_id, username FROM feed_posts WHERE id = $1', [postId]);
     if (!row) return res.status(404).json({ error: 'Post not found.' });
-    if (String(row.username || '').toLowerCase() !== username) {
+
+    // Ownership comes from the session, never from the request body. The previous
+    // check compared against a username the caller supplied — and the feed listing
+    // hands out every post's username, so any post could be deleted by anyone.
+    const isStaff = ['admin', 'superadmin'].includes(req.user.role);
+    const ownsPost = row.user_id && String(row.user_id) === String(req.user.id);
+    if (!isStaff && !ownsPost) {
       return res.status(403).json({ error: 'You can delete only your own posts.' });
     }
     await pool.query('DELETE FROM feed_posts WHERE id = $1', [postId]);

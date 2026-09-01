@@ -14,7 +14,14 @@
     "clean-e2e": "node scripts/clean-e2e-data.js",
     "seed:muscle-demo": "node scripts/seed-muscle-ranking-demo.js",
     "backfill:nutrition-stats": "node scripts/backfill-nutrition-daily-stats.js",
-    "migrate:body-snapshots": "node scripts/ensure-body-snapshots-table.js"
+    "migrate:body-snapshots": "node scripts/ensure-body-snapshots-table.js",
+    "sec:db": "node tests/security/bootstrap-test-db.js",
+    "sec:db:reset": "node tests/security/bootstrap-test-db.js --reset",
+    "sec:server": "node tests/security/run-test-server.js",
+    "sec:scan": "node tests/security/scan-endpoint-auth.js",
+    "sec:scan:check": "node tests/security/scan-endpoint-auth.js --check",
+    "sec:test": "node tests/security/run-all.js",
+    "sec:load": "node tests/security/load-test.js"
   },
   "engines": {
     "node": ">=18.0.0"
@@ -29,9 +36,9 @@
     "firebase-admin": "^13.10.0",
     "google-auth-library": "^10.3.0",
     "jsonwebtoken": "^9.0.3",
-    "multer": "^2.1.1",
+    "multer": "^2.3.0",
     "node-cron": "^4.2.1",
-    "nodemailer": "^8.0.2",
+    "nodemailer": "^9.1.0",
     "pdf-parse": "^2.4.5",
     "pdfkit": "^0.18.0",
     "pg": "^8.18.0",
