@@ -18,11 +18,41 @@ Render dashboard → **bodybank-fit** → **Environment** → *Add environment v
 | --- | --- | --- |
 | `JWT_SECRET` | `WmtzMZ-7HWj39D4GUHpE-vwbE1FesTeUwUYBfFkwjeVqoZ-4wKc364M9wcsLhrKe` | Signs every session token. Was unset, so tokens were signed with a constant published in the public repo. Must be ≥32 chars or the server refuses to boot. |
 | `NODE_ENV` | `production` | Turns on HSTS, the 5xx error redaction, and the CORS allow-list. Without it the API reflects **any** origin. |
-| `ALLOWED_ORIGIN` | `https://www.bodybank.fit,https://bodybank.fit` | The only origins allowed to make credentialed cross-origin calls. Comma-separated, no spaces, no trailing slash. |
+| `ALLOWED_ORIGIN` | `https://www.bodybank.fit,https://bodybank.fit,https://localhost,capacitor://localhost` | The only origins allowed to make credentialed cross-origin calls. Comma-separated, **no spaces**, no trailing slash. **The last two are not a mistake — read the warning below.** |
 | `ADMIN_PASS` | `BB-Adm-q5J7JJFblxxp` | No default exists any more. Under 12 characters and the admin is not seeded. |
 | `SUPERADMIN_PASS` | `BB-Sup-UViSMQZLdoNR` | Same rule. Also replaces the removed `superadmin@gmail.com` backdoor. |
 | `SUPERADMIN_EMAIL` | `superadmin@bodybank.fit` | Set explicitly so the account is deterministic. |
 | `ADMIN_EMAIL` | `admin@bodybank.fit` | Also used as the fallback recipient for admin digests. |
+
+### ⚠️ Why `ALLOWED_ORIGIN` must include `localhost`
+
+The Android app is a Capacitor WebView. Its pages are served from **`https://localhost`**
+inside the app, and every API call to `www.bodybank.fit` is therefore *cross-origin*
+(`android/../www/js/bb-app-config.js` says so in as many words: "the WebView's own origin
+is https://localhost"). iOS uses `capacitor://localhost`.
+
+Right now CORS reflects every origin, because it is only restricted when `NODE_ENV` is
+`production` **and** `ALLOWED_ORIGIN` is set. The moment you set both, the allow-list
+becomes exact-match — and an obvious-looking value of just your two domains would block
+every API call the installed app makes. Verified on an isolated instance:
+
+```
+ALLOWED_ORIGIN = https://www.bodybank.fit,https://bodybank.fit
+  https://www.bodybank.fit   -> allowed
+  https://localhost          -> BLOCKED   <-- the Android app, dead
+  capacitor://localhost      -> BLOCKED   <-- iOS, dead
+
+ALLOWED_ORIGIN = ...,https://localhost,capacitor://localhost
+  https://www.bodybank.fit   -> allowed
+  https://localhost          -> allowed
+  capacitor://localhost      -> allowed
+  https://evil.example       -> BLOCKED
+  https://bodybank.fit.evil.com -> BLOCKED   (no prefix/suffix matching)
+```
+
+Use the four-entry value in the table. It still refuses every other origin, including
+lookalikes.
+
 
 **Rotating `JWT_SECRET` signs everyone out once.** That is the point — it invalidates
 every token minted with the old published key. Users simply log in again.
@@ -36,7 +66,7 @@ The values above are freshly generated and unique to you. Nothing else has them.
 | Key | Value | Why |
 | --- | --- | --- |
 | `NUTRITION_PHOTO_LINK_SECRET` | `dB6LEtptB61XasgpshqokYPdDMyonPTq56RzZYt-aEU` | HMAC key for signed meal-photo URLs. If unset, those links are signed with an empty key. |
-| `RESET_BASE_URL` | `https://www.bodybank.fit` | Base for password-reset links. If unset in production it falls back to the request host, which an attacker can influence via the `Host` header. **Set it.** |
+| `RESET_BASE_URL` | `https://www.bodybank.fit` | Base for password-reset links. This used to fall back to the request `Host` header, which made password-reset poisoning possible; that fallback is gone. If nothing is configured the server now falls back to the first `ALLOWED_ORIGIN` entry, then `RENDER_EXTERNAL_URL`, and if all are empty it declines to send the email rather than emit a poisonable link. Set it explicitly so reset links use your custom domain rather than `*.onrender.com`. |
 | `OPERATOR_EMAIL` | `operator@bodybank.fit` | Only needed if you use the operator role. |
 | `OPERATOR_PASS` | `BB-Ops-_Y3-kvwmleG0` | Operator is only provisioned when both are set. |
 
