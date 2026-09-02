@@ -254,7 +254,7 @@ function renderAdminHome() {
       // the other — the desktop media query sets .admin-dash-page to
       // display:none !important — which is why these two features could not be
       // seen on the web console at all.
-      + tile(na.total, 'Assessments', (na.complete || 0) + ' completed', 'info', 'tab', 'nutritionassessment')
+      + tile(na.total, 'FitChef Assessment', (na.complete || 0) + ' completed', 'info', 'tab', 'nutritionassessment')
       // Flagged submissions are a safety gate a human has to clear (clinician
       // referral, pregnancy, disordered-eating signal), so this tile goes red the
       // moment there is one.
@@ -290,6 +290,12 @@ var AH_QUICK = [
   { icon: '🎯', label: 'Leads', kind: 'tab', to: 'leads' },
   { icon: '👥', label: 'Client Board', kind: 'tab', to: 'tribe' },
   { icon: '📋', label: 'Audit Forms', kind: 'tab', to: 'requests' },
+  // Sits next to Audit Forms because it is the same job — an intake form staff
+  // read and action — rather than buried under Analytics.
+  { icon: '🍽️', label: 'FitChef Assessment', kind: 'tab', to: 'nutritionassessment' },
+  // No dedicated tab: watch data is read per member, and Client Progress is where
+  // the Readiness sub-tab lives.
+  { icon: '⌚', label: 'Watch Data', kind: 'tab', to: 'clientprogress' },
   { icon: '📅', label: 'Daily Check-ins', kind: 'tab', to: 'dailycheckin' },
   { icon: '🏋️', label: 'Workouts', kind: 'tab', to: 'workouts' },
   { icon: '🗂️', label: 'Programs', kind: 'tab', to: 'programs' },

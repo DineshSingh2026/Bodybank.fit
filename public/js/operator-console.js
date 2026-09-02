@@ -1428,7 +1428,7 @@ async function opNaOpen(id) {
   var head = opStoryBackBtn() + opAvatar(null, row.name, 'xl')
     + '<div class="op-story-id"><div class="op-story-title">' + opEsc(row.name) + '</div>'
     + '<div class="op-story-sub">' + opEsc([row.email, row.mobile].filter(Boolean).join(' \u00b7 ')) + '</div></div>'
-    + '<div class="op-story-pills"><span class="op-tag">Nutrition assessment</span></div>';
+    + '<div class="op-story-pills"><span class="op-tag">FitChef assessment</span></div>';
 
   var wa = opWa(row.mobile);
   var h = '<div class="op-actbar">';
@@ -1493,7 +1493,7 @@ function renderOperatorLeads() {
     var na = ((opState.na || {}).rows || []).filter(function (p) { return bbContactMatches(q, [p.name, p.email], [p.mobile]); });
     var sm = (opState.na || {}).summary || {};
     var l0 = opEl('opLeadLine'), s0 = opEl('opLeadSub');
-    if (l0) l0.innerHTML = '<b>' + na.length + '</b> nutrition assessment' + (na.length === 1 ? '' : 's');
+    if (l0) l0.innerHTML = '<b>' + na.length + '</b> FitChef assessment' + (na.length === 1 ? '' : 's');
     if (s0) s0.textContent = [
       (sm.complete || 0) + ' completed', (sm.partial || 0) + ' in progress',
       (sm.flagged || 0) + ((sm.flagged || 0) === 1 ? ' needs review' : ' need review')
@@ -1715,6 +1715,7 @@ async function loadOperatorOverview() {
     }
     opDrawTrendChart(data.trends);
     opRenderAssessmentsAndWearables(data);
+    opRenderQuickAccess(data);
   } catch (e) { }
 }
 
@@ -1750,7 +1751,7 @@ function opRenderAssessmentsAndWearables(data) {
 
   if (na) {
     var needs = Number(na.needs_review) || 0;
-    h += '<div class="op-sub">Nutrition assessments</div>'
+    h += '<div class="op-sub">FitChef assessments</div>'
       + '<div class="op-kpi-row" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px">'
       + opExtraStat('Completed', (Number(na.complete) || 0) + ' / ' + (Number(na.total) || 0))
       + opExtraStat('In progress', Number(na.in_progress) || 0)
@@ -1761,7 +1762,7 @@ function opRenderAssessmentsAndWearables(data) {
       // These are safety flags a human has to clear — a clinician referral, a
       // pregnancy, a disordered-eating signal — so they get a direct route.
       h += '<button type="button" class="op-bub more" onclick="opNav(\'prospects\');opLeadsView(\'nutrition\')">'
-        + 'Review ' + needs + ' flagged assessment' + (needs === 1 ? '' : 's') + '</button>';
+        + 'Review ' + needs + ' flagged FitChef assessment' + (needs === 1 ? '' : 's') + '</button>';
     }
   }
 
@@ -1790,6 +1791,59 @@ function opRenderAssessmentsAndWearables(data) {
     }
   }
 
+  host.innerHTML = h;
+}
+
+/**
+ * Quick access tiles on the operator home.
+ *
+ * Both destinations already existed but were effectively unreachable: the FitChef
+ * assessments sat behind a chip inside Prospects, and watch data only appeared on
+ * a member's own Readiness tab. These put a live count on the home screen and go
+ * straight there.
+ *
+ * The whole block stays hidden against an older server payload — a tile reading 0
+ * would claim "nobody has submitted one", which is a different statement from
+ * "this server does not report it yet".
+ */
+function opRenderQuickAccess(data) {
+  var block = opEl('opQuickBlock');
+  var host = opEl('opQuickAccess');
+  if (!block || !host) return;
+
+  var na = (data && data.nutritionAssessments) || null;
+  var wr = (data && data.wearables) || null;
+  if (!na && !wr) { block.style.display = 'none'; return; }
+  block.style.display = '';
+
+  var tile = function (n, label, sub, tone, onclick) {
+    return '<button type="button" class="op-mon-tile' + (tone ? ' ' + tone : '') + (Number(n) ? '' : ' zero') + '"'
+      + ' onclick="' + onclick + '">'
+      + '<span class="op-mon-n">' + (Number(n) || 0) + '</span>'
+      + '<span class="op-mon-l">' + opEsc(label) + '</span>'
+      + '<span class="op-mon-s">' + opEsc(sub) + '</span>'
+      + '</button>';
+  };
+
+  var h = '';
+  if (na) {
+    var needs = Number(na.needs_review) || 0;
+    h += tile(na.total, 'FitChef assessments', (Number(na.complete) || 0) + ' completed', 'info',
+      'opNav(&quot;prospects&quot;);opLeadsView(&quot;nutrition&quot;)');
+    // Safety flags a human has to clear, so this one is red whenever it is non-zero.
+    h += tile(needs, 'Need review', needs ? 'before a plan goes out' : 'all clear',
+      needs > 0 ? 'bad' : 'ok',
+      'opNav(&quot;prospects&quot;);opLeadsView(&quot;nutrition&quot;)');
+  }
+  if (wr) {
+    var mix = Array.isArray(wr.by_device) ? wr.by_device : [];
+    var sub = mix.length
+      ? mix.slice(0, 2).map(function (d) { return String(d.provider || '').replace(/_/g, ' '); }).join(', ')
+        + (mix.length > 2 ? ' +' + (mix.length - 2) : '')
+      : 'none imported yet';
+    h += tile(wr.members, 'Watch data', sub, 'info', 'opNav(&quot;clients&quot;)');
+    h += tile(wr.uploads_7d, 'Imports', 'in the last 7 days', 'ok', 'opNav(&quot;pulse&quot;)');
+  }
   host.innerHTML = h;
 }
 
@@ -2044,6 +2098,11 @@ function renderOperatorHome() {
       + opMonTile('nosunday', 'Missed Sunday', 'no weekly check-in', 'amber')
       + opMonTile('newthisweek', 'New this week', 'joined in 7 days', 'info');
   }
+
+  // renderOperatorHome() is also called on its own (after a client action, on a
+  // filter change), not only behind loadOperatorOverview(). Re-render the quick
+  // access tiles from whatever overview we already hold so they do not blank out.
+  opRenderQuickAccess(opState.overview);
 
   opRenderHomeFeed();
 }

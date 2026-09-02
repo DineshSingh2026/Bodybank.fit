@@ -5115,8 +5115,8 @@ button.bb-today-pill{cursor:pointer}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
-<script src="js/operator-console.js?v=11"></script>
-<script src="js/admin-home.js?v=5"></script>
+<script src="js/operator-console.js?v=12"></script>
+<script src="js/admin-home.js?v=6"></script>
 <script src="js/countries.js?v=1"></script>
 <script src="js/member-home.js?v=7"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
@@ -6922,7 +6922,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
               <div class="mh-up-top">
                 <span class="mh-up-ico" aria-hidden="true">&#129367;</span>
                 <div class="mh-up-id">
-                  <div class="mh-up-title">FitChef Nutrition Assessment</div>
+                  <div class="mh-up-title">FitChef Assessment</div>
                   <div class="mh-up-sub">The deep one. It turns what you actually eat into a plan built around it &mdash; your calorie and protein targets, a sample day, and a grocery plan.</div>
                 </div>
               </div>
@@ -8190,7 +8190,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="admin-tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
       <div class="admin-tab" data-tab="meetings" onclick="switchTab('meetings')">Meetings</div>
       <div class="admin-tab" data-tab="part2" onclick="switchTab('part2')">Part-2 Form</div>
-      <div class="admin-tab" data-tab="nutritionassessment" onclick="switchTab('nutritionassessment')">Nutrition Assessment</div>
+      <div class="admin-tab" data-tab="nutritionassessment" onclick="switchTab('nutritionassessment')">FitChef Assessment</div>
       <div class="admin-tab sc-style" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin')">Sunday Check-in</div>
       <div class="admin-tab" data-tab="dailycheckin" onclick="switchTab('dailycheckin')">Daily Check-In</div>
         <div class="admin-tab" data-tab="dailycompliance" onclick="switchTab('dailycompliance')">Daily Compliance</div>
@@ -8514,14 +8514,14 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
                per-member staff views but no presence on any dashboard, so an admin on
                mobile — where this console is the whole surface — could not see that
                either existed. Rendered by bbmdRenderExtras(). -->
-          <section class="bbmd-card bbmd-block" aria-label="Nutrition assessments and watch data">
+          <section class="bbmd-card bbmd-block" aria-label="FitChef assessments and watch data">
             <div class="bbmd-sec-head">
-              <h3 class="bbmd-sec-title">Assessments &amp; wearables</h3>
-              <button type="button" class="bbmd-sec-link" onclick="switchTab('nutritionassessment');return false">Assessments &rsaquo;</button>
+              <h3 class="bbmd-sec-title">FitChef &amp; wearables</h3>
+              <button type="button" class="bbmd-sec-link" onclick="switchTab('nutritionassessment');return false">FitChef &rsaquo;</button>
             </div>
             <div class="bbmd-meters" id="bbmdNaMeters">
               <div>
-                <div class="bbmd-meter-top"><span class="bbmd-meter-lbl">Assessments completed</span><span class="bbmd-meter-val" id="bbmdNaVal">&mdash;</span></div>
+                <div class="bbmd-meter-top"><span class="bbmd-meter-lbl">FitChef completed</span><span class="bbmd-meter-val" id="bbmdNaVal">&mdash;</span></div>
                 <div class="bbmd-meter-track"><div class="bbmd-meter-fill" id="bbmdNaBar"></div></div>
               </div>
               <div>
@@ -8588,6 +8588,12 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('workouts');return false"><span class="bbmd-qa-ic">&#127939;</span><span class="bbmd-qa-txt">Workouts</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('tribe');return false"><span class="bbmd-qa-ic">&#128101;</span><span class="bbmd-qa-txt">Clients</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('requests');return false"><span class="bbmd-qa-ic">&#128209;</span><span class="bbmd-qa-txt">Audits</span></a>
+            <!-- Kept next to Audits: both are intake forms staff read and action.
+                 Position matters — the grid collapses past the 8th item on phones
+                 (.bbmd-qa-grid.is-collapsed .bbmd-qa-btn:nth-child(n+7)), so these
+                 sit above the fold rather than behind "Show all". -->
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('nutritionassessment');return false"><span class="bbmd-qa-ic">&#127869;</span><span class="bbmd-qa-txt">FitChef</span></a>
+            <a class="bbmd-qa-btn" href="#" onclick="switchTab('clientprogress');return false"><span class="bbmd-qa-ic">&#8986;</span><span class="bbmd-qa-txt">Watch data</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('memberships');return false"><span class="bbmd-qa-ic">&#128179;</span><span class="bbmd-qa-txt">Members</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('blood');return false"><span class="bbmd-qa-ic">&#129656;</span><span class="bbmd-qa-txt">Blood</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchToSection('elitefeed');return false"><span class="bbmd-qa-ic">&#128248;</span><span class="bbmd-qa-txt">Elite feed</span></a>
@@ -9167,7 +9173,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       </div>
 
       <div class="sc-dash-head" style="margin-top:20px">
-        <h3 class="sunday-checkin-title sc-dash-title">FitChef Nutrition Assessment</h3>
+        <h3 class="sunday-checkin-title sc-dash-title">FitChef Assessment</h3>
         <p class="form-hint sc-dash-sub" id="naDashSub">Loading&hellip;</p>
       </div>
       <div class="sc-stat-row" role="group" aria-label="Nutrition assessment summary">
@@ -10193,6 +10199,16 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <div class="op-mon" id="opMonWatch"></div>
           </section>
 
+          <!-- Quick access. The FitChef assessments and watch-data imports were
+               only reachable by knowing to open Prospects and switch the chip, so
+               they are surfaced here with live counts. Filled by
+               opRenderQuickAccess(); hidden entirely on an older server build that
+               does not return those blocks, rather than showing false zeros. -->
+          <section class="op-brief-block" id="opQuickBlock" style="display:none">
+            <div class="op-brief-head"><h2 class="op-brief-title">Quick access</h2></div>
+            <div class="op-mon" id="opQuickAccess"></div>
+          </section>
+
           <!-- The three things that actually need doing -->
           <section class="op-brief-block">
             <div class="op-brief-head">
@@ -10289,7 +10305,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="op-chips" id="opLeadsSeg">
         <button type="button" class="op-chip active" data-lv="audits" onclick="opLeadsView('audits')">Body audits</button>
         <button type="button" class="op-chip" data-lv="part2" onclick="opLeadsView('part2')">Part-2 forms</button>
-        <button type="button" class="op-chip" data-lv="nutrition" onclick="opLeadsView('nutrition')">Nutrition assessments</button>
+        <button type="button" class="op-chip" data-lv="nutrition" onclick="opLeadsView('nutrition')">FitChef assessments</button>
       </div>
       <div class="op-scroll">
         <div class="op-cards" id="opLeadCards"><div class="op-empty pad">Loading…</div></div>
@@ -10884,7 +10900,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
 <div class="modal-overlay view-detail-modal" id="naViewModal" onclick="if(event.target===this)closeModal('naViewModal')">
   <div class="modal" style="max-width:760px">
     <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('naViewModal')" aria-label="Close">&times;</button>
-    <h2 class="sunday-checkin-title">Nutrition Assessment</h2>
+    <h2 class="sunday-checkin-title">FitChef Assessment</h2>
     <div class="view-detail-body" id="naViewBody"></div>
     <div class="view-detail-actions" id="naViewActions"></div>
   </div>
@@ -14470,11 +14486,11 @@ async function bbmdRender(stats) {
   var na = ov.nutritionAssessments || {};
   if ((Number(na.needs_review) || 0) > 0) {
     chips.push('<button type="button" class="bbmd-chip bbmd-chip--bad" onclick="switchTab(\'nutritionassessment\')"><b>'
-      + Number(na.needs_review) + '</b> assessment' + (Number(na.needs_review) === 1 ? '' : 's') + ' need review</button>');
+      + Number(na.needs_review) + '</b> FitChef assessment' + (Number(na.needs_review) === 1 ? '' : 's') + ' need review</button>');
   }
   if ((Number(na.new_7d) || 0) > 0) {
     chips.push('<button type="button" class="bbmd-chip bbmd-chip--ok" onclick="switchTab(\'nutritionassessment\')"><b>'
-      + Number(na.new_7d) + '</b> new assessment' + (Number(na.new_7d) === 1 ? '' : 's') + '</button>');
+      + Number(na.new_7d) + '</b> new FitChef assessment' + (Number(na.new_7d) === 1 ? '' : 's') + '</button>');
   }
   // Watch data — nothing here is urgent, so it is informational only.
   var wr = ov.wearables || {};
@@ -18079,7 +18095,7 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', nutritionassessment: 'Nutrition Assessment', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', nutritionassessment: 'FitChef Assessment', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens' };
 var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', nutritionassessment: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {

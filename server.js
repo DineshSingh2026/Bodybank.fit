@@ -8381,8 +8381,8 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
         name: r.full_name || 'Prospect',
         type: 'assessment',
         label: r.review_status === 'blocked'
-          ? 'Nutrition assessment — needs review'
-          : (r.status === 'complete' ? 'Nutrition assessment completed' : 'Nutrition assessment started'),
+          ? 'FitChef assessment — needs review'
+          : (r.status === 'complete' ? 'FitChef assessment completed' : 'FitChef assessment started'),
         created_at: r.created_at
       }));
     } catch (_) { /* not migrated here */ }
@@ -8565,8 +8565,8 @@ app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res)
         name: r.full_name || 'Prospect',
         type: 'assessment',
         label: r.review_status === 'blocked'
-          ? 'Nutrition assessment — needs review'
-          : (r.status === 'complete' ? 'Nutrition assessment completed' : 'Nutrition assessment started'),
+          ? 'FitChef assessment — needs review'
+          : (r.status === 'complete' ? 'FitChef assessment completed' : 'FitChef assessment started'),
         created_at: r.created_at
       }));
     } catch (_) { /* table not migrated here */ }

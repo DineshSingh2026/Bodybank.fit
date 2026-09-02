@@ -217,7 +217,7 @@ section('opRenderAssessmentsAndWearables — the operator pulse screen');
     sandbox.opRenderAssessmentsAndWearables(PAYLOAD);
     const out = dom.get('opExtras').innerHTML;
 
-    check(/Nutrition assessments/.test(out), 'the operator sees a nutrition assessment block');
+    check(/FitChef assessments/.test(out), 'the operator sees a FitChef assessment block');
     check(/Needs review/.test(out) && />3</.test(out),
       'including the 3 that need a human decision');
     check(/opLeadsView\('nutrition'\)/.test(out),
@@ -278,7 +278,7 @@ section('the dual-pane rule: BOTH admin dashboards carry both features');
   const adminHome = fs.readFileSync(path.join(ROOT, 'public', 'js', 'admin-home.js'), 'utf8');
   check(/d\.nutritionAssessments/.test(adminHome) && /d\.wearables/.test(adminHome),
     'admin-home.js reads both blocks off the payload');
-  check(/'Assessments'/.test(adminHome), 'the desktop pane renders an Assessments tile');
+  check(/'FitChef Assessment'/.test(adminHome), 'the desktop pane renders a FitChef Assessment tile');
   check(/'Need review'/.test(adminHome), 'and a Need review tile');
   check(/'Watch data'/.test(adminHome), 'and a Watch data tile');
   check(/nutritionassessment/.test(adminHome),
@@ -301,7 +301,7 @@ section('the dual-pane rule: BOTH admin dashboards carry both features');
   };
   sb.renderAdminHome();
   const pipe = (ids.ahTilesPipeline && ids.ahTilesPipeline.innerHTML) || '';
-  check(/Assessments/.test(pipe) && /Need review/.test(pipe) && /Watch data/.test(pipe),
+  check(/FitChef Assessment/.test(pipe) && /Need review/.test(pipe) && /Watch data/.test(pipe),
     'all three tiles actually render on the desktop pane');
   check(/>7</.test(pipe) && />2</.test(pipe),
     'and they show the real numbers from the payload');
@@ -313,6 +313,101 @@ section('the dual-pane rule: BOTH admin dashboards carry both features');
   let threw = false;
   try { sb.renderAdminHome(); } catch (e) { threw = true; }
   check(!threw, 'an OLD server payload renders 0s rather than throwing and blanking the dashboard');
+}
+
+/* ------------------------------------------------------------------ *
+ * 3c. Quick Access + the FitChef name
+ * ------------------------------------------------------------------ */
+
+section('Quick Access carries both features on every pane');
+{
+  const adminHome = fs.readFileSync(path.join(ROOT, 'public', 'js', 'admin-home.js'), 'utf8');
+
+  // --- desktop quick access grid ---
+  const qi = adminHome.indexOf('var AH_QUICK');
+  const quick = adminHome.slice(qi, adminHome.indexOf('];', qi));
+  check(/FitChef Assessment/.test(quick), 'desktop Quick Access has a FitChef Assessment entry');
+  check(/Watch Data/.test(quick), 'desktop Quick Access has a Watch Data entry');
+  check(/to: 'nutritionassessment'/.test(quick), 'and it routes to the assessment tab');
+
+  // Render the real grid rather than trusting the array.
+  const ids = {};
+  const sb = {
+    document: { getElementById: (id) => (ids[id] = ids[id] || { id, innerHTML: '', classList: { add() {}, remove() {} }, style: {} }) },
+    escapeHtml: (v) => String(v === null || v === undefined ? '' : v),
+    switchTab() {}, apiCall: async () => ({}), console, setTimeout
+  };
+  sb.window = sb;
+  vm.createContext(sb);
+  vm.runInContext(adminHome, sb, { filename: 'admin-home.js' });
+  sb.renderAdminQuick();
+  const grid = (ids.ahQuick && ids.ahQuick.innerHTML) || '';
+  check(/FitChef Assessment/.test(grid) && /Watch Data/.test(grid),
+    'both actually render as Quick Access buttons on desktop');
+
+  // --- mobile quick access grid ---
+  const mi = indexHtml.indexOf('id="bbmdQaGrid"');
+  const mgrid = indexHtml.slice(mi, indexHtml.indexOf('</div>', indexHtml.indexOf('bbmd-qa-more', mi) - 400));
+  check(/switchTab\('nutritionassessment'\)/.test(mgrid), 'mobile Quick Access links to the assessment tab');
+  check(/Watch data/.test(mgrid), 'mobile Quick Access has a Watch data button');
+
+  // --- operator quick access ---
+  check(/function opRenderQuickAccess/.test(opConsole), 'the operator console has a Quick Access renderer');
+  check(/id="opQuickAccess"/.test(indexHtml) && /id="opQuickBlock"/.test(indexHtml),
+    'and the operator home carries its container');
+
+  const dom = makeDom();
+  const osb = {
+    document: dom.doc,
+    opEl: (id) => dom.get(id),
+    opEsc: (s) => String(s === null || s === undefined ? '' : s),
+    console
+  };
+  osb.window = osb;
+  vm.createContext(osb);
+  const qStart = opConsole.indexOf('function opRenderQuickAccess');
+  const qEnd = opConsole.indexOf('\nfunction opExtraStat');
+  vm.runInContext(opConsole.slice(qStart, qEnd), osb, { filename: 'op-quick' });
+  osb.opRenderQuickAccess(PAYLOAD);
+  const oq = dom.get('opQuickAccess').innerHTML;
+  check(/FitChef assessments/.test(oq), 'operator Quick Access shows FitChef assessments');
+  check(/Need review/.test(oq) && />3</.test(oq), 'with the live flagged count');
+  check(/Watch data/.test(oq), 'and a Watch data tile');
+  check(/opLeadsView\(&quot;nutrition&quot;\)/.test(oq), 'routing straight to the assessment list');
+  check(dom.get('opQuickBlock').style.display === '', 'the block is revealed when data is present');
+
+  // Old payload -> hide the block entirely rather than show false zeros.
+  const dom2 = makeDom();
+  const osb2 = Object.assign({}, osb, { document: dom2.doc, opEl: (id) => dom2.get(id) });
+  osb2.window = osb2;
+  vm.createContext(osb2);
+  vm.runInContext(opConsole.slice(qStart, qEnd), osb2, { filename: 'op-quick-old' });
+  osb2.opRenderQuickAccess({ stats: {} });
+  check(dom2.get('opQuickBlock').style.display === 'none',
+    'against an OLD server payload the block hides rather than claiming zero');
+}
+
+section('the feature is named FitChef Assessment throughout the staff UI');
+{
+  const adminHome = fs.readFileSync(path.join(ROOT, 'public', 'js', 'admin-home.js'), 'utf8');
+
+  check(/>FitChef Assessment<\/div>/.test(indexHtml), 'the admin nav tab reads FitChef Assessment');
+  check(/nutritionassessment: 'FitChef Assessment'/.test(indexHtml),
+    'the section-label map reads FitChef Assessment (drives the breadcrumb)');
+  check(/'FitChef Assessment'/.test(adminHome), 'the desktop tile reads FitChef Assessment');
+  check(/FitChef assessments<\/button>/.test(indexHtml), 'the operator chip reads FitChef assessments');
+  check(/FitChef assessments/.test(opConsole), 'the operator pulse block reads FitChef assessments');
+  check(/'FitChef assessment — needs review'/.test(serverJs)
+    && /'FitChef assessment completed'/.test(serverJs),
+  'the activity feed labels read FitChef assessment');
+
+  // The old bare wording must be gone from staff-facing copy. Comments and the
+  // route/table names deliberately keep "nutrition_assessment" — that is the
+  // schema, not a label.
+  const staleTab = />Nutrition Assessment<\/div>/.test(indexHtml);
+  check(!staleTab, 'no staff nav tab still reads the old "Nutrition Assessment"');
+  check(!/>Nutrition assessments<\/button>/.test(indexHtml),
+    'no staff chip still reads the old "Nutrition assessments"');
 }
 
 /* ------------------------------------------------------------------ *
@@ -344,11 +439,11 @@ section('changed JS assets carry a bumped cache-busting version');
   // files that actually changed were bumped past the versions that shipped stale.
   const opV = /js\/operator-console\.js\?v=(\d+)/.exec(indexHtml);
   const mhV = /js\/member-home\.js\?v=(\d+)/.exec(indexHtml);
-  check(opV && Number(opV[1]) >= 11,
-    'operator-console.js is past v10 (was stale at v10) — now v' + (opV && opV[1]));
+  check(opV && Number(opV[1]) >= 12,
+    'operator-console.js is past v11 (Quick Access changed) — now v' + (opV && opV[1]));
   const ahV = /js\/admin-home\.js\?v=(\d+)/.exec(indexHtml);
-  check(ahV && Number(ahV[1]) >= 5,
-    'admin-home.js is past v4 (the desktop pane renderer changed) — now v' + (ahV && ahV[1]));
+  check(ahV && Number(ahV[1]) >= 6,
+    'admin-home.js is past v5 (Quick Access changed) — now v' + (ahV && ahV[1]));
   check(mhV && Number(mhV[1]) >= 7,
     'member-home.js is past v6 (was stale at v6) — now v' + (mhV && mhV[1]));
 
