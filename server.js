@@ -22,7 +22,7 @@ try {
 const webPush = require('web-push');
 let firebaseAdmin = null;
 try { firebaseAdmin = require('firebase-admin'); } catch (_) { firebaseAdmin = null; }
-const { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken } = require('./middleware/auth');
+const { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken, JWT_SECRET: AUTH_JWT_SECRET } = require('./middleware/auth');
 const { safeExtraHttpHeaders, optionalApiAccessLog, redactServerErrors } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
@@ -30,6 +30,7 @@ const { createBloodRouter, createBloodPublicRouter } = require('./routes/blood')
 const { createReferralRouter } = require('./routes/referrals');
 const { createWearablesRouter } = require('./routes/wearables');
 const { createMarketingAIRouter } = require('./routes/marketingAI');
+const { createNutritionAssessmentRouter } = require('./routes/nutritionAssessment');
 const cron = require('node-cron');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
@@ -1686,6 +1687,43 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS notes TEXT`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE body_snapshots ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_body_snapshots_user_date ON body_snapshots(user_id, snapshot_date DESC)`); } catch (e) { /* ignore */ }
+
+  // ── FitChef Nutrition Assessment ────────────────────────────────────────
+  // Over a hundred questions, so the answers live in JSONB keyed by step rather
+  // than one column per question — part2_audit took the other road and needed
+  // twenty ALTER TABLE patches to reach twenty fields. Only the columns the
+  // admin list filters, sorts or searches on are promoted out of the blob.
+  await pool.query(`CREATE TABLE IF NOT EXISTS nutrition_assessments (
+    id TEXT PRIMARY KEY,
+    user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+    status TEXT DEFAULT 'partial',
+    last_step INTEGER DEFAULT 1,
+    full_name TEXT DEFAULT '',
+    email TEXT DEFAULT '',
+    mobile TEXT DEFAULT '',
+    city TEXT DEFAULT '',
+    goal_primary TEXT DEFAULT '',
+    diet_type TEXT DEFAULT '',
+    answers JSONB DEFAULT '{}'::jsonb,
+    derived JSONB DEFAULT '{}'::jsonb,
+    flags JSONB DEFAULT '[]'::jsonb,
+    review_status TEXT DEFAULT '',
+    review_note TEXT DEFAULT '',
+    reviewed_by TEXT DEFAULT '',
+    reviewed_at TIMESTAMPTZ,
+    consent_health BOOLEAN DEFAULT FALSE,
+    consent_marketing BOOLEAN DEFAULT FALSE,
+    consent_ip TEXT DEFAULT '',
+    consent_at TIMESTAMPTZ,
+    ref_source TEXT DEFAULT '',
+    submitted_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_nutrition_assessments_user ON nutrition_assessments(user_id, created_at DESC)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_nutrition_assessments_status ON nutrition_assessments(status, created_at DESC)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_nutrition_assessments_email ON nutrition_assessments(LOWER(email))`); } catch (e) { /* ignore */ }
+
   await pool.query(`CREATE TABLE IF NOT EXISTS leaderboard_virtual_config (
     id INTEGER PRIMARY KEY,
     enabled BOOLEAN DEFAULT TRUE,
@@ -10597,6 +10635,36 @@ app.use(
     rateLimiter
   })
 );
+// ── FitChef Nutrition Assessment ─────────────────────────────────────────────
+// Deliberately not behind verifyToken at the mount: the form is reachable with a
+// signed invite link and with the plain shareable link, so each route inside
+// applies its own gate (staff routes use verifyToken + requireOperator/admin).
+app.use(
+  '/api/nutrition-assessment',
+  createNutritionAssessmentRouter({
+    run,
+    queryOne,
+    queryAll,
+    verifyToken,
+    requireAdminOrSuperadmin,
+    requireOperator,
+    rateLimiter,
+    jwtSecret: AUTH_JWT_SECRET,
+    uploadsDir: FEED_UPLOADS_DIR,
+    multer,
+    onSubmit: ({ id, identity, flags }) => {
+      const flagged = flags.filter((f) => f.block);
+      sendPushToAdmins(JSON.stringify({
+        title: flagged.length ? '⚠ Nutrition Assessment — needs review' : 'New Nutrition Assessment',
+        body: `${identity.full_name || identity.email} submitted the FitChef assessment`
+          + (flagged.length ? ` — ${flagged.map((f) => f.label).join(', ')}` : ''),
+        id: 'nutrition-assessment-' + id,
+        link: 'nutritionassessment'
+      })).catch(() => {});
+    }
+  })
+);
+
 app.get('/api/admin/user-progress/:userId', (req, res, next) => {
   if (NODE_ENV === 'development' && (!req.headers.authorization || !String(req.headers.authorization).startsWith('Bearer '))) {
     return progressService.getAdminUserProgress(req.params.userId)
@@ -11563,6 +11631,10 @@ const feedUpload = multer
 // filename, with no login and no expiry. Patient reports are only ever served by an
 // authenticated route (/api/blood/...) or a revocable share token (/r/blood/...).
 app.use('/uploads/health-reports', (req, res) => res.status(404).send('Not found'));
+// Assessment attachments are progress photos and lab reports — sensitive personal
+// data under DPDP. /uploads is a public static mount, so this directory is closed
+// off here and served only through the staff-authenticated route on the router.
+app.use('/uploads/nutrition-assessment', (req, res) => res.status(404).send('Not found'));
 app.use('/uploads', express.static(FEED_UPLOADS_DIR, {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
 }));

@@ -1,0 +1,20 @@
+{
+  "date": "2025-04-01",
+  "sleep_start_time": "2025-03-31T23:18:00",
+  "sleep_end_time": "2025-04-01T06:42:00",
+  "device_id": "POLAR-ABC123",
+  "continuity": 3.2,
+  "continuity_class": 3,
+  "light_sleep": 13800,
+  "deep_sleep": 4500,
+  "rem_sleep": 5100,
+  "unrecognized_sleep_stage": 300,
+  "total_interruption_duration": 1500,
+  "short_interruption_duration": 900,
+  "long_interruption_duration": 600,
+  "sleep_score": 81,
+  "sleep_charge": 3,
+  "sleep_goal": 28800,
+  "sleep_rating": 4,
+  "sleep_cycles": 5
+}

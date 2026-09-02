@@ -6912,20 +6912,36 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <div id="mhSlotBody"></div>
         </section>
         <section class="mh-block">
-          <div class="mh-head"><h3 class="mh-title">Send us your reports</h3></div>
+          <div class="mh-head"><h3 class="mh-title">Your reports &amp; assessments</h3></div>
           <div class="mh-uploads">
+
+            <!-- The nutrition assessment lives beside the uploads because this
+                 block answers "where do I put things" - and this is the one
+                 place a member hands over how they actually eat. -->
+            <div class="mh-up" id="mhNaTile">
+              <div class="mh-up-top">
+                <span class="mh-up-ico" aria-hidden="true">&#129367;</span>
+                <div class="mh-up-id">
+                  <div class="mh-up-title">FitChef Nutrition Assessment</div>
+                  <div class="mh-up-sub">The deep one. It turns what you actually eat into a plan built around it &mdash; your calorie and protein targets, a sample day, and a grocery plan.</div>
+                </div>
+              </div>
+              <div class="mh-up-state" id="mhNaState"></div>
+              <button type="button" class="mh-up-btn" id="mhNaBtn" onclick="mhOpenNutritionAssessment()">Start the assessment</button>
+              <div class="mh-up-hint" id="mhNaHint">Loading&hellip;</div>
+            </div>
 
             <div class="mh-up">
               <div class="mh-up-top">
                 <span class="mh-up-ico" aria-hidden="true">&#8986;</span>
                 <div class="mh-up-id">
-                  <div class="mh-up-title">Whoop report</div>
-                  <div class="mh-up-sub">Export your data from the Whoop app and drop the file here. It powers your readiness and recovery.</div>
+                  <div class="mh-up-title">Smartwatch data</div>
+                  <div class="mh-up-sub">Whoop, Apple Watch, Fitbit, Garmin, Samsung, Oura and more. Upload your export &mdash; or just a screenshot if your band has none. It powers your readiness and recovery.</div>
                 </div>
               </div>
               <div class="mh-up-state" id="mhWhoopState"></div>
-              <button type="button" class="mh-up-btn" id="mhWhoopBtn" onclick="mhPickWhoop()">Upload Whoop export</button>
-              <div class="mh-up-hint">Whoop app &rarr; Settings &rarr; Data Export &rarr; email yourself the .zip, then upload it here</div>
+              <button type="button" class="mh-up-btn" id="mhWhoopBtn" onclick="mhPickWhoop()">Upload watch data</button>
+              <div class="mh-up-hint">Pick your device first &mdash; we show you exactly how to export from it, and what it can and cannot measure</div>
               <div class="mh-say" id="mhWhoopSay"></div>
               <input type="file" id="mhWhoopFile" accept=".zip,.csv,.pdf" style="display:none" onchange="mhWhoopPicked(event)">
             </div>
@@ -7132,7 +7148,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <div class="bb-today-stats">
             <button type="button" class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" onclick="bbOpenCoinHistory()" title="Gold coins — tap for activity">◉ <b id="bbTodayCoinNum">0</b> <i>coins</i></button>
             <button type="button" class="bb-today-pill bb-today-pill--refer" onclick="bbOpenRewards()" title="Refer a friend and win your membership back">🎁 <b>Refer</b></button>
-            <button type="button" class="bb-today-pill bb-today-pill--whoop" onclick="bbOpenReadiness()" title="Your readiness, recovery and Whoop data">⌚ <b>Readiness</b></button>
+            <button type="button" class="bb-today-pill bb-today-pill--whoop" onclick="bbOpenReadiness()" title="Your readiness, recovery and watch data">⌚ <b>Readiness</b></button>
           </div>
           <div class="bb-pulse-score">
             <button type="button" class="bb-today-ring bb-pulse-ring" id="bbTodayRingBtn" onclick="bbTodayFocusChecklist()" aria-label="Your weekly score and today's progress">
@@ -8174,6 +8190,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="admin-tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
       <div class="admin-tab" data-tab="meetings" onclick="switchTab('meetings')">Meetings</div>
       <div class="admin-tab" data-tab="part2" onclick="switchTab('part2')">Part-2 Form</div>
+      <div class="admin-tab" data-tab="nutritionassessment" onclick="switchTab('nutritionassessment')">Nutrition Assessment</div>
       <div class="admin-tab sc-style" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin')">Sunday Check-in</div>
       <div class="admin-tab" data-tab="dailycheckin" onclick="switchTab('dailycheckin')">Daily Check-In</div>
         <div class="admin-tab" data-tab="dailycompliance" onclick="switchTab('dailycompliance')">Daily Compliance</div>
@@ -9096,6 +9113,96 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">←</button>
         <span class="admin-h-scroll-label">Scroll to see all columns</span>
         <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">→</button>
+      </div>
+    </div>
+
+    <!-- TAB: FitChef Nutrition Assessment -->
+    <!-- Same anatomy as Part-2 on purpose - share link, summary, filters, table -
+         so nobody has to learn a second screen. What is new is the personal link
+         generator, because a prefilled link is what turns a 90-question form into
+         a five-minute one for an existing member. -->
+    <div class="admin-tab-content" id="tab-nutritionassessment">
+      <div class="part2-link-section">
+        <label class="part2-link-label">Shareable form link</label>
+        <div class="part2-link-row">
+          <input type="text" class="part2-link-input" id="naLinkInput" readonly value="">
+          <button type="button" class="part2-copy-btn" onclick="naCopyLink()">Copy Link</button>
+        </div>
+        <p class="form-hint" style="margin:10px 0 0">Send this to anyone. A member who is already signed in to BodyBank gets their profile, check-ins and blood report filled in automatically.</p>
+      </div>
+
+      <div class="part2-link-section" style="margin-top:12px">
+        <label class="part2-link-label">Personal prefilled link</label>
+        <div class="part2-link-row">
+          <select class="admin-filter-select" id="naInviteMember" style="flex:1;min-width:0"><option value="">Loading members&hellip;</option></select>
+          <button type="button" class="part2-copy-btn" onclick="naMakeInvite()">Generate</button>
+        </div>
+        <div class="part2-link-row" id="naInviteOut" style="display:none;margin-top:10px">
+          <input type="text" class="part2-link-input" id="naInviteInput" readonly value="">
+          <button type="button" class="part2-copy-btn" onclick="naCopyInvite()">Copy</button>
+        </div>
+        <p class="form-hint" style="margin:10px 0 0">Works without them signing in &mdash; everything we already know is pre-answered for them to confirm. The link is valid for 60 days.</p>
+      </div>
+
+      <div class="sc-dash-head" style="margin-top:20px">
+        <h3 class="sunday-checkin-title sc-dash-title">FitChef Nutrition Assessment</h3>
+        <p class="form-hint sc-dash-sub" id="naDashSub">Loading&hellip;</p>
+      </div>
+      <div class="sc-stat-row" role="group" aria-label="Nutrition assessment summary">
+        <div class="sc-stat"><span class="sc-stat-lbl">Started</span><span class="sc-stat-val" id="naStatTotal">&mdash;</span></div>
+        <div class="sc-stat sc-stat--ok"><span class="sc-stat-lbl">Completed</span><span class="sc-stat-val" id="naStatDone">&mdash;</span></div>
+        <div class="sc-stat sc-stat--pending"><span class="sc-stat-lbl">In progress</span><span class="sc-stat-val" id="naStatPartial">&mdash;</span></div>
+        <div class="sc-stat sc-stat--pct"><span class="sc-stat-lbl">Completion</span><span class="sc-stat-val" id="naStatPct">&mdash;</span>
+          <div class="sc-stat-bar"><div class="sc-stat-bar-fill" id="naStatBar" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div id="naFlagBanner"></div>
+
+      <div class="admin-filter-bar admin-filter-bar-stacked">
+        <div class="admin-filter-row-dates">
+          <div class="admin-filter-row-date"><label for="naFilterFrom">From</label><input type="date" id="naFilterFrom" class="admin-filter-date" onchange="loadNutritionAssessments()"></div>
+          <div class="admin-filter-row-date"><label for="naFilterTo">To</label><input type="date" id="naFilterTo" class="admin-filter-date" onchange="loadNutritionAssessments()"></div>
+          <div class="admin-filter-row-date">
+            <label for="naFilterStatus">Status</label>
+            <select id="naFilterStatus" class="admin-filter-select" onchange="loadNutritionAssessments()">
+              <option value="">All</option>
+              <option value="complete">Completed only</option>
+              <option value="partial">In progress only</option>
+            </select>
+          </div>
+          <div class="admin-filter-row-date">
+            <label for="naFilterSort">Sort</label>
+            <select id="naFilterSort" class="admin-filter-select" onchange="loadNutritionAssessments()">
+              <option value="latest">Latest first</option>
+              <option value="flagged">Needs review first</option>
+              <option value="oldest">Oldest first</option>
+              <option value="name">Name (A&ndash;Z)</option>
+            </select>
+          </div>
+        </div>
+        <div class="admin-filter-row-search">
+          <div class="admin-filter-search-wrap">
+            <label for="naFilterSearch">Search</label>
+            <input type="text" id="naFilterSearch" placeholder="Name, email or phone" autocomplete="off">
+          </div>
+          <div class="admin-filter-actions">
+            <button type="button" class="admin-apply-btn" onclick="loadNutritionAssessments()">Apply</button>
+            <button type="button" class="admin-export-btn" onclick="naExportCsv()" title="Download every answer for the current filters">Export CSV</button>
+            <button type="button" class="admin-filter-clear-btn" onclick="naClearFilters()">Clear</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="admin-table-wrap" style="margin-top:16px">
+        <table class="admin-table admin-list-table sc-status-table">
+          <thead><tr><th>Name</th><th>Contact</th><th>Goal</th><th>Progress</th><th>Received</th><th style="text-align:right;width:170px">Actions</th></tr></thead>
+          <tbody id="naBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading&hellip;</td></tr></tbody>
+        </table>
+      </div>
+      <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
+        <button type="button" class="admin-h-scroll-btn" data-dir="-1" aria-label="Scroll left">&larr;</button>
+        <span class="admin-h-scroll-label">Scroll to see all columns</span>
+        <button type="button" class="admin-h-scroll-btn" data-dir="1" aria-label="Scroll right">&rarr;</button>
       </div>
     </div>
 
@@ -10160,6 +10267,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="op-chips" id="opLeadsSeg">
         <button type="button" class="op-chip active" data-lv="audits" onclick="opLeadsView('audits')">Body audits</button>
         <button type="button" class="op-chip" data-lv="part2" onclick="opLeadsView('part2')">Part-2 forms</button>
+        <button type="button" class="op-chip" data-lv="nutrition" onclick="opLeadsView('nutrition')">Nutrition assessments</button>
       </div>
       <div class="op-scroll">
         <div class="op-cards" id="opLeadCards"><div class="op-empty pad">Loading…</div></div>
@@ -10748,6 +10856,15 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('dailyCheckinViewModal')" aria-label="Close">×</button>
     <h2 class="sunday-checkin-title">Daily Check-In</h2>
     <div class="view-detail-body" id="dailyCheckinViewBody"></div>
+  </div>
+</div>
+
+<div class="modal-overlay view-detail-modal" id="naViewModal" onclick="if(event.target===this)closeModal('naViewModal')">
+  <div class="modal" style="max-width:760px">
+    <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('naViewModal')" aria-label="Close">&times;</button>
+    <h2 class="sunday-checkin-title">Nutrition Assessment</h2>
+    <div class="view-detail-body" id="naViewBody"></div>
+    <div class="view-detail-actions" id="naViewActions"></div>
   </div>
 </div>
 
@@ -14572,6 +14689,280 @@ async function exportAdminPart2Csv() {
   URL.revokeObjectURL(a.href);
 }
 
+// ============ FITCHEF NUTRITION ASSESSMENT ============
+// The list is one row per submission (not per person) because a partial and a
+// completed assessment are different objects to a coach: one is a nudge, the
+// other is work. Anything the red-flag rules blocked is pulled to the top and
+// says why, so a blocked submission cannot be worked without seeing the reason.
+var _naRows = [];
+
+function naQuery() {
+  var q = [];
+  var add = function (id, key) {
+    var e = document.getElementById(id);
+    if (e && String(e.value || '').trim()) q.push(key + '=' + encodeURIComponent(String(e.value).trim()));
+  };
+  add('naFilterFrom', 'from');
+  add('naFilterTo', 'to');
+  add('naFilterStatus', 'status');
+  add('naFilterSort', 'sort');
+  add('naFilterSearch', 'search');
+  return q.length ? '?' + q.join('&') : '';
+}
+
+function naClearFilters() {
+  ['naFilterFrom', 'naFilterTo', 'naFilterSearch'].forEach(function (id) {
+    var e = document.getElementById(id); if (e) e.value = '';
+  });
+  var st = document.getElementById('naFilterStatus'); if (st) st.value = '';
+  var so = document.getElementById('naFilterSort'); if (so) so.value = 'latest';
+  loadNutritionAssessments();
+}
+
+function naFmtWhen(ts) {
+  if (!ts) return '\u2014';
+  var d = new Date(ts);
+  if (isNaN(d.getTime())) return '\u2014';
+  return d.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
+    + ', ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+}
+
+async function loadNutritionAssessments() {
+  var link = document.getElementById('naLinkInput');
+  if (link) link.value = (window.BB_PUBLIC_ORIGIN || window.location.origin) + '/nutrition-assessment.html';
+  naLoadCandidates();
+
+  var tbody = document.getElementById('naBody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading\u2026</td></tr>';
+  var data = await apiCall('GET', '/api/nutrition-assessment/list' + naQuery());
+  if (!data || data.error || !Array.isArray(data.rows)) {
+    _naRows = [];
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050;padding:24px">'
+      + escapeHtml(String((data && data.error) || 'Could not load the assessments.')) + '</td></tr>';
+    return;
+  }
+  _naRows = data.rows;
+  if (link && data.share_url) link.value = data.share_url;
+
+  var sm = data.summary || {};
+  var set = function (id, v) { var e = document.getElementById(id); if (e) e.textContent = (v == null ? '\u2014' : String(v)); };
+  set('naStatTotal', sm.total);
+  set('naStatDone', sm.complete);
+  set('naStatPartial', sm.partial);
+  set('naStatPct', (sm.completion_pct == null ? 0 : sm.completion_pct) + '%');
+  var bar = document.getElementById('naStatBar');
+  if (bar) bar.style.width = Math.max(0, Math.min(100, sm.completion_pct || 0)) + '%';
+
+  var sub = document.getElementById('naDashSub');
+  if (sub) {
+    sub.innerHTML = 'Every assessment started from the shareable or a personal link. '
+      + '<strong>In progress</strong> means they saved and stopped \u2014 those are still usable leads, and the link resumes where they left off.';
+  }
+  var banner = document.getElementById('naFlagBanner');
+  if (banner) {
+    banner.innerHTML = sm.flagged
+      ? '<div class="form-hint" style="margin:12px 0 0;padding:12px 14px;border-radius:10px;background:rgba(224,80,80,.08);border-left:3px solid #e05050;color:#e05050">'
+        + '<strong>' + sm.flagged + ' submission' + (sm.flagged === 1 ? '' : 's') + ' need' + (sm.flagged === 1 ? 's' : '') + ' review before a plan goes out.</strong> '
+        + 'Kidney disease, insulin, pregnancy or distress around food \u2014 no plan is generated for these automatically.</div>'
+      : '';
+  }
+
+  if (!_naRows.length) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No assessments match these filters yet.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = _naRows.map(function (r) {
+    var flags = r.flagged
+      ? '<span class="sc-tag-unlinked" style="background:rgba(224,80,80,.14);color:#e05050" title="' + escapeHtml(r.flag_labels.join(', ')) + '">Needs review</span>'
+      : '';
+    var progress = r.status === 'complete'
+      ? '<span style="color:#4caf7d;font-weight:600">Completed</span>'
+      : '<span style="color:var(--muted)">Step ' + r.last_step + ' of ' + r.total_steps
+        + '<br><span style="font-size:11px;opacity:.75">' + escapeHtml(r.step_title) + '</span></span>';
+    var contact = [r.email, r.mobile].filter(Boolean).map(escapeHtml).join('<br>');
+    return '<tr>'
+      + '<td>' + escapeHtml(r.name) + (r.is_member ? ' <span class="sc-tag-unlinked" style="background:rgba(200,164,78,.16);color:var(--gold)">Member</span>' : '') + '<br>' + flags + '</td>'
+      + '<td style="font-size:12px">' + (contact || '\u2014') + '</td>'
+      + '<td>' + escapeHtml(r.goal || '\u2014') + (r.diet ? '<br><span style="font-size:11px;color:var(--muted)">' + escapeHtml(r.diet) + '</span>' : '') + '</td>'
+      + '<td>' + progress + '</td>'
+      + '<td style="font-size:12px">' + escapeHtml(naFmtWhen(r.submitted_at || r.updated_at || r.created_at)) + '</td>'
+      + '<td style="text-align:right;white-space:nowrap">'
+      + '<button class="admin-apply-btn" style="padding:6px 12px;font-size:12px" onclick="naView(\'' + r.id + '\')">View</button> '
+      + '<button class="admin-filter-clear-btn" style="padding:6px 12px;font-size:12px" onclick="naDelete(\'' + r.id + '\')">Delete</button>'
+      + '</td></tr>';
+  }).join('');
+}
+
+async function naLoadCandidates() {
+  var sel = document.getElementById('naInviteMember');
+  if (!sel || sel.getAttribute('data-loaded') === '1') return;
+  var d = await apiCall('GET', '/api/nutrition-assessment/candidates');
+  if (!d || !Array.isArray(d.members)) { sel.innerHTML = '<option value="">Could not load members</option>'; return; }
+  sel.setAttribute('data-loaded', '1');
+  sel.innerHTML = '<option value="">Choose a member\u2026</option>'
+    + d.members.map(function (m) {
+      return '<option value="' + escapeHtml(m.id) + '">' + escapeHtml(m.name) + ' \u2014 ' + escapeHtml(m.status) + '</option>';
+    }).join('');
+}
+
+async function naMakeInvite() {
+  var sel = document.getElementById('naInviteMember');
+  if (!sel || !sel.value) { showPopup('Pick someone first', 'Choose the member you want to send a prefilled link to.', '', 'OK'); return; }
+  var d = await apiCall('POST', '/api/nutrition-assessment/invite-link', { user_id: sel.value });
+  if (!d || d.error) { showPopup('Error', (d && d.error) || 'Could not create the link.', '', 'OK', null, 'error'); return; }
+  var out = document.getElementById('naInviteOut');
+  var inp = document.getElementById('naInviteInput');
+  if (inp) inp.value = d.url;
+  if (out) out.style.display = 'flex';
+  naCopyInvite();
+}
+
+function naCopyText(value, what) {
+  if (!value) return;
+  navigator.clipboard.writeText(value).then(function () {
+    if (typeof showPopup === 'function') showPopup('Link copied', what, '', 'OK'); else alert('Link copied');
+  }).catch(function () { alert('Could not copy the link.'); });
+}
+function naCopyLink() {
+  var e = document.getElementById('naLinkInput');
+  naCopyText(e && e.value, 'The shareable assessment link is on your clipboard.');
+}
+function naCopyInvite() {
+  var e = document.getElementById('naInviteInput');
+  naCopyText(e && e.value, 'This personal link already knows who they are \u2014 send it as-is.');
+}
+
+function naValueHtml(v) {
+  if (v == null) return '\u2014';
+  if (Array.isArray(v)) return escapeHtml(v.join(', '));
+  if (typeof v === 'object') {
+    return Object.keys(v).map(function (k) {
+      var inner = v[k];
+      if (inner && typeof inner === 'object') {
+        var parts = [inner.at, inner.what].filter(Boolean).join(' \u2014 ');
+        return '<div><strong>' + escapeHtml(k) + ':</strong> ' + escapeHtml(parts || '\u2014') + '</div>';
+      }
+      return '<div><strong>' + escapeHtml(k) + ':</strong> ' + escapeHtml(String(inner)) + '</div>';
+    }).join('');
+  }
+  return escapeHtml(String(v));
+}
+
+async function naView(id) {
+  var r = await apiCall('GET', '/api/nutrition-assessment/' + id);
+  var body = document.getElementById('naViewBody');
+  var acts = document.getElementById('naViewActions');
+  if (!body) return;
+  if (!r || r.error) { showPopup('Error', (r && r.error) || 'Could not open it.', '', 'OK', null, 'error'); return; }
+
+  var h = '';
+  if ((r.flags || []).length) {
+    h += '<div style="margin-bottom:16px;padding:14px;border-radius:10px;background:rgba(224,80,80,.08);border-left:3px solid #e05050">'
+      + '<div style="color:#e05050;font-weight:700;margin-bottom:8px">Review required before any plan is sent</div>'
+      + r.flags.map(function (f) {
+        return '<div style="margin-bottom:6px;font-size:13px"><strong>' + escapeHtml(f.label) + '</strong>'
+          + (f.clinician ? ' <span style="color:#e05050">\u00b7 clinician sign-off</span>' : '')
+          + '<br><span style="color:var(--muted)">' + escapeHtml(f.detail) + '</span></div>';
+      }).join('') + '</div>';
+  }
+
+  var d = r.derived || {};
+  if (d.bmr) {
+    h += '<div class="sc-stat-row" style="margin-bottom:16px">'
+      + '<div class="sc-stat"><span class="sc-stat-lbl">BMR</span><span class="sc-stat-val">' + d.bmr + '</span></div>'
+      + '<div class="sc-stat"><span class="sc-stat-lbl">TDEE</span><span class="sc-stat-val">' + (d.tdee || '\u2014') + '</span></div>'
+      + '<div class="sc-stat"><span class="sc-stat-lbl">Target kcal</span><span class="sc-stat-val">' + (d.calorie_target || '\u2014') + '</span></div>'
+      + '<div class="sc-stat"><span class="sc-stat-lbl">Protein</span><span class="sc-stat-val">'
+      + (d.protein_target_g ? d.protein_target_g.low + '\u2013' + d.protein_target_g.high + 'g' : '\u2014') + '</span></div>'
+      + '</div>';
+  }
+
+  h += _row('Status', r.status === 'complete' ? 'Completed' : ('In progress \u2014 step ' + r.last_step))
+    + _row('Received', naFmtWhen(r.submitted_at || r.updated_at || r.created_at))
+    + _row('Consent', r.consent && r.consent.health
+      ? ('Given ' + naFmtWhen(r.consent.at) + (r.consent.ip ? ' from ' + r.consent.ip : '')
+        + (r.consent.marketing ? ' \u00b7 marketing opted in' : ' \u00b7 marketing declined'))
+      : 'Not yet given');
+
+  (r.sections || []).forEach(function (sec) {
+    h += '<div style="margin-top:18px;padding-top:14px;border-top:1px solid rgba(200,164,78,.18)">'
+      + '<div style="font-weight:700;color:var(--gold);margin-bottom:8px;font-size:13px;letter-spacing:.06em;text-transform:uppercase">'
+      + escapeHtml(sec.title) + '</div>'
+      + sec.rows.map(function (row) {
+        return '<div class="view-detail-row"><span class="view-detail-label">' + escapeHtml(row.label) + '</span>'
+          + '<span class="view-detail-value">' + naValueHtml(row.value) + '</span></div>';
+      }).join('') + '</div>';
+  });
+
+  if ((r.files || []).length) {
+    h += '<div style="margin-top:18px"><div style="font-weight:700;color:var(--gold);margin-bottom:8px;font-size:13px">Attachments</div>'
+      + r.files.map(function (f) {
+        return '<div><a href="#" onclick="naOpenFile(\'' + escapeHtml(f.url) + '\');return false;">' + escapeHtml(f.name) + '</a></div>';
+      }).join('') + '</div>';
+  }
+
+  body.innerHTML = h;
+  if (acts) {
+    acts.innerHTML = (r.review_status === 'blocked'
+      ? '<button type="button" class="action-btn btn-view" onclick="naMarkReviewed(\'' + r.id + '\')">Mark reviewed</button>' : '')
+      + '<button type="button" class="action-btn btn-reject" onclick="naDelete(\'' + r.id + '\', true)">Delete</button>';
+  }
+  openModal('naViewModal');
+}
+
+// Attachments sit behind staff auth, so they are fetched with the token and
+// handed to the browser as a blob rather than opened as a bare URL.
+async function naOpenFile(url) {
+  try {
+    var res = await fetch(url, { headers: { Authorization: 'Bearer ' + ((window.currentUser && window.currentUser.token) || '') } });
+    if (!res.ok) throw new Error('Could not fetch');
+    var blob = await res.blob();
+    var href = URL.createObjectURL(blob);
+    window.open(href, '_blank');
+    setTimeout(function () { URL.revokeObjectURL(href); }, 60000);
+  } catch (e) {
+    showPopup('Error', 'That attachment could not be opened.', '', 'OK', null, 'error');
+  }
+}
+
+async function naMarkReviewed(id) {
+  var d = await apiCall('POST', '/api/nutrition-assessment/' + id + '/review', { note: 'Reviewed from the admin console' });
+  if (d && d.error) { showPopup('Error', d.error, '', 'OK', null, 'error'); return; }
+  closeModal('naViewModal');
+  loadNutritionAssessments();
+}
+
+function naDelete(id, fromModal) {
+  showPopup('Delete this assessment?', 'Every answer and any uploaded file goes with it. This cannot be undone.',
+    'Cancel', 'Delete', async function () {
+      var d = await apiCall('DELETE', '/api/nutrition-assessment/' + id);
+      if (d && d.error) { showPopup('Error', d.error, '', 'OK', null, 'error'); return; }
+      if (fromModal) closeModal('naViewModal');
+      loadNutritionAssessments();
+    }, 'error');
+}
+
+// The CSV is built server-side (one column per schema field), so this only has
+// to carry the auth header the plain download link cannot.
+async function naExportCsv() {
+  try {
+    var res = await fetch('/api/nutrition-assessment/export.csv' + naQuery(), {
+      headers: { Authorization: 'Bearer ' + ((window.currentUser && window.currentUser.token) || '') }
+    });
+    if (!res.ok) throw new Error('Export failed');
+    var blob = await res.blob();
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'fitchef-nutrition-assessments-' + new Date().toISOString().slice(0, 10) + '.csv';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  } catch (e) {
+    showPopup('Export failed', 'Could not build the CSV. Try again in a moment.', '', 'OK', null, 'error');
+  }
+}
+
 // ============ AUDIT FORM — ONE ROW PER PERSON ============
 // The Audit form is the lead intake form, so the cohort is the submitters themselves —
 // duplicate submissions roll up into a single row and the Part-2 column carries the
@@ -17583,8 +17974,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens' };
-var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', nutritionassessment: 'Nutrition Assessment', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens' };
+var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', nutritionassessment: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -17713,6 +18104,7 @@ function switchTab(tab) {
   if (tab === 'dailycompliance') loadDailyCompliancePreview();
   if (tab === 'tribe') loadTribe();
   if (tab === 'part2') loadPart2Submissions();
+  if (tab === 'nutritionassessment') loadNutritionAssessments();
   if (tab === 'leads') loadLeads();
   if (tab === 'insights') loadPerformanceInsights();
   if (tab === 'clientprogress') loadClientProgressUsers();
@@ -31886,10 +32278,10 @@ function bbBodyOnboardingKeyHandler(ev) {
   </div>
 </div>
 
-<div id="bbWhoopModal" class="bb-rw-modal" role="dialog" aria-modal="true" aria-label="Whoop data" onclick="bbWhoopBg(event)">
+<div id="bbWhoopModal" class="bb-rw-modal" role="dialog" aria-modal="true" aria-label="Smartwatch data" onclick="bbWhoopBg(event)">
   <div class="bb-rw-box" onclick="event.stopPropagation()">
     <div class="bb-rw-head">
-      <span class="bb-rw-title">⌚ Whoop Data</span>
+      <span class="bb-rw-title">⌚ Watch Data</span>
       <button type="button" class="bb-rw-close" onclick="bbCloseWhoop()">✕ Close</button>
     </div>
     <div class="bb-rw-body" id="bbWhoopBody"><div class="bb-rw-muted">Loading…</div></div>
@@ -32060,49 +32452,137 @@ function bbBodyOnboardingKeyHandler(ev) {
   };
 
   /* ------------------------------- WHOOP (member) ---------------------------- */
-  var whoop = { file: null, b64: null, name: '', preview: null, busy: false };
+  // `device` is the member's declared watch. Nothing is uploaded until they pick
+  // one: a file parsed as the wrong brand does not fail loudly, it produces
+  // confident nonsense, so the device is required rather than sniffed.
+  var whoop = { file: null, b64: null, name: '', preview: null, busy: false, device: null, catalog: null };
+
+  /** File extensions to offer, per the device's declared ingest routes. */
+  function acceptFor(dev) {
+    var routes = (dev && dev.ingest) || [];
+    var ext = [];
+    if (routes.indexOf('zip') !== -1) ext.push('.zip');
+    if (routes.indexOf('csv') !== -1) ext.push('.csv');
+    if (routes.indexOf('json') !== -1) ext.push('.json');
+    if (routes.indexOf('xml') !== -1) ext.push('.xml');
+    if (routes.indexOf('pdf') !== -1) ext.push('.pdf');
+    if (routes.indexOf('screenshot') !== -1) ext.push('.png', '.jpg', '.jpeg', '.webp');
+    return ext.length ? ext.join(',') : '.zip,.csv,.json,.png,.jpg';
+  }
+
+  /** How much of a full picture this device can actually give us. */
+  function tierNote(tier) {
+    if (tier === 'full') return 'Full data';
+    if (tier === 'partial') return 'Partial data';
+    return 'Screenshot only';
+  }
 
   window.bbWhoopBg = function (e) { if (e && e.target && e.target.id === 'bbWhoopModal') window.bbCloseWhoop(); };
   window.bbCloseWhoop = function () {
     var m = document.getElementById('bbWhoopModal');
     if (m) m.classList.remove('open');
-    whoop.file = null; whoop.b64 = null; whoop.preview = null; whoop.name = '';
+    whoop.file = null; whoop.b64 = null; whoop.preview = null; whoop.name = ''; whoop.device = null;
   };
 
   window.bbOpenWhoop = async function () {
     if (!window.currentUser || !window.currentUser.token) { alert('Please log in first.'); return; }
     var m = document.getElementById('bbWhoopModal');
     if (!m) return;
-    whoop.file = null; whoop.b64 = null; whoop.preview = null; whoop.name = '';
+    whoop.file = null; whoop.b64 = null; whoop.preview = null; whoop.name = ''; whoop.device = null;
     m.classList.add('open');
-    renderWhoopIntro();
+    var body = document.getElementById('bbWhoopBody');
+    if (body) body.innerHTML = '<div class="bb-rw-muted">Loading…</div>';
+    try {
+      var d = await apiCall('GET', '/api/wearables/devices');
+      whoop.catalog = d || null;
+    } catch (_) { whoop.catalog = null; }
     try {
       var c = await apiCall('GET', '/api/wearables/connection');
       renderWhoopIntro(c && c.connection);
     } catch (_) { renderWhoopIntro(null); }
   };
 
+  /** Step 1 — which watch is this? */
   function renderWhoopIntro(conn) {
     var body = document.getElementById('bbWhoopBody');
     if (!body) return;
+    if (whoop.device) { renderDeviceUpload(); return; }
+
     var connected = conn && String(conn.status || '') === 'connected';
     var last = conn && conn.last_sync_at ? String(conn.last_sync_at).slice(0, 10) : null;
+    var cat = whoop.catalog || {};
+    var devices = (cat.devices || []).filter(function (d) { return d.id !== 'manual'; });
+    var bands = cat.budgetBands || [];
+
+    // Without the catalog the member still gets the path that has always worked.
+    if (!devices.length) {
+      devices = [{ id: 'whoop', label: 'Whoop', tier: 'full', ingest: ['zip', 'csv', 'pdf'], supported: true }];
+    }
+
+    var grid = devices.map(function (d) {
+      var dis = d.supported === false;
+      return '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" style="text-align:left;width:100%;margin:0 0 8px;opacity:' + (dis ? '.45' : '1') + '"' +
+        (dis ? ' disabled' : ' onclick="bbPickDevice(\'' + esc(d.id) + '\')"') + '>' +
+        '<b>' + esc(d.shortLabel || d.label) + '</b>' +
+        '<span class="bb-rw-note" style="display:block;margin-top:2px">' +
+          esc(tierNote(d.tier)) + (dis ? ' &middot; not available yet' : '') +
+        '</span></button>';
+    }).join('');
+
     body.innerHTML =
       '<div class="bb-rw-sec">' +
         (connected
-          ? '<div class="bb-rw-ok" style="margin-top:0">Whoop connected' + (last ? ' &middot; last upload ' + esc(last) : '') + '</div>'
-          : '<div class="bb-rw-muted">Upload your Whoop export and your recovery, HRV and sleep fill in automatically. No Whoop? Your readiness is still tracked from your daily check-ins.</div>') +
+          ? '<div class="bb-rw-ok" style="margin-top:0">Connected' + (last ? ' &middot; last upload ' + esc(last) : '') + '</div>'
+          : '<div class="bb-rw-muted">Pick your watch or band, then upload whatever its app gave you. No wearable? Your readiness is still tracked from your daily check-ins.</div>') +
       '</div>' +
       '<div class="bb-rw-sec">' +
-        '<div class="bb-rw-lbl">Upload your export</div>' +
-        '<label class="bb-rw-file" for="bbWhoopFile">📦 Choose your Whoop .zip (or a .csv, or a Whoop .pdf report)<br><span class="bb-rw-note" style="display:block;margin-top:6px">Whoop app → Settings → Download my data</span></label>' +
-        '<input id="bbWhoopFile" type="file" accept=".zip,.csv,.pdf,application/zip,text/csv,application/pdf" style="display:none" onchange="bbWhoopPick(this)">' +
-        '<div class="bb-rw-note">The ZIP is the only export with your full day-by-day history. A PDF report is read by AI and usually contains summaries rather than every day.</div>' +
-        '<div id="bbWhoopMsg"></div>' +
+        '<div class="bb-rw-lbl">Which device do you wear?</div>' + grid +
       '</div>' +
+      (bands.length
+        ? '<div class="bb-rw-sec">' +
+            '<div class="bb-rw-lbl">Budget band?</div>' +
+            '<div class="bb-rw-note">' + esc(bands.slice(0, 6).map(function (b) { return b.label || b.brand || ''; }).join(', ')) +
+            ' and similar bands have no data export at all. You can still send a screenshot of your app — we read what is on screen, and we will show you every number before saving it.</div>' +
+            '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" style="margin-top:8px" onclick="bbPickDevice(\'screenshot\')">📷 Upload a screenshot instead</button>' +
+          '</div>'
+        : '') +
       '<div class="bb-rw-sec"><button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbOpenReadiness()">📈 View my readiness</button></div>' +
-      (connected ? '<div class="bb-rw-sec"><button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbWhoopDisconnect()">Disconnect Whoop</button>' +
+      (connected ? '<div class="bb-rw-sec"><button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbWhoopDisconnect()">Disconnect</button>' +
         '<div class="bb-rw-note">Disconnecting stops new uploads. Your existing history is kept.</div></div>' : '');
+  }
+
+  window.bbPickDevice = function (id) {
+    whoop.device = String(id || '') || null;
+    whoop.b64 = null; whoop.name = ''; whoop.preview = null;
+    renderDeviceUpload();
+  };
+
+  /** Step 2 — upload, with this device's real instructions and real limits. */
+  function renderDeviceUpload() {
+    var body = document.getElementById('bbWhoopBody');
+    if (!body) return;
+    var cat = whoop.catalog || {};
+    var dev = (cat.devices || []).filter(function (d) { return d.id === whoop.device; })[0]
+      || { id: whoop.device, label: whoop.device, ingest: ['zip', 'csv', 'pdf'] };
+
+    // Said BEFORE the upload, not inferred afterwards from a half-empty report.
+    var caveats = (dev.caveats || []).map(function (c) {
+      return '<div class="bb-rw-note">• ' + esc(c) + '</div>';
+    }).join('');
+
+    body.innerHTML =
+      '<div class="bb-rw-sec">' +
+        '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbPickDevice(null);bbOpenWhoop()" style="margin-bottom:10px">← Change device</button>' +
+        '<div class="bb-rw-lbl">' + esc(dev.label || dev.id) + '</div>' +
+        (dev.exportInstructions ? '<div class="bb-rw-note">' + esc(dev.exportInstructions) + '</div>' : '') +
+      '</div>' +
+      '<div class="bb-rw-sec">' +
+        '<label class="bb-rw-file" for="bbWhoopFile">📦 Choose your file' +
+          (String(dev.id) === 'screenshot' ? ' or screenshot' : '') + '</label>' +
+        '<input id="bbWhoopFile" type="file" accept="' + esc(acceptFor(dev)) + '" style="display:none" onchange="bbWhoopPick(this)">' +
+        caveats +
+        '<div id="bbWhoopMsg"></div>' +
+      '</div>';
   }
 
   window.bbWhoopPick = function (input) {
@@ -32131,7 +32611,7 @@ function bbBodyOnboardingKeyHandler(ev) {
     if (!whoop.b64) return;
     if (msg) msg.innerHTML = '<div class="bb-rw-muted" style="margin-top:10px">Checking your export…</div>';
     try {
-      var p = await apiCall('POST', '/api/wearables/whoop/preview', { file_base64: whoop.b64, file_name: whoop.name });
+      var p = await apiCall('POST', '/api/wearables/upload/preview', { device: whoop.device || 'whoop', file_base64: whoop.b64, file_name: whoop.name });
       if (!p || p.error) {
         if (msg) msg.innerHTML = '<div class="bb-rw-err">' + esc((p && p.error) || 'Could not read that export.') + '</div>';
         return;
@@ -32161,6 +32641,25 @@ function bbBodyOnboardingKeyHandler(ev) {
         warn += '<div class="bb-rw-note">Read from a PDF by ' + esc(p.extraction.model || 'AI') +
           (p.extraction.pages != null ? ' across ' + num(p.extraction.pages) + ' page(s)' : '') +
           '. Only figures the model could quote from the document were kept.</div>';
+      }
+      // Data an AI read off a picture is NOT the same evidence as a number parsed
+      // out of the device's own export file, and the member has to be told so
+      // plainly — before they confirm, while they can still correct it.
+      if (p.extraction && p.extraction.readFromImage) {
+        warn += '<div class="bb-rw-warn">These figures were read from your image by ' +
+          esc((p.extraction && p.extraction.model) || 'AI') +
+          ', not from a file your device produced. Please check every number below before importing — ' +
+          'we record them as lower confidence than an exported file.</div>';
+      }
+      // A value outside what is physiologically possible is dropped, never clamped
+      // and never quietly kept. Say which, so a unit bug is visible rather than
+      // averaged into the member's report as fact.
+      if (Array.isArray(p.implausible) && p.implausible.length) {
+        warn += '<div class="bb-rw-warn">' + p.implausible.length +
+          ' reading(s) were outside the physiologically possible range and were dropped rather than saved: ' +
+          esc(p.implausible.slice(0, 4).map(function (x) {
+            return (x && (x.field || x.metric) || 'value') + (x && x.date ? ' on ' + x.date : '');
+          }).join(', ')) + (p.implausible.length > 4 ? '…' : '') + '</div>';
       }
       if (p.duplicate) {
         if (msg) msg.innerHTML = '<div class="bb-rw-ok">You have already uploaded this exact export — nothing to do.</div>';
@@ -32193,7 +32692,7 @@ function bbBodyOnboardingKeyHandler(ev) {
     whoop.busy = true;
     if (btn) { btn.disabled = true; btn.textContent = 'Importing…'; }
     try {
-      var r = await apiCall('POST', '/api/wearables/whoop/commit', { file_base64: whoop.b64, file_name: whoop.name });
+      var r = await apiCall('POST', '/api/wearables/upload/commit', { device: whoop.device || 'whoop', file_base64: whoop.b64, file_name: whoop.name });
       if (!r || r.error) {
         if (msg) msg.innerHTML = '<div class="bb-rw-err">' + esc((r && r.error) || 'Could not save that export.') + '</div>';
       } else if (r.duplicate) {
@@ -32850,7 +33349,7 @@ function bbBodyOnboardingKeyHandler(ev) {
         '</div>' +
         (mine
           ? '<div class="bb-rd-acts" style="margin-top:8px">' +
-              '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbOpenWhoop()">Import Whoop export</button>' +
+              '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" onclick="bbOpenWhoop()">Import watch data</button>' +
               '<button type="button" class="bb-rw-btn bb-rw-btn--ghost" id="' + eid(v, 'DeriveBtn') + '" onclick="bbRdDerive()">Score today from check-ins</button>' +
             '</div>'
           : '') +

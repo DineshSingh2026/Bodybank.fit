@@ -1,0 +1,14 @@
+[
+  {
+    "dateTime": "04/01/25 00:00:00",
+    "value": { "value": 54.2, "error": 6.5 }
+  },
+  {
+    "dateTime": "04/02/25 00:00:00",
+    "value": { "value": 0, "error": 0 }
+  },
+  {
+    "dateTime": "04/03/25 00:00:00",
+    "value": { "value": 56.8, "error": 5.1 }
+  }
+]

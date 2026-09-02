@@ -1,0 +1,33 @@
+[
+  {
+    "userProfilePK": 987654,
+    "calendarDate": "2025-04-01",
+    "totalSteps": 9120,
+    "totalKilocalories": 2510,
+    "activeKilocalories": 640,
+    "restingHeartRate": 52,
+    "minHeartRate": 48,
+    "maxHeartRate": 161,
+    "averageStressLevel": 28,
+    "maxStressLevel": 91,
+    "bodyBatteryHighestValue": 86,
+    "bodyBatteryLowestValue": 22,
+    "moderateIntensityMinutes": 24,
+    "vigorousIntensityMinutes": 11,
+    "averageSpo2": 95,
+    "floorsAscended": 8,
+    "totalDistanceMeters": 7100
+  },
+  {
+    "userProfilePK": 987654,
+    "calendarDate": "2025-04-02",
+    "totalSteps": 6400,
+    "totalKilocalories": 2300,
+    "restingHeartRate": 54,
+    "averageStressLevel": 35,
+    "bodyBatteryHighestValue": 71,
+    "bodyBatteryLowestValue": 18,
+    "moderateIntensityMinutes": 10,
+    "vigorousIntensityMinutes": 0
+  }
+]

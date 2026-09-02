@@ -1,0 +1,8 @@
+﻿date,Bedtime Start,Bedtime End,Total Sleep Duration,Total Bedtime,REM Sleep Duration,Deep Sleep Duration,Light Sleep Duration,Awake Time,Sleep Efficiency,Sleep Latency,Sleep Score,Readiness Score,Activity Score,Average Resting Heart Rate,Lowest Resting Heart Rate,Average HRV,Respiratory Rate,Temperature Deviation (°C),Average SPO2,Steps,Total Burn,Activity Burn,Restless Sleep,Type,Notes
+2025-04-01,2025-03-31T23:40:00,2025-04-01T06:10:00,23400,25800,5400,4800,13200,2400,90.7,900,82,74,88,54,51,62,14.2,-0.25,96,8500,2450,520,12,long_sleep,"Slept well, no alcohol"
+2025-04-02,2025-04-01T23:10:00,2025-04-02T06:00:00,22200,24600,5100,4500,12600,2400,90.2,780,79,68,72,56,52,,13.9,,,7200,2100,410,15,long_sleep,
+2025-04-02,2025-04-02T14:00:00,2025-04-02T14:45:00,2700,2700,,,,,,,,,,,,,,,,,,,,nap,
+2025-13-45,,,20000,,,,,,,,,,,,,,,,,,,,,long_sleep,
+2025-04-04,2025-04-03T22:50:00,2025-04-04T05:00:00,18000,19800,3600,3600,10800,1800,90.9,600,70,60,65,58,54,48,15.1,0.1,95,5000,2300,300,20,long_sleep,
+2025-04-04,2025-04-03T23:30:00,2025-04-04T07:10:00,25200,27000,6000,5400,13800,1800,93.3,480,85,77,80,52,49,71,13.5,-0.4,97,9000,2500,600,8,long_sleep,
+2025-04-05,2025-04-04T23:00:00,2025-04-05T06:30:00,24000,27000,5400,5100,13500,2400,88.9,900,80,72,75,55,50,60,14.0,0.42,96,6000,2200,450,10,long_sleep,

@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "provider": "health_connect",
+  "timezone": "Asia/Kolkata",
+  "exportedAt": "2026-08-03T09:12:00+05:30",
+  "device": {
+    "platform": "android",
+    "manufacturer": "Samsung",
+    "model": "Galaxy Watch6 Classic",
+    "appVersion": "1.8.0",
+    "healthConnectVersion": "1.1.0-alpha07",
+    "originPackages": [
+      "com.samsung.android.wear.shealth",
+      "com.google.android.apps.fitness"
+    ]
+  },
+  "days": [
+    {
+      "date": "2026-08-01",
+      "restingHeartRateBpm": 54,
+      "heartRateAvgBpm": 71,
+      "heartRateMaxBpm": 158,
+      "oxygenSaturationPct": 96.5,
+      "respiratoryRateBrpm": 14.2,
+      "hrv": { "valueMs": 41.2, "metric": "rmssd", "window": "sleep" },
+      "skinTemperature": { "valueC": 33.1, "basis": "absolute_c" },
+      "sleep": {
+        "totalMinutes": 412,
+        "remMinutes": 96,
+        "deepMinutes": 71,
+        "lightMinutes": 245,
+        "awakeMinutes": 22,
+        "inBedMinutes": 441,
+        "napMinutes": 35,
+        "efficiencyPct": 93.4
+      },
+      "steps": 8123,
+      "activeCaloriesKcal": 480,
+      "totalCaloriesKcal": 2210,
+      "exerciseMinutes": 42,
+      "providerScores": { "samsung.sleep_score": 78, "notnamespaced": 5 }
+    },
+    {
+      "date": "2026-08-02",
+      "restingHeartRateBpm": 57,
+      "hrv": { "valueMs": 38.9 },
+      "sleep": { "totalMinutes": 388 },
+      "steps": 4102,
+      "activeCaloriesKcal": 260,
+      "somethingWeInventedLater": 12
+    },
+    {
+      "date": "2026-08-03",
+      "restingHeartRateBpm": 900,
+      "hrv": { "valueMs": 44.0, "metric": "rmssd", "window": "spot" },
+      "skinTemperature": { "valueC": 33.4, "deviationC": -0.4, "basis": "confusing" },
+      "steps": 6001
+    },
+    {
+      "date": "not-a-date",
+      "steps": 100
+    },
+    {
+      "date": "2026-08-04",
+      "steps": "8000"
+    }
+  ],
+  "workouts": [
+    {
+      "date": "2026-08-01",
+      "startedAt": "2026-08-01T18:00:00+05:30",
+      "endedAt": "2026-08-01T18:47:30+05:30",
+      "durationMin": 47.5,
+      "activity": "STRENGTH_TRAINING",
+      "energyKcal": 412,
+      "avgHr": 128.4,
+      "maxHr": 164
+    }
+  ]
+}

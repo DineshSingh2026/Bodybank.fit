@@ -51,7 +51,10 @@ const SCOPE_LABELS = {
   blood_analysis: 'Blood report — analysis',
   blood_comparison: 'Blood report — comparison',
   whoop_extract: 'Whoop — PDF import',
-  whoop_report: 'Whoop — monthly report'
+  whoop_report: 'Whoop — monthly report',
+  // Universal device upload: reading a member's watch data off a screenshot or a
+  // non-Whoop PDF. Without this entry the admin Tokens screen shows a raw slug.
+  device_vision: 'Wearables — screenshot import'
 };
 
 function toNumber(value, fallback = 0) {

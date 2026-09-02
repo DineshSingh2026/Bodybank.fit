@@ -1,0 +1,118 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE HealthData [
+<!-- HealthKit Export Version: 12 -->
+<!ELEMENT HealthData (ExportDate,Me,(Record|Correlation|Workout|ActivitySummary|ClinicalRecord)*)>
+<!ATTLIST HealthData locale CDATA #REQUIRED>
+<!ELEMENT Record ((MetadataEntry|HeartRateVariabilityMetadataList)*)>
+<!ATTLIST Record type CDATA #REQUIRED sourceName CDATA #REQUIRED unit CDATA #IMPLIED>
+]>
+<HealthData locale="en_IN">
+ <ExportDate value="2026-08-03 09:00:00 +0530"/>
+ <Me HKCharacteristicTypeIdentifierBiologicalSex="HKBiologicalSexMale" HKCharacteristicTypeIdentifierBloodType="HKBloodTypeNotSet"/>
+
+ <!-- ============================================================
+      NIGHT OF 2026-07-31 -> 2026-08-01. Crosses midnight, so rule 2
+      attributes the whole thing to the WAKE date, 2026-08-01.
+      iOS 16+ staged values. Asleep total 375 min, awake 15 min.
+      ============================================================ -->
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Dinesh&apos;s Apple Watch" sourceVersion="10.1" device="&lt;&lt;HKDevice: 0x28234500&gt;, name:Apple Watch, manufacturer:Apple Inc., model:Watch, hardware:Watch6,2, software:10.1&gt;" value="HKCategoryValueSleepAnalysisAsleepCore" startDate="2026-07-31 23:40:00 +0530" endDate="2026-08-01 00:50:00 +0530"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Dinesh&apos;s Apple Watch" value="HKCategoryValueSleepAnalysisAsleepDeep" startDate="2026-08-01 00:50:00 +0530" endDate="2026-08-01 01:40:00 +0530"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Dinesh&apos;s Apple Watch" value="HKCategoryValueSleepAnalysisAsleepREM" startDate="2026-08-01 01:40:00 +0530" endDate="2026-08-01 02:30:00 +0530"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Dinesh&apos;s Apple Watch" value="HKCategoryValueSleepAnalysisAwake" startDate="2026-08-01 02:30:00 +0530" endDate="2026-08-01 02:45:00 +0530"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Dinesh&apos;s Apple Watch" value="HKCategoryValueSleepAnalysisAsleepCore" startDate="2026-08-01 02:45:00 +0530" endDate="2026-08-01 04:20:00 +0530"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Dinesh&apos;s Apple Watch" value="HKCategoryValueSleepAnalysisAsleepDeep" startDate="2026-08-01 04:20:00 +0530" endDate="2026-08-01 04:50:00 +0530"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Dinesh&apos;s Apple Watch" value="HKCategoryValueSleepAnalysisAsleepREM" startDate="2026-08-01 04:50:00 +0530" endDate="2026-08-01 06:10:00 +0530"/>
+
+ <!-- The SAME REM block, re-written into HealthKit by a third-party sleep app.
+      Identical (type, startDate, endDate, value) => must be de-duplicated, or the
+      night is staged twice and the contract validator rejects the day. -->
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="AutoSleep" value="HKCategoryValueSleepAnalysisAsleepREM" startDate="2026-08-01 04:50:00 +0530" endDate="2026-08-01 06:10:00 +0530"/>
+
+ <!-- ============================================================
+      A 45-MINUTE AFTERNOON NAP on 2026-08-01. Rule 3: it must land in
+      napMinutes and must NOT add a single minute to the 375-minute night.
+      ============================================================ -->
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Dinesh&apos;s Apple Watch" value="HKCategoryValueSleepAnalysisAsleepCore" startDate="2026-08-01 14:00:00 +0530" endDate="2026-08-01 14:45:00 +0530"/>
+
+ <!-- ============================================================
+      HRV. SDNN from a ~60-second spot check — NOT overnight RMSSD.
+      Two readings inside the sleep window (52.4, 58.6 -> median 55.5) and one
+      taken mid-afternoon (31.2) that must not drag the night's number down.
+      ============================================================ -->
+ <Record type="HKQuantityTypeIdentifierHeartRateVariabilitySDNN" sourceName="Dinesh&apos;s Apple Watch" unit="ms" startDate="2026-08-01 02:15:00 +0530" endDate="2026-08-01 02:16:04 +0530" value="52.4">
+  <MetadataEntry key="HKAlgorithmVersion" value="2"/>
+  <HeartRateVariabilityMetadataList>
+   <InstantaneousBeatsPerMinute bpm="58" time="2:15:03.15"/>
+   <InstantaneousBeatsPerMinute bpm="57" time="2:15:04.11"/>
+  </HeartRateVariabilityMetadataList>
+ </Record>
+ <Record type="HKQuantityTypeIdentifierHeartRateVariabilitySDNN" sourceName="Dinesh&apos;s Apple Watch" unit="ms" startDate="2026-08-01 03:30:00 +0530" endDate="2026-08-01 03:31:02 +0530" value="58.6"/>
+ <Record type="HKQuantityTypeIdentifierHeartRateVariabilitySDNN" sourceName="Dinesh&apos;s Apple Watch" unit="ms" startDate="2026-08-01 15:00:00 +0530" endDate="2026-08-01 15:01:00 +0530" value="31.2"/>
+
+ <!-- ============================================================
+      An attribute value containing a literal '>' (legal XML, and Apple's own
+      device blob is full of them). A naive indexOf('>') scanner truncates this
+      record and loses the reading.
+      ============================================================ -->
+ <Record type="HKQuantityTypeIdentifierRestingHeartRate" sourceName="Health Sync > BodyBank" device="&lt;&lt;HKDevice: 0x28234501>, name:Apple Watch, manufacturer:Apple Inc., model:Watch, hardware:Watch9,1, software:11.0>" unit="count/min" startDate="2026-08-01 07:00:00 +0530" endDate="2026-08-01 07:00:00 +0530" value="54"/>
+
+ <Record type="HKQuantityTypeIdentifierOxygenSaturation" sourceName="Dinesh&apos;s Apple Watch" unit="%" startDate="2026-08-01 03:00:00 +0530" endDate="2026-08-01 03:01:00 +0530" value="0.97"/>
+ <Record type="HKQuantityTypeIdentifierRespiratoryRate" sourceName="Dinesh&apos;s Apple Watch" unit="count/min" startDate="2026-08-01 03:05:00 +0530" endDate="2026-08-01 03:06:00 +0530" value="14.5"/>
+ <Record type="HKQuantityTypeIdentifierAppleSleepingWristTemperature" sourceName="Dinesh&apos;s Apple Watch" unit="degC" startDate="2026-08-01 03:10:00 +0530" endDate="2026-08-01 03:11:00 +0530" value="33.42"/>
+
+ <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Dinesh&apos;s Apple Watch" unit="count/min" startDate="2026-08-01 08:00:00 +0530" endDate="2026-08-01 08:00:10 +0530" value="62"/>
+ <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Dinesh&apos;s Apple Watch" unit="count/min" startDate="2026-08-01 12:00:00 +0530" endDate="2026-08-01 12:00:10 +0530" value="78"/>
+ <Record type="HKQuantityTypeIdentifierHeartRate" sourceName="Dinesh&apos;s Apple Watch" unit="count/min" startDate="2026-08-01 18:30:00 +0530" endDate="2026-08-01 18:30:10 +0530" value="141"/>
+
+ <Record type="HKQuantityTypeIdentifierActiveEnergyBurned" sourceName="Dinesh&apos;s Apple Watch" unit="kcal" startDate="2026-08-01 09:00:00 +0530" endDate="2026-08-01 09:30:00 +0530" value="120"/>
+ <Record type="HKQuantityTypeIdentifierActiveEnergyBurned" sourceName="Dinesh&apos;s Apple Watch" unit="kcal" startDate="2026-08-01 18:00:00 +0530" endDate="2026-08-01 18:40:00 +0530" value="90.5"/>
+ <Record type="HKQuantityTypeIdentifierBasalEnergyBurned" sourceName="Dinesh&apos;s Apple Watch" unit="kcal" startDate="2026-08-01 00:00:00 +0530" endDate="2026-08-01 23:59:00 +0530" value="1500"/>
+
+ <!-- ============================================================
+      THE DOUBLE-COUNT BUG. The Watch and the iPhone both wrote the 09:00 walk,
+      and a third-party app wrote a slice of it. Naive summing reports 3900
+      steps for a 2000-step morning.
+      ============================================================ -->
+ <Record type="HKQuantityTypeIdentifierStepCount" sourceName="Dinesh&apos;s Apple Watch" device="&lt;&lt;HKDevice: 0x28234500&gt;, name:Apple Watch, manufacturer:Apple Inc., model:Watch, hardware:Watch6,2, software:10.1&gt;" unit="count" startDate="2026-08-01 09:00:00 +0530" endDate="2026-08-01 09:10:00 +0530" value="1200"/>
+ <Record type="HKQuantityTypeIdentifierStepCount" sourceName="Dinesh&apos;s iPhone" device="&lt;&lt;HKDevice: 0x28234aa0&gt;, name:iPhone, manufacturer:Apple Inc., model:iPhone, hardware:iPhone15,2, software:18.0&gt;" unit="count" startDate="2026-08-01 09:00:00 +0530" endDate="2026-08-01 09:10:00 +0530" value="1200"/>
+ <Record type="HKQuantityTypeIdentifierStepCount" sourceName="Dinesh&apos;s iPhone" unit="count" startDate="2026-08-01 09:02:00 +0530" endDate="2026-08-01 09:08:00 +0530" value="700"/>
+ <Record type="HKQuantityTypeIdentifierStepCount" sourceName="Dinesh&apos;s Apple Watch" unit="count" startDate="2026-08-01 10:00:00 +0530" endDate="2026-08-01 10:10:00 +0530" value="800"/>
+
+ <Record type="HKQuantityTypeIdentifierAppleExerciseTime" sourceName="Dinesh&apos;s Apple Watch" unit="min" startDate="2026-08-01 09:00:00 +0530" endDate="2026-08-01 09:30:00 +0530" value="20"/>
+ <Record type="HKQuantityTypeIdentifierAppleExerciseTime" sourceName="Dinesh&apos;s Apple Watch" unit="min" startDate="2026-08-01 18:00:00 +0530" endDate="2026-08-01 18:40:00 +0530" value="15"/>
+
+ <!-- A type we have no canonical field for. Must be surfaced in
+      summary.unknownColumns, never fatal, never guessed into a field. -->
+ <Record type="HKQuantityTypeIdentifierDietaryWater" sourceName="WaterMinder" unit="L" startDate="2026-08-01 11:00:00 +0530" endDate="2026-08-01 11:00:00 +0530" value="0.35"/>
+
+ <!-- ============================================================
+      MALFORMED RECORDS. Each must be REJECTED with a reason, never guessed.
+      ============================================================ -->
+ <Record type="HKQuantityTypeIdentifierRestingHeartRate" sourceName="Broken App" unit="count/min" startDate="2026-13-45 99:99:99 +0530" endDate="2026-13-45 99:99:99 +0530" value="55"/>
+ <Record type="HKQuantityTypeIdentifierStepCount" sourceName="Broken App" unit="count" startDate="2026-08-01 20:00:00 +0530" endDate="2026-08-01 20:10:00 +0530" value="n/a"/>
+
+ <!-- ============================================================
+      NIGHT OF 2026-08-01 -> 2026-08-02. A pre-iOS-16 export: one flat
+      "Asleep" block with no stages at all. sleepMinutes must be 400 and every
+      stage field must stay null rather than being apportioned by a formula.
+      An InBed block wraps it, so efficiency is real arithmetic, not a score.
+      ============================================================ -->
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Dinesh&apos;s iPhone" value="HKCategoryValueSleepAnalysisInBed" startDate="2026-08-01 23:10:00 +0530" endDate="2026-08-02 06:05:00 +0530"/>
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Dinesh&apos;s iPhone" value="HKCategoryValueSleepAnalysisAsleep" startDate="2026-08-01 23:20:00 +0530" endDate="2026-08-02 06:00:00 +0530"/>
+
+ <!-- A sleep value from a future iOS we do not recognise. Rejected, NOT folded
+      into "asleep" — folding unknowns into asleep is how a night silently grows
+      by an hour after an OS update. -->
+ <Record type="HKCategoryTypeIdentifierSleepAnalysis" sourceName="Dinesh&apos;s Apple Watch" value="HKCategoryValueSleepAnalysisAsleepUnknownStage" startDate="2026-08-02 07:00:00 +0530" endDate="2026-08-02 07:30:00 +0530"/>
+
+ <Record type="HKQuantityTypeIdentifierHeartRateVariabilitySDNN" sourceName="Dinesh&apos;s Apple Watch" unit="ms" startDate="2026-08-02 03:00:00 +0530" endDate="2026-08-02 03:01:00 +0530" value="49.8"/>
+ <Record type="HKQuantityTypeIdentifierStepCount" sourceName="Dinesh&apos;s Apple Watch" unit="count" startDate="2026-08-02 11:00:00 +0530" endDate="2026-08-02 11:20:00 +0530" value="3400"/>
+
+ <Workout workoutActivityType="HKWorkoutActivityTypeFunctionalStrengthTraining" duration="47.5" durationUnit="min" sourceName="Dinesh&apos;s Apple Watch" startDate="2026-08-01 18:00:00 +0530" endDate="2026-08-01 18:47:30 +0530">
+  <MetadataEntry key="HKIndoorWorkout" value="1"/>
+  <WorkoutStatistics type="HKQuantityTypeIdentifierActiveEnergyBurned" startDate="2026-08-01 18:00:00 +0530" endDate="2026-08-01 18:47:30 +0530" sum="412" unit="kcal"/>
+  <WorkoutStatistics type="HKQuantityTypeIdentifierHeartRate" startDate="2026-08-01 18:00:00 +0530" endDate="2026-08-01 18:47:30 +0530" average="128.4" maximum="164" unit="count/min"/>
+ </Workout>
+
+ <ActivitySummary dateComponents="2026-08-01" activeEnergyBurned="210.5" activeEnergyBurnedGoal="500" activeEnergyBurnedUnit="kcal" appleExerciseTime="35" appleExerciseTimeGoal="30" appleStandHours="11" appleStandHoursGoal="12"/>
+</HealthData>

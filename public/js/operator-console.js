@@ -1367,13 +1367,141 @@ function opLeadsView(view) {
   document.querySelectorAll('#opLeadsSeg .op-chip').forEach(function (b) {
     b.classList.toggle('active', b.getAttribute('data-lv') === view);
   });
+  // Nutrition assessments are their own endpoint, not part of /api/operator/leads,
+  // so the first switch to that view fetches them and every later one is instant.
+  if (view === 'nutrition' && !opState.na) { loadOperatorNutritionAssessments(); return; }
   renderOperatorLeads();
+}
+
+/* Read-only by design: an operator can see and chase an assessment, but the
+   delete and the "mark reviewed" action stay on the admin console. */
+async function loadOperatorNutritionAssessments() {
+  var el = opEl('opLeadCards');
+  if (el) el.innerHTML = '<div class="op-empty pad">Loading\u2026</div>';
+  try {
+    var d = await apiCall('GET', '/api/nutrition-assessment/list?sort=flagged');
+    if (!d || d.error || !Array.isArray(d.rows)) {
+      if (el) el.innerHTML = '<div class="op-empty pad">' + opEsc((d && d.error) || 'Could not load assessments.') + '</div>';
+      return;
+    }
+    opState.na = d;
+    renderOperatorLeads();
+  } catch (e) {
+    if (el) el.innerHTML = '<div class="op-empty pad">Could not load assessments.</div>';
+  }
+}
+
+function opNaBadges(r) {
+  return (r.is_member ? '<span class="op-tag ok">Member</span>' : '<span class="op-tag warn">No account</span>')
+    + (r.status === 'complete'
+      ? '<span class="op-tag ok">Completed</span>'
+      : '<span class="op-tag">Step ' + r.last_step + '/' + r.total_steps + '</span>')
+    + (r.flagged ? '<span class="op-tag warn" title="' + opEsc((r.flag_labels || []).join(', ')) + '">Needs review</span>' : '');
+}
+
+function opNaCard(r) {
+  var phone = r.mobile || '';
+  var wa = opWa(phone);
+  var actions = '<div class="op-card-actions">';
+  if (wa) actions += '<a class="op-qa wa" href="' + wa + '" target="_blank" rel="noopener" title="WhatsApp" onclick="event.stopPropagation()">'
+    + '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.2-5.2A8.5 8.5 0 1 1 21 11.5Z"/></svg></a>';
+  if (r.email) actions += '<a class="op-qa" href="mailto:' + opEsc(r.email) + '" title="Email" onclick="event.stopPropagation()">'
+    + '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg></a>';
+  actions += '</div>';
+
+  return '<article class="op-card" onclick="opNaOpen(\'' + opAttr(r.id) + '\')">'
+    + '<div class="op-card-top">' + opAvatar(null, r.name, 'lg')
+    + '<div class="op-card-id"><div class="op-card-name">' + opEsc(r.name) + '</div>'
+    + '<div class="op-card-mail">' + opEsc([r.email, phone].filter(Boolean).join(' \u00b7 ')) + '</div>'
+    + '<div class="op-card-tags">' + opNaBadges(r) + '</div></div></div>'
+    + '<div class="op-card-facts"><span>' + opEsc(opDate(r.submitted_at || r.updated_at || r.created_at)) + '</span>'
+    + (r.goal ? '<span>Goal: <b>' + opEsc(r.goal) + '</b></span>' : '')
+    + (r.tdee ? '<span>TDEE: <b>' + r.tdee + '</b></span>' : '') + '</div>'
+    + actions + '</article>';
+}
+
+async function opNaOpen(id) {
+  var row = ((opState.na || {}).rows || []).filter(function (x) { return String(x.id) === String(id); })[0];
+  if (!row) return;
+  opState.story = { kind: 'lead' };
+
+  var head = opStoryBackBtn() + opAvatar(null, row.name, 'xl')
+    + '<div class="op-story-id"><div class="op-story-title">' + opEsc(row.name) + '</div>'
+    + '<div class="op-story-sub">' + opEsc([row.email, row.mobile].filter(Boolean).join(' \u00b7 ')) + '</div></div>'
+    + '<div class="op-story-pills"><span class="op-tag">Nutrition assessment</span></div>';
+
+  var wa = opWa(row.mobile);
+  var h = '<div class="op-actbar">';
+  if (wa) h += '<a class="op-btn wa" href="' + wa + '" target="_blank" rel="noopener">\ud83d\udcac WhatsApp</a>';
+  if (row.mobile) h += '<a class="op-btn quiet" href="tel:' + opEsc(String(row.mobile).replace(/[^0-9+]/g, '')) + '">\ud83d\udcde Call</a>';
+  if (row.email) h += '<a class="op-btn quiet" href="mailto:' + opEsc(row.email) + '">\u2709\ufe0f Email</a>';
+  h += '</div>';
+  h += '<div class="op-card-tags" style="margin-bottom:18px">' + opNaBadges(row) + '</div>';
+  h += '<div id="opNaDetail"><div class="op-empty">Loading the answers\u2026</div></div>';
+  opStoryOpen(head, h);
+
+  var d;
+  try { d = await apiCall('GET', '/api/nutrition-assessment/' + id); }
+  catch (e) { d = null; }
+  var host = opEl('opNaDetail');
+  if (!host) return;
+  if (!d || d.error) { host.innerHTML = '<div class="op-empty">Could not load the answers.</div>'; return; }
+
+  var out = '';
+  if ((d.flags || []).length) {
+    out += '<div class="op-sub" style="margin-top:0;color:#ff8a8a">Needs review before a plan goes out</div><div class="op-lines">'
+      + d.flags.map(function (f) {
+        return opKV(f.label + (f.clinician ? ' \u00b7 clinician' : ''), opEsc(f.detail));
+      }).join('') + '</div>';
+  }
+  var dv = d.derived || {};
+  if (dv.bmr) {
+    out += '<div class="op-sub">The numbers</div><div class="op-lines">'
+      + opKV('BMR', opEsc(String(dv.bmr)))
+      + opKV('TDEE', dv.tdee ? opEsc(String(dv.tdee)) : '')
+      + opKV('Calorie target', dv.calorie_target ? opEsc(String(dv.calorie_target)) : '')
+      + opKV('Protein', dv.protein_target_g ? opEsc(dv.protein_target_g.low + '\u2013' + dv.protein_target_g.high + ' g') : '')
+      + opKV('Waist-to-height', dv.whtr ? opEsc(String(dv.whtr)) : '')
+      + '</div>';
+  }
+  (d.sections || []).forEach(function (sec) {
+    out += '<div class="op-sub">' + opEsc(sec.title) + '</div><div class="op-lines">'
+      + sec.rows.map(function (r) { return opKV(r.label, opEsc(opNaValue(r.value))); }).join('')
+      + '</div>';
+  });
+  host.innerHTML = out || '<div class="op-empty">Nothing filled in yet.</div>';
+}
+
+function opNaValue(v) {
+  if (v == null) return '';
+  if (Array.isArray(v)) return v.join(', ');
+  if (typeof v === 'object') {
+    return Object.keys(v).map(function (k) {
+      var inner = v[k];
+      if (inner && typeof inner === 'object') return k + ': ' + [inner.at, inner.what].filter(Boolean).join(' ');
+      return k + ': ' + inner;
+    }).join(' \u00b7 ');
+  }
+  return String(v);
 }
 function renderOperatorLeads() {
   var el = opEl('opLeadCards'); if (!el) return;
   var d = opState.leads || {};
   var q = ((opEl('opLeadsSearch') || {}).value || '').trim();
   var rows;
+  if (opState.leadsView === 'nutrition') {
+    var na = ((opState.na || {}).rows || []).filter(function (p) { return bbContactMatches(q, [p.name, p.email], [p.mobile]); });
+    var sm = (opState.na || {}).summary || {};
+    var l0 = opEl('opLeadLine'), s0 = opEl('opLeadSub');
+    if (l0) l0.innerHTML = '<b>' + na.length + '</b> nutrition assessment' + (na.length === 1 ? '' : 's');
+    if (s0) s0.textContent = [
+      (sm.complete || 0) + ' completed', (sm.partial || 0) + ' in progress',
+      (sm.flagged || 0) + ((sm.flagged || 0) === 1 ? ' needs review' : ' need review')
+    ].join(' \u00b7 ');
+    el.innerHTML = na.length ? na.map(opNaCard).join('')
+      : '<div class="op-empty pad">' + (q ? 'Nothing matches this search.' : 'No assessments yet.') + '</div>';
+    return;
+  }
   if (opState.leadsView === 'part2') {
     rows = (d.part2 || []).filter(function (p) { return bbContactMatches(q, [p.name, p.email], [p.mobile]); })
       .map(function (p) { return { kind: 'part2', id: p.id, raw: p }; });

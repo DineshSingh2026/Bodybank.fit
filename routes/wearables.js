@@ -82,9 +82,26 @@ function createWearablesRouter(deps = {}) {
     NOT_A_WHOOP_PDF: 400,
     PDF_TOO_LARGE: 413,
     PDF_TOO_MANY_PAGES: 413,
-    PDF_AI_UNAVAILABLE: 503
-    // PDF_UNREADABLE and PDF_NO_DATA describe the document's content, not a transport
-    // fault, so they take the 422 default below.
+    PDF_AI_UNAVAILABLE: 503,
+    // ── universal vision extractor (services/wearables/deviceVisionExtract.js) ──
+    // One cause, one code. The whole point of this table is that a member is never
+    // told their file is malformed when the real fault was ours: an unconfigured
+    // key is a 503, an oversized image is a 413, and only a document we genuinely
+    // could not read falls through to the 422 default.
+    UPLOAD_EMPTY: 400,
+    NOT_AN_IMAGE: 400,
+    UNSUPPORTED_IMAGE_FORMAT: 415,
+    MIXED_UPLOAD_TYPES: 400,
+    DEVICE_NOT_SPECIFIED: 400,
+    DEVICE_MISMATCH: 400,
+    IMAGE_TOO_LARGE: 413,
+    IMAGES_TOTAL_TOO_LARGE: 413,
+    TOO_MANY_IMAGES: 413,
+    VISION_AI_UNAVAILABLE: 503,
+    VISION_CLIENT_INVALID: 503,
+    PDF_EXTRACTOR_UNAVAILABLE: 503
+    // PDF_UNREADABLE, PDF_NO_DATA, VISION_UNREADABLE and VISION_NO_DATA describe the
+    // document's content, not a transport fault, so they take the 422 default below.
   };
 
   /** Does the head of the buffer read as text, or is it binary we should refuse? */
@@ -438,6 +455,427 @@ function createWearablesRouter(deps = {}) {
     } catch (e) {
       console.error('[wearables commit]', e.message);
       res.status(500).json({ error: 'Could not save that export. Please try again.' });
+    }
+  });
+
+  /* ══════════════════════════════════════════════════════════════════════════
+   * UNIVERSAL DEVICE UPLOAD
+   *
+   * The member picks their device, then uploads whatever their app gave them.
+   * The Whoop routes above are deliberately left byte-identical: a shipped mobile
+   * build calls them, and a member's working upload path is not something to
+   * migrate for tidiness. Whoop flows through here too, via its own adapter.
+   *
+   *   POST /api/wearables/upload/preview   reads, writes nothing
+   *   POST /api/wearables/upload/commit    same file, now written
+   *   GET  /api/wearables/devices          what we support, and honestly how well
+   *
+   * Every failure below names the real cause. Telling a member their file is
+   * malformed when the true reason was an unconfigured API key is a bug this
+   * codebase has already had to fix once (see PDF_ERROR_STATUS above).
+   * ══════════════════════════════════════════════════════════════════════════ */
+
+  const canonicalDay = require('../services/wearables/canonicalDay');
+  const adapterRegistry = require('../services/wearables/adapterRegistry');
+
+  // Both are optional at deploy time, exactly like whoopPdfExtract: a build missing
+  // one must still serve every other device rather than failing at require time.
+  let deviceRegistry = null;
+  try { deviceRegistry = require('../services/wearables/deviceRegistry'); } catch (e) { /* handled at call sites */ }
+  let deviceVision = null;
+  try { deviceVision = require('../services/wearables/deviceVisionExtract'); } catch (e) { /* handled at call sites */ }
+
+  /**
+   * Apple Health exports are sample-level XML and routinely run to hundreds of
+   * megabytes, far past MAX_UPLOAD_BYTES and past what express.json will accept at
+   * all. Rather than let a member wait through a long upload only to be refused by
+   * the body parser with a generic 413, we detect the device up front and explain.
+   */
+  const APPLE_XML_GUIDANCE = 'Apple Health exports are usually far too large to upload here. '
+    + 'Open the BodyBank app on your iPhone and connect Apple Health directly — it syncs '
+    + 'the same data without the file.';
+
+  /** Which upload routes a magic-byte classification corresponds to. */
+  function classifyDeviceUpload(buf, fileName) {
+    if (isZip(buf)) return 'zip';
+    if (buf.length >= 5 && buf.slice(0, 5).toString('latin1') === '%PDF-') return 'pdf';
+    if (buf.length >= 8 && buf.slice(0, 8).toString('hex') === '89504e470d0a1a0a') return 'image';
+    if (buf.length >= 3 && buf.slice(0, 3).toString('hex') === 'ffd8ff') return 'image';
+    if (buf.length >= 12 && buf.slice(0, 4).toString('latin1') === 'RIFF'
+        && buf.slice(8, 12).toString('latin1') === 'WEBP') return 'image';
+    if (!looksLikeText(buf)) return 'unknown';
+
+    // Text: distinguish JSON and XML from CSV by their first non-whitespace byte.
+    // Guessing wrong here means handing an adapter a shape it cannot read and
+    // reporting "your export was incomplete", which is the wrong diagnosis.
+    const head = buf.slice(0, 4096).toString('utf8').replace(/^﻿/, '').trimStart();
+    if (head[0] === '{' || head[0] === '[') return 'json';
+    if (head[0] === '<') return 'xml';
+    return 'csv';
+  }
+
+  /** Text extensions worth pulling out of a vendor ZIP, across all devices. */
+  const ZIP_TEXT_EXTENSIONS = ['.csv', '.json', '.xml', '.txt'];
+
+  /**
+   * Decode and parse an upload for a DECLARED device.
+   *
+   * @returns {{ok:true, parsed, sha256, fileName, provider, extraction}}
+   *        | {ok:false, status:number, error:string}
+   */
+  async function decodeForDevice(body, userId) {
+    const b = body || {};
+    const provider = String(b.device || b.provider || b.device_id || '').trim().toLowerCase();
+
+    if (!provider) return { ok: false, status: 400, error: 'Please choose which device this file came from.' };
+    if (canonicalDay.PROVIDERS.indexOf(provider) === -1) {
+      return { ok: false, status: 400, error: 'We do not recognise that device.' };
+    }
+
+    const device = deviceRegistry ? deviceRegistry.getDevice(provider) : null;
+    const deviceLabel = (device && device.label) || provider;
+
+    const raw = String(b.file_base64 || b.fileBase64 || b.data || '');
+    const fileName = String(b.file_name || b.fileName || (provider + '_export')).slice(0, 200);
+    const b64 = raw.replace(/^data:[^;]+;base64,/, '').trim();
+    if (!b64) return { ok: false, status: 400, error: 'No file was uploaded.' };
+
+    // Encoded-length check first: 4 base64 chars = 3 bytes, so an oversized upload
+    // is refused without ever allocating the buffer.
+    if (Math.floor((b64.length * 3) / 4) > MAX_UPLOAD_BYTES) {
+      return {
+        ok: false,
+        status: 413,
+        error: provider === 'apple_health'
+          ? APPLE_XML_GUIDANCE
+          : 'That file is too large to upload here.'
+      };
+    }
+    if (!/^[A-Za-z0-9+/=\s]+$/.test(b64)) {
+      return { ok: false, status: 400, error: 'That upload was not valid base64. Please attach the file again.' };
+    }
+
+    const buf = Buffer.from(b64, 'base64');
+    if (!buf.length) return { ok: false, status: 400, error: 'That file is empty.' };
+    if (buf.length > MAX_UPLOAD_BYTES) {
+      return {
+        ok: false,
+        status: 413,
+        error: provider === 'apple_health' ? APPLE_XML_GUIDANCE : 'That file is too large to upload here.'
+      };
+    }
+
+    // The idempotency key for the whole upload, over the raw bytes.
+    const sha256 = crypto.createHash('sha256').update(buf).digest('hex');
+    const kind = classifyDeviceUpload(buf, fileName);
+    if (kind === 'unknown') {
+      return { ok: false, status: 400, error: 'We could not tell what kind of file that is. Upload the export your ' + deviceLabel + ' app produced, or a screenshot of it.' };
+    }
+
+    /* ---- images and PDFs go to the vision extractor ---- */
+    if (kind === 'image' || (kind === 'pdf' && provider !== 'whoop')) {
+      if (!deviceVision || typeof deviceVision.extract !== 'function') {
+        return { ok: false, status: 400, error: 'Reading data from images is not available on this deployment yet.' };
+      }
+      if (!(process.env.ANTHROPIC_API_KEY || '').trim()) {
+        // A configuration fault, NOT the member's file being wrong.
+        return { ok: false, status: 503, error: 'Reading data from images is not configured here yet.' };
+      }
+      let out;
+      try {
+        out = await deviceVision.extract(
+          { buffer: buf, fileName: fileName, kind: kind },
+          { device: provider, apiKey: (process.env.ANTHROPIC_API_KEY || '').trim() }
+        );
+      } catch (e) {
+        console.error('[wearables vision]', e && e.message);
+        out = null;
+      }
+      // Every AI call in this codebase records its cost, or the cost is invisible.
+      // This runs on BOTH paths: a failed extraction still burned real tokens, and
+      // DEVICE_MISMATCH / VISION_NO_DATA / VISION_UNREADABLE all return usage.
+      if (out && out.usage) {
+        recordAiUsage({
+          scope: 'device_vision',
+          usage: out.usage,
+          model: out.model,
+          userId: userId || null,
+          refType: 'wearable_upload',
+          refId: sha256
+        });
+      }
+      if (!out || !out.ok) {
+        return {
+          ok: false,
+          status: (out && out.status) || PDF_ERROR_STATUS[out && out.code] || 422,
+          error: (out && out.error) || 'We could not read any readings out of that image.'
+        };
+      }
+
+      const parsed = out.parsed || out;
+      const verdict = canonicalDay.validateParsedExport(parsed);
+      if (!verdict.ok) {
+        console.error('[wearables vision] contract violation:', verdict.errors.slice(0, 8));
+        return { ok: false, status: 422, error: 'We could not read those readings reliably, so nothing was saved.' };
+      }
+      if (!parsed.days.length) {
+        return { ok: false, status: 422, error: out.message || 'We could not find any daily readings in that image.' };
+      }
+      return {
+        ok: true,
+        parsed: parsed,
+        sha256: sha256,
+        fileName: fileName,
+        provider: provider,
+        extraction: {
+          source: kind,
+          model: out.model || null,
+          usage: out.usage || null,
+          message: out.message || null,
+          // The member MUST be able to see that these numbers were read off a
+          // picture rather than parsed from their device's own file.
+          readFromImage: true
+        }
+      };
+    }
+
+    /* ---- Whoop PDFs keep their existing, proven path ---- */
+    if (kind === 'pdf' && provider === 'whoop') {
+      const legacy = await decodeAndParse(b);
+      if (!legacy.ok) return legacy;
+      return Object.assign({ provider: 'whoop' }, legacy);
+    }
+
+    /* ---- structured files go to the device's adapter ---- */
+    let files;
+    if (kind === 'zip') {
+      try {
+        files = readZipTextFiles(buf, { extensions: ZIP_TEXT_EXTENSIONS, basename: true });
+      } catch (e) {
+        return { ok: false, status: 400, error: 'That archive could not be read (' + (e.code || 'unreadable') + '). Please re-download your export.' };
+      }
+      if (!files || !files.length) {
+        return { ok: false, status: 400, error: 'That archive contains no readable data files. Please upload the export your ' + deviceLabel + ' app produced.' };
+      }
+    } else {
+      const ext = kind === 'json' ? '.json' : kind === 'xml' ? '.xml' : '.csv';
+      files = [{ name: fileName.replace(/\.[^.]*$/, '') + ext, text: buf.toString('utf8') }];
+    }
+
+    const result = adapterRegistry.parseForDevice(provider, files, { fileName: fileName });
+    if (!result.ok) {
+      const status = result.code === 'DEVICE_NOT_SUPPORTED_HERE' ? 501
+        : result.code === 'ADAPTER_CONTRACT_VIOLATION' ? 422
+          : result.code === 'UNKNOWN_DEVICE' ? 400 : 422;
+      const note = (result.parsed.summary.notes || [])[0];
+      return { ok: false, status: status, error: note || 'We could not read that file.' };
+    }
+
+    if (!result.parsed.days.length) {
+      // An empty parse is not the same as a broken one. Say which.
+      const note = (result.parsed.summary.notes || [])[0];
+      return {
+        ok: false,
+        status: 422,
+        error: note || 'No daily readings were found in that file. Make sure you exported your full ' + deviceLabel + ' history.'
+      };
+    }
+
+    return {
+      ok: true,
+      parsed: result.parsed,
+      sha256: sha256,
+      fileName: fileName,
+      provider: provider,
+      extraction: null
+    };
+  }
+
+  /**
+   * GET /api/wearables/devices
+   * Drives the device picker. Returns what each device can and cannot give us, so
+   * the member is told BEFORE they upload rather than left to infer it from a
+   * half-empty report afterwards.
+   */
+  router.get('/devices', verifyToken, limit(60, 60000), (req, res) => {
+    if (!deviceRegistry) {
+      return res.json({
+        ok: true,
+        devices: [{ id: 'whoop', label: 'Whoop', tier: 'full', ingest: ['zip', 'csv', 'pdf'] }],
+        budgetBands: [],
+        available: adapterRegistry.availableProviders()
+      });
+    }
+    const available = adapterRegistry.availableProviders();
+    res.json({
+      ok: true,
+      devices: deviceRegistry.listDevices().map((d) => ({
+        id: d.id,
+        label: d.label,
+        shortLabel: d.shortLabel,
+        brand: d.brand,
+        tier: d.tier,
+        ingest: d.ingest,
+        exportInstructions: d.exportInstructions,
+        caveats: d.caveats,
+        // Whether THIS deployment can actually parse it right now, as opposed to
+        // whether the device is known to us in principle.
+        supported: available.indexOf(d.id) !== -1
+          || (Array.isArray(d.ingest) && d.ingest.indexOf('screenshot') !== -1 && !!deviceVision)
+      })),
+      budgetBands: typeof deviceRegistry.listBudgetBands === 'function'
+        ? deviceRegistry.listBudgetBands()
+        : [],
+      available: available
+    });
+  });
+
+  /**
+   * POST /api/wearables/native/health-connect
+   *
+   * The in-app native bridge: the Capacitor build reads Health Connect (Android) or
+   * HealthKit (iOS) and POSTs daily aggregates as JSON. This is the route that makes
+   * Apple, Samsung and every Android band that writes to Health Connect work without
+   * asking a member to export a file at all — see docs/NATIVE_HEALTH_BRIDGE.md.
+   *
+   * Payloads are small (daily aggregates, not raw samples), so the ordinary
+   * express.json path is fine. Only Apple's XML export needs a streaming endpoint.
+   */
+  router.post('/native/health-connect', verifyToken, limit(30, 60000), async (req, res) => {
+    try {
+      const userId = String(req.user.id);
+      const hc = adapterRegistry.loadAdapter('health_connect');
+      if (!hc) return res.status(501).json({ error: 'Native health sync is not available on this deployment.' });
+
+      const payload = req.body && typeof req.body === 'object' ? req.body : null;
+      if (!payload) return res.status(400).json({ error: 'No sync payload was sent.' });
+
+      const parsed = hc.parse(payload, {});
+      const verdict = canonicalDay.validateParsedExport(parsed);
+      if (!verdict.ok) {
+        console.error('[wearables health-connect] contract violation:', verdict.errors.slice(0, 8));
+        return res.status(422).json({ error: 'That sync payload could not be read, so nothing was saved.' });
+      }
+      if (!parsed.days.length) {
+        const note = (parsed.summary.notes || [])[0];
+        return res.status(422).json({ error: note || 'That sync payload contained no daily readings.' });
+      }
+
+      // Idempotency. The app re-sends overlapping windows on every sync, and the
+      // envelope carries a fresh `exportedAt` each time — hashing the raw body would
+      // therefore produce a new sha256 for identical data and defeat the duplicate
+      // check entirely. Hash the DAYS instead, so a re-sync of unchanged readings is
+      // correctly recognised as one it has already stored.
+      const idempotencyBasis = JSON.stringify({
+        provider: 'health_connect',
+        days: parsed.days
+      });
+      const sha256 = crypto.createHash('sha256').update(idempotencyBasis).digest('hex');
+
+      const result = await readinessService.commitUpload(db, {
+        userId,
+        provider: 'health_connect',
+        fileName: 'health-connect-sync.json',
+        sha256,
+        parsed
+      });
+      if (!result || !result.ok) return res.status(500).json({ error: 'Could not save that sync.' });
+
+      if (result.duplicate) {
+        return res.json({ ok: true, duplicate: true, days: 0, message: 'Already up to date.' });
+      }
+
+      await readinessService.optIn(db, { userId, provider: 'health_connect' }).catch(() => {});
+      const autofill = await readinessService
+        .autoPopulateCheckinRange(db, { userId, dates: parsed.days.map((d) => d.date) })
+        .catch(() => null);
+
+      res.json(Object.assign({ ok: true, duplicate: false }, result, {
+        partial: result.status === 'pending',
+        checkinsAutoFilled: (autofill && autofill.filled) || 0,
+        notes: parsed.summary.notes || []
+      }));
+    } catch (e) {
+      console.error('[wearables health-connect]', e && e.message);
+      res.status(500).json({ error: 'Could not save that sync. Please try again.' });
+    }
+  });
+
+  /** POST /api/wearables/upload/preview — reads, writes nothing. */
+  router.post('/upload/preview', verifyToken, limit(10, 60000), async (req, res) => {
+    try {
+      const decoded = await decodeForDevice(req.body, String(req.user.id));
+      if (!decoded.ok) return res.status(decoded.status).json({ error: decoded.error });
+
+      const { parsed, sha256, fileName, provider, extraction } = decoded;
+      const preview = await readinessService.previewUpload(db, {
+        userId: String(req.user.id),
+        parsed,
+        provider,
+        sha256
+      });
+
+      res.json(Object.assign({
+        ok: true,
+        device: provider,
+        fileName,
+        sha256,
+        extraction: extraction || null
+      }, preview, {
+        rowsRejected: parsed.summary.rowsRejected,
+        unknownColumns: unknownColumnNames(preview.unknownColumns, parsed.summary.unknownColumns),
+        unknownColumnsDetail: parsed.summary.unknownColumns || [],
+        duplicates: parsed.summary.duplicates || [],
+        implausible: parsed.summary.implausible || [],
+        notes: parsed.summary.notes || [],
+        message: parsed.summary.message || null,
+        workouts: parsed.workouts.length,
+        journal: parsed.journal.length
+      }));
+    } catch (e) {
+      console.error('[wearables upload preview]', e && e.message);
+      res.status(500).json({ error: 'Could not read that file. Please try again.' });
+    }
+  });
+
+  /** POST /api/wearables/upload/commit — same file, now written. */
+  router.post('/upload/commit', verifyToken, limit(10, 60000), async (req, res) => {
+    try {
+      const userId = String(req.user.id);
+      const decoded = await decodeForDevice(req.body, String(req.user.id));
+      if (!decoded.ok) return res.status(decoded.status).json({ error: decoded.error });
+
+      const { parsed, sha256, fileName, provider, extraction } = decoded;
+      const result = await readinessService.commitUpload(db, {
+        userId, provider, fileName, sha256, parsed
+      });
+      if (!result || !result.ok) return res.status(500).json({ error: 'Could not save that file.' });
+
+      if (result.duplicate) {
+        return res.json({ ok: true, device: provider, duplicate: true, message: 'You have already uploaded this file — nothing changed.' });
+      }
+
+      await readinessService.optIn(db, { userId, provider }).catch(() => {});
+
+      const autofill = await readinessService
+        .autoPopulateCheckinRange(db, { userId, dates: parsed.days.map((d) => d.date) })
+        .catch(() => null);
+
+      const partial = result.status === 'pending';
+      const payload = Object.assign({ ok: true, device: provider, duplicate: false }, result, {
+        partial,
+        extraction: extraction || null,
+        checkinsAutoFilled: (autofill && autofill.filled) || 0,
+        unknownColumns: unknownColumnNames(result.unknownColumns, parsed.summary.unknownColumns),
+        unknownColumnsDetail: parsed.summary.unknownColumns || []
+      });
+      if (partial) {
+        payload.message = 'Part of that file could not be saved. Upload it again to finish the import.';
+      }
+      res.json(payload);
+    } catch (e) {
+      console.error('[wearables upload commit]', e && e.message);
+      res.status(500).json({ error: 'Could not save that file. Please try again.' });
     }
   });
 

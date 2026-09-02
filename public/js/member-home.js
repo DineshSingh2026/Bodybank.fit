@@ -329,8 +329,52 @@ function renderMemberHome() {
       + item('💪', 'Muscle Ranking', 'See where you stand', 'muscle')
       + item('🖼️', 'Elite Feed', 'The tribe', 'elitefeed')
       + item('👤', 'My Profile', 'Goals and details', 'profile')
-      + item('✉️', 'Contact Us', 'We are here to help', 'contact');
+      + item('✉️', 'Contact Us', 'We are here to help', 'contact')
+      + '<button type="button" class="mh-navtile" onclick="mhOpenNutritionAssessment()">'
+        + '<span class="mh-navico" aria-hidden="true">🥗</span>'
+        + '<span class="mh-navmain"><b>Nutrition Assessment</b><i>Your FitChef plan starts here</i></span></button>';
   }
+}
+
+/* ---- FitChef nutrition assessment ----------------------------------------
+   A one-off, not a daily task, so it never joins the day's loop and never
+   costs a pip on the rail. It sits in the uploads block and states plainly
+   where the member got to, because a 10-step form abandoned at step 4 is only
+   resumable if the home screen says so. */
+
+function mhOpenNutritionAssessment() {
+  window.location.href = 'nutrition-assessment.html';
+}
+
+async function mhLoadNutritionAssessment() {
+  var state = mhEl('mhNaState');
+  var btn = mhEl('mhNaBtn');
+  var hint = mhEl('mhNaHint');
+  if (!state || !btn) return;
+  var d;
+  try { d = await apiCall('GET', '/api/nutrition-assessment/mine'); }
+  catch (e) { d = null; }
+  if (!d || d.error) {
+    state.innerHTML = '';
+    hint.textContent = 'About 5 minutes \u2014 we fill in everything we already know.';
+    return;
+  }
+  if (d.status === 'complete') {
+    state.innerHTML = '<span class="mh-tag ok">Submitted ' + mhEsc(mhDay(d.submitted_at)) + '</span>';
+    btn.textContent = 'View what you sent';
+    hint.textContent = 'Your report is being built. We will message you when it is ready.';
+    return;
+  }
+  if (d.status === 'in_progress') {
+    state.innerHTML = '<span class="mh-tag warn">Step ' + d.last_step + ' of ' + d.total_steps + '</span>'
+      + (d.step_title ? '<span class="mh-tag">' + mhEsc(d.step_title) + '</span>' : '');
+    btn.textContent = 'Pick up where you left off';
+    hint.textContent = 'Everything you have typed is saved.';
+    return;
+  }
+  state.innerHTML = '<span class="mh-tag warn">Not started</span>';
+  btn.textContent = 'Start the assessment';
+  hint.textContent = 'About 5 minutes \u2014 your profile, check-ins and blood report are already filled in for you to confirm.';
 }
 
 /* ------------------------------------------------------------- uploads --- */
@@ -339,6 +383,17 @@ function mhPickBlood() {
   if (inp) { inp.value = ''; inp.click(); }
 }
 function mhPickWhoop() {
+  // Prefer the full device flow: it asks WHICH watch this is before reading the
+  // file, and it shows the member every extracted number before anything is
+  // saved. That review step matters most for the members this card used to serve
+  // worst — anyone on a band with no export, whose figures are read off a
+  // screenshot by AI and must be confirmed rather than trusted.
+  if (typeof window !== 'undefined' && typeof window.bbOpenWhoop === 'function') {
+    window.bbOpenWhoop();
+    return;
+  }
+  // Fallback for any page that does not carry the modal: the original Whoop-only
+  // path, which still works.
   var inp = mhEl('mhWhoopFile');
   if (inp) { inp.value = ''; inp.click(); }
 }
@@ -498,6 +553,7 @@ function mhSequence() {
 function mhBoot() {
   if (!mhEl('memberHome')) return;
   loadMemberHome();
+  mhLoadNutritionAssessment();
   // The legacy widgets are built by the shell's own loaders, so sequence once
   // they exist, then once more in case a slow one arrives late.
   setTimeout(mhSequence, 400);

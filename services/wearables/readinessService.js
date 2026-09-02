@@ -28,15 +28,53 @@ const { toDateStr, todayYmdInTz, addCalendarDaysYmd, STREAK_TZ } = require('../s
 /* ────────────────────────────── constants ────────────────────────────── */
 
 const DEFAULT_PROVIDER = 'whoop';
-const VALID_PROVIDERS = ['whoop', 'manual', 'derived', 'oura', 'garmin', 'apple_health', 'fitbit'];
+/**
+ * Every provider we accept. MUST stay in sync with PROVIDERS in
+ * services/wearables/canonicalDay.js — a value present there but missing here is
+ * rejected by normalizeProvider() and the member's upload silently writes nothing.
+ */
+const VALID_PROVIDERS = [
+  'whoop', 'oura', 'garmin', 'fitbit', 'polar',
+  'apple_health', 'health_connect', 'samsung_health', 'amazfit',
+  'generic_csv', 'screenshot', 'manual', 'derived'
+];
 
-/** Strict resolution order used by getReadiness()/getReadinessRange(). Lower = wins. */
-const SOURCE_PRECEDENCE = { whoop: 1, manual: 2, derived: 3 };
-const SOURCE_PRECEDENCE_SQL = `CASE source
-    WHEN 'whoop' THEN 1
-    WHEN 'manual' THEN 2
-    WHEN 'derived' THEN 3
-    ELSE 9 END`;
+/**
+ * Strict resolution order used by getReadiness()/getReadinessRange(). Lower = wins.
+ *
+ * Ordered by strength of evidence, not by brand preference:
+ *   1-5   vendor structured exports, richest first (recovery + HRV + staged sleep)
+ *   6-9   platform aggregates — real measurements, but already re-aggregated by
+ *         Apple/Google/Samsung before we see them, so one layer further from source
+ *   10-11 a generic CSV or a number the member typed; both are honest but unverified
+ *   12    a figure an LLM read off a screenshot — real data, weakest evidence
+ *   13    a score BodyBank computed itself, which must never outrank a measurement
+ *
+ * `manual` deliberately outranks `screenshot`: a member reading their own app and
+ * typing the number is better evidence than a model reading a photo of it. The
+ * historic ranks of whoop/manual/derived (1/2/3) are preserved relative to each
+ * other, so no existing member's resolved day changes meaning.
+ */
+const SOURCE_PRECEDENCE = {
+  whoop: 1,
+  oura: 2,
+  garmin: 3,
+  fitbit: 4,
+  polar: 5,
+  apple_health: 6,
+  health_connect: 7,
+  samsung_health: 8,
+  amazfit: 9,
+  generic_csv: 10,
+  manual: 11,
+  screenshot: 12,
+  derived: 13
+};
+// Built from the map above so the two can never drift apart. An unranked source
+// still lands in the ELSE 99 bucket where ties break on updated_at alone.
+const SOURCE_PRECEDENCE_SQL = `CASE source\n    ${Object.keys(SOURCE_PRECEDENCE)
+  .map((p) => `WHEN '${p}' THEN ${SOURCE_PRECEDENCE[p]}`)
+  .join('\n    ')}\n    ELSE 99 END`;
 
 /** Numeric metric columns of readiness_daily, in insert order. */
 const METRIC_COLUMNS = [
@@ -65,15 +103,46 @@ const METRIC_COLUMNS = [
   'strain',
   'energy_kcal',
   'max_hr',
-  'avg_hr'
+  'avg_hr',
+  // ── multi-device additions ──
+  // A temperature DEVIATION from the member's own baseline, which is what Fitbit
+  // and Apple report. It gets its own column rather than sharing skin_temp_c
+  // because a -0.4 deviation stored as an absolute reads as hypothermia, and
+  // because the two can never be averaged into one series. `temp_basis` below
+  // says which of the two a row actually carries.
+  'skin_temp_deviation_c',
+  // Whoop has no step counter, so these are null for every Whoop day; most other
+  // devices supply them and the derived readiness path can use them as an
+  // activity signal where strain is unavailable.
+  'steps',
+  'active_minutes'
 ];
 
 /**
  * Non-numeric readiness columns. These bypass the numeric coercion applied to
  * METRIC_COLUMNS — running num('C') would yield null and silently drop the unit,
  * which is exactly the provenance we are trying to preserve.
+ *
+ * The multi-device tags are the load-bearing part of rule 6 in canonicalDay.js:
+ * without `hrv_method` we cannot know whether two HRV numbers may be compared
+ * (Apple reports SDNN from a 60s spot check, Whoop reports overnight RMSSD, and
+ * charting them as one series invents a cliff the member never experienced).
  */
-const TEXT_COLUMNS = ['skin_temp_unit'];
+const TEXT_COLUMNS = [
+  'skin_temp_unit',
+  'hrv_method', // canonicalDay.HRV_METHOD — required whenever hrv_ms is set
+  'temp_basis', // canonicalDay.TEMP_BASIS — required whenever a temperature is set
+  'measurement_source', // canonicalDay.MEASUREMENT_SOURCE — how this day reached us
+  'device_model' // e.g. 'Apple Watch Series 9'; free text, frequently null
+];
+
+/**
+ * Per-column length caps for TEXT_COLUMNS. The historic blanket cap was 16
+ * characters, which is right for a unit tag and would truncate a device name
+ * ('Apple Watch Series 9' is 20) into something the member would not recognise.
+ */
+const TEXT_COLUMN_MAX = { device_model: 80 };
+const TEXT_COLUMN_DEFAULT_MAX = 24;
 
 /** Numeric columns of wearable_workouts, in insert order. */
 const WORKOUT_METRIC_COLUMNS = [
@@ -115,7 +184,14 @@ const COLUMN_TO_CAMEL = {
   strain: 'strain',
   energy_kcal: 'energyKcal',
   max_hr: 'maxHr',
-  avg_hr: 'avgHr'
+  avg_hr: 'avgHr',
+  skin_temp_deviation_c: 'skinTempDeviationC',
+  steps: 'steps',
+  active_minutes: 'activeMinutes',
+  hrv_method: 'hrvMethod',
+  temp_basis: 'tempBasis',
+  measurement_source: 'measurementSource',
+  device_model: 'deviceModel'
 };
 
 /**
@@ -131,6 +207,18 @@ const RAW_ALIASES = {
   skin_temp_c: ['skin temp (celsius)', 'skin_temp_c', 'skin temp', 'skin temperature', 'skinTempC'],
   skin_temp_raw: ['skin_temp_raw', 'skinTempRaw', 'skin temp raw'],
   skin_temp_unit: ['skin_temp_unit', 'skinTempUnit', 'skin temp unit'],
+  // ── multi-device provenance (canonicalDay.js rule 6) ──
+  // Without these aliases an adapter's tags fall through to `unknown`, are reported
+  // as unrecognised columns on EVERY import, and — far worse — are never persisted,
+  // so an Apple SDNN row would land in the database indistinguishable from a Whoop
+  // RMSSD row. These entries are what make the tags durable.
+  skin_temp_deviation_c: ['skin_temp_deviation_c', 'skinTempDeviationC', 'skin temp deviation', 'temperature deviation', 'temp deviation (c)'],
+  steps: ['steps', 'step count', 'step_count', 'stepCount', 'total steps'],
+  active_minutes: ['active_minutes', 'activeMinutes', 'active minutes', 'active zone minutes', 'exercise minutes', 'move minutes'],
+  hrv_method: ['hrv_method', 'hrvMethod', 'hrv method'],
+  temp_basis: ['temp_basis', 'tempBasis', 'temp basis', 'temperature basis'],
+  measurement_source: ['measurement_source', 'measurementSource', 'measurement source'],
+  device_model: ['device_model', 'deviceModel', 'device model', 'device'],
   sleep_consistency_pct: ['sleep consistency %', 'sleep_consistency_pct', 'sleep consistency', 'sleepConsistencyPct'],
   respiratory_rate: ['respiratory rate (rpm)', 'respiratory_rate', 'respiratory rate', 'respiratoryRate', 'resp rate'],
   sleep_hours: ['sleep_hours', 'sleep hours', 'sleepHours', 'hours of sleep', 'sleep duration (h)'],
@@ -165,7 +253,16 @@ const RAW_EXTRA_ALIASES = {
     // whoopParser emits sleepMinutes alongside sleepHours. Without this entry it is
     // reported as an unrecognised column on EVERY import, which is noise on top of
     // the signal that actually matters (Whoop changing their export format).
-    'sleepMinutes'
+    'sleepMinutes',
+    // Device-native scores (canonicalDay rule 6) are deliberately NOT given a
+    // column of their own: 'garmin.body_battery' and 'fitbit.sleep_score' are not
+    // the same measurement and must never be charted against each other. They ride
+    // along in raw_json, which upsertDayParams already persists verbatim, and are
+    // surfaced on read as `providerScores`. Listing them here keeps them out of the
+    // unknown-column warning without discarding them.
+    'providerScores', 'provider_scores',
+    // Adapter bookkeeping that is meaningful in the payload but is not a column.
+    'attributedFrom', 'kind', 'isNap', 'cycleStart', 'cycleStartEpochMs'
   ]
 };
 
@@ -710,7 +807,7 @@ function normalizeParsedDay(day) {
     if (target === '__in_bed_min') { return; }
     if (TEXT_COLUMNS.indexOf(target) !== -1) {
       const s = String(v == null ? '' : v).trim();
-      if (s) out.values[target] = s.slice(0, 16);
+      if (s) out.values[target] = s.slice(0, TEXT_COLUMN_MAX[target] || TEXT_COLUMN_DEFAULT_MAX);
       return;
     }
     const n = num(v);
@@ -1539,6 +1636,13 @@ function mapReadinessRow(row) {
   out.score = out.readinessScore != null ? out.readinessScore : out.recoveryScore;
   out.scoreSource = out.score != null ? out.source : null;
   out.raw = row.raw_json || null;
+  // Device-native scores travel inside raw_json (see the __ignored note above).
+  // Surface them as a first-class field so the UI can render "Body Battery 62"
+  // beside its brand without every caller having to know that storage detail.
+  out.providerScores = (out.raw && typeof out.raw === 'object' && out.raw.providerScores
+    && typeof out.raw.providerScores === 'object' && !Array.isArray(out.raw.providerScores))
+    ? out.raw.providerScores
+    : {};
   return out;
 }
 
@@ -1957,6 +2061,11 @@ module.exports = {
   DERIVED_WEIGHTS,
   DERIVED_FORMULA_VERSION,
   METRIC_COLUMNS,
+  // Exported alongside METRIC_COLUMNS so the route and the tests can introspect
+  // the provenance columns; without it there is no way to assert that an adapter's
+  // hrv_method tag actually has a column to land in.
+  TEXT_COLUMNS,
+  VALID_PROVIDERS,
   WORKOUT_METRIC_COLUMNS,
   MAX_SLEEP_HOURS,
   MAX_RANGE_DAYS,

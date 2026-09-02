@@ -1,0 +1,10 @@
+{
+  "date": "2025-04-02",
+  "heart_rate_avg": 55,
+  "beat_to_beat_avg": 1090,
+  "heart_rate_variability_avg": null,
+  "breathing_rate_avg": 14.8,
+  "nightly_recharge_status": 2,
+  "ans_charge": -0.4,
+  "ans_charge_status": 2
+}

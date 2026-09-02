@@ -1,0 +1,5 @@
+com.samsung.shealth.sleep,16,
+com.samsung.health.sleep.start_time,com.samsung.health.sleep.end_time,com.samsung.health.sleep.time_offset,sleep_duration,efficiency,sleep_score,rem_duration,deep_duration,light_duration,awake_duration,com.samsung.health.sleep.comment
+2026-08-01 23:30:00.000,2026-08-02 06:12:00.000,UTC+0530,402,92.5,78,95,70,237,20,"Slept well, woke once"
+2026-08-02 14:30:00.000,2026-08-02 15:10:00.000,UTC+0530,40,,,,,,,Afternoon nap
+2026-08-02 23:40:00.000,,UTC+0530,,,,,,,,Row with no wake time

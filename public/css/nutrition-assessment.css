@@ -1,0 +1,383 @@
+/* ============================================================================
+   FitChef Nutrition Assessment
+   ----------------------------------------------------------------------------
+   Deliberately NOT BodyBank's dark gold. This form is a FitChef surface, so it
+   takes FitChef's own palette straight from fitchef.fit: deep green ink on soft
+   cream, emerald for anything you act on, gold reserved for the moments that
+   are meant to feel like a reward (the teaser numbers, the finish screen).
+   Playfair Display for headings, Inter for everything you have to read fast.
+
+   The layout rule underneath all of it: one question block at a time, thumb-
+   reachable targets, and never a native <select> where a row of tappable chips
+   will do — a 100-field form is won or lost on how many taps each answer costs.
+   ========================================================================== */
+
+:root {
+  --deep-green: #0e2f2b;
+  --emerald: #1f7a59;
+  --emerald-dk: #175f45;
+  --emerald-lt: #e6f2ec;
+  --soft-cream: #f5f2e9;
+  --gold: #c6a75e;
+  --gold-lt: #f3ead6;
+  --white: #ffffff;
+  --text-dark: #0e2f2b;
+  --text-muted: #2d5a52;
+  --text-faint: #6b8b84;
+  --form-bg: #e8f0ec;
+  --form-bg-card: #f0f6f3;
+  --line: #d3e2db;
+  --danger: #a2402f;
+  --danger-bg: #fbeeeb;
+  --shadow: 0 4px 24px rgba(14, 47, 43, .08);
+  --shadow-hover: 0 12px 40px rgba(14, 47, 43, .12);
+  --radius: 14px;
+  --font-heading: 'Playfair Display', Georgia, serif;
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+* { box-sizing: border-box }
+
+html { -webkit-text-size-adjust: 100% }
+
+body {
+  margin: 0;
+  background: var(--soft-cream);
+  color: var(--text-dark);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.55;
+  /* Room for the sticky action bar so the last field is never trapped under it. */
+  padding-bottom: 120px;
+}
+
+/* ── header ──────────────────────────────────────────────────────────────── */
+
+.fc-top {
+  position: sticky; top: 0; z-index: 30;
+  background: var(--deep-green);
+  color: var(--soft-cream);
+  box-shadow: 0 2px 18px rgba(14, 47, 43, .18);
+}
+.fc-top-in {
+  max-width: 720px; margin: 0 auto; padding: 14px 20px 0;
+  display: flex; align-items: center; gap: 12px;
+}
+.fc-brand {
+  font-family: var(--font-heading); font-size: 20px; font-weight: 700;
+  letter-spacing: .01em; color: var(--white); margin: 0;
+}
+.fc-brand span { color: var(--gold) }
+.fc-top-tag {
+  margin-left: auto; font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+  color: rgba(245, 242, 233, .62); font-weight: 500;
+}
+
+.fc-prog { max-width: 720px; margin: 0 auto; padding: 10px 20px 14px }
+.fc-prog-row {
+  display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px;
+  font-size: 13px; color: rgba(245, 242, 233, .8);
+}
+.fc-prog-step { font-weight: 600; color: var(--white) }
+.fc-prog-of { margin-left: auto; font-variant-numeric: tabular-nums; font-size: 12px }
+.fc-prog-track { height: 4px; border-radius: 99px; background: rgba(245, 242, 233, .18); overflow: hidden }
+.fc-prog-fill {
+  height: 100%; width: 0; border-radius: 99px;
+  background: linear-gradient(90deg, var(--emerald), var(--gold));
+  transition: width .45s cubic-bezier(.4, 0, .2, 1);
+}
+
+/* ── shell ───────────────────────────────────────────────────────────────── */
+
+.fc-wrap { max-width: 720px; margin: 0 auto; padding: 24px 20px 0 }
+
+.fc-step-head { margin: 8px 0 22px }
+.fc-step-kicker {
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--emerald); font-weight: 600; margin-bottom: 8px;
+}
+.fc-step-title {
+  font-family: var(--font-heading); font-size: 30px; line-height: 1.15;
+  font-weight: 600; margin: 0 0 8px; color: var(--deep-green);
+}
+.fc-step-blurb { margin: 0; color: var(--text-muted); font-size: 15px; max-width: 54ch }
+
+/* ── field blocks ────────────────────────────────────────────────────────── */
+
+.fc-field {
+  background: var(--white); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 18px 18px 20px; margin-bottom: 14px; box-shadow: var(--shadow);
+  transition: border-color .2s, box-shadow .2s;
+}
+.fc-field.is-invalid { border-color: var(--danger); background: var(--danger-bg) }
+.fc-field-label {
+  display: block; font-size: 15px; font-weight: 600; color: var(--deep-green);
+  margin-bottom: 4px; line-height: 1.35;
+}
+.fc-req { color: var(--emerald); margin-left: 3px }
+.fc-help { font-size: 13px; color: var(--text-faint); margin: 0 0 12px; line-height: 1.5 }
+.fc-field-label + .fc-help { margin-top: 2px }
+.fc-err { font-size: 13px; color: var(--danger); margin-top: 8px; font-weight: 500 }
+
+/* the "we already know this" marker */
+.fc-src {
+  display: inline-flex; align-items: center; gap: 5px; margin: 0 0 10px;
+  font-size: 11.5px; color: var(--emerald-dk); background: var(--emerald-lt);
+  border: 1px solid #cfe4d9; border-radius: 99px; padding: 3px 10px; font-weight: 500;
+}
+.fc-src::before { content: '✓'; font-weight: 700 }
+
+/* ── inputs ──────────────────────────────────────────────────────────────── */
+
+.fc-input, .fc-textarea, .fc-native {
+  width: 100%; font-family: var(--font-body); font-size: 16px; color: var(--text-dark);
+  background: var(--form-bg-card); border: 1px solid var(--line); border-radius: 10px;
+  padding: 12px 14px; outline: none; transition: border-color .18s, box-shadow .18s;
+}
+.fc-input:focus, .fc-textarea:focus, .fc-native:focus {
+  border-color: var(--emerald); box-shadow: 0 0 0 3px rgba(31, 122, 89, .13); background: var(--white);
+}
+.fc-textarea { min-height: 92px; resize: vertical; line-height: 1.55 }
+.fc-native { appearance: none; background-image: none }
+
+.fc-unit-row { display: flex; align-items: center; gap: 10px }
+.fc-unit-row .fc-input { flex: 1; min-width: 0 }
+.fc-unit { font-size: 14px; color: var(--text-faint); font-weight: 500; white-space: nowrap }
+
+/* chips — the workhorse. Single-select and multi-select share the look, so the
+   member learns one interaction and never has to guess which is which. */
+.fc-chips { display: flex; flex-wrap: wrap; gap: 8px }
+.fc-chip {
+  font: inherit; font-size: 14px; cursor: pointer;
+  background: var(--form-bg-card); color: var(--text-muted);
+  border: 1px solid var(--line); border-radius: 10px;
+  padding: 10px 14px; min-height: 42px; text-align: left;
+  transition: all .16s cubic-bezier(.4, 0, .2, 1);
+}
+.fc-chip:hover { border-color: var(--emerald); color: var(--deep-green) }
+.fc-chip.on {
+  background: var(--emerald); border-color: var(--emerald); color: var(--white); font-weight: 500;
+  box-shadow: 0 4px 12px rgba(31, 122, 89, .22);
+}
+.fc-chip:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
+.fc-chip[disabled] { opacity: .38; cursor: not-allowed }
+
+/* yes / no gets its own two-up so it never wraps awkwardly */
+.fc-yesno { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; max-width: 280px }
+.fc-yesno .fc-chip { text-align: center }
+
+/* tags */
+.fc-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px }
+.fc-tag {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 13px;
+  background: var(--gold-lt); border: 1px solid #e4d5b2; color: #6d5726;
+  border-radius: 99px; padding: 5px 6px 5px 12px; font-weight: 500;
+}
+.fc-tag button {
+  border: 0; background: rgba(109, 87, 38, .12); color: #6d5726; cursor: pointer;
+  width: 20px; height: 20px; border-radius: 50%; line-height: 1; font-size: 14px; padding: 0;
+}
+.fc-tag button:hover { background: rgba(109, 87, 38, .26) }
+
+/* slider */
+.fc-slider-row { display: flex; align-items: center; gap: 14px }
+.fc-slider { flex: 1; accent-color: var(--emerald); height: 28px }
+.fc-slider-val {
+  font-family: var(--font-heading); font-size: 26px; font-weight: 700; color: var(--emerald);
+  min-width: 42px; text-align: center;
+}
+.fc-scale { display: flex; justify-content: space-between; font-size: 11.5px; color: var(--text-faint); margin-top: 2px }
+
+/* height, with the ft/in toggle Indian users actually want */
+.fc-height-tabs { display: inline-flex; gap: 4px; background: var(--form-bg); border-radius: 8px; padding: 3px; margin-bottom: 10px }
+.fc-height-tabs button {
+  font: inherit; font-size: 13px; border: 0; background: transparent; color: var(--text-muted);
+  padding: 6px 14px; border-radius: 6px; cursor: pointer; font-weight: 500;
+}
+.fc-height-tabs button.on { background: var(--white); color: var(--deep-green); box-shadow: 0 1px 4px rgba(14, 47, 43, .1) }
+.fc-ftin { display: flex; gap: 10px }
+
+/* 24-hour recall */
+.fc-recall { display: flex; flex-direction: column; gap: 12px }
+.fc-recall-row {
+  background: var(--form-bg-card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px;
+}
+.fc-recall-top { display: flex; align-items: center; gap: 10px; margin-bottom: 8px }
+.fc-recall-name { font-size: 13.5px; font-weight: 600; color: var(--deep-green) }
+.fc-recall-time { margin-left: auto; width: 118px; padding: 6px 8px; font-size: 13px }
+.fc-recall-row .fc-input { background: var(--white) }
+
+/* frequency grid - one row per food, five buttons that shrink to fit. A real
+   <table> needs ~560px and forces a horizontal scroll on every row; this is the
+   block the whole plan leans on, so it has to work with one thumb. */
+.fc-fr-legend {
+  display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 12px;
+  font-size: 11.5px; color: var(--text-faint);
+}
+.fc-fr-legend span { white-space: nowrap }
+.fc-fr-list { display: flex; flex-direction: column; gap: 8px }
+.fc-fr {
+  background: var(--form-bg-card); border: 1px solid var(--line);
+  border-radius: 10px; padding: 9px 11px 10px; transition: border-color .16s, background .16s;
+}
+.fc-fr.done { background: #f7fbf9; border-color: #cfe4d9 }
+.fc-fr-name { font-size: 13.5px; font-weight: 500; color: var(--deep-green); margin-bottom: 7px }
+.fc-fr.done .fc-fr-name { color: var(--text-muted) }
+.fc-fr-opts { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px }
+.fc-fr-b {
+  font: inherit; font-size: 12px; cursor: pointer; padding: 8px 2px; min-height: 36px;
+  border: 1px solid var(--line); border-radius: 8px; background: var(--white);
+  color: var(--text-muted); transition: all .14s; white-space: nowrap; overflow: hidden;
+}
+.fc-fr-b:hover { border-color: var(--emerald); color: var(--deep-green) }
+.fc-fr-b.on {
+  background: var(--emerald); border-color: var(--emerald); color: #fff; font-weight: 600;
+  box-shadow: 0 3px 9px rgba(31, 122, 89, .24);
+}
+.fc-fr-b:focus-visible { outline: 2px solid var(--gold); outline-offset: 1px }
+.fc-grid-hint { font-size: 12px; color: var(--text-faint); margin-top: 10px; font-weight: 500 }
+
+/* labs — collapsed by default because most people fill none of it */
+.fc-labs-toggle {
+  font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; width: 100%; text-align: left;
+  background: var(--form-bg-card); border: 1px dashed var(--line); border-radius: 10px;
+  padding: 12px 14px; color: var(--emerald-dk);
+}
+.fc-labs-toggle:hover { border-color: var(--emerald) }
+.fc-labs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 12px }
+.fc-lab-l { font-size: 12px; color: var(--text-faint); display: block; margin-bottom: 4px }
+
+/* file drops */
+.fc-file {
+  display: block; text-align: center; cursor: pointer;
+  background: var(--form-bg-card); border: 1px dashed var(--line); border-radius: 10px;
+  padding: 20px 14px; color: var(--emerald-dk); font-size: 14px; font-weight: 500;
+}
+.fc-file:hover { border-color: var(--emerald); background: var(--emerald-lt) }
+.fc-file input { display: none }
+.fc-filelist { margin-top: 10px; font-size: 13px; color: var(--text-muted) }
+.fc-filelist div { padding: 4px 0 }
+
+/* consent */
+.fc-consent { display: flex; gap: 12px; align-items: flex-start; cursor: pointer }
+.fc-consent input {
+  width: 22px; height: 22px; margin: 2px 0 0; accent-color: var(--emerald); flex-shrink: 0; cursor: pointer;
+}
+.fc-consent span { font-size: 14px; color: var(--text-muted); line-height: 1.6 }
+
+/* ── the confirm card: the whole point of prefill ─────────────────────────── */
+
+.fc-confirm {
+  background: linear-gradient(150deg, #ffffff, var(--emerald-lt));
+  border: 1px solid #cfe4d9; border-radius: var(--radius);
+  padding: 18px; margin-bottom: 18px; box-shadow: var(--shadow);
+}
+.fc-confirm-h {
+  font-family: var(--font-heading); font-size: 18px; font-weight: 600; margin: 0 0 4px; color: var(--deep-green);
+}
+.fc-confirm-sub { font-size: 13.5px; color: var(--text-muted); margin: 0 0 14px }
+.fc-confirm-list { display: flex; flex-direction: column; gap: 2px; margin-bottom: 14px }
+.fc-confirm-row {
+  /* wrap is what lets the source line drop onto its own row instead of
+     squeezing the value into two words per line */
+  display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline;
+  padding: 7px 0; border-bottom: 1px solid rgba(14, 47, 43, .07); font-size: 14px;
+}
+.fc-confirm-row:last-child { border-bottom: 0 }
+.fc-confirm-k { color: var(--text-faint); min-width: 132px; flex-shrink: 0; font-size: 13px }
+.fc-confirm-v { color: var(--deep-green); font-weight: 500; flex: 1 }
+.fc-confirm-src { font-size: 11px; color: var(--text-faint); font-style: italic; flex-basis: 100%; margin: -4px 0 0 144px }
+.fc-confirm-acts { display: flex; gap: 8px; flex-wrap: wrap }
+
+/* ── the mid-form teaser: the single biggest completion lever ─────────────── */
+
+.fc-teaser {
+  background: var(--deep-green); color: var(--soft-cream);
+  border-radius: 18px; padding: 24px 22px; margin-bottom: 18px;
+  box-shadow: 0 18px 46px rgba(14, 47, 43, .28); position: relative; overflow: hidden;
+}
+.fc-teaser::before {
+  content: ''; position: absolute; inset: -40% -20% auto auto; width: 320px; height: 320px;
+  background: radial-gradient(circle, rgba(198, 167, 94, .22), transparent 68%); pointer-events: none;
+}
+.fc-teaser-k {
+  font-size: 11px; letter-spacing: .16em; text-transform: uppercase; color: var(--gold); font-weight: 600; margin-bottom: 6px;
+}
+.fc-teaser-h { font-family: var(--font-heading); font-size: 23px; margin: 0 0 18px; font-weight: 600; color: var(--white) }
+.fc-teaser-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; position: relative }
+.fc-tstat { background: rgba(245, 242, 233, .07); border: 1px solid rgba(245, 242, 233, .13); border-radius: 12px; padding: 14px }
+.fc-tstat-l { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: rgba(245, 242, 233, .58); margin-bottom: 5px }
+.fc-tstat-v { font-family: var(--font-heading); font-size: 26px; font-weight: 700; color: var(--gold); line-height: 1.1 }
+.fc-tstat-v small { font-size: 13px; font-weight: 500; color: rgba(245, 242, 233, .7); font-family: var(--font-body) }
+.fc-tstat-n { font-size: 12px; color: rgba(245, 242, 233, .62); margin-top: 5px; line-height: 1.45 }
+.fc-tstat--wide { grid-column: 1 / -1 }
+.fc-teaser-foot {
+  margin: 18px 0 0; font-size: 13.5px; color: rgba(245, 242, 233, .74); font-style: italic; position: relative;
+}
+
+/* ── action bar ──────────────────────────────────────────────────────────── */
+
+.fc-bar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+  background: rgba(245, 242, 233, .94); backdrop-filter: blur(12px);
+  border-top: 1px solid var(--line); padding: 12px 20px calc(12px + env(safe-area-inset-bottom));
+}
+.fc-bar-in { max-width: 720px; margin: 0 auto; display: flex; align-items: center; gap: 12px }
+.fc-btn {
+  font: inherit; font-size: 15px; font-weight: 600; cursor: pointer; border-radius: 11px;
+  padding: 14px 26px; border: 1px solid transparent; transition: all .18s cubic-bezier(.4, 0, .2, 1);
+}
+.fc-btn--primary { background: var(--emerald); color: var(--white); flex: 1; box-shadow: 0 6px 18px rgba(31, 122, 89, .26) }
+.fc-btn--primary:hover { background: var(--emerald-dk); transform: translateY(-1px); box-shadow: var(--shadow-hover) }
+.fc-btn--primary[disabled] { opacity: .55; cursor: wait; transform: none }
+.fc-btn--ghost { background: transparent; border-color: var(--line); color: var(--text-muted) }
+.fc-btn--ghost:hover { border-color: var(--emerald); color: var(--emerald) }
+.fc-btn--sm { padding: 9px 16px; font-size: 13.5px; border-radius: 9px }
+.fc-save {
+  font-size: 12px; color: var(--text-faint); text-align: center; max-width: 720px;
+  margin: 8px auto 0; min-height: 16px; transition: opacity .3s;
+}
+
+/* ── states ──────────────────────────────────────────────────────────────── */
+
+.fc-note {
+  background: var(--gold-lt); border: 1px solid #e4d5b2; border-left: 3px solid var(--gold);
+  border-radius: 10px; padding: 14px 16px; font-size: 14px; color: #6d5726; margin-bottom: 18px; line-height: 1.55;
+}
+.fc-alert {
+  background: var(--danger-bg); border: 1px solid #eccdc5; border-left: 3px solid var(--danger);
+  border-radius: 10px; padding: 14px 16px; font-size: 14px; color: var(--danger); margin-bottom: 18px;
+}
+.fc-center { text-align: center; padding: 70px 20px; color: var(--text-muted) }
+.fc-done { max-width: 560px; margin: 0 auto; text-align: center; padding: 48px 20px }
+.fc-done-ring {
+  width: 76px; height: 76px; border-radius: 50%; margin: 0 auto 22px;
+  background: var(--emerald); color: #fff; display: grid; place-items: center; font-size: 34px;
+  box-shadow: 0 14px 34px rgba(31, 122, 89, .3);
+}
+.fc-done h2 { font-family: var(--font-heading); font-size: 30px; margin: 0 0 12px; color: var(--deep-green); font-weight: 600 }
+.fc-done p { color: var(--text-muted); font-size: 15.5px; margin: 0 0 16px }
+
+.fc-hidden { display: none !important }
+
+/* ── phone ───────────────────────────────────────────────────────────────── */
+
+@media (max-width: 600px) {
+  .fc-wrap { padding: 18px 14px 0 }
+  .fc-step-title { font-size: 25px }
+  .fc-field { padding: 15px 14px 17px; border-radius: 12px }
+  .fc-teaser-grid { grid-template-columns: 1fr 1fr; gap: 10px }
+  .fc-tstat { padding: 12px }
+  .fc-tstat-v { font-size: 23px }
+  .fc-labs { grid-template-columns: 1fr }
+  .fc-confirm-k { min-width: 108px }
+  .fc-confirm-src { margin-left: 120px }
+  .fc-bar { padding: 10px 14px calc(10px + env(safe-area-inset-bottom)) }
+  .fc-btn { padding: 13px 18px }
+  .fc-chip { font-size: 13.5px; padding: 9px 12px }
+  .fc-recall-time { width: 104px }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important }
+}

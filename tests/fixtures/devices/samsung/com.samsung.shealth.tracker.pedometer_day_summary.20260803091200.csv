@@ -1,0 +1,4 @@
+com.samsung.shealth.tracker.pedometer_day_summary,10,
+day_time,step_count,calorie,active_time,com.samsung.shealth.tracker.pedometer_day_summary.source_type
+2026-08-02,9214,486,2700000,MANUAL
+2026-08-03,7008,401,1800000,MANUAL

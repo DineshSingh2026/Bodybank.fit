@@ -1,0 +1,5 @@
+{
+  "date": "not-a-date",
+  "light_sleep": 10000,
+  "deep_sleep": 3000
+}

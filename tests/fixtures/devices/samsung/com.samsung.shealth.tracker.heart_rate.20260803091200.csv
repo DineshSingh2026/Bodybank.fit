@@ -1,0 +1,4 @@
+com.samsung.shealth.tracker.heart_rate,7,
+com.samsung.shealth.heart_rate.start_time,com.samsung.shealth.heart_rate.time_offset,heart_rate,max,min,com.samsung.shealth.heart_rate.binning_data
+2026-08-02 08:15:00.000,UTC+0530,68,74,62,
+2026-08-02 19:00:00.000,UTC+0530,96,141,88,

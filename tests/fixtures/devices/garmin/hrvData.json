@@ -1,0 +1,24 @@
+[
+  {
+    "userProfilePK": 987654,
+    "calendarDate": "2025-04-01",
+    "weeklyAvg": 58,
+    "lastNightAvg": 61,
+    "lastNight5MinHigh": 88,
+    "status": "BALANCED",
+    "baseline": {
+      "lowUpper": 45,
+      "balancedLow": 50,
+      "balancedUpper": 70,
+      "markerValue": 0.53
+    }
+  },
+  {
+    "userProfilePK": 987654,
+    "calendarDate": "2025-04-02",
+    "weeklyAvg": 57,
+    "lastNightAvg": null,
+    "lastNight5MinHigh": null,
+    "status": "UNKNOWN"
+  }
+]
