@@ -104,6 +104,7 @@ const STEPS = [
   // ─────────────────────────────────────────────────────────── 1
   {
     key: 'identity',
+    part: 1,
     title: 'Who you are',
     blurb: 'Just enough to reach you with the report.',
     fields: [
@@ -122,6 +123,7 @@ const STEPS = [
   // ─────────────────────────────────────────────────────────── 2
   {
     key: 'goals',
+    part: 1,
     title: 'What you want',
     blurb: 'The plan is built backwards from this.',
     fields: [
@@ -163,6 +165,7 @@ const STEPS = [
   // ─────────────────────────────────────────────────────────── 3
   {
     key: 'body',
+    part: 1,
     title: 'Your body',
     blurb: 'These four numbers produce your metabolic starting point on the next screen.',
     teaser: true,
@@ -189,6 +192,7 @@ const STEPS = [
   // ─────────────────────────────────────────────────────────── 4
   {
     key: 'health',
+    part: 1,
     title: 'Health screening',
     blurb: 'This is what separates a nutrition plan from a menu. Nothing here is shared outside your coaching team.',
     fields: [
@@ -252,6 +256,7 @@ const STEPS = [
   // ─────────────────────────────────────────────────────────── 5
   {
     key: 'activity',
+    part: 2,
     title: 'Movement & training',
     blurb: 'This refines the calorie number and decides where meals sit in your day.',
     fields: [
@@ -302,6 +307,7 @@ const STEPS = [
   // ─────────────────────────────────────────────────────────── 6
   {
     key: 'current_diet',
+    part: 2,
     title: 'How you eat today',
     blurb: 'This is the part that makes your plan actually yours. Everything before it was context — this is data.',
     fields: [
@@ -336,6 +342,7 @@ const STEPS = [
   // ─────────────────────────────────────────────────────────── 7
   {
     key: 'preferences',
+    part: 2,
     title: 'Food rules & taste',
     blurb: 'The difference between a plan you follow and one you abandon.',
     fields: [
@@ -373,6 +380,7 @@ const STEPS = [
   // ─────────────────────────────────────────────────────────── 8
   {
     key: 'wellbeing',
+    part: 2,
     title: 'Digestion, sleep & appetite',
     blurb: 'Where most plans quietly fail.',
     fields: [
@@ -397,6 +405,7 @@ const STEPS = [
   // ─────────────────────────────────────────────────────────── 9
   {
     key: 'logistics',
+    part: 2,
     title: 'Kitchen & logistics',
     blurb: 'A plan that ignores your kitchen is a plan you cannot cook.',
     fields: [
@@ -416,6 +425,7 @@ const STEPS = [
   // ─────────────────────────────────────────────────────────── 10
   {
     key: 'accountability',
+    part: 1,
     title: 'Accountability & consent',
     blurb: 'Last screen. Thirty seconds.',
     fields: [
@@ -464,4 +474,64 @@ function fieldByKey(key) {
   return allFields().filter((f) => f.key === key)[0] || null;
 }
 
-module.exports = { STEPS, matches, allFields, fieldByKey, LAB_FIELDS, FREQ_ROWS, FREQ_COLS, RECALL_MEALS };
+/* ────────────────────────────── parts ──────────────────────────────
+ * The assessment is delivered in two sittings. This is a TAG on the existing
+ * steps, deliberately not a second schema or a second form: nothing was moved,
+ * removed or duplicated, so a field can never exist in one part's copy and not
+ * the other.
+ *
+ * Part 1 is the smallest set that still produces something safe and usable on
+ * its own — identity, goal, body metrics, the health screen and consent. The
+ * health screen is NOT optional here and must never be deferred to part 2:
+ * review.computeFlags() is the gate that stops a deficit plan reaching someone
+ * pregnant, on insulin, or in kidney failure, and metrics.derive() already
+ * turns the body step alone into BMR / TDEE / protein. Consent likewise has to
+ * be captured before any health data is processed at all.
+ *
+ * Part 2 is enrichment: training, current diet, preferences, wellbeing and
+ * kitchen logistics. Valuable, but nothing in it gates safety.
+ */
+const PARTS = [1, 2];
+
+const PART_META = {
+  1: {
+    part: 1,
+    title: 'FitChef Assessment — Part 1',
+    blurb: 'The essentials: who you are, your goal, your numbers and a short health check. About 3–4 minutes.',
+    done: 'Part 1 is in. We can already work out your calorie and protein targets from this.'
+  },
+  2: {
+    part: 2,
+    title: 'FitChef Assessment — Part 2',
+    blurb: 'The detail that makes the plan yours: how you train, how you eat now, what you like, and how your kitchen runs.',
+    done: 'That is everything. Your plan can now be built around how you actually live.'
+  }
+};
+
+/** Steps belonging to one part, in their original order. */
+function stepsForPart(part) {
+  const p = Number(part) === 2 ? 2 : 1;
+  return STEPS.filter((s) => Number(s.part) === p);
+}
+
+/** Which part a step key belongs to, or null when the key is unknown. */
+function partOfStep(stepKey) {
+  const s = STEPS.find((x) => x.key === String(stepKey));
+  return s ? Number(s.part) : null;
+}
+
+/** Which part a FIELD belongs to — used to validate a submission per part. */
+function partOfField(fieldKey) {
+  const s = STEPS.find((x) => x.fields.some((f) => f.key === String(fieldKey)));
+  return s ? Number(s.part) : null;
+}
+
+/** Every field in one part. */
+function fieldsForPart(part) {
+  return stepsForPart(part).reduce((acc, s) => acc.concat(s.fields), []);
+}
+
+module.exports = {
+  STEPS, matches, allFields, fieldByKey, LAB_FIELDS, FREQ_ROWS, FREQ_COLS, RECALL_MEALS,
+  PARTS, PART_META, stepsForPart, partOfStep, partOfField, fieldsForPart
+};

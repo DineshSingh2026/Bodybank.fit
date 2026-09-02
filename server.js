@@ -1720,6 +1720,47 @@ async function initDB() {
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
   )`);
+  // ── Two-part delivery ─────────────────────────────────────────────────────
+  // The assessment is filled in two sittings. It stays ONE row: `answers` is
+  // already JSONB keyed by step, so part 2 adds keys rather than needing a second
+  // table that could drift out of step with the first.
+  //
+  //   status  'partial'        mid part 1, nothing submitted
+  //           'part1_complete' part 1 submitted — safe to act on
+  //           'complete'       both parts in
+  //
+  // `part` is which part they are currently filling; `last_step` is their index
+  // WITHIN that part, not across all ten steps.
+  for (const sql of [
+    `ALTER TABLE nutrition_assessments ADD COLUMN IF NOT EXISTS part INTEGER DEFAULT 1`,
+    `ALTER TABLE nutrition_assessments ADD COLUMN IF NOT EXISTS part1_submitted_at TIMESTAMPTZ`,
+    `ALTER TABLE nutrition_assessments ADD COLUMN IF NOT EXISTS part2_submitted_at TIMESTAMPTZ`,
+    `ALTER TABLE nutrition_assessments ADD COLUMN IF NOT EXISTS part2_sent_at TIMESTAMPTZ`
+  ]) {
+    try { await pool.query(sql); } catch (e) { /* ignore */ }
+  }
+  // Backfill rows written before the split. They were filled against the whole
+  // form, so a completed one has genuinely answered both parts and must not be
+  // dragged back into an "awaiting part 2" state that a member would be chased
+  // about. Guarded on part1_submitted_at so this can never run twice.
+  try {
+    await pool.query(
+      `UPDATE nutrition_assessments
+          SET part = 2,
+              part1_submitted_at = submitted_at,
+              part2_submitted_at = submitted_at
+        WHERE status = 'complete' AND part1_submitted_at IS NULL AND submitted_at IS NOT NULL`
+    );
+  } catch (e) { /* ignore */ }
+  // A pre-split draft's last_step counted across all ten steps; part 1 has five,
+  // so anything above that would resume off the end of the part-1 step list.
+  try {
+    await pool.query(
+      `UPDATE nutrition_assessments SET last_step = 1
+        WHERE status = 'partial' AND (last_step IS NULL OR last_step > 5)`
+    );
+  } catch (e) { /* ignore */ }
+
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_nutrition_assessments_user ON nutrition_assessments(user_id, created_at DESC)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_nutrition_assessments_status ON nutrition_assessments(status, created_at DESC)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_nutrition_assessments_email ON nutrition_assessments(LOWER(email))`); } catch (e) { /* ignore */ }

@@ -381,3 +381,13 @@ body {
 @media (prefers-reduced-motion: reduce) {
   * { transition: none !important; animation: none !important }
 }
+
+/* Part badge — "Part 1 of 2" beside the kicker. The assessment is delivered in
+   two sittings, and a member needs to see at a glance which one they are in
+   (and that there IS a second one) rather than being surprised by it later. */
+.fc-part-badge{
+  display:inline-block;margin-left:8px;padding:2px 9px;border-radius:999px;
+  font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+  background:rgba(200,164,78,.14);border:1px solid rgba(200,164,78,.35);
+  color:var(--fc-gold,#c8a44e);vertical-align:middle;
+}

@@ -83,10 +83,15 @@ function createNutritionAssessmentRouter(deps = {}) {
       return {
         userId: inv.userId ? String(inv.userId) : '',
         email: inv.email || '', name: inv.name || '', mobile: inv.mobile || '',
+        // A part-2 link names the row it reopens. Without this an anonymous
+        // member finishing part 2 would start a SECOND row and the two halves of
+        // their assessment would never be joined up.
+        assessmentId: inv.assessmentId ? String(inv.assessmentId) : '',
+        part: Number(inv.part) === 2 ? 2 : 1,
         role: 'user', mode: 'invite'
       };
     }
-    return { userId: '', email: '', name: '', mobile: '', role: '', mode: 'cold' };
+    return { userId: '', email: '', name: '', mobile: '', assessmentId: '', part: 1, role: '', mode: 'cold' };
   }
 
   function originFor(req) {
@@ -139,6 +144,15 @@ function createNutritionAssessmentRouter(deps = {}) {
    * showing the same person twice — once abandoned, once complete.
    */
   async function findDraft(actor, emailHint) {
+    // A part-2 invite names its row explicitly. That beats every other lookup:
+    // it is the only thing that reliably reunites part 2 with part 1 for someone
+    // who has no account and may be on a different device.
+    if (actor.assessmentId && /^[0-9a-f-]{36}$/i.test(actor.assessmentId)) {
+      const byId = await db.queryOne(
+        `SELECT * FROM nutrition_assessments WHERE id = ?`, [actor.assessmentId]
+      );
+      if (byId) return byId;
+    }
     if (actor.userId) {
       return db.queryOne(
         `SELECT * FROM nutrition_assessments WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`, [actor.userId]
@@ -163,14 +177,42 @@ function createNutritionAssessmentRouter(deps = {}) {
       answers: parseJson(row.answers) || {},
       derived: parseJson(row.derived) || {},
       submitted_at: row.submitted_at || null,
-      updated_at: row.updated_at || null
+      updated_at: row.updated_at || null,
+      part: Number(row.part) || 1,
+      part1_submitted_at: row.part1_submitted_at || null,
+      part2_submitted_at: row.part2_submitted_at || null
     };
+  }
+
+  /** Normalise a requested part to 1 or 2. */
+  function partOf(v) { return Number(v) === 2 ? 2 : 1; }
+
+  /**
+   * Which part should this person be filling right now?
+   * Nothing submitted -> 1. Part 1 in, part 2 outstanding -> 2. Both in -> null.
+   */
+  function nextPartFor(row) {
+    if (!row) return 1;
+    if (!row.part1_submitted_at && row.status !== 'complete') return 1;
+    if (!row.part2_submitted_at) return 2;
+    return null;
   }
 
   // ───────────────────────────────────────────── public: schema + session
 
   router.get('/schema', limit(120, 60000), (req, res) => {
-    res.json({ steps: schema.STEPS });
+    // No `part` given -> the whole form, so any older client keeps working.
+    if (req.query.part === undefined) {
+      return res.json({ steps: schema.STEPS, parts: schema.PART_META });
+    }
+    const part = partOf(req.query.part);
+    res.json({
+      part,
+      steps: schema.stepsForPart(part),
+      meta: schema.PART_META[part],
+      parts: schema.PART_META,
+      total_parts: schema.PARTS.length
+    });
   });
 
   /**
@@ -188,13 +230,28 @@ function createNutritionAssessmentRouter(deps = {}) {
       } catch (e) { console.error('[nutrition-assessment] prefill failed:', e.message); }
 
       const draft = await findDraft(actor);
+      const next = nextPartFor(draft);
+      // An explicit ?part= wins (an admin opening part 2 to check it), but it can
+      // never re-open a part that is already submitted.
+      let part = req.query.part !== undefined ? partOf(req.query.part) : (next || 1);
+      if (draft && part === 1 && draft.part1_submitted_at) part = next || 2;
+      if (draft && part === 2 && draft.part2_submitted_at) part = next || 2;
+
       res.json({
         mode: actor.mode,
         is_member: !!actor.userId,
         prefill: prefill.known,
         prefill_sources: prefill.sources,
         draft: publicRow(draft),
-        already_submitted: !!(draft && draft.status === 'complete')
+        already_submitted: !!(draft && draft.status === 'complete'),
+        // ── part state ──
+        part,
+        next_part: next,
+        steps: schema.stepsForPart(part),
+        meta: schema.PART_META[part],
+        total_parts: schema.PARTS.length,
+        part1_done: !!(draft && draft.part1_submitted_at),
+        part2_done: !!(draft && draft.part2_submitted_at)
       });
     } catch (e) {
       console.error('[nutrition-assessment] session:', e.message);
@@ -212,7 +269,11 @@ function createNutritionAssessmentRouter(deps = {}) {
       const body = req.body || {};
       const answers = pruneHidden(body.answers || {});
       const flat = flatten(answers);
-      const lastStep = Math.max(1, Math.min(schema.STEPS.length, parseInt(body.last_step, 10) || 1));
+      // last_step is an index WITHIN the current part, not across all ten steps —
+      // the form only ever renders one part at a time.
+      const part = partOf(body.part);
+      const partSteps = schema.stepsForPart(part).length;
+      const lastStep = Math.max(1, Math.min(partSteps, parseInt(body.last_step, 10) || 1));
 
       const identity = {
         full_name: String(flat.full_name || actor.name || '').slice(0, 200),
@@ -224,30 +285,41 @@ function createNutritionAssessmentRouter(deps = {}) {
 
       const existing = await findDraft(actor, identity.email);
       if (existing && existing.status === 'complete') return res.json({ saved: false, reason: 'already-submitted', id: existing.id });
+      // Part 1 is locked once submitted; an autosave from a stale tab must not
+      // reopen it or quietly rewrite answers the member has already been told
+      // were accepted.
+      if (existing && part === 1 && existing.part1_submitted_at) {
+        return res.json({ saved: false, reason: 'part1-already-submitted', id: existing.id });
+      }
 
-      const derived = metrics.derive(flat);
+      // Merge rather than replace: a part-2 autosave carries only part-2 answers,
+      // and writing that straight over `answers` would erase part 1.
+      const merged = existing
+        ? Object.assign({}, parseJson(existing.answers) || {}, answers)
+        : answers;
+      const derived = metrics.derive(flatten(merged));
       if (existing) {
         await run(
           `UPDATE nutrition_assessments
-             SET answers = ?::jsonb, derived = ?::jsonb, last_step = ?, full_name = ?, email = ?, mobile = ?, city = ?,
+             SET answers = ?::jsonb, derived = ?::jsonb, last_step = ?, part = ?, full_name = ?, email = ?, mobile = ?, city = ?,
                  goal_primary = ?, diet_type = ?, updated_at = CURRENT_TIMESTAMP
            WHERE id = ?`,
-          [JSON.stringify(answers), JSON.stringify(derived), lastStep, identity.full_name, identity.email,
+          [JSON.stringify(merged), JSON.stringify(derived), lastStep, part, identity.full_name, identity.email,
             identity.mobile, identity.city, String(flat.goal_primary || ''), String(flat.diet_type || ''), existing.id]
         );
-        return res.json({ saved: true, id: existing.id });
+        return res.json({ saved: true, id: existing.id, part });
       }
 
       const id = crypto.randomUUID();
       await run(
         `INSERT INTO nutrition_assessments
-           (id, user_id, status, last_step, full_name, email, mobile, city, goal_primary, diet_type, answers, derived, ref_source)
-         VALUES (?,?,?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,?)`,
-        [id, actor.userId || null, 'partial', lastStep, identity.full_name, identity.email, identity.mobile,
+           (id, user_id, status, last_step, part, full_name, email, mobile, city, goal_primary, diet_type, answers, derived, ref_source)
+         VALUES (?,?,?,?,?,?,?,?,?,?,?,?::jsonb,?::jsonb,?)`,
+        [id, actor.userId || null, 'partial', lastStep, part, identity.full_name, identity.email, identity.mobile,
           identity.city, String(flat.goal_primary || ''), String(flat.diet_type || ''),
-          JSON.stringify(answers), JSON.stringify(derived), String(req.query.ref || body.ref || actor.mode)]
+          JSON.stringify(merged), JSON.stringify(derived), String(req.query.ref || body.ref || actor.mode)]
       );
-      res.json({ saved: true, id });
+      res.json({ saved: true, id, part });
     } catch (e) {
       console.error('[nutrition-assessment] draft:', e.message);
       res.status(500).json({ saved: false, error: 'Could not save' });
@@ -296,11 +368,26 @@ function createNutritionAssessmentRouter(deps = {}) {
     try {
       const actor = actorOf(req);
       const body = req.body || {};
-      const answers = pruneHidden(body.answers || {});
+      const part = partOf(body.part);
+
+      // Order matters here. A part-2 payload carries ONLY part-2 answers, but
+      // pruneHidden(), the required-field check and computeFlags() all reason over
+      // the whole picture: a part-2 field can be gated on a part-1 answer
+      // (`when: { diet_type: ... }`), and a safety flag is only correct when the
+      // health screen is in scope. So the stored row is loaded and merged FIRST,
+      // and everything below runs against the combined answers. Pruning a part-2
+      // payload on its own would evaluate those `when` clauses against a half-empty
+      // map and silently discard legitimate answers.
+      const rawFlat = flatten(body.answers || {});
+      const prior = await findDraft(actor, rawFlat.email);
+      const priorAnswers = prior ? (parseJson(prior.answers) || {}) : {};
+      const answers = pruneHidden(Object.assign({}, priorAnswers, body.answers || {}));
       const flat = flatten(answers);
 
+      // Validate ONLY the part being submitted. Part 2's required fields must not
+      // block a part-1 submission, and vice versa.
       const missing = [];
-      schema.STEPS.forEach((step) => {
+      schema.stepsForPart(part).forEach((step) => {
         step.fields.forEach((f) => {
           if (!f.required) return;
           if (f.when && !schema.matches(f.when, flat)) return;
@@ -314,8 +401,15 @@ function createNutritionAssessmentRouter(deps = {}) {
       });
       if (missing.length) return res.status(400).json({ error: 'Some required answers are missing', missing });
 
-      if (!flat.consent_health_data) return res.status(400).json({ error: 'Consent is required to process health information' });
+      // Consent lives in part 1 and is checked there. Part 2 cannot be reached
+      // without part 1, so it inherits the consent already recorded.
+      if (part === 1 && !flat.consent_health_data) {
+        return res.status(400).json({ error: 'Consent is required to process health information' });
+      }
 
+      // The safety flags are computed from the FULL answer set. On part 2 that
+      // means part 1's health screen is re-evaluated together with the new
+      // answers, so a disclosure made in part 2 can still raise a block.
       const flags = review.computeFlags(flat);
       if (review.isRefused(flags)) {
         return res.status(403).json({
@@ -333,9 +427,29 @@ function createNutritionAssessmentRouter(deps = {}) {
         city: String(flat.city || '').slice(0, 120)
       };
 
-      const existing = await findDraft(actor, identity.email);
+      const existing = prior;
       if (existing && existing.status === 'complete') {
         return res.status(409).json({ error: 'This assessment has already been submitted', id: existing.id });
+      }
+      if (part === 2 && !existing) {
+        // Part 2 can only ever extend an existing part 1. Creating a row here
+        // would produce an assessment with no identity, no consent and no health
+        // screen, which must never be possible.
+        return res.status(409).json({
+          error: 'Please complete Part 1 first — open your Part 1 link, or ask us to resend it.',
+          needs_part1: true
+        });
+      }
+      if (part === 1 && existing && existing.part1_submitted_at) {
+        return res.status(409).json({
+          error: 'Part 1 has already been submitted. Use your Part 2 link to carry on.',
+          id: existing.id, part1_done: true
+        });
+      }
+      if (part === 2 && existing && !existing.part1_submitted_at) {
+        return res.status(409).json({
+          error: 'Please complete Part 1 first.', id: existing.id, needs_part1: true
+        });
       }
 
       const id = existing ? existing.id : crypto.randomUUID();
@@ -346,34 +460,51 @@ function createNutritionAssessmentRouter(deps = {}) {
         !!flat.consent_health_data, !!flat.consent_marketing, ip
       ];
 
+      // Part 1 leaves the row OPEN at 'part1_complete' — actionable, but still
+      // awaiting part 2. Only part 2 closes it. `submitted_at` tracks the latest
+      // submission so existing sorting and filters keep working unchanged.
+      const isFinal = part === 2;
+      const newStatus = isFinal ? 'complete' : 'part1_complete';
+      const partStamp = isFinal ? 'part2_submitted_at' : 'part1_submitted_at';
+      const stepsDone = schema.stepsForPart(part).length;
+
       if (existing) {
         await run(
           `UPDATE nutrition_assessments
              SET answers = ?::jsonb, derived = ?::jsonb, flags = ?::jsonb, review_status = ?,
                  full_name = ?, email = ?, mobile = ?, city = ?, goal_primary = ?, diet_type = ?,
                  consent_health = ?, consent_marketing = ?, consent_ip = ?,
-                 status = 'complete', last_step = ${schema.STEPS.length},
-                 submitted_at = CURRENT_TIMESTAMP, consent_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
-           WHERE id = ?`, cols.concat([id])
+                 status = ?, part = ?, last_step = ?,
+                 ${partStamp} = CURRENT_TIMESTAMP,
+                 submitted_at = CURRENT_TIMESTAMP,
+                 consent_at = COALESCE(consent_at, CURRENT_TIMESTAMP),
+                 updated_at = CURRENT_TIMESTAMP
+           WHERE id = ?`, cols.concat([newStatus, part, stepsDone, id])
         );
       } else {
         await run(
           `INSERT INTO nutrition_assessments
              (answers, derived, flags, review_status, full_name, email, mobile, city, goal_primary, diet_type,
               consent_health, consent_marketing, consent_ip,
-              id, user_id, status, last_step, ref_source, submitted_at, consent_at)
-           VALUES (?::jsonb,?::jsonb,?::jsonb,?,?,?,?,?,?,?,?,?,?,?,?,'complete',${schema.STEPS.length},?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`,
-          cols.concat([id, actor.userId || null, String(body.ref || actor.mode)])
+              id, user_id, status, part, last_step, ref_source, ${partStamp}, submitted_at, consent_at)
+           VALUES (?::jsonb,?::jsonb,?::jsonb,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)`,
+          cols.concat([id, actor.userId || null, newStatus, part, stepsDone, String(body.ref || actor.mode)])
         );
       }
 
       if (typeof onSubmit === 'function') {
-        Promise.resolve(onSubmit({ id, identity, flags, derived, userId: actor.userId || '' })).catch(() => {});
+        Promise.resolve(onSubmit({ id, identity, flags, derived, part, complete: isFinal, userId: actor.userId || '' })).catch(() => {});
       }
 
       res.json({
         id,
-        message: 'Assessment submitted',
+        part,
+        // What the member should do next. Part 1 deliberately does NOT hand out a
+        // part-2 link on the spot: the second link is sent later, which is the
+        // whole point of splitting the form.
+        next_part: isFinal ? null : 2,
+        complete: isFinal,
+        message: isFinal ? 'Assessment submitted' : 'Part 1 submitted',
         derived,
         flagged: flags.some((f) => f.block),
         review_note: flags.some((f) => f.block)
@@ -390,16 +521,41 @@ function createNutritionAssessmentRouter(deps = {}) {
   router.get('/mine', verifyToken, limit(120, 60000), async (req, res) => {
     try {
       const row = await db.queryOne(
-        `SELECT id, status, last_step, submitted_at, updated_at FROM nutrition_assessments
-         WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`, [String(req.user.id)]
+        `SELECT id, status, last_step, part, submitted_at, updated_at, part1_submitted_at, part2_submitted_at
+           FROM nutrition_assessments
+          WHERE user_id = ? ORDER BY created_at DESC LIMIT 1`, [String(req.user.id)]
       );
-      if (!row) return res.json({ status: 'not_started', total_steps: schema.STEPS.length });
+      if (!row) {
+        return res.json({
+          status: 'not_started',
+          part: 1,
+          next_part: 1,
+          total_parts: schema.PARTS.length,
+          total_steps: schema.stepsForPart(1).length,
+          part1_done: false,
+          part2_done: false
+        });
+      }
+      const next = nextPartFor(row);
+      const cur = Number(row.part) || 1;
+      const stepsInPart = schema.stepsForPart(next || cur);
+      // Three states the member tile cares about: nothing yet, part 1 in and part 2
+      // outstanding, or finished. "in_progress" is kept for the halfway-through-a-part
+      // case so existing copy still reads correctly.
+      const status = row.part2_submitted_at ? 'complete'
+        : (row.part1_submitted_at ? 'part1_complete' : 'in_progress');
       res.json({
-        status: row.status === 'complete' ? 'complete' : 'in_progress',
+        status,
         id: row.id,
+        part: cur,
+        next_part: next,
         last_step: Number(row.last_step) || 1,
-        step_title: (schema.STEPS[(Number(row.last_step) || 1) - 1] || {}).title || '',
-        total_steps: schema.STEPS.length,
+        step_title: (stepsInPart[(Number(row.last_step) || 1) - 1] || {}).title || '',
+        total_steps: stepsInPart.length,
+        total_parts: schema.PARTS.length,
+        part1_done: !!row.part1_submitted_at,
+        part2_done: !!row.part2_submitted_at,
+        part_meta: schema.PART_META[next || cur] || null,
         submitted_at: row.submitted_at,
         updated_at: row.updated_at
       });
@@ -428,9 +584,25 @@ function createNutritionAssessmentRouter(deps = {}) {
         payload.email = String(b.email).slice(0, 200);
         payload.mobile = String(b.mobile || '').slice(0, 40);
       }
-      const token = signInvite(payload);
+      // Two links. Part 1 is the one you send first; part 2 is only meaningful
+      // once a row exists, so if this person already has one the part-2 link is
+      // bound to it and will reopen their answers rather than start a new row.
+      const existing = await findDraft(
+        { userId: payload.userId || '', email: payload.email || '', assessmentId: '' },
+        payload.email
+      );
+      const base = `${originFor(req)}/nutrition-assessment.html`;
+      const p1 = signInvite(Object.assign({}, payload, { part: 1 }));
+      const p2 = signInvite(Object.assign({}, payload, {
+        part: 2, assessmentId: existing ? String(existing.id) : ''
+      }));
       res.json({
-        url: `${originFor(req)}/nutrition-assessment.html?t=${encodeURIComponent(token)}`,
+        // `url` stays the part-1 link so any older caller keeps working.
+        url: `${base}?t=${encodeURIComponent(p1)}`,
+        part1_url: `${base}?t=${encodeURIComponent(p1)}`,
+        part2_url: `${base}?part=2&t=${encodeURIComponent(p2)}`,
+        part2_ready: !!(existing && existing.part1_submitted_at),
+        assessment_id: existing ? existing.id : null,
         name: payload.name, email: payload.email, expires_in: INVITE_EXPIRY
       });
     } catch (e) {
@@ -489,6 +661,57 @@ function createNutritionAssessmentRouter(deps = {}) {
     return { clause: where.length ? 'WHERE ' + where.join(' AND ') : '', params, order };
   }
 
+  /**
+   * A part-2 link for ONE existing assessment.
+   *
+   * Bound to that row's id, so whoever opens it resumes the same assessment
+   * rather than starting a second one — which is the difference between part 2
+   * enriching a member's record and creating an orphan nobody can match up.
+   *
+   * Recording part2_sent_at is what lets the admin list show who has actually
+   * been chased, rather than staff guessing.
+   */
+  router.post('/:id/part2-link', verifyToken, requireOperator, limit(60, 60000), async (req, res) => {
+    try {
+      const row = await db.queryOne(
+        `SELECT id, user_id, full_name, email, mobile, status, part1_submitted_at, part2_submitted_at
+           FROM nutrition_assessments WHERE id = ?`, [String(req.params.id)]
+      );
+      if (!row) return res.status(404).json({ error: 'Assessment not found' });
+      if (!row.part1_submitted_at) {
+        return res.status(409).json({ error: 'Part 1 is not submitted yet, so there is nothing to continue.' });
+      }
+      if (row.part2_submitted_at) {
+        return res.status(409).json({ error: 'Part 2 is already complete.', already_complete: true });
+      }
+      const token = signInvite({
+        assessmentId: String(row.id),
+        part: 2,
+        userId: row.user_id ? String(row.user_id) : '',
+        name: row.full_name || '',
+        email: row.email || '',
+        mobile: row.mobile || ''
+      });
+      // Only admins mark it as sent; an operator may copy the link to chase
+      // someone without claiming the follow-up was done.
+      const isAdmin = req.user && ['admin', 'superadmin'].indexOf(req.user.role) !== -1;
+      if (isAdmin && String(req.body && req.body.mark_sent) === 'true') {
+        try {
+          await run(`UPDATE nutrition_assessments SET part2_sent_at = CURRENT_TIMESTAMP WHERE id = ?`, [String(row.id)]);
+        } catch (e) { /* the link still works even if the stamp fails */ }
+      }
+      res.json({
+        id: row.id,
+        url: `${originFor(req)}/nutrition-assessment.html?part=2&t=${encodeURIComponent(token)}`,
+        name: row.full_name || '', email: row.email || '', mobile: row.mobile || '',
+        expires_in: INVITE_EXPIRY
+      });
+    } catch (e) {
+      console.error('[nutrition-assessment] part2-link:', e.message);
+      res.status(500).json({ error: 'Could not create the Part 2 link' });
+    }
+  });
+
   /** Staff list. Operators read it; only admins can delete or resolve. */
   router.get('/list', verifyToken, requireOperator, limit(120, 60000), async (req, res) => {
     try {
@@ -497,6 +720,7 @@ function createNutritionAssessmentRouter(deps = {}) {
         `SELECT na.id, na.user_id, na.status, na.last_step, na.full_name, na.email, na.mobile, na.city,
                 na.goal_primary, na.diet_type, na.review_status, na.flags, na.derived,
                 na.created_at, na.updated_at, na.submitted_at,
+                na.part, na.part1_submitted_at, na.part2_submitted_at, na.part2_sent_at,
                 (u.id IS NOT NULL) AS is_member
          FROM nutrition_assessments na
          LEFT JOIN users u ON u.id = na.user_id
@@ -514,10 +738,24 @@ function createNutritionAssessmentRouter(deps = {}) {
           flagged: r.review_status === 'blocked',
           flag_labels: flags.map((x) => x.label),
           bmr: derived.bmr || null, tdee: derived.tdee || null, whtr: derived.whtr || null,
-          created_at: r.created_at, updated_at: r.updated_at, submitted_at: r.submitted_at
+          created_at: r.created_at, updated_at: r.updated_at, submitted_at: r.submitted_at,
+          // ── two-part delivery ──
+          part: Number(r.part) || 1,
+          part1_done: !!r.part1_submitted_at,
+          part2_done: !!r.part2_submitted_at,
+          part1_submitted_at: r.part1_submitted_at || null,
+          part2_submitted_at: r.part2_submitted_at || null,
+          part2_sent_at: r.part2_sent_at || null,
+          // The single thing staff act on: who is sitting on a finished part 1
+          // with no part 2, and have we actually chased them?
+          awaiting_part2: !!(r.part1_submitted_at && !r.part2_submitted_at),
+          part_label: r.part2_submitted_at ? 'Complete'
+            : (r.part1_submitted_at ? 'Part 1 done' : 'Part 1 in progress')
         };
       });
       const complete = mapped.filter((r) => r.status === 'complete').length;
+      const part1Done = mapped.filter((r) => r.part1_done).length;
+      const awaitingPart2 = mapped.filter((r) => r.awaiting_part2).length;
       res.json({
         rows: mapped,
         summary: {
@@ -525,9 +763,15 @@ function createNutritionAssessmentRouter(deps = {}) {
           complete,
           partial: mapped.length - complete,
           flagged: mapped.filter((r) => r.flagged).length,
-          completion_pct: mapped.length ? Math.round((complete / mapped.length) * 1000) / 10 : 0
+          completion_pct: mapped.length ? Math.round((complete / mapped.length) * 1000) / 10 : 0,
+          part1_done: part1Done,
+          awaiting_part2: awaitingPart2,
+          part2_pct: part1Done ? Math.round((complete / part1Done) * 1000) / 10 : 0
         },
-        share_url: `${originFor(req)}/nutrition-assessment.html`
+        // Part 1 is the link you hand out. Part 2 is always per-person, because it
+        // has to reopen a specific row — see POST /:id/part2-link.
+        share_url: `${originFor(req)}/nutrition-assessment.html`,
+        part1_share_url: `${originFor(req)}/nutrition-assessment.html`
       });
     } catch (e) {
       console.error('[nutrition-assessment] list:', e.message);

@@ -34,6 +34,12 @@
     dirty: false,
     submitted: false,
     draftId: '',        // returned by PUT /draft; addresses uploads for cold visitors
+    part: 1,            // which part this page is rendering
+    nextPart: null,     // what the member should do after this one
+    part1Done: false,
+    part2Done: false,
+    partMeta: null,
+    totalParts: 2,
     files: {}           // field key -> [{name, original}]
   };
 
@@ -165,7 +171,7 @@
     S.dirty = false;
     S.saving = true;
     markSaving('Saving…');
-    return api('PUT', '/draft', { answers: nested(), last_step: Math.max(1, S.idx + 1) })
+    return api('PUT', '/draft', { answers: nested(), last_step: Math.max(1, S.idx + 1), part: S.part })
       .then(function (d) {
         if (d && d.id) S.draftId = d.id;
         markSaving('Saved — you can close this and come back.');
@@ -752,12 +758,25 @@
   function submit() {
     var btn = el('fcNext');
     btn.disabled = true; btn.textContent = 'Sending…';
-    api('POST', '/submit', { answers: nested() }).then(function (d) {
+    api('POST', '/submit', { answers: nested(), part: S.part }).then(function (d) {
       S.submitted = true;
       try { localStorage.removeItem(LS_KEY); } catch (e) { /* ignore */ }
       if (d.review_note) {
         el('fcDoneFlag').innerHTML = '<div class="fc-note" style="text-align:left">' + esc(d.review_note) + '</div>';
       }
+      // Part 1 is not the end of the road, and the done screen must say so —
+      // otherwise a member reads "submitted" and never expects a second link.
+      var doneMsg = el('fcDoneMsg');
+      if (doneMsg) {
+        if (d.complete === false && d.next_part === 2) {
+          doneMsg.textContent = 'Part 1 is in — that is the hard part done. '
+            + 'We will send you the Part 2 link shortly; it adds the detail that makes the plan yours '
+            + 'and picks up exactly where this left off.';
+        } else if (d.complete === true) {
+          doneMsg.textContent = 'That is everything. Your plan can now be built around how you actually live.';
+        }
+      }
+
       var dv = d.derived || {};
       if (dv.bmr) {
         el('fcDoneNumbers').innerHTML = '<div class="fc-teaser" style="text-align:left;margin-top:22px">'
@@ -807,15 +826,62 @@
     });
   }
 
+  /** Headline blurb for the part being filled. */
+  function introBlurb() {
+    if (S.partMeta && S.partMeta.blurb) return S.partMeta.blurb;
+    return S.part === 2
+      ? 'The detail that makes the plan yours. Your Part 1 answers are already saved.'
+      : 'The essentials: who you are, your goal, your numbers and a short health check.';
+  }
+
+  /** Put the part into the page title, heading and intro. */
+  function applyPartCopy() {
+    var title = (S.partMeta && S.partMeta.title) || ('FitChef Assessment — Part ' + S.part);
+    var h = el('fcIntroTitle');
+    if (h) h.textContent = title;
+    var b = el('fcIntroBlurb');
+    if (b && !b.getAttribute('data-personalised')) b.textContent = introBlurb();
+    var badge = el('fcPartBadge');
+    if (badge) {
+      badge.hidden = false;
+      badge.textContent = 'Part ' + S.part + ' of ' + S.totalParts;
+    }
+    try { document.title = title; } catch (e) { /* ignore */ }
+  }
+
   function boot() {
     S.invite = qs('t');
     S.token = readMemberToken();
 
-    Promise.all([api('GET', '/schema'), api('GET', '/session').catch(function () { return {}; })])
-      .then(function (r) {
-        S.steps = (r[0] && r[0].steps) || [];
-        var sess = r[1] || {};
+    // The server decides which part to open: an explicit ?part= wins, otherwise it
+    // works it out from what has already been submitted. Asking /session first and
+    // taking the steps from ITS answer means the two can never disagree — fetching
+    // the schema separately would race, and a member could be shown part 1's
+    // questions while the server expected part 2.
+    var partQ = qs('part');
+    api('GET', '/session' + (partQ ? '?part=' + encodeURIComponent(partQ) : ''))
+      .catch(function () { return {}; })
+      .then(function (sess) {
+        sess = sess || {};
+        S.part = Number(sess.part) === 2 ? 2 : 1;
+        S.nextPart = sess.next_part || null;
+        S.part1Done = !!sess.part1_done;
+        S.part2Done = !!sess.part2_done;
+        S.partMeta = sess.meta || null;
+        S.totalParts = Number(sess.total_parts) || 2;
+        S.steps = (sess.steps && sess.steps.length) ? sess.steps : [];
         S.isMember = !!sess.is_member;
+        // A very old server, or one that failed, still yields a usable form.
+        if (!S.steps.length) {
+          return api('GET', '/schema?part=' + S.part).then(function (sc) {
+            S.steps = (sc && sc.steps) || [];
+            return sess;
+          }).catch(function () { return sess; });
+        }
+        return sess;
+      })
+      .then(function (sess) {
+        sess = sess || {};
 
         // Server draft first, then whatever this device cached (a newer local
         // edit made offline should not be thrown away by a stale server row).
@@ -826,7 +892,13 @@
             var bag = draft.answers[stepKey] || {};
             Object.keys(bag).forEach(function (k) { S.answers[k] = bag[k]; });
           });
-          S.idx = Math.max(0, (draft.last_step || 1) - 1);
+          // last_step is an index within the part the draft was left on. Resuming
+          // at it only makes sense when that is the part we are now rendering.
+          if (Number(draft.part || 1) === S.part) {
+            S.idx = Math.max(0, Math.min(S.steps.length - 1, (draft.last_step || 1) - 1));
+          } else {
+            S.idx = -1;
+          }
         }
         try {
           var local = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
@@ -839,9 +911,14 @@
 
         seedFromPrefill(sess.prefill);
 
-        if (sess.already_submitted) {
+        var thisPartDone = (S.part === 1 && S.part1Done) || (S.part === 2 && S.part2Done);
+        if (sess.already_submitted || thisPartDone) {
           S.submitted = true;
-          el('fcDoneMsg').textContent = 'You have already completed this assessment. If something has changed, message your coach and we will reopen it.';
+          el('fcDoneMsg').textContent = S.part2Done
+            ? 'You have completed both parts. If something has changed, message your coach and we will reopen it.'
+            : (S.part1Done && S.part === 1
+              ? 'Part 1 is already in. We will send you the Part 2 link — there is nothing to do here right now.'
+              : 'You have already completed this assessment. If something has changed, message your coach and we will reopen it.');
         } else if (S.idx < 0) {
           S.idx = -1;
         }
@@ -853,8 +930,9 @@
           note.innerHTML = '<strong>We have already filled in ' + knownCount + ' answer' + (knownCount === 1 ? '' : 's') + ' for you.</strong> '
             + 'Your profile, your check-ins' + (S.prefill.labs ? ', your blood report' : '') + ' and your earlier forms all feed in, '
             + 'so you only confirm them. This should take you closer to five minutes than nine.';
-          el('fcIntroBlurb').textContent = 'Ten short steps. You will get your metabolic numbers at the halfway mark, and the full report by email and WhatsApp afterwards.';
+          el('fcIntroBlurb').textContent = introBlurb();
         }
+        applyPartCopy();
 
         render();
       })

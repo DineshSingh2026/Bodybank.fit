@@ -342,8 +342,14 @@ function renderMemberHome() {
    where the member got to, because a 10-step form abandoned at step 4 is only
    resumable if the home screen says so. */
 
-function mhOpenNutritionAssessment() {
-  window.location.href = 'nutrition-assessment.html';
+/**
+ * Open the assessment at the part the member should actually be on. The server
+ * works this out too; passing it explicitly means the tile and the form can
+ * never disagree about which part is opening.
+ */
+function mhOpenNutritionAssessment(part) {
+  var p = Number(part) === 2 ? 2 : 0;
+  window.location.href = 'nutrition-assessment.html' + (p ? '?part=2' : '');
 }
 
 async function mhLoadNutritionAssessment() {
@@ -359,22 +365,37 @@ async function mhLoadNutritionAssessment() {
     hint.textContent = 'About 5 minutes \u2014 we fill in everything we already know.';
     return;
   }
-  if (d.status === 'complete') {
-    state.innerHTML = '<span class="mh-tag ok">Submitted ' + mhEsc(mhDay(d.submitted_at)) + '</span>';
+  // Both parts in.
+  if (d.status === 'complete' || d.part2_done) {
+    state.innerHTML = '<span class="mh-tag ok">Both parts submitted</span>';
     btn.textContent = 'View what you sent';
+    btn.onclick = function () { mhOpenNutritionAssessment(); };
     hint.textContent = 'Your report is being built. We will message you when it is ready.';
     return;
   }
+  // Part 1 in, Part 2 outstanding. The member can start it themselves rather than
+  // waiting on the link — that is the point of surfacing it here.
+  if (d.status === 'part1_complete' || (d.part1_done && !d.part2_done)) {
+    state.innerHTML = '<span class="mh-tag ok">Part 1 submitted</span>'
+      + '<span class="mh-tag warn">Part 2 to go</span>';
+    btn.textContent = 'Continue with Part 2';
+    btn.onclick = function () { mhOpenNutritionAssessment(2); };
+    hint.textContent = 'Part 1 gave us your targets. Part 2 adds how you train, eat and cook.';
+    return;
+  }
   if (d.status === 'in_progress') {
-    state.innerHTML = '<span class="mh-tag warn">Step ' + d.last_step + ' of ' + d.total_steps + '</span>'
+    var partN = Number(d.part) || 1;
+    state.innerHTML = '<span class="mh-tag warn">Part ' + partN + ' · step ' + d.last_step + ' of ' + d.total_steps + '</span>'
       + (d.step_title ? '<span class="mh-tag">' + mhEsc(d.step_title) + '</span>' : '');
     btn.textContent = 'Pick up where you left off';
+    btn.onclick = function () { mhOpenNutritionAssessment(partN); };
     hint.textContent = 'Everything you have typed is saved.';
     return;
   }
   state.innerHTML = '<span class="mh-tag warn">Not started</span>';
-  btn.textContent = 'Start the assessment';
-  hint.textContent = 'About 5 minutes \u2014 your profile, check-ins and blood report are already filled in for you to confirm.';
+  btn.textContent = 'Start Part 1';
+  btn.onclick = function () { mhOpenNutritionAssessment(); };
+  hint.textContent = 'Part 1 takes about 3-4 minutes \u2014 your profile, check-ins and blood report are already filled in for you to confirm. Part 2 comes later.';
 }
 
 /* ------------------------------------------------------------- uploads --- */

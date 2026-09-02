@@ -5115,10 +5115,10 @@ button.bb-today-pill{cursor:pointer}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
-<script src="js/operator-console.js?v=12"></script>
+<script src="js/operator-console.js?v=13"></script>
 <script src="js/admin-home.js?v=6"></script>
 <script src="js/countries.js?v=1"></script>
-<script src="js/member-home.js?v=7"></script>
+<script src="js/member-home.js?v=8"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -9151,12 +9151,13 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
          a five-minute one for an existing member. -->
     <div class="admin-tab-content" id="tab-nutritionassessment">
       <div class="part2-link-section">
-        <label class="part2-link-label">Shareable form link</label>
+        <label class="part2-link-label">Part 1 &mdash; shareable form link</label>
         <div class="part2-link-row">
           <input type="text" class="part2-link-input" id="naLinkInput" readonly value="">
           <button type="button" class="part2-copy-btn" onclick="naCopyLink()">Copy Link</button>
         </div>
-        <p class="form-hint" style="margin:10px 0 0">Send this to anyone. A member who is already signed in to BodyBank gets their profile, check-ins and blood report filled in automatically.</p>
+        <p class="form-hint" style="margin:10px 0 0">Send this to anyone &mdash; about 3&ndash;4 minutes. It captures identity, goal, body numbers, the health screen and consent, which is already enough to work out their calorie and protein targets. A member signed in to BodyBank gets their profile, check-ins and blood report filled in automatically.</p>
+        <p class="form-hint" style="margin:8px 0 0"><strong>Part 2 is per person, not a shared link.</strong> It has to reopen that specific person's answers, so you generate it from their row in the table below once Part 1 is in.</p>
       </div>
 
       <div class="part2-link-section" style="margin-top:12px">
@@ -9180,6 +9181,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <div class="sc-stat"><span class="sc-stat-lbl">Started</span><span class="sc-stat-val" id="naStatTotal">&mdash;</span></div>
         <div class="sc-stat sc-stat--ok"><span class="sc-stat-lbl">Completed</span><span class="sc-stat-val" id="naStatDone">&mdash;</span></div>
         <div class="sc-stat sc-stat--pending"><span class="sc-stat-lbl">In progress</span><span class="sc-stat-val" id="naStatPartial">&mdash;</span></div>
+        <div class="sc-stat sc-stat--pending"><span class="sc-stat-lbl">Awaiting Part 2</span><span class="sc-stat-val" id="naStatAwaiting">&mdash;</span></div>
         <div class="sc-stat sc-stat--pct"><span class="sc-stat-lbl">Completion</span><span class="sc-stat-val" id="naStatPct">&mdash;</span>
           <div class="sc-stat-bar"><div class="sc-stat-bar-fill" id="naStatBar" style="width:0%"></div></div>
         </div>
@@ -14871,6 +14873,7 @@ async function loadNutritionAssessments() {
   set('naStatTotal', sm.total);
   set('naStatDone', sm.complete);
   set('naStatPartial', sm.partial);
+  set('naStatAwaiting', sm.awaiting_part2);
   set('naStatPct', (sm.completion_pct == null ? 0 : sm.completion_pct) + '%');
   var bar = document.getElementById('naStatBar');
   if (bar) bar.style.width = Math.max(0, Math.min(100, sm.completion_pct || 0)) + '%';
@@ -14898,10 +14901,20 @@ async function loadNutritionAssessments() {
     var flags = r.flagged
       ? '<span class="sc-tag-unlinked" style="background:rgba(224,80,80,.14);color:#e05050" title="' + escapeHtml(r.flag_labels.join(', ')) + '">Needs review</span>'
       : '';
-    var progress = r.status === 'complete'
-      ? '<span style="color:#4caf7d;font-weight:600">Completed</span>'
-      : '<span style="color:var(--muted)">Step ' + r.last_step + ' of ' + r.total_steps
+    // Three states, and the middle one is what staff act on: Part 1 is in and
+    // usable, Part 2 has not come back yet.
+    var progress;
+    if (r.part2_done || r.status === 'complete') {
+      progress = '<span style="color:#4caf7d;font-weight:600">Both parts in</span>';
+    } else if (r.part1_done) {
+      progress = '<span style="color:var(--gold);font-weight:600">Part 1 done</span>'
+        + '<br><span style="font-size:11px;opacity:.75">'
+        + (r.part2_sent_at ? 'Part 2 sent ' + escapeHtml(naFmtWhen(r.part2_sent_at)) : 'Part 2 not sent yet')
+        + '</span>';
+    } else {
+      progress = '<span style="color:var(--muted)">Part 1 &middot; step ' + r.last_step + ' of ' + r.total_steps
         + '<br><span style="font-size:11px;opacity:.75">' + escapeHtml(r.step_title) + '</span></span>';
+    }
     var contact = [r.email, r.mobile].filter(Boolean).map(escapeHtml).join('<br>');
     return '<tr>'
       + '<td>' + escapeHtml(r.name) + (r.is_member ? ' <span class="sc-tag-unlinked" style="background:rgba(200,164,78,.16);color:var(--gold)">Member</span>' : '') + '<br>' + flags + '</td>'
@@ -14911,6 +14924,9 @@ async function loadNutritionAssessments() {
       + '<td style="font-size:12px">' + escapeHtml(naFmtWhen(r.submitted_at || r.updated_at || r.created_at)) + '</td>'
       + '<td style="text-align:right;white-space:nowrap">'
       + '<button class="admin-apply-btn" style="padding:6px 12px;font-size:12px" onclick="naView(\'' + r.id + '\')">View</button> '
+      + (r.awaiting_part2
+        ? '<button class="admin-apply-btn" style="padding:6px 12px;font-size:12px" onclick="naPart2Link(\'' + r.id + '\')">Part 2 link</button> '
+        : '')
       + '<button class="admin-filter-clear-btn" style="padding:6px 12px;font-size:12px" onclick="naDelete(\'' + r.id + '\')">Delete</button>'
       + '</td></tr>';
   }).join('');
@@ -14946,6 +14962,28 @@ function naCopyText(value, what) {
     if (typeof showPopup === 'function') showPopup('Link copied', what, '', 'OK'); else alert('Link copied');
   }).catch(function () { alert('Could not copy the link.'); });
 }
+/**
+ * Generate this person's Part 2 link and copy it.
+ *
+ * Per-row rather than one shared link, because Part 2 must reopen THIS
+ * assessment — a shared link would create an orphan row that can never be
+ * matched back to their Part 1. Copying also stamps part2_sent_at, so the table
+ * shows who has actually been chased.
+ */
+async function naPart2Link(id) {
+  var row = _naRows.filter(function (r) { return r.id === id; })[0];
+  var who = row ? (row.name || 'this person') : 'this person';
+  var d = await apiCall('POST', '/api/nutrition-assessment/' + id + '/part2-link', { mark_sent: 'true' });
+  if (!d || d.error || !d.url) { alert((d && d.error) || 'Could not create the Part 2 link.'); return; }
+  var copied = false;
+  try { await navigator.clipboard.writeText(d.url); copied = true; } catch (e) { /* clipboard blocked */ }
+  if (copied) alert('Part 2 link for ' + who + ' copied.
+
+It reopens their existing answers, so nothing is retyped. Valid for 60 days.');
+  else window.prompt('Part 2 link for ' + who + ' — copy it:', d.url);
+  loadNutritionAssessments();
+}
+
 function naCopyLink() {
   var e = document.getElementById('naLinkInput');
   naCopyText(e && e.value, 'The shareable assessment link is on your clipboard.');

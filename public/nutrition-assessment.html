@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/nutrition-assessment.css">
+<link rel="stylesheet" href="css/nutrition-assessment.css?v=2">
 </head>
 <body>
 
@@ -35,11 +35,11 @@
   <!-- intro: the time promise and the payoff, before the first question -->
   <section id="fcIntro" class="fc-hidden">
     <div class="fc-step-head">
-      <p class="fc-step-kicker">Personalised nutrition</p>
-      <h2 class="fc-step-title">Let's build a plan around the way you actually eat.</h2>
+      <p class="fc-step-kicker">Personalised nutrition <span id="fcPartBadge" class="fc-part-badge" hidden></span></p>
+      <h2 class="fc-step-title" id="fcIntroTitle">Let's build a plan around the way you actually eat.</h2>
       <p class="fc-step-blurb" id="fcIntroBlurb">
-        About 9 minutes, in ten short steps. You'll get your metabolic numbers at the halfway mark,
-        and the full report by email and WhatsApp afterwards.
+        The essentials first: who you are, your goal, your numbers and a short health check.
+        About 3&ndash;4 minutes. You'll get your metabolic numbers as soon as you finish.
       </p>
     </div>
     <div class="fc-note" id="fcIntroKnown" hidden></div>
@@ -74,7 +74,7 @@
   <div class="fc-save" id="fcSave"></div>
 </div>
 
-<script src="js/nutrition-assessment-metrics.js"></script>
-<script src="js/nutrition-assessment.js"></script>
+<script src="js/nutrition-assessment-metrics.js?v=2"></script>
+<script src="js/nutrition-assessment.js?v=2"></script>
 </body>
 </html>

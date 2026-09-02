@@ -1392,10 +1392,22 @@ async function loadOperatorNutritionAssessments() {
 }
 
 function opNaBadges(r) {
+  // The assessment arrives in two parts. "Part 1 done" is the state an operator
+  // actually chases — it means the person is usable but the detail is still
+  // outstanding — so it gets its own badge rather than being lumped in with a
+  // half-finished form.
+  var progress;
+  if (r.part2_done || r.status === 'complete') {
+    progress = '<span class="op-tag ok">Both parts in</span>';
+  } else if (r.part1_done) {
+    progress = '<span class="op-tag warn"'
+      + (r.part2_sent_at ? ' title="Part 2 link sent"' : ' title="Part 2 link not sent yet"')
+      + '>Part 1 done' + (r.part2_sent_at ? '' : ' · not chased') + '</span>';
+  } else {
+    progress = '<span class="op-tag">Part 1 · step ' + r.last_step + '/' + r.total_steps + '</span>';
+  }
   return (r.is_member ? '<span class="op-tag ok">Member</span>' : '<span class="op-tag warn">No account</span>')
-    + (r.status === 'complete'
-      ? '<span class="op-tag ok">Completed</span>'
-      : '<span class="op-tag">Step ' + r.last_step + '/' + r.total_steps + '</span>')
+    + progress
     + (r.flagged ? '<span class="op-tag warn" title="' + opEsc((r.flag_labels || []).join(', ')) + '">Needs review</span>' : '');
 }
 
