@@ -5115,10 +5115,10 @@ button.bb-today-pill{cursor:pointer}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
-<script src="js/operator-console.js?v=10"></script>
+<script src="js/operator-console.js?v=11"></script>
 <script src="js/admin-home.js?v=4"></script>
 <script src="js/countries.js?v=1"></script>
-<script src="js/member-home.js?v=6"></script>
+<script src="js/member-home.js?v=7"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -8508,6 +8508,28 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
               </div>
               <div class="bbmd-trend-chart" id="bbmdTrendChart"></div>
             </div>
+          </section>
+
+          <!-- Nutrition assessment + watch data. Both features had member-facing and
+               per-member staff views but no presence on any dashboard, so an admin on
+               mobile — where this console is the whole surface — could not see that
+               either existed. Rendered by bbmdRenderExtras(). -->
+          <section class="bbmd-card bbmd-block" aria-label="Nutrition assessments and watch data">
+            <div class="bbmd-sec-head">
+              <h3 class="bbmd-sec-title">Assessments &amp; wearables</h3>
+              <button type="button" class="bbmd-sec-link" onclick="switchTab('nutritionassessment');return false">Assessments &rsaquo;</button>
+            </div>
+            <div class="bbmd-meters" id="bbmdNaMeters">
+              <div>
+                <div class="bbmd-meter-top"><span class="bbmd-meter-lbl">Assessments completed</span><span class="bbmd-meter-val" id="bbmdNaVal">&mdash;</span></div>
+                <div class="bbmd-meter-track"><div class="bbmd-meter-fill" id="bbmdNaBar"></div></div>
+              </div>
+              <div>
+                <div class="bbmd-meter-top"><span class="bbmd-meter-lbl">Wearing a tracked device</span><span class="bbmd-meter-val" id="bbmdWearVal">&mdash;</span></div>
+                <div class="bbmd-meter-track"><div class="bbmd-meter-fill" id="bbmdWearBar"></div></div>
+              </div>
+            </div>
+            <div id="bbmdDeviceMix" style="margin-top:12px"></div>
           </section>
 
           <section class="bbmd-card bbmd-block">
@@ -14441,6 +14463,26 @@ async function bbmdRender(stats) {
   if (p1 > 0) chips.push('<button type="button" class="bbmd-chip bbmd-chip--warn" onclick="bbmdSeg(\'pulse\')"><b>' + p1 + '</b> P1 · 2d+ silent</button>');
   if ((Number(st.expiring_trials_3d) || 0) > 0) chips.push('<button type="button" class="bbmd-chip bbmd-chip--warn" onclick="switchTab(\'memberships\')"><b>' + Number(st.expiring_trials_3d) + '</b> trials end &le;3d</button>');
   if ((Number(st.new_trials_7d) || 0) > 0) chips.push('<button type="button" class="bbmd-chip bbmd-chip--ok" onclick="switchTab(\'memberships\')"><b>' + Number(st.new_trials_7d) + '</b> new this week</button>');
+
+  // Nutrition assessments. `needs_review` is a safety flag a human has to clear —
+  // a clinician referral, a pregnancy, a disordered-eating signal — so it leads,
+  // and it is the one chip here that is genuinely urgent.
+  var na = ov.nutritionAssessments || {};
+  if ((Number(na.needs_review) || 0) > 0) {
+    chips.push('<button type="button" class="bbmd-chip bbmd-chip--bad" onclick="switchTab(\'nutritionassessment\')"><b>'
+      + Number(na.needs_review) + '</b> assessment' + (Number(na.needs_review) === 1 ? '' : 's') + ' need review</button>');
+  }
+  if ((Number(na.new_7d) || 0) > 0) {
+    chips.push('<button type="button" class="bbmd-chip bbmd-chip--ok" onclick="switchTab(\'nutritionassessment\')"><b>'
+      + Number(na.new_7d) + '</b> new assessment' + (Number(na.new_7d) === 1 ? '' : 's') + '</button>');
+  }
+  // Watch data — nothing here is urgent, so it is informational only.
+  var wr = ov.wearables || {};
+  if ((Number(wr.uploads_7d) || 0) > 0) {
+    chips.push('<button type="button" class="bbmd-chip" onclick="bbmdSeg(\'activity\')"><b>'
+      + Number(wr.uploads_7d) + '</b> watch upload' + (Number(wr.uploads_7d) === 1 ? '' : 's') + ' this week</button>');
+  }
+
   if (!chips.length) chips.push('<span class="bbmd-chip bbmd-chip--ok" style="cursor:default">All clear &mdash; nothing urgent</span>');
   var alertsEl = document.getElementById('bbmdAlerts');
   if (alertsEl) alertsEl.innerHTML = chips.join('');
@@ -14498,6 +14540,69 @@ async function bbmdRender(stats) {
     bbmdText('bbmdTrendSub', 'Not enough history yet');
     if (chartEl) chartEl.innerHTML = '<p class="bbmd-empty">No check-in history yet.</p>';
   }
+
+  bbmdRenderExtras(ov, roster);
+}
+
+/**
+ * Nutrition assessments and wearable adoption on the mobile admin console.
+ *
+ * Both are read straight off /api/operator/overview. Everything degrades to an
+ * honest dash when the payload is missing those keys, which is what an older
+ * server build returns — the dashboard must not blank out because one feature
+ * has not deployed yet.
+ */
+function bbmdRenderExtras(ov, roster) {
+  var na = (ov && ov.nutritionAssessments) || null;
+  var wr = (ov && ov.wearables) || null;
+
+  if (na) {
+    var naTotal = Number(na.total) || 0;
+    var naDone = Number(na.complete) || 0;
+    var naRate = Number(na.completion_rate) || 0;
+    bbmdSetMeter('bbmdNaBar', 'bbmdNaVal', naRate,
+      naTotal ? naDone + ' / ' + naTotal : 'None yet',
+      naRate >= 60 ? 'ok' : (naRate >= 30 ? 'warn' : 'bad'));
+  } else {
+    bbmdText('bbmdNaVal', '—');
+  }
+
+  if (wr) {
+    var members = Number(wr.members) || 0;
+    var adoption = Number(wr.adoption_rate) || 0;
+    bbmdSetMeter('bbmdWearBar', 'bbmdWearVal', adoption,
+      members ? members + ' / ' + (roster || 0) : 'None yet',
+      adoption >= 40 ? 'ok' : (adoption >= 15 ? 'warn' : 'bad'));
+  } else {
+    bbmdText('bbmdWearVal', '—');
+  }
+
+  // The device mix is the point of the multi-device work: it is what tells an
+  // admin at a glance that (say) four members are on a screenshot-only band whose
+  // readings carry materially lower confidence than an exported file.
+  var mixEl = document.getElementById('bbmdDeviceMix');
+  if (!mixEl) return;
+  var mix = (wr && Array.isArray(wr.by_device)) ? wr.by_device : [];
+  if (!mix.length) {
+    mixEl.innerHTML = '<p class="bbmd-empty">No watch data imported yet.</p>';
+    return;
+  }
+  var label = function (p) {
+    var s = String(p || '').replace(/_/g, ' ');
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  };
+  mixEl.innerHTML = '<div class="bbmd-meter-top" style="margin-bottom:6px">'
+    + '<span class="bbmd-meter-lbl">Devices in use</span>'
+    + '<span class="bbmd-meter-val">' + mix.length + '</span></div>'
+    + mix.slice(0, 8).map(function (d) {
+      var isLowTrust = d.provider === 'screenshot' || d.provider === 'manual';
+      return '<div style="display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:12.5px">'
+        + '<span>' + escapeHtml(label(d.provider))
+        + (isLowTrust ? ' <span style="opacity:.7">· lower confidence</span>' : '')
+        + '</span>'
+        + '<span style="opacity:.85">' + (Number(d.members) || 0) + ' member'
+        + ((Number(d.members) || 0) === 1 ? '' : 's') + '</span></div>';
+    }).join('');
 }
 
 function clearAdminFormFilters(which) {
@@ -33305,9 +33410,46 @@ function bbBodyOnboardingKeyHandler(ev) {
     }).join('');
 
     var emptyNote = mine
-      ? 'No readiness data in this window. Import a Whoop export, or check in daily so your readiness can be derived.'
-      : 'This client has no readiness data in this window. They have either not imported a Whoop export or not checked in.';
+      ? 'No readiness data in this window. Import your watch data, or check in daily so your readiness can be derived.'
+      : 'This client has no readiness data in this window. They have either not imported their watch data or not checked in.';
     var q = esc(v.key);
+
+    // ── Device provenance (multi-device) ──────────────────────────────────
+    // A coach reading an HRV trend has to know whether it is one measurement or
+    // two different ones stitched together. Apple reports SDNN from a ~60s spot
+    // check; Whoop, Oura, Fitbit and Garmin report overnight RMSSD, which runs
+    // materially lower. A member who switched devices shows a cliff that is an
+    // artefact of the hardware, not of their recovery — so say so here rather
+    // than letting it be read as a physiological change.
+    var METHOD_LABEL = {
+      rmssd_sleep: 'overnight RMSSD', rmssd_spot: 'RMSSD spot check',
+      sdnn_spot: 'SDNN spot check', sdnn_sleep: 'overnight SDNN', unknown: 'method not stated'
+    };
+    var methods = {};
+    var lowTrustDays = 0;
+    rows.forEach(function (r) {
+      if (r.hrvMs != null && r.hrvMethod) methods[r.hrvMethod] = (methods[r.hrvMethod] || 0) + 1;
+      if (r.measurementSource === 'vision' || r.source === 'screenshot') lowTrustDays += 1;
+    });
+    var methodKeys = Object.keys(methods);
+    var provenance = '';
+    if (methodKeys.length === 1) {
+      provenance += '<div class="bb-rw-note">HRV measured as ' +
+        esc(METHOD_LABEL[methodKeys[0]] || methodKeys[0]) + '.</div>';
+    } else if (methodKeys.length > 1) {
+      provenance += '<div class="bb-rw-warn">This window mixes ' + methodKeys.length +
+        ' different HRV measurements (' +
+        esc(methodKeys.map(function (k) {
+          return (METHOD_LABEL[k] || k) + ' ' + methods[k] + 'd';
+        }).join(', ')) +
+        '). They are not comparable with each other, so read the HRV trend per device — a step between them is the hardware changing, not ' +
+        (mine ? 'your' : 'this client’s') + ' recovery.</div>';
+    }
+    if (lowTrustDays > 0) {
+      provenance += '<div class="bb-rw-warn">' + lowTrustDays + ' day' + (lowTrustDays === 1 ? ' was' : 's were') +
+        ' read from a screenshot by AI rather than from a device export, and ' +
+        (lowTrustDays === 1 ? 'is' : 'are') + ' held at lower confidence.</div>';
+    }
 
     return '' +
       '<div class="bb-rw-sec">' +
@@ -33322,6 +33464,7 @@ function bbBodyOnboardingKeyHandler(ev) {
           withScore + ' of ' + v.days + ' days have a readiness score' +
           (srcLine ? ' &middot; ' + srcLine : '') + '</div>' +
         (loadError ? '<div class="bb-rw-err">' + esc(loadError) + '</div>' : '') +
+        provenance +
         (!rows.length ? '<div class="bb-rw-warn">' + emptyNote + '</div>' : '') +
       '</div>' +
       (rows.length

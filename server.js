@@ -8416,6 +8416,52 @@ app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res)
         WHERE ${OPERATOR_CLIENT_WHERE} AND COALESCE(u.suspended, FALSE) = FALSE
       ) t`);
 
+    // ── Nutrition assessments + wearable uploads ────────────────────────────
+    // Both features shipped with member-facing and per-member staff views but no
+    // presence on the dashboards, so an admin on mobile — where bbmd is the whole
+    // console — had no way to see that either existed.
+    //
+    // Every count goes through safeOne: these tables are created by their own
+    // feature's migration, and a deployment that has not run it yet must still get
+    // a working dashboard rather than a 500 that blanks every other number on the
+    // screen. A missing table reads as zero, which is honest here.
+    const safeOne = async (sql, params = []) => {
+      try { return await one(sql, params); } catch (_) { return 0; }
+    };
+
+    const [
+      naTotal, naComplete, naNeedsReview, naNew7d,
+      wearMembers, wearUploads7d, wearDaysTotal, wearActive7d
+    ] = await Promise.all([
+      safeOne(`SELECT COUNT(*)::int c FROM nutrition_assessments`),
+      safeOne(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE status = 'complete'`),
+      // 'blocked' is what review.reviewStatus() writes when a flag demands a human
+      // — a clinician-review or safety flag, not merely an odd answer.
+      safeOne(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE review_status = 'blocked'`),
+      safeOne(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      // Distinct members with any wearable day at all, across every provider —
+      // this is the number that shows multi-device adoption rather than Whoop's.
+      safeOne(`SELECT COUNT(DISTINCT user_id)::int c FROM readiness_daily WHERE source <> 'derived'`),
+      safeOne(`SELECT COUNT(*)::int c FROM wearable_uploads WHERE status = 'committed' AND created_at >= NOW() - INTERVAL '7 days'`),
+      safeOne(`SELECT COUNT(*)::int c FROM readiness_daily WHERE source <> 'derived'`),
+      safeOne(`SELECT COUNT(DISTINCT user_id)::int c FROM readiness_daily WHERE source <> 'derived' AND date >= CURRENT_DATE - 7`)
+    ]);
+
+    // Which devices the roster actually wears. Drives the staff-facing device mix
+    // and, more usefully, tells an admin at a glance when someone is on a
+    // screenshot-only band whose numbers carry lower confidence.
+    let wearByDevice = [];
+    try {
+      wearByDevice = (await queryAll(
+        `SELECT source, COUNT(DISTINCT user_id)::int AS members, COUNT(*)::int AS days,
+                MAX(date)::date AS last_date
+           FROM readiness_daily
+          WHERE source <> 'derived'
+          GROUP BY source
+          ORDER BY members DESC, days DESC`
+      )) || [];
+    } catch (_) { wearByDevice = []; }
+
     // Live activity feed (most recent user actions across the platform).
     const feed = [];
     const push = (rows, mapper) => (rows || []).forEach(r => feed.push(mapper(r)));
@@ -8432,6 +8478,40 @@ app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res)
       r => ({ name: r.full_name || 'Client', type: 'weekly', label: 'Weekly (Sunday) check-in', created_at: r.created_at }));
     push(await queryAll(`SELECT first_name, last_name, created_at FROM users u WHERE ${OPERATOR_CLIENT_WHERE} AND u.subscription_status = 'trialing' ORDER BY created_at DESC LIMIT 6`),
       r => ({ name: nm(r), type: 'signup', label: 'Started 7-day trial', created_at: r.created_at }));
+
+    // Both of these are wrapped rather than pushed blind: an unmigrated deployment
+    // must lose one feed row, not the whole activity feed.
+    try {
+      push(await queryAll(
+        `SELECT full_name, review_status, status, COALESCE(submitted_at, created_at) AS created_at
+           FROM nutrition_assessments
+          ORDER BY COALESCE(submitted_at, created_at) DESC LIMIT 8`
+      ), r => ({
+        name: r.full_name || 'Prospect',
+        type: 'assessment',
+        label: r.review_status === 'blocked'
+          ? 'Nutrition assessment — needs review'
+          : (r.status === 'complete' ? 'Nutrition assessment completed' : 'Nutrition assessment started'),
+        created_at: r.created_at
+      }));
+    } catch (_) { /* table not migrated here */ }
+
+    try {
+      push(await queryAll(
+        `SELECT u.first_name, u.last_name, wu.provider, wu.date_from, wu.date_to, wu.created_at
+           FROM wearable_uploads wu LEFT JOIN users u ON u.id = wu.user_id
+          WHERE wu.status = 'committed'
+          ORDER BY wu.created_at DESC LIMIT 8`
+      ), r => ({
+        name: nm(r),
+        type: 'wearable',
+        // Name the device rather than saying "watch data": which device it came
+        // from is exactly what tells staff how far to trust the numbers.
+        label: 'Watch data imported (' + String(r.provider || 'device').replace(/_/g, ' ') + ')',
+        created_at: r.created_at
+      }));
+    } catch (_) { /* table not migrated here */ }
+
     feed.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
     // 14-day activity trend (for charts).
@@ -8490,6 +8570,30 @@ app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res)
         checkins: (trendRows || []).map(r => Number(r.checkins || 0)),
         workouts: (trendRows || []).map(r => Number(r.workouts || 0)),
         meals: (trendRows || []).map(r => Number(r.meals || 0))
+      },
+      // Nutrition assessment funnel. `needs_review` is the only number here that
+      // demands an action today, so it is the one the dashboards surface as a chip.
+      nutritionAssessments: {
+        total: naTotal,
+        complete: naComplete,
+        in_progress: Math.max(0, naTotal - naComplete),
+        needs_review: naNeedsReview,
+        new_7d: naNew7d,
+        completion_rate: pct(naComplete, naTotal)
+      },
+      // Wearable adoption across every provider, not just Whoop.
+      wearables: {
+        members: wearMembers,
+        active_7d: wearActive7d,
+        uploads_7d: wearUploads7d,
+        days_total: wearDaysTotal,
+        adoption_rate: pct(wearMembers, totalClients),
+        by_device: (wearByDevice || []).map(r => ({
+          provider: r.source,
+          members: Number(r.members || 0),
+          days: Number(r.days || 0),
+          last_date: r.last_date
+        }))
       },
       feed: feed.slice(0, 25)
     });

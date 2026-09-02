@@ -1714,7 +1714,90 @@ async function loadOperatorOverview() {
       opAnimateBars(mEl);
     }
     opDrawTrendChart(data.trends);
+    opRenderAssessmentsAndWearables(data);
   } catch (e) { }
+}
+
+/**
+ * Nutrition assessments and wearable adoption on the operator pulse screen.
+ *
+ * Read-only by design, matching the rest of this console: an operator can see
+ * that six assessments need review and chase them, but clearing the flag stays on
+ * the admin side.
+ *
+ * Renders into #opExtras when the markup provides it, and otherwise appends a
+ * block after the meters, so this works whether or not index.html has been
+ * updated to carry a dedicated container.
+ */
+function opRenderAssessmentsAndWearables(data) {
+  var na = (data && data.nutritionAssessments) || null;
+  var wr = (data && data.wearables) || null;
+  // An older server build returns neither key. Render nothing rather than a row
+  // of zeros, which would read as "nobody has done this" instead of "unknown".
+  if (!na && !wr) return;
+
+  var host = opEl('opExtras');
+  if (!host) {
+    var mEl = opEl('opMeters');
+    if (!mEl || !mEl.parentNode) return;
+    host = document.createElement('div');
+    host.id = 'opExtras';
+    host.style.marginTop = '18px';
+    mEl.parentNode.insertBefore(host, mEl.nextSibling);
+  }
+
+  var h = '';
+
+  if (na) {
+    var needs = Number(na.needs_review) || 0;
+    h += '<div class="op-sub">Nutrition assessments</div>'
+      + '<div class="op-kpi-row" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px">'
+      + opExtraStat('Completed', (Number(na.complete) || 0) + ' / ' + (Number(na.total) || 0))
+      + opExtraStat('In progress', Number(na.in_progress) || 0)
+      + opExtraStat('New · 7d', Number(na.new_7d) || 0)
+      + opExtraStat('Needs review', needs, needs > 0 ? 'warn' : 'ok')
+      + '</div>';
+    if (needs > 0) {
+      // These are safety flags a human has to clear — a clinician referral, a
+      // pregnancy, a disordered-eating signal — so they get a direct route.
+      h += '<button type="button" class="op-bub more" onclick="opNav(\'prospects\');opLeadsView(\'nutrition\')">'
+        + 'Review ' + needs + ' flagged assessment' + (needs === 1 ? '' : 's') + '</button>';
+    }
+  }
+
+  if (wr) {
+    var mix = Array.isArray(wr.by_device) ? wr.by_device : [];
+    h += '<div class="op-sub" style="margin-top:14px">Watch data</div>'
+      + '<div class="op-kpi-row" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px">'
+      + opExtraStat('Members', Number(wr.members) || 0)
+      + opExtraStat('Adoption', (Number(wr.adoption_rate) || 0) + '%')
+      + opExtraStat('Active · 7d', Number(wr.active_7d) || 0)
+      + opExtraStat('Uploads · 7d', Number(wr.uploads_7d) || 0)
+      + '</div>';
+    if (mix.length) {
+      h += '<div style="font-size:12.5px;opacity:.9">' + mix.slice(0, 8).map(function (d) {
+        var name = String(d.provider || '').replace(/_/g, ' ');
+        // Say it plainly: a figure an AI read off a screenshot is not the same
+        // evidence as one parsed out of the device's own export.
+        var low = (d.provider === 'screenshot' || d.provider === 'manual')
+          ? ' <i style="opacity:.7">· lower confidence</i>' : '';
+        return '<div style="display:flex;justify-content:space-between;gap:10px;padding:4px 0">'
+          + '<span>' + opEsc(name.charAt(0).toUpperCase() + name.slice(1)) + low + '</span>'
+          + '<span>' + (Number(d.members) || 0) + '</span></div>';
+      }).join('') + '</div>';
+    } else {
+      h += '<div class="op-empty">No watch data imported yet.</div>';
+    }
+  }
+
+  host.innerHTML = h;
+}
+
+function opExtraStat(label, value, tone) {
+  return '<div class="op-kv" style="min-width:96px">'
+    + '<div style="font-size:11px;letter-spacing:1px;text-transform:uppercase;opacity:.65">' + opEsc(label) + '</div>'
+    + '<div class="op-tag ' + (tone || '') + '" style="font-size:16px;font-weight:700;background:none;padding:0">'
+    + opEsc(String(value)) + '</div></div>';
 }
 
 function opDrawTrendChart(trends) {
