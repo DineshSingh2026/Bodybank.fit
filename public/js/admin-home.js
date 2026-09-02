@@ -20,6 +20,15 @@ function ahEl(id) { return document.getElementById(id); }
 function ahEsc(v) { return escapeHtml(v == null ? '' : String(v)); }
 function ahNum(n) { return Number(n || 0).toLocaleString(); }
 function ahPlural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+/** Subtitle for the Part 2 tile: how many of the Part 1s came back. */
+function part2Sub(na) {
+  var p1 = Number(na && na.part1_submitted) || 0;
+  var p2 = Number(na && na.part2_submitted) || 0;
+  if (!p1) return 'none yet';
+  var waiting = Math.max(0, p1 - p2);
+  return waiting ? waiting + ' still to send' : 'all caught up';
+}
+
 /**
  * Subtitle for the watch-data tile: how many members, on which devices.
  * Screenshot- and manually-sourced members are called out, because a figure an AI
@@ -254,7 +263,10 @@ function renderAdminHome() {
       // the other — the desktop media query sets .admin-dash-page to
       // display:none !important — which is why these two features could not be
       // seen on the web console at all.
-      + tile(na.total, 'FitChef Assessment', (na.complete || 0) + ' completed', 'info', 'tab', 'nutritionassessment')
+      // Split into the two parts, because "12 assessments" hides the fact that
+      // only 4 of them came back for part 2 — which is the number to act on.
+      + tile(na.part1_submitted, 'FitChef Part 1', 'submitted', 'info', 'tab', 'nutritionassessment')
+      + tile(na.part2_submitted, 'FitChef Part 2', part2Sub(na), 'ok', 'tab', 'nutritionassessment')
       // Flagged submissions are a safety gate a human has to clear (clinician
       // referral, pregnancy, disordered-eating signal), so this tile goes red the
       // moment there is one.

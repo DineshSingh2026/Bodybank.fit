@@ -8395,11 +8395,13 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
         return r ? Number(r.c || 0) : 0;
       } catch (_) { return 0; }
     };
-    const [naTotalA, naCompleteA, naFlaggedA, naNew7dA, wearMembersA, wearUploads7dA] = await Promise.all([
+    const [naTotalA, naCompleteA, naFlaggedA, naNew7dA, naPart1A, naPart2A, wearMembersA, wearUploads7dA] = await Promise.all([
       safeOneA(`SELECT COUNT(*)::int c FROM nutrition_assessments`),
       safeOneA(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE status = 'complete'`),
       safeOneA(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE review_status = 'blocked'`),
       safeOneA(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      safeOneA(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE part1_submitted_at IS NOT NULL`),
+      safeOneA(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE part2_submitted_at IS NOT NULL`),
       safeOneA(`SELECT COUNT(DISTINCT user_id)::int c FROM readiness_daily WHERE source <> 'derived'`),
       safeOneA(`SELECT COUNT(*)::int c FROM wearable_uploads WHERE status = 'committed' AND created_at >= NOW() - INTERVAL '7 days'`)
     ]);
@@ -8447,7 +8449,10 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
         complete: naCompleteA,
         in_progress: Math.max(0, naTotalA - naCompleteA),
         needs_review: naFlaggedA,
-        new_7d: naNew7dA
+        new_7d: naNew7dA,
+        part1_submitted: naPart1A,
+        part2_submitted: naPart2A,
+        awaiting_part2: Math.max(0, naPart1A - naPart2A)
       },
       wearables: {
         members: wearMembersA,
@@ -8546,7 +8551,7 @@ app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res)
     };
 
     const [
-      naTotal, naComplete, naNeedsReview, naNew7d,
+      naTotal, naComplete, naNeedsReview, naNew7d, naPart1, naPart2,
       wearMembers, wearUploads7d, wearDaysTotal, wearActive7d
     ] = await Promise.all([
       safeOne(`SELECT COUNT(*)::int c FROM nutrition_assessments`),
@@ -8555,6 +8560,10 @@ app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res)
       // — a clinician-review or safety flag, not merely an odd answer.
       safeOne(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE review_status = 'blocked'`),
       safeOne(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      // Counted off the part stamps rather than off `status`, so a row that is
+      // mid-part-2 still counts as a part-1 submission.
+      safeOne(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE part1_submitted_at IS NOT NULL`),
+      safeOne(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE part2_submitted_at IS NOT NULL`),
       // Distinct members with any wearable day at all, across every provider —
       // this is the number that shows multi-device adoption rather than Whoop's.
       safeOne(`SELECT COUNT(DISTINCT user_id)::int c FROM readiness_daily WHERE source <> 'derived'`),
@@ -8695,7 +8704,12 @@ app.get('/api/operator/overview', verifyToken, requireOperator, async (req, res)
         in_progress: Math.max(0, naTotal - naComplete),
         needs_review: naNeedsReview,
         new_7d: naNew7d,
-        completion_rate: pct(naComplete, naTotal)
+        completion_rate: pct(naComplete, naTotal),
+        // The two-part funnel, which is what staff actually chase.
+        part1_submitted: naPart1,
+        part2_submitted: naPart2,
+        awaiting_part2: Math.max(0, naPart1 - naPart2),
+        part2_rate: pct(naPart2, naPart1)
       },
       // Wearable adoption across every provider, not just Whoop.
       wearables: {

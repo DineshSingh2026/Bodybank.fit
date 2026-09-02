@@ -205,6 +205,44 @@ section('admin and operator show the part state');
 
 /* ------------------------------------------------------------------ */
 
+section('both links are reachable, and both counts are reported');
+{
+  const index = read('public/index.html');
+  const op = read('public/js/operator-console.js');
+  const adminHome = read('public/js/admin-home.js');
+  const server = read('server.js');
+  const mh = read('public/js/member-home.js');
+
+  // Admin: both links in the personal-link panel, plus the per-row button.
+  check(/naInviteInput2/.test(index), 'admin sees a Part 2 link beside the Part 1 link');
+  check(/naCopyInvite2/.test(index), 'and can copy it');
+  check(/Send Part 1 first/.test(index),
+    'and is told the Part 2 link is not live until Part 1 is submitted');
+  check(/naPart2Link/.test(index), 'admin still has the per-row Part 2 link button');
+
+  // Operator: can copy a Part 2 link to chase someone.
+  check(/function opNaPart2/.test(op), 'the operator can copy a Part 2 link');
+  check(/awaiting_part2/.test(op), 'and the button only shows where Part 2 is outstanding');
+
+  // Counts on both dashboards, from the part stamps rather than from `status`.
+  check(/part1_submitted: naPart1/.test(server) && /part2_submitted: naPart2/.test(server),
+    'the operator overview reports both part counts');
+  check(/part1_submitted: naPart1A/.test(server) && /part2_submitted: naPart2A/.test(server),
+    'the admin overview reports both part counts');
+  check(/part1_submitted_at IS NOT NULL/.test(server),
+    'counted off the part stamps, so a row mid-Part-2 still counts as a Part 1');
+  check(/'FitChef Part 1'/.test(adminHome) && /'FitChef Part 2'/.test(adminHome),
+    'the desktop dashboard has a tile for each part');
+  check(/FitChef Part 1/.test(op) && /FitChef Part 2/.test(op),
+    'the operator dashboard has a tile for each part');
+  check(/Part 1: /.test(index), 'the mobile admin console shows both counts');
+
+  // Member: both parts offered as their own option.
+  check(/mhRenderNaParts/.test(mh), 'the member sees the two parts listed separately');
+  check(/Locked/.test(mh), 'with Part 2 shown as locked until Part 1 is in');
+  check(/mhNaParts/.test(index), 'and the card carries the container for them');
+}
+
 console.log('\n' + '-'.repeat(60));
 if (failures.length) {
   console.log('FAILED ' + failures.length + ' of ' + checks + ' checks:');

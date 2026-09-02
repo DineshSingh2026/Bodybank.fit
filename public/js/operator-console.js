@@ -1391,6 +1391,30 @@ async function loadOperatorNutritionAssessments() {
   }
 }
 
+/**
+ * Copy this person's Part 2 link.
+ *
+ * `mark_sent` is deliberately NOT set here: an operator copying a link to chase
+ * someone must not silently record that the follow-up was done. Only the admin
+ * action stamps part2_sent_at.
+ */
+async function opNaPart2(id) {
+  var row = ((opState.na || {}).rows || []).filter(function (r) { return r.id === id; })[0];
+  var who = (row && row.name) || 'this person';
+  var d;
+  try {
+    d = await apiCall('POST', '/api/nutrition-assessment/' + id + '/part2-link', {});
+  } catch (e) { d = null; }
+  if (!d || d.error || !d.url) {
+    alert((d && d.error) || 'Could not create the Part 2 link.');
+    return;
+  }
+  var copied = false;
+  try { await navigator.clipboard.writeText(d.url); copied = true; } catch (e) { /* clipboard blocked */ }
+  if (copied) alert('Part 2 link for ' + who + ' copied. It reopens their existing answers, so nothing is retyped.');
+  else window.prompt('Part 2 link for ' + who + ':', d.url);
+}
+
 function opNaBadges(r) {
   // The assessment arrives in two parts. "Part 1 done" is the state an operator
   // actually chases — it means the person is usable but the detail is still
@@ -1419,6 +1443,14 @@ function opNaCard(r) {
     + '<svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-12.6 7.4L3 21l2.2-5.2A8.5 8.5 0 1 1 21 11.5Z"/></svg></a>';
   if (r.email) actions += '<a class="op-qa" href="mailto:' + opEsc(r.email) + '" title="Email" onclick="event.stopPropagation()">'
     + '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg></a>';
+  // Only where it can be used: Part 1 in, Part 2 not. Operators are read-only on
+  // the assessment itself, but chasing is exactly their job, so the link is theirs.
+  if (r.awaiting_part2) {
+    actions += '<button type="button" class="op-qa" title="Copy the Part 2 link"'
+      + ' onclick="event.stopPropagation();opNaPart2(&quot;' + opAttr(r.id) + '&quot;)">'
+      + '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/>'
+      + '<path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></button>';
+  }
   actions += '</div>';
 
   return '<article class="op-card" onclick="opNaOpen(\'' + opAttr(r.id) + '\')">'
@@ -1507,7 +1539,8 @@ function renderOperatorLeads() {
     var l0 = opEl('opLeadLine'), s0 = opEl('opLeadSub');
     if (l0) l0.innerHTML = '<b>' + na.length + '</b> FitChef assessment' + (na.length === 1 ? '' : 's');
     if (s0) s0.textContent = [
-      (sm.complete || 0) + ' completed', (sm.partial || 0) + ' in progress',
+      (sm.part1_done || 0) + ' Part 1 in', (sm.complete || 0) + ' Part 2 in',
+      (sm.awaiting_part2 || 0) + ' awaiting Part 2',
       (sm.flagged || 0) + ((sm.flagged || 0) === 1 ? ' needs review' : ' need review')
     ].join(' \u00b7 ');
     el.innerHTML = na.length ? na.map(opNaCard).join('')
@@ -1765,8 +1798,10 @@ function opRenderAssessmentsAndWearables(data) {
     var needs = Number(na.needs_review) || 0;
     h += '<div class="op-sub">FitChef assessments</div>'
       + '<div class="op-kpi-row" style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px">'
-      + opExtraStat('Completed', (Number(na.complete) || 0) + ' / ' + (Number(na.total) || 0))
-      + opExtraStat('In progress', Number(na.in_progress) || 0)
+      + opExtraStat('Part 1 in', Number(na.part1_submitted) || 0)
+      + opExtraStat('Part 2 in', Number(na.part2_submitted) || 0, 'ok')
+      + opExtraStat('Awaiting Part 2', Number(na.awaiting_part2) || 0,
+        (Number(na.awaiting_part2) || 0) > 0 ? 'warn' : 'ok')
       + opExtraStat('New · 7d', Number(na.new_7d) || 0)
       + opExtraStat('Needs review', needs, needs > 0 ? 'warn' : 'ok')
       + '</div>';
@@ -1840,7 +1875,11 @@ function opRenderQuickAccess(data) {
   var h = '';
   if (na) {
     var needs = Number(na.needs_review) || 0;
-    h += tile(na.total, 'FitChef assessments', (Number(na.complete) || 0) + ' completed', 'info',
+    var waiting = Number(na.awaiting_part2) || 0;
+    h += tile(na.part1_submitted, 'FitChef Part 1', 'submitted', 'info',
+      'opNav(&quot;prospects&quot;);opLeadsView(&quot;nutrition&quot;)');
+    h += tile(na.part2_submitted, 'FitChef Part 2',
+      waiting ? waiting + ' still to send' : 'all caught up', waiting ? 'warn' : 'ok',
       'opNav(&quot;prospects&quot;);opLeadsView(&quot;nutrition&quot;)');
     // Safety flags a human has to clear, so this one is red whenever it is non-zero.
     h += tile(needs, 'Need review', needs ? 'before a plan goes out' : 'all clear',

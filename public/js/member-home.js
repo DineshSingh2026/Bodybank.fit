@@ -352,6 +352,40 @@ function mhOpenNutritionAssessment(part) {
   window.location.href = 'nutrition-assessment.html' + (p ? '?part=2' : '');
 }
 
+/**
+ * The two parts, always both listed.
+ *
+ * Part 2 is shown even before Part 1 is submitted — greyed out and labelled
+ * "locked" — because a member who does not know a Part 2 exists is surprised by
+ * it later. Each row goes straight to its own part; a finished part still opens,
+ * read-only, so they can check what they sent.
+ */
+function mhRenderNaParts(d) {
+  var host = mhEl('mhNaParts');
+  if (!host) return;
+  var p1 = !!(d && (d.part1_done || d.status === 'complete' || d.status === 'part1_complete'));
+  var p2 = !!(d && (d.part2_done || d.status === 'complete'));
+
+  function row(n, title, sub, done, open, state) {
+    var cls = 'mh-na-part' + (done ? ' is-done' : '') + (!done && open ? ' is-next' : '');
+    return '<button type="button" class="' + cls + '"' + (open || done ? '' : ' disabled')
+      + ' onclick="mhOpenNutritionAssessment(' + n + ')">'
+      + '<span class="mh-na-part-n">' + (done ? '✓' : n) + '</span>'
+      + '<span class="mh-na-part-t">' + mhEsc(title) + '<small>' + mhEsc(sub) + '</small></span>'
+      + '<span class="mh-na-part-s">' + mhEsc(state) + '</span>'
+      + '</button>';
+  }
+
+  host.innerHTML =
+    row(1, 'Part 1 — the essentials',
+      'You, your goal, your numbers and a short health check. 3–4 minutes.',
+      p1, true, p1 ? 'Done' : 'Start')
+    + row(2, 'Part 2 — the detail',
+      p1 ? 'How you train, eat and cook. This is what makes the plan yours.'
+        : 'Unlocks once Part 1 is in.',
+      p2, p1, p2 ? 'Done' : (p1 ? 'Continue' : 'Locked'));
+}
+
 async function mhLoadNutritionAssessment() {
   var state = mhEl('mhNaState');
   var btn = mhEl('mhNaBtn');
@@ -365,6 +399,8 @@ async function mhLoadNutritionAssessment() {
     hint.textContent = 'About 5 minutes \u2014 we fill in everything we already know.';
     return;
   }
+  mhRenderNaParts(d);
+
   // Both parts in.
   if (d.status === 'complete' || d.part2_done) {
     state.innerHTML = '<span class="mh-tag ok">Both parts submitted</span>';

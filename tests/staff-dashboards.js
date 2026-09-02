@@ -107,7 +107,8 @@ const PAYLOAD = {
   engagement: {},
   trends: {},
   nutritionAssessments: {
-    total: 20, complete: 12, in_progress: 8, needs_review: 3, new_7d: 5, completion_rate: 60
+    total: 20, complete: 12, in_progress: 8, needs_review: 3, new_7d: 5, completion_rate: 60,
+    part1_submitted: 15, part2_submitted: 12, awaiting_part2: 3
   },
   wearables: {
     members: 14, active_7d: 9, uploads_7d: 6, days_total: 900, adoption_rate: 35,
@@ -155,10 +156,14 @@ section('bbmdRenderExtras — the admin MOBILE console');
 
     sandbox.bbmdRenderExtras(PAYLOAD, 40);
 
-    check(meters.bbmdNaBar && meters.bbmdNaBar.pct === 60,
-      'the assessment completion meter reflects the API (60%)');
-    check(meters.bbmdNaBar && /12 \/ 20/.test(meters.bbmdNaBar.label),
-      'and shows the real counts (12 / 20)');
+    // The meter now measures Part 2 AGAINST Part 1 (12 of 15 = 80%), not against
+    // every row ever started — abandoned Part 1 drafts must not make the
+    // follow-up rate look worse than it is.
+    check(meters.bbmdNaBar && meters.bbmdNaBar.pct === 80,
+      'the mobile meter shows Part 2 as a share of Part 1 (80%)');
+    check(meters.bbmdNaBar && /Part 1: 15/.test(meters.bbmdNaBar.label)
+      && /Part 2: 12/.test(meters.bbmdNaBar.label),
+    'and labels both counts explicitly');
     check(meters.bbmdWearBar && meters.bbmdWearBar.pct === 35,
       'the wearable adoption meter reflects the API (35%)');
 
@@ -278,7 +283,8 @@ section('the dual-pane rule: BOTH admin dashboards carry both features');
   const adminHome = fs.readFileSync(path.join(ROOT, 'public', 'js', 'admin-home.js'), 'utf8');
   check(/d\.nutritionAssessments/.test(adminHome) && /d\.wearables/.test(adminHome),
     'admin-home.js reads both blocks off the payload');
-  check(/'FitChef Assessment'/.test(adminHome), 'the desktop pane renders a FitChef Assessment tile');
+  check(/'FitChef Part 1'/.test(adminHome) && /'FitChef Part 2'/.test(adminHome),
+    'the desktop pane renders SEPARATE Part 1 and Part 2 tiles');
   check(/'Need review'/.test(adminHome), 'and a Need review tile');
   check(/'Watch data'/.test(adminHome), 'and a Watch data tile');
   check(/nutritionassessment/.test(adminHome),
@@ -296,15 +302,16 @@ section('the dual-pane rule: BOTH admin dashboards carry both features');
   vm.runInContext(adminHome, sb, { filename: 'admin-home.js' });
   sb.ahState.data = {
     roster: {}, pipeline: {}, inbox: {}, trends: {}, feed: [],
-    nutritionAssessments: { total: 7, complete: 4, needs_review: 2, new_7d: 3 },
+    nutritionAssessments: { total: 7, complete: 4, needs_review: 2, new_7d: 3, part1_submitted: 15, part2_submitted: 12, awaiting_part2: 3 },
     wearables: { members: 5, uploads_7d: 2, by_device: [{ provider: 'whoop', members: 3 }, { provider: 'screenshot', members: 2 }] }
   };
   sb.renderAdminHome();
   const pipe = (ids.ahTilesPipeline && ids.ahTilesPipeline.innerHTML) || '';
-  check(/FitChef Assessment/.test(pipe) && /Need review/.test(pipe) && /Watch data/.test(pipe),
-    'all three tiles actually render on the desktop pane');
-  check(/>7</.test(pipe) && />2</.test(pipe),
-    'and they show the real numbers from the payload');
+  check(/FitChef Part 1/.test(pipe) && /FitChef Part 2/.test(pipe)
+    && /Need review/.test(pipe) && /Watch data/.test(pipe),
+  'Part 1, Part 2, Need review and Watch data tiles all render on the desktop pane');
+  check(/>15</.test(pipe) && />12</.test(pipe),
+    'and they show the real per-part numbers (15 Part 1, 12 Part 2)');
   check(/lower confidence/.test(pipe),
     'the watch tile flags screenshot-sourced members as lower confidence');
 
@@ -370,7 +377,8 @@ section('Quick Access carries both features on every pane');
   vm.runInContext(opConsole.slice(qStart, qEnd), osb, { filename: 'op-quick' });
   osb.opRenderQuickAccess(PAYLOAD);
   const oq = dom.get('opQuickAccess').innerHTML;
-  check(/FitChef assessments/.test(oq), 'operator Quick Access shows FitChef assessments');
+  check(/FitChef Part 1/.test(oq) && /FitChef Part 2/.test(oq),
+    'operator Quick Access shows Part 1 and Part 2 separately');
   check(/Need review/.test(oq) && />3</.test(oq), 'with the live flagged count');
   check(/Watch data/.test(oq), 'and a Watch data tile');
   check(/opLeadsView\(&quot;nutrition&quot;\)/.test(oq), 'routing straight to the assessment list');
@@ -439,18 +447,18 @@ section('changed JS assets carry a bumped cache-busting version');
   // files that actually changed were bumped past the versions that shipped stale.
   const opV = /js\/operator-console\.js\?v=(\d+)/.exec(indexHtml);
   const mhV = /js\/member-home\.js\?v=(\d+)/.exec(indexHtml);
-  check(opV && Number(opV[1]) >= 13,
+  check(opV && Number(opV[1]) >= 14,
     'operator-console.js is past v12 (part badges changed) — now v' + (opV && opV[1]));
   const ahV = /js\/admin-home\.js\?v=(\d+)/.exec(indexHtml);
-  check(ahV && Number(ahV[1]) >= 6,
+  check(ahV && Number(ahV[1]) >= 7,
     'admin-home.js is past v5 (Quick Access changed) — now v' + (ahV && ahV[1]));
-  check(mhV && Number(mhV[1]) >= 8,
+  check(mhV && Number(mhV[1]) >= 9,
     'member-home.js is past v7 (part-aware tile) — now v' + (mhV && mhV[1]));
 
   const sw = fs.readFileSync(path.join(ROOT, 'public', 'sw.js'), 'utf8');
   const cacheV = /bodybank-v(\d+)/.exec(sw);
-  check(cacheV && Number(cacheV[1]) >= 78,
-    'the service worker cache name is past v77 — now v' + (cacheV && cacheV[1]));
+  check(cacheV && Number(cacheV[1]) >= 79,
+    'the service worker cache name is past v78 — now v' + (cacheV && cacheV[1]));
 
   // Every versioned asset reference must point at a file that exists, or the tag
   // silently 404s and the feature it carries never loads at all.
