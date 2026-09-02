@@ -14977,9 +14977,7 @@ async function naPart2Link(id) {
   if (!d || d.error || !d.url) { alert((d && d.error) || 'Could not create the Part 2 link.'); return; }
   var copied = false;
   try { await navigator.clipboard.writeText(d.url); copied = true; } catch (e) { /* clipboard blocked */ }
-  if (copied) alert('Part 2 link for ' + who + ' copied.
-
-It reopens their existing answers, so nothing is retyped. Valid for 60 days.');
+  if (copied) alert('Part 2 link for ' + who + ' copied. It reopens their existing answers, so nothing is retyped. Valid for 60 days.');
   else window.prompt('Part 2 link for ' + who + ' — copy it:', d.url);
   loadNutritionAssessments();
 }

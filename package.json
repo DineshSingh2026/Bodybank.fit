@@ -9,7 +9,7 @@
     "setup:google": "node scripts/setup-google-signin.js",
     "migrate": "node scripts/migrate-sqlite-to-postgres.js",
     "test": "npm run test:units && node scripts/ensure-password-resets-table.js && node tests/e2e-flow.js",
-    "test:units": "node tests/zip-reader.js && node tests/whoop-parse.js && node tests/whoop-stats.js && node tests/whoop-pdf.js && node tests/whoop-pdf-extract.js && node tests/whoop-route-pdf.js && node tests/member-home-loop.js && node tests/nutrition-assessment.js && node tests/nutrition-assessment-parts.js && node tests/wearables-contract.js && node tests/wearables-registry.js && node tests/wearables-baseline.js && node tests/wearables-adapters.js && node tests/wearables-apple.js && node tests/wearables-vision.js && node tests/wearables-ui.js && node tests/staff-dashboards.js",
+    "test:units": "node tests/html-scripts-parse.js && node tests/zip-reader.js && node tests/whoop-parse.js && node tests/whoop-stats.js && node tests/whoop-pdf.js && node tests/whoop-pdf-extract.js && node tests/whoop-route-pdf.js && node tests/member-home-loop.js && node tests/nutrition-assessment.js && node tests/nutrition-assessment-parts.js && node tests/wearables-contract.js && node tests/wearables-registry.js && node tests/wearables-baseline.js && node tests/wearables-adapters.js && node tests/wearables-apple.js && node tests/wearables-vision.js && node tests/wearables-ui.js && node tests/staff-dashboards.js",
     "build:pwa-icons": "node scripts/generate-pwa-icons.js",
     "clean-e2e": "node scripts/clean-e2e-data.js",
     "seed:muscle-demo": "node scripts/seed-muscle-ranking-demo.js",
