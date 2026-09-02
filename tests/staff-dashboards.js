@@ -239,6 +239,83 @@ section('opRenderAssessmentsAndWearables — the operator pulse screen');
 }
 
 /* ------------------------------------------------------------------ *
+ * 3b. THE DUAL-PANE RULE
+ *
+ * The admin console has two entirely separate dashboards:
+ *
+ *   .admin-dash-page       mobile  — fed by /api/operator/overview
+ *   .bb-desktop-dashboard  desktop — fed by /api/admin/overview
+ *
+ * and the desktop media query sets `.admin-dash-page { display:none !important }`.
+ * A widget added to one pane is therefore INVISIBLE on the other. That is exactly
+ * how nutrition assessments and watch data ended up unreachable on the web
+ * console while being present on mobile. These checks fail loudly if either pane
+ * loses them again.
+ * ------------------------------------------------------------------ */
+
+section('the dual-pane rule: BOTH admin dashboards carry both features');
+{
+  // The trap itself must still be true — if the swap is ever removed, the note
+  // above stops applying and these tests should be revisited.
+  check(/#tab-dashboard-section \.admin-dash-page\{display:none !important\}/.test(indexHtml),
+    'desktop still hides the mobile pane, so both panes really are required');
+
+  // --- desktop API ---
+  const start = serverJs.indexOf("app.get('/api/admin/overview'");
+  const end = serverJs.indexOf("\napp.get('/api/", start + 10);
+  const handler = serverJs.slice(start, end > start ? end : start + 24000);
+  check(start > 0, 'the DESKTOP overview handler was found');
+  check(/nutritionAssessments:/.test(handler),
+    '/api/admin/overview returns nutritionAssessments (desktop pane)');
+  check(/wearables:/.test(handler),
+    '/api/admin/overview returns wearables (desktop pane)');
+  check(/type: 'assessment'/.test(handler) && /type: 'wearable'/.test(handler),
+    'and both appear in the desktop activity feed');
+  check(/safeOneA/.test(handler),
+    'its counts are wrapped so an unmigrated deployment does not 500 the dashboard');
+
+  // --- desktop renderer ---
+  const adminHome = fs.readFileSync(path.join(ROOT, 'public', 'js', 'admin-home.js'), 'utf8');
+  check(/d\.nutritionAssessments/.test(adminHome) && /d\.wearables/.test(adminHome),
+    'admin-home.js reads both blocks off the payload');
+  check(/'Assessments'/.test(adminHome), 'the desktop pane renders an Assessments tile');
+  check(/'Need review'/.test(adminHome), 'and a Need review tile');
+  check(/'Watch data'/.test(adminHome), 'and a Watch data tile');
+  check(/nutritionassessment/.test(adminHome),
+    'the assessment tiles link through to the Nutrition Assessment tab');
+
+  // Render the real desktop tiles against a real-shaped payload.
+  const ids = {};
+  const sb = {
+    document: { getElementById: (id) => (ids[id] = ids[id] || { id, innerHTML: '', classList: { add() {}, remove() {} }, style: {} }) },
+    escapeHtml: (v) => String(v === null || v === undefined ? '' : v),
+    switchTab() {}, apiCall: async () => ({}), console, setTimeout
+  };
+  sb.window = sb;
+  vm.createContext(sb);
+  vm.runInContext(adminHome, sb, { filename: 'admin-home.js' });
+  sb.ahState.data = {
+    roster: {}, pipeline: {}, inbox: {}, trends: {}, feed: [],
+    nutritionAssessments: { total: 7, complete: 4, needs_review: 2, new_7d: 3 },
+    wearables: { members: 5, uploads_7d: 2, by_device: [{ provider: 'whoop', members: 3 }, { provider: 'screenshot', members: 2 }] }
+  };
+  sb.renderAdminHome();
+  const pipe = (ids.ahTilesPipeline && ids.ahTilesPipeline.innerHTML) || '';
+  check(/Assessments/.test(pipe) && /Need review/.test(pipe) && /Watch data/.test(pipe),
+    'all three tiles actually render on the desktop pane');
+  check(/>7</.test(pipe) && />2</.test(pipe),
+    'and they show the real numbers from the payload');
+  check(/lower confidence/.test(pipe),
+    'the watch tile flags screenshot-sourced members as lower confidence');
+
+  // The regression that started all this: an old payload must not throw.
+  sb.ahState.data = { roster: {}, pipeline: {}, inbox: {}, trends: {}, feed: [] };
+  let threw = false;
+  try { sb.renderAdminHome(); } catch (e) { threw = true; }
+  check(!threw, 'an OLD server payload renders 0s rather than throwing and blanking the dashboard');
+}
+
+/* ------------------------------------------------------------------ *
  * 4. Device provenance in the per-member staff view
  * ------------------------------------------------------------------ */
 
@@ -269,6 +346,9 @@ section('changed JS assets carry a bumped cache-busting version');
   const mhV = /js\/member-home\.js\?v=(\d+)/.exec(indexHtml);
   check(opV && Number(opV[1]) >= 11,
     'operator-console.js is past v10 (was stale at v10) — now v' + (opV && opV[1]));
+  const ahV = /js\/admin-home\.js\?v=(\d+)/.exec(indexHtml);
+  check(ahV && Number(ahV[1]) >= 5,
+    'admin-home.js is past v4 (the desktop pane renderer changed) — now v' + (ahV && ahV[1]));
   check(mhV && Number(mhV[1]) >= 7,
     'member-home.js is past v6 (was stale at v6) — now v' + (mhV && mhV[1]));
 

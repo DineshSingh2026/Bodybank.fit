@@ -8337,7 +8337,82 @@ app.get('/api/admin/overview', verifyToken, requireAdminOrSuperadmin, async (req
       r => ({ name: r.full_name || 'Client', type: 'weekly', label: 'Weekly (Sunday) check-in', created_at: r.created_at }));
     feed.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
+    // ── Nutrition assessments + wearables, for the DESKTOP dashboard ────────
+    // The admin console has two entirely separate panes: .admin-dash-page (mobile,
+    // fed by /api/operator/overview) and .bb-desktop-dashboard (fed by THIS
+    // endpoint). On desktop the mobile pane is `display:none !important`, so a
+    // widget added to only one of them is invisible on the other — which is
+    // exactly why these two features could not be seen on the web console.
+    // See the same warning at public/index.html: "The widget HTML exists in two
+    // places (.bb-desktop-dashboard + .admin-dash-page)".
+    //
+    // safeOne so a deployment whose migration has not run loses one number rather
+    // than the whole dashboard to a 500.
+    const safeOneA = async (sql) => {
+      try {
+        const r = await queryOne(sql);
+        return r ? Number(r.c || 0) : 0;
+      } catch (_) { return 0; }
+    };
+    const [naTotalA, naCompleteA, naFlaggedA, naNew7dA, wearMembersA, wearUploads7dA] = await Promise.all([
+      safeOneA(`SELECT COUNT(*)::int c FROM nutrition_assessments`),
+      safeOneA(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE status = 'complete'`),
+      safeOneA(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE review_status = 'blocked'`),
+      safeOneA(`SELECT COUNT(*)::int c FROM nutrition_assessments WHERE created_at >= NOW() - INTERVAL '7 days'`),
+      safeOneA(`SELECT COUNT(DISTINCT user_id)::int c FROM readiness_daily WHERE source <> 'derived'`),
+      safeOneA(`SELECT COUNT(*)::int c FROM wearable_uploads WHERE status = 'committed' AND created_at >= NOW() - INTERVAL '7 days'`)
+    ]);
+    let wearByDeviceA = [];
+    try {
+      wearByDeviceA = (await queryAll(
+        `SELECT source, COUNT(DISTINCT user_id)::int AS members
+           FROM readiness_daily WHERE source <> 'derived'
+          GROUP BY source ORDER BY members DESC`
+      )) || [];
+    } catch (_) { wearByDeviceA = []; }
+
+    // The desktop feed is built from its own queries, so these two need adding
+    // here as well or a submission never shows up in "what just happened".
+    try {
+      push(await queryAll(
+        `SELECT full_name, review_status, status, COALESCE(submitted_at, created_at) AS created_at
+           FROM nutrition_assessments ORDER BY COALESCE(submitted_at, created_at) DESC LIMIT 8`
+      ), r => ({
+        name: r.full_name || 'Prospect',
+        type: 'assessment',
+        label: r.review_status === 'blocked'
+          ? 'Nutrition assessment — needs review'
+          : (r.status === 'complete' ? 'Nutrition assessment completed' : 'Nutrition assessment started'),
+        created_at: r.created_at
+      }));
+    } catch (_) { /* not migrated here */ }
+    try {
+      push(await queryAll(
+        `SELECT u.first_name, u.last_name, wu.provider, wu.created_at
+           FROM wearable_uploads wu LEFT JOIN users u ON u.id = wu.user_id
+          WHERE wu.status = 'committed' ORDER BY wu.created_at DESC LIMIT 8`
+      ), r => ({
+        name: nm(r),
+        type: 'wearable',
+        label: 'Watch data imported (' + String(r.provider || 'device').replace(/_/g, ' ') + ')',
+        created_at: r.created_at
+      }));
+    } catch (_) { /* not migrated here */ }
+    feed.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
+
     res.json({
+      nutritionAssessments: {
+        total: naTotalA,
+        complete: naCompleteA,
+        in_progress: Math.max(0, naTotalA - naCompleteA),
+        needs_review: naFlaggedA,
+        new_7d: naNew7dA
+      },
+      wearables: {
+        members: wearMembersA,
+        uploads_7d: wearUploads7dA,
+        by_device: (wearByDeviceA || []).map(r => ({ provider: r.source, members: Number(r.members || 0) }))
+      },
       roster: {
         members, active_today: activeToday, active_7d: active7d, inactive_7d: Math.max(0, members - active7d),
         checked_in_today: checkedIn,

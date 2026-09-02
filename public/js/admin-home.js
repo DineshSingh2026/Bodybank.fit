@@ -20,6 +20,22 @@ function ahEl(id) { return document.getElementById(id); }
 function ahEsc(v) { return escapeHtml(v == null ? '' : String(v)); }
 function ahNum(n) { return Number(n || 0).toLocaleString(); }
 function ahPlural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+/**
+ * Subtitle for the watch-data tile: how many members, on which devices.
+ * Screenshot- and manually-sourced members are called out, because a figure an AI
+ * read off a photo is not the same evidence as one parsed from a device export.
+ */
+function deviceSummary(w) {
+  var mix = (w && Array.isArray(w.by_device)) ? w.by_device : [];
+  if (!mix.length) return 'none imported yet';
+  var names = mix.slice(0, 2).map(function (d) {
+    return String(d.provider || '').replace(/_/g, ' ');
+  }).join(', ');
+  var extra = mix.length > 2 ? ' +' + (mix.length - 2) : '';
+  var lowTrust = mix.some(function (d) { return d.provider === 'screenshot' || d.provider === 'manual'; });
+  return names + extra + (lowTrust ? ' · some lower confidence' : '');
+}
+
 function ahGreeting() {
   var h = new Date().getHours();
   if (h < 5) return 'Still up';
@@ -88,6 +104,9 @@ function renderAdminHome() {
   var d = ahState.data;
   if (!d || !ahEl('adminHome')) return;
   var r = d.roster || {}, p = d.pipeline || {}, ib = d.inbox || {}, t = d.trends || {};
+  // Older server builds return neither key; default to empty objects so the tiles
+  // render a plain 0 rather than throwing and taking the whole dashboard down.
+  var na = d.nutritionAssessments || {}, w = d.wearables || {};
 
   // ---- hero: is the roster showing up, and is that better than last week? --
   var dateEl = ahEl('ahDate');
@@ -228,7 +247,20 @@ function renderAdminHome() {
       + tile(p.audits_no_account, 'Never signed up', 'audited in last 30 days', 'bad', 'tab', 'leads')
       + tile(p.part2_today, 'Part-2 today', (p.part2_7d || 0) + ' this week', 'info', 'tab', 'part2')
       + tile(r.trials, 'On trial', (r.trials_expiring || 0) + ' ending soon', 'amber', 'tab', 'memberships')
-      + tile(r.new_members_7d, 'New members', 'joined this week', 'ok', 'tab', 'tribe');
+      + tile(r.new_members_7d, 'New members', 'joined this week', 'ok', 'tab', 'tribe')
+      // Nutrition assessments and watch data. These live on the DESKTOP pane; the
+      // mobile console (.admin-dash-page / bbmd) renders its own copy from
+      // /api/operator/overview. A widget added to only one pane is invisible on
+      // the other — the desktop media query sets .admin-dash-page to
+      // display:none !important — which is why these two features could not be
+      // seen on the web console at all.
+      + tile(na.total, 'Assessments', (na.complete || 0) + ' completed', 'info', 'tab', 'nutritionassessment')
+      // Flagged submissions are a safety gate a human has to clear (clinician
+      // referral, pregnancy, disordered-eating signal), so this tile goes red the
+      // moment there is one.
+      + tile(na.needs_review, 'Need review', 'before a plan goes out',
+        (na.needs_review || 0) > 0 ? 'bad' : 'ok', 'tab', 'nutritionassessment')
+      + tile(w.members, 'Watch data', deviceSummary(w), 'info', 'tab', 'clientprogress');
   }
 
   // ---- what just happened --------------------------------------------------
