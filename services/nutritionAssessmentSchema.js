@@ -173,10 +173,16 @@ const STEPS = [
       { key: 'dob', label: 'Date of birth', type: 'date', required: true, prefill: 'dob' },
       { key: 'sex', label: 'Sex', type: 'select', required: true, options: ['Male', 'Female', 'Prefer to self-describe'], prefill: 'sex', help: 'Used only for the metabolic rate calculation.' },
       { key: 'height_cm', label: 'Height', type: 'height', required: true, prefill: 'height_cm' },
+      // waist / hip / neck are ENTERED in inches — that is what members here
+      // measure in — but the keys stay *_cm and the stored value stays canonical
+      // centimetres. whtr() divides waist by height, the prefill comes from body
+      // snapshots recorded in cm, and every row written before this change is in
+      // cm; storing inches under the same key would silently make all three wrong
+      // by a factor of 2.54. The `length` type shows inches and converts on entry.
       { key: 'weight_kg', label: 'Current weight', type: 'number', unit: 'kg', step: '0.1', required: true, prefill: 'weight_kg' },
-      { key: 'waist_cm', label: 'Waist at navel', type: 'number', unit: 'cm', required: true, prefill: 'waist_cm', help: 'Measure at the navel, standing relaxed, tape snug but not squeezing. This predicts metabolic risk better than BMI does.' },
-      { key: 'hip_cm', label: 'Hip', type: 'number', unit: 'cm', help: 'Optional — widest point. Enables waist-to-hip ratio.' },
-      { key: 'neck_cm', label: 'Neck', type: 'number', unit: 'cm', help: 'Optional — enables a body-fat estimate.' },
+      { key: 'waist_cm', label: 'Waist at navel', type: 'length', unit: 'in', required: true, prefill: 'waist_cm', help: 'Measure at the navel, standing relaxed, tape snug but not squeezing. This predicts metabolic risk better than BMI does.' },
+      { key: 'hip_cm', label: 'Hip', type: 'length', unit: 'in', help: 'Optional — widest point. Enables waist-to-hip ratio.' },
+      { key: 'neck_cm', label: 'Neck', type: 'length', unit: 'in', help: 'Optional — enables a body-fat estimate.' },
       { key: 'body_fat_pct', label: 'Known body fat %', type: 'number', unit: '%', prefill: 'body_fat_pct' },
       {
         key: 'body_fat_method', label: 'Measured how?', type: 'select',

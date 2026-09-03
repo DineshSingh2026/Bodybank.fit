@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/nutrition-assessment.css?v=2">
+<link rel="stylesheet" href="css/nutrition-assessment.css?v=3">
 </head>
 <body>
 
@@ -58,10 +58,14 @@
   <section id="fcDone" class="fc-hidden">
     <div class="fc-done">
       <div class="fc-done-ring">✓</div>
-      <h2>That's everything.</h2>
+      <h2 id="fcDoneTitle">That's everything.</h2>
       <p id="fcDoneMsg">Your assessment is in. We'll build your report and send it to your email and WhatsApp.</p>
       <div id="fcDoneFlag"></div>
       <div id="fcDoneNumbers"></div>
+      <!-- After Part 1 only: carrying straight on is offered, never assumed.
+           Someone who has just given fifteen minutes should not be pushed into
+           more of it, so "send it later" is a real, equal choice. -->
+      <div id="fcDoneActions" class="fc-done-actions" hidden></div>
     </div>
   </section>
 </main>
@@ -75,6 +79,6 @@
 </div>
 
 <script src="js/nutrition-assessment-metrics.js?v=2"></script>
-<script src="js/nutrition-assessment.js?v=3"></script>
+<script src="js/nutrition-assessment.js?v=4"></script>
 </body>
 </html>

@@ -300,6 +300,51 @@ section('two SHAREABLE links, one per part');
   check(/opCopyText/.test(op), 'with a prompt fallback when the clipboard is blocked');
 }
 
+section('tape measurements are entered in inches but stored in centimetres');
+{
+  const form = read('public/js/nutrition-assessment.js');
+  const metrics = require('../public/js/nutrition-assessment-metrics.js');
+
+  ['waist_cm', 'hip_cm', 'neck_cm'].forEach(function (k) {
+    const f = schema.fieldByKey(k);
+    check(f && f.type === 'length', k + ' is a length field');
+    check(f && f.unit === 'in', 'and is shown in inches');
+  });
+
+  check(/function renderLength/.test(form), 'the form has a length renderer');
+  check(/lengthMode/.test(form), 'with a per-field inches/cm toggle');
+  check(/typed \* 2\.54/.test(form), 'and converts inches to centimetres on entry');
+
+  // The trap: `unit` says inches, the stored value is centimetres. A naive
+  // `value + ' ' + unit` shows a 34in waist back as "86.4 in".
+  check(/f\.type === 'length'/.test(form.slice(form.indexOf('function displayValue'), form.indexOf('function displayValue') + 900)),
+    'displayValue converts a length field rather than mislabelling the stored cm');
+
+  // The reason the key stays *_cm: whtr divides waist by height, both in cm.
+  const d = metrics.derive({ sex: 'Male', dob: '1996-01-15', height_cm: 175, weight_kg: 75, waist_cm: 86.4 });
+  check(d && d.whtr && Math.abs(d.whtr - 0.494) < 0.01,
+    'a 34in waist stored as 86.4cm gives the right waist-to-height ratio (' + (d && d.whtr) + ')');
+  const wrong = metrics.derive({ sex: 'Male', dob: '1996-01-15', height_cm: 175, weight_kg: 75, waist_cm: 34 });
+  check(wrong && wrong.whtr && wrong.whtr < 0.25,
+    'and storing the raw inches instead would have produced a nonsense ratio (' + (wrong && wrong.whtr) + ')');
+}
+
+section('after Part 1 the member chooses whether to carry on');
+{
+  const form = read('public/js/nutrition-assessment.js');
+  const html = read('public/nutrition-assessment.html');
+
+  check(/id="fcDoneActions"/.test(html), 'the done screen has a place for the choice');
+  check(/Continue to Part 2 now/.test(form), 'carrying on now is offered');
+  check(/Send me the link instead/.test(form), 'and having the link sent later is an equal option');
+  check(/function continueToPart2/.test(form), 'carrying on is handled in place');
+  check(/identityEmail = S\.answers\.email/.test(form),
+    'and reuses the email they just gave, so Part 2 does not ask again');
+  check(/Nothing you have entered is lost/.test(form),
+    'choosing "later" reassures them their answers are kept');
+  check(/complete === true/.test(form), 'and the choice is not shown once both parts are in');
+}
+
 console.log('\n' + '-'.repeat(60));
 if (failures.length) {
   console.log('FAILED ' + failures.length + ' of ' + checks + ' checks:');

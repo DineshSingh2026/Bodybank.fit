@@ -457,8 +457,8 @@ section('changed JS assets carry a bumped cache-busting version');
 
   const sw = fs.readFileSync(path.join(ROOT, 'public', 'sw.js'), 'utf8');
   const cacheV = /bodybank-v(\d+)/.exec(sw);
-  check(cacheV && Number(cacheV[1]) >= 81,
-    'the service worker cache name is past v80 — now v' + (cacheV && cacheV[1]));
+  check(cacheV && Number(cacheV[1]) >= 82,
+    'the service worker cache name is past v81 — now v' + (cacheV && cacheV[1]));
 
   // Every versioned asset reference must point at a file that exists, or the tag
   // silently 404s and the feature it carries never loads at all.

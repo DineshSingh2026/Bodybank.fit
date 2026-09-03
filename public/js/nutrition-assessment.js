@@ -267,6 +267,10 @@
         body = renderHeight(f, v);
         break;
 
+      case 'length':
+        body = renderLength(f, v);
+        break;
+
       case 'slider':
         // A slider renders at its midpoint whether or not it has been touched,
         // so it LOOKS answered. Record that default as the real answer at render
@@ -314,6 +318,41 @@
 
     return '<div class="fc-field" data-fc-field="' + esc(f.key) + '">' + head(f) + body
       + '<div class="fc-err fc-hidden" data-fc-err="' + esc(f.key) + '"></div></div>';
+  }
+
+  /**
+   * A tape measurement — waist, hip, neck.
+   *
+   * Shown in INCHES by default because that is what members here measure in, but
+   * the value stored under the field's key is always centimetres. Everything
+   * downstream (whtr, the body-snapshot prefill, every row written before this)
+   * is in cm, so the conversion has to happen here rather than leaking a second
+   * unit into the record.
+   *
+   * The displayed inches are derived from the stored cm each render, so the two
+   * cannot drift apart, and a member who thinks in cm can switch and type cm.
+   */
+  function renderLength(f, v) {
+    var mode = lengthMode(f.key);
+    var cm = v === '' || v == null ? null : Number(v);
+    var shown = '';
+    if (cm != null && !isNaN(cm)) {
+      // One decimal in inches: a tape reads to about a quarter inch, and rounding
+      // to a whole number would move a 34.5in waist by more than a centimetre.
+      shown = mode === 'in' ? String(Math.round((cm / 2.54) * 10) / 10) : String(cm);
+    }
+    return '<div class="fc-height-tabs" role="group" aria-label="Measurement unit">'
+      + '<button type="button" data-fc-lmode="in" data-fc-lkey="' + esc(f.key) + '" class="' + (mode === 'in' ? 'on' : '') + '">inches</button>'
+      + '<button type="button" data-fc-lmode="cm" data-fc-lkey="' + esc(f.key) + '" class="' + (mode === 'cm' ? 'on' : '') + '">cm</button></div>'
+      + '<div class="fc-unit-row"><input class="fc-input" type="number" inputmode="decimal" step="0.1"'
+      + ' id="fc_' + esc(f.key) + '" data-fc-length="' + esc(f.key) + '" value="' + esc(shown) + '">'
+      + '<span class="fc-unit">' + (mode === 'in' ? 'in' : 'cm') + '</span></div>';
+  }
+
+  /** Per-field unit choice, remembered for the session. Inches is the default. */
+  function lengthMode(key) {
+    S._lengthMode = S._lengthMode || {};
+    return S._lengthMode[key] || 'in';
   }
 
   function renderHeight(f, v) {
@@ -420,6 +459,16 @@
       return Object.keys(v).map(function (k) { return k + ': ' + v[k]; }).join(', ');
     }
     if (f.type === 'height') return v + ' cm';
+    // A length field STORES centimetres but its `unit` says inches, so the naive
+    // `v + ' ' + f.unit` would print the cm number labelled "in" — a 34in waist
+    // shown back as "86.4 in". Convert to whatever unit the member is using.
+    if (f.type === 'length') {
+      var n = Number(v);
+      if (isNaN(n)) return String(v);
+      return lengthMode(f.key) === 'in'
+        ? (Math.round((n / 2.54) * 10) / 10) + ' in'
+        : n + ' cm';
+    }
     return String(v) + (f.unit ? ' ' + f.unit : '');
   }
 
@@ -515,6 +564,39 @@
       inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') submitPart2Identity(); });
       setTimeout(function () { try { inp.focus(); } catch (x) {} }, 30);
     }
+  }
+
+  /**
+   * Carry straight on into Part 2 without a round trip through a link.
+   *
+   * Done in place rather than by navigating to ?part=2: the member is already
+   * identified by the Part 1 they just submitted, so sending them back through
+   * the URL would make the Part 2 gate ask for an email we already have.
+   */
+  function continueToPart2() {
+    var btn = el('fcGoPart2');
+    if (btn) { btn.disabled = true; btn.textContent = 'Loading Part 2…'; }
+    api('GET', '/schema?part=2').then(function (sc) {
+      S.part = 2;
+      S.steps = (sc && sc.steps) || [];
+      S.partMeta = (sc && sc.meta) || null;
+      S.part1Done = true;
+      S.submitted = false;
+      S.needsPart2Identity = false;
+      // Their own Part 1 email, so the merge at submit finds the row they just made.
+      S.identityEmail = S.answers.email || S.identityEmail || '';
+      S.idx = -1;
+      S.confirmed = {};
+      var da = el('fcDoneActions');
+      if (da) { da.hidden = true; da.innerHTML = ''; }
+      applyPartCopy();
+      render();
+      try { window.scrollTo(0, 0); } catch (e) { /* ignore */ }
+    }).catch(function () {
+      if (btn) { btn.disabled = false; btn.textContent = 'Continue to Part 2 now'; }
+      var da2 = el('fcDoneActions');
+      if (da2) da2.innerHTML += '<p class="fc-done-later">We could not open Part 2 just now — we will send you the link instead.</p>';
+    });
   }
 
   function submitPart2Identity() {
@@ -715,6 +797,15 @@
 
     var hmode = t.getAttribute && t.getAttribute('data-fc-hmode');
     if (hmode) { S._heightMode = hmode; render(); return; }
+    var lmode = t.getAttribute && t.getAttribute('data-fc-lmode');
+    if (lmode) {
+      // Re-render only: the stored value is cm either way, so switching units
+      // converts the number on screen without touching the answer.
+      S._lengthMode = S._lengthMode || {};
+      S._lengthMode[t.getAttribute('data-fc-lkey')] = lmode;
+      render();
+      return;
+    }
 
     if (t.hasAttribute && t.hasAttribute('data-fc-labs')) { S._labsOpen = !S._labsOpen; render(); return; }
 
@@ -738,6 +829,19 @@
       var v = n.value;
       if (f && (f.type === 'number' || f.type === 'height')) v = v === '' ? '' : Number(v);
       S.answers[key] = v; scheduleSave(); return;
+    }
+    var lkey = n.getAttribute && n.getAttribute('data-fc-length');
+    if (lkey) {
+      var raw = String(n.value || '').trim();
+      if (raw === '') { S.answers[lkey] = ''; scheduleSave(); return; }
+      var typed = Number(raw);
+      if (isNaN(typed)) { S.answers[lkey] = ''; scheduleSave(); return; }
+      // Store centimetres whatever the member typed in.
+      S.answers[lkey] = lengthMode(lkey) === 'in'
+        ? Math.round(typed * 2.54 * 10) / 10
+        : typed;
+      scheduleSave();
+      return;
     }
     if (n.hasAttribute && (n.hasAttribute('data-fc-ft') || n.hasAttribute('data-fc-in'))) {
       var host = n.closest('.fc-ftin');
@@ -837,14 +941,37 @@
       // Part 1 is not the end of the road, and the done screen must say so —
       // otherwise a member reads "submitted" and never expects a second link.
       var doneMsg = el('fcDoneMsg');
-      if (doneMsg) {
-        if (d.complete === false && d.next_part === 2) {
-          doneMsg.textContent = 'Part 1 is in — that is the hard part done. '
-            + 'We will send you the Part 2 link shortly; it adds the detail that makes the plan yours '
-            + 'and picks up exactly where this left off.';
-        } else if (d.complete === true) {
-          doneMsg.textContent = 'That is everything. Your plan can now be built around how you actually live.';
+      var doneTitle = el('fcDoneTitle');
+      var doneActions = el('fcDoneActions');
+      if (d.complete === false && d.next_part === 2) {
+        if (doneTitle) doneTitle.textContent = 'Part 1 is in.';
+        if (doneMsg) {
+          doneMsg.textContent = 'That is the hard part done — your numbers are below. '
+            + 'Part 2 adds how you train, eat and cook, which is what makes the plan yours. '
+            + 'It takes a few more minutes, and you can do it now or whenever suits you.';
         }
+        // Offered, never assumed. Someone who has just answered twenty questions
+        // should not be railroaded into twenty more, so having the link sent later
+        // is a real choice rather than a way of dismissing a nag.
+        if (doneActions) {
+          doneActions.hidden = false;
+          doneActions.innerHTML =
+            '<button type="button" class="fc-btn" id="fcGoPart2">Continue to Part 2 now</button>'
+            + '<button type="button" class="fc-btn fc-btn-ghost" id="fcLaterPart2">Send me the link instead</button>';
+          var go = el('fcGoPart2');
+          if (go) go.addEventListener('click', continueToPart2);
+          var later = el('fcLaterPart2');
+          if (later) {
+            later.addEventListener('click', function () {
+              doneActions.innerHTML = '<p class="fc-done-later">No problem — we will send your Part 2 link to '
+                + esc(S.answers.email || 'your email') + '. Nothing you have entered is lost.</p>';
+            });
+          }
+        }
+      } else if (d.complete === true) {
+        if (doneTitle) doneTitle.textContent = 'That is everything.';
+        if (doneMsg) doneMsg.textContent = 'Your plan can now be built around how you actually live.';
+        if (doneActions) { doneActions.hidden = true; doneActions.innerHTML = ''; }
       }
 
       var dv = d.derived || {};

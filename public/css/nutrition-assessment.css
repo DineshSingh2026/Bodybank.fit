@@ -391,3 +391,17 @@ body {
   background:rgba(200,164,78,.14);border:1px solid rgba(200,164,78,.35);
   color:var(--fc-gold,#c8a44e);vertical-align:middle;
 }
+
+/* The choice after Part 1. Two buttons, weighted but not coercive: carrying on
+   is the primary, having the link sent later is a real option and not a
+   dismissable afterthought. */
+.fc-done-actions{display:flex;flex-direction:column;gap:10px;margin-top:26px;align-items:stretch}
+.fc-done-actions .fc-btn{width:100%}
+.fc-done-actions .fc-btn-ghost{
+  background:transparent;border:1px solid rgba(255,255,255,.18);
+  color:inherit;opacity:.9;
+}
+.fc-done-actions .fc-btn-ghost:hover{background:rgba(255,255,255,.06);opacity:1}
+.fc-done-later{font-size:12.5px;opacity:.72;margin-top:2px;text-align:center;line-height:1.45}
+@media (min-width:520px){ .fc-done-actions{flex-direction:row}
+  .fc-done-actions .fc-btn{width:auto;flex:1} }
