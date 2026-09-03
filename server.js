@@ -6714,6 +6714,53 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'tribe'
         });
       });
+      // FitChef assessments. These had no presence in the bell at all, so a
+      // submission only ever reached staff as a push — which needs VAPID keys
+      // configured and the browser permission granted, and silently reaches
+      // nobody when either is missing.
+      //
+      // Wrapped because the table belongs to its own migration: a deployment that
+      // has not run it must lose this one feed, not the whole notification list.
+      // Each part is its own entry, keyed on the part, so Part 1 landing and Part
+      // 2 landing are two separate things staff can see and act on.
+      try {
+        const naRows = await queryAll(
+          `SELECT id, full_name, email, review_status, status,
+                  part1_submitted_at, part2_submitted_at
+             FROM nutrition_assessments
+            WHERE part1_submitted_at IS NOT NULL OR part2_submitted_at IS NOT NULL
+            ORDER BY COALESCE(part2_submitted_at, part1_submitted_at) DESC LIMIT 30`
+        );
+        naRows.forEach(r => {
+          const who = r.full_name || r.email || 'Someone';
+          const blocked = r.review_status === 'blocked';
+          if (r.part1_submitted_at) {
+            notifications.push({
+              id: 'na1-' + r.id,
+              type: 'assessment',
+              // A blocked row is a safety flag a human has to clear before any
+              // plan goes out, so it must not read like an ordinary submission.
+              title: blocked ? '⚠ FitChef Part 1 — needs review' : 'FitChef Assessment — Part 1 submitted',
+              desc: who + (blocked
+                ? ' — flagged, no plan is generated automatically'
+                : (r.part2_submitted_at ? '' : ' — Part 2 still outstanding')),
+              time: r.part1_submitted_at,
+              link: 'nutritionassessment'
+            });
+          }
+          if (r.part2_submitted_at) {
+            notifications.push({
+              id: 'na2-' + r.id,
+              type: 'assessment',
+              title: blocked ? '⚠ FitChef complete — needs review' : 'FitChef Assessment — Part 2 submitted',
+              desc: who + (blocked ? ' — flagged for review' : ' — both parts in, ready to build'),
+              time: r.part2_submitted_at,
+              link: 'nutritionassessment'
+            });
+          }
+        });
+      } catch (_) { /* table not migrated on this deployment */ }
+
       const workouts = await queryAll("SELECT w.id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 20");
       workouts.forEach(w => {
         const m = Math.floor((w.duration_seconds || 0) / 60);
@@ -10886,13 +10933,37 @@ app.use(
     jwtSecret: AUTH_JWT_SECRET,
     uploadsDir: FEED_UPLOADS_DIR,
     multer,
-    onSubmit: ({ id, identity, flags }) => {
+    // Fired on EVERY part, so it has to say which one landed. Sent to admins,
+    // superadmins and operators alike — sendPushToAdmins covers all three,
+    // because an operator's job is chasing exactly this.
+    onSubmit: ({ id, identity, flags, part, complete }) => {
       const flagged = flags.filter((f) => f.block);
+      const who = identity.full_name || identity.email || 'Someone';
+      const partLabel = complete ? 'Part 2' : 'Part 1';
+
+      let title;
+      if (flagged.length) {
+        // A blocking flag outranks everything else: no plan is generated for
+        // these, and a human has to look before anything goes out.
+        title = `⚠ FitChef ${partLabel} — needs review`;
+      } else if (complete) {
+        title = 'FitChef Assessment complete';
+      } else {
+        title = 'FitChef Assessment — Part 1 in';
+      }
+
+      const body = flagged.length
+        ? `${who} — ${flagged.map((f) => f.label).join(', ')}`
+        : (complete
+          ? `${who} finished Part 2 — both parts are in`
+          : `${who} submitted Part 1 — Part 2 still to send`);
+
       sendPushToAdmins(JSON.stringify({
-        title: flagged.length ? '⚠ Nutrition Assessment — needs review' : 'New Nutrition Assessment',
-        body: `${identity.full_name || identity.email} submitted the FitChef assessment`
-          + (flagged.length ? ` — ${flagged.map((f) => f.label).join(', ')}` : ''),
-        id: 'nutrition-assessment-' + id,
+        title,
+        body,
+        // Keyed per part so a Part 2 push cannot replace the Part 1 one in the
+        // tray before anybody has read it.
+        id: 'nutrition-assessment-' + id + '-p' + (complete ? 2 : 1),
         link: 'nutritionassessment'
       })).catch(() => {});
     }

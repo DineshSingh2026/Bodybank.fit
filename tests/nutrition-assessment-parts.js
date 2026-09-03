@@ -345,6 +345,43 @@ section('after Part 1 the member chooses whether to carry on');
   check(/complete === true/.test(form), 'and the choice is not shown once both parts are in');
 }
 
+section('a submission notifies admin AND operator');
+{
+  const server = read('server.js');
+  const index = read('public/index.html');
+
+  // The bell builds its feed by querying source tables directly. Assessments were
+  // simply not among them, so a submission only ever reached staff as a push —
+  // which needs VAPID keys configured AND browser permission granted, and
+  // silently reaches nobody when either is missing.
+  const bellStart = server.indexOf("app.get('/api/notifications'");
+  const bell = server.slice(bellStart, server.indexOf('notifications.sort', bellStart));
+  check(bellStart > 0, 'the notification endpoint was found');
+  check(/nutrition_assessments/.test(bell), 'the bell queries assessments');
+  check(/type: 'assessment'/.test(bell), 'and emits them as their own type');
+  check(/'na1-'/.test(bell) && /'na2-'/.test(bell),
+    'each part gets a distinct id, so a Part 2 entry cannot replace the Part 1 one');
+  check(/part1_submitted_at IS NOT NULL OR part2_submitted_at IS NOT NULL/.test(bell),
+    'only submitted parts are announced, never an abandoned draft');
+  check(/needs review/.test(bell), 'a blocked row is announced as needing review, not as routine');
+
+  // Operators are included by the shared isAdmin gate on that endpoint.
+  check(/req\.user\.role === 'operator'/.test(server.slice(bellStart, bellStart + 900)),
+    'operators share the staff notification feed');
+
+  // Push: one message per part, keyed per part.
+  check(/onSubmit: \(\{ id, identity, flags, part, complete \}\)/.test(server),
+    'the push hook receives which part landed');
+  check(/'-p' \+ \(complete \? 2 : 1\)/.test(server),
+    'and keys the push per part so one cannot replace the other in the tray');
+  check(/FitChef \$\{partLabel\} — needs review/.test(server),
+    'a blocking flag outranks the ordinary message');
+  check(/Operators are read-only monitoring staff and receive the SAME activity alerts/.test(server),
+    'sendPushToAdmins deliberately includes operators');
+
+  check(/admin-notify-item\.assessment/.test(index), 'the bell styles assessment entries distinctly');
+}
+
 console.log('\n' + '-'.repeat(60));
 if (failures.length) {
   console.log('FAILED ' + failures.length + ' of ' + checks + ' checks:');
