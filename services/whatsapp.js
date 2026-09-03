@@ -199,4 +199,4 @@ async function sendWhatsAppWithFallback(message, opts = {}) {
   return sendWhatsAppTemplate(templateSid, { 1: flattenTemplateText(message) }, opts);
 }
 
-module.exports = { sendWhatsApp, sendWhatsAppTemplate, sendWhatsAppWithFallback, isConfigured };
+module.exports = { sendWhatsApp, sendWhatsAppTemplate, sendWhatsAppWithFallback, isConfigured, getAdminRecipients, toWaAddr };

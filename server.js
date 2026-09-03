@@ -58,7 +58,8 @@ const referralService = require('./services/referralService');
 const readinessService = require('./services/wearables/readinessService');
 const crypto = require('crypto');
 const { notify, notifyAsync, formatEventMessage } = require('./utils/notify');
-const { sendWhatsApp, sendWhatsAppTemplate } = require('./services/whatsapp');
+const { sendWhatsApp, sendWhatsAppTemplate, sendWhatsAppWithFallback } = require('./services/whatsapp');
+const { createWaInbound, createPgStore, ensureWaTables } = require('./services/waInbound');
 const { verifyToken: verifyNutritionPhotoLink } = require('./utils/nutritionPhotoLink');
 const { startEmailScheduler, getAdminDailyComplianceReportData, sendAdminDailyComplianceReport } = require('./services/emailScheduler');
 const {
@@ -354,6 +355,7 @@ app.use(cors({
 // 40mb accommodates large blood-report uploads (base64 in JSON). The blood route
 // caps the decoded payload lower, aligned to Claude's ~32MB PDF request limit.
 app.use(express.json({ limit: '40mb' }));
+app.use(express.urlencoded({ extended: false }));
 
 // Content Security Policy.
 //
@@ -596,6 +598,12 @@ const scorecardSvc = createScorecardService({ queryOne, queryAll });
 const { createMuscleRankingService } = require('./services/muscleRankingService');
 const muscleRankingSvc = createMuscleRankingService({ queryOne, queryAll });
 const focusWheelSvc = require('./services/focusWheelService');
+const waInbound = createWaInbound({
+  store: createPgStore({ queryAll, queryOne, run, uuidv4 }),
+  uuidv4,
+  notify,
+  sendWhatsApp: (message, opts) => sendWhatsAppWithFallback(message, opts)
+});
 
 function normalizeGeoFields(country, timezone) {
   const cleanCountry = String(country || '').trim();
@@ -962,6 +970,9 @@ async function initDB() {
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_thread_messages_thread_id ON thread_messages(thread_id)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_message_threads_user_id ON message_threads(user_id)`); } catch (e) { /* ignore */ }
+
+  // Inbound WhatsApp mirroring (draft/review). Same raw-SQL bootstrap as the rest of initDB.
+  await ensureWaTables(pool);
 
   // Operator → Admin escalations: an operator shares a client with admin for review,
   // and the two hold a threaded conversation about that client. Kept separate from the
@@ -2712,6 +2723,48 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
 app.get('/api/audit', verifyToken, requireOperator, async (req, res) => {
   const rows = await queryAll("SELECT * FROM audit_requests ORDER BY created_at DESC");
   res.json(rows);
+});
+
+// Twilio WhatsApp inbound (signature-verified). Disabled unless WA_INBOUND_ENABLED=true.
+app.post('/wa/inbound', rateLimiter(60, 60000), (req, res) => waInbound.handleWebhook(req, res));
+
+app.get('/api/admin/wa/drafts', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await waInbound.listDrafts(req.query && req.query.status);
+    res.json(rows);
+  } catch (e) {
+    console.error('[wa-inbound] list drafts:', e.message);
+    res.status(500).json({ error: 'Failed to load WhatsApp drafts' });
+  }
+});
+
+app.post('/api/admin/wa/drafts/:id/approve', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const result = await waInbound.approveDraft(req.params.id, {
+      body: req.body && req.body.body,
+      reviewedBy: (req.user && (req.user.email || req.user.id)) || ''
+    });
+    if (!result.ok && result.reason === 'not_found') return res.status(404).json({ error: 'Draft not found' });
+    if (!result.ok) return res.status(400).json(result);
+    res.json(result);
+  } catch (e) {
+    console.error('[wa-inbound] approve:', e.message);
+    res.status(500).json({ error: 'Failed to approve draft' });
+  }
+});
+
+app.post('/api/admin/wa/drafts/:id/reject', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const result = await waInbound.rejectDraft(req.params.id, {
+      reviewedBy: (req.user && (req.user.email || req.user.id)) || ''
+    });
+    if (!result.ok && result.reason === 'not_found') return res.status(404).json({ error: 'Draft not found' });
+    if (!result.ok) return res.status(400).json(result);
+    res.json(result);
+  } catch (e) {
+    console.error('[wa-inbound] reject:', e.message);
+    res.status(500).json({ error: 'Failed to reject draft' });
+  }
 });
 
 // ── WhatsApp test (admin only) ── send a test message to verify Twilio config
@@ -9875,6 +9928,7 @@ app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async 
     await run('DELETE FROM weight_logs WHERE user_id = ?', [id]);
     await run('DELETE FROM daily_checkins WHERE user_id = ?', [id]);
     await run('DELETE FROM push_subscriptions WHERE user_id = ?', [id]);
+    await waInbound.unlinkClient(id);
     if (user.email) {
       await run('DELETE FROM tribe_members WHERE LOWER(email) = LOWER(?)', [user.email]);
     }
@@ -9912,6 +9966,7 @@ app.post('/api/me/account/delete', verifyToken, rateLimiter(3, 60000), async (re
     await run('DELETE FROM weight_logs WHERE user_id = ?', [id]);
     await run('DELETE FROM daily_checkins WHERE user_id = ?', [id]);
     await run('DELETE FROM push_subscriptions WHERE user_id = ?', [id]);
+    await waInbound.unlinkClient(id);
     if (user.email) await run('DELETE FROM tribe_members WHERE LOWER(email) = LOWER(?)', [user.email]);
     await run('DELETE FROM users WHERE id = ?', [id]);
     notifyAsync('USER_DELETED', { name: 'self-deleted', email: user.email, mobile: user.phone || '—' });
@@ -12317,6 +12372,21 @@ app.listen(PORT, '0.0.0.0', () => {
       console.log('✅ Daily WhatsApp executive digest cron scheduled (Daily 09:00 Asia/Kolkata)');
     } catch (e) {
       console.warn('Daily digest cron schedule skipped:', e.message);
+    }
+
+    try {
+      cron.schedule(
+        '*/15 * * * *',
+        () => {
+          waInbound.runSchedulerTick().catch((e) =>
+            console.warn('[wa-inbound] scheduler error:', e.message)
+          );
+        },
+        { timezone: 'Asia/Kolkata' }
+      );
+      console.log('✅ WhatsApp inbound scheduler cron (every 15 min Asia/Kolkata; draft flush + no_activity_3d stub)');
+    } catch (e) {
+      console.warn('WhatsApp inbound scheduler cron skipped:', e.message);
     }
   }).catch(err => {
     console.error('Failed to init DB:', err);

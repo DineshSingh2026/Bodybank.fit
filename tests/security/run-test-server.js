@@ -38,6 +38,11 @@ process.env.NUTRITION_ADMIN_REPORT_EMAIL = '';
 process.env.APPLE_REVIEW_EMAIL = '';
 process.env.APPLE_REVIEW_PASS = '';
 process.env.CAMPAIGNS_ENABLED = 'false';
+process.env.WA_INBOUND_ENABLED = 'false';
+process.env.WA_DRAFT_MODE = 'true';
+process.env.XAI_API_KEY = '';
+process.env.XAI_MODEL = '';
+process.env.WA_INBOUND_WEBHOOK_URL = '';
 
 // ---- 2. Pin the environment to the isolated test target ----
 const TEST_PORT = process.env.SECTEST_PORT || '3099';

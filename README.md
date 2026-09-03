@@ -211,6 +211,8 @@ docker run -d \
 | `ADMIN_PASS` | admin123 | Admin login password |
 | `DATABASE_URL` | postgresql://localhost:5432/bodybank | PostgreSQL connection string |
 
+Inbound WhatsApp mirroring (Twilio webhook + Kling draft/review) is documented in [docs/WHATSAPP_INBOUND.md](docs/WHATSAPP_INBOUND.md). It is off until `WA_INBOUND_ENABLED=true`. Default config never messages a client without an explicit approve.
+
 ---
 
 ## Project Structure
