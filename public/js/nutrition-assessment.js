@@ -40,6 +40,11 @@
     part2Done: false,
     partMeta: null,
     totalParts: 2,
+    // Set once an anonymous part-2 visitor has told us which email they used for
+    // part 1. Sent with every autosave and the final submit so the server can
+    // find the row their part 1 already created.
+    identityEmail: '',
+    needsPart2Identity: false,
     files: {}           // field key -> [{name, original}]
   };
 
@@ -171,7 +176,9 @@
     S.dirty = false;
     S.saving = true;
     markSaving('Saving…');
-    return api('PUT', '/draft', { answers: nested(), last_step: Math.max(1, S.idx + 1), part: S.part })
+    return api('PUT', '/draft', {
+      answers: nested(), last_step: Math.max(1, S.idx + 1), part: S.part, identity_email: S.identityEmail || ''
+    })
       .then(function (d) {
         if (d && d.id) S.draftId = d.id;
         markSaving('Saved — you can close this and come back.');
@@ -481,7 +488,70 @@
 
   // ── step rendering ──────────────────────────────────────────────────────
 
+  /** The one question a shared part-2 link has to ask before anything else. */
+  function renderPart2Gate(msg, tone) {
+    var host = el('fcStep');
+    if (!host) return;
+    el('fcIntro') && (el('fcIntro').hidden = true);
+    el('fcProgWrap') && (el('fcProgWrap').hidden = true);
+    el('fcBack') && (el('fcBack').hidden = true);
+    el('fcNext') && (el('fcNext').hidden = true);
+    host.hidden = false;
+    host.innerHTML =
+      '<div class="fc-step-head">'
+      + '<p class="fc-step-kicker">FitChef Assessment <span class="fc-part-badge">Part 2 of 2</span></p>'
+      + '<h2 class="fc-step-title">Welcome back — which email did you use?</h2>'
+      + '<p class="fc-step-blurb">Part 2 picks up from the answers you already gave us in Part 1. '
+      + 'Tell us the email you used and we will carry them over.</p></div>'
+      + (msg ? '<div class="' + (tone === 'bad' ? 'fc-alert' : 'fc-note') + '">' + esc(msg) + '</div>' : '')
+      + '<div class="fc-field"><label class="fc-label" for="fcP2Email">Email</label>'
+      + '<input class="fc-input" type="email" id="fcP2Email" autocomplete="email" '
+      + 'placeholder="the email you used for Part 1" value="' + esc(S.identityEmail || '') + '"></div>'
+      + '<div style="margin-top:18px"><button type="button" class="fc-btn" id="fcP2Go">Continue to Part 2</button></div>';
+    var go = el('fcP2Go');
+    if (go) go.addEventListener('click', submitPart2Identity);
+    var inp = el('fcP2Email');
+    if (inp) {
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') submitPart2Identity(); });
+      setTimeout(function () { try { inp.focus(); } catch (x) {} }, 30);
+    }
+  }
+
+  function submitPart2Identity() {
+    var inp = el('fcP2Email');
+    var email = String((inp && inp.value) || '').trim();
+    if (!email || email.indexOf('@') === -1) { renderPart2Gate('Please enter a valid email address.', 'bad'); return; }
+    var btn = el('fcP2Go');
+    if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+    api('POST', '/part2/lookup', { email: email }).then(function (d) {
+      if (!d || !d.found) {
+        renderPart2Gate((d && d.message) || 'We could not find a Part 1 for that email.', 'bad');
+        return;
+      }
+      if (d.already_complete) {
+        S.submitted = true;
+        el('fcDoneMsg') && (el('fcDoneMsg').textContent = d.message || 'Part 2 is already in for that email.');
+        S.needsPart2Identity = false;
+        render();
+        return;
+      }
+      S.identityEmail = email;
+      S.needsPart2Identity = false;
+      if (d.name) {
+        var b = el('fcIntroBlurb');
+        if (b) { b.textContent = 'Welcome back, ' + d.name + '. ' + introBlurb(); b.setAttribute('data-personalised', '1'); }
+      }
+      S.idx = -1;
+      render();
+    }).catch(function () {
+      renderPart2Gate('We could not check that email. Please try again.', 'bad');
+    });
+  }
+
   function render() {
+    // A shared Part 2 link has to establish who the visitor is before anything
+    // else — five filled steps refused at the end is the worst possible outcome.
+    if (S.needsPart2Identity && !S.submitted) { renderPart2Gate(); return; }
     var boot = el('fcBoot'), intro = el('fcIntro'), stepEl = el('fcStep'), done = el('fcDone');
     boot.classList.add('fc-hidden');
     el('fcBar').hidden = false;
@@ -758,7 +828,7 @@
   function submit() {
     var btn = el('fcNext');
     btn.disabled = true; btn.textContent = 'Sending…';
-    api('POST', '/submit', { answers: nested(), part: S.part }).then(function (d) {
+    api('POST', '/submit', { answers: nested(), part: S.part, identity_email: S.identityEmail || '' }).then(function (d) {
       S.submitted = true;
       try { localStorage.removeItem(LS_KEY); } catch (e) { /* ignore */ }
       if (d.review_note) {
@@ -910,6 +980,11 @@
         } catch (e) { /* ignore */ }
 
         seedFromPrefill(sess.prefill);
+
+        // A shared part-2 link carries no identity. If the server did not resolve
+        // this visitor to an existing assessment, we must ask who they are before
+        // showing part 2 — otherwise they fill five steps and are refused at the end.
+        S.needsPart2Identity = (S.part === 2 && !S.isMember && !(sess.draft && sess.draft.id));
 
         var thisPartDone = (S.part === 1 && S.part1Done) || (S.part === 2 && S.part2Done);
         if (sess.already_submitted || thisPartDone) {

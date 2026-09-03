@@ -260,6 +260,49 @@ function createNutritionAssessmentRouter(deps = {}) {
   });
 
   /**
+   * Part 2, opened from the plain shareable link.
+   *
+   * Part 2 carries no identity fields — they all live in part 1 — so a visitor
+   * arriving on a shared part-2 link is anonymous and we cannot know whose
+   * assessment to continue. This asks the one question that resolves it.
+   *
+   * It deliberately returns NOTHING but a yes/no and the first name. Looking a
+   * row up by email alone must never hand back the answers: that would let
+   * anyone read a member's health screen by guessing their address. The member
+   * fills part 2 fresh; the email is matched to their row at submit time, where
+   * it merges into the record they already own.
+   */
+  router.post('/part2/lookup', limit(20, 60000), async (req, res) => {
+    try {
+      const email = String((req.body && req.body.email) || '').trim().toLowerCase();
+      if (!email || email.indexOf('@') === -1) {
+        return res.status(400).json({ error: 'Please enter the email address you used for Part 1.' });
+      }
+      const row = await db.queryOne(
+        `SELECT id, full_name, part1_submitted_at, part2_submitted_at
+           FROM nutrition_assessments
+          WHERE LOWER(email) = LOWER(?) ORDER BY created_at DESC LIMIT 1`, [email]
+      );
+      if (!row || !row.part1_submitted_at) {
+        return res.json({
+          found: false,
+          message: 'We could not find a completed Part 1 for that email. Please finish Part 1 first — the link is the same one you were sent.'
+        });
+      }
+      if (row.part2_submitted_at) {
+        return res.json({ found: true, already_complete: true, name: row.full_name || '', message: 'Part 2 is already in for that email. Nothing more to do.' });
+      }
+      // First name only — enough for the member to recognise themselves, and not
+      // enough to be worth harvesting.
+      const first = String(row.full_name || '').trim().split(/\s+/)[0] || '';
+      res.json({ found: true, already_complete: false, name: first });
+    } catch (e) {
+      console.error('[nutrition-assessment] part2 lookup:', e.message);
+      res.status(500).json({ error: 'Could not check that email' });
+    }
+  });
+
+  /**
    * Autosave. Upserts one partial row per person and is deliberately forgiving —
    * a failed autosave must never interrupt typing, so validation waits for submit.
    */
@@ -281,9 +324,11 @@ function createNutritionAssessmentRouter(deps = {}) {
         mobile: String(flat.mobile || actor.mobile || '').slice(0, 40),
         city: String(flat.city || '').slice(0, 120)
       };
-      if (!actor.userId && !identity.email) return res.json({ saved: false, reason: 'no-identity' });
+      if (!actor.userId && !identity.email && !String(body.identity_email || '').trim()) {
+        return res.json({ saved: false, reason: 'no-identity' });
+      }
 
-      const existing = await findDraft(actor, identity.email);
+      const existing = await findDraft(actor, identity.email || String(body.identity_email || '').trim());
       if (existing && existing.status === 'complete') return res.json({ saved: false, reason: 'already-submitted', id: existing.id });
       // Part 1 is locked once submitted; an autosave from a stale tab must not
       // reopen it or quietly rewrite answers the member has already been told
@@ -379,7 +424,11 @@ function createNutritionAssessmentRouter(deps = {}) {
       // payload on its own would evaluate those `when` clauses against a half-empty
       // map and silently discard legitimate answers.
       const rawFlat = flatten(body.answers || {});
-      const prior = await findDraft(actor, rawFlat.email);
+      // On part 2 the identity fields are not on screen, so the form passes the
+      // email the visitor gave at the part-2 gate. Without it an anonymous part-2
+      // submission has nothing to match on and would strand the answers.
+      const emailHint = rawFlat.email || String(body.identity_email || '').trim();
+      const prior = await findDraft(actor, emailHint);
       const priorAnswers = prior ? (parseJson(prior.answers) || {}) : {};
       const answers = pruneHidden(Object.assign({}, priorAnswers, body.answers || {}));
       const flat = flatten(answers);
@@ -771,7 +820,11 @@ function createNutritionAssessmentRouter(deps = {}) {
         // Part 1 is the link you hand out. Part 2 is always per-person, because it
         // has to reopen a specific row — see POST /:id/part2-link.
         share_url: `${originFor(req)}/nutrition-assessment.html`,
-        part1_share_url: `${originFor(req)}/nutrition-assessment.html`
+        part1_share_url: `${originFor(req)}/nutrition-assessment.html`,
+        // A shareable part-2 link. It carries no identity, so it opens the part-2
+        // gate and asks which email was used for part 1 — which is what makes it
+        // safe to hand out openly, unlike a link bound to one person's row.
+        part2_share_url: `${originFor(req)}/nutrition-assessment.html?part=2`
       });
     } catch (e) {
       console.error('[nutrition-assessment] list:', e.message);

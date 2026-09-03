@@ -1398,6 +1398,17 @@ async function loadOperatorNutritionAssessments() {
  * someone must not silently record that the follow-up was done. Only the admin
  * action stamps part2_sent_at.
  */
+/** Clipboard with an honest fallback when the browser blocks it. */
+async function opCopyText(text, msg) {
+  if (!text) return;
+  try {
+    await navigator.clipboard.writeText(text);
+    alert(msg || 'Copied.');
+  } catch (e) {
+    window.prompt('Copy this link:', text);
+  }
+}
+
 async function opNaPart2(id) {
   var row = ((opState.na || {}).rows || []).filter(function (r) { return r.id === id; })[0];
   var who = (row && row.name) || 'this person';
@@ -1543,8 +1554,19 @@ function renderOperatorLeads() {
       (sm.awaiting_part2 || 0) + ' awaiting Part 2',
       (sm.flagged || 0) + ((sm.flagged || 0) === 1 ? ' needs review' : ' need review')
     ].join(' \u00b7 ');
-    el.innerHTML = na.length ? na.map(opNaCard).join('')
-      : '<div class="op-empty pad">' + (q ? 'Nothing matches this search.' : 'No assessments yet.') + '</div>';
+    // Operators chase people, so they need the same two links the admin has.
+    // Both are shareable: Part 2 asks which email was used for Part 1.
+    var naData = opState.na || {};
+    var origin = (window.BB_PUBLIC_ORIGIN || window.location.origin);
+    var u1 = naData.part1_share_url || naData.share_url || (origin + '/nutrition-assessment.html');
+    var u2 = naData.part2_share_url || (origin + '/nutrition-assessment.html?part=2');
+    var links = '<div class="op-na-links">'
+      + '<button type="button" class="op-bub more" onclick="opCopyText(&quot;' + opAttr(u1) + '&quot;,&quot;Part 1 link copied.&quot;)">Copy Part 1 link</button>'
+      + '<button type="button" class="op-bub more" onclick="opCopyText(&quot;' + opAttr(u2) + '&quot;,&quot;Part 2 link copied. It asks which email they used for Part 1.&quot;)">Copy Part 2 link</button>'
+      + '</div>';
+
+    el.innerHTML = links + (na.length ? na.map(opNaCard).join('')
+      : '<div class="op-empty pad">' + (q ? 'Nothing matches this search.' : 'No assessments yet.') + '</div>');
     return;
   }
   if (opState.leadsView === 'part2') {

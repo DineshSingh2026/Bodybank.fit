@@ -5115,7 +5115,7 @@ button.bb-today-pill{cursor:pointer}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
-<script src="js/operator-console.js?v=14"></script>
+<script src="js/operator-console.js?v=15"></script>
 <script src="js/admin-home.js?v=7"></script>
 <script src="js/countries.js?v=1"></script>
 <script src="js/member-home.js?v=9"></script>
@@ -9158,10 +9158,16 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <label class="part2-link-label">Part 1 &mdash; shareable form link</label>
         <div class="part2-link-row">
           <input type="text" class="part2-link-input" id="naLinkInput" readonly value="">
-          <button type="button" class="part2-copy-btn" onclick="naCopyLink()">Copy Link</button>
+          <button type="button" class="part2-copy-btn" onclick="naCopyLink()">Copy Part 1</button>
+        </div>
+        <label class="part2-link-label" style="margin-top:14px">Part 2 &mdash; shareable form link</label>
+        <div class="part2-link-row">
+          <input type="text" class="part2-link-input" id="naLink2Input" readonly value="">
+          <button type="button" class="part2-copy-btn" onclick="naCopyLink2()">Copy Part 2</button>
         </div>
         <p class="form-hint" style="margin:10px 0 0">Send this to anyone &mdash; about 3&ndash;4 minutes. It captures identity, goal, body numbers, the health screen and consent, which is already enough to work out their calorie and protein targets. A member signed in to BodyBank gets their profile, check-ins and blood report filled in automatically.</p>
-        <p class="form-hint" style="margin:8px 0 0"><strong>Part 2 is per person, not a shared link.</strong> It has to reopen that specific person's answers, so you generate it from their row in the table below once Part 1 is in.</p>
+        <p class="form-hint" style="margin:8px 0 0">Part 2 adds training, current diet, preferences, wellbeing and kitchen logistics. It asks which email they used for Part 1 and carries those answers over &mdash; so it is safe to share openly, and nobody can start Part 2 without a Part 1.</p>
+          <p class="form-hint" style="margin:8px 0 0">For one specific person, use the personal links below or the <strong>Part 2 link</strong> button on their row &mdash; those skip the email question entirely.</p>
       </div>
 
       <div class="part2-link-section" style="margin-top:12px">
@@ -10092,7 +10098,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
 </div>
 
 <!-- ============ OPERATOR CONSOLE (client-first workspace) ============ -->
-<link rel="stylesheet" href="css/operator-console.css?v=11">
+<link rel="stylesheet" href="css/operator-console.css?v=12">
 <div class="operator-panel" id="operatorPanel">
 
   <!-- TOP BAR -->
@@ -14863,8 +14869,11 @@ function naFmtWhen(ts) {
 }
 
 async function loadNutritionAssessments() {
+  var origin = (window.BB_PUBLIC_ORIGIN || window.location.origin);
   var link = document.getElementById('naLinkInput');
-  if (link) link.value = (window.BB_PUBLIC_ORIGIN || window.location.origin) + '/nutrition-assessment.html';
+  if (link) link.value = origin + '/nutrition-assessment.html';
+  var link2 = document.getElementById('naLink2Input');
+  if (link2) link2.value = origin + '/nutrition-assessment.html?part=2';
   naLoadCandidates();
 
   var tbody = document.getElementById('naBody');
@@ -14878,7 +14887,9 @@ async function loadNutritionAssessments() {
     return;
   }
   _naRows = data.rows;
-  if (link && data.share_url) link.value = data.share_url;
+  if (link && data.share_url) link.value = data.part1_share_url || data.share_url;
+  var l2 = document.getElementById('naLink2Input');
+  if (l2 && data.part2_share_url) l2.value = data.part2_share_url;
 
   var sm = data.summary || {};
   var set = function (id, v) { var e = document.getElementById(id); if (e) e.textContent = (v == null ? '\u2014' : String(v)); };
@@ -15016,7 +15027,12 @@ async function naPart2Link(id) {
 
 function naCopyLink() {
   var e = document.getElementById('naLinkInput');
-  naCopyText(e && e.value, 'The shareable assessment link is on your clipboard.');
+  naCopyText(e && e.value, 'The Part 1 link is on your clipboard.');
+}
+
+function naCopyLink2() {
+  var e = document.getElementById('naLink2Input');
+  naCopyText(e && e.value, 'The Part 2 link is on your clipboard. It asks which email they used for Part 1.');
 }
 function naCopyInvite() {
   var e = document.getElementById('naInviteInput');

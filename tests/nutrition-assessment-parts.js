@@ -188,8 +188,8 @@ section('admin and operator show the part state');
   const index = read('public/index.html');
   check(/naPart2Link/.test(index), 'admin can generate a per-row part-2 link');
   check(/Part 1 &mdash; shareable form link/.test(index), 'the shared link is labelled as part 1');
-  check(/Part 2 is per person, not a shared link/.test(index),
-    'and admin is told why part 2 is not a shared link');
+  check(/those skip the email question entirely/.test(index),
+    'and admin is told when to use a personal link instead of the shared one');
   check(/naStatAwaiting/.test(index), 'admin has an "awaiting part 2" figure');
   check(/Both parts in/.test(index), 'the admin row shows both-parts-in');
 
@@ -217,7 +217,7 @@ section('both links are reachable, and both counts are reported');
   check(/naInviteInput2/.test(index), 'admin sees a Part 2 link beside the Part 1 link');
   check(/naCopyInvite2/.test(index), 'and can copy it');
   check(/Send Part 1 first/.test(index),
-    'and is told the Part 2 link is not live until Part 1 is submitted');
+    'and is told a personal Part 2 link is not live until Part 1 is submitted');
   check(/naPart2Link/.test(index), 'admin still has the per-row Part 2 link button');
 
   // Operator: can copy a Part 2 link to chase someone.
@@ -241,6 +241,47 @@ section('both links are reachable, and both counts are reported');
   check(/mhRenderNaParts/.test(mh), 'the member sees the two parts listed separately');
   check(/Locked/.test(mh), 'with Part 2 shown as locked until Part 1 is in');
   check(/mhNaParts/.test(index), 'and the card carries the container for them');
+}
+
+section('two SHAREABLE links, one per part');
+{
+  const routes = read('routes/nutritionAssessment.js');
+  const index = read('public/index.html');
+  const op = read('public/js/operator-console.js');
+  const form = read('public/js/nutrition-assessment.js');
+
+  check(/part2_share_url/.test(routes), 'the API advertises a shareable Part 2 URL');
+  check(/nutrition-assessment\.html\?part=2/.test(routes),
+    'and it is the plain ?part=2 link, not one bound to a person');
+
+  // The gate is what makes an open Part 2 link possible at all: Part 2 carries no
+  // identity fields, so an anonymous visitor has to say which email they used.
+  check(/part2\/lookup/.test(routes), 'there is a Part 2 identity gate endpoint');
+  check(/identity_email/.test(routes), 'and submit/autosave accept the email it captures');
+  check(/renderPart2Gate/.test(form), 'the form asks the question before showing Part 2');
+  check(/needsPart2Identity/.test(form), 'and only when it cannot already tell who the visitor is');
+  check(/identity_email: S\.identityEmail/.test(form), 'the answer rides along on every write');
+
+  // Reading a row back by email alone would let anyone harvest a health screen by
+  // guessing an address, so the gate must return a yes/no and a first name only.
+  const gStart = routes.indexOf("router.post('/part2/lookup'");
+  const gEnd = routes.indexOf("router.put('/draft'", gStart);
+  const gate = routes.slice(gStart, gEnd > gStart ? gEnd : gStart + 2000);
+  check(!/answers/.test(gate), 'the gate never returns the stored answers');
+  check(!/derived/.test(gate), 'nor the derived metrics');
+  check(/split\(/.test(gate), 'it returns a first name only');
+
+  // Admin: two shareable inputs, two copy buttons.
+  check(/naLink2Input/.test(index), 'admin has a second shareable link input for Part 2');
+  check(/naCopyLink2/.test(index), 'with its own copy button');
+  check(/Part 1 &mdash; shareable form link/.test(index), 'the first is labelled Part 1');
+  check(/Part 2 &mdash; shareable form link/.test(index), 'the second is labelled Part 2');
+  check(/\?part=2/.test(index), 'and the Part 2 link carries ?part=2');
+
+  // Operator: the same two links.
+  check(/Copy Part 1 link/.test(op) && /Copy Part 2 link/.test(op),
+    'the operator can copy both links from the assessment list');
+  check(/opCopyText/.test(op), 'with a prompt fallback when the clipboard is blocked');
 }
 
 console.log('\n' + '-'.repeat(60));

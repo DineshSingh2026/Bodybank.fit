@@ -855,3 +855,7 @@ div.op-avatar.bub { display: flex; align-items: center; justify-content: center;
   .op-bub-days { font-size: 12.5px }
   .op-bub-name { font-size: 11px }
 }
+
+/* Both assessment links, on the operator's FitChef list. Operators chase people,
+   so they need the same two links the admin has rather than asking for them. */
+.op-na-links{display:flex;gap:8px;flex-wrap:wrap;padding:2px 2px 12px}

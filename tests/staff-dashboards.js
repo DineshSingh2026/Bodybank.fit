@@ -447,7 +447,7 @@ section('changed JS assets carry a bumped cache-busting version');
   // files that actually changed were bumped past the versions that shipped stale.
   const opV = /js\/operator-console\.js\?v=(\d+)/.exec(indexHtml);
   const mhV = /js\/member-home\.js\?v=(\d+)/.exec(indexHtml);
-  check(opV && Number(opV[1]) >= 14,
+  check(opV && Number(opV[1]) >= 15,
     'operator-console.js is past v12 (part badges changed) — now v' + (opV && opV[1]));
   const ahV = /js\/admin-home\.js\?v=(\d+)/.exec(indexHtml);
   check(ahV && Number(ahV[1]) >= 7,
@@ -457,8 +457,8 @@ section('changed JS assets carry a bumped cache-busting version');
 
   const sw = fs.readFileSync(path.join(ROOT, 'public', 'sw.js'), 'utf8');
   const cacheV = /bodybank-v(\d+)/.exec(sw);
-  check(cacheV && Number(cacheV[1]) >= 79,
-    'the service worker cache name is past v78 — now v' + (cacheV && cacheV[1]));
+  check(cacheV && Number(cacheV[1]) >= 80,
+    'the service worker cache name is past v79 — now v' + (cacheV && cacheV[1]));
 
   // Every versioned asset reference must point at a file that exists, or the tag
   // silently 404s and the feature it carries never loads at all.
