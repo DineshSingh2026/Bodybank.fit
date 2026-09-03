@@ -8888,6 +8888,11 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <p class="form-hint" style="margin-bottom:12px">Click a client to view messages and reply.</p>
         <div id="adminThreadsList" class="admin-chat-list" style="max-width:520px"><p class="form-hint" style="padding:24px;margin:0">Loading…</p></div>
       </div>
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">WhatsApp drafts</h3>
+        <p class="form-hint" style="margin-bottom:12px">Inbound client WhatsApp is drafted as Kling and held here. Nothing is sent until you approve. Quiet hours 21:30–08:00 IST delay client send. You can also reply <strong>APPROVE token</strong> or <strong>REJECT token</strong> on the staff WhatsApp alert.</p>
+        <div id="adminWaDraftsList"><p class="form-hint" style="padding:24px;margin:0">Loading…</p></div>
+      </div>
     </div>
 
     <!-- TAB: Meetings (Schedule calls + meeting requests) -->
@@ -13391,7 +13396,7 @@ async function loadDashboard() {
   // at; the ten loaders below fill tabs that are still behind a click. Start the
   // landing first instead of making it queue behind all ten.
   if (typeof ahBoot === 'function') ahBoot();
-  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadAdminMessages(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
+  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadAdminMessages(), loadWaDrafts(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
   if (typeof bbMaybeOpenAdminNutritionAfterLoad === 'function') bbMaybeOpenAdminNutritionAfterLoad();
@@ -17440,6 +17445,71 @@ async function downloadAdminFormPdf(kind, id) {
   }
 }
 
+async function loadWaDrafts() {
+  const el = document.getElementById('adminWaDraftsList');
+  if (!el) return;
+  try {
+    const data = await apiCall('GET', '/api/admin/wa/drafts');
+    if (data && data.error) {
+      el.innerHTML = '<p class="form-hint" style="margin:0;padding:24px;color:#e05050">Could not load WhatsApp drafts.</p>';
+      return;
+    }
+    const list = Array.isArray(data) ? data : [];
+    if (!list.length) {
+      el.innerHTML = '<p class="form-hint" style="margin:0;padding:24px;color:var(--muted)">No WhatsApp drafts yet.</p>';
+      return;
+    }
+    el.innerHTML = list.map(function (d) {
+      const name = ((d.first_name || '') + ' ' + (d.last_name || '')).trim() || d.phone || 'Unknown';
+      const when = d.created_at ? new Date(d.created_at).toLocaleString() : '';
+      const sendAt = d.send_at ? new Date(d.send_at).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : '';
+      const status = String(d.status || 'pending');
+      const handoff = d.handoff === true || d.handoff === 't' || d.handoff === 'true';
+      const body = handoff
+        ? ('Handoff: ' + (d.handoff_reason || 'review this thread yourself'))
+        : (d.draft_body || '');
+      const id = adminAttrId(d.id || '');
+      const actions = status === 'pending' && !handoff
+        ? '<button type="button" class="action-btn btn-view" onclick="event.stopPropagation();approveWaDraft(\'' + String(d.id || '').replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '\')">Approve</button> '
+          + '<button type="button" class="action-btn" onclick="event.stopPropagation();rejectWaDraft(\'' + String(d.id || '').replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '\')">Reject</button>'
+        : (status === 'pending' && handoff
+          ? '<button type="button" class="action-btn" onclick="event.stopPropagation();rejectWaDraft(\'' + String(d.id || '').replace(/\\/g, '\\\\').replace(/\'/g, "\\'") + '\')">Dismiss</button>'
+          : '<span class="form-hint">' + escapeHtml(status) + '</span>');
+      return '<div class="admin-meeting-item" data-open-id="' + id + '">'
+        + '<div class="admin-meeting-info">'
+        + '<div class="admin-meeting-client">' + escapeHtml(name) + (handoff ? ' · handoff' : '') + '</div>'
+        + '<div class="admin-meeting-datetime">' + escapeHtml((d.trigger || '') + (when ? ' · ' + when : '') + (sendAt ? ' · send ' + sendAt + ' IST' : '')) + '</div>'
+        + '<div class="form-hint" style="margin-top:8px;white-space:pre-wrap">' + escapeHtml(body) + '</div>'
+        + (d.approve_token && status === 'pending' ? '<div class="form-hint">Token: ' + escapeHtml(d.approve_token) + '</div>' : '')
+        + '</div>'
+        + '<div class="btn-view-cell">' + actions + '</div>'
+        + '</div>';
+    }).join('');
+  } catch (e) {
+    el.innerHTML = '<p class="form-hint" style="margin:0;padding:24px;color:#e05050">Failed to load WhatsApp drafts.</p>';
+  }
+}
+
+async function approveWaDraft(id) {
+  if (!id) return;
+  const res = await apiCall('POST', '/api/admin/wa/drafts/' + encodeURIComponent(id) + '/approve', {});
+  if (res && res.error) {
+    if (typeof showPopup === 'function') showPopup('Could not approve', res.error || res.reason || 'Try again', '', 'OK');
+    else alert(res.error || res.reason || 'Could not approve');
+  }
+  loadWaDrafts();
+}
+
+async function rejectWaDraft(id) {
+  if (!id) return;
+  const res = await apiCall('POST', '/api/admin/wa/drafts/' + encodeURIComponent(id) + '/reject', {});
+  if (res && res.error) {
+    if (typeof showPopup === 'function') showPopup('Could not reject', res.error || res.reason || 'Try again', '', 'OK');
+    else alert(res.error || res.reason || 'Could not reject');
+  }
+  loadWaDrafts();
+}
+
 async function loadAdminMessages() {
   const data = await apiCall('GET', '/api/contact');
   const tbody = document.getElementById('messagesBody');
@@ -18303,7 +18373,7 @@ function switchTab(tab) {
   var adminWrap = document.querySelector('.admin-tab-content-wrap');
   if (adminWrap) adminWrap.scrollTop = 0;
   window.scrollTo(0, 0);
-  if (tab === 'messages') { loadAdminMessages(); loadAdminThreads(); }
+  if (tab === 'messages') { loadAdminMessages(); loadAdminThreads(); loadWaDrafts(); }
   if (tab === 'meetings') { loadAdminMeetings(); loadMeetingUserDropdown(); }
   if (tab === 'workouts') loadAdminWorkouts();
   if (tab === 'requests') loadRequests();

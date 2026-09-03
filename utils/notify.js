@@ -32,7 +32,12 @@ const EVENT_META = {
   COIN_PENALTY: { priority: PRIORITY.INFO, dedup: 10 * 60 * 1000 },
   DAILY_COMPLIANCE_SENT: { priority: PRIORITY.IMPORTANT, dedup: 60 * 60 * 1000 },
   DAILY_DIGEST: { priority: PRIORITY.IMPORTANT, dedup: 60 * 60 * 1000 },
-  SERVER_ERROR: { priority: PRIORITY.CRITICAL, dedup: 3 * 60 * 1000 }
+  SERVER_ERROR: { priority: PRIORITY.CRITICAL, dedup: 3 * 60 * 1000 },
+  WA_INBOUND_DRAFT: { priority: PRIORITY.IMPORTANT, dedup: 0 },
+  WA_INBOUND_HANDOFF: { priority: PRIORITY.CRITICAL, dedup: 0 },
+  WA_UNMATCHED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
+  WA_DRAFT_SENT: { priority: PRIORITY.INFO, dedup: 0 },
+  WA_DRAFT_REJECTED: { priority: PRIORITY.INFO, dedup: 0 }
 };
 
 const _dedup = new Map();
@@ -155,7 +160,40 @@ const FORMATTERS = {
   COIN_PENALTY: (p) => ['⚠️ Coin Penalty', ...userLines(p), `➖ ${s(p.delta)} (${s(p.reason)})`, `💰 Balance: ${s(p.balance)}`, `⏰ ${ts()}`],
   DAILY_COMPLIANCE_SENT: (p) => ['📊 Daily Compliance Report Sent', `👥 Total: ${s(p.total)}`, `✅ Check-ins: ${s(p.checkedIn)}`, `❌ Missed: ${s(p.missed)}`, `📈 Rate: ${s(p.rate)}`, `⏰ ${ts()}`],
   DAILY_DIGEST: (p) => ['📋 Daily Executive Digest', `📅 Date: ${s(p.date)}`, `👥 Active Users: ${s(p.totalUsers)}`, `🆕 Signups: ${s(p.signups)}`, `🔐 Logins: ${s(p.logins)}`, `📋 Check-ins: ${s(p.checkins)}`, `🏋️ Workouts: ${s(p.workouts)}`, `🍽️ Meals: ${s(p.meals)}`, `🩸 Blood Reports: ${s(p.bloodReports)}`, `💬 Messages: ${s(p.messages)}`, `🪙 Coins Awarded: ${s(p.coinsAwarded)}`],
-  SERVER_ERROR: (p) => ['🔴 Server Error', `📌 ${s(p.action)}`, `💥 ${String(p.error || '').slice(0, 300)}`, `⏰ ${ts()}`]
+  SERVER_ERROR: (p) => ['🔴 Server Error', `📌 ${s(p.action)}`, `💥 ${String(p.error || '').slice(0, 300)}`, `⏰ ${ts()}`],
+  WA_INBOUND_DRAFT: (p) => [
+    '💬 WhatsApp draft (not sent — review)',
+    ...userLines(p),
+    `⚡ Trigger: ${s(p.trigger)}`,
+    p.send_at ? `🕒 Send after: ${s(p.send_at)}` : '',
+    `📥 Inbound: ${String(p.inbound || '').slice(0, 160)}`,
+    '',
+    'DRAFT:',
+    String(p.draft || '').slice(0, 700),
+    '',
+    `Reply APPROVE ${s(p.token)} or REJECT ${s(p.token)}`,
+    'Or Admin → Messages → WhatsApp drafts',
+    `⏰ ${ts()}`
+  ].filter((line, i, arr) => line !== '' || (arr[i - 1] !== '')),
+  WA_INBOUND_HANDOFF: (p) => [
+    '🖐️ WhatsApp handoff — do not auto-reply',
+    ...userLines(p),
+    `⚡ Trigger: ${s(p.trigger)}`,
+    `📌 ${s(p.reason)}`,
+    `📥 Inbound: ${String(p.inbound || '').slice(0, 220)}`,
+    'Send nothing to the client from the agent. Reply yourself.',
+    `⏰ ${ts()}`
+  ],
+  WA_UNMATCHED: (p) => [
+    '❓ Unmatched WhatsApp inbound',
+    `📱 ${s(p.phone || p.mobile)}`,
+    `📌 ${s(p.reason)}`,
+    `📥 ${String(p.inbound || '').slice(0, 220)}`,
+    'No user was created. Handle this thread yourself.',
+    `⏰ ${ts()}`
+  ],
+  WA_DRAFT_SENT: (p) => ['✅ WhatsApp draft sent to client', ...userLines(p), `Draft: ${s(p.draft_id)}`, `⏰ ${ts()}`],
+  WA_DRAFT_REJECTED: (p) => ['⛔ WhatsApp draft rejected', ...userLines(p), `Draft: ${s(p.draft_id)}`, `⏰ ${ts()}`]
 };
 const DETAILED_EVENTS = new Set(['SUNDAY_CHECKIN', 'PART2_FORM']);
 
