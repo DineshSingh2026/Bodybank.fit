@@ -566,7 +566,7 @@
       intro.classList.remove('fc-hidden'); stepEl.classList.add('fc-hidden');
       el('fcProgWrap').hidden = true;
       el('fcBack').style.visibility = 'hidden';
-      el('fcNext').textContent = S.answers.full_name ? 'Continue' : 'Start — 9 minutes';
+      el('fcNext').textContent = S.answers.full_name ? 'Continue' : 'Start';
       return;
     }
 
@@ -1004,7 +1004,7 @@
           note.hidden = false;
           note.innerHTML = '<strong>We have already filled in ' + knownCount + ' answer' + (knownCount === 1 ? '' : 's') + ' for you.</strong> '
             + 'Your profile, your check-ins' + (S.prefill.labs ? ', your blood report' : '') + ' and your earlier forms all feed in, '
-            + 'so you only confirm them. This should take you closer to five minutes than nine.';
+            + 'so you only confirm them, which makes this quicker still.';
           el('fcIntroBlurb').textContent = introBlurb();
         }
         applyPartCopy();

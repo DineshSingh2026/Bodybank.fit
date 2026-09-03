@@ -143,6 +143,22 @@ section('part 1 is genuinely shorter');
   check(schema.PART_META[1] && schema.PART_META[2], 'both parts carry member-facing copy');
   check(/3|4/.test(String(schema.PART_META[1].blurb)),
     'part 1 copy sets a realistic time expectation');
+
+  // The form was 9 minutes as one piece. Every surface that still says so is
+  // quoting a form that no longer exists, and the Start button said it loudest.
+  const STALE = [
+    ['public/js/nutrition-assessment.js', 'the form'],
+    ['public/nutrition-assessment.html', 'the form page'],
+    ['public/js/member-home.js', 'the member tile'],
+    ['public/index.html', 'the member home']
+  ];
+  STALE.forEach(function (pair) {
+    const src = read(pair[0]);
+    check(!/9 minutes|nine minutes|9 mins/i.test(src),
+      pair[1] + ' no longer claims the assessment takes 9 minutes');
+  });
+  check(!/Start — 9 minutes/.test(read('public/js/nutrition-assessment.js')),
+    'the Start button carries no baked-in duration — the two parts are different lengths');
 }
 
 /* ------------------------------------------------------------------ *

@@ -396,7 +396,7 @@ async function mhLoadNutritionAssessment() {
   catch (e) { d = null; }
   if (!d || d.error) {
     state.innerHTML = '';
-    hint.textContent = 'About 5 minutes \u2014 we fill in everything we already know.';
+    hint.textContent = 'Part 1 first \u2014 we fill in everything we already know.';
     return;
   }
   mhRenderNaParts(d);
