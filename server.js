@@ -60,6 +60,7 @@ const crypto = require('crypto');
 const { notify, notifyAsync, formatEventMessage } = require('./utils/notify');
 const { sendWhatsApp, sendWhatsAppTemplate, sendWhatsAppWithFallback } = require('./services/whatsapp');
 const { createWaInbound, createPgStore, ensureWaTables } = require('./services/waInbound');
+const { notifyAgent } = require('./utils/agentWebhook');
 const { verifyToken: verifyNutritionPhotoLink } = require('./utils/nutritionPhotoLink');
 const { startEmailScheduler, getAdminDailyComplianceReportData, sendAdminDailyComplianceReport } = require('./services/emailScheduler');
 const {
@@ -2329,6 +2330,7 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Google)', body: `${given_name || ''} ${family_name || ''} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, given_name); } catch (_) {}
     notifyAsync('TRIAL_STARTED', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Google' });
+    notifyAgent('TRIAL_STARTED', { name: `${given_name || ''} ${family_name || ''}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Google' });
     res.json({
       id, email: emailNorm, first_name: given_name || '', last_name: family_name || '', role: 'user',
       country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays + referralBonusDays,
@@ -2438,6 +2440,7 @@ app.post('/api/auth/apple-complete', rateLimiter(5, 60000), async (req, res) => 
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started (Apple)', body: `${givenName} ${familyName} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, givenName); } catch (_) {}
     notifyAsync('TRIAL_STARTED', { name: `${givenName} ${familyName}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Apple' });
+    notifyAgent('TRIAL_STARTED', { name: `${givenName} ${familyName}`.trim(), email: emailNorm, phone: phoneTrimmed || '—', country: geo.country || '—', trial_days: trialDays, via: 'Apple' });
     res.json({
       id, email: emailNorm, first_name: givenName, last_name: familyName, role: 'user',
       country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays + referralBonusDays,
@@ -2479,6 +2482,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
       await addApprovedUserToTribe({ email: emailNorm, first_name, last_name, phone, country: geo.country, city: cleanCity });
       try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
       notifyAsync('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDaysR, via: 'Email' });
+      notifyAgent('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDaysR, via: 'Email' });
       return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDaysR + referralBonusDaysR, referral_bonus_days: referralBonusDaysR });
     }
     if (existing) return res.status(409).json({ error: 'Email already registered' });
@@ -2495,6 +2499,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
     sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) started a ${trialDays}-day trial — call to convert`, id: 'signup-' + id })).catch(() => {});
     try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
     notifyAsync('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDays, via: 'Email' });
+    notifyAgent('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDays, via: 'Email' });
     res.json({ id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDays + referralBonusDays, referral_bonus_days: referralBonusDays });
   } catch (e) {
     res.status(500).json({ error: 'Server error' });
@@ -2701,6 +2706,21 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
       });
     }
     if (!auditNotifyResult || !auditNotifyResult.ok) {
+      const agentAuditPayload = {
+        name: auditPayload.name,
+        email: auditPayload.email,
+        mobile: auditPayload.mobile,
+        city: auditPayload.city,
+        country: auditPayload.country,
+        age: auditPayload.age,
+        sex: auditPayload.sex,
+        occupation: auditPayload.occupation,
+        work_intensity: auditPayload.work_intensity,
+        fitness_experience: auditPayload.fitness_experience,
+        goals: auditPayload.goals,
+        motivation: auditPayload.motivation
+      };
+      notifyAgent('AUDIT_FORM', agentAuditPayload);
       auditNotifyResult = await notify('AUDIT_FORM', auditPayload, { noDedup: true });
     }
     if (!auditNotifyResult || !auditNotifyResult.ok) {
@@ -2837,6 +2857,21 @@ app.post('/api/part2', rateLimiter(5, 60000), async (req, res) => {
       );
     }
     notifyAsync('PART2_FORM', {
+      name: b.name || '—',
+      email: b.email || '—',
+      mobile: b.mobile || '—',
+      goals: b.goals || '—',
+      sports_history: b.sports_history || '—',
+      injuries: b.injuries || '—',
+      mental_health: b.mental_health || '—',
+      gym_experience: b.gym_experience || '—',
+      food_choices: b.food_choices || '—',
+      vices_addictions: b.vices_addictions || '—',
+      what_compelled: b.what_compelled || '—',
+      activity_level: b.activity_level || '—',
+      user_id: b.user_id || '—'
+    });
+    notifyAgent('PART2_FORM', {
       name: b.name || '—',
       email: b.email || '—',
       mobile: b.mobile || '—',
@@ -3002,6 +3037,13 @@ app.post('/api/schedule-call', rateLimiter(5, 60000), async (req, res) => {
       id: 'sched-' + id
     })).catch(() => {});
     notifyAsync('MEETING_SCHEDULED', {
+      name: name || '—',
+      email: email || '—',
+      mobile: mobile || '—',
+      date: friendlyDate || '—',
+      slot: `${time} IST (${channel === 'whatsapp' ? 'WhatsApp' : 'Phone call'})`
+    });
+    notifyAgent('MEETING_SCHEDULED', {
       name: name || '—',
       email: email || '—',
       mobile: mobile || '—',
@@ -3184,6 +3226,7 @@ app.post('/api/meetings', verifyToken, rateLimiter(10, 60000), async (req, res) 
       userEmail.emailMeetingScheduled(String(b.user_email).trim(), (b.user_name || '').split(/\s+/)[0] || 'there', dn, b.time_slot || '');
     }
     notifyAsync('MEETING_SCHEDULED', { name: b.user_name || '—', email: b.user_email || '—', mobile: b.user_phone || '—', date: b.meeting_date || '—', slot: b.time_slot || '—' });
+    notifyAgent('MEETING_SCHEDULED', { name: b.user_name || '—', email: b.user_email || '—', mobile: b.user_phone || '—', date: b.meeting_date || '—', slot: b.time_slot || '—' });
     res.json({ id, message: 'Call scheduled successfully' });
   } catch (e) {
     console.error('[meetings] POST error:', e.message);
@@ -3285,6 +3328,10 @@ app.put('/api/meetings/:id', verifyToken, rateLimiter(20, 60000), async (req, re
         userEmail.emailMeetingScheduled(String(fresh.user_email).trim(), String(fresh.user_name || '').split(/\s+/)[0] || 'there', dn, fresh.time_slot || '');
       } catch (_) { /* the booking still moved */ }
       notifyAsync('MEETING_SCHEDULED', {
+        name: fresh.user_name || '—', email: fresh.user_email || '—', mobile: fresh.user_phone || '—',
+        date: fresh.meeting_date || '—', slot: fresh.time_slot || '—'
+      });
+      notifyAgent('MEETING_SCHEDULED', {
         name: fresh.user_name || '—', email: fresh.user_email || '—', mobile: fresh.user_phone || '—',
         date: fresh.meeting_date || '—', slot: fresh.time_slot || '—'
       });
@@ -3561,6 +3608,7 @@ app.post('/api/workouts', verifyToken, async (req, res) => {
       ymd
     );
     notifyAsync('WORKOUT_LOGGED', { name: wu ? `${wu.first_name || ''}`.trim() : user_id, email: wu ? wu.email : user_id, mobile: wu ? wu.phone : '—', type: workout_name, duration: duration_seconds != null ? Math.round(duration_seconds / 60) + ' min' : '—' });
+    notifyAgent('WORKOUT_LOGGED', { name: wu ? `${wu.first_name || ''}`.trim() : user_id, email: wu ? wu.email : user_id, mobile: wu ? wu.phone : '—', type: workout_name, duration: duration_seconds != null ? Math.round(duration_seconds / 60) + ' min' : '—' });
     res.json({ id, message: 'Workout logged' });
   } catch (e) {
     console.error('Workout error:', e.message);
@@ -3686,7 +3734,10 @@ app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (re
       { source: 'workouts_session', workoutType },
       date
     );
-    if (wu) notifyAsync('WORKOUT_LOGGED', { name: `${wu.first_name || ''}`.trim(), email: wu.email, mobile: wu.phone || '—', type: workoutType, duration: Number.isFinite(dur) ? Math.round(dur / 60) + ' min' : '—' });
+    if (wu) {
+      notifyAsync('WORKOUT_LOGGED', { name: `${wu.first_name || ''}`.trim(), email: wu.email, mobile: wu.phone || '—', type: workoutType, duration: Number.isFinite(dur) ? Math.round(dur / 60) + ' min' : '—' });
+      notifyAgent('WORKOUT_LOGGED', { name: `${wu.first_name || ''}`.trim(), email: wu.email, mobile: wu.phone || '—', type: workoutType, duration: Number.isFinite(dur) ? Math.round(dur / 60) + ' min' : '—' });
+    }
     res.json({ id, message: 'Session saved' });
   } catch (e) {
     console.error('Workout session error:', e.message);
@@ -3718,6 +3769,7 @@ app.post('/api/contact', rateLimiter(5, 60000), async (req, res) => {
     sendPushToAdmins(JSON.stringify({ title: 'New contact message', body: `${name || 'Someone'}: ${String(message || '').slice(0, 80)}`, id: 'message-' + id })).catch(() => {});
     if (email && String(email).includes('@')) userEmail.emailContactReceived(String(email).trim(), name);
     notifyAsync('CONTACT_MESSAGE', { name, email: email || '—', phone: phone || '—', message });
+    notifyAgent('CONTACT_MESSAGE', { name, email: email || '—', phone: phone || '—', message: String(message || '').slice(0, 180) });
     res.json({ id, message: 'Message sent' });
   } catch (e) {
     console.error('Contact error:', e.message);
@@ -3935,6 +3987,25 @@ app.post('/api/sunday-checkin', verifyToken, rateLimiter(10, 60000), async (req,
       );
     }
     notifyAsync('SUNDAY_CHECKIN', {
+      name: b.full_name || '—',
+      email: b.reply_email || '—',
+      user_id: b.user_id || '—',
+      plan: b.plan || '—',
+      current_weight_waist_week: b.current_weight_waist_week || '—',
+      last_week_weight_waist: b.last_week_weight_waist || '—',
+      total_weight_loss: b.total_weight_loss || '—',
+      training_go: b.training_go || '—',
+      nutrition_go: b.nutrition_go || '—',
+      sleep: b.sleep || '—',
+      occupation_stress: b.occupation_stress || '—',
+      other_stress: b.other_stress || '—',
+      differences_felt: b.differences_felt || '—',
+      achievements: b.achievements || '—',
+      improve_next_week: b.improve_next_week || '—',
+      questions: b.questions || '—',
+      body_fat_percent: bodyFatPct != null ? bodyFatPct : '—'
+    });
+    notifyAgent('SUNDAY_CHECKIN', {
       name: b.full_name || '—',
       email: b.reply_email || '—',
       user_id: b.user_id || '—',
@@ -4195,6 +4266,15 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
     }
     const dcUser = await queryOne('SELECT first_name, last_name, email, phone FROM users WHERE id = ?', [userId]).catch(() => null);
     notifyAsync('DAILY_CHECKIN', {
+      name    : dcUser ? `${dcUser.first_name || ''} ${dcUser.last_name || ''}`.trim() : userId,
+      email   : dcUser ? dcUser.email : userId,
+      mobile  : dcUser ? (dcUser.phone || '—') : '—',
+      steps   : steps != null ? steps : '—',
+      water   : waterMl != null ? (waterMl / 1000).toFixed(2) + ' L' : '—',
+      protein : protein_g != null ? protein_g + ' g' : '—',
+      sleep   : sleep_hours != null ? sleep_hours + ' hrs' : '—'
+    });
+    notifyAgent('DAILY_CHECKIN', {
       name    : dcUser ? `${dcUser.first_name || ''} ${dcUser.last_name || ''}`.trim() : userId,
       email   : dcUser ? dcUser.email : userId,
       mobile  : dcUser ? (dcUser.phone || '—') : '—',
@@ -9505,6 +9585,7 @@ app.post('/api/admin/users/:id/suspend', verifyToken, requireAdminOrSuperadmin, 
     await run("UPDATE users SET suspended = TRUE WHERE id = ?", [id]);
     const suspUser = await queryOne("SELECT first_name, last_name, email, phone FROM users WHERE id = ?", [id]).catch(() => null);
     notifyAsync('USER_SUSPENDED', { name: suspUser ? `${suspUser.first_name || ''} ${suspUser.last_name || ''}`.trim() : id, email: suspUser ? suspUser.email : id, mobile: suspUser ? (suspUser.phone || '—') : '—' });
+    notifyAgent('USER_SUSPENDED', { name: suspUser ? `${suspUser.first_name || ''} ${suspUser.last_name || ''}`.trim() : id, email: suspUser ? suspUser.email : id, mobile: suspUser ? (suspUser.phone || '—') : '—' });
     res.json({ message: 'User suspended' });
   } catch (e) {
     console.error('Suspend user error:', e.message);
@@ -9521,6 +9602,7 @@ app.post('/api/admin/users/:id/reactivate', verifyToken, requireAdminOrSuperadmi
     await run("UPDATE users SET suspended = FALSE WHERE id = ?", [id]);
     const reactUser = await queryOne("SELECT first_name, last_name, email, phone FROM users WHERE id = ?", [id]).catch(() => null);
     notifyAsync('USER_REACTIVATED', { name: reactUser ? `${reactUser.first_name || ''} ${reactUser.last_name || ''}`.trim() : id, email: reactUser ? reactUser.email : id, mobile: reactUser ? (reactUser.phone || '—') : '—' });
+    notifyAgent('USER_REACTIVATED', { name: reactUser ? `${reactUser.first_name || ''} ${reactUser.last_name || ''}`.trim() : id, email: reactUser ? reactUser.email : id, mobile: reactUser ? (reactUser.phone || '—') : '—' });
     res.json({ message: 'User reactivated' });
   } catch (e) {
     console.error('Reactivate user error:', e.message);
@@ -9934,6 +10016,7 @@ app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async 
     }
     await run('DELETE FROM users WHERE id = ?', [id]);
     notifyAsync('USER_DELETED', { name: id, email: user.email, mobile: user.phone || '—' });
+    notifyAgent('USER_DELETED', { name: id, email: user.email, mobile: user.phone || '—' });
     res.json({ message: 'User removed' });
   } catch (e) {
     console.error('Delete user error:', e.message);
@@ -9970,6 +10053,7 @@ app.post('/api/me/account/delete', verifyToken, rateLimiter(3, 60000), async (re
     if (user.email) await run('DELETE FROM tribe_members WHERE LOWER(email) = LOWER(?)', [user.email]);
     await run('DELETE FROM users WHERE id = ?', [id]);
     notifyAsync('USER_DELETED', { name: 'self-deleted', email: user.email, mobile: user.phone || '—' });
+    notifyAgent('USER_DELETED', { name: 'self-deleted', email: user.email, mobile: user.phone || '—' });
     res.json({ message: 'Your account has been deleted.' });
   } catch (e) {
     console.error('Self-delete error:', e.message);

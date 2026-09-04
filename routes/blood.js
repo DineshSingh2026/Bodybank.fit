@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const userEmail = require('../services/userEmailService');
 const { notifyAsync } = require('../utils/notify');
+const { notifyAgent } = require('../utils/agentWebhook');
 const {
   triggerBloodAnalysis,
   ensureHealthReportPdf,
@@ -358,6 +359,7 @@ function createBloodRouter(deps) {
       }
 
       notifyAsync('BLOOD_REPORT_UPLOADED', { name: displayName, email: u && u.email ? u.email : '—', mobile: u && u.phone ? u.phone : '—', goal: userGoal || '—' });
+      notifyAgent('BLOOD_REPORT_UPLOADED', { name: displayName, email: u && u.email ? u.email : '—', mobile: u && u.phone ? u.phone : '—', goal: userGoal || '—' });
       res.json({
         success: true,
         reportId,
@@ -454,6 +456,7 @@ function createBloodRouter(deps) {
       );
 
       notifyAsync('BLOOD_REPORT_UPLOADED', { name: displayName, email: u.email || '—', mobile: u.phone || '—', goal: u.goal_type || '—' });
+      notifyAgent('BLOOD_REPORT_UPLOADED', { name: displayName, email: u.email || '—', mobile: u.phone || '—', goal: u.goal_type || '—' });
       res.json({
         success: true,
         reportId,
