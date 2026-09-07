@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280" role="img" aria-label="BodyBank blood report screen showing extracted markers against reference ranges">
+  <defs>
+    <linearGradient id="brBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b0b0b"/><stop offset="0.55" stop-color="#070707"/><stop offset="1" stop-color="#0b0906"/>
+    </linearGradient>
+    <linearGradient id="brGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d8bb6a"/><stop offset="0.5" stop-color="#c8a44e"/><stop offset="1" stop-color="#a68c3e"/>
+    </linearGradient>
+    <radialGradient id="brGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#c8a44e" stop-opacity="0.28"/><stop offset="1" stop-color="#c8a44e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <style>
+    .h{font-family:Bebas Neue,Oswald,Arial Narrow,sans-serif;letter-spacing:2px}
+    .s{font-family:Outfit,Segoe UI,Helvetica,Arial,sans-serif}
+    .lbl{font-size:19px;fill:#efe7d6}
+    .val{font-size:19px;font-weight:700;fill:#ffffff}
+    .unit{font-size:14px;fill:#8b857a}
+    .chip{font-size:13px;font-weight:700;letter-spacing:1px}
+    .kick{font-size:14px;letter-spacing:3.4px;fill:#c8a44e}
+  </style>
+
+  <rect width="720" height="1280" rx="34" fill="url(#brBg)"/>
+  <circle cx="596" cy="150" r="300" fill="url(#brGlow)"/>
+  <rect x="1" y="1" width="718" height="1278" rx="33" fill="none" stroke="#c8a44e" stroke-opacity="0.22"/>
+
+  <g transform="translate(46,74)">
+    <image x="-2" y="-2" width="58" height="58" href="data:image/png;base64,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" preserveAspectRatio="xMidYMid meet"/>
+    <text class="h" x="70" y="24" font-size="25" fill="#f2ece0">BODY BANK</text>
+    <text class="s" x="70" y="46" font-size="14" fill="#8b857a">Health Intelligence Report</text>
+  </g>
+  <g>
+    <rect x="524" y="82" width="152" height="38" rx="19" fill="#c8a44e" fill-opacity="0.12" stroke="#c8a44e" stroke-opacity="0.45"/>
+    <circle cx="550" cy="101" r="5" fill="#3ddc84"/>
+    <text class="s chip" x="566" y="106" fill="#d8bb6a">ANALYSED</text>
+  </g>
+
+  <text class="s kick" x="46" y="196">BLOOD REPORT 2 OF 3</text>
+  <text class="h" x="46" y="252" font-size="52" fill="#f2ece0">14 JULY 2026</text>
+  <text class="s" x="46" y="284" font-size="16" fill="#8b857a">Full panel · uploaded as a PDF from your lab</text>
+
+  <g transform="translate(46,318)">
+    <rect x="0" y="0" width="198" height="104" rx="18" fill="#ffffff" fill-opacity="0.035" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text class="h" x="22" y="54" font-size="40" fill="#d8bb6a">42</text>
+    <text class="s" x="22" y="80" font-size="13" fill="#8b857a" letter-spacing="1.4">MARKERS READ</text>
+
+    <rect x="215" y="0" width="198" height="104" rx="18" fill="#e25454" fill-opacity="0.07" stroke="#e25454" stroke-opacity="0.34"/>
+    <text class="h" x="237" y="54" font-size="40" fill="#f08a8a">6</text>
+    <text class="s" x="237" y="80" font-size="13" fill="#b98a86" letter-spacing="1.4">FLAGGED</text>
+
+    <rect x="430" y="0" width="198" height="104" rx="18" fill="#ffffff" fill-opacity="0.035" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text class="h" x="452" y="54" font-size="40" fill="#d8bb6a">10</text>
+    <text class="s" x="452" y="80" font-size="13" fill="#8b857a" letter-spacing="1.4">PDF SECTIONS</text>
+  </g>
+
+  <line x1="46" y1="456" x2="674" y2="456" stroke="#ffffff" stroke-opacity="0.09"/>
+  <text class="s kick" x="46" y="496">EXTRACTED MARKERS</text>
+
+  <g transform="translate(46,522)">
+    <text class="s lbl" x="0" y="20">Vitamin D</text>
+    <text class="s val" x="410" y="20" text-anchor="end">18</text>
+    <text class="s unit" x="418" y="20">ng/mL</text>
+    <rect x="486" y="2" width="142" height="26" rx="13" fill="#e25454" fill-opacity="0.16" stroke="#e25454" stroke-opacity="0.5"/>
+    <text class="s chip" x="557" y="20" text-anchor="middle" fill="#f0a0a0">LOW</text>
+    <rect x="0" y="38" width="628" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.08"/>
+    <rect x="220" y="38" width="270" height="7" rx="3.5" fill="#3ddc84" fill-opacity="0.32"/>
+    <circle cx="96" cy="41.5" r="8" fill="#e25454" stroke="#0b0b0b" stroke-width="2.5"/>
+  </g>
+
+  <g transform="translate(46,624)">
+    <text class="s lbl" x="0" y="20">HbA1c</text>
+    <text class="s val" x="410" y="20" text-anchor="end">5.4</text>
+    <text class="s unit" x="418" y="20">%</text>
+    <rect x="486" y="2" width="142" height="26" rx="13" fill="#3ddc84" fill-opacity="0.14" stroke="#3ddc84" stroke-opacity="0.45"/>
+    <text class="s chip" x="557" y="20" text-anchor="middle" fill="#8ce6b4">OPTIMAL</text>
+    <rect x="0" y="38" width="628" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.08"/>
+    <rect x="120" y="38" width="330" height="7" rx="3.5" fill="#3ddc84" fill-opacity="0.32"/>
+    <circle cx="252" cy="41.5" r="8" fill="#3ddc84" stroke="#0b0b0b" stroke-width="2.5"/>
+  </g>
+
+  <g transform="translate(46,726)">
+    <text class="s lbl" x="0" y="20">Ferritin</text>
+    <text class="s val" x="410" y="20" text-anchor="end">48</text>
+    <text class="s unit" x="418" y="20">ng/mL</text>
+    <rect x="486" y="2" width="142" height="26" rx="13" fill="#3ddc84" fill-opacity="0.14" stroke="#3ddc84" stroke-opacity="0.45"/>
+    <text class="s chip" x="557" y="20" text-anchor="middle" fill="#8ce6b4">IN RANGE</text>
+    <rect x="0" y="38" width="628" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.08"/>
+    <rect x="150" y="38" width="340" height="7" rx="3.5" fill="#3ddc84" fill-opacity="0.32"/>
+    <circle cx="238" cy="41.5" r="8" fill="#3ddc84" stroke="#0b0b0b" stroke-width="2.5"/>
+    <text class="s" x="0" y="72" font-size="14" fill="#8b857a">was 22 ng/mL in March — recovered into range</text>
+  </g>
+
+  <g transform="translate(46,850)">
+    <text class="s lbl" x="0" y="20">TSH</text>
+    <text class="s val" x="410" y="20" text-anchor="end">3.9</text>
+    <text class="s unit" x="418" y="20">uIU/mL</text>
+    <rect x="486" y="2" width="142" height="26" rx="13" fill="#f5a623" fill-opacity="0.14" stroke="#f5a623" stroke-opacity="0.45"/>
+    <text class="s chip" x="557" y="20" text-anchor="middle" fill="#f7c46c">BORDERLINE</text>
+    <rect x="0" y="38" width="628" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.08"/>
+    <rect x="110" y="38" width="330" height="7" rx="3.5" fill="#3ddc84" fill-opacity="0.32"/>
+    <circle cx="452" cy="41.5" r="8" fill="#f5a623" stroke="#0b0b0b" stroke-width="2.5"/>
+  </g>
+
+  <g transform="translate(46,952)">
+    <text class="s lbl" x="0" y="20">LDL Cholesterol</text>
+    <text class="s val" x="410" y="20" text-anchor="end">132</text>
+    <text class="s unit" x="418" y="20">mg/dL</text>
+    <rect x="486" y="2" width="142" height="26" rx="13" fill="#e25454" fill-opacity="0.16" stroke="#e25454" stroke-opacity="0.5"/>
+    <text class="s chip" x="557" y="20" text-anchor="middle" fill="#f0a0a0">HIGH</text>
+    <rect x="0" y="38" width="628" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.08"/>
+    <rect x="60" y="38" width="330" height="7" rx="3.5" fill="#3ddc84" fill-opacity="0.32"/>
+    <circle cx="486" cy="41.5" r="8" fill="#e25454" stroke="#0b0b0b" stroke-width="2.5"/>
+  </g>
+
+  <g transform="translate(46,1054)">
+    <text class="s lbl" x="0" y="20">Hemoglobin</text>
+    <text class="s val" x="410" y="20" text-anchor="end">14.6</text>
+    <text class="s unit" x="418" y="20">g/dL</text>
+    <rect x="486" y="2" width="142" height="26" rx="13" fill="#3ddc84" fill-opacity="0.14" stroke="#3ddc84" stroke-opacity="0.45"/>
+    <text class="s chip" x="557" y="20" text-anchor="middle" fill="#8ce6b4">OPTIMAL</text>
+    <rect x="0" y="38" width="628" height="7" rx="3.5" fill="#ffffff" fill-opacity="0.08"/>
+    <rect x="160" y="38" width="330" height="7" rx="3.5" fill="#3ddc84" fill-opacity="0.32"/>
+    <circle cx="330" cy="41.5" r="8" fill="#3ddc84" stroke="#0b0b0b" stroke-width="2.5"/>
+  </g>
+
+  <g transform="translate(46,1152)">
+    <rect x="0" y="0" width="628" height="82" rx="20" fill="#c8a44e" fill-opacity="0.08" stroke="#c8a44e" stroke-opacity="0.34"/>
+    <circle cx="42" cy="41" r="17" fill="none" stroke="#c8a44e" stroke-width="2"/>
+    <path d="M34 41.5 L39.5 47 L51 35" fill="none" stroke="#c8a44e" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+    <text class="s" x="74" y="36" font-size="17" fill="#f2ece0">Reviewed by your coach</text>
+    <text class="s" x="74" y="60" font-size="14" fill="#8b857a">10-section PDF ready to download</text>
+  </g>
+</svg>

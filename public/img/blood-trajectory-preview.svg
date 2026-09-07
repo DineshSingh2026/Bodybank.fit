@@ -1,0 +1,124 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280" role="img" aria-label="BodyBank blood report comparison screen showing how each marker moved between two lab reports">
+  <defs>
+    <linearGradient id="tjBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b0b0b"/><stop offset="0.55" stop-color="#070707"/><stop offset="1" stop-color="#0b0906"/>
+    </linearGradient>
+    <linearGradient id="tjGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#d8bb6a"/><stop offset="0.5" stop-color="#c8a44e"/><stop offset="1" stop-color="#a68c3e"/>
+    </linearGradient>
+    <radialGradient id="tjGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#3ddc84" stop-opacity="0.18"/><stop offset="1" stop-color="#3ddc84" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <style>
+    .h{font-family:Bebas Neue,Oswald,Arial Narrow,sans-serif;letter-spacing:2px}
+    .s{font-family:Outfit,Segoe UI,Helvetica,Arial,sans-serif}
+    .kick{font-size:14px;letter-spacing:3.4px;fill:#c8a44e}
+    .mk{font-size:18px;fill:#efe7d6}
+    .num{font-size:22px;font-weight:700}
+    .cap{font-size:12px;fill:#8b857a;letter-spacing:1.2px}
+  </style>
+
+  <rect width="720" height="1280" rx="34" fill="url(#tjBg)"/>
+  <circle cx="150" cy="1080" r="320" fill="url(#tjGlow)"/>
+  <rect x="1" y="1" width="718" height="1278" rx="33" fill="none" stroke="#c8a44e" stroke-opacity="0.22"/>
+
+  <g transform="translate(46,74)">
+    <image x="-2" y="-2" width="58" height="58" href="data:image/png;base64,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" preserveAspectRatio="xMidYMid meet"/>
+    <text class="h" x="70" y="24" font-size="25" fill="#f2ece0">BODY BANK</text>
+    <text class="s" x="70" y="46" font-size="14" fill="#8b857a">Progress Review</text>
+  </g>
+
+  <text class="s kick" x="46" y="196">REPORT 1 VS REPORT 2</text>
+  <text class="h" x="46" y="250" font-size="48" fill="#f2ece0">WHAT ACTUALLY</text>
+  <text class="h" x="46" y="298" font-size="48" fill="#c8a44e">CHANGED</text>
+  <text class="s" x="46" y="334" font-size="16" fill="#8b857a">18 Mar 2026 &#8594; 14 Jul 2026 · 118 days apart</text>
+
+  <g transform="translate(46,372)">
+    <rect x="0" y="0" width="628" height="66" rx="16" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.07"/>
+    <text class="s cap" x="24" y="28">MARKER</text>
+    <text class="s cap" x="286" y="28" text-anchor="middle">THEN</text>
+    <text class="s cap" x="430" y="28" text-anchor="middle">NOW</text>
+    <text class="s cap" x="580" y="28" text-anchor="middle">TREND</text>
+    <text class="s" x="24" y="52" font-size="13" fill="#6f6a61">aligned automatically across labs, units and synonyms</text>
+  </g>
+
+  <g transform="translate(46,458)">
+    <text class="s mk" x="0" y="30">Vitamin D</text>
+    <text class="s" x="0" y="52" font-size="13" fill="#6f6a61">ng/mL</text>
+    <text class="s num" x="286" y="34" text-anchor="middle" fill="#8b857a">11</text>
+    <text class="s num" x="430" y="34" text-anchor="middle" fill="#ffffff">18</text>
+    <g transform="translate(536,14)">
+      <rect x="0" y="0" width="92" height="32" rx="16" fill="#3ddc84" fill-opacity="0.14" stroke="#3ddc84" stroke-opacity="0.45"/>
+      <path d="M28 22 L38 11 L48 22" fill="none" stroke="#8ce6b4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M38 11 L38 23" stroke="#8ce6b4" stroke-width="3" stroke-linecap="round"/>
+      <text class="s" x="62" y="22" font-size="13" font-weight="700" fill="#8ce6b4">64%</text>
+    </g>
+    <line x1="0" y1="76" x2="628" y2="76" stroke="#ffffff" stroke-opacity="0.06"/>
+  </g>
+
+  <g transform="translate(46,558)">
+    <text class="s mk" x="0" y="30">Ferritin</text>
+    <text class="s" x="0" y="52" font-size="13" fill="#6f6a61">ng/mL</text>
+    <text class="s num" x="286" y="34" text-anchor="middle" fill="#8b857a">22</text>
+    <text class="s num" x="430" y="34" text-anchor="middle" fill="#ffffff">48</text>
+    <g transform="translate(536,14)">
+      <rect x="0" y="0" width="92" height="32" rx="16" fill="#3ddc84" fill-opacity="0.14" stroke="#3ddc84" stroke-opacity="0.45"/>
+      <path d="M22 22 L32 11 L42 22" fill="none" stroke="#8ce6b4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M32 11 L32 23" stroke="#8ce6b4" stroke-width="3" stroke-linecap="round"/>
+      <text class="s" x="56" y="22" font-size="13" font-weight="700" fill="#8ce6b4">118%</text>
+    </g>
+    <line x1="0" y1="76" x2="628" y2="76" stroke="#ffffff" stroke-opacity="0.06"/>
+  </g>
+
+  <g transform="translate(46,658)">
+    <text class="s mk" x="0" y="30">HbA1c</text>
+    <text class="s" x="0" y="52" font-size="13" fill="#6f6a61">%</text>
+    <text class="s num" x="286" y="34" text-anchor="middle" fill="#8b857a">5.9</text>
+    <text class="s num" x="430" y="34" text-anchor="middle" fill="#ffffff">5.4</text>
+    <g transform="translate(536,14)">
+      <rect x="0" y="0" width="92" height="32" rx="16" fill="#3ddc84" fill-opacity="0.14" stroke="#3ddc84" stroke-opacity="0.45"/>
+      <path d="M28 12 L38 23 L48 12" fill="none" stroke="#8ce6b4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M38 23 L38 11" stroke="#8ce6b4" stroke-width="3" stroke-linecap="round"/>
+      <text class="s" x="62" y="22" font-size="13" font-weight="700" fill="#8ce6b4">0.5</text>
+    </g>
+    <line x1="0" y1="76" x2="628" y2="76" stroke="#ffffff" stroke-opacity="0.06"/>
+  </g>
+
+  <g transform="translate(46,758)">
+    <text class="s mk" x="0" y="30">LDL Cholesterol</text>
+    <text class="s" x="0" y="52" font-size="13" fill="#6f6a61">mg/dL</text>
+    <text class="s num" x="286" y="34" text-anchor="middle" fill="#8b857a">128</text>
+    <text class="s num" x="430" y="34" text-anchor="middle" fill="#ffffff">132</text>
+    <g transform="translate(536,14)">
+      <rect x="0" y="0" width="92" height="32" rx="16" fill="#f5a623" fill-opacity="0.13" stroke="#f5a623" stroke-opacity="0.42"/>
+      <path d="M26 16 L66 16" stroke="#f7c46c" stroke-width="3" stroke-linecap="round"/>
+      <text class="s" x="46" y="30" font-size="0" fill="#f7c46c">flat</text>
+    </g>
+    <line x1="0" y1="76" x2="628" y2="76" stroke="#ffffff" stroke-opacity="0.06"/>
+  </g>
+
+  <g transform="translate(46,858)">
+    <text class="s mk" x="0" y="30">TSH</text>
+    <text class="s" x="0" y="52" font-size="13" fill="#6f6a61">uIU/mL</text>
+    <text class="s num" x="286" y="34" text-anchor="middle" fill="#8b857a">4.6</text>
+    <text class="s num" x="430" y="34" text-anchor="middle" fill="#ffffff">3.9</text>
+    <g transform="translate(536,14)">
+      <rect x="0" y="0" width="92" height="32" rx="16" fill="#3ddc84" fill-opacity="0.14" stroke="#3ddc84" stroke-opacity="0.45"/>
+      <path d="M28 12 L38 23 L48 12" fill="none" stroke="#8ce6b4" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M38 23 L38 11" stroke="#8ce6b4" stroke-width="3" stroke-linecap="round"/>
+      <text class="s" x="62" y="22" font-size="13" font-weight="700" fill="#8ce6b4">0.7</text>
+    </g>
+  </g>
+
+  <g transform="translate(46,968)">
+    <rect x="0" y="0" width="628" height="266" rx="22" fill="#c8a44e" fill-opacity="0.07" stroke="#c8a44e" stroke-opacity="0.32"/>
+    <text class="s kick" x="26" y="42">THE BLOODWORK BRIDGE</text>
+    <text class="s" x="26" y="88" font-size="18" fill="#f2ece0">Your ferritin went from 22 to 48</text>
+    <text class="s" x="26" y="118" font-size="18" fill="#f2ece0">ng/mL between March and July.</text>
+    <text class="s" x="26" y="156" font-size="18" fill="#d8bb6a">Across those same weeks your</text>
+    <text class="s" x="26" y="186" font-size="18" fill="#d8bb6a">resting heart rate came down 7%</text>
+    <text class="s" x="26" y="216" font-size="18" fill="#d8bb6a">and your recovery averaged 13</text>
+    <text class="s" x="26" y="246" font-size="18" fill="#d8bb6a">points higher.</text>
+  </g>
+</svg>

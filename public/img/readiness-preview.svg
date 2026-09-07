@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280" role="img" aria-label="BodyBank readiness screen showing recovery, HRV, sleep and strain read from the member's own watch">
+  <defs>
+    <linearGradient id="rdBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a0a0a"/><stop offset="0.5" stop-color="#060606"/><stop offset="1" stop-color="#0b0906"/>
+    </linearGradient>
+    <linearGradient id="rdGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e0c478"/><stop offset="0.5" stop-color="#c8a44e"/><stop offset="1" stop-color="#a68c3e"/>
+    </linearGradient>
+    <linearGradient id="rdArc" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3ddc84"/><stop offset="1" stop-color="#c8a44e"/>
+    </linearGradient>
+    <radialGradient id="rdGlow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#3ddc84" stop-opacity="0.22"/><stop offset="1" stop-color="#3ddc84" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <style>
+    .h{font-family:Bebas Neue,Oswald,Arial Narrow,sans-serif;letter-spacing:2px}
+    .s{font-family:Outfit,Segoe UI,Helvetica,Arial,sans-serif}
+    .kick{font-size:14px;letter-spacing:3.4px;fill:#c8a44e}
+    .tl{font-size:13px;fill:#8b857a;letter-spacing:1.4px}
+  </style>
+
+  <rect width="720" height="1280" rx="34" fill="url(#rdBg)"/>
+  <rect x="1" y="1" width="718" height="1278" rx="33" fill="none" stroke="#c8a44e" stroke-opacity="0.22"/>
+  <circle cx="360" cy="470" r="290" fill="url(#rdGlow)"/>
+
+  <g transform="translate(46,74)">
+    <image x="-2" y="-2" width="58" height="58" href="data:image/png;base64,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" preserveAspectRatio="xMidYMid meet"/>
+    <text class="h" x="70" y="24" font-size="25" fill="#f2ece0">BODY BANK</text>
+    <text class="s" x="70" y="46" font-size="14" fill="#8b857a">Readiness · Today</text>
+  </g>
+  <g>
+    <rect x="470" y="82" width="206" height="38" rx="19" fill="#ffffff" fill-opacity="0.05" stroke="#c8a44e" stroke-opacity="0.4"/>
+    <circle cx="494" cy="101" r="5" fill="#3ddc84"/>
+    <text class="s" x="510" y="107" font-size="13" font-weight="700" fill="#d8bb6a" letter-spacing="0.8">APPLE WATCH · SYNCED</text>
+  </g>
+
+  <g transform="translate(360,470)">
+    <circle r="130" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="18"/>
+    <circle r="130" fill="none" stroke="url(#rdArc)" stroke-width="18" stroke-linecap="round" stroke-dasharray="637 817" transform="rotate(-90)"/>
+    <text class="h" y="6" font-size="92" text-anchor="middle" fill="#f2ece0">78</text>
+    <text class="s" y="44" font-size="15" text-anchor="middle" fill="#8b857a" letter-spacing="2.6">READINESS</text>
+    <text class="s" y="76" font-size="14" text-anchor="middle" fill="#8ce6b4">+14 vs your baseline</text>
+  </g>
+
+  <text class="s kick" x="46" y="676">WHAT IT READ THIS MORNING</text>
+
+  <g transform="translate(46,700)">
+    <rect x="0" y="0" width="302" height="120" rx="20" fill="#ffffff" fill-opacity="0.035" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text class="s tl" x="24" y="34">RECOVERY</text>
+    <text class="h" x="24" y="88" font-size="46" fill="#8ce6b4">78%</text>
+
+    <rect x="326" y="0" width="302" height="120" rx="20" fill="#ffffff" fill-opacity="0.035" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text class="s tl" x="350" y="34">HRV</text>
+    <text class="h" x="350" y="88" font-size="46" fill="#f2ece0">68<tspan font-size="24" fill="#8b857a"> ms</tspan></text>
+
+    <rect x="0" y="140" width="302" height="120" rx="20" fill="#ffffff" fill-opacity="0.035" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text class="s tl" x="24" y="174">SLEEP</text>
+    <text class="h" x="24" y="228" font-size="46" fill="#f2ece0">7<tspan font-size="24" fill="#8b857a">h </tspan>12<tspan font-size="24" fill="#8b857a">m</tspan></text>
+
+    <rect x="326" y="140" width="302" height="120" rx="20" fill="#ffffff" fill-opacity="0.035" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text class="s tl" x="350" y="174">RESTING HR</text>
+    <text class="h" x="350" y="228" font-size="46" fill="#f2ece0">54<tspan font-size="24" fill="#8b857a"> bpm</tspan></text>
+  </g>
+
+  <g transform="translate(46,996)">
+    <rect x="0" y="0" width="628" height="140" rx="22" fill="#3ddc84" fill-opacity="0.07" stroke="#3ddc84" stroke-opacity="0.34"/>
+    <text class="s" x="26" y="40" font-size="13" fill="#8ce6b4" letter-spacing="3.2">TODAY&#8217;S DIRECTIVE</text>
+    <text class="s" x="26" y="80" font-size="19" fill="#f2ece0">Push today. You slept 7h12m on a</text>
+    <text class="s" x="26" y="110" font-size="19" fill="#f2ece0">78% recovery — take the heavy session.</text>
+  </g>
+
+  <g transform="translate(46,1160)">
+    <rect x="0" y="0" width="628" height="76" rx="20" fill="#ffffff" fill-opacity="0.03" stroke="#ffffff" stroke-opacity="0.08"/>
+    <text class="s" x="26" y="32" font-size="15" fill="#bfb9ab">Your coach sees this number too.</text>
+    <text class="s" x="26" y="56" font-size="14" fill="#6f6a61">Training adjusts to how you actually recovered.</text>
+  </g>
+</svg>

@@ -18,21 +18,15 @@
   var ICONS = {
     home:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V20a1 1 0 0 0 1 1h3.5v-6h5v6H18a1 1 0 0 0 1-1V9.5"/></svg>',
     stories: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><circle cx="17.5" cy="9" r="2.2"/><path d="M16 14.5a4.5 4.5 0 0 1 4.5 5"/></svg>',
-    blog:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2z" transform="translate(1 0)"/><path d="M9 8h6M9 12h6"/></svg>',
-    about:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 6.5C10.5 5.5 8 5 5 5.2v12C8 17 10.5 17.5 12 18.5"/><path d="M12 6.5C13.5 5.5 16 5 19 5.2v12C16 17 13.5 17.5 12 18.5"/><path d="M12 6.5v12"/></svg>',
+    login:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3"/><path d="M10.5 8 15 12l-4.5 4"/><path d="M15 12H3"/></svg>',
     join:    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10" cy="8" r="3.2"/><path d="M4 20a6 6 0 0 1 12 0"/><path d="M19 8v6M22 11h-6"/></svg>'
   };
 
   var ITEMS = [
     { key: 'home',    label: 'Home',    icon: ICONS.home,    href: 'index.html#hero',     match: ['index.html', '/'] },
     { key: 'stories', label: 'Stories', icon: ICONS.stories, href: 'tribe-stories.html',  match: ['tribe-stories.html'] },
-    { key: 'blog',    label: 'Blog',    icon: ICONS.blog,    href: 'blog.html',           match: ['blog.html'] },
-    { key: 'about',   label: 'About',   icon: ICONS.about,   href: 'our-story.html',      match: ['our-story.html'] },
-    // No Join tab. It used to be the 5th item — the far end of the bar, which
-    // is what made it hard to find — and it pointed at /signin, so the one
-    // control aimed at new visitors handed them a password field. Join and
-    // Login now sit together in the header at every width. This bar is for
-    // going places; account actions have one home and it is not here.
+    { key: 'login',   label: 'Login',   icon: ICONS.login,   href: 'signin.html',         match: ['signin.html'] },
+    { key: 'join',    label: 'Join',    icon: ICONS.join,    href: 'signup.html',         match: ['signup.html'] }
   ];
 
   // ── Styles ─────────────────────────────────────────────────────────────────

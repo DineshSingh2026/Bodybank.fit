@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 1280" width="720" height="1280" role="img" aria-label="BodyBank connects Whoop, Fitbit, Amazfit, Polar, Samsung, Oura, Garmin, Apple Watch, Google Health Connect and more into one platform">
+  <defs>
+    <linearGradient id="wdBg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0a0a0a"/><stop offset="0.5" stop-color="#060606"/><stop offset="1" stop-color="#0b0906"/>
+    </linearGradient>
+    <linearGradient id="wdGold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#e0c478"/><stop offset="0.5" stop-color="#c8a44e"/><stop offset="1" stop-color="#a68c3e"/>
+    </linearGradient>
+    <radialGradient id="wdCore" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#c8a44e" stop-opacity="0.42"/><stop offset="0.6" stop-color="#c8a44e" stop-opacity="0.12"/><stop offset="1" stop-color="#c8a44e" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <style>
+    .h{font-family:Bebas Neue,Oswald,Arial Narrow,sans-serif;letter-spacing:2px}
+    .s{font-family:Outfit,Segoe UI,Helvetica,Arial,sans-serif}
+    .nd{font-size:15px;font-weight:700;letter-spacing:1.1px;fill:#f2ece0}
+  </style>
+
+  <rect width="720" height="1280" rx="34" fill="url(#wdBg)"/>
+  <rect x="1" y="1" width="718" height="1278" rx="33" fill="none" stroke="#c8a44e" stroke-opacity="0.22"/>
+
+  <text class="h" x="360" y="132" font-size="46" text-anchor="middle" fill="#f2ece0">YOUR HEALTH DATA,</text>
+  <text class="h" x="360" y="182" font-size="46" text-anchor="middle" fill="#c8a44e">NOW TRULY CONNECTED.</text>
+  <line x1="150" y1="216" x2="290" y2="216" stroke="#c8a44e" stroke-opacity="0.4"/>
+  <text class="s" x="360" y="222" font-size="17" text-anchor="middle" fill="#bfb9ab">One platform. All your health insights.</text>
+  <line x1="430" y1="216" x2="570" y2="216" stroke="#c8a44e" stroke-opacity="0.4"/>
+
+  <circle cx="360" cy="690" r="300" fill="url(#wdCore)"/>
+  <circle cx="360" cy="690" r="248" fill="none" stroke="#c8a44e" stroke-opacity="0.16" stroke-dasharray="2 9"/>
+  <circle cx="360" cy="690" r="168" fill="none" stroke="#c8a44e" stroke-opacity="0.1" stroke-dasharray="2 9"/>
+
+  <g stroke="#c8a44e" stroke-opacity="0.45" stroke-width="2" stroke-dasharray="2 8" stroke-linecap="round">
+    <line x1="360" y1="690" x2="360" y2="442"/>
+    <line x1="360" y1="690" x2="506" y2="489"/>
+    <line x1="360" y1="690" x2="596" y2="613"/>
+    <line x1="360" y1="690" x2="596" y2="767"/>
+    <line x1="360" y1="690" x2="506" y2="891"/>
+    <line x1="360" y1="690" x2="360" y2="938"/>
+    <line x1="360" y1="690" x2="214" y2="891"/>
+    <line x1="360" y1="690" x2="124" y2="767"/>
+    <line x1="360" y1="690" x2="124" y2="613"/>
+    <line x1="360" y1="690" x2="214" y2="489"/>
+  </g>
+
+  <g>
+    <rect x="278" y="608" width="164" height="164" rx="44" fill="#0c0c0c" stroke="url(#wdGold)" stroke-width="2.5"/>
+    <image x="296" y="626" width="128" height="128" href="data:image/png;base64,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" preserveAspectRatio="xMidYMid meet"/>
+  </g>
+
+  <g id="nodes">
+    <g transform="translate(360,442)">
+      <circle r="58" fill="#0f0f0f" stroke="#c8a44e" stroke-opacity="0.55" stroke-width="2"/>
+      <rect x="-15" y="-30" width="30" height="30" rx="9" fill="none" stroke="#e0c478" stroke-width="2.4"/>
+      <path d="M-9 -30 L-9 -37 M9 -30 L9 -37 M-9 0 L-9 7 M9 0 L9 7" stroke="#e0c478" stroke-width="2.4" stroke-linecap="round"/>
+      <text class="s nd" y="30" text-anchor="middle">WHOOP</text>
+    </g>
+    <g transform="translate(506,489)">
+      <circle r="58" fill="#0f0f0f" stroke="#c8a44e" stroke-opacity="0.55" stroke-width="2"/>
+      <rect x="-15" y="-30" width="30" height="30" rx="9" fill="none" stroke="#e0c478" stroke-width="2.4"/>
+      <path d="M-9 -30 L-9 -37 M9 -30 L9 -37 M-9 0 L-9 7 M9 0 L9 7" stroke="#e0c478" stroke-width="2.4" stroke-linecap="round"/>
+      <text class="s nd" y="30" text-anchor="middle">FITBIT</text>
+    </g>
+    <g transform="translate(596,613)">
+      <circle r="58" fill="#0f0f0f" stroke="#c8a44e" stroke-opacity="0.55" stroke-width="2"/>
+      <circle cy="-15" r="16" fill="none" stroke="#e0c478" stroke-width="2.4"/>
+      <path d="M-16 -15 L-23 -15 M16 -15 L23 -15" stroke="#e0c478" stroke-width="2.4" stroke-linecap="round"/>
+      <text class="s nd" y="30" text-anchor="middle">AMAZFIT</text>
+    </g>
+    <g transform="translate(596,767)">
+      <circle r="58" fill="#0f0f0f" stroke="#c8a44e" stroke-opacity="0.55" stroke-width="2"/>
+      <circle cy="-15" r="16" fill="none" stroke="#e0c478" stroke-width="2.4"/>
+      <path d="M-16 -15 L-23 -15 M16 -15 L23 -15" stroke="#e0c478" stroke-width="2.4" stroke-linecap="round"/>
+      <text class="s nd" y="30" text-anchor="middle">POLAR</text>
+    </g>
+    <g transform="translate(506,891)">
+      <circle r="58" fill="#0f0f0f" stroke="#c8a44e" stroke-opacity="0.55" stroke-width="2"/>
+      <circle cy="-15" r="16" fill="none" stroke="#e0c478" stroke-width="2.4"/>
+      <path d="M-16 -15 L-23 -15 M16 -15 L23 -15" stroke="#e0c478" stroke-width="2.4" stroke-linecap="round"/>
+      <text class="s nd" y="30" text-anchor="middle">SAMSUNG</text>
+    </g>
+    <g transform="translate(360,938)">
+      <circle r="58" fill="#0f0f0f" stroke="#c8a44e" stroke-opacity="0.7" stroke-width="2" stroke-dasharray="5 5"/>
+      <path d="M0 -30 L0 -2 M-14 -16 L14 -16" stroke="#e0c478" stroke-width="3.2" stroke-linecap="round"/>
+      <text class="s nd" y="30" text-anchor="middle" fill="#d8bb6a">+ MORE</text>
+    </g>
+    <g transform="translate(214,891)">
+      <circle r="58" fill="#0f0f0f" stroke="#c8a44e" stroke-opacity="0.55" stroke-width="2"/>
+      <circle cy="-15" r="17" fill="none" stroke="#e0c478" stroke-width="6"/>
+      <text class="s nd" y="30" text-anchor="middle">OURA</text>
+    </g>
+    <g transform="translate(124,767)">
+      <circle r="58" fill="#0f0f0f" stroke="#c8a44e" stroke-opacity="0.55" stroke-width="2"/>
+      <circle cy="-15" r="16" fill="none" stroke="#e0c478" stroke-width="2.4"/>
+      <path d="M-16 -15 L-23 -15 M16 -15 L23 -15" stroke="#e0c478" stroke-width="2.4" stroke-linecap="round"/>
+      <text class="s nd" y="30" text-anchor="middle">GARMIN</text>
+    </g>
+    <g transform="translate(124,613)">
+      <circle r="58" fill="#0f0f0f" stroke="#c8a44e" stroke-opacity="0.55" stroke-width="2"/>
+      <rect x="-15" y="-31" width="30" height="32" rx="10" fill="none" stroke="#e0c478" stroke-width="2.4"/>
+      <path d="M-9 -31 L-9 -38 M9 -31 L9 -38 M-9 1 L-9 8 M9 1 L9 8" stroke="#e0c478" stroke-width="2.4" stroke-linecap="round"/>
+      <text class="s nd" y="30" text-anchor="middle">APPLE</text>
+    </g>
+    <g transform="translate(214,489)">
+      <circle r="58" fill="#0f0f0f" stroke="#c8a44e" stroke-opacity="0.55" stroke-width="2"/>
+      <path d="M-18 -15 L-8 -15 L-3 -26 L3 -4 L8 -15 L18 -15" fill="none" stroke="#e0c478" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text class="s nd" y="30" text-anchor="middle">GOOGLE</text>
+    </g>
+  </g>
+
+  <g transform="translate(46,1064)">
+    <rect x="0" y="0" width="628" height="118" rx="24" fill="#c8a44e" fill-opacity="0.07" stroke="#c8a44e" stroke-opacity="0.36"/>
+    <circle cx="66" cy="59" r="26" fill="none" stroke="#c8a44e" stroke-width="2.4"/>
+    <path d="M54 60 L63 69 L80 48" fill="none" stroke="#c8a44e" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+    <text class="h" x="112" y="52" font-size="28" fill="#f2ece0">ALL YOUR DEVICES.</text>
+    <text class="h" x="112" y="86" font-size="28" fill="#c8a44e">ONE POWERFUL PLATFORM.</text>
+  </g>
+
+  <text class="s" x="360" y="1236" font-size="15" text-anchor="middle" fill="#8b857a" letter-spacing="1.6">No band? Type it in or send a screenshot.</text>
+</svg>

@@ -513,6 +513,8 @@ h3.sc-dash-title{font-size:clamp(20px,3vw,28px);margin:0 0 10px}
 .arsenal-item[data-arsenal-theme="fitchef"]{--ars-accent:22,196,140}
 .arsenal-item[data-arsenal-theme="muscle"]{--ars-accent:168,123,255}
 .arsenal-item[data-arsenal-theme="coin"]{--ars-accent:200,164,78}
+.arsenal-item[data-arsenal-theme="blood"]{--ars-accent:226,84,84}
+.arsenal-item[data-arsenal-theme="watch"]{--ars-accent:61,220,132}
 @media(max-width:1100px){
   .arsenal-sec{padding:80px 28px}
   .arsenal-copy{max-width:100%}
@@ -751,6 +753,9 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
 @media(max-width:1280px){
   .nm{display:none}
   .nt{display:flex}
+  /* nav links just collapsed into the hamburger — nothing is competing with
+     the tagline for space any more, so show it instead of an empty gap */
+  .nav-tagline{display:block}
 }
 
 @media(max-width:900px){
@@ -767,24 +772,15 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
   .nb{max-width:min(150px,38vw)}
   .nav-logo-img{height:38px}
   .nav-right{gap:4px}
-  /* Login: a word, not a box */
-  .nav-right .nav-quiet{
-    border:0 !important;background:transparent !important;
-    padding:0 8px !important;min-height:44px;
-    font-size:11px;letter-spacing:.9px;color:var(--creamd,#bfb9ab);
-  }
-  .nav-right .nav-quiet:active{color:var(--gold)}
-  /* Join: the only filled thing on the bar */
-  .nav-right .nav-join{
-    min-height:44px;padding:0 16px;border-radius:22px;
-    font-size:11.5px;letter-spacing:1.2px;
-    box-shadow:0 6px 16px -8px rgba(200,164,78,0.9);
-  }
+  /* Login/Join moved to the bottom pill nav (public-nav.js) on mobile — the
+     header carries the Lifestyle Management tagline in their place instead.
+     !important needed: overrides the display:inline-flex !important pairing
+     rule at the top of the file (max-width:900px block, .nav-quiet/.nav-join). */
+  .nav-right .nav-quiet,.nav-right .nav-join{display:none !important}
   .pwa-standalone nav{padding-right:max(36px,env(safe-area-inset-right))}
   .pwa-standalone .nav-right{gap:16px}
   .pwa-standalone .nt{margin-left:14px;padding:10px 14px}
-  .nav-tagline{display:none}
-  .nav-tagline{font-size:11px;font-weight:500;letter-spacing:1.5px;padding-left:8px;border-left-width:1px}
+  .nav-tagline{display:block;font-size:11px;font-weight:500;letter-spacing:1.5px;padding-left:8px;border-left-width:1px;text-align:right}
   .nav-logo-img{height:46px}
   .hero{padding:calc(100px + env(safe-area-inset-top,0px)) 24px calc(60px + env(safe-area-inset-bottom,0px));min-height:min(var(--app-height),720px)}
   .hero-sub{font-size:18px}
@@ -10657,6 +10653,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
   <ul class="nm">
     <li><a href="#hero">Home</a></li>
     <li><a href="#get-the-app">App</a></li>
+    <li><a href="#health-intelligence">Health Data</a></li>
     <li><a href="#success-stories">Stories</a></li>
     <li><a href="#results">Transformations</a></li>
     <li><a href="tribe-stories.html">Tribe Stories</a></li>
@@ -10681,6 +10678,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <div class="mm-links" role="navigation" aria-label="Site">
       <a class="mm-link" href="#hero" onclick="bbCloseNavMenu()">Home<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="#get-the-app" onclick="bbCloseNavMenu()"><span class="mm-label">Get the App<span class="mm-new">New</span></span><span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="#health-intelligence" onclick="bbCloseNavMenu()"><span class="mm-label">Health Data<span class="mm-new">New</span></span><span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="#success-stories" onclick="bbCloseNavMenu()">Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="#results" onclick="bbCloseNavMenu()">Transformations<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="tribe-stories.html" onclick="bbCloseNavMenu()">Tribe Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
@@ -11170,6 +11168,8 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <p class="plx-tag">What you get</p>
             <ul class="plx-list">
               <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Body Audit</span><span class="plx-list-sub">fitness, nutrition, lifestyle assessment</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Blood Report Analysis</span><span class="plx-list-sub">every marker read, cross-referenced with your plate</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Watch Sync</span><span class="plx-list-sub">your tracker feeds a daily Readiness score</span></span></li>
               <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Personal Food Blueprint</span><span class="plx-list-sub">plate structure for your goal</span></span></li>
               <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Customized Training Protocol</span><span class="plx-list-sub">workouts tailored to you</span></span></li>
               <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Daily Targets</span><span class="plx-list-sub">sleep, hydration, steps, nutrition</span></span></li>
@@ -11201,6 +11201,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
               <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Nutrition Optimization</span><span class="plx-list-sub">refined meal plans from Phase 1</span></span></li>
               <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Bi-Weekly Progress Analysis</span><span class="plx-list-sub">actual measurements, not guesswork</span></span></li>
               <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Bio-Hacking Protocols</span><span class="plx-list-sub">sleep optimization, recovery</span></span></li>
+              <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">Retest &amp; Compare</span><span class="plx-list-sub">markers tracked against your wearable trend</span></span></li>
               <li><span class="plx-list-dot"></span><span class="plx-list-text"><span class="plx-list-name">24/7 Support</span><span class="plx-list-sub">text, call, audio note whenever you need</span></span></li>
             </ul>
             <div class="plx-out">
@@ -11262,7 +11263,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="gold-line"></div>
       <span class="arsenal-kicker">Product Engine</span>
       <h2 class="arsenal-title">The BodyBank Arsenal</h2>
-      <p class="arsenal-sub">A cinematic look at the four features that drive every transformation across training, nutrition, motivation, and body intelligence.</p>
+      <p class="arsenal-sub">A cinematic look at the six features that drive every transformation &mdash; training, nutrition, motivation, body intelligence, your blood work and your recovery.</p>
     </div>
     <div class="arsenal-stage">
       <div class="arsenal-media-wrap">
@@ -11278,6 +11279,127 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="arsenal-copy" id="arsenalCopy"></div>
     </div>
   </div>
+</section>
+
+<!-- ============= HEALTH INTELLIGENCE — blood work + wearables ============= -->
+<style>
+.hi-sec{position:relative;padding:92px 48px;background:linear-gradient(180deg,#060606 0%,#0a0a0a 48%,#060606 100%);border-top:1px solid rgba(200,164,78,0.12);border-bottom:1px solid rgba(200,164,78,0.12);overflow:hidden}
+.hi-sec::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 16% 12%,rgba(226,84,84,0.07),transparent 42%),radial-gradient(circle at 86% 78%,rgba(61,220,132,0.06),transparent 44%)}
+.hi-inner{position:relative;z-index:2;max-width:1120px;margin:0 auto}
+.hi-head{text-align:center;max-width:660px;margin:0 auto 52px}
+.hi-head .gold-line{margin:0 auto 18px}
+.hi-kicker{display:block;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:var(--gold);margin:0 0 15px}
+.hi-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(38px,5vw,66px);line-height:.98;letter-spacing:2px;text-transform:uppercase;color:var(--cream);margin:0 0 16px}
+.hi-title span{color:var(--gold)}
+.hi-sub{font-size:clamp(15px,1.4vw,16.5px);line-height:1.7;color:var(--creamd);margin:0}
+
+.hi-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:24px}
+.hi-pillar{position:relative;display:flex;flex-direction:column;border:1px solid rgba(var(--hi-accent),0.26);border-radius:20px;background:linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.012));padding:32px 30px;overflow:hidden}
+.hi-pillar::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,rgba(var(--hi-accent),0.95),transparent 78%)}
+.hi-pillar--blood{--hi-accent:226,84,84}
+.hi-pillar--watch{--hi-accent:61,220,132}
+.hi-badge{display:inline-flex;align-items:center;gap:8px;font-family:'Outfit',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:rgba(var(--hi-accent),1);border:1px solid rgba(var(--hi-accent),0.42);background:rgba(var(--hi-accent),0.11);border-radius:999px;padding:6px 13px;margin:0 0 16px;align-self:flex-start}
+.hi-badge b{color:var(--cream);font-weight:700}
+.hi-pillar h3{font-family:'Bebas Neue',sans-serif;font-size:clamp(25px,2.5vw,33px);line-height:1.05;letter-spacing:1px;color:var(--cream);margin:0 0 12px}
+.hi-lede{font-size:14.5px;line-height:1.72;color:var(--creamd);margin:0 0 18px}
+.hi-meta{font-size:12.5px;line-height:1.65;color:#8f897d;margin:auto 0 0;padding-top:15px;border-top:1px solid rgba(255,255,255,0.08)}
+.hi-chips{display:flex;flex-wrap:wrap;gap:7px;margin:0 0 18px;padding:0;list-style:none}
+.hi-chips li{display:inline-flex;align-items:center;padding:5px 11px;border:1px solid rgba(var(--hi-accent),0.3);border-radius:999px;background:rgba(var(--hi-accent),0.08);font-size:12px;color:#e8e0d1;letter-spacing:.2px;white-space:nowrap}
+.hi-chips li.is-alt{border-style:dashed;color:#a9a294;background:transparent}
+
+.hi-report{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;border:1px solid rgba(255,255,255,0.09);border-radius:18px;background:rgba(255,255,255,0.022);padding:20px 24px;margin:0 0 24px}
+.hi-report-label{font-family:'Outfit',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);flex:none;margin-right:2px}
+.hi-report ol{display:flex;flex-wrap:wrap;gap:7px;margin:0;padding:0;list-style:none}
+.hi-report li{display:inline-flex;align-items:baseline;gap:6px;border:1px solid rgba(255,255,255,0.08);border-radius:8px;background:rgba(0,0,0,0.3);padding:6px 11px;font-size:12.5px;color:#ddd6c8;white-space:nowrap}
+.hi-report li b{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.6px;color:var(--gold);font-weight:400}
+@media(max-width:640px){.hi-report{padding:18px 16px;gap:10px}.hi-report li{white-space:normal}}
+.hi-meta b{color:rgba(var(--hi-accent),1);font-weight:600}
+
+.hi-bridge{position:relative;border:1px solid rgba(200,164,78,0.3);border-radius:22px;background:linear-gradient(135deg,rgba(200,164,78,0.1),rgba(200,164,78,0.02) 62%);padding:44px;overflow:hidden}
+.hi-bridge::before{content:'';position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 88% 14%,rgba(200,164,78,0.15),transparent 46%)}
+.hi-bridge-in{position:relative;z-index:2;max-width:800px;margin:0 auto;text-align:center}
+.hi-quote{font-size:clamp(17px,1.95vw,24px);line-height:1.6;color:#efe7d6;margin:14px 0 20px;font-style:italic}
+.hi-quote b{color:var(--gold);font-style:normal;font-weight:600}
+.hi-bridge-foot{font-size:13.5px;line-height:1.75;color:#8f897d;margin:0}
+.hi-bridge-foot b{color:var(--creamd);font-weight:500}
+
+.hi-cta-row{display:flex;flex-direction:column;align-items:center;gap:14px;margin:44px 0 0}
+/* .btn-p ships a sweep pseudo parked at translateX(-100%); clip it to the button. */
+.hi-cta-row .btn-p{overflow:hidden}
+.hi-cta-note{font-size:12.5px;color:#8f897d;margin:0;text-align:center}
+
+@media(max-width:1000px){.hi-grid{grid-template-columns:1fr}.hi-bridge{padding:36px 26px}}
+@media(max-width:900px){.hi-sec{padding:76px 28px}}
+@media(max-width:640px){.hi-sec{padding:60px 20px}.hi-pillar{padding:26px 22px}.hi-bridge{padding:30px 22px}}
+</style>
+
+<section class="hi-sec" id="health-intelligence" aria-labelledby="hiTitle">
+  <div class="hi-inner">
+
+    <header class="hi-head rv">
+      <div class="gold-line"></div>
+      <span class="hi-kicker">Health Intelligence</span>
+      <h2 class="hi-title" id="hiTitle">Most apps guess.<br><span>Yours measures.</span></h2>
+      <p class="hi-sub">Your blood work and your wearable, read together &mdash; the two data sources nobody else in fitness joins up.</p>
+    </header>
+
+    <div class="hi-grid">
+
+      <article class="hi-pillar hi-pillar--blood rv">
+        <span class="hi-badge">01 &middot; <b>Blood Intelligence</b></span>
+        <h3>Your lab report, put to work</h3>
+        <p class="hi-lede">Upload the PDF from your lab, or a photo of the printout. Every marker on every page is read, checked against what you actually eat, and reviewed by your coach before it reaches you &mdash; then returned as a 10-section plan.</p>
+        <ul class="hi-chips">
+          <li>CBC &amp; differential</li><li>Lipid profile</li><li>Glucose &amp; HbA1c</li><li>Thyroid</li><li>Liver &amp; kidney</li><li>Vitamins</li><li>Hormones</li><li>Iron studies</li><li>Inflammatory markers</li>
+        </ul>
+        <p class="hi-meta"><b>Up to 3 reports tracked.</b> Markers are matched across them automatically, whatever the lab, units or naming &mdash; so you see direction, not just numbers.</p>
+      </article>
+
+      <article class="hi-pillar hi-pillar--watch rv">
+        <span class="hi-badge">02 &middot; <b>Watch Sync</b></span>
+        <h3>Whatever is on your wrist</h3>
+        <p class="hi-lede">Twelve ways in, one daily Readiness score &mdash; recovery, HRV, sleep, strain and resting heart rate, measured against your own baseline and visible to your coach.</p>
+        <ul class="hi-chips">
+          <li>WHOOP</li><li>Oura Ring</li><li>Apple Watch</li><li>Samsung</li><li>Garmin</li><li>Fitbit</li><li>Polar</li><li>Amazfit</li><li>Health Connect</li>
+          <li class="is-alt">CSV export</li><li class="is-alt">Screenshot</li><li class="is-alt">Typed in</li>
+        </ul>
+        <p class="hi-meta"><b>No band? Still works.</b> Noise, boAt, Fire-Boltt, Realme, Redmi, Fastrack, Titan and pTron all read from a screenshot of your watch app.</p>
+      </article>
+
+    </div>
+
+    <div class="hi-report rv">
+      <span class="hi-report-label">Your report</span>
+      <ol>
+        <li><b>01</b>Blood Test Analysis</li>
+        <li><b>02</b>Nutrition Intelligence</li>
+        <li><b>03</b>Clinical Interpretation</li>
+        <li><b>04</b>Risk Assessment</li>
+        <li><b>05</b>Foods to Include</li>
+        <li><b>06</b>Foods to Avoid</li>
+        <li><b>07</b>Weekly Meal Plan</li>
+        <li><b>08</b>Supplement Protocol</li>
+        <li><b>09</b>Lifestyle Recommendations</li>
+        <li><b>10</b>Progress &amp; Retest Schedule</li>
+      </ol>
+    </div>
+
+    <div class="hi-bridge rv">
+      <div class="hi-bridge-in">
+        <span class="hi-kicker">The BodyBank Bridge</span>
+        <p class="hi-quote">&ldquo;Your ferritin went from <b>22 to 48 ng/mL</b> between March and July. Across those same weeks your <b>resting heart rate came down 7%</b> and your <b>recovery averaged 13 points higher</b>.&rdquo;</p>
+        <p class="hi-bridge-foot">A wearable company cannot write that sentence &mdash; <b>they have no labs</b>. A lab cannot write it &mdash; <b>they have no wearable</b>.</p>
+      </div>
+    </div>
+
+    <div class="hi-cta-row rv">
+      <a href="#" class="btn-p" onclick="openModal('auditModal');return false;">Book Your Free Body Audit</a>
+      <p class="hi-cta-note">Neither a lab report nor a watch is required to start &mdash; both slot in whenever you have them.</p>
+    </div>
+
+  </div>
+</section>
+
 </section>
 
 <!-- ================= GET THE APP — live on Google Play ================= -->
@@ -11335,11 +11457,13 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="gold-line"></div>
       <p class="appdl-kicker"><span class="appdl-live" aria-hidden="true"></span>Now live on Google Play</p>
       <h2 class="appdl-title" id="appdlTitle">The Whole System.<br><span>In Your Pocket.</span></h2>
-      <p class="appdl-sub">The BodyBank app is live on the Google Play Store. Your AI form coach, FitChef nutrition, body intelligence and daily accountability — the complete Lifestyle Management system, carried in your pocket.</p>
+      <p class="appdl-sub">The BodyBank app is live on the Google Play Store. Your AI form coach, FitChef nutrition, blood work, watch data and daily accountability — the complete Lifestyle Management system, carried in your pocket.</p>
       <ul class="appdl-feats">
         <li><span class="appdl-tick" aria-hidden="true"><svg viewBox="0 0 12 10" fill="none" stroke="#c8a44e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,5 4.5,8.5 11,1.5"/></svg></span><span><b>AI Trainer</b> — live rep counting, joint angles and instant form feedback</span></li>
         <li><span class="appdl-tick" aria-hidden="true"><svg viewBox="0 0 12 10" fill="none" stroke="#c8a44e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,5 4.5,8.5 11,1.5"/></svg></span><span><b>FitChef Nutrition</b> — meals, macros and daily logging that fits your life</span></li>
         <li><span class="appdl-tick" aria-hidden="true"><svg viewBox="0 0 12 10" fill="none" stroke="#c8a44e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,5 4.5,8.5 11,1.5"/></svg></span><span><b>Body Intelligence</b> — progress photos, muscle ranking and your weekly BodyBank Score</span></li>
+        <li><span class="appdl-tick" aria-hidden="true"><svg viewBox="0 0 12 10" fill="none" stroke="#c8a44e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,5 4.5,8.5 11,1.5"/></svg></span><span><b>Blood Intelligence</b> — upload a lab report, get every marker read and a coach-reviewed plan</span></li>
+        <li><span class="appdl-tick" aria-hidden="true"><svg viewBox="0 0 12 10" fill="none" stroke="#c8a44e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,5 4.5,8.5 11,1.5"/></svg></span><span><b>Watch Sync</b> — Whoop, Oura, Apple, Garmin, Fitbit, Samsung and more, in one Readiness score</span></li>
         <li><span class="appdl-tick" aria-hidden="true"><svg viewBox="0 0 12 10" fill="none" stroke="#c8a44e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1,5 4.5,8.5 11,1.5"/></svg></span><span><b>Streaks &amp; BB Coins</b> — earn your consistency back at renewal</span></li>
       </ul>
       <div class="bb-store-row">
@@ -11725,6 +11849,12 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>What if life disrupts? (travel, stress, etc.)</span><span class="ar">▾</span></div><div class="fa">You course correct fast, adjust and keep going. Phase 3 teaches damage control protocols. The plan bends, doesn't break. No restart.</div></div>
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>Why 4-month commitment?</span><span class="ar">▾</span></div><div class="fa">Phase 1 alone = foundation (not results). Phase 1+2 = temporary loss. Phase 1+2+3 = PERMANENT. 92% maintain results after the program because lasting habits create lasting change.<br>Short programs = Short results<br>Real commitment = Permanent change.</div></div>
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>How does Win Your Membership Back work?</span><span class="ar">▾</span></div><div class="fa">You earn BB Coins through verified consistency: workouts, meal logs, body submissions, and streaks. Redeem these coins at renewal to reduce your fee - up to a full membership win-back depending on coins earned and eligible activity.</div></div>
+      <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>Do I need a smartwatch to join?</span><span class="ar">&#9662;</span></div><div class="fa">No &mdash; nothing in the program requires one. But if you own any tracker, we can read it, and your training gets tuned to how you actually recovered.</div></div>
+      <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>My watch is a cheap one. Will it work?</span><span class="ar">&#9662;</span></div><div class="fa">Yes. Noise, boAt, Fire-Boltt, Realme, Redmi, Fastrack, Titan and pTron all work &mdash; you send a screenshot of the watch app and we read the numbers off it. Twelve routes in total, all ending at the same Readiness score.</div></div>
+      <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>What do you actually do with my blood report?</span><span class="ar">&#9662;</span></div><div class="fa">Every marker on every page is read, checked against the meals you have been logging, and returned as a 10-section plan: clinical interpretation, risks, foods to include and avoid, a weekly meal plan, supplements, lifestyle and a retest schedule.</div></div>
+      <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>Does a machine decide my health plan?</span><span class="ar">&#9662;</span></div><div class="fa">No. AI does the reading and the first draft; your coach reviews it before you see anything. None of it replaces your doctor.</div></div>
+      <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>What happens when I get a second blood test?</span><span class="ar">&#9662;</span></div><div class="fa">That is when it gets valuable. Markers are matched across your reports automatically &mdash; whatever the lab or units &mdash; so you see the direction each one is moving. With a tracker on, we also show what your recovery and resting heart rate did over the same weeks.</div></div>
+      <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>Is my health data private?</span><span class="ar">&#9662;</span></div><div class="fa">Your lab reports and watch data are visible to you and the BodyBank staff working on your program. They are not sold or shared with advertisers, and you can ask us to delete them at any time.</div></div>
       <div class="fi" onclick="toggleFaq(this)"><div class="fq"><span>What's the guarantee?</span><span class="ar">▾</span></div><div class="fa">This isn't another instant gratification quest. Given our honesty and your mutual effort, we're bound to taste ultimate transformation, as you've seen above in the results.</div></div>
     </div>
   </div>
@@ -11916,6 +12046,36 @@ function initBodyBankArsenal(){
       ctaAction: 'openSignup',
       image: '/img/BB%20Coin.jpeg',
       imageAlt: 'BB Coins rewards and redemption preview'
+    },
+    {
+      tag: 'Blood Intelligence',
+      theme: 'blood',
+      number: '05',
+      title: 'Your lab report, finally doing something',
+      desc: 'Upload the PDF from your lab, or a photo of the printout. Every marker is read, checked against what you actually eat, and reviewed by your coach before it reaches you.',
+      pills: ['Every panel read', '10-section report', 'Up to 3 reports tracked'],
+      ctaHref: '#health-intelligence',
+      image: '/img/blood-report-preview.svg',
+      imageAlt: 'Blood report screen showing extracted markers against reference ranges',
+      images: [
+        { src: '/img/blood-report-preview.svg', alt: 'Blood report screen showing 42 markers read and 6 flagged against reference ranges' },
+        { src: '/img/blood-trajectory-preview.svg', alt: 'Blood report comparison showing how each marker moved between two lab reports' }
+      ]
+    },
+    {
+      tag: 'Watch Sync',
+      theme: 'watch',
+      number: '06',
+      title: 'Whatever is on your wrist, we read it',
+      desc: 'Whoop, Oura, Apple, Garmin, Fitbit, Samsung, Polar, Amazfit and more. No band? Send a screenshot or type it in. Twelve routes, one daily Readiness score.',
+      pills: ['12 device routes', 'Recovery · HRV · Sleep', 'Your own baseline'],
+      ctaHref: '#health-intelligence',
+      image: '/img/watch-devices-preview.svg',
+      imageAlt: 'BodyBank connecting Whoop, Oura, Apple Watch, Garmin, Fitbit, Samsung, Polar and Amazfit into one platform',
+      images: [
+        { src: '/img/watch-devices-preview.svg', alt: 'BodyBank connecting Whoop, Oura, Apple Watch, Garmin, Fitbit, Samsung, Polar and Amazfit into one platform' },
+        { src: '/img/readiness-preview.svg', alt: 'Readiness screen showing recovery, HRV, sleep and resting heart rate read from the member watch' }
+      ]
     }
   ];
 
