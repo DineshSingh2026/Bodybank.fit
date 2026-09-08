@@ -61,7 +61,7 @@ const crypto = require('crypto');
 const { notify, notifyAsync, formatEventMessage } = require('./utils/notify');
 const { sendWhatsApp, sendWhatsAppTemplate, sendWhatsAppWithFallback } = require('./services/whatsapp');
 const { createWaInbound, createPgStore, ensureWaTables } = require('./services/waInbound');
-const { notifyAgent, setEventSink: setAgentEventSink } = require('./utils/agentWebhook');
+const { notifyAgent } = require('./utils/agentWebhook');
 const { verifyToken: verifyNutritionPhotoLink } = require('./utils/nutritionPhotoLink');
 const { startEmailScheduler, getAdminDailyComplianceReportData, sendAdminDailyComplianceReport } = require('./services/emailScheduler');
 const {
@@ -608,10 +608,6 @@ const waInbound = createWaInbound({
   sendWhatsAppWithFallback: (message, opts) => sendWhatsAppWithFallback(message, opts)
 });
 
-// App events (workout logged, form submitted, ...) reach the WhatsApp agent
-// through the same notifyAgent() calls that already feed the monitoring webhook.
-// No-op unless WA_INBOUND_ENABLED and WA_EVENT_TRIGGERS_ENABLED are both on.
-setAgentEventSink((eventName, data) => waInbound.handleAppEvent(eventName, data));
 
 function normalizeGeoFields(country, timezone) {
   const cleanCountry = String(country || '').trim();
