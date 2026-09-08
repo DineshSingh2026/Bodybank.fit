@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 const { v4: uuidv4 } = require('uuid');
 const { triggerSmartScaleExtraction } = require('../services/smartScaleExtractionService');
+const { notifyAsync } = require('../utils/notify');
+const { notifyAgent } = require('../utils/agentWebhook');
 
 // Same shape as routes/blood.js: keep decoded files well under the shared 40MB
 // JSON body limit, and cap how many files ride in one upload call.
@@ -82,8 +84,9 @@ function downloadName(row) {
 }
 
 function createSmartScaleRouter(deps) {
-  const { run, queryOne, queryAll, verifyToken, rateLimiter } = deps;
+  const { run, queryOne, queryAll, verifyToken, rateLimiter, sendPushToAdmins } = deps;
   const db = { run, queryOne, queryAll };
+  const notifyStaffPush = typeof sendPushToAdmins === 'function' ? sendPushToAdmins : async () => {};
 
   const router = require('express').Router();
   router.use(verifyToken);
@@ -159,6 +162,18 @@ function createSmartScaleRouter(deps) {
       }
 
       if (!saved.length) return res.status(400).json({ success: false, error: 'No valid file provided' });
+
+      // Staff-facing activity: this had no notification presence at all before —
+      // matches the WhatsApp/webhook/push pattern blood report uploads already use.
+      const notifyPayload = { name: displayName || 'A client', email: (u && u.email) || '—' };
+      notifyAsync('SMART_SCALE_UPLOADED', notifyPayload);
+      notifyAgent('SMART_SCALE_UPLOADED', notifyPayload);
+      notifyStaffPush(JSON.stringify({
+        title: '⚖️ Smart scale report uploaded',
+        body: (displayName || 'A client') + ' uploaded ' + saved.length + ' smart scale file' + (saved.length === 1 ? '' : 's') + '.',
+        id: 'scale-' + saved[0]
+      })).catch(() => {});
+
       res.json({ success: true, uploaded: saved.length, ids: saved });
     } catch (e) {
       console.error('[smart-scale upload]', e.message);

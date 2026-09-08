@@ -8216,6 +8216,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="admin-tab" data-tab="leaderboards" onclick="switchTab('leaderboards')">Leader Boards</div>
       <div class="admin-tab" data-tab="nutrition" onclick="switchTab('nutrition')">Nutrition AI</div>
       <div class="admin-tab" data-tab="blood" onclick="switchTab('blood')">Blood Reports</div>
+      <div class="admin-tab" data-tab="smartscale" onclick="switchTab('smartscale')">Smart Scale</div>
       <div class="admin-tab" data-tab="memberships" onclick="switchTab('memberships')">Members</div>
       <div class="admin-tab" data-tab="referrals" onclick="switchTab('referrals')">Referrals</div>
     </div>
@@ -19799,14 +19800,21 @@ function adminCpBloodFilePicked(ev) {
     var reader = new FileReader();
     reader.onload = function () {
       var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
+      var btn = document.getElementById('adminCpUploadBloodBtn');
+      if (btn) { btn._orig = btn._orig || btn.textContent; btn.disabled = true; btn.textContent = 'Uploading…'; }
       show('var(--muted)', 'Uploading & analysing for ' + escapeHtml(name) + ' (lab date ' + escapeHtml(bbFmtDay(labDate)) + ')… this can take a minute.');
       apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [], reportDate: labDate })
         .then(function (res) {
-          if (res && res.error) { show('#e05050', escapeHtml(res.error)); return; }
+          if (btn) { btn.disabled = false; btn.textContent = btn._orig || '🩸 Upload blood report'; }
+          if (res && res.error) { show('#e05050', escapeHtml(res.error)); showPopup('Upload failed', res.error, '', 'OK', null, 'error'); return; }
           show('var(--gold)', 'Uploaded & analysis started for ' + escapeHtml(name) + '. <a href="#" onclick="switchTab(\'blood\');return false;" style="color:var(--gold);text-decoration:underline">Open Blood Reports tab</a> to track, download &amp; send.');
-          if (typeof nutritionShowToast === 'function') nutritionShowToast('Blood report uploaded — analysis started.', 'success');
+          showPopup('Report uploaded', 'Blood report uploaded for ' + name + ' (lab date ' + bbFmtDay(labDate) + ') — analysis has started.', '', 'OK', null, 'success');
         })
-        .catch(function () { show('#e05050', 'Upload failed. Please try again.'); });
+        .catch(function () {
+          if (btn) { btn.disabled = false; btn.textContent = btn._orig || '🩸 Upload blood report'; }
+          show('#e05050', 'Upload failed. Please try again.');
+          showPopup('Upload failed', 'Could not upload the report. Please check your connection and try again.', '', 'OK', null, 'error');
+        });
     };
     reader.readAsDataURL(f);
   });
@@ -26798,12 +26806,14 @@ async function bbProcessQueuedSignupBloodUpload() {
     });
     if (res && res.error) {
       console.warn('[blood] deferred upload:', res.error);
+      showPopup('Blood report not uploaded', 'The report you attached at signup could not be uploaded (' + res.error + '). Please upload it again from the Blood Reports section.', '', 'OK', null, 'error');
       return;
     }
-    if (typeof nutritionShowToast === 'function') nutritionShowToast('Blood report uploaded — analysis started.', 'success');
+    showPopup('Report uploaded', 'The blood report you attached at signup has uploaded successfully and analysis has started.', '', 'OK', null, 'success');
     if (typeof loadMyHealthReports === 'function') loadMyHealthReports();
   } catch (e) {
     console.warn('[blood] deferred upload failed', e);
+    showPopup('Blood report not uploaded', 'The report you attached at signup could not be uploaded. Please upload it again from the Blood Reports section.', '', 'OK', null, 'error');
   }
 }
 
@@ -27118,20 +27128,45 @@ function uploadUserBloodReport(ev) {
   bbUploadBloodFile(f);
 }
 
+// Sets a busy label on both the mobile and desktop upload buttons the instant a
+// file is picked — the AI validation step can take several seconds with nothing
+// else on screen changing, which read as "did my click even register?".
+function bbSetBloodUploadBusy(busy, label) {
+  ['bloodUploadHeaderBtn', 'bloodUploadHeaderBtnDesktop'].forEach(function (idv) {
+    var b = document.getElementById(idv);
+    if (!b) return;
+    if (busy) {
+      b._bbOrigLabel = b._bbOrigLabel || b.textContent;
+      b.disabled = true;
+      b.textContent = label || 'Uploading…';
+    } else {
+      b.disabled = false;
+      b.textContent = b._bbOrigLabel || '+ Upload report';
+    }
+  });
+}
+
 function bbUploadBloodFile(f) {
   if (!f || !window.currentUser || !window.currentUser.token) return;
+  bbSetBloodUploadBusy(true, 'Uploading…');
   var reader = new FileReader();
   reader.onload = function () {
     var s = String(reader.result || '');
     var i = s.indexOf(',');
     var b64 = i >= 0 ? s.slice(i + 1) : s;
     apiCall('POST', '/api/blood/upload', { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [] }).then(function (res) {
-      if (res && res.error) showPopup('Upload', res.error, '', 'OK', null, 'error');
-      else {
-        if (typeof nutritionShowToast === 'function') nutritionShowToast('Uploaded — analysis in progress.', 'success');
-        loadMyHealthReports();
-      }
+      bbSetBloodUploadBusy(false);
+      if (res && res.error) { showPopup('Upload failed', res.error, '', 'OK', null, 'error'); return; }
+      showPopup('Report uploaded', 'Your blood report has uploaded successfully and analysis has started. We’ll let you know here and by email once it’s ready.', '', 'OK', null, 'success');
+      loadMyHealthReports();
+    }).catch(function () {
+      bbSetBloodUploadBusy(false);
+      showPopup('Upload failed', 'Could not upload your report. Please check your connection and try again.', '', 'OK', null, 'error');
     });
+  };
+  reader.onerror = function () {
+    bbSetBloodUploadBusy(false);
+    showPopup('Upload failed', 'Could not read that file. Please try again.', '', 'OK', null, 'error');
   };
   reader.readAsDataURL(f);
 }

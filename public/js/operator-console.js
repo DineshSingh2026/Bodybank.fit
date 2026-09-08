@@ -1359,11 +1359,15 @@ function opBloodFilePicked(ev) {
       show('#8a8880', 'Uploading &amp; analysing for ' + opEsc(name) + ' (lab date ' + opEsc(bbFmtDay(labDate)) + ')… this can take a minute.');
       apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(c.id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [], reportDate: labDate })
         .then(function (res) {
-          if (res && res.error) { show('#ff8a8a', opEsc(res.error)); return; }
+          if (res && res.error) { show('#ff8a8a', opEsc(res.error)); showPopup('Upload failed', res.error, '', 'OK', null, 'error'); return; }
           show('#3dd68c', 'Uploaded &amp; analysis started for ' + opEsc(name) + ' (lab date ' + opEsc(bbFmtDay(labDate)) + '). Refreshing…');
+          showPopup('Report uploaded', 'Blood report uploaded for ' + name + ' (lab date ' + bbFmtDay(labDate) + ') — analysis has started.', '', 'OK', null, 'success');
           setTimeout(function () { opRefreshClient(); }, 1200);
         })
-        .catch(function () { show('#ff8a8a', 'Upload failed. Please try again.'); });
+        .catch(function () {
+          show('#ff8a8a', 'Upload failed. Please try again.');
+          showPopup('Upload failed', 'Could not upload the report. Please check your connection and try again.', '', 'OK', null, 'error');
+        });
     };
     reader.readAsDataURL(f);
   });

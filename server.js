@@ -6972,6 +6972,42 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* table may be empty */ }
+      // Blood report uploads — were reaching admin WhatsApp only; the in-app bell
+      // (which operators also read) had no idea a report was even sitting there.
+      try {
+        const bloodRows = await queryAll(
+          `SELECT id, user_name, user_email, created_at FROM blood_analysis_reports
+           ORDER BY created_at DESC LIMIT 25`
+        );
+        bloodRows.forEach(b => {
+          notifications.push({
+            id: 'blood-' + b.id,
+            type: 'blood',
+            title: '🩸 Blood Report Uploaded',
+            desc: b.user_name || b.user_email || 'A client',
+            time: b.created_at,
+            link: 'blood'
+          });
+        });
+      } catch (_) { /* table not migrated on this deployment */ }
+      // Smart scale uploads (decades scan / InBody / weighing scale reports from
+      // the Sunday check-in page) — had zero notification presence anywhere.
+      try {
+        const scaleRows = await queryAll(
+          `SELECT id, user_name, user_email, created_at FROM smart_scale_uploads
+           ORDER BY created_at DESC LIMIT 25`
+        );
+        scaleRows.forEach(sc => {
+          notifications.push({
+            id: 'scale-' + sc.id,
+            type: 'scale',
+            title: '⚖️ Smart Scale Report Uploaded',
+            desc: sc.user_name || sc.user_email || 'A client',
+            time: sc.created_at,
+            link: 'smartscale'
+          });
+        });
+      } catch (_) { /* table not migrated on this deployment */ }
       // Daily micro check-ins from users
       try {
         const dailyRows = await queryAll(
@@ -11046,7 +11082,8 @@ app.use(
     queryAll,
     verifyToken,
     requireAdminOrSuperadmin,
-    rateLimiter
+    rateLimiter,
+    sendPushToAdmins
   })
 );
 // Unauthenticated by design: a client opening a WhatsApp link is not logged in.
@@ -11059,7 +11096,8 @@ app.use(
     queryOne,
     queryAll,
     verifyToken,
-    rateLimiter
+    rateLimiter,
+    sendPushToAdmins
   })
 );
 app.use('/api/marketing-ai', createMarketingAIRouter({ run, queryAll }));

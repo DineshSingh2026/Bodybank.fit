@@ -269,8 +269,9 @@ function labFileDownloadName(report) {
 }
 
 function createBloodRouter(deps) {
-  const { run, queryOne, queryAll, verifyToken, rateLimiter } = deps;
+  const { run, queryOne, queryAll, verifyToken, rateLimiter, sendPushToAdmins } = deps;
   const db = { run, queryOne, queryAll };
+  const notifyStaffPush = typeof sendPushToAdmins === 'function' ? sendPushToAdmins : async () => {};
 
   const router = require('express').Router();
   router.use(verifyToken);
@@ -360,6 +361,13 @@ function createBloodRouter(deps) {
 
       notifyAsync('BLOOD_REPORT_UPLOADED', { name: displayName, email: u && u.email ? u.email : '—', mobile: u && u.phone ? u.phone : '—', goal: userGoal || '—' });
       notifyAgent('BLOOD_REPORT_UPLOADED', { name: displayName, email: u && u.email ? u.email : '—', mobile: u && u.phone ? u.phone : '—', goal: userGoal || '—' });
+      // Only the MEMBER's own upload pushes staff — an admin/operator uploading on
+      // a client's behalf already knows, so that path (below) stays push-silent.
+      notifyStaffPush(JSON.stringify({
+        title: '🩸 Blood report uploaded',
+        body: (displayName || 'A client') + ' uploaded a blood report — review & process.',
+        id: 'blood-' + reportId
+      })).catch(() => {});
       res.json({
         success: true,
         reportId,
