@@ -12294,7 +12294,7 @@ app.get('/api/feed/posts', optionalAuth, async (req, res) => {
     if (viewerId) {
       filterParams.push(viewerId);
       where += ` AND (user_id IS NULL OR user_id NOT IN (
-        SELECT blocked_user_id FROM user_blocks WHERE blocker_id = ${filterParams.length}
+        SELECT blocked_user_id FROM user_blocks WHERE blocker_id = $${filterParams.length}
       ))`;
     }
 
@@ -12307,7 +12307,7 @@ app.get('/api/feed/posts', optionalAuth, async (req, res) => {
       `SELECT id, username, caption, image_mime, likes, featured, created_at, user_id
          FROM feed_posts ${where}
         ORDER BY created_at DESC
-        LIMIT ${rowParams.length - 1} OFFSET ${rowParams.length}`,
+        LIMIT $${rowParams.length - 1} OFFSET $${rowParams.length}`,
       rowParams
     );
 
