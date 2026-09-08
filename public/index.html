@@ -4107,6 +4107,24 @@ button.bb-today-pill{cursor:pointer}
 .user-bottom-nav-item:hover,.user-bottom-nav-item:focus{color:var(--cream);outline:none}
 .user-bottom-nav-item.active{color:var(--gold)}
 .user-bottom-nav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:3px;background:var(--gold);border-radius:2px}
+/* Elite Feed moderation controls (Guideline 1.2) */
+.bb-uf-post-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.bb-uf-mod-btn{background:none;border:1px solid rgba(255,255,255,0.14);color:#9a9a9a;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:.3px;padding:4px 9px;border-radius:14px;cursor:pointer;transition:color .2s,border-color .2s;-webkit-tap-highlight-color:transparent;white-space:nowrap}
+.bb-uf-mod-btn:hover,.bb-uf-mod-btn:focus{color:#ff8a8a;border-color:rgba(255,138,138,0.45);outline:none}
+.bb-blocked-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:var(--cream);font-size:14px}
+.bb-blocked-row:last-child{border-bottom:none}
+/* Admin moderation queue */
+.bb-mod-count{display:inline-block;min-width:20px;padding:1px 7px;margin-left:6px;border-radius:10px;background:#ff4d4d;color:#fff;font-size:11px;font-weight:700;text-align:center;vertical-align:middle}
+.bb-mod-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.08)}
+.bb-mod-row:last-child{border-bottom:none}
+.bb-mod-row-main{min-width:0;flex:1}
+.bb-mod-row-head{display:flex;align-items:center;gap:8px;color:var(--cream);font-size:14px;text-transform:capitalize}
+.bb-mod-tag{display:inline-block;padding:1px 8px;border-radius:10px;background:rgba(255,255,255,0.08);color:#9a9a9a;font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
+.bb-mod-row-sub{color:#8a8a8a;font-size:12px;margin-top:3px}
+.bb-mod-row-cap{color:#c9c9c9;font-size:13px;margin-top:6px;overflow-wrap:anywhere}
+.bb-mod-row-note{color:#9a9a9a;font-size:12px;font-style:italic;margin-top:6px;overflow-wrap:anywhere}
+.bb-mod-row-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+@media(max-width:600px){.bb-mod-row{flex-direction:column}.bb-mod-row-actions{flex-direction:row;flex-wrap:wrap;width:100%}}
 .user-bottom-nav-badge{position:absolute;top:8px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:#ff5c5c;border:2px solid var(--black,#0a0a0a);box-shadow:0 0 0 1px rgba(255,92,92,0.4)}
 .user-bottom-nav-icon{display:flex;align-items:center;justify-content:center;width:24px;height:24px;font-size:20px;line-height:1;margin-bottom:4px;flex-shrink:0}
 .user-bottom-nav-label{display:block;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;min-height:14px}
@@ -7960,6 +7978,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
               <h2 id="bb-ef-all-posts-title">All posts</h2>
               <div style="display:flex;align-items:center;gap:8px">
                 <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadUserEliteFeedGrid()">Refresh</button>
+                <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="openBlockedMembersModal()">Blocked</button>
                 <button type="button" class="bb-post-fab" onclick="openBbPostSheet()" aria-label="New post" title="New post">＋</button>
               </div>
             </div>
@@ -8638,6 +8657,16 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
                 <p>All posts in one place.</p>
               </div>
             </header>
+            <section class="bb-ef-card bb-uf-card-shell" aria-labelledby="bb-ef-admin-reports" style="margin-bottom:18px">
+              <div class="bb-ef-posts-head">
+                <h2 id="bb-ef-admin-reports">Reported posts <span id="adminFeedReportCount" class="bb-mod-count"></span></h2>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadAdminFeedReports('open')">Open</button>
+                  <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadAdminFeedReports('resolved')">Resolved</button>
+                </div>
+              </div>
+              <div id="adminFeedReportsList"></div>
+            </section>
             <section class="bb-ef-card bb-uf-card-shell" aria-labelledby="bb-ef-admin-all-posts">
               <div class="bb-ef-posts-head">
                 <h2 id="bb-ef-admin-all-posts">All posts</h2>
@@ -10835,6 +10864,37 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
   </div>
 </div>
 
+<!-- FEED REPORT MODAL (Apple Guideline 1.2 — reporting objectionable content) -->
+<div class="modal-overlay" id="feedReportModal" onclick="if(event.target===this)closeModal('feedReportModal')">
+  <div class="modal" style="max-width:440px">
+    <button class="modal-close" onclick="closeModal('feedReportModal')">&times;</button>
+    <h2 style="margin-bottom:6px">Report this post</h2>
+    <p style="color:#9a9a9a;font-size:13px;margin-bottom:18px">Tell us what is wrong and our team will review it within 24 hours.</p>
+    <label class="form-label" for="feedReportReason">Reason</label>
+    <select class="input" id="feedReportReason" style="margin-bottom:14px">
+      <option value="nudity">Nudity or sexual content</option>
+      <option value="harassment">Harassment or bullying</option>
+      <option value="violence">Violence or self-harm</option>
+      <option value="spam">Spam or a scam</option>
+      <option value="misinformation">False health information</option>
+      <option value="other">Something else</option>
+    </select>
+    <label class="form-label" for="feedReportNote">Anything else? (optional)</label>
+    <textarea class="input" id="feedReportNote" rows="3" maxlength="500" placeholder="Add any detail that helps us review this"></textarea>
+    <button class="form-submit" id="feedReportSubmit" onclick="submitFeedReport()" style="margin-top:16px">Submit report</button>
+  </div>
+</div>
+
+<!-- BLOCKED MEMBERS MODAL (Apple Guideline 1.2 — blocking abusive users) -->
+<div class="modal-overlay" id="blockedMembersModal" onclick="if(event.target===this)closeModal('blockedMembersModal')">
+  <div class="modal" style="max-width:440px">
+    <button class="modal-close" onclick="closeModal('blockedMembersModal')">&times;</button>
+    <h2 style="margin-bottom:6px">Blocked members</h2>
+    <p style="color:#9a9a9a;font-size:13px;margin-bottom:18px">You do not see posts from anyone listed here.</p>
+    <div id="blockedMembersList"></div>
+  </div>
+</div>
+
 <!-- DELETE ACCOUNT MODAL (Apple Guideline 5.1.1(v)) -->
 <div class="modal-overlay" id="deleteAccountModal" onclick="if(event.target===this)closeModal('deleteAccountModal')">
   <div class="modal" style="max-width:440px">
@@ -12340,7 +12400,11 @@ function bbUserFeedCardHtml(p){
     +       '<img class="bb-uf-post-avatar" src="/img/Bodybank%20logo.png" alt="" loading="lazy">'
     +       '<div><div class="bb-uf-post-name">' + user + '</div><div class="bb-uf-post-time">' + bbEscapeHtml(bbUserFeedRelativeTime(p.createdAt)) + '</div></div>'
     +     '</div>'
-    +     (canDelete ? '<button type="button" class="bb-feed-delete-btn js-feed-delete" data-post-id="' + bbEscapeHtml(postId) + '">Delete</button>' : '')
+    +     '<div class="bb-uf-post-tools">'
+    +       (canDelete ? '<button type="button" class="bb-feed-delete-btn js-feed-delete" data-post-id="' + bbEscapeHtml(postId) + '">Delete</button>' : '')
+    +       (p.mine ? '' : '<button type="button" class="bb-uf-mod-btn js-uf-report" title="Report this post" aria-label="Report this post">⚑ Report</button>')
+    +       (p.mine ? '' : '<button type="button" class="bb-uf-mod-btn js-uf-block" title="Block this member" aria-label="Block this member">⊘ Block</button>')
+    +     '</div>'
     +   '</div>'
     +   '<div class="bb-uf-post-img-wrap"><img class="bb-uf-post-img" src="' + bbEscapeHtml(img) + '" alt="BodyBank post" loading="lazy" decoding="async"></div>'
     +   '<div class="bb-uf-post-actions">'
@@ -12375,7 +12439,9 @@ function bbBindUserFeedActions(){
     var likeBtn = e.target && e.target.closest ? e.target.closest('.js-uf-like') : null;
     var commentBtn = e.target && e.target.closest ? e.target.closest('.js-uf-comment') : null;
     var deleteBtn = e.target && e.target.closest ? e.target.closest('.js-feed-delete') : null;
-    if (!likeBtn && !commentBtn && !deleteBtn) return;
+    var reportBtn = e.target && e.target.closest ? e.target.closest('.js-uf-report') : null;
+    var blockBtn = e.target && e.target.closest ? e.target.closest('.js-uf-block') : null;
+    if (!likeBtn && !commentBtn && !deleteBtn && !reportBtn && !blockBtn) return;
     var postEl = e.target.closest('.bb-uf-post');
     if (!postEl) return;
     var id = String(postEl.getAttribute('data-post-id') || '');
@@ -12384,6 +12450,8 @@ function bbBindUserFeedActions(){
       bbDeleteFeedPost(id);
       return;
     }
+    if (reportBtn) { openFeedReportModal(id); return; }
+    if (blockBtn) { bbBlockFeedAuthor(id); return; }
     if (likeBtn) {
       var likes = bbUserFeedLikedMap();
       likes[id] = !likes[id];
@@ -12474,14 +12542,116 @@ async function bbDeleteFeedPost(postId){
     alert(e.message || 'Could not delete post.');
   }
 }
+/* ==========================================================================
+   Elite Feed moderation — App Store Guideline 1.2
+   Members must be able to report objectionable posts and block the member who
+   posted them. Two independent reports hide a post immediately; staff review the
+   queue in the admin Elite Feed tab.
+   ========================================================================== */
+var _bbReportPostId = '';
+
+function openFeedReportModal(postId){
+  _bbReportPostId = String(postId || '');
+  if (!_bbReportPostId) return;
+  var sel = document.getElementById('feedReportReason');
+  var note = document.getElementById('feedReportNote');
+  if (sel) sel.value = 'nudity';
+  if (note) note.value = '';
+  openModal('feedReportModal');
+}
+
+async function submitFeedReport(){
+  if (!_bbReportPostId) return;
+  var btn = document.getElementById('feedReportSubmit');
+  var sel = document.getElementById('feedReportReason');
+  var note = document.getElementById('feedReportNote');
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
+  try {
+    var res = await apiCall('POST', '/api/feed/report', {
+      postId: _bbReportPostId,
+      reason: (sel && sel.value) || 'other',
+      note: (note && note.value) || ''
+    });
+    closeModal('feedReportModal');
+    showPopup(
+      'Report received',
+      res && res.alreadyReported
+        ? 'You have already reported this post. Our team is reviewing it.'
+        : (res && res.autoHidden
+            ? 'Thank you. This post has been hidden and our team will review it within 24 hours.'
+            : 'Thank you. Our team will review this post within 24 hours.'),
+      '', 'OK'
+    );
+    loadUserEliteFeedGrid();
+  } catch (e) {
+    showPopup('Could not send report', (e && e.message) || 'Please try again.', '', 'OK', null, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Submit report'; }
+  }
+}
+
+function bbBlockFeedAuthor(postId){
+  if (!postId) return;
+  showPopup(
+    'Block this member?',
+    'You will stop seeing every post from this member. You can undo this from the Blocked list at any time.',
+    'Cancel',
+    'Block',
+    async function(){
+      try {
+        var res = await apiCall('POST', '/api/feed/block', { postId: String(postId) });
+        showPopup('Member blocked', 'You will no longer see posts from ' + ((res && res.blocked) || 'this member') + '.', '', 'OK');
+        loadUserEliteFeedGrid();
+      } catch (e) {
+        showPopup('Could not block', (e && e.message) || 'Please try again.', '', 'OK', null, 'error');
+      }
+    },
+    'error'
+  );
+}
+
+async function openBlockedMembersModal(){
+  openModal('blockedMembersModal');
+  var list = document.getElementById('blockedMembersList');
+  if (list) list.innerHTML = '<p class="bb-ef-status">Loading…</p>';
+  try {
+    var res = await apiCall('GET', '/api/feed/blocked');
+    var rows = (res && res.blocked) || [];
+    if (!list) return;
+    if (!rows.length) {
+      list.innerHTML = '<p class="bb-ef-status">You have not blocked anyone.</p>';
+      return;
+    }
+    list.innerHTML = rows.map(function(r){
+      return '<div class="bb-blocked-row">'
+        + '<span>' + bbEscapeHtml(String(r.name || 'member')) + '</span>'
+        + '<button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="bbUnblockMember(\'' + bbEscapeHtml(String(r.id)) + '\')">Unblock</button>'
+        + '</div>';
+    }).join('');
+  } catch (e) {
+    if (list) list.innerHTML = '<p class="bb-ef-status">Could not load the blocked list.</p>';
+  }
+}
+
+async function bbUnblockMember(blockedId){
+  if (!blockedId) return;
+  try {
+    await apiCall('POST', '/api/feed/unblock', { blockedId: String(blockedId) });
+    openBlockedMembersModal();
+    loadUserEliteFeedGrid();
+  } catch (e) {
+    showPopup('Could not unblock', (e && e.message) || 'Please try again.', '', 'OK', null, 'error');
+  }
+}
+
 async function bbFetchAllFeedPosts(){
   var all = [];
   var offset = 0;
   var limit = 24;
   for (var guard = 0; guard < 80; guard++) {
-    var r = await fetch('/api/feed/posts?limit=' + limit + '&offset=' + offset, { credentials: 'same-origin' });
-    if (!r.ok) throw new Error('feed_http');
-    var j = await r.json();
+    // Signed in, the listing must go out authenticated: the server uses the token
+    // to drop posts by members this viewer has blocked and to mark their own posts.
+    var j = await apiCall('GET', '/api/feed/posts?limit=' + limit + '&offset=' + offset);
     var batch = j.posts || [];
     all = all.concat(batch);
     if (!j.hasMore || !batch.length) break;
@@ -12504,7 +12674,65 @@ async function loadUserEliteFeedGrid(){
     if (empty) empty.classList.remove('is-visible');
   }
 }
+/* Admin moderation queue — reported posts (Guideline 1.2). */
+async function loadAdminFeedReports(status){
+  var list = document.getElementById('adminFeedReportsList');
+  var countEl = document.getElementById('adminFeedReportCount');
+  if (!list) return;
+  var want = status === 'resolved' ? 'resolved' : 'open';
+  list.innerHTML = '<p class="bb-ef-status">Loading…</p>';
+  try {
+    var res = await apiCall('GET', '/api/admin/feed/reports?status=' + want);
+    var rows = (res && res.reports) || [];
+    if (countEl) countEl.textContent = (want === 'open' && rows.length) ? String(rows.length) : '';
+    if (!rows.length) {
+      list.innerHTML = '<p class="bb-ef-status">' + (want === 'open' ? 'Nothing reported. ' : 'No resolved reports yet.') + '</p>';
+      return;
+    }
+    list.innerHTML = rows.map(function(r){
+      var id = bbEscapeHtml(String(r.id || ''));
+      var gone = !r.author;
+      return '<div class="bb-mod-row">'
+        + '<div class="bb-mod-row-main">'
+        +   '<div class="bb-mod-row-head">'
+        +     '<strong>' + bbEscapeHtml(String(r.reason || 'other')) + '</strong>'
+        +     (r.hidden ? '<span class="bb-mod-tag">hidden</span>' : '')
+        +     (gone ? '<span class="bb-mod-tag">post deleted</span>' : '')
+        +   '</div>'
+        +   '<div class="bb-mod-row-sub">by ' + bbEscapeHtml(String(r.author || '—'))
+        +     ' · reported by ' + bbEscapeHtml(String(r.reporter || '—')) + '</div>'
+        +   (r.caption ? '<div class="bb-mod-row-cap">' + bbEscapeHtml(String(r.caption).slice(0, 160)) + '</div>' : '')
+        +   (r.note ? '<div class="bb-mod-row-note">“' + bbEscapeHtml(String(r.note).slice(0, 300)) + '”</div>' : '')
+        +   (r.status === 'resolved' ? '<div class="bb-mod-row-sub">resolved: ' + bbEscapeHtml(String(r.resolution || '—')) + '</div>' : '')
+        + '</div>'
+        + (r.status === 'open'
+            ? '<div class="bb-mod-row-actions">'
+              + '<button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="bbResolveFeedReport(\'' + id + '\',\'remove\')">Remove post</button>'
+              + '<button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="bbResolveFeedReport(\'' + id + '\',\'restore\')">Restore</button>'
+              + '<button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="bbResolveFeedReport(\'' + id + '\',\'dismiss\')">Dismiss</button>'
+              + '</div>'
+            : '')
+        + '</div>';
+    }).join('');
+  } catch (e) {
+    list.innerHTML = '<p class="bb-ef-status">Could not load reports.</p>';
+  }
+}
+
+async function bbResolveFeedReport(reportId, action){
+  if (!reportId || !action) return;
+  if (action === 'remove' && !window.confirm('Delete this post permanently?')) return;
+  try {
+    await apiCall('POST', '/api/admin/feed/reports/resolve', { reportId: String(reportId), action: String(action) });
+    loadAdminFeedReports('open');
+    loadAdminEliteFeedGrid();
+  } catch (e) {
+    alert((e && e.message) || 'Could not resolve this report.');
+  }
+}
+
 async function loadAdminEliteFeedGrid(){
+  loadAdminFeedReports('open');
   var grid = document.getElementById('adminEliteFeedGrid');
   var empty = document.getElementById('adminEliteFeedEmpty');
   if (!grid) return;

@@ -61,7 +61,7 @@ const crypto = require('crypto');
 const { notify, notifyAsync, formatEventMessage } = require('./utils/notify');
 const { sendWhatsApp, sendWhatsAppTemplate, sendWhatsAppWithFallback } = require('./services/whatsapp');
 const { createWaInbound, createPgStore, ensureWaTables } = require('./services/waInbound');
-const { notifyAgent } = require('./utils/agentWebhook');
+const { notifyAgent, setEventSink: setAgentEventSink } = require('./utils/agentWebhook');
 const { verifyToken: verifyNutritionPhotoLink } = require('./utils/nutritionPhotoLink');
 const { startEmailScheduler, getAdminDailyComplianceReportData, sendAdminDailyComplianceReport } = require('./services/emailScheduler');
 const {
@@ -604,8 +604,14 @@ const waInbound = createWaInbound({
   store: createPgStore({ queryAll, queryOne, run, uuidv4 }),
   uuidv4,
   notify,
-  sendWhatsApp: (message, opts) => sendWhatsAppWithFallback(message, opts)
+  sendWhatsApp: (message, opts) => sendWhatsAppWithFallback(message, opts),
+  sendWhatsAppWithFallback: (message, opts) => sendWhatsAppWithFallback(message, opts)
 });
+
+// App events (workout logged, form submitted, ...) reach the WhatsApp agent
+// through the same notifyAgent() calls that already feed the monitoring webhook.
+// No-op unless WA_INBOUND_ENABLED and WA_EVENT_TRIGGERS_ENABLED are both on.
+setAgentEventSink((eventName, data) => waInbound.handleAppEvent(eventName, data));
 
 function normalizeGeoFields(country, timezone) {
   const cleanCountry = String(country || '').trim();
@@ -1692,6 +1698,37 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS user_id TEXT`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_feed_posts_created_at ON feed_posts(created_at DESC)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_feed_posts_username ON feed_posts(username)`); } catch (e) { /* ignore */ }
+
+  // ── Elite Feed moderation (App Store Guideline 1.2) ──────────────────────
+  // An app with user-generated content must let members report objectionable
+  // posts and block the members who post them, and must give staff a way to act
+  // on those reports. `hidden` takes a post out of every member's feed without
+  // destroying it, so a report can be reversed if it was wrong.
+  try { await pool.query(`ALTER TABLE feed_posts ADD COLUMN IF NOT EXISTS hidden BOOLEAN DEFAULT FALSE`); } catch (e) { /* ignore */ }
+  await pool.query(`CREATE TABLE IF NOT EXISTS feed_reports (
+    id TEXT PRIMARY KEY,
+    post_id TEXT NOT NULL,
+    reporter_id TEXT NOT NULL,
+    reason TEXT NOT NULL DEFAULT 'other',
+    note TEXT DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'open',
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    resolved_at TIMESTAMPTZ,
+    resolved_by TEXT,
+    resolution TEXT DEFAULT ''
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_feed_reports_status ON feed_reports(status, created_at DESC)`); } catch (e) { /* ignore */ }
+  // One open report per member per post: stops a single member spamming the queue.
+  try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_feed_reports_unique_open ON feed_reports(post_id, reporter_id) WHERE status = 'open'`); } catch (e) { /* ignore */ }
+
+  await pool.query(`CREATE TABLE IF NOT EXISTS user_blocks (
+    id TEXT PRIMARY KEY,
+    blocker_id TEXT NOT NULL,
+    blocked_user_id TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+  )`);
+  try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_user_blocks_pair ON user_blocks(blocker_id, blocked_user_id)`); } catch (e) { /* ignore */ }
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_blocks_blocker ON user_blocks(blocker_id)`); } catch (e) { /* ignore */ }
   // ── My Body section (Phase 1) ──
   // Photos + bodyweight + waist; measurements JSONB and shared_with_manager
   // are forward-compat for Phases 2 & 4. user_id is TEXT to match users.id.
@@ -12234,24 +12271,60 @@ app.get('/api/public/nutrition-photo/:mealId', async (req, res) => {
 });
 
 // ── GET /api/feed/posts ─────────────────────────────────────────────
-app.get('/api/feed/posts', async (req, res) => {
+// The feed listing is public, but a signed-in member must not be shown posts by
+// someone they have blocked. Decode the token when one is present and carry on
+// anonymously when it is not — an invalid token degrades to anonymous rather than
+// failing the request, because this endpoint has always been readable signed out.
+function optionalAuth(req, _res, next) {
+  try {
+    const h = req.headers.authorization;
+    const token = h && h.startsWith('Bearer ') ? h.slice(7) : (req.query?.token || '');
+    if (token) req.user = require('jsonwebtoken').verify(token, AUTH_JWT_SECRET);
+  } catch (_) { /* anonymous */ }
+  next();
+}
+
+app.get('/api/feed/posts', optionalAuth, async (req, res) => {
   try {
     const limitRaw  = parseInt(req.query.limit, 10);
     const offsetRaw = parseInt(req.query.offset, 10);
     const limit  = Number.isFinite(limitRaw)  ? Math.min(Math.max(limitRaw, 1), 24) : 10;
     const offset = Number.isFinite(offsetRaw) ? Math.max(offsetRaw, 0) : 0;
+    const viewerId = req.user && req.user.id ? String(req.user.id) : '';
 
-    const countRow = await queryOne('SELECT COUNT(*)::int AS total FROM feed_posts', []);
+    // Hidden posts are gone for everyone; blocked authors are gone for this viewer.
+    let where = 'WHERE COALESCE(hidden, FALSE) = FALSE';
+    const filterParams = [];
+    if (viewerId) {
+      filterParams.push(viewerId);
+      where += ` AND (user_id IS NULL OR user_id NOT IN (
+        SELECT blocked_user_id FROM user_blocks WHERE blocker_id = ${filterParams.length}
+      ))`;
+    }
+
+    const countRow = await queryOne(`SELECT COUNT(*)::int AS total FROM feed_posts ${where}`, filterParams.slice());
     const total = (countRow && countRow.total) ? Number(countRow.total) : 0;
+
+    const rowParams = filterParams.slice();
+    rowParams.push(limit, offset);
     const rows = await queryAll(
-      'SELECT id, username, caption, image_mime, likes, featured, created_at FROM feed_posts ORDER BY created_at DESC LIMIT $1 OFFSET $2',
-      [limit, offset]
+      `SELECT id, username, caption, image_mime, likes, featured, created_at, user_id
+         FROM feed_posts ${where}
+        ORDER BY created_at DESC
+        LIMIT ${rowParams.length - 1} OFFSET ${rowParams.length}`,
+      rowParams
     );
-    return res.json({
-      posts: rows.map(feedRowToPost),
-      hasMore: offset + limit < total,
-      total
+
+    // `mine` lets the client hide Report/Block on a member's own posts. The raw
+    // author id is deliberately not exposed — the client never needs it.
+    const posts = rows.map(r => {
+      const post = feedRowToPost(r);
+      post.mine = !!(viewerId && r.user_id && String(r.user_id) === viewerId);
+      post.canModerate = !!(req.user && ['admin', 'superadmin'].includes(req.user.role));
+      return post;
     });
+
+    return res.json({ posts, hasMore: offset + limit < total, total });
   } catch (e) {
     console.error('[feed] GET /posts error:', e.message);
     return res.status(500).json({ error: 'Failed to load feed posts.' });
@@ -12353,6 +12426,183 @@ app.post('/api/feed/delete', verifyToken, async (req, res) => {
   } catch (e) {
     console.error('[feed] POST /delete error:', e.message);
     return res.status(500).json({ error: 'Failed to delete post.' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════════════════
+// Elite Feed moderation — App Store Guideline 1.2
+// An app carrying user-generated content must offer a way to report objectionable
+// posts, a way to block the member who posted them, and a route for staff to act.
+// ══════════════════════════════════════════════════════════════════════════
+
+const FEED_REPORT_REASONS = ['nudity', 'harassment', 'spam', 'misinformation', 'violence', 'other'];
+
+// ── POST /api/feed/report ───────────────────────────────────────────────
+app.post('/api/feed/report', verifyToken, async (req, res) => {
+  try {
+    const postId = String(req.body?.postId || '').trim();
+    if (!postId) return res.status(400).json({ error: 'postId is required.' });
+    const reason = FEED_REPORT_REASONS.includes(String(req.body?.reason || '')) ? String(req.body.reason) : 'other';
+    const note = String(req.body?.note || '').trim().slice(0, 500);
+
+    const post = await queryOne('SELECT id, username, user_id, caption FROM feed_posts WHERE id = $1', [postId]);
+    if (!post) return res.status(404).json({ error: 'Post not found.' });
+    if (post.user_id && String(post.user_id) === String(req.user.id)) {
+      return res.status(400).json({ error: 'You cannot report your own post.' });
+    }
+
+    // Reporting the same post twice is a no-op rather than an error: the member
+    // has done what was asked of them and should be told it worked.
+    const existing = await queryOne(
+      "SELECT id FROM feed_reports WHERE post_id = $1 AND reporter_id = $2 AND status = 'open'",
+      [postId, String(req.user.id)]
+    );
+    if (existing) return res.json({ ok: true, alreadyReported: true });
+
+    const id = crypto.randomUUID();
+    await pool.query(
+      'INSERT INTO feed_reports (id, post_id, reporter_id, reason, note) VALUES ($1,$2,$3,$4,$5)',
+      [id, postId, String(req.user.id), reason, note]
+    );
+
+    const openCount = await queryOne(
+      "SELECT COUNT(*)::int AS n FROM feed_reports WHERE post_id = $1 AND status = 'open'", [postId]
+    );
+    const n = openCount && openCount.n ? Number(openCount.n) : 1;
+
+    // Two independent reports take the post out of circulation immediately. Staff
+    // can restore it; a post sitting visible while a queue is worked through is the
+    // failure mode Guideline 1.2 exists to prevent.
+    if (n >= 2) {
+      await pool.query('UPDATE feed_posts SET hidden = TRUE WHERE id = $1', [postId]);
+    }
+
+    notifyAgent('FEED_POST_REPORTED', {
+      post_id: postId,
+      author: post.username || '—',
+      reason,
+      note: note || '—',
+      open_reports: n,
+      auto_hidden: n >= 2
+    });
+
+    return res.json({ ok: true, autoHidden: n >= 2 });
+  } catch (e) {
+    console.error('[feed] POST /report error:', e.message);
+    return res.status(500).json({ error: 'Failed to submit report.' });
+  }
+});
+
+// ── POST /api/feed/block ────────────────────────────────────────────────
+app.post('/api/feed/block', verifyToken, async (req, res) => {
+  try {
+    const postId = String(req.body?.postId || '').trim();
+    if (!postId) return res.status(400).json({ error: 'postId is required.' });
+
+    // Members block through a post, never by user id: the client is never given
+    // another member's id, and it should not need one.
+    const post = await queryOne('SELECT id, user_id, username FROM feed_posts WHERE id = $1', [postId]);
+    if (!post) return res.status(404).json({ error: 'Post not found.' });
+    if (!post.user_id) return res.status(400).json({ error: 'This post has no author on record and cannot be blocked.' });
+    if (String(post.user_id) === String(req.user.id)) return res.status(400).json({ error: 'You cannot block yourself.' });
+
+    await pool.query(
+      'INSERT INTO user_blocks (id, blocker_id, blocked_user_id) VALUES ($1,$2,$3) ON CONFLICT (blocker_id, blocked_user_id) DO NOTHING',
+      [crypto.randomUUID(), String(req.user.id), String(post.user_id)]
+    );
+    return res.json({ ok: true, blocked: post.username || 'member' });
+  } catch (e) {
+    console.error('[feed] POST /block error:', e.message);
+    return res.status(500).json({ error: 'Failed to block member.' });
+  }
+});
+
+// ── GET /api/feed/blocked ───────────────────────────────────────────────
+app.get('/api/feed/blocked', verifyToken, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT b.blocked_user_id AS id,
+              COALESCE(NULLIF(TRIM(u.first_name), ''), u.email, 'member') AS name,
+              b.created_at
+         FROM user_blocks b
+         LEFT JOIN users u ON u.id = b.blocked_user_id
+        WHERE b.blocker_id = $1
+        ORDER BY b.created_at DESC`,
+      [String(req.user.id)]
+    );
+    return res.json({ blocked: rows });
+  } catch (e) {
+    console.error('[feed] GET /blocked error:', e.message);
+    return res.status(500).json({ error: 'Failed to load blocked members.' });
+  }
+});
+
+// ── POST /api/feed/unblock ──────────────────────────────────────────────
+app.post('/api/feed/unblock', verifyToken, async (req, res) => {
+  try {
+    const blockedId = String(req.body?.blockedId || '').trim();
+    if (!blockedId) return res.status(400).json({ error: 'blockedId is required.' });
+    await pool.query('DELETE FROM user_blocks WHERE blocker_id = $1 AND blocked_user_id = $2',
+      [String(req.user.id), blockedId]);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error('[feed] POST /unblock error:', e.message);
+    return res.status(500).json({ error: 'Failed to unblock member.' });
+  }
+});
+
+// ── GET /api/admin/feed/reports ─────────────────────────────────────────
+app.get('/api/admin/feed/reports', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const status = String(req.query.status || 'open') === 'resolved' ? 'resolved' : 'open';
+    const rows = await queryAll(
+      `SELECT r.id, r.post_id, r.reason, r.note, r.status, r.created_at, r.resolution,
+              p.username AS author, p.caption, COALESCE(p.hidden, FALSE) AS hidden,
+              COALESCE(NULLIF(TRIM(u.first_name), ''), u.email, 'member') AS reporter
+         FROM feed_reports r
+         LEFT JOIN feed_posts p ON p.id = r.post_id
+         LEFT JOIN users u ON u.id = r.reporter_id
+        WHERE r.status = $1
+        ORDER BY r.created_at DESC
+        LIMIT 200`,
+      [status]
+    );
+    return res.json({ reports: rows, status });
+  } catch (e) {
+    console.error('[feed] GET /admin/reports error:', e.message);
+    return res.status(500).json({ error: 'Failed to load reports.' });
+  }
+});
+
+// ── POST /api/admin/feed/reports/resolve ────────────────────────────────
+app.post('/api/admin/feed/reports/resolve', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const reportId = String(req.body?.reportId || '').trim();
+    const action = String(req.body?.action || '').trim(); // 'remove' | 'restore' | 'dismiss'
+    if (!reportId) return res.status(400).json({ error: 'reportId is required.' });
+    if (!['remove', 'restore', 'dismiss'].includes(action)) {
+      return res.status(400).json({ error: 'action must be remove, restore or dismiss.' });
+    }
+
+    const report = await queryOne('SELECT id, post_id FROM feed_reports WHERE id = $1', [reportId]);
+    if (!report) return res.status(404).json({ error: 'Report not found.' });
+
+    if (action === 'remove') {
+      await pool.query('DELETE FROM feed_posts WHERE id = $1', [report.post_id]);
+    } else if (action === 'restore') {
+      await pool.query('UPDATE feed_posts SET hidden = FALSE WHERE id = $1', [report.post_id]);
+    }
+
+    // Resolving one report closes every open report on the same post: they are all
+    // answered by the same decision.
+    await pool.query(
+      "UPDATE feed_reports SET status = 'resolved', resolved_at = CURRENT_TIMESTAMP, resolved_by = $1, resolution = $2 WHERE post_id = $3 AND status = 'open'",
+      [String(req.user.id), action, report.post_id]
+    );
+    return res.json({ ok: true, action });
+  } catch (e) {
+    console.error('[feed] POST /admin/reports/resolve error:', e.message);
+    return res.status(500).json({ error: 'Failed to resolve report.' });
   }
 });
 
