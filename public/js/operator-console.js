@@ -138,7 +138,9 @@ function loadOperatorDashboard() {
   loadOperatorNotifications();
 }
 
-var OP_SCREENS = ['home', 'clients', 'blood', 'prospects', 'inbox', 'pulse'];
+// 'smartscale' is appended (not inserted) so it keeps no numeric shortcut and the
+// existing 1-6 keys for the other screens (opBindShortcuts indexes into this array).
+var OP_SCREENS = ['home', 'clients', 'blood', 'prospects', 'inbox', 'pulse', 'smartscale'];
 
 function opNav(screen) {
   if (OP_SCREENS.indexOf(screen) === -1) screen = 'home';
@@ -158,6 +160,7 @@ function opNav(screen) {
   else if (screen === 'prospects') { if (!opState.leads) loadOperatorLeads(); else renderOperatorLeads(); }
   else if (screen === 'inbox') loadOperatorEscalations();
   else if (screen === 'pulse') { loadOperatorOverview(); loadOperatorActivity(); renderOperatorCompliance(); }
+  else if (screen === 'smartscale') { if (opState.smartScale) renderOperatorSmartScale(); else loadOperatorSmartScale(); }
 }
 // Old tab vocabulary, kept for any caller that still speaks it.
 function switchOperatorTab(tab) {
@@ -649,6 +652,134 @@ function opBloodCard(c) {
     + '<button type="button" class="op-next ' + (n ? 'info' : 'warn') + '" onclick="event.stopPropagation();openOperatorClient(\'' + id + '\',\'blood\')">'
     + '<span>' + cta + '</span><svg viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button>'
     + '</article>';
+}
+
+/* ================================================== SMART SCALE UPLOADS === */
+// Unlike Blood, this doesn't ride on opState.clients (the roster) — the
+// /api/smart-scale/admin/all rows already carry userName/userEmail, so it's a
+// direct, independent fetch, same endpoint the admin dashboard's Smart Scale
+// tab uses. Kept flat/read-plus-delete: no upload-on-behalf, no comparisons.
+function loadOperatorSmartScale() {
+  var el = opEl('opScaleCards');
+  if (el) el.innerHTML = '<div class="op-empty pad">Loading…</div>';
+  apiCall('GET', '/api/smart-scale/admin/all').then(function (d) {
+    opState.smartScale = (d && d.uploads) || [];
+    renderOperatorSmartScale();
+  }).catch(function () {
+    opState.smartScale = [];
+    if (el) el.innerHTML = '<div class="op-empty pad">Could not load uploads.</div>';
+  });
+}
+
+function renderOperatorSmartScale() {
+  var el = opEl('opScaleCards');
+  if (!el) return;
+  var all = opState.smartScale || [];
+  var q = ((opEl('opScaleSearch') || {}).value || '').trim();
+  var uploads = q ? all.filter(function (u) { return bbContactMatches(q, [u.userName, u.userEmail], []); }) : all;
+
+  var order = [], byUser = {};
+  uploads.forEach(function (u) {
+    var k = String(u.userId || u.userEmail || u.userName);
+    if (!byUser[k]) { byUser[k] = { name: u.userName || 'Client', email: u.userEmail || '', pic: u.profile_picture || '', rows: [] }; order.push(k); }
+    byUser[k].rows.push(u);
+  });
+
+  var line = opEl('opScaleLine'), sub = opEl('opScaleSub');
+  if (line) line.innerHTML = '<b>' + all.length + '</b> ' + (all.length === 1 ? 'file' : 'files') + ' across ' + opPlural(order.length, 'client');
+  if (sub) sub.textContent = order.length ? 'Optional upload from the Sunday check-in page' : 'No smart scale uploads yet';
+
+  el.innerHTML = order.length ? order.map(function (k) { return opScaleCard(byUser[k]); }).join('')
+    : '<div class="op-empty pad">No uploads match this view.</div>';
+}
+
+var OP_SCALE_STATUS_MAP = {
+  complete: ['#3dd68c', 'Data extracted'],
+  pending: ['#f0b429', 'Queued'],
+  extracting: ['#f0b429', 'Reading…'],
+  failed: ['#e05050', 'Failed']
+};
+function opScaleBadge(u) {
+  var m = OP_SCALE_STATUS_MAP[u.extractionStatus || 'pending'] || OP_SCALE_STATUS_MAP.pending;
+  return '<span style="display:inline-block;margin-left:6px;padding:1px 7px;border-radius:999px;font-size:10.5px;border:1px solid ' + m[0] + ';color:' + m[0] + '">' + m[1] + '</span>';
+}
+// Same generic {sections:[{title,metrics}]} shape the admin dashboard renders —
+// condensed for the console's narrower card width.
+function opScaleMetricsTable(extracted) {
+  if (!extracted || !Array.isArray(extracted.sections) || !extracted.sections.length) return '<p class="op-empty">No metrics extracted.</p>';
+  return extracted.sections.map(function (s) {
+    var rows = (s.metrics || []).map(function (m) {
+      return '<tr><td style="padding:3px 8px 3px 0;white-space:nowrap">' + opEsc(m.name) + '</td>'
+        + '<td style="padding:3px 8px;font-weight:600">' + opEsc(m.value) + '</td>'
+        + '<td style="padding:3px 8px;opacity:.65">' + opEsc(m.unit || '') + '</td>'
+        + '<td style="padding:3px 0;color:' + (m.status ? '#f0b429' : 'inherit') + '">' + opEsc(m.status || '') + '</td></tr>';
+    }).join('');
+    return '<div style="margin:8px 0 3px;font-weight:600;font-size:11.5px">' + opEsc(s.title) + '</div>'
+      + '<table style="border-collapse:collapse;font-size:11.5px;width:100%"><tbody>' + rows + '</tbody></table>';
+  }).join('');
+}
+
+function opScaleCard(g) {
+  var latest = g.rows.reduce(function (max, r) { return (!max || new Date(r.createdAt) > new Date(max)) ? r.createdAt : max; }, null);
+  var files = g.rows.map(function (u) {
+    var isPdf = String(u.mimeType || '').indexOf('pdf') >= 0;
+    var name = opEsc(u.originalFilename || (isPdf ? 'Report.pdf' : 'Image'));
+    var domId = 'opss-' + String(u.id).replace(/[^a-zA-Z0-9]/g, '');
+    var st = u.extractionStatus || 'pending';
+    var actions = '<button type="button" class="op-btn ghost" style="padding:4px 10px;font-size:11.5px" onclick="event.stopPropagation();bbAuthedDownload(\'/api/smart-scale/file/' + opAttr(u.id) + '\',\'SmartScale\')">⬇</button>';
+    if (st === 'complete') {
+      actions += '<button type="button" class="op-btn ghost" style="padding:4px 10px;font-size:11.5px" onclick="event.stopPropagation();opToggleSmartScaleData(\'' + domId + '\')">📊</button>';
+    }
+    if (st === 'failed') {
+      actions += '<button type="button" class="op-btn ghost" style="padding:4px 10px;font-size:11.5px" onclick="event.stopPropagation();opRetrySmartScaleExtraction(\'' + opAttr(u.id) + '\')">↻</button>';
+    }
+    actions += '<button type="button" class="op-btn ghost" style="padding:4px 10px;font-size:11.5px" onclick="event.stopPropagation();opDeleteSmartScaleUpload(\'' + opAttr(u.id) + '\')">🗑</button>';
+    var errLine = st === 'failed' && u.extractionError
+      ? '<div style="font-size:11px;color:#e05050;margin:2px 0 4px">' + opEsc(u.extractionError) + '</div>' : '';
+    var dataPanel = st === 'complete'
+      ? '<div id="' + domId + '" style="display:none;margin:6px 0 4px;padding:8px;background:rgba(255,255,255,0.04);border-radius:8px;overflow-x:auto">' + opScaleMetricsTable(u.extractedData) + '</div>'
+      : '';
+    return '<div class="op-scale-file" style="padding:6px 0;border-top:1px solid rgba(255,255,255,0.08);font-size:12.5px">'
+      + '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">'
+      + '<span>' + (isPdf ? '📄' : '🖼️') + ' ' + name + ' <i style="opacity:.6">' + opEsc(bbFmtDay(u.createdAt)) + '</i>' + opScaleBadge(u) + '</span>'
+      + '<span style="display:flex;gap:6px">' + actions + '</span></div>'
+      + errLine + dataPanel + '</div>';
+  }).join('');
+
+  return '<article class="op-card" style="cursor:default">'
+    + '<div class="op-card-top">' + opAvatar(g.pic, g.name, 'lg')
+    + '<div class="op-card-id"><div class="op-card-name">' + opEsc(g.name) + '</div>'
+    + '<div class="op-card-mail">' + opEsc(g.email) + '</div>'
+    + '<div class="op-card-tags"><span class="op-status ok">' + opPlural(g.rows.length, 'file') + '</span>'
+    + (latest ? '<span class="op-tag">Latest ' + opEsc(bbFmtDay(latest)) + '</span>' : '') + '</div></div></div>'
+    + files
+    + '</article>';
+}
+
+function opToggleSmartScaleData(domId) {
+  var el = opEl(domId);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function opRetrySmartScaleExtraction(id) {
+  apiCall('POST', '/api/smart-scale/admin/retry/' + encodeURIComponent(id)).then(function (d) {
+    if (d && (d.error || d.success === false)) {
+      showPopup('Retry failed', String(d.error || 'Could not restart extraction.'), '', 'OK', null, 'error');
+      return;
+    }
+    setTimeout(loadOperatorSmartScale, 4000);
+  });
+}
+
+function opDeleteSmartScaleUpload(id) {
+  if (!confirm('Delete this smart scale upload? This cannot be undone.')) return;
+  apiCall('DELETE', '/api/smart-scale/' + encodeURIComponent(id)).then(function (d) {
+    if (d && (d.error || d.success === false)) {
+      showPopup('Delete failed', String(d.error || 'Could not delete this file.'), '', 'OK', null, 'error');
+      return;
+    }
+    loadOperatorSmartScale();
+  });
 }
 
 /* ======================================================= CLIENT STORY === */

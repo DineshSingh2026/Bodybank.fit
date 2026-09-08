@@ -27,6 +27,7 @@ const { safeExtraHttpHeaders, optionalApiAccessLog, redactServerErrors } = requi
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
 const { createBloodRouter, createBloodPublicRouter } = require('./routes/blood');
+const { createSmartScaleRouter } = require('./routes/smartScale');
 const { createReferralRouter } = require('./routes/referrals');
 const { createWearablesRouter } = require('./routes/wearables');
 const { createMarketingAIRouter } = require('./routes/marketingAI');
@@ -1105,6 +1106,29 @@ async function initDB() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   try { await pool.query(`ALTER TABLE sunday_checkins ADD COLUMN IF NOT EXISTS body_fat_percent REAL`); } catch (e) { /* ignore */ }
+
+  // Smart scale uploads (InBody / decades-scan / smart weighing scale reports) —
+  // optional, offered alongside the Sunday check-in but not part of that table/route.
+  await pool.query(`CREATE TABLE IF NOT EXISTS smart_scale_uploads (
+    id TEXT PRIMARY KEY,
+    user_id TEXT NOT NULL,
+    checkin_id TEXT,
+    file_path TEXT NOT NULL,
+    original_filename TEXT DEFAULT '',
+    mime_type TEXT DEFAULT '',
+    file_size INTEGER DEFAULT 0,
+    user_name TEXT DEFAULT '',
+    user_email TEXT DEFAULT '',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  )`);
+  // AI extraction of the printed metrics (Weight/BMI/Fat%/Muscle mass/etc) — added
+  // after the table itself, so existing rows just backfill to 'pending'.
+  try { await pool.query(`ALTER TABLE smart_scale_uploads ADD COLUMN IF NOT EXISTS extraction_status TEXT DEFAULT 'pending'`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE smart_scale_uploads ADD COLUMN IF NOT EXISTS extracted_data JSONB`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE smart_scale_uploads ADD COLUMN IF NOT EXISTS extraction_error TEXT`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE smart_scale_uploads ADD COLUMN IF NOT EXISTS extraction_ai_usage JSONB`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE smart_scale_uploads ADD COLUMN IF NOT EXISTS device_brand TEXT`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE smart_scale_uploads ADD COLUMN IF NOT EXISTS report_date DATE`); } catch (e) { /* ignore */ }
 
   // Client Progress Analytics: user_goals, progress_logs
   await pool.query(`
@@ -11028,6 +11052,16 @@ app.use(
 // Unauthenticated by design: a client opening a WhatsApp link is not logged in.
 // The token in the path is the credential — see createBloodPublicRouter.
 app.use('/r/blood', createBloodPublicRouter({ run, queryOne, rateLimiter }));
+app.use(
+  '/api/smart-scale',
+  createSmartScaleRouter({
+    run,
+    queryOne,
+    queryAll,
+    verifyToken,
+    rateLimiter
+  })
+);
 app.use('/api/marketing-ai', createMarketingAIRouter({ run, queryAll }));
 app.use(
   '/api/referrals',
@@ -12079,6 +12113,10 @@ app.use('/uploads/health-reports', (req, res) => res.status(404).send('Not found
 // data under DPDP. /uploads is a public static mount, so this directory is closed
 // off here and served only through the staff-authenticated route on the router.
 app.use('/uploads/nutrition-assessment', (req, res) => res.status(404).send('Not found'));
+// Smart scale reports (InBody/decades-scan PDFs, weigh-in screenshots) are health
+// data too — closed off from the public static mount, served only via
+// /api/smart-scale/file/:id which checks ownership/staff role.
+app.use('/uploads/smart-scale', (req, res) => res.status(404).send('Not found'));
 app.use('/uploads', express.static(FEED_UPLOADS_DIR, {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
 }));

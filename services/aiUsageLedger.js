@@ -54,7 +54,8 @@ const SCOPE_LABELS = {
   whoop_report: 'Whoop — monthly report',
   // Universal device upload: reading a member's watch data off a screenshot or a
   // non-Whoop PDF. Without this entry the admin Tokens screen shows a raw slug.
-  device_vision: 'Wearables — screenshot import'
+  device_vision: 'Wearables — screenshot import',
+  smart_scale_extraction: 'Smart scale — extraction'
 };
 
 function toNumber(value, fallback = 0) {

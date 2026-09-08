@@ -600,7 +600,7 @@
 
 /* --------------------------------------------------------- responsive */
 #opBottomNav { display: none }
-#opBottomNav .admin-bottom-nav-inner { grid-template-columns: repeat(5, minmax(0, 1fr)) }
+#opBottomNav .admin-bottom-nav-inner { grid-template-columns: repeat(6, minmax(0, 1fr)) }
 #opBottomNav .admin-bottom-nav-label { font-size: 9.5px }
 
 @media (max-width: 1279px) { .op-kpis { grid-template-columns: repeat(4, minmax(0, 1fr)) } }

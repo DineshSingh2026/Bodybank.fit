@@ -7304,6 +7304,17 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <button type="submit" class="form-submit" id="scSubmitBtn">Submit Check-in</button>
       </form>
         <p class="form-success" id="scSuccess" style="display:none;text-align:center;margin-top:16px">Check-in submitted successfully.</p>
+
+        <!-- Smart Scale Upload: optional, independent of the form above — a client
+             with no smart scale just skips it and saves the check-in as normal. -->
+        <div class="smart-scale-upload-card" style="margin-top:24px;padding:16px;border:1px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(255,255,255,0.03)">
+          <h3 style="margin:0 0 4px;font-size:16px">Smart Scale Upload <span style="font-weight:400;font-size:12px;opacity:.65">(optional)</span></h3>
+          <p class="form-hint" style="margin:0 0 12px">Have an InBody, decades scan, or smart weighing scale? Upload the report (PDF) or a screenshot here. This is separate from the check-in above and not required — feel free to save your check-in without it.</p>
+          <input type="file" id="smartScaleFiles" accept=".pdf,application/pdf,image/*" multiple style="display:block;margin-bottom:10px;color:inherit">
+          <button type="button" class="form-submit" id="smartScaleUploadBtn" onclick="uploadSmartScaleFiles()" style="width:auto;padding:10px 18px;margin:0">Upload</button>
+          <p class="form-hint" id="smartScaleUploadMsg" style="margin:10px 0 0"></p>
+          <div id="smartScaleUploadList" style="margin-top:10px"></div>
+        </div>
       </div>
       <div id="checkin-daily" class="checkin-sub" style="display:none">
         <div class="user-section-back"><button type="button" class="back-btn" onclick="showCheckinSubView('hub')">← Back</button></div>
@@ -8111,6 +8122,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <a class="admin-sidebar-link" href="#" onclick="switchTab('leaderboards');return false"><span class="admin-sidebar-icon" aria-hidden="true">🏆</span>Leader Boards</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('nutrition');return false"><span class="admin-sidebar-icon" aria-hidden="true">🥗</span>Nutrition AI</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('blood');return false"><span class="admin-sidebar-icon" aria-hidden="true">🩺</span>Blood Reports</a>
+        <a class="admin-sidebar-link" href="#" onclick="switchTab('smartscale');return false"><span class="admin-sidebar-icon" aria-hidden="true">⚖️</span>Smart Scale</a>
         <a class="admin-sidebar-link" href="#" data-section="messages" onclick="switchToSection('messages');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
         <a class="admin-sidebar-link" href="#" onclick="openAdminEscalations();return false"><span class="admin-sidebar-icon" aria-hidden="true">🛰️</span>Operator</a>
         <a class="admin-sidebar-link" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128161;</span>AI Assist</a>
@@ -8726,6 +8738,11 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <span class="admin-section-card-icon" aria-hidden="true">🩺</span>
             <span class="admin-section-card-title">Blood Reports</span>
             <span class="admin-section-card-desc">AI blood analysis, PDF review, send to clients</span>
+          </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('smartscale');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">⚖️</span>
+            <span class="admin-section-card-title">Smart Scale</span>
+            <span class="admin-section-card-desc">InBody/decades-scan reports uploaded from check-in</span>
           </a>
           <a class="admin-section-card" href="#" onclick="switchTab('campaigns');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128228;</span>
@@ -9800,6 +9817,21 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div id="adminBloodReportsList" class="admin-blood-reports-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
     </div>
 
+    <div class="admin-tab-content" id="tab-smartscale">
+      <div class="admin-nutrition-header">
+        <div>
+          <h3>Smart Scale uploads</h3>
+          <p class="form-hint" style="margin:4px 0 0">Decades scan / InBody / smart weighing scale reports clients attach on the Sunday check-in page. Optional for them — shown here separately from the check-in answers.</p>
+        </div>
+        <div class="admin-nutrition-controls">
+          <input type="search" id="adminSmartScaleSearch" class="bb-blood-search" placeholder="Search client name or email…"
+                 aria-label="Search clients" oninput="renderAdminSmartScale()" style="margin:0 8px 0 0;max-width:220px">
+          <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminSmartScale()">Refresh</button>
+        </div>
+      </div>
+      <div id="adminSmartScaleList" class="admin-blood-reports-wrap" style="overflow-x:auto;-webkit-overflow-scrolling:touch"></div>
+    </div>
+
     <!-- ===== REFERRALS (read-only awareness; the only action is releasing a held referral) ===== -->
     <div class="admin-tab-content" id="tab-referrals">
       <h2 class="section-title">🎁 Referrals</h2>
@@ -10160,6 +10192,10 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <svg viewBox="0 0 24 24"><path d="M12 3s6 6.3 6 10.2A6 6 0 0 1 6 13.2C6 9.3 12 3 12 3Z"/><path d="M9.4 13.6a2.7 2.7 0 0 0 2.6 2.6"/></svg>
       <span>Blood</span>
     </button>
+    <button type="button" class="op-rail-btn" data-opnav="smartscale" onclick="opNav('smartscale')" title="Smart Scale uploads">
+      <svg viewBox="0 0 24 24"><rect x="3" y="10" width="18" height="9" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/><circle cx="12" cy="14.5" r="1.6"/></svg>
+      <span>Scale</span>
+    </button>
     <button type="button" class="op-rail-btn" data-opnav="prospects" onclick="opNav('prospects')" title="Prospects (4)">
       <svg viewBox="0 0 24 24"><path d="M3 5h18l-6.5 8v5l-5 2v-7L3 5Z"/></svg>
       <span>Prospects</span>
@@ -10306,6 +10342,22 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       </div>
     </section>
 
+    <!-- ================= SMART SCALE ================= -->
+    <section class="op-screen" id="opScreen-smartscale">
+      <div class="op-standfirst">
+        <div class="op-sf-main">
+          <div class="op-sf-line" id="opScaleLine">Smart Scale uploads</div>
+          <div class="op-sf-sub" id="opScaleSub">InBody / decades scan / smart weighing scale reports from check-in</div>
+        </div>
+        <div class="op-sf-tools">
+          <input type="text" class="op-input" id="opScaleSearch" placeholder="Search…" oninput="renderOperatorSmartScale()" aria-label="Search clients">
+        </div>
+      </div>
+      <div class="op-scroll">
+        <div class="op-cards" id="opScaleCards"><div class="op-empty pad">Loading…</div></div>
+      </div>
+    </section>
+
     <!-- ================= PROSPECTS ================= -->
     <section class="op-screen" id="opScreen-prospects">
       <div class="op-standfirst">
@@ -10434,6 +10486,10 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <button type="button" class="admin-bottom-nav-item" data-opnav="inbox" onclick="opNav('inbox')" aria-label="Admin inbox">
         <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg></span>
         <span class="admin-bottom-nav-label">Inbox</span>
+      </button>
+      <button type="button" class="admin-bottom-nav-item" data-opnav="smartscale" onclick="opNav('smartscale')" aria-label="Smart Scale">
+        <span class="admin-bottom-nav-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="18" height="9" rx="2"/><path d="M7 10V7a5 5 0 0 1 10 0v3"/><circle cx="12" cy="14.5" r="1.6"/></svg></span>
+        <span class="admin-bottom-nav-label">Scale</span>
       </button>
     </div>
   </nav>
@@ -18553,6 +18609,7 @@ function switchTab(tab) {
   if (tab === 'campaigns') loadCampaigns();
   if (tab === 'nutrition') loadAdminNutritionReport();
   if (tab === 'blood') loadAdminBloodReports();
+  if (tab === 'smartscale') loadAdminSmartScale();
   if (tab === 'memberships') loadAdminMemberships();
   if (tab === 'referrals') loadAdminReferrals();
   if (tab === 'tokens') loadAdminTokenUsage();
@@ -20909,7 +20966,7 @@ function showCheckinSubView(view) {
   if (hub) hub.style.display = view === 'hub' ? '' : 'none';
   if (sunday) sunday.style.display = view === 'sunday' ? '' : 'none';
   if (daily) daily.style.display = view === 'daily' ? '' : 'none';
-  if (view === 'sunday') loadSundayCheckinDefaults();
+  if (view === 'sunday') { loadSundayCheckinDefaults(); loadMySmartScaleUploads(); }
   if (view === 'daily') {
     loadDailyCheckinForm();
     loadNutritionCheckinPanel();
@@ -25911,6 +25968,147 @@ function bbDeleteBloodReport(reportId, refreshFn) {
     });
 }
 
+// ========== ADMIN . SMART SCALE (InBody / decades-scan uploads from check-in) ==========
+function loadAdminSmartScale() {
+  var el = document.getElementById('adminSmartScaleList');
+  if (!el) return;
+  el.innerHTML = '<p class="form-hint" style="padding:20px">Loading…</p>';
+  apiCall('GET', '/api/smart-scale/admin/all')
+    .then(function (data) {
+      if (data && data.error) {
+        el.innerHTML = '<p class="form-hint" style="color:#e05050;padding:20px">' + escapeHtml(data.error) + '</p>';
+        return;
+      }
+      window._bbAdminSmartScale = (data && data.uploads) || [];
+      renderAdminSmartScale();
+    })
+    .catch(function () {
+      el.innerHTML = '<p class="form-hint" style="color:#e05050;padding:20px">Network error</p>';
+    });
+}
+
+function renderAdminSmartScale() {
+  var el = document.getElementById('adminSmartScaleList');
+  if (!el) return;
+  var all = window._bbAdminSmartScale || [];
+  var q = String((document.getElementById('adminSmartScaleSearch') || {}).value || '').trim().toLowerCase();
+  var uploads = q
+    ? all.filter(function (u) { return ((u.userName || '') + ' ' + (u.userEmail || '')).toLowerCase().indexOf(q) >= 0; })
+    : all;
+
+  if (!uploads.length) {
+    el.innerHTML = '<p class="form-hint" style="text-align:center;padding:2rem">' +
+      (q ? 'No clients match &ldquo;' + escapeHtml(q) + '&rdquo;.' : 'No smart scale uploads yet.') + '</p>';
+    return;
+  }
+
+  var order = [], byUser = {};
+  uploads.forEach(function (u) {
+    var k = String(u.userId || u.userEmail || u.userName);
+    if (!byUser[k]) { byUser[k] = { name: u.userName || '—', email: u.userEmail || '', rows: [] }; order.push(k); }
+    byUser[k].rows.push(u);
+  });
+
+  el.innerHTML = order.map(function (k) {
+    var g = byUser[k];
+    var rows = g.rows.map(bbSmartScaleRowHtml).join('');
+    return '<div style="margin-bottom:16px;padding:12px 14px;background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.08);border-radius:12px">' +
+      '<div style="font-weight:600">' + escapeHtml(g.name) + '</div>' +
+      '<div class="form-hint">' + escapeHtml(g.email) + '</div>' +
+      rows + '</div>';
+  }).join('');
+}
+
+// Extraction status badge — shared look with the blood report status pills.
+function bbSmartScaleStatusBadge(u) {
+  var st = u.extractionStatus || 'pending';
+  var map = {
+    complete: ['#3dd68c', 'Data extracted'],
+    pending: ['#f0b429', 'Queued'],
+    extracting: ['#f0b429', 'Reading report…'],
+    failed: ['#e05050', 'Extraction failed']
+  };
+  var m = map[st] || map.pending;
+  return '<span style="display:inline-block;margin-left:8px;padding:2px 8px;border-radius:999px;font-size:11px;border:1px solid ' + m[0] + ';color:' + m[0] + '">' + m[1] + '</span>';
+}
+
+// The extracted {sections:[{title,metrics:[{name,value,unit,status}]}]} rendered as
+// the same Metric/Value/Unit/Status table shape the source report itself uses —
+// familiar to a coach who has seen the PDF.
+function bbSmartScaleMetricsTable(extracted) {
+  if (!extracted || !Array.isArray(extracted.sections) || !extracted.sections.length) {
+    return '<p class="form-hint">No metrics extracted.</p>';
+  }
+  var brand = extracted.deviceBrand ? '<p class="form-hint" style="margin:0 0 8px">Device/app: ' + escapeHtml(extracted.deviceBrand) + '</p>' : '';
+  return brand + extracted.sections.map(function (s) {
+    var rows = (s.metrics || []).map(function (m) {
+      return '<tr><td style="padding:4px 10px 4px 0;white-space:nowrap">' + escapeHtml(m.name) + '</td>' +
+        '<td style="padding:4px 10px;font-weight:600">' + escapeHtml(m.value) + '</td>' +
+        '<td style="padding:4px 10px;opacity:.7">' + escapeHtml(m.unit || '') + '</td>' +
+        '<td style="padding:4px 0;color:' + (m.status ? '#f0b429' : 'inherit') + '">' + escapeHtml(m.status || '') + '</td></tr>';
+    }).join('');
+    return '<div style="margin:10px 0 4px;font-weight:600;font-size:12.5px">' + escapeHtml(s.title) + '</div>' +
+      '<table style="border-collapse:collapse;font-size:12.5px;width:100%"><tbody>' + rows + '</tbody></table>';
+  }).join('');
+}
+
+function bbSmartScaleRowHtml(u) {
+  var when = u.createdAt ? bbFmtDay(u.createdAt) : '—';
+  var isPdf = String(u.mimeType || '').indexOf('pdf') >= 0;
+  var icon = isPdf ? '📄' : '🖼️';
+  var name = escapeHtml(u.originalFilename || (isPdf ? 'Report.pdf' : 'Image'));
+  var domId = 'bbss-' + String(u.id).replace(/[^a-zA-Z0-9]/g, '');
+  var st = u.extractionStatus || 'pending';
+
+  var actions = '<button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.18);background:transparent;color:inherit;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px" onclick="bbAuthedDownload(\'/api/smart-scale/file/' + u.id + '\', \'SmartScale\')">⬇ View/Download</button>';
+  if (st === 'complete') {
+    actions += '<button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.18);background:transparent;color:inherit;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px" onclick="bbToggleSmartScaleData(\'' + domId + '\')">📊 View data</button>';
+  }
+  if (st === 'failed') {
+    actions += '<button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.18);background:transparent;color:inherit;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px" onclick="bbRetrySmartScaleExtraction(\'' + u.id + '\')">↻ Retry</button>';
+  }
+  actions += '<button type="button" class="form-hint" style="border:1px solid rgba(224,80,80,0.4);background:transparent;color:#e05050;padding:6px 10px;border-radius:8px;cursor:pointer;font-size:12px" onclick="bbDeleteSmartScaleUpload(\'' + u.id + '\')">🗑 Delete</button>';
+
+  var errLine = st === 'failed' && u.extractionError
+    ? '<div class="form-hint" style="color:#e05050;margin-top:4px">' + escapeHtml(u.extractionError) + '</div>' : '';
+  var dataPanel = st === 'complete'
+    ? '<div id="' + domId + '" style="display:none;margin-top:10px;padding:10px;background:rgba(255,255,255,0.03);border-radius:8px;overflow-x:auto">' + bbSmartScaleMetricsTable(u.extractedData) + '</div>'
+    : '';
+
+  return '<div style="padding:10px 0;border-top:1px solid rgba(255,255,255,0.08)">' +
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">' +
+    '<span style="font-size:13px">' + icon + ' ' + name + ' <span class="form-hint" style="margin-left:6px">' + when + '</span>' + bbSmartScaleStatusBadge(u) + '</span>' +
+    '<span style="display:flex;gap:6px;flex-wrap:wrap">' + actions + '</span></div>' +
+    errLine + dataPanel + '</div>';
+}
+
+function bbToggleSmartScaleData(domId) {
+  var el = document.getElementById(domId);
+  if (el) el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+function bbRetrySmartScaleExtraction(id) {
+  apiCall('POST', '/api/smart-scale/admin/retry/' + encodeURIComponent(id)).then(function (d) {
+    if (d && (d.error || d.success === false)) {
+      showPopup('Retry failed', String(d.error || 'Could not restart extraction.'), '', 'OK', null, 'error');
+      return;
+    }
+    if (typeof nutritionShowToast === 'function') nutritionShowToast(d.message || 'Extraction restarted', 'success');
+    setTimeout(loadAdminSmartScale, 4000);
+  });
+}
+
+function bbDeleteSmartScaleUpload(id) {
+  if (!confirm('Delete this smart scale upload? This cannot be undone.')) return;
+  apiCall('DELETE', '/api/smart-scale/' + encodeURIComponent(id)).then(function (d) {
+    if (d && (d.error || d.success === false)) {
+      showPopup('Delete failed', String(d.error || 'Could not delete this file.'), '', 'OK', null, 'error');
+      return;
+    }
+    loadAdminSmartScale();
+  });
+}
+
 function loadAdminBloodReports() {
   var el = document.getElementById('adminBloodReportsList');
   var sel = document.getElementById('adminBloodStatusFilter');
@@ -28563,6 +28761,59 @@ async function submitSundayCheckin() {
       showCheckinSubView('hub');
     });
   } catch (e) { if (btn) { btn.disabled = false; btn.classList.remove('loading'); btn.textContent = btn._orig || 'Submit Check-in'; } alert('Failed to submit.'); }
+}
+
+// ========== SMART SCALE UPLOAD (optional, independent of Sunday check-in) ==========
+function bbFileToBase64(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function() { resolve(String(reader.result || '').split(',')[1] || ''); };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function uploadSmartScaleFiles() {
+  var input = document.getElementById('smartScaleFiles');
+  var msg = document.getElementById('smartScaleUploadMsg');
+  var files = input && input.files ? Array.prototype.slice.call(input.files) : [];
+  if (!files.length) { if (msg) msg.textContent = 'Choose a file first.'; return; }
+  if (files.length > 4) { if (msg) msg.textContent = 'Upload up to 4 files at a time.'; return; }
+  var btn = document.getElementById('smartScaleUploadBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Uploading...'; }
+  if (msg) msg.textContent = '';
+  try {
+    var payloadFiles = [];
+    for (var i = 0; i < files.length; i++) {
+      var f = files[i];
+      var b64 = await bbFileToBase64(f);
+      payloadFiles.push({ base64: b64, mimeType: f.type || 'application/octet-stream', filename: f.name });
+    }
+    var data = await apiCall('POST', '/api/smart-scale/upload', { files: payloadFiles });
+    if (data && data.error) { if (msg) { msg.textContent = data.error; msg.style.color = '#e05050'; } return; }
+    if (msg) { msg.style.color = ''; msg.textContent = 'Uploaded ' + (data.uploaded || files.length) + ' file(s). Your coach can view these separately.'; }
+    input.value = '';
+    loadMySmartScaleUploads();
+  } catch (e) {
+    if (msg) { msg.style.color = '#e05050'; msg.textContent = 'Upload failed. Please try again.'; }
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Upload'; }
+  }
+}
+
+async function loadMySmartScaleUploads() {
+  var box = document.getElementById('smartScaleUploadList');
+  if (!box) return;
+  try {
+    var data = await apiCall('GET', '/api/smart-scale/my-uploads');
+    var uploads = (data && data.uploads) || [];
+    if (!uploads.length) { box.innerHTML = ''; return; }
+    box.innerHTML = '<p class="form-hint" style="margin:0 0 6px">Uploaded:</p>' + uploads.map(function(u) {
+      var when = u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '';
+      var name = escapeHtml(u.originalFilename || 'File') + (when ? ' — ' + when : '');
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 0;font-size:13px;border-top:1px solid rgba(255,255,255,0.08)"><span>📄 ' + name + '</span></div>';
+    }).join('');
+  } catch (e) { /* non-critical */ }
 }
 
 // ========== USER MESSAGES (single chat, no subject) ==========
