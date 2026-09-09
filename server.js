@@ -1642,6 +1642,14 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_display_name TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_opt_in_at TIMESTAMPTZ`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS score_weights JSONB`); } catch (e) { /* ignore */ }
+  // Admin-uploaded programs store the PDF bytes directly in Postgres (base64) rather
+  // than on the local filesystem, so they survive redeploys — there is no persistent
+  // disk configured for this service (render.yaml has no `disks:` block), so anything
+  // written to disk at runtime is lost on the next deploy. Legacy programs synced from
+  // public/programs/pdfs/ (below) leave pdf_data NULL and keep serving from disk.
+  try { await pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS pdf_data TEXT`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS pdf_mime TEXT DEFAULT 'application/pdf'`); } catch (e) { /* ignore */ }
+  try { await pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS uploaded_by TEXT`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_wheel_last_spin_date TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_wheel_last_label TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_public_program BOOLEAN DEFAULT TRUE`); } catch (e) { /* ignore */ }
@@ -7240,6 +7248,34 @@ app.delete('/api/inbox', verifyToken, async (req, res) => {
 });
 
 // ============ PROGRAMS ============
+// Admin uploads a new program PDF straight from the dashboard. The PDF bytes are
+// stored in Postgres (base64), not on disk — see the pdf_data column comment above —
+// so the program survives redeploys even though this service has no persistent disk.
+const PROGRAM_PDF_MAX_BYTES = 20 * 1024 * 1024; // 20MB
+app.post('/api/admin/programs/upload', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const name = (req.body && req.body.name != null ? String(req.body.name) : '').trim();
+    const b64raw = (req.body && req.body.pdfBase64 != null ? String(req.body.pdfBase64) : '');
+    if (!name) return res.status(400).json({ error: 'Program name is required' });
+    if (!b64raw) return res.status(400).json({ error: 'PDF file is required' });
+    const b64 = b64raw.replace(/\s/g, '');
+    let buf;
+    try { buf = Buffer.from(b64, 'base64'); } catch (e) { buf = null; }
+    if (!buf || !buf.length) return res.status(400).json({ error: 'Invalid or unreadable file' });
+    if (buf.length > PROGRAM_PDF_MAX_BYTES) return res.status(400).json({ error: 'PDF is too large (max 20MB)' });
+    if (buf.slice(0, 5).toString('latin1') !== '%PDF-') return res.status(400).json({ error: 'File must be a valid PDF' });
+    const id = uuidv4();
+    const pdfUrl = '/api/me/programs/pdf?f=' + encodeURIComponent(id);
+    await run(
+      'INSERT INTO programs (id, name, pdf_url, pdf_data, pdf_mime, uploaded_by) VALUES (?, ?, ?, ?, ?, ?)',
+      [id, name, pdfUrl, buf.toString('base64'), 'application/pdf', req.user.id]
+    );
+    res.json({ id, name, pdf_url: pdfUrl });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Upload failed' });
+  }
+});
+
 // Legacy admin-only route (kept under different path to avoid conflicts)
 app.get('/api/programs-legacy', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
@@ -8185,14 +8221,24 @@ app.get('/api/me/programs/pdf', async (req, res) => {
       [payload.userId, fileParam]
     );
     if (!hasAccess) return res.status(403).json({ error: 'Not authorized' });
+    const setPdfHeaders = () => {
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', 'inline');
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    };
+    // Admin-uploaded programs keep their PDF bytes in Postgres (pdf_data); legacy
+    // programs synced from public/programs/pdfs/ have no pdf_data and stream from disk.
+    const dbProgram = await queryOne('SELECT pdf_data FROM programs WHERE id = ?', [fileParam]);
+    if (dbProgram && dbProgram.pdf_data) {
+      setPdfHeaders();
+      return res.send(Buffer.from(dbProgram.pdf_data, 'base64'));
+    }
     const fs = require('fs');
     const filePath = path.join(__dirname, 'public', 'programs', 'pdfs', fileParam);
     if (!fs.existsSync(filePath) || !fs.statSync(filePath).isFile()) return res.status(404).json({ error: 'Not found' });
-    res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', 'inline');
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-    res.setHeader('Pragma', 'no-cache');
-    res.setHeader('Expires', '0');
+    setPdfHeaders();
     const stream = fs.createReadStream(filePath);
     stream.pipe(res);
   } catch (e) {

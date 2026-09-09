@@ -8010,13 +8010,13 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       </button>
     </div>
   </nav>
-  <button type="button" id="bbUserActionFab" class="bb-user-action-fab" onclick="bbHandleUserFabClick()" aria-label="Open AI Trainer" title="Open AI Trainer" data-mode="trainer">
+  <button type="button" id="bbUserActionFab" class="bb-user-action-fab" onclick="bbHandleUserFabClick()" aria-label="Open Elite Feed" title="Open Elite Feed" data-mode="feed">
     <svg class="bb-ef-fab-svg" viewBox="0 0 24 24" aria-hidden="true">
       <rect class="bb-ef-cam" x="4.4" y="4.4" width="15.2" height="15.2" rx="4.2"></rect>
       <circle class="bb-ef-cam" cx="12" cy="12" r="4"></circle>
       <circle class="bb-ef-dot" cx="16.7" cy="7.3" r="1.05"></circle>
     </svg>
-    <span class="bb-user-action-fab-label" id="bbUserActionFabLabel">AI Trainer</span>
+    <span class="bb-user-action-fab-label" id="bbUserActionFabLabel">Elite Feed</span>
   </button>
 </div>
 
@@ -9339,6 +9339,16 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
 
     <!-- TAB: Programs (assign + history) -->
     <div class="admin-tab-content" id="tab-programs">
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Upload New Program</h3>
+        <p class="form-hint" style="margin-bottom:12px">Upload a program PDF (same format as existing programs). It appears in the list below immediately and can be assigned to any client.</p>
+        <div class="admin-meeting-form" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:8px">
+          <input type="text" id="programUploadName" class="form-input" style="min-width:220px;flex:1" placeholder="Program name (e.g. RIPPER 3.0)">
+          <input type="file" id="programUploadFile" accept="application/pdf,.pdf" style="flex:1;min-width:220px">
+          <button type="button" class="form-submit" id="programUploadBtn" style="width:auto;padding:12px 20px;margin:0" onclick="uploadNewProgram()">Upload</button>
+        </div>
+        <p class="form-hint" id="programUploadStatus" style="margin-bottom:24px"></p>
+      </div>
       <div class="admin-subsection-wrap">
         <h3 class="admin-subsection-title">Assign Program</h3>
         <p class="form-hint" style="margin-bottom:12px">Select a user and program. Max 4 programs per user.</p>
@@ -19184,6 +19194,43 @@ async function adminRemoveUser() {
   }
 }
 
+function uploadNewProgram() {
+  var nameInput = document.getElementById('programUploadName');
+  var fileInput = document.getElementById('programUploadFile');
+  var btn = document.getElementById('programUploadBtn');
+  var status = document.getElementById('programUploadStatus');
+  var show = function (color, text) { if (status) { status.style.color = color; status.textContent = text; } };
+  var name = (nameInput && nameInput.value || '').trim();
+  var f = fileInput && fileInput.files && fileInput.files[0];
+  if (!name) { show('#e05050', 'Enter a program name.'); return; }
+  if (!f) { show('#e05050', 'Choose a PDF file.'); return; }
+  var isPdf = f.type === 'application/pdf' || /\.pdf$/i.test(f.name || '');
+  if (!isPdf) { show('#e05050', 'File must be a PDF.'); return; }
+  if (f.size > 20 * 1024 * 1024) { show('#e05050', 'PDF is too large (max 20MB).'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
+  show('var(--muted)', 'Reading file…');
+  var reader = new FileReader();
+  reader.onload = function () {
+    var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
+    show('var(--muted)', 'Uploading…');
+    apiCall('POST', '/api/admin/programs/upload', { name: name, pdfBase64: b64 }).then(function (res) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Upload'; }
+      if (res && res.error) { show('#e05050', res.error); return; }
+      show('var(--gold)', 'Uploaded "' + name + '". It is now available to assign.');
+      if (nameInput) nameInput.value = '';
+      if (fileInput) fileInput.value = '';
+      loadProgramsAdmin();
+    }).catch(function () {
+      if (btn) { btn.disabled = false; btn.textContent = 'Upload'; }
+      show('#e05050', 'Upload failed. Please try again.');
+    });
+  };
+  reader.onerror = function () {
+    if (btn) { btn.disabled = false; btn.textContent = 'Upload'; }
+    show('#e05050', 'Could not read the file. Please try again.');
+  };
+  reader.readAsDataURL(f);
+}
 async function loadProgramsAdmin() {
   var userSelect = document.getElementById('programAssignUserId');
   var progSelect = document.getElementById('programAssignProgramId');
