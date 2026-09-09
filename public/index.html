@@ -72,7 +72,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/css/bodybank-feed-preview.css?v=20260414i">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/css/elite-feed-studio-inapp.css?v=20260414c">
 <link rel="stylesheet" href="/css/app-badges.css?v=1">
 <script src="/js/bodybank-feed-preview.js?v=20260414i" defer></script>
 <script src="/js/bb-pwa-update.js?v=2" defer></script>
@@ -600,19 +599,6 @@ h3.sc-dash-title{font-size:clamp(20px,3vw,28px);margin:0 0 10px}
 /* MODAL OVERLAY */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);backdrop-filter:blur(8px);z-index:10030;align-items:center;justify-content:center;padding:max(24px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-right)) max(24px,env(safe-area-inset-bottom)) max(24px,env(safe-area-inset-left));overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-sizing:border-box}
 .modal-overlay.open{display:flex}
-.elite-feed-nudge-overlay{display:none;position:fixed;inset:0;z-index:10045;background:rgba(0,0,0,0.78);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:max(18px,env(safe-area-inset-top)) max(18px,env(safe-area-inset-right)) max(18px,env(safe-area-inset-bottom)) max(18px,env(safe-area-inset-left))}
-.elite-feed-nudge-overlay.open{display:flex}
-.elite-feed-nudge-card{position:relative;width:min(92vw,520px);border-radius:18px;border:1px solid rgba(200,164,78,0.35);background:linear-gradient(165deg,rgba(17,17,17,0.98),rgba(8,8,8,0.96));box-shadow:0 16px 44px rgba(0,0,0,0.45);padding:22px 20px 18px;text-align:left}
-.elite-feed-nudge-close{position:absolute;top:10px;right:10px;width:34px;height:34px;border-radius:50%;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.04);color:#fff;font-size:22px;line-height:1;cursor:pointer}
-.elite-feed-nudge-kicker{display:inline-flex;align-items:center;gap:8px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--gold);font-weight:700}
-.elite-feed-nudge-kicker img{width:22px;height:22px;object-fit:contain}
-.elite-feed-nudge-title{margin:12px 0 8px;font-size:30px;line-height:1.15;color:var(--cream);font-family:'Syne',system-ui,sans-serif;font-weight:700}
-.elite-feed-nudge-msg{margin:0;color:#d1c7b3;font-size:15px;line-height:1.55}
-.elite-feed-nudge-actions{display:flex;gap:10px;margin-top:18px;flex-wrap:wrap}
-.elite-feed-nudge-btn{display:inline-flex;align-items:center;justify-content:center;border-radius:999px;padding:10px 16px;font-weight:700;font-size:13px;text-decoration:none;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease}
-.elite-feed-nudge-btn:hover{transform:translateY(-1px)}
-.elite-feed-nudge-btn.primary{background:linear-gradient(135deg,#d6b35a 0%,#c8a44e 50%,#a98a3c 100%);color:#090909;border:0;box-shadow:0 10px 20px rgba(200,164,78,.34)}
-.elite-feed-nudge-btn.ghost{background:transparent;color:var(--cream);border:1px solid rgba(255,255,255,0.22)}
 .modal{background:var(--dark2);border:1.5px solid var(--gold);border-radius:20px;padding:44px 40px;max-width:440px;width:100%;position:relative;max-height:90vh;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;margin:auto;box-sizing:border-box;flex-shrink:0}
 .modal-close{position:absolute;top:max(16px,env(safe-area-inset-top));right:max(20px,env(safe-area-inset-right));background:none;border:none;color:var(--gold);font-size:24px;cursor:pointer;padding:8px;min-width:44px;min-height:44px;display:grid;place-items:center;border-radius:8px;transition:background .2s;-webkit-tap-highlight-color:transparent}
 .modal-close:hover,.modal-close:focus{background:rgba(200,164,78,0.1);outline:none}
@@ -888,9 +874,6 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
 .checkin-option-card .checkin-card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:1px;color:var(--cream);text-transform:uppercase;margin:0}
 .checkin-option-card .checkin-card-desc{font-size:12px;color:var(--muted);line-height:1.45;margin:0}
 .checkin-sub .user-section-back{display:block!important;margin-bottom:16px}
-#usec-elitefeed .user-section-back{display:flex!important;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px}
-#usec-elitefeed .user-section-back .back-btn{display:inline-flex!important;align-items:center;gap:6px;padding:8px 14px;background:var(--goldg);border:1px solid transparent;color:var(--black);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;font-family:'Outfit',sans-serif}
-#usec-elitefeed .user-section-back .back-btn:hover{opacity:.95}
 .checkin-sub .user-section-back .back-btn,.checkin-sub .checkin-back-bottom .back-btn{display:inline-flex!important;align-items:center;gap:6px;padding:8px 14px;background:transparent;border:1px solid rgba(200,164,78,0.4);color:var(--gold);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s}
 .checkin-sub .user-section-back .back-btn:hover,.checkin-sub .checkin-back-bottom .back-btn:hover{background:rgba(200,164,78,0.1);border-color:var(--gold)}
 .checkin-back-bottom{margin-top:24px;padding-top:20px;border-top:1px solid rgba(255,255,255,0.06)}
@@ -1834,7 +1817,7 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
     font-size: 10px;
   }
 }
-.bb-elite-feed-fab{
+.bb-user-action-fab{
   display:none;
   align-items:center; justify-content:center; gap:8px;
   position:fixed; right:max(16px,env(safe-area-inset-right));
@@ -1847,7 +1830,7 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
   box-shadow:0 10px 32px rgba(0,0,0,0.45),0 0 0 1px rgba(200,164,78,0.12);
   transition:transform .2s ease, box-shadow .2s ease, border-color .2s ease;
 }
-.bb-elite-feed-fab:hover{
+.bb-user-action-fab:hover{
   transform:translateY(-1px);
   border-color:rgba(200,164,78,0.62);
   box-shadow:0 12px 36px rgba(200,164,78,0.15);
@@ -1855,7 +1838,7 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
 .bb-ef-fab-svg{ width:24px; height:24px; display:block; flex-shrink:0; }
 .bb-ef-fab-svg .bb-ef-cam{ fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round; }
 .bb-ef-fab-svg .bb-ef-dot{ fill:currentColor; }
-.bb-elite-feed-fab-label{
+.bb-user-action-fab-label{
   font-size:12px;
   font-weight:700;
   letter-spacing:.02em;
@@ -1868,15 +1851,15 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
   50%{ box-shadow:0 10px 36px rgba(200,164,78,0.22),0 0 0 2px rgba(200,164,78,0.35); }
 }
 @media(min-width:768px){
-  .bb-elite-feed-fab{
+  .bb-user-action-fab{
     bottom:calc(24px + env(safe-area-inset-bottom,0px));
     right:max(24px,env(safe-area-inset-right));
   }
 }
 @media(max-width:520px){
-  .bb-elite-feed-fab{ padding:0 12px 0 10px; gap:7px; }
+  .bb-user-action-fab{ padding:0 12px 0 10px; gap:7px; }
   .bb-ef-fab-svg{ width:22px; height:22px; }
-  .bb-elite-feed-fab-label{ font-size:11.5px; }
+  .bb-user-action-fab-label{ font-size:11.5px; }
 }
 @media(max-width:520px){
   .bb-fw-modal .bb-fw-title{ font-size:28px; }
@@ -4107,24 +4090,6 @@ button.bb-today-pill{cursor:pointer}
 .user-bottom-nav-item:hover,.user-bottom-nav-item:focus{color:var(--cream);outline:none}
 .user-bottom-nav-item.active{color:var(--gold)}
 .user-bottom-nav-item.active::before{content:'';position:absolute;top:0;left:50%;transform:translateX(-50%);width:24px;height:3px;background:var(--gold);border-radius:2px}
-/* Elite Feed moderation controls (Guideline 1.2) */
-.bb-uf-post-tools{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-.bb-uf-mod-btn{background:none;border:1px solid rgba(255,255,255,0.14);color:#9a9a9a;font-family:'Outfit',sans-serif;font-size:11px;font-weight:600;letter-spacing:.3px;padding:4px 9px;border-radius:14px;cursor:pointer;transition:color .2s,border-color .2s;-webkit-tap-highlight-color:transparent;white-space:nowrap}
-.bb-uf-mod-btn:hover,.bb-uf-mod-btn:focus{color:#ff8a8a;border-color:rgba(255,138,138,0.45);outline:none}
-.bb-blocked-row{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);color:var(--cream);font-size:14px}
-.bb-blocked-row:last-child{border-bottom:none}
-/* Admin moderation queue */
-.bb-mod-count{display:inline-block;min-width:20px;padding:1px 7px;margin-left:6px;border-radius:10px;background:#ff4d4d;color:#fff;font-size:11px;font-weight:700;text-align:center;vertical-align:middle}
-.bb-mod-row{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.08)}
-.bb-mod-row:last-child{border-bottom:none}
-.bb-mod-row-main{min-width:0;flex:1}
-.bb-mod-row-head{display:flex;align-items:center;gap:8px;color:var(--cream);font-size:14px;text-transform:capitalize}
-.bb-mod-tag{display:inline-block;padding:1px 8px;border-radius:10px;background:rgba(255,255,255,0.08);color:#9a9a9a;font-size:10px;font-weight:600;letter-spacing:.4px;text-transform:uppercase}
-.bb-mod-row-sub{color:#8a8a8a;font-size:12px;margin-top:3px}
-.bb-mod-row-cap{color:#c9c9c9;font-size:13px;margin-top:6px;overflow-wrap:anywhere}
-.bb-mod-row-note{color:#9a9a9a;font-size:12px;font-style:italic;margin-top:6px;overflow-wrap:anywhere}
-.bb-mod-row-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
-@media(max-width:600px){.bb-mod-row{flex-direction:column}.bb-mod-row-actions{flex-direction:row;flex-wrap:wrap;width:100%}}
 .user-bottom-nav-badge{position:absolute;top:8px;left:calc(50% + 8px);width:9px;height:9px;border-radius:50%;background:#ff5c5c;border:2px solid var(--black,#0a0a0a);box-shadow:0 0 0 1px rgba(255,92,92,0.4)}
 .user-bottom-nav-icon{display:flex;align-items:center;justify-content:center;width:24px;height:24px;font-size:20px;line-height:1;margin-bottom:4px;flex-shrink:0}
 .user-bottom-nav-label{display:block;font-size:11px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;text-align:center;min-height:14px}
@@ -6854,7 +6819,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <a class="user-sidebar-link" href="#" data-tab="programs" onclick="switchUserTab('programs');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127919;</span>My Programs</a>
         <a class="user-sidebar-link" href="#" data-tab="checkin" onclick="switchUserTab('checkin');return false"><span class="user-sidebar-icon" aria-hidden="true">&#10003;</span>Check-in</a>
         <a class="user-sidebar-link" href="#" data-tab="messages" onclick="switchUserTab('messages');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
-        <a class="user-sidebar-link" href="#" data-tab="elitefeed" onclick="switchUserTab('elitefeed');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128248;</span>Elite Feed</a>
         <a class="user-sidebar-link" href="#" data-tab="profile" onclick="switchUserTab('profile');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128100;</span>My Profile</a>
         <a class="user-sidebar-link" href="#" data-tab="body" onclick="switchUserTab('body');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128248;</span>My Body</a>
         <a class="user-sidebar-link" href="#" data-tab="muscle" onclick="switchUserTab('muscle');return false"><span class="user-sidebar-icon" aria-hidden="true">&#128170;</span>Muscle Ranking</a>
@@ -7136,7 +7100,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('programs');return false"><span class="btn-icon">📋</span>Programs</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('checkin');return false"><span class="btn-icon">✅</span>Check-in</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('messages');return false"><span class="btn-icon">💬</span>Messages</a>
-          <a class="bb-quick-btn" href="#" onclick="switchUserTab('elitefeed');return false"><span class="btn-icon">📸</span>Elite Feed</a>
           <a class="bb-quick-btn" href="#" onclick="switchUserTab('contact');return false"><span class="btn-icon">📅</span>Schedule Call</a>
         </div>
         <section class="my-health-reports" id="myHealthReportsSectionDesktop" aria-label="My health reports (desktop)" style="margin-top:22px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
@@ -7275,7 +7238,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             </div>
           </div>
           <div class="welcome-card" onclick="switchUserTab('body')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg></div><div class="wc-copy"><div class="wc-title">My Body</div><div class="wc-desc">Photos &amp; measurements over time</div></div></div>
-          <div class="welcome-card" onclick="switchUserTab('elitefeed')"><div class="wc-icon-wrap"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><circle cx="12" cy="13" r="3.2"/><path d="M8 5l1.5-2h5L16 5"/></svg></div><div class="wc-copy"><div class="wc-title">Elite Feed</div><div class="wc-desc">Wins &amp; transformations from the tribe</div></div></div>
         </div>
 
       </div>
@@ -7961,35 +7923,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     </div><!-- /usec-muscle -->
 
     <!-- ELITE FEED (all community posts) — matches /dashboard.html Feed Studio layout -->
-    <div class="user-section" id="usec-elitefeed">
-      <div class="user-section-back">
-        <button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button>
-      </div>
-      <div class="bb-ef-studio">
-        <div class="bb-ef-shell">
-          <header class="bb-ef-header bb-uf-header">
-            <div>
-              <h1>BodyBank Elite Feed</h1>
-              <p>Latest posts from the community.</p>
-            </div>
-          </header>
-          <section class="bb-ef-card bb-uf-card-shell" aria-labelledby="bb-ef-all-posts-title">
-            <div class="bb-ef-posts-head">
-              <h2 id="bb-ef-all-posts-title">All posts</h2>
-              <div style="display:flex;align-items:center;gap:8px">
-                <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadUserEliteFeedGrid()">Refresh</button>
-                <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="openBlockedMembersModal()">Blocked</button>
-                <button type="button" class="bb-post-fab" onclick="openBbPostSheet()" aria-label="New post" title="New post">＋</button>
-              </div>
-            </div>
-            <div id="userEliteFeedGrid" class="bb-uf-feed-list"></div>
-            <p id="userEliteFeedEmpty" class="bb-ef-status bb-ef-empty" role="status">No posts yet. Open the posting studio to share the first one.</p>
-          </section>
-        </div>
-      </div>
-    </div>
-
-    <!-- MY BODY (Phase 1) -->
     <div class="user-section" id="usec-body">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
 
@@ -8077,13 +8010,13 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       </button>
     </div>
   </nav>
-  <button type="button" id="bbEliteFeedFab" class="bb-elite-feed-fab" onclick="bbHandleUserFabClick()" aria-label="Open Elite Feed" title="Open Elite Feed" data-mode="feed">
+  <button type="button" id="bbUserActionFab" class="bb-user-action-fab" onclick="bbHandleUserFabClick()" aria-label="Open AI Trainer" title="Open AI Trainer" data-mode="trainer">
     <svg class="bb-ef-fab-svg" viewBox="0 0 24 24" aria-hidden="true">
       <rect class="bb-ef-cam" x="4.4" y="4.4" width="15.2" height="15.2" rx="4.2"></rect>
       <circle class="bb-ef-cam" cx="12" cy="12" r="4"></circle>
       <circle class="bb-ef-dot" cx="16.7" cy="7.3" r="1.05"></circle>
     </svg>
-    <span class="bb-elite-feed-fab-label" id="bbEliteFeedFabLabel">Elite Feed</span>
+    <span class="bb-user-action-fab-label" id="bbUserActionFabLabel">AI Trainer</span>
   </button>
 </div>
 
@@ -8131,7 +8064,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       </div>
       <nav class="admin-sidebar-nav">
         <a class="admin-sidebar-link active" href="#" data-section="dashboard" onclick="switchToSection('dashboard');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128202;</span>Dashboard</a>
-        <a class="admin-sidebar-link" href="#" data-section="elitefeed" onclick="switchToSection('elitefeed');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128248;</span>Elite Feed</a>
         <a class="admin-sidebar-link" href="#" data-section="clients" onclick="switchToSection('clients');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128101;</span>Clients</a>
         <a class="admin-sidebar-link" href="#" data-section="training" onclick="switchToSection('training');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127947;</span>Training</a>
         <a class="admin-sidebar-link" href="#" data-section="programs" onclick="switchToSection('programs');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127919;</span>Programs</a>
@@ -8171,9 +8103,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <nav class="admin-nav-drawer-links">
         <a class="admin-nav-link" href="#" data-section="dashboard" onclick="switchToSection('dashboard');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128202;</span>Dashboard
-        </a>
-        <a class="admin-nav-link" href="#" data-section="elitefeed" onclick="switchToSection('elitefeed');closeAdminNavDrawer();return false">
-          <span class="admin-nav-link-icon" aria-hidden="true">&#128248;</span>Elite Feed
         </a>
         <a class="admin-nav-link" href="#" data-section="clients" onclick="switchToSection('clients');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128101;</span>Clients
@@ -8378,7 +8307,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <a class="bb-quick-btn" href="#" onclick="switchTab('tribe');return false"><span class="btn-icon">👥</span>Client Board</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('requests');return false"><span class="btn-icon">📋</span>Audit Forms</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('dailycheckin');return false"><span class="btn-icon">📅</span>Daily Check-ins</a>
-          <a class="bb-quick-btn" href="#" onclick="switchToSection('elitefeed');return false"><span class="btn-icon">📸</span>Elite Feed</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="btn-icon">🏆</span>Leader Boards</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('nutrition');return false"><span class="btn-icon">🥗</span>Nutrition AI</a>
           <a class="bb-quick-btn" href="#" onclick="switchTab('blood');return false"><span class="btn-icon">🩺</span>Blood Reports</a>
@@ -8631,7 +8559,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('clientprogress');return false"><span class="bbmd-qa-ic">&#8986;</span><span class="bbmd-qa-txt">Watch data</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('memberships');return false"><span class="bbmd-qa-ic">&#128179;</span><span class="bbmd-qa-txt">Members</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('blood');return false"><span class="bbmd-qa-ic">&#129656;</span><span class="bbmd-qa-txt">Blood</span></a>
-            <a class="bbmd-qa-btn" href="#" onclick="switchToSection('elitefeed');return false"><span class="bbmd-qa-ic">&#128248;</span><span class="bbmd-qa-txt">Elite feed</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('programs');return false"><span class="bbmd-qa-ic">&#128220;</span><span class="bbmd-qa-txt">Programs</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('leaderboards');return false"><span class="bbmd-qa-ic">&#127942;</span><span class="bbmd-qa-txt">Boards</span></a>
             <a class="bbmd-qa-btn" href="#" onclick="switchTab('nutrition');return false"><span class="bbmd-qa-ic">&#129367;</span><span class="bbmd-qa-txt">Nutrition</span></a>
@@ -8642,44 +8569,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           </div>
           <button type="button" class="bbmd-qa-more" id="bbmdQaMore" onclick="bbmdToggleQa()" aria-expanded="false">Show all</button>
         </section>
-      </div>
-    </div>
-    <div class="admin-tab-content" id="tab-elitefeed-section">
-      <div class="admin-section-page">
-        <div class="admin-section-back" style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px">
-          <button type="button" class="admin-back-btn admin-back-btn-gold" onclick="switchToSection('dashboard');return false">← Back</button>
-        </div>
-        <div class="bb-ef-studio">
-          <div class="bb-ef-shell">
-            <header class="bb-ef-header bb-af-header">
-              <div>
-                <h1>BodyBank Elite Feed</h1>
-                <p>All posts in one place.</p>
-              </div>
-            </header>
-            <section class="bb-ef-card bb-uf-card-shell" aria-labelledby="bb-ef-admin-reports" style="margin-bottom:18px">
-              <div class="bb-ef-posts-head">
-                <h2 id="bb-ef-admin-reports">Reported posts <span id="adminFeedReportCount" class="bb-mod-count"></span></h2>
-                <div style="display:flex;align-items:center;gap:8px">
-                  <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadAdminFeedReports('open')">Open</button>
-                  <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadAdminFeedReports('resolved')">Resolved</button>
-                </div>
-              </div>
-              <div id="adminFeedReportsList"></div>
-            </section>
-            <section class="bb-ef-card bb-uf-card-shell" aria-labelledby="bb-ef-admin-all-posts">
-              <div class="bb-ef-posts-head">
-                <h2 id="bb-ef-admin-all-posts">All posts</h2>
-                <div style="display:flex;align-items:center;gap:8px">
-                  <button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="loadAdminEliteFeedGrid()">Refresh</button>
-                  <button type="button" class="bb-post-fab" onclick="openBbPostSheet()" aria-label="New post" title="New post">＋</button>
-                </div>
-              </div>
-              <div id="adminEliteFeedGrid" class="bb-uf-feed-list"></div>
-              <p id="adminEliteFeedEmpty" class="bb-ef-status bb-ef-empty" role="status">No posts yet.</p>
-            </section>
-          </div>
-        </div>
       </div>
     </div>
     <div class="admin-tab-content" id="tab-clients-section">
@@ -10813,20 +10702,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
   </div>
 </div>
 
-<div class="elite-feed-nudge-overlay" id="eliteFeedNudgeModal" onclick="if(event.target===this)closeEliteFeedNudge()">
-  <div class="elite-feed-nudge-card" role="dialog" aria-modal="true" aria-labelledby="eliteFeedNudgeTitle">
-    <button type="button" class="elite-feed-nudge-close" aria-label="Close" onclick="closeEliteFeedNudge()">×</button>
-    <span class="elite-feed-nudge-kicker"><img src="/img/Bodybank logo.png" alt="">BodyBank Elite Feed</span>
-    <h3 class="elite-feed-nudge-title" id="eliteFeedNudgeTitle">See Real Member Results in One Feed</h3>
-    <p class="elite-feed-nudge-msg">Explore transformation posts from our community. Open the Elite Feed now, or continue browsing the website and check it anytime.</p>
-    <div class="elite-feed-nudge-actions">
-      <a href="/feed.html" class="elite-feed-nudge-btn primary">Explore Elite Feed</a>
-      <button type="button" class="elite-feed-nudge-btn ghost" onclick="closeEliteFeedNudge()">Continue Browsing</button>
-    </div>
-  </div>
-</div>
-
-
 <!-- SIGNUP MODAL -->
 <!-- Sign-up lives at /signup.html — one form, one URL. The modal that used
      to sit here was a second copy of the same fields, reachable only from
@@ -10861,37 +10736,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <div class="form-group"><label>Confirm Password <span class="req">*</span></label><input type="password" class="form-input" id="gcPwConfirm" placeholder="Confirm your password"></div>
     <button class="form-submit" onclick="bbCompleteSocialSignup()">Complete Sign-up</button>
     </div>
-  </div>
-</div>
-
-<!-- FEED REPORT MODAL (Apple Guideline 1.2 — reporting objectionable content) -->
-<div class="modal-overlay" id="feedReportModal" onclick="if(event.target===this)closeModal('feedReportModal')">
-  <div class="modal" style="max-width:440px">
-    <button class="modal-close" onclick="closeModal('feedReportModal')">&times;</button>
-    <h2 style="margin-bottom:6px">Report this post</h2>
-    <p style="color:#9a9a9a;font-size:13px;margin-bottom:18px">Tell us what is wrong and our team will review it within 24 hours.</p>
-    <label class="form-label" for="feedReportReason">Reason</label>
-    <select class="input" id="feedReportReason" style="margin-bottom:14px">
-      <option value="nudity">Nudity or sexual content</option>
-      <option value="harassment">Harassment or bullying</option>
-      <option value="violence">Violence or self-harm</option>
-      <option value="spam">Spam or a scam</option>
-      <option value="misinformation">False health information</option>
-      <option value="other">Something else</option>
-    </select>
-    <label class="form-label" for="feedReportNote">Anything else? (optional)</label>
-    <textarea class="input" id="feedReportNote" rows="3" maxlength="500" placeholder="Add any detail that helps us review this"></textarea>
-    <button class="form-submit" id="feedReportSubmit" onclick="submitFeedReport()" style="margin-top:16px">Submit report</button>
-  </div>
-</div>
-
-<!-- BLOCKED MEMBERS MODAL (Apple Guideline 1.2 — blocking abusive users) -->
-<div class="modal-overlay" id="blockedMembersModal" onclick="if(event.target===this)closeModal('blockedMembersModal')">
-  <div class="modal" style="max-width:440px">
-    <button class="modal-close" onclick="closeModal('blockedMembersModal')">&times;</button>
-    <h2 style="margin-bottom:6px">Blocked members</h2>
-    <p style="color:#9a9a9a;font-size:13px;margin-bottom:18px">You do not see posts from anyone listed here.</p>
-    <div id="blockedMembersList"></div>
   </div>
 </div>
 
@@ -11122,7 +10966,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <canvas id="nutritionShareCardCanvas"></canvas>
       </div>
       <div class="elite-card-actions">
-        <button type="button" class="form-submit" onclick="shareNutritionToBodybankFeed()">Share to BodyBank Feed</button>
         <button type="button" class="form-submit" onclick="saveNutritionShareCard()">Save image</button>
         <button type="button" class="nav-login" style="padding:12px 24px" onclick="shareNutritionShareCard()">Share</button>
       </div>
@@ -11891,68 +11734,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
   </div>
 </section>
 
-<section class="bb-feed-preview-sec" id="bodybankFeedPreview">
-  <div class="bb-feed-preview-inner">
-    <div class="bb-feed-preview-head">
-      <h2 class="bb-feed-preview-title">BodyBank Elite Feed</h2>
-      <p class="bb-feed-preview-sub">Real transformations from our community</p>
-    </div>
-    <div class="bb-feed-preview-stage">
-      <!-- Card 1 – left -->
-      <article class="bb-fp-card bb-fp-card--left">
-        <div class="bb-fp-top">
-          <img class="bb-fp-avatar" src="/img/Bodybank%20logo.png" alt="BodyBank">
-          <div>
-            <div class="bb-fp-name">Kanshika Mittal</div>
-            <div class="bb-fp-time">2h</div>
-          </div>
-        </div>
-        <div class="bb-fp-img bb-fp-img--1"></div>
-        <div class="bb-fp-meta">
-          <span class="bb-fp-like"><span class="bb-fp-like-icon">❤</span> <span class="bb-fp-like-count">142</span></span>
-          <span class="bb-fp-comment">💬 21</span>
-        </div>
-      </article>
-
-      <!-- Card 2 – center hero -->
-      <article class="bb-fp-card bb-fp-card--center">
-        <div class="bb-fp-top">
-          <img class="bb-fp-avatar" src="/img/Bodybank%20logo.png" alt="BodyBank">
-          <div>
-            <div class="bb-fp-name">Idris</div>
-            <div class="bb-fp-time">4h</div>
-          </div>
-        </div>
-        <div class="bb-fp-img bb-fp-img--3"></div>
-        <div class="bb-fp-meta">
-          <span class="bb-fp-like"><span class="bb-fp-like-icon">❤</span> <span class="bb-fp-like-count">684</span></span>
-          <span class="bb-fp-comment">💬 286</span>
-        </div>
-      </article>
-
-      <!-- Card 3 – right -->
-      <article class="bb-fp-card bb-fp-card--right">
-        <div class="bb-fp-top">
-          <img class="bb-fp-avatar" src="/img/Bodybank%20logo.png" alt="BodyBank">
-          <div>
-            <div class="bb-fp-name">Suresh Kumar</div>
-            <div class="bb-fp-time">1h</div>
-          </div>
-        </div>
-        <div class="bb-fp-img bb-fp-img--2"></div>
-        <div class="bb-fp-meta">
-          <span class="bb-fp-like"><span class="bb-fp-like-icon">❤</span> <span class="bb-fp-like-count">314</span></span>
-          <span class="bb-fp-comment">💬 47</span>
-        </div>
-      </article>
-    </div>
-
-    <div class="bb-feed-preview-actions">
-      <a href="/feed.html" class="bb-feed-preview-btn">Explore Feed →</a>
-    </div>
-  </div>
-</section>
-
 <!-- FAQ -->
 <section class="sec" id="faq">
   <div class="si">
@@ -12039,54 +11820,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
 </footer>
 
 <!-- ===== Quick Post Sheet ===== -->
-<div class="bb-post-sheet-overlay" id="bbPostSheetOverlay" onclick="if(event.target===this)closeBbPostSheet()" role="dialog" aria-modal="true" aria-label="New post">
-  <div class="bb-post-sheet">
-    <div class="bb-post-sheet-handle"></div>
-    <div class="bb-post-sheet-header">
-      <span class="bb-post-sheet-title">New Post</span>
-      <button type="button" class="bb-post-sheet-close" onclick="closeBbPostSheet()" aria-label="Close">&times;</button>
-    </div>
-    <div class="bb-post-sheet-body">
-      <!-- Step 1: choose source -->
-      <div id="bbPostSheetChoose">
-        <div class="bb-post-choose">
-          <button type="button" class="bb-post-choose-btn" onclick="bbPostSheetOpenCamera()">
-            <span class="bb-post-choose-icon">📷</span>
-            <span>Take Photo</span>
-          </button>
-          <button type="button" class="bb-post-choose-btn" onclick="bbPostSheetUpload()">
-            <span class="bb-post-choose-icon">🖼️</span>
-            <span>Upload Photo</span>
-          </button>
-        </div>
-        <input type="file" id="bbPostFileInput" accept="image/*" class="bb-post-hidden-input" aria-label="Upload photo from device">
-      </div>
-      <!-- Camera live view -->
-      <div id="bbPostSheetCamera" style="display:none">
-        <div class="bb-post-camera-wrap">
-          <video id="bbPostCameraVideo" playsinline autoplay muted class="bb-post-camera-video"></video>
-        </div>
-        <div class="bb-post-actions">
-          <button type="button" class="bb-post-btn bb-post-btn-secondary" onclick="bbPostSheetCancelCamera()">Cancel</button>
-          <button type="button" class="bb-post-btn bb-post-btn-gold" onclick="bbPostSheetCapture()">Capture Photo</button>
-        </div>
-      </div>
-      <!-- Step 2: preview + caption -->
-      <div id="bbPostSheetPreview" style="display:none">
-        <div class="bb-post-preview-wrap">
-          <img id="bbPostPreviewImg" class="bb-post-preview-img" alt="Your photo">
-        </div>
-        <textarea id="bbPostCaptionInput" class="bb-post-caption" rows="3" maxlength="240" placeholder="Write a caption…"></textarea>
-        <div class="bb-post-actions">
-          <button type="button" class="bb-post-btn bb-post-btn-secondary" onclick="bbPostSheetShowChoose()">Retake</button>
-          <button type="button" class="bb-post-btn bb-post-btn-gold" id="bbPostPublishBtn" onclick="bbPostSheetSubmit()">Publish</button>
-        </div>
-      </div>
-      <p class="bb-post-status" id="bbPostSheetStatus"></p>
-    </div>
-  </div>
-</div>
-
 <script>
 /* Nav stays fixed with same size at all scroll positions - no scroll class applied */
 function toggleFaq(e){const o=e.classList.contains('op');document.querySelectorAll('.fi').forEach(i=>i.classList.remove('op'));if(!o)e.classList.add('op')}
@@ -12309,678 +12042,10 @@ function initBodyBankArsenal(){
 }
 initBodyBankArsenal();
 
-function openEliteFeedDashboard(){
-  window.location.href='/dashboard.html';
-}
 function bbEscapeHtml(s){
   if (s == null || s === '') return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
 }
-function bbNormalizeFeedName(s){
-  return String(s || '').trim().toLowerCase().replace(/[^\w]/g, '');
-}
-function bbCurrentFeedUsername(){
-  var session = null;
-  try { session = JSON.parse(localStorage.getItem('bodybank_session') || 'null'); } catch(_){}
-  var role = String((session && (session.role || (session.user && session.user.role))) || '').toLowerCase();
-  if (role !== 'admin' && role !== 'superadmin') {
-    var savedNick = '';
-    try { savedNick = String(localStorage.getItem('bb_feed_post_nickname') || '').trim(); } catch (_) {}
-    if (savedNick) return savedNick.slice(0, 32);
-  }
-  var base = String((session && (session.user && session.user.username)) || (session && session.first_name) || (session && session.email) || 'Member');
-  if (role === 'admin' || role === 'superadmin') base = 'admin.' + base;
-  return String(base).trim().slice(0, 32) || 'Member';
-}
-function bbCanManageFeedPost(p){
-  var mine = bbNormalizeFeedName(bbCurrentFeedUsername());
-  var owner = bbNormalizeFeedName((p && p.username) || '');
-  return !!owner && owner === mine;
-}
-function bbEliteFeedCardHtml(p){
-  var rawUrl = String(p.imageUrl || '').trim();
-  var img = rawUrl.replace(/^http:\/\//i,'https://');
-  if (!img) img = '/img/logo.png';
-  var cap = bbEscapeHtml(String(p.caption || '').slice(0, 200));
-  var un = bbEscapeHtml(String(p.username || 'member').replace(/^@/, ''));
-  var dt = '';
-  var canDelete = bbCanManageFeedPost(p);
-  var postId = bbEscapeHtml(String(p.id || ''));
-  try { if (p.createdAt) dt = new Date(p.createdAt).toLocaleString(); } catch (_) {}
-  return '<article class="bb-ef-tile-wrap" data-post-id="' + postId + '"><div class="bb-ef-tile"><img src="'+bbEscapeHtml(img)+'" alt="" loading="lazy" decoding="async"></div><div class="bb-ef-tile-meta"><div class="bb-ef-tile-user-row"><div class="bb-ef-tile-user">@'+un+'</div>' + (canDelete ? ('<button type="button" class="bb-feed-delete-btn js-feed-delete" data-post-id="' + postId + '">Delete</button>') : '') + '</div><div class="bb-ef-tile-cap">'+cap+'</div><div class="bb-ef-tile-date">'+bbEscapeHtml(dt)+'</div></div></article>';
-}
-var BB_USER_FEED_LIKES_KEY = 'bb_user_feed_likes_v1';
-var BB_USER_FEED_COMMENTS_KEY = 'bb_user_feed_comments_v1';
-var _bbUserFeedPostsCache = [];
-var _bbAdminFeedPostsCache = [];
-function bbUserFeedLikedMap(){
-  try { return JSON.parse(localStorage.getItem(BB_USER_FEED_LIKES_KEY) || '{}'); } catch (_) { return {}; }
-}
-function bbUserFeedCommentsMap(){
-  try { return JSON.parse(localStorage.getItem(BB_USER_FEED_COMMENTS_KEY) || '{}'); } catch (_) { return {}; }
-}
-function bbUserFeedSaveLikes(map){
-  try { localStorage.setItem(BB_USER_FEED_LIKES_KEY, JSON.stringify(map || {})); } catch (_) {}
-}
-function bbUserFeedSaveComments(map){
-  try { localStorage.setItem(BB_USER_FEED_COMMENTS_KEY, JSON.stringify(map || {})); } catch (_) {}
-}
-function bbUserFeedRelativeTime(iso){
-  var t = new Date(iso).getTime();
-  if (!t) return 'now';
-  var d = Math.max(1, Math.floor((Date.now() - t) / 1000));
-  if (d < 60) return d + 's';
-  if (d < 3600) return Math.floor(d / 60) + 'm';
-  if (d < 86400) return Math.floor(d / 3600) + 'h';
-  return Math.floor(d / 86400) + 'd';
-}
-function bbUserFeedCardHtml(p){
-  var rawUrl = String(p.imageUrl || '').trim();
-  var img = rawUrl.replace(/^http:\/\//i,'https://');
-  if (!img) img = '/img/logo.png';
-  var cap = bbEscapeHtml(String(p.caption || '').slice(0, 320));
-  var postId = String(p.id || '');
-  var user = bbEscapeHtml(String(p.username || 'BodyBank').trim().slice(0, 32) || 'BodyBank');
-  var liked = !!bbUserFeedLikedMap()[postId];
-  var canDelete = bbCanManageFeedPost(p);
-  var likes = Number(p.likes || 0) + (liked ? 1 : 0);
-  var commentsMap = bbUserFeedCommentsMap();
-  var comments = Array.isArray(commentsMap[postId]) ? commentsMap[postId] : [];
-  var commentsHtml = '';
-  if (comments.length) {
-    var latest = comments.slice(-2);
-    commentsHtml = latest.map(function(c){
-      return '<div class="bb-uf-comment-item">' + bbEscapeHtml(String(c || '').slice(0, 120)) + '</div>';
-    }).join('');
-  }
-  return ''
-    + '<article class="bb-uf-post" data-post-id="' + bbEscapeHtml(postId) + '">'
-    +   '<div class="bb-uf-post-top">'
-    +     '<div class="bb-uf-post-user">'
-    +       '<img class="bb-uf-post-avatar" src="/img/Bodybank%20logo.png" alt="" loading="lazy">'
-    +       '<div><div class="bb-uf-post-name">' + user + '</div><div class="bb-uf-post-time">' + bbEscapeHtml(bbUserFeedRelativeTime(p.createdAt)) + '</div></div>'
-    +     '</div>'
-    +     '<div class="bb-uf-post-tools">'
-    +       (canDelete ? '<button type="button" class="bb-feed-delete-btn js-feed-delete" data-post-id="' + bbEscapeHtml(postId) + '">Delete</button>' : '')
-    +       (p.mine ? '' : '<button type="button" class="bb-uf-mod-btn js-uf-report" title="Report this post" aria-label="Report this post">⚑ Report</button>')
-    +       (p.mine ? '' : '<button type="button" class="bb-uf-mod-btn js-uf-block" title="Block this member" aria-label="Block this member">⊘ Block</button>')
-    +     '</div>'
-    +   '</div>'
-    +   '<div class="bb-uf-post-img-wrap"><img class="bb-uf-post-img" src="' + bbEscapeHtml(img) + '" alt="BodyBank post" loading="lazy" decoding="async"></div>'
-    +   '<div class="bb-uf-post-actions">'
-    +     '<button type="button" class="bb-uf-action-btn js-uf-like ' + (liked ? 'is-liked' : '') + '" aria-label="Like post">❤</button>'
-    +     '<button type="button" class="bb-uf-action-btn js-uf-comment" aria-label="Comment on post">💬</button>'
-    +   '</div>'
-    +   '<div class="bb-uf-post-meta">'
-    +     '<div class="bb-uf-likes"><span>' + likes + '</span> likes</div>'
-    +     '<div class="bb-uf-caption"><strong>' + user + '</strong> ' + cap + '</div>'
-    +     '<div class="bb-uf-comments">' + (comments.length ? (comments.length + ' comments') : 'No comments yet') + commentsHtml + '</div>'
-    +   '</div>'
-    + '</article>';
-}
-function bbRenderUserFeed(posts){
-  var grid = document.getElementById('userEliteFeedGrid');
-  var empty = document.getElementById('userEliteFeedEmpty');
-  if (!grid) return;
-  _bbUserFeedPostsCache = Array.isArray(posts) ? posts.slice() : [];
-  if (!_bbUserFeedPostsCache.length) {
-    grid.innerHTML = '';
-    if (empty) empty.classList.add('is-visible');
-    return;
-  }
-  grid.innerHTML = _bbUserFeedPostsCache.map(bbUserFeedCardHtml).join('');
-  if (empty) empty.classList.remove('is-visible');
-}
-function bbBindUserFeedActions(){
-  var grid = document.getElementById('userEliteFeedGrid');
-  if (!grid || grid._bbBound) return;
-  grid._bbBound = true;
-  grid.addEventListener('click', function(e){
-    var likeBtn = e.target && e.target.closest ? e.target.closest('.js-uf-like') : null;
-    var commentBtn = e.target && e.target.closest ? e.target.closest('.js-uf-comment') : null;
-    var deleteBtn = e.target && e.target.closest ? e.target.closest('.js-feed-delete') : null;
-    var reportBtn = e.target && e.target.closest ? e.target.closest('.js-uf-report') : null;
-    var blockBtn = e.target && e.target.closest ? e.target.closest('.js-uf-block') : null;
-    if (!likeBtn && !commentBtn && !deleteBtn && !reportBtn && !blockBtn) return;
-    var postEl = e.target.closest('.bb-uf-post');
-    if (!postEl) return;
-    var id = String(postEl.getAttribute('data-post-id') || '');
-    if (!id) return;
-    if (deleteBtn) {
-      bbDeleteFeedPost(id);
-      return;
-    }
-    if (reportBtn) { openFeedReportModal(id); return; }
-    if (blockBtn) { bbBlockFeedAuthor(id); return; }
-    if (likeBtn) {
-      var likes = bbUserFeedLikedMap();
-      likes[id] = !likes[id];
-      bbUserFeedSaveLikes(likes);
-      bbRenderUserFeed(_bbUserFeedPostsCache);
-      return;
-    }
-    if (commentBtn) {
-      var txt = window.prompt('Add a comment');
-      if (!txt) return;
-      var clean = String(txt).trim();
-      if (!clean) return;
-      var map = bbUserFeedCommentsMap();
-      var arr = Array.isArray(map[id]) ? map[id] : [];
-      arr.push(clean.slice(0, 120));
-      map[id] = arr.slice(-50);
-      bbUserFeedSaveComments(map);
-      bbRenderUserFeed(_bbUserFeedPostsCache);
-    }
-  });
-}
-function bbBindAdminFeedActions(){
-  var grid = document.getElementById('adminEliteFeedGrid');
-  if (!grid || grid._bbBound) return;
-  grid._bbBound = true;
-  grid.addEventListener('click', function(e){
-    var deleteBtn = e.target && e.target.closest ? e.target.closest('.js-feed-delete') : null;
-    var likeBtn = e.target && e.target.closest ? e.target.closest('.js-uf-like') : null;
-    var commentBtn = e.target && e.target.closest ? e.target.closest('.js-uf-comment') : null;
-    if (!deleteBtn && !likeBtn && !commentBtn) return;
-    var postEl = e.target.closest('.bb-uf-post');
-    if (!postEl) return;
-    var id = String(postEl.getAttribute('data-post-id') || '');
-    if (!id) return;
-    if (deleteBtn) {
-      bbDeleteFeedPost(id);
-      return;
-    }
-    if (likeBtn) {
-      var likes = bbUserFeedLikedMap();
-      likes[id] = !likes[id];
-      bbUserFeedSaveLikes(likes);
-      bbRenderAdminFeed(_bbAdminFeedPostsCache);
-      return;
-    }
-    if (commentBtn) {
-      var txt = window.prompt('Add a comment');
-      if (!txt) return;
-      var clean = String(txt).trim();
-      if (!clean) return;
-      var map = bbUserFeedCommentsMap();
-      var arr = Array.isArray(map[id]) ? map[id] : [];
-      arr.push(clean.slice(0, 120));
-      map[id] = arr.slice(-50);
-      bbUserFeedSaveComments(map);
-      bbRenderAdminFeed(_bbAdminFeedPostsCache);
-    }
-  });
-}
-function bbRenderAdminFeed(posts){
-  var grid = document.getElementById('adminEliteFeedGrid');
-  var empty = document.getElementById('adminEliteFeedEmpty');
-  if (!grid) return;
-  _bbAdminFeedPostsCache = Array.isArray(posts) ? posts.slice() : [];
-  if (!_bbAdminFeedPostsCache.length) {
-    grid.innerHTML = '';
-    if (empty) empty.classList.add('is-visible');
-    return;
-  }
-  grid.innerHTML = _bbAdminFeedPostsCache.map(bbUserFeedCardHtml).join('');
-  if (empty) empty.classList.remove('is-visible');
-}
-async function bbDeleteFeedPost(postId){
-  if (!postId) return;
-  if (!window.confirm('Delete this post?')) return;
-  try {
-    var resp = await fetch('/api/feed/delete', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ postId: String(postId), username: bbCurrentFeedUsername() })
-    });
-    var data = await resp.json().catch(function(){ return {}; });
-    if (!resp.ok) throw new Error(data.error || 'Delete failed');
-    if (typeof loadUserEliteFeedGrid === 'function') loadUserEliteFeedGrid();
-    if (typeof loadAdminEliteFeedGrid === 'function') loadAdminEliteFeedGrid();
-  } catch (e) {
-    alert(e.message || 'Could not delete post.');
-  }
-}
-/* ==========================================================================
-   Elite Feed moderation — App Store Guideline 1.2
-   Members must be able to report objectionable posts and block the member who
-   posted them. Two independent reports hide a post immediately; staff review the
-   queue in the admin Elite Feed tab.
-   ========================================================================== */
-var _bbReportPostId = '';
-
-function openFeedReportModal(postId){
-  _bbReportPostId = String(postId || '');
-  if (!_bbReportPostId) return;
-  var sel = document.getElementById('feedReportReason');
-  var note = document.getElementById('feedReportNote');
-  if (sel) sel.value = 'nudity';
-  if (note) note.value = '';
-  openModal('feedReportModal');
-}
-
-async function submitFeedReport(){
-  if (!_bbReportPostId) return;
-  var btn = document.getElementById('feedReportSubmit');
-  var sel = document.getElementById('feedReportReason');
-  var note = document.getElementById('feedReportNote');
-  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
-  try {
-    var res = await apiCall('POST', '/api/feed/report', {
-      postId: _bbReportPostId,
-      reason: (sel && sel.value) || 'other',
-      note: (note && note.value) || ''
-    });
-    closeModal('feedReportModal');
-    showPopup(
-      'Report received',
-      res && res.alreadyReported
-        ? 'You have already reported this post. Our team is reviewing it.'
-        : (res && res.autoHidden
-            ? 'Thank you. This post has been hidden and our team will review it within 24 hours.'
-            : 'Thank you. Our team will review this post within 24 hours.'),
-      '', 'OK'
-    );
-    loadUserEliteFeedGrid();
-  } catch (e) {
-    showPopup('Could not send report', (e && e.message) || 'Please try again.', '', 'OK', null, 'error');
-  } finally {
-    if (btn) { btn.disabled = false; btn.textContent = 'Submit report'; }
-  }
-}
-
-function bbBlockFeedAuthor(postId){
-  if (!postId) return;
-  showPopup(
-    'Block this member?',
-    'You will stop seeing every post from this member. You can undo this from the Blocked list at any time.',
-    'Cancel',
-    'Block',
-    async function(){
-      try {
-        var res = await apiCall('POST', '/api/feed/block', { postId: String(postId) });
-        showPopup('Member blocked', 'You will no longer see posts from ' + ((res && res.blocked) || 'this member') + '.', '', 'OK');
-        loadUserEliteFeedGrid();
-      } catch (e) {
-        showPopup('Could not block', (e && e.message) || 'Please try again.', '', 'OK', null, 'error');
-      }
-    },
-    'error'
-  );
-}
-
-async function openBlockedMembersModal(){
-  openModal('blockedMembersModal');
-  var list = document.getElementById('blockedMembersList');
-  if (list) list.innerHTML = '<p class="bb-ef-status">Loading…</p>';
-  try {
-    var res = await apiCall('GET', '/api/feed/blocked');
-    var rows = (res && res.blocked) || [];
-    if (!list) return;
-    if (!rows.length) {
-      list.innerHTML = '<p class="bb-ef-status">You have not blocked anyone.</p>';
-      return;
-    }
-    list.innerHTML = rows.map(function(r){
-      return '<div class="bb-blocked-row">'
-        + '<span>' + bbEscapeHtml(String(r.name || 'member')) + '</span>'
-        + '<button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="bbUnblockMember(\'' + bbEscapeHtml(String(r.id)) + '\')">Unblock</button>'
-        + '</div>';
-    }).join('');
-  } catch (e) {
-    if (list) list.innerHTML = '<p class="bb-ef-status">Could not load the blocked list.</p>';
-  }
-}
-
-async function bbUnblockMember(blockedId){
-  if (!blockedId) return;
-  try {
-    await apiCall('POST', '/api/feed/unblock', { blockedId: String(blockedId) });
-    openBlockedMembersModal();
-    loadUserEliteFeedGrid();
-  } catch (e) {
-    showPopup('Could not unblock', (e && e.message) || 'Please try again.', '', 'OK', null, 'error');
-  }
-}
-
-async function bbFetchAllFeedPosts(){
-  var all = [];
-  var offset = 0;
-  var limit = 24;
-  for (var guard = 0; guard < 80; guard++) {
-    // Signed in, the listing must go out authenticated: the server uses the token
-    // to drop posts by members this viewer has blocked and to mark their own posts.
-    var j = await apiCall('GET', '/api/feed/posts?limit=' + limit + '&offset=' + offset);
-    var batch = j.posts || [];
-    all = all.concat(batch);
-    if (!j.hasMore || !batch.length) break;
-    offset += limit;
-  }
-  return all;
-}
-async function loadUserEliteFeedGrid(){
-  var grid = document.getElementById('userEliteFeedGrid');
-  var empty = document.getElementById('userEliteFeedEmpty');
-  if (!grid) return;
-  bbBindUserFeedActions();
-  grid.innerHTML = '<p class="bb-ef-status" style="grid-column:1/-1;padding:20px">Loading…</p>';
-  if (empty) empty.classList.remove('is-visible');
-  try {
-    var posts = await bbFetchAllFeedPosts();
-    bbRenderUserFeed(posts);
-  } catch (e) {
-    grid.innerHTML = '<p class="bb-ef-status" style="grid-column:1/-1;padding:20px">Could not load the feed. Try Refresh.</p>';
-    if (empty) empty.classList.remove('is-visible');
-  }
-}
-/* Admin moderation queue — reported posts (Guideline 1.2). */
-async function loadAdminFeedReports(status){
-  var list = document.getElementById('adminFeedReportsList');
-  var countEl = document.getElementById('adminFeedReportCount');
-  if (!list) return;
-  var want = status === 'resolved' ? 'resolved' : 'open';
-  list.innerHTML = '<p class="bb-ef-status">Loading…</p>';
-  try {
-    var res = await apiCall('GET', '/api/admin/feed/reports?status=' + want);
-    var rows = (res && res.reports) || [];
-    if (countEl) countEl.textContent = (want === 'open' && rows.length) ? String(rows.length) : '';
-    if (!rows.length) {
-      list.innerHTML = '<p class="bb-ef-status">' + (want === 'open' ? 'Nothing reported. ' : 'No resolved reports yet.') + '</p>';
-      return;
-    }
-    list.innerHTML = rows.map(function(r){
-      var id = bbEscapeHtml(String(r.id || ''));
-      var gone = !r.author;
-      return '<div class="bb-mod-row">'
-        + '<div class="bb-mod-row-main">'
-        +   '<div class="bb-mod-row-head">'
-        +     '<strong>' + bbEscapeHtml(String(r.reason || 'other')) + '</strong>'
-        +     (r.hidden ? '<span class="bb-mod-tag">hidden</span>' : '')
-        +     (gone ? '<span class="bb-mod-tag">post deleted</span>' : '')
-        +   '</div>'
-        +   '<div class="bb-mod-row-sub">by ' + bbEscapeHtml(String(r.author || '—'))
-        +     ' · reported by ' + bbEscapeHtml(String(r.reporter || '—')) + '</div>'
-        +   (r.caption ? '<div class="bb-mod-row-cap">' + bbEscapeHtml(String(r.caption).slice(0, 160)) + '</div>' : '')
-        +   (r.note ? '<div class="bb-mod-row-note">“' + bbEscapeHtml(String(r.note).slice(0, 300)) + '”</div>' : '')
-        +   (r.status === 'resolved' ? '<div class="bb-mod-row-sub">resolved: ' + bbEscapeHtml(String(r.resolution || '—')) + '</div>' : '')
-        + '</div>'
-        + (r.status === 'open'
-            ? '<div class="bb-mod-row-actions">'
-              + '<button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="bbResolveFeedReport(\'' + id + '\',\'remove\')">Remove post</button>'
-              + '<button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="bbResolveFeedReport(\'' + id + '\',\'restore\')">Restore</button>'
-              + '<button type="button" class="bb-ef-btn bb-ef-btn-small" onclick="bbResolveFeedReport(\'' + id + '\',\'dismiss\')">Dismiss</button>'
-              + '</div>'
-            : '')
-        + '</div>';
-    }).join('');
-  } catch (e) {
-    list.innerHTML = '<p class="bb-ef-status">Could not load reports.</p>';
-  }
-}
-
-async function bbResolveFeedReport(reportId, action){
-  if (!reportId || !action) return;
-  if (action === 'remove' && !window.confirm('Delete this post permanently?')) return;
-  try {
-    await apiCall('POST', '/api/admin/feed/reports/resolve', { reportId: String(reportId), action: String(action) });
-    loadAdminFeedReports('open');
-    loadAdminEliteFeedGrid();
-  } catch (e) {
-    alert((e && e.message) || 'Could not resolve this report.');
-  }
-}
-
-async function loadAdminEliteFeedGrid(){
-  loadAdminFeedReports('open');
-  var grid = document.getElementById('adminEliteFeedGrid');
-  var empty = document.getElementById('adminEliteFeedEmpty');
-  if (!grid) return;
-  bbBindAdminFeedActions();
-  grid.innerHTML = '<p class="bb-ef-status" style="grid-column:1/-1;padding:20px">Loading…</p>';
-  if (empty) empty.classList.remove('is-visible');
-  try {
-    var posts = await bbFetchAllFeedPosts();
-    bbRenderAdminFeed(posts);
-  } catch (e) {
-    grid.innerHTML = '<p class="bb-ef-status" style="grid-column:1/-1;padding:20px">Could not load the feed. Try Refresh.</p>';
-    if (empty) empty.classList.remove('is-visible');
-  }
-}
-/* ==============================
-   Quick Post Sheet
-   ============================== */
-var _bbPS = { stream: null, dataUrl: '' };
-var _bbFeedPostNicknameCache = null;
-
-async function bbResolveFeedPostingName(opts) {
-  var options = opts || {};
-  var session = null;
-  try { session = JSON.parse(localStorage.getItem('bodybank_session') || 'null'); } catch(_){}
-  var role = String((session && (session.role || (session.user && session.user.role))) || '').toLowerCase();
-  if (role === 'admin' || role === 'superadmin') {
-    return bbCurrentFeedUsername();
-  }
-  if (_bbFeedPostNicknameCache) return _bbFeedPostNicknameCache;
-  try {
-    var score = await apiCall('GET', '/api/me/scorecard');
-    var nick = String((score && score.display_name) || '').trim();
-    if (nick) {
-      _bbFeedPostNicknameCache = nick.slice(0, 32);
-      try { localStorage.setItem('bb_feed_post_nickname', _bbFeedPostNicknameCache); } catch (_) {}
-      return _bbFeedPostNicknameCache;
-    }
-  } catch (_) {}
-  if (options.promptIfMissing) {
-    window._bbPendingFeedPostStart = true;
-    showPopup(
-      'Enable scorecard nickname',
-      'To post in Elite Feed without showing your real name, enable Scorecard nickname first.',
-      'Not now',
-      'Set nickname',
-      function () {
-        openLeaderboardOptInModal();
-        var btn = document.getElementById('leaderboardOptInSubmit');
-        if (btn) btn.textContent = 'Save nickname & start 1st post';
-      },
-      'error'
-    );
-  }
-  return '';
-}
-
-function openBbPostSheet() {
-  var overlay = document.getElementById('bbPostSheetOverlay');
-  if (!overlay) return;
-  _bbPS.dataUrl = '';
-  bbPostSheetShowChoose();
-  overlay.classList.add('open');
-  lockBodyScroll();
-}
-function closeBbPostSheet() {
-  var overlay = document.getElementById('bbPostSheetOverlay');
-  if (overlay) overlay.classList.remove('open');
-  _bbPSStopCamera();
-  unlockBodyScroll();
-}
-function _bbPSStopCamera() {
-  if (_bbPS.stream) {
-    _bbPS.stream.getTracks().forEach(function(t){ t.stop(); });
-    _bbPS.stream = null;
-  }
-}
-function bbPostSheetShowChoose() {
-  var ch = document.getElementById('bbPostSheetChoose');
-  var cam = document.getElementById('bbPostSheetCamera');
-  var prev = document.getElementById('bbPostSheetPreview');
-  if (ch) ch.style.display = '';
-  if (cam) cam.style.display = 'none';
-  if (prev) prev.style.display = 'none';
-  _bbPSSetStatus('');
-}
-function bbPostSheetCancelCamera() {
-  _bbPSStopCamera();
-  document.getElementById('bbPostSheetCamera').style.display = 'none';
-  document.getElementById('bbPostSheetChoose').style.display = '';
-  _bbPSSetStatus('');
-}
-async function bbPostSheetOpenCamera() {
-  _bbPSSetStatus('');
-  try {
-    _bbPS.stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment', width: { ideal: 1080 }, height: { ideal: 1350 } },
-      audio: false
-    });
-    var video = document.getElementById('bbPostCameraVideo');
-    video.srcObject = _bbPS.stream;
-    document.getElementById('bbPostSheetChoose').style.display = 'none';
-    document.getElementById('bbPostSheetCamera').style.display = '';
-  } catch(e) {
-    _bbPSSetStatus('Camera not available. Use "Upload Photo" instead.');
-  }
-}
-function bbPostSheetCapture() {
-  var video = document.getElementById('bbPostCameraVideo');
-  if (!video || !video.videoWidth) { _bbPSSetStatus('Camera not ready yet.'); return; }
-  var c = document.createElement('canvas');
-  c.width = video.videoWidth; c.height = video.videoHeight;
-  var ctx = c.getContext('2d');
-  ctx.drawImage(video, 0, 0);
-  var sh = Math.max(72, Math.round(c.height * 0.11));
-  var y = c.height - sh;
-  var grad = ctx.createLinearGradient(0, y, 0, c.height);
-  grad.addColorStop(0, 'rgba(0,0,0,0)');
-  grad.addColorStop(1, 'rgba(0,0,0,0.78)');
-  ctx.fillStyle = grad; ctx.fillRect(0, y, c.width, sh);
-  ctx.fillStyle = '#c8a44e';
-  ctx.font = 'bold ' + Math.max(16, Math.round(sh * 0.34)) + 'px Inter,sans-serif';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('BodyBank', Math.round(sh * 0.22), y + sh * 0.62);
-  _bbPSStopCamera();
-  document.getElementById('bbPostSheetCamera').style.display = 'none';
-  _bbPSShowPreview(c.toDataURL('image/jpeg', 0.9));
-}
-function bbPostSheetUpload() {
-  var inp = document.getElementById('bbPostFileInput');
-  if (inp) inp.click();
-}
-function _bbPSShowPreview(dataUrl) {
-  _bbPS.dataUrl = dataUrl;
-  var img = document.getElementById('bbPostPreviewImg');
-  if (img) img.src = dataUrl;
-  document.getElementById('bbPostSheetChoose').style.display = 'none';
-  document.getElementById('bbPostSheetCamera').style.display = 'none';
-  document.getElementById('bbPostSheetPreview').style.display = '';
-  document.getElementById('bbPostCaptionInput').value = '';
-  _bbPSSetStatus('Photo ready. Add a caption and publish.');
-}
-function _bbPSSetStatus(msg) {
-  var el = document.getElementById('bbPostSheetStatus');
-  if (el) el.textContent = msg || '';
-}
-(function() {
-  document.addEventListener('DOMContentLoaded', function() {
-    var inp = document.getElementById('bbPostFileInput');
-    if (!inp) return;
-    inp.addEventListener('change', function() {
-      var file = inp.files && inp.files[0];
-      if (!file) return;
-      if (!/^image\//i.test(file.type)) { _bbPSSetStatus('Please choose an image file.'); inp.value=''; return; }
-      if (file.size > 8 * 1024 * 1024) { _bbPSSetStatus('Image must be under 8 MB.'); inp.value=''; return; }
-      _bbPSSetStatus('Loading…');
-      var fr = new FileReader();
-      fr.onload = function() { _bbPSShowPreview(String(fr.result)); };
-      fr.onerror = function() { _bbPSSetStatus('Could not read file. Try another image.'); };
-      fr.readAsDataURL(file);
-      inp.value = '';
-    });
-  });
-})();
-async function bbPostSheetSubmit() {
-  var caption = String((document.getElementById('bbPostCaptionInput').value || '')).trim();
-  if (!caption) { _bbPSSetStatus('Please write a caption first.'); return; }
-  if (!_bbPS.dataUrl) { _bbPSSetStatus('No photo selected.'); return; }
-  var btn = document.getElementById('bbPostPublishBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Posting…'; }
-  _bbPSSetStatus('');
-  try {
-    var username = await bbResolveFeedPostingName({ promptIfMissing: true });
-    if (!username) {
-      _bbPSSetStatus('Set your scorecard nickname first, then post.');
-      if (btn) { btn.disabled = false; btn.textContent = 'Publish'; }
-      return;
-    }
-    var resp = await fetch('/api/feed/upload', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageData: _bbPS.dataUrl, caption: caption, username: username })
-    });
-    var data = await resp.json();
-    if (!resp.ok) throw new Error(data.error || 'Upload failed');
-    _bbPSSetStatus('✓ Posted!');
-    setTimeout(function(){
-      closeBbPostSheet();
-      if (typeof loadUserEliteFeedGrid === 'function') loadUserEliteFeedGrid();
-      if (typeof loadAdminEliteFeedGrid === 'function') loadAdminEliteFeedGrid();
-    }, 800);
-  } catch(e) {
-    _bbPSSetStatus(e.message || 'Post failed. Try again.');
-    if (btn) { btn.disabled = false; btn.textContent = 'Publish'; }
-  }
-}
-
-function closeEliteFeedNudge(){
-  var modal = document.getElementById('eliteFeedNudgeModal');
-  if (!modal) return;
-  modal.classList.remove('open');
-  unlockBodyScroll();
-}
-function openEliteFeedNudge(){
-  var modal = document.getElementById('eliteFeedNudgeModal');
-  if (!modal) return;
-  modal.classList.add('open');
-  lockBodyScroll();
-}
-function scheduleEliteFeedNudge(){
-  try{
-    if (window.currentUser) return;
-    var userPanel = document.getElementById('userPanel');
-    var adminPanel = document.getElementById('adminPanel');
-    if ((userPanel && userPanel.classList.contains('open')) || (adminPanel && adminPanel.classList.contains('open'))) return;
-    var key='bb_elite_feed_nudge_last_seen_at';
-    var now=Date.now();
-    var prev=parseInt(localStorage.getItem(key)||'0',10);
-    if (prev && (now - prev) < 24*60*60*1000) return;
-    var shown = false;
-    function tryOpenNudge(){
-      if (shown || window.currentUser) return;
-      var openLayer=document.querySelector('.modal-overlay.open, .popup-overlay.show, .mm.open');
-      if (openLayer) return;
-      shown = true;
-      openEliteFeedNudge();
-      localStorage.setItem(key, String(Date.now()));
-    }
-    // Show right after the Transformations area by observing the next section.
-    var triggerSection = document.getElementById('bodybankFeedPreview') || document.getElementById('results');
-    if (triggerSection && 'IntersectionObserver' in window) {
-      var obs = new IntersectionObserver(function(entries){
-        entries.forEach(function(entry){
-          if (entry.isIntersecting) {
-            tryOpenNudge();
-            obs.disconnect();
-          }
-        });
-      }, { threshold: 0.3 });
-      obs.observe(triggerSection);
-    } else {
-      // Fallback for old browsers: keep a short delay.
-      setTimeout(tryOpenNudge, 2500);
-    }
-  }catch(_){}
-}
-window.addEventListener('load', scheduleEliteFeedNudge);
-
 var _scrollLockCount=0,_savedScrollY=0;
 function lockBodyScroll(){
   if(_scrollLockCount++>0)return;
@@ -13076,7 +12141,7 @@ function openModal(id){
     el.addEventListener('keydown',_focusTrapHandler);
   }
   if (id==='loginModal'||id==='signupModal') { updateGoogleButtonVisibility(); updateAppleButtonVisibility(); }
-  if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab();
+  if (typeof bbUpdateUserActionFab === 'function') bbUpdateUserActionFab();
 }
 var _googleButtonRendered=false;
 var _gsiLoadAttempts=0;
@@ -13113,7 +12178,7 @@ function closeModal(id){
       _modalTrigger = null;
     }
   }
-  if (typeof bbUpdateEliteFeedFab === 'function') setTimeout(function(){ bbUpdateEliteFeedFab(); }, 30);
+  if (typeof bbUpdateUserActionFab === 'function') setTimeout(function(){ bbUpdateUserActionFab(); }, 30);
 }
 function togglePw(){const i=document.getElementById('pwInput');i.type=i.type==='password'?'text':'password'}
 const ob=new IntersectionObserver(e=>{e.forEach(n=>{if(n.isIntersecting)n.target.classList.add('v')})},{threshold:.08,rootMargin:'0px 0px -40px 0px'});
@@ -18765,16 +17830,12 @@ function switchToSection(section) {
   var sectionContent = document.getElementById('tab-' + section + '-section');
   if (sectionContent) sectionContent.classList.add('active');
   var sectionEl = document.getElementById('adminCurrentSection');
-  if (sectionEl) {
-    if (section === 'elitefeed') sectionEl.textContent = 'Elite Feed';
-    else sectionEl.textContent = section.charAt(0).toUpperCase() + section.slice(1);
-  }
+  if (sectionEl) sectionEl.textContent = section.charAt(0).toUpperCase() + section.slice(1);
   var backBtn = document.getElementById('adminBackToSection');
   if (backBtn) { backBtn.classList.remove('visible'); backBtn.removeAttribute('data-section'); }
   var adminWrap = document.querySelector('.admin-tab-content-wrap');
   if (adminWrap) adminWrap.scrollTop = 0;
   window.scrollTo(0, 0);
-  if (section === 'elitefeed' && typeof loadAdminEliteFeedGrid === 'function') loadAdminEliteFeedGrid();
 }
 function switchTab(tab) {
   // Backward compatibility: older links used the combined tab name.
@@ -20686,7 +19747,7 @@ function openUserDashboard(user) {
   if (typeof loadNotifications === 'function') loadNotifications();
   if (typeof startUserNotificationPolling === 'function') startUserNotificationPolling();
   setTimeout(function() { checkProgramAssignmentPopup(); }, 800);
-  setTimeout(function() { if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab('home'); }, 400);
+  setTimeout(function() { if (typeof bbUpdateUserActionFab === 'function') bbUpdateUserActionFab('home'); }, 400);
   setTimeout(function() {
     if (typeof checkUserPushStatus === 'function') checkUserPushStatus();
   }, 500);
@@ -21083,7 +20144,7 @@ function backToWebsiteFromUserPanel() {
   var waFloat = document.getElementById('userWaFloat');
   if (waFloat) waFloat.style.display = 'none';
   if (userPanel) userPanel.classList.remove('open');
-  var bbFeedFab = document.getElementById('bbEliteFeedFab');
+  var bbFeedFab = document.getElementById('bbUserActionFab');
   if (bbFeedFab) bbFeedFab.style.display = 'none';
   document.body.classList.remove('site-nav-hidden', 'user-dashboard-open');
   unlockBodyScroll();
@@ -21158,7 +20219,7 @@ function logoutUser() {
   var waFloat = document.getElementById('userWaFloat');
   if (waFloat) waFloat.style.display = 'none';
   if (userPanel) userPanel.classList.remove('open');
-  var bbFeedFab = document.getElementById('bbEliteFeedFab');
+  var bbFeedFab = document.getElementById('bbUserActionFab');
   if (bbFeedFab) bbFeedFab.style.display = 'none';
   document.body.classList.remove('site-nav-hidden','user-dashboard-open','admin-dashboard-open');
   unlockBodyScroll();
@@ -21172,7 +20233,6 @@ var USER_TAB_LABELS = {
   programs: 'My Programs',
   checkin: 'Check-in',
   messages: 'Messages',
-  elitefeed: 'Elite Feed',
   profile: 'My Profile',
   body: 'My Body',
   muscle: 'Muscle Ranking',
@@ -21185,7 +20245,6 @@ var USER_TAB_SUBTITLES = {
   programs: 'Programs assigned by your lifestyle manager.',
   checkin: 'Daily check-in and Sunday weekly review.',
   messages: 'Chat directly with your Lifestyle Manager in one clean thread.',
-  elitefeed: 'All community posts in one feed.',
   profile: 'Keep your personal and contact details up to date.',
   body: 'Track your transformation — photos and measurements over time.',
   contact: 'Schedule calls or send support requests quickly.'
@@ -21263,7 +20322,6 @@ function switchUserTab(tab) {
     try { localStorage.setItem('bb_seen_coach_at', String(Date.now())); } catch(_){}
     var _nb = document.getElementById('userCoachNavBadge'); if (_nb) _nb.hidden = true;
   }
-  if (tab === 'elitefeed' && typeof loadUserEliteFeedGrid === 'function') loadUserEliteFeedGrid();
   if (tab === 'contact') {
     // The bookable window, the slot picture and the list all come from the
     // server, so opening the tab is the only thing to do here.
@@ -21274,7 +20332,7 @@ function switchUserTab(tab) {
   if (tab === 'body' && typeof loadBodySnapshots === 'function') loadBodySnapshots();
   if (tab === 'muscle') loadMuscleRanking();
   if (tab === 'checkin') { showCheckinSubView('hub'); loadSundayCheckinDefaults(); }
-  if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(tab);
+  if (typeof bbUpdateUserActionFab === 'function') bbUpdateUserActionFab(tab);
   if (tab === 'workout') {
     var pdfRestored = restoreWorkoutStateFromStorage();
     initWorkoutSessionUI();
@@ -21620,7 +20678,7 @@ function bbIsVirtualKeyboardOpen() {
   } catch (_) { return false; }
 }
 function bbSetUserFabIcon(mode) {
-  var fab = document.getElementById('bbEliteFeedFab');
+  var fab = document.getElementById('bbUserActionFab');
   if (!fab) return;
   var svg = fab.querySelector('svg');
   if (!svg) return;
@@ -21631,30 +20689,19 @@ function bbSetUserFabIcon(mode) {
       '<circle class="bb-ef-cam" cx="14.7" cy="11.8" r="1.4"></circle>' +
       '<path class="bb-ef-cam" d="M10.2 15h3.6"></path>' +
       '<path class="bb-ef-cam" d="M9 6.3V4.8m6 1.5V4.8"></path>';
-  } else {
-    svg.innerHTML =
-      '<rect class="bb-ef-cam" x="4.4" y="4.4" width="15.2" height="15.2" rx="4.2"></rect>' +
-      '<circle class="bb-ef-cam" cx="12" cy="12" r="4"></circle>' +
-      '<circle class="bb-ef-dot" cx="16.7" cy="7.3" r="1.05"></circle>';
   }
 }
 function bbSetUserFabLabel(text) {
-  var lbl = document.getElementById('bbEliteFeedFabLabel');
+  var lbl = document.getElementById('bbUserActionFabLabel');
   if (!lbl) return;
   lbl.textContent = text || '';
 }
 function bbHandleUserFabClick() {
-  var fab = document.getElementById('bbEliteFeedFab');
-  if (!fab) return;
-  var mode = fab.getAttribute('data-mode') || 'feed';
-  if (mode === 'trainer') {
-    window.location.href = '/ai-trainer.html?v=2';
-    return;
-  }
-  if (typeof switchUserTab === 'function') switchUserTab('elitefeed');
+  // Single purpose since Elite Feed was removed: this button is the AI Trainer.
+  window.location.href = '/ai-trainer.html?v=2';
 }
-function bbUpdateEliteFeedFab(tab) {
-  var fab = document.getElementById('bbEliteFeedFab');
+function bbUpdateUserActionFab(tab) {
+  var fab = document.getElementById('bbUserActionFab');
   if (!fab) return;
   if (!window.currentUser || window.currentUser.role !== 'user') { fab.style.display = 'none'; return; }
   var userPanel = document.getElementById('userPanel');
@@ -21664,30 +20711,21 @@ function bbUpdateEliteFeedFab(tab) {
     var activeSec = document.querySelector('.user-section.active');
     activeTab = activeSec ? String(activeSec.id || '').replace(/^usec-/, '') : '';
   }
-  var isHome = activeTab === 'home';
   var isWorkout = activeTab === 'workout';
-  if (isWorkout) {
-    fab.setAttribute('data-mode', 'trainer');
-    fab.setAttribute('aria-label', 'Open AI Trainer');
-    fab.setAttribute('title', 'Open AI Trainer');
-    bbSetUserFabIcon('trainer');
-    bbSetUserFabLabel('AI Trainer');
-  } else {
-    fab.setAttribute('data-mode', 'feed');
-    fab.setAttribute('aria-label', 'Open Elite Feed');
-    fab.setAttribute('title', 'Open Elite Feed');
-    bbSetUserFabIcon('feed');
-    bbSetUserFabLabel('Elite Feed');
-  }
-  // Non-intrusive rule: show only on Home/Workout and hide while typing, keyboard open, or any modal layer is open.
-  var shouldShow = (isHome || isWorkout) && !bbIsTypingInputContext() && !bbIsVirtualKeyboardOpen() && !(typeof isOverlayOpen === 'function' && isOverlayOpen());
+  fab.setAttribute('aria-label', 'Open AI Trainer');
+  fab.setAttribute('title', 'Open AI Trainer');
+  bbSetUserFabIcon('trainer');
+  bbSetUserFabLabel('AI Trainer');
+  // Only on the workout tab now, and still hidden while typing, with the keyboard
+  // up, or behind any open modal layer.
+  var shouldShow = isWorkout && !bbIsTypingInputContext() && !bbIsVirtualKeyboardOpen() && !(typeof isOverlayOpen === 'function' && isOverlayOpen());
   fab.style.display = shouldShow ? 'flex' : 'none';
 }
-document.addEventListener('focusin', function(){ if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(); });
-document.addEventListener('focusout', function(){ setTimeout(function(){ if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(); }, 60); });
-window.addEventListener('resize', function(){ if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(); });
+document.addEventListener('focusin', function(){ if (typeof bbUpdateUserActionFab === 'function') bbUpdateUserActionFab(); });
+document.addEventListener('focusout', function(){ setTimeout(function(){ if (typeof bbUpdateUserActionFab === 'function') bbUpdateUserActionFab(); }, 60); });
+window.addEventListener('resize', function(){ if (typeof bbUpdateUserActionFab === 'function') bbUpdateUserActionFab(); });
 if (window.visualViewport && typeof window.visualViewport.addEventListener === 'function') {
-  window.visualViewport.addEventListener('resize', function(){ if (typeof bbUpdateEliteFeedFab === 'function') bbUpdateEliteFeedFab(); });
+  window.visualViewport.addEventListener('resize', function(){ if (typeof bbUpdateUserActionFab === 'function') bbUpdateUserActionFab(); });
 }
 
 window._bbUserCharts = window._bbUserCharts || {};
@@ -24521,81 +23559,6 @@ async function nutritionBlobToDataUrl(blob) {
   });
 }
 
-async function shareNutritionToBodybankFeed() {
-  var blob = _nutritionShareCardBlob;
-  if (!blob) {
-    var meal = _nutritionShareCardMealType;
-    if (!meal) return;
-    blob = await drawNutritionShareCard(meal);
-  }
-  if (!blob) {
-    nutritionShowToast('Could not prepare image for feed.', 'error');
-    return;
-  }
-  var dataUrl = await nutritionBlobToDataUrl(blob);
-  if (!dataUrl) {
-    nutritionShowToast('Could not read image for feed upload.', 'error');
-    return;
-  }
-  var username = '';
-  if (typeof bbResolveFeedPostingName === 'function') {
-    username = await bbResolveFeedPostingName({ promptIfMissing: true });
-  }
-  if (!username && typeof bbCurrentFeedUsername === 'function') {
-    username = bbCurrentFeedUsername();
-  }
-  if (!username) {
-    nutritionShowToast('Set your nickname first, then share to feed.', 'warn');
-    return;
-  }
-  var mealTag = _nutritionShareCardMealType || 'meal';
-  var caption = 'My ' + mealTag + ' nutrition card from BodyBank X Fitchef.';
-  try {
-    var resp = await fetch('/api/feed/upload', {
-      method: 'POST',
-      credentials: 'same-origin',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ imageData: dataUrl, caption: caption, username: username })
-    });
-    var data = await resp.json().catch(function () { return {}; });
-    if (!resp.ok) throw new Error(data.error || 'Feed share failed');
-    nutritionShowToast('Shared to BodyBank Feed.', 'success');
-    closeModal('nutritionShareCardModal');
-    if (typeof loadUserEliteFeedGrid === 'function') loadUserEliteFeedGrid();
-    if (typeof loadAdminEliteFeedGrid === 'function') loadAdminEliteFeedGrid();
-  } catch (e) {
-    nutritionShowToast(e.message || 'Could not share to feed.', 'error');
-  }
-}
-
-async function nutritionQuickShareFromMeal(mt) {
-  if (!bbNutritionState.results || !bbNutritionState.results[mt]) {
-    nutritionShowToast('Analyze this meal first to share.', 'warn');
-    return;
-  }
-  await drawNutritionShareCard(mt);
-  var blob = _nutritionShareCardBlob;
-  if (!blob) {
-    openNutritionShareCard(mt);
-    return;
-  }
-  var mealTag = String(mt || 'meal');
-  var file = new File([blob], 'bodybank_fitchef_' + mealTag + '.png', { type: 'image/png' });
-  var canNativeShare = !!(navigator.share && navigator.canShare && navigator.canShare({ files: [file] }));
-  if (canNativeShare) {
-    try {
-      await navigator.share({
-        title: 'My BodyBank X Fitchef Nutrition result',
-        text: 'My nutrition result card from BodyBank X Fitchef.',
-        files: [file]
-      });
-      return;
-    } catch (e) {
-      if (e && e.name === 'AbortError') return;
-    }
-  }
-  openNutritionShareCard(mt);
-}
 
 async function saveNutritionShareCardFromMeal(mt) {
   if (!bbNutritionState.results || !bbNutritionState.results[mt]) {
