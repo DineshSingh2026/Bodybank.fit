@@ -1650,6 +1650,57 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS pdf_data TEXT`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS pdf_mime TEXT DEFAULT 'application/pdf'`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS uploaded_by TEXT`); } catch (e) { /* ignore */ }
+  // Deleting a program is a soft delete. A hard DELETE would cascade into
+  // user_program_assignments and destroy every client's assignment history, and the
+  // disk sync below would re-create any library program on the next boot anyway.
+  try { await pool.query(`ALTER TABLE programs ADD COLUMN IF NOT EXISTS deleted_at TIMESTAMPTZ`); } catch (e) { /* ignore */ }
+
+  // ── Transformations (public landing-page proof) ──────────────────────────
+  // Admin-uploaded photos live in image_data (base64) so they survive redeploys —
+  // this service has no persistent disk. The originals shipped with the repo keep
+  // image_url and stream from public/img/transformations/ instead.
+  await pool.query(`CREATE TABLE IF NOT EXISTS transformations (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    weeks_label TEXT DEFAULT '',
+    quote TEXT DEFAULT '',
+    image_url TEXT,
+    image_data TEXT,
+    image_mime TEXT DEFAULT 'image/jpeg',
+    transformation_date DATE,
+    sort_order INTEGER DEFAULT 0,
+    created_by TEXT,
+    created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMPTZ
+  )`);
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_transformations_visible ON transformations(deleted_at, sort_order)`); } catch (e) { /* ignore */ }
+
+  // Seed the transformations that shipped as static markup, so admins manage every
+  // card from one place. Keyed by a stable id; a deleted one is never re-seeded.
+  try {
+    const seedTransformations = [
+      ['seed-kanshika', 'Kanshika', '16 Weeks', '"If I\'m putting effort, might as well go all in! Parents are so happy about this change."', '/img/transformations/6095797176152821202.jpg'],
+      ['seed-srunish',  'Srunish',  '20 Weeks', '"Lifestyle Management taught me how to sustain my results,"', '/img/transformations/IMG_5949.jpeg'],
+      ['seed-kartik',   'Kartik',   '13 Weeks', '"What a ride this was, there\'s a big change in my mindset & I hope many people get to experience this!"', '/img/transformations/IMG_5952.jpeg'],
+      ['seed-vikas',    'Vikas',    '14 Weeks', '"Through this approach, I\'m confident I can do better. I\'ll get ripped, never revert to old ways!"', '/img/transformations/IMG_5954.jpeg'],
+      ['seed-prem',     'Prem',     '19 Weeks', '"I feel lighter, can breathe better, my fam & friends observed the changes which felt really amazing"', '/img/transformations/IMG_5956.jpeg'],
+      ['seed-rahul',    'Rahul',    '24 Weeks', '"Gains daily F***, never this happy. Didn\'t think I\'d look this good Damn happy bro!"', '/img/transformations/IMG_5959.jpeg'],
+      ['seed-nisheeth', 'Nisheeth', '27 Weeks', '"Consistently being persistent, is what lifestyle management unlocked for me"', '/img/transformations/IMG_5961.webp'],
+      ['seed-sandeep',  'Sandeep',  '13 Weeks', '"One of the best takeaways is that I still try to keep at it! Once part of the tribe, always a part of the tribe"', '/img/transformations/IMG_5962.jpeg']
+    ];
+    for (let i = 0; i < seedTransformations.length; i++) {
+      const [id, name, weeks, quote, url] = seedTransformations[i];
+      const existing = await queryOne('SELECT id FROM transformations WHERE id = ?', [id]);
+      if (!existing) {
+        await run(
+          'INSERT INTO transformations (id, name, weeks_label, quote, image_url, sort_order) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, name, weeks, quote, url, i + 1]
+        );
+      }
+    }
+  } catch (e) {
+    console.error('Failed to seed transformations:', e.message);
+  }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_wheel_last_spin_date TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS focus_wheel_last_label TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS leaderboard_public_program BOOLEAN DEFAULT TRUE`); } catch (e) { /* ignore */ }
@@ -1888,8 +1939,10 @@ async function initDB() {
       const id = base;
       const name = base.replace(/\.pdf$/i, '');
       const pdfUrl = '/programs/pdfs/' + encodeURIComponent(base);
-      const existing = await queryOne('SELECT id FROM programs WHERE id = ?', [id]);
+      const existing = await queryOne('SELECT id, deleted_at FROM programs WHERE id = ?', [id]);
       if (existing && existing.id) {
+        // A program an admin deleted stays deleted, even though its PDF is still on disk.
+        if (existing.deleted_at) continue;
         await run('UPDATE programs SET name = ?, pdf_url = ? WHERE id = ?', [name, pdfUrl, id]);
       } else {
         await run('INSERT INTO programs (id, name, pdf_url) VALUES (?, ?, ?)', [id, name, pdfUrl]);
@@ -7247,6 +7300,136 @@ app.delete('/api/inbox', verifyToken, async (req, res) => {
   }
 });
 
+// ============ TRANSFORMATIONS ============
+// Public list for the landing-page carousel.
+app.get('/api/transformations', async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT id, name, weeks_label, quote, image_url, transformation_date,
+              (image_data IS NOT NULL) AS has_upload
+         FROM transformations
+        WHERE deleted_at IS NULL
+        ORDER BY sort_order, created_at`
+    );
+    res.json((rows || []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      weeks_label: r.weeks_label || '',
+      quote: r.quote || '',
+      // Uploaded images stream from the DB; the originals stay static files.
+      image: r.has_upload ? '/api/transformations/' + encodeURIComponent(r.id) + '/image' : r.image_url,
+      transformation_date: r.transformation_date
+    })));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Streams an admin-uploaded transformation photo out of Postgres.
+app.get('/api/transformations/:id/image', async (req, res) => {
+  try {
+    const row = await queryOne(
+      'SELECT image_data, image_mime, image_url FROM transformations WHERE id = ? AND deleted_at IS NULL',
+      [req.params.id]
+    );
+    if (!row) return res.status(404).json({ error: 'Not found' });
+    if (!row.image_data) {
+      if (row.image_url) return res.redirect(302, row.image_url);
+      return res.status(404).json({ error: 'Not found' });
+    }
+    res.setHeader('Content-Type', row.image_mime || 'image/jpeg');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.send(Buffer.from(row.image_data, 'base64'));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+const TRANSFORMATION_IMG_MAX_BYTES = 8 * 1024 * 1024; // 8MB
+const TRANSFORMATION_MIMES = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' };
+
+// Admin-only (never operator): add a transformation to the public carousel.
+app.get('/api/admin/transformations', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT id, name, weeks_label, quote, image_url, transformation_date, sort_order, created_at,
+              (image_data IS NOT NULL) AS has_upload
+         FROM transformations
+        WHERE deleted_at IS NULL
+        ORDER BY sort_order, created_at`
+    );
+    res.json((rows || []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      weeks_label: r.weeks_label || '',
+      quote: r.quote || '',
+      image: r.has_upload ? '/api/transformations/' + encodeURIComponent(r.id) + '/image' : r.image_url,
+      transformation_date: r.transformation_date,
+      sort_order: r.sort_order,
+      source: r.has_upload ? 'uploaded' : 'original'
+    })));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.post('/api/admin/transformations', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const body = req.body || {};
+    const name = (body.name != null ? String(body.name) : '').trim();
+    const weeksLabel = (body.weeksLabel != null ? String(body.weeksLabel) : '').trim();
+    const quoteRaw = (body.quote != null ? String(body.quote) : '').trim();
+    const dateRaw = (body.transformationDate != null ? String(body.transformationDate) : '').trim();
+    const b64raw = (body.imageBase64 != null ? String(body.imageBase64) : '');
+    const mime = (body.imageMime != null ? String(body.imageMime) : '').trim().toLowerCase();
+
+    if (!name) return res.status(400).json({ error: 'Client name is required' });
+    if (!b64raw) return res.status(400).json({ error: 'A transformation photo is required' });
+    if (!TRANSFORMATION_MIMES[mime]) return res.status(400).json({ error: 'Photo must be a JPG, PNG or WebP image' });
+    if (dateRaw && !/^\d{4}-\d{2}-\d{2}$/.test(dateRaw)) return res.status(400).json({ error: 'Date must be YYYY-MM-DD' });
+
+    let buf;
+    try { buf = Buffer.from(b64raw.replace(/\s/g, ''), 'base64'); } catch (e) { buf = null; }
+    if (!buf || !buf.length) return res.status(400).json({ error: 'Invalid or unreadable image' });
+    if (buf.length > TRANSFORMATION_IMG_MAX_BYTES) return res.status(400).json({ error: 'Photo is too large (max 8MB)' });
+
+    // Trust the bytes, not the declared mime.
+    const isJpg = buf[0] === 0xFF && buf[1] === 0xD8;
+    const isPng = buf.slice(0, 8).toString('latin1') === '\x89PNG\r\n\x1a\n';
+    const isWebp = buf.slice(0, 4).toString('latin1') === 'RIFF' && buf.slice(8, 12).toString('latin1') === 'WEBP';
+    if (!isJpg && !isPng && !isWebp) return res.status(400).json({ error: 'File is not a valid image' });
+    const realMime = isJpg ? 'image/jpeg' : (isPng ? 'image/png' : 'image/webp');
+
+    // Quotes render inside the card exactly like the originals, which wrap in curly-free
+    // straight quotes; add them only when the admin has not typed their own.
+    let quote = quoteRaw;
+    if (quote && !/^["“]/.test(quote)) quote = '"' + quote.replace(/"$/, '') + '"';
+
+    const nextOrder = await queryOne('SELECT COALESCE(MAX(sort_order), 0) + 1 AS n FROM transformations');
+    const id = uuidv4();
+    await run(
+      `INSERT INTO transformations
+         (id, name, weeks_label, quote, image_data, image_mime, transformation_date, sort_order, created_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [id, name, weeksLabel, quote, buf.toString('base64'), realMime, dateRaw || null, Number(nextOrder?.n || 1), req.user.id]
+    );
+    res.json({ id, name, image: '/api/transformations/' + encodeURIComponent(id) + '/image' });
+  } catch (e) {
+    res.status(500).json({ error: e.message || 'Upload failed' });
+  }
+});
+
+app.delete('/api/admin/transformations/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const row = await queryOne('SELECT id, name FROM transformations WHERE id = ? AND deleted_at IS NULL', [req.params.id]);
+    if (!row) return res.status(404).json({ error: 'Transformation not found' });
+    await run('UPDATE transformations SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
+    res.json({ ok: true, name: row.name });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ============ PROGRAMS ============
 // Admin uploads a new program PDF straight from the dashboard. The PDF bytes are
 // stored in Postgres (base64), not on disk — see the pdf_data column comment above —
@@ -7276,10 +7459,59 @@ app.post('/api/admin/programs/upload', verifyToken, requireAdminOrSuperadmin, as
   }
 });
 
+// Full program library for the admin dashboard: what exists, where it came from,
+// and how many clients are on it right now (so a delete is an informed one).
+app.get('/api/admin/programs', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const rows = await queryAll(
+      `SELECT p.id, p.name, p.created_at, p.uploaded_by,
+              (p.pdf_data IS NOT NULL) AS is_uploaded,
+              (SELECT COUNT(*) FROM user_program_assignments a
+                WHERE a.program_id = p.id AND a.removed_at IS NULL) AS active_clients
+         FROM programs p
+        WHERE p.deleted_at IS NULL
+        ORDER BY p.name`
+    );
+    res.json((rows || []).map((r) => ({
+      id: r.id,
+      name: r.name,
+      created_at: r.created_at,
+      source: r.is_uploaded ? 'uploaded' : 'library',
+      active_clients: Number(r.active_clients || 0)
+    })));
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// Soft delete. The row stays so assignment history survives, and the boot-time disk
+// sync checks deleted_at so a deleted library program is not re-created on redeploy.
+app.delete('/api/admin/programs/:id', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const id = req.params.id;
+    const prog = await queryOne('SELECT id, name FROM programs WHERE id = ? AND deleted_at IS NULL', [id]);
+    if (!prog) return res.status(404).json({ error: 'Program not found' });
+    const active = await queryOne(
+      'SELECT COUNT(*) as c FROM user_program_assignments WHERE program_id = ? AND removed_at IS NULL',
+      [id]
+    );
+    const unassigned = Number(active?.c || 0);
+    // Take it off every client first, otherwise they keep a program nobody can manage.
+    await run(
+      'UPDATE user_program_assignments SET removed_at = CURRENT_TIMESTAMP WHERE program_id = ? AND removed_at IS NULL',
+      [id]
+    );
+    await run('UPDATE programs SET deleted_at = CURRENT_TIMESTAMP WHERE id = ?', [id]);
+    res.json({ ok: true, name: prog.name, unassigned });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // Legacy admin-only route (kept under different path to avoid conflicts)
 app.get('/api/programs-legacy', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
-    const rows = await queryAll('SELECT id, name, pdf_url, image_url, youtube_url, sort_order FROM programs ORDER BY sort_order, name');
+    const rows = await queryAll('SELECT id, name, pdf_url, image_url, youtube_url, sort_order FROM programs WHERE deleted_at IS NULL ORDER BY sort_order, name');
     res.json(rows);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -7288,7 +7520,7 @@ app.get('/api/programs-legacy', verifyToken, requireAdminOrSuperadmin, async (re
 
 app.get('/api/admin/program-catalog', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
-    const rows = await queryAll('SELECT id, name, pdf_url FROM programs ORDER BY name');
+    const rows = await queryAll('SELECT id, name, pdf_url FROM programs WHERE deleted_at IS NULL ORDER BY name');
     res.json(rows);
   } catch (e) {
     res.status(500).json({ error: e.message });
@@ -7298,7 +7530,7 @@ app.get('/api/admin/program-catalog', verifyToken, requireAdminOrSuperadmin, asy
 // Weekly scorecard: per-program pillar weights (JSON) + cohort leaderboard audit
 app.get('/api/admin/program-score-rules', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
   try {
-    const rows = await queryAll('SELECT id, name, score_weights FROM programs ORDER BY name');
+    const rows = await queryAll('SELECT id, name, score_weights FROM programs WHERE deleted_at IS NULL ORDER BY name');
     const out = (rows || []).map((r) => {
       let sw = r.score_weights;
       if (typeof sw === 'string') {
@@ -7610,6 +7842,8 @@ app.post('/api/programs/assign', verifyToken, requireAdminOrSuperadmin, async (r
   try {
     const { user_id, program_id } = req.body;
     if (!user_id || !program_id) return res.status(400).json({ error: 'user_id and program_id required' });
+    const program = await queryOne('SELECT id FROM programs WHERE id = ? AND deleted_at IS NULL', [program_id]);
+    if (!program) return res.status(400).json({ error: 'That program no longer exists' });
     const activeCount = await queryOne(
       'SELECT COUNT(*) as c FROM user_program_assignments WHERE user_id = ? AND removed_at IS NULL',
       [user_id]
@@ -8507,7 +8741,7 @@ app.get('/api/member/home', verifyToken, async (req, res) => {
           AND m.created_at > COALESCE((SELECT MAX(created_at) FROM thread_messages me
                 WHERE me.thread_id = t.id AND me.sender_role = 'user'), '1970-01-01')`),
 
-      one(`SELECT COUNT(*)::int c FROM programs`, [])
+      one(`SELECT COUNT(*)::int c FROM programs WHERE deleted_at IS NULL`, [])
     ]);
 
     res.json({
@@ -11736,7 +11970,7 @@ app.get(['/admin/blood-reports', '/admin/blood-reports/'], (req, res) => {
 // Kept very simple and safe: just returns id, name and PDF URL.
 app.get('/api/programs', async (req, res) => {
   try {
-    const rows = await queryAll('SELECT id, name, pdf_url FROM programs ORDER BY name');
+    const rows = await queryAll('SELECT id, name, pdf_url FROM programs WHERE deleted_at IS NULL ORDER BY name');
     res.json(rows);
   } catch (e) {
     res.status(500).json({ error: e.message });

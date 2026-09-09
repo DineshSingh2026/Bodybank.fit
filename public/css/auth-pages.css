@@ -68,6 +68,36 @@ body::before {
 }
 .auth-card.wide { max-width: 560px; }
 
+/* ---------- back to site ----------
+   The signup form runs long on mobile, so the only other way out (the footer
+   "Home" link) sits below every field. This gives an obvious exit on arrival. */
+.auth-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  padding: 8px 14px 8px 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(200, 164, 78, 0.34);
+  background: rgba(200, 164, 78, 0.08);
+  color: rgba(232, 228, 220, 0.85);
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: background .2s, border-color .2s, color .2s;
+}
+.auth-back:hover {
+  background: rgba(200, 164, 78, 0.16);
+  border-color: rgba(200, 164, 78, 0.6);
+  color: var(--bb-gold);
+}
+.auth-back:focus-visible {
+  outline: 2px solid var(--bb-gold);
+  outline-offset: 2px;
+}
+.auth-back svg { width: 14px; height: 14px; flex-shrink: 0; transition: transform .2s; }
+.auth-back:hover svg { transform: translateX(-2px); }
+
 /* ---------- header ---------- */
 .auth-brand {
   display: flex;

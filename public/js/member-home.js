@@ -327,7 +327,6 @@ function renderMemberHome() {
       + item('🏋️', 'My Workout', 'Log and review sessions', 'workout')
       + item('📸', 'My Body', 'Photos and measurements', 'body')
       + item('💪', 'Muscle Ranking', 'See where you stand', 'muscle')
-      + item('🖼️', 'Elite Feed', 'The tribe', 'elitefeed')
       + item('👤', 'My Profile', 'Goals and details', 'profile')
       + item('✉️', 'Contact Us', 'We are here to help', 'contact')
       + '<button type="button" class="mh-navtile" onclick="mhOpenNutritionAssessment()">'

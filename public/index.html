@@ -1926,6 +1926,8 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
 .admin-qa-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:16px 10px;background:rgba(26,26,26,0.95);border-radius:12px;color:#fff;text-decoration:none;font-size:12px;font-weight:600;transition:background .2s}
 .admin-qa-btn:hover{background:rgba(40,40,40,0.98)}
 .admin-qa-icon{display:flex;align-items:center;justify-content:center;width:26px;height:26px;font-size:22px;line-height:1;opacity:.9;flex-shrink:0}
+/* BodyBank Coin medallion, inline with whatever text it sits next to. */
+.bb-coin-ico{width:1.25em;height:1.25em;object-fit:contain;display:inline-block;vertical-align:-0.22em;flex-shrink:0}
 .admin-la-title{font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--creamd);margin-bottom:10px}
 .admin-la-list{display:flex;flex-direction:column;gap:0}
 .admin-la-item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.06)}
@@ -4992,9 +4994,7 @@ button.bb-today-pill{cursor:pointer}
     color:var(--gold);font-size:12px;font-weight:700;letter-spacing:.04em;
   }
   .user-topbar .topbar-right .bb-coin-pill .coin-dot{
-    width:18px;height:18px;border-radius:50%;display:grid;place-items:center;font-size:10px;
-    background:radial-gradient(circle at 30% 30%,#f5d889 0%,#c8a44e 55%,#8a6f2e 100%);
-    color:#1a1408;
+    width:18px;height:18px;display:block;object-fit:contain;
   }
   .user-topbar input[type="search"]{
     background:var(--bb-surface);
@@ -6960,7 +6960,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <div class="topbar-right">
             <input type="search" placeholder="Search..." aria-label="Search">
             <button type="button" class="bb-coin-pill" onclick="bbOpenCoinHistory()" aria-label="View coin activity">
-              <span class="coin-dot">●</span>
+              <img class="coin-dot" src="/img/bb-coin-icon.png" alt="" decoding="async">
               <span id="bbCoinBalanceDesktop">—</span>
             </button>
             <span class="bb-top-icon" aria-hidden="true">🔔</span>
@@ -7130,7 +7130,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             </div>
           </div>
           <div class="bb-today-stats">
-            <button type="button" class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" onclick="bbOpenCoinHistory()" title="Gold coins — tap for activity">◉ <b id="bbTodayCoinNum">0</b> <i>coins</i></button>
+            <button type="button" class="bb-today-pill bb-today-pill--coin" id="bbTodayCoinPill" onclick="bbOpenCoinHistory()" title="Gold coins — tap for activity"><img class="bb-coin-ico" src="/img/bb-coin-icon.png" alt="" decoding="async"> <b id="bbTodayCoinNum">0</b> <i>coins</i></button>
             <button type="button" class="bb-today-pill bb-today-pill--refer" onclick="bbOpenRewards()" title="Refer a friend and win your membership back">🎁 <b>Refer</b></button>
             <button type="button" class="bb-today-pill bb-today-pill--whoop" onclick="bbOpenReadiness()" title="Your readiness, recovery and watch data">⌚ <b>Readiness</b></button>
           </div>
@@ -8067,6 +8067,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <a class="admin-sidebar-link" href="#" data-section="clients" onclick="switchToSection('clients');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128101;</span>Clients</a>
         <a class="admin-sidebar-link" href="#" data-section="training" onclick="switchToSection('training');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127947;</span>Training</a>
         <a class="admin-sidebar-link" href="#" data-section="programs" onclick="switchToSection('programs');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#127919;</span>Programs</a>
+        <a class="admin-sidebar-link" href="#" onclick="switchTab('transformations');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128248;</span>Transformations</a>
         <a class="admin-sidebar-link" href="#" data-section="forms" onclick="switchToSection('forms');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128203;</span>Forms</a>
         <a class="admin-sidebar-link" href="#" data-section="leads" onclick="switchTab('leads');return false"><span class="admin-sidebar-icon" aria-hidden="true">🎯</span>Leads</a>
         <a class="admin-sidebar-link" href="#" data-section="analytics" onclick="switchToSection('analytics');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128200;</span>Analytics</a>
@@ -8112,6 +8113,9 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         </a>
         <a class="admin-nav-link" href="#" data-section="programs" onclick="switchToSection('programs');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#127919;</span>Programs
+        </a>
+        <a class="admin-nav-link" href="#" onclick="switchTab('transformations');closeAdminNavDrawer();return false">
+          <span class="admin-nav-link-icon" aria-hidden="true">&#128248;</span>Transformations
         </a>
         <a class="admin-nav-link" href="#" data-section="forms" onclick="switchToSection('forms');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128203;</span>Forms
@@ -8635,6 +8639,11 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <span class="admin-section-card-icon" aria-hidden="true">&#127919;</span>
             <span class="admin-section-card-title">Assign Program</span>
             <span class="admin-section-card-desc">Assign programs to users (max 4 per user)</span>
+          </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('transformations');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">&#128248;</span>
+            <span class="admin-section-card-title">Transformations</span>
+            <span class="admin-section-card-desc">Publish before/after photos to the website</span>
           </a>
         </div>
       </div>
@@ -9350,6 +9359,14 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <p class="form-hint" id="programUploadStatus" style="margin-bottom:24px"></p>
       </div>
       <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">All Programs</h3>
+        <p class="form-hint" style="margin-bottom:12px">Every program in the library. Deleting one removes it from the catalogue and unassigns it from any client currently on it.</p>
+        <div class="admin-table-wrap"><table class="admin-table">
+          <thead><tr><th>Program</th><th>Source</th><th>Added</th><th>Active clients</th><th>Actions</th></tr></thead>
+          <tbody id="programLibraryBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
+        </table></div>
+      </div>
+      <div class="admin-subsection-wrap">
         <h3 class="admin-subsection-title">Assign Program</h3>
         <p class="form-hint" style="margin-bottom:12px">Select a user and program. Max 4 programs per user.</p>
         <div class="admin-meeting-form" style="display:flex;flex-wrap:wrap;gap:12px;align-items:end;margin-bottom:24px">
@@ -9411,6 +9428,50 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       </div>
     </div>
 
+    <!-- TAB: Transformations — the public landing-page carousel, managed from here. -->
+    <div class="admin-tab-content" id="tab-transformations">
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Add Transformation</h3>
+        <p class="form-hint" style="margin-bottom:12px">Upload a before/after photo exactly like the existing ones — one image with both shots side by side. It goes live on the website straight away.</p>
+        <div style="display:flex;flex-direction:column;gap:12px;max-width:640px;margin-bottom:12px">
+          <div style="display:flex;flex-wrap:wrap;gap:12px">
+            <div style="flex:1;min-width:180px">
+              <label class="form-hint" for="tfUploadName">Client name *</label>
+              <input type="text" id="tfUploadName" class="form-input" placeholder="e.g. Kanshika">
+            </div>
+            <div style="flex:1;min-width:180px">
+              <label class="form-hint" for="tfUploadWeeks">Duration</label>
+              <input type="text" id="tfUploadWeeks" class="form-input" placeholder="e.g. 16 Weeks">
+            </div>
+          </div>
+          <div>
+            <label class="form-hint" for="tfUploadQuote">Client quote</label>
+            <textarea id="tfUploadQuote" class="form-input" rows="3" placeholder="What the client said about their transformation"></textarea>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:12px;align-items:end">
+            <div style="flex:1;min-width:180px">
+              <label class="form-hint" for="tfUploadDate">Date completed</label>
+              <input type="date" id="tfUploadDate" class="form-input">
+            </div>
+            <div style="flex:1;min-width:200px">
+              <label class="form-hint" for="tfUploadFile">Before / after photo *</label>
+              <input type="file" id="tfUploadFile" accept="image/jpeg,image/png,image/webp" style="width:100%">
+            </div>
+            <button type="button" class="form-submit" id="tfUploadBtn" style="width:auto;padding:12px 20px;margin:0" onclick="uploadNewTransformation()">Publish</button>
+          </div>
+        </div>
+        <p class="form-hint" id="tfUploadStatus" style="margin-bottom:24px"></p>
+      </div>
+      <div class="admin-subsection-wrap">
+        <h3 class="admin-subsection-title">Live on the website</h3>
+        <p class="form-hint" style="margin-bottom:12px">Every card in the Transformations carousel, in the order visitors see them. Removing one takes it off the website immediately.</p>
+        <div class="admin-table-wrap"><table class="admin-table">
+          <thead><tr><th>Photo</th><th>Client</th><th>Duration</th><th>Date</th><th>Source</th><th>Actions</th></tr></thead>
+          <tbody id="tfLibraryBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
     <!-- TAB: Tokens — every Anthropic call the product makes, priced.
          Fed by /api/admin/ai-usage, which reads the ai_usage_events ledger. -->
     <div class="admin-tab-content" id="tab-tokens">
@@ -9453,7 +9514,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="admin-subsection-wrap">
         <p class="form-hint" style="margin-bottom:12px">Choose which leaderboard you want to open.</p>
         <div class="admin-qa-grid">
-          <a class="admin-qa-btn" href="#" onclick="switchTab('coinleaderboard');return false"><span class="admin-qa-icon">🪙</span>Coin leaderboard</a>
+          <a class="admin-qa-btn" href="#" onclick="switchTab('coinleaderboard');return false"><span class="admin-qa-icon"><img class="bb-coin-ico" src="/img/bb-coin-icon.png" alt="" decoding="async"></span>Coin leaderboard</a>
           <a class="admin-qa-btn" href="#" onclick="switchTab('leaderboard');return false"><span class="admin-qa-icon">🏆</span>User leaderboard</a>
         </div>
       </div>
@@ -10637,10 +10698,10 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
   <a href="index.html" class="nb"><img src="img/logo.png" alt="BodyBank" class="nav-logo-img" decoding="async"></a>
   <ul class="nm">
     <li><a href="#hero">Home</a></li>
+    <li><a href="#results">Transformations</a></li>
     <li><a href="#get-the-app">App</a></li>
     <li><a href="#health-intelligence">Health Data</a></li>
     <li><a href="#success-stories">Stories</a></li>
-    <li><a href="#results">Transformations</a></li>
     <li><a href="tribe-stories.html">Tribe Stories</a></li>
     <li><a href="our-story.html">Our Story</a></li>
     <li><a href="blog.html">Blog</a></li>
@@ -10662,10 +10723,10 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
   <div class="mm-body">
     <div class="mm-links" role="navigation" aria-label="Site">
       <a class="mm-link" href="#hero" onclick="bbCloseNavMenu()">Home<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="#results" onclick="bbCloseNavMenu()">Transformations<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="#get-the-app" onclick="bbCloseNavMenu()"><span class="mm-label">Get the App<span class="mm-new">New</span></span><span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="#health-intelligence" onclick="bbCloseNavMenu()"><span class="mm-label">Health Data<span class="mm-new">New</span></span><span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="#success-stories" onclick="bbCloseNavMenu()">Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
-      <a class="mm-link" href="#results" onclick="bbCloseNavMenu()">Transformations<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="tribe-stories.html" onclick="bbCloseNavMenu()">Tribe Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="our-story.html" onclick="bbCloseNavMenu()">Our Story<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="blog.html" onclick="bbCloseNavMenu()">Blog<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
@@ -11090,6 +11151,103 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           </div>
         </div>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- TRANSFORMATIONS -->
+<section class="sec" id="results" style="background:var(--black)">
+  <div class="si rv">
+    <div class="gold-line"></div>
+    <h2 class="sec-heading" style="text-align:center"><span class="w">Transformations</span></h2>
+    <p class="sec-sub tf-sec-sub" style="margin-bottom:48px">Real results from our Tribes.</p>
+    <div class="tf-section-wrap">
+      <button type="button" class="tf-arrow-btn tf-prev" id="tfPrev" aria-label="Previous transformation">‹</button>
+      <button type="button" class="tf-arrow-btn tf-next" id="tfNext" aria-label="Next transformation">›</button>
+    <div class="tf-wrap" id="tfScroll">
+      <div class="tf-spotlight">
+        <div class="tf-spotlight-img-wrap">
+          <img src="img/transformations/6095797176152821202.jpg" alt="Transformation: Kanshika" loading="lazy">
+        </div>
+        <div class="tf-spotlight-story">
+          <p class="tf-story-intro">16 Weeks</p>
+          <p class="tf-story-quote">"If I'm putting effort, might as well go all in! Parents are so happy about this change."</p>
+          <p class="tf-story-attribution">— Kanshika</p>
+        </div>
+      </div>
+      <div class="tf-spotlight">
+        <div class="tf-spotlight-img-wrap">
+          <img src="img/transformations/IMG_5949.jpeg" alt="Transformation: Srunish" loading="lazy">
+        </div>
+        <div class="tf-spotlight-story">
+          <p class="tf-story-intro">20 Weeks</p>
+          <p class="tf-story-quote">"Lifestyle Management taught me how to sustain my results,"</p>
+          <p class="tf-story-attribution">— Srunish</p>
+        </div>
+      </div>
+      <div class="tf-spotlight">
+        <div class="tf-spotlight-img-wrap">
+          <img src="img/transformations/IMG_5952.jpeg" alt="Transformation: Kartik" loading="lazy">
+        </div>
+        <div class="tf-spotlight-story">
+          <p class="tf-story-intro">13 Weeks</p>
+          <p class="tf-story-quote">"What a ride this was, there's a big change in my mindset & I hope many people get to experience this!"</p>
+          <p class="tf-story-attribution">— Kartik</p>
+        </div>
+      </div>
+      <div class="tf-spotlight">
+        <div class="tf-spotlight-img-wrap">
+          <img src="img/transformations/IMG_5954.jpeg" alt="Transformation: Vikas" loading="lazy">
+        </div>
+        <div class="tf-spotlight-story">
+          <p class="tf-story-intro">14 Weeks</p>
+          <p class="tf-story-quote">"Through this approach, I'm confident I can do better. I'll get ripped, never revert to old ways!"</p>
+          <p class="tf-story-attribution">— Vikas</p>
+        </div>
+      </div>
+      <div class="tf-spotlight">
+        <div class="tf-spotlight-img-wrap">
+          <img src="img/transformations/IMG_5956.jpeg" alt="Transformation: Prem" loading="lazy">
+        </div>
+        <div class="tf-spotlight-story">
+          <p class="tf-story-intro">19 Weeks</p>
+          <p class="tf-story-quote">"I feel lighter, can breathe better, my fam & friends observed the changes which felt really amazing"</p>
+          <p class="tf-story-attribution">— Prem</p>
+        </div>
+      </div>
+      <div class="tf-spotlight">
+        <div class="tf-spotlight-img-wrap">
+          <img src="img/transformations/IMG_5959.jpeg" alt="Transformation: Rahul" loading="lazy">
+        </div>
+        <div class="tf-spotlight-story">
+          <p class="tf-story-intro">24 Weeks</p>
+          <p class="tf-story-quote">"Gains daily F***, never this happy. Didn't think I'd look this good Damn happy bro!"</p>
+          <p class="tf-story-attribution">— Rahul</p>
+        </div>
+      </div>
+      <div class="tf-spotlight">
+        <div class="tf-spotlight-img-wrap">
+          <img src="img/transformations/IMG_5961.webp" alt="Transformation: Nisheeth" loading="lazy">
+        </div>
+        <div class="tf-spotlight-story">
+          <p class="tf-story-intro">27 Weeks</p>
+          <p class="tf-story-quote">"Consistently being persistent, is what lifestyle management unlocked for me"</p>
+          <p class="tf-story-attribution">— Nisheeth</p>
+        </div>
+      </div>
+      <div class="tf-spotlight">
+        <div class="tf-spotlight-img-wrap">
+          <img src="img/transformations/IMG_5962.jpeg" alt="Transformation: Sandeep" loading="lazy">
+        </div>
+        <div class="tf-spotlight-story">
+          <p class="tf-story-intro">13 Weeks</p>
+          <p class="tf-story-quote">"One of the best takeaways is that I still try to keep at it! Once part of the tribe, always a part of the tribe"</p>
+          <p class="tf-story-attribution">— Sandeep</p>
+        </div>
+      </div>
+    </div>
+    <div class="tf-dots" id="tfDots" aria-hidden="true"></div>
+    <p class="tf-scroll-hint">See all transformations</p>
     </div>
   </div>
 </section>
@@ -11617,133 +11775,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
 })();
 </script>
 
-<!-- TRANSFORMATIONS -->
-<section class="sec" id="results" style="background:var(--black);padding-bottom:100px">
-  <div class="si rv">
-    <div class="gold-line"></div>
-    <h2 class="sec-heading" style="text-align:center"><span class="w">Transformations</span></h2>
-    <p class="sec-sub tf-sec-sub" style="margin-bottom:48px">Real results from our Tribes.</p>
-    <div class="tf-section-wrap">
-      <button type="button" class="tf-arrow-btn tf-prev" id="tfPrev" aria-label="Previous transformation">‹</button>
-      <button type="button" class="tf-arrow-btn tf-next" id="tfNext" aria-label="Next transformation">›</button>
-    <div class="tf-wrap" id="tfScroll">
-      <div class="tf-spotlight">
-        <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/6095797176152821202.jpg" alt="Transformation: Kanshika" loading="lazy">
-        </div>
-        <div class="tf-spotlight-story">
-          <p class="tf-story-intro">16 Weeks</p>
-          <p class="tf-story-quote">"If I'm putting effort, might as well go all in! Parents are so happy about this change."</p>
-          <p class="tf-story-attribution">— Kanshika</p>
-        </div>
-      </div>
-      <div class="tf-spotlight">
-        <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5949.jpeg" alt="Transformation: Srunish" loading="lazy">
-        </div>
-        <div class="tf-spotlight-story">
-          <p class="tf-story-intro">20 Weeks</p>
-          <p class="tf-story-quote">"Lifestyle Management taught me how to sustain my results,"</p>
-          <p class="tf-story-attribution">— Srunish</p>
-        </div>
-      </div>
-      <div class="tf-spotlight">
-        <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5952.jpeg" alt="Transformation: Kartik" loading="lazy">
-        </div>
-        <div class="tf-spotlight-story">
-          <p class="tf-story-intro">13 Weeks</p>
-          <p class="tf-story-quote">"What a ride this was, there's a big change in my mindset & I hope many people get to experience this!"</p>
-          <p class="tf-story-attribution">— Kartik</p>
-        </div>
-      </div>
-      <div class="tf-spotlight">
-        <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5954.jpeg" alt="Transformation: Vikas" loading="lazy">
-        </div>
-        <div class="tf-spotlight-story">
-          <p class="tf-story-intro">14 Weeks</p>
-          <p class="tf-story-quote">"Through this approach, I'm confident I can do better. I'll get ripped, never revert to old ways!"</p>
-          <p class="tf-story-attribution">— Vikas</p>
-        </div>
-      </div>
-      <div class="tf-spotlight">
-        <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5956.jpeg" alt="Transformation: Prem" loading="lazy">
-        </div>
-        <div class="tf-spotlight-story">
-          <p class="tf-story-intro">19 Weeks</p>
-          <p class="tf-story-quote">"I feel lighter, can breathe better, my fam & friends observed the changes which felt really amazing"</p>
-          <p class="tf-story-attribution">— Prem</p>
-        </div>
-      </div>
-      <div class="tf-spotlight">
-        <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5959.jpeg" alt="Transformation: Rahul" loading="lazy">
-        </div>
-        <div class="tf-spotlight-story">
-          <p class="tf-story-intro">24 Weeks</p>
-          <p class="tf-story-quote">"Gains daily F***, never this happy. Didn't think I'd look this good Damn happy bro!"</p>
-          <p class="tf-story-attribution">— Rahul</p>
-        </div>
-      </div>
-      <div class="tf-spotlight">
-        <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5958.jpeg" alt="Transformation: Rahul" loading="lazy">
-        </div>
-        <div class="tf-spotlight-story">
-          <p class="tf-story-intro">24 Weeks</p>
-          <p class="tf-story-quote">"Gains daily F***, never this happy. Didn't think I'd look this good Damn happy bro!"</p>
-          <p class="tf-story-attribution">— Rahul</p>
-        </div>
-      </div>
-      <div class="tf-spotlight">
-        <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5961.webp" alt="Transformation: Nisheeth" loading="lazy">
-        </div>
-        <div class="tf-spotlight-story">
-          <p class="tf-story-intro">27 Weeks</p>
-          <p class="tf-story-quote">"Consistently being persistent, is what lifestyle management unlocked for me"</p>
-          <p class="tf-story-attribution">— Nisheeth</p>
-        </div>
-      </div>
-      <div class="tf-spotlight">
-        <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5962.jpeg" alt="Transformation: Sandeep" loading="lazy">
-        </div>
-        <div class="tf-spotlight-story">
-          <p class="tf-story-intro">13 Weeks</p>
-          <p class="tf-story-quote">"One of the best takeaways is that I still try to keep at it! Once part of the tribe, always a part of the tribe"</p>
-          <p class="tf-story-attribution">— Sandeep</p>
-        </div>
-      </div>
-      <div class="tf-spotlight">
-        <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5970.jpeg" alt="Transformation: Srunish" loading="lazy">
-        </div>
-        <div class="tf-spotlight-story">
-          <p class="tf-story-intro">20 Weeks</p>
-          <p class="tf-story-quote">"Lifestyle Management taught me how to sustain my results,"</p>
-          <p class="tf-story-attribution">— Srunish</p>
-        </div>
-      </div>
-      <div class="tf-spotlight">
-        <div class="tf-spotlight-img-wrap">
-          <img src="img/transformations/IMG_5940.jpeg" alt="Transformation: Kanshika" loading="lazy">
-        </div>
-        <div class="tf-spotlight-story">
-          <p class="tf-story-intro">16 Weeks</p>
-          <p class="tf-story-quote">"If I'm putting effort, might as well go all in! Parents are so happy about this change."</p>
-          <p class="tf-story-attribution">— Kanshika</p>
-        </div>
-      </div>
-    </div>
-    <div class="tf-dots" id="tfDots" aria-hidden="true"></div>
-    <p class="tf-scroll-hint">See all transformations</p>
-    </div>
-  </div>
-</section>
-
 <!-- FAQ -->
 <section class="sec" id="faq">
   <div class="si">
@@ -11904,8 +11935,8 @@ function initBodyBankArsenal(){
       pills: ['Earn on every activity', 'Redeemable on renewal', '170 coins earned'],
       ctaHref: '#',
       ctaAction: 'openSignup',
-      image: '/img/BB%20Coin.jpeg',
-      imageAlt: 'BB Coins rewards and redemption preview'
+      image: '/img/bb-coin-preview.svg',
+      imageAlt: 'BB Coins screen showing your coin balance, how coins are earned, and redemption against your next renewal'
     },
     {
       tag: 'Blood Intelligence',
@@ -12196,22 +12227,54 @@ document.querySelectorAll('.rv').forEach(e=>ob.observe(e));
 (function(){
   var wrap=document.getElementById('tfScroll'), prev=document.getElementById('tfPrev'), next=document.getElementById('tfNext'), dotsEl=document.getElementById('tfDots');
   if(!wrap||!prev||!next||!dotsEl)return;
-  var cards=wrap.querySelectorAll('.tf-spotlight'), n=cards.length;
-  for(var i=0;i<n;i++){
-    var dot=document.createElement('button'); dot.type='button'; dot.className='tf-dot'+(i===0?' active':''); dot.setAttribute('aria-label','Transformation '+(i+1)+' of '+n); dot.dataset.index=i;
-    dotsEl.appendChild(dot);
-  }
+  // Card count is read live, not captured — admin uploads re-render the track.
+  function cardCount(){ return wrap.querySelectorAll('.tf-spotlight').length; }
   function updateTf(){
+    var n=cardCount(); if(!n)return;
     var sw=wrap.scrollWidth, cw=wrap.clientWidth, sl=wrap.scrollLeft;
     var idx=Math.round(sl/cw); idx=Math.min(idx,n-1); idx=Math.max(idx,0);
     prev.disabled=sl<=2; next.disabled=sl>=sw-cw-2;
     dotsEl.querySelectorAll('.tf-dot').forEach(function(d,i){ d.classList.toggle('active',i===idx); });
   }
+  function buildDots(){
+    var n=cardCount(); dotsEl.innerHTML='';
+    for(var i=0;i<n;i++){
+      var dot=document.createElement('button'); dot.type='button'; dot.className='tf-dot'+(i===0?' active':''); dot.setAttribute('aria-label','Transformation '+(i+1)+' of '+n); dot.dataset.index=i;
+      dotsEl.appendChild(dot);
+    }
+    dotsEl.querySelectorAll('.tf-dot').forEach(function(d){ d.addEventListener('click',function(){ var i=parseInt(d.dataset.index,10); wrap.scrollTo({left:wrap.clientWidth*i,behavior:'smooth'}); }); });
+  }
   wrap.addEventListener('scroll',updateTf);
   prev.addEventListener('click',function(){ wrap.scrollBy({left:-wrap.clientWidth,behavior:'smooth'}); });
   next.addEventListener('click',function(){ wrap.scrollBy({left:wrap.clientWidth,behavior:'smooth'}); });
-  dotsEl.querySelectorAll('.tf-dot').forEach(function(d){ d.addEventListener('click',function(){ var i=parseInt(d.dataset.index,10); wrap.scrollTo({left:wrap.clientWidth*i,behavior:'smooth'}); }); });
+  buildDots();
   updateTf();
+  // Called after the live list replaces the markup that ships with the page.
+  window.bbTfRebuild=function(){ buildDots(); wrap.scrollTo({left:0}); updateTf(); };
+})();
+
+// Transformations come from the database so admins can add them without a deploy.
+// The cards in the markup stay as the fallback if this request fails.
+(function(){
+  var wrap=document.getElementById('tfScroll');
+  if(!wrap||!window.fetch)return;
+  var esc=function(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+  fetch('/api/transformations').then(function(r){ return r.ok?r.json():null; }).then(function(rows){
+    if(!Array.isArray(rows)||!rows.length)return;
+    wrap.innerHTML=rows.map(function(t){
+      if(!t||!t.image)return '';
+      return '<div class="tf-spotlight">'
+        + '<div class="tf-spotlight-img-wrap">'
+        + '<img src="'+esc(t.image)+'" alt="Transformation: '+esc(t.name)+'" loading="lazy">'
+        + '</div>'
+        + '<div class="tf-spotlight-story">'
+        + (t.weeks_label?'<p class="tf-story-intro">'+esc(t.weeks_label)+'</p>':'')
+        + (t.quote?'<p class="tf-story-quote">'+esc(t.quote)+'</p>':'')
+        + '<p class="tf-story-attribution">— '+esc(t.name)+'</p>'
+        + '</div></div>';
+    }).join('');
+    if(typeof window.bbTfRebuild==='function')window.bbTfRebuild();
+  }).catch(function(){});
 })();
 updateGoogleButtonVisibility();
 if(window.location.hash==='#login'){openModal('loginModal');history.replaceState(null,'',location.pathname+location.search)}
@@ -17772,8 +17835,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', nutritionassessment: 'FitChef Assessment', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens' };
-var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', nutritionassessment: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', nutritionassessment: 'FitChef Assessment', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', transformations: 'Transformations', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens' };
+var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', nutritionassessment: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', transformations: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -17903,6 +17966,7 @@ function switchTab(tab) {
   if (tab === 'insights') loadPerformanceInsights();
   if (tab === 'clientprogress') loadClientProgressUsers();
   if (tab === 'programs') loadProgramsAdmin();
+  if (tab === 'transformations') loadTransformationsAdmin();
   if (tab === 'leaderboards') loadAdminCoinLeaderboard();
   if (tab === 'leaderboard') loadAdminVirtualLeaderboardSection();
   if (tab === 'coinleaderboard') loadAdminCoinLeaderboard();
@@ -19194,6 +19258,150 @@ async function adminRemoveUser() {
   }
 }
 
+async function loadTransformationsAdmin() {
+  var tbody = document.getElementById('tfLibraryBody');
+  if (!tbody) return;
+  var msg = function (color, text) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:' + color + ';padding:24px">' + text + '</td></tr>';
+  };
+  msg('var(--muted)', 'Loading…');
+  try {
+    var rows = await apiCall('GET', '/api/admin/transformations');
+    if (rows && rows.error) { msg('#e05050', escapeHtml(rows.error)); return; }
+    if (!Array.isArray(rows) || !rows.length) { msg('var(--muted)', 'No transformations yet'); return; }
+    window._bbTransformations = rows;
+    tbody.innerHTML = rows.map(function (t, i) {
+      var thumb = '<img src="' + escapeHtml(t.image || '') + '" alt="" loading="lazy" style="width:52px;height:52px;object-fit:cover;border-radius:8px;display:block">';
+      var src = t.source === 'uploaded'
+        ? '<span style="color:var(--gold)">Uploaded</span>'
+        : '<span style="color:var(--muted)">Original</span>';
+      var date = t.transformation_date ? new Date(t.transformation_date).toLocaleDateString() : '—';
+      return '<tr><td>' + thumb + '</td><td>' + escapeHtml(t.name || '') + '</td><td>' + escapeHtml(t.weeks_label || '—') +
+        '</td><td>' + escapeHtml(date) + '</td><td>' + src +
+        '</td><td><button type="button" class="action-btn btn-reject" style="padding:6px 12px;font-size:12px" onclick="deleteTransformationAt(' + i + ')">Remove</button></td></tr>';
+    }).join('');
+  } catch (e) {
+    msg('#e05050', 'Failed to load');
+  }
+}
+
+function uploadNewTransformation() {
+  var nameEl = document.getElementById('tfUploadName');
+  var weeksEl = document.getElementById('tfUploadWeeks');
+  var quoteEl = document.getElementById('tfUploadQuote');
+  var dateEl = document.getElementById('tfUploadDate');
+  var fileEl = document.getElementById('tfUploadFile');
+  var btn = document.getElementById('tfUploadBtn');
+  var status = document.getElementById('tfUploadStatus');
+  var show = function (color, text) { if (status) { status.style.color = color; status.textContent = text; } };
+
+  var name = (nameEl && nameEl.value || '').trim();
+  var f = fileEl && fileEl.files && fileEl.files[0];
+  if (!name) { show('#e05050', 'Enter the client name.'); return; }
+  if (!f) { show('#e05050', 'Choose a before/after photo.'); return; }
+  var okType = /^image\/(jpeg|png|webp)$/.test(f.type) || /\.(jpe?g|png|webp)$/i.test(f.name || '');
+  if (!okType) { show('#e05050', 'Photo must be a JPG, PNG or WebP.'); return; }
+  if (f.size > 8 * 1024 * 1024) { show('#e05050', 'Photo is too large (max 8MB).'); return; }
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Publishing…'; }
+  show('var(--muted)', 'Reading photo…');
+  var reader = new FileReader();
+  reader.onload = function () {
+    var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
+    show('var(--muted)', 'Uploading…');
+    apiCall('POST', '/api/admin/transformations', {
+      name: name,
+      weeksLabel: (weeksEl && weeksEl.value || '').trim(),
+      quote: (quoteEl && quoteEl.value || '').trim(),
+      transformationDate: (dateEl && dateEl.value || '').trim(),
+      imageBase64: b64,
+      imageMime: f.type || 'image/jpeg'
+    }).then(function (res) {
+      if (btn) { btn.disabled = false; btn.textContent = 'Publish'; }
+      if (res && res.error) { show('#e05050', res.error); return; }
+      show('var(--gold)', '"' + name + '" is now live on the website.');
+      if (nameEl) nameEl.value = '';
+      if (weeksEl) weeksEl.value = '';
+      if (quoteEl) quoteEl.value = '';
+      if (dateEl) dateEl.value = '';
+      if (fileEl) fileEl.value = '';
+      loadTransformationsAdmin();
+    }).catch(function () {
+      if (btn) { btn.disabled = false; btn.textContent = 'Publish'; }
+      show('#e05050', 'Upload failed. Please try again.');
+    });
+  };
+  reader.onerror = function () {
+    if (btn) { btn.disabled = false; btn.textContent = 'Publish'; }
+    show('#e05050', 'Could not read the photo. Please try again.');
+  };
+  reader.readAsDataURL(f);
+}
+
+async function deleteTransformationAt(index) {
+  var t = (window._bbTransformations || [])[index];
+  if (!t) return;
+  if (!confirm('Remove "' + t.name + '" from the website?\n\nThe Transformations carousel will no longer show this card.')) return;
+  try {
+    var res = await apiCall('DELETE', '/api/admin/transformations/' + encodeURIComponent(t.id));
+    if (res && res.error) { showPopup('Error', res.error, '', 'OK', null, 'error'); return; }
+    showPopup('Removed', 'Transformation removed from the website.', '', 'OK');
+    loadTransformationsAdmin();
+  } catch (e) {
+    showPopup('Error', 'Failed to remove. Please try again.', '', 'OK', null, 'error');
+  }
+}
+
+async function loadProgramLibrary() {
+  var tbody = document.getElementById('programLibraryBody');
+  if (!tbody) return;
+  var msg = function (color, text) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:' + color + ';padding:24px">' + text + '</td></tr>';
+  };
+  msg('var(--muted)', 'Loading…');
+  try {
+    var rows = await apiCall('GET', '/api/admin/programs');
+    if (rows && rows.error) { msg('#e05050', escapeHtml(rows.error)); return; }
+    if (!Array.isArray(rows) || !rows.length) { msg('var(--muted)', 'No programs yet'); return; }
+    window._bbProgramLibrary = rows;
+    tbody.innerHTML = rows.map(function (p, i) {
+      var src = p.source === 'uploaded'
+        ? '<span style="color:var(--gold)">Uploaded</span>'
+        : '<span style="color:var(--muted)">Library</span>';
+      var added = p.created_at ? new Date(p.created_at).toLocaleDateString() : '—';
+      var clients = Number(p.active_clients || 0);
+      return '<tr><td>' + escapeHtml(p.name || p.id) + '</td><td>' + src + '</td><td>' + escapeHtml(added) +
+        '</td><td>' + clients + '</td><td><button type="button" class="action-btn btn-reject" style="padding:6px 12px;font-size:12px" onclick="deleteProgramAt(' + i + ')">Delete</button></td></tr>';
+    }).join('');
+  } catch (e) {
+    msg('#e05050', 'Failed to load');
+  }
+}
+
+async function deleteProgramAt(index) {
+  var p = (window._bbProgramLibrary || [])[index];
+  if (!p) return;
+  var n = Number(p.active_clients || 0);
+  var warn = n > 0
+    ? '\n\n' + n + ' client' + (n === 1 ? ' is' : 's are') + ' on this program right now and will be unassigned.'
+    : '';
+  if (!confirm('Delete "' + p.name + '"?' + warn + '\n\nIt will be removed from the program catalogue.')) return;
+  try {
+    var res = await apiCall('DELETE', '/api/admin/programs/' + encodeURIComponent(p.id));
+    if (res && res.error) {
+      showPopup('Error', res.error, '', 'OK', null, 'error');
+      return;
+    }
+    var done = 'Program deleted.';
+    if (res && res.unassigned) done += ' Unassigned from ' + res.unassigned + ' client' + (res.unassigned === 1 ? '' : 's') + '.';
+    showPopup('Deleted', done, '', 'OK');
+    loadProgramsAdmin();
+    loadProgramAssignmentsForUser();
+  } catch (e) {
+    showPopup('Error', 'Failed to delete. Please try again.', '', 'OK', null, 'error');
+  }
+}
+
 function uploadNewProgram() {
   var nameInput = document.getElementById('programUploadName');
   var fileInput = document.getElementById('programUploadFile');
@@ -19232,6 +19440,7 @@ function uploadNewProgram() {
   reader.readAsDataURL(f);
 }
 async function loadProgramsAdmin() {
+  loadProgramLibrary();
   var userSelect = document.getElementById('programAssignUserId');
   var progSelect = document.getElementById('programAssignProgramId');
   var historySelect = document.getElementById('programHistoryUserId');
@@ -29564,7 +29773,6 @@ window.addEventListener('resize', applySafeAreaFix);
       <div class="bb-guide-item"><span class="bb-guide-ico">💪</span><div class="bb-guide-txt"><p class="bb-guide-name">Muscle Ranking</p><p class="bb-guide-desc">See how each muscle group ranks so you know where to focus next.</p></div></div>
       <div class="bb-guide-item"><span class="bb-guide-ico">🤖</span><div class="bb-guide-txt"><p class="bb-guide-name">AI Trainer</p><p class="bb-guide-desc">Ask the AI for instant workout &amp; nutrition help, anytime.</p></div></div>
       <div class="bb-guide-item"><span class="bb-guide-ico">💬</span><div class="bb-guide-txt"><p class="bb-guide-name">Messages</p><p class="bb-guide-desc">Chat with your human coach &mdash; their replies land here.</p></div></div>
-      <div class="bb-guide-item"><span class="bb-guide-ico">📸</span><div class="bb-guide-txt"><p class="bb-guide-name">Elite Feed</p><p class="bb-guide-desc">Share your wins and see what the community is posting.</p></div></div>
     </div>
     <div class="bb-guide-foot">
       <button type="button" class="form-submit" style="margin:0" onclick="bbCloseGuide()">Got it &mdash; let's go</button>
@@ -29576,7 +29784,7 @@ window.addEventListener('resize', applySafeAreaFix);
 <div id="bbCoinHistoryModal" role="dialog" aria-modal="true" onclick="bbCoinHistoryModalBgClose(event)">
   <div class="chm-box" onclick="event.stopPropagation()">
     <div class="chm-head">
-      <span class="chm-title">◉ Coin Activity</span>
+      <span class="chm-title"><img class="bb-coin-ico" src="/img/bb-coin-icon.png" alt="" decoding="async"> Coin Activity</span>
       <button class="chm-close" onclick="bbCoinHistoryModalClose()">✕ Close</button>
     </div>
     <div class="chm-summary">

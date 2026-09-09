@@ -311,7 +311,7 @@ var AH_QUICK = [
   { icon: '📅', label: 'Daily Check-ins', kind: 'tab', to: 'dailycheckin' },
   { icon: '🏋️', label: 'Workouts', kind: 'tab', to: 'workouts' },
   { icon: '🗂️', label: 'Programs', kind: 'tab', to: 'programs' },
-  { icon: '📸', label: 'Elite Feed', kind: 'section', to: 'elitefeed' },
+  { icon: '📸', label: 'Transformations', kind: 'tab', to: 'transformations' },
   { icon: '🏆', label: 'Leader Boards', kind: 'tab', to: 'leaderboards' },
   { icon: '🥗', label: 'Nutrition AI', kind: 'tab', to: 'nutrition' },
   { icon: '🩺', label: 'Blood Reports', kind: 'tab', to: 'blood' },
