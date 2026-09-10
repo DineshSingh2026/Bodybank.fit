@@ -1164,7 +1164,6 @@ const SURYA_STEPS = [
 /** Live sequence state, published each frame for the overlay. */
 let SURYA_VIEW = { i: 0, score: 0, rounds: 0, held: 0 };
 
-Object.assign(YOGA_REFERENCE, SURYA_FIGURES);
 
 /**
  * Score how well the body matches one position, 0–100, plus the joint statuses
@@ -1295,6 +1294,11 @@ const YOGA_REFERENCE = {
   surya:    { LS:[0.5,0.5], RS:[0.5,0.5], LE:[0.5,0.5], RE:[0.5,0.5], LW:[0.5,0.5], RW:[0.5,0.5], LH:[0.5,0.5], RH:[0.5,0.5], LK:[0.5,0.5], RK:[0.5,0.5], LA:[0.5,0.5], RA:[0.5,0.5] },
   plank:    { LS:[0.24,0.50], RS:[0.26,0.50], LE:[0.22,0.62], RE:[0.24,0.62], LW:[0.22,0.74], RW:[0.24,0.74], LH:[0.52,0.545], RH:[0.54,0.545], LK:[0.72,0.60], RK:[0.74,0.60], LA:[0.86,0.635], RA:[0.88,0.635] },
 };
+
+// The eight sequence figures live in the same table, so buildPostureSvg can
+// draw a storyboard cell with no special case. Must run AFTER the table above:
+// YOGA_REFERENCE is a const, so touching it earlier is a dead-zone error.
+Object.assign(YOGA_REFERENCE, SURYA_FIGURES);
 
 /** Human name for the caption, e.g. "Triangle · Trikonasana". */
 function refCaption(exKey) {
