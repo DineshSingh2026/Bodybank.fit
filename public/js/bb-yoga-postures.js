@@ -21,6 +21,9 @@
     { key: 'boat',     emoji: '⛵', en: 'Boat',          sa: 'Navasana' },
     { key: 'bridge',   emoji: '🌉', en: 'Bridge',        sa: 'Setu Bandhasana' },
     { key: 'cobra',    emoji: '🐍', en: 'Cobra',         sa: 'Bhujangasana' },
+    // A 12-position sequence rather than a held shape — the AI Trainer flows
+    // through it and counts rounds; here it is simply a loggable session.
+    { key: 'surya',    emoji: '🌅', en: 'Sun Salutation', sa: 'Surya Namaskar' },
   ];
 
   /** "🐕 Downward Dog · Adho Mukha Svanasana" — the label used in dropdowns. */

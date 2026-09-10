@@ -284,6 +284,33 @@
       .ref-cues li { font-size: 13px; padding: 8px 9px 8px 24px; }
     }
 
+    /* ── SURYA NAMASKAR STORYBOARD (target card) ── */
+    .ref-fig.is-board { align-items: stretch; padding: 12px; overflow: auto; }
+    .sn-board {
+      display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px; width: 100%; align-content: start;
+    }
+    .sn-cell {
+      position: relative; margin: 0; padding: 6px 4px 4px;
+      background: #0c0e15; border: 1px solid #1e2434; border-radius: 10px;
+      display: flex; flex-direction: column; align-items: center;
+    }
+    .sn-cell svg { width: 100%; height: 96px; max-height: none; }
+    .sn-num {
+      position: absolute; top: 5px; left: 6px;
+      font-size: 10px; font-weight: 700; color: #0a0a10;
+      background: var(--gold); border-radius: 5px; padding: 1px 5px; line-height: 1.5;
+    }
+    .sn-cell figcaption { text-align: center; margin-top: 2px; line-height: 1.25; }
+    .sn-cell figcaption b { display: block; font-size: 10.5px; color: var(--txt); font-weight: 600; }
+    .sn-cell figcaption span { display: block; font-size: 9px; color: var(--muted); }
+
+    @media (max-width: 900px) {
+      .sn-board { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 7px; }
+      .sn-cell svg { height: 74px; }
+      .ref-fig.is-board { max-height: 46vh; }
+    }
+
     /* ── FULLSCREEN WORKOUT MODE ── */
     body.in-workout .hdr { opacity: 0; pointer-events: none; transition: opacity .3s; }
     body.in-workout .left,
@@ -564,6 +591,7 @@
         <option value="boat">⛵ Boat · Navasana</option>
         <option value="bridge">🌉 Bridge · Setu Bandhasana</option>
         <option value="cobra">🐍 Cobra · Bhujangasana</option>
+        <option value="surya">🌅 Sun Salutation · Surya Namaskar</option>
       </select>
 
       <!-- Canonical selection. Never shown, but kept in the DOM and filled from the
@@ -778,7 +806,10 @@ const ALL_JOINT_IDS = [LM.LS,LM.RS,LM.LE,LM.RE,LM.LW,LM.RW,LM.LH,LM.RH,LM.LK,LM.
 //  body still gets its red / amber / green guidance.
 // ════════════════════════════════════════════════════════════════
 /** Yoga postures are scored by how long alignment is held, not by reps. */
-const YOGA_MODES = ['warrior2','tree','goddess','downdog','chair','warrior1','triangle','boat','bridge','cobra'];
+const YOGA_MODES = ['warrior2','tree','goddess','downdog','chair','warrior1','triangle','boat','bridge','cobra','surya'];
+/** Sequence modes flow through positions and count ROUNDS, not holds. */
+const SEQUENCE_MODES = ['surya'];
+const isSequence = k => SEQUENCE_MODES.indexOf(k) !== -1;
 /** Every mode that banks hold-time instead of reps (yoga + the original Plank). */
 const HOLD_MODES = YOGA_MODES.concat(['plank']);
 const isYoga     = k => YOGA_MODES.indexOf(k) !== -1;
@@ -1092,6 +1123,159 @@ function yogaMetrics(lm, exKey) {
 let YOGA_HOLD_VIZ = { ms: 0, unit: 5000, good: false, holds: 0 };
 
 // ════════════════════════════════════════════════════════════════
+//  SURYA NAMASKAR  — a 12-position SEQUENCE, not a hold
+//
+//  Every other yoga entry is one shape held still. Surya Namaskar flows through
+//  twelve positions and repeats, so it is scored differently: each position
+//  only has to be recognised briefly before the coach moves on, and the unit of
+//  achievement is a completed ROUND rather than a five-second hold.
+//
+//  Positions 7-12 mirror 1-6, so eight figures cover all twelve steps.
+// ════════════════════════════════════════════════════════════════
+
+/** Verified forward-kinematics figures — see gen-surya.js. */
+const SURYA_FIGURES = {
+  sn_pranam:  { LS:[0.4273,0.2268], RS:[0.5727,0.2268], LE:[0.4071,0.3771], RE:[0.5929,0.3771], LW:[0.4882,0.3206], RW:[0.5118,0.3206], LH:[0.4526,0.4719], RH:[0.5474,0.4719], LK:[0.4526,0.6728], RK:[0.5474,0.6728], LA:[0.4526,0.8737], RA:[0.5474,0.8737] },
+  sn_raised:  { LS:[0.441,0.3367], RS:[0.559,0.353], LE:[0.4116,0.2182], RE:[0.5884,0.2345], LW:[0.3935,0.1227], RW:[0.6065,0.1389], LH:[0.4455,0.5386], RH:[0.5226,0.5492], LK:[0.4455,0.7027], RK:[0.5226,0.7133], LA:[0.4455,0.8667], RA:[0.5226,0.8773] },
+  sn_fold:    { LS:[0.4758,0.4638], RS:[0.4501,0.4427], LE:[0.4338,0.6849], RE:[0.4081,0.6638], LW:[0.4195,0.8638], RW:[0.3938,0.8426], LH:[0.619,0.15], RH:[0.6022,0.1362], LK:[0.619,0.4498], RK:[0.6022,0.436], LA:[0.619,0.7496], RA:[0.6022,0.7358] },
+  sn_lunge:   { LS:[0.3167,0.2717], RS:[0.3428,0.2593], LE:[0.3112,0.4796], RE:[0.3373,0.4671], LW:[0.3068,0.6437], RW:[0.3329,0.6313], LH:[0.4083,0.5833], RH:[0.4253,0.5752], LK:[0.1999,0.5929], RK:[0.6127,0.6952], LA:[0.2072,0.8664], RA:[0.8001,0.8151] },
+  sn_stick:   { LS:[0.2102,0.3436], RS:[0.2082,0.3063], LE:[0.2045,0.5569], RE:[0.2025,0.5197], LW:[0.2,0.7253], RW:[0.198,0.6881], LH:[0.4703,0.3132], RH:[0.469,0.2889], LK:[0.684,0.3279], RK:[0.6827,0.3036], LA:[0.8976,0.3426], RA:[0.8964,0.3183] },
+  sn_eight:   { LS:[0.2492,0.4083], RS:[0.2356,0.3643], LE:[0.1218,0.6224], RE:[0.1082,0.5784], LW:[0.2224,0.7915], RW:[0.2088,0.7474], LH:[0.5549,0.2373], RH:[0.5461,0.2085], LK:[0.8167,0.3359], RK:[0.8079,0.3071], LA:[0.8918,0.6795], RA:[0.883,0.6507] },
+  sn_cobra:   { LS:[0.1978,0.3662], RS:[0.2154,0.3332], LE:[0.2282,0.5924], RE:[0.2458,0.5594], LW:[0.181,0.7628], RW:[0.1985,0.7298], LH:[0.431,0.5719], RH:[0.4425,0.5504], LK:[0.6578,0.6244], RK:[0.6692,0.6029], LA:[0.8846,0.6769], RA:[0.896,0.6554] },
+  sn_dog:     { LS:[0.3132,0.4309], RS:[0.2925,0.3921], LE:[0.2102,0.6653], RE:[0.1895,0.6265], LW:[0.1288,0.8503], RW:[0.1081,0.8115], LH:[0.5807,0.175], RH:[0.5672,0.1497], LK:[0.7363,0.4667], RK:[0.7228,0.4414], LA:[0.8919,0.7583], RA:[0.8784,0.733] },
+};
+
+/** The twelve positions, in order. `fig` indexes SURYA_FIGURES. */
+const SURYA_STEPS = [
+  { n:1,  fig:'sn_pranam', en:'Prayer',        sa:'Pranamasana',          cue:'Stand tall, palms together at the chest.' },
+  { n:2,  fig:'sn_raised', en:'Raised Arms',   sa:'Hasta Uttanasana',     cue:'Sweep the arms overhead, gentle back-bend.' },
+  { n:3,  fig:'sn_fold',   en:'Forward Fold',  sa:'Padahastasana',        cue:'Hinge from the hips, hands toward the feet.' },
+  { n:4,  fig:'sn_lunge',  en:'Equestrian',    sa:'Ashwa Sanchalanasana', cue:'Right leg back, front knee over the ankle.' },
+  { n:5,  fig:'sn_stick',  en:'Plank',         sa:'Dandasana',            cue:'One straight line from head to heels.' },
+  { n:6,  fig:'sn_eight',  en:'Eight-Limbed',  sa:'Ashtanga Namaskara',   cue:'Knees, chest and chin down; hips stay lifted.' },
+  { n:7,  fig:'sn_cobra',  en:'Cobra',         sa:'Bhujangasana',         cue:'Lift the chest, hips and thighs on the floor.' },
+  { n:8,  fig:'sn_dog',    en:'Downward Dog',  sa:'Adho Mukha Svanasana', cue:'Hips high, arms and legs long.' },
+  { n:9,  fig:'sn_lunge',  en:'Equestrian',    sa:'Ashwa Sanchalanasana', cue:'Right foot forward, front knee over the ankle.' },
+  { n:10, fig:'sn_fold',   en:'Forward Fold',  sa:'Padahastasana',        cue:'Step in and fold from the hips.' },
+  { n:11, fig:'sn_raised', en:'Raised Arms',   sa:'Hasta Uttanasana',     cue:'Rise and sweep the arms overhead.' },
+  { n:12, fig:'sn_pranam', en:'Prayer',        sa:'Pranamasana',          cue:'Stand tall, palms together. Round complete.' },
+];
+
+/** Live sequence state, published each frame for the overlay. */
+let SURYA_VIEW = { i: 0, score: 0, rounds: 0, held: 0 };
+
+Object.assign(YOGA_REFERENCE, SURYA_FIGURES);
+
+/**
+ * Score how well the body matches one position, 0–100, plus the joint statuses
+ * to paint. Unmeasurable checks are skipped, exactly as the hold postures do.
+ */
+function suryaScore(lm, fig) {
+  const s = {};
+  const S = sideOf(lm);
+  const legL = angAt(lm, LM.LH, LM.LK, LM.LA);
+  const legR = angAt(lm, LM.RH, LM.RK, LM.RA);
+  const armL = angAt(lm, LM.LS, LM.LE, LM.LW);
+  const armR = angAt(lm, LM.RS, LM.RE, LM.RW);
+  const hip  = angAt(lm, S.S, S.H, S.K);
+  const bodyLine = angAt(lm, S.S, S.H, S.A);
+  const sMid = has(lm, LM.LS, LM.RS) ? midPt(lm[LM.LS], lm[LM.RS]) : null;
+  const hMid = has(lm, LM.LH, LM.RH) ? midPt(lm[LM.LH], lm[LM.RH]) : null;
+  const sw   = has(lm, LM.LS, LM.RS) ? shoulderW(lm) : null;
+  const scale = has(lm, S.S, S.H)
+    ? Math.max(0.05, Math.hypot(lm[S.S].x - lm[S.H].x, lm[S.S].y - lm[S.H].y)) : null;
+
+  const legsStraight = blend(band(legL, 165, 180, 2.2), 1, band(legR, 165, 180, 2.2), 1);
+  const armsStraight = blend(band(armL, 160, 180, 2.2), 1, band(armR, 160, 180, 2.2), 1);
+  const plumb = (sMid && hMid && sw) ? band(Math.abs(sMid.x - hMid.x) / sw, 0, 0.45, 90) : null;
+  const wristsUp = has(lm, LM.LW, LM.RW, LM.LS, LM.RS)
+    ? ((lm[LM.LW].y < lm[LM.LS].y - 0.10 && lm[LM.RW].y < lm[LM.RS].y - 0.10) ? 100 : 30) : null;
+  // Torso orientation, 0° = upright, 90° = lying flat. Without this a standing
+  // body reads as a Plank: both have a straight shoulder-hip-ankle line.
+  const tilt    = (sMid && hMid) ? tiltFromVertical(hMid, sMid) : null;
+  const upright = band(tilt, 0, 28, 3.2);
+  const flat    = band(tilt, 52, 90, 3.2);
+
+  let score = null, cue = '';
+
+  if (fig === 'sn_pranam') {
+    // palms together near the sternum: wrists close to each other, chest height
+    const together = has(lm, LM.LW, LM.RW, LM.LS, LM.RS)
+      ? band(Math.abs(lm[LM.LW].x - lm[LM.RW].x) / sw, 0, 0.45, 110) : null;
+    const height = has(lm, LM.LW, LM.LS, LM.LH)
+      ? band(Math.abs(lm[LM.LW].y - (lm[LM.LS].y + (lm[LM.LH].y - lm[LM.LS].y) * 0.35)), 0, 0.08, 700) : null;
+    score = blend(legsStraight, 0.24, plumb, 0.18, together, 0.24, height, 0.14, upright, 0.20);
+    cue = 'Palms together at the chest, stand tall.';
+    s.L_knee = s.R_knee = stOf(legsStraight);
+    s.torso = s.hip = stOf(plumb);
+    s.L_elbow = s.R_elbow = stOf(blend(together, 1, height, 1));
+  } else if (fig === 'sn_raised') {
+    score = blend(legsStraight, 0.24, wristsUp, 0.28, armsStraight, 0.18, plumb, 0.10, upright, 0.20);
+    cue = 'Reach both arms overhead.';
+    s.L_knee = s.R_knee = stOf(legsStraight);
+    s.L_elbow = s.R_elbow = stOf(blend(wristsUp, 1, armsStraight, 1));
+    s.torso = s.hip = stOf(plumb);
+  } else if (fig === 'sn_fold') {
+    const fold = band(hip, 0, 65, 2.2);
+    const handsLow = has(lm, S.W, S.K) ? ((lm[S.W].y > lm[S.K].y) ? 100 : 45) : null;
+    score = blend(fold, 0.44, legsStraight, 0.30, handsLow, 0.26);
+    cue = 'Fold deeper from the hips — hands toward the feet.';
+    s.torso = s.hip = stOf(fold);
+    s.L_knee = s.R_knee = stOf(legsStraight);
+    s.L_elbow = s.R_elbow = stOf(handsLow);
+  } else if (fig === 'sn_lunge') {
+    // one knee near 90, the other leg long
+    const bent = (legL != null && legR != null) ? Math.min(legL, legR) : (legL != null ? legL : legR);
+    const longLeg = (legL != null && legR != null) ? Math.max(legL, legR) : null;
+    const front = band(bent, 75, 110, 2.2);
+    const back  = band(longLeg, 150, 180, 2.0);
+    const handsDown = has(lm, S.W, S.K) ? ((lm[S.W].y > lm[S.K].y) ? 100 : 50) : null;
+    score = blend(front, 0.42, back, 0.30, handsDown, 0.28);
+    cue = 'Front knee over the ankle, back leg long.';
+    s.L_knee = stOf(legL == null ? null : (legL === bent ? front : back));
+    s.R_knee = stOf(legR == null ? null : (legR === bent ? front : back));
+    s.L_elbow = s.R_elbow = stOf(handsDown);
+    s.torso = s.hip = stOf(blend(front, 1, back, 1));
+  } else if (fig === 'sn_stick') {
+    const line = band(bodyLine, 160, 180, 2.4);
+    score = blend(line, 0.38, flat, 0.26, armsStraight, 0.20, legsStraight, 0.16);
+    cue = 'One straight line — do not let the hips sag.';
+    s.torso = s.hip = stOf(line);
+    s.L_elbow = s.R_elbow = stOf(armsStraight);
+    s.L_knee = s.R_knee = stOf(legsStraight);
+  } else if (fig === 'sn_eight') {
+    const bentArms = blend(band(armL, 60, 120, 2.0), 1, band(armR, 60, 120, 2.0), 1);
+    const bentKnees = blend(band(legL, 95, 150, 2.0), 1, band(legR, 95, 150, 2.0), 1);
+    // hips stay lifted: hip sits higher on screen than the shoulders
+    const hipsUp = has(lm, S.S, S.H) ? ((lm[S.H].y < lm[S.S].y + 0.02) ? 100 : 45) : null;
+    score = blend(bentArms, 0.26, bentKnees, 0.22, hipsUp, 0.32, flat, 0.20);
+    cue = 'Chest and chin down, hips stay lifted.';
+    s.L_elbow = s.R_elbow = stOf(bentArms);
+    s.L_knee = s.R_knee = stOf(bentKnees);
+    s.torso = s.hip = stOf(hipsUp);
+  } else if (fig === 'sn_cobra') {
+    const lift = (scale && has(lm, S.S, S.H)) ? (lm[S.H].y - lm[S.S].y) / scale : null;
+    const chest = band(lift, 0.35, 0.92, 130);
+    const hipsDown = (scale && has(lm, S.K, S.H)) ? band((lm[S.K].y - lm[S.H].y) / scale, -3, 0.40, 140) : null;
+    score = blend(chest, 0.36, hipsDown, 0.24, legsStraight, 0.22, flat, 0.18);
+    cue = 'Lift the chest, keep the hips on the floor.';
+    s.torso = stOf(chest);
+    s.hip = stOf(hipsDown);
+    s.L_knee = s.R_knee = stOf(legsStraight);
+    s.L_elbow = s.R_elbow = stOf(band(armL, 80, 175, 1.6));
+  } else {                                   // sn_dog
+    const apex = band(hip, 70, 105, 2.0);
+    score = blend(apex, 0.42, armsStraight, 0.29, legsStraight, 0.29);
+    cue = 'Hips high — make an inverted V.';
+    s.torso = s.hip = stOf(apex);
+    s.L_elbow = s.R_elbow = stOf(armsStraight);
+    s.L_knee = s.R_knee = stOf(legsStraight);
+  }
+
+  return { score: score == null ? 0 : score, cue, parts: s };
+}
+
+// ════════════════════════════════════════════════════════════════
 //  REFERENCE POSTURES
 //  Verified landmark sets — each one is scored 96–100% by its own detector,
 //  so the shape shown to the member is exactly the shape being coached.
@@ -1108,6 +1292,7 @@ const YOGA_REFERENCE = {
   bridge:   { LS:[0.437,0.6214], RS:[0.4179,0.5873], LE:[0.2569,0.6716], RE:[0.2378,0.6376], LW:[0.1148,0.7113], RW:[0.0957,0.6772], LH:[0.6715,0.3853], RH:[0.659,0.3631], LK:[0.9043,0.2977], RK:[0.8919,0.2755], LA:[0.9043,0.6156], RA:[0.8919,0.5934] },
   // Chest lifted to ~65% of torso length — a Cobra, not an Up-Dog
   cobra:    { LS:[0.20,0.66], RS:[0.22,0.66], LE:[0.15,0.78], RE:[0.17,0.78], LW:[0.19,0.91], RW:[0.21,0.91], LH:[0.46,0.88], RH:[0.48,0.88], LK:[0.66,0.93], RK:[0.68,0.93], LA:[0.90,0.95], RA:[0.92,0.95] },
+  surya:    { LS:[0.5,0.5], RS:[0.5,0.5], LE:[0.5,0.5], RE:[0.5,0.5], LW:[0.5,0.5], RW:[0.5,0.5], LH:[0.5,0.5], RH:[0.5,0.5], LK:[0.5,0.5], RK:[0.5,0.5], LA:[0.5,0.5], RA:[0.5,0.5] },
   plank:    { LS:[0.24,0.50], RS:[0.26,0.50], LE:[0.22,0.62], RE:[0.24,0.62], LW:[0.22,0.74], RW:[0.24,0.74], LH:[0.52,0.545], RH:[0.54,0.545], LK:[0.72,0.60], RK:[0.74,0.60], LA:[0.86,0.635], RA:[0.88,0.635] },
 };
 
@@ -1358,12 +1543,26 @@ function buildPostureSvg(exKey) {
   </svg>`;
 }
 
+
+/** The target card for a sequence is a storyboard of all twelve positions,
+    not a single figure. Reuses buildPostureSvg for each thumbnail. */
+function buildSuryaStoryboard() {
+  return '<div class="sn-board">' + SURYA_STEPS.map(st =>
+    '<figure class="sn-cell">'
+    + '<span class="sn-num">' + st.n + '</span>'
+    + buildPostureSvg(st.fig)
+    + '<figcaption><b>' + st.en + '</b><span>' + st.sa + '</span></figcaption>'
+    + '</figure>').join('') + '</div>';
+}
+
 /** Show the full-screen target card. It stays up until Start or Close. */
 function showPostureReference(exKey) {
   const ov = $('refOv');
   if (!ov || !YOGA_REFERENCE[exKey]) return false;
   const spec = REF_SPEC[exKey] || {};
-  $('refFig').innerHTML = buildPostureSvg(exKey);
+  const fig = $('refFig');
+  if (exKey === 'surya') { fig.innerHTML = buildSuryaStoryboard(); fig.classList.add('is-board'); }
+  else { fig.innerHTML = buildPostureSvg(exKey); fig.classList.remove('is-board'); }
   $('refName').textContent = refCaption(exKey);
   $('refView').textContent = spec.view || '';
   const tips = TIPS[exKey] || [];
@@ -1408,6 +1607,7 @@ const TIPS = {
   triangle:      ['Turn sideways to the camera — feet wide.','Both legs stay completely straight.','Side-bend over the front leg — do not fold forward.','Arms form one long line, square to the torso.'],
   boat:          ['Turn sideways to the camera, seated.','Lift the shins so the feet rise above the knees.','Hold the torso around 100° to the thighs.','Reach the arms forward and lift the chest.'],
   bridge:        ['Turn sideways to the camera, lying down.','Press the feet down and lift the hips above the shoulders.','Keep the shins vertical — knees over ankles.','Knees stay around 90°; do not splay them.'],
+  surya:         ['A 12-position flow — the coach moves you through it.','Turn side-on so the whole sequence is visible.','Hold each position briefly until it turns green.','Twelve positions make one round; keep flowing.'],
   cobra:         ['Turn sideways to the camera, lying face down.','Lift the chest — hips and legs stay on the floor.','Keep the elbows soft; do not lock them straight.','Draw the shoulders down away from the ears.'],
 };
 
@@ -1416,6 +1616,7 @@ const EX_LABEL_BY_MODE = {
   squat: 'Squat', pushup: 'Push-up', plank: 'Plank', jumpingjack: 'Jumping Jack',
   biccurl: 'Bicep Curl', shoulderpress: 'Shoulder Press', bentoverrow: 'Bent-over Row',
   lunge: 'Lunge', calfraise: 'Calf Raise', lateralraise: 'Lateral Raise', tricepsdip: 'Triceps Dip', frontraise: 'Front Raise',
+  surya: 'Surya Namaskar',
   warrior2: 'Warrior II', tree: 'Tree', goddess: 'Goddess', downdog: 'Downward Dog', chair: 'Chair',
   warrior1: 'Warrior I', triangle: 'Triangle', boat: 'Boat', bridge: 'Bridge', cobra: 'Cobra',
 };
@@ -1516,6 +1717,7 @@ const VC = {
       lateralraise:  'Lateral raises! Arms out to the sides like wings — shoulder height, soft elbows, no swinging. Smooth up, smooth down!',
       tricepsdip:    'Triceps dips! Hands anchored, elbows tracking back, lower with control and press away. Let\'s hit those triceps!',
       frontraise:    'Front raises! Arms straight out in front to shoulder height — no leaning back. Control every inch!',
+      surya:         'Surya Namaskar — the sun salutation. Twelve positions, flowing one into the next. Turn side on so I can see the whole shape. I will call each position as it comes; hold it until it turns green and I will move you on. Let us begin.',
       warrior2:      'Warrior Two. Step your feet wide and turn the front foot out. Bend that front knee to ninety degrees, stack it over the ankle, and reach both arms long at shoulder height. Steady breath — I am watching your alignment.',
       tree:          'Tree pose. Root the standing foot down and straighten that leg. Place the lifted foot above or below the knee, never on it, and open the knee outward. Find a still point ahead and breathe. I will help you hold steady.',
       goddess:       'Goddess pose. Feet wide, toes turned out. Sink your hips until both thighs reach ninety degrees, and keep each knee tracking over its ankle. Cactus arms, elbows at ninety. Strong and grounded — let us hold.',
@@ -1550,6 +1752,7 @@ const VC = {
       lateralraise:  { up: 'Lift out wide — shoulder height!', down: 'Lower slowly — fight the gravity.' },
       tricepsdip:    { down: 'Lower with control — feel the triceps.', up: 'Press up! Straighten those arms!' },
       frontraise:    { up: 'Raise straight out in front!', down: 'Lower with control — stay tall.' },
+      surya:         { hold: 'Flow with the breath. Hold each position until it turns green.' },
       warrior2:      { hold: 'Hold Warrior Two. Front knee at ninety, arms long and level. Breathe.' },
       tree:          { hold: 'Hold Tree. Standing leg strong, gaze steady, breathe slowly.' },
       goddess:       { hold: 'Hold Goddess. Knees wide over the ankles, chest lifted. Breathe.' },
@@ -1614,6 +1817,7 @@ const VC = {
       lateralraise:  'No shrugging! Lead with the elbows and stop at shoulder height — slow and controlled.',
       tricepsdip:    'Keep elbows pointing backward — do not let them flare wide. Use full range every rep!',
       frontraise:    'Do not lean back — brace your core and lift only to shoulder height with soft elbows!',
+      surya:         'Step back so the whole body is in frame, and turn side on. Hold each position for a moment so I can recognise it before you move.',
       warrior2:      'Check your Warrior Two. Bend that front knee closer to ninety degrees and stack it right over the ankle. Straighten the back leg and level both arms at shoulder height.',
       tree:          'Steady your Tree. Straighten the standing leg fully, lift the foot clear of the knee joint, and open that lifted knee outward. Fix your gaze on one still point.',
       goddess:       'Adjust your Goddess. Sink the hips lower until both thighs reach ninety degrees, and let each knee travel out over its ankle — do not let them collapse inward.',
@@ -2168,6 +2372,12 @@ function evaluateJoints(lm, exKey, phase) {
     }
   }
 
+  // ── SURYA NAMASKAR — colour from whichever position is live ──
+  if (exKey === 'surya') {
+    const stepDef = SURYA_STEPS[SURYA_VIEW.i] || SURYA_STEPS[0];
+    return Object.assign(s, suryaScore(lm, stepDef.fig).parts);
+  }
+
   // ── YOGA HOLD POSTURES ──────────────────────────────────────
   // Reads the same shared metrics the detector and the overlay use, so the
   // skeleton colour always agrees with the spoken feedback. Any measurement
@@ -2710,6 +2920,40 @@ function drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h) {
     }
   }
 
+  // ── SURYA NAMASKAR — step banner + 12-segment progress ──
+  if (exKey === 'surya') {
+    const stepDef = SURYA_STEPS[SURYA_VIEW.i] || SURYA_STEPS[0];
+    const pill = (x, y, text, color) =>
+      drawPill(ctx, Math.max(84, Math.min(w - 84, x)), Math.max(16, Math.min(h - 64, y)), text, color);
+    const on = SURYA_VIEW.score >= 60;
+    const col = on ? CLR.GOOD : SURYA_VIEW.score >= 40 ? CLR.WARN : CLR.BAD;
+
+    // twelve segments across the top, filled up to the live position
+    const segW = Math.min(26, (w * 0.62) / 12), gap = 4;
+    const totalW = segW * 12 + gap * 11;
+    let x0 = (w - totalW) / 2;
+    ctx.save();
+    for (let k = 0; k < 12; k++) {
+      const done = k < SURYA_VIEW.i;
+      const live = k === SURYA_VIEW.i;
+      ctx.fillStyle = live ? col : done ? 'rgba(61,230,139,0.55)' : 'rgba(255,255,255,0.16)';
+      ctx.fillRect(x0 + k * (segW + gap), 22, segW, 6);
+      if (live) {
+        // fill the live segment as the position is held
+        const p = Math.max(0, Math.min(1, SURYA_VIEW.held / 600));
+        ctx.fillStyle = CLR.GOOD;
+        ctx.fillRect(x0 + k * (segW + gap), 22, segW * p, 6);
+      }
+    }
+    ctx.restore();
+
+    pill(w / 2, 46, `${stepDef.n} / 12 · ${stepDef.en} · ${stepDef.sa}`, col);
+    pill(w / 2, h - 74, stepDef.cue, 'rgba(255,255,255,0.82)');
+    if (SURYA_VIEW.rounds > 0)
+      pill(w / 2, h - 46, `Rounds completed: ${SURYA_VIEW.rounds}`, CLR.GOOD);
+    return;
+  }
+
   // ── YOGA HOLD POSTURES ──────────────────────────────────────
   // Same visual language as the strength lifts: dashed guide lines, angle arcs
   // at the joint being judged, and a corrective pill beside it. Every cue is
@@ -3016,11 +3260,12 @@ class Detector {
     this._frSynced = false;
     this._tdDn = this._tdSt = 0;
     this.holdMs = 0; this.holdTotalMs = 0; this._holdLast = 0;
+    this._snI = 0; this._snHold = 0; this._snOn = 0; this._snLast = 0;
     this._trX = null; this._trD = null;
   }
 
   markSet() {
-    if (this.reps > 0 || this.holdTotalMs >= Detector.MIN_SET_HOLD_MS) this.sets++;
+    if (this.reps > 0 || this.holdTotalMs >= Detector.MIN_SET_HOLD_MS || this.holds > 0) this.sets++;
     this.reps = 0; this.phase = 'up'; this.jj = 'closed';
     this._resetJitter();
   }
@@ -3053,6 +3298,7 @@ class Detector {
             : exKey==='boat'          ? this._boat(lm)
             : exKey==='bridge'        ? this._bridge(lm)
             : exKey==='cobra'         ? this._cobra(lm)
+            : exKey==='surya'         ? this._surya(lm)
             : { text:'Select an exercise.', kind:'warn', score:0, repAdded:false, ex:'Exercise' };
     return { ...r, exKey, phase: this.phase };
   }
@@ -3624,6 +3870,75 @@ class Detector {
   }
 
   // ══════════════════════════════════════════════════════════════
+  //  SURYA NAMASKAR — sequence, not a hold
+  //  Each position only needs to be recognised briefly before the coach
+  //  moves on. A completed pass through all twelve banks one ROUND.
+  // ══════════════════════════════════════════════════════════════
+
+  /** Score a position must reach to be recognised. */
+  static get SURYA_MATCH() { return 60; }
+  /** How long it must stay recognised before the sequence advances. */
+  static get SURYA_DWELL_MS() { return 600; }
+  /** After this long on one position the coach offers to move on regardless,
+      so a member is never trapped by a position the camera cannot read. */
+  static get SURYA_STUCK_MS() { return 14000; }
+
+  _surya(lm) {
+    const i = this._snI || 0;
+    const stepDef = SURYA_STEPS[i];
+    const r = suryaScore(lm, stepDef.fig);
+
+    const t = performance.now();
+    const dt = this._snLast ? Math.min(300, t - this._snLast) : 0;
+    this._snLast = t;
+    this._snOn = (this._snOn || 0) + dt;
+
+    if (r.score >= Detector.SURYA_MATCH) this._snHold = (this._snHold || 0) + dt;
+    else this._snHold = Math.max(0, (this._snHold || 0) - dt * 0.6);
+
+    let roundDone = false;
+    if (this._snHold >= Detector.SURYA_DWELL_MS) {
+      this._snHold = 0;
+      this._snOn = 0;
+      if (i === SURYA_STEPS.length - 1) {
+        this._snI = 0;
+        this.holds++;                     // one completed round
+        this.holdTotalMs += Detector.MIN_SET_HOLD_MS;   // so a set can be banked
+        roundDone = true;
+      } else {
+        this._snI = i + 1;
+      }
+    }
+
+    SURYA_VIEW = {
+      i: this._snI || 0,
+      score: Math.round(r.score),
+      rounds: this.holds,
+      held: this._snHold || 0,
+    };
+
+    const stuck = this._snOn > Detector.SURYA_STUCK_MS;
+    const good = r.score >= Detector.SURYA_MATCH;
+    const text = roundDone
+      ? `✓ Round ${this.holds} complete — flow into the next one.`
+      : good
+        ? `✓ ${stepDef.en} — hold a moment…`
+        : stuck
+          ? `${stepDef.n}/12 ${stepDef.en}: ${stepDef.cue} (step back so the camera sees you)`
+          : `${stepDef.n}/12 ${stepDef.en} — ${r.cue}`;
+
+    return {
+      text,
+      kind: good ? 'good' : r.score >= 40 ? 'warn' : 'bad',
+      score: Math.round(Math.max(0, Math.min(100, r.score))),
+      repAdded: false,
+      holdAdded: roundDone,
+      holdMode: true,
+      ex: 'Surya Namaskar',
+    };
+  }
+
+  // ══════════════════════════════════════════════════════════════
   //  YOGA HOLD POSTURES
   //  Scored on time held in alignment rather than reps. Every clean
   //  HOLD_UNIT_MS of continuous alignment banks one counted hold.
@@ -3877,7 +4192,7 @@ function showTips(mode) {
 
 /** Hold modes count clean holds, not reps — relabel the counters to match. */
 function syncRepLabels(mode) {
-  const label = isHoldMode(mode) ? 'Holds' : 'Reps';
+  const label = isSequence(mode) ? 'Rounds' : isHoldMode(mode) ? 'Holds' : 'Reps';
   ['repLbl', 'hudRepLbl', 'sumRepsLbl'].forEach(id => { const el = $(id); if (el) el.textContent = label; });
 }
 
