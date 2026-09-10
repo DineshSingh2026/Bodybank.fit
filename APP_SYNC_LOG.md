@@ -40,6 +40,34 @@ _One item pending: web commit `6d4af43` ("announce the Android launch across the
 
 ---
 
+## 2026-09-10 — Yoga + voice input + graded report, v1.7.9, versionCode 107
+
+Syncs web commit `364bd5e`. Mobile release `60fff4c`.
+
+**`www/` payload**
+- **AI Trainer — yoga.** 10 hold postures (Warrior I/II, Tree, Goddess, Downward Dog,
+  Chair, Triangle, Boat, Bridge, Cobra) plus Plank listed as Kumbhakasana. Two category
+  dropdowns replace the single long list. Every posture now degrades gracefully when a
+  landmark drops below the visibility gate, so the red/amber/green guidance never blanks.
+  A full-screen SVG target-posture card replaces the 3-2-1 count-in for holds.
+- **My Workout — Gym / Yoga.** Session logging branches: Gym keeps the original form and
+  save path; Yoga swaps in a posture dropdown and a duration-in-minutes field.
+- Voice input on the long-form boxes; graded health report assets.
+
+**Native (Android)**
+- `RECORD_AUDIO` added for the optional "Speak your answer" button, plus `<queries>` for
+  `android.speech.RecognitionService` (without it `SpeechRecognizer` reports "not
+  available" on API 30+). **This is a new runtime permission — the Play Data Safety form
+  must be updated before the bundle reaches production.**
+- Photo-library posture unchanged: `READ_MEDIA_*` and `*_EXTERNAL_STORAGE` stay
+  `tools:node="remove"`. Verified absent from the merged manifest.
+
+**Bundle** — `android/app/build/outputs/bundle/release/app-release.aab`, 47.7 MB, signed
+with the BODYBANK key (`jarsigner -verify` → *jar verified*). Built locally; Play upload
+is manual, as always.
+
+---
+
 ## 2026-08-25 — Login-path performance, v1.7.6, versionCode 104
 
 Syncs web commit `249a8e2`. Backend half of that commit (the parallelised aggregate
