@@ -1350,18 +1350,22 @@ function opBloodFilePicked(ev) {
   var show = function (color, html) { if (msg) { msg.style.display = 'block'; msg.style.color = color; msg.innerHTML = html; } };
   if (!c || !c.id) { show('#ff8a8a', 'No client selected.'); return; }
   var name = c.name || 'client';
-  bbAskLabDate({ clientName: name, fileName: f.name }, function (labDate) {
+  bbAskLabDate({ clientName: name, fileName: f.name }, function (labDate, pick) {
     if (!labDate) { show('#8a8880', 'Upload cancelled.'); return; }
+    // Which of the two reports this client gets. Chosen in the same modal as the
+    // lab date, and switchable later at no cost.
+    var variant = (pick && pick.reportVariant) || 'classic';
+    var variantName = variant === 'graded' ? 'Health Map report' : 'Standard report';
     show('#8a8880', 'Reading file…');
     var reader = new FileReader();
     reader.onload = function () {
       var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
-      show('#8a8880', 'Uploading &amp; analysing for ' + opEsc(name) + ' (lab date ' + opEsc(bbFmtDay(labDate)) + ')… this can take a minute.');
-      apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(c.id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [], reportDate: labDate })
+      show('#8a8880', 'Uploading &amp; analysing for ' + opEsc(name) + ' (' + opEsc(variantName) + ', lab date ' + opEsc(bbFmtDay(labDate)) + ')… this can take a minute.');
+      apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(c.id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [], reportDate: labDate, reportVariant: variant })
         .then(function (res) {
           if (res && res.error) { show('#ff8a8a', opEsc(res.error)); showPopup('Upload failed', res.error, '', 'OK', null, 'error'); return; }
           show('#3dd68c', 'Uploaded &amp; analysis started for ' + opEsc(name) + ' (lab date ' + opEsc(bbFmtDay(labDate)) + '). Refreshing…');
-          showPopup('Report uploaded', 'Blood report uploaded for ' + name + ' (lab date ' + bbFmtDay(labDate) + ') — analysis has started.', '', 'OK', null, 'success');
+          showPopup('Report uploaded', 'Blood report uploaded for ' + name + ' (' + variantName + ', lab date ' + bbFmtDay(labDate) + ') — analysis has started.', '', 'OK', null, 'success');
           setTimeout(function () { opRefreshClient(); }, 1200);
         })
         .catch(function () {

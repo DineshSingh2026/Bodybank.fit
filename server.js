@@ -399,9 +399,14 @@ app.use((req, res, next) => {
   );
   // Powerful features this product never uses. Camera stays enabled — the AI Trainer
   // form-coaching flow calls getUserMedia — and so does fullscreen for video.
+  //
+  // microphone=(self) is required by the voice-input option on the long-form
+  // Sunday check-in and Part-2 fields (public/js/bb-voice.js). Chrome gates the
+  // Web Speech API behind this policy too, not just getUserMedia, so `microphone=()`
+  // silently kills voice typing on the web. Self only — no cross-origin frame gets it.
   res.setHeader(
     'Permissions-Policy',
-    'geolocation=(), microphone=(), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()'
+    'geolocation=(), microphone=(self), payment=(), usb=(), magnetometer=(), gyroscope=(), accelerometer=(), interest-cohort=()'
   );
   if (NODE_ENV === 'production') {
     res.setHeader('Strict-Transport-Security', 'max-age=31536000; includeSubDomains');
@@ -1301,6 +1306,34 @@ async function initDB() {
       `CREATE INDEX IF NOT EXISTS idx_blood_reports_user_labdate
        ON blood_analysis_reports(user_id, (COALESCE(report_date, created_at::date)) DESC)`
     );
+  } catch (e) {
+    /* ignore */
+  }
+
+  // ── GRADED HEALTH REPORT (second report variant) ─────────────────────────
+  // A parallel presentation of the SAME extracted lab data: health-area grades,
+  // priorities and an editable document. Every column below is additive and every
+  // one has a default, so existing rows and older mobile builds are unaffected —
+  // report_variant defaults to 'classic', which is the report BodyBank has always
+  // produced. Nothing here changes how the classic report is generated or stored.
+  for (const col of [
+    `report_variant TEXT NOT NULL DEFAULT 'classic'`,   // 'classic' | 'graded'
+    `graded_report JSONB`,          // deterministic engine output + rationale
+    `graded_doc JSONB`,             // the reviewer-edited document that prints
+    `graded_doc_updated_at TIMESTAMPTZ`,
+    `graded_doc_updated_by TEXT DEFAULT ''`,
+    `graded_pdf_path TEXT`,         // kept apart so the two variants never collide
+    `engine_version TEXT`,          // audit trail: reproduce any grade later
+    `ruleset_version TEXT`
+  ]) {
+    try {
+      await pool.query(`ALTER TABLE blood_analysis_reports ADD COLUMN IF NOT EXISTS ${col}`);
+    } catch (e) {
+      /* ignore */
+    }
+  }
+  try {
+    await pool.query(`CREATE INDEX IF NOT EXISTS idx_blood_reports_variant ON blood_analysis_reports(report_variant)`);
   } catch (e) {
     /* ignore */
   }

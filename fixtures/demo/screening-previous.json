@@ -1,0 +1,172 @@
+{
+  "__demo": true,
+  "watermark": "DEMO DATA",
+  "extracted": {
+    "lab_name": "DEMO DATA — not a real lab",
+    "report_date": "2026-03-04",
+    "panels": [
+      {
+        "name": "Lipid Profile",
+        "markers": [
+          {
+            "name": "Total Cholesterol",
+            "value": "262",
+            "unit": "mg/dL",
+            "reference_range": "0-200"
+          },
+          {
+            "name": "LDL Cholesterol",
+            "value": "182",
+            "unit": "mg/dL",
+            "reference_range": "0-100"
+          },
+          {
+            "name": "HDL Cholesterol",
+            "value": "33",
+            "unit": "mg/dL",
+            "reference_range": "40-60"
+          },
+          {
+            "name": "Triglycerides",
+            "value": "262",
+            "unit": "mg/dL",
+            "reference_range": "0-150"
+          }
+        ]
+      },
+      {
+        "name": "Diabetes Panel",
+        "markers": [
+          {
+            "name": "HbA1c",
+            "value": "6.4",
+            "unit": "%",
+            "reference_range": "4.0-5.6"
+          },
+          {
+            "name": "Fasting Blood Sugar",
+            "value": "108",
+            "unit": "mg/dL",
+            "reference_range": "70-100"
+          }
+        ]
+      },
+      {
+        "name": "Complete Blood Count",
+        "markers": [
+          {
+            "name": "Haemoglobin",
+            "value": "10.4",
+            "unit": "g/dL",
+            "reference_range": "13.0-17.0"
+          },
+          {
+            "name": "MCV",
+            "value": "73",
+            "unit": "fL",
+            "reference_range": "80-100"
+          },
+          {
+            "name": "PCV",
+            "value": "32",
+            "unit": "%",
+            "reference_range": "40-52"
+          },
+          {
+            "name": "RBC Count",
+            "value": "4.0",
+            "unit": "mill/uL",
+            "reference_range": "4.5-5.9"
+          },
+          {
+            "name": "Platelet Count",
+            "value": "238",
+            "unit": "K/uL",
+            "reference_range": "150-410"
+          },
+          {
+            "name": "Total Leucocyte Count",
+            "value": "7.0",
+            "unit": "K/uL",
+            "reference_range": "4.0-11.0"
+          },
+          {
+            "name": "RDW",
+            "value": "16.8",
+            "unit": "%",
+            "reference_range": "11.5-14.5"
+          }
+        ]
+      },
+      {
+        "name": "Iron Studies & Vitamins",
+        "markers": [
+          {
+            "name": "Ferritin",
+            "value": "9",
+            "unit": "ng/mL",
+            "reference_range": "30-400"
+          },
+          {
+            "name": "Vitamin D",
+            "value": "12",
+            "unit": "ng/mL",
+            "reference_range": "30-100"
+          }
+        ]
+      },
+      {
+        "name": "Liver Function Test",
+        "markers": [
+          {
+            "name": "SGPT",
+            "value": "38",
+            "unit": "U/L",
+            "reference_range": "0-40"
+          },
+          {
+            "name": "SGOT",
+            "value": "35",
+            "unit": "U/L",
+            "reference_range": "0-40"
+          },
+          {
+            "name": "Alkaline Phosphatase",
+            "value": "92",
+            "unit": "U/L",
+            "reference_range": "40-130"
+          },
+          {
+            "name": "Total Bilirubin",
+            "value": "0.7",
+            "unit": "mg/dL",
+            "reference_range": "0.2-1.2"
+          },
+          {
+            "name": "Albumin",
+            "value": "4.2",
+            "unit": "g/dL",
+            "reference_range": "3.5-5.2"
+          }
+        ]
+      },
+      {
+        "name": "Thyroid Profile",
+        "markers": [
+          {
+            "name": "TSH",
+            "value": "5.9",
+            "unit": "uIU/mL",
+            "reference_range": "0.45-4.5"
+          },
+          {
+            "name": "Free T4",
+            "value": "1.2",
+            "unit": "ng/dL",
+            "reference_range": "0.82-1.77"
+          }
+        ]
+      }
+    ]
+  }
+}

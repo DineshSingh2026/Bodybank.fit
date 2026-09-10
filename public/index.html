@@ -75,6 +75,7 @@
 <link rel="stylesheet" href="/css/app-badges.css?v=1">
 <script src="/js/bodybank-feed-preview.js?v=20260414i" defer></script>
 <script src="/js/bb-pwa-update.js?v=2" defer></script>
+<script src="/js/bb-yoga-postures.js?v=1" defer></script>
 <style>
 :root{
   --black:#060606;--dark:#060606;--dark2:#060606;--dark3:#0a0a0a;
@@ -1983,6 +1984,25 @@ body.admin-dashboard-open .wa-public-fab{display:none!important}
    nothing had happened yet. It is now ONE panel: a slot counter, and three
    quiet rows that grow into real entries as reports arrive.
    ═══════════════════════════════════════════════════════════════════════ */
+/* Report-variant picker (staff upload modal) and the variant badge on report cards.
+   Two reports come out of one uploaded lab file; these styles are what let a coach
+   see which one a client is on without opening it. */
+.bb-variant-pick{margin:14px 0 0;padding:12px;border-radius:10px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.09)}
+.bb-variant-head{font-size:12px;font-weight:700;color:var(--cream,#f0ede8);margin:0 0 9px}
+.bb-variant-opt{display:flex;gap:9px;align-items:flex-start;padding:9px 10px;margin:0 0 7px;border-radius:8px;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.02);transition:border-color .15s,background .15s}
+.bb-variant-opt:last-of-type{margin-bottom:0}
+.bb-variant-opt:hover{border-color:rgba(200,164,78,0.4)}
+.bb-variant-opt.is-on{border-color:var(--gold,#c8a44e);background:rgba(200,164,78,0.1)}
+.bb-variant-opt input{margin:2px 0 0;accent-color:var(--gold,#c8a44e);flex:none}
+.bb-variant-body{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bb-variant-name{font-size:12.5px;font-weight:650;color:var(--cream,#f0ede8);line-height:1.3}
+.bb-variant-blurb{font-size:11px;color:var(--muted,#8a8880);line-height:1.45}
+.bb-variant-foot{margin:9px 0 0;font-size:10.5px;line-height:1.45;color:var(--muted,#8a8880)}
+.bb-variant-tag{display:inline-flex;align-items:center;gap:5px;font-size:10px;font-weight:700;letter-spacing:.03em;padding:3px 8px;border-radius:99px;white-space:nowrap}
+.bb-variant-tag--graded{background:rgba(200,164,78,0.14);border:1px solid rgba(200,164,78,0.45);color:var(--gold,#c8a44e)}
+.bb-variant-tag--classic{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.14);color:var(--muted,#8a8880)}
+.bb-variant-tag--edited{background:rgba(77,166,255,0.12);border:1px solid rgba(77,166,255,0.4);color:#7fc0ff}
+
 .bb-hr-meta{display:flex;align-items:center;gap:10px;margin:0 0 10px;font-size:12px;color:var(--muted,#8a8880)}
 .bb-hr-panel{border:1px solid rgba(255,255,255,0.09);border-radius:14px;background:rgba(255,255,255,0.02);overflow:hidden}
 .bb-hr-row{display:flex;align-items:center;gap:12px;min-height:58px;padding:13px 14px;border-top:1px solid rgba(255,255,255,0.07);box-sizing:border-box}
@@ -5019,6 +5039,18 @@ button.bb-today-pill{cursor:pointer}
 #usec-workout .wk-sec{margin-bottom:8px}
 #usec-workout .wk-sec-title{font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:rgba(201,168,76,.85);margin-bottom:14px}
 #usec-workout .wk-row2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+#usec-workout .wk-mode-field{margin-bottom:14px}
+#usec-workout .wk-row2.is-single{grid-template-columns:1fr}
+#usec-workout .wk-mode-toggle{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+#usec-workout .wk-mode-btn{
+  padding:13px 10px;border-radius:10px;border:1px solid #2a2a2a;background:#1a1a1a;
+  color:var(--bb-muted);font-size:15px;font-family:inherit;font-weight:600;cursor:pointer;
+  transition:border-color .15s,color .15s,background .15s;
+}
+#usec-workout .wk-mode-btn:hover{border-color:rgba(201,168,76,.35)}
+#usec-workout .wk-mode-btn.is-on{
+  border-color:rgba(201,168,76,.75);background:rgba(201,168,76,.10);color:var(--bb-text);
+}
 @media(max-width:520px){#usec-workout .wk-row2{grid-template-columns:1fr}}
 #usec-workout .wk-field label,#usec-workout .wk-stepper-field label,#usec-workout .wk-lift-field label{display:block;font-size:12px;color:var(--bb-muted);margin-bottom:8px}
 #usec-workout .wk-input{width:100%;padding:12px 14px;border-radius:10px;border:1px solid #2a2a2a;background:#1a1a1a;color:var(--bb-text);font-size:15px;font-family:inherit;box-sizing:border-box}
@@ -5092,6 +5124,7 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="/mobile-fix.css?v=20">
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <link rel="stylesheet" href="/css/blood-report-editor.css?v=2">
+<link rel="stylesheet" href="/css/graded-report.css?v=1">
 <link rel="stylesheet" href="css/admin-home.css?v=3">
 <link rel="stylesheet" href="css/member-home.css?v=13">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -7533,9 +7566,16 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="wk-session-inner">
         <div class="wk-sec">
           <div class="wk-sec-title">Session info</div>
-          <div class="wk-row2">
+          <div class="wk-field wk-mode-field">
+            <label id="wkModeLabel">What did you do today? <span class="req">*</span></label>
+            <div class="wk-mode-toggle" role="group" aria-labelledby="wkModeLabel">
+              <button type="button" class="wk-mode-btn is-on" id="wkModeGym" onclick="wkSetMode('gym')" aria-pressed="true"><span aria-hidden="true">🏋️</span> Gym</button>
+              <button type="button" class="wk-mode-btn" id="wkModeYoga" onclick="wkSetMode('yoga')" aria-pressed="false"><span aria-hidden="true">🧘</span> Yoga</button>
+            </div>
+          </div>
+          <div class="wk-row2" id="wkTopRow">
             <div class="wk-field"><label for="wkSessionDate">Date <span class="req">*</span></label><input type="date" class="wk-input" id="wkSessionDate" required></div>
-            <div class="wk-field"><label for="wkType">Workout type <span class="req">*</span></label>
+            <div class="wk-field" id="wkTypeField"><label for="wkType">Workout type <span class="req">*</span></label>
               <select class="wk-input wk-select" id="wkType" required>
                 <option value="">Select type</option>
                 <optgroup label="Strength / PPL">
@@ -7566,6 +7606,17 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
                 </optgroup>
               </select>
             </div>
+          </div>
+          <div class="wk-field" id="wkYogaField" style="display:none">
+            <label for="wkYogaPose">Yoga posture <span class="req">*</span></label>
+            <select class="wk-input wk-select" id="wkYogaPose">
+              <option value="">Select a posture</option>
+            </select>
+          </div>
+          <div class="wk-field" id="wkYogaDurWrap" style="display:none;margin-top:12px">
+            <label for="wkYogaMinutes">Duration (minutes) <span class="req">*</span></label>
+            <input type="number" class="wk-input" id="wkYogaMinutes" inputmode="numeric" min="1" max="600" step="1" placeholder="e.g. 30">
+            <p class="wk-muted-note" style="margin-top:6px">Leave blank to use the timer below instead.</p>
           </div>
           <div class="wk-field" id="wkOtherDetailsWrap" style="display:none;margin-top:12px">
             <label for="wkOtherDetails">Other workout details <span class="req">*</span></label>
@@ -12528,6 +12579,77 @@ var WK_LIFT_LABELS = (function () {
   });
   return m;
 })();
+/* ── GYM vs YOGA ───────────────────────────────────────────────
+   My Workout logs two kinds of session. "gym" is the original form,
+   untouched. "yoga" swaps the workout-type dropdown for a posture list
+   (shared with the AI Trainer via /js/bb-yoga-postures.js) and takes the
+   duration in minutes instead of requiring the timer. */
+var WK_MODE = 'gym';
+
+function wkIsYogaMode() { return WK_MODE === 'yoga'; }
+
+function wkPopulateYogaPoses() {
+  var sel = document.getElementById('wkYogaPose');
+  if (!sel || sel.getAttribute('data-filled') === '1') return;
+  var list = window.BB_YOGA_POSTURES || [];
+  if (!list.length) return;
+  var html = '<option value="">Select a posture</option>';
+  for (var i = 0; i < list.length; i++) {
+    var p = list[i];
+    var label = typeof window.bbYogaLabel === 'function'
+      ? window.bbYogaLabel(p)
+      : (p.emoji + ' ' + p.en + ' · ' + p.sa);
+    html += '<option value="' + p.key + '">' + label + '</option>';
+  }
+  sel.innerHTML = html;
+  sel.setAttribute('data-filled', '1');
+}
+
+function wkSetMode(mode) {
+  WK_MODE = mode === 'yoga' ? 'yoga' : 'gym';
+  var yoga = wkIsYogaMode();
+  var g = document.getElementById('wkModeGym');
+  var y = document.getElementById('wkModeYoga');
+  if (g) { g.classList.toggle('is-on', !yoga); g.setAttribute('aria-pressed', String(!yoga)); }
+  if (y) { y.classList.toggle('is-on', yoga);  y.setAttribute('aria-pressed', String(yoga)); }
+
+  function show(id, on) { var el = document.getElementById(id); if (el) el.style.display = on ? '' : 'none'; }
+  show('wkTypeField', !yoga);
+  var topRow = document.getElementById('wkTopRow');
+  if (topRow) topRow.classList.toggle('is-single', yoga);
+  show('wkYogaField', yoga);
+  show('wkYogaDurWrap', yoga);
+
+  var t = document.getElementById('wkType');     if (t) t.required = !yoga;
+  var p = document.getElementById('wkYogaPose'); if (p) p.required = yoga;
+  if (yoga) wkPopulateYogaPoses();
+
+  var saveBtn = document.getElementById('wkSaveBtn');
+  if (saveBtn && !saveBtn.disabled) saveBtn.textContent = yoga ? 'Save yoga session' : 'Save session';
+
+  wkSyncStrengthSection();
+}
+
+/** "Yoga — Triangle · Trikonasana", or '' when nothing is chosen. */
+function wkYogaWorkoutType() {
+  var sel = document.getElementById('wkYogaPose');
+  if (!sel || !sel.value) return '';
+  var txt = (sel.options[sel.selectedIndex].text || '').trim();
+  var sp = txt.indexOf(' ');
+  if (sp > 0) txt = txt.slice(sp + 1);          // drop the leading emoji
+  return 'Yoga — ' + txt;
+}
+
+/** Minutes typed by the user, else whatever the timer ran for. */
+function wkYogaDurationSeconds() {
+  var el = document.getElementById('wkYogaMinutes');
+  var mins = el ? parseInt(String(el.value || ''), 10) : NaN;
+  if (Number.isFinite(mins) && mins > 0) return Math.min(mins, 600) * 60;
+  return typeof wkGetTimerElapsedSeconds === 'function'
+    ? wkGetTimerElapsedSeconds()
+    : Math.max(0, Math.floor(timerBaselineSeconds || 0));
+}
+
 function wkShouldShowStrength(typeStr) {
   var t = (typeStr || '').trim();
   if (!t) return false;
@@ -12557,7 +12679,7 @@ function wkRenderStrengthFields() {
   var hint = document.getElementById('wkStrengthHint');
   if (!sel || !container) return;
   var t = (sel.value || '').trim();
-  if (!wkShouldShowStrength(t)) {
+  if (wkIsYogaMode() || !wkShouldShowStrength(t)) {
     container.innerHTML = '';
     return;
   }
@@ -12599,10 +12721,11 @@ function wkSyncStrengthSection() {
   var sel = document.getElementById('wkType');
   var sec = document.getElementById('wkStrengthSection');
   if (!sel || !sec) return;
-  sec.style.display = wkShouldShowStrength(sel.value) ? 'block' : 'none';
+  var yoga = wkIsYogaMode();
+  sec.style.display = (!yoga && wkShouldShowStrength(sel.value)) ? 'block' : 'none';
   var otherWrap = document.getElementById('wkOtherDetailsWrap');
   var otherInput = document.getElementById('wkOtherDetails');
-  var isOther = String(sel.value || '').trim() === 'Other';
+  var isOther = !yoga && String(sel.value || '').trim() === 'Other';
   if (otherWrap) otherWrap.style.display = isOther ? 'block' : 'none';
   if (otherInput) otherInput.required = isOther;
   wkRenderStrengthFields();
@@ -12615,7 +12738,8 @@ function initWorkoutSessionUI() {
     wt._wkBound = true;
     wt.addEventListener('change', wkSyncStrengthSection);
   }
-  wkSyncStrengthSection();
+  wkPopulateYogaPoses();
+  wkSetMode(WK_MODE);
   loadWorkoutHistory();
   if (!window._wkTimerLifecycleBound) {
     window._wkTimerLifecycleBound = true;
@@ -12640,6 +12764,9 @@ function saveWorkoutStateToStorage() {
     var snap = {
       sessionDate: (document.getElementById('wkSessionDate') || {}).value || '',
       workoutType: (document.getElementById('wkType') || {}).value || '',
+      mode: WK_MODE,
+      yogaPose: (document.getElementById('wkYogaPose') || {}).value || '',
+      yogaMinutes: (document.getElementById('wkYogaMinutes') || {}).value || '',
       notes: (document.getElementById('wkNotes') || {}).value || '',
       otherDetails: (document.getElementById('wkOtherDetails') || {}).value || '',
       lifts: wkCollectSessionLifts(),
@@ -12682,7 +12809,10 @@ function restoreWorkoutStateFromStorage() {
       setVal('wkEnergy', snap.energy);
       var c = document.getElementById('wkCompleted');
       if (c && snap.completed) c.checked = true;
-      wkSyncStrengthSection();
+      wkSetMode(snap.mode === 'yoga' ? 'yoga' : 'gym');
+      wkPopulateYogaPoses();
+      setVal('wkYogaPose', snap.yogaPose);
+      setVal('wkYogaMinutes', snap.yogaMinutes);
       if (snap.lifts && typeof snap.lifts === 'object') wkApplySessionLiftsToInputs(snap.lifts);
       if (snap.reps && typeof snap.reps === 'object') wkApplySessionRepsToInputs(snap.reps);
     }
@@ -19157,21 +19287,23 @@ function adminCpBloodFilePicked(ev) {
   if (!id) { show('#e05050', 'No client selected.'); return; }
   // Capture the lab date first — it decides where this report sits on the trend,
   // and the prompt names the slot being filled so a duplicate draw is obvious.
-  bbBloodConfirmLabDate(id, name, f.name, function (labDate) {
+  bbBloodConfirmLabDate(id, name, f.name, function (labDate, pick) {
     if (!labDate) { show('var(--muted)', 'Upload cancelled.'); return; }
+    var variant = (pick && pick.reportVariant) || 'classic';
+    var variantName = variant === 'graded' ? 'Health Map report' : 'Standard report';
     show('var(--muted)', 'Reading file…');
     var reader = new FileReader();
     reader.onload = function () {
       var s = String(reader.result || ''); var i = s.indexOf(','); var b64 = i >= 0 ? s.slice(i + 1) : s;
       var btn = document.getElementById('adminCpUploadBloodBtn');
       if (btn) { btn._orig = btn._orig || btn.textContent; btn.disabled = true; btn.textContent = 'Uploading…'; }
-      show('var(--muted)', 'Uploading & analysing for ' + escapeHtml(name) + ' (lab date ' + escapeHtml(bbFmtDay(labDate)) + ')… this can take a minute.');
-      apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [], reportDate: labDate })
+      show('var(--muted)', 'Uploading & analysing for ' + escapeHtml(name) + ' (' + escapeHtml(variantName) + ', lab date ' + escapeHtml(bbFmtDay(labDate)) + ')… this can take a minute.');
+      apiCall('POST', '/api/blood/admin/upload/' + encodeURIComponent(id), { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [], reportDate: labDate, reportVariant: variant })
         .then(function (res) {
           if (btn) { btn.disabled = false; btn.textContent = btn._orig || '🩸 Upload blood report'; }
           if (res && res.error) { show('#e05050', escapeHtml(res.error)); showPopup('Upload failed', res.error, '', 'OK', null, 'error'); return; }
           show('var(--gold)', 'Uploaded & analysis started for ' + escapeHtml(name) + '. <a href="#" onclick="switchTab(\'blood\');return false;" style="color:var(--gold);text-decoration:underline">Open Blood Reports tab</a> to track, download &amp; send.');
-          showPopup('Report uploaded', 'Blood report uploaded for ' + name + ' (lab date ' + bbFmtDay(labDate) + ') — analysis has started.', '', 'OK', null, 'success');
+          showPopup('Report uploaded', 'Blood report uploaded for ' + name + ' (' + variantName + ', lab date ' + bbFmtDay(labDate) + ') — analysis has started.', '', 'OK', null, 'success');
         })
         .catch(function () {
           if (btn) { btn.disabled = false; btn.textContent = btn._orig || '🩸 Upload blood report'; }
@@ -25270,9 +25402,57 @@ function bbAuthedDownload(pathUrl, fallbackName) {
     });
 }
 
+// ── Report variant ────────────────────────────────────────────────────────────
+// BodyBank produces two reports from the same uploaded lab file. The coach picks
+// which one this client gets, at the moment of upload, in the same modal that
+// captures the lab date — those are the two decisions that belong to an upload.
+//
+// The choice is NOT final: /api/blood/admin/variant re-runs only the deterministic
+// engines over the saved extraction, so switching later is instant and free. The
+// copy below says so, because a coach who believes the choice is permanent will
+// hesitate over it.
+var BB_REPORT_VARIANTS = [
+  {
+    id: 'classic',
+    name: 'Standard Health Report',
+    blurb: 'The report BodyBank has always produced — clinical narrative, foods, meal plan and supplements.'
+  },
+  {
+    id: 'graded',
+    name: 'Health Map Report',
+    blurb: 'Health-area grades (A–D), a top-three priority list and trends against the last screening.'
+  }
+];
+
+function bbVariantPickerHtml(selected) {
+  var sel = selected || 'classic';
+  var opts = BB_REPORT_VARIANTS.map(function (v) {
+    var on = v.id === sel;
+    return '<label class="bb-variant-opt' + (on ? ' is-on' : '') + '" data-variant="' + v.id + '">' +
+      '<input type="radio" name="bbReportVariant" value="' + v.id + '"' + (on ? ' checked' : '') + '>' +
+      '<span class="bb-variant-body">' +
+        '<span class="bb-variant-name">' + escapeHtml(v.name) + '</span>' +
+        '<span class="bb-variant-blurb">' + escapeHtml(v.blurb) + '</span>' +
+      '</span></label>';
+  }).join('');
+  return '<div class="bb-variant-pick" id="bbVariantPick">' +
+    '<div class="bb-variant-head">Which report should this client get?</div>' +
+    opts +
+    '<div class="bb-variant-foot">You can switch a report to the other format later at no cost — it is rebuilt from the same lab results.</div>' +
+    '</div>';
+}
+
+/** Read the picked variant out of a mounted picker, defaulting to classic. */
+function bbPickedVariant(root) {
+  var el = (root || document).querySelector('input[name="bbReportVariant"]:checked');
+  var v = el ? String(el.value) : 'classic';
+  return v === 'graded' ? 'graded' : 'classic';
+}
+
 // Ask for the lab draw date before a staff upload. Uploading a retest is the moment
 // the timeline is decided, so the date is captured there rather than patched later.
-// onPick receives 'YYYY-MM-DD', or null if the coach backed out.
+// onPick receives ('YYYY-MM-DD', { reportVariant }) — or (null) if the coach backed
+// out. The second argument is additive; callers that ignore it still work.
 function bbAskLabDate(opts, onPick) {
   opts = opts || {};
   // Slot context (supplied by bbBloodConfirmLabDate). Naming the report the coach is
@@ -25315,6 +25495,7 @@ function bbAskLabDate(opts, onPick) {
     '<input type="date" id="bbLabDateModalInput" max="' + bbTodayYmd() + '" ' +
     'style="width:100%;box-sizing:border-box;background:#111;border:1px solid rgba(255,255,255,0.14);color:#f0ede8;padding:10px 12px;border-radius:8px;font-size:14px;color-scheme:dark">' +
     '<div id="bbLabDateModalErr" class="form-hint" style="display:none;color:#ff8a8a;font-size:11px;margin:6px 0 0"></div>' +
+    bbVariantPickerHtml() +
     '<div id="bbLabDateDup" class="form-hint" style="display:none;margin:8px 0 0;padding:8px 10px;border-radius:8px;font-size:11px;line-height:1.5;background:rgba(245,166,35,0.1);border:1px solid rgba(245,166,35,0.4);color:#f5c37a"></div>' +
     '<div style="display:flex;gap:8px;margin-top:16px">' +
     '<button type="button" id="bbLabDateCancel" class="form-hint" style="flex:1;border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:10px;border-radius:8px;cursor:pointer">Cancel</button>' +
@@ -25328,9 +25509,11 @@ function bbAskLabDate(opts, onPick) {
   var finish = function (val) {
     if (done) return;
     done = true;
+    // Read the variant BEFORE the modal is torn out of the DOM.
+    var variant = val ? bbPickedVariant(ov) : null;
     document.removeEventListener('keydown', onKey);
     if (ov.parentNode) ov.parentNode.removeChild(ov);
-    onPick(val);
+    onPick(val, { reportVariant: variant });
   };
   var submit = function () {
     var v = String(input.value || '').trim();
@@ -25378,6 +25561,18 @@ function bbAskLabDate(opts, onPick) {
   };
   input.addEventListener('input', checkDup);
   input.addEventListener('change', checkDup);
+
+  // Highlight the chosen variant card. The radio itself is visually hidden, so
+  // without this the selection would be invisible.
+  var pick = ov.querySelector('#bbVariantPick');
+  if (pick) {
+    pick.addEventListener('change', function () {
+      Array.prototype.forEach.call(pick.querySelectorAll('.bb-variant-opt'), function (el) {
+        var r = el.querySelector('input');
+        el.classList.toggle('is-on', !!(r && r.checked));
+      });
+    });
+  }
 
   ov.querySelector('#bbLabDateOk').onclick = submit;
   ov.querySelector('#bbLabDateCancel').onclick = function () { finish(null); };
@@ -25713,6 +25908,7 @@ function adminBloodCardHtml(r, dupSet) {
           // name and avatar live on the group header, so they are not repeated here.
           '<div class="bb-blood-card-top">' +
           bbSlotBadge(r.slotNo) +
+          bbVariantTag(r) +
           bbDupFlag(!!(dupSet && dupSet[bbEffYmd(r)])) +
           (isPendingOnly ? '<span class="bb-slot-flag bb-slot-flag--wait">Waiting for admin action</span>' : '') +
           (isSent ? '<span class="bb-slot-flag bb-slot-flag--sent">Sent to client</span>' : '') +
@@ -25736,7 +25932,12 @@ function adminBloodCardHtml(r, dupSet) {
             : '') +
           usageHtml +
           bbLabDateEditor(id, r) +
+          bbVariantRow(id, r) +
           '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+          (isReady && bbIsGraded(r)
+            ? '<button type="button" class="form-hint" style="flex:1;min-width:120px;padding:8px;font-size:12px;border:1px solid rgba(200,164,78,0.45);background:rgba(200,164,78,0.12);color:var(--gold);border-radius:8px;cursor:pointer" ' +
+              'onclick="bbOpenGradedEditor(\'' + id + '\')">✎ Edit &amp; preview</button>'
+            : '') +
           (canRetry
             ? '<button type="button" class="form-hint" style="flex:1;min-width:100px;padding:8px;font-size:12px;border:1px solid rgba(230,192,95,0.45);background:rgba(230,192,95,0.1);color:var(--gold);border-radius:8px;cursor:pointer" onclick="adminBloodRetry(\'' +
               id +
@@ -25753,6 +25954,77 @@ function adminBloodCardHtml(r, dupSet) {
           '</div></div>'
         );
   })(r);
+}
+
+// ── Report variant on an existing report ─────────────────────────────────────
+
+function bbIsGraded(r) {
+  return String((r && r.reportVariant) || 'classic') === 'graded';
+}
+
+/** The badge in a card's title row: which report this client is getting. */
+function bbVariantTag(r) {
+  var graded = bbIsGraded(r);
+  var tag = '<span class="bb-variant-tag bb-variant-tag--' + (graded ? 'graded' : 'classic') + '" ' +
+    'title="' + (graded
+      ? 'Health Map report — health-area grades, priorities and trends'
+      : 'Standard report — clinical narrative, foods, meal plan and supplements') + '">' +
+    (graded ? 'Health Map' : 'Standard') + '</span>';
+  // A reviewer who has edited the document needs to know the client will receive
+  // their words, not the generated ones.
+  if (graded && r.gradedDocEdited) {
+    tag += ' <span class="bb-variant-tag bb-variant-tag--edited" title="Edited by ' +
+      escapeHtml(r.gradedDocUpdatedBy || 'a reviewer') + '">Edited</span>';
+  }
+  return tag;
+}
+
+/**
+ * The switch between the two report formats, on an already-uploaded report.
+ * Free and instant — it re-runs only the deterministic engines over the extraction
+ * that is already saved. No AI call, so no cost and no wait.
+ */
+function bbVariantRow(id, r) {
+  var graded = bbIsGraded(r);
+  var other = graded ? 'classic' : 'graded';
+  var otherName = graded ? 'Standard report' : 'Health Map report';
+  return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08)">' +
+    '<span class="form-hint" style="margin:0;font-size:11px">Report format</span>' +
+    '<strong style="font-size:12px">' + (graded ? 'Health Map' : 'Standard') + '</strong>' +
+    '<span style="flex:1"></span>' +
+    '<button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px" ' +
+    'onclick="bbSwitchVariant(\'' + id + '\', \'' + other + '\')">Switch to ' + escapeHtml(otherName) + '</button>' +
+    '</div>';
+}
+
+function bbSwitchVariant(reportId, variant, refreshFn) {
+  refreshFn = refreshFn || 'loadAdminBloodReports';
+  apiCall('PUT', '/api/blood/admin/variant/' + encodeURIComponent(reportId), { reportVariant: variant })
+    .then(function (d) {
+      if (d && (d.error || d.success === false)) {
+        showPopup('Report format', String(d.error || 'Could not change the format.'), '', 'OK', null, 'error');
+        return;
+      }
+      if (typeof nutritionShowToast === 'function') {
+        nutritionShowToast(d.reportVariant === 'graded' ? 'Switched to the Health Map report' : 'Switched to the standard report', 'success');
+      }
+      if (refreshFn && typeof window[refreshFn] === 'function') window[refreshFn]();
+    });
+}
+
+function bbOpenGradedEditor(reportId, opts) {
+  if (typeof window.bbOpenGradedReportEditor !== 'function') {
+    showPopup('Editor', 'The report editor did not load. Refresh the page and try again.', '', 'OK', null, 'error');
+    return;
+  }
+  opts = opts || {};
+  window.bbOpenGradedReportEditor(reportId, {
+    clientName: opts.clientName || '',
+    onSaved: function () {
+      var fn = opts.refreshFn || 'loadAdminBloodReports';
+      if (typeof window[fn] === 'function') window[fn]();
+    }
+  });
 }
 
 function adminBloodSaveNotes(reportId) {
@@ -27799,27 +28071,33 @@ function updateTimerDisplay() {
 
 async function submitWorkoutSession() {
   if (!window.currentUser || !window.currentUser.token) { alert('Please log in first.'); return; }
+  var yoga = wkIsYogaMode();
   var dateEl = document.getElementById('wkSessionDate');
   var typeEl = document.getElementById('wkType');
   var date = dateEl ? dateEl.value : '';
-  var workoutType = typeEl ? typeEl.value.trim() : '';
-  if (!date || !workoutType) { alert('Please choose date and workout type.'); return; }
-  var showStr = wkShouldShowStrength(workoutType);
+  if (!date) { alert('Please choose a date.'); return; }
+  var workoutType = yoga ? wkYogaWorkoutType() : (typeEl ? typeEl.value.trim() : '');
+  if (!workoutType) { alert(yoga ? 'Please choose a yoga posture.' : 'Please choose date and workout type.'); return; }
+  var durationSeconds = yoga
+    ? wkYogaDurationSeconds()
+    : (typeof wkGetTimerElapsedSeconds === 'function' ? wkGetTimerElapsedSeconds() : Math.max(0, Math.floor(timerBaselineSeconds || 0)));
+  if (yoga && !durationSeconds) { alert('Please enter how long you practised, or run the timer.'); return; }
+  var showStr = !yoga && wkShouldShowStrength(workoutType);
   var lifts = showStr ? wkCollectSessionLifts() : {};
   var reps = showStr ? wkCollectSessionReps() : {};
   var notesEl = document.getElementById('wkNotes');
   var otherDetailsEl = document.getElementById('wkOtherDetails');
-  var otherDetails = otherDetailsEl && otherDetailsEl.value ? otherDetailsEl.value.trim() : '';
-  if (workoutType === 'Other' && !otherDetails) { alert('Please add details for "Other" workout type.'); return; }
+  var otherDetails = (!yoga && otherDetailsEl && otherDetailsEl.value) ? otherDetailsEl.value.trim() : '';
+  if (!yoga && workoutType === 'Other' && !otherDetails) { alert('Please add details for "Other" workout type.'); return; }
   var baseNotes = notesEl && notesEl.value ? notesEl.value.trim() : '';
   var finalNotes = baseNotes;
-  if (workoutType === 'Other' && otherDetails) {
+  if (!yoga && workoutType === 'Other' && otherDetails) {
     finalNotes = (baseNotes ? (baseNotes + '\n\n') : '') + 'Other workout details: ' + otherDetails;
   }
   var body = {
     date: date,
     workout_type: workoutType,
-    duration_seconds: typeof wkGetTimerElapsedSeconds === 'function' ? wkGetTimerElapsedSeconds() : Math.max(0, Math.floor(timerBaselineSeconds || 0)),
+    duration_seconds: durationSeconds,
     notes: finalNotes.slice(0, 5000),
     session_lifts: Object.keys(lifts).length ? lifts : null,
     session_reps: Object.keys(reps).length ? reps : null,
@@ -27847,6 +28125,7 @@ async function submitWorkoutSession() {
     bbLoadCoinSummary(true);
     if (typeof bbRefreshDesktopUserDashboard === 'function') setTimeout(function() { bbRefreshDesktopUserDashboard(); }, 150);
     resetTimer();
+    var ym = document.getElementById('wkYogaMinutes'); if (ym) ym.value = '';
     loadWorkoutHistory();
     if (btn) { btn.disabled = false; btn.textContent = 'Save session'; }
   } catch (e) {
@@ -29522,6 +29801,29 @@ window.addEventListener('resize', applySafeAreaFix);
 </script>
 <script src="js/scorecard-share.js?v=17"></script>
 <script src="js/blood-report-editor.js?v=2"></script>
+<script src="js/graded-report-editor.js?v=1"></script>
+<script src="js/bb-voice.js?v=1"></script>
+<script>
+/* Voice input for the Sunday check-in — the fields whose labels ask for a
+   "detailed answer". Typing is unchanged; this only adds a mic button under
+   each one, and only where the device has a free speech engine.
+
+   The three measurement fields (scCurrentWeight, scLastWeek, scTotalLoss) are
+   deliberately left out: they are short numbers, and numbers are exactly what
+   speech recognition gets wrong. */
+(function wireSundayVoice() {
+  var FIELDS = [
+    'scTraining', 'scNutrition', 'scSleep', 'scOccupationStress',
+    'scOtherStress', 'scDifferences', 'scAchievements', 'scImprove', 'scQuestions'
+  ];
+  function go() {
+    if (!window.BBVoice) return;
+    try { window.BBVoice.wire(FIELDS); } catch (e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
+  else go();
+})();
+</script>
 <script>
 (function() {
   ['gesturestart', 'gesturechange', 'gestureend'].forEach(function(eventName) {

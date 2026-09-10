@@ -22,6 +22,9 @@ const {
   setDocCoachNote
 } = require('../services/comparisonDocument');
 const { generateComparisonReportPdf } = require('../services/pdfService');
+// The graded ("Health Map") report variant. Everything it exposes is additive: the
+// classic report's routes and payloads below are unchanged.
+const graded = require('../services/gradedReportService');
 const { computeNutritionSummaryForUserWindow } = require('../services/nutritionService');
 const { recordAiUsage } = require('../services/aiUsageLedger');
 
@@ -239,6 +242,13 @@ function mapReportRow(r) {
     pdfUrl: r.pdf_path,
     aiReport,
     analysisLastError: r.analysis_last_error || '',
+    // Which report the client gets. ADDED field — every existing key above and
+    // below is untouched, so shipped Android and iOS builds keep working and simply
+    // ignore it. Defaults to 'classic' for every report that existed before.
+    reportVariant: r.report_variant || 'classic',
+    gradedDocEdited: !!r.graded_doc_updated_at,
+    gradedDocUpdatedAt: r.graded_doc_updated_at || null,
+    gradedDocUpdatedBy: r.graded_doc_updated_by || '',
     extractionAiUsage: parseJson(r.extraction_ai_usage),
     analysisAiUsage: parseJson(r.analysis_ai_usage),
     totalAiUsage: parseJson(r.total_ai_usage),
@@ -281,6 +291,24 @@ function createBloodRouter(deps) {
     if (!isStaff(req)) return res.status(403).json({ success: false, error: 'Forbidden' });
     next();
   };
+
+  /**
+   * Runs after the classic analysis pipeline finishes. For a report on the graded
+   * variant it builds the health-area grades off the extraction that was just saved,
+   * so the report is ready to open the moment processing completes.
+   *
+   * Deliberately best-effort: a failure here must never mark a successfully analysed
+   * report as failed. The graded view can always be rebuilt on demand, at no cost.
+   */
+  async function afterAnalysis(reportId, variant) {
+    if (graded.normalizeVariant(variant) !== 'graded') return;
+    try {
+      const built = await graded.buildGradedReportFor(db, reportId);
+      if (built.error) console.warn('[blood graded] build skipped:', built.error);
+    } catch (e) {
+      console.error('[blood graded] build failed:', e && e.message);
+    }
+  }
 
   router.post('/upload', rateLimiter(5, 120000), async (req, res) => {
     try {
@@ -430,6 +458,11 @@ function createBloodRouter(deps) {
       const filePath = path.join(fileDir, `blood_${targetUserId}_${Date.now()}.${ext}`);
       fs.writeFileSync(filePath, Buffer.from(b64, 'base64'));
 
+      // Which report this client gets. Staff choose per upload; an unrecognised or
+      // missing value falls back to 'classic', which is what BodyBank has always
+      // produced. The choice is reversible later at no cost — see PUT /admin/variant.
+      const variant = graded.normalizeVariant(req.body && req.body.reportVariant);
+
       const displayName = [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email || '';
       let ageStr = '';
       if (u.dob) {
@@ -442,8 +475,8 @@ function createBloodRouter(deps) {
       await run(
         `INSERT INTO blood_analysis_reports (
           id, user_id, blood_report_file_path, symptoms, status,
-          user_name, user_email, user_age, user_gender, user_goal, report_date
-        ) VALUES (?, ?, ?, ?::jsonb, 'pending', ?, ?, ?, ?, ?, ?::date)`,
+          user_name, user_email, user_age, user_gender, user_goal, report_date, report_variant
+        ) VALUES (?, ?, ?, ?::jsonb, 'pending', ?, ?, ?, ?, ?, ?::date, ?)`,
         [
           reportId,
           targetUserId,
@@ -454,14 +487,17 @@ function createBloodRouter(deps) {
           ageStr,
           u.gender != null ? String(u.gender).slice(0, 32) : '',
           u.goal_type != null ? String(u.goal_type).slice(0, 200) : '',
-          labDate.date
+          labDate.date,
+          variant
         ]
       );
 
       // Admin-initiated → start analysis immediately (fire-and-forget).
-      triggerBloodAnalysis(db, reportId, b64, mime, targetUserId).catch((err) =>
-        console.error('[blood admin upload] Analysis pipeline failed:', err && err.message)
-      );
+      triggerBloodAnalysis(db, reportId, b64, mime, targetUserId)
+        .then(() => afterAnalysis(reportId, variant))
+        .catch((err) =>
+          console.error('[blood admin upload] Analysis pipeline failed:', err && err.message)
+        );
 
       notifyAsync('BLOOD_REPORT_UPLOADED', { name: displayName, email: u.email || '—', mobile: u.phone || '—', goal: u.goal_type || '—' });
       notifyAgent('BLOOD_REPORT_UPLOADED', { name: displayName, email: u.email || '—', mobile: u.phone || '—', goal: u.goal_type || '—' });
@@ -470,7 +506,9 @@ function createBloodRouter(deps) {
         reportId,
         status: 'pending',
         reportDate: labDate.date,
-        message: `Uploaded for ${displayName || 'client'} (lab date ${labDate.date}) — analysis started.`
+        reportVariant: variant,
+        message: `Uploaded for ${displayName || 'client'} (lab date ${labDate.date}) — ` +
+          `${variant === 'graded' ? 'Health Map report' : 'standard report'}, analysis started.`
       });
     } catch (e) {
       console.error('[blood admin upload]', e.message);
@@ -485,7 +523,10 @@ function createBloodRouter(deps) {
       // Owner, admins, and read-only operators may download the branded report.
       const privileged = ['admin', 'superadmin', 'operator'].includes(req.user.role);
       if (report.user_id !== req.user.id && !privileged) return res.status(403).json({ error: 'Forbidden' });
-      const pdfPath = await ensureHealthReportPdf(db, req.params.reportId);
+      // Same route, same contract, same auth — the row's variant decides which
+      // generator runs. Existing clients calling this endpoint need no change.
+      const chosen = await graded.reportPdfFor(db, req.params.reportId, ensureHealthReportPdf);
+      const pdfPath = chosen && chosen.path;
       if (!pdfPath || !fs.existsSync(pdfPath)) {
         const st = String(report.status || '').toLowerCase();
         if (st === 'failed') {
@@ -493,7 +534,7 @@ function createBloodRouter(deps) {
         }
         return res.status(404).json({ error: 'PDF not ready yet' });
       }
-      res.download(pdfPath, 'BodyBank_Health_Report.pdf');
+      res.download(pdfPath, chosen.filename);
     } catch (e) {
       res.status(500).json({ error: e.message });
     }
@@ -777,7 +818,8 @@ function createBloodRouter(deps) {
       if (!report) {
         return res.status(404).json({ success: false, error: 'Report not found' });
       }
-      const pdfPath = await ensureHealthReportPdf(db, req.params.reportId);
+      const chosen = await graded.reportPdfFor(db, req.params.reportId, ensureHealthReportPdf);
+      const pdfPath = chosen && chosen.path;
       if (!pdfPath || !fs.existsSync(pdfPath)) {
         return res.status(400).json({ success: false, error: 'Report not ready' });
       }
@@ -791,13 +833,27 @@ function createBloodRouter(deps) {
         }
       }
 
+      // The email's headline comes from whichever report the client is actually
+      // receiving. A graded report has no "overall status" by design — the Health
+      // Map replaces it — so the summary line carries the grade counts instead.
+      let headlineStatus = aiReport && aiReport.overall_status;
+      let headlineSummary = aiReport && aiReport.overall_summary_short;
+      if (chosen && chosen.variant === 'graded') {
+        const gr = parseJsonCol(report.graded_report);
+        if (gr) {
+          const s = gr.healthMapSummary || {};
+          headlineStatus = `${s.assessed || 0} health areas assessed`;
+          headlineSummary = gr.keyMessage || headlineSummary;
+        }
+      }
+
       const emailed = await userEmail.emailHealthReportWithPdf({
         toEmail: report.user_email,
         firstName: (report.user_name || '').split(/\s+/)[0] || 'there',
         pdfPath,
         adminNotes: report.admin_notes || '',
-        overallStatus: aiReport && aiReport.overall_status,
-        summary: aiReport && aiReport.overall_summary_short
+        overallStatus: headlineStatus,
+        summary: headlineSummary
       });
       if (!emailed) {
         if (!userEmail.isConfigured()) {
@@ -807,7 +863,7 @@ function createBloodRouter(deps) {
       }
 
       const inboxId = uuidv4();
-      const summaryShort = (aiReport && aiReport.overall_summary_short) || '';
+      const summaryShort = String(headlineSummary || (aiReport && aiReport.overall_summary_short) || '');
       await run(
         `INSERT INTO user_inbox (id, user_id, title, body, type, is_read) VALUES (?, ?, ?, ?, ?, FALSE)`,
         [
@@ -916,17 +972,26 @@ function createBloodRouter(deps) {
 
       // Keep extracted_blood_data + extraction_ai_usage so the pipeline reuses the
       // (expensive) extraction and only re-runs analysis — no double-charging on retry.
+      // The graded columns are cleared alongside the classic ones. An edited graded
+      // document embeds the RESULT strings it was reviewed against; if re-analysis
+      // changes any of them, that document is describing numbers that no longer
+      // exist. Same rule the progress report already follows when its verdict is
+      // re-run. The grades themselves cost nothing to rebuild.
       await run(
         `UPDATE blood_analysis_reports
          SET status = 'pending', pdf_path = NULL, nutrition_snapshot = NULL, ai_report = NULL,
-             analysis_ai_usage = NULL, total_ai_usage = NULL, analysis_last_error = NULL
+             analysis_ai_usage = NULL, total_ai_usage = NULL, analysis_last_error = NULL,
+             graded_report = NULL, graded_doc = NULL, graded_doc_updated_at = NULL,
+             graded_doc_updated_by = '', graded_pdf_path = NULL
          WHERE id = ?`,
         [reportId]
       );
 
-      triggerBloodAnalysis(db, reportId, b64, mime, userId).catch((err) =>
-        console.error('[blood] Retry pipeline failed:', err && err.message)
-      );
+      triggerBloodAnalysis(db, reportId, b64, mime, userId)
+        .then(() => afterAnalysis(reportId, report.report_variant))
+        .catch((err) =>
+          console.error('[blood] Retry pipeline failed:', err && err.message)
+        );
 
       return res.json({
         success: true,
@@ -936,6 +1001,120 @@ function createBloodRouter(deps) {
     } catch (e) {
       console.error('[blood admin retry]', e.message);
       res.status(500).json({ success: false, error: e.message || 'Retry failed' });
+    }
+  });
+
+  // ==========================================================================
+  // GRADED HEALTH REPORT ("Health Map") — staff only
+  //
+  // The second report variant. Every route here is NEW; none of the classic
+  // report's routes changed shape. All of them work off the extraction that was
+  // already paid for, so nothing below calls a model or costs anything.
+  // ==========================================================================
+
+  /**
+   * Switch a report between the classic and graded variants.
+   * Free and reversible: it re-runs only the deterministic engines over the saved
+   * extraction. This is the recovery path for choosing the wrong variant at upload.
+   */
+  router.put('/admin/variant/:reportId', staffOnly, async (req, res) => {
+    try {
+      const out = await graded.setVariant(db, req.params.reportId, req.body && req.body.reportVariant);
+      if (out.error) return res.status(400).json({ success: false, error: out.error });
+      res.json({ success: true, reportVariant: out.variant });
+    } catch (e) {
+      console.error('[blood variant]', e.message);
+      res.status(500).json({ success: false, error: e.message || 'Could not change the report variant' });
+    }
+  });
+
+  /**
+   * The editable document behind a graded report.
+   * A stored document is returned as saved; otherwise the default is built on the
+   * fly, so a report is viewable the moment it finishes processing.
+   */
+  router.get('/admin/report/:reportId/graded-doc', staffOnly, async (req, res) => {
+    try {
+      const out = await graded.getGradedDoc(db, req.params.reportId, {
+        forceRebuild: String((req.query && req.query.rebuild) || '') === '1'
+      });
+      if (out.error) return res.status(400).json({ success: false, error: out.error });
+      res.json({
+        success: true,
+        doc: out.doc,
+        edited: out.edited,
+        updatedAt: out.updatedAt,
+        updatedBy: out.updatedBy,
+        clientName: (out.row && out.row.user_name) || '',
+        reportVariant: graded.normalizeVariant(out.row && out.row.report_variant)
+      });
+    } catch (e) {
+      console.error('[blood graded-doc get]', e.message);
+      res.status(500).json({ success: false, error: e.message || 'Could not load the report' });
+    }
+  });
+
+  /** Save a reviewer's edits. Clears the cached PDF so the next download matches. */
+  router.put('/admin/report/:reportId/graded-doc', staffOnly, async (req, res) => {
+    try {
+      const who = (req.user && (req.user.email || req.user.id)) || '';
+      const out = await graded.saveGradedDoc(db, req.params.reportId, req.body && req.body.doc, who);
+      if (out.error) return res.status(400).json({ success: false, error: out.error });
+      res.json({ success: true, doc: out.doc, edited: true });
+    } catch (e) {
+      console.error('[blood graded-doc put]', e.message);
+      res.status(500).json({ success: false, error: e.message || 'Could not save the report' });
+    }
+  });
+
+  /** Discard edits and rebuild the default document. The grades never change. */
+  router.post('/admin/report/:reportId/graded-doc/reset', staffOnly, async (req, res) => {
+    try {
+      const out = await graded.resetGradedDoc(db, req.params.reportId);
+      if (out.error) return res.status(400).json({ success: false, error: out.error });
+      res.json({ success: true, doc: out.doc, edited: false });
+    } catch (e) {
+      console.error('[blood graded-doc reset]', e.message);
+      res.status(500).json({ success: false, error: e.message || 'Could not reset the report' });
+    }
+  });
+
+  /**
+   * The machine-readable grade rationale for one report.
+   * Staff-only on purpose: it is the audit trail behind a grade, useful to a
+   * reviewer explaining a decision, and not something a client should be handed raw.
+   */
+  router.get('/admin/report/:reportId/graded-rationale', staffOnly, async (req, res) => {
+    try {
+      const row = await queryOne(
+        `SELECT graded_report, engine_version, ruleset_version FROM blood_analysis_reports WHERE id = ?`,
+        [req.params.reportId]
+      );
+      if (!row) return res.status(404).json({ success: false, error: 'Report not found' });
+      let report = parseJsonCol(row.graded_report);
+      if (!report) {
+        const built = await graded.buildGradedReportFor(db, req.params.reportId);
+        if (built.error) return res.status(400).json({ success: false, error: built.error });
+        report = built.report;
+      }
+      res.json({
+        success: true,
+        engineVersion: report.engineVersion,
+        rulesetVersion: report.rulesetVersion,
+        areas: (report.areas || []).concat(
+          (report.notAssessed || []).map((a) => ({ areaId: a.areaId, label: a.label, grade: 'NOT_ASSESSED' }))
+        ).map((a) => ({
+          areaId: a.areaId,
+          label: a.label,
+          grade: a.grade,
+          score: a.score,
+          rationale: a.gradeRationale || [],
+          patternsFired: a.patternsFired || []
+        }))
+      });
+    } catch (e) {
+      console.error('[blood graded-rationale]', e.message);
+      res.status(500).json({ success: false, error: e.message });
     }
   });
 
