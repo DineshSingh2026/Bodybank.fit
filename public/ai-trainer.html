@@ -203,6 +203,87 @@
     }
     .tip-name .alt { display: block; font-weight: 500; color: var(--gold); font-size: 12px; margin-top: 2px; }
 
+    /* ── TARGET POSTURE CARD ── */
+    body.ref-open { overflow: hidden; }
+    .ref-ov {
+      position: fixed; inset: 0; z-index: 300;
+      background: radial-gradient(120% 90% at 50% 0%, #12131b 0%, #06060a 70%);
+      display: flex; align-items: center; justify-content: center;
+      padding: max(18px, env(safe-area-inset-top, 0px)) 18px max(18px, env(safe-area-inset-bottom, 0px));
+      animation: refIn .22s ease;
+    }
+    .ref-ov.hidden { display: none !important; }
+    @keyframes refIn { from { opacity: 0; transform: scale(.985); } to { opacity: 1; transform: none; } }
+
+    .ref-card {
+      width: min(1180px, 100%); max-height: 100%;
+      display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+      gap: 22px; align-items: stretch; overflow: auto;
+    }
+    .ref-fig {
+      background: linear-gradient(180deg, #0f1119 0%, #0a0b11 100%);
+      border: 1px solid #222839; border-radius: 16px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 10px; min-height: 300px;
+    }
+    .ref-fig svg { width: 100%; height: 100%; max-height: 74vh; display: block; }
+
+    /* figure layers */
+    .ref-fig .floor  { stroke: rgba(255,255,255,.10); stroke-width: 1; }
+    .ref-fig .body   { fill: #2a3142; }
+    .ref-fig .bones  { stroke: var(--green); stroke-width: 3.2; stroke-linecap: round; fill: none; }
+    .ref-fig .joints { fill: #eafff4; }
+    .ref-fig .guides .arc   { stroke: var(--gold-strong); stroke-width: 2.4; fill: none; }
+    .ref-fig .guides .guide { stroke: var(--gold-strong); stroke-width: 2; stroke-dasharray: 7 5; }
+    .ref-fig .guides .ring  { stroke: var(--gold-strong); stroke-width: 2; fill: none; opacity: .85; }
+    .ref-fig .labels rect   { fill: rgba(6,7,11,.92); stroke: rgba(228,187,90,.45); stroke-width: 1; }
+    .ref-fig .labels text {
+      fill: #f2e6c8; font: 700 11px Inter, Arial, sans-serif; text-anchor: middle;
+    }
+    .ref-fig .labels text.sub { fill: #9aa3b8; font-weight: 500; font-size: 9.5px; }
+
+    .ref-info {
+      display: flex; flex-direction: column; gap: 12px;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 16px; padding: 20px; min-width: 0;
+    }
+    .ref-kicker {
+      font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+      color: var(--gold); font-weight: 700; margin: 0;
+    }
+    .ref-name {
+      font-size: clamp(19px, 2.4vw, 28px); line-height: 1.18; color: var(--txt); margin: 0;
+      overflow-wrap: anywhere;              /* long Sanskrit names must wrap, not overflow */
+    }
+    .ref-view { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.45; }
+    .ref-cues { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 7px; }
+    .ref-cues li {
+      position: relative; padding: 9px 10px 9px 26px; font-size: 13.5px; line-height: 1.45;
+      color: #cfd6e6; background: var(--card); border: 1px solid var(--line); border-radius: 9px;
+    }
+    .ref-cues li::before {
+      content: '▸'; position: absolute; left: 9px; top: 9px; color: var(--gold); font-size: 11px;
+    }
+    .ref-legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .ref-legend span { display: inline-flex; align-items: center; gap: 6px; }
+    .ref-dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .ref-dot.g { background: var(--green); }
+    .ref-dot.a { background: var(--amber); }
+    .ref-dot.r { background: var(--red); }
+    .ref-legend-note { font-size: 11.5px; color: #6b7488; margin: 0; line-height: 1.4; }
+    .ref-actions { margin-top: auto; padding-top: 8px; display: grid; gap: 8px; }
+    .btn-refclose { background: transparent; border: 1px solid #2c3347; color: #cfd6e6; }
+
+    @media (max-width: 900px) {
+      /* minmax(0,…) — a bare 1fr is minmax(auto,1fr) and a long unbroken title
+         pushes the column past the viewport */
+      .ref-card { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+      .ref-fig { min-height: 240px; padding: 6px; }
+      .ref-fig svg { max-height: 42vh; }
+      .ref-info { padding: 16px; }
+      .ref-cues li { font-size: 13px; padding: 8px 9px 8px 24px; }
+    }
+
     /* ── FULLSCREEN WORKOUT MODE ── */
     body.in-workout .hdr { opacity: 0; pointer-events: none; transition: opacity .3s; }
     body.in-workout .left,
@@ -624,6 +705,29 @@
 
 </div><!-- /wrap -->
 
+<!-- TARGET POSTURE — full-screen reference, shown before a hold session -->
+<div id="refOv" class="ref-ov hidden" role="dialog" aria-modal="true" aria-labelledby="refName">
+  <div class="ref-card">
+    <div class="ref-fig" id="refFig"></div>
+    <div class="ref-info">
+      <p class="ref-kicker">Target posture</p>
+      <h2 class="ref-name" id="refName">—</h2>
+      <p class="ref-view" id="refView"></p>
+      <ul class="ref-cues" id="refCues"></ul>
+      <div class="ref-legend">
+        <span><i class="ref-dot g"></i>green — correct</span>
+        <span><i class="ref-dot a"></i>amber — adjust</span>
+        <span><i class="ref-dot r"></i>red — fix this</span>
+      </div>
+      <p class="ref-legend-note">These are the colours your body will show on screen while you hold.</p>
+      <div class="ref-actions">
+        <button id="refStartBtn" class="btn btn-start">▶ Start session</button>
+        <button id="refCloseBtn" class="btn btn-refclose">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script>
 // ════════════════════════════════════════════════════════════════
 //  CONSTANTS
@@ -988,58 +1092,24 @@ function yogaMetrics(lm, exKey) {
 let YOGA_HOLD_VIZ = { ms: 0, unit: 5000, good: false, holds: 0 };
 
 // ════════════════════════════════════════════════════════════════
-//  REFERENCE POSTURES  — "this is the shape you are aiming for"
-//
-//  Each entry is a landmark set that the detector scores 96–100% and that
-//  evaluateJoints paints entirely green. They are shown for a few seconds
-//  before a session starts, so the member sees the target before trying it.
-//  Coordinates are normalised exactly like MediaPipe's, so the same skeleton
-//  painter and coaching overlay draw them with no special cases.
+//  REFERENCE POSTURES
+//  Verified landmark sets — each one is scored 96–100% by its own detector,
+//  so the shape shown to the member is exactly the shape being coached.
 // ════════════════════════════════════════════════════════════════
 const YOGA_REFERENCE = {
-  warrior2: { LS:[0.44,0.30], RS:[0.56,0.30], LE:[0.31,0.30], RE:[0.69,0.30], LW:[0.18,0.30], RW:[0.82,0.30], LH:[0.45,0.70], RH:[0.55,0.70], LK:[0.30,0.72], RK:[0.63,0.83], LA:[0.30,0.95], RA:[0.70,0.95] },
-  warrior1: { LS:[0.44,0.34], RS:[0.56,0.34], LE:[0.45,0.20], RE:[0.55,0.20], LW:[0.46,0.08], RW:[0.54,0.08], LH:[0.45,0.72], RH:[0.55,0.72], LK:[0.32,0.74], RK:[0.64,0.85], LA:[0.32,0.96], RA:[0.72,0.96] },
-  tree:     { LS:[0.45,0.28], RS:[0.55,0.28], LE:[0.46,0.18], RE:[0.54,0.18], LW:[0.47,0.10], RW:[0.53,0.10], LH:[0.47,0.52], RH:[0.53,0.52], LK:[0.36,0.70], RK:[0.53,0.72], LA:[0.51,0.66], RA:[0.53,0.93] },
-  goddess:  { LS:[0.42,0.30], RS:[0.58,0.30], LE:[0.26,0.30], RE:[0.74,0.30], LW:[0.26,0.14], RW:[0.74,0.14], LH:[0.44,0.70], RH:[0.56,0.70], LK:[0.28,0.72], RK:[0.72,0.72], LA:[0.26,0.95], RA:[0.74,0.95] },
+  warrior2: { LS:[0.3784,0.2627], RS:[0.5781,0.2627], LE:[0.2186,0.2627], RE:[0.7379,0.2627], LW:[0.0925,0.2627], RW:[0.864,0.2627], LH:[0.4131,0.5993], RH:[0.5434,0.5993], LK:[0.2028,0.5993], RK:[0.7255,0.7373], LA:[0.2028,0.8753], RA:[0.9075,0.8753] },
+  warrior1: { LS:[0.3619,0.4064], RS:[0.5179,0.4064], LE:[0.3446,0.2443], RE:[0.5353,0.2443], LW:[0.3377,0.1153], RW:[0.5421,0.1153], LH:[0.389,0.6693], RH:[0.4908,0.6693], LK:[0.2249,0.6693], RK:[0.633,0.777], LA:[0.2249,0.8847], RA:[0.7751,0.8847] },
+  tree:     { LS:[0.4412,0.3402], RS:[0.5647,0.3402], LE:[0.4241,0.2125], RE:[0.5818,0.2125], LW:[0.416,0.1108], RW:[0.59,0.1108], LH:[0.4627,0.5482], RH:[0.5432,0.5482], LK:[0.41,0.7041], RK:[0.5432,0.7187], LA:[0.5354,0.6591], RA:[0.5432,0.8892] },
+  goddess:  { LS:[0.4026,0.2821], RS:[0.5974,0.2821], LE:[0.2468,0.2821], RE:[0.7532,0.2821], LW:[0.2468,0.1207], RW:[0.7532,0.1207], LH:[0.4365,0.6103], RH:[0.5635,0.6103], LK:[0.2315,0.6103], RK:[0.7685,0.6103], LA:[0.2315,0.8793], RA:[0.7685,0.8793] },
   downdog:  { LS:[0.22,0.52], RS:[0.24,0.52], LE:[0.18,0.72], RE:[0.20,0.72], LW:[0.15,0.90], RW:[0.17,0.90], LH:[0.50,0.25], RH:[0.52,0.25], LK:[0.68,0.55], RK:[0.70,0.55], LA:[0.82,0.88], RA:[0.84,0.88] },
   chair:    { LS:[0.42,0.34], RS:[0.44,0.34], LE:[0.38,0.22], RE:[0.40,0.22], LW:[0.34,0.11], RW:[0.36,0.11], LH:[0.64,0.70], RH:[0.66,0.70], LK:[0.44,0.80], RK:[0.46,0.80], LA:[0.46,0.96], RA:[0.48,0.96] },
-  triangle: { LS:[0.27,0.41], RS:[0.33,0.35], LE:[0.213,0.532], RE:[0.387,0.228], LW:[0.126,0.684], RW:[0.474,0.076], LH:[0.55,0.56], RH:[0.61,0.52], LK:[0.42,0.75], RK:[0.72,0.73], LA:[0.29,0.94], RA:[0.83,0.94] },
+  triangle: { LS:[0.3093,0.482], RS:[0.3737,0.3812], LE:[0.2156,0.6286], RE:[0.4674,0.2346], LW:[0.1416,0.7443], RW:[0.5414,0.1189], LH:[0.4998,0.6619], RH:[0.5418,0.5962], LK:[0.3271,0.7715], RK:[0.7001,0.7384], LA:[0.1544,0.8811], RA:[0.8584,0.8806] },
   boat:     { LS:[0.22,0.48], RS:[0.24,0.48], LE:[0.42,0.50], RE:[0.44,0.50], LW:[0.62,0.52], RW:[0.64,0.52], LH:[0.40,0.80], RH:[0.42,0.80], LK:[0.70,0.66], RK:[0.72,0.66], LA:[0.94,0.54], RA:[0.96,0.54] },
-  bridge:   { LS:[0.18,0.86], RS:[0.20,0.86], LE:[0.14,0.90], RE:[0.16,0.90], LW:[0.10,0.94], RW:[0.12,0.94], LH:[0.42,0.71], RH:[0.44,0.71], LK:[0.66,0.62], RK:[0.68,0.62], LA:[0.68,0.90], RA:[0.70,0.90] },
+  bridge:   { LS:[0.437,0.6214], RS:[0.4179,0.5873], LE:[0.2569,0.6716], RE:[0.2378,0.6376], LW:[0.1148,0.7113], RW:[0.0957,0.6772], LH:[0.6715,0.3853], RH:[0.659,0.3631], LK:[0.9043,0.2977], RK:[0.8919,0.2755], LA:[0.9043,0.6156], RA:[0.8919,0.5934] },
   // Chest lifted to ~65% of torso length — a Cobra, not an Up-Dog
   cobra:    { LS:[0.20,0.66], RS:[0.22,0.66], LE:[0.15,0.78], RE:[0.17,0.78], LW:[0.19,0.91], RW:[0.21,0.91], LH:[0.46,0.88], RH:[0.48,0.88], LK:[0.66,0.93], RK:[0.68,0.93], LA:[0.90,0.95], RA:[0.92,0.95] },
   plank:    { LS:[0.24,0.50], RS:[0.26,0.50], LE:[0.22,0.62], RE:[0.24,0.62], LW:[0.22,0.74], RW:[0.24,0.74], LH:[0.52,0.545], RH:[0.54,0.545], LK:[0.72,0.60], RK:[0.74,0.60], LA:[0.86,0.635], RA:[0.88,0.635] },
 };
-
-/** How long the target shape is held on screen before a session begins. */
-const REF_PREVIEW_MS = 4200;
-let yogaRefUntil = 0;
-let _refTimer = null;
-/** True only while the target shape is being painted — the overlay reads it
-    so cue pills keep clear of the caption band at the bottom. */
-let REF_DRAWING = false;
-
-/**
- * Reference landmarks, inset uniformly so the figure sits inside the frame.
- * The inset is the SAME factor on both axes, so every angle the overlay
- * measures is identical to the verified fixture — the labels stay exact.
- */
-function refLandmarks(exKey) {
-  const pts = YOGA_REFERENCE[exKey];
-  if (!pts) return null;
-  const K = 0.88;
-  const lm = Array.from({ length: 33 }, () => ({ x: 0.5, y: 0.5, visibility: 0 }));
-  for (const k in pts) {
-    lm[LM[k]] = {
-      x: 0.5 + (pts[k][0] - 0.5) * K,
-      y: 0.5 + (pts[k][1] - 0.5) * K,
-      visibility: 0.99,
-    };
-  }
-  const s = lm[LM.LS], r = lm[LM.RS];
-  lm[0] = { x: (s.x + r.x) / 2, y: Math.min(s.y, r.y) - 0.075 * K, visibility: 0.95 };
-  return lm;
-}
 
 /** Human name for the caption, e.g. "Triangle · Trikonasana". */
 function refCaption(exKey) {
@@ -1048,75 +1118,271 @@ function refCaption(exKey) {
   return txt.indexOf(' ') > 0 ? txt.slice(txt.indexOf(' ') + 1) : txt;
 }
 
-/** Paint the target shape. Returns false when the posture has no reference. */
-function drawYogaReference(ctx, exKey, w, h) {
-  const lm = refLandmarks(exKey);
-  if (!lm) return false;
+// ════════════════════════════════════════════════════════════════
+//  TARGET POSTURE CARD
+//  A full-screen reference the member studies BEFORE starting. Drawn as SVG
+//  rather than on the canvas: a viewBox keeps the body in true proportion on
+//  any screen, and the text is real DOM text instead of mirrored canvas pills.
+//  The figure is built from the same verified landmarks the detector scores
+//  100% — so the shape shown is exactly the shape being coached.
+// ════════════════════════════════════════════════════════════════
 
-  ctx.save();
-  ctx.fillStyle = '#0a0a11';
-  ctx.fillRect(0, 0, w, h);
-  // faint floor so standing postures read as grounded
-  ctx.strokeStyle = 'rgba(255,255,255,0.07)';
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(0, h * 0.945);
-  ctx.lineTo(w, h * 0.945);
-  ctx.stroke();
-  ctx.restore();
+/** Per-posture framing: how to stand relative to the camera, plus the callouts. */
+const REF_SPEC = {
+  warrior2: {
+    view: 'Face the camera — feet wide, front foot turned out',
+    callouts: [
+      { kind:'angle', at:['LH','LK','LA'], text:'90°', sub:'front knee', dx:-52, dy:14 },
+      { kind:'line',  a:'LW', b:'RW', text:'Arms level, shoulder height', dy:-20 },
+      { kind:'plumb', from:'LK', to:'LA', text:'Knee over ankle', dx:-8, dy:26 },
+      { kind:'mark',  at:'RK', text:'Back leg straight', dx:56, dy:-8 },
+    ],
+  },
+  warrior1: {
+    view: 'Face the camera — one foot forward, hips square',
+    callouts: [
+      { kind:'angle', at:['LH','LK','LA'], text:'90°', sub:'front knee', dx:-52, dy:14 },
+      { kind:'mark',  at:'LW', text:'Arms overhead', dx:0, dy:-24 },
+      { kind:'mark',  at:'RK', text:'Back leg straight', dx:58, dy:-6 },
+    ],
+  },
+  tree: {
+    view: 'Face the camera — full body in frame',
+    callouts: [
+      { kind:'plumb', from:'RS', to:'RA', text:'Stack over this foot', dx:0, dy:34 },
+      { kind:'mark',  at:'LA', text:'Foot above the knee', dx:-14, dy:-22 },
+      { kind:'mark',  at:'LK', text:'Open the knee out', dx:-56, dy:6 },
+      { kind:'mark',  at:'RK', text:'Leg straight', dx:62, dy:8 },
+    ],
+  },
+  goddess: {
+    view: 'Face the camera — feet wide, toes turned out',
+    callouts: [
+      { kind:'angle', at:['LH','LK','LA'], text:'90°', dx:-46, dy:16 },
+      { kind:'angle', at:['RH','RK','RA'], text:'90°', dx:46, dy:16 },
+      { kind:'mark',  at:'LE', text:'Cactus arms, 90°', dx:-10, dy:-24 },
+      { kind:'line',  a:'LA', b:'RA', text:'Feet ~2× shoulders', dy:30 },
+    ],
+  },
+  downdog: {
+    view: 'Turn side-on to the camera',
+    callouts: [
+      { kind:'angle', at:['LS','LH','LK'], text:'80–100°', sub:'hips are the peak', dx:0, dy:-30 },
+      { kind:'mark',  at:'LE', text:'Arms straight', dx:-48, dy:0 },
+      { kind:'mark',  at:'LK', text:'Legs straight', dx:52, dy:0 },
+    ],
+  },
+  chair: {
+    view: 'Turn side-on to the camera',
+    callouts: [
+      { kind:'angle', at:['LH','LK','LA'], text:'~110°', sub:'knees', dx:-50, dy:6 },
+      { kind:'angle', at:['LS','LH','LK'], text:'Hip hinge', dx:44, dy:-10 },
+      { kind:'plumb', from:'LK', to:'LA', text:'Knees behind toes', dx:-6, dy:28 },
+      { kind:'mark',  at:'LW', text:'Arms in line with torso', dx:-8, dy:-22 },
+    ],
+  },
+  triangle: {
+    view: 'Turn side-on to the camera — feet wide',
+    callouts: [
+      { kind:'line',  a:'LW', b:'RW', text:'Arms in one line', dx:34, dy:0 },
+      { kind:'mark',  at:'LK', text:'Both legs straight', dx:-46, dy:12 },
+      { kind:'mark',  at:'LH', text:'Side-bend, not forward', dx:52, dy:0 },
+    ],
+  },
+  boat: {
+    view: 'Turn side-on to the camera — seated',
+    callouts: [
+      { kind:'angle', at:['LS','LH','LK'], text:'90–120°', sub:'torso to thighs', dx:-34, dy:-16 },
+      { kind:'mark',  at:'LA', text:'Feet above the knees', dx:-16, dy:-22 },
+      { kind:'mark',  at:'LW', text:'Reach arms forward', dx:10, dy:22 },
+    ],
+  },
+  bridge: {
+    view: 'Turn side-on to the camera — lying down',
+    callouts: [
+      { kind:'angle', at:['LS','LH','LK'], text:'~165°', sub:'shoulder to knee', dx:0, dy:-28 },
+      { kind:'angle', at:['LH','LK','LA'], text:'90°', dx:30, dy:-14 },
+      { kind:'plumb', from:'LK', to:'LA', text:'Shins vertical', dx:22, dy:16 },
+      { kind:'mark',  at:'LH', text:'Hips above shoulders', dx:-24, dy:26 },
+    ],
+  },
+  cobra: {
+    view: 'Turn side-on to the camera — lying face down',
+    callouts: [
+      { kind:'mark', at:'LS', text:'Chest lifts ~65%', dx:-16, dy:-24 },
+      { kind:'mark', at:'LE', text:'Elbows stay soft', dx:-44, dy:10 },
+      { kind:'mark', at:'LH', text:'Hips stay on the floor', dx:34, dy:26 },
+    ],
+  },
+  plank: {
+    view: 'Turn side-on to the camera',
+    callouts: [
+      { kind:'angle', at:['LS','LH','LA'], text:'170°', sub:'one straight line', dx:0, dy:-28 },
+      { kind:'mark',  at:'LE', text:'Elbows under shoulders', dx:-40, dy:14 },
+    ],
+  },
+};
 
-  // A reference is the ideal by definition — paint every segment green.
-  const j = { torso:'good', hip:'good', L_knee:'good', R_knee:'good', L_elbow:'good', R_elbow:'good' };
-  // unit:0 suppresses the live hold meter, which means nothing here
-  const savedViz = YOGA_HOLD_VIZ;
-  YOGA_HOLD_VIZ = { ms: 0, unit: 0, good: false, holds: 0 };
-  REF_DRAWING = true;
-  drawSmartSkeleton(ctx, lm, j, w, h);
-  drawCoachingOverlay(ctx, lm, exKey, j, w, h);
-  REF_DRAWING = false;
-  YOGA_HOLD_VIZ = savedViz;
+/** Builds the reference figure as SVG. Proportions come from torso length,
+    which is stable in both front and side views (shoulder width is not). */
+function buildPostureSvg(exKey) {
+  const pts = YOGA_REFERENCE[exKey];
+  const spec = REF_SPEC[exKey];
+  if (!pts) return '';
+  const W = 420, H = 320, PAD = 26;
 
-  // Captions get their own band at the bottom, clear of the pose cues
-  ctx.save();
-  const bandTop = h - 74;
-  const grad = ctx.createLinearGradient(0, bandTop, 0, h);
-  grad.addColorStop(0, 'rgba(10,10,17,0)');
-  grad.addColorStop(0.35, 'rgba(10,10,17,0.92)');
-  grad.addColorStop(1, 'rgba(10,10,17,0.97)');
-  ctx.fillStyle = grad;
-  ctx.fillRect(0, bandTop, w, 74);
-  ctx.restore();
-  drawPill(ctx, w / 2, h - 48, 'TARGET POSTURE · ' + refCaption(exKey), CLR.GOOD);
-  drawPill(ctx, w / 2, h - 22, 'Match this shape — starting in a moment', 'rgba(255,255,255,0.75)');
+  // Landmark → viewBox pixel
+  const P = k => (pts[k] ? { x: pts[k][0] * W, y: pts[k][1] * H } : null);
+  const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+  const dist = (a, b) => Math.hypot(a.x - b.x, a.y - b.y);
+
+  const LS = P('LS'), RS = P('RS'), LH = P('LH'), RH = P('RH');
+  const sMid = mid(LS, RS), hMid = mid(LH, RH);
+  const U = Math.max(28, dist(sMid, hMid));          // torso length = the body unit
+  const head = { x: sMid.x + (sMid.x - hMid.x) * 0.30, y: sMid.y + (sMid.y - hMid.y) * 0.30 };
+
+  const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+  // ── Body: tapered limb between two joints ──
+  function limb(a, b, ra, rb) {
+    if (!a || !b) return '';
+    const d = Math.max(0.001, dist(a, b));
+    const nx = -(b.y - a.y) / d, ny = (b.x - a.x) / d;
+    return `<path d="M${(a.x + nx * ra).toFixed(1)},${(a.y + ny * ra).toFixed(1)}`
+         + ` L${(b.x + nx * rb).toFixed(1)},${(b.y + ny * rb).toFixed(1)}`
+         + ` L${(b.x - nx * rb).toFixed(1)},${(b.y - ny * rb).toFixed(1)}`
+         + ` L${(a.x - nx * ra).toFixed(1)},${(a.y - ny * ra).toFixed(1)} Z"/>`
+         + `<circle cx="${a.x.toFixed(1)}" cy="${a.y.toFixed(1)}" r="${ra.toFixed(1)}"/>`
+         + `<circle cx="${b.x.toFixed(1)}" cy="${b.y.toFixed(1)}" r="${rb.toFixed(1)}"/>`;
+  }
+
+  // Torso width follows the actual shoulders/hips in a front view, and falls
+  // back to a slab in a side view where the two sides collapse onto each other.
+  const shoulderHalf = Math.max(dist(LS, RS) / 2, 0.17 * U);
+  const hipHalf      = Math.max(dist(LH, RH) / 2, 0.14 * U);
+
+  const R = { armA:0.090*U, armB:0.066*U, foreA:0.066*U, foreB:0.050*U,
+              thighA:0.125*U, thighB:0.088*U, shinA:0.088*U, shinB:0.062*U,
+              head:0.185*U, neck:0.075*U };
+
+  let body = '';
+  body += limb(sMid, hMid, shoulderHalf, hipHalf);
+  body += limb(sMid, head, R.neck, R.neck * 0.9);
+  body += limb(P('LS'), P('LE'), R.armA,   R.armB);
+  body += limb(P('RS'), P('RE'), R.armA,   R.armB);
+  body += limb(P('LE'), P('LW'), R.foreA,  R.foreB);
+  body += limb(P('RE'), P('RW'), R.foreA,  R.foreB);
+  body += limb(P('LH'), P('LK'), R.thighA, R.thighB);
+  body += limb(P('RH'), P('RK'), R.thighA, R.thighB);
+  body += limb(P('LK'), P('LA'), R.shinA,  R.shinB);
+  body += limb(P('RK'), P('RA'), R.shinA,  R.shinB);
+  body += `<circle cx="${head.x.toFixed(1)}" cy="${head.y.toFixed(1)}" r="${R.head.toFixed(1)}"/>`;
+
+  // ── Green alignment skeleton on top ──
+  const BONE = [['LS','RS'],['LS','LH'],['RS','RH'],['LH','RH'],
+                ['LS','LE'],['LE','LW'],['RS','RE'],['RE','RW'],
+                ['LH','LK'],['LK','LA'],['RH','RK'],['RK','RA']];
+  let bones = '';
+  for (const [a, b] of BONE) {
+    const A = P(a), B = P(b);
+    if (A && B) bones += `<line x1="${A.x.toFixed(1)}" y1="${A.y.toFixed(1)}" x2="${B.x.toFixed(1)}" y2="${B.y.toFixed(1)}"/>`;
+  }
+  let joints = '';
+  for (const k of ['LS','RS','LE','RE','LW','RW','LH','RH','LK','RK','LA','RA']) {
+    const A = P(k);
+    if (A) joints += `<circle cx="${A.x.toFixed(1)}" cy="${A.y.toFixed(1)}" r="3.6"/>`;
+  }
+
+  // ── Callouts: arcs, guide lines, labels ──
+  let guides = '', labels = '';
+  const clampX = x => Math.max(PAD + 4, Math.min(W - PAD - 4, x));
+  const clampY = y => Math.max(14, Math.min(H - 12, y));
+
+  function label(x, y, text, sub) {
+    const t = esc(text), s = sub ? esc(sub) : '';
+    const wpx = Math.max(t.length * 5.9, s.length * 4.9) + 16;
+    const hpx = s ? 30 : 19;
+    const bx = clampX(x) - wpx / 2, by = clampY(y) - hpx / 2;
+    return `<g class="cal"><rect x="${bx.toFixed(1)}" y="${by.toFixed(1)}" width="${wpx.toFixed(1)}" height="${hpx}" rx="6"/>`
+      + `<text x="${(bx + wpx / 2).toFixed(1)}" y="${(by + (s ? 12.5 : 13)).toFixed(1)}">${t}</text>`
+      + (s ? `<text class="sub" x="${(bx + wpx / 2).toFixed(1)}" y="${(by + 24).toFixed(1)}">${s}</text>` : '')
+      + `</g>`;
+  }
+
+  for (const c of (spec ? spec.callouts : [])) {
+    if (c.kind === 'angle') {
+      const A = P(c.at[0]), B = P(c.at[1]), C = P(c.at[2]);
+      if (!A || !B || !C) continue;
+      const r = 0.30 * U;
+      const a0 = Math.atan2(A.y - B.y, A.x - B.x), a1 = Math.atan2(C.y - B.y, C.x - B.x);
+      let diff = a1 - a0;
+      while (diff > Math.PI) diff -= 2 * Math.PI;
+      while (diff < -Math.PI) diff += 2 * Math.PI;
+      const sweep = diff > 0 ? 1 : 0;
+      const p0 = { x: B.x + Math.cos(a0) * r, y: B.y + Math.sin(a0) * r };
+      const p1 = { x: B.x + Math.cos(a1) * r, y: B.y + Math.sin(a1) * r };
+      guides += `<path class="arc" d="M${p0.x.toFixed(1)},${p0.y.toFixed(1)} A${r.toFixed(1)},${r.toFixed(1)} 0 0 ${sweep} ${p1.x.toFixed(1)},${p1.y.toFixed(1)}"/>`;
+      labels += label(B.x + (c.dx || 0), B.y + (c.dy || 0), c.text, c.sub);
+    } else if (c.kind === 'line') {
+      const A = P(c.a), B = P(c.b);
+      if (!A || !B) continue;
+      guides += `<line class="guide" x1="${A.x.toFixed(1)}" y1="${A.y.toFixed(1)}" x2="${B.x.toFixed(1)}" y2="${B.y.toFixed(1)}"/>`;
+      const m = mid(A, B);
+      labels += label(m.x + (c.dx || 0), m.y + (c.dy || 0), c.text, c.sub);
+    } else if (c.kind === 'plumb') {
+      const A = P(c.from), B = P(c.to);
+      if (!A || !B) continue;
+      guides += `<line class="guide" x1="${A.x.toFixed(1)}" y1="${A.y.toFixed(1)}" x2="${A.x.toFixed(1)}" y2="${(B.y + 12).toFixed(1)}"/>`;
+      labels += label(A.x + (c.dx || 0), B.y + (c.dy || 0), c.text, c.sub);
+    } else {
+      const A = P(c.at);
+      if (!A) continue;
+      guides += `<circle class="ring" cx="${A.x.toFixed(1)}" cy="${A.y.toFixed(1)}" r="${(0.16 * U).toFixed(1)}"/>`;
+      labels += label(A.x + (c.dx || 0), A.y + (c.dy || 0), c.text, c.sub);
+    }
+  }
+
+  // floor line for standing postures
+  const floorY = Math.max(P('LA') ? P('LA').y : 0, P('RA') ? P('RA').y : 0) + 8;
+
+  return `<svg viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet" role="img" aria-label="${esc(refCaption(exKey))} reference">
+    <defs><filter id="refglow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter></defs>
+    <line class="floor" x1="8" y1="${floorY.toFixed(1)}" x2="${W - 8}" y2="${floorY.toFixed(1)}"/>
+    <g class="body">${body}</g>
+    <g class="guides">${guides}</g>
+    <g class="bones" filter="url(#refglow)">${bones}</g>
+    <g class="joints">${joints}</g>
+    <g class="labels">${labels}</g>
+  </svg>`;
+}
+
+/** Show the full-screen target card. It stays up until Start or Close. */
+function showPostureReference(exKey) {
+  const ov = $('refOv');
+  if (!ov || !YOGA_REFERENCE[exKey]) return false;
+  const spec = REF_SPEC[exKey] || {};
+  $('refFig').innerHTML = buildPostureSvg(exKey);
+  $('refName').textContent = refCaption(exKey);
+  $('refView').textContent = spec.view || '';
+  const tips = TIPS[exKey] || [];
+  $('refCues').innerHTML = tips.map(t => `<li>${t}</li>`).join('');
+  ov.classList.remove('hidden');
+  document.body.classList.add('ref-open');
   return true;
 }
 
-/**
- * Show the target shape on the stage for `ms`. Works with or without the
- * camera running: while the camera feeds frames the loop keeps redrawing it,
- * and before the camera starts the single paint simply stays put.
- */
-function previewPosture(exKey, ms) {
-  if (!YOGA_REFERENCE[exKey]) return false;
-  const ctx = cvs.getContext('2d');
-  if (!cvs.width || !cvs.height || !running) {
-    cvs.width  = Math.max(320, cvs.clientWidth  || 640);
-    cvs.height = Math.max(240, cvs.clientHeight || 360);
-  }
-  if (!drawYogaReference(ctx, exKey, cvs.width, cvs.height)) return false;
-  idleOv.classList.add('hidden');
-  const dur = ms || REF_PREVIEW_MS;
-  yogaRefUntil = performance.now() + dur;
-  if (_refTimer) clearTimeout(_refTimer);
-  _refTimer = setTimeout(() => {
-    yogaRefUntil = 0;
-    _refTimer = null;
-    if (!running) {
-      try { ctx.clearRect(0, 0, cvs.width, cvs.height); } catch (_) {}
-      showOverlay('idle');
-    }
-  }, dur);
-  return true;
+function hidePostureReference() {
+  const ov = $('refOv');
+  if (ov) ov.classList.add('hidden');
+  document.body.classList.remove('ref-open');
+}
+
+/** True while the target card is up — the Start button reads this. */
+function referenceIsOpen() {
+  const ov = $('refOv');
+  return !!ov && !ov.classList.contains('hidden');
 }
 
 const TIPS = {
@@ -2467,9 +2733,7 @@ function drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h) {
     };
     const plumb = (x, y0, y1, color) => dash({ x, y: y0 }, { x, y: y1 }, color, [6, 6]);
     // Keep every cue pill inside the frame, however the pose sits in it
-    // While the target shape is on screen the bottom band is reserved for its
-    // captions, so cue pills are held further up.
-    const floor = h - (REF_DRAWING ? 96 : 64);
+    const floor = h - 64;
     const pill = (x, y, text, color) =>
       drawPill(ctx, Math.max(84, Math.min(w - 84, x)), Math.max(16, Math.min(floor, y)), text, color);
     const arc = (A, B, C, r, color) => { if (A && B && C) drawAngleArc(ctx, A, B, C, w, h, r, color); };
@@ -3717,7 +3981,10 @@ function showPrepCountdown(onDone) {
   const prepHint = $('prepHint');
   idleOv.classList.add('hidden');
   loadOv.classList.add('hidden');
-  prepOv.classList.remove('hidden');
+  // Hold postures skip the count-in entirely: the member has already studied
+  // the target card and pressed Start themselves.
+  const skipCountdown = !!YOGA_REFERENCE[exSel.value];
+  if (!skipCountdown) prepOv.classList.remove('hidden');
 
   const cdRate = 1.15;
   const cdPitch = VC._humanPitch;
@@ -3785,19 +4052,13 @@ function showPrepCountdown(onDone) {
   }
 
   void (async () => {
-    // Study the target shape first, then count in
-    if (YOGA_REFERENCE[exSel.value]) {
-      if (prepNum)  prepNum.textContent = '';
-      if (prepHead) prepHead.textContent = 'Target posture';
-      if (prepHint) prepHint.textContent = refCaption(exSel.value) + ' — study the shape';
-      previewPosture(exSel.value, REF_PREVIEW_MS);
-      await new Promise(r => setTimeout(r, REF_PREVIEW_MS));
+    if (!skipCountdown) {
+      if (prepHead) prepHead.textContent = 'Prepare';
+      if (prepHint) prepHint.textContent = 'Full body in frame. Soft, even lighting.';
+      try {
+        await runCountdownVoice();
+      } catch (_) {}
     }
-    if (prepHead) prepHead.textContent = 'Prepare';
-    if (prepHint) prepHint.textContent = 'Full body in frame. Soft, even lighting.';
-    try {
-      await runCountdownVoice();
-    } catch (_) {}
     prepOv.classList.add('hidden');
     VC.startKeepAlive();
     setTimeout(() => VC.speakIntro(exSel.value), 380);
@@ -3973,8 +4234,6 @@ async function startWorkout() {
     if (!running) {
       noPersonFrames = 0;
       noPerson.classList.add('hidden');
-      // Target shape wins over the live preview while it is on screen
-      if (yogaRefUntil > performance.now() && drawYogaReference(ctx, exKeyPrev, w, h)) return;
       const ph = 'up';
       YOGA_HOLD_VIZ = { ms: 0, unit: Detector.HOLD_UNIT_MS, good: false, holds: 0 };
       const jPrev = evaluateJoints(lm, exKeyPrev, ph);
@@ -4101,24 +4360,26 @@ if (hudStopBtn) hudStopBtn.addEventListener('click', stopWorkout);
 const hudSetBtnEl = $('hudSetBtn');
 if (hudSetBtnEl) hudSetBtnEl.addEventListener('click', doCompleteSet);
 
-// Replay the target shape on demand
+// ── Target posture card wiring ──
 const poseBtn = $('poseBtn');
 if (poseBtn) {
-  poseBtn.addEventListener('click', () => {
-    if (!previewPosture(exSel.value, REF_PREVIEW_MS))
-      setFeedback('No target shape for this exercise yet.', 'warn', 0);
-  });
+  poseBtn.addEventListener('click', () => showPostureReference(exSel.value));
   const syncPoseBtn = () => { poseBtn.disabled = !YOGA_REFERENCE[exSel.value]; };
   exSel.addEventListener('change', syncPoseBtn);
   syncPoseBtn();
 }
+const refStartBtn = $('refStartBtn'), refCloseBtn = $('refCloseBtn');
+if (refStartBtn) refStartBtn.addEventListener('click', () => { hidePostureReference(); startWorkout(); });
+if (refCloseBtn) refCloseBtn.addEventListener('click', hidePostureReference);
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && referenceIsOpen()) hidePostureReference(); });
 
 exSel.addEventListener('change', () => {
   showTips(exSel.value);
   syncRepLabels(exSel.value);
   badgeEx.textContent = exSel.options[exSel.selectedIndex].text;
   if (detector && detector.reps > 0) detector.markSet();
-  if (!running) previewPosture(exSel.value, REF_PREVIEW_MS);
+  // Picking a hold posture opens its target card straight away
+  if (!running) showPostureReference(exSel.value);
 });
 
 // Summary modal buttons
