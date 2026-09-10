@@ -436,13 +436,14 @@ async function submitPart2(e) {
 </footer>
 <script src="/js/bb-voice.js?v=1"></script>
 <script>
-/* Voice input for the eight long "Your story" answers. Typing is unchanged;
+/* Voice input for the eight long "Your story" answers, picked up by the shared
+   rule in bb-voice.js (.p2-textarea is a long-form class). Typing is unchanged;
    this only adds a mic button under each one, and only where the device has a
    free speech engine. The 2500-char cap is enforced in the review sheet. */
 (function wirePart2Voice() {
   function go() {
     if (!window.BBVoice) return;
-    try { window.BBVoice.wireAll('#part2Form textarea.p2-textarea'); } catch (e) {}
+    try { window.BBVoice.start(); } catch (e) {}
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
   else go();

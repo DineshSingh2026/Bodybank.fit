@@ -1014,12 +1014,53 @@ function commit(textarea, text) {
  * Public API                                                          *
  * ------------------------------------------------------------------ */
 
-function labelFor(textarea) {
-  var group = textarea.closest ? textarea.closest('.form-group') : null;
-  var label = group ? group.querySelector('label') : null;
-  var text = label ? label.textContent : '';
+/*
+ * The question shown at the top of the sheet. Markup varies across the app —
+ * .form-group here, .wk-field there, a label[for] somewhere else — so this
+ * tries the reliable associations first and only then falls back to the
+ * placeholder. Getting this wrong is visible: the member sees the wrong
+ * question above the text they are about to save.
+ */
+function labelFor(ta) {
+  var text = '';
+
+  /* 1. explicit association — <label for="wkNotes">Notes / feedback</label> */
+  if (!text && ta.id) {
+    try {
+      var l = document.querySelector('label[for="' + ta.id.replace(/["\\]/g, '\\$&') + '"]');
+      if (l) text = l.textContent;
+    } catch (e) {}
+  }
+
+  /* 2. a <label> wrapping the field */
+  if (!text && ta.closest) {
+    var wrapping = ta.closest('label');
+    if (wrapping) text = wrapping.textContent;
+  }
+
+  /* 3. a label immediately before it — the common <label><textarea> pattern.
+        Sibling-scoped on purpose: searching a whole container can pick up the
+        label belonging to a different input sitting next to this one. */
+  if (!text) {
+    var prev = ta.previousElementSibling, hops = 0;
+    while (prev && hops++ < 3) {
+      if (prev.tagName === 'LABEL') { text = prev.textContent; break; }
+      prev = prev.previousElementSibling;
+    }
+  }
+
+  /* 4. the surrounding form group */
+  if (!text && ta.closest) {
+    var group = ta.closest('.form-group, .wk-field, .fc-field, .bbody-form-field');
+    var gl = group ? group.querySelector('label') : null;
+    if (gl) text = gl.textContent;
+  }
+
+  if (!text) text = ta.getAttribute('aria-label') || '';
+  if (!text) text = ta.getAttribute('placeholder') || '';
+
   text = String(text || '').replace(/\s+/g, ' ').replace(/\*\s*$/, '').trim();
-  return text || textarea.getAttribute('placeholder') || 'Your answer';
+  return text || 'Your answer';
 }
 
 function attach(textarea, label) {
@@ -1079,11 +1120,106 @@ function wireAll(selector, root) {
   return n;
 }
 
+/* ------------------------------------------------------------------ *
+ * Auto-wiring: "wherever there is a big box"                          *
+ *                                                                     *
+ * Listing ids by hand does not survive — half the long boxes in this  *
+ * app are rendered by JS (meal notes per meal, coach chat, the blood  *
+ * and graded report editors) and a new one would silently miss out.   *
+ * So the rule lives here instead:                                     *
+ *                                                                     *
+ *   data-bb-voice="off"  never, whatever else is true                 *
+ *   data-bb-voice="on"   always — for short boxes that are still      *
+ *                        long-form, e.g. a rows=2 message to a coach  *
+ *   rows >= 3            a big box                                    *
+ *   a known long-form class                                           *
+ *                                                                     *
+ * Anything else is left alone, which keeps single-line AI prompt and  *
+ * command inputs out of it.                                           *
+ * ------------------------------------------------------------------ */
+
+var LONG_FORM_CLASSES = [
+  'p2-textarea',          /* Part-2 "your story" answers        */
+  'wk-textarea',          /* workout details + notes/feedback   */
+  'manual-textarea',      /* nutrition meal description         */
+  'fc-textarea',          /* FitChef assessment free text       */
+  'bbre-ta',              /* blood report editor                */
+  'op-cm-textarea',       /* operator <-> admin message         */
+  'bbody-form-textarea'   /* weekly body snapshot notes         */
+];
+
+function isLongForm(ta) {
+  if (!ta || ta.tagName !== 'TEXTAREA') return false;
+  if (ta.disabled || ta.readOnly) return false;
+  /* never the review box inside our own sheet */
+  if (ta.closest && ta.closest('.bbv-card')) return false;
+
+  var flag = ta.getAttribute('data-bb-voice');
+  if (flag === 'off') return false;
+  if (flag === 'on') return true;
+
+  if ((parseInt(ta.getAttribute('rows'), 10) || 0) >= 3) return true;
+
+  for (var i = 0; i < LONG_FORM_CLASSES.length; i++) {
+    if (ta.classList && ta.classList.contains(LONG_FORM_CLASSES[i])) return true;
+  }
+  return false;
+}
+
+function autoWire(root) {
+  if (!isSupported()) return 0;
+  var n = 0;
+  Array.prototype.forEach.call((root || document).querySelectorAll('textarea'), function (ta) {
+    if (isLongForm(ta) && attach(ta)) n++;
+  });
+  return n;
+}
+
+/* Catches boxes rendered after load. Our own inserted nodes carry
+   data-bbv="1", so re-entering on them is filtered out and the pass
+   settles instead of looping. */
+function needsWiring(node) {
+  if (!node || node.nodeType !== 1) return false;
+  if (node.tagName === 'TEXTAREA') return node.getAttribute('data-bbv') !== '1';
+  return !!(node.querySelector && node.querySelector('textarea:not([data-bbv="1"])'));
+}
+
+var observing = false;
+function observe() {
+  if (observing || !isSupported()) return;
+  if (typeof MutationObserver !== 'function' || !document.body) return;
+  observing = true;
+  var queued = false;
+  new MutationObserver(function (records) {
+    if (queued) return;
+    for (var i = 0; i < records.length; i++) {
+      var added = records[i].addedNodes;
+      for (var j = 0; j < added.length; j++) {
+        if (!needsWiring(added[j])) continue;
+        queued = true;
+        setTimeout(function () { queued = false; autoWire(document); }, 120);
+        return;
+      }
+    }
+  }).observe(document.body, { childList: true, subtree: true });
+}
+
+/* One call per page: wire what is here now, then keep watching. */
+function start(root) {
+  var n = autoWire(root);
+  observe();
+  return n;
+}
+
 window.BBVoice = {
   isSupported: isSupported,
   attach: attach,
   wire: wire,
   wireAll: wireAll,
+  autoWire: autoWire,
+  observe: observe,
+  start: start,
+  isLongForm: isLongForm,
   languages: LANGS,
   getLanguage: lang,
   setLanguage: setLang,

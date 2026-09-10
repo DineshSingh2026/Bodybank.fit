@@ -7302,9 +7302,9 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <!-- Name is taken from the signed-in profile, so we don't ask for it again. -->
         <div class="form-group"><label>State the plan you're on <span class="req">*</span></label><input type="text" class="form-input" id="scPlan" placeholder="e.g. 12 week fat loss" required></div>
         <div class="form-group"><label>Current body fat % <span class="req">*</span></label><input type="number" class="form-input" id="scBodyFat" min="2" max="70" step="0.1" inputmode="decimal" required placeholder="e.g. 18.5" title="Enter your best current estimate (calipers, scale, or professional reading)"></div>
-        <div class="form-group"><label>Current weight (lbs), waist measurement and week of training you've just completed <span class="req">*</span></label><textarea class="form-input" id="scCurrentWeight" rows="5" placeholder="e.g. week 1, 180 lbs, 34 in waist" required></textarea></div>
-        <div class="form-group"><label>Last week's weight (lbs) and waist measurement <span class="req">*</span></label><textarea class="form-input" id="scLastWeek" rows="4" placeholder="e.g. 182 lbs, 35 in" required></textarea></div>
-        <div class="form-group"><label>What is your total weight loss? (Or gain if on a muscle building plan) <span class="req">*</span></label><textarea class="form-input" id="scTotalLoss" rows="4" required></textarea></div>
+        <div class="form-group"><label>Current weight (lbs), waist measurement and week of training you've just completed <span class="req">*</span></label><textarea class="form-input" id="scCurrentWeight" data-bb-voice="off" rows="5" placeholder="e.g. week 1, 180 lbs, 34 in waist" required></textarea></div>
+        <div class="form-group"><label>Last week's weight (lbs) and waist measurement <span class="req">*</span></label><textarea class="form-input" id="scLastWeek" data-bb-voice="off" rows="4" placeholder="e.g. 182 lbs, 35 in" required></textarea></div>
+        <div class="form-group"><label>What is your total weight loss? (Or gain if on a muscle building plan) <span class="req">*</span></label><textarea class="form-input" id="scTotalLoss" data-bb-voice="off" rows="4" required></textarea></div>
         <div class="form-group"><label>How did your training go? Did you complete all scheduled sessions including cardio? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scTraining" rows="6" placeholder="Describe your training week in detail" required></textarea></div>
         <div class="form-group"><label>How did your nutrition go? Did you follow the meal plan exactly and take all supplements as specified? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scNutrition" rows="6" placeholder="Describe your nutrition adherence" required></textarea></div>
         <div class="form-group"><label>What time did you go to bed/wake up on average? Did you get 8 hours sleep? Were there any difficulties sleeping? (detailed answer please) <span class="req">*</span></label><textarea class="form-input" id="scSleep" rows="6" required></textarea></div>
@@ -7717,7 +7717,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="chat-container">
         <div id="userThreadMessages" class="thread-messages-box"></div>
         <div class="thread-reply-wrap">
-          <textarea class="form-input" id="userThreadReplyBody" placeholder="Type your message…" rows="2" maxlength="5000"></textarea>
+          <textarea class="form-input" id="userThreadReplyBody" data-bb-voice="on" placeholder="Type your message…" rows="2" maxlength="5000"></textarea>
           <button type="button" class="form-submit chat-send-btn" onclick="userSendThreadMessage()">Send</button>
         </div>
       </div>
@@ -10562,7 +10562,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="op-cm-hint" id="adminEscSummary"></div>
       <div id="adminEscMessages"><div class="op-empty">Loading…</div></div>
       <div class="op-reply-row">
-        <textarea id="adminEscReplyText" placeholder="Reply to operator…"></textarea>
+        <textarea id="adminEscReplyText" data-bb-voice="on" placeholder="Reply to operator…"></textarea>
         <button type="button" onclick="adminEscSendReply()">Send</button>
       </div>
     </div>
@@ -11112,7 +11112,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <div class="chat-container" style="padding:0;background:transparent;border:none">
       <div id="adminThreadModalMessages" class="thread-messages-box"></div>
       <div class="thread-reply-wrap">
-        <textarea class="form-input" id="adminThreadReplyBody" placeholder="Type your reply…" rows="2" maxlength="5000"></textarea>
+        <textarea class="form-input" id="adminThreadReplyBody" data-bb-voice="on" placeholder="Type your reply…" rows="2" maxlength="5000"></textarea>
         <button type="button" class="form-submit chat-send-btn" onclick="adminSendThreadReply()">Send</button>
       </div>
     </div>
@@ -29804,21 +29804,21 @@ window.addEventListener('resize', applySafeAreaFix);
 <script src="js/graded-report-editor.js?v=1"></script>
 <script src="js/bb-voice.js?v=1"></script>
 <script>
-/* Voice input for the Sunday check-in — the fields whose labels ask for a
-   "detailed answer". Typing is unchanged; this only adds a mic button under
-   each one, and only where the device has a free speech engine.
+/* Voice input on every long-form box in the app.
 
-   The three measurement fields (scCurrentWeight, scLastWeek, scTotalLoss) are
-   deliberately left out: they are short numbers, and numbers are exactly what
+   The rule lives in bb-voice.js (rows >= 3, a known long-form class, or an
+   explicit data-bb-voice="on"), so a new big textarea anywhere gets a mic
+   without being listed here. A MutationObserver covers the ones rendered
+   later - meal notes, coach chat, the blood and graded report editors.
+
+   Typing is unchanged everywhere; the button is simply absent on devices
+   with no speech engine. The three Sunday measurement fields carry
+   data-bb-voice="off" - they hold short numbers, which is exactly what
    speech recognition gets wrong. */
-(function wireSundayVoice() {
-  var FIELDS = [
-    'scTraining', 'scNutrition', 'scSleep', 'scOccupationStress',
-    'scOtherStress', 'scDifferences', 'scAchievements', 'scImprove', 'scQuestions'
-  ];
+(function wireVoice() {
   function go() {
     if (!window.BBVoice) return;
-    try { window.BBVoice.wire(FIELDS); } catch (e) {}
+    try { window.BBVoice.start(); } catch (e) {}
   }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', go);
   else go();
