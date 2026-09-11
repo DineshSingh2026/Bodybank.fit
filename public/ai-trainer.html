@@ -3352,6 +3352,12 @@ class Detector {
   static get FR_STAND() { return 3; }
   /** One counted hold = this much continuous time in alignment. */
   static get HOLD_UNIT_MS() { return 5000; }
+  /** A lapse shorter than this is treated as tracker noise, not as leaving
+      the posture, so the streak survives it untouched. */
+  static get HOLD_GRACE_MS() { return 450; }
+  /** Past the grace window the streak bleeds away at this multiple of real
+      time — quick enough that genuinely dropping the pose loses it. */
+  static get HOLD_DECAY() { return 2.0; }
   /** Held time that banks a set for hold modes (yoga + Plank). */
   static get MIN_SET_HOLD_MS() { return 5000; }
 
@@ -3379,7 +3385,7 @@ class Detector {
     this._frUp = this._frDn = 0;
     this._frSynced = false;
     this._tdDn = this._tdSt = 0;
-    this.holdMs = 0; this.holdTotalMs = 0; this._holdLast = 0;
+    this.holdMs = 0; this.holdTotalMs = 0; this._holdLast = 0; this._holdBad = 0;
     this._snI = 0; this._snHold = 0; this._snOn = 0; this._snLast = 0;
     this._snPhase = 'seek'; this._snDone = 0;
     this._trX = null; this._trD = null;
@@ -4091,7 +4097,18 @@ class Detector {
     const t  = performance.now();
     const dt = this._holdLast ? Math.min(300, t - this._holdLast) : 0;
     this._holdLast = t;
-    if (!good) { this.holdMs = 0; return false; }
+    if (!good) {
+      // A tracker glitch must not erase a good hold. Pose landmarks jitter
+      // constantly, and zeroing on the first bad frame meant a five-second
+      // hold needed 150 consecutive perfect ones — so it never counted.
+      // Tolerate a brief lapse, then bleed the streak away instead.
+      this._holdBad = (this._holdBad || 0) + dt;
+      if (this._holdBad > Detector.HOLD_GRACE_MS) {
+        this.holdMs = Math.max(0, this.holdMs - dt * Detector.HOLD_DECAY);
+      }
+      return false;
+    }
+    this._holdBad = 0;
     const before = this.holdMs;
     this.holdMs      += dt;
     this.holdTotalMs += dt;
@@ -4104,8 +4121,9 @@ class Detector {
 
   /** Landmarks missing — break the streak and ask the user to reposition. */
   _yogaBlind(text, ex) {
-    this.holdMs = 0;
-    this._holdLast = performance.now();
+    // Route through the same grace window: a landmark that drops out for a
+    // frame or two should not cost the member their hold.
+    this._hold(false);
     return { text, kind:'error', score:0, repAdded:false, holdAdded:false, holdMode:true, ex };
   }
 
