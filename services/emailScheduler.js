@@ -8,6 +8,7 @@
 const cron = require('node-cron');
 const userEmail = require('./userEmailService');
 const PDFDocument = require('pdfkit');
+const PL = require('./pdfLayout');
 
 const TZ = 'Asia/Kolkata';
 const ADMIN_DAILY_REPORT_RECIPIENTS = (() => {
@@ -132,102 +133,126 @@ function fmtIst(date) {
   });
 }
 
+/**
+ * The admin Daily Compliance Report attached to the scheduled email.
+ *
+ * Layout rules (same as every other BodyBank PDF, via services/pdfLayout.js):
+ *   - every cell is fitted to its column, so a long member name shortens inside
+ *     its cell instead of wrapping out of a fixed-height row;
+ *   - the table header is repeated at the top of every continuation page (the
+ *     old page-break check added the page first, so the header-redraw branch
+ *     after it could never run and later pages had rows with no header);
+ *   - every page carries the BodyBank lockup and a "Page n of N" footer.
+ * The data and the Yes/Missed logic are untouched.
+ */
 function buildAdminReportPdf({ rows, summary, windowLabel }) {
   return new Promise((resolve, reject) => {
-    const doc = new PDFDocument({ size: 'A4', margin: 36 });
+    const doc = new PDFDocument({ size: 'A4', margin: 36, bufferPages: true });
     const chunks = [];
     doc.on('data', (c) => chunks.push(c));
     doc.on('end', () => resolve(Buffer.concat(chunks)));
     doc.on('error', reject);
 
+    const left = doc.page.margins.left;
     const pageW = doc.page.width - doc.page.margins.left - doc.page.margins.right;
-    const col = { name: 190, daily: 82, progress: 82, sunday: 82, workout: 82 };
+    // The five columns always span exactly the content width.
+    const nameW = pageW - 82 * 4;
+    const col = { name: nameW, daily: 82, progress: 82, sunday: 82, workout: 82 };
     const rowH = 24;
+    const TOP = 58;                                   // below the running brand strip
+    const BOTTOM = doc.page.height - 44;             // above the footer
 
-    function drawHeader() {
-      doc
-        .fillColor('#111111')
-        .font('Helvetica-Bold')
-        .fontSize(16)
-        .text('BodyBank Daily Compliance Report', { align: 'left' });
-      doc
-        .moveDown(0.3)
-        .fillColor('#555555')
-        .font('Helvetica')
-        .fontSize(10)
-        .text(windowLabel, { align: 'left' });
+    const flow = PL.createFlow(doc, { top: TOP, bottom: BOTTOM, left, width: pageW });
+    flow.y = doc.page.margins.top;                    // page one starts under its own title
 
-      doc.moveDown(0.8);
-      const startY = doc.y;
+    function drawTitleBlock() {
+      flow.y += PL.drawText(doc, 'BodyBank Daily Compliance Report', left, flow.y,
+        { font: 'Helvetica-Bold', size: 16, width: pageW, color: '#111111', maxLines: 2 }) + 4;
+      flow.y += PL.drawText(doc, windowLabel, left, flow.y,
+        { font: 'Helvetica', size: 10, width: pageW, color: '#555555', maxLines: 2 }) + 12;
+
+      const startY = flow.y;
       const boxW = (pageW - 24) / 3;
       const stats = [
-        `Active Users\n${summary.totalUsers}`,
-        `Daily Yes\n${summary.dailyYes}`,
-        `Daily Missed\n${summary.dailyMissed}`
+        ['Active Users', summary.totalUsers],
+        ['Daily Yes', summary.dailyYes],
+        ['Daily Missed', summary.dailyMissed]
       ];
-      for (let i = 0; i < stats.length; i++) {
-        const x = doc.page.margins.left + (i * (boxW + 12));
+      stats.forEach((s, i) => {
+        const x = left + (i * (boxW + 12));
         doc.roundedRect(x, startY, boxW, 46, 6).fillAndStroke('#F8F8F8', '#D8D8D8');
-        const parts = stats[i].split('\n');
-        doc.fillColor('#7A6220').font('Helvetica').fontSize(9).text(parts[0], x + 10, startY + 9, { width: boxW - 20, align: 'left' });
-        doc.fillColor('#111111').font('Helvetica-Bold').fontSize(14).text(parts[1], x + 10, startY + 22, { width: boxW - 20, align: 'left' });
-      }
-      doc.y = startY + 58;
-    }
-
-    function ensureSpace(heightNeeded) {
-      if (doc.y + heightNeeded > doc.page.height - doc.page.margins.bottom) {
-        doc.addPage();
-      }
+        PL.drawFit(doc, s[0], x + 10, startY + 9, boxW - 20, { font: 'Helvetica', size: 9, color: '#7A6220' });
+        PL.drawFit(doc, String(s[1]), x + 10, startY + 22, boxW - 20, { font: 'Helvetica-Bold', size: 14, minSize: 7, color: '#111111' });
+      });
+      flow.y = startY + 58;
+      flow.touch();
     }
 
     function drawTableHeader() {
-      ensureSpace(rowH + 8);
-      const y = doc.y;
-      let x = doc.page.margins.left;
+      const y = flow.y;
+      let x = left;
       const labels = ['User Name', 'Daily', 'Progress', 'Sunday', 'Workout'];
       const widths = [col.name, col.daily, col.progress, col.sunday, col.workout];
-      doc.fillColor('#111111').font('Helvetica-Bold').fontSize(10);
       for (let i = 0; i < labels.length; i++) {
         doc.roundedRect(x, y, widths[i], rowH, 4).fillAndStroke('#EFE7D2', '#D1C099');
-        doc.fillColor('#111111').text(labels[i], x + 8, y + 7, { width: widths[i] - 16, align: i === 0 ? 'left' : 'center' });
+        PL.drawFit(doc, labels[i], x + 8, y + 7, widths[i] - 16,
+          { font: 'Helvetica-Bold', size: 10, color: '#111111', align: i === 0 ? 'left' : 'center' });
         x += widths[i];
       }
-      doc.y = y + rowH + 6;
+      flow.advance(rowH + 6);
     }
 
     function drawStatus(value, x, y, w) {
       const isYes = String(value) === 'Yes';
       doc.roundedRect(x + 8, y + 4, w - 16, rowH - 8, 6).fillAndStroke(isYes ? '#E8F5EE' : '#FDEBEC', isYes ? '#A6D9BB' : '#E8A8AC');
-      doc.fillColor(isYes ? '#0F6A43' : '#A13B44').font('Helvetica-Bold').fontSize(9).text(value, x + 8, y + 9, { width: w - 16, align: 'center' });
+      PL.drawFit(doc, value, x + 10, y + 9, w - 20,
+        { font: 'Helvetica-Bold', size: 9, minSize: 6.5, color: isYes ? '#0F6A43' : '#A13B44', align: 'center' });
     }
 
-    drawHeader();
+    drawTitleBlock();
     drawTableHeader();
 
     for (let i = 0; i < rows.length; i++) {
-      ensureSpace(rowH + 4);
-      if (doc.y + rowH > doc.page.height - doc.page.margins.bottom) {
-        doc.addPage();
-        drawTableHeader();
-      }
-      const y = doc.y;
+      // One check, and the header is redrawn whenever it opens a page.
+      if (flow.ensure(rowH)) drawTableHeader();
+      const y = flow.y;
       const zebra = i % 2 === 0 ? '#FFFFFF' : '#FAFAFA';
-      doc.rect(doc.page.margins.left, y, pageW, rowH).fillAndStroke(zebra, '#ECECEC');
+      doc.rect(left, y, pageW, rowH).fillAndStroke(zebra, '#ECECEC');
 
-      let x = doc.page.margins.left;
-      doc.fillColor('#1B1B1B').font('Helvetica').fontSize(9).text(String(rows[i].name || '-'), x + 8, y + 7, { width: col.name - 16, ellipsis: true });
+      let x = left;
+      PL.drawFit(doc, String(rows[i].name || '-'), x + 8, y + 7, col.name - 16, { font: 'Helvetica', size: 9, minSize: 7, color: '#1B1B1B' });
       x += col.name;
       drawStatus(rows[i].daily_status, x, y, col.daily); x += col.daily;
       drawStatus(rows[i].progress_status, x, y, col.progress); x += col.progress;
       drawStatus(rows[i].sunday_status, x, y, col.sunday); x += col.sunday;
       drawStatus(rows[i].workout_status, x, y, col.workout);
 
-      doc.y = y + rowH;
+      flow.advance(rowH);
     }
 
-    doc.moveDown(0.7);
-    doc.fillColor('#666666').font('Helvetica').fontSize(9).text('Legend: Yes = submitted in report window, Missed = not submitted.', { align: 'left' });
+    flow.advance(10);
+    PL.flowText(flow, 'Legend: Yes = submitted in report window, Missed = not submitted.',
+      { x: left, width: pageW, font: 'Helvetica', size: 9, color: '#666666' });
+
+    // Brand strip + footer on every page, now that the page count is known.
+    const range = doc.bufferedPageRange();
+    for (let p = 0; p < range.count; p++) {
+      doc.switchToPage(range.start + p);
+      const savedBottom = doc.page.margins.bottom;
+      doc.page.margins.bottom = 0;
+      if (p > 0) {
+        PL.drawFit(doc, 'BodyBank Daily Compliance Report  ·  continued', left, 30, pageW * 0.7,
+          { font: 'Helvetica-Bold', size: 9, color: '#7A6220' });
+      }
+      doc.rect(left, doc.page.height - 36, pageW, 0.5).fill('#D8D8D8');
+      const marker = `Page ${p + 1} of ${range.count}`;
+      doc.font('Helvetica').fontSize(8);
+      const mw = doc.widthOfString(marker);
+      PL.drawFit(doc, marker, left + pageW - mw, doc.page.height - 28, mw, { font: 'Helvetica', size: 8, color: '#888888', align: 'right' });
+      PL.drawFit(doc, 'BodyBank.fit  ·  Admin daily compliance  ·  Confidential', left, doc.page.height - 28, pageW - mw - 16,
+        { font: 'Helvetica', size: 8, color: '#888888' });
+      doc.page.margins.bottom = savedBottom;
+    }
     doc.end();
   });
 }
@@ -532,4 +557,4 @@ function startEmailScheduler({ queryAll }) {
   console.log('[emailScheduler] Reminder & digest jobs started (timezone: ' + TZ + ')');
 }
 
-module.exports = { startEmailScheduler, sendAdminDailyComplianceReport, getAdminDailyComplianceReportData };
+module.exports = { startEmailScheduler, sendAdminDailyComplianceReport, getAdminDailyComplianceReportData, buildAdminReportPdf };

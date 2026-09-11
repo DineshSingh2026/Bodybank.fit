@@ -28,6 +28,18 @@
 
 const path = require('path');
 const fs = require('fs');
+const PL = require('../pdfLayout');
+
+/**
+ * Fitting a FIGURE is not the same as fitting a label.
+ *
+ * Shortening "Anti-Mullerian Hormone…" costs the reader nothing. Shortening
+ * "123456789" to "1234…" would print a number that is not the member's number,
+ * which this file exists to prevent. So every numeric cell is fitted with a
+ * very low floor: it shrinks as far as it must to stay inside its column, and
+ * only a value that will not fit at 4.5pt is ever cut.
+ */
+const FIGURE_MIN = 4.5;
 
 // ---- palette (identical to the blood-report template) ------------------------
 const C = {
@@ -219,47 +231,58 @@ function paintBg(doc) {
 }
 
 function newPage(ctx) {
-  ctx.doc.addPage();
-  ctx.y = TOP;
+  ctx.newPage();
   return ctx;
 }
 
 /** Start a new page only if the current one already has content. */
 function sectionBreak(ctx) {
-  if (ctx.y > TOP + 2) newPage(ctx);
+  ctx.sectionBreak();
 }
 
-/** Guarantee `h` points of room; page-break first if not. */
+/**
+ * Guarantee `h` points of room; page-break first if not.
+ * A page nothing has been drawn on is never broken — that only makes another
+ * empty one.
+ */
 function ensure(ctx, h) {
-  if (ctx.y + h > BOTTOM) newPage(ctx);
+  ctx.ensure(h);
 }
 
-/** Footer on EVERY page: page number, generation date, provenance line. */
+/**
+ * Footer on EVERY page: page number, generation date, provenance line.
+ *
+ * The provenance sentence is the reason this has to be careful. It is drawn
+ * 25pt into a 52pt footer band that sits below the bottom margin, and PDFKit
+ * wraps (and paginates) whenever a width is present — `lineBreak: false` does
+ * not stop it. Two lines fitted inside the band; the wrapper is never engaged.
+ */
 function paintChrome(doc, name, dateStr) {
   const range = doc.bufferedPageRange();
+  const total = range.count;
   const provenance =
     'Figures computed deterministically from the member’s uploaded wearable data. '
     + 'No value in this document is estimated, converted or re-rounded.';
-  for (let i = 0; i < range.count; i += 1) {
+  for (let i = 0; i < total; i += 1) {
     doc.switchToPage(range.start + i);
     doc.save();
     // top-right brand lockup
     doc.font('Helvetica-Bold').fontSize(9).fillColor(C.GREEN);
     const wm = 'BodyBank.fit';
     const tw = doc.widthOfString(wm);
-    doc.text(wm, PAGE_W - M - tw, 27, { lineBreak: false });
+    PL.drawSingle(doc, wm, PAGE_W - M - tw, 27, 0, {});
     if (LOGO) { try { doc.image(LOGO, PAGE_W - M - tw - 20, 23, { width: 15, height: 15 }); } catch (_) {} }
     // footer band
     doc.rect(0, PAGE_H - FOOTER_H, PAGE_W, FOOTER_H).fill(C.SURFACE);
     doc.rect(M, PAGE_H - FOOTER_H, CW, 0.4).fill(C.BORDER);
-    doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-      .text(`BodyBank.fit  ·  Recovery & Readiness Report  ·  ${name}`,
-        M, PAGE_H - FOOTER_H + 10, { width: CW * 0.66, lineBreak: false });
-    doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-      .text(`${dateStr}  ·  Page ${range.start + i + 1} of ${range.count}`,
-        M, PAGE_H - FOOTER_H + 10, { width: CW, align: 'right', lineBreak: false });
-    doc.font('Helvetica-Oblique').fontSize(6.8).fillColor(C.MUTED)
-      .text(provenance, M, PAGE_H - FOOTER_H + 25, { width: CW, lineGap: 1 });
+    const right = `${dateStr}  ·  Page ${range.start + i + 1} of ${total}`;
+    doc.font('Helvetica').fontSize(8);
+    const rightW = Math.min(CW * 0.45, doc.widthOfString(right));
+    PL.drawFit(doc, right, M + CW - rightW, PAGE_H - FOOTER_H + 10, rightW, { font: 'Helvetica', size: 8, color: C.MUTED, align: 'right' });
+    PL.drawFit(doc, `BodyBank.fit  ·  Recovery & Readiness Report  ·  ${name}`,
+      M, PAGE_H - FOOTER_H + 10, CW - rightW - 14, { font: 'Helvetica', size: 8, color: C.MUTED });
+    PL.drawText(doc, provenance, M, PAGE_H - FOOTER_H + 25,
+      { font: 'Helvetica-Oblique', size: 6.8, width: CW, lineGap: 1, color: C.MUTED, maxHeight: FOOTER_H - 27 });
     doc.restore();
   }
 }
@@ -276,80 +299,54 @@ function hr(ctx, color, thickness) {
   ctx.y += (thickness || 1) + 6;
 }
 
-function heading(ctx, txt, ruleColor) {
-  ensure(ctx, 60);
-  ctx.doc.font('Helvetica-Bold').fontSize(15).fillColor(C.GREEN).text(txt, M, ctx.y, { width: CW });
-  ctx.y += 22;
+function heading(ctx, text, ruleColor) {
+  const L = PL.layout(ctx.doc, text, { font: 'Helvetica-Bold', size: 15, width: CW });
+  ensure(ctx, Math.max(60, L.height + 32));
+  PL.drawLayout(ctx.doc, L, M, ctx.y, { color: C.GREEN });
+  ctx.advance(Math.max(22, L.height + 4));
   hr(ctx, ruleColor || C.GREEN, 1);
-  ctx.y += 2;
+  ctx.advance(2);
 }
 
-function subheading(ctx, txt, color) {
-  ensure(ctx, 34);
-  ctx.doc.font('Helvetica-Bold').fontSize(11).fillColor(color || C.WHITE).text(txt, M, ctx.y, { width: CW });
-  ctx.y += 17;
+function subheading(ctx, text, color) {
+  const L = PL.layout(ctx.doc, text, { font: 'Helvetica-Bold', size: 11, width: CW });
+  ensure(ctx, Math.max(34, L.height + 20));
+  PL.drawLayout(ctx.doc, L, M, ctx.y, { color: color || C.WHITE });
+  ctx.advance(Math.max(17, L.height + 4));
 }
 
-function breakLongWord(doc, word, width) {
-  const out = [];
-  let cur = '';
-  for (let i = 0; i < word.length; i += 1) {
-    const cand = cur + word[i];
-    if (cur && doc.widthOfString(cand) > width) { out.push(cur); cur = word[i]; }
-    else cur = cand;
-  }
-  if (cur) out.push(cur);
-  return out;
-}
+const breakLongWord = PL.breakWord;
 
-/** Manual greedy wrap so pagination stays under our control (never overflows). */
+/**
+ * Manual greedy wrap so pagination stays under our control (never overflows).
+ * Kept as a named export because the tests drive it directly; it now delegates
+ * to the shared kernel so measurement and drawing share one implementation.
+ */
 function wrapLines(doc, text, width) {
-  const out = [];
-  const paras = String(text === null || text === undefined ? '' : text).split(/\r?\n/);
-  paras.forEach((p) => {
-    const words = p.split(/\s+/).filter((w) => w.length > 0);
-    if (!words.length) { out.push(''); return; }
-    let line = '';
-    words.forEach((w) => {
-      const cand = line ? `${line} ${w}` : w;
-      if (doc.widthOfString(cand) <= width) { line = cand; return; }
-      if (line) out.push(line);
-      if (doc.widthOfString(w) > width) {
-        const pieces = breakLongWord(doc, w, width);
-        for (let i = 0; i < pieces.length - 1; i += 1) out.push(pieces[i]);
-        line = pieces[pieces.length - 1] || '';
-      } else {
-        line = w;
-      }
-    });
-    if (line) out.push(line);
-  });
-  return out;
+  return PL.wrapLines(doc, text, width);
 }
 
 /** Long-text writer: wraps, then draws line by line, adding pages as needed. */
 function paragraph(ctx, text, opts) {
   opts = opts || {};
-  const doc = ctx.doc;
-  const font = opts.font || 'Helvetica';
-  const size = opts.size === undefined ? 10 : opts.size;
-  const color = opts.color || C.TEXT;
-  const x = opts.x === undefined ? M : opts.x;
-  const width = opts.width === undefined ? CW : opts.width;
-  const lineGap = opts.lineGap === undefined ? 3 : opts.lineGap;
-  doc.font(font).fontSize(size);
-  const lines = wrapLines(doc, text, width);
-  const lh = doc.currentLineHeight() + lineGap;
-  for (let i = 0; i < lines.length; i += 1) {
-    ensure(ctx, lh);
-    doc.font(font).fontSize(size).fillColor(color);
-    doc.text(lines[i], x, ctx.y, { width, lineBreak: false });
-    ctx.y += lh;
-  }
-  ctx.y += opts.spaceAfter === undefined ? 8 : opts.spaceAfter;
+  PL.flowText(ctx, text, {
+    x: opts.x === undefined ? M : opts.x,
+    width: opts.width === undefined ? CW : opts.width,
+    font: opts.font || 'Helvetica',
+    size: opts.size === undefined ? 10 : opts.size,
+    lineGap: opts.lineGap === undefined ? 3 : opts.lineGap,
+    color: opts.color || C.TEXT,
+    spaceAfter: opts.spaceAfter === undefined ? 8 : opts.spaceAfter
+  });
 }
 
-/** Label/value strip inside a card. */
+/**
+ * Label/value strip inside a card.
+ *
+ * Both the caption and the figure are fitted to their cell. The figure shrinks
+ * all the way to FIGURE_MIN before anything is cut, because a truncated
+ * statistic is a wrong statistic.
+ */
 function kvGrid(ctx, items, cols, opts) {
   opts = opts || {};
   const doc = ctx.doc;
@@ -365,12 +362,12 @@ function kvGrid(ctx, items, cols, opts) {
     const c = i % columns;
     const x = M + c * colW + 12;
     const y = ctx.y + 10 + r * rowH;
-    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(C.MUTED)
-      .text(String(it[0]).toUpperCase(), x, y, { width: colW - 20, lineBreak: false });
-    doc.font('Helvetica-Bold').fontSize(it[3] || 13).fillColor(it[2] || C.WHITE)
-      .text(String(it[1]), x, y + 12, { width: colW - 20, lineBreak: false });
+    PL.drawFit(doc, String(it[0]).toUpperCase(), x, y, colW - 20,
+      { font: 'Helvetica-Bold', size: 7.5, minSize: 5.5, color: C.MUTED });
+    PL.drawFit(doc, String(it[1]), x, y + 12, colW - 20,
+      { font: 'Helvetica-Bold', size: it[3] || 13, minSize: FIGURE_MIN, color: it[2] || C.WHITE });
   });
-  ctx.y += h + 10;
+  ctx.advance(h + 10);
 }
 
 /** Paginating table (same contract as the blood-report kit). */
@@ -384,40 +381,39 @@ function table(ctx, columns, rows) {
   const drawHeader = () => {
     box(doc, M, ctx.y, CW, headerH, C.SURFACE2);
     columns.forEach((c, i) => {
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(C.MUTED)
-        .text(String(c.header).toUpperCase(), xs[i] + pad, ctx.y + 7,
-          { width: c.frac * CW - 2 * pad, align: c.align || 'left', lineBreak: false });
+      PL.drawFit(doc, String(c.header).toUpperCase(), xs[i] + pad, ctx.y + 7, c.frac * CW - 2 * pad,
+        { font: 'Helvetica-Bold', size: 7.5, minSize: 5, color: C.MUTED, align: c.align || 'left' });
     });
     box(doc, M, ctx.y, CW, headerH, null, C.BORDER, 0.4);
-    ctx.y += headerH;
+    ctx.advance(headerH);
   };
   ensure(ctx, headerH + 26);
   drawHeader();
   rows.forEach((row, ri) => {
     const cells = columns.map((c) => c.get(row) || {});
+    const maxRowH = ctx.pageHeight() - headerH - 2;
+    // One layout per cell, used for BOTH the row height and the drawing.
+    const lays = cells.map((cell, i) => PL.layout(doc, cell.text === undefined ? '' : String(cell.text), {
+      font: cell.bold ? 'Helvetica-Bold' : 'Helvetica',
+      size: cell.size || 9,
+      width: columns[i].frac * CW - 2 * pad,
+      align: columns[i].align || 'left',
+      maxHeight: maxRowH - 12
+    }));
     let rowH = 19;
-    cells.forEach((cell, i) => {
-      const tw = columns[i].frac * CW - 2 * pad;
-      doc.font(cell.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(cell.size || 9);
-      const hh = doc.heightOfString(String(cell.text === undefined ? '' : cell.text), { width: tw }) + 12;
-      if (hh > rowH) rowH = hh;
-    });
-    if (ctx.y + rowH > BOTTOM) { newPage(ctx); drawHeader(); }
+    lays.forEach((L) => { if (L.height + 12 > rowH) rowH = L.height + 12; });
+    if (rowH > maxRowH) rowH = maxRowH;
+    if (ctx.y + rowH > BOTTOM && !ctx.isFresh()) { newPage(ctx); drawHeader(); }
     box(doc, M, ctx.y, CW, rowH, ri % 2 === 0 ? C.DARK : C.SURFACE);
     const cy = ctx.y + rowH / 2;
     cells.forEach((cell, i) => {
-      const cx = xs[i];
-      const tw = columns[i].frac * CW - 2 * pad;
-      doc.font(cell.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(cell.size || 9)
-        .fillColor(cell.color || C.TEXT);
-      const th = doc.heightOfString(String(cell.text === undefined ? '' : cell.text), { width: tw });
-      doc.text(String(cell.text === undefined ? '' : cell.text), cx + pad, cy - th / 2,
-        { width: tw, align: columns[i].align || 'left' });
+      PL.drawLayout(doc, lays[i], xs[i] + pad, cy - lays[i].height / 2,
+        { color: cell.color || C.TEXT, align: columns[i].align || 'left' });
     });
     doc.save().rect(M, ctx.y + rowH - 0.3, CW, 0.3).fill(C.BORDER).restore();
-    ctx.y += rowH;
+    ctx.advance(rowH);
   });
-  ctx.y += 10;
+  ctx.advance(10);
 }
 
 // ---- vector glyphs (WinAnsi-safe: drawn, never typed) ------------------------
@@ -466,24 +462,24 @@ function buildCover(ctx, member, stats, report, dateStr) {
   if (LOGO) {
     try {
       doc.image(LOGO, M, y, { fit: [58, 58], align: 'left' });
-      doc.font('Helvetica-Bold').fontSize(20).fillColor(C.GOLD).text('BODYBANK', M + 70, y + 8, { lineBreak: false });
-      doc.font('Helvetica').fontSize(11).fillColor(C.GOLD_DIM)
-        .text('.FIT   ·   RECOVERY INTELLIGENCE', M + 70, y + 34, { lineBreak: false, characterSpacing: 1 });
+      doc.font('Helvetica-Bold').fontSize(20).fillColor(C.GOLD);
+      PL.drawSingle(doc, 'BODYBANK', M + 70, y + 8, 0, {});
+      doc.font('Helvetica').fontSize(11).fillColor(C.GOLD_DIM);
+      PL.drawSingle(doc, '.FIT   ·   RECOVERY INTELLIGENCE', M + 70, y + 34, 0, { characterSpacing: 1 });
     } catch (_) {
-      doc.font('Helvetica-Bold').fontSize(20).fillColor(C.GOLD).text('BODYBANK.FIT', M, y + 8, { lineBreak: false });
+      doc.font('Helvetica-Bold').fontSize(20).fillColor(C.GOLD);
+      PL.drawSingle(doc, 'BODYBANK.FIT', M, y + 8, 0, {});
     }
     y += 84;
   } else {
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(C.GOLD).text('BODYBANK.FIT', M, y, { lineBreak: false });
+    doc.font('Helvetica-Bold').fontSize(20).fillColor(C.GOLD);
+    PL.drawSingle(doc, 'BODYBANK.FIT', M, y, 0, {});
     y += 50;
   }
 
-  doc.font('Helvetica-Bold').fontSize(26).fillColor(C.WHITE)
-    .text('Recovery & Readiness Report', M, y, { width: CW });
-  y = doc.y + 4;
-  doc.font('Helvetica').fontSize(12).fillColor(C.MUTED)
-    .text('Wearable data analysis  ·  sleep, recovery, HRV and training load', M, y, { width: CW });
-  y = doc.y + 20;
+  y += PL.drawText(doc, 'Recovery & Readiness Report', M, y, { font: 'Helvetica-Bold', size: 26, width: CW, color: C.WHITE }) + 4;
+  y += PL.drawText(doc, 'Wearable data analysis  ·  sleep, recovery, HRV and training load', M, y,
+    { font: 'Helvetica', size: 12, width: CW, color: C.MUTED }) + 20;
   doc.save().rect(M, y, CW, 1).fill(C.GREEN).restore();
   y += 12;
 
@@ -499,16 +495,17 @@ function buildCover(ctx, member, stats, report, dateStr) {
 
   const headline = report && report.headline ? String(report.headline) : '';
   if (headline) {
-    doc.font('Helvetica-Bold').fontSize(13);
-    const lines = wrapLines(doc, headline, CW - 28);
-    const h = lines.length * (doc.currentLineHeight() + 2) + 24;
-    box(doc, M, ctx.y, CW, h, C.SURFACE, C.GREEN, 1);
-    let ly = ctx.y + 12;
-    lines.forEach((ln) => {
-      doc.font('Helvetica-Bold').fontSize(13).fillColor(C.TEXT).text(ln, M + 14, ly, { width: CW - 28, lineBreak: false });
-      ly += doc.currentLineHeight() + 2;
+    // The headline sits in a single box, so it is capped to the room left on
+    // the cover rather than growing a box taller than the page.
+    const L = PL.layout(doc, headline, {
+      font: 'Helvetica-Bold', size: 13, width: CW - 28, lineGap: 2,
+      maxHeight: Math.max(20, BOTTOM - ctx.y - 60)
     });
-    ctx.y += h + 12;
+    const h = L.height + 24;
+    ensure(ctx, h + 12);
+    box(doc, M, ctx.y, CW, h, C.SURFACE, C.GREEN, 1);
+    PL.drawLayout(doc, L, M + 14, ctx.y + 12, { color: C.TEXT });
+    ctx.advance(h + 12);
   }
 
   const summary = report && report.summary ? String(report.summary) : '';
@@ -540,22 +537,21 @@ function buildValidationBanner(ctx, validation) {
     // header strip
     box(doc, M, ctx.y, CW, 28, C.RED);
     gWarn(doc, M + 18, ctx.y + 14, 13, C.BG);
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(C.BG)
-      .text('FIGURES NOT VERIFIED — READ WITH CAUTION', M + 32, ctx.y + 9, { width: CW - 44, lineBreak: false });
-    ctx.y += 28;
+    PL.drawFit(doc, 'FIGURES NOT VERIFIED — READ WITH CAUTION', M + 32, ctx.y + 9, CW - 44,
+      { font: 'Helvetica-Bold', size: 11, color: C.BG });
+    ctx.advance(28);
 
     const innerTop = ctx.y;
-    ctx.y += 10;
+    ctx.advance(10);
     paragraph(ctx,
       'The automatic fact-check could not match every number in the written narrative to the source '
       + 'statistics. The numbers below appear in the prose but do NOT exist in the computed data set, '
       + 'which means they were estimated, re-rounded or invented by the narrative model.',
       { x: M + 14, width: CW - 28, size: 9, color: C.TEXT, lineGap: 2, spaceAfter: 6 });
 
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(C.RED);
     ensure(ctx, 16);
-    doc.text('Unverified numbers:', M + 14, ctx.y, { width: CW - 28, lineBreak: false });
-    ctx.y += 14;
+    PL.drawFit(doc, 'Unverified numbers:', M + 14, ctx.y, CW - 28, { font: 'Helvetica-Bold', size: 9, color: C.RED });
+    ctx.advance(14);
     paragraph(ctx, orphanText, { x: M + 14, width: CW - 28, font: 'Helvetica-Bold', size: 11, color: C.RED, spaceAfter: 6 });
 
     if (occurrences.length) {
@@ -579,12 +575,11 @@ function buildValidationBanner(ctx, validation) {
     const h = 30;
     box(doc, M, ctx.y, CW, h, C.INC_BG, C.GREEN, 0.6);
     gCheck(doc, M + 18, ctx.y + h / 2, 11, C.GREEN);
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(C.GREEN)
-      .text('Figures verified against source data', M + 34, ctx.y + 7, { width: CW - 48, lineBreak: false });
-    doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-      .text('Every numeral in the narrative was matched to the deterministic statistics below.',
-        M + 34, ctx.y + 18, { width: CW - 48, lineBreak: false });
-    ctx.y += h + 12;
+    PL.drawFit(doc, 'Figures verified against source data', M + 34, ctx.y + 7, CW - 48,
+      { font: 'Helvetica-Bold', size: 9, color: C.GREEN });
+    PL.drawFit(doc, 'Every numeral in the narrative was matched to the deterministic statistics below.',
+      M + 34, ctx.y + 18, CW - 48, { font: 'Helvetica', size: 8, minSize: 6.5, color: C.MUTED });
+    ctx.advance(h + 12);
   }
 
   const sem = validation.semantic;
@@ -708,10 +703,10 @@ function buildTrends(ctx, stats) {
     const w = doc.widthOfString(label) + 22;
     if (lx + w > M + CW) return;
     drawChangeGlyph(doc, r.t.changeDirection, col, lx + 6, ctx.y + 6);
-    doc.font('Helvetica').fontSize(8).fillColor(col).text(label, lx + 14, ctx.y + 2, { lineBreak: false });
+    PL.drawFit(doc, label, lx + 14, ctx.y + 2, M + CW - (lx + 14), { font: 'Helvetica', size: 8, color: col });
     lx += w;
   });
-  ctx.y += 22;
+  ctx.advance(22);
 }
 
 // ===========================================================================
@@ -749,17 +744,20 @@ function buildBalance(ctx, stats) {
   ensure(ctx, 250);
   heading(ctx, 'Strain vs recovery balance');
 
-  ensure(ctx, 56);
-  const h = 46;
+  // The note beside the verdict wraps to two or three lines, so the verdict box
+  // is sized from it. At a fixed 46pt the third line fell out of the border.
+  const noteText = `Based on ${fmt(b.daysConsidered)} day(s) that had both a strain and a recovery score.`;
+  const noteL = PL.layout(ctx.doc, noteText, {
+    font: 'Helvetica', size: 9, width: CW * 0.52 - 14, maxHeight: ctx.pageHeight() - 40
+  });
+  const h = Math.max(46, noteL.height + 28);
+  ensure(ctx, h + 12);
   box(ctx.doc, M, ctx.y, CW, h, C.SURFACE, col, 1);
-  ctx.doc.font('Helvetica-Bold').fontSize(7.5).fillColor(C.MUTED)
-    .text('VERDICT', M + 14, ctx.y + 10, { width: CW * 0.25, lineBreak: false });
-  ctx.doc.font('Helvetica-Bold').fontSize(18).fillColor(col)
-    .text(BALANCE_LABELS[key] || humanize(key), M + 14, ctx.y + 21, { width: CW * 0.4, lineBreak: false });
-  ctx.doc.font('Helvetica').fontSize(9).fillColor(C.MUTED)
-    .text(`Based on ${fmt(b.daysConsidered)} day(s) that had both a strain and a recovery score.`,
-      M + CW * 0.45, ctx.y + 19, { width: CW * 0.52 - 14 });
-  ctx.y += h + 12;
+  PL.drawFit(ctx.doc, 'VERDICT', M + 14, ctx.y + 10, CW * 0.4 - 14, { font: 'Helvetica-Bold', size: 7.5, color: C.MUTED });
+  PL.drawFit(ctx.doc, BALANCE_LABELS[key] || humanize(key), M + 14, ctx.y + 21, CW * 0.4 - 14,
+    { font: 'Helvetica-Bold', size: 18, minSize: 8, color: col });
+  PL.drawLayout(ctx.doc, noteL, M + CW * 0.45, ctx.y + (h - noteL.height) / 2, { color: C.MUTED });
+  ctx.advance(h + 12);
 
   kvGrid(ctx, [
     ['High strain / low recovery', fmt(b.daysHighStrainLowRecovery), C.RED, 14],
@@ -855,9 +853,9 @@ function buildFlags(ctx, stats) {
     const h = 30;
     box(ctx.doc, M, ctx.y, CW, h, C.INC_BG, C.GREEN, 0.6);
     gCheck(ctx.doc, M + 18, ctx.y + h / 2, 11, C.GREEN);
-    ctx.doc.font('Helvetica-Bold').fontSize(9.5).fillColor(C.GREEN)
-      .text('No flags raised in this window.', M + 34, ctx.y + 11, { width: CW - 48, lineBreak: false });
-    ctx.y += h + 10;
+    PL.drawFit(ctx.doc, 'No flags raised in this window.', M + 34, ctx.y + 11, CW - 48,
+      { font: 'Helvetica-Bold', size: 9.5, color: C.GREEN });
+    ctx.advance(h + 10);
     return;
   }
 
@@ -872,23 +870,21 @@ function buildFlags(ctx, stats) {
       .map((k) => `${FLAG_FIELD_LABELS[k] || humanize(k)}: ${fmt(flag[k])}`)
       .join('    ·    ');
 
-    doc.font('Helvetica').fontSize(9);
-    const detailLines = wrapLines(doc, detail, CW - 46);
-    const h = 22 + detailLines.length * (doc.currentLineHeight() + 2) + 12;
-    if (h <= BOTTOM - TOP) ensure(ctx, h + 6);
+    // The detail strip is capped to a page: a flag carrying dozens of fields
+    // still has to live inside one box.
+    const detailL = PL.layout(doc, detail, {
+      font: 'Helvetica', size: 9, width: CW - 46, lineGap: 2, maxHeight: ctx.pageHeight() - 40
+    });
+    const h = 22 + detailL.height + 12;
+    ensure(ctx, h + 6);
     box(doc, M, ctx.y, CW, h, bg, col, 0.6);
     doc.save().rect(M, ctx.y, 3, h).fill(col).restore();
     if (sev === 'info') gDash(doc, M + 18, ctx.y + 15, 9, col);
     else gWarn(doc, M + 18, ctx.y + 15, 11, col);
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(col)
-      .text(`${FLAG_LABELS[flag.key] || humanize(flag.key)}   [${sev.toUpperCase()}]`,
-        M + 32, ctx.y + 10, { width: CW - 46, lineBreak: false });
-    let ly = ctx.y + 26;
-    detailLines.forEach((ln) => {
-      doc.font('Helvetica').fontSize(9).fillColor(C.TEXT).text(ln, M + 32, ly, { width: CW - 46, lineBreak: false });
-      ly += doc.currentLineHeight() + 2;
-    });
-    ctx.y += h + 8;
+    PL.drawFit(doc, `${FLAG_LABELS[flag.key] || humanize(flag.key)}   [${sev.toUpperCase()}]`,
+      M + 32, ctx.y + 10, CW - 46, { font: 'Helvetica-Bold', size: 10, minSize: 6.5, color: col });
+    PL.drawLayout(doc, detailL, M + 32, ctx.y + 26, { color: C.TEXT });
+    ctx.advance(h + 8);
   });
 }
 
@@ -977,9 +973,8 @@ function buildActions(ctx, report) {
     ensure(ctx, 34);
     const rankY = ctx.y;
     doc.save().circle(M + 9, rankY + 8, 9).fill(C.SURFACE2).restore();
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(C.GREEN)
-      .text(fmt(act.rank === undefined || act.rank === null ? i + 1 : act.rank), M, rankY + 4,
-        { width: 18, align: 'center', lineBreak: false });
+    PL.drawFit(doc, fmt(act.rank === undefined || act.rank === null ? i + 1 : act.rank), M, rankY + 4, 18,
+      { font: 'Helvetica-Bold', size: 9, minSize: FIGURE_MIN, color: C.GREEN, align: 'center' });
     paragraph(ctx, String(act.action || ''), {
       x: M + 26, width: CW - 26, font: 'Helvetica-Bold', size: 10, color: C.WHITE, lineGap: 2, spaceAfter: 2
     });
@@ -1005,18 +1000,12 @@ function buildDisclaimer(ctx) {
     + 'deterministically from the wearable data the member uploaded; the interpretive text is AI-written and '
     + 'fact-checked against those statistics. It is informational and does not constitute a medical diagnosis. '
     + 'Discuss any concerning trend with your physician.';
-  doc.font('Helvetica-Oblique').fontSize(8.5);
-  const lines = wrapLines(doc, disc, CW - 28);
-  const lh = doc.currentLineHeight() + 2;
-  const h = lines.length * lh + 22;
+  const L = PL.layout(doc, disc, { font: 'Helvetica-Oblique', size: 8.5, width: CW - 28, lineGap: 2 });
+  const h = L.height + 22;
   ensure(ctx, h + 10);
   box(doc, M, ctx.y, CW, h, C.DISC_BG, C.BORDER, 0.5);
-  let ly = ctx.y + 11;
-  lines.forEach((ln) => {
-    doc.font('Helvetica-Oblique').fontSize(8.5).fillColor(C.MUTED).text(ln, M + 14, ly, { width: CW - 28, lineBreak: false });
-    ly += lh;
-  });
-  ctx.y += h + 6;
+  PL.drawLayout(doc, L, M + 14, ctx.y + 11, { color: C.MUTED });
+  ctx.advance(h + 6);
 }
 
 // ===========================================================================
@@ -1049,10 +1038,12 @@ function buildWhoopReportPdf(payload, outPath, options) {
   const doc = new PDFDocument(docOptions);
   const stream = fs.createWriteStream(outPath);
   doc.pipe(stream);
-  doc.on('pageAdded', () => paintBg(doc));
   paintBg(doc);
 
-  const ctx = { doc, y: TOP };
+  // The flow owns pagination: it paints the background of every page, including
+  // any page PDFKit opens on its own, and it refuses to break a page that
+  // carries no ink.
+  const ctx = PL.createFlow(doc, { top: TOP, bottom: BOTTOM, left: M, width: CW, onPage: (d) => paintBg(d) });
 
   buildCover(ctx, member, stats, report, dateStr);
   buildValidationBanner(ctx, validation);

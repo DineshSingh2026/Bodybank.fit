@@ -3,6 +3,7 @@ const path = require('path');
 const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
 const { renderLuxuryDetailSections } = require('./monthlyReportPdfDetail');
+const PL = require('./pdfLayout');
 
 const FONT_DIR = path.join(__dirname, '..', 'assets', 'fonts');
 
@@ -290,24 +291,26 @@ function lastNumericSeries(arr, pick, max = 24) {
 }
 
 function drawWatermark(doc) {
-  doc.save();
-  doc.opacity(0.035);
-  doc.fillColor(C.gold);
-  doc.font(F(doc, 'display')).fontSize(56);
-  for (let i = 0; i < 4; i += 1) {
-    doc.save();
-    doc.rotate(-28, { origin: [120 + i * 160, 200 + i * 120] });
-    doc.text('CONFIDENTIAL', 40 + i * 40, 100 + i * 180);
-    doc.restore();
-  }
-  doc.opacity(1);
-  doc.restore();
+  // Placed by the kernel, which computes the rotated bounding box from the real
+  // string metrics and keeps every repetition on the sheet. Drawn with no width
+  // so PDFKit can neither wrap it nor add a page for it.
+  PL.diagonalWatermark(doc, { text: 'CONFIDENTIAL', font: F(doc, 'display'), size: 52, color: C.gold, opacity: 0.035, count: 4 });
 }
 
+/**
+ * The hero band on page one.
+ *
+ * Every plate is anchored to the right MARGIN and fitted to its own width, so a
+ * long client name, a long program name or a long email cannot run into each
+ * other or past the edge of the sheet.
+ */
 function drawHeroBand(doc, { user, monthKeyText, docId, logoPath, currentProgram }) {
   const w = doc.page.width;
+  const mR = doc.page.margins.right;
+  const plateW = 160;
+  const plateX = w - mR - plateW;
   const textX = 258;
-  const textW = Math.max(180, w - textX - 188);
+  const textW = Math.max(180, plateX - textX - 16);
   doc.rect(0, 0, w, 108).fill(C.bg);
   doc.moveTo(0, 108).lineTo(w, 108).lineWidth(3).strokeColor(C.gold).stroke();
   doc.moveTo(0, 111).lineTo(w, 111).lineWidth(0.5).strokeColor(C.goldDark).stroke();
@@ -316,21 +319,28 @@ function drawHeroBand(doc, { user, monthKeyText, docId, logoPath, currentProgram
     try {
       doc.image(logoPath, 40, 28, { fit: [200, 52] });
     } catch (e) { /* ignore */ }
+  } else {
+    // Without the lockup image the dossier still has to be branded.
+    PL.drawFit(doc, 'BODYBANK', 40, 40, 200, { font: F(doc, 'display'), size: 22, color: C.gold });
+    PL.drawFit(doc, 'bodybank.fit', 40, 66, 200, { font: F(doc, 'body'), size: 9, color: '#8FA0C4' });
   }
 
-  doc.fillColor('#8FA0C4').font(F(doc, 'body')).fontSize(8.5).text('PRIVATE PERFORMANCE DOSSIER', textX, 46);
+  PL.drawFit(doc, 'PRIVATE PERFORMANCE DOSSIER', textX, 46, textW, { font: F(doc, 'body'), size: 8.5, color: '#8FA0C4' });
 
   const displayName = (user.name || user.email || 'Client').toUpperCase();
-  doc.fillColor('#F2F4FA').font(F(doc, 'display')).fontSize(21).text(displayName, textX, 62, { width: textW });
-  doc.fillColor(C.goldMid).font(F(doc, 'semi')).fontSize(10).text(monthKeyText, textX, 90);
+  PL.drawFit(doc, displayName, textX, 62, textW, { font: F(doc, 'display'), size: 21, minSize: 9, color: '#F2F4FA' });
+  PL.drawFit(doc, monthKeyText, textX, 90, textW, { font: F(doc, 'semi'), size: 10, color: C.goldMid });
 
   // Show current program in top-right corner
   if (currentProgram) {
-    doc.fillColor(C.gold).font(F(doc, 'semi')).fontSize(7.5).text('PROGRAM', w - 188, 28, { width: 160, align: 'right' });
-    doc.fillColor('#E8ECF4').font(F(doc, 'body')).fontSize(8).text(currentProgram, w - 188, 40, { width: 160, align: 'right', lineGap: 1 });
+    PL.drawFit(doc, 'PROGRAM', plateX, 28, plateW, { font: F(doc, 'semi'), size: 7.5, color: C.gold, align: 'right' });
+    PL.drawText(doc, currentProgram, plateX, 40,
+      { font: F(doc, 'body'), size: 8, width: plateW, align: 'right', lineGap: 1, color: '#E8ECF4', maxLines: 2 });
   }
-  doc.fillColor('#5C6578').font(F(doc, 'body')).fontSize(7.5).text('DOC ' + docId, w - 128, currentProgram ? 60 : 28, { width: 112, align: 'right' });
-  doc.fillColor('#4A5568').font(F(doc, 'body')).fontSize(7).text(new Date().toISOString().slice(0, 19).replace('T', ' ') + ' UTC', w - 128, 42, { width: 112, align: 'right' });
+  PL.drawFit(doc, 'DOC ' + docId, plateX, currentProgram ? 62 : 28, plateW,
+    { font: F(doc, 'body'), size: 7.5, color: '#5C6578', align: 'right' });
+  PL.drawFit(doc, new Date().toISOString().slice(0, 19).replace('T', ' ') + ' UTC',
+    plateX, currentProgram ? 74 : 42, plateW, { font: F(doc, 'body'), size: 7, color: '#4A5568', align: 'right' });
 }
 
 function drawSparkBars(doc, x, y, barW, h, values, fillColor) {
@@ -383,15 +393,18 @@ function drawKpiPremium(doc, x, y, w, h, { label, value, sub, mom, sparkVals, sp
   const subBand = sub ? 13 : 6;
   const bottomSparkTop = y + h - subBand - sparkH - 6;
 
+  // Each row is fitted or capped to the card, and the whole stack is bounded by
+  // where the sparkline starts, so a seven-figure average or a long
+  // month-on-month note cannot push anything through the bottom of the card.
   let cy = y + 10;
-  doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(7.5).text(label.toUpperCase(), x + inset, cy, { width: innerW });
-  cy = doc.y + 3;
+  PL.drawFit(doc, label.toUpperCase(), x + inset, cy, innerW, { font: F(doc, 'semi'), size: 7.5, minSize: 5.5, color: C.muted });
+  cy += 11;
 
-  doc.fillColor(C.text).font(F(doc, 'display')).fontSize(17).text(String(value), x + inset, cy, { width: innerW });
-  cy = doc.y + 2;
+  PL.drawFit(doc, String(value), x + inset, cy, innerW, { font: F(doc, 'display'), size: 17, minSize: 7, color: C.text });
+  cy += 19;
 
-  doc.fillColor(C.goldDark).font(F(doc, 'body')).fontSize(6.9).text(mom || '', x + inset, cy, { width: innerW, lineGap: 1.5 });
-  cy = doc.y + 3;
+  PL.drawText(doc, mom || '', x + inset, cy,
+    { font: F(doc, 'body'), size: 6.9, width: innerW, lineGap: 1.5, color: C.goldDark, maxHeight: Math.max(0, bottomSparkTop - cy - 3) });
 
   const sparkTop = bottomSparkTop;
   const sw = w - inset * 2;
@@ -403,13 +416,14 @@ function drawKpiPremium(doc, x, y, w, h, { label, value, sub, mom, sparkVals, sp
   }
 
   if (sub) {
-    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.2).text(sub, x + inset, y + h - 11, { width: innerW });
+    PL.drawFit(doc, sub, x + inset, y + h - 11, innerW, { font: F(doc, 'body'), size: 7.2, minSize: 5.5, color: C.muted });
   }
 }
 
 function sectionTitle(doc, text, y, contentW, margin) {
   doc.roundedRect(margin, y, contentW, 22, 5).fillAndStroke(C.panelSoft, '#BFC8D8');
-  doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8.5).text(text.toUpperCase(), margin + 10, y + 7);
+  PL.drawFit(doc, String(text).toUpperCase(), margin + 10, y + 7, contentW - 20,
+    { font: F(doc, 'semi'), size: 8.5, minSize: 6, color: C.goldDark });
 }
 
 function drawLineChart(doc, cfg) {
@@ -417,7 +431,7 @@ function drawLineChart(doc, cfg) {
   const titleBarH = 22;
   doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#C5CDDC');
   doc.rect(x + 1, y + 1, w - 2, titleBarH).fill('#F8F9FC');
-  doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(8.5).text(title, x + 10, y + 6);
+  PL.drawFit(doc, title, x + 10, y + 6, w - 20, { font: F(doc, 'semi'), size: 8.5, minSize: 6, color: C.text });
   const padX = 24;
   const padTop = titleBarH + 6;
   const padBottom = 22;
@@ -432,19 +446,19 @@ function drawLineChart(doc, cfg) {
   }
   const valid = values.filter((v) => Number.isFinite(v));
   if (!valid.length) {
-    doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(8.5).text('No series data this month', cx, cy + ch * 0.32, { width: cw, align: 'center' });
-    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.8).text(
-      'Log progress or daily check-ins in this month to unlock this curve.',
-      cx, cy + ch * 0.46, { width: cw, align: 'center', lineGap: 2 }
-    );
+    PL.drawFit(doc, 'No series data this month', cx, cy + ch * 0.32, cw, { font: F(doc, 'semi'), size: 8.5, minSize: 6, color: C.muted, align: 'center' });
+    PL.drawText(doc, 'Log progress or daily check-ins in this month to unlock this curve.',
+      cx, cy + ch * 0.46, { font: F(doc, 'body'), size: 7.8, width: cw, align: 'center', lineGap: 2, color: C.muted,
+        maxHeight: Math.max(0, (cy + ch) - (cy + ch * 0.46)) });
     return;
   }
   const min = Math.min(...valid);
   const max = Math.max(...valid);
   const spread = max - min || 1;
-  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(6.8)
-    .text(max.toFixed(1), cx - 20, cy - 1, { width: 18, align: 'right' })
-    .text(min.toFixed(1), cx - 20, cy + ch - 9, { width: 18, align: 'right' });
+  // Axis extremes sit in an 18pt gutter; they shrink rather than cut, because
+  // a truncated axis value is a wrong one.
+  PL.drawFit(doc, max.toFixed(1), cx - 20, cy - 1, 18, { font: F(doc, 'body'), size: 6.8, minSize: 4.5, color: C.muted, align: 'right' });
+  PL.drawFit(doc, min.toFixed(1), cx - 20, cy + ch - 9, 18, { font: F(doc, 'body'), size: 6.8, minSize: 4.5, color: C.muted, align: 'right' });
   const path = [];
   for (let i = 0; i < values.length; i += 1) {
     const v = values[i];
@@ -472,9 +486,8 @@ function drawLineChart(doc, cfg) {
   });
   const labelFirst = labels && labels.length ? labels[0] : '';
   const labelLast = labels && labels.length ? labels[labels.length - 1] : '';
-  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7)
-    .text(labelFirst, cx, cy + ch + 4, { width: 70 })
-    .text(labelLast, cx + cw - 52, cy + ch + 4, { width: 52, align: 'right' });
+  PL.drawFit(doc, labelFirst, cx, cy + ch + 4, Math.min(70, cw / 2 - 4), { font: F(doc, 'body'), size: 7, minSize: 5, color: C.muted });
+  PL.drawFit(doc, labelLast, cx + cw - 52, cy + ch + 4, 52, { font: F(doc, 'body'), size: 7, minSize: 5, color: C.muted, align: 'right' });
 }
 
 /** Vertical bar chart — one bar per value; each bar can use a rotating color. */
@@ -483,7 +496,7 @@ function drawVerticalBarChart(doc, cfg) {
   const titleBarH = 22;
   doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#C5CDDC');
   doc.rect(x + 1, y + 1, w - 2, titleBarH).fill('#F8FAFC');
-  doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(8.5).text(title, x + 10, y + 6);
+  PL.drawFit(doc, title, x + 10, y + 6, w - 20, { font: F(doc, 'semi'), size: 8.5, minSize: 6, color: C.text });
   const nums = (values || []).map((v) => (Number.isFinite(Number(v)) ? Number(v) : null));
   const valid = nums.filter((v) => v != null && v > 0);
   const cx = x + 14;
@@ -491,7 +504,7 @@ function drawVerticalBarChart(doc, cfg) {
   const ch = h - titleBarH - 30;
   const cy = y + titleBarH + 8;
   if (!valid.length) {
-    doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(8.5).text('No numeric data this month', cx, cy + ch * 0.35, { width: cw, align: 'center' });
+    PL.drawFit(doc, 'No numeric data this month', cx, cy + ch * 0.35, cw, { font: F(doc, 'semi'), size: 8.5, minSize: 6, color: C.muted, align: 'center' });
     return;
   }
   const max = Math.max(...valid);
@@ -507,10 +520,9 @@ function drawVerticalBarChart(doc, cfg) {
     doc.roundedRect(bx, by, barW, bh, 2).fill(col);
   });
   if (labels && labels.length === n && n <= 14) {
-    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(5.8);
     nums.forEach((_, i) => {
       const lab = String(labels[i] || '').slice(0, 4);
-      doc.text(lab, cx + i * (barW + gap), cy + ch + 3, { width: barW + gap, align: 'center' });
+      PL.drawFit(doc, lab, cx + i * (barW + gap), cy + ch + 3, barW + gap, { font: F(doc, 'body'), size: 5.8, minSize: 4.5, color: C.muted, align: 'center' });
     });
   }
 }
@@ -521,12 +533,12 @@ function drawHorizontalCategoryBars(doc, cfg) {
   const titleBarH = 22;
   doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#C5CDDC');
   doc.rect(x + 1, y + 1, w - 2, titleBarH).fill('#F8FAFC');
-  doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(8.5).text(title, x + 10, y + 6);
+  PL.drawFit(doc, title, x + 10, y + 6, w - 20, { font: F(doc, 'semi'), size: 8.5, minSize: 6, color: C.text });
   const list = (items || []).filter((it) => it && Number(it.value) > 0);
   const innerTop = y + titleBarH + 6;
   const innerH = h - titleBarH - 20;
   if (!list.length) {
-    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(8.5).text('No categories logged', x + 16, innerTop + innerH * 0.3, { width: w - 32, align: 'center' });
+    PL.drawFit(doc, 'No categories logged', x + 16, innerTop + innerH * 0.3, w - 32, { font: F(doc, 'body'), size: 8.5, color: C.muted, align: 'center' });
     return;
   }
   const max = Math.max(...list.map((it) => Number(it.value)), 1);
@@ -537,10 +549,12 @@ function drawHorizontalCategoryBars(doc, cfg) {
     const lab = String(it.label || '—').replace(/\s+/g, ' ').trim().slice(0, 22);
     const barMaxW = w - 108;
     const bw = (val / max) * barMaxW;
-    doc.fillColor(C.text).font(F(doc, 'body')).fontSize(6.8).text(lab, x + 8, ry + 2, { width: 74 });
+    // Fitted to its 74pt gutter: a wrapped category label used to spill into the
+    // row beneath it.
+    PL.drawFit(doc, lab, x + 8, ry + 2, 72, { font: F(doc, 'body'), size: 6.8, minSize: 5, color: C.text });
     doc.roundedRect(x + 84, ry + 1, barMaxW, rowH - 2, 2).fill('#E8EDF5');
     doc.roundedRect(x + 84, ry + 1, Math.max(2, bw), rowH - 2, 2).fill(VIBRANT.chartLine[i % VIBRANT.chartLine.length]);
-    doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(7).text(String(val), x + w - 26, ry + 2, { width: 22, align: 'right' });
+    PL.drawFit(doc, String(val), x + w - 26, ry + 2, 22, { font: F(doc, 'semi'), size: 7, minSize: 4.5, color: C.text, align: 'right' });
     ry += rowH + 3;
     if (ry > y + h - 14) return;
   });
@@ -572,13 +586,9 @@ function drawVisualAnalyticsPage(doc, {
   drawWatermark(doc);
   doc.rect(0, 0, doc.page.width, 56).fill(C.bg);
   doc.rect(0, 54, doc.page.width, 2).fill(C.gold);
-  doc.fillColor(C.gold).font(F(doc, 'display')).fontSize(12).text('VISUAL ANALYTICS', margin, 14);
-  doc.fillColor('#A5B4FC').font(F(doc, 'body')).fontSize(8.5).text(
-    `${monthKeyText} · ${(user.name || user.email || 'Client').slice(0, 48)}`,
-    margin,
-    32,
-    { width: contentW }
-  );
+  PL.drawFit(doc, 'BODYBANK  ·  VISUAL ANALYTICS', margin, 14, contentW, { font: F(doc, 'display'), size: 12, color: C.gold });
+  PL.drawFit(doc, `${monthKeyText} · ${(user.name || user.email || 'Client').slice(0, 48)}`, margin, 32, contentW,
+    { font: F(doc, 'body'), size: 8.5, minSize: 6.5, color: '#A5B4FC' });
 
   const daily = data.dailyCheckins || [];
   const prog = data.progressLogs || [];
@@ -782,12 +792,8 @@ function drawVisualAnalyticsPage(doc, {
   const footnote =
     'Each chart uses a distinct palette colour. Empty charts mean no rows in that table for this month.';
   const footY = rowY + chartH + 14;
-  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.2).text(footnote, margin, footY, {
-    width: contentW,
-    align: 'center',
-    lineGap: 2
-  });
-  const footH = doc.heightOfString(footnote, { width: contentW, lineGap: 2 });
+  const footH = PL.drawText(doc, footnote, margin, footY,
+    { font: F(doc, 'body'), size: 7.2, width: contentW, align: 'center', lineGap: 2, color: C.muted });
   return footY + footH + 12;
 }
 
@@ -797,7 +803,7 @@ function drawMultiLineChart(doc, cfg) {
   const titleBarH = 22;
   doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, '#C5CDDC');
   doc.rect(x + 1, y + 1, w - 2, titleBarH).fill('#F8FAFC');
-  doc.fillColor(C.text).font(F(doc, 'semi')).fontSize(8.5).text(title, x + 10, y + 6);
+  PL.drawFit(doc, title, x + 10, y + 6, w - 20, { font: F(doc, 'semi'), size: 8.5, minSize: 6, color: C.text });
   const padX = 22;
   const padTop = titleBarH + 6;
   const padBottom = 26;
@@ -818,7 +824,7 @@ function drawMultiLineChart(doc, cfg) {
     });
   });
   if (!allVals.length) {
-    doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(8.5).text('No strength data this month', cx, cy + ch * 0.35, { width: cw, align: 'center' });
+    PL.drawFit(doc, 'No strength data this month', cx, cy + ch * 0.35, cw, { font: F(doc, 'semi'), size: 8.5, minSize: 6, color: C.muted, align: 'center' });
     return;
   }
   const min = Math.min(...allVals);
@@ -850,26 +856,45 @@ function drawMultiLineChart(doc, cfg) {
     });
   });
 
-  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(6.5);
+  // Legend entries each get a 74pt slot inside the card. The bullet goes
+  // through the WinAnsi table too — a raw U+25CF printed as mojibake here.
   (series || []).slice(0, 3).forEach((s, i) => {
-    doc.fillColor(s.color || VIBRANT.violet).text(`● ${s.label || 'S' + (i + 1)}`, x + 12 + i * 78, y + h - 16);
+    PL.drawFit(doc, `● ${s.label || 'S' + (i + 1)}`, x + 12 + i * 78, y + h - 16, Math.min(74, x + w - 12 - (x + 12 + i * 78)),
+      { font: F(doc, 'body'), size: 6.5, minSize: 5, color: s.color || VIBRANT.violet });
   });
   const labelFirst = labels && labels.length ? labels[0] : '';
   const labelLast = labels && labels.length ? labels[labels.length - 1] : '';
-  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(6.8).text(labelFirst, cx, cy + ch + 4, { width: 70 }).text(labelLast, cx + cw - 52, cy + ch + 4, { width: 52, align: 'right' });
+  PL.drawFit(doc, labelFirst, cx, cy + ch + 4, Math.min(70, cw / 2 - 4), { font: F(doc, 'body'), size: 6.8, minSize: 5, color: C.muted });
+  PL.drawFit(doc, labelLast, cx + cw - 52, cy + ch + 4, 52, { font: F(doc, 'body'), size: 6.8, minSize: 5, color: C.muted, align: 'right' });
 }
 
-function addBulletList(doc, items, x, y, width, color, fontSize = 9) {
+/**
+ * Bullets drawn inside a box the caller has already measured and stroked.
+ *
+ * `maxY` is a hard floor: this list never opens a page of its own (that is the
+ * appendix paginator's job) and never draws past the bottom of the panel it was
+ * given, so the risk and action columns stay inside their cards.
+ */
+function addBulletList(doc, items, x, y, width, color, fontSize = 9, maxY = Infinity) {
   let curY = y;
   const list = asList(items, 12);
   if (!list.length) {
-    doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(fontSize).text('—', x, curY, { width });
+    PL.drawFit(doc, '—', x, curY, width, { font: F(doc, 'body'), size: fontSize, color: C.muted });
     return curY + 14;
   }
   list.forEach((item) => {
-    doc.fillColor(C.goldMid).font(F(doc, 'semi')).fontSize(fontSize).text('•', x, curY);
-    doc.fillColor(color).font(F(doc, 'body')).fontSize(fontSize).text(item, x + 10, curY, { width: width - 10, lineGap: 2 });
-    curY = doc.y + 3;
+    const L = PL.layout(doc, item, { font: F(doc, 'body'), size: fontSize, width: width - 10, lineGap: 2 });
+    L.lines.forEach((line, i) => {
+      if (curY + L.lineHeight > maxY) return;
+      if (i === 0) PL.drawFit(doc, '•', x, curY, 10, { font: F(doc, 'semi'), size: fontSize, color: C.goldMid });
+      const single = {
+        lines: [line], lineHeight: L.lineHeight, height: L.lineHeight,
+        font: L.font, size: L.size, lineGap: L.lineGap, width: L.width, align: L.align
+      };
+      PL.drawLayout(doc, single, x + 10, curY, { color });
+      curY += L.lineHeight;
+    });
+    curY += 3;
   });
   return curY;
 }
@@ -878,10 +903,9 @@ function addBulletList(doc, items, x, y, width, color, fontSize = 9) {
 function measureBulletsHeight(doc, items, width, fontSize = 8) {
   const list = asList(items, 12);
   if (!list.length) return 16;
-  doc.font(F(doc, 'body')).fontSize(fontSize);
   let h = 0;
   list.forEach((item) => {
-    h += doc.heightOfString(item, { width: width - 10, lineGap: 2 }) + 5;
+    h += PL.measure(doc, item, { font: F(doc, 'body'), size: fontSize, width: width - 10, lineGap: 2 }) + 5;
   });
   return h;
 }
@@ -1066,19 +1090,36 @@ function generateMonthlyClientReport(opts) {
     sectionTitle(doc, 'Executive dossier — lead coach narrative', letterY - 14, contentW, margin);
     const letterPadX = 16;
     const letterTextW = contentW - letterPadX * 2;
-    doc.font(F(doc, 'body')).fontSize(9);
-    const letterBodyH = doc.heightOfString(letter, { width: letterTextW, lineGap: 3 });
-    const letterBoxH = Math.min(420, Math.max(62, 34 + letterBodyH + 14));
+    // The box was capped at 420pt while the narrative was drawn uncapped, so
+    // any long executive summary ran straight out of the bottom of it and over
+    // the panels beneath. The narrative is now split: the lines that fit the
+    // room on this page go in the box, and every remaining line is handed to
+    // the appendix, which prints it first under "continued". Nothing is cut.
     const letterBoxTop = letterY + 4;
+    const letterRoom = Math.max(48, (doc.page.height - margin - 120) - letterBoxTop - 40);
+    const letterFull = PL.layout(doc, letter, { font: F(doc, 'body'), size: 9, width: letterTextW, lineGap: 3 });
+    const fitLines = Math.max(1, Math.floor(Math.min(420 - 48, letterRoom) / letterFull.lineHeight));
+    const letterL = Object.assign({}, letterFull, {
+      lines: letterFull.lines.slice(0, fitLines),
+      height: Math.min(fitLines, letterFull.lines.length) * letterFull.lineHeight
+    });
+    const letterRest = letterFull.lines.length > fitLines
+      ? Object.assign({}, letterFull, {
+        lines: letterFull.lines.slice(fitLines),
+        height: (letterFull.lines.length - fitLines) * letterFull.lineHeight
+      })
+      : null;
+    const letterBoxH = Math.max(62, 34 + letterL.height + 14);
     doc.roundedRect(margin, letterBoxTop, contentW, letterBoxH, 10).fill('#FFFCF5');
     doc.roundedRect(margin, letterBoxTop, contentW, letterBoxH, 10).lineWidth(1.5).strokeColor(C.gold).stroke();
-    doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('FROM THE COACHING DESK · FULL MONTH SIGNAL', margin + letterPadX, letterBoxTop + 12);
-    doc.fillColor(C.text).font(F(doc, 'body')).fontSize(9).text(letter, margin + letterPadX, letterBoxTop + 26, { width: letterTextW, lineGap: 3 });
+    PL.drawFit(doc, 'FROM THE COACHING DESK · FULL MONTH SIGNAL', margin + letterPadX, letterBoxTop + 12, letterTextW,
+      { font: F(doc, 'semi'), size: 8, minSize: 6, color: C.goldDark });
+    PL.drawLayout(doc, letterL, margin + letterPadX, letterBoxTop + 26, { color: C.text });
 
     const stripY = letterBoxTop + letterBoxH + 10;
     const stripH = 42;
     doc.roundedRect(margin, stripY, contentW, stripH, 8).fillAndStroke(C.panel, '#C5CDDC');
-    doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(7.5).text('AT A GLANCE', margin + 12, stripY + 9);
+    PL.drawFit(doc, 'AT A GLANCE', margin + 12, stripY + 9, contentW - 24, { font: F(doc, 'semi'), size: 7.5, color: C.muted });
     const programLabel = (data.programs && data.programs.length) ? data.programs[0].program_name : 'No program assigned';
     const glance = [
       `Program: ${programLabel}`,
@@ -1086,7 +1127,10 @@ function generateMonthlyClientReport(opts) {
       `Body fat: ${reportSummary.latestBodyFat != null ? `${reportSummary.latestBodyFat.toFixed(1)}%` : '—'} · Protein avg: ${reportSummary.avgProtein != null ? `${reportSummary.avgProtein.toFixed(0)} g` : '—'}`,
       `Sunday check-ins: ${reportSummary.sundayCount} · ${user.email || '—'}`
     ].join('   ·   ');
-    doc.fillColor(C.text).font(F(doc, 'body')).fontSize(8).text(glance, margin + 12, stripY + 23, { width: contentW - 24, lineGap: 2 });
+    // Capped to the strip it lives in: the glance line is built from the
+    // member's own program name and email and can be arbitrarily long.
+    PL.drawText(doc, glance, margin + 12, stripY + 23,
+      { font: F(doc, 'body'), size: 8, width: contentW - 24, lineGap: 2, color: C.text, maxHeight: stripH - 25 });
 
     const colTop = stripY + stripH + 10;
     const colW = (contentW - gap) / 2;
@@ -1100,10 +1144,13 @@ function generateMonthlyClientReport(opts) {
     doc.roundedRect(margin + colW + gap, colTop, colW, colH, 9).fillAndStroke(C.panel, '#B8C2D6');
     const colHdrY = colTop + 12;
     const colBodyY = colTop + 28;
-    doc.fillColor(C.danger).font(F(doc, 'semi')).fontSize(9).text('Risk focus', margin + 12, colHdrY);
-    doc.fillColor(C.emerald).font(F(doc, 'semi')).fontSize(9).text('Action protocol', margin + colW + gap + 12, colHdrY);
-    addBulletList(doc, riskLines.slice(0, 4), margin + 12, colBodyY, colW - 24, '#7A2E28', 8.5);
-    addBulletList(doc, actionLines.slice(0, 5), margin + colW + gap + 12, colBodyY, colW - 24, '#0F6B52', 8.5);
+    const colFloor = colTop + colH - 8;
+    PL.drawFit(doc, 'Risk focus', margin + 12, colHdrY, colW - 24, { font: F(doc, 'semi'), size: 9, color: C.danger });
+    PL.drawFit(doc, 'Action protocol', margin + colW + gap + 12, colHdrY, colW - 24, { font: F(doc, 'semi'), size: 9, color: C.emerald });
+    // Both columns are bounded by the card they sit in, so neither can bleed
+    // out of it when the coaching lines run long.
+    addBulletList(doc, riskLines.slice(0, 4), margin + 12, colBodyY, colW - 24, '#7A2E28', 8.5, colFloor);
+    addBulletList(doc, actionLines.slice(0, 5), margin + colW + gap + 12, colBodyY, colW - 24, '#0F6B52', 8.5, colFloor);
 
     const detailStartY = colTop + colH + 12;
     renderLuxuryDetailSections(doc, {
@@ -1116,7 +1163,8 @@ function generateMonthlyClientReport(opts) {
       performanceLines,
       insightTags,
       docId,
-      startY: detailStartY
+      startY: detailStartY,
+      letterRest
     });
 
     doc.end();

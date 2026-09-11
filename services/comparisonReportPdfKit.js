@@ -16,6 +16,7 @@
 const path = require('path');
 const fs = require('fs');
 const { buildComparisonDoc, sanitizeComparisonDoc } = require('./comparisonDocument');
+const PL = require('./pdfLayout');
 
 const C = {
   BG: '#0d0f11', SURFACE: '#161a1e', SURFACE2: '#1e2328', GREEN: '#3dd68c',
@@ -179,10 +180,18 @@ function buildComparisonReportPdf(payload, outPath) {
   const doc = new PDFDocument({ size: 'A4', margin: 0, bufferPages: true });
   const stream = fs.createWriteStream(outPath);
   doc.pipe(stream);
-  doc.on('pageAdded', () => paintBg(doc));
   paintBg(doc);
 
-  const ctx = { doc, y: TOP, contentPages: new Set(), coverDrawn: false, anyContent: false };
+  // The flow owns pagination: it paints the background of every page and
+  // records which pages carry content, including any page PDFKit opens itself.
+  const ctx = PL.createFlow(doc, {
+    top: TOP, bottom: BOTTOM, left: M, width: CW,
+    claimFirstPage: false,
+    onPage: (d) => paintBg(d)
+  });
+  ctx.contentPages = ctx.pages;
+  ctx.coverDrawn = false;
+  ctx.anyContent = false;
 
   if (cover.show !== false) {
     buildCover(ctx, cover);
@@ -197,8 +206,8 @@ function buildComparisonReportPdf(payload, outPath) {
   // A document with everything switched off would otherwise emit a blank page.
   if (!ctx.anyContent && !ctx.coverDrawn) {
     beginSection(ctx, false);
-    ctx.doc.font('Helvetica-Oblique').fontSize(11).fillColor(C.MUTED)
-      .text('This report has no visible sections.', M, ctx.y, { width: CW });
+    PL.drawFit(ctx.doc, 'This report has no visible sections.', M, ctx.y, CW,
+      { font: 'Helvetica-Oblique', size: 11, color: C.MUTED });
   }
 
   paintChrome(doc, name, dateStr, ctx.contentPages);
@@ -243,9 +252,11 @@ function paintBg(doc) {
   doc.restore();
 }
 function newPage(ctx) {
-  ctx.doc.addPage();
-  ctx.y = TOP;
-  ctx.contentPages.add(ctx.doc.bufferedPageRange().count - 1);
+  ctx.newPage();
+}
+/** Break only when the current page already carries content. */
+function ensure(ctx, need) {
+  return ctx.ensure(need);
 }
 /**
  * Open the space a section will render into. The first content section either
@@ -264,25 +275,30 @@ function beginSection(ctx, pageBreak) {
     return;
   }
   if (pageBreak) newPage(ctx);
-  else if (ctx.y + 90 > BOTTOM) newPage(ctx);
+  else ensure(ctx, 90);
 }
 function paintChrome(doc, name, dateStr, contentPages) {
   const range = doc.bufferedPageRange();
-  for (let i = 0; i < range.count; i += 1) {
+  const total = range.count;
+  for (let i = 0; i < total; i += 1) {
     if (!contentPages.has(i)) continue;
     doc.switchToPage(i);
     doc.save();
     doc.font('Helvetica-Bold').fontSize(9).fillColor(C.GREEN);
     const wm = 'BodyBank.fit';
     const tw = doc.widthOfString(wm);
-    doc.text(wm, PAGE_W - M - tw, 27, { lineBreak: false });
+    PL.drawSingle(doc, wm, PAGE_W - M - tw, 27, 0, {});
     if (LOGO) { try { doc.image(LOGO, PAGE_W - M - tw - 20, 23, { width: 15, height: 15 }); } catch (_) {} }
     doc.rect(0, PAGE_H - 46, PAGE_W, 46).fill(C.SURFACE);
     doc.rect(M, PAGE_H - 46, CW, 0.4).fill(C.BORDER);
-    doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-      .text(`BodyBank.fit  ·  Progress Report  ·  ${name}`, M, PAGE_H - 26, { width: CW * 0.6, lineBreak: false });
-    doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-      .text(`${dateStr}  ·  Page ${i + 1}`, M, PAGE_H - 26, { width: CW, align: 'right', lineBreak: false });
+    // Fitted, so a long patient name shortens instead of wrapping below the
+    // edge of the paper — which is what `{ width, lineBreak: false }` did.
+    const right = `${dateStr}  ·  Page ${i + 1} of ${total}`;
+    doc.font('Helvetica').fontSize(8);
+    const rightW = Math.min(CW * 0.5, doc.widthOfString(right));
+    PL.drawFit(doc, right, M + CW - rightW, PAGE_H - 26, rightW, { font: 'Helvetica', size: 8, color: C.MUTED, align: 'right' });
+    PL.drawFit(doc, `BodyBank.fit  ·  Progress Report  ·  ${name}`, M, PAGE_H - 26, CW - rightW - 16,
+      { font: 'Helvetica', size: 8, color: C.MUTED });
     doc.restore();
   }
 }
@@ -300,23 +316,33 @@ function hr(ctx, color, thickness) {
 }
 function heading(ctx, text, ruleColor) {
   if (!hasText(text)) return;
-  ctx.doc.font('Helvetica-Bold').fontSize(15).fillColor(C.GREEN).text(txt(text), M, ctx.y, { width: CW });
-  ctx.y += 22;
+  const L = PL.layout(ctx.doc, text, { font: 'Helvetica-Bold', size: 15, width: CW });
+  ensure(ctx, L.height + 32);
+  PL.drawLayout(ctx.doc, L, M, ctx.y, { color: C.GREEN });
+  ctx.advance(Math.max(22, L.height + 4));
   hr(ctx, ruleColor || C.GREEN, 1);
-  ctx.y += 4;
+  ctx.advance(4);
 }
 function subheading(ctx, text) {
   if (!hasText(text)) return;
-  if (ctx.y + 40 > BOTTOM) newPage(ctx);
-  ctx.doc.font('Helvetica-Bold').fontSize(12).fillColor(C.WHITE).text(txt(text), M, ctx.y, { width: CW });
-  ctx.y += 18;
+  const L = PL.layout(ctx.doc, text, { font: 'Helvetica-Bold', size: 12, width: CW });
+  ensure(ctx, L.height + 26);
+  PL.drawLayout(ctx.doc, L, M, ctx.y, { color: C.WHITE });
+  ctx.advance(Math.max(18, L.height + 4));
 }
+/** Flowing prose, paginated by the flow rather than by PDFKit. */
 function bodyText(ctx, text, opts) {
   opts = opts || {};
-  const doc = ctx.doc;
-  doc.font(opts.oblique ? 'Helvetica-Oblique' : 'Helvetica').fontSize(opts.size || 10).fillColor(opts.color || C.TEXT);
-  doc.text(txt(text), M, ctx.y, { width: opts.width || CW, align: opts.align || 'left', lineGap: 3 });
-  ctx.y = doc.y + (opts.spaceAfter != null ? opts.spaceAfter : 6);
+  PL.flowText(ctx, text, {
+    x: M,
+    width: opts.width || CW,
+    font: opts.oblique ? 'Helvetica-Oblique' : 'Helvetica',
+    size: opts.size || 10,
+    align: opts.align || 'left',
+    lineGap: 3,
+    color: opts.color || C.TEXT,
+    spaceAfter: opts.spaceAfter != null ? opts.spaceAfter : 6
+  });
 }
 
 // ---- cover -------------------------------------------------------------------
@@ -338,31 +364,51 @@ function buildCover(ctx, cover) {
     y += 50;
   }
 
-  doc.font('Helvetica-Bold').fontSize(26).fillColor(C.WHITE).text(txt(cover.brandTitle || 'Blood Report Progress Review'), M, y, { width: CW });
-  y = doc.y + 4;
+  y += PL.drawText(doc, cover.brandTitle || 'Blood Report Progress Review', M, y,
+    { font: 'Helvetica-Bold', size: 26, width: CW, color: C.WHITE }) + 4;
   if (hasText(cover.brandSubtitle)) {
-    doc.font('Helvetica').fontSize(13).fillColor(C.MUTED).text(txt(cover.brandSubtitle), M, y, { width: CW });
-    y = doc.y;
+    y += PL.drawText(doc, cover.brandSubtitle, M, y, { font: 'Helvetica', size: 13, width: CW, color: C.MUTED });
   }
   y += 20;
   doc.save().rect(M, y, CW, 1).fill(C.GREEN).restore();
   y += 12;
 
-  // patient + tests-compared card
+  // ---- patient + tests-compared card --------------------------------------
+  // Measured first, drawn second: the card grows to hold a long name or goal
+  // instead of letting either run through the row beneath it and out of the
+  // bottom border.
   if (cover.showFields !== false) {
-    const cardH = 118;
-    box(doc, M, y, CW, cardH, C.DARK, C.BORDER, 0.5);
     const col = CW / 3;
-    const label = (t, x, yy) => doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text(String(t).toUpperCase(), x, yy, { width: col - 20, lineBreak: false });
-    const val = (t, x, yy, color, size) => doc.font(size >= 14 ? 'Helvetica-Bold' : 'Helvetica').fontSize(size || 11).fillColor(color || C.TEXT).text(txt(t), x, yy, { width: col - 20 });
-    label('Patient Name', M + 14, y + 12); label('Report Date', M + 14 + col, y + 12); label('Report Type', M + 14 + 2 * col, y + 12);
-    val(fields.patientName || '—', M + 14, y + 26, C.WHITE, 14);
-    val(fields.reportDate || '—', M + 14 + col, y + 26, C.WHITE, 14);
-    val(fields.reportType || '—', M + 14 + 2 * col, y + 26, C.GREEN, 14);
-    label('Age / Gender', M + 14, y + 62); label('Fitness Goal', M + 14 + col, y + 62); label('Tests Compared', M + 14 + 2 * col, y + 62);
-    val(fields.ageGender || '—', M + 14, y + 76, C.TEXT, 11);
-    val(fields.goal || '—', M + 14 + col, y + 76, C.TEXT, 11);
-    doc.font('Helvetica').fontSize(9).fillColor(C.MUTED).text(txt(fields.testsCompared || '—'), M + 14 + 2 * col, y + 78, { width: col - 20 });
+    const valW = col - 20;
+    const cellOf = (labelText, value, color, size) => ({
+      label: labelText,
+      L: PL.layout(doc, value, {
+        font: size >= 14 ? 'Helvetica-Bold' : 'Helvetica', size, width: valW, maxLines: 2
+      }),
+      color
+    });
+    const row1 = [
+      cellOf('Patient Name', fields.patientName || '—', C.WHITE, 14),
+      cellOf('Report Date', fields.reportDate || '—', C.WHITE, 14),
+      cellOf('Report Type', fields.reportType || '—', C.GREEN, 14)
+    ];
+    const row2 = [
+      cellOf('Age / Gender', fields.ageGender || '—', C.TEXT, 11),
+      cellOf('Fitness Goal', fields.goal || '—', C.TEXT, 11),
+      cellOf('Tests Compared', fields.testsCompared || '—', C.MUTED, 9)
+    ];
+    const rowH = (r) => 14 + r.reduce((m, c) => Math.max(m, c.L.height), 0);
+    const r1H = rowH(row1);
+    const r2H = rowH(row2);
+    const cardH = Math.max(118, 12 + r1H + 16 + r2H + 14);
+    box(doc, M, y, CW, cardH, C.DARK, C.BORDER, 0.5);
+    const drawRow = (r, top) => r.forEach((c, i) => {
+      const x = M + 14 + i * col;
+      PL.drawFit(doc, String(c.label).toUpperCase(), x, top, valW, { font: 'Helvetica-Bold', size: 8, color: C.MUTED });
+      PL.drawLayout(doc, c.L, x, top + 14, { color: c.color });
+    });
+    drawRow(row1, y + 12);
+    drawRow(row2, y + 12 + r1H + 16);
     y += cardH + 10;
   }
 
@@ -374,14 +420,17 @@ function buildCover(ctx, cover) {
     const summaryText = txt(traj.summary);
     const sumX = M + CW * 0.32;
     const sumW = CW * 0.65;
-    doc.font('Helvetica').fontSize(10);
-    const sumH = summaryText ? doc.heightOfString(summaryText, { width: sumW, lineGap: 2 }) : 0;
-    const bH = Math.max(78, sumH + 30);
+    // The cover is a single page by design, so the summary is capped to the
+    // room that is left on it.
+    const sumL = summaryText
+      ? PL.layout(doc, summaryText, { font: 'Helvetica', size: 10, width: sumW, lineGap: 2, maxHeight: Math.max(30, BOTTOM - y - 100) })
+      : null;
+    const bH = Math.max(78, (sumL ? sumL.height : 0) + 30);
     box(doc, M, y, CW, bH, C.SURFACE, tc, 1);
     const leftCy = y + bH / 2;
-    doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text('OVERALL TRAJECTORY', M + 14, leftCy - 20, { width: CW * 0.3 - 18 });
-    doc.font('Helvetica-Bold').fontSize(19).fillColor(tc).text(label, M + 14, leftCy - 6, { width: CW * 0.3 - 14, lineBreak: false });
-    if (summaryText) doc.font('Helvetica').fontSize(10).fillColor(C.TEXT).text(summaryText, sumX, y + 15, { width: sumW, lineGap: 2 });
+    PL.drawFit(doc, 'OVERALL TRAJECTORY', M + 14, leftCy - 20, CW * 0.3 - 18, { font: 'Helvetica-Bold', size: 8, color: C.MUTED });
+    PL.drawFit(doc, label, M + 14, leftCy - 6, CW * 0.3 - 14, { font: 'Helvetica-Bold', size: 19, minSize: 8, color: tc });
+    if (sumL) PL.drawLayout(doc, sumL, sumX, y + 15, { color: C.TEXT });
     y += bH + 12;
   }
 
@@ -393,8 +442,8 @@ function buildCover(ctx, cover) {
     chips.forEach((c, i) => {
       const x = M + i * (cw + 10);
       box(doc, x, y, cw, 46, C.DARK, C.BORDER, 0.4);
-      doc.font('Helvetica-Bold').fontSize(18).fillColor(statColor(c.tone)).text(txt(c.value), x + 12, y + 8, { width: cw - 24, lineBreak: false });
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(C.MUTED).text(txt(c.label).toUpperCase(), x + 12, y + 30, { width: cw - 24, lineBreak: false });
+      PL.drawFit(doc, c.value, x + 12, y + 8, cw - 24, { font: 'Helvetica-Bold', size: 18, minSize: 8, color: statColor(c.tone) });
+      PL.drawFit(doc, txt(c.label).toUpperCase(), x + 12, y + 30, cw - 24, { font: 'Helvetica-Bold', size: 7.5, minSize: 5.5, color: C.MUTED });
     });
     y += 46 + 10;
   }
@@ -403,8 +452,10 @@ function buildCover(ctx, cover) {
   if (footnote.show !== false && hasText(footnote.text)) {
     doc.save().rect(M, y, CW, 0.5).fill(C.BORDER).restore();
     y += 8;
-    doc.font('Helvetica-Oblique').fontSize(8.5).fillColor(C.MUTED)
-      .text(txt(footnote.text), M, y, { width: CW, align: 'justify', lineGap: 2 });
+    PL.drawText(doc, footnote.text, M, y, {
+      font: 'Helvetica-Oblique', size: 8.5, width: CW, align: 'justify', lineGap: 2, color: C.MUTED,
+      maxHeight: Math.max(12, BOTTOM - y)
+    });
   }
 }
 
@@ -448,47 +499,52 @@ function buildTrendSection(ctx, section) {
   const drawHeader = () => {
     box(doc, M, ctx.y, CW, headerH, C.SURFACE2);
     cols.forEach((c, i) => {
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(c.kind === 'date' ? C.GREEN : C.MUTED)
-        .text(String(c.header).toUpperCase(), xs[i] + pad, ctx.y + 9, { width: c.w - 2 * pad, lineBreak: false });
+      PL.drawFit(doc, String(c.header).toUpperCase(), xs[i] + pad, ctx.y + 9, c.w - 2 * pad,
+        { font: 'Helvetica-Bold', size: 7.5, minSize: 5.5, color: c.kind === 'date' ? C.GREEN : C.MUTED });
     });
     box(doc, M, ctx.y, CW, headerH, null, C.BORDER, 0.4);
-    ctx.y += headerH;
+    ctx.advance(headerH);
   };
 
   panels.forEach((panel) => {
-    if (ctx.y + 60 > BOTTOM) newPage(ctx);
-    ctx.y += 4;
+    ensure(ctx, 60);
+    ctx.advance(4);
     subheading(ctx, panel.name);
     drawHeader();
     panel.markers.forEach((m, ri) => {
-      doc.font('Helvetica-Bold').fontSize(9);
-      const nameH = doc.heightOfString(txt(m.name), { width: cols[0].w - 2 * pad });
-      const rowH = Math.max(22, nameH + 12);
-      if (ctx.y + rowH > BOTTOM) { newPage(ctx); drawHeader(); }
+      // The marker name is the only wrapping cell, and the row is sized from
+      // its measured layout; the reference, the values and the trend are all
+      // fitted to their narrow columns so they cannot bleed into each other.
+      const maxRowH = ctx.pageHeight() - headerH - 2;
+      const nameL = PL.layout(doc, m.name, {
+        font: 'Helvetica-Bold', size: 9, width: cols[0].w - 2 * pad, maxHeight: maxRowH - 12
+      });
+      const rowH = Math.min(maxRowH, Math.max(22, nameL.height + 12));
+      if (ctx.y + rowH > BOTTOM && !ctx.isFresh()) { newPage(ctx); drawHeader(); }
       box(doc, M, ctx.y, CW, rowH, ri % 2 === 0 ? C.DARK : C.SURFACE);
       const cy = ctx.y + rowH / 2;
       cols.forEach((c, i) => {
         const x = xs[i] + pad;
         const w = c.w - 2 * pad;
         if (c.kind === 'marker') {
-          doc.font('Helvetica-Bold').fontSize(9).fillColor(C.TEXT).text(txt(m.name), x, cy - nameH / 2, { width: w });
+          PL.drawLayout(doc, nameL, x, cy - nameL.height / 2, { color: C.TEXT });
         } else if (c.kind === 'ref') {
-          doc.font('Helvetica').fontSize(8).fillColor(C.MUTED).text(txt(m.reference) || '—', x, cy - 5, { width: w });
+          PL.drawFit(doc, txt(m.reference) || '—', x, cy - 5, w, { font: 'Helvetica', size: 8, minSize: 5.5, color: C.MUTED });
         } else if (c.kind === 'date') {
           const cell = (m.values || [])[c.valueIndex];
           if (cell && hasText(cell.text)) {
-            doc.font('Helvetica-Bold').fontSize(9).fillColor(statusColorLite(cell.status)).text(txt(cell.text), x, cy - 6, { width: w, lineBreak: false });
+            PL.drawFit(doc, cell.text, x, cy - 6, w, { font: 'Helvetica-Bold', size: 9, minSize: 5.5, color: statusColorLite(cell.status) });
           } else {
-            doc.font('Helvetica').fontSize(9).fillColor(C.MUTED).text('—', x, cy - 6, { width: w, lineBreak: false });
+            PL.drawFit(doc, '—', x, cy - 6, w, { font: 'Helvetica', size: 9, color: C.MUTED });
           }
         } else if (c.kind === 'trend') {
           drawTrend(doc, m.trend || {}, xs[i], ctx.y, c.w, rowH);
         }
       });
       doc.save().rect(M, ctx.y + rowH - 0.3, CW, 0.3).fill(C.BORDER).restore();
-      ctx.y += rowH;
+      ctx.advance(rowH);
     });
-    ctx.y += 10;
+    ctx.advance(10);
   });
 }
 
@@ -502,7 +558,8 @@ function drawTrend(doc, trend, x0, y0, w, h) {
   else if (trend.arrow === 'down') gDown(doc, cx, cy, 7, col);
   else gDash(doc, cx, cy, 8, col);
   if (hasText(trend.text)) {
-    doc.font('Helvetica-Bold').fontSize(7.5).fillColor(col).text(txt(trend.text), cx + 8, cy - 4, { width: w - 22, lineBreak: false });
+    PL.drawFit(doc, trend.text, cx + 8, cy - 4, Math.max(0, x0 + w - (cx + 8) - 6),
+      { font: 'Helvetica-Bold', size: 7.5, minSize: 5.5, color: col });
   }
 }
 
@@ -513,15 +570,17 @@ function buildTextSection(ctx, section) {
   const badge = section.badge || {};
   if (badge.show && (hasText(badge.label) || hasText(badge.text))) {
     const doc = ctx.doc;
-    if (ctx.y + 50 > BOTTOM) newPage(ctx);
+    ensure(ctx, 50);
     const labelText = txt(badge.label || '').toUpperCase();
     doc.font('Helvetica-Bold').fontSize(8);
-    const labelW = labelText ? Math.max(70, doc.widthOfString(labelText) + 16) : 0;
+    // The label may not take more than a third of the badge, so there is always
+    // room left for the verdict beside it.
+    const labelW = labelText ? Math.min(CW * 0.34, Math.max(70, doc.widthOfString(labelText) + 16)) : 0;
     box(doc, M, ctx.y, CW, 30, C.SURFACE, C.GREEN, 0.5);
-    if (labelText) doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text(labelText, M + 12, ctx.y + 6, { lineBreak: false });
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(C.GREEN)
-      .text(txt(badge.text), M + 12 + labelW, ctx.y + 9, { width: CW - 24 - labelW, lineBreak: false });
-    ctx.y += 30 + 10;
+    if (labelText) PL.drawFit(doc, labelText, M + 12, ctx.y + 6, labelW - 12, { font: 'Helvetica-Bold', size: 8, minSize: 6, color: C.MUTED });
+    PL.drawFit(doc, badge.text, M + 12 + labelW, ctx.y + 9, CW - 24 - labelW,
+      { font: 'Helvetica-Bold', size: 11, minSize: 7, color: C.GREEN });
+    ctx.advance(30 + 10);
   }
   if (hasText(section.body)) bodyText(ctx, section.body, { align: section.align === 'left' ? 'left' : 'justify' });
 }
@@ -535,25 +594,29 @@ function changeCard(ctx, item, tone) {
   const arrow = txt(from && to ? `${from}  →  ${to}` : (to || from || ''));
   const meaning = txt(item.meaning);
   const title = txt(item.marker);
-  doc.font('Helvetica').fontSize(9.5);
-  const th = meaning ? doc.heightOfString(meaning, { width: CW - 28, lineGap: 2 }) : 0;
-  const h = Math.max(38, th + (arrow ? 42 : 28));
-  if (ctx.y + h > BOTTOM) newPage(ctx);
+  // The card is built from measured parts: a marker name that needs two lines
+  // gets them, and the card grows rather than the title running over the arrow.
+  const titleL = PL.layout(doc, title, { font: 'Helvetica-Bold', size: 10, width: CW - 90, maxLines: 2 });
+  const meaningL = meaning
+    ? PL.layout(doc, meaning, { font: 'Helvetica', size: 9.5, width: CW - 28, lineGap: 2, maxHeight: ctx.pageHeight() - 60 })
+    : null;
+  const h = Math.max(38, 10 + titleL.height + 4 + (arrow ? 14 : 0) + (meaningL ? meaningL.height : 0) + 12);
+  ensure(ctx, h + 6);
   box(doc, M, ctx.y, CW, h, t.bg, t.border, 0.5);
   doc.save().rect(M, ctx.y, 3, h).fill(t.border).restore();
   const topY = ctx.y + 10;
-  doc.font('Helvetica-Bold').fontSize(10).fillColor(C.TEXT).text(title, M + 14, topY, { width: CW - 90 });
+  PL.drawLayout(doc, titleL, M + 14, topY, { color: C.TEXT });
   if (item.level) {
-    doc.font('Helvetica-Bold').fontSize(8).fillColor(levelColor(item.level))
-      .text(String(item.level).toUpperCase(), M + CW - 74, topY, { width: 60, align: 'right', lineBreak: false });
+    PL.drawFit(doc, String(item.level).toUpperCase(), M + CW - 74, topY, 60,
+      { font: 'Helvetica-Bold', size: 8, minSize: 6, color: levelColor(item.level), align: 'right' });
   }
-  let y = topY + 14;
+  let y = topY + titleL.height + 4;
   if (arrow) {
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(t.border).text(arrow, M + 14, y, { width: CW - 28, lineBreak: false });
+    PL.drawFit(doc, arrow, M + 14, y, CW - 28, { font: 'Helvetica-Bold', size: 9, minSize: 6.5, color: t.border });
     y += 14;
   }
-  if (meaning) doc.font('Helvetica').fontSize(9.5).fillColor(C.MUTED).text(meaning, M + 14, y, { width: CW - 28, lineGap: 2 });
-  ctx.y += h + 6;
+  if (meaningL) PL.drawLayout(doc, meaningL, M + 14, y, { color: C.MUTED });
+  ctx.advance(h + 6);
 }
 
 function buildCardsSection(ctx, section) {
@@ -564,10 +627,10 @@ function buildCardsSection(ctx, section) {
   heading(ctx, section.title);
   subheading(ctx, section.subtitle);
   groups.forEach((g, gi) => {
-    if (gi > 0 && ctx.y + 70 > BOTTOM) newPage(ctx);
-    if (hasText(g.title)) { subheading(ctx, g.title); ctx.y += 2; }
+    if (gi > 0) ensure(ctx, 70);
+    if (hasText(g.title)) { subheading(ctx, g.title); ctx.advance(2); }
     g.items.forEach((it) => changeCard(ctx, it, g.tone));
-    ctx.y += 6;
+    ctx.advance(6);
   });
 }
 
@@ -588,7 +651,7 @@ function buildTableSection(ctx, section) {
   if (!columns.length || !rows.length) return;
 
   heading(ctx, section.title);
-  if (ctx.y + 80 > BOTTOM) newPage(ctx);
+  ensure(ctx, 80);
   subheading(ctx, section.subtitle);
 
   // Hiding a column frees its share of the width — renormalise so the table still
@@ -603,11 +666,12 @@ function buildTableSection(ctx, section) {
 
   const drawHeader = () => {
     box(doc, M, ctx.y, CW, headerH, C.SURFACE2);
-    columns.forEach((c, i) => doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED)
-      .text(txt(c.header).toUpperCase(), xs[i] + pad, ctx.y + 8, { width: widths[i] - 2 * pad, lineBreak: false }));
+    columns.forEach((c, i) => PL.drawFit(doc, txt(c.header).toUpperCase(), xs[i] + pad, ctx.y + 8, widths[i] - 2 * pad,
+      { font: 'Helvetica-Bold', size: 8, minSize: 5.5, color: C.MUTED }));
     box(doc, M, ctx.y, CW, headerH, null, C.BORDER, 0.4);
-    ctx.y += headerH;
+    ctx.advance(headerH);
   };
+  ensure(ctx, headerH + 28);
   drawHeader();
 
   rows.forEach((row, ri) => {
@@ -615,26 +679,28 @@ function buildTableSection(ctx, section) {
       const value = txt((row.cells || {})[c.id]);
       return { value, style: cellStyle(c.style, value) };
     });
+    const maxRowH = ctx.pageHeight() - headerH - 2;
+    // One layout per cell, used for BOTH the row height and the drawing, so the
+    // two can never disagree.
+    const lays = cells.map((cell, i) => PL.layout(doc, cell.value, {
+      font: cell.style.bold ? 'Helvetica-Bold' : 'Helvetica',
+      size: cell.style.size,
+      width: widths[i] - 2 * pad,
+      maxHeight: maxRowH - 12
+    }));
     let rowH = 20;
-    cells.forEach((cell, i) => {
-      const tw = widths[i] - 2 * pad;
-      doc.font(cell.style.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(cell.style.size);
-      const hh = doc.heightOfString(cell.value, { width: tw }) + 12;
-      if (hh > rowH) rowH = hh;
-    });
-    if (ctx.y + rowH > BOTTOM) { newPage(ctx); drawHeader(); }
+    lays.forEach((L) => { if (L.height + 12 > rowH) rowH = L.height + 12; });
+    if (rowH > maxRowH) rowH = maxRowH;
+    if (ctx.y + rowH > BOTTOM && !ctx.isFresh()) { newPage(ctx); drawHeader(); }
     box(doc, M, ctx.y, CW, rowH, ri % 2 === 0 ? C.DARK : C.SURFACE);
     const cy = ctx.y + rowH / 2;
     cells.forEach((cell, i) => {
-      const tw = widths[i] - 2 * pad;
-      doc.font(cell.style.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(cell.style.size).fillColor(cell.style.color);
-      const th = doc.heightOfString(cell.value, { width: tw });
-      doc.text(cell.value, xs[i] + pad, cy - th / 2, { width: tw });
+      PL.drawLayout(doc, lays[i], xs[i] + pad, cy - lays[i].height / 2, { color: cell.style.color });
     });
     doc.save().rect(M, ctx.y + rowH - 0.3, CW, 0.3).fill(C.BORDER).restore();
-    ctx.y += rowH;
+    ctx.advance(rowH);
   });
-  ctx.y += 10;
+  ctx.advance(10);
 }
 
 // ---- callout -----------------------------------------------------------------
@@ -642,25 +708,26 @@ function buildCalloutSection(ctx, section) {
   if (!hasText(section.text) && !hasText(section.label)) return;
   const doc = ctx.doc;
   heading(ctx, section.title);
-  if (ctx.y + 70 > BOTTOM) newPage(ctx);
+  ensure(ctx, 70);
   subheading(ctx, section.subtitle);
 
   const tone = calloutTone(section.tone);
   const label = txt(section.label).toUpperCase();
   const body = txt(section.text);
   const font = section.italic ? 'Helvetica-Oblique' : 'Helvetica-Bold';
-  doc.font(font).fontSize(section.italic ? 10 : 11);
-  const th = body ? doc.heightOfString(body, { width: CW - 28, lineGap: 2 }) : 0;
-  const h = th + (label ? 34 : 22);
-  if (ctx.y + h > BOTTOM) newPage(ctx);
+  const L = body
+    ? PL.layout(doc, body, { font, size: section.italic ? 10 : 11, width: CW - 28, lineGap: 2, maxHeight: ctx.pageHeight() - 40 })
+    : null;
+  const h = (L ? L.height : 0) + (label ? 34 : 22);
+  ensure(ctx, h + 10);
   box(doc, M, ctx.y, CW, h, tone.bg, tone.border, tone.lw);
   let y = ctx.y + (label ? 10 : 11);
   if (label) {
-    doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text(label, M + 14, y, { lineBreak: false });
+    PL.drawFit(doc, label, M + 14, y, CW - 28, { font: 'Helvetica-Bold', size: 8, minSize: 6, color: C.MUTED });
     y += 12;
   }
-  if (body) doc.font(font).fontSize(section.italic ? 10 : 11).fillColor(C.TEXT).text(body, M + 14, y, { width: CW - 28, lineGap: 2 });
-  ctx.y += h + 10;
+  if (L) PL.drawLayout(doc, L, M + 14, y, { color: C.TEXT });
+  ctx.advance(h + 10);
 }
 
 // ---- disclaimer --------------------------------------------------------------
@@ -670,22 +737,21 @@ function buildDisclaimerSection(ctx, section) {
   if (!hasText(body)) return;
   heading(ctx, section.title);
   subheading(ctx, section.subtitle);
-  ctx.y += 10;
-  doc.font('Helvetica').fontSize(8.5);
-  const th = doc.heightOfString(body, { width: CW - 28, lineGap: 2 });
-  const h = th + 24;
-  if (ctx.y + h + 10 > BOTTOM) newPage(ctx);
-  doc.save().rect(M, ctx.y, CW, 0.5).fill(C.BORDER).restore();
-  ctx.y += 8;
-  box(doc, M, ctx.y, CW, h, C.DISC_BG, C.BORDER, 0.5);
+  ctx.advance(10);
   const label = txt(section.label);
-  if (label) {
-    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.MUTED).text(label, M + 14, ctx.y + 12, { width: CW - 28, continued: true })
-      .font('Helvetica-Oblique').fillColor(C.MUTED).text(body, { lineGap: 2 });
-  } else {
-    doc.font('Helvetica-Oblique').fontSize(8.5).fillColor(C.MUTED).text(body, M + 14, ctx.y + 12, { width: CW - 28, lineGap: 2 });
-  }
-  ctx.y += h;
+  // Label and body are one run in two faces. Measuring only the body left the
+  // box short by the width of the label, so the last line fell out of it.
+  const L = PL.richLayout(doc, [
+    { text: label, font: 'Helvetica-Bold', size: 8.5, color: C.MUTED },
+    { text: body, font: 'Helvetica-Oblique', size: 8.5, color: C.MUTED }
+  ], CW - 28, { lineGap: 2, maxHeight: ctx.pageHeight() - 40 });
+  const h = L.height + 24;
+  ensure(ctx, h + 10);
+  doc.save().rect(M, ctx.y, CW, 0.5).fill(C.BORDER).restore();
+  ctx.advance(8);
+  box(doc, M, ctx.y, CW, h, C.DISC_BG, C.BORDER, 0.5);
+  PL.drawRich(doc, L, M + 14, ctx.y + 12);
+  ctx.advance(h);
 }
 
 module.exports = { buildComparisonReportPdf };

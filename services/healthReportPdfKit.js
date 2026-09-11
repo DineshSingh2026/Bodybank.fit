@@ -6,10 +6,23 @@
  * Reproduces the 13-section dark-theme template (see public/reports sample),
  * with the gold BodyBank coin logo, and NEVER emits empty pages: any section
  * without data is skipped entirely (no page, no TOC entry).
+ *
+ * ---------------------------------------------------------------------------
+ * LAYOUT SAFETY
+ * ---------------------------------------------------------------------------
+ * A lab report is the least predictable document BodyBank prints: the marker
+ * names, reference ranges and AI prose all come from the client's own panel,
+ * so every column can receive a value ten times longer than the design assumed.
+ * Every string therefore goes through services/pdfLayout.js, which fits single
+ * lines to their column and measures wrapped blocks with the exact options they
+ * are drawn with. Box heights are derived from those measurements rather than
+ * guessed, so nothing can spill out of a card, a row or a page.
  */
 
 const path = require('path');
 const fs = require('fs');
+const PL = require('./pdfLayout');
+const { txt } = require('./pdfText');
 
 // ---- palette (matches the ReportLab template) --------------------------------
 const C = {
@@ -76,10 +89,18 @@ function buildHealthReportPdf(payload, outPath) {
   const stream = fs.createWriteStream(outPath);
   doc.pipe(stream);
 
-  doc.on('pageAdded', () => paintBg(doc));
   paintBg(doc); // first page
 
-  const ctx = { doc, y: TOP, contentPages: new Set() };
+  // The flow owns pagination. It paints the background of every page — including
+  // one PDFKit might add on its own — and records which pages carry content, so
+  // chrome can never be painted onto a page that has none, nor missed on one
+  // that does.
+  const ctx = PL.createFlow(doc, {
+    top: TOP, bottom: BOTTOM, left: M, width: CW,
+    claimFirstPage: false,
+    onPage: (d) => paintBg(d)
+  });
+  ctx.contentPages = ctx.pages;
 
   buildCover(ctx, user, ai, dateStr);
 
@@ -128,13 +149,21 @@ function paintBg(doc) {
   doc.restore();
 }
 function newPage(ctx) {
-  ctx.doc.addPage();
-  ctx.y = TOP;
-  ctx.contentPages.add(ctx.doc.bufferedPageRange().count - 1);
+  ctx.newPage();
 }
+/**
+ * Brand lockup + footer band on every content page.
+ *
+ * The footer sits deliberately below the content box. Chrome is drawn with the
+ * fitting helpers so a long member name is shortened to its column instead of
+ * wrapping onto a second line below the edge of the paper — which is exactly
+ * what `{ width, lineBreak: false }` used to do here, because PDFKit runs its
+ * line wrapper whenever a width is given.
+ */
 function paintChrome(doc, name, dateStr, contentPages) {
   const range = doc.bufferedPageRange();
-  for (let i = 0; i < range.count; i += 1) {
+  const total = range.count;
+  for (let i = 0; i < total; i += 1) {
     if (!contentPages.has(i)) continue;
     doc.switchToPage(i);
     doc.save();
@@ -142,15 +171,19 @@ function paintChrome(doc, name, dateStr, contentPages) {
     doc.font('Helvetica-Bold').fontSize(9).fillColor(C.GREEN);
     const wm = 'BodyBank.fit';
     const tw = doc.widthOfString(wm);
-    doc.text(wm, PAGE_W - M - tw, 27, { lineBreak: false });
+    PL.drawSingle(doc, wm, PAGE_W - M - tw, 27, 0, {});
     if (LOGO) { try { doc.image(LOGO, PAGE_W - M - tw - 20, 23, { width: 15, height: 15 }); } catch (_) {} }
     // footer band
     doc.rect(0, PAGE_H - 46, PAGE_W, 46).fill(C.SURFACE);
     doc.rect(M, PAGE_H - 46, CW, 0.4).fill(C.BORDER);
-    doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-      .text(`BodyBank.fit  ·  Health Report  ·  ${name}`, M, PAGE_H - 26, { width: CW * 0.6, lineBreak: false });
-    doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-      .text(`${dateStr}  ·  Page ${i + 1}`, M, PAGE_H - 26, { width: CW, align: 'right', lineBreak: false });
+    // The page marker is laid out first; the member line gets whatever is left,
+    // so the two can never collide however long the name is.
+    const right = `${dateStr}  ·  Page ${i + 1} of ${total}`;
+    doc.font('Helvetica').fontSize(8);
+    const rightW = Math.min(CW * 0.5, doc.widthOfString(right));
+    PL.drawFit(doc, right, M + CW - rightW, PAGE_H - 26, rightW, { font: 'Helvetica', size: 8, color: C.MUTED, align: 'right' });
+    PL.drawFit(doc, `BodyBank.fit  ·  Health Report  ·  ${name}`, M, PAGE_H - 26, CW - rightW - 16,
+      { font: 'Helvetica', size: 8, color: C.MUTED });
     doc.restore();
   }
 }
@@ -166,22 +199,40 @@ function hr(ctx, color, thickness) {
   ctx.doc.save().rect(M, ctx.y, CW, thickness || 1).fill(color || C.BORDER).restore();
   ctx.y += (thickness || 1) + 6;
 }
-function heading(ctx, txt, ruleColor) {
-  ctx.doc.font('Helvetica-Bold').fontSize(15).fillColor(C.GREEN).text(txt, M, ctx.y, { width: CW });
-  ctx.y += 22;
+/**
+ * A section heading. The title is allowed to wrap (AI-supplied panel names can
+ * be long), and the rule is placed under however many lines it actually took —
+ * the old fixed `+= 22` drew the rule through the second line.
+ */
+function heading(ctx, text, ruleColor) {
+  const h = PL.measure(ctx.doc, text, { font: 'Helvetica-Bold', size: 15, width: CW });
+  ctx.ensure(h + 30);
+  PL.drawText(ctx.doc, text, M, ctx.y, { font: 'Helvetica-Bold', size: 15, width: CW, color: C.GREEN });
+  ctx.advance(Math.max(22, h + 4));
   hr(ctx, ruleColor || C.GREEN, 1);
-  ctx.y += 2;
+  ctx.advance(2);
 }
-function subheading(ctx, txt) {
-  ctx.doc.font('Helvetica-Bold').fontSize(12).fillColor(C.WHITE).text(txt, M, ctx.y, { width: CW });
-  ctx.y += 18;
+function subheading(ctx, text) {
+  const h = PL.measure(ctx.doc, text, { font: 'Helvetica-Bold', size: 12, width: CW });
+  ctx.ensure(h + 24);
+  PL.drawText(ctx.doc, text, M, ctx.y, { font: 'Helvetica-Bold', size: 12, width: CW, color: C.WHITE });
+  ctx.advance(Math.max(18, h + 4));
 }
-function bodyText(ctx, txt, opts) {
+/**
+ * Flowing prose. Written line by line through the flow so a long clinical
+ * interpretation breaks between pages instead of running into the footer.
+ */
+function bodyText(ctx, text, opts) {
   opts = opts || {};
-  const doc = ctx.doc;
-  doc.font('Helvetica').fontSize(10).fillColor(opts.color || C.TEXT);
-  doc.text(String(txt || ''), M, ctx.y, { width: opts.width || CW, align: opts.align || 'left', lineGap: 3 });
-  ctx.y = doc.y + (opts.spaceAfter != null ? opts.spaceAfter : 6);
+  PL.flowText(ctx, text, {
+    font: 'Helvetica',
+    size: 10,
+    width: opts.width || CW,
+    align: opts.align || 'left',
+    lineGap: 3,
+    color: opts.color || C.TEXT,
+    spaceAfter: opts.spaceAfter != null ? opts.spaceAfter : 6
+  });
 }
 
 // vector glyphs (WinAnsi-safe: drawn, not typed)
@@ -191,7 +242,7 @@ function gCheck(doc, cx, cy, s, color) { doc.save().strokeColor(color).lineWidth
 function gCross(doc, cx, cy, s, color) { doc.save().strokeColor(color).lineWidth(1.5).lineCap('round').moveTo(cx - s / 2, cy - s / 2).lineTo(cx + s / 2, cy + s / 2).moveTo(cx + s / 2, cy - s / 2).lineTo(cx - s / 2, cy + s / 2).stroke().restore(); }
 function gSquare(doc, cx, cy, s, color) { doc.save().fillColor(color).rect(cx - s / 2, cy - s / 2, s, s).fill().restore(); }
 
-function drawStatus(doc, status, x, y, h) {
+function drawStatus(doc, status, x, y, h, colW) {
   const col = statusColor(status);
   const cy = y + h / 2;
   let tx = x + 10;
@@ -200,50 +251,74 @@ function drawStatus(doc, status, x, y, h) {
   else if (st === 'Elevated' || st === 'High') { gUp(doc, x + 12, cy, 6, col); tx = x + 20; }
   else if (st === 'Deficient') { gSquare(doc, x + 12, cy, 6, col); tx = x + 20; }
   else if (st === 'Critical') { gUp(doc, x + 12, cy, 6, col); tx = x + 20; }
-  doc.font('Helvetica-Bold').fontSize(9).fillColor(col).text(st, tx, cy - 5, { width: 90, lineBreak: false });
+  // The status vocabulary is not fixed — an AI panel can return "Borderline
+  // High" — so the label is fitted to whatever room is left in its column.
+  PL.drawFit(doc, st, tx, cy - 5, Math.max(0, x + (colW || 90) - tx - 6),
+    { font: 'Helvetica-Bold', size: 9, color: col });
 }
 
+/**
+ * Paginating table.
+ *
+ * Three things make it overflow-proof:
+ *  - each cell is measured at the font and width it is drawn at, and the row
+ *    takes the tallest of those measurements;
+ *  - a row taller than an empty page is capped to the page and its cells are
+ *    ellipsised, because such a row cannot be made to fit anywhere and pushing
+ *    it forward only produces blank pages;
+ *  - the header is redrawn after every break, so a continued table still reads.
+ */
 function table(ctx, columns, rows) {
   const doc = ctx.doc;
   const xs = [];
+  const ws = [];
   let acc = M;
-  columns.forEach((c) => { xs.push(acc); acc += c.frac * CW; });
+  columns.forEach((c) => { xs.push(acc); ws.push(c.frac * CW); acc += c.frac * CW; });
   const pad = 10;
   const headerH = 24;
   const drawHeader = () => {
     box(doc, M, ctx.y, CW, headerH, C.SURFACE2);
     columns.forEach((c, i) => {
-      doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED)
-        .text(String(c.header).toUpperCase(), xs[i] + pad, ctx.y + 8, { width: c.frac * CW - 2 * pad, lineBreak: false });
+      PL.drawFit(doc, String(c.header).toUpperCase(), xs[i] + pad, ctx.y + 8, ws[i] - 2 * pad,
+        { font: 'Helvetica-Bold', size: 8, color: C.MUTED });
     });
     box(doc, M, ctx.y, CW, headerH, null, C.BORDER, 0.4);
-    ctx.y += headerH;
+    ctx.advance(headerH);
   };
+  ctx.ensure(headerH + 28);
   drawHeader();
   rows.forEach((row, ri) => {
-    const cells = columns.map((c) => c.get(row));
-    let rowH = 20;
-    cells.forEach((cell, i) => {
-      const tw = columns[i].frac * CW - 2 * pad;
-      doc.font(cell.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(cell.size || 10);
-      const hh = doc.heightOfString(String(cell.text || ''), { width: tw }) + 14;
-      if (hh > rowH) rowH = hh;
+    const cells = columns.map((c) => c.get(row) || {});
+    const maxRowH = ctx.pageHeight() - headerH - 2;
+    // Measure first, with the exact layout each cell will be drawn with.
+    const lays = cells.map((cell, i) => {
+      if (cell.status) return null;
+      return PL.layout(doc, cell.text == null ? '' : String(cell.text), {
+        font: cell.bold ? 'Helvetica-Bold' : 'Helvetica',
+        size: cell.size || 10,
+        width: ws[i] - 2 * pad,
+        align: cell.align || 'left',
+        maxHeight: maxRowH - 14
+      });
     });
-    if (ctx.y + rowH > BOTTOM) { newPage(ctx); drawHeader(); }
+    let rowH = 20;
+    lays.forEach((L) => { if (L && L.height + 14 > rowH) rowH = L.height + 14; });
+    if (rowH > maxRowH) rowH = maxRowH;
+
+    if (ctx.y + rowH > BOTTOM && !ctx.isFresh()) { newPage(ctx); drawHeader(); }
     box(doc, M, ctx.y, CW, rowH, ri % 2 === 0 ? C.DARK : C.SURFACE);
     const cy = ctx.y + rowH / 2;
     cells.forEach((cell, i) => {
       const cx = xs[i];
-      const tw = columns[i].frac * CW - 2 * pad;
-      if (cell.status) { drawStatus(doc, cell.status, cx, ctx.y, rowH); return; }
-      doc.font(cell.bold ? 'Helvetica-Bold' : 'Helvetica').fontSize(cell.size || 10).fillColor(cell.color || C.TEXT);
-      const th = doc.heightOfString(String(cell.text || ''), { width: tw });
-      doc.text(String(cell.text || ''), cx + pad, cy - th / 2, { width: tw, align: cell.align || 'left' });
+      if (cell.status) { drawStatus(doc, cell.status, cx, ctx.y, rowH, ws[i]); return; }
+      const L = lays[i];
+      if (!L || !L.lines.length) return;
+      PL.drawLayout(doc, L, cx + pad, cy - L.height / 2, { color: cell.color || C.TEXT, align: cell.align || 'left' });
     });
     doc.save().rect(M, ctx.y + rowH - 0.3, CW, 0.3).fill(C.BORDER).restore();
-    ctx.y += rowH;
+    ctx.advance(rowH);
   });
-  ctx.y += 8;
+  ctx.advance(8);
 }
 
 // ---- cover -------------------------------------------------------------------
@@ -265,27 +340,56 @@ function buildCover(ctx, user, ai, dateStr) {
     y += 50;
   }
 
-  doc.font('Helvetica-Bold').fontSize(26).fillColor(C.WHITE).text('Comprehensive Health Report', M, y, { width: CW });
-  y = doc.y + 4;
-  doc.font('Helvetica').fontSize(13).fillColor(C.MUTED).text('Blood Analysis + Nutrition Intelligence Report', M, y, { width: CW });
-  y = doc.y + 22;
+  y += PL.drawText(doc, 'Comprehensive Health Report', M, y,
+    { font: 'Helvetica-Bold', size: 26, width: CW, color: C.WHITE }) + 4;
+  y += PL.drawText(doc, 'Blood Analysis + Nutrition Intelligence Report', M, y,
+    { font: 'Helvetica', size: 13, width: CW, color: C.MUTED }) + 22;
   doc.save().rect(M, y, CW, 1).fill(C.GREEN).restore();
   y += 12;
 
-  // patient info card
-  const cardH = 120;
-  box(doc, M, y, CW, cardH, C.DARK, C.BORDER, 0.5);
+  // ---- patient info card ---------------------------------------------------
+  // The card used to be a fixed 120pt with values dropped at fixed offsets, so
+  // a long name or fitness goal ran straight through the labels beneath it and
+  // out of the bottom border. Both rows are now measured first and the card is
+  // whatever height those measurements need.
   const col = CW / 3;
-  const label = (t, x, yy) => doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text(t.toUpperCase(), x, yy, { width: col - 20, lineBreak: false });
-  const val = (t, x, yy, color, size) => doc.font(size >= 14 ? 'Helvetica-Bold' : 'Helvetica').fontSize(size || 11).fillColor(color || C.TEXT).text(String(t), x, yy, { width: col - 20 });
-  label('Patient Name', M + 14, y + 12); label('Date of Report', M + 14 + col, y + 12); label('Report Type', M + 14 + 2 * col, y + 12);
-  val(user.name || '—', M + 14, y + 26, C.WHITE, 14);
-  val(dateStr, M + 14 + col, y + 26, C.WHITE, 14);
-  val('AI Health Analysis', M + 14 + 2 * col, y + 26, C.GREEN, 14);
-  label('Age / Gender', M + 14, y + 62); label('Fitness Goal', M + 14 + col, y + 62); label('Prepared By', M + 14 + 2 * col, y + 62);
-  val(`${user.age || '—'} / ${user.gender || '—'}`, M + 14, y + 76, C.TEXT, 11);
-  val(user.goal || '—', M + 14 + col, y + 76, C.TEXT, 11);
-  doc.font('Helvetica').fontSize(9).fillColor(C.MUTED).text('BodyBank AI + Medical Review', M + 14 + 2 * col, y + 78, { width: col - 20 });
+  const valW = col - 20;
+  const cell = (label, value, color, size, font) => ({
+    label,
+    L: PL.layout(doc, value, {
+      font: font || (size >= 14 ? 'Helvetica-Bold' : 'Helvetica'),
+      size,
+      width: valW,
+      // Two lines is the most a cover cell may take; past that the value is
+      // ellipsised rather than allowed to grow the card without limit.
+      maxLines: 2
+    }),
+    color
+  });
+  const row1 = [
+    cell('Patient Name', user.name || '—', C.WHITE, 14),
+    cell('Date of Report', dateStr, C.WHITE, 14),
+    cell('Report Type', 'AI Health Analysis', C.GREEN, 14)
+  ];
+  const row2 = [
+    cell('Age / Gender', `${user.age || '—'} / ${user.gender || '—'}`, C.TEXT, 11),
+    cell('Fitness Goal', user.goal || '—', C.TEXT, 11),
+    cell('Prepared By', 'BodyBank AI + Medical Review', C.MUTED, 9)
+  ];
+  const rowH = (r) => 14 + r.reduce((m, c) => Math.max(m, c.L.height), 0);
+  const r1H = rowH(row1);
+  const r2H = rowH(row2);
+  const cardH = Math.max(120, 12 + r1H + 16 + r2H + 14);
+  box(doc, M, y, CW, cardH, C.DARK, C.BORDER, 0.5);
+  const drawRow = (r, top) => {
+    r.forEach((c, i) => {
+      const x = M + 14 + i * col;
+      PL.drawFit(doc, c.label.toUpperCase(), x, top, valW, { font: 'Helvetica-Bold', size: 8, color: C.MUTED });
+      PL.drawLayout(doc, c.L, x, top + 14, { color: c.color });
+    });
+  };
+  drawRow(row1, y + 12);
+  drawRow(row2, y + 12 + r1H + 16);
   y += cardH + 10;
 
   // overall status banner — height grows to fit the AI summary (never overflow)
@@ -294,35 +398,46 @@ function buildCover(ctx, user, ai, dateStr) {
   const summaryText = String(ai.overall_summary_short || 'Full analysis of your blood markers and nutrition follows on the next pages.');
   const sumX = M + CW * 0.45;
   const sumW = CW * 0.52;
-  doc.font('Helvetica').fontSize(10);
-  const sumH = doc.heightOfString(summaryText, { width: sumW, lineGap: 2 });
-  const bH = Math.max(74, sumH + 30);
+  // The cover is one page by design, so the summary is capped to the room left
+  // on it rather than pushed past the disclaimer.
+  const bannerRoom = BOTTOM - y - 70;
+  const sumL = PL.layout(doc, summaryText, { font: 'Helvetica', size: 10, width: sumW, lineGap: 2, maxHeight: Math.max(30, bannerRoom - 30) });
+  // The verdict word is its own column; it is fitted so a long status such as
+  // "Requires Immediate Clinical Attention" shrinks instead of crossing into
+  // the summary.
+  const verdictW = CW * 0.22;
+  const bH = Math.max(74, sumL.height + 30);
   box(doc, M, y, CW, bH, C.SURFACE, oc, 1);
   const leftCy = y + bH / 2;
-  doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text('OVERALL HEALTH STATUS', M + 14, leftCy - 11, { width: CW * 0.23 - 18 });
-  doc.font('Helvetica-Bold').fontSize(22).fillColor(oc).text(overall, M + CW * 0.23, leftCy - 13, { width: CW * 0.22, lineBreak: false });
-  doc.font('Helvetica').fontSize(10).fillColor(C.TEXT).text(summaryText, sumX, y + 15, { width: sumW, lineGap: 2 });
+  PL.drawText(doc, 'OVERALL HEALTH STATUS', M + 14, leftCy - 11,
+    { font: 'Helvetica-Bold', size: 8, width: CW * 0.23 - 18, color: C.MUTED, maxLines: 2 });
+  PL.drawFit(doc, overall, M + CW * 0.23, leftCy - 13, verdictW,
+    { font: 'Helvetica-Bold', size: 22, minSize: 9, color: oc });
+  PL.drawLayout(doc, sumL, sumX, y + 15, { color: C.TEXT });
   y += bH + 14;
 
   doc.save().rect(M, y, CW, 0.5).fill(C.BORDER).restore();
   y += 8;
-  doc.font('Helvetica-Oblique').fontSize(8.5).fillColor(C.MUTED)
-    .text('This report is generated by BodyBank.fit AI Health System. It is for informational purposes only and does not constitute a medical diagnosis. Please share this report with your physician.', M, y, { width: CW, align: 'justify', lineGap: 2 });
+  PL.drawText(doc, 'This report is generated by BodyBank.fit AI Health System. It is for informational purposes only and does not constitute a medical diagnosis. Please share this report with your physician.',
+    M, y, { font: 'Helvetica-Oblique', size: 8.5, width: CW, align: 'justify', lineGap: 2, color: C.MUTED, maxHeight: Math.max(12, BOTTOM - y) });
 }
 
 // ---- contents ----------------------------------------------------------------
 function buildContents(ctx, toc) {
   const doc = ctx.doc;
   heading(ctx, 'Contents');
-  ctx.y += 4;
+  ctx.advance(4);
   toc.forEach((r) => {
+    const titleL = PL.layout(doc, r[1], { font: 'Helvetica-Bold', size: 10, width: CW - 34 });
+    const subL = PL.layout(doc, r[2], { font: 'Helvetica', size: 8, width: CW - 34 });
+    ctx.ensure(titleL.height + subL.height + 13);
     const rowY = ctx.y;
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(C.GREEN).text(r[0], M, rowY + 4, { width: 26, lineBreak: false });
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(C.TEXT).text(r[1], M + 34, rowY, { width: CW - 34 });
-    doc.font('Helvetica').fontSize(8).fillColor(C.MUTED).text(r[2], M + 34, doc.y + 1, { width: CW - 34 });
-    ctx.y = doc.y + 8;
+    PL.drawFit(doc, r[0], M, rowY + 4, 26, { font: 'Helvetica-Bold', size: 10, color: C.GREEN });
+    PL.drawLayout(doc, titleL, M + 34, rowY, { color: C.TEXT });
+    PL.drawLayout(doc, subL, M + 34, rowY + titleL.height + 1, { color: C.MUTED });
+    ctx.advance(titleL.height + subL.height + 9);
     doc.save().rect(M, ctx.y - 4, CW, 0.3).fill(C.BORDER).restore();
-    ctx.y += 4;
+    ctx.advance(4);
   });
 }
 
@@ -337,8 +452,8 @@ function buildBlood(ctx, blood) {
   ];
   (blood.panels || []).forEach((p) => {
     if (!p || !Array.isArray(p.markers) || !p.markers.length) return;
-    if (ctx.y + 70 > BOTTOM) newPage(ctx);
-    ctx.y += 4;
+    ctx.ensure(70);
+    ctx.advance(4);
     subheading(ctx, p.name || 'Panel');
     table(ctx, cols, p.markers);
   });
@@ -349,6 +464,7 @@ function buildNutrition(ctx, n) {
   heading(ctx, '2. Nutrition Intelligence');
   const avg = n.averages || {};
   const cardH = 74, col = CW / 4;
+  ctx.ensure(cardH + 10);
   box(doc, M, ctx.y, CW, cardH, C.DARK, C.BORDER, 0.5);
   const macro = [
     ['AVG DAILY CALORIES', avg.calories != null ? String(avg.calories) : '—', 'kcal/day', C.AMBER],
@@ -359,26 +475,32 @@ function buildNutrition(ctx, n) {
   macro.forEach((mv, i) => {
     const x = M + i * col;
     if (i > 0) doc.save().rect(x, ctx.y, 0.3, cardH).fill(C.BORDER).restore();
-    doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text(mv[0], x + 12, ctx.y + 10, { width: col - 20, lineBreak: false });
-    doc.font('Helvetica-Bold').fontSize(20).fillColor(mv[3]).text(mv[1], x + 12, ctx.y + 26, { width: col - 20, lineBreak: false });
-    doc.font('Helvetica').fontSize(9).fillColor(C.MUTED).text(mv[2], x + 12, ctx.y + 54, { width: col - 20, lineBreak: false });
+    PL.drawFit(doc, mv[0], x + 12, ctx.y + 10, col - 20, { font: 'Helvetica-Bold', size: 8, color: C.MUTED });
+    // A six-figure calorie average must shrink into its quarter of the card
+    // rather than run across the divider into the next macro.
+    PL.drawFit(doc, mv[1], x + 12, ctx.y + 26, col - 20, { font: 'Helvetica-Bold', size: 20, minSize: 9, color: mv[3] });
+    PL.drawFit(doc, mv[2], x + 12, ctx.y + 54, col - 20, { font: 'Helvetica', size: 9, color: C.MUTED });
   });
-  ctx.y += cardH + 10;
+  ctx.advance(cardH + 10);
 
   if (n.meal_quality_score != null) {
     const mqs = n.meal_quality_score;
     const mqsC = mqs >= 7 ? C.GREEN : (mqs >= 5 ? C.AMBER : C.RED);
     const qText = String(n.quality_interpretation || '');
     const qX = M + CW * 0.46, qW = CW * 0.52;
-    doc.font('Helvetica').fontSize(9);
-    const qTextH = doc.heightOfString(qText, { width: qW, lineGap: 2 });
-    const qH = Math.max(54, qTextH + 26);
+    // Capped to a page: an interpretation longer than that is a data fault, and
+    // a box taller than the paper cannot be placed anywhere.
+    const qL = PL.layout(doc, qText, {
+      font: 'Helvetica', size: 9, width: qW, lineGap: 2, maxHeight: ctx.pageHeight() - 40
+    });
+    const qH = Math.max(54, qL.height + 26);
+    ctx.ensure(qH + 12);
     box(doc, M, ctx.y, CW, qH, C.SURFACE, mqsC, 0.5);
     const cy = ctx.y + qH / 2;
-    doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text('MEAL QUALITY SCORE', M + 12, cy - 5, { width: CW * 0.28 - 12 });
-    doc.font('Helvetica-Bold').fontSize(16).fillColor(mqsC).text(`${mqs}/10`, M + CW * 0.28, cy - 9, { width: CW * 0.18, lineBreak: false });
-    doc.font('Helvetica').fontSize(9).fillColor(C.MUTED).text(qText, qX, ctx.y + 13, { width: qW, lineGap: 2 });
-    ctx.y += qH + 12;
+    PL.drawFit(doc, 'MEAL QUALITY SCORE', M + 12, cy - 5, CW * 0.28 - 12, { font: 'Helvetica-Bold', size: 8, color: C.MUTED });
+    PL.drawFit(doc, `${mqs}/10`, M + CW * 0.28, cy - 9, CW * 0.18, { font: 'Helvetica-Bold', size: 16, color: mqsC });
+    PL.drawLayout(doc, qL, qX, ctx.y + 13, { color: C.MUTED });
+    ctx.advance(qH + 12);
   }
 
   if (Array.isArray(n.top_meals) && n.top_meals.length) {
@@ -401,24 +523,28 @@ function buildClinical(ctx, ai) {
   const findings = Array.isArray(ai.key_findings) ? ai.key_findings : [];
   if (findings.length) {
     subheading(ctx, 'Key Findings');
-    ctx.y += 2;
+    ctx.advance(2);
     findings.forEach((f) => {
       const sev = f.severity || 'info';
       const bg = sev === 'good' ? C.INC_BG : (sev === 'critical' ? C.AVD_BG : '#2a2410');
       const bc = sev === 'good' ? C.GREEN : (sev === 'critical' ? C.RED : C.AMBER);
-      const detail = `${f.title || ''}   ${f.detail || ''}`;
-      doc.font('Helvetica').fontSize(10);
-      const th = doc.heightOfString(detail, { width: CW - 34 });
-      const h = Math.max(34, th + 18);
-      if (ctx.y + h > BOTTOM) newPage(ctx);
+      // Title and detail are two different faces on one flowing run. Measuring
+      // the concatenation in a single font (as this did) is wrong in both
+      // directions, so the box it sized was wrong too — this is the mixed-face
+      // measurement that put finding text below its own border.
+      const runW = CW - 42;
+      const L = PL.richLayout(doc, [
+        { text: (f.title || '') + '  ', font: 'Helvetica-Bold', size: 10, color: C.TEXT },
+        { text: String(f.detail || ''), font: 'Helvetica', size: 9, color: C.MUTED }
+      ], runW, { maxHeight: ctx.pageHeight() - 24 });
+      const h = Math.max(34, L.height + 18);
+      ctx.ensure(h + 5);
       box(doc, M, ctx.y, CW, h, bg, bc, 0.5);
       const cy = ctx.y + h / 2;
       if (sev === 'good') gCheck(doc, M + 14, cy, 10, bc);
-      else doc.font('Helvetica-Bold').fontSize(13).fillColor(bc).text('!', M + 11, cy - 8, { width: 10, lineBreak: false });
-      doc.font('Helvetica-Bold').fontSize(10).fillColor(C.TEXT)
-        .text((f.title || '') + '  ', M + 28, cy - th / 2, { width: CW - 34, continued: true })
-        .font('Helvetica').fontSize(9).fillColor(C.MUTED).text(String(f.detail || ''));
-      ctx.y += h + 5;
+      else PL.drawFit(doc, '!', M + 11, cy - 8, 10, { font: 'Helvetica-Bold', size: 13, color: bc });
+      PL.drawRich(doc, L, M + 28, cy - L.height / 2);
+      ctx.advance(h + 5);
     });
   }
 }
@@ -444,12 +570,12 @@ function buildFoods(ctx, ai) {
     ai.foods_include.forEach((f) => foodRow(ctx, f, true));
   }
   if (nonEmpty(ai.foods_avoid)) {
-    ctx.y += 10;
-    if (ctx.y + 80 > BOTTOM) newPage(ctx);
-    doc.font('Helvetica-Bold').fontSize(15).fillColor(C.GREEN).text('6. Foods to Avoid', M, ctx.y, { width: CW });
-    ctx.y += 22; hr(ctx, C.RED, 1); ctx.y += 2;
+    ctx.advance(10);
+    ctx.ensure(80);
+    PL.drawText(doc, '6. Foods to Avoid', M, ctx.y, { font: 'Helvetica-Bold', size: 15, width: CW, color: C.GREEN });
+    ctx.advance(22); hr(ctx, C.RED, 1); ctx.advance(2);
     if (ai.foods_avoid_intro) bodyText(ctx, ai.foods_avoid_intro);
-    ctx.y += 2;
+    ctx.advance(2);
     ai.foods_avoid.forEach((f) => foodRow(ctx, f, false));
   }
 }
@@ -457,18 +583,20 @@ function foodRow(ctx, f, include) {
   const doc = ctx.doc;
   const bg = include ? C.INC_BG : C.AVD_BG;
   const bc = include ? C.GREEN : C.RED;
-  const detail = `${f.name || ''}  —  ${f.reason || ''}`;
-  doc.font('Helvetica').fontSize(10);
-  const th = doc.heightOfString(detail, { width: CW - 34 });
-  const h = Math.max(30, th + 16);
-  if (ctx.y + h > BOTTOM) newPage(ctx);
+  // Bold food name, muted reason: measured per face so the row is exactly as
+  // tall as the text inside it.
+  const runW = CW - 40;
+  const L = PL.richLayout(doc, [
+    { text: (f.name || '') + '  —  ', font: 'Helvetica-Bold', size: 10, color: C.TEXT },
+    { text: String(f.reason || ''), font: 'Helvetica', size: 9, color: C.MUTED }
+  ], runW, { maxHeight: ctx.pageHeight() - 22 });
+  const h = Math.max(30, L.height + 16);
+  ctx.ensure(h + 3);
   box(doc, M, ctx.y, CW, h, bg, bc, 0.3);
   const cy = ctx.y + h / 2;
   if (include) gCheck(doc, M + 13, cy, 10, bc); else gCross(doc, M + 13, cy, 9, bc);
-  doc.font('Helvetica-Bold').fontSize(10).fillColor(C.TEXT)
-    .text((f.name || '') + '  —  ', M + 26, cy - th / 2, { width: CW - 34, continued: true })
-    .font('Helvetica').fontSize(9).fillColor(C.MUTED).text(String(f.reason || ''));
-  ctx.y += h + 3;
+  PL.drawRich(doc, L, M + 26, cy - L.height / 2);
+  ctx.advance(h + 3);
 }
 
 function buildMealPlan(ctx, ai) {
@@ -483,27 +611,35 @@ function buildMealPlan(ctx, ai) {
     const da = accents[i % accents.length];
     const db = dayBgs[i % dayBgs.length];
     const meals = Array.isArray(day.meals) ? day.meals : [];
-    const needed = 30 + meals.length * 22;
-    if (ctx.y + needed > BOTTOM) newPage(ctx);
+    // Keep the day header with at least its first meal; the old estimate of
+    // 22pt per meal was blind to meals that wrap, so a day block could start
+    // near the bottom and run its last rows off the page.
+    ctx.ensure(28 + 32);
     box(doc, M, ctx.y, CW, 28, db);
     doc.save().rect(M, ctx.y + 27, CW, 1).fill(da).restore();
-    doc.font('Helvetica-Bold').fontSize(11).fillColor(da).text(day.day || '', M + 10, ctx.y + 8, { width: CW * 0.25, lineBreak: false });
-    doc.font('Helvetica').fontSize(9).fillColor(C.MUTED)
-      .text(`~${day.total_calories || '—'} kcal  ·  ${day.total_protein || '—'}g protein`, M + CW * 0.25, ctx.y + 9, { width: CW * 0.75 - 10, lineBreak: false });
-    ctx.y += 28;
+    PL.drawFit(doc, day.day || '', M + 10, ctx.y + 8, CW * 0.25 - 10, { font: 'Helvetica-Bold', size: 11, color: da });
+    PL.drawFit(doc, `~${day.total_calories || '—'} kcal  ·  ${day.total_protein || '—'}g protein`,
+      M + CW * 0.25, ctx.y + 9, CW * 0.75 - 10, { font: 'Helvetica', size: 9, color: C.MUTED });
+    ctx.advance(28);
     meals.forEach((meal, mi) => {
-      doc.font('Helvetica').fontSize(9.5);
       const tw = CW * 0.62 - 20;
-      const th = doc.heightOfString(meal.meal || '', { width: tw });
-      const h = Math.max(20, th + 12);
+      const L = PL.layout(doc, meal.meal || '', {
+        font: 'Helvetica', size: 9.5, width: tw, maxHeight: ctx.pageHeight() - 14
+      });
+      const h = Math.max(20, L.height + 12);
+      // Every meal row gets its own break check, so a long plan paginates row
+      // by row instead of spilling past the footer.
+      ctx.ensure(h);
       box(doc, M, ctx.y, CW, h, mi % 2 === 0 ? C.DARK : C.SURFACE, C.BORDER, 0.3);
       const cy = ctx.y + h / 2;
-      doc.font('Helvetica-Bold').fontSize(8).fillColor(C.MUTED).text(String(meal.type || '').toUpperCase(), M + 10, cy - 4, { width: CW * 0.18 - 12, lineBreak: false });
-      doc.font('Helvetica').fontSize(9.5).fillColor(C.TEXT).text(meal.meal || '', M + CW * 0.18, cy - th / 2, { width: tw });
-      doc.font('Helvetica-Bold').fontSize(9).fillColor(C.AMBER).text(`${meal.calories || '—'} kcal`, M + CW * 0.8, cy - 5, { width: CW * 0.2 - 10, lineBreak: false });
-      ctx.y += h;
+      PL.drawFit(doc, String(meal.type || '').toUpperCase(), M + 10, cy - 4, CW * 0.18 - 14,
+        { font: 'Helvetica-Bold', size: 8, color: C.MUTED });
+      PL.drawLayout(doc, L, M + CW * 0.18, cy - L.height / 2, { color: C.TEXT });
+      PL.drawFit(doc, `${meal.calories || '—'} kcal`, M + CW * 0.8, cy - 5, CW * 0.2 - 10,
+        { font: 'Helvetica-Bold', size: 9, color: C.AMBER });
+      ctx.advance(h);
     });
-    ctx.y += 6;
+    ctx.advance(6);
   });
 }
 
@@ -536,15 +672,21 @@ function buildLifestyle(ctx, ai) {
   const labelW = 92;
   cats.forEach((cat) => {
     if (!cat[1]) return;
-    doc.font('Helvetica').fontSize(10);
-    const th = doc.heightOfString(String(cat[1]), { width: CW - labelW - 20 });
-    const h = Math.max(40, th + 20);
-    if (ctx.y + h > BOTTOM) newPage(ctx);
+    // Measured at the width AND line gap it is drawn with. The old code
+    // measured 8pt narrower and without the line gap, so a long recommendation
+    // was drawn taller than the box that had been sized for it.
+    const bodyW = CW - labelW - 12;
+    const L = PL.layout(doc, String(cat[1]), {
+      font: 'Helvetica', size: 10, width: bodyW, lineGap: 2, align: 'justify',
+      maxHeight: ctx.pageHeight() - 26
+    });
+    const h = Math.max(40, L.height + 20);
+    ctx.ensure(h + 5);
     box(doc, M, ctx.y, CW, h, C.DARK, C.BORDER, 0.3);
     doc.save().rect(M, ctx.y, 3, h).fill(cat[2]).restore();
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(cat[2]).text(cat[0], M + 12, ctx.y + 10, { width: labelW - 4 });
-    doc.font('Helvetica').fontSize(10).fillColor(C.TEXT).text(String(cat[1]), M + labelW, ctx.y + 10, { width: CW - labelW - 12, align: 'justify', lineGap: 2 });
-    ctx.y += h + 5;
+    PL.drawText(doc, cat[0], M + 12, ctx.y + 10, { font: 'Helvetica-Bold', size: 10, width: labelW - 16, color: cat[2], maxLines: 2 });
+    PL.drawLayout(doc, L, M + labelW, ctx.y + 10, { color: C.TEXT, align: 'justify' });
+    ctx.advance(h + 5);
   });
 }
 
@@ -563,19 +705,24 @@ function buildProgress(ctx, ai) {
 
 function buildDisclaimer(ctx, hadSections) {
   const doc = ctx.doc;
-  if (!hadSections) { newPage(ctx); } // ensure a content page exists for chrome
-  ctx.y += 10;
-  if (ctx.y + 90 > BOTTOM) newPage(ctx);
-  doc.save().rect(M, ctx.y, CW, 0.5).fill(C.BORDER).restore();
-  ctx.y += 8;
-  doc.font('Helvetica-Oblique').fontSize(8.5).fillColor(C.MUTED);
+  // The report must end on a page that carries chrome. When nothing but the
+  // cover was rendered we open one; otherwise the current page already counts.
+  if (!hadSections) newPage(ctx);
+  ctx.advance(10);
   const disc = 'This report is generated by BodyBank.fit’s AI Health System. It does not constitute a medical diagnosis. All supplement and dietary recommendations must be reviewed with your physician before implementation.';
-  const th = doc.heightOfString(disc, { width: CW - 28 });
-  const h = th + 24;
+  // The bold label and the italic body are one run in two faces; measuring only
+  // the body (as before) under-sized the box by the width of the label.
+  const L = PL.richLayout(doc, [
+    { text: 'Medical Disclaimer: ', font: 'Helvetica-Bold', size: 8.5, color: C.MUTED },
+    { text: disc, font: 'Helvetica-Oblique', size: 8.5, color: C.MUTED }
+  ], CW - 28, { lineGap: 2, maxHeight: ctx.pageHeight() - 30 });
+  const h = L.height + 24;
+  ctx.ensure(h + 10);
+  doc.save().rect(M, ctx.y, CW, 0.5).fill(C.BORDER).restore();
+  ctx.advance(8);
   box(doc, M, ctx.y, CW, h, C.DISC_BG, C.BORDER, 0.5);
-  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.MUTED).text('Medical Disclaimer: ', M + 14, ctx.y + 12, { width: CW - 28, continued: true })
-    .font('Helvetica-Oblique').fillColor(C.MUTED).text(disc, { lineGap: 2 });
-  ctx.y += h;
+  PL.drawRich(doc, L, M + 14, ctx.y + 12);
+  ctx.advance(h);
 }
 
 function formatDate(d) {

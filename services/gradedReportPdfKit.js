@@ -29,6 +29,7 @@ const path = require('path');
 const fs = require('fs');
 const PDFDocument = require('pdfkit');
 const { txt, hasText } = require('./pdfText');
+const PL = require('./pdfLayout');
 
 // ---------------------------------------------------------------------------
 // Brand + grade palette
@@ -120,44 +121,49 @@ function paintBg(doc) {
 }
 
 function newPage(ctx) {
-  ctx.doc.addPage();
-  ctx.y = TOP;
-  ctx.contentPages.add(ctx.doc.bufferedPageRange().count - 1);
+  ctx.newPage();
 }
 
-/** Ensure `need` points of vertical space, starting a page if not. */
+/**
+ * Ensure `need` points of vertical space, starting a page if not.
+ *
+ * Delegated to the flow, which refuses to break a page that carries no ink —
+ * breaking an empty page only produces another empty one.
+ */
 function ensure(ctx, need) {
-  if (ctx.y + need > BOTTOM) { newPage(ctx); return true; }
-  return false;
+  return ctx.ensure(need);
 }
 
 function paintChrome(doc, clientName, dateLabel, contentPages) {
   const range = doc.bufferedPageRange();
-  for (let i = 0; i < range.count; i += 1) {
+  const total = range.count;
+  for (let i = 0; i < total; i += 1) {
     if (!contentPages.has(i)) continue;
     doc.switchToPage(i);
     // The footer sits BELOW the bottom margin. PDFKit tracks doc.y through every
     // text() call, so writing down there leaves the cursor past the margin and the
     // next write auto-adds a page — which is how painting chrome onto 11 pages
     // silently produced 22 blank ones. Dropping the bottom margin for the duration
-    // keeps the flow engine out of it.
+    // keeps the flow engine out of it. The fitting helpers below then keep the
+    // wrapper out of it entirely: `{ width, lineBreak: false }` still wraps in
+    // PDFKit, and a long client name wrapped to a second line under the paper.
     const savedBottom = doc.page.margins.bottom;
     doc.page.margins.bottom = 0;
     doc.save();
     doc.font('Helvetica-Bold').fontSize(9).fillColor(C.GOLD);
     const wm = 'BodyBank.fit';
     const tw = doc.widthOfString(wm);
-    doc.text(wm, PAGE_W - M - tw, 28, { lineBreak: false });
+    PL.drawSingle(doc, wm, PAGE_W - M - tw, 28, 0, {});
     if (LOGO) { try { doc.image(LOGO, PAGE_W - M - tw - 20, 24, { width: 15, height: 15 }); } catch (_) { /* ignore */ } }
 
     doc.rect(0, PAGE_H - 44, PAGE_W, 44).fill(C.SURFACE);
     doc.rect(M, PAGE_H - 44, CW, 0.4).fill(C.BORDER);
-    doc.font('Helvetica').fontSize(7.5).fillColor(C.MUTED)
-      .text(txt(`BodyBank.fit  ·  Health Map Report  ·  ${clientName}`), M, PAGE_H - 26,
-        { width: CW * 0.62, lineBreak: false });
-    doc.font('Helvetica').fontSize(7.5).fillColor(C.MUTED)
-      .text(txt(`${dateLabel}  ·  Page ${i + 1}`), M, PAGE_H - 26,
-        { width: CW, align: 'right', lineBreak: false });
+    const right = txt(`${dateLabel}  ·  Page ${i + 1} of ${total}`);
+    doc.font('Helvetica').fontSize(7.5);
+    const rightW = Math.min(CW * 0.45, doc.widthOfString(right));
+    PL.drawFit(doc, right, M + CW - rightW, PAGE_H - 26, rightW, { font: 'Helvetica', size: 7.5, color: C.MUTED, align: 'right' });
+    PL.drawFit(doc, txt(`BodyBank.fit  ·  Health Map Report  ·  ${clientName}`), M, PAGE_H - 26,
+      CW - rightW - 14, { font: 'Helvetica', size: 7.5, color: C.MUTED });
     doc.restore();
     doc.page.margins.bottom = savedBottom;
   }
@@ -166,17 +172,19 @@ function paintChrome(doc, clientName, dateLabel, contentPages) {
 function sectionHeading(ctx, title, subtitle) {
   const doc = ctx.doc;
   if (!hasText(title)) return;
-  const subH = hasText(subtitle) ? doc.font('Helvetica').fontSize(9).heightOfString(txt(subtitle), { width: CW }) : 0;
-  ensure(ctx, 34 + subH);
-  doc.font('Helvetica-Bold').fontSize(15).fillColor(C.GOLD).text(txt(title), M, ctx.y, { width: CW });
-  ctx.y = doc.y + 6;
+  const titleL = PL.layout(doc, title, { font: 'Helvetica-Bold', size: 15, width: CW });
+  const subL = hasText(subtitle)
+    ? PL.layout(doc, subtitle, { font: 'Helvetica', size: 9, width: CW, lineGap: 2 })
+    : null;
+  ensure(ctx, titleL.height + 16 + (subL ? subL.height + 8 : 0));
+  PL.drawLayout(doc, titleL, M, ctx.y, { color: C.GOLD });
+  ctx.advance(titleL.height + 6);
   doc.save().rect(M, ctx.y, 46, 1.6).fill(C.GOLD_DIM).restore();
   doc.save().rect(M + 46, ctx.y, CW - 46, 0.5).fill(C.BORDER).restore();
-  ctx.y += 10;
-  if (hasText(subtitle)) {
-    doc.font('Helvetica').fontSize(9).fillColor(C.MUTED)
-      .text(txt(subtitle), M, ctx.y, { width: CW, lineGap: 2 });
-    ctx.y = doc.y + 8;
+  ctx.advance(10);
+  if (subL) {
+    PL.drawLayout(doc, subL, M, ctx.y, { color: C.MUTED });
+    ctx.advance(subL.height + 8);
   }
 }
 
@@ -188,9 +196,7 @@ function gradeBadge(doc, x, y, size, grade) {
   const t = gradeTone(grade);
   box(doc, x, y, size, size, t.fill, null, 0, 4);
   const letter = grade === 'NOT_ASSESSED' ? '–' : grade;
-  doc.font('Helvetica-Bold').fontSize(size * 0.56).fillColor(t.ink);
-  const lw = doc.widthOfString(letter);
-  doc.text(letter, x + (size - lw) / 2, y + size * 0.2, { lineBreak: false });
+  PL.drawFit(doc, letter, x, y + size * 0.2, size, { font: 'Helvetica-Bold', size: size * 0.56, color: t.ink, align: 'center' });
 }
 
 /** Four segments, filled to the grade's severity — a non-colour rank cue. */
@@ -204,24 +210,32 @@ function severityPips(doc, x, y, w, grade) {
   }
 }
 
+/**
+ * Flowing prose. Written through the flow, line by line, so a paragraph longer
+ * than the room left simply continues on the next page — instead of letting
+ * PDFKit add a page the renderer does not know about (which is how pages went
+ * out without a footer).
+ */
 function bodyText(ctx, text, opts) {
   const o = opts || {};
-  const doc = ctx.doc;
   const s = txt(text);
   if (!s.trim()) return;
-  const width = o.width || CW;
-  doc.font(o.font || 'Helvetica').fontSize(o.size || 9.5);
-  const h = doc.heightOfString(s, { width, lineGap: o.lineGap != null ? o.lineGap : 3 });
-  ensure(ctx, h + 6);
-  doc.fillColor(o.color || C.TEXT)
-    .text(s, o.x != null ? o.x : M, ctx.y, { width, lineGap: o.lineGap != null ? o.lineGap : 3, align: o.align || 'left' });
-  ctx.y = doc.y + (o.spaceAfter != null ? o.spaceAfter : 8);
+  PL.flowText(ctx, s, {
+    x: o.x != null ? o.x : M,
+    width: o.width || CW,
+    font: o.font || 'Helvetica',
+    size: o.size || 9.5,
+    lineGap: o.lineGap != null ? o.lineGap : 3,
+    align: o.align || 'left',
+    color: o.color || C.TEXT,
+    spaceAfter: o.spaceAfter != null ? o.spaceAfter : 8
+  });
 }
 
 /** A small uppercase layer label — RESULT / STATUS / BODYBANK INSIGHT / NEXT STEP. */
-function layerLabel(doc, x, y, text, color) {
-  doc.font('Helvetica-Bold').fontSize(6.5).fillColor(color || C.DIM)
-    .text(txt(String(text).toUpperCase()), x, y, { characterSpacing: 0.6, lineBreak: false });
+function layerLabel(doc, x, y, text, color, width) {
+  PL.drawFit(doc, String(text).toUpperCase(), x, y, width == null ? 150 : width,
+    { font: 'Helvetica-Bold', size: 6.5, color: color || C.DIM, characterSpacing: 0.6 });
 }
 
 // ---------------------------------------------------------------------------
@@ -236,32 +250,32 @@ function buildCover(ctx, cover) {
   if (LOGO) {
     try { doc.image(LOGO, M, ctx.y, { width: 40, height: 40 }); } catch (_) { /* ignore */ }
   }
-  doc.font('Helvetica-Bold').fontSize(11).fillColor(C.GOLD)
-    .text('BodyBank.fit', M + (LOGO ? 50 : 0), ctx.y + 8, { lineBreak: false });
-  doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-    .text('Preventive Health Screening', M + (LOGO ? 50 : 0), ctx.y + 23, { lineBreak: false });
-  ctx.y += 58;
+  const brandX = M + (LOGO ? 50 : 0);
+  PL.drawFit(doc, 'BodyBank.fit', brandX, ctx.y + 8, CW - (brandX - M), { font: 'Helvetica-Bold', size: 11, color: C.GOLD });
+  PL.drawFit(doc, 'Preventive Health Screening', brandX, ctx.y + 23, CW - (brandX - M), { font: 'Helvetica', size: 8, color: C.MUTED });
+  ctx.advance(58);
 
-  doc.font('Helvetica-Bold').fontSize(26).fillColor(C.TEXT)
-    .text(txt(cover.title), M, ctx.y, { width: CW });
-  ctx.y = doc.y + 10;
+  ctx.advance(PL.drawText(doc, cover.title, M, ctx.y, { font: 'Helvetica-Bold', size: 26, width: CW, color: C.TEXT }) + 10);
 
   doc.save().rect(M, ctx.y, 64, 2).fill(C.GOLD).restore();
-  ctx.y += 18;
+  ctx.advance(18);
 
-  // Client card
+  // Client card. The card is split into two columns that never overlap: the
+  // date plate takes a fixed share on the right, the name and meta take what is
+  // left. Both are then FITTED TO THEIR OWN COLUMN — drawing the date
+  // right-aligned across the full card width instead let a long date reach back
+  // across the card and land on top of the client meta line.
+  const dateLabel = txt(cover.screeningDateLabel || cover.screeningDate || '');
+  const dateW = CW * 0.34;
+  const dateX = M + CW - 16 - dateW;
+  const nameW = dateX - (M + 16) - 14;
   const cardH = 62;
   box(doc, M, ctx.y, CW, cardH, C.SURFACE, C.BORDER, 0.6, 6);
-  doc.font('Helvetica-Bold').fontSize(15).fillColor(C.TEXT)
-    .text(txt(cover.clientName || 'Member'), M + 16, ctx.y + 13, { width: CW - 32, lineBreak: false });
-  doc.font('Helvetica').fontSize(9).fillColor(C.MUTED)
-    .text(txt(cover.clientMeta || ''), M + 16, ctx.y + 33, { width: CW * 0.6, lineBreak: false });
-  doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-    .text(txt('SCREENING DATE'), M, ctx.y + 16, { width: CW - 16, align: 'right', lineBreak: false });
-  doc.font('Helvetica-Bold').fontSize(10.5).fillColor(C.GOLD)
-    .text(txt(cover.screeningDateLabel || cover.screeningDate || ''), M, ctx.y + 30,
-      { width: CW - 16, align: 'right', lineBreak: false });
-  ctx.y += cardH + 14;
+  PL.drawFit(doc, cover.clientName || 'Member', M + 16, ctx.y + 13, nameW, { font: 'Helvetica-Bold', size: 15, minSize: 8, color: C.TEXT });
+  PL.drawFit(doc, cover.clientMeta || '', M + 16, ctx.y + 33, nameW, { font: 'Helvetica', size: 9, minSize: 6.5, color: C.MUTED });
+  PL.drawFit(doc, 'SCREENING DATE', dateX, ctx.y + 16, dateW, { font: 'Helvetica', size: 8, color: C.MUTED, align: 'right' });
+  PL.drawFit(doc, dateLabel, dateX, ctx.y + 30, dateW, { font: 'Helvetica-Bold', size: 10.5, minSize: 6.5, color: C.GOLD, align: 'right' });
+  ctx.advance(cardH + 14);
 
   // Stat strip
   const stats = (cover.stats || []).filter((s) => s.show !== false);
@@ -272,13 +286,11 @@ function buildCover(ctx, cover) {
     stats.forEach((s, i) => {
       const x = M + i * (w + gap);
       box(doc, x, ctx.y, w, h, C.DARK, C.BORDER_SOFT, 0.5, 6);
-      doc.font('Helvetica-Bold').fontSize(19).fillColor(C.GOLD)
-        .text(txt(s.value), x, ctx.y + 10, { width: w, align: 'center', lineBreak: false });
-      doc.font('Helvetica').fontSize(7.5).fillColor(C.MUTED)
-        .text(txt(String(s.label).toUpperCase()), x, ctx.y + 33,
-          { width: w, align: 'center', characterSpacing: 0.5, lineBreak: false });
+      PL.drawFit(doc, s.value, x + 4, ctx.y + 10, w - 8, { font: 'Helvetica-Bold', size: 19, minSize: 8, color: C.GOLD, align: 'center' });
+      PL.drawFit(doc, String(s.label).toUpperCase(), x + 4, ctx.y + 33, w - 8,
+        { font: 'Helvetica', size: 7.5, minSize: 5.5, color: C.MUTED, align: 'center', characterSpacing: 0.5 });
     });
-    ctx.y += h + 16;
+    ctx.advance(h + 16);
   }
 }
 
@@ -309,21 +321,24 @@ function renderHealthMap(ctx, s) {
 
       const tx = x + 52;
       const tw = w - 64;
-      doc.font('Helvetica-Bold').fontSize(10).fillColor(C.TEXT)
-        .text(txt(a.label), tx, y + 9, { width: tw, lineBreak: false, ellipsis: true });
-      doc.font('Helvetica').fontSize(7.8).fillColor(gradeTone(a.grade).fill)
-        .text(txt(a.gradeLabel || gradeTone(a.grade).label), tx, y + 22, { width: tw, lineBreak: false, ellipsis: true });
+      // `ellipsis: true` is not a clip either — PDFKit only honours it inside
+      // its line wrapper, which it then also uses to WRAP, so a long area name
+      // ran onto a second line and out through the bottom of its tile. Both
+      // labels are fitted to the tile instead.
+      PL.drawFit(doc, a.label, tx, y + 9, tw, { font: 'Helvetica-Bold', size: 10, minSize: 7, color: C.TEXT });
+      PL.drawFit(doc, a.gradeLabel || gradeTone(a.grade).label, tx, y + 22, tw,
+        { font: 'Helvetica', size: 7.8, minSize: 6, color: gradeTone(a.grade).fill });
 
       severityPips(doc, tx, y + 36, Math.min(tw, 70), a.grade);
 
       if (a.previousGrade && a.previousGrade !== a.grade) {
-        doc.font('Helvetica').fontSize(7.5).fillColor(C.MUTED)
-          .text(txt(`was ${a.previousGrade}`), x + w - 48, y + 35, { width: 38, align: 'right', lineBreak: false });
+        PL.drawFit(doc, `was ${a.previousGrade}`, x + w - 48, y + 35, 38,
+          { font: 'Helvetica', size: 7.5, color: C.MUTED, align: 'right' });
       }
       // A grade that held needs no annotation. Printing 'no change' on six of
       // seven tiles turns the one tile that DID move into noise.
 
-      if (col === cols - 1 || i === areas.length - 1) ctx.y += h + gap;
+      if (col === cols - 1 || i === areas.length - 1) ctx.advance(h + gap);
     });
   }
 
@@ -332,12 +347,17 @@ function renderHealthMap(ctx, s) {
     let lx = M;
     ['A', 'B', 'C', 'D'].forEach((g) => {
       const t = gradeTone(g);
+      const label = txt(`${g} ${t.label}`);
+      doc.font('Helvetica').fontSize(7.5);
+      const lw = doc.widthOfString(label);
+      // The legend is a single strip: an entry that will not fit in the room
+      // left is dropped rather than drawn past the content column.
+      if (lx + 12 + lw > M + CW) return;
       box(doc, lx, ctx.y + 2, 8, 8, t.fill, null, 0, 2);
-      doc.font('Helvetica').fontSize(7.5).fillColor(C.MUTED)
-        .text(txt(`${g} ${t.label}`), lx + 12, ctx.y + 2, { lineBreak: false });
-      lx += 14 + doc.widthOfString(txt(`${g} ${t.label}`)) + 16;
+      PL.drawFit(doc, label, lx + 12, ctx.y + 2, M + CW - lx - 12, { font: 'Helvetica', size: 7.5, color: C.MUTED });
+      lx += 14 + lw + 16;
     });
-    ctx.y += 20;
+    ctx.advance(20);
   }
 
   const na = (s.notAssessed || []).filter((a) => a.show !== false);
@@ -346,15 +366,11 @@ function renderHealthMap(ctx, s) {
     // secondary — it explains a gap, it does not report a finding — so it earns a
     // couple of lines, not a quarter of page one.
     const line = na.map((a) => `${a.label} (needs ${a.needs})`).join(';  ');
-    doc.font('Helvetica').fontSize(8).fillColor(C.DIM);
-    const h = doc.heightOfString(txt(line), { width: CW - 14, lineGap: 2 });
-    ensure(ctx, h + 26);
-    doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.MUTED)
-      .text(txt(s.notAssessedTitle || 'Not assessed in this screening'), M, ctx.y, { width: CW, lineBreak: false });
-    ctx.y += 13;
-    doc.font('Helvetica').fontSize(8).fillColor(C.DIM)
-      .text(txt(line), M, ctx.y, { width: CW - 14, lineGap: 2 });
-    ctx.y = doc.y + 8;
+    ensure(ctx, 30);
+    PL.drawFit(doc, s.notAssessedTitle || 'Not assessed in this screening', M, ctx.y, CW,
+      { font: 'Helvetica-Bold', size: 8.5, color: C.MUTED });
+    ctx.advance(13);
+    PL.flowText(ctx, line, { x: M, width: CW - 14, font: 'Helvetica', size: 8, lineGap: 2, color: C.DIM, spaceAfter: 8 });
   }
 }
 
@@ -363,13 +379,14 @@ function renderText(ctx, s) {
   if (s.variant === 'lead') {
     const body = txt(s.body);
     if (!body.trim()) return;
-    doc.font('Helvetica').fontSize(12);
-    const h = doc.heightOfString(body, { width: CW - 32, lineGap: 4 });
-    ensure(ctx, h + 30);
-    box(doc, M, ctx.y, CW, h + 26, C.SURFACE2, null, 0, 6);
-    doc.save().rect(M, ctx.y, 2.5, h + 26).fill(C.GOLD).restore();
-    doc.fillColor(C.TEXT).text(body, M + 18, ctx.y + 13, { width: CW - 32, lineGap: 4 });
-    ctx.y += h + 34;
+    // The lead sits in a single tinted box, so it is capped to a page: a lead
+    // taller than the paper has no box that could hold it.
+    const L = PL.layout(doc, body, { font: 'Helvetica', size: 12, width: CW - 32, lineGap: 4, maxHeight: (BOTTOM - TOP) - 40 });
+    ensure(ctx, L.height + 30);
+    box(doc, M, ctx.y, CW, L.height + 26, C.SURFACE2, null, 0, 6);
+    doc.save().rect(M, ctx.y, 2.5, L.height + 26).fill(C.GOLD).restore();
+    PL.drawLayout(doc, L, M + 18, ctx.y + 13, { color: C.TEXT });
+    ctx.advance(L.height + 34);
     return;
   }
   sectionHeading(ctx, s.title, s.subtitle);
@@ -390,11 +407,17 @@ function renderPriorities(ctx, s) {
 
   items.forEach((p) => {
     const tw = CW - 32;
-    doc.font('Helvetica').fontSize(9);
-    const whyH = doc.heightOfString(txt(p.whyItMatters), { width: tw, lineGap: 2.5 });
-    const stepH = doc.heightOfString(txt(p.nextStep), { width: tw, lineGap: 2.5 });
+    // Every block inside the card is measured before the card is drawn, and the
+    // title is allowed the lines it needs: a two-line priority title used to run
+    // straight through the RESULT layer beneath it, because the header was
+    // assumed to be a fixed 46pt tall.
+    const room = (BOTTOM - TOP) - 30;
+    const titleL = PL.layout(doc, p.title, { font: 'Helvetica-Bold', size: 13, width: CW - 58, maxLines: 2 });
+    const headH = Math.max(46, 15 + titleL.height + 4 + 12 + 6);
+    const whyL = PL.layout(doc, p.whyItMatters, { font: 'Helvetica', size: 9, width: tw, lineGap: 2.5, maxHeight: room * 0.45 });
+    const stepL = PL.layout(doc, p.nextStep, { font: 'Helvetica', size: 9, width: tw, lineGap: 2.5, maxHeight: room * 0.35 });
     const proH = p.requiresProfessional && hasText(p.professionalNote) ? 18 : 0;
-    const h = 46 + 16 + whyH + 16 + 20 + 16 + stepH + proH + 16;
+    const h = headH + 8 + 30 + 11 + whyL.height + 10 + 11 + stepL.height + proH + 16;
 
     ensure(ctx, h + 12);
     const y = ctx.y;
@@ -403,41 +426,37 @@ function renderPriorities(ctx, s) {
     doc.save().rect(M, y, 3, h).fill(tone.fill).restore();
 
     // rank + title
-    doc.font('Helvetica-Bold').fontSize(9).fillColor(tone.ink);
     box(doc, M + 16, y + 15, 18, 18, tone.fill, null, 0, 9);
-    doc.text(String(p.rank), M + 16, y + 20, { width: 18, align: 'center', lineBreak: false });
+    PL.drawFit(doc, String(p.rank), M + 16, y + 20, 18, { font: 'Helvetica-Bold', size: 9, color: tone.ink, align: 'center' });
 
-    doc.font('Helvetica-Bold').fontSize(13).fillColor(C.TEXT)
-      .text(txt(p.title), M + 42, y + 15, { width: CW - 58 });
-    doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-      .text(txt(`${p.areaLabel}  ·  Grade ${p.grade}`), M + 42, y + 32, { width: CW - 58, lineBreak: false });
+    PL.drawLayout(doc, titleL, M + 42, y + 15, { color: C.TEXT });
+    PL.drawFit(doc, `${p.areaLabel}  ·  Grade ${p.grade}`, M + 42, y + 15 + titleL.height + 3, CW - 58,
+      { font: 'Helvetica', size: 8, color: C.MUTED });
 
-    let cy = y + 54;
+    let cy = y + headH + 8;
 
-    layerLabel(doc, M + 16, cy, 'Result');
-    doc.font('Helvetica-Bold').fontSize(10.5).fillColor(C.TEXT)
-      .text(txt(p.result), M + 16, cy + 10, { width: tw * 0.66, lineBreak: false, ellipsis: true });
-    layerLabel(doc, M + 16 + tw * 0.68, cy, 'Status');
-    doc.font('Helvetica-Bold').fontSize(10.5).fillColor(tone.fill)
-      .text(txt(p.status), M + 16 + tw * 0.68, cy + 10, { width: tw * 0.32, lineBreak: false });
+    // RESULT and STATUS share one row; each is fitted to its own half so a long
+    // result can never cross into the status column.
+    layerLabel(doc, M + 16, cy, 'Result', null, tw * 0.66);
+    PL.drawFit(doc, p.result, M + 16, cy + 10, tw * 0.66, { font: 'Helvetica-Bold', size: 10.5, minSize: 7, color: C.TEXT });
+    layerLabel(doc, M + 16 + tw * 0.68, cy, 'Status', null, tw * 0.32);
+    PL.drawFit(doc, p.status, M + 16 + tw * 0.68, cy + 10, tw * 0.32, { font: 'Helvetica-Bold', size: 10.5, minSize: 7, color: tone.fill });
     cy += 30;
 
-    layerLabel(doc, M + 16, cy, 'Why it matters');
-    doc.font('Helvetica').fontSize(9).fillColor(C.TEXT)
-      .text(txt(p.whyItMatters), M + 16, cy + 11, { width: tw, lineGap: 2.5 });
-    cy += 11 + whyH + 10;
+    layerLabel(doc, M + 16, cy, 'Why it matters', null, tw);
+    PL.drawLayout(doc, whyL, M + 16, cy + 11, { color: C.TEXT });
+    cy += 11 + whyL.height + 10;
 
-    layerLabel(doc, M + 16, cy, 'Next step', C.GOLD_DIM);
-    doc.font('Helvetica').fontSize(9).fillColor(C.TEXT)
-      .text(txt(p.nextStep), M + 16, cy + 11, { width: tw, lineGap: 2.5 });
-    cy += 11 + stepH;
+    layerLabel(doc, M + 16, cy, 'Next step', C.GOLD_DIM, tw);
+    PL.drawLayout(doc, stepL, M + 16, cy + 11, { color: C.TEXT });
+    cy += 11 + stepL.height;
 
     if (proH) {
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(GRADE.D.fill)
-        .text(txt('>  ' + p.professionalNote), M + 16, cy + 6, { width: tw, lineBreak: false });
+      PL.drawFit(doc, '>  ' + p.professionalNote, M + 16, cy + 6, tw, { font: 'Helvetica-Bold', size: 8.5, minSize: 6.5, color: GRADE.D.fill });
     }
 
     ctx.y = y + h + 12;
+    ctx.touch();
   });
 }
 
@@ -450,23 +469,24 @@ function renderAreaCards(ctx, s) {
     const tw = CW - 32;
 
     // Header block — kept with at least the summary so a card never orphans.
-    doc.font('Helvetica').fontSize(9);
-    const sumH = hasText(card.summary) ? doc.heightOfString(txt(card.summary), { width: tw, lineGap: 2.5 }) : 0;
-    ensure(ctx, 54 + sumH + 24);
+    const sumH = hasText(card.summary)
+      ? PL.measure(doc, card.summary, { font: 'Helvetica', size: 9, width: tw, lineGap: 2.5 })
+      : 0;
+    ensure(ctx, 54 + Math.min(sumH, 60) + 24);
 
     const y = ctx.y;
     box(doc, M, y, CW, 42, C.SURFACE2, null, 0, 6);
     doc.save().rect(M, y, 3, 42).fill(tone.fill).restore();
     gradeBadge(doc, M + 14, y + 6, 30, card.grade);
-    doc.font('Helvetica-Bold').fontSize(12.5).fillColor(C.TEXT)
-      .text(txt(card.label), M + 54, y + 10, { width: CW - 190, lineBreak: false, ellipsis: true });
-    doc.font('Helvetica').fontSize(8.5).fillColor(tone.fill)
-      .text(txt(card.gradeLabel || tone.label), M + 54, y + 25, { width: CW - 190, lineBreak: false });
+    const headW = CW - (card.requiresProfessional ? 190 : 70);
+    PL.drawFit(doc, card.label, M + 54, y + 10, headW, { font: 'Helvetica-Bold', size: 12.5, minSize: 8, color: C.TEXT });
+    PL.drawFit(doc, card.gradeLabel || tone.label, M + 54, y + 25, headW, { font: 'Helvetica', size: 8.5, minSize: 6.5, color: tone.fill });
     if (card.requiresProfessional) {
-      doc.font('Helvetica-Bold').fontSize(7.5).fillColor(GRADE.D.fill)
-        .text(txt('DISCUSS WITH A PROFESSIONAL'), M, y + 17, { width: CW - 14, align: 'right', lineBreak: false });
+      PL.drawFit(doc, 'DISCUSS WITH A PROFESSIONAL', M, y + 17, CW - 14,
+        { font: 'Helvetica-Bold', size: 7.5, color: GRADE.D.fill, align: 'right' });
     }
     ctx.y = y + 50;
+    ctx.touch();
 
     if (hasText(card.summary)) bodyText(ctx, card.summary, { size: 9, spaceAfter: 6 });
     if (hasText(card.trendLine)) {
@@ -475,44 +495,43 @@ function renderAreaCards(ctx, s) {
 
     const findings = (card.findings || []).filter((f) => f.show !== false);
     findings.forEach((f) => {
-      doc.font('Helvetica').fontSize(8.5);
-      const insH = hasText(f.insight) ? doc.heightOfString(txt(f.insight), { width: tw - 8, lineGap: 2 }) : 0;
+      const insL = hasText(f.insight)
+        ? PL.layout(doc, f.insight, { font: 'Helvetica', size: 8.5, width: tw - 8, lineGap: 2, maxHeight: (BOTTOM - TOP) - 44 })
+        : null;
+      const insH = insL ? insL.height : 0;
       const rowH = 30 + insH + (insH ? 6 : 0);
       ensure(ctx, rowH + 4);
       const fy = ctx.y;
       box(doc, M, fy, CW, rowH, C.DARK, null, 0, 4);
 
-      doc.font('Helvetica-Bold').fontSize(9.5).fillColor(C.TEXT)
-        .text(txt(f.label), M + 12, fy + 8, { width: CW * 0.34, lineBreak: false, ellipsis: true });
-      doc.font('Helvetica-Bold').fontSize(9.5).fillColor(C.TEXT)
-        .text(txt(f.result), M + CW * 0.37, fy + 8, { width: CW * 0.22, lineBreak: false });
-      doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-        .text(txt(f.range ? `ref ${f.range}` : ''), M + CW * 0.59, fy + 9, { width: CW * 0.18, lineBreak: false, ellipsis: true });
+      // Four columns on one line. Each is fitted to its own share, so a long
+      // marker name shrinks inside its column instead of running into the
+      // result beside it.
+      PL.drawFit(doc, f.label, M + 12, fy + 8, CW * 0.34 - 14, { font: 'Helvetica-Bold', size: 9.5, minSize: 6.5, color: C.TEXT });
+      PL.drawFit(doc, f.result, M + CW * 0.37, fy + 8, CW * 0.21, { font: 'Helvetica-Bold', size: 9.5, minSize: 6.5, color: C.TEXT });
+      PL.drawFit(doc, f.range ? `ref ${f.range}` : '', M + CW * 0.59, fy + 9, CW * 0.17, { font: 'Helvetica', size: 8, minSize: 6, color: C.MUTED });
 
       const stCol = f.status === 'Within range' ? C.MUTED : tone.fill;
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(stCol)
-        .text(txt(f.status), M + CW * 0.77, fy + 9, { width: CW * 0.21 - 12, align: 'right', lineBreak: false });
+      PL.drawFit(doc, f.status, M + CW * 0.77, fy + 9, CW * 0.21 - 12,
+        { font: 'Helvetica-Bold', size: 8.5, minSize: 6, color: stCol, align: 'right' });
 
-      if (insH) {
-        doc.font('Helvetica').fontSize(8.5).fillColor(C.MUTED)
-          .text(txt(f.insight), M + 12, fy + 24, { width: tw - 8, lineGap: 2 });
-      }
+      if (insL) PL.drawLayout(doc, insL, M + 12, fy + 24, { color: C.MUTED });
       ctx.y = fy + rowH + 4;
+      ctx.touch();
     });
 
     if (hasText(card.focus)) {
-      doc.font('Helvetica').fontSize(9);
-      const fh = doc.heightOfString(txt(card.focus), { width: tw - 46, lineGap: 2.5 });
-      ensure(ctx, fh + 24);
+      const fL = PL.layout(doc, card.focus, { font: 'Helvetica', size: 9, width: tw - 46, lineGap: 2.5, maxHeight: (BOTTOM - TOP) - 30 });
+      ensure(ctx, fL.height + 24);
       const fy = ctx.y;
-      box(doc, M, fy, CW, fh + 20, '#1b2320', null, 0, 4);
-      layerLabel(doc, M + 12, fy + 8, 'Focus on', C.GOLD_DIM);
-      doc.font('Helvetica').fontSize(9).fillColor(C.TEXT)
-        .text(txt(card.focus), M + 56, fy + 7, { width: tw - 46, lineGap: 2.5 });
-      ctx.y = fy + fh + 26;
+      box(doc, M, fy, CW, fL.height + 20, '#1b2320', null, 0, 4);
+      layerLabel(doc, M + 12, fy + 8, 'Focus on', C.GOLD_DIM, 42);
+      PL.drawLayout(doc, fL, M + 56, fy + 7, { color: C.TEXT });
+      ctx.y = fy + fL.height + 26;
+      ctx.touch();
     }
 
-    ctx.y += 8;
+    ctx.advance(8);
   });
 }
 
@@ -537,11 +556,10 @@ function renderMarkers(ctx, s) {
   const drawHeader = () => {
     box(doc, M, ctx.y, CW, 20, C.SURFACE2, null, 0, 3);
     cols.forEach((c, i) => {
-      doc.font('Helvetica-Bold').fontSize(7).fillColor(C.MUTED)
-        .text(txt(c.header.toUpperCase()), xs[i] + pad, ctx.y + 7,
-          { width: c.frac * CW - 2 * pad, align: c.align, characterSpacing: 0.5, lineBreak: false });
+      PL.drawFit(doc, c.header.toUpperCase(), xs[i] + pad, ctx.y + 7, c.frac * CW - 2 * pad,
+        { font: 'Helvetica-Bold', size: 7, color: C.MUTED, align: c.align, characterSpacing: 0.5 });
     });
-    ctx.y += 20;
+    ctx.advance(20);
   };
 
   (s.groups || []).filter((g) => g.show !== false).forEach((g) => {
@@ -549,40 +567,40 @@ function renderMarkers(ctx, s) {
     if (!markers.length) return;
 
     ensure(ctx, 56);
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(C.GOLD_DIM)
-      .text(txt(g.label), M, ctx.y, { width: CW });
-    ctx.y = doc.y + 6;
+    const gL = PL.layout(doc, g.label, { font: 'Helvetica-Bold', size: 10, width: CW, maxLines: 2 });
+    PL.drawLayout(doc, gL, M, ctx.y, { color: C.GOLD_DIM });
+    ctx.advance(gL.height + 6);
     drawHeader();
 
     markers.forEach((m, ri) => {
       const rowH = 19;
-      if (ctx.y + rowH > BOTTOM) { newPage(ctx); drawHeader(); }
+      // The row is a fixed 19pt, so every cell is fitted to its column: the
+      // trend vocabulary is fixed, but marker names and lab ranges are not.
+      if (ctx.y + rowH > BOTTOM && !ctx.isFresh()) { newPage(ctx); drawHeader(); }
       box(doc, M, ctx.y, CW, rowH, ri % 2 === 0 ? C.DARK : null);
       const ty = ctx.y + 5.5;
 
-      doc.font('Helvetica').fontSize(8.5).fillColor(C.TEXT)
-        .text(txt(m.label), xs[0] + pad, ty, { width: cols[0].frac * CW - 2 * pad, lineBreak: false, ellipsis: true });
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.TEXT)
-        .text(txt(m.result), xs[1] + pad, ty, { width: cols[1].frac * CW - 2 * pad, lineBreak: false, ellipsis: true });
-      doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-        .text(txt(m.range) + (m.rangeSource === 'BODYBANK_PREFERRED' ? ' *' : ''),
-          xs[2] + pad, ty + 0.4, { width: cols[2].frac * CW - 2 * pad, lineBreak: false, ellipsis: true });
+      PL.drawFit(doc, m.label, xs[0] + pad, ty, cols[0].frac * CW - 2 * pad,
+        { font: 'Helvetica', size: 8.5, minSize: 6, color: C.TEXT });
+      PL.drawFit(doc, m.result, xs[1] + pad, ty, cols[1].frac * CW - 2 * pad,
+        { font: 'Helvetica-Bold', size: 8.5, minSize: 6, color: C.TEXT });
+      PL.drawFit(doc, txt(m.range) + (m.rangeSource === 'BODYBANK_PREFERRED' ? ' *' : ''),
+        xs[2] + pad, ty + 0.4, cols[2].frac * CW - 2 * pad,
+        { font: 'Helvetica', size: 8, minSize: 5.5, color: C.MUTED });
 
       const within = m.status === 'Within range';
-      doc.font(within ? 'Helvetica' : 'Helvetica-Bold').fontSize(8.5)
-        .fillColor(within ? C.MUTED : C.TEXT)
-        .text(txt(m.status), xs[3] + pad, ty, { width: cols[3].frac * CW - 2 * pad, lineBreak: false, ellipsis: true });
+      PL.drawFit(doc, m.status, xs[3] + pad, ty, cols[3].frac * CW - 2 * pad,
+        { font: within ? 'Helvetica' : 'Helvetica-Bold', size: 8.5, minSize: 6, color: within ? C.MUTED : C.TEXT });
 
       if (m.trend && m.trend !== 'NOT_COMPARABLE') {
-        doc.font('Helvetica').fontSize(7).fillColor(TREND_TONE[m.trend] || C.DIM)
-          .text(txt(m.trendLabel || ''), xs[4] + pad, ty + 0.6,
-            { width: cols[4].frac * CW - 2 * pad, align: 'right', lineBreak: false, ellipsis: true });
+        PL.drawFit(doc, m.trendLabel || '', xs[4] + pad, ty + 0.6, cols[4].frac * CW - 2 * pad,
+          { font: 'Helvetica', size: 7, minSize: 5.5, color: TREND_TONE[m.trend] || C.DIM, align: 'right' });
       }
-      ctx.y += rowH;
+      ctx.advance(rowH);
     });
 
     doc.save().rect(M, ctx.y, CW, 0.4).fill(C.BORDER_SOFT).restore();
-    ctx.y += 14;
+    ctx.advance(14);
   });
 
   // Footnote for any BodyBank-supplied range used above.
@@ -590,10 +608,8 @@ function renderMarkers(ctx, s) {
     .some((m) => m.rangeSource === 'BODYBANK_PREFERRED'));
   if (usedPreferred) {
     ensure(ctx, 20);
-    doc.font('Helvetica-Oblique').fontSize(7.5).fillColor(C.MUTED)
-      .text(txt('*  Your lab did not print a reference range for this marker, so a BodyBank preferred range was used and is shown here.'),
-        M, ctx.y, { width: CW, lineGap: 2 });
-    ctx.y = doc.y + 8;
+    PL.flowText(ctx, '*  Your lab did not print a reference range for this marker, so a BodyBank preferred range was used and is shown here.',
+      { x: M, width: CW, font: 'Helvetica-Oblique', size: 7.5, lineGap: 2, color: C.MUTED, spaceAfter: 8 });
   }
 }
 
@@ -602,12 +618,11 @@ function renderProgress(ctx, s) {
   sectionHeading(ctx, s.title, s.subtitle);
 
   if (hasText(s.caution)) {
-    doc.font('Helvetica').fontSize(8.5);
-    const h = doc.heightOfString(txt(s.caution), { width: CW - 28 });
-    ensure(ctx, h + 22);
-    box(doc, M, ctx.y, CW, h + 16, '#241f16', null, 0, 4);
-    doc.fillColor(C.GOLD).text(txt(s.caution), M + 14, ctx.y + 8, { width: CW - 28 });
-    ctx.y += h + 24;
+    const L = PL.layout(doc, s.caution, { font: 'Helvetica', size: 8.5, width: CW - 28, maxHeight: (BOTTOM - TOP) - 30 });
+    ensure(ctx, L.height + 22);
+    box(doc, M, ctx.y, CW, L.height + 16, '#241f16', null, 0, 4);
+    PL.drawLayout(doc, L, M + 14, ctx.y + 8, { color: C.GOLD });
+    ctx.advance(L.height + 24);
   }
 
   (s.groups || []).filter((g) => g.show !== false).forEach((g) => {
@@ -621,9 +636,8 @@ function renderProgress(ctx, s) {
     ] || C.MUTED;
 
     ensure(ctx, 40);
-    doc.font('Helvetica-Bold').fontSize(10).fillColor(tone)
-      .text(txt(`${g.title}  (${items.length})`), M, ctx.y, { width: CW, lineBreak: false });
-    ctx.y = doc.y + 6;
+    PL.drawFit(doc, `${g.title}  (${items.length})`, M, ctx.y, CW, { font: 'Helvetica-Bold', size: 10, color: tone });
+    ctx.advance(18);
 
     // The stable group is a long list of names; print it as flowing text rather
     // than one row per marker, so it never fills a page on its own.
@@ -637,23 +651,21 @@ function renderProgress(ctx, s) {
       ensure(ctx, rowH);
       box(doc, M, ctx.y, CW, rowH, ri % 2 === 0 ? C.DARK : null);
       const ty = ctx.y + 5;
-      doc.font('Helvetica').fontSize(8.5).fillColor(C.TEXT)
-        .text(txt(it.label), M + 10, ty, { width: CW * 0.42, lineBreak: false, ellipsis: true });
+      PL.drawFit(doc, it.label, M + 10, ty, CW * 0.42 - 10, { font: 'Helvetica', size: 8.5, minSize: 6, color: C.TEXT });
 
       const move = it.previous ? `${it.previous}  ->  ${it.current}` : txt(it.current);
-      doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.TEXT)
-        .text(txt(move), M + CW * 0.44, ty, { width: CW * 0.34, lineBreak: false, ellipsis: true });
+      PL.drawFit(doc, move, M + CW * 0.44, ty, CW * 0.33, { font: 'Helvetica-Bold', size: 8.5, minSize: 6, color: C.TEXT });
 
       let tag = '';
       if (it.newReason === 'FIRST_MEASURED') tag = 'first measured';
       else if (it.newReason === 'MOVED_OUT_OF_RANGE') tag = 'moved out of range';
       if (tag) {
-        doc.font('Helvetica-Oblique').fontSize(7.5).fillColor(C.MUTED)
-          .text(txt(tag), M + CW * 0.78, ty + 0.5, { width: CW * 0.22 - 10, align: 'right', lineBreak: false });
+        PL.drawFit(doc, tag, M + CW * 0.78, ty + 0.5, CW * 0.22 - 10,
+          { font: 'Helvetica-Oblique', size: 7.5, minSize: 5.5, color: C.MUTED, align: 'right' });
       }
-      ctx.y += rowH;
+      ctx.advance(rowH);
     });
-    ctx.y += 12;
+    ctx.advance(12);
   });
 }
 
@@ -664,17 +676,15 @@ function renderList(ctx, s) {
   items.forEach((it, i) => {
     const marker = s.style === 'bulleted' ? '•' : String(i + 1);
     const tw = CW - 40;
-    doc.font('Helvetica').fontSize(9.5);
-    const h = doc.heightOfString(txt(it.text), { width: tw, lineGap: 3 });
-    ensure(ctx, h + 18);
+    const L = PL.layout(doc, it.text, { font: 'Helvetica', size: 9.5, width: tw, lineGap: 3, maxHeight: (BOTTOM - TOP) - 24 });
+    ensure(ctx, L.height + 18);
     const y = ctx.y;
     box(doc, M, y, 20, 20, it.requiresProfessional ? GRADE.D.fill : C.SURFACE2, null, 0, 10);
-    doc.font('Helvetica-Bold').fontSize(9)
-      .fillColor(it.requiresProfessional ? GRADE.D.ink : C.GOLD)
-      .text(marker, M, y + 5.5, { width: 20, align: 'center', lineBreak: false });
-    doc.font('Helvetica').fontSize(9.5).fillColor(C.TEXT)
-      .text(txt(it.text), M + 32, y + 4, { width: tw, lineGap: 3 });
-    ctx.y = Math.max(y + 26, doc.y + 10);
+    PL.drawFit(doc, marker, M, y + 5.5, 20,
+      { font: 'Helvetica-Bold', size: 9, color: it.requiresProfessional ? GRADE.D.ink : C.GOLD, align: 'center' });
+    PL.drawLayout(doc, L, M + 32, y + 4, { color: C.TEXT });
+    ctx.y = Math.max(y + 26, y + 4 + L.height + 10);
+    ctx.touch();
   });
 }
 
@@ -688,14 +698,25 @@ function renderCallout(ctx, s) {
 
   const items = (s.items || []).filter((i) => i.show !== false);
   const tw = CW - 34;
-  doc.font('Helvetica').fontSize(9);
-  const bodyH = hasText(s.body) ? doc.heightOfString(txt(s.body), { width: tw, lineGap: 3 }) : 0;
-  const itemsH = items.reduce((acc, it) => {
-    doc.font('Helvetica').fontSize(8.5);
-    const nh = hasText(it.note) ? doc.heightOfString(txt(it.note), { width: tw - 6, lineGap: 2 }) : 0;
-    return acc + 20 + nh + 6;
-  }, 0);
-  const h = 16 + (hasText(s.title) ? 18 : 0) + bodyH + (itemsH ? itemsH + 6 : 0) + 14;
+  const room = (BOTTOM - TOP) - 40;
+  // Every piece is laid out up front and the box is sized from those layouts,
+  // then the very same layouts are drawn into it. The note under an item used
+  // to be measured at one width and drawn at another, so a long note pushed the
+  // last item through the bottom of the callout.
+  const bodyL = hasText(s.body)
+    ? PL.layout(doc, s.body, { font: 'Helvetica', size: 9, width: tw, lineGap: 3, maxHeight: room * 0.6 })
+    : null;
+  const itemLs = items.map((it) => ({
+    it,
+    noteL: hasText(it.note)
+      ? PL.layout(doc, it.note, { font: 'Helvetica', size: 8.5, width: tw - 6, lineGap: 2, maxHeight: room * 0.3 })
+      : null
+  }));
+  const titleL = hasText(s.title)
+    ? PL.layout(doc, s.title, { font: 'Helvetica-Bold', size: 10.5, width: tw, maxLines: 2 })
+    : null;
+  const itemsH = itemLs.reduce((acc, e) => acc + 16 + (e.noteL ? e.noteL.height + 6 : 6), 0);
+  const h = 14 + (titleL ? titleL.height + 6 : 0) + (bodyL ? bodyL.height + 6 : 0) + itemsH + 12;
 
   ensure(ctx, h + 10);
   const y = ctx.y;
@@ -703,52 +724,44 @@ function renderCallout(ctx, s) {
   doc.save().rect(M, y, 3, h).fill(tone).restore();
 
   let cy = y + 14;
-  if (hasText(s.title)) {
-    doc.font('Helvetica-Bold').fontSize(10.5).fillColor(tone)
-      .text(txt(s.title), M + 17, cy, { width: tw, lineBreak: false });
-    cy += 18;
+  if (titleL) {
+    PL.drawLayout(doc, titleL, M + 17, cy, { color: tone });
+    cy += titleL.height + 6;
   }
-  if (bodyH) {
-    doc.font('Helvetica').fontSize(9).fillColor(C.TEXT)
-      .text(txt(s.body), M + 17, cy, { width: tw, lineGap: 3 });
-    cy += bodyH + 6;
+  if (bodyL) {
+    PL.drawLayout(doc, bodyL, M + 17, cy, { color: C.TEXT });
+    cy += bodyL.height + 6;
   }
-  items.forEach((it) => {
-    doc.font('Helvetica-Bold').fontSize(9.5).fillColor(C.TEXT)
-      .text(txt(it.label), M + 17, cy, { width: tw * 0.4, lineBreak: false, ellipsis: true });
-    doc.font('Helvetica-Bold').fontSize(9.5).fillColor(tone)
-      .text(txt(it.result), M + 17 + tw * 0.42, cy, { width: tw * 0.28, lineBreak: false });
-    doc.font('Helvetica').fontSize(8).fillColor(C.MUTED)
-      .text(txt(it.range ? `ref ${it.range}` : ''), M + 17 + tw * 0.72, cy + 1,
-        { width: tw * 0.28, lineBreak: false, ellipsis: true });
+  itemLs.forEach((e) => {
+    PL.drawFit(doc, e.it.label, M + 17, cy, tw * 0.4, { font: 'Helvetica-Bold', size: 9.5, minSize: 6.5, color: C.TEXT });
+    PL.drawFit(doc, e.it.result, M + 17 + tw * 0.42, cy, tw * 0.28, { font: 'Helvetica-Bold', size: 9.5, minSize: 6.5, color: tone });
+    PL.drawFit(doc, e.it.range ? `ref ${e.it.range}` : '', M + 17 + tw * 0.72, cy + 1, tw * 0.26,
+      { font: 'Helvetica', size: 8, minSize: 6, color: C.MUTED });
     cy += 16;
-    if (hasText(it.note)) {
-      doc.font('Helvetica').fontSize(8.5).fillColor(C.MUTED)
-        .text(txt(it.note), M + 17, cy, { width: tw - 6, lineGap: 2 });
-      cy = doc.y + 6;
+    if (e.noteL) {
+      PL.drawLayout(doc, e.noteL, M + 17, cy, { color: C.MUTED });
+      cy += e.noteL.height + 6;
     } else {
       cy += 6;
     }
   });
 
   ctx.y = y + h + 12;
+  ctx.touch();
 }
 
 function renderDisclaimer(ctx, s) {
   const doc = ctx.doc;
   const tw = CW - 28;
-  doc.font('Helvetica-Oblique').fontSize(8.5);
-  const h = doc.heightOfString(txt(s.body), { width: tw, lineGap: 2.5 });
-  ensure(ctx, h + 40);
-  ctx.y += 6;
+  const L = PL.layout(doc, s.body, { font: 'Helvetica-Oblique', size: 8.5, width: tw, lineGap: 2.5, maxHeight: (BOTTOM - TOP) - 50 });
+  ensure(ctx, L.height + 46);
+  ctx.advance(6);
   doc.save().rect(M, ctx.y, CW, 0.5).fill(C.BORDER).restore();
-  ctx.y += 10;
-  box(doc, M, ctx.y, CW, h + 30, C.DISC_BG, C.BORDER, 0.5, 4);
-  doc.font('Helvetica-Bold').fontSize(8.5).fillColor(C.MUTED)
-    .text(txt(s.title || 'Medical Disclaimer'), M + 14, ctx.y + 10, { width: tw, lineBreak: false });
-  doc.font('Helvetica-Oblique').fontSize(8.5).fillColor(C.MUTED)
-    .text(txt(s.body), M + 14, ctx.y + 23, { width: tw, lineGap: 2.5 });
-  ctx.y += h + 38;
+  ctx.advance(10);
+  box(doc, M, ctx.y, CW, L.height + 30, C.DISC_BG, C.BORDER, 0.5, 4);
+  PL.drawFit(doc, s.title || 'Medical Disclaimer', M + 14, ctx.y + 10, tw, { font: 'Helvetica-Bold', size: 8.5, color: C.MUTED });
+  PL.drawLayout(doc, L, M + 14, ctx.y + 23, { color: C.MUTED });
+  ctx.advance(L.height + 38);
 }
 
 const RENDERERS = {
@@ -792,11 +805,19 @@ function buildGradedReportPdf(doc, outPath) {
       const stream = fs.createWriteStream(outPath);
       pdf.pipe(stream);
 
-      const ctx = { doc: pdf, y: TOP, contentPages: new Set() };
-
       // Background on every page, including ones added mid-render.
       paintBg(pdf);
-      pdf.on('pageAdded', () => paintBg(pdf));
+
+      // The flow owns pagination and page bookkeeping. Registering pages here
+      // rather than only inside newPage() is what stops a page from going out
+      // without its footer: pages this renderer did not open itself were never
+      // added to the set, so chrome skipped them.
+      const ctx = PL.createFlow(pdf, {
+        top: TOP, bottom: BOTTOM, left: M, width: CW,
+        claimFirstPage: false,
+        onPage: (d) => paintBg(d)
+      });
+      ctx.contentPages = ctx.pages;
 
       buildCover(ctx, doc.cover || {});
 

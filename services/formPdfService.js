@@ -1,7 +1,26 @@
+/**
+ * BodyBank — private form dossiers (Sunday check-in, Part-2 intake).
+ *
+ * These are the least bounded documents in the product: every field is free
+ * text a client typed, so a single answer can be one word or three thousand
+ * characters. Two rules follow, and both are enforced through
+ * services/pdfLayout.js rather than by hoping the values stay short:
+ *
+ *   - a value is measured at the width and font it will be drawn with, and its
+ *     card is sized from that measurement, so nothing escapes a card;
+ *   - a value longer than a page is split across pages instead of being drawn
+ *     into a card taller than the paper.
+ *
+ * Branding is painted from a `pageAdded` hook, so EVERY page carries the hero
+ * or its continuation strip and the confidential footer — previously only the
+ * final page had a footer and only page one had any branding at all.
+ */
+
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
+const PL = require('./pdfLayout');
 
 const FONT_DIR = path.join(__dirname, '..', 'assets', 'fonts');
 
@@ -59,26 +78,27 @@ function fmtDate(v) {
   return d.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
 }
 
+/**
+ * Diagonal CONFIDENTIAL ghosting.
+ *
+ * Placed by the kernel, which derives the rotated bounding box from the real
+ * string metrics so no repetition bleeds off the paper, and draws it with no
+ * width so PDFKit can neither wrap it nor add a page for it.
+ */
 function drawWatermark(doc) {
-  doc.save();
-  doc.opacity(0.03);
-  doc.fillColor(C.gold);
-  doc.font(F(doc, 'display')).fontSize(48);
-  for (let i = 0; i < 3; i += 1) {
-    doc.save();
-    doc.rotate(-26, { origin: [100 + i * 180, 160 + i * 100] });
-    doc.text('CONFIDENTIAL', 30 + i * 50, 80 + i * 160);
-    doc.restore();
-  }
-  doc.opacity(1);
-  doc.restore();
+  PL.diagonalWatermark(doc, { text: 'CONFIDENTIAL', font: F(doc, 'display'), size: 46, color: C.gold, opacity: 0.03, count: 3 });
 }
 
 /** Matches monthly report hero: black band, gold rules, logo, hierarchy. */
-function drawLuxuryHero(doc, { headline, subline, clientLine, logoPath }) {
+function drawLuxuryHero(doc, { headline, subline, clientLine, logoPath, docId }) {
   const w = doc.page.width;
+  const mR = doc.page.margins.right;
+  // The right-hand plate is anchored to the right MARGIN. Anchoring it to
+  // `w - 128` with a 112pt width put its right edge 20pt past the margin.
+  const plateW = 112;
+  const plateX = w - mR - plateW;
   const textX = 258;
-  const textW = Math.max(180, w - textX - 188);
+  const textW = Math.max(180, plateX - textX - 16);
   doc.rect(0, 0, w, 108).fill(C.bg);
   doc.moveTo(0, 108).lineTo(w, 108).lineWidth(3).strokeColor(C.gold).stroke();
   doc.moveTo(0, 111).lineTo(w, 111).lineWidth(0.5).strokeColor(C.goldDark).stroke();
@@ -87,27 +107,52 @@ function drawLuxuryHero(doc, { headline, subline, clientLine, logoPath }) {
     try {
       doc.image(logoPath, 40, 28, { fit: [200, 52] });
     } catch (e) { /* ignore */ }
+  } else {
+    // Without the lockup image the hero still has to say who this is from.
+    PL.drawFit(doc, 'BODYBANK', 40, 40, 200, { font: F(doc, 'display'), size: 20, color: C.gold });
+    PL.drawFit(doc, 'bodybank.fit', 40, 64, 200, { font: F(doc, 'body'), size: 9, color: '#8FA0C4' });
   }
 
-  doc.fillColor('#8FA0C4').font(F(doc, 'body')).fontSize(8.5).text('PRIVATE FORM DOSSIER', textX, 46);
-  doc.fillColor('#F2F4FA').font(F(doc, 'display')).fontSize(19).text(headline, textX, 62, { width: textW });
-  doc.fillColor(C.goldMid).font(F(doc, 'semi')).fontSize(9.5).text(subline, textX, 88, { width: textW });
+  PL.drawFit(doc, 'PRIVATE FORM DOSSIER', textX, 46, textW, { font: F(doc, 'body'), size: 8.5, color: '#8FA0C4' });
+  PL.drawFit(doc, headline, textX, 62, textW, { font: F(doc, 'display'), size: 19, minSize: 10, color: '#F2F4FA' });
+  PL.drawFit(doc, subline, textX, 88, textW, { font: F(doc, 'semi'), size: 9.5, minSize: 6.5, color: C.goldMid });
 
-  const docId = crypto.randomBytes(4).toString('hex').toUpperCase();
-  doc.fillColor('#5C6578').font(F(doc, 'body')).fontSize(7.5).text(`DOC ${docId}`, w - 128, 28, { width: 112, align: 'right' });
-  doc.fillColor('#4A5568').font(F(doc, 'body')).fontSize(7).text(clientLine.slice(0, 120), w - 128, 42, { width: 112, align: 'right', lineGap: 2 });
+  PL.drawFit(doc, `DOC ${docId}`, plateX, 28, plateW, { font: F(doc, 'body'), size: 7.5, color: '#5C6578', align: 'right' });
+  // Three lines at most for the client name, fitted to the plate beside the title.
+  PL.drawText(doc, clientLine, plateX, 42,
+    { font: F(doc, 'body'), size: 7, width: plateW, align: 'right', lineGap: 2, color: '#4A5568', maxLines: 3 });
 }
 
+/** The slim band that identifies a continuation page. */
+function drawContinuationHeader(doc, headline, docId) {
+  const w = doc.page.width;
+  doc.rect(0, 0, w, 48).fill(C.bg);
+  doc.rect(0, 46, w, 2).fill(C.gold);
+  PL.drawFit(doc, `BODYBANK  ·  ${headline}  ·  CONTINUED`, doc.page.margins.left, 22,
+    w - doc.page.margins.left * 2 - 120, { font: F(doc, 'semi'), size: 8, minSize: 6, color: C.goldMid });
+  PL.drawFit(doc, `DOC ${docId}`, w - doc.page.margins.right - 112, 22, 112,
+    { font: F(doc, 'body'), size: 7.5, color: '#5C6578', align: 'right' });
+}
+
+/** Where content may start and where it must stop on the current page. */
+function contentTop(doc) { return doc._bbFirstPageDone ? 62 : doc.page.margins.top; }
+function contentBottom(doc) { return doc.page.height - 40; }
+
+/**
+ * Guarantee `requiredHeight` points of room.
+ *
+ * A page that carries no content is never broken — doing so just chains empty
+ * pages — and the new page gets its background, watermark, continuation band
+ * and footer from the `pageAdded` hook, so no page can go out unbranded.
+ */
 function ensureSpace(doc, requiredHeight = 100) {
-  const bottomLimit = doc.page.height - doc.page.margins.bottom;
-  if (doc.y + requiredHeight > bottomLimit) {
-    doc.addPage();
-    doc.rect(0, 0, doc.page.width, doc.page.height).fill(C.pageBg);
-    drawWatermark(doc);
-    doc.fillColor(C.text);
-    doc.x = doc.page.margins.left;
-    doc.y = doc.page.margins.top;
-  }
+  const top = contentTop(doc);
+  if (doc.y + requiredHeight <= contentBottom(doc)) return;
+  if (doc.y <= top + 0.5) return;
+  doc.addPage();
+  doc.x = doc.page.margins.left;
+  doc.y = contentTop(doc);
+  doc.fillColor(C.text);
 }
 
 /** Three meta cards — same KPI visual language as monthly report. */
@@ -125,8 +170,12 @@ function drawMetaKpiRow(doc, items) {
     doc.roundedRect(x, y, cardW, h, 10).fillAndStroke(C.panel, C.line);
     doc.roundedRect(x + 3, y + 10, 3.2, h - 20, 1).fill(C.gold);
     doc.restore();
-    doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(7.5).text(String(item.label || '').toUpperCase(), x + 12, y + 12, { width: cardW - 20 });
-    doc.fillColor(C.text).font(F(doc, 'display')).fontSize(14).text(text(item.value), x + 12, y + 28, { width: cardW - 20 });
+    PL.drawFit(doc, String(item.label || '').toUpperCase(), x + 12, y + 12, cardW - 24,
+      { font: F(doc, 'semi'), size: 7.5, minSize: 5.5, color: C.muted });
+    // A KPI is one line by contract; a long email or name shrinks to fit its
+    // card instead of wrapping out through the bottom of it.
+    PL.drawFit(doc, text(item.value), x + 12, y + 28, cardW - 24,
+      { font: F(doc, 'display'), size: 14, minSize: 5.5, color: C.text });
   }
   doc.y = y + h + 16;
 }
@@ -137,71 +186,122 @@ function sectionTitle(doc, title) {
   const y = doc.y;
   const w = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   doc.roundedRect(x, y, w, 22, 6).fillAndStroke(C.panelSoft, C.lineSoft);
-  doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8.8).text(String(title || '').toUpperCase(), x + 10, y + 6);
+  PL.drawFit(doc, String(title || '').toUpperCase(), x + 10, y + 6, w - 20,
+    { font: F(doc, 'semi'), size: 8.8, minSize: 6, color: C.goldDark });
   doc.y = y + 30;
 }
 
+/**
+ * One labelled answer.
+ *
+ * The answer is free text of any length, so it is laid out first and then drawn
+ * card by card: whatever fits on this page gets a card here, and the remainder
+ * continues in another card on the next page. Nothing is truncated and nothing
+ * leaves its card.
+ */
 function fieldCard(doc, label, value) {
   const x = doc.page.margins.left;
   const w = doc.page.width - doc.page.margins.left - doc.page.margins.right;
   const labelText = String(label || '').toUpperCase();
-  const valueText = text(value);
-  doc.font(F(doc, 'body')).fontSize(10);
-  const valueHeight = doc.heightOfString(valueText, { width: w - 28, lineGap: 3 });
-  const h = Math.max(48, valueHeight + 34);
-  ensureSpace(doc, h + 12);
-  const y = doc.y;
-  doc.save();
-  doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, C.line);
-  doc.roundedRect(x + 3, y + 10, 3.2, h - 20, 1).fill(C.gold);
-  doc.restore();
-  doc.fillColor(C.muted).font(F(doc, 'semi')).fontSize(8.5).text(labelText, x + 14, y + 12, { width: w - 22 });
-  doc.fillColor(C.text).font(F(doc, 'body')).fontSize(10).text(valueText, x + 14, y + 26, {
-    width: w - 22,
-    lineGap: 3
-  });
-  doc.y = y + h + 10;
+  const tw = w - 28;
+  const L = PL.layout(doc, text(value), { font: F(doc, 'body'), size: 10, width: tw, lineGap: 3 });
+
+  let line = 0;
+  let first = true;
+  while (line < L.lines.length) {
+    ensureSpace(doc, Math.min(48, L.lineHeight + 46));
+    const room = contentBottom(doc) - doc.y - 46;
+    let take = Math.max(1, Math.floor((room + 0.01) / L.lineHeight));
+    if (take > L.lines.length - line) take = L.lines.length - line;
+    const slice = {
+      lines: L.lines.slice(line, line + take),
+      lineHeight: L.lineHeight, height: take * L.lineHeight,
+      font: L.font, size: L.size, lineGap: L.lineGap, width: L.width, align: L.align
+    };
+    const h = Math.max(48, slice.height + 34);
+    const y = doc.y;
+    doc.save();
+    doc.roundedRect(x, y, w, h, 10).fillAndStroke(C.panel, C.line);
+    doc.roundedRect(x + 3, y + 10, 3.2, h - 20, 1).fill(C.gold);
+    doc.restore();
+    PL.drawFit(doc, first ? labelText : labelText + ' (CONTINUED)', x + 14, y + 12, tw,
+      { font: F(doc, 'semi'), size: 8.5, minSize: 6, color: C.muted });
+    PL.drawLayout(doc, slice, x + 14, y + 26, { color: C.text });
+    doc.y = y + h + 10;
+    line += take;
+    first = false;
+  }
 }
 
 function drawCoachNoteBar(doc, noteText) {
-  ensureSpace(doc, 36);
   const x = doc.page.margins.left;
   const w = doc.page.width - x * 2;
+  // Sized from the note rather than pinned at 32pt, which was one line's worth
+  // of room for a sentence that already needed more than one line.
+  const L = PL.layout(doc, noteText, { font: F(doc, 'body'), size: 8.8, width: w - 24, lineGap: 1.5 });
+  const h = Math.max(32, 22 + L.height + 8);
+  ensureSpace(doc, h + 8);
   const y = doc.y;
-  doc.roundedRect(x, y, w, 32, 8).fill(C.noteBg);
-  doc.roundedRect(x, y, w, 32, 8).lineWidth(1.2).strokeColor(C.gold).stroke();
-  doc.fillColor(C.goldDark).font(F(doc, 'semi')).fontSize(8).text('LIFESTYLE MANAGER DESK', x + 12, y + 9);
-  doc.fillColor(C.text).font(F(doc, 'body')).fontSize(8.8).text(noteText, x + 12, y + 19, { width: w - 24 });
-  doc.y = y + 40;
+  doc.roundedRect(x, y, w, h, 8).fill(C.noteBg);
+  doc.roundedRect(x, y, w, h, 8).lineWidth(1.2).strokeColor(C.gold).stroke();
+  PL.drawFit(doc, 'LIFESTYLE MANAGER DESK', x + 12, y + 9, w - 24, { font: F(doc, 'semi'), size: 8, color: C.goldDark });
+  PL.drawLayout(doc, L, x + 12, y + 22, { color: C.text });
+  doc.y = y + h + 8;
 }
 
 function drawFooterLuxury(doc) {
   const margin = doc.page.margins.left;
   const w = doc.page.width - margin * 2;
   const y = doc.page.height - 28;
-  doc.fillColor(C.muted).font(F(doc, 'body')).fontSize(7.5)
-    .text('CONFIDENTIAL · bodybank.fit · Private client record', margin, y, { width: w, align: 'center' });
+  PL.drawFit(doc, 'CONFIDENTIAL · bodybank.fit · Private client record', margin, y, w,
+    { font: F(doc, 'body'), size: 7.5, color: C.muted, align: 'center' });
 }
 
-function startFormDocument(outputPath) {
+/**
+ * Open a dossier and arm the per-page chrome.
+ *
+ * Everything a page needs to look like a BodyBank document — ground, watermark,
+ * continuation band, footer — is painted from the `pageAdded` hook, so it is
+ * impossible to add a page and forget it. The previous version painted the
+ * footer once, at the end, onto whichever page happened to be current.
+ */
+function startFormDocument(outputPath, brand) {
+  const b = brand || {};
   const doc = new PDFDocument({ size: 'A4', margin: 36 });
   doc._bbFormFonts = registerFormFonts(doc);
+  doc._bbFirstPageDone = false;
   const stream = fs.createWriteStream(outputPath);
   doc.pipe(stream);
   doc.rect(0, 0, doc.page.width, doc.page.height).fill(C.pageBg);
   drawWatermark(doc);
+  // Page one gets its footer now; every later page gets it from the hook below.
+  // Painting it once more at the end (as before) double-printed it on
+  // whichever page happened to be last.
+  drawFooterLuxury(doc);
+  doc.on('pageAdded', () => {
+    doc._bbFirstPageDone = true;
+    doc.rect(0, 0, doc.page.width, doc.page.height).fill(C.pageBg);
+    drawWatermark(doc);
+    drawContinuationHeader(doc, b.headline || 'DOSSIER', b.docId || '');
+    drawFooterLuxury(doc);
+    doc.fillColor(C.text);
+    doc.x = doc.page.margins.left;
+    doc.y = contentTop(doc);
+  });
   return { doc, stream };
 }
 
 function writeSundayCheckinPdf({ outputPath, record, logoPath }) {
   return new Promise((resolve, reject) => {
-    const { doc, stream } = startFormDocument(outputPath);
+    const docId = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const { doc, stream } = startFormDocument(outputPath, { headline: 'SUNDAY CHECK-IN', docId });
     const name = text(record.full_name);
     drawLuxuryHero(doc, {
       headline: 'SUNDAY CHECK-IN',
       subline: `${fmtDate(record.created_at)} · Weekly performance reflection`,
       clientLine: name,
-      logoPath
+      logoPath,
+      docId
     });
     drawMetaKpiRow(doc, [
       { label: 'Client', value: name },
@@ -236,7 +336,6 @@ function writeSundayCheckinPdf({ outputPath, record, logoPath }) {
     doc.moveDown(0.2);
     drawCoachNoteBar(doc, 'Keep weekly progression objective and measurable. Use this record to calibrate load, nutrition, and recovery.');
 
-    drawFooterLuxury(doc);
     doc.end();
     stream.on('finish', () => resolve({ outputPath }));
     stream.on('error', reject);
@@ -245,13 +344,15 @@ function writeSundayCheckinPdf({ outputPath, record, logoPath }) {
 
 function writePart2Pdf({ outputPath, record, logoPath }) {
   return new Promise((resolve, reject) => {
-    const { doc, stream } = startFormDocument(outputPath);
+    const docId = crypto.randomBytes(4).toString('hex').toUpperCase();
+    const { doc, stream } = startFormDocument(outputPath, { headline: 'PART-2 INTAKE', docId });
     const name = text(record.name);
     drawLuxuryHero(doc, {
       headline: 'PART-2 INTAKE',
       subline: `${fmtDate(record.created_at)} · Lifestyle profile`,
       clientLine: name,
-      logoPath
+      logoPath,
+      docId
     });
     drawMetaKpiRow(doc, [
       { label: 'Client', value: name },
@@ -291,7 +392,6 @@ function writePart2Pdf({ outputPath, record, logoPath }) {
     doc.moveDown(0.2);
     drawCoachNoteBar(doc, 'This intake should inform the next 30-day intervention plan and Lifestyle Manager priorities.');
 
-    drawFooterLuxury(doc);
     doc.end();
     stream.on('finish', () => resolve({ outputPath }));
     stream.on('error', reject);
