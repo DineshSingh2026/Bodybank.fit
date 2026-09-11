@@ -1162,7 +1162,7 @@ const SURYA_STEPS = [
 ];
 
 /** Live sequence state, published each frame for the overlay. */
-let SURYA_VIEW = { i: 0, score: 0, rounds: 0, held: 0 };
+let SURYA_VIEW = { i: 0, phase: 'seek', score: 0, progress: 0, rounds: 0, roundDone: false };
 
 
 /**
@@ -1187,91 +1187,119 @@ function suryaScore(lm, fig) {
   const legsStraight = blend(band(legL, 165, 180, 2.2), 1, band(legR, 165, 180, 2.2), 1);
   const armsStraight = blend(band(armL, 160, 180, 2.2), 1, band(armR, 160, 180, 2.2), 1);
   const plumb = (sMid && hMid && sw) ? band(Math.abs(sMid.x - hMid.x) / sw, 0, 0.45, 90) : null;
-  const wristsUp = has(lm, LM.LW, LM.RW, LM.LS, LM.RS)
-    ? ((lm[LM.LW].y < lm[LM.LS].y - 0.10 && lm[LM.RW].y < lm[LM.RS].y - 0.10) ? 100 : 30) : null;
-  // Torso orientation, 0° = upright, 90° = lying flat. Without this a standing
-  // body reads as a Plank: both have a straight shoulder-hip-ankle line.
   const tilt    = (sMid && hMid) ? tiltFromVertical(hMid, sMid) : null;
   const upright = band(tilt, 0, 28, 3.2);
   const flat    = band(tilt, 52, 90, 3.2);
 
-  let score = null, cue = '';
+  // Wrists clearly above the shoulders — the defining feature of the raised-arm
+  // positions, so it is measured as a margin rather than a yes/no.
+  const reach = has(lm, LM.LW, LM.RW, LM.LS, LM.RS) && sw
+    ? band(Math.min(lm[LM.LS].y - lm[LM.LW].y, lm[LM.RS].y - lm[LM.RW].y) / sw, 0.55, 9, 90)
+    : null;
+
+  let score = null, cue = '', gate = null;
 
   if (fig === 'sn_pranam') {
-    // palms together near the sternum: wrists close to each other, chest height
     const together = has(lm, LM.LW, LM.RW, LM.LS, LM.RS)
       ? band(Math.abs(lm[LM.LW].x - lm[LM.RW].x) / sw, 0, 0.45, 110) : null;
     const height = has(lm, LM.LW, LM.LS, LM.LH)
       ? band(Math.abs(lm[LM.LW].y - (lm[LM.LS].y + (lm[LM.LH].y - lm[LM.LS].y) * 0.35)), 0, 0.08, 700) : null;
-    score = blend(legsStraight, 0.24, plumb, 0.18, together, 0.24, height, 0.14, upright, 0.20);
+    // hands together at chest height, standing upright — not merely standing
+    gate = (together == null || height == null || tilt == null)
+      ? null : (together >= 55 && height >= 45 && tilt < 34);
+    score = blend(legsStraight, 0.20, plumb, 0.14, together, 0.30, height, 0.20, upright, 0.16);
     cue = 'Palms together at the chest, stand tall.';
     s.L_knee = s.R_knee = stOf(legsStraight);
     s.torso = s.hip = stOf(plumb);
     s.L_elbow = s.R_elbow = stOf(blend(together, 1, height, 1));
   } else if (fig === 'sn_raised') {
-    score = blend(legsStraight, 0.24, wristsUp, 0.28, armsStraight, 0.18, plumb, 0.10, upright, 0.20);
-    cue = 'Reach both arms overhead.';
+    // arms must actually be overhead; standing still is not enough
+    gate = (reach == null || tilt == null) ? null : (reach >= 55 && tilt < 40);
+    score = blend(reach, 0.40, armsStraight, 0.20, legsStraight, 0.18, upright, 0.14, plumb, 0.08);
+    cue = 'Sweep both arms overhead.';
     s.L_knee = s.R_knee = stOf(legsStraight);
-    s.L_elbow = s.R_elbow = stOf(blend(wristsUp, 1, armsStraight, 1));
+    s.L_elbow = s.R_elbow = stOf(blend(reach, 1, armsStraight, 1));
     s.torso = s.hip = stOf(plumb);
   } else if (fig === 'sn_fold') {
-    const fold = band(hip, 0, 65, 2.2);
-    const handsLow = has(lm, S.W, S.K) ? ((lm[S.W].y > lm[S.K].y) ? 100 : 45) : null;
-    score = blend(fold, 0.44, legsStraight, 0.30, handsLow, 0.26);
-    cue = 'Fold deeper from the hips — hands toward the feet.';
+    const fold = band(hip, 0, 70, 2.2);
+    const handsLow = has(lm, S.W, S.K) ? ((lm[S.W].y > lm[S.K].y) ? 100 : 40) : null;
+    // A standing fold: BOTH legs straight and vertical under the hips. Without
+    // that, Downward Dog (hips also the peak) and the Equestrian lunge (hips
+    // also closed) both read as a fold.
+    const bothLegs = (legL != null && legR != null) ? Math.min(legL, legR) : null;
+    const legsVertical = (has(lm, S.A, S.H) && scale)
+      ? Math.abs(lm[S.A].x - lm[S.H].x) / scale : null;
+    gate = (hip == null || bothLegs == null || legsVertical == null)
+      ? null : (hip < 95 && bothLegs > 150 && legsVertical < 0.60);
+    score = blend(fold, 0.48, legsStraight, 0.26, handsLow, 0.26);
+    cue = 'Fold from the hips — hands toward the feet.';
     s.torso = s.hip = stOf(fold);
     s.L_knee = s.R_knee = stOf(legsStraight);
     s.L_elbow = s.R_elbow = stOf(handsLow);
   } else if (fig === 'sn_lunge') {
-    // one knee near 90, the other leg long
     const bent = (legL != null && legR != null) ? Math.min(legL, legR) : (legL != null ? legL : legR);
     const longLeg = (legL != null && legR != null) ? Math.max(legL, legR) : null;
-    const front = band(bent, 75, 110, 2.2);
-    const back  = band(longLeg, 150, 180, 2.0);
-    const handsDown = has(lm, S.W, S.K) ? ((lm[S.W].y > lm[S.K].y) ? 100 : 50) : null;
-    score = blend(front, 0.42, back, 0.30, handsDown, 0.28);
+    const front = band(bent, 70, 115, 2.2);
+    const back  = band(longLeg, 148, 180, 2.0);
+    const handsDown = has(lm, S.W, S.K) ? ((lm[S.W].y > lm[S.K].y) ? 100 : 45) : null;
+    // one leg deeply bent AND the other long — a split stance, not two straight legs
+    gate = (bent == null || longLeg == null) ? null : (bent < 125 && longLeg > 145);
+    score = blend(front, 0.40, back, 0.30, handsDown, 0.30);
     cue = 'Front knee over the ankle, back leg long.';
     s.L_knee = stOf(legL == null ? null : (legL === bent ? front : back));
     s.R_knee = stOf(legR == null ? null : (legR === bent ? front : back));
     s.L_elbow = s.R_elbow = stOf(handsDown);
     s.torso = s.hip = stOf(blend(front, 1, back, 1));
   } else if (fig === 'sn_stick') {
-    const line = band(bodyLine, 160, 180, 2.4);
-    score = blend(line, 0.38, flat, 0.26, armsStraight, 0.20, legsStraight, 0.16);
+    const line = band(bodyLine, 158, 180, 2.4);
+    // horizontal AND straight — standing upright is also "straight"
+    // Truly horizontal. Cobra's torso is only ~55 degrees off vertical and its
+    // shoulder-hip-ankle line is nearly straight too, so 46 was not enough.
+    gate = (tilt == null || bodyLine == null) ? null : (tilt > 65 && bodyLine > 148);
+    score = blend(line, 0.34, flat, 0.28, armsStraight, 0.22, legsStraight, 0.16);
     cue = 'One straight line — do not let the hips sag.';
     s.torso = s.hip = stOf(line);
     s.L_elbow = s.R_elbow = stOf(armsStraight);
     s.L_knee = s.R_knee = stOf(legsStraight);
   } else if (fig === 'sn_eight') {
-    const bentArms = blend(band(armL, 60, 120, 2.0), 1, band(armR, 60, 120, 2.0), 1);
-    const bentKnees = blend(band(legL, 95, 150, 2.0), 1, band(legR, 95, 150, 2.0), 1);
-    // hips stay lifted: hip sits higher on screen than the shoulders
-    const hipsUp = has(lm, S.S, S.H) ? ((lm[S.H].y < lm[S.S].y + 0.02) ? 100 : 45) : null;
-    score = blend(bentArms, 0.26, bentKnees, 0.22, hipsUp, 0.32, flat, 0.20);
+    const bentArms = blend(band(armL, 55, 125, 2.0), 1, band(armR, 55, 125, 2.0), 1);
+    const bentKnees = blend(band(legL, 90, 155, 2.0), 1, band(legR, 90, 155, 2.0), 1);
+    const hipsUp = has(lm, S.S, S.H) ? ((lm[S.H].y < lm[S.S].y + 0.02) ? 100 : 40) : null;
+    const elbowMin = (armL != null && armR != null) ? Math.max(armL, armR) : (armL != null ? armL : armR);
+    gate = (tilt == null || elbowMin == null) ? null : (tilt > 42 && elbowMin < 140);
+    score = blend(bentArms, 0.28, bentKnees, 0.22, hipsUp, 0.30, flat, 0.20);
     cue = 'Chest and chin down, hips stay lifted.';
     s.L_elbow = s.R_elbow = stOf(bentArms);
     s.L_knee = s.R_knee = stOf(bentKnees);
     s.torso = s.hip = stOf(hipsUp);
   } else if (fig === 'sn_cobra') {
     const lift = (scale && has(lm, S.S, S.H)) ? (lm[S.H].y - lm[S.S].y) / scale : null;
-    const chest = band(lift, 0.35, 0.92, 130);
-    const hipsDown = (scale && has(lm, S.K, S.H)) ? band((lm[S.K].y - lm[S.H].y) / scale, -3, 0.40, 140) : null;
-    score = blend(chest, 0.36, hipsDown, 0.24, legsStraight, 0.22, flat, 0.18);
+    const chest = band(lift, 0.32, 0.95, 130);
+    const hipsDown = (scale && has(lm, S.K, S.H)) ? band((lm[S.K].y - lm[S.H].y) / scale, -3, 0.42, 140) : null;
+    gate = (lift == null || tilt == null) ? null : (lift > 0.25 && lift < 1.05 && tilt > 34);
+    score = blend(chest, 0.38, hipsDown, 0.24, legsStraight, 0.20, flat, 0.18);
     cue = 'Lift the chest, keep the hips on the floor.';
     s.torso = stOf(chest);
     s.hip = stOf(hipsDown);
     s.L_knee = s.R_knee = stOf(legsStraight);
     s.L_elbow = s.R_elbow = stOf(band(armL, 80, 175, 1.6));
   } else {                                   // sn_dog
-    const apex = band(hip, 70, 105, 2.0);
-    score = blend(apex, 0.42, armsStraight, 0.29, legsStraight, 0.29);
+    const apex = band(hip, 68, 108, 2.0);
+    gate = (hip == null || tilt == null) ? null : (hip < 120 && tilt > 28);
+    score = blend(apex, 0.44, armsStraight, 0.28, legsStraight, 0.28);
     cue = 'Hips high — make an inverted V.';
     s.torso = s.hip = stOf(apex);
     s.L_elbow = s.R_elbow = stOf(armsStraight);
     s.L_knee = s.R_knee = stOf(legsStraight);
   }
 
-  return { score: score == null ? 0 : score, cue, parts: s };
+  // A position is only itself when its defining feature is present. Without
+  // this, credit shared with every other position (legs straight, standing
+  // upright) was enough to carry the next step and the sequence ran away.
+  let out = score == null ? 0 : score;
+  if (gate === false) out = Math.min(out, 30);
+
+  return { score: out, cue, parts: s, gate };
 }
 
 // ════════════════════════════════════════════════════════════════
@@ -1547,6 +1575,50 @@ function buildPostureSvg(exKey) {
   </svg>`;
 }
 
+
+/** Draws one sequence figure small, inside a box on the live canvas, so the
+    member can see the shape they are aiming for without leaving the session. */
+function drawSuryaMini(ctx, figKey, bx, by, bw, bh, color) {
+  const pts = YOGA_REFERENCE[figKey];
+  if (!pts) return;
+  const keys = Object.keys(pts);
+  let minX = 1, maxX = 0, minY = 1, maxY = 0;
+  for (const k of keys) {
+    minX = Math.min(minX, pts[k][0]); maxX = Math.max(maxX, pts[k][0]);
+    minY = Math.min(minY, pts[k][1]); maxY = Math.max(maxY, pts[k][1]);
+  }
+  const sx = (maxX - minX) || 1, sy = (maxY - minY) || 1;
+  const k = Math.min(bw / sx, bh / sy) * 0.86;          // one scale → no distortion
+  const ox = bx + (bw - sx * k) / 2 - minX * k;
+  const oy = by + (bh - sy * k) / 2 - minY * k;
+  const P = name => pts[name] ? { x: pts[name][0] * k + ox, y: pts[name][1] * k + oy } : null;
+
+  const BONES_MINI = [['LS','RS'],['LS','LH'],['RS','RH'],['LH','RH'],
+                      ['LS','LE'],['LE','LW'],['RS','RE'],['RE','RW'],
+                      ['LH','LK'],['LK','LA'],['RH','RK'],['RK','RA']];
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.globalAlpha = 0.95;
+  for (const [a, b] of BONES_MINI) {
+    const A = P(a), B = P(b);
+    if (!A || !B) continue;
+    ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke();
+  }
+  // head, so the figure reads as a body rather than a diagram
+  const ls = P('LS'), rs = P('RS'), lh = P('LH'), rh = P('RH');
+  if (ls && rs && lh && rh) {
+    const sm = { x: (ls.x + rs.x) / 2, y: (ls.y + rs.y) / 2 };
+    const hm = { x: (lh.x + rh.x) / 2, y: (lh.y + rh.y) / 2 };
+    const len = Math.hypot(sm.x - hm.x, sm.y - hm.y) || 1;
+    const hx = sm.x + (sm.x - hm.x) / len * (len * 0.30);
+    const hy = sm.y + (sm.y - hm.y) / len * (len * 0.30);
+    ctx.beginPath(); ctx.arc(hx, hy, Math.max(3, len * 0.19), 0, Math.PI * 2);
+    ctx.fillStyle = color; ctx.globalAlpha = 0.55; ctx.fill();
+  }
+  ctx.restore();
+}
 
 /** The target card for a sequence is a storyboard of all twelve positions,
     not a single figure. Reuses buildPostureSvg for each thumbnail. */
@@ -2924,37 +2996,81 @@ function drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h) {
     }
   }
 
-  // ── SURYA NAMASKAR — step banner + 12-segment progress ──
+  // ── SURYA NAMASKAR — sequence rail, target shape, done→next ──
   if (exKey === 'surya') {
-    const stepDef = SURYA_STEPS[SURYA_VIEW.i] || SURYA_STEPS[0];
-    const pill = (x, y, text, color) =>
-      drawPill(ctx, Math.max(84, Math.min(w - 84, x)), Math.max(16, Math.min(h - 64, y)), text, color);
-    const on = SURYA_VIEW.score >= 60;
-    const col = on ? CLR.GOOD : SURYA_VIEW.score >= 40 ? CLR.WARN : CLR.BAD;
+    const V = SURYA_VIEW;
+    const stepDef = SURYA_STEPS[V.i] || SURYA_STEPS[0];
+    const nextDef = SURYA_STEPS[(V.i + 1) % SURYA_STEPS.length];
+    const done = V.phase === 'done';
+    const col = done ? CLR.GOOD
+              : V.phase === 'hold' ? CLR.GOOD
+              : V.score >= 45 ? CLR.WARN : CLR.BAD;
+    const pill = (x, y, text, c) =>
+      drawPill(ctx, Math.max(92, Math.min(w - 92, x)), Math.max(14, Math.min(h - 14, y)), text, c);
 
-    // twelve segments across the top, filled up to the live position
-    const segW = Math.min(26, (w * 0.62) / 12), gap = 4;
-    const totalW = segW * 12 + gap * 11;
-    let x0 = (w - totalW) / 2;
+    // ── the rail: twelve numbered stops, so progress is never ambiguous ──
+    const n = SURYA_STEPS.length;
+    const cell = Math.min(30, (w * 0.70) / n);
+    const gap = Math.max(3, cell * 0.16);
+    const railW = cell * n + gap * (n - 1);
+    const x0 = (w - railW) / 2, railY = 26;
     ctx.save();
-    for (let k = 0; k < 12; k++) {
-      const done = k < SURYA_VIEW.i;
-      const live = k === SURYA_VIEW.i;
-      ctx.fillStyle = live ? col : done ? 'rgba(61,230,139,0.55)' : 'rgba(255,255,255,0.16)';
-      ctx.fillRect(x0 + k * (segW + gap), 22, segW, 6);
-      if (live) {
-        // fill the live segment as the position is held
-        const p = Math.max(0, Math.min(1, SURYA_VIEW.held / 600));
-        ctx.fillStyle = CLR.GOOD;
-        ctx.fillRect(x0 + k * (segW + gap), 22, segW * p, 6);
+    for (let k = 0; k < n; k++) {
+      // canvas is mirrored, so place chip k from the right to read 1..12 left-to-right
+      const cx = x0 + (n - 1 - k) * (cell + gap), r = cell / 2;
+      const isDone = k < V.i || (done && k === V.i);
+      const isLive = k === V.i && !done;
+      ctx.beginPath();
+      ctx.arc(cx + r, railY + r, r, 0, Math.PI * 2);
+      ctx.fillStyle = isDone ? 'rgba(61,230,139,0.92)'
+                    : isLive ? 'rgba(228,187,90,0.20)'
+                    : 'rgba(255,255,255,0.10)';
+      ctx.fill();
+      if (isLive) {
+        // ring fills as the position is held
+        ctx.beginPath();
+        ctx.arc(cx + r, railY + r, r - 1.5, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * V.progress);
+        ctx.strokeStyle = CLR.GOOD; ctx.lineWidth = 3; ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(cx + r, railY + r, r, 0, Math.PI * 2);
+        ctx.strokeStyle = CLR.WARN; ctx.lineWidth = 1.5; ctx.stroke();
       }
+      // the number, drawn unmirrored
+      ctx.save();
+      ctx.scale(-1, 1);
+      ctx.font = 'bold ' + Math.round(cell * 0.46) + 'px Inter, Arial, sans-serif';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillStyle = isDone ? '#07120c' : isLive ? '#f2e6c8' : 'rgba(255,255,255,0.45)';
+      ctx.fillText(isDone ? '✓' : String(k + 1), -(cx + r), railY + r);
+      ctx.restore();
     }
     ctx.restore();
 
-    pill(w / 2, 46, `${stepDef.n} / 12 · ${stepDef.en} · ${stepDef.sa}`, col);
-    pill(w / 2, h - 74, stepDef.cue, 'rgba(255,255,255,0.82)');
-    if (SURYA_VIEW.rounds > 0)
-      pill(w / 2, h - 46, `Rounds completed: ${SURYA_VIEW.rounds}`, CLR.GOOD);
+    // ── what is happening right now ──
+    pill(w / 2, railY + cell + 20,
+         done ? `✓ ${stepDef.n} ${stepDef.en} DONE` : `${stepDef.n} / 12 · ${stepDef.en} · ${stepDef.sa}`,
+         col);
+    pill(w / 2, railY + cell + 46,
+         done ? `Next → ${nextDef.n} ${nextDef.en} · ${nextDef.sa}` : stepDef.cue,
+         done ? CLR.WARN : 'rgba(255,255,255,0.82)');
+
+    // ── the shape to make, drawn small so it never hides the member ──
+    const bw = Math.min(150, w * 0.20), bh = bw * 0.78;
+    const bx = w - bw - 16, by = h - bh - 34;
+    ctx.save();
+    ctx.fillStyle = 'rgba(6,7,11,0.72)';
+    ctx.strokeStyle = done ? CLR.GOOD : 'rgba(228,187,90,0.55)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(bx, by, bw, bh, 10); else ctx.rect(bx, by, bw, bh);
+    ctx.fill(); ctx.stroke();
+    ctx.restore();
+    const guideCol = done ? CLR.GOOD : CLR.WARN;   // a guide, never a verdict
+    drawSuryaMini(ctx, done ? nextDef.fig : stepDef.fig, bx + 8, by + 8, bw - 16, bh - 16, guideCol);
+    drawPill(ctx, bx + bw / 2, by - 10, done ? 'next shape' : 'target shape', 'rgba(255,255,255,0.62)');
+
+    // ── round tally ──
+    if (V.rounds > 0) pill(92, h - 20, `Rounds: ${V.rounds}`, CLR.GOOD);
     return;
   }
 
@@ -3265,6 +3381,7 @@ class Detector {
     this._tdDn = this._tdSt = 0;
     this.holdMs = 0; this.holdTotalMs = 0; this._holdLast = 0;
     this._snI = 0; this._snHold = 0; this._snOn = 0; this._snLast = 0;
+    this._snPhase = 'seek'; this._snDone = 0;
     this._trX = null; this._trD = null;
   }
 
@@ -3880,9 +3997,12 @@ class Detector {
   // ══════════════════════════════════════════════════════════════
 
   /** Score a position must reach to be recognised. */
-  static get SURYA_MATCH() { return 60; }
+  static get SURYA_MATCH() { return 70; }
   /** How long it must stay recognised before the sequence advances. */
-  static get SURYA_DWELL_MS() { return 600; }
+  static get SURYA_DWELL_MS() { return 900; }
+  /** How long a finished position stays on screen, so the member sees
+      that it counted and reads which one is next, before anything moves. */
+  static get SURYA_DONE_MS() { return 900; }
   /** After this long on one position the coach offers to move on regardless,
       so a member is never trapped by a position the camera cannot read. */
   static get SURYA_STUCK_MS() { return 14000; }
@@ -3890,50 +4010,66 @@ class Detector {
   _surya(lm) {
     const i = this._snI || 0;
     const stepDef = SURYA_STEPS[i];
+    const nextDef = SURYA_STEPS[(i + 1) % SURYA_STEPS.length];
     const r = suryaScore(lm, stepDef.fig);
 
     const t = performance.now();
     const dt = this._snLast ? Math.min(300, t - this._snLast) : 0;
     this._snLast = t;
-    this._snOn = (this._snOn || 0) + dt;
-
-    if (r.score >= Detector.SURYA_MATCH) this._snHold = (this._snHold || 0) + dt;
-    else this._snHold = Math.max(0, (this._snHold || 0) - dt * 0.6);
+    if (!this._snPhase) this._snPhase = 'seek';
 
     let roundDone = false;
-    if (this._snHold >= Detector.SURYA_DWELL_MS) {
-      this._snHold = 0;
-      this._snOn = 0;
-      if (i === SURYA_STEPS.length - 1) {
-        this._snI = 0;
-        this.holds++;                     // one completed round
-        this.holdTotalMs += Detector.MIN_SET_HOLD_MS;   // so a set can be banked
-        roundDone = true;
-      } else {
-        this._snI = i + 1;
+
+    if (this._snPhase === 'done') {
+      // Hold on the finished position for a beat so the member SEES that it
+      // counted, and reads which one is next, before anything moves.
+      this._snDone = (this._snDone || 0) + dt;
+      if (this._snDone >= Detector.SURYA_DONE_MS) {
+        this._snI = (i === SURYA_STEPS.length - 1) ? 0 : i + 1;
+        this._snPhase = 'seek';
+        this._snHold = 0; this._snOn = 0; this._snDone = 0;
+      }
+    } else {
+      this._snOn = (this._snOn || 0) + dt;
+      if (r.score >= Detector.SURYA_MATCH) this._snHold = (this._snHold || 0) + dt;
+      else this._snHold = Math.max(0, (this._snHold || 0) - dt * 0.8);
+      this._snPhase = this._snHold > 0 ? 'hold' : 'seek';
+
+      if (this._snHold >= Detector.SURYA_DWELL_MS) {
+        this._snPhase = 'done';
+        this._snDone = 0;
+        if (i === SURYA_STEPS.length - 1) {
+          this.holds++;
+          this.holdTotalMs += Detector.MIN_SET_HOLD_MS;
+          roundDone = true;
+        }
       }
     }
 
+    const done = this._snPhase === 'done';
     SURYA_VIEW = {
       i: this._snI || 0,
+      phase: this._snPhase,
       score: Math.round(r.score),
+      progress: Math.max(0, Math.min(1, (this._snHold || 0) / Detector.SURYA_DWELL_MS)),
       rounds: this.holds,
-      held: this._snHold || 0,
+      roundDone,
     };
 
     const stuck = this._snOn > Detector.SURYA_STUCK_MS;
-    const good = r.score >= Detector.SURYA_MATCH;
     const text = roundDone
-      ? `✓ Round ${this.holds} complete — flow into the next one.`
-      : good
-        ? `✓ ${stepDef.en} — hold a moment…`
-        : stuck
-          ? `${stepDef.n}/12 ${stepDef.en}: ${stepDef.cue} (step back so the camera sees you)`
-          : `${stepDef.n}/12 ${stepDef.en} — ${r.cue}`;
+      ? `✓ Round ${this.holds} complete — beautiful. Back to the top.`
+      : done
+        ? `✓ ${stepDef.n} ${stepDef.en} done → next: ${nextDef.n} ${nextDef.en}`
+        : this._snPhase === 'hold'
+          ? `Hold ${stepDef.en}…`
+          : stuck
+            ? `${stepDef.n}/12 ${stepDef.en}: ${r.cue} (step back so your whole body is in frame)`
+            : `${stepDef.n}/12 ${stepDef.en} — ${r.cue}`;
 
     return {
       text,
-      kind: good ? 'good' : r.score >= 40 ? 'warn' : 'bad',
+      kind: done ? 'good' : r.score >= Detector.SURYA_MATCH ? 'good' : r.score >= 45 ? 'warn' : 'bad',
       score: Math.round(Math.max(0, Math.min(100, r.score))),
       repAdded: false,
       holdAdded: roundDone,
