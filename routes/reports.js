@@ -30,6 +30,13 @@ const { createReportService } = require('../services/reportService');
 function isId(v) { return typeof v === 'string' && /^[A-Za-z0-9_-]{6,80}$/.test(v); }
 
 function sendError(res, err, fallback) {
+  // Report-engine problems (Chrome downloading / not starting / stuck) carry a
+  // code and a plain-language hint. Production redaction only rewrites `error`
+  // and `message`, so `code` and `hint` still reach the admin screen.
+  if (err && /^engine_/.test(String(err.code || ''))) {
+    console.error('[reports]', err.code, err.message);
+    return res.status(503).json({ success: false, error: 'Report engine not ready', code: err.code, hint: err.hint || '', stage: err.stage || null });
+  }
   const status = err && err.status ? err.status : 500;
   const msg = status >= 500 ? (fallback || 'Report failed') : err.message;
   if (status >= 500) console.error('[reports]', (err && err.stack) || err);
@@ -69,6 +76,14 @@ function createReportsRouter(deps) {
     try {
       res.json({ success: true, clients: await svc.clients({ q: req.query.q, limit: req.query.limit }) });
     } catch (err) { sendError(res, err, 'Could not load clients'); }
+  });
+
+  // Report engine health: Chrome state, memory, last render; ?test=1 prints a one-page PDF live.
+  router.get('/diagnostics', async (req, res) => {
+    try {
+      res.set('Cache-Control', 'no-store');
+      res.json(Object.assign({ success: true }, await svc.diagnostics({ test: String(req.query.test || '') === '1' })));
+    } catch (err) { sendError(res, err, 'Diagnostics failed'); }
   });
 
   router.put('/clients/:userId/auto', async (req, res) => {

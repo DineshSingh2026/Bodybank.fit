@@ -183,28 +183,49 @@ function buildModel(bundle, score, insights, opts) {
 async function renderFromBundle(bundle, opts) {
   const o = opts || {};
   const t0 = Date.now();
-  const score = o.score || S.scoreDataset(bundle.current, bundle.previous, bundle.previous2, bundle.type);
-  let insights = o.insights || await insightsSvc.buildInsights(score, bundle, { ai: o.ai !== false, userId: bundle.user.id });
-  insights = insightsSvc.applyEdits(insights, o.edits);
-  const model = buildModel(bundle, score, insights, o);
-  // Pass 1: lay the pages out with empty chart slots and measure the free space.
-  // Pass 2: give that space to the charts and draw them at their final size.
-  const probeDoc = template.buildDocument(model);
-  const probe = await pdfSvc.probeLayout(probeDoc.render({}));
-  const grow = pdfSvc.growFromProbe(probe);
-  const doc = template.buildDocument(model, grow);
-  const drawn = await pdfSvc.renderCharts(doc.specs, doc.photos, template.assets().fonts);
-  const html = doc.render(drawn);
-  const result = { score, insights, model, sections: doc.sections, chartErrors: drawn.errors || {} };
-  if (o.pdf) {
-    const out = await pdfSvc.htmlToPdf(html);
-    Object.assign(result, { pdf: out.pdf, warnings: out.warnings, pages: out.pages });
-  } else {
-    const out = await pdfSvc.finalize(html);
-    Object.assign(result, { html: out.html, warnings: out.warnings, pages: out.pages });
+  const T = {};
+  let stage = 'score';
+  const secs = (ms) => (ms / 1000).toFixed(1) + 's';
+  const step = async (name, fn) => {
+    stage = name;
+    const t = Date.now();
+    try { return await fn(); } finally { T[name] = Date.now() - t; }
+  };
+  const who = `${bundle && bundle.type} report for ${bundle && bundle.user && bundle.user.id}`;
+  try {
+    const score = o.score || S.scoreDataset(bundle.current, bundle.previous, bundle.previous2, bundle.type);
+    let insights = o.insights || await step('insights', () => insightsSvc.buildInsights(score, bundle, { ai: o.ai !== false, userId: bundle.user.id }));
+    insights = insightsSvc.applyEdits(insights, o.edits);
+    const model = buildModel(bundle, score, insights, o);
+    // Pass 1: lay the pages out with empty chart slots and measure the free space.
+    // Pass 2: give that space to the charts and draw them at their final size.
+    const probeDoc = template.buildDocument(model);
+    const probe = await step('layout', () => pdfSvc.probeLayout(probeDoc.render({})));
+    const grow = pdfSvc.growFromProbe(probe);
+    const doc = template.buildDocument(model, grow);
+    const drawn = await step('charts', () => pdfSvc.renderCharts(doc.specs, doc.photos, template.assets().fonts));
+    const html = doc.render(drawn);
+    const result = { score, insights, model, sections: doc.sections, chartErrors: drawn.errors || {} };
+    if (o.pdf) {
+      const out = await step('print', () => pdfSvc.htmlToPdf(html));
+      Object.assign(result, { pdf: out.pdf, warnings: out.warnings, pages: out.pages });
+    } else {
+      const out = await step('fit', () => pdfSvc.finalize(html));
+      Object.assign(result, { html: out.html, warnings: out.warnings, pages: out.pages });
+    }
+    result.ms = Date.now() - t0;
+    result.timings = T;
+    if (!process.env.REPORTS_QUIET) {
+      console.log(`[reports] rendered ${who}: ${result.pages} pages in ${secs(result.ms)} (${Object.keys(T).map((k) => k + ' ' + secs(T[k])).join(', ')})`);
+    }
+    if (pdfSvc.noteRender) pdfSvc.noteRender({ ok: true, ms: result.ms, timings: T, at: new Date().toISOString() });
+    return result;
+  } catch (err) {
+    if (!err.stage) err.stage = stage;
+    console.error(`[reports] render failed for ${who} at "${stage}" after ${secs(Date.now() - t0)} (${Object.keys(T).map((k) => k + ' ' + secs(T[k])).join(', ') || 'no step finished'}): ${err.message}`);
+    if (pdfSvc.noteRender) pdfSvc.noteRender({ ok: false, stage, code: err.code || null, error: String(err.message).slice(0, 300), at: new Date().toISOString() });
+    throw err;
   }
-  result.ms = Date.now() - t0;
-  return result;
 }
 
 /** The editable narrative the admin UI pre-fills. */
@@ -654,6 +675,7 @@ function createReportService(deps) {
   return {
     preview, generate, send, list, pdfFor, getRow, byShareToken, ensureShareLink, revokeShareLink,
     setAutoReports, clients, startBulk, getJob, runScheduled, startScheduler,
+    diagnostics: (o) => pdfSvc.diagnostics(o),
     ensureTables: async () => {
       await ensureReportTables(db);
       // Fetch/verify headless Chrome in the background at boot so the first

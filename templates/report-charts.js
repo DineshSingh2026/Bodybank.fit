@@ -21,7 +21,9 @@
   var GRID = '#ebe7de';
   var SURFACE = '#ffffff';
   var FONT = "'Inter', 'Helvetica Neue', Arial, sans-serif";
-  var DPR = 3;
+  // Device pixels per CSS px for chart PNGs (3 = ~288 dpi on A4). The server may
+  // lower it via REPORTS_CHART_DPR on slow hosts; see services/reportPdf.js.
+  var DPR = Number(window.BB_REPORT_DPR) > 0 ? Number(window.BB_REPORT_DPR) : 3;
 
   Chart.defaults.font.family = FONT;
   Chart.defaults.font.size = 10;

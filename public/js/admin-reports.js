@@ -118,9 +118,68 @@
   function isAdmin() { return !!(window.currentUser && window.currentUser.role === 'admin'); }
   function isForbidden(err) { return /admin access|forbidden|403|not authori[sz]ed|permission/i.test(String(err || '')); }
   function errText(data, fallback) {
+    // Report-engine problems come with a plain-language hint (the error text
+    // itself is redacted by the server in production).
+    if (data && /^(engine_|client_timeout)/.test(String(data.code || '')) && data.hint) return data.hint;
     var e = (data && (data.error || data.message)) || fallback || 'Something went wrong';
     if (isForbidden(e)) return 'Reports are available to admin accounts only.';
+    if (data && data.ref && /^Server error/.test(e)) e += ' (ref ' + data.ref + ')';
     return e;
+  }
+
+  /* Long server calls (preview / generate): live elapsed time, a hint when it
+     runs long, and a hard client timeout so the screen never spins forever. */
+  var LONG_NOTE_AFTER_S = 25;
+  function longCall(method, url, body, label, timeoutMs) {
+    var started = Date.now();
+    setStatus(label + '…', 'busy');
+    var tick = setInterval(function () {
+      var sec = Math.round((Date.now() - started) / 1000);
+      setStatus(label + '… ' + sec + ' s' + (sec >= LONG_NOTE_AFTER_S
+        ? ' — the first report after a server restart prepares the PDF engine and can take about a minute'
+        : ''), 'busy');
+    }, 1000);
+    var timer;
+    var timeout = new Promise(function (resolve) {
+      timer = setTimeout(function () {
+        resolve({
+          success: false,
+          code: 'client_timeout',
+          hint: 'This is taking much longer than expected (over ' + Math.round(timeoutMs / 1000) + ' s). The server may still be preparing the PDF engine — use "Check report engine", then try again.'
+        });
+      }, timeoutMs);
+    });
+    return Promise.race([apiCall(method, url, body), timeout]).then(function (data) {
+      clearInterval(tick);
+      clearTimeout(timer);
+      return data;
+    });
+  }
+
+  function showEngineBtn(data) {
+    var b = $('bbrepEngineBtn');
+    if (b) b.hidden = !(data && /^(engine_|client_timeout)/.test(String(data.code || '')));
+  }
+
+  function engineCheck() {
+    var b = $('bbrepEngineBtn');
+    if (b) b.disabled = true;
+    setStatus('Checking the report engine (runs a one-page test print)…', 'busy');
+    apiCall('GET', '/api/admin/reports/diagnostics?test=1').then(function (d) {
+      if (b) b.disabled = false;
+      if (!d || !d.success) { setStatus(errText(d, 'Engine check failed'), 'error'); return; }
+      var eng = d.engine || {};
+      var parts = ['Report engine: ' + (eng.status || 'unknown')];
+      if (d.test) {
+        parts.push(d.test.ok
+          ? 'test print OK in ' + (Math.round(d.test.ms / 100) / 10) + ' s'
+          : 'test print failed: ' + (d.test.error || d.test.code || 'unknown'));
+      }
+      if (eng.error) parts.push('last error: ' + eng.error);
+      if (d.memoryMb) parts.push('memory ' + d.memoryMb.rss + ' MB' + (d.memoryMb.containerLimit ? ' of ' + d.memoryMb.containerLimit + ' MB' : ''));
+      if (eng.lastRender && !eng.lastRender.ok) parts.push('last report failed at "' + eng.lastRender.stage + '"');
+      setStatus(parts.join(' · '), d.test && d.test.ok ? 'ok' : 'error');
+    });
   }
   function setStatus(msg, kind) {
     var el = $('bbrepStatus');
@@ -260,6 +319,7 @@
       + '    <button type="button" class="bbrep-btn bbrep-btn-primary" id="bbrepPreviewBtn" data-bbrep-act="preview">Preview</button>'
       + '    <span class="bbrep-hint" id="bbrepPreviewHint"></span>'
       + '    <span class="bbrep-status" id="bbrepStatus" role="status" aria-live="polite"></span>'
+      + '    <button type="button" class="bbrep-btn bbrep-btn-sm bbrep-btn-ghost" id="bbrepEngineBtn" data-bbrep-act="engine-check" hidden>Check report engine</button>'
       + '  </div>'
       + '</div>'
       + '<div class="bbrep-work" id="bbrepWork" hidden>'
@@ -480,14 +540,15 @@
     syncButtons();
     $('bbrepWork').hidden = false;
     $('bbrepFrameLoading').hidden = false;
-    setStatus(withEdits ? 'Updating preview…' : 'Building preview — this can take up to 10 seconds…', 'busy');
     var ctx = withEdits ? S.ctx : { userId: S.client.id, type: S.type, start: p.start, end: p.end, label: p.label, clientName: S.client.name || '' };
-    apiCall('POST', '/api/admin/reports/preview?format=json', body).then(function (data) {
+    showEngineBtn(null);
+    longCall('POST', '/api/admin/reports/preview?format=json', body, withEdits ? 'Updating preview' : 'Building preview', 150000).then(function (data) {
       if (req !== S.previewReq) return;
       S.busy = false;
       $('bbrepFrameLoading').hidden = true;
       if (!data || !data.success) {
         setStatus(errText(data, 'Preview failed'), 'error');
+        showEngineBtn(data);
         if (!S.preview) $('bbrepWork').hidden = true;
         syncButtons();
         return;
@@ -559,13 +620,16 @@
     syncButtons();
     var el = $('bbrepGenerated');
     el.innerHTML = '<p class="bbrep-loading"><span class="bbrep-spin" aria-hidden="true"></span> Generating PDF…</p>';
-    setStatus('Generating PDF…', 'busy');
     var body = { userId: S.ctx.userId, type: S.ctx.type, startDate: S.ctx.start, endDate: S.ctx.end, edits: readEdits() };
-    apiCall('POST', '/api/admin/reports/generate', body).then(function (data) {
+    showEngineBtn(null);
+    longCall('POST', '/api/admin/reports/generate', body, 'Generating PDF', 180000).then(function (data) {
       S.busy = false;
       if (!data || !data.success) {
         el.innerHTML = '<p class="bbrep-banner is-error">' + esc(errText(data, 'Report generation failed')) + '</p>';
         setStatus(errText(data, 'Report generation failed'), 'error');
+        showEngineBtn(data);
+        // A generate that outlived the client timeout may still finish on the server.
+        if (data && data.code === 'client_timeout') setTimeout(loadHistory, 45000);
         syncButtons();
         return;
       }
@@ -883,6 +947,7 @@
         break;
       }
       case 'history-refresh': loadHistory(); break;
+      case 'engine-check': engineCheck(); break;
       case 'bulk-open': renderBulkConfirm(); break;
       case 'bulk-close': $('bbrepBulk').innerHTML = ''; break;
       case 'bulk-go': bulkGo(); break;
