@@ -170,6 +170,15 @@
       if (!d || !d.success) { setStatus(errText(d, 'Engine check failed'), 'error'); return; }
       var eng = d.engine || {};
       var parts = ['Report engine: ' + (eng.status || 'unknown')];
+      if (eng.progress && eng.status === 'installing') {
+        var pr = eng.progress;
+        parts.push(pr.phase === 'extracting'
+          ? 'unpacking Chrome'
+          : 'downloading Chrome ' + (pr.totalMb ? pr.downloadedMb + ' of ' + pr.totalMb + ' MB (' + pr.pct + '%)' : (pr.downloadedMb || 0) + ' MB'));
+      }
+      var bi = d.buildInstall;
+      parts.push('build install: ' + (!bi ? 'no record' : (bi.ok ? bi.status : bi.status + (bi.error ? ' — ' + bi.error : ''))));
+      if (d.deploy) parts.push('deploy ' + d.deploy);
       if (d.test) {
         parts.push(d.test.ok
           ? 'test print OK in ' + (Math.round(d.test.ms / 100) / 10) + ' s'

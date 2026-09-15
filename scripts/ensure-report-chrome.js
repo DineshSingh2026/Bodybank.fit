@@ -24,9 +24,20 @@ const path = require('path');
 
 const TAG = '[report-chrome]';
 
+// A record of what this build did, read by the report engine's diagnostics at
+// runtime (so "did the build install Chrome, and where?" has a definite answer).
+const MARKER = path.join(__dirname, '..', '.cache', 'report-chrome-build.json');
+const record = { at: new Date().toISOString(), ok: false, status: 'started', cwd: process.cwd(), node: process.version };
+function writeMarker(extra) {
+  try {
+    fs.mkdirSync(path.dirname(MARKER), { recursive: true });
+    fs.writeFileSync(MARKER, JSON.stringify(Object.assign(record, extra || {}), null, 2));
+  } catch (_) { /* read-only build dir: diagnostics will say "no marker" */ }
+}
+
 async function main() {
-  if (process.env.REPORTS_SKIP_CHROME_INSTALL === '1') { console.log(TAG, 'skipped (REPORTS_SKIP_CHROME_INSTALL=1)'); return; }
-  if ((process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH || '').trim()) { console.log(TAG, 'skipped (explicit Chrome path set)'); return; }
+  if (process.env.REPORTS_SKIP_CHROME_INSTALL === '1') { console.log(TAG, 'skipped (REPORTS_SKIP_CHROME_INSTALL=1)'); writeMarker({ status: 'skipped' }); return; }
+  if ((process.env.PUPPETEER_EXECUTABLE_PATH || process.env.CHROME_PATH || '').trim()) { console.log(TAG, 'skipped (explicit Chrome path set)'); writeMarker({ status: 'skipped-explicit-path' }); return; }
 
   let puppeteer;
   let B;
@@ -48,7 +59,8 @@ async function main() {
 
   const opts = { browser: B.Browser.CHROMEHEADLESSSHELL, buildId, cacheDir, platform };
   const exe = B.computeExecutablePath(opts);
-  if (fs.existsSync(exe)) { console.log(TAG, 'ready:', exe); return; }
+  Object.assign(record, { buildId, platform, cacheDir, exe, envCacheDir: process.env.PUPPETEER_CACHE_DIR || null });
+  if (fs.existsSync(exe)) { console.log(TAG, 'ready:', exe); writeMarker({ ok: true, status: 'already-installed' }); return; }
 
   const dir = new B.Cache(cacheDir).installationDir(opts.browser, platform, buildId);
   if (fs.existsSync(dir)) {
@@ -58,11 +70,22 @@ async function main() {
 
   const t0 = Date.now();
   console.log(TAG, `installing chrome-headless-shell ${buildId} (${platform}) into ${cacheDir}`);
-  await B.install(opts);
+  let lastLogged = -1;
+  await B.install(Object.assign({}, opts, {
+    downloadProgressCallback: (done, total) => {
+      const pct = total ? Math.floor((done * 100) / total) : null;
+      if (pct != null && pct >= lastLogged + 25) { lastLogged = pct; console.log(TAG, `download ${pct}% (${Math.round(done / 1048576)} of ${Math.round(total / 1048576)} MB)`); }
+    }
+  }));
   if (!fs.existsSync(exe)) throw new Error('install finished but the executable is missing: ' + exe);
-  console.log(TAG, `installed in ${Math.round((Date.now() - t0) / 1000)} s:`, exe);
+  const ms = Date.now() - t0;
+  console.log(TAG, `installed in ${Math.round(ms / 1000)} s:`, exe);
+  writeMarker({ ok: true, status: 'installed', ms });
 }
 
 main()
-  .catch((err) => { console.warn(TAG, 'could not install Chrome now; the report engine will retry at runtime:', err.message); })
+  .catch((err) => {
+    console.warn(TAG, 'could not install Chrome now; the report engine will retry at runtime:', err.message);
+    writeMarker({ ok: false, status: 'failed', error: String(err && err.message ? err.message : err).slice(0, 500) });
+  })
   .finally(() => { process.exitCode = 0; });

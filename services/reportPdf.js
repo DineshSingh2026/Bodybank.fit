@@ -48,7 +48,9 @@ const engine = {
   error: null,
   queued: 0,
   restarts: 0,
-  lastRender: null
+  lastRender: null,
+  progress: null,          // { phase: downloading|extracting|done, downloadedMb, totalMb, pct }
+  cacheDir: null
 };
 function setEngine(status, extra) {
   engine.status = status;
@@ -110,6 +112,7 @@ function ensureBrowser() {
       const opts = { browser: B.Browser.CHROMEHEADLESSSHELL, buildId, cacheDir, platform };
       const exe = B.computeExecutablePath(opts);
       engine.buildId = buildId;
+      engine.cacheDir = cacheDir;
       if (!fs.existsSync(exe)) {
         const t0 = Date.now();
         setEngine('installing', { exe, error: null });
@@ -133,7 +136,20 @@ function ensureBrowser() {
           console.warn('[reports] could not clean a partial Chrome download:', cleanErr.message);
         }
         console.log(`[reports] headless Chrome ${buildId} not found at ${exe} — installing into ${cacheDir}`);
-        await withTimeout(B.install(opts), INSTALL_TIMEOUT_MS, 'headless Chrome download');
+        engine.progress = { phase: 'downloading', downloadedMb: 0, totalMb: null, pct: 0, updatedAt: new Date().toISOString() };
+        const installOpts = Object.assign({}, opts, {
+          downloadProgressCallback: (done, total) => {
+            engine.progress = {
+              phase: total && done >= total ? 'extracting' : 'downloading',
+              downloadedMb: Math.round(done / 1048576),
+              totalMb: total ? Math.round(total / 1048576) : null,
+              pct: total ? Math.floor((done * 100) / total) : null,
+              updatedAt: new Date().toISOString()
+            };
+          }
+        });
+        await withTimeout(B.install(installOpts), INSTALL_TIMEOUT_MS, 'headless Chrome download');
+        engine.progress = { phase: 'done', updatedAt: new Date().toISOString() };
         if (!fs.existsSync(exe)) throw new Error('headless Chrome install finished but the executable is missing: ' + exe);
         engine.installMs = Date.now() - t0;
         console.log(`[reports] headless Chrome ${buildId} installed in ${Math.round(engine.installMs / 1000)} s`);
@@ -160,6 +176,18 @@ const CHROME_ARGS = [
   '--renderer-process-limit=1', '--disable-site-isolation-trials'
 ];
 
+/** Plain-language "still preparing" message, with live download progress when known. */
+function progressHint() {
+  const p = engine.progress;
+  let where = '';
+  if (p && p.phase === 'downloading') {
+    where = p.totalMb ? ` (downloading Chrome: ${p.downloadedMb} of ${p.totalMb} MB, ${p.pct}%)` : ` (downloading Chrome: ${p.downloadedMb} MB so far)`;
+  } else if (p && p.phase === 'extracting') {
+    where = ' (download complete, unpacking Chrome)';
+  }
+  return 'The PDF engine is still being set up on the server' + where + '. Please try again shortly.';
+}
+
 async function launch() {
   const puppeteer = require('puppeteer');
   let exe;
@@ -168,7 +196,7 @@ async function launch() {
   } catch (err) {
     if (engine.status === 'installing' || engine.status === 'checking') {
       throw engineError('engine_starting', 'Report engine still preparing: ' + err.message,
-        'The PDF engine is still being set up on the server (the first run after a deploy downloads Chrome, about a minute). Please try again shortly.');
+        progressHint());
     }
     throw engineError('engine_unavailable', 'Report engine unavailable: ' + err.message,
       'The PDF engine could not be prepared on the server: ' + String(err.message).slice(0, 200));
@@ -461,6 +489,15 @@ function containerMemoryLimitMb() {
   return null;
 }
 
+/** What the build-time installer (scripts/ensure-report-chrome.js) recorded, if anything. */
+function readBuildMarker() {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, '..', '.cache', 'report-chrome-build.json'), 'utf8'));
+  } catch (_) {
+    return null;
+  }
+}
+
 /** Admin diagnostics: engine state, memory, and (test=true) a live one-page print. */
 async function diagnostics(opts) {
   const mem = process.memoryUsage();
@@ -468,6 +505,9 @@ async function diagnostics(opts) {
     engine: Object.assign({}, engine),
     exeExists: engine.exe ? fs.existsSync(engine.exe) : null,
     override: executablePath() || null,
+    deploy: (process.env.RENDER_GIT_COMMIT || '').slice(0, 7) || null,
+    cwd: process.cwd(),
+    buildInstall: readBuildMarker(),
     node: process.version,
     platform: process.platform + '/' + process.arch,
     uptimeS: Math.round(process.uptime()),
