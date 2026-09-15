@@ -154,7 +154,10 @@ const CHROME_ARGS = [
   '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu',
   '--font-render-hinting=none', '--disable-extensions', '--no-first-run', '--no-zygote',
   '--disable-background-networking', '--disable-default-apps', '--disable-sync', '--mute-audio',
-  '--no-default-browser-check', '--disable-features=Translate,BackForwardCache,MediaRouter'
+  '--no-default-browser-check', '--disable-features=Translate,BackForwardCache,MediaRouter',
+  // Low-memory host (512 MB): reports render one local page at a time, so one
+  // renderer process and no per-site isolation processes are enough.
+  '--renderer-process-limit=1', '--disable-site-isolation-trials'
 ];
 
 async function launch() {

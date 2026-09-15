@@ -5,6 +5,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "postinstall": "node scripts/ensure-report-chrome.js",
     "dev": "node server.js",
     "setup:google": "node scripts/setup-google-signin.js",
     "migrate": "node scripts/migrate-sqlite-to-postgres.js",
