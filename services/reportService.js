@@ -654,7 +654,14 @@ function createReportService(deps) {
   return {
     preview, generate, send, list, pdfFor, getRow, byShareToken, ensureShareLink, revokeShareLink,
     setAutoReports, clients, startBulk, getJob, runScheduled, startScheduler,
-    ensureTables: () => ensureReportTables(db)
+    ensureTables: async () => {
+      await ensureReportTables(db);
+      // Fetch/verify headless Chrome in the background at boot so the first
+      // preview after a deploy does not wait for a download (or fail on it).
+      pdfSvc.ensureBrowser()
+        .then((exe) => console.log('[reports] headless Chrome ready:', exe))
+        .catch((err) => console.error('[reports] headless Chrome unavailable:', err.message));
+    }
   };
 }
 

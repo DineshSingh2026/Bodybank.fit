@@ -37,11 +37,51 @@ function executablePath() {
   return p || undefined;
 }
 
+/**
+ * Makes sure the pinned headless Chrome exists and returns its path.
+ *
+ * `npm ci` is supposed to download it (puppeteer postinstall + .puppeteerrc.cjs),
+ * but a host build can skip or relocate that step — production once failed with
+ * "Could not find Chrome (ver. 148...)". So the server checks at runtime and, if
+ * the browser is missing, installs that exact build into the project cache with
+ * Puppeteer's own installer, once. PUPPETEER_EXECUTABLE_PATH / CHROME_PATH win.
+ */
+let browserReady = null;
+function ensureBrowser() {
+  const override = executablePath();
+  if (override) return Promise.resolve(override);
+  if (!browserReady) {
+    browserReady = (async () => {
+      const puppeteer = require('puppeteer');
+      const B = require('@puppeteer/browsers');
+      const buildId = puppeteer.PUPPETEER_REVISIONS['chrome-headless-shell'];
+      const cfg = puppeteer.configuration || (puppeteer.default && puppeteer.default.configuration) || {};
+      const cacheDir = (process.env.PUPPETEER_CACHE_DIR || '').trim()
+        || cfg.cacheDirectory
+        || path.join(__dirname, '..', '.cache', 'puppeteer');
+      const platform = B.detectBrowserPlatform();
+      if (!platform) throw new Error('Unsupported platform for headless Chrome: ' + process.platform + '/' + process.arch);
+      const opts = { browser: B.Browser.CHROMEHEADLESSSHELL, buildId, cacheDir, platform };
+      const exe = B.computeExecutablePath(opts);
+      if (!fs.existsSync(exe)) {
+        const t0 = Date.now();
+        console.log(`[reports] headless Chrome ${buildId} not found at ${exe} — installing into ${cacheDir}`);
+        await B.install(opts);
+        if (!fs.existsSync(exe)) throw new Error('headless Chrome install finished but the executable is missing: ' + exe);
+        console.log(`[reports] headless Chrome ${buildId} installed in ${Math.round((Date.now() - t0) / 1000)} s`);
+      }
+      return exe;
+    })().catch((err) => { browserReady = null; throw err; });
+  }
+  return browserReady;
+}
+
 async function launch() {
   const puppeteer = require('puppeteer');
+  const exe = await ensureBrowser();
   return puppeteer.launch({
     headless: 'shell',
-    executablePath: executablePath(),
+    executablePath: exe,
     args: [
       '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-gpu',
       '--font-render-hinting=none', '--disable-extensions', '--no-first-run', '--no-zygote'
@@ -263,4 +303,4 @@ async function close() {
   if (p) { try { (await p).close(); } catch (_) { /* ignore */ } }
 }
 
-module.exports = { renderCharts, probeLayout, growFromProbe, finalize, htmlToPdf, close };
+module.exports = { renderCharts, probeLayout, growFromProbe, finalize, htmlToPdf, close, ensureBrowser };
