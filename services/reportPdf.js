@@ -100,62 +100,38 @@ function ensureBrowser() {
   if (!browserReady) {
     browserReady = (async () => {
       setEngine('checking');
-      const puppeteer = require('puppeteer');
-      const B = require('@puppeteer/browsers');
-      const buildId = puppeteer.PUPPETEER_REVISIONS['chrome-headless-shell'];
-      const cfg = puppeteer.configuration || (puppeteer.default && puppeteer.default.configuration) || {};
-      const cacheDir = (process.env.PUPPETEER_CACHE_DIR || '').trim()
-        || cfg.cacheDirectory
-        || path.join(__dirname, '..', '.cache', 'puppeteer');
-      const platform = B.detectBrowserPlatform();
-      if (!platform) throw new Error('Unsupported platform for headless Chrome: ' + process.platform + '/' + process.arch);
-      const opts = { browser: B.Browser.CHROMEHEADLESSSHELL, buildId, cacheDir, platform };
-      const exe = B.computeExecutablePath(opts);
-      engine.buildId = buildId;
-      engine.cacheDir = cacheDir;
-      if (!fs.existsSync(exe)) {
+      const CI = require('./chromeInstall');
+      const target = CI.resolveTarget();
+      engine.buildId = target.buildId;
+      engine.cacheDir = target.cacheDir;
+      if (!fs.existsSync(target.exe)) {
         const t0 = Date.now();
-        setEngine('installing', { exe, error: null });
-        // A download interrupted by a restart leaves the browser folder without its
-        // executable; the installer refuses that state forever. Clear it first.
-        try {
-          const cache = new B.Cache(cacheDir);
-          const dir = cache.installationDir(opts.browser, platform, buildId);
-          if (fs.existsSync(dir)) {
-            console.warn('[reports] removing a half-finished headless Chrome download:', dir);
-            await B.uninstall(opts);
-            if (fs.existsSync(dir)) fs.rmSync(dir, { recursive: true, force: true });
-          }
-          const root = cache.browserRoot(opts.browser);
-          if (fs.existsSync(root)) {
-            fs.readdirSync(root)
-              .filter((f) => f.startsWith(buildId) && f.endsWith('.zip'))
-              .forEach((f) => { try { fs.rmSync(path.join(root, f), { force: true }); } catch (_) { /* in use */ } });
-          }
-        } catch (cleanErr) {
-          console.warn('[reports] could not clean a partial Chrome download:', cleanErr.message);
-        }
-        console.log(`[reports] headless Chrome ${buildId} not found at ${exe} — installing into ${cacheDir}`);
+        setEngine('installing', { exe: target.exe, error: null });
         engine.progress = { phase: 'downloading', downloadedMb: 0, totalMb: null, pct: 0, updatedAt: new Date().toISOString() };
-        const installOpts = Object.assign({}, opts, {
-          downloadProgressCallback: (done, total) => {
+        console.log(`[reports] headless Chrome ${target.buildId} not found at ${target.exe} — installing into ${target.cacheDir}`);
+        const res = await withTimeout(CI.installHeadlessShell({
+          log: (m) => console.log('[reports] ' + m),
+          onPhase: (phase) => {
+            engine.progress = Object.assign({}, engine.progress || {}, { phase, updatedAt: new Date().toISOString() });
+            if (phase === 'extracting') console.log('[reports] headless Chrome downloaded — unpacking');
+          },
+          onProgress: (done, total) => {
             engine.progress = {
-              phase: total && done >= total ? 'extracting' : 'downloading',
+              phase: 'downloading',
               downloadedMb: Math.round(done / 1048576),
               totalMb: total ? Math.round(total / 1048576) : null,
               pct: total ? Math.floor((done * 100) / total) : null,
               updatedAt: new Date().toISOString()
             };
           }
-        });
-        await withTimeout(B.install(installOpts), INSTALL_TIMEOUT_MS, 'headless Chrome download');
-        engine.progress = { phase: 'done', updatedAt: new Date().toISOString() };
-        if (!fs.existsSync(exe)) throw new Error('headless Chrome install finished but the executable is missing: ' + exe);
+        }), INSTALL_TIMEOUT_MS, 'headless Chrome download');
         engine.installMs = Date.now() - t0;
-        console.log(`[reports] headless Chrome ${buildId} installed in ${Math.round(engine.installMs / 1000)} s`);
+        engine.installMethod = res.method;
+        engine.progress = { phase: 'done', updatedAt: new Date().toISOString() };
+        console.log(`[reports] headless Chrome ${target.buildId} installed in ${Math.round(engine.installMs / 1000)} s (unpacked with ${res.method})`);
       }
-      setEngine('ready', { exe, error: null });
-      return exe;
+      setEngine('ready', { exe: target.exe, error: null });
+      return target.exe;
     })().catch((err) => {
       browserReady = null;
       setEngine('error', { error: 'install: ' + String(err.message).slice(0, 300) });
@@ -492,7 +468,7 @@ function containerMemoryLimitMb() {
 /** What the build-time installer (scripts/ensure-report-chrome.js) recorded, if anything. */
 function readBuildMarker() {
   try {
-    return JSON.parse(fs.readFileSync(path.join(__dirname, '..', '.cache', 'report-chrome-build.json'), 'utf8'));
+    return JSON.parse(fs.readFileSync(require('./chromeInstall').markerPath(), 'utf8'));
   } catch (_) {
     return null;
   }
