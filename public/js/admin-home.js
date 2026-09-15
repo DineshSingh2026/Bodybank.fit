@@ -318,6 +318,7 @@ var AH_QUICK = [
   { icon: '💳', label: 'Members', kind: 'tab', to: 'memberships' },
   { icon: '📈', label: 'Analytics', kind: 'section', to: 'analytics' },
   { icon: '🪙', label: 'Tokens', kind: 'tab', to: 'tokens' },
+  { icon: '📑', label: 'Reports', kind: 'tab', to: 'reports' },
   { icon: '💡', label: 'AI Assist', kind: 'fn', to: 'toggleAdminAiAssistPanel' }
 ];
 function renderAdminQuick() {

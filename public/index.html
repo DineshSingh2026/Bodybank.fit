@@ -5126,12 +5126,14 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="/css/blood-report-editor.css?v=2">
 <link rel="stylesheet" href="/css/graded-report.css?v=1">
 <link rel="stylesheet" href="css/admin-home.css?v=3">
+<link rel="stylesheet" href="css/admin-reports.css?v=1">
 <link rel="stylesheet" href="css/member-home.css?v=13">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
 <script src="js/operator-console.js?v=15"></script>
-<script src="js/admin-home.js?v=7"></script>
+<script src="js/admin-home.js?v=8"></script>
+<script src="js/admin-reports.js?v=2"></script>
 <script src="js/countries.js?v=1"></script>
 <script src="js/member-home.js?v=10"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
@@ -8125,6 +8127,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <a class="admin-sidebar-link" href="#" onclick="switchTab('leaderboards');return false"><span class="admin-sidebar-icon" aria-hidden="true">🏆</span>Leader Boards</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('nutrition');return false"><span class="admin-sidebar-icon" aria-hidden="true">🥗</span>Nutrition AI</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('blood');return false"><span class="admin-sidebar-icon" aria-hidden="true">🩺</span>Blood Reports</a>
+        <a class="admin-sidebar-link" href="#" onclick="switchTab('reports');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128209;</span>Reports</a>
         <a class="admin-sidebar-link" href="#" onclick="switchTab('smartscale');return false"><span class="admin-sidebar-icon" aria-hidden="true">⚖️</span>Smart Scale</a>
         <a class="admin-sidebar-link" href="#" data-section="messages" onclick="switchToSection('messages');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
         <a class="admin-sidebar-link" href="#" onclick="openAdminEscalations();return false"><span class="admin-sidebar-icon" aria-hidden="true">🛰️</span>Operator</a>
@@ -8186,6 +8189,9 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <a class="admin-nav-link" href="#" onclick="switchTab('blood');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">🩺</span>Blood Reports
         </a>
+        <a class="admin-nav-link" href="#" onclick="switchTab('reports');closeAdminNavDrawer();return false">
+          <span class="admin-nav-link-icon" aria-hidden="true">&#128209;</span>Reports
+        </a>
         <a class="admin-nav-link" href="#" data-section="messages" onclick="switchToSection('messages');closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128172;</span>Messages
         </a>
@@ -8219,6 +8225,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="admin-tab" data-tab="leaderboards" onclick="switchTab('leaderboards')">Leader Boards</div>
       <div class="admin-tab" data-tab="nutrition" onclick="switchTab('nutrition')">Nutrition AI</div>
       <div class="admin-tab" data-tab="blood" onclick="switchTab('blood')">Blood Reports</div>
+      <div class="admin-tab" data-tab="reports" onclick="switchTab('reports')">Reports</div>
       <div class="admin-tab" data-tab="smartscale" onclick="switchTab('smartscale')">Smart Scale</div>
       <div class="admin-tab" data-tab="memberships" onclick="switchTab('memberships')">Members</div>
       <div class="admin-tab" data-tab="referrals" onclick="switchTab('referrals')">Referrals</div>
@@ -8737,6 +8744,11 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <span class="admin-section-card-icon" aria-hidden="true">&#129689;</span>
             <span class="admin-section-card-title">Tokens</span>
             <span class="admin-section-card-desc">Daily AI token spend in $ and &#8377;, by feature</span>
+          </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('reports');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">&#128209;</span>
+            <span class="admin-section-card-title">Reports</span>
+            <span class="admin-section-card-desc">Weekly &amp; monthly client progress PDFs, send by email + WhatsApp</span>
           </a>
         </div>
       </div>
@@ -9913,6 +9925,10 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <p class="form-hint" style="padding:24px;margin:0">Loading…</p>
       </div>
     </div>
+
+    <!-- TAB: Reports — weekly/monthly client progress PDFs. Rendered by js/admin-reports.js;
+         fed by /api/admin/reports (routes/reports.js). -->
+    <div class="admin-tab-content" id="tab-reports"></div>
 
     </div><!-- .admin-tab-content-wrap -->
 
@@ -17965,8 +17981,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', nutritionassessment: 'FitChef Assessment', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', transformations: 'Transformations', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens' };
-var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', nutritionassessment: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', transformations: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', nutritionassessment: 'FitChef Assessment', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', transformations: 'Transformations', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens', reports: 'Reports' };
+var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', nutritionassessment: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', transformations: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics', reports: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -18107,6 +18123,7 @@ function switchTab(tab) {
   if (tab === 'memberships') loadAdminMemberships();
   if (tab === 'referrals') loadAdminReferrals();
   if (tab === 'tokens') loadAdminTokenUsage();
+  if (tab === 'reports') { if (typeof loadAdminReports === 'function') loadAdminReports(); }
 }
 /* ======================================================================
    ADMIN . TOKENS -- AI spend ledger

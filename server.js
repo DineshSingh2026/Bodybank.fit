@@ -27,6 +27,7 @@ const { safeExtraHttpHeaders, optionalApiAccessLog, redactServerErrors } = requi
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
 const { createBloodRouter, createBloodPublicRouter } = require('./routes/blood');
+const { createReportsRouter, createReportsPublicRouter } = require('./routes/reports');
 const { createSmartScaleRouter } = require('./routes/smartScale');
 const { createReferralRouter } = require('./routes/referrals');
 const { createWearablesRouter } = require('./routes/wearables');
@@ -11406,6 +11407,29 @@ app.use(
 // Unauthenticated by design: a client opening a WhatsApp link is not logged in.
 // The token in the path is the credential — see createBloodPublicRouter.
 app.use('/r/blood', createBloodPublicRouter({ run, queryOne, rateLimiter }));
+// ── Client progress reports (admin "Reports" tab: weekly / monthly PDF) ──────
+// Admin-only API; the report service owns its tables and the Monday / 1st-of-month
+// scheduler (started after initDB below). WhatsApp sends are recorded in the Grok
+// agent's thread via the same wa_messages store the inbound agent uses.
+const reportsRouter = createReportsRouter({
+  run,
+  queryOne,
+  queryAll,
+  verifyToken,
+  requireAdmin,
+  rateLimiter,
+  uploadsDir: FEED_UPLOADS_DIR,
+  notify,
+  notifyAgent,
+  sendMail: userEmail.sendMail,
+  luxuryWrap: userEmail.luxuryWrap,
+  sendWhatsAppWithFallback,
+  waStore: createPgStore({ queryAll, queryOne, run, uuidv4 })
+});
+app.use('/api/admin/reports', reportsRouter);
+// Unauthenticated by design: the client opens an emailed / WhatsApp link. The
+// expiring, revocable token in the path is the credential.
+app.use('/r/report', createReportsPublicRouter({ service: reportsRouter.service, rateLimiter }));
 app.use(
   '/api/smart-scale',
   createSmartScaleRouter({
@@ -12459,6 +12483,8 @@ app.use('/uploads/nutrition-assessment', (req, res) => res.status(404).send('Not
 // data too — closed off from the public static mount, served only via
 // /api/smart-scale/file/:id which checks ownership/staff role.
 app.use('/uploads/smart-scale', (req, res) => res.status(404).send('Not found'));
+// Generated client progress reports are private: served only via /api/admin/reports and /r/report.
+app.use('/uploads/client-reports', (req, res) => res.status(404).send('Not found'));
 app.use('/uploads', express.static(FEED_UPLOADS_DIR, {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
 }));
@@ -12654,6 +12680,15 @@ app.listen(PORT, '0.0.0.0', () => {
       console.log('✅ WhatsApp inbound scheduler cron (every 15 min Asia/Kolkata; draft flush + no_activity_3d stub)');
     } catch (e) {
       console.warn('WhatsApp inbound scheduler cron skipped:', e.message);
+    }
+
+    try {
+      await reportsRouter.service.ensureTables();
+      if (reportsRouter.service.startScheduler(cron)) {
+        console.log('✅ Client reports cron (weekly Mon 06:00, monthly 1st 06:00 Asia/Kolkata; auto_reports clients only)');
+      }
+    } catch (e) {
+      console.warn('Client reports setup skipped:', e.message);
     }
   }).catch(err => {
     console.error('Failed to init DB:', err);

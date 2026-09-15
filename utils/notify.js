@@ -38,7 +38,10 @@ const EVENT_META = {
   WA_INBOUND_HANDOFF: { priority: PRIORITY.CRITICAL, dedup: 0 },
   WA_UNMATCHED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
   WA_DRAFT_SENT: { priority: PRIORITY.INFO, dedup: 0 },
-  WA_DRAFT_REJECTED: { priority: PRIORITY.INFO, dedup: 0 }
+  WA_DRAFT_REJECTED: { priority: PRIORITY.INFO, dedup: 0 },
+  REPORT_GENERATED: { priority: PRIORITY.INFO, dedup: 0 },
+  REPORT_SENT: { priority: PRIORITY.IMPORTANT, dedup: 0 },
+  REPORT_BULK_COMPLETE: { priority: PRIORITY.IMPORTANT, dedup: 0 }
 };
 
 const _dedup = new Map();
@@ -195,7 +198,10 @@ const FORMATTERS = {
     `⏰ ${ts()}`
   ],
   WA_DRAFT_SENT: (p) => ['✅ WhatsApp draft sent to client', ...userLines(p), `Draft: ${s(p.draft_id)}`, `⏰ ${ts()}`],
-  WA_DRAFT_REJECTED: (p) => ['⛔ WhatsApp draft rejected', ...userLines(p), `Draft: ${s(p.draft_id)}`, `⏰ ${ts()}`]
+  WA_DRAFT_REJECTED: (p) => ['⛔ WhatsApp draft rejected', ...userLines(p), `Draft: ${s(p.draft_id)}`, `⏰ ${ts()}`],
+  REPORT_GENERATED: (p) => ['📑 Progress Report Generated', ...userLines(p), `🗂 ${s(p.type)} · ${s(p.period_start)} → ${s(p.period_end)}`, `🏅 Score: ${s(p.score)} (${s(p.grade)})`, `⏰ ${ts()}`],
+  REPORT_SENT: (p) => ['📤 Progress Report Sent', ...userLines(p), `🗂 ${s(p.type)} · ${s(p.period_start)} → ${s(p.period_end)}`, `🏅 Score: ${s(p.score)} (${s(p.grade)})`, `📨 Via: ${s((p.channels || []).join(', '))}`, ...(p.failed && p.failed.length ? [`⚠️ Failed: ${p.failed.join(', ')}`] : []), `⏰ ${ts()}`],
+  REPORT_BULK_COMPLETE: (p) => ['📚 Bulk Progress Reports Done', `🗂 ${s(p.type)} · ${s(p.period)}`, `✅ Generated: ${s(p.done)} / ${s(p.total)}`, `❌ Failed: ${s(p.failed)}`, `🔁 Source: ${s(p.source)}`, `⏰ ${ts()}`]
 };
 const DETAILED_EVENTS = new Set(['SUNDAY_CHECKIN', 'PART2_FORM']);
 

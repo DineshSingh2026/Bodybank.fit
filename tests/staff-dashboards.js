@@ -336,6 +336,10 @@ section('Quick Access carries both features on every pane');
   check(/FitChef Assessment/.test(quick), 'desktop Quick Access has a FitChef Assessment entry');
   check(/Watch Data/.test(quick), 'desktop Quick Access has a Watch Data entry');
   check(/to: 'nutritionassessment'/.test(quick), 'and it routes to the assessment tab');
+  check(/to: 'reports'/.test(quick), 'desktop Quick Access has a Reports entry (weekly/monthly client reports)');
+  check(/id="tab-reports"/.test(indexHtml) && /js\/admin-reports\.js\?v=\d+/.test(indexHtml)
+    && /if \(tab === 'reports'\)/.test(indexHtml),
+  'the Reports tab has a panel, its script is loaded, and switchTab routes to it');
 
   // Render the real grid rather than trusting the array.
   const ids = {};

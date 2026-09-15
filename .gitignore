@@ -23,3 +23,6 @@ public/reports/monthly-report-*.pdf
 
 # Security test suite scratch (throwaway uploads)
 tests/security/.sectest-uploads/
+
+# Puppeteer headless shell (downloaded into the project at npm ci — see .puppeteerrc.cjs)
+.cache/
