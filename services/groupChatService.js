@@ -206,6 +206,14 @@ async function ensureGroupChatTables(db) {
     await db.run(`CREATE INDEX IF NOT EXISTS idx_chat_attachments_msg
       ON chat_message_attachments(message_id)`);
   } catch (e) { /* ignore */ }
+  // The inbox pulls the newest message of every 1-to-1 thread through a LATERAL.
+  // thread_messages only had a plain (thread_id) index, which makes that a sort
+  // per thread; the composite turns each one into a single index seek. Adding an
+  // index is the only thing this feature does to the legacy chat tables.
+  try {
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_thread_messages_thread_created
+      ON thread_messages(thread_id, created_at DESC)`);
+  } catch (e) { /* ignore */ }
 
   return { ok: true };
 }
@@ -419,9 +427,12 @@ async function loadMessages(db, groupId, opts = {}) {
 
   const ids = rows.map(r => r.id);
   const replyIds = [...new Set(rows.map(r => r.reply_to_id).filter(Boolean))];
+  // Only the image/file rows can have attachments, so a text-only page — which
+  // is almost every page — skips that round trip entirely.
+  const hasAttachments = rows.some(r => r.kind === 'image' || r.kind === 'file');
   const [reactions, attachments, replyRows] = await Promise.all([
     reactionsForMessages(db, ids, viewerId),
-    attachmentsForMessages(db, ids),
+    hasAttachments ? attachmentsForMessages(db, ids) : Promise.resolve({}),
     replyIds.length
       ? db.queryAll(
           `SELECT m.id, m.seq, m.sender_id, m.sender_group_role, m.body, m.kind, m.deleted_at,
@@ -544,6 +555,68 @@ async function listGroupsForUser(db, user, opts = {}) {
 }
 
 /**
+ * Active 1-to-1 threads for the inbox.
+ *
+ * `JOIN LATERAL` (not LEFT JOIN) is doing real work here: it drops any thread
+ * that has no messages, which is exactly what the admin asked for — the inbox
+ * should list people they have actually talked to, not every client who happens
+ * to have an empty thread row. A member always gets their own thread back, even
+ * empty, because it is how they start the conversation.
+ *
+ * One query, no per-row subselects, ordered by the newest message.
+ */
+async function listDirectThreads(db, user, opts = {}) {
+  const admin = isAdminRole(user && user.role);
+  const userId = String((user && user.id) || '');
+  const limit = Math.min(200, Math.max(1, parseInt(opts.limit, 10) || 100));
+
+  const rows = await db.queryAll(
+    `SELECT t.id, t.user_id, t.created_at, t.updated_at,
+            u.first_name, u.last_name, u.email, u.profile_picture,
+            lm.body AS last_body, lm.created_at AS last_at, lm.sender_role AS last_role
+     FROM message_threads t
+     JOIN users u ON u.id = t.user_id
+     JOIN LATERAL (
+       SELECT m.body, m.created_at, m.sender_role
+       FROM thread_messages m
+       WHERE m.thread_id = t.id
+       ORDER BY m.created_at DESC
+       LIMIT 1
+     ) lm ON TRUE
+     ${admin ? '' : 'WHERE t.user_id = ?'}
+     ORDER BY lm.created_at DESC
+     LIMIT ?`,
+    admin ? [limit] : [userId, limit]
+  );
+
+  return rows.map(r => {
+    const clientName = displayName(r);
+    const fromStaff = r.last_role === 'admin' || r.last_role === 'superadmin';
+    return {
+      id: 'dm:' + r.id,
+      threadId: r.id,
+      type: 'direct',
+      // The member always sees their coach; the admin sees the client.
+      name: admin ? clientName : 'Lifestyle Manager',
+      clientName,
+      clientId: r.user_id,
+      clientAvatar: admin ? (r.profile_picture || '') : '',
+      avatarUrl: admin ? (r.profile_picture || '') : '',
+      subtitle: admin ? 'Client · private thread' : 'Private · just you and your coach',
+      email: admin ? (r.email || '') : '',
+      lastPreview: r.last_body || '',
+      lastFromStaff: fromStaff,
+      lastSenderName: '',
+      lastMessageAt: r.last_at || r.updated_at || r.created_at,
+      memberCount: 2,
+      unread: 0,
+      muted: false,
+      archived: false
+    };
+  });
+}
+
+/**
  * Insert a message and move the group's activity clock.
  *
  * `senderGroupRole` is snapshotted onto the row so an old message keeps showing
@@ -608,6 +681,7 @@ module.exports = {
   resolveAccess,
   listMembers,
   listGroupsForUser,
+  listDirectThreads,
   loadMessages,
   groupMaxSeq,
   reactionsForMessages,

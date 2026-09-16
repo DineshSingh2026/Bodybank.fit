@@ -384,6 +384,8 @@ function testFrontend() {
   const js = read('public/js/group-chat.js');
   const css = read('public/css/group-chat.css');
   const html = read('public/index.html');
+  const router = read('routes/groupChat.js');
+  const service = read('services/groupChatService.js');
 
   // Message bodies are user input rendered into innerHTML — escaping is the
   // whole defence. richText() must escape FIRST and linkify after.
@@ -418,13 +420,55 @@ function testFrontend() {
   assert(/!host\.dataset\.mounted \|\| !host\.children\.length/.test(html),
     'an emptied host remounts rather than staying blank');
 
+  // ── Speed: opening anything must cost at most ONE round trip. ──
+  assert(/api\('GET', '\/api\/groups\/inbox'\)/.test(js),
+    'the conversation list is one request to /api/groups/inbox');
+  assert(!/api\('GET', '\/api\/groups'\)[\s\S]{0,200}api\('GET', '\/api\/threads'\)/.test(js),
+    'the list no longer fans out to two endpoints and merges them client-side');
+  // The group open must NOT fetch messages separately — detail carries them.
+  const openGroupBody = js.slice(js.indexOf('BBG.openGroup = async function'),
+                                js.indexOf('function applyGroup('));
+  assert(openGroupBody.indexOf('/messages?limit=') === -1,
+    'opening a group does not make a second request for its messages');
+  assert(/^\s*messages,\s*$/m.test(router) && /^\s*hasMore,\s*$/m.test(router),
+    'the group detail response carries the first page of messages');
+  assert(/const maxSeq = messages\.length \? Number\(messages\[messages\.length - 1\]\.seq\) : 0;/.test(router),
+    'maxSeq is derived from the page instead of costing its own SELECT MAX');
+  assert(/function prefetch\(row\)/.test(js), 'conversations are prefetched into a cache');
+  assert(/addEventListener\('pointerenter', warm\)/.test(js),
+    'hovering a conversation row starts fetching it');
+  assert(/BBG\.warm = function/.test(js), 'the inbox is warmed before Messages is opened');
+  assert(/window\.BBGroupChat\.warm\(\)/.test(html), 'the dashboard triggers the warm-up');
+  assert(/if \(!S\.cache\[row\.id\]\)/.test(js),
+    'a cached conversation paints immediately instead of showing a spinner');
+  assert(/hasAttachments \? attachmentsForMessages/.test(service),
+    'a text-only page skips the attachments query');
+  assert(/idx_thread_messages_thread_created/.test(service),
+    'the 1-to-1 lateral is backed by a (thread_id, created_at) index');
+
+  // ── Only ACTIVE conversations are listed. ──
+  assert(/JOIN LATERAL/.test(service) && /listDirectThreads/.test(service),
+    'the inbox pulls 1-to-1 threads through a LATERAL');
+  const direct = service.slice(service.indexOf('async function listDirectThreads'),
+                               service.indexOf('async function insertMessage'));
+  assert(direct.indexOf('LEFT JOIN LATERAL') === -1 && direct.indexOf('JOIN LATERAL') > -1,
+    'an INNER lateral drops threads with no messages, so empty clients never list');
+  assert(/router\.get\('\/directory', verifyToken, requireAdminOrSuperadmin/.test(router),
+    'admin searches for a client rather than being handed every client');
+  assert(/q \? \[needle, needle, needle, needle, limit\] : \[limit\]/.test(router),
+    'the client search is capped and fully parameterised');
+  assert(/router\.post\('\/direct', verifyToken, requireAdminOrSuperadmin/.test(router),
+    'admin can open a 1-to-1 with a searched client');
+  assert(/BBG\.openNewMessage = function/.test(js), 'the compose flow exists in the client');
+  assert(/id="bbgNewDmBtn"/.test(js), 'the header carries a "message a client" action');
+
   // ── Regression: the 1-to-1 chat is still fully functional, now rendered by
   //    the shared engine against the SAME untouched /api/threads endpoints. ──
-  assert(/\/api\/threads'\)/.test(js), 'the inbox lists 1-to-1 threads from /api/threads');
   assert(/'\/api\/threads\/' \+ encodeURIComponent\(row\.threadId\) \+ '\/messages'/.test(js),
     'the inbox reads 1-to-1 messages from /api/threads/:id/messages');
   assert(/api\('POST', '\/api\/threads', \{ first_message: body \}\)/.test(js),
     'a member with no thread yet still creates one on first send');
+  assert(/message_threads/.test(read('server.js')), 'the legacy thread tables are untouched');
   assert(/'\/api\/threads\/' \+ encodeURIComponent\(S\.convId\) \+ '\/messages'/.test(js),
     'replies still POST to /api/threads/:id/messages');
 
@@ -443,8 +487,10 @@ function testFrontend() {
     'the attachment button is absent in a direct chat (thread_messages has no attachments)');
   assert(/tickHtml\(isDirect\(\) \? false : readByAll\(m\)\)/.test(js),
     'a direct message shows delivered only — it has no read cursor to report');
-  assert(/function directHasNew\(threadId, lastMessageAt\)/.test(js),
+  assert(/function directDot\(row\)/.test(js),
     'direct unread is a per-device dot, not an invented count');
+  assert(/if \(mineWasLast\) return false;/.test(js),
+    'your own last message never re-flags the row as unread');
 
   // ── Meetings is out of Messages, but NOT deleted. ──
   assert(/meetings: 'clients'/.test(html), 'Meetings now belongs to the Clients section');

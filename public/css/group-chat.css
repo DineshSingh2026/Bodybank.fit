@@ -773,6 +773,10 @@
    controls tighten, which gives the name the room it needs.                  */
 @media (max-width:560px){
   .bbg-panehead{gap:8px;padding:12px 10px;min-height:60px}
+  /* Two header actions plus a title do not fit at phone width, so "New group"
+     drops to its icon. The compose button beside it stays as-is. */
+  .bbg-newbtn{padding:8px 10px}
+  .bbg-newbtn span{display:none}
   .bbg-iconbtn{width:34px;height:34px;border-radius:10px}
   .bbg-iconbtn svg{width:18px;height:18px}
   #bbgSearchBtn{display:none}

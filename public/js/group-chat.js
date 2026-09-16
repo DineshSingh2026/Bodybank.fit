@@ -75,7 +75,12 @@
     detailsOpen: false,
     searchOpen: false,
     media: null,
-    drafts: {}
+    drafts: {},
+    // Opened conversations are kept so re-opening one paints from memory with
+    // zero latency; the network refresh then reconciles in the background.
+    cache: {},
+    prefetching: {},
+    listLoaded: false
   };
 
   window.BBGroupChat = window.BBGroupChat || {};
@@ -172,7 +177,8 @@
       smile: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/>',
       down: '<path d="M12 5v14M6 13l6 6 6-6"/>',
       close: '<path d="M6 6l12 12M18 6L6 18"/>',
-      chev: '<path d="M9 6l6 6-6 6"/>'
+      chev: '<path d="M9 6l6 6-6 6"/>',
+      compose: '<path d="M4 20h16"/><path d="M14.5 4.5l5 5L9 20H4v-5z"/>'
     };
     return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (P[name] || '') + '</svg>';
   }
@@ -195,6 +201,8 @@
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+  function lsSession(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
+  function lsSessionSet(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* quota / blocked */ } }
 
   // ══════════════════════════════════════════════════════════════════════════
   // SHELL
@@ -227,7 +235,9 @@
       +       '<div class="bbg-panehead-sub" id="bbgListSub">Your conversations</div>'
       +     '</div>'
       +     (S.mode === 'admin'
-            ? '<button type="button" class="bbg-newbtn" id="bbgNewGroupBtn" title="Create a care group">'
+            ? '<button type="button" class="bbg-iconbtn" id="bbgNewDmBtn" title="Message a client" aria-label="Message a client">'
+              + icon('compose') + '</button>'
+              + '<button type="button" class="bbg-newbtn" id="bbgNewGroupBtn" title="Create a care group">'
               + icon('plus') + '<span>New group</span></button>'
             : '')
       +   '</div>'
@@ -272,6 +282,8 @@
     el('bbgMoreBtn').onclick = function (e) { e.stopPropagation(); openConvMenu(); };
     var nb = el('bbgNewGroupBtn');
     if (nb) nb.onclick = function () { BBG.openCreateGroup(); };
+    var dm = el('bbgNewDmBtn');
+    if (dm) dm.onclick = function () { BBG.openNewMessage(); };
 
     el('bbgListSearch').oninput = function () {
       S.listQuery = this.value.trim().toLowerCase();
@@ -365,133 +377,152 @@
   // CONVERSATION LIST
   // ══════════════════════════════════════════════════════════════════════════
 
+  /** sessionStorage key for the last inbox payload, scoped to this account. */
+  function inboxKey() { return 'bb_inbox_' + myId(); }
+
+  /**
+   * Paint the inbox from the last known state before the network answers.
+   *
+   * Only the conversation LIST is cached (names, previews, timestamps) and only
+   * for a few minutes: long enough to make a reload feel instant, short enough
+   * that nothing stale lingers. The live fetch overwrites it either way.
+   */
+  function paintCachedList() {
+    if (S.conversations.length) { renderFilters(); renderList(); updateListSub(); return true; }
+    try {
+      var raw = lsSession(inboxKey());
+      if (!raw) return false;
+      var saved = JSON.parse(raw);
+      if (!saved || !Array.isArray(saved.rows) || !saved.rows.length) return false;
+      if (Date.now() - Number(saved.at || 0) > 5 * 60 * 1000) return false;
+      S.conversations = saved.rows;
+      renderFilters(); renderList(); updateListSub();
+      return true;
+    } catch (e) { return false; }
+  }
+
+  /**
+   * Should a 1-to-1 row show its "new activity" dot?
+   *
+   * thread_messages has no read column, so this is a per-device mark. Keying off
+   * the sender of the LAST message (which the inbox returns) keeps it honest:
+   * your own reply never re-flags the row as unread.
+   */
+  function directDot(row) {
+    if (!row.threadId || !row.lastMessageAt) return false;
+    var mineWasLast = S.mode === 'admin' ? !!row.lastFromStaff : !row.lastFromStaff;
+    if (mineWasLast) return false;
+    var seen = lsGet(DM_SEEN + row.threadId);
+    if (!seen) return true;
+    var a = new Date(row.lastMessageAt).getTime();
+    var b = new Date(seen).getTime();
+    return isFinite(a) && isFinite(b) ? a > b : false;
+  }
+
+  function applyInbox(rows) {
+    rows.forEach(function (r) { if (r.type === 'direct') r.unreadDot = directDot(r); });
+    S.conversations = rows;
+    S.listLoaded = true;
+    try { lsSessionSet(inboxKey(), JSON.stringify({ at: Date.now(), rows: rows.slice(0, 40) })); }
+    catch (e) { /* storage blocked — the list still works */ }
+  }
+
   BBG.refreshList = async function (autoOpenFirst) {
     var box = el('bbgConvList');
     if (!box) return;
-    if (!S.conversations.length) {
-      box.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">💬</span>Loading conversations…</div>';
+    if (!paintCachedList()) {
+      box.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">&#128172;</span>Loading conversations&hellip;</div>';
     }
-    // Groups and direct threads are independent; one failing must not blank the
-    // other, so each settles on its own.
-    var results = await Promise.all([
-      api('GET', '/api/groups').then(function (r) { return (r && r.groups) || []; }).catch(function () { return null; }),
-      loadDirectRows().catch(function () { return null; })
-    ]);
-    var groups = results[0];
-    var directs = results[1];
+    try {
+      // ONE round trip. The server merges care groups with the 1-to-1 threads
+      // that actually have messages, already filtered and sorted, so there is
+      // nothing to stitch together here.
+      var res = await api('GET', '/api/groups/inbox');
+      if (!res || res.error || !Array.isArray(res.conversations)) {
+        if (!S.conversations.length) {
+          box.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">&#9888;&#65039;</span>'
+            + '<b>Could not load conversations</b>Check your connection and try again.</div>';
+        }
+        return;
+      }
+      applyInbox(res.conversations);
+      renderFilters();
+      renderList();
+      updateListSub();
+      publishUnread();
 
-    if (groups === null && directs === null) {
+      if (autoOpenFirst && isDesktop() && S.convId == null && S.conversations.length) {
+        openConversation(S.conversations[0]);
+      } else if (S.conversations.length) {
+        // Warm the newest conversation so the first tap costs no network time.
+        prefetch(S.conversations[0]);
+      }
+    } catch (e) {
       if (!S.conversations.length) {
-        box.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">⚠️</span>'
+        box.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">&#9888;&#65039;</span>'
           + '<b>Could not load conversations</b>Check your connection and try again.</div>';
       }
-      return;
-    }
-
-    var rows = (groups || []).concat(directs || []);
-    rows.sort(function (a, b) {
-      // A never-used direct placeholder has no timestamp; keep it last rather
-      // than letting an invalid Date sort it to the top.
-      var ta = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-      var tb = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-      return tb - ta;
-    });
-    S.conversations = rows;
-
-    renderFilters();
-    renderList();
-    updateListSub();
-    publishUnread();
-
-    if (autoOpenFirst && isDesktop() && S.convId == null && rows.length) {
-      openConversation(rows[0]);
     }
   };
 
   /**
-   * Direct (1-to-1) conversations, mapped onto the same row shape as groups.
-   *
-   * Member: their single coach thread — or a placeholder so the conversation is
-   * startable before any message exists. Admin: one row per client thread.
+   * Fetch a conversation into the cache without opening it — on boot for the
+   * newest row, and on hover/touch for whatever is about to be tapped.
    */
+  function prefetch(row) {
+    if (!row || S.cache[row.id] || S.prefetching[row.id]) return;
+    if (row.type === 'direct' && !row.threadId) return;
+    S.prefetching[row.id] = true;
+    var done = function () { delete S.prefetching[row.id]; };
+    if (row.type === 'group') {
+      api('GET', '/api/groups/' + encodeURIComponent(row.id))
+        .then(function (d) { if (d && !d.error && d.group) S.cache[row.id] = shapeGroup(d); })
+        .catch(function () {})
+        .then(done, done);
+    } else {
+      api('GET', '/api/threads/' + encodeURIComponent(row.threadId) + '/messages')
+        .then(function (m) { if (Array.isArray(m)) S.cache[row.id] = { kind: 'direct', messages: mapDirect(m, row) }; })
+        .catch(function () {})
+        .then(done, done);
+    }
+  }
+
+  /** Normalise a group detail response into the shape the renderer consumes. */
+  function shapeGroup(d) {
+    return {
+      kind: 'group',
+      group: d.group,
+      members: d.members || [],
+      me: d.me || {},
+      messages: d.messages || [],
+      maxSeq: Number(d.maxSeq || 0),
+      hasMore: !!d.hasMore,
+      reactionChoices: d.reactionChoices
+    };
+  }
+
   /**
-   * Has this device seen the thread since its last activity?
+   * Warm the inbox before the user asks for it.
    *
-   * thread_messages has no read column, so there is no honest way to produce a
-   * COUNT of unread messages. Rather than invent one, a direct row shows a dot:
-   * "something happened here since you last looked". Sending also refreshes the
-   * mark (the chat is open, so markRead runs), so replying does not re-flag it.
+   * Called once the dashboard is up, so by the time Messages is tapped the list
+   * is already in memory. Safe to call repeatedly — it no-ops once loaded.
    */
-  function directHasNew(threadId, lastMessageAt) {
-    if (!threadId || !lastMessageAt) return false;
-    var seen = lsGet(DM_SEEN + threadId);
-    if (!seen) return true;
-    var a = new Date(lastMessageAt).getTime();
-    var b = new Date(seen).getTime();
-    if (!isFinite(a) || !isFinite(b)) return false;
-    return a > b;
-  }
-
-  async function loadDirectRows() {
-    var list = await api('GET', '/api/threads');
-    if (!Array.isArray(list)) list = [];
-
-    if (S.mode === 'admin') {
-      return list.map(function (t) {
-        var name = [t.first_name, t.last_name].filter(Boolean).join(' ') || t.email || 'Client';
-        return {
-          id: 'dm:' + t.id,
-          threadId: t.id,
-          type: 'direct',
-          name: name,
-          clientName: name,
-          clientAvatar: t.profile_picture || '',
-          avatarUrl: t.profile_picture || '',
-          subtitle: 'Client · private thread',
-          email: t.email || '',
-          lastPreview: t.last_message || '',
-          lastSenderName: '',
-          lastMessageAt: t.updated_at || t.created_at,
-          memberCount: 2,
-          unread: 0,
-          unreadDot: directHasNew(t.id, t.updated_at || t.created_at),
-          muted: false,
-          archived: false
-        };
-      });
-    }
-
-    if (!list.length) {
-      return [{
-        id: 'dm:new',
-        threadId: null,
-        type: 'direct',
-        name: 'Lifestyle Manager',
-        subtitle: 'Private · just you and your coach',
-        lastPreview: 'Start a private conversation',
-        lastMessageAt: null,
-        memberCount: 2,
-        unread: 0,
-        muted: false,
-        archived: false
-      }];
-    }
-    var t = list[0];
-    return [{
-      id: 'dm:' + t.id,
-      threadId: t.id,
-      type: 'direct',
-      name: 'Lifestyle Manager',
-      subtitle: 'Private · just you and your coach',
-      lastPreview: t.last_message || 'No messages yet',
-      lastMessageAt: t.updated_at || t.created_at,
-      memberCount: 2,
-      unread: 0,
-      unreadDot: directHasNew(t.id, t.updated_at || t.created_at),
-      muted: false,
-      archived: false
-    }];
-  }
+  BBG.warm = function () {
+    if (S.listLoaded || S._warming) return;
+    if (!window.currentUser || !window.currentUser.token) return;
+    S._warming = true;
+    var role = String((window.currentUser && window.currentUser.role) || '');
+    S.mode = (role === 'admin' || role === 'superadmin') ? 'admin' : 'member';
+    api('GET', '/api/groups/inbox')
+      .then(function (res) {
+        if (!res || res.error || !Array.isArray(res.conversations)) return;
+        applyInbox(res.conversations);
+        publishUnread();
+        if (S.conversations.length) prefetch(S.conversations[0]);
+      })
+      .catch(function () {})
+      .then(function () { S._warming = false; }, function () { S._warming = false; });
+  };
 
   function filtered() {
     var q = S.listQuery;
@@ -540,10 +571,15 @@
     }
     box.innerHTML = rows.map(convHtml).join('');
     Array.prototype.forEach.call(box.querySelectorAll('.bbg-conv'), function (b) {
-      b.onclick = function () {
-        var row = S.conversations.find(function (c) { return String(c.id) === b.getAttribute('data-id'); });
-        if (row) openConversation(row);
+      var find = function () {
+        return S.conversations.find(function (c) { return String(c.id) === b.getAttribute('data-id'); });
       };
+      b.onclick = function () { var row = find(); if (row) openConversation(row); };
+      // Start fetching the moment the pointer lands on a row — by the time the
+      // click registers the conversation is usually already in the cache.
+      var warm = function () { var row = find(); if (row) prefetch(row); };
+      b.addEventListener('pointerenter', warm);
+      b.addEventListener('touchstart', warm, { passive: true });
     });
   }
 
@@ -627,8 +663,11 @@
     el('bbgSearchHost').innerHTML = '';
     setPane('chat');
     renderList();
-    el('bbgTranscript').innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">💬</span>Loading conversation…</div>';
-    el('bbgComposerHost').innerHTML = '';
+    // Only show the spinner when there is nothing cached to paint instead.
+    if (!S.cache[row.id]) {
+      el('bbgTranscript').innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">&#128172;</span>Opening&hellip;</div>';
+      el('bbgComposerHost').innerHTML = '';
+    }
   }
 
   function stillOpening(row) { return S.opening === String(row.id); }
@@ -648,36 +687,56 @@
       || S.conversations.find(function (c) { return c.type === 'group' && c.id === groupId; })
       || { id: groupId, type: 'group', name: 'Group' };
     beginOpen(row, 'group', groupId);
-    var t = el('bbgTranscript');
+
+    // Cached (or prefetched) — paint immediately, then reconcile in the
+    // background. This is the difference between an open that feels instant and
+    // one that waits on a round trip.
+    var cached = S.cache[row.id];
+    var painted = false;
+    if (cached && cached.kind === 'group') {
+      applyGroup(cached);
+      painted = true;
+    }
 
     try {
-      var detail = await api('GET', '/api/groups/' + encodeURIComponent(groupId));
+      // ONE request: detail + members + the newest page all arrive together.
+      var d = await api('GET', '/api/groups/' + encodeURIComponent(groupId));
       if (!stillOpening(row)) return;
-      if (detail && detail.error) { t.innerHTML = errBox(detail.error); return; }
-      S.group = detail.group;
-      S.members = detail.members || [];
-      S.me = detail.me || {};
-      S.reactionChoices = detail.reactionChoices || S.reactionChoices;
-
-      var page = await api('GET', '/api/groups/' + encodeURIComponent(groupId) + '/messages?limit=40');
-      if (!stillOpening(row)) return;
-      if (page && page.error) { t.innerHTML = errBox(page.error); return; }
-      S.messages = page.messages || [];
-      S.maxSeq = Number(page.maxSeq || 0);
-      S.hasMore = !!page.hasMore;
-
-      renderHeader();
-      renderTranscript();
-      renderComposer();
-      sizeShell();
-      scrollToBottom(true);
+      if (!d || d.error || !d.group) {
+        if (!painted) el('bbgTranscript').innerHTML = errBox((d && d.error) || 'Could not open this conversation.');
+        return;
+      }
+      var shaped = shapeGroup(d);
+      S.cache[row.id] = shaped;
+      applyGroup(shaped, painted);
       markRead();
       startPoll();
       if (S.detailsOpen) openDetails();
     } catch (e) {
-      if (stillOpening(row)) t.innerHTML = errBox('Could not open this conversation.');
+      if (!painted && stillOpening(row)) el('bbgTranscript').innerHTML = errBox('Could not open this conversation.');
+      else if (painted) startPoll();
     }
   };
+
+  /**
+   * Render a group payload. `keepScroll` is set on the background refresh that
+   * follows a cached paint, so a reader who has already scrolled up is not
+   * yanked back to the bottom by data they were already looking at.
+   */
+  function applyGroup(d, keepScroll) {
+    S.group = d.group;
+    S.members = d.members;
+    S.me = d.me;
+    S.messages = d.messages;
+    S.maxSeq = d.maxSeq;
+    S.hasMore = d.hasMore;
+    if (d.reactionChoices) S.reactionChoices = d.reactionChoices;
+    renderHeader();
+    renderTranscript();
+    renderComposer();
+    sizeShell();
+    if (!keepScroll || S.stick) scrollToBottom(true);
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // DIRECT CONVERSATION (legacy /api/threads, unchanged server-side)
@@ -685,7 +744,6 @@
 
   async function openDirect(row) {
     beginOpen(row, 'direct', row.threadId || '');
-    // A member with no thread yet: nothing to fetch, the first send creates it.
     S.group = null;
     S.members = [];
     S.me = { userId: myId(), isAdmin: isStaff(), isMember: true, canPost: true, canManage: false, muted: false };
@@ -694,24 +752,47 @@
     renderComposer();
     sizeShell();
 
+    // A thread with no messages yet (member placeholder, or an admin opening a
+    // client they have never written to) has nothing to fetch.
     if (!row.threadId) {
       S.messages = [];
       renderTranscript();
       startPoll();
       return;
     }
+
+    var cached = S.cache[row.id];
+    var painted = false;
+    if (cached && cached.kind === 'direct') {
+      S.messages = cached.messages;
+      S.maxSeq = cached.messages.length;
+      renderTranscript();
+      scrollToBottom(true);
+      painted = true;
+    }
+
     try {
       var msgs = await api('GET', '/api/threads/' + encodeURIComponent(row.threadId) + '/messages');
       if (!stillOpening(row)) return;
-      if (msgs && msgs.error) { el('bbgTranscript').innerHTML = errBox(msgs.error); return; }
-      S.messages = mapDirect(Array.isArray(msgs) ? msgs : [], row);
-      S.maxSeq = S.messages.length;
-      renderTranscript();
-      scrollToBottom(true);
+      if (!Array.isArray(msgs)) {
+        if (!painted) el('bbgTranscript').innerHTML = errBox((msgs && msgs.error) || 'Could not open this conversation.');
+        return;
+      }
+      var mapped = mapDirect(msgs, row);
+      S.cache[row.id] = { kind: 'direct', messages: mapped };
+      var changed = !painted || mapped.length !== S.messages.length
+        || (mapped.length && S.messages.length && mapped[mapped.length - 1].id !== S.messages[S.messages.length - 1].id);
+      S.messages = mapped;
+      S.maxSeq = mapped.length;
+      if (changed) {
+        renderTranscript();
+        if (!painted || S.stick) scrollToBottom(true);
+      }
       markRead();
       startPoll();
     } catch (e) {
-      if (stillOpening(row)) el('bbgTranscript').innerHTML = errBox('Could not open this conversation.');
+      if (!painted && stillOpening(row)) el('bbgTranscript').innerHTML = errBox('Could not open this conversation.');
+      else if (painted) startPoll();
     }
   }
 
@@ -1223,6 +1304,8 @@
       setReply(null);
       delete S.drafts[draftKey()];
       S.stick = true;
+      // The cached copy is now behind by at least our own message.
+      if (S.conv) delete S.cache[S.conv.id];
       await poll(true);
       scrollToBottom(true);
       BBG.refreshList();
@@ -2056,6 +2139,84 @@
     ok.onclick = async function () { ok.disabled = true; await onOk(); closeModal(m); };
     return m;
   }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // ADMIN — START A 1-TO-1 WITH A CLIENT
+  // ══════════════════════════════════════════════════════════════════════════
+
+  /**
+   * Search for a client and open a private chat with them.
+   *
+   * Search-only on purpose: the inbox deliberately lists just the people the
+   * admin has actually talked to, so this is the way to reach everyone else
+   * without dumping the whole roster into the UI. The server caps results and
+   * matches on name or email.
+   */
+  BBG.openNewMessage = function () {
+    var modal = infoModal('Message a client',
+      '<div class="bbg-field"><span class="bbg-field-label">Find a client</span>'
+      + '<input type="search" id="bbgDmSearch" placeholder="Search by name or email" autocomplete="off">'
+      + '<div class="bbg-field-hint">Opening a chat does not notify anyone — they only hear from you once you send a message.</div></div>'
+      + '<div class="bbg-picker" id="bbgDmList"></div>');
+
+    var input = modal.querySelector('#bbgDmSearch');
+    var list = modal.querySelector('#bbgDmList');
+    var timer = null;
+    var reqId = 0;
+
+    function note(t) { list.innerHTML = '<div style="padding:14px;color:#6b6760;font-size:12.5px">' + esc(t) + '</div>'; }
+
+    async function run(q) {
+      var mine = ++reqId;
+      try {
+        var res = await api('GET', '/api/groups/directory?q=' + encodeURIComponent(q));
+        // A slower earlier request must not overwrite a newer result.
+        if (mine !== reqId) return;
+        var rows = (res && res.clients) || [];
+        if (!rows.length) { note(q ? 'No client matches that.' : 'No clients yet.'); return; }
+        list.innerHTML = rows.map(function (c) {
+          return '<button type="button" class="bbg-pick" data-id="' + esc(c.id) + '">'
+            + avatarHtml(c.name, c.avatar, 'bbg-avatar--sm')
+            + '<div class="bbg-pick-body"><div class="bbg-pick-name">' + esc(c.name) + '</div>'
+            + '<div class="bbg-pick-sub">' + esc(c.email) + '</div></div></button>';
+        }).join('');
+        Array.prototype.forEach.call(list.querySelectorAll('.bbg-pick'), function (b) {
+          b.onclick = function () { start(b.getAttribute('data-id'), b); };
+        });
+      } catch (e) {
+        if (mine === reqId) note('Search failed.');
+      }
+    }
+
+    async function start(userId, btn) {
+      if (btn) btn.disabled = true;
+      try {
+        var res = await api('POST', '/api/groups/direct', { user_id: userId });
+        if (!res || res.error || !res.conversation) { toast((res && res.error) || 'Could not open that chat.', true); return; }
+        closeModal(modal);
+        var conv = res.conversation;
+        // Show it in the list straight away. It has no messages yet, so the
+        // server will not return it from /inbox until something is sent.
+        if (!S.conversations.some(function (c) { return c.id === conv.id; })) {
+          S.conversations.unshift(conv);
+          renderFilters(); renderList(); updateListSub();
+        }
+        openConversation(conv);
+      } catch (e) {
+        toast('Could not open that chat.', true);
+      } finally {
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    input.oninput = function () {
+      clearTimeout(timer);
+      var q = this.value.trim();
+      timer = setTimeout(function () { run(q); }, 220);
+    };
+    input.focus();
+    run('');
+  };
 
   // ══════════════════════════════════════════════════════════════════════════
   // ADMIN — CREATE GROUP WIZARD

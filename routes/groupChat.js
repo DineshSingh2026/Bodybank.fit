@@ -185,6 +185,138 @@ function createGroupChatRouter(deps) {
     }
   });
 
+  // ══ INBOX ═════════════════════════════════════════════════════════════════
+  // ONE round trip for the whole conversation list. The client used to call
+  // /api/groups and /api/threads separately and merge them, which cost two
+  // sequential-ish requests before anything could paint.
+  //
+  // Only ACTIVE conversations come back: care groups, plus 1-to-1 threads that
+  // actually contain a message. A member additionally gets an empty placeholder
+  // for their own coach chat so they have somewhere to start it.
+  router.get('/inbox', verifyToken, async (req, res) => {
+    try {
+      const [groups, directs] = await Promise.all([
+        svc.listGroupsForUser(db, req.user, { includeArchived: String(req.query.archived || '') === '1' }),
+        svc.listDirectThreads(db, req.user, { limit: req.query.limit })
+      ]);
+
+      let rows = groups.concat(directs);
+      if (!svc.isAdminRole(req.user.role) && !directs.length) {
+        rows.push({
+          id: 'dm:new',
+          threadId: null,
+          type: 'direct',
+          name: 'Lifestyle Manager',
+          subtitle: 'Private · just you and your coach',
+          lastPreview: 'Start a private conversation',
+          lastMessageAt: null,
+          memberCount: 2,
+          unread: 0,
+          muted: false,
+          archived: false
+        });
+      }
+
+      rows.sort((a, b) => {
+        const ta = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+        const tb = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+        return tb - ta;
+      });
+      res.json({ conversations: rows });
+    } catch (e) {
+      console.error('[groupChat inbox]', e.message);
+      fail(res, 500, 'Failed to load conversations');
+    }
+  });
+
+  // ══ CLIENT SEARCH (admin: start a new 1-to-1) ═════════════════════════════
+  // Deliberately search-only and capped. Dumping every client into the UI is
+  // what the inbox is trying to avoid; the admin types a name and gets matches.
+  router.get('/directory', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+    try {
+      const q = String(req.query.q || '').trim();
+      const limit = Math.min(25, Math.max(1, parseInt(req.query.limit, 10) || 12));
+      // `%` and `_` in the query are escaped so they match literally instead of
+      // acting as wildcards; the needle is always a bound parameter.
+      const needle = '%' + q.replace(/[\\%_]/g, c => '\\' + c) + '%';
+      const match = `(first_name ILIKE ? ESCAPE '\\'
+                     OR last_name ILIKE ? ESCAPE '\\'
+                     OR email ILIKE ? ESCAPE '\\'
+                     OR (COALESCE(first_name,'') || ' ' || COALESCE(last_name,'')) ILIKE ? ESCAPE '\\')`;
+      const rows = await queryAll(
+        `SELECT id, first_name, last_name, email, profile_picture
+         FROM users
+         WHERE role = 'user' AND COALESCE(suspended, FALSE) = FALSE
+           ${q ? 'AND ' + match : ''}
+         ORDER BY first_name ASC, last_name ASC
+         LIMIT ?`,
+        q ? [needle, needle, needle, needle, limit] : [limit]
+      );
+      res.json({
+        clients: rows.map(u => ({
+          id: u.id,
+          name: svc.displayName(u),
+          email: u.email || '',
+          avatar: u.profile_picture || ''
+        }))
+      });
+    } catch (e) {
+      console.error('[groupChat directory]', e.message);
+      fail(res, 500, 'Search failed');
+    }
+  });
+
+  // ══ START / OPEN A 1-TO-1 WITH A CLIENT (admin) ═══════════════════════════
+  // POST /api/threads is restricted to role 'user', so an admin cannot open a
+  // conversation from their side. This is the staff equivalent: get-or-create,
+  // returning the thread to open. It creates no message, so an abandoned search
+  // does not litter the inbox — the empty thread stays invisible until someone
+  // actually writes something.
+  router.post('/direct', verifyToken, requireAdminOrSuperadmin, rateLimiter(30, 60000), async (req, res) => {
+    try {
+      const userId = String((req.body || {}).user_id || '');
+      if (!userId) return fail(res, 400, 'Pick a client');
+      const client = await queryOne(
+        "SELECT id, first_name, last_name, email, profile_picture FROM users WHERE id = ? AND role = 'user'",
+        [userId]
+      );
+      if (!client) return fail(res, 404, 'Client not found');
+
+      let thread = await queryOne(
+        'SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1',
+        [client.id]
+      );
+      if (!thread) {
+        const tid = uuidv4();
+        await run('INSERT INTO message_threads (id, user_id, subject) VALUES (?, ?, ?)', [tid, client.id, '']);
+        thread = { id: tid };
+      }
+      res.json({
+        conversation: {
+          id: 'dm:' + thread.id,
+          threadId: thread.id,
+          type: 'direct',
+          name: svc.displayName(client),
+          clientName: svc.displayName(client),
+          clientId: client.id,
+          clientAvatar: client.profile_picture || '',
+          avatarUrl: client.profile_picture || '',
+          subtitle: 'Client · private thread',
+          email: client.email || '',
+          lastPreview: '',
+          lastMessageAt: null,
+          memberCount: 2,
+          unread: 0,
+          muted: false,
+          archived: false
+        }
+      });
+    } catch (e) {
+      console.error('[groupChat direct]', e.message);
+      fail(res, 500, 'Could not open that conversation');
+    }
+  });
+
   // ══ MEMBER CANDIDATES (admin group builder) ═══════════════════════════════
   // Clients to own a group, and every account that can fill a care-team slot.
   router.get('/candidates', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
@@ -322,15 +454,26 @@ function createGroupChatRouter(deps) {
     }
   });
 
-  // ══ GROUP DETAIL ══════════════════════════════════════════════════════════
+  // ══ GROUP DETAIL + FIRST PAGE ═════════════════════════════════════════════
+  // Opening a group is ONE request. It used to be two in series — detail, then
+  // messages — so every open paid two round trips before a single bubble could
+  // paint. The three queries below run in parallel, and `maxSeq` is derived from
+  // the newest page instead of costing its own SELECT MAX.
   router.get('/:id', verifyToken, withAccess, async (req, res) => {
     try {
       const { group, membership, isAdmin } = req.access;
-      const [members, client, maxSeq] = await Promise.all([
+      const [members, client, messages] = await Promise.all([
         svc.listMembers(db, group.id),
         queryOne('SELECT id, first_name, last_name, email, profile_picture FROM users WHERE id = ?', [group.client_id]),
-        svc.groupMaxSeq(db, group.id)
+        svc.loadMessages(db, group.id, { viewerId: req.user.id, limit: svc.DEFAULT_PAGE_SIZE })
       ]);
+      // The default page is the NEWEST messages in ascending order, so the last
+      // row carries the group's highest seq. No messages means the cursor is 0.
+      const maxSeq = messages.length ? Number(messages[messages.length - 1].seq) : 0;
+      const hasMore = messages.length === svc.DEFAULT_PAGE_SIZE
+        ? !!(await queryOne('SELECT 1 AS x FROM chat_messages WHERE group_id = ? AND seq < ? LIMIT 1',
+            [group.id, String(messages[0].seq)]))
+        : false;
       res.json({
         group: {
           id: group.id,
@@ -356,6 +499,8 @@ function createGroupChatRouter(deps) {
           canManage: req.access.canManage
         },
         maxSeq,
+        messages,
+        hasMore,
         reactionChoices: svc.ALLOWED_REACTIONS
       });
     } catch (e) {
