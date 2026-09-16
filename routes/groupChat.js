@@ -461,19 +461,14 @@ function createGroupChatRouter(deps) {
   // the newest page instead of costing its own SELECT MAX.
   router.get('/:id', verifyToken, withAccess, async (req, res) => {
     try {
-      const { group, membership, isAdmin } = req.access;
-      const [members, client, messages] = await Promise.all([
+      const { group, membership, isAdmin, client } = req.access;
+      // withAccess already fetched the group, the caller's membership and the
+      // client in one query, so only the members and the page remain — and they
+      // run in parallel. `hasMore` and `maxSeq` come out of the page query.
+      const [members, page] = await Promise.all([
         svc.listMembers(db, group.id),
-        queryOne('SELECT id, first_name, last_name, email, profile_picture FROM users WHERE id = ?', [group.client_id]),
-        svc.loadMessages(db, group.id, { viewerId: req.user.id, limit: svc.DEFAULT_PAGE_SIZE })
+        svc.loadNewestPage(db, group.id, { viewerId: req.user.id, limit: svc.DEFAULT_PAGE_SIZE })
       ]);
-      // The default page is the NEWEST messages in ascending order, so the last
-      // row carries the group's highest seq. No messages means the cursor is 0.
-      const maxSeq = messages.length ? Number(messages[messages.length - 1].seq) : 0;
-      const hasMore = messages.length === svc.DEFAULT_PAGE_SIZE
-        ? !!(await queryOne('SELECT 1 AS x FROM chat_messages WHERE group_id = ? AND seq < ? LIMIT 1',
-            [group.id, String(messages[0].seq)]))
-        : false;
       res.json({
         group: {
           id: group.id,
@@ -498,9 +493,10 @@ function createGroupChatRouter(deps) {
           canPost: req.access.canPost,
           canManage: req.access.canManage
         },
-        maxSeq,
-        messages,
-        hasMore,
+        rev: group.rev,
+        maxSeq: page.maxSeq,
+        messages: page.messages,
+        hasMore: page.hasMore,
         reactionChoices: svc.ALLOWED_REACTIONS
       });
     } catch (e) {
@@ -540,6 +536,7 @@ function createGroupChatRouter(deps) {
 
       sets.push('updated_at = CURRENT_TIMESTAMP');
       params.push(group.id);
+      sets.splice(sets.length - 1, 0, 'rev = COALESCE(rev, 0) + 1');
       await run(`UPDATE chat_groups SET ${sets.join(', ')} WHERE id = ?`, params);
       for (const n of notes) await svc.insertSystemMessage(db, group.id, n);
       await svc.audit(db, { groupId: group.id, actor, action: 'group_updated', detail: notes.join(' | ') || 'metadata' });
@@ -582,38 +579,48 @@ function createGroupChatRouter(deps) {
   // New messages arrive on the `since` cursor. Edits, deletes and reactions move
   // no cursor, so a bounded window of the newest messages is re-read each poll
   // and returned as `recent`; the client reconciles those in place.
-  router.get('/:id/updates', verifyToken, withAccess, async (req, res) => {
+  router.get('/:id/updates', verifyToken, async (req, res) => {
     try {
-      const groupId = req.access.group.id;
-      const since = req.query.since != null && req.query.since !== '' ? req.query.since : '0';
-      const messages = await svc.loadMessages(db, groupId, { viewerId: req.user.id, since, limit: svc.MAX_PAGE_SIZE });
+      // One query answers the access check AND "has anything changed?".
+      const st = await svc.pollState(db, req.params.id, req.user);
+      if (!st.found) return fail(res, 404, 'Group not found');
+      if (!st.ok) return fail(res, 403, 'You are not a member of this group');
 
-      const recentRows = await queryAll(
-        `SELECT id, seq, body, kind, edited_at, deleted_at
-         FROM chat_messages WHERE group_id = ? ORDER BY seq DESC LIMIT ?`,
-        [groupId, svc.RECENT_STATE_WINDOW]
-      );
-      const recentIds = recentRows.map(r => r.id);
-      const reactions = await svc.reactionsForMessages(db, recentIds, req.user.id);
-      const recent = recentRows.map(r => ({
-        id: r.id,
-        seq: Number(r.seq),
-        body: r.deleted_at ? '' : (r.body || ''),
-        kind: r.deleted_at ? 'deleted' : (r.kind || 'text'),
-        editedAt: r.edited_at || null,
-        deleted: !!r.deleted_at,
-        reactions: reactions[r.id] || []
-      }));
+      const since = Number(req.query.since);
+      const clientRev = req.query.rev != null && req.query.rev !== '' ? Number(req.query.rev) : NaN;
 
-      const members = await svc.listMembers(db, groupId);
-      const maxSeq = await svc.groupMaxSeq(db, groupId);
+      // The common case by far: nothing happened since the last poll. Read
+      // receipts still ride along, because marking read does not bump `rev`
+      // (it would make every idle poll look like a change).
+      if (Number.isFinite(clientRev) && clientRev === st.rev && Number.isFinite(since) && since >= st.maxSeq) {
+        return res.json({
+          unchanged: true,
+          rev: st.rev,
+          maxSeq: st.maxSeq,
+          archived: st.archived,
+          readers: st.readers,
+          memberCount: st.readers.length
+        });
+      }
+
+      const groupId = String(req.params.id);
+      const fromSeq = Number.isFinite(since) ? String(since) : '0';
+      // Everything below runs in parallel, one query each.
+      const [messages, recent, members] = await Promise.all([
+        svc.loadMessages(db, groupId, { viewerId: req.user.id, since: fromSeq, limit: svc.MAX_PAGE_SIZE }),
+        svc.recentState(db, groupId, req.user.id),
+        svc.listMembers(db, groupId)
+      ]);
       res.json({
-        maxSeq,
+        rev: st.rev,
+        maxSeq: st.maxSeq,
+        archived: st.archived,
         messages,
         recent,
         // Read receipts: the cursor each member has reached. The client turns
         // this into ticks by comparing against each of its own message seqs.
-        readers: members.map(m => ({ userId: m.userId, name: m.name, lastReadSeq: m.lastReadSeq })),
+        readers: st.readers,
+        members,
         memberCount: members.length
       });
     } catch (e) {
@@ -625,34 +632,65 @@ function createGroupChatRouter(deps) {
   // ══ SEND MESSAGE ══════════════════════════════════════════════════════════
   router.post('/:id/messages', verifyToken, withAccess, rateLimiter(60, 60000), async (req, res) => {
     try {
-      const { group, membership, isAdmin, canPost } = req.access;
+      const { group, membership, isAdmin, canPost, self } = req.access;
       if (!canPost) return fail(res, 403, 'This group is archived and read-only');
       const body = svc.clampBody((req.body || {}).body);
       const replyToId = String((req.body || {}).reply_to_id || '') || null;
       if (!body) return fail(res, 400, 'Message cannot be empty');
 
       // A reply must point at a message in THIS group — otherwise a crafted
-      // reply_to_id would quote text out of a group the sender cannot read.
+      // reply_to_id would quote text out of a group the sender cannot read. The
+      // same lookup yields the quote preview, so no second read is needed.
+      let parent = null;
       if (replyToId) {
-        const parent = await queryOne('SELECT id FROM chat_messages WHERE id = ? AND group_id = ?', [replyToId, group.id]);
+        parent = await queryOne(
+          `SELECT m.id, m.seq, m.sender_id, m.sender_group_role, m.body, m.kind, m.deleted_at,
+                  u.first_name, u.last_name, u.email
+           FROM chat_messages m LEFT JOIN users u ON u.id = m.sender_id
+           WHERE m.id = ? AND m.group_id = ?`,
+          [replyToId, group.id]
+        );
         if (!parent) return fail(res, 400, 'The message you replied to is no longer available');
       }
 
       const senderRole = (membership && membership.group_role) || (isAdmin ? 'admin' : '');
-      const msgId = await svc.insertMessage(db, {
+      const ins = await svc.insertMessageFull(db, {
         groupId: group.id, senderId: req.user.id, senderGroupRole: senderRole, body, kind: 'text', replyToId
       });
 
-      // Sending is an implicit read of everything before it.
-      const maxSeq = await svc.groupMaxSeq(db, group.id);
-      await svc.markRead(db, group.id, req.user.id, maxSeq);
+      // Everything needed for the bubble is already known: build it here instead
+      // of reading the row back.
+      const message = svc.serializeMessage({
+        id: ins.id,
+        seq: ins.seq,
+        group_id: group.id,
+        sender_id: req.user.id,
+        sender_group_role: senderRole,
+        kind: 'text',
+        body,
+        reply_to_id: replyToId,
+        edited_at: null,
+        deleted_at: null,
+        created_at: ins.createdAt,
+        first_name: self && self.first_name,
+        last_name: self && self.last_name,
+        email: self && self.email,
+        profile_picture: self && self.profile_picture
+      }, { viewerId: req.user.id, replies: parent ? { [parent.id]: parent } : {} });
 
-      const [message] = await svc.loadMessages(db, group.id, { viewerId: req.user.id, since: String(Number(maxSeq) - 1), limit: 1 });
-      const members = await svc.listMembers(db, group.id);
-      const me = members.find(m => String(m.userId) === String(req.user.id));
-      await notifyGroup(group, members, req.user.id, (me && me.name) || 'BodyBank', body);
+      res.status(201).json({ message, maxSeq: ins.seq, rev: ins.rev });
 
-      res.status(201).json({ message: message || { id: msgId }, maxSeq });
+      // After the response: sending is an implicit read of everything before it,
+      // and everyone else gets a push. Neither may slow the sender down.
+      setImmediate(async () => {
+        try {
+          await svc.markRead(db, group.id, req.user.id, ins.seq);
+          const members = await svc.listMembers(db, group.id);
+          await notifyGroup(group, members, req.user.id, svc.displayName(self), body);
+        } catch (e) {
+          console.warn('[groupChat send/after]', e.message);
+        }
+      });
     } catch (e) {
       console.error('[groupChat send]', e.message);
       fail(res, 500, 'Failed to send message');
@@ -726,7 +764,10 @@ function createGroupChatRouter(deps) {
 
       const body = svc.clampBody((req.body || {}).body);
       if (!body) return fail(res, 400, 'Message cannot be empty');
-      await run('UPDATE chat_messages SET body = ?, edited_at = CURRENT_TIMESTAMP WHERE id = ?', [body, msg.id]);
+      await Promise.all([
+        run('UPDATE chat_messages SET body = ?, edited_at = CURRENT_TIMESTAMP WHERE id = ?', [body, msg.id]),
+        svc.bumpRev(db, group.id)
+      ]);
       res.json({ ok: true, id: msg.id, body, edited: true });
     } catch (e) {
       console.error('[groupChat edit]', e.message);
@@ -746,8 +787,11 @@ function createGroupChatRouter(deps) {
       if (!own && !canManage) return fail(res, 403, 'You can only delete your own messages');
       if (msg.deleted_at) return res.json({ ok: true, id: msg.id, alreadyDeleted: true });
 
-      await run("UPDATE chat_messages SET deleted_at = CURRENT_TIMESTAMP, body = '' WHERE id = ?", [msg.id]);
-      await run('DELETE FROM chat_message_reactions WHERE message_id = ?', [msg.id]);
+      await Promise.all([
+        run("UPDATE chat_messages SET deleted_at = CURRENT_TIMESTAMP, body = '' WHERE id = ?", [msg.id]),
+        run('DELETE FROM chat_message_reactions WHERE message_id = ?', [msg.id]),
+        svc.bumpRev(db, group.id)
+      ]);
       if (!own) {
         const actor = await actorOf(req);
         await svc.audit(db, { groupId: group.id, actor, action: 'message_removed', detail: 'message ' + msg.id });
@@ -771,23 +815,26 @@ function createGroupChatRouter(deps) {
       if (!msg) return fail(res, 404, 'Message not found');
       if (msg.deleted_at) return fail(res, 400, 'That message was deleted');
 
-      const existing = await queryOne(
-        'SELECT id FROM chat_message_reactions WHERE message_id = ? AND user_id = ? AND emoji = ?',
-        [msg.id, req.user.id, emoji]
+      // One reaction per member per message, WhatsApp-style. Clear whatever this
+      // member had; if that WAS the tapped emoji the tap was a removal and we are
+      // done, otherwise add the new one. Two statements at most, instead of a
+      // lookup plus a delete plus an insert.
+      const removed = await queryAll(
+        'DELETE FROM chat_message_reactions WHERE message_id = ? AND user_id = ? RETURNING emoji',
+        [msg.id, req.user.id]
       );
-      if (existing) {
-        await run('DELETE FROM chat_message_reactions WHERE id = ?', [existing.id]);
-      } else {
-        // One reaction per member per message, WhatsApp-style: switching emoji
-        // replaces the previous one rather than stacking.
-        await run('DELETE FROM chat_message_reactions WHERE message_id = ? AND user_id = ?', [msg.id, req.user.id]);
+      const wasToggleOff = removed.some(x => x.emoji === emoji);
+      if (!wasToggleOff) {
         await run(
           `INSERT INTO chat_message_reactions (id, message_id, group_id, user_id, emoji)
            VALUES (?, ?, ?, ?, ?) ON CONFLICT (message_id, user_id, emoji) DO NOTHING`,
           [uuidv4(), msg.id, group.id, req.user.id, emoji]
         );
       }
-      const map = await svc.reactionsForMessages(db, [msg.id], req.user.id);
+      const [map] = await Promise.all([
+        svc.reactionsForMessages(db, [msg.id], req.user.id),
+        svc.bumpRev(db, group.id)
+      ]);
       res.json({ ok: true, id: msg.id, reactions: map[msg.id] || [] });
     } catch (e) {
       console.error('[groupChat react]', e.message);
@@ -839,10 +886,12 @@ function createGroupChatRouter(deps) {
   });
 
   // ══ MARK READ ═════════════════════════════════════════════════════════════
-  router.post('/:id/read', verifyToken, withAccess, async (req, res) => {
+  router.post('/:id/read', verifyToken, async (req, res) => {
     try {
-      const seq = (req.body || {}).seq;
-      await svc.markRead(db, req.access.group.id, req.user.id, seq);
+      // No separate access check: the UPDATE is scoped to the caller's OWN live
+      // membership row (user_id = req.user.id AND removed_at IS NULL), so a
+      // non-member simply updates nothing. One query instead of three.
+      await svc.markRead(db, String(req.params.id), req.user.id, (req.body || {}).seq);
       res.json({ ok: true });
     } catch (e) {
       console.error('[groupChat read]', e.message);

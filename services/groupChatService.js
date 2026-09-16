@@ -206,6 +206,14 @@ async function ensureGroupChatTables(db) {
     await db.run(`CREATE INDEX IF NOT EXISTS idx_chat_attachments_msg
       ON chat_message_attachments(message_id)`);
   } catch (e) { /* ignore */ }
+  // A per-group revision counter, bumped by every mutation a poll must notice
+  // (new message, edit, delete, reaction, rename, avatar). A poll that finds the
+  // same `rev` it already has returns after ONE query instead of re-reading the
+  // transcript, members and reactions. A counter rather than a timestamp, so two
+  // writes in the same millisecond still register as two changes.
+  try {
+    await db.run(`ALTER TABLE chat_groups ADD COLUMN IF NOT EXISTS rev BIGINT DEFAULT 0`);
+  } catch (e) { /* ignore */ }
   // The inbox pulls the newest message of every 1-to-1 thread through a LATERAL.
   // thread_messages only had a plain (thread_id) index, which makes that a sort
   // per thread; the composite turns each one into a single index seek. Adding an
@@ -231,18 +239,56 @@ async function ensureGroupChatTables(db) {
  *            isAdmin: boolean, canPost: boolean, canManage: boolean}}
  */
 async function resolveAccess(db, groupId, user) {
-  const group = await db.queryOne('SELECT * FROM chat_groups WHERE id = ?', [String(groupId || '')]);
-  if (!group) return { ok: false, group: null, membership: null, isAdmin: false, canPost: false, canManage: false };
-  const admin = isAdminRole(user && user.role);
-  const membership = await db.queryOne(
-    'SELECT * FROM chat_group_members WHERE group_id = ? AND user_id = ? AND removed_at IS NULL',
-    [group.id, String((user && user.id) || '')]
+  const uid = String((user && user.id) || '');
+  // ONE round trip: the group, the caller's live membership, the group's client
+  // and the caller's own profile. Every /:id route runs this first; it used to be
+  // two sequential queries before any real work could start, and the route then
+  // looked the client and the caller up again on its own.
+  //
+  // Placeholders are positional in TEXT order: m.user_id, su.id, g.id.
+  const row = await db.queryOne(
+    `SELECT g.*,
+            m.id AS m_id, m.group_role AS m_group_role, m.muted AS m_muted,
+            m.last_read_seq AS m_last_read_seq,
+            cu.first_name AS c_first_name, cu.last_name AS c_last_name,
+            cu.email AS c_email, cu.profile_picture AS c_profile_picture,
+            su.first_name AS s_first_name, su.last_name AS s_last_name,
+            su.email AS s_email, su.profile_picture AS s_profile_picture
+     FROM chat_groups g
+     LEFT JOIN chat_group_members m
+            ON m.group_id = g.id AND m.user_id = ? AND m.removed_at IS NULL
+     LEFT JOIN users cu ON cu.id = g.client_id
+     LEFT JOIN users su ON su.id = ?
+     WHERE g.id = ?`,
+    [uid, uid, String(groupId || '')]
   );
+  if (!row) {
+    return { ok: false, group: null, membership: null, client: null, self: null, isAdmin: false, canPost: false, canManage: false };
+  }
+
+  const group = {};
+  for (const k of Object.keys(row)) {
+    if (!/^(m|c|s)_/.test(k)) group[k] = row[k];
+  }
+  group.rev = Number(row.rev || 0);
+
+  const membership = row.m_id
+    ? { id: row.m_id, group_id: group.id, user_id: uid, group_role: row.m_group_role,
+        muted: !!row.m_muted, last_read_seq: row.m_last_read_seq }
+    : null;
+  const client = { id: group.client_id, first_name: row.c_first_name, last_name: row.c_last_name,
+                   email: row.c_email, profile_picture: row.c_profile_picture };
+  const self = { id: uid, first_name: row.s_first_name, last_name: row.s_last_name,
+                 email: row.s_email, profile_picture: row.s_profile_picture };
+
+  const admin = isAdminRole(user && user.role);
   const ok = admin || !!membership;
   return {
     ok,
     group,
-    membership: membership || null,
+    membership,
+    client,
+    self,
     isAdmin: admin,
     // An archived group is read-only for everyone; admin unarchives to reopen it.
     canPost: ok && !group.archived,
@@ -394,41 +440,107 @@ function serializeMessage(row, ctx) {
  * Rows are always returned oldest-first regardless of which direction the query
  * ran, because that is the order the transcript renders in.
  */
-async function loadMessages(db, groupId, opts = {}) {
-  const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(opts.limit, 10) || DEFAULT_PAGE_SIZE));
-  const viewerId = opts.viewerId;
-  const cols = `m.id, m.seq, m.group_id, m.sender_id, m.sender_group_role, m.kind, m.body,
+/**
+ * One SELECT that returns each message WITH its reactions (json-aggregated in a
+ * lateral) and its reply preview (a self-join). Reactions and replies used to be
+ * two more round trips per page; now a page is one query, plus an attachments
+ * lookup only when a row actually carries a file.
+ *
+ * The reply join also requires `p.group_id = m.group_id`, so even a corrupted
+ * reply_to_id can never quote text out of another group.
+ */
+const HYDRATED_FROM = `
+  SELECT m.id, m.seq, m.group_id, m.sender_id, m.sender_group_role, m.kind, m.body,
+         m.reply_to_id, m.edited_at, m.deleted_at, m.created_at,
+         u.first_name, u.last_name, u.email, u.profile_picture,
+         rx.reactions AS rx_reactions,
+         p.id AS p_id, p.seq AS p_seq, p.sender_id AS p_sender_id,
+         p.sender_group_role AS p_sender_group_role, p.body AS p_body, p.kind AS p_kind,
+         p.deleted_at AS p_deleted_at,
+         pu.first_name AS p_first_name, pu.last_name AS p_last_name, pu.email AS p_email
+  FROM chat_messages m
+  LEFT JOIN users u ON u.id = m.sender_id
+  LEFT JOIN chat_messages p ON p.id = m.reply_to_id AND p.group_id = m.group_id
+  LEFT JOIN users pu ON pu.id = p.sender_id
+  LEFT JOIN LATERAL (
+    SELECT json_agg(json_build_object(
+             'emoji', r.emoji, 'user_id', r.user_id,
+             'first_name', ru.first_name, 'last_name', ru.last_name, 'email', ru.email
+           ) ORDER BY r.created_at) AS reactions
+    FROM chat_message_reactions r
+    LEFT JOIN users ru ON ru.id = r.user_id
+    WHERE r.message_id = m.id
+  ) rx ON TRUE`;
+
+function asJson(v) {
+  if (v == null) return null;
+  if (typeof v !== 'string') return v;
+  try { return JSON.parse(v); } catch (e) { return null; }
+}
+
+/** Fold raw reaction rows into per-emoji buckets — same shape as reactionsForMessages. */
+function foldReactions(list, viewerId) {
+  const bucket = {};
+  for (const r of list || []) {
+    if (!r || !r.emoji) continue;
+    const e = (bucket[r.emoji] = bucket[r.emoji] || { emoji: r.emoji, count: 0, mine: false, names: [] });
+    e.count += 1;
+    if (String(r.user_id) === String(viewerId)) e.mine = true;
+    if (e.names.length < 8) e.names.push(displayName(r));
+  }
+  return Object.values(bucket).sort((a, b) => b.count - a.count || a.emoji.localeCompare(b.emoji));
+}
+
+/** Turn hydrated rows into wire messages. */
+async function finishRows(db, rows, viewerId) {
+  if (!rows.length) return [];
+  const reactions = {};
+  const replies = {};
+  for (const r of rows) {
+    reactions[r.id] = foldReactions(asJson(r.rx_reactions), viewerId);
+    if (r.p_id) {
+      replies[r.p_id] = {
+        id: r.p_id, seq: r.p_seq, sender_id: r.p_sender_id, sender_group_role: r.p_sender_group_role,
+        body: r.p_body, kind: r.p_kind, deleted_at: r.p_deleted_at,
+        first_name: r.p_first_name, last_name: r.p_last_name, email: r.p_email
+      };
+    }
+  }
+  const hasAttachments = rows.some(r => r.kind === 'image' || r.kind === 'file');
+  const attachments = hasAttachments ? await attachmentsForMessages(db, rows.map(r => r.id)) : {};
+  return rows.map(r => serializeMessage(r, { viewerId, reactions, attachments, replies }));
+}
+
+/** Kept for callers that already hold plain rows (e.g. the attachment route). */
+async function hydrateRows(db, rows, viewerId) {
+  if (!rows.length) return [];
+  const full = await db.queryAll(
+    `${HYDRATED_FROM} WHERE m.id IN (${rows.map(() => '?').join(',')}) ORDER BY m.seq ASC`,
+    rows.map(r => r.id)
+  );
+  return finishRows(db, full, viewerId);
+}
+
+/**
+ * Load messages with everything the bubble needs. `before` pages backwards for
+ * lazy-loading history; `since` streams forward for the live cursor.
+ *
+ * Rows are always returned oldest-first regardless of which direction the query
+ * ran, because that is the order the transcript renders in.
+ */
+const MESSAGE_COLS = `m.id, m.seq, m.group_id, m.sender_id, m.sender_group_role, m.kind, m.body,
                 m.reply_to_id, m.edited_at, m.deleted_at, m.created_at,
                 u.first_name, u.last_name, u.email, u.profile_picture`;
 
-  let rows;
-  if (opts.since != null) {
-    rows = await db.queryAll(
-      `SELECT ${cols} FROM chat_messages m LEFT JOIN users u ON u.id = m.sender_id
-       WHERE m.group_id = ? AND m.seq > ? ORDER BY m.seq ASC LIMIT ?`,
-      [groupId, String(opts.since), limit]
-    );
-  } else if (opts.before != null) {
-    rows = await db.queryAll(
-      `SELECT ${cols} FROM chat_messages m LEFT JOIN users u ON u.id = m.sender_id
-       WHERE m.group_id = ? AND m.seq < ? ORDER BY m.seq DESC LIMIT ?`,
-      [groupId, String(opts.before), limit]
-    );
-    rows.reverse();
-  } else {
-    rows = await db.queryAll(
-      `SELECT ${cols} FROM chat_messages m LEFT JOIN users u ON u.id = m.sender_id
-       WHERE m.group_id = ? ORDER BY m.seq DESC LIMIT ?`,
-      [groupId, limit]
-    );
-    rows.reverse();
-  }
-  if (rows.length === 0) return [];
-
+/**
+ * Attach reactions, attachments and reply previews to raw message rows.
+ * The three lookups run in parallel, and the two optional ones are skipped
+ * entirely when no row needs them — which is almost every page.
+ */
+async function hydrateRows(db, rows, viewerId) {
+  if (!rows.length) return [];
   const ids = rows.map(r => r.id);
   const replyIds = [...new Set(rows.map(r => r.reply_to_id).filter(Boolean))];
-  // Only the image/file rows can have attachments, so a text-only page — which
-  // is almost every page — skips that round trip entirely.
   const hasAttachments = rows.some(r => r.kind === 'image' || r.kind === 'file');
   const [reactions, attachments, replyRows] = await Promise.all([
     reactionsForMessages(db, ids, viewerId),
@@ -446,6 +558,56 @@ async function loadMessages(db, groupId, opts = {}) {
   const replies = {};
   for (const r of replyRows) replies[r.id] = r;
   return rows.map(r => serializeMessage(r, { viewerId, reactions, attachments, replies }));
+}
+
+/**
+ * Load messages with everything the bubble needs. `before` pages backwards for
+ * lazy-loading history; `since` streams forward for the live cursor.
+ *
+ * Rows are always returned oldest-first regardless of which direction the query
+ * ran, because that is the order the transcript renders in.
+ */
+async function loadMessages(db, groupId, opts = {}) {
+  const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(opts.limit, 10) || DEFAULT_PAGE_SIZE));
+  let rows;
+  if (opts.since != null) {
+    rows = await db.queryAll(
+      `${HYDRATED_FROM} WHERE m.group_id = ? AND m.seq > ? ORDER BY m.seq ASC LIMIT ?`,
+      [groupId, String(opts.since), limit]
+    );
+  } else if (opts.before != null) {
+    rows = await db.queryAll(
+      `${HYDRATED_FROM} WHERE m.group_id = ? AND m.seq < ? ORDER BY m.seq DESC LIMIT ?`,
+      [groupId, String(opts.before), limit]
+    );
+    rows.reverse();
+  } else {
+    rows = await db.queryAll(
+      `${HYDRATED_FROM} WHERE m.group_id = ? ORDER BY m.seq DESC LIMIT ?`,
+      [groupId, limit]
+    );
+    rows.reverse();
+  }
+  return finishRows(db, rows, opts.viewerId);
+}
+
+/**
+ * The newest page plus whether anything older exists — in the SAME query.
+ * Fetching `limit + 1` rows answers "is there more?" without the separate
+ * existence check that used to add a round trip to every open.
+ */
+async function loadNewestPage(db, groupId, opts = {}) {
+  const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(opts.limit, 10) || DEFAULT_PAGE_SIZE));
+  const rows = await db.queryAll(
+    `${HYDRATED_FROM} WHERE m.group_id = ? ORDER BY m.seq DESC LIMIT ?`,
+    [groupId, limit + 1]
+  );
+  const hasMore = rows.length > limit;
+  if (hasMore) rows.length = limit;
+  rows.reverse();
+  const messages = await finishRows(db, rows, opts.viewerId);
+  const maxSeq = messages.length ? Number(messages[messages.length - 1].seq) : 0;
+  return { messages, hasMore, maxSeq };
 }
 
 /** Highest seq in a group — the cursor a client polls against. 0 when empty. */
@@ -623,18 +785,121 @@ async function listDirectThreads(db, user, opts = {}) {
  * the role its author held at the time — re-labelling someone from Doctor to
  * Lifestyle Manager must not rewrite history.
  */
-async function insertMessage(db, { groupId, senderId, senderGroupRole, body, kind, replyToId }) {
+async function insertMessageFull(db, { groupId, senderId, senderGroupRole, body, kind, replyToId }) {
   const id = uuidv4();
-  await db.run(
-    `INSERT INTO chat_messages (id, group_id, sender_id, sender_group_role, kind, body, reply_to_id)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
-    [id, groupId, senderId || null, senderGroupRole || '', kind || 'text', clampBody(body), replyToId || null]
+  // ONE statement: insert the message, move the group's activity clock and bump
+  // its revision, returning the assigned seq. It used to be an INSERT, an UPDATE
+  // and then a separate SELECT MAX(seq) to find out what had just been written.
+  const row = await db.queryOne(
+    `WITH ins AS (
+       INSERT INTO chat_messages (id, group_id, sender_id, sender_group_role, kind, body, reply_to_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       RETURNING id, seq, created_at
+     ), upd AS (
+       UPDATE chat_groups
+          SET last_message_at = CURRENT_TIMESTAMP,
+              updated_at = CURRENT_TIMESTAMP,
+              rev = COALESCE(rev, 0) + 1
+        WHERE id = ?
+       RETURNING rev
+     )
+     SELECT ins.id, ins.seq, ins.created_at, upd.rev FROM ins LEFT JOIN upd ON TRUE`,
+    [id, groupId, senderId || null, senderGroupRole || '', kind || 'text', clampBody(body), replyToId || null, groupId]
   );
-  await db.run(
-    'UPDATE chat_groups SET last_message_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
-    [groupId]
+  return {
+    id,
+    seq: Number((row && row.seq) || 0),
+    createdAt: row ? row.created_at : new Date().toISOString(),
+    rev: Number((row && row.rev) || 0)
+  };
+}
+
+/** Back-compatible wrapper: callers that only need the new message's id. */
+async function insertMessage(db, fields) {
+  return (await insertMessageFull(db, fields)).id;
+}
+
+/**
+ * Bump a group's revision so open chats pick up a change that did not insert a
+ * message (edit, delete, reaction, avatar). Never throws into the caller.
+ */
+async function bumpRev(db, groupId) {
+  try {
+    await db.run(
+      'UPDATE chat_groups SET rev = COALESCE(rev, 0) + 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?',
+      [groupId]
+    );
+  } catch (e) { /* a missed bump only delays a UI refresh to the next change */ }
+}
+
+/**
+ * Mutable state (body, edit/delete marks, reactions) of the newest messages,
+ * reactions included — one query. A poll that saw a `rev` change reconciles
+ * edits, deletes and reactions on already-rendered messages from this.
+ */
+async function recentState(db, groupId, viewerId, limit) {
+  const rows = await db.queryAll(
+    `SELECT m.id, m.seq, m.body, m.kind, m.edited_at, m.deleted_at, rx.reactions AS rx_reactions
+     FROM chat_messages m
+     LEFT JOIN LATERAL (
+       SELECT json_agg(json_build_object(
+                'emoji', r.emoji, 'user_id', r.user_id,
+                'first_name', ru.first_name, 'last_name', ru.last_name, 'email', ru.email
+              ) ORDER BY r.created_at) AS reactions
+       FROM chat_message_reactions r
+       LEFT JOIN users ru ON ru.id = r.user_id
+       WHERE r.message_id = m.id
+     ) rx ON TRUE
+     WHERE m.group_id = ?
+     ORDER BY m.seq DESC
+     LIMIT ?`,
+    [groupId, limit || RECENT_STATE_WINDOW]
   );
-  return id;
+  return rows.map(x => ({
+    id: x.id,
+    seq: Number(x.seq),
+    body: x.deleted_at ? '' : (x.body || ''),
+    kind: x.deleted_at ? 'deleted' : (x.kind || 'text'),
+    editedAt: x.edited_at || null,
+    deleted: !!x.deleted_at,
+    reactions: x.deleted_at ? [] : foldReactions(asJson(x.rx_reactions), viewerId)
+  }));
+}
+
+/**
+ * Everything a poll needs to decide whether anything happened — in ONE query,
+ * including the access check. When the caller's `rev` and `since` both match,
+ * the route answers from this alone.
+ *
+ * Placeholders in TEXT order: m.user_id, g.id.
+ */
+async function pollState(db, groupId, user) {
+  const uid = String((user && user.id) || '');
+  const row = await db.queryOne(
+    `SELECT g.id, g.archived, COALESCE(g.rev, 0) AS rev,
+            (m.id IS NOT NULL) AS is_member,
+            (SELECT COALESCE(MAX(x.seq), 0) FROM chat_messages x WHERE x.group_id = g.id) AS max_seq,
+            (SELECT COALESCE(json_agg(json_build_object('userId', r.user_id, 'lastReadSeq', r.last_read_seq)), '[]'::json)
+               FROM chat_group_members r
+              WHERE r.group_id = g.id AND r.removed_at IS NULL) AS readers
+     FROM chat_groups g
+     LEFT JOIN chat_group_members m
+            ON m.group_id = g.id AND m.user_id = ? AND m.removed_at IS NULL
+     WHERE g.id = ?`,
+    [uid, String(groupId || '')]
+  );
+  if (!row) return { found: false, ok: false };
+  const admin = isAdminRole(user && user.role);
+  let readers = row.readers;
+  if (typeof readers === 'string') { try { readers = JSON.parse(readers); } catch (e) { readers = []; } }
+  return {
+    found: true,
+    ok: admin || !!row.is_member,
+    archived: !!row.archived,
+    rev: Number(row.rev || 0),
+    maxSeq: Number(row.max_seq || 0),
+    readers: (readers || []).map(r => ({ userId: r.userId, lastReadSeq: Number(r.lastReadSeq || 0) }))
+  };
 }
 
 /** Append a system line ("X added Y", "renamed to …") to the transcript. */
@@ -683,6 +948,13 @@ module.exports = {
   listGroupsForUser,
   listDirectThreads,
   loadMessages,
+  loadNewestPage,
+  hydrateRows,
+  insertMessageFull,
+  bumpRev,
+  pollState,
+  recentState,
+  foldReactions,
   groupMaxSeq,
   reactionsForMessages,
   attachmentsForMessages,

@@ -5084,7 +5084,7 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="css/admin-home.css?v=3">
 <link rel="stylesheet" href="css/admin-reports.css?v=1">
 <link rel="stylesheet" href="css/member-home.css?v=13">
-<link rel="stylesheet" href="css/group-chat.css?v=3">
+<link rel="stylesheet" href="css/group-chat.css?v=4">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
@@ -5093,7 +5093,7 @@ button.bb-today-pill{cursor:pointer}
 <script src="js/admin-reports.js?v=4"></script>
 <script src="js/countries.js?v=1"></script>
 <script src="js/member-home.js?v=10"></script>
-<script src="js/group-chat.js?v=3"></script>
+<script src="js/group-chat.js?v=7"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -17385,6 +17385,8 @@ function downloadInsightsCSV() {
 }
 
 function logoutAdmin() {
+  // Before currentUser is cleared: wipe this account's on-device messages.
+  if (window.BBGroupChat && typeof window.BBGroupChat.forget === 'function') window.BBGroupChat.forget();
   if (typeof unregisterNativePush === 'function') unregisterNativePush();
   window.currentUser = null;
   if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
@@ -20550,6 +20552,8 @@ async function submitDeleteAccount() {
 }
 
 function logoutUser() {
+  // Before currentUser is cleared: wipe this account's on-device messages.
+  if (window.BBGroupChat && typeof window.BBGroupChat.forget === 'function') window.BBGroupChat.forget();
   if (typeof unregisterNativePush === 'function') unregisterNativePush();
   if (typeof wkLogoutTimerCleanup === 'function') wkLogoutTimerCleanup();
   // Reset muscle ranking cache so next login fetches fresh data
@@ -28576,6 +28580,9 @@ function mountBbInbox(hostId, mode) {
   if (!host.dataset.mounted || !host.children.length) {
     window.BBGroupChat.mount(host, { mode: mode });
     host.dataset.mounted = '1';
+  } else if (typeof window.BBGroupChat.enter === 'function') {
+    // Already built (possibly in the background) — just arrive.
+    window.BBGroupChat.enter();
   } else {
     window.BBGroupChat.refreshList();
     window.BBGroupChat.sizeShell();
@@ -29747,7 +29754,11 @@ window.addEventListener('resize', applySafeAreaFix);
         var p = document.getElementById(id);
         return !!p && p.classList.contains('open');
       });
-      if (forMessages) setTimeout(function () { window.BBGroupChat.warm(); }, 1200);
+      if (forMessages) {
+        var warmNow = function () { window.BBGroupChat.warm(); };
+        if (typeof window.requestIdleCallback === 'function') window.requestIdleCallback(warmNow, { timeout: 400 });
+        else setTimeout(warmNow, 150);
+      }
     }
     // If the document had already been scrolled before the panel opened, the
     // landing page would sit offset behind it and show through any gap.

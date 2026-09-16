@@ -73,23 +73,32 @@ async function testAccess() {
   section('Access control — the client-isolation boundary');
   const before = failures.length;
 
-  const GROUP = { id: 'g1', client_id: 'clientA', name: 'A - 2.0', archived: false };
+  const GROUP = { id: 'g1', client_id: 'clientA', name: 'A - 2.0', archived: false, rev: 3 };
+  // resolveAccess is ONE joined query: the group row plus m_* (the caller's
+  // live membership), c_* (the client) and s_* (the caller). A non-member simply
+  // gets m_id = null from the LEFT JOIN.
+  const joined = (group, membership) => Object.assign({}, group, membership
+    ? { m_id: membership.id, m_group_role: membership.group_role, m_muted: false, m_last_read_seq: 0 }
+    : { m_id: null });
 
   // A member of the group.
   let db = fakeDb((sql) => {
-    if (/FROM chat_groups/.test(sql)) return GROUP;
-    if (/FROM chat_group_members/.test(sql)) return { id: 'm1', group_id: 'g1', user_id: 'clientA', group_role: 'client' };
+    if (/FROM chat_groups/.test(sql)) return joined(GROUP, { id: 'm1', group_role: 'client' });
     return null;
   });
   let a = await svc.resolveAccess(db, 'g1', { id: 'clientA', role: 'user' });
+  eq(db.calls.length, 1, 'the access check is a single database round trip');
+  assert(/LEFT JOIN chat_group_members m[\s\S]*m\.user_id = \?[\s\S]*m\.removed_at IS NULL/.test(db.calls[0].sql),
+    'the membership join is scoped to the caller and to live memberships');
+  eq(db.calls[0].params[0], 'clientA', 'the membership join is bound to the CALLER, not to anything in the request');
+  eq(a.membership && a.membership.group_role, 'client', 'the caller\'s care role comes back from the join');
   assert(a.ok === true, 'the group\'s own client is admitted');
   assert(a.canPost === true, 'a member of a live group can post');
   assert(a.canManage === false, 'a client cannot manage the group');
 
   // A DIFFERENT client — no membership row. This is the boundary that matters.
   db = fakeDb((sql) => {
-    if (/FROM chat_groups/.test(sql)) return GROUP;
-    if (/FROM chat_group_members/.test(sql)) return null;
+    if (/FROM chat_groups/.test(sql)) return joined(GROUP, null);
     return null;
   });
   a = await svc.resolveAccess(db, 'g1', { id: 'clientB', role: 'user' });
@@ -118,8 +127,7 @@ async function testAccess() {
   // Archived groups are read-only for EVERYONE, admin included.
   const ARCHIVED = Object.assign({}, GROUP, { archived: true });
   db = fakeDb((sql) => {
-    if (/FROM chat_groups/.test(sql)) return ARCHIVED;
-    if (/FROM chat_group_members/.test(sql)) return { id: 'm1', user_id: 'clientA', group_role: 'client' };
+    if (/FROM chat_groups/.test(sql)) return joined(ARCHIVED, { id: 'm1', group_role: 'client' });
     return null;
   });
   a = await svc.resolveAccess(db, 'g1', { id: 'clientA', role: 'user' });
@@ -131,6 +139,26 @@ async function testAccess() {
   db = fakeDb(() => null);
   a = await svc.resolveAccess(db, 'nope', { id: 'x', role: 'admin' });
   assert(a.ok === false && a.group === null, 'a missing group is a clean miss, not a crash');
+
+  // The live poll does its access check inside pollState, in the same query
+  // that answers "has anything changed?".
+  db = fakeDb((sql) => /FROM chat_groups/.test(sql)
+    ? { id: 'g1', archived: false, rev: 7, is_member: false, max_seq: 40, readers: [] } : null);
+  let st = await svc.pollState(db, 'g1', { id: 'clientB', role: 'user' });
+  eq(st.ok, false, 'the poll REFUSES another client');
+  eq(db.calls.length, 1, 'the poll decision is a single query');
+  eq(db.calls[0].params[0], 'clientB', 'the poll membership join is bound to the caller');
+  st = await svc.pollState(db, 'g1', { id: 'adm', role: 'admin' });
+  eq(st.ok, true, 'the poll admits an admin');
+  db = fakeDb((sql) => /FROM chat_groups/.test(sql)
+    ? { id: 'g1', archived: false, rev: 7, is_member: true, max_seq: 40,
+        readers: '[{"userId":"u1","lastReadSeq":38}]' } : null);
+  st = await svc.pollState(db, 'g1', { id: 'u1', role: 'user' });
+  assert(st.ok && st.rev === 7 && st.maxSeq === 40, 'the poll reports rev and maxSeq for a member');
+  assert(st.readers.length === 1 && st.readers[0].lastReadSeq === 38, 'read cursors survive a json-as-text driver');
+  db = fakeDb(() => null);
+  st = await svc.pollState(db, 'nope', { id: 'x', role: 'admin' });
+  eq(st.found, false, 'polling a missing group is a clean miss');
 
   if (failures.length === before) ok('client isolation, removal, archive and admin scope all hold');
 }
@@ -328,6 +356,7 @@ function testRouterHardening() {
   const before = failures.length;
 
   const router = read('routes/groupChat.js');
+  const service = read('services/groupChatService.js');
 
   // Search must parameterise the needle, wildcards included.
   assert(/const needle = '%' \+ q\.replace/.test(router),
@@ -349,10 +378,38 @@ function testRouterHardening() {
   // Every /:id route runs through the access gate.
   const routeLines = router.split('\n').filter(l => /^\s*router\.(get|post|patch|delete)\('\/:id/.test(l));
   assert(routeLines.length > 0, 'there are /:id routes to check');
+  // Two routes skip the withAccess middleware for speed, and each must prove its
+  // access control another way:
+  //   /:id/updates — pollState() checks membership in the same query and the
+  //                  route 403s on !st.ok before reading anything.
+  //   /:id/read    — the UPDATE is scoped to the caller's own live membership
+  //                  row, so a non-member changes nothing.
+  const OWN_CHECK = {
+    "router.get('/:id/updates'": () => {
+      const body = router.slice(router.indexOf("router.get('/:id/updates'"));
+      const head = body.slice(0, body.indexOf('svc.loadMessages'));
+      return /svc\.pollState\(db, req\.params\.id, req\.user\)/.test(head)
+        && /if \(!st\.ok\) return fail\(res, 403/.test(head);
+    },
+    "router.post('/:id/read'": () => {
+      const body = router.slice(router.indexOf("router.post('/:id/read'"));
+      const mark = service.slice(service.indexOf('async function markRead'));
+      return /svc\.markRead\(db, String\(req\.params\.id\), req\.user\.id,/.test(body.slice(0, 600))
+        && /WHERE group_id = \? AND user_id = \? AND removed_at IS NULL/.test(mark.slice(0, 700));
+    }
+  };
   routeLines.forEach(l => {
+    const key = Object.keys(OWN_CHECK).find(k => l.indexOf(k) > -1);
+    if (key) {
+      assert(/verifyToken/.test(l) && OWN_CHECK[key](),
+        'a route that skips withAccess still enforces membership itself — ' + l.trim().slice(0, 60));
+      return;
+    }
     assert(/verifyToken, withAccess/.test(l),
       'every /:id route is gated by verifyToken + withAccess — ' + l.trim().slice(0, 80));
   });
+  assert(Object.keys(OWN_CHECK).every(k => router.indexOf(k) > -1),
+    'both self-checking routes are still present (keep this list honest)');
 
   // Management actions need the admin gate on top of membership.
   ['patch', 'members'].forEach(() => {});
@@ -430,10 +487,33 @@ function testFrontend() {
                                 js.indexOf('function applyGroup('));
   assert(openGroupBody.indexOf('/messages?limit=') === -1,
     'opening a group does not make a second request for its messages');
-  assert(/^\s*messages,\s*$/m.test(router) && /^\s*hasMore,\s*$/m.test(router),
+  assert(/messages: page\.messages,/.test(router) && /hasMore: page\.hasMore,/.test(router),
     'the group detail response carries the first page of messages');
-  assert(/const maxSeq = messages\.length \? Number\(messages\[messages\.length - 1\]\.seq\) : 0;/.test(router),
+  assert(/const maxSeq = messages\.length \? Number\(messages\[messages\.length - 1\]\.seq\) : 0;/.test(service),
     'maxSeq is derived from the page instead of costing its own SELECT MAX');
+  assert(/\[groupId, limit \+ 1\]/.test(service),
+    '"is there more?" is answered by fetching limit+1 rows, not by a second query');
+  assert(/LEFT JOIN LATERAL \([\s\S]*?json_agg[\s\S]*?chat_message_reactions/.test(service),
+    'reactions arrive inside the page query, not as a separate round trip');
+  assert(/LEFT JOIN chat_messages p ON p\.id = m\.reply_to_id AND p\.group_id = m\.group_id/.test(service),
+    'reply previews arrive inside the page query and can only quote the same group');
+  assert(/WITH ins AS \([\s\S]*?INSERT INTO chat_messages[\s\S]*?RETURNING id, seq, created_at[\s\S]*?upd AS \([\s\S]*?rev = COALESCE\(rev, 0\) \+ 1/.test(service),
+    'a send is ONE statement that inserts, moves the clock and bumps the revision');
+  assert(/unchanged: true/.test(router) && /clientRev === st\.rev && Number\.isFinite\(since\) && since >= st\.maxSeq/.test(router),
+    'an idle poll is answered from the single pollState query');
+  assert(/ADD COLUMN IF NOT EXISTS rev BIGINT/.test(service), 'groups carry a revision counter');
+  ['bumpRev(db, group.id)'].forEach(n => {
+    assert((router.match(/svc\.bumpRev\(db, group\.id\)/g) || []).length >= 3,
+      'edits, deletes and reactions all bump the revision');
+  });
+  assert(/rev = COALESCE\(rev, 0\) \+ 1'\)/.test(router),
+    'a metadata change (e.g. the avatar) bumps the revision too');
+  const sendRoute = router.slice(router.indexOf("router.post('/:id/messages', verifyToken"),
+                                 router.indexOf("router.post('/:id/attachments'"));
+  assert(sendRoute.indexOf('res.status(201)') < sendRoute.indexOf('setImmediate('),
+    'the sender gets a response before read-marking and push fan-out run');
+  assert(sendRoute.indexOf('svc.loadMessages') === -1 && sendRoute.indexOf('groupMaxSeq') === -1,
+    'a send does not read its own message back');
   assert(/function prefetch\(row\)/.test(js), 'conversations are prefetched into a cache');
   assert(/addEventListener\('pointerenter', warm\)/.test(js),
     'hovering a conversation row starts fetching it');
@@ -466,10 +546,10 @@ function testFrontend() {
   //    the shared engine against the SAME untouched /api/threads endpoints. ──
   assert(/'\/api\/threads\/' \+ encodeURIComponent\(row\.threadId\) \+ '\/messages'/.test(js),
     'the inbox reads 1-to-1 messages from /api/threads/:id/messages');
-  assert(/api\('POST', '\/api\/threads', \{ first_message: body \}\)/.test(js),
+  assert(/api\('POST', '\/api\/threads', \{ first_message: temp\.body \}\)/.test(js),
     'a member with no thread yet still creates one on first send');
   assert(/message_threads/.test(read('server.js')), 'the legacy thread tables are untouched');
-  assert(/'\/api\/threads\/' \+ encodeURIComponent\(S\.convId\) \+ '\/messages'/.test(js),
+  assert(/api\('POST', '\/api\/threads\/' \+ encodeURIComponent\(conv\.threadId\) \+ '\/messages'/.test(js),
     'replies still POST to /api/threads/:id/messages');
 
   // The superseded 1-to-1 UI is gone — no dead ids or half-wired handlers left.
@@ -514,10 +594,54 @@ function testFrontend() {
       assert(!!m, `${asset} is included with a ?v= cache-buster`);
     });
 
-  // Sending must be guarded by state, not by the disabled attribute — Enter on a
-  // desktop keyboard bypasses the button entirely.
-  assert(/async function doSend\(\)\s*\{\s*if \(S\.sending\) return;/.test(js),
-    'doSend() guards on the sending flag, so Enter cannot double-post');
+  // ── Optimistic send ──
+  // The bubble must be on screen before any network call, and the input must be
+  // cleared synchronously: that is also what stops a repeated Enter from
+  // posting the same text twice (the second press finds an empty box).
+  const doSend = js.slice(js.indexOf('  function doSend() {'), js.indexOf('  function retrySend('));
+  assert(doSend.length > 0 && !/async function doSend/.test(js),
+    'doSend() is synchronous — nothing is awaited before the bubble appears');
+  assert(doSend.indexOf("input.value = '';") > -1
+    && doSend.indexOf("input.value = '';") < doSend.indexOf('queueDeliver(temp)'),
+    'the input is cleared before delivery is queued (no double-post on repeated Enter)');
+  assert(doSend.indexOf('S.messages.push(temp)') > -1
+    && doSend.indexOf('S.messages.push(temp)') < doSend.indexOf('queueDeliver(temp)'),
+    'the optimistic bubble is rendered before delivery starts');
+  assert(/S\.sendChain = S\.sendChain\.then\(go, go\)/.test(js),
+    'sends are delivered in order, and one failure does not block the next');
+  assert(/if \(S\.inflight > 0 && !force\) return;/.test(js),
+    'polls stand down while a send or reaction is in flight (no duplicate bubbles)');
+  assert(/if \(Number\(res\.rev\) === Number\(S\.rev\) \+ 1\)/.test(js),
+    'cursors fast-forward only when our send was the only change (no skipped messages)');
+  assert(/temp\.failed = true;/.test(js) && /data-retry=/.test(js),
+    'a failed send stays on screen with a retry, instead of vanishing');
+  assert(/setPreviewState\(ctx\.conv, temp\.body, true\)/.test(js),
+    'a failed send does not leave the list preview claiming it was sent');
+  assert(/function withPending\(list\)/.test(js),
+    'a background refresh cannot wipe a message that is still sending');
+  assert(/function localToggle\(list, emoji\)/.test(js) && /m\.reactions = before;/.test(js),
+    'reactions flip instantly and roll back if the server refuses');
+
+  // ── On-device store ──
+  assert(/var STORE_PREFIX = 'bbg_v1_';/.test(js) && /function storeKey\(\) \{ return STORE_PREFIX \+ myId\(\); \}/.test(js),
+    'the device store is keyed per account');
+  assert(/filter\(function \(m\) \{ return !m\.pending && !m\.failed; \}\)/.test(js),
+    'unconfirmed messages are never written to the device');
+  assert(/STORE_MAX_CONVS = 15/.test(js) && /STORE_MAX_MSGS = 30/.test(js),
+    'the device store is bounded');
+  assert(/BBG\.forget = function/.test(js) && /localStorage\.removeItem\(STORE_PREFIX \+ uid\)/.test(js),
+    'logout can wipe the device store');
+  assert(/S\.conversations = \[\]; S\.cache = \{\};/.test(js),
+    'logout also clears the in-memory engine, so the next account sees nothing of the last');
+  ['function logoutAdmin() {', 'function logoutUser() {'].forEach(fn => {
+    const at = html.indexOf(fn);
+    // Up to the function's own `window.currentUser = null`, however far down it is.
+    const head = html.slice(at, html.indexOf('window.currentUser = null', at) + 30);
+    assert(at > -1 && /BBGroupChat\.forget\(\)/.test(head)
+      && head.indexOf('BBGroupChat.forget()') < head.indexOf('window.currentUser = null'),
+      fn.replace('function ', '').replace(' {', '') + ' wipes messages BEFORE the user id is cleared');
+  });
+  assert(/requestIdleCallback\(warmNow/.test(html), 'the inbox warms as soon as the browser is idle');
 
   if (failures.length === before) ok('escaping, the nav trap, responsiveness and the 1-to-1 chat all hold');
 }

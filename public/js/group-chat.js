@@ -28,7 +28,9 @@
 (function () {
   'use strict';
 
-  var POLL_ACTIVE_MS = 3500;
+  // An idle poll is now a single query on the server (see /updates `rev`), so
+  // the active cadence can be tighter without adding load.
+  var POLL_ACTIVE_MS = 2500;
   var POLL_IDLE_MS = 15000;
   var POLL_HIDDEN_MS = 45000;
   var LIST_POLL_MS = 20000;
@@ -37,6 +39,15 @@
   var EDIT_WINDOW_MS = 15 * 60 * 1000;
   /** localStorage key prefix for a direct thread's per-device read mark. */
   var DM_SEEN = 'bb_dm_seen_';
+  /**
+   * On-device store: the inbox plus the newest page of recent conversations,
+   * one localStorage entry per account. It is what lets every open paint before
+   * the network answers — including after a reload or an app restart. It is
+   * bounded, never holds unsent drafts, and is wiped on logout (BBG.forget).
+   */
+  var STORE_PREFIX = 'bbg_v1_';
+  var STORE_MAX_CONVS = 15;
+  var STORE_MAX_MSGS = 30;
 
   var EMOJI_SET = [
     '😀','😃','😄','😁','😆','😅','😂','🙂','😉','😊','😇','🥰','😍','😘','😋','😎',
@@ -80,7 +91,17 @@
     // zero latency; the network refresh then reconciles in the background.
     cache: {},
     prefetching: {},
-    listLoaded: false
+    listLoaded: false,
+    listAt: 0,
+    hydratedFor: null,
+    // Group revision last seen; the server answers an unchanged poll from it.
+    rev: 0,
+    // Sends and reactions currently on the wire. Polls wait while any are, so a
+    // poll can never race an optimistic bubble into a duplicate.
+    inflight: 0,
+    // Sends are delivered one after another so the server stores them in the
+    // order they were typed, while every bubble still appears immediately.
+    sendChain: Promise.resolve()
   };
 
   window.BBGroupChat = window.BBGroupChat || {};
@@ -178,6 +199,7 @@
       down: '<path d="M12 5v14M6 13l6 6 6-6"/>',
       close: '<path d="M6 6l12 12M18 6L6 18"/>',
       chev: '<path d="M9 6l6 6-6 6"/>',
+      clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/>',
       compose: '<path d="M4 20h16"/><path d="M14.5 4.5l5 5L9 20H4v-5z"/>'
     };
     return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (P[name] || '') + '</svg>';
@@ -201,8 +223,6 @@
 
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
   function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
-  function lsSession(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }
-  function lsSessionSet(k, v) { try { sessionStorage.setItem(k, v); } catch (e) { /* quota / blocked */ } }
 
   // ══════════════════════════════════════════════════════════════════════════
   // SHELL
@@ -221,9 +241,40 @@
     host.classList.add('bbg', 'bbg-host');
     host.innerHTML = shellHtml();
     bindShell();
+    if (opts.background) {
+      // Built ahead of time while the tab is hidden. Paint the list only: no
+      // conversation is opened (that would mark it read unseen) and no polling
+      // starts until the user actually arrives — see BBG.enter().
+      paintCachedList();
+      return;
+    }
     BBG.refreshList(true);
     startListPoll();
   };
+
+  /**
+   * The user has arrived on an ALREADY-built inbox. Everything that a visible
+   * inbox does — sizing, the list poll, opening the newest conversation on a
+   * desktop — starts here rather than at build time.
+   */
+  BBG.enter = function () {
+    startListPoll();
+    sizeShell();
+    BBG.refreshList(true);
+  };
+
+  /**
+   * Build the inbox shell in the background as soon as the data is warm.
+   * Building it (and the first layout of a large admin page) was most of what a
+   * first click on Messages cost; afterwards that click only has to show it.
+   */
+  function premount() {
+    var id = S.mode === 'admin' ? 'bbAdminInboxHost' : 'bbGroupChatHost';
+    var host = el(id);
+    if (!host || (host.dataset.mounted && host.children.length)) return;
+    BBG.mount(host, { mode: S.mode, background: true });
+    host.dataset.mounted = '1';
+  }
 
   function shellHtml() {
     return ''
@@ -377,28 +428,106 @@
   // CONVERSATION LIST
   // ══════════════════════════════════════════════════════════════════════════
 
-  /** sessionStorage key for the last inbox payload, scoped to this account. */
-  function inboxKey() { return 'bb_inbox_' + myId(); }
+  // ── On-device store ──────────────────────────────────────────────────────
+
+  function storeKey() { return STORE_PREFIX + myId(); }
+
+  /** Load this account's saved inbox and conversations into memory, once. */
+  function loadStore() {
+    var uid = myId();
+    if (!uid || S.hydratedFor === uid) return;
+    S.hydratedFor = uid;
+    var raw = lsGet(storeKey());
+    if (!raw) return;
+    try {
+      var saved = JSON.parse(raw);
+      if (!saved || saved.v !== 1) return;
+      if (Array.isArray(saved.rows) && !S.conversations.length) S.conversations = saved.rows;
+      var convs = saved.convs || {};
+      Object.keys(convs).forEach(function (k) { if (!S.cache[k]) S.cache[k] = convs[k]; });
+    } catch (e) { /* a corrupt entry is simply ignored and overwritten */ }
+  }
+
+  var _persistTimer = null;
+  function persist() {
+    clearTimeout(_persistTimer);
+    _persistTimer = setTimeout(writeStore, 400);
+  }
+
+  function writeStore() {
+    if (!myId()) return;
+    var convs = {};
+    Object.keys(S.cache)
+      .map(function (k) { return [k, S.cache[k]]; })
+      .sort(function (a, b) { return (b[1].at || 0) - (a[1].at || 0); })
+      .slice(0, STORE_MAX_CONVS)
+      .forEach(function (pair) {
+        var c = pair[1];
+        // Never persist a message the server has not confirmed.
+        var msgs = (c.messages || []).filter(function (m) { return !m.pending && !m.failed; });
+        var copy = {};
+        Object.keys(c).forEach(function (k) { copy[k] = c[k]; });
+        copy.messages = msgs.slice(-STORE_MAX_MSGS);
+        copy.hasMore = !!c.hasMore || msgs.length > STORE_MAX_MSGS;
+        convs[pair[0]] = copy;
+      });
+    var payload = JSON.stringify({ v: 1, at: Date.now(), rows: S.conversations.slice(0, 60), convs: convs });
+    try { localStorage.setItem(storeKey(), payload); }
+    catch (e) {
+      // Over quota: drop the entry rather than leave a half-written one behind.
+      try { localStorage.removeItem(storeKey()); } catch (_) { /* blocked */ }
+    }
+  }
+
+  function cachePut(id, entry) {
+    if (!id || !entry) return;
+    entry.at = Date.now();
+    S.cache[id] = entry;
+    persist();
+  }
+
+  /** The open conversation, in the shape the cache stores. */
+  function snapshot() {
+    if (isDirect()) return { kind: 'direct', messages: S.messages };
+    return {
+      kind: 'group', group: S.group, members: S.members, me: S.me,
+      messages: S.messages, maxSeq: S.maxSeq, hasMore: S.hasMore,
+      rev: S.rev, reactionChoices: S.reactionChoices
+    };
+  }
 
   /**
-   * Paint the inbox from the last known state before the network answers.
-   *
-   * Only the conversation LIST is cached (names, previews, timestamps) and only
-   * for a few minutes: long enough to make a reload feel instant, short enough
-   * that nothing stale lingers. The live fetch overwrites it either way.
+   * Forget everything this account had on the device. Called at logout BEFORE
+   * the session is cleared. Also resets the in-memory engine: it lives for the
+   * life of the page, so without this the next account to sign in on the same
+   * tab would briefly see the previous account's conversations.
    */
+  BBG.forget = function () {
+    var uid = myId();
+    stopPoll();
+    if (S.listTimer) { clearInterval(S.listTimer); S.listTimer = null; }
+    clearTimeout(_persistTimer);
+    if (uid) {
+      try { localStorage.removeItem(STORE_PREFIX + uid); } catch (e) { /* blocked */ }
+      try { sessionStorage.removeItem('bb_inbox_' + uid); } catch (e) { /* previous build's key */ }
+    }
+    S.conversations = []; S.cache = {}; S.prefetching = {};
+    S.listLoaded = false; S.listAt = 0; S.hydratedFor = null; S._warming = false;
+    S.conv = null; S.convId = null; S.groupId = null; S.kind = null; S.opening = null;
+    S.messages = []; S.group = null; S.members = []; S.me = null;
+    S.drafts = {}; S.rev = 0; S.maxSeq = 0; S.inflight = 0; S.sendChain = Promise.resolve();
+    ['bbGroupChatHost', 'bbAdminInboxHost'].forEach(function (id) {
+      var h = el(id);
+      if (h) { h.innerHTML = ''; delete h.dataset.mounted; }
+    });
+  };
+
+  /** Paint the inbox from memory or the device store before the network answers. */
   function paintCachedList() {
-    if (S.conversations.length) { renderFilters(); renderList(); updateListSub(); return true; }
-    try {
-      var raw = lsSession(inboxKey());
-      if (!raw) return false;
-      var saved = JSON.parse(raw);
-      if (!saved || !Array.isArray(saved.rows) || !saved.rows.length) return false;
-      if (Date.now() - Number(saved.at || 0) > 5 * 60 * 1000) return false;
-      S.conversations = saved.rows;
-      renderFilters(); renderList(); updateListSub();
-      return true;
-    } catch (e) { return false; }
+    loadStore();
+    if (!S.conversations.length) return false;
+    renderFilters(); renderList(); updateListSub();
+    return true;
   }
 
   /**
@@ -419,24 +548,63 @@
     return isFinite(a) && isFinite(b) ? a > b : false;
   }
 
+  function byRecency(a, b) {
+    var ta = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
+    var tb = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
+    return tb - ta;
+  }
+
   function applyInbox(rows) {
+    // An admin who just opened a brand-new 1-to-1 from search has a row the
+    // server does not return yet (no messages). Keep it until it has some.
+    var local = S.conversations.filter(function (c) {
+      return c.type === 'direct' && c.threadId && !c.lastMessageAt
+        && !rows.some(function (r) { return r.id === c.id; });
+    });
     rows.forEach(function (r) { if (r.type === 'direct') r.unreadDot = directDot(r); });
-    S.conversations = rows;
+    S.conversations = rows.concat(local).sort(byRecency);
     S.listLoaded = true;
-    try { lsSessionSet(inboxKey(), JSON.stringify({ at: Date.now(), rows: rows.slice(0, 40) })); }
-    catch (e) { /* storage blocked — the list still works */ }
+    S.listAt = Date.now();
+    persist();
+  }
+
+  /**
+   * Desktop opens the newest conversation on arrival. Rendering a whole
+   * transcript inside the same task meant the list could not paint until it
+   * finished; yielding one frame puts the list on screen first.
+   */
+  var _openAfterPaint = false;
+  function openAfterPaint(row) {
+    if (_openAfterPaint) return;
+    _openAfterPaint = true;
+    var go = function () {
+      _openAfterPaint = false;
+      if (S.convId == null && row) openConversation(row);
+    };
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(function () { setTimeout(go, 0); });
+    else setTimeout(go, 0);
+  }
+
+  /** Warm the few most recent conversations so opening them costs nothing. */
+  function prefetchTop() {
+    S.conversations.slice(0, 3).forEach(prefetch);
   }
 
   BBG.refreshList = async function (autoOpenFirst) {
     var box = el('bbgConvList');
     if (!box) return;
-    if (!paintCachedList()) {
+    var painted = paintCachedList();
+    if (!painted) {
       box.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">&#128172;</span>Loading conversations&hellip;</div>';
     }
+    if (autoOpenFirst && painted && isDesktop() && S.convId == null && S.conversations.length) {
+      openAfterPaint(S.conversations[0]);
+    }
+    // A mount right after the warm-up does not need a second identical request.
+    if (autoOpenFirst && S.listAt && Date.now() - S.listAt < 6000) { prefetchTop(); return; }
     try {
       // ONE round trip. The server merges care groups with the 1-to-1 threads
-      // that actually have messages, already filtered and sorted, so there is
-      // nothing to stitch together here.
+      // that actually have messages, already filtered and sorted.
       var res = await api('GET', '/api/groups/inbox');
       if (!res || res.error || !Array.isArray(res.conversations)) {
         if (!S.conversations.length) {
@@ -450,13 +618,10 @@
       renderList();
       updateListSub();
       publishUnread();
-
       if (autoOpenFirst && isDesktop() && S.convId == null && S.conversations.length) {
-        openConversation(S.conversations[0]);
-      } else if (S.conversations.length) {
-        // Warm the newest conversation so the first tap costs no network time.
-        prefetch(S.conversations[0]);
+        openAfterPaint(S.conversations[0]);
       }
+      prefetchTop();
     } catch (e) {
       if (!S.conversations.length) {
         box.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">&#9888;&#65039;</span>'
@@ -467,21 +632,29 @@
 
   /**
    * Fetch a conversation into the cache without opening it — on boot for the
-   * newest row, and on hover/touch for whatever is about to be tapped.
+   * newest rows, and on hover/touch for whatever is about to be tapped. A row
+   * already cached this minute is left alone.
    */
   function prefetch(row) {
-    if (!row || S.cache[row.id] || S.prefetching[row.id]) return;
+    if (!row || S.prefetching[row.id]) return;
+    var c = S.cache[row.id];
+    if (c && c.at && Date.now() - c.at < 60000) return;
     if (row.type === 'direct' && !row.threadId) return;
     S.prefetching[row.id] = true;
     var done = function () { delete S.prefetching[row.id]; };
     if (row.type === 'group') {
       api('GET', '/api/groups/' + encodeURIComponent(row.id))
-        .then(function (d) { if (d && !d.error && d.group) S.cache[row.id] = shapeGroup(d); })
+        .then(function (d) {
+          // Never overwrite the conversation that is open — it has live state.
+          if (d && !d.error && d.group && !(S.conv && S.conv.id === row.id)) cachePut(row.id, shapeGroup(d));
+        })
         .catch(function () {})
         .then(done, done);
     } else {
       api('GET', '/api/threads/' + encodeURIComponent(row.threadId) + '/messages')
-        .then(function (m) { if (Array.isArray(m)) S.cache[row.id] = { kind: 'direct', messages: mapDirect(m, row) }; })
+        .then(function (m) {
+          if (Array.isArray(m) && !(S.conv && S.conv.id === row.id)) cachePut(row.id, { kind: 'direct', messages: mapDirect(m, row) });
+        })
         .catch(function () {})
         .then(done, done);
     }
@@ -497,28 +670,30 @@
       messages: d.messages || [],
       maxSeq: Number(d.maxSeq || 0),
       hasMore: !!d.hasMore,
+      rev: Number(d.rev || 0),
       reactionChoices: d.reactionChoices
     };
   }
 
   /**
-   * Warm the inbox before the user asks for it.
-   *
-   * Called once the dashboard is up, so by the time Messages is tapped the list
-   * is already in memory. Safe to call repeatedly — it no-ops once loaded.
+   * Warm the inbox before the user asks for it — as soon as a dashboard is up.
+   * The device store paints first; the network refresh follows.
    */
   BBG.warm = function () {
-    if (S.listLoaded || S._warming) return;
     if (!window.currentUser || !window.currentUser.token) return;
-    S._warming = true;
     var role = String((window.currentUser && window.currentUser.role) || '');
     S.mode = (role === 'admin' || role === 'superadmin') ? 'admin' : 'member';
+    loadStore();
+    if (S._warming || (S.listAt && Date.now() - S.listAt < 6000)) return;
+    S._warming = true;
     api('GET', '/api/groups/inbox')
       .then(function (res) {
         if (!res || res.error || !Array.isArray(res.conversations)) return;
         applyInbox(res.conversations);
         publishUnread();
-        if (S.conversations.length) prefetch(S.conversations[0]);
+        premount();
+        if (el('bbgConvList')) { renderFilters(); renderList(); updateListSub(); }
+        prefetchTop();
       })
       .catch(function () {})
       .then(function () { S._warming = false; }, function () { S._warming = false; });
@@ -663,7 +838,9 @@
     el('bbgSearchHost').innerHTML = '';
     setPane('chat');
     renderList();
+    S.rev = 0;
     // Only show the spinner when there is nothing cached to paint instead.
+    loadStore();
     if (!S.cache[row.id]) {
       el('bbgTranscript').innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">&#128172;</span>Opening&hellip;</div>';
       el('bbgComposerHost').innerHTML = '';
@@ -707,8 +884,8 @@
         return;
       }
       var shaped = shapeGroup(d);
-      S.cache[row.id] = shaped;
       applyGroup(shaped, painted);
+      cachePut(row.id, snapshot());
       markRead();
       startPoll();
       if (S.detailsOpen) openDetails();
@@ -727,14 +904,18 @@
     S.group = d.group;
     S.members = d.members;
     S.me = d.me;
-    S.messages = d.messages;
+    // A bubble sent while this refresh was in flight must survive it.
+    S.messages = withPending(d.messages.slice());
     S.maxSeq = d.maxSeq;
     S.hasMore = d.hasMore;
+    S.rev = Number(d.rev || 0);
     if (d.reactionChoices) S.reactionChoices = d.reactionChoices;
     renderHeader();
     renderTranscript();
     renderComposer();
-    sizeShell();
+    // No sizeShell() here: opening a conversation does not move the shell or
+    // the page around it (it was sized on entering the inbox), and measuring
+    // would force a layout in the middle of the render.
     if (!keepScroll || S.stick) scrollToBottom(true);
   }
 
@@ -750,7 +931,6 @@
 
     renderHeader();
     renderComposer();
-    sizeShell();
 
     // A thread with no messages yet (member placeholder, or an admin opening a
     // client they have never written to) has nothing to fetch.
@@ -764,7 +944,7 @@
     var cached = S.cache[row.id];
     var painted = false;
     if (cached && cached.kind === 'direct') {
-      S.messages = cached.messages;
+      S.messages = cached.messages.slice();
       S.maxSeq = cached.messages.length;
       renderTranscript();
       scrollToBottom(true);
@@ -778,12 +958,12 @@
         if (!painted) el('bbgTranscript').innerHTML = errBox((msgs && msgs.error) || 'Could not open this conversation.');
         return;
       }
-      var mapped = mapDirect(msgs, row);
-      S.cache[row.id] = { kind: 'direct', messages: mapped };
+      var mapped = withPending(mapDirect(msgs, row));
       var changed = !painted || mapped.length !== S.messages.length
         || (mapped.length && S.messages.length && mapped[mapped.length - 1].id !== S.messages[S.messages.length - 1].id);
       S.messages = mapped;
       S.maxSeq = mapped.length;
+      cachePut(row.id, snapshot());
       if (changed) {
         renderTranscript();
         if (!painted || S.stick) scrollToBottom(true);
@@ -837,6 +1017,17 @@
   }
 
   var isDirect = function () { return S.kind === 'direct'; };
+
+  /**
+   * Append the open conversation's unconfirmed bubbles (sending or failed) to a
+   * fresh server list, so a refresh can never make a just-typed message vanish.
+   */
+  function withPending(list) {
+    S.messages.forEach(function (m) {
+      if ((m.pending || m.failed) && list.indexOf(m) < 0) list.push(m);
+    });
+    return list;
+  }
 
   // ══════════════════════════════════════════════════════════════════════════
   // HEADER / TRANSCRIPT
@@ -920,6 +1111,7 @@
     var out = !!m.mine;
     var grouped = isGrouped(m, prev);
     var h = '<div class="bbg-row bbg-row--' + (out ? 'out' : 'in') + (grouped ? ' is-grouped' : '')
+      + (m.pending ? ' is-pending' : '') + (m.failed ? ' is-failed' : '')
       + '" data-id="' + esc(m.id) + '" data-seq="' + m.seq + '">';
 
     // In a 1:1 chat the header already names the other person, so repeating it
@@ -959,12 +1151,20 @@
     if (m.deleted) h += '<div class="bbg-text">This message was deleted</div>';
     else if (m.body) h += '<div class="bbg-text">' + richText(m.body) + '</div>';
 
+    var status = '';
+    if (m.failed) {
+      status = '<button type="button" class="bbg-retry" data-retry="' + esc(m.id) + '">Not sent &middot; Tap to retry</button>';
+    } else if (m.pending) {
+      status = '<span class="bbg-clock" title="Sending">' + icon('clock') + '</span>';
+    } else if (out && !m.deleted) {
+      // A direct thread has no read cursor in its table, so it shows the
+      // delivered tick only rather than inventing a read state.
+      status = tickHtml(isDirect() ? false : readByAll(m));
+    }
     h += '<div class="bbg-meta">'
       + (m.editedAt ? '<span class="bbg-edited">edited</span>' : '')
       + '<span>' + esc(fmtTime(m.createdAt)) + '</span>'
-      // A direct thread has no read cursor in its table, so it shows the
-      // delivered tick only rather than inventing a read state.
-      + (out && !m.deleted ? tickHtml(isDirect() ? false : readByAll(m)) : '')
+      + status
       + '</div>';
 
     if (m.reactions && m.reactions.length) {
@@ -976,7 +1176,7 @@
     }
 
     h += '</div>';
-    if (!m.deleted) h += '<button type="button" class="bbg-rowbtn" aria-label="Message actions">' + icon('chev') + '</button>';
+    if (!m.deleted && !m.pending) h += '<button type="button" class="bbg-rowbtn" aria-label="Message actions">' + icon('chev') + '</button>';
     h += '</div>';
     return h;
   }
@@ -993,6 +1193,10 @@
 
     var lm = el('bbgLoadMore');
     if (lm) lm.onclick = loadOlder;
+
+    Array.prototype.forEach.call(t.querySelectorAll('.bbg-retry'), function (b) {
+      b.onclick = function (e) { e.stopPropagation(); retrySend(b.getAttribute('data-retry')); };
+    });
 
     Array.prototype.forEach.call(t.querySelectorAll('.bbg-quote'), function (b) {
       b.onclick = function (e) { e.stopPropagation(); gotoMessage(b.getAttribute('data-goto')); };
@@ -1147,9 +1351,16 @@
     var send = el('bbgSend');
 
     function sync() {
-      input.style.height = 'auto';
-      input.style.height = Math.min(input.scrollHeight, 132) + 'px';
-      send.disabled = S.sending || (!input.value.trim() && !S.pendingFile);
+      // Reading scrollHeight forces a full layout. On an empty box — which is
+      // what every freshly opened conversation has — there is nothing to
+      // measure, and that read alone cost ~90 ms on the admin page.
+      if (input.value) {
+        input.style.height = 'auto';
+        input.style.height = Math.min(input.scrollHeight, 132) + 'px';
+      } else {
+        input.style.height = '';
+      }
+      send.disabled = (S.sending && !!S.pendingFile) || (!input.value.trim() && !S.pendingFile);
       S.drafts[S.conv ? S.conv.id : '_'] = input.value;
     }
     input.oninput = sync;
@@ -1264,80 +1475,229 @@
   }
 
   /**
-   * Send the composed message.
+   * Send.
    *
-   * The guard is the state flag, not the button's disabled attribute: Enter on a
-   * desktop keyboard bypasses the button entirely, so double-taps would
-   * otherwise post twice.
+   * Text goes out OPTIMISTICALLY: the bubble is on screen in the same frame as
+   * the tap, with a clock, and turns into a tick when the server confirms. The
+   * input is cleared synchronously, which is also the double-send guard — a
+   * second Enter finds nothing to send. Attachments keep the blocking path,
+   * because the upload itself is the wait.
    */
-  async function doSend() {
-    if (S.sending) return;
+  function doSend() {
     var input = el('bbgInput');
+    if (!input) return;
+    if (S.pendingFile) { sendFile(); return; }
     var body = (input.value || '').trim();
-    if (!body && !S.pendingFile) return;
+    if (!body) return;
 
-    S.sending = true;
-    var send = el('bbgSend');
-    send.disabled = true;
-    send.classList.add('is-busy');
-    send.innerHTML = icon('spin');
-    setComposerError('');
+    var temp = {
+      id: 'tmp-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 8),
+      seq: Number.MAX_SAFE_INTEGER,
+      senderId: myId(),
+      senderName: 'You',
+      senderAvatar: '',
+      senderRole: '',
+      senderRoleLabel: '',
+      kind: 'text',
+      body: body,
+      createdAt: new Date().toISOString(),
+      editedAt: null,
+      deleted: false,
+      mine: true,
+      reactions: [],
+      attachments: [],
+      replyTo: S.replyTo && !isDirect() ? {
+        id: S.replyTo.id,
+        seq: S.replyTo.seq,
+        senderName: S.replyTo.senderName,
+        senderRoleLabel: S.replyTo.senderRoleLabel || '',
+        body: S.replyTo.deleted ? 'This message was deleted' : String(S.replyTo.body || '').slice(0, 220),
+        kind: S.replyTo.kind
+      } : null,
+      pending: true
+    };
 
-    var sentText = body, sentFile = S.pendingFile;
-    var replyId = S.replyTo ? S.replyTo.id : null;
-
-    // Clear optimistically so the next message can be typed immediately; on
-    // failure the text is put back rather than lost.
     input.value = '';
     input.dispatchEvent(new Event('input'));
+    setReply(null);
+    setComposerError('');
+    delete S.drafts[draftKey()];
 
+    S.messages.push(temp);
+    S.stick = true;
+    renderTranscript();
+    scrollToBottom();
+    bumpListPreview(body);
+    queueDeliver(temp);
+    if (input.focus) input.focus();
+  }
+
+  function retrySend(id) {
+    var temp = S.messages.find(function (m) { return m.id === id; });
+    if (!temp || !temp.failed) return;
+    temp.failed = false;
+    temp.pending = true;
+    temp.error = '';
+    renderTranscript();
+    queueDeliver(temp);
+  }
+
+  function queueDeliver(temp) {
+    var ctx = { kind: S.kind, conv: S.conv, groupId: S.groupId };
+    S.inflight++;
+    var go = function () { return deliver(temp, ctx); };
+    S.sendChain = S.sendChain.then(go, go);
+  }
+
+  async function deliver(temp, ctx) {
     try {
-      if (isDirect()) {
-        await sendDirect(sentText);
+      if (ctx.kind === 'direct') {
+        var real = await deliverDirect(temp, ctx);
+        settle(temp, real, ctx, null);
       } else {
-        var res = sentFile
-          ? await uploadAttachment(sentFile, sentText, replyId)
-          : await api('POST', '/api/groups/' + encodeURIComponent(S.groupId) + '/messages', { body: sentText, reply_to_id: replyId });
-        if (res && res.error) throw new Error(res.error);
+        var res = await api('POST', '/api/groups/' + encodeURIComponent(ctx.groupId) + '/messages', {
+          body: temp.body,
+          reply_to_id: temp.replyTo ? temp.replyTo.id : null
+        });
+        if (!res || res.error || !res.message) throw new Error((res && res.error) || 'Message not sent');
+        settle(temp, res.message, ctx, res);
       }
-      clearFile();
-      setReply(null);
-      delete S.drafts[draftKey()];
-      S.stick = true;
-      // The cached copy is now behind by at least our own message.
-      if (S.conv) delete S.cache[S.conv.id];
-      await poll(true);
-      scrollToBottom(true);
-      BBG.refreshList();
     } catch (e) {
-      input.value = sentText;
-      input.dispatchEvent(new Event('input'));
-      if (sentFile) S.pendingFile = sentFile;
-      setComposerError(e && e.message ? e.message : 'Message not sent. Check your connection and try again.');
+      temp.pending = false;
+      temp.failed = true;
+      temp.error = (e && e.message) || 'Not sent';
+      setPreviewState(ctx.conv, temp.body, true);
+      if (S.conv === ctx.conv) renderTranscript();
     } finally {
-      S.sending = false;
-      send.classList.remove('is-busy');
-      send.innerHTML = icon('send');
-      var i2 = el('bbgInput');
-      if (i2) i2.dispatchEvent(new Event('input'));
+      S.inflight = Math.max(0, S.inflight - 1);
     }
   }
 
   /**
    * Post into the legacy 1-to-1 thread. A member with no thread yet gets one
-   * created by the same call that carries their first message.
+   * created by the same call that carries their first message; that call does
+   * not return the row, so the next poll brings the confirmed copy in.
    */
-  async function sendDirect(body) {
-    if (!S.convId) {
-      var created = await api('POST', '/api/threads', { first_message: body });
-      if (created && created.error) throw new Error(created.error);
-      if (!created || !created.id) throw new Error('Could not start the conversation.');
-      S.convId = created.id;
-      if (S.conv) { S.conv.threadId = created.id; S.conv.id = 'dm:' + created.id; }
-      return;
+  async function deliverDirect(temp, ctx) {
+    var conv = ctx.conv;
+    if (!conv.threadId) {
+      var created = await api('POST', '/api/threads', { first_message: temp.body });
+      if (!created || created.error || !created.id) throw new Error((created && created.error) || 'Could not start the conversation.');
+      conv.threadId = created.id;
+      conv.id = 'dm:' + created.id;
+      if (S.conv === conv) S.convId = created.id;
+      return null;
     }
-    var res = await api('POST', '/api/threads/' + encodeURIComponent(S.convId) + '/messages', { body: body });
-    if (res && res.error) throw new Error(res.error);
+    var res = await api('POST', '/api/threads/' + encodeURIComponent(conv.threadId) + '/messages', { body: temp.body });
+    if (!res || res.error || !res.id) throw new Error((res && res.error) || 'Message not sent');
+    return mapDirect([res], conv)[0];
+  }
+
+  /**
+   * The list preview is bumped the moment a message is typed. If delivery then
+   * fails, the preview must not keep claiming it was sent.
+   */
+  var NOT_SENT = 'Not sent: ';
+  function setPreviewState(conv, body, failed) {
+    if (!conv) return;
+    var row = S.conversations.find(function (c) { return c === conv || c.id === conv.id; });
+    if (!row) return;
+    if (failed && row.lastPreview === body) row.lastPreview = NOT_SENT + body;
+    else if (!failed && row.lastPreview === NOT_SENT + body) row.lastPreview = body;
+    else return;
+    renderList();
+    persist();
+  }
+
+  /** Swap a confirmed message in for its optimistic bubble. */
+  function settle(temp, real, ctx, res) {
+    setPreviewState(ctx.conv, temp.body, false);
+    var open = S.conv === ctx.conv;
+    var list = open ? S.messages : ((S.cache[ctx.conv && ctx.conv.id] || {}).messages || []);
+    var at = list.indexOf(temp);
+    if (real) {
+      real.mine = true;
+      var dup = list.some(function (m) { return m.id === real.id; });
+      if (at >= 0) { if (dup) list.splice(at, 1); else list[at] = real; }
+      else if (!dup) list.push(real);
+    } else {
+      temp.pending = false;
+    }
+
+    if (open && res && ctx.kind === 'group') {
+      // Fast-forward our cursors ONLY when our message was the one and only
+      // change since the last sync (every change bumps rev by one). Otherwise a
+      // message someone else sent meanwhile would be skipped, so leave the
+      // cursors alone and let the next poll reconcile the gap.
+      if (Number(res.rev) === Number(S.rev) + 1) {
+        S.rev = Number(res.rev);
+        S.maxSeq = Math.max(Number(S.maxSeq || 0), Number(res.maxSeq || 0));
+        if (S.me) S.me.lastReadSeq = Math.max(Number(S.me.lastReadSeq || 0), Number(res.maxSeq || 0));
+      }
+    }
+
+    if (open) {
+      renderTranscript();
+      if (S.stick) scrollToBottom();
+      cachePut(S.conv.id, snapshot());
+      // A brand-new thread: pull in the confirmed first message.
+      if (!real && ctx.kind === 'direct') setTimeout(function () { poll(); }, 50);
+    }
+  }
+
+  /** Move the open conversation to the top of the list with its new preview. */
+  function bumpListPreview(body) {
+    if (!S.conv) return;
+    var row = S.conversations.find(function (c) { return c === S.conv || c.id === S.conv.id; });
+    if (!row) return;
+    row.lastPreview = body;
+    row.lastMessageAt = new Date().toISOString();
+    if (row.type === 'group') { row.lastSenderName = 'You'; row.lastKind = 'text'; }
+    else { row.lastFromStaff = S.mode === 'admin'; row.unreadDot = false; }
+    S.conversations.sort(byRecency);
+    renderList();
+    persist();
+  }
+
+  /** Attachments: the upload is the wait, so this path blocks the button. */
+  async function sendFile() {
+    if (S.sending) return;
+    var input = el('bbgInput');
+    var caption = (input.value || '').trim();
+    var file = S.pendingFile;
+    var replyId = S.replyTo ? S.replyTo.id : null;
+    var send = el('bbgSend');
+    S.sending = true;
+    S.inflight++;
+    send.disabled = true;
+    send.classList.add('is-busy');
+    send.innerHTML = icon('spin');
+    setComposerError('');
+    try {
+      var res = await uploadAttachment(file, caption, replyId);
+      if (res && res.error) throw new Error(res.error);
+      input.value = '';
+      clearFile();
+      setReply(null);
+      delete S.drafts[draftKey()];
+      S.stick = true;
+      if (res && res.message) {
+        if (!S.messages.some(function (m) { return m.id === res.message.id; })) S.messages.push(res.message);
+        renderTranscript();
+        scrollToBottom(true);
+        bumpListPreview(res.message.kind === 'image' ? 'Photo' : 'Attachment');
+        cachePut(S.conv.id, snapshot());
+      }
+    } catch (e) {
+      setComposerError(e && e.message ? e.message : 'Attachment not sent. Check your connection and try again.');
+    } finally {
+      S.sending = false;
+      S.inflight = Math.max(0, S.inflight - 1);
+      send.classList.remove('is-busy');
+      send.innerHTML = icon('send');
+      var i2 = el('bbgInput');
+      if (i2) i2.dispatchEvent(new Event('input'));
+    }
   }
 
   async function uploadAttachment(file, caption, replyId) {
@@ -1403,7 +1763,8 @@
 
   async function poll(force) {
     if (S.conv == null) return;
-    if (S.sending && !force) return;
+    // Never race an optimistic send or reaction; the next tick catches up.
+    if (S.inflight > 0 && !force) return;
     return isDirect() ? pollDirect() : pollGroup();
   }
 
@@ -1416,16 +1777,50 @@
     var gid = S.groupId;
     if (!gid) return;
     try {
-      var res = await api('GET', '/api/groups/' + encodeURIComponent(gid) + '/updates?since=' + encodeURIComponent(S.maxSeq));
+      var res = await api('GET', '/api/groups/' + encodeURIComponent(gid)
+        + '/updates?since=' + encodeURIComponent(S.maxSeq) + '&rev=' + encodeURIComponent(S.rev));
       if (S.groupId !== gid || !res || res.error) return;
+      // A send or reaction started while this poll was on the wire; its own
+      // settle() owns the next render, and this stale answer must not clobber it.
+      if (S.inflight > 0) return;
 
       var wasBottom = S.stick, changed = false;
+
+      if (res.archived != null && S.group && !!res.archived !== !!S.group.archived) {
+        S.group.archived = !!res.archived;
+        if (S.me) S.me.canPost = !res.archived;
+        renderComposer();
+      }
+
+      // Nothing happened — the server answered from a single query. Only read
+      // receipts can have moved.
+      if (res.unchanged) {
+        if (applyReaders(res.readers)) renderTranscript();
+        return;
+      }
+      S.rev = Number(res.rev || S.rev);
+
+      if (Array.isArray(res.members) && res.members.length) {
+        var before = S.members.map(function (m) { return m.userId + ':' + m.groupRole; }).join('|');
+        var after = res.members.map(function (m) { return m.userId + ':' + m.groupRole; }).join('|');
+        if (before !== after) {
+          S.members = res.members;
+          renderHeader();
+          if (S.detailsOpen) renderDetails();
+          changed = true;
+        }
+      }
 
       if (res.messages && res.messages.length) {
         var known = {};
         S.messages.forEach(function (m) { known[m.id] = true; });
         var fresh = res.messages.filter(function (m) { return !known[m.id]; });
-        if (fresh.length) { S.messages = S.messages.concat(fresh); changed = true; }
+        if (fresh.length) {
+          S.messages = S.messages.concat(fresh);
+          // Keep server order; unconfirmed bubbles (seq = MAX) stay at the end.
+          S.messages.sort(function (a, b) { return Number(a.seq) - Number(b.seq); });
+          changed = true;
+        }
         S.maxSeq = Math.max(S.maxSeq, Number(res.maxSeq || 0));
       } else if (res.maxSeq != null) {
         S.maxSeq = Math.max(S.maxSeq, Number(res.maxSeq));
@@ -1444,19 +1839,29 @@
         });
       }
 
-      if (res.readers) {
-        res.readers.forEach(function (r) {
-          var m = S.members.find(function (x) { return String(x.userId) === String(r.userId); });
-          if (m && Number(m.lastReadSeq || 0) !== Number(r.lastReadSeq || 0)) { m.lastReadSeq = r.lastReadSeq; changed = true; }
-        });
-      }
+      if (applyReaders(res.readers)) changed = true;
 
       if (changed) {
+        cachePut(S.conv.id, snapshot());
         renderTranscript();
         if (wasBottom) { scrollToBottom(); markRead(); }
         else renderJumpPill();
       }
     } catch (e) { /* a dropped poll is recovered by the next one */ }
+  }
+
+  /** Update members' read cursors; true when any moved (ticks need a redraw). */
+  function applyReaders(readers) {
+    if (!Array.isArray(readers)) return false;
+    var moved = false;
+    readers.forEach(function (r) {
+      var m = S.members.find(function (x) { return String(x.userId) === String(r.userId); });
+      if (m && Number(m.lastReadSeq || 0) !== Number(r.lastReadSeq || 0)) {
+        m.lastReadSeq = Number(r.lastReadSeq || 0);
+        moved = true;
+      }
+    });
+    return moved;
   }
 
   /**
@@ -1469,14 +1874,15 @@
     if (!tid) return;
     try {
       var msgs = await api('GET', '/api/threads/' + encodeURIComponent(tid) + '/messages');
-      if (S.convId !== tid || !Array.isArray(msgs)) return;
-      var mapped = mapDirect(msgs, S.conv);
+      if (S.convId !== tid || !Array.isArray(msgs) || S.inflight > 0) return;
+      var mapped = withPending(mapDirect(msgs, S.conv));
       var same = mapped.length === S.messages.length
         && (!mapped.length || mapped[mapped.length - 1].id === S.messages[S.messages.length - 1].id);
       if (same) return;
       var wasBottom = S.stick;
       S.messages = mapped;
       S.maxSeq = mapped.length;
+      cachePut(S.conv.id, snapshot());
       renderTranscript();
       if (wasBottom) { scrollToBottom(); markRead(); }
       else renderJumpPill();
@@ -1516,22 +1922,68 @@
   // MESSAGE ACTIONS
   // ══════════════════════════════════════════════════════════════════════════
 
+  /** The reaction list as it will look after this member taps `emoji`. */
+  function localToggle(list, emoji) {
+    var hadThis = list.some(function (r) { return r.emoji === emoji && r.mine; });
+    var out = [];
+    list.forEach(function (r) {
+      var c = { emoji: r.emoji, count: r.count, mine: r.mine, names: (r.names || []).slice() };
+      // One reaction per member: whatever was mine goes first.
+      if (c.mine) { c.count -= 1; c.mine = false; }
+      if (c.count > 0) out.push(c);
+    });
+    if (!hadThis) {
+      var ex = out.find(function (r) { return r.emoji === emoji; });
+      if (ex) { ex.count += 1; ex.mine = true; }
+      else out.push({ emoji: emoji, count: 1, mine: true, names: [] });
+    }
+    return out.sort(function (a, b) { return b.count - a.count || a.emoji.localeCompare(b.emoji); });
+  }
+
+  /** Reactions flip on screen immediately; the server's answer reconciles. */
   async function toggleReaction(messageId, emoji) {
     if (isDirect()) return;
     var m = S.messages.find(function (x) { return x.id === messageId; });
-    if (!m) return;
+    if (!m || m.pending || m.failed) return;
+    var before = m.reactions || [];
+    var gid = S.groupId;
+    m.reactions = localToggle(before, emoji);
+    renderTranscript();
+    S.inflight++;
     try {
-      var res = await api('POST', '/api/groups/' + encodeURIComponent(S.groupId)
+      var res = await api('POST', '/api/groups/' + encodeURIComponent(gid)
         + '/messages/' + encodeURIComponent(messageId) + '/reactions', { emoji: emoji });
-      if (res && res.error) { toast(res.error, true); return; }
-      m.reactions = res.reactions || [];
-      renderTranscript();
-    } catch (e) { toast('Could not save that reaction.', true); }
+      if (res && res.error) { m.reactions = before; toast(res.error, true); }
+      else if (res && Array.isArray(res.reactions)) m.reactions = res.reactions;
+    } catch (e) {
+      m.reactions = before;
+      toast('Could not save that reaction.', true);
+    } finally {
+      S.inflight = Math.max(0, S.inflight - 1);
+      if (S.groupId === gid) {
+        renderTranscript();
+        cachePut(S.conv.id, snapshot());
+      }
+    }
   }
 
   function openMessageActions(messageId) {
     var m = S.messages.find(function (x) { return x.id === messageId; });
-    if (!m || m.deleted) return;
+    if (!m || m.deleted || m.pending) return;
+
+    if (m.failed) {
+      var fs = sheet(
+        '<button type="button" class="bbg-sheet-item" data-act="retry"><span>&#8635;</span><span>Try again</span></button>'
+        + '<button type="button" class="bbg-sheet-item is-danger" data-act="discard"><span>&#128465;</span><span>Discard</span></button>');
+      Array.prototype.forEach.call(fs.querySelectorAll('.bbg-sheet-item'), function (b) {
+        b.onclick = function () {
+          fs.remove();
+          if (b.getAttribute('data-act') === 'retry') retrySend(m.id);
+          else { S.messages = S.messages.filter(function (x) { return x !== m; }); renderTranscript(); }
+        };
+      });
+      return;
+    }
 
     // A direct thread's table stores only id/sender/body/time — no reactions,
     // replies, edits or deletes. Offer only what it can actually do.
@@ -1626,6 +2078,7 @@
       m.body = val.trim();
       m.editedAt = new Date().toISOString();
       renderTranscript();
+      cachePut(S.conv.id, snapshot());
       return null;
     });
   }
@@ -1637,6 +2090,7 @@
       if (res && res.error) { toast(res.error, true); return; }
       m.deleted = true; m.body = ''; m.reactions = [];
       renderTranscript();
+      cachePut(S.conv.id, snapshot());
       BBG.refreshList();
     });
   }
