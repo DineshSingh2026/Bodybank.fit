@@ -33,6 +33,8 @@ const { createReferralRouter } = require('./routes/referrals');
 const { createWearablesRouter } = require('./routes/wearables');
 const { createMarketingAIRouter } = require('./routes/marketingAI');
 const { createNutritionAssessmentRouter } = require('./routes/nutritionAssessment');
+const { createGroupChatRouter } = require('./routes/groupChat');
+const groupChatService = require('./services/groupChatService');
 const cron = require('node-cron');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
@@ -2109,6 +2111,14 @@ async function initDB() {
     await referralService.ensureReferralTables({ run, queryOne, queryAll });
   } catch (e) {
     console.error('Referral table init error:', e.message);
+  }
+
+  // ---- Care group chat tables (idempotent; FKs reference `users`, so after it) ----
+  // Additive: the 1-to-1 message_threads / thread_messages chat above is untouched.
+  try {
+    await groupChatService.ensureGroupChatTables({ run, queryOne, queryAll });
+  } catch (e) {
+    console.error('Group chat table init error:', e.message);
   }
 
   // ---- Wearable / readiness tables (idempotent; needs `daily_checkins` + its unique index) ----
@@ -11442,6 +11452,26 @@ app.use(
   })
 );
 app.use('/api/marketing-ai', createMarketingAIRouter({ run, queryAll }));
+// ── Care group chat (client + doctor + lifestyle manager + operator, in-app) ──
+// Additive alongside the 1-to-1 /api/threads chat, which is unchanged. Every
+// route checks group membership; attachments are served only by the router's own
+// authenticated download route (the uploads/group-chat directory is 404'd off the
+// public static mount further down).
+app.use(
+  '/api/groups',
+  createGroupChatRouter({
+    run,
+    queryOne,
+    queryAll,
+    verifyToken,
+    requireAdminOrSuperadmin,
+    rateLimiter,
+    multer,
+    uploadsDir: FEED_UPLOADS_DIR,
+    sendPushToUser,
+    notifyAgent
+  })
+);
 app.use(
   '/api/referrals',
   createReferralRouter({
@@ -12485,6 +12515,11 @@ app.use('/uploads/nutrition-assessment', (req, res) => res.status(404).send('Not
 app.use('/uploads/smart-scale', (req, res) => res.status(404).send('Not found'));
 // Generated client progress reports are private: served only via /api/admin/reports and /r/report.
 app.use('/uploads/client-reports', (req, res) => res.status(404).send('Not found'));
+// Care group chat attachments are whatever the care team shares about a client —
+// lab scans, progress photos, prescriptions. Closed off from the public static
+// mount and served only by /api/groups/attachments/:id, which verifies that the
+// requester is a live member of the group the attachment belongs to.
+app.use('/uploads/group-chat', (req, res) => res.status(404).send('Not found'));
 app.use('/uploads', express.static(FEED_UPLOADS_DIR, {
   maxAge: NODE_ENV === 'production' ? '7d' : 0
 }));

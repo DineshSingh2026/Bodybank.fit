@@ -4173,54 +4173,10 @@ button.bb-today-pill{cursor:pointer}
 .my-meeting-item.cancelled{opacity:.6}
 .my-meeting-item.cancelled .m-info{text-decoration:line-through;color:var(--muted)}
 
-/* Chat UI: modern bubbles */
-.thread-messages-box{display:flex;flex-direction:column;gap:10px;min-height:240px;max-height:420px;overflow-y:auto;padding:20px;background:linear-gradient(180deg,rgba(0,0,0,0.35) 0%,rgba(0,0,0,0.2) 100%);border:1px solid var(--bdr);border-radius:16px;margin-bottom:20px;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:var(--gold) transparent}
-.thread-messages-box::-webkit-scrollbar{width:6px}
-.thread-messages-box::-webkit-scrollbar-track{background:transparent}
-.thread-messages-box::-webkit-scrollbar-thumb{background:rgba(200,164,78,0.3);border-radius:3px}
-.thread-msg{display:flex;align-items:flex-end;gap:10px;max-width:82%;animation:chatBubbleIn .25s ease-out}
-.thread-msg.user{align-self:flex-end;flex-direction:row-reverse}
-.thread-msg.admin{align-self:flex-start;flex-direction:row}
-.thread-msg-avatar{width:32px;height:32px;min-width:32px;min-height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--cream);background:rgba(255,255,255,0.08);border:1px solid var(--bdr);overflow:hidden;position:relative;flex-shrink:0}
-.thread-msg.user .thread-msg-avatar{background:linear-gradient(135deg,rgba(200,164,78,0.4),rgba(200,164,78,0.2));border-color:rgba(200,164,78,0.5);color:var(--gold)}
-.thread-msg-avatar .bb-admin-avatar{width:100%;height:100%;border:none;background:transparent;font-size:10px}
-.thread-msg.user .thread-msg-avatar .bb-admin-avatar--initials{color:var(--gold)}
-.thread-msg-bubble{position:relative;padding:12px 16px;border-radius:18px;font-size:14px;line-height:1.55;word-break:break-word;box-shadow:0 2px 8px rgba(0,0,0,0.15)}
-.thread-msg.user .thread-msg-bubble{border-bottom-right-radius:4px;background:linear-gradient(135deg,rgba(200,164,78,0.28),rgba(200,164,78,0.12));border:1px solid rgba(200,164,78,0.45);color:var(--cream)}
-.thread-msg.admin .thread-msg-bubble{border-bottom-left-radius:4px;background:linear-gradient(180deg,rgba(255,255,255,0.1),rgba(255,255,255,0.05));border:1px solid rgba(255,255,255,0.12);color:var(--cream)}
-.thread-msg-meta{font-size:11px;color:var(--muted);margin-top:6px;opacity:.9}
-.thread-reply-wrap{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap}
-.thread-reply-wrap .form-input{flex:1;min-width:0;min-height:52px;resize:none;border-radius:14px;border:1px solid var(--bdr);background:rgba(0,0,0,0.25);padding:14px 18px;font-size:14px;transition:border-color .2s,box-shadow .2s}
-.thread-reply-wrap .form-input:focus{border-color:var(--gold);box-shadow:0 0 0 2px rgba(200,164,78,0.2);outline:none}
-.thread-reply-wrap .form-submit{min-height:52px;padding:0 24px;border-radius:14px;font-weight:600;letter-spacing:.5px;flex-shrink:0}
-@keyframes chatBubbleIn{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}
-.chat-header-strip{margin-bottom:20px;text-align:center}
-.chat-header-strip h2{margin-bottom:6px}
-.chat-header-desc{font-size:14px;color:var(--muted);margin:0}
-.chat-container{background:linear-gradient(180deg,rgba(0,0,0,0.2),rgba(0,0,0,0.08));border:1px solid var(--bdr);border-radius:20px;padding:20px}
-.chat-send-btn{background:linear-gradient(135deg,var(--gold),#b8963e);color:#0a0a0a;border:none;box-shadow:0 2px 12px rgba(200,164,78,0.3)}
-.chat-send-btn:hover{filter:brightness(1.1);box-shadow:0 4px 16px rgba(200,164,78,0.4)}
-.thread-messages-box .form-hint{text-align:center;padding:32px 16px;color:var(--muted);margin:0}
-.admin-thread-modal .modal{max-width:520px}
-.admin-thread-modal .thread-messages-box{max-height:380px}
-.admin-thread-modal .thread-reply-wrap{margin-top:16px}
-.user-thread-card{display:block;width:100%;text-align:left;padding:14px 18px;margin-bottom:10px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:10px;cursor:pointer;transition:all .2s}
-.user-thread-card:hover{background:rgba(200,164,78,0.08);border-color:var(--gold)}
-.user-thread-card .tt-subject{font-weight:600;color:var(--cream);margin-bottom:4px}
-.user-thread-card .tt-preview{font-size:13px;color:var(--muted);margin-bottom:4px}
-.user-thread-card .tt-date{font-size:12px;color:var(--goldd)}
-.admin-thread-row{cursor:pointer;transition:background .2s}
-.admin-thread-row:hover{background:rgba(200,164,78,0.06)}
-.admin-chat-list{display:flex;flex-direction:column;gap:0;border:1px solid var(--bdr);border-radius:12px;overflow:hidden;background:rgba(0,0,0,0.2)}
-.admin-chat-item{display:flex;align-items:center;gap:14px;padding:14px 18px;cursor:pointer;border-bottom:1px solid rgba(255,255,255,0.05);transition:background .2s;text-decoration:none;color:inherit}
-.admin-chat-item:last-child{border-bottom:none}
-.admin-chat-item:hover{background:rgba(200,164,78,0.08)}
-.admin-chat-avatar{width:48px;height:48px;min-width:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:var(--cream);background:rgba(200,164,78,0.25);border:1px solid rgba(200,164,78,0.4);overflow:hidden;position:relative;padding:0}
-.admin-chat-avatar .bb-admin-avatar{width:100%;height:100%;border:none;background:transparent;font-size:15px}
-.admin-chat-body{flex:1;min-width:0}
-.admin-chat-name{font-weight:600;color:var(--cream);font-size:15px;margin-bottom:2px}
-.admin-chat-preview{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.admin-chat-time{font-size:12px;color:var(--muted);flex-shrink:0}
+/* The old 1-to-1 chat styles (.thread-msg / .chat-container / .admin-chat-list)
+   lived here. That UI was replaced by the unified Messages inbox in
+   css/group-chat.css, which renders BOTH care groups and 1-to-1 threads, so
+   these rules no longer matched any markup. The /api/threads API is unchanged. */
 .admin-meetings-list{display:flex;flex-direction:column;gap:8px}
 .admin-meeting-item{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:14px 18px;background:rgba(0,0,0,0.2);border:1px solid var(--bdr);border-radius:10px}
 .admin-meeting-info{flex:1;min-width:0}
@@ -5128,6 +5084,7 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="css/admin-home.css?v=3">
 <link rel="stylesheet" href="css/admin-reports.css?v=1">
 <link rel="stylesheet" href="css/member-home.css?v=13">
+<link rel="stylesheet" href="css/group-chat.css?v=2">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
@@ -5136,6 +5093,7 @@ button.bb-today-pill{cursor:pointer}
 <script src="js/admin-reports.js?v=4"></script>
 <script src="js/countries.js?v=1"></script>
 <script src="js/member-home.js?v=10"></script>
+<script src="js/group-chat.js?v=2"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -7710,19 +7668,12 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div id="userProgramsList" class="user-programs-grid"><p class="form-hint" style="padding:24px;text-align:center">Loading…</p></div>
     </div>
 
-    <!-- MESSAGES (single chat with Lifestyle Manager, no subject) -->
+    <!-- MESSAGES — one inbox: the care groups this member belongs to, plus the
+         1-to-1 chat with their Lifestyle Manager. Both render through
+         js/group-chat.js; the 1-to-1 API (/api/threads) is unchanged. -->
     <div class="user-section" id="usec-messages">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <div class="chat-header-strip">
-        <p class="chat-header-desc">Chat with your Lifestyle Manager. Just type and send.</p>
-      </div>
-      <div class="chat-container">
-        <div id="userThreadMessages" class="thread-messages-box"></div>
-        <div class="thread-reply-wrap">
-          <textarea class="form-input" id="userThreadReplyBody" data-bb-voice="on" placeholder="Type your message…" rows="2" maxlength="5000"></textarea>
-          <button type="button" class="form-submit chat-send-btn" onclick="userSendThreadMessage()">Send</button>
-        </div>
-      </div>
+      <div id="bbGroupChatHost"></div>
     </div>
 
     <!-- MUSCLE RANKING share card (off-screen, captured by html2canvas) -->
@@ -8212,7 +8163,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="admin-tab" data-tab="tribe" onclick="switchTab('tribe')">Client Board</div>
       <div class="admin-tab" data-tab="workouts" onclick="switchTab('workouts')">Workouts</div>
       <div class="admin-tab" data-tab="messages" onclick="switchTab('messages')">Messages</div>
-      <div class="admin-tab" data-tab="meetings" onclick="switchTab('meetings')">Meetings</div>
       <div class="admin-tab" data-tab="part2" onclick="switchTab('part2')">Part-2 Form</div>
       <div class="admin-tab" data-tab="nutritionassessment" onclick="switchTab('nutritionassessment')">FitChef Assessment</div>
       <div class="admin-tab sc-style" data-tab="sundaycheckin" onclick="switchTab('sundaycheckin')">Sunday Check-in</div>
@@ -8647,6 +8597,11 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <span class="admin-section-card-title">Client Progress</span>
             <span class="admin-section-card-desc">View progress reports and share links</span>
           </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('meetings');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">&#128197;</span>
+            <span class="admin-section-card-title">Meetings</span>
+            <span class="admin-section-card-desc">Schedule calls and view consultation requests</span>
+          </a>
         </div>
       </div>
     </div>
@@ -8760,12 +8715,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <a class="admin-section-card" href="#" onclick="switchTab('messages');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#128172;</span>
             <span class="admin-section-card-title">Messages</span>
-            <span class="admin-section-card-desc">Contact messages and chat</span>
-          </a>
-          <a class="admin-section-card" href="#" onclick="switchTab('meetings');return false">
-            <span class="admin-section-card-icon" aria-hidden="true">&#128197;</span>
-            <span class="admin-section-card-title">Meetings</span>
-            <span class="admin-section-card-desc">Schedule calls and view requests</span>
+            <span class="admin-section-card-desc">Care group and one-to-one conversations</span>
           </a>
         </div>
       </div>
@@ -8875,28 +8825,36 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       </div>
     </div>
 
-    <!-- TAB: Messages (Contact messages + Chat) -->
+    <!-- TAB: Messages — one inbox holding care groups AND 1-to-1 client chats.
+         Contact-form messages and the WhatsApp draft queue are not
+         conversations, so they sit below as collapsed drawers. -->
     <div class="admin-tab-content" id="tab-messages">
-      <!-- 0. One-off contact messages (Contact Us form) -->
-      <div class="admin-subsection-wrap">
-        <h3 class="admin-subsection-title">Contact messages</h3>
-        <p class="form-hint" style="margin-bottom:12px">Tap a row to read the full message.</p>
-        <div class="admin-table-wrap"><table class="admin-table admin-list-table">
-          <thead><tr><th>From</th><th>Email</th><th>Preview</th><th>Date</th><th style="text-align:right;width:88px">Actions</th></tr></thead>
-          <tbody id="messagesBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
-        </table></div>
-      </div>
-      <!-- 1. Chat (WhatsApp style): click user → open conversation, reply -->
-      <div class="admin-subsection-wrap">
-        <h3 class="admin-subsection-title">Chat</h3>
-        <p class="form-hint" style="margin-bottom:12px">Click a client to view messages and reply.</p>
-        <div id="adminThreadsList" class="admin-chat-list" style="max-width:520px"><p class="form-hint" style="padding:24px;margin:0">Loading…</p></div>
-      </div>
-      <div class="admin-subsection-wrap">
-        <h3 class="admin-subsection-title">WhatsApp drafts</h3>
-        <p class="form-hint" style="margin-bottom:12px">Inbound client WhatsApp is drafted as Kling and held here. Nothing is sent until you approve. Quiet hours 21:30–08:00 IST delay client send. You can also reply <strong>APPROVE token</strong> or <strong>REJECT token</strong> on the staff WhatsApp alert.</p>
-        <div id="adminWaDraftsList"><p class="form-hint" style="padding:24px;margin:0">Loading…</p></div>
-      </div>
+      <div id="bbAdminInboxHost"></div>
+
+      <details class="bbg-drawer" id="bbAdminContactDrawer">
+        <summary>
+          <span class="bbg-drawer-icon" aria-hidden="true">&#9993;</span>
+          Contact messages <span class="bbg-drawer-sub">— enquiries from the Contact Us form</span>
+        </summary>
+        <div class="bbg-drawer-body">
+          <p class="form-hint" style="margin-bottom:12px">Tap a row to read the full message.</p>
+          <div class="admin-table-wrap"><table class="admin-table admin-list-table">
+            <thead><tr><th>From</th><th>Email</th><th>Preview</th><th>Date</th><th style="text-align:right;width:88px">Actions</th></tr></thead>
+            <tbody id="messagesBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr></tbody>
+          </table></div>
+        </div>
+      </details>
+
+      <details class="bbg-drawer" id="bbAdminWaDrawer">
+        <summary>
+          <span class="bbg-drawer-icon" aria-hidden="true">&#128241;</span>
+          WhatsApp drafts <span class="bbg-drawer-sub">— inbound client WhatsApp, held for approval</span>
+        </summary>
+        <div class="bbg-drawer-body">
+          <p class="form-hint" style="margin-bottom:12px">Inbound client WhatsApp is drafted as Kling and held here. Nothing is sent until you approve. Quiet hours 21:30–08:00 IST delay client send. You can also reply <strong>APPROVE token</strong> or <strong>REJECT token</strong> on the staff WhatsApp alert.</p>
+          <div id="adminWaDraftsList"><p class="form-hint" style="padding:24px;margin:0">Loading…</p></div>
+        </div>
+      </details>
     </div>
 
     <!-- TAB: Meetings (Schedule calls + meeting requests) -->
@@ -11120,20 +11078,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
   </div>
 </div>
 
-<!-- ADMIN: Conversation (thread) modal -->
-<div class="modal-overlay view-detail-modal admin-thread-modal" id="adminThreadModal" onclick="if(event.target===this)closeModal('adminThreadModal')">
-  <div class="modal" style="max-width:560px">
-    <button class="modal-close" onclick="closeModal('adminThreadModal')">&times;</button>
-    <h2 id="adminThreadModalTitle">Conversation</h2>
-    <div class="chat-container" style="padding:0;background:transparent;border:none">
-      <div id="adminThreadModalMessages" class="thread-messages-box"></div>
-      <div class="thread-reply-wrap">
-        <textarea class="form-input" id="adminThreadReplyBody" data-bb-voice="on" placeholder="Type your reply…" rows="2" maxlength="5000"></textarea>
-        <button type="button" class="form-submit chat-send-btn" onclick="adminSendThreadReply()">Send</button>
-      </div>
-    </div>
-  </div>
-</div>
 
 <!-- HERO -->
 <section class="hero" id="hero">
@@ -17982,7 +17926,7 @@ async function sendAdminAiMessage() {
   });
 })();
 var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', nutritionassessment: 'FitChef Assessment', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', transformations: 'Transformations', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens', reports: 'Reports' };
-var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'messages', 'messages-meetings': 'messages', part2: 'forms', nutritionassessment: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', transformations: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics', reports: 'analytics' };
+var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'clients', 'messages-meetings': 'messages', part2: 'forms', nutritionassessment: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', transformations: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics', reports: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -18046,6 +17990,9 @@ function switchToSection(section) {
   document.querySelectorAll('.admin-nav-link[data-section]').forEach(function(a) {
     a.classList.toggle('active', a.getAttribute('data-section') === section);
   });
+  // Messages has a single destination, so a card menu would just be an extra
+  // tap between the admin and their inbox. Go straight there.
+  if (section === 'messages') { switchTab('messages'); return; }
   var sectionContent = document.getElementById('tab-' + section + '-section');
   if (sectionContent) sectionContent.classList.add('active');
   var sectionEl = document.getElementById('adminCurrentSection');
@@ -18081,9 +18028,13 @@ function switchTab(tab) {
   var backBtn = document.getElementById('adminBackToSection');
   var backLabel = document.getElementById('adminBackSectionLabel');
   if (backBtn && backLabel) {
+    // Messages IS its section now (switchToSection delegates straight here), so
+    // a back button pointing at 'messages' would loop onto itself. Send it to
+    // the dashboard instead.
+    var backTo = (tab === 'messages') ? 'dashboard' : section;
     backBtn.classList.add('visible');
-    backBtn.setAttribute('data-section', section);
-    backLabel.textContent = section.charAt(0).toUpperCase() + section.slice(1);
+    backBtn.setAttribute('data-section', backTo);
+    backLabel.textContent = backTo.charAt(0).toUpperCase() + backTo.slice(1);
   }
   document.querySelectorAll('.admin-nav-link[data-section]').forEach(function(a) {
     a.classList.toggle('active', a.getAttribute('data-section') === section);
@@ -18098,7 +18049,7 @@ function switchTab(tab) {
   var adminWrap = document.querySelector('.admin-tab-content-wrap');
   if (adminWrap) adminWrap.scrollTop = 0;
   window.scrollTo(0, 0);
-  if (tab === 'messages') { loadAdminMessages(); loadAdminThreads(); loadWaDrafts(); }
+  if (tab === 'messages') { mountAdminInbox(); loadAdminMessages(); loadWaDrafts(); }
   if (tab === 'meetings') { loadAdminMeetings(); loadMeetingUserDropdown(); }
   if (tab === 'workouts') loadAdminWorkouts();
   if (tab === 'requests') loadRequests();
@@ -20649,7 +20600,7 @@ var USER_TAB_SUBTITLES = {
   workout: 'Log one full session — training, lifts for that day’s focus, and how it felt.',
   programs: 'Programs assigned by your lifestyle manager.',
   checkin: 'Daily check-in and Sunday weekly review.',
-  messages: 'Chat directly with your Lifestyle Manager in one clean thread.',
+  messages: 'Your care team and your Lifestyle Manager, in one inbox.',
   profile: 'Keep your personal and contact details up to date.',
   body: 'Track your transformation — photos and measurements over time.',
   contact: 'Schedule calls or send support requests quickly.'
@@ -20723,9 +20674,8 @@ function switchUserTab(tab) {
     }
   }
   if (tab === 'messages') {
-    loadUserMessagesSection();
-    try { localStorage.setItem('bb_seen_coach_at', String(Date.now())); } catch(_){}
-    var _nb = document.getElementById('userCoachNavBadge'); if (_nb) _nb.hidden = true;
+    // One inbox: care groups + the 1-to-1 Lifestyle Manager chat.
+    if (typeof bbMessagesEnter === 'function') bbMessagesEnter();
   }
   if (tab === 'contact') {
     // The bookable window, the slot picture and the list all come from the
@@ -28594,79 +28544,49 @@ async function loadMySmartScaleUploads() {
   } catch (e) { /* non-critical */ }
 }
 
-// ========== USER MESSAGES (single chat, no subject) ==========
-var _userCurrentThreadId = null;
+// ========== MESSAGES ==========
+// One inbox holds BOTH kinds of conversation — care groups and the 1-to-1
+// Lifestyle Manager chat — rendered by js/group-chat.js. The 1-to-1 server API
+// (/api/threads) is unchanged; only its UI moved into the shared shell, so a
+// member and an admin now see the same WhatsApp-style surface.
+
+/** Entering the member Messages tab. */
+function bbMessagesEnter() {
+  mountBbInbox('bbGroupChatHost', 'member');
+  try { localStorage.setItem('bb_seen_coach_at', String(Date.now())); } catch (_) {}
+  var nb = document.getElementById('userCoachNavBadge');
+  if (nb) nb.hidden = true;
+}
+
+/** Entering the admin Messages tab. */
+function mountAdminInbox() {
+  mountBbInbox('bbAdminInboxHost', 'admin');
+}
+
+/**
+ * Mount (or refresh) the inbox in a host element.
+ *
+ * Remount whenever the host is EMPTY, not just the first time: the panel is
+ * re-created on some layout changes, which empties the host while a "mounted"
+ * flag alone would still read as true — leaving a blank screen.
+ */
+function mountBbInbox(hostId, mode) {
+  var host = document.getElementById(hostId);
+  if (!host || !window.BBGroupChat) return;
+  if (!host.dataset.mounted || !host.children.length) {
+    window.BBGroupChat.mount(host, { mode: mode });
+    host.dataset.mounted = '1';
+  } else {
+    window.BBGroupChat.refreshList();
+    window.BBGroupChat.sizeShell();
+  }
+}
 
 function escapeHtml(s) {
   if (!s) return '';
   var d = document.createElement('div');
   d.textContent = s;
   return d.innerHTML;
-}
-
-async function loadUserMessagesSection() {
-  var box = document.getElementById('userThreadMessages');
-  if (!box) return;
-  box.innerHTML = '<p class="form-hint">Loading…</p>';
-  try {
-    var list = await apiCall('GET', '/api/threads');
-    if (list && list.error) { box.innerHTML = '<p class="form-hint" style="color:#e05050">' + (list.error || 'Failed to load') + '</p>'; return; }
-    if (!Array.isArray(list)) list = [];
-    if (list.length === 0) {
-      _userCurrentThreadId = null;
-      box.innerHTML = '<p class="form-hint">No messages yet. Type below and send to start the conversation.</p>';
-      return;
-    }
-    _userCurrentThreadId = list[0].id;
-    await userLoadThreadMessages(_userCurrentThreadId);
-  } catch (e) {
-    box.innerHTML = '<p class="form-hint" style="color:#e05050">Failed to load messages.</p>';
-  }
-}
-
-async function userLoadThreadMessages(threadId) {
-  var box = document.getElementById('userThreadMessages');
-  if (!box) return;
-  box.innerHTML = '<p class="form-hint">Loading…</p>';
-  try {
-    var msgs = await apiCall('GET', '/api/threads/' + threadId + '/messages');
-    if (msgs && msgs.error) { box.innerHTML = '<p class="form-hint" style="color:#e05050">Failed to load messages.</p>'; return; }
-    if (!Array.isArray(msgs)) msgs = [];
-    if (msgs.length === 0) {
-      box.innerHTML = '<p class="form-hint">No messages yet. Type below and send.</p>';
-    } else {
-      box.innerHTML = msgs.map(function(m) {
-        var role = m.sender_role === 'admin' ? 'admin' : 'user';
-        var time = m.created_at ? new Date(m.created_at).toLocaleString() : '';
-        var label = role === 'admin' ? 'Lifestyle Manager' : 'You';
-        var avatar = label.charAt(0);
-        return '<div class="thread-msg ' + role + '"><div class="thread-msg-avatar">' + escapeHtml(avatar) + '</div><div class="thread-msg-bubble"><div>' + escapeHtml(m.body || '').replace(/\n/g,'<br>') + '</div><div class="thread-msg-meta">' + escapeHtml(label) + ' · ' + escapeHtml(time) + '</div></div></div>';
-      }).join('');
-    }
-    box.scrollTop = box.scrollHeight;
-  } catch (e) {
-    box.innerHTML = '<p class="form-hint" style="color:#e05050">Failed to load messages.</p>';
-  }
-}
-
-async function userSendThreadMessage() {
-  var body = document.getElementById('userThreadReplyBody').value.trim();
-  if (!body) return;
-  try {
-    if (!_userCurrentThreadId) {
-      var thread = await apiCall('POST', '/api/threads', { first_message: body });
-      if (thread && thread.error) { alert(thread.error); return; }
-      _userCurrentThreadId = thread.id;
-      document.getElementById('userThreadReplyBody').value = '';
-      await userLoadThreadMessages(_userCurrentThreadId);
-    } else {
-      await apiCall('POST', '/api/threads/' + _userCurrentThreadId + '/messages', { body: body });
-      document.getElementById('userThreadReplyBody').value = '';
-      await userLoadThreadMessages(_userCurrentThreadId);
-    }
-  } catch (e) {
-    alert('Failed to send message.');
-  }
 }
 
 async function loadMeetingUserDropdown() {
@@ -28834,85 +28754,10 @@ async function sendCampaignAICommand() {
   if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
 }
 
-// ========== ADMIN THREADS ==========
-var _adminCurrentThreadId = null;
-
-async function loadAdminThreads() {
-  var el = document.getElementById('adminThreadsList');
-  if (!el) return;
-  el.innerHTML = '<p class="form-hint" style="padding:24px;margin:0">Loading…</p>';
-  try {
-    var list = await apiCall('GET', '/api/threads');
-    if (list && list.error) { el.innerHTML = '<p class="form-hint" style="padding:24px;margin:0;color:#e05050">' + (list.error || 'Failed to load') + '</p>'; return; }
-    if (!Array.isArray(list)) list = [];
-    if (list.length === 0) { el.innerHTML = '<p class="form-hint" style="padding:24px;margin:0;color:var(--muted)">No chats yet. Clients can start a conversation from their Messages section.</p>'; return; }
-    el.innerHTML = list.map(function(t) {
-      var name = [t.first_name, t.last_name].filter(Boolean).join(' ') || t.email || 'Client';
-      var preview = (t.last_message || 'No messages yet').slice(0, 50) + ((t.last_message || '').length > 50 ? '…' : '');
-      var time = t.updated_at ? new Date(t.updated_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }) : '';
-      var safeId = (t.id || '').replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-      return '<div class="admin-chat-item" onclick="adminOpenThread(\'' + safeId + '\')" role="button" tabindex="0"><div class="admin-chat-avatar">' + bbAdminAvatarHtml(t.profile_picture, name) + '</div><div class="admin-chat-body"><div class="admin-chat-name">' + escapeHtml(name) + '</div><div class="admin-chat-preview">' + escapeHtml(preview) + '</div></div><div class="admin-chat-time">' + escapeHtml(time) + '</div></div>';
-    }).join('');
-  } catch (e) {
-    el.innerHTML = '<p class="form-hint" style="padding:24px;margin:0;color:#e05050">Failed to load chats.</p>';
-  }
-}
-
-async function adminOpenThread(threadId) {
-  _adminCurrentThreadId = threadId;
-  try {
-    var thread = await apiCall('GET', '/api/threads/' + threadId);
-    if (thread && thread.error) { alert(thread.error); return; }
-    var name = thread.user ? [thread.user.first_name, thread.user.last_name].filter(Boolean).join(' ') || thread.user.email : 'User';
-    var userPic = thread.user && thread.user.profile_picture ? thread.user.profile_picture : '';
-    document.getElementById('adminThreadModalTitle').textContent = 'Conversation with ' + name;
-    document.getElementById('adminThreadReplyBody').value = '';
-    var msgs = await apiCall('GET', '/api/threads/' + threadId + '/messages');
-    if (!Array.isArray(msgs)) msgs = [];
-    var box = document.getElementById('adminThreadModalMessages');
-    box.innerHTML = msgs.map(function(m) {
-      var role = m.sender_role === 'admin' ? 'admin' : 'user';
-      var time = m.created_at ? new Date(m.created_at).toLocaleString() : '';
-      var label = role === 'admin' ? 'You' : 'User';
-      var avHtml = role === 'admin'
-        ? '<div class="thread-msg-avatar">' + escapeHtml(label.charAt(0)) + '</div>'
-        : '<div class="thread-msg-avatar">' + bbAdminAvatarHtml(userPic, name) + '</div>';
-      return '<div class="thread-msg ' + role + '">' + avHtml + '<div class="thread-msg-bubble"><div>' + escapeHtml(m.body || '').replace(/\n/g,'<br>') + '</div><div class="thread-msg-meta">' + escapeHtml(label) + ' · ' + escapeHtml(time) + '</div></div></div>';
-    }).join('');
-    box.scrollTop = box.scrollHeight;
-    openModal('adminThreadModal');
-  } catch (e) {
-    alert('Failed to load conversation.');
-  }
-}
-
-async function adminSendThreadReply() {
-  if (!_adminCurrentThreadId) return;
-  var body = document.getElementById('adminThreadReplyBody').value.trim();
-  if (!body) return;
-  try {
-    await apiCall('POST', '/api/threads/' + _adminCurrentThreadId + '/messages', { body: body });
-    document.getElementById('adminThreadReplyBody').value = '';
-    var thread = await apiCall('GET', '/api/threads/' + _adminCurrentThreadId);
-    var uname = thread && thread.user ? [thread.user.first_name, thread.user.last_name].filter(Boolean).join(' ') || thread.user.email : 'User';
-    var userPic = thread && thread.user && thread.user.profile_picture ? thread.user.profile_picture : '';
-    var msgs = await apiCall('GET', '/api/threads/' + _adminCurrentThreadId + '/messages');
-    if (!Array.isArray(msgs)) msgs = [];
-    var box = document.getElementById('adminThreadModalMessages');
-    box.innerHTML = msgs.map(function(m) {
-      var role = m.sender_role === 'admin' ? 'admin' : 'user';
-      var time = m.created_at ? new Date(m.created_at).toLocaleString() : '';
-      var label = role === 'admin' ? 'You' : 'User';
-      var avHtml = role === 'admin'
-        ? '<div class="thread-msg-avatar">' + escapeHtml(label.charAt(0)) + '</div>'
-        : '<div class="thread-msg-avatar">' + bbAdminAvatarHtml(userPic, uname) + '</div>';
-      return '<div class="thread-msg ' + role + '">' + avHtml + '<div class="thread-msg-bubble"><div>' + escapeHtml(m.body || '').replace(/\n/g,'<br>') + '</div><div class="thread-msg-meta">' + escapeHtml(label) + ' · ' + escapeHtml(time) + '</div></div></div>';
-    }).join('');
-    box.scrollTop = box.scrollHeight;
-  } catch (e) {
-    alert('Failed to send reply.');
-  }
-}
+// The admin Messages tab is mounted by mountAdminInbox() above. The old
+// separate "Direct chat" list and its reply modal are gone: 1-to-1 threads are
+// now conversations inside the same inbox, rendered by js/group-chat.js against
+// the same unchanged /api/threads endpoints.
 
 // Contact
 async function sendContact() {

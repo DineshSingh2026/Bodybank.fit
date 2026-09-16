@@ -1,0 +1,804 @@
+/* ============================================================================
+   BodyBank — Messages
+   ----------------------------------------------------------------------------
+   One inbox holding care groups AND 1-to-1 client chats, for both the member
+   and the admin.
+
+   Black + gold. Gold is a HIGHLIGHT, never a surface: it carries active state,
+   unread counts, the sender's own bubble edge and the read ticks, and nothing
+   else. Surfaces stay in a narrow charcoal ramp so a long transcript reads as
+   one calm column rather than a gradient showcase.
+
+   Every selector is namespaced `.bbg-` so nothing here leaks into the rest of
+   the admin or member dashboards.
+
+   NOTE: index.html carries a global bare-tag rule
+         `nav{position:fixed;z-index:10010}`
+   which hijacks any <nav> element rendered anywhere in the app. Nothing here
+   uses <nav>; the conversation rail is a div[role="navigation"].
+   ========================================================================== */
+
+.bbg{
+  /* Local ramp. Derived from the app tokens so a future rebrand moves both. */
+  --bbg-ink:#070707;
+  --bbg-panel:#0e0e0e;
+  --bbg-surface:#141414;
+  --bbg-raised:#1b1b1b;
+  --bbg-hover:#212121;
+  --bbg-line:rgba(255,255,255,0.07);
+  --bbg-line-strong:rgba(255,255,255,0.13);
+  --bbg-gold:#c8a44e;
+  --bbg-gold-soft:rgba(200,164,78,0.16);
+  --bbg-gold-line:rgba(200,164,78,0.34);
+  --bbg-text:#f4f1ea;
+  --bbg-dim:#9a958c;
+  --bbg-faint:#6b6760;
+  --bbg-radius:16px;
+  --bbg-shadow:0 10px 32px rgba(0,0,0,0.55);
+  color:var(--bbg-text);
+  font-family:'Outfit',sans-serif;
+}
+
+/* ── Shell ─────────────────────────────────────────────────────────────────
+   Mobile is a single pane: list OR chat OR details, swapped by [data-pane].
+   Desktop ≥1024px becomes the three-panel layout, and [data-pane] stops
+   mattering because every panel is on screen at once.                       */
+.bbg-shell{
+  display:block;
+  position:relative;
+  background:var(--bbg-ink);
+  border:1px solid var(--bbg-line);
+  border-radius:20px;
+  overflow:hidden;
+  box-shadow:var(--bbg-shadow);
+  /* Fill the viewport below the app chrome without ever scrolling the page. */
+  height:min(760px, calc(var(--app-height, 100dvh) - 210px));
+  min-height:440px;
+}
+.bbg-pane{display:none;height:100%;min-height:0;flex-direction:column}
+.bbg-shell[data-pane="list"]    .bbg-pane--list{display:flex}
+.bbg-shell[data-pane="chat"]    .bbg-pane--chat{display:flex}
+.bbg-shell[data-pane="details"] .bbg-pane--details{display:flex}
+
+/* ── Panel chrome shared by all three panes ────────────────────────────────*/
+.bbg-panehead{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 16px;
+  background:var(--bbg-panel);
+  border-bottom:1px solid var(--bbg-line);
+  flex:0 0 auto;min-height:64px;
+}
+.bbg-panehead-main{min-width:0;flex:1}
+.bbg-panehead-title{
+  font-family:'Rajdhani',sans-serif;font-size:19px;font-weight:700;
+  letter-spacing:.4px;line-height:1.2;color:var(--bbg-text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.bbg-panehead-sub{
+  font-size:12px;color:var(--bbg-dim);line-height:1.35;margin-top:2px;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.bbg-panehead-sub b{color:var(--bbg-gold);font-weight:600}
+
+/* Icon buttons — 40px hit target, gold only on hover/active. */
+.bbg-iconbtn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:40px;height:40px;flex:0 0 auto;
+  border:1px solid transparent;border-radius:12px;
+  background:transparent;color:var(--bbg-dim);
+  cursor:pointer;transition:background .18s,color .18s,border-color .18s;
+  -webkit-tap-highlight-color:transparent;padding:0;
+}
+.bbg-iconbtn:hover,.bbg-iconbtn:focus-visible{
+  background:var(--bbg-hover);color:var(--bbg-gold);
+  border-color:var(--bbg-line-strong);outline:none;
+}
+.bbg-iconbtn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.bbg-iconbtn[aria-expanded="true"]{background:var(--bbg-gold-soft);color:var(--bbg-gold)}
+
+/* ── Conversation list ─────────────────────────────────────────────────────*/
+/* Wrap rather than scroll. In the 300px desktop list column three chips do not
+   fit on one line, and a horizontally-scrolling row just clipped the last one
+   mid-word, which reads as a broken layout. */
+.bbg-filters{
+  display:flex;flex-wrap:wrap;gap:8px;padding:12px 16px;flex:0 0 auto;
+  background:var(--bbg-panel);border-bottom:1px solid var(--bbg-line);
+}
+.bbg-chip{
+  flex:0 0 auto;padding:7px 13px;border-radius:999px;
+  border:1px solid var(--bbg-line-strong);background:transparent;
+  color:var(--bbg-dim);font-family:'Outfit',sans-serif;
+  font-size:12.5px;font-weight:600;letter-spacing:.2px;cursor:pointer;
+  transition:all .18s;-webkit-tap-highlight-color:transparent;white-space:nowrap;
+}
+.bbg-chip:hover{color:var(--bbg-text);border-color:var(--bbg-gold-line)}
+.bbg-chip.is-active{
+  background:var(--bbg-gold-soft);border-color:var(--bbg-gold-line);
+  color:var(--bbg-gold);
+}
+.bbg-chip-count{opacity:.75;font-weight:500;margin-left:4px}
+
+.bbg-search{padding:10px 16px;flex:0 0 auto;background:var(--bbg-panel);border-bottom:1px solid var(--bbg-line)}
+.bbg-search input{
+  width:100%;padding:10px 14px;border-radius:12px;
+  background:var(--bbg-surface);border:1px solid var(--bbg-line);
+  color:var(--bbg-text);font-family:'Outfit',sans-serif;font-size:14px;
+}
+.bbg-search input::placeholder{color:var(--bbg-faint)}
+.bbg-search input:focus{outline:none;border-color:var(--bbg-gold-line);background:var(--bbg-raised)}
+
+.bbg-scroll{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;scrollbar-width:thin;scrollbar-color:rgba(200,164,78,.28) transparent}
+.bbg-scroll::-webkit-scrollbar{width:6px}
+.bbg-scroll::-webkit-scrollbar-track{background:transparent}
+.bbg-scroll::-webkit-scrollbar-thumb{background:rgba(200,164,78,.28);border-radius:3px}
+
+.bbg-conv{
+  display:flex;align-items:center;gap:13px;width:100%;
+  padding:13px 16px;background:transparent;border:none;
+  border-bottom:1px solid var(--bbg-line);
+  cursor:pointer;text-align:left;transition:background .16s;
+  -webkit-tap-highlight-color:transparent;
+}
+.bbg-conv:hover{background:var(--bbg-surface)}
+.bbg-conv.is-active{background:var(--bbg-surface);box-shadow:inset 3px 0 0 var(--bbg-gold)}
+.bbg-conv-body{flex:1;min-width:0}
+.bbg-conv-top{display:flex;align-items:baseline;gap:8px}
+.bbg-conv-name{
+  flex:1;min-width:0;font-size:14.5px;font-weight:600;color:var(--bbg-text);
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.1px;
+}
+.bbg-conv-time{flex:0 0 auto;font-size:11px;color:var(--bbg-faint);font-variant-numeric:tabular-nums}
+.bbg-conv.has-unread .bbg-conv-time{color:var(--bbg-gold)}
+.bbg-conv-bottom{display:flex;align-items:center;gap:8px;margin-top:3px}
+.bbg-conv-preview{
+  flex:1;min-width:0;font-size:12.5px;color:var(--bbg-dim);line-height:1.4;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+.bbg-conv.has-unread .bbg-conv-preview{color:var(--bbg-text)}
+.bbg-conv-preview i{color:var(--bbg-faint);font-style:normal}
+.bbg-badge{
+  flex:0 0 auto;min-width:20px;height:20px;padding:0 6px;border-radius:999px;
+  background:var(--bbg-gold);color:#141007;
+  font-size:11px;font-weight:700;line-height:20px;text-align:center;
+  font-variant-numeric:tabular-nums;
+}
+.bbg-conv-flag{flex:0 0 auto;color:var(--bbg-faint);font-size:12px;line-height:1}
+/* A direct thread has no read column, so it shows "something is new" as a dot
+   rather than a fabricated count. */
+.bbg-badge--dot{min-width:9px;width:9px;height:9px;padding:0;border-radius:50%}
+/* Group / 1:1 marker so the two kinds of conversation are never confused. */
+.bbg-conv-tag{
+  flex:0 0 auto;padding:1px 7px;border-radius:999px;
+  background:rgba(255,255,255,.05);border:1px solid var(--bbg-line);
+  color:var(--bbg-faint);font-size:9.5px;font-weight:700;
+  letter-spacing:.6px;text-transform:uppercase;line-height:1.6;
+}
+.bbg-conv.has-unread .bbg-conv-tag{color:var(--bbg-dim)}
+
+/* Primary action in the list header. Labelled, not a bare "+", so an admin can
+   see what it does without hovering. */
+.bbg-newbtn{
+  flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;
+  padding:8px 13px;border-radius:11px;
+  background:linear-gradient(140deg,#d0b058,#a68c3e);
+  border:none;color:#120e05;cursor:pointer;
+  font-family:'Outfit',sans-serif;font-size:12.5px;font-weight:700;
+  letter-spacing:.2px;white-space:nowrap;transition:filter .18s,transform .14s;
+}
+.bbg-newbtn:hover{filter:brightness(1.08)}
+.bbg-newbtn:active{transform:scale(.97)}
+.bbg-newbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2.4;stroke-linecap:round}
+
+/* Avatar — initials fall back when there is no photo. */
+.bbg-avatar{
+  position:relative;flex:0 0 auto;
+  width:46px;height:46px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(140deg,#242015,#15130d);
+  border:1px solid var(--bbg-gold-line);
+  color:var(--bbg-gold);font-family:'Rajdhani',sans-serif;
+  font-size:16px;font-weight:700;letter-spacing:.5px;
+  overflow:hidden;text-transform:uppercase;
+}
+.bbg-avatar img{width:100%;height:100%;object-fit:cover;display:block}
+.bbg-avatar--sm{width:34px;height:34px;font-size:12px}
+.bbg-avatar--lg{width:88px;height:88px;font-size:30px}
+/* A group avatar is squircle-ish so it reads as "several people" at a glance. */
+.bbg-avatar--group{border-radius:30%}
+
+.bbg-empty{
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:10px;padding:48px 28px;text-align:center;color:var(--bbg-dim);
+  font-size:13.5px;line-height:1.6;height:100%;
+}
+.bbg-empty-icon{font-size:34px;opacity:.5;line-height:1}
+.bbg-empty b{display:block;color:var(--bbg-text);font-size:15px;font-weight:600}
+
+/* ── Chat transcript ───────────────────────────────────────────────────────*/
+.bbg-transcript{
+  flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;
+  padding:18px 14px 8px;
+  display:flex;flex-direction:column;gap:3px;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:thin;scrollbar-color:rgba(200,164,78,.28) transparent;
+  /* Two barely-there gold pools keep a long black column from going flat. */
+  background:
+    radial-gradient(1100px 380px at 12% -8%, rgba(200,164,78,.05), transparent 62%),
+    radial-gradient(900px 340px at 88% 104%, rgba(200,164,78,.035), transparent 60%),
+    var(--bbg-ink);
+}
+.bbg-transcript::-webkit-scrollbar{width:6px}
+.bbg-transcript::-webkit-scrollbar-track{background:transparent}
+.bbg-transcript::-webkit-scrollbar-thumb{background:rgba(200,164,78,.28);border-radius:3px}
+
+.bbg-daysep{align-self:center;margin:14px 0 10px;flex:0 0 auto}
+.bbg-daysep span{
+  display:inline-block;padding:5px 14px;border-radius:999px;
+  background:rgba(255,255,255,.05);border:1px solid var(--bbg-line);
+  color:var(--bbg-dim);font-size:11px;font-weight:600;letter-spacing:.6px;
+  text-transform:uppercase;
+}
+.bbg-sysmsg{align-self:center;max-width:86%;margin:6px 0;text-align:center;flex:0 0 auto}
+.bbg-sysmsg span{
+  display:inline-block;padding:6px 14px;border-radius:999px;
+  background:rgba(200,164,78,.07);border:1px solid rgba(200,164,78,.16);
+  color:var(--bbg-dim);font-size:11.5px;line-height:1.5;
+}
+
+/* ── Message row + bubble ──────────────────────────────────────────────────*/
+.bbg-row{display:flex;align-items:flex-end;gap:9px;max-width:100%;flex:0 0 auto;position:relative}
+.bbg-row--in{justify-content:flex-start}
+.bbg-row--out{justify-content:flex-end}
+/* Consecutive messages from one sender tuck together; only the last shows a tail. */
+.bbg-row.is-grouped{margin-top:0}
+.bbg-row:not(.is-grouped){margin-top:10px}
+.bbg-row-avatar{flex:0 0 auto;width:30px;align-self:flex-end}
+.bbg-row.is-grouped .bbg-row-avatar .bbg-avatar{visibility:hidden}
+
+.bbg-bubble{
+  position:relative;max-width:min(560px, 78%);
+  padding:9px 13px 7px;border-radius:var(--bbg-radius);
+  font-size:14.5px;line-height:1.52;
+  word-wrap:break-word;overflow-wrap:anywhere;
+  animation:bbgIn .22s ease-out;
+}
+@keyframes bbgIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.bbg-bubble{animation:none}}
+
+/* Received: a lighter charcoal, quiet. */
+.bbg-row--in .bbg-bubble{
+  background:var(--bbg-raised);
+  border:1px solid var(--bbg-line);
+  color:var(--bbg-text);
+  border-bottom-left-radius:5px;
+}
+.bbg-row--in.is-grouped .bbg-bubble{border-bottom-left-radius:var(--bbg-radius)}
+
+/* Sent: gold-tinted charcoal with a gold edge. Deliberately NOT a gold fill —
+   a saturated gold bubble destroys white-text contrast and reads as a banner. */
+.bbg-row--out .bbg-bubble{
+  background:linear-gradient(145deg,rgba(200,164,78,.19),rgba(200,164,78,.085));
+  border:1px solid var(--bbg-gold-line);
+  color:#fff;
+  border-bottom-right-radius:5px;
+}
+.bbg-row--out.is-grouped .bbg-bubble{border-bottom-right-radius:var(--bbg-radius)}
+
+.bbg-bubble.is-deleted{opacity:.62;font-style:italic;color:var(--bbg-dim)}
+.bbg-bubble.is-hit{animation:bbgHit 1.5s ease-out}
+@keyframes bbgHit{
+  0%,100%{box-shadow:0 0 0 0 rgba(200,164,78,0)}
+  18%{box-shadow:0 0 0 3px rgba(200,164,78,.45)}
+}
+
+.bbg-sender{
+  display:flex;align-items:center;gap:7px;
+  margin-bottom:3px;font-size:12.5px;font-weight:700;
+  color:var(--bbg-gold);letter-spacing:.15px;
+}
+.bbg-rolechip{
+  padding:1.5px 7px;border-radius:999px;
+  background:rgba(255,255,255,.07);border:1px solid var(--bbg-line);
+  color:var(--bbg-dim);font-size:9.5px;font-weight:700;
+  letter-spacing:.7px;text-transform:uppercase;white-space:nowrap;
+}
+.bbg-text{white-space:pre-wrap}
+.bbg-text a{color:var(--bbg-gold);text-decoration:underline;text-underline-offset:2px}
+
+/* Quoted reply — a gold spine plus the quoted author. Clickable. */
+.bbg-quote{
+  display:block;width:100%;text-align:left;
+  margin:0 0 6px;padding:7px 10px;border:none;
+  border-left:3px solid var(--bbg-gold);border-radius:8px;
+  background:rgba(0,0,0,.34);cursor:pointer;font-family:inherit;
+  transition:background .16s;
+}
+.bbg-quote:hover{background:rgba(0,0,0,.5)}
+.bbg-quote-who{font-size:11.5px;font-weight:700;color:var(--bbg-gold);margin-bottom:1px}
+.bbg-quote-body{
+  font-size:12.5px;color:var(--bbg-dim);line-height:1.45;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+}
+
+/* Attachments */
+.bbg-att-img{
+  display:block;max-width:100%;width:auto;max-height:320px;
+  border-radius:10px;margin:2px 0 4px;cursor:pointer;
+  border:1px solid var(--bbg-line);background:#0a0a0a;
+}
+.bbg-att-file{
+  display:flex;align-items:center;gap:10px;
+  margin:2px 0 4px;padding:9px 11px;border-radius:10px;
+  background:rgba(0,0,0,.34);border:1px solid var(--bbg-line);
+  color:var(--bbg-text);text-decoration:none;transition:background .16s;
+}
+.bbg-att-file:hover{background:rgba(0,0,0,.52);border-color:var(--bbg-gold-line)}
+.bbg-att-icon{
+  flex:0 0 auto;width:34px;height:34px;border-radius:9px;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  background:var(--bbg-gold-soft);border:1px solid var(--bbg-gold-line);
+}
+.bbg-att-meta{min-width:0}
+.bbg-att-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bbg-att-size{font-size:11px;color:var(--bbg-faint);margin-top:1px}
+
+/* Meta line: time · edited · ticks */
+.bbg-meta{
+  display:flex;align-items:center;justify-content:flex-end;gap:5px;
+  margin-top:3px;font-size:10.5px;color:var(--bbg-faint);
+  font-variant-numeric:tabular-nums;line-height:1;
+}
+.bbg-row--in .bbg-meta{justify-content:flex-start}
+.bbg-edited{font-style:italic}
+.bbg-ticks{display:inline-flex;align-items:center;width:16px;height:11px;color:var(--bbg-faint)}
+.bbg-ticks svg{width:16px;height:11px;stroke:currentColor;fill:none;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round}
+.bbg-ticks.is-read{color:var(--bbg-gold)}
+
+/* Reactions — pills that hang off the bubble's bottom edge. */
+.bbg-reacts{display:flex;flex-wrap:wrap;gap:4px;margin:5px 0 -2px}
+.bbg-react{
+  display:inline-flex;align-items:center;gap:3px;
+  padding:2px 7px;border-radius:999px;
+  background:rgba(0,0,0,.44);border:1px solid var(--bbg-line);
+  font-size:12px;line-height:1.5;cursor:pointer;
+  transition:border-color .16s,background .16s;
+}
+.bbg-react:hover{border-color:var(--bbg-gold-line)}
+.bbg-react.is-mine{background:var(--bbg-gold-soft);border-color:var(--bbg-gold-line)}
+.bbg-react-n{font-size:10.5px;font-weight:700;color:var(--bbg-dim);font-variant-numeric:tabular-nums}
+.bbg-react.is-mine .bbg-react-n{color:var(--bbg-gold)}
+
+/* Hover affordance for message actions (desktop). Mobile uses long-press. */
+.bbg-rowbtn{
+  position:absolute;top:2px;
+  width:28px;height:28px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--bbg-surface);border:1px solid var(--bbg-line-strong);
+  color:var(--bbg-dim);cursor:pointer;padding:0;
+  opacity:0;pointer-events:none;transition:opacity .16s,color .16s;
+}
+.bbg-row--out .bbg-rowbtn{right:calc(100% - 0px);margin-right:6px}
+.bbg-row--in  .bbg-rowbtn{left:calc(100% - 0px);margin-left:6px}
+.bbg-row:hover .bbg-rowbtn,.bbg-rowbtn:focus-visible{opacity:1;pointer-events:auto}
+.bbg-rowbtn:hover{color:var(--bbg-gold)}
+.bbg-rowbtn svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round}
+@media (hover:none){.bbg-rowbtn{display:none}}
+
+.bbg-loadmore{align-self:center;margin:4px 0 10px;flex:0 0 auto}
+.bbg-loadmore button{
+  padding:7px 18px;border-radius:999px;
+  background:var(--bbg-surface);border:1px solid var(--bbg-line-strong);
+  color:var(--bbg-dim);font-family:'Outfit',sans-serif;font-size:12px;
+  font-weight:600;cursor:pointer;transition:all .18s;
+}
+.bbg-loadmore button:hover{color:var(--bbg-gold);border-color:var(--bbg-gold-line)}
+
+/* Jump-to-latest pill, shown when the reader has scrolled up. */
+.bbg-jump{
+  position:absolute;right:16px;bottom:calc(100% + 12px);
+  display:flex;align-items:center;gap:7px;
+  padding:8px 14px;border-radius:999px;
+  background:var(--bbg-raised);border:1px solid var(--bbg-gold-line);
+  color:var(--bbg-gold);font-size:12px;font-weight:600;
+  cursor:pointer;box-shadow:0 6px 20px rgba(0,0,0,.6);
+  opacity:0;transform:translateY(8px);pointer-events:none;transition:all .2s;
+  z-index:4;
+}
+.bbg-jump.is-shown{opacity:1;transform:none;pointer-events:auto}
+
+/* ── Composer ──────────────────────────────────────────────────────────────*/
+.bbg-composer{
+  position:relative;flex:0 0 auto;
+  background:var(--bbg-panel);border-top:1px solid var(--bbg-line);
+  padding:10px 12px;
+  /* The admin panel floats an AI button over the shell's bottom-right corner.
+     sizeShell() measures it and sets --bbg-fab-gutter so the send button is
+     never buried underneath it; it is 0 everywhere else. */
+  padding-right:calc(12px + var(--bbg-fab-gutter,0px));
+  padding-bottom:calc(10px + var(--safe-bottom,0px));
+}
+.bbg-replybar{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:8px;padding:8px 10px;
+  border-left:3px solid var(--bbg-gold);border-radius:9px;
+  background:var(--bbg-surface);
+}
+.bbg-replybar-body{flex:1;min-width:0}
+.bbg-replybar-who{font-size:11.5px;font-weight:700;color:var(--bbg-gold)}
+.bbg-replybar-text{font-size:12.5px;color:var(--bbg-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.bbg-attachbar{
+  display:flex;align-items:center;gap:10px;
+  margin-bottom:8px;padding:8px 10px;border-radius:9px;
+  background:var(--bbg-surface);border:1px solid var(--bbg-gold-line);
+}
+.bbg-attachbar-thumb{
+  width:38px;height:38px;border-radius:8px;object-fit:cover;flex:0 0 auto;
+  background:var(--bbg-raised);display:flex;align-items:center;justify-content:center;font-size:17px;
+}
+.bbg-attachbar-body{flex:1;min-width:0}
+.bbg-attachbar-name{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bbg-attachbar-size{font-size:11px;color:var(--bbg-faint)}
+
+.bbg-inputrow{display:flex;align-items:flex-end;gap:8px}
+.bbg-inputwrap{
+  flex:1;min-width:0;display:flex;align-items:flex-end;gap:4px;
+  background:var(--bbg-surface);border:1px solid var(--bbg-line);
+  border-radius:22px;padding:4px 4px 4px 6px;transition:border-color .18s;
+}
+.bbg-inputwrap:focus-within{border-color:var(--bbg-gold-line)}
+.bbg-input{
+  flex:1;min-width:0;
+  background:transparent;border:none;outline:none;resize:none;
+  color:var(--bbg-text);font-family:'Outfit',sans-serif;
+  font-size:15px;line-height:1.45;
+  /* 16px on iOS would be needed to avoid zoom, but the wrapper already sets a
+     large tap target; 15px + touch-action keeps the field from triggering it. */
+  padding:9px 6px;max-height:132px;overflow-y:auto;
+}
+.bbg-input::placeholder{color:var(--bbg-faint)}
+.bbg-send{
+  flex:0 0 auto;width:44px;height:44px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(140deg,#d0b058,#a68c3e);
+  border:none;color:#120e05;cursor:pointer;padding:0;
+  transition:transform .14s,opacity .18s,filter .18s;
+  box-shadow:0 3px 12px rgba(200,164,78,.3);
+}
+.bbg-send:hover:not(:disabled){transform:scale(1.05)}
+.bbg-send:active:not(:disabled){transform:scale(.95)}
+.bbg-send:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.6);box-shadow:none}
+.bbg-send svg{width:20px;height:20px;stroke:currentColor;fill:none;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.bbg-send.is-busy svg{animation:bbgSpin .8s linear infinite}
+@keyframes bbgSpin{to{transform:rotate(360deg)}}
+
+.bbg-composer-err{
+  margin-top:7px;font-size:12px;color:#e8836f;line-height:1.4;
+  display:flex;align-items:center;gap:6px;
+}
+.bbg-composer-locked{
+  padding:14px 10px;text-align:center;color:var(--bbg-dim);
+  font-size:13px;line-height:1.5;
+}
+
+/* Emoji picker + reaction picker share the popover chrome. */
+.bbg-pop{
+  position:absolute;z-index:30;
+  background:var(--bbg-raised);border:1px solid var(--bbg-line-strong);
+  border-radius:14px;box-shadow:var(--bbg-shadow);
+  padding:8px;
+}
+.bbg-pop--emoji{
+  left:12px;right:12px;bottom:calc(100% + 8px);
+  max-height:220px;overflow-y:auto;
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(38px,1fr));gap:2px;
+}
+.bbg-pop--emoji button{
+  height:38px;border:none;background:transparent;border-radius:8px;
+  font-size:21px;cursor:pointer;line-height:1;transition:background .14s;
+}
+.bbg-pop--emoji button:hover{background:var(--bbg-hover)}
+
+/* ── Message action sheet (reply / react / copy / edit / delete …) ─────────*/
+.bbg-sheet-backdrop{
+  position:fixed;inset:0;z-index:12000;
+  background:rgba(0,0,0,.66);backdrop-filter:blur(3px);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding:0;animation:bbgFade .18s ease-out;
+}
+@keyframes bbgFade{from{opacity:0}to{opacity:1}}
+.bbg-sheet{
+  width:100%;max-width:440px;
+  background:var(--bbg-panel);
+  border:1px solid var(--bbg-line-strong);border-bottom:none;
+  border-radius:20px 20px 0 0;
+  padding:10px 0 calc(10px + var(--safe-bottom,0px));
+  animation:bbgRise .22s cubic-bezier(.2,.8,.3,1);
+  max-height:84vh;overflow-y:auto;
+}
+@keyframes bbgRise{from{transform:translateY(14px);opacity:.6}to{transform:none;opacity:1}}
+.bbg-sheet-grip{width:38px;height:4px;border-radius:2px;background:var(--bbg-line-strong);margin:2px auto 10px}
+.bbg-sheet-reacts{
+  display:flex;justify-content:space-around;gap:4px;
+  padding:4px 12px 12px;margin-bottom:6px;
+  border-bottom:1px solid var(--bbg-line);
+}
+.bbg-sheet-reacts button{
+  width:46px;height:46px;border-radius:50%;
+  border:1px solid transparent;background:transparent;
+  font-size:24px;line-height:1;cursor:pointer;transition:all .16s;
+}
+.bbg-sheet-reacts button:hover{background:var(--bbg-hover);transform:scale(1.12)}
+.bbg-sheet-reacts button.is-mine{background:var(--bbg-gold-soft);border-color:var(--bbg-gold-line)}
+.bbg-sheet-item{
+  display:flex;align-items:center;gap:13px;width:100%;
+  padding:13px 20px;background:transparent;border:none;
+  color:var(--bbg-text);font-family:'Outfit',sans-serif;
+  font-size:14.5px;text-align:left;cursor:pointer;transition:background .14s;
+}
+.bbg-sheet-item:hover{background:var(--bbg-surface)}
+.bbg-sheet-item span:first-child{width:20px;text-align:center;font-size:16px;opacity:.85}
+.bbg-sheet-item.is-danger{color:#e8836f}
+
+/* ── Group details ─────────────────────────────────────────────────────────*/
+.bbg-details-hero{
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+  padding:26px 20px 22px;text-align:center;
+  border-bottom:1px solid var(--bbg-line);
+  background:linear-gradient(180deg,rgba(200,164,78,.06),transparent);
+}
+.bbg-details-name{
+  font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;
+  letter-spacing:.4px;line-height:1.2;
+}
+.bbg-details-meta{font-size:12.5px;color:var(--bbg-dim);line-height:1.6}
+.bbg-details-sec{padding:16px 18px;border-bottom:1px solid var(--bbg-line)}
+.bbg-details-sec:last-child{border-bottom:none}
+.bbg-details-label{
+  font-size:10.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;
+  color:var(--bbg-gold);margin-bottom:11px;
+}
+.bbg-member{display:flex;align-items:center;gap:11px;padding:8px 0}
+.bbg-member-body{flex:1;min-width:0}
+.bbg-member-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bbg-member-role{font-size:11.5px;color:var(--bbg-dim);margin-top:1px}
+.bbg-member-role b{color:var(--bbg-gold);font-weight:600}
+
+.bbg-action{
+  display:flex;align-items:center;gap:11px;width:100%;
+  padding:11px 0;background:transparent;border:none;
+  color:var(--bbg-text);font-family:'Outfit',sans-serif;font-size:14px;
+  text-align:left;cursor:pointer;transition:color .16s;
+}
+.bbg-action:hover{color:var(--bbg-gold)}
+.bbg-action span:first-child{width:20px;text-align:center;opacity:.8}
+.bbg-action.is-danger{color:#e8836f}
+.bbg-action-toggle{margin-left:auto;font-size:11.5px;color:var(--bbg-dim)}
+
+.bbg-media-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(78px,1fr));gap:6px}
+.bbg-media-grid a{
+  display:block;aspect-ratio:1;border-radius:9px;overflow:hidden;
+  background:var(--bbg-surface);border:1px solid var(--bbg-line);
+}
+.bbg-media-grid img{width:100%;height:100%;object-fit:cover;display:block}
+.bbg-linklist a{
+  display:block;padding:8px 0;font-size:12.5px;color:var(--bbg-gold);
+  text-decoration:none;word-break:break-all;border-bottom:1px solid var(--bbg-line);
+}
+
+/* In-chat message search results */
+.bbg-searchres{
+  position:absolute;left:0;right:0;top:100%;z-index:20;
+  max-height:340px;overflow-y:auto;
+  background:var(--bbg-panel);border-bottom:1px solid var(--bbg-line-strong);
+  box-shadow:0 12px 28px rgba(0,0,0,.6);
+}
+.bbg-searchres button{
+  display:block;width:100%;padding:11px 16px;text-align:left;
+  background:transparent;border:none;border-bottom:1px solid var(--bbg-line);
+  color:var(--bbg-text);font-family:'Outfit',sans-serif;cursor:pointer;
+}
+.bbg-searchres button:hover{background:var(--bbg-surface)}
+.bbg-searchres-who{font-size:11.5px;font-weight:700;color:var(--bbg-gold);margin-bottom:2px}
+.bbg-searchres-body{font-size:13px;color:var(--bbg-dim);line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.bbg-searchres mark{background:rgba(200,164,78,.3);color:var(--bbg-text);border-radius:2px;padding:0 1px}
+
+/* Lightbox for image attachments */
+.bbg-lightbox{
+  position:fixed;inset:0;z-index:12500;
+  background:rgba(0,0,0,.92);
+  display:flex;align-items:center;justify-content:center;padding:20px;
+  animation:bbgFade .18s ease-out;cursor:zoom-out;
+}
+.bbg-lightbox img{max-width:100%;max-height:100%;object-fit:contain;border-radius:8px}
+
+/* ── Modals (create group / rename / add member) ───────────────────────────
+   Own chrome rather than the app modal, so the group builder can be tall and
+   scrollable on a phone without fighting the existing .modal-overlay rules. */
+.bbg-modal-backdrop{
+  position:fixed;inset:0;z-index:12200;
+  background:rgba(0,0,0,.72);backdrop-filter:blur(3px);
+  display:flex;align-items:center;justify-content:center;
+  padding:16px;animation:bbgFade .18s ease-out;overflow-y:auto;
+}
+.bbg-modal{
+  width:100%;max-width:560px;margin:auto;
+  background:var(--bbg-panel);border:1px solid var(--bbg-line-strong);
+  border-radius:20px;box-shadow:var(--bbg-shadow);
+  display:flex;flex-direction:column;max-height:calc(100dvh - 32px);
+}
+.bbg-modal-head{
+  display:flex;align-items:center;gap:12px;
+  padding:18px 20px;border-bottom:1px solid var(--bbg-line);flex:0 0 auto;
+}
+.bbg-modal-title{
+  flex:1;font-family:'Rajdhani',sans-serif;font-size:20px;
+  font-weight:700;letter-spacing:.4px;
+}
+.bbg-modal-body{padding:18px 20px;overflow-y:auto;flex:1 1 auto;min-height:0}
+.bbg-modal-foot{
+  display:flex;gap:10px;justify-content:flex-end;
+  padding:14px 20px;border-top:1px solid var(--bbg-line);flex:0 0 auto;
+  flex-wrap:wrap;
+}
+.bbg-field{margin-bottom:16px}
+.bbg-field-label{
+  display:block;font-size:11px;font-weight:700;letter-spacing:1px;
+  text-transform:uppercase;color:var(--bbg-gold);margin-bottom:7px;
+}
+.bbg-field input[type=text],.bbg-field input[type=search],.bbg-field select{
+  width:100%;padding:11px 13px;border-radius:11px;
+  background:var(--bbg-surface);border:1px solid var(--bbg-line);
+  color:var(--bbg-text);font-family:'Outfit',sans-serif;font-size:14.5px;
+}
+.bbg-field input:focus,.bbg-field select:focus{outline:none;border-color:var(--bbg-gold-line)}
+.bbg-field-hint{font-size:11.5px;color:var(--bbg-faint);margin-top:6px;line-height:1.5}
+.bbg-btn{
+  padding:11px 20px;border-radius:11px;cursor:pointer;
+  font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;
+  border:1px solid var(--bbg-line-strong);background:transparent;color:var(--bbg-text);
+  transition:all .18s;
+}
+.bbg-btn:hover{border-color:var(--bbg-gold-line);color:var(--bbg-gold)}
+.bbg-btn--primary{
+  background:linear-gradient(140deg,#d0b058,#a68c3e);
+  border-color:transparent;color:#120e05;
+}
+.bbg-btn--primary:hover{filter:brightness(1.08);color:#120e05}
+.bbg-btn:disabled{opacity:.45;cursor:not-allowed;filter:grayscale(.5)}
+
+/* Member picker inside the group builder */
+.bbg-picker{max-height:264px;overflow-y:auto;border:1px solid var(--bbg-line);border-radius:12px}
+.bbg-pick{
+  display:flex;align-items:center;gap:11px;width:100%;
+  padding:10px 12px;background:transparent;border:none;
+  border-bottom:1px solid var(--bbg-line);cursor:pointer;
+  text-align:left;color:var(--bbg-text);font-family:'Outfit',sans-serif;
+  transition:background .14s;
+}
+.bbg-pick:last-child{border-bottom:none}
+.bbg-pick:hover{background:var(--bbg-surface)}
+.bbg-pick.is-picked{background:var(--bbg-gold-soft)}
+.bbg-pick-body{flex:1;min-width:0}
+.bbg-pick-name{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bbg-pick-sub{font-size:11.5px;color:var(--bbg-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bbg-pick-role{
+  flex:0 0 auto;padding:6px 9px;border-radius:9px;
+  background:var(--bbg-raised);border:1px solid var(--bbg-line);
+  color:var(--bbg-text);font-family:'Outfit',sans-serif;font-size:12px;
+}
+.bbg-pick-check{
+  flex:0 0 auto;width:22px;height:22px;border-radius:50%;
+  border:1.5px solid var(--bbg-line-strong);
+  display:flex;align-items:center;justify-content:center;
+  color:transparent;font-size:12px;font-weight:700;
+}
+.bbg-pick.is-picked .bbg-pick-check{
+  background:var(--bbg-gold);border-color:var(--bbg-gold);color:#141007;
+}
+.bbg-review{
+  padding:12px 14px;border-radius:12px;
+  background:var(--bbg-surface);border:1px solid var(--bbg-gold-line);
+}
+.bbg-review-name{
+  font-family:'Rajdhani',sans-serif;font-size:19px;font-weight:700;
+  color:var(--bbg-gold);margin-bottom:8px;letter-spacing:.3px;
+}
+.bbg-review-row{display:flex;align-items:center;gap:9px;padding:5px 0;font-size:13.5px}
+.bbg-review-row b{color:var(--bbg-dim);font-weight:500;margin-left:auto;font-size:11.5px;text-transform:uppercase;letter-spacing:.6px}
+
+/* ── Admin: secondary panels under the inbox ───────────────────────────────
+   Contact-form messages and the WhatsApp draft queue are not conversations, so
+   they sit below the inbox as collapsed drawers instead of competing with it. */
+.bbg-drawer{
+  margin-top:14px;border-radius:14px;
+  background:#101010;border:1px solid rgba(255,255,255,.07);
+  overflow:hidden;
+}
+.bbg-drawer > summary{
+  display:flex;align-items:center;gap:10px;
+  padding:14px 16px;cursor:pointer;list-style:none;
+  font-family:'Outfit',sans-serif;font-size:14px;font-weight:600;color:#f4f1ea;
+  transition:background .16s;
+}
+.bbg-drawer > summary::-webkit-details-marker{display:none}
+.bbg-drawer > summary:hover{background:#161616}
+.bbg-drawer > summary::after{
+  content:'▾';margin-left:auto;color:#6b6760;font-size:12px;
+  transition:transform .2s;
+}
+.bbg-drawer[open] > summary::after{transform:rotate(180deg)}
+.bbg-drawer-icon{
+  width:28px;height:28px;flex:0 0 auto;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:14px;
+  background:rgba(200,164,78,.12);border:1px solid rgba(200,164,78,.28);
+}
+.bbg-drawer-sub{font-size:11.5px;color:#6b6760;font-weight:400;margin-left:2px}
+.bbg-drawer-body{padding:0 16px 16px;border-top:1px solid rgba(255,255,255,.06)}
+.bbg-drawer-body > .form-hint:first-child{margin-top:12px}
+
+/* ── Responsive: tablet ────────────────────────────────────────────────────*/
+@media (min-width:700px){
+  .bbg-bubble{max-width:min(560px,70%)}
+  .bbg-transcript{padding:20px 22px 8px}
+  .bbg-composer{padding:12px 18px;padding-right:calc(18px + var(--bbg-fab-gutter,0px));padding-bottom:calc(12px + var(--safe-bottom,0px))}
+  .bbg-pop--emoji{left:18px;right:auto;width:340px}
+}
+
+/* ── Responsive: desktop three-panel ───────────────────────────────────────
+   List | chat | details, all visible at once. [data-pane] is ignored here, so
+   navigating on mobile and then resizing never leaves a panel hidden.        */
+@media (min-width:1024px){
+  .bbg-shell{
+    display:grid;
+    grid-template-columns:320px minmax(0,1fr);
+    height:min(780px, calc(var(--app-height,100dvh) - 190px));
+  }
+  .bbg-shell.has-details{grid-template-columns:300px minmax(0,1fr) 316px}
+  .bbg-shell[data-pane] .bbg-pane--list,
+  .bbg-shell[data-pane] .bbg-pane--chat{display:flex}
+  .bbg-shell[data-pane] .bbg-pane--details{display:none}
+  .bbg-shell.has-details[data-pane] .bbg-pane--details{display:flex}
+  .bbg-pane--list{border-right:1px solid var(--bbg-line)}
+  .bbg-pane--details{border-left:1px solid var(--bbg-line);background:var(--bbg-panel)}
+  /* Back buttons are a mobile affordance; the panels are adjacent here. */
+  .bbg-back{display:none}
+  .bbg-bubble{max-width:min(620px,66%)}
+}
+
+/* ── Responsive: phones ────────────────────────────────────────────────────
+   The chat header has to fit a back button, an avatar, the group name, the
+   member line and the action icons. At 390px all of that together squeezed the
+   title down to "Mitul N…". Search moves into the ⋮ menu below 560px and the
+   controls tighten, which gives the name the room it needs.                  */
+@media (max-width:560px){
+  .bbg-panehead{gap:8px;padding:12px 10px;min-height:60px}
+  .bbg-iconbtn{width:34px;height:34px;border-radius:10px}
+  .bbg-iconbtn svg{width:18px;height:18px}
+  #bbgSearchBtn{display:none}
+  .bbg-panehead-title{font-size:16.5px}
+  .bbg-panehead-sub{font-size:11.5px}
+  .bbg-avatar--sm{width:32px;height:32px;font-size:11px}
+}
+
+@media (max-width:420px){
+  .bbg-shell{border-radius:16px;min-height:360px}
+  .bbg-transcript{padding:14px 10px 6px}
+  .bbg-bubble{max-width:84%;font-size:14px}
+  .bbg-avatar{width:42px;height:42px;font-size:15px}
+  .bbg-conv{padding:11px 12px}
+  .bbg-admin-grid{grid-template-columns:1fr}
+  .bbg-composer{padding:8px 8px;padding-right:calc(8px + var(--bbg-fab-gutter,0px));padding-bottom:calc(8px + var(--safe-bottom,0px))}
+  .bbg-inputrow{gap:6px}
+  .bbg-send{width:42px;height:42px}
+}
+
+/* Both hosts render the inbox full-bleed; drop any inherited card padding so
+   the chat can use the whole width on a phone. */
+#usec-messages .bbg-host,
+#bbAdminInboxHost{margin:0}
+#usec-messages .bbg-host .bbg-shell,
+#bbAdminInboxHost .bbg-shell{margin:0}
+
+/* On a phone the member nav is a floating pill; the shell measures around it in
+   JS (sizeShell), so nothing here should re-assert a height. */
