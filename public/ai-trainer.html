@@ -7,7 +7,9 @@
   <meta http-equiv="Pragma" content="no-cache" />
   <meta http-equiv="Expires" content="0" />
   <title>BodyBank — AI Fitness Trainer</title>
-  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+  <!-- @mediapipe/camera_utils is deliberately NOT loaded. Its Camera helper opens a
+       SECOND getUserMedia stream of its own, which broke the trainer on phones.
+       See startFramePump() below, which drives MediaPipe from our single stream. -->
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
   <style>
@@ -4644,6 +4646,75 @@ async function saveAiTrainerSession(data) {
 // ════════════════════════════════════════════════════════════════
 //  WORKOUT FLOW
 // ════════════════════════════════════════════════════════════════
+
+/**
+ * Pumps decoded video frames into MediaPipe from a stream that is ALREADY playing.
+ *
+ * This replaces @mediapipe/camera_utils' `Camera` helper, which could not be used:
+ * its start() calls navigator.mediaDevices.getUserMedia() a second time with its own
+ * constraints and reassigns video.srcObject. A phone has one front camera, so that
+ * second open is what broke the trainer on mobile — iOS (Safari and the WKWebView in
+ * the app) hands the device to the newest request and freezes the first, leaving a
+ * black preview, and Android raises a second permission prompt mid-session. Its
+ * failure path also calls alert() and rejects a promise that a synchronous
+ * try/catch around start() cannot catch, so the page hung on the loading overlay
+ * with no error shown.
+ *
+ * Returns a handle with the same .stop() shape the teardown path already expects.
+ */
+function startFramePump(video, onFrame) {
+  let stopped = false, rafId = 0, lastStamp = -1, inFlight = false;
+
+  const tick = () => {
+    if (stopped) return;
+    rafId = requestAnimationFrame(tick);
+    // Skip while a send() is still running, before the first frame decodes, or when
+    // the same frame is still on screen — re-sending it wastes a whole inference.
+    if (inFlight || video.paused || video.readyState < 2) return;
+    if (video.currentTime === lastStamp) return;
+    lastStamp = video.currentTime;
+    inFlight = true;
+    Promise.resolve(onFrame()).catch(() => {}).then(() => { inFlight = false; });
+  };
+
+  rafId = requestAnimationFrame(tick);
+  return {
+    stop() {
+      stopped = true;
+      if (rafId) cancelAnimationFrame(rafId);
+      rafId = 0;
+    }
+  };
+}
+
+/** Maps a getUserMedia rejection onto a title + hint the member can act on. */
+function cameraErrorInfo(err) {
+  const name   = (err && err.name) || '';
+  const inApp  = !!window.IS_BODYBANK_APP;
+  const settings = inApp
+    ? 'Open your device Settings › BodyBank › Camera and allow access, then retry.'
+    : 'Tap the camera icon in the address bar, allow access for this site, then retry.';
+
+  switch (name) {
+    case 'NotAllowedError':
+    case 'PermissionDeniedError':
+    case 'SecurityError':
+      return { title: 'Camera Permission Denied', msg: settings };
+    case 'NotFoundError':
+    case 'DevicesNotFoundError':
+      return { title: 'No Camera Found', msg: 'This device has no camera available to the app. Try a phone or a laptop with a front camera.' };
+    case 'NotReadableError':
+    case 'TrackStartError':
+      return { title: 'Camera Is Busy', msg: 'Another app or browser tab is using the camera. Close it — video calls are the usual culprit — then retry.' };
+    case 'OverconstrainedError':
+      return { title: 'Camera Not Supported', msg: 'This camera cannot provide a usable video size. Try the rear camera or another device.' };
+    case 'AbortError':
+      return { title: 'Camera Could Not Start', msg: 'The camera was interrupted while starting. Retry, and restart the device if it keeps happening.' };
+    default:
+      return { title: 'Camera Could Not Start', msg: 'Something stopped the camera from opening. Retry, and restart the app or browser if it keeps happening.' };
+  }
+}
+
 async function startWorkout() {
   startBtn.disabled = true; setPickersDisabled(true);
   formScoreSum = 0; formScoreCount = 0;
@@ -4660,15 +4731,33 @@ async function startWorkout() {
   showOverlay('load');
   detector = new Detector();
 
+  // No mediaDevices at all means the API was never exposed — almost always an
+  // insecure origin (plain http:// on a LAN IP). Reading that as "permission denied"
+  // sent people to a settings screen that could not fix it.
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    exitWorkoutMode();
+    showOverlay('err', 'Camera Not Available', window.isSecureContext === false
+      ? 'The camera only works over a secure connection. Open BodyBank at its https:// address and retry.'
+      : 'This browser does not give web pages camera access. Use Chrome, Safari, or the BodyBank app.');
+    startBtn.disabled = false; setPickersDisabled(false); return;
+  }
+
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       video: { width:{ ideal:1280 }, height:{ ideal:720 }, facingMode:'user' },
       audio: false
     });
   } catch (e) {
-    exitWorkoutMode();
-    showOverlay('err', 'Camera Permission Error', 'Allow camera access in browser settings and retry.');
-    startBtn.disabled = false; setPickersDisabled(false); return;
+    // Some front cameras (and some Android WebView builds) reject the sized request
+    // outright instead of degrading it. One unconstrained retry rescues those.
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+    } catch (e2) {
+      const info = cameraErrorInfo(e2 && e2.name ? e2 : e);
+      exitWorkoutMode();
+      showOverlay('err', info.title, info.msg);
+      startBtn.disabled = false; setPickersDisabled(false); return;
+    }
   }
 
   vid.srcObject = stream;
@@ -4750,15 +4839,8 @@ async function startWorkout() {
     VC.onFrame(out, lm, shownCount);
   });
 
-  cam = new Camera(vid, {
-    onFrame: async () => {
-      try {
-        await pose.send({ image: vid });
-      } catch (e) {}
-    },
-    width: 960, height: 540
-  });
-  try { cam.start(); } catch (e) {}
+  // Drive MediaPipe from the stream opened above — never open a second one.
+  cam = startFramePump(vid, () => pose.send({ image: vid }));
 
   // Show prep countdown, then launch session (camera already running so preview / pose warm up)
   showPrepCountdown(() => {
