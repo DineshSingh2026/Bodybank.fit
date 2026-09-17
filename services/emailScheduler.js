@@ -34,6 +34,12 @@ const ADMIN_DAILY_REPORT_RECIPIENTS = (() => {
 
 let _queryAll = null;
 let _jobs = [];
+// services/notificationHub.js instance (set by startEmailScheduler). The
+// check-in reminders and inactivity alerts also go to phones, so they run even
+// where SMTP isn't configured.
+let _hub = null;
+const mailOn = () => userEmail.isConfigured();
+const canRemind = () => mailOn() || !!_hub;
 
 function todayUtcDateString() {
   return new Date().toISOString().slice(0, 10);
@@ -67,7 +73,7 @@ function todayInTz(tz) {
 
 /** Sunday 09:30 IST — nudge if no Sunday check-in submitted (checked against each user's local date) */
 async function runSundayMorningReminder() {
-  if (!userEmail.isConfigured()) return;
+  if (!canRemind()) return;
   const users = await getApprovedUsersWithEmail();
   for (const u of users) {
     const userToday = todayInTz(u.timezone || TZ);
@@ -76,19 +82,21 @@ async function runSundayMorningReminder() {
       [userToday, u.id, u.email]
     );
     if (done && done.length) continue;
-    userEmail.emailSundayReminderToday(u.email, u.first_name || '');
+    if (mailOn()) userEmail.emailSundayReminderToday(u.email, u.first_name || '');
+    if (_hub) _hub.user(u.id, { title: '📝 Sunday check-in is open', body: 'Two minutes to review your week — your coach reads every one.', type: 'reminder', link: 'checkin', inbox: false, tag: 'remind-sunday' });
   }
 }
 
 /** Daily 20:00 IST — daily check-in nudge (checked against each user's own local date) */
 async function runDailyCheckinReminder() {
-  if (!userEmail.isConfigured()) return;
+  if (!canRemind()) return;
   const users = await getApprovedUsersWithEmail();
   for (const u of users) {
     const userToday = todayInTz(u.timezone || TZ);
     const row = await _queryAll('SELECT id FROM daily_checkins WHERE user_id = ? AND checkin_date = ?::date', [u.id, userToday]);
     if (row && row.length) continue;
-    userEmail.emailDailyCheckinReminder(u.email, u.first_name || '');
+    if (mailOn()) userEmail.emailDailyCheckinReminder(u.email, u.first_name || '');
+    if (_hub) _hub.user(u.id, { title: '📋 Daily check-in waiting', body: 'Log today’s steps, water, protein and sleep to keep your streak.', type: 'reminder', link: 'checkin', inbox: false, tag: 'remind-daily' });
   }
 }
 
@@ -432,7 +440,8 @@ async function runProgressNudge() {
 
 /** Daily 21:15 IST — attention escalation for inactive users (2d / 5d milestones) */
 async function runInactiveAttentionEscalation() {
-  if (!userEmail.isConfigured()) return;
+  if (!canRemind()) return;
+  const staffLines = [];
 
   const today = todayUtcDateString();
   const todayDt = new Date(today + 'T00:00:00Z');
@@ -476,7 +485,23 @@ async function runInactiveAttentionEscalation() {
       [inboxId, u.id, title, body, 'inactivity_attention']
     );
 
-    userEmail.emailInactiveAttention(u.email, u.first_name || '', severity, inactiveDays);
+    if (mailOn()) userEmail.emailInactiveAttention(u.email, u.first_name || '', severity, inactiveDays);
+    if (_hub) {
+      // The inbox row above is the member's bell entry; this only pushes it.
+      _hub.user(u.id, { title, body, type: 'inactivity_attention', link: 'checkin', inbox: false, tag: 'inact-' + u.id });
+    }
+    const who = [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || u.email;
+    staffLines.push({ who, days: inactiveDays });
+  }
+  // One staff alert per run, not one per client: operators chase these.
+  if (_hub && staffLines.length) {
+    staffLines.sort((a, b) => b.days - a.days);
+    const names = staffLines.slice(0, 4).map((x) => `${x.who} (${x.days}d)`).join(', ');
+    _hub.staff({
+      title: `⚠️ ${staffLines.length} client${staffLines.length === 1 ? '' : 's'} stopped checking in`,
+      body: names + (staffLines.length > 4 ? ` +${staffLines.length - 4} more` : ''),
+      type: 'inactivity', link: 'clientprogress'
+    });
   }
 }
 
@@ -535,14 +560,21 @@ async function runWeeklyDigest() {
   }
 }
 
-function startEmailScheduler({ queryAll }) {
+function startEmailScheduler({ queryAll, notifyHub }) {
   _queryAll = queryAll;
-  if (!userEmail.isConfigured()) {
-    console.log('[emailScheduler] SMTP not configured — scheduled member emails disabled');
-    return;
-  }
+  _hub = notifyHub || null;
   _jobs.forEach(j => j.stop());
   _jobs = [];
+  if (!userEmail.isConfigured()) {
+    console.log('[emailScheduler] SMTP not configured — scheduled member emails disabled');
+    if (_hub) {
+      // Phone reminders still run.
+      _jobs.push(cron.schedule('30 9 * * 0', wrap(runSundayMorningReminder), { timezone: TZ }));
+      _jobs.push(cron.schedule('0 20 * * *', wrap(runDailyCheckinReminder), { timezone: TZ }));
+      _jobs.push(cron.schedule('15 21 * * *', wrap(runInactiveAttentionEscalation), { timezone: TZ }));
+    }
+    return;
+  }
 
   _jobs.push(cron.schedule('0 18 * * 6', wrap(runSaturdaySundayPrep), { timezone: TZ }));
   _jobs.push(cron.schedule('30 9 * * 0', wrap(runSundayMorningReminder), { timezone: TZ }));

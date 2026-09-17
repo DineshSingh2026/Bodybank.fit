@@ -654,6 +654,8 @@ html.bbg-lock,html.bbg-lock body{overflow:hidden!important}
 .bbg-launch-t{flex:1;min-width:0;font-family:'Outfit',sans-serif}
 .bbg-launch-t b{display:block;font-size:16px;color:#f2eee6}
 .bbg-launch-t span{display:block;font-size:13px;color:#a29d93;margin-top:2px}
+/* The site-wide .form-submit is width:100%, which squeezed the text to nothing. */
+.bbg-launch .form-submit{width:auto;flex:0 0 auto;margin:0;padding:12px 22px;white-space:nowrap}
 
 /* Admin: secondary panels on the Messages page (not conversations). */
 .bbg-drawer{margin-top:14px;border-radius:14px;background:#101010;border:1px solid rgba(255,255,255,.07);overflow:hidden}

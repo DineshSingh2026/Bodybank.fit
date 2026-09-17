@@ -5084,16 +5084,17 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="css/admin-home.css?v=3">
 <link rel="stylesheet" href="css/admin-reports.css?v=1">
 <link rel="stylesheet" href="css/member-home.css?v=13">
-<link rel="stylesheet" href="css/group-chat.css?v=6">
+<link rel="stylesheet" href="css/group-chat.css?v=7">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
-<script src="js/operator-console.js?v=15"></script>
+<script src="js/operator-console.js?v=17"></script>
 <script src="js/admin-home.js?v=8"></script>
 <script src="js/admin-reports.js?v=4"></script>
 <script src="js/countries.js?v=1"></script>
 <script src="js/member-home.js?v=10"></script>
 <script src="js/group-chat.js?v=10"></script>
+<script src="js/bb-notify.js?v=3"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -13081,6 +13082,8 @@ async function loadDashboard() {
   if (typeof ahBoot === 'function') ahBoot();
   await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadAdminMessages(), loadWaDrafts(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
+  if (typeof registerNativePush === 'function') registerNativePush();
+  if (window.BBNotify) window.BBNotify.ensure();
   updateNotifyPermissionUI(typeof Notification !== 'undefined' && Notification.permission === 'granted');
   if (typeof bbMaybeOpenAdminNutritionAfterLoad === 'function') bbMaybeOpenAdminNutritionAfterLoad();
   if (typeof bbMaybeOpenAdminBloodAfterLoad === 'function') bbMaybeOpenAdminBloodAfterLoad();
@@ -13307,7 +13310,7 @@ async function requestNotificationPermission() {
 function updateNotifyPermissionUI(granted) {
   var el = document.getElementById('notifyEnablePrompt');
   if (!el) return;
-  el.style.display = granted ? 'none' : 'block';
+  el.style.display = (granted || window.BBNotify) ? 'none' : 'block';
 }
 
 // Native (installed Android/iOS app) push via Firebase Cloud Messaging.
@@ -13353,7 +13356,12 @@ function showBrowserNotification(n) {
     var opts = { body: (n.desc || '').substring(0, 200), tag: n.id || 'bodybank-' + Date.now() };
     if (document.querySelector('link[rel="icon"]') && document.querySelector('link[rel="icon"]').href) opts.icon = document.querySelector('link[rel="icon"]').href;
     var notif = new Notification(n.title, opts);
-    notif.onclick = function() { window.focus(); notif.close(); if (n.link) { var tabBtn = document.querySelector('.admin-tab[data-tab="' + n.link + '"]'); if (tabBtn) tabBtn.click(); } };
+    notif.onclick = function() {
+      window.focus(); notif.close();
+      if (!n.link) return;
+      if (window.BBNotify) { window.BBNotify.route(n.link); return; }
+      var tabBtn = document.querySelector('.admin-tab[data-tab="' + n.link + '"]'); if (tabBtn) tabBtn.click();
+    };
     setTimeout(function() { notif.close(); }, 8000);
   } catch (e) {}
 }
@@ -13455,6 +13463,7 @@ function syncNotifyCheckboxes(sourceCb) {
 function handleNotifyItemClick(ev, link) {
   if (ev.target.classList && (ev.target.classList.contains('notify-cb') || ev.target.closest('.notify-cb'))) return;
   if (link) {
+    if (window.BBNotify) { toggleNotifyPanel(ev); window.BBNotify.route(link); return; }
     if (link === 'escalations') { if (typeof openAdminEscalations === 'function') openAdminEscalations(); toggleNotifyPanel(ev); return; }
     if (ev.target.closest('#userNotifyPanel')) switchUserTab(link);
     else switchTab(link);
@@ -20116,6 +20125,7 @@ function openUserDashboard(user) {
   loadWorkoutHistory();
   if (typeof loadNotifications === 'function') loadNotifications();
   if (typeof startUserNotificationPolling === 'function') startUserNotificationPolling();
+  if (window.BBNotify) window.BBNotify.ensure();
   setTimeout(function() { checkProgramAssignmentPopup(); }, 800);
   setTimeout(function() { if (typeof bbUpdateUserActionFab === 'function') bbUpdateUserActionFab('home'); }, 400);
   setTimeout(function() {
@@ -29370,6 +29380,8 @@ function drawSuperadminCharts(data) {
   drawLine('saChartTribe', tribeLabels, tribeDs);
 }
 function loadSuperadminDashboard() {
+  if (typeof registerNativePush === 'function') registerNativePush();
+  if (window.BBNotify) window.BBNotify.ensure();
   var body = document.getElementById('superadminBody');
   var blocks = document.getElementById('superadminBlocks');
   var loading = document.getElementById('superadminLoading');

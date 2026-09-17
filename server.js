@@ -25,7 +25,7 @@ try { firebaseAdmin = require('firebase-admin'); } catch (_) { firebaseAdmin = n
 const { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken, JWT_SECRET: AUTH_JWT_SECRET } = require('./middleware/auth');
 const { safeExtraHttpHeaders, optionalApiAccessLog, redactServerErrors } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
-const { createNutritionRouter, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
+const { createNutritionRouter, setNutritionPush, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
 const { createBloodRouter, createBloodPublicRouter } = require('./routes/blood');
 const { createReportsRouter, createReportsPublicRouter } = require('./routes/reports');
 const { createSmartScaleRouter } = require('./routes/smartScale');
@@ -61,7 +61,8 @@ const { recordAiUsage, SCOPE_LABELS: AI_SCOPE_LABELS, modelPricing: aiModelPrici
 const referralService = require('./services/referralService');
 const readinessService = require('./services/wearables/readinessService');
 const crypto = require('crypto');
-const { notify, notifyAsync, formatEventMessage } = require('./utils/notify');
+const { notify, notifyAsync, formatEventMessage, addEventSink } = require('./utils/notify');
+const { createNotificationHub, ensureNotificationColumns, staffPushForEvent } = require('./services/notificationHub');
 const { sendWhatsApp, sendWhatsAppTemplate, sendWhatsAppWithFallback } = require('./services/whatsapp');
 const { createWaInbound, createPgStore, ensureWaTables } = require('./services/waInbound');
 const { notifyAgent } = require('./utils/agentWebhook');
@@ -149,6 +150,29 @@ if (firebaseAdmin && FIREBASE_SERVICE_ACCOUNT) {
   console.warn('[FCM] Skipped init: set FIREBASE_SERVICE_ACCOUNT to enable native (Android/iOS) push.');
 }
 
+// One FCM message for both native platforms. The `apns` block is what makes iOS
+// play a sound and show the banner; `tag` / `apns-collapse-id` let a repeated
+// event (one client's check-ins) replace its previous banner instead of stacking.
+function fcmMessage(token, title, body, data) {
+  const tag = String(data.id || '').slice(0, 60);
+  const url = String(data.url || '/');
+  const msg = {
+    token,
+    notification: { title, body },
+    data: { id: String(data.id || ''), type: String(data.type || ''), url, link: String(data.link || '') },
+    android: { priority: 'high', notification: { sound: 'default', defaultVibrateTimings: true } },
+    apns: {
+      headers: { 'apns-priority': '10', 'apns-push-type': 'alert' },
+      payload: { aps: { sound: 'default', 'mutable-content': 1 } }
+    }
+  };
+  if (tag) {
+    msg.android.notification.tag = tag;
+    msg.apns.headers['apns-collapse-id'] = tag;
+  }
+  return msg;
+}
+
 // Native push via Firebase Cloud Messaging — for installed Android/iOS apps.
 // Accepts the SAME payload shape as web-push (a JSON string or object with
 // { title, body, icon, id, type, url }) so every existing call site works unchanged.
@@ -166,17 +190,13 @@ async function sendFcmToUser(userId, payload) {
       if (!r.token || sent.has(r.token)) continue;
       sent.add(r.token);
       try {
-        await firebaseAdmin.messaging().send({
-          token: r.token,
-          notification: { title, body },
-          data: { id: String(data.id || ''), type: String(data.type || ''), url: String(data.url || '/') },
-          android: { priority: 'high', notification: { sound: 'default' } }
-        });
+        await firebaseAdmin.messaging().send(fcmMessage(r.token, title, body, data));
       } catch (e) {
         const code = (e && (e.code || (e.errorInfo && e.errorInfo.code))) || '';
+        // Only a token FCM says is dead is removed. 'invalid-argument' is also what a
+        // bad payload returns, and deleting a good token for that silenced the device.
         if (code === 'messaging/registration-token-not-registered' ||
-            code === 'messaging/invalid-registration-token' ||
-            code === 'messaging/invalid-argument') {
+            code === 'messaging/invalid-registration-token') {
           await run('DELETE FROM device_push_tokens WHERE token = ?', [r.token]);
           console.warn('[FCM] Removed invalid token for user', userId);
         } else {
@@ -189,7 +209,23 @@ async function sendFcmToUser(userId, payload) {
   }
 }
 
-async function sendPushToUser(userId, payload) {
+// Where tapping a banner should land when the sender didn't say. `link` is a
+// screen name js/bb-notify.js routes to; `url` is the same thing as a page URL.
+const PUSH_TYPE_LINK = {
+  coach_reply: 'messages', group_message: 'messages', group_added: 'messages',
+  program_assigned: 'programs', admin_reply: 'inbox'
+};
+function withPushLink(payload) {
+  let data;
+  try { data = typeof payload === 'string' ? JSON.parse(payload) : Object.assign({}, payload || {}); } catch (_) { return payload; }
+  if (!data || typeof data !== 'object') return payload;
+  if (!data.link && PUSH_TYPE_LINK[data.type]) data.link = PUSH_TYPE_LINK[data.type];
+  if (!data.url) data.url = data.link ? '/?open=' + encodeURIComponent(String(data.link)) : '/';
+  return JSON.stringify(data);
+}
+
+async function sendPushToUser(userId, rawPayload) {
+  const payload = withPushLink(rawPayload);
   // Native (FCM) push for installed apps — runs independently of web-push/VAPID config.
   await sendFcmToUser(userId, payload);
   // Web Push (VAPID) for browsers + installed PWAs.
@@ -211,7 +247,7 @@ async function sendPushToUser(userId, payload) {
         await webPush.sendNotification({
           endpoint: sub.endpoint,
           keys: { p256dh: sub.p256dh, auth: sub.auth }
-        }, body, { TTL: 86400 });
+        }, body, { TTL: 86400, urgency: 'high' });
       } catch (e) {
         if (e.statusCode === 410 || e.statusCode === 404) {
           await run('DELETE FROM push_subscriptions WHERE endpoint = ?', [sub.endpoint]);
@@ -226,16 +262,36 @@ async function sendPushToUser(userId, payload) {
   }
 }
 
-async function sendPushToAdmins(payload) {
-  if (!VAPID_PUBLIC || !VAPID_PRIVATE) return;
+// Staff push.
+// Operators are read-only monitoring staff and receive the SAME activity alerts as admins.
+// No VAPID check here: sendPushToUser also reaches the Android / iOS apps, which
+// don't need VAPID — the old early return silenced them.
+// opts.roles narrows the audience; opts.exclude skips the person who acted.
+async function sendPushToAdmins(payload, opts) {
   try {
-    // Operators are read-only monitoring staff and receive the SAME activity alerts as admins.
-    const admins = await queryAll("SELECT id FROM users WHERE role IN ('admin', 'superadmin', 'operator')");
-    for (const a of admins) {
-      await sendPushToUser(a.id, payload);
-    }
+    const o = opts || {};
+    const allowed = ['admin', 'superadmin', 'operator'];
+    const roles = (Array.isArray(o.roles) && o.roles.length ? o.roles : allowed).filter(r => allowed.includes(r));
+    if (!roles.length) return;
+    const admins = await queryAll(`SELECT id FROM users WHERE role IN (${roles.map(() => '?').join(', ')})`, roles);
+    const skip = new Set([].concat(o.exclude || []).filter(Boolean).map(String));
+    await Promise.all(admins.filter(a => !skip.has(String(a.id))).map(a => sendPushToUser(a.id, payload)));
   } catch (e) { /* ignore */ }
 }
+
+// Every notification that should also sit in the in-app bell goes through here
+// (services/notificationHub.js): one user_inbox row + web push + Android/iOS push.
+const notifyHub = createNotificationHub({ queryAll, run, uuidv4, sendPushToUser });
+setNutritionPush((userId, n) => notifyHub.toUser(userId, n));
+
+// Staff alerts raised through utils/notify.js (admin WhatsApp) — the WhatsApp
+// agent, check-ins, workouts, meals, reports … — reach staff phones and browsers
+// too. The mapping, and which events are left out, lives in notificationHub.
+addEventSink((eventType, payload) => {
+  const n = staffPushForEvent(eventType, payload);
+  if (!n) return;
+  return notifyHub.toStaff(n, { roles: n.roles });
+});
 
 // ============ MEMBERSHIP / TRIAL ACCESS (manual billing — no payment gateway) ============
 // The coach calls the client and collects payment offline, then "Activates" them in the
@@ -1612,6 +1668,7 @@ async function initDB() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_inbox_user ON user_inbox(user_id, created_at DESC)`); } catch (e) { /* ignore */ }
+  try { await ensureNotificationColumns(pool); } catch (e) { console.warn('[notify-hub] schema:', e.message); }
 
   // Attention alert email dedupe log for inactive users (milestone-based, keyed by last check-in date)
   await pool.query(`CREATE TABLE IF NOT EXISTS attention_email_log (
@@ -2614,6 +2671,7 @@ app.post('/api/auth/signup', rateLimiter(5, 60000), async (req, res) => {
       const referralBonusDaysR = await safeAttachReferral(req, existing.id);
       await addApprovedUserToTribe({ email: emailNorm, first_name, last_name, phone, country: geo.country, city: cleanCity });
       try { userEmail.emailAccountApproved(emailNorm, first_name); } catch (_) {}
+      sendPushToAdmins(JSON.stringify({ title: '🔥 New trial started', body: `${first_name || ''} ${last_name || ''} (${emailNorm}) started a ${trialDaysR}-day trial — call to convert`, id: 'signup-' + existing.id, link: 'memberships', url: '/?open=memberships' })).catch(() => {});
       notifyAsync('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDaysR, via: 'Email' });
       notifyAgent('TRIAL_STARTED', { name: `${first_name || ''} ${last_name || ''}`.trim(), email: emailNorm, phone: phone || '—', country: geo.country || '—', trial_days: trialDaysR, via: 'Email' });
       return res.json({ id: existing.id, email: emailNorm, first_name: first_name || '', last_name: last_name || '', role: 'user', country: geo.country, timezone: geo.timezone, trial: true, trial_days: trialDaysR + referralBonusDaysR, referral_bonus_days: referralBonusDaysR });
@@ -3360,6 +3418,11 @@ app.post('/api/meetings', verifyToken, rateLimiter(10, 60000), async (req, res) 
     }
     notifyAsync('MEETING_SCHEDULED', { name: b.user_name || '—', email: b.user_email || '—', mobile: b.user_phone || '—', date: b.meeting_date || '—', slot: b.time_slot || '—' });
     notifyAgent('MEETING_SCHEDULED', { name: b.user_name || '—', email: b.user_email || '—', mobile: b.user_phone || '—', date: b.meeting_date || '—', slot: b.time_slot || '—' });
+    if (staff && ownerId !== String(req.user.id)) {
+      notifyHub.user(ownerId, { title: '📅 Consultation booked', body: `Your call is on ${v.date} at ${v.slot}.`, type: 'meeting', link: 'home' });
+    } else {
+      notifyHub.staff({ title: '📅 Call booked — ' + (b.user_name || 'a client'), body: `${v.date} at ${v.slot}`, type: 'meeting', link: 'meetings', inbox: false }, { exclude: req.user.id });
+    }
     res.json({ id, message: 'Call scheduled successfully' });
   } catch (e) {
     console.error('[meetings] POST error:', e.message);
@@ -3468,6 +3531,19 @@ app.put('/api/meetings/:id', verifyToken, rateLimiter(20, 60000), async (req, re
         name: fresh.user_name || '—', email: fresh.user_email || '—', mobile: fresh.user_phone || '—',
         date: fresh.meeting_date || '—', slot: fresh.time_slot || '—'
       });
+    }
+    // Whoever did not make the change hears about it.
+    if (fresh) {
+      const nowCancelled = status !== undefined && String(status) === 'cancelled' && row.status !== 'cancelled';
+      const moved = movingDate || movingSlot;
+      if (nowCancelled || moved) {
+        const what = nowCancelled ? 'cancelled' : `moved to ${fresh.meeting_date} at ${fresh.time_slot}`;
+        if (staff) {
+          if (fresh.user_id) notifyHub.user(fresh.user_id, { title: nowCancelled ? '📅 Consultation cancelled' : '📅 Consultation rescheduled', body: `Your call was ${what}.`, type: 'meeting', link: 'home' });
+        } else {
+          notifyHub.staff({ title: '📅 ' + (fresh.user_name || 'A client') + (nowCancelled ? ' cancelled a call' : ' rescheduled a call'), body: `The call was ${what}.`, type: 'meeting', link: 'meetings' });
+        }
+      }
     }
     res.json({ message: 'Updated', meeting: fresh });
   } catch (e) {
@@ -3959,6 +4035,13 @@ app.post('/api/threads', verifyToken, rateLimiter(10, 60000), async (req, res) =
     if (req.user.role !== 'user') return res.status(403).json({ error: 'Only users can start conversations' });
     const { first_message } = req.body || {};
     let thread = await queryOne('SELECT id, user_id, subject, created_at, updated_at FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1', [req.user.id]);
+    const pushFirstMessage = (msgId) => {
+      const text = String(first_message).trim();
+      queryOne('SELECT first_name, last_name, email FROM users WHERE id = ?', [req.user.id]).then(u => {
+        const name = u ? [(u.first_name || '').trim(), (u.last_name || '').trim()].filter(Boolean).join(' ') || u.email : 'A client';
+        sendPushToAdmins(JSON.stringify({ title: '💬 ' + name, body: text.slice(0, 120), id: 'chat-' + msgId, type: 'chat', link: 'messages', url: '/?open=messages' }), { roles: ['admin', 'superadmin'] });
+      }).catch(() => {});
+    };
     if (thread) {
       if (first_message && String(first_message).trim()) {
         const msgId = uuidv4();
@@ -3966,6 +4049,7 @@ app.post('/api/threads', verifyToken, rateLimiter(10, 60000), async (req, res) =
           'INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body) VALUES (?, ?, ?, ?, ?)',
           [msgId, thread.id, req.user.id, 'user', String(first_message).trim().slice(0, 5000)]
         );
+        pushFirstMessage(msgId);
         await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [thread.id]);
         thread = await queryOne('SELECT id, user_id, subject, created_at, updated_at FROM message_threads WHERE id = ?', [thread.id]);
       }
@@ -3982,6 +4066,7 @@ app.post('/api/threads', verifyToken, rateLimiter(10, 60000), async (req, res) =
         'INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body) VALUES (?, ?, ?, ?, ?)',
         [msgId, threadId, req.user.id, 'user', String(first_message).trim().slice(0, 5000)]
       );
+      pushFirstMessage(msgId);
       await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [threadId]);
     }
     thread = await queryOne('SELECT id, user_id, subject, created_at, updated_at FROM message_threads WHERE id = ?', [threadId]);
@@ -4046,7 +4131,7 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
     await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [req.params.id]);
     const msg = await queryOne('SELECT id, thread_id, sender_id, sender_role, body, created_at FROM thread_messages WHERE id = ?', [msgId]);
     if (isAdmin && thread.user_id) {
-      sendPushToUser(thread.user_id, JSON.stringify({ type: 'coach_reply', title: '💬 Your Lifestyle Manager replied', body: String(body).trim().slice(0, 100), id: 'chat-' + msgId })).catch(() => {});
+      sendPushToUser(thread.user_id, JSON.stringify({ type: 'coach_reply', title: '💬 Your Lifestyle Manager replied', body: String(body).trim().slice(0, 140), id: 'chat-' + thread.id, link: 'messages', url: '/?open=messages' })).catch(() => {});
       const coachUser = await queryOne('SELECT email, first_name FROM users WHERE id = ?', [thread.user_id]);
       if (coachUser && coachUser.email) {
         userEmail.emailCoachReply(coachUser.email, coachUser.first_name, String(body).trim());
@@ -4055,7 +4140,7 @@ app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async
     if (!isAdmin) {
       const u = await queryOne('SELECT first_name, last_name, email FROM users WHERE id = ?', [thread.user_id]);
       const userName = u ? [(u.first_name || '').trim(), (u.last_name || '').trim()].filter(Boolean).join(' ') || u.email : 'A client';
-      sendPushToAdmins(JSON.stringify({ title: 'New message', body: `${userName}: ${String(body).trim().slice(0, 80)}`, id: 'chat-' + msgId })).catch(() => {});
+      sendPushToAdmins(JSON.stringify({ title: '💬 ' + userName, body: String(body).trim().slice(0, 120), id: 'chat-' + thread.id, type: 'chat', link: 'messages', url: '/?open=messages' }), { roles: ['admin', 'superadmin'] }).catch(() => {});
     }
     res.status(201).json(msg);
   } catch (e) {
@@ -6865,6 +6950,36 @@ app.get('/api/push/vapid-public', (req, res) => {
   res.json({ publicKey: VAPID_PUBLIC || null });
 });
 
+// What this account can receive: server channels configured + devices registered.
+app.get('/api/push/status', verifyToken, async (req, res) => {
+  try {
+    const web = await queryOne('SELECT COUNT(*)::int AS n FROM push_subscriptions WHERE user_id = ?', [req.user.id]);
+    const devices = await queryAll('SELECT platform, COUNT(*)::int AS n FROM device_push_tokens WHERE user_id = ? GROUP BY platform', [req.user.id]);
+    const byPlatform = {};
+    (devices || []).forEach(d => { byPlatform[d.platform || 'unknown'] = d.n; });
+    res.json({
+      server: { webPush: !!(VAPID_PUBLIC && VAPID_PRIVATE), nativePush: _fcmReady },
+      mine: { browsers: (web && web.n) || 0, android: byPlatform.android || 0, ios: byPlatform.ios || 0 }
+    });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to read notification status' });
+  }
+});
+
+// Send a test notification to every device of the signed-in account.
+app.post('/api/push/test', verifyToken, rateLimiter(5, 60000), async (req, res) => {
+  try {
+    await notifyHub.toUser(req.user.id, {
+      title: '🔔 BodyBank notifications are on',
+      body: 'This is a test. You will get alerts like this on this device.',
+      type: 'test', inbox: false, tag: 'push-test'
+    });
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Failed to send test notification' });
+  }
+});
+
 // Native (FCM) device tokens — installed Android/iOS apps register here after login.
 app.post('/api/push/register-token', verifyToken, rateLimiter(10, 60000), async (req, res) => {
   try {
@@ -7257,6 +7372,25 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* ignore */ }
+      // Stored staff notifications (WhatsApp agent, reports, escalation replies …).
+      try {
+        const inboxMsgs = await queryAll(
+          `SELECT id, title, body, type, link, created_at FROM user_inbox
+           WHERE user_id = ? AND is_read = FALSE
+           ORDER BY created_at DESC LIMIT 40`,
+          [req.user.id]
+        );
+        inboxMsgs.forEach(m => {
+          notifications.push({
+            id: 'inbox-' + m.id,
+            type: m.type || 'activity',
+            title: m.title || 'BodyBank',
+            desc: (m.body || '').substring(0, 140),
+            time: m.created_at,
+            link: m.link || null
+          });
+        });
+      } catch (_) { /* non-critical */ }
     } else {
       const thread = await queryOne('SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1', [req.user.id]);
       if (thread) {
@@ -7297,7 +7431,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
       // Campaign inbox messages — delivered to all users regardless of push subscription
       try {
         const inboxMsgs = await queryAll(
-          `SELECT id, title, body, type, created_at FROM user_inbox
+          `SELECT id, title, body, type, link, created_at FROM user_inbox
            WHERE user_id = ? AND is_read = FALSE
            ORDER BY created_at DESC LIMIT 20`,
           [req.user.id]
@@ -7309,7 +7443,7 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
             title: m.title || 'BodyBank',
             desc: (m.body || '').substring(0, 120),
             time: m.created_at,
-            link: m.type === 'inactivity_attention' ? 'checkin' : null
+            link: m.link || (m.type === 'inactivity_attention' ? 'checkin' : null)
           });
         });
       } catch (_) { /* non-critical */ }
@@ -9651,7 +9785,11 @@ app.post('/api/operator/clients/:id/reminder', verifyToken, requireOperator, rat
     await run('INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body) VALUES (?, ?, ?, ?, ?)',
       [msgId, thread.id, req.user.id, 'admin', String(body).trim().slice(0, 5000)]);
     await run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [thread.id]);
-    sendPushToUser(clientId, JSON.stringify({ type: 'coach_reply', title: '💬 Your Lifestyle Manager', body: String(body).trim().slice(0, 100), id: 'chat-' + msgId })).catch(() => {});
+    sendPushToUser(clientId, JSON.stringify({ type: 'coach_reply', title: '💬 Your Lifestyle Manager', body: String(body).trim().slice(0, 140), id: 'chat-' + thread.id, link: 'messages', url: '/?open=messages' })).catch(() => {});
+    notifyHub.staff({
+      title: '📨 Operator messaged ' + ([client.first_name].filter(Boolean).join(' ') || client.email),
+      body: String(body).trim().slice(0, 160), type: 'operator_reminder', link: 'messages', inbox: false
+    }, { roles: ['admin', 'superadmin'] });
     try { if (client.email) userEmail.emailCoachReply(client.email, client.first_name, String(body).trim()); } catch (_) {}
     res.status(201).json({ ok: true });
   } catch (e) {
@@ -9683,7 +9821,7 @@ app.post('/api/operator/clients/:id/share-to-admin', verifyToken, requireOperato
     const mid = uuidv4();
     await run('INSERT INTO operator_escalation_messages (id, escalation_id, sender_id, sender_role, sender_name, body) VALUES (?, ?, ?, ?, ?, ?)',
       [mid, eid, req.user.id, 'operator', operatorName, note.slice(0, 5000)]);
-    sendPushToAdmins(JSON.stringify({ title: '🔔 Operator escalation: ' + clientName, body: note.slice(0, 80), id: 'esc-' + eid })).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: '🔔 Operator escalation: ' + clientName, body: note.slice(0, 120), id: 'esc-' + eid, type: 'escalation', link: 'escalations', url: '/?open=escalations' }), { roles: ['admin', 'superadmin'] }).catch(() => {});
     res.status(201).json({ ok: true, id: eid });
   } catch (e) {
     console.error('[operator share-to-admin]', e.message);
@@ -9729,7 +9867,7 @@ app.post('/api/operator/escalations/:eid/reply', verifyToken, requireOperator, r
     await run('INSERT INTO operator_escalation_messages (id, escalation_id, sender_id, sender_role, sender_name, body) VALUES (?, ?, ?, ?, ?, ?)',
       [mid, req.params.eid, req.user.id, 'operator', esc.operator_name || req.user.email || 'Operator', body.slice(0, 5000)]);
     await run("UPDATE operator_escalations SET updated_at = CURRENT_TIMESTAMP, status = 'open' WHERE id = ?", [req.params.eid]);
-    sendPushToAdmins(JSON.stringify({ title: 'Operator re: ' + (esc.client_name || 'client'), body: body.slice(0, 80), id: 'esc-' + req.params.eid + '-' + mid })).catch(() => {});
+    sendPushToAdmins(JSON.stringify({ title: '🔔 Operator re: ' + (esc.client_name || 'client'), body: body.slice(0, 120), id: 'esc-' + req.params.eid, type: 'escalation', link: 'escalations', url: '/?open=escalations' }), { roles: ['admin', 'superadmin'] }).catch(() => {});
     res.status(201).json({ ok: true });
   } catch (e) {
     res.status(500).json({ error: 'Failed to reply' });
@@ -9771,7 +9909,7 @@ app.post('/api/admin/escalations/:eid/reply', verifyToken, requireAdminOrSuperad
     await run('INSERT INTO operator_escalation_messages (id, escalation_id, sender_id, sender_role, sender_name, body) VALUES (?, ?, ?, ?, ?, ?)',
       [mid, req.params.eid, req.user.id, 'admin', 'Admin', body.slice(0, 5000)]);
     await run("UPDATE operator_escalations SET updated_at = CURRENT_TIMESTAMP, status = 'replied' WHERE id = ?", [req.params.eid]);
-    sendPushToUser(esc.operator_id, JSON.stringify({ type: 'admin_reply', title: '↩︎ Admin replied re: ' + (esc.client_name || 'client'), body: body.slice(0, 100), id: 'esc-' + req.params.eid + '-' + mid })).catch(() => {});
+    notifyHub.user(esc.operator_id, { type: 'admin_reply', title: '↩︎ Admin replied re: ' + (esc.client_name || 'client'), body: body.slice(0, 160), link: 'inbox', tag: 'esc-' + req.params.eid });
     res.status(201).json({ ok: true });
   } catch (e) {
     console.error('[admin escalation reply]', e.message);
@@ -9988,6 +10126,7 @@ app.post('/api/admin/users/:id/reactivate', verifyToken, requireAdminOrSuperadmi
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only reactivate client users' });
     await run("UPDATE users SET suspended = FALSE WHERE id = ?", [id]);
+    notifyHub.user(id, { title: '♻️ Your account is active again', body: 'Welcome back — your BodyBank access has been restored.', type: 'membership', link: 'home' });
     const reactUser = await queryOne("SELECT first_name, last_name, email, phone FROM users WHERE id = ?", [id]).catch(() => null);
     notifyAsync('USER_REACTIVATED', { name: reactUser ? `${reactUser.first_name || ''} ${reactUser.last_name || ''}`.trim() : id, email: reactUser ? reactUser.email : id, mobile: reactUser ? (reactUser.phone || '—') : '—' });
     notifyAgent('USER_REACTIVATED', { name: reactUser ? `${reactUser.first_name || ''} ${reactUser.last_name || ''}`.trim() : id, email: reactUser ? reactUser.email : id, mobile: reactUser ? (reactUser.phone || '—') : '—' });
@@ -10268,7 +10407,7 @@ app.post('/api/admin/users/:id/activate', verifyToken, requireAdminOrSuperadmin,
       "UPDATE users SET subscription_status='active', approval_status='approved', suspended=FALSE, plan_label=?, access_expires_at=?, activated_at=?, activated_by=?, trial_reminder_sent='' WHERE id=?",
       [label, expires, isoFromNow(0), actor, id]
     );
-    sendPushToUser(id, JSON.stringify({ title: '✅ Membership active', body: `Your ${label} plan is live — let's get to work!`, id: 'membership-' + id })).catch(() => {});
+    sendPushToUser(id, JSON.stringify({ title: '✅ Membership active', body: `Your ${label} plan is live — let's get to work!`, id: 'membership-' + id, link: 'home' })).catch(() => {});
     try { if (user.email) userEmail.emailAccountApproved(user.email, user.first_name); } catch (_) {}
     notifyAsync('USER_MEMBERSHIP_ACTIVATED', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, mobile: user.phone || '—', plan: label });
     const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
@@ -10288,6 +10427,7 @@ app.post('/api/admin/users/:id/trial', verifyToken, requireAdminOrSuperadmin, as
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only configure client users' });
     const d = await startTrialForUser(id, (Number.isFinite(days) && days > 0) ? days : TRIAL_DAYS);
+    notifyHub.user(id, { title: '🎁 Your trial is active', body: `You have ${d} days of full BodyBank access.`, type: 'membership', link: 'home' });
     const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
     res.json({ message: `Trial set to ${d} days`, user: Object.assign({}, fresh, computeMembershipState(fresh)) });
   } catch (e) {
@@ -10398,6 +10538,8 @@ app.delete('/api/admin/users/:id', verifyToken, requireAdminOrSuperadmin, async 
     await run('DELETE FROM weight_logs WHERE user_id = ?', [id]);
     await run('DELETE FROM daily_checkins WHERE user_id = ?', [id]);
     await run('DELETE FROM push_subscriptions WHERE user_id = ?', [id]);
+    await run('DELETE FROM device_push_tokens WHERE user_id = ?', [id]);
+    await run('DELETE FROM user_inbox WHERE user_id = ?', [id]);
     await waInbound.unlinkClient(id);
     if (user.email) {
       await run('DELETE FROM tribe_members WHERE LOWER(email) = LOWER(?)', [user.email]);
@@ -10437,6 +10579,8 @@ app.post('/api/me/account/delete', verifyToken, rateLimiter(3, 60000), async (re
     await run('DELETE FROM weight_logs WHERE user_id = ?', [id]);
     await run('DELETE FROM daily_checkins WHERE user_id = ?', [id]);
     await run('DELETE FROM push_subscriptions WHERE user_id = ?', [id]);
+    await run('DELETE FROM device_push_tokens WHERE user_id = ?', [id]);
+    await run('DELETE FROM user_inbox WHERE user_id = ?', [id]);
     await waInbound.unlinkClient(id);
     if (user.email) await run('DELETE FROM tribe_members WHERE LOWER(email) = LOWER(?)', [user.email]);
     await run('DELETE FROM users WHERE id = ?', [id]);
@@ -11411,7 +11555,8 @@ app.use(
     verifyToken,
     requireAdminOrSuperadmin,
     rateLimiter,
-    sendPushToAdmins
+    sendPushToAdmins,
+    notifyHub
   })
 );
 // Unauthenticated by design: a client opening a WhatsApp link is not logged in.
@@ -11434,7 +11579,8 @@ const reportsRouter = createReportsRouter({
   sendMail: userEmail.sendMail,
   luxuryWrap: userEmail.luxuryWrap,
   sendWhatsAppWithFallback,
-  waStore: createPgStore({ queryAll, queryOne, run, uuidv4 })
+  waStore: createPgStore({ queryAll, queryOne, run, uuidv4 }),
+  notifyHub
 });
 app.use('/api/admin/reports', reportsRouter);
 // Unauthenticated by design: the client opens an emailed / WhatsApp link. The
@@ -11469,7 +11615,8 @@ app.use(
     multer,
     uploadsDir: FEED_UPLOADS_DIR,
     sendPushToUser,
-    notifyAgent
+    notifyAgent,
+    notifyHub
   })
 );
 app.use(
@@ -12581,7 +12728,7 @@ app.listen(PORT, '0.0.0.0', () => {
       console.log('⏸ Campaign scheduler is ON HOLD (CAMPAIGNS_ENABLED=false)');
     }
 
-    startEmailScheduler({ queryAll });
+    startEmailScheduler({ queryAll, notifyHub });
 
     try {
       cron.schedule(

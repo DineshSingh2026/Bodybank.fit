@@ -530,6 +530,13 @@ function createReportService(deps) {
       channels: okChannels, failed: Object.keys(results).filter((k) => !results[k].ok), link_expires_at: link.expiresAt
     };
     if (okChannels.length) {
+      if (d.notifyHub && row.user_id) {
+        fire(() => d.notifyHub.toUser(row.user_id, {
+          title: '📊 Your ' + (row.type === 'monthly' ? 'monthly' : 'weekly') + ' progress report is ready',
+          body: 'Sent to your ' + okChannels.join(' and ') + '.' + (row.score != null ? ' BodyBank Score ' + row.score + '.' : ''),
+          type: 'progress_report', link: 'home'
+        }));
+      }
       if (d.notifyAgent) fire(() => d.notifyAgent('REPORT_SENT', event));
       if (d.notify) fire(() => d.notify('REPORT_SENT', event));
     }

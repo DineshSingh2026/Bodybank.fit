@@ -66,7 +66,7 @@ function createReportsRouter(deps) {
     db: { run: d.run, queryOne: d.queryOne, queryAll: d.queryAll },
     uploadsDir: d.uploadsDir, notify: d.notify, notifyAgent: d.notifyAgent,
     sendMail: d.sendMail, luxuryWrap: d.luxuryWrap, sendWhatsAppWithFallback: d.sendWhatsAppWithFallback,
-    waStore: d.waStore
+    waStore: d.waStore, notifyHub: d.notifyHub
   });
   const limit = (n, ms) => (d.rateLimiter ? d.rateLimiter(n, ms) : (req, res, next) => next());
 

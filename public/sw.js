@@ -1,5 +1,5 @@
 /* BodyBank PWA Service Worker — bump CACHE_NAME on each deploy */
-const CACHE_NAME = 'bodybank-v83';
+const CACHE_NAME = 'bodybank-v84';
 
 self.addEventListener('install', () => {
   self.skipWaiting();
@@ -26,21 +26,30 @@ self.addEventListener('push', (e) => {
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',
     tag: data.id || 'bodybank-' + Date.now(),
+    // A banner that replaces an earlier one with the same tag still alerts.
+    renotify: !!data.id,
+    timestamp: Date.now(),
     requireInteraction: false,
     data: { url: '/', ...data }
   };
   e.waitUntil(self.registration.showNotification(title, opts));
 });
 
+// Tapping a banner lands on its screen. An open BodyBank tab is focused and told
+// where to go (js/bb-notify.js routes it) — no reload, the session stays as is.
+// With no tab open, the URL (/?open=… or /?group=…) carries the destination.
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();
-  const url = (e.notification.data && e.notification.data.url) || '/';
+  const data = e.notification.data || {};
+  const url = data.url || '/';
   e.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      const origin = self.location.origin;
       for (var i = 0; i < clientList.length; i++) {
-        if (clientList[i].url && clientList[i].focus) {
-          clientList[i].navigate(url);
-          return clientList[i].focus();
+        const c = clientList[i];
+        if (c.url && c.url.indexOf(origin) === 0 && c.focus) {
+          c.postMessage({ type: 'bb-open', link: data.link || '', url: url });
+          return c.focus();
         }
       }
       if (self.clients.openWindow) return self.clients.openWindow(url);

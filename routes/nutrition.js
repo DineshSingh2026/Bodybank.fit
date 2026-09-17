@@ -194,6 +194,15 @@ async function alreadyNotifiedToday(db, userId, ymd) {
   return !!row;
 }
 
+// Set by server.js: pushes a member notification (no extra inbox row — the
+// callers below already store their own).
+let _pushMember = null;
+function setNutritionPush(fn) { _pushMember = typeof fn === 'function' ? fn : null; }
+function pushMember(userId, title, body) {
+  if (!_pushMember || !userId) return;
+  try { _pushMember(userId, { title, body, type: 'nutrition', link: 'home', inbox: false }); } catch (_) { /* never blocks */ }
+}
+
 async function sendNutritionNotifications(db, { userId, ymd, userRow, channel }) {
   const meals = await db.queryAll(
     `SELECT meal_type, ai_result, meal_score, portion_size, manual_note
@@ -264,6 +273,7 @@ async function sendNutritionNotifications(db, { userId, ymd, userRow, channel })
         'nutrition_report'
       ]);
       inboxOk = true;
+      pushMember(userId, '🥗 Your nutrition report is ready', `Calories ${stats.total_calories || 0} kcal · protein ${stats.total_protein || 0}g — ${formattedDate}`);
     } catch (e) {
       console.warn('[nutrition] inbox insert failed', e.message);
     }
@@ -1038,6 +1048,7 @@ function createNutritionRouter(deps) {
         return res.status(500).json({ error: 'Failed to send weekly nutrition report email.' });
       }
 
+      pushMember(uid, '🥗 Your weekly nutrition summary', `Avg ${weekly.report.avgCalories} kcal/day · ${weekly.report.avgProtein}g protein · score ${weekly.report.avgScore}/10`);
       await run('INSERT INTO user_inbox (id, user_id, title, body, type, is_read) VALUES (?, ?, ?, ?, ?, FALSE)', [
         uuidv4(),
         uid,
@@ -1087,6 +1098,7 @@ async function runWeeklyNutritionEmailJob({ queryAll, queryOne, run }) {
         `Avg ${avgCal} kcal/day · ${avgPro}g protein · score ${avgScore}/10 · energy diff ${avgEn} kcal (${len} days).`,
         'nutrition_weekly'
       ]);
+      pushMember(u.id, '🥗 Your weekly nutrition summary', `Avg ${avgCal} kcal/day · ${avgPro}g protein · score ${avgScore}/10`);
     } catch (e) {
       console.warn('[nutrition weekly inbox]', e.message);
     }
@@ -1183,4 +1195,4 @@ async function runAdminNutritionDailyEmailJob({ queryAll, reportDateYmd, adminEm
   return ok;
 }
 
-module.exports = { createNutritionRouter, sendNutritionNotifications, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob };
+module.exports = { createNutritionRouter, setNutritionPush, sendNutritionNotifications, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob };

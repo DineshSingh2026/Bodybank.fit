@@ -282,6 +282,34 @@ function createBloodRouter(deps) {
   const { run, queryOne, queryAll, verifyToken, rateLimiter, sendPushToAdmins } = deps;
   const db = { run, queryOne, queryAll };
   const notifyStaffPush = typeof sendPushToAdmins === 'function' ? sendPushToAdmins : async () => {};
+  const hub = deps.notifyHub || null;
+
+  // Staff hear when an analysis finishes or fails — that is when a report needs them.
+  async function tellStaffAnalysis(reportId) {
+    if (!hub) return;
+    try {
+      const r = await queryOne(
+        `SELECT b.status, COALESCE(NULLIF(TRIM(CONCAT(u.first_name, ' ', u.last_name)), ''), u.email, 'A client') AS name
+         FROM blood_analysis_reports b LEFT JOIN users u ON u.id = b.user_id WHERE b.id = ?`,
+        [reportId]
+      );
+      if (!r) return;
+      if (r.status === 'complete') {
+        hub.staff({ title: '🩸 Blood analysis ready — ' + r.name, body: 'Review the report and send it to the client.', type: 'blood_ready', link: 'blood', tag: 'blood-' + reportId });
+      } else if (r.status === 'failed') {
+        hub.staff({ title: '⚠️ Blood analysis failed — ' + r.name, body: 'Open Blood reports to retry.', type: 'blood_failed', link: 'blood', tag: 'blood-' + reportId });
+      }
+    } catch (_) { /* never fails the pipeline */ }
+  }
+  function analyse(reportId, b64, mime, userId) {
+    return triggerBloodAnalysis(db, reportId, b64, mime, userId).then(
+      (v) => { tellStaffAnalysis(reportId); return v; },
+      (err) => { tellStaffAnalysis(reportId); throw err; }
+    );
+  }
+  function tellMember(userId, title, body) {
+    if (hub && userId) hub.user(userId, { title, body, type: 'health_report', link: 'home', inbox: false });
+  }
 
   const router = require('express').Router();
   router.use(verifyToken);
@@ -382,7 +410,7 @@ function createBloodRouter(deps) {
       );
 
       if (BLOOD_AUTO_PROCESS_ON_UPLOAD) {
-        triggerBloodAnalysis(db, reportId, b64, mime, userId).catch((err) =>
+        analyse(reportId, b64, mime, userId).catch((err) =>
           console.error('[blood] Analysis pipeline failed:', err && err.message)
         );
       }
@@ -493,7 +521,7 @@ function createBloodRouter(deps) {
       );
 
       // Admin-initiated → start analysis immediately (fire-and-forget).
-      triggerBloodAnalysis(db, reportId, b64, mime, targetUserId)
+      analyse(reportId, b64, mime, targetUserId)
         .then(() => afterAnalysis(reportId, variant))
         .catch((err) =>
           console.error('[blood admin upload] Analysis pipeline failed:', err && err.message)
@@ -879,6 +907,7 @@ function createBloodRouter(deps) {
         req.params.reportId
       ]);
 
+      tellMember(report.user_id, '🩸 Your health report is ready', 'Your blood analysis report has been sent to your email.');
       notifyAsync('BLOOD_REPORT_SENT', { name: report.user_name || '—', email: report.user_email || '—' });
       res.json({ success: true });
     } catch (e) {
@@ -987,7 +1016,7 @@ function createBloodRouter(deps) {
         [reportId]
       );
 
-      triggerBloodAnalysis(db, reportId, b64, mime, userId)
+      analyse(reportId, b64, mime, userId)
         .then(() => afterAnalysis(reportId, report.report_variant))
         .catch((err) =>
           console.error('[blood] Retry pipeline failed:', err && err.message)
@@ -1597,6 +1626,7 @@ function createBloodRouter(deps) {
         ]
       );
       await run(`UPDATE blood_comparison_reports SET sent_to_user = true, sent_at = CURRENT_TIMESTAMP WHERE id = ?`, [req.params.id]);
+      tellMember(row.user_id, '🩸 Your blood progress report is ready', 'Your progress review has been sent to your email.');
       notifyAsync('BLOOD_REPORT_SENT', { name: row.user_name || '—', email: row.user_email || '—' });
       res.json({ success: true });
     } catch (e) {

@@ -15,6 +15,7 @@ const EVENT_META = {
   USER_REJECTED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
   USER_SUSPENDED: { priority: PRIORITY.CRITICAL, dedup: 0 },
   USER_REACTIVATED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
+  USER_MEMBERSHIP_ACTIVATED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
   USER_DELETED: { priority: PRIORITY.CRITICAL, dedup: 0 },
   DAILY_CHECKIN: { priority: PRIORITY.INFO, dedup: 10 * 60 * 1000 },
   SUNDAY_CHECKIN: { priority: PRIORITY.IMPORTANT, dedup: 0 },
@@ -201,6 +202,7 @@ const FORMATTERS = {
   WA_DRAFT_REJECTED: (p) => ['⛔ WhatsApp draft rejected', ...userLines(p), `Draft: ${s(p.draft_id)}`, `⏰ ${ts()}`],
   REPORT_GENERATED: (p) => ['📑 Progress Report Generated', ...userLines(p), `🗂 ${s(p.type)} · ${s(p.period_start)} → ${s(p.period_end)}`, `🏅 Score: ${s(p.score)} (${s(p.grade)})`, `⏰ ${ts()}`],
   REPORT_SENT: (p) => ['📤 Progress Report Sent', ...userLines(p), `🗂 ${s(p.type)} · ${s(p.period_start)} → ${s(p.period_end)}`, `🏅 Score: ${s(p.score)} (${s(p.grade)})`, `📨 Via: ${s((p.channels || []).join(', '))}`, ...(p.failed && p.failed.length ? [`⚠️ Failed: ${p.failed.join(', ')}`] : []), `⏰ ${ts()}`],
+  USER_MEMBERSHIP_ACTIVATED: (p) => ['✅ Membership Activated', ...userLines(p), `📦 Plan: ${s(p.plan)}`, `⏰ ${ts()}`],
   REPORT_BULK_COMPLETE: (p) => ['📚 Bulk Progress Reports Done', `🗂 ${s(p.type)} · ${s(p.period)}`, `✅ Generated: ${s(p.done)} / ${s(p.total)}`, `❌ Failed: ${s(p.failed)}`, `🔁 Source: ${s(p.source)}`, `⏰ ${ts()}`]
 };
 const DETAILED_EVENTS = new Set(['SUNDAY_CHECKIN', 'PART2_FORM']);
@@ -227,14 +229,27 @@ function templateSidForEvent(eventType) {
   return process.env.TWILIO_WHATSAPP_TEMPLATE_SID || '';
 }
 
+// Listeners told about every staff event that passes dedup — server.js registers
+// one that pushes the same event to staff phones and browsers. Runs before the
+// WhatsApp send and is never awaited, so a slow Twilio call can't delay the push.
+const _sinks = [];
+function addEventSink(fn) {
+  if (typeof fn === 'function' && !_sinks.includes(fn)) _sinks.push(fn);
+}
+function emitToSinks(eventType, payload) {
+  for (const fn of _sinks) {
+    try {
+      Promise.resolve(fn(eventType, payload)).catch((err) => console.warn('[notify] sink failed:', eventType, err.message));
+    } catch (err) {
+      console.warn('[notify] sink failed:', eventType, err.message);
+    }
+  }
+}
+
 async function notify(eventType, payload = {}, opts = {}) {
   try {
     const formatted = formatEventMessage(eventType, payload);
-    if (!formatted) {
-      console.warn('[notify] no formatter for event:', eventType);
-      return { ok: false, reason: 'missing_formatter' };
-    }
-    const meta = formatted.meta;
+    const meta = formatted ? formatted.meta : (EVENT_META[eventType] || { priority: PRIORITY.INFO, dedup: 5 * 60 * 1000 });
     const ttl = opts.noDedup ? 0 : meta.dedup;
     const fp = `${eventType}::${s(payload.email || payload.userId || payload.username || payload.action || '')}`;
     if (isDup(fp, ttl)) {
@@ -242,6 +257,11 @@ async function notify(eventType, payload = {}, opts = {}) {
       return { ok: false, reason: 'dedup_skipped' };
     }
     mark(fp);
+    emitToSinks(eventType, payload);
+    if (!formatted) {
+      console.warn('[notify] no formatter for event:', eventType);
+      return { ok: false, reason: 'missing_formatter' };
+    }
     const media = payload && payload.mediaUrl ? payload.mediaUrl : null;
     const chunks = chunkMessage(formatted.message, 1500);
     let last = { ok: false, reason: 'not_sent' };
@@ -268,4 +288,4 @@ function notifyAsync(eventType, payload, opts) {
   notify(eventType, payload, opts).catch(err => console.error('[notifyAsync] uncaught:', eventType, err.message));
 }
 
-module.exports = { notify, notifyAsync, buildMessage, formatEventMessage, FORMATTERS, EVENT_META, PRIORITY };
+module.exports = { notify, notifyAsync, addEventSink, buildMessage, formatEventMessage, FORMATTERS, EVENT_META, PRIORITY };

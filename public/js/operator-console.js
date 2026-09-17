@@ -121,6 +121,7 @@ function bbEnterOperatorShell() {
   document.body.classList.add('operator-console-open');
   if (typeof lockBodyScroll === 'function') lockBodyScroll();
   if (typeof registerNativePush === 'function') registerNativePush();
+  if (window.BBNotify) window.BBNotify.ensure();
 
   opBindShortcuts();
   opNav('home');
@@ -2402,7 +2403,8 @@ async function loadOperatorNotifications() {
     } catch (e) { }
     el.innerHTML = filtered.length ? filtered.map(function (n) {
       var time = n.time ? new Date(n.time).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-      return '<div class="admin-notify-item ' + opEsc(n.type || '') + '"><div class="n-body"><div class="n-title">' + opEsc(n.title || '') + '</div>'
+      var go = (n.link && window.BBNotify && window.BBNotify.operatorScreen(n.link)) ? ' role="button" tabindex="0" data-link="' + opEsc(n.link) + '"' : '';
+      return '<div class="admin-notify-item ' + opEsc(n.type || '') + '"' + go + '><div class="n-body"><div class="n-title">' + opEsc(n.title || '') + '</div>'
         + '<div class="n-desc">' + opEsc(n.desc || '') + '</div><div class="n-time">' + opEsc(time) + '</div></div></div>';
     }).join('') : '<div class="admin-notify-empty">No notifications yet.</div>';
     if (countEl) {
@@ -2420,6 +2422,17 @@ async function loadOperatorNotifications() {
     if (elc) elc.innerHTML = '<div class="admin-notify-empty">Could not load notifications.</div>';
   }
 }
+// Tapping an alert opens its screen (js/bb-notify.js maps staff links to operator
+// screens). An alert with no operator screen just stays in the list.
+document.addEventListener('click', function (e) {
+  var item = e.target && e.target.closest && e.target.closest('#opNotifyList .admin-notify-item[data-link]');
+  if (!item || !window.BBNotify) return;
+  var link = item.getAttribute('data-link');
+  if (!window.BBNotify.operatorScreen(link)) return;
+  var panel = document.getElementById('opNotifyPanel');
+  if (panel) panel.classList.remove('open');
+  window.BBNotify.route(link);
+}, true);
 function clearAllOperatorNotifications() {
   var ids = window._opNotifyIds || [];
   if (!ids.length) return;

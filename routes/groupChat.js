@@ -130,6 +130,7 @@ function createGroupChatRouter(deps) {
       title: group.name,
       body: senderName + ': ' + String(preview || '').slice(0, 90),
       id: 'group-' + group.id,
+      link: 'messages',
       url: '/?group=' + group.id
     });
     for (const m of members) {
@@ -918,6 +919,13 @@ function createGroupChatRouter(deps) {
       });
       if (typeof notifyAgent === 'function') {
         notifyAgent('GROUP_MESSAGE_REPORTED', { groupId: group.id, messageId: msg.id, reporter: actor.name, reason });
+      }
+      if (deps.notifyHub) {
+        deps.notifyHub.staff({
+          title: '🚩 Message reported in ' + group.name,
+          body: actor.name + (reason ? ': ' + reason : ' reported a message'),
+          type: 'group_report', link: 'messages', url: '/?group=' + group.id
+        }, { roles: ['admin', 'superadmin'], exclude: req.user.id });
       }
       res.json({ ok: true });
     } catch (e) {

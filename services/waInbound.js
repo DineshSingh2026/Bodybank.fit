@@ -758,7 +758,7 @@ function createWaInbound(deps) {
         reviewed_by: reviewedBy || draft.reviewed_by || '',
         reviewed_at: now.toISOString()
       });
-      return { ok: false, reason: (sent && sent.reason) || 'send_failed', send };
+      return { ok: false, reason: (sent && sent.reason) || 'send_failed' };
     }
 
     await store.updateDraft(draft.id, {
@@ -767,9 +767,17 @@ function createWaInbound(deps) {
       reviewed_by: reviewedBy || draft.reviewed_by || '',
       reviewed_at: now.toISOString()
     });
+    let sentTo = null;
+    try {
+      const users = draft.client_id ? await store.findUsersByPhone(draft.phone) : [];
+      sentTo = (users || []).find((u) => String(u.id) === String(draft.client_id)) || null;
+    } catch (_) { /* the label falls back to the phone number */ }
     await notifyStaff('WA_DRAFT_SENT', {
-      name: clientLabel(null, draft.phone),
+      name: clientLabel(sentTo, draft.phone),
+      email: sentTo && sentTo.email,
       phone: draft.phone,
+      body: String(draft.draft_body || '').slice(0, 300),
+      trigger: draft.trigger || '',
       draft_id: draft.id
     });
     return { ok: true, sent: true, sid: sent.sid };
