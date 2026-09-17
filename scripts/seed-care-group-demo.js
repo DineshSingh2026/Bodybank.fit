@@ -2,6 +2,9 @@
  * Seed a demo care group for local testing of the in-app group messaging.
  *
  *   node scripts/seed-care-group-demo.js          create / refresh the demo
+ *   node scripts/seed-care-group-demo.js --busy   also add 40 clients whose chats
+ *                                                 hold months of automated nudges,
+ *                                                 like the live database
  *   node scripts/seed-care-group-demo.js --clean  remove everything it created
  *
  * Creates five accounts under the @caredemo.local domain and one populated
@@ -74,6 +77,55 @@ const REACTIONS = [
 ];
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+
+const NUDGES = [
+  'I hope digestion is going well! 🌿', 'Hydrate well! 💧', 'Let\'s win this week! 💪',
+  'Chew food well! 🍽️', 'How many steps so far? 👟', 'Sleep on time — rest is part of the plan 🌙',
+  'How have your energy levels been so far? ⚡', 'Sunday CHECK-IN today 🙌 Don\'t forget to submit!'
+];
+
+/**
+ * `count` automated nudges, one every 8 hours going back from yesterday —
+ * exactly what the campaign scheduler leaves behind in a live thread.
+ */
+async function seedNudges(threadId, senderId, count) {
+  await pool.query(
+    `INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body, created_at, is_automated)
+     SELECT gen_random_uuid()::text, $1, $2, 'admin', ($3::text[])[1 + (g % $4)],
+            NOW() - INTERVAL '1 day' - (g * INTERVAL '8 hours'), TRUE
+     FROM generate_series(1, $5) AS g`,
+    [threadId, senderId, NUDGES, NUDGES.length, count]
+  );
+}
+
+/**
+ * Forty more demo clients, each with ~300 automated nudges (about 100 days of
+ * campaigns). Only five of them ever had a personal exchange — those are the
+ * only ones the admin inbox should list.
+ */
+async function seedBusy(adminId, hash) {
+  const personal = new Set([3, 11, 19, 27, 35]);
+  for (let n = 1; n <= 40; n++) {
+    const uid = uuid();
+    await pool.query(
+      `INSERT INTO users (id, email, password, first_name, last_name, role, approval_status,
+                          subscription_status, suspended, height_cm, onboarded_at, guide_seen_at)
+       VALUES ($1,$2,$3,$4,$5,'user','approved','active',FALSE,170,NOW(),NOW())`,
+      [uid, 'busy' + n + DOMAIN, hash, 'Busy', 'Client ' + n]
+    );
+    const tid = uuid();
+    await pool.query('INSERT INTO message_threads (id, user_id, subject) VALUES ($1,$2,$3)', [tid, uid, '']);
+    await seedNudges(tid, adminId, 300);
+    if (personal.has(n)) {
+      await pool.query(
+        `INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body, created_at, is_automated)
+         VALUES ($1,$2,$3,'user',$4, NOW() - ($5 * INTERVAL '1 hour'), FALSE)`,
+        [uuid(), tid, uid, 'Quick question about my plan (client ' + n + ')', n]
+      );
+    }
+  }
+  console.log('  + 40 busy clients (12,000 automated nudges; 5 real conversations)');
+}
 const q = (sql, params) => pool.query(sql, params);
 
 async function clean() {
@@ -161,6 +213,23 @@ async function main() {
   }
   await q('UPDATE chat_group_members SET last_read_seq = $1 WHERE group_id = $2 AND user_id = $3',
     [Number(maxSeq) - 2, groupId, ids.client]);
+
+  // The demo client's private chat: months of automated nudges with a real
+  // exchange at the end, so the collapsed-nudge view has something to show.
+  const tid = uuid();
+  await q('INSERT INTO message_threads (id, user_id, subject) VALUES ($1,$2,$3)', [tid, ids.client, '']);
+  await seedNudges(tid, ids.admin, 60);
+  await q(
+    `INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body, created_at, is_automated) VALUES
+       ($1,$2,$3,'user',$6, NOW() - INTERVAL '40 minutes', FALSE),
+       ($4,$2,$5,'admin',$7, NOW() - INTERVAL '32 minutes', FALSE)`,
+    [uuid(), tid, ids.client, uuid(), ids.admin,
+     "Hi, can we move Friday's call to Saturday?",
+     'Of course — Saturday 11am works. Booked it for you.']
+  );
+
+
+  if (process.argv.includes('--busy')) await seedBusy(ids.admin, hash);
 
   console.log('Demo care group ready: "Mitul Nadendla - 2.0"\n');
   console.log('  Sign in with any of these — password: ' + PASSWORD + '\n');

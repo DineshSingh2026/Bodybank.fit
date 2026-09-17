@@ -222,8 +222,76 @@ async function ensureGroupChatTables(db) {
     await db.run(`CREATE INDEX IF NOT EXISTS idx_thread_messages_thread_created
       ON thread_messages(thread_id, created_at DESC)`);
   } catch (e) { /* ignore */ }
+  await ensureAutomatedFlag(db);
 
   return { ok: true };
+}
+
+/**
+ * Tell automated 1-to-1 messages apart from personal ones.
+ *
+ * The campaign scheduler posts ~22 nudges a week into EVERY client's
+ * Lifestyle Manager thread, as sender_role 'admin' — row-for-row identical to a
+ * real reply. Without a flag the admin inbox lists every client as an active
+ * conversation, and each thread fills with months of nudges.
+ *
+ *   thread_messages.is_automated   FALSE for anything a person typed.
+ *
+ * The scheduler sets it on new rows. Existing rows are classified ONCE: a staff
+ * message whose text is a known campaign/broadcast text, or that went to five
+ * or more threads within the same minute (a broadcast by definition). The
+ * column comment records that the pass ran, so later boots skip it — and a
+ * person who deliberately repeats a campaign line later is never re-flagged.
+ * This column and its index are the only changes to the legacy chat tables.
+ */
+const AUTOMATED_BACKFILL_MARK = 'bbg-automated-backfill-v1';
+
+async function ensureAutomatedFlag(db) {
+  try {
+    await db.run(`ALTER TABLE thread_messages ADD COLUMN IF NOT EXISTS is_automated BOOLEAN NOT NULL DEFAULT FALSE`);
+  } catch (e) {
+    console.warn('[groupChat automated column]', e.message);
+    return;
+  }
+  // Only personal messages are indexed, so an inbox lookup for a thread that
+  // holds nothing but nudges is an immediate empty seek.
+  try {
+    await db.run(`CREATE INDEX IF NOT EXISTS idx_thread_messages_personal
+      ON thread_messages(thread_id, created_at DESC) WHERE is_automated = FALSE`);
+  } catch (e) { /* ignore */ }
+
+  try {
+    const mark = await db.queryOne(
+      `SELECT col_description(a.attrelid, a.attnum) AS d
+       FROM pg_attribute a
+       WHERE a.attrelid = 'thread_messages'::regclass AND a.attname = 'is_automated'`
+    );
+    if (mark && mark.d === AUTOMATED_BACKFILL_MARK) return;
+
+    await db.run(
+      `UPDATE thread_messages m SET is_automated = TRUE
+       WHERE m.is_automated = FALSE
+         AND m.sender_role IN ('admin', 'superadmin')
+         AND (
+           btrim(m.body) IN (
+             SELECT btrim(message) FROM campaign_messages
+             UNION
+             SELECT btrim(message) FROM campaign_send_log
+           )
+           OR (m.body, date_trunc('minute', m.created_at)) IN (
+             SELECT body, date_trunc('minute', created_at)
+             FROM thread_messages
+             WHERE sender_role IN ('admin', 'superadmin')
+             GROUP BY 1, 2
+             HAVING COUNT(DISTINCT thread_id) >= 5
+           )
+         )`
+    );
+    await db.run(`COMMENT ON COLUMN thread_messages.is_automated IS '${AUTOMATED_BACKFILL_MARK}'`);
+  } catch (e) {
+    // Retried on the next boot; the inbox still works, it just lists more.
+    console.warn('[groupChat automated backfill]', e.message);
+  }
 }
 
 /**
@@ -732,6 +800,11 @@ async function listDirectThreads(db, user, opts = {}) {
   const userId = String((user && user.id) || '');
   const limit = Math.min(200, Math.max(1, parseInt(opts.limit, 10) || 100));
 
+  // Staff see only threads with a PERSONAL message — something the client wrote
+  // or a person on the team typed. Campaign nudges do not count, so a client who
+  // has only ever received automated check-ins does not appear. The member sees
+  // their own thread including nudges: those are real messages to them.
+  // `m.is_automated = FALSE` matches the partial index's predicate exactly.
   const rows = await db.queryAll(
     `SELECT t.id, t.user_id, t.created_at, t.updated_at,
             u.first_name, u.last_name, u.email, u.profile_picture,
@@ -741,7 +814,7 @@ async function listDirectThreads(db, user, opts = {}) {
      JOIN LATERAL (
        SELECT m.body, m.created_at, m.sender_role
        FROM thread_messages m
-       WHERE m.thread_id = t.id
+       WHERE m.thread_id = t.id ${admin ? 'AND m.is_automated = FALSE' : ''}
        ORDER BY m.created_at DESC
        LIMIT 1
      ) lm ON TRUE
@@ -764,7 +837,7 @@ async function listDirectThreads(db, user, opts = {}) {
       clientId: r.user_id,
       clientAvatar: admin ? (r.profile_picture || '') : '',
       avatarUrl: admin ? (r.profile_picture || '') : '',
-      subtitle: admin ? 'Client · private thread' : 'Private · just you and your coach',
+      subtitle: admin ? 'Client · private chat' : 'Private · just you and your coach',
       email: admin ? (r.email || '') : '',
       lastPreview: r.last_body || '',
       lastFromStaff: fromStaff,
@@ -776,6 +849,109 @@ async function listDirectThreads(db, user, opts = {}) {
       archived: false
     };
   });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// 1-TO-1 THREADS — paged reads
+// ════════════════════════════════════════════════════════════════════════════
+//
+// The legacy GET /api/threads/:id/messages returns the WHOLE transcript. Months
+// of campaign nudges make that hundreds of rows, and the client re-fetched it
+// on every open and every poll. These readers page it and stream only what is
+// new. thread_messages has no sequence column, so the cursor is
+// (created_at, id), carried as the column's exact text rendering — a JS Date
+// would drop the microseconds and shift TIMESTAMP WITHOUT TIME ZONE by the
+// server's local offset.
+
+const DM_CURSOR_SQL = `to_char(m.created_at, 'YYYY-MM-DD"T"HH24:MI:SS.US')`;
+const DM_COLS = `m.id, m.thread_id, m.sender_id, m.sender_role, m.body, m.created_at,
+                 m.is_automated, ${DM_CURSOR_SQL} AS cur`;
+
+/** Validate a cursor from the client: exact text we produced, and a message id. */
+function dmCursor(ts, id) {
+  const t = String(ts == null ? '' : ts);
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}$/.test(t)) return null;
+  return { ts: t, id: String(id == null ? '' : id) };
+}
+
+/**
+ * Serialise a thread message. `automated` is a STAFF-only field: a member sees
+ * nudges exactly as before, as ordinary Lifestyle Manager messages.
+ */
+function serializeDm(r, staff) {
+  const out = {
+    id: r.id,
+    threadId: r.thread_id,
+    sender_id: r.sender_id,
+    sender_role: r.sender_role,
+    body: r.body || '',
+    created_at: r.created_at,
+    cursor: r.cur
+  };
+  if (staff) out.automated = !!r.is_automated;
+  return out;
+}
+
+/**
+ * The thread plus the caller's right to read it, in one query. Mirrors the
+ * legacy rule exactly: admins and superadmins read any thread, anyone else
+ * only their own.
+ */
+async function resolveThread(db, threadId, user) {
+  const t = await db.queryOne(
+    `SELECT t.id, t.user_id, u.first_name, u.last_name, u.email, u.profile_picture
+     FROM message_threads t LEFT JOIN users u ON u.id = t.user_id
+     WHERE t.id = ?`,
+    [String(threadId || '')]
+  );
+  if (!t) return { found: false, ok: false };
+  const staff = isAdminRole(user && user.role);
+  return {
+    found: true,
+    ok: staff || String(t.user_id) === String((user && user.id) || ''),
+    staff,
+    thread: t
+  };
+}
+
+/** The newest page of a thread (or the page before `before`), oldest-first. */
+async function loadDmPage(db, threadId, opts = {}) {
+  const limit = Math.min(MAX_PAGE_SIZE, Math.max(1, parseInt(opts.limit, 10) || DEFAULT_PAGE_SIZE));
+  const before = opts.before ? dmCursor(opts.before.ts, opts.before.id) : null;
+  const rows = await db.queryAll(
+    `SELECT ${DM_COLS} FROM thread_messages m
+     WHERE m.thread_id = ?
+       ${before ? 'AND (m.created_at, m.id) < (?::timestamp, ?)' : ''}
+     ORDER BY m.created_at DESC, m.id DESC
+     LIMIT ?`,
+    before ? [threadId, before.ts, before.id, limit + 1] : [threadId, limit + 1]
+  );
+  const hasMore = rows.length > limit;
+  if (hasMore) rows.length = limit;
+  rows.reverse();
+  return { messages: rows.map(r => serializeDm(r, !!opts.staff)), hasMore };
+}
+
+/**
+ * Messages after the cursor — the live poll. ONE query, with the access rule
+ * inside it: a caller who may not read the thread simply gets nothing back.
+ * Placeholders in TEXT order: thread id, caller id, staff flag, cursor ts, id.
+ */
+async function loadDmSince(db, threadId, user, after) {
+  const cur = dmCursor(after && after.ts, after && after.id);
+  if (!cur) return [];
+  const staff = isAdminRole(user && user.role);
+  const rows = await db.queryAll(
+    `SELECT ${DM_COLS} FROM thread_messages m
+     JOIN message_threads t ON t.id = m.thread_id
+     WHERE m.thread_id = ?
+       AND (t.user_id = ? OR ?::boolean)
+       AND (m.created_at, m.id) > (?::timestamp, ?)
+     ORDER BY m.created_at ASC, m.id ASC
+     LIMIT ?`,
+    [String(threadId || ''), String((user && user.id) || ''), staff, cur.ts, cur.id, MAX_PAGE_SIZE]
+  );
+  return rows.map(r => serializeDm(r, staff));
 }
 
 /**
@@ -947,6 +1123,11 @@ module.exports = {
   listMembers,
   listGroupsForUser,
   listDirectThreads,
+  resolveThread,
+  loadDmPage,
+  loadDmSince,
+  dmCursor,
+  ensureAutomatedFlag,
   loadMessages,
   loadNewestPage,
   hydrateRows,

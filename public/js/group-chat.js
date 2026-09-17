@@ -1,73 +1,78 @@
 /* ============================================================================
-   BodyBank — Messages (client)
+   BodyBank — Messages (full screen)
    ----------------------------------------------------------------------------
    ONE inbox, two kinds of conversation:
 
      • group  — care groups (client + doctor + lifestyle manager + operator),
-                backed by /api/groups
-     • direct — the 1-to-1 client ↔ lifestyle-manager chat, backed by the
-                original /api/threads endpoints, which are UNCHANGED
+                /api/groups
+     • direct — the 1-to-1 client ↔ lifestyle-manager chat. Read through the
+                paged /api/groups/dm endpoints; sent through the UNCHANGED
+                POST /api/threads/:id/messages (it owns push + email).
 
-   Both render through the same list, the same bubbles and the same composer, so
-   a member and an admin see one consistent WhatsApp-like surface instead of two
-   different chat UIs. Everything a direct thread cannot do (reactions, replies,
-   read receipts, attachments — its table has no columns for them) is hidden for
-   that conversation rather than faked.
+   The surface is full screen, like WhatsApp. It is a single element appended
+   to <body>, above the app chrome, so nothing in the dashboard layout can
+   squeeze it:  phone → list / chat / info slide in turn;  desktop → side by
+   side. Back (button, browser, Android) walks info → chat → list → dashboard.
+
+   Why it feels instant:
+     • the inbox is fetched and the surface built as soon as a dashboard opens
+     • recent conversations are kept on the device and paint before the network
+     • your own message and reactions appear in the same frame as the tap
+     • an idle poll costs the server a single query (see /updates `rev`, and the
+       1-to-1 `after` cursor) and downloads nothing
+
+   Automated campaign nudges live in the 1-to-1 threads. Staff see them
+   collapsed ("12 automated check-ins"); the admin inbox never lists a client
+   for them. Members see them unchanged, as ordinary coach messages.
 
    Depends on globals from index.html: apiCall, escapeHtml, API,
-   window.currentUser. Namespaced under window.BBGroupChat.
-
-   ── Why polling ──────────────────────────────────────────────────────────────
-   BodyBank has no WebSocket or SSE transport, and adding one would only work
-   within a single instance (there is no pub/sub between Render instances). The
-   live feel comes from an adaptive poll: fast while the reader is looking at the
-   chat, slow when the tab is hidden, immediate on focus. Cheap, survives a
-   dropped connection with no reconnect logic, needs no new infrastructure.
+   window.currentUser, switchUserTab, switchToSection. No <nav> element is used
+   (index.html's bare nav{} rule would hijack it).
    ========================================================================== */
 
 (function () {
   'use strict';
 
-  // An idle poll is now a single query on the server (see /updates `rev`), so
-  // the active cadence can be tighter without adding load.
+  // An idle poll is a single query on the server, so the active cadence can be
+  // tight without adding load.
   var POLL_ACTIVE_MS = 2500;
   var POLL_IDLE_MS = 15000;
   var POLL_HIDDEN_MS = 45000;
   var LIST_POLL_MS = 20000;
-  /** Scrolled within this many px of the bottom counts as "at the bottom". */
-  var STICK_PX = 120;
+  var STICK_PX = 140;
   var EDIT_WINDOW_MS = 15 * 60 * 1000;
   /** localStorage key prefix for a direct thread's per-device read mark. */
   var DM_SEEN = 'bb_dm_seen_';
   /**
    * On-device store: the inbox plus the newest page of recent conversations,
-   * one localStorage entry per account. It is what lets every open paint before
-   * the network answers — including after a reload or an app restart. It is
-   * bounded, never holds unsent drafts, and is wiped on logout (BBG.forget).
+   * one localStorage entry per account. Bounded, never holds unsent messages,
+   * wiped on logout (BBG.forget). v2: 1-to-1 messages carry a paging cursor.
    */
-  var STORE_PREFIX = 'bbg_v1_';
+  var STORE_PREFIX = 'bbg_v2_';
+  var STORE_OLD = ['bbg_v1_'];
   var STORE_MAX_CONVS = 15;
-  var STORE_MAX_MSGS = 30;
+  var STORE_MAX_MSGS = 40;
+  /** "Before everything" cursor for a 1-to-1 thread with no messages yet. */
+  var DM_EPOCH = { ts: '1970-01-01T00:00:00.000000', id: '' };
 
   var EMOJI_SET = [
     '😀','😃','😄','😁','😆','😅','😂','🙂','😉','😊','😇','🥰','😍','😘','😋','😎',
     '🤩','🥳','🤔','🤨','😐','😴','😪','😮','😲','😢','😭','😤','😠','🥺','😳','🤗',
     '👍','👎','👏','🙌','🤝','🙏','💪','✌️','👌','🤞','❤️','🔥','⭐','✨','🎯','🏆',
-    '💯','✅','❌','⚠️','📈','📉','💊','🩺','🥗','🍎','💧','😴','🏃','🧘','🏋️','⏰'
+    '💯','✅','❌','⚠️','📈','📉','💊','🩺','🥗','🍎','💧','🏃','🧘','🏋️','⏰','📅'
   ];
 
-  // ── State ────────────────────────────────────────────────────────────────
   var S = {
-    host: null,
     mode: 'member',        // 'member' | 'admin'
+    view: 'list',          // 'list' | 'chat' | 'info'
     conversations: [],
     filter: 'all',
     listQuery: '',
 
-    kind: null,            // 'group' | 'direct' — what is open right now
+    kind: null,            // 'group' | 'direct'
     convId: null,          // group id, or thread id ('' before the first send)
-    conv: null,            // the list row for the open conversation
-    groupId: null,         // group-only convenience (null in direct mode)
+    conv: null,            // the list row of the open conversation
+    groupId: null,
 
     group: null,
     members: [],
@@ -75,39 +80,44 @@
     messages: [],
     maxSeq: 0,
     hasMore: false,
+    rev: 0,
     reactionChoices: ['👍', '❤️', '😂', '😮', '😢', '🙏'],
     replyTo: null,
     pendingFile: null,
     sending: false,
     stick: true,
+    newWhileAway: 0,
+    unreadFrom: null,
+    unreadCount: 0,
+    autoOpen: {},
     pollTimer: null,
     listTimer: null,
     opening: null,
-    detailsOpen: false,
+    infoOpen: false,
     searchOpen: false,
+    emojiOpen: false,
     media: null,
     drafts: {},
-    // Opened conversations are kept so re-opening one paints from memory with
-    // zero latency; the network refresh then reconciles in the background.
     cache: {},
     prefetching: {},
     listLoaded: false,
     listAt: 0,
     hydratedFor: null,
-    // Group revision last seen; the server answers an unchanged poll from it.
-    rev: 0,
-    // Sends and reactions currently on the wire. Polls wait while any are, so a
+    // Sends and reactions on the wire. Polls stand down while any are, so a
     // poll can never race an optimistic bubble into a duplicate.
     inflight: 0,
-    // Sends are delivered one after another so the server stores them in the
-    // order they were typed, while every bubble still appears immediately.
+    // Sends go out one after another, so the server stores them in typed order.
     sendChain: Promise.resolve()
   };
 
   window.BBGroupChat = window.BBGroupChat || {};
   var BBG = window.BBGroupChat;
+  BBG.state = S;
 
-  // ── Small helpers ────────────────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════════════════
+  // HELPERS
+  // ══════════════════════════════════════════════════════════════════════════
+
   function esc(s) {
     if (typeof window.escapeHtml === 'function') return window.escapeHtml(s == null ? '' : String(s));
     var d = document.createElement('div');
@@ -122,6 +132,18 @@
     var r = String(me().role || '');
     return r === 'admin' || r === 'superadmin';
   }
+  function modeFromUser() { return isStaff() ? 'admin' : 'member'; }
+  function enc(v) { return encodeURIComponent(v == null ? '' : v); }
+  function each(list, fn) { Array.prototype.forEach.call(list, fn); }
+  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
+  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
+  function lsDel(k) { try { localStorage.removeItem(k); } catch (e) { /* blocked */ } }
+
+  function isDesktop() {
+    try { return window.matchMedia('(min-width:900px)').matches; }
+    catch (e) { return (window.innerWidth || 0) >= 900; }
+  }
+  var isDirect = function () { return S.kind === 'direct'; };
 
   function initials(name) {
     var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
@@ -129,53 +151,55 @@
     if (parts.length === 1) return parts[0].slice(0, 2);
     return (parts[0][0] || '') + (parts[parts.length - 1][0] || '');
   }
+  function firstName(n) { return String(n || '').split(' ')[0] || ''; }
 
   function avatarHtml(name, url, cls) {
-    var klass = 'bbg-avatar' + (cls ? ' ' + cls : '');
-    if (url) return '<div class="' + klass + '"><img src="' + esc(url) + '" alt="" loading="lazy"></div>';
-    return '<div class="' + klass + '">' + esc(initials(name)) + '</div>';
+    var k = 'bbg-av' + (cls ? ' ' + cls : '');
+    if (url) return '<div class="' + k + '"><img src="' + esc(url) + '" alt="" loading="lazy"></div>';
+    return '<div class="' + k + '">' + esc(initials(name)) + '</div>';
   }
 
+  function toDate(iso) { var d = new Date(iso); return isNaN(d) ? null : d; }
   function fmtTime(iso) {
-    if (!iso) return '';
-    var d = new Date(iso);
-    if (isNaN(d)) return '';
-    return d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    var d = toDate(iso);
+    return d ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : '';
   }
-
+  function dayKey(iso) { var d = toDate(iso); return d ? d.toDateString() : ''; }
   function fmtListTime(iso) {
-    if (!iso) return '';
-    var d = new Date(iso);
-    if (isNaN(d)) return '';
+    var d = toDate(iso);
+    if (!d) return '';
     var now = new Date();
     if (d.toDateString() === now.toDateString()) return fmtTime(iso);
     var y = new Date(now); y.setDate(y.getDate() - 1);
     if (d.toDateString() === y.toDateString()) return 'Yesterday';
-    if (now - d < 7 * 86400000) return d.toLocaleDateString([], { weekday: 'short' });
-    return d.toLocaleDateString([], { day: 'numeric', month: 'short' });
+    if (now - d < 6 * 86400000) return d.toLocaleDateString([], { weekday: 'long' });
+    return d.toLocaleDateString([], { day: 'numeric', month: 'short', year: d.getFullYear() === now.getFullYear() ? undefined : '2-digit' });
   }
-
-  function fmtDayLabel(iso) {
-    var d = new Date(iso);
-    if (isNaN(d)) return '';
+  function fmtDay(iso) {
+    var d = toDate(iso);
+    if (!d) return '';
     var now = new Date();
     if (d.toDateString() === now.toDateString()) return 'Today';
     var y = new Date(now); y.setDate(y.getDate() - 1);
     if (d.toDateString() === y.toDateString()) return 'Yesterday';
+    if (now - d < 6 * 86400000) return d.toLocaleDateString([], { weekday: 'long' });
     return d.toLocaleDateString([], { day: 'numeric', month: 'long', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' });
   }
-
+  function fmtShortDay(iso) {
+    var d = toDate(iso);
+    return d ? d.toLocaleDateString([], { day: 'numeric', month: 'short' }) : '';
+  }
   function fmtBytes(n) {
     n = Number(n) || 0;
     if (n < 1024) return n + ' B';
-    if (n < 1024 * 1024) return (n / 1024).toFixed(0) + ' KB';
+    if (n < 1048576) return Math.round(n / 1024) + ' KB';
     return (n / 1048576).toFixed(1) + ' MB';
   }
 
   /**
    * Escape, then linkify. Order matters: escaping AFTER linkifying would mangle
-   * the anchors we just inserted, and linkifying raw input would let a crafted
-   * URL inject markup. The `https?://` requirement also blocks `javascript:`.
+   * the anchors, and linkifying raw input would let a crafted URL inject markup.
+   * The `https?://` requirement also keeps `javascript:` out.
    */
   function richText(s) {
     var safe = esc(s);
@@ -184,268 +208,351 @@
     });
   }
 
+  var ICONS = {
+    back: '<path d="M15 18l-6-6 6-6"/>',
+    close: '<path d="M6 6l12 12M18 6L6 18"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+    more: '<circle cx="12" cy="5" r="1.3"/><circle cx="12" cy="12" r="1.3"/><circle cx="12" cy="19" r="1.3"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    compose: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/>',
+    clip: '<path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7L13 5a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7.5-7.5"/>',
+    smile: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/>',
+    down: '<path d="M6 9l6 6 6-6"/>',
+    chev: '<path d="M6 9l6 6 6-6"/>',
+    reply: '<path d="M9 14L4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v4"/>',
+    copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h8"/>',
+    edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/>',
+    trash: '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+    forward: '<path d="M15 14l5-5-5-5"/><path d="M20 9H9a5 5 0 0 0-5 5v4"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+    flag: '<path d="M5 21V4M5 4h11l-2 4 2 4H5"/>',
+    bell: '<path d="M6 16V11a6 6 0 1 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/>',
+    belloff: '<path d="M6 16V11a6 6 0 0 1 9.5-4.9M18 11v5l2 2H8"/><path d="M10 20a2 2 0 0 0 4 0M3 3l18 18"/>',
+    users: '<circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3 2.8-4.6 5.5-4.6s4.9 1.6 5.5 4.6"/><path d="M16 5.4a3 3 0 0 1 0 5.4M18 14.6c1.3.6 2.2 1.9 2.5 4.4"/>',
+    archive: '<rect x="3" y="4" width="18" height="4" rx="1"/><path d="M5 8v11h14V8M10 12h4"/>',
+    list: '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+    image: '<rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+    leave: '<path d="M15 12H3M11 8l-4 4 4 4"/><path d="M14 4h5a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-5"/>',
+    mail: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',
+    phone: '<rect x="7" y="2" width="10" height="20" rx="2"/><path d="M11 18h2"/>',
+    bot: '<rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01"/>',
+    chat: '<path d="M4 18l1.4-3.6A7.5 7.5 0 1 1 8.6 17.6z"/>',
+    retry: '<path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4"/>',
+    spin: '<path d="M12 3a9 9 0 1 0 9 9"/>'
+  };
   function icon(name) {
-    var P = {
-      back: '<path d="M15 18l-6-6 6-6"/>',
-      search: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
-      info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
-      more: '<circle cx="12" cy="5" r="1.4"/><circle cx="12" cy="12" r="1.4"/><circle cx="12" cy="19" r="1.4"/>',
-      // Paper plane pointing RIGHT — tip at x=20, notch at x=4.
-      send: '<path d="M20 12L4 4l3 8-3 8z"/>',
-      spin: '<path d="M12 3a9 9 0 1 0 9 9"/>',
-      plus: '<path d="M12 5v14M5 12h14"/>',
-      clip: '<path d="M21 11.5l-8.5 8.5a5 5 0 0 1-7-7L13 5a3.5 3.5 0 0 1 5 5l-8 8a2 2 0 0 1-3-3l7.5-7.5"/>',
-      smile: '<circle cx="12" cy="12" r="9"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0M9 9.5h.01M15 9.5h.01"/>',
-      down: '<path d="M12 5v14M6 13l6 6 6-6"/>',
-      close: '<path d="M6 6l12 12M18 6L6 18"/>',
-      chev: '<path d="M9 6l6 6-6 6"/>',
-      clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l2.5 2"/>',
-      compose: '<path d="M4 20h16"/><path d="M14.5 4.5l5 5L9 20H4v-5z"/>'
-    };
-    return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (P[name] || '') + '</svg>';
+    return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
   }
+  var SEND_SVG = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3.4 20.4l17.4-7.5a1 1 0 0 0 0-1.8L3.4 3.6a1 1 0 0 0-1.4 1.2L4.3 12l-2.3 7.2a1 1 0 0 0 1.4 1.2z"/></svg>';
 
   function tickHtml(read) {
     var p = read
-      ? '<path d="M1 6.5l3 3 6.5-7"/><path d="M6.5 9.5l1.5 1.5L15 3.5"/>'
-      : '<path d="M2 6.5l3.5 3.5L13 2.5"/>';
-    return '<span class="bbg-ticks' + (read ? ' is-read' : '') + '" title="' + (read ? 'Read by everyone' : 'Sent') + '">'
+      ? '<path d="M1.5 6.5l3 3 6-7"/><path d="M7 9.5l1.4 1.3L15 3.5"/>'
+      : '<path d="M3 6.5l3.5 3.5L13 3"/>';
+    return '<span class="bbg-tick' + (read ? ' is-read' : '') + '" title="' + (read ? 'Read' : 'Sent') + '">'
       + '<svg viewBox="0 0 16 12" aria-hidden="true">' + p + '</svg></span>';
   }
 
+  var _toastTimer = null;
   function toast(msg, isError) {
-    if (typeof window.showPopup === 'function') {
-      window.showPopup(isError ? 'Something went wrong' : 'BodyBank', msg);
-      return;
+    var t = el('bbgToast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'bbgToast';
+      t.className = 'bbg bbg-toast';
+      t.setAttribute('role', 'status');
+      document.body.appendChild(t);
     }
-    alert(msg);
+    t.textContent = msg;
+    t.classList.toggle('is-err', !!isError);
+    requestAnimationFrame(function () { t.classList.add('is-on'); });
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(function () { t.classList.remove('is-on'); }, 2600);
   }
 
-  function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
-  function lsSet(k, v) { try { localStorage.setItem(k, v); } catch (e) { /* private mode */ } }
-
   // ══════════════════════════════════════════════════════════════════════════
-  // SHELL
+  // THE SURFACE
   // ══════════════════════════════════════════════════════════════════════════
 
-  /**
-   * Mount the inbox into `host`.
-   * @param {HTMLElement} host
-   * @param {{mode?: 'member'|'admin'}} opts
-   */
-  BBG.mount = function (host, opts) {
-    opts = opts || {};
-    if (!host) return;
-    S.host = host;
-    S.mode = opts.mode || 'member';
-    host.classList.add('bbg', 'bbg-host');
-    host.innerHTML = shellHtml();
-    bindShell();
-    if (opts.background) {
-      // Built ahead of time while the tab is hidden. Paint the list only: no
-      // conversation is opened (that would mark it read unseen) and no polling
-      // starts until the user actually arrives — see BBG.enter().
-      paintCachedList();
-      return;
-    }
-    BBG.refreshList(true);
-    startListPoll();
-  };
+  function root() { return el('bbgApp'); }
+  function isOpen() { var r = root(); return !!(r && !r.hidden); }
 
-  /**
-   * The user has arrived on an ALREADY-built inbox. Everything that a visible
-   * inbox does — sizing, the list poll, opening the newest conversation on a
-   * desktop — starts here rather than at build time.
-   */
-  BBG.enter = function () {
-    startListPoll();
-    sizeShell();
-    BBG.refreshList(true);
-  };
-
-  /**
-   * Build the inbox shell in the background as soon as the data is warm.
-   * Building it (and the first layout of a large admin page) was most of what a
-   * first click on Messages cost; afterwards that click only has to show it.
-   */
-  function premount() {
-    var id = S.mode === 'admin' ? 'bbAdminInboxHost' : 'bbGroupChatHost';
-    var host = el(id);
-    if (!host || (host.dataset.mounted && host.children.length)) return;
-    BBG.mount(host, { mode: S.mode, background: true });
-    host.dataset.mounted = '1';
-  }
-
-  function shellHtml() {
-    return ''
-      + '<div class="bbg-shell" id="bbgShell" data-pane="list">'
-      + '<div class="bbg-pane bbg-pane--list" role="navigation" aria-label="Conversations">'
-      +   '<div class="bbg-panehead">'
-      +     '<div class="bbg-panehead-main">'
-      +       '<div class="bbg-panehead-title">Messages</div>'
-      +       '<div class="bbg-panehead-sub" id="bbgListSub">Your conversations</div>'
+  /** Build the surface once (hidden). Rebuilt only after logout. */
+  function ensureRoot() {
+    var r = root();
+    if (r) return r;
+    r = document.createElement('div');
+    r.id = 'bbgApp';
+    r.className = 'bbg bbg-app';
+    r.hidden = true;
+    r.setAttribute('role', 'dialog');
+    r.setAttribute('aria-label', 'Messages');
+    r.setAttribute('data-view', 'list');
+    r.innerHTML = ''
+      + '<div class="bbg-grid">'
+      // ── list ──
+      +   '<section class="bbg-col bbg-col--list" role="navigation" aria-label="Conversations">'
+      +     '<div class="bbg-bar" id="bbgListBar"></div>'
+      +     '<div class="bbg-searchwrap"><label class="bbg-searchbox">' + icon('search')
+      +       '<input type="search" id="bbgListSearch" placeholder="Search" autocomplete="off" enterkeyhint="search"></label></div>'
+      +     '<div class="bbg-tabs" id="bbgTabs" role="tablist"></div>'
+      +     '<div class="bbg-scroll" id="bbgList"></div>'
+      +   '</section>'
+      // ── chat ──
+      +   '<section class="bbg-col bbg-col--chat" aria-label="Conversation">'
+      +     '<div class="bbg-bar" id="bbgChatBar"></div>'
+      +     '<div class="bbg-thread-wrap" id="bbgChatBody"></div>'
+      +     '<div id="bbgCmpHost"></div>'
+      +   '</section>'
+      // ── info ──
+      +   '<aside class="bbg-col bbg-col--info" aria-label="Conversation info">'
+      +     '<div class="bbg-bar">'
+      +       '<button type="button" class="bbg-ib" id="bbgInfoClose" aria-label="Close info">' + icon('close') + '</button>'
+      +       '<div class="bbg-bar-title" id="bbgInfoTitle" style="font-size:19px">Info</div>'
       +     '</div>'
-      +     (S.mode === 'admin'
-            ? '<button type="button" class="bbg-iconbtn" id="bbgNewDmBtn" title="Message a client" aria-label="Message a client">'
-              + icon('compose') + '</button>'
-              + '<button type="button" class="bbg-newbtn" id="bbgNewGroupBtn" title="Create a care group">'
-              + icon('plus') + '<span>New group</span></button>'
-            : '')
-      +   '</div>'
-      +   '<div class="bbg-filters" id="bbgFilters"></div>'
-      +   '<div class="bbg-search"><input type="search" id="bbgListSearch" placeholder="Search conversations" autocomplete="off"></div>'
-      +   '<div class="bbg-scroll" id="bbgConvList"></div>'
-      + '</div>'
-      + '<div class="bbg-pane bbg-pane--chat">'
-      +   '<div class="bbg-panehead" id="bbgChatHead" style="position:relative">'
-      +     '<button type="button" class="bbg-iconbtn bbg-back" id="bbgBackBtn" aria-label="Back to conversations">' + icon('back') + '</button>'
-      +     '<div id="bbgHeadAvatar"></div>'
-      +     '<button type="button" class="bbg-panehead-main" id="bbgHeadOpen" style="background:none;border:none;text-align:left;cursor:pointer;padding:0">'
-      +       '<div class="bbg-panehead-title" id="bbgHeadTitle">Select a conversation</div>'
-      +       '<div class="bbg-panehead-sub" id="bbgHeadSub"></div>'
-      +     '</button>'
-      +     '<button type="button" class="bbg-iconbtn" id="bbgSearchBtn" title="Search messages" aria-label="Search messages">' + icon('search') + '</button>'
-      +     '<button type="button" class="bbg-iconbtn" id="bbgInfoBtn" title="Conversation info" aria-label="Conversation info">' + icon('info') + '</button>'
-      +     '<button type="button" class="bbg-iconbtn" id="bbgMoreBtn" title="More options" aria-label="More options">' + icon('more') + '</button>'
-      +     '<div id="bbgSearchHost"></div>'
-      +   '</div>'
-      +   '<div class="bbg-transcript" id="bbgTranscript"></div>'
-      +   '<div id="bbgComposerHost"></div>'
-      + '</div>'
-      + '<div class="bbg-pane bbg-pane--details">'
-      +   '<div class="bbg-panehead">'
-      +     '<button type="button" class="bbg-iconbtn bbg-back" id="bbgDetailsBack" aria-label="Back to chat">' + icon('back') + '</button>'
-      +     '<div class="bbg-panehead-main"><div class="bbg-panehead-title" id="bbgDetailsTitle">Info</div></div>'
-      +     '<button type="button" class="bbg-iconbtn" id="bbgDetailsClose" aria-label="Close info">' + icon('close') + '</button>'
-      +   '</div>'
-      +   '<div class="bbg-scroll" id="bbgDetailsBody"></div>'
-      + '</div>'
+      +     '<div class="bbg-scroll" id="bbgInfo"></div>'
+      +   '</aside>'
       + '</div>';
-  }
+    document.body.appendChild(r);
 
-  function bindShell() {
-    el('bbgBackBtn').onclick = function () { setPane('list'); };
-    el('bbgDetailsBack').onclick = function () { closeDetails(); };
-    el('bbgDetailsClose').onclick = function () { closeDetails(); };
-    el('bbgHeadOpen').onclick = function () { if (S.convId != null) openDetails(); };
-    el('bbgInfoBtn').onclick = function () { if (S.convId != null) toggleDetails(); };
-    el('bbgSearchBtn').onclick = function () { toggleSearch(); };
-    el('bbgMoreBtn').onclick = function (e) { e.stopPropagation(); openConvMenu(); };
-    var nb = el('bbgNewGroupBtn');
-    if (nb) nb.onclick = function () { BBG.openCreateGroup(); };
-    var dm = el('bbgNewDmBtn');
-    if (dm) dm.onclick = function () { BBG.openNewMessage(); };
-
+    el('bbgInfoClose').onclick = function () { goBack(); };
     el('bbgListSearch').oninput = function () {
       S.listQuery = this.value.trim().toLowerCase();
       renderList();
     };
+    renderListBar();
+    renderIdle();
+    bindGlobals();
+    return r;
+  }
 
-    // Window-level listeners are bound ONCE. mount() runs again whenever the
-    // host is re-created, and re-binding here would stack a duplicate
-    // poll-on-focus and resize handler on every remount.
-    if (!BBG._globalsBound) {
-      BBG._globalsBound = true;
-      document.addEventListener('visibilitychange', onVisibility);
-      window.addEventListener('focus', onVisibility);
-      window.addEventListener('resize', onResize);
-      window.addEventListener('orientationchange', onResize);
+  function renderListBar() {
+    var bar = el('bbgListBar');
+    if (!bar) return;
+    var admin = S.mode === 'admin';
+    bar.innerHTML = ''
+      + '<button type="button" class="bbg-ib" id="bbgExit" aria-label="Back to dashboard">' + icon('back') + '</button>'
+      + '<div class="bbg-bar-title">Messages<small id="bbgListSub"></small></div>'
+      + (admin
+          ? '<button type="button" class="bbg-ib is-gold" id="bbgNewDmBtn" title="Message a client" aria-label="Message a client">' + icon('compose') + '</button>'
+            + '<button type="button" class="bbg-pill-btn" id="bbgNewGroupBtn" title="Create a care group">' + icon('plus') + '<span>New group</span></button>'
+            + '<button type="button" class="bbg-ib" id="bbgListMore" aria-label="More">' + icon('more') + '</button>'
+          : '');
+    el('bbgExit').onclick = function () { goBack(); };
+    if (admin) {
+      el('bbgNewDmBtn').onclick = function () { BBG.openNewMessage(); };
+      el('bbgNewGroupBtn').onclick = function () { BBG.openCreateGroup(); };
+      el('bbgListMore').onclick = function () {
+        var s = sheet(
+          sheetItem('contact', 'mail', 'Contact form messages')
+          + sheetItem('wa', 'phone', 'WhatsApp drafts'));
+        wireSheet(s, function (act) { openAdminDrawer(act === 'wa' ? 'bbAdminWaDrawer' : 'bbAdminContactDrawer'); });
+      };
     }
-    sizeShell();
-    setTimeout(sizeShell, 260);
+    updateListSub();
   }
 
-  function setPane(p) {
-    var shell = el('bbgShell');
-    if (shell) shell.setAttribute('data-pane', p);
+  /** Close messaging and show one of the admin page's secondary drawers. */
+  function openAdminDrawer(id) {
+    BBG.close();
+    var d = el(id);
+    if (!d) return;
+    d.open = true;
+    setTimeout(function () { try { d.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { /* old webview */ } }, 60);
   }
+
+  function renderIdle() {
+    var body = el('bbgChatBody');
+    if (!body) return;
+    el('bbgChatBar').innerHTML = '';
+    el('bbgCmpHost').innerHTML = '';
+    body.innerHTML = '<div class="bbg-idle">'
+      + '<div class="bbg-idle-mark">' + icon('chat') + '</div>'
+      + '<div><b>BodyBank Messages</b>'
+      + (S.mode === 'admin'
+          ? 'Pick a conversation, message a client, or start a care group.'
+          : 'Your care team and your Lifestyle Manager, in one place.')
+      + '</div></div>';
+  }
+
+  function setView(v) {
+    S.view = v;
+    var r = root();
+    if (r) r.setAttribute('data-view', v);
+  }
+
+  // ── keyboard-safe height (iOS / Android) ────────────────────────────────
+  // Reading visualViewport forces a full layout, so this never runs inside the
+  // click that opens messaging (it cost ~37 ms there) — only after a paint, or
+  // from the viewport's own resize events. With no keyboard up, CSS 100dvh is
+  // already right and the inline override is cleared.
+  function syncViewport() {
+    var r = root();
+    if (!r || r.hidden) return;
+    var vv = window.visualViewport;
+    if (!vv) return;
+    var h = Math.round(vv.height);
+    var top = Math.round(vv.offsetTop || 0);
+    if (Math.abs(h - window.innerHeight) < 2 && !top) {
+      r.style.height = '';
+      r.style.transform = '';
+    } else {
+      r.style.height = h + 'px';
+      r.style.transform = top ? 'translateY(' + top + 'px)' : '';
+    }
+    if (S.stick) scrollToBottom();
+  }
+
+  function bindGlobals() {
+    if (BBG._globalsBound) return;
+    BBG._globalsBound = true;
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onVisibility);
+    window.addEventListener('popstate', onPopState);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', syncViewport);
+      window.visualViewport.addEventListener('scroll', syncViewport);
+    }
+    window.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape' || !isOpen()) return;
+      if (document.querySelector('.bbg-veil, .bbg-modal-veil, .bbg-lightbox')) return;
+      goBack();
+    });
+  }
+
+  // ── back navigation ─────────────────────────────────────────────────────
+  // One history entry per level (list, chat on a phone, info), so the browser
+  // and Android back buttons walk the same path as the on-screen arrows.
+  var NAV = { depth: 0, skip: 0 };
+  function navPush(level) {
+    try { history.pushState({ bbg: level }, ''); NAV.depth++; } catch (e) { /* sandboxed */ }
+  }
+  function goBack() {
+    if (NAV.depth > 0) { history.back(); return; }
+    applyBack();
+  }
+  function onPopState() {
+    if (NAV.skip > 0) { NAV.skip--; return; }
+    if (!isOpen()) return;
+    NAV.depth = Math.max(0, NAV.depth - 1);
+    applyBack();
+  }
+  function applyBack() {
+    closeTransients();
+    if (S.infoOpen) { hideInfo(); return; }
+    if (S.view === 'chat' && !isDesktop()) { leaveChat(); return; }
+    exitMessaging();
+  }
+  try { if (history.state && history.state.bbg) history.replaceState(null, ''); } catch (e) { /* ignore */ }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // OPEN / CLOSE
+  // ══════════════════════════════════════════════════════════════════════════
 
   /**
-   * Size the shell to the space actually left on screen.
-   *
-   * A CSS `calc(100dvh - <magic>)` cannot know how tall the page chrome above
-   * the shell is, and it guessed wrong: the composer ended up underneath the
-   * fixed bottom nav, so the send button was unreachable on a phone.
+   * Show messaging. `opts.groupId` jumps straight into a group (push links).
    */
-  function sizeShell() {
-    var shell = el('bbgShell');
-    if (!shell || !shell.offsetParent) return;
-    var vh = window.innerHeight || document.documentElement.clientHeight;
-    var top = shell.getBoundingClientRect().top;
-    if (!(top > 0 && top < vh)) return;
+  BBG.open = function (opts) {
+    opts = opts || {};
+    var mode = opts.mode || modeFromUser();
+    if (S.mode !== mode) { S.mode = mode; renderListBar(); }
+    var r = ensureRoot();
+    if (r.hidden) {
+      r.hidden = false;
+      document.documentElement.classList.add('bbg-lock');
+      setView('list');
+      navPush('list');
+      // Only touch devices have an on-screen keyboard to make room for.
+      if (('ontouchstart' in window) || navigator.maxTouchPoints > 0) {
+        requestAnimationFrame(function () { setTimeout(syncViewport, 0); });
+      }
+    }
+    startListPoll();
+    BBG.refreshList(!opts.groupId);
+    if (opts.groupId) BBG.openGroup(opts.groupId);
+  };
 
-    var reserve = 0;
-    ['#userBottomNav', '#adminBottomNav'].forEach(function (sel) {
-      var n = document.querySelector(sel);
-      if (!n) return;
-      var cs = window.getComputedStyle(n);
-      if (cs.display === 'none' || cs.visibility === 'hidden') return;
-      var r = n.getBoundingClientRect();
-      if (!r.height) return;
-      // Testing `bottom >= innerHeight` is too strict: the member nav is a
-      // floating pill that stops a few px short of the edge.
-      if (cs.position === 'fixed' && r.top > vh * 0.6) reserve = Math.max(reserve, vh - r.top);
-    });
+  /**
+   * Hide messaging without navigating anywhere. Used when the app itself moves
+   * to another tab, at logout, and for the admin's drawers.
+   */
+  BBG.close = function () {
+    var r = root();
+    if (!r || r.hidden) return;
+    saveDraft();
+    stopPoll();
+    stopListPoll();
+    closeTransients();
+    r.hidden = true;
+    r.style.height = '';
+    r.style.transform = '';
+    document.documentElement.classList.remove('bbg-lock');
+    resetConversation();
+    hideInfo(true);
+    setView('list');
+    renderIdle();
+    renderList();
+    // Drop the history entries messaging added, without reacting to them.
+    if (NAV.depth > 0) {
+      NAV.skip++;
+      var n = NAV.depth;
+      NAV.depth = 0;
+      try { history.go(-n); } catch (e) { NAV.skip = 0; }
+    }
+  };
 
-    shell.style.height = Math.max(360, Math.round(vh - top - reserve - 12)) + 'px';
-
-    // The admin panel parks a floating AI/WhatsApp button in the bottom-right
-    // corner at a higher z-index than the shell, and it landed exactly on top of
-    // the send button. Measure any fixed element overlapping the shell's
-    // bottom-right corner and reserve a gutter for it.
-    var rect = shell.getBoundingClientRect();
-    var gutter = 0;
-    ['.admin-ai-wa-fab-wrap', '.wa-public-fab'].forEach(function (sel) {
-      var f = document.querySelector(sel);
-      if (!f) return;
-      var cs = window.getComputedStyle(f);
-      if (cs.display === 'none' || cs.visibility === 'hidden') return;
-      var fr = f.getBoundingClientRect();
-      if (!fr.width || !fr.height) return;
-      var overlaps = fr.right > rect.left && fr.left < rect.right
-        && fr.bottom > rect.bottom - 90 && fr.top < rect.bottom;
-      if (overlaps) gutter = Math.max(gutter, Math.round(rect.right - fr.left) + 12);
-    });
-    shell.style.setProperty('--bbg-fab-gutter', gutter + 'px');
+  /** The back arrow on the list: leave messaging for the dashboard. */
+  function exitMessaging() {
+    BBG.close();
+    if (S.mode === 'admin') {
+      if (typeof window.switchToSection === 'function') window.switchToSection('dashboard');
+    } else if (typeof window.switchUserTab === 'function') {
+      window.switchUserTab('home');
+    }
   }
-  BBG.sizeShell = sizeShell;
 
-  var _resizeTimer = null;
-  function onResize() {
-    clearTimeout(_resizeTimer);
-    _resizeTimer = setTimeout(function () {
-      sizeShell();
-      if (S.stick) scrollToBottom();
-    }, 120);
+  function closeTransients() {
+    each(document.querySelectorAll('.bbg-veil, .bbg-modal-veil, .bbg-lightbox'), function (n) { n.remove(); });
   }
 
-  function isDesktop() {
-    try { return window.matchMedia('(min-width:1024px)').matches; }
-    catch (e) { return (window.innerWidth || 0) >= 1024; }
+  function resetConversation() {
+    S.opening = null;
+    S.conv = null; S.convId = null; S.groupId = null; S.kind = null;
+    S.messages = []; S.group = null; S.members = []; S.me = null;
+    S.replyTo = null; S.pendingFile = null; S.searchOpen = false; S.emojiOpen = false;
+    S.unreadFrom = null; S.unreadCount = 0; S.newWhileAway = 0;
+  }
+
+  function leaveChat() {
+    saveDraft();
+    stopPoll();
+    resetConversation();
+    setView('list');
+    renderList();
+    // Let the slide-out finish before emptying the chat column.
+    setTimeout(function () { if (!S.conv) renderIdle(); }, 320);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // CONVERSATION LIST
+  // ON-DEVICE STORE
   // ══════════════════════════════════════════════════════════════════════════
-
-  // ── On-device store ──────────────────────────────────────────────────────
 
   function storeKey() { return STORE_PREFIX + myId(); }
 
-  /** Load this account's saved inbox and conversations into memory, once. */
   function loadStore() {
     var uid = myId();
     if (!uid || S.hydratedFor === uid) return;
     S.hydratedFor = uid;
+    STORE_OLD.forEach(function (p) { lsDel(p + uid); });
     var raw = lsGet(storeKey());
     if (!raw) return;
     try {
       var saved = JSON.parse(raw);
-      if (!saved || saved.v !== 1) return;
+      if (!saved || saved.v !== 2) return;
       if (Array.isArray(saved.rows) && !S.conversations.length) S.conversations = saved.rows;
       var convs = saved.convs || {};
       Object.keys(convs).forEach(function (k) { if (!S.cache[k]) S.cache[k] = convs[k]; });
-    } catch (e) { /* a corrupt entry is simply ignored and overwritten */ }
+    } catch (e) { /* a corrupt entry is ignored and overwritten */ }
   }
 
   var _persistTimer = null;
@@ -471,12 +578,10 @@
         copy.hasMore = !!c.hasMore || msgs.length > STORE_MAX_MSGS;
         convs[pair[0]] = copy;
       });
-    var payload = JSON.stringify({ v: 1, at: Date.now(), rows: S.conversations.slice(0, 60), convs: convs });
+    var rows = S.conversations.filter(function (r) { return r.id !== 'dm:new'; }).slice(0, 80);
+    var payload = JSON.stringify({ v: 2, at: Date.now(), rows: rows, convs: convs });
     try { localStorage.setItem(storeKey(), payload); }
-    catch (e) {
-      // Over quota: drop the entry rather than leave a half-written one behind.
-      try { localStorage.removeItem(storeKey()); } catch (_) { /* blocked */ }
-    }
+    catch (e) { lsDel(storeKey()); /* over quota: drop rather than keep a half write */ }
   }
 
   function cachePut(id, entry) {
@@ -486,56 +591,57 @@
     persist();
   }
 
-  /** The open conversation, in the shape the cache stores. */
   function snapshot() {
-    if (isDirect()) return { kind: 'direct', messages: S.messages };
+    if (isDirect()) return { kind: 'direct', messages: S.messages, hasMore: S.hasMore };
     return {
       kind: 'group', group: S.group, members: S.members, me: S.me,
       messages: S.messages, maxSeq: S.maxSeq, hasMore: S.hasMore,
       rev: S.rev, reactionChoices: S.reactionChoices
     };
   }
+  function snapshotOpen() { if (S.conv) cachePut(S.conv.id, snapshot()); }
 
   /**
    * Forget everything this account had on the device. Called at logout BEFORE
-   * the session is cleared. Also resets the in-memory engine: it lives for the
-   * life of the page, so without this the next account to sign in on the same
-   * tab would briefly see the previous account's conversations.
+   * the session is cleared. The engine lives for the life of the page, so it is
+   * reset too — the next account on the same tab must see nothing of this one.
    */
   BBG.forget = function () {
     var uid = myId();
+    BBG.close();
     stopPoll();
-    if (S.listTimer) { clearInterval(S.listTimer); S.listTimer = null; }
+    stopListPoll();
     clearTimeout(_persistTimer);
     if (uid) {
-      try { localStorage.removeItem(STORE_PREFIX + uid); } catch (e) { /* blocked */ }
-      try { sessionStorage.removeItem('bb_inbox_' + uid); } catch (e) { /* previous build's key */ }
+      lsDel(STORE_PREFIX + uid);
+      STORE_OLD.forEach(function (p) { lsDel(p + uid); });
+      try { sessionStorage.removeItem('bb_inbox_' + uid); } catch (e) { /* an older build's key */ }
     }
     S.conversations = []; S.cache = {}; S.prefetching = {};
     S.listLoaded = false; S.listAt = 0; S.hydratedFor = null; S._warming = false;
-    S.conv = null; S.convId = null; S.groupId = null; S.kind = null; S.opening = null;
-    S.messages = []; S.group = null; S.members = []; S.me = null;
+    resetConversation();
     S.drafts = {}; S.rev = 0; S.maxSeq = 0; S.inflight = 0; S.sendChain = Promise.resolve();
-    ['bbGroupChatHost', 'bbAdminInboxHost'].forEach(function (id) {
-      var h = el(id);
-      if (h) { h.innerHTML = ''; delete h.dataset.mounted; }
-    });
+    S.autoOpen = {}; S.filter = 'all'; S.listQuery = '';
+    var r = root();
+    if (r) r.remove();
+    NAV.depth = 0;
   };
 
-  /** Paint the inbox from memory or the device store before the network answers. */
+  // ══════════════════════════════════════════════════════════════════════════
+  // CONVERSATION LIST
+  // ══════════════════════════════════════════════════════════════════════════
+
   function paintCachedList() {
     loadStore();
     if (!S.conversations.length) return false;
-    renderFilters(); renderList(); updateListSub();
+    renderTabs(); renderList(); updateListSub();
     return true;
   }
 
   /**
-   * Should a 1-to-1 row show its "new activity" dot?
-   *
-   * thread_messages has no read column, so this is a per-device mark. Keying off
-   * the sender of the LAST message (which the inbox returns) keeps it honest:
-   * your own reply never re-flags the row as unread.
+   * "New activity" dot for a 1-to-1 row. thread_messages has no read column, so
+   * this is a per-device mark keyed off the sender of the last PERSONAL message:
+   * your own reply never flags the row.
    */
   function directDot(row) {
     if (!row.threadId || !row.lastMessageAt) return false;
@@ -555,23 +661,34 @@
   }
 
   function applyInbox(rows) {
-    // An admin who just opened a brand-new 1-to-1 from search has a row the
-    // server does not return yet (no messages). Keep it until it has some.
+    // A chat opened from "Message a client" has no messages yet, so the server
+    // does not list it. Keep it until it does.
     var local = S.conversations.filter(function (c) {
       return c.type === 'direct' && c.threadId && !c.lastMessageAt
         && !rows.some(function (r) { return r.id === c.id; });
     });
-    rows.forEach(function (r) { if (r.type === 'direct') r.unreadDot = directDot(r); });
+    rows.forEach(function (r) {
+      if (r.type === 'direct') r.unreadDot = directDot(r);
+      var old = S.conversations.find(function (c) { return c.id === r.id; });
+      if (old && old.lastFailed && old.lastPreview === r.lastPreview) r.lastFailed = true;
+    });
     S.conversations = rows.concat(local).sort(byRecency);
+    // Keep the open conversation's row object stable for identity checks.
+    if (S.conv) {
+      var fresh = S.conversations.find(function (c) { return c.id === S.conv.id; });
+      if (fresh) Object.keys(fresh).forEach(function (k) { S.conv[k] = fresh[k]; });
+      S.conversations = S.conversations.map(function (c) { return c.id === S.conv.id ? S.conv : c; });
+    }
     S.listLoaded = true;
     S.listAt = Date.now();
     persist();
   }
 
+  function prefetchTop() { S.conversations.slice(0, 4).forEach(prefetch); }
+
   /**
-   * Desktop opens the newest conversation on arrival. Rendering a whole
-   * transcript inside the same task meant the list could not paint until it
-   * finished; yielding one frame puts the list on screen first.
+   * Desktop opens the newest conversation on arrival — after the list has
+   * painted, so rendering a transcript never delays the list.
    */
   var _openAfterPaint = false;
   function openAfterPaint(row) {
@@ -579,62 +696,35 @@
     _openAfterPaint = true;
     var go = function () {
       _openAfterPaint = false;
-      if (S.convId == null && row) openConversation(row);
+      if (isOpen() && S.convId == null && row && isDesktop()) openConversation(row, { noHistory: true });
     };
-    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(function () { setTimeout(go, 0); });
-    else setTimeout(go, 0);
-  }
-
-  /** Warm the few most recent conversations so opening them costs nothing. */
-  function prefetchTop() {
-    S.conversations.slice(0, 3).forEach(prefetch);
+    requestAnimationFrame(function () { setTimeout(go, 0); });
   }
 
   BBG.refreshList = async function (autoOpenFirst) {
-    var box = el('bbgConvList');
+    var box = el('bbgList');
     if (!box) return;
     var painted = paintCachedList();
-    if (!painted) {
-      box.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">&#128172;</span>Loading conversations&hellip;</div>';
-    }
-    if (autoOpenFirst && painted && isDesktop() && S.convId == null && S.conversations.length) {
-      openAfterPaint(S.conversations[0]);
-    }
-    // A mount right after the warm-up does not need a second identical request.
+    if (!painted) box.innerHTML = skeletonRows();
+    if (autoOpenFirst && painted && S.conversations.length) openAfterPaint(S.conversations[0]);
+    // Just warmed: no need for a second identical request.
     if (autoOpenFirst && S.listAt && Date.now() - S.listAt < 6000) { prefetchTop(); return; }
     try {
-      // ONE round trip. The server merges care groups with the 1-to-1 threads
-      // that actually have messages, already filtered and sorted.
       var res = await api('GET', '/api/groups/inbox');
       if (!res || res.error || !Array.isArray(res.conversations)) {
-        if (!S.conversations.length) {
-          box.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">&#9888;&#65039;</span>'
-            + '<b>Could not load conversations</b>Check your connection and try again.</div>';
-        }
+        if (!S.conversations.length) box.innerHTML = emptyHtml('⚠️', 'Could not load conversations', 'Check your connection and try again.');
         return;
       }
       applyInbox(res.conversations);
-      renderFilters();
-      renderList();
-      updateListSub();
-      publishUnread();
-      if (autoOpenFirst && isDesktop() && S.convId == null && S.conversations.length) {
-        openAfterPaint(S.conversations[0]);
-      }
+      renderTabs(); renderList(); updateListSub(); publishUnread();
+      if (autoOpenFirst && S.conversations.length) openAfterPaint(S.conversations[0]);
       prefetchTop();
     } catch (e) {
-      if (!S.conversations.length) {
-        box.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">&#9888;&#65039;</span>'
-          + '<b>Could not load conversations</b>Check your connection and try again.</div>';
-      }
+      if (!S.conversations.length) box.innerHTML = emptyHtml('⚠️', 'Could not load conversations', 'Check your connection and try again.');
     }
   };
 
-  /**
-   * Fetch a conversation into the cache without opening it — on boot for the
-   * newest rows, and on hover/touch for whatever is about to be tapped. A row
-   * already cached this minute is left alone.
-   */
+  /** Fetch a conversation into the cache without opening it. */
   function prefetch(row) {
     if (!row || S.prefetching[row.id]) return;
     var c = S.cache[row.id];
@@ -642,25 +732,22 @@
     if (row.type === 'direct' && !row.threadId) return;
     S.prefetching[row.id] = true;
     var done = function () { delete S.prefetching[row.id]; };
+    var notOpen = function () { return !(S.conv && S.conv.id === row.id); };
     if (row.type === 'group') {
-      api('GET', '/api/groups/' + encodeURIComponent(row.id))
-        .then(function (d) {
-          // Never overwrite the conversation that is open — it has live state.
-          if (d && !d.error && d.group && !(S.conv && S.conv.id === row.id)) cachePut(row.id, shapeGroup(d));
-        })
-        .catch(function () {})
-        .then(done, done);
+      api('GET', '/api/groups/' + enc(row.id))
+        .then(function (d) { if (d && !d.error && d.group && notOpen()) cachePut(row.id, shapeGroup(d)); })
+        .catch(function () {}).then(done, done);
     } else {
-      api('GET', '/api/threads/' + encodeURIComponent(row.threadId) + '/messages')
-        .then(function (m) {
-          if (Array.isArray(m) && !(S.conv && S.conv.id === row.id)) cachePut(row.id, { kind: 'direct', messages: mapDirect(m, row) });
+      api('GET', '/api/groups/dm/' + enc(row.threadId))
+        .then(function (d) {
+          if (d && Array.isArray(d.messages) && notOpen()) {
+            cachePut(row.id, { kind: 'direct', messages: mapDirect(d.messages, row), hasMore: !!d.hasMore });
+          }
         })
-        .catch(function () {})
-        .then(done, done);
+        .catch(function () {}).then(done, done);
     }
   }
 
-  /** Normalise a group detail response into the shape the renderer consumes. */
   function shapeGroup(d) {
     return {
       kind: 'group',
@@ -676,14 +763,24 @@
   }
 
   /**
-   * Warm the inbox before the user asks for it — as soon as a dashboard is up.
-   * The device store paints first; the network refresh follows.
+   * Warm messaging before it is asked for: as soon as a dashboard is up, fetch
+   * the inbox, build the (hidden) surface, prefetch the newest conversations.
+   * Nothing is opened, so nothing is marked read.
    */
   BBG.warm = function () {
     if (!window.currentUser || !window.currentUser.token) return;
-    var role = String((window.currentUser && window.currentUser.role) || '');
-    S.mode = (role === 'admin' || role === 'superadmin') ? 'admin' : 'member';
+    var mode = modeFromUser();
+    if (S.mode !== mode) { S.mode = mode; renderListBar(); }
     loadStore();
+    ensureRoot();
+    if (!isOpen() && S.conversations.length) { renderTabs(); renderList(); updateListSub(); }
+    var deep = null;
+    try { deep = new URLSearchParams(location.search).get('group'); } catch (e) { /* old browser */ }
+    if (deep) {
+      try { history.replaceState(history.state, '', location.pathname); } catch (e) { /* ignore */ }
+      BBG.open({ mode: mode, groupId: deep });
+      return;
+    }
     if (S._warming || (S.listAt && Date.now() - S.listAt < 6000)) return;
     S._warming = true;
     api('GET', '/api/groups/inbox')
@@ -691,67 +788,84 @@
         if (!res || res.error || !Array.isArray(res.conversations)) return;
         applyInbox(res.conversations);
         publishUnread();
-        premount();
-        if (el('bbgConvList')) { renderFilters(); renderList(); updateListSub(); }
+        renderTabs(); renderList(); updateListSub();
         prefetchTop();
       })
       .catch(function () {})
       .then(function () { S._warming = false; }, function () { S._warming = false; });
   };
 
+  function isUnread(c) { return Number(c.unread || 0) > 0 || !!c.unreadDot; }
+
   function filtered() {
     var q = S.listQuery;
     return S.conversations.filter(function (c) {
-      if (S.filter === 'direct' && c.type !== 'direct') return false;
+      if (S.filter === 'unread' && !isUnread(c)) return false;
       if (S.filter === 'group' && c.type !== 'group') return false;
+      if (S.filter === 'direct' && c.type !== 'direct') return false;
       if (!q) return true;
-      return String(c.name || '').toLowerCase().indexOf(q) >= 0
-        || String(c.lastPreview || '').toLowerCase().indexOf(q) >= 0
-        || String(c.clientName || '').toLowerCase().indexOf(q) >= 0
-        || String(c.email || '').toLowerCase().indexOf(q) >= 0;
+      return [c.name, c.lastPreview, c.clientName, c.email].some(function (v) {
+        return String(v || '').toLowerCase().indexOf(q) >= 0;
+      });
     });
   }
 
-  function renderFilters() {
-    var host = el('bbgFilters');
+  function renderTabs() {
+    var host = el('bbgTabs');
     if (!host) return;
-    var nG = S.conversations.filter(function (c) { return c.type === 'group'; }).length;
-    var nD = S.conversations.filter(function (c) { return c.type === 'direct'; }).length;
+    var unread = S.conversations.filter(isUnread).length;
     var defs = [
-      { k: 'all', label: 'All', n: S.conversations.length },
-      { k: 'group', label: 'Groups', n: nG },
-      { k: 'direct', label: 'One-to-One', n: nD }
+      { k: 'all', label: 'All' },
+      { k: 'unread', label: 'Unread', n: unread },
+      { k: 'group', label: 'Groups' },
+      { k: 'direct', label: S.mode === 'admin' ? 'Clients' : 'Coach' }
     ];
     host.innerHTML = defs.map(function (d) {
-      return '<button type="button" class="bbg-chip' + (S.filter === d.k ? ' is-active' : '') + '" data-f="' + d.k + '">'
-        + esc(d.label) + '<span class="bbg-chip-count">' + d.n + '</span></button>';
+      return '<button type="button" role="tab" class="bbg-tab' + (S.filter === d.k ? ' is-on' : '') + '" data-f="' + d.k + '"'
+        + ' aria-selected="' + (S.filter === d.k) + '">' + esc(d.label) + (d.n ? '<i>' + d.n + '</i>' : '') + '</button>';
     }).join('');
-    Array.prototype.forEach.call(host.querySelectorAll('.bbg-chip'), function (b) {
-      b.onclick = function () { S.filter = b.getAttribute('data-f'); renderFilters(); renderList(); };
+    each(host.querySelectorAll('.bbg-tab'), function (b) {
+      b.onclick = function () { S.filter = b.getAttribute('data-f'); renderTabs(); renderList(); };
     });
+  }
+
+  function skeletonRows() {
+    var one = '<div class="bbg-skel"><i style="width:50px;height:50px;border-radius:50%"></i>'
+      + '<div style="flex:1"><i style="width:45%;height:13px;margin-bottom:9px"></i><i style="width:75%;height:11px"></i></div></div>';
+    return new Array(7).join(one);
+  }
+
+  function emptyHtml(ic, title, text) {
+    return '<div class="bbg-empty"><span class="bbg-empty-i">' + ic + '</span><b>' + esc(title) + '</b>' + esc(text) + '</div>';
   }
 
   function renderList() {
-    var box = el('bbgConvList');
+    var box = el('bbgList');
     if (!box) return;
     var rows = filtered();
-    if (!rows.length) {
-      box.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">🗂️</span>'
-        + '<b>' + (S.listQuery ? 'No matches' : 'No conversations yet') + '</b>'
-        + (S.mode === 'admin'
-            ? 'Create a care group, or wait for a client to start a direct chat.'
-            : 'Your care team conversations will appear here.')
-        + '</div>';
-      return;
+    var foot = '';
+    if (S.mode === 'admin') {
+      foot = '<div class="bbg-listfoot">Only clients you have talked with personally appear here — automated check-ins are hidden.'
+        + '<br><button type="button" id="bbgFootDm">Message a client</button></div>';
     }
-    box.innerHTML = rows.map(convHtml).join('');
-    Array.prototype.forEach.call(box.querySelectorAll('.bbg-conv'), function (b) {
+    if (!rows.length) {
+      var title = S.listQuery ? 'No matches'
+        : (S.filter === 'unread' ? 'You\'re all caught up' : 'No conversations yet');
+      var text = S.listQuery ? 'Try a different name or word.'
+        : (S.mode === 'admin' ? 'Create a care group, or message a client to start.' : 'Messages from your care team will appear here.');
+      box.innerHTML = emptyHtml(S.filter === 'unread' ? '✓' : '💬', title, text) + foot;
+    } else {
+      box.innerHTML = rows.map(convHtml).join('') + foot;
+    }
+    var fd = el('bbgFootDm');
+    if (fd) fd.onclick = function () { BBG.openNewMessage(); };
+    each(box.querySelectorAll('.bbg-conv'), function (b) {
       var find = function () {
-        return S.conversations.find(function (c) { return String(c.id) === b.getAttribute('data-id'); });
+        var id = b.getAttribute('data-id');
+        return S.conversations.find(function (c) { return String(c.id) === id; });
       };
       b.onclick = function () { var row = find(); if (row) openConversation(row); };
-      // Start fetching the moment the pointer lands on a row — by the time the
-      // click registers the conversation is usually already in the cache.
+      // Start fetching as soon as a pointer lands on the row.
       var warm = function () { var row = find(); if (row) prefetch(row); };
       b.addEventListener('pointerenter', warm);
       b.addEventListener('touchstart', warm, { passive: true });
@@ -759,69 +873,67 @@
   }
 
   function convHtml(c) {
+    var group = c.type === 'group';
     var unread = Number(c.unread || 0);
-    var dot = !unread && !!c.unreadDot;
-    var isGroup = c.type === 'group';
-    var who = (isGroup && c.lastSenderName && c.lastKind !== 'system')
-      ? '<i>' + esc(c.lastSenderName) + ': </i>' : '';
+    var hot = unread > 0 || !!c.unreadDot;
+    var prefix = '';
+    if (group && c.lastSenderName && c.lastKind !== 'system') {
+      prefix = '<b>' + esc(c.lastSenderName === 'You' ? 'You' : firstName(c.lastSenderName)) + ': </b>';
+    } else if (!group && c.lastMessageAt) {
+      var mine = S.mode === 'admin' ? !!c.lastFromStaff : !c.lastFromStaff;
+      if (mine) prefix = '<b>You: </b>';
+    }
+    var prev = c.lastFailed
+      ? '<span class="bbg-fail">Not sent: </span>' + esc(c.lastPreview || '')
+      : prefix + esc(c.lastPreview || (group ? 'No messages yet' : 'Start a conversation'));
     return ''
-      + '<button type="button" class="bbg-conv' + (unread || dot ? ' has-unread' : '')
-      +   (String(S.conv && S.conv.id) === String(c.id) ? ' is-active' : '') + '" data-id="' + esc(c.id) + '">'
-      +   avatarHtml(isGroup ? (c.clientName || c.name) : c.name, c.avatarUrl || c.clientAvatar, isGroup ? 'bbg-avatar--group' : '')
-      +   '<div class="bbg-conv-body">'
-      +     '<div class="bbg-conv-top">'
-      +       '<span class="bbg-conv-name">' + esc(c.name) + '</span>'
-      +       '<span class="bbg-conv-time">' + esc(fmtListTime(c.lastMessageAt)) + '</span>'
-      +     '</div>'
-      +     '<div class="bbg-conv-bottom">'
-      +       '<span class="bbg-conv-preview">' + who + esc(c.lastPreview || 'No messages yet') + '</span>'
-      +       '<span class="bbg-conv-tag">' + (isGroup ? 'Group' : '1:1') + '</span>'
-      +       (c.muted ? '<span class="bbg-conv-flag" title="Muted">🔕</span>' : '')
-      +       (c.archived ? '<span class="bbg-conv-flag" title="Archived">📦</span>' : '')
-      +       (unread ? '<span class="bbg-badge">' + (unread > 99 ? '99+' : unread) + '</span>' : '')
-      +       (dot ? '<span class="bbg-badge bbg-badge--dot" title="New activity"></span>' : '')
+      + '<button type="button" class="bbg-conv' + (hot ? ' is-unread' : '')
+      +   (S.conv && String(S.conv.id) === String(c.id) ? ' is-open' : '') + '" data-id="' + esc(c.id) + '">'
+      +   avatarHtml(group ? (c.clientName || c.name) : c.name, c.avatarUrl || c.clientAvatar, group ? 'bbg-av--g' : '')
+      +   '<div class="bbg-conv-main">'
+      +     '<div class="bbg-conv-l1"><span class="bbg-conv-name">' + esc(c.name) + '</span>'
+      +       '<span class="bbg-conv-time">' + esc(fmtListTime(c.lastMessageAt)) + '</span></div>'
+      +     '<div class="bbg-conv-l2"><span class="bbg-conv-prev">' + prev + '</span>'
+      +       (c.muted ? '<span class="bbg-flag" title="Muted">🔕</span>' : '')
+      +       (c.archived ? '<span class="bbg-conv-kind">Archived</span>' : '')
+      +       (unread ? '<span class="bbg-count">' + (unread > 99 ? '99+' : unread) + '</span>'
+                : (c.unreadDot ? '<span class="bbg-dot" title="New"></span>' : ''))
       +     '</div>'
       +   '</div>'
       + '</button>';
   }
 
-  /** A direct row has no countable unread, so its dot counts as one. */
   function unreadTotal() {
-    return S.conversations.reduce(function (a, c) {
-      return a + (Number(c.unread || 0) || (c.unreadDot ? 1 : 0));
-    }, 0);
+    return S.conversations.reduce(function (a, c) { return a + (Number(c.unread || 0) || (c.unreadDot ? 1 : 0)); }, 0);
   }
-
   function updateListSub() {
     var sub = el('bbgListSub');
     if (!sub) return;
-    var total = unreadTotal();
-    sub.innerHTML = total
-      ? '<b>' + total + ' unread</b>'
-      : esc(S.conversations.length + ' conversation' + (S.conversations.length === 1 ? '' : 's'));
+    var n = unreadTotal();
+    sub.textContent = n ? n + ' unread' : '';
   }
-
   function publishUnread() {
     var total = unreadTotal();
     window.bbGroupUnread = total;
-    try { window.dispatchEvent(new CustomEvent('bb:group-unread', { detail: { total: total } })); }
-    catch (e) { /* older webviews */ }
+    try { window.dispatchEvent(new CustomEvent('bb:group-unread', { detail: { total: total } })); } catch (e) { /* old webview */ }
   }
+  function refreshListRow() { renderTabs(); renderList(); updateListSub(); publishUnread(); }
 
-  function openConversation(row) {
+  function openConversation(row, opts) {
     if (!row) return;
-    if (row.type === 'group') return BBG.openGroup(row.id, { row: row });
-    return openDirect(row);
+    if (row.type === 'group') return BBG.openGroup(row.id, { row: row, noHistory: opts && opts.noHistory });
+    return openDirect(row, opts);
   }
   BBG.openConversation = openConversation;
 
   // ══════════════════════════════════════════════════════════════════════════
-  // OPEN — shared prologue
+  // OPENING A CONVERSATION
   // ══════════════════════════════════════════════════════════════════════════
 
-  function beginOpen(row, kind, convId) {
+  function beginOpen(row, kind, convId, opts) {
     stopPoll();
     saveDraft();
+    closeFind();
     S.opening = String(row.id);
     S.conv = row;
     S.kind = kind;
@@ -829,178 +941,185 @@
     S.groupId = kind === 'group' ? convId : null;
     S.messages = [];
     S.maxSeq = 0;
+    S.rev = 0;
     S.hasMore = false;
     S.replyTo = null;
     S.pendingFile = null;
     S.stick = true;
-    S.searchOpen = false;
+    S.newWhileAway = 0;
+    S.unreadFrom = null;
+    S.unreadCount = 0;
+    S.emojiOpen = false;
     S.media = null;
-    el('bbgSearchHost').innerHTML = '';
-    setPane('chat');
+    if (S.infoOpen && !isDesktop()) hideInfo(true);
+    if (!isDesktop() && S.view !== 'chat') {
+      setView('chat');
+      if (!(opts && opts.noHistory)) navPush('chat');
+    }
     renderList();
-    S.rev = 0;
-    // Only show the spinner when there is nothing cached to paint instead.
+    renderChatFrame();
     loadStore();
     if (!S.cache[row.id]) {
-      el('bbgTranscript').innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">&#128172;</span>Opening&hellip;</div>';
-      el('bbgComposerHost').innerHTML = '';
+      el('bbgThread').innerHTML = '<div class="bbg-empty"><span class="bbg-empty-i">💬</span>Opening…</div>';
     }
   }
 
   function stillOpening(row) { return S.opening === String(row.id); }
 
-  function errBox(msg) {
-    return '<div class="bbg-empty"><span class="bbg-empty-icon">⚠️</span><b>' + esc(msg) + '</b>Try again in a moment.</div>';
+  /** The chat column's skeleton: header, thread, jump button, composer host. */
+  function renderChatFrame() {
+    el('bbgChatBody').innerHTML = '<div class="bbg-thread" id="bbgThread" aria-live="polite"></div>'
+      + '<button type="button" class="bbg-jump" id="bbgJump" aria-label="Scroll to latest">' + icon('down') + '<b></b></button>';
+    el('bbgJump').onclick = function () { S.stick = true; S.newWhileAway = 0; scrollToBottom(); markRead(); renderJump(); };
+    el('bbgThread').onscroll = onThreadScroll;
+    renderHeader();
+    renderComposer();
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // GROUP CONVERSATION
-  // ══════════════════════════════════════════════════════════════════════════
-
+  // ── group ───────────────────────────────────────────────────────────────
   BBG.openGroup = async function (groupId, opts) {
     opts = opts || {};
     if (!groupId) return;
+    if (!isOpen()) { BBG.open({ groupId: groupId }); return; }
     var row = opts.row
       || S.conversations.find(function (c) { return c.type === 'group' && c.id === groupId; })
       || { id: groupId, type: 'group', name: 'Group' };
-    beginOpen(row, 'group', groupId);
+    beginOpen(row, 'group', groupId, opts);
 
-    // Cached (or prefetched) — paint immediately, then reconcile in the
-    // background. This is the difference between an open that feels instant and
-    // one that waits on a round trip.
     var cached = S.cache[row.id];
     var painted = false;
-    if (cached && cached.kind === 'group') {
-      applyGroup(cached);
-      painted = true;
-    }
+    if (cached && cached.kind === 'group') { applyGroup(cached, false); painted = true; }
 
     try {
-      // ONE request: detail + members + the newest page all arrive together.
-      var d = await api('GET', '/api/groups/' + encodeURIComponent(groupId));
+      // ONE request: detail + members + the newest page.
+      var d = await api('GET', '/api/groups/' + enc(groupId));
       if (!stillOpening(row)) return;
       if (!d || d.error || !d.group) {
-        if (!painted) el('bbgTranscript').innerHTML = errBox((d && d.error) || 'Could not open this conversation.');
+        if (!painted) el('bbgThread').innerHTML = emptyHtml('⚠️', (d && d.error) || 'Could not open this conversation', 'Try again in a moment.');
         return;
       }
-      var shaped = shapeGroup(d);
-      applyGroup(shaped, painted);
-      cachePut(row.id, snapshot());
+      if (row.name === 'Group') { row.name = d.group.name; }
+      applyGroup(shapeGroup(d), painted);
+      snapshotOpen();
       markRead();
       startPoll();
-      if (S.detailsOpen) openDetails();
+      if (S.infoOpen) renderInfo();
     } catch (e) {
-      if (!painted && stillOpening(row)) el('bbgTranscript').innerHTML = errBox('Could not open this conversation.');
+      if (!painted && stillOpening(row)) el('bbgThread').innerHTML = emptyHtml('⚠️', 'Could not open this conversation', 'Check your connection.');
       else if (painted) startPoll();
     }
   };
 
-  /**
-   * Render a group payload. `keepScroll` is set on the background refresh that
-   * follows a cached paint, so a reader who has already scrolled up is not
-   * yanked back to the bottom by data they were already looking at.
-   */
-  function applyGroup(d, keepScroll) {
+  function applyGroup(d, refresh) {
+    var firstApply = !refresh;
     S.group = d.group;
     S.members = d.members;
     S.me = d.me;
-    // A bubble sent while this refresh was in flight must survive it.
+    // A bubble typed while this refresh was in flight must survive it.
     S.messages = withPending(d.messages.slice());
     S.maxSeq = d.maxSeq;
     S.hasMore = d.hasMore;
     S.rev = Number(d.rev || 0);
     if (d.reactionChoices) S.reactionChoices = d.reactionChoices;
+    if (!S.unreadFrom) computeUnreadGroup();
     renderHeader();
+    // Only rebuild the composer when postability changed — never under a
+    // person who is typing.
+    var canPost = !!(S.me && S.me.canPost);
+    if (!refresh || canPost !== !!el('bbgInput')) renderComposer();
     renderTranscript();
-    renderComposer();
-    // No sizeShell() here: opening a conversation does not move the shell or
-    // the page around it (it was sized on entering the inbox), and measuring
-    // would force a layout in the middle of the render.
-    if (!keepScroll || S.stick) scrollToBottom(true);
+    if (firstApply || S.stick) landScroll();
   }
 
-  // ══════════════════════════════════════════════════════════════════════════
-  // DIRECT CONVERSATION (legacy /api/threads, unchanged server-side)
-  // ══════════════════════════════════════════════════════════════════════════
+  /** Where the reader left off: the first message someone else sent since. */
+  function computeUnreadGroup() {
+    var last = Number((S.me && S.me.lastReadSeq) || 0);
+    if (!last) return;
+    var fresh = S.messages.filter(function (m) {
+      return !m.mine && m.kind !== 'system' && !m.pending && Number(m.seq) > last;
+    });
+    if (fresh.length) { S.unreadFrom = fresh[0].id; S.unreadCount = fresh.length; }
+  }
 
-  async function openDirect(row) {
-    beginOpen(row, 'direct', row.threadId || '');
+  // ── direct (1-to-1) ─────────────────────────────────────────────────────
+  async function openDirect(row, opts) {
+    if (!isOpen()) BBG.open({ mode: S.mode });
+    beginOpen(row, 'direct', row.threadId || '', opts);
     S.group = null;
     S.members = [];
     S.me = { userId: myId(), isAdmin: isStaff(), isMember: true, canPost: true, canManage: false, muted: false };
-
     renderHeader();
     renderComposer();
 
-    // A thread with no messages yet (member placeholder, or an admin opening a
-    // client they have never written to) has nothing to fetch.
-    if (!row.threadId) {
-      S.messages = [];
-      renderTranscript();
-      startPoll();
-      return;
-    }
+    if (!row.threadId) { renderTranscript(); startPoll(); return; }
 
+    var seenBefore = lsGet(DM_SEEN + row.threadId);
     var cached = S.cache[row.id];
     var painted = false;
     if (cached && cached.kind === 'direct') {
       S.messages = cached.messages.slice();
-      S.maxSeq = cached.messages.length;
+      S.hasMore = !!cached.hasMore;
+      computeUnreadDirect(seenBefore);
       renderTranscript();
-      scrollToBottom(true);
+      landScroll();
       painted = true;
     }
-
     try {
-      var msgs = await api('GET', '/api/threads/' + encodeURIComponent(row.threadId) + '/messages');
+      var d = await api('GET', '/api/groups/dm/' + enc(row.threadId));
       if (!stillOpening(row)) return;
-      if (!Array.isArray(msgs)) {
-        if (!painted) el('bbgTranscript').innerHTML = errBox((msgs && msgs.error) || 'Could not open this conversation.');
+      if (!d || d.error || !Array.isArray(d.messages)) {
+        if (!painted) el('bbgThread').innerHTML = emptyHtml('⚠️', (d && d.error) || 'Could not open this conversation', 'Try again in a moment.');
         return;
       }
-      var mapped = withPending(mapDirect(msgs, row));
-      var changed = !painted || mapped.length !== S.messages.length
-        || (mapped.length && S.messages.length && mapped[mapped.length - 1].id !== S.messages[S.messages.length - 1].id);
+      var mapped = withPending(mapDirect(d.messages, row));
+      var changed = !painted || sig(mapped) !== sig(S.messages);
       S.messages = mapped;
-      S.maxSeq = mapped.length;
-      cachePut(row.id, snapshot());
+      S.hasMore = !!d.hasMore;
       if (changed) {
+        if (!S.unreadFrom) computeUnreadDirect(seenBefore);
         renderTranscript();
-        if (!painted || S.stick) scrollToBottom(true);
+        if (!painted || S.stick) landScroll();
       }
+      snapshotOpen();
       markRead();
       startPoll();
     } catch (e) {
-      if (!painted && stillOpening(row)) el('bbgTranscript').innerHTML = errBox('Could not open this conversation.');
+      if (!painted && stillOpening(row)) el('bbgThread').innerHTML = emptyHtml('⚠️', 'Could not open this conversation', 'Check your connection.');
       else if (painted) startPoll();
     }
   }
 
+  function sig(list) {
+    return list.length + ':' + (list.length ? list[list.length - 1].id : '');
+  }
+
+  function computeUnreadDirect(seenIso) {
+    var seen = seenIso ? new Date(seenIso).getTime() : 0;
+    if (!seen) return;
+    var fresh = S.messages.filter(function (m) {
+      return !m.mine && !m.automated && !m.pending && new Date(m.createdAt).getTime() > seen;
+    });
+    if (fresh.length) { S.unreadFrom = fresh[0].id; S.unreadCount = fresh.length; }
+  }
+
   /**
-   * Map a legacy thread_messages row onto the shape the bubble renderer uses.
-   *
-   * `seq` is the array index: the legacy table has no sequence column, and the
-   * value is only used here for ordering and grouping, never sent to a server.
-   *
-   * "Mine" is decided by ROLE for staff, not by user id — any admin replying in
-   * a client's thread is the same "Lifestyle Manager" voice to the client, and a
-   * second admin must not see their colleague's replies as incoming.
+   * Map 1-to-1 rows onto the bubble shape. "Mine" is decided by ROLE for staff:
+   * any admin replying is the same Lifestyle Manager voice to the client, and a
+   * second admin must not see a colleague's reply as incoming. `automated` only
+   * ever arrives for staff (the server whitelists it).
    */
-  function mapDirect(rows, row) {
+  function mapDirect(rows, conv) {
     var staff = isStaff();
     return rows.map(function (m, i) {
       var fromStaff = m.sender_role === 'admin' || m.sender_role === 'superadmin';
       var mine = staff ? fromStaff : String(m.sender_id) === myId();
-      var name;
-      if (mine) name = 'You';
-      else if (fromStaff) name = 'Lifestyle Manager';
-      else name = (row && row.clientName) || 'Client';
+      var name = mine ? 'You' : (fromStaff ? 'Lifestyle Manager' : ((conv && conv.clientName) || 'Client'));
       return {
         id: m.id,
         seq: i + 1,
         senderId: m.sender_id,
         senderName: name,
-        senderAvatar: (!fromStaff && row && row.clientAvatar) || '',
+        senderAvatar: (!fromStaff && conv && conv.clientAvatar) || '',
         senderRole: fromStaff ? 'lifestyle_manager' : 'client',
         senderRoleLabel: fromStaff ? 'Lifestyle Manager' : 'Client',
         kind: 'text',
@@ -1009,6 +1128,8 @@
         editedAt: null,
         deleted: false,
         mine: mine,
+        automated: staff && !!m.automated,
+        cursor: m.cursor || null,
         reactions: [],
         attachments: [],
         replyTo: null
@@ -1016,12 +1137,16 @@
     });
   }
 
-  var isDirect = function () { return S.kind === 'direct'; };
+  /** The newest confirmed message's paging cursor. */
+  function dmCursorNow() {
+    for (var i = S.messages.length - 1; i >= 0; i--) {
+      var m = S.messages[i];
+      if (!m.pending && !m.failed && m.cursor) return { ts: m.cursor, id: m.id };
+    }
+    return DM_EPOCH;
+  }
 
-  /**
-   * Append the open conversation's unconfirmed bubbles (sending or failed) to a
-   * fresh server list, so a refresh can never make a just-typed message vanish.
-   */
+  /** Append the open conversation's unconfirmed bubbles to a fresh list. */
   function withPending(list) {
     S.messages.forEach(function (m) {
       if ((m.pending || m.failed) && list.indexOf(m) < 0) list.push(m);
@@ -1030,154 +1155,207 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // HEADER / TRANSCRIPT
+  // HEADER + TRANSCRIPT
   // ══════════════════════════════════════════════════════════════════════════
 
   function renderHeader() {
+    var bar = el('bbgChatBar');
+    if (!bar || !S.conv) return;
+    var title, sub, av;
     if (isDirect()) {
-      var c = S.conv || {};
-      el('bbgHeadAvatar').innerHTML = avatarHtml(c.name, c.avatarUrl, 'bbg-avatar--sm');
-      el('bbgHeadTitle').textContent = c.name || 'Direct message';
-      el('bbgHeadSub').innerHTML = '<b>1:1</b> · ' + esc(c.subtitle || 'Direct message');
-      return;
+      var c = S.conv;
+      title = c.name || 'Chat';
+      sub = S.mode === 'admin' ? ((c.email || 'Client') + ' · private chat') : 'Your Lifestyle Manager';
+      av = avatarHtml(c.name, c.avatarUrl, 'bbg-av--sm');
+    } else {
+      var g = S.group || S.conv;
+      title = g.name || 'Group';
+      var names = S.members.map(function (m) {
+        return String(m.userId) === myId() ? null : firstName(m.name);
+      }).filter(Boolean);
+      if (S.members.some(function (m) { return String(m.userId) === myId(); })) names.push('You');
+      sub = names.length ? names.join(', ') : 'Tap for group info';
+      if (S.group && S.group.archived) sub = 'Archived · read only';
+      av = avatarHtml(g.clientName || g.name, g.avatarUrl || g.clientAvatar, 'bbg-av--sm bbg-av--g');
     }
-    var g = S.group || {};
-    el('bbgHeadAvatar').innerHTML = avatarHtml(g.clientName || g.name, g.avatarUrl || g.clientAvatar, 'bbg-avatar--sm bbg-avatar--group');
-    el('bbgHeadTitle').textContent = g.name || '';
-    var names = S.members.slice(0, 4).map(function (m) { return m.name.split(' ')[0]; }).join(', ');
-    var more = S.members.length > 4 ? ' +' + (S.members.length - 4) : '';
-    el('bbgHeadSub').innerHTML = '<b>' + S.members.length + ' member' + (S.members.length === 1 ? '' : 's') + '</b>'
-      + (names ? ' · ' + esc(names + more) : '');
+    bar.innerHTML = ''
+      + '<button type="button" class="bbg-ib bbg-only-phone" id="bbgChatBack" aria-label="Back">' + icon('back') + '</button>'
+      + '<button type="button" class="bbg-who" id="bbgWho">' + av
+      +   '<div class="bbg-who-txt"><div class="bbg-who-name">' + esc(title) + '</div>'
+      +   '<div class="bbg-who-sub">' + esc(sub) + '</div></div></button>'
+      + '<button type="button" class="bbg-ib" id="bbgFindBtn" aria-label="Search messages">' + icon('search') + '</button>'
+      + '<button type="button" class="bbg-ib" id="bbgChatMore" aria-label="More options">' + icon('more') + '</button>'
+      + '<div id="bbgFindHost"></div>';
+    el('bbgChatBack').onclick = function () { goBack(); };
+    el('bbgWho').onclick = function () { openInfo(); };
+    el('bbgFindBtn').onclick = function () { toggleFind(); };
+    el('bbgChatMore').onclick = function () { openChatMenu(); };
   }
 
   function atBottom() {
-    var t = el('bbgTranscript');
-    if (!t) return true;
-    return (t.scrollHeight - t.scrollTop - t.clientHeight) < STICK_PX;
+    var t = el('bbgThread');
+    return !t || (t.scrollHeight - t.scrollTop - t.clientHeight) < STICK_PX;
   }
 
   function scrollToBottom(instant) {
-    var t = el('bbgTranscript');
+    var t = el('bbgThread');
     if (!t) return;
     requestAnimationFrame(function () {
       t.scrollTop = t.scrollHeight;
-      if (!instant) return;
-      setTimeout(function () { t.scrollTop = t.scrollHeight; }, 60);
+      if (instant) setTimeout(function () { t.scrollTop = t.scrollHeight; }, 50);
     });
   }
 
+  /** On open: land on the first unread message if there is one, else the end. */
+  function landScroll() {
+    var t = el('bbgThread');
+    if (!t) return;
+    var bar = S.unreadFrom ? t.querySelector('.bbg-unreadbar') : null;
+    if (!bar) { S.stick = true; scrollToBottom(true); return; }
+    requestAnimationFrame(function () {
+      t.scrollTop = Math.max(0, bar.offsetTop - 60);
+      S.stick = atBottom();
+      renderJump();
+    });
+  }
+
+  function onThreadScroll() {
+    var was = S.stick;
+    S.stick = atBottom();
+    if (S.stick && (!was || S.newWhileAway)) { S.newWhileAway = 0; markRead(); }
+    renderJump();
+    var t = el('bbgThread');
+    // Near the top: fetch older messages without a click.
+    if (t && t.scrollTop < 80 && S.hasMore && !S._loadingOlder) loadOlder();
+  }
+
+  function renderJump() {
+    var j = el('bbgJump');
+    if (!j) return;
+    j.classList.toggle('is-on', !S.stick);
+    j.querySelector('b').textContent = S.newWhileAway ? String(S.newWhileAway) : '';
+  }
+
   function renderTranscript() {
-    var t = el('bbgTranscript');
+    var t = el('bbgThread');
     if (!t) return;
     if (!S.messages.length) {
-      t.innerHTML = '<div class="bbg-empty"><span class="bbg-empty-icon">👋</span>'
-        + '<b>No messages yet</b>'
-        + (isDirect()
-            ? 'Send the first message — only you and your coach can see this chat.'
-            : 'Say hello to the care team — everyone in this group will see it.')
-        + '</div>';
+      t.innerHTML = emptyHtml('👋', 'No messages yet',
+        isDirect()
+          ? (S.mode === 'admin' ? 'Say hello — only this client and the coaching team see this chat.'
+                                : 'Send the first message — only you and your coach can see this chat.')
+          : 'Say hello to the care team — everyone in this group will see it.');
       return;
     }
-    var html = '';
-    if (S.hasMore) html += '<div class="bbg-loadmore"><button type="button" id="bbgLoadMore">Load earlier messages</button></div>';
+    var h = '';
+    if (S.hasMore) h += '<div class="bbg-loadmore"><button type="button" id="bbgLoadMore">Load earlier messages</button></div>';
     var lastDay = '';
     var prev = null;
-    for (var i = 0; i < S.messages.length; i++) {
-      var m = S.messages[i];
-      var day = new Date(m.createdAt).toDateString();
+    var msgs = S.messages;
+    for (var i = 0; i < msgs.length; i++) {
+      var m = msgs[i];
+      // Automated nudges (staff view): one collapsible row per run, dates included.
+      if (m.automated && !m.pending) {
+        var run = [m];
+        var j = i + 1;
+        while (j < msgs.length && msgs[j].automated && !msgs[j].pending) { run.push(msgs[j]); j++; }
+        h += autoRunHtml(run);
+        i = j - 1;
+        lastDay = '';
+        prev = null;
+        continue;
+      }
+      var day = dayKey(m.createdAt);
       if (day !== lastDay) {
-        html += '<div class="bbg-daysep"><span>' + esc(fmtDayLabel(m.createdAt)) + '</span></div>';
+        h += '<div class="bbg-day"><span>' + esc(fmtDay(m.createdAt)) + '</span></div>';
         lastDay = day;
         prev = null;
       }
-      html += messageHtml(m, prev);
+      if (S.unreadFrom && m.id === S.unreadFrom) {
+        h += '<div class="bbg-unreadbar"><span>' + S.unreadCount + ' unread message' + (S.unreadCount === 1 ? '' : 's') + '</span></div>';
+        prev = null;
+      }
+      h += messageHtml(m, prev);
       prev = m;
     }
-    t.innerHTML = html;
+    t.innerHTML = h;
     bindTranscript();
-    renderJumpPill();
+    renderJump();
+  }
+
+  function autoRunHtml(run) {
+    var key = run[0].id;
+    var open = !!S.autoOpen[key];
+    var first = run[0].createdAt;
+    var last = run[run.length - 1].createdAt;
+    var range = fmtShortDay(first) === fmtShortDay(last) ? fmtShortDay(first) : fmtShortDay(first) + ' – ' + fmtShortDay(last);
+    var label = run.length === 1 ? '1 automated check-in' : run.length + ' automated check-ins';
+    var h = '<div class="bbg-auto"><button type="button" data-auto="' + esc(key) + '">' + icon('bot')
+      + '<span>' + (open ? 'Hide ' + label : label + ' · ' + esc(range)) + '</span></button></div>';
+    if (open) {
+      h += '<div class="bbg-auto-list">' + run.map(function (m) {
+        return '<div class="bbg-auto-line" data-auto-id="' + esc(m.id) + '">' + esc(m.body)
+          + '<time>' + esc(fmtShortDay(m.createdAt) + ' ' + fmtTime(m.createdAt)) + '</time></div>';
+      }).join('') + '</div>';
+    }
+    return h;
   }
 
   function isGrouped(m, prev) {
     if (!prev || m.kind === 'system' || prev.kind === 'system') return false;
-    if (String(prev.senderId) !== String(m.senderId)) return false;
+    if (String(prev.senderId) !== String(m.senderId) || !!prev.mine !== !!m.mine) return false;
     return (new Date(m.createdAt) - new Date(prev.createdAt)) < 5 * 60 * 1000;
   }
 
   function messageHtml(m, prev) {
     if (m.kind === 'system') {
-      return '<div class="bbg-sysmsg" data-seq="' + m.seq + '"><span>' + esc(m.body) + '</span></div>';
+      return '<div class="bbg-sys" data-seq="' + m.seq + '"><span>' + esc(m.body) + '</span></div>';
     }
     var out = !!m.mine;
-    var grouped = isGrouped(m, prev);
-    var h = '<div class="bbg-row bbg-row--' + (out ? 'out' : 'in') + (grouped ? ' is-grouped' : '')
-      + (m.pending ? ' is-pending' : '') + (m.failed ? ' is-failed' : '')
-      + '" data-id="' + esc(m.id) + '" data-seq="' + m.seq + '">';
-
-    // In a 1:1 chat the header already names the other person, so repeating it
-    // (and their role) above every bubble is noise — WhatsApp shows neither the
-    // name nor a per-message avatar in a direct thread. Groups need both,
-    // because four people share the transcript.
-    var direct = isDirect();
-    if (!out && !direct) {
-      h += '<div class="bbg-row-avatar">' + avatarHtml(m.senderName, m.senderAvatar, 'bbg-avatar--sm') + '</div>';
+    var first = !isGrouped(m, prev);
+    var group = !isDirect();
+    var rxCount = (m.reactions || []).reduce(function (a, r) { return a + r.count; }, 0);
+    var cls = 'bbg-m ' + (out ? 'out' : 'in') + (first ? ' is-first' : '') + (rxCount ? ' has-rx' : '')
+      + (m.pending ? ' is-pending' : '') + (m.failed ? ' is-failed' : '');
+    var h = '<div class="' + cls + '" data-id="' + esc(m.id) + '" data-seq="' + m.seq + '">';
+    if (!out && group) h += '<div class="bbg-m-av">' + avatarHtml(m.senderName, m.senderAvatar, 'bbg-av--xs') + '</div>';
+    h += '<div class="bbg-b' + (m.deleted ? ' is-deleted' : '') + '">';
+    if (group && !out && first) {
+      h += '<div class="bbg-name r-' + esc(m.senderRole || 'client') + '">' + esc(m.senderName)
+        + (m.senderRoleLabel ? '<em>' + esc(m.senderRoleLabel) + '</em>' : '') + '</div>';
     }
-    h += '<div class="bbg-bubble' + (m.deleted ? ' is-deleted' : '') + '">';
-
-    if (!out && !grouped && !direct) {
-      h += '<div class="bbg-sender">' + esc(m.senderName)
-        + (m.senderRoleLabel ? '<span class="bbg-rolechip">' + esc(m.senderRoleLabel) + '</span>' : '')
-        + '</div>';
-    }
-
     if (m.replyTo) {
       h += '<button type="button" class="bbg-quote" data-goto="' + esc(m.replyTo.id) + '">'
-        + '<div class="bbg-quote-who">' + esc(m.replyTo.senderName || 'Message')
-        + (m.replyTo.senderRoleLabel ? ' · ' + esc(m.replyTo.senderRoleLabel) : '') + '</div>'
-        + '<div class="bbg-quote-body">' + esc(m.replyTo.body) + '</div></button>';
+        + '<b>' + esc(m.replyTo.senderName || 'Message') + '</b><span>' + esc(m.replyTo.body) + '</span></button>';
     }
-
     (m.attachments || []).forEach(function (a) {
       if (a.isImage) {
-        h += '<img class="bbg-att-img" src="' + esc(a.url) + '" alt="' + esc(a.name) + '" loading="lazy" data-full="' + esc(a.url) + '">';
+        h += '<img class="bbg-img" src="' + esc(a.url) + '" alt="' + esc(a.name) + '" loading="lazy" data-full="' + esc(a.url) + '">';
       } else {
-        h += '<a class="bbg-att-file" href="' + esc(a.url) + '" target="_blank" rel="noopener">'
-          + '<span class="bbg-att-icon">📄</span><span class="bbg-att-meta">'
-          + '<span class="bbg-att-name">' + esc(a.name) + '</span>'
-          + '<span class="bbg-att-size">' + esc(fmtBytes(a.size)) + '</span></span></a>';
+        h += '<a class="bbg-file" href="' + esc(a.url) + '" target="_blank" rel="noopener"><span class="bbg-file-ic">📄</span>'
+          + '<span class="bbg-file-t"><b>' + esc(a.name) + '</b><span>' + esc(fmtBytes(a.size)) + '</span></span></a>';
       }
     });
 
-    if (m.deleted) h += '<div class="bbg-text">This message was deleted</div>';
-    else if (m.body) h += '<div class="bbg-text">' + richText(m.body) + '</div>';
-
     var status = '';
-    if (m.failed) {
-      status = '<button type="button" class="bbg-retry" data-retry="' + esc(m.id) + '">Not sent &middot; Tap to retry</button>';
-    } else if (m.pending) {
-      status = '<span class="bbg-clock" title="Sending">' + icon('clock') + '</span>';
-    } else if (out && !m.deleted) {
-      // A direct thread has no read cursor in its table, so it shows the
-      // delivered tick only rather than inventing a read state.
-      status = tickHtml(isDirect() ? false : readByAll(m));
+    if (m.pending) status = '<span class="bbg-clock" title="Sending">' + icon('spin') + '</span>';
+    else if (out && !m.deleted && !m.failed) status = tickHtml(isDirect() ? false : readByAll(m));
+    var time = fmtTime(m.createdAt);
+    // Room the time (and tick / "edited") needs on the last line of text.
+    var spW = 14 + time.length * 6.4 + (out ? 20 : 0) + (m.editedAt ? 40 : 0);
+    var text = m.deleted ? '🚫 This message was deleted' : (m.body ? richText(m.body) : '');
+    h += '<div class="bbg-txt">' + text + '<span class="bbg-sp" style="width:' + Math.round(spW) + 'px"></span></div>';
+    h += '<span class="bbg-meta">' + (m.editedAt ? '<i>edited</i>' : '') + esc(time) + status + '</span>';
+    if (m.failed) h += '<button type="button" class="bbg-retry" data-retry="' + esc(m.id) + '">Not sent · Tap to retry</button>';
+    if (!m.deleted && !m.pending) h += '<button type="button" class="bbg-more" aria-label="Message options">' + icon('chev') + '</button>';
+    if (rxCount) {
+      h += '<div class="bbg-rx">' + m.reactions.map(function (r) {
+        return '<button type="button" class="' + (r.mine ? 'is-mine' : '') + '" data-emoji="' + esc(r.emoji)
+          + '" title="' + esc((r.names || []).join(', ')) + '">' + esc(r.emoji) + '</button>';
+      }).join('') + (rxCount > 1 ? '<b>' + rxCount + '</b>' : '') + '</div>';
     }
-    h += '<div class="bbg-meta">'
-      + (m.editedAt ? '<span class="bbg-edited">edited</span>' : '')
-      + '<span>' + esc(fmtTime(m.createdAt)) + '</span>'
-      + status
-      + '</div>';
-
-    if (m.reactions && m.reactions.length) {
-      h += '<div class="bbg-reacts">' + m.reactions.map(function (r) {
-        return '<button type="button" class="bbg-react' + (r.mine ? ' is-mine' : '') + '" data-emoji="' + esc(r.emoji)
-          + '" title="' + esc((r.names || []).join(', ')) + '">'
-          + esc(r.emoji) + '<span class="bbg-react-n">' + r.count + '</span></button>';
-      }).join('') + '</div>';
-    }
-
-    h += '</div>';
-    if (!m.deleted && !m.pending) h += '<button type="button" class="bbg-rowbtn" aria-label="Message actions">' + icon('chev') + '</button>';
-    h += '</div>';
+    if (group && !m.deleted && !m.pending) h += '<span class="bbg-swipe-cue">' + icon('reply') + '</span>';
+    h += '</div></div>';
     return h;
   }
 
@@ -1188,105 +1366,154 @@
   }
 
   function bindTranscript() {
-    var t = el('bbgTranscript');
+    var t = el('bbgThread');
     if (!t) return;
-
     var lm = el('bbgLoadMore');
     if (lm) lm.onclick = loadOlder;
-
-    Array.prototype.forEach.call(t.querySelectorAll('.bbg-retry'), function (b) {
-      b.onclick = function (e) { e.stopPropagation(); retrySend(b.getAttribute('data-retry')); };
-    });
-
-    Array.prototype.forEach.call(t.querySelectorAll('.bbg-quote'), function (b) {
-      b.onclick = function (e) { e.stopPropagation(); gotoMessage(b.getAttribute('data-goto')); };
-    });
-    Array.prototype.forEach.call(t.querySelectorAll('.bbg-react'), function (b) {
-      b.onclick = function (e) {
-        e.stopPropagation();
-        toggleReaction(b.closest('.bbg-row').getAttribute('data-id'), b.getAttribute('data-emoji'));
+    each(t.querySelectorAll('[data-auto]'), function (b) {
+      b.onclick = function () {
+        var k = b.getAttribute('data-auto');
+        S.autoOpen[k] = !S.autoOpen[k];
+        var keep = t.scrollHeight - t.scrollTop;
+        renderTranscript();
+        t.scrollTop = t.scrollHeight - keep;
       };
     });
-    Array.prototype.forEach.call(t.querySelectorAll('.bbg-att-img'), function (img) {
+    each(t.querySelectorAll('.bbg-retry'), function (b) {
+      b.onclick = function (e) { e.stopPropagation(); retrySend(b.getAttribute('data-retry')); };
+    });
+    each(t.querySelectorAll('.bbg-quote'), function (b) {
+      b.onclick = function (e) { e.stopPropagation(); gotoMessage(b.getAttribute('data-goto')); };
+    });
+    each(t.querySelectorAll('.bbg-rx button'), function (b) {
+      b.onclick = function (e) {
+        e.stopPropagation();
+        toggleReaction(b.closest('.bbg-m').getAttribute('data-id'), b.getAttribute('data-emoji'));
+      };
+    });
+    each(t.querySelectorAll('.bbg-img'), function (img) {
       img.onclick = function () { lightbox(img.getAttribute('data-full')); };
       img.onload = function () { if (S.stick) scrollToBottom(); };
     });
-    Array.prototype.forEach.call(t.querySelectorAll('.bbg-rowbtn'), function (b) {
-      b.onclick = function (e) {
-        e.stopPropagation();
-        openMessageActions(b.closest('.bbg-row').getAttribute('data-id'));
+    each(t.querySelectorAll('.bbg-more'), function (b) {
+      b.onclick = function (e) { e.stopPropagation(); openMessageActions(b.closest('.bbg-m').getAttribute('data-id')); };
+    });
+    each(t.querySelectorAll('.bbg-m'), bindTouch);
+    each(t.querySelectorAll('.bbg-b'), function (b) {
+      b.ondblclick = function () {
+        var m = findMsg(b.closest('.bbg-m').getAttribute('data-id'));
+        if (m && !isDirect() && !m.pending && !m.deleted) setReply(m);
       };
     });
-
-    Array.prototype.forEach.call(t.querySelectorAll('.bbg-row'), function (row) {
-      var timer = null, moved = false;
-      row.addEventListener('touchstart', function () {
-        moved = false;
-        timer = setTimeout(function () { if (!moved) openMessageActions(row.getAttribute('data-id')); }, 480);
-      }, { passive: true });
-      row.addEventListener('touchmove', function () { moved = true; clearTimeout(timer); }, { passive: true });
-      row.addEventListener('touchend', function () { clearTimeout(timer); }, { passive: true });
-      row.addEventListener('touchcancel', function () { clearTimeout(timer); }, { passive: true });
-    });
-
-    t.onscroll = function () {
-      S.stick = atBottom();
-      renderJumpPill();
-      if (S.stick) markRead();
-    };
   }
 
-  function renderJumpPill() {
-    var host = el('bbgComposerHost');
-    if (!host) return;
-    var pill = host.querySelector('.bbg-jump');
-    if (!pill) return;
-    var behind = S.messages.filter(function (m) {
-      return !m.mine && Number(m.seq) > Number((S.me && S.me.lastReadSeq) || 0);
-    }).length;
-    pill.classList.toggle('is-shown', !S.stick);
-    pill.querySelector('span').textContent = (!isDirect() && behind) ? behind + ' new' : 'Latest';
+  function findMsg(id) { return S.messages.find(function (x) { return x.id === id; }); }
+
+  /**
+   * Touch: long-press opens the actions sheet; swiping a group message to the
+   * right starts a reply, as in WhatsApp. The swipe only engages once the
+   * gesture is clearly horizontal, so vertical scrolling is never hijacked.
+   */
+  function bindTouch(row) {
+    var bubble = row.querySelector('.bbg-b');
+    var cue = row.querySelector('.bbg-swipe-cue');
+    var sx = 0, sy = 0, dx = 0, mode = null, timer = null;
+    row.addEventListener('touchstart', function (e) {
+      var p = e.touches[0];
+      sx = p.clientX; sy = p.clientY; dx = 0; mode = null;
+      timer = setTimeout(function () {
+        if (!mode) { mode = 'press'; openMessageActions(row.getAttribute('data-id')); }
+      }, 480);
+    }, { passive: true });
+    row.addEventListener('touchmove', function (e) {
+      var p = e.touches[0];
+      var mx = p.clientX - sx, my = p.clientY - sy;
+      if (!mode) {
+        if (Math.abs(my) > 10) { mode = 'scroll'; clearTimeout(timer); return; }
+        if (mx > 12 && cue) { mode = 'swipe'; clearTimeout(timer); }
+        else if (Math.abs(mx) > 10) { mode = 'scroll'; clearTimeout(timer); return; }
+      }
+      if (mode !== 'swipe') return;
+      dx = Math.max(0, Math.min(mx, 80));
+      bubble.style.transition = 'none';
+      bubble.style.transform = 'translateX(' + dx + 'px)';
+      cue.style.opacity = String(Math.min(1, dx / 56));
+      cue.style.transform = 'scale(' + (0.6 + Math.min(0.4, dx / 140)) + ')';
+    }, { passive: true });
+    var end = function () {
+      clearTimeout(timer);
+      if (mode === 'swipe') {
+        bubble.style.transition = '';
+        bubble.style.transform = '';
+        cue.style.opacity = '';
+        cue.style.transform = '';
+        if (dx > 56) {
+          var m = findMsg(row.getAttribute('data-id'));
+          if (m) setReply(m);
+        }
+      }
+      mode = null;
+    };
+    row.addEventListener('touchend', end, { passive: true });
+    row.addEventListener('touchcancel', end, { passive: true });
   }
 
   async function loadOlder() {
-    if (isDirect() || !S.messages.length) return;
+    if (!S.messages.length || S._loadingOlder || !S.hasMore) return;
+    S._loadingOlder = true;
     var btn = el('bbgLoadMore');
     if (btn) { btn.disabled = true; btn.textContent = 'Loading…'; }
-    var t = el('bbgTranscript');
-    var anchorH = t.scrollHeight, anchorTop = t.scrollTop;
+    var t = el('bbgThread');
+    var anchor = t.scrollHeight - t.scrollTop;
+    var convAt = S.conv;
     try {
-      var res = await api('GET', '/api/groups/' + encodeURIComponent(S.groupId)
-        + '/messages?limit=40&before=' + encodeURIComponent(S.messages[0].seq));
-      var older = (res && res.messages) || [];
-      if (older.length) {
-        S.messages = older.concat(S.messages);
-        S.hasMore = !!res.hasMore;
-        renderTranscript();
-        requestAnimationFrame(function () { t.scrollTop = t.scrollHeight - anchorH + anchorTop; });
+      var older = [];
+      var more = false;
+      if (isDirect()) {
+        var first = S.messages.find(function (m) { return m.cursor; });
+        if (!first) { S.hasMore = false; return; }
+        var d = await api('GET', '/api/groups/dm/' + enc(S.convId) + '?before=' + enc(first.cursor) + '&beforeId=' + enc(first.id));
+        older = (d && Array.isArray(d.messages)) ? mapDirect(d.messages, S.conv) : [];
+        more = !!(d && d.hasMore);
       } else {
-        S.hasMore = false;
-        renderTranscript();
+        var res = await api('GET', '/api/groups/' + enc(S.groupId) + '/messages?limit=40&before=' + enc(S.messages[0].seq));
+        older = (res && res.messages) || [];
+        more = !!(res && res.hasMore);
       }
+      if (S.conv !== convAt) return;
+      var known = {};
+      S.messages.forEach(function (m) { known[m.id] = true; });
+      S.messages = older.filter(function (m) { return !known[m.id]; }).concat(S.messages);
+      if (isDirect()) S.messages.forEach(function (m, i) { m.seq = i + 1; });
+      S.hasMore = more;
+      renderTranscript();
+      t.scrollTop = t.scrollHeight - anchor;
     } catch (e) {
       if (btn) { btn.disabled = false; btn.textContent = 'Load earlier messages'; }
+    } finally {
+      S._loadingOlder = false;
     }
   }
 
   async function gotoMessage(id) {
-    var row = document.querySelector('.bbg-row[data-id="' + cssEsc(id) + '"]');
-    if (row) { focusRow(row); return; }
-    for (var i = 0; i < 6 && S.hasMore; i++) {
-      await loadOlder();
-      row = document.querySelector('.bbg-row[data-id="' + cssEsc(id) + '"]');
-      if (row) { focusRow(row); return; }
+    var sel = '[data-id="' + cssEsc(id) + '"], [data-auto-id="' + cssEsc(id) + '"]';
+    var target = findMsg(id);
+    // A nudge lives inside a collapsed run: open that run first.
+    if (target && target.automated) {
+      var idx = S.messages.indexOf(target);
+      var k = idx;
+      while (k > 0 && S.messages[k - 1].automated) k--;
+      S.autoOpen[S.messages[k].id] = true;
+      renderTranscript();
     }
-    toast('That message is further back in the conversation.');
-  }
-
-  function focusRow(row) {
+    var row = document.querySelector('#bbgThread ' + sel.split(', ').join(', #bbgThread '));
+    for (var i = 0; !row && i < 8 && S.hasMore; i++) {
+      await loadOlder();
+      row = document.querySelector('#bbgThread ' + sel.split(', ').join(', #bbgThread '));
+    }
+    if (!row) { toast('That message is further back in the conversation.'); return; }
     row.scrollIntoView({ block: 'center', behavior: 'smooth' });
-    var b = row.querySelector('.bbg-bubble');
-    if (!b) return;
+    var b = row.querySelector('.bbg-b') || row;
     b.classList.remove('is-hit');
     void b.offsetWidth;
     b.classList.add('is-hit');
@@ -1302,45 +1529,29 @@
   // ══════════════════════════════════════════════════════════════════════════
 
   function renderComposer() {
-    var host = el('bbgComposerHost');
-    if (!host) return;
-    if (!S.me || !S.me.canPost) {
-      host.innerHTML = '<div class="bbg-composer"><div class="bbg-composer-locked">'
-        + (S.group && S.group.archived
-            ? 'This group is archived. Reopen it from Group info to send messages.'
-            : 'You do not have permission to post in this conversation.')
+    var host = el('bbgCmpHost');
+    if (!host || !S.conv) return;
+    if (S.me && !S.me.canPost) {
+      host.innerHTML = '<div class="bbg-cmp"><div class="bbg-cmp-locked">'
+        + (S.group && S.group.archived ? 'This group is archived — reopen it from group info to send messages.'
+                                       : 'You can\'t send messages in this conversation.')
         + '</div></div>';
       return;
     }
     var direct = isDirect();
-    // The admin IS the coach, so "Message your Lifestyle Manager" would be
-    // nonsense on their side of the same thread.
-    var placeholder;
-    if (!direct) placeholder = 'Message the care team…';
-    else if (S.mode === 'admin') {
-      var who = String((S.conv && S.conv.name) || '').split(' ')[0];
-      placeholder = who ? 'Reply to ' + who + '…' : 'Reply…';
-    } else placeholder = 'Message your Lifestyle Manager…';
-
-    host.innerHTML = ''
-      + '<div class="bbg-composer">'
-      +   '<button type="button" class="bbg-jump" id="bbgJump">' + icon('down') + '<span>Latest</span></button>'
-      +   '<div id="bbgReplyHost"></div>'
-      +   '<div id="bbgAttachHost"></div>'
-      +   '<div id="bbgEmojiHost"></div>'
-      +   '<div class="bbg-inputrow">'
-      +     '<button type="button" class="bbg-iconbtn" id="bbgEmojiBtn" aria-label="Emoji" aria-expanded="false">' + icon('smile') + '</button>'
-      // The legacy thread_messages table has no attachment support, so the clip
-      // is simply absent in a direct chat rather than present and broken.
-      +     (direct ? '' : '<button type="button" class="bbg-iconbtn" id="bbgAttachBtn" aria-label="Attach a file">' + icon('clip') + '</button>')
-      +     '<div class="bbg-inputwrap">'
-      +       '<textarea class="bbg-input" id="bbgInput" rows="1" placeholder="'
-      +         esc(placeholder) + '" maxlength="5000"></textarea>'
-      +     '</div>'
-      +     '<button type="button" class="bbg-send" id="bbgSend" aria-label="Send" disabled>' + icon('send') + '</button>'
+    host.innerHTML = '<div class="bbg-cmp">'
+      + '<div id="bbgCmpTop"></div>'
+      + '<div class="bbg-cmp-row">'
+      +   '<div class="bbg-field">'
+      +     '<button type="button" class="bbg-ib" id="bbgEmojiBtn" aria-label="Emoji" aria-expanded="false">' + icon('smile') + '</button>'
+      +     '<textarea class="bbg-input" id="bbgInput" rows="1" placeholder="Message" maxlength="5000" enterkeyhint="send"></textarea>'
+      // The legacy thread table has no attachment column, so a 1-to-1 has no clip.
+      +     (direct ? '' : '<button type="button" class="bbg-ib" id="bbgAttachBtn" aria-label="Attach a file">' + icon('clip') + '</button>')
       +   '</div>'
-      +   (direct ? '' : '<input type="file" id="bbgFileInput" hidden accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt">')
-      +   '<div id="bbgComposerErr"></div>'
+      +   '<button type="button" class="bbg-send" id="bbgSend" aria-label="Send" disabled>' + SEND_SVG + '</button>'
+      + '</div>'
+      + (direct ? '' : '<input type="file" id="bbgFile" hidden accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt">')
+      + '<div id="bbgCmpErr"></div>'
       + '</div>';
     bindComposer();
     restoreDraft();
@@ -1349,139 +1560,133 @@
   function bindComposer() {
     var input = el('bbgInput');
     var send = el('bbgSend');
-
     function sync() {
-      // Reading scrollHeight forces a full layout. On an empty box — which is
-      // what every freshly opened conversation has — there is nothing to
-      // measure, and that read alone cost ~90 ms on the admin page.
+      // Reading scrollHeight forces a full layout. An empty box — every freshly
+      // opened conversation — has nothing to measure.
       if (input.value) {
         input.style.height = 'auto';
-        input.style.height = Math.min(input.scrollHeight, 132) + 'px';
+        input.style.height = Math.min(input.scrollHeight, 140) + 'px';
       } else {
         input.style.height = '';
       }
       send.disabled = (S.sending && !!S.pendingFile) || (!input.value.trim() && !S.pendingFile);
-      S.drafts[S.conv ? S.conv.id : '_'] = input.value;
+      if (S.conv) S.drafts[S.conv.id] = input.value;
     }
     input.oninput = sync;
     input.onkeydown = function (e) {
-      // Enter sends on desktop; Shift+Enter is a newline. On a touch keyboard
-      // Enter stays a newline — there is a dedicated send button there.
-      if (e.key === 'Enter' && !e.shiftKey && isDesktop()) { e.preventDefault(); doSend(); }
+      // Enter sends on a keyboard; Shift+Enter is a newline. On a phone Enter
+      // stays a newline — the send button is right there.
+      if (e.key === 'Enter' && !e.shiftKey && !e.isComposing && isDesktop()) { e.preventDefault(); doSend(); }
     };
-    send.onclick = doSend;
-
+    input.onfocus = function () { if (S.stick) setTimeout(scrollToBottom, 250); };
+    // Keep the keyboard up on a phone: the tap must not blur the input.
+    send.addEventListener('mousedown', function (e) { e.preventDefault(); });
+    send.onclick = function () { doSend(); };
     el('bbgEmojiBtn').onclick = function (e) { e.stopPropagation(); toggleEmoji(); };
     var ab = el('bbgAttachBtn');
     if (ab) {
-      ab.onclick = function () { el('bbgFileInput').click(); };
-      el('bbgFileInput').onchange = function () {
+      ab.onclick = function () { el('bbgFile').click(); };
+      el('bbgFile').onchange = function () {
         var f = this.files && this.files[0];
         if (f) pickFile(f);
         this.value = '';
       };
     }
-    el('bbgJump').onclick = function () { S.stick = true; scrollToBottom(); markRead(); renderJumpPill(); };
     sync();
   }
 
-  function draftKey() { return S.conv ? S.conv.id : '_'; }
   function saveDraft() {
     var input = el('bbgInput');
-    if (input && S.conv) S.drafts[draftKey()] = input.value;
+    if (input && S.conv) S.drafts[S.conv.id] = input.value;
   }
   function restoreDraft() {
     var input = el('bbgInput');
-    if (!input) return;
-    var d = S.drafts[draftKey()];
+    if (!input || !S.conv) return;
+    var d = S.drafts[S.conv.id];
     if (d) { input.value = d; input.dispatchEvent(new Event('input')); }
   }
 
   function setComposerError(msg) {
-    var box = el('bbgComposerErr');
-    if (box) box.innerHTML = msg ? '<div class="bbg-composer-err">⚠️ ' + esc(msg) + '</div>' : '';
+    var b = el('bbgCmpErr');
+    if (b) b.innerHTML = msg ? '<div class="bbg-cmp-err">' + esc(msg) + '</div>' : '';
   }
 
+  /** The strip above the input: emoji panel, reply preview or attachment. */
+  function renderCmpTop() {
+    var top = el('bbgCmpTop');
+    if (!top) return;
+    var h = '';
+    if (S.emojiOpen) {
+      h += '<div class="bbg-emoji">' + EMOJI_SET.map(function (e) { return '<button type="button">' + e + '</button>'; }).join('') + '</div>';
+    }
+    if (S.pendingFile) {
+      var f = S.pendingFile;
+      h += '<div class="bbg-cmp-bar">' + (/^image\//.test(f.type) ? '<img id="bbgAttThumb" alt="">' : '<span class="bbg-file-ic">📄</span>')
+        + '<div class="bbg-cmp-bar-t"><b>' + esc(f.name) + '</b><span>' + esc(fmtBytes(f.size)) + ' · add a caption or send</span></div>'
+        + '<button type="button" class="bbg-ib" id="bbgAttCancel" aria-label="Remove attachment">' + icon('close') + '</button></div>';
+    }
+    if (S.replyTo) {
+      var m = S.replyTo;
+      h += '<div class="bbg-cmp-bar"><div class="bbg-cmp-bar-t"><b>' + esc(m.mine ? 'You' : m.senderName) + '</b>'
+        + '<span>' + esc(m.deleted ? 'Deleted message' : (m.body || 'Attachment')) + '</span></div>'
+        + '<button type="button" class="bbg-ib" id="bbgReplyCancel" aria-label="Cancel reply">' + icon('close') + '</button></div>';
+    }
+    top.innerHTML = h;
+    each(top.querySelectorAll('.bbg-emoji button'), function (b) {
+      b.onclick = function () {
+        var input = el('bbgInput');
+        var pos = input.selectionStart != null ? input.selectionStart : input.value.length;
+        input.value = input.value.slice(0, pos) + b.textContent + input.value.slice(pos);
+        input.dispatchEvent(new Event('input'));
+        if (isDesktop()) input.focus();
+      };
+    });
+    var thumb = el('bbgAttThumb');
+    if (thumb && S.pendingFile) {
+      var url = URL.createObjectURL(S.pendingFile);
+      thumb.src = url;
+      thumb.onload = function () { URL.revokeObjectURL(url); };
+    }
+    var ac = el('bbgAttCancel');
+    if (ac) ac.onclick = clearFile;
+    var rc = el('bbgReplyCancel');
+    if (rc) rc.onclick = function () { setReply(null); };
+    var eb = el('bbgEmojiBtn');
+    if (eb) eb.setAttribute('aria-expanded', String(!!S.emojiOpen));
+    if (S.stick) scrollToBottom();
+  }
+
+  function toggleEmoji() { S.emojiOpen = !S.emojiOpen; renderCmpTop(); }
+
   function pickFile(f) {
-    var MAX = 12 * 1024 * 1024;
-    if (f.size > MAX) { setComposerError('That file is larger than 12 MB.'); return; }
+    if (f.size > 12 * 1024 * 1024) { setComposerError('That file is larger than 12 MB.'); return; }
     S.pendingFile = f;
     setComposerError('');
-    var host = el('bbgAttachHost');
-    var isImg = /^image\//.test(f.type);
-    var thumb = isImg ? '<img class="bbg-attachbar-thumb" id="bbgAttachThumb" alt="">' : '<div class="bbg-attachbar-thumb">📄</div>';
-    host.innerHTML = '<div class="bbg-attachbar">' + thumb
-      + '<div class="bbg-attachbar-body">'
-      + '<div class="bbg-attachbar-name">' + esc(f.name) + '</div>'
-      + '<div class="bbg-attachbar-size">' + esc(fmtBytes(f.size)) + '</div></div>'
-      + '<button type="button" class="bbg-iconbtn" id="bbgAttachCancel" aria-label="Remove attachment">' + icon('close') + '</button></div>';
-    if (isImg) {
-      var url = URL.createObjectURL(f);
-      var img = el('bbgAttachThumb');
-      img.src = url;
-      img.onload = function () { URL.revokeObjectURL(url); };
-    }
-    el('bbgAttachCancel').onclick = clearFile;
-    el('bbgSend').disabled = false;
+    renderCmpTop();
+    var input = el('bbgInput');
+    if (input) input.dispatchEvent(new Event('input'));
   }
 
   function clearFile() {
     S.pendingFile = null;
-    var h = el('bbgAttachHost');
-    if (h) h.innerHTML = '';
+    renderCmpTop();
     var input = el('bbgInput');
     if (input) input.dispatchEvent(new Event('input'));
   }
 
   function setReply(m) {
     S.replyTo = m;
-    var host = el('bbgReplyHost');
-    if (!host) return;
-    if (!m) { host.innerHTML = ''; return; }
-    host.innerHTML = '<div class="bbg-replybar">'
-      + '<div class="bbg-replybar-body">'
-      + '<div class="bbg-replybar-who">Replying to ' + esc(m.senderName) + '</div>'
-      + '<div class="bbg-replybar-text">' + esc(m.deleted ? 'Deleted message' : (m.body || 'Attachment')) + '</div>'
-      + '</div>'
-      + '<button type="button" class="bbg-iconbtn" id="bbgReplyCancel" aria-label="Cancel reply">' + icon('close') + '</button></div>';
-    el('bbgReplyCancel').onclick = function () { setReply(null); };
+    renderCmpTop();
     var input = el('bbgInput');
-    if (input) input.focus();
-  }
-
-  function toggleEmoji() {
-    var host = el('bbgEmojiHost');
-    var btn = el('bbgEmojiBtn');
-    if (host.innerHTML) { host.innerHTML = ''; btn.setAttribute('aria-expanded', 'false'); return; }
-    host.innerHTML = '<div class="bbg-pop bbg-pop--emoji">'
-      + EMOJI_SET.map(function (e) { return '<button type="button">' + e + '</button>'; }).join('') + '</div>';
-    btn.setAttribute('aria-expanded', 'true');
-    Array.prototype.forEach.call(host.querySelectorAll('button'), function (b) {
-      b.onclick = function () {
-        var input = el('bbgInput');
-        input.value += b.textContent;
-        input.dispatchEvent(new Event('input'));
-        input.focus();
-      };
-    });
-    setTimeout(function () {
-      document.addEventListener('click', function close(ev) {
-        if (host.contains(ev.target)) return;
-        host.innerHTML = '';
-        btn.setAttribute('aria-expanded', 'false');
-        document.removeEventListener('click', close);
-      });
-    }, 0);
+    if (m && input) input.focus();
   }
 
   /**
-   * Send.
-   *
-   * Text goes out OPTIMISTICALLY: the bubble is on screen in the same frame as
-   * the tap, with a clock, and turns into a tick when the server confirms. The
-   * input is cleared synchronously, which is also the double-send guard — a
-   * second Enter finds nothing to send. Attachments keep the blocking path,
-   * because the upload itself is the wait.
+   * Send. Text goes out OPTIMISTICALLY: the bubble is on screen in the same
+   * frame as the tap, with a clock, and becomes a tick when the server confirms.
+   * The input is cleared synchronously, which is also the double-send guard — a
+   * second Enter finds nothing to send. Attachments keep a blocking path: the
+   * upload itself is the wait.
    */
   function doSend() {
     var input = el('bbgInput');
@@ -1509,7 +1714,7 @@
       replyTo: S.replyTo && !isDirect() ? {
         id: S.replyTo.id,
         seq: S.replyTo.seq,
-        senderName: S.replyTo.senderName,
+        senderName: S.replyTo.mine ? 'You' : S.replyTo.senderName,
         senderRoleLabel: S.replyTo.senderRoleLabel || '',
         body: S.replyTo.deleted ? 'This message was deleted' : String(S.replyTo.body || '').slice(0, 220),
         kind: S.replyTo.kind
@@ -1519,21 +1724,25 @@
 
     input.value = '';
     input.dispatchEvent(new Event('input'));
-    setReply(null);
+    S.replyTo = null;
+    S.emojiOpen = false;
+    renderCmpTop();
     setComposerError('');
-    delete S.drafts[draftKey()];
+    if (S.conv) delete S.drafts[S.conv.id];
 
+    // Your own message ends the "unread" marker, as in WhatsApp.
+    S.unreadFrom = null;
     S.messages.push(temp);
     S.stick = true;
+    S.newWhileAway = 0;
     renderTranscript();
     scrollToBottom();
     bumpListPreview(body);
     queueDeliver(temp);
-    if (input.focus) input.focus();
   }
 
   function retrySend(id) {
-    var temp = S.messages.find(function (m) { return m.id === id; });
+    var temp = findMsg(id);
     if (!temp || !temp.failed) return;
     temp.failed = false;
     temp.pending = true;
@@ -1555,7 +1764,7 @@
         var real = await deliverDirect(temp, ctx);
         settle(temp, real, ctx, null);
       } else {
-        var res = await api('POST', '/api/groups/' + encodeURIComponent(ctx.groupId) + '/messages', {
+        var res = await api('POST', '/api/groups/' + enc(ctx.groupId) + '/messages', {
           body: temp.body,
           reply_to_id: temp.replyTo ? temp.replyTo.id : null
         });
@@ -1574,9 +1783,9 @@
   }
 
   /**
-   * Post into the legacy 1-to-1 thread. A member with no thread yet gets one
-   * created by the same call that carries their first message; that call does
-   * not return the row, so the next poll brings the confirmed copy in.
+   * Post into the 1-to-1 thread through the legacy endpoint (which owns the
+   * push and the coach-reply email). A member with no thread yet gets one
+   * created by the call that carries their first message.
    */
   async function deliverDirect(temp, ctx) {
     var conv = ctx.conv;
@@ -1588,7 +1797,7 @@
       if (S.conv === conv) S.convId = created.id;
       return null;
     }
-    var res = await api('POST', '/api/threads/' + encodeURIComponent(conv.threadId) + '/messages', { body: temp.body });
+    var res = await api('POST', '/api/threads/' + enc(conv.threadId) + '/messages', { body: temp.body });
     if (!res || res.error || !res.id) throw new Error((res && res.error) || 'Message not sent');
     return mapDirect([res], conv)[0];
   }
@@ -1597,14 +1806,12 @@
    * The list preview is bumped the moment a message is typed. If delivery then
    * fails, the preview must not keep claiming it was sent.
    */
-  var NOT_SENT = 'Not sent: ';
   function setPreviewState(conv, body, failed) {
     if (!conv) return;
     var row = S.conversations.find(function (c) { return c === conv || c.id === conv.id; });
-    if (!row) return;
-    if (failed && row.lastPreview === body) row.lastPreview = NOT_SENT + body;
-    else if (!failed && row.lastPreview === NOT_SENT + body) row.lastPreview = body;
-    else return;
+    if (!row || row.lastPreview !== body) return;
+    if (!!row.lastFailed === !!failed) return;
+    row.lastFailed = !!failed;
     renderList();
     persist();
   }
@@ -1623,34 +1830,31 @@
     } else {
       temp.pending = false;
     }
-
     if (open && res && ctx.kind === 'group') {
-      // Fast-forward our cursors ONLY when our message was the one and only
-      // change since the last sync (every change bumps rev by one). Otherwise a
-      // message someone else sent meanwhile would be skipped, so leave the
-      // cursors alone and let the next poll reconcile the gap.
+      // Fast-forward our cursors ONLY when our message was the one change since
+      // the last sync (every change bumps rev by one). seq is a global sequence,
+      // so a gap is normal; anything else is left for the next poll.
       if (Number(res.rev) === Number(S.rev) + 1) {
         S.rev = Number(res.rev);
         S.maxSeq = Math.max(Number(S.maxSeq || 0), Number(res.maxSeq || 0));
         if (S.me) S.me.lastReadSeq = Math.max(Number(S.me.lastReadSeq || 0), Number(res.maxSeq || 0));
       }
     }
-
     if (open) {
+      if (isDirect()) S.messages.forEach(function (m, i) { m.seq = i + 1; });
       renderTranscript();
       if (S.stick) scrollToBottom();
-      cachePut(S.conv.id, snapshot());
-      // A brand-new thread: pull in the confirmed first message.
+      snapshotOpen();
       if (!real && ctx.kind === 'direct') setTimeout(function () { poll(); }, 50);
     }
   }
 
-  /** Move the open conversation to the top of the list with its new preview. */
   function bumpListPreview(body) {
     if (!S.conv) return;
     var row = S.conversations.find(function (c) { return c === S.conv || c.id === S.conv.id; });
-    if (!row) return;
+    if (!row) { S.conversations.unshift(S.conv); row = S.conv; }
     row.lastPreview = body;
+    row.lastFailed = false;
     row.lastMessageAt = new Date().toISOString();
     if (row.type === 'group') { row.lastSenderName = 'You'; row.lastKind = 'text'; }
     else { row.lastFromStaff = S.mode === 'admin'; row.unreadDot = false; }
@@ -1659,7 +1863,6 @@
     persist();
   }
 
-  /** Attachments: the upload is the wait, so this path blocks the button. */
   async function sendFile() {
     if (S.sending) return;
     var input = el('bbgInput');
@@ -1677,16 +1880,17 @@
       var res = await uploadAttachment(file, caption, replyId);
       if (res && res.error) throw new Error(res.error);
       input.value = '';
-      clearFile();
-      setReply(null);
-      delete S.drafts[draftKey()];
+      S.pendingFile = null;
+      S.replyTo = null;
+      renderCmpTop();
+      if (S.conv) delete S.drafts[S.conv.id];
       S.stick = true;
       if (res && res.message) {
         if (!S.messages.some(function (m) { return m.id === res.message.id; })) S.messages.push(res.message);
         renderTranscript();
         scrollToBottom(true);
-        bumpListPreview(res.message.kind === 'image' ? 'Photo' : 'Attachment');
-        cachePut(S.conv.id, snapshot());
+        bumpListPreview(res.message.kind === 'image' ? '📷 Photo' : '📎 Attachment');
+        snapshotOpen();
       }
     } catch (e) {
       setComposerError(e && e.message ? e.message : 'Attachment not sent. Check your connection and try again.');
@@ -1694,7 +1898,7 @@
       S.sending = false;
       S.inflight = Math.max(0, S.inflight - 1);
       send.classList.remove('is-busy');
-      send.innerHTML = icon('send');
+      send.innerHTML = SEND_SVG;
       var i2 = el('bbgInput');
       if (i2) i2.dispatchEvent(new Event('input'));
     }
@@ -1707,12 +1911,9 @@
     if (replyId) fd.append('reply_to_id', replyId);
     var headers = {};
     if (window.currentUser && window.currentUser.token) headers.Authorization = 'Bearer ' + window.currentUser.token;
-    // `API` is a top-level `const` in index.html: it lives in the global lexical
-    // environment shared by classic scripts, not on `window`, so read it directly.
+    // `API` is a top-level const in index.html — global lexical scope, not window.
     var base = (typeof API !== 'undefined' && API) ? API : '';
-    var res = await fetch(base + '/api/groups/' + encodeURIComponent(S.groupId) + '/attachments', {
-      method: 'POST', headers: headers, body: fd
-    });
+    var res = await fetch(base + '/api/groups/' + enc(S.groupId) + '/attachments', { method: 'POST', headers: headers, body: fd });
     var text = await res.text();
     var data = {};
     try { data = text ? JSON.parse(text) : {}; } catch (e) { data = {}; }
@@ -1732,31 +1933,23 @@
   function startPoll() {
     stopPoll();
     S.pollTimer = setTimeout(function tick() {
-      poll().finally(function () {
-        if (S.convId != null) S.pollTimer = setTimeout(tick, pollDelay());
+      poll().then(function () {
+        if (S.convId != null && isOpen()) S.pollTimer = setTimeout(tick, pollDelay());
       });
     }, pollDelay());
   }
-
-  function stopPoll() {
-    if (S.pollTimer) { clearTimeout(S.pollTimer); S.pollTimer = null; }
-  }
+  function stopPoll() { if (S.pollTimer) { clearTimeout(S.pollTimer); S.pollTimer = null; } }
 
   function startListPoll() {
-    if (S.listTimer) clearInterval(S.listTimer);
+    stopListPoll();
     S.listTimer = setInterval(function () {
-      if (document.hidden) return;
-      BBG.refreshList();
+      if (!document.hidden && isOpen()) BBG.refreshList();
     }, LIST_POLL_MS);
   }
-
-  BBG.stop = function () {
-    stopPoll();
-    if (S.listTimer) { clearInterval(S.listTimer); S.listTimer = null; }
-  };
+  function stopListPoll() { if (S.listTimer) { clearInterval(S.listTimer); S.listTimer = null; } }
 
   function onVisibility() {
-    if (document.hidden) return;
+    if (document.hidden || !isOpen()) return;
     if (S.convId != null) { poll(); startPoll(); }
     BBG.refreshList();
   }
@@ -1765,92 +1958,86 @@
     if (S.conv == null) return;
     // Never race an optimistic send or reaction; the next tick catches up.
     if (S.inflight > 0 && !force) return;
-    return isDirect() ? pollDirect() : pollGroup();
-  }
-
-  /**
-   * One group sync round. New messages ride the `seq` cursor; edits, deletes and
-   * reactions move no cursor, so a bounded recent window is re-read and
-   * reconciled in place.
-   */
-  async function pollGroup() {
-    var gid = S.groupId;
-    if (!gid) return;
     try {
-      var res = await api('GET', '/api/groups/' + encodeURIComponent(gid)
-        + '/updates?since=' + encodeURIComponent(S.maxSeq) + '&rev=' + encodeURIComponent(S.rev));
-      if (S.groupId !== gid || !res || res.error) return;
-      // A send or reaction started while this poll was on the wire; its own
-      // settle() owns the next render, and this stale answer must not clobber it.
-      if (S.inflight > 0) return;
-
-      var wasBottom = S.stick, changed = false;
-
-      if (res.archived != null && S.group && !!res.archived !== !!S.group.archived) {
-        S.group.archived = !!res.archived;
-        if (S.me) S.me.canPost = !res.archived;
-        renderComposer();
-      }
-
-      // Nothing happened — the server answered from a single query. Only read
-      // receipts can have moved.
-      if (res.unchanged) {
-        if (applyReaders(res.readers)) renderTranscript();
-        return;
-      }
-      S.rev = Number(res.rev || S.rev);
-
-      if (Array.isArray(res.members) && res.members.length) {
-        var before = S.members.map(function (m) { return m.userId + ':' + m.groupRole; }).join('|');
-        var after = res.members.map(function (m) { return m.userId + ':' + m.groupRole; }).join('|');
-        if (before !== after) {
-          S.members = res.members;
-          renderHeader();
-          if (S.detailsOpen) renderDetails();
-          changed = true;
-        }
-      }
-
-      if (res.messages && res.messages.length) {
-        var known = {};
-        S.messages.forEach(function (m) { known[m.id] = true; });
-        var fresh = res.messages.filter(function (m) { return !known[m.id]; });
-        if (fresh.length) {
-          S.messages = S.messages.concat(fresh);
-          // Keep server order; unconfirmed bubbles (seq = MAX) stay at the end.
-          S.messages.sort(function (a, b) { return Number(a.seq) - Number(b.seq); });
-          changed = true;
-        }
-        S.maxSeq = Math.max(S.maxSeq, Number(res.maxSeq || 0));
-      } else if (res.maxSeq != null) {
-        S.maxSeq = Math.max(S.maxSeq, Number(res.maxSeq));
-      }
-
-      if (res.recent && res.recent.length) {
-        var byId = {};
-        S.messages.forEach(function (m) { byId[m.id] = m; });
-        res.recent.forEach(function (r) {
-          var m = byId[r.id];
-          if (!m) return;
-          if (JSON.stringify(m.reactions || []) !== JSON.stringify(r.reactions || [])) { m.reactions = r.reactions; changed = true; }
-          if (!!m.deleted !== !!r.deleted) { m.deleted = r.deleted; m.kind = r.kind; m.body = ''; changed = true; }
-          if (!m.deleted && m.body !== r.body) { m.body = r.body; m.editedAt = r.editedAt; changed = true; }
-          if (m.editedAt !== r.editedAt) { m.editedAt = r.editedAt; changed = true; }
-        });
-      }
-
-      if (applyReaders(res.readers)) changed = true;
-
-      if (changed) {
-        cachePut(S.conv.id, snapshot());
-        renderTranscript();
-        if (wasBottom) { scrollToBottom(); markRead(); }
-        else renderJumpPill();
-      }
+      if (isDirect()) await pollDirect();
+      else await pollGroup();
     } catch (e) { /* a dropped poll is recovered by the next one */ }
   }
 
-  /** Update members' read cursors; true when any moved (ticks need a redraw). */
+  /** Arrivals while the reader is scrolled up: count them, don't yank. */
+  function afterArrivals(n, wasBottom) {
+    if (wasBottom) { scrollToBottom(); markRead(); }
+    else { S.newWhileAway += n; renderJump(); }
+  }
+
+  async function pollGroup() {
+    var gid = S.groupId;
+    if (!gid) return;
+    var res = await api('GET', '/api/groups/' + enc(gid) + '/updates?since=' + enc(S.maxSeq) + '&rev=' + enc(S.rev));
+    if (S.groupId !== gid || !res || res.error || S.inflight > 0) return;
+
+    var wasBottom = S.stick, changed = false, arrived = 0;
+
+    if (res.archived != null && S.group && !!res.archived !== !!S.group.archived) {
+      S.group.archived = !!res.archived;
+      if (S.me) S.me.canPost = !res.archived;
+      renderComposer();
+      renderHeader();
+    }
+    // Nothing happened — the server answered from one query. Only read
+    // receipts can have moved.
+    if (res.unchanged) {
+      if (applyReaders(res.readers)) renderTranscript();
+      return;
+    }
+    S.rev = Number(res.rev || S.rev);
+
+    if (Array.isArray(res.members) && res.members.length) {
+      var before = S.members.map(function (m) { return m.userId + ':' + m.groupRole; }).join('|');
+      var after = res.members.map(function (m) { return m.userId + ':' + m.groupRole; }).join('|');
+      if (before !== after) {
+        S.members = res.members;
+        renderHeader();
+        if (S.infoOpen) renderInfo();
+        changed = true;
+      }
+    }
+
+    if (res.messages && res.messages.length) {
+      var known = {};
+      S.messages.forEach(function (m) { known[m.id] = true; });
+      var fresh = res.messages.filter(function (m) { return !known[m.id]; });
+      if (fresh.length) {
+        S.messages = S.messages.concat(fresh);
+        // Server order; unconfirmed bubbles (seq = MAX) stay at the end.
+        S.messages.sort(function (a, b) { return Number(a.seq) - Number(b.seq); });
+        arrived = fresh.filter(function (m) { return !m.mine; }).length;
+        changed = true;
+      }
+    }
+    S.maxSeq = Math.max(S.maxSeq, Number(res.maxSeq || 0));
+
+    if (res.recent && res.recent.length) {
+      var byId = {};
+      S.messages.forEach(function (m) { byId[m.id] = m; });
+      res.recent.forEach(function (r) {
+        var m = byId[r.id];
+        if (!m) return;
+        if (JSON.stringify(m.reactions || []) !== JSON.stringify(r.reactions || [])) { m.reactions = r.reactions; changed = true; }
+        if (!!m.deleted !== !!r.deleted) { m.deleted = r.deleted; m.kind = r.kind; m.body = ''; changed = true; }
+        if (!m.deleted && m.body !== r.body) { m.body = r.body; changed = true; }
+        if (m.editedAt !== r.editedAt) { m.editedAt = r.editedAt; changed = true; }
+      });
+    }
+    if (applyReaders(res.readers)) changed = true;
+
+    if (changed) {
+      snapshotOpen();
+      renderTranscript();
+      afterArrivals(arrived, wasBottom);
+    }
+  }
+
   function applyReaders(readers) {
     if (!Array.isArray(readers)) return false;
     var moved = false;
@@ -1865,55 +2052,69 @@
   }
 
   /**
-   * Direct threads have no cursor endpoint, so the whole (small) transcript is
-   * re-fetched and compared. Re-rendering only on a real change keeps the
-   * reader's scroll position and selection intact.
+   * Only what is new since the newest confirmed message — usually nothing, and
+   * the server answers that from one indexed query.
    */
   async function pollDirect() {
     var tid = S.convId;
     if (!tid) return;
-    try {
-      var msgs = await api('GET', '/api/threads/' + encodeURIComponent(tid) + '/messages');
-      if (S.convId !== tid || !Array.isArray(msgs) || S.inflight > 0) return;
-      var mapped = withPending(mapDirect(msgs, S.conv));
-      var same = mapped.length === S.messages.length
-        && (!mapped.length || mapped[mapped.length - 1].id === S.messages[S.messages.length - 1].id);
-      if (same) return;
-      var wasBottom = S.stick;
-      S.messages = mapped;
-      S.maxSeq = mapped.length;
-      cachePut(S.conv.id, snapshot());
-      renderTranscript();
-      if (wasBottom) { scrollToBottom(); markRead(); }
-      else renderJumpPill();
-    } catch (e) { /* recovered by the next poll */ }
+    var cur = dmCursorNow();
+    var res = await api('GET', '/api/groups/dm/' + enc(tid) + '/updates?after=' + enc(cur.ts) + '&afterId=' + enc(cur.id));
+    if (S.convId !== tid || !res || !Array.isArray(res.messages) || S.inflight > 0) return;
+    if (!res.messages.length) return;
+    var byId = {};
+    S.messages.forEach(function (m) { byId[m.id] = m; });
+    var mapped = mapDirect(res.messages, S.conv);
+    var fresh = [];
+    mapped.forEach(function (m) {
+      // Our own send is already on screen under its real id: adopt the cursor.
+      if (byId[m.id]) { byId[m.id].cursor = m.cursor; return; }
+      fresh.push(m);
+    });
+    if (!fresh.length) return;
+    var wasBottom = S.stick;
+    var confirmed = S.messages.filter(function (m) { return !m.pending && !m.failed; });
+    var pending = S.messages.filter(function (m) { return m.pending || m.failed; });
+    S.messages = confirmed.concat(fresh, pending);
+    S.messages.forEach(function (m, i) { m.seq = i + 1; });
+    snapshotOpen();
+    renderTranscript();
+    afterArrivals(fresh.filter(function (m) { return !m.mine && !m.automated; }).length, wasBottom);
+    // Keep the list row current without waiting for the list poll.
+    var lastReal = fresh.filter(function (m) { return !m.automated; }).pop();
+    if (lastReal && S.conv) {
+      S.conv.lastPreview = lastReal.body;
+      S.conv.lastMessageAt = lastReal.createdAt;
+      S.conv.lastFromStaff = lastReal.senderRole === 'lifestyle_manager';
+      S.conversations.sort(byRecency);
+      renderList();
+    }
   }
 
   /**
-   * Move our read mark forward. Groups have a server-side cursor; direct threads
-   * have no column for one, so they use a per-device localStorage mark — the
-   * same approach the app already uses for its coach badge.
+   * Move our read mark forward. Groups have a server cursor; 1-to-1 threads have
+   * no column for one, so they use a per-device mark (as the coach badge does).
    */
   function markRead() {
-    if (S.conv == null) return;
+    if (S.conv == null || !isOpen()) return;
     if (isDirect()) {
       if (!S.convId) return;
       lsSet(DM_SEEN + S.convId, new Date().toISOString());
-      var row = S.conversations.find(function (c) { return c.id === S.conv.id; });
-      if (row && (row.unread || row.unreadDot)) {
-        row.unread = 0;
-        row.unreadDot = false;
-        renderList(); updateListSub(); publishUnread();
+      if (S.conv.unread || S.conv.unreadDot) {
+        S.conv.unread = 0;
+        S.conv.unreadDot = false;
+        refreshListRow();
       }
       return;
     }
     if (!S.me || !S.me.isMember || !S.maxSeq) return;
     if (Number(S.me.lastReadSeq || 0) >= Number(S.maxSeq)) return;
     S.me.lastReadSeq = S.maxSeq;
-    api('POST', '/api/groups/' + encodeURIComponent(S.groupId) + '/read', { seq: S.maxSeq })
+    var gid = S.groupId;
+    api('POST', '/api/groups/' + enc(gid) + '/read', { seq: S.maxSeq })
       .then(function () {
-        var c = S.conversations.find(function (x) { return x.id === S.groupId; });
-        if (c) { c.unread = 0; renderList(); updateListSub(); publishUnread(); }
+        var c = S.conversations.find(function (x) { return x.id === gid; });
+        if (c && c.unread) { c.unread = 0; refreshListRow(); }
       })
       .catch(function () { /* retried on the next scroll or poll */ });
   }
@@ -1922,14 +2123,12 @@
   // MESSAGE ACTIONS
   // ══════════════════════════════════════════════════════════════════════════
 
-  /** The reaction list as it will look after this member taps `emoji`. */
   function localToggle(list, emoji) {
     var hadThis = list.some(function (r) { return r.emoji === emoji && r.mine; });
     var out = [];
     list.forEach(function (r) {
       var c = { emoji: r.emoji, count: r.count, mine: r.mine, names: (r.names || []).slice() };
-      // One reaction per member: whatever was mine goes first.
-      if (c.mine) { c.count -= 1; c.mine = false; }
+      if (c.mine) { c.count -= 1; c.mine = false; }   // one reaction per member
       if (c.count > 0) out.push(c);
     });
     if (!hadThis) {
@@ -1943,7 +2142,7 @@
   /** Reactions flip on screen immediately; the server's answer reconciles. */
   async function toggleReaction(messageId, emoji) {
     if (isDirect()) return;
-    var m = S.messages.find(function (x) { return x.id === messageId; });
+    var m = findMsg(messageId);
     if (!m || m.pending || m.failed) return;
     var before = m.reactions || [];
     var gid = S.groupId;
@@ -1951,8 +2150,7 @@
     renderTranscript();
     S.inflight++;
     try {
-      var res = await api('POST', '/api/groups/' + encodeURIComponent(gid)
-        + '/messages/' + encodeURIComponent(messageId) + '/reactions', { emoji: emoji });
+      var res = await api('POST', '/api/groups/' + enc(gid) + '/messages/' + enc(messageId) + '/reactions', { emoji: emoji });
       if (res && res.error) { m.reactions = before; toast(res.error, true); }
       else if (res && Array.isArray(res.reactions)) m.reactions = res.reactions;
     } catch (e) {
@@ -1960,37 +2158,46 @@
       toast('Could not save that reaction.', true);
     } finally {
       S.inflight = Math.max(0, S.inflight - 1);
-      if (S.groupId === gid) {
-        renderTranscript();
-        cachePut(S.conv.id, snapshot());
-      }
+      if (S.groupId === gid) { renderTranscript(); snapshotOpen(); }
     }
   }
 
+  function sheetItem(act, ic, label, danger) {
+    return '<button type="button" class="bbg-sheet-item' + (danger ? ' is-danger' : '') + '" data-act="' + act + '">'
+      + icon(ic) + '<span>' + esc(label) + '</span></button>';
+  }
+
+  function sheet(bodyHtml) {
+    closeTransients();
+    var wrap = document.createElement('div');
+    wrap.className = 'bbg bbg-veil';
+    wrap.innerHTML = '<div class="bbg-sheet" role="menu"><div class="bbg-grip"></div>' + bodyHtml + '</div>';
+    document.body.appendChild(wrap);
+    wrap.onclick = function (e) { if (e.target === wrap) wrap.remove(); };
+    return wrap;
+  }
+
+  function wireSheet(s, onAct) {
+    each(s.querySelectorAll('.bbg-sheet-item'), function (b) {
+      b.onclick = function () { var a = b.getAttribute('data-act'); s.remove(); onAct(a); };
+    });
+  }
+
   function openMessageActions(messageId) {
-    var m = S.messages.find(function (x) { return x.id === messageId; });
+    var m = findMsg(messageId);
     if (!m || m.deleted || m.pending) return;
 
     if (m.failed) {
-      var fs = sheet(
-        '<button type="button" class="bbg-sheet-item" data-act="retry"><span>&#8635;</span><span>Try again</span></button>'
-        + '<button type="button" class="bbg-sheet-item is-danger" data-act="discard"><span>&#128465;</span><span>Discard</span></button>');
-      Array.prototype.forEach.call(fs.querySelectorAll('.bbg-sheet-item'), function (b) {
-        b.onclick = function () {
-          fs.remove();
-          if (b.getAttribute('data-act') === 'retry') retrySend(m.id);
-          else { S.messages = S.messages.filter(function (x) { return x !== m; }); renderTranscript(); }
-        };
+      wireSheet(sheet(sheetItem('retry', 'retry', 'Try again') + sheetItem('discard', 'trash', 'Discard', true)), function (act) {
+        if (act === 'retry') retrySend(m.id);
+        else { S.messages = S.messages.filter(function (x) { return x !== m; }); renderTranscript(); }
       });
       return;
     }
 
-    // A direct thread's table stores only id/sender/body/time — no reactions,
-    // replies, edits or deletes. Offer only what it can actually do.
+    // A 1-to-1 thread stores only id/sender/body/time — offer what it can do.
     if (isDirect()) {
-      if (!m.body) return;
-      var sheetD = sheet('<button type="button" class="bbg-sheet-item" data-act="copy"><span>⧉</span><span>Copy text</span></button>');
-      wire(sheetD, m);
+      if (m.body) wireSheet(sheet(sheetItem('copy', 'copy', 'Copy')), function () { copyText(m.body); });
       return;
     }
 
@@ -1998,153 +2205,109 @@
     var canEdit = own && m.kind === 'text' && (Date.now() - new Date(m.createdAt).getTime()) < EDIT_WINDOW_MS;
     var canDelete = own || (S.me && S.me.canManage);
     var mine = (m.reactions || []).filter(function (r) { return r.mine; }).map(function (r) { return r.emoji; });
-
-    function item(act, ico, label, danger) {
-      return '<button type="button" class="bbg-sheet-item' + (danger ? ' is-danger' : '') + '" data-act="' + act + '">'
-        + '<span>' + ico + '</span><span>' + esc(label) + '</span></button>';
-    }
-    var body = '<div class="bbg-sheet-reacts">'
-      + S.reactionChoices.map(function (e) {
-          return '<button type="button" data-emoji="' + esc(e) + '"'
-            + (mine.indexOf(e) >= 0 ? ' class="is-mine"' : '') + '>' + e + '</button>';
-        }).join('')
-      + '</div>'
-      + item('reply', '↩', 'Reply')
-      + (m.body ? item('copy', '⧉', 'Copy text') : '')
-      + (canEdit ? item('edit', '✎', 'Edit message') : '')
-      + item('forward', '⇪', 'Forward to another group')
-      + item('info', 'ⓘ', 'Message info')
-      + (own ? '' : item('report', '⚑', 'Report message'))
-      + (canDelete ? item('delete', '🗑', own ? 'Delete message' : 'Remove message', true) : '');
-    wire(sheet(body), m);
-  }
-
-  function sheet(bodyHtml) {
-    var wrap = document.createElement('div');
-    wrap.className = 'bbg-sheet-backdrop bbg';
-    wrap.innerHTML = '<div class="bbg-sheet"><div class="bbg-sheet-grip"></div>' + bodyHtml + '</div>';
-    document.body.appendChild(wrap);
-    wrap.onclick = function (e) { if (e.target === wrap) wrap.remove(); };
-    return wrap;
-  }
-
-  function wire(sheetEl, m) {
-    Array.prototype.forEach.call(sheetEl.querySelectorAll('.bbg-sheet-reacts button'), function (b) {
-      b.onclick = function () { sheetEl.remove(); toggleReaction(m.id, b.getAttribute('data-emoji')); };
+    var body = '<div class="bbg-sheet-rx">' + S.reactionChoices.map(function (e) {
+        return '<button type="button" data-emoji="' + esc(e) + '"' + (mine.indexOf(e) >= 0 ? ' class="is-mine"' : '') + '>' + e + '</button>';
+      }).join('') + '</div>'
+      + sheetItem('reply', 'reply', 'Reply')
+      + (m.body ? sheetItem('copy', 'copy', 'Copy') : '')
+      + (canEdit ? sheetItem('edit', 'edit', 'Edit') : '')
+      + sheetItem('forward', 'forward', 'Forward')
+      + sheetItem('info', 'info', 'Info')
+      + (own ? '' : sheetItem('report', 'flag', 'Report'))
+      + (canDelete ? sheetItem('delete', 'trash', own ? 'Delete' : 'Remove message', true) : '');
+    var s = sheet(body);
+    each(s.querySelectorAll('.bbg-sheet-rx button'), function (b) {
+      b.onclick = function () { s.remove(); toggleReaction(m.id, b.getAttribute('data-emoji')); };
     });
-    Array.prototype.forEach.call(sheetEl.querySelectorAll('.bbg-sheet-item'), function (b) {
-      b.onclick = function () {
-        var act = b.getAttribute('data-act');
-        sheetEl.remove();
-        runAction(act, m);
-      };
+    wireSheet(s, function (act) {
+      if (act === 'reply') setReply(m);
+      else if (act === 'copy') copyText(m.body);
+      else if (act === 'edit') editMessage(m);
+      else if (act === 'delete') deleteMessage(m);
+      else if (act === 'info') messageInfo(m);
+      else if (act === 'report') reportMessage(m);
+      else if (act === 'forward') forwardMessage(m);
     });
-  }
-
-  async function runAction(act, m) {
-    if (act === 'reply') return setReply(m);
-    if (act === 'copy') return copyText(m.body);
-    if (act === 'edit') return editMessage(m);
-    if (act === 'delete') return deleteMessage(m);
-    if (act === 'info') return messageInfo(m);
-    if (act === 'report') return reportMessage(m);
-    if (act === 'forward') return forwardMessage(m);
   }
 
   function copyText(text) {
     if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(text || '')
-        .then(function () { toast('Copied to clipboard.'); })
-        .catch(function () { toast('Could not copy.', true); });
+      navigator.clipboard.writeText(text || '').then(function () { toast('Copied'); }, function () { toast('Could not copy', true); });
       return;
     }
     var ta = document.createElement('textarea');
     ta.value = text || '';
-    ta.style.position = 'fixed';
-    ta.style.opacity = '0';
+    ta.style.cssText = 'position:fixed;opacity:0';
     document.body.appendChild(ta);
     ta.select();
-    try { document.execCommand('copy'); toast('Copied to clipboard.'); }
-    catch (e) { toast('Could not copy.', true); }
-    document.body.removeChild(ta);
+    try { document.execCommand('copy'); toast('Copied'); } catch (e) { toast('Could not copy', true); }
+    ta.remove();
   }
 
   function editMessage(m) {
     promptModal('Edit message', m.body, 'Save', async function (val) {
       if (!val.trim()) return 'Message cannot be empty.';
-      var res = await api('PATCH', '/api/groups/' + encodeURIComponent(S.groupId)
-        + '/messages/' + encodeURIComponent(m.id), { body: val.trim() });
+      var res = await api('PATCH', '/api/groups/' + enc(S.groupId) + '/messages/' + enc(m.id), { body: val.trim() });
       if (res && res.error) return res.error;
       m.body = val.trim();
       m.editedAt = new Date().toISOString();
       renderTranscript();
-      cachePut(S.conv.id, snapshot());
+      snapshotOpen();
       return null;
     });
   }
 
   function deleteMessage(m) {
-    confirmModal('Delete message?', 'This removes it for everyone in the group. It cannot be undone.', 'Delete', async function () {
-      var res = await api('DELETE', '/api/groups/' + encodeURIComponent(S.groupId)
-        + '/messages/' + encodeURIComponent(m.id));
+    confirmModal('Delete message?', 'It will be removed for everyone in this group.', 'Delete', async function () {
+      var res = await api('DELETE', '/api/groups/' + enc(S.groupId) + '/messages/' + enc(m.id));
       if (res && res.error) { toast(res.error, true); return; }
       m.deleted = true; m.body = ''; m.reactions = [];
       renderTranscript();
-      cachePut(S.conv.id, snapshot());
+      snapshotOpen();
       BBG.refreshList();
     });
   }
 
   async function messageInfo(m) {
     try {
-      var res = await api('GET', '/api/groups/' + encodeURIComponent(S.groupId)
-        + '/messages/' + encodeURIComponent(m.id) + '/info');
+      var res = await api('GET', '/api/groups/' + enc(S.groupId) + '/messages/' + enc(m.id) + '/info');
       if (res && res.error) { toast(res.error, true); return; }
-      var body = '<div class="bbg-field"><span class="bbg-field-label">Sent</span>'
-        + '<div style="font-size:13.5px">' + esc(new Date(res.sentAt).toLocaleString()) + '</div></div>'
-        + '<div class="bbg-field"><span class="bbg-field-label">Read by ' + res.readBy.length + '</span>'
-        + (res.readBy.length
-            ? res.readBy.map(function (r) { return '<div class="bbg-review-row">' + esc(r.name) + '<b>' + esc(r.roleLabel) + '</b></div>'; }).join('')
-            : '<div class="bbg-field-hint">Nobody has opened it yet.</div>')
-        + '</div>';
-      if (res.pending.length) {
-        body += '<div class="bbg-field"><span class="bbg-field-label">Delivered, not yet read</span>'
-          + res.pending.map(function (r) { return '<div class="bbg-review-row">' + esc(r.name) + '<b>' + esc(r.roleLabel) + '</b></div>'; }).join('')
-          + '</div>';
-      }
-      infoModal('Message info', body);
-    } catch (e) { toast('Could not load message info.', true); }
+      var person = function (r) {
+        return '<div class="bbg-person"><div class="bbg-person-t"><b>' + esc(r.name) + '</b></div><span class="bbg-role">' + esc(r.roleLabel) + '</span></div>';
+      };
+      infoModal('Message info',
+        '<div class="bbg-fieldset"><span class="bbg-field-l">Sent</span><div>' + esc(new Date(res.sentAt).toLocaleString()) + '</div></div>'
+        + '<div class="bbg-fieldset"><span class="bbg-field-l">Read by ' + res.readBy.length + '</span>'
+        + (res.readBy.length ? res.readBy.map(person).join('') : '<div class="bbg-hint">Nobody has opened it yet.</div>') + '</div>'
+        + (res.pending.length ? '<div class="bbg-fieldset"><span class="bbg-field-l">Delivered</span>' + res.pending.map(person).join('') + '</div>' : ''));
+    } catch (e) { toast('Could not load message info', true); }
   }
 
   function reportMessage(m) {
     promptModal('Report message', '', 'Send report', async function (val) {
-      var res = await api('POST', '/api/groups/' + encodeURIComponent(S.groupId)
-        + '/messages/' + encodeURIComponent(m.id) + '/report', { reason: val.trim() });
+      var res = await api('POST', '/api/groups/' + enc(S.groupId) + '/messages/' + enc(m.id) + '/report', { reason: val.trim() });
       if (res && res.error) return res.error;
-      toast('Reported. An admin will review this message.');
+      toast('Reported — an admin will review it');
       return null;
-    }, 'Tell us what is wrong with this message (optional)');
+    }, 'What is wrong with this message? (optional)');
   }
 
   function forwardMessage(m) {
-    var targets = S.conversations.filter(function (c) {
-      return c.type === 'group' && c.id !== S.groupId && !c.archived;
-    });
-    if (!targets.length) { toast('There is no other group to forward this to.'); return; }
-    var body = '<div class="bbg-picker">' + targets.map(function (c) {
+    var targets = S.conversations.filter(function (c) { return c.type === 'group' && c.id !== S.groupId && !c.archived; });
+    if (!targets.length) { toast('There is no other group to forward to'); return; }
+    if (!m.body) { toast('Only text messages can be forwarded'); return; }
+    var modal = infoModal('Forward to…', '<div class="bbg-pick-list">' + targets.map(function (c) {
       return '<button type="button" class="bbg-pick" data-id="' + esc(c.id) + '">'
-        + avatarHtml(c.clientName || c.name, c.avatarUrl || c.clientAvatar, 'bbg-avatar--sm bbg-avatar--group')
-        + '<div class="bbg-pick-body"><div class="bbg-pick-name">' + esc(c.name) + '</div>'
-        + '<div class="bbg-pick-sub">' + esc(c.memberCount + ' members') + '</div></div></button>';
-    }).join('') + '</div>';
-    var modal = infoModal('Forward message', body);
-    Array.prototype.forEach.call(modal.querySelectorAll('.bbg-pick'), function (b) {
+        + avatarHtml(c.clientName || c.name, c.avatarUrl || c.clientAvatar, 'bbg-av--sm bbg-av--g')
+        + '<div class="bbg-pick-t"><b>' + esc(c.name) + '</b><span>' + esc(c.memberCount + ' members') + '</span></div></button>';
+    }).join('') + '</div>');
+    each(modal.querySelectorAll('.bbg-pick'), function (b) {
       b.onclick = async function () {
-        if (!m.body) { toast('Only text messages can be forwarded.'); return; }
-        var res = await api('POST', '/api/groups/' + encodeURIComponent(b.getAttribute('data-id')) + '/messages', { body: m.body });
+        b.disabled = true;
+        var res = await api('POST', '/api/groups/' + enc(b.getAttribute('data-id')) + '/messages', { body: m.body });
         closeModal(modal);
         if (res && res.error) { toast(res.error, true); return; }
-        toast('Message forwarded.');
+        toast('Forwarded');
         BBG.refreshList();
       };
     });
@@ -2152,66 +2315,62 @@
 
   function lightbox(src) {
     var d = document.createElement('div');
-    d.className = 'bbg-lightbox bbg';
+    d.className = 'bbg bbg-lightbox';
     d.innerHTML = '<img src="' + esc(src) + '" alt="">';
     d.onclick = function () { d.remove(); };
     document.body.appendChild(d);
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // SEARCH
+  // SEARCH IN A CONVERSATION
   // ══════════════════════════════════════════════════════════════════════════
 
-  function toggleSearch() {
-    var host = el('bbgSearchHost');
-    if (S.searchOpen) { host.innerHTML = ''; S.searchOpen = false; return; }
-    if (S.convId == null) return;
+  function closeFind() { var h = el('bbgFindHost'); if (h) h.innerHTML = ''; S.searchOpen = false; }
+
+  function toggleFind() {
+    var host = el('bbgFindHost');
+    if (!host) return;
+    if (S.searchOpen) { closeFind(); return; }
     S.searchOpen = true;
-    host.innerHTML = '<div class="bbg-searchres" id="bbgSearchRes">'
-      + '<div style="padding:12px 16px"><input type="search" id="bbgMsgSearch" placeholder="Search in this conversation" '
-      + 'style="width:100%;padding:10px 13px;border-radius:11px;background:#141414;border:1px solid rgba(255,255,255,.1);color:#f4f1ea;font-family:Outfit,sans-serif;font-size:14px" autocomplete="off"></div>'
-      + '<div id="bbgSearchList"></div></div>';
-    var inp = el('bbgMsgSearch');
+    host.innerHTML = '<div class="bbg-find"><div class="bbg-find-in"><label class="bbg-searchbox">' + icon('search')
+      + '<input type="search" id="bbgFindInput" placeholder="Search this chat" autocomplete="off"></label></div>'
+      + '<div id="bbgFindList"></div></div>';
+    var inp = el('bbgFindInput');
     inp.focus();
     var t = null;
     inp.oninput = function () {
       clearTimeout(t);
       var q = inp.value.trim();
-      t = setTimeout(function () { runSearch(q); }, 260);
+      t = setTimeout(function () { runFind(q); }, 220);
     };
   }
 
-  async function runSearch(q) {
-    var list = el('bbgSearchList');
+  async function runFind(q) {
+    var list = el('bbgFindList');
     if (!list) return;
-    if (q.length < 2) { list.innerHTML = hint('Type at least 2 characters.'); return; }
+    var note = function (s) { list.innerHTML = '<div class="bbg-find-note">' + esc(s) + '</div>'; };
+    if (q.length < 2) { note('Type at least 2 characters.'); return; }
     try {
       var rows;
       if (isDirect()) {
-        // The whole direct transcript is already loaded, so filter locally
-        // rather than adding a search endpoint to the legacy thread API.
+        // Searches the messages loaded so far (scroll up to load older ones).
         var needle = q.toLowerCase();
         rows = S.messages.filter(function (m) { return String(m.body || '').toLowerCase().indexOf(needle) >= 0; })
           .slice(-50).reverse()
-          .map(function (m) { return { id: m.id, body: m.body, createdAt: m.createdAt, senderName: m.senderName, roleLabel: m.senderRoleLabel }; });
+          .map(function (m) { return { id: m.id, body: m.body, createdAt: m.createdAt, senderName: m.automated ? 'Automated' : m.senderName }; });
       } else {
-        var res = await api('GET', '/api/groups/' + encodeURIComponent(S.groupId) + '/search?q=' + encodeURIComponent(q));
+        var res = await api('GET', '/api/groups/' + enc(S.groupId) + '/search?q=' + enc(q));
         rows = (res && res.results) || [];
       }
-      if (!rows.length) { list.innerHTML = hint('No messages found.'); return; }
+      if (!rows.length) { note('No messages found.'); return; }
       list.innerHTML = rows.map(function (r) {
-        return '<button type="button" data-id="' + esc(r.id) + '">'
-          + '<div class="bbg-searchres-who">' + esc(r.senderName) + (r.roleLabel ? ' · ' + esc(r.roleLabel) : '')
-          + ' <span style="color:#6b6760;font-weight:400">' + esc(fmtListTime(r.createdAt)) + '</span></div>'
-          + '<div class="bbg-searchres-body">' + mark(r.body, q) + '</div></button>';
+        return '<button type="button" class="bbg-find-row" data-id="' + esc(r.id) + '"><b>' + esc(r.senderName)
+          + ' · ' + esc(fmtListTime(r.createdAt)) + '</b><span>' + mark(r.body, q) + '</span></button>';
       }).join('');
-      Array.prototype.forEach.call(list.querySelectorAll('button'), function (b) {
-        b.onclick = function () { toggleSearch(); gotoMessage(b.getAttribute('data-id')); };
+      each(list.querySelectorAll('.bbg-find-row'), function (b) {
+        b.onclick = function () { var id = b.getAttribute('data-id'); closeFind(); gotoMessage(id); };
       });
-    } catch (e) {
-      list.innerHTML = '<div style="padding:14px 16px;color:#e8836f;font-size:12.5px">Search failed.</div>';
-    }
-    function hint(t) { return '<div style="padding:14px 16px;color:#6b6760;font-size:12.5px">' + t + '</div>'; }
+    } catch (e) { note('Search failed.'); }
   }
 
   /** Highlight the needle inside already-escaped text. */
@@ -2223,271 +2382,254 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // CONVERSATION MENU + DETAILS
+  // CHAT MENU + INFO PANEL
   // ══════════════════════════════════════════════════════════════════════════
 
-  function openConvMenu() {
-    if (S.conv == null) return;
-    var rows = [['info', 'ⓘ', isDirect() ? 'Conversation info' : 'Group info'], ['search', '🔍', 'Search messages']];
+  function openChatMenu() {
+    if (!S.conv) return;
+    var h = sheetItem('info', 'info', isDirect() ? 'Contact info' : 'Group info')
+      + sheetItem('search', 'search', 'Search');
     if (!isDirect()) {
-      if (S.me && S.me.isMember) rows.push(['mute', S.me.muted ? '🔕' : '🔔', S.me.muted ? 'Unmute notifications' : 'Mute notifications']);
+      if (S.me && S.me.isMember) h += sheetItem('mute', S.me.muted ? 'bell' : 'belloff', S.me.muted ? 'Unmute notifications' : 'Mute notifications');
       if (S.me && S.me.canManage) {
-        rows.push(['rename', '✎', 'Edit group name']);
-        rows.push(['archive', '📦', S.group.archived ? 'Reopen group' : 'Archive group']);
-        rows.push(['activity', '📋', 'View group activity']);
+        h += sheetItem('add', 'users', 'Add member');
+        h += sheetItem('rename', 'edit', 'Edit group name');
+        h += sheetItem('archive', 'archive', S.group && S.group.archived ? 'Reopen group' : 'Archive group');
+        h += sheetItem('activity', 'list', 'Group activity');
       }
-      if (S.me && S.me.isMember && String(S.me.userId) !== String(S.group.clientId)) {
-        rows.push(['leave', '↩', 'Leave group', true]);
-      }
+      if (S.me && S.me.isMember && S.group && String(S.me.userId) !== String(S.group.clientId)) h += sheetItem('leave', 'leave', 'Leave group', true);
     }
-    var s = sheet(rows.map(function (r) {
-      return '<button type="button" class="bbg-sheet-item' + (r[3] ? ' is-danger' : '') + '" data-act="' + r[0] + '">'
-        + '<span>' + r[1] + '</span><span>' + esc(r[2]) + '</span></button>';
-    }).join(''));
-    Array.prototype.forEach.call(s.querySelectorAll('.bbg-sheet-item'), function (b) {
-      b.onclick = function () {
-        var act = b.getAttribute('data-act');
-        s.remove();
-        if (act === 'search') { toggleSearch(); return; }
-        if (act === 'info') { openDetails(); return; }
-        // Group info owns the implementation of each remaining action; open it
-        // and click the matching row so there is one code path per action.
-        openDetails();
-        setTimeout(function () {
-          var map = { mute: 'bbgMute', rename: 'bbgRename', archive: 'bbgArchive', activity: 'bbgActivity', leave: 'bbgLeave' };
-          var target = el(map[act]);
-          if (target) target.click();
-        }, 40);
-      };
+    wireSheet(sheet(h), function (act) {
+      if (act === 'info') openInfo();
+      else if (act === 'search') toggleFind();
+      else if (act === 'mute') toggleMute();
+      else if (act === 'add') openAddMember();
+      else if (act === 'rename') renameGroup();
+      else if (act === 'archive') toggleArchive();
+      else if (act === 'activity') showActivity();
+      else if (act === 'leave') leaveGroup();
     });
   }
 
-  function toggleDetails() { S.detailsOpen ? closeDetails() : openDetails(); }
-
-  /**
-   * On desktop, showing/hiding the details column resizes the chat column, which
-   * reflows the transcript and silently moves the reader off the newest message.
-   */
-  function restickAfterLayout() {
-    if (!S.stick) return;
-    requestAnimationFrame(function () { scrollToBottom(); });
-    setTimeout(function () { if (S.stick) scrollToBottom(); }, 180);
+  function openInfo() {
+    if (!S.conv || S.infoOpen) return;
+    S.infoOpen = true;
+    root().classList.add('has-info');
+    if (!isDesktop()) setView('info');
+    navPush('info');
+    el('bbgInfoTitle').textContent = isDirect() ? 'Contact info' : 'Group info';
+    el('bbgInfoClose').innerHTML = isDesktop() ? icon('close') : icon('back');
+    renderInfo();
+    if (!isDirect()) {
+      api('GET', '/api/groups/' + enc(S.groupId) + '/media')
+        .then(function (m) { if (S.infoOpen && m && !m.error) { S.media = m; renderInfo(); } })
+        .catch(function () {});
+    }
   }
 
-  function closeDetails() {
-    S.detailsOpen = false;
-    var shell = el('bbgShell');
-    if (shell) shell.classList.remove('has-details');
-    setPane('chat');
-    restickAfterLayout();
+  function hideInfo(silent) {
+    if (!S.infoOpen) return;
+    S.infoOpen = false;
+    var r = root();
+    if (r) r.classList.remove('has-info');
+    if (S.view === 'info') setView(S.conv ? 'chat' : 'list');
+    if (!silent && S.stick) scrollToBottom();
   }
 
-  async function openDetails() {
-    if (S.conv == null) return;
-    S.detailsOpen = true;
-    var shell = el('bbgShell');
-    if (shell) shell.classList.add('has-details');
-    if (!isDesktop()) setPane('details');
-    el('bbgDetailsTitle').textContent = isDirect() ? 'Conversation info' : 'Group info';
-    renderDetails();
-    restickAfterLayout();
-    if (isDirect()) return;
-    try {
-      S.media = await api('GET', '/api/groups/' + encodeURIComponent(S.groupId) + '/media');
-      if (S.detailsOpen) renderDetails();
-    } catch (e) { /* media is a nice-to-have */ }
-  }
-
-  function renderDetails() {
-    var box = el('bbgDetailsBody');
-    if (!box) return;
-    if (isDirect()) { renderDirectDetails(box); return; }
+  function renderInfo() {
+    var box = el('bbgInfo');
+    if (!box || !S.conv) return;
+    if (isDirect()) {
+      var c = S.conv;
+      box.innerHTML = '<div class="bbg-info-hero">' + avatarHtml(c.name, c.avatarUrl, 'bbg-av--xl')
+        + '<div class="bbg-info-name">' + esc(c.name) + '</div>'
+        + '<div class="bbg-info-meta">' + esc(S.mode === 'admin' ? (c.email || 'Client') : 'Your Lifestyle Manager') + '</div></div>'
+        + '<div class="bbg-sec"><div class="bbg-sec-h">About this chat</div><div class="bbg-sec-note">'
+        + (S.mode === 'admin'
+            ? 'A private chat between this client and the coaching team. The care group cannot see it. Automated check-ins sent to the client appear here collapsed.'
+            : 'A private chat between you and your Lifestyle Manager. Nobody in your care group can see it.')
+        + '</div></div>'
+        + '<div class="bbg-sec">' + actHtml('search', 'search', 'Search messages') + '</div>';
+      bindInfoActs(box);
+      return;
+    }
     if (!S.group) return;
-
     var g = S.group;
     var canManage = !!(S.me && S.me.canManage);
-
-    var h = '<div class="bbg-details-hero">'
-      + avatarHtml(g.clientName || g.name, g.avatarUrl || g.clientAvatar, 'bbg-avatar--lg bbg-avatar--group')
-      + '<div class="bbg-details-name">' + esc(g.name) + '</div>'
-      + '<div class="bbg-details-meta">'
-      +   esc(g.clientName) + ' · Client Care Team<br>'
-      +   S.members.length + ' member' + (S.members.length === 1 ? '' : 's')
-      +   ' · created ' + esc(new Date(g.createdAt).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }))
-      +   (g.archived ? '<br><span style="color:#c8a44e">Archived — read only</span>' : '')
-      + '</div></div>';
-
-    h += '<div class="bbg-details-sec"><div class="bbg-details-label">Participants</div>'
-      + S.members.map(function (m) {
-          return '<div class="bbg-member">' + avatarHtml(m.name, m.avatar, 'bbg-avatar--sm')
-            + '<div class="bbg-member-body"><div class="bbg-member-name">' + esc(m.name)
-            + (String(m.userId) === String(S.me.userId) ? ' <span style="color:#6b6760;font-weight:400">(you)</span>' : '')
-            + '</div><div class="bbg-member-role"><b>' + esc(m.roleLabel) + '</b>'
-            + (m.email ? ' · ' + esc(m.email) : '') + '</div></div>'
-            + (canManage && String(m.userId) !== String(g.clientId)
-                ? '<button type="button" class="bbg-iconbtn" data-remove="' + esc(m.userId) + '" title="Remove from group" aria-label="Remove ' + esc(m.name) + '">' + icon('close') + '</button>'
-                : '')
-            + '</div>';
-        }).join('')
-      + (canManage ? '<button type="button" class="bbg-action" id="bbgAddMember"><span>＋</span>Add member</button>' : '')
-      + '</div>';
+    var h = '<div class="bbg-info-hero">'
+      + avatarHtml(g.clientName || g.name, g.avatarUrl || g.clientAvatar, 'bbg-av--xl bbg-av--g')
+      + '<div class="bbg-info-name">' + esc(g.name) + '</div>'
+      + '<div class="bbg-info-meta">Care group · ' + S.members.length + ' members<br>Created '
+      + esc(new Date(g.createdAt).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }))
+      + (g.archived ? '<br><span style="color:#d9b85f">Archived — read only</span>' : '') + '</div></div>';
 
     var media = S.media || { files: [], links: [] };
     var images = (media.files || []).filter(function (f) { return f.isImage; });
     var docs = (media.files || []).filter(function (f) { return !f.isImage; });
-    h += '<div class="bbg-details-sec"><div class="bbg-details-label">Shared files &amp; links</div>';
-    if (!media.files.length && !(media.links || []).length) {
-      h += '<div class="bbg-field-hint" style="margin:0">Nothing shared in this group yet.</div>';
-    } else {
+    if (images.length || docs.length || (media.links || []).length) {
+      h += '<div class="bbg-sec"><div class="bbg-sec-h">Media, docs and links</div>';
       if (images.length) {
-        h += '<div class="bbg-media-grid">' + images.slice(0, 12).map(function (f) {
-          return '<a href="' + esc(f.url) + '" target="_blank" rel="noopener"><img src="' + esc(f.url) + '" alt="' + esc(f.name) + '" loading="lazy"></a>';
+        h += '<div class="bbg-media">' + images.slice(0, 9).map(function (f) {
+          return '<a href="' + esc(f.url) + '" target="_blank" rel="noopener"><img src="' + esc(f.url) + '" alt="" loading="lazy"></a>';
         }).join('') + '</div>';
       }
-      if (docs.length) {
-        h += '<div style="margin-top:10px">' + docs.slice(0, 8).map(function (f) {
-          return '<a class="bbg-att-file" href="' + esc(f.url) + '" target="_blank" rel="noopener" style="margin-bottom:6px">'
-            + '<span class="bbg-att-icon">📄</span><span class="bbg-att-meta">'
-            + '<span class="bbg-att-name">' + esc(f.name) + '</span>'
-            + '<span class="bbg-att-size">' + esc(fmtBytes(f.size)) + ' · ' + esc(f.senderName) + '</span></span></a>';
-        }).join('') + '</div>';
-      }
+      docs.slice(0, 6).forEach(function (f) {
+        h += '<a class="bbg-file" style="margin-top:8px" href="' + esc(f.url) + '" target="_blank" rel="noopener"><span class="bbg-file-ic">📄</span>'
+          + '<span class="bbg-file-t"><b>' + esc(f.name) + '</b><span>' + esc(fmtBytes(f.size) + ' · ' + f.senderName) + '</span></span></a>';
+      });
       if ((media.links || []).length) {
-        h += '<div class="bbg-linklist" style="margin-top:8px">' + media.links.slice(0, 8).map(function (l) {
+        h += '<div class="bbg-links" style="margin-top:8px">' + media.links.slice(0, 6).map(function (l) {
           return '<a href="' + esc(l.url) + '" target="_blank" rel="noopener">' + esc(l.url) + '</a>';
         }).join('') + '</div>';
       }
+      h += '</div>';
     }
-    h += '</div>';
 
-    h += '<div class="bbg-details-sec"><div class="bbg-details-label">Actions</div>'
-      + '<button type="button" class="bbg-action" id="bbgDetailSearch"><span>🔍</span>Search messages</button>'
-      + (S.me.isMember
-          ? '<button type="button" class="bbg-action" id="bbgMute"><span>' + (S.me.muted ? '🔕' : '🔔') + '</span>'
-            + 'Notifications<span class="bbg-action-toggle">' + (S.me.muted ? 'Muted' : 'On') + '</span></button>'
-          : '')
-      + (canManage ? '<button type="button" class="bbg-action" id="bbgRename"><span>✎</span>Edit group name</button>' : '')
-      + (canManage ? '<button type="button" class="bbg-action" id="bbgAvatar"><span>🖼</span>Change group avatar</button>' : '')
-      + (canManage ? '<button type="button" class="bbg-action" id="bbgArchive"><span>📦</span>'
-            + (g.archived ? 'Reopen group' : 'Archive group') + '</button>' : '')
-      + (canManage ? '<button type="button" class="bbg-action" id="bbgActivity"><span>📋</span>View group activity</button>' : '')
-      + (S.me.isMember && String(S.me.userId) !== String(g.clientId)
-          ? '<button type="button" class="bbg-action is-danger" id="bbgLeave"><span>↩</span>Leave group</button>' : '')
+    h += '<div class="bbg-sec"><div class="bbg-sec-h">' + S.members.length + ' members</div>'
+      + (canManage ? actHtml('add', 'users', 'Add member') : '')
+      + S.members.map(function (m) {
+          var you = String(m.userId) === myId();
+          return '<div class="bbg-person">' + avatarHtml(m.name, m.avatar, 'bbg-av--sm')
+            + '<div class="bbg-person-t"><b>' + esc(you ? 'You' : m.name) + '</b><span>' + esc(m.email || '') + '</span></div>'
+            + '<span class="bbg-role">' + esc(m.roleLabel) + '</span>'
+            + (canManage && !you && String(m.userId) !== String(g.clientId)
+                ? '<button type="button" class="bbg-ib" data-remove="' + esc(m.userId) + '" aria-label="Remove ' + esc(m.name) + '">' + icon('close') + '</button>'
+                : '')
+            + '</div>';
+        }).join('')
       + '</div>';
 
+    h += '<div class="bbg-sec">'
+      + actHtml('search', 'search', 'Search messages')
+      + (S.me.isMember ? actHtml('mute', S.me.muted ? 'belloff' : 'bell', 'Notifications', false, S.me.muted ? 'Muted' : 'On') : '')
+      + (canManage ? actHtml('rename', 'edit', 'Edit group name') : '')
+      + (canManage ? actHtml('avatar', 'image', 'Change group photo') : '')
+      + (canManage ? actHtml('activity', 'list', 'Group activity') : '')
+      + (canManage ? actHtml('archive', 'archive', g.archived ? 'Reopen group' : 'Archive group') : '')
+      + (S.me.isMember && String(S.me.userId) !== String(g.clientId) ? actHtml('leave', 'leave', 'Leave group', true) : '')
+      + '</div>';
     box.innerHTML = h;
-    bindDetails();
+    bindInfoActs(box);
+    each(box.querySelectorAll('[data-remove]'), function (b) {
+      b.onclick = function () { removeMember(b.getAttribute('data-remove')); };
+    });
   }
 
-  /** A direct thread has no members table — show who is in it and little else. */
-  function renderDirectDetails(box) {
-    var c = S.conv || {};
-    box.innerHTML = '<div class="bbg-details-hero">'
-      + avatarHtml(c.name, c.avatarUrl, 'bbg-avatar--lg')
-      + '<div class="bbg-details-name">' + esc(c.name) + '</div>'
-      + '<div class="bbg-details-meta">' + esc(c.subtitle || 'Direct message')
-      + (c.email ? '<br>' + esc(c.email) : '') + '</div></div>'
-      + '<div class="bbg-details-sec"><div class="bbg-details-label">About this chat</div>'
-      + '<div class="bbg-field-hint" style="margin:0">'
-      + (S.mode === 'admin'
-          ? 'A private thread between this client and the coaching team. Care-team members cannot see it — use the client\'s care group for anything the doctor, lifestyle manager or operator should also read.'
-          : 'A private thread between you and your Lifestyle Manager. Nobody in your care group can see it.')
-      + '</div></div>'
-      + '<div class="bbg-details-sec"><div class="bbg-details-label">Actions</div>'
-      + '<button type="button" class="bbg-action" id="bbgDetailSearch"><span>🔍</span>Search messages</button></div>';
-    var s = el('bbgDetailSearch');
-    if (s) s.onclick = function () { if (!isDesktop()) setPane('chat'); toggleSearch(); };
+  function actHtml(act, ic, label, danger, trail) {
+    return '<button type="button" class="bbg-act' + (danger ? ' is-danger' : '') + '" data-act="' + act + '">'
+      + icon(ic) + '<span>' + esc(label) + '</span>' + (trail ? '<span class="bbg-act-trail">' + esc(trail) + '</span>' : '') + '</button>';
   }
 
-  function bindDetails() {
-    var box = el('bbgDetailsBody');
-    var on = function (id, fn) { var e = el(id); if (e) e.onclick = fn; };
-
-    on('bbgDetailSearch', function () { if (!isDesktop()) setPane('chat'); toggleSearch(); });
-    on('bbgMute', async function () {
-      var next = !S.me.muted;
-      var res = await api('POST', '/api/groups/' + encodeURIComponent(S.groupId) + '/mute', { muted: next });
-      if (res && res.error) { toast(res.error, true); return; }
-      S.me.muted = next;
-      renderDetails();
-      BBG.refreshList();
-    });
-    on('bbgRename', function () {
-      promptModal('Edit group name', S.group.name, 'Save', async function (val) {
-        if (!val.trim()) return 'Group name cannot be empty.';
-        var res = await api('PATCH', '/api/groups/' + encodeURIComponent(S.groupId), { name: val.trim() });
-        if (res && res.error) return res.error;
-        S.group.name = val.trim();
-        renderHeader(); renderDetails(); BBG.refreshList();
-        return null;
-      });
-    });
-    on('bbgAvatar', function () {
-      promptModal('Group avatar', S.group.avatarUrl || '', 'Save', async function (val) {
-        var res = await api('PATCH', '/api/groups/' + encodeURIComponent(S.groupId), { avatar_url: val.trim() });
-        if (res && res.error) return res.error;
-        S.group.avatarUrl = val.trim();
-        renderHeader(); renderDetails(); BBG.refreshList();
-        return null;
-      }, 'Paste an image URL, or leave blank to use the client\'s initials');
-    });
-    on('bbgArchive', function () {
-      var next = !S.group.archived;
-      confirmModal(
-        next ? 'Archive this group?' : 'Reopen this group?',
-        next ? 'The conversation stays readable but nobody can send new messages until it is reopened.'
-             : 'Members will be able to send messages again.',
-        next ? 'Archive' : 'Reopen',
-        async function () {
-          var res = await api('PATCH', '/api/groups/' + encodeURIComponent(S.groupId), { archived: next });
-          if (res && res.error) { toast(res.error, true); return; }
-          S.group.archived = next;
-          S.me.canPost = !next;
-          renderComposer(); renderDetails(); BBG.refreshList();
-        }
-      );
-    });
-    on('bbgActivity', showActivity);
-    on('bbgAddMember', openAddMember);
-    on('bbgLeave', function () {
-      confirmModal('Leave this group?', 'You will stop receiving messages from this care team.', 'Leave', async function () {
-        var res = await api('DELETE', '/api/groups/' + encodeURIComponent(S.groupId) + '/members/' + encodeURIComponent(S.me.userId));
-        if (res && res.error) { toast(res.error, true); return; }
-        S.conv = null; S.convId = null; S.groupId = null; S.kind = null;
-        stopPoll(); closeDetails(); setPane('list'); BBG.refreshList();
-      });
-    });
-
-    Array.prototype.forEach.call(box.querySelectorAll('[data-remove]'), function (b) {
+  function bindInfoActs(box) {
+    each(box.querySelectorAll('.bbg-act'), function (b) {
       b.onclick = function () {
-        var uid = b.getAttribute('data-remove');
-        var m = S.members.find(function (x) { return String(x.userId) === String(uid); });
-        confirmModal('Remove ' + (m ? m.name : 'this member') + '?',
-          'They will lose access to this conversation. Past messages stay in the transcript.',
-          'Remove', async function () {
-            var res = await api('DELETE', '/api/groups/' + encodeURIComponent(S.groupId) + '/members/' + encodeURIComponent(uid));
-            if (res && res.error) { toast(res.error, true); return; }
-            S.members = res.members || S.members;
-            renderHeader(); renderDetails(); poll(true);
-          });
+        var act = b.getAttribute('data-act');
+        if (act === 'search') {
+          if (isDesktop()) { toggleFind(); return; }
+          goBack();
+          setTimeout(toggleFind, 340);
+        }
+        else if (act === 'mute') toggleMute();
+        else if (act === 'add') openAddMember();
+        else if (act === 'rename') renameGroup();
+        else if (act === 'avatar') changeAvatar();
+        else if (act === 'activity') showActivity();
+        else if (act === 'archive') toggleArchive();
+        else if (act === 'leave') leaveGroup();
       };
     });
   }
 
+  async function toggleMute() {
+    var next = !S.me.muted;
+    var res = await api('POST', '/api/groups/' + enc(S.groupId) + '/mute', { muted: next });
+    if (res && res.error) { toast(res.error, true); return; }
+    S.me.muted = next;
+    if (S.conv) S.conv.muted = next;
+    toast(next ? 'Notifications muted' : 'Notifications on');
+    if (S.infoOpen) renderInfo();
+    renderList();
+  }
+
+  function renameGroup() {
+    promptModal('Group name', S.group.name, 'Save', async function (val) {
+      if (!val.trim()) return 'Group name cannot be empty.';
+      var res = await api('PATCH', '/api/groups/' + enc(S.groupId), { name: val.trim() });
+      if (res && res.error) return res.error;
+      S.group.name = val.trim();
+      if (S.conv) S.conv.name = val.trim();
+      renderHeader();
+      if (S.infoOpen) renderInfo();
+      BBG.refreshList();
+      return null;
+    });
+  }
+
+  function changeAvatar() {
+    promptModal('Group photo', S.group.avatarUrl || '', 'Save', async function (val) {
+      var res = await api('PATCH', '/api/groups/' + enc(S.groupId), { avatar_url: val.trim() });
+      if (res && res.error) return res.error;
+      S.group.avatarUrl = val.trim();
+      renderHeader();
+      if (S.infoOpen) renderInfo();
+      BBG.refreshList();
+      return null;
+    }, 'Paste an image link, or leave it blank to use the client\'s initials.');
+  }
+
+  function toggleArchive() {
+    var next = !S.group.archived;
+    confirmModal(next ? 'Archive this group?' : 'Reopen this group?',
+      next ? 'Everyone can still read it, but nobody can send messages until it is reopened.'
+           : 'Members will be able to send messages again.',
+      next ? 'Archive' : 'Reopen',
+      async function () {
+        var res = await api('PATCH', '/api/groups/' + enc(S.groupId), { archived: next });
+        if (res && res.error) { toast(res.error, true); return; }
+        S.group.archived = next;
+        S.me.canPost = !next;
+        renderHeader();
+        renderComposer();
+        if (S.infoOpen) renderInfo();
+        BBG.refreshList();
+      });
+  }
+
+  function leaveGroup() {
+    confirmModal('Leave this group?', 'You will stop receiving messages from this care team.', 'Leave', async function () {
+      var res = await api('DELETE', '/api/groups/' + enc(S.groupId) + '/members/' + enc(S.me.userId));
+      if (res && res.error) { toast(res.error, true); return; }
+      hideInfo(true);
+      leaveChat();
+      BBG.refreshList();
+    });
+  }
+
+  function removeMember(uid) {
+    var m = S.members.find(function (x) { return String(x.userId) === String(uid); });
+    confirmModal('Remove ' + (m ? m.name : 'this member') + '?',
+      'They lose access to this group. Their past messages stay.', 'Remove', async function () {
+        var res = await api('DELETE', '/api/groups/' + enc(S.groupId) + '/members/' + enc(uid));
+        if (res && res.error) { toast(res.error, true); return; }
+        S.members = res.members || S.members;
+        renderHeader();
+        renderInfo();
+        poll(true);
+      });
+  }
+
   async function showActivity() {
     try {
-      var res = await api('GET', '/api/groups/' + encodeURIComponent(S.groupId) + '/audit');
+      var res = await api('GET', '/api/groups/' + enc(S.groupId) + '/audit');
       if (res && res.error) { toast(res.error, true); return; }
       var rows = res.events || [];
       infoModal('Group activity', rows.length
         ? rows.map(function (e) {
-            return '<div class="bbg-review-row" style="align-items:flex-start">'
-              + '<div><div style="font-size:13.5px">' + esc(e.detail || e.action) + '</div>'
-              + '<div style="font-size:11.5px;color:#6b6760">' + esc(e.actor_name || 'System') + ' · '
-              + esc(new Date(e.created_at).toLocaleString()) + '</div></div></div>';
+            return '<div class="bbg-person"><div class="bbg-person-t"><b style="white-space:normal">' + esc(e.detail || e.action) + '</b>'
+              + '<span>' + esc((e.actor_name || 'System') + ' · ' + new Date(e.created_at).toLocaleString()) + '</span></div></div>';
           }).join('')
-        : '<div class="bbg-field-hint">No activity recorded yet.</div>');
-    } catch (e) { toast('Could not load activity.', true); }
+        : '<div class="bbg-hint">No activity recorded yet.</div>');
+    } catch (e) { toast('Could not load activity', true); }
   }
 
   async function openAddMember() {
@@ -2497,45 +2639,42 @@
       var inGroup = {};
       S.members.forEach(function (m) { inGroup[String(m.userId)] = true; });
       var pool = (data.staff || []).concat(data.clients || []).filter(function (p) { return !inGroup[String(p.id)]; });
-      if (!pool.length) { toast('Everyone available is already in this group.'); return; }
-
+      if (!pool.length) { toast('Everyone available is already in this group'); return; }
       var roleOpts = (data.roles || []).filter(function (r) { return r.value !== 'client'; });
       var modal = infoModal('Add member',
-        '<div class="bbg-field"><span class="bbg-field-label">Search</span>'
-        + '<input type="search" id="bbgAddSearch" placeholder="Search by name or email" autocomplete="off"></div>'
-        + '<div class="bbg-field"><span class="bbg-field-label">Role in this group</span>'
-        + '<select id="bbgAddRole">' + roleOpts.map(function (r) {
-            return '<option value="' + esc(r.value) + '">' + esc(r.label) + '</option>';
-          }).join('') + '</select>'
-        + '<div class="bbg-field-hint">This label applies inside this group only — it does not change the person\'s BodyBank account role.</div></div>'
-        + '<div class="bbg-picker" id="bbgAddList"></div>');
-
-      function draw(q) {
+        '<div class="bbg-fieldset"><span class="bbg-field-l">Role in this group</span><select id="bbgAddRole">'
+        + roleOpts.map(function (r) { return '<option value="' + esc(r.value) + '">' + esc(r.label) + '</option>'; }).join('')
+        + '</select><div class="bbg-hint">Applies inside this group only — it does not change their BodyBank account.</div></div>'
+        + '<div class="bbg-fieldset"><input type="search" id="bbgAddSearch" placeholder="Search by name or email" autocomplete="off"></div>'
+        + '<div class="bbg-pick-list" id="bbgAddList"></div>');
+      var draw = function (q) {
         q = (q || '').toLowerCase();
         var rows = pool.filter(function (p) {
           return !q || p.name.toLowerCase().indexOf(q) >= 0 || p.email.toLowerCase().indexOf(q) >= 0;
         }).slice(0, 60);
         el('bbgAddList').innerHTML = rows.length ? rows.map(function (p) {
-          return '<button type="button" class="bbg-pick" data-id="' + esc(p.id) + '">'
-            + avatarHtml(p.name, p.avatar, 'bbg-avatar--sm')
-            + '<div class="bbg-pick-body"><div class="bbg-pick-name">' + esc(p.name) + '</div>'
-            + '<div class="bbg-pick-sub">' + esc(p.email) + ' · ' + esc(p.accountRole) + '</div></div></button>';
-        }).join('') : '<div style="padding:14px;color:#6b6760;font-size:12.5px">No matches.</div>';
-        Array.prototype.forEach.call(el('bbgAddList').querySelectorAll('.bbg-pick'), function (b) {
+          return '<button type="button" class="bbg-pick" data-id="' + esc(p.id) + '">' + avatarHtml(p.name, p.avatar, 'bbg-av--sm')
+            + '<div class="bbg-pick-t"><b>' + esc(p.name) + '</b><span>' + esc(p.email + ' · ' + p.accountRole) + '</span></div></button>';
+        }).join('') : '<div class="bbg-find-note">No matches.</div>';
+        each(el('bbgAddList').querySelectorAll('.bbg-pick'), function (b) {
           b.onclick = async function () {
-            var res = await api('POST', '/api/groups/' + encodeURIComponent(S.groupId) + '/members', {
+            b.disabled = true;
+            var res = await api('POST', '/api/groups/' + enc(S.groupId) + '/members', {
               user_id: b.getAttribute('data-id'), group_role: el('bbgAddRole').value
             });
             closeModal(modal);
             if (res && res.error) { toast(res.error, true); return; }
             S.members = res.members || S.members;
-            renderHeader(); renderDetails(); poll(true);
+            renderHeader();
+            if (S.infoOpen) renderInfo();
+            poll(true);
+            toast('Member added');
           };
         });
-      }
+      };
       el('bbgAddSearch').oninput = function () { draw(this.value); };
       draw('');
-    } catch (e) { toast('Could not load people.', true); }
+    } catch (e) { toast('Could not load people', true); }
   }
 
   // ══════════════════════════════════════════════════════════════════════════
@@ -2544,17 +2683,16 @@
 
   function baseModal(title, bodyHtml, footHtml) {
     var wrap = document.createElement('div');
-    wrap.className = 'bbg-modal-backdrop bbg';
-    wrap.innerHTML = '<div class="bbg-modal">'
-      + '<div class="bbg-modal-head"><div class="bbg-modal-title">' + esc(title) + '</div>'
-      + '<button type="button" class="bbg-iconbtn" data-close="1" aria-label="Close">' + icon('close') + '</button></div>'
-      + '<div class="bbg-modal-body">' + bodyHtml + '</div>'
-      + (footHtml ? '<div class="bbg-modal-foot">' + footHtml + '</div>' : '')
+    wrap.className = 'bbg bbg-modal-veil';
+    wrap.innerHTML = '<div class="bbg-modal" role="dialog" aria-label="' + esc(title) + '">'
+      + '<div class="bbg-modal-h"><div class="bbg-modal-title">' + esc(title) + '</div>'
+      + '<button type="button" class="bbg-ib" data-close="1" aria-label="Close">' + icon('close') + '</button></div>'
+      + '<div class="bbg-modal-b">' + bodyHtml + '</div>'
+      + (footHtml ? '<div class="bbg-modal-f">' + footHtml + '</div>' : '')
       + '</div>';
     document.body.appendChild(wrap);
     wrap.onclick = function (e) { if (e.target === wrap) closeModal(wrap); };
-    var x = wrap.querySelector('[data-close]');
-    if (x) x.onclick = function () { closeModal(wrap); };
+    wrap.querySelector('[data-close]').onclick = function () { closeModal(wrap); };
     return wrap;
   }
   function closeModal(m) { if (m && m.parentNode) m.parentNode.removeChild(m); }
@@ -2563,13 +2701,10 @@
   /** `onOk(value)` returns an error string to keep the modal open, or null. */
   function promptModal(title, initial, okLabel, onOk, hint) {
     var m = baseModal(title,
-      '<div class="bbg-field">'
-      + '<textarea id="bbgPromptInput" rows="3" style="width:100%;padding:11px 13px;border-radius:11px;background:#141414;border:1px solid rgba(255,255,255,.1);color:#f4f1ea;font-family:Outfit,sans-serif;font-size:14.5px;resize:vertical">'
-      + esc(initial || '') + '</textarea>'
-      + (hint ? '<div class="bbg-field-hint">' + esc(hint) + '</div>' : '')
-      + '<div class="bbg-field-hint" id="bbgPromptErr" style="color:#e8836f"></div></div>',
-      '<button type="button" class="bbg-btn" data-x>Cancel</button>'
-      + '<button type="button" class="bbg-btn bbg-btn--primary" data-ok>' + esc(okLabel) + '</button>');
+      '<div class="bbg-fieldset"><textarea id="bbgPromptInput" rows="3">' + esc(initial || '') + '</textarea>'
+      + (hint ? '<div class="bbg-hint">' + esc(hint) + '</div>' : '')
+      + '<div class="bbg-hint is-err" id="bbgPromptErr"></div></div>',
+      '<button type="button" class="bbg-btn" data-x>Cancel</button><button type="button" class="bbg-btn bbg-btn--gold" data-ok>' + esc(okLabel) + '</button>');
     m.querySelector('[data-x]').onclick = function () { closeModal(m); };
     var ok = m.querySelector('[data-ok]');
     ok.onclick = async function () {
@@ -2585,9 +2720,8 @@
   }
 
   function confirmModal(title, text, okLabel, onOk) {
-    var m = baseModal(title, '<div style="font-size:14px;line-height:1.6;color:#9a958c">' + esc(text) + '</div>',
-      '<button type="button" class="bbg-btn" data-x>Cancel</button>'
-      + '<button type="button" class="bbg-btn bbg-btn--primary" data-ok>' + esc(okLabel) + '</button>');
+    var m = baseModal(title, '<div class="bbg-sec-note">' + esc(text) + '</div>',
+      '<button type="button" class="bbg-btn" data-x>Cancel</button><button type="button" class="bbg-btn bbg-btn--gold" data-ok>' + esc(okLabel) + '</button>');
     m.querySelector('[data-x]').onclick = function () { closeModal(m); };
     var ok = m.querySelector('[data-ok]');
     ok.onclick = async function () { ok.disabled = true; await onOk(); closeModal(m); };
@@ -2595,46 +2729,38 @@
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // ADMIN — START A 1-TO-1 WITH A CLIENT
+  // ADMIN — MESSAGE A CLIENT
   // ══════════════════════════════════════════════════════════════════════════
 
   /**
-   * Search for a client and open a private chat with them.
-   *
-   * Search-only on purpose: the inbox deliberately lists just the people the
-   * admin has actually talked to, so this is the way to reach everyone else
-   * without dumping the whole roster into the UI. The server caps results and
-   * matches on name or email.
+   * Search for a client and open a private chat. Search-only on purpose: the
+   * inbox lists just the people the admin has actually talked to, so this is
+   * how to reach anyone else without dumping the roster into the UI.
    */
   BBG.openNewMessage = function () {
     var modal = infoModal('Message a client',
-      '<div class="bbg-field"><span class="bbg-field-label">Find a client</span>'
-      + '<input type="search" id="bbgDmSearch" placeholder="Search by name or email" autocomplete="off">'
-      + '<div class="bbg-field-hint">Opening a chat does not notify anyone — they only hear from you once you send a message.</div></div>'
-      + '<div class="bbg-picker" id="bbgDmList"></div>');
-
+      '<div class="bbg-fieldset"><label class="bbg-searchbox">' + icon('search')
+      + '<input type="search" id="bbgDmSearch" placeholder="Search by name or email" autocomplete="off"></label>'
+      + '<div class="bbg-hint">Nothing is sent until you type a message.</div></div>'
+      + '<div class="bbg-pick-list" id="bbgDmList"></div>');
     var input = modal.querySelector('#bbgDmSearch');
     var list = modal.querySelector('#bbgDmList');
     var timer = null;
     var reqId = 0;
-
-    function note(t) { list.innerHTML = '<div style="padding:14px;color:#6b6760;font-size:12.5px">' + esc(t) + '</div>'; }
+    var note = function (t) { list.innerHTML = '<div class="bbg-find-note">' + esc(t) + '</div>'; };
 
     async function run(q) {
       var mine = ++reqId;
       try {
-        var res = await api('GET', '/api/groups/directory?q=' + encodeURIComponent(q));
-        // A slower earlier request must not overwrite a newer result.
-        if (mine !== reqId) return;
+        var res = await api('GET', '/api/groups/directory?q=' + enc(q));
+        if (mine !== reqId) return;   // a slower, older search must not win
         var rows = (res && res.clients) || [];
         if (!rows.length) { note(q ? 'No client matches that.' : 'No clients yet.'); return; }
         list.innerHTML = rows.map(function (c) {
-          return '<button type="button" class="bbg-pick" data-id="' + esc(c.id) + '">'
-            + avatarHtml(c.name, c.avatar, 'bbg-avatar--sm')
-            + '<div class="bbg-pick-body"><div class="bbg-pick-name">' + esc(c.name) + '</div>'
-            + '<div class="bbg-pick-sub">' + esc(c.email) + '</div></div></button>';
+          return '<button type="button" class="bbg-pick" data-id="' + esc(c.id) + '">' + avatarHtml(c.name, c.avatar, 'bbg-av--sm')
+            + '<div class="bbg-pick-t"><b>' + esc(c.name) + '</b><span>' + esc(c.email) + '</span></div></button>';
         }).join('');
-        Array.prototype.forEach.call(list.querySelectorAll('.bbg-pick'), function (b) {
+        each(list.querySelectorAll('.bbg-pick'), function (b) {
           b.onclick = function () { start(b.getAttribute('data-id'), b); };
         });
       } catch (e) {
@@ -2643,72 +2769,66 @@
     }
 
     async function start(userId, btn) {
-      if (btn) btn.disabled = true;
+      btn.disabled = true;
       try {
         var res = await api('POST', '/api/groups/direct', { user_id: userId });
-        if (!res || res.error || !res.conversation) { toast((res && res.error) || 'Could not open that chat.', true); return; }
+        if (!res || res.error || !res.conversation) { toast((res && res.error) || 'Could not open that chat', true); btn.disabled = false; return; }
         closeModal(modal);
         var conv = res.conversation;
-        // Show it in the list straight away. It has no messages yet, so the
-        // server will not return it from /inbox until something is sent.
-        if (!S.conversations.some(function (c) { return c.id === conv.id; })) {
-          S.conversations.unshift(conv);
-          renderFilters(); renderList(); updateListSub();
-        }
-        openConversation(conv);
+        var existing = S.conversations.find(function (c) { return c.id === conv.id; });
+        if (!existing) { S.conversations.unshift(conv); renderList(); }
+        if (!isOpen()) BBG.open({ mode: 'admin' });
+        openConversation(existing || conv);
       } catch (e) {
-        toast('Could not open that chat.', true);
-      } finally {
-        if (btn) btn.disabled = false;
+        toast('Could not open that chat', true);
+        btn.disabled = false;
       }
     }
 
     input.oninput = function () {
       clearTimeout(timer);
       var q = this.value.trim();
-      timer = setTimeout(function () { run(q); }, 220);
+      timer = setTimeout(function () { run(q); }, 200);
     };
     input.focus();
     run('');
   };
 
   // ══════════════════════════════════════════════════════════════════════════
-  // ADMIN — CREATE GROUP WIZARD
+  // ADMIN — CREATE A CARE GROUP
   // ══════════════════════════════════════════════════════════════════════════
 
   /**
    * Three steps: pick the client (which fixes the name), staff the care team,
-   * then review. The review step is also where the duplicate warning surfaces.
+   * review. The review step is where the duplicate warning surfaces.
    */
   BBG.openCreateGroup = async function () {
     var data;
     try {
       data = await api('GET', '/api/groups/candidates');
       if (data && data.error) { toast(data.error, true); return; }
-    } catch (e) { toast('Could not load clients.', true); return; }
+    } catch (e) { toast('Could not load clients', true); return; }
 
     var W = { step: 1, client: null, picked: [], name: '', force: false };
-    var modal = baseModal('Create care group', '<div id="bbgWizBody"></div>',
+    var modal = baseModal('New care group', '<div id="bbgWiz"></div>',
       '<button type="button" class="bbg-btn" data-back style="margin-right:auto">Back</button>'
-      + '<button type="button" class="bbg-btn" data-x>Cancel</button>'
-      + '<button type="button" class="bbg-btn bbg-btn--primary" data-next>Next</button>');
-
+      + '<button type="button" class="bbg-btn bbg-btn--gold" data-next>Next</button>');
     var backBtn = modal.querySelector('[data-back]');
     var nextBtn = modal.querySelector('[data-next]');
-    modal.querySelector('[data-x]').onclick = function () { closeModal(modal); };
     backBtn.onclick = function () { if (W.step > 1) { W.step--; draw(); } };
     nextBtn.onclick = function () { advance(); };
+    var titleEl = modal.querySelector('.bbg-modal-title');
 
     function draw() {
-      var b = modal.querySelector('#bbgWizBody');
+      var b = modal.querySelector('#bbgWiz');
       backBtn.style.visibility = W.step === 1 ? 'hidden' : 'visible';
       nextBtn.textContent = W.step === 3 ? 'Create group' : 'Next';
 
       if (W.step === 1) {
-        modal.querySelector('.bbg-modal-title').textContent = 'Step 1 — Choose the client';
-        b.innerHTML = '<div class="bbg-field"><span class="bbg-field-label">Client</span>'
-          + '<input type="search" id="bbgWizSearch" placeholder="Search clients by name or email" autocomplete="off"></div>'
-          + '<div class="bbg-picker" id="bbgWizList"></div>';
+        titleEl.textContent = 'New group · 1 of 3';
+        b.innerHTML = '<div class="bbg-fieldset"><span class="bbg-field-l">Who is this group for?</span>'
+          + '<label class="bbg-searchbox">' + icon('search') + '<input type="search" id="bbgWizSearch" placeholder="Search clients" autocomplete="off"></label></div>'
+          + '<div class="bbg-pick-list" id="bbgWizList"></div>';
         var drawClients = function (q) {
           q = (q || '').toLowerCase();
           var rows = (data.clients || []).filter(function (c) {
@@ -2716,14 +2836,12 @@
           }).slice(0, 80);
           el('bbgWizList').innerHTML = rows.length ? rows.map(function (c) {
             var active = ((data.existingByClient || {})[c.id] || []).filter(function (d) { return !d.archived; });
-            return '<button type="button" class="bbg-pick' + (W.client && W.client.id === c.id ? ' is-picked' : '') + '" data-id="' + esc(c.id) + '">'
-              + avatarHtml(c.name, c.avatar, 'bbg-avatar--sm')
-              + '<div class="bbg-pick-body"><div class="bbg-pick-name">' + esc(c.name) + '</div>'
-              + '<div class="bbg-pick-sub">' + esc(c.email)
-              + (active.length ? ' · <span style="color:#c8a44e">already has a group</span>' : '') + '</div></div>'
-              + '<div class="bbg-pick-check">✓</div></button>';
-          }).join('') : '<div style="padding:14px;color:#6b6760;font-size:12.5px">No clients found.</div>';
-          Array.prototype.forEach.call(el('bbgWizList').querySelectorAll('.bbg-pick'), function (btn) {
+            return '<button type="button" class="bbg-pick' + (W.client && W.client.id === c.id ? ' is-on' : '') + '" data-id="' + esc(c.id) + '">'
+              + avatarHtml(c.name, c.avatar, 'bbg-av--sm')
+              + '<div class="bbg-pick-t"><b>' + esc(c.name) + '</b><span>' + esc(c.email)
+              + (active.length ? ' · already has a group' : '') + '</span></div><span class="bbg-check">✓</span></button>';
+          }).join('') : '<div class="bbg-find-note">No clients found.</div>';
+          each(el('bbgWizList').querySelectorAll('.bbg-pick'), function (btn) {
             btn.onclick = function () {
               W.client = (data.clients || []).find(function (c) { return c.id === btn.getAttribute('data-id'); });
               W.name = W.client ? W.client.name + ' - 2.0' : '';
@@ -2738,17 +2856,14 @@
       }
 
       if (W.step === 2) {
-        modal.querySelector('.bbg-modal-title').textContent = 'Step 2 — Build the care team';
+        titleEl.textContent = 'New group · 2 of 3';
         var roleOpts = (data.roles || []).filter(function (r) { return r.value !== 'client'; });
-        b.innerHTML = '<div class="bbg-review" style="margin-bottom:16px">'
-          + '<div class="bbg-review-name">' + esc(W.name) + '</div>'
-          + '<div class="bbg-review-row">' + esc(W.client.name) + '<b>Client</b></div></div>'
-          + '<div class="bbg-field"><span class="bbg-field-label">Add to the care team</span>'
-          + '<input type="search" id="bbgWizStaffSearch" placeholder="Search staff and members" autocomplete="off">'
-          + '<div class="bbg-field-hint">Pick a role for each person. The role applies inside this group only — '
-          + 'it does not change their BodyBank account role.</div></div>'
-          + '<div class="bbg-picker" id="bbgWizStaff"></div>';
-
+        b.innerHTML = '<div class="bbg-review" style="margin-bottom:16px"><h4>' + esc(W.name) + '</h4>'
+          + '<p>' + esc(W.client.name) + '<span>Client</span></p></div>'
+          + '<div class="bbg-fieldset"><span class="bbg-field-l">Add the care team</span>'
+          + '<label class="bbg-searchbox">' + icon('search') + '<input type="search" id="bbgWizStaffSearch" placeholder="Search people" autocomplete="off"></label>'
+          + '<div class="bbg-hint">Choose each person\'s role. It applies in this group only.</div></div>'
+          + '<div class="bbg-pick-list" id="bbgWizStaff"></div>';
         var pool = (data.staff || []).concat((data.clients || []).filter(function (c) { return c.id !== W.client.id; }));
         var drawStaff = function (q) {
           q = (q || '').toLowerCase();
@@ -2757,24 +2872,19 @@
           }).slice(0, 60);
           el('bbgWizStaff').innerHTML = rows.length ? rows.map(function (p) {
             var pick = W.picked.find(function (x) { return x.user_id === p.id; });
-            return '<div class="bbg-pick' + (pick ? ' is-picked' : '') + '" data-id="' + esc(p.id) + '">'
-              + avatarHtml(p.name, p.avatar, 'bbg-avatar--sm')
-              + '<div class="bbg-pick-body"><div class="bbg-pick-name">' + esc(p.name) + '</div>'
-              + '<div class="bbg-pick-sub">' + esc(p.email) + ' · ' + esc(p.accountRole) + '</div></div>'
-              + '<select class="bbg-pick-role" data-role-for="' + esc(p.id) + '">'
-              + '<option value="">Not in group</option>'
+            return '<div class="bbg-pick' + (pick ? ' is-on' : '') + '">' + avatarHtml(p.name, p.avatar, 'bbg-av--sm')
+              + '<div class="bbg-pick-t"><b>' + esc(p.name) + '</b><span>' + esc(p.email + ' · ' + p.accountRole) + '</span></div>'
+              + '<select data-role-for="' + esc(p.id) + '" aria-label="Role for ' + esc(p.name) + '"><option value="">Not in group</option>'
               + roleOpts.map(function (r) {
-                  return '<option value="' + esc(r.value) + '"' + (pick && pick.group_role === r.value ? ' selected' : '') + '>'
-                    + esc(r.label) + '</option>';
+                  return '<option value="' + esc(r.value) + '"' + (pick && pick.group_role === r.value ? ' selected' : '') + '>' + esc(r.label) + '</option>';
                 }).join('') + '</select></div>';
-          }).join('') : '<div style="padding:14px;color:#6b6760;font-size:12.5px">No people found.</div>';
-          Array.prototype.forEach.call(el('bbgWizStaff').querySelectorAll('[data-role-for]'), function (sel) {
+          }).join('') : '<div class="bbg-find-note">No people found.</div>';
+          each(el('bbgWizStaff').querySelectorAll('[data-role-for]'), function (sel) {
             sel.onchange = function () {
               var uid = sel.getAttribute('data-role-for');
               W.picked = W.picked.filter(function (x) { return x.user_id !== uid; });
               if (sel.value) W.picked.push({ user_id: uid, group_role: sel.value });
-              var row = sel.closest('.bbg-pick');
-              if (row) row.classList.toggle('is-picked', !!sel.value);
+              sel.closest('.bbg-pick').classList.toggle('is-on', !!sel.value);
             };
           });
         };
@@ -2783,71 +2893,59 @@
         return;
       }
 
-      modal.querySelector('.bbg-modal-title').textContent = 'Step 3 — Review and create';
-      var nameById = {};
-      (data.staff || []).concat(data.clients || []).forEach(function (p) { nameById[p.id] = p; });
-      var roleLabel = {};
-      (data.roles || []).forEach(function (r) { roleLabel[r.value] = r.label; });
-
-      b.innerHTML = '<div class="bbg-field"><span class="bbg-field-label">Group name</span>'
+      titleEl.textContent = 'New group · 3 of 3';
+      var byId = {};
+      (data.staff || []).concat(data.clients || []).forEach(function (p) { byId[p.id] = p; });
+      var label = {};
+      (data.roles || []).forEach(function (r) { label[r.value] = r.label; });
+      b.innerHTML = '<div class="bbg-fieldset"><span class="bbg-field-l">Group name</span>'
         + '<input type="text" id="bbgWizName" value="' + esc(W.name) + '" maxlength="160">'
-        + '<div class="bbg-field-hint">Generated as <strong>Client Name - 2.0</strong>. You can adjust it here or rename later.</div></div>'
-        + '<div class="bbg-review">'
-        + '<div class="bbg-review-name">' + esc(W.name) + '</div>'
-        + '<div class="bbg-review-row">' + esc(W.client.name) + '<b>Client</b></div>'
+        + '<div class="bbg-hint">Named <b>Client Name - 2.0</b> by default. You can rename it later.</div></div>'
+        + '<div class="bbg-review"><h4>' + (W.picked.length + 1) + ' members</h4>'
+        + '<p>' + esc(W.client.name) + '<span>Client</span></p>'
         + W.picked.map(function (p) {
-            var u = nameById[p.user_id];
-            return '<div class="bbg-review-row">' + esc(u ? u.name : p.user_id) + '<b>' + esc(roleLabel[p.group_role] || p.group_role) + '</b></div>';
+            var u = byId[p.user_id];
+            return '<p>' + esc(u ? u.name : p.user_id) + '<span>' + esc(label[p.group_role] || p.group_role) + '</span></p>';
           }).join('')
-        + '<div class="bbg-review-row" style="margin-top:8px;border-top:1px solid rgba(255,255,255,.07);padding-top:9px">'
-        + '<span style="color:#9a958c;font-size:12.5px">' + (W.picked.length + 1) + ' members total</span></div></div>'
-        + '<div class="bbg-field-hint" id="bbgWizErr" style="color:#e8836f;margin-top:12px"></div>';
+        + '</div><div class="bbg-hint is-err" id="bbgWizErr" style="margin-top:12px"></div>';
       el('bbgWizName').oninput = function () { W.name = this.value; };
     }
 
     async function advance() {
-      if (W.step === 1) {
-        if (!W.client) { toast('Pick a client first.'); return; }
-        W.step = 2; draw(); return;
-      }
+      if (W.step === 1) { if (!W.client) { toast('Pick a client first'); return; } W.step = 2; draw(); return; }
       if (W.step === 2) { W.step = 3; draw(); return; }
-
       nextBtn.disabled = true;
-      var errBoxEl = el('bbgWizErr');
+      var err = el('bbgWizErr');
       try {
-        var res = await api('POST', '/api/groups', {
-          client_id: W.client.id, name: W.name.trim(), members: W.picked, force: W.force
-        });
+        var res = await api('POST', '/api/groups', { client_id: W.client.id, name: W.name.trim(), members: W.picked, force: W.force });
         if (res && res.error) {
+          err.textContent = res.error + ' ';
           if (res.existing && !W.force) {
-            errBoxEl.innerHTML = esc(res.error) + ' ';
-            var btn = document.createElement('button');
-            btn.type = 'button';
-            btn.className = 'bbg-btn';
-            btn.style.cssText = 'margin-top:8px;padding:7px 14px;font-size:12.5px';
-            btn.textContent = 'Create a second group anyway';
-            btn.onclick = function () { W.force = true; nextBtn.disabled = false; advance(); };
-            errBoxEl.appendChild(document.createElement('br'));
-            errBoxEl.appendChild(btn);
-          } else {
-            errBoxEl.textContent = res.error;
+            var again = document.createElement('button');
+            again.type = 'button';
+            again.className = 'bbg-btn';
+            again.style.marginTop = '10px';
+            again.textContent = 'Create a second group anyway';
+            again.onclick = function () { W.force = true; advance(); };
+            err.appendChild(document.createElement('br'));
+            err.appendChild(again);
           }
           nextBtn.disabled = false;
           return;
         }
         closeModal(modal);
-        toast('Care group "' + (res.group && res.group.name) + '" created.');
+        toast('Group "' + (res.group && res.group.name) + '" created');
         await BBG.refreshList();
-        if (res.group) BBG.openGroup(res.group.id);
+        if (res.group) {
+          if (!isOpen()) BBG.open({ mode: 'admin', groupId: res.group.id });
+          else BBG.openGroup(res.group.id);
+        }
       } catch (e) {
-        errBoxEl.textContent = 'Could not create the group. Try again.';
+        err.textContent = 'Could not create the group. Try again.';
         nextBtn.disabled = false;
       }
     }
 
     draw();
   };
-
-  BBG.setPane = setPane;
-  BBG.state = S;
 })();

@@ -229,6 +229,47 @@ function createGroupChatRouter(deps) {
     }
   });
 
+  // ══ 1-TO-1 THREADS: paged read + live poll ════════════════════════════════
+  // Two-segment literal paths, declared before every /:id route. Sending still
+  // goes through the unchanged POST /api/threads/:id/messages, which owns the
+  // client push and the coach-reply email.
+  router.get('/dm/:threadId', verifyToken, async (req, res) => {
+    try {
+      const acc = await svc.resolveThread(db, req.params.threadId, req.user);
+      if (!acc.found) return fail(res, 404, 'Conversation not found');
+      if (!acc.ok) return fail(res, 403, 'Access denied');
+      const page = await svc.loadDmPage(db, acc.thread.id, {
+        staff: acc.staff,
+        limit: req.query.limit,
+        before: req.query.before ? { ts: req.query.before, id: req.query.beforeId } : null
+      });
+      res.json({
+        thread: {
+          id: acc.thread.id,
+          clientId: acc.thread.user_id,
+          clientName: svc.displayName(acc.thread),
+          clientAvatar: acc.thread.profile_picture || ''
+        },
+        messages: page.messages,
+        hasMore: page.hasMore
+      });
+    } catch (e) {
+      console.error('[groupChat dm page]', e.message);
+      fail(res, 500, 'Failed to load conversation');
+    }
+  });
+
+  router.get('/dm/:threadId/updates', verifyToken, async (req, res) => {
+    try {
+      const messages = await svc.loadDmSince(db, req.params.threadId, req.user,
+        { ts: req.query.after, id: req.query.afterId });
+      res.json({ messages });
+    } catch (e) {
+      console.error('[groupChat dm updates]', e.message);
+      fail(res, 500, 'Failed to sync');
+    }
+  });
+
   // ══ CLIENT SEARCH (admin: start a new 1-to-1) ═════════════════════════════
   // Deliberately search-only and capped. Dumping every client into the UI is
   // what the inbox is trying to avoid; the admin types a name and gets matches.

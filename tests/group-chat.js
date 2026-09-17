@@ -457,25 +457,49 @@ function testFrontend() {
 
   // index.html carries a global bare `nav{position:fixed}` rule that hijacks any
   // <nav> rendered anywhere. The rail must be a div[role=navigation].
-  assert(!/<nav[\s>]/.test(js), 'the client JS renders NO <nav> element (the global nav{} rule would hijack it)');
+  const jsCode = js.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+  assert(!/<nav[\s>]/.test(jsCode), 'the client JS renders NO <nav> element (the global nav{} rule would hijack it)');
   assert(/role="navigation"/.test(js), 'the conversation rail is a div[role=navigation]');
 
   // Responsive contract.
-  assert(/@media \(min-width:1024px\)/.test(css), 'a desktop three-panel breakpoint exists');
-  assert(/grid-template-columns:300px minmax\(0,1fr\) 316px/.test(css),
-    'the desktop layout is list | chat | details');
+  assert(/@media \(min-width:900px\)/.test(css), 'a desktop side-by-side breakpoint exists');
+  assert(/grid-template-columns:minmax\(320px,400px\) minmax\(0,1fr\)/.test(css),
+    'the desktop layout is list | chat');
+  assert(/\.bbg-app\.has-info \.bbg-grid\{grid-template-columns:minmax\(300px,380px\) minmax\(0,1fr\) 360px\}/.test(css),
+    'desktop adds the info column beside the chat when it is open');
+  assert(/\.bbg-app\[data-view="chat"\] \.bbg-col--chat\{transform:none/.test(css),
+    'on a phone the chat slides in over the list');
   assert(/@media \(max-width:420px\)/.test(css), 'a small-phone breakpoint exists');
   assert(/overflow-x:hidden/.test(css), 'the scroll containers suppress horizontal overflow');
-  assert(/var\(--safe-bottom/.test(css), 'the composer respects the iOS home-indicator inset');
+  assert(/padding:6px 8px calc\(8px \+ var\(--bbg-bottom\)\)/.test(css), 'the composer respects the iOS home-indicator inset');
+  assert(/visualViewport/.test(js) && /var h = Math\.round\(vv\.height\)/.test(js) && /r\.style\.height = h \+ 'px'/.test(js),
+    'the surface follows the visual viewport, so the composer stays above the keyboard');
+
+  // ── Full screen ──
+  const z = Number((css.match(/\.bbg-app\{[\s\S]*?z-index:(\d+)/) || [])[1]);
+  assert(z > 10019 && z < 10040,
+    'the surface sits above the app nav (10010) and AI button (10019) but below app popups (10040) — got ' + z);
+  assert(/document\.body\.appendChild\(r\)/.test(js), 'the surface is its own element on <body>, not a card in the dashboard');
+  assert(/html\.bbg-lock,html\.bbg-lock body\{overflow:hidden!important\}/.test(css), 'the page behind cannot scroll');
+  assert(/history\.pushState\(\{ bbg: level \}/.test(js) && /window\.addEventListener\('popstate', onPopState\)/.test(js),
+    'browser / Android back walks info → chat → list → dashboard');
+  assert(/NAV\.skip\+\+/.test(js), 'closing messaging unwinds its own history entries without reacting to them');
 
   // ── The unified inbox: ONE surface holding both kinds of conversation. ──
-  assert(/id="bbGroupChatHost"/.test(html), 'the member inbox host exists');
-  assert(/id="bbAdminInboxHost"/.test(html), 'the admin inbox host exists');
-  assert(/bbMessagesEnter\(\)/.test(html), 'the member Messages tab mounts the inbox');
-  assert(/mountAdminInbox\(\)/.test(html), 'the admin Messages tab mounts the inbox');
-  assert(/function mountBbInbox\(hostId, mode\)/.test(html), 'both hosts mount through one helper');
-  assert(/!host\.dataset\.mounted \|\| !host\.children\.length/.test(html),
-    'an emptied host remounts rather than staying blank');
+  assert(!/id="bbGroupChatHost"/.test(html) && !/id="bbAdminInboxHost"/.test(html),
+    'the old embedded inbox hosts are gone');
+  assert(/window\.BBGroupChat\.open\(\{ mode: 'member' \}\)/.test(html), 'the member Messages tab opens messaging');
+  assert(/window\.BBGroupChat\.open\(\{ mode: 'admin' \}\)/.test(html), 'the admin Messages tab opens messaging');
+  ["function switchTab(tab) {", "function switchUserTab(tab) {", "function switchToSection(section) {"].forEach(fn => {
+    const at = html.indexOf(fn);
+    assert(at > -1 && /bbCloseMessages\(\)/.test(html.slice(at, at + 400)),
+      fn.replace(' {', '') + ' closes messaging when the app moves elsewhere');
+  });
+  assert(/function ensureRoot\(\)[\s\S]{0,120}if \(r\) return r;/.test(js),
+    'the surface is built once and reused (rebuilt only after logout)');
+  assert(/function logoutSuperadmin\(\) \{[\s\S]{0,200}BBGroupChat\.forget\(\)/.test(html),
+    'superadmin logout wipes messaging too');
+  assert(/bbg-launch/.test(html), 'each page keeps a way back in if messaging is closed');
 
   // ── Speed: opening anything must cost at most ONE round trip. ──
   assert(/api\('GET', '\/api\/groups\/inbox'\)/.test(js),
@@ -544,13 +568,18 @@ function testFrontend() {
 
   // ── Regression: the 1-to-1 chat is still fully functional, now rendered by
   //    the shared engine against the SAME untouched /api/threads endpoints. ──
-  assert(/'\/api\/threads\/' \+ encodeURIComponent\(row\.threadId\) \+ '\/messages'/.test(js),
-    'the inbox reads 1-to-1 messages from /api/threads/:id/messages');
+  assert(/api\('GET', '\/api\/groups\/dm\/' \+ enc\(row\.threadId\)\)/.test(js),
+    'a 1-to-1 opens one PAGE through /api/groups/dm, not the whole transcript');
+  assert(/'\/api\/groups\/dm\/' \+ enc\(tid\) \+ '\/updates\?after='/.test(js),
+    'a 1-to-1 poll asks only for messages after the newest one it has');
+  assert(js.indexOf("'/api/threads/' + enc(row.threadId) + '/messages'") === -1
+    && !/api\('GET', '\/api\/threads\//.test(js),
+    'the client never re-downloads a full legacy transcript');
   assert(/api\('POST', '\/api\/threads', \{ first_message: temp\.body \}\)/.test(js),
     'a member with no thread yet still creates one on first send');
   assert(/message_threads/.test(read('server.js')), 'the legacy thread tables are untouched');
-  assert(/api\('POST', '\/api\/threads\/' \+ encodeURIComponent\(conv\.threadId\) \+ '\/messages'/.test(js),
-    'replies still POST to /api/threads/:id/messages');
+  assert(/api\('POST', '\/api\/threads\/' \+ enc\(conv\.threadId\) \+ '\/messages'/.test(js),
+    'replies still POST to /api/threads/:id/messages (it owns push + email)');
 
   // The superseded 1-to-1 UI is gone — no dead ids or half-wired handlers left.
   ['id="userThreadMessages"', 'id="adminThreadsList"', 'id="adminThreadModal"',
@@ -563,7 +592,7 @@ function testFrontend() {
 
   // ── A direct thread must not be offered features its table cannot store. ──
   assert(/if \(isDirect\(\)\) return;/.test(js), 'reactions are refused on a direct thread');
-  assert(/direct \? '' : '<button type="button" class="bbg-iconbtn" id="bbgAttachBtn"/.test(js),
+  assert(/direct \? '' : '<button type="button" class="bbg-ib" id="bbgAttachBtn"/.test(js),
     'the attachment button is absent in a direct chat (thread_messages has no attachments)');
   assert(/tickHtml\(isDirect\(\) \? false : readByAll\(m\)\)/.test(js),
     'a direct message shows delivered only — it has no read cursor to report');
@@ -623,14 +652,17 @@ function testFrontend() {
     'reactions flip instantly and roll back if the server refuses');
 
   // ── On-device store ──
-  assert(/var STORE_PREFIX = 'bbg_v1_';/.test(js) && /function storeKey\(\) \{ return STORE_PREFIX \+ myId\(\); \}/.test(js),
+  assert(/var STORE_PREFIX = 'bbg_v2_';/.test(js) && /function storeKey\(\) \{ return STORE_PREFIX \+ myId\(\); \}/.test(js),
     'the device store is keyed per account');
+  assert(/var STORE_OLD = \['bbg_v1_'\];/.test(js), 'the previous store format is cleaned up, not left behind');
   assert(/filter\(function \(m\) \{ return !m\.pending && !m\.failed; \}\)/.test(js),
     'unconfirmed messages are never written to the device');
-  assert(/STORE_MAX_CONVS = 15/.test(js) && /STORE_MAX_MSGS = 30/.test(js),
+  assert(/STORE_MAX_CONVS = 15/.test(js) && /STORE_MAX_MSGS = 40/.test(js),
     'the device store is bounded');
-  assert(/BBG\.forget = function/.test(js) && /localStorage\.removeItem\(STORE_PREFIX \+ uid\)/.test(js),
+  assert(/BBG\.forget = function/.test(js) && /lsDel\(STORE_PREFIX \+ uid\)/.test(js),
     'logout can wipe the device store');
+  assert(/BBG\.forget = function[\s\S]{0,1200}if \(r\) r\.remove\(\);/.test(js),
+    'logout removes the surface itself, so the next account starts from nothing');
   assert(/S\.conversations = \[\]; S\.cache = \{\};/.test(js),
     'logout also clears the in-memory engine, so the next account sees nothing of the last');
   ['function logoutAdmin() {', 'function logoutUser() {'].forEach(fn => {
@@ -649,6 +681,106 @@ function testFrontend() {
 /* ------------------------------------------------------------------ *
  * 8. Schema + server wiring
  * ------------------------------------------------------------------ */
+/* ------------------------------------------------------------------ *
+ * 9. Automated campaign messages + paged 1-to-1 reads
+ * ------------------------------------------------------------------ */
+async function testAutomatedAndDm() {
+  section('Automated messages and the paged 1-to-1 endpoints');
+  const before = failures.length;
+  const service = read('services/groupChatService.js');
+  const router = read('routes/groupChat.js');
+  const scheduler = read('services/campaignScheduler.js');
+  const js = read('public/js/group-chat.js');
+
+  // The flag, its index and the one-time classification of existing rows.
+  assert(/ADD COLUMN IF NOT EXISTS is_automated BOOLEAN NOT NULL DEFAULT FALSE/.test(service),
+    'thread_messages gains is_automated (default FALSE: anything typed is personal)');
+  assert(/idx_thread_messages_personal[\s\S]*?WHERE is_automated = FALSE/.test(service),
+    'personal messages have their own partial index');
+  assert(/col_description[\s\S]*?AUTOMATED_BACKFILL_MARK/.test(service) && /COMMENT ON COLUMN thread_messages\.is_automated/.test(service),
+    'existing rows are classified ONCE (the column comment records it)');
+  assert(/SELECT btrim\(message\) FROM campaign_messages/.test(service) && /SELECT btrim\(message\) FROM campaign_send_log/.test(service),
+    'backfill recognises known campaign and broadcast texts');
+  assert(/HAVING COUNT\(DISTINCT thread_id\) >= 5/.test(service),
+    'backfill also recognises a broadcast by its shape (same text, same minute, 5+ threads)');
+  assert(/sender_role IN \('admin', 'superadmin'\)[\s\S]{0,200}btrim\(m\.body\)/.test(service),
+    'backfill never flags a message a CLIENT sent');
+  assert(/INSERT INTO thread_messages \(id, thread_id, sender_id, sender_role, body, is_automated\) VALUES \(\?, \?, \?, \?, \?, TRUE\)/.test(scheduler),
+    'the campaign scheduler marks what it sends as automated');
+
+  // The inbox filter: staff see personal threads only; members see everything.
+  const list = service.slice(service.indexOf('async function listDirectThreads'), service.indexOf('const DM_CURSOR_SQL'));
+  assert(/\$\{admin \? 'AND m\.is_automated = FALSE' : ''\}/.test(list),
+    'the admin inbox lists only clients with a PERSONAL message; members still see their coach thread');
+
+  // `automated` is staff-only on the wire.
+  assert(/if \(staff\) out\.automated = !!r\.is_automated;/.test(service),
+    'the automated flag is only ever sent to staff');
+  assert(/automated: staff && !!m\.automated/.test(js),
+    'the member UI never treats a message as automated, even if a flag appeared');
+
+  // Cursor validation: only the exact text the server produces is accepted.
+  eq(svc.dmCursor('2026-09-17T10:00:00.123456', 'x') && svc.dmCursor('2026-09-17T10:00:00.123456', 'x').ts,
+    '2026-09-17T10:00:00.123456', 'a well-formed cursor is accepted');
+  eq(svc.dmCursor("2026-09-17'; DROP TABLE users; --", 'x'), null, 'an injection attempt is rejected as a cursor');
+  eq(svc.dmCursor('2026-09-17T10:00:00Z', 'x'), null, 'an ISO date (lossy, zone-shifted) is rejected as a cursor');
+  eq(svc.dmCursor(null, null), null, 'a missing cursor is rejected');
+
+  // resolveThread: the legacy rule, exactly — staff read any thread, anyone else only their own.
+  let db = fakeDb((sql) => /FROM message_threads t/.test(sql) ? { id: 't1', user_id: 'clientA', first_name: 'A' } : null);
+  let acc = await svc.resolveThread(db, 't1', { id: 'clientA', role: 'user' });
+  assert(acc.ok && !acc.staff, 'a client reads their own thread');
+  acc = await svc.resolveThread(db, 't1', { id: 'clientB', role: 'user' });
+  eq(acc.ok, false, 'another client is REFUSED this thread');
+  acc = await svc.resolveThread(db, 't1', { id: 'op1', role: 'operator' });
+  eq(acc.ok, false, 'an operator is refused (the legacy rule admits admins only)');
+  acc = await svc.resolveThread(db, 't1', { id: 'adm', role: 'admin' });
+  assert(acc.ok && acc.staff, 'an admin reads any thread');
+  db = fakeDb(() => null);
+  acc = await svc.resolveThread(db, 'nope', { id: 'adm', role: 'admin' });
+  eq(acc.found, false, 'a missing thread is a clean miss');
+
+  // loadDmSince: the access rule is IN the query, bound to the caller.
+  db = fakeDb(() => []);
+  let rows = await svc.loadDmSince(db, 't1', { id: 'clientB', role: 'user' }, { ts: '2026-09-17T10:00:00.000000', id: 'm1' });
+  eq(rows.length, 0, 'a poll returns nothing when nothing matches');
+  const c = db.calls[0];
+  assert(/AND \(t\.user_id = \? OR \?::boolean\)/.test(c.sql), 'the poll query itself enforces ownership');
+  eq(c.params[1], 'clientB', 'the ownership check is bound to the CALLER');
+  eq(c.params[2], false, 'a client is not granted the staff bypass');
+  eq(c.params[3], '2026-09-17T10:00:00.000000', 'the cursor is a bound parameter');
+  db = fakeDb(() => []);
+  rows = await svc.loadDmSince(db, 't1', { id: 'clientB', role: 'user' }, { ts: 'garbage', id: 'x' });
+  eq(db.calls.length, 0, 'a bad cursor never reaches the database');
+  db = fakeDb(() => []);
+  await svc.loadDmSince(db, 't1', { id: 'adm', role: 'superadmin' }, { ts: '2026-09-17T10:00:00.000000', id: '' });
+  eq(db.calls[0].params[2], true, 'staff get the bypass');
+
+  // loadDmPage: limit+1 paging, oldest-first, staff-only flag.
+  db = fakeDb(() => [
+    { id: 'c', thread_id: 't1', sender_role: 'admin', body: 'n3', is_automated: true, cur: '3' },
+    { id: 'b', thread_id: 't1', sender_role: 'user', body: 'n2', is_automated: false, cur: '2' },
+    { id: 'a', thread_id: 't1', sender_role: 'admin', body: 'n1', is_automated: true, cur: '1' }
+  ]);
+  let page = await svc.loadDmPage(db, 't1', { limit: 2, staff: false });
+  assert(page.hasMore === true && page.messages.length === 2, 'fetching limit+1 reports hasMore');
+  eq(page.messages.map(m => m.id).join(','), 'b,c', 'the page is the newest messages, oldest-first');
+  assert(page.messages.every(m => !('automated' in m)), 'a member page carries no automated flag');
+  eq(db.calls[0].params[db.calls[0].params.length - 1], 3, 'the query asks for limit + 1');
+  page = await svc.loadDmPage(db, 't1', { limit: 2, staff: true });
+  eq(page.messages[1].automated, true, 'a staff page carries the automated flag');
+
+  // Routes.
+  assert(/router\.get\('\/dm\/:threadId', verifyToken, async/.test(router)
+    && /if \(!acc\.ok\) return fail\(res, 403/.test(router), 'the page route checks access before reading');
+  assert(/router\.get\('\/dm\/:threadId\/updates', verifyToken, async/.test(router), 'the poll route is authenticated');
+  const dmAt = router.indexOf("router.get('/dm/:threadId'");
+  const idAt = router.indexOf("router.get('/:id'");
+  assert(dmAt > -1 && dmAt < idAt, 'the /dm routes are declared before any /:id route');
+
+  if (failures.length === before) ok('nudges are tagged and hidden from the admin inbox; 1-to-1 reads are paged and access-checked');
+}
+
 async function testSchema() {
   section('Schema and server wiring');
   const before = failures.length;
@@ -703,6 +835,7 @@ async function testSchema() {
   testNamingAndRoles();
   testRouterHardening();
   testFrontend();
+  await testAutomatedAndDm();
   await testSchema();
 
   console.log('\n--------------------------------------------------------------');

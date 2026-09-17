@@ -152,8 +152,10 @@ async function broadcastMessage(message) {
           );
         }
         const msgId = _uuidv4();
+        // is_automated keeps these nudges out of the admin's Messages inbox, which
+        // lists only conversations a person actually took part in.
         await _run(
-          'INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body) VALUES (?, ?, ?, ?, ?)',
+          'INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body, is_automated) VALUES (?, ?, ?, ?, ?, TRUE)',
           [msgId, threadId, lifestyleManagerId, 'admin', bodyForChat]
         );
         await _run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [threadId]);
