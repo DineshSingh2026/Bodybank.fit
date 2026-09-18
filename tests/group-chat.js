@@ -188,8 +188,15 @@ function testAttachments() {
     `the group-chat block (line ${blockAt + 1}) is declared BEFORE express.static(/uploads) (line ${staticAt + 1})`);
 
   const router = read('routes/groupChat.js');
-  assert(/router\.get\('\/attachments\/:attachmentId', verifyToken/.test(router),
+  assert(/router\.get\('\/attachments\/:attachmentId', attachmentAuth/.test(router),
     'the attachment download route is authenticated');
+  // attachmentAuth accepts a scoped, attachment-id-bound token (for the plain
+  // <img>/<audio>/<a> tags that render it, which cannot send an Authorization
+  // header) but falls back to the normal session-token check for anyone else.
+  assert(/return verifyToken\(req, res, next\);/.test(router),
+    'attachment auth still falls back to a real session token');
+  assert(/String\(scoped\.attachmentId\) === String\(req\.params\.attachmentId\)/.test(router),
+    'a scoped token only unlocks the ONE attachment it was minted for');
   assert(/resolveAccess\(db, att\.group_id, req\.user\)/.test(router),
     'the attachment download checks membership of the OWNING group');
 
@@ -212,10 +219,14 @@ function testAttachments() {
     'photos and PDFs are accepted');
   eq(MAX_ATTACHMENT_BYTES, 12 * 1024 * 1024, 'the attachment cap is 12 MB');
 
-  // Attachment URLs handed to the client must be API routes, not /uploads paths.
+  // Attachment URLs handed to the client must be API routes, not /uploads paths,
+  // and must carry the scoped token attachmentAuth() checks above — otherwise
+  // the <img>/<audio> tag that loads them has no way to authenticate at all.
   const service = read('services/groupChatService.js');
-  assert(/url: '\/api\/groups\/attachments\/' \+ r\.id/.test(service),
+  assert(/const base = '\/api\/groups\/attachments\/' \+ r\.id/.test(service),
     'serialised attachments point at the authenticated API route, not /uploads');
+  assert(/url: token \? base \+ '\?token=' \+ encodeURIComponent\(token\) : base/.test(service),
+    'a signed, attachment-scoped token rides along in the url so the tag that loads it can authenticate');
   assert(!/\/uploads\/group-chat/.test(service),
     'the service never hands a raw /uploads path to the client');
 

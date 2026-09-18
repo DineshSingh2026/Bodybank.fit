@@ -22,7 +22,7 @@ try {
 const webPush = require('web-push');
 let firebaseAdmin = null;
 try { firebaseAdmin = require('firebase-admin'); } catch (_) { firebaseAdmin = null; }
-const { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken, JWT_SECRET: AUTH_JWT_SECRET } = require('./middleware/auth');
+const { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, JWT_SECRET: AUTH_JWT_SECRET } = require('./middleware/auth');
 const { safeExtraHttpHeaders, optionalApiAccessLog, redactServerErrors } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, setNutritionPush, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
@@ -11616,7 +11616,9 @@ app.use(
     uploadsDir: FEED_UPLOADS_DIR,
     sendPushToUser,
     notifyAgent,
-    notifyHub
+    notifyHub,
+    signGroupAttachmentToken,
+    verifyGroupAttachmentToken
   })
 );
 app.use(

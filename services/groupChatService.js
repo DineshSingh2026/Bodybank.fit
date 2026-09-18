@@ -424,8 +424,24 @@ async function reactionsForMessages(db, messageIds, viewerId) {
   return collapsed;
 }
 
-/** Attachment rows for a set of message ids, keyed by message id. */
-async function attachmentsForMessages(db, messageIds) {
+/** True for anything the chat treats as playable audio (see routes/groupChat.js's isAudioMime). */
+function isAudioAttachment(mimeType) {
+  const mt = String(mimeType || '');
+  return mt.startsWith('audio/') || mt === 'video/mp4';
+}
+
+/**
+ * Attachment rows for a set of message ids, keyed by message id.
+ *
+ * `sign(attachmentId)` mints the short-lived, attachment-scoped token the
+ * download route accepts in `?token=` — the caller supplies it (bound to the
+ * viewer making this request) because signing is an auth concern that lives
+ * in middleware/auth.js, not in this DB-only service. Without it the plain
+ * URL is still returned, unauthenticated, which is why every caller upstream
+ * of this must pass one: an <img>/<audio> tag cannot carry an Authorization
+ * header, so a caller-less URL 401s the moment the browser requests it.
+ */
+async function attachmentsForMessages(db, messageIds, sign) {
   if (!messageIds || messageIds.length === 0) return {};
   const placeholders = messageIds.map(() => '?').join(',');
   const rows = await db.queryAll(
@@ -437,17 +453,19 @@ async function attachmentsForMessages(db, messageIds) {
   );
   const out = {};
   for (const r of rows) {
+    const base = '/api/groups/attachments/' + r.id;
+    const token = typeof sign === 'function' ? sign(r.id) : null;
     (out[r.message_id] = out[r.message_id] || []).push({
       id: r.id,
       name: r.original_name || 'Attachment',
       mimeType: r.mime_type || '',
       size: Number(r.size_bytes || 0),
       isImage: String(r.mime_type || '').startsWith('image/'),
-      isAudio: String(r.mime_type || '').startsWith('audio/'),
+      isAudio: isAudioAttachment(r.mime_type),
       // Always an authenticated route — never a /uploads URL. The uploads mount
       // is public, so a direct path would make every chat attachment readable
       // by anyone who guessed or was forwarded the link.
-      url: '/api/groups/attachments/' + r.id
+      url: token ? base + '?token=' + encodeURIComponent(token) : base
     });
   }
   return out;
@@ -560,8 +578,8 @@ function foldReactions(list, viewerId) {
   return Object.values(bucket).sort((a, b) => b.count - a.count || a.emoji.localeCompare(b.emoji));
 }
 
-/** Turn hydrated rows into wire messages. */
-async function finishRows(db, rows, viewerId) {
+/** Turn hydrated rows into wire messages. `sign` — see attachmentsForMessages(). */
+async function finishRows(db, rows, viewerId, sign) {
   if (!rows.length) return [];
   const reactions = {};
   const replies = {};
@@ -576,7 +594,7 @@ async function finishRows(db, rows, viewerId) {
     }
   }
   const hasAttachments = rows.some(r => r.kind === 'image' || r.kind === 'file' || r.kind === 'audio');
-  const attachments = hasAttachments ? await attachmentsForMessages(db, rows.map(r => r.id)) : {};
+  const attachments = hasAttachments ? await attachmentsForMessages(db, rows.map(r => r.id), sign) : {};
   return rows.map(r => serializeMessage(r, { viewerId, reactions, attachments, replies }));
 }
 
@@ -606,14 +624,14 @@ const MESSAGE_COLS = `m.id, m.seq, m.group_id, m.sender_id, m.sender_group_role,
  * The three lookups run in parallel, and the two optional ones are skipped
  * entirely when no row needs them — which is almost every page.
  */
-async function hydrateRows(db, rows, viewerId) {
+async function hydrateRows(db, rows, viewerId, sign) {
   if (!rows.length) return [];
   const ids = rows.map(r => r.id);
   const replyIds = [...new Set(rows.map(r => r.reply_to_id).filter(Boolean))];
   const hasAttachments = rows.some(r => r.kind === 'image' || r.kind === 'file' || r.kind === 'audio');
   const [reactions, attachments, replyRows] = await Promise.all([
     reactionsForMessages(db, ids, viewerId),
-    hasAttachments ? attachmentsForMessages(db, ids) : Promise.resolve({}),
+    hasAttachments ? attachmentsForMessages(db, ids, sign) : Promise.resolve({}),
     replyIds.length
       ? db.queryAll(
           `SELECT m.id, m.seq, m.sender_id, m.sender_group_role, m.body, m.kind, m.deleted_at,
@@ -657,7 +675,7 @@ async function loadMessages(db, groupId, opts = {}) {
     );
     rows.reverse();
   }
-  return finishRows(db, rows, opts.viewerId);
+  return finishRows(db, rows, opts.viewerId, opts.sign);
 }
 
 /**
@@ -674,7 +692,7 @@ async function loadNewestPage(db, groupId, opts = {}) {
   const hasMore = rows.length > limit;
   if (hasMore) rows.length = limit;
   rows.reverse();
-  const messages = await finishRows(db, rows, opts.viewerId);
+  const messages = await finishRows(db, rows, opts.viewerId, opts.sign);
   const maxSeq = messages.length ? Number(messages[messages.length - 1].seq) : 0;
   return { messages, hasMore, maxSeq };
 }

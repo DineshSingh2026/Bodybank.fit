@@ -55,8 +55,18 @@ const ALLOWED_ATTACHMENT_TYPES = {
   'audio/ogg': '.ogg',
   'audio/webm': '.webm',
   'audio/3gpp': '.3gp',
-  'audio/amr': '.amr'
+  'audio/amr': '.amr',
+  // A phone's voice-memo app frequently exports as .mp4 with only an AAC audio
+  // track inside — the OS reports that as video/mp4, since MIME type comes
+  // from the file extension, not the actual contents. Accepted and treated as
+  // audio (never rendered as video): this app has no video kind at all.
+  'video/mp4': '.mp4'
 };
+
+/** True for anything the composer's voice note treats as playable audio. */
+function isAudioMime(mime) {
+  return mime.startsWith('audio/') || mime === 'video/mp4';
+}
 
 function safeOriginalName(name) {
   return String(name || 'attachment')
@@ -84,7 +94,8 @@ function createGroupChatRouter(deps) {
     run, queryOne, queryAll,
     verifyToken, requireAdminOrSuperadmin, rateLimiter,
     multer, uploadsDir,
-    sendPushToUser, notifyAgent, notifyHub
+    sendPushToUser, notifyAgent, notifyHub,
+    signGroupAttachmentToken, verifyGroupAttachmentToken
   } = deps;
 
   const db = { run, queryOne, queryAll };
@@ -176,11 +187,36 @@ function createGroupChatRouter(deps) {
     }
   }
 
+  /** Mints the scoped token attachmentAuth() below accepts, or null if it wasn't wired in. */
+  function signAtt(attachmentId, userId) {
+    return typeof signGroupAttachmentToken === 'function' ? signGroupAttachmentToken(attachmentId, userId) : null;
+  }
+
+  /**
+   * The bubble loads attachments with plain <img>/<audio> tags and the
+   * transcript loads them with a plain <a href>, none of which can carry an
+   * Authorization header. `?token=` is a signGroupAttachmentToken() scoped to
+   * this one attachment id (see attachmentsForMessages / the /media route
+   * for where it gets minted) and is tried first; a real session token
+   * (Authorization header, or the legacy ?token= full-JWT fallback) still
+   * works too, for any caller that authenticates the normal way.
+   */
+  async function attachmentAuth(req, res, next) {
+    const scoped = typeof verifyGroupAttachmentToken === 'function'
+      ? verifyGroupAttachmentToken(req.query.token)
+      : null;
+    if (scoped && String(scoped.attachmentId) === String(req.params.attachmentId)) {
+      const u = await queryOne('SELECT id, role FROM users WHERE id = ?', [scoped.userId]).catch(() => null);
+      if (u) { req.user = { id: u.id, role: u.role }; return next(); }
+    }
+    return verifyToken(req, res, next);
+  }
+
   // ══ ATTACHMENT DOWNLOAD ═══════════════════════════════════════════════════
   // Declared first so /:id never shadows it. The membership check is the whole
   // point of this route: /uploads is a public static mount, so an attachment
   // served from there would be readable by anyone holding the URL.
-  router.get('/attachments/:attachmentId', verifyToken, async (req, res) => {
+  router.get('/attachments/:attachmentId', attachmentAuth, async (req, res) => {
     try {
       const att = await queryOne(
         'SELECT * FROM chat_message_attachments WHERE id = ?',
@@ -198,8 +234,10 @@ function createGroupChatRouter(deps) {
 
       res.setHeader('Content-Type', att.mime_type || 'application/octet-stream');
       res.setHeader('Cache-Control', 'private, max-age=300');
-      // Images render inline in a bubble; everything else downloads.
-      const inline = String(att.mime_type || '').startsWith('image/');
+      // Images and voice notes render inline (a bubble, or the browser's own
+      // audio player); everything else downloads.
+      const mt = String(att.mime_type || '');
+      const inline = mt.startsWith('image/') || isAudioMime(mt);
       const name = safeOriginalName(att.original_name).replace(/"/g, '');
       res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${name}"`);
       fs.createReadStream(abs).pipe(res);
@@ -545,7 +583,7 @@ function createGroupChatRouter(deps) {
       // run in parallel. `hasMore` and `maxSeq` come out of the page query.
       const [members, page] = await Promise.all([
         svc.listMembers(db, group.id),
-        svc.loadNewestPage(db, group.id, { viewerId: req.user.id, limit: svc.DEFAULT_PAGE_SIZE })
+        svc.loadNewestPage(db, group.id, { viewerId: req.user.id, limit: svc.DEFAULT_PAGE_SIZE, sign: (attId) => signAtt(attId, req.user.id) })
       ]);
       res.json({
         group: {
@@ -634,7 +672,8 @@ function createGroupChatRouter(deps) {
       const messages = await svc.loadMessages(db, req.access.group.id, {
         viewerId: req.user.id,
         before,
-        limit: req.query.limit
+        limit: req.query.limit,
+        sign: (attId) => signAtt(attId, req.user.id)
       });
       const maxSeq = await svc.groupMaxSeq(db, req.access.group.id);
       // `hasMore` asks whether anything exists below the oldest row we returned.
@@ -685,7 +724,7 @@ function createGroupChatRouter(deps) {
       const fromSeq = Number.isFinite(since) ? String(since) : '0';
       // Everything below runs in parallel, one query each.
       const [messages, recent, members] = await Promise.all([
-        svc.loadMessages(db, groupId, { viewerId: req.user.id, since: fromSeq, limit: svc.MAX_PAGE_SIZE }),
+        svc.loadMessages(db, groupId, { viewerId: req.user.id, since: fromSeq, limit: svc.MAX_PAGE_SIZE, sign: (attId) => signAtt(attId, req.user.id) }),
         svc.recentState(db, groupId, req.user.id),
         svc.listMembers(db, groupId)
       ]);
@@ -803,7 +842,7 @@ function createGroupChatRouter(deps) {
       }
 
       const senderRole = (membership && membership.group_role) || (isAdmin ? 'admin' : '');
-      const kind = mime.startsWith('image/') ? 'image' : (mime.startsWith('audio/') ? 'audio' : 'file');
+      const kind = mime.startsWith('image/') ? 'image' : (isAudioMime(mime) ? 'audio' : 'file');
       const msgId = await svc.insertMessage(db, {
         groupId: group.id, senderId: req.user.id, senderGroupRole: senderRole, body: caption, kind, replyToId
       });
@@ -815,7 +854,7 @@ function createGroupChatRouter(deps) {
 
       const maxSeq = await svc.groupMaxSeq(db, group.id);
       await svc.markRead(db, group.id, req.user.id, maxSeq);
-      const [message] = await svc.loadMessages(db, group.id, { viewerId: req.user.id, since: String(Number(maxSeq) - 1), limit: 1 });
+      const [message] = await svc.loadMessages(db, group.id, { viewerId: req.user.id, since: String(Number(maxSeq) - 1), limit: 1, sign: (attId) => signAtt(attId, req.user.id) });
       const members = await svc.listMembers(db, group.id);
       const me = members.find(m => String(m.userId) === String(req.user.id));
       const preview = kind === 'image' ? '📷 Photo' : (kind === 'audio' ? '🎤 Voice note' : '📎 Attachment');
@@ -1137,7 +1176,8 @@ function createGroupChatRouter(deps) {
           mimeType: f.mime_type || '',
           size: Number(f.size_bytes || 0),
           isImage: String(f.mime_type || '').startsWith('image/'),
-          url: '/api/groups/attachments/' + f.id,
+          isAudio: isAudioMime(String(f.mime_type || '')),
+          url: '/api/groups/attachments/' + f.id + '?token=' + encodeURIComponent(signAtt(f.id, req.user.id) || ''),
           createdAt: f.created_at,
           senderName: svc.displayName(f)
         })),

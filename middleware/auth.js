@@ -227,4 +227,31 @@ function verifyPdfAccessToken(token) {
   }
 }
 
-module.exports = { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, verifyAppleIdentityToken, JWT_SECRET };
+// Care-group chat attachments (images, voice notes, files) are loaded by
+// plain <img>/<audio>/<a> tags, which cannot carry an Authorization header.
+// A token scoped to ONE attachment id — not the caller's full session JWT —
+// rides in the URL's query string instead, so a link that leaks (browser
+// history, disk cache, a proxy's access log) exposes one short-lived file,
+// never the account.
+function signGroupAttachmentToken(attachmentId, userId) {
+  return jwt.sign(
+    { attachmentId, userId, purpose: 'group-attachment' },
+    JWT_SECRET,
+    { expiresIn: '15m' }
+  );
+}
+
+function verifyGroupAttachmentToken(token) {
+  if (!token) return null;
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    if (decoded && decoded.purpose === 'group-attachment' && decoded.attachmentId && decoded.userId) {
+      return { attachmentId: decoded.attachmentId, userId: decoded.userId };
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+module.exports = { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, JWT_SECRET };
