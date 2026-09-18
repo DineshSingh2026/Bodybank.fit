@@ -39,7 +39,23 @@ const ALLOWED_ATTACHMENT_TYPES = {
   'application/msword': '.doc',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document': '.docx',
   'application/vnd.ms-excel': '.xls',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx'
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': '.xlsx',
+  // Voice notes — covers the recorder/export format on every platform we ship
+  // to: iOS voice memos (.m4a, sometimes reported as audio/mp4), Android's
+  // built-in recorder (.3gp/.amr on older devices, .webm/.ogg on newer ones),
+  // desktop browsers' MediaRecorder output, and plain .mp3/.wav files.
+  'audio/mpeg': '.mp3',
+  'audio/mp3': '.mp3',
+  'audio/mp4': '.m4a',
+  'audio/x-m4a': '.m4a',
+  'audio/aac': '.aac',
+  'audio/wav': '.wav',
+  'audio/x-wav': '.wav',
+  'audio/wave': '.wav',
+  'audio/ogg': '.ogg',
+  'audio/webm': '.webm',
+  'audio/3gpp': '.3gp',
+  'audio/amr': '.amr'
 };
 
 function safeOriginalName(name) {
@@ -787,7 +803,7 @@ function createGroupChatRouter(deps) {
       }
 
       const senderRole = (membership && membership.group_role) || (isAdmin ? 'admin' : '');
-      const kind = mime.startsWith('image/') ? 'image' : 'file';
+      const kind = mime.startsWith('image/') ? 'image' : (mime.startsWith('audio/') ? 'audio' : 'file');
       const msgId = await svc.insertMessage(db, {
         groupId: group.id, senderId: req.user.id, senderGroupRole: senderRole, body: caption, kind, replyToId
       });
@@ -802,7 +818,8 @@ function createGroupChatRouter(deps) {
       const [message] = await svc.loadMessages(db, group.id, { viewerId: req.user.id, since: String(Number(maxSeq) - 1), limit: 1 });
       const members = await svc.listMembers(db, group.id);
       const me = members.find(m => String(m.userId) === String(req.user.id));
-      await notifyGroup(group, members, req.user.id, (me && me.name) || 'BodyBank', kind === 'image' ? '📷 Photo' : '📎 Attachment');
+      const preview = kind === 'image' ? '📷 Photo' : (kind === 'audio' ? '🎤 Voice note' : '📎 Attachment');
+      await notifyGroup(group, members, req.user.id, (me && me.name) || 'BodyBank', preview);
 
       res.status(201).json({ message: message || { id: msgId }, maxSeq });
     } catch (e) {

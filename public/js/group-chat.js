@@ -1331,6 +1331,9 @@
     (m.attachments || []).forEach(function (a) {
       if (a.isImage) {
         h += '<img class="bbg-img" src="' + esc(a.url) + '" alt="' + esc(a.name) + '" loading="lazy" data-full="' + esc(a.url) + '">';
+      } else if (a.isAudio) {
+        h += '<div class="bbg-audio"><span class="bbg-file-ic">🎤</span>'
+          + '<audio controls preload="metadata" src="' + esc(a.url) + '"></audio></div>';
       } else {
         h += '<a class="bbg-file" href="' + esc(a.url) + '" target="_blank" rel="noopener"><span class="bbg-file-ic">📄</span>'
           + '<span class="bbg-file-t"><b>' + esc(a.name) + '</b><span>' + esc(fmtBytes(a.size)) + '</span></span></a>';
@@ -1550,7 +1553,7 @@
       +   '</div>'
       +   '<button type="button" class="bbg-send" id="bbgSend" aria-label="Send" disabled>' + SEND_SVG + '</button>'
       + '</div>'
-      + (direct ? '' : '<input type="file" id="bbgFile" hidden accept="image/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt">')
+      + (direct ? '' : '<input type="file" id="bbgFile" hidden accept="image/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt">')
       + '<div id="bbgCmpErr"></div>'
       + '</div>';
     bindComposer();
@@ -1889,7 +1892,7 @@
         if (!S.messages.some(function (m) { return m.id === res.message.id; })) S.messages.push(res.message);
         renderTranscript();
         scrollToBottom(true);
-        bumpListPreview(res.message.kind === 'image' ? '📷 Photo' : '📎 Attachment');
+        bumpListPreview(res.message.kind === 'image' ? '📷 Photo' : (res.message.kind === 'audio' ? '🎤 Voice note' : '📎 Attachment'));
         snapshotOpen();
       }
     } catch (e) {

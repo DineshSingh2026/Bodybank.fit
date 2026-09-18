@@ -443,6 +443,7 @@ async function attachmentsForMessages(db, messageIds) {
       mimeType: r.mime_type || '',
       size: Number(r.size_bytes || 0),
       isImage: String(r.mime_type || '').startsWith('image/'),
+      isAudio: String(r.mime_type || '').startsWith('audio/'),
       // Always an authenticated route — never a /uploads URL. The uploads mount
       // is public, so a direct path would make every chat attachment readable
       // by anyone who guessed or was forwarded the link.
@@ -574,7 +575,7 @@ async function finishRows(db, rows, viewerId) {
       };
     }
   }
-  const hasAttachments = rows.some(r => r.kind === 'image' || r.kind === 'file');
+  const hasAttachments = rows.some(r => r.kind === 'image' || r.kind === 'file' || r.kind === 'audio');
   const attachments = hasAttachments ? await attachmentsForMessages(db, rows.map(r => r.id)) : {};
   return rows.map(r => serializeMessage(r, { viewerId, reactions, attachments, replies }));
 }
@@ -609,7 +610,7 @@ async function hydrateRows(db, rows, viewerId) {
   if (!rows.length) return [];
   const ids = rows.map(r => r.id);
   const replyIds = [...new Set(rows.map(r => r.reply_to_id).filter(Boolean))];
-  const hasAttachments = rows.some(r => r.kind === 'image' || r.kind === 'file');
+  const hasAttachments = rows.some(r => r.kind === 'image' || r.kind === 'file' || r.kind === 'audio');
   const [reactions, attachments, replyRows] = await Promise.all([
     reactionsForMessages(db, ids, viewerId),
     hasAttachments ? attachmentsForMessages(db, ids) : Promise.resolve({}),
@@ -748,6 +749,7 @@ async function listGroupsForUser(db, user, opts = {}) {
     if (r.last_seq) {
       if (r.last_deleted) preview = 'This message was deleted';
       else if (r.last_kind === 'image') preview = '📷 Photo';
+      else if (r.last_kind === 'audio') preview = '🎤 Voice note';
       else if (r.last_kind === 'file') preview = '📎 Attachment';
       else if (r.last_kind === 'system') preview = String(r.last_body || '');
       else preview = String(r.last_body || '');

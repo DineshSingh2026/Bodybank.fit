@@ -391,6 +391,12 @@ html.bbg-lock,html.bbg-lock body{overflow:hidden!important}
 .bbg-file-t b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bbg-file-t span{font-size:11.5px;color:var(--bbg-faint)}
 
+.bbg-audio{
+  display:flex;align-items:center;gap:10px;margin:2px 0 4px;padding:8px 10px;border-radius:9px;
+  background:rgba(0,0,0,.28);min-width:220px;
+}
+.bbg-audio audio{flex:1;min-width:170px;height:34px}
+
 .bbg-rx{
   position:absolute;bottom:-15px;display:flex;gap:2px;padding:1px 6px 2px;border-radius:12px;
   background:#1f1f1f;box-shadow:0 0 0 2px #090909;cursor:pointer;z-index:1;
