@@ -106,6 +106,16 @@ function buildLuxuryMarketingSvg({ postType, keywords, tone, hook, caption, prom
 </svg>`;
 }
 
+// The logo file never changes at runtime — read it once at module load instead
+// of doing a synchronous disk read (blocking the event loop) on every request.
+let _cachedLogoDataUri = '';
+try {
+  const logoPath = path.join(__dirname, '..', 'public', 'img', 'bodybank X fitchef logo.png');
+  if (fs.existsSync(logoPath)) {
+    _cachedLogoDataUri = `data:image/png;base64,${fs.readFileSync(logoPath).toString('base64')}`;
+  }
+} catch (_) { /* logo optional */ }
+
 function createMarketingAIRouter({ run, queryAll }) {
   const router = express.Router();
 
@@ -117,12 +127,7 @@ function createMarketingAIRouter({ run, queryAll }) {
       const hook = String(req.query?.hook || '').trim();
       const caption = String(req.query?.caption || '').trim();
       const prompt = String(req.query?.prompt || '').trim();
-      const logoPath = path.join(__dirname, '..', 'public', 'img', 'bodybank X fitchef logo.png');
-      let logoDataUri = '';
-      if (fs.existsSync(logoPath)) {
-        const b64 = fs.readFileSync(logoPath).toString('base64');
-        logoDataUri = `data:image/png;base64,${b64}`;
-      }
+      const logoDataUri = _cachedLogoDataUri;
       const svg = buildLuxuryMarketingSvg({ postType, keywords, tone, hook, caption, prompt, logoDataUri });
       res.setHeader('Content-Type', 'image/svg+xml; charset=utf-8');
       res.setHeader('Cache-Control', 'no-store');

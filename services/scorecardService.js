@@ -271,11 +271,16 @@ function createScorecardService({ queryOne, queryAll }) {
     if (!ids.length) {
       return { rank: null, cohort_size: 0 };
     }
+    // Each id's score is independent of every other's — computing them one at a time
+    // in a `for` loop was N sequential DB round-trips per rank lookup. The final sort
+    // makes the fetch order irrelevant, so Promise.all is behavior-identical, just
+    // concurrent.
+    const computed = await Promise.all(ids.map((uid) => computeWeeklyScore(uid, weekStartISO)));
     const scores = [];
-    for (const uid of ids) {
-      const s = await computeWeeklyScore(uid, weekStartISO);
+    ids.forEach((uid, i) => {
+      const s = computed[i];
       if (s) scores.push({ id: uid, total: s.total });
-    }
+    });
     scores.sort((a, b) => b.total - a.total || String(a.id).localeCompare(String(b.id)));
     const idx = scores.findIndex((x) => x.id === userId);
     const rank = idx >= 0 ? idx + 1 : null;
@@ -290,32 +295,46 @@ function createScorecardService({ queryOne, queryAll }) {
     if (!ids.length) {
       return { rank: null, cohort_size: 0 };
     }
+    const computed = await Promise.all(ids.map((uid) => computeWeeklyScoreDedication(uid, weekStartISO)));
     const scores = [];
-    for (const uid of ids) {
-      const s = await computeWeeklyScoreDedication(uid, weekStartISO);
+    ids.forEach((uid, i) => {
+      const s = computed[i];
       if (s) scores.push({ id: uid, total: s.total });
-    }
+    });
     scores.sort((a, b) => b.total - a.total || String(a.id).localeCompare(String(b.id)));
     const idx = scores.findIndex((x) => x.id === userId);
     const rank = idx >= 0 ? idx + 1 : null;
     return { rank, cohort_size: scores.length };
   }
 
-  async function buildLeaderboard(programId, weekStartISO, limit = 50) {
-    if (!programId) return [];
-    const ids = await cohortOptedInUserIds(programId);
-    const rows = [];
-    for (const uid of ids) {
-      const s = await computeWeeklyScore(uid, weekStartISO);
-      if (!s) continue;
-      const u = await queryOne(
-        `SELECT id, first_name, last_name, leaderboard_display_name, profile_picture FROM users WHERE id = ?`,
-        [uid]
-      );
+  // Shared by buildLeaderboard/buildLeaderboardGlobal: fetch every id's score
+  // concurrently (was one `await` per id, sequentially) and batch the display-name
+  // lookup into a single `WHERE id = ANY(?)` (was one `queryOne` per id). Same rows,
+  // same fields, same final sort — only the number/order of DB round-trips changes.
+  async function assembleLeaderboardRows(ids, scoreFn, weekStartISO) {
+    const computed = await Promise.all(ids.map((uid) => scoreFn(uid, weekStartISO)));
+    const survivingIds = [];
+    const scoreById = new Map();
+    ids.forEach((uid, i) => {
+      const s = computed[i];
+      if (s) {
+        survivingIds.push(uid);
+        scoreById.set(uid, s);
+      }
+    });
+    if (!survivingIds.length) return [];
+    const users = await queryAll(
+      `SELECT id, first_name, last_name, leaderboard_display_name, profile_picture FROM users WHERE id = ANY(?)`,
+      [survivingIds]
+    );
+    const userById = new Map((users || []).map((u) => [u.id, u]));
+    return survivingIds.map((uid) => {
+      const s = scoreById.get(uid);
+      const u = userById.get(uid);
       const nick = u && u.leaderboard_display_name ? String(u.leaderboard_display_name).trim() : '';
       const display = nick || 'Member';
       const pic = u && u.profile_picture ? String(u.profile_picture).trim() : '';
-      rows.push({
+      return {
         user_id: uid,
         display_name: display,
         profile_picture: pic,
@@ -326,38 +345,21 @@ function createScorecardService({ queryOne, queryAll }) {
           workouts: s.workouts,
           progress: s.progress
         }
-      });
-    }
+      };
+    });
+  }
+
+  async function buildLeaderboard(programId, weekStartISO, limit = 50) {
+    if (!programId) return [];
+    const ids = await cohortOptedInUserIds(programId);
+    const rows = await assembleLeaderboardRows(ids, computeWeeklyScore, weekStartISO);
     rows.sort((a, b) => b.total - a.total || String(a.user_id).localeCompare(String(b.user_id)));
     return rows.slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
   }
 
   async function buildLeaderboardGlobal(weekStartISO, limit = 50) {
     const ids = await globalLeaderboardUserIds();
-    const rows = [];
-    for (const uid of ids) {
-      const s = await computeWeeklyScoreDedication(uid, weekStartISO);
-      if (!s) continue;
-      const u = await queryOne(
-        `SELECT id, first_name, last_name, leaderboard_display_name, profile_picture FROM users WHERE id = ?`,
-        [uid]
-      );
-      const nick = u && u.leaderboard_display_name ? String(u.leaderboard_display_name).trim() : '';
-      const display = nick || 'Member';
-      const pic = u && u.profile_picture ? String(u.profile_picture).trim() : '';
-      rows.push({
-        user_id: uid,
-        display_name: display,
-        profile_picture: pic,
-        total: s.total,
-        pillars: {
-          daily: s.daily,
-          sunday: s.sunday,
-          workouts: s.workouts,
-          progress: s.progress
-        }
-      });
-    }
+    const rows = await assembleLeaderboardRows(ids, computeWeeklyScoreDedication, weekStartISO);
     rows.sort((a, b) => b.total - a.total || String(a.user_id).localeCompare(String(b.user_id)));
     return rows.slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
   }
@@ -376,10 +378,12 @@ function createScorecardService({ queryOne, queryAll }) {
        GROUP BY u.id, u.first_name, u.last_name, u.email, u.leaderboard_opt_in, u.leaderboard_display_name`,
       [programId]
     );
+    const list = users || [];
+    const computed = await Promise.all(list.map((u) => computeWeeklyScore(u.id, weekStartISO)));
     const rows = [];
-    for (const u of users || []) {
-      const s = await computeWeeklyScore(u.id, weekStartISO);
-      if (!s) continue;
+    list.forEach((u, i) => {
+      const s = computed[i];
+      if (!s) return;
       const display =
         (u.leaderboard_display_name && String(u.leaderboard_display_name).trim()) ||
         [u.first_name, u.last_name].filter(Boolean).join(' ').trim() ||
@@ -401,7 +405,7 @@ function createScorecardService({ queryOne, queryAll }) {
         },
         breakdown: s.breakdown
       });
-    }
+    });
     rows.sort((a, b) => b.total - a.total || String(a.user_id).localeCompare(String(b.user_id)));
     rows.forEach((r, i) => {
       r.rank_admin = i + 1;

@@ -5086,7 +5086,6 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="css/member-home.css?v=13">
 <link rel="stylesheet" href="css/group-chat.css?v=7">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
 <script src="js/operator-console.js?v=17"></script>
 <script src="js/admin-home.js?v=8"></script>
@@ -12423,6 +12422,10 @@ async function bbApiRequest(method, url, body) {
     }
     return data;
   } catch (e) {
+    // Swallowed by design so callers show one generic message, but the real
+    // cause (CORS block, DNS failure, timeout, ...) is otherwise invisible —
+    // log it so it shows up in Codemagic/Xcode/remote-debug consoles.
+    try { console.error('[apiCall] ' + method + ' ' + url + ' failed:', e); } catch (_) {}
     return { error: 'Network error. Please check your connection.' };
   }
 }
@@ -13436,14 +13439,16 @@ async function loadNotifications() {
 
 function startAdminNotificationPolling() {
   if (window._adminNotifyInterval) return;
-  window._adminNotifyInterval = setInterval(loadNotifications, 60000);
+  // Same 60s cadence while the tab/app is visible; skips the fetch+re-render
+  // entirely while backgrounded instead of doing it out of sight every minute.
+  window._adminNotifyInterval = setInterval(function () { if (!document.hidden) loadNotifications(); }, 60000);
 }
 function stopAdminNotificationPolling() {
   if (window._adminNotifyInterval) { clearInterval(window._adminNotifyInterval); window._adminNotifyInterval = null; }
 }
 function startUserNotificationPolling() {
   if (window._userNotifyInterval) return;
-  window._userNotifyInterval = setInterval(loadNotifications, 60000);
+  window._userNotifyInterval = setInterval(function () { if (!document.hidden) loadNotifications(); }, 60000);
 }
 function stopUserNotificationPolling() {
   if (window._userNotifyInterval) { clearInterval(window._userNotifyInterval); window._userNotifyInterval = null; }
@@ -24410,7 +24415,7 @@ function loadAdminNutritionReport() {
           var clickAttr = hasPhoto ? ' onclick="bbMealLightboxOpen(\'' + mapKey + '\')"' : '';
           var inner;
           if (hasPhoto) {
-            inner = '<img src="data:' + escapeHtml(meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data + '" alt="' + escapeHtml(type) + ' photo"/>';
+            inner = '<img loading="lazy" src="data:' + escapeHtml(meal.photo_mime || 'image/jpeg') + ';base64,' + meal.photo_data + '" alt="' + escapeHtml(type) + ' photo"/>';
           } else if (photoExpired) {
             inner = '<div class="ph expired">' +
               '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>' +

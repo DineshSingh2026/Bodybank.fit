@@ -3,7 +3,17 @@ const { Pool } = require('pg');
 
 const DATABASE_URL = process.env.DATABASE_URL || 'postgresql://localhost:5432/bodybank';
 
-const pool = new Pool({ connectionString: DATABASE_URL });
+// Several hot paths (leaderboards, the notifications bell, admin broadcasts) were
+// recently changed from one-query-at-a-time loops to concurrent Promise.all fan-outs
+// for speed — that shifts the bottleneck to how many connections this pool allows
+// at once. The `pg` default (10) was sized for the old sequential-only code.
+// DB_POOL_MAX lets it be tuned back down on a connection-constrained DB plan without
+// a code change; the new default (15) is a conservative bump that fits comfortably
+// under the connection limit of every common managed-Postgres free/starter tier.
+const pool = new Pool({
+  connectionString: DATABASE_URL,
+  max: Number(process.env.DB_POOL_MAX) || 15
+});
 
 function toPg(sql) {
   let i = 0;

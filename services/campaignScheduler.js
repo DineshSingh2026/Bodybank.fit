@@ -121,63 +121,72 @@ async function broadcastMessage(message) {
   let pushCount = 0;
   let chatCount = 0;
 
-  for (const user of users) {
-    // 1. Write to in-app inbox (always — no push subscription required)
-    const inboxRowId = _uuidv4();
-    var inboxInsertOk = false;
-    try {
-      await _run(
-        'INSERT INTO user_inbox (id, user_id, title, body, type, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
-        [inboxRowId, user.id, 'BodyBank', trimmed, 'campaign']
-      );
-      inboxInsertOk = true;
-      inboxCount++;
-    } catch (e) {
-      console.warn(`[Campaign] Inbox insert failed for user ${user.id}: ${e.message}`);
-    }
-
-    // 2. Same message into Lifestyle Manager chat (get-or-create thread, then insert as admin message)
-    if (lifestyleManagerId) {
+  // Each user's three writes/send are independent of every other user's — this used
+  // to run one full user at a time, sequentially, so a broadcast to hundreds of
+  // users serialized hundreds of round trips. Processed in bounded-size concurrent
+  // batches instead (same per-user logic, same counters, same error handling —
+  // just not waiting for user N to finish before starting user N+1).
+  const BROADCAST_CONCURRENCY = 20;
+  for (let i = 0; i < users.length; i += BROADCAST_CONCURRENCY) {
+    const batch = users.slice(i, i + BROADCAST_CONCURRENCY);
+    await Promise.all(batch.map(async (user) => {
+      // 1. Write to in-app inbox (always — no push subscription required)
+      const inboxRowId = _uuidv4();
+      let inboxInsertOk = false;
       try {
-        const threads = await _queryAll(
-          'SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1',
-          [user.id]
-        );
-        let threadId = threads && threads[0] ? threads[0].id : null;
-        if (!threadId) {
-          threadId = _uuidv4();
-          await _run(
-            'INSERT INTO message_threads (id, user_id, subject) VALUES (?, ?, ?)',
-            [threadId, user.id, '']
-          );
-        }
-        const msgId = _uuidv4();
-        // is_automated keeps these nudges out of the admin's Messages inbox, which
-        // lists only conversations a person actually took part in.
         await _run(
-          'INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body, is_automated) VALUES (?, ?, ?, ?, ?, TRUE)',
-          [msgId, threadId, lifestyleManagerId, 'admin', bodyForChat]
+          'INSERT INTO user_inbox (id, user_id, title, body, type, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+          [inboxRowId, user.id, 'BodyBank', trimmed, 'campaign']
         );
-        await _run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [threadId]);
-        chatCount++;
+        inboxInsertOk = true;
+        inboxCount++;
       } catch (e) {
-        console.warn(`[Campaign] Chat insert failed for user ${user.id}: ${e.message}`);
+        console.warn(`[Campaign] Inbox insert failed for user ${user.id}: ${e.message}`);
       }
-    }
 
-    // 3. Push notification (only if inbox row exists; id matches bell list)
-    if (inboxInsertOk) {
-      try {
-        const pushPayload = JSON.stringify({
-          title: '🔔 BodyBank',
-          body: trimmed.slice(0, 200),
-          icon: '/icons/icon-192.png',
-          id: 'inbox-' + inboxRowId
-        });
-        await _sendPushToUser(user.id, pushPayload);
-        pushCount++;
-      } catch (_) { /* expected for users without push subscriptions */ }
-    }
+      // 2. Same message into Lifestyle Manager chat (get-or-create thread, then insert as admin message)
+      if (lifestyleManagerId) {
+        try {
+          const threads = await _queryAll(
+            'SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1',
+            [user.id]
+          );
+          let threadId = threads && threads[0] ? threads[0].id : null;
+          if (!threadId) {
+            threadId = _uuidv4();
+            await _run(
+              'INSERT INTO message_threads (id, user_id, subject) VALUES (?, ?, ?)',
+              [threadId, user.id, '']
+            );
+          }
+          const msgId = _uuidv4();
+          // is_automated keeps these nudges out of the admin's Messages inbox, which
+          // lists only conversations a person actually took part in.
+          await _run(
+            'INSERT INTO thread_messages (id, thread_id, sender_id, sender_role, body, is_automated) VALUES (?, ?, ?, ?, ?, TRUE)',
+            [msgId, threadId, lifestyleManagerId, 'admin', bodyForChat]
+          );
+          await _run('UPDATE message_threads SET updated_at = CURRENT_TIMESTAMP WHERE id = ?', [threadId]);
+          chatCount++;
+        } catch (e) {
+          console.warn(`[Campaign] Chat insert failed for user ${user.id}: ${e.message}`);
+        }
+      }
+
+      // 3. Push notification (only if inbox row exists; id matches bell list)
+      if (inboxInsertOk) {
+        try {
+          const pushPayload = JSON.stringify({
+            title: '🔔 BodyBank',
+            body: trimmed.slice(0, 200),
+            icon: '/icons/icon-192.png',
+            id: 'inbox-' + inboxRowId
+          });
+          await _sendPushToUser(user.id, pushPayload);
+          pushCount++;
+        } catch (_) { /* expected for users without push subscriptions */ }
+      }
+    }));
   }
 
   // Persist aggregate send log

@@ -450,6 +450,11 @@ async function ensureWaTables(pool) {
     result TEXT DEFAULT ''
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_wa_messages_phone ON wa_messages(phone)`); } catch (e) { /* ignore */ }
+  // listMessagesByPhone() filters on this exact normalized expression, not the raw
+  // column above — a plain `phone` index can't be used for it, so every inbound
+  // WhatsApp webhook and thread-open was a full table scan. Expression index must
+  // match the query text verbatim to be used.
+  try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_wa_messages_phone_norm ON wa_messages (RIGHT(regexp_replace(COALESCE(phone,''), '[^0-9]', '', 'g'), 10), ts)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_wa_messages_client ON wa_messages(client_id, ts DESC)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_wa_messages_twilio_sid ON wa_messages(twilio_sid) WHERE twilio_sid IS NOT NULL AND twilio_sid <> ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_wa_drafts_status ON wa_drafts(status, send_at)`); } catch (e) { /* ignore */ }

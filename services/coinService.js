@@ -176,11 +176,18 @@ async function runDailyCoinPenaltyJob({ queryAll, queryOne, run }) {
        AND COALESCE(suspended, FALSE) = FALSE`
   );
   let n = 0;
-  for (const u of users || []) {
-    const userTz = (u.timezone && u.timezone.trim()) ? u.timezone.trim() : STREAK_TZ;
-    const today = todayYmdInTz(userTz) || new Date().toISOString().slice(0, 10);
-    const r = await applyMissedDailyPenaltiesForUser(db, u.id, today);
-    if (r.penaltiesApplied > 0) n += 1;
+  // Each user's penalty check/application only touches that user's own rows — safe
+  // to run concurrently in bounded batches instead of one full user at a time.
+  const PENALTY_CONCURRENCY = 20;
+  const userList = users || [];
+  for (let i = 0; i < userList.length; i += PENALTY_CONCURRENCY) {
+    const batch = userList.slice(i, i + PENALTY_CONCURRENCY);
+    await Promise.all(batch.map(async (u) => {
+      const userTz = (u.timezone && u.timezone.trim()) ? u.timezone.trim() : STREAK_TZ;
+      const today = todayYmdInTz(userTz) || new Date().toISOString().slice(0, 10);
+      const r = await applyMissedDailyPenaltiesForUser(db, u.id, today);
+      if (r.penaltiesApplied > 0) n += 1;
+    }));
   }
   console.log(`[coins] Daily penalty job processed ${users.length || 0} users; penalties applied to ${n} user(s).`);
 }

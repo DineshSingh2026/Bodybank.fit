@@ -186,9 +186,11 @@ async function sendFcmToUser(userId, payload) {
     const rows = await queryAll('SELECT token FROM device_push_tokens WHERE user_id = ?', [userId]);
     if (!rows || rows.length === 0) return;
     const sent = new Set();
-    for (const r of rows) {
-      if (!r.token || sent.has(r.token)) continue;
-      sent.add(r.token);
+    const unique = rows.filter(r => r.token && !sent.has(r.token) && sent.add(r.token));
+    // Each device's send is independent and already individually try/caught for
+    // stale-token cleanup — sequential `await` here only delayed delivery to a
+    // user's other devices.
+    await Promise.all(unique.map(async (r) => {
       try {
         await firebaseAdmin.messaging().send(fcmMessage(r.token, title, body, data));
       } catch (e) {
@@ -203,7 +205,7 @@ async function sendFcmToUser(userId, payload) {
           console.warn('[FCM] Send failed for user', userId, ':', e.message);
         }
       }
-    }
+    }));
   } catch (e) {
     console.warn('[FCM] Error:', e.message);
   }
@@ -240,9 +242,8 @@ async function sendPushToUser(userId, rawPayload) {
     }
     const body = typeof payload === 'string' ? payload : JSON.stringify(payload);
     const sent = new Set();
-    for (const sub of rows) {
-      if (!sub.endpoint || sent.has(sub.endpoint)) continue;
-      sent.add(sub.endpoint);
+    const unique = rows.filter(sub => sub.endpoint && !sent.has(sub.endpoint) && sent.add(sub.endpoint));
+    await Promise.all(unique.map(async (sub) => {
       try {
         await webPush.sendNotification({
           endpoint: sub.endpoint,
@@ -256,7 +257,7 @@ async function sendPushToUser(userId, rawPayload) {
           console.warn('[Push] Send failed for user', userId, ':', e.message);
         }
       }
-    }
+    }));
   } catch (e) {
     console.warn('[Push] Error:', e.message);
   }
@@ -729,21 +730,33 @@ function bufferToFeedDataUrl(buffer, originalName) {
   return { imageData: `data:${mime};base64,${buffer.toString('base64')}`, imageMime: mime };
 }
 
-async function syncUserCountryAndTimezone(userId, email) {
-  if (!userId || !email) return;
+// Returns the resolved { country, timezone } (whether just backfilled or already
+// set) so callers can patch their in-memory user object directly instead of
+// re-querying the full row afterward — this runs on every login/Google/Apple
+// auth, the hottest paths in the app. `currentCountry`/`currentTimezone` are the
+// values already loaded by the caller, mirroring the same
+// COALESCE(NULLIF(col,''), ?) precedence the SQL below applies. Returns null when
+// there's no audit match (nothing to sync; caller keeps its existing values).
+async function syncUserCountryAndTimezone(userId, email, currentCountry, currentTimezone) {
+  if (!userId || !email) return null;
   try {
     const audit = await queryOne(
       "SELECT country FROM audit_requests WHERE LOWER(email) = ? AND COALESCE(TRIM(country), '') <> '' ORDER BY created_at DESC LIMIT 1",
       [String(email).trim().toLowerCase()]
     );
-    if (!audit || !audit.country) return;
+    if (!audit || !audit.country) return null;
     const inferredTimezone = inferTimezoneFromCountry(audit.country);
     await run(
       "UPDATE users SET country = COALESCE(NULLIF(country, ''), ?), timezone = COALESCE(NULLIF(timezone, ''), ?) WHERE id = ?",
       [audit.country, inferredTimezone || '', userId]
     );
+    return {
+      country: (currentCountry && String(currentCountry).trim()) ? currentCountry : audit.country,
+      timezone: (currentTimezone && String(currentTimezone).trim()) ? currentTimezone : (inferredTimezone || '')
+    };
   } catch (e) {
     console.warn('Failed to sync user country/timezone:', e.message);
+    return null;
   }
 }
 
@@ -754,15 +767,24 @@ async function ensureApprovedUsersInActiveTribe() {
        FROM users
        WHERE role = 'user' AND COALESCE(approval_status, 'approved') = 'approved'`
     );
-    let inserted = 0;
-    for (const u of (approved || [])) {
-      const emailNorm = String(u.email || '').trim().toLowerCase();
-      if (!emailNorm) continue;
-      const existing = await queryOne(
-        "SELECT id FROM tribe_members WHERE LOWER(email) = ?",
-        [emailNorm]
+    const withEmail = (approved || []).filter(u => String(u.email || '').trim());
+    // This runs on every hit of /api/stats and /api/admin/users. It used to check
+    // each approved user against tribe_members one at a time — in steady state
+    // (everyone already synced) that was N sequential SELECTs for zero inserts.
+    // One batched membership check replaces all of them; per-row INSERTs still only
+    // run for users that actually need one (normally none).
+    let existingSet = new Set();
+    if (withEmail.length) {
+      const existingRows = await queryAll(
+        "SELECT LOWER(email) AS email FROM tribe_members WHERE LOWER(email) = ANY(?)",
+        [withEmail.map(u => String(u.email).trim().toLowerCase())]
       );
-      if (existing) continue;
+      existingSet = new Set((existingRows || []).map(r => r.email));
+    }
+    let inserted = 0;
+    for (const u of withEmail) {
+      const emailNorm = String(u.email || '').trim().toLowerCase();
+      if (!emailNorm || existingSet.has(emailNorm)) continue;
       const tribeId = uuidv4();
       const startDate = u.created_at ? String(u.created_at).slice(0, 10) : new Date().toISOString().slice(0, 10);
       const city = String(u.country || '').trim();
@@ -2202,7 +2224,30 @@ async function initDB() {
     `CREATE INDEX IF NOT EXISTS idx_daily_checkins_created ON daily_checkins(created_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_nutrition_meal_logs_submitted ON nutrition_meal_logs(submitted_at DESC)`,
     `CREATE INDEX IF NOT EXISTS idx_audit_requests_created ON audit_requests(created_at DESC)`,
-    `CREATE INDEX IF NOT EXISTS idx_thread_messages_thread_created ON thread_messages(thread_id, created_at DESC)`
+    `CREATE INDEX IF NOT EXISTS idx_thread_messages_thread_created ON thread_messages(thread_id, created_at DESC)`,
+    // findUsersByPhone() in services/waInbound.js filters on this exact normalized
+    // expression (not the raw `phone` column) on every inbound WhatsApp message.
+    `CREATE INDEX IF NOT EXISTS idx_users_phone_norm ON users (RIGHT(regexp_replace(COALESCE(phone,''), '[^0-9]', '', 'g'), 10))`,
+    // tribe-sync (server.js) does `WHERE LOWER(email) = ?` against tribe_members once
+    // per approved user in a loop, plus several one-off lookups elsewhere — was unindexed.
+    `CREATE INDEX IF NOT EXISTS idx_tribe_members_email_lower ON tribe_members(LOWER(email))`,
+    // routes/smartScale.js lists a user's uploads newest-first — was unindexed.
+    `CREATE INDEX IF NOT EXISTS idx_smart_scale_uploads_user_created ON smart_scale_uploads(user_id, created_at DESC)`,
+    // Admin/operator escalation lists pull the latest message per escalation via a
+    // correlated subquery ordered by created_at DESC LIMIT 1 — the existing
+    // escalation_id-only index still requires a per-row sort.
+    `CREATE INDEX IF NOT EXISTS idx_op_esc_msgs_esc_created ON operator_escalation_messages(escalation_id, created_at DESC)`,
+    // Admin dashboard KPI counts filter wearable_uploads by status + a created_at
+    // window with no user_id bound — was unindexed for this access pattern.
+    `CREATE INDEX IF NOT EXISTS idx_wearable_uploads_status_created ON wearable_uploads(status, created_at DESC)`,
+    // Admin dashboard's "checked in today" count filters daily_checkins by
+    // checkin_date alone (no user_id) — the existing (user_id, checkin_date) unique
+    // index can't be used since checkin_date isn't its leading column.
+    `CREATE INDEX IF NOT EXISTS idx_daily_checkins_checkin_date ON daily_checkins(checkin_date)`,
+    // Admin contact-messages inbox lists newest-first with no user filter, and
+    // account deletion deletes by user_id — both were unindexed.
+    `CREATE INDEX IF NOT EXISTS idx_contact_messages_created_at ON contact_messages(created_at DESC)`,
+    `CREATE INDEX IF NOT EXISTS idx_contact_messages_user_id ON contact_messages(user_id)`
   ];
   for (const sql of readPathIndexes) {
     try { await pool.query(sql); } catch (e) { /* table may not exist on older installs */ }
@@ -2413,8 +2458,8 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
       }
     }
 
-    await syncUserCountryAndTimezone(user.id, user.email);
-    user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
+    const syncedGeo = await syncUserCountryAndTimezone(user.id, user.email, user.country, user.timezone);
+    if (syncedGeo) { user.country = syncedGeo.country; user.timezone = syncedGeo.timezone; }
     const subGate = subscriptionGate(user);
     if (subGate) return res.status(403).json({ error: subGate.code, message: subGate.message });
     clearLoginFailures(emailNorm);
@@ -2467,8 +2512,8 @@ app.post('/api/auth/google', rateLimiter(20, 60000), async (req, res) => {
       await run("UPDATE users SET profile_picture = ? WHERE id = ?", [picture, user.id]);
       user.profile_picture = picture;
     }
-    await syncUserCountryAndTimezone(user.id, user.email);
-    user = await queryOne("SELECT * FROM users WHERE id = ?", [user.id]);
+    const syncedGeoG = await syncUserCountryAndTimezone(user.id, user.email, user.country, user.timezone);
+    if (syncedGeoG) { user.country = syncedGeoG.country; user.timezone = syncedGeoG.timezone; }
     const subGateG = subscriptionGate(user);
     if (subGateG) return res.status(403).json({ error: subGateG.code, message: subGateG.message });
     const token = signToken({ id: user.id, email: user.email, role: user.role });
@@ -2572,8 +2617,8 @@ app.post('/api/auth/apple', rateLimiter(20, 60000), async (req, res) => {
 
     // Link the Apple identity to an existing (email / Google / password) account on first use.
     if (appleSub && !userRow.apple_id) { await run("UPDATE users SET apple_id = ? WHERE id = ?", [appleSub, userRow.id]); }
-    await syncUserCountryAndTimezone(userRow.id, userRow.email);
-    userRow = await queryOne("SELECT * FROM users WHERE id = ?", [userRow.id]);
+    const syncedGeoA = await syncUserCountryAndTimezone(userRow.id, userRow.email, userRow.country, userRow.timezone);
+    if (syncedGeoA) { userRow.country = syncedGeoA.country; userRow.timezone = syncedGeoA.timezone; }
     const subGateA = subscriptionGate(userRow);
     if (subGateA) return res.status(403).json({ error: subGateA.code, message: subGateA.message });
     const token = signToken({ id: userRow.id, email: userRow.email, role: userRow.role });
@@ -3592,8 +3637,11 @@ app.get('/api/tribe', verifyToken, requireOperator, async (req, res) => {
           score_pillars: null
         };
       }
-      const current = await scorecardSvc.computeWeeklyScoreDedication(uid, weekStart);
-      const previous = prevWeek ? await scorecardSvc.computeWeeklyScoreDedication(uid, prevWeek) : null;
+      // current/previous are independent computations — no need to serialize them.
+      const [current, previous] = await Promise.all([
+        scorecardSvc.computeWeeklyScoreDedication(uid, weekStart),
+        prevWeek ? scorecardSvc.computeWeeklyScoreDedication(uid, prevWeek) : Promise.resolve(null)
+      ]);
       return {
         ...r,
         score_total: current ? current.total : null,
@@ -7029,7 +7077,17 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin' || req.user.role === 'operator';
 
     if (isAdmin) {
+      // Every block below reads a different table and none depends on another's
+      // result — they used to run as ~18 sequential `await`s (a full round trip
+      // each) on every notification-bell poll. They're collected as tasks and run
+      // concurrently via Promise.all below; sorting by time further down already
+      // makes fetch order irrelevant, and any block that previously threw
+      // straight into the outer try/catch still does (same 500 response), while
+      // blocks with their own try/catch still swallow their own errors exactly as
+      // before.
+      const tasks = [];
       // Operator escalations (a monitoring operator flagged a client for admin review).
+      tasks.push((async () => {
       const escs = await queryAll("SELECT e.id, e.client_name, e.operator_name, e.updated_at, (SELECT body FROM operator_escalation_messages m WHERE m.escalation_id = e.id ORDER BY created_at DESC LIMIT 1) AS last_body FROM operator_escalations e WHERE e.status = 'open' ORDER BY e.updated_at DESC LIMIT 20");
       escs.forEach(r => {
         notifications.push({
@@ -7041,6 +7099,8 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'escalations'
         });
       });
+      })());
+      tasks.push((async () => {
       const pending = await queryAll("SELECT id, first_name, last_name, email, created_at FROM audit_requests WHERE status='pending' ORDER BY created_at DESC LIMIT 20");
       pending.forEach(r => {
         notifications.push({
@@ -7052,6 +7112,8 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'requests'
         });
       });
+      })());
+      tasks.push((async () => {
       const messages = await queryAll("SELECT id, name, email, message, created_at FROM contact_messages ORDER BY created_at DESC LIMIT 20");
       messages.forEach(m => {
         const msg = (m.message || '').substring(0, 50);
@@ -7064,6 +7126,8 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'messages'
         });
       });
+      })());
+      tasks.push((async () => {
       const chatMessages = await queryAll(
         `SELECT m.id, m.thread_id, m.body, m.created_at, u.first_name, u.last_name, u.email
          FROM thread_messages m
@@ -7084,6 +7148,8 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
             link: 'messages'
         });
       });
+      })());
+      tasks.push((async () => {
       const tribe = await queryAll("SELECT id, first_name, last_name, created_at FROM tribe_members WHERE status='active' ORDER BY created_at DESC LIMIT 10");
       tribe.forEach(t => {
         notifications.push({
@@ -7095,6 +7161,8 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'tribe'
         });
       });
+      })());
+      tasks.push((async () => {
       // FitChef assessments. These had no presence in the bell at all, so a
       // submission only ever reached staff as a push — which needs VAPID keys
       // configured and the browser permission granted, and silently reaches
@@ -7141,7 +7209,9 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           }
         });
       } catch (_) { /* table not migrated on this deployment */ }
+      })());
 
+      tasks.push((async () => {
       const workouts = await queryAll("SELECT w.id, w.workout_name, w.duration_seconds, w.created_at, u.first_name, u.last_name FROM workout_logs w LEFT JOIN users u ON w.user_id = u.id ORDER BY w.created_at DESC LIMIT 20");
       workouts.forEach(w => {
         const m = Math.floor((w.duration_seconds || 0) / 60);
@@ -7154,6 +7224,8 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'workouts'
         });
       });
+      })());
+      tasks.push((async () => {
       const part2Subs = await queryAll("SELECT id, name, email, created_at FROM part2_audit ORDER BY created_at DESC LIMIT 15");
       part2Subs.forEach(p => {
         notifications.push({
@@ -7165,6 +7237,8 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'part2'
         });
       });
+      })());
+      tasks.push((async () => {
       const meetReqs = await queryAll("SELECT id, user_name, user_email, meeting_date, time_slot, created_at FROM meetings WHERE status='scheduled' ORDER BY created_at DESC LIMIT 15");
       meetReqs.forEach(m => {
         notifications.push({
@@ -7176,6 +7250,8 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           link: 'meetings'
         });
       });
+      })());
+      tasks.push((async () => {
       // User-submitted Sunday check-ins (were missing from admin bell)
       try {
         const sundayRows = await queryAll(
@@ -7196,6 +7272,9 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* table may be empty */ }
+      })());
+
+      tasks.push((async () => {
       // Blood report uploads — were reaching admin WhatsApp only; the in-app bell
       // (which operators also read) had no idea a report was even sitting there.
       try {
@@ -7214,6 +7293,9 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* table not migrated on this deployment */ }
+      })());
+
+      tasks.push((async () => {
       // Smart scale uploads (decades scan / InBody / weighing scale reports from
       // the Sunday check-in page) — had zero notification presence anywhere.
       try {
@@ -7232,6 +7314,9 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* table not migrated on this deployment */ }
+      })());
+
+      tasks.push((async () => {
       // Daily micro check-ins from users
       try {
         const dailyRows = await queryAll(
@@ -7258,6 +7343,9 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* ignore */ }
+      })());
+
+      tasks.push((async () => {
       // Weight logs
       try {
         const wlogs = await queryAll(
@@ -7278,6 +7366,9 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* ignore */ }
+      })());
+
+      tasks.push((async () => {
       // Client progress logs (analytics)
       try {
         const prog = await queryAll(
@@ -7301,6 +7392,9 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* ignore */ }
+      })());
+
+      tasks.push((async () => {
       // Hydration quick logs
       try {
         const hyd = await queryAll(
@@ -7322,7 +7416,9 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* ignore */ }
+      })());
 
+      tasks.push((async () => {
       // Nutrition meal uploads from users
       try {
         const nutritionLogs = await queryAll(
@@ -7348,7 +7444,9 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* ignore */ }
+      })());
 
+      tasks.push((async () => {
       // Admin Daily Compliance report readiness (12:00–12:00 IST window)
       // Logged when the scheduled email is sent; drives the admin bell notification.
       try {
@@ -7372,6 +7470,9 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* ignore */ }
+      })());
+
+      tasks.push((async () => {
       // Stored staff notifications (WhatsApp agent, reports, escalation replies …).
       try {
         const inboxMsgs = await queryAll(
@@ -7391,6 +7492,9 @@ app.get('/api/notifications', verifyToken, async (req, res) => {
           });
         });
       } catch (_) { /* non-critical */ }
+      })());
+
+      await Promise.all(tasks);
     } else {
       const thread = await queryOne('SELECT id FROM message_threads WHERE user_id = ? ORDER BY updated_at DESC LIMIT 1', [req.user.id]);
       if (thread) {
