@@ -1063,26 +1063,38 @@ function labelFor(ta) {
   return text || 'Your answer';
 }
 
-function attach(textarea, label) {
+/*
+ * `trigger`, when supplied, is a caller-owned button that opens the exact same
+ * sheet instead of the default pill (which crowds a compact single-line bar
+ * like the chat composer's). The textarea is left exactly where it is in the
+ * DOM — no wrapping div — since the caller is already laying it out itself.
+ */
+function attach(textarea, label, trigger) {
   if (!textarea || textarea.getAttribute('data-bbv') === '1') return null;
   if (!isSupported()) return null;
   textarea.setAttribute('data-bbv', '1');
   injectStyles();
 
   var entry = { textarea: textarea, label: label || labelFor(textarea) };
+  var btn;
 
-  var wrap = document.createElement('div');
-  wrap.className = 'bbv-wrap';
-  textarea.parentNode.insertBefore(wrap, textarea);
-  wrap.appendChild(textarea);
+  if (trigger) {
+    btn = trigger;
+    btn.onclick = function () { launch(entry); };
+  } else {
+    var wrap = document.createElement('div');
+    wrap.className = 'bbv-wrap';
+    textarea.parentNode.insertBefore(wrap, textarea);
+    wrap.appendChild(textarea);
 
-  var btn = document.createElement('button');
-  btn.type = 'button';                       /* never submits the form */
-  btn.className = 'bbv-btn';
-  btn.innerHTML = MIC_SVG + '<span>Speak your answer</span>';
-  btn.setAttribute('aria-label', 'Speak your answer for: ' + entry.label);
-  btn.onclick = function () { launch(entry); };
-  wrap.appendChild(btn);
+    btn = document.createElement('button');
+    btn.type = 'button';                       /* never submits the form */
+    btn.className = 'bbv-btn';
+    btn.innerHTML = MIC_SVG + '<span>Speak your answer</span>';
+    btn.setAttribute('aria-label', 'Speak your answer for: ' + entry.label);
+    btn.onclick = function () { launch(entry); };
+    wrap.appendChild(btn);
+  }
 
   /* In the app, availability is an async question. Rather than leave a button
      that can only ever show an error, drop it on devices with no speech service. */

@@ -238,7 +238,8 @@
     bot: '<rect x="4" y="8" width="16" height="11" rx="3"/><path d="M12 4v4M9 13h.01M15 13h.01"/>',
     chat: '<path d="M4 18l1.4-3.6A7.5 7.5 0 1 1 8.6 17.6z"/>',
     retry: '<path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4"/>',
-    spin: '<path d="M12 3a9 9 0 1 0 9 9"/>'
+    spin: '<path d="M12 3a9 9 0 1 0 9 9"/>',
+    mic: '<path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/>'
   };
   function icon(name) {
     return '<svg viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
@@ -1550,6 +1551,7 @@
       +     '<textarea class="bbg-input" id="bbgInput" rows="1" placeholder="Message" maxlength="5000" enterkeyhint="send"></textarea>'
       // The legacy thread table has no attachment column, so a 1-to-1 has no clip.
       +     (direct ? '' : '<button type="button" class="bbg-ib" id="bbgAttachBtn" aria-label="Attach a file">' + icon('clip') + '</button>')
+      +     '<button type="button" class="bbg-ib" id="bbgMicBtn" aria-label="Speak your message">' + icon('mic') + '</button>'
       +   '</div>'
       +   '<button type="button" class="bbg-send" id="bbgSend" aria-label="Send" disabled>' + SEND_SVG + '</button>'
       + '</div>'
@@ -1594,6 +1596,16 @@
         if (f) pickFile(f);
         this.value = '';
       };
+    }
+    // Same voice-to-text engine, glossary correction and review sheet as the
+    // Sunday check-in and Part-2 forms (public/js/bb-voice.js) — reused as-is,
+    // just wired to our own compact mic icon instead of its default pill
+    // button, which would crowd this single-line composer. Hidden outright on
+    // a device with no speech engine, per that module's own rule.
+    var mic = el('bbgMicBtn');
+    if (mic) {
+      var wired = window.BBVoice && window.BBVoice.attach(input, 'Message', mic);
+      if (!wired) mic.style.display = 'none';
     }
     sync();
   }
