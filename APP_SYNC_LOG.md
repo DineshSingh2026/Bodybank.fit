@@ -38,6 +38,13 @@ Before every mobile release:
 
 _One item pending: web commit `6d4af43` ("announce the Android launch across the public pages") adds the hero store pill and the **Get the App** section to the public pages. Those are deliberately **not** in `www/` — a "Download the app on Google Play" block inside the app itself is noise. Revisit only if the iOS launch changes the calculus._
 
+Web commit `7882e6e` ("perf: cut N+1 queries, add missing indexes, parallelize independent work") touches `public/index.html`:
+- Removed an unused `html2canvas` `<script>` tag (dead weight, zero call sites).
+- Admin/user notification polling now skips its fetch while the tab/app is backgrounded (`document.hidden` check) — same 60s cadence while visible.
+- Admin nutrition meal-photo thumbnails get `loading="lazy"`.
+
+All three are pure internal efficiency changes with no visible/functional difference — safe to fold into whichever sync picks up the next release. Everything else in that commit is backend-only (`server.js`, `routes/`, `services/`, `config/db.js`) and already live for the apps via Render, no sync needed.
+
 ---
 
 ## 2026-09-10 — Yoga + voice input + graded report, v1.7.9, versionCode 107
