@@ -68,7 +68,7 @@ function createGroupChatRouter(deps) {
     run, queryOne, queryAll,
     verifyToken, requireAdminOrSuperadmin, rateLimiter,
     multer, uploadsDir,
-    sendPushToUser, notifyAgent
+    sendPushToUser, notifyAgent, notifyHub
   } = deps;
 
   const db = { run, queryOne, queryAll };
@@ -119,24 +119,44 @@ function createGroupChatRouter(deps) {
     req.access && req.access.canManage ? next() : fail(res, 403, 'Admin access required');
 
   /**
-   * Fan a new message out to everyone else in the group as a push notification,
-   * honouring each member's mute flag. Never throws into the send path — a push
-   * provider outage must not fail the message that was already stored.
+   * Fan a new message out to everyone else in the group, honouring each
+   * member's mute flag. Routed through notificationHub (when available) so
+   * every recipient — client, operator, doctor, whoever else is a member of
+   * THIS group — gets both a push and a user_inbox/bell row; a member with no
+   * live push subscription previously got nothing at all. Falls back to a raw
+   * push if notifyHub was not wired in. Never throws into the send path — a
+   * push provider outage must not fail the message that was already stored.
    */
   async function notifyGroup(group, members, senderId, senderName, preview) {
+    const recipients = members
+      .filter(m => String(m.userId) !== String(senderId) && !m.muted)
+      .map(m => m.userId);
+    if (!recipients.length) return;
+    const body = senderName + ': ' + String(preview || '').slice(0, 90);
+
+    if (notifyHub && typeof notifyHub.toUsers === 'function') {
+      await notifyHub.toUsers(recipients, {
+        title: group.name,
+        body,
+        type: 'group_message',
+        link: 'messages',
+        url: '/?group=' + group.id,
+        tag: 'group-' + group.id
+      }).catch(() => {});
+      return;
+    }
+
     if (typeof sendPushToUser !== 'function') return;
     const payload = JSON.stringify({
       type: 'group_message',
       title: group.name,
-      body: senderName + ': ' + String(preview || '').slice(0, 90),
+      body,
       id: 'group-' + group.id,
       link: 'messages',
       url: '/?group=' + group.id
     });
-    for (const m of members) {
-      if (String(m.userId) === String(senderId)) continue;
-      if (m.muted) continue;
-      sendPushToUser(m.userId, payload).catch(() => {});
+    for (const userId of recipients) {
+      sendPushToUser(userId, payload).catch(() => {});
     }
   }
 
