@@ -45,7 +45,7 @@ Web commit `7882e6e` ("perf: cut N+1 queries, add missing indexes, parallelize i
 
 All three are pure internal efficiency changes with no visible/functional difference — safe to fold into whichever sync picks up the next release. Everything else in that commit is backend-only (`server.js`, `routes/`, `services/`, `config/db.js`) and already live for the apps via Render, no sync needed.
 
-Web commit `HEAD` ("perf(admin): cut the admin console's round trips; drop the login leads popup") also touches `public/index.html`:
+Web commits `f4a677c` + `089688e` ("perf(admin): cut the admin console's round trips; drop the login leads popup") also touch `public/index.html`:
 - **Admin login no longer fires eleven loaders.** Eight of them filled tabs that are still behind a click and were refetched on that click anyway; only the KPI tiles, the bell and the activity feed now load up front.
 - **Admin tab re-opens are gated** to one fetch per 30s (`adminTabLoad()`); Messages is exempt.
 - **The "Today · Leads" dialog no longer opens itself** after admin login, or every 15 minutes. It opens only from the "Pulse view" button on the Leads widget, and its "Remind me in 4h" button is gone with the auto-open it belonged to (the header X, the overlay, ESC and the "Open pipeline" CTA all still close it). Admin-only; members never saw it.
@@ -53,6 +53,16 @@ Web commit `HEAD` ("perf(admin): cut the admin console's round trips; drop the l
 - The desktop admin dashboard fetches performance insights and the client board concurrently instead of one after the other.
 
 All admin-only or internal except the 2 MB photo cap, which members see as the hint text under the avatar picker. The rest of that commit is backend-only (the `/api/avatar/:key` endpoint that keeps staff payloads free of base64 photos, batched scorecards, pool sizing, HTML revalidation) and is live for the apps via Render with no sync needed.
+
+Web commit `a811f90` ("feat(ui): rebuild the Client Board, Client Progress and Nutrition check-in; drop Marketing AI") is a **large** `public/index.html` change and the first one here that members will see:
+
+- **Member — Nutrition check-in (the one member-facing item; sync this before the next release).** Camera and Gallery share a row with one-word labels and "or enter manually" becomes a link, so each meal card drops from ~290px to ~185px — twelve controls on a phone screen become eight plus four links. The hero gains a progress ring. The submit button keeps a short label and the "add details for all 4 meals" reason moves to a hint line under it. **Both file inputs are unchanged** — the `capture="environment"` camera input and the plain gallery input are the pair the Play photo-picker policy requires (see the Android photo-picker note); only their labels and layout moved.
+- **Admin — Client Performance Board**, rebuilt as a one-line-per-client roster in a new `.bbcb-*` namespace, with search, risk filters, sort and a KPI strip. Admin-only.
+- **Admin — Client Progress**, searchable rail in a new `.bbcp-*` namespace, whole-row targets, audit tool moved to the rail footer. Admin-only.
+- **Marketing AI removed**: `public/marketing-ai.{html,js,css}` are deleted and its three nav entries are gone. The app bundles `public/`, so the deleted files simply stop being mirrored into `www/`; nothing in the app linked to them.
+- `.admin-attention-card` is deliberately **untouched** — the mobile dashboard's risk list still uses it, which is why the two new screens took their own namespaces.
+
+Backend in the same commit (`server.js`, `services/aiUsageLedger.js`) is live for the apps via Render with no sync needed.
 
 ---
 
