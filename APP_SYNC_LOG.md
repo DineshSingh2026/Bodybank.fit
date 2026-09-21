@@ -48,7 +48,7 @@ All three are pure internal efficiency changes with no visible/functional differ
 Web commit `HEAD` ("perf(admin): cut the admin console's round trips; drop the login leads popup") also touches `public/index.html`:
 - **Admin login no longer fires eleven loaders.** Eight of them filled tabs that are still behind a click and were refetched on that click anyway; only the KPI tiles, the bell and the activity feed now load up front.
 - **Admin tab re-opens are gated** to one fetch per 30s (`adminTabLoad()`); Messages is exempt.
-- **The "Today · Leads" dialog no longer opens itself** after admin login, or every 15 minutes. It opens only from the "Pulse view" button on the Leads widget. Admin-only; members never saw it.
+- **The "Today · Leads" dialog no longer opens itself** after admin login, or every 15 minutes. It opens only from the "Pulse view" button on the Leads widget, and its "Remind me in 4h" button is gone with the auto-open it belonged to (the header X, the overlay, ESC and the "Open pipeline" CTA all still close it). Admin-only; members never saw it.
 - **Profile photo cap lowered 5 MB → 2 MB** (`MAX_PROFILE_PHOTO_BYTES`, the upload hint text under the avatar picker, and the client-side error string). The server-side cap in `server.js` matches.
 - The desktop admin dashboard fetches performance insights and the client board concurrently instead of one after the other.
 
