@@ -42,7 +42,7 @@ _One item pending: web commit `6d4af43` ("announce the Android launch across the
 
 ## 2026-09-21 — UI rebuild + admin perf, v1.8.0 / versionCode 109 / iOS 1.0.3
 
-Syncs web commits `7882e6e`, `f4a677c`, `089688e`, `a811f90`, `90b021e`. Mobile release `5989dcc`.
+Syncs web commits `7882e6e`, `f4a677c`, `089688e`, `a811f90`, `90b021e`, `4b86faa`. Mobile releases `5989dcc` (Android 1.8.0 / iOS 1.0.3) and `6c61849` (iOS 1.0.4, same Android build).
 
 **`www/` payload**
 - **Nutrition check-in rebuilt** (the member-facing part of this release). Camera and Gallery share a row with one-word labels and "or enter manually" becomes a link — each meal card drops from ~290px to ~185px, so a phone screen carries eight controls plus four links instead of twelve buttons. The hero gains a progress ring driven by the meal count already being computed. The submit button keeps a short label and its "add details for all 4 meals" reason moves to a hint line beneath. **Both file inputs are unchanged** — the `capture="environment"` camera input and the plain gallery input are the pair the Play photo-picker policy requires; only labels and layout moved. The release manifest was re-checked: no `READ_MEDIA_*`, no `EXTERNAL_STORAGE`.
@@ -61,6 +61,18 @@ Syncs web commits `7882e6e`, `f4a677c`, `089688e`, `a811f90`, `90b021e`. Mobile 
 - Signed AAB built locally from the release tree and inspected: versionCode 109, versionName 1.8.0, contains the rebuilt screens, no marketing-ai asset.
 
 Backend in those web commits (`/api/avatar/:key`, batched scorecards, pool sizing, HTML revalidation, the removed `/api/marketing-ai` mount) is live for the apps via Render — no sync needed.
+
+### Second pass — web `4b86faa`, mobile `6c61849`
+
+- **Nutrition check-in rebuilt again**, and this is the member-facing part of the whole release. The day is a list of meals now, one row each, tap to open — icon, name, time, status and chevron on one line, every row the same height. Twelve stacked controls on a phone screen become four rows. An analysed meal reports its headline on the row ("412 kcal · 28g protein"), so the day reads without opening anything; picking a photo, choosing manual entry or finishing an analysis all open that meal. **Both file inputs are still unchanged** — `capture="environment"` camera plus plain gallery, the pair the Play photo-picker policy requires.
+- **Admin landing rebuilt**: 3,286px of page → ~1,900px. The 14-day chart is an SVG area path (fourteen blocks were mostly gaps, and a quiet week read as a broken widget), fourteen KPI tiles became three switchable groups with zeros folded behind one toggle, the action queue is one line per job, and quick access is a side-scrolling rail. Staff-only, but it ships in the same document.
+- `public/css/admin-home.css` and `public/js/admin-home.js` were both rewritten and their `?v=` markers bumped (css v3→v4, js v8→v9), so a returning admin is not served a 7-day-cached copy of the old screen.
+
+**Versions on this pass**
+- Android stayed at **versionCode 109 / 1.8.0 on purpose** — that build had not been uploaded to Play, so the rebuilt AAB replaces its artifact rather than superseding it. If 109 ever does get uploaded, the next artifact needs 110; Play rejects a repeated versionCode.
+- iOS went to **MARKETING_VERSION 1.0.4**. `CURRENT_PROJECT_VERSION` is still left alone — the workflow sets the build number with `agvtool new-version -all $BUILD_NUMBER`.
+
+**Checked again before shipping**: `ios-strip-store-refs.js` dry-run on the new `www/` exits 0 ("bundle clean"); the rebuilt signed AAB reads versionCode 109 / 1.8.0, carries the new meal rows and admin landing, declares no `READ_MEDIA_*` or `EXTERNAL_STORAGE`, and contains no marketing-ai asset.
 
 
 ## 2026-09-10 — Yoga + voice input + graded report, v1.7.9, versionCode 107
