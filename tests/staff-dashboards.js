@@ -306,7 +306,9 @@ section('the dual-pane rule: BOTH admin dashboards carry both features');
     wearables: { members: 5, uploads_7d: 2, by_device: [{ provider: 'whoop', members: 3 }, { provider: 'screenshot', members: 2 }] }
   };
   sb.renderAdminHome();
-  const pipe = (ids.ahTilesPipeline && ids.ahTilesPipeline.innerHTML) || '';
+  // Assessments and watch data are the "Intake" group of the metrics switcher.
+  sb.ahSetSeg('intake');
+  const pipe = (ids.ahMetrics && ids.ahMetrics.innerHTML) || '';
   check(/FitChef Part 1/.test(pipe) && /FitChef Part 2/.test(pipe)
     && /Need review/.test(pipe) && /Watch data/.test(pipe),
   'Part 1, Part 2, Need review and Watch data tiles all render on the desktop pane');
@@ -314,6 +316,12 @@ section('the dual-pane rule: BOTH admin dashboards carry both features');
     'and they show the real per-part numbers (15 Part 1, 12 Part 2)');
   check(/lower confidence/.test(pipe),
     'the watch tile flags screenshot-sourced members as lower confidence');
+  // Every group has to be reachable, or a metric could be rendered into a tab
+  // nothing ever selects.
+  sb.ahSetSeg('roster');
+  check(/Members/.test((ids.ahMetrics && ids.ahMetrics.innerHTML) || ''), 'the Roster group renders');
+  sb.ahSetSeg('pipeline');
+  check(/Awaiting review/.test((ids.ahMetrics && ids.ahMetrics.innerHTML) || ''), 'the Pipeline group renders');
 
   // The regression that started all this: an old payload must not throw.
   sb.ahState.data = { roster: {}, pipeline: {}, inbox: {}, trends: {}, feed: [] };

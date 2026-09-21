@@ -1,8 +1,22 @@
 /* ============================================================================
    BodyBank — Admin landing
-   The same clarity as the operator console, in the admin shell's own gold.
-   Order of the page is the order of the questions: is the business moving,
-   what is waiting on me, what do the numbers say, what just happened.
+   ----------------------------------------------------------------------------
+   Rebuilt 2026-09-21. The previous landing was 3,286px tall on a 393px phone —
+   four and a half screens — and most of that height was zeros: a hero that
+   spent ~450px on a greeting, one number, a delta pill, an empty track and a
+   sparkline, then fourteen KPI tiles of which eleven usually read 0.
+
+   The order now follows what a coach actually opens this screen to find out:
+
+     1. Is the roster showing up?      one chart, one number
+     2. What is waiting on me?         a list of jobs, one line each
+     3. What do the numbers say?       on demand, zeros folded away
+     4. Where am I going?              a rail, not a wall
+     5. What just happened?            dense rows
+
+   Same palette as before to the hex — gold #E0BE6E on near-black, with ok /
+   warn / bad reserved for state and never for decoration. What changed is
+   density and hierarchy, not colour.
    ========================================================================== */
 
 #adminHome {
@@ -25,228 +39,299 @@
   display: flex; flex-direction: column; gap: 22px;
   color: var(--ah-ink); font-family: 'Outfit', system-ui, sans-serif;
   max-width: 1500px;
+  /* The bottom bar floats over this scroller. Without clearance the last row of
+     the last section sits under it and reads as clipped. */
+  padding-bottom: 18px;
 }
 #adminHome * { box-sizing: border-box }
 #adminHome button { font-family: inherit }
 
+/* ---------------------------------------------------------------- headings */
 .ah-block { display: flex; flex-direction: column; min-width: 0 }
-.ah-head { display: flex; align-items: center; gap: 12px; margin: 0 2px 12px }
+.ah-head { display: flex; align-items: center; gap: 10px; margin: 0 2px 11px }
 .ah-title {
-  margin: 0; font-size: 13px; font-weight: 700; letter-spacing: .12em;
-  text-transform: uppercase; color: var(--ah-soft);
+  margin: 0; font-size: 12px; font-weight: 700; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--ah-soft); white-space: nowrap;
 }
 .ah-count {
-  font-size: 11.5px; font-weight: 700; color: var(--ah-gold);
-  background: rgba(224, 190, 110, .14); border-radius: 999px; padding: 3px 10px;
+  font-size: 11px; font-weight: 700; color: var(--ah-gold);
+  background: rgba(224, 190, 110, .14); border-radius: 999px; padding: 3px 9px;
+  white-space: nowrap; font-variant-numeric: tabular-nums;
 }
-.ah-link {
-  margin-left: auto; background: none; border: 0; cursor: pointer;
-  font-size: 13px; font-weight: 600; color: var(--ah-gold);
+.ah-count.clear { color: var(--ah-ok); background: rgba(88, 206, 146, .14) }
+.ah-link, .ah-toggle {
+  margin-left: auto; background: none; border: 0; cursor: pointer; padding: 0;
+  font-size: 12.5px; font-weight: 600; color: var(--ah-gold); white-space: nowrap;
 }
-.ah-link:hover { text-decoration: underline }
+.ah-link:hover, .ah-toggle:hover { text-decoration: underline }
 
-/* ------------------------------------------------------------------ hero */
-.ah-hero {
-  position: relative; overflow: hidden; display: flex; flex-direction: column; gap: 20px;
-  padding: 30px 32px; border-radius: 26px;
-  background:
-    radial-gradient(80% 150% at 100% 0%, rgba(224, 190, 110, .18), transparent 62%),
-    var(--ah-glass-hi);
-  border: 1px solid var(--ah-edge); box-shadow: var(--ah-lift), var(--ah-inner);
+/* --------------------------------------------------------------- top strip */
+/* A greeting does not need a card around it. */
+.ah-top { display: flex; align-items: center; gap: 12px; margin: 0 2px }
+.ah-top-txt { min-width: 0 }
+.ah-eyebrow {
+  display: block; font-size: 10.5px; font-weight: 700; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--ah-gold);
 }
-.ah-hero-bar { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap }
-.ah-eyebrow { font-size: 11.5px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; color: var(--ah-gold) }
-.ah-greet { font-size: 17px; font-weight: 600; color: var(--ah-soft); margin-left: auto }
+.ah-greet {
+  margin: 3px 0 0; font-size: 21px; font-weight: 600; letter-spacing: -.01em;
+  color: var(--ah-ink); line-height: 1.15;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
 .ah-refresh {
-  width: 36px; height: 36px; border-radius: 12px; cursor: pointer; flex: none; margin-left: auto;
-  background: rgba(255, 255, 255, .06); border: 1px solid var(--ah-edge); color: var(--ah-gold); font-size: 16px;
+  width: 38px; height: 38px; border-radius: 13px; cursor: pointer; flex: none; margin-left: auto;
+  background: rgba(255, 255, 255, .06); border: 1px solid var(--ah-edge); color: var(--ah-gold);
+  font-size: 16px; display: grid; place-items: center; transition: background .18s;
 }
 .ah-refresh:hover { background: rgba(224, 190, 110, .14) }
 .ah-refresh.is-busy { animation: ahSpin .9s linear infinite }
 @keyframes ahSpin { to { transform: rotate(360deg) } }
 
-.ah-bar-head { display: flex; align-items: flex-end; gap: 16px; flex-wrap: wrap }
-.ah-bar-k { display: block; font-size: 12.5px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--ah-soft) }
-.ah-bar-n { display: flex; align-items: baseline; gap: 10px; margin-top: 7px; flex-wrap: wrap }
-.ah-bar-n b {
-  font-size: clamp(38px, 5vw, 56px); font-weight: 700; letter-spacing: -.045em; line-height: .95;
-  color: var(--ah-ink); font-variant-numeric: tabular-nums;
+/* ------------------------------------------------------------------- hero */
+.ah-hero {
+  position: relative; overflow: hidden; display: flex; flex-direction: column;
+  padding: 18px 18px 14px; border-radius: 22px;
+  background: radial-gradient(90% 140% at 100% 0%, rgba(224, 190, 110, .16), transparent 60%), var(--ah-glass-hi);
+  border: 1px solid var(--ah-edge); box-shadow: var(--ah-lift), var(--ah-inner);
 }
-.ah-bar-n i { font-style: normal; font-size: 14.5px; color: var(--ah-soft) }
+.ah-hero-head { display: flex; align-items: center; gap: 10px; margin-bottom: 10px }
+.ah-hero-k {
+  font-size: 10.5px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ah-soft); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .ah-delta {
-  margin-left: auto; font-size: 13.5px; font-weight: 600; white-space: nowrap; padding: 7px 14px;
-  border-radius: 999px; background: rgba(255, 255, 255, .06); border: 1px solid var(--ah-edge); color: var(--ah-soft);
+  margin-left: auto; flex: none; font-size: 11.5px; font-weight: 600; white-space: nowrap;
+  padding: 5px 11px; border-radius: 999px;
+  background: rgba(255, 255, 255, .06); border: 1px solid var(--ah-edge); color: var(--ah-soft);
 }
 .ah-delta.up { background: rgba(88, 206, 146, .16); border-color: rgba(88, 206, 146, .3); color: #9AE8C0 }
 .ah-delta.down { background: rgba(240, 131, 107, .16); border-color: rgba(240, 131, 107, .32); color: #FFBEA9 }
+.ah-delta:empty { display: none }
 
-.ah-track { height: 10px; border-radius: 99px; background: rgba(255, 255, 255, .08); overflow: hidden }
-.ah-bar-fill {
-  display: block; height: 100%; width: 0; border-radius: 99px;
-  background: linear-gradient(90deg, var(--ah-gold), var(--ah-gold-lt));
-  box-shadow: 0 0 16px rgba(224, 190, 110, .45); transition: width .9s cubic-bezier(.2, .8, .2, 1);
+.ah-hero-n { display: flex; align-items: baseline; gap: 9px; flex-wrap: wrap }
+.ah-hero-n b {
+  font-size: 46px; font-weight: 700; letter-spacing: -.045em; line-height: .9;
+  color: var(--ah-ink); font-variant-numeric: tabular-nums;
 }
-.ah-bar-fill.ok { background: linear-gradient(90deg, var(--ah-ok), #8FE3B8); box-shadow: 0 0 16px rgba(88, 206, 146, .42) }
-.ah-bar-fill.bad { background: linear-gradient(90deg, var(--ah-bad), #FFB49B); box-shadow: 0 0 16px rgba(240, 131, 107, .42) }
+.ah-hero-n i { font-style: normal; font-size: 13px; color: var(--ah-soft); line-height: 1.35 }
 
-.ah-spark { display: flex; align-items: flex-end; gap: 5px; height: 78px; padding-top: 4px }
-.ah-spark-b {
-  flex: 1; min-width: 0; border-radius: 5px 5px 2px 2px;
-  background: linear-gradient(180deg, var(--ah-gold-lt), rgba(224, 190, 110, .3));
-  transition: height .7s cubic-bezier(.2, .8, .2, 1);
+/* The 14-day chart. An area path rather than a row of blocks: at 14 points a
+   bar chart is mostly gaps, and a flat week of zeros looked like a rendering
+   fault. The path always has a baseline, so an empty week reads as a flat line
+   — which is the truth — instead of a void. */
+.ah-chart { position: relative; height: 72px; margin: 12px 5px 0 }
+.ah-chart svg { display: block; width: 100%; height: 100% }
+/* Marks today's value. Positioned in HTML rather than drawn in the SVG: the
+   chart uses preserveAspectRatio="none", which would squash a <circle> into an
+   ellipse and clip the one at the right-hand edge in half. */
+.ah-chart-dot {
+  position: absolute; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%;
+  background: #F5DFA8; box-shadow: 0 0 0 2px rgba(13, 13, 13, .85), 0 0 12px rgba(224, 190, 110, .7);
+  pointer-events: none;
 }
-.ah-spark-b.nil { background: rgba(255, 255, 255, .08) }
-.ah-spark-b.now { background: linear-gradient(180deg, #FFFFFF, var(--ah-gold)); box-shadow: 0 0 16px rgba(224, 190, 110, .55) }
-.ah-spark-b.now.nil { background: rgba(255, 255, 255, .17); box-shadow: none }
-.ah-spark-empty {
-  flex: 1; display: grid; place-items: center; height: 100%; font-size: 13px; color: var(--ah-soft);
-  border: 1px dashed var(--ah-edge); border-radius: 14px;
+.ah-chart-empty {
+  position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
+  font-size: 11.5px; color: var(--ah-dim); padding: 0 10px; line-height: 1.5;
 }
-.ah-spark-axis { display: flex; justify-content: space-between; font-size: 11px; color: var(--ah-dim) }
+.ah-axis {
+  display: flex; justify-content: space-between; gap: 8px;
+  font-size: 10px; color: var(--ah-dim); margin-top: 6px; letter-spacing: .02em;
+}
 
-.ah-hero-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 11px }
+/* Three today-counts, as meters rather than three more big numbers. */
+.ah-hero-stats {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+  margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--ah-edge);
+}
 .ah-hstat {
-  display: flex; align-items: baseline; flex-wrap: wrap; gap: 3px; cursor: pointer; text-align: left;
-  padding: 13px 15px; border-radius: 16px; color: var(--ah-ink);
-  background: rgba(255, 255, 255, .05); border: 1px solid var(--ah-edge); transition: all .18s;
+  display: flex; flex-direction: column; gap: 6px; cursor: pointer; text-align: left;
+  padding: 0; background: none; border: 0; color: var(--ah-ink); min-width: 0;
 }
-.ah-hstat:hover { background: rgba(255, 255, 255, .09); border-color: var(--ah-edge-hi) }
-.ah-hstat b { font-size: 22px; font-weight: 700; letter-spacing: -.03em; color: var(--ah-gold-lt); font-variant-numeric: tabular-nums }
-.ah-hstat i { font-style: normal; font-size: 13px; color: var(--ah-dim) }
-.ah-hstat span { flex-basis: 100%; font-size: 12.5px; color: var(--ah-soft); margin-top: 3px }
-.ah-hstat.nil b { color: var(--ah-dim) }
+.ah-hstat-n { display: flex; align-items: baseline; gap: 3px }
+.ah-hstat-n b { font-size: 19px; font-weight: 700; letter-spacing: -.03em; color: var(--ah-gold-lt); font-variant-numeric: tabular-nums }
+.ah-hstat-n i { font-style: normal; font-size: 11px; color: var(--ah-dim); font-variant-numeric: tabular-nums }
+.ah-hstat.nil .ah-hstat-n b { color: var(--ah-dim) }
+.ah-hstat-l {
+  font-size: 10.5px; color: var(--ah-soft); line-height: 1.25;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ah-hstat-m { height: 3px; border-radius: 99px; background: rgba(255, 255, 255, .09); overflow: hidden }
+.ah-hstat-m span { display: block; height: 100%; border-radius: 99px; background: var(--ah-gold); transition: width .8s cubic-bezier(.2, .8, .2, 1) }
+.ah-hstat:hover .ah-hstat-l { color: var(--ah-ink) }
 
-/* -------------------------------------------------------------- the queue */
-.ah-queue { display: flex; flex-direction: column; gap: 10px }
+/* --------------------------------------------------------------- the queue */
+/* One job per line. The old version gave each its own card with its own CTA
+   link, which cost ~96px to say "4 audits" and repeated "Open X" seven times. */
+.ah-queue { display: flex; flex-direction: column; gap: 7px }
 .ah-task {
-  display: flex; align-items: center; gap: 15px; width: 100%; cursor: pointer; text-align: left;
-  padding: 16px 19px; border-radius: 18px; color: var(--ah-ink);
-  background: var(--ah-glass); border: 1px solid var(--ah-edge); border-left: 4px solid var(--ah-gold);
-  box-shadow: var(--ah-inner); transition: transform .16s, background .16s, box-shadow .16s;
+  display: flex; align-items: center; gap: 12px; width: 100%; cursor: pointer; text-align: left;
+  padding: 12px 14px; border-radius: 14px; color: var(--ah-ink);
+  background: var(--ah-glass); border: 1px solid var(--ah-edge); border-left: 3px solid var(--ah-gold);
+  transition: transform .16s, background .16s;
 }
-.ah-task:hover { transform: translateX(3px); background: var(--ah-glass-hi); box-shadow: var(--ah-lift), var(--ah-inner) }
+.ah-task:hover { transform: translateX(3px); background: var(--ah-glass-hi) }
 .ah-task.bad { border-left-color: var(--ah-bad) }
 .ah-task.warn { border-left-color: var(--ah-warn) }
 .ah-task.info { border-left-color: var(--ah-info) }
-.ah-task-ico { font-size: 21px; flex: none; line-height: 1 }
-.ah-task-main { flex: 1; min-width: 0; font-size: 15.5px; color: var(--ah-soft) }
-.ah-task-main b { font-size: 20px; font-weight: 700; color: var(--ah-ink); letter-spacing: -.02em; font-variant-numeric: tabular-nums }
-.ah-task-cta { flex: none; font-size: 13.5px; font-weight: 700; color: var(--ah-gold); white-space: nowrap }
-.ah-task.bad .ah-task-cta { color: #FFBEA9 }
-.ah-task.info .ah-task-cta { color: #A6DEF2 }
+.ah-task-ico { font-size: 17px; flex: none; line-height: 1; width: 20px; text-align: center }
+.ah-task-main {
+  flex: 1; min-width: 0; font-size: 13.5px; color: var(--ah-soft); line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.ah-task-n {
+  flex: none; font-size: 17px; font-weight: 700; color: var(--ah-ink);
+  letter-spacing: -.02em; font-variant-numeric: tabular-nums;
+}
+.ah-task-go { flex: none; color: var(--ah-dim); font-size: 15px; line-height: 1 }
+.ah-task:hover .ah-task-go { color: var(--ah-gold) }
 
 .ah-clear {
-  display: flex; align-items: center; gap: 16px; padding: 24px 26px; border-radius: 18px;
-  background: linear-gradient(140deg, rgba(88, 206, 146, .16), rgba(88, 206, 146, .04));
-  border: 1px solid rgba(88, 206, 146, .3);
+  display: flex; align-items: center; gap: 11px; padding: 13px 15px; border-radius: 14px;
+  background: linear-gradient(140deg, rgba(88, 206, 146, .14), rgba(88, 206, 146, .035));
+  border: 1px solid rgba(88, 206, 146, .28);
 }
-.ah-clear > span { font-size: 26px; color: var(--ah-ok); flex: none }
-.ah-clear b { display: block; font-size: 16.5px; font-weight: 600 }
-.ah-clear i { display: block; font-style: normal; font-size: 13.5px; color: var(--ah-soft); margin-top: 5px }
+.ah-clear > span { font-size: 16px; color: var(--ah-ok); flex: none }
+.ah-clear b { font-size: 13.5px; font-weight: 600 }
+.ah-clear i { font-style: normal; font-size: 12px; color: var(--ah-soft); display: block; margin-top: 2px }
 
-/* ------------------------------------------------------------- the tiles */
-.ah-tiles { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px }
-.ah-tile {
-  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
-  padding: 17px 19px 16px; border-radius: 18px; cursor: pointer; text-align: left; overflow: hidden;
+/* ------------------------------------------------------------- the numbers */
+.ah-segs {
+  display: flex; gap: 5px; margin-bottom: 11px; padding: 4px;
+  background: rgba(255, 255, 255, .04); border: 1px solid var(--ah-edge); border-radius: 13px;
+}
+.ah-seg {
+  flex: 1; min-width: 0; padding: 8px 6px; border: 0; border-radius: 9px; cursor: pointer;
+  background: none; color: var(--ah-soft); font-size: 12px; font-weight: 600; letter-spacing: .02em;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background .18s, color .18s;
+}
+.ah-seg:hover { color: var(--ah-ink) }
+.ah-seg.is-on { background: rgba(224, 190, 110, .16); color: var(--ah-gold) }
+
+.ah-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px }
+.ah-metric {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: 12px 13px 11px; border-radius: 15px; cursor: pointer; text-align: left; overflow: hidden;
   background: var(--ah-glass); border: 1px solid var(--ah-edge); color: var(--ah-ink);
-  box-shadow: var(--ah-inner); transition: all .18s;
+  transition: transform .18s, background .18s, border-color .18s; min-width: 0; width: 100%;
 }
-.ah-tile::before {
-  content: ''; position: absolute; inset: auto 0 0 0; height: 3px;
-  background: var(--tone, rgba(255, 255, 255, .18)); opacity: .9;
+.ah-metric::before {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 3px;
+  background: var(--tone, rgba(255, 255, 255, .16));
 }
-.ah-tile:hover { transform: translateY(-3px); background: var(--ah-glass-hi); box-shadow: var(--ah-lift), var(--ah-inner) }
-.ah-tile-n {
-  font-size: 32px; font-weight: 700; letter-spacing: -.04em; line-height: 1;
+.ah-metric:hover { transform: translateY(-2px); background: var(--ah-glass-hi); border-color: var(--ah-edge-hi) }
+.ah-metric-n {
+  font-size: 25px; font-weight: 700; letter-spacing: -.04em; line-height: 1;
   color: var(--tone, var(--ah-ink)); font-variant-numeric: tabular-nums;
 }
-.ah-tile-l { font-size: 14px; font-weight: 600; margin-top: 8px }
-.ah-tile-s { font-size: 12px; color: var(--ah-soft) }
-.ah-tile.gold { --tone: var(--ah-gold) }
-.ah-tile.ok { --tone: var(--ah-ok) }
-.ah-tile.bad { --tone: var(--ah-bad) }
-.ah-tile.amber { --tone: var(--ah-warn) }
-.ah-tile.info { --tone: var(--ah-info) }
-/* a zero is not an alarm */
-.ah-tile.zero { --tone: rgba(255, 255, 255, .16) }
-.ah-tile.zero .ah-tile-n { color: var(--ah-dim) }
+.ah-metric-l { font-size: 12.5px; font-weight: 600; margin-top: 6px; line-height: 1.25; min-width: 0; width: 100% }
+.ah-metric-s {
+  font-size: 10.5px; color: var(--ah-soft); line-height: 1.3; min-width: 0; width: 100%;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.ah-metric.gold { --tone: var(--ah-gold) }
+.ah-metric.ok { --tone: var(--ah-ok) }
+.ah-metric.bad { --tone: var(--ah-bad) }
+.ah-metric.amber { --tone: var(--ah-warn) }
+.ah-metric.info { --tone: var(--ah-info) }
+/* A zero is not an alarm, and eleven of them are not a dashboard. */
+.ah-metric.zero { --tone: rgba(255, 255, 255, .14) }
+.ah-metric.zero .ah-metric-n { color: var(--ah-dim) }
+.ah-metrics.hide-zero .ah-metric.zero { display: none }
+.ah-allzero { grid-column: 1 / -1; text-align: center; color: var(--ah-dim); font-size: 12.5px; padding: 16px 10px }
 
-/* --------------------------------------------------------------- the feed */
+/* ----------------------------------------------------------------- the rail */
+/* Seventeen destinations as a 3-column grid of boxes was ~600px of page. A rail
+   scrolls sideways and costs two rows. */
+.ah-rail {
+  display: grid; grid-auto-flow: column; grid-template-rows: repeat(2, auto);
+  grid-auto-columns: 92px; gap: 9px;
+  overflow-x: auto; overscroll-behavior-x: contain; -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; padding: 2px 2px 6px;
+  /* Bleed to the screen edge so the rail reads as scrollable rather than cut. */
+  margin: 0 -16px; padding-left: 16px; padding-right: 16px;
+}
+.ah-rail::-webkit-scrollbar { display: none }
+/* Fade the trailing edge so a scrollable rail reads as scrollable rather than
+   as a card that got cut off. */
+@supports (mask-image: linear-gradient(90deg, #000, transparent)) {
+  .ah-rail {
+    -webkit-mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 34px), transparent 100%);
+    mask-image: linear-gradient(90deg, #000 0, #000 calc(100% - 34px), transparent 100%);
+  }
+  .ah-rail.at-end { -webkit-mask-image: none; mask-image: none }
+}
+.ah-quick {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 7px;
+  padding: 12px 6px; border-radius: 15px; cursor: pointer; text-align: center; min-width: 0;
+  background: var(--ah-glass); border: 1px solid var(--ah-edge); color: var(--ah-ink);
+  transition: transform .18s, background .18s, border-color .18s;
+}
+.ah-quick:hover { transform: translateY(-2px); background: var(--ah-glass-hi); border-color: var(--ah-edge-hi) }
+.ah-quick:focus-visible { outline: 2px solid var(--ah-gold); outline-offset: 2px }
+.ah-quick-ico { font-size: 20px; line-height: 1 }
+.ah-quick-l {
+  font-size: 10.5px; font-weight: 600; line-height: 1.25; color: var(--ah-soft);
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.ah-quick:hover .ah-quick-l { color: var(--ah-ink) }
+
+/* ---------------------------------------------------------------- the feed */
+/* Was a date heading plus a bordered card per event — ~110px each. A hairline
+   rule and a relative time carry the same information in 44px. */
 .ah-feed { display: flex; flex-direction: column }
-.ah-day { font-size: 11px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; color: var(--ah-dim); margin: 14px 0 8px }
+.ah-day {
+  font-size: 10px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ah-dim); margin: 13px 0 5px; padding-left: 2px;
+}
 .ah-day:first-child { margin-top: 0 }
 .ah-feed-row {
-  display: flex; align-items: center; gap: 12px; padding: 11px 14px; margin-bottom: 7px; border-radius: 14px;
-  background: rgba(255, 255, 255, .04); border: 1px solid var(--ah-edge);
+  display: flex; align-items: center; gap: 11px; padding: 10px 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, .055);
 }
-.ah-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; background: var(--ah-gold); box-shadow: 0 0 9px currentColor }
+.ah-feed-row:last-child { border-bottom: 0 }
+.ah-dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--ah-gold) }
 .ah-dot.checkin { background: var(--ah-ok) }
 .ah-dot.workout { background: var(--ah-gold) }
 .ah-dot.nutrition { background: var(--ah-info) }
 .ah-dot.weekly { background: var(--ah-warn) }
 .ah-dot.signup { background: var(--ah-bad) }
-.ah-feed-main { flex: 1; min-width: 0; display: flex; flex-direction: column }
-.ah-feed-main b { font-size: 13.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.ah-feed-main i { font-style: normal; font-size: 12px; color: var(--ah-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
-.ah-feed-time { font-size: 11.5px; color: var(--ah-dim); flex: none; white-space: nowrap }
+.ah-feed-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px }
+.ah-feed-main b { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ah-feed-main i { font-style: normal; font-size: 11.5px; color: var(--ah-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis }
+.ah-feed-time { font-size: 11px; color: var(--ah-dim); flex: none; white-space: nowrap; font-variant-numeric: tabular-nums }
 
-.ah-empty { text-align: center; color: var(--ah-soft); padding: 26px 14px; font-size: 13.5px }
+.ah-empty { text-align: center; color: var(--ah-soft); padding: 22px 14px; font-size: 13px }
 
-.ah-cols { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, .85fr); gap: 22px; align-items: start }
-
-/* ---------------------------------------------------------- responsive */
-@media (max-width: 1200px) {
-  .ah-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)) }
-  .ah-cols { grid-template-columns: minmax(0, 1fr) }
+/* ------------------------------------------------------------- wider screens */
+@media (min-width: 768px) {
+  #adminHome { gap: 26px }
+  .ah-greet { font-size: 26px }
+  .ah-hero { padding: 26px 28px 22px; border-radius: 26px }
+  .ah-hero-n b { font-size: 54px }
+  .ah-chart { height: 104px }
+  .ah-hero-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px }
+  .ah-hstat-n b { font-size: 23px }
+  .ah-hstat-l { font-size: 12px }
+  .ah-task { padding: 14px 18px; gap: 15px; border-radius: 16px }
+  .ah-task-main { font-size: 15px }
+  .ah-task-n { font-size: 20px }
+  .ah-metrics { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px }
+  .ah-metric { padding: 15px 17px 14px; border-radius: 17px }
+  .ah-metric-n { font-size: 30px }
+  .ah-metric-l { font-size: 13.5px }
+  .ah-metric-s { font-size: 11.5px }
+  .ah-rail { grid-auto-columns: 104px; margin: 0; padding-left: 2px; padding-right: 2px }
+  .ah-quick-ico { font-size: 22px }
+  .ah-quick-l { font-size: 11.5px }
+  .ah-segs { max-width: 420px }
+  .ah-title { font-size: 13px }
 }
-@media (max-width: 767px) {
-  #adminHome { gap: 18px }
-  .ah-hero { padding: 20px 18px; border-radius: 22px; gap: 17px }
-  .ah-hero-bar { gap: 6px }
-  .ah-greet { font-size: 15px; margin-left: 0; order: 3; flex-basis: 100% }
-  .ah-bar-n b { font-size: 42px }
-  .ah-delta { margin-left: 0 }
-  .ah-spark { height: 62px; gap: 4px }
-  .ah-hstat { padding: 11px 12px }
-  .ah-hstat b { font-size: 19px }
-  .ah-hstat span { font-size: 11.5px }
-  .ah-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px }
-  .ah-tile { padding: 14px 15px 13px }
-  .ah-tile-n { font-size: 27px }
-  .ah-tile-l { font-size: 13.5px; margin-top: 6px }
-  .ah-task { flex-wrap: wrap; padding: 15px 16px; gap: 11px }
-  .ah-task-main { font-size: 14.5px }
-  .ah-task-cta { width: 100%; text-align: right }
+@media (min-width: 1200px) {
+  .ah-metrics { grid-template-columns: repeat(4, minmax(0, 1fr)) }
+  .ah-rail { grid-template-rows: auto; grid-auto-columns: 112px }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ah-bar-fill, .ah-spark-b { transition: none }
+  .ah-hstat-m span { transition: none }
   .ah-refresh.is-busy { animation: none }
-}
-
-/* ------------------------------------------------------- quick access --- */
-/* Twelve destinations, same as the old dashboard carried. A grid rather than
-   a strip, so nothing runs off the side and every target is one tap. */
-.ah-quick-grid { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 12px }
-.ah-quick {
-  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 9px;
-  padding: 18px 10px; border-radius: 18px; cursor: pointer; text-align: center;
-  background: var(--ah-glass); border: 1px solid var(--ah-edge); color: var(--ah-ink);
-  box-shadow: var(--ah-inner); transition: all .18s;
-}
-.ah-quick:hover {
-  transform: translateY(-3px); background: var(--ah-glass-hi);
-  border-color: var(--ah-edge-hi); box-shadow: var(--ah-lift), var(--ah-inner);
-}
-.ah-quick:focus-visible { outline: 2px solid var(--ah-gold); outline-offset: 2px }
-.ah-quick-ico { font-size: 24px; line-height: 1 }
-.ah-quick-l { font-size: 12.5px; font-weight: 600; line-height: 1.3; color: var(--ah-soft) }
-.ah-quick:hover .ah-quick-l { color: var(--ah-ink) }
-
-@media (max-width: 1200px) { .ah-quick-grid { grid-template-columns: repeat(4, minmax(0, 1fr)) } }
-@media (max-width: 767px) {
-  .ah-quick-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px }
-  .ah-quick { padding: 15px 8px; gap: 7px; border-radius: 16px }
-  .ah-quick-ico { font-size: 21px }
-  .ah-quick-l { font-size: 11.5px }
+  .ah-task:hover, .ah-metric:hover, .ah-quick:hover { transform: none }
 }

@@ -1,25 +1,40 @@
 /* ============================================================================
    BodyBank — Admin landing ("Dashboard")
    ----------------------------------------------------------------------------
-   One screen that answers, in order: is the business moving, what is waiting on
-   me, and what do the numbers look like. Every figure comes from a single read
-   (/api/admin/overview) so nothing on the page can disagree with anything else
-   on it, and every tile is a way INTO the section that owns that number rather
-   than a figure to read and then go hunting for.
+   One screen that answers, in order: is the roster showing up, what is waiting
+   on me, what do the numbers say, and what just happened. Every figure comes
+   from a single read (/api/admin/overview) so nothing on the page can disagree
+   with anything else on it, and every tile is a way INTO the section that owns
+   that number rather than a figure to read and then go hunting for.
 
-   The same component serves desktop and phone — the admin shell supplies the
+   Rebuilt 2026-09-21. What changed and why:
+   - The 14-day activity chart is an SVG area path instead of fourteen blocks.
+     At fourteen points a bar chart is mostly gaps, and a week of zeros rendered
+     as a row of stubs that read like a broken widget. A path keeps its baseline,
+     so a quiet week reads as a flat line - which is the truth.
+   - Fourteen KPI tiles became three switchable groups, and tiles reading zero
+     are folded away behind one toggle. Eleven zeros is not a dashboard.
+   - The action queue is one line per job. It used to be a card per job, each
+     carrying its own "Open X" link, which cost ~96px to say "4 audits".
+   - Quick access is a two-row side-scrolling rail instead of a seventeen-box
+     grid that ran ~600px down the page.
+
+   The same component serves desktop and phone - the admin shell supplies the
    sidebar and the bottom bar around it.
 
    Depends on globals from index.html: apiCall, escapeHtml, switchTab,
    switchToSection, openAdminEscalations.
    ========================================================================== */
 
-var ahState = window.ahState || (window.ahState = { data: null, loading: false });
+var ahState = window.ahState || (window.ahState = {
+  data: null, loading: false, seg: 'roster', showZeros: false
+});
 
 function ahEl(id) { return document.getElementById(id); }
 function ahEsc(v) { return escapeHtml(v == null ? '' : String(v)); }
 function ahNum(n) { return Number(n || 0).toLocaleString(); }
 function ahPlural(n, one, many) { return n + ' ' + (n === 1 ? one : (many || one + 's')); }
+
 /** Subtitle for the Part 2 tile: how many of the Part 1s came back. */
 function part2Sub(na) {
   var p1 = Number(na && na.part1_submitted) || 0;
@@ -108,16 +123,133 @@ async function loadAdminHome(silent) {
   }
 }
 
+/* ------------------------------------------------------------------- chart */
+/**
+ * A 14-day area chart as one SVG path.
+ *
+ * Drawn in a 0..100 x 0..100 box with preserveAspectRatio="none", so it fills
+ * whatever width the card has without any measuring in script. The fill path
+ * closes down to the baseline, which is what keeps a flat week legible: the
+ * shape is still there, it is simply flat.
+ */
+function ahChartSvg(series, labels) {
+  var n = series.length;
+  if (!n) return '';
+  var peak = Math.max.apply(null, series.concat([1]));
+  var x = function (i) { return n === 1 ? 50 : (i / (n - 1)) * 100; };
+  // 6 and 94 leave room for the stroke and the end dot to sit inside the box.
+  var y = function (v) { return 94 - (v / peak) * 88; };
+
+  var line = series.map(function (v, i) { return (i ? 'L' : 'M') + x(i).toFixed(2) + ' ' + y(v).toFixed(2); }).join(' ');
+  var area = line + ' L100 100 L0 100 Z';
+  var lastX = x(n - 1), lastY = y(series[n - 1]);
+
+  var ticks = series.map(function (v, i) {
+    var when = labels[labels.length - n + i] || '';
+    var day = when ? new Date(when).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '';
+    // An invisible wide rect per point so a tap/hover anywhere in that column
+    // gets the tooltip, rather than only the 1px line itself.
+    return '<rect x="' + Math.max(0, x(i) - (50 / n)).toFixed(2) + '" y="0" width="' + (100 / n).toFixed(2) + '" height="100" fill="transparent">'
+      + '<title>' + ahEsc(day) + (day ? ': ' : '') + ahEsc(ahPlural(v, 'active member')) + '</title></rect>';
+  }).join('');
+
+  return '<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">'
+    + '<defs><linearGradient id="ahFill" x1="0" y1="0" x2="0" y2="1">'
+    + '<stop offset="0%" stop-color="#E0BE6E" stop-opacity=".36"/>'
+    + '<stop offset="100%" stop-color="#E0BE6E" stop-opacity="0"/>'
+    + '</linearGradient></defs>'
+    + '<path d="' + area + '" fill="url(#ahFill)"/>'
+    + '<path d="' + line + '" fill="none" stroke="#E0BE6E" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>'
+    + ticks
+    + '</svg>'
+    + '<span class="ah-chart-dot" style="left:' + lastX.toFixed(2) + '%;top:' + lastY.toFixed(2) + '%"></span>';
+}
+
+/* ----------------------------------------------------------------- metrics */
+function ahMetric(n, label, sub, tone, kind, to) {
+  var v = Number(n || 0);
+  return '<button type="button" class="ah-metric' + (tone ? ' ' + tone : '') + (v ? '' : ' zero') + '"'
+    + ' onclick="ahGo(\'' + kind + '\',\'' + to + '\')">'
+    + '<span class="ah-metric-n">' + ahNum(n) + '</span>'
+    + '<span class="ah-metric-l">' + ahEsc(label) + '</span>'
+    + '<span class="ah-metric-s">' + ahEsc(sub) + '</span></button>';
+}
+
+/** The three metric groups, built from the one overview payload. */
+function ahMetricGroups(d) {
+  var r = d.roster || {}, p = d.pipeline || {};
+  var na = d.nutritionAssessments || {}, w = d.wearables || {};
+  var members = r.members || 0;
+  var ofMembers = function (n) { return (members ? n + ' of ' + members + ' members' : 'no members yet') + ' today'; };
+  return {
+    roster: [
+      ahMetric(r.members, 'Members', 'on the roster', 'gold', 'tab', 'tribe'),
+      ahMetric(r.active_7d, 'Active', 'last 7 days', 'ok', 'tab', 'dailycompliance'),
+      ahMetric(r.inactive_7d, 'Inactive', 'nothing logged in 7 days', 'bad', 'tab', 'dailycompliance'),
+      ahMetric(r.checked_in_today, 'Checked in', ofMembers(r.checked_in_today), 'amber', 'tab', 'dailycheckin'),
+      ahMetric(r.trained_today, 'Trained', ofMembers(r.trained_today), 'amber', 'tab', 'workouts'),
+      ahMetric(r.ate_today, 'Logged a meal', ofMembers(r.ate_today), 'amber', 'tab', 'nutrition')
+    ],
+    pipeline: [
+      ahMetric(p.audits_today, 'Audits today', (p.audits_7d || 0) + ' this week', 'info', 'tab', 'leads'),
+      ahMetric(p.pending_audits, 'Awaiting review', 'body audits', 'warn', 'tab', 'leads'),
+      ahMetric(p.audits_no_account, 'Never signed up', 'audited in last 30 days', 'bad', 'tab', 'leads'),
+      ahMetric(p.part2_today, 'Part-2 today', (p.part2_7d || 0) + ' this week', 'info', 'tab', 'part2'),
+      ahMetric(r.trials, 'On trial', (r.trials_expiring || 0) + ' ending soon', 'amber', 'tab', 'memberships'),
+      ahMetric(r.new_members_7d, 'New members', 'joined this week', 'ok', 'tab', 'tribe')
+    ],
+    // Nutrition assessments and watch data. Split into the two parts, because
+    // "12 assessments" hides the fact that only 4 came back for part 2 - which
+    // is the number to act on.
+    intake: [
+      ahMetric(na.part1_submitted, 'FitChef Part 1', 'submitted', 'info', 'tab', 'nutritionassessment'),
+      ahMetric(na.part2_submitted, 'FitChef Part 2', part2Sub(na), 'ok', 'tab', 'nutritionassessment'),
+      // Flagged submissions are a safety gate a human has to clear (clinician
+      // referral, pregnancy, disordered-eating signal), so this goes red the
+      // moment there is one.
+      ahMetric(na.needs_review, 'Need review', 'before a plan goes out',
+        (na.needs_review || 0) > 0 ? 'bad' : 'ok', 'tab', 'nutritionassessment'),
+      ahMetric(w.members, 'Watch data', deviceSummary(w), 'info', 'tab', 'clientprogress')
+    ]
+  };
+}
+
+function ahRenderMetrics() {
+  var host = ahEl('ahMetrics');
+  if (!host || !ahState.data) return;
+  var groups = ahMetricGroups(ahState.data);
+  var cards = groups[ahState.seg] || groups.roster;
+  var zeros = cards.filter(function (h) { return h.indexOf(' zero"') !== -1; }).length;
+
+  host.className = 'ah-metrics' + (ahState.showZeros ? '' : ' hide-zero');
+  host.innerHTML = cards.join('')
+    + (!ahState.showZeros && zeros === cards.length
+      ? '<div class="ah-allzero">Nothing recorded here yet.</div>' : '');
+
+  var tog = ahEl('ahZeroToggle');
+  if (tog) {
+    if (!zeros) { tog.style.display = 'none'; }
+    else {
+      tog.style.display = '';
+      tog.textContent = ahState.showZeros ? 'Hide empty' : 'Show ' + zeros + ' empty';
+    }
+  }
+  if (typeof document.querySelectorAll === 'function') {
+    document.querySelectorAll('.ah-seg[data-seg]').forEach(function (b) {
+      b.classList.toggle('is-on', b.getAttribute('data-seg') === ahState.seg);
+    });
+  }
+}
+function ahSetSeg(seg) { ahState.seg = seg; ahRenderMetrics(); return false; }
+function ahToggleZeros() { ahState.showZeros = !ahState.showZeros; ahRenderMetrics(); return false; }
+
 /* ---------------------------------------------------------------- render */
 function renderAdminHome() {
   var d = ahState.data;
   if (!d || !ahEl('adminHome')) return;
   var r = d.roster || {}, p = d.pipeline || {}, ib = d.inbox || {}, t = d.trends || {};
-  // Older server builds return neither key; default to empty objects so the tiles
-  // render a plain 0 rather than throwing and taking the whole dashboard down.
-  var na = d.nutritionAssessments || {}, w = d.wearables || {};
 
-  // ---- hero: is the roster showing up, and is that better than last week? --
+  // ---- top strip -----------------------------------------------------------
   var dateEl = ahEl('ahDate');
   if (dateEl) {
     try { dateEl.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }); } catch (e) { }
@@ -129,17 +261,12 @@ function renderAdminHome() {
     greetEl.textContent = ahGreeting() + (who ? ', ' + who : '');
   }
 
+  // ---- hero: is the roster showing up, and is that better than last week? --
   var members = r.members || 0, active = r.active_7d || 0;
-  var pct = members ? Math.round((active / members) * 100) : 0;
-  ahEl('ahActiveN') && (ahEl('ahActiveN').textContent = members ? active : '–');
+  ahEl('ahActiveN') && (ahEl('ahActiveN').textContent = members ? ahNum(active) : '–');
   ahEl('ahActiveOf') && (ahEl('ahActiveOf').textContent = members
-    ? ' of ' + members + ' active in the last 7 days'
-    : ' no members yet');
-  var fill = ahEl('ahActiveFill');
-  if (fill) {
-    fill.style.width = pct + '%';
-    fill.className = 'ah-bar-fill ' + (pct >= 60 ? 'ok' : (pct >= 25 ? 'warn' : 'bad'));
-  }
+    ? 'of ' + ahNum(members) + ' members'
+    : 'no members yet');
 
   var series = (t.active || []).slice(-14);
   var dEl = ahEl('ahDelta');
@@ -148,64 +275,64 @@ function renderAdminHome() {
       var avg = function (a) { return a.reduce(function (x, y) { return x + y; }, 0) / a.length; };
       var thisWk = avg(series.slice(7)), lastWk = avg(series.slice(0, 7));
       var diff = Math.round((thisWk - lastWk) * 10) / 10;
-      if (!thisWk && !lastWk) { dEl.textContent = 'no activity either week'; dEl.className = 'ah-delta flat'; }
-      else if (diff > 0) { dEl.textContent = '▲ ' + diff + '/day vs last week'; dEl.className = 'ah-delta up'; }
-      else if (diff < 0) { dEl.textContent = '▼ ' + Math.abs(diff) + '/day vs last week'; dEl.className = 'ah-delta down'; }
-      else { dEl.textContent = 'level with last week'; dEl.className = 'ah-delta flat'; }
+      if (!thisWk && !lastWk) { dEl.textContent = 'quiet both weeks'; dEl.className = 'ah-delta'; }
+      else if (diff > 0) { dEl.textContent = '▲ ' + diff + '/day'; dEl.className = 'ah-delta up'; }
+      else if (diff < 0) { dEl.textContent = '▼ ' + Math.abs(diff) + '/day'; dEl.className = 'ah-delta down'; }
+      else { dEl.textContent = 'level'; dEl.className = 'ah-delta'; }
     } else { dEl.textContent = ''; dEl.className = 'ah-delta'; }
   }
 
-  var spark = ahEl('ahSpark');
-  if (spark) {
+  var chart = ahEl('ahChart');
+  if (chart) {
     if (!series.length) {
-      spark.innerHTML = '<div class="ah-spark-empty">Daily activity appears here once members start logging.</div>';
+      chart.innerHTML = '<div class="ah-chart-empty">Daily activity appears here once members start logging.</div>';
       ahEl('ahSparkPeak') && (ahEl('ahSparkPeak').textContent = '');
     } else {
-      var peak = Math.max.apply(null, series.concat([1]));
-      var labels = t.labels || [];
-      spark.innerHTML = series.map(function (v, i) {
-        var h = Math.max(3, Math.round((v / peak) * 100));
-        var when = labels[labels.length - series.length + i] || '';
-        var day = when ? new Date(when).toLocaleDateString(undefined, { day: 'numeric', month: 'short' }) : '';
-        return '<span class="ah-spark-b' + (i === series.length - 1 ? ' now' : '') + (v ? '' : ' nil') + '"'
-          + ' style="height:' + h + '%" title="' + ahEsc(day) + ': ' + ahPlural(v, 'active member') + '"></span>';
-      }).join('');
-      ahEl('ahSparkPeak') && (ahEl('ahSparkPeak').textContent = 'peak ' + peak);
+      var peak = Math.max.apply(null, series.concat([0]));
+      chart.innerHTML = peak
+        ? ahChartSvg(series, t.labels || [])
+        : '<div class="ah-chart-empty">No member activity in the last 14 days.</div>';
+      ahEl('ahSparkPeak') && (ahEl('ahSparkPeak').textContent = peak ? 'peak ' + peak : '');
     }
   }
 
   var hs = ahEl('ahHeroStats');
   if (hs) {
+    // These read "N of members", so they have to be counts of PEOPLE, not of
+    // sessions — a session count against a member denominator can exceed the
+    // roster and means nothing as a fraction.
     var mini = function (n, label, tab) {
-      return '<button type="button" class="ah-hstat' + (n ? '' : ' nil') + '" onclick="ahGo(\'tab\',\'' + tab + '\')">'
-        + '<b>' + ahNum(n) + '</b><i>/' + members + '</i><span>' + ahEsc(label) + '</span></button>';
+      var v = Number(n || 0);
+      var pct = members ? Math.min(100, Math.round((v / members) * 100)) : 0;
+      return '<button type="button" class="ah-hstat' + (v ? '' : ' nil') + '" onclick="ahGo(\'tab\',\'' + tab + '\')">'
+        + '<span class="ah-hstat-n"><b>' + ahNum(v) + '</b><i>/' + ahNum(members) + '</i></span>'
+        + '<span class="ah-hstat-m"><span style="width:' + pct + '%"></span></span>'
+        + '<span class="ah-hstat-l">' + ahEsc(label) + '</span></button>';
     };
-    // these read "N /members", so they have to be counts of PEOPLE. They were
-    // showing session volume against a member denominator, which could exceed
-    // the roster and meant nothing as a fraction.
     hs.innerHTML = members
-      ? mini(r.checked_in_today, 'checked in today', 'dailycheckin')
-        + mini(r.trained_today, 'trained today', 'workouts')
-        + mini(r.ate_today, 'logged a meal', 'nutrition')
+      ? mini(r.checked_in_today, 'Checked in', 'dailycheckin')
+        + mini(r.trained_today, 'Trained', 'workouts')
+        + mini(r.ate_today, 'Ate', 'nutrition')
       : '';
+    hs.style.display = members ? '' : 'none';
   }
 
   // ---- what is actually waiting on the admin -------------------------------
   var queue = [
-    { n: ib.unread_threads, one: 'member is waiting on a reply', many: 'members are waiting on a reply',
-      cta: 'Open messages', kind: 'tab', to: 'messages', tone: 'bad', icon: '💬' },
-    { n: p.pending_audits, one: 'body audit needs reviewing', many: 'body audits need reviewing',
-      cta: 'Open leads', kind: 'tab', to: 'leads', tone: 'warn', icon: '🎯' },
+    { n: ib.unread_threads, one: 'member waiting on a reply', many: 'members waiting on a reply',
+      kind: 'tab', to: 'messages', tone: 'bad', icon: '\u{1F4AC}' },
+    { n: p.pending_audits, one: 'body audit to review', many: 'body audits to review',
+      kind: 'tab', to: 'leads', tone: 'warn', icon: '\u{1F3AF}' },
     { n: ib.escalations, one: 'client escalated by an operator', many: 'clients escalated by operators',
-      cta: 'Open escalations', kind: 'modal', to: 'escalations', tone: 'info', icon: '🛰️' },
-    { n: ib.blood_unsent, one: 'blood report is ready to send', many: 'blood reports are ready to send',
-      cta: 'Open blood reports', kind: 'tab', to: 'blood', tone: 'warn', icon: '🩺' },
+      kind: 'modal', to: 'escalations', tone: 'info', icon: '\u{1F6F0}️' },
+    { n: ib.blood_unsent, one: 'blood report ready to send', many: 'blood reports ready to send',
+      kind: 'tab', to: 'blood', tone: 'warn', icon: '\u{1FA7A}' },
     { n: r.trials_expiring, one: 'trial ends within 3 days', many: 'trials end within 3 days',
-      cta: 'Open memberships', kind: 'tab', to: 'memberships', tone: 'bad', icon: '⏳' },
+      kind: 'tab', to: 'memberships', tone: 'bad', icon: '⏳' },
     { n: r.trials_ended, one: 'trial has ended', many: 'trials have ended',
-      cta: 'Open memberships', kind: 'tab', to: 'memberships', tone: 'warn', icon: '🔔' },
-    { n: ib.blood_pending, one: 'blood report is still processing', many: 'blood reports are still processing',
-      cta: 'Open blood reports', kind: 'tab', to: 'blood', tone: 'info', icon: '⚗️' }
+      kind: 'tab', to: 'memberships', tone: 'warn', icon: '\u{1F514}' },
+    { n: ib.blood_pending, one: 'blood report still processing', many: 'blood reports still processing',
+      kind: 'tab', to: 'blood', tone: 'info', icon: '⚗️' }
   ].filter(function (x) { return (x.n || 0) > 0; });
 
   var qEl = ahEl('ahQueue');
@@ -214,8 +341,9 @@ function renderAdminHome() {
       ? queue.map(function (x) {
           return '<button type="button" class="ah-task ' + x.tone + '" onclick="ahGo(\'' + x.kind + '\',\'' + x.to + '\')">'
             + '<span class="ah-task-ico" aria-hidden="true">' + x.icon + '</span>'
-            + '<span class="ah-task-main"><b>' + ahNum(x.n) + '</b> ' + ahEsc(x.n === 1 ? x.one : x.many) + '</span>'
-            + '<span class="ah-task-cta">' + ahEsc(x.cta) + ' →</span></button>';
+            + '<span class="ah-task-n">' + ahNum(x.n) + '</span>'
+            + '<span class="ah-task-main">' + ahEsc(x.n === 1 ? x.one : x.many) + '</span>'
+            + '<span class="ah-task-go" aria-hidden="true">›</span></button>';
         }).join('')
       : '<div class="ah-clear"><span aria-hidden="true">✓</span><div><b>Nothing is waiting on you.</b>'
         + '<i>No unread messages, no audits to review, no reports to send.</i></div></div>';
@@ -224,61 +352,16 @@ function renderAdminHome() {
   if (qc) {
     var totalTasks = queue.reduce(function (a, x) { return a + (x.n || 0); }, 0);
     qc.textContent = totalTasks ? ahPlural(totalTasks, 'item') : 'all clear';
+    qc.className = 'ah-count' + (totalTasks ? '' : ' clear');
   }
 
   // ---- the numbers ---------------------------------------------------------
-  var tile = function (n, label, sub, tone, kind, to) {
-    return '<button type="button" class="ah-tile' + (tone ? ' ' + tone : '') + ((n || 0) ? '' : ' zero') + '"'
-      + ' onclick="ahGo(\'' + kind + '\',\'' + to + '\')">'
-      + '<span class="ah-tile-n">' + ahNum(n) + '</span>'
-      + '<span class="ah-tile-l">' + ahEsc(label) + '</span>'
-      + '<span class="ah-tile-s">' + ahEsc(sub) + '</span></button>';
-  };
-
-  // every roster tile counts people, so say so on the tile itself
-  var ofMembers = function (n) { return (members ? n + ' of ' + members + ' members' : 'no members yet') + ' today'; };
-  var rosterEl = ahEl('ahTilesRoster');
-  if (rosterEl) {
-    rosterEl.innerHTML =
-      tile(r.members, 'Members', 'on the roster', 'gold', 'tab', 'tribe')
-      + tile(r.active_7d, 'Active', 'last 7 days', 'ok', 'tab', 'dailycompliance')
-      + tile(r.inactive_7d, 'Inactive', 'nothing logged in 7 days', 'bad', 'tab', 'dailycompliance')
-      + tile(r.checked_in_today, 'Checked in', ofMembers(r.checked_in_today), 'amber', 'tab', 'dailycheckin')
-      + tile(r.trained_today, 'Trained', ofMembers(r.trained_today), 'amber', 'tab', 'workouts')
-      + tile(r.ate_today, 'Logged a meal', ofMembers(r.ate_today), 'amber', 'tab', 'nutrition');
-  }
-
-  var pipeEl = ahEl('ahTilesPipeline');
-  if (pipeEl) {
-    pipeEl.innerHTML =
-      tile(p.audits_today, 'Audits today', ahPlural(p.audits_7d || 0, 'this week', 'this week'), 'info', 'tab', 'leads')
-      + tile(p.pending_audits, 'Awaiting review', 'body audits', 'warn', 'tab', 'leads')
-      + tile(p.audits_no_account, 'Never signed up', 'audited in last 30 days', 'bad', 'tab', 'leads')
-      + tile(p.part2_today, 'Part-2 today', (p.part2_7d || 0) + ' this week', 'info', 'tab', 'part2')
-      + tile(r.trials, 'On trial', (r.trials_expiring || 0) + ' ending soon', 'amber', 'tab', 'memberships')
-      + tile(r.new_members_7d, 'New members', 'joined this week', 'ok', 'tab', 'tribe')
-      // Nutrition assessments and watch data. These live on the DESKTOP pane; the
-      // mobile console (.admin-dash-page / bbmd) renders its own copy from
-      // /api/operator/overview. A widget added to only one pane is invisible on
-      // the other — the desktop media query sets .admin-dash-page to
-      // display:none !important — which is why these two features could not be
-      // seen on the web console at all.
-      // Split into the two parts, because "12 assessments" hides the fact that
-      // only 4 of them came back for part 2 — which is the number to act on.
-      + tile(na.part1_submitted, 'FitChef Part 1', 'submitted', 'info', 'tab', 'nutritionassessment')
-      + tile(na.part2_submitted, 'FitChef Part 2', part2Sub(na), 'ok', 'tab', 'nutritionassessment')
-      // Flagged submissions are a safety gate a human has to clear (clinician
-      // referral, pregnancy, disordered-eating signal), so this tile goes red the
-      // moment there is one.
-      + tile(na.needs_review, 'Need review', 'before a plan goes out',
-        (na.needs_review || 0) > 0 ? 'bad' : 'ok', 'tab', 'nutritionassessment')
-      + tile(w.members, 'Watch data', deviceSummary(w), 'info', 'tab', 'clientprogress');
-  }
+  ahRenderMetrics();
 
   // ---- what just happened --------------------------------------------------
   var feedEl = ahEl('ahFeed');
   if (feedEl) {
-    var items = (d.feed || []).slice(0, 8);
+    var items = (d.feed || []).slice(0, 6);
     if (!items.length) feedEl.innerHTML = '<div class="ah-empty">Nothing logged recently.</div>';
     else {
       var out = '', lastDay = null;
@@ -294,32 +377,31 @@ function renderAdminHome() {
   }
 }
 
-
 /* Quick access — the shortcuts the old dashboard carried, unchanged in
-   destination and order, laid out as one scannable grid instead of a strip
-   that ran off the side of the screen. */
+   destination and order, as a side-scrolling rail rather than a seventeen-box
+   grid that ran ~600px down the page. */
 var AH_QUICK = [
-  { icon: '🎯', label: 'Leads', kind: 'tab', to: 'leads' },
-  { icon: '👥', label: 'Client Board', kind: 'tab', to: 'tribe' },
-  { icon: '📋', label: 'Audit Forms', kind: 'tab', to: 'requests' },
+  { icon: '\u{1F3AF}', label: 'Leads', kind: 'tab', to: 'leads' },
+  { icon: '\u{1F465}', label: 'Client Board', kind: 'tab', to: 'tribe' },
+  { icon: '\u{1F4CB}', label: 'Audit Forms', kind: 'tab', to: 'requests' },
   // Sits next to Audit Forms because it is the same job — an intake form staff
   // read and action — rather than buried under Analytics.
-  { icon: '🍽️', label: 'FitChef Assessment', kind: 'tab', to: 'nutritionassessment' },
+  { icon: '\u{1F37D}️', label: 'FitChef Assessment', kind: 'tab', to: 'nutritionassessment' },
   // No dedicated tab: watch data is read per member, and Client Progress is where
   // the Readiness sub-tab lives.
   { icon: '⌚', label: 'Watch Data', kind: 'tab', to: 'clientprogress' },
-  { icon: '📅', label: 'Daily Check-ins', kind: 'tab', to: 'dailycheckin' },
-  { icon: '🏋️', label: 'Workouts', kind: 'tab', to: 'workouts' },
-  { icon: '🗂️', label: 'Programs', kind: 'tab', to: 'programs' },
-  { icon: '📸', label: 'Transformations', kind: 'tab', to: 'transformations' },
-  { icon: '🏆', label: 'Leader Boards', kind: 'tab', to: 'leaderboards' },
-  { icon: '🥗', label: 'Nutrition AI', kind: 'tab', to: 'nutrition' },
-  { icon: '🩺', label: 'Blood Reports', kind: 'tab', to: 'blood' },
-  { icon: '💳', label: 'Members', kind: 'tab', to: 'memberships' },
-  { icon: '📈', label: 'Analytics', kind: 'section', to: 'analytics' },
-  { icon: '🪙', label: 'Tokens', kind: 'tab', to: 'tokens' },
-  { icon: '📑', label: 'Reports', kind: 'tab', to: 'reports' },
-  { icon: '💡', label: 'AI Assist', kind: 'fn', to: 'toggleAdminAiAssistPanel' }
+  { icon: '\u{1F4C5}', label: 'Daily Check-ins', kind: 'tab', to: 'dailycheckin' },
+  { icon: '\u{1F3CB}️', label: 'Workouts', kind: 'tab', to: 'workouts' },
+  { icon: '\u{1F5C2}️', label: 'Programs', kind: 'tab', to: 'programs' },
+  { icon: '\u{1F4F8}', label: 'Transformations', kind: 'tab', to: 'transformations' },
+  { icon: '\u{1F3C6}', label: 'Leader Boards', kind: 'tab', to: 'leaderboards' },
+  { icon: '\u{1F957}', label: 'Nutrition AI', kind: 'tab', to: 'nutrition' },
+  { icon: '\u{1FA7A}', label: 'Blood Reports', kind: 'tab', to: 'blood' },
+  { icon: '\u{1F4B3}', label: 'Members', kind: 'tab', to: 'memberships' },
+  { icon: '\u{1F4C8}', label: 'Analytics', kind: 'section', to: 'analytics' },
+  { icon: '\u{1FA99}', label: 'Tokens', kind: 'tab', to: 'tokens' },
+  { icon: '\u{1F4D1}', label: 'Reports', kind: 'tab', to: 'reports' },
+  { icon: '\u{1F4A1}', label: 'AI Assist', kind: 'fn', to: 'toggleAdminAiAssistPanel' }
 ];
 function renderAdminQuick() {
   var el = ahEl('ahQuick');

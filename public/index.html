@@ -3590,7 +3590,7 @@ button.bb-today-pill{cursor:pointer}
 /* Nutrition check-in (daily) + admin nutrition report */
 .nutrition-checkin{margin-top:20px;padding:16px 0 8px;border-top:1px solid var(--bdr)}
 /* ===== Premium BodyBank × Fitchef co-branded hero ===== */
-.nutri-hero{position:relative;overflow:hidden;border-radius:20px;padding:22px 20px 20px;margin-bottom:16px;background:radial-gradient(130% 120% at 12% 0%,rgba(46,204,113,0.16),transparent 58%),linear-gradient(160deg,#0f1a14 0%,#0b130f 52%,#080d0a 100%);border:1px solid rgba(46,204,113,0.22);box-shadow:0 18px 44px rgba(0,0,0,0.40),inset 0 1px 0 rgba(255,255,255,0.04)}
+.nutri-hero{position:relative;overflow:hidden;border-radius:20px;padding:18px 18px 16px;margin-bottom:14px;background:radial-gradient(130% 120% at 12% 0%,rgba(46,204,113,0.16),transparent 58%),linear-gradient(160deg,#0f1a14 0%,#0b130f 52%,#080d0a 100%);border:1px solid rgba(46,204,113,0.22);box-shadow:0 18px 44px rgba(0,0,0,0.40),inset 0 1px 0 rgba(255,255,255,0.04)}
 .nutri-hero-glow{position:absolute;width:280px;height:280px;border-radius:50%;background:#2ecc71;opacity:.10;filter:blur(120px);top:-150px;right:-60px;pointer-events:none}
 .nutri-hero-glow.g2{background:var(--bb-gold);opacity:.08;width:220px;height:220px;top:auto;bottom:-140px;left:-70px;right:auto}
 .nutri-hero-top{position:relative;z-index:1;display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:16px}
@@ -3605,13 +3605,13 @@ button.bb-today-pill{cursor:pointer}
 /* --- Nutrition check-in: hero ring + submit hint -----------------------
    The ring is the meals-logged count as a shape. Its geometry lives here
    (r=19 in a 44x44 box); only the dash offset is set from script. */
-.nutri-ring-wrap{position:relative;width:58px;height:58px;flex-shrink:0}
-.nutri-ring{width:58px;height:58px;transform:rotate(-90deg)}
-.nutri-ring-bg,.nutri-ring-fg{fill:none;stroke-width:4;stroke-linecap:round}
+.nutri-ring-wrap{position:relative;width:66px;height:66px;flex-shrink:0}
+.nutri-ring{width:66px;height:66px;transform:rotate(-90deg)}
+.nutri-ring-bg,.nutri-ring-fg{fill:none;stroke-width:5;stroke-linecap:round}
 .nutri-ring-bg{stroke:rgba(255,255,255,0.09)}
 .nutri-ring-fg{stroke:var(--bb-green);transition:stroke-dashoffset .45s cubic-bezier(.2,.8,.2,1)}
 .nutri-ring-txt{position:absolute;inset:0;display:flex;align-items:baseline;justify-content:center;gap:1px;pointer-events:none}
-.nutri-ring-txt b{font-family:var(--bb-font-heading);font-size:20px;font-weight:700;color:var(--cream);line-height:1;font-variant-numeric:tabular-nums}
+.nutri-ring-txt b{font-family:var(--bb-font-heading);font-size:23px;font-weight:700;color:var(--cream);line-height:1;font-variant-numeric:tabular-nums}
 .nutri-ring-txt i{font-style:normal;font-family:var(--bb-font-heading);font-size:13px;font-weight:700;color:rgba(255,255,255,0.42);font-variant-numeric:tabular-nums}
 .nutri-hero-facts{display:flex;flex-direction:column;gap:7px;min-width:0}
 .nutri-fact{display:flex;align-items:baseline;gap:7px;min-width:0}
@@ -3625,9 +3625,29 @@ button.bb-today-pill{cursor:pointer}
 .nutri-stat-lbl{font-family:var(--bb-font-body);font-size:10px;color:rgba(255,255,255,0.50);text-transform:uppercase;letter-spacing:.05em}
 @media(max-width:380px){.nutri-hero-title{font-size:19px}.nutri-hero-lockup img{height:25px}}
 /* ===== Meal cards ===== */
-.nutrition-checkin .meal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px}
-@media (min-width:768px){.nutrition-checkin .meal-grid{grid-template-columns:repeat(4,1fr)}}
-.nutrition-checkin .meal-slot{position:relative;overflow:hidden;background:linear-gradient(165deg,rgba(20,26,22,0.9),rgba(13,16,14,0.94));border:1px solid var(--bb-border);border-radius:16px;padding:14px;display:flex;flex-direction:column;gap:11px;transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease;box-shadow:0 10px 26px rgba(0,0,0,0.22)}
+.nutrition-checkin .meal-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.nutrition-checkin .meal-slot{position:relative;overflow:hidden;background:linear-gradient(165deg,rgba(20,26,22,0.9),rgba(13,16,14,0.94));border:1px solid var(--bb-border);border-radius:16px;padding:0;display:block;transition:border-color .22s ease,box-shadow .22s ease;box-shadow:0 10px 26px rgba(0,0,0,0.22)}
+.nutrition-checkin .meal-slot:hover{transform:none}
+
+/* ---- the row -------------------------------------------------------------
+   Header, summary and control in one element: tapping the meal opens it, and a
+   meal that has been analysed reports its headline here so the whole day reads
+   without opening anything. */
+.nutrition-checkin .meal-slot-header{width:100%;display:flex;align-items:center;gap:12px;padding:13px 14px;background:none;border:0;cursor:pointer;text-align:left;color:inherit;font-family:inherit;min-width:0}
+.nutrition-checkin .meal-slot-id{display:flex;align-items:center;gap:11px;min-width:0;flex:1}
+.nutrition-checkin .meal-slot-txt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.nutrition-checkin .meal-row-sum{font-size:11px;color:var(--bb-green);font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nutrition-checkin .meal-chev{flex-shrink:0;width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);margin-left:2px;margin-right:3px;transition:transform .24s ease,border-color .24s ease}
+.nutrition-checkin .meal-slot.is-open .meal-chev{transform:rotate(45deg);border-color:var(--bb-green)}
+.nutrition-checkin .meal-slot-header:hover .meal-chev{border-color:var(--cream)}
+
+/* ---- the body ------------------------------------------------------------
+   Collapsed by default. display:none rather than a height transition: the body
+   holds a canvas preview and a textarea whose heights are not known up front,
+   and a wrong max-height clips content, which is worse than no animation. */
+.nutrition-checkin .meal-body{display:none;padding:0 14px 14px;flex-direction:column;gap:11px}
+.nutrition-checkin .meal-slot.is-open .meal-body{display:flex}
+.nutrition-checkin .meal-slot.is-open{border-color:rgba(46,204,113,0.28)}
 .nutrition-checkin .meal-slot::before{content:"";position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.10),transparent);opacity:.6}
 .nutrition-checkin .meal-slot:hover{transform:translateY(-3px);border-color:rgba(46,204,113,0.30);box-shadow:0 16px 36px rgba(0,0,0,0.30)}
 .nutrition-checkin .meal-slot.uploading{border-color:var(--bb-orange)}
@@ -3637,31 +3657,19 @@ button.bb-today-pill{cursor:pointer}
 .nutrition-checkin .meal-slot.analyzed::before{background:linear-gradient(90deg,transparent,var(--bb-green),transparent);opacity:1}
 .nutrition-checkin .meal-slot.low-conf{border-color:var(--bb-red)}
 .nutrition-checkin .meal-slot.low-conf::before{background:linear-gradient(90deg,transparent,var(--bb-red),transparent);opacity:1}
-.nutrition-checkin .meal-slot-header{display:flex;justify-content:space-between;align-items:flex-start;gap:6px}
-.nutrition-checkin .meal-slot-id{display:flex;align-items:center;gap:9px;min-width:0}
 .nutrition-checkin .meal-icon{flex-shrink:0;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:18px;border-radius:10px;background:rgba(46,204,113,0.10);border:1px solid rgba(46,204,113,0.18)}
 .nutrition-checkin .meal-type-label{font-family:var(--bb-font-heading);font-size:13px;font-weight:700;color:var(--cream);line-height:1.1}
 .nutrition-checkin .meal-time-hint{font-size:10px;color:var(--muted);margin-top:2px}
-.nutrition-checkin .meal-status-badge{font-size:9px;padding:3px 8px;border-radius:99px;background:var(--bb-surface-hover);color:var(--muted);white-space:nowrap;font-weight:600}
+.nutrition-checkin .meal-status-badge{flex-shrink:0;font-size:9px;padding:4px 9px;border-radius:99px;background:var(--bb-surface-hover);color:var(--muted);white-space:nowrap;font-weight:600;letter-spacing:.3px}
 .nutrition-checkin .meal-status-badge.analyzed{background:rgba(46,204,113,0.14);color:var(--bb-green);border:1px solid rgba(46,204,113,0.28)}
 .nutrition-checkin .meal-status-badge.analyzing{background:rgba(230,126,34,0.16);color:var(--bb-orange)}
 .nutrition-checkin .meal-status-badge.error{background:rgba(192,57,43,0.16);color:var(--bb-red)}
-/* Two cards per row on a phone leaves ~170px: icon + "Breakfast" + "Not logged"
-   does not fit, and with no min-width:0 on the text block the label was clipped
-   behind the badge. Let the badge drop to its own line rather than collide. */
-.nutrition-checkin .meal-slot-header{flex-wrap:wrap}
-.nutrition-checkin .meal-slot-id{flex:1 1 auto}
-.nutrition-checkin .meal-slot-id>div{min-width:0}
-.nutrition-checkin .meal-type-label{overflow-wrap:anywhere}
-.nutrition-checkin .meal-status-badge{flex:0 0 auto;margin-left:auto}
-/* Wrapping only when a name happens to be long left the four cards at uneven
-   heights, so below 520px the badge takes its own row on every card. */
-@media (max-width:520px){
-  /* the id block claims the whole first line, so the chip wraps below it and
-     still sizes to its own text instead of stretching like an input */
-  .nutrition-checkin .meal-slot-id{flex:0 0 100%}
-  .nutrition-checkin .meal-status-badge{margin:7px 0 0}
-}
+/* The name gets whatever width is left after the icon, the status pill and the
+   chevron have taken theirs, and truncates rather than wrapping - so every meal
+   row is exactly the same height whatever the label says. */
+.nutrition-checkin .meal-type-label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.nutrition-checkin .meal-time-hint{white-space:nowrap}
+.nutrition-checkin .meal-status-badge{margin-left:auto}
 .nutrition-checkin .meal-upload-area{display:flex;flex-direction:column;gap:8px;align-items:stretch}
 .nutrition-checkin .meal-upload-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;min-width:0}
 .nutrition-checkin .meal-upload-btns>button{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -5349,14 +5357,14 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="/ios-pwa-fix.css?v=20">
 <link rel="stylesheet" href="/css/blood-report-editor.css?v=2">
 <link rel="stylesheet" href="/css/graded-report.css?v=1">
-<link rel="stylesheet" href="css/admin-home.css?v=3">
+<link rel="stylesheet" href="css/admin-home.css?v=4">
 <link rel="stylesheet" href="css/admin-reports.css?v=1">
 <link rel="stylesheet" href="css/member-home.css?v=13">
 <link rel="stylesheet" href="css/group-chat.css?v=7">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
 <script src="js/operator-console.js?v=17"></script>
-<script src="js/admin-home.js?v=8"></script>
+<script src="js/admin-home.js?v=9"></script>
 <script src="js/admin-reports.js?v=4"></script>
 <script src="js/countries.js?v=1"></script>
 <script src="js/member-home.js?v=10"></script>
@@ -8608,66 +8616,59 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
 
       <!-- ══ ADMIN LANDING — one read, one screen, every tile a way in ══ -->
       <div id="adminHome">
-        <section class="ah-hero">
-          <div class="ah-hero-bar">
+        <div class="ah-top">
+          <div class="ah-top-txt">
             <span class="ah-eyebrow" id="ahDate">&nbsp;</span>
-            <span class="ah-greet" id="ahGreet">Good day</span>
-            <button type="button" class="ah-refresh" id="ahRefresh" onclick="loadAdminHome()" title="Refresh" aria-label="Refresh dashboard">&#8635;</button>
+            <h2 class="ah-greet" id="ahGreet">Good day</h2>
           </div>
+          <button type="button" class="ah-refresh" id="ahRefresh" onclick="loadAdminHome()" title="Refresh" aria-label="Refresh dashboard">&#8635;</button>
+        </div>
 
-          <div>
-            <div class="ah-bar-head">
-              <div>
-                <span class="ah-bar-k">Active members</span>
-                <span class="ah-bar-n"><b id="ahActiveN">–</b><i id="ahActiveOf"></i></span>
-              </div>
-              <span class="ah-delta" id="ahDelta"></span>
-            </div>
-            <div class="ah-track" style="margin-top:13px"><span class="ah-bar-fill" id="ahActiveFill"></span></div>
-            <div class="ah-spark" id="ahSpark"></div>
-            <div class="ah-spark-axis"><span>14 days ago</span><span id="ahSparkPeak"></span><span>today</span></div>
+        <section class="ah-hero" aria-label="Roster activity">
+          <div class="ah-hero-head">
+            <span class="ah-hero-k">Active members &middot; last 7 days</span>
+            <span class="ah-delta" id="ahDelta"></span>
           </div>
-
+          <div class="ah-hero-n"><b id="ahActiveN">&ndash;</b><i id="ahActiveOf"></i></div>
+          <div class="ah-chart" id="ahChart"></div>
+          <div class="ah-axis"><span>14 days ago</span><span id="ahSparkPeak"></span><span>today</span></div>
           <div class="ah-hero-stats" id="ahHeroStats"></div>
         </section>
 
         <section class="ah-block">
           <div class="ah-head">
-            <h2 class="ah-title">Waiting on you</h2>
-            <span class="ah-count" id="ahQueueCount">–</span>
+            <h2 class="ah-title">Needs you</h2>
+            <span class="ah-count" id="ahQueueCount">&ndash;</span>
           </div>
-          <div class="ah-queue" id="ahQueue"><div class="ah-empty">Loading…</div></div>
+          <div class="ah-queue" id="ahQueue"><div class="ah-empty">Loading&hellip;</div></div>
         </section>
 
         <section class="ah-block">
           <div class="ah-head">
-            <h2 class="ah-title">Your roster</h2>
-            <button type="button" class="ah-link" onclick="ahGo('tab','tribe')">All members →</button>
+            <h2 class="ah-title">The numbers</h2>
+            <button type="button" class="ah-toggle" id="ahZeroToggle" onclick="ahToggleZeros()" style="display:none"></button>
           </div>
-          <div class="ah-tiles" id="ahTilesRoster"></div>
+          <div class="ah-segs" role="tablist" aria-label="Metric group">
+            <button type="button" class="ah-seg is-on" data-seg="roster" onclick="ahSetSeg('roster')">Roster</button>
+            <button type="button" class="ah-seg" data-seg="pipeline" onclick="ahSetSeg('pipeline')">Pipeline</button>
+            <button type="button" class="ah-seg" data-seg="intake" onclick="ahSetSeg('intake')">Intake</button>
+          </div>
+          <div class="ah-metrics hide-zero" id="ahMetrics"></div>
         </section>
 
         <section class="ah-block">
           <div class="ah-head">
-            <h2 class="ah-title">Growth &amp; pipeline</h2>
-            <button type="button" class="ah-link" onclick="ahGo('tab','leads')">Open leads →</button>
+            <h2 class="ah-title">Jump to</h2>
           </div>
-          <div class="ah-tiles" id="ahTilesPipeline"></div>
-        </section>
-
-        <section class="ah-block">
-          <div class="ah-head">
-            <h2 class="ah-title">Quick access</h2>
-          </div>
-          <div class="ah-quick-grid" id="ahQuick"></div>
+          <div class="ah-rail" id="ahQuick"></div>
         </section>
 
         <section class="ah-block">
           <div class="ah-head">
             <h2 class="ah-title">Just happened</h2>
-            <button type="button" class="ah-link" onclick="ahGo('section','analytics')">Analytics →</button>
+            <button type="button" class="ah-link" onclick="ahGo('section','analytics')">Analytics &rarr;</button>
           </div>
-          <div class="ah-feed" id="ahFeed"><div class="ah-empty">Loading…</div></div>
+          <div class="ah-feed" id="ahFeed"><div class="ah-empty">Loading&hellip;</div></div>
         </section>
       </div>
 
@@ -23495,11 +23496,18 @@ function bbNutritionMealSlotHtml(mt) {
   var esc = function (s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); };
   return (
     '<div class="meal-slot" data-meal="' + esc(mt) + '" id="mslot-' + esc(mt) + '">' +
-      '<div class="meal-slot-header"><div class="meal-slot-id">' +
-      '<span class="meal-icon" aria-hidden="true">' + icon + '</span>' +
-      '<div><div class="meal-type-label">' + esc(meta.label) + '</div>' +
-      '<div class="meal-time-hint">' + esc(meta.hint) + '</div></div></div>' +
-      '<div class="meal-status-badge" id="badge-' + esc(mt) + '">Not logged</div></div>' +
+      '<button type="button" class="meal-slot-header" id="mhead-' + esc(mt) + '"' +
+        ' onclick="nutritionToggleSlot(\'' + esc(mt) + '\')"' +
+        ' aria-expanded="false" aria-controls="mbody-' + esc(mt) + '">' +
+        '<span class="meal-slot-id">' +
+          '<span class="meal-icon" aria-hidden="true">' + icon + '</span>' +
+          '<span class="meal-slot-txt"><span class="meal-type-label">' + esc(meta.label) + '</span>' +
+          '<span class="meal-time-hint">' + esc(meta.hint) + '</span></span>' +
+        '</span>' +
+        '<span class="meal-status-badge" id="badge-' + esc(mt) + '">Not logged</span>' +
+        '<span class="meal-chev" aria-hidden="true"></span>' +
+      '</button>' +
+      '<div class="meal-body" id="mbody-' + esc(mt) + '">' +
       '<div class="meal-upload-area" id="upload-' + esc(mt) + '">' +
       '<input type="file" id="file-camera-' + esc(mt) + '" accept="image/*" capture="environment" style="display:none" onchange="nutritionHandleMealPhoto(event,\'' + esc(mt) + '\')" />' +
       '<input type="file" id="file-upload-' + esc(mt) + '" accept="image/*" style="display:none" onchange="nutritionHandleMealPhoto(event,\'' + esc(mt) + '\')" />' +
@@ -23520,19 +23528,43 @@ function bbNutritionMealSlotHtml(mt) {
       '<div class="meal-actions" id="actions-' + esc(mt) + '" style="display:none">' +
       '<button type="button" class="analyze-single-btn" onclick="nutritionAnalyzeSingle(\'' + esc(mt) + '\')">' +
       '<span class="spinner-sm" id="spin-' + esc(mt) + '" style="display:none"></span>Analyze &amp; save</button></div>' +
-      '<div class="meal-result" id="result-' + esc(mt) + '" style="display:none"></div></div>'
+      '<div class="meal-result" id="result-' + esc(mt) + '" style="display:none"></div>' +
+      '</div></div>'
   );
 }
 
 function nutritionEnsureMealGrid() {
   var g = document.getElementById('nutritionMealGrid');
   if (!g) return;
-  var SLOT_VER = 'v3-compact-actions';
+  var SLOT_VER = 'v4-meal-rows';
   if (g.getAttribute('data-bb-slot-ver') === SLOT_VER && bbNutritionGridReady) return;
   g.setAttribute('data-bb-slot-ver', SLOT_VER);
   g.innerHTML = bbNutritionMeals.map(bbNutritionMealSlotHtml).join('');
   bbNutritionGridReady = true;
   nutritionUpdateSubmitAllState();
+}
+
+/**
+ * Open one meal and close the rest.
+ *
+ * `force` is used by the code paths that begin work on a meal - picking a photo,
+ * choosing manual entry, finishing an analysis - so the controls a member just
+ * invoked are never left behind a collapsed row.
+ */
+function nutritionToggleSlot(mt, force) {
+  var slot = document.getElementById('mslot-' + mt);
+  if (!slot) return;
+  var open = force === true ? true : (force === false ? false : !slot.classList.contains('is-open'));
+  document.querySelectorAll('.nutrition-checkin .meal-slot.is-open').forEach(function (n) {
+    if (n !== slot) {
+      n.classList.remove('is-open');
+      var h = n.querySelector('.meal-slot-header');
+      if (h) h.setAttribute('aria-expanded', 'false');
+    }
+  });
+  slot.classList.toggle('is-open', open);
+  var head = document.getElementById('mhead-' + mt);
+  if (head) head.setAttribute('aria-expanded', open ? 'true' : 'false');
 }
 
 function nutritionSetBadge(mt, text, cls) {
@@ -23612,6 +23644,7 @@ function nutritionSetSubmitHint(msg) {
 function nutritionHandleMealPhoto(ev, mt) {
   var file = ev.target.files && ev.target.files[0];
   if (!file) return;
+  nutritionToggleSlot(mt, true);
   var maxBytes = 10 * 1024 * 1024;
   if (file.size > maxBytes) {
     nutritionShowToast('Photo must be 10 MB or smaller.', 'error');
@@ -23727,6 +23760,7 @@ function nutritionRemovePhoto(mt, opts) {
 function nutritionToggleManual(mt) {
   var box = document.getElementById('manual-' + mt);
   if (!box) return;
+  nutritionToggleSlot(mt, true);
   var vis = box.style.display !== 'none';
   box.style.display = vis ? 'none' : 'block';
   if (!vis) {
@@ -23746,9 +23780,28 @@ function nutritionSetPortion(mt, size) {
   });
 }
 
+/** The one-line summary the collapsed meal row shows once it has been analysed. */
+function nutritionSetRowSummary(mt, result) {
+  var row = document.getElementById('mhead-' + mt);
+  if (!row) return;
+  var old = row.querySelector('.meal-row-sum');
+  if (old) old.remove();
+  if (!result) return;
+  var bits = [];
+  if (result.calories != null) bits.push(result.calories + ' kcal');
+  if (result.protein != null) bits.push(result.protein + 'g protein');
+  if (!bits.length) return;
+  var txt = document.createElement('span');
+  txt.className = 'meal-row-sum';
+  txt.textContent = bits.join(' \u00b7 ');
+  var host = row.querySelector('.meal-slot-txt');
+  if (host) host.appendChild(txt);
+}
+
 function nutritionRenderMealResult(mt, result, score, mealConfidence) {
   var el = document.getElementById('result-' + mt);
   if (!el || !result) return;
+  nutritionSetRowSummary(mt, result);
   var hadPhoto = !!result._bbAnalyzedWithPhoto;
   var src = result._bbEntrySource === 'manual' ? 'manual' : 'ai';
   var confMeta = mealConfidence || nutritionClassifyConfidence(
@@ -24821,6 +24874,7 @@ async function nutritionAnalyzeSingle(mt, opts) {
   if (ds && ds.calorieGoal != null) bbNutritionState.goals.cal = ds.calorieGoal;
   if (ds && ds.proteinGoal != null) bbNutritionState.goals.pro = ds.proteinGoal;
   nutritionRenderMealResult(mt, data.aiResult, data.mealScore, mc);
+  nutritionToggleSlot(mt, true);
   nutritionUpdateSummaryFromState();
   nutritionApplyEnergyRow(ds);
   var conf = (data.aiResult && data.aiResult.confidence || '').toLowerCase();
