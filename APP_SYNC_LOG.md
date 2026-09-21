@@ -38,33 +38,30 @@ Before every mobile release:
 
 _One item pending: web commit `6d4af43` ("announce the Android launch across the public pages") adds the hero store pill and the **Get the App** section to the public pages. Those are deliberately **not** in `www/` — a "Download the app on Google Play" block inside the app itself is noise. Revisit only if the iOS launch changes the calculus._
 
-Web commit `7882e6e` ("perf: cut N+1 queries, add missing indexes, parallelize independent work") touches `public/index.html`:
-- Removed an unused `html2canvas` `<script>` tag (dead weight, zero call sites).
-- Admin/user notification polling now skips its fetch while the tab/app is backgrounded (`document.hidden` check) — same 60s cadence while visible.
-- Admin nutrition meal-photo thumbnails get `loading="lazy"`.
-
-All three are pure internal efficiency changes with no visible/functional difference — safe to fold into whichever sync picks up the next release. Everything else in that commit is backend-only (`server.js`, `routes/`, `services/`, `config/db.js`) and already live for the apps via Render, no sync needed.
-
-Web commits `f4a677c` + `089688e` ("perf(admin): cut the admin console's round trips; drop the login leads popup") also touch `public/index.html`:
-- **Admin login no longer fires eleven loaders.** Eight of them filled tabs that are still behind a click and were refetched on that click anyway; only the KPI tiles, the bell and the activity feed now load up front.
-- **Admin tab re-opens are gated** to one fetch per 30s (`adminTabLoad()`); Messages is exempt.
-- **The "Today · Leads" dialog no longer opens itself** after admin login, or every 15 minutes. It opens only from the "Pulse view" button on the Leads widget, and its "Remind me in 4h" button is gone with the auto-open it belonged to (the header X, the overlay, ESC and the "Open pipeline" CTA all still close it). Admin-only; members never saw it.
-- **Profile photo cap lowered 5 MB → 2 MB** (`MAX_PROFILE_PHOTO_BYTES`, the upload hint text under the avatar picker, and the client-side error string). The server-side cap in `server.js` matches.
-- The desktop admin dashboard fetches performance insights and the client board concurrently instead of one after the other.
-
-All admin-only or internal except the 2 MB photo cap, which members see as the hint text under the avatar picker. The rest of that commit is backend-only (the `/api/avatar/:key` endpoint that keeps staff payloads free of base64 photos, batched scorecards, pool sizing, HTML revalidation) and is live for the apps via Render with no sync needed.
-
-Web commit `a811f90` ("feat(ui): rebuild the Client Board, Client Progress and Nutrition check-in; drop Marketing AI") is a **large** `public/index.html` change and the first one here that members will see:
-
-- **Member — Nutrition check-in (the one member-facing item; sync this before the next release).** Camera and Gallery share a row with one-word labels and "or enter manually" becomes a link, so each meal card drops from ~290px to ~185px — twelve controls on a phone screen become eight plus four links. The hero gains a progress ring. The submit button keeps a short label and the "add details for all 4 meals" reason moves to a hint line under it. **Both file inputs are unchanged** — the `capture="environment"` camera input and the plain gallery input are the pair the Play photo-picker policy requires (see the Android photo-picker note); only their labels and layout moved.
-- **Admin — Client Performance Board**, rebuilt as a one-line-per-client roster in a new `.bbcb-*` namespace, with search, risk filters, sort and a KPI strip. Admin-only.
-- **Admin — Client Progress**, searchable rail in a new `.bbcp-*` namespace, whole-row targets, audit tool moved to the rail footer. Admin-only.
-- **Marketing AI removed**: `public/marketing-ai.{html,js,css}` are deleted and its three nav entries are gone. The app bundles `public/`, so the deleted files simply stop being mirrored into `www/`; nothing in the app linked to them.
-- `.admin-attention-card` is deliberately **untouched** — the mobile dashboard's risk list still uses it, which is why the two new screens took their own namespaces.
-
-Backend in the same commit (`server.js`, `services/aiUsageLedger.js`) is live for the apps via Render with no sync needed.
-
 ---
+
+## 2026-09-21 — UI rebuild + admin perf, v1.8.0 / versionCode 109 / iOS 1.0.3
+
+Syncs web commits `7882e6e`, `f4a677c`, `089688e`, `a811f90`, `90b021e`. Mobile release `5989dcc`.
+
+**`www/` payload**
+- **Nutrition check-in rebuilt** (the member-facing part of this release). Camera and Gallery share a row with one-word labels and "or enter manually" becomes a link — each meal card drops from ~290px to ~185px, so a phone screen carries eight controls plus four links instead of twelve buttons. The hero gains a progress ring driven by the meal count already being computed. The submit button keeps a short label and its "add details for all 4 meals" reason moves to a hint line beneath. **Both file inputs are unchanged** — the `capture="environment"` camera input and the plain gallery input are the pair the Play photo-picker policy requires; only labels and layout moved. The release manifest was re-checked: no `READ_MEDIA_*`, no `EXTERNAL_STORAGE`.
+- **Admin Client Performance Board** rebuilt as a one-line-per-client roster (`.bbcb-*`) with search, risk filters, sort and a KPI strip. **Admin Client Progress** rebuilt with a searchable rail (`.bbcp-*`), whole-row targets and the data-audit tool moved to the rail footer. Staff-only screens, but they ship in the same document.
+- **Marketing AI removed** — `www/marketing-ai.{html,js,css}` deleted with it. Nothing in the app linked to them.
+- **Admin login fan-out cut** from eleven loaders to three; admin tab re-opens gated to one fetch per 30s; the "Today · Leads" dialog no longer opens itself (and its "Remind me in 4h" button is gone with it).
+- **Profile photo cap lowered 5 MB → 2 MB** — members see this as the hint text under the avatar picker.
+- Notification polling skips its fetch while the app is backgrounded; an unused `html2canvas` script tag removed; admin meal-photo thumbnails lazy-load.
+
+**Versions**
+- Android `versionCode` 108 → **109**, `versionName` 1.7.10 → **1.8.0** (the literals the local `gradlew bundleRelease` path uses; Codemagic still overrides them via `ANDROID_VERSION_CODE`/`ANDROID_VERSION_NAME`).
+- iOS `MARKETING_VERSION` 1.0.2 → **1.0.3**, both configurations. `CURRENT_PROJECT_VERSION` left alone on purpose — the iOS workflow sets the build number itself with `agvtool new-version -all $BUILD_NUMBER`.
+
+**Checked before shipping**
+- `scripts/ios-strip-store-refs.js` dry-run against a copy of the new `www/`: exits 0, "bundle clean" — so the iOS build will not fail its Guideline 2.3.10 strip step.
+- Signed AAB built locally from the release tree and inspected: versionCode 109, versionName 1.8.0, contains the rebuilt screens, no marketing-ai asset.
+
+Backend in those web commits (`/api/avatar/:key`, batched scorecards, pool sizing, HTML revalidation, the removed `/api/marketing-ai` mount) is live for the apps via Render — no sync needed.
+
 
 ## 2026-09-10 — Yoga + voice input + graded report, v1.7.9, versionCode 107
 
