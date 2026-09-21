@@ -637,6 +637,147 @@ if (NODE_ENV !== 'production') {
 
 app.use(optionalApiAccessLog);
 
+/* ======================================================================
+   STAFF AVATAR EXTERNALISATION
+
+   users.profile_picture holds the photo itself, as a base64 data URL. That is
+   fine for a member, who only ever receives their own — but a staff screen
+   lists the whole roster, so /api/admin/users and /api/tribe were carrying one
+   full-size photo per client inside the JSON, on every load of every list. The
+   admin console got slower with each member who uploaded a photo, and nothing
+   was cacheable because the bytes arrived inside an API response.
+
+   The photos still appear exactly as before; they just travel as a URL that the
+   browser fetches once and caches. The URL is content-addressed (md5 of the
+   stored data URL), so it is stable while the photo is unchanged, changes the
+   moment the member uploads a new one, and can therefore be cached immutably.
+
+   Deliberately scoped to staff roles: a member's own responses are left byte
+   for byte as they were, so nothing on the member side can shift.
+   ====================================================================== */
+
+const AVATAR_KEYS = new Set(['profile_picture', 'profilePicture', 'avatar', 'avatarUrl', 'clientAvatar']);
+const AVATAR_MIN_BYTES = 1024;        // below this, inlining is cheaper than a request
+const AVATAR_CACHE_MAX = 500;         // md5 -> data URL; the DB is the fallback
+const AVATAR_STAFF_ROLES = new Set(['admin', 'superadmin', 'operator']);
+const avatarCache = new Map();
+
+function avatarKeyFor(dataUrl) {
+  return crypto.createHash('md5').update(String(dataUrl), 'utf8').digest('hex');
+}
+
+function rememberAvatar(key, dataUrl) {
+  if (avatarCache.has(key)) avatarCache.delete(key);
+  avatarCache.set(key, dataUrl);
+  // Plain LRU by insertion order; an evicted key still resolves from the DB.
+  while (avatarCache.size > AVATAR_CACHE_MAX) {
+    avatarCache.delete(avatarCache.keys().next().value);
+  }
+}
+
+/**
+ * Replace base64 avatar values with /api/avatar/<md5> URLs.
+ *
+ * Copy-on-write: a container is cloned only when something inside it actually
+ * changed, and the original object is returned untouched otherwise. So a handler
+ * that keeps a reference to what it passed to res.json() — or res.json()s a
+ * cached object — never sees its own data rewritten underneath it, and a response
+ * with no avatars in it allocates nothing at all.
+ *
+ * Dates and Buffers are returned as-is so pg row values serialise exactly as before.
+ */
+function externalizeAvatars(node, depth) {
+  const d = depth || 0;
+  if (d > 8 || node === null || typeof node !== 'object') return node;
+  if (node instanceof Date || Buffer.isBuffer(node)) return node;
+
+  if (Array.isArray(node)) {
+    let out = node;
+    for (let i = 0; i < node.length; i++) {
+      const next = externalizeAvatars(node[i], d + 1);
+      if (next !== node[i]) {
+        if (out === node) out = node.slice();
+        out[i] = next;
+      }
+    }
+    return out;
+  }
+
+  let out = node;
+  for (const k of Object.keys(node)) {
+    const v = node[k];
+    let next = v;
+    if (typeof v === 'string') {
+      if (AVATAR_KEYS.has(k) && v.length >= AVATAR_MIN_BYTES && v.startsWith('data:image/')) {
+        const key = avatarKeyFor(v);
+        rememberAvatar(key, v);
+        next = '/api/avatar/' + key;
+      }
+    } else if (v && typeof v === 'object') {
+      next = externalizeAvatars(v, d + 1);
+    }
+    if (next !== v) {
+      if (out === node) out = Object.assign({}, node);
+      out[k] = next;
+    }
+  }
+  return out;
+}
+
+app.use((req, res, next) => {
+  if (!req.path.startsWith('/api/')) return next();
+  const sendJson = res.json.bind(res);
+  res.json = function (body) {
+    try {
+      // req.user is populated by verifyToken, which has run by the time a
+      // handler calls res.json().
+      const role = req.user && req.user.role;
+      if (role && AVATAR_STAFF_ROLES.has(role)) body = externalizeAvatars(body, 0);
+    } catch (e) {
+      // Never let this cost a response: fall through with the original body.
+      console.warn('[avatar externalise]', e.message);
+    }
+    return sendJson(body);
+  };
+  next();
+});
+
+/**
+ * Serve one avatar by its content hash.
+ *
+ * Unauthenticated on purpose: an <img> tag cannot send an Authorization header.
+ * The path is the md5 of the image itself, so it cannot be guessed or walked
+ * from a user id, and it is only ever handed out inside an authenticated staff
+ * response. A hash that no longer matches any member returns 404.
+ */
+app.get('/api/avatar/:key', async (req, res) => {
+  try {
+    const key = String(req.params.key || '');
+    if (!/^[0-9a-f]{32}$/.test(key)) return res.status(404).end();
+    let dataUrl = avatarCache.get(key);
+    if (!dataUrl) {
+      // Survives a restart, or an eviction, without breaking a cached page.
+      const row = await queryOne('SELECT profile_picture FROM users WHERE md5(profile_picture) = ? LIMIT 1', [key]);
+      dataUrl = row && row.profile_picture ? String(row.profile_picture) : '';
+      if (!dataUrl) return res.status(404).end();
+      rememberAvatar(key, dataUrl);
+    }
+    const m = /^data:([\w/+.-]+);base64,(.+)$/.exec(dataUrl);
+    if (!m) return res.status(404).end();
+    const buf = Buffer.from(m[2], 'base64');
+    // The URL changes whenever the photo does, so the bytes behind one URL can
+    // never change — cache them for as long as the browser will.
+    res.setHeader('Content-Type', m[1]);
+    res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
+    res.setHeader('ETag', '"' + key + '"');
+    if (req.headers['if-none-match'] === '"' + key + '"') return res.status(304).end();
+    return res.end(buf);
+  } catch (e) {
+    console.error('[avatar]', e.message);
+    return res.status(404).end();
+  }
+});
+
 let pool;
 
 /** Convert SQL with ? placeholders to PostgreSQL $1, $2, ... */
@@ -697,7 +838,8 @@ function validateProfilePicture(profilePicture) {
   }
   const bytes = getDataUrlBytes(value);
   if (!bytes) return 'Could not process this image.';
-  if (bytes > 5 * 1024 * 1024) return 'Profile photo must be 5 MB or smaller.';
+  // Kept in step with MAX_PROFILE_PHOTO_BYTES in public/index.html.
+  if (bytes > 2 * 1024 * 1024) return 'Profile photo must be 2 MB or smaller.';
   return null;
 }
 
@@ -760,7 +902,25 @@ async function syncUserCountryAndTimezone(userId, email, currentCountry, current
   }
 }
 
+// Reconciliation sweep, not a write path: new members are added to the board at
+// signup by addApprovedUserToTribe(). This runs on every /api/stats and every
+// /api/admin/users hit — several times per admin page load — and in steady state
+// does two table reads to insert nothing. Re-running it more than once a minute
+// cannot find anything the last run missed, so it is throttled; a genuine miss is
+// picked up on the next sweep, exactly as before.
+const TRIBE_SYNC_MIN_INTERVAL_MS = 60 * 1000;
+let _tribeSyncLastRun = 0;
+let _tribeSyncInFlight = null;
+
 async function ensureApprovedUsersInActiveTribe() {
+  if (_tribeSyncInFlight) return _tribeSyncInFlight;
+  if (Date.now() - _tribeSyncLastRun < TRIBE_SYNC_MIN_INTERVAL_MS) return;
+  _tribeSyncInFlight = runApprovedUsersTribeSync();
+  try { await _tribeSyncInFlight; }
+  finally { _tribeSyncLastRun = Date.now(); _tribeSyncInFlight = null; }
+}
+
+async function runApprovedUsersTribeSync() {
   try {
     const approved = await queryAll(
       `SELECT id, email, first_name, last_name, phone, country, created_at
@@ -829,7 +989,18 @@ async function addApprovedUserToTribe(user) {
 
 // ============ DATABASE ============
 async function initDB() {
-  pool = new Pool({ connectionString: DATABASE_URL });
+  // Every admin/member API handler in this file runs its queries through THIS pool
+  // (config/db.js builds a separate one, used only by the newer services/ and
+  // controllers/ modules). It was created with no `max`, so it silently ran on pg's
+  // default of 10 connections — while an admin landing fans out a dozen concurrent
+  // requests, several of which issue tens of queries each. Everything past the tenth
+  // in-flight query sat in the pool's wait queue. DB_POOL_MAX tunes both pools.
+  pool = new Pool({
+    connectionString: DATABASE_URL,
+    max: Number(process.env.DB_POOL_MAX) || 15,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 10000
+  });
   try {
     await pool.query('SELECT 1');
     console.log('✅ PostgreSQL connected');
@@ -3626,22 +3797,25 @@ app.get('/api/tribe', verifyToken, requireOperator, async (req, res) => {
 
     const weekStart = scorecardSvc.normalizeWeekStart('');
     const prevWeek = scorecardSvc.previousWeekStart(weekStart);
-    const enriched = await Promise.all((rows || []).map(async (r) => {
+
+    // The Client Board used to score every member one at a time: 5 DB round trips
+    // per member per week, twice (this week + last week for the trend arrow). On a
+    // 50-client board that was ~500 queries for one screen, and this endpoint is the
+    // admin landing's heaviest read. The batched form issues 9 grouped queries for
+    // the whole roster and returns the identical per-member objects.
+    const ids = (rows || []).map((r) => (r && r.user_id ? String(r.user_id) : '')).filter(Boolean);
+    const targets = await scorecardSvc.getWorkoutTargetsBulk(ids);
+    const [currentById, previousById] = await Promise.all([
+      scorecardSvc.computeWeeklyScoresDedicationBulk(ids, weekStart, targets),
+      prevWeek
+        ? scorecardSvc.computeWeeklyScoresDedicationBulk(ids, prevWeek, targets)
+        : Promise.resolve(new Map())
+    ]);
+
+    const enriched = (rows || []).map((r) => {
       const uid = r && r.user_id ? String(r.user_id) : '';
-      if (!uid) {
-        return {
-          ...r,
-          score_total: null,
-          score_week_label: scorecardSvc.formatWeekRangeLabel(weekStart),
-          score_trend_delta: null,
-          score_pillars: null
-        };
-      }
-      // current/previous are independent computations — no need to serialize them.
-      const [current, previous] = await Promise.all([
-        scorecardSvc.computeWeeklyScoreDedication(uid, weekStart),
-        prevWeek ? scorecardSvc.computeWeeklyScoreDedication(uid, prevWeek) : Promise.resolve(null)
-      ]);
+      const current = uid ? (currentById.get(uid) || null) : null;
+      const previous = uid ? (previousById.get(uid) || null) : null;
       return {
         ...r,
         score_total: current ? current.total : null,
@@ -3654,7 +3828,7 @@ app.get('/api/tribe', verifyToken, requireOperator, async (req, res) => {
           progress: current.progress
         } : null
       };
-    }));
+    });
 
     res.json(enriched);
   } catch (e) {
@@ -8765,35 +8939,45 @@ app.get('/api/me/programs/pdf', async (req, res) => {
 // ============ STATS ============
 app.get('/api/stats', verifyToken, requireOperator, async (req, res) => {
   await ensureApprovedUsersInActiveTribe();
-  const pending = await queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='pending'");
-  const active = await queryAll(
-    `SELECT COUNT(*) as c
-       FROM tribe_members tm
-       INNER JOIN users u
-         ON LOWER(u.email) = LOWER(tm.email)
-        AND u.role = 'user'
-        AND COALESCE(u.approval_status, 'approved') = 'approved'
-        AND COALESCE(u.suspended, FALSE) = FALSE
-      WHERE tm.status = 'active'`
-  );
-  const completed = await queryAll("SELECT COUNT(*) as c FROM tribe_members WHERE status='completed'");
-  const total = await queryAll("SELECT COUNT(*) as c FROM tribe_members");
-  const [workouts] = await queryAll("SELECT COUNT(*) as c FROM workout_logs");
-  const [formsTotal] = await queryAll("SELECT COUNT(*) as c FROM audit_requests");
-  const [sundayCheckins] = await queryAll("SELECT COUNT(*) as c FROM sunday_checkins");
-  const [dailyCheckins] = await queryAll("SELECT COUNT(*) as c FROM daily_checkins");
-  // Today-scoped, de-duplicated by user, freeze markers excluded. The all-time
-  // `daily_checkins` count above is not a meaningful dashboard headline — it read
-  // 566 against a 36-member roster. Kept for back-compat; new clients use this.
-  const [dailyCheckinsToday] = await queryAll(
-    "SELECT COUNT(DISTINCT user_id) as c FROM daily_checkins WHERE checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE"
-  );
-  const [trials] = await queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND subscription_status='trialing' AND COALESCE(suspended, FALSE) = FALSE");
-  const [contactMsgs] = await queryAll("SELECT COUNT(*) as c FROM contact_messages");
-  const [unreadThreads] = await queryAll(
-    "SELECT COUNT(*) as c FROM message_threads t WHERE (SELECT sender_role FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.created_at DESC LIMIT 1) = 'user'"
-  );
-
+  // These thirteen counts are independent of each other, but ran as thirteen
+  // sequential awaits — thirteen serialized DB round trips before the admin
+  // dashboard's first number appeared. Same queries, same fields, one wave.
+  const [
+    pending, active, completed, total, workoutsRows, formsTotalRows, sundayCheckins,
+    dailyCheckinsRows, dailyCheckinsTodayRows, trialsRows, contactMsgsRows, unreadThreadsRows
+  ] = await Promise.all([
+    queryAll("SELECT COUNT(*) as c FROM audit_requests WHERE status='pending'"),
+    queryAll(
+      `SELECT COUNT(*) as c
+         FROM tribe_members tm
+         INNER JOIN users u
+           ON LOWER(u.email) = LOWER(tm.email)
+          AND u.role = 'user'
+          AND COALESCE(u.approval_status, 'approved') = 'approved'
+          AND COALESCE(u.suspended, FALSE) = FALSE
+        WHERE tm.status = 'active'`
+    ),
+    queryAll("SELECT COUNT(*) as c FROM tribe_members WHERE status='completed'"),
+    queryAll("SELECT COUNT(*) as c FROM tribe_members"),
+    queryAll("SELECT COUNT(*) as c FROM workout_logs"),
+    queryAll("SELECT COUNT(*) as c FROM audit_requests"),
+    queryAll("SELECT COUNT(*) as c FROM sunday_checkins"),
+    queryAll("SELECT COUNT(*) as c FROM daily_checkins"),
+    // Today-scoped, de-duplicated by user, freeze markers excluded. The all-time
+    // `daily_checkins` count above is not a meaningful dashboard headline — it read
+    // 566 against a 36-member roster. Kept for back-compat; new clients use this.
+    queryAll("SELECT COUNT(DISTINCT user_id) as c FROM daily_checkins WHERE checkin_date = CURRENT_DATE AND COALESCE(is_freeze, FALSE) = FALSE"),
+    queryAll("SELECT COUNT(*) as c FROM users WHERE role='user' AND subscription_status='trialing' AND COALESCE(suspended, FALSE) = FALSE"),
+    queryAll("SELECT COUNT(*) as c FROM contact_messages"),
+    queryAll("SELECT COUNT(*) as c FROM message_threads t WHERE (SELECT sender_role FROM thread_messages m WHERE m.thread_id = t.id ORDER BY m.created_at DESC LIMIT 1) = 'user'")
+  ]);
+  const [workouts] = workoutsRows;
+  const [formsTotal] = formsTotalRows;
+  const [dailyCheckins] = dailyCheckinsRows;
+  const [dailyCheckinsToday] = dailyCheckinsTodayRows;
+  const [trials] = trialsRows;
+  const [contactMsgs] = contactMsgsRows;
+  const [unreadThreads] = unreadThreadsRows;
   const num = (v) => (v === undefined || v === null ? 0 : parseInt(String(v), 10) || 0);
   res.json({
     pending_requests: num(pending[0]?.c),
@@ -8816,19 +9000,23 @@ app.get('/api/admin/recent-activity', verifyToken, requireAdminOrSuperadmin, asy
   try {
     const limit = 10;
     const activities = [];
-    const sc = await queryAll('SELECT full_name, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT ?', [limit]);
+    // Four independent lists that were fetched one after another; the merge below
+    // sorts them anyway, so the fetch order never mattered.
+    const [sc, wl, cm, ps] = await Promise.all([
+      queryAll('SELECT full_name, created_at FROM sunday_checkins ORDER BY created_at DESC LIMIT ?', [limit]),
+      queryAll(
+        `SELECT u.first_name, u.last_name, w.created_at FROM workout_logs w LEFT JOIN users u ON u.id = w.user_id ORDER BY w.created_at DESC LIMIT ?`,
+        [limit]
+      ),
+      queryAll('SELECT name, created_at FROM contact_messages ORDER BY created_at DESC LIMIT ?', [limit]),
+      queryAll(
+        "SELECT first_name, last_name, created_at FROM users WHERE role='user' AND subscription_status='trialing' ORDER BY created_at DESC LIMIT ?",
+        [limit]
+      )
+    ]);
     (sc || []).forEach(r => activities.push({ name: r.full_name || 'Unknown', type: 'Check-in', status: 'NEW', created_at: r.created_at }));
-    const wl = await queryAll(
-      `SELECT u.first_name, u.last_name, w.created_at FROM workout_logs w LEFT JOIN users u ON u.id = w.user_id ORDER BY w.created_at DESC LIMIT ?`,
-      [limit]
-    );
     (wl || []).forEach(r => activities.push({ name: ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || 'User', type: 'Workout logged', status: 'DONE', created_at: r.created_at }));
-    const cm = await queryAll('SELECT name, created_at FROM contact_messages ORDER BY created_at DESC LIMIT ?', [limit]);
     (cm || []).forEach(r => activities.push({ name: r.name || 'Unknown', type: 'Message', status: 'UNREAD', created_at: r.created_at }));
-    const ps = await queryAll(
-      "SELECT first_name, last_name, created_at FROM users WHERE role='user' AND subscription_status='trialing' ORDER BY created_at DESC LIMIT ?",
-      [limit]
-    );
     (ps || []).forEach(r => activities.push({ name: ((r.first_name || '') + ' ' + (r.last_name || '')).trim() || 'New user', type: 'Trial started', status: 'TRIAL', created_at: r.created_at }));
     activities.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
     res.json(activities.slice(0, limit));
@@ -12170,10 +12358,18 @@ app.get('/api/campaigns/log', verifyToken, requireAdmin, async (req, res) => {
   }
 });
 
-// Serve HTML pages with no-cache so users always get latest UI after deploys
+// Serve HTML pages with no-cache so users always get latest UI after deploys.
+//
+// `no-cache` (revalidate before every use), NOT `no-store` (never keep a copy).
+// index.html is ~1.9 MB / ~420 KB gzipped and it was re-downloaded in full on every
+// load and every refresh, for every member and every admin, even when the file had
+// not changed. With no-cache the browser still checks with the server on every
+// load — so a deploy is picked up exactly as immediately as before — but an
+// unchanged file comes back as an empty 304 instead of 420 KB. Pragma is dropped
+// here on purpose: some HTTP/1.0 intermediaries read it as no-store and would
+// undo this.
 app.get(['/', '/index.html'], (req, res) => {
-  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, must-revalidate, private');
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 // Standalone auth pages — shareable direct links (/signin, /signup) that do not
@@ -12292,8 +12488,9 @@ app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: NODE_ENV === 'production' ? '7d' : 0,
   setHeaders: (res, filePath) => {
     if (/\.html$/i.test(filePath)) {
-      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-      res.setHeader('Pragma', 'no-cache');
+      // Revalidate on every load (deploys land immediately), but allow the browser
+      // to keep the bytes so an unchanged page answers 304 rather than resending.
+      res.setHeader('Cache-Control', 'no-cache, must-revalidate, private');
     }
   }
 }));
@@ -12779,7 +12976,9 @@ app.use('/uploads', express.static(FEED_UPLOADS_DIR, {
 
 app.use((req, res) => {
   if (req.method === 'GET' && !req.path.startsWith('/api/')) {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate');
+    // Same reasoning as the '/' route above: revalidate every time, but let an
+    // unchanged 1.9 MB document answer with a 304 instead of resending itself.
+    res.setHeader('Cache-Control', 'no-cache, must-revalidate');
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
   } else {
     res.status(404).json({ error: 'Not found' });

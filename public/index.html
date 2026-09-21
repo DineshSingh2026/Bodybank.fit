@@ -7459,7 +7459,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <div id="profAvatarPlaceholder" class="profile-avatar-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
           <input type="file" id="profAvatarInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
           <button type="button" onclick="document.getElementById('profAvatarInput').click()" style="margin-top:12px;padding:8px 20px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-weight:600;font-size:12px;cursor:pointer;letter-spacing:1px">Change Photo</button>
-          <div class="profile-avatar-note">JPG, PNG, WEBP or GIF up to 5 MB</div>
+          <div class="profile-avatar-note">JPG, PNG, WEBP or GIF up to 2 MB</div>
         </div>
       </div>
       <div id="profileFormSkeleton" class="skeleton-wrapper" style="display:none">
@@ -13080,10 +13080,16 @@ async function loadDashboard() {
   // admin doesn't watch it snap from Pulse to their pick a second later.
   try { if (typeof bbmdRestoreSeg === 'function') bbmdRestoreSeg(); } catch (_) {}
   // The landing (quick access + /api/admin/overview) is what the admin is looking
-  // at; the ten loaders below fill tabs that are still behind a click. Start the
-  // landing first instead of making it queue behind all ten.
+  // at, so it is started first rather than queued behind anything else.
   if (typeof ahBoot === 'function') ahBoot();
-  await Promise.all([loadStats(), loadRequests(), loadTribe(), loadAdminWorkouts(), loadAdminMeetings(), loadAdminMessages(), loadWaDrafts(), loadNotifications(), loadPart2Submissions(), loadSundayCheckins(), loadLiveActivity()]);
+  // Only the three loaders below feed something the admin is actually looking at:
+  // the KPI tiles (loadStats), the bell (loadNotifications) and the activity feed
+  // (loadLiveActivity). The other eight filled tab bodies that are still behind a
+  // click — and switchTab() re-fetches every one of them when that click happens,
+  // so the work was thrown away. Eight requests (including a full /api/tribe, the
+  // heaviest read in the console) have been removed from the path between login
+  // and a usable dashboard.
+  await Promise.all([loadStats(), loadNotifications(), loadLiveActivity()]);
   if (typeof startAdminNotificationPolling === 'function') startAdminNotificationPolling();
   if (typeof registerNativePush === 'function') registerNativePush();
   if (window.BBNotify) window.BBNotify.ensure();
@@ -13146,7 +13152,11 @@ const ADMIN_AI_PROMPT_COLLAPSE_KEY = 'bodybank_admin_ai_prompt_collapsed_v1';
 const RESET_SUCCESS_KEY = 'bodybank_reset_success';
 const NOTIFY_CLEARED_KEY = 'bodybank_notify_cleared';
 const NOTIFY_BROWSER_SENT_KEY = 'bodybank_notify_browser_sent';
-const MAX_PROFILE_PHOTO_BYTES = 5 * 1024 * 1024;
+// Lowered from 5 MB to 2 MB. A profile photo is only ever shown at avatar size, so
+// the extra megabytes bought nothing and were paid for on every screen that lists
+// members. Anything larger is downscaled by compressImageToDataUrl() rather than
+// rejected, so the upload flow itself is unchanged.
+const MAX_PROFILE_PHOTO_BYTES = 2 * 1024 * 1024;
 /** Target decoded JPEG size under Anthropic’s 5 MiB image limit (margin for API). */
 const NUTRITION_MEAL_IMAGE_MAX_DECODED = Math.floor(4.3 * 1024 * 1024);
 function getClearedNotifyIds() { try { const s = localStorage.getItem(NOTIFY_CLEARED_KEY); return s ? JSON.parse(s) : []; } catch (e) { return []; } }
@@ -13592,10 +13602,11 @@ async function loadStats() {
   // The widget HTML exists in two places (.bb-desktop-dashboard + .admin-dash-page);
   // loadLeadsToday() populates whichever grid is present.
   try { if (typeof loadLeadsToday === 'function') loadLeadsToday(); } catch (_) {}
-  try {
-    if (typeof bbTodayPopAutoCheck === 'function') bbTodayPopAutoCheck();
-    if (typeof bbTodayPopStartTimer === 'function') bbTodayPopStartTimer();
-  } catch (_) {}
+  // The "Today . Leads" dialog used to open itself 1.2s after every admin login
+  // (and again every 15 minutes) unless it had been dismissed within 4 hours.
+  // Removed at the user's request: it now opens only from the "Pulse view"
+  // button on the Leads widget. The dialog, its contents and that button are
+  // all unchanged - only the automatic opening is gone.
 }
 
 function bbAdminCoinName(row) {
@@ -13713,7 +13724,17 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
   }
 
   // Use admin insights payload for richer desktop widgets (stats = summary + sunday_checkins alias)
-  var insights = await apiCall('GET', '/api/admin/performance-insights?source=all');
+  //
+  // The insights payload and the tribe list feed different widgets and neither is
+  // derived from the other, but they were awaited one after the other — so the
+  // growth chart could not start loading until the progress bars had finished.
+  // Both are started here and awaited where each is first used.
+  var insightsP = apiCall('GET', '/api/admin/performance-insights?source=all');
+  var tribeP = apiCall('GET', '/api/tribe');
+  // An insights failure still returns early, exactly as before; the tribe request
+  // is already in flight by then and its result is simply unused.
+  tribeP.catch(function () {});
+  var insights = await insightsP;
   if (!insights || insights.error) return;
 
   var s = insights.stats || insights.summary || {};
@@ -13733,7 +13754,7 @@ async function bbRefreshDesktopAdminDashboard(statsData) {
   });
 
   // Tribe data: used for growth chart + monitoring table
-  var tribe = await apiCall('GET', '/api/tribe');
+  var tribe = await tribeP;
   var members = Array.isArray(tribe) ? tribe.slice() : [];
 
   // Member Growth chart (tribe onboarding by month; last 6 buckets)
@@ -18030,6 +18051,44 @@ function switchToSection(section) {
   if (adminWrap) adminWrap.scrollTop = 0;
   window.scrollTo(0, 0);
 }
+/* Reopening an admin section re-ran its entire fetch, every time — so bouncing
+   between two tabs cost a full round trip on each bounce and each one blanked
+   its table back to "Loading…" before redrawing the same rows. The previous
+   render is still in the DOM, so inside this window the section just reappears.
+   Past it, it reloads exactly as it always did.
+
+   Deliberately NOT applied to Messages: that tab shows client conversations,
+   where a 30-second-old view is the wrong answer. Loaders invoked directly by
+   filter controls and by post-save handlers bypass this gate too, so a section
+   the admin just edited always redraws from the server. */
+var ADMIN_TAB_FRESH_MS = 30000;
+var _adminTabLoadedAt = Object.create(null);
+
+/** Force the next open of `tab` to refetch (pass nothing to clear every tab). */
+function adminTabInvalidate(tab) {
+  if (tab) delete _adminTabLoadedAt[tab];
+  else _adminTabLoadedAt = Object.create(null);
+}
+
+function adminTabLoad(tab, fn) {
+  if (typeof fn !== 'function') return;
+  var last = _adminTabLoadedAt[tab] || 0;
+  if (last && (Date.now() - last) < ADMIN_TAB_FRESH_MS) return;
+  _adminTabLoadedAt[tab] = Date.now();
+  var out;
+  try {
+    out = fn();
+  } catch (e) {
+    delete _adminTabLoadedAt[tab];
+    throw e;
+  }
+  // A failed load must not be remembered as a fresh one, or the error state
+  // would stick for the whole window.
+  if (out && typeof out.catch === 'function') {
+    out.catch(function () { delete _adminTabLoadedAt[tab]; });
+  }
+}
+
 function switchTab(tab) {
   // Backward compatibility: older links used the combined tab name.
   if (tab === 'messages-meetings') tab = 'messages';
@@ -18078,31 +18137,31 @@ function switchTab(tab) {
   if (adminWrap) adminWrap.scrollTop = 0;
   window.scrollTo(0, 0);
   if (tab === 'messages') { mountAdminInbox(); loadAdminMessages(); loadWaDrafts(); }
-  if (tab === 'meetings') { loadAdminMeetings(); loadMeetingUserDropdown(); }
-  if (tab === 'workouts') loadAdminWorkouts();
-  if (tab === 'requests') loadRequests();
-  if (tab === 'sundaycheckin') loadSundayCheckins();
-  if (tab === 'dailycheckin') loadDailyCheckins();
-  if (tab === 'dailycompliance') loadDailyCompliancePreview();
-  if (tab === 'tribe') loadTribe();
-  if (tab === 'part2') loadPart2Submissions();
-  if (tab === 'nutritionassessment') loadNutritionAssessments();
-  if (tab === 'leads') loadLeads();
-  if (tab === 'insights') loadPerformanceInsights();
-  if (tab === 'clientprogress') loadClientProgressUsers();
-  if (tab === 'programs') loadProgramsAdmin();
-  if (tab === 'transformations') loadTransformationsAdmin();
-  if (tab === 'leaderboards') loadAdminCoinLeaderboard();
-  if (tab === 'leaderboard') loadAdminVirtualLeaderboardSection();
-  if (tab === 'coinleaderboard') loadAdminCoinLeaderboard();
-  if (tab === 'campaigns') loadCampaigns();
-  if (tab === 'nutrition') loadAdminNutritionReport();
-  if (tab === 'blood') loadAdminBloodReports();
-  if (tab === 'smartscale') loadAdminSmartScale();
-  if (tab === 'memberships') loadAdminMemberships();
-  if (tab === 'referrals') loadAdminReferrals();
-  if (tab === 'tokens') loadAdminTokenUsage();
-  if (tab === 'reports') { if (typeof loadAdminReports === 'function') loadAdminReports(); }
+  if (tab === 'meetings') adminTabLoad('meetings', function () { loadAdminMeetings(); loadMeetingUserDropdown(); });
+  if (tab === 'workouts') adminTabLoad('workouts', loadAdminWorkouts);
+  if (tab === 'requests') adminTabLoad('requests', loadRequests);
+  if (tab === 'sundaycheckin') adminTabLoad('sundaycheckin', loadSundayCheckins);
+  if (tab === 'dailycheckin') adminTabLoad('dailycheckin', loadDailyCheckins);
+  if (tab === 'dailycompliance') adminTabLoad('dailycompliance', loadDailyCompliancePreview);
+  if (tab === 'tribe') adminTabLoad('tribe', loadTribe);
+  if (tab === 'part2') adminTabLoad('part2', loadPart2Submissions);
+  if (tab === 'nutritionassessment') adminTabLoad('nutritionassessment', loadNutritionAssessments);
+  if (tab === 'leads') adminTabLoad('leads', loadLeads);
+  if (tab === 'insights') adminTabLoad('insights', loadPerformanceInsights);
+  if (tab === 'clientprogress') adminTabLoad('clientprogress', loadClientProgressUsers);
+  if (tab === 'programs') adminTabLoad('programs', loadProgramsAdmin);
+  if (tab === 'transformations') adminTabLoad('transformations', loadTransformationsAdmin);
+  if (tab === 'leaderboards') adminTabLoad('leaderboards', loadAdminCoinLeaderboard);
+  if (tab === 'leaderboard') adminTabLoad('leaderboard', loadAdminVirtualLeaderboardSection);
+  if (tab === 'coinleaderboard') adminTabLoad('coinleaderboard', loadAdminCoinLeaderboard);
+  if (tab === 'campaigns') adminTabLoad('campaigns', loadCampaigns);
+  if (tab === 'nutrition') adminTabLoad('nutrition', loadAdminNutritionReport);
+  if (tab === 'blood') adminTabLoad('blood', loadAdminBloodReports);
+  if (tab === 'smartscale') adminTabLoad('smartscale', loadAdminSmartScale);
+  if (tab === 'memberships') adminTabLoad('memberships', loadAdminMemberships);
+  if (tab === 'referrals') adminTabLoad('referrals', loadAdminReferrals);
+  if (tab === 'tokens') adminTabLoad('tokens', loadAdminTokenUsage);
+  if (tab === 'reports') { if (typeof loadAdminReports === 'function') adminTabLoad('reports', loadAdminReports); }
 }
 /* ======================================================================
    ADMIN . TOKENS -- AI spend ledger
@@ -27651,7 +27710,7 @@ async function handleAvatarUpload(event) {
       base64 = await compressImageToDataUrl(file);
     }
     if (getDataUrlBytes(base64) > MAX_PROFILE_PHOTO_BYTES) {
-      throw new Error('Profile photo must be 5 MB or smaller.');
+      throw new Error('Profile photo must be 2 MB or smaller.');
     }
     setProfileAvatar(base64);
     setUserWelcomeAvatar(base64);

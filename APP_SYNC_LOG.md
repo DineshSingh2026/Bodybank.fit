@@ -45,6 +45,15 @@ Web commit `7882e6e` ("perf: cut N+1 queries, add missing indexes, parallelize i
 
 All three are pure internal efficiency changes with no visible/functional difference — safe to fold into whichever sync picks up the next release. Everything else in that commit is backend-only (`server.js`, `routes/`, `services/`, `config/db.js`) and already live for the apps via Render, no sync needed.
 
+Web commit `HEAD` ("perf(admin): cut the admin console's round trips; drop the login leads popup") also touches `public/index.html`:
+- **Admin login no longer fires eleven loaders.** Eight of them filled tabs that are still behind a click and were refetched on that click anyway; only the KPI tiles, the bell and the activity feed now load up front.
+- **Admin tab re-opens are gated** to one fetch per 30s (`adminTabLoad()`); Messages is exempt.
+- **The "Today · Leads" dialog no longer opens itself** after admin login, or every 15 minutes. It opens only from the "Pulse view" button on the Leads widget. Admin-only; members never saw it.
+- **Profile photo cap lowered 5 MB → 2 MB** (`MAX_PROFILE_PHOTO_BYTES`, the upload hint text under the avatar picker, and the client-side error string). The server-side cap in `server.js` matches.
+- The desktop admin dashboard fetches performance insights and the client board concurrently instead of one after the other.
+
+All admin-only or internal except the 2 MB photo cap, which members see as the hint text under the avatar picker. The rest of that commit is backend-only (the `/api/avatar/:key` endpoint that keeps staff payloads free of base64 photos, batched scorecards, pool sizing, HTML revalidation) and is live for the apps via Render with no sync needed.
+
 ---
 
 ## 2026-09-10 — Yoga + voice input + graded report, v1.7.9, versionCode 107

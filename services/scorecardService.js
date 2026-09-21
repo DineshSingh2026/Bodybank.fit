@@ -263,6 +263,137 @@ function createScorecardService({ queryOne, queryAll }) {
     };
   }
 
+  /**
+   * Workout targets for a whole roster in one query — the set-based form of
+   * getWorkoutTarget()'s lookup. Same row per user (the most recent tribe_members
+   * row by start_date, NULLS LAST); the clamp/default is applied by the caller so
+   * this stays a plain "what did they sign up for" map.
+   *
+   * @returns {Promise<Map<string, *>>} userId -> raw activity_per_week (may be null)
+   */
+  async function getWorkoutTargetsBulk(userIds) {
+    const out = new Map();
+    const ids = Array.from(new Set((userIds || []).map((x) => String(x || '')).filter(Boolean)));
+    if (!ids.length) return out;
+    const rows = await queryAll(
+      `SELECT u.id AS user_id, tm.activity_per_week
+         FROM users u
+         LEFT JOIN LATERAL (
+           SELECT t.activity_per_week FROM tribe_members t
+            WHERE LOWER(t.email) = LOWER(u.email)
+            ORDER BY t.start_date DESC NULLS LAST
+            LIMIT 1
+         ) tm ON TRUE
+        WHERE u.id = ANY(?)`,
+      [ids]
+    );
+    (rows || []).forEach((r) => out.set(String(r.user_id), r.activity_per_week));
+    return out;
+  }
+
+  /**
+   * Batched form of computeWeeklyScoreDedication() for a whole roster.
+   *
+   * The per-user function costs 5 round trips (1 workout target + the 4 inside
+   * fetchWeekSlice). The Client Board asked for it once per member per week, so a
+   * 50-client board was 500 round trips for one screen — the single most expensive
+   * read in the admin console. Every one of those queries is the same query with a
+   * different user_id, so they collapse into one grouped query each.
+   *
+   * Identical arithmetic: same weights, same workout target resolution, same
+   * distinct-day counting (the per-user code de-duplicated dates in a JS Set,
+   * which is what COUNT(DISTINCT ...) does here), same rounding via computePillars.
+   * Returns a Map of userId -> the same object computeWeeklyScoreDedication returns.
+   *
+   * @param {string[]} userIds
+   * @param {string}   weekStartISO  Monday of the week, "YYYY-MM-DD"
+   * @param {Map}      [targets]     workout targets from getWorkoutTargetsBulk(), so a
+   *                                 caller scoring several weeks resolves them once.
+   *                                 Must be complete for every id, or omitted entirely.
+   */
+  async function computeWeeklyScoresDedicationBulk(userIds, weekStartISO, targets) {
+    const out = new Map();
+    const ids = Array.from(new Set((userIds || []).map((x) => String(x || '')).filter(Boolean)));
+    if (!ids.length) return out;
+
+    const weights = mergeWeights(null);
+    const weekEndExclusive = addDaysISO(weekStartISO, 7);
+    // fetchWeekSlice() returns null for an unparseable week, and the caller maps a
+    // null score to "no score". Keep that: an empty Map means every id scores null.
+    if (!weekEndExclusive) return out;
+    const fromIso = `${weekStartISO}T00:00:00.000Z`;
+    const toIso = `${weekEndExclusive}T00:00:00.000Z`;
+
+    // Workout targets do not depend on the week, so a caller scoring several weeks
+    // resolves them once with getWorkoutTargetsBulk() and passes the Map in.
+    const targetById = (targets instanceof Map) ? targets : await getWorkoutTargetsBulk(ids);
+
+    const [dailyRows, sundayRows, workoutRows, progressRows] = await Promise.all([
+      queryAll(
+        `SELECT user_id, COUNT(DISTINCT checkin_date)::int AS c FROM daily_checkins
+          WHERE user_id = ANY(?) AND checkin_date >= ?::date AND checkin_date < ?::date
+            AND COALESCE(is_freeze, FALSE) = FALSE
+          GROUP BY user_id`,
+        [ids, weekStartISO, weekEndExclusive]
+      ),
+      queryAll(
+        `SELECT user_id, COUNT(*)::int AS c FROM sunday_checkins
+          WHERE user_id = ANY(?) AND created_at >= ?::timestamptz AND created_at < ?::timestamptz
+          GROUP BY user_id`,
+        [ids, fromIso, toIso]
+      ),
+      queryAll(
+        `SELECT user_id, COUNT(*)::int AS c FROM workout_logs
+          WHERE user_id = ANY(?) AND (
+            (session_date IS NOT NULL AND session_date >= ?::date AND session_date < ?::date)
+            OR (session_date IS NULL AND created_at >= ?::timestamptz AND created_at < ?::timestamptz)
+          )
+          GROUP BY user_id`,
+        [ids, weekStartISO, weekEndExclusive, fromIso, toIso]
+      ),
+      queryAll(
+        `SELECT user_id, COUNT(DISTINCT created_at::date)::int AS c FROM progress_logs
+          WHERE user_id = ANY(?) AND created_at >= ?::timestamptz AND created_at < ?::timestamptz
+          GROUP BY user_id`,
+        [ids, fromIso, toIso]
+      )
+    ]);
+
+    const toMap = (rows) => {
+      const m = new Map();
+      (rows || []).forEach((r) => m.set(String(r.user_id), Number(r.c) || 0));
+      return m;
+    };
+    const daily = toMap(dailyRows);
+    const sunday = toMap(sundayRows);
+    const workouts = toMap(workoutRows);
+    const progress = toMap(progressRows);
+
+    const weekLabel = formatWeekRangeLabel(weekStartISO);
+    ids.forEach((uid) => {
+      const apwRaw = targetById.get(uid);
+      const apw = apwRaw != null ? parseInt(apwRaw, 10) : NaN;
+      const workoutTarget = (!isNaN(apw) && apw > 0)
+        ? clamp(apw, 1, 14)
+        : (weights.workout_target || DEFAULT_WEIGHTS.workout_target);
+      const pillars = computePillars({
+        dailyDays: daily.get(uid) || 0,
+        sundayCount: sunday.get(uid) || 0,
+        workoutCount: workouts.get(uid) || 0,
+        progressDistinctDays: progress.get(uid) || 0
+      }, weights, workoutTarget);
+      out.set(uid, {
+        week_start: weekStartISO,
+        week_label: weekLabel,
+        program_id: null,
+        program_name: 'BodyBank',
+        weights,
+        ...pillars
+      });
+    });
+    return out;
+  }
+
   async function rankInCohort(userId, programId, weekStartISO, optedIn, publicProgram) {
     if (!optedIn || !programId || !publicProgram) {
       return { rank: null, cohort_size: null };
@@ -295,10 +426,12 @@ function createScorecardService({ queryOne, queryAll }) {
     if (!ids.length) {
       return { rank: null, cohort_size: 0 };
     }
-    const computed = await Promise.all(ids.map((uid) => computeWeeklyScoreDedication(uid, weekStartISO)));
+    // One grouped pass for the whole opted-in board, instead of 5 DB round trips
+    // per member just to find one member's rank in it.
+    const scoresById = await computeWeeklyScoresDedicationBulk(ids, weekStartISO);
     const scores = [];
-    ids.forEach((uid, i) => {
-      const s = computed[i];
+    ids.forEach((uid) => {
+      const s = scoresById.get(String(uid));
       if (s) scores.push({ id: uid, total: s.total });
     });
     scores.sort((a, b) => b.total - a.total || String(a.id).localeCompare(String(b.id)));
@@ -311,8 +444,14 @@ function createScorecardService({ queryOne, queryAll }) {
   // concurrently (was one `await` per id, sequentially) and batch the display-name
   // lookup into a single `WHERE id = ANY(?)` (was one `queryOne` per id). Same rows,
   // same fields, same final sort — only the number/order of DB round-trips changes.
-  async function assembleLeaderboardRows(ids, scoreFn, weekStartISO) {
-    const computed = await Promise.all(ids.map((uid) => scoreFn(uid, weekStartISO)));
+  async function assembleLeaderboardRows(ids, scoreFn, weekStartISO, bulkFn) {
+    // `bulkFn`, where one exists for this scoring mode, replaces N per-user fan-outs
+    // (5 DB round trips each) with a fixed handful of grouped queries. It returns the
+    // same score objects keyed by user id, so everything below is unchanged.
+    const scoresById = bulkFn ? await bulkFn(ids, weekStartISO) : null;
+    const computed = scoresById
+      ? ids.map((uid) => scoresById.get(String(uid)) || null)
+      : await Promise.all(ids.map((uid) => scoreFn(uid, weekStartISO)));
     const survivingIds = [];
     const scoreById = new Map();
     ids.forEach((uid, i) => {
@@ -359,7 +498,7 @@ function createScorecardService({ queryOne, queryAll }) {
 
   async function buildLeaderboardGlobal(weekStartISO, limit = 50) {
     const ids = await globalLeaderboardUserIds();
-    const rows = await assembleLeaderboardRows(ids, computeWeeklyScoreDedication, weekStartISO);
+    const rows = await assembleLeaderboardRows(ids, computeWeeklyScoreDedication, weekStartISO, computeWeeklyScoresDedicationBulk);
     rows.sort((a, b) => b.total - a.total || String(a.user_id).localeCompare(String(b.user_id)));
     return rows.slice(0, limit).map((r, i) => ({ ...r, rank: i + 1 }));
   }
@@ -425,6 +564,8 @@ function createScorecardService({ queryOne, queryAll }) {
     previousWeekStart: (iso) => addDaysISO(iso, -7),
     computeWeeklyScore,
     computeWeeklyScoreDedication,
+    computeWeeklyScoresDedicationBulk,
+    getWorkoutTargetsBulk,
     rankInCohort,
     rankInGlobal,
     buildLeaderboard,
