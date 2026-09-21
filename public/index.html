@@ -2854,6 +2854,167 @@ body.admin-dashboard-open .admin-ai-wa-fab-wrap{display:flex}
 }
 
 /* Client Performance Board (replaces old Tribe cards) */
+/* ======================================================================
+   CLIENT PERFORMANCE BOARD  (.bbcb-*)
+   ----------------------------------------------------------------------
+   Replaces the old .tribe-grid card wall, where each client cost ~560px of
+   height to say very little: the same fact ("last check-in") appeared twice,
+   empty fields still drew full-size boxes, and two destructive buttons sat at
+   the bottom of every card. Two clients filled a 1440x1000 screen.
+
+   This is a roster instead: one line per client, every line the same shape, so
+   the eye compares down a column rather than hunting around a card. The header
+   and every row share ONE grid-template-columns declaration, which is what
+   keeps the columns in line - there are no per-cell widths that can drift.
+   Numbers use tabular figures so digits hold their position row to row.
+
+   Own namespace on purpose: the old cards borrowed .admin-attention-card, which
+   the mobile dashboard's risk list still uses. Nothing here touches it.
+   ====================================================================== */
+
+.bbcb{display:flex;flex-direction:column;gap:16px;min-width:0}
+
+/* ---- Header ------------------------------------------------------------ */
+.bbcb-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.bbcb-head-titles{min-width:0}
+.bbcb-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:1.6px;color:var(--cream);text-transform:uppercase;line-height:1;margin:0 0 6px}
+.bbcb-sub{font-size:12.5px;color:var(--muted);margin:0;line-height:1.45}
+.bbcb-count{display:inline-flex;align-items:baseline;gap:6px;padding:7px 14px;border:1px solid rgba(200,164,78,0.28);border-radius:99px;background:rgba(200,164,78,0.06);white-space:nowrap}
+.bbcb-count b{font-family:var(--bb-font-heading);font-size:19px;font-weight:700;color:var(--gold);line-height:1;font-variant-numeric:tabular-nums}
+.bbcb-count span{font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--creamd)}
+
+/* ---- KPI strip --------------------------------------------------------- */
+.bbcb-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.bbcb-kpi{position:relative;overflow:hidden;padding:14px 16px;border:1px solid var(--bb-border);border-radius:14px;background:linear-gradient(165deg,rgba(255,255,255,0.035),rgba(255,255,255,0.012));min-width:0}
+.bbcb-kpi::before{content:'';position:absolute;top:0;bottom:0;left:0;width:3px;background:var(--bb-border)}
+.bbcb-kpi.is-good::before{background:var(--bb-green)}
+.bbcb-kpi.is-warn::before{background:var(--bb-orange)}
+.bbcb-kpi.is-bad::before{background:var(--bb-red)}
+.bbcb-kpi.is-gold::before{background:var(--gold)}
+.bbcb-kpi-lbl{font-size:9.5px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bbcb-kpi-val{font-family:var(--bb-font-heading);font-size:28px;font-weight:700;color:var(--cream);line-height:1.05;margin-top:5px;font-variant-numeric:tabular-nums}
+.bbcb-kpi-sub{font-size:10.5px;color:var(--creamd);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* ---- Toolbar ----------------------------------------------------------- */
+.bbcb-tools{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.bbcb-search{position:relative;flex:1 1 230px;min-width:0;max-width:340px}
+.bbcb-search input{width:100%;padding:10px 12px 10px 34px;background:rgba(255,255,255,0.03);border:1px solid var(--bb-border);border-radius:10px;color:var(--cream);font-family:'Outfit',sans-serif;font-size:13px;outline:none;transition:border-color .2s,background .2s}
+.bbcb-search input::placeholder{color:#6a6a6a}
+.bbcb-search input:focus{border-color:rgba(200,164,78,0.55);background:rgba(200,164,78,0.04)}
+.bbcb-search-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;display:flex}
+.bbcb-chips{display:flex;gap:6px;flex-wrap:wrap}
+.bbcb-chip{padding:9px 13px;border-radius:99px;border:1px solid var(--bb-border);background:rgba(255,255,255,0.02);color:var(--creamd);font-family:'Outfit',sans-serif;font-size:11.5px;font-weight:600;letter-spacing:0.3px;cursor:pointer;transition:all .18s;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.bbcb-chip:hover{border-color:rgba(200,164,78,0.4);color:var(--cream)}
+.bbcb-chip.is-on{background:rgba(200,164,78,0.14);border-color:var(--gold);color:var(--gold)}
+.bbcb-chip i{font-style:normal;font-variant-numeric:tabular-nums;opacity:.7;font-size:10.5px}
+.bbcb-sort{margin-left:auto;display:flex;align-items:center;gap:7px;white-space:nowrap}
+.bbcb-sort label{font-size:10px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);font-weight:600}
+.bbcb-sort select{padding:9px 11px;background:rgba(255,255,255,0.03);border:1px solid var(--bb-border);border-radius:10px;color:var(--cream);font-family:'Outfit',sans-serif;font-size:12.5px;cursor:pointer;outline:none}
+.bbcb-sort select:focus{border-color:rgba(200,164,78,0.55)}
+.bbcb-sort select option{background:#141317;color:var(--cream)}
+
+/* ---- Roster ------------------------------------------------------------ */
+.bbcb-table{border:1px solid var(--bb-border);border-radius:16px;overflow:hidden;background:rgba(255,255,255,0.012)}
+.bbcb-row{display:grid;grid-template-columns:minmax(0,2.2fr) 96px 104px 122px minmax(0,1fr) 112px 40px;align-items:center;gap:14px;padding:13px 16px;border-bottom:1px solid rgba(255,255,255,0.055);min-width:0}
+.bbcb-row:last-child{border-bottom:none}
+.bbcb-thead{background:rgba(0,0,0,0.3);border-bottom:1px solid rgba(200,164,78,0.16);padding-top:11px;padding-bottom:11px}
+.bbcb-th{font-size:9.5px;letter-spacing:1.4px;text-transform:uppercase;color:var(--muted);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bbcb-tr{position:relative;transition:background .16s}
+.bbcb-tr:hover{background:rgba(200,164,78,0.045)}
+.bbcb-tr::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:transparent;transition:background .16s}
+.bbcb-tr.risk-high::before{background:var(--bb-red)}
+.bbcb-tr.risk-watch::before{background:var(--bb-orange)}
+.bbcb-tr.risk-ok::before{background:var(--bb-green)}
+
+.bbcb-who{display:flex;align-items:center;gap:11px;min-width:0}
+.bbcb-who .bb-admin-avatar{width:36px;height:36px;flex-shrink:0}
+.bbcb-who-txt{min-width:0}
+.bbcb-name{font-family:'Outfit',sans-serif;font-size:13.5px;font-weight:600;color:var(--cream);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bbcb-meta{font-size:10.5px;color:var(--muted);line-height:1.3;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.bbcb-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:99px;font-size:9.5px;font-weight:700;letter-spacing:0.9px;text-transform:uppercase;white-space:nowrap;border:1px solid transparent}
+.bbcb-pill::before{content:'';width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+.bbcb-pill.risk-high{color:#ff6b6b;background:rgba(192,57,43,0.14);border-color:rgba(192,57,43,0.4)}
+.bbcb-pill.risk-watch{color:#eda145;background:rgba(230,126,34,0.14);border-color:rgba(230,126,34,0.38)}
+.bbcb-pill.risk-ok{color:#4ade80;background:rgba(46,204,113,0.12);border-color:rgba(46,204,113,0.34)}
+
+.bbcb-score{display:flex;align-items:baseline;gap:7px;min-width:0}
+.bbcb-score-num{font-family:var(--bb-font-heading);font-size:24px;font-weight:700;line-height:1;color:var(--cream);font-variant-numeric:tabular-nums}
+.bbcb-score-num.is-none{color:#4a4a4a;font-size:19px}
+.bbcb-delta{font-size:10.5px;font-weight:600;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bbcb-delta.up{color:var(--bb-green)}
+.bbcb-delta.down{color:#ff6b6b}
+.bbcb-delta.flat{color:var(--muted)}
+
+.bbcb-days{display:flex;align-items:center;gap:4px}
+.bbcb-dot{width:11px;height:11px;border-radius:3px;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.08);flex-shrink:0}
+.bbcb-dot.on{background:var(--bb-green);border-color:var(--bb-green);box-shadow:0 0 7px rgba(46,204,113,0.45)}
+.bbcb-days-n{font-size:10.5px;color:var(--muted);margin-left:3px;font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.bbcb-wt{display:flex;flex-direction:column;gap:2px;min-width:0}
+.bbcb-wt-main{font-size:12.5px;color:var(--cream);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bbcb-wt-d{font-size:10.5px;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+.bbcb-wt-d.down{color:var(--bb-green)}
+.bbcb-wt-d.up{color:#eda145}
+.bbcb-wt-d.flat{color:var(--muted)}
+.bbcb-none{color:#4a4a4a}
+
+.bbcb-seen{font-size:12.5px;color:var(--cream);white-space:nowrap;font-variant-numeric:tabular-nums}
+.bbcb-seen small{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.bbcb-seen.is-stale{color:#ff8787}
+
+.bbcb-menu-wrap{position:relative;justify-self:end}
+.bbcb-menu-btn{width:30px;height:30px;border-radius:8px;border:1px solid transparent;background:transparent;color:var(--muted);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:16px;line-height:1;transition:all .18s;padding:0}
+.bbcb-menu-btn:hover{background:rgba(255,255,255,0.06);border-color:var(--bb-border);color:var(--cream)}
+.bbcb-menu{position:absolute;right:0;top:34px;z-index:40;min-width:206px;padding:6px;border-radius:12px;border:1px solid rgba(200,164,78,0.26);background:#121114;box-shadow:0 18px 42px rgba(0,0,0,0.6);display:none}
+.bbcb-menu.show{display:block}
+.bbcb-menu button{display:block;width:100%;text-align:left;padding:9px 11px;background:none;border:none;border-radius:8px;color:var(--creamd);font-family:'Outfit',sans-serif;font-size:12.5px;cursor:pointer;transition:background .15s,color .15s}
+.bbcb-menu button:hover{background:rgba(255,255,255,0.06);color:var(--cream)}
+.bbcb-menu button.danger:hover{background:rgba(192,57,43,0.16);color:#ff8787}
+
+.bbcb-blank{padding:54px 24px;text-align:center}
+.bbcb-blank-icon{font-size:30px;opacity:.5;margin-bottom:10px}
+.bbcb-blank-t{font-family:'Outfit',sans-serif;font-size:14.5px;color:var(--cream);font-weight:600;margin-bottom:5px}
+.bbcb-blank-s{font-size:12px;color:var(--muted);line-height:1.5;max-width:340px;margin:0 auto}
+
+/* ---- Tablet: drop the widest optional columns -------------------------- */
+@media (max-width:1180px){
+  .bbcb-row{grid-template-columns:minmax(0,2.2fr) 96px 104px 122px 108px 40px}
+  .bbcb-col-wt{display:none}
+}
+@media (max-width:980px){
+  .bbcb-row{grid-template-columns:minmax(0,2fr) 92px 100px 110px 40px}
+  .bbcb-col-seen{display:none}
+  .bbcb-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
+/* ---- Phone: each row becomes a labelled card --------------------------- */
+@media (max-width:760px){
+  /* Same specificity as .bbcb-row, which sets display:grid a few lines down,
+     so this has to be the more specific selector rather than just first. */
+  .bbcb-row.bbcb-thead{display:none}
+  .bbcb-table{border:none;border-radius:0;background:none;display:flex;flex-direction:column;gap:12px;overflow:visible}
+  .bbcb-row{display:grid;grid-template-columns:1fr 1fr;gap:12px 14px;padding:14px;border:1px solid var(--bb-border);border-radius:14px;background:linear-gradient(165deg,rgba(255,255,255,0.035),rgba(255,255,255,0.012))}
+  .bbcb-tr::before{width:3px;border-radius:14px 0 0 14px}
+  .bbcb-col-who{grid-column:1/-1;padding-right:36px}
+  .bbcb-col-risk{grid-column:1/-1;margin-top:-5px}
+  .bbcb-col-wt,.bbcb-col-seen{display:block}
+  .bbcb-row [data-l]::before{content:attr(data-l);display:block;font-size:9px;letter-spacing:1.3px;text-transform:uppercase;color:var(--muted);font-weight:700;margin-bottom:6px}
+  .bbcb-col-menu{position:absolute;top:10px;right:8px}
+  .bbcb-menu-wrap{justify-self:auto}
+  .bbcb-search{max-width:none;flex:1 1 100%}
+  .bbcb-sort{margin-left:0;flex:1 1 100%}
+  .bbcb-sort select{flex:1}
+  .bbcb-chips{flex:1 1 100%}
+  .bbcb-chip{flex:1 1 auto;justify-content:center}
+  .bbcb-title{font-size:22px}
+}
+@media (max-width:420px){
+  .bbcb-kpis{gap:8px}
+  .bbcb-kpi{padding:11px 12px}
+  .bbcb-kpi-val{font-size:23px}
+}
+
 .tribe-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
 .tribe-card{padding:22px;background:radial-gradient(120% 160% at 0% 0%, rgba(200,164,78,0.18) 0%, rgba(8,8,8,0.98) 35%, rgba(8,8,8,0.98) 100%);border:1px solid rgba(200,164,78,0.24);border-radius:16px;transition:border-color .3s,transform .22s;box-shadow:0 12px 34px rgba(0,0,0,0.35)}
 .tribe-card:hover{border-color:rgba(200,164,78,0.5);transform:translateY(-2px)}
@@ -3440,7 +3601,24 @@ button.bb-today-pill{cursor:pointer}
 @keyframes nutriPulse{0%{box-shadow:0 0 0 0 rgba(46,204,113,0.55)}70%{box-shadow:0 0 0 7px rgba(46,204,113,0)}100%{box-shadow:0 0 0 0 rgba(46,204,113,0)}}
 .nutri-hero-title{position:relative;z-index:1;font-family:var(--bb-font-heading,'Rajdhani',sans-serif);font-size:22px;font-weight:700;letter-spacing:.02em;color:#fff;margin:0 0 5px}
 .nutri-hero-sub{position:relative;z-index:1;font-family:var(--bb-font-body);font-size:12.5px;color:rgba(255,255,255,0.58);line-height:1.55;margin:0 0 16px;max-width:440px}
-.nutri-hero-stats{position:relative;z-index:1;display:flex;gap:10px;flex-wrap:wrap}
+.nutri-hero-stats{position:relative;z-index:1;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+/* --- Nutrition check-in: hero ring + submit hint -----------------------
+   The ring is the meals-logged count as a shape. Its geometry lives here
+   (r=19 in a 44x44 box); only the dash offset is set from script. */
+.nutri-ring-wrap{position:relative;width:58px;height:58px;flex-shrink:0}
+.nutri-ring{width:58px;height:58px;transform:rotate(-90deg)}
+.nutri-ring-bg,.nutri-ring-fg{fill:none;stroke-width:4;stroke-linecap:round}
+.nutri-ring-bg{stroke:rgba(255,255,255,0.09)}
+.nutri-ring-fg{stroke:var(--bb-green);transition:stroke-dashoffset .45s cubic-bezier(.2,.8,.2,1)}
+.nutri-ring-txt{position:absolute;inset:0;display:flex;align-items:baseline;justify-content:center;gap:1px;pointer-events:none}
+.nutri-ring-txt b{font-family:var(--bb-font-heading);font-size:20px;font-weight:700;color:var(--cream);line-height:1;font-variant-numeric:tabular-nums}
+.nutri-ring-txt i{font-style:normal;font-family:var(--bb-font-heading);font-size:13px;font-weight:700;color:rgba(255,255,255,0.42);font-variant-numeric:tabular-nums}
+.nutri-hero-facts{display:flex;flex-direction:column;gap:7px;min-width:0}
+.nutri-fact{display:flex;align-items:baseline;gap:7px;min-width:0}
+.nutri-fact-num{font-family:var(--bb-font-heading);font-size:17px;font-weight:700;color:var(--bb-green);line-height:1;font-variant-numeric:tabular-nums;flex-shrink:0}
+.nutri-fact.gold .nutri-fact-num{color:var(--bb-gold)}
+.nutri-fact-lbl{font-size:11px;color:var(--creamd);line-height:1.2;min-width:0}
+.nutri-submit-hint{margin:-6px 0 12px;font-size:11.5px;color:var(--muted);text-align:center;line-height:1.4}
 .nutri-stat{display:flex;align-items:baseline;gap:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08);border-radius:12px;padding:8px 13px}
 .nutri-stat-num{font-family:var(--bb-font-heading);font-size:18px;font-weight:700;color:var(--bb-green);line-height:1}
 .nutri-stat.gold .nutri-stat-num{color:var(--bb-gold)}
@@ -3485,14 +3663,14 @@ button.bb-today-pill{cursor:pointer}
   .nutrition-checkin .meal-status-badge{margin:7px 0 0}
 }
 .nutrition-checkin .meal-upload-area{display:flex;flex-direction:column;gap:8px;align-items:stretch}
-.nutrition-checkin .meal-upload-btns{display:flex;flex-direction:column;gap:8px;width:100%}
-.nutrition-checkin .upload-trigger-btn{min-height:46px;width:100%;padding:10px;border:1.5px solid rgba(46,204,113,0.40);background:rgba(46,204,113,0.08);color:var(--bb-green);border-radius:11px;font-family:var(--bb-font-heading);font-weight:700;font-size:12px;letter-spacing:.02em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
+.nutrition-checkin .meal-upload-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;width:100%;min-width:0}
+.nutrition-checkin .meal-upload-btns>button{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nutrition-checkin .upload-trigger-btn{min-height:42px;width:100%;padding:9px 8px;border:1.5px solid rgba(46,204,113,0.40);background:rgba(46,204,113,0.08);color:var(--bb-green);border-radius:11px;font-family:var(--bb-font-heading);font-weight:700;font-size:12px;letter-spacing:.02em;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;transition:all .2s}
 .nutrition-checkin .upload-trigger-btn:hover{border-color:var(--bb-green);background:rgba(46,204,113,0.16);transform:translateY(-1px)}
-.nutrition-checkin .upload-gallery-btn{min-height:42px;width:100%;padding:9px;border:1px solid var(--bb-border);background:var(--bb-surface-hover);color:var(--cream);border-radius:11px;font-family:var(--bb-font-body);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
+.nutrition-checkin .upload-gallery-btn{min-height:42px;width:100%;padding:9px 8px;border:1px solid var(--bb-border);background:var(--bb-surface-hover);color:var(--cream);border-radius:11px;font-family:var(--bb-font-body);font-size:11px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:all .2s}
 .nutrition-checkin .upload-gallery-btn:hover{border-color:var(--bb-gold);color:var(--bb-gold)}
 .nutrition-checkin .ub-ico{font-size:14px;line-height:1}
-.nutrition-checkin .upload-or{font-size:10px;color:var(--muted);text-align:center;position:relative;text-transform:uppercase;letter-spacing:.1em}
-.nutrition-checkin .manual-entry-btn{min-height:38px;width:100%;padding:8px;border:none;background:transparent;color:var(--muted);border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.18);text-underline-offset:3px;transition:color .2s}
+.nutrition-checkin .manual-entry-btn{min-height:0;width:100%;padding:6px 8px 0;border:none;background:transparent;color:var(--muted);border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;text-decoration:underline;text-decoration-color:rgba(255,255,255,0.18);text-underline-offset:3px;transition:color .2s}
 .nutrition-checkin .manual-entry-btn:hover{color:var(--bb-gold)}
 .nutrition-checkin .meal-preview{position:relative;border-radius:12px;overflow:hidden}
 .nutrition-checkin .meal-preview img{width:100%;height:120px;object-fit:cover;display:block;max-width:100%}
@@ -4417,11 +4595,11 @@ button.bb-today-pill{cursor:pointer}
 .progress-logs-list tr:last-child td{border-bottom:none}
 .progress-logs-list .progress-logs-empty{color:var(--muted);padding:16px;text-align:center;font-size:14px}
 .admin-client-progress-wrap{display:grid;grid-template-columns:minmax(280px,340px) 1fr;gap:28px;align-items:start;min-height:400px}
-.admin-cp-user-list{position:sticky;top:20px;max-height:80vh;overflow-y:auto}
+.admin-cp-user-list{position:sticky;top:20px;display:flex;flex-direction:column;max-height:calc(100vh - 48px)}
 .admin-cp-user-filter{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:8px 0 12px}
 .admin-cp-user-filter label{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px;cursor:pointer}
 .admin-cp-heading{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(200,164,78,0.7);margin-bottom:16px;font-family:var(--bb-font-heading,'Outfit',sans-serif)}
-.admin-cp-user-list-inner{background:rgba(0,0,0,0.3);border:1px solid rgba(200,164,78,0.12);border-radius:12px;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.2)}
+.admin-cp-user-list-inner{background:rgba(0,0,0,0.3);border:1px solid rgba(200,164,78,0.12);border-radius:12px;overflow-y:auto;overflow-x:hidden;box-shadow:0 4px 24px rgba(0,0,0,0.2);flex:1 1 auto;min-height:0}
 .admin-cp-user-list .admin-cp-user-item{display:grid;grid-template-columns:1fr auto;align-items:center;gap:16px;padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.04);transition:background .25s ease}
 .admin-cp-user-list .admin-cp-user-item:last-child{border-bottom:none}
 .admin-cp-user-list .admin-cp-user-item:hover{background:rgba(200,164,78,0.06)}
@@ -4456,6 +4634,68 @@ button.bb-today-pill{cursor:pointer}
   color:#ffd2d2;
 }
 .admin-cp-placeholder{color:rgba(255,255,255,0.35);font-size:14px;padding:24px 20px;letter-spacing:0.2px}
+/* ======================================================================
+   CLIENT PROGRESS  (.bbcp-*)
+   ----------------------------------------------------------------------
+   The old screen opened on a bare list of names with a "View" button on every
+   row, a maintenance tool ("Run full data audit") occupying the most valuable
+   strip of the page, and a right-hand panel that said only "Select a user to
+   view progress" - so the first thing an admin saw was mostly empty.
+
+   Now: the rail is searchable and each row carries enough to choose from
+   (avatar, name, email, suspended state), the whole row is the target so the
+   per-row button is gone, and the empty panel explains what will appear.
+   The audit tool moves to the foot of the rail, where a maintenance action
+   belongs.
+
+   These rules extend the existing .admin-cp-* layout rather than replace it -
+   the detail panel, sub-tabs, KPI row and charts are untouched.
+   ====================================================================== */
+
+.bbcp-rail-head{flex-shrink:0;display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+.bbcp-rail-title{font-size:11px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:rgba(200,164,78,0.7);font-family:var(--bb-font-heading,'Outfit',sans-serif);margin:0}
+.bbcp-rail-count{font-size:11px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+
+.bbcp-search{position:relative;margin-bottom:10px;flex-shrink:0}
+.bbcp-search input{width:100%;padding:10px 12px 10px 34px;background:rgba(255,255,255,0.03);border:1px solid var(--bb-border);border-radius:10px;color:var(--cream);font-family:'Outfit',sans-serif;font-size:13px;outline:none;transition:border-color .2s,background .2s}
+.bbcp-search input::placeholder{color:#6a6a6a}
+.bbcp-search input:focus{border-color:rgba(200,164,78,0.55);background:rgba(200,164,78,0.04)}
+.bbcp-search-ico{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted);pointer-events:none;display:flex}
+
+/* Row: avatar | name + email, all in one clickable band. */
+.admin-cp-user-list .admin-cp-user-item{grid-template-columns:minmax(0,1fr) auto;gap:12px;padding:11px 14px;cursor:pointer}
+.admin-cp-user-list .admin-cp-user-item .cp-user-line{gap:11px}
+.admin-cp-user-list .admin-cp-avatar-wrap{width:34px;height:34px}
+.bbcp-who{min-width:0;display:flex;flex-direction:column;gap:2px}
+.admin-cp-user-list .admin-cp-user-item .cp-name{font-size:13.5px;font-weight:600;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
+.bbcp-email{font-size:10.5px;color:var(--muted);line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bbcp-chev{color:rgba(200,164,78,0.45);flex-shrink:0;display:flex;align-items:center;transition:transform .18s,color .18s}
+.admin-cp-user-list .admin-cp-user-item:hover .bbcp-chev{color:var(--gold);transform:translateX(2px)}
+.admin-cp-user-list .admin-cp-user-item.selected .bbcp-chev{color:var(--gold)}
+.admin-cp-user-item.is-suspended .cp-name{color:var(--creamd)}
+
+/* Maintenance, parked at the foot of the rail. */
+.bbcp-rail-foot{margin-top:10px;flex-shrink:0;padding:11px 13px;border:1px dashed rgba(255,255,255,0.1);border-radius:11px;background:rgba(255,255,255,0.015)}
+.bbcp-rail-foot-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.bbcp-audit-btn{padding:7px 12px;font-size:11px;font-weight:600;letter-spacing:0.4px;background:transparent;border:1px solid rgba(200,164,78,0.32);border-radius:8px;color:var(--gold);cursor:pointer;transition:all .2s;white-space:nowrap;font-family:'Outfit',sans-serif}
+.bbcp-audit-btn:hover{background:rgba(200,164,78,0.12);border-color:var(--gold)}
+.bbcp-audit-note{font-size:10.5px;color:var(--muted);line-height:1.4;flex:1 1 130px;min-width:0}
+
+/* The right-hand panel before a client is picked. */
+.bbcp-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:52px 24px;min-height:260px}
+.bbcp-empty-ring{width:58px;height:58px;border-radius:50%;border:1px solid rgba(200,164,78,0.28);background:rgba(200,164,78,0.06);display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px}
+.bbcp-empty-t{font-family:'Outfit',sans-serif;font-size:16px;font-weight:600;color:var(--cream);margin-bottom:7px}
+.bbcp-empty-s{font-size:12.5px;color:var(--muted);line-height:1.6;max-width:390px;margin:0 0 18px}
+.bbcp-empty-tags{display:flex;flex-wrap:wrap;gap:7px;justify-content:center}
+.bbcp-empty-tag{font-size:10.5px;letter-spacing:0.4px;color:var(--creamd);padding:5px 11px;border-radius:99px;border:1px solid var(--bb-border);background:rgba(255,255,255,0.025);white-space:nowrap}
+
+@media (max-width:900px){
+  .admin-client-progress-wrap{grid-template-columns:1fr;gap:18px}
+  .admin-cp-user-list{position:static;max-height:none}
+  .admin-cp-user-list-inner{max-height:44vh;overflow-y:auto}
+  .bbcp-empty{padding:36px 18px;min-height:0}
+  .bbcp-empty-s{font-size:12px}
+}
 .admin-cp-error-msg{background:rgba(200,80,80,0.15);border:1px solid rgba(200,80,80,0.4);color:#e8b4b4;padding:16px;border-radius:8px;font-size:14px;margin:12px 0}
 .admin-cp-detail{min-height:300px;display:flex;flex-direction:column;gap:20px;overflow:visible;background:rgba(0,0,0,0.25);border:1px solid rgba(200,164,78,0.1);border-radius:14px;padding:24px;box-shadow:0 4px 24px rgba(0,0,0,0.15)}
 .admin-cp-detail #adminCpDetail{flex-shrink:0;font-size:18px;color:var(--cream)}
@@ -4468,6 +4708,34 @@ button.bb-today-pill{cursor:pointer}
 .admin-cp-kpi{background:rgba(200,164,78,0.08);border:1px solid rgba(200,164,78,0.25);border-radius:10px;padding:16px;text-align:center}
 .admin-cp-kpi .num{display:block;font-size:22px;font-weight:700;color:var(--gold)}
 .admin-cp-kpi .lbl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-top:4px}
+/* --- Client Progress detail: header, KPI tiles, action bar --------------
+   The tiles were centred with the unit repeated in the label, so a label like
+   "Strength Growth %" wrapped and left a "%" stranded on its own line. Left
+   alignment gives every tile the same starting edge, and a fixed label height
+   keeps the value baselines level across a row whether the label wraps or not. */
+.bbcp-detail-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:2px}
+.bbcp-detail-name{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1.4px;color:var(--cream);text-transform:uppercase;margin:0;line-height:1.1}
+.bbcp-detail-flag{font-size:9.5px;font-weight:700;letter-spacing:1.1px;text-transform:uppercase;color:#eda145;background:rgba(230,126,34,0.14);border:1px solid rgba(230,126,34,0.38);border-radius:99px;padding:4px 10px}
+.admin-cp-kpis{grid-template-columns:repeat(auto-fit,minmax(132px,1fr))}
+.admin-cp-kpi{text-align:left;padding:13px 14px;display:flex;flex-direction:column;justify-content:flex-start;background:rgba(200,164,78,0.055);border-color:rgba(200,164,78,0.18)}
+.admin-cp-kpi .num{font-family:var(--bb-font-heading);font-size:23px;line-height:1.1;font-variant-numeric:tabular-nums}
+.admin-cp-kpi.is-none .num{color:#4a4a4a}
+.admin-cp-kpi .lbl{margin-top:6px;letter-spacing:1.1px;font-weight:600;line-height:1.35;min-height:2.7em}
+.admin-cp-kpi .sub{font-size:9.5px;color:rgba(255,255,255,0.28);letter-spacing:0.4px;margin-top:-1.1em}
+
+/* The share link was a full-width gold bar - the loudest thing on the panel,
+   for the least consequential action - while Suspend and Remove sat beside the
+   harmless buttons at the same weight. Everything is sized to its consequence. */
+.admin-cp-share-wrap #adminCpShareBtn{width:auto;padding:10px 18px;font-size:12px;letter-spacing:0.6px}
+.admin-cp-share-wrap #adminCpSuspendBtn,
+.admin-cp-share-wrap #adminCpRemoveBtn{margin-left:auto;padding:9px 14px!important;background:transparent;border:1px solid rgba(192,57,43,0.42);color:#ff8787;font-weight:600}
+.admin-cp-share-wrap #adminCpRemoveBtn{margin-left:0}
+.admin-cp-share-wrap #adminCpSuspendBtn:hover,
+.admin-cp-share-wrap #adminCpRemoveBtn:hover{background:rgba(192,57,43,0.16);border-color:rgba(192,57,43,0.7)}
+@media (max-width:760px){
+  .admin-cp-share-wrap #adminCpSuspendBtn{margin-left:0}
+  .admin-cp-share-wrap #adminCpShareBtn{width:100%}
+}
 @media(max-width:900px){.admin-client-progress-wrap{grid-template-columns:1fr}.admin-cp-user-list{position:relative;max-height:none}}
 @media(max-width:768px){
   .admin-tab-content-wrap .insights-filters{flex-wrap:wrap;gap:10px}
@@ -7341,12 +7609,22 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <h3 class="nutri-hero-title">Nutrition Check-in</h3>
             <p class="nutri-hero-sub">Snap each meal — Fitchef's AI reads the plate and scores your macros in seconds.</p>
             <div class="nutri-hero-stats">
-              <div class="nutri-stat"><span class="nutri-stat-num" id="nutriHeroLogged">0</span><span class="nutri-stat-lbl">of 4 meals</span></div>
-              <div class="nutri-stat gold"><span class="nutri-stat-num" id="nutriHeroStreak">0</span><span class="nutri-stat-lbl">day streak</span></div>
+              <div class="nutri-ring-wrap">
+                <svg class="nutri-ring" viewBox="0 0 44 44" aria-hidden="true">
+                  <circle class="nutri-ring-bg" cx="22" cy="22" r="19"></circle>
+                  <circle class="nutri-ring-fg" id="nutriHeroRing" cx="22" cy="22" r="19"></circle>
+                </svg>
+                <span class="nutri-ring-txt"><b id="nutriHeroLogged">0</b><i>/4</i></span>
+              </div>
+              <div class="nutri-hero-facts">
+                <div class="nutri-fact"><span class="nutri-fact-num" id="nutriHeroLoggedTxt">0</span><span class="nutri-fact-lbl">meals logged today</span></div>
+                <div class="nutri-fact gold"><span class="nutri-fact-num" id="nutriHeroStreak">0</span><span class="nutri-fact-lbl">day logging streak</span></div>
+              </div>
             </div>
           </div>
           <div class="meal-grid" id="nutritionMealGrid" aria-live="polite"></div>
           <button type="button" class="submit-all-btn" id="submitAllBtn" onclick="nutritionSubmitAllMeals()">Submit all &amp; send report</button>
+          <p class="nutri-submit-hint" id="nutriSubmitHint" style="display:none"></p>
           <div class="daily-nutrition-summary" id="dailyNutritionSummary" style="display:none">
             <div class="summary-title">Today&apos;s nutrition</div>
             <div class="macro-totals-grid">
@@ -8086,7 +8364,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <a class="admin-sidebar-link" href="#" data-section="messages" onclick="switchToSection('messages');return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128172;</span>Messages</a>
         <a class="admin-sidebar-link" href="#" onclick="openAdminEscalations();return false"><span class="admin-sidebar-icon" aria-hidden="true">🛰️</span>Operator</a>
         <a class="admin-sidebar-link" href="#" onclick="toggleAdminAiAssistPanel();return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128161;</span>AI Assist</a>
-        <a class="admin-sidebar-link" href="/marketing-ai.html"><span class="admin-sidebar-icon" aria-hidden="true">&#129302;</span>Marketing AI</a>
         <a class="admin-sidebar-link pwa-add-homescreen" href="#" onclick="handlePwaAddToHomescreen();return false"><span class="admin-sidebar-icon" aria-hidden="true">&#128260;</span>Add to Home Screen</a>
       </nav>
     </aside>
@@ -8151,9 +8428,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         </a>
         <a class="admin-nav-link" href="#" onclick="toggleAdminAiAssistPanel();closeAdminNavDrawer();return false">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128161;</span>AI Assist
-        </a>
-        <a class="admin-nav-link" href="/marketing-ai.html" onclick="closeAdminNavDrawer();">
-          <span class="admin-nav-link-icon" aria-hidden="true">&#129302;</span>Marketing AI
         </a>
         <a class="admin-nav-link pwa-add-homescreen" href="#" onclick="handlePwaAddToHomescreen();closeAdminNavDrawer();return false" aria-label="Add to Home Screen">
           <span class="admin-nav-link-icon" aria-hidden="true">&#128260;</span>Add to Home Screen
@@ -8693,11 +8967,6 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <span class="admin-section-card-title">Campaigns</span>
             <span class="admin-section-card-desc">Scheduled broadcast messages to all users</span>
           </a>
-          <a class="admin-section-card" href="/marketing-ai.html">
-            <span class="admin-section-card-icon" aria-hidden="true">&#129302;</span>
-            <span class="admin-section-card-title">Marketing AI</span>
-            <span class="admin-section-card-desc">Generate social posts, reels, and captions</span>
-          </a>
           <a class="admin-section-card" href="#" onclick="switchTab('tokens');return false">
             <span class="admin-section-card-icon" aria-hidden="true">&#129689;</span>
             <span class="admin-section-card-title">Tokens</span>
@@ -8790,12 +9059,60 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
 
     <!-- TAB 2: Client Board -->
     <div class="admin-tab-content" id="tab-tribe">
-      <div class="admin-subsection-wrap" style="margin-bottom:14px">
-        <h3 class="admin-subsection-title" style="margin-bottom:6px">Client Performance Board</h3>
-        <p class="form-hint" style="margin:0">Premium live view of score, activity, check-in risk, and progress for all active clients.</p>
-      </div>
-      <div class="tribe-grid">
-        <div class="tribe-empty"><p>Loading…</p></div>
+      <div class="bbcb">
+        <div class="bbcb-head">
+          <div class="bbcb-head-titles">
+            <h3 class="bbcb-title">Client Performance Board</h3>
+            <p class="bbcb-sub">Every active client on one line &mdash; score, consistency, weight and how long since you last heard from them.</p>
+          </div>
+          <span class="bbcb-count"><b id="bbcbCount">&mdash;</b><span>active clients</span></span>
+        </div>
+
+        <div class="bbcb-kpis" id="bbcbKpis">
+          <div class="bbcb-kpi is-bad"><div class="bbcb-kpi-lbl">Needs attention</div><div class="bbcb-kpi-val" id="bbcbKpiRisk">&mdash;</div><div class="bbcb-kpi-sub">Quiet 14+ days</div></div>
+          <div class="bbcb-kpi is-warn"><div class="bbcb-kpi-lbl">Watch</div><div class="bbcb-kpi-val" id="bbcbKpiWatch">&mdash;</div><div class="bbcb-kpi-sub">Quiet 7&ndash;13 days</div></div>
+          <div class="bbcb-kpi is-good"><div class="bbcb-kpi-lbl">On track</div><div class="bbcb-kpi-val" id="bbcbKpiOk">&mdash;</div><div class="bbcb-kpi-sub">Checked in this week</div></div>
+          <div class="bbcb-kpi is-gold"><div class="bbcb-kpi-lbl">Average score</div><div class="bbcb-kpi-val" id="bbcbKpiAvg">&mdash;</div><div class="bbcb-kpi-sub" id="bbcbKpiAvgSub">This week</div></div>
+        </div>
+
+        <div class="bbcb-tools">
+          <div class="bbcb-search">
+            <span class="bbcb-search-ico" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+            <input type="search" id="bbcbSearch" placeholder="Search clients&hellip;" autocomplete="off" aria-label="Search clients" oninput="bbcbSetSearch(this.value)">
+          </div>
+          <div class="bbcb-chips" role="group" aria-label="Filter by risk">
+            <button type="button" class="bbcb-chip is-on" data-bbcb-risk="all" onclick="bbcbSetRisk('all')">All <i id="bbcbNAll">0</i></button>
+            <button type="button" class="bbcb-chip" data-bbcb-risk="high" onclick="bbcbSetRisk('high')">Needs attention <i id="bbcbNHigh">0</i></button>
+            <button type="button" class="bbcb-chip" data-bbcb-risk="watch" onclick="bbcbSetRisk('watch')">Watch <i id="bbcbNWatch">0</i></button>
+            <button type="button" class="bbcb-chip" data-bbcb-risk="ok" onclick="bbcbSetRisk('ok')">On track <i id="bbcbNOk">0</i></button>
+          </div>
+          <div class="bbcb-sort">
+            <label for="bbcbSort">Sort</label>
+            <select id="bbcbSort" onchange="bbcbSetSort(this.value)">
+              <option value="risk">Most at risk</option>
+              <option value="score">Score (high &rarr; low)</option>
+              <option value="score_asc">Score (low &rarr; high)</option>
+              <option value="name">Name (A&ndash;Z)</option>
+              <option value="recent">Recently active</option>
+              <option value="joined">Newest client</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="bbcb-table" id="bbcbTable">
+          <div class="bbcb-row bbcb-thead" aria-hidden="true">
+            <div class="bbcb-th bbcb-col-who">Client</div>
+            <div class="bbcb-th bbcb-col-risk">Status</div>
+            <div class="bbcb-th bbcb-col-score">Score</div>
+            <div class="bbcb-th bbcb-col-days">Check-ins &middot; 7d</div>
+            <div class="bbcb-th bbcb-col-wt">Weight</div>
+            <div class="bbcb-th bbcb-col-seen">Last seen</div>
+            <div class="bbcb-th bbcb-col-menu"></div>
+          </div>
+          <div id="bbcbRows">
+            <div class="bbcb-blank"><div class="bbcb-blank-t">Loading clients&hellip;</div></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -9287,20 +9604,27 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <div class="admin-tab-content" id="tab-clientprogress">
       <div class="admin-client-progress-wrap">
         <div class="admin-cp-user-list">
-          <h3 class="admin-cp-heading">Clients</h3>
+          <div class="bbcp-rail-head">
+            <h3 class="bbcp-rail-title">Clients</h3>
+            <span class="bbcp-rail-count" id="bbcpCount"></span>
+          </div>
+          <div class="bbcp-search">
+            <span class="bbcp-search-ico" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg></span>
+            <input type="search" id="bbcpSearch" placeholder="Search by name or email&hellip;" autocomplete="off" aria-label="Search clients" oninput="bbcpSetSearch(this.value)">
+          </div>
           <div class="admin-cp-user-filter">
             <label><input type="checkbox" id="adminCpShowSuspended" onchange="loadClientProgressUsers()"> Show suspended</label>
           </div>
-          <div class="admin-cp-user-list-inner"><div id="adminCpUserList"><p class="admin-cp-placeholder">Loading users…</p></div></div>
-        </div>
-        <div class="admin-cp-detail">
-          <div style="margin-bottom:14px;padding:12px;border:1px solid rgba(200,164,78,0.2);border-radius:10px;background:rgba(255,255,255,0.02)">
-            <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
-              <button type="button" class="action-btn btn-view" id="adminCpAuditBtn" onclick="runClientProgressAudit()" style="padding:10px 16px">Run full data audit</button>
-              <span class="form-hint" style="margin:0">Checks all active users for missing weight/streak hydration.</span>
+          <div class="admin-cp-user-list-inner"><div id="adminCpUserList"><p class="admin-cp-placeholder">Loading clients&hellip;</p></div></div>
+          <div class="bbcp-rail-foot">
+            <div class="bbcp-rail-foot-row">
+              <span class="bbcp-audit-note">Checks every active client for missing weight or streak hydration.</span>
+              <button type="button" class="bbcp-audit-btn" id="adminCpAuditBtn" onclick="runClientProgressAudit()">Run data audit</button>
             </div>
             <div id="adminCpAuditResult" style="margin-top:10px;display:none"></div>
           </div>
+        </div>
+        <div class="admin-cp-detail">
           <div id="adminCpShareWrap" class="admin-cp-share-wrap" style="display:none;margin:0 0 16px 0">
             <p class="form-hint" style="margin:0 0 8px 0">Client actions — Elite card opens preview; use Save card in the modal to download.</p>
             <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
@@ -9327,7 +9651,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <button type="button" class="admin-cp-subtab" data-cp-subtab="body" onclick="bbAdminCpSwitchSubtab('body')" style="padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:12px;cursor:pointer">Body</button>
             <button type="button" class="admin-cp-subtab" data-cp-subtab="readiness" onclick="bbAdminCpSwitchSubtab('readiness')" style="padding:10px 16px;background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);font-weight:700;letter-spacing:1px;text-transform:uppercase;font-size:12px;cursor:pointer">Readiness</button>
           </div>
-          <div id="adminCpDetail"><p class="admin-cp-placeholder">Select a user to view progress.</p></div>
+          <div id="adminCpDetail"></div>
           <div id="adminCpKpis" class="admin-cp-kpis" style="display:none"></div>
           <div id="adminCpCharts" class="progress-charts admin-cp-charts" style="display:none;margin-top:20px">
             <div class="chart-wrap"><canvas id="adminChartWeight"></canvas><p class="chart-title">Weight over time</p></div>
@@ -15816,124 +16140,311 @@ async function sendDailyComplianceNow() {
   }
 }
 
+/* ======================================================================
+   CLIENT PERFORMANCE BOARD
+   ----------------------------------------------------------------------
+   loadTribe() fetches once into _bbcbAll; searching, filtering and sorting
+   then work on that array in memory, so none of them costs a request. Only
+   an explicit reload (tab re-open past its freshness window, or an archive /
+   delete) goes back to the server.
+   ====================================================================== */
+
+var _bbcbAll = [];
+var _bbcbSearch = '';
+var _bbcbRisk = 'all';
+var _bbcbSort = 'risk';
+
+/** Days since an ISO date, or null when there is no date at all. */
+function bbcbDaysSince(v) {
+  if (!v) return null;
+  var t;
+  if (v instanceof Date) {
+    t = v.getTime();
+  } else {
+    // Only a real ISO date counts. tribe_members.start_date is a TEXT column and
+    // some rows hold junk like "Thu Sep 17" from an old seed script; handing that
+    // to new Date() yields the year 2001 and the UI would confidently report a
+    // client of 1300 weeks. Unparseable means unknown, and unknown is not shown.
+    var iso = String(v).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(iso)) return null;
+    t = new Date(iso + 'T00:00:00').getTime();
+  }
+  if (!isFinite(t)) return null;
+  var days = Math.floor((Date.now() - t) / 86400000);
+  // A date before the product existed, or one in the future, is bad data too.
+  if (days < 0 || days > 3650) return null;
+  return days;
+}
+
+/** Same normalisation, but for display: always "YYYY-MM-DD" or ''. */
+function bbcbYmd(v) {
+  if (!v) return '';
+  var iso = String(v).slice(0, 10);
+  var d = (v instanceof Date) ? v : (/^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(iso + 'T00:00:00') : null);
+  if (!d || !isFinite(d.getTime())) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+/** "today" / "yesterday" / "12d ago" — a duration reads faster than a date. */
+function bbcbAgo(days) {
+  if (days == null) return 'Never';
+  if (days === 0) return 'Today';
+  if (days === 1) return 'Yesterday';
+  if (days < 7) return days + 'd ago';
+  if (days < 14) return '1 week ago';
+  if (days < 61) return Math.floor(days / 7) + ' weeks ago';
+  return Math.floor(days / 30) + ' months ago';
+}
+
+function bbcbNum(v) {
+  if (v == null) return null;
+  var m = String(v).trim().match(/-?\d+(\.\d+)?/);
+  if (!m) return null;
+  var n = parseFloat(m[0]);
+  return Number.isFinite(n) ? n : null;
+}
+
+function bbcbKg(v) {
+  if (v == null) return null;
+  var r = Math.round(v * 10) / 10;
+  return (Number.isInteger(r) ? String(r) : r.toFixed(1)) + ' kg';
+}
+
+/**
+ * Risk is "how long since we last heard from them", which is the one thing on
+ * this screen that decides whether a coach has to act today.
+ */
+function bbcbRiskOf(days) {
+  if (days == null || days >= 14) return 'high';
+  if (days >= 7) return 'watch';
+  return 'ok';
+}
+
+function bbcbShape(m) {
+  var name = ((m.first_name || '') + ' ' + (m.last_name || '')).trim() || 'Client';
+  var days = bbcbDaysSince(m.last_checkin_date);
+  var p = m.score_pillars || {};
+  var dailyPct = (p.daily != null && isFinite(Number(p.daily))) ? Number(p.daily) : null;
+  var sw = bbcbNum(m.starting_weight);
+  var cw = bbcbNum(m.current_weight);
+  return {
+    raw: m,
+    id: String(m.id || ''),
+    name: name,
+    pic: m.profile_picture || '',
+    days: days,
+    risk: bbcbRiskOf(days),
+    score: m.score_total != null ? Math.round(Number(m.score_total)) : null,
+    weekLabel: m.score_week_label || '',
+    delta: m.score_trend_delta != null ? Math.round(Number(m.score_trend_delta)) : null,
+    // The daily pillar is a percentage of the 7-day week, so it converts back
+    // to "n of 7 days checked in" — which is what a coach actually reads.
+    daysOn: dailyPct == null ? null : Math.max(0, Math.min(7, Math.round((dailyPct / 100) * 7))),
+    startWt: sw,
+    curWt: cw,
+    joined: bbcbYmd(m.start_date),
+    joinedDays: bbcbDaysSince(m.start_date),
+    perWeek: Number(m.activity_per_week || 0)
+  };
+}
+
+function bbcbMatches(c) {
+  if (_bbcbRisk !== 'all' && c.risk !== _bbcbRisk) return false;
+  var q = _bbcbSearch.trim().toLowerCase();
+  if (!q) return true;
+  var hay = (c.name + ' ' + (c.raw.user_email || c.raw.email || '')).toLowerCase();
+  return hay.indexOf(q) !== -1;
+}
+
+var BBCB_RISK_ORDER = { high: 0, watch: 1, ok: 2 };
+
+function bbcbSortList(list) {
+  var by = _bbcbSort;
+  var out = list.slice();
+  out.sort(function (a, b) {
+    if (by === 'name') return a.name.localeCompare(b.name);
+    if (by === 'score' || by === 'score_asc') {
+      // Unscored clients sink to the bottom of either direction rather than
+      // being treated as a zero, which would rank them as the worst performers.
+      var as = a.score, bs = b.score;
+      if (as == null && bs == null) return a.name.localeCompare(b.name);
+      if (as == null) return 1;
+      if (bs == null) return -1;
+      return by === 'score' ? (bs - as) : (as - bs);
+    }
+    if (by === 'recent') {
+      var ad = a.days == null ? Infinity : a.days;
+      var bd = b.days == null ? Infinity : b.days;
+      return ad - bd || a.name.localeCompare(b.name);
+    }
+    if (by === 'joined') {
+      var aj = a.joinedDays == null ? Infinity : a.joinedDays;
+      var bj = b.joinedDays == null ? Infinity : b.joinedDays;
+      return aj - bj || a.name.localeCompare(b.name);
+    }
+    // Default: quietest first, so the top of the list is the day's work.
+    var ar = BBCB_RISK_ORDER[a.risk], br = BBCB_RISK_ORDER[b.risk];
+    if (ar !== br) return ar - br;
+    var ax = a.days == null ? Infinity : a.days;
+    var bx = b.days == null ? Infinity : b.days;
+    return bx - ax || a.name.localeCompare(b.name);
+  });
+  return out;
+}
+
+function bbcbSetSearch(v) { _bbcbSearch = String(v || ''); bbcbRender(); }
+function bbcbSetSort(v) {
+  _bbcbSort = String(v || 'risk');
+  var sel = document.getElementById('bbcbSort');
+  if (sel && sel.value !== _bbcbSort) sel.value = _bbcbSort;
+  bbcbRender();
+}
+function bbcbSetRisk(v) {
+  _bbcbRisk = String(v || 'all');
+  document.querySelectorAll('.bbcb-chip[data-bbcb-risk]').forEach(function (b) {
+    b.classList.toggle('is-on', b.getAttribute('data-bbcb-risk') === _bbcbRisk);
+  });
+  bbcbRender();
+}
+
+function bbcbToggleMenu(id, ev) {
+  if (ev) ev.stopPropagation();
+  var open = document.getElementById('bbcbMenu-' + id);
+  document.querySelectorAll('.bbcb-menu.show').forEach(function (m) { if (m !== open) m.classList.remove('show'); });
+  if (open) open.classList.toggle('show');
+}
+document.addEventListener('click', function () {
+  document.querySelectorAll('.bbcb-menu.show').forEach(function (m) { m.classList.remove('show'); });
+});
+
+function bbcbCell(cls, label, inner) {
+  return '<div class="bbcb-' + cls + '"' + (label ? ' data-l="' + label + '"' : '') + '>' + inner + '</div>';
+}
+
+function bbcbRowHtml(c) {
+  var esc = escapeHtml;
+  var idAttr = c.id.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+  var nameAttr = esc(c.name).replace(/'/g, '&#39;');
+
+  var riskLabel = c.risk === 'high' ? 'Attention' : (c.risk === 'watch' ? 'Watch' : 'On track');
+
+  var scoreInner = '<div class="bbcb-score">' +
+    (c.score == null
+      ? '<span class="bbcb-score-num is-none">&mdash;</span>'
+      : '<span class="bbcb-score-num">' + c.score + '</span>' +
+        (!c.delta ? ''
+          : '<span class="bbcb-delta ' + (c.delta > 0 ? 'up' : 'down') + '">' +
+            (c.delta > 0 ? '↑' + c.delta : '↓' + Math.abs(c.delta)) + '</span>')) +
+    '</div>';
+
+  var dots = '';
+  if (c.daysOn == null) {
+    dots = '<span class="bbcb-none" style="font-size:12.5px">No data</span>';
+  } else {
+    for (var i = 0; i < 7; i++) dots += '<span class="bbcb-dot' + (i < c.daysOn ? ' on' : '') + '"></span>';
+    dots = '<div class="bbcb-days">' + dots + '<span class="bbcb-days-n">' + c.daysOn + '/7</span></div>';
+  }
+
+  var wtInner;
+  if (c.startWt == null && c.curWt == null) {
+    wtInner = '<span class="bbcb-none" style="font-size:12.5px">Not recorded</span>';
+  } else if (c.startWt != null && c.curWt != null) {
+    var d = Math.round((c.curWt - c.startWt) * 10) / 10;
+    var dCls = d < 0 ? 'down' : (d > 0 ? 'up' : 'flat');
+    var dTxt = d === 0 ? 'No change' : (d > 0 ? '+' : '−') + bbcbKg(Math.abs(d)) + ' from start';
+    wtInner = '<div class="bbcb-wt"><span class="bbcb-wt-main">' + esc(bbcbKg(c.curWt)) + '</span>' +
+      '<span class="bbcb-wt-d ' + dCls + '">' + esc(dTxt) + '</span></div>';
+  } else {
+    var only = c.curWt != null ? c.curWt : c.startWt;
+    wtInner = '<div class="bbcb-wt"><span class="bbcb-wt-main">' + esc(bbcbKg(only)) + '</span>' +
+      '<span class="bbcb-wt-d flat">' + (c.curWt != null ? 'Current' : 'Starting') + ' only</span></div>';
+  }
+
+  var seenInner = '<div class="bbcb-seen' + (c.risk === 'high' ? ' is-stale' : '') + '">' + esc(bbcbAgo(c.days)) +
+    (c.days == null ? '<small>No check-in yet</small>' : '<small>' + esc(bbcbYmd(c.raw.last_checkin_date)) + '</small>') +
+    '</div>';
+
+  var joinedTxt = '';
+  if (c.joinedDays != null) {
+    if (c.joinedDays < 7) joinedTxt = 'Joined this week';
+    else if (c.joinedDays < 84) joinedTxt = 'Client for ' + Math.floor(c.joinedDays / 7) + ' weeks';
+    else if (c.joinedDays < 365) joinedTxt = 'Client for ' + Math.round(c.joinedDays / 30) + ' months';
+    else joinedTxt = 'Client for ' + (Math.round(c.joinedDays / 36.5) / 10) + ' years';
+  }
+  var metaBits = [joinedTxt, c.perWeek > 0 ? c.perWeek + 'x/week target' : ''].filter(Boolean).join(' · ');
+
+  return '<div class="bbcb-row bbcb-tr risk-' + c.risk + '">' +
+    bbcbCell('col-who', '', '<div class="bbcb-who">' + bbAdminAvatarHtml(c.pic, c.name) +
+      '<div class="bbcb-who-txt"><div class="bbcb-name">' + esc(c.name) + '</div>' +
+      (metaBits ? '<div class="bbcb-meta">' + esc(metaBits) + '</div>' : '') + '</div></div>') +
+    bbcbCell('col-risk', '', '<span class="bbcb-pill risk-' + c.risk + '">' + riskLabel + '</span>') +
+    bbcbCell('col-score', 'Score', scoreInner) +
+    bbcbCell('col-days', 'Check-ins 7d', dots) +
+    bbcbCell('col-wt', 'Weight', wtInner) +
+    bbcbCell('col-seen', 'Last seen', seenInner) +
+    '<div class="bbcb-col-menu"><div class="bbcb-menu-wrap">' +
+      '<button type="button" class="bbcb-menu-btn" aria-label="Actions for ' + nameAttr + '" onclick="bbcbToggleMenu(\'' + idAttr + '\', event)">⋯</button>' +
+      '<div class="bbcb-menu" id="bbcbMenu-' + esc(c.id) + '" onclick="event.stopPropagation()">' +
+        '<button type="button" onclick="bbcbToggleMenu(\'' + idAttr + '\');archiveTribeMember(\'' + idAttr + '\', \'' + nameAttr + '\')">Remove from active board</button>' +
+        '<button type="button" class="danger" onclick="bbcbToggleMenu(\'' + idAttr + '\');deleteTribeMemberPermanently(\'' + idAttr + '\', \'' + nameAttr + '\')">Delete permanently</button>' +
+      '</div>' +
+    '</div></div>' +
+  '</div>';
+}
+
+function bbcbSetText(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
+
+function bbcbRender() {
+  var rows = document.getElementById('bbcbRows');
+  if (!rows) return;
+
+  var counts = { all: _bbcbAll.length, high: 0, watch: 0, ok: 0 };
+  var scored = [];
+  _bbcbAll.forEach(function (c) {
+    counts[c.risk]++;
+    if (c.score != null) scored.push(c.score);
+  });
+  bbcbSetText('bbcbCount', String(_bbcbAll.length));
+  bbcbSetText('bbcbNAll', String(counts.all));
+  bbcbSetText('bbcbNHigh', String(counts.high));
+  bbcbSetText('bbcbNWatch', String(counts.watch));
+  bbcbSetText('bbcbNOk', String(counts.ok));
+  bbcbSetText('bbcbKpiRisk', String(counts.high));
+  bbcbSetText('bbcbKpiWatch', String(counts.watch));
+  bbcbSetText('bbcbKpiOk', String(counts.ok));
+  bbcbSetText('bbcbKpiAvg', scored.length
+    ? String(Math.round(scored.reduce(function (a, b) { return a + b; }, 0) / scored.length))
+    : '—');
+  bbcbSetText('bbcbKpiAvgSub', scored.length
+    ? (_bbcbAll[0] && _bbcbAll[0].weekLabel ? _bbcbAll[0].weekLabel : 'This week')
+    : 'No scores yet');
+
+  var list = bbcbSortList(_bbcbAll.filter(bbcbMatches));
+  if (!list.length) {
+    var why = _bbcbAll.length
+      ? 'No client matches this search or filter. Clear them to see the whole board.'
+      : 'Approved members appear here automatically. Once someone joins, their score and check-in history show up on this board.';
+    rows.innerHTML = '<div class="bbcb-blank"><div class="bbcb-blank-icon">\u{1F465}</div>' +
+      '<div class="bbcb-blank-t">' + (_bbcbAll.length ? 'Nothing matches' : 'No active clients yet') + '</div>' +
+      '<div class="bbcb-blank-s">' + why + '</div></div>';
+    return;
+  }
+  rows.innerHTML = list.map(bbcbRowHtml).join('');
+}
+
 async function loadTribe() {
-  const data = await apiCall('GET', '/api/tribe');
-  const grid = document.querySelector('.tribe-grid');
-  if (!grid) return;
-  if (data.error || !Array.isArray(data)) {
-    grid.innerHTML = '<div class="tribe-empty"><p>Could not load client performance board.</p></div>';
+  var rows = document.getElementById('bbcbRows');
+  if (!rows) return;
+  var data = await apiCall('GET', '/api/tribe');
+  if (!data || data.error || !Array.isArray(data)) {
+    _bbcbAll = [];
+    rows.innerHTML = '<div class="bbcb-blank"><div class="bbcb-blank-icon">⚠️</div>' +
+      '<div class="bbcb-blank-t">Could not load the board</div>' +
+      '<div class="bbcb-blank-s">' + escapeHtml(String((data && data.error) || 'Please refresh and try again.')) + '</div></div>';
     return;
   }
-  if (data.length === 0) {
-    grid.innerHTML = '<div class="tribe-empty"><p>No active clients yet. Approve requests to add members.</p></div>';
-    return;
-  }
-
-  grid.innerHTML = data.map(m => {
-    function parseWeightNum(v) {
-      if (v == null) return null;
-      var s = String(v).trim();
-      if (!s) return null;
-      var m = s.match(/-?\d+(\.\d+)?/);
-      if (!m) return null;
-      var n = parseFloat(m[0]);
-      return Number.isFinite(n) ? n : null;
-    }
-    function fmtKg(v) {
-      if (v == null) return '—';
-      var rounded = Math.round(v * 10) / 10;
-      return (Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)) + ' kg';
-    }
-    const dispName = ((m.first_name||'')+' '+(m.last_name||'')).trim() || '—';
-    const phase = m.phase ?? 1;
-    const phaseClass = 'phase-' + phase;
-    const startDate = m.start_date ? new Date(m.start_date) : new Date();
-    const weeksIn = Math.max(0, Math.round((Date.now() - startDate) / (7*24*60*60*1000)));
-    const weeksLabel = weeksIn === 0 ? 'less than 1 week ago' : weeksIn + ' week' + (weeksIn > 1 ? 's' : '') + ' ago';
-    const progress = Math.min(100, Math.round((weeksIn / 16) * 100));
-    const joinedDate = m.start_date ? new Date(m.start_date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
-    const score = m.score_total != null ? Math.round(Number(m.score_total)) : null;
-    const weekLabel = m.score_week_label || 'This week';
-    const trend = m.score_trend_delta != null ? Math.round(Number(m.score_trend_delta)) : null;
-    const trendClass = trend == null ? 'flat' : (trend > 0 ? 'up' : trend < 0 ? 'down' : 'flat');
-    const trendText = trend == null ? 'No comparison yet' : ((trend > 0 ? '↑ +' : trend < 0 ? '↓ ' : '→ ') + trend + ' vs last week');
-    const p = m.score_pillars || {};
-    const daily = p.daily != null ? p.daily : '—';
-    const sunday = p.sunday != null ? p.sunday : '—';
-    const workouts = p.workouts != null ? p.workouts : '—';
-    const pr = p.progress != null ? p.progress : '—';
-    const daily7 = (typeof daily === 'number' || /^\d+(\.\d+)?$/.test(String(daily))) ? Math.max(0, Math.min(7, Math.round((Number(daily) / 100) * 7))) : '—';
-    const dailyPct = (typeof daily === 'number' || /^\d+(\.\d+)?$/.test(String(daily))) ? Math.round(Number(daily)) : 0;
-    const sw = parseWeightNum(m.starting_weight);
-    const cw = parseWeightNum(m.current_weight);
-    const weightChange = sw != null && cw != null
-      ? fmtKg(sw) + ' → ' + fmtKg(cw)
-      : (sw != null ? fmtKg(sw) : '-');
-    const activity = m.activity_per_week ?? 0;
-    const nextCheckin = (m.next_checkin && String(m.next_checkin).trim()) ? m.next_checkin : '-';
-    const lastCheckin = (m.last_checkin_date && String(m.last_checkin_date).trim()) ? String(m.last_checkin_date).slice(0, 10) : '-';
-    const lastCheckinDate = (lastCheckin !== '-') ? new Date(lastCheckin + 'T00:00:00') : null;
-    const inactiveDays = lastCheckinDate ? Math.max(0, Math.floor((Date.now() - lastCheckinDate.getTime()) / (24*60*60*1000))) : null;
-    const stage = inactiveDays == null ? 'high' : (inactiveDays >= 14 ? 'high' : inactiveDays >= 7 ? 'medium' : 'focused');
-    const stageLabel = stage === 'high' ? 'High' : (stage === 'medium' ? 'Medium' : 'Focused');
-    const stageClass = 'admin-attn-sev-badge--' + stage;
-    const cardStageClass = 'tribe-stage-' + stage;
-    const riskTag = inactiveDays == null ? 'No check-in yet' : ('Inactive: ' + inactiveDays + ' day' + (inactiveDays === 1 ? '' : 's'));
-
-    return `
-      <div class="admin-attention-card tribe-board-card ${cardStageClass}">
-        <div class="admin-attention-card-top">
-          <div class="admin-attention-avatar" aria-hidden="true">${bbAdminAvatarHtml(m.profile_picture, dispName)}</div>
-          <div class="admin-attention-head">
-            <div class="admin-attention-name">${escapeHtml(dispName)}</div>
-            <div class="admin-attention-sub">Joined ${weeksLabel} · Last check-in: ${escapeHtml(lastCheckin)} · ${escapeHtml(riskTag)}</div>
-          </div>
-          <span class="admin-attn-sev-badge ${stageClass}">${escapeHtml(stageLabel)}</span>
-        </div>
-
-        <div class="admin-attn-compact-metrics">
-          <div class="admin-attn-metric-row">
-            <span class="admin-attn-metric-lbl">BodyBank score</span>
-            <span class="admin-attn-metric-val">${score != null ? score : '—'}</span>
-            <span class="admin-attn-metric-sub">${escapeHtml(weekLabel)}</span>
-          </div>
-          <div class="admin-attn-metric-row">
-            <span class="admin-attn-metric-lbl">7-Day</span>
-            <span class="admin-attn-metric-val">${daily7}/7</span>
-            <span class="admin-attn-metric-sub">${dailyPct}%</span>
-          </div>
-          <div class="admin-attn-metric-row">
-            <span class="admin-attn-metric-lbl">Workouts</span>
-            <span class="admin-attn-metric-val">${workouts}</span>
-            <span class="admin-attn-metric-sub">score</span>
-          </div>
-          <div class="admin-attn-metric-row">
-            <span class="admin-attn-metric-lbl">Sunday</span>
-            <span class="admin-attn-metric-val">${sunday}</span>
-            <span class="admin-attn-metric-sub">score</span>
-          </div>
-          <div class="admin-attn-metric-row">
-            <span class="admin-attn-metric-lbl">Overall progress</span>
-            <span class="admin-attn-metric-val">${progress}%</span>
-            <span class="admin-attn-metric-sub">${escapeHtml(trendText)}</span>
-          </div>
-        </div>
-
-        <div class="tribe-details">
-          <div class="tribe-detail"><div class="label">Joined date</div><div class="val">${joinedDate}</div></div>
-          <div class="tribe-detail"><div class="label">Duration</div><div class="val">${weeksIn} / 16 weeks</div></div>
-          <div class="tribe-detail"><div class="label">Activity</div><div class="val">${activity}x / week</div></div>
-          <div class="tribe-detail"><div class="label">Last check-in</div><div class="val">${lastCheckin}</div></div>
-          <div class="tribe-detail"><div class="label">Weight</div><div class="val">${weightChange}</div></div>
-          <div class="tribe-detail"><div class="label">Next Check-in</div><div class="val">${nextCheckin}</div></div>
-        </div>
-        <div class="tribe-actions">
-          <button type="button" class="action-btn tribe-archive-btn" onclick="archiveTribeMember('${String(m.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${escapeHtml(dispName).replace(/'/g, '&#39;')}')">Remove from active tribe</button>
-          <button type="button" class="action-btn tribe-delete-btn" onclick="deleteTribeMemberPermanently('${String(m.id || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'")}', '${escapeHtml(dispName).replace(/'/g, '&#39;')}')">Delete permanently</button>
-        </div>
-      </div>
-    `;
-  }).join('');
+  _bbcbAll = data.map(bbcbShape);
+  bbcbRender();
 }
 
 async function archiveTribeMember(id, name) {
@@ -18901,17 +19412,28 @@ async function loadAdminUserProgressDetail(userId, userName) {
     var cpSubtabs = document.getElementById('adminCpSubTabs');
     if (cpSubtabs) cpSubtabs.style.display = 'flex';
     bbAdminCpSwitchSubtab('progress');
-    detailEl.innerHTML = '<h3 class="admin-cp-heading">' + (userName || 'Client').replace(/</g, '&lt;') + '</h3><p class="admin-cp-placeholder">KPIs and charts below. Use the button to get a link to share with this client.' + (suspended ? ' <span style="color:var(--gold)">(User is suspended)</span>' : '') + '</p>';
+    detailEl.innerHTML = '<div class="bbcp-detail-head">' +
+      '<h3 class="bbcp-detail-name">' + (userName || 'Client').replace(/</g, '&lt;') + '</h3>' +
+      (suspended ? '<span class="bbcp-detail-flag">Suspended</span>' : '') +
+    '</div>';
     var kpis = [
-      { lbl: 'Current Weight', num: bbFmtKg(data.currentWeight) },
-      { lbl: 'Weight Change %', num: data.weightChangePercent != null ? data.weightChangePercent + '%' : '—' },
-      { lbl: 'Strength Growth %', num: data.strengthGrowthPercent != null ? data.strengthGrowthPercent + '%' : '—' },
-      { lbl: 'Daily check-in (7d)', num: data.dailyCheckins7d != null ? data.dailyCheckins7d + '/7' : '—' },
-      { lbl: 'Workout log %', num: data.workoutConsistencyPercent != null ? data.workoutConsistencyPercent + '%' : '—' },
+      { lbl: 'Current weight', num: bbFmtKg(data.currentWeight) },
+      { lbl: 'Weight change', num: data.weightChangePercent != null ? data.weightChangePercent + '%' : '—' },
+      { lbl: 'Strength growth', num: data.strengthGrowthPercent != null ? data.strengthGrowthPercent + '%' : '—' },
+      { lbl: 'Daily check-ins', num: data.dailyCheckins7d != null ? data.dailyCheckins7d + '/7' : '—', sub: 'last 7 days' },
+      { lbl: 'Workout log', num: data.workoutConsistencyPercent != null ? data.workoutConsistencyPercent + '%' : '—' },
       { lbl: 'Active streak', num: data.activeStreak != null ? data.activeStreak + ' days' : '—' },
-      { lbl: 'Goal Completion %', num: data.goalCompletionPercent != null ? Math.round(data.goalCompletionPercent) + '%' : '—' }
+      { lbl: 'Goal completion', num: data.goalCompletionPercent != null ? Math.round(data.goalCompletionPercent) + '%' : '—' }
     ];
-    kpisEl.innerHTML = kpis.map(function(k) { return '<div class="admin-cp-kpi"><span class="num">' + k.num + '</span><span class="lbl">' + k.lbl + '</span></div>'; }).join('');
+    // A missing figure is drawn as a muted dash, never dressed up as a value.
+    kpisEl.innerHTML = kpis.map(function(k) {
+      var none = (k.num === '—' || k.num == null || k.num === '');
+      return '<div class="admin-cp-kpi' + (none ? ' is-none' : '') + '">' +
+        '<span class="num">' + (none ? '—' : k.num) + '</span>' +
+        '<span class="lbl">' + k.lbl + '</span>' +
+        (k.sub ? '<span class="sub">' + k.sub + '</span>' : '') +
+      '</div>';
+    }).join('');
     kpisEl.style.display = 'grid';
     var insightLines = [];
     if (data.insights != null) {
@@ -19207,20 +19729,94 @@ async function runClientProgressAudit() {
     if (btn) { btn.disabled = false; btn.textContent = 'Run full data audit'; }
   }
 }
+/* Client Progress rail. The fetch happens once per load; the search box then
+   filters the array already in hand rather than going back to the server. */
+var _bbcpUsers = [];
+var _bbcpSearch = '';
+
+var BBCP_EMPTY_HTML =
+  '<div class="bbcp-empty">' +
+    '<div class="bbcp-empty-ring" aria-hidden="true">\u{1F4C8}</div>' +
+    '<div class="bbcp-empty-t">Pick a client to open their progress</div>' +
+    '<p class="bbcp-empty-s">Everything logged for that client is gathered here — the full history, not just this week.</p>' +
+    '<div class="bbcp-empty-tags">' +
+      '<span class="bbcp-empty-tag">Weight &amp; body fat</span>' +
+      '<span class="bbcp-empty-tag">Strength</span>' +
+      '<span class="bbcp-empty-tag">Sessions</span>' +
+      '<span class="bbcp-empty-tag">Calories &amp; protein</span>' +
+      '<span class="bbcp-empty-tag">Sleep &amp; steps</span>' +
+      '<span class="bbcp-empty-tag">Readiness</span>' +
+    '</div>' +
+  '</div>';
+
+function bbcpName(u) {
+  return (u.name || (u.first_name && u.last_name ? u.first_name + ' ' + u.last_name : u.email) || u.id || '').trim();
+}
+
+function bbcpSetSearch(v) { _bbcpSearch = String(v || ''); bbcpRenderRail(); }
+
+function bbcpRenderRail() {
+  var listEl = document.getElementById('adminCpUserList');
+  if (!listEl) return;
+  var q = _bbcpSearch.trim().toLowerCase();
+  var rows = _bbcpUsers.filter(function (u) {
+    if (!q) return true;
+    return (bbcpName(u) + ' ' + (u.email || '')).toLowerCase().indexOf(q) !== -1;
+  });
+
+  var countEl = document.getElementById('bbcpCount');
+  if (countEl) {
+    countEl.textContent = q
+      ? rows.length + ' of ' + _bbcpUsers.length
+      : (_bbcpUsers.length ? _bbcpUsers.length + (_bbcpUsers.length === 1 ? ' client' : ' clients') : '');
+  }
+
+  if (!rows.length) {
+    listEl.innerHTML = '<p class="admin-cp-placeholder">' +
+      (_bbcpUsers.length ? 'No client matches “' + escapeHtml(_bbcpSearch.trim()) + '”.' : 'No clients found.') +
+      '</p>';
+    return;
+  }
+
+  var selected = window._adminCpSelectedUserId || '';
+  listEl.innerHTML = rows.map(function (u) {
+    var name = bbcpName(u);
+    var id = String(u.id || '');
+    var suspended = !!(u.suspended === true || u.suspended === 't');
+    var avatarLabel = [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || name || (u.email || '') || 'Client';
+    var av = (typeof bbAdminAvatarHtml === 'function')
+      ? bbAdminAvatarHtml(u.profile_picture, avatarLabel)
+      : '<span class="bb-admin-avatar bb-admin-avatar--initials">?</span>';
+    var badge = suspended ? '<span class="admin-cp-suspended-badge">Suspended</span>' : '';
+    // The email line is what tells two clients with the same first name apart.
+    var second = u.email ? '<span class="bbcp-email">' + escapeHtml(u.email) + '</span>' : '';
+    return '<div class="admin-cp-user-item' + (suspended ? ' is-suspended' : '') + (id === selected ? ' selected' : '') + '"' +
+        ' data-user-id="' + escapeHtml(id) + '" data-user-name="' + escapeHtml(name) + '"' +
+        ' role="button" tabindex="0" aria-label="Open progress for ' + escapeHtml(name) + '">' +
+      '<div class="cp-user-line">' +
+        '<span class="admin-cp-avatar-wrap" aria-hidden="true">' + av + '</span>' +
+        '<span class="bbcp-who"><span class="cp-name">' + escapeHtml(name) + badge + '</span>' + second + '</span>' +
+      '</div>' +
+      '<span class="bbcp-chev" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>' +
+    '</div>';
+  }).join('');
+}
+
 async function loadClientProgressUsers() {
   var listEl = document.getElementById('adminCpUserList');
   if (!listEl) return;
-  listEl.innerHTML = '<p class="admin-cp-placeholder">Loading users…</p>';
+  listEl.innerHTML = '<p class="admin-cp-placeholder">Loading clients…</p>';
   var showSuspendedToggle = document.getElementById('adminCpShowSuspended');
   var showSuspended = !!(showSuspendedToggle && showSuspendedToggle.checked);
   window._adminCpShowSuspended = showSuspended;
   var data = await apiCall('GET', '/api/admin/users');
   if (data.error) {
-    listEl.innerHTML = '<p class="admin-cp-placeholder">Error: ' + (data.error || '') + '</p>';
+    _bbcpUsers = [];
+    listEl.innerHTML = '<p class="admin-cp-placeholder">Error: ' + escapeHtml(String(data.error || '')) + '</p>';
     return;
   }
   var users = Array.isArray(data) ? data : (data.users || []);
-  users = users.filter(function(u) {
+  _bbcpUsers = users.filter(function (u) {
     var email = (u.email || '').toLowerCase();
     var first = (u.first_name || '').toLowerCase();
     var name = (u.name || '').toLowerCase();
@@ -19230,30 +19826,32 @@ async function loadClientProgressUsers() {
     if (!showSuspended && suspended) return false;
     return true;
   });
-  if (!users.length) {
-    listEl.innerHTML = '<p class="admin-cp-placeholder">No clients found.</p>';
-    return;
-  }
-  listEl.innerHTML = users.map(function(u) {
-    var name = (u.name || (u.first_name && u.last_name ? u.first_name + ' ' + u.last_name : u.email) || u.id || '').replace(/</g, '&lt;');
-    var avatarLabel = [u.first_name, u.last_name].filter(Boolean).join(' ').trim() || (u.name || '').trim() || (u.email || '') || 'Client';
-    var id = String(u.id || '');
-    var suspended = !!(u.suspended === true || u.suspended === 't');
-    var badge = suspended ? '<span class="admin-cp-suspended-badge">Suspended</span>' : '';
-    var av = (typeof bbAdminAvatarHtml === 'function') ? bbAdminAvatarHtml(u.profile_picture, avatarLabel) : '<span class="bb-admin-avatar bb-admin-avatar--initials">?</span>';
-    return '<div class="admin-cp-user-item" data-user-id="' + id.replace(/"/g, '&quot;') + '" data-user-name="' + name.replace(/"/g, '&quot;') + '"><div class="cp-user-line"><span class="admin-cp-avatar-wrap" aria-hidden="true">' + av + '</span><span class="cp-name">' + name + badge + '</span></div><button type="button" class="cp-view-btn">View</button></div>';
-  }).join('');
+  bbcpRenderRail();
+
   if (!listEl._clientProgressClickBound) {
     listEl._clientProgressClickBound = true;
-    listEl.addEventListener('click', function(e) {
-      var item = e.target && e.target.closest && e.target.closest('.admin-cp-user-item');
+    var open = function (item) {
       if (!item) return;
       var id = item.getAttribute('data-user-id') || '';
       var name = item.getAttribute('data-user-name') || 'Client';
+      listEl.querySelectorAll('.admin-cp-user-item.selected').forEach(function (n) { n.classList.remove('selected'); });
+      item.classList.add('selected');
       loadAdminUserProgressDetail(id, name);
+    };
+    listEl.addEventListener('click', function (e) {
+      open(e.target && e.target.closest && e.target.closest('.admin-cp-user-item'));
+    });
+    // The row is the control now, so it has to answer the keyboard like one.
+    listEl.addEventListener('keydown', function (e) {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      var item = e.target && e.target.closest && e.target.closest('.admin-cp-user-item');
+      if (!item) return;
+      e.preventDefault();
+      open(item);
     });
   }
-  document.getElementById('adminCpDetail').innerHTML = '<p class="admin-cp-placeholder">Select a user to view progress.</p>';
+
+  document.getElementById('adminCpDetail').innerHTML = BBCP_EMPTY_HTML;
   document.getElementById('adminCpKpis').style.display = 'none';
   document.getElementById('adminCpCharts').style.display = 'none';
   var sw = document.getElementById('adminCpShareWrap');
@@ -22906,10 +23504,9 @@ function bbNutritionMealSlotHtml(mt) {
       '<input type="file" id="file-camera-' + esc(mt) + '" accept="image/*" capture="environment" style="display:none" onchange="nutritionHandleMealPhoto(event,\'' + esc(mt) + '\')" />' +
       '<input type="file" id="file-upload-' + esc(mt) + '" accept="image/*" style="display:none" onchange="nutritionHandleMealPhoto(event,\'' + esc(mt) + '\')" />' +
       '<div class="meal-upload-btns">' +
-      '<button type="button" class="upload-trigger-btn" onclick="document.getElementById(\'file-camera-' + esc(mt) + '\').click()"><span class="ub-ico" aria-hidden="true">📷</span>Take photo</button>' +
-      '<button type="button" class="upload-gallery-btn" onclick="document.getElementById(\'file-upload-' + esc(mt) + '\').click()"><span class="ub-ico" aria-hidden="true">🖼️</span>Upload from device</button></div>' +
-      '<span class="upload-or">or</span>' +
-      '<button type="button" class="manual-entry-btn" onclick="nutritionToggleManual(\'' + esc(mt) + '\')">Enter manually</button></div>' +
+      '<button type="button" class="upload-trigger-btn" aria-label="Take a photo of your ' + esc(mt) + '" onclick="document.getElementById(\'file-camera-' + esc(mt) + '\').click()"><span class="ub-ico" aria-hidden="true">📷</span>Camera</button>' +
+      '<button type="button" class="upload-gallery-btn" aria-label="Choose a ' + esc(mt) + ' photo from your device" onclick="document.getElementById(\'file-upload-' + esc(mt) + '\').click()"><span class="ub-ico" aria-hidden="true">🖼️</span>Gallery</button></div>' +
+      '<button type="button" class="manual-entry-btn" onclick="nutritionToggleManual(\'' + esc(mt) + '\')">or enter manually</button></div>' +
       '<div class="meal-preview" id="preview-' + esc(mt) + '" style="display:none">' +
       '<img id="previewImg-' + esc(mt) + '" src="" alt="" />' +
       '<button type="button" class="remove-photo-btn" id="remove-photo-' + esc(mt) + '" onclick="nutritionRemovePhoto(\'' + esc(mt) + '\')">Remove</button></div>' +
@@ -22930,7 +23527,7 @@ function bbNutritionMealSlotHtml(mt) {
 function nutritionEnsureMealGrid() {
   var g = document.getElementById('nutritionMealGrid');
   if (!g) return;
-  var SLOT_VER = 'v2-dual-upload';
+  var SLOT_VER = 'v3-compact-actions';
   if (g.getAttribute('data-bb-slot-ver') === SLOT_VER && bbNutritionGridReady) return;
   g.setAttribute('data-bb-slot-ver', SLOT_VER);
   g.innerHTML = bbNutritionMeals.map(bbNutritionMealSlotHtml).join('');
@@ -22955,8 +23552,19 @@ function nutritionSetAnalyzeLocked(mt, locked) {
 
 function nutritionUpdateHeroStats() {
   var n = bbNutritionMeals.filter(function (m) { return !!(bbNutritionState.results && bbNutritionState.results[m]); }).length;
+  var total = bbNutritionMeals.length || 4;
   var el = document.getElementById('nutriHeroLogged');
   if (el) el.textContent = String(n);
+  var txt = document.getElementById('nutriHeroLoggedTxt');
+  if (txt) txt.textContent = String(n);
+  // r=19 -> circumference 2*pi*19. The dash gap is the unfilled remainder, so
+  // the ring is drawn from the same count rather than a second stored value.
+  var ring = document.getElementById('nutriHeroRing');
+  if (ring) {
+    var c = 2 * Math.PI * 19;
+    ring.style.strokeDasharray = c.toFixed(2);
+    ring.style.strokeDashoffset = (c * (1 - (total ? n / total : 0))).toFixed(2);
+  }
 }
 
 function nutritionSetHeroStreak(streak) {
@@ -22977,17 +23585,28 @@ function nutritionUpdateSubmitAllState() {
     sub.disabled = true;
     sub.title = 'Report already sent for today.';
     sub.textContent = 'Report already sent today';
+    nutritionSetSubmitHint('');
     return;
   }
   if (allAnalyzed) {
     sub.disabled = true;
     sub.title = 'All four meals are already analyzed.';
     sub.textContent = 'All 4 meals analyzed';
+    nutritionSetSubmitHint('');
     return;
   }
   sub.disabled = !notesReady;
   sub.title = notesReady ? '' : 'Add meal details for all four meals to enable submit.';
-  sub.textContent = notesReady ? 'Submit all & send report' : 'Submit all & send report (add details for all 4 meals)';
+  sub.textContent = 'Submit all & send report';
+  nutritionSetSubmitHint(notesReady ? '' : 'Add details for all 4 meals to enable this.');
+}
+
+/** The one line under the submit button explaining why it is or is not ready. */
+function nutritionSetSubmitHint(msg) {
+  var el = document.getElementById('nutriSubmitHint');
+  if (!el) return;
+  el.textContent = msg || '';
+  el.style.display = msg ? '' : 'none';
 }
 
 function nutritionHandleMealPhoto(ev, mt) {

@@ -44,7 +44,9 @@ const FALLBACK_PRICING = [1, 5];
  */
 const SCOPE_LABELS = {
   admin_ai_assist: 'Admin AI Assist',
-  marketing_ai: 'Marketing AI',
+  // Retired feature. The label stays so historical rows on the Tokens screen
+  // keep reading as 'Marketing AI' instead of a raw slug.
+  marketing_ai: 'Marketing AI (retired)',
   nutrition_meal: 'Meal scan (members)',
   blood_validation: 'Blood report — validation',
   blood_extraction: 'Blood report — extraction',

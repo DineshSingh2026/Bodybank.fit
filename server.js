@@ -31,7 +31,6 @@ const { createReportsRouter, createReportsPublicRouter } = require('./routes/rep
 const { createSmartScaleRouter } = require('./routes/smartScale');
 const { createReferralRouter } = require('./routes/referrals');
 const { createWearablesRouter } = require('./routes/wearables');
-const { createMarketingAIRouter } = require('./routes/marketingAI');
 const { createNutritionAssessmentRouter } = require('./routes/nutritionAssessment');
 const { createGroupChatRouter } = require('./routes/groupChat');
 const groupChatService = require('./services/groupChatService');
@@ -11889,7 +11888,6 @@ app.use(
     sendPushToAdmins
   })
 );
-app.use('/api/marketing-ai', createMarketingAIRouter({ run, queryAll }));
 // ── Care group chat (client + doctor + lifestyle manager + operator, in-app) ──
 // Additive alongside the 1-to-1 /api/threads chat, which is unchanged. Every
 // route checks group membership; attachments are served only by the router's own
