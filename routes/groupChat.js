@@ -68,6 +68,48 @@ function isAudioMime(mime) {
   return mime.startsWith('audio/') || mime === 'video/mp4';
 }
 
+/**
+ * Voice notes are capped tighter than the general attachment limit. A care-team
+ * voice note is a 20-60 second clip; at any sane bitrate that is well under
+ * 10 MB, so anything larger is a mis-picked file (a whole podcast, a screen
+ * recording exported as .mp4) rather than something a coach meant to send.
+ */
+const MAX_AUDIO_BYTES = 10 * 1024 * 1024;
+
+/**
+ * Parse a single-range `Range: bytes=...` header against a known file size.
+ *
+ * Returns null when there is nothing to honour — no header, or a form we do not
+ * serve (multi-range, non-byte units), which is always answerable with the whole
+ * file — the string 'invalid' for a well-formed but unsatisfiable range, or the
+ * resolved inclusive { start, end }.
+ */
+function parseRange(header, size) {
+  const raw = String(header || '').trim();
+  if (!raw) return null;
+  const m = /^bytes=(\d*)-(\d*)$/.exec(raw);
+  if (!m) return null;
+  const rawStart = m[1];
+  const rawEnd = m[2];
+  if (rawStart === '' && rawEnd === '') return null;
+  if (size === 0) return 'invalid';
+
+  let start;
+  let end;
+  if (rawStart === '') {
+    // Suffix form: `bytes=-500` means the LAST 500 bytes, not the first 500.
+    const len = Number(rawEnd);
+    if (!len) return 'invalid';
+    start = Math.max(0, size - len);
+    end = size - 1;
+  } else {
+    start = Number(rawStart);
+    end = rawEnd === '' ? size - 1 : Math.min(Number(rawEnd), size - 1);
+  }
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start > end || start >= size) return 'invalid';
+  return { start, end };
+}
+
 function safeOriginalName(name) {
   return String(name || 'attachment')
     .replace(/[\r\n\t]/g, ' ')
@@ -232,14 +274,36 @@ function createGroupChatRouter(deps) {
       if (abs !== ATTACH_DIR && !abs.startsWith(ATTACH_DIR + path.sep)) return fail(res, 404, 'Attachment not found');
       if (!fs.existsSync(abs)) return fail(res, 404, 'File is no longer available');
 
-      res.setHeader('Content-Type', att.mime_type || 'application/octet-stream');
-      res.setHeader('Cache-Control', 'private, max-age=300');
-      // Images and voice notes render inline (a bubble, or the browser's own
-      // audio player); everything else downloads.
+      // Images and voice notes render inline (a bubble, or the in-bubble player);
+      // everything else downloads.
       const mt = String(att.mime_type || '');
-      const inline = mt.startsWith('image/') || isAudioMime(mt);
+      const audio = isAudioMime(mt);
+      const inline = mt.startsWith('image/') || audio;
       const name = safeOriginalName(att.original_name).replace(/"/g, '');
+      const size = fs.statSync(abs).size;
+
+      res.setHeader('Content-Type', mt || 'application/octet-stream');
+      res.setHeader('Cache-Control', 'private, max-age=300');
       res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${name}"`);
+
+      // Voice notes are seekable media and MUST advertise + honour byte ranges.
+      // iOS Safari probes an <audio> source with `Range: bytes=0-1` and abandons
+      // the element entirely if the reply is a plain 200 rather than a 206, so
+      // without this a voice note simply never plays on iPhone.
+      res.setHeader('Accept-Ranges', audio ? 'bytes' : 'none');
+
+      const range = audio ? parseRange(req.headers.range, size) : null;
+      if (range === 'invalid') {
+        res.setHeader('Content-Range', `bytes */${size}`);
+        return res.status(416).end();
+      }
+      if (range) {
+        res.status(206);
+        res.setHeader('Content-Range', `bytes ${range.start}-${range.end}/${size}`);
+        res.setHeader('Content-Length', String(range.end - range.start + 1));
+        return fs.createReadStream(abs, { start: range.start, end: range.end }).pipe(res);
+      }
+      res.setHeader('Content-Length', String(size));
       fs.createReadStream(abs).pipe(res);
     } catch (e) {
       console.error('[groupChat attachment]', e.message);
@@ -825,6 +889,17 @@ function createGroupChatRouter(deps) {
       const mime = String(req.file.mimetype || '').toLowerCase();
       const ext = ALLOWED_ATTACHMENT_TYPES[mime];
       if (!ext) return fail(res, 415, 'That file type is not supported here');
+
+      // Voice notes are a care-team broadcast, not a client reply channel: only
+      // staff may post them. "Staff" is the group role, not the account role, so
+      // a doctor/lifestyle manager/operator seated in the group qualifies while
+      // the client never does. Clients keep every other attachment type exactly
+      // as before.
+      const senderRole = (membership && membership.group_role) || (isAdmin ? 'admin' : '');
+      const isAudio = isAudioMime(mime);
+      const isStaff = isAdmin || (!!senderRole && senderRole !== 'client');
+      if (isAudio && !isStaff) return fail(res, 403, 'Only the care team can send voice notes here');
+      if (isAudio && req.file.buffer.length > MAX_AUDIO_BYTES) return fail(res, 413, 'Voice note is too large (max 10 MB)');
       if (req.file.buffer.length > MAX_ATTACHMENT_BYTES) return fail(res, 413, 'File is too large (max 12 MB)');
 
       const dir = path.join(ATTACH_DIR, group.id);
@@ -841,8 +916,7 @@ function createGroupChatRouter(deps) {
         if (!parent) return fail(res, 400, 'The message you replied to is no longer available');
       }
 
-      const senderRole = (membership && membership.group_role) || (isAdmin ? 'admin' : '');
-      const kind = mime.startsWith('image/') ? 'image' : (isAudioMime(mime) ? 'audio' : 'file');
+      const kind = mime.startsWith('image/') ? 'image' : (isAudio ? 'audio' : 'file');
       const msgId = await svc.insertMessage(db, {
         groupId: group.id, senderId: req.user.id, senderGroupRole: senderRole, body: caption, kind, replyToId
       });
@@ -857,7 +931,12 @@ function createGroupChatRouter(deps) {
       const [message] = await svc.loadMessages(db, group.id, { viewerId: req.user.id, since: String(Number(maxSeq) - 1), limit: 1, sign: (attId) => signAtt(attId, req.user.id) });
       const members = await svc.listMembers(db, group.id);
       const me = members.find(m => String(m.userId) === String(req.user.id));
-      const preview = kind === 'image' ? '📷 Photo' : (kind === 'audio' ? '🎤 Voice note' : '📎 Attachment');
+      // A voice note's caption is the only text the sender wrote, so it wins the
+      // notification line; the mic placeholder is the fallback for a bare note.
+      // Image/file previews are left as-is on purpose — unchanged behaviour.
+      const preview = kind === 'image'
+        ? '📷 Photo'
+        : (kind === 'audio' ? (caption || '🎤 Voice note') : '📎 Attachment');
       await notifyGroup(group, members, req.user.id, (me && me.name) || 'BodyBank', preview);
 
       res.status(201).json({ message: message || { id: msgId }, maxSeq });
@@ -1206,4 +1285,4 @@ function createGroupChatRouter(deps) {
   return router;
 }
 
-module.exports = { createGroupChatRouter, ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES };
+module.exports = { createGroupChatRouter, ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES, MAX_AUDIO_BYTES, isAudioMime, parseRange };

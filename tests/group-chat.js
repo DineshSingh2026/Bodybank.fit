@@ -30,7 +30,9 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, '..');
 const svc = require('../services/groupChatService');
-const { ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES } = require('../routes/groupChat');
+const {
+  ALLOWED_ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES, MAX_AUDIO_BYTES, isAudioMime, parseRange
+} = require('../routes/groupChat');
 
 const failures = [];
 let checks = 0;
@@ -836,11 +838,95 @@ async function testSchema() {
   if (failures.length === before) ok('schema is idempotent, indexed, and wired without disturbing the old chat');
 }
 
+/**
+ * VOICE NOTES. The failures that matter here are all silent in a desk demo:
+ * a missing Range reply plays fine in desktop Chrome and never plays at all on
+ * an iPhone; a DOM <audio> element plays fine until the first poll re-renders
+ * the thread under it; and a missing staff gate only shows up when a client
+ * uploads one.
+ */
+function testVoiceNotes() {
+  section('Voice notes');
+  const before = failures.length;
+  const router = read('routes/groupChat.js');
+  const js = read('public/js/group-chat.js');
+  const css = read('public/css/group-chat.css');
+  const service = read('services/groupChatService.js');
+
+  // ── Upload ──
+  for (const mime of ['audio/mpeg', 'audio/mp4', 'audio/aac', 'audio/ogg', 'audio/webm', 'audio/wav']) {
+    assert(!!ALLOWED_ATTACHMENT_TYPES[mime], `${mime} is an accepted attachment type`);
+  }
+  eq(MAX_AUDIO_BYTES, 10 * 1024 * 1024, 'the voice-note cap is 10 MB');
+  assert(MAX_AUDIO_BYTES < MAX_ATTACHMENT_BYTES, 'the voice-note cap is tighter than the general one');
+  assert(isAudioMime('audio/mpeg') && isAudioMime('video/mp4'), 'mp3 and the .mp4-wrapped voice memo count as audio');
+  assert(!isAudioMime('image/jpeg') && !isAudioMime('application/pdf'), 'images and PDFs are not audio');
+  assert(/kind = mime\.startsWith\('image\/'\) \? 'image' : \(isAudio \? 'audio' : 'file'\)/.test(router),
+    "an audio upload is stored with kind 'audio'");
+
+  // Staff-only: a client must not be able to post a voice note.
+  assert(/isAudio && !isStaff/.test(router), 'a non-staff sender is refused a voice note');
+  assert(/senderRole !== 'client'/.test(router), 'staff is decided by GROUP role, so a doctor/operator qualifies');
+  assert(/isAudio && req\.file\.buffer\.length > MAX_AUDIO_BYTES/.test(router), 'the 10 MB audio cap is enforced');
+
+  // ── Loader ──
+  assert(/r\.kind === 'audio'/.test(service), "the attachment loader includes kind 'audio'");
+  eq((service.match(/hasAttachments = rows\.some/g) || []).length, 2,
+    'both message-loading paths gate attachment loading the same way');
+
+  // ── Serving: Range is what makes iOS Safari play at all ──
+  assert(/Accept-Ranges/.test(router), 'the download route advertises Accept-Ranges');
+  assert(/res\.status\(206\)/.test(router) && /Content-Range/.test(router),
+    'a ranged request is answered 206 with a Content-Range');
+  assert(/fs\.createReadStream\(abs, \{ start: range\.start, end: range\.end \}\)/.test(router),
+    'a 206 streams only the requested byte window');
+  assert(/res\.status\(416\)/.test(router), 'an unsatisfiable range is answered 416');
+  assert(/inline = mt\.startsWith\('image\/'\) \|\| audio/.test(router),
+    'audio is served inline, not as a download');
+
+  // parseRange is the whole correctness surface of seeking — exercise it directly.
+  const R = (h, size) => JSON.stringify(parseRange(h, size));
+  eq(R('bytes=0-1', 100), JSON.stringify({ start: 0, end: 1 }), 'the iOS probe range bytes=0-1 resolves');
+  eq(R('bytes=50-', 100), JSON.stringify({ start: 50, end: 99 }), 'an open-ended range runs to EOF');
+  eq(R('bytes=90-500', 100), JSON.stringify({ start: 90, end: 99 }), 'an over-long end is clamped to EOF');
+  eq(R('bytes=-10', 100), JSON.stringify({ start: 90, end: 99 }), 'a suffix range means the LAST n bytes');
+  eq(R('bytes=200-300', 100), '"invalid"', 'a range past EOF is unsatisfiable');
+  eq(R('bytes=0-1,5-6', 100), 'null', 'a multi-range header falls back to the whole file');
+  eq(R('', 100), 'null', 'no Range header means a normal 200');
+
+  // ── UI ──
+  assert(/function voiceNoteHtml/.test(js), 'the bubble has a dedicated voice-note renderer');
+  // Matches an <audio> tag being BUILT into markup (inside a string literal),
+  // not the prose in the comment that explains why there isn't one.
+  assert(!/['"`]\s*<audio/.test(js),
+    'NO <audio> element is rendered into the transcript (renderTranscript rebuilds innerHTML and would kill playback)');
+  assert(/VN = \{ audio: null/.test(js), 'playback lives in one shared, detached Audio object');
+  assert(/VN\.audio\.pause\(\)/.test(js), 'starting a different note stops the one already playing');
+  assert(/VN_RATES = \[1, 1\.5, 2\]/.test(js), 'the speed toggle cycles 1x / 1.5x / 2x');
+  assert(/bindVoiceNotes\(t\)/.test(js), 'the rows are re-bound after every render');
+  assert(/onpointerdown/.test(js) && /vnSeekTo/.test(js), 'the progress bar is draggable to seek');
+  assert(/vnTime\(cur\) \+ ' \/ ' \+ vnTime\(dur\)/.test(js), 'elapsed and total time are both shown');
+  assert(/is-loading/.test(js) && /is-error/.test(js), 'the bubble has loading and error states');
+  assert(/canSendVoice\(\)/.test(js), "the file picker only offers audio to staff");
+  assert(/touch-action:none/.test(css), 'the seek bar claims the gesture so dragging does not scroll the thread');
+  assert(/\.bbg-m\.out \.bbg-vn/.test(css), 'the outgoing bubble restyles the player for contrast');
+  assert(/@media \(max-width:420px\)[\s\S]{0,400}\.bbg-vn\{/.test(css), 'the player has a narrow-screen rule');
+
+  // ── Previews ──
+  assert(/kind === 'audio' \? \(caption \|\| '🎤 Voice note'\)/.test(router),
+    'the push preview shows the caption when there is one');
+  assert(/last_kind === 'audio'\) preview = String\(r\.last_body \|\| ''\) \|\| '🎤 Voice note'/.test(service),
+    'the inbox preview shows the caption when there is one');
+
+  if (failures.length === before) ok('voice notes upload staff-only, serve ranged, and play without a DOM <audio>');
+}
+
 /* ------------------------------------------------------------------ */
 (async function main() {
   console.log('BodyBank — care group messaging contract test');
   await testAccess();
   testAttachments();
+  testVoiceNotes();
   testDeleted();
   await testReadCursor();
   testNamingAndRoles();

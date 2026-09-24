@@ -391,11 +391,74 @@ html.bbg-lock,html.bbg-lock body{overflow:hidden!important}
 .bbg-file-t b{display:block;font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .bbg-file-t span{font-size:11.5px;color:var(--bbg-faint)}
 
-.bbg-audio{
-  display:flex;align-items:center;gap:10px;margin:2px 0 4px;padding:8px 10px;border-radius:9px;
-  background:rgba(0,0,0,.28);min-width:220px;
+/* ── Voice note ────────────────────────────────────────────────────────────
+   A WhatsApp-style audio bubble. There is no <audio> element in the markup:
+   playback lives in one detached Audio object (see VN in group-chat.js), so a
+   note survives the transcript re-rendering underneath it. */
+.bbg-vn{
+  display:flex;align-items:center;gap:9px;margin:2px 0 4px;padding:7px 9px;border-radius:10px;
+  background:rgba(0,0,0,.28);min-width:214px;max-width:100%;
 }
-.bbg-audio audio{flex:1;min-width:170px;height:34px}
+.bbg-vn-play{
+  flex:0 0 auto;width:34px;height:34px;border:none;border-radius:50%;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0;
+  background:var(--bbg-gold);color:#0b0b0b;transition:transform .12s ease;
+}
+.bbg-vn-play:active{transform:scale(.93)}
+.bbg-vn-play svg{width:17px;height:17px;fill:currentColor}
+.bbg-vn.is-loading .bbg-vn-play{opacity:.55}
+.bbg-vn.is-error .bbg-vn-play{background:var(--bbg-dim);color:#0b0b0b}
+
+.bbg-vn-mid{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+
+/* Generous vertical padding makes the 4px bar a comfortable ~20px touch target
+   without changing how thin it looks. */
+.bbg-vn-track{
+  position:relative;height:4px;border-radius:3px;cursor:pointer;touch-action:none;
+  /* box-sizing MUST be content-box here. The app-wide border-box reset would make
+     height:4px include the 16px of padding, collapsing the content box to 0 —
+     and with a content-box background clip the bar then paints nothing at all.
+     Padding is what turns a 4px line into a ~20px touch target. */
+  box-sizing:content-box;padding:8px 0;
+  /* background-color + content-box clip, never the `background` shorthand — the
+     shorthand resets background-clip and the bar paints over the whole touch
+     target as a slab instead of a 4px line. */
+  background-color:rgba(255,255,255,.34);background-clip:content-box;
+}
+.bbg-vn-track:focus-visible{outline:2px solid var(--bbg-gold-hi);outline-offset:4px}
+.bbg-vn-fill{
+  position:absolute;left:0;top:8px;height:4px;width:0;border-radius:3px;
+  background:var(--bbg-gold);pointer-events:none;
+}
+.bbg-vn-knob{
+  position:absolute;right:-5px;top:50%;width:10px;height:10px;margin-top:-5px;border-radius:50%;
+  background:var(--bbg-gold-hi);opacity:0;transition:opacity .12s ease;
+}
+.bbg-vn.is-active .bbg-vn-knob{opacity:1}
+
+.bbg-vn-meta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11.5px}
+.bbg-vn-t{color:var(--bbg-faint);font-variant-numeric:tabular-nums}
+.bbg-vn-err{color:#ff8f8f}
+
+.bbg-vn-rate{
+  flex:0 0 auto;min-width:34px;padding:3px 7px;border:none;border-radius:11px;cursor:pointer;
+  font-size:11.5px;font-weight:700;line-height:1.5;
+  background:var(--bbg-gold-soft);color:var(--bbg-gold-hi);
+}
+.bbg-vn-rate:active{opacity:.75}
+
+/* The outgoing bubble is gold-tinted, so the gold control loses contrast on it —
+   flip the play button and bar to the bubble's dark ink instead. */
+.bbg-m.out .bbg-vn{background:rgba(0,0,0,.22)}
+.bbg-m.out .bbg-vn-track{background-color:rgba(255,255,255,.3)}
+
+/* Narrow screens trim the chrome but must NOT drop the min-width: a caption-less
+   note has nothing else to stretch the bubble, and it collapses to a seek bar
+   too short to aim at. 196px still fits the 78%-wide bubble on a 360px phone. */
+@media (max-width:420px){
+  .bbg-vn{min-width:196px;gap:8px;padding:7px 8px}
+  .bbg-vn-rate{min-width:31px;padding:3px 6px}
+}
 
 .bbg-rx{
   position:absolute;bottom:-15px;display:flex;gap:2px;padding:1px 6px 2px;border-radius:12px;

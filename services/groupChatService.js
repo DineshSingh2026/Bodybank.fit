@@ -767,7 +767,9 @@ async function listGroupsForUser(db, user, opts = {}) {
     if (r.last_seq) {
       if (r.last_deleted) preview = 'This message was deleted';
       else if (r.last_kind === 'image') preview = '📷 Photo';
-      else if (r.last_kind === 'audio') preview = '🎤 Voice note';
+      // A voice note carries its caption as the message body — show that when the
+      // sender wrote one, and fall back to the mic placeholder for a bare note.
+      else if (r.last_kind === 'audio') preview = String(r.last_body || '') || '🎤 Voice note';
       else if (r.last_kind === 'file') preview = '📎 Attachment';
       else if (r.last_kind === 'system') preview = String(r.last_body || '');
       else preview = String(r.last_body || '');

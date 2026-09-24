@@ -133,6 +133,17 @@
     return r === 'admin' || r === 'superadmin';
   }
   function modeFromUser() { return isStaff() ? 'admin' : 'member'; }
+  /**
+   * Mirror of the server's voice-note rule (routes/groupChat.js): only the care
+   * team may post one, and "care team" is the GROUP role, so a doctor, lifestyle
+   * manager or operator seated in the group qualifies even though their account
+   * role is not admin. This only hides the option — the server still enforces it.
+   */
+  function canSendVoice() {
+    if (isStaff()) return true;
+    var mine = (S.members || []).find(function (m) { return String(m.userId) === myId(); });
+    return !!(mine && mine.groupRole && mine.groupRole !== 'client');
+  }
   function enc(v) { return encodeURIComponent(v == null ? '' : v); }
   function each(list, fn) { Array.prototype.forEach.call(list, fn); }
   function lsGet(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }
@@ -1302,6 +1313,212 @@
     return h;
   }
 
+  /* ── Voice notes ────────────────────────────────────────────────────────────
+   * Playback lives in ONE detached Audio object that is never in the transcript.
+   *
+   * renderTranscript() rebuilds the thread's innerHTML wholesale, and the chat
+   * polls — so an <audio> element sitting inside a bubble is destroyed, and its
+   * playback cut dead, the moment anyone sends a message or adds a reaction.
+   * Keeping the player outside the document means a note plays straight through
+   * a re-render and bindVoiceNotes() just re-attaches the surviving state to the
+   * newly drawn row.
+   *
+   * A single shared object also gives "only one note at a time" for free:
+   * starting a second note re-points the same player, which stops the first.
+   */
+  var VN = { audio: null, id: '', rate: 1, dragging: false, failed: {} };
+  var VN_RATES = [1, 1.5, 2];
+
+  var VN_PLAY = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13l11-6.5z"/></svg>';
+  var VN_PAUSE = '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="5" width="3.6" height="14" rx="1"/><rect x="13.4" y="5" width="3.6" height="14" rx="1"/></svg>';
+
+  /** mm:ss, or an em dash placeholder while the duration is still unknown. */
+  function vnTime(sec) {
+    if (!isFinite(sec) || sec < 0) return '–:––';
+    var s = Math.floor(sec);
+    return Math.floor(s / 60) + ':' + ('0' + (s % 60)).slice(-2);
+  }
+
+  function voiceNoteHtml(a) {
+    return '<div class="bbg-vn" data-vn="' + esc(a.id) + '" data-src="' + esc(a.url) + '">'
+      + '<button type="button" class="bbg-vn-play" aria-label="Play voice note">' + VN_PLAY + '</button>'
+      + '<div class="bbg-vn-mid">'
+      +   '<div class="bbg-vn-track" role="slider" tabindex="0" aria-label="Seek voice note"'
+      +     ' aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">'
+      +     '<div class="bbg-vn-fill"><i class="bbg-vn-knob"></i></div>'
+      +   '</div>'
+      +   '<div class="bbg-vn-meta"><span class="bbg-vn-t">0:00 / ' + vnTime(NaN) + '</span>'
+      +     '<span class="bbg-vn-err" hidden>Could not play</span></div>'
+      + '</div>'
+      + '<button type="button" class="bbg-vn-rate" aria-label="Playback speed">1x</button>'
+      + '</div>';
+  }
+
+  function vnRow(id) {
+    var t = el('bbgThread');
+    return t ? t.querySelector('.bbg-vn[data-vn="' + (window.CSS && CSS.escape ? CSS.escape(id) : id) + '"]') : null;
+  }
+
+  /** Paint one row from the shared player's current state. */
+  function vnPaint(row, cur, dur, playing, loading) {
+    if (!row) return;
+    var pct = (isFinite(dur) && dur > 0) ? Math.max(0, Math.min(100, (cur / dur) * 100)) : 0;
+    var fill = row.querySelector('.bbg-vn-fill');
+    var track = row.querySelector('.bbg-vn-track');
+    var label = row.querySelector('.bbg-vn-t');
+    var btn = row.querySelector('.bbg-vn-play');
+    if (fill) fill.style.width = pct + '%';
+    if (track) track.setAttribute('aria-valuenow', String(Math.round(pct)));
+    if (label) label.textContent = vnTime(cur) + ' / ' + vnTime(dur);
+    if (btn) btn.innerHTML = playing ? VN_PAUSE : VN_PLAY;
+    if (btn) btn.setAttribute('aria-label', playing ? 'Pause voice note' : 'Play voice note');
+    row.classList.toggle('is-active', !!(playing || cur > 0));
+    row.classList.toggle('is-loading', !!loading);
+  }
+
+  /** Reset every row, then repaint the one the shared player is bound to. */
+  function vnSyncAll() {
+    var t = el('bbgThread');
+    if (!t) return;
+    each(t.querySelectorAll('.bbg-vn'), function (row) {
+      var id = row.getAttribute('data-vn');
+      var err = row.querySelector('.bbg-vn-err');
+      if (err) err.hidden = !VN.failed[id];
+      row.classList.toggle('is-error', !!VN.failed[id]);
+      var rate = row.querySelector('.bbg-vn-rate');
+      if (rate) rate.textContent = (VN.id === id ? VN.rate : 1) + 'x';
+      if (VN.id !== id) vnPaint(row, 0, NaN, false, false);
+    });
+    var a = VN.audio;
+    if (a && VN.id) {
+      vnPaint(vnRow(VN.id), a.currentTime || 0, a.duration, !a.paused && !a.ended,
+        a.readyState < 2 && !a.paused);
+    }
+  }
+
+  function vnBindAudio(a) {
+    a.addEventListener('timeupdate', function () {
+      if (VN.dragging) return;
+      vnPaint(vnRow(VN.id), a.currentTime || 0, a.duration, !a.paused, false);
+    });
+    a.addEventListener('loadedmetadata', function () {
+      // MediaRecorder .webm/.ogg blobs report Infinity until the stream is
+      // walked to the end. Nudging currentTime past it forces the real value,
+      // then we drop straight back to the start.
+      if (a.duration === Infinity) {
+        var restore = function () { a.removeEventListener('timeupdate', restore); a.currentTime = 0; };
+        a.addEventListener('timeupdate', restore);
+        try { a.currentTime = 1e101; } catch (_) { /* seek refused — keep –:–– */ }
+      }
+      vnSyncAll();
+    });
+    a.addEventListener('durationchange', vnSyncAll);
+    a.addEventListener('play', vnSyncAll);
+    a.addEventListener('playing', vnSyncAll);
+    a.addEventListener('pause', vnSyncAll);
+    a.addEventListener('waiting', vnSyncAll);
+    a.addEventListener('ended', function () { a.currentTime = 0; vnSyncAll(); });
+    a.addEventListener('error', function () {
+      VN.failed[VN.id] = true;
+      vnSyncAll();
+    });
+  }
+
+  /** Point the shared player at a note, creating it on first use. */
+  function vnLoad(id, src) {
+    if (!VN.audio) {
+      VN.audio = new Audio();
+      VN.audio.preload = 'metadata';
+      vnBindAudio(VN.audio);
+    }
+    if (VN.id !== id) {
+      VN.audio.pause();
+      VN.id = id;
+      delete VN.failed[id];
+      VN.audio.src = src;
+      VN.audio.playbackRate = VN.rate;
+      VN.audio.load();
+    }
+    return VN.audio;
+  }
+
+  function vnToggle(id, src) {
+    var a = vnLoad(id, src);
+    if (!a.paused) { a.pause(); vnSyncAll(); return; }
+    a.playbackRate = VN.rate;
+    var p = a.play();
+    if (p && p.catch) p.catch(function () { VN.failed[id] = true; vnSyncAll(); });
+    vnSyncAll();
+  }
+
+  /** Map a pointer x within the track to a time and seek there. */
+  function vnSeekTo(row, clientX) {
+    var track = row.querySelector('.bbg-vn-track');
+    var a = VN.audio;
+    if (!track || !a || !isFinite(a.duration) || a.duration <= 0) return;
+    var r = track.getBoundingClientRect();
+    if (!r.width) return;
+    var ratio = Math.max(0, Math.min(1, (clientX - r.left) / r.width));
+    a.currentTime = ratio * a.duration;
+    vnPaint(row, a.currentTime, a.duration, !a.paused, false);
+  }
+
+  function bindVoiceNotes(t) {
+    each(t.querySelectorAll('.bbg-vn'), function (row) {
+      var id = row.getAttribute('data-vn');
+      var src = row.getAttribute('data-src');
+
+      row.querySelector('.bbg-vn-play').onclick = function (e) {
+        e.stopPropagation();
+        vnToggle(id, src);
+      };
+
+      row.querySelector('.bbg-vn-rate').onclick = function (e) {
+        e.stopPropagation();
+        // Cycling is global, so the speed a coach picked carries to the next
+        // note instead of resetting to 1x on every bubble.
+        VN.rate = VN_RATES[(VN_RATES.indexOf(VN.rate) + 1) % VN_RATES.length];
+        if (VN.audio && VN.id === id) VN.audio.playbackRate = VN.rate;
+        vnSyncAll();
+      };
+
+      var track = row.querySelector('.bbg-vn-track');
+      track.onpointerdown = function (e) {
+        // Only the loaded note is seekable; tapping another one's bar loads it
+        // first so the drag has a duration to map against.
+        if (VN.id !== id) vnLoad(id, src);
+        if (!VN.audio || !isFinite(VN.audio.duration)) return;
+        e.preventDefault();
+        e.stopPropagation();
+        VN.dragging = true;
+        try { track.setPointerCapture(e.pointerId); } catch (_) { /* not captured — move still fires */ }
+        vnSeekTo(row, e.clientX);
+      };
+      track.onpointermove = function (e) {
+        if (!VN.dragging) return;
+        e.preventDefault();
+        vnSeekTo(row, e.clientX);
+      };
+      var end = function (e) {
+        if (!VN.dragging) return;
+        VN.dragging = false;
+        try { track.releasePointerCapture(e.pointerId); } catch (_) { /* already released */ }
+        vnSyncAll();
+      };
+      track.onpointerup = end;
+      track.onpointercancel = end;
+      track.onkeydown = function (e) {
+        var step = e.key === 'ArrowRight' ? 5 : (e.key === 'ArrowLeft' ? -5 : 0);
+        if (!step) return;
+        e.preventDefault();
+        var a = vnLoad(id, src);
+        if (isFinite(a.duration)) a.currentTime = Math.max(0, Math.min(a.duration, a.currentTime + step));
+        vnSyncAll();
+      };
+    });
+    vnSyncAll();
+  }
+
   function isGrouped(m, prev) {
     if (!prev || m.kind === 'system' || prev.kind === 'system') return false;
     if (String(prev.senderId) !== String(m.senderId) || !!prev.mine !== !!m.mine) return false;
@@ -1333,8 +1550,7 @@
       if (a.isImage) {
         h += '<img class="bbg-img" src="' + esc(a.url) + '" alt="' + esc(a.name) + '" loading="lazy" data-full="' + esc(a.url) + '">';
       } else if (a.isAudio) {
-        h += '<div class="bbg-audio"><span class="bbg-file-ic">🎤</span>'
-          + '<audio controls preload="metadata" src="' + esc(a.url) + '"></audio></div>';
+        h += voiceNoteHtml(a);
       } else {
         h += '<a class="bbg-file" href="' + esc(a.url) + '" target="_blank" rel="noopener"><span class="bbg-file-ic">📄</span>'
           + '<span class="bbg-file-t"><b>' + esc(a.name) + '</b><span>' + esc(fmtBytes(a.size)) + '</span></span></a>';
@@ -1402,6 +1618,7 @@
     each(t.querySelectorAll('.bbg-more'), function (b) {
       b.onclick = function (e) { e.stopPropagation(); openMessageActions(b.closest('.bbg-m').getAttribute('data-id')); };
     });
+    bindVoiceNotes(t);
     each(t.querySelectorAll('.bbg-m'), bindTouch);
     each(t.querySelectorAll('.bbg-b'), function (b) {
       b.ondblclick = function () {
@@ -1555,7 +1772,8 @@
       +   '</div>'
       +   '<button type="button" class="bbg-send" id="bbgSend" aria-label="Send" disabled>' + SEND_SVG + '</button>'
       + '</div>'
-      + (direct ? '' : '<input type="file" id="bbgFile" hidden accept="image/*,audio/*,application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt">')
+      + (direct ? '' : '<input type="file" id="bbgFile" hidden accept="image/*,'
+          + (canSendVoice() ? 'audio/*,' : '') + 'application/pdf,.doc,.docx,.xls,.xlsx,.csv,.txt">')
       + '<div id="bbgCmpErr"></div>'
       + '</div>';
     bindComposer();
@@ -1674,6 +1892,10 @@
   function toggleEmoji() { S.emojiOpen = !S.emojiOpen; renderCmpTop(); }
 
   function pickFile(f) {
+    // Voice notes are capped tighter than other attachments, server-side too.
+    if (/^audio\//.test(f.type || '') && f.size > 10 * 1024 * 1024) {
+      setComposerError('That voice note is larger than 10 MB.'); return;
+    }
     if (f.size > 12 * 1024 * 1024) { setComposerError('That file is larger than 12 MB.'); return; }
     S.pendingFile = f;
     setComposerError('');
@@ -1904,7 +2126,9 @@
         if (!S.messages.some(function (m) { return m.id === res.message.id; })) S.messages.push(res.message);
         renderTranscript();
         scrollToBottom(true);
-        bumpListPreview(res.message.kind === 'image' ? '📷 Photo' : (res.message.kind === 'audio' ? '🎤 Voice note' : '📎 Attachment'));
+        bumpListPreview(res.message.kind === 'image'
+          ? '📷 Photo'
+          : (res.message.kind === 'audio' ? (res.message.body || '🎤 Voice note') : '📎 Attachment'));
         snapshotOpen();
       }
     } catch (e) {

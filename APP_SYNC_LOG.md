@@ -36,7 +36,21 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
-_Nothing pending. Everything through web commit `49c1eb1` is in mobile `bdcd609`._
+**Care-group voice notes.** The chat bubble that plays a voice note is web code, and the apps run
+the bundled `www/` snapshot — so the new player only reaches members after `build:www` + `cap sync`.
+**No native change is needed:** the care chat is the same web UI inside the Capacitor WebView, not a
+native screen, and it uses no Capacitor plugin. Playback is a plain `Audio` object over HTTPS.
+
+| File | Why it must sync |
+| ---- | ---------------- |
+| `public/js/group-chat.js` | the voice-note bubble, the shared detached `Audio` player and the drag-to-seek bar |
+| `public/css/group-chat.css` | the bubble's styling, including its narrow-screen rule |
+| `public/index.html` | `group-chat.css?v=8` / `group-chat.js?v=11` — without the bump a returning user keeps the 7-day-cached old pair and sees a download link instead of a player |
+
+Backend in the same change (`routes/groupChat.js` byte-range serving, `services/groupChatService.js`
+preview text) is live for the apps through Render the moment it deploys — no sync needed. That half
+matters most on **iOS**: WKWebView, like Safari, probes an `<audio>` source with `Range: bytes=0-1`
+and gives up unless the reply is a `206`, so voice notes could not play in the iOS app before it.
 
 ---
 
