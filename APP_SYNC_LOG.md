@@ -36,7 +36,17 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
-**`public/ai-trainer.html` — needs a sync to both platforms.** The trainer runs from the
+_Nothing pending. Everything through web commit `49c1eb1` is in mobile `bdcd609`._
+
+---
+
+## 2026-09-24 — AI Trainer fullscreen fix, v1.8.1 / versionCode 110 / iOS 1.0.5
+
+Syncs web commit `49c1eb1` into mobile `bdcd609`. `npm run build:www` produced a delta of
+exactly the eight files that commit touched — no drift; the previous sync had left `www/`
+current. Ran `npx cap sync android` and `npm run sync:ios` (which chains the 2.3.10 strip).
+
+**`public/ai-trainer.html` — the whole point of this release.** The trainer runs from the
 bundled `www/` snapshot, so these three fixes only reach members after `build:www` + `cap sync`:
 
 | Change | Notes |
@@ -50,15 +60,33 @@ a measured `CANVAS_SAFE` band so they never draw under the notch or behind the H
 `getUserMedia` now asks for a portrait-shaped frame on a portrait screen (all `ideal`, the
 unconstrained retry is untouched) so the preview is no longer stretched sideways.
 
-**Decide before syncing:** the public marketing pages now carry a live **App Store** badge
-(`https://apps.apple.com/in/app/bodybank/id6808102656`) beside Google Play, replacing the
-"Launching soon" placeholder — `index.html`, `blog.html`, `our-story.html`, `privacy.html`,
-`signin.html`, `signup.html`, `tribe-stories.html`. The standing decision below keeps store
-blocks out of `www/`; if that still holds, keep them out. If any of it does reach `www/`,
-re-run `scripts/ios-strip-store-refs.js` as a dry-run first — the hero pill now names both
-stores in one line, which is new text for its Google Play matcher to handle.
+**App Store badge.** iOS went live on 2026-09-24, so the public pages now carry a real App
+Store badge (`https://apps.apple.com/in/app/bodybank/id6808102656`) beside Google Play in place
+of the "Launching soon" placeholder, and the hero pill and Get-the-App copy name both stores.
+Note that the earlier "store blocks are deliberately not in `www/`" line was aspirational —
+`build:www` mirrors `public/` wholesale, so those blocks have always shipped in the Android
+payload. iOS strips them, which is what the next paragraph is about.
 
-_Standing decision: web commit `6d4af43` ("announce the Android launch across the public pages") adds the hero store pill and the **Get the App** section to the public pages. Those are deliberately **not** in `www/` — a "Download the app" block inside the app itself is noise._
+**`scripts/ios-strip-store-refs.js` needed two anchors updated, and caught itself doing it.**
+Its `TEXT_RULES` matched the old single-store sentences (`Now live on Google Play</p>` and
+`The BodyBank app is live on the Google Play Store. `). The website now names both stores in
+one line, so neither anchor matched and the surviving "Google Play" text tripped the final
+2.3.10 scan — which failed the run loudly, exactly as designed. Anchors rewritten to the new
+copy; re-ran and got `OK — bundle clean: ios/App/App/public`. **Any future edit to those two
+lines in `public/index.html` has to be mirrored in that script.**
+
+**Versions.** Android `versionCode` 109 → **110**, `versionName` 1.8.0 → **1.8.1**. iOS
+`MARKETING_VERSION` 1.0.4 → **1.0.5**, both configurations; `CURRENT_PROJECT_VERSION`
+untouched — the iOS workflow sets the build number itself with `agvtool`.
+
+**Checked before shipping**
+- `node scripts/ios-strip-store-refs.js` → "OK — bundle clean".
+- Release AAB built locally (`./gradlew.bat bundleRelease`, 38s, 45.5 MB). `jarsigner -verify`
+  → "jar verified."; the RELEASE merged manifest reads `versionCode="110"` / `versionName="1.8.1"`;
+  permission set still free of `READ_MEDIA_*` and `*_EXTERNAL_STORAGE`. Unzipped the AAB and
+  confirmed its bundled `ai-trainer.html` carries the fix.
+- Neither Codemagic workflow has a `triggering:` block, so the push started no build on either
+  platform. Android ships by uploading this AAB to Play; iOS by starting `ios-appstore` by hand.
 
 ---
 
