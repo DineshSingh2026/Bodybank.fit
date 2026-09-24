@@ -36,7 +36,29 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
-_One item pending: web commit `6d4af43` ("announce the Android launch across the public pages") adds the hero store pill and the **Get the App** section to the public pages. Those are deliberately **not** in `www/` — a "Download the app on Google Play" block inside the app itself is noise. Revisit only if the iOS launch changes the calculus._
+**`public/ai-trainer.html` — needs a sync to both platforms.** The trainer runs from the
+bundled `www/` snapshot, so these three fixes only reach members after `build:www` + `cap sync`:
+
+| Change | Notes |
+| ------ | ----- |
+| No Fullscreen API on phones or in the app shell | `enterWorkoutMode()` now only calls `requestFullscreen()` on a non-touch desktop browser. Inside the WebView it was producing the system *"capacitor://localhost/ai-trainer.html is in full screen. Swipe down to exit."* banner and its own close button, and it dropped the safe-area insets — which is what slid the HUD under the notch and squeezed its bars together. The workout is a CSS overlay (`body.in-workout`) and always was; it fills the screen without the API. `fullscreenchange` now only ends a session when *this page* asked for fullscreen, so a stray system gesture can no longer stop a live workout. |
+| Exact viewport height + no zoom over the camera | `--bb-vh` is written from `visualViewport` (ignored while pinch-zoomed) and drives the overlay height, with `100dvh`/`100vh` as fallbacks; the stage takes `touch-action: none` and the body locks scroll. Canvas bitmap now re-measures on `resize`, `orientationchange` and `visualViewport` changes, coalesced into one rAF. |
+| Session summary returns to the picker | New **🎯 Choose Another Exercise** button closes the summary, resets the readouts and scrolls the exercise/yoga lists into view instead of leaving for the dashboard. **← Back to Dashboard** is still there underneath. |
+
+Also in that file: the on-canvas coaching pills, the hold meter and the Surya rail are clamped to
+a measured `CANVAS_SAFE` band so they never draw under the notch or behind the HUD bars, and
+`getUserMedia` now asks for a portrait-shaped frame on a portrait screen (all `ideal`, the
+unconstrained retry is untouched) so the preview is no longer stretched sideways.
+
+**Decide before syncing:** the public marketing pages now carry a live **App Store** badge
+(`https://apps.apple.com/in/app/bodybank/id6808102656`) beside Google Play, replacing the
+"Launching soon" placeholder — `index.html`, `blog.html`, `our-story.html`, `privacy.html`,
+`signin.html`, `signup.html`, `tribe-stories.html`. The standing decision below keeps store
+blocks out of `www/`; if that still holds, keep them out. If any of it does reach `www/`,
+re-run `scripts/ios-strip-store-refs.js` as a dry-run first — the hero pill now names both
+stores in one line, which is new text for its Google Play matcher to handle.
+
+_Standing decision: web commit `6d4af43` ("announce the Android launch across the public pages") adds the hero store pill and the **Get the App** section to the public pages. Those are deliberately **not** in `www/` — a "Download the app" block inside the app itself is noise._
 
 ---
 

@@ -313,14 +313,27 @@
       .ref-fig.is-board { max-height: 46vh; }
     }
 
-    /* ── FULLSCREEN WORKOUT MODE ── */
+    /* ── FULLSCREEN WORKOUT MODE ──
+       The stage is its own fixed overlay; the Fullscreen API is only used on
+       desktop. On phones and inside the app shell it did more harm than good:
+       native fullscreen drops the safe-area insets — so the HUD slid under the
+       notch and its bars squeezed into each other — and the WebView stacks its
+       own "swipe down to exit" chrome on top of the session. --bb-vh is written
+       from visualViewport so a WebView whose 100vh lies still gets exact pixels. */
+    body.in-workout { overflow: hidden; overscroll-behavior: none; }
     body.in-workout .hdr { opacity: 0; pointer-events: none; transition: opacity .3s; }
     body.in-workout .left,
     body.in-workout .right { display: none !important; }
     body.in-workout .wrap  { display: block; padding: 0; max-width: none; }
     body.in-workout .stage-wrap {
-      position: fixed; inset: 0; z-index: 500;
-      width: 100%; height: 100%;
+      position: fixed; top: 0; left: 0; right: 0; z-index: 500;
+      /* No panning and no pinch/double-tap zoom over a live camera view — a
+         stray gesture mid-set used to leave the whole screen zoomed and cramped. */
+      touch-action: none;
+      width: 100%;
+      height: 100vh;                  /* floor for browsers without dvh */
+      height: 100dvh;
+      height: var(--bb-vh, 100dvh);   /* exact px once JS has measured */
     }
     body.in-workout .stage {
       position: absolute; inset: 0;
@@ -537,6 +550,9 @@
       transition: border-color .2s, color .2s; margin-bottom: 14px;
     }
     .sum-again-btn:hover { border-color: rgba(200,164,78,.45); color: var(--txt); }
+    /* The usual next step after a finished set — pick the next exercise */
+    .sum-pick-btn { border-color: rgba(200,164,78,.42); color: var(--gold); }
+    .sum-pick-btn:hover { border-color: var(--gold); color: var(--gold-strong); }
     .sum-back { font-size: 13px; color: #5f6880; text-decoration: none; transition: color .2s; }
     .sum-back:hover { color: var(--gold); }
     .sum-status {
@@ -715,6 +731,7 @@
       <div class="sum-form-label"><span>Form quality</span><span id="sumFormPct">—</span></div>
       <div class="sum-form-bar-wrap"><div id="sumFormFill" class="sum-form-bar-fill"></div></div>
       <button id="sumSaveBtn" class="sum-save-btn">💾 Save to Workout Log</button>
+      <button id="sumPickBtn" class="sum-again-btn sum-pick-btn">🎯 Choose Another Exercise</button>
       <button id="sumAgainBtn" class="sum-again-btn">🔄 Train Again</button>
       <a href="/index.html" class="sum-back">← Back to Dashboard</a>
       <div id="sumStatus" class="sum-status"></div>
@@ -3007,15 +3024,18 @@ function drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h) {
     const col = done ? CLR.GOOD
               : V.phase === 'hold' ? CLR.GOOD
               : V.score >= 45 ? CLR.WARN : CLR.BAD;
+    // Clear of the notch above and the HUD's stats/buttons bar below
+    const sCeil  = CANVAS_SAFE.top + 10;
+    const sFloor = Math.max(sCeil + 24, h - CANVAS_SAFE.bottom);
     const pill = (x, y, text, c) =>
-      drawPill(ctx, Math.max(92, Math.min(w - 92, x)), Math.max(14, Math.min(h - 14, y)), text, c);
+      drawPill(ctx, Math.max(92, Math.min(w - 92, x)), Math.max(sCeil, Math.min(sFloor, y)), text, c);
 
     // ── the rail: twelve numbered stops, so progress is never ambiguous ──
     const n = SURYA_STEPS.length;
     const cell = Math.min(30, (w * 0.70) / n);
     const gap = Math.max(3, cell * 0.16);
     const railW = cell * n + gap * (n - 1);
-    const x0 = (w - railW) / 2, railY = 26;
+    const x0 = (w - railW) / 2, railY = CANVAS_SAFE.top + 10;
     ctx.save();
     for (let k = 0; k < n; k++) {
       // canvas is mirrored, so place chip k from the right to read 1..12 left-to-right
@@ -3058,7 +3078,7 @@ function drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h) {
 
     // ── the shape to make, drawn small so it never hides the member ──
     const bw = Math.min(150, w * 0.20), bh = bw * 0.78;
-    const bx = w - bw - 16, by = h - bh - 34;
+    const bx = w - bw - 16, by = Math.max(railY + cell + 60, h - bh - CANVAS_SAFE.bottom - 10);
     ctx.save();
     ctx.fillStyle = 'rgba(6,7,11,0.72)';
     ctx.strokeStyle = done ? CLR.GOOD : 'rgba(228,187,90,0.55)';
@@ -3098,10 +3118,12 @@ function drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h) {
       ctx.restore();
     };
     const plumb = (x, y0, y1, color) => dash({ x, y: y0 }, { x, y: y1 }, color, [6, 6]);
-    // Keep every cue pill inside the frame, however the pose sits in it
-    const floor = h - 64;
+    // Keep every cue pill inside the frame, however the pose sits in it —
+    // and clear of the notch above and the HUD's bottom bar below.
+    const ceil  = CANVAS_SAFE.top + 16;
+    const floor = Math.max(ceil + 24, h - CANVAS_SAFE.bottom);
     const pill = (x, y, text, color) =>
-      drawPill(ctx, Math.max(84, Math.min(w - 84, x)), Math.max(16, Math.min(floor, y)), text, color);
+      drawPill(ctx, Math.max(84, Math.min(w - 84, x)), Math.max(ceil, Math.min(floor, y)), text, color);
     const arc = (A, B, C, r, color) => { if (A && B && C) drawAngleArc(ctx, A, B, C, w, h, r, color); };
     const col = sc => byStatus(stOf(sc), false);
 
@@ -3109,7 +3131,7 @@ function drawCoachingOverlay(ctx, lm, exKey, jStatus, w, h) {
     const hv = YOGA_HOLD_VIZ;
     if (hv && hv.unit > 0) {
       const pct = Math.max(0, Math.min(1, (hv.ms % hv.unit) / hv.unit));
-      const bw = Math.min(300, w * 0.42), bx = (w - bw) / 2, by = 26;
+      const bw = Math.min(300, w * 0.42), bx = (w - bw) / 2, by = CANVAS_SAFE.top + 10;
       ctx.save();
       ctx.fillStyle = 'rgba(5,5,10,0.55)';
       ctx.fillRect(bx, by, bw, 7);
@@ -4427,27 +4449,135 @@ function updateTimer() {
 // ════════════════════════════════════════════════════════════════
 //  FULLSCREEN + HUD HELPERS
 // ════════════════════════════════════════════════════════════════
+/** Inside the Capacitor shell — the iOS or Android app, not a browser tab. */
+const IS_NATIVE_SHELL = (() => {
+  try {
+    const C = window.Capacitor;
+    if (C && typeof C.getPlatform === 'function') return C.getPlatform() !== 'web';
+    if (C && C.isNativePlatform) return true;
+  } catch (_) {}
+  return /^capacitor:/i.test(window.location.protocol);
+})();
+
+/** Coarse pointer — a phone or tablet, in the app or in a mobile browser. */
+const IS_TOUCH_DEVICE = (() => {
+  try {
+    return (window.matchMedia && window.matchMedia('(pointer: coarse)').matches) ||
+           (navigator.maxTouchPoints || 0) > 1;
+  } catch (_) { return false; }
+})();
+
+// The Fullscreen API stays a desktop-only nicety. On a phone it costs the
+// safe-area insets — which is what slid the HUD under the notch and squeezed
+// its bars together — and buys a system "swipe down to exit" banner over the
+// session. The CSS overlay already fills the screen without either.
+const USE_NATIVE_FULLSCREEN = !IS_NATIVE_SHELL && !IS_TOUCH_DEVICE &&
+  typeof document.documentElement.requestFullscreen === 'function';
+let weEnteredFullscreen = false;
+
+/**
+ * Pin the workout overlay to the height the viewport actually has. 100vh
+ * over-reports inside WebViews and while a mobile browser's toolbars show,
+ * which pushed the stats and buttons off the bottom of the screen.
+ */
+function syncViewportHeight() {
+  const vv = window.visualViewport;
+  let h = window.innerHeight || 0;
+  // visualViewport is the honest number inside a WebView — but while the page
+  // is pinch-zoomed it reports only the visible slice, so ignore it then.
+  if (vv && vv.height && (!vv.scale || Math.abs(vv.scale - 1) < 0.01)) h = vv.height;
+  h = Math.round(h);
+  if (h > 0) document.documentElement.style.setProperty('--bb-vh', h + 'px');
+}
+
+/**
+ * Canvas bitmap follows the stage's real CSS box. Kept in CSS pixels on
+ * purpose: every overlay pill and label is sized in canvas units, so a device
+ * pixel ratio here would shrink the coaching text on exactly the phones that
+ * need it largest.
+ */
+function resizeStageCanvas() {
+  if (!cvs) return;
+  const w = Math.max(320, Math.round(cvs.clientWidth  || window.innerWidth));
+  const h = Math.max(240, Math.round(cvs.clientHeight || window.innerHeight));
+  // Assigning width/height clears the bitmap, so only touch it on a real change.
+  if (cvs.width  !== w) cvs.width  = w;
+  if (cvs.height !== h) cvs.height = h;
+  refreshCanvasSafeArea();
+}
+
+/**
+ * The band of canvas the drawing code may use: under the HUD's top bar (which
+ * already clears the notch) and above its stats/buttons bar. Measured on
+ * layout changes only — never per frame.
+ */
+let CANVAS_SAFE = { top: 16, bottom: 64 };
+function refreshCanvasSafeArea() {
+  if (!cvs || !document.body.classList.contains('in-workout')) {
+    CANVAS_SAFE = { top: 16, bottom: 64 };
+    return;
+  }
+  const boxH  = cvs.clientHeight || cvs.height || 1;
+  const scale = (cvs.height || boxH) / boxH;
+  const hgt = sel => {
+    const el = document.querySelector(sel);
+    if (!el || el.offsetParent === null) return 0;
+    return el.getBoundingClientRect().height || 0;
+  };
+  CANVAS_SAFE = {
+    top:    Math.max(16, Math.round((hgt('.hud-top')    + 10) * scale)),
+    bottom: Math.max(64, Math.round((hgt('.hud-bottom') + 10) * scale))
+  };
+}
+
 function enterWorkoutMode() {
   document.body.classList.add('in-workout');
-  setTimeout(() => {
-    cvs.width  = cvs.clientWidth  || window.innerWidth;
-    cvs.height = cvs.clientHeight || window.innerHeight;
-  }, 120);
-  try { document.documentElement.requestFullscreen && document.documentElement.requestFullscreen().catch(() => {}); } catch(_) {}
+  syncViewportHeight();
+  resizeStageCanvas();
+  // Second pass once the fixed overlay has actually laid out.
+  setTimeout(() => { syncViewportHeight(); resizeStageCanvas(); }, 140);
+  if (USE_NATIVE_FULLSCREEN) {
+    try {
+      const p = document.documentElement.requestFullscreen();
+      weEnteredFullscreen = true;
+      if (p && p.catch) p.catch(() => { weEnteredFullscreen = false; });
+    } catch (_) { weEnteredFullscreen = false; }
+  }
 }
 function exitWorkoutMode() {
   document.body.classList.remove('in-workout');
-  try { document.fullscreenElement && document.exitFullscreen && document.exitFullscreen().catch(() => {}); } catch(_) {}
+  document.documentElement.style.removeProperty('--bb-vh');
+  CANVAS_SAFE = { top: 16, bottom: 64 };
+  if (weEnteredFullscreen) {
+    weEnteredFullscreen = false;
+    try { document.fullscreenElement && document.exitFullscreen && document.exitFullscreen().catch(() => {}); } catch(_) {}
+  }
 }
+// Only a fullscreen this page asked for may end a session. Anything else —
+// a WebView's own banner, another element leaving fullscreen — must not.
 document.addEventListener('fullscreenchange', () => {
-  if (!document.fullscreenElement && running) stopWorkout();
-});
-window.addEventListener('resize', () => {
-  if (cvs && document.body.classList.contains('in-workout')) {
-    cvs.width  = Math.max(320, cvs.clientWidth  || window.innerWidth);
-    cvs.height = Math.max(240, cvs.clientHeight || window.innerHeight);
+  if (!document.fullscreenElement && weEnteredFullscreen && running) {
+    weEnteredFullscreen = false;
+    stopWorkout();
   }
 });
+
+let _vpFrame = 0;
+function onViewportChange() {
+  if (_vpFrame) return;
+  _vpFrame = requestAnimationFrame(() => {
+    _vpFrame = 0;
+    if (!document.body.classList.contains('in-workout')) return;
+    syncViewportHeight();
+    resizeStageCanvas();
+  });
+}
+window.addEventListener('resize', onViewportChange);
+window.addEventListener('orientationchange', () => setTimeout(onViewportChange, 260));
+if (window.visualViewport) {
+  window.visualViewport.addEventListener('resize', onViewportChange);
+  window.visualViewport.addEventListener('scroll', onViewportChange);
+}
 
 function showPrepCountdown(onDone) {
   const prepOv  = $('prepOv');
@@ -4743,8 +4873,19 @@ async function startWorkout() {
   }
 
   try {
+    // Ask for a frame shaped like the screen it will fill. The canvas stretches
+    // whatever arrives across the whole stage, so a landscape frame on a
+    // portrait phone came back visibly squashed. Every value stays `ideal`, so
+    // a camera that cannot oblige still opens at whatever size it has.
+    const portrait = (window.innerHeight || 0) >= (window.innerWidth || 0);
+    const want = portrait ? { width: 720, height: 1280 } : { width: 1280, height: 720 };
     stream = await navigator.mediaDevices.getUserMedia({
-      video: { width:{ ideal:1280 }, height:{ ideal:720 }, facingMode:'user' },
+      video: {
+        width:  { ideal: want.width },
+        height: { ideal: want.height },
+        aspectRatio: { ideal: want.width / want.height },
+        facingMode: 'user'
+      },
       audio: false
     });
   } catch (e) {
@@ -4764,10 +4905,7 @@ async function startWorkout() {
   try { vid.playsInline = true; } catch (_) {}
   await vid.play().catch(() => {});
   await new Promise(r => { if (vid.readyState >= 2) r(); else vid.onloadeddata = r; });
-  const cw = cvs.clientWidth || window.innerWidth;
-  const ch = cvs.clientHeight || window.innerHeight;
-  cvs.width  = Math.max(320, cw);
-  cvs.height = Math.max(240, ch);
+  resizeStageCanvas();
 
   pose = new Pose({ locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}` });
   pose.setOptions({ modelComplexity:0, smoothLandmarks:true, minDetectionConfidence:.5, minTrackingConfidence:.45 });
@@ -4847,6 +4985,8 @@ async function startWorkout() {
     running = true;
     $('wkHud').classList.remove('hidden');
     idleOv.classList.add('hidden');
+    // The HUD bars are on screen now — re-measure what the canvas may draw over.
+    refreshCanvasSafeArea();
     stopBtn.disabled = false; setBtn.disabled = false;
     const hudSetBtn = $('hudSetBtn'); if (hudSetBtn) hudSetBtn.disabled = false;
     sessionStart = Date.now();
@@ -4963,20 +5103,44 @@ if (sumSaveBtn) {
     } catch(_) { st.textContent = 'Network error — check connection.'; st.className = 'sum-status err'; sumSaveBtn.disabled = false; }
   });
 }
+/** Clear the finished session off every readout, ready for the next one. */
+function resetSessionDisplay() {
+  repCount.textContent = '0'; setCount.textContent = '0';
+  timerEl.textContent  = '0:00'; fpsEl.textContent = '--';
+  YOGA_HOLD_VIZ = { ms: 0, unit: Detector.HOLD_UNIT_MS, good: false, holds: 0 };
+  const hr = $('hudReps'); if (hr) hr.textContent = '0';
+  const hs = $('hudSets'); if (hs) hs.textContent = '0';
+  const ht = $('hudTime'); if (ht) ht.textContent = '0:00';
+  if (repHist) repHist.innerHTML = '<div class="tip">No reps yet.</div>';
+  setFeedback('Waiting to start…', '', 0);
+  showOverlay('idle');
+}
+
 const sumAgainBtn = $('sumAgainBtn');
 if (sumAgainBtn) {
   sumAgainBtn.addEventListener('click', () => {
     $('summaryModal').classList.add('hidden');
-    // Reset display stats
-    repCount.textContent = '0'; setCount.textContent = '0';
-    timerEl.textContent  = '0:00'; fpsEl.textContent = '--';
-    YOGA_HOLD_VIZ = { ms: 0, unit: Detector.HOLD_UNIT_MS, good: false, holds: 0 };
-    const hr = $('hudReps'); if (hr) hr.textContent = '0';
-    const hs = $('hudSets'); if (hs) hs.textContent = '0';
-    const ht = $('hudTime'); if (ht) ht.textContent = '0:00';
-    if (repHist) repHist.innerHTML = '<div class="tip">No reps yet.</div>';
-    setFeedback('Waiting to start…', '', 0);
-    showOverlay('idle');
+    resetSessionDisplay();
+  });
+}
+
+// Finishing one exercise should land back on the trainer's own picker, not out
+// on the dashboard — the next posture is then one tap away. The lists sit below
+// the stage on phones, so bring them into view rather than just closing the card.
+const sumPickBtn = $('sumPickBtn');
+if (sumPickBtn) {
+  sumPickBtn.addEventListener('click', () => {
+    $('summaryModal').classList.add('hidden');
+    resetSessionDisplay();
+    const card = wkSel && wkSel.closest ? wkSel.closest('.card') : null;
+    if (card) {
+      try { card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      catch (_) { card.scrollIntoView(); }
+    }
+    setTimeout(() => {
+      const target = pickedFrom === 'yg' ? ygSel : wkSel;
+      try { target.focus({ preventScroll: true }); } catch (_) { try { target.focus(); } catch (__) {} }
+    }, 420);
   });
 }
 
