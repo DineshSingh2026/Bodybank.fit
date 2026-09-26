@@ -52,6 +52,16 @@ preview text) is live for the apps through Render the moment it deploys — no s
 matters most on **iOS**: WKWebView, like Safari, probes an `<audio>` source with `Range: bytes=0-1`
 and gives up unless the reply is a `206`, so voice notes could not play in the iOS app before it.
 
+**Meal share card rebuild + no member meal score** (web `c575d7b`). The card, the meal result
+row, the daily summary and the 7-day trend are all in `public/index.html`, so they need the sync.
+The email / inbox / push wording is backend and is already live through Render.
+
+**Status 2026-09-26: `www/` already synced (mobile `4bf214b`), release held.** The voice notes and
+the meal card are both in that commit, with `www/bodybank-3d-preview.html` deliberately kept (it is
+only deleted in a local working tree, not on web `main`). No version bump and no build yet: more
+changes are coming before the next release. At release time, re-run the sync to pick up anything
+newer, then bump versions and start each Codemagic workflow by hand.
+
 ---
 
 ## 2026-09-24 — AI Trainer fullscreen fix, v1.8.1 / versionCode 110 / iOS 1.0.5
