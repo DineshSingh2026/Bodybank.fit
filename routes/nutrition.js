@@ -261,7 +261,8 @@ async function sendNutritionNotifications(db, { userId, ymd, userRow, channel })
     mealList.forEach((x) => {
       const d = x.aiResult && x.aiResult.dish ? x.aiResult.dish : x.mealType;
       const cal = x.aiResult && x.aiResult.calories != null ? x.aiResult.calories : '—';
-      lines.push(`${x.mealType}: ${d} — ${cal} kcal (score ${x.mealScore}/10)`);
+      const pro = x.aiResult && x.aiResult.protein != null ? ` · ${x.aiResult.protein}g protein` : '';
+      lines.push(`${x.mealType}: ${d} — ${cal} kcal${pro}`);
     });
     const bodyText = lines.join('\n');
     try {
@@ -1048,12 +1049,12 @@ function createNutritionRouter(deps) {
         return res.status(500).json({ error: 'Failed to send weekly nutrition report email.' });
       }
 
-      pushMember(uid, '🥗 Your weekly nutrition summary', `Avg ${weekly.report.avgCalories} kcal/day · ${weekly.report.avgProtein}g protein · score ${weekly.report.avgScore}/10`);
+      pushMember(uid, '🥗 Your weekly nutrition summary', `Avg ${weekly.report.avgCalories} kcal/day · ${weekly.report.avgProtein}g protein · ${weekly.report.daysLogged} days logged`);
       await run('INSERT INTO user_inbox (id, user_id, title, body, type, is_read) VALUES (?, ?, ?, ?, ?, FALSE)', [
         uuidv4(),
         uid,
         'Fitchef Nutrition weekly summary',
-        `Avg ${weekly.report.avgCalories} kcal/day · ${weekly.report.avgProtein}g protein · score ${weekly.report.avgScore}/10 · energy diff ${weekly.report.avgEnergyDiff} kcal (${weekly.report.daysLogged} days).`,
+        `Avg ${weekly.report.avgCalories} kcal/day · ${weekly.report.avgProtein}g protein · energy diff ${weekly.report.avgEnergyDiff} kcal (${weekly.report.daysLogged} days).`,
         'nutrition_weekly'
       ]);
 
@@ -1095,10 +1096,10 @@ async function runWeeklyNutritionEmailJob({ queryAll, queryOne, run }) {
         uuidv4(),
         u.id,
         'Weekly nutrition summary',
-        `Avg ${avgCal} kcal/day · ${avgPro}g protein · score ${avgScore}/10 · energy diff ${avgEn} kcal (${len} days).`,
+        `Avg ${avgCal} kcal/day · ${avgPro}g protein · energy diff ${avgEn} kcal (${len} days).`,
         'nutrition_weekly'
       ]);
-      pushMember(u.id, '🥗 Your weekly nutrition summary', `Avg ${avgCal} kcal/day · ${avgPro}g protein · score ${avgScore}/10`);
+      pushMember(u.id, '🥗 Your weekly nutrition summary', `Avg ${avgCal} kcal/day · ${avgPro}g protein · ${len} days logged`);
     } catch (e) {
       console.warn('[nutrition weekly inbox]', e.message);
     }

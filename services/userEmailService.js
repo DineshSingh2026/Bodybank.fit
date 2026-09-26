@@ -563,7 +563,7 @@ async function emailNutritionDayReport(email, firstName, payload) {
       const mt = String(m.mealType || '').replace(/^\w/, (c) => c.toUpperCase());
       return `<div style="border-bottom:1px solid #1e2328;padding:12px 0">
   <div style="font-weight:600;margin-bottom:4px">${escapeHtml(mt)}: ${escapeHtml(ar.dish || '—')}</div>
-  <div style="font-size:12px;color:#8a8880">${escapeHtml(String(ar.calories ?? '—'))} kcal · ${escapeHtml(String(ar.protein ?? '—'))}g protein · ${escapeHtml(String(ar.carbs ?? '—'))}g carbs · ${escapeHtml(String(ar.fat ?? '—'))}g fat · Score: ${escapeHtml(String(m.mealScore ?? '—'))}/10</div>
+  <div style="font-size:12px;color:#8a8880">${escapeHtml(String(ar.calories ?? '—'))} kcal · ${escapeHtml(String(ar.protein ?? '—'))}g protein · ${escapeHtml(String(ar.carbs ?? '—'))}g carbs · ${escapeHtml(String(ar.fat ?? '—'))}g fat</div>
 </div>`;
     })
     .join('');
@@ -580,10 +580,6 @@ async function emailNutritionDayReport(email, firstName, payload) {
     <div style="background:#161a1e;border-radius:10px;padding:14px;text-align:center"><div style="font-size:11px;color:#8a8880;margin-bottom:4px">FAT</div><div style="font-size:22px;font-weight:700;color:#ff5c5c">${escapeHtml(String(s.totalFat ?? '—'))}g</div></div>
   </div>
   ${mealRows}
-  <div style="margin-top:24px;background:#161a1e;border-radius:10px;padding:14px">
-    <div style="font-size:11px;color:#8a8880;margin-bottom:4px">MEAL QUALITY SCORE</div>
-    <div style="font-size:28px;font-weight:700;color:#3dd68c">${escapeHtml(String(s.mealQualityScore ?? '—'))}/10</div>
-  </div>
 </div>`;
 
   const html = luxuryWrap({
@@ -606,7 +602,6 @@ async function emailNutritionWeeklySummary(email, firstName, report) {
 <ul style="margin:0;padding-left:20px;color:#d4cfc4;line-height:1.8">
 <li>Avg daily calories: <strong>${escapeHtml(String(r.avgCalories ?? '—'))}</strong></li>
 <li>Avg daily protein: <strong>${escapeHtml(String(r.avgProtein ?? '—'))} g</strong></li>
-<li>Avg meal quality score: <strong>${escapeHtml(String(r.avgScore ?? '—'))}/10</strong></li>
 <li>Avg energy difference (burn − intake): <strong>${escapeHtml(String(r.avgEnergyDiff ?? '—'))} kcal</strong></li>
 <li>Days with logged data: <strong>${escapeHtml(String(r.daysLogged ?? '—'))}</strong></li>
 </ul>`;
