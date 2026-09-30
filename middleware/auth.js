@@ -93,6 +93,63 @@ async function verifyAppleIdentityToken(idToken) {
   });
 }
 
+// ============ SIGN IN WITH GOOGLE ============
+// Same pattern as Apple: Google's JWKS, cached, RS256 checked locally. Every Google
+// ID token is verified before we trust its email. The web GSI button and the
+// Android app (Credential Manager) mint tokens for the WEB client id; the iOS app
+// mints them for the iOS client id (or the web one when serverClientID is set).
+const GOOGLE_KEYS_URL = 'https://www.googleapis.com/oauth2/v3/certs';
+const GOOGLE_ISSUERS = ['accounts.google.com', 'https://accounts.google.com'];
+let _googleKeysCache = { keys: null, fetchedAt: 0 };
+// iOS OAuth client (Google Cloud project 761490424951, bundle com.bodybank.app). Client ids
+// are public — they ship inside the app — so a built-in default is safe; env overrides.
+const GOOGLE_IOS_CLIENT_ID = process.env.GOOGLE_IOS_CLIENT_ID || '761490424951-vmb54jphgeiq7p4vltp8u52rpvhgl7vd.apps.googleusercontent.com';
+
+function googleAllowedAudiences() {
+  return [
+    process.env.GOOGLE_CLIENT_ID || process.env['GOOGLE-CLIENT-ID'], // web client (website + Android app)
+    GOOGLE_IOS_CLIENT_ID,                                             // iOS app client
+    process.env.GOOGLE_ANDROID_CLIENT_ID                              // optional, if ever used as audience
+  ].filter((v) => v && !/^YOUR_/.test(v));
+}
+
+async function fetchGoogleKeys(force) {
+  const now = Date.now();
+  if (!force && _googleKeysCache.keys && (now - _googleKeysCache.fetchedAt) < 6 * 60 * 60 * 1000) {
+    return _googleKeysCache.keys;
+  }
+  const resp = await fetch(GOOGLE_KEYS_URL);
+  if (!resp.ok) throw new Error('Failed to fetch Google public keys (' + resp.status + ')');
+  const data = await resp.json();
+  _googleKeysCache = { keys: data.keys || [], fetchedAt: now };
+  return _googleKeysCache.keys;
+}
+
+async function googlePublicKeyPem(kid) {
+  let keys = await fetchGoogleKeys(false);
+  let jwk = keys.find(k => k.kid === kid);
+  if (!jwk) { keys = await fetchGoogleKeys(true); jwk = keys.find(k => k.kid === kid); } // Google rotates keys
+  if (!jwk) throw new Error('Google signing key not found for kid ' + kid);
+  return crypto.createPublicKey({ key: jwk, format: 'jwk' }).export({ type: 'spki', format: 'pem' });
+}
+
+// Verifies a Google ID token and returns its payload ({ sub, email, email_verified,
+// given_name, family_name, picture, ... }). Throws on a bad signature, issuer,
+// audience, expiry, or an unverified email.
+async function verifyGoogleIdToken(idToken) {
+  if (!idToken || typeof idToken !== 'string' || idToken.split('.').length !== 3) {
+    throw new Error('Malformed Google ID token');
+  }
+  const header = JSON.parse(Buffer.from(idToken.split('.')[0], 'base64url').toString());
+  const audiences = googleAllowedAudiences();
+  if (!audiences.length) throw new Error('GOOGLE_CLIENT_ID is not configured');
+  const pem = await googlePublicKeyPem(header.kid);
+  const claims = jwt.verify(idToken, pem, { algorithms: ['RS256'], issuer: GOOGLE_ISSUERS, audience: audiences });
+  if (!claims.email) throw new Error('Google token has no email');
+  if (claims.email_verified !== true && claims.email_verified !== 'true') throw new Error('Google email is not verified');
+  return claims;
+}
+
 function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 }
@@ -254,4 +311,4 @@ function verifyGroupAttachmentToken(token) {
   }
 }
 
-module.exports = { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, JWT_SECRET };
+module.exports = { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, verifyGoogleIdToken, GOOGLE_IOS_CLIENT_ID, JWT_SECRET };

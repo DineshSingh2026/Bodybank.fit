@@ -36,7 +36,23 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
-_Nothing pending._ Everything under `public/` up to web `7bf163c` is in mobile `cdc3176`.
+_Nothing pending._ The native Google sign-in web changes ship in the 2026-09-30 (b) release below.
+
+---
+
+## 2026-09-30 (b) — Native Google sign-in + Google token verification, v1.8.3 / versionCode 112 / iOS 1.0.7
+
+**Why.** In-app Google sign-in had never worked: the apps rendered Google's web button inside
+the WebView, and Google refuses it (emulator, release 1.8.2: bounced to Chrome with
+**Error 400 origin_mismatch**; iOS `capacitor://localhost` can never be registered). Separately,
+`/api/auth/google` only decoded the ID token, so a forged token could sign in as any account.
+
+| Change | Notes |
+| ------ | ----- |
+| **Server: Google token verification** | `verifyGoogleIdToken` (middleware/auth.js) checks Google's JWKS signature, issuer, audience (web client + iOS client `…vmb54jph…`, env `GOOGLE_IOS_CLIENT_ID` overrides) and `email_verified` on `/api/auth/google` and `/google-complete`. `/api/config` now returns `google_ios_client_id`. |
+| **Apps: native Google picker** | `auth-pages.js` draws `.google-native-btn` on Capacitor iOS/Android and calls `@capgo/capacitor-social-login` → same `/api/auth/google` → prefilled "Complete your profile". Hidden if the plugin is missing (older builds). No `scopes` option (Android rejects it without MainActivity changes). Cancel is silent. Website unchanged (GSI button). |
+| Mobile config | Plugin 7.20.0, providers google only (no Facebook SDK / ATT / AD_ID, no Alamofire); added to `ios.includePlugins`; iOS `CFBundleURLTypes` reversed client id; AppDelegate forwards URLs to GIDSignIn; root `build.gradle` forces `androidx.browser:1.9.0` (AGP consistent-resolution conflict). New normal permissions from Credential Manager: USE_CREDENTIALS, USE_BIOMETRIC, USE_FINGERPRINT. |
+| Google Cloud | Project **761490424951**: Web client, iOS client, 3 Android clients (Play signing `92:5D:7D…`, upload `F0:1A:64…`, debug `81:1E:6D…`). |
 
 ---
 

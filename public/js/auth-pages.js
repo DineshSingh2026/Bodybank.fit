@@ -296,9 +296,18 @@
   // Renders the official Google button into `slotId`. Google Sign-In is
   // optional — if the client id isn't configured, or the script can't load,
   // the whole social block is hidden and email/password still works.
-  BB.initGoogle = function (slotId, text, onCredential) {
+  BB.initGoogle = function (slotId, text, onCredential, onError) {
     var slot = document.getElementById(slotId);
     if (!slot) return;
+
+    // Inside the iOS / Android apps Google's web button cannot work (Google
+    // blocks the app's WebView origin: "Error 400 origin_mismatch"). Use the
+    // phone's native Google account picker instead; the ID token it returns goes
+    // through the exact same /api/auth/google + complete-profile flow.
+    if (BB.isNativeIOS() || BB.isNativeAndroid()) {
+      initNativeGoogle(slot, text, onCredential, onError);
+      return;
+    }
 
     BB.config().then(function (config) {
       var cid = (config && config.google_client_id) || '';
@@ -358,6 +367,83 @@
       load();
     });
   };
+
+  /* ------------------------------------------- native Google (iOS/Android) */
+
+  var G_LOGO = '<svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">' +
+    '<path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>' +
+    '<path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>' +
+    '<path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>' +
+    '<path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>';
+
+  function nativeGooglePlugin() {
+    try { return (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SocialLogin) || null; } catch (_) { return null; }
+  }
+
+  var _nativeGoogleInit = null;
+  function nativeGoogleInit(plugin, config) {
+    if (!_nativeGoogleInit) {
+      var opts = { webClientId: config.google_client_id, mode: 'online' };
+      if (BB.isNativeIOS()) { opts.iOSClientId = config.google_ios_client_id; opts.iOSServerClientId = config.google_client_id; }
+      _nativeGoogleInit = plugin.initialize({ google: opts }).catch(function (e) { _nativeGoogleInit = null; throw e; });
+    }
+    return _nativeGoogleInit;
+  }
+
+  function isNativeGoogleCancel(e) {
+    var m = String((e && (e.message || e.errorMessage || e.code)) || e || '');
+    return /cancel|dismiss|-5|user closed/i.test(m);
+  }
+
+  function initNativeGoogle(slot, text, onCredential, onError) {
+    function hide() { slot.classList.add('hidden'); slot.innerHTML = ''; BB.refreshSocialVisibility(); }
+    var plugin = nativeGooglePlugin();
+    if (!plugin) { hide(); return; } // an older app build without the native plugin
+    BB.config().then(function (config) {
+      config = config || {};
+      var webId = config.google_client_id || '';
+      if (!webId || webId.indexOf('YOUR_') === 0) { hide(); return; }
+      if (BB.isNativeIOS() && !config.google_ios_client_id) { hide(); return; }
+
+      var label = text === 'signin_with' ? 'Sign in with Google' : text === 'signup_with' ? 'Sign up with Google' : 'Continue with Google';
+      slot.innerHTML = '';
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'google-native-btn';
+      btn.setAttribute('aria-label', label);
+      btn.innerHTML = '<span class="g-ico">' + G_LOGO + '</span><span class="g-txt">' + label + '</span>';
+      slot.appendChild(btn);
+      slot.classList.remove('hidden');
+      BB.refreshSocialVisibility();
+
+      var busy = false;
+      btn.addEventListener('click', function () {
+        if (busy) return;
+        busy = true; btn.disabled = true; btn.classList.add('is-busy');
+        function done() { busy = false; btn.disabled = false; btn.classList.remove('is-busy'); }
+        nativeGoogleInit(plugin, config).then(function () {
+          // Default sign-in already carries email + name + photo (openid/email/profile);
+          // passing `scopes` on Android needs MainActivity changes, so none are sent.
+          return plugin.login({ provider: 'google', options: {} });
+        }).then(function (res) {
+          var r = (res && res.result) || {};
+          done();
+          if (!r.idToken) { if (onError) onError('Google sign-in did not complete. Please try again.'); return; }
+          // Forget the device session so the account picker shows again next time.
+          try { plugin.logout({ provider: 'google' }).catch(function () {}); } catch (_) {}
+          onCredential(r.idToken);
+        }).catch(function (e) {
+          done();
+          if (isNativeGoogleCancel(e)) return;
+          console.warn('[auth] native Google sign-in:', e);
+          var m = String((e && e.message) || '');
+          if (onError) onError(/no credential|no account|NoCredential/i.test(m)
+            ? 'No Google account was found on this phone. Add one in your phone settings, or sign up with email.'
+            : 'Google sign-in failed. Please try again, or use email.');
+        });
+      });
+    }).catch(hide);
+  }
 
   /* ------------------------------------------------------ Sign in with Apple */
 

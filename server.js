@@ -22,7 +22,7 @@ try {
 const webPush = require('web-push');
 let firebaseAdmin = null;
 try { firebaseAdmin = require('firebase-admin'); } catch (_) { firebaseAdmin = null; }
-const { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, JWT_SECRET: AUTH_JWT_SECRET } = require('./middleware/auth');
+const { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, verifyGoogleIdToken, GOOGLE_IOS_CLIENT_ID, JWT_SECRET: AUTH_JWT_SECRET } = require('./middleware/auth');
 const { safeExtraHttpHeaders, optionalApiAccessLog, redactServerErrors } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, setNutritionPush, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
@@ -2552,6 +2552,8 @@ app.get('/api/config', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({
     google_client_id: cid,
+    // Native iOS Google sign-in (GoogleSignIn SDK) needs its own iOS OAuth client id.
+    google_ios_client_id: GOOGLE_IOS_CLIENT_ID,
     // Sign in with Apple: web Services ID (browser flow) + native bundle id (iOS app flow).
     apple_client_id: process.env.APPLE_SERVICE_ID || '',
     apple_bundle_id: process.env.APPLE_BUNDLE_ID || 'com.bodybank.app',
@@ -2689,11 +2691,9 @@ app.post('/api/auth/google', rateLimiter(20, 60000), async (req, res) => {
     const { id_token } = req.body || {};
     if (!id_token) return res.status(400).json({ error: 'ID token required' });
 
-    // Decode JWT (in production, verify signature with Google's public keys)
-    const parts = id_token.split('.');
-    if (parts.length !== 3) return res.status(400).json({ error: 'Invalid token' });
-    
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    let payload;
+    try { payload = await verifyGoogleIdToken(id_token); }
+    catch (e) { console.error('Google token verify failed:', e.message); return res.status(401).json({ error: 'Google sign-in could not be verified. Please try again.' }); }
     const { email, given_name, family_name, sub: google_id, picture } = payload;
     
     if (!email) return res.status(400).json({ error: 'Email required' });
@@ -2746,9 +2746,9 @@ app.post('/api/auth/google-complete', rateLimiter(5, 60000), async (req, res) =>
       return res.status(400).json({ error: 'Height must be a whole number between 100 and 230 cm' });
     }
 
-    const parts = id_token.split('.');
-    if (parts.length !== 3) return res.status(400).json({ error: 'Invalid token' });
-    const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString());
+    let payload;
+    try { payload = await verifyGoogleIdToken(id_token); }
+    catch (e) { console.error('Google complete verify failed:', e.message); return res.status(401).json({ error: 'Your Google sign-in expired. Please tap Continue with Google again.' }); }
     const { email, given_name, family_name, sub: google_id, picture } = payload;
     if (!email) return res.status(400).json({ error: 'Email required' });
 

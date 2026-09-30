@@ -535,7 +535,7 @@
       if (data.error || !data.id) { BB.msg(msgId, BB.authErrorText(data)); return; }
       applySocialSuccess(data); // already had an account — treat as a sign-in
     });
-  });
+  }, function (text) { BB.msg(msgId, text); });
 
   BB.initApple('appleBtn');
   document.getElementById('appleBtn').addEventListener('click', function () {
