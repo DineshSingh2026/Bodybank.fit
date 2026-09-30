@@ -10,8 +10,8 @@
  *   bbPlanGuardTab(tab)   same, keyed by member tab id (used by switchUserTab)
  *
  * Store policy: inside the iOS / Android apps the lock sheet names the plan and
- * nothing else — no price, no buy button, no link to a payment page (Apple 3.1.1,
- * Google Play Payments). The website version adds "Talk to your coach" and
+ * nothing else — no price, no buy button, no link to a payment page (App Store
+ * 3.1.1 and the Android store's payments policy). The website adds "Talk to your coach" and
  * "See plans". bbPlanIsNativeApp() decides which.
  */
 (function () {
