@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const { v4: uuidv4 } = require('uuid');
 const userEmail = require('../services/userEmailService');
+const plans = require('../services/plans');
 const { notifyAsync } = require('../utils/notify');
 const { notifyAgent } = require('../utils/agentWebhook');
 const {
@@ -203,6 +204,22 @@ function shareMessage(firstName, url, expiresAt) {
   return `Hi ${who || 'there'}, your BodyBank blood progress report is ready.\n\n${url}\n\nOpen it on your phone to see what changed and the updated plan.${until}`;
 }
 
+/**
+ * What a MEMBER may see of one of their own reports. Results reach a member only
+ * after staff review and send it, so an unsent report shows its state and date and
+ * nothing else. Staff notes and file locations are never member-facing.
+ */
+function memberReportView(v) {
+  if (!v) return v;
+  const out = Object.assign({}, v);
+  // Blanked rather than deleted: shipped app builds read these keys.
+  out.adminNotes = '';
+  out.pdfUrl = null;
+  out.analysisLastError = '';
+  if (!out.sentToUser) out.aiReport = null;
+  return out;
+}
+
 function mapReportRow(r) {
   if (!r) return null;
   const id = r.id;
@@ -283,6 +300,30 @@ function createBloodRouter(deps) {
   const db = { run, queryOne, queryAll };
   const notifyStaffPush = typeof sendPushToAdmins === 'function' ? sendPushToAdmins : async () => {};
   const hub = deps.notifyHub || null;
+  // Plan gate (Guided+). Only NEW uploads are gated: a member who moves to Core
+  // can still view the grades of reports they already have (never download them).
+  const planUploadGate = typeof deps.requireFeature === 'function'
+    ? deps.requireFeature('blood_reports')
+    : (req, res, next) => next();
+
+  // Staff-side twin of the gate: a coach must not start a NEW analysis (upload on
+  // the client's behalf, retry, compare, regenerate) for a client whose plan does
+  // not include blood reports — that delivers a Guided feature and spends AI on a
+  // Core member. Reading, sending, editing and deleting existing reports stay open.
+  // Deliberately plan-only: staff often work on a lapsed client while renewing them.
+  async function clientPlanBlocksBlood(userId) {
+    if (!userId) return null;
+    const u = await queryOne('SELECT role, plan_tier FROM users WHERE id = ?', [userId]);
+    if (!u || u.role !== 'user') return null;
+    const tier = plans.tierOf(u);
+    if (plans.tierHasFeature(tier, 'blood_reports')) return null;
+    return {
+      success: false,
+      code: 'client_plan',
+      required_tier: plans.requiredTierFor('blood_reports'),
+      error: `This client is on ${plans.tierName(tier)}. Blood report analysis is part of Guided and Tribe Elite. Move them up in the Members tab first.`
+    };
+  }
 
   // Staff hear when an analysis finishes or fails — that is when a report needs them.
   async function tellStaffAnalysis(reportId) {
@@ -338,7 +379,7 @@ function createBloodRouter(deps) {
     }
   }
 
-  router.post('/upload', rateLimiter(5, 120000), async (req, res) => {
+  router.post('/upload', rateLimiter(5, 120000), planUploadGate, async (req, res) => {
     try {
       const userId = req.user.id;
       const { bloodReportBase64, bloodReportMimeType, symptoms, userAge, userGender, userGoal } = req.body || {};
@@ -451,6 +492,8 @@ function createBloodRouter(deps) {
         [targetUserId]
       );
       if (!u) return res.status(404).json({ success: false, error: 'Client not found' });
+      const planBlock = await clientPlanBlocksBlood(targetUserId);
+      if (planBlock) return res.status(403).json(planBlock);
 
       const { bloodReportBase64, bloodReportMimeType, symptoms } = req.body || {};
       const b64 = bloodReportBase64 ? String(bloodReportBase64).replace(/\s/g, '') : '';
@@ -550,7 +593,10 @@ function createBloodRouter(deps) {
       if (!report) return res.status(404).json({ error: 'Not found' });
       // Owner, admins, and read-only operators may download the branded report.
       const privileged = ['admin', 'superadmin', 'operator'].includes(req.user.role);
-      if (report.user_id !== req.user.id && !privileged) return res.status(403).json({ error: 'Forbidden' });
+      // Members never download the report: their coach sends it personally
+      // (owner decision 2026-09-30). Old app builds still show a Download button,
+      // so the refusal has to live here, not only in the UI.
+      if (!privileged) return res.status(403).json({ error: 'staff_only', message: 'Your coach sends your blood report to you personally. You can view your grades in the app.' });
       // Same route, same contract, same auth — the row's variant decides which
       // generator runs. Existing clients calling this endpoint need no change.
       const chosen = await graded.reportPdfFor(db, req.params.reportId, ensureHealthReportPdf);
@@ -575,7 +621,7 @@ function createBloodRouter(deps) {
     try {
       const report = await queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [req.params.reportId]);
       if (!report) return res.status(404).json({ error: 'Not found' });
-      if (report.user_id !== req.user.id && !isStaff(req)) return res.status(403).json({ error: 'Forbidden' });
+      if (!isStaff(req)) return res.status(403).json({ error: 'staff_only', message: 'Your coach sends your blood report to you personally. You can view your grades in the app.' });
 
       const raw = report.blood_report_file_path ? String(report.blood_report_file_path).trim() : '';
       const resolved = raw ? resolveStoredUploadPath(raw) : null;
@@ -600,7 +646,7 @@ function createBloodRouter(deps) {
          ORDER BY COALESCE(report_date, created_at::date) DESC, created_at DESC`,
         [req.user.id]
       );
-      const reports = (rows || []).map((r) => mapReportRow(r));
+      const reports = (rows || []).map((r) => memberReportView(mapReportRow(r)));
       res.json({ reports });
     } catch (e) {
       res.status(500).json({ error: e.message });
@@ -613,7 +659,7 @@ function createBloodRouter(deps) {
     try {
       const rows = await queryAll(
         `SELECT id, created_at, report_date, extracted_blood_data, ai_report, status
-         FROM blood_analysis_reports WHERE user_id = ?
+         FROM blood_analysis_reports WHERE user_id = ? AND sent_to_user = TRUE
          ORDER BY COALESCE(report_date, created_at::date) ASC, created_at ASC`,
         [req.user.id]
       );
@@ -665,7 +711,8 @@ function createBloodRouter(deps) {
     try {
       const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
       if (!row) return res.status(404).json({ error: 'Not found' });
-      if (row.user_id !== req.user.id) return res.status(403).json({ error: 'Forbidden' });
+      // Members read the review in the app; the PDF is sent by their coach.
+      if (!isStaff(req)) return res.status(403).json({ error: 'staff_only', message: 'Your coach sends your progress report to you personally.' });
       if (!row.sent_to_user) return res.status(403).json({ error: 'This report has not been shared yet.' });
       const pdfPath = await ensureComparisonPdf(row);
       if (!pdfPath || !fs.existsSync(pdfPath)) {
@@ -933,6 +980,8 @@ function createBloodRouter(deps) {
       if (!report) {
         return res.status(404).json({ success: false, error: 'Report not found' });
       }
+      const planBlockRetry = await clientPlanBlocksBlood(report.user_id);
+      if (planBlockRetry) return res.status(403).json(planBlockRetry);
       const st = String(report.status || '').toLowerCase();
       const force = !!(req.body && (req.body.force === true || req.body.force === 'true'));
       if ((st === 'extracting' || st === 'analysing') && !force) {
@@ -1268,6 +1317,8 @@ function createBloodRouter(deps) {
       let reportIds = (req.body && req.body.reportIds) || [];
       const runAi = !(req.body && req.body.runAi === false);
       if (!userId) return res.status(400).json({ success: false, error: 'Missing client id' });
+      const planBlockCmp = await clientPlanBlocksBlood(userId);
+      if (planBlockCmp) return res.status(403).json(planBlockCmp);
       if (!Array.isArray(reportIds)) reportIds = [];
       reportIds = reportIds.map((x) => String(x)).filter(Boolean);
       // de-dup, preserve order
@@ -1417,6 +1468,8 @@ function createBloodRouter(deps) {
     try {
       const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
       if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+      const planBlockRegen = await clientPlanBlocksBlood(row.user_id);
+      if (planBlockRegen) return res.status(403).json(planBlockRegen);
       const reportIds = parseJsonCol(row.report_ids) || [];
       const loaded = await loadComparableReports(row.user_id, reportIds.map(String));
       if (loaded.error) return res.status(400).json({ success: false, error: loaded.error });

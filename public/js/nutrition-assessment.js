@@ -641,6 +641,7 @@
     if (S.submitted) {
       intro.classList.add('fc-hidden'); stepEl.classList.add('fc-hidden'); done.classList.remove('fc-hidden');
       el('fcBar').hidden = true; el('fcProgWrap').hidden = true;
+      renderDoneHome();
       return;
     }
 
@@ -1015,6 +1016,45 @@
     } catch (e) { return ''; }
   }
 
+  // ── way back to the dashboard (signed-in members only) ──────────────────
+  function isMemberVisit() { return !!(S.token || S.isMember); }
+
+  // Unsaved answers are pushed first; the navigation never waits more than 1.5s.
+  function goHome(e) {
+    if (e && e.preventDefault) e.preventDefault();
+    var left = false;
+    var go = function () { if (left) return; left = true; window.location.href = 'index.html'; };
+    if (S.dirty && !S.submitted) {
+      if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+      setTimeout(go, 1500);
+      pushDraft().then(go, go);
+    } else {
+      go();
+    }
+  }
+
+  function showHomeLink() {
+    var a = el('fcHome');
+    if (!a) return;
+    a.hidden = !isMemberVisit();
+    var row = el('fcTopIn');
+    if (row) row.classList.toggle('has-home', !a.hidden);
+  }
+
+  // Every finished state ends with a clear way out. It is the main action unless
+  // the screen already offers something to do next (e.g. "Continue to Part 2").
+  function renderDoneHome() {
+    var box = el('fcDoneHome');
+    if (!box) return;
+    if (!isMemberVisit()) { box.hidden = true; box.innerHTML = ''; return; }
+    var actions = el('fcDoneActions');
+    var hasNext = !!(actions && !actions.hidden && actions.querySelector('button, a'));
+    box.hidden = false;
+    box.innerHTML = '<button type="button" class="fc-btn ' + (hasNext ? 'fc-btn--ghost' : 'fc-btn--primary') + '" id="fcDoneHomeBtn">Back to dashboard</button>';
+    var b = el('fcDoneHomeBtn');
+    if (b) b.addEventListener('click', goHome);
+  }
+
   function seedFromPrefill(prefill) {
     S.prefill = prefill || {};
     Object.keys(S.prefill).forEach(function (k) {
@@ -1116,6 +1156,9 @@
         var thisPartDone = (S.part === 1 && S.part1Done) || (S.part === 2 && S.part2Done);
         if (sess.already_submitted || thisPartDone) {
           S.submitted = true;
+          // (Part 1 done / Part 2 open never lands here: /session routes that
+          // member straight into Part 2.)
+          if (S.part2Done && el('fcDoneTitle')) el('fcDoneTitle').textContent = 'You are all done.';
           el('fcDoneMsg').textContent = S.part2Done
             ? 'You have completed both parts. If something has changed, message your coach and we will reopen it.'
             : (S.part1Done && S.part === 1
@@ -1135,6 +1178,7 @@
           el('fcIntroBlurb').textContent = introBlurb();
         }
         applyPartCopy();
+        showHomeLink();
 
         render();
       })
@@ -1155,6 +1199,11 @@
   document.addEventListener('DOMContentLoaded', function () {
     el('fcNext').addEventListener('click', next);
     el('fcBack').addEventListener('click', back);
+    var home = el('fcHome');
+    if (home) home.addEventListener('click', goHome);
+    // A member session is known before the server answers; show the way back at once.
+    S.token = readMemberToken();
+    showHomeLink();
     boot();
   });
 }());

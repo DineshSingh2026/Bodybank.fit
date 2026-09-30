@@ -412,8 +412,16 @@ async function runRouteTests() {
       ok(`my-reports still carries "${k}"`, Object.prototype.hasOwnProperty.call(row, k));
     });
     ok('my-reports gained the variant field', row.reportVariant === 'classic');
-    eq('the classic ai_report still reaches the client',
-      row.aiReport.overall_summary_short, 'Classic summary line.');
+    // Nothing of a report reaches the member before staff send it (2026-09-30),
+    // and staff notes / file paths never do — the keys stay, blanked.
+    eq('an unsent report carries no analysis for the member', row.aiReport, null);
+    eq('staff notes never reach the member', row.adminNotes, '');
+    eq('file paths never reach the member', row.pdfUrl, null);
+    state.rows.get('r1').sent_to_user = true;
+    r = await request(server, 'GET', '/api/blood/my-reports');
+    const sentRow = (r.json.reports || []).filter((x) => x.id === 'r1')[0];
+    eq('once sent, the classic ai_report reaches the client',
+      sentRow && sentRow.aiReport && sentRow.aiReport.overall_summary_short, 'Classic summary line.');
 
     // A classic report is never touched by the graded engines.
     const classicRow = state.rows.get('r-solo');

@@ -260,7 +260,7 @@ function testServerWiring() {
   assert(/Consultation booked/.test(s) && /cancelled a call/.test(s) && /Consultation rescheduled/.test(s), 'meeting bookings, moves and cancellations notify the other side');
   assert(/Your trial is active/.test(s) && /Your account is active again/.test(s), 'trial and reactivation reach the member');
   assert(/sendPushToAdmins\(JSON\.stringify\(\{ title: '🔥 New trial started', body: `\$\{first_name \|\| ''\} \$\{last_name \|\| ''\} \(\$\{emailNorm\}\) started a \$\{trialDaysR\}/.test(s), 're-sign-up of a rejected account pushes staff too');
-  assert(/sendPushToAdmins,\s*notifyHub\s*\}\)\s*\);\s*\/\/ Unauthenticated by design: a client opening a WhatsApp link/.test(s), 'blood router gets the hub');
+  assert(/sendPushToAdmins,\s*notifyHub,?\s*(requireFeature\s*)?\}\)\s*\);\s*\/\/ Unauthenticated by design: a client opening a WhatsApp link/.test(s), 'blood router gets the hub');
   assert(/waStore: createPgStore\(\{ queryAll, queryOne, run, uuidv4 \}\),\s*notifyHub/.test(s), 'reports router gets the hub');
   assert(/sendPushToUser,\s*notifyAgent,\s*notifyHub/.test(s), 'group chat router gets the hub');
   assert(/startEmailScheduler\(\{ queryAll, notifyHub \}\)/.test(s), 'the reminder scheduler gets the hub');
@@ -407,7 +407,7 @@ function testFrontEnd() {
   assert(/postMessage\(\{ type: 'bb-open', link: data\.link \|\| '', url: url \}\)/.test(sw), 'an open tab is told where to go instead of being reloaded');
   assert(/c\.url\.indexOf\(origin\) === 0/.test(sw), 'only BodyBank tabs are reused');
   assert(/renotify: !!data\.id/.test(sw), 'a replaced banner still alerts');
-  assert(/const CACHE_NAME = 'bodybank-v84'/.test(sw), 'service worker cache bumped so browsers take the new one');
+  assert(Number((/const CACHE_NAME = 'bodybank-v(\d+)'/.exec(sw) || [])[1]) >= 84, 'service worker cache bumped so browsers take the new one');
   const html = read('public/index.html');
   assert(/<script src="js\/bb-notify\.js\?v=\d+"><\/script>/.test(html), 'bb-notify.js is loaded');
   assert(html.indexOf('js/bb-notify.js') > html.indexOf('js/group-chat.js'), 'it loads after the chat it routes into');

@@ -188,11 +188,13 @@
 
 /* --------------------------------------------------------- today's goals */
 .mh-goals { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 11px }
-.mh-goal { padding: 14px 15px; border-radius: 17px; background: var(--mh-glass); border: 1px solid var(--mh-edge); box-shadow: var(--mh-inner) }
-.mh-goal-top { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 9px }
+.mh-goal { min-width: 0; padding: 14px 15px; border-radius: 17px; background: var(--mh-glass); border: 1px solid var(--mh-edge); box-shadow: var(--mh-inner) }
+/* Label on its own line, value under it: any number fits the tile at any width. */
+.mh-goal-top { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; margin-bottom: 10px; min-width: 0 }
 .mh-goal-top span { font-size: 12px; color: var(--mh-soft); text-transform: uppercase; letter-spacing: .08em; font-weight: 600 }
-.mh-goal-top b { font-size: 16px; font-weight: 700; color: var(--mh-ink); font-variant-numeric: tabular-nums; white-space: nowrap }
-.mh-goal-top i { font-style: normal; font-size: 12px; color: var(--mh-dim); font-weight: 500 }
+.mh-goal-top b { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 5px; max-width: 100%; font-size: 17px; font-weight: 700; line-height: 1.2; color: var(--mh-ink); font-variant-numeric: tabular-nums }
+.mh-goal-top b small { font-size: 12px; font-weight: 600; color: var(--mh-soft); margin-left: 1px }
+.mh-goal-top i { font-style: normal; font-size: 12px; color: var(--mh-dim); font-weight: 500; white-space: nowrap }
 .mh-goal-track { height: 7px; border-radius: 99px; background: rgba(255, 255, 255, .08); overflow: hidden }
 .mh-goal-fill { display: block; height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--mh-gold), var(--mh-gold-lt)); transition: width .8s cubic-bezier(.2, .8, .2, 1) }
 .mh-goal-fill.ok { background: linear-gradient(90deg, var(--mh-ok), #8FE8BE) }
@@ -394,3 +396,133 @@
 .mh-na-part-s{flex:0 0 auto;font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;opacity:.75}
 .mh-na-part.is-done .mh-na-part-s{color:#4cbe80;opacity:1}
 .mh-na-part.is-next .mh-na-part-s{color:var(--gold,#c8a44e);opacity:1}
+
+/* ============================================================================
+   Hero (2026-09-30): avatar progress ring, greeting, status line, streak and
+   week tiles. Scoped to .mh-hero--v2.
+   ========================================================================== */
+#memberHome .mh-hero--v2 {
+  gap: 18px; padding: 24px 24px 22px; border-radius: 30px;
+  border: 1px solid rgba(226, 192, 113, .26);
+  background:
+    radial-gradient(70% 90% at 100% 0%, rgba(226, 192, 113, .26), transparent 60%),
+    radial-gradient(60% 70% at 0% 100%, rgba(95, 211, 154, .07), transparent 60%),
+    linear-gradient(165deg, #1d1912 0%, #141210 48%, #0f0e0c 100%);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255, 235, 190, .12);
+  isolation: isolate;
+}
+/* fine gold hairline across the top edge */
+#memberHome .mh-hero--v2::before {
+  content: ''; position: absolute; left: 24px; right: 24px; top: 0; height: 1px; z-index: -1;
+  background: linear-gradient(90deg, transparent, rgba(247, 227, 174, .55), transparent);
+}
+
+/* ---- identity ---- */
+.mh-hero--v2 .mhx-top { display: flex; align-items: center; gap: 16px; min-width: 0 }
+.mh-hero--v2 .mhx-avatar-wrap { position: relative; flex: none; width: 80px; height: 80px; display: grid; place-items: center }
+.mh-hero--v2 .mhx-ring { position: absolute; inset: 0; width: 80px; height: 80px; transform: rotate(-90deg) }
+.mh-hero--v2 .mhx-ring-track { fill: none; stroke: rgba(255, 255, 255, .09); stroke-width: 4 }
+.mh-hero--v2 .mhx-ring-fill {
+  fill: none; stroke: url(#mhxRingGold); stroke-width: 4; stroke-linecap: round;
+  stroke-dasharray: 226.19; stroke-dashoffset: 226.19; transition: stroke-dashoffset 1s cubic-bezier(.2, .8, .2, 1);
+}
+.mh-hero--v2 .mhx-avatar-wrap.is-complete .mhx-ring-fill { stroke: url(#mhxRingDone) }
+#memberHome .mh-hero--v2 .mhx-avatar {
+  width: 62px; height: 62px; border-radius: 50%; font-size: 21px; letter-spacing: .02em;
+  background: radial-gradient(120% 120% at 30% 20%, rgba(247, 227, 174, .34), rgba(226, 192, 113, .08));
+  border: 1px solid rgba(226, 192, 113, .45); box-shadow: inset 0 1px 0 rgba(255, 255, 255, .12);
+}
+.mh-hero--v2 .mhx-ring-badge {
+  position: absolute; left: 50%; bottom: -7px; transform: translateX(-50%);
+  min-width: 34px; padding: 2px 8px; border-radius: 999px; text-align: center;
+  font-size: 11px; font-weight: 800; letter-spacing: .02em; font-variant-numeric: tabular-nums;
+  color: #231a06; background: linear-gradient(150deg, #F7E3AE, #D9B563); box-shadow: 0 0 0 3px #16140f;
+}
+.mh-hero--v2 .mhx-avatar-wrap.is-complete .mhx-ring-badge { background: linear-gradient(150deg, #9BEBC7, #4CC08C); color: #06251a }
+.mh-hero--v2 .mh-eyebrow { font-size: 11px; letter-spacing: .18em }
+.mh-hero--v2 .mhx-greet { display: flex; flex-direction: column; margin: 6px 0 0 }
+.mh-hero--v2 .mhx-greet-word { font-size: 14.5px; font-weight: 500; letter-spacing: 0; color: var(--mh-soft) }
+.mh-hero--v2 .mhx-greet-name {
+  font-size: clamp(26px, 3.2vw, 34px); font-weight: 700; letter-spacing: -.03em; line-height: 1.08; margin-top: 1px;
+  color: var(--mh-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.mh-hero--v2 .mh-plan { margin-top: 10px }
+.mh-hero--v2 .mhx-refresh {
+  align-self: flex-start; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  background: rgba(255, 255, 255, .05); border: 1px solid rgba(255, 255, 255, .1); color: var(--mh-gold);
+}
+.mh-hero--v2 .mhx-refresh svg { width: 17px; height: 17px }
+
+/* ---- status line ---- */
+.mh-hero--v2 .mhx-line {
+  display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 16px;
+  font-size: 14.5px; line-height: 1.45; color: var(--mh-soft);
+  background: rgba(255, 255, 255, .035); border: 1px solid rgba(255, 255, 255, .07);
+}
+.mh-hero--v2 .mhx-line-ico {
+  flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(226, 192, 113, .12); color: var(--mh-gold);
+}
+.mh-hero--v2 .mhx-line-ico:empty { display: none }
+.mh-hero--v2 .mhx-line-ico svg { width: 16px; height: 16px }
+.mh-hero--v2 .mhx-line.is-done .mhx-line-ico { background: rgba(95, 211, 154, .14); color: var(--mh-ok) }
+.mh-hero--v2 .mhx-line.is-done b { color: #9FEBC8 }
+.mh-hero--v2 .mhx-line.is-due .mhx-line-ico { background: rgba(240, 189, 88, .14); color: var(--mh-warn) }
+
+/* ---- streak + week tiles ---- */
+.mh-hero--v2 .mhx-stats { display: grid; grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr); gap: 12px }
+#memberHome .mh-hero--v2 .mhx-streak {
+  position: relative; display: flex; flex-direction: column; align-items: flex-start; justify-content: space-between; gap: 6px;
+  padding: 14px 14px 12px; border-radius: 20px; min-width: 0;
+  background: linear-gradient(160deg, rgba(255, 158, 64, .16), rgba(255, 158, 64, .03) 60%), rgba(255, 255, 255, .03);
+  border: 1px solid rgba(255, 170, 90, .22);
+}
+.mh-hero--v2 .mhx-flame { position: absolute; right: 10px; top: 8px; font-size: 30px; line-height: 1; filter: drop-shadow(0 6px 14px rgba(255, 130, 40, .45)) }
+.mh-hero--v2 .mhx-streak-main { display: flex; flex-direction: column }
+#memberHome .mh-hero--v2 .mhx-streak-main b {
+  font-size: 40px; font-weight: 800; letter-spacing: -.05em; line-height: 1;
+  background: linear-gradient(160deg, #FFE7B0, #F2B04A); -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+#memberHome .mh-hero--v2 .mhx-streak-main span { font-size: 12.5px; color: var(--mh-soft); margin-top: 3px }
+.mh-hero--v2 .mhx-go { display: inline-flex; align-items: center; gap: 2px; font-size: 11.5px; font-weight: 600; color: #F2B04A }
+.mh-hero--v2 .mhx-go svg { width: 12px; height: 12px }
+.mh-hero--v2 .mhx-weekcard {
+  display: flex; flex-direction: column; justify-content: space-between; gap: 12px; min-width: 0;
+  padding: 14px; border-radius: 20px; background: rgba(255, 255, 255, .03); border: 1px solid rgba(255, 255, 255, .08);
+}
+.mh-hero--v2 .mhx-weekhead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px }
+.mh-hero--v2 .mhx-weekhead span { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--mh-soft) }
+.mh-hero--v2 .mhx-weekhead b { font-size: 12.5px; font-weight: 700; color: var(--mh-gold-lt); white-space: nowrap }
+/* Seven equal columns, each holding a true circle (never a stretched oval). */
+#memberHome .mh-hero--v2 .mhx-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; min-width: 0; align-items: center }
+#memberHome .mh-hero--v2 .mh-day { flex: none; width: 100%; max-width: 36px; height: auto; aspect-ratio: 1 / 1; justify-self: center; border-radius: 50% }
+#memberHome .mh-hero--v2 .mh-day.today { box-shadow: 0 0 0 2px #16140f, 0 0 0 3.5px rgba(247, 227, 174, .8) }
+#memberHome .mh-hero--v2 .mh-day i { font-size: 10.5px }
+
+/* ---- pills ---- */
+.mh-hero--v2 .mhx-pills { gap: 8px }
+
+/* ---- desktop: identity + status on the left, the two tiles on the right ---- */
+@media (min-width: 900px) {
+  #memberHome .mh-hero--v2 {
+    display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); column-gap: 26px; row-gap: 16px;
+    grid-template-areas: "top stats" "line stats" "pills pills"; padding: 28px 30px 24px;
+  }
+  .mh-hero--v2 .mhx-top { grid-area: top }
+  .mh-hero--v2 .mhx-line { grid-area: line; align-self: start }
+  .mh-hero--v2 .mhx-stats { grid-area: stats; align-self: center }
+  .mh-hero--v2 .mhx-pills { grid-area: pills }
+  .mh-hero--v2 .mhx-avatar-wrap { width: 88px; height: 88px }
+  .mh-hero--v2 .mhx-ring { width: 88px; height: 88px }
+  #memberHome .mh-hero--v2 .mhx-avatar { width: 68px; height: 68px; font-size: 23px }
+}
+@media (max-width: 767px) {
+  #memberHome .mh-hero--v2 { padding: 20px 16px 18px; border-radius: 26px; gap: 16px }
+  .mh-hero--v2 .mhx-top { gap: 14px }
+}
+@media (max-width: 360px) {
+  .mh-hero--v2 .mhx-stats { grid-template-columns: minmax(0, 1fr) }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mh-hero--v2 .mhx-ring-fill { transition: none }
+}

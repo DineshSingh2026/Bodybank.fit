@@ -55,12 +55,13 @@ body {
 
 .fc-top {
   position: sticky; top: 0; z-index: 30;
+  padding-top: env(safe-area-inset-top, 0px);
   background: var(--deep-green);
   color: var(--soft-cream);
   box-shadow: 0 2px 18px rgba(14, 47, 43, .18);
 }
 .fc-top-in {
-  max-width: 720px; margin: 0 auto; padding: 14px 20px 0;
+  max-width: 720px; margin: 0 auto; padding: 12px 20px 12px;
   display: flex; align-items: center; gap: 12px;
 }
 .fc-brand {
@@ -68,12 +69,29 @@ body {
   letter-spacing: .01em; color: var(--white); margin: 0;
 }
 .fc-brand span { color: var(--gold) }
+/* Back to the BodyBank dashboard (members only). */
+.fc-home {
+  display: inline-flex; align-items: center; gap: 4px; flex: 0 0 auto;
+  min-height: 36px; padding: 0 12px 0 8px; margin-left: -6px; border-radius: 999px;
+  border: 1px solid rgba(245, 242, 233, .22); color: var(--soft-cream);
+  font-size: 13px; font-weight: 600; text-decoration: none; white-space: nowrap;
+  transition: background .15s, border-color .15s;
+}
+.fc-home[hidden] { display: none }
+.fc-home svg { width: 16px; height: 16px }
+.fc-home:hover { background: rgba(245, 242, 233, .1); border-color: rgba(245, 242, 233, .4) }
+.fc-home:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px }
+@media (max-width: 440px) { .fc-top-in.has-home .fc-top-tag { display: none } }
+.fc-done-home { display: flex; justify-content: center; margin-top: 14px }
+.fc-done-home[hidden] { display: none }
+.fc-done-home .fc-btn { width: 100%; max-width: 360px; text-decoration: none }
+.fc-done-actions a.fc-btn { text-decoration: none; text-align: center }
 .fc-top-tag {
   margin-left: auto; font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
   color: rgba(245, 242, 233, .62); font-weight: 500;
 }
 
-.fc-prog { max-width: 720px; margin: 0 auto; padding: 10px 20px 14px }
+.fc-prog { max-width: 720px; margin: 0 auto; padding: 0 20px 14px }
 .fc-prog-row {
   display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px;
   font-size: 13px; color: rgba(245, 242, 233, .8);

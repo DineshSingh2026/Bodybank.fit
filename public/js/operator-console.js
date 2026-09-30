@@ -95,6 +95,10 @@ function opAvatar(pic, name, cls) {
     ? '<img class="op-avatar' + (cls ? ' ' + cls : '') + '" src="' + opEsc(pic) + '" alt="" loading="lazy">'
     : '<div class="op-avatar' + (cls ? ' ' + cls : '') + '">' + opEsc(opInitials(name)) + '</div>';
 }
+// Plan tier label (services/plans.js). NULL is a legacy row, which resolves to Tribe Elite.
+function opPlanName(tier) {
+  return { core: 'Core', guided: 'Guided', tribe_elite: 'Tribe Elite' }[tier] || 'Tribe Elite';
+}
 function opDaysUntil(ts) {
   if (!ts) return null;
   var t = new Date(ts).getTime(); if (isNaN(t)) return null;
@@ -444,7 +448,7 @@ function opClientCard(c) {
     : (idle === 1 ? '<span class="op-status ok">Active yesterday</span>'
       : '<span class="op-status ' + (idle >= 5 ? 'bad' : 'warn') + '">Silent ' + opPlural(idle, 'day') + '</span>');
 
-  var tags = '';
+  var tags = '<span class="op-tag">' + opEsc(opPlanName(c.plan_tier)) + '</span>';
   if (c.subscription_status === 'trialing') {
     var left = opDaysUntil(c.access_expires_at);
     tags += '<span class="op-tag ' + (left != null && left <= 3 ? 'warn' : '') + '">'
@@ -949,6 +953,7 @@ function opBuildProfile(d) {
   h += opKV('Location', opEsc([u.city, u.country].filter(Boolean).join(', ')));
   h += opKV('Goal', opEsc([u.goal_type, u.diet_type].filter(Boolean).join(' · ')));
   var exp = u.access_expires_at ? new Date(u.access_expires_at).toLocaleDateString() : '';
+  h += opKV('Plan', opEsc(opPlanName(u.plan_tier)));
   h += opKV('Membership', opEsc((u.subscription_status || 'active') + (u.plan_label ? ' · ' + u.plan_label : '') + (exp ? ' · until ' + exp : '')));
   h += '</div>';
 
@@ -1018,6 +1023,7 @@ function opBuildOverview(d) {
     + '<div class="op-bar-fill' + (cpct < 30 ? ' bad' : (cpct < 60 ? ' warn' : '')) + '" data-w="' + cpct + '"></div></div></div>';
 
   h += '<div class="op-lines" style="margin-top:12px">';
+  h += opKV('Plan', opEsc(opPlanName(u.plan_tier)));
   h += opKV('Membership', opEsc(u.subscription_status || 'active') + (u.plan_label ? ' · ' + opEsc(u.plan_label) : ''));
   h += opKV('Access expires', opEsc(u.access_expires_at ? new Date(u.access_expires_at).toLocaleDateString() : '–'));
   if (u.height_cm || u.goal_type) h += opKV('Height / Goal', opEsc((u.height_cm ? u.height_cm + 'cm' : '') + (u.goal_type ? (u.height_cm ? ' · ' : '') + u.goal_type : '')));

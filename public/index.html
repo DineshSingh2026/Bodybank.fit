@@ -4,6 +4,11 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#0a0a0a" />
+<!-- Store policy: pricing / purchase links are website-only. Inside the iOS and
+     Android apps (bb-app-config.js sets IS_BODYBANK_APP first) they are hidden,
+     and pricing.html itself is not bundled into the apps. -->
+<script>try{if(window.IS_BODYBANK_APP||(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()))document.documentElement.classList.add('bb-in-app');}catch(e){}</script>
+<style>html.bb-in-app .bb-web-only{display:none!important}</style>
 
 <!-- Safari / iOS -->
 <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -5359,15 +5364,17 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="/css/graded-report.css?v=1">
 <link rel="stylesheet" href="css/admin-home.css?v=4">
 <link rel="stylesheet" href="css/admin-reports.css?v=1">
-<link rel="stylesheet" href="css/member-home.css?v=13">
+<link rel="stylesheet" href="css/member-home.css?v=17">
+<link rel="stylesheet" href="css/member-screens.css?v=3">
 <link rel="stylesheet" href="css/group-chat.css?v=8">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
-<script src="js/operator-console.js?v=17"></script>
+<script src="js/operator-console.js?v=18"></script>
 <script src="js/admin-home.js?v=9"></script>
 <script src="js/admin-reports.js?v=4"></script>
 <script src="js/countries.js?v=1"></script>
-<script src="js/member-home.js?v=10"></script>
+<script src="js/bb-plans.js?v=2"></script>
+<script src="js/member-home.js?v=16"></script>
 <script src="js/group-chat.js?v=11"></script>
 <script src="js/bb-notify.js?v=3"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
@@ -7114,21 +7121,43 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
            new layer only makes the next action and the upload paths obvious. -->
       <div id="memberHome">
 
-        <section class="mh-hero">
-          <div class="mh-hero-top">
-            <div class="mh-avatar" id="mhAvatar">B</div>
+        <!-- Member home hero: avatar progress ring, greeting, status, streak + week tiles. -->
+        <section class="mh-hero mh-hero--v2" aria-label="Today">
+          <div class="mhx-top">
+            <div class="mhx-avatar-wrap" id="mhDayRingWrap" role="img" aria-label="Today's progress">
+              <svg class="mhx-ring" viewBox="0 0 80 80" aria-hidden="true">
+                <defs>
+                  <linearGradient id="mhxRingGold" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F7E3AE"/><stop offset="1" stop-color="#C9A04A"/></linearGradient>
+                  <linearGradient id="mhxRingDone" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#8FE8BE"/><stop offset="1" stop-color="#3FB27F"/></linearGradient>
+                </defs>
+                <circle class="mhx-ring-track" cx="40" cy="40" r="36"/>
+                <circle class="mhx-ring-fill" id="mhDayRing" cx="40" cy="40" r="36"/>
+              </svg>
+              <div class="mh-avatar mhx-avatar" id="mhAvatar">B</div>
+              <span class="mhx-ring-badge" id="mhDayRingTxt">&nbsp;</span>
+            </div>
             <div class="mh-hero-id">
               <div class="mh-eyebrow" id="mhDate">&nbsp;</div>
-              <h2 class="mh-greet" id="mhGreet">Welcome back</h2>
+              <h2 class="mh-greet mhx-greet" id="mhGreet"><span class="mhx-greet-word" id="mhGreetWord">Welcome back</span><span class="mhx-greet-name" id="mhGreetName"></span></h2>
+              <div class="mh-plan" data-bb-plan-chip hidden></div>
             </div>
-            <button type="button" class="mh-refresh" id="mhRefresh" onclick="loadMemberHome()" title="Refresh" aria-label="Refresh">&#8635;</button>
+            <button type="button" class="mh-refresh mhx-refresh" id="mhRefresh" onclick="loadMemberHome()" title="Refresh" aria-label="Refresh">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>
+            </button>
           </div>
-          <p class="mh-line" id="mhLine">Loading your day…</p>
-          <div class="mh-hero-row">
-            <div class="mh-streak"><b id="mhStreak">0</b><span id="mhStreakL">day streak</span></div>
-            <div class="mh-week" id="mhWeek" aria-label="This week, Sunday to Saturday"></div>
+          <p class="mh-line mhx-line" id="mhLine"><span class="mhx-line-ico" aria-hidden="true"></span><span>Loading your day…</span></p>
+          <div class="mhx-stats">
+            <div class="mh-streak mhx-streak">
+              <span class="mhx-flame" aria-hidden="true">🔥</span>
+              <span class="mhx-streak-main"><b id="mhStreak">0</b><span id="mhStreakL">day streak</span></span>
+              <span class="mhx-go" aria-hidden="true">Calendar <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></span>
+            </div>
+            <div class="mhx-weekcard">
+              <div class="mhx-weekhead"><span>This week</span><b id="mhWeekCount"></b></div>
+              <div class="mh-week mhx-week" id="mhWeek" aria-label="This week, Sunday to Saturday"></div>
+            </div>
           </div>
-          <div class="mh-pills" id="mhSlotPills"></div>
+          <div class="mh-pills mhx-pills" id="mhSlotPills"></div>
         </section>
 
         <section class="mh-block">
@@ -7383,7 +7412,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <img id="welcomeAvatar" class="user-welcome-avatar" src="" alt="" style="display:none">
         <div id="welcomeAvatarPlaceholder" class="user-welcome-avatar-placeholder"><svg viewBox="0 0 24 24" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
         <h1><span class="welcome-label">Welcome</span><span class="welcome-name" id="userWelcomeName">User</span></h1>
-        <p class="user-welcome-tag">Tribe Elite Member</p>
+        <p class="user-welcome-tag" data-bb-plan-name hidden></p>
 
         <!-- ===== Unified TODAY hero (the daily loop at a glance) ===== -->
         <section class="bb-today" id="bbTodayHero" aria-label="Today" hidden>
@@ -7392,7 +7421,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <div class="bb-today-greet">
               <p class="bb-today-eyebrow" id="bbTodayGreeting">Welcome</p>
               <p class="bb-today-name" id="bbTodayName">—</p>
-              <p class="bb-today-tag">⭐ Tribe Elite Member</p>
+              <p class="bb-today-tag" data-bb-plan-name hidden></p>
               <p class="bb-today-sub" id="bbTodayDate"></p>
             </div>
           </div>
@@ -7680,50 +7709,10 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         </section>
         </div>
         <div id="daily-pane-mind" class="daily-pane" style="display:none">
-          <section class="mind-checkin" aria-label="Brain Tips mental-fitness check-in">
-            <span class="bt-orb bt-orb-1" aria-hidden="true"></span>
-            <span class="bt-orb bt-orb-2" aria-hidden="true"></span>
-            <a class="mind-brand" href="https://beyondthebody.fit" target="_blank" rel="noopener">
-              <img src="/img/BeyondthebodyNBG.png" alt="Beyond The Body" />
-              <span class="mind-brand-tag">Healing begins within</span>
-            </a>
-            <div class="mind-section-head">
-              <span class="mind-section-tag">Evidence-Based</span>
-              <h3 class="mind-section-title">Brain Tips</h3>
-              <p class="mind-section-sub">When you're overwhelmed, we've got you. 60-second techniques, expert-backed strategies.</p>
-            </div>
-            <div class="mind-grid">
-              <button type="button" class="mind-card mind-card--breathing" id="mindCard-box_breathing" aria-label="Tap to start Box Breathing" onclick="mindStartExercise('box_breathing')">
-                <span class="mind-card-done-badge" aria-hidden="true">✓ Done today</span>
-                <div class="mind-card-top">
-                  <span class="mind-card-icon" aria-hidden="true">🫁</span>
-                  <span class="mind-card-cat">Breathing</span>
-                </div>
-                <h4 class="mind-card-title">Box Breathing</h4>
-                <p class="mind-card-instr">Inhale 4s, hold 4s, exhale 4s.</p>
-                <span class="mind-card-cta"><span class="mind-card-cta-text">Tap to start</span><span class="mind-cta-arrow" aria-hidden="true">→</span></span>
-              </button>
-              <button type="button" class="mind-card mind-card--grounding" id="mindCard-grounding_54321" aria-label="Tap to start 5-4-3-2-1 Grounding" onclick="mindStartExercise('grounding_54321')">
-                <span class="mind-card-done-badge" aria-hidden="true">✓ Done today</span>
-                <div class="mind-card-top">
-                  <span class="mind-card-icon" aria-hidden="true">🌿</span>
-                  <span class="mind-card-cat">Grounding</span>
-                </div>
-                <h4 class="mind-card-title">5-4-3-2-1 Grounding</h4>
-                <p class="mind-card-instr">Name 5 things you see, 4 you touch, 3 you hear, 2 you smell, 1 you taste.</p>
-                <span class="mind-card-cta"><span class="mind-card-cta-text">Tap to start</span><span class="mind-cta-arrow" aria-hidden="true">→</span></span>
-              </button>
-              <button type="button" class="mind-card mind-card--scan" id="mindCard-body_scan" aria-label="Tap to start Body Scan" onclick="mindStartExercise('body_scan')">
-                <span class="mind-card-done-badge" aria-hidden="true">✓ Done today</span>
-                <div class="mind-card-top">
-                  <span class="mind-card-icon" aria-hidden="true">🔎</span>
-                  <span class="mind-card-cat">Mindfulness</span>
-                </div>
-                <h4 class="mind-card-title">Body Scan</h4>
-                <p class="mind-card-instr">Notice sensations from head to toe.</p>
-                <span class="mind-card-cta"><span class="mind-card-cta-text">Tap to start</span><span class="mind-cta-arrow" aria-hidden="true">→</span></span>
-              </button>
-            </div>
+          <section class="bbm-pane" aria-label="Mind check-in, co-powered by Beyond The Body">
+            <!-- Drawn by js/member-screens.js (bbxRenderMind). The exercise rows keep the
+                 mindCard-<key> ids, so the existing player and completion logic are reused. -->
+            <div id="bbxMindHost"></div>
             <div id="mindPlayerHost"></div>
           </section>
         </div>
@@ -7745,6 +7734,12 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <div class="profile-avatar-note">JPG, PNG, WEBP or GIF up to 2 MB</div>
         </div>
       </div>
+      <!-- My Membership (js/member-screens.js). The summary line is filled by js/bb-plans.js. -->
+      <button type="button" class="bbx-mrow" onclick="if(window.bbxOpenMembership)bbxOpenMembership()">
+        <span class="bbx-mrow-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg></span>
+        <span class="bbx-mrow-main"><b>My Membership</b><small data-bb-plan-summary>Your plan and what it includes</small></span>
+        <svg class="bbx-mrow-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
       <div id="profileFormSkeleton" class="skeleton-wrapper" style="display:none">
         <div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div>
         <div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div>
@@ -10193,7 +10188,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div class="admin-nutrition-header">
         <div>
           <h3>Members <span style="font-size:12px;color:var(--muted);font-weight:600">trials · activations · renewals · AI access</span></h3>
-          <p class="form-hint" style="margin:4px 0 0">New sign-ups get <strong style="color:var(--gold)">instant access on a free trial</strong>. Call them, collect payment your way, then hit <strong style="color:var(--gold)">Activate</strong> and pick a plan length. Lapsed members are locked out automatically. Expand <strong>AI access</strong> on any card to set Nutrition AI / AI Trainer limits.</p>
+          <p class="form-hint" style="margin:4px 0 0">New sign-ups get <strong style="color:var(--gold)">instant access on a free trial</strong>. Call them, collect payment your way, then pick the <strong style="color:var(--gold)">plan</strong> (Core · Guided · Tribe Elite) and length and hit <strong style="color:var(--gold)">Activate</strong>. <strong>Change plan only</strong> switches plan without touching the end date. Lapsed members are locked out automatically. Expand <strong>AI access</strong> on any card to set Nutrition AI / AI Trainer limits.</p>
         </div>
         <div class="admin-nutrition-controls">
           <input type="search" id="adminMembershipSearch" placeholder="Search by name, email or phone" oninput="renderAdminMemberships()" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.1);color:var(--text,#f0ede8);padding:8px 12px;border-radius:8px;font-size:13px;min-width:220px" aria-label="Search members">
@@ -10205,6 +10200,9 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <option value="expired">Expired</option>
             <option value="canceled">Locked</option>
             <option value="ai_limited">AI: limited</option>
+            <option value="tier:core">Plan: Core</option>
+            <option value="tier:guided">Plan: Guided</option>
+            <option value="tier:tribe_elite">Plan: Tribe Elite</option>
           </select>
           <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0" onclick="loadAdminMemberships()">Refresh</button>
           <button type="button" class="form-submit" style="width:auto;padding:10px 18px;margin:0;background:transparent;border:1px solid rgba(255,255,255,0.18)" onclick="runMembershipLifecycleNow()" title="Expire lapsed members, send reminders, refresh the call queue">Run checks now</button>
@@ -11057,6 +11055,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <li><a href="#hero">Home</a></li>
     <li><a href="#results">Transformations</a></li>
     <li><a href="#get-the-app">App</a></li>
+    <li class="bb-web-only"><a href="pricing.html">Pricing</a></li>
     <li><a href="#health-intelligence">Health Data</a></li>
     <li><a href="#success-stories">Stories</a></li>
     <li><a href="tribe-stories.html">Tribe Stories</a></li>
@@ -11082,6 +11081,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <a class="mm-link" href="#hero" onclick="bbCloseNavMenu()">Home<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="#results" onclick="bbCloseNavMenu()">Transformations<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="#get-the-app" onclick="bbCloseNavMenu()"><span class="mm-label">Get the App<span class="mm-new">New</span></span><span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link bb-web-only" href="pricing.html" onclick="bbCloseNavMenu()">Plans &amp; Pricing<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="#health-intelligence" onclick="bbCloseNavMenu()"><span class="mm-label">Health Data<span class="mm-new">New</span></span><span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="#success-stories" onclick="bbCloseNavMenu()">Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
       <a class="mm-link" href="tribe-stories.html" onclick="bbCloseNavMenu()">Tribe Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
@@ -12735,6 +12735,7 @@ async function bbApiRequest(method, url, body) {
     try { data = text ? JSON.parse(text) : {}; } catch (_) { data = {}; }
     if (!res.ok) {
       if (!data.error) data.error = data.message || 'Request failed (' + res.status + ')';
+      if (data.error === 'upgrade_required' && typeof window.bbPlanNoteUpgradeRequired === 'function') window.bbPlanNoteUpgradeRequired(data);
       if (window.currentUser && window.currentUser.token && (res.status === 401 || res.status === 403) && bbIsExpiredAuthError(data.error || data.message || '')) {
         bbHandleExpiredSession();
         return { error: 'Session expired. Please log in again.', authExpired: true };
@@ -12756,6 +12757,10 @@ async function loadUserPrograms() {
   el.innerHTML = '<p class="form-hint" style="padding:24px;text-align:center">Loading…</p>';
   try {
     var list = await apiCall('GET', '/api/me/programs');
+    if (list && list.error === 'upgrade_required' && typeof window.bbPlanLockedCardHtml === 'function') {
+      el.innerHTML = window.bbPlanLockedCardHtml('workout_program', 'Custom workout program', 'Your coach builds a program around you');
+      return;
+    }
     if (list && list.error) {
       el.innerHTML = '<p class="form-hint" style="padding:24px;text-align:center;color:#e05050">' + escapeHtml(list.error) + '</p>';
       return;
@@ -13198,7 +13203,7 @@ async function adminLogin() {
     const data = await apiCall('POST', '/api/auth/login', { email, password: pw });
     if (data && data.error) {
       if(btn){btn.disabled=false;btn.classList.remove('loading');btn.innerHTML=btn._orig||'Login Now';}
-      var msg = (data.error === 'pending_approval' || data.error === 'rejected') && data.message ? data.message : data.error;
+      var msg = (data.error === 'pending_approval' || data.error === 'rejected' || data.error === 'subscription_expired' || data.error === 'subscription_inactive') && data.message ? data.message : data.error;
       showPopup('Login Failed', msg, '', 'Try Again', null, 'error');
       return;
     }
@@ -19207,7 +19212,7 @@ async function saveAdminNutritionLuxuryCard() {
     ctx.fillStyle = '#c9a84c';
     ctx.font = "600 24px 'Outfit','Segoe UI',sans-serif";
     ctx.letterSpacing = '0.16em';
-    ctx.fillText('TRIBE ELITE MEMBER', W / 2, 222);
+    ctx.fillText((typeof window.bbPlanCardLabel === 'function' ? window.bbPlanCardLabel(window._adminCpSelectedUserId) : 'BODYBANK MEMBER'), W / 2, 222);
     ctx.letterSpacing = '0px';
     ctx.textAlign = 'left';
 
@@ -20724,6 +20729,8 @@ function openUserDashboard(user) {
   if (logoutBtn) logoutBtn.style.display = '';
   lockBodyScroll();
   bbPulseShowSkeleton();
+  // Plan first: bb-plans.js redraws the plan-dependent cards once it lands.
+  if (typeof window.bbLoadPlan === 'function') window.bbLoadPlan(true);
   if (typeof mhBoot === 'function') mhBoot();
   loadHomeAggregate();
   loadUserStats();
@@ -21195,6 +21202,7 @@ function logoutUser() {
   if (window.BBGroupChat && typeof window.BBGroupChat.forget === 'function') window.BBGroupChat.forget();
   if (typeof unregisterNativePush === 'function') unregisterNativePush();
   if (typeof wkLogoutTimerCleanup === 'function') wkLogoutTimerCleanup();
+  if (typeof window.bbPlanReset === 'function') window.bbPlanReset();
   // Reset muscle ranking cache so next login fetches fresh data
   if (typeof mrData !== 'undefined') { mrData = null; mrLoaded = false; }
   window.currentUser = null;
@@ -21284,6 +21292,8 @@ function showCheckinSubView(view) {
 }
 function switchUserTab(tab) {
   if (tab === 'progress') tab = 'workout';
+  // Plan-locked tabs (programs, messages) show the plan sheet instead of opening.
+  if (typeof window.bbPlanGuardTab === 'function' && !window.bbPlanGuardTab(tab)) return;
   if (tab !== 'messages' && typeof bbCloseMessages === 'function') bbCloseMessages();
   var wasOnWorkout = !!(document.getElementById('usec-workout') && document.getElementById('usec-workout').classList.contains('active'));
   document.querySelectorAll('.user-sidebar-link[data-tab]').forEach(function(t) { t.classList.remove('active'); });
@@ -21697,6 +21707,7 @@ function bbSetUserFabLabel(text) {
 }
 function bbHandleUserFabClick() {
   // Single purpose since Elite Feed was removed: this button is the AI Trainer.
+  if (typeof window.bbPlanGuard === 'function' && !window.bbPlanGuard('ai_trainer')) return;
   window.location.href = '/ai-trainer.html?v=2';
 }
 function bbUpdateUserActionFab(tab) {
@@ -21773,6 +21784,7 @@ function bbCoinEventLabel(t) {
     daily_goal_water: 'Water goal',
     daily_goal_protein: 'Protein goal',
     daily_goal_sleep: 'Sleep goal',
+    streak_milestone: 'Streak milestone',
     penalty_missed_daily_checkin: 'Missed daily check-in'
   };
   return m[t] || String(t || 'Activity');
@@ -23084,6 +23096,7 @@ function mindApplyCompleted(list) {
 // Called when the daily check-in view opens (alongside daily/nutrition loaders)
 async function loadMindCheckinPanel() {
   if (!window.currentUser) return;
+  if (typeof window.bbxRenderMind === 'function') { try { window.bbxRenderMind(); } catch (_) {} }
   try {
     var res = await apiCall('GET', '/api/mind-checkin/today');
     if (res && res.error) return; // guard: never break the rest of the daily load
@@ -24086,7 +24099,7 @@ async function drawAdminNutritionPremiumCard(c, reportDate) {
   ctx.font = "600 21px 'Outfit','Segoe UI',sans-serif";
   ctx.fillStyle = '#c9a84c';
   ctx.letterSpacing = '0.26em';
-  ctx.fillText('TRIBE ELITE MEMBER', W / 2, eliteY);
+  ctx.fillText((typeof window.bbPlanCardLabel === 'function' ? window.bbPlanCardLabel(c.userId) : 'BODYBANK MEMBER'), W / 2, eliteY);
   ctx.letterSpacing = '0px';
 
   ctx.font = "500 28px 'Outfit','Segoe UI',sans-serif";
@@ -25419,7 +25432,7 @@ async function adminNutritionSaveMealCardFromLightbox(e) {
     return;
   }
   var payload = {
-    userName: entry.userName || entry.userEmail || 'Tribe Elite Member',
+    userName: entry.userName || entry.userEmail || 'BodyBank Member',
     mealType: String(entry.mealType || 'meal'),
     day: entry.day || null,
     date: entry.date || '',
@@ -25455,7 +25468,7 @@ async function adminNutritionShareMealCard(userId, mealType) {
   }
   var dayMeals = (c && Array.isArray(c.meals)) ? c.meals : (data && Array.isArray(data.meals) ? data.meals : [meal]);
   var payload = {
-    userName: (c && (c.userName || c.userEmail)) || 'Tribe Elite Member',
+    userName: (c && (c.userName || c.userEmail)) || 'BodyBank Member',
     mealType: mt,
     day: nutritionShareDayFromMeals(dayMeals, (c && c.dailyStats) || (data && data.dailyStats)),
     date: date,
@@ -25742,7 +25755,7 @@ function loadAdminMemberships() {
       return;
     }
     window._bbMemberships = Array.isArray(data.users) ? data.users : [];
-    window._bbMembershipMeta = { trial_days: data.trial_days || 7, summary: data.summary || {} };
+    window._bbMembershipMeta = { trial_days: data.trial_days || 7, summary: data.summary || {}, catalog: Array.isArray(data.catalog) ? data.catalog : [], trial_tier: data.trial_tier || 'guided' };
     renderAdminMemberships();
   });
 }
@@ -25765,6 +25778,12 @@ function renderAdminMemberships() {
       chip('Active paid', s.active, '#46c46a') +
       chip('Expired', s.expired, '#e05050') +
       chip('Locked', s.canceled, '#9aa3ad');
+    var bt = s.by_tier || {};
+    statsEl.innerHTML +=
+      '<div style="flex-basis:100%;height:0"></div>' +
+      chip('Core', bt.core, BB_PLAN_COLORS.core) +
+      chip('Guided', bt.guided, BB_PLAN_COLORS.guided) +
+      chip('Tribe Elite', bt.tribe_elite, BB_PLAN_COLORS.tribe_elite);
   }
   var qEl = document.getElementById('adminMembershipSearch');
   var fEl = document.getElementById('adminMembershipFilter');
@@ -25775,6 +25794,7 @@ function renderAdminMemberships() {
     if (f === 'callqueue') return (u.state === 'expired') || (u.state === 'canceled') || ((u.state === 'trialing' || u.state === 'active') && u.days_left != null && u.days_left <= 2);
     if (f === 'all') return true;
     if (f === 'ai_limited') return !u.nutrition_ai_unlimited || !u.ai_trainer_unlimited;
+    if (f.indexOf('tier:') === 0) return u.plan_tier === f.slice(5);
     return u.state === f;
   });
   if (!filtered.length) {
@@ -25790,19 +25810,26 @@ function renderAdminMemberships() {
     return (
       '<div class="bb-access-card" data-user-id="' + escapeHtml(u.id) + '">' +
         '<div class="bb-access-card-head">' +
-          '<div><div class="bb-access-card-name">' + escapeHtml(name) + ' ' + bbMembershipBadge(u) + '</div>' +
+          '<div><div class="bb-access-card-name">' + escapeHtml(name) + ' ' + bbPlanTierBadge(u.plan_tier) + ' ' + bbMembershipBadge(u) + '</div>' +
           '<div class="bb-access-card-email">' + escapeHtml(u.email || '') + (u.phone ? ' · ' + escapeHtml(u.phone) : '') + '</div></div>' +
         '</div>' +
         '<div class="bb-access-row"><div class="bb-access-row-controls" style="flex-wrap:wrap;gap:10px;align-items:center">' +
-          '<span class="bb-access-used">Plan <strong>' + escapeHtml(u.plan_label || '—') + '</strong></span>' +
+          '<span class="bb-access-used">Plan <strong>' + escapeHtml(u.plan_name || '—') + '</strong>' + (u.plan_label ? ' <span style="color:var(--muted)">(' + escapeHtml(u.plan_label) + ')</span>' : '') + '</span>' +
           '<span class="bb-access-used">Renews/ends <strong>' + bbFmtMemberDate(u.access_expires_at) + '</strong></span>' +
           (u.activated_by ? '<span class="bb-access-lastused">By <strong>' + escapeHtml(u.activated_by) + '</strong></span>' : '') +
         '</div></div>' +
+        '<div class="bb-access-row"><div class="bb-access-row-controls" style="flex-wrap:wrap;gap:10px;align-items:center">' +
+          '<label class="bb-access-toggle" title="Lets this member open their 2-week report in the app"><input type="checkbox" ' + (u.fortnight_report_enabled ? 'checked' : '') + ' onchange="bbToggleFortnightReport(\'' + idAttr + '\', this)"> 📈 2-week report visible to member</label>' +
+          '<button type="button" class="bb-access-reset" onclick="bbPreviewFortnightReport(\'' + idAttr + '\')">Preview report</button>' +
+        '</div></div>' +
         '<div class="bb-access-card-actions" style="flex-wrap:wrap;gap:8px;align-items:center">' +
-          '<select id="bb-mem-term-' + idAttr + '" style="background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.14);color:var(--text,#f0ede8);padding:8px 10px;border-radius:8px;font-size:13px">' +
-            '<option value="1">1 Month</option><option value="3">3 Months</option><option value="12">12 Months</option><option value="lifetime">Lifetime</option>' +
+          bbPlanTierSelect(u, idAttr) +
+          '<select id="bb-mem-term-' + idAttr + '" onchange="bbMemPriceHint(\'' + idAttr + '\')" style="' + BB_MEM_SELECT_CSS + '" aria-label="Plan length">' +
+            bbMemTermOptions(u.plan_tier) +
           '</select>' +
+          '<span id="bb-mem-price-' + idAttr + '" style="font-size:12px;color:var(--muted);min-width:64px">' + escapeHtml(bbMemPriceText(u.plan_tier, bbMemDefaultTerm(u.plan_tier))) + '</span>' +
           '<button type="button" class="form-submit" style="width:auto;padding:9px 18px;margin:0" onclick="activateMembership(\'' + idAttr + '\')">✅ Activate</button>' +
+          '<button type="button" class="bb-access-reset" onclick="changeMembershipPlan(\'' + idAttr + '\')" title="Switch plan now, keep the current end date">⇅ Change plan only</button>' +
           '<button type="button" class="bb-access-reset" onclick="setMembershipTrial(\'' + idAttr + '\')">↻ Trial +' + trialDays + 'd</button>' +
           waBtn +
           '<button type="button" class="bb-access-reset" onclick="sendAdminWeeklyReport(\'' + idAttr + '\', this)">📊 Weekly report</button>' +
@@ -25874,11 +25901,110 @@ async function sendAdminWeeklyReport(encodedId, btn) {
   }
 }
 
+// ── Plan tiers (Core / Guided / Tribe Elite) — services/plans.js is the source ──
+var BB_PLAN_COLORS = { core: '#bfb9ab', guided: '#8fc7b0', tribe_elite: '#c8a44e' };
+var BB_MEM_SELECT_CSS = 'background:var(--surface,#161a1e);border:1px solid rgba(255,255,255,0.14);color:var(--text,#f0ede8);padding:8px 10px;border-radius:8px;font-size:13px';
+function bbPlanTierName(t) { return { core: 'Core', guided: 'Guided', tribe_elite: 'Tribe Elite' }[t] || 'Tribe Elite'; }
+function bbPlanTierBadge(t) {
+  var c = BB_PLAN_COLORS[t] || BB_PLAN_COLORS.tribe_elite;
+  return '<span style="display:inline-block;vertical-align:middle;font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:1px solid ' + c + ';color:' + c + '">' + escapeHtml(bbPlanTierName(t)) + '</span>';
+}
+function bbPlanTierSelect(u, idAttr) {
+  var cur = u.plan_tier || 'tribe_elite';
+  return '<select id="bb-mem-tier-' + idAttr + '" onchange="bbMemTierChanged(\'' + idAttr + '\')" style="' + BB_MEM_SELECT_CSS + '" aria-label="Plan">' +
+    ['core', 'guided', 'tribe_elite'].map(function (t) {
+      return '<option value="' + t + '"' + (t === cur ? ' selected' : '') + '>' + bbPlanTierName(t) + '</option>';
+    }).join('') + '</select>';
+}
+function bbMemCatalogPlan(tier) {
+  var cat = (window._bbMembershipMeta && window._bbMembershipMeta.catalog) || [];
+  for (var i = 0; i < cat.length; i += 1) if (cat[i].tier === tier) return cat[i];
+  return null;
+}
+// The plan's own terms first (with their list price), then the manual extras.
+function bbMemDefaultTerm(tier) {
+  var p = bbMemCatalogPlan(tier);
+  return p && p.prices && p.prices[0] ? String(p.prices[0].months) : '1';
+}
+function bbMemTermOptions(tier) {
+  var p = bbMemCatalogPlan(tier);
+  var seen = {};
+  var out = '';
+  ((p && p.prices) || []).forEach(function (x) {
+    seen[x.months] = true;
+    out += '<option value="' + x.months + '">' + escapeHtml(x.label) + ' · ₹' + Number(x.amount).toLocaleString('en-IN') + '</option>';
+  });
+  [1, 3, 4, 12].forEach(function (m) {
+    if (!seen[m]) out += '<option value="' + m + '">' + m + (m === 1 ? ' Month' : ' Months') + ' (custom)</option>';
+  });
+  return out + '<option value="lifetime">Lifetime (custom)</option>';
+}
+function bbMemPriceText(tier, term) {
+  var p = bbMemCatalogPlan(tier);
+  if (!p) return '';
+  var hit = (p.prices || []).find(function (x) { return String(x.months) === String(term); });
+  return hit ? 'List ₹' + Number(hit.amount).toLocaleString('en-IN') : 'Custom term';
+}
+function bbMemTierChanged(encodedId) {
+  var tierSel = document.getElementById('bb-mem-tier-' + encodedId);
+  var termSel = document.getElementById('bb-mem-term-' + encodedId);
+  if (!tierSel || !termSel) return;
+  termSel.innerHTML = bbMemTermOptions(tierSel.value);
+  termSel.value = bbMemDefaultTerm(tierSel.value);
+  bbMemPriceHint(encodedId);
+}
+function bbMemPriceHint(encodedId) {
+  var tierSel = document.getElementById('bb-mem-tier-' + encodedId);
+  var termSel = document.getElementById('bb-mem-term-' + encodedId);
+  var out = document.getElementById('bb-mem-price-' + encodedId);
+  if (out && tierSel && termSel) out.textContent = bbMemPriceText(tierSel.value, termSel.value);
+}
+// In-app 2-week report: off until the coach switches it on for this member.
+function bbToggleFortnightReport(encodedId, box) {
+  var id = decodeURIComponent(encodedId);
+  var want = !!(box && box.checked);
+  if (box) box.disabled = true;
+  apiCall('POST', '/api/admin/users/' + encodeURIComponent(id) + '/fortnight-report', { enabled: want }).then(function (data) {
+    if (box) box.disabled = false;
+    if (!data || data.error) {
+      if (box) box.checked = !want;
+      alert('Could not update: ' + (data && data.error ? data.error : 'Unknown error'));
+      return;
+    }
+    var u = (window._bbMemberships || []).find(function (x) { return String(x.id) === String(id); });
+    if (u) u.fortnight_report_enabled = want;
+    if (typeof nutritionShowToast === 'function') nutritionShowToast(want ? '2-week report is now visible to this member' : '2-week report hidden from this member', 'success');
+  });
+}
+function bbPreviewFortnightReport(encodedId) {
+  if (typeof window.bbxOpenReport === 'function') window.bbxOpenReport(null, decodeURIComponent(encodedId));
+}
+
+function changeMembershipPlan(encodedId) {
+  var id = decodeURIComponent(encodedId);
+  var tierSel = document.getElementById('bb-mem-tier-' + encodedId);
+  if (!tierSel) return;
+  var tier = tierSel.value;
+  var u = (window._bbMemberships || []).find(function (x) { return String(x.id) === String(id); });
+  if (u && u.plan_tier === tier) { showPopup('Change plan', 'This client is already on ' + bbPlanTierName(tier) + '.', '', 'OK'); return; }
+  if (!confirm('Move this client to ' + bbPlanTierName(tier) + ' now?\n\nTheir end date stays the same. Features update in their app within a minute.')) return;
+  apiCall('POST', '/api/admin/users/' + encodeURIComponent(id) + '/plan', { plan_tier: tier }).then(function (data) {
+    if (!data || data.error) { alert('Change plan failed: ' + (data && data.error ? data.error : 'Unknown error')); return; }
+    loadAdminMemberships();
+    showPopup('Plan changed', 'This client is now on ' + bbPlanTierName(tier) + '.', '', 'OK');
+  });
+}
+
 function activateMembership(encodedId) {
   var id = decodeURIComponent(encodedId);
   var sel = document.getElementById('bb-mem-term-' + encodedId);
   var term = sel ? sel.value : '1';
+  var tierSel = document.getElementById('bb-mem-tier-' + encodedId);
+  var tier = tierSel ? tierSel.value : '';
   var body = (term === 'lifetime') ? { term: 'lifetime' } : { months: parseInt(term, 10) || 1 };
+  if (tier) body.plan_tier = tier;
+  var termText = sel && sel.options[sel.selectedIndex] ? sel.options[sel.selectedIndex].text : term;
+  if (!confirm('Activate ' + bbPlanTierName(tier) + ' · ' + termText + ' for this client?\n\nThis starts a new term from today.')) return;
   apiCall('POST', '/api/admin/users/' + encodeURIComponent(id) + '/activate', body).then(function (data) {
     if (!data || data.error) { alert('Activate failed: ' + (data && data.error ? data.error : 'Unknown error')); return; }
     loadAdminMemberships();
@@ -27329,6 +27455,7 @@ function bbComparisonDelete(id) {
 }
 
 function openBloodUploadPicker() {
+  if (typeof window.bbPlanGuard === 'function' && !window.bbPlanGuard('blood_reports')) return;
   var inputs = [
     document.getElementById('bloodUploadInputHomeDesktop'),
     document.getElementById('bloodUploadInputHome')
@@ -27571,7 +27698,7 @@ function bbLoadMySentProgressReports() {
         (c.trajectory ? '<span style="font-size:11px;font-weight:700;color:' + tc + '">' + escapeHtml(c.trajectory) + '</span>' : '') +
         '<span class="form-hint" style="margin-left:auto">' + escapeHtml(dt) + '</span></div>' +
         (c.summary ? '<p class="form-hint" style="margin:6px 0 8px;line-height:1.45">' + escapeHtml(String(c.summary).slice(0, 220)) + '</p>' : '<div style="height:6px"></div>') +
-        '<button type="button" class="form-submit" style="width:auto;padding:8px 14px;font-size:12px;margin:0" onclick="bbDownloadMyProgressPdf(\'' + cid + '\')">Download progress report</button>' +
+        '<p class="form-hint" style="margin:0;font-size:12px">Your coach sends the full report to you personally.</p>' +
         '</div>';
     }).join('');
   }).catch(function () {});
@@ -27602,6 +27729,13 @@ function bbHrUploadIcon(size) {
 
 /** Nothing uploaded: one target, one sentence of what to send, one button. */
 function bbBloodEmptyState() {
+  // Core plan: blood analysis is Guided+, so the drop zone becomes a plan teaser.
+  if (typeof window.bbHasFeature === 'function' && !window.bbHasFeature('blood_reports') && typeof window.bbPlanLockedCardHtml === 'function') {
+    return '<div role="button" tabindex="0" style="cursor:pointer" onclick="bbPlanShowLock(\'blood_reports\')"'
+      + ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();bbPlanShowLock(\'blood_reports\');}">'
+      + window.bbPlanLockedCardHtml('blood_reports', 'Blood report analysis', 'Every marker read, reviewed by your coach')
+      + '</div>';
+  }
   return '<div class="bb-hr-empty" role="button" tabindex="0" onclick="openBloodUploadPicker()"'
     + ' onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();openBloodUploadPicker();}"'
     + ' ondragover="bbHrDragOver(event)" ondragleave="bbHrDragLeave(event)" ondrop="bbHrDrop(event)"'
@@ -27633,15 +27767,19 @@ function bbBloodSlotRow(n, r, statusColor) {
   var rid = String(r._id || r.id || '').replace(/'/g, "\\'");
   var dt = r.createdAt ? new Date(r.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }) : '';
   var complete = r.status === 'complete';
-  var col = complete ? (statusColor[ar.overall_status] || 'var(--muted,#8a8880)') : '#f5a623';
-  var state = complete ? (ar.overall_status || 'Complete') : 'Analysing';
+  // A result is shown only once the coach has reviewed and sent the report;
+  // before that the member sees where it is, never what it says.
+  var released = complete && r.sentToUser;
+  var col = released ? (statusColor[ar.overall_status] || 'var(--muted,#8a8880)') : (complete ? 'var(--muted,#8a8880)' : '#f5a623');
+  var state = released ? (ar.overall_status || 'Ready') : (complete ? 'With your coach' : 'Analysing');
   // The date is the identity of the report; the verdict is its state.
   var sub = '<span class="bb-hr-dot" style="background:' + col + '"></span>'
     + '<span style="color:' + col + ';font-weight:650">' + escapeHtml(state) + '</span>'
-    + (complete && !r.sentToUser ? '<span style="opacity:.75"> · awaiting coach review</span>' : '');
-  var action = complete && r.sentToUser
-    ? '<button type="button" class="bb-hr-btn" onclick="userBloodDownloadPdf(\'' + rid + '\')">Download PDF</button>'
-    : '<span class="bb-hr-note">' + (complete ? 'With your coach' : 'In progress') + '</span>';
+    + (complete && !r.sentToUser ? '<span style="opacity:.75"> · being reviewed</span>' : '');
+  // Members view grades in the app; the PDF itself is sent by their coach.
+  var action = released
+    ? '<button type="button" class="bb-hr-btn" onclick="bbxOpenBlood(\'' + rid + '\')">View grades</button>'
+    : '<span class="bb-hr-note">' + (complete ? 'In review' : 'In progress') + '</span>';
   return '<div class="bb-hr-row is-full">' + num +
     '<div class="bb-hr-main"><div class="bb-hr-t">' + escapeHtml(dt || 'Blood report ' + n) + '</div>' +
     '<div class="bb-hr-s">' + sub + '</div></div>' +
@@ -27703,7 +27841,8 @@ function bbUploadBloodFile(f) {
     var b64 = i >= 0 ? s.slice(i + 1) : s;
     apiCall('POST', '/api/blood/upload', { bloodReportBase64: b64, bloodReportMimeType: f.type, symptoms: [] }).then(function (res) {
       bbSetBloodUploadBusy(false);
-      if (res && res.error) { showPopup('Upload failed', res.error, '', 'OK', null, 'error'); return; }
+      if (res && res.error === 'upgrade_required' && typeof window.bbPlanShowLock === 'function') { window.bbPlanShowLock('blood_reports'); return; }
+      if (res && res.error) { showPopup('Upload failed', res.message || res.error, '', 'OK', null, 'error'); return; }
       showPopup('Report uploaded', 'Your blood report has uploaded successfully and analysis has started. We’ll let you know here and by email once it’s ready.', '', 'OK', null, 'success');
       loadMyHealthReports();
     }).catch(function () {
@@ -30516,7 +30655,8 @@ function applySafeAreaFix() {
 window.addEventListener('load', applySafeAreaFix);
 window.addEventListener('resize', applySafeAreaFix);
 </script>
-<script src="js/scorecard-share.js?v=17"></script>
+<script src="js/scorecard-share.js?v=18"></script>
+<script src="js/member-screens.js?v=4"></script>
 <script src="js/blood-report-editor.js?v=2"></script>
 <script src="js/graded-report-editor.js?v=1"></script>
 <script src="js/bb-voice.js?v=1"></script>
@@ -33689,6 +33829,7 @@ function bbBodyOnboardingKeyHandler(ev) {
 
   window.bbOpenWhoop = async function () {
     if (!window.currentUser || !window.currentUser.token) { alert('Please log in first.'); return; }
+    if (typeof window.bbPlanGuard === 'function' && !window.bbPlanGuard('wearables')) return;
     var m = document.getElementById('bbWhoopModal');
     if (!m) return;
     whoop.file = null; whoop.b64 = null; whoop.preview = null; whoop.name = ''; whoop.device = null;
@@ -34249,6 +34390,12 @@ function bbBodyOnboardingKeyHandler(ev) {
     var cards = homeCards();
     if (!cards.length) return;
     if (!window.currentUser || !window.currentUser.token) return;
+    // Wearables are Tribe Elite: show what the card would unlock instead of
+    // calling endpoints the plan gate will refuse.
+    if (typeof window.bbHasFeature === 'function' && !window.bbHasFeature('wearables')) {
+      cards.forEach(function (c) { c.innerHTML = window.bbPlanLockedCardHtml('wearables', 'Daily readiness', 'Recovery, sleep and HRV from your wearable'); });
+      return;
+    }
     if (!force && rd.homeAt && (Date.now() - rd.homeAt) < 300000) return;
     rd.homeAt = Date.now();
     cards.forEach(function (c) { if (!c.innerHTML) c.innerHTML = bbSkelRows(2, 'habit'); });
@@ -34389,6 +34536,7 @@ function bbBodyOnboardingKeyHandler(ev) {
 
   window.bbOpenReadiness = async function () {
     if (!window.currentUser || !window.currentUser.token) { alert('Please log in first.'); return; }
+    if (typeof window.bbPlanGuard === 'function' && !window.bbPlanGuard('wearables')) return;
     var m = document.getElementById('bbReadinessModal');
     if (!m) return;
     rd.report = null;

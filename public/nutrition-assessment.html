@@ -10,12 +10,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="css/nutrition-assessment.css?v=3">
+<link rel="stylesheet" href="css/nutrition-assessment.css?v=4">
 </head>
 <body>
 
 <header class="fc-top">
-  <div class="fc-top-in">
+  <div class="fc-top-in" id="fcTopIn">
+    <!-- Members only (shown by js once a BodyBank session is found): invite and
+         shared links are opened by prospects who have no dashboard to return to. -->
+    <a class="fc-home" id="fcHome" href="index.html" hidden aria-label="Back to your BodyBank dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+      <span>Dashboard</span>
+    </a>
     <h1 class="fc-brand">Fit<span>Chef</span></h1>
     <span class="fc-top-tag">Nutrition Assessment</span>
   </div>
@@ -66,6 +72,7 @@
            Someone who has just given fifteen minutes should not be pushed into
            more of it, so "send it later" is a real, equal choice. -->
       <div id="fcDoneActions" class="fc-done-actions" hidden></div>
+      <div id="fcDoneHome" class="fc-done-home" hidden></div>
     </div>
   </section>
 </main>
@@ -79,6 +86,6 @@
 </div>
 
 <script src="js/nutrition-assessment-metrics.js?v=2"></script>
-<script src="js/nutrition-assessment.js?v=4"></script>
+<script src="js/nutrition-assessment.js?v=5"></script>
 </body>
 </html>

@@ -4722,6 +4722,40 @@ if (!enforceAiTrainerClientAccess()) {
   throw new Error('AI Trainer requires signed-in client access.');
 }
 
+// AI Trainer is a Guided+ plan feature (services/plans.js). The server refuses
+// the session save either way; this only spares a Core member a workout that
+// can't be saved. Inside the iOS / Android app the notice names the plan only —
+// no price and no purchase link (store rules).
+(async function checkAiTrainerPlan() {
+  try {
+    const s = getCurrentSession();
+    if (!s || !s.token) return;
+    const r = await fetch('/api/me/plan', { headers: { Authorization: 'Bearer ' + s.token } });
+    if (!r.ok) return;
+    const body = await r.json();
+    const plan = body && body.plan;
+    if (!plan || !Array.isArray(plan.features) || plan.features.includes('ai_trainer')) return;
+    const C = window.Capacitor;
+    const native = !!(C && (typeof C.isNativePlatform === 'function' ? C.isNativePlatform() : (C.getPlatform && C.getPlatform() !== 'web')));
+    const wa = 'https://wa.me/919502575669?text=' + encodeURIComponent('Hi BodyBank team, I would like to move to the Guided plan.');
+    const ov = document.createElement('div');
+    ov.setAttribute('role', 'dialog');
+    ov.setAttribute('aria-modal', 'true');
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:rgba(8,8,7,.94);display:flex;align-items:center;justify-content:center;padding:20px;font-family:inherit';
+    ov.innerHTML =
+      '<div style="max-width:380px;width:100%;text-align:center;color:#f2ece0;background:#141311;border:1px solid rgba(200,164,78,.3);border-radius:20px;padding:26px 20px">' +
+        '<p style="margin:0 0 6px;font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#c8a44e;font-weight:600">Guided plan</p>' +
+        '<h2 style="margin:0 0 10px;font-size:21px;font-weight:600">AI Trainer</h2>' +
+        '<p style="margin:0 0 18px;font-size:14px;line-height:1.5;color:#bfb9ab">AI Trainer is part of the Guided plan. You’re on ' + String(plan.name || 'Core').replace(/[<>&"]/g, '') + '.</p>' +
+        (native ? '' :
+          '<a href="' + wa + '" target="_blank" rel="noopener noreferrer" style="display:block;margin-bottom:8px;padding:12px;border-radius:12px;background:#c8a44e;color:#141311;font-weight:600;text-decoration:none">Talk to your coach</a>' +
+          '<a href="/pricing.html" target="_blank" rel="noopener" style="display:block;margin-bottom:8px;padding:12px;border-radius:12px;border:1px solid rgba(200,164,78,.45);color:#d0b058;font-weight:600;text-decoration:none">See plans</a>') +
+        '<a href="/index.html" style="display:block;padding:12px;border-radius:12px;' + (native ? 'background:#c8a44e;color:#141311;' : 'color:#8a857a;') + 'font-weight:600;text-decoration:none">Back to BodyBank</a>' +
+      '</div>';
+    document.body.appendChild(ov);
+  } catch (_) { /* the server gate still applies */ }
+})();
+
 async function saveAiTrainerSession(data) {
   const session = getCurrentSession();
   const headers = { 'Content-Type': 'application/json' };
@@ -4740,6 +4774,7 @@ async function saveAiTrainerSession(data) {
       workout_type: workoutType,
       duration_seconds: durationSeconds,
       workout_completed: true,
+      source: 'ai_trainer',
       notes: `AI Trainer session — reps: ${reps}, sets: ${sets}`
     };
     const modernRes = await fetch('/api/workouts/session', {
@@ -4748,12 +4783,9 @@ async function saveAiTrainerSession(data) {
       body: JSON.stringify(modernPayload)
     });
     if (modernRes.ok) return modernRes;
-    // 403 limit_reached must not fall through to the legacy endpoint — surface the cap to the user.
-    if (modernRes.status === 403) {
-      let parsed = null;
-      try { parsed = await modernRes.clone().json(); } catch (_) {}
-      if (parsed && parsed.error === 'limit_reached') return modernRes;
-    }
+    // A 403 (trial cap, plan gate, lapsed membership) must not fall through to the
+    // legacy endpoint — surface it to the user.
+    if (modernRes.status === 403) return modernRes;
   }
 
   // Fallback path: legacy endpoint.
@@ -5093,6 +5125,8 @@ if (sumSaveBtn) {
         try { body = await res.json(); } catch (_) {}
         if (body && body.error === 'limit_reached') {
           st.textContent = body.message || "You've reached your AI Trainer trial limit. Please contact admin to continue.";
+        } else if (body && (body.error === 'upgrade_required' || body.error === 'subscription_expired')) {
+          st.textContent = body.message || 'AI Trainer is part of the Guided plan.';
         } else {
           st.textContent = (body && body.error) ? body.error : 'Save failed — try again.';
         }
@@ -5185,6 +5219,11 @@ function chooseExercise(key, src) {
 }
 wkSel.addEventListener('change', () => chooseExercise(wkSel.value, 'wk'));
 ygSel.addEventListener('change', () => chooseExercise(ygSel.value, 'yg'));
+// Deep link from the Mind check-in ("Morning Yoga Flow"): ?pose=surya preselects a posture.
+try {
+  const wantPose = new URLSearchParams(location.search).get('pose');
+  if (wantPose && YOGA_MODES.includes(wantPose)) { ygSel.value = wantPose; chooseExercise(wantPose, 'yg'); }
+} catch (_) { /* no deep link */ }
 
 /** Both lists lock while a session is running. */
 function setPickersDisabled(on) {

@@ -669,7 +669,7 @@
     ctx.fillStyle = GOLD_SOFT;
     ctx.font = '800 19px "Outfit", system-ui, sans-serif';
     ctx.letterSpacing = '0.24em';
-    ctx.fillText('TRIBE ELITE MEMBER', cardX + cardW - padX, py + 100);
+    ctx.fillText((typeof window.bbPlanCardLabel === 'function' ? window.bbPlanCardLabel() : 'BODYBANK MEMBER'), cardX + cardW - padX, py + 100);
     ctx.letterSpacing = '0';
 
     var S = computeScoreData(d);
@@ -801,7 +801,7 @@
     ctx.fillStyle = GOLD_SOFT;
     ctx.font = '800 16px "Outfit", system-ui, sans-serif';
     ctx.letterSpacing = '0.26em';
-    ctx.fillText('TRIBE ELITE MEMBER', cardX + cardW - 22, py + 88);
+    ctx.fillText((typeof window.bbPlanCardLabel === 'function' ? window.bbPlanCardLabel() : 'BODYBANK MEMBER'), cardX + cardW - 22, py + 88);
     ctx.letterSpacing = '0';
     ctx.textAlign = 'left';
 

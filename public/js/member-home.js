@@ -148,6 +148,7 @@ async function loadMemberHome(silent) {
       return;
     }
     mhState.data = d;
+    if (d.plan && typeof window.bbSetPlan === 'function') window.bbSetPlan(d.plan);
     try {
       renderMemberHome();
     } catch (renderErr) {
@@ -170,10 +171,19 @@ function renderMemberHome() {
   // ---- who and when -------------------------------------------------------
   var name = String(u.first_name || '').trim();
   var greetEl = mhEl('mhGreet');
-  if (greetEl) greetEl.textContent = mhGreeting() + (name ? ', ' + name : '');
+  // Hero v2 splits the greeting ("Good afternoon" small, the name large); the
+  // classic hero is one line. Whichever markup is on the page gets filled.
+  if (mhEl('mhGreetName')) {
+    mhEl('mhGreetWord').textContent = mhGreeting() + (name ? ',' : '');
+    mhEl('mhGreetName').textContent = name || 'Welcome back';
+  } else if (greetEl) {
+    greetEl.textContent = mhGreeting() + (name ? ', ' + name : '');
+  }
   var dateEl = mhEl('mhDate');
   if (dateEl) {
-    try { dateEl.textContent = new Date().toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long' }); } catch (e) { }
+    // Hero v2 uses the short month so the date stays on one line on a phone.
+    var dateFmt = mhEl('mhGreetName') ? { weekday: 'long', day: 'numeric', month: 'short' } : { weekday: 'long', day: 'numeric', month: 'long' };
+    try { dateEl.textContent = new Date().toLocaleDateString(undefined, dateFmt); } catch (e) { }
   }
   var av = mhEl('mhAvatar');
   if (av) {
@@ -230,9 +240,36 @@ function renderMemberHome() {
   if (lc) lc.textContent = (core.length - due.length) + ' of ' + core.length + ' done';
   var lineEl = mhEl('mhLine');
   if (lineEl) {
-    lineEl.innerHTML = due.length
+    var lineHtml = due.length
       ? 'You have <b>' + due.length + '</b> ' + (due.length === 1 ? 'thing' : 'things') + ' left today.'
       : '<b>Everything is done today.</b> Rest up — consistency is the whole game.';
+    if (lineEl.classList.contains('mhx-line')) {
+      lineEl.classList.toggle('is-done', !due.length);
+      lineEl.classList.toggle('is-due', !!due.length);
+      lineEl.innerHTML = '<span class="mhx-line-ico" aria-hidden="true">' + (due.length
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>')
+        + '</span><span>' + lineHtml + '</span>';
+    } else {
+      lineEl.innerHTML = lineHtml;
+    }
+  }
+
+  // Hero v2: today's progress as a ring around the avatar ("2/3" underneath).
+  var ring = mhEl('mhDayRing');
+  if (ring) {
+    var doneN = core.length - due.length;
+    var frac = core.length ? doneN / core.length : 0;
+    var circ = 2 * Math.PI * 36;
+    ring.style.strokeDasharray = circ.toFixed(2);
+    ring.style.strokeDashoffset = (circ * (1 - frac)).toFixed(2);
+    var wrap = mhEl('mhDayRingWrap');
+    if (wrap) {
+      wrap.classList.toggle('is-complete', core.length > 0 && !due.length);
+      wrap.setAttribute('aria-label', 'Today: ' + doneN + ' of ' + core.length + ' done');
+    }
+    var rt = mhEl('mhDayRingTxt');
+    if (rt) rt.textContent = doneN + '/' + core.length;
   }
 
   // ---- streak and the week ------------------------------------------------
@@ -263,16 +300,26 @@ function renderMemberHome() {
         + '<i>' + mhEsc(lbl) + '</i></span>';
     }
     strip.innerHTML = out;
+    // Hero v2: "4 of 4" — check-ins so far this week, out of the days elapsed.
+    var wc = mhEl('mhWeekCount');
+    if (wc) {
+      var elapsed = noon.getDay() + 1;
+      var hits = 0;
+      for (var k = 0; k < elapsed; k++) if (wk.charAt(6 - k) === '1') hits++;
+      wc.textContent = hits + ' of ' + elapsed;
+    }
   }
 
   // ---- today's numbers against the member's own goals ---------------------
   var goals = mhEl('mhGoals');
   if (goals) {
+    // Water is shown in litres: "3,000ml/3,000ml" does not fit a phone tile.
+    var litres = function (ml) { var l = Math.round((Number(ml) / 1000) * 10) / 10; return String(l); };
     var rows = [
-      { l: 'Steps', v: t.steps, g: u.goal_steps, unit: '' },
-      { l: 'Water', v: t.water_ml || null, g: u.goal_water_ml, unit: 'ml' },
-      { l: 'Protein', v: t.protein_g, g: u.goal_protein_g, unit: 'g' },
-      { l: 'Sleep', v: t.sleep_hours, g: u.goal_sleep_hours, unit: 'h' }
+      { l: 'Steps', v: t.steps, g: u.goal_steps, unit: '', fmt: mhNum },
+      { l: 'Water', v: t.water_ml || null, g: u.goal_water_ml, unit: ' L', fmt: litres },
+      { l: 'Protein', v: t.protein_g, g: u.goal_protein_g, unit: ' g', fmt: mhNum },
+      { l: 'Sleep', v: t.sleep_hours, g: u.goal_sleep_hours, unit: ' h', fmt: mhNum }
     ];
     goals.innerHTML = rows.map(function (r) {
       var have = r.v != null && r.v !== '';
@@ -280,7 +327,8 @@ function renderMemberHome() {
       var tone = pct >= 100 ? 'ok' : (pct >= 50 ? 'warn' : 'low');
       return '<div class="mh-goal">'
         + '<div class="mh-goal-top"><span>' + mhEsc(r.l) + '</span>'
-        + '<b>' + (have ? mhNum(r.v) + r.unit : '—') + (r.g ? '<i>/' + mhNum(r.g) + r.unit + '</i>' : '') + '</b></div>'
+        + '<b>' + (have ? mhEsc(r.fmt(r.v)) + (r.unit ? '<small>' + mhEsc(r.unit) + '</small>' : '') : '—')
+        + (r.g ? '<i>/ ' + mhEsc(r.fmt(r.g)) + mhEsc(r.unit) + '</i>' : '') + '</b></div>'
         + '<div class="mh-goal-track"><span class="mh-goal-fill ' + tone + '" style="width:' + pct + '%"></span></div>'
         + '</div>';
     }).join('');
@@ -315,14 +363,27 @@ function renderMemberHome() {
   // ---- what else is waiting ----------------------------------------------
   var nav = mhEl('mhNav');
   if (nav) {
+    // Tiles for plan-locked tabs stay visible (so members see what their plan
+    // could add) and open the plan sheet via switchUserTab's guard.
+    var tabFeature = { messages: 'coach_chat', programs: 'workout_program' };
     var item = function (icon, label, sub, tab, badge) {
-      return '<button type="button" class="mh-navtile" onclick="mhGo(\'' + tab + '\')">'
+      var feat = tabFeature[tab];
+      var locked = !!(feat && typeof window.bbHasFeature === 'function' && !window.bbHasFeature(feat));
+      return '<button type="button" class="mh-navtile' + (locked ? ' bb-plan-locked' : '') + '"'
+        + (feat ? ' data-bb-plan-feature="' + feat + '"' : '')
+        + ' onclick="mhGo(\'' + tab + '\')">'
         + (badge ? '<span class="mh-navbadge">' + badge + '</span>' : '')
         + '<span class="mh-navico" aria-hidden="true">' + icon + '</span>'
         + '<span class="mh-navmain"><b>' + mhEsc(label) + '</b><i>' + mhEsc(sub) + '</i></span></button>';
     };
+    // The 2-week report appears only once the member's coach has switched it on.
     nav.innerHTML =
-      item('💬', 'Messages', d.unread_messages ? mhPlural(d.unread_messages, 'new reply', 'new replies') : 'Talk to your coach', 'messages', d.unread_messages || 0)
+      (d.fortnight_report
+        ? '<button type="button" class="mh-navtile" onclick="if(window.bbxOpenReport)bbxOpenReport()">'
+          + '<span class="mh-navico" aria-hidden="true">📈</span>'
+          + '<span class="mh-navmain"><b>2-Week Report</b><i>Your score and progress</i></span></button>'
+        : '')
+      + item('💬', 'Messages', d.unread_messages ? mhPlural(d.unread_messages, 'new reply', 'new replies') : 'Talk to your coach', 'messages', d.unread_messages || 0)
       + item('📋', 'My Programs', d.programs ? mhPlural(d.programs, 'program') : 'Your training plans', 'programs')
       + item('🏋️', 'My Workout', 'Log and review sessions', 'workout')
       + item('📸', 'My Body', 'Photos and measurements', 'body')
@@ -331,7 +392,7 @@ function renderMemberHome() {
       + item('✉️', 'Contact Us', 'We are here to help', 'contact')
       + '<button type="button" class="mh-navtile" onclick="mhOpenNutritionAssessment()">'
         + '<span class="mh-navico" aria-hidden="true">🥗</span>'
-        + '<span class="mh-navmain"><b>Nutrition Assessment</b><i>Your FitChef plan starts here</i></span></button>';
+        + '<span class="mh-navmain"><b>Nutrition Assessment</b><i id="mhNaNavSub">' + mhEsc(mhNaNavSubText()) + '</i></span></button>';
   }
 }
 
@@ -385,6 +446,21 @@ function mhRenderNaParts(d) {
       p2, p1, p2 ? 'Done' : (p1 ? 'Continue' : 'Locked'));
 }
 
+// One line of state for the "Everything else" tile, so a member who has finished
+// both parts is told so instead of being invited to start again.
+function mhNaNavSubText() {
+  var d = mhState.na;
+  if (!d || d.error) return 'Your FitChef plan starts here';
+  if (d.status === 'complete' || d.part2_done) return 'Completed \u2713 \u00B7 report on its way';
+  if (d.status === 'part1_complete' || (d.part1_done && !d.part2_done)) return 'Part 1 done \u00B7 Part 2 to go';
+  if (d.status === 'in_progress') return 'In progress \u00B7 pick up where you left off';
+  return 'Your FitChef plan starts here';
+}
+function mhSetNaNavSub() {
+  var s = mhEl('mhNaNavSub');
+  if (s) s.textContent = mhNaNavSubText();
+}
+
 async function mhLoadNutritionAssessment() {
   var state = mhEl('mhNaState');
   var btn = mhEl('mhNaBtn');
@@ -393,6 +469,8 @@ async function mhLoadNutritionAssessment() {
   var d;
   try { d = await apiCall('GET', '/api/nutrition-assessment/mine'); }
   catch (e) { d = null; }
+  mhState.na = d;
+  mhSetNaNavSub();
   if (!d || d.error) {
     state.innerHTML = '';
     hint.textContent = 'Part 1 first \u2014 we fill in everything we already know.';
@@ -439,6 +517,7 @@ function mhPickBlood() {
   if (inp) { inp.value = ''; inp.click(); }
 }
 function mhPickWhoop() {
+  if (typeof window.bbPlanGuard === 'function' && !window.bbPlanGuard('wearables')) return;
   // Prefer the full device flow: it asks WHICH watch this is before reading the
   // file, and it shows the member every extracted number before anything is
   // saved. That review step matters most for the members this card used to serve

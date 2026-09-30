@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no" />
+<meta name="theme-color" content="#0a0a0a" />
+
+<!-- Safari / iOS -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Body Bank" />
+
+<!-- Chrome / Android / other browsers -->
+<meta name="mobile-web-app-capable" content="yes" />
+
+<link rel="manifest" href="/manifest.json" />
+<script src="/js/bb-pwa-update.js?v=1" defer></script>
+<link rel="stylesheet" href="/css/mobile-menu.css?v=2" />
+<link rel="stylesheet" href="/css/app-badges.css?v=1" />
+<link rel="stylesheet" href="/mobile-fix.css?v=20" />
+<link rel="stylesheet" href="/ios-pwa-fix.css?v=20" />
+<!-- Google tag (gtag.js) - GA4 -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-8G93TR92QT"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-8G93TR92QT');
+</script>
+<title>Plans &amp; Pricing — BodyBank</title>
+<meta name="description" content="BodyBank plans: Core, Guided and Tribe Elite. Start with a free trial." />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--black:#060606;--dark2:#060606;--dark3:#0a0a0a;--gold:#c8a44e;--goldg:linear-gradient(135deg,#d0b058 0%,#c8a44e 50%,#a68c3e 100%);--cream:#f2ece0;--creamd:#bfb9ab;--muted:#666;--bdr:rgba(200,164,78,0.2)}
+*{margin:0;padding:0;box-sizing:border-box}html{scroll-behavior:smooth;overflow-x:hidden}
+.skip-link{position:absolute;left:-9999px;z-index:99999;padding:14px 24px;background:var(--gold);color:var(--black);font-weight:700;font-size:14px;text-decoration:none;border-radius:0 0 6px 0;transition:left .2s}
+.skip-link:focus{left:0;outline:2px solid var(--cream);outline-offset:2px}
+body{background:var(--black);color:var(--cream);font-family:'Outfit',sans-serif;font-weight:300;line-height:1.6;overflow-x:hidden;-webkit-font-smoothing:antialiased}
+body::after{content:'';position:fixed;inset:0;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");pointer-events:none;z-index:9999}
+nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:center;padding:12px 48px;padding-left:max(48px,env(safe-area-inset-left));padding-right:max(48px,env(safe-area-inset-right));padding-top:max(12px,env(safe-area-inset-top));background:#060606;border-bottom:1px solid var(--bdr);gap:20px}
+.back-btn{display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;border:1.5px solid var(--gold);background:rgba(6,6,6,0.7);color:var(--gold);text-decoration:none;transition:all .3s;flex-shrink:0}
+.back-btn:hover{background:rgba(200,164,78,0.2);border-color:var(--gold);color:var(--gold)}
+.nb{display:flex;align-items:center;text-decoration:none;color:var(--gold)}
+.nav-logo-img{height:44px;width:auto;object-fit:contain;mix-blend-mode:lighten}
+.nav-right{display:flex;align-items:center;gap:10px;margin-left:auto}
+.nt{display:none;margin-left:auto;background:none;border:none;cursor:pointer;flex-direction:column;gap:5px;padding:10px}
+.nt span{display:block;width:24px;height:1.5px;background:var(--gold)}
+/* .mm now lives in /css/mobile-menu.css */
+
+
+
+
+.sec{padding:120px 48px 100px;position:relative;max-width:800px;margin:0 auto}
+.gold-line{width:100%;height:1px;background:var(--bdr);margin-bottom:40px}
+.os-title{font-family:'Bebas Neue',sans-serif;font-size:clamp(36px,5vw,56px);letter-spacing:2px;text-transform:uppercase;text-align:center;color:var(--gold);margin-bottom:40px;line-height:1.2}
+.os-body{color:var(--cream);font-size:17px;line-height:1.8;text-align:left}
+.os-body p{margin-bottom:24px}
+.os-body .hl{color:var(--gold);font-weight:600}
+@media(max-width:900px){
+  body{font-size:17px;line-height:1.7}
+  .os-title{font-size:clamp(38px,6vw,52px)}
+  .os-body{font-size:18px}
+  nav{padding:10px 16px;gap:12px}.nt{display:flex}
+  
+}
+.nav-cta{padding:9px 22px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-family:'Outfit',sans-serif;font-weight:700;font-size:12px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:all .3s}.nav-cta:hover{transform:translateY(-1px);box-shadow:0 4px 20px rgba(200,164,78,0.3)}
+@media(max-width:600px){
+  body{font-size:17px}
+  .sec{padding:100px 16px 60px}
+  .os-title{font-size:36px}
+  .os-body{font-size:18px}
+  .os-body p{margin-bottom:22px}
+  
+}
+.site-footer{text-align:center;padding:32px 24px;margin-top:auto;border-top:1px solid var(--bdr)}
+.site-footer .fitchef-logo{height:52px;width:auto;display:block;margin:0 auto 12px;object-fit:contain}
+/* Partner credits — FitChef and Beyond The Body, side by side; stacks on phones */
+.partner-credits{display:flex;flex-wrap:wrap;justify-content:center;align-items:flex-start;gap:16px 48px;margin:0 auto}
+.partner-credit{display:inline-flex;flex-direction:column;align-items:center;gap:10px;text-decoration:none;transition:opacity .2s}
+.partner-credit:hover{opacity:.85}
+.partner-credit .partner-mark{height:56px;display:flex;align-items:center;justify-content:center}
+.partner-credit img{width:auto;max-width:100%;display:block;object-fit:contain;margin:0}
+.partner-credit .fitchef-logo{height:52px;margin:0}
+.partner-credit .btb-logo{height:34px;margin:0}
+.partner-credit .partner-url{font-size:14px;color:inherit;letter-spacing:.2px}
+@media(max-width:520px){.partner-credits{gap:20px}.partner-credit .partner-mark{height:46px}.partner-credit .fitchef-logo{height:42px}.partner-credit .btb-logo{height:28px}}
+
+.site-footer p{margin:0;font-size:14px;color:var(--gold)}
+.site-footer a{color:var(--gold);text-decoration:none;transition:opacity .2s}
+.site-footer a:hover{opacity:.85}
+.site-footer p + p{margin-top:6px}
+
+/* Login and Join are a matched pair: same size, same shape, different weight,
+   so they read as two doors rather than one button and a stray link. Login was
+   desktop-only, which is why the phone felt like it had no way in at all. */
+.nav-quiet{
+  font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;letter-spacing:1.5px;
+  text-transform:uppercase;text-decoration:none;white-space:nowrap;
+  display:inline-flex;align-items:center;justify-content:center;
+  min-height:40px;padding:0 18px;border-radius:6px;
+  color:var(--gold,#c8a44e);background:transparent;
+  border:1px solid rgba(200,164,78,0.55);
+  transition:background .25s,border-color .25s;
+}
+.nav-quiet:hover{background:rgba(200,164,78,0.12);border-color:var(--gold,#c8a44e)}
+/* the filled twin carries the same box so the pair lines up exactly */
+.nav-join{flex-shrink:0;white-space:nowrap;display:inline-flex;align-items:center;min-height:40px;padding:0 18px;border:1px solid transparent}
+@media(max-width:900px){
+  /* both stay on screen — the pair is the point */
+  .nav-right .nav-quiet,.nav-right .nav-join{
+    display:inline-flex !important;align-items:center;
+    min-height:44px;padding:0 14px;font-size:11px;letter-spacing:1.1px;
+  }
+}
+@media(max-width:400px){
+  .nav-right .nav-quiet,.nav-right .nav-join{padding:0 11px;font-size:10.5px;letter-spacing:.8px}
+  .nav-right{gap:6px}
+}
+/* ── Pricing page ── */
+.pr-hero{max-width:760px;margin:0 auto;padding:128px 24px 28px;text-align:center}
+.pr-eyebrow{font-size:12px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
+.pr-title{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:clamp(38px,6vw,64px);letter-spacing:1.5px;line-height:1.05;color:var(--cream);margin-bottom:16px;text-wrap:balance}
+.pr-sub{font-size:17px;color:var(--creamd);max-width:560px;margin:0 auto;text-wrap:pretty}
+.pr-sub strong{color:var(--gold);font-weight:600}
+.pr-plans{max-width:1160px;margin:0 auto;padding:24px 24px 56px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:stretch}
+.pr-loading{grid-column:1/-1;text-align:center;color:var(--creamd);padding:40px 0}
+.pr-card{position:relative;display:flex;flex-direction:column;min-width:0;background:#0d0c0b;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:28px 24px 24px}
+.pr-card--hl{border-color:rgba(200,164,78,.55);background:linear-gradient(180deg,rgba(200,164,78,.08),rgba(200,164,78,0) 42%),#0d0c0b}
+.pr-badge{position:absolute;top:-12px;left:24px;background:var(--goldg);color:#060606;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:5px 11px;border-radius:999px}
+.pr-name{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:34px;letter-spacing:1.2px;color:var(--cream);line-height:1}
+.pr-tagline{font-size:14.5px;color:var(--creamd);margin:8px 0 20px;min-height:44px}
+.pr-prices{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.pr-price{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 14px}
+.pr-price-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.pr-amt{font-size:28px;font-weight:600;color:var(--cream);letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.pr-was{font-size:15px;color:#7d786e;text-decoration:line-through;font-variant-numeric:tabular-nums}
+.pr-save{font-size:11px;font-weight:700;letter-spacing:.06em;color:#8fc7b0;background:rgba(143,199,176,.1);border-radius:999px;padding:2px 8px}
+.pr-term{font-size:13px;color:var(--creamd);margin-top:2px}
+.pr-note{font-size:12.5px;color:var(--gold);margin-top:4px}
+.pr-inc{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#8a857a;margin-bottom:10px}
+.pr-list{list-style:none;margin:0 0 24px;flex:1 1 auto}
+.pr-list li{position:relative;padding:6px 0 6px 26px;font-size:15px;color:var(--cream);line-height:1.45}
+.pr-list li::before{content:"";position:absolute;left:3px;top:12px;width:11px;height:6px;border-left:2px solid var(--gold);border-bottom:2px solid var(--gold);transform:rotate(-45deg)}
+.pr-actions{display:flex;flex-direction:column;gap:8px}
+.pr-btn{display:flex;align-items:center;justify-content:center;min-height:48px;padding:0 18px;border-radius:10px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;text-decoration:none;text-align:center;border:1px solid rgba(200,164,78,.55);color:var(--gold);background:transparent;transition:background .2s,transform .2s}
+.pr-btn:hover{background:rgba(200,164,78,.1)}
+.pr-btn--primary{background:var(--goldg);color:#060606;border-color:transparent}
+.pr-btn--primary:hover{background:var(--goldg);transform:translateY(-1px)}
+.pr-btn:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+.pr-h2{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:clamp(30px,4vw,40px);letter-spacing:1.2px;color:var(--cream);text-align:center;margin-bottom:22px}
+.pr-compare{max-width:960px;margin:0 auto;padding:24px 24px 56px}
+.pr-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid rgba(255,255,255,.08);border-radius:14px}
+.pr-table{width:100%;min-width:520px;border-collapse:collapse;font-size:14.5px}
+.pr-table th,.pr-table td{padding:12px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)}
+.pr-table th:first-child,.pr-table td:first-child{text-align:left;color:var(--cream)}
+.pr-table thead th{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);background:#0d0c0b}
+.pr-table tbody tr:last-child td{border-bottom:none}
+.pr-yes{color:var(--gold);font-weight:700}
+.pr-no{color:#4a4741}
+.pr-faq{max-width:760px;margin:0 auto;padding:24px 24px 56px}
+.pr-faq details{border-bottom:1px solid rgba(255,255,255,.08);padding:4px 0}
+.pr-faq summary{cursor:pointer;list-style:none;padding:14px 28px 14px 0;font-size:16.5px;font-weight:500;color:var(--cream);position:relative}
+.pr-faq summary::-webkit-details-marker{display:none}
+.pr-faq summary::after{content:"+";position:absolute;right:4px;top:10px;font-size:22px;color:var(--gold);font-weight:300}
+.pr-faq details[open] summary::after{content:"\2212"}
+.pr-faq details p{padding:0 0 16px;color:var(--creamd);font-size:15.5px}
+.pr-cta{max-width:640px;margin:0 auto;padding:24px 24px 80px;text-align:center}
+.pr-cta p{color:var(--creamd);margin:-8px 0 20px}
+.pr-cta .pr-btn{display:inline-flex}
+.pr-fine{max-width:1160px;margin:-36px auto 0;padding:0 24px 40px;text-align:center;font-size:13px;color:#7d786e}
+@media(max-width:980px){.pr-plans{grid-template-columns:minmax(0,1fr);max-width:520px}.pr-tagline{min-height:0}}
+@media(max-width:600px){.pr-hero{padding:104px 16px 20px}.pr-plans,.pr-compare,.pr-faq,.pr-cta{padding-left:16px;padding-right:16px}.pr-fine{padding-left:16px;padding-right:16px}.pr-card{padding:26px 18px 20px}}
+@media (prefers-reduced-motion:reduce){.pr-btn{transition:none}}
+</style>
+</head>
+<body>
+<a href="#main" class="skip-link">Skip to main content</a>
+<nav id="nv">
+  <a href="index.html" class="back-btn" title="Back to home" aria-label="Back to home">&#10094;</a>
+  <a href="index.html" class="nb"><img src="img/logo.png" alt="BodyBank" class="nav-logo-img" decoding="async"></a>
+  <div class="nav-right">
+    <a href="index.html#login" class="nav-quiet">Login</a>
+    <a href="/signup" class="nav-cta nav-join">Join</a>
+    <button class="nt" id="navHamburger" onclick="bbToggleNavMenu()" aria-expanded="false" aria-controls="mo"><span></span><span></span><span></span></button>
+  </div>
+</nav>
+
+<div class="mm" id="mo" role="dialog" aria-modal="true" aria-label="Menu">
+  <div class="mm-head">
+    <img src="img/logo.png" alt="BodyBank" decoding="async">
+    <button type="button" class="mm-c" id="mmClose" onclick="bbCloseNavMenu()" aria-label="Close menu">&times;</button>
+  </div>
+  <div class="mm-body">
+    <div class="mm-links" role="navigation" aria-label="Site">
+      <a class="mm-link" href="index.html#hero" onclick="bbCloseNavMenu()">Home<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="index.html#get-the-app" onclick="bbCloseNavMenu()"><span class="mm-label">Get the App<span class="mm-new">New</span></span><span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link active" href="pricing.html" aria-current="page" onclick="bbCloseNavMenu()">Plans &amp; Pricing<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="index.html#results" onclick="bbCloseNavMenu()">Transformations<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="tribe-stories.html" onclick="bbCloseNavMenu()">Tribe Stories<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="our-story.html" onclick="bbCloseNavMenu()">Our Story<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="blog.html" onclick="bbCloseNavMenu()">Blog<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="index.html#contact" onclick="bbCloseNavMenu()">Contact us<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-link" href="index.html#login" onclick="bbCloseNavMenu()">Login<span class="mm-chev" aria-hidden="true">&rsaquo;</span></a>
+      <a class="mm-cta" href="/signup" onclick="bbCloseNavMenu()">Join BodyBank</a>
+    </div>
+  </div>
+</div>
+
+<main id="main" role="main">
+<section class="pr-hero">
+  <p class="pr-eyebrow">Plans &amp; Pricing</p>
+  <h1 class="pr-title">Choose how you want to be coached</h1>
+  <p class="pr-sub">Start with a <strong id="prTrialDays">7</strong>-day free trial. No card needed. Your coach is one message away if you want help choosing.</p>
+</section>
+
+<section class="pr-plans" id="prPlans" aria-live="polite">
+  <p class="pr-loading">Loading plans…</p>
+</section>
+
+<section class="pr-compare" aria-labelledby="prCompareTitle">
+  <h2 class="pr-h2" id="prCompareTitle">Compare plans</h2>
+  <div class="pr-table-wrap">
+    <table class="pr-table" id="prTable">
+      <thead><tr><th scope="col">What you get</th><th scope="col">Core</th><th scope="col">Guided</th><th scope="col">Tribe Elite</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </div>
+</section>
+
+<section class="pr-faq" aria-labelledby="prFaqTitle">
+  <h2 class="pr-h2" id="prFaqTitle">Questions</h2>
+  <details><summary>How does the free trial work?</summary><p>Sign up and you get instant access for <span class="prTrialDaysText">7</span> days, with no card needed. Before it ends, your coach will reach out to set up the plan that suits you.</p></details>
+  <details><summary>Why 4 months for Guided?</summary><p>Four months is one full blood-report cycle. You test at the start, work the plan with your coach, then retest to see what actually changed in your markers.</p></details>
+  <details><summary>Can I change plans later?</summary><p>Yes. Move up or down at any time and your coach will update your plan. Your history, streaks and past reports stay with you.</p></details>
+  <details><summary>What happens to my data if I move to Core?</summary><p>Nothing is deleted. Reports you already have stay readable. Guided and Tribe Elite features pause until you move back up.</p></details>
+  <details><summary>Do I pay inside the app?</summary><p>No. Your coach sets up your plan with you, and your app unlocks automatically once it is active.</p></details>
+</section>
+
+<section class="pr-cta">
+  <h2 class="pr-h2">Not sure which plan fits?</h2>
+  <p>Tell us your goal and we'll recommend one. No pressure.</p>
+  <a class="pr-btn pr-btn--primary" id="prTalk" href="https://wa.me/919502575669" target="_blank" rel="noopener noreferrer">Talk to a coach on WhatsApp</a>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="bb-store-footer">
+    <p class="bb-store-footer-label">Get the BodyBank app</p>
+    <div class="bb-store-row">
+      <a class="bb-store-btn" href="https://play.google.com/store/apps/details?id=com.bodybank.app" target="_blank" rel="noopener noreferrer" aria-label="Get BodyBank on Google Play">
+        <img class="bb-store-ico" src="/img/google-play-icon.svg" alt="" width="27" height="27" loading="lazy" decoding="async">
+        <span class="bb-store-txt"><span class="bb-store-top">Get it on</span><span class="bb-store-name">Google Play</span></span>
+      </a>
+      <a class="bb-store-btn" href="https://apps.apple.com/in/app/bodybank/id6808102656" target="_blank" rel="noopener noreferrer" aria-label="Download BodyBank on the App Store">
+        <img class="bb-store-ico" src="/img/apple-icon.svg" alt="" width="27" height="27" loading="lazy" decoding="async">
+        <span class="bb-store-txt"><span class="bb-store-top">Download on the</span><span class="bb-store-name">App Store</span></span>
+      </a>
+    </div>
+  </div>
+  <div class="partner-credits">
+    <a class="partner-credit" href="https://www.Fitchef.fit" target="_blank" rel="noopener">
+      <span class="partner-mark"><img src="img/bodybank%20X%20fitchef%20logo.png" alt="BodyBank × FitChef" class="fitchef-logo" loading="lazy" decoding="async"></span>
+      <span class="partner-url">www.Fitchef.fit</span>
+    </a>
+    <a class="partner-credit" href="https://beyondthebody.fit" target="_blank" rel="noopener">
+      <span class="partner-mark"><img src="img/btb-logo.png" alt="Beyond The Body" class="btb-logo" loading="lazy" decoding="async"></span>
+      <span class="partner-url">www.BeyondTheBody.fit</span>
+    </a>
+  </div>
+</footer>
+<script src="js/public-nav.js" defer></script>
+<script>
+/* The mobile menu. Mirrors the pair in index.html so the two behave the same. */
+(function () {
+  function el() { return document.getElementById('mo'); }
+  window.bbOpenNavMenu = function () {
+    var m = el();
+    if (!m || m.classList.contains('open')) return;
+    m.classList.add('open');
+    document.body.classList.add('bb-nav-open');
+    document.documentElement.style.overflow = 'hidden';
+    var b = document.getElementById('navHamburger');
+    if (b) b.setAttribute('aria-expanded', 'true');
+    var c = m.querySelector('.mm-c');
+    if (c) { try { c.focus({ preventScroll: true }); } catch (_) { c.focus(); } }
+    var body = m.querySelector('.mm-body');
+    if (body) body.scrollTop = 0;
+  };
+  window.bbCloseNavMenu = function () {
+    var m = el();
+    if (!m || !m.classList.contains('open')) return;
+    m.classList.remove('open');
+    document.body.classList.remove('bb-nav-open');
+    document.documentElement.style.overflow = '';
+    var b = document.getElementById('navHamburger');
+    if (b) { b.setAttribute('aria-expanded', 'false'); try { b.focus({ preventScroll: true }); } catch (_) {} }
+  };
+  window.bbToggleNavMenu = function () {
+    var m = el();
+    if (m && m.classList.contains('open')) window.bbCloseNavMenu(); else window.bbOpenNavMenu();
+  };
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') window.bbCloseNavMenu();
+  });
+})();
+</script>
+<script>
+// Pricing — rendered from /api/plans (services/plans.js), the same catalog the
+// server enforces, so the website and the app's plan gates can never disagree.
+// Website only: this page is not bundled into the iOS / Android apps.
+(function () {
+  var WA = '919502575669';
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function inr(n) { return '₹' + Number(n).toLocaleString('en-IN'); }
+  function wa(text) { return 'https://wa.me/' + WA + '?text=' + encodeURIComponent(text); }
+
+  function priceHtml(p) {
+    var save = (p.compare_at && p.compare_at > p.amount) ? Math.round((1 - p.amount / p.compare_at) * 100) : 0;
+    var per = p.months > 1 ? ' · ' + inr(Math.round(p.amount / p.months)) + '/month' : '';
+    return '<div class="pr-price">' +
+      '<div class="pr-price-top"><span class="pr-amt">' + inr(p.amount) + '</span>' +
+      (save ? '<span class="pr-was">' + inr(p.compare_at) + '</span><span class="pr-save">Save ' + save + '%</span>' : '') +
+      '</div>' +
+      '<div class="pr-term">' + esc(p.label) + esc(per) + '</div>' +
+      (p.note ? '<div class="pr-note">' + esc(p.note) + '</div>' : '') +
+      '</div>';
+  }
+
+  function render(data) {
+    var plans = (data && data.plans) || [];
+    var trialDays = (data && data.trial_days) || 7;
+    var trialTier = (data && data.trial_tier) || 'guided';
+    var d = document.getElementById('prTrialDays');
+    if (d) d.textContent = trialDays;
+    document.querySelectorAll('.prTrialDaysText').forEach(function (el) { el.textContent = trialDays; });
+
+    var host = document.getElementById('prPlans');
+    if (!plans.length) {
+      host.innerHTML = '<p class="pr-loading">Plans could not load right now. <a class="pr-btn" style="display:inline-flex;margin-top:12px" href="' + wa('Hi BodyBank, please share your plans and prices.') + '" target="_blank" rel="noopener noreferrer">Ask us on WhatsApp</a></p>';
+      return;
+    }
+    host.innerHTML = plans.map(function (pl, i) {
+      var prev = i > 0 ? plans[i - 1].name : null;
+      var cta = pl.tier === 'tribe_elite'
+        ? '<a class="pr-btn pr-btn--primary" href="' + wa('Hi BodyBank, I am interested in Tribe Elite.') + '" target="_blank" rel="noopener noreferrer">Apply for Tribe Elite</a>'
+        : '<a class="pr-btn' + (pl.highlight ? ' pr-btn--primary' : '') + '" href="/signup">Start ' + trialDays + '-day free trial</a>';
+      var talk = pl.tier === 'tribe_elite' ? '' :
+        '<a class="pr-btn" href="' + wa('Hi BodyBank, I would like the ' + pl.name + ' plan.') + '" target="_blank" rel="noopener noreferrer">Talk to a coach</a>';
+      return '<article class="pr-card' + (pl.highlight ? ' pr-card--hl' : '') + '" aria-labelledby="prName-' + esc(pl.tier) + '">' +
+        (pl.highlight ? '<span class="pr-badge">' + esc(pl.highlight) + '</span>' : '') +
+        '<h2 class="pr-name" id="prName-' + esc(pl.tier) + '">' + esc(pl.name) + '</h2>' +
+        '<p class="pr-tagline">' + esc(pl.tagline) + '</p>' +
+        '<div class="pr-prices">' + (pl.prices || []).map(priceHtml).join('') + '</div>' +
+        '<p class="pr-inc">' + (prev ? 'Everything in ' + esc(prev) + ', plus' : 'Includes') + '</p>' +
+        '<ul class="pr-list">' + (pl.features || []).map(function (f) { return '<li>' + esc(f.label) + '</li>'; }).join('') + '</ul>' +
+        '<div class="pr-actions">' + cta + talk + '</div>' +
+        '</article>';
+    }).join('');
+
+    var fine = document.createElement('p');
+    fine.className = 'pr-fine';
+    fine.textContent = 'Prices in Indian rupees. The free trial runs on the ' + ((plans.find(function (p) { return p.tier === trialTier; }) || {}).name || 'Guided') + ' plan.';
+    host.parentNode.insertBefore(fine, host.nextSibling);
+
+    // Comparison table: every feature, ticked from the tier that first includes it.
+    var tb = document.querySelector('#prTable tbody');
+    if (tb) {
+      var rows = [];
+      plans.forEach(function (pl, i) {
+        (pl.features || []).forEach(function (f) {
+          rows.push('<tr><th scope="row">' + esc(f.label) + '</th>' + plans.map(function (_, j) {
+            return j >= i ? '<td><span class="pr-yes" aria-label="Included">✓</span></td>' : '<td><span class="pr-no" aria-label="Not included">—</span></td>';
+          }).join('') + '</tr>');
+        });
+      });
+      tb.innerHTML = rows.join('');
+    }
+  }
+
+  fetch('/api/plans', { headers: { Accept: 'application/json' } })
+    .then(function (r) { return r.ok ? r.json() : null; })
+    .then(render)
+    .catch(function () { render(null); });
+})();
+</script>
+</body>
+</html>

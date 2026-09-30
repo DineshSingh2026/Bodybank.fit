@@ -34,6 +34,9 @@ const { createWearablesRouter } = require('./routes/wearables');
 const { createNutritionAssessmentRouter } = require('./routes/nutritionAssessment');
 const { createGroupChatRouter } = require('./routes/groupChat');
 const groupChatService = require('./services/groupChatService');
+const plans = require('./services/plans');
+const memberScreens = require('./services/memberScreens');
+const { createMemberScreensRouter } = require('./routes/memberScreens');
 const cron = require('node-cron');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
@@ -345,13 +348,20 @@ function subscriptionGate(user) {
   return null;
 }
 
-// Start (or restart) a free trial — instant full access for N days.
+// Per-request plan enforcement (Core / Guided / Tribe Elite) — see services/plans.js.
+// queryOne is a hoisted function declaration, so it is safe to hand over here.
+const planGate = plans.createPlanGate({ queryOne, verifyToken });
+const requireFeature = planGate.requireFeature;
+
+// Start (or restart) a free trial — instant access for N days on the trial plan
+// (TRIAL_PLAN_TIER, default Guided).
 async function startTrialForUser(userId, days) {
   const d = (Number(days) > 0) ? Number(days) : TRIAL_DAYS;
   await run(
-    "UPDATE users SET approval_status='approved', subscription_status='trialing', plan_label='Trial', access_expires_at=?, activated_at=NULL, activated_by='', trial_reminder_sent='', suspended=FALSE WHERE id=?",
-    [isoFromNow(d), userId]
+    "UPDATE users SET approval_status='approved', subscription_status='trialing', plan_label='Trial', plan_tier=?, access_expires_at=?, activated_at=NULL, activated_by='', trial_reminder_sent='', suspended=FALSE WHERE id=?",
+    [plans.trialTier(), isoFromNow(d), userId]
   );
+  planGate.invalidate(userId);
   return d;
 }
 
@@ -1061,6 +1071,23 @@ async function initDB() {
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS activated_at TIMESTAMP`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS activated_by TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS trial_reminder_sent TEXT DEFAULT ''`); } catch (e) { /* ignore */ }
+  // The member's in-app 2-week report is off until their coach switches it on.
+  try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS fortnight_report_enabled BOOLEAN DEFAULT FALSE`); } catch (e) { /* ignore */ }
+  // ── Plan tier (core | guided | tribe_elite) — services/plans.js ──
+  // One-time rollout: when the column is first created, every existing member is
+  // placed on Tribe Elite (owner's decision, 2026-09-30); staff then move people
+  // down individually. The backfill runs only in the boot that adds the column, so
+  // it can never overwrite a tier an admin has since chosen.
+  try {
+    const hadPlanTier = await pool.query(
+      "SELECT 1 FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'users' AND column_name = 'plan_tier' LIMIT 1"
+    );
+    if (!hadPlanTier.rows.length) {
+      await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_tier TEXT`);
+      const moved = await pool.query("UPDATE users SET plan_tier = 'tribe_elite' WHERE role = 'user' AND plan_tier IS NULL");
+      console.log(`[plans] plan_tier added; ${moved.rowCount} existing member(s) placed on Tribe Elite`);
+    }
+  } catch (e) { console.warn('[plans] plan_tier migration:', e.message); }
   // ── Daily-goal targets + onboarding (powers the unified Today screen progress rings & first-run) ──
   // Defaults chosen as sensible starting targets; onboarded_at NULL means "show first-run".
   try { await pool.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS goal_steps INTEGER DEFAULT 8000`); } catch (e) { /* ignore */ }
@@ -1418,6 +1445,18 @@ async function initDB() {
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   try { await pool.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_mind_checkins_user_ex_date ON mind_checkins(user_id, exercise_key, checkin_date)`); } catch (e) { /* ignore */ }
+  // Daily mood + stress from the Mind check-in screen (1-5 each; one row per member per day).
+  try {
+    await pool.query(`CREATE TABLE IF NOT EXISTS mind_moods (
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      mood_date DATE NOT NULL,
+      mood SMALLINT CHECK (mood BETWEEN 1 AND 5),
+      stress SMALLINT CHECK (stress BETWEEN 1 AND 5),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user_id, mood_date)
+    )`);
+  } catch (e) { console.warn('[mind_moods]', e.message); }
 
   await pool.query(`CREATE TABLE IF NOT EXISTS coin_wallet (
     user_id TEXT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
@@ -4047,7 +4086,17 @@ app.post('/api/workouts', verifyToken, async (req, res) => {
 });
 
 /** Full workout session (My Workout redesign) — authenticated user, extended columns + progress_logs when body metrics present */
-app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), async (req, res) => {
+// AI Trainer sessions share this endpoint with the manual "My Workout" log, which
+// every plan keeps. Only the AI Trainer's saves are plan-gated (Guided+). Older app
+// builds don't send `source`, so their notes prefix identifies them too.
+const aiTrainerPlanGate = requireFeature('ai_trainer');
+function gateAiTrainerSession(req, res, next) {
+  const b = req.body || {};
+  const isAiTrainer = String(b.source || '').toLowerCase() === 'ai_trainer'
+    || /^AI Trainer session/i.test(String(b.notes || ''));
+  return isAiTrainer ? aiTrainerPlanGate(req, res, next) : next();
+}
+app.post('/api/workouts/session', verifyToken, rateLimiter(30, 60000), gateAiTrainerSession, async (req, res) => {
   try {
     const userId = req.user.id;
     const b = req.body || {};
@@ -4216,7 +4265,7 @@ app.get('/api/contact', verifyToken, requireOperator, async (req, res) => {
 // All messages are persisted in DB: message_threads (one per user) and thread_messages (every message).
 // No in-memory or alternate storage — create/read/send all use the database.
 // One chat per user (no subject). User: single thread or none. Admin: one row per user, new users below.
-app.get('/api/threads', verifyToken, async (req, res) => {
+app.get('/api/threads', verifyToken, requireFeature('coach_chat'), async (req, res) => {
   try {
     const isAdmin = req.user.role === 'admin' || req.user.role === 'superadmin';
     let rows;
@@ -4251,7 +4300,7 @@ app.get('/api/threads', verifyToken, async (req, res) => {
 });
 
 // Get-or-create single thread for user (no subject). Optional first_message.
-app.post('/api/threads', verifyToken, rateLimiter(10, 60000), async (req, res) => {
+app.post('/api/threads', verifyToken, requireFeature('coach_chat'), rateLimiter(10, 60000), async (req, res) => {
   try {
     if (req.user.role !== 'user') return res.status(403).json({ error: 'Only users can start conversations' });
     const { first_message } = req.body || {};
@@ -4299,7 +4348,7 @@ app.post('/api/threads', verifyToken, rateLimiter(10, 60000), async (req, res) =
 });
 
 // Get one thread (user: own only, admin: any)
-app.get('/api/threads/:id', verifyToken, async (req, res) => {
+app.get('/api/threads/:id', verifyToken, requireFeature('coach_chat'), async (req, res) => {
   try {
     const thread = await queryOne('SELECT * FROM message_threads WHERE id = ?', [req.params.id]);
     if (!thread) return res.status(404).json({ error: 'Conversation not found' });
@@ -4317,7 +4366,7 @@ app.get('/api/threads/:id', verifyToken, async (req, res) => {
 });
 
 // Get messages in thread
-app.get('/api/threads/:id/messages', verifyToken, async (req, res) => {
+app.get('/api/threads/:id/messages', verifyToken, requireFeature('coach_chat'), async (req, res) => {
   try {
     const thread = await queryOne('SELECT * FROM message_threads WHERE id = ?', [req.params.id]);
     if (!thread) return res.status(404).json({ error: 'Conversation not found' });
@@ -4335,7 +4384,7 @@ app.get('/api/threads/:id/messages', verifyToken, async (req, res) => {
 });
 
 // Send message in thread
-app.post('/api/threads/:id/messages', verifyToken, rateLimiter(30, 60000), async (req, res) => {
+app.post('/api/threads/:id/messages', verifyToken, requireFeature('coach_chat'), rateLimiter(30, 60000), async (req, res) => {
   try {
     const { body } = req.body || {};
     if (!body || !String(body).trim()) return res.status(400).json({ error: 'Message body required' });
@@ -4593,6 +4642,22 @@ async function safeRecomputeNutritionForDate(userId, ymd) {
   }
 }
 
+// Streak milestone rewards (7/14/21/30/60 days — services/memberScreens.js). Paid
+// once per streak run: the event key carries the run's first day, so the same
+// milestone can't pay twice within a run but is earned again after a reset.
+async function safeAwardStreakMilestones(userId, todayYmd) {
+  try {
+    const rows = await queryAll('SELECT checkin_date FROM daily_checkins WHERE user_id = ? ORDER BY checkin_date DESC LIMIT 400', [userId]);
+    const dates = new Set((rows || []).map((r) => memberScreens.toYmd(r.checkin_date)).filter(Boolean));
+    const runNow = memberScreens.currentRun(dates, todayYmd);
+    for (const m of memberScreens.milestoneAwards(userId, runNow)) {
+      await safeAwardCoins(userId, 'streak_milestone', m.eventKey, m.coins, { days: m.days, label: m.label, runStart: runNow.start }, todayYmd);
+    }
+  } catch (e) {
+    console.warn('[streak milestones]', e.message);
+  }
+}
+
 async function safeAwardCoins(userId, eventType, eventKey, coinsDelta, meta, createdAtYmd) {
   try {
     if (!userId || !eventType || !eventKey) return;
@@ -4671,6 +4736,7 @@ app.post('/api/daily-checkin', verifyToken, rateLimiter(20, 60000), async (req, 
       { checkinDate: today },
       today
     );
+    await safeAwardStreakMilestones(userId, today);
     // A daily check-in is the qualifying event for whoever referred this member.
     await safeCheckReferralQualification(userId);
     if (waterMl != null && waterMl >= 2000) {
@@ -8344,7 +8410,7 @@ app.delete('/api/programs/assign/:id', verifyToken, requireAdminOrSuperadmin, as
   }
 });
 
-app.get('/api/me/programs', verifyToken, async (req, res) => {
+app.get('/api/me/programs', verifyToken, requireFeature('workout_program'), async (req, res) => {
   try {
     const rows = await queryAll(
       `SELECT a.id, a.program_id, a.assigned_at, p.name, p.pdf_url, p.image_url, p.youtube_url
@@ -8879,7 +8945,7 @@ app.put('/api/admin/leaderboard/virtual-registry/:virtualId', verifyToken, requi
 });
 
 // Short-lived PDF access token (restricts sharing - link expires in 10 min)
-app.post('/api/me/programs/pdf-token', verifyToken, async (req, res) => {
+app.post('/api/me/programs/pdf-token', verifyToken, requireFeature('workout_program'), async (req, res) => {
   try {
     const programId = (req.body && req.body.program_id) ? String(req.body.program_id).trim() : '';
     if (!programId) return res.status(400).json({ error: 'program_id required' });
@@ -9127,6 +9193,33 @@ app.get('/api/admin/attention-clients', verifyToken, requireAdminOrSuperadmin, a
 // The home screen used to answer this from half a dozen scattered reads, which
 // is why it could tell you to check in after you already had. One read, one
 // truth, and every figure is about TODAY unless it says otherwise.
+// The member's own plan: tier, state and unlocked features. No prices — this
+// payload reaches the native apps (see services/plans.js header).
+app.get('/api/me/plan', verifyToken, async (req, res) => {
+  try {
+    const row = await queryOne(
+      'SELECT id, role, plan_tier, plan_label, subscription_status, access_expires_at FROM users WHERE id = ?',
+      [req.user.id]
+    );
+    if (!row) return res.status(404).json({ error: 'User not found' });
+    if (row.role !== 'user') {
+      // Staff are never gated; report every feature so shared UI stays unlocked.
+      return res.json({ plan: Object.assign(plans.planForUser({ plan_tier: 'tribe_elite' }), { staff: true }), catalog: plans.featureCatalog() });
+    }
+    res.json({ plan: Object.assign(plans.planForUser(row), { label: row.plan_label || '' }), catalog: plans.featureCatalog() });
+  } catch (e) {
+    console.error('[me plan]', e.message);
+    res.status(500).json({ error: 'Failed to load your plan' });
+  }
+});
+
+// Public plan catalog (names, what each includes, prices) for the website's
+// pricing section. The member app never renders prices — web only.
+app.get('/api/plans', (req, res) => {
+  res.set('Cache-Control', 'public, max-age=300');
+  res.json({ plans: plans.publicCatalog(), currency: 'INR', trial_days: TRIAL_DAYS, trial_tier: plans.trialTier() });
+});
+
 app.get('/api/member/home', verifyToken, async (req, res) => {
   try {
     const uid = req.user.id;
@@ -9155,11 +9248,13 @@ app.get('/api/member/home', verifyToken, async (req, res) => {
                  AND COALESCE(d.is_freeze, FALSE) = FALSE) THEN '1' ELSE '0' END, '' ORDER BY g.day) AS days
         FROM generate_series((CURRENT_DATE - INTERVAL '6 days')::date, CURRENT_DATE, INTERVAL '1 day') AS g(day)`, [uid]),
 
-      // Current streak of consecutive days ending today or yesterday.
+      // Current streak of consecutive days ending today or yesterday. A streak-freeze
+      // row counts as present — that is what a freeze is for, and it is how the
+      // official streak (computeStreakState, the Daily Streak screen) counts it.
       queryOne(`
       WITH d AS (
         SELECT DISTINCT checkin_date FROM daily_checkins
-         WHERE user_id = ? AND COALESCE(is_freeze, FALSE) = FALSE AND checkin_date <= CURRENT_DATE
+         WHERE user_id = ? AND checkin_date <= CURRENT_DATE
       ), g AS (
         SELECT checkin_date, checkin_date - (ROW_NUMBER() OVER (ORDER BY checkin_date))::int AS grp FROM d
       )
@@ -9170,7 +9265,8 @@ app.get('/api/member/home', verifyToken, async (req, res) => {
       queryOne(`
       SELECT first_name, last_name, email, profile_picture, goal_type, diet_type,
              goal_steps, goal_water_ml, goal_protein_g, goal_sleep_hours,
-             subscription_status, plan_label, access_expires_at, created_at
+             subscription_status, plan_label, plan_tier, access_expires_at, created_at,
+             COALESCE(fortnight_report_enabled, FALSE) AS fortnight_report_enabled
         FROM users WHERE id = ?`, [uid]),
 
       queryOne(
@@ -9181,7 +9277,7 @@ app.get('/api/member/home', verifyToken, async (req, res) => {
       // What the upload panel needs to know.
       queryAll(
       `SELECT id, status, report_date, created_at, sent_to_user,
-              ai_report->>'overall_status' AS overall_status
+              CASE WHEN sent_to_user THEN ai_report->>'overall_status' END AS overall_status
          FROM blood_analysis_reports WHERE user_id = ?
         ORDER BY COALESCE(report_date, created_at::date) DESC, created_at DESC LIMIT 5`, [uid]),
 
@@ -9213,8 +9309,14 @@ app.get('/api/member/home', verifyToken, async (req, res) => {
       one(`SELECT COUNT(*)::int c FROM programs WHERE deleted_at IS NULL`, [])
     ]);
 
+    // Plan-locked sections are blanked rather than removed so older app builds,
+    // which read these keys unconditionally, keep rendering.
+    const plan = plans.planForUser(user || {});
+    const has = (f) => plan.features.includes(f);
     res.json({
       user: user || {},
+      plan,
+      fortnight_report: !!(user && user.fortnight_report_enabled),
       today: {
         checked_in: checkedIn > 0,
         workout_logged: workoutToday > 0,
@@ -9234,9 +9336,9 @@ app.get('/api/member/home', verifyToken, async (req, res) => {
       week: (weekRow && weekRow.days) || '0000000',
       streak: streakRow ? Number(streakRow.c || 0) : 0,
       blood: { reports: bloodRows || [], slots_used: (bloodRows || []).length, slots_total: 3 },
-      whoop,
-      unread_messages: unread,
-      programs
+      whoop: has('wearables') ? whoop : { connected: false, last_sync: null, days: 0, uploads: 0, locked: true },
+      unread_messages: has('coach_chat') ? unread : 0,
+      programs: has('workout_program') ? programs : 0
     });
   } catch (e) {
     console.error('[member home]', e.message);
@@ -9786,7 +9888,7 @@ app.get('/api/operator/clients', verifyToken, requireOperator, async (req, res) 
       )
       SELECT
         u.id, u.first_name, u.last_name, u.email, u.phone, u.profile_picture,
-        u.subscription_status, u.access_expires_at, u.created_at,
+        u.subscription_status, u.access_expires_at, u.created_at, u.plan_tier,
         u.nutrition_ai_last_used_at, u.ai_trainer_last_used_at,
         lc.lc::text AS last_checkin_date,
         act.last_at AS last_activity_at,
@@ -9831,7 +9933,7 @@ app.get('/api/operator/clients/:id', verifyToken, requireOperator, async (req, r
     const id = String(req.params.id || '');
     const user = await queryOne(
       `SELECT id, first_name, last_name, email, phone, country, city, gender, dob, profile_picture,
-              subscription_status, plan_label, access_expires_at, created_at, timezone,
+              subscription_status, plan_label, plan_tier, access_expires_at, created_at, timezone,
               goal_steps, goal_water_ml, goal_protein_g, goal_sleep_hours, height_cm, goal_type, diet_type,
               nutrition_ai_last_used_at, ai_trainer_last_used_at
        FROM users WHERE id = ? AND role = 'user'`, [id]);
@@ -10549,7 +10651,8 @@ function computeMembershipState(u) {
   let state = String(u.subscription_status || 'active').toLowerCase();
   if (state === 'canceled') { /* keep */ }
   else if (hasExp && exp < now) state = 'expired';
-  return { days_left: daysLeft, state };
+  const planTier = plans.tierOf(u);
+  return { days_left: daysLeft, state, plan_tier: planTier, plan_name: plans.tierName(planTier) };
 }
 
 // ── AI TOKEN LEDGER (admin Tokens screen) ────────────────────────────────
@@ -10623,7 +10726,8 @@ app.get('/api/admin/memberships', verifyToken, requireAdminOrSuperadmin, async (
     const rows = await queryAll(
       `SELECT id, email, first_name, last_name, phone, country,
               COALESCE(subscription_status, 'active') AS subscription_status,
-              access_expires_at, plan_label, activated_at, activated_by, created_at, suspended,
+              access_expires_at, plan_label, plan_tier, activated_at, activated_by, created_at, suspended,
+              COALESCE(fortnight_report_enabled, FALSE) AS fortnight_report_enabled,
               COALESCE(nutrition_ai_unlimited, TRUE) AS nutrition_ai_unlimited,
               COALESCE(nutrition_ai_meal_limit, 0) AS nutrition_ai_meal_limit,
               COALESCE(nutrition_ai_meal_used, 0) AS nutrition_ai_meal_used,
@@ -10659,9 +10763,10 @@ app.get('/api/admin/memberships', verifyToken, requireAdminOrSuperadmin, async (
       expiring: users.filter((u) => (u.state === 'trialing' || u.state === 'active') && u.days_left != null && u.days_left <= 2).length,
       expired:  users.filter((u) => u.state === 'expired').length,
       canceled: users.filter((u) => u.state === 'canceled').length,
-      total:    users.length
+      total:    users.length,
+      by_tier:  plans.PLAN_TIERS.reduce((acc, t) => { acc[t] = users.filter((u) => u.plan_tier === t).length; return acc; }, {})
     };
-    res.json({ users, summary, trial_days: TRIAL_DAYS });
+    res.json({ users, summary, trial_days: TRIAL_DAYS, trial_tier: plans.trialTier(), catalog: plans.publicCatalog() });
   } catch (e) {
     console.error('[memberships list]', e.message);
     res.status(500).json({ error: 'Failed to load memberships' });
@@ -10691,17 +10796,29 @@ app.post('/api/admin/users/:id/activate', verifyToken, requireAdminOrSuperadmin,
     } else {
       expires = isoMonthsFromNow(1); label = '1 Month';
     }
+    // plan_tier is required from the admin console; an API caller that omits it
+    // keeps the member's current tier rather than silently changing it.
+    let tier = null;
+    if (b.plan_tier != null && b.plan_tier !== '') {
+      tier = plans.normalizeTier(b.plan_tier);
+      if (!tier) return res.status(400).json({ error: 'Unknown plan. Use core, guided or tribe_elite.' });
+    } else {
+      const cur = await queryOne('SELECT plan_tier FROM users WHERE id = ?', [id]);
+      tier = plans.tierOf(cur);
+    }
+    label = plans.tierName(tier) + ' · ' + label;
     if (b.plan_label) label = String(b.plan_label).slice(0, 40);
     const actor = (req.user && (req.user.email || req.user.id)) || 'admin';
 
     await run(
-      "UPDATE users SET subscription_status='active', approval_status='approved', suspended=FALSE, plan_label=?, access_expires_at=?, activated_at=?, activated_by=?, trial_reminder_sent='' WHERE id=?",
-      [label, expires, isoFromNow(0), actor, id]
+      "UPDATE users SET subscription_status='active', approval_status='approved', suspended=FALSE, plan_label=?, plan_tier=?, access_expires_at=?, activated_at=?, activated_by=?, trial_reminder_sent='' WHERE id=?",
+      [label, tier, expires, isoFromNow(0), actor, id]
     );
+    planGate.invalidate(id);
     sendPushToUser(id, JSON.stringify({ title: '✅ Membership active', body: `Your ${label} plan is live — let's get to work!`, id: 'membership-' + id, link: 'home' })).catch(() => {});
     try { if (user.email) userEmail.emailAccountApproved(user.email, user.first_name); } catch (_) {}
     notifyAsync('USER_MEMBERSHIP_ACTIVATED', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, mobile: user.phone || '—', plan: label });
-    const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
+    const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, plan_tier, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
     res.json({ message: 'Membership activated', plan_label: label, expires_at: expires, user: Object.assign({}, fresh, computeMembershipState(fresh)) });
   } catch (e) {
     console.error('[membership activate]', e.message);
@@ -10719,11 +10836,66 @@ app.post('/api/admin/users/:id/trial', verifyToken, requireAdminOrSuperadmin, as
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only configure client users' });
     const d = await startTrialForUser(id, (Number.isFinite(days) && days > 0) ? days : TRIAL_DAYS);
     notifyHub.user(id, { title: '🎁 Your trial is active', body: `You have ${d} days of full BodyBank access.`, type: 'membership', link: 'home' });
-    const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
+    const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, plan_tier, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
     res.json({ message: `Trial set to ${d} days`, user: Object.assign({}, fresh, computeMembershipState(fresh)) });
   } catch (e) {
     console.error('[membership trial]', e.message);
     res.status(500).json({ error: 'Failed to set trial' });
+  }
+});
+
+// Change a member's plan (Core / Guided / Tribe Elite) without touching their term
+// or expiry — upgrades and downgrades mid-term. body: { plan_tier }.
+app.post('/api/admin/users/:id/plan', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const tier = plans.normalizeTier((req.body || {}).plan_tier);
+    if (!tier) return res.status(400).json({ error: 'Unknown plan. Use core, guided or tribe_elite.' });
+    const user = await queryOne("SELECT id, role, plan_tier, plan_label, subscription_status FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'user') return res.status(400).json({ error: 'Can only configure client users' });
+    const before = plans.tierOf(user);
+    // Keep the term part of a "Guided · 4 Months" label; retitle the plan part.
+    const rawLabel = String(user.plan_label || '');
+    const term = rawLabel.includes(' · ') ? rawLabel.split(' · ').slice(1).join(' · ') : rawLabel;
+    const label = String(user.subscription_status || '').toLowerCase() === 'trialing'
+      ? rawLabel
+      : (term ? plans.tierName(tier) + ' · ' + term : plans.tierName(tier)).slice(0, 40);
+    await run("UPDATE users SET plan_tier=?, plan_label=? WHERE id=?", [tier, label, id]);
+    planGate.invalidate(id);
+    if (before !== tier) {
+      const up = plans.tierRank(tier) > plans.tierRank(before);
+      notifyHub.user(id, {
+        title: up ? `✨ You're now on ${plans.tierName(tier)}` : `Your plan is now ${plans.tierName(tier)}`,
+        body: up ? 'New features are unlocked in your app.' : 'Your app has been updated to match your plan.',
+        type: 'membership',
+        link: 'home'
+      });
+    }
+    const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, plan_tier, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
+    res.json({ message: `Plan set to ${plans.tierName(tier)}`, user: Object.assign({}, fresh, computeMembershipState(fresh)) });
+  } catch (e) {
+    console.error('[membership plan]', e.message);
+    res.status(500).json({ error: 'Failed to change plan' });
+  }
+});
+
+// Switch a member's in-app 2-week report on or off. body: { enabled: boolean }.
+app.post('/api/admin/users/:id/fortnight-report', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const enabled = (req.body || {}).enabled === true;
+    const user = await queryOne("SELECT id, role, COALESCE(fortnight_report_enabled, FALSE) AS on_now FROM users WHERE id = ?", [id]);
+    if (!user) return res.status(404).json({ error: 'User not found' });
+    if (user.role !== 'user') return res.status(400).json({ error: 'Can only configure client users' });
+    await run("UPDATE users SET fortnight_report_enabled = ? WHERE id = ?", [enabled, id]);
+    if (enabled && !user.on_now) {
+      notifyHub.user(id, { title: '📈 Your 2-week report is ready', body: 'See your score, progress and wins from the last fortnight.', type: 'report', link: 'home' });
+    }
+    res.json({ message: enabled ? '2-week report switched on' : '2-week report switched off', enabled });
+  } catch (e) {
+    console.error('[fortnight report toggle]', e.message);
+    res.status(500).json({ error: 'Failed to update the 2-week report' });
   }
 });
 
@@ -10735,7 +10907,8 @@ app.post('/api/admin/users/:id/membership-lock', verifyToken, requireAdminOrSupe
     if (!user) return res.status(404).json({ error: 'User not found' });
     if (user.role !== 'user') return res.status(400).json({ error: 'Can only configure client users' });
     await run("UPDATE users SET subscription_status='canceled', access_expires_at=? WHERE id=?", [isoFromNow(0), id]);
-    const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
+    planGate.invalidate(id);
+    const fresh = await queryOne("SELECT id, email, first_name, last_name, phone, subscription_status, access_expires_at, plan_label, plan_tier, activated_at, activated_by, suspended FROM users WHERE id = ?", [id]);
     res.json({ message: 'Access locked', user: Object.assign({}, fresh, computeMembershipState(fresh)) });
   } catch (e) {
     console.error('[membership lock]', e.message);
@@ -11847,7 +12020,8 @@ app.use(
     requireAdminOrSuperadmin,
     rateLimiter,
     sendPushToAdmins,
-    notifyHub
+    notifyHub,
+    requireFeature
   })
 );
 // Unauthenticated by design: a client opening a WhatsApp link is not logged in.
@@ -11893,8 +12067,11 @@ app.use(
 // route checks group membership; attachments are served only by the router's own
 // authenticated download route (the uploads/group-chat directory is 404'd off the
 // public static mount further down).
+// Coach chat is a Guided+ feature. Attachment downloads authenticate with their
+// own scoped token (no Bearer header), so they pass straight to the router.
 app.use(
   '/api/groups',
+  planGate.gateMembers('coach_chat', (req) => req.path.startsWith('/attachments/')),
   createGroupChatRouter({
     run,
     queryOne,
@@ -11911,6 +12088,19 @@ app.use(
     verifyGroupAttachmentToken
   })
 );
+// Member screens: Daily Streak, Mind check-in, two-week report, blood grades.
+app.use(
+  '/api/me/screens',
+  createMemberScreensRouter({
+    queryOne,
+    queryAll,
+    run,
+    verifyToken,
+    rateLimiter,
+    todayInTz: streakTodayYmdInTz,
+    defaultTz: STREAK_TIMEZONE
+  })
+);
 app.use(
   '/api/referrals',
   createReferralRouter({
@@ -11923,8 +12113,12 @@ app.use(
     publicOrigin: process.env.PUBLIC_URL || process.env.APP_ORIGIN || ''
   })
 );
+// Wearables are Tribe Elite. A member on any plan can still see their connection,
+// opt out, and delete their wearable data (privacy rights don't depend on plan).
+const WEARABLES_ALWAYS_OPEN = new Set(['GET /connection', 'POST /opt-out', 'DELETE /data']);
 app.use(
   '/api/wearables',
+  planGate.gateMembers('wearables', (req) => WEARABLES_ALWAYS_OPEN.has(req.method + ' ' + req.path)),
   createWearablesRouter({
     run,
     queryOne,
@@ -12377,6 +12571,10 @@ app.get(['/signin', '/sign-in', '/login', '/signin.html'], (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');
   res.sendFile(path.join(__dirname, 'public', 'signin.html'));
+});
+// Website pricing (Core / Guided / Tribe Elite). Not bundled into the native apps.
+app.get(['/pricing', '/plans'], (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'pricing.html'));
 });
 app.get(['/signup', '/sign-up', '/register', '/join', '/signup.html'], (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
