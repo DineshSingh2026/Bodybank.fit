@@ -36,11 +36,13 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
-_Nothing pending._ The native Google sign-in web changes ship in the 2026-09-30 (b) release below.
+_Nothing pending._ Everything under `public/` up to web `385be9a` is in mobile `7e3cb30`.
 
 ---
 
 ## 2026-09-30 (b) — Native Google sign-in + Google token verification, v1.8.3 / versionCode 112 / iOS 1.0.7
+
+Web `385be9a` → mobile `7e3cb30`. Release AAB built locally (jar verified, upload key F0:1A…, merged manifest 112 / 1.8.3); release APK smoke-tested on the API 36 emulator (native "Sign up with Google" button shown, no crash). Live `/api/auth/google` returns 401 for a forged token.
 
 **Why.** In-app Google sign-in had never worked: the apps rendered Google's web button inside
 the WebView, and Google refuses it (emulator, release 1.8.2: bounced to Chrome with
