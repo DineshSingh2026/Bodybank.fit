@@ -36,6 +36,38 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
+_Nothing pending._ Everything under `public/` up to web `7bf163c` is in mobile `cdc3176`.
+
+---
+
+## 2026-09-30 — Plans, member screens, new home, v1.8.2 / versionCode 111 / iOS 1.0.6
+
+Syncs web `094b622` + `fa90c31` + `7bf163c` into mobile `cdc3176`, and ships the held
+`4bf214b` sync (care-group voice notes; meal share card with no member meal score).
+`npm run build:www` delta was exactly the 13 changed `public/` files (+3 new). Ran
+`npx cap sync android`, `npx cap sync ios` and `scripts/ios-strip-store-refs.js` →
+"OK — bundle clean". `www/bodybank-3d-preview.html` is kept (still on web `main`).
+
+| Change | Notes |
+| ------ | ----- |
+| Membership plans (Core / Guided / Tribe Elite) | Backend `services/plans.js` gates paid features per request. Existing members placed on Tribe Elite on first boot. App: plan chip, locks, lock sheet — **no price, buy button or outside link inside the apps**; "Plans & Pricing" links hidden in-app; `pricing.html` never bundled (`SKIP_TOP_LEVEL`). |
+| Member screens | Daily Streak (milestone coins), Mind check-in (Beyond The Body, mood + stress), 2-week report (off until admin enables per member), blood grades, My Membership. |
+| Blood report privacy | Member downloads refused server-side (old app builds still show the button — the server answers "your coach sends it"). Unsent reports carry no analysis; staff notes never reach members. |
+| Home | New hero; streak counts freezes; goal tiles in litres; FitChef assessment Dashboard link. |
+| **Bundler fix** | `build-www.js` detected its own injection by the bare text `bb-app-config.js`; a comment naming it made index.html skip injection (app would call localhost). Now matches the full `<script>` tag. The iOS strip check caught it. **Never name that file in an HTML comment.** |
+| iOS 2.3.10 | A code comment naming the Google store in `js/bb-plans.js` failed the strip scan (comments count). Reworded. |
+
+**Builds.** Android: local `bundleRelease` → `app-release.aab`, jar verified, merged manifest
+111 / 1.8.2, permission set unchanged (no `READ_MEDIA_*`), release APK launched on the
+API 36 emulator with no crash. iOS: `MARKETING_VERSION 1.0.6`; build number from Codemagic —
+start the `ios-appstore` workflow by hand.
+
+**Known, not in this release:** `tests/e2e-flow.js` calls profile / workouts / meetings /
+Sunday endpoints without a token; they have required auth since `e4a5cd3` (2026-09-01),
+so those steps fail against any current server. Test needs updating, not the app.
+
+### Shipped in this release — notes from the held 2026-09-26 sync
+
 **Care-group voice notes.** The chat bubble that plays a voice note is web code, and the apps run
 the bundled `www/` snapshot — so the new player only reaches members after `build:www` + `cap sync`.
 **No native change is needed:** the care chat is the same web UI inside the Capacitor WebView, not a
