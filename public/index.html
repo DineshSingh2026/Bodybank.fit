@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
 <meta name="theme-color" content="#0a0a0a" />
 <!-- Store policy: pricing / purchase links are website-only. Inside the iOS and
-     Android apps (bb-app-config.js sets IS_BODYBANK_APP first) they are hidden,
+     Android apps (the app shell sets IS_BODYBANK_APP before this runs) they are hidden,
      and pricing.html itself is not bundled into the apps. -->
 <script>try{if(window.IS_BODYBANK_APP||(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()))document.documentElement.classList.add('bb-in-app');}catch(e){}</script>
 <style>html.bb-in-app .bb-web-only{display:none!important}</style>
