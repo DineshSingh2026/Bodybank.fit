@@ -1435,7 +1435,9 @@
       VN.audio.pause();
       VN.id = id;
       delete VN.failed[id];
-      VN.audio.src = src;
+      // A detached Audio is invisible to the app shell's DOM URL rewrite, so in
+      // the iOS/Android apps a relative /api path would resolve to localhost.
+      VN.audio.src = (window.API_BASE && /^\/(api|uploads)\//.test(src)) ? window.API_BASE + src : src;
       VN.audio.playbackRate = VN.rate;
       VN.audio.load();
     }

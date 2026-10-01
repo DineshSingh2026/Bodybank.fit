@@ -143,6 +143,34 @@ function createGroupChatRouter(deps) {
   const db = { run, queryOne, queryAll };
   const router = express.Router();
 
+  // The iOS/Android apps run from a bundled https://localhost / capacitor://localhost
+  // origin. Their shim rewrites fetch/XHR and <img>/<audio> tags in the DOM to the
+  // real backend, but NOT a detached `new Audio()` — which is exactly how the
+  // voice-note player loads, so a relative attachment URL resolved to localhost
+  // and every voice note failed in the apps. For app callers, hand back absolute
+  // attachment URLs so already-installed builds play them too.
+  const APP_ORIGIN_RE = /^(https|capacitor|ionic):\/\/localhost$/i;
+  const ATT_PATH_RE = /^\/api\/groups\/attachments\//;
+  function absolutizeAttachmentUrls(node, base, depth) {
+    if (!node || typeof node !== 'object' || depth > 8) return;
+    if (Array.isArray(node)) { for (const n of node) absolutizeAttachmentUrls(n, base, depth + 1); return; }
+    for (const k of Object.keys(node)) {
+      const v = node[k];
+      if (k === 'url' && typeof v === 'string' && ATT_PATH_RE.test(v)) node[k] = base + v;
+      else if (v && typeof v === 'object') absolutizeAttachmentUrls(v, base, depth + 1);
+    }
+  }
+  router.use((req, res, next) => {
+    if (!APP_ORIGIN_RE.test(String(req.headers.origin || ''))) return next();
+    const base = 'https://' + req.get('host');
+    const json = res.json.bind(res);
+    res.json = (body) => {
+      try { absolutizeAttachmentUrls(body, base, 0); } catch (_) { /* send as-is */ }
+      return json(body);
+    };
+    next();
+  });
+
   // Attachments live in their own directory, and server.js 404s it off the public
   // /uploads static mount. They are reachable ONLY through the membership-checked
   // download route below.

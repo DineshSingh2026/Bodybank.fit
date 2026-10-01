@@ -36,7 +36,9 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
-_Nothing pending._ Everything under `public/` up to web `385be9a` is in mobile `7e3cb30`.
+| Web commit | Change | Notes |
+| ---------- | ------ | ----- |
+| _(voice-note fix)_ | fix(messages): chat voice notes play in the iOS/Android apps | Broken since Android 1.8.2 / iOS 1.0.6: the inline player is a detached `new Audio()`, which the app shim's DOM observer never sees, so `/api/groups/attachments/…` resolved to `https://localhost`. `public/js/group-chat.js` now prefixes `window.API_BASE`; mobile `src-web/bb-app-config.js` also patches `HTMLMediaElement.src` + `Audio()`. The backend hotfix (`routes/groupChat.js` returns absolute attachment URLs to app origins) already fixes installed builds once Render deploys. |
 
 ---
 
