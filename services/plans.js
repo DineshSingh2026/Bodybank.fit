@@ -54,7 +54,12 @@ const PLAN_CATALOG = {
     name: 'Core',
     tagline: 'The full BodyBank app, on your own.',
     prices: [
-      { term: '12m', months: 12, label: '12 months', amount: 3499, compare_at: 5999 }
+      { term: '12m', months: 12, label: '12 months', amount: 3499, compare_at: 5999 },
+      // TEMPORARY — live payment smoke test: ₹50 buys ONE DAY of Core. `hidden`
+      // keeps it off the pricing page and out of every catalog payload; it is
+      // reachable only at /pricing.html?buy=core:test. Delete this entry once
+      // live payments are confirmed.
+      { term: 'test', months: 0, days: 1, label: '1-day live payment test', amount: 50, hidden: true }
     ]
   },
   guided: {
@@ -153,7 +158,7 @@ function publicCatalog() {
       name: p.name,
       tagline: p.tagline,
       highlight: p.highlight || null,
-      prices: p.prices.map((x) => Object.assign({}, x)),
+      prices: p.prices.filter((x) => !x.hidden).map((x) => Object.assign({}, x)),
       features: Object.keys(FEATURES)
         .filter((f) => FEATURES[f].tier === t)
         .map((f) => ({ key: f, label: FEATURES[f].label }))

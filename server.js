@@ -860,7 +860,7 @@ const paymentsSvc = paymentsLib.createPaymentsService({
     const who = { name: row.name || '', email: row.email || '', mobile: '—' };
     if (kind === 'refunded') {
       notifyAsync('PAYMENT_REFUNDED', Object.assign(who, {
-        plan: plans.tierName(row.plan_tier) + ' · ' + paymentsLib.termLabel(Number(row.months)),
+        plan: plans.tierName(row.plan_tier) + ' · ' + paymentsLib.termLabel(Number(row.months), Number(row.days) || 0),
         amount: inrFromPaise(info.amount_paise), payment_id: row.payment_id
       }));
     } else if (kind === 'attention') {

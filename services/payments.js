@@ -44,18 +44,21 @@ function priceFor(tier, term) {
   const t = plans.normalizeTier(tier);
   if (!t) return null;
   const p = (plans.PLAN_CATALOG[t].prices || []).find((x) => x.term === String(term || ''));
-  if (!p || !(Number(p.amount) > 0) || !(Number(p.months) > 0)) return null;
+  // A term is whole months, or (for short terms) whole days.
+  if (!p || !(Number(p.amount) > 0) || !(Number(p.months) > 0 || Number(p.days) > 0)) return null;
   return {
     tier: t,
     term: p.term,
-    months: Number(p.months),
+    months: Number(p.months) || 0,
+    days: Number(p.days) || 0,
     amount_rupees: Number(p.amount),
     amount_paise: Math.round(Number(p.amount) * 100),
     label: p.label
   };
 }
 
-function termLabel(months) {
+function termLabel(months, days) {
+  if (!(months > 0) && days > 0) return days + (days === 1 ? ' Day' : ' Days');
   return months + (months === 1 ? ' Month' : ' Months');
 }
 
@@ -81,7 +84,7 @@ function verifyWebhookSignature(rawBody, signature, webhookSecret) {
 
 // When the new access ends. Buying the plan you're already on extends your
 // remaining time; any other plan (or a lapsed one) starts today.
-function computeAccessWindow(user, tier, months, now = new Date()) {
+function computeAccessWindow(user, tier, months, now = new Date(), days = 0) {
   const curTier = plans.tierOf(user);
   const state = plans.accessState(user);
   const exp = user && user.access_expires_at ? new Date(user.access_expires_at) : null;
@@ -89,7 +92,8 @@ function computeAccessWindow(user, tier, months, now = new Date()) {
     exp && Number.isFinite(exp.getTime()) && exp.getTime() > now.getTime();
   const from = stack ? new Date(exp.getTime()) : new Date(now.getTime());
   const until = new Date(from.getTime());
-  until.setMonth(until.getMonth() + months);
+  if (months > 0) until.setMonth(until.getMonth() + months);
+  if (days > 0) until.setDate(until.getDate() + days);
   return { from, until, extended: !!stack };
 }
 
@@ -159,6 +163,7 @@ function createPaymentsService(deps) {
       applied_at TIMESTAMPTZ,
       updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     )`);
+    await run('ALTER TABLE payments ADD COLUMN IF NOT EXISTS days INTEGER DEFAULT 0');
     await run('CREATE INDEX IF NOT EXISTS idx_payments_user ON payments (user_id, created_at DESC)');
     await run('CREATE INDEX IF NOT EXISTS idx_payments_payment_id ON payments (payment_id)');
   }
@@ -176,9 +181,9 @@ function createPaymentsService(deps) {
     });
     const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
     await run(
-      `INSERT INTO payments (id, order_id, user_id, email, name, plan_tier, term, months, amount_paise, currency, status, mode)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'created', ?)`,
-      [id, order.id, String(user.id), user.email || '', name, price.tier, price.term, price.months, price.amount_paise, CURRENCY, cfg.mode]
+      `INSERT INTO payments (id, order_id, user_id, email, name, plan_tier, term, months, days, amount_paise, currency, status, mode)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'created', ?)`,
+      [id, order.id, String(user.id), user.email || '', name, price.tier, price.term, price.months, price.days, price.amount_paise, CURRENCY, cfg.mode]
     );
     return { order, price, keyId: cfg.keyId, name };
   }
@@ -245,8 +250,9 @@ function createPaymentsService(deps) {
 
       const tier = row.plan_tier;
       const months = Number(row.months);
-      const win = computeAccessWindow(user, tier, months);
-      const label = (plans.tierName(tier) + ' · ' + termLabel(months)).slice(0, 40);
+      const days = Number(row.days) || 0;
+      const win = computeAccessWindow(user, tier, months, new Date(), days);
+      const label = (plans.tierName(tier) + ' · ' + termLabel(months, days)).slice(0, 40);
       const previous = { tier: plans.tierOf(user), state: plans.accessState(user), expires_at: user.access_expires_at };
 
       await client.query(
@@ -333,7 +339,7 @@ function createPaymentsService(deps) {
 
   async function listForUser(userId, limit = 20) {
     return queryAll(
-      `SELECT order_id, payment_id, plan_tier, term, months, amount_paise, currency, status,
+      `SELECT order_id, payment_id, plan_tier, term, months, days, amount_paise, currency, status,
               access_from, access_until, created_at, paid_at
          FROM payments WHERE user_id = ? AND status <> 'created'
         ORDER BY created_at DESC LIMIT ?`,

@@ -26112,7 +26112,7 @@ function loadAdminSitePayments() {
         return '<tr style="border-top:1px solid rgba(255,255,255,0.06)">' +
           '<td style="padding:8px 6px;white-space:nowrap">' + escapeHtml(bbFmtMemberDate(r.paid_at || r.created_at)) + '</td>' +
           '<td style="padding:8px 6px">' + escapeHtml(name) + '<div style="color:var(--muted);font-size:11.5px">' + escapeHtml(r.email || '') + '</div></td>' +
-          '<td style="padding:8px 6px;white-space:nowrap">' + escapeHtml((tierNames[r.plan_tier] || r.plan_tier) + ' · ' + r.months + (Number(r.months) === 1 ? ' month' : ' months')) + '</td>' +
+          '<td style="padding:8px 6px;white-space:nowrap">' + escapeHtml((tierNames[r.plan_tier] || r.plan_tier) + ' · ' + (Number(r.months) > 0 ? r.months + (Number(r.months) === 1 ? ' month' : ' months') : (r.days || 0) + (Number(r.days) === 1 ? ' day' : ' days'))) + '</td>' +
           '<td style="padding:8px 6px;white-space:nowrap">' + escapeHtml(money(r.amount_paise)) + (Number(r.refunded_paise) > 0 ? '<div style="color:var(--muted);font-size:11.5px">' + escapeHtml(money(r.refunded_paise)) + ' refunded</div>' : '') + '</td>' +
           '<td style="padding:8px 6px;white-space:nowrap;font-weight:700;color:' + (colors[r.status] || '#9aa3ad') + '">' + escapeHtml(labels[r.status] || r.status) + (r.mode === 'test' ? ' <span style="font-weight:600;color:var(--muted)">(test)</span>' : '') + warn + '</td>' +
           '<td style="padding:8px 6px;white-space:nowrap">' + escapeHtml(r.access_until ? bbFmtMemberDate(r.access_until) : '—') + '</td>' +

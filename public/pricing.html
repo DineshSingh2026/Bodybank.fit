@@ -690,10 +690,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
     try { history.replaceState(null, '', window.location.pathname); } catch (_) {}
     var parts = buy.split(':');
     if (parts.length !== 2 || !state.auth || !(state.pay && state.pay.enabled)) return;
-    var ok = ((state.data && state.data.plans) || []).some(function (pl) {
-      return pl.tier === parts[0] && (pl.prices || []).some(function (p) { return p.term === parts[1]; });
-    });
-    if (ok) startPayment(parts[0], parts[1]);
+    // The server decides whether this plan + term exists and what it costs.
+    if (/^[a-z_]{1,20}$/.test(parts[0]) && /^[a-z0-9]{1,10}$/.test(parts[1])) startPayment(parts[0], parts[1]);
   }
 
   state.auth = readAuth();

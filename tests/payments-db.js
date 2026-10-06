@@ -162,6 +162,19 @@ async function main() {
   r = await call('POST', '/api/payments/order', { token: admin.token, body: { plan_tier: 'core', term: '12m' } });
   assert(r.status === 403 && r.json.error === 'staff_account', 'staff accounts cannot buy a plan');
 
+  // ── a days-based term (the hidden ₹50 live smoke test, while it exists) ──
+  const hiddenTest = (require('../services/plans').PLAN_CATALOG.core.prices || []).find((p) => p.term === 'test');
+  assert(!JSON.stringify(require('../services/plans').publicCatalog()).includes('"hidden"'), 'hidden prices never appear in the public catalog');
+  if (hiddenTest) {
+    const dayUser = await makeUser('day', { plan_tier: 'guided', subscription_status: 'trialing', access_expires_at: days(3).toISOString() });
+    r = await call('POST', '/api/payments/order', { token: dayUser.token, body: { plan_tier: 'core', term: 'test' } });
+    assert(r.status === 200 && r.json.amount === hiddenTest.amount * 100, 'the hidden test price can be ordered by its direct term');
+    const dp = fakePay(r.json.order_id);
+    r = await call('POST', '/api/payments/verify', { token: dayUser.token, body: { razorpay_order_id: dp.order_id, razorpay_payment_id: dp.id, razorpay_signature: checkoutSig(dp.order_id, dp.id) } });
+    const du = await userRow(dayUser.id);
+    assert(r.json.ok === true && du.plan_tier === 'core' && du.plan_label === 'Core · 1 Day' && near(du.access_expires_at, days(1)), 'it buys exactly one day of Core (' + JSON.stringify(du) + ')');
+  }
+
   // ── forged signature never activates ──
   const pay1 = fakePay(order1);
   r = await call('POST', '/api/payments/verify', { token: trial.token, body: { razorpay_order_id: order1, razorpay_payment_id: pay1.id, razorpay_signature: checkoutSig(order1, pay1.id, 'wrong_secret') } });
@@ -182,7 +195,7 @@ async function main() {
   assert(u.subscription_status === 'active' && u.plan_tier === 'guided' && u.plan_label === 'Guided · 4 Months' && u.activated_by === 'razorpay', 'the member row is active on Guided · 4 Months (' + JSON.stringify(u) + ')');
   assert(near(u.access_expires_at, plusMonths(trialEnd, 4)), 'same plan: 4 months are added on top of the remaining trial days');
   const firstExpiry = u.access_expires_at;
-  assert(events.filter((e) => e[0] === 'activated').length === 1, 'activation side effects fire once');
+  assert(events.filter((e) => e[0] === 'activated' && e[1].user.id === trial.id).length === 1, 'activation side effects fire once');
 
   // ── idempotency: confirm again + webhook twice ──
   r = await call('POST', '/api/payments/verify', { token: trial.token, body: { razorpay_order_id: order1, razorpay_payment_id: pay1.id, razorpay_signature: checkoutSig(order1, pay1.id) } });
@@ -193,7 +206,7 @@ async function main() {
   await webhook({ event: 'order.paid', payload: { payment: { entity: pay1 } } });
   u = await userRow(trial.id);
   assert(new Date(u.access_expires_at).getTime() === new Date(firstExpiry).getTime(), 'a payment is never applied twice (expiry unchanged after 3 repeats)');
-  assert(events.filter((e) => e[0] === 'activated').length === 1, 'repeats do not notify again');
+  assert(events.filter((e) => e[0] === 'activated' && e[1].user.id === trial.id).length === 1, 'repeats do not notify again');
 
   // ── webhook first (buyer closed the tab), then two at once ──
   r = await call('POST', '/api/payments/order', { token: other.token, body: { plan_tier: 'guided', term: '1m' } });
