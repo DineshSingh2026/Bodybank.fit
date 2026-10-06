@@ -69,8 +69,10 @@
     else if (c.pay_mode === 'test') secure.textContent = 'Secure payment by Razorpay. Test mode: no real money is charged.';
 
     var ex = $('experts');
+    var shown = ['doctor', 'nutritionist'].filter(function (role) { return c.consultants[role] && c.consultants[role].published; });
+    $('expertsSec').hidden = !shown.length;
     if (ex) {
-      ex.innerHTML = ['doctor', 'nutritionist'].map(function (role) {
+      ex.innerHTML = shown.map(function (role) {
         var p = c.consultants[role];
         return '<div class="card expert">' + avatar(p) + '<div>' +
           '<p class="role">' + esc(p.label) + '</p>' +
@@ -155,9 +157,32 @@
       if (!body.gender) return showMsg(msg, 'Please select your gender.');
       if (!body.consent) return showMsg(msg, 'Please tick the consent box to continue.');
 
-      var label = btn.innerHTML;
+      var price = state.cfg ? '₹' + Number(state.cfg.price_rupees).toLocaleString('en-IN') : '';
+      var payLabel = 'Confirm and pay ' + price;
+      var email = body.email.toLowerCase();
+
+      // Step 1: prove the email. A code goes to it; nothing is ordered yet.
+      function sendCode() {
+        btn.disabled = true; btn.textContent = 'Sending your code…';
+        api('POST', '/api/bloodmap/email/request', { email: email }).then(function (r) {
+          btn.disabled = false;
+          if (r.data.error) { btn.textContent = state.codeFor ? payLabel : 'Confirm my email'; return showMsg(msg, r.data.error); }
+          state.codeFor = email;
+          $('codeStep').hidden = false;
+          $('codeInfo').textContent = 'We emailed a 6-digit code to ' + email + '. Enter it to confirm this is your email.' + (r.data.dev_code ? ' Local test code: ' + r.data.dev_code : '');
+          $('fCode').value = '';
+          btn.textContent = payLabel;
+          try { $('fCode').focus(); } catch (_) {}
+        });
+      }
+      $('codeResend').onclick = function (ev) { ev.preventDefault(); showMsg(msg, ''); sendCode(); };
+      if (state.codeFor !== email) return sendCode();
+
+      // Step 2: the code and the details go together; the server checks the code.
+      body.email_code = $('fCode').value.replace(/[^0-9]/g, '');
+      if (body.email_code.length !== 6) return showMsg(msg, 'Enter the 6-digit code we emailed you.');
       btn.disabled = true; btn.textContent = 'Starting…';
-      var reset = function () { btn.disabled = false; btn.innerHTML = label; };
+      var reset = function () { btn.disabled = false; btn.textContent = payLabel; };
 
       api('POST', '/api/bloodmap/order', body).then(function (r) {
         if (r.data.token) rememberToken(r.data.token);
@@ -195,7 +220,7 @@
   }
 
   function trackStepCode(contact, sent) {
-    var where = 'If there is an order for that contact, a code is on its way to the email and WhatsApp number on it.';
+    var where = 'If there is an order for that contact, a code is on its way to the email address on it.';
     $('trackBody').innerHTML =
       '<p class="msg msg--info">' + esc(where) + (sent.dev_code ? ' Local test code: ' + esc(sent.dev_code) : '') + '</p>' +
       '<div class="field"><label for="tCode">6-digit code</label><input id="tCode" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>' +
@@ -238,9 +263,23 @@
 
   var STAGE_LABEL = {
     payment: 'Payment pending', upload: 'Waiting for your report', analysing: 'Analysing', review: 'Expert review',
-    ready: 'Report ready', completed: 'Completed'
+    ready: 'Report ready', completed: 'Completed', refunded: 'Refunded'
   };
-  var STAGE_PILL = { payment: 'warn', upload: 'warn', analysing: '', review: '', ready: 'ok', completed: 'ok' };
+  var STAGE_PILL = { payment: 'warn', upload: 'warn', analysing: '', review: '', ready: 'ok', completed: 'ok', refunded: 'dim' };
+
+  // The private link stopped working (expired, revoked or replaced): back to the
+  // landing page with the "enter your email" box open.
+  function linkGone(message) {
+    clearTimeout(state.poll);
+    try { localStorage.removeItem(STORE_KEY); } catch (_) {}
+    state.token = ''; state.view = null;
+    try { history.replaceState(null, '', '/bloodmap'); } catch (_) {}
+    $('dash').hidden = true; $('landing').hidden = false;
+    closeModals();
+    trackStepContact('');
+    openModal('trackModal');
+    showMsg($('tMsg'), message || '', 'info');
+  }
 
   function fmtWhen(iso) {
     if (!iso) return '';
@@ -253,16 +292,8 @@
     opts = opts || {};
     if (!state.token) return;
     api('GET', orderUrl()).then(function (r) {
-      if (r.status === 404) {
-        try { localStorage.removeItem(STORE_KEY); } catch (_) {}
-        state.token = ''; state.view = null;
-        try { history.replaceState(null, '', '/bloodmap'); } catch (_) {}
-        $('dash').hidden = true; $('landing').hidden = false;
-        trackStepContact('');
-        openModal('trackModal');
-        showMsg($('tMsg'), opts.fallbackToTrack ? '' : 'That order link is not valid any more. Enter your email or mobile to find your order.');
-        return;
-      }
+      if (r.status === 410) return linkGone('Your private link has expired. Enter your email and we will send you a code to get back in.');
+      if (r.status === 404) return linkGone(opts.fallbackToTrack ? '' : 'That order link is not valid any more. Enter your email to find your order.');
       if (r.data.error) return;
       state.view = r.data;
       try { history.replaceState(null, '', '/bloodmap?o=' + encodeURIComponent(state.token)); } catch (_) {}
@@ -274,6 +305,7 @@
 
   function refresh(silent) {
     return api('GET', orderUrl()).then(function (r) {
+      if (r.status === 410 || r.status === 404) return linkGone('Your private link has expired. Enter your email and we will send you a code to get back in.');
       if (r.data.error) return;
       var before = state.view;
       state.view = r.data;
@@ -319,12 +351,13 @@
       return '<li class="' + esc(s.state) + '"><b>' + esc(s.label) + '</b>' + (note ? '<small>' + esc(note) + '</small>' : '') + '</li>';
     }).join('');
 
+    $('dSteps').parentNode.hidden = v.stage === 'refunded';
     renderMain(notice);
     renderCalls();
     renderOffers();
     $('dHelp').innerHTML =
       '<h3 class="h3">Need help?</h3>' +
-      '<p class="small" style="color:var(--creamd);margin:8px 0 14px">We sent your private link to ' + esc(v.client.email) + '. Keep it to come back here at any time.</p>' +
+      '<p class="small" style="color:var(--creamd);margin:8px 0 14px">We emailed your private link to ' + esc(v.client.email) + '. It works for 30 days. After that, use Track my order with this email to get back in.</p>' +
       '<a class="btn btn--sm" target="_blank" rel="noopener" href="' + esc(waLink('Hi, I need help with my BloodMap order ' + v.ref + '.')) + '">Message us on WhatsApp</a>';
     schedulePoll();
   }
@@ -333,6 +366,15 @@
     var v = state.view;
     var el = $('dMain');
     var note = notice ? '<p class="msg msg--info">' + esc(notice) + '</p>' : '';
+
+    if (v.stage === 'refunded') {
+      el.innerHTML =
+        '<h3 class="h3">This order was refunded</h3>' +
+        '<p style="color:var(--creamd);margin:8px 0 16px">Your payment of ' + esc(v.payment.amount) + ' was refunded, so this order is closed. The report and the calls are no longer available on it.</p>' +
+        '<a class="btn btn--gold" href="/bloodmap" id="mAgain">Start a new BloodMap</a>';
+      $('mAgain').onclick = function () { try { localStorage.removeItem(STORE_KEY); } catch (_) {} };
+      return;
+    }
 
     if (v.stage === 'payment') {
       el.innerHTML = note +
@@ -367,7 +409,7 @@
           : 'We are reading every marker on your lab report and grading each health area.') + '</p></div></div>' +
         '<div class="bar"><i style="width:' + (review ? 78 : 42) + '%"></i></div>' +
         '<p class="small mute" style="margin-top:12px">' + (v.report.due_by ? 'Expected by ' + esc(v.report.due_by) + ' (India time). ' : '') +
-        'We will email and WhatsApp you the moment it is ready. You can close this page.</p>';
+        'We will email you the moment it is ready. You can close this page.</p>';
       return;
     }
 
@@ -483,7 +525,7 @@
         '<p class="call-when">' + esc(fmtWhen(b.starts_at)) + ' IST</p>' +
         (b.status === 'booked' ? '<span>We will call you on ' + esc(v.client.phone) + '.' + (b.can_change ? ' ' + b.changes_left + ' change' + (b.changes_left === 1 ? '' : 's') + ' left.' : '') + '</span>' : '');
       return '<div class="call">' + avatar(c, true) +
-        '<div class="call-main"><b>' + esc(c.label) + ' call</b><span>' + esc(c.name) + (c.title ? ' · ' + esc(c.title) : '') + '</span>' + when + '</div>' + action + '</div>';
+        '<div class="call-main"><b>' + esc(c.label) + ' call</b>' + (c.published ? '<span>' + esc(c.name) + (c.title ? ' · ' + esc(c.title) : '') + '</span>' : '') + when + '</div>' + action + '</div>';
     }
     el.innerHTML =
       '<h3 class="h3">Your consultations</h3>' +
@@ -498,7 +540,7 @@
     var v = state.view;
     var c = v.consultants[role];
     $('slotTitle').textContent = c.label + ' call';
-    $('slotSub').textContent = 'With ' + c.name + '. All times are India time (IST).';
+    $('slotSub').textContent = (c.published ? 'With ' + c.name + '. ' : '') + 'All times are India time (IST).';
     $('slotBody').innerHTML = '<p class="mute">Loading free times…</p>';
     openModal('slotModal');
     api('GET', orderUrl('/slots?role=' + encodeURIComponent(role))).then(function (r) {

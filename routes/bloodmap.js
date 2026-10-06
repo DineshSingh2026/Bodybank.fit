@@ -46,10 +46,14 @@ function createBloodmapRouter(deps = {}) {
   };
 
   // Loads the order for a token route. A wrong token and a missing order look the same.
+  // An expired or revoked link is refused here, before any route can serve from it.
   const withOrder = async (req, res, next) => {
     try {
       const order = await service.orderByToken(req.params.token);
       if (!order) return res.status(404).json({ error: 'This order link is not valid.' });
+      if (service.linkExpired(order)) {
+        return res.status(410).json({ expired: true, error: 'This private link has expired. Enter your email to get back to your order.' });
+      }
       req.order = order;
       next();
     } catch (e) { fail(res, 'order', e); }
@@ -59,10 +63,15 @@ function createBloodmapRouter(deps = {}) {
     try { res.json(await service.publicConfig()); } catch (e) { fail(res, 'config', e); }
   });
 
-  /** POST /order { name, phone, email, city, age, gender, consent } → { token, checkout } */
+  /** POST /email/request { email } — emails the code that proves the address before an order is made. */
+  router.post('/email/request', limit(5, 60000), async (req, res) => {
+    try { send(res, await service.requestEmailCode(req.body && req.body.email)); } catch (e) { fail(res, 'email code', e); }
+  });
+
+  /** POST /order { name, phone, email, email_code, city, age, gender, consent } → { token, checkout } */
   router.post('/order', limit(8, 60000), async (req, res) => {
     try {
-      const made = await service.createOrder(req.body || {}, publicOrigin(req));
+      const made = await service.createOrder(req.body || {}, publicOrigin(req), { ip: req.ip, ua: req.get('user-agent') });
       if (made.error) return send(res, made);
       const order = await service.orderByToken(made.token);
       const checkout = await service.startPayment(order);
@@ -90,6 +99,7 @@ function createBloodmapRouter(deps = {}) {
         not_captured: 'Your payment is still processing. This page will update on its own once it completes.',
         mismatch: 'Something did not match on this payment. Our team has been alerted and will contact you.',
         unknown_order: 'We could not find this order. Please refresh and try again.',
+        closed: 'This order was refunded and is now closed.',
         missing_fields: 'Payment details were incomplete. Please try again.'
       };
       const pending = r.reason === 'not_captured';
@@ -178,6 +188,10 @@ function createBloodmapRouter(deps = {}) {
 
   router.post('/admin/orders/:id/resend-link', staff, limit(10, 60000), async (req, res) => {
     try { send(res, await service.adminResendLink(req.params.id, who(req))); } catch (e) { fail(res, 'admin resend', e); }
+  });
+
+  router.post('/admin/orders/:id/revoke-link', staff, async (req, res) => {
+    try { send(res, await service.adminRevokeLink(req.params.id, who(req))); } catch (e) { fail(res, 'admin revoke', e); }
   });
 
   router.put('/admin/consultants/:role', staff, async (req, res) => {

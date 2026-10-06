@@ -76,8 +76,8 @@
   var STAFF = ['admin', 'superadmin', 'operator'];
   var $ = function (id) { return document.getElementById(id); };
   var S = { orders: [], consultants: {}, config: {}, tab: 'active', open: {}, events: {} };
-  var STAGE = { payment: 'Unpaid', upload: 'Waiting for upload', analysing: 'Analysing', review: 'Needs review', ready: 'Report released', completed: 'Completed' };
-  var PILL = { payment: 'dim', upload: 'warn', analysing: '', review: 'bad', ready: 'ok', completed: 'ok' };
+  var STAGE = { payment: 'Unpaid', upload: 'Waiting for upload', analysing: 'Analysing', review: 'Needs review', ready: 'Report released', completed: 'Completed', refunded: 'Refunded · closed' };
+  var PILL = { payment: 'dim', upload: 'warn', analysing: '', review: 'bad', ready: 'ok', completed: 'ok', refunded: 'dim' };
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
   function toast(t) { var el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { el.hidden = true; }, 3200); }
@@ -116,7 +116,8 @@
     if (tab === 'active') return ['upload', 'analysing', 'review', 'ready'].indexOf(o.stage) >= 0 && o.pay_status === 'paid';
     if (tab === 'review') return o.stage === 'review' || o.flags.length > 0;
     if (tab === 'done') return o.stage === 'completed';
-    if (tab === 'unpaid') return o.pay_status !== 'paid';
+    if (tab === 'unpaid') return o.pay_status !== 'paid' && o.stage !== 'refunded';
+    if (tab === 'refunded') return o.stage === 'refunded';
     return true;
   }
 
@@ -132,7 +133,7 @@
       [n(function (o) { return o.stage === 'completed'; }), 'Completed']
     ].map(function (s) { return '<div class="stat"><b>' + s[0] + '</b><span>' + s[1] + '</span></div>'; }).join('');
 
-    var tabs = [['active', 'In progress'], ['review', 'Needs attention'], ['calls', 'Calls'], ['done', 'Completed'], ['unpaid', 'Unpaid'], ['all', 'All'], ['team', 'Consultants']];
+    var tabs = [['active', 'In progress'], ['review', 'Needs attention'], ['calls', 'Calls'], ['done', 'Completed'], ['unpaid', 'Unpaid'], ['refunded', 'Refunded'], ['all', 'All'], ['team', 'Consultants']];
     $('tabs').innerHTML = tabs.map(function (t) {
       var count = t[0] === 'calls' ? upcoming.length : t[0] === 'team' ? '' : S.orders.filter(function (o) { return inTab(o, t[0]); }).length;
       return '<button class="tab' + (S.tab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '">' + t[1] + (count === '' ? '' : '<small>' + count + '</small>') + '</button>';
@@ -166,10 +167,13 @@
     if (!open) return '<div class="o">' + head + '</div>';
     var it = o.intake || {};
     var ev = S.events[o.id];
-    var canRelease = o.report_id && !o.released_at && String(o.report_status).toLowerCase() === 'complete';
+    var closed = o.stage === 'refunded';
+    var canRelease = !closed && o.report_id && !o.released_at && String(o.report_status).toLowerCase() === 'complete';
     return '<div class="o">' + head + '<div class="o-body">' +
       '<div><h4>Client</h4>' +
-        '<div class="kv">Mobile: <b>' + esc(o.phone) + '</b></div><div class="kv">Email: <b>' + esc(o.email) + '</b></div>' +
+        '<div class="kv">Mobile: <b>' + esc(o.phone) + '</b> <span class="mute">(not verified)</span></div>' +
+        '<div class="kv">Email: <b>' + esc(o.email) + '</b> <span class="mute">(' + (o.email_verified ? 'confirmed by code' : 'not confirmed') + ')</span></div>' +
+        '<div class="kv">Consent: <b>' + (o.consent_at ? esc(when(o.consent_at)) + ' · wording ' + esc(o.consent_version || '—') : 'no record (order placed before consent was stored)') + '</b></div>' +
         '<div class="kv">Age / gender: <b>' + esc(o.age || '—') + ' / ' + esc(o.gender || '—') + '</b></div>' +
         '<div class="kv">Payment: <b>' + esc(o.pay_status) + '</b>' + (o.payment_id ? ' · ' + esc(o.payment_id) : '') + '</div>' +
         '<h4 style="margin-top:14px">What they told us</h4>' +
@@ -181,11 +185,13 @@
         '<div class="acts" style="margin:8px 0 14px">' +
           (o.report_id ? '<button class="btn btn--sm" data-pdf="' + esc(o.report_id) + '">Open report PDF</button><a class="btn btn--sm btn--ghost" href="/?open=blood" target="_blank" rel="noopener">Edit in Blood reports</a>' : '') +
           (canRelease ? '<button class="btn btn--sm btn--gold" data-release="' + o.id + '">Release to client</button>' : '') +
-          (o.report_id && !o.released_at ? '<button class="btn btn--sm btn--danger" data-reup="' + o.id + '">Ask for a clearer copy</button>' : '') +
+          (!closed && o.report_id && !o.released_at ? '<button class="btn btn--sm btn--danger" data-reup="' + o.id + '">Ask for a clearer copy</button>' : '') +
         '</div><h4>Calls</h4>' + callLine(o, 'doctor', 'Doctor') + callLine(o, 'nutritionist', 'Nutritionist') + '</div>' +
-      '<div class="full"><h4>Client link</h4><div class="acts">' +
-        '<button class="btn btn--sm" data-copy="' + esc(o.link) + '">Copy private link</button>' +
-        '<button class="btn btn--sm" data-resend="' + o.id + '">Send link again</button>' +
+      '<div class="full"><h4>Client link</h4>' +
+        '<div class="kv">' + (closed ? 'Order closed: the link only shows the refund notice.' : o.link_expired ? '<b>Not working</b> (expired or revoked). The client can get back in with an email code, or send them a new link.' : 'Works until <b>' + esc(when(o.link_expires_at)) + '</b>') + '</div>' +
+        '<div class="acts" style="margin-top:8px">' +
+        (closed ? '' : '<button class="btn btn--sm" data-resend="' + o.id + '">Email a new link</button>') +
+        (closed || o.link_expired ? '' : '<button class="btn btn--sm btn--danger" data-revoke="' + o.id + '">Revoke link</button>') +
         '<a class="btn btn--sm btn--ghost" target="_blank" rel="noopener" href="https://wa.me/' + esc(String(o.phone).replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1')) + '">WhatsApp client</a></div></div>' +
       '<div><h4>Staff notes</h4><div class="field"><textarea data-notes="' + o.id + '" maxlength="4000">' + esc(o.admin_notes) + '</textarea></div><button class="btn btn--sm" data-savenotes="' + o.id + '">Save notes</button></div>' +
       '<div><h4>History</h4><div class="hist">' + (ev ? (ev.length ? ev.map(function (e) {
@@ -225,13 +231,18 @@
         act('POST', '/orders/' + x[0] + '/call', { role: x[1], action: x[2] }, 'Call updated.');
       };
     });
-    each('[data-copy]', function (b) {
+    each('[data-resend]', function (b) {
       b.onclick = function () {
-        var t = b.getAttribute('data-copy');
-        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Link copied.'); }, function () { prompt('Copy this link:', t); });
+        if (!confirm('Email the client a new private link? Any link they already have stops working.')) return;
+        act('POST', '/orders/' + b.getAttribute('data-resend') + '/resend-link', null, 'New link emailed. Older links no longer work.');
       };
     });
-    each('[data-resend]', function (b) { b.onclick = function () { act('POST', '/orders/' + b.getAttribute('data-resend') + '/resend-link', null, 'Link sent to the client.'); }; });
+    each('[data-revoke]', function (b) {
+      b.onclick = function () {
+        if (!confirm('Revoke this client\'s link now? It stops working at once. They can get back in with a code sent to their email.')) return;
+        act('POST', '/orders/' + b.getAttribute('data-revoke') + '/revoke-link', null, 'Link revoked.');
+      };
+    });
     each('[data-savenotes]', function (b) {
       b.onclick = function () {
         var id = b.getAttribute('data-savenotes');
@@ -284,6 +295,8 @@
         f('name', 'Name') + f('title', 'Title') + f('qualification', 'Qualification') + f('reg_no', 'Registration number') +
         '<div class="field"><label>Short bio</label><textarea data-k="bio" maxlength="600">' + esc(c.bio || '') + '</textarea></div>' +
         f('photo_url', 'Photo link (https://…)') +
+        '<label class="consent" style="margin:0 0 14px"><input type="checkbox" data-pub' + (c.published ? ' checked' : '') + '><span><b style="color:var(--cream);font-weight:500">Show this profile on the public page.</b> ' +
+          (c.published ? 'It is live now.' : 'It is hidden now: the page names nobody for this role.') + ' Needs the real name and qualification' + (role === 'doctor' ? ', and the medical registration number' : '') + '.</span></label>' +
         '<div class="field"><label>Working days</label><div class="days7">' + DAYS.map(function (d, i) {
           return '<label><input type="checkbox" data-day="' + i + '"' + ((c.work_days || []).indexOf(i) >= 0 ? ' checked' : '') + '>' + d + '</label>';
         }).join('') + '</div></div>' +
@@ -301,8 +314,9 @@
         var days = Array.prototype.filter.call(form.querySelectorAll('[data-day]'), function (x) { return x.checked; }).map(function (x) { return Number(x.getAttribute('data-day')); });
         act('PUT', '/consultants/' + form.getAttribute('data-role'), {
           name: g('name'), title: g('title'), qualification: g('qualification'), reg_no: g('reg_no'), bio: g('bio'), photo_url: g('photo_url'),
-          work_days: days, start_min: mins(g('start')), end_min: mins(g('end')), slot_min: g('slot_min')
-        }, 'Saved. The public page shows it straight away.');
+          work_days: days, start_min: mins(g('start')), end_min: mins(g('end')), slot_min: g('slot_min'),
+          published: form.querySelector('[data-pub]').checked
+        }, form.querySelector('[data-pub]').checked ? 'Saved. This profile is now on the public page.' : 'Saved. This profile is hidden from the public page.');
       };
     });
   }

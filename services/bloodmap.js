@@ -12,8 +12,14 @@
 // file only owns the order around it: payment, intake, tracking, call slots.
 //
 // There is no login. An order is opened with its access token (a private link
-// sent to the client), or recovered with a one-time code sent to the email /
-// mobile on the order. Typing a mobile number alone never reveals anything.
+// emailed to the client), or recovered with a one-time code.
+//
+// The EMAIL is the only identity that is ever proven: the buyer confirms it with
+// a code before the order is created, and every later code goes to an order's own
+// email and unlocks only orders on that email. The mobile number is never proven,
+// so nothing secret (a code, a private link) is ever sent to it — otherwise
+// anyone could place a small order with a stranger's number and read their report.
+// Links expire, staff can revoke them, and a refunded order closes.
 //
 // blood_analysis_reports.user_id references users(id), so each order gets an
 // inert shadow row (role 'bloodmap', unusable password, synthetic email). Every
@@ -40,6 +46,9 @@ const RESCHEDULE_CUTOFF_HOURS = 12;
 const MAX_CHANGES = 2;
 const BOOKING_WINDOW_DAYS = 14;
 const OTP_TTL_MIN = 10;
+const LINK_DAYS = Math.max(1, Number(process.env.BLOODMAP_LINK_DAYS) || 30);
+// Bump when the consent wording on the page changes, so each order records what was agreed to.
+const CONSENT_VERSION = '2026-10-06';
 const OTP_MAX_ATTEMPTS = 5;
 const MAX_IMAGES = 6;
 // Same ceiling the member upload uses: keeps the base64 under the model's PDF limit.
@@ -49,19 +58,11 @@ const SUPPORT_WHATSAPP = String(process.env.BLOODMAP_WHATSAPP || '919502575669')
 const ROLES = ['doctor', 'nutritionist'];
 const ROLE_LABEL = { doctor: 'Doctor', nutritionist: 'Sports Nutritionist' };
 
-// Placeholders until the owner fills these in from the admin page.
-const DEFAULT_CONSULTANTS = {
-  doctor: {
-    name: 'Dr. Name Surname', title: 'Consulting Physician',
-    qualification: 'MBBS, MD (qualification to be added)', reg_no: 'Medical registration no. to be added',
-    bio: 'Profile coming soon. Your doctor reads your Health Map report before the call and explains what each result means for you.'
-  },
-  nutritionist: {
-    name: 'Name Surname', title: 'Sports Nutritionist',
-    qualification: 'M.Sc. Sports Nutrition (qualification to be added)', reg_no: '',
-    bio: 'Profile coming soon. Your sports nutritionist turns the doctor\'s findings into a food and supplement plan you can follow.'
-  }
-};
+// A consultant's profile is shown publicly only once staff publish it. Until then
+// the page names nobody: an invented name beside "registered doctor" is a false claim.
+const DEFAULT_TITLE = { doctor: 'Consulting Physician', nutritionist: 'Sports Nutritionist' };
+// The first release seeded invented names; these are cleared on boot.
+const LEGACY_PLACEHOLDER_NAMES = ['Dr. Name Surname', 'Name Surname'];
 
 // Shown on the report-ready screen. Display only: each one opens WhatsApp with a
 // prefilled message, so the team sets it up by hand until amounts are decided.
@@ -232,6 +233,16 @@ function createBloodmapService(deps) {
     await run('CREATE INDEX IF NOT EXISTS idx_bloodmap_orders_email ON bloodmap_orders (email)');
     await run('CREATE INDEX IF NOT EXISTS idx_bloodmap_orders_phone ON bloodmap_orders (phone_key)');
     await run('CREATE INDEX IF NOT EXISTS idx_bloodmap_orders_payment ON bloodmap_orders (payment_id)');
+    for (const col of [
+      'email_verified_at TIMESTAMPTZ',
+      'token_expires_at TIMESTAMPTZ',
+      'consent_at TIMESTAMPTZ',
+      `consent_version TEXT DEFAULT ''`,
+      `consent_ip TEXT DEFAULT ''`,
+      `consent_ua TEXT DEFAULT ''`
+    ]) await run(`ALTER TABLE bloodmap_orders ADD COLUMN IF NOT EXISTS ${col}`);
+    // Links issued before expiry existed get the standard lifetime from now.
+    await run(`UPDATE bloodmap_orders SET token_expires_at = NOW() + INTERVAL '${LINK_DAYS} days' WHERE token_expires_at IS NULL`);
 
     await run(`CREATE TABLE IF NOT EXISTS bloodmap_consultants (
       role TEXT PRIMARY KEY,
@@ -247,14 +258,14 @@ function createBloodmapService(deps) {
       slot_min INTEGER DEFAULT 60,
       updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     )`);
+    await run('ALTER TABLE bloodmap_consultants ADD COLUMN IF NOT EXISTS published BOOLEAN DEFAULT FALSE');
     for (const role of ROLES) {
-      const d = DEFAULT_CONSULTANTS[role];
-      await run(
-        `INSERT INTO bloodmap_consultants (role, name, title, qualification, reg_no, bio)
-         VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT (role) DO NOTHING`,
-        [role, d.name, d.title, d.qualification, d.reg_no, d.bio]
-      );
+      await run('INSERT INTO bloodmap_consultants (role, title) VALUES (?, ?) ON CONFLICT (role) DO NOTHING', [role, DEFAULT_TITLE[role]]);
     }
+    await run(
+      `UPDATE bloodmap_consultants SET name = '', qualification = '', reg_no = '', bio = '', published = FALSE WHERE name IN (?, ?)`,
+      LEGACY_PLACEHOLDER_NAMES
+    );
 
     await run(`CREATE TABLE IF NOT EXISTS bloodmap_bookings (
       id TEXT PRIMARY KEY,
@@ -290,6 +301,11 @@ function createBloodmapService(deps) {
       created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     )`);
     await run('CREATE INDEX IF NOT EXISTS idx_bloodmap_otps_contact ON bloodmap_otps (contact, created_at DESC)');
+    // purpose: 'order' (confirming an email before buying) | 'track' (reopening an order).
+    // email: the one address this code was sent to, and the only orders it can unlock.
+    await run(`ALTER TABLE bloodmap_otps ADD COLUMN IF NOT EXISTS purpose TEXT DEFAULT 'track'`);
+    await run(`ALTER TABLE bloodmap_otps ADD COLUMN IF NOT EXISTS email TEXT DEFAULT ''`);
+    await run(`DELETE FROM bloodmap_otps WHERE expires_at < NOW() - INTERVAL '1 day'`);
   }
 
   function logEvent(orderId, kind, detail, actor) {
@@ -305,7 +321,11 @@ function createBloodmapService(deps) {
     return base + '/bloodmap?o=' + encodeURIComponent(order.access_token);
   }
 
-  /** Email (primary) + WhatsApp (best effort) to the client. Never throws. */
+  /**
+   * Email carries the private link. WhatsApp is a nudge only and never carries the
+   * link: the mobile number is unproven, so a mistyped or borrowed number must not
+   * hand a stranger the way into someone's blood report. Never throws.
+   */
   function tellClient(order, msg) {
     const url = linkFor(order);
     const first = String(order.name || '').trim().split(/\s+/)[0] || 'there';
@@ -326,7 +346,7 @@ function createBloodmapService(deps) {
     }
     const to = phoneE164(order.phone);
     if (sendWa && to) {
-      Promise.resolve(sendWa(`BloodMap by BodyBank\n\nHi ${first}, ${msg.lead}\n\n${url}`, { to }))
+      Promise.resolve(sendWa(`BloodMap by BodyBank\n\nHi ${first}, ${msg.lead}\n\nOpen the link in the email we sent to ${maskEmail(order.email)}.`, { to }))
         .catch((e) => console.warn('[bloodmap] whatsapp failed:', e.message));
     }
   }
@@ -346,12 +366,12 @@ function createBloodmapService(deps) {
     const out = {};
     for (const role of ROLES) {
       const r = rows.find((x) => x.role === role) || {};
-      const d = DEFAULT_CONSULTANTS[role];
       out[role] = {
         role,
         label: ROLE_LABEL[role],
-        name: r.name || d.name,
-        title: r.title || d.title,
+        published: !!r.published && !!String(r.name || '').trim(),
+        name: r.name || '',
+        title: r.title || DEFAULT_TITLE[role],
         qualification: r.qualification || '',
         reg_no: r.reg_no || '',
         bio: r.bio || '',
@@ -365,8 +385,10 @@ function createBloodmapService(deps) {
     return out;
   }
 
+  /** What the public may see. An unpublished profile leaves the server as a role and nothing else. */
   function publicConsultant(c) {
-    return { role: c.role, label: c.label, name: c.name, title: c.title, qualification: c.qualification, reg_no: c.reg_no, bio: c.bio, photo_url: c.photo_url };
+    if (!c.published) return { role: c.role, label: c.label, published: false, name: '', title: '', qualification: '', reg_no: '', bio: '', photo_url: '' };
+    return { role: c.role, label: c.label, published: true, name: c.name, title: c.title, qualification: c.qualification, reg_no: c.reg_no, bio: c.bio, photo_url: c.photo_url };
   }
 
   async function saveConsultant(role, body) {
@@ -379,13 +401,21 @@ function createBloodmapService(deps) {
     const slotMin = [30, 45, 60, 90].includes(parseInt(b.slot_min, 10)) ? parseInt(b.slot_min, 10) : 60;
     const photo = clip(b.photo_url, 600);
     if (photo && !/^(https:\/\/|\/)/.test(photo)) return { error: 'Photo must be an https:// link.', status: 400 };
+    const name = clip(b.name, 80), qualification = clip(b.qualification, 160), regNo = clip(b.reg_no, 80);
+    const publish = b.published === true || b.published === 'true';
+    if (publish) {
+      if (name.length < 3 || LEGACY_PLACEHOLDER_NAMES.includes(name)) return { error: 'Enter the real name before showing this profile on the public page.', status: 400 };
+      if (!qualification) return { error: 'Enter the qualification before showing this profile on the public page.', status: 400 };
+      // The page calls the doctor "registered", so the registration number must be on it.
+      if (role === 'doctor' && !regNo) return { error: 'Enter the medical registration number before showing the doctor on the public page.', status: 400 };
+    }
     await run(
       `UPDATE bloodmap_consultants SET name = ?, title = ?, qualification = ?, reg_no = ?, bio = ?, photo_url = ?,
-              work_days = ?, start_min = ?, end_min = ?, slot_min = ?, updated_at = NOW() WHERE role = ?`,
-      [clip(b.name, 80), clip(b.title, 80), clip(b.qualification, 160), clip(b.reg_no, 80), clip(b.bio, 600), photo,
-        (days.length ? days : [1, 2, 3, 4, 5, 6]).join(','), startMin, endMin, slotMin, role]
+              work_days = ?, start_min = ?, end_min = ?, slot_min = ?, published = ?, updated_at = NOW() WHERE role = ?`,
+      [name, clip(b.title, 80), qualification, regNo, clip(b.bio, 600), photo,
+        (days.length ? days : [1, 2, 3, 4, 5, 6]).join(','), startMin, endMin, slotMin, publish, role]
     );
-    return { ok: true };
+    return { ok: true, published: publish };
   }
 
   async function bookingsFor(orderId) {
@@ -409,6 +439,7 @@ function createBloodmapService(deps) {
    */
   async function slotsFor(order, role) {
     if (!ROLES.includes(role)) return { error: 'Unknown call type', status: 400 };
+    if (isClosed(order)) return CLOSED;
     const consultants = await getConsultants();
     const c = consultants[role];
     const mine = await bookingsFor(order.id);
@@ -472,6 +503,7 @@ function createBloodmapService(deps) {
 
   async function book(order, role, startIso) {
     if (!ROLES.includes(role)) return { error: 'Unknown call type', status: 400 };
+    if (isClosed(order)) return CLOSED;
     if (order.pay_status !== 'paid') return { error: 'Payment is not complete for this order.', status: 402 };
     if (!order.report_id) return { error: 'Upload your blood report first, then choose your call times.', status: 400 };
     const startMs = new Date(String(startIso || '')).getTime();
@@ -552,19 +584,31 @@ function createBloodmapService(deps) {
     return { value: { name, email: mail, phone, city, age: String(age), gender } };
   }
 
-  async function createOrder(body, origin) {
+  /**
+   * @param {object} body   the details form + email_code
+   * @param {string} origin site origin the order was placed on (for links in emails)
+   * @param {{ip?:string, ua?:string}} [meta] recorded with the consent
+   */
+  async function createOrder(body, origin, meta) {
     const v = validateDetails(body);
     if (v.error) return { error: v.error, status: 400 };
     const d = v.value;
+    // The buyer must prove the email is theirs before an order exists. It is where
+    // the private link goes, and the key every later sign-in code is tied to.
+    const proof = await checkCode('order', d.email, body && body.email_code);
+    if (proof.error) return { error: proof.error, status: 400 };
     const id = uuid();
     const token = newToken();
+    const m = meta || {};
     await run(
-      `INSERT INTO bloodmap_orders (id, access_token, name, phone, phone_key, email, city, age, gender, amount_paise, currency, origin, mode)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO bloodmap_orders (id, access_token, token_expires_at, name, phone, phone_key, email, email_verified_at, city, age, gender,
+                                    amount_paise, currency, origin, mode, consent_at, consent_version, consent_ip, consent_ua)
+       VALUES (?, ?, NOW() + INTERVAL '${LINK_DAYS} days', ?, ?, ?, ?, NOW(), ?, ?, ?, ?, ?, ?, ?, NOW(), ?, ?, ?)`,
       [id, token, d.name, d.phone, phoneKey(d.phone), d.email, d.city, d.age, d.gender, PRICE_RUPEES * 100, CURRENCY,
-        clip(origin, 200), paymentsLib.config().enabled ? paymentsLib.config().mode : 'dev']
+        clip(origin, 200), paymentsLib.config().enabled ? paymentsLib.config().mode : 'dev',
+        CONSENT_VERSION, clip(m.ip, 64), clip(m.ua, 300)]
     );
-    logEvent(id, 'created', `Details submitted from ${d.city}`);
+    logEvent(id, 'created', `Details submitted from ${d.city}. Email confirmed by code. Consent ${CONSENT_VERSION} recorded.`);
     return { ok: true, token };
   }
 
@@ -575,8 +619,29 @@ function createBloodmapService(deps) {
     return queryOne('SELECT * FROM bloodmap_orders WHERE access_token = ?', [t]);
   }
 
+  /** A link stops working when it expires or staff revoke it (revoking sets the expiry to now). */
+  function linkExpired(order) {
+    const exp = order && order.token_expires_at ? new Date(order.token_expires_at).getTime() : 0;
+    return !(exp > Date.now());
+  }
+
+  // A fully refunded order is closed: the page says so and nothing else is served.
+  function isClosed(order) { return !!order && order.pay_status === 'refunded'; }
+  const CLOSED = { error: 'This order was refunded and is now closed.', status: 403 };
+
+  /** Give the order a brand-new link. The old one stops working at once. */
+  async function reissueLink(order) {
+    const token = newToken();
+    const r = await run(
+      `UPDATE bloodmap_orders SET access_token = ?, token_expires_at = NOW() + INTERVAL '${LINK_DAYS} days', updated_at = NOW() WHERE id = ? RETURNING *`,
+      [token, order.id]
+    );
+    return (r.rows && r.rows[0]) || order;
+  }
+
   /** Start (or resume) the Razorpay checkout for an unpaid order. */
   async function startPayment(order) {
+    if (isClosed(order)) return CLOSED;
     if (order.pay_status === 'paid') return { ok: true, paid: true };
     const cfg = paymentsLib.config();
     if (!cfg.enabled) {
@@ -644,6 +709,7 @@ function createBloodmapService(deps) {
   }
 
   async function verifyPayment(order, body) {
+    if (isClosed(order)) return { ok: false, reason: 'closed' };
     if (order.pay_status === 'paid') return { ok: true, already: true };
     const cfg = paymentsLib.config();
     const orderId = String((body && body.razorpay_order_id) || '');
@@ -670,6 +736,7 @@ function createBloodmapService(deps) {
 
   async function devPay(order) {
     if (!devPayAllowed()) return { error: 'Not available', status: 404 };
+    if (isClosed(order)) return CLOSED;
     if (order.pay_status === 'paid') return { ok: true };
     const r = await run(`UPDATE bloodmap_orders SET pay_status = 'paid', payment_id = ?, paid_at = NOW(), mode = 'dev', updated_at = NOW() WHERE id = ? AND pay_status <> 'paid' RETURNING *`,
       ['dev_' + Date.now(), order.id]);
@@ -700,9 +767,17 @@ function createBloodmapService(deps) {
         [amount, amount, paymentId]
       );
       const row = r && r.rows && r.rows[0];
-      if (row && type === 'refund.processed') {
-        logEvent(row.id, 'refunded', `${inr(amount)} refunded`, 'system');
-        tellStaff(row, `↩️ BloodMap refund — ${row.name}`, `${inr(amount)} refunded · ${refOf(row)}`);
+      if (row && row.pay_status === 'refunded') {
+        // Closed order: free the consultants' time. The link now serves the
+        // "refunded" notice and nothing else (see isClosed).
+        const freed = await run(`UPDATE bloodmap_bookings SET status = 'cancelled', updated_at = NOW() WHERE order_id = ? AND status = 'booked'`, [row.id]);
+        if (type === 'refund.processed') {
+          logEvent(row.id, 'refunded', `${inr(amount)} refunded in full. Order closed${freed.rowCount ? ', booked calls cancelled' : ''}.`, 'system');
+          tellStaff(row, `↩️ BloodMap refund — ${row.name}`, `${inr(amount)} refunded · ${refOf(row)} · order closed`);
+        }
+      } else if (row && type === 'refund.processed') {
+        logEvent(row.id, 'refunded', `${inr(amount)} refunded (partial)`, 'system');
+        tellStaff(row, `↩️ BloodMap part refund — ${row.name}`, `${inr(amount)} refunded · ${refOf(row)}`);
       }
       return { ok: true, refunded: !!row };
     }
@@ -730,6 +805,7 @@ function createBloodmapService(deps) {
   }
 
   async function uploadReport(order, body) {
+    if (isClosed(order)) return CLOSED;
     if (order.pay_status !== 'paid') return { error: 'Payment is not complete for this order.', status: 402 };
     if (order.report_id && !order.reupload_requested_at) return { error: 'Your report is already with us. If you need to replace it, message us on WhatsApp.', status: 409 };
 
@@ -822,7 +898,7 @@ function createBloodmapService(deps) {
 
   /** The Health Map PDF, only once staff have released it to this client. */
   async function reportPdf(order) {
-    if (!order.report_id || !order.released_at) return null;
+    if (isClosed(order) || !order.report_id || !order.released_at) return null;
     const chosen = await graded.reportPdfFor(db, order.report_id, ensureHealthReportPdf);
     return chosen && chosen.path && fs.existsSync(chosen.path) ? chosen : null;
   }
@@ -840,6 +916,16 @@ function createBloodmapService(deps) {
   }
 
   async function view(order) {
+    if (isClosed(order)) {
+      return {
+        ref: refOf(order), stage: 'refunded',
+        client: { name: order.name, email: order.email, phone: order.phone, city: order.city },
+        payment: { paid: false, status: 'refunded', amount: inr(order.amount_paise), paid_at: order.paid_at, mode: order.mode },
+        steps: [], upload: { needed: false, reupload_note: '' }, report: { ready: false, due_by: '', hours: REPORT_HOURS },
+        calls: { doctor: { role: 'doctor', status: 'none' }, nutritionist: { role: 'nutritionist', status: 'none' }, can_book: false, cutoff_hours: RESCHEDULE_CUTOFF_HOURS },
+        consultants: {}, offers: [], whatsapp: SUPPORT_WHATSAPP
+      };
+    }
     const [report, bookings, consultants] = await Promise.all([reportRow(order), bookingsFor(order.id), getConsultants()]);
     const stage = stageOf(order, report, bookings);
     const rank = { payment: 0, upload: 1, analysing: 2, review: 3, ready: 4, completed: 5 }[stage];
@@ -889,7 +975,77 @@ function createBloodmapService(deps) {
     };
   }
 
-  // ── tracking without the link: a one-time code ────────────────────────────
+  // ── one-time codes ────────────────────────────────────────────────────────
+  // Every code is emailed, tied to the single address it was sent to, and can
+  // only ever act for that address.
+  const hashCode = (purpose, contact, emailAddr, code) =>
+    crypto.createHash('sha256').update([purpose, contact, emailAddr, code].join('|')).digest('hex');
+  const mailOn = () => !!(email && email.isConfigured && email.isConfigured());
+
+  /** Create a code for (purpose, contact) and email it to `emailAddr`. Returns the code. */
+  async function issueCode(purpose, contact, emailAddr, why) {
+    const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
+    await run(
+      `INSERT INTO bloodmap_otps (id, purpose, contact, email, code_hash, expires_at) VALUES (?, ?, ?, ?, ?, NOW() + INTERVAL '${OTP_TTL_MIN} minutes')`,
+      [uuid(), purpose, contact, emailAddr, hashCode(purpose, contact, emailAddr, code)]
+    );
+    if (mailOn()) {
+      const html = email.luxuryWrap({
+        title: 'Your BloodMap code',
+        preheader: 'Your code is ' + code,
+        lead: why,
+        bodyHtml: `<p style="margin:0;font-size:30px;letter-spacing:8px;color:#c8a44e;font-family:system-ui,sans-serif">${code}</p><p style="margin:14px 0 0;font-size:12px;color:#8a8880">It works for ${OTP_TTL_MIN} minutes. Never share it. If you did not ask for it, ignore this email.</p>`
+      });
+      email.sendMail(emailAddr, 'Your BloodMap code: ' + code, html, 'Your BloodMap code is ' + code).catch(() => {});
+    }
+    if (NODE_ENV !== 'production') console.log(`[bloodmap] ${purpose} code for ${emailAddr}: ${code}`);
+    return code;
+  }
+
+  async function tooManyCodes(purpose, contact) {
+    const r = await queryOne(
+      `SELECT COUNT(*)::int AS n FROM bloodmap_otps WHERE purpose = ? AND contact = ? AND created_at > NOW() - INTERVAL '15 minutes'`,
+      [purpose, contact]
+    );
+    return !!r && r.n >= 4;
+  }
+
+  /**
+   * Check a code. On success the matching code is used up and its email returned.
+   * A wrong guess counts against every live code for that contact.
+   * @returns {Promise<{email:string}|{error:string}>}
+   */
+  async function checkCode(purpose, contact, code) {
+    const cd = String(code || '').replace(/[^0-9]/g, '');
+    if (cd.length !== 6) return { error: 'Enter the 6-digit code we emailed you.' };
+    const rows = await queryAll(
+      `SELECT * FROM bloodmap_otps WHERE purpose = ? AND contact = ? AND expires_at > NOW() AND attempts < ${OTP_MAX_ATTEMPTS} ORDER BY created_at DESC LIMIT 12`,
+      [purpose, contact]
+    );
+    if (!rows.length) return { error: 'That code has expired. Please ask for a new one.' };
+    const hit = rows.find((r) => r.code_hash === hashCode(purpose, contact, r.email, cd));
+    if (!hit) {
+      await run(`UPDATE bloodmap_otps SET attempts = attempts + 1 WHERE purpose = ? AND contact = ? AND expires_at > NOW()`, [purpose, contact]);
+      return { error: 'That code is not right. Please check and try again.' };
+    }
+    await run('DELETE FROM bloodmap_otps WHERE id = ?', [hit.id]);
+    return { email: hit.email };
+  }
+
+  /** Step before buying: prove the email. */
+  async function requestEmailCode(rawEmail) {
+    const mail = normEmail(rawEmail);
+    if (!mail) return { error: 'Please enter a valid email address.', status: 400 };
+    const dev = NODE_ENV !== 'production';
+    if (!mailOn() && !dev) return { error: 'We cannot send email right now. Message us on WhatsApp and we will help.', status: 503 };
+    if (await tooManyCodes('order', mail)) return { error: 'Too many codes requested. Please wait a few minutes and try again.', status: 429 };
+    const code = await issueCode('order', mail, mail, 'Use this code to confirm your email and start your BloodMap order.');
+    const out = { ok: true };
+    if (dev && !mailOn()) out.dev_code = code;
+    return out;
+  }
+
+  // ── reopening an order without the link ───────────────────────────────────
   function contactKey(raw) {
     const s = String(raw || '').trim();
     if (s.includes('@')) { const e = normEmail(s); return e ? { kind: 'email', key: e } : null; }
@@ -899,66 +1055,46 @@ function createBloodmapService(deps) {
 
   function ordersForContact(c) {
     return queryAll(
-      `SELECT * FROM bloodmap_orders WHERE ${c.kind === 'email' ? 'email' : 'phone_key'} = ? AND pay_status IN ('paid', 'refunded') ORDER BY created_at DESC LIMIT 10`,
+      `SELECT * FROM bloodmap_orders WHERE ${c.kind === 'email' ? 'email' : 'phone_key'} = ? AND pay_status IN ('paid', 'refunded') ORDER BY created_at DESC LIMIT 20`,
       [c.key]
     );
   }
 
-  const hashCode = (key, code) => crypto.createHash('sha256').update(key + '|' + code).digest('hex');
-
   /**
-   * Answers the same way whether or not an order exists (no hint of where the code
-   * went), so this cannot be used to find out who is a client. The code goes to the
-   * email AND mobile on the order, never to whatever was typed.
+   * Answers the same way whether or not an order exists, with no hint of where a
+   * code went, so this cannot be used to find out who is a client.
+   *
+   * A mobile number can sit on several people's orders (anyone can type any
+   * number), so each distinct email among them gets its OWN code. Whoever reads a
+   * code can open only the orders on the email it arrived at.
    */
   async function requestCode(rawContact) {
     const c = contactKey(rawContact);
     if (!c) return { error: 'Enter the email or mobile number you used for your order.', status: 400 };
     const out = { ok: true };
     const orders = await ordersForContact(c);
-    if (!orders.length) return out;
-    const recent = await queryOne(`SELECT COUNT(*)::int AS n FROM bloodmap_otps WHERE contact = ? AND created_at > NOW() - INTERVAL '15 minutes'`, [c.key]);
-    if (recent && recent.n >= 4) return out;
-
-    const code = String(crypto.randomInt(0, 1000000)).padStart(6, '0');
-    await run(`INSERT INTO bloodmap_otps (id, contact, code_hash, expires_at) VALUES (?, ?, ?, NOW() + INTERVAL '${OTP_TTL_MIN} minutes')`,
-      [uuid(), c.key, hashCode(c.key, code)]);
-    const o = orders[0];
-    const mailOn = !!(email && email.isConfigured && email.isConfigured());
-    if (mailOn) {
-      const html = email.luxuryWrap({
-        title: 'Your BloodMap code',
-        preheader: 'Your code is ' + code,
-        lead: 'Use this code to open your BloodMap order.',
-        bodyHtml: `<p style="margin:0;font-size:30px;letter-spacing:8px;color:#c8a44e;font-family:system-ui,sans-serif">${code}</p><p style="margin:14px 0 0;font-size:12px;color:#8a8880">It works for ${OTP_TTL_MIN} minutes. If you did not ask for it, ignore this email.</p>`
-      });
-      email.sendMail(o.email, 'Your BloodMap code: ' + code, html, 'Your BloodMap code is ' + code).catch(() => {});
-    }
-    const to = phoneE164(o.phone);
-    if (sendWa && to) Promise.resolve(sendWa(`Your BloodMap code is ${code}. It works for ${OTP_TTL_MIN} minutes.`, { to })).catch(() => {});
-    if (NODE_ENV !== 'production') {
-      console.log(`[bloodmap] tracking code for ${c.key}: ${code}`);
-      if (!mailOn) out.dev_code = code;
+    if (!orders.length || await tooManyCodes('track', c.key)) return out;
+    const emails = Array.from(new Set(orders.map((o) => o.email))).slice(0, 3);
+    for (const addr of emails) {
+      const code = await issueCode('track', c.key, addr, 'Use this code to open your BloodMap order.');
+      if (NODE_ENV !== 'production' && !mailOn() && emails.length === 1) out.dev_code = code;
     }
     return out;
   }
 
   async function verifyCode(rawContact, code) {
     const c = contactKey(rawContact);
-    const cd = String(code || '').replace(/[^0-9]/g, '');
-    if (!c || cd.length !== 6) return { error: 'Enter the 6-digit code we sent you.', status: 400 };
-    const row = await queryOne('SELECT * FROM bloodmap_otps WHERE contact = ? AND expires_at > NOW() ORDER BY created_at DESC LIMIT 1', [c.key]);
-    if (!row || Number(row.attempts) >= OTP_MAX_ATTEMPTS) return { error: 'That code has expired. Please request a new one.', status: 400 };
-    if (row.code_hash !== hashCode(c.key, cd)) {
-      await run('UPDATE bloodmap_otps SET attempts = attempts + 1 WHERE id = ?', [row.id]);
-      return { error: 'That code is not right. Please check and try again.', status: 400 };
-    }
-    await run('DELETE FROM bloodmap_otps WHERE contact = ?', [c.key]);
-    const orders = await ordersForContact(c);
+    if (!c) return { error: 'Enter the email or mobile number you used for your order.', status: 400 };
+    const proof = await checkCode('track', c.key, code);
+    if (proof.error) return { error: proof.error, status: 400 };
+    // Only orders on the proven email — and, for a mobile lookup, with that mobile too.
+    const orders = (await ordersForContact(c)).filter((o) => o.email === proof.email);
     const list = [];
-    for (const o of orders) {
+    for (let o of orders) {
+      // A lapsed or revoked link is replaced; a working one is handed back as it is.
+      if (linkExpired(o)) o = await reissueLink(o);
       const [rep, bk] = await Promise.all([reportRow(o), bookingsFor(o.id)]);
-      list.push({ token: o.access_token, ref: refOf(o), created_at: o.created_at, stage: stageOf(o, rep, bk) });
+      list.push({ token: o.access_token, ref: refOf(o), created_at: o.created_at, stage: isClosed(o) ? 'refunded' : stageOf(o, rep, bk) });
     }
     return { ok: true, orders: list };
   }
@@ -976,25 +1112,25 @@ function createBloodmapService(deps) {
     return rows.map((o) => {
       const bk = {};
       for (const b of bookings) if (b.order_id === o.id) bk[b.role] = b;
-      const stage = stageOf(o, { status: o.report_status }, bk);
+      const stage = isClosed(o) ? 'refunded' : stageOf(o, { status: o.report_status }, bk);
       const flags = [];
       if (o.pay_status === 'paid' && !o.report_id && o.paid_at && now - new Date(o.paid_at).getTime() > 24 * HOUR) flags.push('No upload after 24h');
       if (o.report_id && !o.released_at && String(o.report_status).toLowerCase() === 'failed') flags.push('Analysis failed');
       if (o.report_id && !o.released_at && now > reportDueAt(o).getTime()) flags.push('Report is late');
       if (o.reupload_requested_at) flags.push('Waiting for a clearer copy');
-      if (o.pay_status === 'refunded') flags.push('Refunded');
       return {
         id: o.id, ref: refOf(o), name: o.name, phone: o.phone, email: o.email, city: o.city, age: o.age, gender: o.gender,
         pay_status: o.pay_status, amount: inr(o.amount_paise), mode: o.mode, payment_id: o.payment_id,
         created_at: o.created_at, paid_at: o.paid_at, uploaded_at: o.uploaded_at, released_at: o.released_at,
         report_id: o.report_id, report_status: o.report_status || '', intake: parseJson(o.intake) || {},
         stage, flags, admin_notes: o.admin_notes || '',
+        consent_at: o.consent_at, consent_version: o.consent_version || '', email_verified: !!o.email_verified_at,
+        link_expires_at: o.token_expires_at, link_expired: linkExpired(o),
         due_by: o.report_id && !o.released_at ? fmtIST(reportDueAt(o)) : '',
         calls: {
           doctor: Object.assign(bookingView(bk.doctor, 'doctor'), { id: bk.doctor && bk.doctor.id }),
           nutritionist: Object.assign(bookingView(bk.nutritionist, 'nutritionist'), { id: bk.nutritionist && bk.nutritionist.id })
-        },
-        link: linkFor(o)
+        }
       };
     });
   }
@@ -1008,6 +1144,7 @@ function createBloodmapService(deps) {
   async function adminRelease(orderId, who) {
     const order = await orderById(orderId);
     if (!order) return { error: 'Order not found', status: 404 };
+    if (isClosed(order)) return { error: 'This order was refunded. Nothing can be released on it.', status: 400 };
     if (order.released_at) return { ok: true, already: true };
     const rep = await reportRow(order);
     if (!rep || String(rep.status).toLowerCase() !== 'complete') return { error: 'The analysis is not complete yet.', status: 400 };
@@ -1073,11 +1210,23 @@ function createBloodmapService(deps) {
     return { ok: true };
   }
 
+  /** Emails a brand-new link. Any link sent before it stops working. */
   async function adminResendLink(orderId, who) {
     const order = await orderById(orderId);
     if (!order) return { error: 'Order not found', status: 404 };
-    tellClient(order, { title: 'Your BloodMap link', lead: 'here is your private BloodMap link again.', cta: 'Open my BloodMap' });
-    logEvent(order.id, 'link_resent', 'Private link sent again', who);
+    if (isClosed(order)) return { error: 'This order was refunded and is closed.', status: 400 };
+    const fresh = await reissueLink(order);
+    tellClient(fresh, { title: 'Your new BloodMap link', lead: 'here is a new private link to your BloodMap. Links we sent you before no longer work.', cta: 'Open my BloodMap' });
+    logEvent(order.id, 'link_resent', 'New private link emailed; earlier links stopped working', who);
+    return { ok: true };
+  }
+
+  /** Kills the current link without sending a new one. The client gets back in with an email code. */
+  async function adminRevokeLink(orderId, who) {
+    const order = await orderById(orderId);
+    if (!order) return { error: 'Order not found', status: 404 };
+    await run('UPDATE bloodmap_orders SET access_token = ?, token_expires_at = NOW(), updated_at = NOW() WHERE id = ?', [newToken(), order.id]);
+    logEvent(order.id, 'link_revoked', 'Private link revoked', who);
     return { ok: true };
   }
 
@@ -1112,8 +1261,8 @@ function createBloodmapService(deps) {
 
   return {
     ensureTables, publicConfig, createOrder, orderByToken, startPayment, verifyPayment, devPay, handleWebhookEvent,
-    uploadReport, view, reportPdf, slotsFor, book, requestCode, verifyCode,
-    adminList, adminEvents, adminRelease, adminRequestReupload, adminCall, adminNotes, adminResendLink,
+    uploadReport, view, reportPdf, slotsFor, book, requestEmailCode, requestCode, verifyCode, linkExpired,
+    adminList, adminEvents, adminRelease, adminRequestReupload, adminCall, adminNotes, adminResendLink, adminRevokeLink,
     getConsultants, saveConsultant, sweepReminders, startScheduler
   };
 }

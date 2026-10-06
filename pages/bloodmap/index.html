@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/bloodmap-assets/bloodmap.css?v=1" />
+<link rel="stylesheet" href="/bloodmap-assets/bloodmap.css?v=2" />
 </head>
 <body>
 
@@ -111,12 +111,13 @@
     </div>
   </section>
 
-  <section class="sec" style="padding-top:8px">
+  <!-- Shown only for consultants whose profile staff have published. -->
+  <section class="sec" id="expertsSec" style="padding-top:8px" hidden>
     <div class="wrap">
       <div class="sec-head">
         <p class="eyebrow">Your experts</p>
         <h2 class="h2" style="margin-top:10px">Real people read your report</h2>
-        <p class="sub">The analysis is checked by our team before it reaches you, and a registered doctor is the one who interprets it with you.</p>
+        <p class="sub">The analysis is checked by our team before it reaches you, and your doctor is the one who interprets it with you.</p>
       </div>
       <div class="grid2" id="experts"></div>
     </div>
@@ -127,7 +128,7 @@
       <div class="sec-head">
         <p class="eyebrow">Get started</p>
         <h2 class="h2" style="margin-top:10px">Start your BloodMap</h2>
-        <p class="sub">Fill in your details and pay. You upload the report on the next screen.</p>
+        <p class="sub">Fill in your details, confirm your email with a code, and pay. You upload the report on the next screen.</p>
       </div>
       <div class="order">
         <form class="card card--gold" id="orderForm" novalidate>
@@ -145,8 +146,13 @@
           </div>
           <p class="small mute" style="margin:-4px 0 14px">Age and gender are needed because healthy ranges for blood markers depend on them.</p>
           <label class="consent"><input type="checkbox" id="fConsent"><span>I agree that BodyBank may process my blood report and health details to prepare my report and consultations, as described in the <a href="/privacy.html" target="_blank" rel="noopener">Privacy Policy</a> and <a href="/terms.html" target="_blank" rel="noopener">Terms</a>.</span></label>
+          <div id="codeStep" hidden>
+            <p class="msg msg--info" id="codeInfo"></p>
+            <div class="field"><label for="fCode">6-digit code from your email</label><input id="fCode" class="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6"></div>
+            <p class="small mute" style="margin:-6px 0 14px">Nothing arrived? Check spam, or <a href="#" id="codeResend">send a new code</a>.</p>
+          </div>
           <p class="msg" id="orderMsg" hidden></p>
-          <button class="btn btn--gold btn--block" type="submit" id="payBtn">Pay <span data-price>₹—</span> and continue</button>
+          <button class="btn btn--gold btn--block" type="submit" id="payBtn">Confirm my email</button>
           <p class="secure" id="secureLine">Secure payment by Razorpay: UPI, cards, netbanking and wallets.</p>
         </form>
 
@@ -172,10 +178,10 @@
       <details><summary>Which blood reports can I upload?</summary><p>Any blood test report from a lab in India or abroad: full body checkups, thyroid, lipid, liver, kidney, sugar, vitamins and more. A PDF from the lab works best. Clear photos of each page work too.</p></details>
       <details><summary>How old can the report be?</summary><p>For useful advice, use a report from the last 3 months. Older reports still work, but your body may have changed since.</p></details>
       <details><summary>I do not have a blood report yet. What should I do?</summary><p>Get a test done at any lab near you first. If you are not sure which tests to ask for, message us on WhatsApp and we will suggest a panel.</p></details>
-      <details><summary>When do I get my report?</summary><p>Within <span data-hours>48</span> hours of uploading. We message you as soon as it is ready, so you do not need to keep this page open.</p></details>
+      <details><summary>When do I get my report?</summary><p>Within <span data-hours>48</span> hours of uploading. We email you as soon as it is ready, so you do not need to keep this page open.</p></details>
       <details><summary>How do the calls work?</summary><p>After you upload, you pick a time for the doctor call and then the sports nutritionist call. At that time we call you on the mobile number you gave. You can change a slot up to 12 hours before it starts.</p></details>
-      <details><summary>Do I need to install the BodyBank app?</summary><p>No. Everything happens on this page. You get a private link by email and WhatsApp to come back to your order at any time.</p></details>
-      <details><summary>Is my health data safe?</summary><p>Your report is only seen by our review team and the experts on your calls. Your order opens only with your private link, or a one-time code sent to your own email and mobile.</p></details>
+      <details><summary>Do I need to install the BodyBank app?</summary><p>No. Everything happens on this page. We email you a private link to come back to your order at any time.</p></details>
+      <details><summary>Is my health data safe?</summary><p>Your report is only seen by our review team and the experts on your calls. You confirm your email with a code before you order, and your order opens only with the private link we send to that email, or a new one-time code sent to it. Links stop working after 30 days, and you can always get a fresh one with a code.</p></details>
       <details><summary>Can I get a refund?</summary><p>Yes, in full, if you ask before we start analysing your report. Once your report has been prepared, the service has been delivered. See the <a href="/refund.html" target="_blank" rel="noopener">Refund Policy</a>.</p></details>
     </div>
   </section>
@@ -230,13 +236,13 @@
 <div class="modal" id="trackModal" role="dialog" aria-modal="true" aria-labelledby="trackTitle">
   <div class="modal-box">
     <div class="modal-head">
-      <div><h3 class="h3" id="trackTitle">Track my order</h3><p class="small mute">We send a one-time code to the email and mobile on your order.</p></div>
+      <div><h3 class="h3" id="trackTitle">Track my order</h3><p class="small mute">We email a one-time code to the address on your order.</p></div>
       <button class="x" type="button" data-close aria-label="Close">&times;</button>
     </div>
     <div id="trackBody"></div>
   </div>
 </div>
 
-<script src="/bloodmap-assets/bloodmap.js?v=1" defer></script>
+<script src="/bloodmap-assets/bloodmap.js?v=2" defer></script>
 </body>
 </html>

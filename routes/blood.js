@@ -325,6 +325,22 @@ function createBloodRouter(deps) {
     };
   }
 
+  // A BloodMap order's report reaches its client one way only: "Release to client"
+  // on the BloodMap staff page, which checks the order (paid, not refunded) and puts
+  // the report behind the client's private link. Emailing or link-sharing it from
+  // here would skip all of that, so every send path below refuses these reports.
+  // BloodMap clients are the users with role 'bloodmap' (see services/bloodmap.js).
+  const BLOODMAP_SEND_REFUSAL = {
+    success: false,
+    code: 'bloodmap_order',
+    error: 'This report belongs to a BloodMap order. Review it here, then send it with "Release to client" on the BloodMap staff page (/bloodmap/admin).'
+  };
+  async function isBloodmapClient(userId) {
+    if (!userId) return false;
+    const u = await queryOne('SELECT role FROM users WHERE id = ?', [userId]);
+    return !!u && u.role === 'bloodmap';
+  }
+
   // Staff hear when an analysis finishes or fails — that is when a report needs them.
   async function tellStaffAnalysis(reportId) {
     if (!hub) return;
@@ -893,6 +909,7 @@ function createBloodRouter(deps) {
       if (!report) {
         return res.status(404).json({ success: false, error: 'Report not found' });
       }
+      if (await isBloodmapClient(report.user_id)) return res.status(409).json(BLOODMAP_SEND_REFUSAL);
       const chosen = await graded.reportPdfFor(db, req.params.reportId, ensureHealthReportPdf);
       const pdfPath = chosen && chosen.path;
       if (!pdfPath || !fs.existsSync(pdfPath)) {
@@ -1640,6 +1657,7 @@ function createBloodRouter(deps) {
     try {
       const row = await queryOne(`SELECT * FROM blood_comparison_reports WHERE id = ?`, [req.params.id]);
       if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+      if (await isBloodmapClient(row.user_id)) return res.status(409).json(BLOODMAP_SEND_REFUSAL);
       const verdict = parseJsonCol(row.ai_verdict);
       if (!verdict) return res.status(400).json({ success: false, error: 'Run the AI verdict before sending.' });
       const pdfPath = await ensureComparisonPdf(row);
@@ -1701,6 +1719,7 @@ function createBloodRouter(deps) {
         [req.params.id]
       );
       if (!row) return res.status(404).json({ success: false, error: 'Comparison not found' });
+      if (await isBloodmapClient(row.user_id)) return res.status(409).json(BLOODMAP_SEND_REFUSAL);
 
       const pdfPath = await ensureComparisonPdf(row);
       if (!pdfPath || !fs.existsSync(pdfPath)) {
