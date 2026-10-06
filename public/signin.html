@@ -151,6 +151,7 @@
     BB.api('POST', '/api/auth/login', { email: email, password: password }).then(function (data) {
       if (data.error || !data.id) {
         BB.busy(signinBtn, false);
+        if (goRenew(data)) return;
         BB.msg(msgId, BB.authErrorText(data));
         return;
       }
@@ -187,6 +188,20 @@
     });
   });
 
+  // Website only: a member whose plan has ended gets a renew-only token (it can
+  // buy a plan and nothing else) and goes to the pricing page to pay. The apps
+  // never take this path; they keep the "message your coach" text.
+  function goRenew(data) {
+    if (!data || data.error !== 'subscription_expired' || !data.renew_token) return false;
+    if (window.IS_BODYBANK_APP || window.Capacitor) return false;
+    try { sessionStorage.setItem('bb_renew', JSON.stringify({ token: data.renew_token, at: Date.now() })); } catch (_) { return false; }
+    var next = BB.nextUrl();
+    var dest = next.indexOf('/pricing.html') === 0 ? next : '/pricing.html?renew=1';
+    BB.msg(msgId, 'Your plan has ended. Taking you to renew it…', 'ok');
+    setTimeout(function () { window.location.href = dest; }, 900);
+    return true;
+  }
+
   /* ------------------------------------------------------------ social --- */
   function applySocialSuccess(data) {
     BB.saveSession(data);
@@ -217,6 +232,7 @@
     BB.msg(msgId, '');
     BB.api('POST', '/api/auth/google', { id_token: credential }).then(function (data) {
       if (data.needs_profile) { sendToProfileCompletion('google', credential, null, data); return; }
+      if (goRenew(data)) return;
       if (data.error || !data.id) { BB.msg(msgId, BB.authErrorText(data)); return; }
       applySocialSuccess(data);
     });
@@ -228,6 +244,7 @@
     BB.appleSignIn(function (idToken, appleUser) {
       BB.api('POST', '/api/auth/apple', { id_token: idToken, user: appleUser }).then(function (data) {
         if (data.needs_profile) { sendToProfileCompletion('apple', idToken, appleUser, data); return; }
+        if (goRenew(data)) return;
         if (data.error || !data.id) { BB.msg(msgId, BB.authErrorText(data)); return; }
         applySocialSuccess(data);
       });

@@ -16,6 +16,9 @@ const EVENT_META = {
   USER_SUSPENDED: { priority: PRIORITY.CRITICAL, dedup: 0 },
   USER_REACTIVATED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
   USER_MEMBERSHIP_ACTIVATED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
+  PAYMENT_RECEIVED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
+  PAYMENT_ATTENTION: { priority: PRIORITY.CRITICAL, dedup: 0 },
+  PAYMENT_REFUNDED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
   USER_DELETED: { priority: PRIORITY.CRITICAL, dedup: 0 },
   DAILY_CHECKIN: { priority: PRIORITY.INFO, dedup: 10 * 60 * 1000 },
   SUNDAY_CHECKIN: { priority: PRIORITY.IMPORTANT, dedup: 0 },
@@ -203,6 +206,9 @@ const FORMATTERS = {
   REPORT_GENERATED: (p) => ['📑 Progress Report Generated', ...userLines(p), `🗂 ${s(p.type)} · ${s(p.period_start)} → ${s(p.period_end)}`, `🏅 Score: ${s(p.score)} (${s(p.grade)})`, `⏰ ${ts()}`],
   REPORT_SENT: (p) => ['📤 Progress Report Sent', ...userLines(p), `🗂 ${s(p.type)} · ${s(p.period_start)} → ${s(p.period_end)}`, `🏅 Score: ${s(p.score)} (${s(p.grade)})`, `📨 Via: ${s((p.channels || []).join(', '))}`, ...(p.failed && p.failed.length ? [`⚠️ Failed: ${p.failed.join(', ')}`] : []), `⏰ ${ts()}`],
   USER_MEMBERSHIP_ACTIVATED: (p) => ['✅ Membership Activated', ...userLines(p), `📦 Plan: ${s(p.plan)}`, `⏰ ${ts()}`],
+  PAYMENT_RECEIVED: (p) => ['💰 Website Payment Received', ...userLines(p), `📦 Plan: ${s(p.plan)}`, `💵 Amount: ${s(p.amount)}`, `📅 Access until: ${s(p.until)}${p.extended ? ' (added to remaining time)' : ''}`, ...(p.previous ? [`↩️ Was: ${s(p.previous)}`] : []), `🧾 ${s(p.payment_id)}${p.mode === 'test' ? ' · TEST MODE' : ''}`, `⏰ ${ts()}`],
+  PAYMENT_ATTENTION: (p) => ['⚠️ Website Payment Needs Attention', ...userLines(p), `📌 ${s(p.reason)}`, `💵 Amount: ${s(p.amount)}`, `🧾 Order ${s(p.order_id)} · Payment ${s(p.payment_id)}`, `⏰ ${ts()}`],
+  PAYMENT_REFUNDED: (p) => ['↩️ Website Payment Refunded', ...userLines(p), `📦 Plan: ${s(p.plan)}`, `💵 Refunded: ${s(p.amount)}`, 'Access was NOT changed. Adjust the plan in Memberships if needed.', `🧾 ${s(p.payment_id)}`, `⏰ ${ts()}`],
   REPORT_BULK_COMPLETE: (p) => ['📚 Bulk Progress Reports Done', `🗂 ${s(p.type)} · ${s(p.period)}`, `✅ Generated: ${s(p.done)} / ${s(p.total)}`, `❌ Failed: ${s(p.failed)}`, `🔁 Source: ${s(p.source)}`, `⏰ ${ts()}`]
 };
 const DETAILED_EVENTS = new Set(['SUNDAY_CHECKIN', 'PART2_FORM']);

@@ -26,6 +26,7 @@
     "demo:graded": "node scripts/graded-report-demo.js",
     "demo:graded-pdf": "node scripts/graded-report-pdf-demo.js",
     "test:pdf-layout": "node tests/pdf-layout-audit.js",
+    "test:payments": "node tests/payments-db.js",
     "test:reports": "node tests/report-score.js && node tests/report-insights.js && node tests/report-render.js",
     "demo:reports": "node scripts/report-samples.js"
   },

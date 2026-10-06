@@ -91,6 +91,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .site-footer a{color:var(--gold);text-decoration:none;transition:opacity .2s}
 .site-footer a:hover{opacity:.85}
 .site-footer p + p{margin-top:6px}
+.site-footer .pr-legal{margin:0 0 22px;font-size:13.5px;color:#7d786e;line-height:2}
+.site-footer .pr-legal a{color:var(--creamd);text-decoration:underline;text-underline-offset:3px}
 
 /* Login and Join are a matched pair: same size, same shape, different weight,
    so they read as two doors rather than one button and a stray link. Login was
@@ -170,6 +172,30 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .pr-cta p{color:var(--creamd);margin:-8px 0 20px}
 .pr-cta .pr-btn{display:inline-flex}
 .pr-fine{max-width:1160px;margin:-36px auto 0;padding:0 24px 40px;text-align:center;font-size:13px;color:#7d786e}
+/* ── Online payment (website only) ── */
+.pr-me{max-width:760px;margin:0 auto;padding:0 24px 4px;text-align:center;font-size:14.5px;color:var(--creamd)}
+.pr-me:empty{display:none}
+.pr-me b{color:var(--cream);font-weight:600}
+.pr-me a{color:var(--gold);text-decoration:underline;text-underline-offset:3px}
+.pr-me--warn{color:#e8c98a}
+.pr-pay{display:flex;align-items:center;justify-content:center;width:100%;min-height:46px;margin-top:10px;padding:0 14px;border-radius:10px;border:none;cursor:pointer;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;color:#060606;background:var(--goldg);transition:transform .2s,opacity .2s}
+.pr-pay:hover{transform:translateY(-1px)}
+.pr-pay:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+.pr-pay[disabled]{opacity:.55;cursor:default;transform:none}
+.pr-mine{display:inline-block;margin-left:8px;vertical-align:middle;font-family:'Outfit',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8fc7b0;background:rgba(143,199,176,.1);border-radius:999px;padding:3px 9px}
+.pr-secure{font-size:12.5px;color:#8a857a;text-align:center;margin-top:2px}
+.pr-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.72)}
+.pr-modal.open{display:flex}
+.pr-modal-box{width:100%;max-width:440px;background:#0d0c0b;border:1px solid rgba(200,164,78,.4);border-radius:18px;padding:28px 24px 22px;text-align:center}
+.pr-modal-ico{width:54px;height:54px;border-radius:50%;margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:26px;background:rgba(200,164,78,.12);color:var(--gold)}
+.pr-modal-box[data-kind="ok"] .pr-modal-ico{background:rgba(143,199,176,.12);color:#8fc7b0}
+.pr-modal-box[data-kind="err"] .pr-modal-ico{background:rgba(224,122,106,.12);color:#e07a6a}
+.pr-modal-title{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:30px;letter-spacing:1px;color:var(--cream);line-height:1.1;margin-bottom:10px}
+.pr-modal-body{font-size:15.5px;color:var(--creamd);margin-bottom:20px;text-wrap:pretty}
+.pr-modal-body b{color:var(--cream);font-weight:600}
+.pr-modal-actions{display:flex;flex-direction:column;gap:8px}
+.pr-modal-actions button.pr-btn{width:100%;cursor:pointer;font-family:'Outfit',sans-serif}
+@media (prefers-reduced-motion:reduce){.pr-pay{transition:none}}
 @media(max-width:980px){.pr-plans{grid-template-columns:minmax(0,1fr);max-width:520px}.pr-tagline{min-height:0}}
 @media(max-width:600px){.pr-hero{padding:104px 16px 20px}.pr-plans,.pr-compare,.pr-faq,.pr-cta{padding-left:16px;padding-right:16px}.pr-fine{padding-left:16px;padding-right:16px}.pr-card{padding:26px 18px 20px}}
 @media (prefers-reduced-motion:reduce){.pr-btn{transition:none}}
@@ -215,6 +241,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   <p class="pr-sub">Start with a <strong id="prTrialDays">7</strong>-day free trial. No card needed. Your coach is one message away if you want help choosing.</p>
 </section>
 
+<p class="pr-me" id="prMe" aria-live="polite"></p>
+
 <section class="pr-plans" id="prPlans" aria-live="polite">
   <p class="pr-loading">Loading plans…</p>
 </section>
@@ -235,7 +263,9 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   <details><summary>Why 4 months for Guided?</summary><p>Four months is one full blood-report cycle. You test at the start, work the plan with your coach, then retest to see what actually changed in your markers.</p></details>
   <details><summary>Can I change plans later?</summary><p>Yes. Move up or down at any time and your coach will update your plan. Your history, streaks and past reports stay with you.</p></details>
   <details><summary>What happens to my data if I move to Core?</summary><p>Nothing is deleted. Reports you already have stay readable. Guided and Tribe Elite features pause until you move back up.</p></details>
-  <details><summary>Do I pay inside the app?</summary><p>No. Your coach sets up your plan with you, and your app unlocks automatically once it is active.</p></details>
+  <details><summary>How do I pay?</summary><p id="prFaqPay">Your coach sets up your plan with you, and your app unlocks automatically once it is active.</p></details>
+  <details><summary>Can I get a refund?</summary><p>Yes. Ask within 7 days of a payment and we refund it in full, back to the method you paid with. Plans do not renew automatically, so you are never charged again without paying yourself. See the <a href="/refund.html" style="color:var(--gold)">Refund &amp; Cancellation Policy</a>.</p></details>
+  <details><summary>I already have time left on my plan. What happens if I pay now?</summary><p>If you buy the plan you are already on, the new term is added on top of the days you have left. If you move to a different plan, the new plan starts today.</p></details>
 </section>
 
 <section class="pr-cta">
@@ -244,6 +274,15 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   <a class="pr-btn pr-btn--primary" id="prTalk" href="https://wa.me/919502575669" target="_blank" rel="noopener noreferrer">Talk to a coach on WhatsApp</a>
 </section>
 </main>
+
+<div class="pr-modal" id="prModal" role="dialog" aria-modal="true" aria-labelledby="prModalTitle">
+  <div class="pr-modal-box" id="prModalBox">
+    <div class="pr-modal-ico" id="prModalIco" aria-hidden="true"></div>
+    <h2 class="pr-modal-title" id="prModalTitle"></h2>
+    <p class="pr-modal-body" id="prModalBody"></p>
+    <div class="pr-modal-actions" id="prModalActions"></div>
+  </div>
+</div>
 <footer class="site-footer">
   <div class="bb-store-footer">
     <p class="bb-store-footer-label">Get the BodyBank app</p>
@@ -258,6 +297,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
       </a>
     </div>
   </div>
+  <p class="pr-legal"><a href="/terms.html">Terms of Service</a> · <a href="/refund.html">Refund &amp; Cancellation Policy</a> · <a href="/privacy.html">Privacy Policy</a> · <a href="/terms.html#contact">Contact</a></p>
   <div class="partner-credits">
     <a class="partner-credit" href="https://www.Fitchef.fit" target="_blank" rel="noopener">
       <span class="partner-mark"><img src="img/bodybank%20X%20fitchef%20logo.png" alt="BodyBank × FitChef" class="fitchef-logo" loading="lazy" decoding="async"></span>
@@ -309,8 +349,16 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 // Pricing — rendered from /api/plans (services/plans.js), the same catalog the
 // server enforces, so the website and the app's plan gates can never disagree.
 // Website only: this page is not bundled into the iOS / Android apps.
+//
+// Online payment (Razorpay) switches on when /api/payments/config says so. The
+// browser only names a plan + term; the server prices it, and the plan unlocks
+// after the server has confirmed the payment with Razorpay.
 (function () {
   var WA = '919502575669';
+  var SESSION_KEY = 'bodybank_session';
+  var RENEW_KEY = 'bb_renew';
+  var state = { data: null, pay: null, me: null, auth: null, busy: false };
+
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -318,23 +366,245 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   }
   function inr(n) { return '₹' + Number(n).toLocaleString('en-IN'); }
   function wa(text) { return 'https://wa.me/' + WA + '?text=' + encodeURIComponent(text); }
+  function fmtDate(v) {
+    var d = v ? new Date(v) : null;
+    if (!d || isNaN(d.getTime())) return '';
+    return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
 
-  function priceHtml(p) {
+  /* ----------------------------------------------------------- who is here */
+  // A member session, or the renew-only token an expired member gets at sign-in.
+  function readAuth() {
+    try {
+      var s = JSON.parse(localStorage.getItem(SESSION_KEY) || 'null');
+      if (s && s.token && s.role) return { kind: 'session', token: s.token, role: s.role, name: s.first_name || '', email: s.email || '' };
+    } catch (_) {}
+    try {
+      var r = JSON.parse(sessionStorage.getItem(RENEW_KEY) || 'null');
+      if (r && r.token && Date.now() - Number(r.at || 0) < 2 * 60 * 60 * 1000) return { kind: 'renew', token: r.token, role: 'user', name: '', email: '' };
+    } catch (_) {}
+    return null;
+  }
+  function signinUrl(buy) {
+    return '/signin?next=' + encodeURIComponent('/pricing.html' + (buy ? '?buy=' + buy : ''));
+  }
+  function api(method, url, body) {
+    var opts = { method: method, headers: { Accept: 'application/json' } };
+    if (state.auth) opts.headers.Authorization = 'Bearer ' + state.auth.token;
+    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    return fetch(url, opts).then(function (res) {
+      return res.text().then(function (t) {
+        var d; try { d = t ? JSON.parse(t) : {}; } catch (_) { d = {}; }
+        d._status = res.status;
+        return d;
+      });
+    }).catch(function () { return { _status: 0, error: 'network', message: 'Network error. Please check your connection and try again.' }; });
+  }
+
+  /* ----------------------------------------------------------------- modal */
+  function modal(kind, title, bodyHtml, actions) {
+    var m = document.getElementById('prModal');
+    document.getElementById('prModalBox').setAttribute('data-kind', kind);
+    document.getElementById('prModalIco').textContent = kind === 'ok' ? '✓' : kind === 'err' ? '!' : '…';
+    document.getElementById('prModalTitle').textContent = title;
+    document.getElementById('prModalBody').innerHTML = bodyHtml;
+    var host = document.getElementById('prModalActions');
+    host.innerHTML = '';
+    (actions || []).forEach(function (a, i) {
+      var el = document.createElement(a.href ? 'a' : 'button');
+      el.className = 'pr-btn' + (i === 0 ? ' pr-btn--primary' : '');
+      el.textContent = a.label;
+      if (a.href) { el.href = a.href; if (a.blank) { el.target = '_blank'; el.rel = 'noopener noreferrer'; } }
+      else { el.type = 'button'; el.addEventListener('click', a.onClick || closeModal); }
+      host.appendChild(el);
+    });
+    m.classList.add('open');
+    var first = host.querySelector('a,button');
+    if (first) { try { first.focus({ preventScroll: true }); } catch (_) {} }
+  }
+  function closeModal() { document.getElementById('prModal').classList.remove('open'); }
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && !state.busy) closeModal(); });
+
+  /* --------------------------------------------------------------- payment */
+  var checkoutLoading = null;
+  function loadCheckout() {
+    if (window.Razorpay) return Promise.resolve();
+    if (checkoutLoading) return checkoutLoading;
+    checkoutLoading = new Promise(function (resolve, reject) {
+      var sc = document.createElement('script');
+      sc.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      sc.onload = function () { resolve(); };
+      sc.onerror = function () { checkoutLoading = null; reject(new Error('load')); };
+      document.head.appendChild(sc);
+    });
+    return checkoutLoading;
+  }
+
+  function setBusy(on) {
+    state.busy = on;
+    document.querySelectorAll('.pr-pay').forEach(function (b) { b.disabled = on; });
+  }
+
+  function helpAction() {
+    return { label: 'Message us on WhatsApp', href: wa('Hi BodyBank, I need help with a payment on the website.'), blank: true };
+  }
+
+  function tierName(t) {
+    var pl = ((state.data && state.data.plans) || []).find(function (p) { return p.tier === t; });
+    return pl ? pl.name : '';
+  }
+
+  function showSuccess(d) {
+    var until = fmtDate(d.access_until);
+    var renew = state.auth && state.auth.kind === 'renew';
+    try { sessionStorage.removeItem(RENEW_KEY); } catch (_) {}
+    modal('ok', 'You are on ' + (d.plan_name || 'your new plan'),
+      'Payment received. ' + (until ? 'Your plan runs until <b>' + esc(until) + '</b>' + (d.extended ? ', added on top of the time you had left' : '') + '. ' : '') +
+      'It is already unlocked in the BodyBank app and on the website.',
+      [renew ? { label: 'Sign in', href: '/signin' } : { label: 'Open my dashboard', href: 'index.html' },
+       { label: 'Stay on this page', onClick: function () { closeModal(); refreshMe(); } }]);
+  }
+
+  // The server is still confirming (slow bank, or the confirm call dropped):
+  // watch the order until the webhook lands.
+  function pollStatus(orderId, tries) {
+    if (tries <= 0) {
+      setBusy(false);
+      modal('wait', 'Still confirming',
+        'Your payment is taking longer than usual to confirm. You do not need to pay again. Your plan unlocks automatically as soon as it clears, usually within a few minutes.',
+        [{ label: 'OK', onClick: closeModal }, helpAction()]);
+      return;
+    }
+    setTimeout(function () {
+      api('GET', '/api/payments/status/' + encodeURIComponent(orderId)).then(function (d) {
+        if (d.active) { setBusy(false); showSuccess({ plan_name: tierName(d.plan_tier), access_until: d.access_until }); return; }
+        if (d.status === 'failed') {
+          setBusy(false);
+          modal('err', 'Payment did not go through', 'No plan was activated. If money left your account, your bank returns it automatically. You can try again.', [{ label: 'Try again', onClick: closeModal }, helpAction()]);
+          return;
+        }
+        pollStatus(orderId, tries - 1);
+      });
+    }, 3000);
+  }
+
+  function confirmPayment(resp, orderId) {
+    modal('wait', 'Confirming your payment', 'Please keep this page open for a moment.', []);
+    api('POST', '/api/payments/verify', {
+      razorpay_order_id: resp.razorpay_order_id,
+      razorpay_payment_id: resp.razorpay_payment_id,
+      razorpay_signature: resp.razorpay_signature
+    }).then(function (d) {
+      if (d.ok) { setBusy(false); showSuccess(d); return; }
+      if (d.pending || d._status === 0 || d._status >= 500) { pollStatus(orderId, 20); return; }
+      setBusy(false);
+      modal('err', 'We could not confirm the payment', esc(d.message || 'Please try again.') +
+        (resp.razorpay_payment_id ? '<br><br>Payment id: <b>' + esc(resp.razorpay_payment_id) + '</b>' : ''),
+        [{ label: 'Close', onClick: closeModal }, helpAction()]);
+    });
+  }
+
+  function startPayment(tier, term) {
+    if (state.busy) return;
+    state.auth = readAuth();
+    if (!state.auth) { window.location.href = signinUrl(tier + ':' + term); return; }
+    if (state.auth.role !== 'user') {
+      modal('err', 'Staff account', 'You are signed in with a staff account. Sign in with a member account to buy a plan.', [{ label: 'Close', onClick: closeModal }]);
+      return;
+    }
+    setBusy(true);
+    Promise.all([
+      api('POST', '/api/payments/order', { plan_tier: tier, term: term }),
+      loadCheckout().then(function () { return true; }, function () { return false; })
+    ]).then(function (out) {
+      var o = out[0], loaded = out[1];
+      if (o._status === 401) {
+        try { sessionStorage.removeItem(RENEW_KEY); } catch (_) {}
+        window.location.href = signinUrl(tier + ':' + term);
+        return;
+      }
+      if (!o.order_id || !loaded) {
+        setBusy(false);
+        modal('err', 'Could not start the payment',
+          esc(o.order_id ? 'The secure payment window could not load. Check your connection or ad blocker and try again.' : (o.message || 'Please try again in a minute.')),
+          [{ label: 'Close', onClick: closeModal }, helpAction()]);
+        return;
+      }
+      var paid = false;
+      var rz = new window.Razorpay({
+        key: o.key_id,
+        order_id: o.order_id,
+        amount: o.amount,
+        currency: o.currency,
+        name: 'BodyBank',
+        description: o.plan.name + ' · ' + o.plan.label,
+        image: window.location.origin + '/img/logo.png',
+        prefill: o.prefill || {},
+        notes: { plan: o.plan.tier, term: o.plan.term },
+        theme: { color: '#c8a44e' },
+        handler: function (resp) { paid = true; confirmPayment(resp, o.order_id); },
+        modal: { ondismiss: function () { if (!paid) setBusy(false); } }
+      });
+      // A failed attempt keeps the Razorpay window open so the buyer can retry
+      // with another method; nothing to do here until they close it or succeed.
+      rz.open();
+    });
+  }
+
+  /* ---------------------------------------------------------------- render */
+  function isMine(pl) {
+    return !!(state.me && state.me.tier === pl.tier && (state.me.state === 'active' || state.me.state === 'trialing'));
+  }
+
+  function priceHtml(pl, p) {
     var save = (p.compare_at && p.compare_at > p.amount) ? Math.round((1 - p.amount / p.compare_at) * 100) : 0;
     var per = p.months > 1 ? ' · ' + inr(Math.round(p.amount / p.months)) + '/month' : '';
+    var pay = state.pay && state.pay.enabled
+      ? '<button type="button" class="pr-pay" data-tier="' + esc(pl.tier) + '" data-term="' + esc(p.term) + '">' +
+        (isMine(pl) && state.me.state === 'active' ? 'Renew' : 'Pay') + ' ' + inr(p.amount) + '</button>'
+      : '';
     return '<div class="pr-price">' +
       '<div class="pr-price-top"><span class="pr-amt">' + inr(p.amount) + '</span>' +
       (save ? '<span class="pr-was">' + inr(p.compare_at) + '</span><span class="pr-save">Save ' + save + '%</span>' : '') +
       '</div>' +
       '<div class="pr-term">' + esc(p.label) + esc(per) + '</div>' +
       (p.note ? '<div class="pr-note">' + esc(p.note) + '</div>' : '') +
+      pay +
       '</div>';
   }
 
-  function render(data) {
+  function renderMe() {
+    var el = document.getElementById('prMe');
+    if (!el) return;
+    var a = state.auth, me = state.me, html = '';
+    el.className = 'pr-me';
+    if (state.pay && state.pay.enabled && a) {
+      var sw = ' · <a href="' + signinUrl('') + '">Switch account</a>';
+      if (a.kind === 'renew') {
+        el.className = 'pr-me pr-me--warn';
+        html = 'Your plan has ended. Choose a plan below to renew and unlock your app again.';
+      } else if (a.role !== 'user') {
+        html = 'You are signed in with a staff account. <a href="' + signinUrl('') + '">Switch account</a> to buy a plan.';
+      } else if (me) {
+        var until = fmtDate(me.expires_at);
+        var ended = me.state === 'expired' || me.state === 'canceled';
+        html = 'Signed in' + (a.name ? ' as <b>' + esc(a.name) + '</b>' : '') + ' · ' +
+          (ended ? 'your plan has ended'
+                 : 'current plan: <b>' + (me.state === 'trialing' ? 'free trial on ' : '') + esc(me.name) + '</b>' + (until ? ' until ' + esc(until) : '')) + sw;
+      } else if (a.name) {
+        html = 'Signed in as <b>' + esc(a.name) + '</b>' + sw;
+      }
+    }
+    el.innerHTML = html;
+  }
+
+  function render() {
+    var data = state.data;
     var plans = (data && data.plans) || [];
     var trialDays = (data && data.trial_days) || 7;
     var trialTier = (data && data.trial_tier) || 'guided';
+    var payOn = !!(state.pay && state.pay.enabled);
+    var member = !!(state.auth && state.auth.role === 'user');
     var d = document.getElementById('prTrialDays');
     if (d) d.textContent = trialDays;
     document.querySelectorAll('.prTrialDaysText').forEach(function (el) { el.textContent = trialDays; });
@@ -346,26 +616,41 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
     }
     host.innerHTML = plans.map(function (pl, i) {
       var prev = i > 0 ? plans[i - 1].name : null;
-      var cta = pl.tier === 'tribe_elite'
-        ? '<a class="pr-btn pr-btn--primary" href="' + wa('Hi BodyBank, I am interested in Tribe Elite.') + '" target="_blank" rel="noopener noreferrer">Apply for Tribe Elite</a>'
-        : '<a class="pr-btn' + (pl.highlight ? ' pr-btn--primary' : '') + '" href="/signup">Start ' + trialDays + '-day free trial</a>';
-      var talk = pl.tier === 'tribe_elite' ? '' :
-        '<a class="pr-btn" href="' + wa('Hi BodyBank, I would like the ' + pl.name + ' plan.') + '" target="_blank" rel="noopener noreferrer">Talk to a coach</a>';
+      // With online payment on, the gold Pay buttons are the primary action, so
+      // the card's own buttons step back to the outline style.
+      var primary = payOn ? '' : ' pr-btn--primary';
+      var cta = '';
+      if (pl.tier === 'tribe_elite') {
+        cta = '<a class="pr-btn' + primary + '" href="' + wa('Hi BodyBank, I am interested in Tribe Elite.') + '" target="_blank" rel="noopener noreferrer">' + (payOn ? 'Talk to a coach first' : 'Apply for Tribe Elite') + '</a>';
+      } else {
+        if (!member) cta += '<a class="pr-btn' + (pl.highlight ? primary : '') + '" href="/signup">Start ' + trialDays + '-day free trial</a>';
+        cta += '<a class="pr-btn" href="' + wa('Hi BodyBank, I would like the ' + pl.name + ' plan.') + '" target="_blank" rel="noopener noreferrer">Talk to a coach</a>';
+      }
       return '<article class="pr-card' + (pl.highlight ? ' pr-card--hl' : '') + '" aria-labelledby="prName-' + esc(pl.tier) + '">' +
         (pl.highlight ? '<span class="pr-badge">' + esc(pl.highlight) + '</span>' : '') +
-        '<h2 class="pr-name" id="prName-' + esc(pl.tier) + '">' + esc(pl.name) + '</h2>' +
+        '<h2 class="pr-name" id="prName-' + esc(pl.tier) + '">' + esc(pl.name) + (isMine(pl) ? '<span class="pr-mine">Your plan</span>' : '') + '</h2>' +
         '<p class="pr-tagline">' + esc(pl.tagline) + '</p>' +
-        '<div class="pr-prices">' + (pl.prices || []).map(priceHtml).join('') + '</div>' +
+        '<div class="pr-prices">' + (pl.prices || []).map(function (p) { return priceHtml(pl, p); }).join('') + '</div>' +
         '<p class="pr-inc">' + (prev ? 'Everything in ' + esc(prev) + ', plus' : 'Includes') + '</p>' +
         '<ul class="pr-list">' + (pl.features || []).map(function (f) { return '<li>' + esc(f.label) + '</li>'; }).join('') + '</ul>' +
-        '<div class="pr-actions">' + cta + talk + '</div>' +
+        '<div class="pr-actions">' + cta + '</div>' +
         '</article>';
     }).join('');
 
-    var fine = document.createElement('p');
-    fine.className = 'pr-fine';
-    fine.textContent = 'Prices in Indian rupees. The free trial runs on the ' + ((plans.find(function (p) { return p.tier === trialTier; }) || {}).name || 'Guided') + ' plan.';
-    host.parentNode.insertBefore(fine, host.nextSibling);
+    var fine = document.getElementById('prFine');
+    if (!fine) {
+      fine = document.createElement('p');
+      fine.className = 'pr-fine';
+      fine.id = 'prFine';
+      host.parentNode.insertBefore(fine, host.nextSibling);
+    }
+    fine.textContent = 'Prices in Indian rupees. The price shown is the full amount you pay. The free trial runs on the ' + ((plans.find(function (p) { return p.tier === trialTier; }) || {}).name || 'Guided') + ' plan.' +
+      (payOn ? ' Secure payment by Razorpay: UPI, cards, netbanking and wallets.' + (state.pay.mode === 'test' ? ' Test mode: no real money is charged.' : '') : '');
+
+    var faq = document.getElementById('prFaqPay');
+    if (faq && payOn) faq.textContent = 'Pay here on the website with UPI, a card, netbanking or a wallet. Sign in, pick a plan and pay; your BodyBank app unlocks automatically within seconds. Prefer to talk first? Your coach can set up your plan with you on WhatsApp.';
+
+    renderMe();
 
     // Comparison table: every feature, ticked from the tier that first includes it.
     var tb = document.querySelector('#prTable tbody');
@@ -382,10 +667,45 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
     }
   }
 
-  fetch('/api/plans', { headers: { Accept: 'application/json' } })
-    .then(function (r) { return r.ok ? r.json() : null; })
-    .then(render)
-    .catch(function () { render(null); });
+  document.getElementById('prPlans').addEventListener('click', function (e) {
+    var b = e.target && e.target.closest ? e.target.closest('.pr-pay') : null;
+    if (!b || b.disabled) return;
+    startPayment(b.getAttribute('data-tier'), b.getAttribute('data-term'));
+  });
+
+  function refreshMe() {
+    state.auth = readAuth();
+    if (!state.auth || state.auth.kind !== 'session' || state.auth.role !== 'user') { state.me = null; render(); return Promise.resolve(); }
+    return api('GET', '/api/me/plan').then(function (d) {
+      state.me = d && d.plan && !d.plan.staff ? d.plan : null;
+      render();
+    });
+  }
+
+  // Came back from sign-in with ?buy=tier:term — carry on to the payment.
+  function resumeBuy() {
+    var buy = '';
+    try { buy = new URLSearchParams(window.location.search).get('buy') || ''; } catch (_) {}
+    if (!buy) return;
+    try { history.replaceState(null, '', window.location.pathname); } catch (_) {}
+    var parts = buy.split(':');
+    if (parts.length !== 2 || !state.auth || !(state.pay && state.pay.enabled)) return;
+    var ok = ((state.data && state.data.plans) || []).some(function (pl) {
+      return pl.tier === parts[0] && (pl.prices || []).some(function (p) { return p.term === parts[1]; });
+    });
+    if (ok) startPayment(parts[0], parts[1]);
+  }
+
+  state.auth = readAuth();
+  Promise.all([
+    fetch('/api/plans', { headers: { Accept: 'application/json' } }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; }),
+    fetch('/api/payments/config', { headers: { Accept: 'application/json' } }).then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; })
+  ]).then(function (out) {
+    state.data = out[0];
+    state.pay = out[1];
+    render();
+    return refreshMe();
+  }).then(resumeBuy);
 })();
 </script>
 </body>

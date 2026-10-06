@@ -252,6 +252,26 @@ function signShareToken(payload) {
   );
 }
 
+// Renewal token for an expired member: lets them pay for a plan on the website
+// and nothing else. Signed with a key DERIVED from JWT_SECRET, so verifyToken()
+// rejects it outright (the plain secret never verifies it), and it carries `uid`
+// rather than `id` so no route can mistake it for a session.
+const RENEW_SECRET = require('crypto').createHash('sha256').update(String(JWT_SECRET) + ':bb-renew-v1').digest('hex');
+
+function signRenewToken(user) {
+  return jwt.sign({ uid: String(user.id), email: user.email || '', purpose: 'renew' }, RENEW_SECRET, { expiresIn: '2h' });
+}
+
+function verifyRenewToken(token) {
+  if (!token) return null;
+  try {
+    const d = jwt.verify(token, RENEW_SECRET);
+    return d && d.purpose === 'renew' && d.uid ? d : null;
+  } catch (e) {
+    return null;
+  }
+}
+
 function verifyShareToken(token) {
   if (!token) return null;
   try {
@@ -311,4 +331,4 @@ function verifyGroupAttachmentToken(token) {
   }
 }
 
-module.exports = { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, verifyGoogleIdToken, GOOGLE_IOS_CLIENT_ID, JWT_SECRET };
+module.exports = { signRenewToken, verifyRenewToken, signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, verifyGoogleIdToken, GOOGLE_IOS_CLIENT_ID, JWT_SECRET };

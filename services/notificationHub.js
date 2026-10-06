@@ -211,6 +211,21 @@ const STAFF_EVENT_PUSH = {
     title: '✅ Membership activated — ' + who(p),
     body: (p.plan ? clip(p.plan, 30) + ' plan' : 'Membership') + ' is now active.',
     link: 'memberships', type: 'membership', inbox: false
+  }),
+  PAYMENT_RECEIVED: (p) => ({
+    title: '💰 ' + who(p) + ' paid ' + clip(p.amount, 16),
+    body: clip(p.plan, 40) + ' is now active' + (p.mode === 'test' ? ' (test mode)' : '') + '.',
+    link: 'memberships', type: 'payment', roles: ['admin', 'superadmin']
+  }),
+  PAYMENT_ATTENTION: (p) => ({
+    title: '⚠️ Payment needs attention — ' + who(p),
+    body: clip(p.reason, 120),
+    link: 'memberships', type: 'payment', roles: ['admin', 'superadmin']
+  }),
+  PAYMENT_REFUNDED: (p) => ({
+    title: '↩️ Refund — ' + who(p),
+    body: clip(p.amount, 16) + ' refunded. Access unchanged; adjust the plan if needed.',
+    link: 'memberships', type: 'payment', roles: ['admin', 'superadmin']
   })
 };
 

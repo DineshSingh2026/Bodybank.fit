@@ -22,7 +22,7 @@ try {
 const webPush = require('web-push');
 let firebaseAdmin = null;
 try { firebaseAdmin = require('firebase-admin'); } catch (_) { firebaseAdmin = null; }
-const { signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, verifyGoogleIdToken, GOOGLE_IOS_CLIENT_ID, JWT_SECRET: AUTH_JWT_SECRET } = require('./middleware/auth');
+const { signRenewToken, verifyRenewToken, signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, verifyGoogleIdToken, GOOGLE_IOS_CLIENT_ID, JWT_SECRET: AUTH_JWT_SECRET } = require('./middleware/auth');
 const { safeExtraHttpHeaders, optionalApiAccessLog, redactServerErrors } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, setNutritionPush, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
@@ -30,6 +30,8 @@ const { createBloodRouter, createBloodPublicRouter } = require('./routes/blood')
 const { createReportsRouter, createReportsPublicRouter } = require('./routes/reports');
 const { createSmartScaleRouter } = require('./routes/smartScale');
 const { createReferralRouter } = require('./routes/referrals');
+const { createPaymentsRouter } = require('./routes/payments');
+const paymentsLib = require('./services/payments');
 const { createWearablesRouter } = require('./routes/wearables');
 const { createNutritionAssessmentRouter } = require('./routes/nutritionAssessment');
 const { createGroupChatRouter } = require('./routes/groupChat');
@@ -348,6 +350,16 @@ function subscriptionGate(user) {
   return null;
 }
 
+// The 403 a gated login returns. An EXPIRED member also gets a renew_token: it
+// can only buy a plan on the website (/api/payments), never open a session. A
+// paused/canceled member does not — staff paused them on purpose. The apps
+// ignore renew_token (no payment steering in the store builds).
+function subscriptionGateBody(gate, user) {
+  const body = { error: gate.code, message: gate.message };
+  if (gate.code === 'subscription_expired' && user && user.id) body.renew_token = signRenewToken(user);
+  return body;
+}
+
 // Per-request plan enforcement (Core / Guided / Tribe Elite) — see services/plans.js.
 // queryOne is a hoisted function declaration, so it is safe to hand over here.
 const planGate = plans.createPlanGate({ queryOne, verifyToken });
@@ -425,6 +437,9 @@ app.use(cors({
 }));
 // 40mb accommodates large blood-report uploads (base64 in JSON). The blood route
 // caps the decoded payload lower, aligned to Claude's ~32MB PDF request limit.
+// Razorpay signs the exact bytes it sends, so the webhook keeps its raw body.
+// express.raw marks the body parsed, so the express.json below skips it.
+app.use('/api/payments/webhook', express.raw({ type: '*/*', limit: '1mb' }));
 app.use(express.json({ limit: '40mb' }));
 app.use(express.urlencoded({ extended: false }));
 
@@ -442,13 +457,13 @@ const CSP_DIRECTIVES = [
   "default-src 'self'",
   // 'unsafe-inline'/'unsafe-eval' are listed so the report reflects what a realistic
   // first enforcing policy would allow; tighten as inline code is migrated.
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://accounts.google.com https://appleid.cdn-apple.com https://www.googletagmanager.com",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://accounts.google.com https://appleid.cdn-apple.com https://www.googletagmanager.com https://*.razorpay.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' data: https://fonts.gstatic.com",
   "img-src 'self' data: blob: https:",
   "media-src 'self' data: blob:",
-  "connect-src 'self' https://accounts.google.com https://appleid.cdn-apple.com https://www.googletagmanager.com",
-  "frame-src 'self' https://accounts.google.com https://appleid.cdn-apple.com https://play.google.com",
+  "connect-src 'self' https://accounts.google.com https://appleid.cdn-apple.com https://www.googletagmanager.com https://*.razorpay.com",
+  "frame-src 'self' https://accounts.google.com https://appleid.cdn-apple.com https://play.google.com https://*.razorpay.com",
   "worker-src 'self' blob:",
   "object-src 'none'",
   "base-uri 'self'",
@@ -809,6 +824,52 @@ async function queryOne(sql, params = []) {
   const rows = await queryAll(sql, params);
   return rows.length > 0 ? rows[0] : null;
 }
+
+// Website payments (Razorpay) — web only; see services/payments.js.
+function inrFromPaise(paise) {
+  return '₹' + (Number(paise || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 });
+}
+const paymentsSvc = paymentsLib.createPaymentsService({
+  getPool: () => pool,
+  run,
+  queryOne,
+  queryAll,
+  onActivated(info) {
+    const u = info.user || {};
+    const row = info.row || {};
+    const who = { name: `${u.first_name || ''} ${u.last_name || ''}`.trim() || row.name || '', email: u.email || row.email || '', mobile: u.phone || '—' };
+    if (info.orphan) {
+      notifyAsync('PAYMENT_ATTENTION', Object.assign(who, {
+        reason: 'Paid, but the account is missing or not a member. Plan NOT activated — set it up by hand.',
+        amount: inrFromPaise(row.amount_paise), order_id: row.order_id, payment_id: info.payment && info.payment.id
+      }));
+      return;
+    }
+    planGate.invalidate(u.id);
+    const until = info.window.until.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Kolkata' });
+    notifyHub.user(u.id, { title: `✅ ${plans.tierName(row.plan_tier)} is active`, body: `Payment received. Your plan runs until ${until}.`, type: 'membership', link: 'home' });
+    const prev = info.previous || {};
+    notifyAsync('PAYMENT_RECEIVED', Object.assign(who, {
+      plan: info.label, amount: inrFromPaise(row.amount_paise), until, extended: !!info.window.extended,
+      previous: prev.tier ? `${plans.tierName(prev.tier)} (${prev.state})` : '',
+      payment_id: row.payment_id, mode: row.mode
+    }));
+  },
+  onEvent(kind, info) {
+    const row = info.row || {};
+    const who = { name: row.name || '', email: row.email || '', mobile: '—' };
+    if (kind === 'refunded') {
+      notifyAsync('PAYMENT_REFUNDED', Object.assign(who, {
+        plan: plans.tierName(row.plan_tier) + ' · ' + paymentsLib.termLabel(Number(row.months)),
+        amount: inrFromPaise(info.amount_paise), payment_id: row.payment_id
+      }));
+    } else if (kind === 'attention') {
+      notifyAsync('PAYMENT_ATTENTION', Object.assign(who, {
+        reason: info.reason, amount: inrFromPaise(row.amount_paise), order_id: row.order_id, payment_id: info.payment && info.payment.id
+      }));
+    }
+  }
+});
 
 const { createScorecardService } = require('./services/scorecardService');
 const scorecardSvc = createScorecardService({ queryOne, queryAll });
@@ -2401,6 +2462,13 @@ async function initDB() {
     console.error('Referral table init error:', e.message);
   }
 
+  // ---- Website payments (Razorpay) ----
+  try {
+    await paymentsSvc.ensureTables();
+  } catch (e) {
+    console.error('Payments table init error:', e.message);
+  }
+
   // ---- Care group chat tables (idempotent; FKs reference `users`, so after it) ----
   // Additive: the 1-to-1 message_threads / thread_messages chat above is untouched.
   try {
@@ -2672,7 +2740,7 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     const syncedGeo = await syncUserCountryAndTimezone(user.id, user.email, user.country, user.timezone);
     if (syncedGeo) { user.country = syncedGeo.country; user.timezone = syncedGeo.timezone; }
     const subGate = subscriptionGate(user);
-    if (subGate) return res.status(403).json({ error: subGate.code, message: subGate.message });
+    if (subGate) return res.status(403).json(subscriptionGateBody(subGate, user));
     clearLoginFailures(emailNorm);
     const token = signToken({ id: user.id, email: user.email, role: user.role });
     if (user.role === 'user') {
@@ -2724,7 +2792,7 @@ app.post('/api/auth/google', rateLimiter(20, 60000), async (req, res) => {
     const syncedGeoG = await syncUserCountryAndTimezone(user.id, user.email, user.country, user.timezone);
     if (syncedGeoG) { user.country = syncedGeoG.country; user.timezone = syncedGeoG.timezone; }
     const subGateG = subscriptionGate(user);
-    if (subGateG) return res.status(403).json({ error: subGateG.code, message: subGateG.message });
+    if (subGateG) return res.status(403).json(subscriptionGateBody(subGateG, user));
     const token = signToken({ id: user.id, email: user.email, role: user.role });
     res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', height_cm: user.height_cm != null && user.height_cm !== '' ? Number(user.height_cm) : null, token });
   } catch (e) {
@@ -2829,7 +2897,7 @@ app.post('/api/auth/apple', rateLimiter(20, 60000), async (req, res) => {
     const syncedGeoA = await syncUserCountryAndTimezone(userRow.id, userRow.email, userRow.country, userRow.timezone);
     if (syncedGeoA) { userRow.country = syncedGeoA.country; userRow.timezone = syncedGeoA.timezone; }
     const subGateA = subscriptionGate(userRow);
-    if (subGateA) return res.status(403).json({ error: subGateA.code, message: subGateA.message });
+    if (subGateA) return res.status(403).json(subscriptionGateBody(subGateA, userRow));
     const token = signToken({ id: userRow.id, email: userRow.email, role: userRow.role });
     res.json({ id: userRow.id, email: userRow.email, first_name: userRow.first_name || '', last_name: userRow.last_name || '', profile_picture: userRow.profile_picture || '', role: userRow.role, country: userRow.country || '', timezone: userRow.timezone || '', height_cm: userRow.height_cm != null && userRow.height_cm !== '' ? Number(userRow.height_cm) : null, token });
   } catch (e) {
@@ -12099,6 +12167,18 @@ app.use(
     rateLimiter,
     todayInTz: streakTodayYmdInTz,
     defaultTz: STREAK_TIMEZONE
+  })
+);
+// Website payments (Razorpay). Web only: the apps never link here.
+app.use(
+  '/api/payments',
+  createPaymentsRouter({
+    service: paymentsSvc,
+    queryOne,
+    verifyToken,
+    verifyRenewToken,
+    requireAdminOrSuperadmin,
+    rateLimiter
   })
 );
 app.use(
