@@ -54,12 +54,9 @@ const PLAN_CATALOG = {
     name: 'Core',
     tagline: 'The full BodyBank app, on your own.',
     prices: [
-      { term: '12m', months: 12, label: '12 months', amount: 3499, compare_at: 5999 },
-      // TEMPORARY — live payment smoke test: ₹50 buys ONE DAY of Core. `hidden`
-      // keeps it off the pricing page and out of every catalog payload; it is
-      // reachable only at /pricing.html?buy=core:test. Delete this entry once
-      // live payments are confirmed.
-      { term: 'test', months: 0, days: 1, label: '1-day live payment test', amount: 50, hidden: true }
+      // TEMPORARY (owner's live payment test, 2026-10-06): Core is ₹50.
+      // The real price is amount: 3499, compare_at: 5999 — restore it after the test.
+      { term: '12m', months: 12, label: '12 months', amount: 50 }
     ]
   },
   guided: {
