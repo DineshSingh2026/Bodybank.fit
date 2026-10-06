@@ -32,6 +32,8 @@ const { createSmartScaleRouter } = require('./routes/smartScale');
 const { createReferralRouter } = require('./routes/referrals');
 const { createPaymentsRouter } = require('./routes/payments');
 const paymentsLib = require('./services/payments');
+const { createBloodmapRouter } = require('./routes/bloodmap');
+const { createBloodmapService } = require('./services/bloodmap');
 const { createWearablesRouter } = require('./routes/wearables');
 const { createNutritionAssessmentRouter } = require('./routes/nutritionAssessment');
 const { createGroupChatRouter } = require('./routes/groupChat');
@@ -834,6 +836,8 @@ const paymentsSvc = paymentsLib.createPaymentsService({
   run,
   queryOne,
   queryAll,
+  // One Razorpay webhook serves both products; BloodMap orders are passed on.
+  onForeignEvent: (type, evt) => bloodmapSvc.handleWebhookEvent(type, evt),
   onActivated(info) {
     const u = info.user || {};
     const row = info.row || {};
@@ -869,6 +873,21 @@ const paymentsSvc = paymentsLib.createPaymentsService({
       }));
     }
   }
+});
+
+// BloodMap by BodyBank — one-time blood report + consultations for non-members.
+// Website only; see services/bloodmap.js.
+const bloodmapSvc = createBloodmapService({
+  getPool: () => pool,
+  run,
+  queryOne,
+  queryAll,
+  uuid: uuidv4,
+  rzp: (...a) => paymentsSvc.rzp(...a),
+  email: userEmail,
+  sendWhatsApp: (message, opts) => sendWhatsAppWithFallback(message, opts),
+  notifyHub,
+  notifyAsync
 });
 
 const { createScorecardService } = require('./services/scorecardService');
@@ -2467,6 +2486,14 @@ async function initDB() {
     await paymentsSvc.ensureTables();
   } catch (e) {
     console.error('Payments table init error:', e.message);
+  }
+
+  // ---- BloodMap (orders, consultants, call slots) ----
+  try {
+    await bloodmapSvc.ensureTables();
+    bloodmapSvc.startScheduler();
+  } catch (e) {
+    console.error('BloodMap table init error:', e.message);
   }
 
   // ---- Care group chat tables (idempotent; FKs reference `users`, so after it) ----
@@ -12181,6 +12208,7 @@ app.use(
     rateLimiter
   })
 );
+app.use('/api/bloodmap', createBloodmapRouter({ service: bloodmapSvc, verifyToken, rateLimiter }));
 app.use(
   '/api/referrals',
   createReferralRouter({
@@ -12656,6 +12684,17 @@ app.get(['/signin', '/sign-in', '/login', '/signin.html'], (req, res) => {
 app.get(['/pricing', '/plans'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'pricing.html'));
 });
+// BloodMap by BodyBank. Served from pages/ (not public/) on purpose: public/ is what
+// the iOS / Android apps bundle, and this page carries a price and a pay button.
+const BLOODMAP_PAGES_DIR = path.join(__dirname, 'pages', 'bloodmap');
+const sendBloodmapPage = (file) => (req, res) => {
+  res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+  res.setHeader('Referrer-Policy', 'no-referrer');
+  res.sendFile(path.join(BLOODMAP_PAGES_DIR, file));
+};
+app.get(['/bloodmap', '/blood-map'], sendBloodmapPage('index.html'));
+app.get('/bloodmap/admin', sendBloodmapPage('admin.html'));
+app.use('/bloodmap-assets', express.static(BLOODMAP_PAGES_DIR, { index: false, maxAge: NODE_ENV === 'production' ? '1h' : 0 }));
 app.get(['/signup', '/sign-up', '/register', '/join', '/signup.html'], (req, res) => {
   res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
   res.setHeader('Pragma', 'no-cache');

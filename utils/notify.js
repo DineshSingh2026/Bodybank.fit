@@ -45,7 +45,11 @@ const EVENT_META = {
   WA_DRAFT_REJECTED: { priority: PRIORITY.INFO, dedup: 0 },
   REPORT_GENERATED: { priority: PRIORITY.INFO, dedup: 0 },
   REPORT_SENT: { priority: PRIORITY.IMPORTANT, dedup: 0 },
-  REPORT_BULK_COMPLETE: { priority: PRIORITY.IMPORTANT, dedup: 0 }
+  REPORT_BULK_COMPLETE: { priority: PRIORITY.IMPORTANT, dedup: 0 },
+  BLOODMAP_PAID: { priority: PRIORITY.IMPORTANT, dedup: 0 },
+  BLOODMAP_UPLOADED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
+  BLOODMAP_CALL_BOOKED: { priority: PRIORITY.IMPORTANT, dedup: 0 },
+  BLOODMAP_CALL_CHANGED: { priority: PRIORITY.IMPORTANT, dedup: 0 }
 };
 
 const _dedup = new Map();
@@ -163,6 +167,10 @@ const FORMATTERS = {
   NUTRITION_DAY_COMPLETE: (p) => ['🌟 Nutrition Day Complete', ...userLines(p), `📅 Date: ${s(p.date)}`, `🍽️ Meals: ${s(p.meals)}/4`, `⏰ ${ts()}`],
   BLOOD_REPORT_UPLOADED: (p) => ['🩸 Blood Report Uploaded', ...userLines(p), `🎯 Goal: ${s(p.goal)}`, `⏰ ${ts()}`],
   BLOOD_REPORT_SENT: (p) => ['📤 Blood Report Sent to User', ...userLines(p), `⏰ ${ts()}`],
+  BLOODMAP_PAID: (p) => ['💰 BloodMap Order Paid', ...userLines(p), `🏙️ City: ${s(p.city)}`, `💵 ${s(p.amount)}`, `🧾 ${s(p.ref)}`, `⏰ ${ts()}`],
+  BLOODMAP_UPLOADED: (p) => ['🩸 BloodMap Report Uploaded', ...userLines(p), `🎯 Goal: ${s(p.goal)}`, `🧾 ${s(p.ref)}`, `⏰ ${ts()}`],
+  BLOODMAP_CALL_BOOKED: (p) => ['📅 BloodMap Call Booked', ...userLines(p), `🩺 ${s(p.call)}`, `🕐 ${s(p.when)}`, `🧾 ${s(p.ref)}`, `⏰ ${ts()}`],
+  BLOODMAP_CALL_CHANGED: (p) => ['🔁 BloodMap Call Rescheduled', ...userLines(p), `🩺 ${s(p.call)}`, `🕐 ${s(p.from)} → ${s(p.to)}`, `🧾 ${s(p.ref)}`, `⏰ ${ts()}`],
   SMART_SCALE_UPLOADED: (p) => ['⚖️ Smart Scale Report Uploaded', ...userLines(p), `⏰ ${ts()}`],
   FEED_POST_UPLOADED: (p) => ['📸 Feed Post Uploaded', `👤 ${s(p.username)}`, `📝 ${String(p.caption || '').slice(0, 120)}`, `⏰ ${ts()}`],
   COIN_EARNED: (p) => ['🪙 Coins Earned', ...userLines(p), `➕ +${s(p.delta)} (${s(p.reason)})`, `💰 Balance: ${s(p.balance)}`, `⏰ ${ts()}`],

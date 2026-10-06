@@ -114,6 +114,8 @@ function createPaymentsService(deps) {
     try { if (typeof deps.onEvent === 'function') deps.onEvent(kind, info); } catch (e) { console.warn('[payments] onEvent:', e.message); }
   };
   const fetchImpl = deps.fetchImpl || ((...a) => fetch(...a));
+  // Webhook events for orders this table does not own (BloodMap): (type, evt) => result.
+  const onForeignEvent = typeof deps.onForeignEvent === 'function' ? deps.onForeignEvent : null;
 
   async function rzp(method, path, body) {
     const cfg = config();
@@ -311,7 +313,10 @@ function createPaymentsService(deps) {
     const pay = evt && evt.payload && evt.payload.payment && evt.payload.payment.entity;
     if (type === 'payment.captured' || type === 'order.paid') {
       if (!pay || !pay.order_id) return { ok: true, ignored: 'no_payment' };
-      return fulfil(pay.order_id, pay, 'webhook');
+      const done = await fulfil(pay.order_id, pay, 'webhook');
+      // Not a membership order: another product on the same Razorpay account.
+      if (!done.ok && done.reason === 'unknown_order' && onForeignEvent) return onForeignEvent(type, evt);
+      return done;
     }
     if (type === 'payment.failed') {
       if (pay && pay.order_id) await markFailed(pay.order_id, pay.id, pay.error_description || 'Payment failed');
@@ -331,6 +336,7 @@ function createPaymentsService(deps) {
         [amountRefunded, amountRefunded, paymentId]
       );
       const row = r && r.rows && r.rows[0];
+      if (!row && onForeignEvent) return onForeignEvent(type, evt);
       if (row && type === 'refund.processed') onEvent('refunded', { row, amount_paise: amountRefunded });
       return { ok: true, refunded: row || null };
     }
@@ -357,7 +363,7 @@ function createPaymentsService(deps) {
     );
   }
 
-  return { ensureTables, createOrder, verifyAndFulfil, handleWebhookEvent, fulfil, listForUser, listAll };
+  return { ensureTables, createOrder, verifyAndFulfil, handleWebhookEvent, fulfil, listForUser, listAll, rzp };
 }
 
 module.exports = {

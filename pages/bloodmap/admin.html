@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="theme-color" content="#060606" />
+<meta name="robots" content="noindex, nofollow" />
+<title>BloodMap orders — BodyBank staff</title>
+<link rel="icon" href="/icons/icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/bloodmap-assets/bloodmap.css?v=1" />
+<style>
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 18px}
+.tab{min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--creamd);cursor:pointer;font-weight:500;font-size:14px}
+.tab.on{border-color:var(--gold);background:rgba(200,164,78,.12);color:var(--gold)}
+.tab small{opacity:.75;margin-left:4px}
+.stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+.stat{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:var(--ink)}
+.stat b{display:block;font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat span{font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+.o{border:1px solid var(--line);border-radius:14px;background:var(--ink);margin-bottom:10px;overflow:hidden}
+.o-head{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:14px 16px;cursor:pointer}
+.o-who{flex:1 1 220px;min-width:0}
+.o-who b{display:block;font-weight:600;font-size:16px}
+.o-who span{font-size:13px;color:var(--mute)}
+.o-body{border-top:1px solid var(--line);padding:16px;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+.o-body h4{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--mute);font-weight:600;margin-bottom:8px}
+.kv{font-size:14.5px;color:var(--creamd);margin-bottom:4px;overflow-wrap:anywhere}
+.kv b{color:var(--cream);font-weight:500}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.flag{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--bad);background:rgba(224,122,106,.12);border-radius:999px;padding:3px 9px}
+.hist{font-size:13px;color:var(--creamd);max-height:180px;overflow:auto}
+.hist div{padding:5px 0;border-bottom:1px solid var(--line)}
+.hist small{color:var(--mute)}
+.full{grid-column:1/-1}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--ink2);border:1px solid var(--bdr);border-radius:10px;padding:10px 16px;font-size:14px;z-index:200;max-width:calc(100vw - 32px)}
+.days7{display:flex;gap:6px;flex-wrap:wrap}
+.days7 label{display:flex;align-items:center;gap:5px;font-size:13.5px;border:1px solid var(--line);border-radius:8px;padding:6px 9px;cursor:pointer;letter-spacing:0;text-transform:none;color:var(--creamd);font-weight:400}
+@media(max-width:760px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}.o-body{grid-template-columns:minmax(0,1fr)}}
+</style>
+</head>
+<body>
+<header class="bm-nav">
+  <div class="wrap">
+    <a class="bm-brand" href="/bloodmap/admin"><img src="/img/logo.png" alt="BodyBank"><span class="bm-word"><b>Blood<i>Map</i></b><span>Staff console</span></span></a>
+    <div class="bm-nav-right">
+      <a class="btn btn--sm btn--ghost" href="/bloodmap" target="_blank" rel="noopener">Public page</a>
+      <a class="btn btn--sm btn--ghost" href="/?open=blood">Blood reports</a>
+      <button class="btn btn--sm" type="button" id="reload">Refresh</button>
+    </div>
+  </div>
+</header>
+
+<main class="wrap" style="padding-top:26px;padding-bottom:72px">
+  <div id="gate" class="card" hidden>
+    <h2 class="h3">Staff sign-in needed</h2>
+    <p class="sub" style="margin:8px 0 16px">Sign in with your BodyBank admin or operator account to see BloodMap orders.</p>
+    <a class="btn btn--gold" href="/signin?next=/bloodmap/admin">Sign in</a>
+  </div>
+
+  <div id="app" hidden>
+    <div class="stats" id="stats"></div>
+    <div class="tabs" id="tabs"></div>
+    <div id="panel"></div>
+  </div>
+</main>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  'use strict';
+  var session = null;
+  try { session = JSON.parse(localStorage.getItem('bodybank_session') || 'null'); } catch (_) {}
+  var STAFF = ['admin', 'superadmin', 'operator'];
+  var $ = function (id) { return document.getElementById(id); };
+  var S = { orders: [], consultants: {}, config: {}, tab: 'active', open: {}, events: {} };
+  var STAGE = { payment: 'Unpaid', upload: 'Waiting for upload', analysing: 'Analysing', review: 'Needs review', ready: 'Report released', completed: 'Completed' };
+  var PILL = { payment: 'dim', upload: 'warn', analysing: '', review: 'bad', ready: 'ok', completed: 'ok' };
+
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+  function toast(t) { var el = $('toast'); el.textContent = t; el.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(function () { el.hidden = true; }, 3200); }
+  function when(iso) {
+    if (!iso) return '—';
+    return new Date(iso).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit', hour12: true });
+  }
+  function api(method, url, body) {
+    var opts = { method: method, headers: { Accept: 'application/json', Authorization: 'Bearer ' + session.token } };
+    if (body) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+    return fetch('/api/bloodmap/admin' + url, opts).then(function (res) {
+      if (res.status === 401 || res.status === 403) { $('app').hidden = true; $('gate').hidden = false; }
+      return res.json().catch(function () { return {}; }).then(function (d) {
+        if (!res.ok && !d.error) d.error = 'Request failed (' + res.status + ')';
+        return d;
+      });
+    }).catch(function () { return { error: 'Network error' }; });
+  }
+  function act(method, url, body, okText) {
+    return api(method, url, body).then(function (d) {
+      toast(d.error ? d.error : okText);
+      if (!d.error) return load();
+    });
+  }
+
+  function load() {
+    return api('GET', '/orders').then(function (d) {
+      if (d.error) return;
+      S.orders = d.orders || []; S.consultants = d.consultants || {}; S.config = d.config || {};
+      $('app').hidden = false;
+      render();
+    });
+  }
+
+  function inTab(o, tab) {
+    if (tab === 'active') return ['upload', 'analysing', 'review', 'ready'].indexOf(o.stage) >= 0 && o.pay_status === 'paid';
+    if (tab === 'review') return o.stage === 'review' || o.flags.length > 0;
+    if (tab === 'done') return o.stage === 'completed';
+    if (tab === 'unpaid') return o.pay_status !== 'paid';
+    return true;
+  }
+
+  function render() {
+    var paid = S.orders.filter(function (o) { return o.pay_status === 'paid'; });
+    var n = function (f) { return paid.filter(f).length; };
+    var upcoming = calls().filter(function (c) { return c.status === 'booked'; });
+    $('stats').innerHTML = [
+      [paid.length, 'Paid orders'],
+      [n(function (o) { return o.stage === 'upload'; }), 'Waiting for upload'],
+      [n(function (o) { return o.stage === 'review'; }), 'Need review'],
+      [upcoming.length, 'Calls booked'],
+      [n(function (o) { return o.stage === 'completed'; }), 'Completed']
+    ].map(function (s) { return '<div class="stat"><b>' + s[0] + '</b><span>' + s[1] + '</span></div>'; }).join('');
+
+    var tabs = [['active', 'In progress'], ['review', 'Needs attention'], ['calls', 'Calls'], ['done', 'Completed'], ['unpaid', 'Unpaid'], ['all', 'All'], ['team', 'Consultants']];
+    $('tabs').innerHTML = tabs.map(function (t) {
+      var count = t[0] === 'calls' ? upcoming.length : t[0] === 'team' ? '' : S.orders.filter(function (o) { return inTab(o, t[0]); }).length;
+      return '<button class="tab' + (S.tab === t[0] ? ' on' : '') + '" data-tab="' + t[0] + '">' + t[1] + (count === '' ? '' : '<small>' + count + '</small>') + '</button>';
+    }).join('');
+    Array.prototype.forEach.call($('tabs').querySelectorAll('.tab'), function (b) {
+      b.onclick = function () { S.tab = b.getAttribute('data-tab'); render(); };
+    });
+
+    if (S.tab === 'calls') return renderCalls();
+    if (S.tab === 'team') return renderTeam();
+    var list = S.orders.filter(function (o) { return inTab(o, S.tab); });
+    $('panel').innerHTML = list.length ? list.map(orderHtml).join('') : '<div class="card"><p class="mute">Nothing here.</p></div>';
+    bindOrders();
+  }
+
+  function callLine(o, role, label) {
+    var c = o.calls[role];
+    if (!c || c.status === 'none') return '<div class="kv">' + label + ': <b>not booked</b></div>';
+    var btns = c.status === 'done'
+      ? '<button class="btn btn--sm btn--ghost" data-call="' + o.id + '|' + role + '|reopen">Mark not done</button>'
+      : '<button class="btn btn--sm" data-call="' + o.id + '|' + role + '|done">Mark done</button> <button class="btn btn--sm btn--danger" data-call="' + o.id + '|' + role + '|cancel">Cancel</button>';
+    return '<div class="kv">' + label + ': <b>' + esc(when(c.starts_at)) + '</b> · ' + esc(c.status) + '</div><div class="acts" style="margin:6px 0 12px">' + btns + '</div>';
+  }
+
+  function orderHtml(o) {
+    var open = !!S.open[o.id];
+    var head = '<div class="o-head" data-toggle="' + o.id + '">' +
+      '<div class="o-who"><b>' + esc(o.name) + '</b><span>' + esc(o.ref) + ' · ' + esc(o.city || '—') + ' · ' + esc(o.amount) + (o.mode && o.mode !== 'live' ? ' (' + esc(o.mode) + ')' : '') + ' · ' + esc(when(o.paid_at || o.created_at)) + '</span></div>' +
+      o.flags.map(function (f) { return '<span class="flag">' + esc(f) + '</span>'; }).join('') +
+      '<span class="pill' + (PILL[o.stage] ? ' pill--' + PILL[o.stage] : '') + '">' + esc(STAGE[o.stage] || o.stage) + '</span></div>';
+    if (!open) return '<div class="o">' + head + '</div>';
+    var it = o.intake || {};
+    var ev = S.events[o.id];
+    var canRelease = o.report_id && !o.released_at && String(o.report_status).toLowerCase() === 'complete';
+    return '<div class="o">' + head + '<div class="o-body">' +
+      '<div><h4>Client</h4>' +
+        '<div class="kv">Mobile: <b>' + esc(o.phone) + '</b></div><div class="kv">Email: <b>' + esc(o.email) + '</b></div>' +
+        '<div class="kv">Age / gender: <b>' + esc(o.age || '—') + ' / ' + esc(o.gender || '—') + '</b></div>' +
+        '<div class="kv">Payment: <b>' + esc(o.pay_status) + '</b>' + (o.payment_id ? ' · ' + esc(o.payment_id) : '') + '</div>' +
+        '<h4 style="margin-top:14px">What they told us</h4>' +
+        '<div class="kv">Test date: <b>' + esc(it.report_date || '—') + '</b></div><div class="kv">Goal: <b>' + esc(it.goal || '—') + '</b></div>' +
+        '<div class="kv">Medicines: <b>' + esc(it.medicines || '—') + '</b></div><div class="kv">Conditions: <b>' + esc(it.conditions || '—') + '</b></div></div>' +
+      '<div><h4>Report</h4>' +
+        '<div class="kv">Status: <b>' + esc(o.report_id ? (o.report_status || 'pending') : 'not uploaded') + '</b>' + (o.due_by ? ' · due ' + esc(o.due_by) : '') + '</div>' +
+        '<div class="kv">Released to client: <b>' + esc(o.released_at ? when(o.released_at) : 'no') + '</b></div>' +
+        '<div class="acts" style="margin:8px 0 14px">' +
+          (o.report_id ? '<button class="btn btn--sm" data-pdf="' + esc(o.report_id) + '">Open report PDF</button><a class="btn btn--sm btn--ghost" href="/?open=blood" target="_blank" rel="noopener">Edit in Blood reports</a>' : '') +
+          (canRelease ? '<button class="btn btn--sm btn--gold" data-release="' + o.id + '">Release to client</button>' : '') +
+          (o.report_id && !o.released_at ? '<button class="btn btn--sm btn--danger" data-reup="' + o.id + '">Ask for a clearer copy</button>' : '') +
+        '</div><h4>Calls</h4>' + callLine(o, 'doctor', 'Doctor') + callLine(o, 'nutritionist', 'Nutritionist') + '</div>' +
+      '<div class="full"><h4>Client link</h4><div class="acts">' +
+        '<button class="btn btn--sm" data-copy="' + esc(o.link) + '">Copy private link</button>' +
+        '<button class="btn btn--sm" data-resend="' + o.id + '">Send link again</button>' +
+        '<a class="btn btn--sm btn--ghost" target="_blank" rel="noopener" href="https://wa.me/' + esc(String(o.phone).replace(/[^0-9]/g, '').replace(/^(\d{10})$/, '91$1')) + '">WhatsApp client</a></div></div>' +
+      '<div><h4>Staff notes</h4><div class="field"><textarea data-notes="' + o.id + '" maxlength="4000">' + esc(o.admin_notes) + '</textarea></div><button class="btn btn--sm" data-savenotes="' + o.id + '">Save notes</button></div>' +
+      '<div><h4>History</h4><div class="hist">' + (ev ? (ev.length ? ev.map(function (e) {
+        return '<div>' + esc(e.detail || e.kind) + '<br><small>' + esc(when(e.created_at)) + ' · ' + esc(e.actor) + '</small></div>';
+      }).join('') : '<div>No events yet.</div>') : '<div>Loading…</div>') + '</div></div>' +
+      '</div></div>';
+  }
+
+  function bindOrders() {
+    var p = $('panel');
+    var each = function (sel, fn) { Array.prototype.forEach.call(p.querySelectorAll(sel), fn); };
+    each('[data-toggle]', function (h) {
+      h.onclick = function () {
+        var id = h.getAttribute('data-toggle');
+        S.open[id] = !S.open[id];
+        render();
+        if (S.open[id]) api('GET', '/orders/' + id + '/events').then(function (d) { S.events[id] = d.events || []; render(); });
+      };
+    });
+    each('[data-release]', function (b) {
+      b.onclick = function () {
+        if (!confirm('Release this report to the client? They will be emailed and can view and download it.')) return;
+        act('POST', '/orders/' + b.getAttribute('data-release') + '/release', null, 'Report released to the client.');
+      };
+    });
+    each('[data-reup]', function (b) {
+      b.onclick = function () {
+        var note = prompt('Message to the client (what is wrong with the copy):', 'Some values are cut off or blurred. Please upload the PDF from your lab, or sharper photos.');
+        if (note === null) return;
+        act('POST', '/orders/' + b.getAttribute('data-reup') + '/request-reupload', { note: note }, 'Client asked to upload again.');
+      };
+    });
+    each('[data-call]', function (b) {
+      b.onclick = function () {
+        var x = b.getAttribute('data-call').split('|');
+        if (x[2] === 'cancel' && !confirm('Cancel this call? The client is asked to pick a new time.')) return;
+        act('POST', '/orders/' + x[0] + '/call', { role: x[1], action: x[2] }, 'Call updated.');
+      };
+    });
+    each('[data-copy]', function (b) {
+      b.onclick = function () {
+        var t = b.getAttribute('data-copy');
+        (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { toast('Link copied.'); }, function () { prompt('Copy this link:', t); });
+      };
+    });
+    each('[data-resend]', function (b) { b.onclick = function () { act('POST', '/orders/' + b.getAttribute('data-resend') + '/resend-link', null, 'Link sent to the client.'); }; });
+    each('[data-savenotes]', function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-savenotes');
+        act('PUT', '/orders/' + id + '/notes', { notes: p.querySelector('[data-notes="' + id + '"]').value }, 'Notes saved.');
+      };
+    });
+    each('[data-pdf]', function (b) {
+      b.onclick = function () {
+        b.disabled = true;
+        // The staff PDF route needs the bearer token, so fetch it and open the blob.
+        fetch('/api/blood/pdf/' + encodeURIComponent(b.getAttribute('data-pdf')), { headers: { Authorization: 'Bearer ' + session.token } }).then(function (res) {
+          b.disabled = false;
+          if (!res.ok) return res.json().catch(function () { return {}; }).then(function (d) { toast(d.error || 'Report is not ready yet.'); });
+          return res.blob().then(function (blob) { window.open(URL.createObjectURL(blob), '_blank'); });
+        }).catch(function () { b.disabled = false; toast('Could not open the report.'); });
+      };
+    });
+  }
+
+  function calls() {
+    var out = [];
+    S.orders.forEach(function (o) {
+      ['doctor', 'nutritionist'].forEach(function (role) {
+        var c = o.calls[role];
+        if (c && c.status !== 'none') out.push({ o: o, role: role, status: c.status, starts_at: c.starts_at });
+      });
+    });
+    return out.sort(function (a, b) { return new Date(a.starts_at) - new Date(b.starts_at); });
+  }
+
+  function renderCalls() {
+    var list = calls().filter(function (c) { return c.status === 'booked'; });
+    $('panel').innerHTML = list.length ? list.map(function (c) {
+      return '<div class="o"><div class="o-head" style="cursor:default"><div class="o-who"><b>' + esc(when(c.starts_at)) + ' · ' + (c.role === 'doctor' ? 'Doctor' : 'Sports nutritionist') + '</b>' +
+        '<span>' + esc(c.o.name) + ' · ' + esc(c.o.phone) + ' · ' + esc(c.o.ref) + (c.o.released_at ? '' : ' · report not released yet') + '</span></div>' +
+        '<button class="btn btn--sm" data-call="' + c.o.id + '|' + c.role + '|done">Mark done</button></div></div>';
+    }).join('') : '<div class="card"><p class="mute">No calls booked.</p></div>';
+    bindOrders();
+  }
+
+  function mins(v) { var p = String(v || '').split(':'); return (parseInt(p[0], 10) || 0) * 60 + (parseInt(p[1], 10) || 0); }
+  function hhmm(m) { return String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0'); }
+
+  function renderTeam() {
+    var DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    $('panel').innerHTML = '<div class="grid2">' + ['doctor', 'nutritionist'].map(function (role) {
+      var c = S.consultants[role] || {};
+      var f = function (k, label, extra) { return '<div class="field"><label>' + label + '</label><input data-k="' + k + '" value="' + esc(c[k] || '') + '"' + (extra || '') + '></div>'; };
+      return '<form class="card" data-role="' + role + '"><h3 class="h3" style="margin-bottom:14px">' + esc(c.label || role) + '</h3>' +
+        f('name', 'Name') + f('title', 'Title') + f('qualification', 'Qualification') + f('reg_no', 'Registration number') +
+        '<div class="field"><label>Short bio</label><textarea data-k="bio" maxlength="600">' + esc(c.bio || '') + '</textarea></div>' +
+        f('photo_url', 'Photo link (https://…)') +
+        '<div class="field"><label>Working days</label><div class="days7">' + DAYS.map(function (d, i) {
+          return '<label><input type="checkbox" data-day="' + i + '"' + ((c.work_days || []).indexOf(i) >= 0 ? ' checked' : '') + '>' + d + '</label>';
+        }).join('') + '</div></div>' +
+        '<div class="row2"><div class="field"><label>From (IST)</label><input type="time" data-k="start" value="' + hhmm(c.start_min || 600) + '"></div>' +
+        '<div class="field"><label>Until (IST)</label><input type="time" data-k="end" value="' + hhmm(c.end_min || 1140) + '"></div></div>' +
+        '<div class="field"><label>Time blocked per call</label><select data-k="slot_min">' + [30, 45, 60, 90].map(function (m) {
+          return '<option value="' + m + '"' + (Number(c.slot_min) === m ? ' selected' : '') + '>' + m + ' minutes</option>';
+        }).join('') + '</select></div>' +
+        '<button class="btn btn--gold" type="submit">Save</button></form>';
+    }).join('') + '</div>';
+    Array.prototype.forEach.call($('panel').querySelectorAll('form'), function (form) {
+      form.onsubmit = function (e) {
+        e.preventDefault();
+        var g = function (k) { return form.querySelector('[data-k="' + k + '"]').value; };
+        var days = Array.prototype.filter.call(form.querySelectorAll('[data-day]'), function (x) { return x.checked; }).map(function (x) { return Number(x.getAttribute('data-day')); });
+        act('PUT', '/consultants/' + form.getAttribute('data-role'), {
+          name: g('name'), title: g('title'), qualification: g('qualification'), reg_no: g('reg_no'), bio: g('bio'), photo_url: g('photo_url'),
+          work_days: days, start_min: mins(g('start')), end_min: mins(g('end')), slot_min: g('slot_min')
+        }, 'Saved. The public page shows it straight away.');
+      };
+    });
+  }
+
+  if (!session || !session.token || STAFF.indexOf(session.role) < 0) { $('gate').hidden = false; return; }
+  $('reload').onclick = function () { load().then(function () { toast('Refreshed.'); }); };
+  load();
+  setInterval(function () { if (!document.hidden && !document.querySelector('textarea:focus, input:focus')) load(); }, 60000);
+})();
+</script>
+</body>
+</html>
