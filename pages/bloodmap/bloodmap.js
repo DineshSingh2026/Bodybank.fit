@@ -420,8 +420,86 @@
       '<h3 class="h2" style="margin:8px 0 8px">Your report is ready</h3>' +
       '<p style="color:var(--creamd);margin-bottom:18px">It has been analysed and reviewed. Read it before your doctor call and note down anything you want to ask.</p>' +
       '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
-      '<a class="btn btn--gold" target="_blank" rel="noopener" href="' + esc(pdf) + '">View report</a>' +
+      '<button class="btn btn--gold" type="button" id="mView">View report</button>' +
       '<a class="btn" href="' + esc(pdf + '?dl=1') + '">Download PDF</a></div>';
+    $('mView').onclick = openReport;
+  }
+
+  /* report viewer */
+  var VENDOR = '/bloodmap-assets/vendor/';
+  var pdfjsLoading = null;
+  function loadPdfjs() {
+    if (!pdfjsLoading) {
+      pdfjsLoading = import(VENDOR + 'pdf.min.mjs').then(function (lib) {
+        lib.GlobalWorkerOptions.workerSrc = VENDOR + 'pdf.worker.min.mjs';
+        return lib;
+      }).catch(function (e) { pdfjsLoading = null; throw e; });
+    }
+    return pdfjsLoading;
+  }
+
+  function closeReport() {
+    state.viewing = 0;
+    $('viewer').hidden = true;
+    $('viewerBody').innerHTML = '';
+    document.documentElement.style.overflow = '';
+  }
+
+  // The report is drawn page by page onto the page itself. If drawing fails for
+  // any reason, the reader is told why and still gets the download button.
+  function openReport() {
+    var url = orderUrl('/report.pdf');
+    var body = $('viewerBody');
+    var run = (state.viewing = Date.now());
+    $('viewerDl').href = url + '?dl=1';
+    $('viewerPages').textContent = '';
+    $('viewer').hidden = false;
+    document.documentElement.style.overflow = 'hidden';
+    body.innerHTML = '<div class="viewer-note"><span class="ring" aria-hidden="true"></span><p>Opening your report…</p></div>';
+    function problem(text) {
+      if (state.viewing !== run) return;
+      body.innerHTML = '<div class="viewer-note"><p>' + esc(text) + '</p><a class="btn btn--gold" href="' + esc(url + '?dl=1') + '">Download the PDF instead</a></div>';
+    }
+
+    fetch(url, { headers: { Accept: 'application/pdf' } }).then(function (res) {
+      if (res.status === 410) { closeReport(); linkGone('Your private link has expired. Enter your email and we will send you a code to get back in.'); return null; }
+      if (!res.ok) {
+        return res.json().catch(function () { return {}; }).then(function (d) { problem(d.error || 'We could not open your report (' + res.status + '). Please try again in a minute.'); return null; });
+      }
+      return res.arrayBuffer();
+    }).then(function (buf) {
+      if (!buf || state.viewing !== run) return;
+      return loadPdfjs().then(function (lib) {
+        return lib.getDocument({ data: buf, standardFontDataUrl: VENDOR + 'standard_fonts/' }).promise;
+      }).then(function (doc) {
+        if (state.viewing !== run) return;
+        body.innerHTML = '';
+        $('viewerPages').textContent = doc.numPages + (doc.numPages === 1 ? ' page' : ' pages');
+        var width = Math.min(body.clientWidth - 16, 900);
+        var dpr = Math.min(window.devicePixelRatio || 1, 2);
+        var chain = Promise.resolve();
+        for (var n = 1; n <= doc.numPages; n++) {
+          (function (num) {
+            chain = chain.then(function () {
+              if (state.viewing !== run) return;
+              return doc.getPage(num).then(function (page) {
+                var base = page.getViewport({ scale: 1 });
+                var vp = page.getViewport({ scale: (width / base.width) * dpr });
+                var canvas = document.createElement('canvas');
+                canvas.width = Math.floor(vp.width); canvas.height = Math.floor(vp.height);
+                canvas.style.width = width + 'px';
+                canvas.setAttribute('aria-label', 'Report page ' + num);
+                body.appendChild(canvas);
+                return page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+              });
+            });
+          })(n);
+        }
+        return chain;
+      });
+    }).catch(function () {
+      problem('This browser could not display the report on the page.');
+    });
   }
 
   /* upload */
@@ -605,7 +683,8 @@
     Array.prototype.forEach.call(document.querySelectorAll('.modal'), function (m) {
       m.addEventListener('click', function (e) { if (e.target === m) closeModals(); });
     });
-    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') closeModals(); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape') { closeModals(); if (!$('viewer').hidden) closeReport(); } });
+    $('viewerClose').onclick = closeReport;
     $('navTrack').onclick = openTrack;
     $('asideTrack').onclick = openTrack;
     bindOrderForm();

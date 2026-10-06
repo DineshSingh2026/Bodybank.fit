@@ -12,7 +12,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/bloodmap-assets/bloodmap.css?v=2" />
+<link rel="stylesheet" href="/bloodmap-assets/bloodmap.css?v=3" />
 </head>
 <body>
 
@@ -165,7 +165,7 @@
             <div class="sum-row"><span>Report ready in</span><span><b data-hours>48</b> hours</span></div>
           </div>
           <div class="sum-total"><span class="label">Total</span><b data-price>₹—</b></div>
-          <p class="small mute" style="margin-top:14px">Full refund if you ask before we start analysing your report. See the <a href="/refund.html" target="_blank" rel="noopener">Refund Policy</a>.</p>
+          <p class="small mute" style="margin-top:14px">Full refund if you ask before you upload your report. See the <a href="/refund.html#bloodmap" target="_blank" rel="noopener">Refund Policy</a>.</p>
           <p class="small mute" style="margin-top:10px">Already ordered? <a href="#" id="asideTrack">Track your order</a>.</p>
         </aside>
       </div>
@@ -182,7 +182,7 @@
       <details><summary>How do the calls work?</summary><p>After you upload, you pick a time for the doctor call and then the sports nutritionist call. At that time we call you on the mobile number you gave. You can change a slot up to 12 hours before it starts.</p></details>
       <details><summary>Do I need to install the BodyBank app?</summary><p>No. Everything happens on this page. We email you a private link to come back to your order at any time.</p></details>
       <details><summary>Is my health data safe?</summary><p>Your report is only seen by our review team and the experts on your calls. You confirm your email with a code before you order, and your order opens only with the private link we send to that email, or a new one-time code sent to it. Links stop working after 30 days, and you can always get a fresh one with a code.</p></details>
-      <details><summary>Can I get a refund?</summary><p>Yes, in full, if you ask before we start analysing your report. Once your report has been prepared, the service has been delivered. See the <a href="/refund.html" target="_blank" rel="noopener">Refund Policy</a>.</p></details>
+      <details><summary>Can I get a refund?</summary><p>Yes, in full, if you ask before you upload your blood report. Once you upload it, our work on it starts straight away, so the payment is no longer refundable, unless we could not read your report or could not deliver it. See the <a href="/refund.html#bloodmap" target="_blank" rel="noopener">Refund Policy</a>.</p></details>
     </div>
   </section>
 </main>
@@ -217,7 +217,7 @@
 <footer class="foot">
   <div class="wrap">
     <p>BloodMap is a service of BodyBank. The Health Map report is for education and wellness guidance. It is not a diagnosis and does not replace emergency or in-person medical care. If you feel unwell, see a doctor or go to a hospital.</p>
-    <p><a href="/terms.html">Terms of Service</a> · <a href="/refund.html">Refund &amp; Cancellation Policy</a> · <a href="/privacy.html">Privacy Policy</a> · <a href="#" id="footWa" target="_blank" rel="noopener">WhatsApp us</a></p>
+    <p><a href="/terms.html">Terms of Service</a> · <a href="/refund.html#bloodmap">Refund &amp; Cancellation Policy</a> · <a href="/privacy.html">Privacy Policy</a> · <a href="#" id="footWa" target="_blank" rel="noopener">WhatsApp us</a></p>
   </div>
 </footer>
 
@@ -232,6 +232,18 @@
   </div>
 </div>
 
+<!-- Report viewer: draws the PDF on the page itself, so it works on phones and
+     in-app browsers that have no PDF plugin and cannot open a PDF in a new tab. -->
+<div class="viewer" id="viewer" role="dialog" aria-modal="true" aria-label="Your Health Map report" hidden>
+  <div class="viewer-bar">
+    <b>Your report</b>
+    <span class="small mute" id="viewerPages"></span>
+    <a class="btn btn--sm" id="viewerDl" href="#">Download PDF</a>
+    <button class="btn btn--sm btn--gold" type="button" id="viewerClose">Close</button>
+  </div>
+  <div class="viewer-body" id="viewerBody"></div>
+</div>
+
 <!-- Track my order -->
 <div class="modal" id="trackModal" role="dialog" aria-modal="true" aria-labelledby="trackTitle">
   <div class="modal-box">
@@ -243,6 +255,6 @@
   </div>
 </div>
 
-<script src="/bloodmap-assets/bloodmap.js?v=2" defer></script>
+<script src="/bloodmap-assets/bloodmap.js?v=3" defer></script>
 </body>
 </html>
