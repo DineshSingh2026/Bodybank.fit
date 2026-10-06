@@ -227,7 +227,7 @@ async function main() {
   // ── forged / unsigned webhook ──
   r = await call('POST', '/api/payments/order', { token: other.token, body: { plan_tier: 'tribe_elite', term: '1m' } });
   const order3 = r.json.order_id;
-  assert(r.json.amount === 1800000, 'Tribe Elite monthly is ₹18,000');
+  assert(r.json.amount === 2500000, 'Tribe Elite monthly is ₹25,000');
   const pay3 = fakePay(order3);
   r = await webhook({ event: 'payment.captured', payload: { payment: { entity: pay3 } } }, 'attacker_secret');
   assert(r.status === 400, 'a webhook signed with the wrong secret is rejected');
@@ -236,7 +236,7 @@ async function main() {
   u = await userRow(other.id);
   assert(u.plan_tier === 'guided', 'a forged webhook does not upgrade anyone to Tribe Elite');
 
-  // ── wrong amount (₹1 paid against an ₹18,000 order) ──
+  // ── wrong amount (₹1 paid against a ₹25,000 order) ──
   const cheap = fakePay(order3, { amount: 100 });
   r = await webhook({ event: 'payment.captured', payload: { payment: { entity: cheap } } });
   u = await userRow(other.id);

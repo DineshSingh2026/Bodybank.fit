@@ -54,7 +54,8 @@ const PLAN_CATALOG = {
     name: 'Core',
     tagline: 'The full BodyBank app, on your own.',
     prices: [
-      { term: '12m', months: 12, label: '12 months', amount: 3499, compare_at: 5999 }
+      { term: '1m', months: 1, label: 'Monthly', amount: 299 },
+      { term: '12m', months: 12, label: 'Annual', amount: 3499, compare_at: 5999 }
     ]
   },
   guided: {
@@ -72,8 +73,8 @@ const PLAN_CATALOG = {
     name: 'Tribe Elite',
     tagline: 'Everything, plus complete lifestyle management.',
     prices: [
-      { term: '1m', months: 1, label: 'Monthly', amount: 18000, compare_at: 25000 },
-      { term: '4m', months: 4, label: '4 months', amount: 72000 }
+      { term: '1m', months: 1, label: 'Monthly', amount: 25000 },
+      { term: '4m', months: 4, label: '4 months', amount: 75000 }
     ]
   }
 };

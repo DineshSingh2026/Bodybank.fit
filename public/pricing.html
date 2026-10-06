@@ -121,44 +121,88 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   .nav-right{gap:6px}
 }
 /* ── Pricing page ── */
-.pr-hero{max-width:760px;margin:0 auto;padding:128px 24px 28px;text-align:center}
+.pr-hero{max-width:780px;margin:0 auto;padding:128px 24px 20px;text-align:center}
 .pr-eyebrow{font-size:12px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;color:var(--gold);margin-bottom:12px}
 .pr-title{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:clamp(38px,6vw,64px);letter-spacing:1.5px;line-height:1.05;color:var(--cream);margin-bottom:16px;text-wrap:balance}
 .pr-sub{font-size:17px;color:var(--creamd);max-width:560px;margin:0 auto;text-wrap:pretty}
 .pr-sub strong{color:var(--gold);font-weight:600}
-.pr-plans{max-width:1160px;margin:0 auto;padding:24px 24px 56px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;align-items:stretch}
+.pr-me{max-width:780px;margin:0 auto;padding:6px 24px 0;text-align:center;font-size:14.5px;color:var(--creamd)}
+.pr-me:empty{display:none}
+.pr-me b{color:var(--cream);font-weight:600}
+.pr-me a{color:var(--gold);text-decoration:underline;text-underline-offset:3px}
+.pr-me--warn{color:#e8c98a}
+
+/* Plan cards. Every card has the same rows in the same order (name, billing
+   switch, price, action, features), so the three read across like a table. */
+.pr-plans{max-width:1180px;margin:0 auto;padding:44px 24px 28px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;align-items:stretch}
 .pr-loading{grid-column:1/-1;text-align:center;color:var(--creamd);padding:40px 0}
-.pr-card{position:relative;display:flex;flex-direction:column;min-width:0;background:#0d0c0b;border:1px solid rgba(255,255,255,.08);border-radius:18px;padding:28px 24px 24px}
-.pr-card--hl{border-color:rgba(200,164,78,.55);background:linear-gradient(180deg,rgba(200,164,78,.08),rgba(200,164,78,0) 42%),#0d0c0b}
-.pr-badge{position:absolute;top:-12px;left:24px;background:var(--goldg);color:#060606;font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:5px 11px;border-radius:999px}
-.pr-name{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:34px;letter-spacing:1.2px;color:var(--cream);line-height:1}
-.pr-tagline{font-size:14.5px;color:var(--creamd);margin:8px 0 20px;min-height:44px}
-.pr-prices{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
-.pr-price{border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:12px 14px}
-.pr-price-top{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
-.pr-amt{font-size:28px;font-weight:600;color:var(--cream);letter-spacing:-.5px;font-variant-numeric:tabular-nums}
-.pr-was{font-size:15px;color:#7d786e;text-decoration:line-through;font-variant-numeric:tabular-nums}
-.pr-save{font-size:11px;font-weight:700;letter-spacing:.06em;color:#8fc7b0;background:rgba(143,199,176,.1);border-radius:999px;padding:2px 8px}
-.pr-term{font-size:13px;color:var(--creamd);margin-top:2px}
-.pr-note{font-size:12.5px;color:var(--gold);margin-top:4px}
-.pr-inc{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#8a857a;margin-bottom:10px}
-.pr-list{list-style:none;margin:0 0 24px;flex:1 1 auto}
-.pr-list li{position:relative;padding:6px 0 6px 26px;font-size:15px;color:var(--cream);line-height:1.45}
-.pr-list li::before{content:"";position:absolute;left:3px;top:12px;width:11px;height:6px;border-left:2px solid var(--gold);border-bottom:2px solid var(--gold);transform:rotate(-45deg)}
-.pr-actions{display:flex;flex-direction:column;gap:8px}
-.pr-btn{display:flex;align-items:center;justify-content:center;min-height:48px;padding:0 18px;border-radius:10px;font-family:'Outfit',sans-serif;font-size:15px;font-weight:600;text-decoration:none;text-align:center;border:1px solid rgba(200,164,78,.55);color:var(--gold);background:transparent;transition:background .2s,transform .2s}
+.pr-card{position:relative;display:flex;flex-direction:column;min-width:0;background:#0c0b0a;border:1px solid rgba(255,255,255,.09);border-radius:22px;padding:30px 26px 28px}
+.pr-card--hl{border-color:rgba(200,164,78,.6);background:linear-gradient(180deg,rgba(200,164,78,.10),rgba(200,164,78,0) 38%),#0c0b0a;box-shadow:0 24px 60px -28px rgba(200,164,78,.35)}
+.pr-badge{position:absolute;top:-13px;left:50%;transform:translateX(-50%);white-space:nowrap;background:var(--goldg);color:#060606;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;padding:6px 14px;border-radius:999px}
+.pr-name{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:36px;letter-spacing:1.4px;color:var(--cream);line-height:1;display:flex;align-items:center;flex-wrap:wrap;gap:10px}
+.pr-mine{font-family:'Outfit',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8fc7b0;background:rgba(143,199,176,.12);border-radius:999px;padding:4px 10px}
+.pr-tagline{font-size:15px;color:var(--creamd);margin:10px 0 22px;min-height:48px;text-wrap:pretty}
+
+/* Billing switch */
+.pr-seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:4px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:14px}
+.pr-seg-btn{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 8px;border:none;border-radius:10px;background:transparent;color:var(--creamd);font-family:'Outfit',sans-serif;font-size:14.5px;font-weight:600;cursor:pointer;transition:background .2s,color .2s}
+.pr-seg-btn:hover{color:var(--cream)}
+.pr-seg-btn[aria-checked="true"]{background:#1d1a14;color:var(--cream);box-shadow:inset 0 0 0 1px rgba(200,164,78,.55)}
+.pr-seg-btn:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+.pr-seg-save{font-size:11px;font-weight:700;letter-spacing:.04em;color:#8fc7b0;line-height:1}
+.pr-seg--one{grid-auto-columns:auto}
+.pr-seg--one .pr-seg-btn{cursor:default}
+
+/* Price */
+.pr-pricebox{margin:22px 0 20px;min-height:164px}
+.pr-amt-row{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.pr-amt{font-size:46px;font-weight:600;line-height:1;color:var(--cream);letter-spacing:-1.2px;font-variant-numeric:tabular-nums}
+.pr-per{font-size:16px;color:var(--creamd)}
+.pr-sub2{font-size:14.5px;color:var(--creamd);margin-top:10px}
+.pr-sub2 b{color:var(--cream);font-weight:600}
+.pr-savings{display:inline-flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:12px;padding:7px 12px;border-radius:10px;background:rgba(143,199,176,.10);color:#a9d8c4;font-size:14px;font-weight:600}
+.pr-savings s{color:#7d786e;font-weight:400;font-variant-numeric:tabular-nums}
+.pr-nudge{display:inline-block;margin-top:12px;padding:0;border:none;background:none;font-family:'Outfit',sans-serif;font-size:14px;font-weight:500;color:#a9d8c4;text-decoration:underline;text-underline-offset:3px;cursor:pointer;text-align:left}
+.pr-nudge:focus-visible{outline:2px solid var(--cream);outline-offset:3px;border-radius:4px}
+.pr-note{font-size:13.5px;color:var(--gold);margin-top:10px}
+
+/* Actions */
+.pr-pay,.pr-btn{display:flex;align-items:center;justify-content:center;min-height:52px;padding:0 18px;border-radius:12px;font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;text-decoration:none;text-align:center;cursor:pointer;transition:transform .2s,background .2s,opacity .2s}
+.pr-pay{width:100%;border:none;color:#060606;background:var(--goldg)}
+.pr-pay:hover{transform:translateY(-1px)}
+.pr-pay[disabled]{opacity:.55;cursor:default;transform:none}
+.pr-btn{border:1px solid rgba(200,164,78,.55);color:var(--gold);background:transparent;font-weight:600}
 .pr-btn:hover{background:rgba(200,164,78,.1)}
-.pr-btn--primary{background:var(--goldg);color:#060606;border-color:transparent}
+.pr-btn--primary{background:var(--goldg);color:#060606;border-color:transparent;font-weight:700}
 .pr-btn--primary:hover{background:var(--goldg);transform:translateY(-1px)}
-.pr-btn:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+.pr-pay:focus-visible,.pr-btn:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
+.pr-alt{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 16px;margin-top:14px;font-size:14px}
+.pr-alt a{color:var(--creamd);text-decoration:underline;text-underline-offset:3px;padding:4px 0}
+.pr-alt a:hover{color:var(--cream)}
+
+/* What you get */
+.pr-div{height:1px;background:rgba(255,255,255,.08);margin:26px 0 20px}
+.pr-inc{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:#8a857a;margin-bottom:12px}
+.pr-list{list-style:none;margin:0}
+.pr-list li{position:relative;padding:7px 0 7px 28px;font-size:15.5px;color:var(--cream);line-height:1.45}
+.pr-list li::before{content:"";position:absolute;left:3px;top:14px;width:12px;height:6px;border-left:2px solid var(--gold);border-bottom:2px solid var(--gold);transform:rotate(-45deg)}
+
+/* Reassurance row under the cards */
+.pr-trust{max-width:1180px;margin:0 auto;padding:0 24px;display:flex;flex-wrap:wrap;justify-content:center;gap:10px 28px;list-style:none;font-size:14px;color:var(--creamd)}
+.pr-trust:empty{display:none}
+.pr-trust li{display:flex;align-items:center;gap:8px}
+.pr-trust li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--gold);flex:0 0 auto}
+.pr-trust a{color:var(--creamd);text-decoration:underline;text-underline-offset:3px}
+.pr-fine{max-width:1180px;margin:14px auto 0;padding:0 24px 44px;text-align:center;font-size:13px;color:#7d786e}
+
 .pr-h2{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:clamp(30px,4vw,40px);letter-spacing:1.2px;color:var(--cream);text-align:center;margin-bottom:22px}
 .pr-compare{max-width:960px;margin:0 auto;padding:24px 24px 56px}
 .pr-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid rgba(255,255,255,.08);border-radius:14px}
 .pr-table{width:100%;min-width:520px;border-collapse:collapse;font-size:14.5px}
 .pr-table th,.pr-table td{padding:12px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)}
-.pr-table th:first-child,.pr-table td:first-child{text-align:left;color:var(--cream)}
+.pr-table th:first-child,.pr-table td:first-child{text-align:left;color:var(--cream);font-weight:400}
 .pr-table thead th{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);background:#0d0c0b}
-.pr-table tbody tr:last-child td{border-bottom:none}
+.pr-table tbody tr:last-child td,.pr-table tbody tr:last-child th{border-bottom:none}
 .pr-yes{color:var(--gold);font-weight:700}
 .pr-no{color:#4a4741}
 .pr-faq{max-width:760px;margin:0 auto;padding:24px 24px 56px}
@@ -171,19 +215,8 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .pr-cta{max-width:640px;margin:0 auto;padding:24px 24px 80px;text-align:center}
 .pr-cta p{color:var(--creamd);margin:-8px 0 20px}
 .pr-cta .pr-btn{display:inline-flex}
-.pr-fine{max-width:1160px;margin:-36px auto 0;padding:0 24px 40px;text-align:center;font-size:13px;color:#7d786e}
-/* ── Online payment (website only) ── */
-.pr-me{max-width:760px;margin:0 auto;padding:0 24px 4px;text-align:center;font-size:14.5px;color:var(--creamd)}
-.pr-me:empty{display:none}
-.pr-me b{color:var(--cream);font-weight:600}
-.pr-me a{color:var(--gold);text-decoration:underline;text-underline-offset:3px}
-.pr-me--warn{color:#e8c98a}
-.pr-pay{display:flex;align-items:center;justify-content:center;width:100%;min-height:46px;margin-top:10px;padding:0 14px;border-radius:10px;border:none;cursor:pointer;font-family:'Outfit',sans-serif;font-size:15px;font-weight:700;color:#060606;background:var(--goldg);transition:transform .2s,opacity .2s}
-.pr-pay:hover{transform:translateY(-1px)}
-.pr-pay:focus-visible{outline:2px solid var(--cream);outline-offset:2px}
-.pr-pay[disabled]{opacity:.55;cursor:default;transform:none}
-.pr-mine{display:inline-block;margin-left:8px;vertical-align:middle;font-family:'Outfit',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8fc7b0;background:rgba(143,199,176,.1);border-radius:999px;padding:3px 9px}
-.pr-secure{font-size:12.5px;color:#8a857a;text-align:center;margin-top:2px}
+
+/* Payment dialog */
 .pr-modal{position:fixed;inset:0;z-index:10000;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.72)}
 .pr-modal.open{display:flex}
 .pr-modal-box{width:100%;max-width:440px;background:#0d0c0b;border:1px solid rgba(200,164,78,.4);border-radius:18px;padding:28px 24px 22px;text-align:center}
@@ -194,11 +227,21 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .pr-modal-body{font-size:15.5px;color:var(--creamd);margin-bottom:20px;text-wrap:pretty}
 .pr-modal-body b{color:var(--cream);font-weight:600}
 .pr-modal-actions{display:flex;flex-direction:column;gap:8px}
-.pr-modal-actions button.pr-btn{width:100%;cursor:pointer;font-family:'Outfit',sans-serif}
-@media (prefers-reduced-motion:reduce){.pr-pay{transition:none}}
-@media(max-width:980px){.pr-plans{grid-template-columns:minmax(0,1fr);max-width:520px}.pr-tagline{min-height:0}}
-@media(max-width:600px){.pr-hero{padding:104px 16px 20px}.pr-plans,.pr-compare,.pr-faq,.pr-cta{padding-left:16px;padding-right:16px}.pr-fine{padding-left:16px;padding-right:16px}.pr-card{padding:26px 18px 20px}}
-@media (prefers-reduced-motion:reduce){.pr-btn{transition:none}}
+.pr-modal-actions button.pr-btn{width:100%}
+
+@media(max-width:1020px){
+  .pr-plans{grid-template-columns:minmax(0,1fr);max-width:520px;gap:30px}
+  .pr-tagline,.pr-pricebox{min-height:0}
+}
+@media(max-width:600px){
+  .pr-hero{padding:104px 16px 16px}
+  .pr-plans{padding:36px 16px 24px}
+  .pr-compare,.pr-faq,.pr-cta,.pr-fine,.pr-trust,.pr-me{padding-left:16px;padding-right:16px}
+  .pr-card{padding:28px 20px 24px}
+  .pr-amt{font-size:42px}
+  .pr-trust{flex-direction:column;align-items:center;gap:8px}
+}
+@media (prefers-reduced-motion:reduce){.pr-btn,.pr-pay,.pr-seg-btn{transition:none}}
 </style>
 </head>
 <body>
@@ -243,9 +286,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 
 <p class="pr-me" id="prMe" aria-live="polite"></p>
 
-<section class="pr-plans" id="prPlans" aria-live="polite">
+<section class="pr-plans" id="prPlans">
   <p class="pr-loading">Loading plans…</p>
 </section>
+<ul class="pr-trust" id="prTrust"></ul>
+<p class="pr-fine" id="prFine"></p>
 
 <section class="pr-compare" aria-labelledby="prCompareTitle">
   <h2 class="pr-h2" id="prCompareTitle">Compare plans</h2>
@@ -357,7 +402,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
   var WA = '919502575669';
   var SESSION_KEY = 'bodybank_session';
   var RENEW_KEY = 'bb_renew';
-  var state = { data: null, pay: null, me: null, auth: null, busy: false };
+  var state = { data: null, pay: null, me: null, auth: null, busy: false, sel: {} };
 
   function esc(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
@@ -556,21 +601,101 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
     return !!(state.me && state.me.tier === pl.tier && (state.me.state === 'active' || state.me.state === 'trialing'));
   }
 
-  function priceHtml(pl, p) {
-    var save = (p.compare_at && p.compare_at > p.amount) ? Math.round((1 - p.amount / p.compare_at) * 100) : 0;
-    var per = p.months > 1 ? ' · ' + inr(Math.round(p.amount / p.months)) + '/month' : '';
-    var pay = state.pay && state.pay.enabled
-      ? '<button type="button" class="pr-pay" data-tier="' + esc(pl.tier) + '" data-term="' + esc(p.term) + '">' +
-        (isMine(pl) && state.me.state === 'active' ? 'Renew' : 'Pay') + ' ' + inr(p.amount) + '</button>'
-      : '';
-    return '<div class="pr-price">' +
-      '<div class="pr-price-top"><span class="pr-amt">' + inr(p.amount) + '</span>' +
-      (save ? '<span class="pr-was">' + inr(p.compare_at) + '</span><span class="pr-save">Save ' + save + '%</span>' : '') +
-      '</div>' +
-      '<div class="pr-term">' + esc(p.label) + esc(per) + '</div>' +
-      (p.note ? '<div class="pr-note">' + esc(p.note) + '</div>' : '') +
-      pay +
+  // Which billing term each card is showing. Starts on the longest term, since
+  // that is the one that carries the saving.
+  function selected(pl) {
+    var prices = pl.prices || [];
+    var want = state.sel[pl.tier];
+    var hit = prices.find(function (p) { return p.term === want; });
+    if (hit) return hit;
+    return prices.slice().sort(function (a, b) { return b.months - a.months; })[0] || null;
+  }
+
+  // The saving on a longer term is measured against paying the plan's own
+  // monthly price for the same number of months. Nothing else is compared.
+  function savingFor(pl, p) {
+    var monthly = (pl.prices || []).find(function (x) { return x.months === 1; });
+    if (!monthly || !p || p.months <= 1) return null;
+    var full = monthly.amount * p.months;
+    if (!(full > p.amount)) return null;
+    return { full: full, amount: full - p.amount, pct: Math.round((1 - p.amount / full) * 100) };
+  }
+  function saveText(s) { return 'Save ' + (s.pct >= 5 ? s.pct + '%' : inr(s.amount)); }
+  function termWord(p) { return p.months === 1 ? 'Monthly' : p.months === 12 ? 'Annual' : p.months + ' months'; }
+  function perWord(p) { return p.months === 1 ? '/month' : p.months === 12 ? '/year' : 'for ' + p.months + ' months'; }
+
+  function segHtml(pl, cur) {
+    var prices = pl.prices || [];
+    return '<div class="pr-seg' + (prices.length < 2 ? ' pr-seg--one' : '') + '" role="radiogroup" aria-label="Billing for ' + esc(pl.name) + '">' +
+      prices.map(function (p) {
+        var s = savingFor(pl, p);
+        return '<button type="button" class="pr-seg-btn" role="radio" aria-checked="' + (p === cur ? 'true' : 'false') + '"' +
+          ' tabindex="' + (p === cur ? '0' : '-1') + '" data-tier="' + esc(pl.tier) + '" data-term="' + esc(p.term) + '">' +
+          '<span>' + esc(termWord(p)) + '</span>' +
+          (s ? '<span class="pr-seg-save">' + esc(saveText(s)) + '</span>' : '') +
+          '</button>';
+      }).join('') + '</div>';
+  }
+
+  function priceBoxHtml(pl, cur) {
+    var s = savingFor(pl, cur);
+    var sub, extra = '';
+    if (cur.months === 1) {
+      sub = 'One payment for 1 month, no auto-renewal';
+      // Point at the saving on offer without making them hunt for it.
+      var best = null;
+      (pl.prices || []).forEach(function (p) {
+        var x = savingFor(pl, p);
+        if (x && (!best || x.amount > best.s.amount)) best = { p: p, s: x };
+      });
+      if (best) {
+        extra = '<button type="button" class="pr-nudge" data-tier="' + esc(pl.tier) + '" data-term="' + esc(best.p.term) + '">' +
+          'Save ' + inr(best.s.amount) + ' with ' + esc(best.p.months === 12 ? 'annual' : best.p.months + ' months') + '</button>';
+      }
+    } else {
+      sub = 'Works out to <b>' + inr(Math.round(cur.amount / cur.months)) + '/month</b>, paid once';
+      if (s) extra = '<div class="pr-savings"><s>' + inr(s.full) + '</s><span>You save ' + inr(s.amount) + ' (' + s.pct + '%)</span></div>';
+    }
+    return '<div class="pr-pricebox">' +
+      '<div class="pr-amt-row"><span class="pr-amt">' + inr(cur.amount) + '</span><span class="pr-per">' + esc(perWord(cur)) + '</span></div>' +
+      '<div class="pr-sub2">' + sub + '</div>' +
+      extra +
+      (cur.note ? '<div class="pr-note">' + esc(cur.note) + '</div>' : '') +
       '</div>';
+  }
+
+  function cardHtml(pl, prev, ctx) {
+    var cur = selected(pl);
+    if (!cur) return '';
+    var mine = isMine(pl);
+    var main, alt = [];
+    var trial = '<a href="/signup">Start ' + ctx.trialDays + '-day free trial</a>';
+    var talk = '<a href="' + wa(pl.tier === 'tribe_elite' ? 'Hi BodyBank, I am interested in Tribe Elite.' : 'Hi BodyBank, I would like the ' + pl.name + ' plan.') + '" target="_blank" rel="noopener noreferrer">Talk to a coach</a>';
+    if (ctx.payOn) {
+      main = '<button type="button" class="pr-pay" data-tier="' + esc(pl.tier) + '" data-term="' + esc(cur.term) + '">' +
+        (mine && state.me.state === 'active' ? 'Renew' : 'Get') + ' ' + esc(pl.name) + ' · ' + inr(cur.amount) + '</button>';
+      if (!ctx.member && pl.tier !== 'tribe_elite') alt.push(trial);
+      alt.push(talk);
+    } else if (pl.tier === 'tribe_elite') {
+      main = '<a class="pr-btn pr-btn--primary" href="' + wa('Hi BodyBank, I am interested in Tribe Elite.') + '" target="_blank" rel="noopener noreferrer">Apply for Tribe Elite</a>';
+    } else {
+      main = ctx.member
+        ? '<a class="pr-btn pr-btn--primary" href="' + wa('Hi BodyBank, I would like the ' + pl.name + ' plan.') + '" target="_blank" rel="noopener noreferrer">Talk to a coach</a>'
+        : '<a class="pr-btn pr-btn--primary" href="/signup">Start ' + ctx.trialDays + '-day free trial</a>';
+      if (!ctx.member) alt.push(talk);
+    }
+    return '<article class="pr-card' + (pl.highlight ? ' pr-card--hl' : '') + '" data-card="' + esc(pl.tier) + '" aria-labelledby="prName-' + esc(pl.tier) + '">' +
+      (pl.highlight ? '<span class="pr-badge">' + esc(pl.highlight) + '</span>' : '') +
+      '<h2 class="pr-name" id="prName-' + esc(pl.tier) + '">' + esc(pl.name) + (mine ? '<span class="pr-mine">Your plan</span>' : '') + '</h2>' +
+      '<p class="pr-tagline">' + esc(pl.tagline) + '</p>' +
+      segHtml(pl, cur) +
+      priceBoxHtml(pl, cur) +
+      main +
+      (alt.length ? '<div class="pr-alt">' + alt.join('') + '</div>' : '') +
+      '<div class="pr-div" role="presentation"></div>' +
+      '<p class="pr-inc">' + (prev ? 'Everything in ' + esc(prev) + ', plus' : 'What you get') + '</p>' +
+      '<ul class="pr-list">' + (pl.features || []).map(function (f) { return '<li>' + esc(f.label) + '</li>'; }).join('') + '</ul>' +
+      '</article>';
   }
 
   function renderMe() {
@@ -598,57 +723,46 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
     el.innerHTML = html;
   }
 
-  function render() {
+  function ctxNow() {
     var data = state.data;
-    var plans = (data && data.plans) || [];
-    var trialDays = (data && data.trial_days) || 7;
-    var trialTier = (data && data.trial_tier) || 'guided';
-    var payOn = !!(state.pay && state.pay.enabled);
-    var member = !!(state.auth && state.auth.role === 'user');
+    return {
+      plans: (data && data.plans) || [],
+      trialDays: (data && data.trial_days) || 7,
+      trialTier: (data && data.trial_tier) || 'guided',
+      payOn: !!(state.pay && state.pay.enabled),
+      member: !!(state.auth && state.auth.role === 'user')
+    };
+  }
+
+  function render() {
+    var ctx = ctxNow();
+    var plans = ctx.plans;
     var d = document.getElementById('prTrialDays');
-    if (d) d.textContent = trialDays;
-    document.querySelectorAll('.prTrialDaysText').forEach(function (el) { el.textContent = trialDays; });
+    if (d) d.textContent = ctx.trialDays;
+    document.querySelectorAll('.prTrialDaysText').forEach(function (el) { el.textContent = ctx.trialDays; });
 
     var host = document.getElementById('prPlans');
     if (!plans.length) {
       host.innerHTML = '<p class="pr-loading">Plans could not load right now. <a class="pr-btn" style="display:inline-flex;margin-top:12px" href="' + wa('Hi BodyBank, please share your plans and prices.') + '" target="_blank" rel="noopener noreferrer">Ask us on WhatsApp</a></p>';
       return;
     }
-    host.innerHTML = plans.map(function (pl, i) {
-      var prev = i > 0 ? plans[i - 1].name : null;
-      // With online payment on, the gold Pay buttons are the primary action, so
-      // the card's own buttons step back to the outline style.
-      var primary = payOn ? '' : ' pr-btn--primary';
-      var cta = '';
-      if (pl.tier === 'tribe_elite') {
-        cta = '<a class="pr-btn' + primary + '" href="' + wa('Hi BodyBank, I am interested in Tribe Elite.') + '" target="_blank" rel="noopener noreferrer">' + (payOn ? 'Talk to a coach first' : 'Apply for Tribe Elite') + '</a>';
-      } else {
-        if (!member) cta += '<a class="pr-btn' + (pl.highlight ? primary : '') + '" href="/signup">Start ' + trialDays + '-day free trial</a>';
-        cta += '<a class="pr-btn" href="' + wa('Hi BodyBank, I would like the ' + pl.name + ' plan.') + '" target="_blank" rel="noopener noreferrer">Talk to a coach</a>';
-      }
-      return '<article class="pr-card' + (pl.highlight ? ' pr-card--hl' : '') + '" aria-labelledby="prName-' + esc(pl.tier) + '">' +
-        (pl.highlight ? '<span class="pr-badge">' + esc(pl.highlight) + '</span>' : '') +
-        '<h2 class="pr-name" id="prName-' + esc(pl.tier) + '">' + esc(pl.name) + (isMine(pl) ? '<span class="pr-mine">Your plan</span>' : '') + '</h2>' +
-        '<p class="pr-tagline">' + esc(pl.tagline) + '</p>' +
-        '<div class="pr-prices">' + (pl.prices || []).map(function (p) { return priceHtml(pl, p); }).join('') + '</div>' +
-        '<p class="pr-inc">' + (prev ? 'Everything in ' + esc(prev) + ', plus' : 'Includes') + '</p>' +
-        '<ul class="pr-list">' + (pl.features || []).map(function (f) { return '<li>' + esc(f.label) + '</li>'; }).join('') + '</ul>' +
-        '<div class="pr-actions">' + cta + '</div>' +
-        '</article>';
-    }).join('');
+    host.innerHTML = plans.map(function (pl, i) { return cardHtml(pl, i > 0 ? plans[i - 1].name : null, ctx); }).join('');
 
-    var fine = document.getElementById('prFine');
-    if (!fine) {
-      fine = document.createElement('p');
-      fine.className = 'pr-fine';
-      fine.id = 'prFine';
-      host.parentNode.insertBefore(fine, host.nextSibling);
+    var trust = document.getElementById('prTrust');
+    if (trust) {
+      trust.innerHTML = ctx.payOn
+        ? '<li>Secure payment by Razorpay: UPI, cards, netbanking</li><li>No auto-renewal, ever</li><li><a href="/refund.html">Full refund within 7 days</a></li>'
+        : '';
     }
-    fine.textContent = 'Prices in Indian rupees. The price shown is the full amount you pay. The free trial runs on the ' + ((plans.find(function (p) { return p.tier === trialTier; }) || {}).name || 'Guided') + ' plan.' +
-      (payOn ? ' Secure payment by Razorpay: UPI, cards, netbanking and wallets.' + (state.pay.mode === 'test' ? ' Test mode: no real money is charged.' : '') : '');
+    var fine = document.getElementById('prFine');
+    if (fine) {
+      fine.textContent = 'Prices in Indian rupees. The price shown is the full amount you pay. The free trial runs on the ' +
+        ((plans.find(function (p) { return p.tier === ctx.trialTier; }) || {}).name || 'Guided') + ' plan.' +
+        (ctx.payOn && state.pay.mode === 'test' ? ' Test mode: no real money is charged.' : '');
+    }
 
     var faq = document.getElementById('prFaqPay');
-    if (faq && payOn) faq.textContent = 'Pay here on the website with UPI, a card, netbanking or a wallet. Sign in, pick a plan and pay; your BodyBank app unlocks automatically within seconds. Prefer to talk first? Your coach can set up your plan with you on WhatsApp.';
+    if (faq && ctx.payOn) faq.textContent = 'Pay here on the website with UPI, a card, netbanking or a wallet. Sign in, pick a plan and pay; your BodyBank app unlocks automatically within seconds. Prefer to talk first? Your coach can set up your plan with you on WhatsApp.';
 
     renderMe();
 
@@ -667,10 +781,46 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
     }
   }
 
-  document.getElementById('prPlans').addEventListener('click', function (e) {
-    var b = e.target && e.target.closest ? e.target.closest('.pr-pay') : null;
+  // Switching the billing term redraws that one card and keeps keyboard focus
+  // on the switch, so arrow keys and screen readers stay where they were.
+  function selectTerm(tier, term, refocus) {
+    state.sel[tier] = term;
+    var ctx = ctxNow();
+    var idx = ctx.plans.findIndex(function (p) { return p.tier === tier; });
+    var card = document.querySelector('.pr-card[data-card="' + tier + '"]');
+    if (idx < 0 || !card) return;
+    var tmp = document.createElement('div');
+    tmp.innerHTML = cardHtml(ctx.plans[idx], idx > 0 ? ctx.plans[idx - 1].name : null, ctx);
+    var fresh = tmp.firstChild;
+    card.parentNode.replaceChild(fresh, card);
+    if (state.busy) fresh.querySelectorAll('.pr-pay').forEach(function (b) { b.disabled = true; });
+    if (refocus) {
+      var on = fresh.querySelector('.pr-seg-btn[aria-checked="true"]');
+      if (on) { try { on.focus({ preventScroll: true }); } catch (_) { on.focus(); } }
+    }
+  }
+
+  var plansHost = document.getElementById('prPlans');
+  plansHost.addEventListener('click', function (e) {
+    var t = e.target && e.target.closest ? e.target : null;
+    if (!t) return;
+    var seg = t.closest('.pr-seg-btn, .pr-nudge');
+    if (seg) { selectTerm(seg.getAttribute('data-tier'), seg.getAttribute('data-term'), true); return; }
+    var b = t.closest('.pr-pay');
     if (!b || b.disabled) return;
     startPayment(b.getAttribute('data-tier'), b.getAttribute('data-term'));
+  });
+  // Radio-group keyboard pattern: arrows move and select within a card's switch.
+  plansHost.addEventListener('keydown', function (e) {
+    var cur = e.target && e.target.closest ? e.target.closest('.pr-seg-btn') : null;
+    if (!cur) return;
+    var dir = (e.key === 'ArrowRight' || e.key === 'ArrowDown') ? 1 : (e.key === 'ArrowLeft' || e.key === 'ArrowUp') ? -1 : 0;
+    if (!dir) return;
+    var all = Array.prototype.slice.call(cur.parentNode.querySelectorAll('.pr-seg-btn'));
+    if (all.length < 2) return;
+    e.preventDefault();
+    var next = all[(all.indexOf(cur) + dir + all.length) % all.length];
+    selectTerm(next.getAttribute('data-tier'), next.getAttribute('data-term'), true);
   });
 
   function refreshMe() {
