@@ -22,7 +22,7 @@ const coinService = require('../services/coinService');
 const grading = require('../services/grading');
 
 const MIND_EXERCISES = [
-  { key: 'box_breathing', title: 'Box Breathing', sub: 'Inhale 4s, hold 4s, exhale 4s', icon: 'breath' },
+  { key: 'box_breathing', title: 'Box Breathing', sub: 'Inhale, hold, exhale, hold · 4s each', icon: 'breath' },
   { key: 'yoga_flow', title: 'Morning Yoga Flow', sub: '15 min · mobility and breath', icon: 'yoga', feature: 'ai_trainer' },
   { key: 'body_scan', title: 'Body Scan', sub: 'Notice sensations head to toe', icon: 'scan' },
   { key: 'grounding_54321', title: '5 4 3 2 1 Grounding', sub: 'See, touch, hear, smell, taste', icon: 'ground' }

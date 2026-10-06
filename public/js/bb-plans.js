@@ -29,6 +29,8 @@
       ai_trainer: { tier: 'guided', label: 'AI Trainer' },
       coach_chat: { tier: 'guided', label: 'Chat with your coach' },
       lifestyle_management: { tier: 'tribe_elite', label: 'Complete lifestyle management' },
+      doctor_nutritionist: { tier: 'tribe_elite', label: 'Doctor and sports nutritionist' },
+      care_team: { tier: 'tribe_elite', label: 'Dedicated group of people to monitor, remind and assist' },
       wearables: { tier: 'tribe_elite', label: 'Wearable insights (Whoop, Apple Health & more)' },
       progress_reports: { tier: 'tribe_elite', label: 'Progress reports' }
     },

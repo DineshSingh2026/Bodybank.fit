@@ -39,6 +39,8 @@ const FEATURES = {
   coach_chat:         { tier: 'guided',      label: 'Chat with your coach' },
   // Tribe Elite
   lifestyle_management: { tier: 'tribe_elite', label: 'Complete lifestyle management' },
+  doctor_nutritionist:  { tier: 'tribe_elite', label: 'Doctor and sports nutritionist' },
+  care_team:            { tier: 'tribe_elite', label: 'Dedicated group of people to monitor, remind and assist' },
   // Smart-scale uploads stay in every plan: they feed the Core Sunday review.
   wearables:          { tier: 'tribe_elite', label: 'Wearable insights (Whoop, Apple Health & more)' },
   progress_reports:   { tier: 'tribe_elite', label: 'Progress reports' }

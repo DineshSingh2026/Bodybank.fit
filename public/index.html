@@ -5365,7 +5365,7 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="css/admin-home.css?v=4">
 <link rel="stylesheet" href="css/admin-reports.css?v=1">
 <link rel="stylesheet" href="css/member-home.css?v=17">
-<link rel="stylesheet" href="css/member-screens.css?v=3">
+<link rel="stylesheet" href="css/member-screens.css?v=6">
 <link rel="stylesheet" href="css/group-chat.css?v=8">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
@@ -10212,6 +10212,11 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <div id="adminMembershipsList" style="margin-top:18px">
         <p class="form-hint" style="padding:24px;margin:0">Loading…</p>
       </div>
+      <!-- Payments taken on the website (routes/payments.js). Read-only record. -->
+      <details id="bbSitePayments" style="margin-top:22px;border:1px solid rgba(255,255,255,0.08);border-radius:12px;background:var(--surface,#161a1e)">
+        <summary style="cursor:pointer;padding:14px 16px;font-size:14px;font-weight:700;color:var(--text,#f0ede8)">Website payments <span id="bbSitePaymentsCount" style="font-weight:600;color:var(--muted);font-size:12px"></span></summary>
+        <div id="bbSitePaymentsList" style="padding:0 16px 16px"></div>
+      </details>
     </div>
 
     <!-- TAB: Reports — weekly/monthly client progress PDFs. Rendered by js/admin-reports.js;
@@ -12186,7 +12191,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       </a>
     </div>
   </div>
-  <div class="fb"><span>&copy; 2026 Body Bank. All rights reserved</span><span class="d">·</span><a href="/privacy.html">Privacy Policy</a><span class="d">·</span><a href="#">Terms of Service</a></div>
+  <div class="fb"><span>&copy; 2026 Body Bank. All rights reserved</span><span class="d">·</span><a href="/privacy.html">Privacy Policy</a><span class="d">·</span><a href="/terms.html">Terms of Service</a><span class="d bb-web-only">·</span><a class="bb-web-only" href="/refund.html">Refunds</a></div>
   <div class="fitchef-credit">
     <div class="partner-credits">
       <a class="partner-credit" href="https://www.Fitchef.fit" target="_blank" rel="noopener">
@@ -23104,8 +23109,21 @@ async function loadMindCheckinPanel() {
   } catch (e) { /* swallow — mind panel is non-critical */ }
 }
 
-function mindClosePlayer() {
+/* ── Mind check-in guided players (Box Breathing · Grounding · Body Scan) ──────
+ * Drawn into #mindPlayerHost below the Brain Tips list (js/member-screens.js
+ * draws the list). Styles: .bbmp-* in css/member-screens.css. One player at a
+ * time; mindClosePlayer() stops every timer it owns. */
+var _mindPlayer = { raf: 0, timer: 0, key: '' };
+
+function mindStopTimers() {
   if (_mindBreathTimer) { clearTimeout(_mindBreathTimer); _mindBreathTimer = null; }
+  if (_mindPlayer.timer) { clearInterval(_mindPlayer.timer); _mindPlayer.timer = 0; }
+  if (_mindPlayer.raf) { cancelAnimationFrame(_mindPlayer.raf); _mindPlayer.raf = 0; }
+}
+
+function mindClosePlayer() {
+  mindStopTimers();
+  _mindPlayer.key = '';
   var host = document.getElementById('mindPlayerHost');
   if (host) host.innerHTML = '';
 }
@@ -23116,6 +23134,8 @@ async function mindCompleteExercise(key) {
   try {
     var res = await apiCall('POST', '/api/mind-checkin', { exercise_key: key });
     if (res && !res.error && res.completed) mindApplyCompleted(res.completed);
+    // Completing a tip can extend the mind streak — redraw the Mind screen quietly.
+    if (typeof window.bbxRenderMind === 'function') { try { window.bbxRenderMind(); } catch (_) {} }
   } catch (e) { /* keep optimistic done state */ }
 }
 
@@ -23125,171 +23145,451 @@ var MIND_META = {
   body_scan: { title: 'Body Scan', accent: '#83b1f8', soft: 'rgba(131,177,248,.16)' }
 };
 
+function mindReducedMotion() {
+  try { return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (_) { return false; }
+}
+
 function mindStartExercise(key) {
   var host = document.getElementById('mindPlayerHost');
-  if (!host) return;
+  if (!host || !MIND_META[key]) return;
   mindClosePlayer();
+  _mindPlayer.key = key;
   if (key === 'box_breathing') mindRenderBreathing(host);
   else if (key === 'grounding_54321') mindRenderGrounding(host);
   else if (key === 'body_scan') mindRenderBodyScan(host);
-  // Scroll player into view
-  setTimeout(function() {
-    var p = host.querySelector('.mind-player');
-    if (p && typeof p.scrollIntoView === 'function') p.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }, 50);
+  setTimeout(function () {
+    var p = host.querySelector('.bbmp');
+    if (p && typeof p.scrollIntoView === 'function') p.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 60);
 }
 
-// --- Box Breathing: animated 4-4-4-4 cycles ---
+/** Shared frame: header (title, how-to line, close) + body + footer. */
+function mindPlayerShell(key, emoji, howTo, body, foot) {
+  var m = MIND_META[key];
+  return '<div class="bbmp" role="region" aria-label="' + m.title + ' exercise" style="--bbmp-accent:' + m.accent + ';--bbmp-soft:' + m.soft + '">' +
+    '<div class="bbmp-head">' +
+      '<span class="bbmp-emoji" aria-hidden="true">' + emoji + '</span>' +
+      '<div class="bbmp-head-txt"><h4 class="bbmp-title">' + m.title + '</h4><p class="bbmp-how">' + howTo + '</p></div>' +
+      '<button type="button" class="bbmp-x" aria-label="Close exercise" onclick="mindClosePlayer()">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+    '</div>' +
+    '<div class="bbmp-body" id="bbmpBody">' + body + '</div>' +
+    '<div class="bbmp-foot" id="bbmpFoot">' + (foot || '') + '</div>' +
+  '</div>';
+}
+
+/** Finished state shared by all three players. */
+function mindPlayerFinish(key, emoji, line, sub) {
+  var body = document.getElementById('bbmpBody');
+  var foot = document.getElementById('bbmpFoot');
+  if (!body || !foot) return;
+  mindStopTimers();
+  body.innerHTML =
+    '<div class="bbmp-done">' +
+      '<div class="bbmp-done-badge" aria-hidden="true">' + emoji + '</div>' +
+      '<p class="bbmp-done-line">' + line + '</p>' +
+      '<p class="bbmp-done-sub">' + sub + '</p>' +
+    '</div>';
+  foot.innerHTML = '<button type="button" class="bbmp-btn bbmp-btn--main" id="bbmpDoneBtn">Done ✓</button>';
+  document.getElementById('bbmpDoneBtn').onclick = function () { mindCompleteExercise(key); mindClosePlayer(); };
+}
+
+// --- Box Breathing: 4-4-4-4, a dot traces the box, the square breathes ---
+var MIND_BOX = {
+  cycles: 3,
+  secs: 4,
+  phases: [
+    { key: 'in',    label: 'Breathe in',  chip: 'Inhale', tip: 'Slowly through your nose' },
+    { key: 'hold1', label: 'Hold',        chip: 'Hold',   tip: 'Keep your lungs full, stay soft' },
+    { key: 'out',   label: 'Breathe out', chip: 'Exhale', tip: 'Gently through your mouth' },
+    { key: 'hold2', label: 'Hold',        chip: 'Hold',   tip: 'Rest here, lungs empty' }
+  ]
+};
+
 function mindRenderBreathing(host) {
-  var meta = MIND_META.box_breathing;
+  var B = MIND_BOX;
+  var m = MIND_META.box_breathing;
+  var chips = B.phases.map(function (p, i) {
+    return '<li class="bbmp-chip" data-i="' + i + '"><b>' + p.chip + '</b><span>' + B.secs + 's</span></li>';
+  }).join('');
+  var dots = '';
+  for (var c = 0; c < B.cycles; c++) dots += '<i data-c="' + c + '"></i>';
   host.innerHTML =
-    '<div class="mind-player" style="--mc-accent:' + meta.accent + ';--mc-soft:' + meta.soft + '">' +
-      '<div class="mind-player-head">' +
-        '<h4 class="mind-player-title">🫁 Box Breathing</h4>' +
-        '<button type="button" class="mind-player-close" onclick="mindClosePlayer()">Close</button>' +
+    '<div class="bbmp bbmp--breath" role="region" aria-label="Box Breathing exercise" style="--bbmp-accent:' + m.accent + ';--bbmp-soft:' + m.soft + '">' +
+      '<button type="button" class="bbmp-x bbmp-x--corner" aria-label="Close exercise" onclick="mindClosePlayer()">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+      '<div class="bbmp-body" id="bbmpBody">' +
+        '<div class="bbmp-breath">' +
+          '<span class="bbmp-pill">Box Breathing</span>' +
+          '<h4 class="bbmp-rhythm">Follow the rhythm</h4>' +
+          '<div class="bbmp-orb-wrap">' +
+            '<div class="bbmp-orb-guide" aria-hidden="true"></div>' +
+            '<div class="bbmp-orb" id="bbmpOrb"></div>' +
+            '<div class="bbmp-orb-txt"><b id="bbmpPhase" aria-live="polite">Get ready</b><span id="bbmpCount">3</span></div>' +
+          '</div>' +
+          '<p class="bbmp-tip" id="bbmpTip">Sit tall, shoulders relaxed.</p>' +
+          '<ol class="bbmp-chips" id="bbmpChips">' + chips + '</ol>' +
+          '<div class="bbmp-cycle"><span id="bbmpCycleTxt">Cycle 1 of ' + B.cycles + '</span><span class="bbmp-cycle-dots" id="bbmpCycleDots">' + dots + '</span></div>' +
+        '</div>' +
       '</div>' +
-      '<div class="mind-breath-stage">' +
-        '<div class="mind-breath-box" id="mindBreathBox"><span class="mind-breath-count" id="mindBreathCount">4</span></div>' +
-        '<div class="mind-breath-phase" id="mindBreathPhase">Get ready</div>' +
-        '<div class="mind-breath-cycle" id="mindBreathCycle">Cycle 1 of 3</div>' +
+      '<div class="bbmp-foot" id="bbmpFoot">' +
+        '<button type="button" class="bbmp-btn bbmp-btn--light" id="bbmpRestart">Redo Exercise</button>' +
+        '<button type="button" class="bbmp-btn bbmp-btn--main" id="bbmpStop">Stop</button>' +
       '</div>' +
     '</div>';
 
-  var TOTAL_CYCLES = 3;
-  var phases = [
-    { label: 'Inhale', grow: true },
-    { label: 'Hold', grow: null },
-    { label: 'Exhale', grow: false },
-    { label: 'Hold', grow: null }
-  ];
-  var cycle = 0, pi = 0;
+  var PHASE_MS = B.secs * 1000, CYCLE_MS = PHASE_MS * 4, TOTAL_MS = CYCLE_MS * B.cycles, LEAD_MS = 3000;
+  var MIN = 0.55, MAX = 1;
+  var reduce = mindReducedMotion();
+  var st = { elapsed: -LEAD_MS, last: 0, phase: -1, count: '' };
+  var el = function (id) { return document.getElementById(id); };
+  // Smooth in/out so the circle eases like a real breath rather than a linear ramp.
+  var ease = function (x) { return x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2; };
 
-  function runPhase() {
-    var boxEl = document.getElementById('mindBreathBox');
-    var countEl = document.getElementById('mindBreathCount');
-    var phaseEl = document.getElementById('mindBreathPhase');
-    var cycleEl = document.getElementById('mindBreathCycle');
-    if (!boxEl || !countEl || !phaseEl) return; // player closed
-    var ph = phases[pi];
-    phaseEl.textContent = ph.label;
-    if (cycleEl) cycleEl.textContent = 'Cycle ' + (cycle + 1) + ' of ' + TOTAL_CYCLES;
-    if (ph.grow === true) boxEl.classList.add('grow');
-    else if (ph.grow === false) boxEl.classList.remove('grow');
-    var remaining = 4;
-    countEl.textContent = remaining;
-    var tick = function() {
-      remaining -= 1;
-      if (!document.getElementById('mindBreathCount')) return; // closed mid-phase
-      if (remaining > 0) {
-        countEl.textContent = remaining;
-        _mindBreathTimer = setTimeout(tick, 1000);
-      } else {
-        // advance
-        pi += 1;
-        if (pi >= phases.length) { pi = 0; cycle += 1; }
-        if (cycle >= TOTAL_CYCLES) { mindBreathFinish(); return; }
-        _mindBreathTimer = setTimeout(runPhase, 1000);
-      }
-    };
-    _mindBreathTimer = setTimeout(tick, 1000);
+  function paint() {
+    var orb = el('bbmpOrb'), countEl = el('bbmpCount');
+    if (!orb || !countEl) return false; // player closed
+    if (st.elapsed < 0) {
+      var lead = String(Math.ceil(-st.elapsed / 1000));
+      if (lead !== st.count) { st.count = lead; countEl.textContent = lead; }
+      orb.style.transform = 'scale(' + MIN + ')';
+      return true;
+    }
+    var t = Math.min(st.elapsed, TOTAL_MS - 1);
+    var cycle = Math.floor(t / CYCLE_MS), inCycle = t % CYCLE_MS;
+    var pi = Math.floor(inCycle / PHASE_MS), pf = (inCycle % PHASE_MS) / PHASE_MS;
+    var ph = B.phases[pi];
+    if (pi !== st.phase) {
+      st.phase = pi;
+      el('bbmpPhase').textContent = ph.chip + '…';
+      el('bbmpTip').textContent = ph.tip;
+      var root = orb.closest('.bbmp');
+      if (root) root.setAttribute('data-phase', ph.key);
+      Array.prototype.forEach.call(el('bbmpChips').children, function (li, i) { li.classList.toggle('is-on', i === pi); });
+      el('bbmpCycleTxt').textContent = 'Cycle ' + (cycle + 1) + ' of ' + B.cycles;
+      Array.prototype.forEach.call(el('bbmpCycleDots').children, function (d, i) {
+        d.className = i < cycle ? 'is-done' : (i === cycle ? 'is-on' : '');
+      });
+      if (navigator.vibrate) { try { navigator.vibrate(18); } catch (_) {} }
+    }
+    var left = String(B.secs - Math.floor(pf * B.secs));
+    if (left !== st.count) { st.count = left; countEl.textContent = left; }
+    // Inhale grows, hold stays full, exhale shrinks, hold stays small.
+    var s;
+    if (pi === 0) s = MIN + (MAX - MIN) * ease(pf);
+    else if (pi === 1) s = MAX;
+    else if (pi === 2) s = MAX - (MAX - MIN) * ease(pf);
+    else s = MIN;
+    if (reduce) s = (pi === 0 || pi === 1) ? MAX : MIN;
+    orb.style.transform = 'scale(' + s.toFixed(3) + ')';
+    return true;
   }
 
-  function mindBreathFinish() {
-    var stage = host.querySelector('.mind-breath-stage');
-    if (stage) {
-      stage.innerHTML =
-        '<div class="mind-step-emoji">🫁</div>' +
-        '<p class="mind-step-prompt">Nice work — you completed 3 cycles.</p>' +
-        '<p class="mind-step-sub">Notice how your body feels now.</p>';
+  function frame(now) {
+    _mindPlayer.raf = 0;
+    if (!st.last) st.last = now;
+    var dt = Math.min(250, now - st.last); // a backgrounded tab must not skip phases
+    st.last = now;
+    st.elapsed += dt;
+    if (st.elapsed >= TOTAL_MS) {
+      mindPlayerFinish('box_breathing', '🫁', 'Nice work — ' + B.cycles + ' calm rounds done.', 'Notice how your body feels now. Slower breath, steadier mind.');
+      return;
     }
-    var head = host.querySelector('.mind-player');
-    if (head) {
-      var btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'mind-player-next';
-      btn.textContent = 'Done ✓';
-      btn.onclick = function() { mindCompleteExercise('box_breathing'); mindClosePlayer(); };
-      head.appendChild(btn);
-    }
+    if (!paint()) return;
+    _mindPlayer.raf = requestAnimationFrame(frame);
   }
 
-  // Brief lead-in then start
-  _mindBreathTimer = setTimeout(runPhase, 900);
+  el('bbmpRestart').onclick = function () { mindStartExercise('box_breathing'); };
+  el('bbmpStop').onclick = function () { mindClosePlayer(); };
+
+  paint();
+  _mindPlayer.raf = requestAnimationFrame(frame);
 }
 
-// --- Generic stepped prompt player (grounding + body scan) ---
+// --- Stepped players (grounding + body scan) ---
 function mindRenderStepped(host, opts) {
-  var meta = MIND_META[opts.key];
   var steps = opts.steps;
   var idx = 0;
-  host.innerHTML =
-    '<div class="mind-player" style="--mc-accent:' + meta.accent + ';--mc-soft:' + meta.soft + '">' +
-      '<div class="mind-player-head">' +
-        '<h4 class="mind-player-title">' + opts.headerEmoji + ' ' + meta.title + '</h4>' +
-        '<button type="button" class="mind-player-close" onclick="mindClosePlayer()">Close</button>' +
-      '</div>' +
-      '<div class="mind-step-stage">' +
-        '<div class="mind-step-emoji" id="mindStepEmoji"></div>' +
-        '<p class="mind-step-prompt" id="mindStepPrompt"></p>' +
-        '<p class="mind-step-sub" id="mindStepSub"></p>' +
-      '</div>' +
-      '<div class="mind-step-dots" id="mindStepDots"></div>' +
-      '<button type="button" class="mind-player-next" id="mindStepNext"></button>' +
+  var body =
+    '<div class="bbmp-steps">' +
+      '<div class="bbmp-progress" aria-hidden="true"><i id="bbmpProg"></i></div>' +
+      '<p class="bbmp-stepno" id="bbmpStepNo"></p>' +
+      '<div class="bbmp-step-ico" id="bbmpStepIco" aria-hidden="true"></div>' +
+      '<p class="bbmp-step-prompt" id="bbmpStepPrompt" aria-live="polite"></p>' +
+      '<p class="bbmp-step-sub" id="bbmpStepSub"></p>' +
+      '<div class="bbmp-extra" id="bbmpExtra"></div>' +
     '</div>';
-
-  var nextBtn = document.getElementById('mindStepNext');
+  var foot =
+    '<button type="button" class="bbmp-btn" id="bbmpBack">Back</button>' +
+    '<button type="button" class="bbmp-btn bbmp-btn--main" id="bbmpNext">Next →</button>';
+  host.innerHTML = mindPlayerShell(opts.key, opts.headerEmoji, opts.howTo, body, foot);
+  var el = function (id) { return document.getElementById(id); };
 
   function render() {
+    if (!el('bbmpStepPrompt')) return;
+    if (_mindPlayer.timer) { clearInterval(_mindPlayer.timer); _mindPlayer.timer = 0; }
     var s = steps[idx];
-    var emojiEl = document.getElementById('mindStepEmoji');
-    var promptEl = document.getElementById('mindStepPrompt');
-    var subEl = document.getElementById('mindStepSub');
-    var dotsEl = document.getElementById('mindStepDots');
-    if (!promptEl) return;
-    if (emojiEl) emojiEl.textContent = s.emoji || '';
-    promptEl.textContent = s.prompt || '';
-    if (subEl) subEl.textContent = s.sub || '';
-    if (dotsEl) {
-      dotsEl.innerHTML = '';
-      for (var i = 0; i < steps.length; i++) {
-        var dot = document.createElement('span');
-        dot.className = 'mind-step-dot' + (i === idx ? ' active' : '');
-        dotsEl.appendChild(dot);
-      }
-    }
-    if (nextBtn) nextBtn.textContent = (idx >= steps.length - 1) ? 'Finish ✓' : 'Next →';
+    el('bbmpProg').style.width = (((idx + 1) / steps.length) * 100) + '%';
+    el('bbmpStepNo').textContent = 'Step ' + (idx + 1) + ' of ' + steps.length;
+    el('bbmpStepIco').textContent = s.emoji || '';
+    el('bbmpStepPrompt').textContent = s.prompt || '';
+    el('bbmpStepSub').textContent = s.sub || '';
+    el('bbmpBack').disabled = idx === 0;
+    el('bbmpNext').textContent = idx >= steps.length - 1 ? 'Finish ✓' : 'Next →';
+    var ico = el('bbmpStepIco');
+    ico.classList.remove('is-pop'); void ico.offsetWidth; ico.classList.add('is-pop');
+    if (opts.renderExtra) opts.renderExtra(el('bbmpExtra'), s, idx, next);
+    else el('bbmpExtra').innerHTML = '';
   }
 
-  nextBtn.onclick = function() {
+  function next() {
     if (idx >= steps.length - 1) {
-      mindCompleteExercise(opts.key);
-      mindClosePlayer();
+      mindPlayerFinish(opts.key, opts.headerEmoji, opts.doneLine, opts.doneSub);
       return;
     }
     idx += 1;
     render();
-  };
+  }
+
+  el('bbmpNext').onclick = next;
+  el('bbmpBack').onclick = function () { if (idx > 0) { idx -= 1; render(); } };
   render();
 }
 
-function mindRenderGrounding(host) {
-  mindRenderStepped(host, {
-    key: 'grounding_54321',
-    headerEmoji: '🌿',
-    steps: [
-      { emoji: '👀', prompt: 'Name 5 things you can SEE', sub: 'Look around and quietly name five things in view.' },
-      { emoji: '✋', prompt: 'Name 4 things you can TOUCH', sub: 'Notice four textures or surfaces near you.' },
-      { emoji: '👂', prompt: 'Name 3 things you can HEAR', sub: 'Listen for three distinct sounds.' },
-      { emoji: '👃', prompt: 'Name 2 things you can SMELL', sub: 'Find two scents — or two you like.' },
-      { emoji: '👅', prompt: 'Name 1 thing you can TASTE', sub: 'Notice one taste in your mouth right now.' }
-    ]
+// --- 5-4-3-2-1 Grounding: check-in → five senses (name or tap each) → breath between senses → check-out ---
+var MIND_GROUND = [
+  { n: 5, sense: 'See', emoji: '👀', prompt: '5 things you can see', hint: 'Go slowly. Try something blue, a light source, a shadow, a tiny detail you usually miss.' },
+  { n: 4, sense: 'Touch', emoji: '✋', prompt: '4 things you can feel', hint: 'The chair under you, fabric on your skin, the floor under your feet, the air temperature.' },
+  { n: 3, sense: 'Hear', emoji: '👂', prompt: '3 things you can hear', hint: 'Close your eyes for a moment. A fan, traffic, your own breath, a distant voice.' },
+  { n: 2, sense: 'Smell', emoji: '👃', prompt: '2 things you can smell', hint: 'Lean in close to your sleeve, a cup, your hands. Or name two smells you love.' },
+  { n: 1, sense: 'Taste', emoji: '👅', prompt: '1 thing you can taste', hint: 'Notice your mouth right now — toothpaste, coffee, or simply neutral. Take a sip if you can.' }
+];
+
+function mindEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+    return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
   });
 }
 
+function mindRenderGrounding(host) {
+  var m = MIND_META.grounding_54321;
+  var S = { before: null, after: null, step: 0, items: MIND_GROUND.map(function () { return []; }) };
+  var senses = MIND_GROUND.map(function (g, i) {
+    return '<li class="bbg5-sense" data-i="' + i + '"><span class="bbg5-sense-ico" aria-hidden="true">' + g.emoji + '</span><small>' + g.sense + '</small></li>';
+  }).join('');
+  host.innerHTML =
+    '<div class="bbmp bbmp--breath bbg5" role="region" aria-label="5-4-3-2-1 Grounding exercise" style="--bbmp-accent:' + m.accent + ';--bbmp-soft:' + m.soft + '">' +
+      '<button type="button" class="bbmp-x bbmp-x--corner" aria-label="Close exercise" onclick="mindClosePlayer()">' +
+        '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>' +
+      '<div class="bbmp-breath"><span class="bbmp-pill">5-4-3-2-1 Grounding</span></div>' +
+      '<ol class="bbg5-senses" id="bbg5Senses" aria-hidden="true">' + senses + '</ol>' +
+      '<div class="bbmp-body" id="bbmpBody"></div>' +
+      '<div class="bbmp-foot" id="bbmpFoot"></div>' +
+    '</div>';
+  var el = function (id) { return document.getElementById(id); };
+  var alive = function () { return !!el('bbg5Senses'); };
+
+  function setSenses(active) {
+    Array.prototype.forEach.call(el('bbg5Senses').children, function (li, i) {
+      li.className = 'bbg5-sense' + (i < active ? ' is-done' : (i === active ? ' is-on' : ''));
+    });
+  }
+
+  function scale(id, picked) {
+    var h = '<div class="bbg5-scale" id="' + id + '" role="radiogroup" aria-label="1 is calm, 10 is overwhelmed">';
+    for (var i = 1; i <= 10; i++) {
+      h += '<button type="button" role="radio" aria-checked="' + (picked === i) + '" class="bbg5-scale-btn' + (picked === i ? ' is-on' : '') + '" data-v="' + i + '">' + i + '</button>';
+    }
+    return h + '</div><div class="bbg5-scale-ends"><span>Calm</span><span>Overwhelmed</span></div>';
+  }
+  function bindScale(id, onPick) {
+    Array.prototype.forEach.call(el(id).querySelectorAll('.bbg5-scale-btn'), function (b) {
+      b.onclick = function () {
+        Array.prototype.forEach.call(el(id).querySelectorAll('.bbg5-scale-btn'), function (x) {
+          var on = x === b; x.classList.toggle('is-on', on); x.setAttribute('aria-checked', String(on));
+        });
+        onPick(Number(b.getAttribute('data-v')));
+      };
+    });
+  }
+
+  // 1. Check-in
+  function intro() {
+    setSenses(-1);
+    el('bbmpBody').innerHTML =
+      '<div class="bbg5-intro">' +
+        '<h4 class="bbmp-rhythm">Come back to right now</h4>' +
+        '<p class="bbg5-lead">Five senses, about two minutes. It works best when you go slowly and really notice each thing.</p>' +
+        '<p class="bbg5-q">How unsettled do you feel right now?</p>' + scale('bbg5Before', S.before) +
+      '</div>';
+    el('bbmpFoot').innerHTML =
+      '<button type="button" class="bbmp-btn bbmp-btn--light" id="bbg5Skip">Skip</button>' +
+      '<button type="button" class="bbmp-btn bbmp-btn--main" id="bbg5Begin">Begin</button>';
+    bindScale('bbg5Before', function (v) { S.before = v; });
+    el('bbg5Skip').onclick = function () { S.before = null; step(0); };
+    el('bbg5Begin').onclick = function () { step(0); };
+  }
+
+  // Ring of N segments around the sense icon; each noticed thing fills one.
+  function ring(n, filled) {
+    var gap = n > 1 ? 4 : 0, seg = 100 / n - gap, h = '';
+    for (var i = 0; i < n; i++) {
+      h += '<circle class="bbg5-seg' + (i < filled ? ' is-on' : '') + '" cx="60" cy="60" r="52" pathLength="100"' +
+        ' stroke-dasharray="' + seg.toFixed(2) + ' ' + (100 - seg).toFixed(2) + '" stroke-dashoffset="' + (-(i * 100 / n) - gap / 2).toFixed(2) + '"/>';
+    }
+    return '<svg class="bbg5-ring" viewBox="0 0 120 120" aria-hidden="true">' + h + '</svg>';
+  }
+
+  // 2. One sense
+  function step(i) {
+    if (!alive()) return;
+    S.step = i;
+    setSenses(i);
+    var g = MIND_GROUND[i];
+    el('bbmpBody').innerHTML =
+      '<div class="bbg5-step">' +
+        '<p class="bbg5-stepno">Sense ' + (i + 1) + ' of 5</p>' +
+        '<h4 class="bbmp-rhythm bbg5-prompt">' + g.prompt + '</h4>' +
+        '<div class="bbg5-orb" id="bbg5Orb">' + ring(g.n, 0) + '<span class="bbg5-orb-ico" aria-hidden="true">' + g.emoji + '</span></div>' +
+        '<p class="bbg5-count" id="bbg5Count" aria-live="polite">0 of ' + g.n + '</p>' +
+        '<p class="bbg5-hint">' + g.hint + '</p>' +
+        '<form class="bbg5-add" id="bbg5Form" autocomplete="off">' +
+          '<input type="text" id="bbg5Input" maxlength="40" placeholder="Name it (optional)" aria-label="Name what you noticed">' +
+          '<button type="submit" class="bbg5-add-btn">Add</button>' +
+        '</form>' +
+        '<div class="bbg5-chips" id="bbg5Chips"></div>' +
+      '</div>';
+    el('bbmpFoot').innerHTML =
+      '<button type="button" class="bbmp-btn bbmp-btn--light" id="bbg5Back">' + (i === 0 ? 'Back' : '← ' + MIND_GROUND[i - 1].sense) + '</button>' +
+      '<button type="button" class="bbmp-btn bbmp-btn--main" id="bbg5Tap">I noticed one</button>';
+    S.items[i] = [];
+    paintStep();
+    el('bbg5Form').onsubmit = function (e) {
+      e.preventDefault();
+      var v = el('bbg5Input').value.trim();
+      if (!v) { el('bbg5Input').focus(); return; }
+      add(v);
+      el('bbg5Input').value = '';
+    };
+    el('bbg5Tap').onclick = function () {
+      var v = el('bbg5Input').value.trim();
+      el('bbg5Input').value = '';
+      add(v);
+    };
+    el('bbg5Back').onclick = function () { if (i === 0) intro(); else step(i - 1); };
+  }
+
+  function paintStep() {
+    var i = S.step, g = MIND_GROUND[i], list = S.items[i];
+    var orb = el('bbg5Orb');
+    if (!orb) return;
+    orb.querySelector('svg').outerHTML = ring(g.n, list.length);
+    el('bbg5Count').textContent = list.length + ' of ' + g.n;
+    el('bbg5Chips').innerHTML = list.map(function (t, k) {
+      return '<button type="button" class="bbg5-chip" data-k="' + k + '" aria-label="Remove ' + mindEsc(t || 'item ' + (k + 1)) + '">' +
+        mindEsc(t || g.sense + ' ' + (k + 1)) + '<i aria-hidden="true">×</i></button>';
+    }).join('');
+    Array.prototype.forEach.call(el('bbg5Chips').children, function (c) {
+      c.onclick = function () { S.items[i].splice(Number(c.getAttribute('data-k')), 1); paintStep(); };
+    });
+  }
+
+  function add(text) {
+    var i = S.step, g = MIND_GROUND[i];
+    if (S.items[i].length >= g.n) return;
+    S.items[i].push(text || '');
+    paintStep();
+    var orb = el('bbg5Orb');
+    if (orb) { orb.classList.remove('is-pulse'); void orb.offsetWidth; orb.classList.add('is-pulse'); }
+    if (navigator.vibrate) { try { navigator.vibrate(12); } catch (_) {} }
+    if (S.items[i].length >= g.n) {
+      el('bbg5Tap').disabled = true;
+      el('bbg5Input').disabled = true;
+      _mindBreathTimer = setTimeout(function () { if (alive() && S.step === i) breathe(i); }, 700);
+    }
+  }
+
+  // 3. A slow breath between senses (skippable)
+  function breathe(i) {
+    if (!alive()) return;
+    var last = i >= MIND_GROUND.length - 1;
+    setSenses(i + 1);
+    el('bbmpBody').innerHTML =
+      '<div class="bbg5-pause">' +
+        '<p class="bbg5-stepno">' + MIND_GROUND[i].sense + ' ✓</p>' +
+        '<div class="bbg5-breath" id="bbg5Breath"><b id="bbg5BreathTxt">Breathe in…</b></div>' +
+        '<p class="bbg5-lead">' + (last ? 'One last slow breath.' : 'One slow breath, then ' + MIND_GROUND[i + 1].sense.toLowerCase() + '.') + '</p>' +
+      '</div>';
+    el('bbmpFoot').innerHTML = '<button type="button" class="bbmp-btn bbmp-btn--light" id="bbg5Next">Skip</button>';
+    var go = function () { clearTimeout(_mindBreathTimer); if (!alive()) return; if (last) outro(); else step(i + 1); };
+    el('bbg5Next').onclick = go;
+    requestAnimationFrame(function () { var b = el('bbg5Breath'); if (b) b.classList.add('is-in'); });
+    _mindBreathTimer = setTimeout(function () {
+      var b = el('bbg5Breath'), t = el('bbg5BreathTxt');
+      if (!b) return;
+      b.classList.remove('is-in'); t.textContent = 'Breathe out…';
+      _mindBreathTimer = setTimeout(go, 4000);
+    }, 4000);
+  }
+
+  // 4. Check-out (only if they rated at the start)
+  function outro() {
+    if (S.before == null) { finish(); return; }
+    setSenses(5);
+    el('bbmpBody').innerHTML =
+      '<div class="bbg5-intro">' +
+        '<h4 class="bbmp-rhythm">How about now?</h4>' +
+        '<p class="bbg5-lead">Same scale as before. There is no right answer.</p>' + scale('bbg5After', null) +
+      '</div>';
+    el('bbmpFoot').innerHTML = '<button type="button" class="bbmp-btn bbmp-btn--main" id="bbg5See" disabled>See my result</button>';
+    bindScale('bbg5After', function (v) { S.after = v; el('bbg5See').disabled = false; });
+    el('bbg5See').onclick = finish;
+  }
+
+  // 5. Summary
+  function finish() {
+    mindStopTimers();
+    setSenses(5);
+    var delta = (S.before != null && S.after != null) ? S.before - S.after : null;
+    var msg = delta == null ? 'You are here, right now.'
+      : delta > 0 ? 'You came down ' + delta + (delta === 1 ? ' point.' : ' points.')
+      : delta === 0 ? 'Steady. That counts too.'
+      : 'Still unsettled — that is okay.';
+    var sub = delta != null && delta < 0
+      ? 'Try a round of Box Breathing next, or message your care team if it keeps building.'
+      : 'Grounding pulls attention out of racing thoughts and back into your body. Use it any time.';
+    var cmp = delta == null ? '' :
+      '<div class="bbg5-cmp"><div><small>Before</small><b>' + S.before + '</b></div><span aria-hidden="true">→</span><div><small>Now</small><b class="is-now">' + S.after + '</b></div></div>';
+    var named = MIND_GROUND.map(function (g, i) {
+      var words = S.items[i].filter(Boolean);
+      if (!words.length) return '';
+      return '<li><span aria-hidden="true">' + g.emoji + '</span><p>' + words.map(mindEsc).join(' · ') + '</p></li>';
+    }).join('');
+    el('bbmpBody').innerHTML =
+      '<div class="bbmp-done">' +
+        '<div class="bbmp-done-badge" aria-hidden="true">🌿</div>' +
+        '<p class="bbmp-done-line">' + msg + '</p>' + cmp +
+        '<p class="bbmp-done-sub">' + sub + '</p>' +
+        (named ? '<p class="bbg5-stepno bbg5-noticed">What you noticed</p><ul class="bbg5-list">' + named + '</ul>' : '') +
+      '</div>';
+    el('bbmpFoot').innerHTML =
+      '<button type="button" class="bbmp-btn bbmp-btn--light" id="bbg5Again">Redo Exercise</button>' +
+      '<button type="button" class="bbmp-btn bbmp-btn--main" id="bbmpDoneBtn">Done ✓</button>';
+    el('bbg5Again').onclick = function () { mindStartExercise('grounding_54321'); };
+    el('bbmpDoneBtn').onclick = function () { mindCompleteExercise('grounding_54321'); mindClosePlayer(); };
+  }
+
+  intro();
+}
+
 function mindRenderBodyScan(host) {
+  var SECS = 20;
   mindRenderStepped(host, {
     key: 'body_scan',
     headerEmoji: '🔎',
+    howTo: 'Move your attention slowly from head to toe. About 20 seconds each.',
+    doneLine: 'Scan complete. Well done.',
+    doneSub: 'Carry that softness with you into the rest of your day.',
     steps: [
       { emoji: '🧠', prompt: 'Your head', sub: 'Soften your forehead, jaw, and the space behind your eyes.' },
       { emoji: '🙆', prompt: 'Your shoulders', sub: 'Let them drop away from your ears. Release the tension.' },
@@ -23297,7 +23597,30 @@ function mindRenderBodyScan(host) {
       { emoji: '🤰', prompt: 'Your belly', sub: 'Let it be soft. Breathe into it gently.' },
       { emoji: '🦵', prompt: 'Your legs', sub: 'Notice any heaviness or tingling. Let them relax.' },
       { emoji: '🦶', prompt: 'Your feet', sub: 'Feel them grounded and supported. You are here.' }
-    ]
+    ],
+    // A gentle 20-second ring per area that moves on by itself; Next skips ahead.
+    renderExtra: function (box, s, idx, next) {
+      box.innerHTML =
+        '<div class="bbmp-ring" role="timer" aria-label="Time on this area">' +
+          '<svg viewBox="0 0 44 44" aria-hidden="true"><circle class="bbmp-ring-bg" cx="22" cy="22" r="19"/>' +
+          '<circle class="bbmp-ring-fg" id="bbmpRingFg" cx="22" cy="22" r="19" pathLength="100"/></svg>' +
+          '<b id="bbmpRingTxt">' + SECS + '</b></div>' +
+        '<button type="button" class="bbmp-link" id="bbmpHold">Pause timer</button>';
+      var left = SECS, paused = false;
+      var fg = document.getElementById('bbmpRingFg'), txt = document.getElementById('bbmpRingTxt');
+      document.getElementById('bbmpHold').onclick = function () {
+        paused = !paused;
+        this.textContent = paused ? 'Resume timer' : 'Pause timer';
+      };
+      _mindPlayer.timer = setInterval(function () {
+        if (!document.getElementById('bbmpRingFg')) { clearInterval(_mindPlayer.timer); _mindPlayer.timer = 0; return; }
+        if (paused) return;
+        left -= 1;
+        txt.textContent = String(Math.max(0, left));
+        fg.style.strokeDashoffset = String(100 - ((SECS - left) / SECS) * 100);
+        if (left <= 0) { clearInterval(_mindPlayer.timer); _mindPlayer.timer = 0; next(); }
+      }, 1000);
+    }
   });
 }
 
@@ -25757,6 +26080,44 @@ function loadAdminMemberships() {
     window._bbMemberships = Array.isArray(data.users) ? data.users : [];
     window._bbMembershipMeta = { trial_days: data.trial_days || 7, summary: data.summary || {}, catalog: Array.isArray(data.catalog) ? data.catalog : [], trial_tier: data.trial_tier || 'guided' };
     renderAdminMemberships();
+  });
+  loadAdminSitePayments();
+}
+
+// Payments members made on the website. Read-only: a plan activates itself the
+// moment a payment is confirmed, so there is nothing to approve here.
+function loadAdminSitePayments() {
+  var host = document.getElementById('bbSitePaymentsList');
+  var countEl = document.getElementById('bbSitePaymentsCount');
+  if (!host) return;
+  apiCall('GET', '/api/payments/admin').then(function (data) {
+    if (!data || data.error) { host.innerHTML = '<p class="form-hint" style="margin:0;color:#e05050">Could not load payments.</p>'; return; }
+    var rows = Array.isArray(data.payments) ? data.payments : [];
+    var paid = rows.filter(function (r) { return r.status === 'paid'; });
+    if (countEl) countEl.textContent = '· ' + paid.length + ' paid' + (data.enabled ? (data.mode === 'test' ? ' · test mode' : '') : ' · online payment is off');
+    var note = '';
+    if (!data.enabled) note = '<p class="form-hint" style="margin:0 0 10px">Online payment is switched off: the payment keys are not set on the server.</p>';
+    else if (!data.webhook) note = '<p class="form-hint" style="margin:0 0 10px;color:#e0a23c">The payment webhook secret is not set. Payments still work, but a member who closes the page straight after paying will not be activated automatically.</p>';
+    if (!rows.length) { host.innerHTML = note + '<p class="form-hint" style="margin:0">No payments yet.</p>'; return; }
+    var money = function (p) { return '₹' + (Number(p || 0) / 100).toLocaleString('en-IN'); };
+    var tierNames = { core: 'Core', guided: 'Guided', tribe_elite: 'Tribe Elite' };
+    var colors = { paid: '#46c46a', failed: '#e05050', mismatch: '#e05050', refunded: '#9aa3ad', partially_refunded: '#e0a23c', created: '#9aa3ad' };
+    var labels = { paid: 'Paid', failed: 'Failed', mismatch: 'Mismatch', refunded: 'Refunded', partially_refunded: 'Part refunded', created: 'Not completed' };
+    host.innerHTML = note + '<div style="overflow-x:auto"><table style="width:100%;min-width:640px;border-collapse:collapse;font-size:13px">' +
+      '<thead><tr style="text-align:left;color:var(--muted);font-size:11px;letter-spacing:.04em;text-transform:uppercase">' +
+      '<th style="padding:8px 6px">Date</th><th style="padding:8px 6px">Member</th><th style="padding:8px 6px">Plan</th><th style="padding:8px 6px">Amount</th><th style="padding:8px 6px">Status</th><th style="padding:8px 6px">Access until</th><th style="padding:8px 6px">Payment id</th></tr></thead><tbody>' +
+      rows.map(function (r) {
+        var name = ((r.user_first_name || '') + ' ' + (r.user_last_name || '')).trim() || r.name || r.email || '—';
+        var warn = r.status === 'paid' && !r.applied_at ? ' <span style="color:#e05050">· plan NOT activated</span>' : '';
+        return '<tr style="border-top:1px solid rgba(255,255,255,0.06)">' +
+          '<td style="padding:8px 6px;white-space:nowrap">' + escapeHtml(bbFmtMemberDate(r.paid_at || r.created_at)) + '</td>' +
+          '<td style="padding:8px 6px">' + escapeHtml(name) + '<div style="color:var(--muted);font-size:11.5px">' + escapeHtml(r.email || '') + '</div></td>' +
+          '<td style="padding:8px 6px;white-space:nowrap">' + escapeHtml((tierNames[r.plan_tier] || r.plan_tier) + ' · ' + r.months + (Number(r.months) === 1 ? ' month' : ' months')) + '</td>' +
+          '<td style="padding:8px 6px;white-space:nowrap">' + escapeHtml(money(r.amount_paise)) + (Number(r.refunded_paise) > 0 ? '<div style="color:var(--muted);font-size:11.5px">' + escapeHtml(money(r.refunded_paise)) + ' refunded</div>' : '') + '</td>' +
+          '<td style="padding:8px 6px;white-space:nowrap;font-weight:700;color:' + (colors[r.status] || '#9aa3ad') + '">' + escapeHtml(labels[r.status] || r.status) + (r.mode === 'test' ? ' <span style="font-weight:600;color:var(--muted)">(test)</span>' : '') + warn + '</td>' +
+          '<td style="padding:8px 6px;white-space:nowrap">' + escapeHtml(r.access_until ? bbFmtMemberDate(r.access_until) : '—') + '</td>' +
+          '<td style="padding:8px 6px;font-family:monospace;font-size:11.5px;color:var(--muted)">' + escapeHtml(r.payment_id || r.order_id || '') + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
   });
 }
 
