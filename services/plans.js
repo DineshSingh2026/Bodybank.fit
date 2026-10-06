@@ -54,7 +54,7 @@ const PLAN_CATALOG = {
     name: 'Core',
     tagline: 'The full BodyBank app, on your own.',
     prices: [
-      { term: '1m', months: 1, label: 'Monthly', amount: 299 },
+      { term: '1m', months: 1, label: 'Monthly', amount: 350 },
       { term: '12m', months: 12, label: 'Annual', amount: 3499, compare_at: 5999 }
     ]
   },
