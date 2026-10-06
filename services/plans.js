@@ -54,9 +54,7 @@ const PLAN_CATALOG = {
     name: 'Core',
     tagline: 'The full BodyBank app, on your own.',
     prices: [
-      // TEMPORARY (owner's live payment test, 2026-10-06): Core is ₹50.
-      // The real price is amount: 3499, compare_at: 5999 — restore it after the test.
-      { term: '12m', months: 12, label: '12 months', amount: 50 }
+      { term: '12m', months: 12, label: '12 months', amount: 3499, compare_at: 5999 }
     ]
   },
   guided: {

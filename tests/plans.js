@@ -67,7 +67,7 @@ assert(!/amount|price|₹/i.test(JSON.stringify(plans.featureCatalog())), 'featu
 // --- public catalog (website) -------------------------------------------------------
 const cat = plans.publicCatalog();
 eq(cat.map((c) => c.tier).join(','), 'core,guided,tribe_elite', 'catalog order');
-eq(cat[0].prices[0].amount, 50, 'Core 12-month price (TEMPORARY live-test price; real price is 3499)');
+eq(cat[0].prices[0].amount, 3499, 'Core 12-month price');
 eq(cat[1].prices.map((p) => p.amount).join(','), '2999,9999', 'Guided prices');
 eq(cat[2].prices.map((p) => p.amount).join(','), '18000,72000', 'Tribe Elite prices');
 assert(cat.every((c) => c.features.length > 0), 'every plan lists what it adds');
