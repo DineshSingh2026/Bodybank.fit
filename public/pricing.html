@@ -653,12 +653,12 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
           'Save ' + inr(best.s.amount) + ' with ' + esc(best.p.months === 12 ? 'annual' : best.p.months + ' months') + '</button>';
       }
     } else {
-      sub = 'Works out to <b>' + inr(Math.round(cur.amount / cur.months)) + '/month</b>, paid once';
+      sub = '';
       if (s) extra = '<div class="pr-savings"><s>' + inr(s.full) + '</s><span>You save ' + inr(s.amount) + ' (' + s.pct + '%)</span></div>';
     }
     return '<div class="pr-pricebox">' +
       '<div class="pr-amt-row"><span class="pr-amt">' + inr(cur.amount) + '</span><span class="pr-per">' + esc(perWord(cur)) + '</span></div>' +
-      '<div class="pr-sub2">' + sub + '</div>' +
+      (sub ? '<div class="pr-sub2">' + sub + '</div>' : '') +
       extra +
       (cur.note ? '<div class="pr-note">' + esc(cur.note) + '</div>' : '') +
       '</div>';
