@@ -31,6 +31,15 @@ const path = require('path');
 const paymentsLib = require('./payments');
 const graded = require('./gradedReportService');
 const { triggerBloodAnalysis, ensureHealthReportPdf, validateBloodReportInput } = require('./bloodAnalysisService');
+const personal = require('./complete/personal');
+
+// Which report template a new order starts on. Staff can switch any order to
+// another template from the staff page at no cost, until the report is released.
+//   classic = Standard report, graded = Health Map, complete = Health Map 360
+const DEFAULT_TEMPLATE = graded.normalizeVariant(process.env.BLOODMAP_REPORT_TEMPLATE || 'graded');
+
+// The doctor's signature image, printed on a signed Health Map 360 report.
+const MAX_SIGNATURE_CHARS = 400 * 1024;
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
 const CURRENCY = 'INR';
@@ -259,6 +268,7 @@ function createBloodmapService(deps) {
       updated_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
     )`);
     await run('ALTER TABLE bloodmap_consultants ADD COLUMN IF NOT EXISTS published BOOLEAN DEFAULT FALSE');
+    await run(`ALTER TABLE bloodmap_consultants ADD COLUMN IF NOT EXISTS signature TEXT DEFAULT ''`);
     for (const role of ROLES) {
       await run('INSERT INTO bloodmap_consultants (role, title) VALUES (?, ?) ON CONFLICT (role) DO NOTHING', [role, DEFAULT_TITLE[role]]);
     }
@@ -370,6 +380,8 @@ function createBloodmapService(deps) {
         role,
         label: ROLE_LABEL[role],
         published: !!r.published && !!String(r.name || '').trim(),
+        // The image itself is only ever read by the PDF renderer; lists carry the fact.
+        has_signature: /^data:image\//.test(String(r.signature || '')),
         name: r.name || '',
         title: r.title || DEFAULT_TITLE[role],
         qualification: r.qualification || '',
@@ -409,12 +421,27 @@ function createBloodmapService(deps) {
       // The page calls the doctor "registered", so the registration number must be on it.
       if (role === 'doctor' && !regNo) return { error: 'Enter the medical registration number before showing the doctor on the public page.', status: 400 };
     }
+    // Signature: a new image, 'remove', or nothing (keep what is on file).
+    let signature = null;
+    if (b.signature === 'remove') signature = '';
+    else if (b.signature) {
+      const sig = String(b.signature);
+      if (!/^data:image\/(png|jpe?g);base64,[A-Za-z0-9+/=]+$/.test(sig)) return { error: 'The signature must be a PNG or JPG image.', status: 400 };
+      if (sig.length > MAX_SIGNATURE_CHARS) return { error: 'That signature image is too large. Please use one under 300 KB.', status: 400 };
+      signature = sig;
+    }
     await run(
       `UPDATE bloodmap_consultants SET name = ?, title = ?, qualification = ?, reg_no = ?, bio = ?, photo_url = ?,
               work_days = ?, start_min = ?, end_min = ?, slot_min = ?, published = ?, updated_at = NOW() WHERE role = ?`,
       [name, clip(b.title, 80), qualification, regNo, clip(b.bio, 600), photo,
         (days.length ? days : [1, 2, 3, 4, 5, 6]).join(','), startMin, endMin, slotMin, publish, role]
     );
+    if (signature !== null) await run('UPDATE bloodmap_consultants SET signature = ? WHERE role = ?', [signature, role]);
+    // Any Health Map 360 PDF already rendered may carry the old details; they are
+    // rebuilt from their documents on the next download.
+    if (role === 'doctor') {
+      await run(`UPDATE blood_analysis_reports SET complete_pdf_path = NULL WHERE report_variant = 'complete'`).catch(() => {});
+    }
     return { ok: true, published: publish };
   }
 
@@ -852,20 +879,29 @@ function createBloodmapService(deps) {
     const filePath = path.join(fileDir, `blood_${userId}_${Date.now()}.${ext}`);
     fs.writeFileSync(filePath, Buffer.from(b64, 'base64'));
 
+    // Validated by the same module that reads these answers into the report, so
+    // nothing can be stored here that the report would not understand.
+    const told = personal.normalizeContext({
+      diet: body && body.diet, activity: body && body.activity, alcohol: body && body.alcohol,
+      smoking: body && body.smoking, fasting: body && body.fasting, familyHistory: body && body.familyHistory,
+      symptoms: body && body.symptoms, heightCm: body && body.heightCm, weightKg: body && body.weightKg
+    });
     const intake = {
       goal: clip(body && body.goal, 200),
       medicines: clip(body && body.medicines, 400),
       conditions: clip(body && body.conditions, 400),
-      report_date: date.date
+      report_date: date.date,
+      diet: told.diet, activity: told.activity, alcohol: told.alcohol, smoking: told.smoking, fasting: told.fasting,
+      familyHistory: told.familyHistory, symptoms: told.symptoms, heightCm: told.heightCm, weightKg: told.weightKg
     };
     const reportId = uuid();
-    // Same row shape as a staff upload, on the Health Map ('graded') variant.
+    // Same row shape as a staff upload, on the default template.
     await run(
       `INSERT INTO blood_analysis_reports (
         id, user_id, blood_report_file_path, symptoms, status,
         user_name, user_email, user_age, user_gender, user_goal, report_date, report_variant
-      ) VALUES (?, ?, ?, '[]'::jsonb, 'pending', ?, ?, ?, ?, ?, ?::date, 'graded')`,
-      [reportId, userId, filePath, order.name, order.email, order.age || '', order.gender || '', intake.goal, date.date]
+      ) VALUES (?, ?, ?, '[]'::jsonb, 'pending', ?, ?, ?, ?, ?, ?::date, ?)`,
+      [reportId, userId, filePath, order.name, order.email, order.age || '', order.gender || '', intake.goal, date.date, DEFAULT_TEMPLATE]
     );
     const wasReupload = !!order.reupload_requested_at;
     await run(
@@ -899,6 +935,9 @@ function createBloodmapService(deps) {
   /** The Health Map PDF, only once staff have released it to this client. */
   async function reportPdf(order) {
     if (isClosed(order) || !order.report_id || !order.released_at) return null;
+    // A Health Map 360 report that has lost its doctor sign-off (staff re-opened it)
+    // is withheld until it is signed again; the client never sees a draft.
+    if (!(await graded.deliveryStatus(db, order.report_id)).signed) return null;
     const chosen = await graded.reportPdfFor(db, order.report_id, ensureHealthReportPdf);
     return chosen && chosen.path && fs.existsSync(chosen.path) ? chosen : null;
   }
@@ -1102,7 +1141,7 @@ function createBloodmapService(deps) {
   // ── staff ─────────────────────────────────────────────────────────────────
   async function adminList() {
     const rows = await queryAll(
-      `SELECT o.*, r.status AS report_status, r.analysis_last_error
+      `SELECT o.*, r.status AS report_status, r.analysis_last_error, r.report_variant
          FROM bloodmap_orders o LEFT JOIN blood_analysis_reports r ON r.id = o.report_id
         WHERE o.pay_status <> 'created' OR o.created_at > NOW() - INTERVAL '2 days'
         ORDER BY COALESCE(o.paid_at, o.created_at) DESC LIMIT 500`
@@ -1123,6 +1162,7 @@ function createBloodmapService(deps) {
         pay_status: o.pay_status, amount: inr(o.amount_paise), mode: o.mode, payment_id: o.payment_id,
         created_at: o.created_at, paid_at: o.paid_at, uploaded_at: o.uploaded_at, released_at: o.released_at,
         report_id: o.report_id, report_status: o.report_status || '', intake: parseJson(o.intake) || {},
+        report_variant: graded.normalizeVariant(o.report_variant),
         stage, flags, admin_notes: o.admin_notes || '',
         consent_at: o.consent_at, consent_version: o.consent_version || '', email_verified: !!o.email_verified_at,
         link_expires_at: o.token_expires_at, link_expired: linkExpired(o),
@@ -1148,6 +1188,8 @@ function createBloodmapService(deps) {
     if (order.released_at) return { ok: true, already: true };
     const rep = await reportRow(order);
     if (!rep || String(rep.status).toLowerCase() !== 'complete') return { error: 'The analysis is not complete yet.', status: 400 };
+    const delivery = await graded.deliveryStatus(db, order.report_id);
+    if (!delivery.signed) return { error: delivery.error, status: 400 };
     const chosen = await graded.reportPdfFor(db, order.report_id, ensureHealthReportPdf);
     if (!chosen || !chosen.path || !fs.existsSync(chosen.path)) return { error: 'The report PDF could not be built. Open it in Blood reports and try again.', status: 400 };
     await run('UPDATE bloodmap_orders SET released_at = NOW(), updated_at = NOW() WHERE id = ?', [order.id]);

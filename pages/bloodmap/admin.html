@@ -10,7 +10,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/bloodmap-assets/bloodmap.css?v=1" />
+<link rel="stylesheet" href="/bloodmap-assets/bloodmap.css?v=4" />
 <style>
 .tabs{display:flex;gap:8px;flex-wrap:wrap;margin:22px 0 18px}
 .tab{min-height:40px;padding:0 16px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--creamd);cursor:pointer;font-weight:500;font-size:14px}
@@ -167,6 +167,12 @@
     if (!open) return '<div class="o">' + head + '</div>';
     var it = o.intake || {};
     var ev = S.events[o.id];
+    var more = [
+      it.fasting ? 'Fasting: ' + it.fasting : '', it.heightCm && it.weightKg ? it.heightCm + ' cm, ' + it.weightKg + ' kg' : '',
+      it.diet ? 'Diet: ' + it.diet : '', it.activity ? 'Activity: ' + it.activity : '',
+      it.alcohol ? 'Alcohol: ' + it.alcohol : '', it.smoking ? 'Smoking: ' + it.smoking : ''
+    ].filter(Boolean).join(' · ');
+    var TPL = { classic: 'Standard', graded: 'Health Map', complete: 'Health Map 360' };
     var closed = o.stage === 'refunded';
     var canRelease = !closed && o.report_id && !o.released_at && String(o.report_status).toLowerCase() === 'complete';
     return '<div class="o">' + head + '<div class="o-body">' +
@@ -178,10 +184,18 @@
         '<div class="kv">Payment: <b>' + esc(o.pay_status) + '</b>' + (o.payment_id ? ' · ' + esc(o.payment_id) : '') + '</div>' +
         '<h4 style="margin-top:14px">What they told us</h4>' +
         '<div class="kv">Test date: <b>' + esc(it.report_date || '—') + '</b></div><div class="kv">Goal: <b>' + esc(it.goal || '—') + '</b></div>' +
-        '<div class="kv">Medicines: <b>' + esc(it.medicines || '—') + '</b></div><div class="kv">Conditions: <b>' + esc(it.conditions || '—') + '</b></div></div>' +
+        '<div class="kv">Medicines: <b>' + esc(it.medicines || '—') + '</b></div><div class="kv">Conditions: <b>' + esc(it.conditions || '—') + '</b></div>' +
+        (more ? '<div class="kv">' + esc(more) + '</div>' : '') +
+        ((it.familyHistory || []).length ? '<div class="kv">Family history: <b>' + esc(it.familyHistory.join(', ')) + '</b></div>' : '') +
+        ((it.symptoms || []).length ? '<div class="kv">Bothering them: <b>' + esc(it.symptoms.join(', ')) + '</b></div>' : '') + '</div>' +
       '<div><h4>Report</h4>' +
         '<div class="kv">Status: <b>' + esc(o.report_id ? (o.report_status || 'pending') : 'not uploaded') + '</b>' + (o.due_by ? ' · due ' + esc(o.due_by) : '') + '</div>' +
         '<div class="kv">Released to client: <b>' + esc(o.released_at ? when(o.released_at) : 'no') + '</b></div>' +
+        (o.report_id ? '<div class="kv" style="margin-top:8px">Report template: <b>' + esc(TPL[o.report_variant] || o.report_variant) + '</b>' +
+          (o.report_variant === 'complete' ? ' <span class="mute">(needs the doctor sign-off in the editor before release)</span>' : '') + '</div>' +
+          (closed || o.released_at ? '' : '<div class="acts" style="margin:6px 0 4px">' + ['classic', 'graded', 'complete'].filter(function (v) { return v !== o.report_variant; }).map(function (v) {
+            return '<button class="btn btn--sm btn--ghost" data-tpl="' + esc(o.report_id) + '|' + v + '">Use ' + esc(TPL[v]) + '</button>';
+          }).join('') + '</div>') : '') +
         '<div class="acts" style="margin:8px 0 14px">' +
           (o.report_id ? '<button class="btn btn--sm" data-pdf="' + esc(o.report_id) + '">Open report PDF</button><a class="btn btn--sm btn--ghost" href="/?open=blood" target="_blank" rel="noopener">Edit in Blood reports</a>' : '') +
           (canRelease ? '<button class="btn btn--sm btn--gold" data-release="' + o.id + '">Release to client</button>' : '') +
@@ -249,6 +263,21 @@
         act('PUT', '/orders/' + id + '/notes', { notes: p.querySelector('[data-notes="' + id + '"]').value }, 'Notes saved.');
       };
     });
+    each('[data-tpl]', function (b) {
+      b.onclick = function () {
+        var x = b.getAttribute('data-tpl').split('|');
+        b.disabled = true;
+        // The template switch is the Blood reports route; it rebuilds from the saved
+        // lab results, so it is instant and costs nothing.
+        fetch('/api/blood/admin/variant/' + encodeURIComponent(x[0]), {
+          method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.token },
+          body: JSON.stringify({ reportVariant: x[1] })
+        }).then(function (res) { return res.json().catch(function () { return {}; }); }).then(function (d) {
+          toast(d.error ? d.error : 'Template changed. Open it in Blood reports to review and edit.');
+          load();
+        }).catch(function () { b.disabled = false; toast('Could not change the template.'); });
+      };
+    });
     each('[data-pdf]', function (b) {
       b.onclick = function () {
         b.disabled = true;
@@ -295,6 +324,13 @@
         f('name', 'Name') + f('title', 'Title') + f('qualification', 'Qualification') + f('reg_no', 'Registration number') +
         '<div class="field"><label>Short bio</label><textarea data-k="bio" maxlength="600">' + esc(c.bio || '') + '</textarea></div>' +
         f('photo_url', 'Photo link (https://…)') +
+        (role === 'doctor'
+          ? '<div class="field"><label>Signature for Health Map 360 reports</label>' +
+            '<div class="kv">' + (c.has_signature ? '<b>A signature is on file.</b> Choose a new image to replace it.' : 'No signature on file yet. A signed report prints the name and registration number without one.') + '</div>' +
+            '<input type="file" data-sig accept="image/png,image/jpeg">' +
+            '<p class="small mute" style="margin-top:6px">A photo or scan of the signature in dark ink on white paper, cropped close. PNG or JPG, under 300 KB.</p>' +
+            (c.has_signature ? '<label class="consent" style="margin:8px 0 0"><input type="checkbox" data-sigrm><span>Remove the signature on file</span></label>' : '') + '</div>'
+          : '') +
         '<label class="consent" style="margin:0 0 14px"><input type="checkbox" data-pub' + (c.published ? ' checked' : '') + '><span><b style="color:var(--cream);font-weight:500">Show this profile on the public page.</b> ' +
           (c.published ? 'It is live now.' : 'It is hidden now: the page names nobody for this role.') + ' Needs the real name and qualification' + (role === 'doctor' ? ', and the medical registration number' : '') + '.</span></label>' +
         '<div class="field"><label>Working days</label><div class="days7">' + DAYS.map(function (d, i) {
@@ -312,11 +348,26 @@
         e.preventDefault();
         var g = function (k) { return form.querySelector('[data-k="' + k + '"]').value; };
         var days = Array.prototype.filter.call(form.querySelectorAll('[data-day]'), function (x) { return x.checked; }).map(function (x) { return Number(x.getAttribute('data-day')); });
-        act('PUT', '/consultants/' + form.getAttribute('data-role'), {
+        var body = {
           name: g('name'), title: g('title'), qualification: g('qualification'), reg_no: g('reg_no'), bio: g('bio'), photo_url: g('photo_url'),
           work_days: days, start_min: mins(g('start')), end_min: mins(g('end')), slot_min: g('slot_min'),
           published: form.querySelector('[data-pub]').checked
-        }, form.querySelector('[data-pub]').checked ? 'Saved. This profile is now on the public page.' : 'Saved. This profile is hidden from the public page.');
+        };
+        var okText = body.published ? 'Saved. This profile is now on the public page.' : 'Saved. This profile is hidden from the public page.';
+        var send = function () { act('PUT', '/consultants/' + form.getAttribute('data-role'), body, okText); };
+        var sigIn = form.querySelector('[data-sig]');
+        var sigRm = form.querySelector('[data-sigrm]');
+        if (sigRm && sigRm.checked) body.signature = 'remove';
+        if (sigIn && sigIn.files && sigIn.files[0]) {
+          var file = sigIn.files[0];
+          if (file.size > 290 * 1024) return toast('That signature image is over 300 KB. Please use a smaller one.');
+          var fr = new FileReader();
+          fr.onload = function () { body.signature = String(fr.result || ''); send(); };
+          fr.onerror = function () { toast('Could not read that image.'); };
+          fr.readAsDataURL(file);
+          return;
+        }
+        send();
       };
     });
   }

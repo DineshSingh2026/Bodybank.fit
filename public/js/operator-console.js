@@ -1362,7 +1362,7 @@ function opBloodFilePicked(ev) {
     // Which of the two reports this client gets. Chosen in the same modal as the
     // lab date, and switchable later at no cost.
     var variant = (pick && pick.reportVariant) || 'classic';
-    var variantName = variant === 'graded' ? 'Health Map report' : 'Standard report';
+    var variantName = variant === 'complete' ? 'Health Map 360 report' : variant === 'graded' ? 'Health Map report' : 'Standard report';
     show('#8a8880', 'Reading file…');
     var reader = new FileReader();
     reader.onload = function () {

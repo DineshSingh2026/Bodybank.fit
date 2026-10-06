@@ -740,6 +740,116 @@ async function auditGraded(pdfjs) {
   }
 }
 
+/**
+ * Health Map 360: every standard section from gradedPayload, plus the two section
+ * types the edition adds and the long lists it is made of.
+ */
+function completePayload(profile) {
+  const extreme = profile === 'extreme';
+  const base = gradedPayload(profile);
+  if (profile === 'empty') return base;
+  const rows = [];
+  for (let i = 0; i < (extreme ? 24 : 5); i += 1) {
+    rows.push({
+      label: extreme ? LONG_MARKER + ' ' + i : 'Triglyceride / HDL ratio',
+      result: extreme ? '1234567890.123456 mL/min/1.73m2' : '7.9',
+      range: extreme ? longText(120) : 'preferred below 2.0',
+      status: extreme ? longText(60) : 'Raised',
+      level: [2, 1, 0, -1][i % 4],
+      basis: extreme ? longText(500) : 'Triglycerides 268 / HDL 34 mg/dL',
+      note: extreme ? longText(3000) : longText(220),
+      action: i % 2 ? (extreme ? longText(2000) : 'Recheck in three months.') : ''
+    });
+  }
+  const items = [];
+  for (let i = 0; i < (extreme ? 40 : 6); i += 1) {
+    items.push({ text: extreme ? (i % 5 === 0 ? UNBREAKABLE : longText(600)) : 'For iron: rajma, chana and spinach with lemon.', requiresProfessional: i % 7 === 0 });
+  }
+  const signoff = {
+    type: 'signoff', signed: true, signedAt: '2026-10-06T10:00:00.000Z',
+    doctorName: extreme ? LONG_NAME + ' ' + LONG_NAME : 'Dr. Test Example',
+    qualification: extreme ? longText(200) : 'MBBS, MD (General Medicine)',
+    regNo: extreme ? UNBREAKABLE + UNBREAKABLE : 'TEST-000000',
+    statement: extreme ? longText(600) : 'I have reviewed this report and the laboratory results it is based on.'
+  };
+  const extra = [
+    { type: 'text', title: extreme ? longText(120) : 'Doctor\'s Summary', subtitle: extreme ? longText(300) : 'Read as a whole.', pageBreak: true, body: extreme ? longText(6000) : longText(600) },
+    signoff,
+    { type: 'insights', variant: 'patterns', title: extreme ? longText(120) : 'Reading Your Results Together', subtitle: extreme ? longText(300) : 'Side by side.', pageBreak: true, rows: rows },
+    { type: 'insights', variant: 'indices', title: 'Calculated From Your Results', rows: rows.map(function (r) { return Object.assign({}, r, { action: '' }); }) },
+    { type: 'list', style: 'bulleted', title: extreme ? longText(120) : 'Foods to Add', subtitle: extreme ? longText(300) : '', pageBreak: true, items: items },
+    { type: 'list', style: 'numbered', title: 'Your Four-Week Focus', items: items.slice(0, 4) },
+    // A section whose every row is hidden must print nothing at all, not a bare heading.
+    { type: 'insights', variant: 'indices', title: 'Hidden rows', pageBreak: false, rows: [{ label: 'x', show: false }] }
+  ];
+  const disclaimer = base.sections.filter(function (x) { return x.type === 'disclaimer'; });
+  base.sections = base.sections.filter(function (x) { return x.type !== 'disclaimer'; }).concat(extra, disclaimer);
+  base.cover.stats.push({ label: extreme ? longText(50) : 'Patterns found', value: extreme ? '1234567890' : '7' });
+  return base;
+}
+
+async function auditComplete(pdfjs) {
+  section('Health Map 360 report  (services/completeReportPdfKit.js)');
+  const { buildCompleteReportPdf } = require('../services/completeReportPdfKit');
+  const completeDoc = require('../services/completeReportDocument');
+  const { buildGradedHealthReport } = require('../services/gradedHealthReport');
+  const safe = { left: 45, right: 551, top: 18, bottom: 824 };
+  const logo = path.join(__dirname, '..', 'public', 'img', 'logo-bb.png');
+  const signature = fs.existsSync(logo) ? fs.readFileSync(logo) : null;
+
+  // Synthetic documents: the renderer against pathological content.
+  for (const profile of ['empty', 'normal', 'extreme']) {
+    for (const signed of [true, false]) {
+      const doc = completePayload(profile);
+      doc.sections.forEach(function (x) { if (x.type === 'signoff') x.signed = signed; });
+      const label = 'complete/' + profile + (signed ? '' : '-draft');
+      const out = path.join(OUT_DIR, label.replace('/', '-') + '.pdf');
+      await buildCompleteReportPdf(completeDoc.sanitizeCompleteDoc(doc), out, { signature: signature });
+      const pages = await readPages(pdfjs, out);
+      auditPages(label, pages, safe);
+      auditBranding(label, pages, 'BodyBank');
+    }
+  }
+
+  // The real pipeline: fixture lab data through the engines, with the fullest
+  // possible set of client answers, then with none at all.
+  const fix = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'demo', 'screening-current.json'), 'utf8'));
+  const prev = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'fixtures', 'demo', 'screening-previous.json'), 'utf8'));
+  const contexts = {
+    full: {
+      goal: 'Lose fat, build muscle and have more energy for marathon training', diet: 'veg', activity: 'athlete', alcohol: 'daily',
+      smoking: 'current', fasting: 'no', heightCm: 174, weightKg: 92,
+      familyHistory: ['diabetes', 'heart', 'bp', 'cholesterol', 'thyroid', 'kidney'],
+      symptoms: ['fatigue', 'hairfall', 'sleep', 'weight', 'digestion', 'joints', 'mood', 'illness'],
+      medicines: 'Thyronorm 50, metformin, atorvastatin, telmisartan, biotin, creatine, whey protein, iron, vitamin D3, B12, pantoprazole, prednisolone, testosterone, fish oil, pre-workout',
+      conditions: 'Thyroid, diabetes, PCOS, high BP, fatty liver, cholesterol, anaemia, kidney stone, heart, gout, father has diabetes'
+    },
+    none: {}
+  };
+  for (const name of Object.keys(contexts)) {
+    for (const withPrev of [false, true]) {
+      const report = buildGradedHealthReport({
+        extracted: fix.extracted, client: fix.client, screeningDate: fix.extracted.report_date, reportId: 'audit',
+        previous: withPrev ? { extracted: prev.extracted, date: prev.extracted.report_date } : null
+      });
+      const doc = completeDoc.buildCompleteDoc(report, contexts[name], {
+        coachNote: 'A note from your coach.', doctor: { name: 'Dr. Test Example', qualification: 'MBBS, MD', regNo: 'TEST-000000' }
+      });
+      // Fill in the two post-call sections, which are hidden until someone writes them.
+      doc.sections.forEach(function (x) {
+        if (x.type === 'signoff') { x.signed = true; x.signedAt = '2026-10-06T10:00:00.000Z'; }
+        if (/Consultation Summary/.test(x.title || '')) { x.show = true; x.body = longText(900); }
+      });
+      const label = 'complete/real-' + name + (withPrev ? '-trend' : '');
+      const out = path.join(OUT_DIR, label.replace('/', '-') + '.pdf');
+      await buildCompleteReportPdf(completeDoc.sanitizeCompleteDoc(doc), out, { signature: signature });
+      const pages = await readPages(pdfjs, out);
+      auditPages(label, pages, safe);
+      auditBranding(label, pages, 'BodyBank');
+    }
+  }
+}
+
 function weeklyPayload(profile) {
   const extreme = profile === 'extreme';
   const days = [];
@@ -955,6 +1065,7 @@ async function main() {
   if (want('whoop')) await auditWhoop(pdfjs);
   if (want('comparison')) await auditComparison(pdfjs);
   if (want('graded')) await auditGraded(pdfjs);
+  if (want('complete')) await auditComplete(pdfjs);
   if (want('weekly')) await auditWeekly(pdfjs);
   if (want('forms')) await auditForms(pdfjs);
   if (want('monthly')) await auditMonthly(pdfjs);

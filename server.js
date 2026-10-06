@@ -1694,7 +1694,13 @@ async function initDB() {
     `graded_doc_updated_by TEXT DEFAULT ''`,
     `graded_pdf_path TEXT`,         // kept apart so the two variants never collide
     `engine_version TEXT`,          // audit trail: reproduce any grade later
-    `ruleset_version TEXT`
+    `ruleset_version TEXT`,
+    // Health Map 360 ('complete' variant): its own document and PDF, so the Health
+    // Map's columns above are never written by it.
+    `complete_doc JSONB`,
+    `complete_doc_updated_at TIMESTAMPTZ`,
+    `complete_doc_updated_by TEXT DEFAULT ''`,
+    `complete_pdf_path TEXT`
   ]) {
     try {
       await pool.query(`ALTER TABLE blood_analysis_reports ADD COLUMN IF NOT EXISTS ${col}`);

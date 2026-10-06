@@ -35,8 +35,24 @@ const { buildGradedHealthReport } = require('./gradedHealthReport');
 const gradedDoc = require('./gradedReportDocument');
 const { buildGradedReportPdf } = require('./gradedReportPdfKit');
 const { resolveStoredUploadPath } = require('./bloodAnalysisService');
+const completeDoc = require('./completeReportDocument');
+const { buildCompleteReportPdf } = require('./completeReportPdfKit');
 
-const VARIANTS = ['classic', 'graded'];
+/**
+ * 'classic'  the standard health report (services/bloodAnalysisService.js)
+ * 'graded'   the Health Map report
+ * 'complete' Health Map 360: the Health Map plus a doctor's signed summary,
+ *            cross-marker patterns, a personal reading, a nutrition plan and a
+ *            retest plan. Built from the SAME graded_report; it has its own
+ *            document and PDF columns, so the Health Map's are never touched.
+ */
+const VARIANTS = ['classic', 'graded', 'complete'];
+
+/** Does this variant print from the graded engines (rather than the classic pipeline)? */
+function usesGradedEngine(variant) {
+  const v = normalizeVariant(variant);
+  return v === 'graded' || v === 'complete';
+}
 
 /** Normalise a variant value from a request or a database row. */
 function normalizeVariant(v) {
@@ -64,7 +80,7 @@ function hasExtraction(row) {
   return !!(ex && Array.isArray(ex.panels) && ex.panels.length);
 }
 
-function outputPathFor(reportId) {
+function outputPathFor(reportId, prefix) {
   const uploadsRoot = path.resolve(
     process.cwd(),
     String(process.env.UPLOADS_DIR || './uploads').replace(/^\.\//, '')
@@ -74,7 +90,119 @@ function outputPathFor(reportId) {
   // uploads/ would be world-readable.
   const outDir = path.join(uploadsRoot, 'health-reports');
   fs.mkdirSync(outDir, { recursive: true });
-  return path.join(outDir, `BodyBank_HealthMap_${reportId}_${Date.now()}.pdf`);
+  return path.join(outDir, `${prefix || 'BodyBank_HealthMap'}_${reportId}_${Date.now()}.pdf`);
+}
+
+// ---------------------------------------------------------------------------
+// Health Map 360: what the client told us, and who signs
+// ---------------------------------------------------------------------------
+
+/**
+ * Everything the client told us, for the personal sections of the 360 edition.
+ * A BloodMap order carries a full intake; a BodyBank member's profile supplies
+ * what it can. Missing answers simply leave their sections out.
+ */
+async function completeContextFor(db, row) {
+  let intake = {};
+  let order = null;
+  try {
+    order = await db.queryOne(`SELECT intake, age, gender FROM bloodmap_orders WHERE report_id = ?`, [row.id]);
+    intake = (order && parseJsonCol(order.intake)) || {};
+  } catch (_) { /* BloodMap tables are optional */ }
+  let user = null;
+  try {
+    user = await db.queryOne(`SELECT goal_type, diet_type, height_cm FROM users WHERE id = ?`, [row.user_id]);
+  } catch (_) { /* profile columns are optional */ }
+  const dietOf = (v) => {
+    const s = String(v || '').toLowerCase();
+    if (/vegan/.test(s)) return 'vegan';
+    if (/egg/.test(s)) return 'egg';
+    if (/non/.test(s)) return 'nonveg';
+    if (/veg/.test(s)) return 'veg';
+    return '';
+  };
+  return {
+    age: row.user_age || (order && order.age) || '',
+    sex: row.user_gender || (order && order.gender) || '',
+    goal: intake.goal || row.user_goal || (user && user.goal_type) || '',
+    medicines: intake.medicines || '',
+    conditions: intake.conditions || '',
+    diet: intake.diet || dietOf(user && user.diet_type),
+    activity: intake.activity || '',
+    alcohol: intake.alcohol || '',
+    smoking: intake.smoking || '',
+    fasting: intake.fasting || '',
+    familyHistory: intake.familyHistory || [],
+    symptoms: intake.symptoms || [],
+    heightCm: intake.heightCm || (user && user.height_cm) || '',
+    weightKg: intake.weightKg || ''
+  };
+}
+
+/** The doctor whose name and signature go on a 360 report, from the consultant record. */
+async function reviewingDoctor(db) {
+  try {
+    const d = await db.queryOne(
+      `SELECT name, qualification, reg_no, signature FROM bloodmap_consultants WHERE role = 'doctor'`, []
+    );
+    if (!d) return null;
+    let signature = null;
+    const m = /^data:image\/(png|jpe?g);base64,(.+)$/i.exec(String(d.signature || ''));
+    if (m) { try { signature = Buffer.from(m[2], 'base64'); } catch (_) { signature = null; } }
+    return {
+      name: String(d.name || '').trim(),
+      qualification: String(d.qualification || '').trim(),
+      regNo: String(d.reg_no || '').trim(),
+      signature
+    };
+  } catch (_) {
+    return null;
+  }
+}
+
+/** Load, or build, the 360 document for a row. */
+async function getCompleteDoc(db, row, opts) {
+  const o = opts || {};
+  const stored = parseJsonCol(row.complete_doc);
+  if (stored && !o.forceRebuild) {
+    return {
+      doc: completeDoc.sanitizeCompleteDoc(stored),
+      edited: true,
+      updatedAt: row.complete_doc_updated_at || null,
+      updatedBy: row.complete_doc_updated_by || '',
+      row
+    };
+  }
+  let report = parseJsonCol(row.graded_report);
+  if (!report || o.forceRebuild) {
+    const built = await buildGradedReportFor(db, row.id);
+    if (built.error) return { error: built.error };
+    report = built.report;
+  }
+  const [context, doctor] = await Promise.all([completeContextFor(db, row), reviewingDoctor(db)]);
+  const doc = completeDoc.sanitizeCompleteDoc(
+    completeDoc.buildCompleteDoc(report, context, { coachNote: row.admin_notes || '', doctor: doctor || {} })
+  );
+  return { doc, edited: false, updatedAt: null, updatedBy: '', row, report };
+}
+
+/**
+ * Has the doctor signed this report? A 360 report must be signed before it can be
+ * delivered; the other variants have no sign-off and are always deliverable.
+ * @returns {Promise<{variant:string, signed:boolean, error?:string}>}
+ */
+async function deliveryStatus(db, reportId) {
+  const row = await db.queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [reportId]);
+  if (!row) return { variant: 'classic', signed: false, error: 'Report not found' };
+  const variant = normalizeVariant(row.report_variant);
+  if (variant !== 'complete') return { variant, signed: true };
+  const loaded = await getCompleteDoc(db, row);
+  if (loaded.error) return { variant, signed: false, error: loaded.error };
+  if (completeDoc.isSigned(loaded.doc)) return { variant, signed: true };
+  return {
+    variant, signed: false,
+    error: 'This Health Map 360 report has not been signed by the doctor yet. Open it in the editor, review it, tick the doctor sign-off and save.'
+  };
 }
 
 /**
@@ -170,6 +298,7 @@ async function getGradedDoc(db, reportId, opts) {
   const o = opts || {};
   const row = await db.queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [reportId]);
   if (!row) return { error: 'Report not found' };
+  if (normalizeVariant(row.report_variant) === 'complete') return getCompleteDoc(db, row, o);
 
   const stored = parseJsonCol(row.graded_doc);
   if (stored && !o.forceRebuild) {
@@ -203,8 +332,9 @@ async function getGradedDoc(db, reportId, opts) {
  * the reviewer has since changed.
  */
 async function saveGradedDoc(db, reportId, incoming, who) {
-  const row = await db.queryOne(`SELECT id FROM blood_analysis_reports WHERE id = ?`, [reportId]);
+  const row = await db.queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [reportId]);
   if (!row) return { error: 'Report not found' };
+  if (normalizeVariant(row.report_variant) === 'complete') return saveCompleteDoc(db, row, incoming, who);
 
   const doc = gradedDoc.sanitizeGradedDoc(incoming);
   if (!gradedDoc.docHasVisibleContent(doc)) {
@@ -232,8 +362,17 @@ async function saveGradedDoc(db, reportId, incoming, who) {
  * The grades themselves never changed — only the words around them.
  */
 async function resetGradedDoc(db, reportId) {
-  const row = await db.queryOne(`SELECT id FROM blood_analysis_reports WHERE id = ?`, [reportId]);
+  const row = await db.queryOne(`SELECT id, report_variant FROM blood_analysis_reports WHERE id = ?`, [reportId]);
   if (!row) return { error: 'Report not found' };
+  if (normalizeVariant(row.report_variant) === 'complete') {
+    await db.run(
+      `UPDATE blood_analysis_reports
+       SET complete_doc = NULL, complete_doc_updated_at = NULL, complete_doc_updated_by = '', complete_pdf_path = NULL
+       WHERE id = ?`,
+      [reportId]
+    );
+    return getGradedDoc(db, reportId);
+  }
   await db.run(
     `UPDATE blood_analysis_reports
      SET graded_doc = NULL, graded_doc_updated_at = NULL, graded_doc_updated_by = '', graded_pdf_path = NULL
@@ -253,6 +392,7 @@ async function resetGradedDoc(db, reportId) {
 async function ensureGradedPdf(db, reportId) {
   const row = await db.queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [reportId]);
   if (!row) return null;
+  if (normalizeVariant(row.report_variant) === 'complete') return ensureCompletePdf(db, row);
 
   const existing = row.graded_pdf_path ? resolveStoredUploadPath(String(row.graded_pdf_path).trim()) : null;
   if (existing && fs.existsSync(existing)) {
@@ -279,7 +419,78 @@ async function ensureGradedPdf(db, reportId) {
 }
 
 /**
- * Switch a report between the two variants.
+ * Persist a reviewer's edits to a 360 document.
+ *
+ * The sign-off is the one part of the document the browser does not control. The
+ * doctor's name, qualification and registration number are copied from the
+ * consultant record here, and the moment of signing and the staff account that
+ * ticked it are stamped here. A report cannot be signed until that record is complete.
+ */
+async function saveCompleteDoc(db, row, incoming, who) {
+  const doc = completeDoc.sanitizeCompleteDoc(incoming);
+  if (!gradedDoc.docHasVisibleContent(doc)) {
+    return { error: 'This report would be empty. Keep at least one visible section.' };
+  }
+
+  const sign = completeDoc.signoffOf(doc);
+  if (sign) {
+    const doctor = await reviewingDoctor(db);
+    const before = completeDoc.signoffOf(completeDoc.sanitizeCompleteDoc(parseJsonCol(row.complete_doc) || {}));
+    if (doctor) {
+      sign.doctorName = doctor.name;
+      sign.qualification = doctor.qualification;
+      sign.regNo = doctor.regNo;
+    }
+    if (sign.signed) {
+      if (!doctor || !doctor.name || !doctor.qualification || !doctor.regNo) {
+        return { error: 'Add the doctor\'s name, qualification and registration number under BloodMap staff page > Consultants before signing a report.' };
+      }
+      const wasSigned = !!(before && before.signed && before.signedAt);
+      sign.signedAt = wasSigned ? before.signedAt : new Date().toISOString();
+      sign.signedBy = wasSigned ? before.signedBy : String(who || '').slice(0, 200);
+    } else {
+      sign.signedAt = '';
+      sign.signedBy = '';
+    }
+  }
+
+  const coachNote = gradedDoc.docCoachNote(doc);
+  await db.run(
+    `UPDATE blood_analysis_reports
+     SET complete_doc = ?::jsonb,
+         complete_doc_updated_at = CURRENT_TIMESTAMP,
+         complete_doc_updated_by = ?,
+         complete_pdf_path = NULL,
+         admin_notes = ?
+     WHERE id = ?`,
+    [JSON.stringify(doc), String(who || '').slice(0, 200), coachNote.slice(0, 8000), row.id]
+  );
+  return { doc, edited: true };
+}
+
+/** An absolute path to the 360 PDF, rendering it if the file is missing. */
+async function ensureCompletePdf(db, row) {
+  const existing = row.complete_pdf_path ? resolveStoredUploadPath(String(row.complete_pdf_path).trim()) : null;
+  if (existing && fs.existsSync(existing)) return existing;
+
+  const loaded = await getCompleteDoc(db, row);
+  if (loaded.error || !loaded.doc) return null;
+  const doctor = await reviewingDoctor(db);
+
+  const out = outputPathFor(row.id, 'BodyBank_HealthMap360');
+  try {
+    await buildCompleteReportPdf(loaded.doc, out, { signature: doctor && doctor.signature });
+  } catch (e) {
+    console.error('[completeReport] PDF render failed:', e && e.message);
+    return null;
+  }
+  await db.run(`UPDATE blood_analysis_reports SET complete_pdf_path = ? WHERE id = ?`, [out, row.id])
+    .catch(() => {});
+  return out;
+}
+
+/**
+ * Switch a report between the variants.
  *
  * Re-runs only the graded engines over the SAVED extraction — no re-extraction, no
  * re-analysis, no AI call, no cost. This is the recovery path for "we picked the
@@ -290,13 +501,13 @@ async function setVariant(db, reportId, variant) {
   const row = await db.queryOne(`SELECT * FROM blood_analysis_reports WHERE id = ?`, [reportId]);
   if (!row) return { error: 'Report not found' };
 
-  if (want === 'graded' && !hasExtraction(row)) {
+  if (usesGradedEngine(want) && !hasExtraction(row)) {
     return { error: 'Process this report first — the graded report is built from the extracted results.' };
   }
 
   await db.run(`UPDATE blood_analysis_reports SET report_variant = ? WHERE id = ?`, [want, reportId]);
 
-  if (want === 'graded' && !parseJsonCol(row.graded_report)) {
+  if (usesGradedEngine(want) && !parseJsonCol(row.graded_report)) {
     const built = await buildGradedReportFor(db, reportId);
     if (built.error) return { error: built.error };
   }
@@ -316,6 +527,11 @@ async function reportPdfFor(db, reportId, ensureClassicPdf) {
   if (!row) return null;
   const variant = normalizeVariant(row.report_variant);
 
+  if (variant === 'complete') {
+    const p = await ensureGradedPdf(db, reportId);
+    if (!p) return null;
+    return { path: p, filename: 'BodyBank_Health_Map_360_Report.pdf', variant };
+  }
   if (variant === 'graded') {
     const p = await ensureGradedPdf(db, reportId);
     if (!p) return null;
@@ -329,6 +545,9 @@ async function reportPdfFor(db, reportId, ensureClassicPdf) {
 module.exports = {
   VARIANTS,
   normalizeVariant,
+  usesGradedEngine,
+  deliveryStatus,
+  completeContextFor,
   effectiveDate,
   hasExtraction,
   previousReportFor,

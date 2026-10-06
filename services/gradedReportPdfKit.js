@@ -134,7 +134,9 @@ function ensure(ctx, need) {
   return ctx.ensure(need);
 }
 
-function paintChrome(doc, clientName, dateLabel, contentPages) {
+function paintChrome(doc, clientName, dateLabel, contentPages, chrome) {
+  const ch = chrome || {};
+  const footerLabel = ch.footerLabel || 'Health Map Report';
   const range = doc.bufferedPageRange();
   const total = range.count;
   for (let i = 0; i < total; i += 1) {
@@ -149,6 +151,7 @@ function paintChrome(doc, clientName, dateLabel, contentPages) {
     // PDFKit, and a long client name wrapped to a second line under the paper.
     const savedBottom = doc.page.margins.bottom;
     doc.page.margins.bottom = 0;
+    if (ch.watermark) PL.diagonalWatermark(doc, { text: ch.watermark, color: C.GOLD, opacity: 0.07, size: 40, count: 1 });
     doc.save();
     doc.font('Helvetica-Bold').fontSize(9).fillColor(C.GOLD);
     const wm = 'BodyBank.fit';
@@ -162,7 +165,7 @@ function paintChrome(doc, clientName, dateLabel, contentPages) {
     doc.font('Helvetica').fontSize(7.5);
     const rightW = Math.min(CW * 0.45, doc.widthOfString(right));
     PL.drawFit(doc, right, M + CW - rightW, PAGE_H - 26, rightW, { font: 'Helvetica', size: 7.5, color: C.MUTED, align: 'right' });
-    PL.drawFit(doc, txt(`BodyBank.fit  ·  Health Map Report  ·  ${clientName}`), M, PAGE_H - 26,
+    PL.drawFit(doc, txt(`BodyBank.fit  ·  ${footerLabel}  ·  ${clientName}`), M, PAGE_H - 26,
       CW - rightW - 14, { font: 'Helvetica', size: 7.5, color: C.MUTED });
     doc.restore();
     doc.page.margins.bottom = savedBottom;
@@ -242,7 +245,7 @@ function layerLabel(doc, x, y, text, color, width) {
 // Cover
 // ---------------------------------------------------------------------------
 
-function buildCover(ctx, cover) {
+function buildCover(ctx, cover, tagline) {
   const doc = ctx.doc;
   ctx.contentPages.add(0);
   ctx.y = TOP;
@@ -252,7 +255,7 @@ function buildCover(ctx, cover) {
   }
   const brandX = M + (LOGO ? 50 : 0);
   PL.drawFit(doc, 'BodyBank.fit', brandX, ctx.y + 8, CW - (brandX - M), { font: 'Helvetica-Bold', size: 11, color: C.GOLD });
-  PL.drawFit(doc, 'Preventive Health Screening', brandX, ctx.y + 23, CW - (brandX - M), { font: 'Helvetica', size: 8, color: C.MUTED });
+  PL.drawFit(doc, tagline || 'Preventive Health Screening', brandX, ctx.y + 23, CW - (brandX - M), { font: 'Helvetica', size: 8, color: C.MUTED });
   ctx.advance(58);
 
   ctx.advance(PL.drawText(doc, cover.title, M, ctx.y, { font: 'Helvetica-Bold', size: 26, width: CW, color: C.TEXT }) + 10);
@@ -784,9 +787,14 @@ const RENDERERS = {
  * Render a graded-report document to a PDF file.
  * @param {object} doc  sanitised document from services/gradedReportDocument.js
  * @param {string} outPath
+ * @param {object} [opts] hooks for editions built on this renderer (the standard
+ *   Health Map passes none, and renders exactly as before):
+ *   { renderers: {type: fn(ctx, section)}, footerLabel, coverTagline, watermark, assets }
  * @returns {Promise<string>} the path written
  */
-function buildGradedReportPdf(doc, outPath) {
+function buildGradedReportPdf(doc, outPath, opts) {
+  const o = opts || {};
+  const renderers = o.renderers ? Object.assign({}, RENDERERS, o.renderers) : RENDERERS;
   return new Promise((resolve, reject) => {
     try {
       const pdf = new PDFDocument({
@@ -818,12 +826,13 @@ function buildGradedReportPdf(doc, outPath) {
         onPage: (d) => paintBg(d)
       });
       ctx.contentPages = ctx.pages;
+      ctx.assets = o.assets || {};
 
-      buildCover(ctx, doc.cover || {});
+      buildCover(ctx, doc.cover || {}, o.coverTagline);
 
       const sections = (doc.sections || []).filter((s) => s && s.show !== false);
       sections.forEach((s) => {
-        const render = RENDERERS[s.type];
+        const render = renderers[s.type];
         if (!render) return;
         if (s.pageBreak) newPage(ctx);
         try {
@@ -838,7 +847,8 @@ function buildGradedReportPdf(doc, outPath) {
         pdf,
         txt((doc.cover && doc.cover.clientName) || 'Member'),
         txt((doc.cover && doc.cover.screeningDateLabel) || ''),
-        ctx.contentPages
+        ctx.contentPages,
+        { footerLabel: o.footerLabel, watermark: o.watermark }
       );
 
       pdf.end();
@@ -850,4 +860,7 @@ function buildGradedReportPdf(doc, outPath) {
   });
 }
 
-module.exports = { buildGradedReportPdf, GRADE, C };
+/** Drawing primitives and page geometry, shared with editions built on this renderer. */
+const kit = { PL, txt, hasText, box, ensure, sectionHeading, bodyText, layerLabel, M, CW, TOP, BOTTOM, PAGE_W, PAGE_H };
+
+module.exports = { buildGradedReportPdf, GRADE, C, kit };

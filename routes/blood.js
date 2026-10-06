@@ -263,9 +263,10 @@ function mapReportRow(r) {
     // below is untouched, so shipped Android and iOS builds keep working and simply
     // ignore it. Defaults to 'classic' for every report that existed before.
     reportVariant: r.report_variant || 'classic',
-    gradedDocEdited: !!r.graded_doc_updated_at,
-    gradedDocUpdatedAt: r.graded_doc_updated_at || null,
-    gradedDocUpdatedBy: r.graded_doc_updated_by || '',
+    // For a Health Map 360 report these describe its own document, not the Health Map's.
+    gradedDocEdited: !!(r.report_variant === 'complete' ? r.complete_doc_updated_at : r.graded_doc_updated_at),
+    gradedDocUpdatedAt: (r.report_variant === 'complete' ? r.complete_doc_updated_at : r.graded_doc_updated_at) || null,
+    gradedDocUpdatedBy: (r.report_variant === 'complete' ? r.complete_doc_updated_by : r.graded_doc_updated_by) || '',
     extractionAiUsage: parseJson(r.extraction_ai_usage),
     analysisAiUsage: parseJson(r.analysis_ai_usage),
     totalAiUsage: parseJson(r.total_ai_usage),
@@ -386,7 +387,7 @@ function createBloodRouter(deps) {
    * report as failed. The graded view can always be rebuilt on demand, at no cost.
    */
   async function afterAnalysis(reportId, variant) {
-    if (graded.normalizeVariant(variant) !== 'graded') return;
+    if (!graded.usesGradedEngine(variant)) return;
     try {
       const built = await graded.buildGradedReportFor(db, reportId);
       if (built.error) console.warn('[blood graded] build skipped:', built.error);
@@ -595,7 +596,7 @@ function createBloodRouter(deps) {
         reportDate: labDate.date,
         reportVariant: variant,
         message: `Uploaded for ${displayName || 'client'} (lab date ${labDate.date}) — ` +
-          `${variant === 'graded' ? 'Health Map report' : 'standard report'}, analysis started.`
+          `${variant === 'complete' ? 'Health Map 360 report' : variant === 'graded' ? 'Health Map report' : 'standard report'}, analysis started.`
       });
     } catch (e) {
       console.error('[blood admin upload]', e.message);
@@ -910,6 +911,9 @@ function createBloodRouter(deps) {
         return res.status(404).json({ success: false, error: 'Report not found' });
       }
       if (await isBloodmapClient(report.user_id)) return res.status(409).json(BLOODMAP_SEND_REFUSAL);
+      // A Health Map 360 report carries a doctor's name, so it cannot leave unsigned.
+      const delivery = await graded.deliveryStatus(db, req.params.reportId);
+      if (!delivery.signed) return res.status(409).json({ success: false, code: 'not_signed', error: delivery.error });
       const chosen = await graded.reportPdfFor(db, req.params.reportId, ensureHealthReportPdf);
       const pdfPath = chosen && chosen.path;
       if (!pdfPath || !fs.existsSync(pdfPath)) {
@@ -930,7 +934,7 @@ function createBloodRouter(deps) {
       // Map replaces it — so the summary line carries the grade counts instead.
       let headlineStatus = aiReport && aiReport.overall_status;
       let headlineSummary = aiReport && aiReport.overall_summary_short;
-      if (chosen && chosen.variant === 'graded') {
+      if (chosen && graded.usesGradedEngine(chosen.variant)) {
         const gr = parseJsonCol(report.graded_report);
         if (gr) {
           const s = gr.healthMapSummary || {};
@@ -1077,7 +1081,9 @@ function createBloodRouter(deps) {
          SET status = 'pending', pdf_path = NULL, nutrition_snapshot = NULL, ai_report = NULL,
              analysis_ai_usage = NULL, total_ai_usage = NULL, analysis_last_error = NULL,
              graded_report = NULL, graded_doc = NULL, graded_doc_updated_at = NULL,
-             graded_doc_updated_by = '', graded_pdf_path = NULL
+             graded_doc_updated_by = '', graded_pdf_path = NULL,
+             complete_doc = NULL, complete_doc_updated_at = NULL,
+             complete_doc_updated_by = '', complete_pdf_path = NULL
          WHERE id = ?`,
         [reportId]
       );

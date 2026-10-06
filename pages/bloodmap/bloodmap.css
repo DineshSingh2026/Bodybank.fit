@@ -250,3 +250,13 @@ button,input,select,textarea{font-family:inherit;font-size:inherit;color:inherit
 .viewer-body canvas{display:block;flex:0 0 auto;max-width:100%;height:auto;background:#fff;border-radius:4px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
 .viewer-note{margin:auto;display:flex;flex-direction:column;align-items:center;gap:16px;text-align:center;color:var(--creamd);max-width:420px;padding:24px}
 @media(max-width:600px){.viewer-bar b{font-size:17px;margin-right:auto}.viewer-bar span{display:none}}
+
+/* optional questions on the upload step */
+.about{border-top:1px solid var(--line);margin-top:6px;padding-top:18px}
+.about-h{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:1px;color:var(--cream);line-height:1.1;margin-bottom:4px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:2px}
+.chip{position:relative;cursor:pointer}
+.chip input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.chip span{display:block;padding:9px 13px;border-radius:999px;border:1px solid var(--line);background:#0a0908;color:var(--creamd);font-size:14px;font-weight:400;letter-spacing:0;text-transform:none;line-height:1.2}
+.chip input:checked+span{border-color:var(--gold);background:rgba(200,164,78,.14);color:var(--gold)}
+.chip input:focus-visible+span{outline:2px solid var(--cream);outline-offset:2px}

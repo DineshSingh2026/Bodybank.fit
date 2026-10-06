@@ -5369,7 +5369,7 @@ button.bb-today-pill{cursor:pointer}
 <link rel="stylesheet" href="css/group-chat.css?v=8">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="js/notification-sounds.js?v=4"></script>
-<script src="js/operator-console.js?v=18"></script>
+<script src="js/operator-console.js?v=19"></script>
 <script src="js/admin-home.js?v=9"></script>
 <script src="js/admin-reports.js?v=4"></script>
 <script src="js/countries.js?v=1"></script>
@@ -19908,7 +19908,7 @@ function adminCpBloodFilePicked(ev) {
   bbBloodConfirmLabDate(id, name, f.name, function (labDate, pick) {
     if (!labDate) { show('var(--muted)', 'Upload cancelled.'); return; }
     var variant = (pick && pick.reportVariant) || 'classic';
-    var variantName = variant === 'graded' ? 'Health Map report' : 'Standard report';
+    var variantName = variant === 'complete' ? 'Health Map 360 report' : variant === 'graded' ? 'Health Map report' : 'Standard report';
     show('var(--muted)', 'Reading file…');
     var reader = new FileReader();
     reader.onload = function () {
@@ -26736,6 +26736,11 @@ var BB_REPORT_VARIANTS = [
     id: 'graded',
     name: 'Health Map Report',
     blurb: 'Health-area grades (A–D), a top-three priority list and trends against the last screening.'
+  },
+  {
+    id: 'complete',
+    name: 'Health Map 360 Report',
+    blurb: 'The Health Map plus a doctor-signed summary, patterns across results, a personal reading, a nutrition plan and a retest plan. Needs the doctor sign-off before it can be sent.'
   }
 ];
 
@@ -26753,7 +26758,7 @@ function bbVariantPickerHtml(selected) {
   return '<div class="bb-variant-pick" id="bbVariantPick">' +
     '<div class="bb-variant-head">Which report should this client get?</div>' +
     opts +
-    '<div class="bb-variant-foot">You can switch a report to the other format later at no cost — it is rebuilt from the same lab results.</div>' +
+    '<div class="bb-variant-foot">You can switch a report to another format later at no cost — it is rebuilt from the same lab results.</div>' +
     '</div>';
 }
 
@@ -26761,7 +26766,7 @@ function bbVariantPickerHtml(selected) {
 function bbPickedVariant(root) {
   var el = (root || document).querySelector('input[name="bbReportVariant"]:checked');
   var v = el ? String(el.value) : 'classic';
-  return v === 'graded' ? 'graded' : 'classic';
+  return v === 'graded' || v === 'complete' ? v : 'classic';
 }
 
 // Ask for the lab draw date before a staff upload. Uploading a retest is the moment
@@ -27273,18 +27278,29 @@ function adminBloodCardHtml(r, dupSet) {
 
 // ── Report variant on an existing report ─────────────────────────────────────
 
+// True for both reports built on the Health Map engine: the Health Map itself and
+// the Health Map 360. They share one editor.
 function bbIsGraded(r) {
-  return String((r && r.reportVariant) || 'classic') === 'graded';
+  var v = String((r && r.reportVariant) || 'classic');
+  return v === 'graded' || v === 'complete';
+}
+function bbIsComplete(r) {
+  return String((r && r.reportVariant) || 'classic') === 'complete';
+}
+function bbVariantName(v) {
+  return v === 'complete' ? 'Health Map 360' : v === 'graded' ? 'Health Map' : 'Standard';
 }
 
 /** The badge in a card's title row: which report this client is getting. */
 function bbVariantTag(r) {
   var graded = bbIsGraded(r);
   var tag = '<span class="bb-variant-tag bb-variant-tag--' + (graded ? 'graded' : 'classic') + '" ' +
-    'title="' + (graded
+    'title="' + (bbIsComplete(r)
+      ? 'Health Map 360 — the Health Map with a doctor-signed summary, patterns, a personal reading and a plan'
+      : graded
       ? 'Health Map report — health-area grades, priorities and trends'
       : 'Standard report — clinical narrative, foods, meal plan and supplements') + '">' +
-    (graded ? 'Health Map' : 'Standard') + '</span>';
+    bbVariantName(r && r.reportVariant) + '</span>';
   // A reviewer who has edited the document needs to know the client will receive
   // their words, not the generated ones.
   if (graded && r.gradedDocEdited) {
@@ -27300,15 +27316,17 @@ function bbVariantTag(r) {
  * that is already saved. No AI call, so no cost and no wait.
  */
 function bbVariantRow(id, r) {
-  var graded = bbIsGraded(r);
-  var other = graded ? 'classic' : 'graded';
-  var otherName = graded ? 'Standard report' : 'Health Map report';
+  var cur = String((r && r.reportVariant) || 'classic');
+  if (cur !== 'graded' && cur !== 'complete') cur = 'classic';
+  var btn = 'border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px';
   return '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:8px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08)">' +
     '<span class="form-hint" style="margin:0;font-size:11px">Report format</span>' +
-    '<strong style="font-size:12px">' + (graded ? 'Health Map' : 'Standard') + '</strong>' +
+    '<strong style="font-size:12px">' + bbVariantName(cur) + '</strong>' +
     '<span style="flex:1"></span>' +
-    '<button type="button" class="form-hint" style="border:1px solid rgba(255,255,255,0.14);background:transparent;color:inherit;padding:5px 10px;border-radius:6px;cursor:pointer;font-size:11px" ' +
-    'onclick="bbSwitchVariant(\'' + id + '\', \'' + other + '\')">Switch to ' + escapeHtml(otherName) + '</button>' +
+    ['classic', 'graded', 'complete'].filter(function (v) { return v !== cur; }).map(function (v) {
+      return '<button type="button" class="form-hint" style="' + btn + '" ' +
+        'onclick="bbSwitchVariant(\'' + id + '\', \'' + v + '\')">Switch to ' + escapeHtml(bbVariantName(v)) + '</button>';
+    }).join('') +
     '</div>';
 }
 
@@ -27321,7 +27339,7 @@ function bbSwitchVariant(reportId, variant, refreshFn) {
         return;
       }
       if (typeof nutritionShowToast === 'function') {
-        nutritionShowToast(d.reportVariant === 'graded' ? 'Switched to the Health Map report' : 'Switched to the standard report', 'success');
+        nutritionShowToast('Switched to the ' + bbVariantName(d.reportVariant) + ' report', 'success');
       }
       if (refreshFn && typeof window[refreshFn] === 'function') window[refreshFn]();
     });
@@ -31019,7 +31037,7 @@ window.addEventListener('resize', applySafeAreaFix);
 <script src="js/scorecard-share.js?v=18"></script>
 <script src="js/member-screens.js?v=4"></script>
 <script src="js/blood-report-editor.js?v=2"></script>
-<script src="js/graded-report-editor.js?v=1"></script>
+<script src="js/graded-report-editor.js?v=2"></script>
 <script src="js/bb-voice.js?v=1"></script>
 <script>
 /* Voice input on every long-form box in the app.

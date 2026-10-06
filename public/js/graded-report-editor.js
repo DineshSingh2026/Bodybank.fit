@@ -38,7 +38,10 @@
     text: 'Text block',
     list: 'Steps',
     callout: 'Highlight box',
-    disclaimer: 'Disclaimer'
+    disclaimer: 'Disclaimer',
+    // Health Map 360 only
+    insights: 'Results together',
+    signoff: 'Doctor sign-off'
   };
 
   var GRADE_LABEL = {
@@ -56,6 +59,7 @@
     dirty: false,
     busy: false,
     view: 'edit',
+    variant: 'graded', // 'graded' (Health Map) or 'complete' (Health Map 360)
     open: null,       // Set of expanded section ids
     onSaved: null,
     previewTimer: null,
@@ -266,6 +270,9 @@
           return;
         }
         S.doc = d.doc;
+        S.variant = d.reportVariant === 'complete' ? 'complete' : 'graded';
+        var titleEl = el.querySelector('.bbge-title');
+        if (titleEl) titleEl.textContent = S.variant === 'complete' ? 'Health Map 360 report' : 'Health Map report';
         S.edited = !!d.edited;
         S.updatedAt = d.updatedAt || null;
         S.updatedBy = d.updatedBy || '';
@@ -322,6 +329,25 @@
       return;
     }
     if (act === 'itemshow') { flipItemShow(i, j, k); return; }
+    if (act === 'additem') {
+      var ls = S.doc.sections[i];
+      if (ls && ls.type === 'list') {
+        ls.items = ls.items || [];
+        ls.items.push({ id: uid('st'), show: true, text: '', requiresProfessional: false });
+        markDirty(); renderAll(true);
+      }
+      return;
+    }
+    if (act === 'sign') {
+      var sg = S.doc.sections[i];
+      if (sg && sg.type === 'signoff') {
+        if (!sg.signed && !window.confirm('Sign this report as ' + (sg.doctorName || 'the doctor') +
+          '? Only tick this once the doctor has read and approved every page. Their name, registration number and signature will be printed.')) return;
+        sg.signed = !sg.signed;
+        markDirty(); renderAll(true);
+      }
+      return;
+    }
   }
 
   function onInput(e) {
@@ -372,6 +398,10 @@
       toast('The disclaimer has to stay on every report.', 'error');
       return;
     }
+    if (s.type === 'signoff') {
+      toast('The sign-off prints only when it is ticked. Untick it to remove the doctor from the report.', 'error');
+      return;
+    }
     s.show = !s.show;
     markDirty();
     renderAll(true);
@@ -395,6 +425,7 @@
     else if (s.type === 'list') item = s.items[j];
     else if (s.type === 'healthmap') item = s.areas[j];
     else if (s.type === 'progress') item = s.groups[j] && s.groups[j].items[k];
+    else if (s.type === 'insights') item = s.rows[j];
     if (!item) return;
     item.show = item.show === false;
     markDirty();
@@ -469,7 +500,9 @@
         '<span class="bbge-sec-type">' + esc(TYPE_LABEL[s.type] || s.type) + '</span>' +
         '<span class="bbge-sec-title">' + esc(s.title || defaultLabel(s)) + '</span>' +
         '<span class="bbge-spacer"></span>' +
-        (s.type === 'disclaimer'
+        (s.type === 'signoff'
+          ? '<span class="bbge-lock" title="Prints only when signed">' + (s.signed ? 'signed' : 'not signed') + '</span>'
+          : s.type === 'disclaimer'
           ? '<span class="bbge-lock" title="Always printed">locked</span>'
           : '<button type="button" class="bbge-eye" data-act="show" data-i="' + i + '" title="' + (off ? 'Show' : 'Hide') + '">' +
             (off ? '&#128065;&#8725;' : '&#128065;') + '</button>') +
@@ -482,6 +515,19 @@
     if (!isOpen) return '<div class="bbge-sec' + (off ? ' is-off' : '') + '">' + head + '</div>';
 
     var body = '<div class="bbge-sec-body">';
+    if (s.type === 'signoff') {
+      body += '<div class="bbge-note">The doctor\'s details come from BloodMap staff page &rsaquo; Consultants and cannot be typed here. ' +
+          'They print, with the signature, only when the box below is ticked.</div>' +
+        locked('Doctor', s.doctorName || 'Not set up yet') +
+        locked('Qualification', s.qualification) +
+        locked('Registration number', s.regNo) +
+        (s.signed && s.signedBy ? locked('Signed', (s.signedAt ? String(s.signedAt).slice(0, 10) + ' by ' : '') + s.signedBy) : '') +
+        field('Statement printed beside the signature', 'sections.' + i + '.statement', s.statement, 2) +
+        '<button type="button" class="bbge-btn' + (s.signed ? '' : ' primary') + '" data-act="sign" data-i="' + i + '" style="margin-top:8px">' +
+          (s.signed ? 'Remove the doctor sign-off' : 'The doctor has reviewed and approved this report') + '</button>' +
+        (s.signed ? '' : '<div class="bbge-flag">Not signed: this report cannot be sent to the client, and its PDF is marked DRAFT.</div>');
+      return '<div class="bbge-sec is-open">' + head + body + '</div></div>';
+    }
     if (s.type !== 'disclaimer') {
       body += field('Heading', 'sections.' + i + '.title', s.title);
       if (s.type !== 'text' || s.variant !== 'lead') {
@@ -567,6 +613,21 @@
         return '<div class="bbge-card' + (it.show === false ? ' is-off' : '') + '">' +
           itemToggle(i, j, null, it.show, 'Step ' + (j + 1), '') +
           field('Text', 'sections.' + i + '.items.' + j + '.text', it.text, 3) +
+          '</div>';
+      }).join('') +
+        '<button type="button" class="bbge-btn" data-act="additem" data-i="' + i + '" style="margin-top:8px">+ Add a line</button>';
+    }
+
+    if (s.type === 'insights') {
+      body += (s.rows || []).map(function (r, j) {
+        return '<div class="bbge-card' + (r.show === false ? ' is-off' : '') + '">' +
+          itemToggle(i, j, null, r.show, r.label, esc(r.status)) +
+          field('Title', 'sections.' + i + '.rows.' + j + '.label', r.label) +
+          (r.result ? locked('Calculated value', r.result + (r.range ? '  (' + r.range + ')' : '')) : '') +
+          (r.basis ? locked('Worked out from', r.basis) : '') +
+          field('Label on the right', 'sections.' + i + '.rows.' + j + '.status', r.status) +
+          field('What it means', 'sections.' + i + '.rows.' + j + '.note', r.note, 3) +
+          (s.variant === 'patterns' ? field('What to do', 'sections.' + i + '.rows.' + j + '.action', r.action, 2) : '') +
           '</div>';
       }).join('');
     }
@@ -757,6 +818,32 @@
     if (s.type === 'disclaimer') {
       return '<section class="bbgp-s"><div class="bbgp-disc"><b>' + p(s.title) + '</b><p>' + p(s.body) + '</p></div></section>';
     }
+
+    if (s.type === 'insights') {
+      var rows = (s.rows || []).filter(function (x) { return x.show !== false; });
+      if (!rows.length) return '';
+      return '<section class="bbgp-s' + brk + '">' + head(s) + rows.map(function (x) {
+        var tone = x.level === 2 ? 'review' : x.level === 1 ? 'attention' : 'neutral';
+        return '<div class="bbgp-call bbgp-call-' + tone + '" style="margin-bottom:10px">' +
+          '<h3 style="display:flex;justify-content:space-between;gap:12px"><span>' + p(x.label) + '</span>' +
+            '<span style="font-size:11px;white-space:nowrap">' + p(x.status) + '</span></h3>' +
+          (x.result ? '<p><b style="font-size:16px">' + p(x.result) + '</b> <span class="bbgp-muted">' + p(x.range) + '</span></p>' : '') +
+          (x.basis ? '<p class="bbgp-muted" style="font-size:11px">' + p(x.basis) + '</p>' : '') +
+          (x.note ? '<p>' + p(x.note) + '</p>' : '') +
+          (x.action ? '<p><i style="font-size:10px;letter-spacing:.06em">WHAT TO DO</i><br>' + p(x.action) + '</p>' : '') +
+          '</div>';
+      }).join('') + '</section>';
+    }
+
+    if (s.type === 'signoff') {
+      if (!s.signed || !s.doctorName) return '';
+      return '<section class="bbgp-s"><div class="bbgp-call bbgp-call-gold">' +
+        '<h3>' + p(s.doctorName) + '</h3>' +
+        '<p class="bbgp-muted">' + p(s.qualification) + (s.regNo ? '<br>Reg. no. ' + p(s.regNo) : '') + '</p>' +
+        '<p><i style="font-size:10px;letter-spacing:.06em">REVIEWED AND SIGNED</i><br>' + p(s.statement) + '</p>' +
+        '<p class="bbgp-muted" style="font-size:11px">The signature image is added when the PDF is made.</p>' +
+        '</div></section>';
+    }
     return '';
   }
 
@@ -820,7 +907,8 @@
   function downloadPdf() {
     var go = function () {
       if (typeof bbAuthedDownload === 'function') {
-        bbAuthedDownload('/api/blood/pdf/' + encodeURIComponent(S.id), 'BodyBank_Health_Map_Report.pdf');
+        bbAuthedDownload('/api/blood/pdf/' + encodeURIComponent(S.id),
+          S.variant === 'complete' ? 'BodyBank_Health_Map_360_Report.pdf' : 'BodyBank_Health_Map_Report.pdf');
       }
     };
     if (S.dirty) save(go); else go();

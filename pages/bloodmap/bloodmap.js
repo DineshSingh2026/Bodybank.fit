@@ -512,6 +512,18 @@
     });
   }
 
+  function sel(id, opts) {
+    return '<select id="' + id + '">' + opts.map(function (o) { return '<option value="' + esc(o[0]) + '">' + esc(o[1]) + '</option>'; }).join('') + '</select>';
+  }
+  function chips(name, opts) {
+    return '<div class="chips">' + opts.map(function (o) {
+      return '<label class="chip"><input type="checkbox" name="' + name + '" value="' + esc(o[0]) + '"><span>' + esc(o[1]) + '</span></label>';
+    }).join('') + '</div>';
+  }
+  function checked(name) {
+    return Array.prototype.map.call(document.querySelectorAll('input[name="' + name + '"]:checked'), function (x) { return x.value; });
+  }
+
   function renderUpload(note) {
     var v = state.view;
     var el = $('dMain');
@@ -529,6 +541,25 @@
       '<div class="field"><label for="uGoal">Your main goal <span class="opt">(optional)</span></label><input id="uGoal" maxlength="200" placeholder="For example: lose fat, more energy, manage cholesterol"></div>' +
       '<div class="field"><label for="uMeds">Medicines or supplements you take <span class="opt">(optional)</span></label><textarea id="uMeds" maxlength="400" placeholder="Name and dose, if you know it"></textarea></div>' +
       '<div class="field"><label for="uCond">Known health conditions <span class="opt">(optional)</span></label><textarea id="uCond" maxlength="400" placeholder="For example: thyroid, diabetes, PCOS, high BP"></textarea></div>' +
+      '<div class="about">' +
+      '<p class="about-h">A little about you</p>' +
+      '<p class="small mute" style="margin:0 0 14px">Optional, and it takes a minute. Your doctor and nutritionist read your results against these answers, so the report is about you and not just the numbers.</p>' +
+      '<div class="field"><label for="uFast">Was the blood taken fasting?</label>' + sel('uFast', [['', 'Select'], ['yes', 'Yes, nothing to eat for 8 hours or more'], ['no', 'No, I had eaten'], ['unsure', 'Not sure']]) + '</div>' +
+      '<div class="row2">' +
+        '<div class="field"><label for="uHt">Height (cm)</label><input id="uHt" type="number" inputmode="numeric" min="120" max="230"></div>' +
+        '<div class="field"><label for="uWt">Weight (kg)</label><input id="uWt" type="number" inputmode="decimal" min="30" max="250" step="0.1"></div>' +
+      '</div>' +
+      '<div class="row2">' +
+        '<div class="field"><label for="uDiet">What you eat</label>' + sel('uDiet', [['', 'Select'], ['veg', 'Vegetarian'], ['egg', 'Vegetarian with eggs'], ['nonveg', 'Non-vegetarian'], ['vegan', 'Vegan']]) + '</div>' +
+        '<div class="field"><label for="uAct">How active you are</label>' + sel('uAct', [['', 'Select'], ['sedentary', 'Mostly sitting'], ['light', 'Light, 1 to 2 days a week'], ['moderate', 'Exercise 3 to 4 days a week'], ['active', 'Exercise 5 or more days a week'], ['athlete', 'Competitive or twice-a-day training']]) + '</div>' +
+      '</div>' +
+      '<div class="row2">' +
+        '<div class="field"><label for="uAlc">Alcohol</label>' + sel('uAlc', [['', 'Select'], ['never', 'None'], ['occasional', 'Occasionally'], ['weekly', 'Most weeks'], ['daily', 'Most days']]) + '</div>' +
+        '<div class="field"><label for="uSmk">Smoking</label>' + sel('uSmk', [['', 'Select'], ['never', 'Never'], ['former', 'I have stopped'], ['current', 'Yes']]) + '</div>' +
+      '</div>' +
+      '<div class="field"><span class="label">Does any of this run in your family?</span>' + chips('uFam', [['diabetes', 'Diabetes'], ['heart', 'Heart disease or stroke'], ['bp', 'High blood pressure'], ['cholesterol', 'High cholesterol'], ['thyroid', 'Thyroid disease'], ['kidney', 'Kidney disease']]) + '</div>' +
+      '<div class="field"><span class="label">Anything bothering you lately?</span>' + chips('uSym', [['fatigue', 'Tiredness'], ['hairfall', 'Hair fall'], ['sleep', 'Poor sleep'], ['weight', 'Hard to lose weight'], ['digestion', 'Digestion'], ['joints', 'Joint or muscle pain'], ['mood', 'Low mood or anxiety'], ['illness', 'Falling ill often']]) + '</div>' +
+      '</div>' +
       '<p class="msg" id="uMsg" hidden></p>' +
       '<button class="btn btn--gold btn--block" type="button" id="uSend">Upload and start analysis</button>' +
       '<p class="secure">Your report is only seen by our review team and the experts on your calls.</p>';
@@ -567,7 +598,10 @@
         return fileToBase64(f).then(function (b64) { return { base64: b64, mime: f.type }; });
       })).then(function (files) {
         return api('POST', orderUrl('/upload'), {
-          files: files, reportDate: $('uDate').value, goal: $('uGoal').value, medicines: $('uMeds').value, conditions: $('uCond').value
+          files: files, reportDate: $('uDate').value, goal: $('uGoal').value, medicines: $('uMeds').value, conditions: $('uCond').value,
+          fasting: $('uFast').value, heightCm: $('uHt').value, weightKg: $('uWt').value, diet: $('uDiet').value,
+          activity: $('uAct').value, alcohol: $('uAlc').value, smoking: $('uSmk').value,
+          familyHistory: checked('uFam'), symptoms: checked('uSym')
         });
       }).then(function (r) {
         if (r.data.error) {
