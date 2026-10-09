@@ -36,9 +36,25 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
+**HELD RELEASE, prepared 2026-10-09 — Android 1.8.4 / versionCode 113, iOS 1.0.8. Not uploaded to
+either store.** Web `82e8382` → mobile `06c12db`, committed locally in `../bodybank-app` and **not
+pushed**. `www/` synced, iOS store-refs strip clean, release AAB built and checked (jar verified,
+merged manifest 113 / 1.8.4) at `android/app/build/outputs/bundle/release/app-release.aab`. Live in
+the stores is still 1.8.3 / 112 and iOS 1.0.7 (mobile `7e3cb30`, web `385be9a`).
+
+To release: re-run `npm run sync` if the website changed again, then Android = upload the AAB to
+Play; iOS = push the mobile repo and start `ios-appstore` in Codemagic by hand. Before uploading,
+check in Play Console that versionCode 113 is unused (a 113 AAB was also built on 2026-10-01).
+Decide first whether `www/privacy.html` naming Razorpay as the website payment processor is
+acceptable inside the apps.
+
 | Web commit | Change | Notes |
 | ---------- | ------ | ----- |
-| _(voice-note fix)_ | fix(messages): chat voice notes play in the iOS/Android apps | Broken since Android 1.8.2 / iOS 1.0.6: the inline player is a detached `new Audio()`, which the app shim's DOM observer never sees, so `/api/groups/attachments/…` resolved to `https://localhost`. `public/js/group-chat.js` now prefixes `window.API_BASE`; mobile `src-web/bb-app-config.js` also patches `HTMLMediaElement.src` + `Audio()`. The backend hotfix (`routes/groupChat.js` returns absolute attachment URLs to app origins) already fixes installed builds once Render deploys. |
+| `f1f4e44` | feat(mind): guided breathing player; two more Tribe Elite features | `index.html`, `css/member-screens.css`, `js/bb-plans.js`. |
+| `94765dd` | feat(reports): Health Map 360 report template with a doctor sign-off | Staff side: `js/graded-report-editor.js`, `index.html`. |
+| `798c813` … `825c04b` | Terms, Refund and Privacy pages | `terms.html` + `refund.html` are new in the bundle; `privacy.html` updated; expired-member redirect in `signin.html` is web-only. The pricing and BloodMap pages are not bundled. |
+| — | `bodybank-3d-preview.html` removed; `sw.js` cache bump; `operator-console.js` one-line change | |
+| `9e69dcb` | fix(messages): chat voice notes play in the iOS/Android apps | Broken since Android 1.8.2 / iOS 1.0.6: the inline player is a detached `new Audio()`, which the app shim's DOM observer never sees, so `/api/groups/attachments/…` resolved to `https://localhost`. `public/js/group-chat.js` now prefixes `window.API_BASE`; mobile `src-web/bb-app-config.js` also patches `HTMLMediaElement.src` + `Audio()`. The backend hotfix (`routes/groupChat.js` returns absolute attachment URLs to app origins) already fixes installed builds once Render deploys. |
 
 ---
 
