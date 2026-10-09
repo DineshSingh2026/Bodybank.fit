@@ -69,7 +69,7 @@ const cat = plans.publicCatalog();
 eq(cat.map((c) => c.tier).join(','), 'core,guided,tribe_elite', 'catalog order');
 eq(cat[0].prices.map((p) => p.amount).join(','), '350,3499', 'Core prices (monthly, annual)');
 eq(cat[1].prices.map((p) => p.amount).join(','), '2999,9999', 'Guided prices');
-eq(cat[2].prices.map((p) => p.amount).join(','), '25000,75000', 'Tribe Elite prices (monthly, 4 months)');
+eq(cat[2].prices.map((p) => p.amount).join(','), '25000,72000', 'Tribe Elite prices (monthly, 4 months)');
 assert(cat.every((c) => c.features.length > 0), 'every plan lists what it adds');
 assert(!/scor/i.test(JSON.stringify(cat)), 'no member-facing "score" wording in the catalog (meal score was removed)');
 

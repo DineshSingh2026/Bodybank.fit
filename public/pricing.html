@@ -143,6 +143,21 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .pr-mine{font-family:'Outfit',sans-serif;font-size:10.5px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:#8fc7b0;background:rgba(143,199,176,.12);border-radius:999px;padding:4px 10px}
 .pr-tagline{font-size:15px;color:var(--creamd);margin:10px 0 22px;min-height:48px;text-wrap:pretty}
 
+/* Each plan has its own accent: Core is steel (the foundation), Guided is
+   royal violet, Tribe Elite is the brand gold. Everything coloured inside a card
+   reads from these, so a card never mixes two accents. */
+.pr-card{--acc:200,164,78;--acc-c:#d0b058;--acc-g:var(--goldg);border-color:rgba(var(--acc),.26);background:linear-gradient(180deg,rgba(var(--acc),.07),rgba(var(--acc),0) 38%),#0c0b0a}
+.pr-card[data-card="core"]{--acc:150,180,206;--acc-c:#a9c3d9;--acc-g:linear-gradient(135deg,#c6d8e7 0%,#a5bdd2 50%,#7e9ab3 100%)}
+.pr-card[data-card="guided"]{--acc:176,150,240;--acc-c:#bba6f3;--acc-g:linear-gradient(135deg,#cfbdfb 0%,#b097ef 50%,#8b70d8 100%)}
+.pr-card--hl{border-color:rgba(var(--acc),.6);background:linear-gradient(180deg,rgba(var(--acc),.10),rgba(var(--acc),0) 38%),#0c0b0a}
+.pr-card .pr-badge,.pr-card .pr-pay,.pr-card .pr-btn--primary,.pr-card .pr-btn--primary:hover{background:var(--acc-g)}
+.pr-card .pr-name{color:var(--acc-c)}
+.pr-card .pr-seg-btn[aria-checked="true"]{box-shadow:inset 0 0 0 1px rgba(var(--acc),.6)}
+.pr-card .pr-list li::before{border-color:var(--acc-c)}
+.pr-card .pr-note{color:var(--acc-c)}
+.pr-table thead th[data-tier="core"] .pr-t-name{color:#a9c3d9}
+.pr-table thead th[data-tier="tribe_elite"] .pr-t-name{color:#d0b058}
+
 /* Billing switch */
 .pr-seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;padding:4px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:14px}
 .pr-seg-btn{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;min-height:54px;padding:6px 8px;border:none;border-radius:10px;background:transparent;color:var(--creamd);font-family:'Outfit',sans-serif;font-size:14.5px;font-weight:600;cursor:pointer;transition:background .2s,color .2s}
@@ -196,15 +211,50 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 .pr-fine{max-width:1180px;margin:14px auto 0;padding:0 24px 44px;text-align:center;font-size:13px;color:#7d786e}
 
 .pr-h2{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:clamp(30px,4vw,40px);letter-spacing:1.2px;color:var(--cream);text-align:center;margin-bottom:22px}
-.pr-compare{max-width:960px;margin:0 auto;padding:24px 24px 56px}
-.pr-table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border:1px solid rgba(255,255,255,.08);border-radius:14px}
-.pr-table{width:100%;min-width:520px;border-collapse:collapse;font-size:14.5px}
-.pr-table th,.pr-table td{padding:12px 14px;text-align:center;border-bottom:1px solid rgba(255,255,255,.06)}
-.pr-table th:first-child,.pr-table td:first-child{text-align:left;color:var(--cream);font-weight:400}
-.pr-table thead th{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);background:#0d0c0b}
-.pr-table tbody tr:last-child td,.pr-table tbody tr:last-child th{border-bottom:none}
-.pr-yes{color:var(--gold);font-weight:700}
-.pr-no{color:#4a4741}
+/* Compare plans. Only what a plan includes is marked (a green tick box); a cell
+   for something a plan does not have is simply left empty. */
+/* The shared sheets put overflow-x:hidden on body and main, which turns them
+   into scroll containers and stops the table header sticking to the viewport.
+   clip hides sideways overflow just the same without doing that. */
+body,main{overflow-x:clip !important;overflow-y:visible !important}
+.pr-compare{max-width:1000px;margin:0 auto;padding:24px 24px 56px}
+.pr-compare .pr-h2{margin-bottom:8px}
+.pr-compare-sub{text-align:center;color:var(--creamd);font-size:15.5px;margin-bottom:26px}
+.pr-table-wrap{border:1px solid rgba(255,255,255,.09);border-radius:20px;background:#0b0a09;overflow:clip;box-shadow:0 30px 70px -40px rgba(0,0,0,.9)}
+.pr-table{width:100%;table-layout:fixed;border-collapse:separate;border-spacing:0;font-size:15.5px}
+.pr-table col.pr-c-plan{width:150px}
+.pr-table th,.pr-table td{padding:15px 14px;text-align:center;vertical-align:middle;border-bottom:1px solid rgba(255,255,255,.055)}
+.pr-table th:first-child{text-align:left;padding-left:24px;color:var(--cream);font-weight:400;line-height:1.4}
+.pr-table thead th{position:sticky;top:69px;z-index:5;padding-top:20px;padding-bottom:18px;background:#100f0d;border-bottom:1px solid rgba(255,255,255,.1)}
+.pr-table thead th:first-child{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#8a857a}
+.pr-t-name{display:block;font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:24px;letter-spacing:1.2px;line-height:1.05;color:var(--cream)}
+.pr-t-price{display:block;margin-top:6px;font-size:13px;font-weight:500;color:var(--creamd);font-variant-numeric:tabular-nums}
+.pr-t-price i{font-style:normal;color:#8a857a}
+.pr-table .pr-col-hl{background:rgba(176,150,240,.07);box-shadow:inset 1px 0 rgba(176,150,240,.3),inset -1px 0 rgba(176,150,240,.3)}
+.pr-table thead .pr-col-hl{background:#16131f;box-shadow:inset 1px 0 rgba(176,150,240,.3),inset -1px 0 rgba(176,150,240,.3),inset 0 2px #b097ef}
+.pr-table thead .pr-col-hl .pr-t-name{color:#bba6f3}
+.pr-table tbody tr:not(.pr-grp):hover th,.pr-table tbody tr:not(.pr-grp):hover td{background-color:rgba(255,255,255,.035)}
+.pr-table tbody tr:not(.pr-grp):hover .pr-col-hl{background-color:rgba(176,150,240,.11)}
+.pr-grp th{padding-top:22px;padding-bottom:10px;font-size:11.5px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--gold);background:rgba(255,255,255,.025)}
+.pr-grp th:first-child{color:var(--gold);font-weight:700}
+.pr-yes{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:7px;background:#1f9d5c;box-shadow:inset 0 1px 0 rgba(255,255,255,.18);vertical-align:middle}
+.pr-yes::before{content:"";width:11px;height:6px;margin-top:-3px;border-left:2.25px solid #fff;border-bottom:2.25px solid #fff;transform:rotate(-45deg)}
+.pr-sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.pr-table tbody tr:last-child th,.pr-table tbody tr:last-child td{border-bottom:none}
+@media(max-width:700px){
+  .pr-table{font-size:14.5px}
+  .pr-table col.pr-c-plan{width:66px}
+  .pr-table th,.pr-table td{padding:13px 4px}
+  .pr-table th:first-child{padding-left:14px;padding-right:6px}
+  .pr-table thead th{top:67px;padding-top:14px;padding-bottom:12px}
+  .pr-table thead th:first-child{font-size:10.5px;letter-spacing:.1em}
+  .pr-t-name{font-size:17px;letter-spacing:.8px}
+  .pr-t-price{font-size:11px;margin-top:4px}
+  .pr-t-price i{display:block}
+  .pr-grp th{font-size:10.5px;letter-spacing:.12em;padding-top:18px}
+  .pr-yes{width:24px;height:24px;border-radius:6px}
+  .pr-yes::before{width:10px;height:5px;border-width:2px}
+}
 .pr-faq{max-width:760px;margin:0 auto;padding:24px 24px 56px}
 .pr-faq details{border-bottom:1px solid rgba(255,255,255,.08);padding:4px 0}
 .pr-faq summary{cursor:pointer;list-style:none;padding:14px 28px 14px 0;font-size:16.5px;font-weight:500;color:var(--cream);position:relative}
@@ -294,9 +344,11 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 
 <section class="pr-compare" aria-labelledby="prCompareTitle">
   <h2 class="pr-h2" id="prCompareTitle">Compare plans</h2>
+  <p class="pr-compare-sub">Every plan builds on the one before it.</p>
   <div class="pr-table-wrap">
     <table class="pr-table" id="prTable">
-      <thead><tr><th scope="col">What you get</th><th scope="col">Core</th><th scope="col">Guided</th><th scope="col">Tribe Elite</th></tr></thead>
+      <colgroup><col><col class="pr-c-plan"><col class="pr-c-plan"><col class="pr-c-plan"></colgroup>
+      <thead><tr><th scope="col">What you get</th><th scope="col"><span class="pr-t-name">Core</span></th><th scope="col"><span class="pr-t-name">Guided</span></th><th scope="col"><span class="pr-t-name">Tribe Elite</span></th></tr></thead>
       <tbody></tbody>
     </table>
   </div>
@@ -685,7 +737,7 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
       if (!ctx.member) alt.push(talk);
     }
     return '<article class="pr-card' + (pl.highlight ? ' pr-card--hl' : '') + '" data-card="' + esc(pl.tier) + '" aria-labelledby="prName-' + esc(pl.tier) + '">' +
-      (pl.highlight ? '<span class="pr-badge">' + esc(pl.highlight) + '</span>' : '') +
+      (pl.badge ? '<span class="pr-badge">' + esc(pl.badge) + '</span>' : '') +
       '<h2 class="pr-name" id="prName-' + esc(pl.tier) + '">' + esc(pl.name) + (mine ? '<span class="pr-mine">Your plan</span>' : '') + '</h2>' +
       '<p class="pr-tagline">' + esc(pl.tagline) + '</p>' +
       segHtml(pl, cur) +
@@ -766,18 +818,29 @@ nav{position:fixed;top:0;left:0;right:0;z-index:100;display:flex;align-items:cen
 
     renderMe();
 
-    // Comparison table: every feature, ticked from the tier that first includes it.
-    var tb = document.querySelector('#prTable tbody');
-    if (tb) {
+    // Comparison table: features grouped by the tier that first includes them,
+    // ticked from that tier up. A plan without a feature gets an empty cell.
+    var table = document.getElementById('prTable');
+    if (table) {
+      var hl = function (pl) { return pl.highlight ? ' class="pr-col-hl"' : ''; };
+      table.querySelector('thead').innerHTML = '<tr><th scope="col">What you get</th>' + plans.map(function (pl) {
+        var mo = (pl.prices || []).find(function (p) { return p.months === 1; });
+        return '<th scope="col" data-tier="' + esc(pl.tier) + '"' + hl(pl) + '><span class="pr-t-name">' + esc(pl.name) + '</span>' +
+          (mo ? '<span class="pr-t-price">' + inr(mo.amount) + '<i>/month</i></span>' : '') + '</th>';
+      }).join('') + '</tr>';
       var rows = [];
       plans.forEach(function (pl, i) {
-        (pl.features || []).forEach(function (f) {
-          rows.push('<tr><th scope="row">' + esc(f.label) + '</th>' + plans.map(function (_, j) {
-            return j >= i ? '<td><span class="pr-yes" aria-label="Included">✓</span></td>' : '<td><span class="pr-no" aria-label="Not included">—</span></td>';
+        var feats = pl.features || [];
+        if (!feats.length) return;
+        var title = i === 0 ? 'In every plan' : i === plans.length - 1 ? 'Only in ' + pl.name : pl.name + ' and ' + plans[plans.length - 1].name;
+        rows.push('<tr class="pr-grp"><th scope="colgroup" colspan="' + (plans.length + 1) + '">' + esc(title) + '</th></tr>');
+        feats.forEach(function (f) {
+          rows.push('<tr><th scope="row">' + esc(f.label) + '</th>' + plans.map(function (p2, j) {
+            return '<td' + hl(p2) + '>' + (j >= i ? '<span class="pr-yes" role="img" aria-label="Included"></span>' : '<span class="pr-sr">Not included</span>') + '</td>';
           }).join('') + '</tr>');
         });
       });
-      tb.innerHTML = rows.join('');
+      table.querySelector('tbody').innerHTML = rows.join('');
     }
   }
 

@@ -53,6 +53,7 @@ const PLAN_CATALOG = {
     tier: 'core',
     name: 'Core',
     tagline: 'The full BodyBank app, on your own.',
+    badge: 'Best to start',
     prices: [
       { term: '1m', months: 1, label: 'Monthly', amount: 350 },
       { term: '12m', months: 12, label: 'Annual', amount: 3499, compare_at: 5999 }
@@ -72,9 +73,10 @@ const PLAN_CATALOG = {
     tier: 'tribe_elite',
     name: 'Tribe Elite',
     tagline: 'Everything, plus complete lifestyle management.',
+    badge: 'Maximum results',
     prices: [
       { term: '1m', months: 1, label: 'Monthly', amount: 25000 },
-      { term: '4m', months: 4, label: '4 months', amount: 75000 }
+      { term: '4m', months: 4, label: '4 months', amount: 72000 }
     ]
   }
 };
@@ -153,7 +155,10 @@ function publicCatalog() {
       tier: t,
       name: p.name,
       tagline: p.tagline,
+      // highlight marks the one featured plan (gold card); badge is the pill
+      // every card carries, and defaults to the highlight text.
       highlight: p.highlight || null,
+      badge: p.badge || p.highlight || null,
       prices: p.prices.filter((x) => !x.hidden).map((x) => Object.assign({}, x)),
       features: Object.keys(FEATURES)
         .filter((f) => FEATURES[f].tier === t)
