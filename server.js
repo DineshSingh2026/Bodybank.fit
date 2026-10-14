@@ -179,6 +179,19 @@ function fcmMessage(token, title, body, data) {
   return msg;
 }
 
+// Plain-language cause for an FCM failure, so a silent platform shows up in the
+// logs and in /api/push/status instead of only "Send failed".
+function fcmErrorHint(code, platform) {
+  if (code === 'messaging/third-party-auth-error' || code === 'messaging/invalid-apns-credentials') {
+    return platform === 'ios'
+      ? 'Apple refused the send: the APNs auth key (.p8) is missing or invalid in Firebase (Project settings > Cloud Messaging > Apple app configuration).'
+      : 'The push service refused the credentials.';
+  }
+  if (code === 'messaging/mismatched-credential') return 'This device token belongs to a different Firebase project than FIREBASE_SERVICE_ACCOUNT.';
+  if (code === 'messaging/registration-token-not-registered' || code === 'messaging/invalid-registration-token') return 'The device token is no longer valid; the app registers a fresh one on next open.';
+  return '';
+}
+
 // Native push via Firebase Cloud Messaging — for installed Android/iOS apps.
 // Accepts the SAME payload shape as web-push (a JSON string or object with
 // { title, body, icon, id, type, url }) so every existing call site works unchanged.
@@ -189,7 +202,7 @@ async function sendFcmToUser(userId, payload) {
   const title = String(data.title || 'BodyBank').slice(0, 120);
   const body = String(data.body || data.desc || 'You have a new notification').slice(0, 240);
   try {
-    const rows = await queryAll('SELECT token FROM device_push_tokens WHERE user_id = ?', [userId]);
+    const rows = await queryAll('SELECT token, platform FROM device_push_tokens WHERE user_id = ?', [userId]);
     if (!rows || rows.length === 0) return;
     const sent = new Set();
     const unique = rows.filter(r => r.token && !sent.has(r.token) && sent.add(r.token));
@@ -197,18 +210,24 @@ async function sendFcmToUser(userId, payload) {
     // stale-token cleanup — sequential `await` here only delayed delivery to a
     // user's other devices.
     await Promise.all(unique.map(async (r) => {
+      const platform = r.platform || 'unknown';
       try {
         await firebaseAdmin.messaging().send(fcmMessage(r.token, title, body, data));
+        await run('UPDATE device_push_tokens SET last_ok_at = CURRENT_TIMESTAMP, last_error = NULL WHERE token = ?', [r.token]).catch(() => {});
       } catch (e) {
         const code = (e && (e.code || (e.errorInfo && e.errorInfo.code))) || '';
+        const hint = fcmErrorHint(code, platform);
         // Only a token FCM says is dead is removed. 'invalid-argument' is also what a
         // bad payload returns, and deleting a good token for that silenced the device.
         if (code === 'messaging/registration-token-not-registered' ||
             code === 'messaging/invalid-registration-token') {
           await run('DELETE FROM device_push_tokens WHERE token = ?', [r.token]);
-          console.warn('[FCM] Removed invalid token for user', userId);
+          console.warn('[FCM] Removed invalid', platform, 'token for user', userId);
         } else {
-          console.warn('[FCM] Send failed for user', userId, ':', e.message);
+          const detail = (code ? code + ': ' : '') + String((e && e.message) || '').slice(0, 300);
+          console.warn('[FCM] Send failed for user', userId, '(' + platform + ') ' + detail + (hint ? ' -> ' + hint : ''));
+          await run('UPDATE device_push_tokens SET last_error = ?, last_error_at = CURRENT_TIMESTAMP WHERE token = ?',
+            [(hint || detail).slice(0, 500), r.token]).catch(() => {});
         }
       }
     }));
@@ -1940,6 +1959,11 @@ async function initDB() {
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_device_push_tokens_user_id ON device_push_tokens(user_id)`); } catch (e) { /* ignore */ }
+  // Delivery health per device, so a platform that silently fails (iOS without an
+  // APNs key in Firebase) is visible in /api/push/status.
+  for (const col of ['last_ok_at TIMESTAMP', 'last_error TEXT', 'last_error_at TIMESTAMP']) {
+    try { await pool.query(`ALTER TABLE device_push_tokens ADD COLUMN IF NOT EXISTS ${col}`); } catch (e) { /* ignore */ }
+  }
 
   // Password reset tokens (users only, not admin/superadmin)
   await pool.query(`CREATE TABLE IF NOT EXISTS password_resets (
@@ -7342,12 +7366,21 @@ app.get('/api/push/vapid-public', (req, res) => {
 app.get('/api/push/status', verifyToken, async (req, res) => {
   try {
     const web = await queryOne('SELECT COUNT(*)::int AS n FROM push_subscriptions WHERE user_id = ?', [req.user.id]);
-    const devices = await queryAll('SELECT platform, COUNT(*)::int AS n FROM device_push_tokens WHERE user_id = ? GROUP BY platform', [req.user.id]);
+    const devices = await queryAll(
+      `SELECT platform, updated_at, last_ok_at, last_error, last_error_at
+         FROM device_push_tokens WHERE user_id = ? ORDER BY updated_at DESC`, [req.user.id]);
     const byPlatform = {};
-    (devices || []).forEach(d => { byPlatform[d.platform || 'unknown'] = d.n; });
+    (devices || []).forEach(d => { const p = d.platform || 'unknown'; byPlatform[p] = (byPlatform[p] || 0) + 1; });
     res.json({
       server: { webPush: !!(VAPID_PUBLIC && VAPID_PRIVATE), nativePush: _fcmReady },
-      mine: { browsers: (web && web.n) || 0, android: byPlatform.android || 0, ios: byPlatform.ios || 0 }
+      mine: { browsers: (web && web.n) || 0, android: byPlatform.android || 0, ios: byPlatform.ios || 0 },
+      // Last delivery result per registered phone (no tokens exposed).
+      devices: (devices || []).map(d => ({
+        platform: d.platform || 'unknown',
+        registered_at: d.updated_at,
+        last_ok_at: d.last_ok_at,
+        last_error: d.last_error && (!d.last_ok_at || new Date(d.last_error_at) > new Date(d.last_ok_at)) ? d.last_error : null
+      }))
     });
   } catch (e) {
     res.status(500).json({ error: 'Failed to read notification status' });
@@ -7362,7 +7395,19 @@ app.post('/api/push/test', verifyToken, rateLimiter(5, 60000), async (req, res) 
       body: 'This is a test. You will get alerts like this on this device.',
       type: 'test', inbox: false, tag: 'push-test'
     });
-    res.json({ ok: true });
+    // Report what each registered phone's send just did, so "nothing arrived"
+    // comes with a reason (e.g. iOS refused for a missing APNs key).
+    const devices = await queryAll(
+      'SELECT platform, last_ok_at, last_error, last_error_at FROM device_push_tokens WHERE user_id = ?', [req.user.id]);
+    res.json({
+      ok: true,
+      nativePush: _fcmReady,
+      devices: (devices || []).map(d => ({
+        platform: d.platform || 'unknown',
+        ok: !!d.last_ok_at && (!d.last_error_at || new Date(d.last_ok_at) >= new Date(d.last_error_at)),
+        error: d.last_error && (!d.last_ok_at || new Date(d.last_error_at) > new Date(d.last_ok_at)) ? d.last_error : null
+      }))
+    });
   } catch (e) {
     res.status(500).json({ error: 'Failed to send test notification' });
   }

@@ -13678,8 +13678,20 @@ async function registerNativePush() {
     try { FM.addListener('tokenReceived', function(ev) { sendToken(ev && ev.token); }); } catch (e) {}
     var perm = await FM.requestPermissions();
     if (!perm || perm.receive !== 'granted') { _nativePushRegistered = false; return; }
-    var res = await FM.getToken();
-    await sendToken(res && res.token);
+    // On iOS the FCM token only exists once Apple has issued the APNs token, which
+    // can land a few seconds after permission is granted ("No APNS token specified
+    // before fetching FCM Token"). Retry instead of giving up until the next login.
+    var waits = [0, 2000, 5000, 12000, 30000];
+    for (var i = 0; i < waits.length; i++) {
+      if (waits[i]) await new Promise(function (r) { setTimeout(r, waits[i]); });
+      try {
+        var res = await FM.getToken();
+        if (res && res.token) { await sendToken(res.token); return; }
+      } catch (err) {
+        if (i === waits.length - 1) throw err;
+      }
+    }
+    _nativePushRegistered = false;
   } catch (e) { _nativePushRegistered = false; }
 }
 

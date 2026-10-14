@@ -427,8 +427,17 @@
   }
 
   function test() {
-    return api('POST', '/api/push/test', {}).then(function () {
-      toast('Test sent', 'It should appear on this device within a few seconds.');
+    return api('POST', '/api/push/test', {}).then(function (res) {
+      // The server reports each registered phone's result; surface a refusal
+      // (e.g. iPhone without an APNs key in Firebase) instead of a silent no-show.
+      var failed = ((res && res.devices) || []).filter(function (d) { return d.error; });
+      if (failed.length) {
+        toast('Test not delivered to ' + failed.map(function (d) { return d.platform === 'ios' ? 'iPhone' : d.platform === 'android' ? 'Android' : 'a device'; }).join(', '),
+          failed[0].error);
+      } else {
+        toast('Test sent', 'It should appear on this device within a few seconds.');
+      }
+      refreshStatus();
     }).catch(function (e) { toast('Test failed', e && e.message); });
   }
 
