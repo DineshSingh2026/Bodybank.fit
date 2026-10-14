@@ -48,10 +48,12 @@ function reqBase(req) {
   return (process.env.PUBLIC_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
 }
 
+/** filename= gets an ASCII fallback; filename*= carries the exact UTF-8 name ("BodyBank - Performance Report - Ananya Rao.pdf"). */
 function pdfHeaders(res, name, inline) {
   res.set('Cache-Control', 'private, no-store');
   res.setHeader('Content-Type', 'application/pdf');
-  res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${name}"`);
+  const ascii = String(name).normalize('NFKD').replace(/[^\x20-\x7e]/g, '').replace(/["\\]/g, '') || 'BodyBank report.pdf';
+  res.setHeader('Content-Disposition', `${inline ? 'inline' : 'attachment'}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(name)}`);
 }
 
 function createSignatureReportsRouter(deps) {

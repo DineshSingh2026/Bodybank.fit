@@ -56,16 +56,22 @@ function periodLabel(type, start, end) {
   return `${a.getUTCDate()} ${MON[a.getUTCMonth()]}${sameYear ? '' : ' ' + a.getUTCFullYear()} – ${b.getUTCDate()} ${MON[b.getUTCMonth()]} ${b.getUTCFullYear()}`;
 }
 
-/** The period that follows this one: next Mon–Sun week, or next calendar month. */
-function nextPeriod(type, end) {
+/** The period that follows this one: the next block of the same length (2 weeks), or the next calendar month. */
+function nextPeriod(type, end, days) {
   const start = S.addDays(end, 1);
   if (type === 'monthly') {
     const y = Number(start.slice(0, 4)); const m = Number(start.slice(5, 7));
     const last = new Date(Date.UTC(y, m, 0)).getUTCDate();
     return { start, end: `${start.slice(0, 8)}${String(last).padStart(2, '0')}`, days: last - Number(start.slice(8, 10)) + 1 };
   }
-  return { start, end: S.addDays(start, 6), days: 7 };
+  const n = Math.max(1, days || 7);
+  return { start, end: S.addDays(start, n - 1), days: n };
 }
+
+/** Report names printed on the PDF, in emails and in file names. */
+const REPORT_NAMES = Object.freeze({ weekly: 'Performance Report', monthly: 'Transformation Report' });
+/** 'fortnight' for the 2-week Performance Report, 'week' for a legacy 7-day one, 'month' otherwise. */
+function periodWord(type, days) { return type === 'monthly' ? 'month' : (days > 7 ? 'fortnight' : 'week'); }
 
 // ---------------------------------------------------------------------------
 // Daily rows: one merged record per day, all sources
@@ -703,7 +709,7 @@ function reviewFlags(m, extras) {
   const s = m.score;
   if (s.totalDelta != null && s.totalDelta <= -8) f.push({ level: 'red', text: `Score fell ${Math.abs(s.totalDelta)} points. Consider a personal call before you send this.` });
   const active = s.pillars.consistency.metrics.activeDays;
-  const minActive = m.type === 'monthly' ? 8 : 3;
+  const minActive = m.type === 'monthly' ? 8 : Math.max(3, Math.round((m.period.days * 3) / 7));
   if (active < minActive) f.push({ level: 'red', text: `Only ${active} active ${active === 1 ? 'day' : 'days'} logged. The report will mostly show gaps — check in with the client first.` });
   if (m.blood && m.blood.flagged.length) f.push({ level: 'amber', text: `${m.blood.flagged.length + m.blood.flaggedMore} blood ${m.blood.flagged.length + m.blood.flaggedMore === 1 ? 'marker is' : 'markers are'} out of range. The report carries the "discuss with your doctor" line.` });
   const ex = extras || {};
@@ -737,8 +743,8 @@ function buildModel(bundle, extras, opts) {
   const type = bundle.type === 'monthly' ? 'monthly' : 'weekly';
   const score = S.scoreDataset(bundle.current, bundle.previous, bundle.previous2, type);
   const period = score.period;
-  const word = type === 'monthly' ? 'month' : 'week';
-  const next = nextPeriod(type, period.end);
+  const word = periodWord(type, period.days);
+  const next = nextPeriod(type, period.end, period.days);
 
   const rows = dailyRows(bundle, ex, period.start, period.end);
   const prevP = S.previousPeriod(period.start, period.end);
@@ -756,7 +762,8 @@ function buildModel(bundle, extras, opts) {
   const promise = promiseCheck(o.previous, score);
 
   const achievements = (() => {
-    try { return require('../reportService').deriveAchievements(bundle, score); } catch (_) { return []; }
+    // The shared achievement text says "this week"; a 2-week report says "this fortnight".
+    try { return require('../reportService').deriveAchievements(bundle, score).map((a) => Object.assign({}, a, { sub: String(a.sub || '').replace(/\bthis week\b/g, `this ${word}`) })); } catch (_) { return []; }
   })();
 
   const lastSunday = (ex.sunday || []).filter((s) => s.date && within(s.date, S.addDays(period.start, -1), S.addDays(period.end, 1)))[0] || null;
@@ -767,7 +774,8 @@ function buildModel(bundle, extras, opts) {
     version: 1,
     template: 'signature',
     type, word,
-    title: type === 'monthly' ? 'Monthly Signature Report' : 'Weekly Signature Report',
+    title: REPORT_NAMES[type],
+    reportName: REPORT_NAMES[type],
     period: { start: period.start, end: period.end, days: period.days, label: periodLabel(type, period.start, period.end) },
     next: { start: next.start, end: next.end, days: next.days, label: periodLabel(type, next.start, next.end) },
     client: {
@@ -871,6 +879,8 @@ module.exports = {
   patternEngine,
   dailyRows,
   nextPeriod,
+  periodWord,
+  REPORT_NAMES,
   periodLabel,
   weekScores,
   METRICS,

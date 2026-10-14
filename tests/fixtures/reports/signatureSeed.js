@@ -26,9 +26,24 @@ function mulberry32(seed) {
   };
 }
 
+/** Re-slices a seeded bundle onto another period (the Performance Report covers 14 days). */
+function reperiod(bundle, start, end) {
+  const t = bundle.targets;
+  const lastBefore = (rows, date, f) => { let o = null; for (const r of rows || []) { if (S.dayNum(r.date) >= S.dayNum(date)) break; if (r[f] != null) o = r; } return o; };
+  const slice = (s, e) => Object.assign({}, bundle.current, {
+    period: { start: s, end: e },
+    plannedWorkouts: Math.round((t.workoutsPerWeek * S.daysBetween(s, e)) / 7),
+    baselineWeight: lastBefore(bundle.current.weights, s, 'weightKg'),
+    baselineMeasurement: lastBefore(bundle.current.measurements, s, 'waistCm')
+  });
+  const prev = S.previousPeriod(start, end); const prev2 = S.previousPeriod(prev.start, prev.end);
+  return Object.assign({}, bundle, { current: slice(start, end), previous: slice(prev.start, prev.end), previous2: slice(prev2.start, prev2.end) });
+}
+
 function seedSignature(type, variant) {
   const v = variant || 'normal';
-  const bundle = seedBundle(type, v);
+  let bundle = seedBundle(type, v);
+  if (type !== 'monthly') bundle = reperiod(bundle, S.addDays(bundle.current.period.end, -13), bundle.current.period.end);
   if (v === 'empty') {
     return { bundle, extras: { moods: [], mindSessions: [], readiness: [], lifts: {}, memberSince: '2026-08-25', touchpoints: { coachMessages: 0, whatsapp: 0, calls: 0, sundayReviews: 0, bloodAnalysed: 0, reports: 0 }, sunday: [], planLabel: '' }, previous: null };
   }
@@ -77,7 +92,7 @@ function seedSignature(type, variant) {
   };
   const previous = type === 'monthly'
     ? { periodLabel: 'July 2026', targets: [{ metric: 'workouts', value: 15, label: 'Complete 15 planned workouts' }, { metric: 'protein', value: 20, label: 'Hit 150 g protein on 20 days' }, { metric: 'sleep', value: 18, label: 'Sleep 7 h or more on 18 nights' }] }
-    : { periodLabel: '24 – 30 Aug 2026', targets: [{ metric: 'workouts', value: 4, label: 'Complete 4 planned workouts' }, { metric: 'protein', value: 5, label: 'Hit 150 g protein on 5 days' }, { metric: 'sleep', value: 5, label: 'Sleep 7 h or more on 5 nights' }] };
+    : { periodLabel: '10 – 23 Aug 2026', targets: [{ metric: 'workouts', value: 7, label: 'Complete 7 planned workouts' }, { metric: 'protein', value: 9, label: 'Hit 150 g protein on 9 days' }, { metric: 'sleep', value: 9, label: 'Sleep 7 h or more on 9 nights' }] };
   if (v === 'extreme') {
     extras.planLabel = 'P'.repeat(90);
     extras.sunday = [{ date: end, achievements: ('Enormous ' + 'W'.repeat(60) + ' ').repeat(20), improve: 'I'.repeat(400), questions: 'Q'.repeat(500) }];

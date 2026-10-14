@@ -1,4 +1,4 @@
-/* BodyBank Signature reports — A4 print stylesheet.
+/* BodyBank Performance Report (2 weeks) + Transformation Report (monthly) — A4 print stylesheet.
    Printed by headless Chrome (services/reportPdf.js). Rules that matter:
    - every page is exactly one A4 sheet (.page) with one body (.pb) the fit pass checks;
    - NO glyph-swapping font features (font-feature-settings / tabular-nums): Chrome's
@@ -312,3 +312,10 @@ body { font-family: 'Inter', 'Helvetica Neue', Arial, sans-serif; color: var(--i
 .life .label { color: var(--gold-hi); flex: 0 0 auto; }
 .life div { color: var(--night-muted); font-size: 7.6pt; white-space: nowrap; }
 .life b { color: #fff; font-size: 13pt; font-weight: 700; margin-right: .8mm; }
+
+/* 14-column habit matrix (2-week Performance Report) */
+.mx--wide { border-spacing: .7mm; }
+.mx--wide th { font-size: 6.2pt; line-height: 1.15; }
+.mx--wide th.rl { width: 18mm; }
+.mx--wide td { height: 5.6mm; font-size: 6.4pt; padding: 0 .2mm; }
+.mx--wide td.rl { font-size: 7pt; }

@@ -38,7 +38,7 @@ function clip(s, max) { const t = str(s); return t.length > max ? t.slice(0, max
 /** Lower-cases a sentence's first letter for mid-sentence use — but never a day or month name. */
 function lowerFirst(s) {
   const t = String(s || '');
-  if (!t || /^(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day|^(January|February|March|April|May|June|July|August|September|October|November|December)|^BodyBank/.test(t)) return t;
+  if (!t || /^(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day|^(January|February|March|April|May|June|July|August|September|October|November|December)\b|^BodyBank/.test(t)) return t;
   return t.charAt(0).toLowerCase() + t.slice(1);
 }
 
@@ -89,7 +89,7 @@ function rulesNarrative(m) {
   headline = clip(headline, LIMITS.headline);
 
   const sentences = [];
-  if (d == null) sentences.push(`${first}, this is your first Signature report: a BodyBank Score of ${s.total} (${s.grade}).`);
+  if (d == null) sentences.push(`${first}, this is your first ${m.title}: a BodyBank Score of ${s.total} (${s.grade}).`);
   else if (d > 0) sentences.push(`${first}, you moved from ${s.previous.total} to ${s.total} this ${word}, and that is earned, not luck.`);
   else if (d < 0) sentences.push(`${first}, your score is ${s.total} this ${word}, ${Math.abs(d)} below last ${word}, and that is something we can fix together.`);
   else sentences.push(`${first}, you held ${s.total} this ${word} — steady is how lasting change looks.`);
@@ -115,7 +115,7 @@ function rulesNarrative(m) {
 function factsFor(m) {
   return {
     client_first_name: m.client.firstName,
-    report: m.type, period: m.period.label, next_period: m.next.label,
+    report: m.title, period_length: m.word, period: m.period.label, next_period: m.next.label,
     score: m.score.total, grade: m.score.grade, score_change: m.score.totalDelta,
     previous_score: m.score.previous ? m.score.previous.total : null,
     pillars: m.pillars.map((p) => ({ pillar: p.label, score: p.score, grade: p.grade, change: p.delta, counted: p.counted })),
@@ -159,7 +159,7 @@ async function callModel(facts, m, opts) {
   const monthly = m.type === 'monthly';
   const system = [
     SIGNATURE_VOICE,
-    `You are ${m.coachName}. This is a printed ${monthly ? 'monthly' : 'weekly'} report: sentence case, complete sentences.`,
+    `You are ${m.coachName}. This is the client's printed ${m.title} covering one ${m.word}: sentence case, complete sentences. Call the period "this ${m.word}", never "this week" unless it is a week.`,
     'Return JSON only, no markdown, exactly these keys:',
     monthly ? '{"headline":"...","letter":"...","chapter":"..."}' : '{"headline":"...","letter":"..."}',
     `headline: ONE sentence, at most ${LIMITS.headline} characters, the truest single thing about this ${m.word}. It sits under the score on the cover.`,

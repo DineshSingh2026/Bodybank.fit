@@ -58,7 +58,7 @@ function deltaTxt(d, word, unit) {
   return `<span class="delta ${cls}">${esc(sign(d, unit == null ? ' pts' : unit))}</span>`;
 }
 function prevName(m) {
-  if (m.type !== 'monthly') return 'last week';
+  if (m.type !== 'monthly') return 'last ' + m.word;
   const d = new Date(S.dayNum(m.period.start) * 86400000);
   return MON[(d.getUTCMonth() + 11) % 12];
 }
@@ -226,7 +226,7 @@ function promiseCard(m) {
   const pr = m.promise;
   if (!pr || !pr.items.length) {
     return `<div class="card"><div class="card-h"><div class="card-t">Promise check</div><div class="card-s">Starts next ${esc(m.word)}</div></div>
-      <p class="firstnote">This is your first Signature report, so this ${esc(m.word)} sets the baseline. Your three targets are on the last page. Next ${esc(m.word)}'s report opens by checking each one.</p></div>`;
+      <p class="firstnote">This is your first ${esc(m.reportName || m.title)}, so this ${esc(m.word)} sets the baseline. Your three targets are on the last page. Next ${esc(m.word)}'s report opens by checking each one.</p></div>`;
   }
   const rows = pr.items.map((i) => `<div class="pr-row">
       <span class="pr-label fit" data-fit>${esc(i.label)}</span>
@@ -271,7 +271,7 @@ function kpi(label, value, unit, sub) {
 function dayLabels(m, list) {
   return list.map((x) => {
     const d = new Date(S.dayNum(x.date) * 86400000);
-    return m.type === 'weekly' ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()] : String(d.getUTCDate());
+    return m.type === 'weekly' && list.length <= 7 ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][d.getUTCDay()] : String(d.getUTCDate());
   });
 }
 
@@ -432,13 +432,13 @@ function disclaimer(m) {
 function weeklyCover(m, narrative) {
   const a = assets(); const s = m.score;
   const d = s.totalDelta;
-  const pill = d == null ? '<span class="pill flat">Your first Signature score</span>'
-    : `<span class="pill ${d > 0 ? 'up' : d < 0 ? 'down' : 'flat'}">${esc(sign(d, ' pts'))} vs last week (${esc(s.previous.total)})</span>`;
+  const pill = d == null ? '<span class="pill flat">Your first BodyBank Score</span>'
+    : `<span class="pill ${d > 0 ? 'up' : d < 0 ? 'down' : 'flat'}">${esc(sign(d, ' pts'))} vs last ${esc(m.word)} (${esc(s.previous.total)})</span>`;
   const chips = [m.client.goalLabel && `Goal: ${m.client.goalLabel}`, m.client.planLabel, `${m.period.days} days`].filter(Boolean);
   const st = m.stats;
   return `<div class="hero">
-    <div class="hero-top"><div class="hero-brand">${a.logo ? `<img src="${a.logo}" alt="">` : ''}<div><div class="hero-word">BODYBANK</div><div class="hero-kind">Weekly Signature Report</div></div></div>
-      <div class="hero-period"><b class="fit" data-fit>${esc(m.period.label)}</b>Your week, decoded</div></div>
+    <div class="hero-top"><div class="hero-brand">${a.logo ? `<img src="${a.logo}" alt="">` : ''}<div><div class="hero-word">BODYBANK</div><div class="hero-kind">${esc(m.title)}</div></div></div>
+      <div class="hero-period"><b class="fit" data-fit>${esc(m.period.label)}</b>${m.period.days > 7 ? 'Your two weeks, decoded' : 'Your week, decoded'}</div></div>
     <div class="hero-main">
       <div class="hero-for">Prepared for</div>
       <div class="hero-name fit" data-fit>${esc(m.client.name)}</div>
@@ -459,21 +459,24 @@ function weeklyCover(m, narrative) {
 
 function matrixCard(m) {
   const cols = m.matrix;
+  // 14 columns (the 2-week report) need compact cells: units move into the row label.
+  const wide = cols.length > 7;
   const cell = (cls, txt) => `<td class="${cls}">${txt}</td>`;
   const row = (label, fn) => `<tr><td class="rl">${esc(label)}</td>${cols.map(fn).join('')}</tr>`;
-  const head = `<tr><th class="rl"></th>${cols.map((c) => `<th>${esc(c.dow)} ${esc(c.day)}</th>`).join('')}</tr>`;
+  const head = `<tr><th class="rl"></th>${cols.map((c) => (wide ? `<th>${esc(c.dow.slice(0, 1))}<br>${esc(c.day)}</th>` : `<th>${esc(c.dow)} ${esc(c.day)}</th>`)).join('')}</tr>`;
+  const u = (txt, unit) => (wide ? txt : txt + unit);
   const rows = [
-    row('Check-in', (c) => (c.checkin ? cell('ok', '✓') : (c.freeze ? cell('frz', 'Freeze') : cell('none', '—')))),
-    row('Meals', (c) => (c.meals >= 3 ? cell('ok', `${c.meals}`) : (c.meals > 0 ? cell('part', `${c.meals}`) : cell('none', '0')))),
-    row('Training', (c) => (c.workout ? cell('ok', esc(c.workout)) : cell('none', 'Rest'))),
-    row('Sleep', (c) => (c.sleepH == null ? cell('none', '—') : cell(c.sleepOk ? 'ok' : 'part', `${esc(fmt1(c.sleepH))} h`))),
-    row('Steps', (c) => (c.steps == null ? cell('none', '—') : cell(c.stepsOk ? 'ok' : 'part', `${esc(c.steps >= 1000 ? fmt1(c.steps / 1000) + 'k' : fmtInt(c.steps))}`))),
-    row('Water', (c) => (c.waterL == null ? cell('none', '—') : cell(c.waterOk ? 'ok' : 'part', `${esc(fmt1(c.waterL))} L`))),
-    row('Protein', (c) => (c.protein == null ? cell('none', '—') : cell(c.proteinOk === true ? 'ok' : (c.proteinOk === false ? 'part' : ''), `${esc(fmtInt(c.protein))} g`)))
+    row('Check-in', (c) => (c.checkin ? cell('ok', '✓') : (c.freeze ? cell('frz', wide ? 'F' : 'Freeze') : cell('none', '—')))),
+    row('Meals', (c) => (c.meals >= 3 ? cell('ok', String(c.meals)) : (c.meals > 0 ? cell('part', String(c.meals)) : cell('none', '0')))),
+    row('Training', (c) => (c.workout ? cell('ok', wide ? (c.workout === 'Yoga' ? 'Yoga' : '✓') : esc(c.workout)) : cell('none', wide ? '—' : 'Rest'))),
+    row(wide ? 'Sleep (h)' : 'Sleep', (c) => (c.sleepH == null ? cell('none', '—') : cell(c.sleepOk ? 'ok' : 'part', esc(u(fmt1(c.sleepH), ' h'))))),
+    row('Steps', (c) => (c.steps == null ? cell('none', '—') : cell(c.stepsOk ? 'ok' : 'part', esc(c.steps >= 1000 ? fmt1(c.steps / 1000) + 'k' : fmtInt(c.steps))))),
+    row(wide ? 'Water (L)' : 'Water', (c) => (c.waterL == null ? cell('none', '—') : cell(c.waterOk ? 'ok' : 'part', esc(u(fmt1(c.waterL), ' L'))))),
+    row(wide ? 'Protein (g)' : 'Protein', (c) => (c.protein == null ? cell('none', '—') : cell(c.proteinOk === true ? 'ok' : (c.proteinOk === false ? 'part' : ''), esc(u(fmtInt(c.protein), ' g')))))
   ];
-  if (cols.some((c) => c.mood != null)) rows.push(row('Mood', (c) => (c.mood == null ? cell('none', '—') : cell(c.mood >= 4 ? 'ok' : (c.mood <= 2 ? 'part' : ''), `${esc(c.mood)}/5`))));
-  return `<div class="card grow"><div class="card-h"><div class="card-t">Your week, day by day</div><div class="card-s">Every habit, every day</div></div>
-    <table class="mx">${head}${rows.join('')}</table>
+  if (cols.some((c) => c.mood != null)) rows.push(row(wide ? 'Mood (/5)' : 'Mood', (c) => (c.mood == null ? cell('none', '—') : cell(c.mood >= 4 ? 'ok' : (c.mood <= 2 ? 'part' : ''), esc(wide ? String(c.mood) : c.mood + '/5')))));
+  return `<div class="card grow"><div class="card-h"><div class="card-t">${wide ? 'Your two weeks, day by day' : 'Your week, day by day'}</div><div class="card-s">Every habit, every day${wide ? ' · ✓ trained, F streak freeze' : ''}</div></div>
+    <table class="mx${wide ? ' mx--wide' : ''}">${head}${rows.join('')}</table>
     <div class="mx-key"><span><i style="background:#e6f3ea"></i>On target</span><span><i style="background:#fbf0dc"></i>Logged, below target</span><span><i style="background:#efeadf"></i>Not logged</span></div></div>`;
 }
 
@@ -481,7 +484,7 @@ function renderWeekly(m, nar) {
   const total = 3;
   const p1 = page(m, 'cover', `${promiseCard(m)}${pillarsCard(m)}${matrixCard(m)}`, 1, total, { noHeader: true, before: weeklyCover(m, nar) });
   const p2 = page(m, 'drivers', `${sectionHead('02 · Drivers', 'What moved your score', `Score ${esc(m.score.total)} ${chip(m.score.grade)}`)}
-    ${patternsCard(m, 'The patterns behind your week')}
+    ${patternsCard(m, m.period.days > 7 ? 'The patterns behind your two weeks' : 'The patterns behind your week')}
     <div class="grid2">${trainingCard(m, 22)}${fuelCard(m, 22)}</div>
     <div class="grid2 grow">${recoveryCard(m, 22)}${bodyMindCard(m, 22)}</div>`, 2, total);
   const wl = winsAndLetter(m, nar, { maxWins: 4 });
@@ -496,7 +499,7 @@ function renderWeekly(m, nar) {
 function monthlyCover(m, nar) {
   const a = assets(); const s = m.score; const st = m.stats; const j = m.journey || {};
   const d = s.totalDelta;
-  const pill = d == null ? '<span class="pill flat">Your first Signature month</span>'
+  const pill = d == null ? '<span class="pill flat">Your first monthly score</span>'
     : `<span class="pill ${d > 0 ? 'up' : d < 0 ? 'down' : 'flat'}">${esc(sign(d, ' pts'))} vs last month (${esc(s.previous.total)})</span>`;
   const monthWord = m.period.label.split(' ')[0];
   const b = st.body;
@@ -506,7 +509,7 @@ function monthlyCover(m, nar) {
   return `<div class="mc"><div class="mc-glow"></div>
     <div class="mc-top"><div class="hero-brand">${a.logo ? `<img src="${a.logo}" alt="">` : ''}<div><div class="hero-word">BODYBANK</div><div class="hero-kind">Lifestyle performance coaching</div></div></div>
       <div class="hero-period"><b>Private &amp; confidential</b>Prepared by your coach</div></div>
-    <div class="mc-kind">Monthly Signature Report</div>
+    <div class="mc-kind">${esc(m.title)}</div>
     <div class="mc-month fit" data-fit>${esc(m.period.label)}</div>
     <div class="mc-chapter clamp2" data-fit-lines="2">${esc(nar.chapter || `Your ${monthWord}`)}</div>
     <div class="mc-name"><div class="hero-for">Prepared for</div><b class="fit" data-fit>${esc(m.client.name)}</b></div>

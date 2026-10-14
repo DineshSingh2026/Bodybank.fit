@@ -25,7 +25,20 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const reportData = require('../reportData');
-const { validatePeriod, periodLabel } = require('../reportService');
+const { validatePeriod: validatePeriodBase, periodLabel, defaultPeriod } = require('../reportService');
+const S = require('../reportScore');
+
+/**
+ * The Performance Report covers 14 days. With no dates given it is the last two
+ * completed Mon–Sun weeks; a monthly report keeps the last completed month.
+ */
+function validatePeriod(type, startDate, endDate) {
+  if ((!startDate || !endDate) && type !== 'monthly') {
+    const p = defaultPeriod('weekly');
+    return validatePeriodBase('weekly', S.addDays(p.start, -7), p.end);
+  }
+  return validatePeriodBase(type, startDate, endDate);
+}
 const { loadExtras } = require('./data');
 const M = require('./model');
 const N = require('./narrative');
@@ -94,9 +107,11 @@ function storageDir(uploadsDir) {
   return dir;
 }
 
+/** "BodyBank - Performance Report - Arjun Demo.pdf" (no template names, no dates). */
 function fileNameFor(row, name) {
-  const slug = String(name || 'client').normalize('NFKD').replace(/[^\w]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 40) || 'client';
-  return `BodyBank_${row.type === 'monthly' ? 'Monthly' : 'Weekly'}_Signature_${slug}_${ymd(row.period_start)}_${ymd(row.period_end)}.pdf`;
+  // eslint-disable-next-line no-control-regex
+  const client = String(name || '').replace(/[\\/:*?"<>|\u0000-\u001f]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60) || 'Client';
+  return `BodyBank - ${M.REPORT_NAMES[row.type === 'monthly' ? 'monthly' : 'weekly']} - ${client}.pdf`;
 }
 
 /** The report as it will print: snapshot + coach edits + re-planned targets. */
@@ -335,7 +350,8 @@ function createSignatureService(deps) {
     const link = await ensureShareLink(row);
     const url = `${baseUrl(reqBase)}/r/sig/${link.token}`;
     const eff = effective(row);
-    const kind = row.type === 'monthly' ? 'Monthly' : 'Weekly';
+    const reportName = M.REPORT_NAMES[row.type === 'monthly' ? 'monthly' : 'weekly'];
+    const word = eff.model.word;
     const periodTxt = eff.model.period.label;
     const first = String(row.client_first || '').trim() || 'there';
     const results = {};
@@ -347,13 +363,13 @@ function createSignatureService(deps) {
         const lever = eff.model.lever;
         const bodyHtml = `<p style="margin:0 0 14px">${esc(eff.narrative.headline)}</p>`
           + `<p style="margin:0 0 14px">Your BodyBank Score for ${esc(periodTxt)} is <strong style="color:#c8a44e">${esc(row.score)} (${esc(row.grade)})</strong>.</p>`
-          + (lever ? `<p style="margin:0 0 14px"><strong>Your one big lever next ${row.type === 'monthly' ? 'month' : 'week'}:</strong> ${esc(lever.label)}.</p>` : '')
-          + '<p style="margin:0">Your full Signature report is attached as a PDF, and you can also open it with the button below.</p>';
-        const html = d.luxuryWrap ? d.luxuryWrap({ title: `Your ${kind} Signature Report`, preheader: `${eff.narrative.headline}`.slice(0, 120), lead: `Hi ${first},`, bodyHtml, ctaLabel: 'Open your report', ctaUrl: url }) : bodyHtml;
-        const text = `Hi ${first}, your ${kind.toLowerCase()} BodyBank Signature report (${periodTxt}) is attached. Score ${row.score} (${row.grade}). ${eff.narrative.headline} Open it online: ${url}`;
+          + (lever ? `<p style="margin:0 0 14px"><strong>Your one big lever next ${word}:</strong> ${esc(lever.label)}.</p>` : '')
+          + `<p style="margin:0">Your full ${esc(reportName)} is attached as a PDF, and you can also open it with the button below.</p>`;
+        const html = d.luxuryWrap ? d.luxuryWrap({ title: `Your BodyBank ${reportName}`, preheader: `${eff.narrative.headline}`.slice(0, 120), lead: `Hi ${first},`, bodyHtml, ctaLabel: 'Open your report', ctaUrl: url }) : bodyHtml;
+        const text = `Hi ${first}, your BodyBank ${reportName} (${periodTxt}) is attached. Score ${row.score} (${row.grade}). ${eff.narrative.headline} Open it online: ${url}`;
         let ok = false;
         try {
-          ok = await d.sendMail(row.client_email, `Your BodyBank ${kind} Signature Report — ${periodTxt}`, html, text, [{ filename: pdf.name, content: fs.readFileSync(pdf.file), contentType: 'application/pdf' }]);
+          ok = await d.sendMail(row.client_email, `Your BodyBank ${reportName} — ${periodTxt}`, html, text, [{ filename: pdf.name, content: fs.readFileSync(pdf.file), contentType: 'application/pdf' }]);
         } catch (_) { ok = false; }
         results.email = ok ? { ok: true } : { ok: false, reason: 'send_failed' };
       }
@@ -364,7 +380,7 @@ function createSignatureService(deps) {
       if (!phone || phone.replace(/\D/g, '').length < 8) results.whatsapp = { ok: false, reason: 'no_phone' };
       else if (!d.sendWhatsAppWithFallback) results.whatsapp = { ok: false, reason: 'whatsapp_not_configured' };
       else {
-        const text = `Hi ${first}, your ${kind.toLowerCase()} BodyBank report is ready — score ${row.score} (${row.grade}). ${eff.narrative.headline}\n\nOpen your report: ${url}`;
+        const text = `Hi ${first}, your BodyBank ${reportName} is ready — score ${row.score} (${row.grade}). ${eff.narrative.headline}\n\nOpen your report: ${url}`;
         let r;
         try { r = await d.sendWhatsAppWithFallback(text, { to: phone, templateSid: process.env.TWILIO_CLIENT_REPORT_TEMPLATE_SID || undefined }); } catch (err) { r = { ok: false, reason: 'send_failed', error: err.message }; }
         results.whatsapp = r && r.ok ? { ok: true, sid: r.sid } : { ok: false, reason: (r && r.reason) || 'send_failed', code: r && r.code };
@@ -382,7 +398,7 @@ function createSignatureService(deps) {
         [sentBy || null, JSON.stringify(merged), JSON.stringify({ at: new Date().toISOString(), results }), id]);
       if (d.notifyHub && row.user_id) {
         fire(() => d.notifyHub.toUser(row.user_id, {
-          title: `📊 Your ${kind.toLowerCase()} report from your coach`,
+          title: `📊 Your ${reportName} is ready`,
           body: `Sent to your ${okChannels.join(' and ')}. BodyBank Score ${row.score}.`,
           type: 'progress_report', link: 'home'
         }));

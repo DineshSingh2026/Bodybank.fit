@@ -15,6 +15,9 @@
   var PAGE_PX = 794;
   var PREF_KEY = 'bb_reports_template';
   var LIM = { headline: 110, letter: 760, chapter: 46, ps: 180, target: 110 };
+  // Report names as printed on the PDF (services/signatureReports/model.js REPORT_NAMES).
+  var NAMES = { weekly: 'Performance Report', monthly: 'Transformation Report' };
+  var SPAN_DAYS = 14; // the Performance Report always covers two weeks
 
   var S = {
     mounted: false, tpl: 'signature', type: 'weekly', tab: 'draft',
@@ -44,7 +47,10 @@
   function monthRange(ym) { var y = +ym.slice(0, 4), m = +ym.slice(5, 7); var last = new Date(Date.UTC(y, m, 0)).getUTCDate(); return { start: ym + '-01', end: ym + '-' + String(last).padStart(2, '0') }; }
   function short(s) { var d = new Date(dayNum(s) * 86400000); return d.getUTCDate() + ' ' + MON[d.getUTCMonth()]; }
   function period() {
-    if (S.type === 'weekly') return { start: S.weekStart, end: addDays(S.weekStart, 6), label: short(S.weekStart) + ' – ' + short(addDays(S.weekStart, 6)) };
+    if (S.type === 'weekly') {
+      var e = addDays(S.weekStart, SPAN_DAYS - 1);
+      return { start: S.weekStart, end: e, label: short(S.weekStart) + ' – ' + short(e) + ' ' + e.slice(0, 4), future: dayNum(e) > dayNum(todayIST()) };
+    }
     var r = monthRange(S.month); var d = new Date(dayNum(r.start) * 86400000);
     return { start: r.start, end: r.end, label: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'][d.getUTCMonth()] + ' ' + d.getUTCFullYear() };
   }
@@ -100,16 +106,19 @@
     var p = period();
     $('bbsig').innerHTML = ''
       + '<div id="bbsigRoot">'
-      + '<div class="bbsig-head"><div><h3 class="admin-subsection-title">Signature reports</h3>'
+      + '<div class="bbsig-head"><div><h3 class="admin-subsection-title">Performance &amp; Transformation Reports</h3>'
       + '<p class="bbsig-sub">Draft → review → approve → send. Nothing reaches a client until you press Send. No automatic sending.</p></div>'
       + '<a class="bbsig-sample" href="#" data-bbsig-act="how">How it works</a></div>'
       + '<div class="bbsig-card bbsig-new">'
-      + '  <div class="bbsig-seg" role="radiogroup" aria-label="Report type"><button type="button" data-bbsig-type="weekly" class="is-active">Weekly</button><button type="button" data-bbsig-type="monthly">Monthly</button></div>'
+      + '  <div class="bbsig-seg" role="radiogroup" aria-label="Report type"><button type="button" data-bbsig-type="weekly" class="is-active"><b>Performance</b><small>2 weeks</small></button><button type="button" data-bbsig-type="monthly"><b>Transformation</b><small>Monthly</small></button></div>'
       + '  <div class="bbsig-field bbsig-client"><label class="bbsig-lbl" for="bbsigQ">Client</label>'
       + '    <input id="bbsigQ" class="bbsig-input" type="search" placeholder="Type a client name, email or phone" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="bbsigList">'
       + '    <ul id="bbsigList" class="bbsig-ta" role="listbox" aria-label="Clients" hidden></ul><div id="bbsigChip"></div></div>'
       + '  <div class="bbsig-field"><span class="bbsig-lbl">Period</span>'
-      + '    <div id="bbsigWeek" class="bbsig-week"><button type="button" data-bbsig-act="wk-prev" aria-label="Previous week">‹</button><span id="bbsigWeekLbl">' + esc(p.label) + '</span><button type="button" data-bbsig-act="wk-next" aria-label="Next week">›</button></div>'
+      + '    <div id="bbsigWeek" class="bbsig-week"><button type="button" data-bbsig-act="wk-prev" aria-label="One week earlier">‹</button>'
+      + '      <label class="bbsig-start"><span>Start date</span><input id="bbsigStart" class="bbsig-input" type="date"></label>'
+      + '      <button type="button" data-bbsig-act="wk-next" aria-label="One week later">›</button></div>'
+      + '    <p class="bbsig-hint" id="bbsigWeekLbl">' + esc(p.label) + '</p>'
       + '    <input id="bbsigMonth" class="bbsig-input" type="month" hidden></div>'
       + '  <div class="bbsig-actions"><button type="button" class="bbsig-btn bbsig-btn-primary" data-bbsig-act="draft" id="bbsigDraftBtn" disabled>Build draft</button>'
       + '    <button type="button" class="bbsig-btn bbsig-btn-ghost" data-bbsig-act="bulk" id="bbsigBulkBtn">Draft all active clients</button>'
@@ -142,11 +151,15 @@
     var p = period();
     $('bbsigWeek').hidden = S.type !== 'weekly';
     $('bbsigMonth').hidden = S.type !== 'monthly';
-    $('bbsigWeekLbl').textContent = p.label;
+    $('bbsigWeekLbl').hidden = S.type !== 'weekly';
+    $('bbsigWeekLbl').textContent = S.type === 'weekly' ? (p.label + ' · 14 days' + (p.future ? ' — ends after today, choose an earlier start date' : '')) : '';
+    $('bbsigWeekLbl').classList.toggle('is-error', !!p.future);
+    if ($('bbsigStart') && $('bbsigStart').value !== S.weekStart) $('bbsigStart').value = S.weekStart;
     var segs = document.querySelectorAll('#bbsig [data-bbsig-type]');
     for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('is-active', segs[i].getAttribute('data-bbsig-type') === S.type);
     $('bbsigDraftBtn').disabled = S.busy || !S.client;
-    $('bbsigDraftBtn').textContent = S.client ? 'Build ' + S.type + ' draft for ' + S.client.name.split(' ')[0] : 'Pick a client first';
+    if (p.future) $('bbsigDraftBtn').disabled = true;
+    $('bbsigDraftBtn').textContent = S.client ? 'Build ' + NAMES[S.type] + ' for ' + S.client.name.split(' ')[0] : 'Pick a client first';
     $('bbsigBulkBtn').textContent = 'Draft all active clients · ' + p.label;
   }
 
@@ -235,13 +248,13 @@
     var tabs = document.querySelectorAll('#bbsig [data-bbsig-tab]');
     for (var i = 0; i < tabs.length; i++) tabs[i].classList.toggle('is-active', tabs[i].getAttribute('data-bbsig-tab') === S.tab);
     if (!S.list.length) {
-      el.innerHTML = '<p class="bbsig-empty">' + (S.tab === 'draft' ? 'No drafts waiting. Build one above, or draft every active client for the period in one go.' : (S.tab === 'approved' ? 'Nothing approved and waiting to send.' : 'No Signature reports sent yet.')) + '</p>';
+      el.innerHTML = '<p class="bbsig-empty">' + (S.tab === 'draft' ? 'No drafts waiting. Build one above, or draft every active client for the period in one go.' : (S.tab === 'approved' ? 'Nothing approved and waiting to send.' : 'No reports sent yet.')) + '</p>';
       return;
     }
     el.innerHTML = '<div class="bbsig-rows">' + S.list.map(function (r) {
       var on = S.report && S.report.id === r.id;
       return '<button type="button" class="bbsig-row' + (on ? ' is-open' : '') + '" data-bbsig-open="' + esc(r.id) + '">'
-        + '<span class="bbsig-row-who"><b>' + esc(r.clientName || 'Client') + '</b><small>' + (r.type === 'monthly' ? 'Monthly' : 'Weekly') + ' · ' + esc(r.periodLabel) + '</small></span>'
+        + '<span class="bbsig-row-who"><b>' + esc(r.clientName || 'Client') + '</b><small>' + esc(NAMES[r.type] || 'Report') + ' · ' + esc(r.periodLabel) + '</small></span>'
         + '<span class="bbsig-score ' + gradeCls(r.grade) + '">' + esc(r.score == null ? '—' : r.score) + '<i>' + esc(r.grade || '') + '</i></span>'
         + '<span class="bbsig-row-flags">' + (r.status === 'draft' ? flagDots(r.flags || []) : (r.status === 'sent' ? '<span class="bbsig-flag is-sent">Sent ' + esc(when(r.sentAt)) + '</span>' : '<span class="bbsig-flag is-green">Approved</span>')) + '</span>'
         + '<span class="bbsig-row-when">' + esc(when(r.updatedAt)) + '</span></button>';
@@ -268,7 +281,7 @@
   function renderMeta() {
     var r = S.report; if (!r) return;
     var st = { draft: 'Draft — not visible to the client', approved: 'Approved — ready to send', sent: 'Sent' + (r.sentAt ? ' ' + when(r.sentAt) : '') + (r.sentChannels && r.sentChannels.length ? ' via ' + r.sentChannels.join(' + ') : '') }[r.status] || r.status;
-    $('bbsigMeta').innerHTML = '<div><b>' + esc(r.clientName) + '</b><span>' + (r.type === 'monthly' ? 'Monthly' : 'Weekly') + ' Signature · ' + esc(r.periodLabel) + '</span></div>'
+    $('bbsigMeta').innerHTML = '<div><b>' + esc(r.clientName) + '</b><span>' + esc(NAMES[r.type] || 'Report') + ' · ' + esc(r.periodLabel) + '</span></div>'
       + '<div class="bbsig-meta-chips"><span class="bbsig-score ' + gradeCls(r.grade) + '">' + esc(r.score) + '<i>' + esc(r.grade) + '</i></span>'
       + '<span class="bbsig-pill is-' + esc(r.status) + '">' + esc(st) + '</span>'
       + '<span class="bbsig-pill">' + (r.aiSource === 'ai' ? 'AI draft' : 'Rules draft' + (r.aiError ? ' (AI unavailable)' : '')) + '</span></div>';
@@ -398,12 +411,12 @@
     if (!a) return;
     if (a === 'how') {
       e.preventDefault();
-      if (typeof showPopup === 'function') showPopup('Signature reports', '1. Build a draft for one client, or draft every active client for the period.\n2. Read the "Before you send" notes: score drops, missing data, renewal dates and the client\'s own Sunday questions.\n3. Edit the headline, letter and targets — the preview updates.\n4. Approve to lock the PDF, then Send by email and/or WhatsApp.\n\nThe client sees nothing until you press Send. Targets you set are scored automatically at the top of the next report ("Promise check").', '', 'OK', null, 'info');
+      if (typeof showPopup === 'function') showPopup('How these reports work', '1. Build a draft for one client, or draft every active client for the period.\n2. Read the "Before you send" notes: score drops, missing data, renewal dates and the client\'s own Sunday questions.\n3. Edit the headline, letter and targets — the preview updates.\n4. Approve to lock the PDF, then Send by email and/or WhatsApp.\n\nThe client sees nothing until you press Send. Targets you set are scored automatically at the top of the next report ("Promise check").', '', 'OK', null, 'info');
       return;
     }
     if (a === 'unpick') { S.client = null; renderChip(); return; }
     if (a === 'wk-prev') { S.weekStart = addDays(S.weekStart, -7); renderPeriod(); return; }
-    if (a === 'wk-next') { if (dayNum(S.weekStart) < dayNum(lastWeekStart())) S.weekStart = addDays(S.weekStart, 7); renderPeriod(); return; }
+    if (a === 'wk-next') { S.weekStart = addDays(S.weekStart, 7); renderPeriod(); return; }
     if (a === 'draft') {
       if (!S.client) return;
       var p = period();
@@ -419,7 +432,7 @@
       var go = function () {
         act('POST', '/bulk-draft', { type: S.type, startDate: pp.start, endDate: pp.end }, 'Starting…', 'Drafting in the background. Nothing is sent.').then(function (d) { if (d) { S.job = d; pollJob(); } });
       };
-      if (typeof showPopup === 'function') showPopup('Draft all active clients', 'Build a ' + S.type + ' Signature draft for every active client for ' + pp.label + '? Clients who already have a report for this period are skipped. Nothing is sent.', 'Draft all', 'Cancel', go, 'info');
+      if (typeof showPopup === 'function') showPopup('Draft all active clients', 'Build a ' + NAMES[S.type] + ' draft for every active client for ' + pp.label + '? Clients who already have a report for this period are skipped. Nothing is sent.', 'Draft all', 'Cancel', go, 'info');
       else go();
       return;
     }
@@ -474,8 +487,8 @@
       var t = token();
       fetch(apiBase() + '/api/admin/signature-reports/' + encodeURIComponent(r.id) + '/pdf', { headers: t ? { Authorization: 'Bearer ' + t } : {} }).then(function (res) {
         if (!res.ok) throw new Error('PDF not available (' + res.status + ')');
-        var cd = res.headers.get('Content-Disposition') || ''; var m = /filename="?([^";]+)"?/i.exec(cd);
-        return res.blob().then(function (bl) { var u = URL.createObjectURL(bl); var aEl = document.createElement('a'); aEl.href = u; aEl.download = m ? m[1] : 'BodyBank_Signature_Report.pdf'; document.body.appendChild(aEl); aEl.click(); aEl.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000); });
+        var cd = res.headers.get('Content-Disposition') || ''; var star = /filename\*=UTF-8''([^;]+)/i.exec(cd); var m = star ? [null, decodeURIComponent(star[1])] : /filename="?([^";]+)"?/i.exec(cd);
+        return res.blob().then(function (bl) { var u = URL.createObjectURL(bl); var aEl = document.createElement('a'); aEl.href = u; aEl.download = m ? m[1] : 'BodyBank - ' + (NAMES[r.type] || 'Report') + ' - ' + r.clientName + '.pdf'; document.body.appendChild(aEl); aEl.click(); aEl.remove(); setTimeout(function () { URL.revokeObjectURL(u); }, 4000); });
       }).catch(function (err) { setStatus(err.message, 'error'); });
     }
   }
@@ -486,6 +499,7 @@
   }
   function onChange(e) {
     if (e.target.id === 'bbsigMonth' && e.target.value) { S.month = e.target.value; renderPeriod(); }
+    if (e.target.id === 'bbsigStart' && /^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { S.weekStart = e.target.value; renderPeriod(); }
   }
 
   function pollJob() {
@@ -505,7 +519,7 @@
     if (role !== 'admin' && role !== 'superadmin') return;
     if (!isAdmin()) return; // the API is admin-only; superadmin keeps the classic notice
     if (!S.weekStart) {
-      S.weekStart = lastWeekStart(); S.month = lastMonth();
+      S.weekStart = addDays(lastWeekStart(), -7); S.month = lastMonth();
       S.tpl = pref(PREF_KEY) === 'classic' ? 'classic' : 'signature';
     }
     // Idempotent: re-attaches if the admin shell rebuilt the tab's content.

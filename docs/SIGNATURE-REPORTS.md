@@ -1,14 +1,23 @@
-# Signature reports (new weekly / monthly templates)
+# Performance Report (2 weeks) and Transformation Report (monthly)
+
+Internally these are the "Signature" template (code, table and admin switch use that name).
+Clients never see it: the PDFs, emails, WhatsApp texts and file names say **Performance Report**
+(14 days) and **Transformation Report** (calendar month). Downloads are named
+`BodyBank - Performance Report - <client name>.pdf`.
 
 A second report template that runs next to the classic client progress reports
 ([REPORTS.md](REPORTS.md)) so the two can be compared. Admins switch between them
 with the **Template: Signature | Classic** control at the top of the admin Reports tab.
 
-Samples from seeded data: [`reports/signature-weekly-sample.pdf`](reports/signature-weekly-sample.pdf),
-[`reports/signature-monthly-sample.pdf`](reports/signature-monthly-sample.pdf)
+Samples from seeded data: [`reports/performance-report-sample.pdf`](reports/performance-report-sample.pdf),
+[`reports/transformation-report-sample.pdf`](reports/transformation-report-sample.pdf)
 (`node scripts/signature-samples.js`, add `--variant=empty|extreme` or `--ai`).
 
 ## Admin control
+
+- The Performance Report always covers 14 days: the admin picks the start date (default: the
+  last two completed Mon–Sun weeks). It is scored against the 14 days before it, and its
+  targets are for the next 14 days. The report calls the period "this fortnight".
 
 - Workflow: **draft → review → approve → send**. `send` refuses anything not approved.
 - No scheduler. "Draft all active clients" builds drafts only; it never sends.
@@ -22,7 +31,7 @@ Samples from seeded data: [`reports/signature-weekly-sample.pdf`](reports/signat
 
 ## What is in the reports
 
-| | Weekly (3 pages) | Monthly (6 pages) |
+| | Performance Report: 14 days, admin picks the start date (3 pages) | Transformation Report: monthly (6 pages) |
 |---|---|---|
 | Cover | Score ring, headline, promise check, six pillars, 7-day habit matrix | Month, chapter title, score, highlights, day N with BodyBank |
 | Data | Patterns (last 4 weeks), training, fuel, recovery, body and mind | Since day one (weight, waist, lifts, lifetime totals, photos), week-by-week score, calendar, detail charts, patterns, coaching touchpoints |

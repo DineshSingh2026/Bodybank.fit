@@ -3,8 +3,8 @@
 /**
  * Generate the Signature sample reports from seeded data (no database).
  *
- *   node scripts/signature-samples.js                 -> docs/reports/signature-weekly-sample.pdf
- *                                                        docs/reports/signature-monthly-sample.pdf
+ *   node scripts/signature-samples.js                 -> docs/reports/performance-report-sample.pdf (2 weeks)
+ *                                                        docs/reports/transformation-report-sample.pdf (monthly)
  *   node scripts/signature-samples.js --variant=empty  (or extreme) for the layout edge cases
  *   node scripts/signature-samples.js --ai             use the LLM narrative (needs ANTHROPIC_API_KEY)
  *   node scripts/signature-samples.js --out=<dir>      write somewhere else
@@ -30,7 +30,7 @@ async function main() {
     const nar = await N.buildNarrative(model, { ai, userId: null });
     const res = await renderReport(model, nar, { pdf: true });
     const suffix = variant === 'normal' ? '' : '-' + variant;
-    const file = path.join(outDir, `signature-${type}-sample${suffix}.pdf`);
+    const file = path.join(outDir, `${type === 'monthly' ? 'transformation' : 'performance'}-report-sample${suffix}.pdf`);
     fs.writeFileSync(file, res.pdf);
     console.log(`${type}: ${path.relative(process.cwd(), file)}  score ${model.score.total} (${model.score.grade})  ${res.pages} pages  ${res.ms} ms  narrative=${nar.source}${nar.aiError ? ' (' + nar.aiError + ')' : ''}`);
     if (res.warnings && res.warnings.length) console.log('  layout warnings:', JSON.stringify(res.warnings).slice(0, 900));
