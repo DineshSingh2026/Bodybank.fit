@@ -36,6 +36,22 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
+**Queued for the next iOS release (added 2026-10-14).** Already in mobile `main` `www/` (commit
+`3ed02ad`, synced from web `77c1058`), so the next `ios-appstore` Codemagic build includes them with
+no further sync. Not urgent: iOS push already works on the live app (the fix was the Team ID on the
+Firebase APNs key rows, `Y3FJNX5674`, not code).
+
+| Web commit | Change | Notes |
+| ---------- | ------ | ----- |
+| `77c1058` | fix(push): iOS FCM token retry; "Send test" names a refused device | `index.html` `registerNativePush` retries `getToken` while iOS waits for the APNs token; `js/bb-notify.js` test toast shows the server's per-device error. Server half (delivery-health columns, `/api/push/status` + `/api/push/test` per-device results) is already live via Render. |
+
+Before that build: bump `MARKETING_VERSION` in `ios/App/App.xcodeproj/project.pbxproj` above the
+version live in the App Store (currently 1.0.8 in the project), and make the App Store Connect
+version number match it.
+
+Android since the held release below: 1.8.4 / versionCode 114 (minSdk 23 → 24, mobile `a55bdbf`)
+and 1.8.5 / 115 (BodyBank notification icon + the `77c1058` www sync, mobile `3ed02ad`), both pushed.
+
 **HELD RELEASE, prepared 2026-10-09 — Android 1.8.4 / versionCode 113, iOS 1.0.8. Not uploaded to
 either store.** Web `82e8382` → mobile `06c12db`, committed locally in `../bodybank-app` and **not
 pushed**. `www/` synced, iOS store-refs strip clean, release AAB built and checked (jar verified,
