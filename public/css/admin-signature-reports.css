@@ -130,3 +130,17 @@
   #tab-reports .bbsig-row-when{display:none}
   #tab-reports .bbsig-switch button{min-width:0;flex:1}
 }
+
+/* client picker: richer rows */
+#tab-reports .bbsig-ta{box-shadow:0 12px 30px rgba(0,0,0,.55)}
+#tab-reports .bbsig-ta button{flex-direction:row;justify-content:space-between;align-items:center;gap:12px}
+#tab-reports .bbsig-ta button.is-active{background:rgba(200,164,78,.16)}
+#tab-reports .bbsig-ta-main{display:flex;flex-direction:column;min-width:0}
+#tab-reports .bbsig-ta-main b,#tab-reports .bbsig-ta-main small{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#tab-reports .bbsig-ta-side{display:flex;flex-direction:column;align-items:flex-end;gap:2px;flex:0 0 auto}
+#tab-reports .bbsig-st{font-style:normal;font-size:10.5px;font-weight:700;padding:2px 7px;border-radius:8px;background:rgba(76,175,110,.16);color:#7fd6a0}
+#tab-reports .bbsig-st.is-trial{background:rgba(120,160,230,.16);color:#9fbef0}
+#tab-reports .bbsig-st.is-lapsed,#tab-reports .bbsig-st.is-pending-approval{background:rgba(232,176,68,.16);color:#f0c46a}
+#tab-reports .bbsig-st.is-suspended{background:rgba(224,80,80,.16);color:#f08a8a}
+#tab-reports .bbsig-none.is-error{color:#f08a8a}
+#tab-reports .bbsig-chip .bbsig-st{margin-left:2px}

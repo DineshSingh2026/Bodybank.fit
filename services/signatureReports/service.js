@@ -423,6 +423,51 @@ function createSignatureService(deps) {
     return { reports: rows.map(listRow), counts: c };
   }
 
+  /**
+   * Client picker for one-off drafts. Searches EVERY member account (not only
+   * active ones — an admin may report on a paused or lapsed client), matches each
+   * typed word anywhere in name / email / phone, and ranks name-prefix matches first.
+   */
+  async function clients({ q, limit }) {
+    const lim = Math.max(1, Math.min(50, parseInt(limit, 10) || 20));
+    const words = String(q || '').toLowerCase().replace(/[%_\\]/g, ' ').split(/\s+/).filter(Boolean).slice(0, 5);
+    if (!words.length) return [];
+    const where = [`u.role = 'user'`, `u.email NOT LIKE '%@test.bodybank.fit'`, `LOWER(COALESCE(u.first_name, '')) NOT LIKE '%e2e%'`];
+    const params = [];
+    for (const w of words) {
+      const digits = w.replace(/\D/g, '');
+      where.push(`(LOWER(COALESCE(u.first_name,'') || ' ' || COALESCE(u.last_name,'')) LIKE ? OR LOWER(COALESCE(u.email,'')) LIKE ?${digits.length >= 3 ? ` OR regexp_replace(COALESCE(u.phone,''), '[^0-9]', '', 'g') LIKE ?` : ''})`);
+      params.push(`%${w}%`, `%${w}%`);
+      if (digits.length >= 3) params.push(`%${digits}%`);
+    }
+    const first = words[0];
+    params.push(`${first}%`, `% ${first}%`, lim);
+    const rows = await db.queryAll(
+      `SELECT u.id, u.first_name, u.last_name, u.email, u.phone, u.subscription_status, u.approval_status,
+              COALESCE(u.suspended, FALSE) AS suspended, u.plan_label,
+              (SELECT to_char(MAX(d.checkin_date), 'YYYY-MM-DD') FROM daily_checkins d WHERE d.user_id = u.id) AS last_checkin,
+              (SELECT COUNT(*)::int FROM signature_reports s WHERE s.user_id = u.id AND s.status <> 'discarded') AS sig_reports
+         FROM users u
+        WHERE ${where.join(' AND ')}
+        ORDER BY CASE WHEN LOWER(COALESCE(u.first_name,'') || ' ' || COALESCE(u.last_name,'')) LIKE ? THEN 0
+                      WHEN LOWER(COALESCE(u.first_name,'') || ' ' || COALESCE(u.last_name,'')) LIKE ? THEN 1 ELSE 2 END,
+                 CASE WHEN COALESCE(u.suspended, FALSE) OR u.subscription_status IN ('canceled','expired') THEN 1 ELSE 0 END,
+                 LOWER(COALESCE(u.first_name,'')), LOWER(COALESCE(u.last_name,''))
+        LIMIT ?`, params);
+    return rows.map((r) => {
+      let status = 'Active';
+      if (r.suspended) status = 'Suspended';
+      else if (r.approval_status && r.approval_status !== 'approved') status = 'Pending approval';
+      else if (r.subscription_status === 'trialing') status = 'Trial';
+      else if (r.subscription_status === 'canceled' || r.subscription_status === 'expired') status = 'Lapsed';
+      return {
+        id: r.id, name: [r.first_name, r.last_name].filter(Boolean).join(' ').trim() || r.email,
+        email: r.email || '', phone: r.phone || '', status, plan: r.plan_label || '',
+        lastCheckin: r.last_checkin || null, signatureReports: r.sig_reports || 0
+      };
+    });
+  }
+
   // ---- bulk drafting (never sends) ------------------------------------------
   const ACTIVE_CLIENT_SQL = `u.role = 'user'
     AND (u.approval_status IS NULL OR u.approval_status = 'approved')
@@ -466,7 +511,7 @@ function createSignatureService(deps) {
 
   return {
     ensureTables: () => ensureTables(db),
-    draft, refresh, saveEdits, preview, approve, send, discard, get, list, pdfFor,
+    draft, refresh, saveEdits, preview, approve, send, discard, get, list, pdfFor, clients,
     byShareToken, revokeShareLink, startBulk, getJob
   };
 }

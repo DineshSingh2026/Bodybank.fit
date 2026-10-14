@@ -7,6 +7,7 @@
  * member link /r/sig (public, token-gated, SENT reports only).
  *
  *   GET    /                          ?status=&userId=&type=     -> { reports, counts }   review queue
+ *   GET    /clients                   ?q=                         -> client picker (all members, any status)
  *   POST   /draft                     { userId, type, startDate, endDate, ai }  -> report (status draft)
  *   GET    /:id                                                   -> report (narrative, targets, review flags)
  *   GET    /:id/preview                                           -> text/html (fitted A4 pages)
@@ -65,6 +66,14 @@ function createSignatureReportsRouter(deps) {
   const adminId = (req) => (req.user && req.user.id) || null;
 
   router.use(d.verifyToken, d.requireAdmin);
+
+  // Declared before /:id so 'clients' is never read as a report id.
+  router.get('/clients', async (req, res) => {
+    try {
+      res.set('Cache-Control', 'no-store');
+      res.json({ success: true, clients: await svc.clients({ q: String(req.query.q || '').slice(0, 120), limit: req.query.limit }) });
+    } catch (err) { sendError(res, err, 'Could not search clients'); }
+  });
 
   router.get('/', async (req, res) => {
     try {

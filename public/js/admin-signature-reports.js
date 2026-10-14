@@ -106,8 +106,8 @@
       + '<div class="bbsig-card bbsig-new">'
       + '  <div class="bbsig-seg" role="radiogroup" aria-label="Report type"><button type="button" data-bbsig-type="weekly" class="is-active">Weekly</button><button type="button" data-bbsig-type="monthly">Monthly</button></div>'
       + '  <div class="bbsig-field bbsig-client"><label class="bbsig-lbl" for="bbsigQ">Client</label>'
-      + '    <input id="bbsigQ" class="bbsig-input" type="search" placeholder="Search name, email or phone" autocomplete="off">'
-      + '    <ul id="bbsigList" class="bbsig-ta" hidden></ul><div id="bbsigChip"></div></div>'
+      + '    <input id="bbsigQ" class="bbsig-input" type="search" placeholder="Type a client name, email or phone" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="bbsigList">'
+      + '    <ul id="bbsigList" class="bbsig-ta" role="listbox" aria-label="Clients" hidden></ul><div id="bbsigChip"></div></div>'
       + '  <div class="bbsig-field"><span class="bbsig-lbl">Period</span>'
       + '    <div id="bbsigWeek" class="bbsig-week"><button type="button" data-bbsig-act="wk-prev" aria-label="Previous week">‹</button><span id="bbsigWeekLbl">' + esc(p.label) + '</span><button type="button" data-bbsig-act="wk-next" aria-label="Next week">›</button></div>'
       + '    <input id="bbsigMonth" class="bbsig-input" type="month" hidden></div>'
@@ -127,8 +127,11 @@
       + '  <div class="bbsig-side" id="bbsigSide"></div>'
       + '</div>'
       + '</div>';
-    $('bbsigQ').addEventListener('focus', function () { queueSearch(0); });
-    $('bbsigQ').addEventListener('blur', function () { setTimeout(function () { var l = $('bbsigList'); if (l) l.hidden = true; }, 160); });
+    $('bbsigQ').addEventListener('focus', function () { if (($('bbsigQ').value || '').trim().length >= 2) queueSearch(0); });
+    $('bbsigQ').addEventListener('blur', function () { setTimeout(closeList, 250); });
+    $('bbsigQ').addEventListener('keydown', onSearchKey);
+    $('bbsigList').addEventListener('mousedown', function (e) { var i = pickTarget(e); if (i != null) { e.preventDefault(); pickClient(i); } });
+    $('bbsigList').addEventListener('touchend', function (e) { var i = pickTarget(e); if (i != null) { e.preventDefault(); pickClient(i); } });
     $('bbsigFrame').addEventListener('load', function () { scaleFrame(true); });
     $('bbsigMonth').value = S.month;
     $('bbsigMonth').max = lastMonth();
@@ -143,26 +146,66 @@
     var segs = document.querySelectorAll('#bbsig [data-bbsig-type]');
     for (var i = 0; i < segs.length; i++) segs[i].classList.toggle('is-active', segs[i].getAttribute('data-bbsig-type') === S.type);
     $('bbsigDraftBtn').disabled = S.busy || !S.client;
+    $('bbsigDraftBtn').textContent = S.client ? 'Build ' + S.type + ' draft for ' + S.client.name.split(' ')[0] : 'Pick a client first';
     $('bbsigBulkBtn').textContent = 'Draft all active clients · ' + p.label;
   }
 
   /* ---------- client search ---------- */
-  function queueSearch(delay) { clearTimeout(S.clientTimer); S.clientTimer = setTimeout(searchClients, delay == null ? 220 : delay); }
+  // Results are picked on mousedown / touchend (with preventDefault) so the search
+  // box never loses focus mid-click: a blur-then-hide used to remove the list before
+  // a normal-speed mouse click landed, so no client could be chosen.
+  function queueSearch(delay) { clearTimeout(S.clientTimer); S.clientTimer = setTimeout(searchClients, delay == null ? 200 : delay); }
+  function closeList() { var l = $('bbsigList'); if (l) l.hidden = true; S.activeIdx = -1; var q = $('bbsigQ'); if (q) q.setAttribute('aria-expanded', 'false'); }
+  function stCls(st) { return 'is-' + String(st || '').toLowerCase().replace(/\s+/g, '-'); }
   function searchClients() {
     var q = ($('bbsigQ').value || '').trim();
+    var l = $('bbsigList');
+    if (q.length < 2) {
+      S.clients = [];
+      l.innerHTML = '<li class="bbsig-none">Type at least 2 letters of a name, email or phone number</li>';
+      l.hidden = false; return;
+    }
     var req = ++S.clientReq;
-    apiCall('GET', '/api/admin/reports/clients?q=' + encodeURIComponent(q) + '&limit=12').then(function (d) {
+    l.innerHTML = '<li class="bbsig-none">Searching…</li>'; l.hidden = false;
+    apiCall('GET', '/api/admin/signature-reports/clients?q=' + encodeURIComponent(q) + '&limit=20').then(function (d) {
       if (req !== S.clientReq) return;
-      S.clients = (d && d.clients) || [];
-      var l = $('bbsigList');
-      l.innerHTML = S.clients.length ? S.clients.map(function (c, i) {
-        return '<li><button type="button" data-bbsig-pick="' + i + '"><b>' + esc(c.name) + '</b><small>' + esc(c.email || c.phone || '') + '</small></button></li>';
-      }).join('') : '<li class="bbsig-none">No matching clients</li>';
-      l.hidden = false;
+      if (!d || d.error) { l.innerHTML = '<li class="bbsig-none is-error">' + esc(errOf(d, 'Search failed')) + '</li>'; return; }
+      S.clients = d.clients || [];
+      S.activeIdx = S.clients.length ? 0 : -1;
+      renderClientList(q);
     });
   }
+  function renderClientList(q) {
+    var l = $('bbsigList');
+    l.innerHTML = S.clients.length ? S.clients.map(function (c, i) {
+      var meta = [c.email, c.phone].filter(Boolean).join(' · ');
+      var last = c.lastCheckin ? 'Last check-in ' + short(c.lastCheckin) : 'No check-ins yet';
+      return '<li role="option" aria-selected="' + (i === S.activeIdx) + '"><button type="button" tabindex="-1" class="' + (i === S.activeIdx ? 'is-active' : '') + '" data-bbsig-pick="' + i + '">'
+        + '<span class="bbsig-ta-main"><b>' + esc(c.name) + '</b><small>' + esc(meta) + '</small></span>'
+        + '<span class="bbsig-ta-side"><i class="bbsig-st ' + stCls(c.status) + '">' + esc(c.status) + '</i><small>' + esc(last) + '</small></span></button></li>';
+    }).join('') : '<li class="bbsig-none">No client matches “' + esc(q) + '”. Try part of the first name, the email or the phone number.</li>';
+    l.hidden = false;
+    $('bbsigQ').setAttribute('aria-expanded', 'true');
+  }
+  function pickClient(i) {
+    var c = S.clients[i]; if (!c) return;
+    S.client = c; $('bbsigQ').value = ''; closeList(); renderChip();
+    setStatus('');
+  }
+  function onSearchKey(e) {
+    var l = $('bbsigList');
+    if (e.key === 'Escape') { closeList(); return; }
+    if (!S.clients.length || l.hidden) { if (e.key === 'ArrowDown') queueSearch(0); return; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      S.activeIdx = (S.activeIdx + (e.key === 'ArrowDown' ? 1 : -1) + S.clients.length) % S.clients.length;
+      renderClientList(($('bbsigQ').value || '').trim());
+    } else if (e.key === 'Enter') { e.preventDefault(); if (S.activeIdx >= 0) pickClient(S.activeIdx); }
+  }
+  function pickTarget(e) { var b = e.target && e.target.closest && e.target.closest('[data-bbsig-pick]'); return b ? +b.getAttribute('data-bbsig-pick') : null; }
   function renderChip() {
-    $('bbsigChip').innerHTML = S.client ? '<span class="bbsig-chip">' + esc(S.client.name) + '<button type="button" data-bbsig-act="unpick" aria-label="Clear client">×</button></span>' : '';
+    var c = S.client;
+    $('bbsigChip').innerHTML = c ? '<span class="bbsig-chip">' + esc(c.name) + (c.status && c.status !== 'Active' ? ' <i class="bbsig-st ' + stCls(c.status) + '">' + esc(c.status) + '</i>' : '') + '<button type="button" data-bbsig-act="unpick" aria-label="Clear client">×</button></span>' : '';
     renderPeriod();
   }
 
@@ -344,7 +387,7 @@
     var b = e.target.closest('button, a, [data-bbsig-open]');
     if (!b) return;
     var pick = b.getAttribute('data-bbsig-pick');
-    if (pick != null) { S.client = S.clients[+pick]; $('bbsigQ').value = ''; $('bbsigList').hidden = true; renderChip(); return; }
+    if (pick != null) { pickClient(+pick); return; }
     var type = b.getAttribute('data-bbsig-type');
     if (type) { S.type = type; renderPeriod(); return; }
     var tab = b.getAttribute('data-bbsig-tab');
