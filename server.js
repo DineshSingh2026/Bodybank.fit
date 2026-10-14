@@ -28,6 +28,7 @@ const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, setNutritionPush, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
 const { createBloodRouter, createBloodPublicRouter } = require('./routes/blood');
 const { createReportsRouter, createReportsPublicRouter } = require('./routes/reports');
+const { createSignatureReportsRouter, createSignaturePublicRouter } = require('./routes/signatureReports');
 const { createSmartScaleRouter } = require('./routes/smartScale');
 const { createReferralRouter } = require('./routes/referrals');
 const { createPaymentsRouter } = require('./routes/payments');
@@ -7284,6 +7285,39 @@ app.get('/api/me/weekly-report', verifyToken, async (req, res) => {
   }
 });
 
+// Download links for the legacy weekly / monthly PDFs in public/reports. That folder is
+// no longer served statically (client health data), so admins get a signed link that
+// expires: it works from a plain <a href> or a pasted chat link without a Bearer header.
+const REPORT_FILE_RE = /^(weekly|monthly)-report-[A-Za-z0-9-]{1,140}\.pdf$/;
+const REPORT_FILE_TTL_MS = 7 * 24 * 3600 * 1000;
+const REPORT_FILE_SECRET = String(process.env.JWT_SECRET || '').trim() || crypto.randomBytes(32).toString('hex');
+function reportFileSig(name, exp) {
+  return crypto.createHmac('sha256', REPORT_FILE_SECRET).update('report-file:' + name + ':' + exp).digest('base64url');
+}
+function signedReportFileUrl(baseUrl, name) {
+  const exp = Date.now() + REPORT_FILE_TTL_MS;
+  return `${baseUrl || ''}/api/report-files/${encodeURIComponent(name)}?exp=${exp}&sig=${reportFileSig(name, exp)}`;
+}
+app.get('/api/report-files/:name', rateLimiter(60, 60000), (req, res) => {
+  res.set('Cache-Control', 'private, no-store');
+  res.set('X-Robots-Tag', 'noindex, nofollow');
+  const name = String(req.params.name || '');
+  const exp = Number(req.query.exp);
+  const sig = String(req.query.sig || '');
+  if (!REPORT_FILE_RE.test(name) || !Number.isFinite(exp) || exp < Date.now() || !sig) {
+    return res.status(404).type('text/plain').send('This report link has expired or is not valid.');
+  }
+  const want = Buffer.from(reportFileSig(name, exp));
+  const got = Buffer.from(sig);
+  if (want.length !== got.length || !crypto.timingSafeEqual(want, got)) {
+    return res.status(404).type('text/plain').send('This report link has expired or is not valid.');
+  }
+  const file = path.join(__dirname, 'public', 'reports', name);
+  res.type('application/pdf');
+  res.setHeader('Content-Disposition', `attachment; filename="${name}"`);
+  res.sendFile(file, (err) => { if (err && !res.headersSent) res.status(404).type('text/plain').send('Report file not found.'); });
+});
+
 // Admin: generate the last-week PDF report for a user and email it to them (or just produce the link).
 // Body { send:false } produces the PDF + download link without emailing.
 app.post('/api/admin/users/:userId/weekly-report', verifyToken, requireAdminOrSuperadmin, async (req, res) => {
@@ -7305,7 +7339,7 @@ app.post('/api/admin/users/:userId/weekly-report', verifyToken, requireAdminOrSu
     const wantEmail = !(req.body && req.body.send === false);
     let emailed = false;
     if (wantEmail) {
-      if (!report.user.email) return res.status(400).json({ error: 'User has no email on file — PDF generated but not sent.', reportUrl: `/reports/${encodeURIComponent(fileName)}` });
+      if (!report.user.email) return res.status(400).json({ error: 'User has no email on file — PDF generated but not sent.', reportUrl: signedReportFileUrl('', fileName) });
       emailed = await userEmail.emailWeeklyReport({
         toEmail: report.user.email,
         firstName: report.user.first_name,
@@ -7317,7 +7351,7 @@ app.post('/api/admin/users/:userId/weekly-report', verifyToken, requireAdminOrSu
       });
     }
     const baseUrl = (process.env.PUBLIC_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
-    res.json({ ok: true, emailed: !!emailed, email: report.user.email || null, reportUrl: `${baseUrl}/reports/${encodeURIComponent(fileName)}` });
+    res.json({ ok: true, emailed: !!emailed, email: report.user.email || null, reportUrl: signedReportFileUrl(baseUrl, fileName) });
   } catch (e) {
     console.error('[admin weekly-report]', e.message);
     res.status(500).json({ error: 'Failed to generate weekly report' });
@@ -10291,6 +10325,10 @@ app.get('/api/operator/clients/:id/muscle-ranking', verifyToken, requireOperator
 // --- Last-week performance for one client (read-only; reuses buildWeeklyReport) ---
 app.get('/api/operator/clients/:id/weekly-report', verifyToken, requireOperator, async (req, res) => {
   try {
+    // Same client scope as the rest of the operator console: real, approved members
+    // only — never a staff, admin or test account looked up by id.
+    const client = await queryOne(`SELECT u.id FROM users u WHERE u.id = ? AND ${OPERATOR_CLIENT_WHERE}`, [String(req.params.id)]);
+    if (!client) return res.status(404).json({ error: 'Client not found' });
     const rep = await buildWeeklyReport(String(req.params.id));
     if (!rep) return res.status(404).json({ error: 'No weekly report available' });
     res.json(rep);
@@ -12085,7 +12123,7 @@ app.post('/api/admin/ai-assist', verifyToken, requireAdmin, async (req, res) => 
         });
 
         const baseUrl = (process.env.PUBLIC_URL || (req.protocol + '://' + req.get('host'))).replace(/\/$/, '');
-        const reportUrl = `${baseUrl}/reports/${encodeURIComponent(fileName)}`;
+        const reportUrl = signedReportFileUrl(baseUrl, fileName);
         reply =
           `Monthly report generated for ${user.first_name || ''} ${user.last_name || ''} (${user.email || '-'})` +
           `\nMonth: ${monthLabelForReport(monthlyCmd.monthKey)}` +
@@ -12197,6 +12235,17 @@ app.use('/api/admin/reports', reportsRouter);
 // Unauthenticated by design: the client opens an emailed / WhatsApp link. The
 // expiring, revocable token in the path is the credential.
 app.use('/r/report', createReportsPublicRouter({ service: reportsRouter.service, rateLimiter }));
+// ── Signature reports (the new weekly / monthly templates) ─────────────────────
+// Admin-controlled end to end: drafts -> coach review -> approve -> send. No
+// scheduler and no in-app visibility; a member only sees a report an admin sent.
+const signatureRouter = createSignatureReportsRouter({
+  run, queryOne, queryAll, verifyToken, requireAdmin, rateLimiter,
+  uploadsDir: FEED_UPLOADS_DIR, notify, notifyAgent,
+  sendMail: userEmail.sendMail, luxuryWrap: userEmail.luxuryWrap, sendWhatsAppWithFallback,
+  waStore: createPgStore({ queryAll, queryOne, run, uuidv4 }), notifyHub
+});
+app.use('/api/admin/signature-reports', signatureRouter);
+app.use('/r/sig', createSignaturePublicRouter({ service: signatureRouter.service, rateLimiter }));
 app.use(
   '/api/smart-scale',
   createSmartScaleRouter({
@@ -12850,6 +12899,19 @@ app.get('/.well-known/apple-developer-domain-association.txt', (req, res) => {
   });
 });
 
+// public/reports/ holds generated client PDFs (weekly, monthly, Sunday check-in,
+// Part-2). They carry client health data, so the static mount below must never
+// serve them. Admin download links go through the signed /api/report-files route.
+// Only the tracked marketing sample stays public.
+const PUBLIC_REPORT_FILES = new Set(['BodyBank_Health_Report_Sample.pdf']);
+app.use('/reports', (req, res, next) => {
+  let name = '';
+  try { name = decodeURIComponent(String(req.path || '').replace(/^\/+/, '')); } catch (_) { name = ''; }
+  if (PUBLIC_REPORT_FILES.has(name)) return next();
+  res.set('Cache-Control', 'no-store');
+  return res.status(404).send('Not found');
+});
+
 app.use(express.static(path.join(__dirname, 'public'), {
   maxAge: NODE_ENV === 'production' ? '7d' : 0,
   setHeaders: (res, filePath) => {
@@ -13331,6 +13393,7 @@ app.use('/uploads/nutrition-assessment', (req, res) => res.status(404).send('Not
 app.use('/uploads/smart-scale', (req, res) => res.status(404).send('Not found'));
 // Generated client progress reports are private: served only via /api/admin/reports and /r/report.
 app.use('/uploads/client-reports', (req, res) => res.status(404).send('Not found'));
+app.use('/uploads/signature-reports', (req, res) => res.status(404).send('Not found'));
 // Care group chat attachments are whatever the care team shares about a client —
 // lab scans, progress photos, prescriptions. Closed off from the public static
 // mount and served only by /api/groups/attachments/:id, which verifies that the
@@ -13537,6 +13600,7 @@ app.listen(PORT, '0.0.0.0', () => {
 
     try {
       await reportsRouter.service.ensureTables();
+      await signatureRouter.service.ensureTables().catch((e) => console.warn('Signature reports setup skipped:', e.message));
       if (reportsRouter.service.startScheduler(cron)) {
         console.log('✅ Client reports cron (weekly Mon 06:00, monthly 1st 06:00 Asia/Kolkata; auto_reports clients only)');
       }
