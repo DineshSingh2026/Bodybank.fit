@@ -36,6 +36,14 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
+**HELD RELEASE, prepared 2026-10-14 — Android 1.8.6 / versionCode 116, iOS 1.0.9. Not built or
+uploaded.** Web `bf39872` → mobile `af2bf30` (pushed; both Codemagic workflows are manual-start, so
+nothing ran). `www/` synced for both platforms, iOS store-refs strip clean. Adds the Signature
+reports admin screen (`js/admin-signature-reports.js` + `css/admin-signature-reports.css`, Template
+switch in the admin Reports tab). Backend is live via Render. To ship: build the AAB locally
+(`cd android && ./gradlew.bat bundleRelease`) and start `ios-appstore` in Codemagic; set the App
+Store Connect version to 1.0.9.
+
 **Queued for the next iOS release (added 2026-10-14).** Already in mobile `main` `www/` (commit
 `3ed02ad`, synced from web `77c1058`), so the next `ios-appstore` Codemagic build includes them with
 no further sync. Not urgent: iOS push already works on the live app (the fix was the Team ID on the
