@@ -5374,6 +5374,8 @@ button.bb-today-pill{cursor:pointer}
 <script src="js/admin-home.js?v=9"></script>
 <script src="js/admin-reports.js?v=4"></script>
 <script src="js/admin-signature-reports.js?v=1"></script>
+<!-- Coach Mode: tiny loader; js/coach-mode.js + css load lazily (flag: COACH_MODE_ENABLED) -->
+<script src="js/coach-loader.js?v=1" defer></script>
 <script src="js/countries.js?v=1"></script>
 <script src="js/bb-plans.js?v=2"></script>
 <script src="js/member-home.js?v=16"></script>
@@ -7091,6 +7093,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       <nav class="user-sidebar-nav">
         <a class="user-sidebar-link active" href="#" data-tab="home" onclick="switchUserTab('home');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9632;</span>Home</a>
         <a class="user-sidebar-link" href="#" data-tab="workout" onclick="switchUserTab('workout');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127947;</span>My Workout</a>
+        <a class="user-sidebar-link" href="#" data-tab="coach" id="bbCoachSidebarLink" style="display:none" onclick="switchUserTab('coach');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127941;</span>Coach Mode</a>
         <a class="user-sidebar-link" href="/ai-trainer.html?v=2"><span class="user-sidebar-icon" aria-hidden="true">&#129302;</span>AI Trainer</a>
         <a class="user-sidebar-link" href="#" data-tab="programs" onclick="switchUserTab('programs');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127919;</span>My Programs</a>
         <a class="user-sidebar-link" href="#" data-tab="checkin" onclick="switchUserTab('checkin');return false"><span class="user-sidebar-icon" aria-hidden="true">&#10003;</span>Check-in</a>
@@ -7939,6 +7942,9 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     </div>
 
     <!-- MY PROGRAMS -->
+    <!-- COACH MODE — rendered by js/coach-mode.js (lazy). Lives inside Train. -->
+    <div class="user-section" id="usec-coach"></div>
+
     <div class="user-section" id="usec-programs">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
       <div class="form-section-title">My Programs</div>
@@ -8914,6 +8920,11 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <span class="admin-section-card-icon" aria-hidden="true">&#127947;</span>
             <span class="admin-section-card-title">Workouts</span>
             <span class="admin-section-card-desc">View and manage workout logs</span>
+          </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('coachlib');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">&#127941;</span>
+            <span class="admin-section-card-title">Coach Mode library</span>
+            <span class="admin-section-card-desc">Review and approve exercises, set member care tags</span>
           </a>
         </div>
       </div>
@@ -10224,6 +10235,10 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <!-- TAB: Reports — weekly/monthly client progress PDFs. Rendered by js/admin-reports.js;
          fed by /api/admin/reports (routes/reports.js). -->
     <div class="admin-tab-content" id="tab-reports"></div>
+
+    <!-- TAB: Coach Mode library — exercise review (js/coach-admin.js, lazy via js/coach-loader.js);
+         fed by /api/coach/admin/* (routes/coachMode.js). -->
+    <div class="admin-tab-content" id="tab-coachlib"></div>
 
     </div><!-- .admin-tab-content-wrap -->
 
@@ -18651,6 +18666,7 @@ function switchTab(tab) {
   if (tab === 'referrals') adminTabLoad('referrals', loadAdminReferrals);
   if (tab === 'tokens') adminTabLoad('tokens', loadAdminTokenUsage);
   if (tab === 'reports') { if (typeof loadAdminReports === 'function') adminTabLoad('reports', loadAdminReports); }
+  if (tab === 'coachlib' && typeof window.bbCoachAdminOpen === 'function') window.bbCoachAdminOpen();
 }
 /* ======================================================================
    ADMIN . TOKENS -- AI spend ledger
@@ -21369,6 +21385,7 @@ function switchUserTab(tab) {
       wkHideWorkoutBackgroundBanner();
     }
   }
+  if (tab === 'coach' && typeof window.bbCoachOpen === 'function') window.bbCoachOpen();
   if (wasOnWorkout && tab !== 'workout' && typeof timerRunning !== 'undefined' && timerRunning) {
     if (typeof wkEnsureWorkoutBackgroundBanner === 'function') wkEnsureWorkoutBackgroundBanner();
   }
