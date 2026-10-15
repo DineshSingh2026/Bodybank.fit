@@ -36,7 +36,25 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
-**HELD RELEASE, prepared 2026-10-14 — Android 1.8.6 / versionCode 116, iOS 1.0.9. Not built or
+**RELEASE PREPARED 2026-10-15: Android 1.8.7 (versionCode 117), iOS 1.0.10.** Web `df36e7c` →
+mobile `720cf1f` (pushed). Supersedes the held 1.8.6 / 1.0.9 below, which was never built or
+uploaded; this release carries all of it.
+
+- **Adds Coach Mode:** a guided workout inside Train, plus the admin Coach Mode library. It also
+  adds `@capacitor/app` (pod `CapacitorApp`, Android `:capacitor-app`) for Coach Mode's
+  back-button handling.
+- **Size:** `www/img/coach/` adds about 14 MB of WebP photos.
+- **Backend:** live via Render (`/api/coach/*`). On first boot the server imports the 185-exercise
+  library as approved. Coach Mode is on for everyone (`COACH_MODE_ENABLED` defaults to `all`;
+  set it to `off` on Render to pull it back).
+- **Android:** AAB built and checked locally. Merged release manifest reads 117 / 1.8.7 with no
+  new permissions; `jarsigner` says "jar verified". It is at
+  `../bodybank-app/android/app/build/outputs/bundle/release/app-release.aab`. Upload it to Play.
+- **iOS:** `npm run sync:ios` strip check passed ("bundle clean"), and `MARKETING_VERSION` is
+  1.0.10. Start `ios-appstore` in Codemagic by hand and set the App Store Connect version to
+  1.0.10.
+
+**HELD RELEASE (superseded by 1.8.7 / 1.0.10 above), prepared 2026-10-14 — Android 1.8.6 / versionCode 116, iOS 1.0.9. Not built or
 uploaded.** Web `bf39872` → mobile `af2bf30` (pushed; both Codemagic workflows are manual-start, so
 nothing ran). `www/` synced for both platforms, iOS store-refs strip clean. Adds the Signature
 reports admin screen (`js/admin-signature-reports.js` + `css/admin-signature-reports.css`, Template
