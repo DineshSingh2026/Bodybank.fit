@@ -42,6 +42,8 @@ const groupChatService = require('./services/groupChatService');
 const plans = require('./services/plans');
 const memberScreens = require('./services/memberScreens');
 const { createMemberScreensRouter } = require('./routes/memberScreens');
+const coachModeService = require('./services/coachModeService');
+const { createCoachRouter } = require('./routes/coachMode');
 const cron = require('node-cron');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
@@ -2011,6 +2013,15 @@ async function initDB() {
   )`);
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_user_inbox_user ON user_inbox(user_id, created_at DESC)`); } catch (e) { /* ignore */ }
   try { await ensureNotificationColumns(pool); } catch (e) { console.warn('[notify-hub] schema:', e.message); }
+  // Coach Mode (guided gym logger): additive tables only — see services/coachModeService.js.
+  try { await coachModeService.ensureCoachTables(pool); } catch (e) { console.warn('[coach] schema:', e.message); }
+  try {
+    const libFile = path.join(__dirname, 'data', 'coach', 'library.json');
+    if (fs.existsSync(libFile)) {
+      const r = await coachModeService.importLibraryIfEmpty(pool, JSON.parse(fs.readFileSync(libFile, 'utf8')));
+      if (r.imported) console.log(`[coach] launch library imported: ${r.imported} exercises`);
+    }
+  } catch (e) { console.warn('[coach] library import:', e.message); }
 
   // Attention alert email dedupe log for inactive users (milestone-based, keyed by last check-in date)
   await pool.query(`CREATE TABLE IF NOT EXISTS attention_email_log (
@@ -12294,6 +12305,40 @@ app.use(
     rateLimiter,
     todayInTz: streakTodayYmdInTz,
     defaultTz: STREAK_TIMEZONE
+  })
+);
+// Coach Mode: guided gym logger beside My Workout (which it never touches).
+// COACH_MODE_ENABLED = off | staff | allowlist | all (+ COACH_MODE_ALLOWLIST).
+app.use(
+  '/api/coach',
+  createCoachRouter({
+    verifyToken,
+    requireAdminOrSuperadmin,
+    rateLimiter,
+    queryAll,
+    queryOne,
+    run,
+    getPool: () => pool,
+    coinService,
+    plans,
+    streakService: require('./services/streakService'),
+    todayInTz: streakTodayYmdInTz,
+    defaultTz: STREAK_TIMEZONE,
+    applyPenalties: (userId) => safeApplyCoinPenaltiesForUser(userId),
+    // Same side effects as a My Workout save (the mirror workout_logs row is
+    // written inside the route's transaction).
+    onWorkoutSaved: async ({ userId, workout, user }) => {
+      await safeRecomputeNutritionForDate(userId, workout.local_date);
+      const name = coachModeService.workoutLogName(workout.area);
+      const mins = Math.round((workout.duration_seconds || 0) / 60);
+      if (user && user.email) userEmail.emailWorkoutLogged(user.email, user.first_name, name, mins);
+      const wu = await queryOne('SELECT email, first_name, phone FROM users WHERE id = ?', [userId]);
+      if (wu) {
+        const payload = { name: `${wu.first_name || ''}`.trim(), email: wu.email, mobile: wu.phone || '—', type: name, duration: mins + ' min' };
+        notifyAsync('WORKOUT_LOGGED', payload);
+        notifyAgent('WORKOUT_LOGGED', payload);
+      }
+    }
   })
 );
 // Website payments (Razorpay). Web only: the apps never link here.
