@@ -181,59 +181,136 @@
       .catch(function () { host.innerHTML = '<p style="padding:24px">Could not load Challenges. Refresh and try again.</p>'; });
   };
 
-  /* ---- marketing home (web visitors only; never inside the apps) ---- */
+  /* ---- marketing home (web visitors only; never inside the apps) ----
+     The home-page band uses the same design as /challenge: "Seven days. Start strong."
+     with the 7 day tiles and two phone illustrations (desktop), swipe cards (mobile). */
   var MKT_CSS = [
     // Announcement pill: same family, size and glass finish as the "Now live on the App Store" pill.
     '.bbch-mkt-pill{display:inline-flex;align-items:center;gap:10px;margin:24px 8px 0;padding:6px 16px 6px 6px;min-height:40px;border:1px solid rgba(200,164,78,.34);border-radius:999px;background:rgba(8,8,8,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);color:#d8d2c4;font-family:"Outfit",sans-serif;font-size:13px;font-weight:500;letter-spacing:.03em;text-decoration:none;vertical-align:middle;transition:border-color .3s,background .3s,color .3s}',
+    '.bbch-mkt-pills{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:12px;margin:24px auto 0}.bbch-mkt-pills>a{margin:0!important}',
     '.bbch-mkt-pill:hover{border-color:rgba(200,164,78,.7);background:rgba(200,164,78,.08);color:#f4f0e8}',
     '.bbch-mkt-pill b{color:#f4f0e8;font-weight:600}',
     '.bbch-mkt-tag{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;background:linear-gradient(135deg,#F1D488,#C9A040 55%,#9E7A22);color:#17120a;font-size:10.5px;font-weight:700;letter-spacing:.14em}',
-    '.bbch-mkt-pills{display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:12px;margin:24px auto 0}.bbch-mkt-pills>a{margin:0!important}',
     '.bbch-mkt-pill .arw{color:#c8a44e;transition:transform .3s}.bbch-mkt-pill:hover .arw{transform:translateX(3px)}',
-    // Feature band
-    '.bbch-mkt{position:relative;padding:88px 24px;background:radial-gradient(60% 80% at 15% 0%,rgba(200,164,78,.10),transparent 70%),#0b0b0c;border-top:1px solid rgba(200,164,78,.18);border-bottom:1px solid rgba(200,164,78,.18);color:#f4f0e8;font-family:"Outfit",sans-serif}',
+    // Band
+    '.bbch-mkt{--g:linear-gradient(135deg,#F1D488 0%,#C9A040 55%,#9E7A22 100%);--gl:rgba(201,160,64,.42);--line:rgba(255,255,255,.08);position:relative;overflow:hidden;padding:96px 24px;background:radial-gradient(60% 70% at 85% 30%,rgba(201,160,64,.13),transparent 65%),#0b0b0c;border-top:1px solid rgba(200,164,78,.18);border-bottom:1px solid rgba(200,164,78,.18);color:#f5f1e8;font-family:"Plus Jakarta Sans","Outfit",system-ui,sans-serif;line-height:1.5}',
     '.bbch-mkt *{box-sizing:border-box}',
-    '.bbch-mkt-wrap{max-width:1160px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:64px;align-items:center}',
-    '.bbch-mkt-eye{display:flex;align-items:center;gap:14px;margin:0 0 22px;font-size:12px;font-weight:600;letter-spacing:.32em;text-transform:uppercase;color:#c8a44e}',
-    '.bbch-mkt-eye::before{content:"";width:36px;height:1px;background:linear-gradient(90deg,transparent,#c8a44e)}',
-    '.bbch-mkt h2.bbch-mkt-h{margin:0 0 20px;font-family:"Outfit",sans-serif;font-size:clamp(34px,4.4vw,54px);line-height:1.08;font-weight:600;letter-spacing:-.02em;text-transform:none;color:#f4f0e8}',
-    '.bbch-mkt-h em{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-weight:400;background:linear-gradient(135deg,#F1D488,#C9A040 55%,#9E7A22);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;padding-right:.04em}',
-    '.bbch-mkt-lead{margin:0 0 34px;max-width:560px;font-size:17px;line-height:1.7;font-weight:300;color:rgba(244,240,232,.72)}',
-    '.bbch-mkt-pts{list-style:none;margin:0 0 38px;padding:0;display:grid;gap:22px}',
-    '.bbch-mkt-pts li{display:grid;grid-template-columns:44px 1fr;gap:16px;align-items:start}',
-    '.bbch-mkt-ico{width:44px;height:44px;border-radius:50%;border:1px solid rgba(200,164,78,.4);display:flex;align-items:center;justify-content:center;color:#d9b45a;background:rgba(200,164,78,.06)}',
-    '.bbch-mkt-ico svg{width:20px;height:20px}',
-    '.bbch-mkt-pts b{display:block;font-size:16px;font-weight:600;color:#f4f0e8;margin:2px 0 4px;letter-spacing:.01em}',
-    '.bbch-mkt-pts span{font-size:14.5px;line-height:1.6;color:rgba(244,240,232,.6);font-weight:300}',
+    '.bbch-mkt-wrap{max-width:1240px;margin:0 auto;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,520px);gap:32px;align-items:center}',
+    '.bbch-mkt-copy{min-width:0;position:relative}',
+    '.bbch-mkt .it{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-weight:500;background:var(--g);-webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;padding-right:.06em}',
+    '.bbch-mkt-eye{display:flex;align-items:center;gap:14px;margin:0 0 26px;font-size:12px;font-weight:700;letter-spacing:.26em;text-transform:uppercase;color:#d9b45a}',
+    '.bbch-mkt-eye::before{content:"";width:28px;height:1px;background:#d9b45a;opacity:.8}',
+    '.bbch-mkt h2.bbch-mkt-h{margin:0 0 22px;font-family:"Plus Jakarta Sans","Outfit",sans-serif;font-size:clamp(46px,6.2vw,88px);line-height:.98;font-weight:800;letter-spacing:-.035em;text-transform:none;color:#f5f1e8}',
+    '.bbch-mkt-h .l1,.bbch-mkt-h .it{display:block}.bbch-mkt-h .it{font-size:1.02em;letter-spacing:-.01em;margin-top:.06em}',
+    '.bbch-mkt-lede{margin:0 0 28px;font-size:20px;color:#cfc8ba;max-width:560px}',
+    '.bbch-mkt-feats{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin:0 0 34px;padding:0}',
+    '.bbch-mkt-feats li{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:7px 13px;border-radius:999px;border:1px solid var(--gl);background:rgba(201,160,64,.06);font-size:14px;font-weight:600;color:#efe9dc;white-space:nowrap}',
+    '.bbch-mkt-sub,.bbch-mkt-swipe,.bbch-mkt-dots,.bbch-mkt-tiles{display:none}',
+    '.bbch-mkt-days{list-style:none;margin:0 0 40px;padding:0;display:grid;grid-template-columns:repeat(7,76px);gap:11px}',
+    '.bbch-mkt-day{display:flex;flex-direction:column;align-items:center;text-align:center}',
+    '.bbch-mkt-day .ico{width:76px;height:66px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0)),#141416;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1}',
+    '.bbch-mkt-day .ico svg{width:20px;height:20px;color:#f5f1e8}',
+    '.bbch-mkt-day .dn{margin-top:13px;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#a49f95}',
+    '.bbch-mkt-day b{font-size:13px;font-weight:600;color:#ece6da;margin-top:2px;white-space:nowrap}',
     '.bbch-mkt-ctas{display:flex;align-items:center;gap:28px;flex-wrap:wrap}',
-    '.bbch-mkt a.bbch-mkt-cta{display:inline-flex;align-items:center;gap:12px;min-height:56px;padding:0 30px;border-radius:999px;background:linear-gradient(135deg,#F1D488,#C9A040 55%,#9E7A22);color:#17120a;font-size:15px;font-weight:600;letter-spacing:.04em;text-decoration:none;box-shadow:0 14px 34px rgba(200,164,78,.22);transition:transform .25s,box-shadow .25s}',
-    '.bbch-mkt a.bbch-mkt-cta:hover{transform:translateY(-1px);box-shadow:0 18px 40px rgba(200,164,78,.32)}',
-    '.bbch-mkt a.bbch-mkt-link{color:#e3c274;font-size:14px;font-weight:500;letter-spacing:.04em;text-decoration:none;border-bottom:1px solid rgba(227,194,116,.35);padding-bottom:3px}',
-    '.bbch-mkt a.bbch-mkt-link:hover{border-bottom-color:#e3c274}',
-    '.bbch-mkt-fine{margin:18px 0 0;font-size:12.5px;letter-spacing:.06em;color:rgba(244,240,232,.45)}',
+    '.bbch-mkt a.bbch-mkt-cta{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:60px;padding:0 36px;border-radius:16px;background:var(--g);color:#17120a;font-size:18px;font-weight:700;text-decoration:none;box-shadow:0 16px 36px rgba(201,160,64,.26),inset 0 1px 0 rgba(255,255,255,.4);transition:transform .2s,box-shadow .2s}',
+    '.bbch-mkt a.bbch-mkt-cta:hover{transform:translateY(-1px);box-shadow:0 20px 44px rgba(201,160,64,.34)}',
+    '.bbch-mkt a.bbch-mkt-cta svg{width:17px;height:17px}',
+    '.bbch-mkt a.bbch-mkt-link{color:#e8c97a;font-size:16.5px;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(232,201,122,.45);padding-bottom:3px}',
+    '.bbch-mkt-note{margin:22px 0 0;font-size:14px;color:#7d786f}.bbch-mkt-note b{color:#d9b45a;font-weight:700}',
     '.bbch-mkt a:focus-visible,.bbch-mkt-pill:focus-visible{outline:2px solid #e3c274;outline-offset:4px}',
-    // Plan card
-    '.bbch-mkt-card{position:relative;padding:30px 28px 26px;border-radius:24px;border:1px solid rgba(200,164,78,.32);background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0)),#121214;box-shadow:0 30px 70px rgba(0,0,0,.45)}',
-    '.bbch-mkt-card-top{display:flex;justify-content:space-between;align-items:baseline;margin:0 0 20px}',
-    '.bbch-mkt-card-top p{margin:0;font-size:11.5px;font-weight:600;letter-spacing:.26em;text-transform:uppercase;color:#c8a44e}',
-    '.bbch-mkt-card-top span{font-family:"Playfair Display",Georgia,serif;font-style:italic;font-size:15px;color:rgba(244,240,232,.55)}',
-    '.bbch-mkt-days{list-style:none;margin:0;padding:0;counter-reset:d}',
-    '.bbch-mkt-days li{display:grid;grid-template-columns:34px 1fr;gap:14px;align-items:center;padding:11px 0;border-top:1px solid rgba(255,255,255,.06);font-size:14.5px;color:rgba(244,240,232,.86)}',
-    '.bbch-mkt-days li:first-child{border-top:0}',
-    '.bbch-mkt-days li::before{counter-increment:d;content:counter(d);width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12.5px;font-weight:600;color:#d9b45a;border:1px solid rgba(200,164,78,.38)}',
-    '.bbch-mkt-days li:last-child::before{background:linear-gradient(135deg,#F1D488,#C9A040 55%,#9E7A22);color:#17120a;border-color:transparent}',
-    '.bbch-mkt-card-foot{margin:18px 0 0;padding-top:16px;border-top:1px solid rgba(200,164,78,.2);font-size:13px;line-height:1.55;color:rgba(244,240,232,.6)}',
-    '.bbch-mkt-card-foot b{color:#e3c274;font-weight:600}',
-    '@media (max-width:900px){.bbch-mkt{padding:64px 20px}.bbch-mkt-wrap{grid-template-columns:1fr;gap:44px}.bbch-mkt-lead{font-size:16px}}',
-    '@media (max-width:520px){.bbch-mkt{padding:56px 16px}.bbch-mkt-ctas{gap:18px}.bbch-mkt a.bbch-mkt-cta{width:100%;justify-content:center}.bbch-mkt-card{padding:24px 18px 20px}.bbch-mkt-pills{flex-direction:column;gap:10px;margin-top:18px}.bbch-mkt-eye{letter-spacing:.2em;font-size:11px;gap:10px}.bbch-mkt-eye::before{width:22px}}'
+    // Phones (illustration)
+    '.bbch-mkt-phones{position:relative;height:640px}',
+    '.bbch-mkt .phone{position:absolute;width:300px;height:620px;border-radius:52px;padding:11px;background:linear-gradient(145deg,#4a4434,#26231c 40%,#1a1813);box-shadow:0 40px 90px rgba(0,0,0,.6),inset 0 0 0 1.5px rgba(255,255,255,.08)}',
+    '.bbch-mkt .scr{position:relative;height:100%;border-radius:42px;overflow:hidden;background:radial-gradient(120% 50% at 70% 20%,rgba(201,160,64,.12),transparent 60%),#0d0d0f;padding:16px 18px 0;font-size:11px;color:#f5f1e8;text-align:left}',
+    '.bbch-mkt .island{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:96px;height:28px;border-radius:20px;background:#000}',
+    '.bbch-mkt .sb{display:flex;justify-content:space-between;align-items:center;font-size:13px;font-weight:700;padding:2px 10px 0}.bbch-mkt .sb i{font-style:normal;font-size:10px;letter-spacing:1px}',
+    '.bbch-mkt .p1{left:0;top:30px;transform:rotate(-6deg);z-index:2}.bbch-mkt .p2{right:-10px;top:0;transform:rotate(7deg)}',
+    '.bbch-mkt .ph-top{display:flex;justify-content:space-between;align-items:center;margin:22px 0 18px}.bbch-mkt .ph-top img{height:22px;width:auto}',
+    '.bbch-mkt .ph-burger{width:16px}.bbch-mkt .ph-burger i{display:block;height:1.4px;background:#d9b45a;margin:3px 0}',
+    '.bbch-mkt .ph-eye{font-size:7.5px;letter-spacing:.22em;text-transform:uppercase;color:#d9b45a;margin:0 0 8px}',
+    '.bbch-mkt .ph-h{font-size:24px;line-height:1.02;font-weight:800;letter-spacing:-.03em;margin:0 0 6px}.bbch-mkt .ph-h .it{display:block;font-size:1.04em}',
+    '.bbch-mkt .ph-p{font-size:10px;color:#bfb8aa;margin:0 0 10px}',
+    '.bbch-mkt .ph-pill{display:inline-flex;gap:4px;align-items:center;font-size:8.5px;font-weight:600;border:1px solid var(--gl);border-radius:999px;padding:3px 8px;margin:0 0 5px}',
+    '.bbch-mkt .ph-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin:8px 0 12px}',
+    '.bbch-mkt .ph-grid div{border:1px solid var(--line);border-radius:9px;padding:7px 4px;text-align:center;font-size:8.5px;font-weight:600;background:#151517}',
+    '.bbch-mkt .ph-grid div small{display:block;font-size:6px;letter-spacing:.14em;color:#a49f95;margin-bottom:2px}',
+    '.bbch-mkt .ph-grid .fin{background:var(--g);color:#17120a}.bbch-mkt .ph-grid .fin small{color:#5a4618}',
+    '.bbch-mkt .ph-cta{display:block;text-align:center;border-radius:10px;background:var(--g);color:#17120a;font-weight:700;font-size:11px;padding:10px;margin:0 0 6px}',
+    '.bbch-mkt .ph-fine{text-align:center;font-size:7.5px;color:#7d786f;margin:0}.bbch-mkt .ph-fine b{color:#d9b45a}',
+    '.bbch-mkt .ph-url{position:absolute;left:0;right:0;bottom:0;background:#18181b;border-top:1px solid var(--line);text-align:center;font-size:8px;color:#d7d1c4;padding:9px 0 16px}',
+    '.bbch-mkt .ph-coin{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;border:1px solid var(--gl);border-radius:999px;padding:3px 8px}',
+    '.bbch-mkt .ph-coin::before{content:"";width:9px;height:9px;border-radius:50%;background:var(--g)}',
+    '.bbch-mkt .ph-ring{position:relative;width:118px;height:118px;margin:4px auto 10px}.bbch-mkt .ph-ring svg{width:100%;height:100%;transform:rotate(-90deg)}',
+    '.bbch-mkt .ph-ring b{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;font-size:30px;font-weight:800;line-height:1}',
+    '.bbch-mkt .ph-ring b i{font-style:normal;font-size:9px;color:#a49f95;letter-spacing:.18em;margin-top:5px}',
+    '.bbch-mkt .ph-chips{display:flex;justify-content:center;gap:6px;margin:0 0 10px}',
+    '.bbch-mkt .ph-chips span{font-size:8.5px;font-weight:600;border:1px solid var(--gl);border-radius:999px;padding:3px 8px;color:#e8c97a}',
+    '.bbch-mkt .ph-task{display:flex;align-items:center;justify-content:space-between;gap:8px;border:1px solid rgba(255,255,255,.05);background:#161618;border-radius:11px;padding:8px 10px;margin:0 0 6px}',
+    '.bbch-mkt .ph-task b{display:block;font-size:10px}.bbch-mkt .ph-task small{font-size:7.5px;color:#a49f95}',
+    '.bbch-mkt .ph-task .go{font-size:8px;font-weight:700;border-radius:7px;padding:4px 8px;border:1px solid var(--gl);color:#e8c97a}',
+    '.bbch-mkt .ph-task .go.g{background:var(--g);color:#17120a;border-color:transparent}.bbch-mkt .ph-task.ph-hot{border-color:var(--gl)}',
+    '.bbch-mkt .ph-ex{display:block;width:max-content;margin:6px auto 0;font-size:6.5px;font-weight:700;letter-spacing:.14em;color:#d9b45a;border:1px dashed var(--gl);border-radius:4px;padding:2px 6px}',
+    '.bbch-mkt .ph-tabs{position:absolute;left:0;right:0;bottom:0;display:flex;justify-content:space-around;background:#121214;border-top:1px solid var(--line);padding:9px 6px 18px;font-size:7.5px;color:#a49f95;text-align:center}',
+    '.bbch-mkt .ph-tabs span{display:flex;flex-direction:column;align-items:center;gap:2px}.bbch-mkt .ph-tabs .on{color:#d9b45a}',
+    '@media (prefers-reduced-motion:no-preference){.bbch-mkt .phone{animation:bbchFloat 7s ease-in-out infinite}.bbch-mkt .p2{animation-delay:-3.5s}@keyframes bbchFloat{0%,100%{translate:0 0}50%{translate:0 -8px}}}',
+    // Tablet
+    '@media (max-width:1100px){.bbch-mkt-wrap{grid-template-columns:minmax(0,1fr);gap:20px}.bbch-mkt-phones{width:600px;max-width:100%;margin:0 auto}}',
+    // Mobile: swipe cards, tiles, full-width CTA (same as the /challenge mobile design)
+    '@media (max-width:760px){' +
+      '.bbch-mkt{padding:56px 20px 48px}' +
+      '.bbch-mkt-pills{flex-direction:column;gap:10px;margin-top:18px}' +
+      '.bbch-mkt-copy::before{content:"7";position:absolute;right:-26px;top:28px;font-family:"Playfair Display",Georgia,serif;font-style:italic;font-weight:500;font-size:330px;line-height:.8;color:transparent;-webkit-text-stroke:1.4px rgba(201,160,64,.32);pointer-events:none;z-index:0}' +
+      '.bbch-mkt-copy>*{position:relative;z-index:1}' +
+      '.bbch-mkt-eye{font-size:10.5px;letter-spacing:.2em;margin-bottom:20px}.bbch-mkt-eye::before{width:22px}' +
+      '.bbch-mkt h2.bbch-mkt-h{font-size:46px;margin-bottom:16px}' +
+      '.bbch-mkt-lede{font-size:17px;margin-bottom:26px;max-width:300px}' +
+      '.bbch-mkt-feats{display:none}' +
+      '.bbch-mkt-dw{position:relative;margin:0 -20px}' +
+      '.bbch-mkt-sub{display:flex;align-items:center;gap:12px;margin:0 20px 14px;font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#d9b45a}.bbch-mkt-sub::before{content:"";width:22px;height:1px;background:#d9b45a}' +
+      '.bbch-mkt-swipe{display:block;position:absolute;right:20px;top:-2px;font-size:12px;color:#a49f95}' +
+      '.bbch-mkt-days{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 20px 6px;margin:0;scrollbar-width:none;-webkit-overflow-scrolling:touch}.bbch-mkt-days::-webkit-scrollbar{display:none}' +
+      '.bbch-mkt-day{flex:0 0 142px;height:168px;scroll-snap-align:start;align-items:flex-start;text-align:left;border:1px solid var(--line);border-radius:20px;padding:16px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0)),#141416;transition:background .3s}' +
+      '.bbch-mkt-day .ico{width:38px;height:38px;border-radius:11px;border:0;background:rgba(255,255,255,.07);font-size:19px;margin-bottom:auto}' +
+      '.bbch-mkt-day .dn{margin-top:auto;font-size:10px;letter-spacing:.16em}.bbch-mkt-day b{font-size:19px;font-weight:700;margin-top:3px}' +
+      '.bbch-mkt-day.on{background:var(--g);border-color:transparent;box-shadow:0 14px 30px rgba(201,160,64,.22)}' +
+      '.bbch-mkt-day.on .ico{background:rgba(23,18,10,.16)}.bbch-mkt-day.on .ico svg{color:#17120a}.bbch-mkt-day.on .dn{color:#5a4618}.bbch-mkt-day.on b{color:#17120a}' +
+      '.bbch-mkt-dots{display:flex;justify-content:center;gap:6px;margin:14px 0 22px}.bbch-mkt-dots i{width:6px;height:6px;border-radius:999px;background:#3a3a3e;transition:width .3s,background .3s}.bbch-mkt-dots i.on{width:22px;background:#d9b45a}' +
+      '.bbch-mkt-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 24px}' +
+      '.bbch-mkt-tiles div{border:1px solid var(--line);border-radius:16px;background:#141416;padding:14px 8px;text-align:center;font-size:12.5px;font-weight:600;color:#e9e3d6;line-height:1.3}.bbch-mkt-tiles i{display:block;font-style:normal;font-size:20px;margin-bottom:6px}' +
+      '.bbch-mkt-ctas{display:block}.bbch-mkt a.bbch-mkt-cta{width:100%;min-height:62px;font-size:19px;border-radius:18px}.bbch-mkt a.bbch-mkt-link{display:none}' +
+      '.bbch-mkt-note{text-align:center;margin-top:14px;font-size:13px}' +
+      '.bbch-mkt-phones{display:none}' +
+    '}'
   ].join('');
 
-  var MKT_ICONS = {
-    plan: '<path d="M8 3h8a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M9.5 8.5l1.2 1.2 2.3-2.4M9.5 13.5l1.2 1.2 2.3-2.4"/>',
-    track: '<path d="M3 12h4l3-8 4 16 3-8h4"/>',
-    award: '<circle cx="12" cy="9" r="5.5"/><path d="M9 13.8 7.5 21l4.5-2.6L16.5 21 15 13.8"/>'
-  };
-  function mktIcon(k) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + MKT_ICONS[k] + '</svg>'; }
+  var MKT_DAYS = [['Check in', ''], ['Meals', '🍽️'], ['Train', '🏋️'], ['Protein', '🥚'], ['Steps', '👣'], ['Mind', '🧠'], ['Weigh in', '⚖️']];
+  var MKT_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  var MKT_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
+  var MKT_LOGO = '/img/bodybank-logo-gold-360.png';
+
+  function mktPhones() {
+    return '<div class="bbch-mkt-phones" aria-hidden="true">' +
+      '<div class="phone p1"><div class="scr"><div class="island"></div><div class="sb"><span>9:41</span><i>▂▄▆ ◔ ▭</i></div>' +
+        '<div class="ph-top"><img src="' + MKT_LOGO + '" alt="" width="360" height="138"><span class="ph-burger"><i></i><i></i><i></i></span></div>' +
+        '<p class="ph-eye">— The 7 day challenge</p><p class="ph-h">Seven days.<span class="it">Start strong.</span></p>' +
+        '<p class="ph-p">Three small wins a day, coached and tracked for you.</p>' +
+        '<span class="ph-pill">⏱️ 2 minute check ins</span><br><span class="ph-pill">🏋️ Guided 20 min workouts</span><br><span class="ph-pill">🏅 Certificate and badge</span>' +
+        '<div class="ph-grid"><div><small>DAY 1</small>Check in</div><div><small>DAY 2</small>Meals</div><div><small>DAY 3</small>Train</div><div><small>DAY 4</small>Protein</div>' +
+        '<div><small>DAY 5</small>Steps</div><div><small>DAY 6</small>Mind</div><div><small>DAY 7</small>Weigh in</div><div class="fin"><small>FINISH</small>Certificate</div></div>' +
+        '<span class="ph-cta">Start free →</span><p class="ph-fine"><b>Free</b> · No card · iPhone, Android, Web</p><div class="ph-url">🔒 bodybank.fit/challenge</div></div></div>' +
+      '<div class="phone p2"><div class="scr"><div class="island"></div><div class="sb"><span>9:41</span><i>▂▄▆ ◔ ▭</i></div>' +
+        '<div class="ph-top"><img src="' + MKT_LOGO + '" alt="" width="360" height="138" style="height:20px"><span class="ph-coin">140</span></div>' +
+        '<p class="ph-eye">— Starter challenge</p><p class="ph-h" style="font-size:19px">Day 4, <span class="it" style="display:inline">keep going</span></p>' +
+        '<div class="ph-ring"><svg viewBox="0 0 120 120"><defs><linearGradient id="bbchMktG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#F1D488"/><stop offset=".55" stop-color="#C9A040"/><stop offset="1" stop-color="#9E7A22"/></linearGradient></defs>' +
+        '<circle cx="60" cy="60" r="50" fill="none" stroke="#242428" stroke-width="10"/><circle cx="60" cy="60" r="50" fill="none" stroke="url(#bbchMktG)" stroke-width="10" stroke-linecap="round" stroke-dasharray="314" stroke-dashoffset="135"/></svg><b>4<i>DAYS</i></b></div>' +
+        '<div class="ph-chips"><span>🔥 4 day streak</span><span>1 of 3 done</span></div>' +
+        '<div class="ph-task"><span><b>Daily check in</b><small>Done 8:12 am</small></span></div>' +
+        '<div class="ph-task"><span><b>Protein target</b><small>62 of 120 g</small></span><span class="go">Log meal</span></div>' +
+        '<div class="ph-task ph-hot"><span><b>20 min Coach Mode</b><small>Lower body</small></span><span class="go g">Start</span></div>' +
+        '<span class="ph-ex">EXAMPLE</span><div class="ph-tabs"><span class="on">🏆<br>Challenge</span><span>🏋️<br>Train</span><span>🍽️<br>Meals</span><span>👤<br>Me</span></div></div></div>' +
+      '</div>';
+  }
 
   function marketingBanner() {
     var hero = document.getElementById('hero');
@@ -246,46 +323,63 @@
       var st = document.createElement('style');
       st.textContent = MKT_CSS;
       document.head.appendChild(st);
+      if (!document.querySelector('link[data-bbch-mkt-font]')) {
+        var fl = document.createElement('link');
+        fl.rel = 'stylesheet';
+        fl.href = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Playfair+Display:ital,wght@1,500&display=swap';
+        fl.setAttribute('data-bbch-mkt-font', '1');
+        document.head.appendChild(fl);
+      }
       var len = Number(free.length_days) || 7;
-      var minDays = Number(free.min_days) || len;
-      var grace = len - minDays;
 
-      // Hero announcement, set beside the App Store pill.
+      // Hero announcement, set beside the App Store pill (both share one centred row).
       var store = hero.querySelector('.hero-store');
       var btns = hero.querySelector('.hero-btns');
       var pill = document.createElement('a');
       pill.className = 'bbch-mkt-pill';
       pill.href = '/challenge?utm_source=home&utm_medium=hero';
       pill.innerHTML = '<span class="bbch-mkt-tag">NEW</span><span>The <b>' + len + '-Day Starter Challenge</b> · join free</span><span class="arw" aria-hidden="true">&rsaquo;</span>';
-      // Both pills share one centred row so they always line up.
       var row = document.createElement('div');
       row.className = 'bbch-mkt-pills';
       if (store && store.parentNode) { store.parentNode.insertBefore(row, store); row.appendChild(pill); row.appendChild(store); }
       else if (btns) { btns.parentNode.insertBefore(row, btns.nextSibling); row.appendChild(pill); }
 
-      // Feature band under the hero. The day plan comes from the published challenge.
-      var days = (free.day_titles || []).slice(0, len);
+      // The band under the hero: same design as /challenge.
+      var href = '/challenge?utm_source=home&amp;utm_medium=section';
       var sec = document.createElement('section');
       sec.id = 'bbChMkt';
       sec.className = 'bbch-mkt';
       sec.setAttribute('aria-labelledby', 'bbChMktH');
-      sec.innerHTML = '<div class="bbch-mkt-wrap"><div>' +
-        '<p class="bbch-mkt-eye">The BodyBank ' + len + '-Day Challenge</p>' +
-        '<h2 class="bbch-mkt-h" id="bbChMktH">' + (len === 7 ? 'Seven' : len) + ' days to build <em>habits that last.</em></h2>' +
-        '<p class="bbch-mkt-lead">A coach-designed programme that turns intention into routine. Three focused actions each day, a two-minute check-in, a protein target and a short guided workout, tracked for you in the BodyBank app.</p>' +
-        '<ul class="bbch-mkt-pts">' +
-        '<li><span class="bbch-mkt-ico">' + mktIcon('plan') + '</span><div><b>A clear daily plan</b><span>Achievable actions curated by the BodyBank coaching team, about thirty minutes a day.</span></div></li>' +
-        '<li><span class="bbch-mkt-ico">' + mktIcon('track') + '</span><div><b>Progress tracked automatically</b><span>Your check-ins, meals and workouts are recognised as you log them. Nothing to tick by hand.</span></div></li>' +
-        '<li><span class="bbch-mkt-ico">' + mktIcon('award') + '</span><div><b>Recognition when you finish</b><span>A certificate of completion, your Starter badge, reward coins and a complimentary lifestyle consultation.</span></div></li>' +
-        '</ul>' +
-        '<div class="bbch-mkt-ctas"><a class="bbch-mkt-cta" href="/challenge?utm_source=home&amp;utm_medium=section">Begin the free challenge <span aria-hidden="true">&rarr;</span></a>' +
-        '<a class="bbch-mkt-link" href="/challenge?utm_source=home&amp;utm_medium=section_link">See how it works</a></div>' +
-        '<p class="bbch-mkt-fine">Complimentary · No card required · iPhone, Android and web</p></div>' +
-        (days.length ? '<aside class="bbch-mkt-card" aria-label="The ' + len + '-day plan"><div class="bbch-mkt-card-top"><p>Your ' + len + '-day plan</p><span>day by day</span></div>' +
-          '<ol class="bbch-mkt-days">' + days.map(function (t) { return '<li>' + esc(t) + '</li>'; }).join('') + '</ol>' +
-          '<p class="bbch-mkt-card-foot">Complete <b>' + minDays + ' of ' + len + ' days</b> to earn your certificate.' + (grace > 0 ? (grace === 1 ? ' One grace day is built in.' : ' ' + grace + ' grace days are built in.') : '') + '</p></aside>' : '') +
-        '</div>';
+      sec.innerHTML = '<div class="bbch-mkt-wrap"><div class="bbch-mkt-copy">' +
+        '<p class="bbch-mkt-eye">The BodyBank 7 day challenge</p>' +
+        '<h2 class="bbch-mkt-h" id="bbChMktH"><span class="l1">Seven days.</span><span class="it">Start strong.</span></h2>' +
+        '<p class="bbch-mkt-lede">Three small wins a day, coached and tracked for you.</p>' +
+        '<ul class="bbch-mkt-feats" aria-label="What is included"><li><span aria-hidden="true">⏱️</span>2 minute check ins</li><li><span aria-hidden="true">🏋️</span>Guided 20 min workouts</li><li><span aria-hidden="true">🏅</span>Certificate and badge</li></ul>' +
+        '<div class="bbch-mkt-dw"><p class="bbch-mkt-sub">Your 7 days</p><span class="bbch-mkt-swipe" aria-hidden="true">Swipe →</span>' +
+        '<ol class="bbch-mkt-days" aria-label="Your 7 days">' + MKT_DAYS.map(function (x, i) {
+          return '<li class="bbch-mkt-day' + (i === 0 ? ' on' : '') + '"><span class="ico" aria-hidden="true">' + (x[1] || MKT_CHECK) + '</span><span class="dn">Day ' + (i + 1) + '</span><b>' + x[0] + '</b></li>';
+        }).join('') + '</ol>' +
+        '<div class="bbch-mkt-dots" aria-hidden="true">' + MKT_DAYS.map(function (x, i) { return '<i' + (i === 0 ? ' class="on"' : '') + '></i>'; }).join('') + '</div></div>' +
+        '<div class="bbch-mkt-tiles" aria-hidden="true"><div><i>⏱️</i>2 minute check ins</div><div><i>🏋️</i>Guided 20 min workouts</div><div><i>🏅</i>Certificate and badge</div></div>' +
+        '<div class="bbch-mkt-ctas"><a class="bbch-mkt-cta" href="' + href + '">Start free ' + MKT_ARROW + '</a>' +
+        '<a class="bbch-mkt-link" href="/challenge?utm_source=home&amp;utm_medium=section_link#plan">See the 7 day plan</a></div>' +
+        '<p class="bbch-mkt-note"><b>Free</b> · No card · iPhone, Android, Web</p></div>' +
+        mktPhones() + '</div>';
       hero.parentNode.insertBefore(sec, hero.nextSibling);
+
+      // Mobile swipe: the card at the left edge turns gold and the dots follow.
+      var days = sec.querySelector('.bbch-mkt-days');
+      var dots = sec.querySelector('.bbch-mkt-dots').children;
+      var raf = 0;
+      days.addEventListener('scroll', function () {
+        if (raf) return;
+        raf = requestAnimationFrame(function () {
+          raf = 0;
+          var items = days.children, left = days.getBoundingClientRect().left, best = 0, bestD = Infinity;
+          for (var i = 0; i < items.length; i++) { var dd = Math.abs(items[i].getBoundingClientRect().left - left - 20); if (dd < bestD) { bestD = dd; best = i; } }
+          for (var j = 0; j < items.length; j++) { items[j].classList.toggle('on', j === best); if (dots[j]) dots[j].classList.toggle('on', j === best); }
+        });
+      }, { passive: true });
     }).catch(function () { /* banner is optional */ });
   }
 
