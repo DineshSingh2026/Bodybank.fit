@@ -107,8 +107,18 @@
 
   // switchUserTab('coach') activates #usec-coach (its generic usec- logic) and then
   // calls this hook.
-  window.bbCoachOpen = function () {
+  // Optional opts ({ area, from }) come from Challenges: preselect the body area,
+  // then switch to the Coach tab (which calls this hook again without opts).
+  // Called with no argument the behaviour is exactly as before.
+  window.bbCoachOpen = function (opts) {
     if (!state.enabled) { if (typeof window.switchUserTab === 'function') window.switchUserTab('workout'); return; }
+    if (opts && typeof opts === 'object') {
+      var area = ['upper', 'lower', 'core', 'full'].indexOf(opts.area) >= 0 ? opts.area : null;
+      var u0 = user();
+      if (area && !(u0 && hasDraft(String(u0.id)))) { try { localStorage.setItem('bb_coach_area', area); } catch (e) { /* private mode */ } }
+      var sec0 = document.getElementById('usec-coach');
+      if (!(sec0 && sec0.classList.contains('active')) && typeof window.switchUserTab === 'function') { window.switchUserTab('coach'); return; }
+    }
     var sec = document.getElementById('usec-coach');
     if (sec && !window.bbCoach) sec.innerHTML = '<div class="bbcm" style="padding:24px;color:#a49f95;text-align:center">Loading Coach Mode…</div>';
     ensureCoach().then(function (c) { if (c) c.open(); }).catch(function () {

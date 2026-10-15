@@ -36,9 +36,10 @@ function buildSvg(d, format) {
   const day = Math.max(1, Number(data.day) || 1);
   const st = data.stats || {};
   const bits = [];
-  if (st.checkins != null) bits.push(`${st.checkins} check ins`);
-  if (st.workouts != null) bits.push(`${st.workouts} workouts`);
-  if (data.include_results && st.protein_days != null) bits.push(`${st.protein_days} protein days`);
+  const pl = (n, one, many) => `${n} ${Number(n) === 1 ? one : many}`;
+  if (st.checkins != null) bits.push(pl(st.checkins, 'check in', 'check ins'));
+  if (st.workouts != null) bits.push(pl(st.workouts, 'workout', 'workouts'));
+  if (data.include_results && st.protein_days != null) bits.push(pl(st.protein_days, 'protein day', 'protein days'));
   const name = esc(data.name || '');
   const url = esc(data.url || 'bodybank.fit/challenge');
   return `<?xml version="1.0" encoding="UTF-8"?>

@@ -5375,7 +5375,9 @@ button.bb-today-pill{cursor:pointer}
 <script src="js/admin-reports.js?v=4"></script>
 <script src="js/admin-signature-reports.js?v=1"></script>
 <!-- Coach Mode: tiny loader; js/coach-mode.js + css load lazily (flag: COACH_MODE_ENABLED) -->
-<script src="js/coach-loader.js?v=1" defer></script>
+<script src="js/coach-loader.js?v=2" defer></script>
+<!-- Challenges: tiny loader; js/challenges.js + css load lazily (flag: CHALLENGES_ENABLED, default off) -->
+<script src="js/challenges-loader.js?v=1" defer></script>
 <script src="js/countries.js?v=1"></script>
 <script src="js/bb-plans.js?v=2"></script>
 <script src="js/member-home.js?v=16"></script>
@@ -7094,6 +7096,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
         <a class="user-sidebar-link active" href="#" data-tab="home" onclick="switchUserTab('home');return false"><span class="user-sidebar-icon" aria-hidden="true">&#9632;</span>Home</a>
         <a class="user-sidebar-link" href="#" data-tab="workout" onclick="switchUserTab('workout');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127947;</span>My Workout</a>
         <a class="user-sidebar-link" href="#" data-tab="coach" id="bbCoachSidebarLink" style="display:none" onclick="switchUserTab('coach');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127941;</span>Coach Mode</a>
+        <a class="user-sidebar-link" href="#" data-tab="challenge" id="bbChallengeSidebarLink" style="display:none" onclick="switchUserTab('challenge');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127942;</span>Challenges</a>
         <a class="user-sidebar-link" href="/ai-trainer.html?v=2"><span class="user-sidebar-icon" aria-hidden="true">&#129302;</span>AI Trainer</a>
         <a class="user-sidebar-link" href="#" data-tab="programs" onclick="switchUserTab('programs');return false"><span class="user-sidebar-icon" aria-hidden="true">&#127919;</span>My Programs</a>
         <a class="user-sidebar-link" href="#" data-tab="checkin" onclick="switchUserTab('checkin');return false"><span class="user-sidebar-icon" aria-hidden="true">&#10003;</span>Check-in</a>
@@ -7944,6 +7947,8 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <!-- MY PROGRAMS -->
     <!-- COACH MODE — rendered by js/coach-mode.js (lazy). Lives inside Train. -->
     <div class="user-section" id="usec-coach"></div>
+    <!-- Challenges (js/challenges.js, lazy via js/challenges-loader.js) -->
+    <div class="user-section" id="usec-challenge"></div>
 
     <div class="user-section" id="usec-programs">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
@@ -8942,6 +8947,11 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <span class="admin-section-card-icon" aria-hidden="true">&#128248;</span>
             <span class="admin-section-card-title">Transformations</span>
             <span class="admin-section-card-desc">Publish before/after photos to the website</span>
+          </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('challenges');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">&#127942;</span>
+            <span class="admin-section-card-title">Challenges</span>
+            <span class="admin-section-card-desc">Build and publish challenges, members, stats and call requests</span>
           </a>
         </div>
       </div>
@@ -10239,6 +10249,10 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <!-- TAB: Coach Mode library — exercise review (js/coach-admin.js, lazy via js/coach-loader.js);
          fed by /api/coach/admin/* (routes/coachMode.js). -->
     <div class="admin-tab-content" id="tab-coachlib"></div>
+
+    <!-- TAB: Challenges — build, publish, enrollments, stats, call queue (js/challenges-admin.js,
+         lazy via js/challenges-loader.js); fed by /api/challenges/admin/* (routes/challenges.js). -->
+    <div class="admin-tab-content" id="tab-challenges"></div>
 
     </div><!-- .admin-tab-content-wrap -->
 
@@ -18667,6 +18681,7 @@ function switchTab(tab) {
   if (tab === 'tokens') adminTabLoad('tokens', loadAdminTokenUsage);
   if (tab === 'reports') { if (typeof loadAdminReports === 'function') adminTabLoad('reports', loadAdminReports); }
   if (tab === 'coachlib' && typeof window.bbCoachAdminOpen === 'function') window.bbCoachAdminOpen();
+  if (tab === 'challenges' && typeof window.bbChallengesAdminOpen === 'function') window.bbChallengesAdminOpen();
 }
 /* ======================================================================
    ADMIN . TOKENS -- AI spend ledger
@@ -21386,6 +21401,7 @@ function switchUserTab(tab) {
     }
   }
   if (tab === 'coach' && typeof window.bbCoachOpen === 'function') window.bbCoachOpen();
+  if (tab === 'challenge' && typeof window.bbChallengeOpen === 'function') window.bbChallengeOpen();
   if (wasOnWorkout && tab !== 'workout' && typeof timerRunning !== 'undefined' && timerRunning) {
     if (typeof wkEnsureWorkoutBackgroundBanner === 'function') wkEnsureWorkoutBackgroundBanner();
   }

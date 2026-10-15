@@ -718,6 +718,7 @@ function createChallengeEngine(deps) {
     let checkins = 0;
     let sessions = 0;
     let sets = 0;
+    let otherWorkouts = 0;
     let proteinDays = 0;
     const steps = [];
     for (let d = 1; d <= len; d++) {
@@ -726,6 +727,8 @@ function createChallengeEngine(deps) {
       if (ev.checkin) checkins += 1;
       if (ev.checkin && ev.checkin.steps != null && ev.checkin.steps > 0) steps.push(ev.checkin.steps);
       ev.coach.forEach((w) => { sessions += 1; sets += w.total_sets || 0; });
+      // My Workout sessions (Coach Mode mirrors excluded: they are counted above).
+      otherWorkouts += ev.workouts.filter((w) => w.type !== 'coach_mode' && w.duration_seconds >= C.MIN_WORKOUT_SECONDS).length;
       if (C.evaluateTask({ kind: 'protein_target', params: { pct: 90 } }, ev, goals).done) proteinDays += 1;
     }
     const coinRow = await queryOne(
@@ -744,7 +747,7 @@ function createChallengeEngine(deps) {
       length: len,
       points: Number(e.points) || 0,
       stats: {
-        checkins, sessions, sets, protein_days: proteinDays,
+        checkins, sessions, sets, workouts: sessions + otherWorkouts, protein_days: proteinDays,
         avg_steps: steps.length ? Math.round(steps.reduce((a, b) => a + b, 0) / steps.length) : null,
         coins: coinRow ? Number(coinRow.n) || 0 : 0
       }

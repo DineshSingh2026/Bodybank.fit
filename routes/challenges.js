@@ -131,7 +131,7 @@ function createChallengesRouter(deps) {
         length: e.length_days,
         done: true,
         include_results: !!e.share_results,
-        stats: { checkins: r.stats.checkins, workouts: r.stats.sessions, protein_days: r.stats.protein_days },
+        stats: { checkins: r.stats.checkins, workouts: r.stats.workouts, protein_days: r.stats.protein_days },
         url: 'bodybank.fit/challenge'
       }, req.query.format === 'square' ? 'square' : 'story');
       res.set('Content-Type', card.type);
