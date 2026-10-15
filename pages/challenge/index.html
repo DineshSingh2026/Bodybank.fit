@@ -20,6 +20,7 @@
 <meta name="twitter:description" content="3 small tasks a day with real coaches. Certificate, badge and a lifestyle manager call when you finish.">
 <meta name="twitter:image" content="https://www.bodybank.fit/api/challenges/og.png">
 <link rel="icon" href="/img/logo.png">
+<link rel="preload" as="image" href="/img/bodybank-logo-gold-360.webp" type="image/webp">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&family=Playfair+Display:ital,wght@1,400&display=swap">
@@ -44,7 +45,13 @@ body{margin:0;background:radial-gradient(120% 50% at 50% -5%,rgba(201,160,64,.16
 a{color:var(--gt)}
 .wrap{max-width:560px;margin:0 auto;padding:max(16px,env(safe-area-inset-top)) 16px calc(40px + env(safe-area-inset-bottom))}
 header{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:6px 0 18px}
-.brand{font-weight:800;letter-spacing:.14em;font-size:19px;color:var(--text);text-decoration:none}
+.lead{display:flex;align-items:center;gap:12px;min-width:0}
+.back{flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:1px solid var(--line);background:var(--card2);color:var(--text);display:inline-flex;align-items:center;justify-content:center;text-decoration:none;transition:border-color .2s}
+.back:hover{border-color:var(--gl)}
+.back svg{width:18px;height:18px}
+.brand{display:inline-flex;align-items:center;text-decoration:none;line-height:0}
+.brand img{display:block;height:44px;width:auto}
+@media (min-width:720px){.brand img{height:50px}}
 .login{min-height:44px;display:inline-flex;align-items:center;padding:0 16px;border-radius:14px;border:1px solid var(--gl);color:var(--gt);font-weight:700;text-decoration:none;font-size:14px}
 .pill{display:inline-flex;align-items:center;gap:8px;min-height:36px;padding:6px 14px;border-radius:999px;border:1px solid var(--gl);background:rgba(201,160,64,.08);color:var(--gt);font-weight:700;font-size:13.5px}
 .pill svg{width:16px;height:16px;color:#8fb3ec}
@@ -55,7 +62,7 @@ h1 em,h2 em{font-family:'Playfair Display',Georgia,serif;font-style:italic;font-
 .sub{color:var(--muted);font-size:16px;margin:0 auto 22px;max-width:440px}
 .cta{width:100%;min-height:60px;border:0;border-radius:20px;background:var(--grad);color:var(--ink);font-family:inherit;font-weight:800;font-size:18px;line-height:1;letter-spacing:.01em;cursor:pointer;box-shadow:0 16px 36px rgba(201,160,64,.28),inset 0 1px 0 rgba(255,255,255,.4)}
 .cta:disabled{opacity:.6;cursor:progress}
-.cta:focus-visible,.login:focus-visible,.ghost:focus-visible,summary:focus-visible{outline:2px solid var(--gt);outline-offset:3px}
+.cta:focus-visible,.login:focus-visible,.back:focus-visible,.brand:focus-visible,.ghost:focus-visible,summary:focus-visible{outline:2px solid var(--gt);outline-offset:3px}
 .note{font-size:12.5px;color:var(--muted);margin:10px 0 0}
 .msg{margin:12px 0 0;padding:10px 14px;border-radius:12px;font-size:14px;background:rgba(224,112,95,.1);border:1px solid rgba(224,112,95,.35);color:#f6cbc2}
 .msg.ok{background:rgba(127,207,154,.1);border-color:rgba(127,207,154,.35);color:#cfeedb}
@@ -79,6 +86,8 @@ details p{margin:0 0 12px;color:var(--muted);font-size:14.5px}
 .ghost{width:100%;min-height:50px;border-radius:16px;border:1px solid var(--gl);background:transparent;color:var(--gt);font-family:inherit;font-weight:700;font-size:15px;cursor:pointer;margin-top:12px}
 footer{margin-top:34px;text-align:center;font-size:12.5px;color:#77726a}
 footer a{color:#a49f95}
+footer .foot-logo{justify-content:center;margin:0 auto 10px;opacity:.85}
+footer .foot-logo img{height:34px}
 .sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap}
 @media (min-width:720px){.wrap{max-width:640px}.grid{grid-template-columns:repeat(4,1fr)}}
 @media (prefers-reduced-motion:no-preference){.hero>*{animation:in .5s ease-out both}.hero>*:nth-child(2){animation-delay:.05s}.hero>*:nth-child(3){animation-delay:.1s}@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}}
@@ -87,7 +96,10 @@ footer a{color:#a49f95}
 <body>
 <div class="wrap">
   <header>
-    <a class="brand" href="/" aria-label="BodyBank home">BODYBANK</a>
+    <div class="lead">
+      <a class="back" id="back" href="/" aria-label="Back"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
+      <a class="brand" href="/" aria-label="BodyBank home"><picture><source srcset="/img/bodybank-logo-gold-360.webp" type="image/webp"><img src="/img/bodybank-logo-gold-360.png" alt="BodyBank" width="360" height="138" decoding="async" fetchpriority="high"></picture></a>
+    </div>
     <a class="login" id="login" href="/signin?next=%2Fchallenge%3Fjoin%3D1">Log in</a>
   </header>
 
@@ -133,7 +145,8 @@ footer a{color:#a49f95}
   </main>
 
   <footer>
-    <p>BodyBank · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></p>
+    <a class="brand foot-logo" href="/" aria-label="BodyBank home"><img src="/img/bodybank-logo-gold-360.png" alt="BodyBank" width="360" height="138" loading="lazy" decoding="async"></a>
+    <p>© BodyBank · <a href="/privacy.html">Privacy</a> · <a href="/terms.html">Terms</a></p>
   </footer>
 </div>
 <script>
@@ -143,6 +156,13 @@ footer a{color:#a49f95}
   var $ = function (id) { return document.getElementById(id); };
   var qs = new URLSearchParams(location.search);
   var challengeId = 'starter-7';
+
+  // Back: return to the previous BodyBank page when there is one, else the home page.
+  $('back').addEventListener('click', function (e) {
+    try {
+      if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1) { e.preventDefault(); history.back(); }
+    } catch (err) { /* follow the link */ }
+  });
 
   // Remember where the visitor came from (sent with the join).
   try {

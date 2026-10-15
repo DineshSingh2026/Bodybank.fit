@@ -17,6 +17,10 @@ const PDFDocument = require('pdfkit');
 const L = require('./pdfLayout');
 
 const FONT_DIR = path.join(__dirname, '..', 'assets', 'fonts');
+// The gold BodyBank logo on a transparent background (public/img/bodybank-logo-gold.png, 833×319).
+const LOGO_FILE = path.join(__dirname, '..', 'public', 'img', 'bodybank-logo-gold.png');
+let LOGO = null;
+try { LOGO = fs.readFileSync(LOGO_FILE); } catch (_) { LOGO = null; }
 const GOLD = '#D9B45A';
 const GOLD_DIM = '#9E7A22';
 const GOLD_LIGHT = '#F1D488';
@@ -87,8 +91,18 @@ function renderCertificate(d) {
       const x = 70;
       const w = W - 140;
 
-      L.drawFit(doc, 'BODYBANK', x, 52, w, { font: 'Display', size: 13, color: GOLD, align: 'center', characterSpacing: 3 });
-      medal(doc, W / 2, 112);
+      if (LOGO) {
+        const lh = 46;
+        const lw = Math.round(lh * 833 / 319);
+        try { doc.image(LOGO, (W - lw) / 2, 54, { width: lw, height: lh }); } catch (_) { LOGO = null; }
+      }
+      if (!LOGO) L.drawFit(doc, 'BODYBANK', x, 52, w, { font: 'Display', size: 13, color: GOLD, align: 'center', characterSpacing: 3 });
+      // Fine gold divider: rule · diamond · rule.
+      doc.save();
+      doc.moveTo(W / 2 - 70, 124).lineTo(W / 2 - 10, 124).lineWidth(0.7).stroke(GOLD_DIM);
+      doc.moveTo(W / 2 + 10, 124).lineTo(W / 2 + 70, 124).lineWidth(0.7).stroke(GOLD_DIM);
+      doc.moveTo(W / 2, 119).lineTo(W / 2 + 5, 124).lineTo(W / 2, 129).lineTo(W / 2 - 5, 124).closePath().fill(GOLD);
+      doc.restore();
       L.drawFit(doc, 'CERTIFICATE OF COMPLETION', x, 146, w, { font: 'Semi', size: 12, color: GOLD, align: 'center', characterSpacing: 2.6 });
 
       L.drawFit(doc, data.name || 'BodyBank member', x, 186, w, { font: 'Serif', size: 46, minSize: 22, color: GOLD_LIGHT, align: 'center' });

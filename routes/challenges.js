@@ -775,12 +775,18 @@ function createChallengeSharePage(deps) {
 <meta property="og:url" content="${esc(origin + '/c/' + token)}"><meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(desc)}"><meta name="twitter:image" content="${esc(img)}">
 <meta name="robots" content="noindex"><link rel="canonical" href="${esc(origin + '/challenge')}">
-<style>:root{color-scheme:dark}body{margin:0;background:#0b0b0c;color:#f5f1e8;font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:24px 16px;box-sizing:border-box}
-main{max-width:440px;width:100%;text-align:center}img{width:100%;height:auto;border-radius:22px;border:1px solid rgba(201,160,64,.38)}
+<style>:root{color-scheme:dark}body{margin:0;background:radial-gradient(120% 50% at 50% -5%,rgba(201,160,64,.14),transparent 60%),#0b0b0c;color:#f5f1e8;font-family:'Plus Jakarta Sans',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;display:flex;min-height:100vh;justify-content:center;padding:20px 16px 32px;box-sizing:border-box}
+main{max-width:440px;width:100%;text-align:center}
+.top{display:flex;align-items:center;gap:12px;margin:0 0 22px}
+.back{width:44px;height:44px;border-radius:50%;border:1px solid rgba(255,255,255,.1);background:#1b1b1e;color:#f5f1e8;display:inline-flex;align-items:center;justify-content:center;text-decoration:none;flex:0 0 auto}
+.back svg{width:18px;height:18px}
+.brand{line-height:0;text-decoration:none}.brand img{height:42px;width:auto;display:block}
+.back:focus-visible,.brand:focus-visible{outline:2px solid #e3c274;outline-offset:3px}main>img{width:100%;height:auto;border-radius:22px;border:1px solid rgba(201,160,64,.38)}
 h1{font-size:22px;margin:20px 0 6px}p{color:#a49f95;margin:0 0 20px;line-height:1.5}
-a{display:block;min-height:52px;line-height:52px;border-radius:16px;background:linear-gradient(135deg,#F1D488,#C9A040 55%,#9E7A22);color:#17120a;font-weight:800;text-decoration:none;font-size:16px}
-a:focus-visible{outline:2px solid #e3c274;outline-offset:3px}</style></head>
-<body><main><img src="${esc(img)}" width="1080" height="1080" alt="${esc(title)}"><h1>${esc(title)}</h1><p>${esc(desc)}</p><a href="/challenge?utm_source=share&amp;utm_medium=certificate">Join the free 7 day challenge</a></main></body></html>`);
+a.cta{display:block;min-height:52px;line-height:52px;border-radius:16px;background:linear-gradient(135deg,#F1D488,#C9A040 55%,#9E7A22);color:#17120a;font-weight:800;text-decoration:none;font-size:16px}
+a.cta:focus-visible{outline:2px solid #e3c274;outline-offset:3px}</style></head>
+<body><main><div class="top"><a class="back" href="/" aria-label="Back to BodyBank" onclick="if(document.referrer&&document.referrer.indexOf(location.origin)===0&&history.length>1){history.back();return false}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg></a>
+<a class="brand" href="/" aria-label="BodyBank home"><img src="/img/bodybank-logo-gold-360.png" alt="BodyBank" width="360" height="138"></a></div><img src="${esc(img)}" width="1080" height="1080" alt="${esc(title)}"><h1>${esc(title)}</h1><p>${esc(desc)}</p><a class="cta" href="/challenge?utm_source=share&amp;utm_medium=certificate">Join the free 7 day challenge</a></main></body></html>`);
     } catch (err) {
       console.error('[challenges] share page', err && err.message);
       res.status(500).send('Something went wrong');

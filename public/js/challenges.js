@@ -421,7 +421,8 @@
     var stats = r ? [pl(r.stats.checkins, 'check in', 'check ins'), pl(r.stats.workouts == null ? r.stats.sessions : r.stats.workouts, 'workout', 'workouts')]
       .concat(r.share && r.share.include_results ? [pl(r.stats.protein_days, 'protein day', 'protein days')] : []) : [];
     return '<div class="bbch-share" role="img" aria-label="Share card: day ' + day + ' done">' +
-      '<p class="bbch-share-eye">BodyBank · ' + esc(title) + '</p>' +
+      '<img class="bbch-logo bbch-share-logo" src="img/bodybank-logo-gold-360.png" alt="BodyBank" width="360" height="138" decoding="async">' +
+      '<p class="bbch-share-eye">' + esc(title) + '</p>' +
       '<p class="bbch-share-day">Day ' + day + '</p><p class="bbch-share-done">done.</p>' +
       '<p class="bbch-share-stats">' + stats.map(function (s) { var p = s.split(' '); return '<span><b>' + esc(p.shift()) + '</b> ' + esc(p.join(' ')) + '</span>'; }).join('') + '</p>' +
       '<p class="bbch-share-url">bodybank.fit/challenge</p></div>';
@@ -479,7 +480,8 @@
       return h + '</section>';
     }
     h += '<div class="bbch-cert" role="group" aria-labelledby="bbchH">' +
-      '<span class="bbch-cert-medal" aria-hidden="true">🏅</span>' +
+      '<img class="bbch-logo bbch-cert-logo" src="img/bodybank-logo-gold-360.png" alt="BodyBank" width="360" height="138" decoding="async">' +
+      '<span class="bbch-cert-rule" aria-hidden="true"><i></i></span>' +
       '<p class="bbch-cert-eye">Certificate of completion</p>' +
       '<h1 class="bbch-cert-name" id="bbchH">' + esc(r.name) + '</h1>' +
       '<p class="bbch-muted">completed the BodyBank</p>' +

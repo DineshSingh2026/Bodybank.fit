@@ -11,6 +11,13 @@
  * "include my results". Never weight or other body data.
  */
 
+const fs = require('fs');
+const path = require('path');
+
+// The gold BodyBank logo on a transparent background, embedded in the SVG (360×138).
+let LOGO_URI = '';
+try { LOGO_URI = 'data:image/png;base64,' + fs.readFileSync(path.join(__dirname, '..', 'public', 'img', 'bodybank-logo-gold-360.png')).toString('base64'); } catch (_) { LOGO_URI = ''; }
+
 let sharp = null;
 try { sharp = require('sharp'); } catch (_) { sharp = null; }
 
@@ -33,6 +40,9 @@ function buildSvg(d, format) {
   const cx = W / 2;
   const top = square ? 170 : 520;
   const challenge = esc(String(data.challenge || 'Challenge').toUpperCase());
+  const logoH = square ? 104 : 150;
+  const logoW = Math.round(logoH * 360 / 138);
+  const logoY = square ? 92 : 300;
   const day = Math.max(1, Number(data.day) || 1);
   const st = data.stats || {};
   const bits = [];
@@ -50,11 +60,12 @@ function buildSvg(d, format) {
   </defs>
   <rect width="${W}" height="${H}" fill="url(#glow)"/>
   <rect x="48" y="48" width="${W - 96}" height="${H - 96}" rx="48" fill="none" stroke="url(#g)" stroke-width="4"/>
-  <text x="${cx}" y="${top}" text-anchor="middle" font-family="${FONT}" font-size="34" font-weight="700" letter-spacing="8" fill="#D9B45A">BODYBANK · ${challenge}</text>
-  <text x="${cx}" y="${top + (square ? 300 : 360)}" text-anchor="middle" font-family="${FONT}" font-size="${square ? 250 : 300}" font-weight="800" fill="url(#g)">DAY ${day}</text>
-  <text x="${cx}" y="${top + (square ? 440 : 540)}" text-anchor="middle" font-family="${SERIF}" font-style="italic" font-size="${square ? 120 : 150}" fill="url(#g)">${data.done === false ? 'in progress.' : 'done.'}</text>
-  ${name ? `<text x="${cx}" y="${top + (square ? 540 : 680)}" text-anchor="middle" font-family="${FONT}" font-size="44" font-weight="700" fill="#F5F1E8">${name}</text>` : ''}
-  ${bits.length ? `<text x="${cx}" y="${top + (square ? 610 : 770)}" text-anchor="middle" font-family="${FONT}" font-size="38" font-weight="600" fill="#A49F95">${esc(bits.join('   ·   '))}</text>` : ''}
+  ${LOGO_URI ? `<image href="${LOGO_URI}" x="${cx - logoW / 2}" y="${logoY}" width="${logoW}" height="${logoH}"/>` : ''}
+  <text x="${cx}" y="${top + (square ? 90 : 40)}" text-anchor="middle" font-family="${FONT}" font-size="32" font-weight="700" letter-spacing="8" fill="#D9B45A">${LOGO_URI ? '' : 'BODYBANK · '}${challenge}</text>
+  <text x="${cx}" y="${top + (square ? 340 : 400)}" text-anchor="middle" font-family="${FONT}" font-size="${square ? 230 : 300}" font-weight="800" fill="url(#g)">DAY ${day}</text>
+  <text x="${cx}" y="${top + (square ? 460 : 570)}" text-anchor="middle" font-family="${SERIF}" font-style="italic" font-size="${square ? 110 : 150}" fill="url(#g)">${data.done === false ? 'in progress.' : 'done.'}</text>
+  ${name ? `<text x="${cx}" y="${top + (square ? 560 : 700)}" text-anchor="middle" font-family="${FONT}" font-size="44" font-weight="700" fill="#F5F1E8">${name}</text>` : ''}
+  ${bits.length ? `<text x="${cx}" y="${top + (square ? 625 : 790)}" text-anchor="middle" font-family="${FONT}" font-size="38" font-weight="600" fill="#A49F95">${esc(bits.join('   ·   '))}</text>` : ''}
   <text x="${cx}" y="${H - (square ? 120 : 200)}" text-anchor="middle" font-family="${FONT}" font-size="36" font-weight="700" fill="#D9B45A">${url}</text>
 </svg>`;
 }

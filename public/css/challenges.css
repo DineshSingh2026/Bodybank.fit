@@ -222,7 +222,12 @@
 /* ---- certificate + results ---------------------------------------------- */
 .bbch-cert { position: relative; text-align: center; padding: 26px 20px 22px; margin: 0 0 12px; border-radius: var(--ch-r); border: 1px solid var(--ch-gold); background: radial-gradient(100% 80% at 50% 0%, rgba(201, 160, 64, .12), transparent 70%), var(--ch-card); }
 .bbch-cert::after { content: ''; position: absolute; inset: 6px; border: 1px solid rgba(201, 160, 64, .3); border-radius: 17px; pointer-events: none; }
-.bbch-cert-medal { font-size: 34px; display: block; }
+.bbch-logo { display: block; width: auto; margin: 0 auto; }
+.bbch-cert-logo { height: 46px; }
+.bbch-cert-rule { display: flex; align-items: center; justify-content: center; gap: 8px; margin: 12px auto 0; }
+.bbch-cert-rule::before, .bbch-cert-rule::after { content: ''; width: 46px; height: 1px; background: rgba(201, 160, 64, .55); }
+.bbch-cert-rule i { width: 7px; height: 7px; background: var(--ch-gold); transform: rotate(45deg); }
+.bbch-share-logo { height: 40px; margin-bottom: 12px; }
 .bbch-cert-eye { font-size: 11px; font-weight: 700; letter-spacing: .24em; text-transform: uppercase; color: var(--ch-gold); margin: 10px 0 6px; }
 .bbch .bbch-cert-name { font-family: 'Playfair Display', Georgia, serif; font-style: italic; font-weight: 500; font-size: 34px; margin: 0 0 4px; background: var(--ch-grad); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; overflow-wrap: anywhere; }
 .bbch-cert-ch { font-weight: 800; font-size: 16px; margin: 2px 0 6px; }

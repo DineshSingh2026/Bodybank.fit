@@ -11,7 +11,7 @@
    ========================================================================== */
 (function () {
   'use strict';
-  var V = '1';
+  var V = '2';
   var state = { token: null, enabled: false, cssLoaded: false, jsPromise: null, adminPromise: null, home: null, homeAt: 0, homeBusy: false };
 
   function user() { return window.currentUser || null; }
