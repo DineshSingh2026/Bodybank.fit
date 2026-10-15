@@ -634,7 +634,7 @@ body,main{overflow-x:clip !important;overflow-y:visible !important}
         amount: o.amount,
         currency: o.currency,
         name: 'BodyBank',
-        description: o.plan.name + ' · ' + o.plan.label,
+        description: o.plan.name + ' · ' + o.plan.label + (o.discount && o.discount.pct ? ' · Challenge discount ' + o.discount.pct + '% off' : ''),
         image: window.location.origin + '/img/logo.png',
         prefill: o.prefill || {},
         notes: { plan: o.plan.tier, term: o.plan.term },

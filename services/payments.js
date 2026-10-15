@@ -175,12 +175,34 @@ function createPaymentsService(deps) {
     if (!price) return { error: 'unknown_plan' };
     const cfg = config();
     const id = crypto.randomUUID();
+    // Challenge upgrade discount (BodyBank Challenges): looked up server side only;
+    // the browser never sends an amount or a percent. No discount → unchanged flow.
+    let discount = null;
+    if (deps.discounts && typeof deps.discounts.forOrder === 'function') {
+      try {
+        const d = await deps.discounts.forOrder(user, price.tier);
+        if (d && Number(d.pct) > 0) {
+          const amt = deps.discounts.apply(price.amount_paise, d.pct);
+          if (amt > 0 && amt < price.amount_paise) {
+            discount = { id: d.id, pct: Number(d.pct), original_paise: price.amount_paise };
+            price.amount_paise = amt;
+            price.amount_rupees = amt / 100;
+          }
+        }
+      } catch (e) { console.warn('[payments] discount lookup:', e.message); discount = null; }
+    }
+    const notes = { user_id: String(user.id), plan_tier: price.tier, term: price.term, email: String(user.email || '').slice(0, 250) };
+    if (discount) { notes.discount_id = discount.id; notes.discount_pct = String(discount.pct); }
     const order = await rzp('POST', '/orders', {
       amount: price.amount_paise,
       currency: CURRENCY,
       receipt: ('bb_' + id.replace(/-/g, '')).slice(0, 40),
-      notes: { user_id: String(user.id), plan_tier: price.tier, term: price.term, email: String(user.email || '').slice(0, 250) }
+      notes
     });
+    if (discount) {
+      try { await deps.discounts.attach(order.id, discount, user.id, discount.original_paise, price.amount_paise); } catch (e) { console.warn('[payments] discount attach:', e.message); }
+      price.discount = discount;
+    }
     const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
     await run(
       `INSERT INTO payments (id, order_id, user_id, email, name, plan_tier, term, months, days, amount_paise, currency, status, mode)
@@ -279,6 +301,10 @@ function createPaymentsService(deps) {
     } finally {
       client.release();
       if (info) { try { onActivated(info); } catch (e) { console.warn('[payments] onActivated:', e.message); } }
+      // A discounted order marks its challenge discount used (idempotent).
+      if (info && !info.orphan && info.row && deps.discounts && typeof deps.discounts.markPaid === 'function') {
+        Promise.resolve(deps.discounts.markPaid(info.row.order_id, info.row.payment_id)).catch((e) => console.warn('[payments] discount mark:', e.message));
+      }
     }
   }
 

@@ -72,6 +72,8 @@ function createPaymentsRouter(deps = {}) {
         amount: out.order.amount,
         currency: out.order.currency,
         plan: { tier: out.price.tier, name: require('../services/plans').tierName(out.price.tier), term: out.price.term, label: out.price.label, months: out.price.months },
+        // Present only when a Challenges upgrade discount was applied server side.
+        discount: out.price.discount ? { pct: out.price.discount.pct, original_amount: out.price.discount.original_paise } : null,
         prefill: { name: out.name, email: user.email || '', contact: user.phone || '' }
       });
     } catch (e) {
