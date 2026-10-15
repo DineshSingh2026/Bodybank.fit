@@ -66,6 +66,7 @@ Launched 2026-10-15. The owner approved the whole launch library.
 **Coins.**
 - A save pays `workout_session` with the same event key as My Workout, so a day pays once whichever screen logs first.
 - The payout is dated to the workout's local day, never a future day.
+- TODO (known issue): `local_date` may be up to 30 days in the past (`LIMITS.pastDays`), so a late sync still pays coins on that old day. Clamp the coin day to the day the workout was created. Challenges already ignore back-dated rows; see `docs/CHALLENGES.md`.
 - Coach Mode never writes `daily_checkins` (the streak) or touches the AI Trainer trial counters.
 
 **AI form check.**

@@ -14,6 +14,7 @@
     "test:coach-api": "node tests/coach-mode-api.js",
     "seed:coach": "node scripts/coach-seed.js",
     "test:challenges-api": "node tests/challenges-api.js",
+    "test:challenges-e2e": "node tests/challenges-e2e.js",
     "seed:challenges": "node scripts/challenges-seed.js",
     "build:pwa-icons": "node scripts/generate-pwa-icons.js",
     "clean-e2e": "node scripts/clean-e2e-data.js",

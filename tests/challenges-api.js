@@ -320,6 +320,20 @@ async function main() {
     r = await call('GET', `/api/challenges/${CH_FREE}/leaderboard`, 'shy');
     assert(r.data.top.some((x) => x.name === 'Shy O.'), 'opting back in shows the member');
 
+    // ── reminders: 19:00 slot once, never in quiet hours ─────────────────
+    {
+      const lateEn = await queryOne('SELECT id FROM challenge_enrollments WHERE user_id = ?', [U.late.id]);
+      const at = (hh) => Date.parse(today() + 'T' + hh + ':05:00+05:30');
+      const s19 = await engine.sync(lateEn.id, { nowMs: at('19') });
+      const before = pushes.length;
+      assert(await engine.maybeRemind(s19, at('19')), 'evening reminder sent at 19:00 with tasks left');
+      assert(!(await engine.maybeRemind(s19, at('19'))), 'evening reminder not sent twice');
+      assert(!(await engine.maybeRemind(s19, at('23'))), 'no reminder in quiet hours (23:00)');
+      assert(!(await engine.maybeRemind(s19, at('06'))), 'no reminder in quiet hours (06:00)');
+      eq(pushes.length - before, 1, 'exactly one reminder push');
+      assert(/task/.test(pushes[pushes.length - 1].n.title), 'reminder says how many tasks are left');
+    }
+
     // ── discount (web checkout only, server side) ────────────────────────
     const d1 = await engine.discountFor({ id: U.core.id, role: 'user' }, 'guided');
     assert(d1 && d1.pct === 15, 'discount usable for guided');

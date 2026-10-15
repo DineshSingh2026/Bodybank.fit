@@ -526,7 +526,16 @@
     else if (S.step === 'board') html = vBoard();
     else if (S.step === 'done') html = vDone();
     else html = vHub();
+    // A data refresh re-paints the screen; keep focus inside it rather than
+    // dropping screen-reader / keyboard users back to <body>.
+    var act = document.activeElement;
+    var hadFocus = !!(act && act !== document.body && el.contains(act));
+    var refocus = hadFocus && act.getAttribute ? act.getAttribute('data-a') : null;
     el.innerHTML = shell(html);
+    if (!focus && hadFocus) {
+      var again = (refocus && el.querySelector('[data-a="' + refocus + '"]')) || el.querySelector('.bbch-screen');
+      if (again) { try { again.focus({ preventScroll: true }); } catch (e) { again.focus(); } }
+    }
     if (focus) {
       var scr = el.querySelector('.bbch-screen');
       if (scr) { try { scr.focus({ preventScroll: true }); } catch (e) { scr.focus(); } }
