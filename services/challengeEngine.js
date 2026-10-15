@@ -177,8 +177,10 @@ function createChallengeEngine(deps) {
   /** Serialise work per enrollment inside this process (DB keys guard across processes). */
   function withLock(key, fn) {
     const prev = locks.get(key) || Promise.resolve();
-    const next = prev.catch(() => {}).then(fn);
-    locks.set(key, next.finally(() => { if (locks.get(key) === next) locks.delete(key); }));
+    const next = prev.then(fn);
+    const tail = next.catch(() => {}); // the queue never rejects; the caller still sees errors
+    locks.set(key, tail);
+    tail.then(() => { if (locks.get(key) === tail) locks.delete(key); });
     return next;
   }
 
@@ -483,58 +485,68 @@ function createChallengeEngine(deps) {
     const display = C.displayName(user.first_name, user.last_name);
     const ipHash = m.ip ? crypto.createHash('sha256').update('ch:' + m.ip).digest('hex').slice(0, 32) : null;
 
+    // One transaction, one connection, always released (early answers included).
+    const id = uuid();
+    const shareToken = crypto.randomBytes(12).toString('base64url');
+    let early = null;
     const client = await getPool().connect();
-    let id = null;
-    let shareToken = null;
     try {
       await client.query('BEGIN');
       await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', ['challenge-join:' + userId]);
       const dup = await client.query('SELECT id, challenge_id FROM challenge_enrollments WHERE user_id = $1 AND client_uuid = $2', [userId, clientUuid]);
-      if (dup.rows[0]) { await client.query('ROLLBACK'); return { status: 200, duplicate: true, enrollment_id: dup.rows[0].id, challenge_id: dup.rows[0].challenge_id }; }
-      const act = await client.query("SELECT id, challenge_id FROM challenge_enrollments WHERE user_id = $1 AND status = 'active' LIMIT 1", [userId]);
-      if (act.rows[0]) {
-        await client.query('ROLLBACK');
-        if (act.rows[0].challenge_id === ch.id) return { status: 200, already: true, enrollment_id: act.rows[0].id, challenge_id: ch.id };
-        return { status: 409, error: 'already_active', message: 'Finish or leave your current challenge first.', enrollment_id: act.rows[0].id };
+      const act = dup.rows[0] ? { rows: [] } : await client.query("SELECT id, challenge_id FROM challenge_enrollments WHERE user_id = $1 AND status = 'active' LIMIT 1", [userId]);
+      if (dup.rows[0]) {
+        early = { status: 200, duplicate: true, enrollment_id: dup.rows[0].id, challenge_id: dup.rows[0].challenge_id };
+      } else if (act.rows[0]) {
+        early = act.rows[0].challenge_id === ch.id
+          ? { status: 200, already: true, enrollment_id: act.rows[0].id, challenge_id: ch.id }
+          : { status: 409, error: 'already_active', message: 'Finish or leave your current challenge first.', enrollment_id: act.rows[0].id };
       }
-      if (!m.force && ch.access === 'free') {
+      if (!early && !m.force && ch.access === 'free') {
         const rep = await client.query(
           `SELECT (MAX(created_at) + INTERVAL '90 days') AS next_at FROM challenge_enrollments
             WHERE user_id = $1 AND challenge_id = $2 AND status <> 'void' AND created_at > NOW() - INTERVAL '90 days'`,
           [userId, ch.id]);
         if (rep.rows[0] && rep.rows[0].next_at) {
-          await client.query('ROLLBACK');
           const nx = new Date(rep.rows[0].next_at);
-          return { status: 409, error: 'repeat_too_soon', message: `You can take the ${ch.title} again from ${nx.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: tz })}.`, available_on: nx.toISOString() };
+          early = { status: 409, error: 'repeat_too_soon', message: `You can take the ${ch.title} again from ${nx.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', timeZone: tz })}.`, available_on: nx.toISOString() };
         }
       }
-      if (!m.force && ipHash) {
+      if (!early && !m.force && ipHash) {
         const n = await client.query("SELECT COUNT(*)::int AS n FROM challenge_enrollments WHERE ip_hash = $1 AND created_at > NOW() - INTERVAL '1 day'", [ipHash]);
-        if (n.rows[0] && n.rows[0].n >= 8) { await client.query('ROLLBACK'); return { status: 429, error: 'too_many_joins', message: 'Too many joins from this network today. Try again tomorrow.' }; }
+        if (n.rows[0] && n.rows[0].n >= 8) early = { status: 429, error: 'too_many_joins', message: 'Too many joins from this network today. Try again tomorrow.' };
       }
-      id = uuid();
-      shareToken = crypto.randomBytes(12).toString('base64url');
-      await client.query(
-        `INSERT INTO challenge_enrollments (id, challenge_id, user_id, client_uuid, start_date, tz, display_name, leaderboard_opt_out,
-            source, utm, referral_code, invited_by, share_token, ip_hash)
-         VALUES ($1,$2,$3,$4,$5::date,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14)`,
-        [id, ch.id, userId, clientUuid, today, tz, display, !!b.leaderboard_opt_out,
-          String(b.source || m.source || 'app').replace(/[^a-z0-9_-]/gi, '').slice(0, 30) || 'app',
-          JSON.stringify(cleanUtm(b.utm)), ref ? ref.code : null,
-          ref && ref.user_id && String(ref.user_id) !== String(userId) ? String(ref.user_id) : null,
-          shareToken, ipHash]
-      );
-      await client.query('COMMIT');
+      if (early) {
+        await client.query('ROLLBACK');
+      } else {
+        await client.query(
+          `INSERT INTO challenge_enrollments (id, challenge_id, user_id, client_uuid, start_date, tz, display_name, leaderboard_opt_out,
+              source, utm, referral_code, invited_by, share_token, ip_hash)
+           VALUES ($1,$2,$3,$4,$5::date,$6,$7,$8,$9,$10::jsonb,$11,$12,$13,$14)`,
+          [id, ch.id, userId, clientUuid, today, tz, display, !!b.leaderboard_opt_out,
+            String(b.source || m.source || 'app').replace(/[^a-z0-9_-]/gi, '').slice(0, 30) || 'app',
+            JSON.stringify(cleanUtm(b.utm)), ref ? ref.code : null,
+            ref && ref.user_id && String(ref.user_id) !== String(userId) ? String(ref.user_id) : null,
+            shareToken, ipHash]
+        );
+        await client.query('COMMIT');
+      }
     } catch (err) {
       try { await client.query('ROLLBACK'); } catch (_) { /* ignore */ }
-      client.release();
       if (err && err.code === '23505') {
-        const again = await queryOne('SELECT id, challenge_id FROM challenge_enrollments WHERE user_id = ? AND (client_uuid = ? OR (challenge_id = ? AND status = ?)) LIMIT 1', [userId, clientUuid, ch.id, 'active']);
-        if (again) return { status: 200, duplicate: true, enrollment_id: again.id, challenge_id: again.challenge_id };
+        early = { retry: true };
+      } else {
+        client.release();
+        throw err;
       }
-      throw err;
     }
     client.release();
+    if (early && early.retry) {
+      const again = await queryOne('SELECT id, challenge_id FROM challenge_enrollments WHERE user_id = ? AND (client_uuid = ? OR (challenge_id = ? AND status = ?)) LIMIT 1', [userId, clientUuid, ch.id, 'active']);
+      if (again) return { status: 200, duplicate: true, enrollment_id: again.id, challenge_id: again.challenge_id };
+      return { status: 409, error: 'Could not join right now. Please try again.' };
+    }
+    if (early) return early;
 
     await audit(id, ch.id, m.actorId || userId, m.force ? 'staff_enrolled' : 'joined', m.force ? 'Enrolled by staff' : '');
     try {

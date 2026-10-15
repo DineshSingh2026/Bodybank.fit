@@ -44,6 +44,11 @@ const memberScreens = require('./services/memberScreens');
 const { createMemberScreensRouter } = require('./routes/memberScreens');
 const coachModeService = require('./services/coachModeService');
 const { createCoachRouter } = require('./routes/coachMode');
+// BodyBank Challenges (CHALLENGES_ENABLED = off | staff | allowlist | all; default off).
+const challengeService = require('./services/challengeService');
+const { createChallengeEngine } = require('./services/challengeEngine');
+const challengeSeed = require('./services/challengeSeed');
+const { createChallengesRouter, createChallengeSharePage } = require('./routes/challenges');
 const cron = require('node-cron');
 const { getUserProgress: getAdminUserProgress } = require('./controllers/adminProgressController');
 const progressService = require('./services/progressService');
@@ -849,6 +854,27 @@ async function queryOne(sql, params = []) {
   return rows.length > 0 ? rows[0] : null;
 }
 
+// ── BodyBank Challenges engine (task progress is derived from member data) ──
+const challengeEngine = createChallengeEngine({
+  queryAll, queryOne, run, getPool: () => pool,
+  coinService, plans, notifyAgent, notifyHub,
+  defaultTz: STREAK_TIMEZONE,
+  publicOrigin: process.env.PUBLIC_URL || process.env.APP_ORIGIN || ''
+});
+// After a member saves a check-in, meal, workout, mind or Sunday check-in, re-check
+// their challenge tasks (debounced; never blocks or changes the response).
+const CHALLENGE_ACTIVITY_PATHS = /^\/api\/(daily-checkin|workouts|mind-checkin|sunday-checkin|coach\/workouts|nutrition\/log)(\/|$)/;
+app.use((req, res, next) => {
+  if ((req.method === 'POST' || req.method === 'PUT') && CHALLENGE_ACTIVITY_PATHS.test(req.path)) {
+    res.on('finish', () => {
+      if (res.statusCode >= 300 || !req.user || req.user.role !== 'user') return;
+      if (challengeService.flagConfig().mode === 'off') return;
+      challengeEngine.onActivity(req.user.id).catch(() => {});
+    });
+  }
+  next();
+});
+
 // Website payments (Razorpay) — web only; see services/payments.js.
 function inrFromPaise(paise) {
   return '₹' + (Number(paise || 0) / 100).toLocaleString('en-IN', { maximumFractionDigits: 2 });
@@ -858,6 +884,13 @@ const paymentsSvc = paymentsLib.createPaymentsService({
   run,
   queryOne,
   queryAll,
+  // Challenge upgrade discount: resolved and applied server side, web checkout only.
+  discounts: {
+    forOrder: (user, tier) => challengeEngine.discountFor(Object.assign({ role: 'user' }, user), tier),
+    apply: challengeService.applyDiscount,
+    attach: (orderId, d, userId, original, discounted) => challengeEngine.attachOrder(orderId, d, userId, original, discounted),
+    markPaid: (orderId, paymentId) => challengeEngine.markOrderPaid(orderId, paymentId)
+  },
   // One Razorpay webhook serves both products; BloodMap orders are passed on.
   onForeignEvent: (type, evt) => bloodmapSvc.handleWebhookEvent(type, evt),
   onActivated(info) {
@@ -2022,6 +2055,13 @@ async function initDB() {
       if (r.imported) console.log(`[coach] launch library imported: ${r.imported} exercises`);
     }
   } catch (e) { console.warn('[coach] library import:', e.message); }
+  // Challenges: additive tables only (services/challengeService.js). A fresh database
+  // gets the three seed challenges as DRAFTS; nothing is live until staff publish.
+  try {
+    await challengeService.ensureChallengeTables(pool);
+    const r = await challengeSeed.seedChallenges({ queryOne, run }, challengeSeed.readSeeds(), { onlyIfEmpty: true });
+    if (r.inserted && r.inserted.length) console.log(`[challenges] seed drafts imported: ${r.inserted.join(', ')}`);
+  } catch (e) { console.warn('[challenges] schema:', e.message); }
 
   // Attention alert email dedupe log for inactive users (milestone-based, keyed by last check-in date)
   await pool.query(`CREATE TABLE IF NOT EXISTS attention_email_log (
@@ -12341,6 +12381,23 @@ app.use(
     }
   })
 );
+// BodyBank Challenges: member + admin + public share API (see routes/challenges.js).
+app.use(
+  '/api/challenges',
+  createChallengesRouter({
+    verifyToken,
+    requireAdminOrSuperadmin,
+    rateLimiter,
+    queryAll,
+    queryOne,
+    run,
+    engine: challengeEngine,
+    plans,
+    signPdfAccessToken,
+    verifyPdfAccessToken
+  })
+);
+app.get('/c/:token', createChallengeSharePage({ queryOne }));
 // Website payments (Razorpay). Web only: the apps never link here.
 app.use(
   '/api/payments',
@@ -12828,6 +12885,21 @@ app.get(['/signin', '/sign-in', '/login', '/signin.html'], (req, res) => {
 // Website pricing (Core / Guided / Tribe Elite). Not bundled into the native apps.
 app.get(['/pricing', '/plans'], (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'pricing.html'));
+});
+// BodyBank Challenges landing page. Served from pages/ (never bundled into the apps)
+// and only while CHALLENGES_ENABLED=all; otherwise it sends visitors home (rollback).
+app.get(['/challenge', '/challenges', '/challenge/'], (req, res) => {
+  if (!challengeService.isPublicEnabled()) return res.redirect(302, '/');
+  res.setHeader('Cache-Control', 'no-cache, must-revalidate');
+  res.sendFile(path.join(__dirname, 'pages', 'challenge', 'index.html'));
+});
+app.get('/sitemap.xml', (req, res) => {
+  const base = (process.env.PUBLIC_URL || process.env.APP_ORIGIN || `${req.protocol}://${req.get('host')}`).replace(/\/$/, '');
+  const paths = ['/', '/pricing', '/our-story.html', '/tribe-stories.html', '/blog.html', '/bloodmap'];
+  if (challengeService.isPublicEnabled()) paths.splice(1, 0, '/challenge');
+  res.type('application/xml').set('Cache-Control', 'public, max-age=3600').send(
+    '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n' +
+    paths.map((p) => `  <url><loc>${base}${p}</loc></url>`).join('\n') + '\n</urlset>\n');
 });
 // BloodMap by BodyBank. Served from pages/ (not public/) on purpose: public/ is what
 // the iOS / Android apps bundle, and this page carries a price and a pay button.
@@ -13553,6 +13625,17 @@ app.listen(PORT, '0.0.0.0', () => {
       console.log('✅ Coin penalty cron scheduled (Daily 00:10 Asia/Kolkata)');
     } catch (e) {
       console.warn('Coin penalty cron schedule skipped:', e.message);
+    }
+
+    // Challenges: close days, finish / fail runs, at most two reminders a day.
+    // Skips itself while CHALLENGES_ENABLED=off.
+    try {
+      cron.schedule('*/30 * * * *', () => {
+        challengeEngine.runCron().catch((e) => console.warn('[challenges] cron error:', e.message));
+      });
+      console.log(`✅ Challenges cron scheduled (every 30 min, flag: ${challengeService.flagConfig().mode})`);
+    } catch (e) {
+      console.warn('Challenges cron schedule skipped:', e.message);
     }
 
     // ── Membership lifecycle — expire lapsed members, remind expiring, push admin call queue ──

@@ -1055,6 +1055,40 @@ async function auditCompliance(pdfjs) {
 
 // ---------------------------------------------------------------------------
 
+function challengeCertPayload(profile) {
+  if (profile === 'empty') return {};
+  const extreme = profile === 'extreme';
+  return {
+    name: extreme ? 'Arjunaravindakrishnamurthy Venkataraghavan Subramaniam-Ramachandran Iyer' : 'Arjun Rao',
+    challenge: extreme ? 'Ninety Day Ultra Long Name Transformation Challenge For Testing Overflow' : 'Starter Challenge',
+    length: extreme ? 90 : 7,
+    days_done: extreme ? 88 : 7,
+    start_date: '2026-10-12',
+    end_date: extreme ? '2027-01-09' : '2026-10-18',
+    coach: 'Coach Kling',
+    stats: extreme
+      ? { checkins: 1234567, sessions: 999999, sets: 8888888, protein_days: 777777, avg_steps: 123456789, coins: 987654321 }
+      : { checkins: 7, sessions: 5, sets: 58, protein_days: 6, avg_steps: 8420, coins: 310 },
+    verify_url: 'https://www.bodybank.fit/c/' + (extreme ? 'x'.repeat(60) : 'abc123')
+  };
+}
+
+async function auditChallengeCertificate(pdfjs) {
+  section('Challenge certificate  (services/challengeCertificate.js)');
+  const { renderCertificate } = require('../services/challengeCertificate');
+  for (const profile of ['empty', 'normal', 'extreme']) {
+    const out = path.join(OUT_DIR, 'challenge-cert-' + profile + '.pdf');
+    fs.writeFileSync(out, await renderCertificate(challengeCertPayload(profile)));
+    const pages = await readPages(pdfjs, out);
+    checks += 1;
+    if (pages.length !== 1) fail('[challenge-cert/' + profile + '] expected exactly 1 page, got ' + pages.length);
+    // A4 landscape 842 × 595; the frame sits 24 pt in.
+    auditPages('challenge-cert/' + profile, pages, { left: 30, right: 812, top: 30, bottom: 565 });
+    auditCollisions('challenge-cert/' + profile, pages);
+    auditBranding('challenge-cert/' + profile, pages, 'BodyBank');
+  }
+}
+
 async function main() {
   const only = process.argv.slice(2).filter(function (a) { return a.charAt(0) !== '-'; });
   const want = function (name) { return !only.length || only.indexOf(name) !== -1; };
@@ -1070,6 +1104,7 @@ async function main() {
   if (want('forms')) await auditForms(pdfjs);
   if (want('monthly')) await auditMonthly(pdfjs);
   if (want('compliance')) await auditCompliance(pdfjs);
+  if (want('challenge')) await auditChallengeCertificate(pdfjs);
 
   console.log('\n' + '-'.repeat(72));
   if (failures.length) {
