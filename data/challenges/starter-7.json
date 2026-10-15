@@ -1,0 +1,233 @@
+{
+  "id": "starter-7",
+  "slug": "starter-7",
+  "title": "Starter Challenge",
+  "subtitle": "Build the daily habit: check in, protein and one short workout a day.",
+  "description": "3 small tasks a day. About 30 minutes. Starts the day you join.",
+  "length_days": 7,
+  "min_days": 6,
+  "access": "free",
+  "included_tiers": [],
+  "sort_order": 10,
+  "rewards": {
+    "coins": 100,
+    "badge_key": "starter",
+    "badge_label": "Starter badge",
+    "certificate": true,
+    "discount": true,
+    "lm_call": true
+  },
+  "day_titles": [
+    "Daily check in + set your protein goal",
+    "Log 3 meals with photos",
+    "20 min Coach Mode · Lower",
+    "Hit protein + 20 min Coach Mode",
+    "8,000 steps + check in",
+    "Mind check in + early sleep",
+    "Sunday check in + weigh in"
+  ],
+  "tasks": [
+    {
+      "day_number": 1,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 1,
+      "position": 2,
+      "kind": "protein_target",
+      "title": "Protein target",
+      "params": {
+        "pct": 90
+      },
+      "points": 100
+    },
+    {
+      "day_number": 1,
+      "position": 3,
+      "kind": "coach_workout",
+      "title": "20 min Coach Mode",
+      "params": {
+        "min_minutes": 20,
+        "area": "full",
+        "exercises": 4,
+        "allow_any": true
+      },
+      "points": 100
+    },
+    {
+      "day_number": 2,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 2,
+      "position": 2,
+      "kind": "meals_logged",
+      "title": "Log 3 meals with photos",
+      "params": {
+        "count": 3
+      },
+      "points": 100
+    },
+    {
+      "day_number": 2,
+      "position": 3,
+      "kind": "coach_workout",
+      "title": "20 min Coach Mode",
+      "params": {
+        "min_minutes": 20,
+        "area": "upper",
+        "exercises": 4,
+        "allow_any": true
+      },
+      "points": 100
+    },
+    {
+      "day_number": 3,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 3,
+      "position": 2,
+      "kind": "protein_target",
+      "title": "Protein target",
+      "params": {
+        "pct": 90
+      },
+      "points": 100
+    },
+    {
+      "day_number": 3,
+      "position": 3,
+      "kind": "coach_workout",
+      "title": "20 min Coach Mode",
+      "params": {
+        "min_minutes": 20,
+        "area": "lower",
+        "exercises": 4
+      },
+      "points": 100
+    },
+    {
+      "day_number": 4,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 4,
+      "position": 2,
+      "kind": "protein_target",
+      "title": "Protein target",
+      "params": {
+        "pct": 90
+      },
+      "points": 100
+    },
+    {
+      "day_number": 4,
+      "position": 3,
+      "kind": "coach_workout",
+      "title": "20 min Coach Mode",
+      "params": {
+        "min_minutes": 20,
+        "area": "lower",
+        "exercises": 4
+      },
+      "points": 100
+    },
+    {
+      "day_number": 5,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 5,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 5,
+      "position": 3,
+      "kind": "protein_target",
+      "title": "Protein target",
+      "params": {
+        "pct": 90
+      },
+      "points": 100
+    },
+    {
+      "day_number": 6,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 6,
+      "position": 2,
+      "kind": "mind_checkin",
+      "title": "Mind check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 6,
+      "position": 3,
+      "kind": "sleep",
+      "title": "Early sleep · 7 h",
+      "params": {
+        "hours": 7
+      },
+      "points": 100
+    },
+    {
+      "day_number": 7,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 7,
+      "position": 2,
+      "kind": "sunday_checkin",
+      "title": "Sunday check in + weigh in",
+      "params": {},
+      "points": 150
+    },
+    {
+      "day_number": 7,
+      "position": 3,
+      "kind": "protein_target",
+      "title": "Protein target",
+      "params": {
+        "pct": 90
+      },
+      "points": 100
+    }
+  ]
+}

@@ -1,0 +1,474 @@
+{
+  "id": "reset-15",
+  "slug": "reset-15",
+  "title": "15 Day Reset",
+  "subtitle": "Reset sleep, steps and meals with a guided plan and two Coach Mode sessions a week.",
+  "description": "3 tasks a day: check in, move and recover. Two guided Coach Mode sessions a week.",
+  "length_days": 15,
+  "min_days": 13,
+  "access": "plan",
+  "included_tiers": [
+    "guided",
+    "tribe_elite"
+  ],
+  "sort_order": 20,
+  "rewards": {
+    "coins": 250,
+    "badge_key": "reset",
+    "badge_label": "Reset badge",
+    "certificate": true,
+    "discount": true,
+    "lm_call": false
+  },
+  "day_titles": [
+    "Steps + water",
+    "Steps + early sleep",
+    "Check in + Coach Mode session",
+    "Steps + early sleep",
+    "Steps + water",
+    "Check in + Coach Mode session",
+    "Steps + water",
+    "Steps + early sleep",
+    "Steps + water",
+    "Check in + Coach Mode session",
+    "Steps + water",
+    "Steps + early sleep",
+    "Check in + Coach Mode session",
+    "Steps + early sleep",
+    "Steps + water"
+  ],
+  "tasks": [
+    {
+      "day_number": 1,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 1,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 1,
+      "position": 3,
+      "kind": "water",
+      "title": "3 L water",
+      "params": {
+        "ml": 3000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 2,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 2,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 2,
+      "position": 3,
+      "kind": "sleep",
+      "title": "Early sleep · 7 h",
+      "params": {
+        "hours": 7
+      },
+      "points": 100
+    },
+    {
+      "day_number": 3,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 3,
+      "position": 2,
+      "kind": "coach_workout",
+      "title": "20 min Coach Mode",
+      "params": {
+        "min_minutes": 20,
+        "area": "lower",
+        "exercises": 4,
+        "allow_any": true
+      },
+      "points": 100
+    },
+    {
+      "day_number": 3,
+      "position": 3,
+      "kind": "water",
+      "title": "3 L water",
+      "params": {
+        "ml": 3000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 4,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 4,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 4,
+      "position": 3,
+      "kind": "sleep",
+      "title": "Early sleep · 7 h",
+      "params": {
+        "hours": 7
+      },
+      "points": 100
+    },
+    {
+      "day_number": 5,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 5,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 5,
+      "position": 3,
+      "kind": "water",
+      "title": "3 L water",
+      "params": {
+        "ml": 3000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 6,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 6,
+      "position": 2,
+      "kind": "coach_workout",
+      "title": "20 min Coach Mode",
+      "params": {
+        "min_minutes": 20,
+        "area": "upper",
+        "exercises": 4,
+        "allow_any": true
+      },
+      "points": 100
+    },
+    {
+      "day_number": 6,
+      "position": 3,
+      "kind": "water",
+      "title": "3 L water",
+      "params": {
+        "ml": 3000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 7,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 7,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 7,
+      "position": 3,
+      "kind": "water",
+      "title": "3 L water",
+      "params": {
+        "ml": 3000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 8,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 8,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 8,
+      "position": 3,
+      "kind": "sleep",
+      "title": "Early sleep · 7 h",
+      "params": {
+        "hours": 7
+      },
+      "points": 100
+    },
+    {
+      "day_number": 9,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 9,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 9,
+      "position": 3,
+      "kind": "water",
+      "title": "3 L water",
+      "params": {
+        "ml": 3000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 10,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 10,
+      "position": 2,
+      "kind": "coach_workout",
+      "title": "20 min Coach Mode",
+      "params": {
+        "min_minutes": 20,
+        "area": "upper",
+        "exercises": 4,
+        "allow_any": true
+      },
+      "points": 100
+    },
+    {
+      "day_number": 10,
+      "position": 3,
+      "kind": "water",
+      "title": "3 L water",
+      "params": {
+        "ml": 3000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 11,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 11,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 11,
+      "position": 3,
+      "kind": "water",
+      "title": "3 L water",
+      "params": {
+        "ml": 3000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 12,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 12,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 12,
+      "position": 3,
+      "kind": "sleep",
+      "title": "Early sleep · 7 h",
+      "params": {
+        "hours": 7
+      },
+      "points": 100
+    },
+    {
+      "day_number": 13,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 13,
+      "position": 2,
+      "kind": "coach_workout",
+      "title": "20 min Coach Mode",
+      "params": {
+        "min_minutes": 20,
+        "area": "lower",
+        "exercises": 4,
+        "allow_any": true
+      },
+      "points": 100
+    },
+    {
+      "day_number": 13,
+      "position": 3,
+      "kind": "water",
+      "title": "3 L water",
+      "params": {
+        "ml": 3000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 14,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 14,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 14,
+      "position": 3,
+      "kind": "sleep",
+      "title": "Early sleep · 7 h",
+      "params": {
+        "hours": 7
+      },
+      "points": 100
+    },
+    {
+      "day_number": 15,
+      "position": 1,
+      "kind": "daily_checkin",
+      "title": "Daily check in",
+      "params": {},
+      "points": 100
+    },
+    {
+      "day_number": 15,
+      "position": 2,
+      "kind": "steps",
+      "title": "8,000 steps",
+      "params": {
+        "steps": 8000
+      },
+      "points": 100
+    },
+    {
+      "day_number": 15,
+      "position": 3,
+      "kind": "water",
+      "title": "3 L water",
+      "params": {
+        "ml": 3000
+      },
+      "points": 100
+    }
+  ]
+}
