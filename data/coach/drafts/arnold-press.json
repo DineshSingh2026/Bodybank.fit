@@ -1,0 +1,53 @@
+{
+  "id": "arnold-press",
+  "source_id": "Arnold_Dumbbell_Press",
+  "name": "Arnold Press",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "triceps"
+  ],
+  "steps": [
+    "Sit on a bench with back support holding dumbbells at chest height, palms facing you.",
+    "Press up while rotating your palms to face forward.",
+    "Finish with arms straight over your head.",
+    "Lower slowly, rotating palms back to face you."
+  ],
+  "cues": [
+    "Back against the pad",
+    "Smooth rotation as you press",
+    "Stomach tight, ribs down",
+    "Breathe out as you press"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rushing the rotation",
+      "fix": "Turn the palms slowly through the press"
+    },
+    {
+      "mistake": "Arching the back",
+      "fix": "Keep your back on the pad"
+    },
+    {
+      "mistake": "Weight too heavy for control",
+      "fix": "Pick a lighter weight than your normal press"
+    }
+  ],
+  "contraindications": [
+    "shoulder"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 400
+}

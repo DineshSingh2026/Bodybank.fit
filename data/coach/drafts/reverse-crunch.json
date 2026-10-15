@@ -1,0 +1,52 @@
+{
+  "id": "reverse-crunch",
+  "source_id": "Reverse_Crunch",
+  "name": "Reverse Crunch",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie on your back with arms by your sides, palms down.",
+    "Lift your legs so thighs point to the ceiling, knees bent.",
+    "Breathe out and curl your hips off the floor, bringing knees toward your chest.",
+    "Pause, then lower your hips slowly back to the floor.",
+    "Stop with thighs upright before the next rep."
+  ],
+  "cues": [
+    "Curl the hips, do not swing the legs",
+    "Keep knees bent the whole time",
+    "Arms stay relaxed on the floor",
+    "Breathe out as the hips lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging the legs to create momentum",
+      "fix": "Pause at the bottom and lift with the stomach only"
+    },
+    {
+      "mistake": "Pushing hard through the arms",
+      "fix": "Keep palms light on the floor"
+    },
+    {
+      "mistake": "Letting the feet drop to the floor",
+      "fix": "Stop when thighs are upright, then start the next rep"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 50
+}

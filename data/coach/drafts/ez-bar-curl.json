@@ -1,0 +1,49 @@
+{
+  "id": "ez-bar-curl",
+  "source_id": "EZ-Bar_Curl",
+  "name": "EZ-Bar Curl",
+  "area": "upper",
+  "equipment": "e-z curl bar",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "biceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Stand tall holding an EZ bar on the angled grips, palms facing forward.",
+    "Keep your elbows close to your sides.",
+    "Curl the bar up toward your shoulders.",
+    "Lower slowly until your arms are straight."
+  ],
+  "cues": [
+    "Elbows by your sides",
+    "Torso still",
+    "Squeeze at the top",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning back to lift the bar",
+      "fix": "Lighten the bar and brace your stomach"
+    },
+    {
+      "mistake": "Elbows moving forward at the top",
+      "fix": "Keep upper arms still"
+    },
+    {
+      "mistake": "Dropping the bar",
+      "fix": "Lower slowly every rep"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": "biccurl",
+  "sort_order": 590
+}

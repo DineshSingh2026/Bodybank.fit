@@ -1,0 +1,52 @@
+{
+  "id": "dead-bug",
+  "source_id": "Dead_Bug",
+  "name": "Dead Bug",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie on your back with arms pointing to the ceiling.",
+    "Lift your legs so hips and knees are bent to 90 degrees.",
+    "Breathe out and press your lower back gently into the floor.",
+    "Slowly lower one arm behind you and the opposite leg toward the floor.",
+    "Stop just above the floor, then bring both back and switch sides."
+  ],
+  "cues": [
+    "Lower back stays pressed to the floor",
+    "Move slowly, opposite arm and leg",
+    "Ribs down, stomach tight",
+    "Breathe out as the limbs lower"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Lower back arching off the floor",
+      "fix": "Shorten the range; lower the leg only as far as the back stays flat"
+    },
+    {
+      "mistake": "Rushing the movement",
+      "fix": "Take 2–3 seconds to lower each arm and leg"
+    },
+    {
+      "mistake": "Moving the same-side arm and leg",
+      "fix": "Pair right arm with left leg, then left arm with right leg"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 30
+}

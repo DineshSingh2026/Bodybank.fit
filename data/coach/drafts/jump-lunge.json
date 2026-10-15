@@ -1,0 +1,58 @@
+{
+  "id": "jump-lunge",
+  "source_id": "Scissors_Jump",
+  "name": "Jump Lunge",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings"
+  ],
+  "steps": [
+    "Start in a lunge, front knee bent, back knee just above the floor.",
+    "Jump straight up, swinging your arms.",
+    "Switch your legs in the air.",
+    "Land softly in a lunge with the other leg in front.",
+    "Keep going, alternating legs each jump."
+  ],
+  "cues": [
+    "Land softly and quietly",
+    "Front knee over the ankle",
+    "Torso upright",
+    "Breathe out as you jump"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Back knee bangs the floor",
+      "fix": "Land with control and stop just above"
+    },
+    {
+      "mistake": "Front knee caves in",
+      "fix": "Keep it lined up with your toes"
+    },
+    {
+      "mistake": "Stance too narrow, losing balance",
+      "fix": "Keep feet hip width apart"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 6,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 530
+}

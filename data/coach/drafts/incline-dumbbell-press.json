@@ -1,0 +1,55 @@
+{
+  "id": "incline-dumbbell-press",
+  "source_id": "Incline_Dumbbell_Press",
+  "name": "Incline Dumbbell Press",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Set a bench to a low incline, about 30 degrees.",
+    "Lie back with dumbbells at chest level, palms facing forward.",
+    "Press the dumbbells up over your upper chest.",
+    "Lower them slowly to the sides of your upper chest."
+  ],
+  "cues": [
+    "Shoulder blades back and down",
+    "Elbows slightly tucked",
+    "Press up, not back over your face",
+    "Breathe in down, breathe out up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bench set too steep",
+      "fix": "Use a low incline so the chest does the work"
+    },
+    {
+      "mistake": "Flaring the elbows straight out",
+      "fix": "Keep elbows about 45 degrees from your body"
+    },
+    {
+      "mistake": "Lifting the hips off the bench",
+      "fix": "Keep glutes down, feet pressing the floor"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "kidney_gentle"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 110
+}

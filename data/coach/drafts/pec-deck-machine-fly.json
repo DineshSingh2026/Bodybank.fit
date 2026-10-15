@@ -1,0 +1,49 @@
+{
+  "id": "pec-deck-machine-fly",
+  "source_id": "Butterfly",
+  "name": "Pec Deck Machine Fly",
+  "area": "upper",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Adjust the seat so the handles are at chest height and sit with your back flat on the pad.",
+    "Hold the handles with a slight bend in your elbows.",
+    "Bring the handles together in front of your chest.",
+    "Let them open back slowly until you feel a gentle chest stretch."
+  ],
+  "cues": [
+    "Back flat on the pad",
+    "Upper arms level with the floor",
+    "Squeeze chest when handles meet",
+    "Breathe out as you squeeze"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Letting the weight stack slam",
+      "fix": "Return slowly and keep tension"
+    },
+    {
+      "mistake": "Going too far back on the stretch",
+      "fix": "Stop when hands are in line with your chest"
+    },
+    {
+      "mistake": "Shoulders rolling forward",
+      "fix": "Keep chest up and shoulder blades back"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 180
+}

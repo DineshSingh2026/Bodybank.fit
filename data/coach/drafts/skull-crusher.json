@@ -1,0 +1,53 @@
+{
+  "id": "skull-crusher",
+  "source_id": "EZ-Bar_Skullcrusher",
+  "name": "Skull Crusher",
+  "area": "upper",
+  "equipment": "e-z curl bar",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "triceps"
+  ],
+  "secondary_muscles": [
+    "forearms"
+  ],
+  "steps": [
+    "Lie on a flat bench holding an EZ bar over your chest, palms facing away.",
+    "Tilt your arms back slightly toward your head.",
+    "Bend your elbows to lower the bar toward your forehead.",
+    "Straighten your arms to press the bar back up."
+  ],
+  "cues": [
+    "Elbows point to the ceiling",
+    "Upper arms stay still",
+    "Lower slowly, control the bar",
+    "Breathe out as you extend"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Elbows flaring outward",
+      "fix": "Keep elbows shoulder width apart"
+    },
+    {
+      "mistake": "Turning it into a press",
+      "fix": "Move only at the elbows"
+    },
+    {
+      "mistake": "Lowering too fast",
+      "fix": "Take two to three seconds to lower"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 720
+}

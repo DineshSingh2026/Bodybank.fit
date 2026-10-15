@@ -1,0 +1,58 @@
+{
+  "id": "barbell-bent-over-row",
+  "source_id": "Bent_Over_Barbell_Row",
+  "name": "Barbell Bent-Over Row",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "middle back"
+  ],
+  "secondary_muscles": [
+    "biceps",
+    "lats",
+    "shoulders"
+  ],
+  "steps": [
+    "Hold the bar with an overhand grip, hands just wider than your knees.",
+    "Bend your knees slightly and hinge at the hips until your torso is near 45 degrees.",
+    "Pull the bar to your lower ribs, squeezing your shoulder blades.",
+    "Lower the bar with control until your arms are straight."
+  ],
+  "cues": [
+    "Flat back, hips pushed back",
+    "Pull elbows past your body",
+    "Keep the bar close to your legs",
+    "Breathe out as you pull"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the lower back",
+      "fix": "Lighten the load and keep your chest proud"
+    },
+    {
+      "mistake": "Standing up more with each rep",
+      "fix": "Hold the same hinge angle for the whole set"
+    },
+    {
+      "mistake": "Jerking the weight up with the hips",
+      "fix": "Use only the arms and back to move the bar"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": "bentoverrow",
+  "sort_order": 70
+}

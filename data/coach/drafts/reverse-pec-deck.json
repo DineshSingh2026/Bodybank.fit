@@ -1,0 +1,49 @@
+{
+  "id": "reverse-pec-deck",
+  "source_id": "Reverse_Machine_Flyes",
+  "name": "Reverse Pec Deck",
+  "area": "upper",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Sit facing the pec deck pad with handles at shoulder height.",
+    "Grip the handles with arms straight in front of you.",
+    "Pull the handles out and back in a wide arc.",
+    "Return slowly until your hands meet in front."
+  ],
+  "cues": [
+    "Chest against the pad",
+    "Arms nearly straight",
+    "Squeeze shoulder blades together",
+    "Breathe out as you pull back"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Shrugging the shoulders up",
+      "fix": "Keep shoulders down"
+    },
+    {
+      "mistake": "Using too much weight",
+      "fix": "Pick a weight you can pause with"
+    },
+    {
+      "mistake": "Leaning off the pad",
+      "fix": "Keep your chest in contact with the pad"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 480
+}

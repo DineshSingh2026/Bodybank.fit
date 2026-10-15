@@ -1,0 +1,51 @@
+{
+  "id": "stability-ball-knee-tuck",
+  "source_id": "Exercise_Ball_Pull-In",
+  "name": "Stability Ball Knee Tuck",
+  "area": "core",
+  "equipment": "exercise ball",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Start in a push up position with hands under your shoulders.",
+    "Place your shins on an exercise ball, body in a straight line.",
+    "Breathe out and roll the ball toward your chest by bending your knees.",
+    "Pause, then straighten your legs to roll the ball back."
+  ],
+  "cues": [
+    "Hands under shoulders",
+    "Hips stay level, no sagging",
+    "Pull knees toward chest",
+    "Breathe out as you tuck"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips sagging at the start",
+      "fix": "Brace the stomach and squeeze the glutes"
+    },
+    {
+      "mistake": "Ball rolling sideways",
+      "fix": "Move slowly and keep knees together"
+    },
+    {
+      "mistake": "Shoulders drifting behind the hands",
+      "fix": "Keep the shoulders over the wrists"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 280
+}

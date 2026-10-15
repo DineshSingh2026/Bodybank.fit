@@ -1,0 +1,54 @@
+{
+  "id": "seated-dumbbell-shoulder-press",
+  "source_id": "Dumbbell_Shoulder_Press",
+  "name": "Seated Dumbbell Shoulder Press",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "triceps"
+  ],
+  "steps": [
+    "Sit on a bench with back support, dumbbells resting on your thighs.",
+    "Lift the dumbbells to shoulder height, palms facing forward.",
+    "Press them up until your arms are straight over your head.",
+    "Lower slowly back to shoulder height."
+  ],
+  "cues": [
+    "Back against the pad",
+    "Ribs down, stomach tight",
+    "Wrists stacked over elbows",
+    "Breathe out as you press"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Arching the back off the pad",
+      "fix": "Brace your stomach and use a lighter weight"
+    },
+    {
+      "mistake": "Lowering only a few centimetres",
+      "fix": "Bring dumbbells down to about ear level"
+    },
+    {
+      "mistake": "Banging the dumbbells together at the top",
+      "fix": "Stop just short of touching at the top"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "kidney_gentle"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2,
+  "ai_trainer_key": "shoulderpress",
+  "sort_order": 100
+}

@@ -1,0 +1,51 @@
+{
+  "id": "cable-crossover",
+  "source_id": "Cable_Crossover",
+  "name": "Cable Crossover",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders"
+  ],
+  "steps": [
+    "Set both pulleys high and hold a handle in each hand.",
+    "Step forward into a split stance and lean your chest slightly forward.",
+    "With elbows slightly bent, bring your hands down and together in front of your hips.",
+    "Let the handles return slowly until your arms are out wide."
+  ],
+  "cues": [
+    "Soft bend in elbows",
+    "Chest up, slight forward lean",
+    "Squeeze hands together at the end",
+    "Breathe out as you bring hands in"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bending elbows to press the handles",
+      "fix": "Keep the same elbow bend throughout"
+    },
+    {
+      "mistake": "Letting the cables pull arms back too far",
+      "fix": "Stop the return when arms are in line with your body"
+    },
+    {
+      "mistake": "Leaning the whole body to move weight",
+      "fix": "Use a lighter weight and keep the torso still"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 160
+}

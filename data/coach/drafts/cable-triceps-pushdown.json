@@ -1,0 +1,49 @@
+{
+  "id": "cable-triceps-pushdown",
+  "source_id": "Triceps_Pushdown",
+  "name": "Cable Triceps Pushdown",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "triceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Attach a straight bar to a high pulley and grip it palms down.",
+    "Stand tall with elbows tucked at your sides.",
+    "Push the bar down until your arms are straight.",
+    "Let the bar rise slowly until forearms are about level with the floor."
+  ],
+  "cues": [
+    "Elbows pinned to your sides",
+    "Only the forearms move",
+    "Stand tall, slight forward lean",
+    "Breathe out as you push down"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Elbows moving forward and back",
+      "fix": "Keep upper arms still by your sides"
+    },
+    {
+      "mistake": "Leaning over the bar to push",
+      "fix": "Stand tall and lighten the weight"
+    },
+    {
+      "mistake": "Letting the bar fly up",
+      "fix": "Stop when forearms are level with the floor"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 690
+}

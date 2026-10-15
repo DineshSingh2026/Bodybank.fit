@@ -1,0 +1,53 @@
+{
+  "id": "incline-dumbbell-fly",
+  "source_id": "Incline_Dumbbell_Flyes",
+  "name": "Incline Dumbbell Fly",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders"
+  ],
+  "steps": [
+    "Lie on a bench set to a low incline with dumbbells over your upper chest.",
+    "Keep palms facing each other and elbows slightly bent.",
+    "Open your arms wide until you feel a gentle chest stretch.",
+    "Squeeze your chest to bring the dumbbells back together."
+  ],
+  "cues": [
+    "Soft bend in elbows",
+    "Shoulder blades on the bench",
+    "Control the bottom of the arc",
+    "Breathe out as you squeeze up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Turning it into a press",
+      "fix": "Hold the elbow angle fixed"
+    },
+    {
+      "mistake": "Dropping the arms below the bench",
+      "fix": "Stop at chest level"
+    },
+    {
+      "mistake": "Shoulders rolling forward at the top",
+      "fix": "Keep shoulder blades pulled back"
+    }
+  ],
+  "contraindications": [
+    "shoulder"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 150
+}

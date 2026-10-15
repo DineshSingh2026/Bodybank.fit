@@ -1,0 +1,52 @@
+{
+  "id": "side-plank",
+  "source_id": "Side_Bridge",
+  "name": "Side Plank",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "static",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "glutes"
+  ],
+  "steps": [
+    "Lie on your side with legs straight and stacked, forearm on the floor under your shoulder.",
+    "Brace your stomach and lift your hips until your body is straight from head to feet.",
+    "Rest your top hand on your hip or reach it to the ceiling.",
+    "Hold without letting your hips drop, then lower slowly and switch sides."
+  ],
+  "cues": [
+    "Elbow directly under shoulder",
+    "Hips up, body in a straight line",
+    "Stack feet, or stagger them for balance",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips sagging toward the floor",
+      "fix": "Push the bottom hip up; bend the bottom knee to make it easier"
+    },
+    {
+      "mistake": "Elbow placed too far from the body",
+      "fix": "Set the elbow right under the shoulder before lifting"
+    },
+    {
+      "mistake": "Rolling the chest toward the floor",
+      "fix": "Keep shoulders and hips stacked, chest facing forward"
+    }
+  ],
+  "contraindications": [],
+  "unit": "seconds",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 20,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 20
+}

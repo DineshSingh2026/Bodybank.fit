@@ -1,0 +1,56 @@
+{
+  "id": "chest-dips",
+  "source_id": "Dips_-_Chest_Version",
+  "name": "Chest Dips",
+  "area": "upper",
+  "equipment": "other",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Grip parallel bars and lift yourself up with straight arms.",
+    "Lean your torso slightly forward and bend your knees.",
+    "Lower your body until your upper arms are about level with the floor.",
+    "Push back up until your arms are straight."
+  ],
+  "cues": [
+    "Slight forward lean",
+    "Shoulders down, away from ears",
+    "Stop when upper arms are level",
+    "Breathe out as you push up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Dropping too deep",
+      "fix": "Stop when upper arms are parallel to the floor"
+    },
+    {
+      "mistake": "Shoulders shrugging up",
+      "fix": "Press shoulders down before each rep"
+    },
+    {
+      "mistake": "Swinging the legs",
+      "fix": "Keep legs still and lower with control"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "recovery",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 240
+}

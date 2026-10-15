@@ -1,0 +1,49 @@
+{
+  "id": "dumbbell-lateral-raise",
+  "source_id": "Side_Lateral_Raise",
+  "name": "Dumbbell Lateral Raise",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Stand tall with a dumbbell in each hand at your sides.",
+    "Keep a slight bend in your elbows.",
+    "Raise your arms out to the sides until they are level with your shoulders.",
+    "Lower slowly back to your sides."
+  ],
+  "cues": [
+    "Lead with the elbows",
+    "Stop at shoulder height",
+    "Shoulders down, no shrugging",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging the weights up",
+      "fix": "Use a lighter weight and lift slowly"
+    },
+    {
+      "mistake": "Lifting above shoulder height",
+      "fix": "Stop when arms are level with your shoulders"
+    },
+    {
+      "mistake": "Shrugging the traps",
+      "fix": "Keep your neck long and shoulders down"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": "lateralraise",
+  "sort_order": 420
+}

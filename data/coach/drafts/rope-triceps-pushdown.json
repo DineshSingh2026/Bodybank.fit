@@ -1,0 +1,49 @@
+{
+  "id": "rope-triceps-pushdown",
+  "source_id": "Triceps_Pushdown_-_Rope_Attachment",
+  "name": "Rope Triceps Pushdown",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "triceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Attach a rope to a high pulley and grip the ends with palms facing in.",
+    "Stand tall with elbows tucked at your sides.",
+    "Push the rope down, spreading the ends apart at the bottom.",
+    "Return slowly until forearms are about level with the floor."
+  ],
+  "cues": [
+    "Elbows pinned to your sides",
+    "Spread the rope at the bottom",
+    "Shoulders down",
+    "Breathe out as you push down"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Elbows flaring out",
+      "fix": "Keep elbows close to your body"
+    },
+    {
+      "mistake": "Using body weight to push",
+      "fix": "Stand tall and use less weight"
+    },
+    {
+      "mistake": "Short reps at the bottom only",
+      "fix": "Let forearms come up to level each rep"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 700
+}

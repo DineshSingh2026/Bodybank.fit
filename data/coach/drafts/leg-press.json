@@ -1,0 +1,61 @@
+{
+  "id": "leg-press",
+  "source_id": "Leg_Press",
+  "name": "Leg Press",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Sit in the machine with your back flat on the pad.",
+    "Place feet shoulder width in the middle of the platform.",
+    "Press the platform up and release the safety handles.",
+    "Bend your knees to lower the platform slowly toward your chest.",
+    "Stop before your hips lift, then press back up without locking knees.",
+    "Lock the safeties back in place when you finish."
+  ],
+  "cues": [
+    "Lower back stays on the pad",
+    "Knees in line with toes",
+    "Push through the whole foot",
+    "Soft knees at the top, never locked",
+    "Breathe in down, breathe out as you press"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips roll up off the seat at the bottom",
+      "fix": "Shorten the range so your lower back stays down"
+    },
+    {
+      "mistake": "Locking the knees hard at the top",
+      "fix": "Stop just short of straight"
+    },
+    {
+      "mistake": "Knees cave in while pressing",
+      "fix": "Keep knees pointing the same way as your toes"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "lower_back",
+    "recovery",
+    "kidney_gentle"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 40
+}

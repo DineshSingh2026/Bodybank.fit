@@ -1,0 +1,49 @@
+{
+  "id": "straight-arm-cable-pulldown",
+  "source_id": "Straight-Arm_Pulldown",
+  "name": "Straight-Arm Cable Pulldown",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "lats"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Stand facing a high pulley holding a straight bar, arms out in front.",
+    "Hinge slightly forward with soft knees and nearly straight arms.",
+    "Sweep the bar down in an arc to your thighs.",
+    "Let it rise slowly back to eye level."
+  ],
+  "cues": [
+    "Arms nearly straight throughout",
+    "Shoulders down, away from ears",
+    "Squeeze your lats at the bottom",
+    "Breathe out as you pull down"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bending the elbows into a pushdown",
+      "fix": "Keep the elbows only slightly bent"
+    },
+    {
+      "mistake": "Rocking the body to move the bar",
+      "fix": "Hold your torso still"
+    },
+    {
+      "mistake": "Letting the bar go too high",
+      "fix": "Stop around eye level"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 360
+}

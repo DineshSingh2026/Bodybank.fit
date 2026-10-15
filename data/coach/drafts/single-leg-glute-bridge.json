@@ -1,0 +1,54 @@
+{
+  "id": "single-leg-glute-bridge",
+  "source_id": "Single_Leg_Glute_Bridge",
+  "name": "Single-Leg Glute Bridge",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "hamstrings"
+  ],
+  "steps": [
+    "Lie on your back with knees bent and feet flat.",
+    "Lift one foot and hold that knee in toward your chest or straight up.",
+    "Press through the heel on the floor to lift your hips.",
+    "Pause with hips level at the top.",
+    "Lower slowly. Finish the set, then switch legs."
+  ],
+  "cues": [
+    "Hips stay level",
+    "Drive through the heel",
+    "Squeeze the working glute",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips tilting to one side",
+      "fix": "Lift lower and keep both hip bones level"
+    },
+    {
+      "mistake": "Pushing through the toes",
+      "fix": "Press down through the heel"
+    },
+    {
+      "mistake": "Arching the back",
+      "fix": "Keep ribs down and stop at a straight line"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 290
+}

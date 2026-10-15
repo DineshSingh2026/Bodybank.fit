@@ -1,0 +1,52 @@
+{
+  "id": "cable-glute-kickback",
+  "source_id": "One-Legged_Cable_Kickback",
+  "name": "Cable Glute Kickback",
+  "area": "lower",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "hamstrings"
+  ],
+  "steps": [
+    "Attach an ankle strap to a low pulley and put it on one ankle.",
+    "Face the machine and hold the frame for support.",
+    "Lean forward slightly with a soft bend in the standing knee.",
+    "Kick the strapped leg back until you feel your glute squeeze.",
+    "Return slowly. Finish the set, then switch legs."
+  ],
+  "cues": [
+    "Small forward lean",
+    "Move from the hip, not the back",
+    "Squeeze at the back",
+    "Control the return"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Arching the back to kick higher",
+      "fix": "Stop when the glute is fully squeezed"
+    },
+    {
+      "mistake": "Swinging the leg",
+      "fix": "Use less weight and move slowly"
+    },
+    {
+      "mistake": "Twisting the hips open",
+      "fix": "Keep hips square to the machine"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 340
+}

@@ -1,0 +1,55 @@
+{
+  "id": "cable-pull-through",
+  "source_id": "Pull_Through",
+  "name": "Cable Pull Through",
+  "area": "lower",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "hamstrings",
+    "lower back"
+  ],
+  "steps": [
+    "Attach a rope to a low pulley and face away from the machine.",
+    "Straddle the cable and hold the rope between your legs.",
+    "Walk forward a few steps, feet wider than hips.",
+    "Push hips back and let the rope pass between your legs.",
+    "Drive hips forward to stand tall and squeeze your glutes."
+  ],
+  "cues": [
+    "Arms straight, they only hold",
+    "Hips back, back flat",
+    "Soft knees",
+    "Breathe out as you stand"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Pulling with the arms",
+      "fix": "Keep arms straight and drive with the hips"
+    },
+    {
+      "mistake": "Squatting instead of hinging",
+      "fix": "Push hips back with only a small knee bend"
+    },
+    {
+      "mistake": "Leaning back at the top",
+      "fix": "Finish tall with glutes squeezed"
+    }
+  ],
+  "contraindications": [
+    "lower_back"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 270
+}

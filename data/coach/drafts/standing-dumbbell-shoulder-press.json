@@ -1,0 +1,54 @@
+{
+  "id": "standing-dumbbell-shoulder-press",
+  "source_id": "Standing_Dumbbell_Press",
+  "name": "Standing Dumbbell Shoulder Press",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "triceps"
+  ],
+  "steps": [
+    "Stand with feet hip width and dumbbells at shoulder height, palms forward.",
+    "Brace your stomach and squeeze your glutes.",
+    "Press the dumbbells up until your arms are straight overhead.",
+    "Lower slowly back to shoulder height."
+  ],
+  "cues": [
+    "Ribs down, no back arch",
+    "Wrists stacked over elbows",
+    "Press straight up",
+    "Breathe out as you press"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning back to press",
+      "fix": "Brace your stomach and lighten the load"
+    },
+    {
+      "mistake": "Using the legs to bounce the weight",
+      "fix": "Keep knees still unless doing a push press"
+    },
+    {
+      "mistake": "Lowering too little",
+      "fix": "Bring the dumbbells to about ear level"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "kidney_gentle"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2,
+  "ai_trainer_key": "shoulderpress",
+  "sort_order": 390
+}

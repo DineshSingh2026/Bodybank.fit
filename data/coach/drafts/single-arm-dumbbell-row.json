@@ -1,0 +1,53 @@
+{
+  "id": "single-arm-dumbbell-row",
+  "source_id": "One-Arm_Dumbbell_Row",
+  "name": "Single-Arm Dumbbell Row",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "middle back"
+  ],
+  "secondary_muscles": [
+    "biceps",
+    "lats",
+    "shoulders"
+  ],
+  "steps": [
+    "Place one knee and the same-side hand on a flat bench.",
+    "Hold a dumbbell in the other hand with your arm hanging straight.",
+    "Pull the dumbbell up toward your hip, elbow close to your side.",
+    "Lower it slowly until your arm is straight again."
+  ],
+  "cues": [
+    "Back flat like a table",
+    "Pull elbow toward your hip",
+    "Keep shoulders level",
+    "Breathe out as you pull"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Twisting the torso to lift the weight",
+      "fix": "Keep your chest facing the floor"
+    },
+    {
+      "mistake": "Pulling to the chest instead of the hip",
+      "fix": "Drive the elbow back toward your back pocket"
+    },
+    {
+      "mistake": "Rounding the back",
+      "fix": "Brace the stomach and keep the spine long"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 80
+}

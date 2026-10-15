@@ -1,0 +1,51 @@
+{
+  "id": "exercise-ball-crunch",
+  "source_id": "Exercise_Ball_Crunch",
+  "name": "Exercise Ball Crunch",
+  "area": "core",
+  "equipment": "exercise ball",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Sit on an exercise ball and walk your feet forward until your lower back rests on it.",
+    "Keep feet flat and wide, and cross your arms on your chest.",
+    "Breathe out and curl your shoulders up toward your hips.",
+    "Lower slowly back over the ball."
+  ],
+  "cues": [
+    "Feet wide for balance",
+    "Ball stays still under you",
+    "Curl ribs toward hips",
+    "Breathe out as you curl up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Ball rolling around",
+      "fix": "Widen the feet and move slowly"
+    },
+    {
+      "mistake": "Pulling on the neck",
+      "fix": "Cross the arms on the chest"
+    },
+    {
+      "mistake": "Sitting all the way up",
+      "fix": "Curl up only until the stomach is fully tight"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 270
+}

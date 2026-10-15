@@ -1,0 +1,57 @@
+{
+  "id": "lateral-lunge",
+  "source_id": "Barbell_Side_Split_Squat",
+  "name": "Lateral Lunge",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "adductors",
+    "glutes",
+    "hamstrings"
+  ],
+  "steps": [
+    "Stand with feet together and hands clasped at your chest.",
+    "Take a wide step out to the right.",
+    "Sit your hips back and bend the right knee, keeping the left leg straight.",
+    "Lower as far as is comfortable with both feet flat.",
+    "Push through the right heel to return. Finish the set, then switch sides."
+  ],
+  "cues": [
+    "Both feet flat on the floor",
+    "Sit back into the bent hip",
+    "Bent knee follows the toes",
+    "Chest up, back flat"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bent knee shoots past the toes",
+      "fix": "Sit the hips further back"
+    },
+    {
+      "mistake": "Heel of the bent leg lifts",
+      "fix": "Step less wide and keep weight in the heel"
+    },
+    {
+      "mistake": "Rounding the back",
+      "fix": "Keep the chest up and go less deep"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 440
+}

@@ -1,0 +1,52 @@
+{
+  "id": "lying-leg-curl",
+  "source_id": "Lying_Leg_Curls",
+  "name": "Lying Leg Curl",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "hamstrings"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie face down on the machine, knees just off the bench edge.",
+    "Set the pad just above your heels and hold the handles.",
+    "Curl your heels toward your glutes as far as you comfortably can.",
+    "Pause and squeeze the back of your thighs.",
+    "Lower slowly until legs are nearly straight."
+  ],
+  "cues": [
+    "Hips pressed into the pad",
+    "Curl smoothly, no jerking",
+    "Squeeze at the top",
+    "Lower slowly, two seconds down"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips lift off the bench",
+      "fix": "Lighten the load and keep hips pressed down"
+    },
+    {
+      "mistake": "Partial reps",
+      "fix": "Lower until legs are nearly straight each rep"
+    },
+    {
+      "mistake": "Kicking the weight up",
+      "fix": "Lift with control and pause at the top"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 100
+}

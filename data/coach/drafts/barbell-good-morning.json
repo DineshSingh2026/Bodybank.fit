@@ -1,0 +1,58 @@
+{
+  "id": "barbell-good-morning",
+  "source_id": "Good_Morning",
+  "name": "Barbell Good Morning",
+  "area": "lower",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "hamstrings"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "lower back"
+  ],
+  "steps": [
+    "Rest a light barbell on your upper back as you would for a squat.",
+    "Stand with feet hip width and knees slightly bent.",
+    "Push hips back and bow forward with a flat back.",
+    "Stop at a hamstring stretch, at or above parallel to the floor.",
+    "Drive hips forward to stand back up."
+  ],
+  "cues": [
+    "Back flat, chest proud",
+    "Hips back, soft knees",
+    "Start very light",
+    "Breathe in down, breathe out as you rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the back at the bottom",
+      "fix": "Stop higher, where your back stays flat"
+    },
+    {
+      "mistake": "Going too heavy",
+      "fix": "Use a light load; this is a technique lift"
+    },
+    {
+      "mistake": "Squatting down instead of hinging",
+      "fix": "Keep the knee bend small and fixed"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 490
+}

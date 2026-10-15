@@ -1,0 +1,51 @@
+{
+  "id": "reverse-barbell-curl",
+  "source_id": "Reverse_Barbell_Curl",
+  "name": "Reverse Barbell Curl",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "biceps"
+  ],
+  "secondary_muscles": [
+    "forearms"
+  ],
+  "steps": [
+    "Stand tall holding a bar with palms facing down, hands shoulder width.",
+    "Keep elbows close to your sides.",
+    "Curl the bar up toward your shoulders.",
+    "Lower slowly until your arms are straight."
+  ],
+  "cues": [
+    "Palms down throughout",
+    "Wrists straight",
+    "Elbows by your sides",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Wrists bending down",
+      "fix": "Keep wrists in line with forearms"
+    },
+    {
+      "mistake": "Too heavy a bar",
+      "fix": "Use less weight than a normal curl"
+    },
+    {
+      "mistake": "Swinging to lift",
+      "fix": "Keep your torso still"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 660
+}

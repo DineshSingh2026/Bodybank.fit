@@ -1,0 +1,56 @@
+{
+  "id": "step-up-with-knee-drive",
+  "source_id": "Step-up_with_Knee_Raise",
+  "name": "Step Up with Knee Drive",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "quadriceps",
+    "hamstrings"
+  ],
+  "steps": [
+    "Stand facing a sturdy box or step.",
+    "Place your whole left foot on top.",
+    "Push through the left heel to stand up on the box.",
+    "Drive the right knee up to hip height.",
+    "Step back down with control. Finish the set, then switch legs."
+  ],
+  "cues": [
+    "Whole foot on the box",
+    "Stand fully tall at the top",
+    "Knee up to hip height",
+    "Breathe out as you step up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Pushing off the bottom foot",
+      "fix": "Lift with the top leg only"
+    },
+    {
+      "mistake": "Box too high",
+      "fix": "Use a step where your knee is at or below hip level"
+    },
+    {
+      "mistake": "Dropping down off the box",
+      "fix": "Lower yourself slowly"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 480
+}

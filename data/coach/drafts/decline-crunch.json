@@ -1,0 +1,52 @@
+{
+  "id": "decline-crunch",
+  "source_id": "Decline_Crunch",
+  "name": "Decline Crunch",
+  "area": "core",
+  "equipment": "body only",
+  "level": "intermediate",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Hook your feet under the pads of a decline bench and lie back.",
+    "Cross your arms on your chest or rest fingertips beside your head.",
+    "Breathe out and curl your shoulders off the bench.",
+    "Pause, then lower slowly without resting at the bottom."
+  ],
+  "cues": [
+    "Lower back pressed into the bench",
+    "Curl ribs toward hips",
+    "Hands light, no neck pulling",
+    "Breathe out as you curl up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bench set too steep",
+      "fix": "Start with a low decline"
+    },
+    {
+      "mistake": "Yanking the head forward",
+      "fix": "Cross the arms on the chest"
+    },
+    {
+      "mistake": "Dropping back fast",
+      "fix": "Lower in 2–3 seconds"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 300
+}

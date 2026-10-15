@@ -1,0 +1,59 @@
+{
+  "id": "broad-jump",
+  "source_id": "Standing_Long_Jump",
+  "name": "Broad Jump",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand with feet shoulder width apart.",
+    "Dip into a quarter squat and swing your arms back.",
+    "Jump forward as far as you can, swinging your arms forward.",
+    "Land softly on both feet in a half squat.",
+    "Stand, walk back to the start and reset."
+  ],
+  "cues": [
+    "Land softly, knees bent",
+    "Knees in line with toes",
+    "Stick the landing before resetting",
+    "Breathe out as you jump"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Landing with straight legs",
+      "fix": "Bend knees and hips to absorb the landing"
+    },
+    {
+      "mistake": "Falling forward on landing",
+      "fix": "Jump a shorter distance you can stick"
+    },
+    {
+      "mistake": "Rushing reps",
+      "fix": "Reset fully between jumps"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 6,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 550
+}

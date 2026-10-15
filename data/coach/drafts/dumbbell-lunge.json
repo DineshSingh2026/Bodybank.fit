@@ -1,0 +1,56 @@
+{
+  "id": "dumbbell-lunge",
+  "source_id": "Dumbbell_Lunges",
+  "name": "Dumbbell Lunge",
+  "area": "lower",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand tall with a dumbbell in each hand at your sides.",
+    "Step forward with one leg about two feet.",
+    "Lower until both knees are bent near 90 degrees.",
+    "Push through the front heel to step back to standing.",
+    "Switch legs or finish all reps on one side first."
+  ],
+  "cues": [
+    "Chest up, shoulders back",
+    "Front shin close to vertical",
+    "Weight in the front heel",
+    "Breathe in down, breathe out as you push back"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Back knee slams the floor",
+      "fix": "Lower under control and stop just above"
+    },
+    {
+      "mistake": "Torso tips forward",
+      "fix": "Keep chest up and eyes ahead"
+    },
+    {
+      "mistake": "Feet in one line, losing balance",
+      "fix": "Keep feet hip width apart, like train tracks"
+    }
+  ],
+  "contraindications": [
+    "knee"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2,
+  "ai_trainer_key": "lunge",
+  "sort_order": 80
+}

@@ -1,0 +1,56 @@
+{
+  "id": "pull-ups",
+  "source_id": "Pullups",
+  "name": "Pull Ups",
+  "area": "upper",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "lats"
+  ],
+  "secondary_muscles": [
+    "biceps",
+    "middle back"
+  ],
+  "steps": [
+    "Hang from a bar with an overhand grip a little wider than shoulders.",
+    "Pull your shoulders down and back to start the movement.",
+    "Pull yourself up until your chin clears the bar.",
+    "Lower slowly to a full hang with straight arms."
+  ],
+  "cues": [
+    "Shoulders down, away from ears",
+    "Drive elbows toward your ribs",
+    "Legs still, no swinging",
+    "Breathe out as you pull up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Kicking or swinging the legs",
+      "fix": "Keep legs still; use a band if needed"
+    },
+    {
+      "mistake": "Half reps without full lowering",
+      "fix": "Lower all the way to straight arms each rep"
+    },
+    {
+      "mistake": "Reaching the chin forward to clear the bar",
+      "fix": "Pull your chest toward the bar, chin neutral"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "recovery",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 90
+}

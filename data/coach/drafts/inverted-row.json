@@ -1,0 +1,51 @@
+{
+  "id": "inverted-row",
+  "source_id": "Inverted_Row",
+  "name": "Inverted Row",
+  "area": "upper",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "middle back"
+  ],
+  "secondary_muscles": [
+    "lats"
+  ],
+  "steps": [
+    "Set a bar in a rack at about waist height.",
+    "Hang underneath it with hands wider than shoulders and heels on the floor.",
+    "Pull your chest up to the bar, squeezing your shoulder blades.",
+    "Lower slowly until your arms are straight."
+  ],
+  "cues": [
+    "Body straight like a plank",
+    "Chest leads to the bar",
+    "Elbows angled back",
+    "Breathe out as you pull"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips sagging",
+      "fix": "Squeeze glutes and keep a straight line"
+    },
+    {
+      "mistake": "Pulling the chin to the bar",
+      "fix": "Pull your chest to the bar instead"
+    },
+    {
+      "mistake": "Bar set too low to start",
+      "fix": "Raise the bar or bend your knees to make it easier"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 350
+}

@@ -1,0 +1,52 @@
+{
+  "id": "incline-machine-chest-press",
+  "source_id": "Leverage_Incline_Chest_Press",
+  "name": "Incline Machine Chest Press",
+  "area": "upper",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Adjust the seat so the handles are level with your upper chest.",
+    "Sit back against the pad and grip the handles.",
+    "Press the handles up and forward until your arms are almost straight.",
+    "Lower slowly back to the start."
+  ],
+  "cues": [
+    "Back on the pad, chest up",
+    "Elbows slightly tucked",
+    "Smooth press, soft elbows at top",
+    "Breathe out as you press"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Arching the back off the pad",
+      "fix": "Keep your back flat and stomach tight"
+    },
+    {
+      "mistake": "Short, choppy reps",
+      "fix": "Use the full comfortable range each rep"
+    },
+    {
+      "mistake": "Pushing with the shoulders shrugged",
+      "fix": "Keep shoulders down away from your ears"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 200
+}

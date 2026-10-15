@@ -1,0 +1,51 @@
+{
+  "id": "concentration-curl",
+  "source_id": "Concentration_Curls",
+  "name": "Concentration Curl",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "biceps"
+  ],
+  "secondary_muscles": [
+    "forearms"
+  ],
+  "steps": [
+    "Sit on a bench with legs apart and a dumbbell in one hand.",
+    "Rest the back of that upper arm against your inner thigh.",
+    "Curl the dumbbell up toward your shoulder.",
+    "Lower slowly until your arm is straight."
+  ],
+  "cues": [
+    "Upper arm stays on the thigh",
+    "Only the forearm moves",
+    "Squeeze at the top",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Using the shoulder to lift",
+      "fix": "Keep the upper arm still on the thigh"
+    },
+    {
+      "mistake": "Rushing the lowering",
+      "fix": "Take two to three seconds down"
+    },
+    {
+      "mistake": "Rounding the back hard",
+      "fix": "Lean forward from the hips, back long"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 620
+}

@@ -1,0 +1,58 @@
+{
+  "id": "battle-ropes",
+  "source_id": "Battling_Ropes",
+  "name": "Battle Ropes",
+  "area": "full",
+  "equipment": "other",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "forearms",
+    "chest",
+    "abdominals",
+    "quadriceps",
+    "glutes"
+  ],
+  "steps": [
+    "Hold one rope end in each hand and step back until the rope has a little slack.",
+    "Stand with feet shoulder width, knees bent and hips back in a half squat.",
+    "Raise and drop your arms one after the other to send waves down the rope.",
+    "Keep the waves going for the set time, then stand up and rest."
+  ],
+  "cues": [
+    "Knees bent, chest up",
+    "Stomach tight, back flat",
+    "Quick, small waves from the shoulders",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Standing up straight with locked knees",
+      "fix": "Stay in a half squat so the legs help absorb the work"
+    },
+    {
+      "mistake": "Rounding the back and hunching",
+      "fix": "Keep the chest up and shoulders away from the ears"
+    },
+    {
+      "mistake": "Waves dying out halfway",
+      "fix": "Step closer to the anchor and keep the arm action steady"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "kidney_gentle"
+  ],
+  "unit": "seconds",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 30,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 90
+}

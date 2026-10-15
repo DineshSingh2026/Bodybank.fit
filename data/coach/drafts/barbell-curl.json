@@ -1,0 +1,51 @@
+{
+  "id": "barbell-curl",
+  "source_id": "Barbell_Curl",
+  "name": "Barbell Curl",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "biceps"
+  ],
+  "secondary_muscles": [
+    "forearms"
+  ],
+  "steps": [
+    "Stand tall holding a bar with palms facing forward, hands shoulder width.",
+    "Keep your elbows close to your sides.",
+    "Curl the bar up toward your shoulders.",
+    "Lower slowly until your arms are straight."
+  ],
+  "cues": [
+    "Elbows pinned to your sides",
+    "Torso still, no swinging",
+    "Squeeze biceps at the top",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging the body to lift",
+      "fix": "Use a lighter bar and keep torso still"
+    },
+    {
+      "mistake": "Elbows moving forward",
+      "fix": "Keep elbows by your sides"
+    },
+    {
+      "mistake": "Dropping the bar fast",
+      "fix": "Lower over two to three seconds"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": "biccurl",
+  "sort_order": 550
+}

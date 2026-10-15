@@ -1,0 +1,58 @@
+{
+  "id": "underhand-barbell-row",
+  "source_id": "Reverse_Grip_Bent-Over_Rows",
+  "name": "Underhand Barbell Row",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "middle back"
+  ],
+  "secondary_muscles": [
+    "biceps",
+    "lats",
+    "shoulders"
+  ],
+  "steps": [
+    "Hold the bar with palms facing forward, hands about shoulder width.",
+    "Bend your knees slightly and hinge forward to about 45 degrees.",
+    "Pull the bar to your lower stomach, elbows close to your body.",
+    "Lower the bar slowly until your arms are straight."
+  ],
+  "cues": [
+    "Flat back, chest proud",
+    "Elbows brush your sides",
+    "Bar stays close to your legs",
+    "Breathe out as you pull"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Using the hips to heave the bar",
+      "fix": "Hold your torso still and use a lighter bar"
+    },
+    {
+      "mistake": "Rounding the back",
+      "fix": "Brace before each rep"
+    },
+    {
+      "mistake": "Curling the bar with the biceps",
+      "fix": "Lead with the elbows, not the hands"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 290
+}

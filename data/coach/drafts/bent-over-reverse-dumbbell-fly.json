@@ -1,0 +1,52 @@
+{
+  "id": "bent-over-reverse-dumbbell-fly",
+  "source_id": "Reverse_Flyes",
+  "name": "Bent-Over Reverse Dumbbell Fly",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Hold light dumbbells and hinge forward until your torso is nearly flat, knees soft.",
+    "Let the dumbbells hang under your chest, palms facing in.",
+    "Raise your arms out to the sides, squeezing your shoulder blades.",
+    "Lower slowly back under your chest."
+  ],
+  "cues": [
+    "Flat back, hips back",
+    "Soft, fixed bend in elbows",
+    "Lift out wide, not up high",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the back",
+      "fix": "Keep your chest proud and hinge from the hips"
+    },
+    {
+      "mistake": "Swinging with the torso",
+      "fix": "Hold your body still and use lighter dumbbells"
+    },
+    {
+      "mistake": "Bending elbows into a row",
+      "fix": "Keep the elbow angle fixed"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 470
+}

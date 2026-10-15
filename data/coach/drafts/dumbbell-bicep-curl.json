@@ -1,0 +1,51 @@
+{
+  "id": "dumbbell-bicep-curl",
+  "source_id": "Dumbbell_Bicep_Curl",
+  "name": "Dumbbell Bicep Curl",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "biceps"
+  ],
+  "secondary_muscles": [
+    "forearms"
+  ],
+  "steps": [
+    "Stand tall with a dumbbell in each hand, palms facing forward.",
+    "Keep your elbows close to your sides.",
+    "Curl both dumbbells up toward your shoulders.",
+    "Lower slowly until your arms are straight."
+  ],
+  "cues": [
+    "Elbows stay by your sides",
+    "Wrists straight",
+    "No swinging",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging the weights",
+      "fix": "Pick a lighter weight and stand still"
+    },
+    {
+      "mistake": "Half reps at the bottom",
+      "fix": "Lower to straight arms each rep"
+    },
+    {
+      "mistake": "Elbows drifting forward",
+      "fix": "Keep upper arms still"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": "biccurl",
+  "sort_order": 560
+}

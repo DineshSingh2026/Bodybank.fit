@@ -1,0 +1,53 @@
+{
+  "id": "machine-shoulder-press",
+  "source_id": "Machine_Shoulder_Military_Press",
+  "name": "Machine Shoulder Press",
+  "area": "upper",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "triceps"
+  ],
+  "steps": [
+    "Adjust the seat so the handles are at about shoulder height.",
+    "Sit with your back on the pad and grip the handles.",
+    "Press the handles up until your arms are almost straight.",
+    "Lower slowly back to shoulder height."
+  ],
+  "cues": [
+    "Back flat on the pad",
+    "Elbows slightly forward",
+    "Smooth press, soft elbows at top",
+    "Breathe out as you press"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Seat too low, handles too high",
+      "fix": "Set handles level with your shoulders"
+    },
+    {
+      "mistake": "Arching off the pad",
+      "fix": "Keep your back and head on the pad"
+    },
+    {
+      "mistake": "Letting the weight crash",
+      "fix": "Control the return every rep"
+    }
+  ],
+  "contraindications": [
+    "shoulder"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 410
+}

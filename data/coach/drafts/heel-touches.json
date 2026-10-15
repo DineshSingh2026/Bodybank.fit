@@ -1,0 +1,51 @@
+{
+  "id": "heel-touches",
+  "source_id": "Alternate_Heel_Touchers",
+  "name": "Heel Touches",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie on your back with knees bent and feet flat, a little wider than hips.",
+    "Lift your shoulders slightly off the floor, arms by your sides.",
+    "Reach your right hand toward your right heel by bending sideways.",
+    "Return to the middle and reach to the left heel."
+  ],
+  "cues": [
+    "Shoulders stay lifted",
+    "Bend sideways, do not sit up",
+    "Keep chin off the chest",
+    "Breathe out on each reach"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Dropping the head and shoulders between reps",
+      "fix": "Keep the shoulders up for the whole set"
+    },
+    {
+      "mistake": "Rushing side to side",
+      "fix": "Pause for a second on each side"
+    },
+    {
+      "mistake": "Feet too close to the body",
+      "fix": "Place the feet so the fingertips just reach the heels"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 130
+}

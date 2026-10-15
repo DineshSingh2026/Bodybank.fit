@@ -1,0 +1,49 @@
+{
+  "id": "dumbbell-wrist-curl",
+  "source_id": "Seated_Dumbbell_Palms-Up_Wrist_Curl",
+  "name": "Dumbbell Wrist Curl",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "forearms"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Sit on a bench holding dumbbells, forearms resting on your thighs, palms up.",
+    "Let your wrists hang just past your knees.",
+    "Curl your wrists up as high as you can.",
+    "Lower slowly back down."
+  ],
+  "cues": [
+    "Forearms stay on your thighs",
+    "Only the wrists move",
+    "Slow and controlled",
+    "Breathe steadily"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Lifting the forearms off the thighs",
+      "fix": "Keep forearms pressed down"
+    },
+    {
+      "mistake": "Weight too heavy",
+      "fix": "Use a light weight and full range"
+    },
+    {
+      "mistake": "Bouncing the weight",
+      "fix": "Pause at the top of each rep"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 780
+}

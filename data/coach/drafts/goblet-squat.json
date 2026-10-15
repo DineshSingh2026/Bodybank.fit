@@ -1,0 +1,56 @@
+{
+  "id": "goblet-squat",
+  "source_id": "Goblet_Squat",
+  "name": "Goblet Squat",
+  "area": "lower",
+  "equipment": "kettlebell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Hold a kettlebell by the handle sides close to your chest.",
+    "Stand with feet a little wider than shoulder width, toes slightly out.",
+    "Sit down between your knees, keeping elbows inside the knees.",
+    "Lower until thighs are about parallel or as low as your back stays flat.",
+    "Push through your heels to stand back up."
+  ],
+  "cues": [
+    "Weight held tight to your chest",
+    "Chest up, elbows down",
+    "Knees push out over toes",
+    "Breathe in down, breathe out as you stand"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Weight drifts away from the chest",
+      "fix": "Keep the bell touching your chest the whole rep"
+    },
+    {
+      "mistake": "Torso folds forward",
+      "fix": "Lift your chest and look straight ahead"
+    },
+    {
+      "mistake": "Knees collapse inward",
+      "fix": "Spread the floor with your feet and push knees out"
+    }
+  ],
+  "contraindications": [
+    "knee"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 4,
+  "ai_trainer_key": "squat",
+  "sort_order": 20
+}

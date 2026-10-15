@@ -1,0 +1,54 @@
+{
+  "id": "push-ups",
+  "source_id": "Pushups",
+  "name": "Push Ups",
+  "area": "upper",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Place hands on the floor slightly wider than shoulders, legs straight behind you.",
+    "Brace your body into one straight line from head to heels.",
+    "Bend your elbows and lower your chest to just above the floor.",
+    "Push the floor away until your arms are straight again."
+  ],
+  "cues": [
+    "Body in one straight line",
+    "Hands under shoulders, fingers forward",
+    "Elbows angled back, not flared",
+    "Breathe in down, breathe out up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips sagging toward the floor",
+      "fix": "Squeeze glutes and brace your stomach"
+    },
+    {
+      "mistake": "Only going halfway down",
+      "fix": "Lower until chest is a fist from the floor, or use an incline"
+    },
+    {
+      "mistake": "Head dropping forward",
+      "fix": "Look at the floor just ahead of your hands"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": "pushup",
+  "sort_order": 20
+}

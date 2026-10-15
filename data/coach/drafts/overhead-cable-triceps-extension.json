@@ -1,0 +1,51 @@
+{
+  "id": "overhead-cable-triceps-extension",
+  "source_id": "Cable_Rope_Overhead_Triceps_Extension",
+  "name": "Overhead Cable Triceps Extension",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "triceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Attach a rope to a low or mid pulley and face away from the machine.",
+    "Hold the rope behind your head with elbows bent and pointing forward.",
+    "Straighten your arms forward and up over your head.",
+    "Bend your elbows slowly to return behind your head."
+  ],
+  "cues": [
+    "Elbows stay close to your head",
+    "Ribs down, no back arch",
+    "Split stance for balance",
+    "Breathe out as you extend"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Elbows flaring wide",
+      "fix": "Keep elbows pointing forward"
+    },
+    {
+      "mistake": "Arching the lower back",
+      "fix": "Brace your stomach and stand in a split stance"
+    },
+    {
+      "mistake": "Moving the upper arms",
+      "fix": "Only the forearms should move"
+    }
+  ],
+  "contraindications": [
+    "shoulder"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 710
+}

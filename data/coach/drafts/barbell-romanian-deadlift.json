@@ -1,0 +1,59 @@
+{
+  "id": "barbell-romanian-deadlift",
+  "source_id": "Romanian_Deadlift",
+  "name": "Barbell Romanian Deadlift",
+  "area": "lower",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "hamstrings"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "lower back"
+  ],
+  "steps": [
+    "Stand holding a barbell at your thighs, hands just outside your legs.",
+    "Feet hip width apart, knees slightly bent.",
+    "Push your hips back and let the bar slide down your thighs.",
+    "Lower until you feel a stretch in your hamstrings, usually just below the knee.",
+    "Squeeze your glutes and drive hips forward to stand tall."
+  ],
+  "cues": [
+    "Back flat, chest proud",
+    "Bar stays close to your legs",
+    "Hips go back, not down",
+    "Soft knees, same bend all rep",
+    "Breathe in down, breathe out as you rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the back to reach lower",
+      "fix": "Stop where your back starts to round"
+    },
+    {
+      "mistake": "Bar drifts away from the legs",
+      "fix": "Keep the bar brushing your thighs"
+    },
+    {
+      "mistake": "Bending knees into a squat",
+      "fix": "Keep a small fixed knee bend and push hips back"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 50
+}

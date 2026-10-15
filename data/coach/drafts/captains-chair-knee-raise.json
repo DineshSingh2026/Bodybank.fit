@@ -1,0 +1,52 @@
+{
+  "id": "captains-chair-knee-raise",
+  "source_id": "Knee_Hip_Raise_On_Parallel_Bars",
+  "name": "Captain's Chair Knee Raise",
+  "area": "core",
+  "equipment": "other",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Step onto the knee raise station and rest your forearms on the pads.",
+    "Press your back against the back pad and let your legs hang.",
+    "Breathe out and lift your knees toward your chest.",
+    "Curl your hips slightly at the top, then lower slowly."
+  ],
+  "cues": [
+    "Back stays on the pad",
+    "Shoulders down, away from ears",
+    "Lift knees, then curl hips",
+    "Breathe out as knees rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging the legs",
+      "fix": "Pause at the bottom before each rep"
+    },
+    {
+      "mistake": "Shoulders shrugging up to the ears",
+      "fix": "Press down into the forearm pads"
+    },
+    {
+      "mistake": "Dropping the legs fast",
+      "fix": "Lower in 2–3 seconds"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 240
+}

@@ -1,0 +1,52 @@
+{
+  "id": "band-standing-kickback",
+  "source_id": "Hip_Extension_with_Bands",
+  "name": "Band Standing Kickback",
+  "area": "lower",
+  "equipment": "bands",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "hamstrings"
+  ],
+  "steps": [
+    "Tie a band low on a post and loop the other end around one ankle.",
+    "Face the post and hold it for balance.",
+    "Stand tall with your stomach braced.",
+    "Push the banded leg straight back, keeping the knee straight.",
+    "Return slowly. Finish the set, then switch legs."
+  ],
+  "cues": [
+    "Stand tall, chest up",
+    "Leg moves from the hip",
+    "Squeeze the glute at the back",
+    "Control the return"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning forward to kick higher",
+      "fix": "Keep chest up and take a smaller range"
+    },
+    {
+      "mistake": "Arching the lower back",
+      "fix": "Brace your stomach and stop at the squeeze"
+    },
+    {
+      "mistake": "Letting the band snap back",
+      "fix": "Return slowly against the pull"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 350
+}

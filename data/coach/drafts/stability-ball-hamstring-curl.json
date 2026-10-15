@@ -1,0 +1,55 @@
+{
+  "id": "stability-ball-hamstring-curl",
+  "source_id": "Ball_Leg_Curl",
+  "name": "Stability Ball Hamstring Curl",
+  "area": "lower",
+  "equipment": "exercise ball",
+  "level": "intermediate",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "hamstrings"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "calves"
+  ],
+  "steps": [
+    "Lie on your back with your heels on top of an exercise ball.",
+    "Rest your arms on the floor out to the sides.",
+    "Lift your hips so your body is straight from shoulders to heels.",
+    "Bend your knees to roll the ball toward you.",
+    "Roll it back out slowly, keeping hips up."
+  ],
+  "cues": [
+    "Hips stay lifted",
+    "Arms press into the floor",
+    "Squeeze the backs of your thighs",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips dropping as you curl",
+      "fix": "Squeeze glutes to keep hips high"
+    },
+    {
+      "mistake": "Ball rolling side to side",
+      "fix": "Keep heels together in the middle of the ball"
+    },
+    {
+      "mistake": "Rushing the roll out",
+      "fix": "Take two seconds to straighten"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 410
+}

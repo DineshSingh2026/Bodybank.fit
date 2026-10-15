@@ -1,0 +1,52 @@
+{
+  "id": "dumbbell-side-bend",
+  "source_id": "Dumbbell_Side_Bend",
+  "name": "Dumbbell Side Bend",
+  "area": "core",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Stand tall holding one dumbbell at your side, feet shoulder width.",
+    "Rest your free hand on your hip.",
+    "Bend sideways toward the dumbbell, sliding it down your leg.",
+    "Breathe out and pull yourself back up with the opposite side.",
+    "Finish the set, then switch hands."
+  ],
+  "cues": [
+    "Bend straight sideways, no leaning forward",
+    "Hips stay still",
+    "Controlled range, no bouncing",
+    "Breathe out as you come up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning forward or back",
+      "fix": "Move as if between two walls"
+    },
+    {
+      "mistake": "Holding dumbbells in both hands",
+      "fix": "Use one dumbbell so the side has work to do"
+    },
+    {
+      "mistake": "Bouncing at the bottom",
+      "fix": "Pause at the bottom, then lift slowly"
+    }
+  ],
+  "contraindications": [
+    "lower_back"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 290
+}

@@ -1,0 +1,52 @@
+{
+  "id": "band-standing-hip-abduction",
+  "source_id": "Band_Hip_Adductions",
+  "name": "Band Standing Hip Abduction",
+  "area": "lower",
+  "equipment": "bands",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "abductors"
+  ],
+  "secondary_muscles": [
+    "glutes"
+  ],
+  "steps": [
+    "Tie a band low on a post and stand side-on, the post at your left.",
+    "Loop the band around your right ankle so it crosses in front of your left leg.",
+    "Hold the post and stand tall.",
+    "Lift the right leg out to the side with a straight knee.",
+    "Return slowly. Finish the set, then switch sides."
+  ],
+  "cues": [
+    "Stand tall, no side lean",
+    "Toes point forward",
+    "Lift from the side of the hip",
+    "Slow return"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning the body sideways",
+      "fix": "Keep shoulders level and take a smaller lift"
+    },
+    {
+      "mistake": "Turning the toes up",
+      "fix": "Keep toes pointing forward"
+    },
+    {
+      "mistake": "Letting the band snap back",
+      "fix": "Control the leg on the way in"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 400
+}

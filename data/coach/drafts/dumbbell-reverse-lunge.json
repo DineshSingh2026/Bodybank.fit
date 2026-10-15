@@ -1,0 +1,56 @@
+{
+  "id": "dumbbell-reverse-lunge",
+  "source_id": "Dumbbell_Rear_Lunge",
+  "name": "Dumbbell Reverse Lunge",
+  "area": "lower",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand tall with a dumbbell in each hand at your sides.",
+    "Step one foot back about two feet.",
+    "Bend both knees until the back knee is just above the floor.",
+    "Push through the front heel to bring the back foot forward.",
+    "Alternate legs or finish one side first."
+  ],
+  "cues": [
+    "Chest up, shoulders over hips",
+    "Front knee over the ankle",
+    "Back knee drops straight down",
+    "Breathe in down, breathe out as you return"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Stepping back too short",
+      "fix": "Take a longer step back"
+    },
+    {
+      "mistake": "Leaning forward",
+      "fix": "Keep the torso upright"
+    },
+    {
+      "mistake": "Pushing off the back foot",
+      "fix": "Drive up through the front heel"
+    }
+  ],
+  "contraindications": [
+    "knee"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2,
+  "ai_trainer_key": "lunge",
+  "sort_order": 180
+}

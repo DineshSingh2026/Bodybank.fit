@@ -1,0 +1,56 @@
+{
+  "id": "smith-machine-bench-press",
+  "source_id": "Smith_Machine_Bench_Press",
+  "name": "Smith Machine Bench Press",
+  "area": "upper",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Set a flat bench under the bar so it lines up with your mid-chest.",
+    "Grip slightly wider than shoulders and twist the bar to unhook it.",
+    "Lower the bar with control to your mid-chest.",
+    "Press back up and twist to re-hook when finished."
+  ],
+  "cues": [
+    "Shoulder blades pinned back",
+    "Elbows about 45 degrees out",
+    "Feet flat on the floor",
+    "Breathe in down, breathe out up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bench placed in the wrong spot",
+      "fix": "Line the bar up with your mid-chest before starting"
+    },
+    {
+      "mistake": "Forgetting to set the safety stops",
+      "fix": "Set stops just below your chest height"
+    },
+    {
+      "mistake": "Bouncing the bar off the chest",
+      "fix": "Lower slowly and touch lightly"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 210
+}

@@ -1,0 +1,53 @@
+{
+  "id": "bodyweight-squat",
+  "source_id": "Bodyweight_Squat",
+  "name": "Bodyweight Squat",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings"
+  ],
+  "steps": [
+    "Stand with feet shoulder width apart, toes slightly out.",
+    "Reach your arms forward or cross them on your chest.",
+    "Push hips back and bend knees to sit down slowly.",
+    "Go as low as you can while keeping your back flat.",
+    "Press through your heels to stand up tall."
+  ],
+  "cues": [
+    "Feet flat, heels down",
+    "Chest up, back straight",
+    "Knees track over toes",
+    "Breathe in down, breathe out as you stand"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Heels lift as you go down",
+      "fix": "Sit back more and keep weight on your heels"
+    },
+    {
+      "mistake": "Dropping down fast",
+      "fix": "Take two to three seconds to lower"
+    },
+    {
+      "mistake": "Knees cave in",
+      "fix": "Push knees out in line with your toes"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": "squat",
+  "sort_order": 30
+}

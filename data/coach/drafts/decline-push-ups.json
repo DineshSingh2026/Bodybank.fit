@@ -1,0 +1,55 @@
+{
+  "id": "decline-push-ups",
+  "source_id": "Push-Ups_With_Feet_Elevated",
+  "name": "Decline Push Ups",
+  "area": "upper",
+  "equipment": "body only",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Place your feet on a bench and hands on the floor, slightly wider than shoulders.",
+    "Brace into a straight line from head to heels.",
+    "Lower your chest toward the floor with control.",
+    "Push back up until your arms are straight."
+  ],
+  "cues": [
+    "Body straight, no sagging hips",
+    "Hands under shoulders",
+    "Elbows angled back",
+    "Breathe in down, breathe out up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips dropping toward the floor",
+      "fix": "Brace your stomach and squeeze glutes"
+    },
+    {
+      "mistake": "Feet set too high to start",
+      "fix": "Begin with a low step and progress"
+    },
+    {
+      "mistake": "Neck craning down",
+      "fix": "Keep your head in line with your body"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 230
+}

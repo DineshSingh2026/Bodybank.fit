@@ -1,0 +1,57 @@
+{
+  "id": "inchworm",
+  "source_id": "Inchworm",
+  "name": "Inchworm",
+  "area": "full",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "hamstrings",
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "abdominals",
+    "chest",
+    "triceps",
+    "calves"
+  ],
+  "steps": [
+    "Stand with feet together and fold forward to put your hands on the floor.",
+    "Walk your hands forward one at a time until you reach a high plank.",
+    "Hold the plank for a moment with your body in a straight line.",
+    "Walk your feet in small steps towards your hands, then roll up to stand."
+  ],
+  "cues": [
+    "Bend the knees as much as you need",
+    "Stomach tight in the plank",
+    "Hands under shoulders at the end",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Forcing straight legs and rounding hard",
+      "fix": "Bend the knees enough to reach the floor comfortably"
+    },
+    {
+      "mistake": "Hips sagging in the plank",
+      "fix": "Squeeze glutes and stomach to keep a straight line"
+    },
+    {
+      "mistake": "Walking the hands too far out",
+      "fix": "Stop when your hands are under your shoulders"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 6,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 130
+}

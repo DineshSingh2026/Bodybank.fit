@@ -1,0 +1,54 @@
+{
+  "id": "hanging-leg-raise",
+  "source_id": "Hanging_Leg_Raise",
+  "name": "Hanging Leg Raise",
+  "area": "core",
+  "equipment": "body only",
+  "level": "intermediate",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Hang from a pull-up bar with hands shoulder width and arms straight.",
+    "Pull your shoulders slightly down and keep your body still.",
+    "Breathe out and raise your legs until they are level with your hips.",
+    "Lower slowly without swinging."
+  ],
+  "cues": [
+    "No swinging, body stays still",
+    "Shoulders active, not shrugged",
+    "Bend knees to make it easier",
+    "Breathe out as legs rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging to get the legs up",
+      "fix": "Pause at the bottom; switch to knee raises if needed"
+    },
+    {
+      "mistake": "Arching the lower back",
+      "fix": "Tuck the hips slightly as the legs rise"
+    },
+    {
+      "mistake": "Grip giving out early",
+      "fix": "Use a captain's chair until grip catches up"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "pregnancy",
+    "recovery",
+    "kidney_gentle"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 250
+}

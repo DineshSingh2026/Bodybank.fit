@@ -1,0 +1,54 @@
+{
+  "id": "low-to-high-cable-woodchop",
+  "source_id": "Standing_Cable_Lift",
+  "name": "Low-to-High Cable Woodchop",
+  "area": "core",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [
+    "shoulders"
+  ],
+  "steps": [
+    "Set a handle on a low pulley and stand side-on, feet shoulder width.",
+    "Bend your knees and hold the handle with both hands beside the near knee.",
+    "Breathe out and lift the handle diagonally up across your body.",
+    "Finish with arms above the far shoulder as you stand tall.",
+    "Lower slowly back down; switch sides after the set."
+  ],
+  "cues": [
+    "Arms long, turn from the trunk",
+    "Push through the legs as you rise",
+    "Pivot the back foot",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the back to reach the handle",
+      "fix": "Bend the knees and keep the chest up"
+    },
+    {
+      "mistake": "Pulling with bent arms",
+      "fix": "Keep the arms long and turn the shoulders"
+    },
+    {
+      "mistake": "Leaning back at the top",
+      "fix": "Finish tall with ribs down"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 210
+}

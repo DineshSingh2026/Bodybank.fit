@@ -1,0 +1,51 @@
+{
+  "id": "alternating-dumbbell-curl",
+  "source_id": "Dumbbell_Alternate_Bicep_Curl",
+  "name": "Alternating Dumbbell Curl",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "biceps"
+  ],
+  "secondary_muscles": [
+    "forearms"
+  ],
+  "steps": [
+    "Stand tall with dumbbells at your sides, palms facing in.",
+    "Curl one dumbbell up, turning your palm to face you.",
+    "Lower it slowly, then curl the other arm.",
+    "Keep alternating arms."
+  ],
+  "cues": [
+    "Elbows by your sides",
+    "Turn palm up as you curl",
+    "Torso still",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rocking side to side",
+      "fix": "Brace your stomach and stand still"
+    },
+    {
+      "mistake": "Rushing the lowering",
+      "fix": "Lower each dumbbell slowly"
+    },
+    {
+      "mistake": "Shoulder lifting forward",
+      "fix": "Keep the upper arm still"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2,
+  "ai_trainer_key": "biccurl",
+  "sort_order": 570
+}

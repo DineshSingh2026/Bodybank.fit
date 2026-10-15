@@ -1,0 +1,49 @@
+{
+  "id": "dumbbell-front-raise",
+  "source_id": "Front_Dumbbell_Raise",
+  "name": "Dumbbell Front Raise",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Stand tall with dumbbells in front of your thighs, palms facing you.",
+    "Keep a slight bend in your elbows.",
+    "Raise the dumbbells straight in front to shoulder height.",
+    "Lower slowly back to your thighs."
+  ],
+  "cues": [
+    "Torso still, no swinging",
+    "Stop at shoulder height",
+    "Shoulders down",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging the body to lift",
+      "fix": "Lighten the weight and stand still"
+    },
+    {
+      "mistake": "Raising too high",
+      "fix": "Stop at shoulder height"
+    },
+    {
+      "mistake": "Locking the elbows",
+      "fix": "Keep a soft bend in the arms"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": "frontraise",
+  "sort_order": 450
+}

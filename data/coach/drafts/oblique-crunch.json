@@ -1,0 +1,51 @@
+{
+  "id": "oblique-crunch",
+  "source_id": "Oblique_Crunches_-_On_The_Floor",
+  "name": "Oblique Crunch",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie on your side with legs stacked and knees slightly bent.",
+    "Place your top hand lightly behind your head.",
+    "Breathe out and lift your top shoulder toward your hip.",
+    "Hold for a second, lower slowly, then switch sides after the set."
+  ],
+  "cues": [
+    "Lift the shoulder toward the hip",
+    "Keep the hips still",
+    "Short range is fine",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Pulling the head with the hand",
+      "fix": "Keep the hand light; lift with the side muscles"
+    },
+    {
+      "mistake": "Rolling onto the back",
+      "fix": "Stay on your side with hips stacked"
+    },
+    {
+      "mistake": "Dropping fast between reps",
+      "fix": "Lower in 2 seconds"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 150
+}

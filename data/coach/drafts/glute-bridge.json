@@ -1,0 +1,54 @@
+{
+  "id": "glute-bridge",
+  "source_id": "Butt_Lift_Bridge",
+  "name": "Glute Bridge",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "hamstrings"
+  ],
+  "steps": [
+    "Lie on your back, knees bent, feet flat and hip width apart.",
+    "Rest your arms by your sides, palms down.",
+    "Press through your heels to lift your hips off the floor.",
+    "Stop when knees, hips and shoulders form a straight line.",
+    "Hold one second, then lower slowly."
+  ],
+  "cues": [
+    "Heels pressed down",
+    "Squeeze glutes at the top",
+    "Ribs down, no back arch",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Arching the lower back to go higher",
+      "fix": "Stop at a straight line and squeeze glutes"
+    },
+    {
+      "mistake": "Knees falling outward",
+      "fix": "Keep knees hip width, in line with feet"
+    },
+    {
+      "mistake": "Rushing the reps",
+      "fix": "Pause one second at the top"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 130
+}

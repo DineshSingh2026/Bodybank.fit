@@ -1,0 +1,59 @@
+{
+  "id": "star-jumps",
+  "source_id": "Star_Jump",
+  "name": "Star Jumps",
+  "area": "full",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves",
+    "shoulders"
+  ],
+  "steps": [
+    "Stand with feet shoulder width and arms by your sides.",
+    "Bend into a quarter squat with your chest up.",
+    "Jump up and spread your arms and legs wide like a star.",
+    "Bring arms and legs back in before landing and land softly in a quarter squat."
+  ],
+  "cues": [
+    "Chest up in the dip",
+    "Arms and legs open at the top",
+    "Land soft, knees over toes",
+    "Breathe out as you jump"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Landing with straight, stiff legs",
+      "fix": "Bend the knees as you land to absorb the impact"
+    },
+    {
+      "mistake": "Knees caving in on landing",
+      "fix": "Push the knees out in line with the toes"
+    },
+    {
+      "mistake": "Landing with legs still wide apart",
+      "fix": "Bring the feet back under the hips before touching down"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 120
+}

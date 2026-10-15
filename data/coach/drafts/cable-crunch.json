@@ -1,0 +1,52 @@
+{
+  "id": "cable-crunch",
+  "source_id": "Cable_Crunch",
+  "name": "Cable Crunch",
+  "area": "core",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Attach a rope to a high pulley and kneel facing the machine.",
+    "Hold the rope beside your face with hips bent slightly.",
+    "Breathe out and curl your chest down, bringing elbows toward your thighs.",
+    "Pause, then slowly return to the start."
+  ],
+  "cues": [
+    "Hips stay still, spine curls",
+    "Hands fixed beside the face",
+    "Elbows travel to mid-thigh",
+    "Breathe out as you curl down"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Sitting back on the heels to move the weight",
+      "fix": "Keep the hips high and still; curl only the spine"
+    },
+    {
+      "mistake": "Pulling with the arms",
+      "fix": "Lock the hands by the face"
+    },
+    {
+      "mistake": "Using too much weight",
+      "fix": "Choose a load you can curl slowly for every rep"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 190
+}

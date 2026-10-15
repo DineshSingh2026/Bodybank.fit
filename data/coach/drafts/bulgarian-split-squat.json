@@ -1,0 +1,56 @@
+{
+  "id": "bulgarian-split-squat",
+  "source_id": "Split_Squat_with_Dumbbells",
+  "name": "Dumbbell Bulgarian Split Squat",
+  "area": "lower",
+  "equipment": "dumbbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings"
+  ],
+  "steps": [
+    "Stand about two steps in front of a bench, a dumbbell in each hand.",
+    "Place the top of your back foot on the bench behind you.",
+    "Bend your front knee to lower your body straight down.",
+    "Stop when your front thigh is about parallel to the floor.",
+    "Push through the front heel to rise. Finish all reps, then switch legs."
+  ],
+  "cues": [
+    "Torso tall, slight forward lean is fine",
+    "Front knee in line with toes",
+    "Weight in the front foot",
+    "Breathe in down, breathe out as you rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Front foot too close to the bench",
+      "fix": "Step further out so the front shin stays upright"
+    },
+    {
+      "mistake": "Pushing off the back leg",
+      "fix": "Back leg only balances, front leg does the work"
+    },
+    {
+      "mistake": "Front knee caving in",
+      "fix": "Keep the knee over your second toe"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 170
+}

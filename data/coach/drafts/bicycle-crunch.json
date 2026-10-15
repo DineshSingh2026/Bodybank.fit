@@ -1,0 +1,52 @@
+{
+  "id": "bicycle-crunch",
+  "source_id": "Air_Bike",
+  "name": "Bicycle Crunch",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie on your back with fingertips beside your head and knees bent to 90 degrees.",
+    "Curl your shoulders slightly off the floor.",
+    "Straighten one leg forward while turning the opposite elbow toward the bent knee.",
+    "Switch sides in a slow pedalling motion.",
+    "Keep the shoulders lifted until the set is done."
+  ],
+  "cues": [
+    "Lower back pressed down",
+    "Turn the shoulder, not just the elbow",
+    "Slow and controlled pedalling",
+    "Breathe out on each twist"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Pedalling too fast",
+      "fix": "Pause for a moment on each side"
+    },
+    {
+      "mistake": "Pulling the neck forward with the hands",
+      "fix": "Keep fingertips light and look slightly up"
+    },
+    {
+      "mistake": "Straight leg dropping so low the back arches",
+      "fix": "Extend the leg higher, around 45 degrees"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 60
+}

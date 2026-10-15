@@ -1,0 +1,56 @@
+{
+  "id": "close-grip-bench-press",
+  "source_id": "Close-Grip_Barbell_Bench_Press",
+  "name": "Close-Grip Bench Press",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "triceps"
+  ],
+  "secondary_muscles": [
+    "chest",
+    "shoulders"
+  ],
+  "steps": [
+    "Lie on a flat bench and grip the bar about shoulder width.",
+    "Lift the bar out over your chest with straight arms.",
+    "Lower it to your lower chest, elbows close to your body.",
+    "Press back up until your arms are straight."
+  ],
+  "cues": [
+    "Hands shoulder width, not closer",
+    "Elbows tucked near your sides",
+    "Shoulder blades pinned back",
+    "Breathe in down, breathe out up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hands too close together",
+      "fix": "Keep hands about shoulder width to protect wrists"
+    },
+    {
+      "mistake": "Elbows flaring wide",
+      "fix": "Keep elbows close to your body"
+    },
+    {
+      "mistake": "Bouncing off the chest",
+      "fix": "Lower slowly and touch lightly"
+    }
+  ],
+  "contraindications": [
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 670
+}

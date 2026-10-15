@@ -1,0 +1,57 @@
+{
+  "id": "decline-barbell-bench-press",
+  "source_id": "Decline_Barbell_Bench_Press",
+  "name": "Decline Barbell Bench Press",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Hook your legs under the pads of a decline bench and lie back.",
+    "Grip the bar slightly wider than shoulders and lift it out over your chest.",
+    "Lower the bar slowly to your lower chest.",
+    "Press it back up until your arms are straight."
+  ],
+  "cues": [
+    "Legs locked under the pads",
+    "Shoulder blades pinned back",
+    "Bar touches the lower chest",
+    "Breathe in down, breathe out up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bar landing too high on the chest",
+      "fix": "Lower the bar toward the bottom of your chest"
+    },
+    {
+      "mistake": "Moving too fast",
+      "fix": "Take two seconds to lower each rep"
+    },
+    {
+      "mistake": "Sitting up quickly at the end",
+      "fix": "Rack the bar, then sit up slowly"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 130
+}

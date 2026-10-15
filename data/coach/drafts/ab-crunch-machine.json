@@ -1,0 +1,52 @@
+{
+  "id": "ab-crunch-machine",
+  "source_id": "Ab_Crunch_Machine",
+  "name": "Ab Crunch Machine",
+  "area": "core",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Choose a light weight and sit with your back against the pad.",
+    "Hook your feet under the foot pads and hold the handles.",
+    "Breathe out and curl your chest toward your knees.",
+    "Pause briefly, then return slowly without letting the weights touch."
+  ],
+  "cues": [
+    "Curl the spine, not the arms",
+    "Short pause at the bottom",
+    "Slow on the way back",
+    "Breathe out as you crunch"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Pulling with the arms",
+      "fix": "Keep the arms still and curl from the stomach"
+    },
+    {
+      "mistake": "Using too much weight",
+      "fix": "Go lighter and slow every rep down"
+    },
+    {
+      "mistake": "Letting the stack slam",
+      "fix": "Stop just before the weights touch"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 230
+}

@@ -1,0 +1,51 @@
+{
+  "id": "cross-body-crunch",
+  "source_id": "Cross-Body_Crunch",
+  "name": "Cross-Body Crunch",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie on your back with knees bent, feet flat, fingertips beside your head.",
+    "Curl up and turn your right shoulder toward your left knee.",
+    "At the same time, draw the left knee in to meet it.",
+    "Lower slowly, then repeat to the other side."
+  ],
+  "cues": [
+    "Lead with the shoulder, not elbow",
+    "Hands light on the head",
+    "Lower back stays down",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Yanking the neck with the hands",
+      "fix": "Fingertips only; keep space under the chin"
+    },
+    {
+      "mistake": "Only the elbow moves across",
+      "fix": "Lift and turn the shoulder blade off the floor"
+    },
+    {
+      "mistake": "Rushing reps",
+      "fix": "Pause briefly when shoulder and knee meet"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 140
+}

@@ -1,0 +1,59 @@
+{
+  "id": "ab-wheel-rollout",
+  "source_id": "Ab_Roller",
+  "name": "Ab Wheel Rollout",
+  "area": "core",
+  "equipment": "other",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "lats"
+  ],
+  "steps": [
+    "Kneel on a mat holding the ab wheel under your shoulders.",
+    "Brace your stomach and tuck your hips slightly.",
+    "Roll the wheel forward slowly, keeping your back flat.",
+    "Stop before your lower back starts to sag.",
+    "Pull the wheel back to the start using your stomach."
+  ],
+  "cues": [
+    "Back flat, hips tucked",
+    "Only roll as far as you control",
+    "Arms stay straight",
+    "Breathe in out, breathe out back"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Lower back sagging at the far point",
+      "fix": "Shorten the roll; stop before the back dips"
+    },
+    {
+      "mistake": "Hips leading the way back",
+      "fix": "Keep hips tucked and pull with the stomach"
+    },
+    {
+      "mistake": "Going too far too soon",
+      "fix": "Roll out a short distance and build up slowly"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "shoulder",
+    "pregnancy",
+    "recovery",
+    "kidney_gentle"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 260
+}

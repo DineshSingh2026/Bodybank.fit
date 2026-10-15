@@ -1,0 +1,58 @@
+{
+  "id": "barbell-lunge",
+  "source_id": "Barbell_Lunge",
+  "name": "Barbell Lunge",
+  "area": "lower",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Set a bar in a rack just below shoulder height and rest it on your upper back.",
+    "Lift it off and step back, feet hip width.",
+    "Step forward with one leg and lower until the back knee is near the floor.",
+    "Push through the front heel to step back to the start.",
+    "Alternate legs or finish one side first."
+  ],
+  "cues": [
+    "Torso upright",
+    "Feet hip width, not in one line",
+    "Front knee over the ankle",
+    "Breathe in down, breathe out as you push back"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Losing balance on the step",
+      "fix": "Keep feet hip width like train tracks"
+    },
+    {
+      "mistake": "Leaning forward under the bar",
+      "fix": "Keep chest up and eyes ahead"
+    },
+    {
+      "mistake": "Going too heavy",
+      "fix": "Master dumbbell lunges first, then add the bar"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "recovery",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": "lunge",
+  "sort_order": 430
+}

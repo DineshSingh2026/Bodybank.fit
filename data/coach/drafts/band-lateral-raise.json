@@ -1,0 +1,49 @@
+{
+  "id": "band-lateral-raise",
+  "source_id": "Lateral_Raise_-_With_Bands",
+  "name": "Band Lateral Raise",
+  "area": "upper",
+  "equipment": "bands",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Stand on the middle of a band and hold an end in each hand.",
+    "Keep a slight bend in your elbows, arms at your sides.",
+    "Raise your arms out to the sides to shoulder height.",
+    "Lower slowly against the band."
+  ],
+  "cues": [
+    "Lead with the elbows",
+    "Stop at shoulder height",
+    "Shoulders down",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Band too tight to finish the rep",
+      "fix": "Use a lighter band or step wider apart"
+    },
+    {
+      "mistake": "Letting the band snap arms down",
+      "fix": "Lower slowly"
+    },
+    {
+      "mistake": "Leaning the body",
+      "fix": "Stand tall and still"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 440
+}

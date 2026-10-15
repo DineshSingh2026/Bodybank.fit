@@ -1,0 +1,60 @@
+{
+  "id": "dumbbell-swing",
+  "source_id": "Vertical_Swing",
+  "name": "Dumbbell Swing",
+  "area": "full",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "glutes",
+    "hamstrings"
+  ],
+  "secondary_muscles": [
+    "quadriceps",
+    "lower back",
+    "shoulders",
+    "forearms"
+  ],
+  "steps": [
+    "Stand with feet a little wider than hips, holding one dumbbell by its end with both hands.",
+    "Hinge at the hips and let the dumbbell swing back between your legs.",
+    "Snap your hips forward and stand tall so the dumbbell swings up to chest height.",
+    "Let it fall back and hinge again to meet it, keeping your back flat."
+  ],
+  "cues": [
+    "Hinge at the hips, soft knees",
+    "Back flat, eyes ahead",
+    "Hips move the weight, arms stay loose",
+    "Breathe out as you snap up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Lifting the dumbbell with the shoulders",
+      "fix": "Let the hip snap do the work and keep arms relaxed"
+    },
+    {
+      "mistake": "Rounding the back at the bottom",
+      "fix": "Push hips back and keep the chest lifted"
+    },
+    {
+      "mistake": "Swinging too high and arching back",
+      "fix": "Stop at chest height and finish with glutes tight"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 80
+}

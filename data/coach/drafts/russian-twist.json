@@ -1,0 +1,54 @@
+{
+  "id": "russian-twist",
+  "source_id": "Russian_Twist",
+  "name": "Russian Twist",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [
+    "lower back"
+  ],
+  "steps": [
+    "Sit with knees bent and feet on the floor, or anchored for support.",
+    "Lean back slightly with a straight back, hands clasped in front of your chest.",
+    "Turn your shoulders to one side, bringing your hands beside your hip.",
+    "Return to the middle and turn to the other side."
+  ],
+  "cues": [
+    "Chest up, back straight",
+    "Rotate from the ribs, not just arms",
+    "Keep the lean steady",
+    "Breathe out on each turn"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the lower back",
+      "fix": "Sit taller and lean back less"
+    },
+    {
+      "mistake": "Only moving the arms",
+      "fix": "Turn the whole upper body with the hands"
+    },
+    {
+      "mistake": "Twisting fast and jerky",
+      "fix": "Slow down and pause on each side"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 110
+}

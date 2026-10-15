@@ -1,0 +1,58 @@
+{
+  "id": "landmine-rotation",
+  "source_id": "Landmine_180s",
+  "name": "Landmine Rotation",
+  "area": "core",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "lower back",
+    "shoulders"
+  ],
+  "steps": [
+    "Anchor one end of a barbell in a landmine or corner.",
+    "Stand wide and hold the free end at chest height with arms straight.",
+    "Turn your hips and shoulders to bring the bar down to one hip.",
+    "Breathe out and rotate back up through the middle to the other hip."
+  ],
+  "cues": [
+    "Arms straight, turn the body",
+    "Pivot the feet with the turn",
+    "Controlled arc, no swinging",
+    "Breathe out through the middle"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging the bar with momentum",
+      "fix": "Use a lighter load and slow the arc"
+    },
+    {
+      "mistake": "Bending the elbows",
+      "fix": "Keep arms long; let the trunk move the bar"
+    },
+    {
+      "mistake": "Feet stuck flat, twisting the knees",
+      "fix": "Let the back foot pivot as you turn"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy",
+    "recovery",
+    "kidney_gentle"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 330
+}

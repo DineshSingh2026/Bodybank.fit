@@ -1,0 +1,56 @@
+{
+  "id": "back-extension",
+  "source_id": "Hyperextensions_Back_Extensions",
+  "name": "Back Extension",
+  "area": "core",
+  "equipment": "other",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "lower back"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings"
+  ],
+  "steps": [
+    "Set the back extension bench so the pad sits just below your hip bones.",
+    "Hook your ankles under the foot pads and cross your arms over your chest.",
+    "With a straight back, bend at the hips and lower your upper body slowly.",
+    "Squeeze your glutes and raise your body until it is in line with your legs.",
+    "Pause, then lower again with control."
+  ],
+  "cues": [
+    "Hinge at the hips, back stays straight",
+    "Stop when body is in a straight line",
+    "Squeeze glutes to come up",
+    "Breathe in down, out as you rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Arching back past straight at the top",
+      "fix": "Stop when the body forms a straight line"
+    },
+    {
+      "mistake": "Rounding the back on the way down",
+      "fix": "Lower only as far as you can keep a flat back"
+    },
+    {
+      "mistake": "Swinging up fast",
+      "fix": "Rise in 2 seconds and pause at the top"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 90
+}

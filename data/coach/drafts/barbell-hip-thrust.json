@@ -1,0 +1,56 @@
+{
+  "id": "barbell-hip-thrust",
+  "source_id": "Barbell_Hip_Thrust",
+  "name": "Barbell Hip Thrust",
+  "area": "lower",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "hamstrings"
+  ],
+  "steps": [
+    "Sit on the floor with your upper back against a bench edge.",
+    "Roll a padded barbell over your hips and hold it in place.",
+    "Bend your knees and set feet flat, about hip width apart.",
+    "Drive through your heels to lift hips until your body is flat from knees to shoulders.",
+    "Squeeze glutes at the top, then lower hips under control."
+  ],
+  "cues": [
+    "Chin tucked, eyes forward",
+    "Shins vertical at the top",
+    "Ribs down, no back arch",
+    "Breathe out as you drive up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Arching the lower back at the top",
+      "fix": "Stop when hips are level and squeeze glutes"
+    },
+    {
+      "mistake": "Feet too far away",
+      "fix": "Move feet so shins are vertical at the top"
+    },
+    {
+      "mistake": "Pushing through the toes",
+      "fix": "Drive through your heels"
+    }
+  ],
+  "contraindications": [
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 120
+}

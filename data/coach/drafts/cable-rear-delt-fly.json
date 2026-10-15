@@ -1,0 +1,49 @@
+{
+  "id": "cable-rear-delt-fly",
+  "source_id": "Cable_Rear_Delt_Fly",
+  "name": "Cable Rear Delt Fly",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Set both pulleys at shoulder height and cross the cables, holding opposite handles.",
+    "Stand in the middle with arms straight in front of you.",
+    "Pull your arms out and back to the sides in a wide arc.",
+    "Return slowly to the start."
+  ],
+  "cues": [
+    "Arms nearly straight",
+    "Shoulders down, chest up",
+    "Squeeze the back of the shoulders",
+    "Breathe out as you open"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning back to pull",
+      "fix": "Stand tall and still"
+    },
+    {
+      "mistake": "Bending arms into a row",
+      "fix": "Keep a soft, fixed elbow bend"
+    },
+    {
+      "mistake": "Moving too fast",
+      "fix": "Take two seconds on each return"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 490
+}

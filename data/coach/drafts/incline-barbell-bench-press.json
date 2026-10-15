@@ -1,0 +1,56 @@
+{
+  "id": "incline-barbell-bench-press",
+  "source_id": "Barbell_Incline_Bench_Press_-_Medium_Grip",
+  "name": "Incline Barbell Bench Press",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Lie on an incline bench set to about 30 degrees, eyes under the bar.",
+    "Grip slightly wider than shoulders and lift the bar out over your upper chest.",
+    "Lower the bar with control to your upper chest.",
+    "Press back up until your arms are straight."
+  ],
+  "cues": [
+    "Shoulder blades squeezed together",
+    "Bar touches high on the chest",
+    "Feet flat, glutes down",
+    "Breathe in down, breathe out up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bouncing the bar off the chest",
+      "fix": "Pause lightly at the chest, then press"
+    },
+    {
+      "mistake": "Elbows flaring wide",
+      "fix": "Tuck elbows slightly toward your body"
+    },
+    {
+      "mistake": "Unracking without control",
+      "fix": "Lift the bar out slowly and settle before the first rep"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "recovery",
+    "kidney_gentle"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 120
+}

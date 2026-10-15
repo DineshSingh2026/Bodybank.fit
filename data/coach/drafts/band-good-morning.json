@@ -1,0 +1,55 @@
+{
+  "id": "band-good-morning",
+  "source_id": "Band_Good_Morning",
+  "name": "Band Good Morning",
+  "area": "lower",
+  "equipment": "bands",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "hamstrings"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "lower back"
+  ],
+  "steps": [
+    "Stand on a long band with feet hip width apart.",
+    "Loop the top of the band behind your neck and hold it at your shoulders.",
+    "Soften your knees and push your hips back to bow forward.",
+    "Stop at a hamstring stretch with your back flat.",
+    "Drive hips forward to stand tall against the band."
+  ],
+  "cues": [
+    "Back flat, neck in line",
+    "Hips back, soft knees",
+    "Squeeze glutes at the top",
+    "Breathe in down, breathe out as you rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the back",
+      "fix": "Bow only as far as your back stays flat"
+    },
+    {
+      "mistake": "Band pulling the neck down",
+      "fix": "Hold the band at your shoulders with your hands"
+    },
+    {
+      "mistake": "Locking the knees",
+      "fix": "Keep a small knee bend"
+    }
+  ],
+  "contraindications": [
+    "lower_back"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 500
+}

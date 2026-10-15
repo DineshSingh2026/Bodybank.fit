@@ -1,0 +1,54 @@
+{
+  "id": "diamond-push-ups",
+  "source_id": "Push-Ups_-_Close_Triceps_Position",
+  "name": "Diamond Push Ups",
+  "area": "upper",
+  "equipment": "body only",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "triceps"
+  ],
+  "secondary_muscles": [
+    "chest",
+    "shoulders"
+  ],
+  "steps": [
+    "Place your hands close together under your chest, thumbs and index fingers touching.",
+    "Straighten your legs behind you into a straight line.",
+    "Lower your chest toward your hands, elbows close to your body.",
+    "Push back up until your arms are straight."
+  ],
+  "cues": [
+    "Body in one straight line",
+    "Elbows stay close to ribs",
+    "Stomach tight",
+    "Breathe in down, breathe out up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips sagging",
+      "fix": "Brace stomach and squeeze glutes"
+    },
+    {
+      "mistake": "Elbows flaring out",
+      "fix": "Keep elbows brushing your sides"
+    },
+    {
+      "mistake": "Too hard to do with good form",
+      "fix": "Do them on your knees or on an incline"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 680
+}

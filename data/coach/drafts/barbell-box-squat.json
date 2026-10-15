@@ -1,0 +1,61 @@
+{
+  "id": "barbell-box-squat",
+  "source_id": "Box_Squat",
+  "name": "Barbell Box Squat",
+  "area": "lower",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "adductors",
+    "lower back"
+  ],
+  "steps": [
+    "Place a box behind you in a rack, at a height that puts thighs near parallel.",
+    "Rest the bar on your upper back, lift it off and step back to the box.",
+    "Set feet a little wider than shoulders.",
+    "Sit back with your hips until you are seated on the box, staying tight.",
+    "Pause briefly, then drive up through your heels to stand."
+  ],
+  "cues": [
+    "Sit back, shins near vertical",
+    "Stay tight on the box, no relaxing",
+    "Knees push out",
+    "Breathe in and brace before each rep"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bouncing off the box",
+      "fix": "Pause and sit softly before standing"
+    },
+    {
+      "mistake": "Relaxing fully on the box",
+      "fix": "Keep your stomach and back tight"
+    },
+    {
+      "mistake": "Rocking forward to stand",
+      "fix": "Drive up with chest leading"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 450
+}

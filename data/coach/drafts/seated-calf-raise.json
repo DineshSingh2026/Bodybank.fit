@@ -1,0 +1,51 @@
+{
+  "id": "seated-calf-raise",
+  "source_id": "Seated_Calf_Raise",
+  "name": "Seated Calf Raise",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "calves"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Sit on the machine and place the balls of your feet on the footrest.",
+    "Set the knee pad snug on your lower thighs.",
+    "Lift the pad slightly and release the safety lever.",
+    "Lower your heels slowly for a stretch.",
+    "Push up onto your toes as high as you can, then pause.",
+    "Reset the safety lever when done."
+  ],
+  "cues": [
+    "Balls of the feet on the edge",
+    "Full stretch at the bottom",
+    "Squeeze high at the top",
+    "Smooth, steady tempo"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bouncing out of the bottom",
+      "fix": "Pause one second at the stretch"
+    },
+    {
+      "mistake": "Range too short",
+      "fix": "Lower heels fully, then rise fully"
+    },
+    {
+      "mistake": "Feet slipping back on the rest",
+      "fix": "Keep only the balls of your feet on the edge"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 150
+}

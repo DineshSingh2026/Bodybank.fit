@@ -1,0 +1,52 @@
+{
+  "id": "incline-push-ups",
+  "source_id": "Incline_Push-Up",
+  "name": "Incline Push Ups",
+  "area": "upper",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Place your hands on a bench or sturdy box, slightly wider than shoulders.",
+    "Walk your feet back until your body forms a straight line.",
+    "Bend your elbows and lower your chest toward the edge.",
+    "Push back up until your arms are straight."
+  ],
+  "cues": [
+    "Body in one straight line",
+    "Elbows angled back",
+    "Stomach tight",
+    "Breathe in down, breathe out up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips sagging or piking up",
+      "fix": "Squeeze glutes and stomach"
+    },
+    {
+      "mistake": "Using an unstable surface",
+      "fix": "Use a fixed bench or a wall"
+    },
+    {
+      "mistake": "Flaring elbows wide",
+      "fix": "Keep elbows at about 45 degrees"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 220
+}

@@ -1,0 +1,56 @@
+{
+  "id": "dumbbell-box-squat",
+  "source_id": "Dumbbell_Squat_To_A_Bench",
+  "name": "Dumbbell Box Squat",
+  "area": "lower",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand in front of a bench with a dumbbell in each hand.",
+    "Set feet shoulder width apart, toes slightly out.",
+    "Push hips back and lower until you lightly touch the bench.",
+    "Do not sit down or relax on it.",
+    "Press through your heels to stand back up."
+  ],
+  "cues": [
+    "Tap the bench, do not sit",
+    "Chest up, back flat",
+    "Knees over toes",
+    "Breathe in down, breathe out as you stand"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Dropping onto the bench",
+      "fix": "Lower slowly and just touch it"
+    },
+    {
+      "mistake": "Rocking forward to stand",
+      "fix": "Drive up through your heels"
+    },
+    {
+      "mistake": "Bench too low for you",
+      "fix": "Use a height you can reach with a flat back"
+    }
+  ],
+  "contraindications": [
+    "knee"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 240
+}

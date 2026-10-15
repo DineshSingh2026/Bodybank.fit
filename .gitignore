@@ -26,3 +26,6 @@ tests/security/.sectest-uploads/
 
 # Puppeteer headless shell (downloaded into the project at npm ci — see .puppeteerrc.cjs)
 .cache/
+
+# Coach Mode seed download cache (scripts/coach-seed.js)
+data/coach/.cache/

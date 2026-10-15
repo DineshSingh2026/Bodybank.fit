@@ -1,0 +1,56 @@
+{
+  "id": "dumbbell-bent-over-row",
+  "source_id": "Bent_Over_Two-Dumbbell_Row",
+  "name": "Dumbbell Bent-Over Row",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "middle back"
+  ],
+  "secondary_muscles": [
+    "biceps",
+    "lats",
+    "shoulders"
+  ],
+  "steps": [
+    "Hold a dumbbell in each hand, knees slightly bent.",
+    "Hinge at the hips until your torso is close to 45 degrees, arms hanging.",
+    "Pull both dumbbells toward your lower ribs.",
+    "Lower them slowly until your arms are straight."
+  ],
+  "cues": [
+    "Flat back, hips pushed back",
+    "Elbows close to your sides",
+    "Squeeze shoulder blades at the top",
+    "Breathe out as you pull"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the back",
+      "fix": "Keep chest proud and stomach braced"
+    },
+    {
+      "mistake": "Standing more upright each rep",
+      "fix": "Hold the same hinge throughout"
+    },
+    {
+      "mistake": "Jerking the weights up",
+      "fix": "Lift and lower under control"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2,
+  "ai_trainer_key": "bentoverrow",
+  "sort_order": 280
+}

@@ -1,0 +1,51 @@
+{
+  "id": "single-arm-cable-lateral-raise",
+  "source_id": "Standing_Low-Pulley_Deltoid_Raise",
+  "name": "Single-Arm Cable Lateral Raise",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "forearms"
+  ],
+  "steps": [
+    "Stand side-on to a low pulley and hold the handle with your far hand.",
+    "Hold the machine with your free hand for support.",
+    "Raise your arm out to the side until it is level with your shoulder.",
+    "Lower slowly back across your body."
+  ],
+  "cues": [
+    "Slight bend in the elbow",
+    "Stop at shoulder height",
+    "Torso stays upright",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning away to cheat the weight up",
+      "fix": "Stay upright and use a lighter weight"
+    },
+    {
+      "mistake": "Shrugging as the arm rises",
+      "fix": "Keep shoulder down"
+    },
+    {
+      "mistake": "Dropping the arm fast",
+      "fix": "Lower over two seconds"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 430
+}

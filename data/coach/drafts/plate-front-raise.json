@@ -1,0 +1,49 @@
+{
+  "id": "plate-front-raise",
+  "source_id": "Front_Plate_Raise",
+  "name": "Plate Front Raise",
+  "area": "upper",
+  "equipment": "other",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Stand tall holding a weight plate at the sides, arms straight in front of your thighs.",
+    "Brace your stomach and keep a slight bend in your elbows.",
+    "Raise the plate straight in front to shoulder height.",
+    "Lower slowly back to your thighs."
+  ],
+  "cues": [
+    "Grip the plate firmly",
+    "Stop at shoulder height",
+    "Torso still",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning back to lift the plate",
+      "fix": "Use a lighter plate and brace"
+    },
+    {
+      "mistake": "Lifting above the head",
+      "fix": "Stop at shoulder height"
+    },
+    {
+      "mistake": "Dropping the plate quickly",
+      "fix": "Lower with control"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": "frontraise",
+  "sort_order": 460
+}

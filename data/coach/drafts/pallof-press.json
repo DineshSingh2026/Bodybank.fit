@@ -1,0 +1,52 @@
+{
+  "id": "pallof-press",
+  "source_id": "Pallof_Press",
+  "name": "Pallof Press",
+  "area": "core",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "static",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [
+    "shoulders"
+  ],
+  "steps": [
+    "Set a handle at chest height and stand side-on to the cable machine.",
+    "Step away until the cable is tight, holding the handle at your chest.",
+    "Stand with feet hip width and knees soft, stomach braced.",
+    "Press the handle straight out and hold for 2 seconds without turning.",
+    "Bring it back to your chest; switch sides after the set."
+  ],
+  "cues": [
+    "Do not let the cable twist you",
+    "Hips and shoulders face forward",
+    "Press straight out from the chest",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Body rotating toward the machine",
+      "fix": "Use a lighter weight and brace harder"
+    },
+    {
+      "mistake": "Leaning away from the cable",
+      "fix": "Stand tall with weight even on both feet"
+    },
+    {
+      "mistake": "Rushing the press",
+      "fix": "Hold the arms out for 2 seconds each rep"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 220
+}

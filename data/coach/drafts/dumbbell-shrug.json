@@ -1,0 +1,49 @@
+{
+  "id": "dumbbell-shrug",
+  "source_id": "Dumbbell_Shrug",
+  "name": "Dumbbell Shrug",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "traps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Stand tall with a dumbbell in each hand at your sides.",
+    "Keep your arms straight.",
+    "Lift your shoulders straight up toward your ears.",
+    "Pause, then lower slowly."
+  ],
+  "cues": [
+    "Arms stay straight",
+    "Shoulders straight up",
+    "Chin level, neck relaxed",
+    "Breathe out as you shrug"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rolling the shoulders",
+      "fix": "Move straight up and down only"
+    },
+    {
+      "mistake": "Jerking the weight up",
+      "fix": "Lift smoothly and pause at the top"
+    },
+    {
+      "mistake": "Head pushing forward",
+      "fix": "Keep ears over shoulders"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 530
+}

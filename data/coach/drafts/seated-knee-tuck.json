@@ -1,0 +1,51 @@
+{
+  "id": "seated-knee-tuck",
+  "source_id": "Seated_Leg_Tucks",
+  "name": "Seated Knee Tuck",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Sit on the edge of a bench or mat, hands holding the sides behind you.",
+    "Lean back slightly and stretch your legs out, feet off the floor.",
+    "Breathe out and pull your knees toward your chest as your chest comes forward.",
+    "Pause, then extend the legs back out with control."
+  ],
+  "cues": [
+    "Chest up, back straight",
+    "Knees and chest meet in the middle",
+    "Feet stay off the floor",
+    "Breathe out as you tuck"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the shoulders forward",
+      "fix": "Keep the chest open and back long"
+    },
+    {
+      "mistake": "Leaning back too far",
+      "fix": "Lean back only as far as you can hold steadily"
+    },
+    {
+      "mistake": "Kicking the legs out fast",
+      "fix": "Extend the legs slowly each rep"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 160
+}

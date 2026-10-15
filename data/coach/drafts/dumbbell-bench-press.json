@@ -1,0 +1,56 @@
+{
+  "id": "dumbbell-bench-press",
+  "source_id": "Dumbbell_Bench_Press",
+  "name": "Dumbbell Bench Press",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Sit on a flat bench with dumbbells on your thighs, then lie back and bring them to chest level.",
+    "Press the dumbbells up over your chest, palms facing your feet.",
+    "Lower them slowly until elbows are just below the bench line.",
+    "Press back up, bringing the dumbbells close together at the top."
+  ],
+  "cues": [
+    "Shoulder blades pinned to the bench",
+    "Elbows about 45 degrees from body",
+    "Wrists stacked over elbows",
+    "Breathe in down, breathe out up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Dropping the dumbbells too low",
+      "fix": "Stop when elbows are slightly below the bench"
+    },
+    {
+      "mistake": "Dumbbells drifting out of line",
+      "fix": "Keep forearms vertical through the whole rep"
+    },
+    {
+      "mistake": "Arching hard off the bench",
+      "fix": "Keep a small natural arch, glutes on the bench"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 50
+}

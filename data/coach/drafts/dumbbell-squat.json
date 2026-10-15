@@ -1,0 +1,56 @@
+{
+  "id": "dumbbell-squat",
+  "source_id": "Dumbbell_Squat",
+  "name": "Dumbbell Squat",
+  "area": "lower",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand with a dumbbell in each hand at your sides, palms facing in.",
+    "Set feet shoulder width apart, toes slightly out.",
+    "Push hips back and bend knees to lower down.",
+    "Stop when thighs are about parallel or your back starts to round.",
+    "Press through your heels to stand."
+  ],
+  "cues": [
+    "Arms hang straight, no swinging",
+    "Chest up, back flat",
+    "Knees track over toes",
+    "Breathe in down, breathe out as you stand"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning forward with a round back",
+      "fix": "Lift your chest and look straight ahead"
+    },
+    {
+      "mistake": "Heels coming up",
+      "fix": "Keep weight in your heels and mid-foot"
+    },
+    {
+      "mistake": "Knees caving in",
+      "fix": "Push knees out over your toes"
+    }
+  ],
+  "contraindications": [
+    "knee"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2,
+  "ai_trainer_key": "squat",
+  "sort_order": 160
+}

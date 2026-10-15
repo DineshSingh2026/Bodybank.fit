@@ -1,0 +1,53 @@
+{
+  "id": "close-grip-lat-pulldown",
+  "source_id": "V-Bar_Pulldown",
+  "name": "Close-Grip Lat Pulldown",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "lats"
+  ],
+  "secondary_muscles": [
+    "biceps",
+    "middle back",
+    "shoulders"
+  ],
+  "steps": [
+    "Attach a V-handle to the pulldown cable and sit with thighs under the pads.",
+    "Hold the handle with palms facing each other and arms straight.",
+    "Lean back slightly and pull the handle to your upper chest.",
+    "Let it rise slowly until your arms are straight."
+  ],
+  "cues": [
+    "Chest up toward the handle",
+    "Elbows drive down and back",
+    "Shoulders down, away from ears",
+    "Breathe out as you pull"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging the torso to move the weight",
+      "fix": "Keep torso still with a small lean"
+    },
+    {
+      "mistake": "Stopping short of the chest",
+      "fix": "Pull until the handle nears your upper chest"
+    },
+    {
+      "mistake": "Arms yanked up at the top",
+      "fix": "Control the return to straight arms"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 260
+}

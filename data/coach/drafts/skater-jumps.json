@@ -1,0 +1,61 @@
+{
+  "id": "skater-jumps",
+  "source_id": "Lateral_Bound",
+  "name": "Skater Jumps",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "quadriceps",
+    "adductors",
+    "abductors",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand on your right leg with a slight bend in the knee.",
+    "Push off sideways to the left.",
+    "Land softly on your left leg, letting the right foot swing behind.",
+    "Pause to balance, then bound back to the right.",
+    "Keep alternating sides."
+  ],
+  "cues": [
+    "Land softly on a bent knee",
+    "Knee over toes on landing",
+    "Chest up, hips back",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Landing with a straight leg",
+      "fix": "Bend the knee and hip to soak up the landing"
+    },
+    {
+      "mistake": "Knee caving in on landing",
+      "fix": "Land with the knee over your toes"
+    },
+    {
+      "mistake": "Bounds too wide to control",
+      "fix": "Shorten the jump until you can stick it"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 540
+}

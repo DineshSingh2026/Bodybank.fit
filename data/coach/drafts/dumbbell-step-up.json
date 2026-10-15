@@ -1,0 +1,57 @@
+{
+  "id": "dumbbell-step-up",
+  "source_id": "Dumbbell_Step_Ups",
+  "name": "Dumbbell Step Up",
+  "area": "lower",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand facing a sturdy box or bench, a dumbbell in each hand.",
+    "Place your whole right foot on the box.",
+    "Push through the right heel to stand up on the box.",
+    "Step down slowly with the left foot, then the right.",
+    "Finish all reps on one leg, then switch."
+  ],
+  "cues": [
+    "Whole foot on the box",
+    "Lead leg does the work",
+    "Chest up, arms relaxed",
+    "Breathe out as you step up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Pushing off the back foot",
+      "fix": "Keep the back foot light, lift with the top leg"
+    },
+    {
+      "mistake": "Box too high",
+      "fix": "Pick a height where your knee is at or below hip level"
+    },
+    {
+      "mistake": "Knee caves in on the way up",
+      "fix": "Keep the knee in line with your toes"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 190
+}

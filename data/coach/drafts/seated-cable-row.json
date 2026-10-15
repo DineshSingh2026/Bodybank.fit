@@ -1,0 +1,53 @@
+{
+  "id": "seated-cable-row",
+  "source_id": "Seated_Cable_Rows",
+  "name": "Seated Cable Row",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "middle back"
+  ],
+  "secondary_muscles": [
+    "biceps",
+    "lats",
+    "shoulders"
+  ],
+  "steps": [
+    "Sit at the row station with feet on the platform and knees slightly bent.",
+    "Hold the handle with arms straight and sit tall.",
+    "Pull the handle to your lower ribs, squeezing your shoulder blades together.",
+    "Straighten your arms slowly to return, without rounding your back."
+  ],
+  "cues": [
+    "Sit tall, chest up",
+    "Elbows close to your sides",
+    "Squeeze shoulder blades at the end",
+    "Breathe out as you pull"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rocking the torso back and forth",
+      "fix": "Keep your torso still; only the arms move"
+    },
+    {
+      "mistake": "Rounding the lower back on the return",
+      "fix": "Stop the stretch when your back starts to round"
+    },
+    {
+      "mistake": "Shrugging shoulders up to the ears",
+      "fix": "Keep shoulders down and pull with your back"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 40
+}

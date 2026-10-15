@@ -1,0 +1,52 @@
+{
+  "id": "seated-machine-row",
+  "source_id": "Leverage_Iso_Row",
+  "name": "Seated Machine Row",
+  "area": "upper",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "lats"
+  ],
+  "secondary_muscles": [
+    "biceps",
+    "middle back"
+  ],
+  "steps": [
+    "Adjust the seat so the handles are at chest height.",
+    "Sit tall with your chest on the pad and grip the handles.",
+    "Pull the handles toward your body, squeezing your shoulder blades.",
+    "Return slowly until your arms are straight."
+  ],
+  "cues": [
+    "Chest against the pad",
+    "Elbows close to your body",
+    "Squeeze back at the end",
+    "Breathe out as you pull"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning back off the pad",
+      "fix": "Keep your chest in contact with the pad"
+    },
+    {
+      "mistake": "Shrugging toward the ears",
+      "fix": "Keep shoulders down as you pull"
+    },
+    {
+      "mistake": "Letting the weight crash down",
+      "fix": "Control the return every rep"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 320
+}

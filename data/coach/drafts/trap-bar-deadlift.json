@@ -1,0 +1,61 @@
+{
+  "id": "trap-bar-deadlift",
+  "source_id": "Trap_Bar_Deadlift",
+  "name": "Trap Bar Deadlift",
+  "area": "full",
+  "equipment": "other",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "quadriceps",
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "hamstrings",
+    "lower back",
+    "traps",
+    "forearms"
+  ],
+  "steps": [
+    "Step into the centre of the trap bar with feet hip width.",
+    "Bend hips and knees to grab the handles, arms straight by your sides.",
+    "Flatten your back, lift your chest and look ahead.",
+    "Drive through your feet to stand up tall, hips and knees straightening together.",
+    "Sit the hips back and lower the bar to the floor under control."
+  ],
+  "cues": [
+    "Chest up, back flat",
+    "Arms long, shoulders down",
+    "Knees track over toes",
+    "Breathe in and brace, breathe out at the top"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the back to reach the handles",
+      "fix": "Bend the knees more and keep the chest lifted"
+    },
+    {
+      "mistake": "Hips shooting up first",
+      "fix": "Push the floor away so hips and shoulders rise together"
+    },
+    {
+      "mistake": "Dropping the bar on the way down",
+      "fix": "Lower it with control, same path as the lift"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 20
+}

@@ -1,0 +1,49 @@
+{
+  "id": "preacher-curl",
+  "source_id": "Preacher_Curl",
+  "name": "Preacher Curl",
+  "area": "upper",
+  "equipment": "e-z curl bar",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "biceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Sit at a preacher bench with upper arms flat on the pad.",
+    "Hold an EZ bar with palms facing up.",
+    "Curl the bar up toward your shoulders.",
+    "Lower slowly until your arms are almost straight."
+  ],
+  "cues": [
+    "Upper arms stay on the pad",
+    "Lower slowly, soft elbows at bottom",
+    "Wrists straight",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Dropping into a locked elbow at the bottom",
+      "fix": "Stop just short of fully straight"
+    },
+    {
+      "mistake": "Lifting the upper arms off the pad",
+      "fix": "Keep arms pressed into the pad"
+    },
+    {
+      "mistake": "Weight too heavy",
+      "fix": "Use a weight you can lower slowly"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 600
+}

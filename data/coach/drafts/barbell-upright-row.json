@@ -1,0 +1,53 @@
+{
+  "id": "barbell-upright-row",
+  "source_id": "Upright_Barbell_Row",
+  "name": "Barbell Upright Row",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "traps"
+  ],
+  "steps": [
+    "Stand tall holding a bar in front of your thighs, hands about shoulder width.",
+    "Lift the bar straight up close to your body, leading with the elbows.",
+    "Stop when your upper arms are level with your shoulders.",
+    "Lower the bar slowly back to your thighs."
+  ],
+  "cues": [
+    "Bar stays close to your body",
+    "Elbows lead, higher than wrists",
+    "Stop at shoulder height",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Pulling the bar up to the chin",
+      "fix": "Stop when elbows reach shoulder height"
+    },
+    {
+      "mistake": "Grip too narrow",
+      "fix": "Keep hands about shoulder width apart"
+    },
+    {
+      "mistake": "Using body swing",
+      "fix": "Use a lighter bar and keep torso still"
+    }
+  ],
+  "contraindications": [
+    "shoulder"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 510
+}

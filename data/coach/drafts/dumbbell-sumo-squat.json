@@ -1,0 +1,56 @@
+{
+  "id": "dumbbell-sumo-squat",
+  "source_id": "Plie_Dumbbell_Squat",
+  "name": "Dumbbell Sumo Squat",
+  "area": "lower",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "adductors",
+    "glutes",
+    "hamstrings"
+  ],
+  "steps": [
+    "Hold one dumbbell by its end with both hands, arms straight.",
+    "Stand with feet wider than shoulders, toes turned out.",
+    "Bend knees and lower straight down, keeping your chest up.",
+    "Stop when thighs are about parallel.",
+    "Press through your heels to stand and squeeze your inner thighs."
+  ],
+  "cues": [
+    "Wide stance, toes out",
+    "Knees follow your toes",
+    "Torso stays upright",
+    "Breathe in down, breathe out as you stand"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Knees caving in",
+      "fix": "Push knees out in the direction of your toes"
+    },
+    {
+      "mistake": "Leaning forward",
+      "fix": "Keep the chest tall and weight between your feet"
+    },
+    {
+      "mistake": "Swinging the dumbbell",
+      "fix": "Let it hang still from straight arms"
+    }
+  ],
+  "contraindications": [
+    "knee"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 230
+}

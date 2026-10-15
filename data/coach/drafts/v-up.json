@@ -1,0 +1,53 @@
+{
+  "id": "v-up",
+  "source_id": "Jackknife_Sit-Up",
+  "name": "V-Up",
+  "area": "core",
+  "equipment": "body only",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie on your back with arms stretched overhead and legs straight.",
+    "Breathe out and lift your legs and upper body at the same time.",
+    "Reach your hands toward your shins or feet at the top.",
+    "Lower arms and legs slowly back to the start."
+  ],
+  "cues": [
+    "Arms and legs rise together",
+    "Keep legs straight, knees soft",
+    "Lower slowly, no flopping",
+    "Breathe out as you fold up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Throwing the arms to get up",
+      "fix": "Lift with the stomach; bend knees to make it easier"
+    },
+    {
+      "mistake": "Crashing back to the floor",
+      "fix": "Lower over 2–3 seconds"
+    },
+    {
+      "mistake": "Lower back arching at the bottom",
+      "fix": "Keep the feet just above the floor or bend the knees"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy",
+    "recovery"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 180
+}

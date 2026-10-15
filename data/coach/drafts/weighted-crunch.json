@@ -1,0 +1,52 @@
+{
+  "id": "weighted-crunch",
+  "source_id": "Weighted_Crunches",
+  "name": "Weighted Crunch",
+  "area": "core",
+  "equipment": "medicine ball",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie on your back with knees bent and feet flat.",
+    "Hold a medicine ball or plate against your chest.",
+    "Breathe out and curl your shoulders a few inches off the floor.",
+    "Pause, then lower slowly."
+  ],
+  "cues": [
+    "Weight stays on the chest",
+    "Lower back stays down",
+    "Short, slow curl",
+    "Breathe out as you curl up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Too heavy, so the neck strains",
+      "fix": "Pick a weight that lets every rep stay slow"
+    },
+    {
+      "mistake": "Weight drifting away from the chest",
+      "fix": "Hug it close to the chest"
+    },
+    {
+      "mistake": "Using momentum to sit up",
+      "fix": "Pause at the bottom of each rep"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 1,
+  "ai_trainer_key": null,
+  "sort_order": 310
+}

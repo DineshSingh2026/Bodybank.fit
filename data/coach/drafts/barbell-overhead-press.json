@@ -1,0 +1,57 @@
+{
+  "id": "barbell-overhead-press",
+  "source_id": "Standing_Military_Press",
+  "name": "Barbell Overhead Press",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "triceps"
+  ],
+  "steps": [
+    "Stand with feet hip width and hold the bar at the front of your shoulders.",
+    "Grip just wider than shoulders with elbows slightly in front of the bar.",
+    "Brace your stomach and press the bar straight up over your head.",
+    "Lower the bar with control back to your shoulders."
+  ],
+  "cues": [
+    "Squeeze glutes, ribs down",
+    "Move your head back, bar travels straight",
+    "Bar finishes over mid-foot",
+    "Breathe in, brace, breathe out at top"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning back to push the bar up",
+      "fix": "Squeeze glutes and stomach; lower the weight"
+    },
+    {
+      "mistake": "Pressing the bar out in front",
+      "fix": "Keep the bar close to your face on the way up"
+    },
+    {
+      "mistake": "Flaring the elbows wide at the start",
+      "fix": "Start with elbows slightly forward of the bar"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": "shoulderpress",
+  "sort_order": 60
+}

@@ -1,0 +1,54 @@
+{
+  "id": "cable-woodchop",
+  "source_id": "Standing_Cable_Wood_Chop",
+  "name": "Cable Woodchop",
+  "area": "core",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [
+    "shoulders"
+  ],
+  "steps": [
+    "Set a handle on a high pulley and stand side-on, feet shoulder width.",
+    "Hold the handle with both hands, arms straight above the near shoulder.",
+    "Breathe out and pull the handle down across your body to the far knee.",
+    "Let your back foot pivot as your shoulders turn.",
+    "Return slowly to the start; switch sides after the set."
+  ],
+  "cues": [
+    "Arms long, turn from the trunk",
+    "Pivot the back foot",
+    "Chest up, back straight",
+    "Breathe out as you chop down"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bending the arms to pull",
+      "fix": "Keep the arms long; turn the shoulders"
+    },
+    {
+      "mistake": "Rounding the back at the bottom",
+      "fix": "Bend the knees slightly and keep the chest up"
+    },
+    {
+      "mistake": "Letting the weight snap back",
+      "fix": "Return the handle slowly over 2 seconds"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 200
+}

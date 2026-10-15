@@ -1,0 +1,49 @@
+{
+  "id": "rope-cable-hammer-curl",
+  "source_id": "Cable_Hammer_Curls_-_Rope_Attachment",
+  "name": "Rope Cable Hammer Curl",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "biceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Attach a rope to a low pulley and stand facing it.",
+    "Hold the rope ends with palms facing each other.",
+    "Curl the rope up toward your shoulders, elbows by your sides.",
+    "Lower slowly until your arms are straight."
+  ],
+  "cues": [
+    "Palms face each other",
+    "Elbows pinned to sides",
+    "Stand still",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging the body",
+      "fix": "Lighten the weight and brace"
+    },
+    {
+      "mistake": "Wrists bending back",
+      "fix": "Keep wrists firm and straight"
+    },
+    {
+      "mistake": "Short reps",
+      "fix": "Lower to straight arms each time"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 650
+}

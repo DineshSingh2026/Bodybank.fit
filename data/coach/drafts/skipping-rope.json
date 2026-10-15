@@ -1,0 +1,59 @@
+{
+  "id": "skipping-rope",
+  "source_id": "Rope_Jumping",
+  "name": "Skipping Rope",
+  "area": "full",
+  "equipment": "other",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "calves",
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "hamstrings",
+    "shoulders",
+    "forearms"
+  ],
+  "steps": [
+    "Hold a handle in each hand with the rope behind your heels.",
+    "Turn the rope over your head using your wrists, elbows close to your sides.",
+    "Jump just high enough for the rope to pass under your feet.",
+    "Land softly on the balls of your feet and keep a steady rhythm for the set time."
+  ],
+  "cues": [
+    "Small, quiet jumps",
+    "Land on the balls of your feet",
+    "Turn from the wrists, elbows in",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Jumping far too high",
+      "fix": "Lift the feet only a few centimetres off the floor"
+    },
+    {
+      "mistake": "Landing flat-footed and heavy",
+      "fix": "Stay on the balls of the feet with soft knees"
+    },
+    {
+      "mistake": "Swinging the rope with the whole arm",
+      "fix": "Keep elbows by your sides and turn from the wrists"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "seconds",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 40,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 110
+}

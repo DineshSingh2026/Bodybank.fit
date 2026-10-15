@@ -1,0 +1,55 @@
+{
+  "id": "plank",
+  "source_id": "Plank",
+  "name": "Plank",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "static",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "glutes",
+    "lower back"
+  ],
+  "steps": [
+    "Kneel on a mat and place your forearms on the floor, elbows directly under your shoulders.",
+    "Step your feet back one at a time until your body forms a straight line from head to heels.",
+    "Tuck your hips slightly and brace your stomach as if about to be poked.",
+    "Hold the position without letting your hips sag or rise.",
+    "Lower your knees to the mat to finish."
+  ],
+  "cues": [
+    "Elbows under shoulders",
+    "Head to heels in one straight line",
+    "Squeeze glutes, brace stomach",
+    "Look at the floor, neck long",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips sagging toward the floor",
+      "fix": "Squeeze glutes and tuck hips slightly; drop to knees if needed"
+    },
+    {
+      "mistake": "Hips piked high in the air",
+      "fix": "Lower hips until shoulders, hips and heels line up"
+    },
+    {
+      "mistake": "Holding the breath",
+      "fix": "Take short, steady breaths through the whole hold"
+    }
+  ],
+  "contraindications": [],
+  "unit": "seconds",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 30,
+  "load_step_kg": 0,
+  "ai_trainer_key": "plank",
+  "sort_order": 10
+}

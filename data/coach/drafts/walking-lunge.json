@@ -1,0 +1,57 @@
+{
+  "id": "walking-lunge",
+  "source_id": "Bodyweight_Walking_Lunge",
+  "name": "Walking Lunge",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand tall with hands on your hips.",
+    "Take a long step forward with one leg.",
+    "Bend both knees until the back knee is just above the floor.",
+    "Push through the front heel to rise and bring the back foot forward.",
+    "Step straight into the next lunge with the other leg."
+  ],
+  "cues": [
+    "Torso upright",
+    "Front knee over the ankle",
+    "Back knee drops straight down",
+    "Breathe in down, breathe out as you rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Steps too short so the knee shoots forward",
+      "fix": "Take a longer step"
+    },
+    {
+      "mistake": "Leaning the chest forward",
+      "fix": "Keep shoulders over hips"
+    },
+    {
+      "mistake": "Front knee wobbles inward",
+      "fix": "Line the front knee up with your second toe"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": "lunge",
+  "sort_order": 70
+}

@@ -1,0 +1,65 @@
+{
+  "id": "barbell-deadlift",
+  "source_id": "Barbell_Deadlift",
+  "name": "Barbell Deadlift",
+  "area": "full",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "glutes",
+    "hamstrings",
+    "lower back"
+  ],
+  "secondary_muscles": [
+    "quadriceps",
+    "traps",
+    "lats",
+    "middle back",
+    "forearms",
+    "calves"
+  ],
+  "steps": [
+    "Stand with feet hip width, bar over the middle of your feet.",
+    "Hinge at the hips and bend your knees to grip the bar just outside your legs.",
+    "Flatten your back, lift your chest and pull the slack out of the bar.",
+    "Push the floor away and stand up tall, keeping the bar close to your legs.",
+    "Push your hips back and lower the bar under control to the floor."
+  ],
+  "cues": [
+    "Bar stays touching your legs",
+    "Back flat, chest proud",
+    "Push through the whole foot",
+    "Squeeze glutes at the top, don't lean back",
+    "Big breath and brace before each lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the lower back off the floor",
+      "fix": "Lighten the load, brace hard and lift the chest before pulling"
+    },
+    {
+      "mistake": "Bar drifting away from the body",
+      "fix": "Pull the bar into your shins and thighs the whole way"
+    },
+    {
+      "mistake": "Jerking the bar up from the floor",
+      "fix": "Pull the slack out first, then press the floor away smoothly"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 10
+}

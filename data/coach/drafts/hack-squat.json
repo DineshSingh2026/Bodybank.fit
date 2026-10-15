@@ -1,0 +1,59 @@
+{
+  "id": "hack-squat",
+  "source_id": "Hack_Squat",
+  "name": "Hack Squat",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand on the platform with your back and shoulders against the pads.",
+    "Set feet shoulder width, toes slightly out.",
+    "Straighten your legs and release the safety handles.",
+    "Bend your knees to lower until thighs are about parallel.",
+    "Press through your whole foot to rise without locking the knees.",
+    "Re-engage the safeties when done."
+  ],
+  "cues": [
+    "Back flat on the pad",
+    "Knees track over toes",
+    "Push through heels and mid-foot",
+    "Breathe in down, breathe out as you press"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Heels lifting",
+      "fix": "Move feet slightly higher on the platform"
+    },
+    {
+      "mistake": "Hips peeling off the pad",
+      "fix": "Shorten the depth to keep your back flat"
+    },
+    {
+      "mistake": "Locking knees at the top",
+      "fix": "Stop just short of straight"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "recovery",
+    "kidney_gentle"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 200
+}

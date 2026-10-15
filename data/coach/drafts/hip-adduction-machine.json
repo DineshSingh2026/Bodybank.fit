@@ -1,0 +1,52 @@
+{
+  "id": "hip-adduction-machine",
+  "source_id": "Thigh_Adductor",
+  "name": "Hip Adduction Machine",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "adductors"
+  ],
+  "secondary_muscles": [
+    "glutes"
+  ],
+  "steps": [
+    "Sit in the machine with the pads on the inside of your knees.",
+    "Set the start width to a gentle stretch, not a forced one.",
+    "Hold the handles and sit tall.",
+    "Squeeze your knees together until the pads meet.",
+    "Open your legs slowly back to the start."
+  ],
+  "cues": [
+    "Back against the pad",
+    "Squeeze with the inner thighs",
+    "Pause when the pads meet",
+    "Slow return"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Start width set too wide",
+      "fix": "Begin at a mild stretch only"
+    },
+    {
+      "mistake": "Jerking the weight",
+      "fix": "Squeeze smoothly and pause"
+    },
+    {
+      "mistake": "Upper body rocking",
+      "fix": "Hold the handles and stay still"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 380
+}

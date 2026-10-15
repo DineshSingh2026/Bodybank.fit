@@ -1,0 +1,53 @@
+{
+  "id": "reverse-grip-lat-pulldown",
+  "source_id": "Underhand_Cable_Pulldowns",
+  "name": "Reverse-Grip Lat Pulldown",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "lats"
+  ],
+  "secondary_muscles": [
+    "biceps",
+    "middle back",
+    "shoulders"
+  ],
+  "steps": [
+    "Sit at the pulldown with thighs under the pads.",
+    "Grip the bar shoulder width with palms facing you.",
+    "Pull the bar down to your upper chest, elbows close to your body.",
+    "Let the bar rise slowly to the start."
+  ],
+  "cues": [
+    "Chest up, slight lean back",
+    "Elbows tight to your sides",
+    "Squeeze your back at the bottom",
+    "Breathe out as you pull"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Grip too wide",
+      "fix": "Keep hands about shoulder width apart"
+    },
+    {
+      "mistake": "Curling with the arms only",
+      "fix": "Think about driving elbows to your hips"
+    },
+    {
+      "mistake": "Leaning way back",
+      "fix": "Keep only a small lean"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 270
+}

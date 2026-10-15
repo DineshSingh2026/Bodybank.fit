@@ -1,0 +1,57 @@
+{
+  "id": "barbell-bench-press",
+  "source_id": "Barbell_Bench_Press_-_Medium_Grip",
+  "name": "Barbell Bench Press",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Lie on a flat bench with eyes under the bar and feet flat on the floor.",
+    "Grip the bar slightly wider than shoulders and lift it out to above your chest.",
+    "Lower the bar with control to your mid-chest, elbows about 45 degrees from your body.",
+    "Press the bar back up until your arms are straight over your shoulders."
+  ],
+  "cues": [
+    "Shoulder blades squeezed back and down",
+    "Feet planted, glutes stay on the bench",
+    "Wrists straight over elbows",
+    "Breathe in as you lower, out as you press"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Elbows flared straight out to the sides",
+      "fix": "Tuck elbows to about 45 degrees from your body"
+    },
+    {
+      "mistake": "Bouncing the bar off the chest",
+      "fix": "Lower slowly and touch the chest lightly"
+    },
+    {
+      "mistake": "Hips lifting off the bench",
+      "fix": "Keep glutes down and push through your feet"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 10
+}

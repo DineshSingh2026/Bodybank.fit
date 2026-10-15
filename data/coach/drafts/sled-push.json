@@ -1,0 +1,60 @@
+{
+  "id": "sled-push",
+  "source_id": "Sled_Push",
+  "name": "Sled Push",
+  "area": "full",
+  "equipment": "other",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps",
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "hamstrings",
+    "calves",
+    "chest",
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Load the sled and grip the upright handles with your arms extended.",
+    "Lean into the sled so your body forms a straight line from head to back foot.",
+    "Drive forward with short, powerful steps, pushing through the balls of your feet.",
+    "Keep pushing for the set time, then stop and rest."
+  ],
+  "cues": [
+    "Body in one straight line",
+    "Arms firm, stomach tight",
+    "Short, strong steps",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the back over the handles",
+      "fix": "Lean from the ankles with a straight back and flat neck"
+    },
+    {
+      "mistake": "Long, overreaching strides",
+      "fix": "Take short, quick steps under your hips"
+    },
+    {
+      "mistake": "Loading it so heavy it barely moves",
+      "fix": "Use a load you can push at a steady walk or faster"
+    }
+  ],
+  "contraindications": [
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "seconds",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 20,
+  "load_step_kg": 5,
+  "ai_trainer_key": null,
+  "sort_order": 170
+}

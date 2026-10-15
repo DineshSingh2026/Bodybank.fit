@@ -1,0 +1,51 @@
+{
+  "id": "dumbbell-triceps-kickback",
+  "source_id": "Tricep_Dumbbell_Kickback",
+  "name": "Dumbbell Triceps Kickback",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "triceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Hold a dumbbell in each hand and hinge forward with a flat back, knees soft.",
+    "Lift your upper arms level with your torso, elbows bent at 90 degrees.",
+    "Straighten your arms back until they are fully extended.",
+    "Bend your elbows slowly to return."
+  ],
+  "cues": [
+    "Upper arms stay still and high",
+    "Flat back, hips back",
+    "Squeeze at full extension",
+    "Breathe out as you extend"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Upper arms dropping",
+      "fix": "Keep upper arms level with your back"
+    },
+    {
+      "mistake": "Swinging the weights",
+      "fix": "Use lighter dumbbells and move slowly"
+    },
+    {
+      "mistake": "Rounding the back",
+      "fix": "Hinge from the hips with a flat back"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 740
+}

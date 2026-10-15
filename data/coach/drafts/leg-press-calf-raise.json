@@ -1,0 +1,50 @@
+{
+  "id": "leg-press-calf-raise",
+  "source_id": "Calf_Press_On_The_Leg_Press_Machine",
+  "name": "Leg Press Calf Raise",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "calves"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Sit in the leg press and press the platform up with legs straight but not locked.",
+    "Keep the safety handles locked if your machine allows it.",
+    "Move your feet so only the balls of your feet are on the lower edge.",
+    "Push the platform away by pointing your toes.",
+    "Lower slowly until your calves stretch."
+  ],
+  "cues": [
+    "Knees stay still, not locked",
+    "Balls of feet on the edge",
+    "Push through the big toe",
+    "Slow stretch, slow push"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bending the knees",
+      "fix": "Keep legs straight and still; only ankles move"
+    },
+    {
+      "mistake": "Feet slipping off the edge",
+      "fix": "Use a lighter load and set feet carefully"
+    },
+    {
+      "mistake": "Short, fast reps",
+      "fix": "Use the full range with a pause at the top"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 320
+}

@@ -1,0 +1,62 @@
+{
+  "id": "barbell-back-squat",
+  "source_id": "Barbell_Squat",
+  "name": "Barbell Back Squat",
+  "area": "lower",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves",
+    "lower back"
+  ],
+  "steps": [
+    "Set the bar in a rack just below shoulder height and load it.",
+    "Step under, rest the bar on your upper back and grip it just wider than your shoulders.",
+    "Stand up to lift it off, take two small steps back, feet shoulder width.",
+    "Push hips back and bend knees to lower until thighs are about parallel.",
+    "Drive through your whole foot to stand tall, then repeat."
+  ],
+  "cues": [
+    "Feet shoulder width, toes slightly out",
+    "Chest up, back straight",
+    "Knees track over toes",
+    "Squat only as deep as your back stays flat",
+    "Breathe in down, breathe out as you stand"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Knees cave inward on the way up",
+      "fix": "Push knees out in line with your toes"
+    },
+    {
+      "mistake": "Heels lift off the floor",
+      "fix": "Sit hips back and keep weight over mid-foot and heels"
+    },
+    {
+      "mistake": "Lower back rounds at the bottom",
+      "fix": "Stop just above that depth and brace your stomach first"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": "squat",
+  "sort_order": 10
+}

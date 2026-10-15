@@ -1,0 +1,49 @@
+{
+  "id": "hammer-curl",
+  "source_id": "Hammer_Curls",
+  "name": "Hammer Curl",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "biceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Stand tall with a dumbbell in each hand, palms facing your body.",
+    "Keep your elbows close to your sides.",
+    "Curl the dumbbells up, keeping palms facing in.",
+    "Lower slowly until your arms are straight."
+  ],
+  "cues": [
+    "Palms face each other throughout",
+    "Elbows pinned to sides",
+    "No swinging",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging the weights",
+      "fix": "Use a lighter weight and stay still"
+    },
+    {
+      "mistake": "Wrists bending",
+      "fix": "Keep wrists straight and firm"
+    },
+    {
+      "mistake": "Elbows flaring forward",
+      "fix": "Keep upper arms by your sides"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": "biccurl",
+  "sort_order": 580
+}

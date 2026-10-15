@@ -1,0 +1,51 @@
+{
+  "id": "dumbbell-overhead-triceps-extension",
+  "source_id": "Standing_Dumbbell_Triceps_Extension",
+  "name": "Dumbbell Overhead Triceps Extension",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "triceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Stand tall and hold one dumbbell with both hands, cupping the top plate.",
+    "Lift it over your head with arms straight.",
+    "Bend your elbows to lower the dumbbell behind your head.",
+    "Straighten your arms to lift it back up."
+  ],
+  "cues": [
+    "Elbows close to your head",
+    "Ribs down, stomach tight",
+    "Upper arms stay still",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Elbows flaring out",
+      "fix": "Keep elbows pointing up and close in"
+    },
+    {
+      "mistake": "Arching the back",
+      "fix": "Brace your stomach, or sit on a bench"
+    },
+    {
+      "mistake": "Lowering too deep too fast",
+      "fix": "Lower slowly to a comfortable depth"
+    }
+  ],
+  "contraindications": [
+    "shoulder"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 730
+}

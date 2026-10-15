@@ -1,0 +1,57 @@
+{
+  "id": "t-bar-row",
+  "source_id": "T-Bar_Row_with_Handle",
+  "name": "T-Bar Row",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "middle back"
+  ],
+  "secondary_muscles": [
+    "biceps",
+    "lats"
+  ],
+  "steps": [
+    "Straddle the bar and grab the handle near the plates.",
+    "Bend your knees and hinge forward with a flat back.",
+    "Pull the plates toward your chest, squeezing your back.",
+    "Lower slowly until your arms are straight."
+  ],
+  "cues": [
+    "Flat back, hips back",
+    "Chest up",
+    "Squeeze shoulder blades at the top",
+    "Breathe out as you pull"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the back under load",
+      "fix": "Use fewer plates and keep chest up"
+    },
+    {
+      "mistake": "Standing up to lift the weight",
+      "fix": "Hold your hinge angle still"
+    },
+    {
+      "mistake": "Short, jerky reps",
+      "fix": "Lower until arms are straight each rep"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 300
+}

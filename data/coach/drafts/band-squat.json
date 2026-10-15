@@ -1,0 +1,53 @@
+{
+  "id": "band-squat",
+  "source_id": "Squats_-_With_Bands",
+  "name": "Resistance Band Squat",
+  "area": "lower",
+  "equipment": "bands",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings"
+  ],
+  "steps": [
+    "Stand on a long band with feet shoulder width apart.",
+    "Bring the band handles or loops up to your shoulders.",
+    "Push hips back and bend knees to lower down.",
+    "Stop when thighs are about parallel or your back starts to round.",
+    "Press through your heels to stand against the band."
+  ],
+  "cues": [
+    "Feet flat on the band",
+    "Hands fixed at the shoulders",
+    "Chest up, knees over toes",
+    "Breathe in down, breathe out as you stand"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Band slipping under the feet",
+      "fix": "Stand on the middle with both feet flat"
+    },
+    {
+      "mistake": "Letting the hands drift forward",
+      "fix": "Keep the band at your shoulders"
+    },
+    {
+      "mistake": "Knees caving in",
+      "fix": "Push knees out over your toes"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 470
+}

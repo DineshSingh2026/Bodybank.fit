@@ -1,0 +1,55 @@
+{
+  "id": "dumbbell-romanian-deadlift",
+  "source_id": "Stiff-Legged_Dumbbell_Deadlift",
+  "name": "Dumbbell Romanian Deadlift",
+  "area": "lower",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "hamstrings"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "lower back"
+  ],
+  "steps": [
+    "Stand with a dumbbell in each hand in front of your thighs.",
+    "Set feet hip width apart with a small bend in the knees.",
+    "Push hips back and slide the dumbbells down the front of your legs.",
+    "Stop when you feel a hamstring stretch and your back is still flat.",
+    "Drive your hips forward to return to standing."
+  ],
+  "cues": [
+    "Back flat, neck in line",
+    "Dumbbells close to your legs",
+    "Hips back like closing a door",
+    "Breathe in down, breathe out as you rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the lower back",
+      "fix": "Lower only as far as you can keep it flat"
+    },
+    {
+      "mistake": "Squatting the weight down",
+      "fix": "Keep knees soft and push hips back instead"
+    },
+    {
+      "mistake": "Leaning back at the top",
+      "fix": "Stand tall and squeeze glutes, no backward lean"
+    }
+  ],
+  "contraindications": [
+    "lower_back"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 60
+}

@@ -1,0 +1,13 @@
+Coach Mode exercise source data and photos
+==========================================
+
+Exercise records and the start/end photos used by Coach Mode come from
+free-exercise-db by yuhonas: https://github.com/yuhonas/free-exercise-db
+
+That project is released under the Unlicense (public domain dedication):
+https://unlicense.org — no attribution is required, but BodyBank credits it
+anyway in the Coach Mode "About" line.
+
+BodyBank rewrites the steps, cues and common mistakes (data/coach/drafts/),
+and every exercise is reviewed by a coach before members can see it.
+Photos are re-encoded to WebP (480w / 960w) with metadata stripped.

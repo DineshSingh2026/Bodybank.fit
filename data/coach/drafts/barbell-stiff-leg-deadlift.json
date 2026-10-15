@@ -1,0 +1,58 @@
+{
+  "id": "barbell-stiff-leg-deadlift",
+  "source_id": "Stiff-Legged_Barbell_Deadlift",
+  "name": "Barbell Stiff-Leg Deadlift",
+  "area": "lower",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "hamstrings"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "lower back"
+  ],
+  "steps": [
+    "Stand holding a barbell at your thighs, hands shoulder width.",
+    "Keep your knees almost straight with a slight bend.",
+    "Hinge at the hips and lower the bar along your legs.",
+    "Stop at a strong hamstring stretch with your back still flat.",
+    "Squeeze glutes and hamstrings to stand back up."
+  ],
+  "cues": [
+    "Back flat throughout",
+    "Bar close to your legs",
+    "Knees nearly straight, not locked",
+    "Breathe in down, breathe out as you rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rounding the back to reach the floor",
+      "fix": "Stop where your back stays flat"
+    },
+    {
+      "mistake": "Locking the knees hard",
+      "fix": "Keep a slight bend in the knees"
+    },
+    {
+      "mistake": "Going too heavy too soon",
+      "fix": "Start light; this stretches hamstrings under load"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 250
+}

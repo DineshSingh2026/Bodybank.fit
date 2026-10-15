@@ -1,0 +1,49 @@
+{
+  "id": "reverse-wrist-curl",
+  "source_id": "Seated_Dumbbell_Palms-Down_Wrist_Curl",
+  "name": "Reverse Wrist Curl",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "forearms"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Sit on a bench holding dumbbells, forearms on your thighs, palms down.",
+    "Let your hands hang just past your knees.",
+    "Lift the backs of your hands up as high as you can.",
+    "Lower slowly back down."
+  ],
+  "cues": [
+    "Forearms stay on your thighs",
+    "Only the wrists move",
+    "Light weight, full range",
+    "Breathe steadily"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Using a heavy weight",
+      "fix": "Go light; this muscle is small"
+    },
+    {
+      "mistake": "Moving the elbows",
+      "fix": "Keep forearms still on the thighs"
+    },
+    {
+      "mistake": "Rushing the reps",
+      "fix": "Lift and lower slowly"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 790
+}

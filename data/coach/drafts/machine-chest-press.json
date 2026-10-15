@@ -1,0 +1,52 @@
+{
+  "id": "machine-chest-press",
+  "source_id": "Leverage_Chest_Press",
+  "name": "Machine Chest Press",
+  "area": "upper",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Adjust the seat so the handles line up with your mid-chest.",
+    "Sit with your back on the pad and grip the handles.",
+    "Press the handles forward until your arms are almost straight.",
+    "Return slowly, stopping before the weight touches down."
+  ],
+  "cues": [
+    "Back and head on the pad",
+    "Shoulder blades squeezed back",
+    "Press smooth, no locked elbows",
+    "Breathe out as you press"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Seat set too low or high",
+      "fix": "Line the handles up with your mid-chest"
+    },
+    {
+      "mistake": "Shoulders rolling forward at the end",
+      "fix": "Keep shoulder blades against the pad"
+    },
+    {
+      "mistake": "Letting the weight crash between reps",
+      "fix": "Control the return every rep"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 190
+}

@@ -1,0 +1,57 @@
+{
+  "id": "chin-ups",
+  "source_id": "Chin-Up",
+  "name": "Chin Ups",
+  "area": "upper",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "lats"
+  ],
+  "secondary_muscles": [
+    "biceps",
+    "forearms",
+    "middle back"
+  ],
+  "steps": [
+    "Hang from a bar with palms facing you, hands about shoulder width.",
+    "Pull your shoulders down to start.",
+    "Pull yourself up until your chin is over the bar.",
+    "Lower slowly to a full hang."
+  ],
+  "cues": [
+    "Shoulders down, chest up",
+    "Elbows drive down to ribs",
+    "No swinging",
+    "Breathe out as you pull up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging to get up",
+      "fix": "Keep legs still; use a band if needed"
+    },
+    {
+      "mistake": "Not lowering all the way",
+      "fix": "Return to straight arms each rep"
+    },
+    {
+      "mistake": "Shrugging at the bottom",
+      "fix": "Keep shoulders packed down"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "recovery",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 330
+}

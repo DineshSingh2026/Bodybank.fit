@@ -1,0 +1,52 @@
+{
+  "id": "leg-extension",
+  "source_id": "Leg_Extensions",
+  "name": "Leg Extension",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Sit in the machine with your back against the pad.",
+    "Set the shin pad just above your ankles and knees in line with the pivot.",
+    "Hold the side handles.",
+    "Straighten your legs to lift the pad until knees are nearly straight.",
+    "Pause, then lower slowly to the start."
+  ],
+  "cues": [
+    "Back stays on the pad",
+    "Knees line up with the machine pivot",
+    "Squeeze thighs at the top",
+    "Lower slowly, two seconds down"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Swinging the weight up",
+      "fix": "Use a lighter weight and lift smoothly"
+    },
+    {
+      "mistake": "Hips lifting off the seat",
+      "fix": "Hold the handles and stay seated"
+    },
+    {
+      "mistake": "Dropping the weight down",
+      "fix": "Control the lowering all the way"
+    }
+  ],
+  "contraindications": [
+    "knee"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 90
+}

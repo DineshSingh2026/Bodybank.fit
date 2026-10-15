@@ -1,0 +1,62 @@
+{
+  "id": "kettlebell-thruster",
+  "source_id": "Kettlebell_Thruster",
+  "name": "Kettlebell Thruster",
+  "area": "full",
+  "equipment": "kettlebell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps",
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "triceps",
+    "abdominals"
+  ],
+  "steps": [
+    "Hold two kettlebells at your shoulders, elbows tucked, feet shoulder width.",
+    "Squat down with your chest up to a depth where your back stays flat.",
+    "Drive up out of the squat and use that push to press both bells overhead.",
+    "Lock your arms out with the bells over your head, then lower them to your shoulders.",
+    "Flow straight into the next squat."
+  ],
+  "cues": [
+    "Elbows close, chest up in the squat",
+    "Knees track over toes",
+    "Legs start the press, arms finish it",
+    "Breathe in down, breathe out as you press"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Pressing only with the arms",
+      "fix": "Stand up fast and let the leg drive move the bells"
+    },
+    {
+      "mistake": "Arching the lower back overhead",
+      "fix": "Squeeze glutes and stomach and keep ribs down"
+    },
+    {
+      "mistake": "Elbows dropping and chest folding in the squat",
+      "fix": "Keep elbows up in front and use lighter bells"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "shoulder",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 4,
+  "ai_trainer_key": null,
+  "sort_order": 70
+}

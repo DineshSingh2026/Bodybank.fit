@@ -1,0 +1,50 @@
+{
+  "id": "seated-leg-curl",
+  "source_id": "Seated_Leg_Curl",
+  "name": "Seated Leg Curl",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "hamstrings"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Sit with your back on the pad and knees lined up with the pivot.",
+    "Place the lower pad behind your ankles and lock the thigh pad down.",
+    "Hold the handles and press your heels down and back.",
+    "Bend knees as far as comfortable, then pause.",
+    "Let the pad rise slowly back to the start."
+  ],
+  "cues": [
+    "Back against the pad",
+    "Thigh pad snug on your legs",
+    "Squeeze the back of your thighs",
+    "Control the way back up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning forward to pull the weight",
+      "fix": "Stay back on the pad, use a lighter weight"
+    },
+    {
+      "mistake": "Letting the weight snap back",
+      "fix": "Return slowly over two seconds"
+    },
+    {
+      "mistake": "Thigh pad too loose",
+      "fix": "Lower it so your thighs cannot lift"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 110
+}

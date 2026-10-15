@@ -1,0 +1,50 @@
+{
+  "id": "standing-leg-curl",
+  "source_id": "Standing_Leg_Curl",
+  "name": "Standing Leg Curl",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "hamstrings"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Set the machine to your height and place one leg under the ankle pad.",
+    "Rest the front of that thigh on the knee pad and hold the handles.",
+    "Curl your heel toward your glute as far as is comfortable.",
+    "Pause and squeeze the back of your thigh.",
+    "Lower slowly. Finish the set, then switch legs."
+  ],
+  "cues": [
+    "Thigh stays on the pad",
+    "Hips still, no twisting",
+    "Squeeze at the top",
+    "Slow on the way down"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Lifting the thigh off the pad",
+      "fix": "Keep it pressed down and use less weight"
+    },
+    {
+      "mistake": "Swinging the weight",
+      "fix": "Curl smoothly and pause"
+    },
+    {
+      "mistake": "Partial reps",
+      "fix": "Lower until the leg is nearly straight"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 420
+}

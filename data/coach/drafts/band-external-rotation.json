@@ -1,0 +1,49 @@
+{
+  "id": "band-external-rotation",
+  "source_id": "External_Rotation_with_Band",
+  "name": "Band External Rotation",
+  "area": "upper",
+  "equipment": "bands",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Tie a band at elbow height and stand side-on to it.",
+    "Hold the band with the far hand, elbow bent 90 degrees and tucked to your side.",
+    "Rotate your forearm out away from your body, keeping the elbow in.",
+    "Return slowly to the start."
+  ],
+  "cues": [
+    "Elbow glued to your side",
+    "Forearm moves like a door",
+    "Shoulders relaxed",
+    "Breathe steadily"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Elbow drifting away from the side",
+      "fix": "Hold a small towel between elbow and body"
+    },
+    {
+      "mistake": "Twisting the torso",
+      "fix": "Keep your chest facing forward"
+    },
+    {
+      "mistake": "Band too strong",
+      "fix": "Use a light band and slow reps"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 540
+}

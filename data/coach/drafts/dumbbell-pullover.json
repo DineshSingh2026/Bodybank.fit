@@ -1,0 +1,56 @@
+{
+  "id": "dumbbell-pullover",
+  "source_id": "Straight-Arm_Dumbbell_Pullover",
+  "name": "Dumbbell Pullover",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "lats",
+    "shoulders",
+    "triceps"
+  ],
+  "steps": [
+    "Lie on a flat bench and hold one dumbbell with both hands over your chest.",
+    "Keep a slight bend in your elbows.",
+    "Lower the dumbbell back behind your head in an arc until arms are in line with your ears.",
+    "Pull it back over your chest along the same arc."
+  ],
+  "cues": [
+    "Ribs down, stomach tight",
+    "Soft, fixed bend in elbows",
+    "Stop when arms reach ear level",
+    "Breathe in back, breathe out over"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Arching the lower back",
+      "fix": "Keep ribs down and lower back on the bench"
+    },
+    {
+      "mistake": "Bending elbows like a triceps move",
+      "fix": "Keep the elbow angle the same"
+    },
+    {
+      "mistake": "Lowering too far behind the head",
+      "fix": "Stop when arms line up with your ears"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 250
+}

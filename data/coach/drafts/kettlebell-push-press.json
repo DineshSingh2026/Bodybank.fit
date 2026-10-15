@@ -1,0 +1,58 @@
+{
+  "id": "kettlebell-push-press",
+  "source_id": "Double_Kettlebell_Push_Press",
+  "name": "Kettlebell Push Press",
+  "area": "full",
+  "equipment": "kettlebell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "triceps",
+    "quadriceps",
+    "glutes",
+    "calves"
+  ],
+  "steps": [
+    "Hold two kettlebells at your shoulders, elbows tucked, feet hip width.",
+    "Dip a few centimetres by bending your knees, keeping your torso upright.",
+    "Drive up hard through your legs and press both bells overhead.",
+    "Lock your arms out overhead, then lower the bells back to your shoulders."
+  ],
+  "cues": [
+    "Short dip, straight down",
+    "Heels stay down in the dip",
+    "Legs drive, arms finish",
+    "Breathe in at the dip, out as you press"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Dipping too deep like a squat",
+      "fix": "Keep the dip short, just a quarter bend of the knees"
+    },
+    {
+      "mistake": "Leaning back and arching the lower back",
+      "fix": "Squeeze glutes and stomach, ribs down"
+    },
+    {
+      "mistake": "Pressing before the legs finish driving",
+      "fix": "Let the leg drive start the bells moving, then press"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "recovery",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 4,
+  "ai_trainer_key": null,
+  "sort_order": 160
+}

@@ -1,0 +1,60 @@
+{
+  "id": "rowing-machine",
+  "source_id": "Rowing_Stationary",
+  "name": "Rowing Machine",
+  "area": "full",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "quadriceps",
+    "middle back"
+  ],
+  "secondary_muscles": [
+    "lats",
+    "glutes",
+    "hamstrings",
+    "biceps",
+    "lower back",
+    "calves"
+  ],
+  "steps": [
+    "Sit on the rower, strap your feet in and hold the handle with straight arms.",
+    "Slide forward with knees bent and shins near vertical, body leaning slightly forward.",
+    "Push with your legs first, then lean back slightly and pull the handle to your lower ribs.",
+    "Return in reverse order: arms out, lean forward from the hips, then bend the knees.",
+    "Keep a smooth, steady rhythm for the set time."
+  ],
+  "cues": [
+    "Legs, then body, then arms",
+    "Sit tall, don't slump",
+    "Elbows close, handle to lower ribs",
+    "Breathe out as you push back"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Pulling with the arms before the legs push",
+      "fix": "Keep arms straight until the legs are nearly flat"
+    },
+    {
+      "mistake": "Rounding the back at the front",
+      "fix": "Lean from the hips with a tall chest"
+    },
+    {
+      "mistake": "Rushing back to the front",
+      "fix": "Drive hard, then come forward slowly"
+    }
+  ],
+  "contraindications": [
+    "lower_back"
+  ],
+  "unit": "seconds",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 60,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 60
+}

@@ -1,0 +1,56 @@
+{
+  "id": "single-leg-romanian-deadlift",
+  "source_id": "Kettlebell_One-Legged_Deadlift",
+  "name": "Single-Leg Romanian Deadlift",
+  "area": "lower",
+  "equipment": "kettlebell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "hamstrings"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "lower back"
+  ],
+  "steps": [
+    "Hold a kettlebell in one hand and stand on the same-side leg.",
+    "Keep a slight bend in the standing knee.",
+    "Hinge at the hip, lowering the bell as the free leg reaches back.",
+    "Stop when your torso is near parallel or your back starts to round.",
+    "Squeeze the standing glute to return upright. Switch sides after the set."
+  ],
+  "cues": [
+    "Hips stay square to the floor",
+    "Back flat, neck in line",
+    "Free leg in line with your body",
+    "Breathe in down, breathe out as you rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hip of the free leg opens up",
+      "fix": "Point the back toes at the floor"
+    },
+    {
+      "mistake": "Losing balance",
+      "fix": "Hold a rack with your free hand until steady"
+    },
+    {
+      "mistake": "Rounding to reach lower",
+      "fix": "Lower only as far as your back stays flat"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 4,
+  "ai_trainer_key": null,
+  "sort_order": 260
+}

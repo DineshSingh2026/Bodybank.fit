@@ -1,0 +1,49 @@
+{
+  "id": "cable-bicep-curl",
+  "source_id": "Standing_Biceps_Cable_Curl",
+  "name": "Cable Bicep Curl",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "biceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Attach a straight bar to a low pulley and stand facing it.",
+    "Grip the bar with palms up, hands shoulder width.",
+    "Curl the bar up toward your chest, elbows by your sides.",
+    "Lower slowly until your arms are straight."
+  ],
+  "cues": [
+    "Elbows stay by your sides",
+    "Stand tall, no leaning",
+    "Squeeze at the top",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning back to pull the weight",
+      "fix": "Stand tall and lighten the weight"
+    },
+    {
+      "mistake": "Elbows moving forward",
+      "fix": "Keep upper arms still"
+    },
+    {
+      "mistake": "Letting the cable yank the arms down",
+      "fix": "Lower with control"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 640
+}

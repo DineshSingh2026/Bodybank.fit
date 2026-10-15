@@ -1,0 +1,62 @@
+{
+  "id": "sumo-deadlift",
+  "source_id": "Sumo_Deadlift",
+  "name": "Sumo Deadlift",
+  "area": "full",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "glutes",
+    "hamstrings"
+  ],
+  "secondary_muscles": [
+    "adductors",
+    "quadriceps",
+    "lower back",
+    "traps",
+    "forearms"
+  ],
+  "steps": [
+    "Stand with a wide stance, toes turned out, shins close to the bar.",
+    "Bend your knees and hinge to grip the bar inside your legs, arms straight down.",
+    "Push your knees out, flatten your back and lift your chest.",
+    "Drive the floor apart with your feet and stand up tall with the bar close.",
+    "Sit the hips back and lower the bar to the floor under control."
+  ],
+  "cues": [
+    "Knees pushed out over the toes",
+    "Chest up, back flat",
+    "Bar stays close to your body",
+    "Big breath and brace before each lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Knees caving inward",
+      "fix": "Push the knees out in line with your toes the whole lift"
+    },
+    {
+      "mistake": "Hips rising before the bar moves",
+      "fix": "Sit a little lower and lift chest and hips together"
+    },
+    {
+      "mistake": "Stance so wide the hips feel pinched",
+      "fix": "Bring feet in until you can reach depth comfortably"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 140
+}

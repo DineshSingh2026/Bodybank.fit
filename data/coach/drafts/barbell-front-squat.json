@@ -1,0 +1,60 @@
+{
+  "id": "barbell-front-squat",
+  "source_id": "Front_Squat_Clean_Grip",
+  "name": "Barbell Front Squat",
+  "area": "lower",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "abdominals"
+  ],
+  "steps": [
+    "Set the bar in a rack at upper chest height.",
+    "Rest the bar on the front of your shoulders, fingertips under it, elbows high.",
+    "Lift it off and step back, feet shoulder width, toes slightly out.",
+    "Sit straight down between your knees until thighs are about parallel.",
+    "Drive up through your feet, keeping elbows high."
+  ],
+  "cues": [
+    "Elbows up, chest tall",
+    "Bar rests on shoulders, not hands",
+    "Knees push out over toes",
+    "Breathe in and brace before each rep"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Elbows drop and the bar rolls forward",
+      "fix": "Lift elbows high throughout"
+    },
+    {
+      "mistake": "Gripping the bar tightly in the palms",
+      "fix": "Use loose fingertips; the shoulders hold it"
+    },
+    {
+      "mistake": "Heels lifting",
+      "fix": "Sit down, not forward; widen stance a little"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 220
+}

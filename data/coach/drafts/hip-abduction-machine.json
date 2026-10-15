@@ -1,0 +1,52 @@
+{
+  "id": "hip-abduction-machine",
+  "source_id": "Thigh_Abductor",
+  "name": "Hip Abduction Machine",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "abductors"
+  ],
+  "secondary_muscles": [
+    "glutes"
+  ],
+  "steps": [
+    "Sit in the machine with the pads on the outside of your knees.",
+    "Hold the handles and sit tall against the back pad.",
+    "Push your knees apart as far as is comfortable.",
+    "Pause and squeeze the sides of your hips.",
+    "Let the legs come back together slowly."
+  ],
+  "cues": [
+    "Back against the pad",
+    "Push with the outer thighs",
+    "Pause at the widest point",
+    "Slow return"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Letting the plates slam together",
+      "fix": "Control the return all the way"
+    },
+    {
+      "mistake": "Leaning forward and rocking",
+      "fix": "Sit tall and keep your upper body still"
+    },
+    {
+      "mistake": "Weight too heavy for full range",
+      "fix": "Lighten it so you can open fully"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 370
+}

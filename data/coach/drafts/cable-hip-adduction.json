@@ -1,0 +1,50 @@
+{
+  "id": "cable-hip-adduction",
+  "source_id": "Cable_Hip_Adduction",
+  "name": "Cable Hip Adduction",
+  "area": "lower",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "adductors"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Attach an ankle strap to a low pulley and put it on the leg nearer the machine.",
+    "Step away sideways until the cable is tight and hold the frame.",
+    "Stand on the far leg with the strapped leg slightly out to the side.",
+    "Sweep the strapped leg across in front of your standing leg.",
+    "Return slowly. Finish the set, then switch sides."
+  ],
+  "cues": [
+    "Stand tall, hips still",
+    "Lead with the inner thigh",
+    "Small controlled sweep",
+    "Slow return"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning the body to swing the leg",
+      "fix": "Keep your torso upright and still"
+    },
+    {
+      "mistake": "Weight too heavy",
+      "fix": "Use a load you can move smoothly"
+    },
+    {
+      "mistake": "Letting the cable yank the leg out",
+      "fix": "Resist on the way back"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 390
+}

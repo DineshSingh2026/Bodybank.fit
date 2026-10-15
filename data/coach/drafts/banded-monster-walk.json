@@ -1,0 +1,52 @@
+{
+  "id": "banded-monster-walk",
+  "source_id": "Monster_Walk",
+  "name": "Banded Monster Walk",
+  "area": "lower",
+  "equipment": "bands",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "abductors"
+  ],
+  "secondary_muscles": [
+    "glutes"
+  ],
+  "steps": [
+    "Place a mini band just above your knees or around your ankles.",
+    "Stand with feet shoulder width so the band is tight.",
+    "Bend your knees slightly into a quarter squat.",
+    "Take small steps forward diagonally, keeping tension on the band.",
+    "Walk the same number of steps backward to the start."
+  ],
+  "cues": [
+    "Stay low in a quarter squat",
+    "Knees push out against the band",
+    "Small, controlled steps",
+    "Chest up, hands on hips"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Standing up straight between steps",
+      "fix": "Stay in a quarter squat throughout"
+    },
+    {
+      "mistake": "Feet coming together",
+      "fix": "Keep feet apart so the band stays tight"
+    },
+    {
+      "mistake": "Knees caving in",
+      "fix": "Push knees outward against the band"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 360
+}

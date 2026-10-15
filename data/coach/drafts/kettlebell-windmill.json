@@ -1,0 +1,59 @@
+{
+  "id": "kettlebell-windmill",
+  "source_id": "Kettlebell_Windmill",
+  "name": "Kettlebell Windmill",
+  "area": "core",
+  "equipment": "kettlebell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "shoulders"
+  ],
+  "steps": [
+    "Press a light kettlebell overhead with one arm, feet wider than hips.",
+    "Turn both feet about 45 degrees away from the kettlebell side.",
+    "Push your hips toward the kettlebell side and hinge down.",
+    "Slide your free hand down the inside of your leg, eyes on the kettlebell.",
+    "Stand back up slowly, arm locked overhead."
+  ],
+  "cues": [
+    "Arm locked, eyes on the bell",
+    "Push the hip out, then hinge",
+    "Back straight, no rounding",
+    "Breathe in down, out as you rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bending the overhead elbow",
+      "fix": "Start light and keep the arm locked"
+    },
+    {
+      "mistake": "Rounding the back to reach lower",
+      "fix": "Only go as low as you keep a flat back"
+    },
+    {
+      "mistake": "Losing sight of the kettlebell",
+      "fix": "Keep the eyes on it the whole time"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "lower_back",
+    "pregnancy",
+    "recovery"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 4,
+  "ai_trainer_key": null,
+  "sort_order": 320
+}

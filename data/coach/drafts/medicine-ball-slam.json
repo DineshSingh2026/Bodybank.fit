@@ -1,0 +1,61 @@
+{
+  "id": "medicine-ball-slam",
+  "source_id": "Overhead_Slam",
+  "name": "Medicine Ball Slam",
+  "area": "full",
+  "equipment": "medicine ball",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "lats",
+    "abdominals"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "triceps",
+    "glutes",
+    "hamstrings"
+  ],
+  "steps": [
+    "Stand with feet shoulder width, holding a slam ball in both hands at your waist.",
+    "Lift the ball overhead and rise up tall.",
+    "Slam the ball into the floor just in front of your feet, bending hips and knees.",
+    "Squat down with a flat back, pick up the ball and stand to start the next rep."
+  ],
+  "cues": [
+    "Reach tall before you slam",
+    "Hips and knees bend as you throw",
+    "Flat back when picking the ball up",
+    "Breathe out hard on the slam"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bending only at the waist to slam",
+      "fix": "Bend hips and knees together so the legs share the work"
+    },
+    {
+      "mistake": "Rounding the back to pick the ball up",
+      "fix": "Squat down to the ball with a flat back"
+    },
+    {
+      "mistake": "Using a ball that bounces back at the face",
+      "fix": "Use a dead-bounce slam ball and slam it near your feet"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "shoulder",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 100
+}

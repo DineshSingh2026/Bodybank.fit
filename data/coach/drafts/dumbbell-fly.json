@@ -1,0 +1,52 @@
+{
+  "id": "dumbbell-fly",
+  "source_id": "Dumbbell_Flyes",
+  "name": "Dumbbell Fly",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie on a flat bench with dumbbells pressed up over your chest, palms facing in.",
+    "Keep a small, fixed bend in your elbows.",
+    "Open your arms out in a wide arc until you feel a stretch in your chest.",
+    "Bring the dumbbells back up along the same arc, squeezing your chest."
+  ],
+  "cues": [
+    "Soft, fixed bend in elbows",
+    "Stop when upper arms reach chest level",
+    "Hug a big tree on the way up",
+    "Breathe in down, breathe out up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bending the elbows into a press",
+      "fix": "Keep the same elbow angle throughout"
+    },
+    {
+      "mistake": "Lowering too deep",
+      "fix": "Stop when arms are level with the bench"
+    },
+    {
+      "mistake": "Using weights that are too heavy",
+      "fix": "Pick a weight you can control at the bottom"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 140
+}

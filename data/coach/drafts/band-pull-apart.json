@@ -1,0 +1,52 @@
+{
+  "id": "band-pull-apart",
+  "source_id": "Band_Pull_Apart",
+  "name": "Band Pull Apart",
+  "area": "upper",
+  "equipment": "bands",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "middle back",
+    "traps"
+  ],
+  "steps": [
+    "Hold a band with both hands, arms straight in front at shoulder height.",
+    "Stand tall with shoulders relaxed.",
+    "Pull the band apart until it touches your chest, arms out wide.",
+    "Return slowly to the start."
+  ],
+  "cues": [
+    "Arms straight, soft elbows",
+    "Shoulders down, away from ears",
+    "Squeeze shoulder blades",
+    "Breathe out as you pull apart"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Shrugging the shoulders",
+      "fix": "Keep your neck long and shoulders down"
+    },
+    {
+      "mistake": "Bending the elbows",
+      "fix": "Keep arms nearly straight"
+    },
+    {
+      "mistake": "Arching the back",
+      "fix": "Keep ribs down and stomach tight"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 500
+}

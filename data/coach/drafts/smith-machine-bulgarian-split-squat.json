@@ -1,0 +1,55 @@
+{
+  "id": "smith-machine-bulgarian-split-squat",
+  "source_id": "Smith_Single-Leg_Split_Squat",
+  "name": "Smith Machine Bulgarian Split Squat",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings"
+  ],
+  "steps": [
+    "Place a bench about two to three feet behind a Smith machine.",
+    "Rest the bar on your upper back and unhook it.",
+    "Put one foot forward under the bar and the other foot on the bench behind.",
+    "Lower straight down until the front thigh is about parallel.",
+    "Push through the front heel to rise. Finish the set, then switch legs."
+  ],
+  "cues": [
+    "Front knee over the ankle",
+    "Torso tall",
+    "Weight in the front foot",
+    "Breathe in down, breathe out as you rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Front foot too close to the bench",
+      "fix": "Move it forward so the shin stays upright"
+    },
+    {
+      "mistake": "Pushing off the back leg",
+      "fix": "Let the front leg do the work"
+    },
+    {
+      "mistake": "No safety stops set",
+      "fix": "Set the stops just below your lowest point"
+    }
+  ],
+  "contraindications": [
+    "knee"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 460
+}

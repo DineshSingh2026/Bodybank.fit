@@ -1,0 +1,52 @@
+{
+  "id": "lying-leg-raise",
+  "source_id": "Flat_Bench_Lying_Leg_Raise",
+  "name": "Lying Leg Raise",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie on your back on a mat or flat bench, hands under your hips or holding the bench.",
+    "Press your lower back down and keep legs straight with a soft knee bend.",
+    "Breathe out and raise your legs until they point to the ceiling.",
+    "Lower them slowly, stopping before your lower back lifts."
+  ],
+  "cues": [
+    "Lower back stays flat",
+    "Legs together, slight knee bend",
+    "Lower slowly, no dropping",
+    "Breathe out as the legs rise"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Lower back arching as the legs go down",
+      "fix": "Stop the legs higher or bend the knees more"
+    },
+    {
+      "mistake": "Swinging the legs up with momentum",
+      "fix": "Pause at the bottom and lift with control"
+    },
+    {
+      "mistake": "Legs crashing back to the floor",
+      "fix": "Take 3 seconds to lower each rep"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 70
+}

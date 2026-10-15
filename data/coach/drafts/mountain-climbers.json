@@ -1,0 +1,58 @@
+{
+  "id": "mountain-climbers",
+  "source_id": "Mountain_Climbers",
+  "name": "Mountain Climbers",
+  "area": "full",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals",
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "shoulders",
+    "chest",
+    "glutes",
+    "hamstrings"
+  ],
+  "steps": [
+    "Start in a high plank, hands under shoulders and body in a straight line.",
+    "Drive one knee towards your chest, keeping the other leg straight.",
+    "Switch legs, sending the bent leg back as the other knee comes in.",
+    "Keep alternating at a steady pace you can control."
+  ],
+  "cues": [
+    "Hands under shoulders",
+    "Hips level with your shoulders",
+    "Stomach tight, back flat",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Hips piking up high",
+      "fix": "Lower the hips until the body is one straight line"
+    },
+    {
+      "mistake": "Shoulders drifting behind the hands",
+      "fix": "Keep shoulders stacked over your wrists"
+    },
+    {
+      "mistake": "Going so fast the form falls apart",
+      "fix": "Slow down and make each knee drive clean"
+    }
+  ],
+  "contraindications": [
+    "recovery",
+    "kidney_gentle"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 40
+}

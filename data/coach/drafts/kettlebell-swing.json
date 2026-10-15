@@ -1,0 +1,61 @@
+{
+  "id": "kettlebell-swing",
+  "source_id": "One-Arm_Kettlebell_Swings",
+  "name": "Kettlebell Swing",
+  "area": "full",
+  "equipment": "kettlebell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "glutes",
+    "hamstrings"
+  ],
+  "secondary_muscles": [
+    "lower back",
+    "abdominals",
+    "shoulders",
+    "forearms"
+  ],
+  "steps": [
+    "Stand with feet a little wider than hips, kettlebell on the floor just in front.",
+    "Hinge at the hips, grip the handle with both hands and hike it back between your legs.",
+    "Snap your hips forward and stand tall so the bell floats up to chest height.",
+    "Let the bell fall back, then hinge again as your forearms meet your thighs.",
+    "To finish, hinge and park the bell on the floor in front of you."
+  ],
+  "cues": [
+    "Hinge at the hips, not a squat",
+    "Back flat, eyes ahead",
+    "Hips drive the bell, arms just guide it",
+    "Breathe out sharply as you stand tall"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Lifting the bell with the arms",
+      "fix": "Keep arms loose and let the hip snap move the bell"
+    },
+    {
+      "mistake": "Squatting down instead of hinging",
+      "fix": "Push hips back with only a soft bend in the knees"
+    },
+    {
+      "mistake": "Leaning back at the top",
+      "fix": "Finish standing straight with glutes and stomach tight"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 4,
+  "ai_trainer_key": null,
+  "sort_order": 30
+}

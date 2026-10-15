@@ -1,0 +1,55 @@
+{
+  "id": "scapular-pull-ups",
+  "source_id": "Scapular_Pull-Up",
+  "name": "Scapular Pull Ups",
+  "area": "upper",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "traps"
+  ],
+  "secondary_muscles": [
+    "lats",
+    "middle back"
+  ],
+  "steps": [
+    "Hang from a pull-up bar with an overhand grip and straight arms.",
+    "Without bending your elbows, pull your shoulders down away from your ears.",
+    "Your body rises a few centimetres; pause briefly.",
+    "Slowly let your shoulders rise back to a relaxed hang."
+  ],
+  "cues": [
+    "Arms stay straight",
+    "Pull shoulders down and back",
+    "Small, controlled movement",
+    "Breathe steadily, no holding"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bending the elbows",
+      "fix": "Keep arms straight; only the shoulders move"
+    },
+    {
+      "mistake": "Swinging the body",
+      "fix": "Keep legs still and core tight"
+    },
+    {
+      "mistake": "Dropping fast into the hang",
+      "fix": "Lower slowly to the relaxed position"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 380
+}

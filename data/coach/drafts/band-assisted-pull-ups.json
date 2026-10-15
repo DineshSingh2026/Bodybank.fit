@@ -1,0 +1,55 @@
+{
+  "id": "band-assisted-pull-ups",
+  "source_id": "Band_Assisted_Pull-Up",
+  "name": "Band-Assisted Pull Ups",
+  "area": "upper",
+  "equipment": "bands",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "lats"
+  ],
+  "secondary_muscles": [
+    "abdominals",
+    "forearms",
+    "middle back"
+  ],
+  "steps": [
+    "Loop a resistance band over the pull-up bar and secure it.",
+    "Grip the bar and place a knee or foot in the band.",
+    "Pull yourself up until your chin clears the bar.",
+    "Lower slowly to straight arms."
+  ],
+  "cues": [
+    "Shoulders down, chest up",
+    "Drive elbows toward your ribs",
+    "Lower slowly, no dropping",
+    "Breathe out as you pull up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bouncing out of the bottom on the band",
+      "fix": "Pause briefly at the bottom of each rep"
+    },
+    {
+      "mistake": "Stepping into the band carelessly",
+      "fix": "Use a box and keep a firm grip as you step in"
+    },
+    {
+      "mistake": "Half reps",
+      "fix": "Lower to straight arms every rep"
+    }
+  ],
+  "contraindications": [
+    "shoulder"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 340
+}

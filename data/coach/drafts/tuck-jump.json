@@ -1,0 +1,59 @@
+{
+  "id": "tuck-jump",
+  "source_id": "Knee_Tuck_Jump",
+  "name": "Tuck Jump",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand with feet hip width apart and knees slightly bent.",
+    "Dip into a quick quarter squat.",
+    "Jump straight up and pull your knees toward your chest.",
+    "Release the legs and land softly with bent knees.",
+    "Reset your balance before the next jump."
+  ],
+  "cues": [
+    "Land softly and quietly",
+    "Knees over toes on landing",
+    "Chest stays up",
+    "Breathe out as you jump"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Landing stiff-legged",
+      "fix": "Bend knees and hips to absorb the landing"
+    },
+    {
+      "mistake": "Rounding forward to reach the knees",
+      "fix": "Bring knees up to you, chest stays tall"
+    },
+    {
+      "mistake": "Doing reps when tired",
+      "fix": "Stop when landings become loud or sloppy"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 6,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 560
+}

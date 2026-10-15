@@ -1,0 +1,51 @@
+{
+  "id": "barbell-shrug",
+  "source_id": "Barbell_Shrug",
+  "name": "Barbell Shrug",
+  "area": "upper",
+  "equipment": "barbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "traps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Stand tall holding a bar in front of your thighs, hands shoulder width.",
+    "Keep your arms straight.",
+    "Lift your shoulders straight up toward your ears.",
+    "Pause, then lower your shoulders slowly."
+  ],
+  "cues": [
+    "Arms stay straight",
+    "Shoulders go straight up, not rolled",
+    "Chin level, neck relaxed",
+    "Breathe out as you shrug"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Rolling the shoulders in circles",
+      "fix": "Move straight up and down only"
+    },
+    {
+      "mistake": "Bending the elbows",
+      "fix": "Keep arms long; only shoulders move"
+    },
+    {
+      "mistake": "Weight too heavy for full range",
+      "fix": "Lighten it so shoulders reach your ears"
+    }
+  ],
+  "contraindications": [
+    "kidney_gentle"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 520
+}

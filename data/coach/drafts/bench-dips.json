@@ -1,0 +1,54 @@
+{
+  "id": "bench-dips",
+  "source_id": "Bench_Dips",
+  "name": "Bench Dips",
+  "area": "upper",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "triceps"
+  ],
+  "secondary_muscles": [
+    "chest",
+    "shoulders"
+  ],
+  "steps": [
+    "Sit on the edge of a bench with hands beside your hips.",
+    "Slide your hips off the bench, legs out in front, knees bent.",
+    "Bend your elbows to lower your hips toward the floor.",
+    "Push through your hands to straighten your arms."
+  ],
+  "cues": [
+    "Hips close to the bench",
+    "Elbows point straight back",
+    "Stop when upper arms are level",
+    "Breathe out as you push up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Dropping too low",
+      "fix": "Stop when upper arms are level with the floor"
+    },
+    {
+      "mistake": "Hips drifting far from the bench",
+      "fix": "Keep your back close to the bench"
+    },
+    {
+      "mistake": "Elbows flaring out",
+      "fix": "Point elbows straight behind you"
+    }
+  ],
+  "contraindications": [
+    "shoulder"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 0,
+  "ai_trainer_key": "tricepsdip",
+  "sort_order": 750
+}

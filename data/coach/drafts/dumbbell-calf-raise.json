@@ -1,0 +1,50 @@
+{
+  "id": "dumbbell-calf-raise",
+  "source_id": "Standing_Dumbbell_Calf_Raise",
+  "name": "Dumbbell Calf Raise",
+  "area": "lower",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "calves"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Hold a dumbbell in each hand at your sides.",
+    "Stand with the balls of your feet on a step or plate, heels off.",
+    "Lower your heels slowly for a stretch.",
+    "Rise up onto your toes as high as you can.",
+    "Pause at the top, then lower slowly."
+  ],
+  "cues": [
+    "Stand tall, knees soft",
+    "Rise high onto the big toe",
+    "Pause at the top",
+    "Lower slowly, full stretch"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bouncing through reps",
+      "fix": "Pause at the bottom and top"
+    },
+    {
+      "mistake": "Rolling onto the little toes",
+      "fix": "Press through the big toe"
+    },
+    {
+      "mistake": "Losing balance",
+      "fix": "Hold one dumbbell and steady yourself with the other hand"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 2,
+  "ai_trainer_key": "calfraise",
+  "sort_order": 300
+}

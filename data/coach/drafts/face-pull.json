@@ -1,0 +1,51 @@
+{
+  "id": "face-pull",
+  "source_id": "Face_Pull",
+  "name": "Face Pull",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "shoulders"
+  ],
+  "secondary_muscles": [
+    "middle back"
+  ],
+  "steps": [
+    "Set a rope on a cable at upper chest to face height.",
+    "Hold the rope ends with palms facing in and step back with arms straight.",
+    "Pull the rope toward your face, spreading the ends apart.",
+    "Return slowly until your arms are straight."
+  ],
+  "cues": [
+    "Elbows high, level with shoulders",
+    "Pull the rope apart at your face",
+    "Stand tall, no leaning back",
+    "Breathe out as you pull"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Leaning back to move the weight",
+      "fix": "Use a lighter weight and stand tall"
+    },
+    {
+      "mistake": "Elbows dropping low",
+      "fix": "Keep elbows at shoulder height"
+    },
+    {
+      "mistake": "Pulling to the chest",
+      "fix": "Aim the rope at your nose or forehead"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 370
+}

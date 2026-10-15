@@ -1,0 +1,52 @@
+{
+  "id": "donkey-kicks",
+  "source_id": "Glute_Kickback",
+  "name": "Donkey Kicks",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "hamstrings"
+  ],
+  "steps": [
+    "Start on hands and knees, hands under shoulders, knees under hips.",
+    "Keep one knee bent at 90 degrees.",
+    "Lift that leg up behind you, sole toward the ceiling.",
+    "Stop when your thigh is level with your back and squeeze.",
+    "Lower slowly. Finish the set, then switch legs."
+  ],
+  "cues": [
+    "Back flat like a table",
+    "Keep the knee bent",
+    "Squeeze the glute at the top",
+    "Hips stay square to the floor"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Arching the lower back",
+      "fix": "Lift only to thigh level and brace your stomach"
+    },
+    {
+      "mistake": "Swinging the leg",
+      "fix": "Lift slowly and pause at the top"
+    },
+    {
+      "mistake": "Hips twisting open",
+      "fix": "Keep both hips pointing at the floor"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 330
+}

@@ -1,0 +1,49 @@
+{
+  "id": "incline-dumbbell-curl",
+  "source_id": "Incline_Dumbbell_Curl",
+  "name": "Incline Dumbbell Curl",
+  "area": "upper",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "biceps"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Sit back on an incline bench with a dumbbell in each hand, arms hanging.",
+    "Turn your palms to face forward.",
+    "Curl the dumbbells up, keeping your upper arms still.",
+    "Lower slowly to straight arms."
+  ],
+  "cues": [
+    "Back and head on the bench",
+    "Elbows point down",
+    "Lower all the way slowly",
+    "Breathe out as you curl"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Elbows swinging forward",
+      "fix": "Keep upper arms hanging straight down"
+    },
+    {
+      "mistake": "Weight too heavy for the stretch",
+      "fix": "Use lighter dumbbells than standing curls"
+    },
+    {
+      "mistake": "Lifting the head off the bench",
+      "fix": "Keep your head back on the pad"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 630
+}

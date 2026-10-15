@@ -1,0 +1,50 @@
+{
+  "id": "smith-machine-calf-raise",
+  "source_id": "Smith_Machine_Calf_Raise",
+  "name": "Smith Machine Calf Raise",
+  "area": "lower",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "calves"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Place a step or plate under a Smith bar set at shoulder height.",
+    "Rest the bar on your upper back and stand with balls of feet on the step.",
+    "Unhook the bar and stand tall with soft knees.",
+    "Lower your heels slowly, then rise onto your toes as high as you can.",
+    "Pause at the top, then rehook the bar when done."
+  ],
+  "cues": [
+    "Knees soft and still",
+    "Full stretch at the bottom",
+    "Pause high at the top",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bouncing at the bottom",
+      "fix": "Pause one second at the stretch"
+    },
+    {
+      "mistake": "Bending knees to lift",
+      "fix": "Only the ankles move"
+    },
+    {
+      "mistake": "Step slipping under the feet",
+      "fix": "Use a stable block that cannot slide"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 15,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": "calfraise",
+  "sort_order": 310
+}

@@ -1,0 +1,54 @@
+{
+  "id": "superman",
+  "source_id": "Superman",
+  "name": "Superman",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "pull",
+  "primary_muscles": [
+    "lower back"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings"
+  ],
+  "steps": [
+    "Lie face down with arms stretched forward and legs straight.",
+    "Squeeze your glutes and gently lift arms, chest and legs a few inches off the floor.",
+    "Hold for 2 seconds, keeping your eyes on the floor.",
+    "Lower slowly back to the mat."
+  ],
+  "cues": [
+    "Lift only a few inches",
+    "Look down, neck in line",
+    "Squeeze glutes as you lift",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Cranking the head up to look forward",
+      "fix": "Keep the eyes on the floor just ahead of you"
+    },
+    {
+      "mistake": "Lifting too high and jamming the lower back",
+      "fix": "Lift a few inches only and keep it smooth"
+    },
+    {
+      "mistake": "Jerking up and down quickly",
+      "fix": "Hold each rep for 2 seconds"
+    }
+  ],
+  "contraindications": [
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 80
+}

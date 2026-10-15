@@ -1,0 +1,52 @@
+{
+  "id": "seated-dip-machine",
+  "source_id": "Dip_Machine",
+  "name": "Seated Dip Machine",
+  "area": "upper",
+  "equipment": "machine",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "triceps"
+  ],
+  "secondary_muscles": [
+    "chest",
+    "shoulders"
+  ],
+  "steps": [
+    "Adjust the seat and sit back with handles at your sides.",
+    "Grip the handles with elbows bent and close to your body.",
+    "Push the handles down until your arms are almost straight.",
+    "Return slowly to the start."
+  ],
+  "cues": [
+    "Back against the pad",
+    "Elbows close to your sides",
+    "Soft elbows at the bottom",
+    "Breathe out as you push down"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Elbows flaring wide",
+      "fix": "Keep elbows tucked in"
+    },
+    {
+      "mistake": "Lifting off the seat",
+      "fix": "Stay seated and lower the weight"
+    },
+    {
+      "mistake": "Letting the weight jump up",
+      "fix": "Control the return"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 770
+}

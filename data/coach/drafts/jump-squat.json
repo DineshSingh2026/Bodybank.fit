@@ -1,0 +1,59 @@
+{
+  "id": "jump-squat",
+  "source_id": "Freehand_Jump_Squat",
+  "name": "Jump Squat",
+  "area": "lower",
+  "equipment": "body only",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand with feet shoulder width apart.",
+    "Squat down to a comfortable depth with chest up.",
+    "Jump straight up, swinging your arms.",
+    "Land softly on the balls of your feet and sink into the next squat.",
+    "Reset your stance between reps if you lose form."
+  ],
+  "cues": [
+    "Land softly and quietly",
+    "Knees track over toes on landing",
+    "Chest up throughout",
+    "Breathe out as you jump"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Landing stiff-legged",
+      "fix": "Bend knees and hips to absorb the landing"
+    },
+    {
+      "mistake": "Knees caving in on landing",
+      "fix": "Land with knees in line with toes"
+    },
+    {
+      "mistake": "Getting sloppy when tired",
+      "fix": "Stop the set when landings get loud"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 510
+}

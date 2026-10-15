@@ -1,0 +1,56 @@
+{
+  "id": "barbell-glute-bridge",
+  "source_id": "Barbell_Glute_Bridge",
+  "name": "Barbell Glute Bridge",
+  "area": "lower",
+  "equipment": "barbell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "glutes"
+  ],
+  "secondary_muscles": [
+    "hamstrings"
+  ],
+  "steps": [
+    "Sit on the floor with a padded barbell over your legs.",
+    "Roll the bar over your hips and lie back on the floor.",
+    "Bend your knees and set feet flat, hip width apart.",
+    "Drive through your heels to lift your hips and the bar.",
+    "Squeeze glutes at the top, then lower slowly."
+  ],
+  "cues": [
+    "Hold the bar steady over your hips",
+    "Heels pressed down",
+    "Ribs down, no back arch",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Arching the lower back at the top",
+      "fix": "Stop at a straight line from knees to shoulders"
+    },
+    {
+      "mistake": "No pad on the bar",
+      "fix": "Use a bar pad or folded mat for comfort"
+    },
+    {
+      "mistake": "Feet too close or too far",
+      "fix": "Set feet so shins are vertical at the top"
+    }
+  ],
+  "contraindications": [
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 10,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 280
+}

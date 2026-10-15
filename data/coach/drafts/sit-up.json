@@ -1,0 +1,52 @@
+{
+  "id": "sit-up",
+  "source_id": "Sit-Up",
+  "name": "Sit-Up",
+  "area": "core",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "pull",
+  "primary_muscles": [
+    "abdominals"
+  ],
+  "secondary_muscles": [],
+  "steps": [
+    "Lie on your back with knees bent and feet anchored under a bar or pad.",
+    "Cross your arms over your chest or rest fingertips beside your head.",
+    "Breathe out and curl your upper body up until your chest faces your knees.",
+    "Lower back down slowly, one part of the spine at a time."
+  ],
+  "cues": [
+    "Curl up, chin slightly tucked",
+    "Do not yank on the neck",
+    "Lower slowly to the floor",
+    "Breathe out as you sit up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Pulling on the head to get up",
+      "fix": "Cross arms on the chest instead"
+    },
+    {
+      "mistake": "Flopping back down",
+      "fix": "Lower over 2–3 seconds"
+    },
+    {
+      "mistake": "Feet lifting off the floor",
+      "fix": "Anchor the feet or switch to crunches"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 100
+}

@@ -1,0 +1,59 @@
+{
+  "id": "box-jump",
+  "source_id": "Front_Box_Jump",
+  "name": "Box Jump",
+  "area": "lower",
+  "equipment": "other",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "quadriceps"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "hamstrings",
+    "calves"
+  ],
+  "steps": [
+    "Stand about a foot in front of a sturdy, low box.",
+    "Dip into a quarter squat and swing your arms back.",
+    "Jump up and forward, swinging your arms up.",
+    "Land softly on the box with both feet, knees bent.",
+    "Stand tall, then step down one foot at a time."
+  ],
+  "cues": [
+    "Land softly, whole foot on the box",
+    "Knees in line with toes",
+    "Step down, do not jump down",
+    "Breathe out as you jump"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Box too high",
+      "fix": "Pick a height you can land on in a half squat"
+    },
+    {
+      "mistake": "Jumping back down",
+      "fix": "Step down to protect your knees and ankles"
+    },
+    {
+      "mistake": "Landing with knees caving in",
+      "fix": "Land with knees pushed out over toes"
+    }
+  ],
+  "contraindications": [
+    "knee",
+    "recovery",
+    "kidney_gentle",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 6,
+  "load_step_kg": 0,
+  "ai_trainer_key": null,
+  "sort_order": 520
+}

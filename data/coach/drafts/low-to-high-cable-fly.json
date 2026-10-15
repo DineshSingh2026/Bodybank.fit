@@ -1,0 +1,51 @@
+{
+  "id": "low-to-high-cable-fly",
+  "source_id": "Low_Cable_Crossover",
+  "name": "Low-to-High Cable Fly",
+  "area": "upper",
+  "equipment": "cable",
+  "level": "beginner",
+  "mechanic": "isolation",
+  "force": "push",
+  "primary_muscles": [
+    "chest"
+  ],
+  "secondary_muscles": [
+    "shoulders"
+  ],
+  "steps": [
+    "Set both pulleys low and hold a handle in each hand.",
+    "Stand in the middle with a slight forward stance and arms down at your sides.",
+    "Raise your hands up and together in front of your upper chest.",
+    "Lower slowly back to the start."
+  ],
+  "cues": [
+    "Soft bend in elbows",
+    "Palms face up and in",
+    "Finish at shoulder height",
+    "Breathe out as you lift"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Shrugging the shoulders up",
+      "fix": "Keep shoulders down as hands rise"
+    },
+    {
+      "mistake": "Lifting above the head",
+      "fix": "Stop when hands reach upper chest height"
+    },
+    {
+      "mistake": "Using momentum from the legs",
+      "fix": "Stand still and move only the arms"
+    }
+  ],
+  "contraindications": [],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 12,
+  "load_step_kg": 2.5,
+  "ai_trainer_key": null,
+  "sort_order": 170
+}

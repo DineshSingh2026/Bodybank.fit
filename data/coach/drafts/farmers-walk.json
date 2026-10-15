@@ -1,0 +1,60 @@
+{
+  "id": "farmers-walk",
+  "source_id": "Farmers_Walk",
+  "name": "Farmer's Walk",
+  "area": "full",
+  "equipment": "dumbbell",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "static",
+  "primary_muscles": [
+    "forearms",
+    "traps"
+  ],
+  "secondary_muscles": [
+    "abdominals",
+    "shoulders",
+    "glutes",
+    "quadriceps",
+    "hamstrings",
+    "lower back"
+  ],
+  "steps": [
+    "Stand between two heavy dumbbells and grip them firmly.",
+    "Bend knees and hips, keep your back flat and stand up with the weights.",
+    "Walk forward with short, steady steps, arms straight by your sides.",
+    "Keep walking for the set time, then stop and lower the weights with a flat back."
+  ],
+  "cues": [
+    "Stand tall, shoulders back and down",
+    "Squeeze the handles hard",
+    "Stomach tight, don't lean to one side",
+    "Breathe steadily as you walk"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Shrugging the shoulders up to the ears",
+      "fix": "Pull shoulders down and keep the neck long"
+    },
+    {
+      "mistake": "Rounding the back to pick up or put down",
+      "fix": "Bend at hips and knees with a flat back, like a deadlift"
+    },
+    {
+      "mistake": "Long, wobbly strides",
+      "fix": "Take short, quick steps and keep the weights still"
+    }
+  ],
+  "contraindications": [
+    "lower_back",
+    "pregnancy"
+  ],
+  "unit": "seconds",
+  "load_type": "kg",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 30,
+  "load_step_kg": 2,
+  "ai_trainer_key": null,
+  "sort_order": 50
+}

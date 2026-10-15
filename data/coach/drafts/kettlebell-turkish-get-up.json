@@ -1,0 +1,59 @@
+{
+  "id": "kettlebell-turkish-get-up",
+  "source_id": "Kettlebell_Turkish_Get-Up_Lunge_style",
+  "name": "Kettlebell Turkish Get-Up",
+  "area": "full",
+  "equipment": "kettlebell",
+  "level": "intermediate",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "shoulders",
+    "abdominals"
+  ],
+  "secondary_muscles": [
+    "glutes",
+    "quadriceps",
+    "hamstrings",
+    "triceps"
+  ],
+  "steps": [
+    "Lie on your back, press the bell up with one arm and bend the knee on that side.",
+    "Push through that foot and roll onto your free elbow, then onto your free hand.",
+    "Lift your hips, sweep the straight leg back under you into a half-kneel.",
+    "Lift your torso upright and stand up from the lunge, arm locked out overhead.",
+    "Reverse every step slowly to lie back down, then switch sides."
+  ],
+  "cues": [
+    "Arm locked, eyes on the bell",
+    "Shoulder pulled down into its socket",
+    "Move slowly, one step at a time",
+    "Breathe steadily, don't hold it"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Bent elbow letting the bell drift",
+      "fix": "Lock the arm straight and keep the bell over the shoulder"
+    },
+    {
+      "mistake": "Rushing through the steps",
+      "fix": "Pause at each position before moving on"
+    },
+    {
+      "mistake": "Starting too heavy",
+      "fix": "Learn it with a shoe or light bell first"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "kg",
+  "per_side": true,
+  "default_sets": 3,
+  "default_reps": 3,
+  "load_step_kg": 4,
+  "ai_trainer_key": null,
+  "sort_order": 150
+}

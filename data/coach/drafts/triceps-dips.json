@@ -1,0 +1,56 @@
+{
+  "id": "triceps-dips",
+  "source_id": "Dips_-_Triceps_Version",
+  "name": "Triceps Dips",
+  "area": "upper",
+  "equipment": "body only",
+  "level": "beginner",
+  "mechanic": "compound",
+  "force": "push",
+  "primary_muscles": [
+    "triceps"
+  ],
+  "secondary_muscles": [
+    "chest",
+    "shoulders"
+  ],
+  "steps": [
+    "Grip parallel bars and lift yourself up with straight arms.",
+    "Keep your body upright and elbows close to your sides.",
+    "Bend your elbows to lower until upper arms are level with the floor.",
+    "Push back up until your arms are straight."
+  ],
+  "cues": [
+    "Body upright",
+    "Elbows point straight back",
+    "Shoulders down, away from ears",
+    "Breathe out as you push up"
+  ],
+  "common_mistakes": [
+    {
+      "mistake": "Going too deep",
+      "fix": "Stop when upper arms are level with the floor"
+    },
+    {
+      "mistake": "Shoulders shrugging up",
+      "fix": "Press shoulders down at the start of each rep"
+    },
+    {
+      "mistake": "Swinging legs for momentum",
+      "fix": "Keep legs still; use the assisted machine"
+    }
+  ],
+  "contraindications": [
+    "shoulder",
+    "recovery",
+    "pregnancy"
+  ],
+  "unit": "reps",
+  "load_type": "bodyweight",
+  "per_side": false,
+  "default_sets": 3,
+  "default_reps": 8,
+  "load_step_kg": 0,
+  "ai_trainer_key": "tricepsdip",
+  "sort_order": 760
+}
