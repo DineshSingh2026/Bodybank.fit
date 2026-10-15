@@ -99,10 +99,10 @@ async function main() {
       await page.goto(BASE + '/signin.html', { waitUntil: 'domcontentloaded' });
       await page.evaluate(() => localStorage.clear());
       await page.goto(BASE + '/challenge?utm_source=e2e', { waitUntil: 'networkidle2' });
-      assert(await page.$eval('h1', (h) => /7 day/i.test(h.textContent)), `${dev.name}: landing headline`);
+      assert(await page.$eval('h1', (h) => /seven days/i.test(h.textContent)), `${dev.name}: landing headline`);
       const ld = await page.$eval('script[type="application/ld+json"]', (s) => JSON.parse(s.textContent)['@graph'].map((x) => x['@type']).join(','));
       assert(ld === 'Organization,Course,FAQPage', `${dev.name}: JSON-LD parses (${ld})`);
-      await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.click('#start')]);
+      await Promise.all([page.waitForNavigation({ waitUntil: 'domcontentloaded' }), page.click('.js-start')]);
       assert(/\/signup\?next=%2Fchallenge%3Fjoin%3D1/.test(page.url()), `${dev.name}: Start free today → sign up with next`);
 
       // Member: auto join from the landing page.

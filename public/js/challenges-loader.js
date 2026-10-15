@@ -12,7 +12,7 @@
 (function () {
   'use strict';
   var V = '2';
-  var state = { token: null, enabled: false, cssLoaded: false, jsPromise: null, adminPromise: null, home: null, homeAt: 0, homeBusy: false };
+  var state = { token: null, decidedFor: null, flagReady: null, enabled: false, cssLoaded: false, jsPromise: null, adminPromise: null, home: null, homeAt: 0, homeBusy: false };
 
   function user() { return window.currentUser || null; }
   function apiBase() { return (typeof API !== 'undefined' ? API : ''); }
@@ -138,7 +138,23 @@
 
   // switchUserTab('challenge') activates #usec-challenge and then calls this hook.
   window.bbChallengeOpen = function (opts) {
-    if (!state.enabled) { if (typeof window.switchUserTab === 'function') window.switchUserTab('home'); return; }
+    if (!state.enabled) {
+      // A deep link (/?open=challenge) can arrive before the flag check has answered.
+      // Wait for that answer instead of bouncing the member to Home.
+      var u0 = user();
+      if (u0 && u0.token && state.decidedFor !== u0.token) {
+        if (state.token !== u0.token) check();
+        var sec0 = document.getElementById('usec-challenge');
+        if (sec0 && !sec0.innerHTML) sec0.innerHTML = '<div style="padding:28px;color:#a49f95;text-align:center">Loading challenges…</div>';
+        (state.flagReady || Promise.resolve()).then(function () {
+          if (state.enabled) window.bbChallengeOpen(opts);
+          else if (typeof window.switchUserTab === 'function') window.switchUserTab('home');
+        });
+        return;
+      }
+      if (typeof window.switchUserTab === 'function') window.switchUserTab('home');
+      return;
+    }
     var sec = document.getElementById('usec-challenge');
     if (sec && !window.bbChallenges) sec.innerHTML = '<div class="bbch" style="padding:28px;color:#a49f95;text-align:center">Loading challenges…</div>';
     ensureModule().then(function (m) { if (m) m.open(opts || {}); }).catch(function () {
@@ -303,12 +319,13 @@
     state.token = tok;
     state.home = null;
     if (!tok || !u || u.role !== 'user') { show(false); return; }
-    fetch(apiBase() + '/api/challenges/flags', { headers: { Authorization: 'Bearer ' + tok }, cache: 'no-store' })
+    state.flagReady = fetch(apiBase() + '/api/challenges/flags', { headers: { Authorization: 'Bearer ' + tok }, cache: 'no-store' })
       .then(function (r) { return r.ok ? r.json() : { enabled: false }; })
-      .then(function (j) { if (state.token === tok) show(!!(j && j.enabled)); })
+      .then(function (j) { if (state.token === tok) { state.decidedFor = tok; show(!!(j && j.enabled)); } })
       .catch(function () {
         // Offline at boot: keep it reachable if this member has a challenge cached here.
         if (state.token !== tok) return;
+        state.decidedFor = tok;
         show(!!lastDayCache(String(u.id)));
       });
   }
