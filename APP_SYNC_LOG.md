@@ -36,6 +36,23 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
+**RELEASE PREPARED 2026-10-16: Android 1.8.8 (versionCode 118), iOS 1.0.11.** Web `aa76c06` →
+mobile `be47907` (pushed; both Codemagic workflows are manual-start, so nothing ran).
+
+- **Adds BodyBank Challenges:** challenge list, detail and join, day view, leaderboard with share
+  card, certificate and results, and the admin Challenges screen. Also the Coach Mode area
+  handoff and the gold logo assets.
+- **Backend:** live via Render (`/api/challenges/*`). `CHALLENGES_ENABLED` defaults to **off**, so
+  nobody sees Challenges until it is set on Render (`staff` → `allowlist` → `all`) and a coach
+  publishes `starter-7` in Admin → Programs → Challenges.
+- **iOS fix:** `@capacitor/app` added to `ios.includePlugins` in `capacitor.config.json`. In 1.0.10
+  the pod was only hand-added to the Podfile, so every `cap sync ios` (Codemagic included) dropped it.
+- **Android:** AAB built and checked locally. The merged release manifest reads 118 / 1.8.8 with no
+  new permissions, and `jarsigner` says "jar verified". It is at
+  `../bodybank-app/android/app/build/outputs/bundle/release/app-release.aab`. Upload it to Play.
+- **iOS:** `npm run sync:ios` strip check passed ("bundle clean"), and `MARKETING_VERSION` is 1.0.11.
+  Start `ios-appstore` in Codemagic by hand and set the App Store Connect version to 1.0.11.
+
 **RELEASE PREPARED 2026-10-15: Android 1.8.7 (versionCode 117), iOS 1.0.10.** Web `df36e7c` →
 mobile `720cf1f` (pushed). Supersedes the held 1.8.6 / 1.0.9 below, which was never built or
 uploaded; this release carries all of it.
