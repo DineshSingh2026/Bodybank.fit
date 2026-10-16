@@ -110,9 +110,20 @@
     var FM = nativePlugin();
     if (!FM || typeof FM.addListener !== 'function') return;
     state.nativeBound = true;
+    // "A new version is ready" push (routes/appVersion.js): its url is the store page,
+    // opened by the app's update module (bb-app-update.js, app builds only).
+    function openAppUpdate(d) {
+      if (!d || d.type !== 'app_update') return false;
+      try {
+        if (window.bbAppUpdate && typeof window.bbAppUpdate.openStore === 'function') window.bbAppUpdate.openStore();
+        else if (d.url) window.open(String(d.url), '_system');
+      } catch (e) { /* ignore */ }
+      return true;
+    }
     try {
       FM.addListener('notificationActionPerformed', function (ev) {
         var d = (ev && ev.notification && ev.notification.data) || {};
+        if (openAppUpdate(d)) return;
         route(d.link, d.url);
       });
     } catch (e) { /* older plugin */ }
@@ -122,7 +133,7 @@
         var n = (ev && ev.notification) || {};
         var d = n.data || {};
         refreshBell();
-        toast(n.title || 'BodyBank', n.body || '', function () { route(d.link, d.url); });
+        toast(n.title || 'BodyBank', n.body || '', function () { if (!openAppUpdate(d)) route(d.link, d.url); });
       });
     } catch (e) { /* older plugin */ }
   }

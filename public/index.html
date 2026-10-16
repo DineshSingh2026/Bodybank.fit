@@ -5374,6 +5374,7 @@ button.bb-today-pill{cursor:pointer}
 <script src="js/admin-home.js?v=9"></script>
 <script src="js/admin-reports.js?v=4"></script>
 <script src="js/admin-signature-reports.js?v=1"></script>
+<script src="js/admin-app-version.js?v=1" defer></script>
 <!-- Coach Mode: tiny loader; js/coach-mode.js + css load lazily (flag: COACH_MODE_ENABLED) -->
 <script src="js/coach-loader.js?v=2" defer></script>
 <!-- Challenges: tiny loader; js/challenges.js + css load lazily (flag: CHALLENGES_ENABLED, default off) -->
@@ -5382,7 +5383,7 @@ button.bb-today-pill{cursor:pointer}
 <script src="js/bb-plans.js?v=2"></script>
 <script src="js/member-home.js?v=16"></script>
 <script src="js/group-chat.js?v=11"></script>
-<script src="js/bb-notify.js?v=3"></script>
+<script src="js/bb-notify.js?v=4"></script>
 <!-- ═══════════════ MUSCLE RANKING STYLES ═══════════════ -->
 <style>
 /* ── Variables ── */
@@ -8995,6 +8996,11 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
             <span class="admin-section-card-title">Reports</span>
             <span class="admin-section-card-desc">Weekly &amp; monthly client progress PDFs, send by email + WhatsApp</span>
           </a>
+          <a class="admin-section-card" href="#" onclick="switchTab('appversion');return false">
+            <span class="admin-section-card-icon" aria-hidden="true">&#128242;</span>
+            <span class="admin-section-card-title">App Version</span>
+            <span class="admin-section-card-desc">Store update alert for the iOS and Android apps</span>
+          </a>
         </div>
       </div>
     </div>
@@ -10253,6 +10259,10 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <!-- TAB: Challenges — build, publish, enrollments, stats, call queue (js/challenges-admin.js,
          lazy via js/challenges-loader.js); fed by /api/challenges/admin/* (routes/challenges.js). -->
     <div class="admin-tab-content" id="tab-challenges"></div>
+
+    <!-- TAB: App Version — store update alert for the apps (js/admin-app-version.js);
+         fed by /api/admin/app-version (routes/appVersion.js). -->
+    <div class="admin-tab-content" id="tab-appversion"></div>
 
     </div><!-- .admin-tab-content-wrap -->
 
@@ -18490,8 +18500,8 @@ async function sendAdminAiMessage() {
     }
   });
 })();
-var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', nutritionassessment: 'FitChef Assessment', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', transformations: 'Transformations', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens', reports: 'Reports' };
-var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'clients', 'messages-meetings': 'messages', part2: 'forms', nutritionassessment: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', transformations: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics', reports: 'analytics' };
+var ADMIN_SECTION_LABELS = { requests: 'Audit Forms', leads: 'Leads', clientprogress: 'Client Progress', workouts: 'Workouts', messages: 'Messages', meetings: 'Meetings', 'messages-meetings': 'Messages & Meetings', tribe: 'Tribe', part2: 'Part-2 Form', nutritionassessment: 'FitChef Assessment', sundaycheckin: 'Sunday Check-in', dailycheckin: 'Daily Check-In', dailycompliance: 'Daily Compliance', programs: 'Programs', transformations: 'Transformations', insights: 'Performance Insights', campaigns: 'Campaigns', leaderboards: 'Leader Boards', leaderboard: 'User Leaderboard', coinleaderboard: 'Coin Leaderboard', nutrition: 'Nutrition AI', blood: 'Blood Reports', memberships: 'Members', tokens: 'Tokens', reports: 'Reports', appversion: 'App Version' };
+var TAB_TO_SECTION = { requests: 'forms', leads: 'forms', tribe: 'clients', clientprogress: 'clients', workouts: 'training', messages: 'messages', meetings: 'clients', 'messages-meetings': 'messages', part2: 'forms', nutritionassessment: 'forms', sundaycheckin: 'forms', dailycheckin: 'forms', dailycompliance: 'dashboard', programs: 'programs', transformations: 'programs', insights: 'analytics', leaderboards: 'dashboard', leaderboard: 'dashboard', coinleaderboard: 'dashboard', nutrition: 'analytics', blood: 'analytics', memberships: 'clients', referrals: 'clients', tokens: 'analytics', reports: 'analytics', appversion: 'analytics' };
 var ADMIN_FORM_FILTER_TABS = ['requests', 'sundaycheckin', 'part2', 'dailycheckin', 'workouts'];
 function syncAdminFormFilterStrip(activeTab) {
   var host = document.getElementById('adminInlineFormFilters');
@@ -18682,6 +18692,7 @@ function switchTab(tab) {
   if (tab === 'reports') { if (typeof loadAdminReports === 'function') adminTabLoad('reports', loadAdminReports); }
   if (tab === 'coachlib' && typeof window.bbCoachAdminOpen === 'function') window.bbCoachAdminOpen();
   if (tab === 'challenges' && typeof window.bbChallengesAdminOpen === 'function') window.bbChallengesAdminOpen();
+  if (tab === 'appversion' && typeof window.bbAppVersionAdminOpen === 'function') window.bbAppVersionAdminOpen();
 }
 /* ======================================================================
    ADMIN . TOKENS -- AI spend ledger

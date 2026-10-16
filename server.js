@@ -44,6 +44,9 @@ const memberScreens = require('./services/memberScreens');
 const { createMemberScreensRouter } = require('./routes/memberScreens');
 const coachModeService = require('./services/coachModeService');
 const { createCoachRouter } = require('./routes/coachMode');
+// App update alert for the store apps (APP_UPDATE_ALERT_ENABLED = off | staff | all; default all).
+const appVersionService = require('./services/appVersionService');
+const { createAppVersionRouter, createAppVersionAdminRouter } = require('./routes/appVersion');
 // BodyBank Challenges (CHALLENGES_ENABLED = off | staff | allowlist | all; default off).
 const challengeService = require('./services/challengeService');
 const { createChallengeEngine } = require('./services/challengeEngine');
@@ -203,14 +206,18 @@ function fcmErrorHint(code, platform) {
 // Native push via Firebase Cloud Messaging — for installed Android/iOS apps.
 // Accepts the SAME payload shape as web-push (a JSON string or object with
 // { title, body, icon, id, type, url }) so every existing call site works unchanged.
-async function sendFcmToUser(userId, payload) {
+// opts.platform ('ios' | 'android') limits the send to that platform's devices.
+async function sendFcmToUser(userId, payload, opts) {
   if (!_fcmReady) return;
   let data = {};
   try { data = typeof payload === 'string' ? JSON.parse(payload) : (payload || {}); } catch (_) { data = {}; }
   const title = String(data.title || 'BodyBank').slice(0, 120);
   const body = String(data.body || data.desc || 'You have a new notification').slice(0, 240);
   try {
-    const rows = await queryAll('SELECT token, platform FROM device_push_tokens WHERE user_id = ?', [userId]);
+    const onlyPlatform = opts && (opts.platform === 'ios' || opts.platform === 'android') ? opts.platform : null;
+    const rows = onlyPlatform
+      ? await queryAll('SELECT token, platform FROM device_push_tokens WHERE user_id = ? AND platform = ?', [userId, onlyPlatform])
+      : await queryAll('SELECT token, platform FROM device_push_tokens WHERE user_id = ?', [userId]);
     if (!rows || rows.length === 0) return;
     const sent = new Set();
     const unique = rows.filter(r => r.token && !sent.has(r.token) && sent.add(r.token));
@@ -2055,6 +2062,8 @@ async function initDB() {
       if (r.imported) console.log(`[coach] launch library imported: ${r.imported} exercises`);
     }
   } catch (e) { console.warn('[coach] library import:', e.message); }
+  // App update alert: admin overrides for the store versions. Empty table = env values.
+  try { await appVersionService.ensureAppVersionTable(pool); } catch (e) { console.warn('[app-version] schema:', e.message); }
   // Challenges: additive tables only (services/challengeService.js). A fresh database
   // gets the three seed challenges as DRAFTS; nothing is live until staff publish.
   try {
@@ -12379,6 +12388,18 @@ app.use(
         notifyAgent('WORKOUT_LOGGED', payload);
       }
     }
+  })
+);
+// App update alert: public store-version check for the Android / iOS apps, plus the
+// admin App Version screen (routes/appVersion.js).
+app.use('/api/app', createAppVersionRouter({ verifyToken, rateLimiter, queryAll, queryOne, run }));
+app.use(
+  '/api/admin/app-version',
+  createAppVersionAdminRouter({
+    verifyToken, requireAdminOrSuperadmin, rateLimiter, queryAll, queryOne, run,
+    // App devices of that one platform only: no web push, no bell row.
+    sendAppPush: (userId, payload, platform) => sendFcmToUser(userId, withPushLink(payload), { platform }),
+    pushReady: () => _fcmReady
   })
 );
 // BodyBank Challenges: member + admin + public share API (see routes/challenges.js).
