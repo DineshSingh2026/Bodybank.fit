@@ -205,7 +205,7 @@
     '.bbch-mkt-lede{margin:0 0 28px;font-size:20px;color:#cfc8ba;max-width:560px}',
     '.bbch-mkt-feats{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin:0 0 34px;padding:0}',
     '.bbch-mkt-feats li{display:inline-flex;align-items:center;gap:7px;min-height:40px;padding:7px 13px;border-radius:999px;border:1px solid var(--gl);background:rgba(201,160,64,.06);font-size:14px;font-weight:600;color:#efe9dc;white-space:nowrap}',
-    '.bbch-mkt-sub,.bbch-mkt-swipe,.bbch-mkt-dots,.bbch-mkt-tiles{display:none}',
+    '.bbch-mkt-sub,.bbch-mkt-swipe,.bbch-mkt-dots,.bbch-mkt-tiles,.bbch-mkt-day .num,.bbch-mkt-day .lico,.bbch-mkt-lede .m{display:none}',
     '.bbch-mkt-days{list-style:none;margin:0 0 40px;padding:0;display:grid;grid-template-columns:repeat(7,76px);gap:11px}',
     '.bbch-mkt-day{display:flex;flex-direction:column;align-items:center;text-align:center}',
     '.bbch-mkt-day .ico{width:76px;height:66px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,0)),#141416;display:flex;align-items:center;justify-content:center;font-size:24px;line-height:1}',
@@ -256,35 +256,44 @@
     '@media (prefers-reduced-motion:no-preference){.bbch-mkt .phone{animation:bbchFloat 7s ease-in-out infinite}.bbch-mkt .p2{animation-delay:-3.5s}@keyframes bbchFloat{0%,100%{translate:0 0}50%{translate:0 -8px}}}',
     // Tablet
     '@media (max-width:1100px){.bbch-mkt-wrap{grid-template-columns:minmax(0,1fr);gap:20px}.bbch-mkt-phones{width:600px;max-width:100%;margin:0 auto}}',
-    // Mobile: swipe cards, tiles, full-width CTA (same as the /challenge mobile design)
+    // Mobile: the minimal layout. Label, headline, one line, a row of numbered day
+    // cards with thin gold line icons, a flat gold button and a muted note.
     '@media (max-width:760px){' +
-      '.bbch-mkt{padding:56px 20px 48px}' +
+      '.bbch-mkt{padding:38px 24px 44px;background:#0b0b0c}' +
       '.bbch-mkt-pills{flex-direction:column;gap:10px;margin-top:18px}' +
-      '.bbch-mkt-copy::before{content:"7";position:absolute;right:-26px;top:28px;font-family:"Playfair Display",Georgia,serif;font-style:italic;font-weight:500;font-size:330px;line-height:.8;color:transparent;-webkit-text-stroke:1.4px rgba(201,160,64,.32);pointer-events:none;z-index:0}' +
-      '.bbch-mkt-copy>*{position:relative;z-index:1}' +
-      '.bbch-mkt-eye{font-size:10.5px;letter-spacing:.2em;margin-bottom:20px}.bbch-mkt-eye::before{width:22px}' +
+      '.bbch-mkt-eye{font-size:11.5px;letter-spacing:.3em;margin-bottom:20px;gap:0}.bbch-mkt-eye::before{display:none}' +
+      '.bbch-mkt-eye .x{display:none}' +
       '.bbch-mkt h2.bbch-mkt-h{font-size:46px;margin-bottom:16px}' +
-      '.bbch-mkt-lede{font-size:17px;margin-bottom:26px;max-width:300px}' +
-      '.bbch-mkt-feats{display:none}' +
-      '.bbch-mkt-dw{position:relative;margin:0 -20px}' +
-      '.bbch-mkt-sub{display:flex;align-items:center;gap:12px;margin:0 20px 14px;font-size:11px;font-weight:700;letter-spacing:.22em;text-transform:uppercase;color:#d9b45a}.bbch-mkt-sub::before{content:"";width:22px;height:1px;background:#d9b45a}' +
-      '.bbch-mkt-swipe{display:block;position:absolute;right:20px;top:-2px;font-size:12px;color:#a49f95}' +
-      '.bbch-mkt-days{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 20px 6px;margin:0;scrollbar-width:none;-webkit-overflow-scrolling:touch}.bbch-mkt-days::-webkit-scrollbar{display:none}' +
-      '.bbch-mkt-day{flex:0 0 142px;height:168px;scroll-snap-align:start;align-items:flex-start;text-align:left;border:1px solid var(--line);border-radius:20px;padding:16px;background:linear-gradient(180deg,rgba(255,255,255,.035),rgba(255,255,255,0)),#141416;transition:background .3s}' +
-      '.bbch-mkt-day .ico{width:38px;height:38px;border-radius:11px;border:0;background:rgba(255,255,255,.07);font-size:19px;margin-bottom:auto}' +
-      '.bbch-mkt-day .dn{margin-top:auto;font-size:10px;letter-spacing:.16em}.bbch-mkt-day b{font-size:19px;font-weight:700;margin-top:3px}' +
-      '.bbch-mkt-day.on{background:var(--g);border-color:transparent;box-shadow:0 14px 30px rgba(201,160,64,.22)}' +
-      '.bbch-mkt-day.on .ico{background:rgba(23,18,10,.16)}.bbch-mkt-day.on .ico svg{color:#17120a}.bbch-mkt-day.on .dn{color:#5a4618}.bbch-mkt-day.on b{color:#17120a}' +
-      '.bbch-mkt-dots{display:flex;justify-content:center;gap:6px;margin:14px 0 22px}.bbch-mkt-dots i{width:6px;height:6px;border-radius:999px;background:#3a3a3e;transition:width .3s,background .3s}.bbch-mkt-dots i.on{width:22px;background:#d9b45a}' +
-      '.bbch-mkt-tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:0 0 24px}' +
-      '.bbch-mkt-tiles div{border:1px solid var(--line);border-radius:16px;background:#141416;padding:14px 8px;text-align:center;font-size:12.5px;font-weight:600;color:#e9e3d6;line-height:1.3}.bbch-mkt-tiles i{display:block;font-style:normal;font-size:20px;margin-bottom:6px}' +
-      '.bbch-mkt-ctas{display:block}.bbch-mkt a.bbch-mkt-cta{width:100%;min-height:62px;font-size:19px;border-radius:18px}.bbch-mkt a.bbch-mkt-link{display:none}' +
-      '.bbch-mkt-note{text-align:center;margin-top:14px;font-size:13px}' +
-      '.bbch-mkt-phones{display:none}' +
+      '.bbch-mkt-lede{font-size:17px;margin-bottom:34px;max-width:none;color:#bdb6a8}' +
+      '.bbch-mkt-lede .d{display:none}.bbch-mkt-lede .m{display:inline}' +
+      '.bbch-mkt-feats,.bbch-mkt-sub,.bbch-mkt-swipe,.bbch-mkt-dots,.bbch-mkt-tiles,.bbch-mkt-phones{display:none}' +
+      '.bbch-mkt-dw{margin:0 -24px}' +
+      '.bbch-mkt-days{display:flex;gap:9px;overflow-x:auto;scroll-snap-type:x mandatory;scroll-padding:0 24px;padding:0 24px 2px;margin:0 0 32px;scrollbar-width:none;-webkit-overflow-scrolling:touch}.bbch-mkt-days::-webkit-scrollbar{display:none}' +
+      '.bbch-mkt-day{flex:0 0 81px;height:104px;scroll-snap-align:start;align-items:flex-start;text-align:left;border:1px solid rgba(255,255,255,.13);border-radius:16px;padding:12px 11px 11px;background:#111113}' +
+      '.bbch-mkt-day .ico,.bbch-mkt-day .dn{display:none}' +
+      '.bbch-mkt-day .num{display:block;font-size:12.5px;font-weight:500;letter-spacing:.1em;color:#8a857c;line-height:1}' +
+      '.bbch-mkt-day .lico{display:block;margin:12px 0 auto;color:#d4af37;line-height:0}.bbch-mkt-day .lico svg{width:21px;height:21px}' +
+      '.bbch-mkt-day b{font-size:15.5px;font-weight:500;color:#f5f1e8;margin-top:0}' +
+      '.bbch-mkt-ctas{display:block}' +
+      '.bbch-mkt a.bbch-mkt-cta{width:100%;min-height:55px;font-size:18.5px;font-weight:600;border-radius:16px;background:#d4af37;box-shadow:none;letter-spacing:0}' +
+      '.bbch-mkt a.bbch-mkt-cta:hover{transform:none;box-shadow:none;background:#dcb948}' +
+      '.bbch-mkt a.bbch-mkt-link{display:none}' +
+      '.bbch-mkt-note{text-align:center;margin-top:18px;font-size:14.5px;color:#7d786f}.bbch-mkt-note b{color:inherit;font-weight:400}' +
     '}'
   ].join('');
 
   var MKT_DAYS = [['Check in', ''], ['Meals', '🍽️'], ['Train', '🏋️'], ['Protein', '🥚'], ['Steps', '👣'], ['Mind', '🧠'], ['Weigh in', '⚖️']];
+  // Thin gold line icons for the minimal mobile cards (same order as MKT_DAYS).
+  var MKT_LINE = [
+    '<circle cx="12" cy="12" r="8.5"/><path d="M8.3 12.4l2.6 2.6 4.9-5.4"/>',
+    '<path d="M6.5 3v6a2 2 0 0 0 4 0V3M8.5 9v12"/><path d="M17.5 21V3c-2.2 1.2-3.3 3.7-3.3 7v3h3.3"/>',
+    '<path d="M2.5 12h2M19.5 12h2"/><rect x="4.5" y="8" width="3.2" height="8" rx="1.1"/><rect x="16.3" y="8" width="3.2" height="8" rx="1.1"/><path d="M7.7 12h8.6"/>',
+    '<path d="M12 3.5c3 3.8 5.5 6.9 5.5 10a5.5 5.5 0 0 1-11 0c0-3.1 2.5-6.2 5.5-10z"/>',
+    '<path d="M7.5 3.5c-1.7 0-2.6 2-2.6 4.6s1 4.4 2.6 4.4 2.5-1.7 2.5-4.4-.8-4.6-2.5-4.6zM5.6 15.6c0 1.9.8 3 2 3s1.8-1.1 1.8-3"/><path d="M16.5 6.5c1.7 0 2.6 2 2.6 4.6s-1 4.4-2.6 4.4-2.5-1.7-2.5-4.4.8-4.6 2.5-4.6zM14.6 18.6c0 1.3.7 2 1.8 2s1.8-.7 1.8-2"/>',
+    '<path d="M19.5 14.6A8 8 0 1 1 9.4 4.5a6.4 6.4 0 0 0 10.1 10.1z"/>',
+    '<rect x="4" y="4" width="16" height="16" rx="4.5"/><path d="M8.8 9.6a4.4 4.4 0 0 1 6.4 0"/><path d="M12 9.4l1-1.5"/>'
+  ];
+  function mktLine(i) { return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + MKT_LINE[i] + '</svg>'; }
   var MKT_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   var MKT_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
   var MKT_LOGO = '/img/bodybank-logo-gold-360.png';
@@ -351,13 +360,13 @@
       sec.className = 'bbch-mkt';
       sec.setAttribute('aria-labelledby', 'bbChMktH');
       sec.innerHTML = '<div class="bbch-mkt-wrap"><div class="bbch-mkt-copy">' +
-        '<p class="bbch-mkt-eye">The BodyBank 7 day challenge</p>' +
+        '<p class="bbch-mkt-eye"><span><span class="x">The BodyBank </span>7 day challenge</span></p>' +
         '<h2 class="bbch-mkt-h" id="bbChMktH"><span class="l1">Seven days.</span><span class="it">Start strong.</span></h2>' +
-        '<p class="bbch-mkt-lede">Three small wins a day, coached and tracked for you.</p>' +
+        '<p class="bbch-mkt-lede"><span class="d">Three small wins a day, coached and tracked for you.</span><span class="m">One small win a day, coached for you.</span></p>' +
         '<ul class="bbch-mkt-feats" aria-label="What is included"><li><span aria-hidden="true">⏱️</span>2 minute check ins</li><li><span aria-hidden="true">🏋️</span>Guided 20 min workouts</li><li><span aria-hidden="true">🏅</span>Certificate and badge</li></ul>' +
         '<div class="bbch-mkt-dw"><p class="bbch-mkt-sub">Your 7 days</p><span class="bbch-mkt-swipe" aria-hidden="true">Swipe →</span>' +
         '<ol class="bbch-mkt-days" aria-label="Your 7 days">' + MKT_DAYS.map(function (x, i) {
-          return '<li class="bbch-mkt-day' + (i === 0 ? ' on' : '') + '"><span class="ico" aria-hidden="true">' + (x[1] || MKT_CHECK) + '</span><span class="dn">Day ' + (i + 1) + '</span><b>' + x[0] + '</b></li>';
+          return '<li class="bbch-mkt-day' + (i === 0 ? ' on' : '') + '"><span class="ico" aria-hidden="true">' + (x[1] || MKT_CHECK) + '</span><span class="num">0' + (i + 1) + '</span><span class="lico">' + mktLine(i) + '</span><span class="dn">Day ' + (i + 1) + '</span><b>' + x[0] + '</b></li>';
         }).join('') + '</ol>' +
         '<div class="bbch-mkt-dots" aria-hidden="true">' + MKT_DAYS.map(function (x, i) { return '<i' + (i === 0 ? ' class="on"' : '') + '></i>'; }).join('') + '</div></div>' +
         '<div class="bbch-mkt-tiles" aria-hidden="true"><div><i>⏱️</i>2 minute check ins</div><div><i>🏋️</i>Guided 20 min workouts</div><div><i>🏅</i>Certificate and badge</div></div>' +
