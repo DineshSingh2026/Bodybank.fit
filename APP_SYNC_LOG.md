@@ -36,6 +36,25 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
+**RELEASE PREPARED 2026-10-16: Android 1.8.9 (versionCode 119), iOS 1.0.12.** Web `871401e` →
+mobile `c9109e9` (pushed; both Codemagic workflows are manual-start, so nothing ran).
+
+- **Adds the app update alert:** on launch and resume the app asks `/api/app/version`; below the
+  latest store version it shows a dismissible card (Later = 3 days), below the minimum a full
+  screen "Update required". Fails open. Android uses Play In-App Updates
+  (`@capawesome/capacitor-app-update` 7.2.0). Also carries web `5ad9ed9` (challenge day cards).
+- **Backend:** live via Render. Admin → Analytics → App Version sets latest / minimum / force /
+  notes per platform. Env defaults are iOS 1.0.10 / Android 1.8.7, so nothing shows yet. Builds
+  older than this one never show the alert; never set the minimum above 1.8.9 / 1.0.12 until those
+  are live.
+- **Android:** AAB built and checked locally. The merged release manifest reads 119 / 1.8.9 with no
+  new permissions (the plugin and `com.google.android.play:app-update` declare none), and
+  `jarsigner` says "jar verified". It is at
+  `../bodybank-app/android/app/build/outputs/bundle/release/app-release.aab`. Upload it to Play.
+- **iOS:** plugin added to `ios.includePlugins`; `npm run sync:ios` strip check passed (it caught
+  two Play references in the new files first, fixed in web `871401e`), and `MARKETING_VERSION` is
+  1.0.12. Start `ios-appstore` in Codemagic by hand and set the App Store Connect version to 1.0.12.
+
 **RELEASE PREPARED 2026-10-16: Android 1.8.8 (versionCode 118), iOS 1.0.11.** Web `aa76c06` →
 mobile `be47907` (pushed; both Codemagic workflows are manual-start, so nothing ran).
 
