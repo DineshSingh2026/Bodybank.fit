@@ -307,7 +307,7 @@
         '<span class="ph-pill">⏱️ 2 minute check ins</span><br><span class="ph-pill">🏋️ Guided 20 min workouts</span><br><span class="ph-pill">🏅 Certificate and badge</span>' +
         '<div class="ph-grid"><div><small>DAY 1</small>Check in</div><div><small>DAY 2</small>Meals</div><div><small>DAY 3</small>Train</div><div><small>DAY 4</small>Protein</div>' +
         '<div><small>DAY 5</small>Steps</div><div><small>DAY 6</small>Mind</div><div><small>DAY 7</small>Weigh in</div><div class="fin"><small>FINISH</small>Certificate</div></div>' +
-        '<span class="ph-cta">Start free →</span><p class="ph-fine"><b>Free</b> · No card · iPhone, Android, Web</p><div class="ph-url">🔒 bodybank.fit/challenge</div></div></div>' +
+        '<span class="ph-cta">Start free →</span><div class="ph-url">🔒 bodybank.fit/challenge</div></div></div>' +
       '<div class="phone p2"><div class="scr"><div class="island"></div><div class="sb"><span>9:41</span><i>▂▄▆ ◔ ▭</i></div>' +
         '<div class="ph-top"><img src="' + MKT_LOGO + '" alt="" width="360" height="138" style="height:20px"><span class="ph-coin">140</span></div>' +
         '<p class="ph-eye">— Starter challenge</p><p class="ph-h" style="font-size:19px">Day 4, <span class="it" style="display:inline">keep going</span></p>' +
@@ -372,7 +372,7 @@
         '<div class="bbch-mkt-tiles" aria-hidden="true"><div><i>⏱️</i>2 minute check ins</div><div><i>🏋️</i>Guided 20 min workouts</div><div><i>🏅</i>Certificate and badge</div></div>' +
         '<div class="bbch-mkt-ctas"><a class="bbch-mkt-cta" href="' + href + '">Start free ' + MKT_ARROW + '</a>' +
         '<a class="bbch-mkt-link" href="/challenge?utm_source=home&amp;utm_medium=section_link#plan">See the 7 day plan</a></div>' +
-        '<p class="bbch-mkt-note"><b>Free</b> · No card · iPhone, Android, Web</p></div>' +
+        '</div>' +
         mktPhones() + '</div>';
       hero.parentNode.insertBefore(sec, hero.nextSibling);
 
