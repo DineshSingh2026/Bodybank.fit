@@ -9,7 +9,9 @@
 (function () {
   'use strict';
 
-  var PLAT = [['ios', 'iOS', 'App Store'], ['android', 'Android', 'Google Play']];
+  // No store names here: this file also ships in the iOS bundle, where
+  // bodybank-app/scripts/ios-strip-store-refs.js fails the build on any Play reference.
+  var PLAT = [['ios', 'iOS'], ['android', 'Android']];
   var S = { host: null, data: null, busy: {}, msg: {}, err: {}, loading: false };
 
   function esc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
@@ -113,7 +115,7 @@
     };
     return '<section class="bbav-card" data-plat="' + key + '" aria-labelledby="bbav_' + key + '_t">' +
       '<h3 id="bbav_' + key + '_t">' + ICON_DL + esc(p[1]) + ' <span class="bbav-src' + (o ? ' is-db' : '') + '">' + (o ? 'Saved here' : 'Server default') + '</span></h3>' +
-      '<p class="bbav-sub">' + esc(p[2]) + ' · <a href="' + esc(e.store_url) + '" target="_blank" rel="noopener" style="color:#c8a44e">store page</a></p>' +
+      '<p class="bbav-sub"><a href="' + esc(e.store_url) + '" target="_blank" rel="noopener" style="color:#c8a44e">Open the store page</a></p>' +
       f('latest_version', 'Latest version', 'The newest build live in the store. Older builds see a dismissible update card.') +
       f('min_supported_version', 'Minimum supported version', 'Users below minimum will be blocked until they update.', true) +
       '<div class="bbav-field"><div class="bbav-toggle"><span>Force update<small>Block every build below latest, not only below minimum.</small></span>' +
