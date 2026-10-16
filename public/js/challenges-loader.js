@@ -217,6 +217,7 @@
     '.bbch-mkt a.bbch-mkt-cta:hover{transform:translateY(-1px);box-shadow:0 20px 44px rgba(201,160,64,.34)}',
     '.bbch-mkt a.bbch-mkt-cta svg{width:17px;height:17px}',
     '.bbch-mkt a.bbch-mkt-link{color:#e8c97a;font-size:16.5px;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(232,201,122,.45);padding-bottom:3px}',
+    '.bbch-mkt-proof{display:flex;align-items:center;gap:10px;margin:22px 0 0;font-size:15px;color:#a49f95}.bbch-mkt-proof svg{width:20px;height:20px;color:#d9b45a;flex:0 0 auto}.bbch-mkt-proof b{color:#f5f1e8;font-weight:800}',
     '.bbch-mkt-note{margin:22px 0 0;font-size:14px;color:#7d786f}.bbch-mkt-note b{color:#d9b45a;font-weight:700}',
     '.bbch-mkt a:focus-visible,.bbch-mkt-pill:focus-visible{outline:2px solid #e3c274;outline-offset:4px}',
     // Phones (illustration)
@@ -278,6 +279,7 @@
       '.bbch-mkt a.bbch-mkt-cta{width:100%;min-height:55px;font-size:18.5px;font-weight:600;border-radius:16px;background:#d4af37;box-shadow:none;letter-spacing:0}' +
       '.bbch-mkt a.bbch-mkt-cta:hover{transform:none;box-shadow:none;background:#dcb948}' +
       '.bbch-mkt a.bbch-mkt-link{display:none}' +
+      '.bbch-mkt-proof{justify-content:center;margin-top:18px;font-size:14px;color:#8a857c}' +
       '.bbch-mkt-note{text-align:center;margin-top:18px;font-size:14.5px;color:#7d786f}.bbch-mkt-note b{color:inherit;font-weight:400}' +
     '}'
   ].join('');
@@ -297,6 +299,7 @@
   var MKT_CHECK = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
   var MKT_ARROW = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg>';
   var MKT_LOGO = '/img/bodybank-logo-gold-360.png';
+  var MKT_MEDAL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="5.5"/><path d="M9 13.8 7.5 21l4.5-2.6L16.5 21 15 13.8"/></svg>';
 
   function mktPhones() {
     return '<div class="bbch-mkt-phones" aria-hidden="true">' +
@@ -307,7 +310,7 @@
         '<span class="ph-pill">⏱️ 2 minute check ins</span><br><span class="ph-pill">🏋️ Guided 20 min workouts</span><br><span class="ph-pill">🏅 Certificate and badge</span>' +
         '<div class="ph-grid"><div><small>DAY 1</small>Check in</div><div><small>DAY 2</small>Meals</div><div><small>DAY 3</small>Train</div><div><small>DAY 4</small>Protein</div>' +
         '<div><small>DAY 5</small>Steps</div><div><small>DAY 6</small>Mind</div><div><small>DAY 7</small>Weigh in</div><div class="fin"><small>FINISH</small>Certificate</div></div>' +
-        '<span class="ph-cta">Start free →</span><div class="ph-url">🔒 bodybank.fit/challenge</div></div></div>' +
+        '<span class="ph-cta">Take the challenge →</span><div class="ph-url">🔒 bodybank.fit/challenge</div></div></div>' +
       '<div class="phone p2"><div class="scr"><div class="island"></div><div class="sb"><span>9:41</span><i>▂▄▆ ◔ ▭</i></div>' +
         '<div class="ph-top"><img src="' + MKT_LOGO + '" alt="" width="360" height="138" style="height:20px"><span class="ph-coin">140</span></div>' +
         '<p class="ph-eye">— Starter challenge</p><p class="ph-h" style="font-size:19px">Day 4, <span class="it" style="display:inline">keep going</span></p>' +
@@ -340,6 +343,7 @@
         document.head.appendChild(fl);
       }
       var len = Number(free.length_days) || 7;
+      var finished = d.finished && d.finished.n > 0 ? d.finished : null; // real count, hidden below the threshold
 
       // Hero announcement, set beside the App Store pill (both share one centred row).
       var store = hero.querySelector('.hero-store');
@@ -370,8 +374,9 @@
         }).join('') + '</ol>' +
         '<div class="bbch-mkt-dots" aria-hidden="true">' + MKT_DAYS.map(function (x, i) { return '<i' + (i === 0 ? ' class="on"' : '') + '></i>'; }).join('') + '</div></div>' +
         '<div class="bbch-mkt-tiles" aria-hidden="true"><div><i>⏱️</i>2 minute check ins</div><div><i>🏋️</i>Guided 20 min workouts</div><div><i>🏅</i>Certificate and badge</div></div>' +
-        '<div class="bbch-mkt-ctas"><a class="bbch-mkt-cta" href="' + href + '">Start free ' + MKT_ARROW + '</a>' +
+        '<div class="bbch-mkt-ctas"><a class="bbch-mkt-cta" href="' + href + '">Take the challenge ' + MKT_ARROW + '</a>' +
         '<a class="bbch-mkt-link" href="/challenge?utm_source=home&amp;utm_medium=section_link#plan">See the 7 day plan</a></div>' +
+        (finished ? '<p class="bbch-mkt-proof">' + MKT_MEDAL + '<span><b>' + finished.label + '</b> ' + (finished.n === 1 ? 'member has' : 'members have') + ' finished a BodyBank challenge</span></p>' : '') +
         '</div>' +
         mktPhones() + '</div>';
       hero.parentNode.insertBefore(sec, hero.nextSibling);

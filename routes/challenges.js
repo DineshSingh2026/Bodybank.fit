@@ -84,6 +84,13 @@ function createChallengesRouter(deps) {
         WHERE e.status <> 'void' AND u.role = 'user' AND e.created_at > NOW() - INTERVAL '30 days'`);
     return r ? r.n : 0;
   }
+  // Members who finished any challenge (staff and automated test accounts excluded).
+  async function finishedMembers() {
+    const r = await queryOne(
+      `SELECT COUNT(DISTINCT e.user_id)::int AS n FROM challenge_enrollments e JOIN users u ON u.id = e.user_id
+        WHERE e.status = 'completed' AND u.role = 'user' AND COALESCE(u.email, '') NOT ILIKE '%@test.bodybank.fit'`);
+    return r ? r.n : 0;
+  }
   async function publishedList() {
     const rows = await queryAll("SELECT * FROM challenges WHERE status = 'published' ORDER BY sort_order, created_at");
     return rows.map((r) => Object.assign({}, r, { rewards: typeof r.rewards === 'string' ? JSON.parse(r.rewards) : r.rewards }));
@@ -101,7 +108,7 @@ function createChallengesRouter(deps) {
           p.joined = C.publicCount(counts[r.id]);
           return p;
         });
-        publicCache = { at: Date.now(), body: { challenges: list, joined_this_month: C.publicCount(await monthlyJoins()) } };
+        publicCache = { at: Date.now(), body: { challenges: list, joined_this_month: C.publicCount(await monthlyJoins()), finished: C.proofCount(await finishedMembers(), env || process.env) } };
       }
       res.set('Cache-Control', 'public, max-age=300');
       res.json(publicCache.body);

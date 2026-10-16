@@ -734,7 +734,24 @@ function publicCount(n) {
   return Math.floor(x / 10) * 10;
 }
 
+/**
+ * "N members have finished a BodyBank challenge": a real count, never invented.
+ * Hidden below `min` (CHALLENGE_SOCIAL_PROOF_MIN, default 25). Exact under 100,
+ * then rounded down to the nearest 10 with a "+".
+ * @returns {{n:number, label:string}|null}
+ */
+function proofCount(n, env) {
+  const x = Math.max(0, Math.floor(Number(n) || 0));
+  const raw = parseInt((env || process.env).CHALLENGE_SOCIAL_PROOF_MIN, 10);
+  const min = Number.isInteger(raw) && raw >= 1 ? raw : 25;
+  if (x < min || x < 1) return null;
+  if (x < 100) return { n: x, label: x.toLocaleString('en-IN') };
+  const r = Math.floor(x / 10) * 10;
+  return { n: r, label: r.toLocaleString('en-IN') + '+' };
+}
+
 module.exports = {
+  proofCount,
   DDL,
   ensureChallengeTables,
   STAFF_ROLES,

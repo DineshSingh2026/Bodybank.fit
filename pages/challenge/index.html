@@ -98,6 +98,9 @@ h1 .it{display:block;font-size:1.02em;letter-spacing:-.01em;margin-top:.06em}
 .plan-link{color:var(--gt);font-size:16.5px;font-weight:600;text-decoration:none;border-bottom:1px solid rgba(232,201,122,.45);padding-bottom:3px}
 .note{margin:22px 0 0;font-size:14px;color:var(--dim)}
 .note b{color:var(--gold);font-weight:700}
+.proof{display:flex;align-items:center;gap:10px;margin:22px 0 0;font-size:15px;color:var(--muted)}
+.proof svg{width:20px;height:20px;color:var(--gold);flex:0 0 auto}
+.proof b{color:var(--text);font-weight:800}
 .msg{margin:16px 0 0;padding:10px 14px;border-radius:12px;font-size:14px;background:rgba(224,112,95,.1);border:1px solid rgba(224,112,95,.35);color:#f6cbc2;max-width:520px}
 .msg.ok{background:rgba(127,207,154,.1);border-color:rgba(127,207,154,.35);color:#cfeedb}
 .feat{display:none}
@@ -238,6 +241,7 @@ footer a{color:var(--muted)}
   .cta{width:100%;min-height:62px;font-size:19px;border-radius:18px}
   .plan-link{display:none}
   .note{text-align:center;margin-top:14px;font-size:13px}
+  .proof{justify-content:center;margin-top:18px;font-size:14px;text-align:center}
   .phones{display:none}
   .band{padding:40px 0}
   .band + .band{padding-top:4px}
@@ -316,9 +320,10 @@ footer a{color:var(--muted)}
           <div><i>🏅</i>Certificate and badge</div>
         </div>
         <div class="ctas">
-          <button type="button" class="cta js-start">Start free <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+          <button type="button" class="cta js-start">Take the challenge <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
           <a class="plan-link" href="#plan">See the 7 day plan</a>
         </div>
+        <p class="proof js-proof" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="5.5"/><path d="M9 13.8 7.5 21l4.5-2.6L16.5 21 15 13.8"/></svg><span></span></p>
         <p class="msg" id="msg" role="alert" hidden></p>
       </div>
 
@@ -336,7 +341,7 @@ footer a{color:var(--muted)}
             <div><small>DAY 1</small>Check in</div><div><small>DAY 2</small>Meals</div><div><small>DAY 3</small>Train</div><div><small>DAY 4</small>Protein</div>
             <div><small>DAY 5</small>Steps</div><div><small>DAY 6</small>Mind</div><div><small>DAY 7</small>Weigh in</div><div class="fin"><small>FINISH</small>Certificate</div>
           </div>
-          <span class="ph-cta">Start free →</span>
+          <span class="ph-cta">Take the challenge →</span>
           <div class="ph-url">🔒 bodybank.fit/challenge</div>
         </div></div>
         <div class="phone p2"><div class="scr">
@@ -414,7 +419,8 @@ footer a{color:var(--muted)}
         <p class="sec-eye" style="justify-content:center">Ready when you are</p>
         <h2 id="fn">Seven days. <span class="it" style="display:inline">Start strong.</span></h2>
         <p>Your first three small wins can be done today.</p>
-        <button type="button" class="cta js-start">Start free <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <button type="button" class="cta js-start">Take the challenge <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button>
+        <p class="proof js-proof" hidden style="justify-content:center"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="9" r="5.5"/><path d="M9 13.8 7.5 21l4.5-2.6L16.5 21 15 13.8"/></svg><span></span></p>
         <button type="button" class="ghost" id="invite" hidden>Invite a friend</button>
       </div>
     </div>
@@ -491,6 +497,13 @@ footer a{color:var(--muted)}
   // The published free challenge: its id and its real day-by-day plan.
   api('GET', '/api/challenges/public').then(function (d) {
     var free = d && d.challenges && d.challenges.filter(function (c) { return c.access === 'free'; })[0];
+    // Real "members have finished" count (the API hides it below the threshold).
+    if (d && d.finished && d.finished.n > 0) {
+      Array.prototype.forEach.call(document.querySelectorAll('.js-proof'), function (p) {
+        p.querySelector('span').innerHTML = '<b>' + esc(d.finished.label) + '</b> ' + (d.finished.n === 1 ? 'member has' : 'members have') + ' finished a BodyBank challenge';
+        p.hidden = false;
+      });
+    }
     if (!free) return;
     challengeId = free.id;
     if (free.day_titles && free.day_titles.length) {

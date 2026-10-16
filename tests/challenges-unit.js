@@ -271,6 +271,11 @@ const goals = { goal_protein_g: 120 };
   assert(C.inQuietHours(22) && C.inQuietHours(6) && !C.inQuietHours(7) && !C.inQuietHours(19), 'quiet hours 22:00–07:00');
   eq(C.publicCount(49), null, 'public count hidden under 50');
   eq(C.publicCount(1248), 1240, 'public count rounded down to 10');
+  eq(C.proofCount(24, {}), null, 'finished count hidden below 25 by default');
+  eq(C.proofCount(37, {}), { n: 37, label: '37' }, 'finished count exact under 100');
+  eq(C.proofCount(1248, {}), { n: 1240, label: '1,240+' }, 'finished count rounded down with + from 100');
+  eq(C.proofCount(3, { CHALLENGE_SOCIAL_PROOF_MIN: '3' }), { n: 3, label: '3' }, 'threshold from env');
+  eq(C.proofCount(0, { CHALLENGE_SOCIAL_PROOF_MIN: '1' }), null, 'zero is never shown');
 }
 
 // ── admin validation ────────────────────────────────────────────────────────
