@@ -148,6 +148,7 @@ async function loadMemberHome(silent) {
       return;
     }
     mhState.data = d;
+    if (window.bbBoot) window.bbBoot.stage('data');
     if (d.plan && typeof window.bbSetPlan === 'function') window.bbSetPlan(d.plan);
     try {
       renderMemberHome();
@@ -158,6 +159,8 @@ async function loadMemberHome(silent) {
     }
   } finally {
     mhState.loading = false;
+    // Launch loader: the member's home is drawn (or showed its error), so finish it.
+    if (window.bbBoot) window.bbBoot.done();
     setTimeout(function () { if (btn) btn.classList.remove('is-busy'); }, 600);
   }
 }
