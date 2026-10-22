@@ -36,6 +36,18 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
+**RELEASE PREPARED 2026-10-22: Android 1.8.13 (versionCode 123), iOS 1.0.16.** Web `e8c89da` →
+mobile `fbc1301` (pushed; both Codemagic workflows are manual-start, so nothing ran).
+
+- **One launch screen:** the native splash is now plain black (iOS + Android <12 images; Android 12+ has an
+  invisible icon and no branding image), so the logo, tagline and progress bar appear once, together, in the
+  web loader instead of twice. Branded art kept as `assets/splash-branded.png`.
+- **Slow pace by default:** the loader scene fades in after its image decodes; 12 s cap; `?bootloader=fast`
+  previews the old pace on the web.
+- **Android:** AAB 123 / 1.8.13, 12 permissions (unchanged), "jar verified", `splash_blank` in the bundle.
+  Upload `../bodybank-app/android/app/build/outputs/bundle/release/app-release.aab` to Play.
+- **iOS:** strip check passed, `MARKETING_VERSION` 1.0.16. Start `ios-appstore` in Codemagic by hand.
+
 **RELEASE PREPARED 2026-10-22: Android 1.8.12 (versionCode 122), iOS 1.0.15.** Web `296aae7` →
 mobile `c16065f` (pushed; both Codemagic workflows are manual-start, so nothing ran).
 
