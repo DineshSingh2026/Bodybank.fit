@@ -29,3 +29,6 @@ tests/security/.sectest-uploads/
 
 # Coach Mode seed download cache (scripts/coach-seed.js)
 data/coach/.cache/
+
+# brochure build output
+scripts/brochure/.work/
