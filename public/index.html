@@ -10,12 +10,16 @@
 <script>try{if(window.IS_BODYBANK_APP||(window.Capacitor&&window.Capacitor.isNativePlatform&&window.Capacitor.isNativePlatform()))document.documentElement.classList.add('bb-in-app');}catch(e){}</script>
 <style>html.bb-in-app .bb-web-only{display:none!important}</style>
 <!-- Launch loader (#bbBoot): the app's splash plus a progress bar that follows the real
-     start-up (page, session, your data). App only; ?bootloader=1 or =slow previews it. -->
-<script>try{var __bbq=/[?&]bootloader=([^&#]*)/.exec(location.search);if(document.documentElement.classList.contains('bb-in-app')||__bbq){document.documentElement.classList.add('bb-boot-on');if(__bbq&&__bbq[1]==='slow')window.__bbBootSlow=true;}}catch(e){}</script>
+     start-up (page, session, your data). App only; ?bootloader=1 previews it, ?bootloader=fast previews the old quick pace.
+     One screen only: the native splash is plain black, so logo + tagline + bar appear together here. -->
+<script>try{var __bbq=/[?&]bootloader=([^&#]*)/.exec(location.search);if(document.documentElement.classList.contains('bb-in-app')||__bbq){document.documentElement.classList.add('bb-boot-on');window.__bbBootSlow=!(__bbq&&__bbq[1]==='fast');}}catch(e){}</script>
 <style>
 #bbBoot{display:none}
-html.bb-boot-on #bbBoot{display:block;position:fixed;inset:0;z-index:2147483000;background:#0a0a0a url(img/splash/boot-splash.webp) center/cover no-repeat;
-  --s:calc(max(100vw,100vh) / 2732);transition:opacity .32s ease,visibility .32s}
+html.bb-boot-on #bbBoot{display:block;position:fixed;inset:0;z-index:2147483000;background:#0a0a0a;
+  --s:calc(max(100vw,100vh) / 2732);transition:opacity .45s ease,visibility .45s}
+/* Logo, tagline and bar fade in together, once the image is decoded, so nothing pops in on its own. */
+#bbBoot .bbb-scene{position:absolute;inset:0;background:#0a0a0a url(img/splash/boot-splash.webp) center/cover no-repeat;opacity:0;transition:opacity .5s ease}
+#bbBoot.is-ready .bbb-scene{opacity:1}
 @supports (height:100dvh){html.bb-boot-on #bbBoot{--s:calc(max(100vw,100dvh) / 2732)}}
 html.bb-boot-on #bbBoot.is-done{opacity:0;visibility:hidden;pointer-events:none}
 #bbBoot .bbb-bar{position:absolute;left:50%;top:calc(50% + 712 * var(--s));width:max(170px,calc(560 * var(--s)));height:max(4px,calc(10 * var(--s)));
@@ -25,7 +29,7 @@ html.bb-boot-on #bbBoot.is-done{opacity:0;visibility:hidden;pointer-events:none}
 @keyframes bbbShine{to{transform:translateX(100%)}}
 #bbBoot .bbb-txt{position:absolute;left:0;right:0;top:calc(50% + 712 * var(--s) + max(16px,calc(44 * var(--s))));text-align:center;
   font:500 max(11px,calc(36 * var(--s)))/1.3 Outfit,system-ui,-apple-system,sans-serif;letter-spacing:.08em;color:rgba(239,230,207,.62)}
-@media (prefers-reduced-motion:reduce){#bbBoot .bbb-fill::after{animation:none}html.bb-boot-on #bbBoot{transition:none}}
+@media (prefers-reduced-motion:reduce){#bbBoot .bbb-fill::after{animation:none}html.bb-boot-on #bbBoot,#bbBoot .bbb-scene{transition:none}}
 </style>
 
 <!-- Safari / iOS -->
@@ -7344,19 +7348,26 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
 </head>
 <body>
 <div id="bbBoot" role="progressbar" aria-label="Loading BodyBank" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
-  <div class="bbb-bar"><div class="bbb-fill" id="bbBootFill"></div></div>
-  <div class="bbb-txt" id="bbBootTxt">Starting</div>
+  <div class="bbb-scene">
+    <div class="bbb-bar"><div class="bbb-fill" id="bbBootFill"></div></div>
+    <div class="bbb-txt" id="bbBootTxt">Starting</div>
+  </div>
 </div>
 <script>
 /* Launch loader progress. The bar eases toward the current milestone and creeps a
    little while waiting, but never passes the next milestone, so it never lies:
      page parsed 30 · page loaded 55 · signed in 72 · your data drawn 100.
-   Signed out, staff roles and a 9 s safety cap all finish it too. */
+   Signed out, staff roles and a safety cap (12 s slow, 9 s fast) all finish it too.
+   Slow is the default pace; ?bootloader=fast previews the quick one. */
 (function () {
   var root = document.getElementById('bbBoot');
   if (!root || !document.documentElement.classList.contains('bb-boot-on')) { window.bbBoot = { stage: function () {}, done: function () {} }; return; }
   var fill = document.getElementById('bbBootFill'), txt = document.getElementById('bbBootTxt');
   var slow = !!window.__bbBootSlow, t0 = Date.now();
+  // Show the scene only when the splash art is ready (600 ms fallback), so it appears whole.
+  var ready = function () { root.classList.add('is-ready'); };
+  try { var art = new Image(); art.onload = art.onerror = ready; art.src = 'img/splash/boot-splash.webp'; if (art.complete) ready(); } catch (e) { ready(); }
+  setTimeout(ready, 600);
   var cur = 0, target = 8, cap = 28, finished = false, raf = 0;
   // [floor, cap, label, rank]: milestones can arrive out of order (a signed-in member's
   // data often lands before the page 'load' event), so the label only ever moves forward.
