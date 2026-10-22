@@ -36,6 +36,21 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
+**RELEASE PREPARED 2026-10-22: Android 1.8.11 (versionCode 121), iOS 1.0.14.** Web `f668429` →
+mobile `b2b767d` (pushed; both Codemagic workflows are manual-start, so nothing ran).
+
+- **Adds the splash wording:** gold logo with BODYBANK and LIFESTYLE MANAGEMENT centred below it
+  (`assets/splash*.png`, regenerated for every Android density and the iOS Splash imageset). App
+  icons, AndroidManifest.xml and project.pbxproj were reverted after `capacitor-assets generate`,
+  which reformats them.
+- **Android 12+** ignores the splash image and shows the app icon only; `values-v31/styles.xml` adds
+  `android:windowSplashScreenBrandingImage` (`drawable-xxxhdpi/splash_branding.png`, 800x320 =
+  200x80 dp), so the wording sits near the bottom there. Older Android matches iOS.
+- **Android:** AAB built locally, release manifest 121 / 1.8.11, 12 permissions (unchanged),
+  `jarsigner` "jar verified", branding image and v31 style present in the bundle. Upload
+  `../bodybank-app/android/app/build/outputs/bundle/release/app-release.aab` to Play.
+- **iOS:** strip check passed, `MARKETING_VERSION` 1.0.14. Start `ios-appstore` in Codemagic by hand.
+
 **RELEASE PREPARED 2026-10-22: Android 1.8.10 (versionCode 120), iOS 1.0.13.** Web `df3126b` →
 mobile `c57c4fb` (pushed; both Codemagic workflows are manual-start, so nothing ran).
 
