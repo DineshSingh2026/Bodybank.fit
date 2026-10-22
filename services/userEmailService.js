@@ -96,6 +96,34 @@ async function sendMail(to, subject, html, text, attachments) {
   }
 }
 
+/**
+ * Same transport and From as sendMail, plus cc / replyTo / custom headers, and the
+ * outcome is returned instead of swallowed (the audit lead sequence logs it).
+ * → { ok, messageId, error }
+ */
+async function sendMailAdvanced({ to, cc, replyTo, subject, html, text, headers } = {}) {
+  if (!isConfigured()) return { ok: false, messageId: '', error: 'SMTP is not configured' };
+  const toAddr = String(to || '').trim().toLowerCase();
+  if (!toAddr) return { ok: false, messageId: '', error: 'No recipient' };
+  try {
+    const info = await getTransporter().sendMail({
+      from: fromAddress(),
+      to: toAddr,
+      cc: cc ? String(cc).trim() : undefined,
+      replyTo: replyTo ? String(replyTo).trim() : undefined,
+      subject,
+      text: text || subject,
+      html,
+      headers: headers && typeof headers === 'object' ? headers : undefined
+    });
+    console.log('[userEmail] Sent:', subject, 'to', toAddr);
+    return { ok: true, messageId: String((info && info.messageId) || ''), error: '' };
+  } catch (e) {
+    console.warn('[userEmail]', subject, e.message);
+    return { ok: false, messageId: '', error: String(e.message || e) };
+  }
+}
+
 function fire(fn) {
   if (!isConfigured()) return;
   Promise.resolve().then(fn).catch(e => console.warn('[userEmail] async', e.message));
@@ -738,6 +766,7 @@ async function emailWeeklyReport({ toEmail, firstName, pdfPath, weekLabel, overa
 module.exports = {
   isConfigured,
   sendMail,
+  sendMailAdvanced,
   emailWeeklyReport,
   luxuryWrap,
   escapeHtml,

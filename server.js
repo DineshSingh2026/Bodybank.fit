@@ -47,6 +47,9 @@ const { createCoachRouter } = require('./routes/coachMode');
 // App update alert for the store apps (APP_UPDATE_ALERT_ENABLED = off | staff | all; default all).
 const appVersionService = require('./services/appVersionService');
 const { createAppVersionRouter, createAppVersionAdminRouter } = require('./routes/appVersion');
+// Audit lead email sequence: admin-triggered welcome email + two follow ups (AUDIT_LEAD_EMAILS_ENABLED, default true).
+const { ensureAuditLeadEmailSchema, createAuditLeadEmailSequence, startAuditLeadEmailJob } = require('./services/auditLeadEmailSequence');
+const { registerAuditLeadEmailRoutes } = require('./routes/auditLeadEmails');
 // BodyBank Challenges (CHALLENGES_ENABLED = off | staff | allowlist | all; default off).
 const challengeService = require('./services/challengeService');
 const { createChallengeEngine } = require('./services/challengeEngine');
@@ -1279,6 +1282,8 @@ async function initDB() {
   } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_requests_stage ON audit_requests(stage)`); } catch (e) { /* ignore */ }
   try { await pool.query(`CREATE INDEX IF NOT EXISTS idx_audit_requests_email_lower ON audit_requests(LOWER(email))`); } catch (e) { /* ignore */ }
+  // Audit lead email sequence: sequences, per-step send log, unsubscribes.
+  try { await ensureAuditLeadEmailSchema(pool); } catch (e) { console.warn('[auditLeadEmails] schema:', e.message); }
 
   // Lead notes timeline — every comment + automatic stage-change entries
   await pool.query(`CREATE TABLE IF NOT EXISTS lead_notes (
@@ -6175,9 +6180,13 @@ app.get('/api/admin/audit-requests/summary', verifyToken, requireAdminOrSuperadm
     const sql = buildIntakeCohortSql(from, to, sc.sql) + `
       SELECT p.*, p2.id AS part2_id, ${formTsIso('p2.created_at')} AS part2_at,
              p2.score AS part2_score, p2.tier_label AS part2_tier,
-             COALESCE(p2c.n, 0) AS part2_submissions
+             COALESCE(p2c.n, 0) AS part2_submissions,
+             es.id AS email_seq_id, es.status AS email_seq_status, es.next_send_at AS email_seq_next_at,
+             es.stopped_reason AS email_seq_reason,
+             (SELECT MAX(x.step) FROM audit_lead_email_log x WHERE x.sequence_id = es.id AND x.status = 'sent') AS email_seq_step
       FROM people p
       ${INTAKE_PART2_LATERAL}
+      LEFT JOIN audit_lead_email_sequences es ON es.email_norm = p.email_key
       LIMIT 5000`;
     const params = [];
     if (from) params.push(from);
@@ -6207,7 +6216,12 @@ app.get('/api/admin/audit-requests/summary', verifyToken, requireAdminOrSuperadm
       last_submitted_at: formIso(r.last_audit_at),
       first_submitted_at: formIso(r.first_audit_at),
       last_checkin_id: r.last_audit_id ? String(r.last_audit_id) : null,
-      total_checkins: Number(r.audit_submissions) || 0
+      total_checkins: Number(r.audit_submissions) || 0,
+      email_seq_id: r.email_seq_id || null,
+      email_seq_status: r.email_seq_status || null,
+      email_seq_step: r.email_seq_step != null ? Number(r.email_seq_step) : 0,
+      email_seq_next_at: r.email_seq_next_at ? new Date(r.email_seq_next_at).toISOString() : null,
+      email_seq_reason: r.email_seq_reason || ''
     }));
 
     let appliedSort;
@@ -12402,6 +12416,18 @@ app.use(
     pushReady: () => _fcmReady
   })
 );
+// Audit lead email sequence: admin queue / preview / test / stop, and the public
+// unsubscribe (routes/auditLeadEmails.js). The cron job does the sending.
+const auditLeadEmailEngine = createAuditLeadEmailSequence({
+  queryAll, queryOne, run,
+  sendMail: (msg) => userEmail.sendMailAdvanced(msg),
+  isConfigured: () => userEmail.isConfigured()
+});
+registerAuditLeadEmailRoutes(app, {
+  verifyToken, requireAdminOrSuperadmin, rateLimiter, queryAll,
+  engine: auditLeadEmailEngine,
+  isConfigured: () => userEmail.isConfigured()
+});
 // BodyBank Challenges: member + admin + public share API (see routes/challenges.js).
 app.use(
   '/api/challenges',
@@ -13601,6 +13627,7 @@ app.listen(PORT, '0.0.0.0', () => {
     }
 
     startEmailScheduler({ queryAll, notifyHub });
+    try { startAuditLeadEmailJob(auditLeadEmailEngine); } catch (e) { console.warn('[auditLeadEmails] job start:', e.message); }
 
     try {
       cron.schedule(

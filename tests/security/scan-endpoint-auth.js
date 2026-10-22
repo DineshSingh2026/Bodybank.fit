@@ -71,6 +71,8 @@ const INTENTIONALLY_PUBLIC = [
   [/^GET \/api\/feed\/user-posts$/, 'public wall filtered by display name; no PII'],
   [/^GET \/api\/public\//, 'signed-URL namespace (HMAC checked in handler)'],
   [/^GET \/api\/vapid-public-key$/, ''],
+  [/^GET \/api\/email\/unsubscribe$/, 'audit lead email unsubscribe page; HMAC token checked in handler, rate limited'],
+  [/^POST \/api\/email\/unsubscribe$/, 'RFC 8058 one-click unsubscribe; HMAC token checked in handler, rate limited'],
 
   // --- guarded inside the handler rather than by middleware ---
   // Each verified to return 401/403/404 to an anonymous caller.

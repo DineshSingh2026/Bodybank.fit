@@ -324,6 +324,48 @@ h3.sc-dash-title{font-size:clamp(20px,3vw,28px);margin:0 0 10px}
   font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#f59e0b;
   background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.28);vertical-align:middle}
 .sc-hist-btn{white-space:nowrap}
+/* Audit lead email sequence (Audit Form tab) */
+.ale-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 12px}
+.ale-send-btn{height:36px;padding:0 16px;border:0;border-radius:6px;background:var(--gold);color:#0d0d0d;font-size:12px;font-weight:700;letter-spacing:.04em;cursor:pointer;white-space:nowrap;font-family:inherit}
+.ale-send-btn:hover:not(:disabled){opacity:.92}
+.ale-send-btn:disabled{opacity:.4;cursor:not-allowed}
+.ale-bar-hint{font-size:11.5px;color:var(--muted);line-height:1.5}
+.ale-sel{width:16px;height:16px;accent-color:var(--gold);cursor:pointer;margin:0;vertical-align:middle}
+.ale-th-sel,.ale-td-sel{width:34px;text-align:center!important}
+.sc-badge--gold{color:var(--gold);background:rgba(200,164,78,.1);border-color:rgba(200,164,78,.35)}
+.ale-none{font-size:11px;color:var(--muted)}
+.ale-row-acts{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.ale-mini{padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;letter-spacing:.04em;background:transparent;border:1px solid rgba(200,164,78,.45);color:var(--gold);cursor:pointer;font-family:inherit;white-space:nowrap}
+.ale-mini:hover{background:rgba(200,164,78,.12)}
+#aleModal .modal{max-width:720px}
+.ale-sum{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 12px}
+.ale-sum .sc-badge{font-size:12px}
+.ale-note{font-size:12.5px;color:var(--muted);margin:0 0 12px;line-height:1.55}
+.ale-note--warn{color:#f59e0b}
+.ale-skips{margin:0 0 14px;font-size:12.5px}
+.ale-skips summary{cursor:pointer;color:var(--creamd,var(--cream));font-weight:600}
+.ale-skips ul{margin:8px 0 0;padding:0 0 0 18px;max-height:140px;overflow:auto}
+.ale-skips li{margin:0 0 3px;color:var(--muted)}
+.ale-skips li b{color:var(--cream);font-weight:600}
+.ale-tabs{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.ale-tab{padding:6px 12px;border-radius:6px;border:1px solid rgba(200,164,78,.45);background:transparent;color:var(--gold);font-size:11.5px;font-weight:700;cursor:pointer;font-family:inherit}
+.ale-tab.is-on{background:var(--gold);color:#0d0d0d;border-color:var(--gold)}
+.ale-subject{font-size:12.5px;color:var(--cream);margin:0 0 8px;word-break:break-word}
+.ale-subject span{color:var(--muted)}
+.ale-foot{flex:0 0 auto;border-top:1px solid rgba(200,164,78,.18);margin-top:12px}
+.ale-frame{display:block;width:100%;height:clamp(300px,46vh,520px);border:1px solid rgba(200,164,78,.3);border-radius:8px;background:#FFFFFF}
+.ale-msg{min-height:18px;margin:8px 0 0;font-size:12.5px;line-height:1.5}
+.ale-msg.is-ok{color:#34c77b}.ale-msg.is-err{color:#e05050}
+.ale-actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:flex-end;margin-top:10px}
+.ale-btn-ghost{height:36px;padding:0 14px;border-radius:6px;background:transparent;color:var(--gold);border:1.5px solid rgba(200,164,78,.55);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+@media(max-width:768px){
+  .sc-status-table tbody td[data-label="Select"]{order:0;display:inline-flex!important;align-items:center}
+  .sc-status-table tbody td[data-label="Select"]::before{display:none!important}
+  .sc-status-table tbody td[data-label="Emails"]{flex:0 0 100%;display:block!important}
+  .ale-frame{height:clamp(300px,52vh,460px)}
+  .ale-actions{justify-content:stretch}
+  .ale-actions button{flex:1 1 auto}
+}
 /* History modal */
 .sc-hist-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:0 0 18px}
 .sc-hist-meta .sc-stat{padding:10px 12px}
@@ -9066,12 +9108,16 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           </div>
         </div>
       </div>
+      <div class="ale-bar" id="aleBar">
+        <button type="button" class="ale-send-btn" id="aleSendBtn" onclick="aleOpenWelcome()" disabled>Send welcome email</button>
+        <span class="ale-bar-hint">Tick leads to send the audit welcome email. Two follow ups go out automatically after 24 hours and on day 3, and stop when the lead replies, signs up or unsubscribes.</span>
+      </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table sc-status-table">
         <thead>
-          <tr><th>Name</th><th>Email</th><th>Last Submitted</th><th>Submissions</th><th>Part-2</th><th style="text-align:right;width:150px">Actions</th></tr>
+          <tr><th class="ale-th-sel"><input type="checkbox" class="ale-sel" id="aleSelAll" aria-label="Select all on page" title="Select all on page" onchange="aleToggleAll(this)"></th><th>Name</th><th>Email</th><th>Last Submitted</th><th>Submissions</th><th>Part-2</th><th>Emails</th><th style="text-align:right;width:150px">Actions</th></tr>
         </thead>
         <tbody id="requestsBody">
-          <tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
+          <tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>
         </tbody>
       </table></div>
       <div class="admin-h-scroll-ctrl" aria-label="Scroll table horizontally">
@@ -11277,6 +11323,34 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('formHistoryModal')" aria-label="Close">&times;</button>
     <h2 class="sunday-checkin-title" id="formHistoryTitle">History</h2>
     <div class="view-detail-body" id="formHistoryBody"></div>
+  </div>
+</div>
+
+<!-- ADMIN: Audit lead welcome email (queue + preview + test) -->
+<div class="modal-overlay view-detail-modal" id="aleModal" onclick="if(event.target===this)closeModal('aleModal')">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="event.stopPropagation();closeModal('aleModal')" aria-label="Close">&times;</button>
+    <h2 class="sunday-checkin-title">Send welcome email</h2>
+    <div class="view-detail-body">
+      <div class="ale-sum" id="aleSum"></div>
+      <p class="ale-note" id="aleNote"></p>
+      <div id="aleSkips"></div>
+      <div class="ale-tabs" role="tablist" aria-label="Preview email">
+        <button type="button" class="ale-tab is-on" data-ale-step="1" onclick="aleShowStep(1)">Email 1</button>
+        <button type="button" class="ale-tab" data-ale-step="2" onclick="aleShowStep(2)">Email 2 (24h)</button>
+        <button type="button" class="ale-tab" data-ale-step="3" onclick="aleShowStep(3)">Email 3 (day 3)</button>
+      </div>
+      <p class="ale-subject" id="aleSubject"></p>
+      <iframe class="ale-frame" id="aleFrame" title="Email preview" sandbox="allow-popups allow-popups-to-escape-sandbox"></iframe>
+    </div>
+    <div class="ale-foot">
+      <p class="ale-msg" id="aleMsg" role="status" aria-live="polite"></p>
+      <div class="ale-actions">
+        <button type="button" class="ale-btn-ghost" id="aleTestBtn" onclick="aleSendTest()">Send test to me</button>
+        <button type="button" class="ale-btn-ghost" onclick="closeModal('aleModal')">Cancel</button>
+        <button type="button" class="ale-send-btn" id="aleConfirmBtn" onclick="aleConfirm()">Confirm</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -15299,15 +15373,16 @@ function adminAuditFormsSummaryQuery() {
 async function loadRequests() {
   var tbody = document.getElementById('requestsBody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">Loading…</td></tr>';
   var data = await apiCall('GET', '/api/admin/audit-requests/summary' + adminAuditFormsSummaryQuery());
   if (!data || data.error || !Array.isArray(data.rows)) {
     _arPayload = null;
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#e05050;padding:24px">' +
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#e05050;padding:24px">' +
       escapeHtml(String((data && data.error) || 'Could not load audit forms.')) + '</td></tr>';
     return;
   }
   _arPayload = data;
+  alePruneSelection(data.rows);
   _scTz = data.timezone || _scTz;
   var s = data.summary || {};
   var setStat = function(id, v) { var e = document.getElementById(id); if (e) e.textContent = (v == null ? '—' : String(v)); };
@@ -15328,7 +15403,7 @@ async function loadRequests() {
 
   var rows = data.rows;
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:24px">No audit forms match your filters.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--muted);padding:24px">No audit forms match your filters.</td></tr>';
     return;
   }
   tbody.innerHTML = rows.map(function(r) {
@@ -15343,16 +15418,221 @@ async function loadRequests() {
         ' data-open-kind="intake" data-open-id="' + adminAttrId(r.key || '') + '"' +
         ' data-sc-email="' + adminAttrId(r.email || '') + '"' +
         ' data-sc-audit="' + adminAttrId(r.last_checkin_id || '') + '">' +
+      '<td data-label="Select" class="ale-td-sel" onclick="event.stopPropagation()">' + aleSelectCell(r) + '</td>' +
       '<td data-label="Name">' + escapeHtml(r.name || '—') +
         (r.stage ? '<span class="sc-cell-sub">' + escapeHtml(bbStageLabel(r.stage)) + '</span>' : '') + '</td>' +
       '<td data-label="Email">' + escapeHtml(r.email || '—') + '</td>' +
       '<td data-label="Last Submitted">' + escapeHtml(scFmtDateTime(r.last_submitted_at)) + repeat + '</td>' +
       '<td data-label="Submissions">' + (r.total_checkins || 0) + '</td>' +
       '<td data-label="Part-2">' + p2 + '</td>' +
+      '<td data-label="Emails">' + aleStatusCell(r) + '</td>' +
       '<td data-label="Actions" class="btn-view-cell">' +
         '<button type="button" class="action-btn btn-view sc-hist-btn" onclick="event.stopPropagation();viewIntakeHistoryEl(this)">View History</button>' +
       '</td></tr>';
   }).join('');
+  aleRefreshBar();
+}
+
+// ============ AUDIT LEAD EMAIL SEQUENCE ============
+// "Send welcome email" queues Email 1 for the ticked leads (server side, dry run first
+// so the admin sees who is skipped and why). The server job sends in batches and the
+// two follow ups stop by themselves when the lead replies, signs up or unsubscribes.
+var _aleSel = new Set();
+var _aleCtx = null;
+
+function aleSelectCell(r) {
+  var id = r && r.last_checkin_id;
+  if (!id) return '';
+  return '<input type="checkbox" class="ale-sel" data-ale-id="' + adminAttrId(id) + '"' +
+    ' aria-label="Select ' + adminAttrId(r.name || r.email || 'lead') + '"' +
+    (_aleSel.has(String(id)) ? ' checked' : '') + ' onchange="aleToggle(this)">';
+}
+
+function aleStatusCell(r) {
+  var st = r && r.email_seq_status;
+  if (!st) return '<span class="ale-none">Not sent</span>';
+  var step = Number(r.email_seq_step) || 0;
+  var map = {
+    completed: ['Completed', 'sc-badge--submitted'],
+    stopped_replied: ['Replied', 'sc-badge--submitted'],
+    stopped_signed_up: ['Signed up', 'sc-badge--submitted'],
+    stopped_unsubscribed: ['Unsubscribed', 'sc-badge--never'],
+    stopped_manual: ['Stopped', 'sc-badge--never'],
+    failed: ['Failed', 'sc-badge--pending']
+  };
+  var m = st === 'active' ? [step ? 'Email ' + step + ' sent' : 'Queued', 'sc-badge--gold'] : (map[st] || [st, 'sc-badge--never']);
+  var tip = r.email_seq_reason || '';
+  if (st === 'active' && r.email_seq_next_at) tip = 'Next email ' + scFmtDateTime(r.email_seq_next_at);
+  var html = '<span class="sc-badge ' + m[1] + '"' + (tip ? ' title="' + adminAttrId(tip) + '"' : '') + '>' + escapeHtml(m[0]) + '</span>';
+  if (st === 'active' && r.email_seq_id) {
+    var sid = adminAttrId(r.email_seq_id);
+    html += '<span class="ale-row-acts">' +
+      '<button type="button" class="ale-mini" data-ale-seq="' + sid + '" onclick="event.stopPropagation();aleStopEl(this,\'replied\')">Mark replied</button>' +
+      '<button type="button" class="ale-mini" data-ale-seq="' + sid + '" onclick="event.stopPropagation();aleStopEl(this,\'manual\')">Stop</button>' +
+      '</span>';
+  }
+  return html;
+}
+
+function alePruneSelection(rows) {
+  var live = new Set((rows || []).map(function(r) { return String(r.last_checkin_id || ''); }));
+  _aleSel.forEach(function(id) { if (!live.has(id)) _aleSel.delete(id); });
+}
+
+function aleToggle(el) {
+  var id = el && el.getAttribute('data-ale-id');
+  if (!id) return;
+  if (el.checked) _aleSel.add(id); else _aleSel.delete(id);
+  aleRefreshBar();
+}
+
+function aleToggleAll(el) {
+  var boxes = document.querySelectorAll('#requestsBody .ale-sel');
+  boxes.forEach(function(b) {
+    b.checked = !!el.checked;
+    var id = b.getAttribute('data-ale-id');
+    if (!id) return;
+    if (el.checked) _aleSel.add(id); else _aleSel.delete(id);
+  });
+  aleRefreshBar();
+}
+
+function aleRefreshBar() {
+  var n = _aleSel.size;
+  var btn = document.getElementById('aleSendBtn');
+  if (btn) {
+    btn.disabled = n === 0;
+    btn.textContent = n ? 'Send welcome email (' + n + ')' : 'Send welcome email';
+  }
+  var all = document.getElementById('aleSelAll');
+  if (all) {
+    var boxes = document.querySelectorAll('#requestsBody .ale-sel');
+    var on = 0;
+    boxes.forEach(function(b) { if (b.checked) on++; });
+    all.checked = boxes.length > 0 && on === boxes.length;
+    all.indeterminate = on > 0 && on < boxes.length;
+  }
+}
+
+function aleMsg(text, kind) {
+  var el = document.getElementById('aleMsg');
+  if (!el) return;
+  el.textContent = text || '';
+  el.className = 'ale-msg' + (kind ? ' is-' + kind : '');
+}
+
+function aleFrameHtml(html) {
+  // Links in the preview open in a new tab instead of inside the sandboxed frame.
+  return String(html || '').replace(/<head>/i, '<head><base target="_blank">');
+}
+
+async function aleOpenWelcome() {
+  var ids = Array.from(_aleSel);
+  if (!ids.length) return;
+  if (ids.length > 200) { showPopup('Too many selected', 'Select at most 200 leads at a time.', '', 'OK', null, 'error'); return; }
+  var btn = document.getElementById('aleSendBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
+  var d = await apiCall('POST', '/api/admin/audit-requests/email-sequence', { ids: ids, dryRun: true });
+  aleRefreshBar();
+  if (!d || d.error) { showPopup('Welcome email', String((d && d.error) || 'Could not prepare the emails.'), '', 'OK', null, 'error'); return; }
+  _aleCtx = { ids: ids, preview: d.preview || null, cache: {}, step: 1 };
+  if (d.preview) _aleCtx.cache[1] = { subject: d.preview.subject, html: d.preview.html };
+  var skipped = d.skipped || [];
+  var sum = document.getElementById('aleSum');
+  if (sum) sum.innerHTML =
+    '<span class="sc-badge sc-badge--gold">' + d.queued + ' will be queued</span>' +
+    (skipped.length ? '<span class="sc-badge sc-badge--never">' + skipped.length + ' skipped</span>' : '');
+  var note = document.getElementById('aleNote');
+  if (note) {
+    note.className = 'ale-note' + (d.enabled === false ? ' ale-note--warn' : '');
+    note.textContent = d.enabled === false
+      ? 'Sending is paused on the server (AUDIT_LEAD_EMAILS_ENABLED=false). Leads will be queued and go out once it is switched back on.'
+      : 'Emails go out from the server in small batches every 5 minutes, between 08:00 and 21:00 IST. Email 2 follows after 24 hours and Email 3 on day 3.';
+  }
+  var sk = document.getElementById('aleSkips');
+  if (sk) {
+    sk.innerHTML = skipped.length
+      ? '<details class="ale-skips"' + (skipped.length <= 5 ? ' open' : '') + '><summary>Why ' + skipped.length + ' ' + (skipped.length === 1 ? 'lead is' : 'leads are') + ' skipped</summary><ul>' +
+        skipped.map(function(s) { return '<li><b>' + escapeHtml(s.email || s.id) + '</b>: ' + escapeHtml(s.reason) + '</li>'; }).join('') + '</ul></details>'
+      : '';
+  }
+  var cb = document.getElementById('aleConfirmBtn');
+  if (cb) { cb.disabled = !d.queued; cb.textContent = d.queued ? 'Confirm and queue ' + d.queued : 'Nothing to send'; }
+  aleMsg('');
+  openModal('aleModal');
+  aleShowStep(1);
+}
+
+async function aleShowStep(step) {
+  if (!_aleCtx) return;
+  _aleCtx.step = step;
+  document.querySelectorAll('#aleModal .ale-tab').forEach(function(t) {
+    var on = Number(t.getAttribute('data-ale-step')) === step;
+    t.classList.toggle('is-on', on);
+    t.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  var frame = document.getElementById('aleFrame');
+  var subj = document.getElementById('aleSubject');
+  var leadId = _aleCtx.preview && _aleCtx.preview.audit_request_id;
+  if (!leadId) { if (subj) subj.textContent = ''; if (frame) frame.srcdoc = ''; return; }
+  var r = _aleCtx.cache[step];
+  if (!r) {
+    if (subj) subj.textContent = 'Loading preview…';
+    var d = await apiCall('GET', '/api/admin/audit-requests/email-preview?id=' + encodeURIComponent(leadId) + '&step=' + step);
+    if (!d || d.error) { if (subj) subj.textContent = String((d && d.error) || 'Could not load the preview.'); return; }
+    r = _aleCtx.cache[step] = { subject: d.subject, html: d.html };
+  }
+  if (!_aleCtx || _aleCtx.step !== step) return;
+  if (subj) subj.innerHTML = '<span>Subject:</span> ' + escapeHtml(r.subject) + (_aleCtx.preview.email ? ' <span>&middot; preview for ' + escapeHtml(_aleCtx.preview.email) + '</span>' : '');
+  if (frame) frame.srcdoc = aleFrameHtml(r.html);
+}
+
+async function aleSendTest() {
+  if (!_aleCtx) return;
+  var btn = document.getElementById('aleTestBtn');
+  if (btn) btn.disabled = true;
+  aleMsg('Sending a test of Email ' + _aleCtx.step + '…');
+  var d = await apiCall('POST', '/api/admin/audit-requests/email-test', {
+    step: _aleCtx.step,
+    id: _aleCtx.preview ? _aleCtx.preview.audit_request_id : undefined
+  });
+  if (btn) btn.disabled = false;
+  if (!d || d.error) { aleMsg(String((d && d.error) || 'Test send failed.'), 'err'); return; }
+  aleMsg('Test of Email ' + d.step + ' sent to ' + d.to + '.', 'ok');
+}
+
+async function aleConfirm() {
+  if (!_aleCtx || !_aleCtx.ids.length) return;
+  var btn = document.getElementById('aleConfirmBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Queueing…'; }
+  var d = await apiCall('POST', '/api/admin/audit-requests/email-sequence', { ids: _aleCtx.ids });
+  if (!d || d.error) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Try again'; }
+    aleMsg(String((d && d.error) || 'Could not queue the emails.'), 'err');
+    return;
+  }
+  closeModal('aleModal');
+  _aleSel.clear();
+  _aleCtx = null;
+  await loadRequests();
+  var skippedN = (d.skipped || []).length;
+  showPopup('Welcome email queued',
+    d.queued + ' ' + (d.queued === 1 ? 'lead is' : 'leads are') + ' queued' + (skippedN ? ', ' + skippedN + ' skipped' : '') +
+    '. The first batch goes out within 5 minutes' + (d.next_send_at && new Date(d.next_send_at) - Date.now() > 10 * 60000 ? ' of ' + scFmtDateTime(d.next_send_at) : '') + '.',
+    '', 'OK');
+}
+
+async function aleStopEl(el, reason) {
+  var id = el && el.getAttribute('data-ale-seq');
+  if (!id) return;
+  var ok = confirm(reason === 'replied'
+    ? 'Mark this lead as replied? No more follow up emails will go out.'
+    : 'Stop the follow up emails for this lead?');
+  if (!ok) return;
+  el.disabled = true;
+  var d = await apiCall('POST', '/api/admin/audit-requests/email-sequence/' + encodeURIComponent(id) + '/stop', { reason: reason });
+  if (!d || d.error) { el.disabled = false; showPopup('Welcome email', String((d && d.error) || 'Could not stop the emails.'), '', 'OK', null, 'error'); return; }
+  loadRequests();
 }
 
 // Reuse the leads pipeline's own stage labels so "new_audit" never leaks to the screen.
