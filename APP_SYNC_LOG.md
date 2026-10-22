@@ -36,6 +36,18 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
+**RELEASE PREPARED 2026-10-22: Android 1.8.12 (versionCode 122), iOS 1.0.15.** Web `296aae7` →
+mobile `c16065f` (pushed; both Codemagic workflows are manual-start, so nothing ran).
+
+- **Adds the launch loader:** after the native splash, an identical web screen (`img/splash/boot-splash.webp`)
+  with a gold progress bar and status line (Starting, Signing you in, Loading your day, Ready). It follows
+  real milestones and only fills when the member home is drawn; 9 s cap. App only (`html.bb-in-app`).
+- **Mobile shell:** `bb-app-config.js` hides the native splash at DOMContentLoaded when `#bbBoot` is on the
+  page, so the bar covers the start-up; other pages keep the old `load` timing.
+- **Android:** AAB 122 / 1.8.12, 12 permissions (unchanged), "jar verified", loader image in the bundle.
+  Upload `../bodybank-app/android/app/build/outputs/bundle/release/app-release.aab` to Play.
+- **iOS:** strip check passed, `MARKETING_VERSION` 1.0.15. Start `ios-appstore` in Codemagic by hand.
+
 **RELEASE PREPARED 2026-10-22: Android 1.8.11 (versionCode 121), iOS 1.0.14.** Web `f668429` →
 mobile `b2b767d` (pushed; both Codemagic workflows are manual-start, so nothing ran).
 
