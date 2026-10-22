@@ -36,6 +36,23 @@ Before every mobile release:
 ---
 ## Pending sync — next mobile release
 
+**RELEASE PREPARED 2026-10-22: Android 1.8.10 (versionCode 120), iOS 1.0.13.** Web `df3126b` →
+mobile `c57c4fb` (pushed; both Codemagic workflows are manual-start, so nothing ran).
+
+- **Adds:** Profile redesign; change password and Devices (log out one / others / everywhere);
+  calorie balance card on the nutrition check-in; Coach Mode member redesign. Also carries web
+  `54fb17c` email images (`www/img/email`).
+- **Backend:** live via Render (`/api/me/sessions` answers 401 without a token). Every request is now
+  checked against `user_sessions`; tokens from older builds are adopted, so no one was logged out.
+  Older app builds work unchanged; only these builds send `X-BB-Client` for device labels.
+- **Android:** AAB built locally, merged release manifest reads 120 / 1.8.10, permission set
+  unchanged, `jarsigner` says "jar verified". It is at
+  `../bodybank-app/android/app/build/outputs/bundle/release/app-release.aab`. Upload it to Play.
+- **iOS:** `npm run sync:ios` strip check passed and `MARKETING_VERSION` is 1.0.13. Start
+  `ios-appstore` in Codemagic by hand and set the App Store Connect version to 1.0.13.
+- **After both are live:** raise the App Version latest to Android 1.8.10 / iOS 1.0.13 so the update
+  alert prompts older builds.
+
 **RELEASE PREPARED 2026-10-16: Android 1.8.9 (versionCode 119), iOS 1.0.12.** Web `871401e` →
 mobile `c9109e9` (pushed; both Codemagic workflows are manual-start, so nothing ran).
 
