@@ -3382,7 +3382,14 @@ app.post('/api/audit', rateLimiter(5, 60000), async (req, res) => {
     if (!auditNotifyResult || !auditNotifyResult.ok) {
       console.error('[audit] WhatsApp send ultimately failed for:', b.email, auditNotifyResult);
     }
-    userEmail.emailAuditReceived(String(b.email).trim(), b.first_name);
+    // The welcome email (Email 1 of the audit lead sequence) goes out right now, in the
+    // background so the form answers instantly. When it can't (already a member,
+    // unsubscribed, a repeat submission, sending switched off) the plain receipt goes
+    // instead, so the lead always gets exactly one email.
+    const auditEmail = String(b.email).trim();
+    auditLeadEmailEngine.autoWelcome(id)
+      .then((r) => { if (!r || !r.sent) userEmail.emailAuditReceived(auditEmail, b.first_name); })
+      .catch((e) => { console.warn('[auditLeadEmails] auto welcome:', e.message); userEmail.emailAuditReceived(auditEmail, b.first_name); });
     res.json({ id, message: 'Request submitted successfully' });
   } catch (e) {
     res.status(500).json({ error: 'Submission failed' });

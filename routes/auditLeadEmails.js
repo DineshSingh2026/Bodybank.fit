@@ -22,6 +22,7 @@
 const L = require('../services/auditLeadEmails');
 
 const NOT_CONFIGURED = 'Email is not configured (SMTP_HOST, SMTP_USER, SMTP_PASS)';
+const SEND_INLINE = 10;
 
 function pageHtml(title, message, opts) {
   const o = opts || {};
@@ -72,9 +73,28 @@ function registerAuditLeadEmailRoutes(app, deps) {
       if (!Array.isArray(b.ids) || !b.ids.length) return res.status(400).json({ error: 'Select at least one lead' });
       if (b.ids.length > engine.MAX_QUEUE_IDS) return res.status(400).json({ error: `Select at most ${engine.MAX_QUEUE_IDS} leads at a time` });
       if (!isConfigured()) return res.status(503).json({ error: NOT_CONFIGURED });
-      const out = await engine.queue({ ids: b.ids, dryRun: b.dryRun === true, startedBy: (req.user && (req.user.email || req.user.id)) || '' });
+      const dry = b.dryRun === true;
+      const out = await engine.queue({ ids: b.ids, dryRun: dry, immediate: !dry, startedBy: (req.user && (req.user.email || req.user.id)) || '' });
       const c = engine.config();
       out.enabled = c.enabled;
+      if (!dry && out.sequence_ids && out.sequence_ids.length) {
+        // Email 1 goes out now. The first SEND_INLINE are sent before we answer, so the
+        // admin sees real results; a bigger selection carries on in the background
+        // straight away (with a short gap, kind to Gmail), not on the 5 minute job.
+        const inline = out.sequence_ids.slice(0, SEND_INLINE);
+        const rest = out.sequence_ids.slice(SEND_INLINE);
+        const r = await engine.sendNow(inline, { gapMs: 300 });
+        out.sent = r.sent;
+        out.failed = r.failed;
+        out.stopped = r.stopped;
+        out.waiting = r.waiting;
+        out.reason = r.reason || null;
+        out.sending = rest.length;
+        if (rest.length) {
+          engine.sendNow(rest, { gapMs: 1500 })
+            .catch((e) => console.warn('[auditLeadEmails] background send:', e.message));
+        }
+      }
       res.json(out);
     } catch (e) {
       if (e && e.status) return res.status(e.status).json({ error: e.message });

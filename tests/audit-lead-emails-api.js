@@ -22,7 +22,9 @@
  *  - one log row per email and step even when a sequence is rewound, and two
  *    instances running at the same moment never double send;
  *  - a failed send is retried once, then the sequence is failed;
- *  - quiet hours: queued at 22:00 IST → due 09:00 IST, and nothing sends at night;
+ *  - Email 1 sends immediately (admin send and on submit, even at night); follow ups and
+ *    queued starts respect quiet hours: due 09:00 IST, and the job sends nothing at night;
+ *  - on submit: one welcome per email, none for members, switches and daily cap respected;
  *  - daily cap and AUDIT_LEAD_EMAILS_ENABLED=false stop the job;
  *  - preview and test send work, and a test send to a non staff address is 403.
  */
@@ -192,19 +194,19 @@ async function main() {
 
     // ── queue for real ──────────────────────────────────────────────────────
     r = await call(B, 'POST', '/api/admin/audit-requests/email-sequence', tokAdmin, { ids: all });
-    eq(r.data.queued, 2, 'queued A and B');
+    eq([r.data.queued, r.data.sent, r.data.failed], [2, 2, 0], 'A and B queued and sent at once');
     const seqCount = await queryOne('SELECT COUNT(*)::int AS n FROM audit_lead_email_sequences WHERE email_norm = ?', [mail('a')]);
     eq(seqCount.n, 1, 'one sequence for two rows with the same email');
     const sA = await seqFor(mail('a'));
-    eq([sA.status, sA.next_step, sA.audit_request_id, sA.started_by], ['active', 1, idA1, mail('admin')], 'sequence row');
-    eq(outbox.length, 0, 'the admin action itself sends nothing');
+    eq([sA.status, sA.next_step, sA.audit_request_id, sA.started_by], ['active', 2, idA1, mail('admin')], 'sequence row: Email 1 already sent, on to step 2');
+    eq(sentTo(mail('a')).length + sentTo(mail('b')).length, 2, 'Email 1 already sent when the admin request answers');
     r = await call(B, 'POST', '/api/admin/audit-requests/email-sequence', tokAdmin, { ids: [idA2, idB] });
     eq(r.data.queued, 0, 'second queue → nothing new');
     assert((r.data.skipped || []).every((s) => s.reason === 'Already in sequence'), 'second queue → Already in sequence');
 
     // ── job: Email 1 ────────────────────────────────────────────────────────
     let out = await A.engine.runDue();
-    eq([out.ran, out.sent], [true, 2], 'run sends Email 1 to A and B');
+    eq(out.claimed, 0, 'nothing left for the job: Email 1 went out immediately');
     const a1 = sentTo(mail('a'));
     eq(a1.length, 1, 'A got exactly one email');
     const m1 = a1[0];
@@ -257,9 +259,7 @@ async function main() {
     const idD = await addLead('d', { first_name: 'Arjun', email: mail('d') });
     const idE = await addLead('e', { first_name: 'Kiran', email: mail('e') });
     r = await call(B, 'POST', '/api/admin/audit-requests/email-sequence', tokAdmin, { ids: [idC, idD, idE] });
-    eq(r.data.queued, 3, 'queued C, D, E');
-    out = await A.engine.runDue();
-    eq(out.sent, 3, 'Email 1 to C, D, E');
+    eq([r.data.queued, r.data.sent], [3, 3], 'Email 1 to C, D, E at once');
     await run("UPDATE audit_requests SET stage = 'contacted' WHERE id = ?", [idC]);
 
     // ── Mark replied ────────────────────────────────────────────────────────
@@ -296,11 +296,10 @@ async function main() {
     // ── retry once, then fail ───────────────────────────────────────────────
     const idF = await addLead('f', { first_name: 'Farah', email: mail('f') });
     const idG = await addLead('g', { first_name: 'Gopal', email: mail('g') });
-    await call(B, 'POST', '/api/admin/audit-requests/email-sequence', tokAdmin, { ids: [idF, idG] });
     failPlan.set(mail('f'), 1);
     failPlan.set(mail('g'), 5);
-    out = await A.engine.runDue();
-    eq(out.failed, 2, 'first attempt fails for F and G');
+    r = await call(B, 'POST', '/api/admin/audit-requests/email-sequence', tokAdmin, { ids: [idF, idG] });
+    eq([r.data.sent, r.data.failed], [0, 2], 'immediate send: first attempt fails for F and G');
     eq((await logFor(mail('f')))[0].status, 'failed', 'F log failed');
     eq((await seqFor(mail('f'))).status, 'active', 'F still active after one failure');
     clock = new Date(clock.getTime() + 31 * 60000);
@@ -316,7 +315,7 @@ async function main() {
     // ── two instances at once ───────────────────────────────────────────────
     const ids = [];
     for (let i = 0; i < 6; i++) ids.push(await addLead('par' + i, { first_name: 'Par', email: mail('par' + i) }));
-    await call(B, 'POST', '/api/admin/audit-requests/email-sequence', tokAdmin, { ids });
+    await A.engine.queue({ ids, startedBy: 'test' }); // queued (not immediate): the job sends
     const other = makeEngine();
     const before = outbox.length;
     await Promise.all([A.engine.runDue(), other.runDue(), makeEngine().runDue()]);
@@ -328,20 +327,24 @@ async function main() {
     clock = IST(25, 22, 0);
     const idQ = await addLead('q', { first_name: 'Quinn', email: mail('q') });
     r = await call(B, 'POST', '/api/admin/audit-requests/email-sequence', tokAdmin, { ids: [idQ] });
-    eq(r.data.next_send_at, IST(26, 9).toISOString(), 'queued at 22:00 IST → due 09:00 IST');
+    eq(r.data.sent, 1, 'admin send at 22:00 IST goes out at once (the lead is waiting for it)');
+    eq(new Date((await seqFor(mail('q'))).next_send_at).toISOString(), IST(27, 9).toISOString(), 'follow up still respects quiet hours: 22:00 + 24h → 09:00 IST');
+    const idQ2 = await addLead('q2', { first_name: 'Quill', email: mail('q2') });
+    const q2 = await A.engine.queue({ ids: [idQ2], startedBy: 'test' });
+    eq(q2.next_send_at, IST(26, 9).toISOString(), 'a queued (not immediate) start at 22:00 IST is due 09:00 IST');
     out = await A.engine.runDue();
     eq([out.ran, out.reason], [false, 'quiet_hours'], 'nothing runs at 22:00 IST');
-    await run('UPDATE audit_lead_email_sequences SET next_send_at = ? WHERE email_norm = ?', [IST(25, 12), mail('q')]);
+    await run('UPDATE audit_lead_email_sequences SET next_send_at = ? WHERE email_norm = ?', [IST(25, 12), mail('q2')]);
     clock = IST(26, 7, 55);
     out = await A.engine.runDue();
     eq(out.reason, 'quiet_hours', 'overdue sequences still wait until 08:00 IST');
     clock = IST(26, 8, 0);
     out = await A.engine.runDue();
-    eq(sentTo(mail('q')).length, 1, 'sent at 08:00 IST');
+    eq(sentTo(mail('q2')).length, 1, 'queued one sent at 08:00 IST');
 
     // ── daily cap and the enabled flag ──────────────────────────────────────
     const idCap = await addLead('cap', { first_name: 'Cap', email: mail('cap') });
-    await call(B, 'POST', '/api/admin/audit-requests/email-sequence', tokAdmin, { ids: [idCap] });
+    await A.engine.queue({ ids: [idCap], startedBy: 'test' });
     const sentToday = await queryOne("SELECT COUNT(*)::int AS n FROM audit_lead_email_log WHERE status IN ('sent','sending') AND sent_at >= ?", [L.startOfIstDay(now())]);
     out = await makeEngine({ LEAD_EMAIL_DAILY_CAP: String(sentToday.n) }).runDue();
     eq([out.ran, out.reason], [false, 'daily_cap'], 'daily cap reached → nothing sent');
@@ -349,6 +352,33 @@ async function main() {
     eq([out.ran, out.reason], [false, 'disabled'], 'AUDIT_LEAD_EMAILS_ENABLED=false → job does nothing');
     eq(sentTo(mail('cap')).length, 0, 'capped lead still waiting');
     eq((await seqFor(mail('cap'))).status, 'active', 'capped lead stays due');
+
+    // ── on submit: Email 1 right away ───────────────────────────────────────
+    clock = IST(26, 23, 30);
+    const idW = await addLead('w', { first_name: 'wanda', email: mail('w'), goals: 'Muscle gain' });
+    let aw = await A.engine.autoWelcome(idW);
+    eq(aw, { sent: true }, 'audit submitted at 23:30 IST: Email 1 sent at once');
+    eq(sentTo(mail('w')).length, 1, 'W got Email 1');
+    eq(sentTo(mail('w'))[0].subject, 'Wanda, your BodyBank audit is in. Here is what happens next', 'auto Email 1 subject');
+    const sW = await seqFor(mail('w'));
+    eq([sW.started_by, sW.next_step, new Date(sW.next_send_at).toISOString()], ['auto:audit_submit', 2, IST(28, 9).toISOString()], 'auto sequence: Email 2 due next window after 24h');
+    const idW2 = await addLead('w2', { first_name: 'Wanda', email: mail('w').toUpperCase() });
+    aw = await A.engine.autoWelcome(idW2);
+    eq(aw, { sent: false, reason: 'Already in sequence' }, 'repeat submission: no second welcome');
+    eq(sentTo(mail('w')).length, 1, 'still one email for W');
+    const idX = await addLead('x', { first_name: 'Has', email: mail('hasuser') });
+    aw = await A.engine.autoWelcome(idX);
+    eq(aw, { sent: false, reason: 'Already signed up' }, 'existing member: no welcome (caller sends the plain receipt)');
+    const idY = await addLead('y', { first_name: 'Yan', email: mail('y') });
+    aw = await makeEngine({ AUDIT_LEAD_AUTO_SEND: 'false' }).autoWelcome(idY);
+    eq(aw, { sent: false, reason: 'auto_send_off' }, 'AUDIT_LEAD_AUTO_SEND=false: nothing sent');
+    eq(await seqFor(mail('y')), null, 'auto send off: no sequence started');
+    aw = await makeEngine({ AUDIT_LEAD_EMAILS_ENABLED: 'false' }).autoWelcome(idY);
+    eq(aw, { sent: false, reason: 'disabled' }, 'emails paused: nothing sent');
+    const idZ = await addLead('z', { first_name: 'Zed', email: mail('z') });
+    aw = await makeEngine({ LEAD_EMAIL_DAILY_CAP: '0' }).autoWelcome(idZ);
+    eq(aw, { sent: false, reason: 'daily_cap' }, 'daily cap reached: not sent now');
+    eq((await seqFor(mail('z'))).status, 'active', 'capped auto welcome stays due for the job');
 
     // ── list, preview, test send ────────────────────────────────────────────
     r = await call(B, 'GET', '/api/admin/audit-requests/email-sequence?status=completed', tokAdmin);

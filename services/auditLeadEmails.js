@@ -53,8 +53,11 @@ function configFromEnv(env) {
   const e = env || process.env;
   const smtpUser = String(e.SMTP_USER || '').trim();
   const enabledRaw = String(e.AUDIT_LEAD_EMAILS_ENABLED == null ? '' : e.AUDIT_LEAD_EMAILS_ENABLED).trim().toLowerCase();
+  const autoRaw = String(e.AUDIT_LEAD_AUTO_SEND == null ? '' : e.AUDIT_LEAD_AUTO_SEND).trim().toLowerCase();
   return {
     enabled: !['false', '0', 'off', 'no'].includes(enabledRaw),
+    // Email 1 goes out the moment an audit is submitted (default on).
+    autoSend: !['false', '0', 'off', 'no'].includes(autoRaw),
     whatsappNumber: String(e.LEAD_WHATSAPP_NUMBER || '').replace(/\D/g, '') || DEFAULT_WHATSAPP_NUMBER,
     cc: String(e.LEAD_EMAIL_CC == null ? DEFAULT_CC : e.LEAD_EMAIL_CC).trim(),
     replyTo: String(e.LEAD_EMAIL_REPLY_TO || '').trim() || smtpUser,

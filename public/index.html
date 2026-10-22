@@ -9424,7 +9424,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       </div>
       <div class="ale-bar" id="aleBar">
         <button type="button" class="ale-send-btn" id="aleSendBtn" onclick="aleOpenWelcome()" disabled>Send welcome email</button>
-        <span class="ale-bar-hint">Tick leads to send the audit welcome email. Two follow ups go out automatically after 24 hours and on day 3, and stop when the lead replies, signs up or unsubscribes.</span>
+        <span class="ale-bar-hint">New audits get the welcome email the moment they submit. Tick leads to send it now by hand. Two follow ups go out after 24 hours and on day 3, and stop when the lead replies, signs up or unsubscribes.</span>
       </div>
       <div class="admin-table-wrap"><table class="admin-table admin-list-table sc-status-table">
         <thead>
@@ -15917,7 +15917,7 @@ async function aleOpenWelcome() {
     note.className = 'ale-note' + (d.enabled === false ? ' ale-note--warn' : '');
     note.textContent = d.enabled === false
       ? 'Sending is paused on the server (AUDIT_LEAD_EMAILS_ENABLED=false). Leads will be queued and go out once it is switched back on.'
-      : 'Emails go out from the server in small batches every 5 minutes, between 08:00 and 21:00 IST. Email 2 follows after 24 hours and Email 3 on day 3.';
+      : 'Email 1 is sent the moment you confirm. Email 2 follows after 24 hours and Email 3 on day 3 (sent between 08:00 and 21:00 IST).';
   }
   var sk = document.getElementById('aleSkips');
   if (sk) {
@@ -15927,7 +15927,7 @@ async function aleOpenWelcome() {
       : '';
   }
   var cb = document.getElementById('aleConfirmBtn');
-  if (cb) { cb.disabled = !d.queued; cb.textContent = d.queued ? 'Confirm and queue ' + d.queued : 'Nothing to send'; }
+  if (cb) { cb.disabled = !d.queued; cb.textContent = d.queued ? 'Send now to ' + d.queued + (d.queued === 1 ? ' lead' : ' leads') : 'Nothing to send'; }
   aleMsg('');
   openModal('aleModal');
   aleShowStep(1);
@@ -15974,7 +15974,7 @@ async function aleSendTest() {
 async function aleConfirm() {
   if (!_aleCtx || !_aleCtx.ids.length) return;
   var btn = document.getElementById('aleConfirmBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Queueing…'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Sending…'; }
   var d = await apiCall('POST', '/api/admin/audit-requests/email-sequence', { ids: _aleCtx.ids });
   if (!d || d.error) {
     if (btn) { btn.disabled = false; btn.textContent = 'Try again'; }
@@ -15986,10 +15986,16 @@ async function aleConfirm() {
   _aleCtx = null;
   await loadRequests();
   var skippedN = (d.skipped || []).length;
-  showPopup('Welcome email queued',
-    d.queued + ' ' + (d.queued === 1 ? 'lead is' : 'leads are') + ' queued' + (skippedN ? ', ' + skippedN + ' skipped' : '') +
-    '. The first batch goes out within 5 minutes' + (d.next_send_at && new Date(d.next_send_at) - Date.now() > 10 * 60000 ? ' of ' + scFmtDateTime(d.next_send_at) : '') + '.',
-    '', 'OK');
+  var sentN = Number(d.sent) || 0, failN = Number(d.failed) || 0, laterN = (Number(d.sending) || 0), waitN = Number(d.waiting) || 0, stopN = Number(d.stopped) || 0;
+  var parts = [];
+  if (sentN) parts.push('Sent to ' + sentN + (sentN === 1 ? ' lead' : ' leads') + '.');
+  if (laterN) parts.push(laterN + ' more ' + (laterN === 1 ? 'is' : 'are') + ' sending now.');
+  if (waitN) parts.push(waitN + ' will go out ' + (d.reason === 'daily_cap' ? 'tomorrow (daily limit reached)' : d.reason === 'disabled' ? 'when sending is switched back on' : 'shortly') + '.');
+  if (failN) parts.push(failN + ' could not be sent and will be retried in 30 minutes.');
+  if (stopN) parts.push(stopN + ' stopped (already contacted, signed up or unsubscribed).');
+  if (skippedN) parts.push(skippedN + ' skipped.');
+  var allGood = sentN && !failN && !waitN;
+  showPopup(allGood || laterN ? 'Welcome email sent' : 'Welcome email', parts.join(' ') || 'Nothing was sent.', '', 'OK', null, failN && !sentN ? 'error' : undefined);
 }
 
 async function aleStopEl(el, reason) {

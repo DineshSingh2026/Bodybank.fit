@@ -148,7 +148,7 @@ function createAuditLeadEmailSequence(deps) {
   }
 
   // ── admin: queue Email 1 ──────────────────────────────────────────────────
-  async function queue({ ids, dryRun, startedBy } = {}) {
+  async function queue({ ids, dryRun, startedBy, immediate } = {}) {
     const wanted = Array.from(new Set((Array.isArray(ids) ? ids : []).map((x) => String(x || '').trim()).filter(Boolean)));
     if (wanted.length > MAX_QUEUE_IDS) throw Object.assign(new Error(`Select at most ${MAX_QUEUE_IDS} leads at a time`), { status: 400 });
     const rows = wanted.length
@@ -189,7 +189,9 @@ function createAuditLeadEmailSequence(deps) {
     }
 
     const t = now();
-    const sendAt = L.applyQuietHours(t);
+    // Sent right away (immediate) waits for nothing; a queued send respects quiet hours.
+    const sendAt = immediate ? t : L.applyQuietHours(t);
+    result.sequence_ids = [];
     for (const a of accepted) {
       const ins = await queryOne(
         `INSERT INTO audit_lead_email_sequences (id, email_norm, audit_request_id, status, next_step, next_send_at, started_by, started_at, updated_at)
@@ -197,7 +199,7 @@ function createAuditLeadEmailSequence(deps) {
          ON CONFLICT (email_norm) DO NOTHING RETURNING id`,
         [crypto.randomUUID(), a.email, a.id, sendAt, String(startedBy || ''), t, t]
       );
-      if (ins) result.queued += 1;
+      if (ins) { result.queued += 1; result.sequence_ids.push(ins.id); }
       else skipped.push({ id: a.id, email: a.row.email || '', reason: 'Already in sequence' });
     }
     result.next_send_at = result.queued ? sendAt.toISOString() : null;
@@ -432,7 +434,57 @@ function createAuditLeadEmailSequence(deps) {
     return e;
   }
 
-  return { queue, runDue, processOne, stop, list, preview, sendTest, unsubscribe, config: cfg, MAX_QUEUE_IDS };
+  /**
+   * Send Email 1 for these sequences now, without waiting for the job. Quiet hours do
+   * not apply (the lead just asked, or an admin pressed send); the enabled flag, SMTP
+   * and the daily cap still do. Each sequence is claimed with the same lease as the
+   * job, so the two can never both send it.
+   * → { sent, failed, stopped, waiting, reason? }  (waiting = left for the job)
+   */
+  async function sendNow(sequenceIds, opts) {
+    const o = opts || {};
+    const ids = (sequenceIds || []).filter(Boolean);
+    const out = { sent: 0, failed: 0, stopped: 0, waiting: 0 };
+    if (!ids.length) return out;
+    const c = cfg();
+    if (!c.enabled) return Object.assign(out, { waiting: ids.length, reason: 'disabled' });
+    if (!isConfigured()) return Object.assign(out, { waiting: ids.length, reason: 'smtp_not_configured' });
+    let room = Math.max(0, c.dailyCap - (await sentTodayCount()));
+    for (let i = 0; i < ids.length; i++) {
+      if (room <= 0) { out.waiting += ids.length - i; out.reason = 'daily_cap'; break; }
+      if (i > 0 && o.gapMs) await sleep(o.gapMs);
+      const t = now();
+      const seq = await queryOne(
+        `UPDATE audit_lead_email_sequences SET next_send_at = ?, updated_at = ?
+          WHERE id = ? AND status = 'active' AND next_step = 1 RETURNING *`,
+        [new Date(t.getTime() + LEASE_MS), t, ids[i]]
+      );
+      if (!seq) continue;
+      let r;
+      try { r = await processOne(seq); } catch (e) { r = 'failed'; log.warn('[auditLeadEmails] send now', ids[i], e.message); }
+      if (r === 'sent') { out.sent += 1; room -= 1; }
+      else if (r === 'stopped') out.stopped += 1;
+      else if (r === 'failed') out.failed += 1;
+    }
+    return out;
+  }
+
+  /**
+   * Called right after an audit is submitted: start the sequence and send Email 1 now.
+   * → { sent: true } or { sent: false, reason } (the caller then sends the plain receipt).
+   */
+  async function autoWelcome(auditId) {
+    const c = cfg();
+    if (!c.autoSend) return { sent: false, reason: 'auto_send_off' };
+    if (!c.enabled) return { sent: false, reason: 'disabled' };
+    if (!isConfigured()) return { sent: false, reason: 'smtp_not_configured' };
+    const q = await queue({ ids: [auditId], startedBy: 'auto:audit_submit', immediate: true });
+    if (!q.queued) return { sent: false, reason: (q.skipped[0] && q.skipped[0].reason) || 'skipped' };
+    const r = await sendNow(q.sequence_ids);
+    return r.sent ? { sent: true } : { sent: false, reason: r.reason || (r.failed ? 'send_failed' : 'not_sent') };
+  }
+
+  return { queue, sendNow, autoWelcome, runDue, processOne, stop, list, preview, sendTest, unsubscribe, config: cfg, MAX_QUEUE_IDS };
 }
 
 /** Every 5 minutes, Asia/Kolkata. The run itself checks the flag, SMTP and quiet hours. */
