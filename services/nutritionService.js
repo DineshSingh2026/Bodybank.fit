@@ -473,17 +473,37 @@ async function getUserRmrProfile(db, userId) {
   };
 }
 
-async function getUserGoals(db, userId) {
-  const row = await db.queryOne(
-    'SELECT target_weight, weekly_workout_target FROM user_goals WHERE user_id = ? ORDER BY created_at DESC LIMIT 1',
-    [userId]
-  );
-  let calorieGoal = DEFAULT_CAL_GOAL;
-  let proteinGoal = DEFAULT_PRO_GOAL;
-  if (row && row.weekly_workout_target != null) {
-    /* optional: nudge goals — keep defaults unless you add columns later */
+// Personal daily calorie target from the member's latest nutrition assessment
+// (derived.calorie_target: Mifflin BMR × activity, adjusted for goal and pace, see
+// public/js/nutrition-assessment-metrics.js). Anything outside a sane range is ignored.
+const CAL_TARGET_MIN = 1000;
+const CAL_TARGET_MAX = 5000;
+
+async function getAssessmentCalorieTarget(db, userId) {
+  try {
+    const row = await db.queryOne(
+      `SELECT derived FROM nutrition_assessments WHERE user_id = ? AND derived IS NOT NULL
+       ORDER BY COALESCE(submitted_at, updated_at, created_at) DESC LIMIT 1`,
+      [userId]
+    );
+    let d = row && row.derived;
+    if (typeof d === 'string') { try { d = JSON.parse(d); } catch { d = null; } }
+    const n = Math.round(Number(d && d.calorie_target));
+    return Number.isFinite(n) && n >= CAL_TARGET_MIN && n <= CAL_TARGET_MAX ? n : null;
+  } catch (_) {
+    // Table missing on an old database: fall back to the default target.
+    return null;
   }
-  return { calorieGoal, proteinGoal };
+}
+
+/** → { calorieGoal, proteinGoal, calorieGoalSource: 'assessment' | 'default' } */
+async function getUserGoals(db, userId) {
+  const personal = await getAssessmentCalorieTarget(db, userId);
+  return {
+    calorieGoal: personal != null ? personal : DEFAULT_CAL_GOAL,
+    proteinGoal: DEFAULT_PRO_GOAL,
+    calorieGoalSource: personal != null ? 'assessment' : 'default'
+  };
 }
 
 function isWorkoutMarkedCompleted(flag) {
@@ -655,7 +675,7 @@ async function recomputeDailyStats(db, userId, ymd) {
     }
   });
   const mealsLogged = (meals || []).length;
-  const { calorieGoal, proteinGoal } = await getUserGoals(db, userId);
+  const { calorieGoal, proteinGoal, calorieGoalSource } = await getUserGoals(db, userId);
   const workoutCaloriesOut = await sumWorkoutCaloriesOut(db, userId, ymd);
   const stepCaloriesOut = await sumStepCaloriesOut(db, userId, ymd);
   const caloriesOut = workoutCaloriesOut + stepCaloriesOut;
@@ -749,6 +769,7 @@ async function recomputeDailyStats(db, userId, ymd) {
     totalFat,
     totalFiber,
     calorieGoal,
+    calorieGoalSource,
     proteinGoal,
     mealsLogged,
     caloriesOut,

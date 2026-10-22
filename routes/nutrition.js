@@ -715,7 +715,7 @@ function createNutritionRouter(deps) {
          FROM nutrition_meal_logs WHERE user_id = ? AND log_date = ?::date ORDER BY meal_type`,
         [uid, d]
       );
-      await recomputeDailyStats(db, uid, d);
+      const fresh = await recomputeDailyStats(db, uid, d);
       const stats = await queryOne(
         'SELECT * FROM nutrition_daily_stats WHERE user_id = ? AND stat_date = ?::date',
         [uid, d]
@@ -736,7 +736,9 @@ function createNutritionRouter(deps) {
         return { ...m, meal_confidence: confidenceFromLogRow(m), download_url };
       });
       const dailyConfidence = summarizeDailyConfidence(mealsWithConfidence.map((m) => m.meal_confidence));
-      res.json({ date: d, userId: uid, meals: mealsWithConfidence, dailyConfidence, dailyStats: stats || null, streak });
+      // calorie_goal_source is not a stored column: 'assessment' (personal target) or 'default'.
+      const dailyStats = stats ? { ...stats, calorie_goal_source: (fresh && fresh.calorieGoalSource) || 'default' } : null;
+      res.json({ date: d, userId: uid, meals: mealsWithConfidence, dailyConfidence, dailyStats, streak });
     } catch (e) {
       console.error('[nutrition get log]', e.message);
       res.status(500).json({ error: e.message });

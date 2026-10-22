@@ -188,6 +188,8 @@ function refreshOperator(btn) {
 }
 
 function logoutOperator() {
+  // End this login on the server (device list) before the token is dropped.
+  if (typeof bbServerLogout === 'function') bbServerLogout();
   if (window._opNotifyInterval) { clearInterval(window._opNotifyInterval); window._opNotifyInterval = null; }
   Object.keys(window._opCharts).forEach(opKillChart);
   if (typeof window.bbRdUnmount === 'function') window.bbRdUnmount('oprd');

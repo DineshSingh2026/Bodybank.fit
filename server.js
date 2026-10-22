@@ -22,7 +22,7 @@ try {
 const webPush = require('web-push');
 let firebaseAdmin = null;
 try { firebaseAdmin = require('firebase-admin'); } catch (_) { firebaseAdmin = null; }
-const { signRenewToken, verifyRenewToken, signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, verifyGoogleIdToken, GOOGLE_IOS_CLIENT_ID, JWT_SECRET: AUTH_JWT_SECRET } = require('./middleware/auth');
+const { signRenewToken, verifyRenewToken, signToken, verifyToken, setSessionStore, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, verifyGoogleIdToken, GOOGLE_IOS_CLIENT_ID, JWT_SECRET: AUTH_JWT_SECRET } = require('./middleware/auth');
 const { safeExtraHttpHeaders, optionalApiAccessLog, redactServerErrors } = require('./middleware/safeSecurityLayers');
 const progressRoutes = require('./routes/progress');
 const { createNutritionRouter, setNutritionPush, runWeeklyNutritionEmailJob, runAdminNutritionDailyEmailJob } = require('./routes/nutrition');
@@ -50,6 +50,9 @@ const { createAppVersionRouter, createAppVersionAdminRouter } = require('./route
 // Audit lead email sequence: admin-triggered welcome email + two follow ups (AUDIT_LEAD_EMAILS_ENABLED, default true).
 const { ensureAuditLeadEmailSchema, createAuditLeadEmailSequence, startAuditLeadEmailJob } = require('./services/auditLeadEmailSequence');
 const { registerAuditLeadEmailRoutes } = require('./routes/auditLeadEmails');
+// Login sessions: device list, log out one / others / everywhere, password change.
+const { ensureSessionSchema, createSessionService } = require('./services/sessionService');
+const { registerAccountRoutes } = require('./routes/account');
 // BodyBank Challenges (CHALLENGES_ENABLED = off | staff | allowlist | all; default off).
 const challengeService = require('./services/challengeService');
 const { createChallengeEngine } = require('./services/challengeEngine');
@@ -865,6 +868,11 @@ async function queryOne(sql, params = []) {
 }
 
 // ── BodyBank Challenges engine (task progress is derived from member data) ──
+// Every authenticated request is checked against its login session (see
+// services/sessionService.js). Logged-out devices get the usual 401.
+const sessionService = createSessionService({ queryAll, queryOne, run, signToken });
+setSessionStore(sessionService);
+
 const challengeEngine = createChallengeEngine({
   queryAll, queryOne, run, getPool: () => pool,
   coinService, plans, notifyAgent, notifyHub,
@@ -2012,6 +2020,8 @@ async function initDB() {
   for (const col of ['last_ok_at TIMESTAMP', 'last_error TEXT', 'last_error_at TIMESTAMP']) {
     try { await pool.query(`ALTER TABLE device_push_tokens ADD COLUMN IF NOT EXISTS ${col}`); } catch (e) { /* ignore */ }
   }
+  // Login sessions (one row per signed-in device) + the per-user cutoff.
+  try { await ensureSessionSchema(pool); } catch (e) { console.warn('[sessions] schema:', e.message); }
 
   // Password reset tokens (users only, not admin/superadmin)
   await pool.query(`CREATE TABLE IF NOT EXISTS password_resets (
@@ -2865,7 +2875,7 @@ app.post('/api/auth/login', rateLimiter(20, 60000), async (req, res) => {
     const subGate = subscriptionGate(user);
     if (subGate) return res.status(403).json(subscriptionGateBody(subGate, user));
     clearLoginFailures(emailNorm);
-    const token = signToken({ id: user.id, email: user.email, role: user.role });
+    const { token } = await sessionService.issue(req, user);
     if (user.role === 'user') {
       notifyAsync('USER_LOGIN', { name: `${user.first_name || ''} ${user.last_name || ''}`.trim(), email: user.email, role: user.role, mobile: user.phone || '—' });
     }
@@ -2916,7 +2926,7 @@ app.post('/api/auth/google', rateLimiter(20, 60000), async (req, res) => {
     if (syncedGeoG) { user.country = syncedGeoG.country; user.timezone = syncedGeoG.timezone; }
     const subGateG = subscriptionGate(user);
     if (subGateG) return res.status(403).json(subscriptionGateBody(subGateG, user));
-    const token = signToken({ id: user.id, email: user.email, role: user.role });
+    const { token } = await sessionService.issue(req, user);
     res.json({ id: user.id, email: user.email, first_name: user.first_name || '', last_name: user.last_name || '', profile_picture: user.profile_picture || '', role: user.role, country: user.country || '', timezone: user.timezone || '', height_cm: user.height_cm != null && user.height_cm !== '' ? Number(user.height_cm) : null, token });
   } catch (e) {
     console.error('Google auth error:', e);
@@ -3021,7 +3031,7 @@ app.post('/api/auth/apple', rateLimiter(20, 60000), async (req, res) => {
     if (syncedGeoA) { userRow.country = syncedGeoA.country; userRow.timezone = syncedGeoA.timezone; }
     const subGateA = subscriptionGate(userRow);
     if (subGateA) return res.status(403).json(subscriptionGateBody(subGateA, userRow));
-    const token = signToken({ id: userRow.id, email: userRow.email, role: userRow.role });
+    const { token } = await sessionService.issue(req, userRow);
     res.json({ id: userRow.id, email: userRow.email, first_name: userRow.first_name || '', last_name: userRow.last_name || '', profile_picture: userRow.profile_picture || '', role: userRow.role, country: userRow.country || '', timezone: userRow.timezone || '', height_cm: userRow.height_cm != null && userRow.height_cm !== '' ? Number(userRow.height_cm) : null, token });
   } catch (e) {
     console.error('Apple auth error:', e);
@@ -3280,7 +3290,10 @@ app.post('/api/auth/reset-password', rateLimiter(10, 60000), async (req, res) =>
     userEmail.emailPasswordChanged(row.email, row.first_name);
     notifyAsync('PASSWORD_RESET_DONE', { email: row.email });
 
-    const sessionToken = signToken({ id: row.user_id, email: row.email, role: row.role });
+    // A reset ends every existing login (a stolen session must not survive it), then
+    // signs this browser in on a fresh session.
+    try { await sessionService.endAll(row.user_id, 'password_reset'); } catch (e) { console.warn('[sessions] reset:', e.message); }
+    const { token: sessionToken } = await sessionService.issue(req, { id: row.user_id, email: row.email, role: row.role });
     return res.json({
       ok: true,
       message: 'Password updated successfully.',
@@ -7439,12 +7452,12 @@ app.post('/api/push/subscribe', verifyToken, rateLimiter(5, 60000), async (req, 
     if (!endpoint || !keys) return res.status(400).json({ error: 'Subscription required' });
     const existing = await queryOne('SELECT id FROM push_subscriptions WHERE user_id = ? AND endpoint = ?', [req.user.id, endpoint]);
     if (existing) {
-      await run('UPDATE push_subscriptions SET p256dh = ?, auth = ? WHERE user_id = ? AND endpoint = ?',
-        [keys.p256dh || null, keys.auth || null, req.user.id, endpoint]);
+      await run('UPDATE push_subscriptions SET p256dh = ?, auth = ?, session_id = ? WHERE user_id = ? AND endpoint = ?',
+        [keys.p256dh || null, keys.auth || null, req.sessionId || null, req.user.id, endpoint]);
     } else {
       const id = uuidv4();
-      await run('INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth) VALUES (?, ?, ?, ?, ?)',
-        [id, req.user.id, endpoint, keys.p256dh || null, keys.auth || null]);
+      await run('INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth, session_id) VALUES (?, ?, ?, ?, ?, ?)',
+        [id, req.user.id, endpoint, keys.p256dh || null, keys.auth || null, req.sessionId || null]);
     }
     res.json({ ok: true });
   } catch (e) {
@@ -7530,12 +7543,12 @@ app.post('/api/push/register-token', verifyToken, rateLimiter(10, 60000), async 
     const existing = await queryOne('SELECT id FROM device_push_tokens WHERE token = ?', [token]);
     if (existing) {
       // Token already known — (re)assign to this user (handles shared/reused devices) and refresh platform.
-      await run('UPDATE device_push_tokens SET user_id = ?, platform = ?, updated_at = CURRENT_TIMESTAMP WHERE token = ?',
-        [req.user.id, plat, token]);
+      await run('UPDATE device_push_tokens SET user_id = ?, platform = ?, session_id = ?, updated_at = CURRENT_TIMESTAMP WHERE token = ?',
+        [req.user.id, plat, req.sessionId || null, token]);
     } else {
       const id = uuidv4();
-      await run('INSERT INTO device_push_tokens (id, user_id, token, platform) VALUES (?, ?, ?, ?)',
-        [id, req.user.id, token, plat]);
+      await run('INSERT INTO device_push_tokens (id, user_id, token, platform, session_id) VALUES (?, ?, ?, ?, ?)',
+        [id, req.user.id, token, plat, req.sessionId || null]);
     }
     res.json({ ok: true });
   } catch (e) {
@@ -12423,6 +12436,12 @@ const auditLeadEmailEngine = createAuditLeadEmailSequence({
   sendMail: (msg) => userEmail.sendMailAdvanced(msg),
   isConfigured: () => userEmail.isConfigured()
 });
+// Account security: change password, devices, log out (routes/account.js).
+registerAccountRoutes(app, {
+  verifyToken, rateLimiter, queryOne, bcrypt,
+  sessions: sessionService,
+  onPasswordChanged: (u) => userEmail.emailPasswordChanged(u.email, u.first_name)
+});
 registerAuditLeadEmailRoutes(app, {
   verifyToken, requireAdminOrSuperadmin, rateLimiter, queryAll,
   engine: auditLeadEmailEngine,
@@ -13628,6 +13647,7 @@ app.listen(PORT, '0.0.0.0', () => {
 
     startEmailScheduler({ queryAll, notifyHub });
     try { startAuditLeadEmailJob(auditLeadEmailEngine); } catch (e) { console.warn('[auditLeadEmails] job start:', e.message); }
+    try { sessionService.startSweeper(); } catch (e) { console.warn('[sessions] sweeper:', e.message); }
 
     try {
       cron.schedule(

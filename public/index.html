@@ -324,6 +324,201 @@ h3.sc-dash-title{font-size:clamp(20px,3vw,28px);margin:0 0 10px}
   font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#f59e0b;
   background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.28);vertical-align:middle}
 .sc-hist-btn{white-space:nowrap}
+/* ============ PROFILE (.bbp) ============ */
+#usec-profile .bbp{--bp-card:#121212;--bp-card2:#181818;--bp-line:rgba(255,255,255,.07);--bp-line2:rgba(255,255,255,.12);--bp-gold:#d6b25e;--bp-gold-t:#e8c97a;--bp-text:#f2ece0;--bp-muted:#a39d92;--bp-dim:#6f6a62;
+  --bp-grad:linear-gradient(135deg,#F3D98E 0%,#D2AA4C 50%,#A27C25 100%);font-family:Outfit,system-ui,sans-serif;color:var(--bp-text);
+  display:flex;flex-direction:column;gap:14px;max-width:1160px;margin:0 auto;padding:0 0 calc(110px + var(--safe-bottom,0px))}
+#usec-profile .bbp *{box-sizing:border-box}
+@media (min-width:1024px){
+  #usec-profile .bbp{display:grid;grid-template-columns:minmax(300px,360px) minmax(0,1fr);gap:22px;align-items:start;padding-bottom:40px}
+  #usec-profile .bbp-side{position:sticky;top:12px}
+}
+#usec-profile .bbp-side,#usec-profile .bbp-main{display:flex;flex-direction:column;gap:14px;min-width:0}
+#usec-profile .bbp-card{background:var(--bp-card);border:1px solid var(--bp-line);border-radius:22px;padding:20px;margin:0}
+#usec-profile .bbp-card-head{display:flex;align-items:flex-start;gap:12px;margin-bottom:16px}
+#usec-profile .bbp-card-head-row{align-items:center;margin-bottom:0}
+#usec-profile .bbp-grow{flex:1;min-width:0}
+#usec-profile .bbp-card-ico{flex:0 0 auto;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(214,178,94,.12);color:var(--bp-gold)}
+#usec-profile .bbp-card-ico svg{width:19px;height:19px}
+#usec-profile .bbp-card-title{font-size:15.5px;font-weight:700;letter-spacing:.01em;color:var(--bp-text);text-transform:none;font-family:Outfit,system-ui,sans-serif}
+#usec-profile .bbp-list .bbp-card-title,#usec-profile .bbp-hero .bbp-card-title{font-size:11px;font-weight:700;letter-spacing:.2em;text-transform:uppercase;color:var(--bp-gold);margin:0 2px 10px}
+#usec-profile .bbp-card-sub{margin:2px 0 0;font-size:12.5px;line-height:1.45;color:var(--bp-muted)}
+
+/* hero */
+#usec-profile .bbp-hero{position:relative;overflow:hidden;border-radius:24px;padding:22px 20px 18px;border:1px solid rgba(214,178,94,.32);
+  background:radial-gradient(120% 120% at 100% 0%,rgba(243,217,142,.16),rgba(214,178,94,0) 55%),linear-gradient(180deg,#17150f,#111110)}
+#usec-profile .bbp-hero .skeleton-avatar{margin:0}
+#usec-profile .bbp-hero-top{display:flex;align-items:center;gap:16px}
+#usec-profile .bbp-avatar{position:relative;flex:0 0 auto;width:92px;height:92px}
+#usec-profile .bbp-avatar .profile-avatar,#usec-profile .bbp-avatar .profile-avatar-placeholder{width:92px!important;height:92px!important;border-radius:50%;margin:0!important;border:2px solid rgba(214,178,94,.65);box-shadow:0 0 0 5px rgba(214,178,94,.1);object-fit:cover;background:#1b1a17}
+#usec-profile .bbp-avatar .profile-avatar-placeholder{place-items:center;color:#8a8170}
+#usec-profile .bbp-avatar-btn{position:absolute;right:-2px;bottom:-2px;width:34px;height:34px;border-radius:50%;border:2px solid #111110;background:var(--bp-grad);color:#15110a;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 6px 14px rgba(0,0,0,.4)}
+#usec-profile .bbp-avatar-btn svg{width:16px;height:16px}
+#usec-profile .bbp-avatar-btn:focus-visible{outline:2px solid var(--bp-gold-t);outline-offset:2px}
+#usec-profile .bbp-ident{min-width:0;flex:1}
+#usec-profile .bbp-name{margin:0;padding:0;font-family:Outfit,system-ui,sans-serif;font-size:24px;line-height:1.15;font-weight:700;letter-spacing:-.01em;text-transform:none;color:var(--bp-text);background:none;-webkit-text-fill-color:currentColor;overflow-wrap:anywhere}
+#usec-profile .bbp-email{margin-top:3px;font-size:13px;color:var(--bp-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#usec-profile .bbp-badges{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+#usec-profile .bbp-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;color:var(--bp-muted);border:1px solid var(--bp-line2);background:rgba(255,255,255,.03)}
+#usec-profile .bbp-badge.is-gold{color:#15110a;background:var(--bp-grad);border-color:transparent}
+#usec-profile .bbp-badge[hidden]{display:none}
+#usec-profile .bbp-photo-note{margin:12px 0 0;font-size:11px;letter-spacing:0;text-transform:none;color:var(--bp-dim);text-align:left}
+#usec-profile .bbp-glance{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:16px}
+#usec-profile .bbp-glance-tile{min-width:0;padding:10px 6px 9px;border-radius:14px;background:rgba(0,0,0,.25);border:1px solid var(--bp-line);text-align:center}
+#usec-profile .bbp-glance-tile b{display:block;font-family:'Bebas Neue',Outfit,sans-serif;font-weight:400;font-size:21px;line-height:1;letter-spacing:.02em;color:var(--bp-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#usec-profile .bbp-glance-tile b.is-empty{color:var(--bp-dim)}
+#usec-profile .bbp-glance-tile > small{display:block;margin-top:4px;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--bp-muted)}
+#usec-profile .bbp-complete{display:flex;align-items:center;gap:12px;margin-top:12px;padding:12px;border-radius:16px;background:rgba(214,178,94,.07);border:1px solid rgba(214,178,94,.2)}
+#usec-profile .bbp-complete.is-full{background:rgba(111,209,154,.06);border-color:rgba(111,209,154,.25)}
+#usec-profile .bbp-complete-ring{position:relative;flex:0 0 auto;width:46px;height:46px}
+#usec-profile .bbp-complete-ring svg{width:46px;height:46px;transform:rotate(-90deg);display:block}
+#usec-profile .bbp-complete-ring circle{fill:none;stroke-width:5}
+#usec-profile .bbp-complete-ring .bg{stroke:rgba(255,255,255,.09)}
+#usec-profile .bbp-complete-ring .fg{stroke:var(--bp-gold);stroke-linecap:round;transition:stroke-dashoffset .5s ease}
+#usec-profile .bbp-complete.is-full .bbp-complete-ring .fg{stroke:#6fd19a}
+#usec-profile .bbp-complete-ring span{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+#usec-profile .bbp-complete-main{flex:1;min-width:0}
+#usec-profile .bbp-complete-main b{display:block;font-size:13.5px;font-weight:600}
+#usec-profile .bbp-complete-main small{display:block;margin-top:2px;font-size:11.5px;line-height:1.4;color:var(--bp-muted)}
+#usec-profile .bbp-link{flex:0 0 auto;background:none;border:0;color:var(--bp-gold-t);font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;padding:8px 4px}
+#usec-profile .bbp-complete.is-full .bbp-link{display:none}
+
+/* list rows */
+#usec-profile .bbp-list{padding:16px 10px 8px}
+#usec-profile .bbp-list .bbp-card-title{margin:0 10px 6px}
+#usec-profile .bbp-row{display:flex;align-items:center;gap:12px;width:100%;padding:11px 10px;border:0;border-radius:14px;background:transparent;color:var(--bp-text);text-align:left;cursor:pointer;font-family:inherit;transition:background .15s}
+#usec-profile .bbp-row + .bbp-row{box-shadow:inset 0 1px 0 var(--bp-line)}
+#usec-profile .bbp-row:hover{background:rgba(255,255,255,.035)}
+#usec-profile .bbp-row:focus-visible{outline:2px solid var(--bp-gold-t);outline-offset:-2px}
+#usec-profile .bbp-row-ico{flex:0 0 auto;width:38px;height:38px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(214,178,94,.12);color:var(--bp-gold)}
+#usec-profile .bbp-row-ico svg{width:19px;height:19px}
+#usec-profile .bbp-row-main{flex:1;min-width:0}
+#usec-profile .bbp-row-main b{display:block;font-size:14.5px;font-weight:600}
+#usec-profile .bbp-row-main small{display:block;margin-top:2px;font-size:12px;color:var(--bp-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#usec-profile .bbp-row-go{flex:0 0 auto;width:17px;height:17px;color:var(--bp-dim)}
+
+/* form */
+#usec-profile .bbp-form{display:flex;flex-direction:column;gap:14px;margin:0}
+#usec-profile .bbp-grid{display:grid;grid-template-columns:1fr;gap:0 16px}
+@media (min-width:700px){#usec-profile .bbp-grid{grid-template-columns:1fr 1fr}}
+#usec-profile .bbp-field{margin:0 0 16px}
+#usec-profile .bbp-card > .bbp-field:last-child,#usec-profile .bbp-grid:last-child .bbp-field{margin-bottom:0}
+#usec-profile .bbp-field > label,#usec-profile .bbp-label{display:flex;align-items:center;gap:8px;margin:0 0 7px;font-size:12.5px;font-weight:600;letter-spacing:.02em;color:#d6cfc1;text-transform:none}
+#usec-profile .bbp-tag{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#6fd19a;background:rgba(111,209,154,.1);border-radius:999px;padding:2px 7px}
+#usec-profile .bbp-input-wrap{position:relative;display:flex;align-items:center}
+#usec-profile .bbp .form-input{width:100%;height:50px;margin:0;padding:0 14px;border-radius:14px;border:1px solid var(--bp-line2);background:#0d0d0d;color:var(--bp-text);font-family:Outfit,system-ui,sans-serif;font-size:15px;transition:border-color .15s,box-shadow .15s}
+#usec-profile .bbp .form-input:focus{outline:none;border-color:rgba(214,178,94,.6);box-shadow:0 0 0 3px rgba(214,178,94,.12)}
+#usec-profile .bbp .form-input::placeholder{color:#5f5a52}
+#usec-profile .bbp .form-input.has-error{border-color:rgba(229,112,95,.7)}
+#usec-profile .bbp-input-wrap .bbp-lead{position:absolute;left:14px;width:17px;height:17px;color:var(--bp-dim);pointer-events:none}
+#usec-profile .bbp-input-wrap .bbp-lead ~ .form-input{padding-left:42px}
+#usec-profile .bbp-input-wrap.has-unit .form-input{padding-right:48px}
+#usec-profile .bbp-unit{position:absolute;right:14px;font-size:13px;font-weight:600;color:var(--bp-muted);pointer-events:none}
+#usec-profile .bbp-input-wrap.is-locked .form-input{background:#151515;color:#cfc8ba;padding-right:42px;cursor:default}
+#usec-profile .bbp-input-wrap .bbp-lock{position:absolute;right:14px;width:16px;height:16px;color:var(--bp-dim)}
+#usec-profile .bbp .form-hint{display:block;margin-top:6px;font-size:11.5px;line-height:1.45;color:var(--bp-dim)}
+#usec-profile .bbp .form-error{margin-top:6px;font-size:12px;color:#ff8a7a}
+#usec-profile .bbp-note{display:flex;gap:10px;align-items:flex-start;margin:4px 0 0;padding:10px 12px;border-radius:12px;background:rgba(255,255,255,.025);font-size:12px;line-height:1.5;color:var(--bp-muted)}
+#usec-profile .bbp-note svg{flex:0 0 auto;width:16px;height:16px;color:var(--bp-gold);margin-top:1px}
+#usec-profile .bbp-vh{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;border:0!important;opacity:0}
+#usec-profile .bbp-chips{display:flex;flex-wrap:wrap;gap:8px}
+#usec-profile .bbp-chip{min-height:40px;padding:0 15px;border-radius:999px;border:1px solid var(--bp-line2);background:#0d0d0d;color:#cfc8ba;font-family:inherit;font-size:13.5px;font-weight:500;cursor:pointer;transition:border-color .15s,background .15s,color .15s}
+#usec-profile .bbp-chip:hover{border-color:rgba(214,178,94,.45)}
+#usec-profile .bbp-chip[aria-pressed="true"]{background:var(--bp-grad);color:#15110a;border-color:transparent;font-weight:700}
+#usec-profile .bbp-chip:focus-visible{outline:2px solid var(--bp-gold-t);outline-offset:2px}
+#usec-profile .bbp-scale{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px}
+#usec-profile .bbp-scale-btn{min-height:62px;padding:8px 2px;border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px}
+#usec-profile .bbp-scale-btn b{font-family:'Bebas Neue',Outfit,sans-serif;font-weight:400;font-size:22px;line-height:1}
+#usec-profile .bbp-scale-btn small{font-size:10px;line-height:1.1;letter-spacing:.02em;opacity:.85;text-align:center}
+#usec-profile .bbp-stepper{display:flex;align-items:center;gap:8px}
+#usec-profile .bbp-stepper .form-input{text-align:center;font-family:'Bebas Neue',Outfit,sans-serif;font-size:26px;letter-spacing:.02em;-moz-appearance:textfield}
+#usec-profile .bbp-stepper .form-input::-webkit-outer-spin-button,#usec-profile .bbp-stepper .form-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+#usec-profile .bbp-step{flex:0 0 auto;width:50px;height:50px;border-radius:14px;border:1px solid var(--bp-line2);background:#181818;color:var(--bp-text);display:flex;align-items:center;justify-content:center;cursor:pointer}
+#usec-profile .bbp-step svg{width:18px;height:18px}
+#usec-profile .bbp-step:active{background:rgba(214,178,94,.18)}
+#usec-profile .bbp .form-success{margin:0;padding:10px 14px;border-radius:12px;background:rgba(111,209,154,.08);color:#7fdca8;font-size:13px;text-align:center}
+
+/* buttons + save bar */
+#usec-profile .bbp-btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;min-height:44px;padding:0 18px;border-radius:13px;border:1px solid var(--bp-line2);background:#181818;color:var(--bp-text);font-family:Outfit,system-ui,sans-serif;font-size:13.5px;font-weight:600;letter-spacing:.01em;text-transform:none;cursor:pointer;white-space:nowrap;transition:filter .15s,border-color .15s}
+#usec-profile .bbp-btn svg{width:16px;height:16px}
+#usec-profile .bbp-btn.is-gold{background:var(--bp-grad);color:#15110a;border-color:transparent;font-weight:700;box-shadow:0 10px 24px rgba(214,178,94,.22)}
+#usec-profile .bbp-btn.is-gold:disabled{opacity:.6;cursor:default}
+#usec-profile .bbp-btn.is-ghost{background:transparent}
+#usec-profile .bbp-btn.is-outline{background:transparent;border-color:rgba(214,178,94,.45);color:var(--bp-gold-t)}
+#usec-profile .bbp-btn.is-danger{background:transparent;border-color:rgba(229,112,95,.5);color:#ff8a7a}
+#usec-profile .bbp-btn:focus-visible{outline:2px solid var(--bp-gold-t);outline-offset:2px}
+#usec-profile .bbp-savebar{position:sticky;bottom:calc(96px + var(--safe-bottom,0px));z-index:20;display:flex;align-items:center;gap:8px;padding:10px 10px 10px 16px;border-radius:18px;border:1px solid rgba(214,178,94,.4);background:rgba(20,19,16,.94);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);box-shadow:0 18px 40px rgba(0,0,0,.5);
+  opacity:0;transform:translateY(14px);pointer-events:none;transition:opacity .2s,transform .2s;margin-top:-6px}
+#usec-profile .bbp:not(.is-dirty) .bbp-savebar{display:none}
+#usec-profile .bbp.is-dirty .bbp-savebar{opacity:1;transform:none;pointer-events:auto;animation:bbpBarIn .22s ease-out}
+@keyframes bbpBarIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@media (min-width:1024px){#usec-profile .bbp-savebar{bottom:16px}}
+#usec-profile .bbp-savebar-txt{flex:1;min-width:0;display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--bp-text)}
+#usec-profile .bbp-savebar-txt i{width:8px;height:8px;border-radius:50%;background:var(--bp-gold);box-shadow:0 0 0 4px rgba(214,178,94,.18);flex:0 0 auto}
+#usec-profile .bbp-savebar .bbp-btn{min-height:42px;padding:0 14px}
+
+/* reports + danger */
+#usec-profile .bbp-danger{border-color:rgba(229,112,95,.22);background:linear-gradient(180deg,rgba(229,112,95,.05),rgba(229,112,95,.015)),var(--bp-card)}
+#usec-profile .bbp-danger .bbp-card-ico{background:rgba(229,112,95,.12);color:#ff8a7a}
+@media (max-width:420px){
+  #usec-profile .bbp-card{padding:18px 16px}
+  #usec-profile .bbp-hero{padding:20px 16px 16px}
+  #usec-profile .bbp-avatar,#usec-profile .bbp-avatar .profile-avatar,#usec-profile .bbp-avatar .profile-avatar-placeholder{width:80px!important;height:80px!important}
+  #usec-profile .bbp-name{font-size:22px}
+  #usec-profile .bbp-card-head-row{flex-wrap:wrap}
+  #usec-profile .bbp-card-head-row .bbp-grow{flex:1 1 calc(100% - 52px)}
+  #usec-profile .bbp-card-head-row .bbp-btn{margin-left:50px}
+  #usec-profile .bbp-scale-btn small{font-size:9px}
+}
+.bbp-toast{position:fixed;left:50%;bottom:calc(110px + var(--safe-bottom,0px));z-index:10060;transform:translate(-50%,16px);opacity:0;pointer-events:none;display:inline-flex;align-items:center;gap:8px;padding:11px 16px;border-radius:999px;background:#1d1b16;border:1px solid rgba(214,178,94,.4);color:#f2ece0;font-family:Outfit,system-ui,sans-serif;font-size:13.5px;font-weight:600;box-shadow:0 14px 34px rgba(0,0,0,.5);transition:opacity .2s,transform .2s;max-width:calc(100vw - 32px)}
+.bbp-toast.show{opacity:1;transform:translate(-50%,0)}
+.bbp-toast.ok{border-color:rgba(111,209,154,.45)}
+.bbp-toast.err{border-color:rgba(229,112,95,.55)}
+@media (min-width:1024px){.bbp-toast{bottom:28px}}
+@media (prefers-reduced-motion:reduce){#usec-profile .bbp-savebar,.bbp-toast{transition:none}}
+/* Profile → Login & security (change password, devices) */
+.bbsec{max-width:560px;margin:0 auto 22px}
+.bbsec-title{font-family:Outfit,sans-serif;font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#b9b1a3;margin:4px 2px 10px}
+.bbsec .bbx-mrow{margin-bottom:10px}
+.bbsec .bbx-mrow:last-child{margin-bottom:0}
+.bbsec-modal .modal{max-width:460px;text-align:left}
+.bbsec-modal h2{font-size:22px;margin:0 0 6px}
+.bbsec-lead{color:#b9b1a3;font-size:13.5px;line-height:1.55;margin:0 0 16px}
+.bbsec-field{margin:0 0 12px}
+.bbsec-field label{display:block;font-size:12px;font-weight:600;letter-spacing:.04em;color:#cfc7b8;margin:0 0 6px}
+.bbsec-err{display:none;color:#ff8a7a;font-size:12.5px;margin:6px 0 0}
+.bbsec-err.show{display:block}
+.bbsec-meter{display:flex;gap:5px;margin:8px 0 4px}
+.bbsec-meter i{flex:1;height:4px;border-radius:3px;background:rgba(255,255,255,.1);transition:background .25s}
+.bbsec-meter[data-lvl="1"] i:nth-child(-n+1){background:#e5584a}
+.bbsec-meter[data-lvl="2"] i:nth-child(-n+2){background:#e6a23c}
+.bbsec-meter[data-lvl="3"] i:nth-child(-n+3){background:#c8a44e}
+.bbsec-meter[data-lvl="4"] i{background:#2ecc71}
+.bbsec-meter-lbl{font-size:11.5px;color:#9a9284;min-height:16px}
+.bbsec-note{display:flex;gap:10px;align-items:flex-start;background:rgba(200,164,78,.08);border:1px solid rgba(200,164,78,.22);border-radius:12px;padding:10px 12px;margin:14px 0 16px;font-size:12.5px;line-height:1.5;color:#d9d2c4}
+.bbsec-note svg{flex:0 0 auto;width:17px;height:17px;color:#d6b25e;margin-top:1px}
+.bbsec-link{background:none;border:0;padding:0;color:#d6b25e;font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+.bbsec-ghost{width:100%;margin-top:10px;background:none;border:1px solid #444;color:#bbb;border-radius:8px;padding:11px;cursor:pointer;font:inherit;font-size:14px}
+.bbsec-msg{min-height:18px;margin:10px 0 0;font-size:12.5px;line-height:1.5;color:#b9b1a3}
+.bbsec-msg.ok{color:#5fd68f}.bbsec-msg.err{color:#ff8a7a}
+.bbsec-devs{display:flex;flex-direction:column;gap:10px;margin:0 0 16px}
+.bbsec-dev{display:flex;align-items:center;gap:12px;padding:12px 12px 12px 14px;border-radius:14px;background:#151411;border:1px solid rgba(214,178,94,.18)}
+.bbsec-dev.is-current{border-color:rgba(214,178,94,.55);background:linear-gradient(160deg,rgba(214,178,94,.09),#151411)}
+.bbsec-dev-ico{flex:0 0 auto;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:rgba(214,178,94,.14);color:#d6b25e}
+.bbsec-dev-ico svg{width:21px;height:21px}
+.bbsec-dev-main{flex:1 1 auto;min-width:0}
+.bbsec-dev-main b{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14.5px;font-weight:600;color:#f2ece0}
+.bbsec-dev-main small{display:block;margin-top:3px;font-size:12px;line-height:1.45;color:#a59d8f}
+.bbsec-here{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#0d0d0d;background:#d6b25e;border-radius:999px;padding:2px 8px}
+.bbsec-dev-out{flex:0 0 auto;background:none;border:1px solid rgba(255,138,122,.45);color:#ff8a7a;border-radius:9px;padding:7px 11px;font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap}
+.bbsec-dev-out:hover{background:rgba(255,138,122,.08)}
+.bbsec-dev-out:disabled{opacity:.5;cursor:default}
+.bbsec-empty{color:#a59d8f;font-size:13px;text-align:center;padding:18px 8px}
+.bbsec-danger{display:block;width:100%;margin-top:12px;background:none;border:0;color:#ff8a7a;font:inherit;font-size:13px;text-decoration:underline;cursor:pointer}
+@media (max-width:600px){.bbsec-modal .modal{padding:30px 18px 20px}.bbsec-dev{padding:12px 10px 12px 12px;gap:10px}.bbsec-dev-ico{width:36px;height:36px}.bbsec-dev-out{padding:6px 9px;font-size:11.5px}}
+.bbsec-skel{height:64px;border-radius:14px;background:linear-gradient(90deg,#151411,#1d1b17,#151411);background-size:200% 100%;animation:bbsecSk 1.2s linear infinite}
+@keyframes bbsecSk{to{background-position:-200% 0}}
+@media (prefers-reduced-motion:reduce){.bbsec-skel{animation:none}}
 /* Audit lead email sequence (Audit Form tab) */
 .ale-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 12px}
 .ale-send-btn{height:36px;padding:0 16px;border:0;border-radius:6px;background:var(--gold);color:#0d0d0d;font-size:12px;font-weight:700;letter-spacing:.04em;cursor:pointer;white-space:nowrap;font-family:inherit}
@@ -3793,6 +3988,44 @@ button.bb-today-pill{cursor:pointer}
 .nutrition-checkin .prog-pct{font-size:11px;color:var(--muted);width:36px;text-align:right}
 .nutrition-checkin .prog-fill.red{background:var(--bb-red)}
 .nutrition-checkin .prog-goal{font-size:11px;color:var(--muted);min-width:80px;text-align:right;white-space:nowrap;flex-shrink:0}
+/* Calorie balance: eaten vs target, left or over, deficit or surplus (updates on every meal) */
+.nutrition-checkin .nutri-cal{--nc:#c8a44e;--nc-soft:rgba(200,164,78,.12);position:relative;margin:0 0 14px;padding:16px 16px 14px;border-radius:14px;
+  background:linear-gradient(160deg,rgba(255,255,255,.035),rgba(255,255,255,.01));border:1px solid rgba(200,164,78,.28);overflow:hidden}
+.nutrition-checkin .nutri-cal:empty{display:none}
+.nutrition-checkin .nutri-cal[data-state="near"]{--nc:#e6a23c;--nc-soft:rgba(230,162,60,.12);border-color:rgba(230,162,60,.35)}
+.nutrition-checkin .nutri-cal[data-state="hit"]{--nc:#2ecc71;--nc-soft:rgba(46,204,113,.12);border-color:rgba(46,204,113,.35)}
+.nutrition-checkin .nutri-cal[data-state="over"]{--nc:#e5584a;--nc-soft:rgba(229,88,74,.12);border-color:rgba(229,88,74,.4)}
+.nutrition-checkin .nutri-cal.is-fresh{animation:nutriCalPulse 1.1s ease}
+@keyframes nutriCalPulse{0%{box-shadow:0 0 0 0 var(--nc-soft)}40%{box-shadow:0 0 0 6px var(--nc-soft)}100%{box-shadow:0 0 0 0 transparent}}
+@media (prefers-reduced-motion:reduce){.nutrition-checkin .nutri-cal.is-fresh{animation:none}}
+.nutrition-checkin .nutri-cal-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.nutrition-checkin .nutri-cal-eyebrow{font-size:10.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.nutrition-checkin .nutri-cal-chip{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700;color:var(--nc);background:var(--nc-soft);border:1px solid var(--nc-soft);white-space:nowrap}
+.nutrition-checkin .nutri-cal-chip::before{content:'';width:6px;height:6px;border-radius:50%;background:currentColor}
+.nutrition-checkin .nutri-cal-main{display:flex;align-items:center;justify-content:space-between;gap:14px}
+.nutrition-checkin .nutri-cal-big{min-width:0}
+.nutrition-checkin .nutri-cal-big b{display:block;font-family:'Bebas Neue',var(--bb-font-heading),sans-serif;font-weight:400;font-size:44px;line-height:1;letter-spacing:.5px;color:var(--nc)}
+.nutrition-checkin .nutri-cal-big span{display:block;margin-top:4px;font-size:13px;color:var(--cream)}
+.nutrition-checkin .nutri-cal-ring{position:relative;width:74px;height:74px;flex:0 0 auto}
+.nutrition-checkin .nutri-cal-ring svg{width:74px;height:74px;transform:rotate(-90deg)}
+.nutrition-checkin .nutri-cal-ring circle{fill:none;stroke-width:7}
+.nutrition-checkin .nutri-cal-ring .bg{stroke:rgba(255,255,255,.08)}
+.nutrition-checkin .nutri-cal-ring .fg{stroke:var(--nc);stroke-linecap:round;transition:stroke-dashoffset .6s ease}
+.nutrition-checkin .nutri-cal-ring em{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;font-style:normal;font-size:15px;font-weight:700;color:var(--cream);line-height:1.05}
+.nutrition-checkin .nutri-cal-ring em small{font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.nutrition-checkin .nutri-cal-bar{position:relative;height:8px;margin:14px 0 12px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden}
+.nutrition-checkin .nutri-cal-bar i{position:absolute;top:0;bottom:0;left:0;border-radius:99px;background:var(--nc);transition:width .6s ease}
+.nutrition-checkin .nutri-cal-bar i.over{left:auto;right:0;border-radius:0 99px 99px 0;background:repeating-linear-gradient(135deg,#e5584a 0 6px,#b23a2e 6px 12px)}
+.nutrition-checkin .nutri-cal-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.nutrition-checkin .nutri-cal-stat{background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.06);border-radius:10px;padding:8px 10px;min-width:0}
+.nutrition-checkin .nutri-cal-stat span{display:block;font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.nutrition-checkin .nutri-cal-stat b{display:block;margin-top:3px;font-size:16px;font-weight:700;color:var(--cream);white-space:nowrap}
+.nutrition-checkin .nutri-cal-stat b small{font-size:10.5px;font-weight:600;color:var(--muted);margin-left:2px}
+.nutrition-checkin .nutri-cal-stat.is-key b{color:var(--nc)}
+.nutrition-checkin .nutri-cal-note{margin:12px 0 0;font-size:12.5px;line-height:1.5;color:var(--cream)}
+.nutrition-checkin .nutri-cal-note strong{color:var(--nc)}
+.nutrition-checkin .nutri-cal-src{margin:6px 0 0;font-size:11px;line-height:1.45;color:var(--muted)}
+@media (max-width:380px){.nutrition-checkin .nutri-cal-big b{font-size:38px}.nutrition-checkin .nutri-cal-stat b{font-size:14px}}
 .nutrition-checkin .nutri-cal-equation{display:flex;align-items:center;justify-content:space-between;gap:6px;background:rgba(200,164,78,0.07);border:1px solid rgba(200,164,78,0.20);border-radius:12px;padding:14px 12px;margin-bottom:14px}
 .nutrition-checkin .nutri-eq-cell{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1;min-width:44px}
 .nutrition-checkin .nutri-eq-num{font-family:var(--bb-font-heading);font-size:1.05rem;font-weight:700;color:var(--cream);line-height:1}
@@ -5418,7 +5651,7 @@ button.bb-today-pill{cursor:pointer}
 <script src="js/admin-signature-reports.js?v=1"></script>
 <script src="js/admin-app-version.js?v=1" defer></script>
 <!-- Coach Mode: tiny loader; js/coach-mode.js + css load lazily (flag: COACH_MODE_ENABLED) -->
-<script src="js/coach-loader.js?v=2" defer></script>
+<script src="js/coach-loader.js?v=3" defer></script>
 <!-- Challenges: tiny loader; js/challenges.js + css load lazily (flag: CHALLENGES_ENABLED, default off) -->
 <script src="js/challenges-loader.js?v=10" defer></script>
 <script src="js/countries.js?v=1"></script>
@@ -7715,6 +7948,7 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
           <p class="nutri-submit-hint" id="nutriSubmitHint" style="display:none"></p>
           <div class="daily-nutrition-summary" id="dailyNutritionSummary" style="display:none">
             <div class="summary-title">Today&apos;s nutrition</div>
+            <div class="nutri-cal" id="nutriCalBalance" aria-live="polite"></div>
             <div class="macro-totals-grid">
               <div class="macro-total cal"><div class="mt-val" id="nutriTotCal">0</div><div class="mt-label">kcal</div></div>
               <div class="macro-total pro"><div class="mt-val" id="nutriTotPro">0g</div><div class="mt-label">protein</div></div>
@@ -7773,62 +8007,141 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
     <!-- MY PROFILE -->
     <div class="user-section" id="usec-profile">
       <div class="user-section-back"><button type="button" class="back-btn" onclick="switchUserTab('home')">← Back</button></div>
-      <div id="profileAvatarSkeleton" class="skeleton-wrapper" style="display:none">
-        <div class="skeleton skeleton-avatar"></div>
-      </div>
-      <div id="profileAvatarContent" style="text-align:center;margin-bottom:24px">
-        <div style="position:relative;display:inline-block">
-          <img id="profAvatar" class="profile-avatar" src="" alt="Profile">
-          <div id="profAvatarPlaceholder" class="profile-avatar-placeholder"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
-          <input type="file" id="profAvatarInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
-          <button type="button" onclick="document.getElementById('profAvatarInput').click()" style="margin-top:12px;padding:8px 20px;background:var(--goldg);border:none;border-radius:6px;color:var(--black);font-weight:600;font-size:12px;cursor:pointer;letter-spacing:1px">Change Photo</button>
-          <div class="profile-avatar-note">JPG, PNG, WEBP or GIF up to 2 MB</div>
-        </div>
-      </div>
-      <!-- My Membership (js/member-screens.js). The summary line is filled by js/bb-plans.js. -->
-      <button type="button" class="bbx-mrow" onclick="if(window.bbxOpenMembership)bbxOpenMembership()">
-        <span class="bbx-mrow-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg></span>
-        <span class="bbx-mrow-main"><b>My Membership</b><small data-bb-plan-summary>Your plan and what it includes</small></span>
-        <svg class="bbx-mrow-go" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg>
-      </button>
+      <div class="bbp" id="bbpRoot">
+      <aside class="bbp-side">
+        <!-- Identity -->
+        <section class="bbp-hero" aria-label="Your profile">
+          <div id="profileAvatarSkeleton" class="skeleton-wrapper" style="display:none">
+            <div class="skeleton skeleton-avatar"></div>
+          </div>
+          <div id="profileAvatarContent">
+            <div class="bbp-hero-top">
+              <div class="bbp-avatar">
+                <img id="profAvatar" class="profile-avatar" src="" alt="Profile photo">
+                <div id="profAvatarPlaceholder" class="profile-avatar-placeholder"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" width="44" height="44"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+                <input type="file" id="profAvatarInput" accept="image/*" style="display:none" onchange="handleAvatarUpload(event)">
+                <button type="button" class="bbp-avatar-btn" onclick="document.getElementById('profAvatarInput').click()" aria-label="Change profile photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8.5h3l1.6-2.5h6.8L17 8.5h3a1 1 0 0 1 1 1V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9.5a1 1 0 0 1 1-1z"/><circle cx="12" cy="13.5" r="3.6"/></svg></button>
+              </div>
+              <div class="bbp-ident">
+                <h2 class="bbp-name" id="bbpName">Your profile</h2>
+                <div class="bbp-email" id="bbpEmail"></div>
+                <div class="bbp-badges"><span class="bbp-badge is-gold" data-bb-plan-name hidden></span><span class="bbp-badge" id="bbpSince" hidden></span></div>
+              </div>
+            </div>
+            <div class="profile-avatar-note bbp-photo-note">Tap the camera to change your photo. JPG, PNG, WEBP or GIF up to 2 MB.</div>
+            <div class="bbp-glance" id="bbpGlance" aria-label="At a glance"></div>
+            <div class="bbp-complete" id="bbpComplete">
+              <div class="bbp-complete-ring" id="bbpCompleteRing"></div>
+              <div class="bbp-complete-main"><b id="bbpCompleteTitle">Profile strength</b><small id="bbpCompleteSub"></small></div>
+              <button type="button" class="bbp-link" id="bbpCompleteGo" onclick="bbpFocusMissing()">Complete</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Account -->
+        <section class="bbp-card bbp-list" aria-labelledby="bbpAccountT">
+          <div class="bbp-card-title" id="bbpAccountT">Account</div>
+          <!-- My Membership (js/member-screens.js). The summary line is filled by js/bb-plans.js. -->
+        <button type="button" class="bbp-row" onclick="if(window.bbxOpenMembership)bbxOpenMembership()">
+          <span class="bbp-row-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg></span>
+          <span class="bbp-row-main"><b>My Membership</b><small data-bb-plan-summary>Your plan and what it includes</small></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bbp-row-go"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <button type="button" class="bbp-row" onclick="openEliteCardModal()">
+          <span class="bbp-row-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="19" height="14" rx="2.5"/><path d="M2.5 9.5h19"/><circle cx="16.5" cy="14" r="1.6"/></svg></span>
+          <span class="bbp-row-main"><b>Elite Card</b><small>Your BodyBank member card</small></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bbp-row-go"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <button type="button" class="bbp-row" onclick="bbpGoReports()">
+          <span class="bbp-row-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2.5H6.5a2 2 0 0 0-2 2v15a2 2 0 0 0 2 2h11a2 2 0 0 0 2-2V8z"/><path d="M14 2.5V8h5.5M8.5 13h7M8.5 17h5"/></svg></span>
+          <span class="bbp-row-main"><b>Health reports</b><small>Blood reports and uploads</small></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bbp-row-go"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        </section>
+
+        <!-- Login & security: change password, devices (routes/account.js) -->
+        <section class="bbp-card bbp-list" id="bbSecurityRows" aria-labelledby="bbpSecT">
+          <div class="bbp-card-title" id="bbpSecT">Login &amp; security</div>
+        <button type="button" class="bbp-row" onclick="bbOpenChangePassword()">
+          <span class="bbp-row-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3"/></svg></span>
+          <span class="bbp-row-main"><b>Change password</b><small>Update the password you sign in with</small></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bbp-row-go"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        <button type="button" class="bbp-row" onclick="bbOpenDevices()">
+          <span class="bbp-row-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.5" y="4.5" width="14" height="10" rx="1.8"/><path d="M6 18.5h7"/><rect x="16.5" y="9" width="5" height="11" rx="1.5"/></svg></span>
+          <span class="bbp-row-main"><b>Devices</b><small id="bbSecDevicesSub">See where you are logged in and log out</small></span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bbp-row-go"><path d="M9 18l6-6-6-6"/></svg>
+        </button>
+        </section>
+      </aside>
+
+      <div class="bbp-main">
       <div id="profileFormSkeleton" class="skeleton-wrapper" style="display:none">
         <div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div>
         <div class="skeleton skeleton-line"></div><div class="skeleton skeleton-line short"></div>
       </div>
       <div id="profileFormContent">
-      <div class="form-section-title">Personal information</div>
-      <div class="form-group"><label>First Name</label><input type="text" class="form-input" id="profFirstName" placeholder="e.g. John" readonly><span class="form-hint" id="profFirstNameHint">Your first name as we should address you</span></div>
-      <div class="form-group"><label>Last Name</label><input type="text" class="form-input" id="profLastName" placeholder="e.g. Smith" readonly><span class="form-hint" id="profLastNameHint">Your family or surname</span></div>
-      <div class="form-divider"></div>
-      <div class="form-section-title">Contact details</div>
-      <div class="form-group"><label>Mobile number <span class="form-hint" style="display:inline;font-weight:400">(Linked to WhatsApp)</span></label><input type="tel" class="form-input" id="profPhone" placeholder="e.g. +91 98765 43210"><span class="form-hint">Used for scheduling and support</span></div>
-      <div class="form-group"><label>Email address</label><input type="email" class="form-input" id="profEmail" placeholder="e.g. john@example.com"><span class="form-error" id="profEmailError" style="display:none"></span></div>
-      <div class="form-divider"></div>
-      <div class="form-section-title">Body metrics</div>
-      <div class="form-group"><label for="profHeightCm">Height (cm) <span class="form-hint" style="display:inline;font-weight:400">— for nutrition energy (RMR)</span></label><input type="number" class="form-input" id="profHeightCm" min="100" max="230" step="1" inputmode="numeric" placeholder="e.g. 175"><span class="form-hint">Whole centimeters, 100–230. Used with your weight and age for daily energy estimates.</span><span class="form-error" id="profHeightError" style="display:none"></span></div>
-      <div class="form-divider"></div>
-      <div class="form-section-title">Progress coaching profile</div>
-      <div class="form-row">
-        <div class="form-group"><label>Goal type</label><select class="form-input" id="profGoalType"><option value="">Select goal</option><option value="fat_loss">Fat loss</option><option value="recomp">Recomp</option><option value="muscle_gain">Muscle gain</option><option value="performance">Performance</option><option value="general_fitness">General fitness</option></select></div>
-        <div class="form-group"><label>Diet type</label><select class="form-input" id="profDietType"><option value="">Select diet</option><option value="veg">Veg</option><option value="non_veg">Non-veg</option><option value="vegan">Vegan</option><option value="eggetarian">Eggetarian</option><option value="pescatarian">Pescatarian</option><option value="keto">Keto</option><option value="other">Other</option></select></div>
+        <form class="bbp-form" id="bbpForm" onsubmit="event.preventDefault();saveProfile()" novalidate>
+        <section class="bbp-card" aria-labelledby="bbpPersonalT">
+          <div class="bbp-card-head"><span class="bbp-card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span><div><div class="bbp-card-title" id="bbpPersonalT">Personal information</div><p class="bbp-card-sub">How we address you across BodyBank.</p></div></div>
+          <div class="bbp-grid">
+            <div class="form-group bbp-field"><label for="profFirstName">First name</label><div class="bbp-input-wrap is-locked"><input type="text" class="form-input" id="profFirstName" placeholder="e.g. John" readonly><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bbp-lock"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3"/></svg></div><span class="form-hint" id="profFirstNameHint">Your first name as we should address you</span></div>
+            <div class="form-group bbp-field"><label for="profLastName">Last name</label><div class="bbp-input-wrap is-locked"><input type="text" class="form-input" id="profLastName" placeholder="e.g. Smith" readonly><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bbp-lock"><rect x="4.5" y="10.5" width="15" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/><circle cx="12" cy="15.5" r="1.3"/></svg></div><span class="form-hint" id="profLastNameHint">Your family or surname</span></div>
+          </div>
+          <p class="bbp-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/></svg><span>Your name is set by your BodyBank team. Message your coach if it needs a change.</span></p>
+        </section>
+
+        <section class="bbp-card" aria-labelledby="bbpContactT">
+          <div class="bbp-card-head"><span class="bbp-card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 3.5h3.2l1.6 4.2-2.1 1.3a11 11 0 0 0 5.3 5.3l1.3-2.1 4.2 1.6V17a2 2 0 0 1-2.2 2A15.5 15.5 0 0 1 3 5.7 2 2 0 0 1 5 3.5z"/></svg></span><div><div class="bbp-card-title" id="bbpContactT">Contact details</div><p class="bbp-card-sub">Where your coach reaches you.</p></div></div>
+          <div class="bbp-grid">
+            <div class="form-group bbp-field"><label for="profPhone">Mobile number <span class="bbp-tag">WhatsApp</span></label><div class="bbp-input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bbp-lead"><path d="M5 3.5h3.2l1.6 4.2-2.1 1.3a11 11 0 0 0 5.3 5.3l1.3-2.1 4.2 1.6V17a2 2 0 0 1-2.2 2A15.5 15.5 0 0 1 3 5.7 2 2 0 0 1 5 3.5z"/></svg><input type="tel" class="form-input" id="profPhone" placeholder="e.g. +91 98765 43210" autocomplete="tel"></div><span class="form-hint">Used for scheduling and support</span></div>
+            <div class="form-group bbp-field"><label for="profEmail">Email address</label><div class="bbp-input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bbp-lead"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="m3.5 6.5 8.5 6.5 8.5-6.5"/></svg><input type="email" class="form-input" id="profEmail" placeholder="e.g. john@example.com" autocomplete="email"></div><span class="form-error" id="profEmailError" style="display:none"></span></div>
+          </div>
+        </section>
+
+        <section class="bbp-card" aria-labelledby="bbpBodyT">
+          <div class="bbp-card-head"><span class="bbp-card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.8"/><circle cx="12" cy="12" r="1.2"/></svg></span><div><div class="bbp-card-title" id="bbpBodyT">Body &amp; goals</div><p class="bbp-card-sub">Shapes your nutrition targets and coaching.</p></div></div>
+          <div class="bbp-grid">
+            <div class="form-group bbp-field"><label for="profHeightCm">Height</label><div class="bbp-input-wrap has-unit"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bbp-lead"><path d="M3.5 16.5 16.5 3.5l4 4L7.5 20.5z"/><path d="m7 13 1.8 1.8M10 10l1.8 1.8M13 7l1.8 1.8"/></svg><input type="number" class="form-input" id="profHeightCm" min="100" max="230" step="1" inputmode="numeric" placeholder="e.g. 175"><span class="bbp-unit">cm</span></div><span class="form-hint">Whole centimetres, 100 to 230. Used with your weight and age for daily energy estimates.</span><span class="form-error" id="profHeightError" style="display:none"></span></div>
+            <div class="form-group bbp-field"><label for="profPrimaryTrainingDays">Training days per week</label>
+              <div class="bbp-stepper"><button type="button" class="bbp-step" data-bbp-step="-1" aria-label="One day fewer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg></button><input type="number" class="form-input" id="profPrimaryTrainingDays" min="0" max="14" step="1" inputmode="numeric" placeholder="0"><button type="button" class="bbp-step" data-bbp-step="1" aria-label="One day more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></div>
+              <span class="form-hint">Sessions you plan in a typical week.</span></div>
+          </div>
+          <div class="form-group bbp-field"><span class="bbp-label" id="profGoalTypeLbl">Main goal</span>
+            <div class="bbp-chips" role="group" aria-labelledby="profGoalTypeLbl" data-bbp-for="profGoalType"><button type="button" class="bbp-chip" data-v="fat_loss" aria-pressed="false">Fat loss</button><button type="button" class="bbp-chip" data-v="recomp" aria-pressed="false">Recomp</button><button type="button" class="bbp-chip" data-v="muscle_gain" aria-pressed="false">Muscle gain</button><button type="button" class="bbp-chip" data-v="performance" aria-pressed="false">Performance</button><button type="button" class="bbp-chip" data-v="general_fitness" aria-pressed="false">General fitness</button></div>
+            <select class="form-input bbp-vh" id="profGoalType" tabindex="-1" aria-hidden="true"><option value="">Select goal</option><option value="fat_loss">Fat loss</option><option value="recomp">Recomp</option><option value="muscle_gain">Muscle gain</option><option value="performance">Performance</option><option value="general_fitness">General fitness</option></select>
+          </div>
+          <div class="form-group bbp-field"><span class="bbp-label" id="profDietTypeLbl">Diet</span>
+            <div class="bbp-chips" role="group" aria-labelledby="profDietTypeLbl" data-bbp-for="profDietType"><button type="button" class="bbp-chip" data-v="veg" aria-pressed="false">Veg</button><button type="button" class="bbp-chip" data-v="non_veg" aria-pressed="false">Non-veg</button><button type="button" class="bbp-chip" data-v="eggetarian" aria-pressed="false">Eggetarian</button><button type="button" class="bbp-chip" data-v="vegan" aria-pressed="false">Vegan</button><button type="button" class="bbp-chip" data-v="pescatarian" aria-pressed="false">Pescatarian</button><button type="button" class="bbp-chip" data-v="keto" aria-pressed="false">Keto</button><button type="button" class="bbp-chip" data-v="other" aria-pressed="false">Other</button></div>
+            <select class="form-input bbp-vh" id="profDietType" tabindex="-1" aria-hidden="true"><option value="">Select diet</option><option value="veg">Veg</option><option value="non_veg">Non-veg</option><option value="vegan">Vegan</option><option value="eggetarian">Eggetarian</option><option value="pescatarian">Pescatarian</option><option value="keto">Keto</option><option value="other">Other</option></select>
+          </div>
+        </section>
+
+        <section class="bbp-card" aria-labelledby="bbpCoachT">
+          <div class="bbp-card-head"><span class="bbp-card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9.5 20.5V18a5.5 5.5 0 0 1-3-9.6A5 5 0 0 1 16 6.6a4.6 4.6 0 0 1 1.5 8.4V20.5"/></svg></span><div><div class="bbp-card-title" id="bbpCoachT">Coaching context</div><p class="bbp-card-sub">Helps your coach plan around how you feel.</p></div></div>
+          <div class="form-group bbp-field"><span class="bbp-label" id="profStressBaselineLbl">Usual stress level</span>
+            <div class="bbp-scale" role="group" aria-labelledby="profStressBaselineLbl" data-bbp-for="profStressBaseline">
+              <button type="button" class="bbp-chip bbp-scale-btn" data-v="1" aria-pressed="false"><b>1</b><small>Very low</small></button>
+              <button type="button" class="bbp-chip bbp-scale-btn" data-v="2" aria-pressed="false"><b>2</b><small>Low</small></button>
+              <button type="button" class="bbp-chip bbp-scale-btn" data-v="3" aria-pressed="false"><b>3</b><small>Moderate</small></button>
+              <button type="button" class="bbp-chip bbp-scale-btn" data-v="4" aria-pressed="false"><b>4</b><small>High</small></button>
+              <button type="button" class="bbp-chip bbp-scale-btn" data-v="5" aria-pressed="false"><b>5</b><small>Very high</small></button>
+            </div>
+            <select class="form-input bbp-vh" id="profStressBaseline" tabindex="-1" aria-hidden="true"><option value="">Select</option><option value="1">1 - Very low</option><option value="2">2 - Low</option><option value="3">3 - Moderate</option><option value="4">4 - High</option><option value="5">5 - Very high</option></select>
+          </div>
+          <div class="form-group bbp-field"><label for="profInjuryLimitations">Injuries or limitations</label><div class="bbp-input-wrap"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="bbp-lead"><path d="M4.5 9.5 9.5 4.5l10 10-5 5z"/><path d="M8 12.5l1.5 1.5M11 9.5l1.5 1.5"/></svg><input type="text" class="form-input" id="profInjuryLimitations" maxlength="500" placeholder="e.g. lower back, left knee, shoulder"></div><span class="form-hint">Short notes, separated by commas. Your trainer sees these.</span><span class="form-error" id="profMetaError" style="display:none"></span></div>
+        </section>
+        <p class="form-success" id="profileSaveSuccess" style="display:none">Profile updated successfully.</p>
+
+        <div class="bbp-savebar" id="bbpSaveBar" role="region" aria-label="Save changes">
+          <span class="bbp-savebar-txt"><i aria-hidden="true"></i><span id="bbpSaveTxt">Unsaved changes</span></span>
+          <button type="button" class="bbp-btn is-ghost" onclick="loadProfile()">Discard</button>
+          <button type="submit" class="bbp-btn is-gold" id="bbpSaveBtn">Save changes</button>
+        </div>
+        </form>
       </div>
-      <div class="form-row">
-        <div class="form-group"><label>Primary training days / week</label><input type="number" class="form-input" id="profPrimaryTrainingDays" min="0" max="14" step="1" inputmode="numeric" placeholder="e.g. 4"></div>
-        <div class="form-group"><label>Stress baseline (1–5)</label><select class="form-input" id="profStressBaseline"><option value="">Select</option><option value="1">1 - Very low</option><option value="2">2 - Low</option><option value="3">3 - Moderate</option><option value="4">4 - High</option><option value="5">5 - Very high</option></select></div>
-      </div>
-      <div class="form-group"><label>Injury limitations / tags</label><input type="text" class="form-input" id="profInjuryLimitations" maxlength="500" placeholder="e.g. lower_back, left_knee, shoulder_impingement"><span class="form-hint">Use short tags or comma-separated notes for trainer context.</span><span class="form-error" id="profMetaError" style="display:none"></span></div>
-      <p class="form-success" id="profileSaveSuccess" style="display:none;text-align:center;margin-top:12px">Profile updated successfully.</p>
-      <div style="display:flex;gap:14px;justify-content:center;margin-top:24px">
-        <button class="nav-login" style="padding:12px 32px" onclick="loadProfile()">Discard</button>
-        <button class="form-submit" style="width:auto;padding:12px 40px" onclick="saveProfile()">Update</button>
-      </div>
-      <div class="form-divider"></div>
-      <div style="text-align:center;margin-top:20px">
-        <button type="button" class="elite-card-btn" onclick="openEliteCardModal()">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M2 10h20"/><path d="M6 4v16"/></svg>
-          View my Elite Card
-        </button>
-      </div>
+
+      <!-- Health reports: js/member-home.js moves this section onto Home (mhSlotReports). -->
       <section class="my-health-reports" id="myHealthReportsSection" aria-label="My health reports" style="margin-top:24px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.08)">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:12px">
           <h3 style="font-family:Syne,system-ui,sans-serif;font-size:1.05rem;font-weight:700;margin:0">My health reports</h3>
@@ -7840,11 +8153,12 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
       </section>
 
       <!-- Account deletion (Apple Guideline 5.1.1(v)) — primary location on mobile, secondary on desktop -->
-      <section aria-label="Danger zone" style="margin-top:28px;padding:20px;background:rgba(255,80,80,0.04);border:1px solid rgba(255,80,80,0.2);border-radius:10px">
-        <div style="font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1.8px;text-transform:uppercase;color:#ff6b6b;margin-bottom:8px">Danger zone</div>
-        <p style="font-size:13px;color:#9a9a9a;margin:0 0 14px;line-height:1.55">Permanently delete your account and all associated data (workouts, check-ins, photos, messages). This action cannot be undone.</p>
-        <button type="button" onclick="openModal('deleteAccountModal')" style="background:transparent;border:1px solid rgba(255,80,80,0.5);color:#ff6b6b;border-radius:6px;padding:10px 22px;font-family:'Outfit',sans-serif;font-size:12px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer">Delete account</button>
+      <section class="bbp-card bbp-danger" aria-label="Danger zone">
+        <div class="bbp-card-head bbp-card-head-row"><span class="bbp-card-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></svg></span><div class="bbp-grow"><div class="bbp-card-title">Delete account</div><p class="bbp-card-sub">Permanently delete your account and all associated data (workouts, check-ins, photos, messages). This cannot be undone.</p></div>
+          <button type="button" class="bbp-btn is-danger" onclick="openModal('deleteAccountModal')">Delete</button>
+        </div>
       </section>
+      </div>
       </div>
     </div>
 
@@ -11260,6 +11574,62 @@ select.admin-filter-date option{background:#141317;color:var(--cream)}
 </div>
 
 <!-- DELETE ACCOUNT MODAL (Apple Guideline 5.1.1(v)) -->
+<!-- Profile → Change password -->
+<div class="modal-overlay bbsec-modal" id="bbPwModal" onclick="if(event.target===this)closeModal('bbPwModal')">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="closeModal('bbPwModal')" aria-label="Close">&times;</button>
+    <h2>Change password</h2>
+    <p class="bbsec-lead">Enter your current password, then choose a new one.</p>
+    <form id="bbPwForm" onsubmit="event.preventDefault();bbSubmitChangePassword()" novalidate>
+    <div class="bbsec-field">
+      <label for="bbPwCurrent">Current password</label>
+      <div class="pw-wrap">
+        <input type="password" class="form-input" id="bbPwCurrent" autocomplete="current-password" maxlength="200">
+        <button type="button" class="pw-toggle" aria-label="Show or hide password" onclick="var i=document.getElementById('bbPwCurrent');i.type=i.type==='password'?'text':'password'">&#128065;</button>
+      </div>
+      <p class="bbsec-err" id="bbPwCurrentErr" role="alert"></p>
+    </div>
+    <div class="bbsec-field">
+      <label for="bbPwNew">New password</label>
+      <div class="pw-wrap">
+        <input type="password" class="form-input" id="bbPwNew" autocomplete="new-password" maxlength="200" oninput="bbPwStrength()">
+        <button type="button" class="pw-toggle" aria-label="Show or hide password" onclick="var i=document.getElementById('bbPwNew');i.type=i.type==='password'?'text':'password'">&#128065;</button>
+      </div>
+      <p class="bbsec-err" id="bbPwNewErr" role="alert"></p>
+    </div>
+    <div class="bbsec-meter" id="bbPwMeter" data-lvl="0" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+    <div class="bbsec-meter-lbl" id="bbPwMeterLbl">At least 6 characters. Longer is stronger.</div>
+    <div class="bbsec-field">
+      <label for="bbPwConfirm">Confirm new password</label>
+      <div class="pw-wrap">
+        <input type="password" class="form-input" id="bbPwConfirm" autocomplete="new-password" maxlength="200">
+        <button type="button" class="pw-toggle" aria-label="Show or hide password" onclick="var i=document.getElementById('bbPwConfirm');i.type=i.type==='password'?'text':'password'">&#128065;</button>
+      </div>
+      <p class="bbsec-err" id="bbPwConfirmErr" role="alert"></p>
+    </div>
+    <div class="bbsec-note"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/></svg><span>For your security, every other device signed in to your account will be logged out. You stay signed in here.</span></div>
+    <button type="submit" class="form-submit" id="bbPwSubmit">Update password</button>
+    </form>
+    <p class="bbsec-msg" id="bbPwMsg" role="status" aria-live="polite"></p>
+    <p style="margin:10px 0 0;font-size:13px;color:#a59d8f">Forgot your current password? <button type="button" class="bbsec-link" onclick="bbPwForgot()">Email me a reset link</button></p>
+  </div>
+</div>
+
+<!-- Profile → Devices -->
+<div class="modal-overlay view-detail-modal bbsec-modal" id="bbDevicesModal" onclick="if(event.target===this)closeModal('bbDevicesModal')">
+  <div class="modal">
+    <button type="button" class="modal-close" onclick="closeModal('bbDevicesModal')" aria-label="Close">&times;</button>
+    <h2>Devices</h2>
+    <div class="view-detail-body">
+      <p class="bbsec-lead">These devices are signed in to your BodyBank account. Log out any you do not recognise.</p>
+      <div class="bbsec-devs" id="bbDevList" aria-live="polite"></div>
+      <button type="button" class="form-submit" id="bbDevOthersBtn" onclick="bbLogoutOtherDevices()">Log out of all other devices</button>
+      <button type="button" class="bbsec-danger" onclick="bbLogoutAllDevices()">Log out of all devices, including this one</button>
+      <p class="bbsec-msg" id="bbDevMsg" role="status" aria-live="polite"></p>
+    </div>
+  </div>
+</div>
+
 <div class="modal-overlay" id="deleteAccountModal" onclick="if(event.target===this)closeModal('deleteAccountModal')">
   <div class="modal" style="max-width:440px">
     <button class="modal-close" onclick="closeModal('deleteAccountModal')">&times;</button>
@@ -12845,7 +13215,7 @@ async function apiCall(method, url, body) {
 }
 
 async function bbApiRequest(method, url, body) {
-  const opts = { method, headers: {'Content-Type':'application/json'} };
+  const opts = { method, headers: {'Content-Type':'application/json', 'X-BB-Client': bbClientKind()} };
   if (window.currentUser && window.currentUser.token) opts.headers['Authorization'] = 'Bearer ' + window.currentUser.token;
   if (body) opts.body = JSON.stringify(body);
   try {
@@ -18241,6 +18611,8 @@ function logoutAdmin() {
   // Before currentUser is cleared: wipe this account's on-device messages.
   if (window.BBGroupChat && typeof window.BBGroupChat.forget === 'function') window.BBGroupChat.forget();
   if (typeof unregisterNativePush === 'function') unregisterNativePush();
+  // End this login on the server too (Profile → Devices).
+  bbServerLogout();
   window.currentUser = null;
   if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
   if (typeof stopAdminNotificationPolling === 'function') stopAdminNotificationPolling();
@@ -21538,10 +21910,428 @@ async function submitDeleteAccount() {
   }
 }
 
+// ============ PROFILE (.bbp) ============
+// Hero (name, plan, member since, at a glance, profile strength), chip pickers that
+// drive the hidden selects saveProfile reads, the training-days stepper, an unsaved
+// changes bar, and an instant photo save. loadProfile / saveProfile stay the source
+// of truth; these only decorate around them.
+var _bbpData = null;
+var _bbpDirty = false;
+var BBP_LABELS = {
+  goal: { fat_loss: 'Fat loss', recomp: 'Recomp', muscle_gain: 'Muscle gain', performance: 'Performance', general_fitness: 'General' },
+  diet: { veg: 'Veg', non_veg: 'Non-veg', vegan: 'Vegan', eggetarian: 'Eggetarian', pescatarian: 'Pescatarian', keto: 'Keto', other: 'Other' }
+};
+
+function bbpVal(id) { var e = document.getElementById(id); return e ? String(e.value || '').trim() : ''; }
+
+function bbpSyncChips() {
+  document.querySelectorAll('#usec-profile [data-bbp-for]').forEach(function (g) {
+    var v = bbpVal(g.getAttribute('data-bbp-for'));
+    g.querySelectorAll('.bbp-chip').forEach(function (c) { c.setAttribute('aria-pressed', c.getAttribute('data-v') === v ? 'true' : 'false'); });
+  });
+}
+
+function bbpSetDirty(on) {
+  _bbpDirty = !!on;
+  var r = document.getElementById('bbpRoot');
+  if (r) r.classList.toggle('is-dirty', _bbpDirty);
+}
+
+function bbpChecklist() {
+  var photo = !!(window._pendingAvatar || (window.currentUser && window.currentUser.profile_picture));
+  return [
+    { k: 'photo', label: 'photo', ok: photo, focus: 'profAvatarInput' },
+    { k: 'phone', label: 'mobile number', ok: !!bbpVal('profPhone'), focus: 'profPhone' },
+    { k: 'email', label: 'email', ok: !!bbpVal('profEmail'), focus: 'profEmail' },
+    { k: 'height', label: 'height', ok: !!bbpVal('profHeightCm'), focus: 'profHeightCm' },
+    { k: 'goal', label: 'main goal', ok: !!bbpVal('profGoalType'), focus: 'profGoalType' },
+    { k: 'diet', label: 'diet', ok: !!bbpVal('profDietType'), focus: 'profDietType' },
+    { k: 'days', label: 'training days', ok: bbpVal('profPrimaryTrainingDays') !== '', focus: 'profPrimaryTrainingDays' },
+    { k: 'stress', label: 'stress level', ok: !!bbpVal('profStressBaseline'), focus: 'profStressBaseline' }
+  ];
+}
+
+function bbpRefreshHero() {
+  var first = bbpVal('profFirstName'), last = bbpVal('profLastName');
+  var nameEl = document.getElementById('bbpName');
+  if (nameEl) nameEl.textContent = (first + ' ' + last).trim() || 'Your profile';
+  var em = document.getElementById('bbpEmail');
+  if (em) em.textContent = bbpVal('profEmail');
+  var since = document.getElementById('bbpSince');
+  if (since) {
+    var c = _bbpData && _bbpData.created_at ? new Date(_bbpData.created_at) : null;
+    if (c && isFinite(c.getTime())) { since.textContent = 'Member since ' + c.toLocaleDateString('en-IN', { month: 'short', year: 'numeric' }); since.hidden = false; }
+    else since.hidden = true;
+  }
+  var h = bbpVal('profHeightCm'), g = bbpVal('profGoalType'), dDays = bbpVal('profPrimaryTrainingDays'), diet = bbpVal('profDietType');
+  var tiles = [
+    { v: h ? h + '<small style="font-family:Outfit,sans-serif;font-size:11px;letter-spacing:0"> cm</small>' : '—', l: 'Height', empty: !h },
+    { v: g ? (BBP_LABELS.goal[g] || g) : '—', l: 'Goal', empty: !g },
+    { v: dDays !== '' ? dDays + '<small style="font-family:Outfit,sans-serif;font-size:11px;letter-spacing:0">/wk</small>' : '—', l: 'Training', empty: dDays === '' },
+    { v: diet ? (BBP_LABELS.diet[diet] || diet) : '—', l: 'Diet', empty: !diet }
+  ];
+  var gl = document.getElementById('bbpGlance');
+  if (gl) gl.innerHTML = tiles.map(function (t) { return '<div class="bbp-glance-tile"><b' + (t.empty ? ' class="is-empty"' : '') + '>' + t.v + '</b><small>' + t.l + '</small></div>'; }).join('');
+  var list = bbpChecklist();
+  var done = list.filter(function (x) { return x.ok; }).length;
+  var pct = Math.round(done / list.length * 100);
+  var missing = list.filter(function (x) { return !x.ok; }).map(function (x) { return x.label; });
+  var box = document.getElementById('bbpComplete');
+  if (box) box.classList.toggle('is-full', !missing.length);
+  var ring = document.getElementById('bbpCompleteRing');
+  if (ring) {
+    var R = 20.5, C = 2 * Math.PI * R;
+    ring.innerHTML = '<svg viewBox="0 0 46 46" aria-hidden="true"><circle class="bg" cx="23" cy="23" r="' + R + '"></circle><circle class="fg" cx="23" cy="23" r="' + R + '" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + (C * (1 - pct / 100)).toFixed(1) + '"></circle></svg><span>' + pct + '%</span>';
+  }
+  var t = document.getElementById('bbpCompleteTitle');
+  if (t) t.textContent = missing.length ? 'Profile ' + pct + '% complete' : 'Profile complete';
+  var s = document.getElementById('bbpCompleteSub');
+  if (s) s.textContent = missing.length ? 'Add your ' + (missing.length > 2 ? missing.slice(0, 2).join(', ') + ' and ' + (missing.length - 2) + ' more' : missing.join(' and ')) + ' so your coach can tailor your plan.' : 'Your coach has everything they need.';
+}
+
+function bbpFocusMissing() {
+  var first = bbpChecklist().filter(function (x) { return !x.ok; })[0];
+  if (!first) return;
+  if (first.focus === 'profAvatarInput') { document.getElementById('profAvatarInput').click(); return; }
+  var el = document.getElementById(first.focus);
+  var target = el;
+  if (el && el.classList.contains('bbp-vh')) target = document.querySelector('#usec-profile [data-bbp-for="' + first.focus + '"] .bbp-chip') || el;
+  if (target) {
+    try { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch (e) { target.scrollIntoView(); }
+    setTimeout(function () { try { target.focus({ preventScroll: true }); } catch (e) {} }, 350);
+  }
+}
+
+function bbpGoReports() {
+  // js/member-home.js moves the reports section onto Home; follow it there.
+  var sec = document.getElementById('myHealthReportsSection');
+  var inProfile = sec && document.getElementById('usec-profile') && document.getElementById('usec-profile').contains(sec);
+  if (!inProfile && typeof switchUserTab === 'function') switchUserTab('home');
+  setTimeout(function () {
+    var t = inProfile ? sec : (document.getElementById('mhSlotReports') || sec);
+    if (t) try { t.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { t.scrollIntoView(); }
+  }, inProfile ? 0 : 450);
+}
+
+function bbpToast(msg, kind) {
+  var t = document.getElementById('bbpToast');
+  if (!t) { t = document.createElement('div'); t.id = 'bbpToast'; t.className = 'bbp-toast'; t.setAttribute('role', 'status'); t.setAttribute('aria-live', 'polite'); document.body.appendChild(t); }
+  t.textContent = msg;
+  t.className = 'bbp-toast' + (kind ? ' ' + kind : '');
+  void t.offsetWidth;
+  t.classList.add('show');
+  clearTimeout(t._h);
+  t._h = setTimeout(function () { t.classList.remove('show'); }, kind === 'err' ? 4200 : 2600);
+}
+
+function bbpAfterLoad(data) {
+  _bbpData = data || null;
+  bbpSyncChips();
+  bbpRefreshHero();
+  bbpSetDirty(false);
+  var ok = document.getElementById('profileSaveSuccess');
+  if (ok) ok.style.display = 'none';
+  bbpBind();
+}
+
+function bbpAfterSave() {
+  bbpSetDirty(false);
+  bbpRefreshHero();
+  var ok = document.getElementById('profileSaveSuccess');
+  if (ok) ok.style.display = 'none';
+  bbpToast('Profile saved', 'ok');
+}
+
+async function bbpSaveAvatar() {
+  var b64 = window._pendingAvatar;
+  if (!b64 || !window.currentUser) return;
+  bbpToast('Saving your photo…');
+  var d = await apiCall('PUT', '/api/profile/' + window.currentUser.id, { profile_picture: b64 });
+  if (!d || d.error) {
+    if (d && d.authExpired) return;
+    bbpToast(String((d && d.error) || 'Could not save your photo.'), 'err');
+    return;
+  }
+  if (window._pendingAvatar === b64) window._pendingAvatar = null;
+  window.currentUser.profile_picture = b64;
+  persistCurrentSession();
+  if (typeof closeModal === 'function') closeModal('profilePhotoPromptModal');
+  bbpRefreshHero();
+  bbpToast('Photo updated', 'ok');
+}
+
+function bbpBind() {
+  var root = document.getElementById('bbpRoot');
+  if (!root || root._bbpBound) return;
+  root._bbpBound = true;
+  root.addEventListener('click', function (e) {
+    var chip = e.target.closest('[data-bbp-for] .bbp-chip');
+    if (chip) {
+      var g = chip.closest('[data-bbp-for]');
+      var sel = document.getElementById(g.getAttribute('data-bbp-for'));
+      if (!sel) return;
+      var v = chip.getAttribute('data-v');
+      sel.value = sel.value === v ? '' : v;
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+      return;
+    }
+    var st = e.target.closest('[data-bbp-step]');
+    if (st) {
+      var inp = document.getElementById('profPrimaryTrainingDays');
+      var n = parseInt(inp.value, 10);
+      if (!isFinite(n)) n = 0;
+      inp.value = String(Math.max(0, Math.min(14, n + Number(st.getAttribute('data-bbp-step')))));
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  });
+  var form = document.getElementById('profileFormContent');
+  if (form) {
+    var onEdit = function () { bbpSetDirty(true); bbpSyncChips(); bbpRefreshHero(); };
+    form.addEventListener('input', onEdit);
+    form.addEventListener('change', onEdit);
+  }
+  // Leaving the page with unsaved edits: the browser asks first.
+  window.addEventListener('beforeunload', function (e) { if (_bbpDirty) { e.preventDefault(); e.returnValue = ''; } });
+}
+
+// ============ LOGIN & SECURITY (Profile) ============
+// Change password and the device list. Sessions: services/sessionService.js.
+function bbClientKind() {
+  try {
+    if (window.Capacitor && typeof window.Capacitor.getPlatform === 'function') {
+      var p = window.Capacitor.getPlatform();
+      if (p === 'ios') return 'ios-app';
+      if (p === 'android') return 'android-app';
+    }
+  } catch (e) {}
+  return 'web';
+}
+
+/** Ends this login on the server. Fire and forget; a dead token just gets a 401. */
+function bbServerLogout() {
+  try {
+    var t = window.currentUser && window.currentUser.token;
+    if (!t || (typeof _bbSessionExpiryHandled !== 'undefined' && _bbSessionExpiryHandled)) return;
+    // A short delay lets the push-token unregister (sent with the same token) land first.
+    setTimeout(function () {
+      try {
+        fetch(API + '/api/auth/logout', { method: 'POST', keepalive: true, body: '{}',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + t, 'X-BB-Client': bbClientKind() } }).catch(function () {});
+      } catch (e) {}
+    }, 800);
+  } catch (e) {}
+}
+
+function bbAdoptToken(token) {
+  if (!token || !window.currentUser) return;
+  window.currentUser.token = token;
+  persistCurrentSession();
+}
+
+function bbSecAgo(iso) {
+  var t = iso ? new Date(iso).getTime() : NaN;
+  if (!isFinite(t)) return '';
+  var s = Math.max(0, (Date.now() - t) / 1000);
+  if (s < 120) return 'Active now';
+  if (s < 3600) return 'Active ' + Math.round(s / 60) + ' min ago';
+  if (s < 86400) return 'Active ' + Math.round(s / 3600) + ' h ago';
+  var d = Math.round(s / 86400);
+  return 'Active ' + d + (d === 1 ? ' day' : ' days') + ' ago';
+}
+
+function bbSecDate(iso) {
+  try { return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; }
+}
+
+// ── change password ──
+function bbPwSetErr(id, msg) {
+  var e = document.getElementById(id + 'Err');
+  if (e) { e.textContent = msg || ''; e.classList.toggle('show', !!msg); }
+  var i = document.getElementById(id);
+  if (i) i.setAttribute('aria-invalid', msg ? 'true' : 'false');
+}
+
+function bbPwMsg(text, kind) {
+  var m = document.getElementById('bbPwMsg');
+  if (m) { m.textContent = text || ''; m.className = 'bbsec-msg' + (kind ? ' ' + kind : ''); }
+}
+
+function bbOpenChangePassword() {
+  ['bbPwCurrent', 'bbPwNew', 'bbPwConfirm'].forEach(function (id) {
+    var i = document.getElementById(id);
+    if (i) { i.value = ''; i.type = 'password'; }
+    bbPwSetErr(id, '');
+  });
+  bbPwStrength();
+  bbPwMsg('');
+  var b = document.getElementById('bbPwSubmit');
+  if (b) { b.disabled = false; b.textContent = 'Update password'; }
+  openModal('bbPwModal');
+}
+
+function bbPwStrength() {
+  var v = (document.getElementById('bbPwNew') || {}).value || '';
+  var lvl = 0;
+  if (v.length >= 6) lvl = 1;
+  if (v.length >= 8 && /[a-z]/i.test(v) && /\d/.test(v)) lvl = 2;
+  if (v.length >= 10 && /[a-z]/.test(v) && /[A-Z]/.test(v) && /\d/.test(v)) lvl = 3;
+  if (v.length >= 12 && /[a-z]/.test(v) && /[A-Z]/.test(v) && /\d/.test(v) && /[^A-Za-z0-9]/.test(v)) lvl = 4;
+  var m = document.getElementById('bbPwMeter');
+  if (m) m.setAttribute('data-lvl', String(lvl));
+  var l = document.getElementById('bbPwMeterLbl');
+  if (l) l.textContent = !v ? 'At least 6 characters. Longer is stronger.'
+    : ['Too short. Use at least 6 characters.', 'Weak. Add length, letters and numbers.', 'Fair. A little longer would help.', 'Good password.', 'Strong password.'][lvl];
+}
+
+async function bbSubmitChangePassword() {
+  var cur = (document.getElementById('bbPwCurrent') || {}).value || '';
+  var nw = (document.getElementById('bbPwNew') || {}).value || '';
+  var cf = (document.getElementById('bbPwConfirm') || {}).value || '';
+  ['bbPwCurrent', 'bbPwNew', 'bbPwConfirm'].forEach(function (id) { bbPwSetErr(id, ''); });
+  bbPwMsg('');
+  var bad = false;
+  if (!cur.trim()) { bbPwSetErr('bbPwCurrent', 'Enter your current password.'); bad = true; }
+  if (nw.trim().length < 6) { bbPwSetErr('bbPwNew', 'Use at least 6 characters.'); bad = true; }
+  else if (nw.trim() === cur.trim()) { bbPwSetErr('bbPwNew', 'Choose a different password from your current one.'); bad = true; }
+  if (!bad && nw !== cf) { bbPwSetErr('bbPwConfirm', 'The two new passwords do not match.'); bad = true; }
+  if (bad) return;
+  var btn = document.getElementById('bbPwSubmit');
+  if (btn) { btn.disabled = true; btn.textContent = 'Updating…'; }
+  var d = await apiCall('POST', '/api/me/password', { current_password: cur, new_password: nw });
+  if (btn) { btn.disabled = false; btn.textContent = 'Update password'; }
+  if (!d || d.error) {
+    if (d && d.authExpired) return;
+    var msg = String((d && d.error) || 'Could not change your password. Please try again.');
+    if (d && d.field === 'current_password') bbPwSetErr('bbPwCurrent', msg);
+    else if (d && d.field === 'new_password') bbPwSetErr('bbPwNew', msg);
+    else bbPwMsg(msg, 'err');
+    return;
+  }
+  bbAdoptToken(d.token);
+  closeModal('bbPwModal');
+  var n = Number(d.logged_out) || 0;
+  showPopup('Password changed', 'Your new password is set.' + (n ? ' ' + n + (n === 1 ? ' other device was' : ' other devices were') + ' logged out.' : ''), '', 'OK');
+}
+
+async function bbPwForgot() {
+  var email = window.currentUser && window.currentUser.email;
+  if (!email) return;
+  bbPwMsg('Sending…');
+  var d = await apiCall('POST', '/api/auth/forgot-password', { email: email });
+  if (d && d.error) { bbPwMsg(String(d.error), 'err'); return; }
+  bbPwMsg('We emailed a reset link to ' + email + '.', 'ok');
+}
+
+// ── devices ──
+function bbDevIcon(kind) {
+  if (kind === 'phone') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></svg>';
+  if (kind === 'tablet') return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2.5" width="16" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="4" width="19" height="12.5" rx="2"/><path d="M8 20.5h8M12 16.5v4"/></svg>';
+}
+
+function bbDevMsg(text, kind) {
+  var m = document.getElementById('bbDevMsg');
+  if (m) { m.textContent = text || ''; m.className = 'bbsec-msg' + (kind ? ' ' + kind : ''); }
+}
+
+function bbOpenDevices() {
+  bbDevMsg('');
+  openModal('bbDevicesModal');
+  bbLoadDevices();
+}
+
+async function bbLoadDevices() {
+  var list = document.getElementById('bbDevList');
+  if (!list) return;
+  list.innerHTML = '<div class="bbsec-skel"></div><div class="bbsec-skel"></div>';
+  var d = await apiCall('GET', '/api/me/sessions');
+  if (!d || d.error || !Array.isArray(d.sessions)) {
+    if (d && d.authExpired) return;
+    list.innerHTML = '<div class="bbsec-empty">' + escapeHtml(String((d && d.error) || 'Could not load your devices.')) + '</div>';
+    return;
+  }
+  var rows = d.sessions;
+  var others = rows.filter(function (s) { return !s.current; }).length;
+  var ob = document.getElementById('bbDevOthersBtn');
+  if (ob) { ob.disabled = others === 0; ob.textContent = others ? 'Log out of all other devices (' + others + ')' : 'No other devices signed in'; }
+  var sub = document.getElementById('bbSecDevicesSub');
+  if (sub) sub.textContent = rows.length + (rows.length === 1 ? ' device signed in' : ' devices signed in');
+  if (!rows.length) { list.innerHTML = '<div class="bbsec-empty">No active devices.</div>'; return; }
+  list.innerHTML = rows.map(function (s) {
+    var meta = [s.current ? 'Active now' : bbSecAgo(s.last_active_at)];
+    if (s.signed_in_at) meta.push('Signed in ' + bbSecDate(s.signed_in_at));
+    if (s.ip) meta.push('IP ' + s.ip);
+    return '<div class="bbsec-dev' + (s.current ? ' is-current' : '') + '">' +
+      '<span class="bbsec-dev-ico" aria-hidden="true">' + bbDevIcon(s.kind) + '</span>' +
+      '<span class="bbsec-dev-main"><b>' + escapeHtml(s.label || 'Unknown device') + (s.current ? '<span class="bbsec-here">This device</span>' : '') + '</b>' +
+      '<small>' + escapeHtml(meta.filter(Boolean).join(' · ')) + '</small></span>' +
+      '<button type="button" class="bbsec-dev-out" data-sid="' + adminAttrId(s.id) + '" data-current="' + (s.current ? '1' : '') + '" onclick="bbLogoutDevice(this)">Log out</button>' +
+    '</div>';
+  }).join('');
+}
+
+async function bbLogoutDevice(el) {
+  var sid = el && el.getAttribute('data-sid');
+  if (!sid) return;
+  var isCurrent = el.getAttribute('data-current') === '1';
+  if (!confirm(isCurrent ? 'Log out of this device?' : 'Log this device out? It will need to sign in again.')) return;
+  el.disabled = true;
+  var d = await apiCall('DELETE', '/api/me/sessions/' + encodeURIComponent(sid));
+  if (!d || d.error) {
+    if (d && d.authExpired) return;
+    el.disabled = false;
+    bbDevMsg(String((d && d.error) || 'Could not log that device out.'), 'err');
+    return;
+  }
+  if (isCurrent || d.current) { bbLocalLogoutAfterRevoke(); return; }
+  bbDevMsg('Device logged out.', 'ok');
+  bbLoadDevices();
+}
+
+async function bbLogoutOtherDevices() {
+  if (!confirm('Log out of every other device? This device stays signed in.')) return;
+  var b = document.getElementById('bbDevOthersBtn');
+  if (b) { b.disabled = true; b.textContent = 'Logging out…'; }
+  var d = await apiCall('POST', '/api/me/sessions/logout-others', {});
+  if (!d || d.error) {
+    if (d && d.authExpired) return;
+    if (b) b.disabled = false;
+    bbDevMsg(String((d && d.error) || 'Could not log the other devices out.'), 'err');
+    bbLoadDevices();
+    return;
+  }
+  bbAdoptToken(d.token);
+  var n = Number(d.logged_out) || 0;
+  bbDevMsg(n ? n + (n === 1 ? ' device was' : ' devices were') + ' logged out.' : 'Every other device is logged out.', 'ok');
+  bbLoadDevices();
+}
+
+async function bbLogoutAllDevices() {
+  if (!confirm('Log out of all devices, including this one? You will need to sign in again everywhere.')) return;
+  var d = await apiCall('POST', '/api/me/sessions/logout-all', {});
+  if (d && d.error && !d.authExpired) { bbDevMsg(String(d.error), 'err'); return; }
+  if (d && d.authExpired) return;
+  bbLocalLogoutAfterRevoke();
+}
+
+/** This device's session is already ended on the server: clear it locally, no second call. */
+function bbLocalLogoutAfterRevoke() {
+  try { closeModal('bbDevicesModal'); } catch (e) {}
+  if (window.currentUser) window.currentUser.token = null;
+  var role = window.currentUser && window.currentUser.role;
+  if (role === 'admin') logoutAdmin();
+  else if (role === 'superadmin') logoutSuperadmin();
+  else if (role === 'operator' && typeof logoutOperator === 'function') logoutOperator();
+  else logoutUser();
+  try { showPopup('Logged out', 'You have been logged out of this device.', '', 'OK'); } catch (e) {}
+}
+
 function logoutUser() {
   // Before currentUser is cleared: wipe this account's on-device messages.
   if (window.BBGroupChat && typeof window.BBGroupChat.forget === 'function') window.BBGroupChat.forget();
   if (typeof unregisterNativePush === 'function') unregisterNativePush();
+  // End this login on the server too (Profile → Devices).
+  bbServerLogout();
   if (typeof wkLogoutTimerCleanup === 'function') wkLogoutTimerCleanup();
   if (typeof window.bbPlanReset === 'function') window.bbPlanReset();
   // Reset muscle ranking cache so next login fetches fresh data
@@ -24134,6 +24924,7 @@ function bbNutritionDailyStatsNorm(stats) {
     totalFat: stats.total_fat,
     totalFiber: stats.total_fiber,
     calorieGoal: stats.calorie_goal,
+    calorieGoalSource: stats.calorie_goal_source,
     proteinGoal: stats.protein_goal,
     mealsLogged: stats.meals_logged,
     caloriesOut: stats.calories_out,
@@ -25508,10 +26299,15 @@ function nutritionUpdateSummaryFromState() {
   if (el = document.getElementById('nutriTotPro')) el.textContent = totPro + 'g';
   if (el = document.getElementById('nutriTotCarb')) el.textContent = totCarb + 'g';
   if (el = document.getElementById('nutriTotFat')) el.textContent = totFat + 'g';
-  var calPct = Math.min(100, Math.round((totCal / cg) * 100));
+  var calPctRaw = cg > 0 ? Math.round((totCal / cg) * 100) : 0;
+  var calPct = Math.min(100, calPctRaw);
   var proPct = Math.min(100, Math.round((totPro / pg) * 100));
-  if (el = document.getElementById('nutriPbCal')) el.style.width = calPct + '%';
-  if (el = document.getElementById('nutriPpCal')) el.textContent = calPct + '%';
+  if (el = document.getElementById('nutriPbCal')) {
+    el.style.width = calPct + '%';
+    el.className = 'prog-fill ' + (calPctRaw > 100 ? 'red' : 'amber');
+  }
+  if (el = document.getElementById('nutriPpCal')) el.textContent = calPctRaw + '%';
+  nutritionRenderCalorieBalance(totCal, cg);
   if (el = document.getElementById('nutriPbPro')) el.style.width = proPct + '%';
   if (el = document.getElementById('nutriPpPro')) el.textContent = proPct + '%';
   var confMeta = nutritionSummarizeDailyConfidence();
@@ -25533,6 +26329,80 @@ function nutritionUpdateSummaryFromState() {
       confRow.textContent = '';
     }
   }
+}
+
+// Calorie balance vs the day's target. "Under" is a deficit against the target so far,
+// "over" a surplus. Wording stays factual: no grades, no scores (members never see one).
+function nutritionCalorieBalance(totCal, target) {
+  var eaten = Math.max(0, Math.round(Number(totCal) || 0));
+  var goal = Math.max(0, Math.round(Number(target) || 0)) || 2000;
+  var diff = goal - eaten;
+  var state = diff < 0 ? 'over' : (diff <= Math.max(50, goal * 0.03) ? 'hit' : (diff <= goal * 0.15 ? 'near' : 'under'));
+  return { eaten: eaten, goal: goal, diff: diff, left: Math.max(0, diff), over: Math.max(0, -diff), pct: goal ? Math.round((eaten / goal) * 100) : 0, state: state };
+}
+
+function nutritionKcal(n) {
+  try { return Math.round(Number(n) || 0).toLocaleString('en-IN'); } catch (e) { return String(Math.round(Number(n) || 0)); }
+}
+
+function nutritionRenderCalorieBalance(totCal, target, fresh) {
+  var box = document.getElementById('nutriCalBalance');
+  if (!box) return;
+  var b = nutritionCalorieBalance(totCal, target);
+  var personal = bbNutritionState.goals && bbNutritionState.goals.calSource === 'assessment';
+  var chip = { under: 'Under target', near: 'Almost there', hit: 'Target reached', over: 'Over target' }[b.state];
+  var big, sub, note;
+  if (b.state === 'over') {
+    big = nutritionKcal(b.over); sub = 'kcal over your target';
+    note = 'You are <strong>' + nutritionKcal(b.over) + ' kcal over</strong> your target today, a surplus. Keep the rest of today light and lean on protein and vegetables.';
+  } else if (b.state === 'hit') {
+    big = nutritionKcal(b.eaten); sub = 'kcal, right on your target';
+    note = 'You have reached today&apos;s target' + (b.left ? ' with <strong>' + nutritionKcal(b.left) + ' kcal</strong> to spare' : '') + '. Anything more today moves you into a surplus.';
+  } else {
+    big = nutritionKcal(b.left); sub = 'kcal left for today';
+    note = 'So far you are <strong>' + nutritionKcal(b.left) + ' kcal under</strong> your target, a deficit for now. ' +
+      (b.state === 'near' ? 'A light meal or snack still fits.' : 'Plenty of room for your next meals.');
+  }
+  var R = 31, C = 2 * Math.PI * R;
+  var ringPct = Math.min(100, b.pct);
+  var eatenW = b.state === 'over' ? (b.goal / b.eaten) * 100 : Math.min(100, b.pct);
+  var overW = b.state === 'over' ? 100 - eatenW : 0;
+  box.setAttribute('data-state', b.state);
+  box.innerHTML =
+    '<div class="nutri-cal-head"><span class="nutri-cal-eyebrow">Calorie balance</span><span class="nutri-cal-chip">' + chip + '</span></div>' +
+    '<div class="nutri-cal-main">' +
+      '<div class="nutri-cal-big"><b>' + big + '</b><span>' + sub + '</span></div>' +
+      '<div class="nutri-cal-ring" role="img" aria-label="' + b.pct + ' percent of your calorie target eaten">' +
+        '<svg viewBox="0 0 74 74"><circle class="bg" cx="37" cy="37" r="' + R + '"></circle>' +
+        '<circle class="fg" cx="37" cy="37" r="' + R + '" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + (C * (1 - ringPct / 100)).toFixed(1) + '"></circle></svg>' +
+        '<em>' + b.pct + '%<small>eaten</small></em>' +
+      '</div>' +
+    '</div>' +
+    '<div class="nutri-cal-bar" aria-hidden="true"><i style="width:' + eatenW.toFixed(1) + '%"></i>' + (overW > 0 ? '<i class="over" style="width:' + overW.toFixed(1) + '%"></i>' : '') + '</div>' +
+    '<div class="nutri-cal-stats">' +
+      '<div class="nutri-cal-stat"><span>Eaten</span><b>' + nutritionKcal(b.eaten) + '<small>kcal</small></b></div>' +
+      '<div class="nutri-cal-stat"><span>Target</span><b>' + nutritionKcal(b.goal) + '<small>kcal</small></b></div>' +
+      '<div class="nutri-cal-stat is-key"><span>' + (b.state === 'over' ? 'Over' : 'Left') + '</span><b>' + (b.state === 'over' ? '+' + nutritionKcal(b.over) : nutritionKcal(b.left)) + '<small>kcal</small></b></div>' +
+    '</div>' +
+    '<p class="nutri-cal-note">' + note + '</p>' +
+    '<p class="nutri-cal-src">' + (personal
+      ? 'Your personal daily target, from your nutrition assessment.'
+      : 'Standard ' + nutritionKcal(b.goal) + ' kcal daily target. Your coach can set a personal target through your nutrition assessment.') + '</p>';
+  if (fresh) {
+    box.classList.remove('is-fresh');
+    void box.offsetWidth;
+    box.classList.add('is-fresh');
+  }
+}
+
+/** One line for the toast right after a meal is saved. */
+function nutritionBalanceLine() {
+  var vals = Object.keys(bbNutritionState.results).map(function (k) { return bbNutritionState.results[k]; }).filter(Boolean);
+  var tot = vals.reduce(function (s, r) { return s + (parseInt(r.calories, 10) || 0); }, 0);
+  var b = nutritionCalorieBalance(tot, bbNutritionState.goals.cal || 2000);
+  if (b.state === 'over') return nutritionKcal(b.over) + ' kcal over target';
+  if (b.state === 'hit') return 'target reached';
+  return nutritionKcal(b.left) + ' kcal left today';
 }
 
 function nutritionApplyEnergyRow(statsNorm) {
@@ -25683,6 +26553,7 @@ async function nutritionAnalyzeSingle(mt, opts) {
   bbNutritionState.reportSentToday = false;
   var ds = bbNutritionDailyStatsNorm(data.dailyStats);
   if (ds && ds.calorieGoal != null) bbNutritionState.goals.cal = ds.calorieGoal;
+  if (ds && ds.calorieGoalSource) bbNutritionState.goals.calSource = ds.calorieGoalSource;
   if (ds && ds.proteinGoal != null) bbNutritionState.goals.pro = ds.proteinGoal;
   nutritionRenderMealResult(mt, data.aiResult, data.mealScore, mc);
   nutritionToggleSlot(mt, true);
@@ -25699,8 +26570,15 @@ async function nutritionAnalyzeSingle(mt, opts) {
   nutritionSetPhotoRemovable(mt, true);
   nutritionDraftRemoveMealPhoto(mt, nutritionTodayYmd());
   nutritionSetAnalyzeLocked(mt, true);
-  if ((mc && mc.level === 'low') || conf === 'low') nutritionShowToast('Low confidence — consider a clearer photo', 'warn');
-  else nutritionShowToast('Saved: ' + mt, 'success');
+  var balLine = nutritionBalanceLine();
+  var mtLabel = String(mt || 'Meal').charAt(0).toUpperCase() + String(mt || 'meal').slice(1);
+  if ((mc && mc.level === 'low') || conf === 'low') nutritionShowToast('Low confidence, consider a clearer photo · ' + balLine, 'warn');
+  else nutritionShowToast(mtLabel + ' saved · ' + balLine, 'success');
+  (function () {
+    var calBox = document.getElementById('nutriCalBalance');
+    if (!calBox) return;
+    calBox.classList.remove('is-fresh'); void calBox.offsetWidth; calBox.classList.add('is-fresh');
+  })();
   if (data.streak != null) {
     var sb = document.getElementById('nutritionStreakBar');
     var sc = document.getElementById('nutritionStreakCount');
@@ -25814,6 +26692,7 @@ async function loadNutritionCheckinPanel() {
   bbNutritionState.reportSentToday = meals.some(function (m) { return !!(m && m.notified_at); });
   var ds = bbNutritionDailyStatsNorm(data.dailyStats);
   if (ds && ds.calorieGoal != null) bbNutritionState.goals.cal = ds.calorieGoal;
+  if (ds && ds.calorieGoalSource) bbNutritionState.goals.calSource = ds.calorieGoalSource;
   if (ds && ds.proteinGoal != null) bbNutritionState.goals.pro = ds.proteinGoal;
   nutritionUpdateSummaryFromState();
   nutritionApplyEnergyRow(ds);
@@ -29132,6 +30011,7 @@ async function loadProfile() {
     window.currentUser.stress_level_baseline = data.stress_level_baseline != null ? Number(data.stress_level_baseline) : null;
     persistCurrentSession();
   }
+  if (typeof bbpAfterLoad === 'function') bbpAfterLoad(data);
   if (bbProfileNeedsHeight({ role: window.currentUser.role, height_cm: data.height_cm })) {
     bbOpenHeightRequiredModal();
   } else {
@@ -29341,6 +30221,8 @@ async function handleAvatarUpload(event) {
     setProfileAvatar(base64);
     setUserWelcomeAvatar(base64);
     window._pendingAvatar = base64;
+    // Profile: a new photo saves straight away (no need to press Save).
+    if (typeof bbpSaveAvatar === 'function') bbpSaveAvatar();
   } catch (err) {
     showPopup('Upload Error', err.message || 'Could not upload photo.', '', 'OK', null, 'error');
     if (window.currentUser && window.currentUser.profile_picture) {
@@ -29468,7 +30350,8 @@ async function saveProfile() {
   document.getElementById('userWelcomeName').textContent = body.first_name || 'User';
   if (successEl) { successEl.style.display = 'block'; successEl.style.textAlign = 'center'; }
   document.querySelectorAll('#usec-profile .form-input').forEach(function(inp) { inp.classList.add('has-success'); });
-  showPopup('Profile Updated', 'Your information has been saved.', '', 'OK');
+  if (typeof bbpAfterSave === 'function') bbpAfterSave();
+  else showPopup('Profile Updated', 'Your information has been saved.', '', 'OK');
   if (body.height_cm !== undefined && typeof loadNutritionCheckinPanel === 'function') loadNutritionCheckinPanel();
 }
 
@@ -31163,6 +32046,8 @@ function logoutSuperadmin() {
   // Before currentUser is cleared: wipe this account's on-device messages.
   if (window.BBGroupChat && typeof window.BBGroupChat.forget === 'function') window.BBGroupChat.forget();
   if (typeof unregisterNativePush === 'function') unregisterNativePush();
+  // End this login on the server too (Profile → Devices).
+  bbServerLogout();
   if (typeof bbNotifyResetSoundState === 'function') bbNotifyResetSoundState();
   if (navigator.clearAppBadge) navigator.clearAppBadge().catch(function(){});
   document.getElementById('superadminPanel').classList.remove('open');

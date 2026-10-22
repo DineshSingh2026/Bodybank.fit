@@ -154,19 +154,41 @@ function signToken(payload) {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: JWT_EXPIRY });
 }
 
-function verifyToken(req, res, next) {
+// Login sessions (services/sessionService.js), plugged in by server.js. When unset
+// (unit and API tests that mount routers on their own) tokens are checked exactly as
+// before: signature and expiry only.
+let _sessionStore = null;
+function setSessionStore(store) { _sessionStore = store || null; }
+
+async function verifyToken(req, res, next) {
+  let decoded;
+  let token;
   try {
     const authHeader = req.headers.authorization;
-    const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : (req.body?.token || req.query?.token);
+    token = authHeader && authHeader.startsWith('Bearer ') ? authHeader.slice(7) : (req.body?.token || req.query?.token);
     if (!token) {
       return res.status(401).json({ error: 'Authentication required' });
     }
-    const decoded = jwt.verify(token, JWT_SECRET);
-    req.user = decoded;
-    next();
+    decoded = jwt.verify(token, JWT_SECRET);
   } catch (e) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
+  // A logged-out device, or any login from before a password change / "log out
+  // everywhere", gets the same 401 the apps already treat as an expired session.
+  if (_sessionStore && decoded && decoded.id) {
+    let verdict = null;
+    try {
+      verdict = await _sessionStore.check(decoded, req, token);
+    } catch (e) {
+      // Session DB unreachable: fail open rather than log every member out; every
+      // route behind this needs the same database anyway.
+      console.warn('[auth] session check skipped:', e.message);
+    }
+    if (verdict && !verdict.ok) return res.status(401).json({ error: 'Invalid or expired token' });
+    if (verdict && verdict.sid) req.sessionId = verdict.sid;
+  }
+  req.user = decoded;
+  return next();
 }
 
 function requireAdmin(req, res, next) {
@@ -331,4 +353,4 @@ function verifyGroupAttachmentToken(token) {
   }
 }
 
-module.exports = { signRenewToken, verifyRenewToken, signToken, verifyToken, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, verifyGoogleIdToken, GOOGLE_IOS_CLIENT_ID, JWT_SECRET };
+module.exports = { signRenewToken, verifyRenewToken, signToken, verifyToken, setSessionStore, requireAdmin, requireSelfOrStaff, requireSuperadmin, requireAdminOrSuperadmin, requireOperator, signProgressReportToken, verifyProgressReportToken, signShareToken, verifyShareToken, signPdfAccessToken, verifyPdfAccessToken, signGroupAttachmentToken, verifyGroupAttachmentToken, verifyAppleIdentityToken, verifyGoogleIdToken, GOOGLE_IOS_CLIENT_ID, JWT_SECRET };

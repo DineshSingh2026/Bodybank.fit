@@ -271,7 +271,7 @@
     need.forEach(function (id) { S.lastLoaded[id] = true; S.last[id] = (r.data.last || {})[id] || null; });
   }
   async function loadHistory() {
-    var r = await api('GET', '/api/coach/workouts?limit=5');
+    var r = await api('GET', '/api/coach/workouts?limit=20');
     S.history = r.ok ? (r.data.workouts || []) : null;
   }
 
@@ -430,17 +430,108 @@
     if (S.step === 'log' && S.params.watch) startWatch();
   }
 
+  /* ---- small view helpers ---- */
+  function ico(name) {
+    var p = {
+      upper: '<path d="M7 20v-5.5c0-1.8-1.6-2.4-2.6-3.6C3.3 9.6 3.6 7.5 5 6.4c1.6-1.2 3.7-.6 4.6 1.1l1 1.9 2.4-1.2c1.2-.6 2.6-.4 3.5.5l2.2 2.3c.8.8.9 2.1.2 3l-2.1 2.6V20"/><path d="M9.6 9.4 12 13"/>',
+      lower: '<path d="M9 3v7.5L7.2 20h3.6L13 12l2.2 8h3.6L16 10.5V3"/><path d="M9 6.5h7"/>',
+      core: '<rect x="6" y="3.5" width="12" height="17" rx="5"/><path d="M12 3.5v17M6.5 9h11M6.5 14.5h11"/>',
+      full: '<circle cx="12" cy="4.5" r="2"/><path d="M12 7v6.5M5 9.5l7 1.5 7-1.5M12 13.5 8.5 21M12 13.5 15.5 21"/>',
+      clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
+      layers: '<path d="M12 3 2.8 7.8 12 12.6l9.2-4.8z"/><path d="m2.8 12.2 9.2 4.8 9.2-4.8"/><path d="m2.8 16.4 9.2 4.8 9.2-4.8"/>',
+      bolt: '<path d="M13 2.5 5 13.5h6l-1 8 8-11h-6z"/>',
+      trophy: '<path d="M7.5 4h9v5a4.5 4.5 0 0 1-9 0z"/><path d="M7.5 6H4.5a3 3 0 0 0 3 4M16.5 6h3a3 3 0 0 1-3 4M12 13.5V17M8.5 20.5h7M9.5 17h5v3.5h-5z"/>',
+      flame: '<path d="M12 21c-3.6 0-6-2.5-6-5.9 0-3.2 2.2-5 3.3-7.6.4 1.6 1.4 2.6 2.5 3.2-.2-2.9.8-5.7 3.2-7.7.2 3 3 5 3 8.9 0 1.1-.2 2.1-.6 3 .1-1.3-.5-2.4-1.3-3 .2 2.8-1.2 4.6-2.6 5.4"/><path d="M12 21c-1.6 0-2.8-1.2-2.8-2.8 0-1.8 1.5-2.6 2-4.2.9.8 3.6 2.2 3.6 4.3 0 1.5-1.2 2.7-2.8 2.7z"/>',
+      history: '<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5"/><path d="M3.5 3.5v5h5"/><path d="M12 8v4.5l3 1.8"/>',
+      target: '<circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.8"/><circle cx="12" cy="12" r="1.2"/>',
+      play: '<path d="M8 5.2v13.6a.8.8 0 0 0 1.2.7l10.6-6.8a.8.8 0 0 0 0-1.4L9.2 4.5A.8.8 0 0 0 8 5.2z" fill="currentColor"/>',
+      chev: '<path d="M9 18l6-6-6-6"/>',
+      plus: '<path d="M12 5v14M5 12h14"/>',
+      minus: '<path d="M5 12h14"/>',
+      edit: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/>',
+      cloud: '<path d="M7 18.5a4.5 4.5 0 0 1-.6-8.96 6 6 0 0 1 11.5 1.46A3.75 3.75 0 0 1 17.25 18.5z"/>',
+      warn: '<path d="M12 3.5 2.5 20h19z"/><path d="M12 10v4.5M12 17.2v.3"/>',
+      drop: '<path d="M12 3s6 6.6 6 11a6 6 0 0 1-12 0c0-4.4 6-11 6-11z"/>',
+      book: '<path d="M4.5 5.5A2 2 0 0 1 6.5 3.5H19.5v15H6.5a2 2 0 0 0-2 2z"/><path d="M4.5 20.5v-15"/>',
+      ai: '<rect x="3.5" y="6.5" width="13" height="11" rx="2.5"/><path d="m16.5 10.5 4-2.5v8l-4-2.5"/>',
+      next: '<path d="M5 12h12M13 6l6 6-6 6"/>'
+    }[name] || '';
+    return '<svg class="bbcm-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + p + '</svg>';
+  }
+  function cap(s) { s = String(s || ''); return s.charAt(0).toUpperCase() + s.slice(1); }
+  function daysAgo(ymd) {
+    if (!ymd) return '';
+    var t = Date.parse(String(ymd).slice(0, 10) + 'T00:00:00');
+    var today = Date.parse(localYmd() + 'T00:00:00');
+    if (!isFinite(t)) return '';
+    var n = Math.round((today - t) / 86400000);
+    if (n <= 0) return 'Today';
+    if (n === 1) return 'Yesterday';
+    if (n < 7) return n + ' days ago';
+    if (n < 14) return 'Last week';
+    if (n < 60) return Math.round(n / 7) + ' weeks ago';
+    return Math.round(n / 30) + ' months ago';
+  }
+  function eachWord(it) { return it.per_side ? (/(lunge|leg|squat|step|calf|glute|kick)/i.test(it.name) ? ' each leg' : ' each side') : ''; }
+  function setText(it, s) {
+    if (!s) return '';
+    if (it.unit === 'seconds') return (s.seconds || 0) + ' s';
+    return (it.load_type === 'kg' && s.load_kg != null ? fmtKg(s.load_kg) + ' kg × ' : '') + (s.reps || 0);
+  }
+  /** Heaviest set of the last session (most reps for bodyweight, longest for holds). */
+  function topSet(it, last) {
+    if (!last || !last.sets || !last.sets.length) return null;
+    var best = last.sets[0];
+    last.sets.forEach(function (s) {
+      var a = it.unit === 'seconds' ? (s.seconds || 0) : (it.load_type === 'kg' ? (Number(s.load_kg) || 0) * 1000 + (s.reps || 0) : (s.reps || 0));
+      var b = it.unit === 'seconds' ? (best.seconds || 0) : (it.load_type === 'kg' ? (Number(best.load_kg) || 0) * 1000 + (best.reps || 0) : (best.reps || 0));
+      if (a > b) best = s;
+    });
+    return best;
+  }
+  function bestText(it, last) {
+    if (!last) return '';
+    if (it.unit === 'seconds') return last.best_seconds ? last.best_seconds + ' s' : '';
+    if (it.load_type === 'kg') return last.best_load_kg ? fmtKg(last.best_load_kg) + ' kg' : '';
+    return last.best_reps ? last.best_reps + ' reps' : '';
+  }
+  function musclesOf(items) {
+    var pri = [], sec = [];
+    items.forEach(function (it) {
+      (it.primary || it.primary_muscles || []).forEach(function (m) { if (pri.indexOf(m) < 0) pri.push(m); });
+      (it.secondary || it.secondary_muscles || []).forEach(function (m) { if (sec.indexOf(m) < 0) sec.push(m); });
+    });
+    return { pri: pri, sec: sec.filter(function (m) { return pri.indexOf(m) < 0; }) };
+  }
+  function ring(pct, size, stroke) {
+    var r = (size - stroke) / 2, c = 2 * Math.PI * r;
+    var off = c * (1 - Math.max(0, Math.min(100, pct)) / 100);
+    return '<svg class="bbcm-ring" viewBox="0 0 ' + size + ' ' + size + '" width="' + size + '" height="' + size + '" aria-hidden="true">' +
+      '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" stroke-width="' + stroke + '" class="bbcm-ring-bg"/>' +
+      '<circle cx="' + size / 2 + '" cy="' + size / 2 + '" r="' + r + '" stroke-width="' + stroke + '" class="bbcm-ring-fg" stroke-dasharray="' + c.toFixed(2) + '" stroke-dashoffset="' + off.toFixed(2) + '"/></svg>';
+  }
+  function weekStats() {
+    var h = S.history || [];
+    var weekAgo = Date.parse(localYmd() + 'T00:00:00') - 6 * 86400000;
+    var n = 0, vol = 0, sets = 0;
+    h.forEach(function (w) {
+      var t = Date.parse(String(w.local_date).slice(0, 10) + 'T00:00:00');
+      if (t >= weekAgo) { n++; vol += Number(w.total_volume_kg) || 0; sets += Number(w.total_sets) || 0; }
+    });
+    return { n: n, vol: vol, sets: sets };
+  }
+
   function offlineBanner() {
     var mine = myOutbox();
     var failed = mine.filter(function (x) { return x.failed; });
     var pending = mine.length - failed.length;
     var out = '';
     if (pending) {
-      out += '<div class="bbcm-banner is-offline" role="status"><span aria-hidden="true">☁️</span><span><b>' + pending + ' workout' + (pending > 1 ? 's' : '') +
+      out += '<div class="bbcm-banner is-offline" role="status">' + ico('cloud') + '<span><b>' + pending + ' workout' + (pending > 1 ? 's' : '') +
         ' saved on this phone,</b> will sync when you are back online.</span><button type="button" class="bbcm-link" data-act="sync">Sync now</button></div>';
     }
     if (failed.length) {
-      out += '<div class="bbcm-banner is-warn" role="alert"><span aria-hidden="true">⚠️</span><span>' + failed.length + ' workout' + (failed.length > 1 ? 's' : '') +
+      out += '<div class="bbcm-banner is-warn" role="alert">' + ico('warn') + '<span>' + failed.length + ' workout' + (failed.length > 1 ? 's' : '') +
         ' could not sync: ' + esc(failed[0].failed) + '</span><button type="button" class="bbcm-link" data-act="dropfailed">Dismiss</button></div>';
     }
     return out;
@@ -451,31 +542,47 @@
     var d = getDraft();
     var area = d ? d.area : (S.area || 'lower');
     var now = new Date();
-    var first = (S.home && S.home.first_name) || '';
-    var h = '<div class="bbcm-screen" tabindex="-1" aria-labelledby="bbcmTitle">';
-    h += '<div class="bbcm-tools" style="margin:0"><div class="bbcm-eyebrow">' + DAYS[now.getDay()] + ' · ' + now.getDate() + ' ' + MONS[now.getMonth()] + '</div>' +
+    var first = (S.home && S.home.first_name) || (user() && user().first_name) || '';
+    var hr = now.getHours();
+    var greet = hr < 12 ? 'Good morning' : (hr < 17 ? 'Good afternoon' : 'Good evening');
+    var h = '<div class="bbcm-screen bbcm-home" tabindex="-1" aria-labelledby="bbcmTitle">';
+    h += '<div class="bbcm-tools bbcm-tools-top"><div class="bbcm-eyebrow">' + DAYS[now.getDay()] + ' · ' + now.getDate() + ' ' + MONS[now.getMonth()] + '</div>' +
       '<button type="button" class="bbcm-icon-btn" data-act="close" aria-label="Close Coach Mode">' + svg('x') + '</button></div>';
-    h += '<h2 class="bbcm-h1" id="bbcmTitle">Today\'s <span class="bbcm-it">workout</span></h2>';
+    h += '<h2 class="bbcm-h1" id="bbcmTitle">' + (d ? 'Back to <span class="bbcm-it">it</span>' : 'Today\'s <span class="bbcm-it">workout</span>') + '</h2>';
+    h += '<p class="bbcm-lede">' + esc(greet + (first ? ', ' + first : '')) + '. ' + (d ? 'Your session is waiting where you left it.' : 'Pick a focus, check the plan, and let Coach Mode guide every set.') + '</p>';
     h += offlineBanner();
 
     if (S.homeErr && !S.home) {
       return h + errBox(S.homeErr === 'offline' ? 'You are offline. Coach Mode needs a connection to load exercises.' : S.homeErr, 'retryhome') + '</div>';
     }
-    if (!S.home) return h + skel([52, 120, 86, 76, 76, 76]) + '</div>';
+    if (!S.home) return h + skel([84, 92, 150, 76, 76, 76]) + '</div>';
 
-    // Area chooser (locked while a workout is in progress).
+    // Momentum strip: real numbers only.
+    var wk = weekStats();
+    var lw = S.home.last_workout;
+    var n14 = S.home.workouts_14d || 0;
+    h += '<div class="bbcm-kpis" role="list">' +
+      '<div class="bbcm-kpi" role="listitem">' + ico('flame') + '<b>' + wk.n + '</b><span>this week</span></div>' +
+      '<div class="bbcm-kpi" role="listitem">' + ico('target') + '<b>' + n14 + '</b><span>in 14 days</span></div>' +
+      '<div class="bbcm-kpi is-wide" role="listitem">' + ico('history') + '<b>' + (lw ? esc(daysAgo(lw.local_date)) : 'None yet') + '</b><span>' +
+        (lw ? esc(areaOf(lw.area).long) + ' · ' + (lw.total_sets || 0) + ' sets' : 'last session') + '</span></div>' +
+    '</div>';
+
+    // Focus tiles (locked while a workout is in progress).
+    h += '<div class="bbcm-sec-head"><span class="bbcm-sec-title">Choose your focus</span></div>';
     h += '<div class="bbcm-areas" role="group" aria-label="Body area">';
     AREAS.forEach(function (a) {
       var n = S.home.area_counts ? S.home.area_counts[a.key] : null;
       h += '<button type="button" class="bbcm-area" data-act="area" data-area="' + a.key + '" aria-pressed="' + (a.key === area) + '"' +
-        (d && a.key !== area ? ' disabled title="Finish or discard the current workout first"' : '') + '>' + a.label +
-        (n === 0 ? '<span class="bbcm-sr"> (no exercises yet)</span>' : '') + '</button>';
+        (d && a.key !== area ? ' disabled title="Finish or discard the current workout first"' : '') + '>' +
+        '<span class="bbcm-area-ico">' + ico(a.key) + '</span><span class="bbcm-area-name">' + a.label + '</span>' +
+        '<span class="bbcm-area-n">' + (n == null ? '' : n === 0 ? 'Soon' : n + ' moves') + '</span></button>';
     });
     h += '</div>';
 
     var listErr = S.listErr[area];
     var list = S.lists[area];
-    if (!d && !list && !listErr) return h + skel([110, 76, 76, 76]) + '</div>';
+    if (!d && !list && !listErr) return h + skel([150, 76, 76, 76]) + '</div>';
     if (!d && listErr && !list) return h + errBox(listErr === 'offline' ? 'You are offline. Connect to load ' + areaOf(area).long.toLowerCase() + ' exercises.' : listErr, 'retrylist') + '</div>';
     if (!d && list && !list.length) {
       return h + '<div class="bbcm-card"><div class="bbcm-empty"><b>No approved exercises yet in this area</b>Your coach is still reviewing the ' +
@@ -487,61 +594,88 @@
     items.forEach(function (it) { setsPlanned += d ? it.sets.length : it.default_sets; });
     var mins = Math.max(10, Math.round(items.reduce(function (s, it) { return s + (d ? it.sets.length : it.default_sets) * 2.6; }, 0) / 5) * 5);
     var lvl = levelOf(items, area);
+    var mus = musclesOf(items);
 
-    h += '<div class="bbcm-card is-gold"><div class="bbcm-plan"><div class="bbcm-plan-main">' +
-      '<div class="bbcm-plan-tag"><span class="bbcm-eyebrow">' + esc(areaOf(area).long) + '</span>' + (d ? '<span class="bbcm-pill">In progress</span>' : '') + '</div>' +
-      '<div class="bbcm-plan-title">' + items.length + ' exercise' + (items.length === 1 ? '' : 's') + ' · ' + setsPlanned + ' sets</div>' +
-      '<div class="bbcm-sub">' + (d ? totalDone(d) + ' of ' + totalPlanned(d) + ' sets done · started ' + clock((Date.now() - Date.parse(d.started_at)) / 1000) + ' ago' : 'About ' + mins + ' min' + (lvl ? ' · ' + lvl + ' level' : '')) + '</div>' +
-      '</div><div class="bbcm-plan-icon" aria-hidden="true">' + areaOf(area).icon + '</div></div></div>';
+    // Session card.
+    h += '<div class="bbcm-session' + (d ? ' is-live' : '') + '"><div class="bbcm-session-main">' +
+      '<div class="bbcm-plan-tag"><span class="bbcm-eyebrow">' + esc(areaOf(area).long) + (d ? '' : ' session') + '</span>' + (d ? '<span class="bbcm-pill is-live"><i></i>In progress</span>' : '') + '</div>' +
+      '<div class="bbcm-session-title">' + items.length + ' exercise' + (items.length === 1 ? '' : 's') + '</div>';
+    if (d) {
+      var pctD = totalPlanned(d) ? Math.round(totalDone(d) / totalPlanned(d) * 100) : 0;
+      h += '<div class="bbcm-meta">' +
+        '<span>' + ico('layers') + totalDone(d) + ' of ' + totalPlanned(d) + ' sets</span>' +
+        '<span>' + ico('clock') + clock((Date.now() - Date.parse(d.started_at)) / 1000) + ' elapsed</span></div>';
+      h += '</div><div class="bbcm-session-ring">' + ring(pctD, 88, 8) + '<span><b>' + pctD + '%</b><small>done</small></span></div></div>';
+    } else {
+      h += '<div class="bbcm-meta">' +
+        '<span>' + ico('clock') + 'About ' + mins + ' min</span>' +
+        '<span>' + ico('layers') + setsPlanned + ' sets</span>' +
+        (lvl ? '<span>' + ico('bolt') + cap(lvl) + '</span>' : '') + '</div>';
+      if (mus.pri.length) {
+        h += '<div class="bbcm-tags">' + mus.pri.slice(0, 5).map(function (m) { return '<span class="bbcm-tag">' + esc(cap(m)) + '</span>'; }).join('') + '</div>';
+      }
+      h += '</div><div class="bbcm-session-map" title="Muscles worked">' + muscleMap(mus.pri, mus.sec) + '</div></div>';
+    }
+    if (S.home.has_care_tags && !d) {
+      h += '<div class="bbcm-banner is-note">' + ico('target') + '<span>Your coach has tailored this exercise list for you.</span></div>';
+    }
 
-    // Context card (real data, never invented).
-    var n14 = S.home.workouts_14d || 0;
-    h += '<div class="bbcm-card"><div class="bbcm-focus"><span class="bbcm-focus-ico" aria-hidden="true">🎯</span><span>' +
-      (n14 === 0 ? '<b>Fresh start.</b> 0 workouts logged in the last 14 days, today is a good day to begin.'
-        : '<b>' + n14 + ' workout' + (n14 === 1 ? '' : 's') + '</b> logged in the last 14 days. Keep the rhythm going.') +
-      (S.home.has_care_tags ? ' Your coach has tailored this list for you.' : '') + '</span></div></div>';
-
-    h += '<div class="bbcm-tools"><span class="bbcm-sec-title" style="margin:0">' + (d ? 'Your workout' : 'Plan') + '</span>' +
-      '<button type="button" class="bbcm-link" data-act="pick">' + (d ? '+ Add exercise' : 'Edit exercises') + '</button></div>';
+    h += '<div class="bbcm-sec-head"><span class="bbcm-sec-title">' + (d ? 'Your workout' : 'The plan') + '</span>' +
+      '<button type="button" class="bbcm-link" data-act="pick">' + (d ? '+ Add exercise' : ico('edit') + ' Edit') + '</button></div>';
 
     if (!items.length) {
       h += '<div class="bbcm-card"><div class="bbcm-empty"><b>No exercises chosen</b>Pick the moves you want to do today.<br><button type="button" class="bbcm-btn" data-act="pick">Choose exercises</button></div></div>';
     }
     var curIdx = d ? (typeof d.cur === 'number' ? d.cur : 0) : 0;
+    h += '<div class="bbcm-list">';
     items.forEach(function (it, i) {
       var done = d ? doneSets(it).length : 0;
       var total = d ? it.sets.length : it.default_sets;
       var isCur = i === curIdx && (!d || done < total);
-      var meta = d ? (done + ' of ' + total + ' sets done') : (total + ' × ' + it.default_reps + (it.unit === 'seconds' ? ' s' : '') + (it.per_side ? ' each' + (/(lunge|leg|squat|step|calf|glute|kick)/i.test(it.name) ? ' leg' : ' side') : ''));
-      meta += it.primary && it.primary[0] ? ' · ' + it.primary[0] : '';
+      var isDone = d && done === total;
       var listItem = !d && list ? findIn(list, it.id) : null;
-      h += '<button type="button" class="bbcm-row' + (isCur ? ' is-current' : '') + (d && done === total ? ' is-done' : '') + '" data-act="' + (d ? 'jump' : 'guide') + '" data-i="' + i + '" data-id="' + esc(it.id) + '">' +
-        img(it.thumb, 'bbcm-thumb', '64px', '') +
+      var last = S.last[it.id];
+      var meta = d ? (done + ' of ' + total + ' sets') : (total + ' × ' + it.default_reps + (it.unit === 'seconds' ? ' s' : '') + eachWord(it));
+      if (it.primary && it.primary[0]) meta += ' · ' + cap(it.primary[0]);
+      var lastTop = topSet(it, last);
+      var hist = lastTop ? 'Last ' + setText(it, lastTop) + ' · ' + daysAgo(last.local_date) : (S.lastLoaded[it.id] ? 'New for you' : '');
+      h += '<button type="button" class="bbcm-row' + (isCur ? ' is-current' : '') + (isDone ? ' is-done' : '') + '" data-act="' + (d ? 'jump' : 'guide') + '" data-i="' + i + '" data-id="' + esc(it.id) + '">' +
+        '<span class="bbcm-row-idx" aria-hidden="true">' + (isDone ? svg('check') : (i + 1)) + '</span>' +
+        img(it.thumb, 'bbcm-thumb', '72px', '') +
         '<span class="bbcm-row-main"><span class="bbcm-row-name">' + esc(it.name) + '</span><span class="bbcm-row-meta">' + esc(meta) + '</span>' +
-        (listItem && listItem.care_notes && listItem.care_notes.length ? '<span class="bbcm-row-care">' + esc(listItem.care_notes[0]) + '</span>' : '') + '</span>' +
-        (isCur ? '<span class="bbcm-row-go">' + (d ? (done ? 'Continue' : 'Start') : 'Start') + ' →</span>' : (d && done === total ? '<span class="bbcm-row-go" aria-label="done">✓</span>' : '<span class="bbcm-row-chev" aria-hidden="true">›</span>')) +
+        (hist ? '<span class="bbcm-row-hist' + (lastTop ? '' : ' is-new') + '">' + esc(hist) + '</span>' : '') +
+        (listItem && listItem.care_notes && listItem.care_notes.length ? '<span class="bbcm-row-care">' + ico('drop') + esc(listItem.care_notes[0]) + '</span>' : '') +
+        (d ? '<span class="bbcm-dots" aria-hidden="true">' + it.sets.map(function (s) { return '<i' + (s.done ? ' class="on"' : '') + '></i>'; }).join('') + '</span>' : '') +
+        '</span>' +
+        (isCur ? '<span class="bbcm-row-go">' + (d ? (done ? 'Continue' : 'Start') : 'Guide') + '</span>' : '<span class="bbcm-row-chev" aria-hidden="true">' + ico('chev') + '</span>') +
         '</button>';
     });
+    h += '</div>';
 
-    if (d && totalDone(d) > 0) {
-      h += '<div class="bbcm-tools" style="justify-content:center;gap:18px"><button type="button" class="bbcm-link" data-act="finish">Finish &amp; review</button>' +
-        '<button type="button" class="bbcm-link" style="color:#f0a597" data-act="discard">Discard workout</button></div>';
-    } else if (d) {
-      h += '<div class="bbcm-tools" style="justify-content:center"><button type="button" class="bbcm-link" style="color:#f0a597" data-act="discard">Discard workout</button></div>';
+    if (d) {
+      h += '<div class="bbcm-tools bbcm-tools-center">' + (totalDone(d) > 0 ? '<button type="button" class="bbcm-link" data-act="finish">Finish &amp; review</button>' : '') +
+        '<button type="button" class="bbcm-link is-danger" data-act="discard">Discard workout</button></div>';
     }
 
     if (S.history && S.history.length && !d) {
-      h += '<div class="bbcm-card bbcm-hist" style="margin-top:6px"><div class="bbcm-sec-title">Recent Coach Mode workouts</div>';
-      S.history.slice(0, 3).forEach(function (w) {
-        h += '<div class="bbcm-hist-row"><span><b>' + esc(areaOf(w.area).long) + '</b> · ' + esc(w.local_date) + '</span><span>' + w.total_sets + ' sets' +
-          (w.total_volume_kg ? ' · ' + fmtVol(w.total_volume_kg) : '') + '</span></div>';
+      h += '<div class="bbcm-sec-head"><span class="bbcm-sec-title">Recent sessions</span>' +
+        (wk.n ? '<span class="bbcm-sec-note">' + wk.sets + ' sets' + (wk.vol ? ' · ' + fmtVol(wk.vol) : '') + ' this week</span>' : '') + '</div>';
+      h += '<div class="bbcm-hist">';
+      S.history.slice(0, 4).forEach(function (w) {
+        var names = (w.exercises || []).map(function (x) { return x.name; });
+        h += '<div class="bbcm-hist-card"><span class="bbcm-hist-ico">' + ico(areaOf(w.area).key) + '</span>' +
+          '<span class="bbcm-hist-main"><b>' + esc(areaOf(w.area).long) + '</b><small>' + esc(daysAgo(w.local_date)) +
+          (names.length ? ' · ' + esc(names.slice(0, 2).join(', ')) + (names.length > 2 ? ' +' + (names.length - 2) : '') : '') + '</small></span>' +
+          '<span class="bbcm-hist-nums"><b>' + (w.total_sets || 0) + '</b><small>sets</small></span>' +
+          (w.total_volume_kg ? '<span class="bbcm-hist-nums"><b>' + fmtVol(w.total_volume_kg).replace(' ', '<small> ') + '</small></b><small>volume</small></span>' : '') +
+          '</div>';
       });
       h += '</div>';
     }
     h += '<p class="bbcm-about">Exercise photos: free-exercise-db (public domain). Steps and cues reviewed by your BodyBank coach.</p>';
 
     h += '<div class="bbcm-cta-bar"><button type="button" class="bbcm-cta" data-act="' + (d ? 'resume' : 'start') + '"' + (items.length ? '' : ' disabled') + '>' +
-      '<span aria-hidden="true">▶</span> ' + (d ? 'Resume workout' : 'Start workout') + '</button></div>';
+      ico('play') + (d ? 'Resume workout' : 'Start workout') + '</button></div>';
     return h + '</div>';
   }
   function findIn(list, id) { for (var i = 0; i < list.length; i++) if (list[i].id === id) return list[i]; return null; }
@@ -566,12 +700,13 @@
     var d = getDraft();
     var h = '<div class="bbcm-screen" tabindex="-1" aria-labelledby="bbcmTitle">';
     h += '<div class="bbcm-top"><button type="button" class="bbcm-icon-btn" data-act="back" aria-label="Back">' + svg('left') + '</button>' +
-      '<div class="bbcm-top-title" id="bbcmTitle">' + esc(areaOf(area).long) + ' · choose</div><span style="width:44px"></span></div>';
+      '<div class="bbcm-top-title" id="bbcmTitle">' + esc(areaOf(area).long) + '</div><span class="bbcm-top-count">' + P.ids.length + '/' + MAX_EX + '</span></div>';
+    h += '<h2 class="bbcm-h2">Build your <span class="bbcm-it">session</span></h2><p class="bbcm-lede">Tap + to add a move, tap a name for its form guide. Order matters: big lifts first.</p>';
     if (!list) return h + (S.listErr[area] ? errBox(S.listErr[area] === 'offline' ? 'You are offline.' : S.listErr[area], 'retrylist') : skel([46, 64, 64, 64, 64])) + '</div>';
     if (!list.length) return h + '<div class="bbcm-card"><div class="bbcm-empty"><b>No approved exercises yet in this area</b>Try another area.</div></div></div>';
 
     if (P.ids.length) {
-      h += '<div class="bbcm-tray" aria-label="Your order"><div class="bbcm-sec-title" style="margin-bottom:6px">Your order · ' + P.ids.length + '/' + MAX_EX + '</div>';
+      h += '<div class="bbcm-tray" aria-label="Your order"><div class="bbcm-sec-head" style="margin:0 0 6px"><span class="bbcm-sec-title">Your order</span><span class="bbcm-sec-note">' + P.ids.length + ' of ' + MAX_EX + '</span></div>';
       P.ids.forEach(function (id, i) {
         var x = findIn(list, id) || (d && d.items.filter(function (it) { return it.id === id; })[0]) || { name: id };
         var locked = d && d.items.some(function (it) { return it.id === id && doneSets(it).length; });
@@ -583,7 +718,7 @@
       h += '</div>';
     }
 
-    h += '<label class="bbcm-sr" for="bbcmSearch">Search exercises</label><input id="bbcmSearch" class="bbcm-search" type="search" placeholder="Search by name or muscle" value="' + esc(P.q) + '" autocomplete="off">';
+    h += '<div class="bbcm-searchbar"><label class="bbcm-sr" for="bbcmSearch">Search exercises</label><input id="bbcmSearch" class="bbcm-search" type="search" placeholder="Search by name or muscle" value="' + esc(P.q) + '" autocomplete="off"></div>';
     var present = {};
     list.forEach(function (x) { present[EQUIP.some(function (e) { return e.key === x.equipment; }) ? x.equipment : 'other'] = 1; });
     h += '<div class="bbcm-chips" role="group" aria-label="Equipment">';
@@ -607,12 +742,14 @@
     if (!rows.length) return '<div class="bbcm-empty"><b>No matches</b>Try a different search.</div>';
     return rows.map(function (x) {
       var on = P.ids.indexOf(x.id) >= 0;
-      return '<div class="bbcm-pick' + (on ? ' is-on' : '') + '">' + img(x.thumb, 'bbcm-thumb', '56px', '') +
+      var pos = P.ids.indexOf(x.id) + 1;
+      return '<div class="bbcm-pick' + (on ? ' is-on' : '') + '">' + img(x.thumb, 'bbcm-thumb', '64px', '') +
         '<button type="button" class="bbcm-pick-main" data-act="guide" data-id="' + esc(x.id) + '" aria-label="Form guide: ' + esc(x.name) + '">' +
-        '<span class="bbcm-row-name" style="display:block">' + esc(x.name) + '</span><span class="bbcm-row-meta" style="display:block">' +
-        esc([(x.primary_muscles || [])[0], x.equipment === 'body only' ? 'bodyweight' : x.equipment].filter(Boolean).join(' · ')) + '</span>' +
-        (x.care_notes && x.care_notes.length ? '<span class="bbcm-row-care" style="display:block">' + esc(x.care_notes[0]) + '</span>' : '') + '</button>' +
-        '<button type="button" class="bbcm-check" data-act="tog" data-id="' + esc(x.id) + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Remove ' : 'Add ') + esc(x.name) + '">' + (on ? '✓' : '+') + '</button></div>';
+        '<span class="bbcm-row-name" style="display:block">' + esc(x.name) + '</span>' +
+        '<span class="bbcm-pick-tags">' + ((x.primary_muscles || []).slice(0, 2).map(function (m) { return '<span class="bbcm-tag is-sm">' + esc(cap(m)) + '</span>'; }).join('')) +
+        '<span class="bbcm-pick-eq">' + esc(x.equipment === 'body only' ? 'Bodyweight' : cap(x.equipment)) + (x.level ? ' · ' + esc(cap(x.level)) : '') + '</span></span>' +
+        (x.care_notes && x.care_notes.length ? '<span class="bbcm-row-care" style="display:flex">' + ico('drop') + esc(x.care_notes[0]) + '</span>' : '') + '</button>' +
+        '<button type="button" class="bbcm-check" data-act="tog" data-id="' + esc(x.id) + '" aria-pressed="' + on + '" aria-label="' + (on ? 'Remove ' : 'Add ') + esc(x.name) + '">' + (on ? '<b>' + pos + '</b>' : ico('plus')) + '</button></div>';
     }).join('');
   }
 
@@ -623,18 +760,25 @@
     var h = '<div class="bbcm-screen" tabindex="-1" aria-labelledby="bbcmTitle">';
     h += '<div class="bbcm-top"><button type="button" class="bbcm-icon-btn" data-act="back" aria-label="Back">' + svg('left') + '</button>' +
       '<div class="bbcm-top-title">Form guide</div><span style="width:44px"></span></div>';
-    if (!g) return h + skel([60, 150, 200, 150]) + '</div>';
+    if (!g) return h + skel([60, 180, 200, 150]) + '</div>';
     if (g.__err) return h + errBox(g.__err === 'offline' ? 'You are offline.' : g.__err, 'retryguide') + '</div>';
-    var meta = [g.mechanic, g.force, g.equipment === 'body only' ? 'bodyweight' : g.equipment, g.level].filter(Boolean).map(function (s) { return s.charAt(0).toUpperCase() + s.slice(1); });
+    var meta = [g.mechanic, g.force, g.equipment === 'body only' ? 'bodyweight' : g.equipment, g.level].filter(Boolean).map(cap);
     h += '<h2 class="bbcm-h2" id="bbcmTitle">' + esc(g.name) + '</h2><div class="bbcm-sub">' + esc(meta.join(' · ')) + '</div>';
     var ims = g.images || [];
     if (ims.length) {
       h += '<div class="bbcm-photos">' + ims.slice(0, 2).map(function (im, i) {
         return '<figure class="bbcm-photo">' + img(im, '', '(min-width:600px) 260px, 45vw', g.name + (i === 0 ? ' start position' : ' end position')) +
-          '<figcaption>' + (i + 1) + ' · ' + (i === 0 ? 'Start' : 'End') + '</figcaption></figure>';
+          '<figcaption><span>' + (i + 1) + '</span>' + (i === 0 ? 'Start' : 'Finish') + '</figcaption></figure>';
       }).join('') + '</div>';
     }
-    (g.care_notes || []).forEach(function (n) { h += '<div class="bbcm-banner is-note"><span aria-hidden="true">💧</span><span>' + esc(n) + '</span></div>'; });
+    var gm = { pri: g.primary_muscles || [], sec: g.secondary_muscles || [] };
+    if (gm.pri.length) {
+      h += '<div class="bbcm-guide-muscles"><div class="bbcm-guide-map">' + muscleMap(gm.pri, gm.sec) + '</div><div>' +
+        '<div class="bbcm-sec-title" style="margin-bottom:8px">Muscles worked</div><div class="bbcm-tags">' +
+        gm.pri.map(function (m) { return '<span class="bbcm-tag">' + esc(cap(m)) + '</span>'; }).join('') +
+        gm.sec.slice(0, 4).map(function (m) { return '<span class="bbcm-tag is-dim">' + esc(cap(m)) + '</span>'; }).join('') + '</div></div></div>';
+    }
+    (g.care_notes || []).forEach(function (n) { h += '<div class="bbcm-banner is-note">' + ico('drop') + '<span>' + esc(n) + '</span></div>'; });
     h += '<div class="bbcm-card"><div class="bbcm-sec-title">Posture checkpoints</div><ol class="bbcm-cues">' +
       (g.cues || []).map(function (c, i) { return '<li><span class="bbcm-num" aria-hidden="true">' + (i + 1) + '</span><span>' + esc(c) + '</span></li>'; }).join('') + '</ol></div>';
     if ((g.common_mistakes || []).length) {
@@ -648,7 +792,7 @@
     var inDraft = d && d.items.some(function (it) { return it.id === id; });
     h += '<div class="bbcm-cta-bar">';
     if (g.ai_form_check && g.ai_form_check_url) {
-      h += '<button type="button" class="bbcm-cta" data-act="ai" data-url="' + esc(g.ai_form_check_url) + '"><span aria-hidden="true">📹</span> Check my form with AI trainer</button>';
+      h += '<button type="button" class="bbcm-cta" data-act="ai" data-url="' + esc(g.ai_form_check_url) + '">' + ico('ai') + ' Check my form with AI trainer</button>';
     } else if (S.params.from === 'log' || inDraft) {
       h += '<button type="button" class="bbcm-cta" data-act="back">Back to workout</button>';
     } else {
@@ -670,67 +814,106 @@
     var ims = (guide && guide.images) || (it.thumb ? [it.thumb] : []);
     var showImg = ims[S.params.frame || 0] || ims[0];
     var pct = totalPlanned(d) ? Math.round(totalDone(d) / totalPlanned(d) * 100) : 0;
+    var last = S.last[it.id];
+    var editing = typeof S.params.edit === 'number';
 
-    var h = '<div class="bbcm-screen" tabindex="-1" aria-labelledby="bbcmTitle">';
+    var h = '<div class="bbcm-screen bbcm-logger" tabindex="-1" aria-labelledby="bbcmTitle">';
     h += '<div class="bbcm-top"><button type="button" class="bbcm-icon-btn" data-act="tohome" aria-label="Show workout plan">' + svg('down') + '</button>' +
       '<span class="bbcm-timer" role="timer" aria-label="Workout time"><i aria-hidden="true"></i><span id="bbcmClock">' + clock((Date.now() - Date.parse(d.started_at)) / 1000) + '</span></span>' +
       '<button type="button" class="bbcm-icon-btn" data-act="leave" aria-label="Leave workout">' + svg('x') + '</button></div>';
-    h += '<div class="bbcm-progress" role="progressbar" aria-label="Sets done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '"><i style="width:' + pct + '%"></i></div>';
-    h += '<div class="bbcm-eyebrow">Exercise ' + (i + 1) + ' of ' + d.items.length + '</div><h2 class="bbcm-h2" id="bbcmTitle">' + esc(it.name) + '</h2>';
+    // One segment per exercise, filled by its share of done sets.
+    h += '<div class="bbcm-progress bbcm-segs" role="progressbar" aria-label="Sets done" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + pct + '">' +
+      d.items.map(function (x, k) {
+        var p = x.sets.length ? Math.round(doneSets(x).length / x.sets.length * 100) : 0;
+        return '<i class="' + (k === i ? 'is-cur' : '') + '"><b style="width:' + p + '%"></b></i>';
+      }).join('') + '</div>';
+
+    if (d.rest_until && d.rest_until > Date.now()) {
+      var leftS = Math.ceil((d.rest_until - Date.now()) / 1000);
+      var totalS = Math.max(leftS, d.rest_total || leftS);
+      h += '<div class="bbcm-rest" role="timer" aria-label="Rest timer"><div class="bbcm-rest-main"><span class="bbcm-rest-lbl">Rest</span><b id="bbcmRest">' + clock(leftS) + '</b></div>' +
+        '<span class="bbcm-rest-txt">Breathe. Next: set ' + (curSetIndex(it) + 1) + ' of ' + it.sets.length + '</span>' +
+        '<button type="button" class="bbcm-btn" data-act="rest15">+15 s</button><button type="button" class="bbcm-btn is-gold" data-act="restskip">Skip</button>' +
+        '<span class="bbcm-rest-bar" aria-hidden="true"><i style="width:' + Math.round(leftS / totalS * 100) + '%;animation-duration:' + leftS + 's"></i></span></div>';
+    }
+
+    h += '<div class="bbcm-exhead"><div class="bbcm-eyebrow">Exercise ' + (i + 1) + ' of ' + d.items.length + ' · ' + esc(areaOf(d.area).long) + '</div>' +
+      '<h2 class="bbcm-h2" id="bbcmTitle">' + esc(it.name) + '</h2></div>';
 
     h += '<div class="bbcm-hero">' + (showImg ? img(showImg, '', '(min-width:600px) 540px, 92vw', it.name) : '<div style="aspect-ratio:16/10"></div>') +
       '<div class="bbcm-hero-map" title="Muscles worked">' + muscleMap(it.primary, it.secondary) + '</div>' +
-      (ims.length > 1 ? '<button type="button" class="bbcm-watch" data-act="watch" aria-pressed="' + (!!S.params.watch) + '">' + (S.params.watch ? '❚❚ STOP' : '▶ WATCH FORM') + '</button>' : '') +
+      (ims.length > 1 ? '<button type="button" class="bbcm-watch" data-act="watch" aria-pressed="' + (!!S.params.watch) + '">' + (S.params.watch ? '❚❚ Stop' : ico('play') + ' Watch form') + '</button>' : '') +
+      '<button type="button" class="bbcm-hero-guide" data-act="guide" data-id="' + esc(it.id) + '">' + ico('book') + ' Form guide</button>' +
       '</div>';
-    h += '<div class="bbcm-muscles">' + it.primary.map(function (m) { return '<span class="bbcm-muscle is-primary">' + esc(m) + '</span>'; }).join('') +
-      it.secondary.slice(0, 4).map(function (m) { return '<span class="bbcm-muscle">' + esc(m) + '</span>'; }).join('') +
-      '<button type="button" class="bbcm-link" data-act="guide" data-id="' + esc(it.id) + '" style="min-height:32px;padding:4px 6px">Form guide ›</button></div>';
+    h += '<div class="bbcm-muscles">' + it.primary.map(function (m) { return '<span class="bbcm-muscle is-primary">' + esc(cap(m)) + '</span>'; }).join('') +
+      it.secondary.slice(0, 3).map(function (m) { return '<span class="bbcm-muscle">' + esc(cap(m)) + '</span>'; }).join('') + '</div>';
 
-    var last = S.last[it.id];
-    var lastTxt = '';
-    if (last && last.sets && last.sets.length) {
-      var ls = last.sets[Math.min(si < 0 ? 0 : si, last.sets.length - 1)];
-      lastTxt = 'Last time ' + (it.unit === 'seconds' ? (ls.seconds || 0) + ' s' : (it.load_type === 'kg' && ls.load_kg != null ? fmtKg(ls.load_kg) + ' kg × ' : '') + (ls.reps || 0));
+    // Last session + best, straight from /api/coach/last.
+    var lastTop = topSet(it, last);
+    var best = bestText(it, last);
+    if (lastTop) {
+      h += '<div class="bbcm-prev"><div><span>' + ico('history') + 'Last session</span><b>' + esc(setText(it, lastTop)) + '</b><small>' + esc(daysAgo(last.local_date)) + ' · ' + last.sets.length + ' sets</small></div>' +
+        (best ? '<div><span>' + ico('trophy') + 'Your best</span><b>' + esc(best) + '</b><small>beat it today</small></div>' : '') + '</div>';
+    } else if (S.lastLoaded[it.id]) {
+      h += '<div class="bbcm-prev is-new"><div><span>' + ico('target') + 'First time</span><small>Start light, own the form, and build from here.</small></div></div>';
     }
-    h += '<div class="bbcm-sethead"><span class="bbcm-eyebrow">' + (allDone ? 'All sets done' : (typeof S.params.edit === 'number' ? 'Edit set ' : 'Set ') + (si + 1) + ' of ' + it.sets.length) + '</span>' +
-      '<span class="bbcm-last">' + esc(lastTxt) + '</span></div>';
+
+    // Set table.
+    var isKg = it.load_type === 'kg';
+    var unitLbl = it.unit === 'seconds' ? 'Time' : (it.per_side ? 'Reps/side' : 'Reps');
+    h += '<div class="bbcm-sets" role="group" aria-label="Sets"><div class="bbcm-sets-head' + (isKg ? '' : ' no-kg') + '"><span>Set</span><span>Previous</span>' + (isKg ? '<span>kg</span>' : '') + '<span>' + unitLbl + '</span><span></span></div>';
+    it.sets.forEach(function (s, k) {
+      var prev = last && last.sets ? last.sets[k] : null;
+      var cur = k === si;
+      var state = s.done ? 'is-done' : (cur ? 'is-cur' : '');
+      h += '<button type="button" class="bbcm-setrow ' + state + (isKg ? '' : ' no-kg') + '" data-act="setchip" data-k="' + k + '" aria-label="Set ' + (k + 1) + (s.done ? ', done, ' + setText(it, s) + '. Tap to edit' : cur ? ', current' : '') + '">' +
+        '<span class="bbcm-setrow-n">' + (k + 1) + '</span>' +
+        '<span class="bbcm-setrow-prev">' + (prev ? esc(setText(it, prev)) : '—') + '</span>' +
+        (isKg ? '<span class="bbcm-setrow-v">' + (s.done || cur ? fmtKg(s.load_kg) : '<i>' + fmtKg(s.load_kg) + '</i>') + '</span>' : '') +
+        '<span class="bbcm-setrow-v">' + (function (v) { return s.done || cur ? v : '<i>' + v + '</i>'; })(it.unit === 'seconds' ? (s.seconds || 0) + 's' : String(s.reps || 0)) + '</span>' +
+        '<span class="bbcm-setrow-ok">' + (s.done ? svg('check') : (cur ? '<em>' + (editing ? 'Edit' : 'Now') + '</em>' : '')) + '</span>' +
+        '</button>';
+    });
+    h += '<div class="bbcm-sets-foot">' +
+      (it.sets.length < MAX_SETS ? '<button type="button" class="bbcm-link" data-act="addset" aria-label="Add a set">' + ico('plus') + ' Add set</button>' : '<span></span>') +
+      (!allDone && it.sets.length > 1 && !editing && !it.sets[it.sets.length - 1].done ? '<button type="button" class="bbcm-link is-muted" data-act="rmset">' + ico('minus') + ' Remove last</button>' : '') +
+      '</div></div>';
 
     if (!allDone) {
+      h += '<div class="bbcm-sethead"><span class="bbcm-eyebrow">' + (editing ? 'Edit set ' : 'Set ') + (si + 1) + ' of ' + it.sets.length + '</span>' +
+        '<span class="bbcm-last">' + (prevHint(it, last, si)) + '</span></div>';
       var steppers = [];
-      if (it.load_type === 'kg') steppers.push(stepper('load', 'Load', fmtKg(set.load_kg), 'kg', it.step));
+      if (isKg) steppers.push(stepper('load', 'Weight', fmtKg(set.load_kg), 'kg', it.step));
       if (it.unit === 'seconds') steppers.push(stepper('seconds', 'Time', set.seconds || 0, 's', 5));
       else steppers.push(stepper('reps', it.per_side ? 'Reps each side' : 'Reps', set.reps || 0, 'reps', 1));
       h += '<div class="bbcm-steppers' + (steppers.length === 1 ? ' is-single' : '') + '">' + steppers.join('') + '</div>';
-      if (it.load_type === 'bodyweight') h += '<div class="bbcm-bw" style="margin-top:-6px">Bodyweight move, no load to log.</div>';
+      if (it.load_type === 'bodyweight') h += '<div class="bbcm-bw">Bodyweight move, no load to log.</div>';
       if (it.unit === 'seconds') {
-        h += '<button type="button" class="bbcm-btn bbcm-holdbtn" data-act="hold" aria-pressed="' + !!S.hold + '">' + (S.hold ? '■ Stop timer' : '▶ Time this hold') + '</button>';
+        h += '<button type="button" class="bbcm-btn bbcm-holdbtn" data-act="hold" aria-pressed="' + !!S.hold + '">' + (S.hold ? '■ Stop timer' : ico('play') + ' Time this hold') + '</button>';
       }
+    } else {
+      h += '<div class="bbcm-alldone">' + svg('check') + '<span><b>All sets done.</b> ' + (i < d.items.length - 1 ? 'Great work, move on when you are ready.' : 'That was the last exercise.') + '</span></div>';
     }
 
-    h += '<div class="bbcm-setchips" role="group" aria-label="Sets">';
-    it.sets.forEach(function (s, k) {
-      var label = s.done ? '✓ ' + setLabel(it, s) : (k === si ? 'SET ' + (k + 1) : String(k + 1));
-      h += '<button type="button" class="bbcm-setchip' + (s.done ? ' is-done' : '') + (k === si ? ' is-cur' : '') + '" data-act="setchip" data-k="' + k + '" aria-label="Set ' + (k + 1) + (s.done ? ', done, ' + setLabel(it, s) + '. Tap to edit' : '') + '">' + esc(label) + '</button>';
-    });
-    if (it.sets.length < MAX_SETS) h += '<button type="button" class="bbcm-setchip is-add" data-act="addset" aria-label="Add a set">+</button>';
-    h += '</div>';
-    if (!allDone && it.sets.length > 1 && typeof S.params.edit !== 'number' && !it.sets[it.sets.length - 1].done) {
-      h += '<div style="display:flex;justify-content:flex-end;margin:-8px 0 6px"><button type="button" class="bbcm-link" data-act="rmset" style="min-height:36px;padding:4px 2px;font-size:12px;color:var(--cm-muted)">Remove last set</button></div>';
-    }
-
-    if (d.rest_until && d.rest_until > Date.now()) {
-      h += '<div class="bbcm-rest" role="timer" aria-label="Rest timer"><b id="bbcmRest">' + clock((d.rest_until - Date.now()) / 1000) + '</b><span>Rest</span>' +
-        '<button type="button" class="bbcm-btn" data-act="rest15">+15 s</button><button type="button" class="bbcm-btn" data-act="restskip">Skip</button></div>';
+    var nx = d.items[i + 1];
+    if (nx) {
+      h += '<button type="button" class="bbcm-upnext" data-act="upnext" data-i="' + (i + 1) + '">' + img(nx.thumb, 'bbcm-thumb', '56px', '') +
+        '<span><small>Up next</small><b>' + esc(nx.name) + '</b><em>' + nx.sets.length + ' sets' + (nx.primary && nx.primary[0] ? ' · ' + esc(cap(nx.primary[0])) : '') + '</em></span>' + ico('chev') + '</button>';
     }
 
     var ctaLabel, ctaAct;
-    if (typeof S.params.edit === 'number') { ctaLabel = '✓ Update set ' + (si + 1); ctaAct = 'saveset'; }
-    else if (!allDone) { ctaLabel = '✓ Finish set ' + (si + 1); ctaAct = 'saveset'; }
-    else if (i < d.items.length - 1) { ctaLabel = 'Next exercise →'; ctaAct = 'nextex'; }
+    if (editing) { ctaLabel = svg('check') + ' Update set ' + (si + 1); ctaAct = 'saveset'; }
+    else if (!allDone) { ctaLabel = svg('check') + ' Complete set ' + (si + 1); ctaAct = 'saveset'; }
+    else if (i < d.items.length - 1) { ctaLabel = 'Next exercise ' + ico('next'); ctaAct = 'nextex'; }
     else { ctaLabel = 'Finish workout'; ctaAct = 'finish'; }
     h += '<div class="bbcm-cta-bar">';
     h += '<button type="button" class="bbcm-cta" data-act="' + ctaAct + '">' + ctaLabel + '</button></div>';
     return h + '</div>';
+  }
+  function prevHint(it, last, si) {
+    if (!last || !last.sets || !last.sets.length) return '';
+    var ls = last.sets[Math.min(si < 0 ? 0 : si, last.sets.length - 1)];
+    return 'Last time ' + esc(setText(it, ls));
   }
   function setLabel(it, s) {
     if (it.unit === 'seconds') return (s.seconds || 0) + 's';
@@ -740,9 +923,10 @@
     var nice = field === 'load' ? 'load' : field;
     var stepTxt = field === 'load' ? step + ' kg' : (field === 'seconds' ? step + ' seconds' : '1 rep');
     return '<div class="bbcm-stepper"><div class="bbcm-stepper-label" id="bbcmL_' + field + '">' + esc(label) + '</div>' +
+      '<div class="bbcm-stepper-row"><button type="button" class="bbcm-step" data-step="' + field + '" data-dir="-1" aria-label="Decrease ' + nice + ' by ' + stepTxt + '">−</button>' +
       '<div class="bbcm-stepper-val"><input id="bbcmIn_' + field + '" data-field="' + field + '" inputmode="' + (field === 'load' ? 'decimal' : 'numeric') + '" type="text" value="' + esc(val) + '" aria-labelledby="bbcmL_' + field + '" autocomplete="off"><small>' + unit + '</small></div>' +
-      '<div class="bbcm-stepper-btns"><button type="button" class="bbcm-step" data-step="' + field + '" data-dir="-1" aria-label="Decrease ' + nice + ' by ' + stepTxt + '">−</button>' +
-      '<button type="button" class="bbcm-step" data-step="' + field + '" data-dir="1" aria-label="Increase ' + nice + ' by ' + stepTxt + '">+</button></div></div>';
+      '<button type="button" class="bbcm-step" data-step="' + field + '" data-dir="1" aria-label="Increase ' + nice + ' by ' + stepTxt + '">+</button></div>' +
+      '<div class="bbcm-stepper-hint">' + (field === 'load' ? '± ' + step + ' kg' : field === 'seconds' ? '± 5 s' : '± 1') + ' · hold to repeat</div></div>';
   }
 
   /* ---- summary ---- */
@@ -750,7 +934,7 @@
     var d = getDraft();
     var R = S.saveResult;
     var snap = d || (R && R.snapshot);
-    var h = '<div class="bbcm-screen bbcm-center" tabindex="-1" aria-labelledby="bbcmTitle">';
+    var h = '<div class="bbcm-screen bbcm-center bbcm-summary" tabindex="-1" aria-labelledby="bbcmTitle">';
     if (!snap) { S.step = 'home'; return vHome(); }
     var items = snap.items.filter(function (it) { return doneSets(it).length; });
     var sets = 0, vol = 0;
@@ -759,55 +943,63 @@
     var first = (S.home && S.home.first_name) || (user() && user().first_name) || '';
     var n14 = S.home ? S.home.workouts_14d : null;
 
-    h += '<div class="bbcm-done-ring" aria-hidden="true">' + svg('check') + '</div>';
-    h += '<div class="bbcm-eyebrow">Workout complete</div>';
-    h += '<h2 class="bbcm-h1" id="bbcmTitle" style="margin:8px 0 6px">Strong work' + (first ? ', <span class="bbcm-it">' + esc(first) + '</span>' : '') + '</h2>';
-    h += '<div class="bbcm-sub">' + (n14 === 0 ? 'First workout logged in 14+ days 🔥' : 'Every set logged counts.') + '</div>';
-    h += '<div class="bbcm-stats"><div class="bbcm-stat"><b>' + Math.max(1, Math.round(dur / 60)) + '<small>min</small></b><span>duration</span></div>' +
-      '<div class="bbcm-stat"><b>' + sets + '</b><span>sets</span></div>' +
-      '<div class="bbcm-stat"><b>' + (vol >= 1000 ? (Math.round(vol / 100) / 10) + '<small>t</small>' : Math.round(vol) + '<small>kg</small>') + '</b><span>volume</span></div></div>';
+    h += '<div class="bbcm-celebrate"><div class="bbcm-done-ring" aria-hidden="true">' + svg('check') + '</div>';
+    h += '<div class="bbcm-eyebrow">Workout complete · ' + esc(areaOf(snap.area).long) + '</div>';
+    h += '<h2 class="bbcm-h1" id="bbcmTitle">Strong work' + (first ? ', <span class="bbcm-it">' + esc(first) + '</span>' : '') + '</h2>';
+    h += '<div class="bbcm-sub">' + (n14 === 0 ? 'Your first session in 14+ days. That is how it starts.' : 'Every set logged moves you forward.') + '</div></div>';
+    h += '<div class="bbcm-stats">' +
+      '<div class="bbcm-stat">' + ico('clock') + '<b>' + Math.max(1, Math.round(dur / 60)) + '<small>min</small></b><span>Duration</span></div>' +
+      '<div class="bbcm-stat">' + ico('layers') + '<b>' + sets + '</b><span>Sets</span></div>' +
+      '<div class="bbcm-stat">' + ico('bolt') + '<b>' + (vol >= 1000 ? (Math.round(vol / 100) / 10) + '<small>t</small>' : Math.round(vol) + '<small>kg</small>') + '</b><span>Volume</span></div>' +
+      '<div class="bbcm-stat">' + ico('target') + '<b>' + items.length + '</b><span>Exercises</span></div></div>';
 
-    h += '<div class="bbcm-card" style="text-align:left"><div class="bbcm-sec-title">Sets logged</div>';
     var prs = [];
-    items.forEach(function (it) {
+    var rows = items.map(function (it) {
       var ds = doneSets(it);
-      h += '<div class="bbcm-logged-row"><span>' + esc(it.name) + '</span><span>' + esc(setsLine(it, ds)) + '</span></div>';
+      var exVol = 0;
+      ds.forEach(function (s) { if (it.load_type === 'kg' && s.load_kg && s.reps) exVol += s.load_kg * s.reps; });
       var last = S.last[it.id];
       if (it.load_type === 'kg' && last && last.best_load_kg != null) {
         var top = Math.max.apply(null, ds.map(function (s) { return Number(s.load_kg) || 0; }));
-        if (top > last.best_load_kg) prs.push(it.name.split(' ').slice(-2).join(' ').toLowerCase() + ' ' + fmtKg(top) + ' kg');
+        if (top > last.best_load_kg) prs.push({ name: it.name, txt: fmtKg(top) + ' kg', was: fmtKg(last.best_load_kg) + ' kg' });
       }
+      return '<div class="bbcm-logged-row"><span class="bbcm-logged-ico">' + img(it.thumb, 'bbcm-thumb', '44px', '') + '</span>' +
+        '<span class="bbcm-logged-main"><b>' + esc(it.name) + '</b><small>' + esc(setsLine(it, ds)) + '</small></span>' +
+        '<span class="bbcm-logged-num">' + (exVol ? fmtVol(exVol) : ds.length + ' sets') + '</span></div>';
     });
-    if (prs.length) h += '<div class="bbcm-pr">🏆 New best: ' + esc(prs.join(', ')) + '</div>';
-    h += '</div>';
+    if (prs.length) {
+      h += '<div class="bbcm-prs">' + prs.map(function (p) {
+        return '<div class="bbcm-pr">' + ico('trophy') + '<span><small>New personal best</small><b>' + esc(p.name) + '</b></span><em>' + esc(p.txt) + '<small>was ' + esc(p.was) + '</small></em></div>';
+      }).join('') + '</div>';
+    }
+    h += '<div class="bbcm-card bbcm-left"><div class="bbcm-sec-title">Sets logged</div>' + rows.join('') + '</div>';
 
     if (!R || R.error) {
-      h += '<div class="bbcm-card" style="text-align:left"><label class="bbcm-sec-title" for="bbcmNotes" style="display:block">How did it feel? (optional)</label>' +
+      h += '<div class="bbcm-card bbcm-left"><label class="bbcm-sec-title" for="bbcmNotes" style="display:block">How did it feel? (optional)</label>' +
         '<textarea id="bbcmNotes" class="bbcm-notes" maxlength="500" placeholder="Energy, anything that felt off, what to change next time">' + esc((d && d.notes) || '') + '</textarea></div>';
     }
 
-    // Coins / sync state
     var coinsTxt, coinsSub;
     if (R && R.data && R.data.coins) {
       var c = R.data.coins;
-      coinsTxt = 'Coins balance ' + (c.balance != null ? c.balance : '—');
-      coinsSub = c.awarded ? '+' + c.delta + ' coins for today\'s workout' : (R.data.duplicate ? 'Already saved earlier' : 'Workout reward already earned today');
+      coinsTxt = c.awarded ? '+' + c.delta + ' coins earned' : 'Coins balance ' + (c.balance != null ? c.balance : '—');
+      coinsSub = c.awarded ? 'Balance ' + (c.balance != null ? c.balance : '—') + ' coins' : (R.data.duplicate ? 'Already saved earlier' : 'Workout reward already earned today');
       if (R.data.streak > 0) coinsSub += ' · check-in streak ' + R.data.streak + ' day' + (R.data.streak === 1 ? '' : 's');
     } else if (R && R.queued) {
       coinsTxt = 'Saved on this phone';
       coinsSub = 'It will sync and pay the workout reward when you are back online';
     } else {
       coinsTxt = 'Coins balance ' + (S.coinBalance != null ? S.coinBalance : '…');
-      coinsSub = 'workout reward shown after save';
+      coinsSub = 'Save the workout to collect today\'s reward';
     }
-    h += '<div class="bbcm-card" style="text-align:left"><div class="bbcm-coins"><span class="bbcm-coin" aria-hidden="true"></span><span><b style="display:block;font-size:16px">' + esc(coinsTxt) + '</b>' +
-      '<span class="bbcm-sub" style="display:block;font-size:12px;line-height:1.4;margin-top:2px">' + esc(coinsSub) + '</span></span></div></div>';
+    h += '<div class="bbcm-card bbcm-left bbcm-coins-card"><div class="bbcm-coins"><img class="bbcm-coin-img" src="img/bb-coin.png" width="40" height="40" alt="" aria-hidden="true"><span><b>' + esc(coinsTxt) + '</b>' +
+      '<small>' + esc(coinsSub) + '</small></span></div></div>';
 
     if (R && R.error) {
-      h += '<div class="bbcm-banner is-warn" role="alert" style="text-align:left"><span aria-hidden="true">⚠️</span><span>' + esc(R.error) +
+      h += '<div class="bbcm-banner is-warn bbcm-left" role="alert">' + ico('warn') + '<span>' + esc(R.error) +
         (R.fields && R.fields.length ? '<ul class="bbcm-errors">' + R.fields.map(function (f) { return '<li>' + esc(f) + '</li>'; }).join('') + '</ul>' : '') + '</span></div>';
     }
-    if (R && R.queued) h += '<div class="bbcm-banner is-offline" role="status" style="text-align:left"><span aria-hidden="true">☁️</span><span><b>Saved on this phone,</b> will sync.</span></div>';
+    if (R && R.queued) h += '<div class="bbcm-banner is-offline bbcm-left" role="status">' + ico('cloud') + '<span><b>Saved on this phone,</b> will sync.</span></div>';
 
     h += '<div class="bbcm-cta-bar">';
     if (R && (R.data || R.queued || R.synced)) h += '<button type="button" class="bbcm-cta" data-act="done">Done</button>';
@@ -906,6 +1098,7 @@
       var g = S.guides[it.id];
       if (g && g.mechanic === 'isolation' && it.unit !== 'seconds') rest = 60;
       d.rest_until = curSetIndex(it) >= 0 ? Date.now() + rest * 1000 : null;
+      d.rest_total = rest;
     }
     setDraft(d);
     announce('Set ' + (si + 1) + ' saved: ' + setLabel(it, s) + (curSetIndex(it) < 0 ? '. All sets done for ' + it.name : ''));
@@ -1123,6 +1316,8 @@
         try { localStorage.setItem('bb_coach_area', S.area); } catch (e) { /* ignore */ }
         render();
         await loadList(S.area);
+        render();
+        await loadLast(planFor(S.area).map(function (x) { return x.id; }));
         return render();
       case 'pick': {
         var area = d ? d.area : S.area;
@@ -1211,7 +1406,8 @@
         c3.it.sets.pop(); setDraft(c3.d); render(); return announce('Set removed');
       }
       case 'saveset': return saveSet();
-      case 'rest15': if (d && d.rest_until) { d.rest_until += 15000; setDraft(d); render(); } return;
+      case 'rest15': if (d && d.rest_until) { d.rest_until += 15000; d.rest_total = (d.rest_total || 0) + 15; setDraft(d); render(); } return;
+      case 'upnext': return nextExercise(Number(a.getAttribute('data-i')));
       case 'restskip': if (d) { d.rest_until = null; setDraft(d); render(); } return;
       case 'hold': {
         if (S.hold) {
@@ -1279,6 +1475,7 @@
       if (added.length) loadLast(added);
     } else {
       savePlanIds(area, ids);
+      loadLast(ids).then(function () { if (S.step === 'home') render(); });
     }
     S.pick = null;
     back();
@@ -1358,6 +1555,7 @@
     if (S.step === 'home') render();
     await loadList(S.area);
     if (S.step === 'home') render();
+    loadLast(planFor(S.area).map(function (x) { return x.id; })).then(function () { if (S.step === 'home') render(); });
     loadHistory().then(function () { if (S.step === 'home') render(); });
   }
   function close(fromPop) {

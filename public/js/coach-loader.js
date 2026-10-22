@@ -11,7 +11,7 @@
    ========================================================================== */
 (function () {
   'use strict';
-  var V = '1';
+  var V = '2';
   var state = { token: null, enabled: false, cssLoaded: false, jsPromise: null, adminPromise: null };
 
   function user() { return window.currentUser || null; }
@@ -38,7 +38,6 @@
   function ensureStyles() {
     if (state.cssLoaded) return;
     state.cssLoaded = true;
-    loadCss('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
     loadCss('css/coach-mode.css?v=' + V);
   }
   function ensureCoach() {
